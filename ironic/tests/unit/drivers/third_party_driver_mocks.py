@@ -116,6 +116,14 @@ if 'ironic.drivers.oneview' in sys.modules:
     six.moves.reload_module(sys.modules['ironic.drivers.modules.oneview'])
 
 
+redfish = importutils.try_import('redfish')
+if not redfish:
+    redfish = mock.MagicMock(spec_set=mock_specs.REDFISH_SPEC)
+    sys.modules['redfish'] = redfish
+if 'ironic.drivers.oneview' in sys.modules:
+    six.moves.reload_module(sys.modules['ironic.drivers.modules.oneview'])
+
+
 # attempt to load the external 'python-dracclient' library, which is required
 # by the optional drivers.modules.drac module
 dracclient = importutils.try_import('dracclient')

@@ -99,7 +99,6 @@ class OneViewPeriodicTasks(db_base.DbTestCase):
         self.config(password='password', group='oneview')
 
         mgr_utils.mock_the_extension_manager(driver='fake_oneview')
-
         self.driver = driver_factory.get_driver('fake_oneview')
         self.deploy = OneViewDriverDeploy()
         self.os_primary = mock.MagicMock(spec=METHODS)
@@ -119,9 +118,7 @@ class OneViewPeriodicTasks(db_base.DbTestCase):
         self.deploy._periodic_check_nodes_taken_by_oneview(
             self.os_primary, self.context
         )
-        mock_is_node_in_use_by_oneview.assert_called_once_with(
-            self.deploy.oneview_client, self.node
-        )
+        mock_is_node_in_use_by_oneview.assert_called_once_with(self.node)
         self.assertTrue(self.os_primary.update_node.called)
         self.assertTrue(self.os_primary.do_provisioning_action.called)
         self.assertTrue(self.node.maintenance)
@@ -139,9 +136,7 @@ class OneViewPeriodicTasks(db_base.DbTestCase):
         self.deploy._periodic_check_nodes_taken_by_oneview(
             self.os_primary, self.context
         )
-        mock_is_node_in_use_by_oneview.assert_called_once_with(
-            self.deploy.oneview_client, self.node
-        )
+        mock_is_node_in_use_by_oneview.assert_called_once_with(self.node)
         self.assertFalse(self.os_primary.update_node.called)
         self.assertFalse(self.os_primary.do_provisioning_action.called)
         self.assertFalse(self.node.maintenance)
@@ -158,9 +153,7 @@ class OneViewPeriodicTasks(db_base.DbTestCase):
         self.deploy._periodic_check_nodes_taken_by_oneview(
             self.os_primary, self.context
         )
-        mock_is_node_in_use_by_oneview.assert_called_once_with(
-            self.deploy.oneview_client, self.node
-        )
+        mock_is_node_in_use_by_oneview.assert_called_once_with(self.node)
         self.assertFalse(self.os_primary.update_node.called)
         self.assertFalse(self.os_primary.do_provisioning_action.called)
         self.assertFalse(self.node.maintenance)
@@ -177,9 +170,7 @@ class OneViewPeriodicTasks(db_base.DbTestCase):
         self.deploy._periodic_check_nodes_freed_by_oneview(
             self.os_primary, self.context
         )
-        mock_is_node_in_use_by_oneview.assert_called_once_with(
-            self.deploy.oneview_client, self.node
-        )
+        mock_is_node_in_use_by_oneview.assert_called_once_with(self.node)
         self.assertTrue(self.os_primary.update_node.called)
         self.assertTrue(self.os_primary.do_provisioning_action.called)
         self.assertFalse(self.node.maintenance)
@@ -195,9 +186,7 @@ class OneViewPeriodicTasks(db_base.DbTestCase):
         self.deploy._periodic_check_nodes_freed_by_oneview(
             self.os_primary, self.context
         )
-        mock_is_node_in_use_by_oneview.assert_called_once_with(
-            self.deploy.oneview_client, self.node
-        )
+        mock_is_node_in_use_by_oneview.assert_called_once_with(self.node)
         self.assertFalse(self.os_primary.update_node.called)
         self.assertFalse(self.os_primary.do_provisioning_action.called)
         self.assertTrue(self.node.maintenance)
@@ -215,9 +204,7 @@ class OneViewPeriodicTasks(db_base.DbTestCase):
         self.deploy._periodic_check_nodes_freed_by_oneview(
             self.os_primary, self.context
         )
-        mock_is_node_in_use_by_oneview.assert_called_once_with(
-            self.deploy.oneview_client, self.node
-        )
+        mock_is_node_in_use_by_oneview.assert_called_once_with(self.node)
         self.assertFalse(self.os_primary.update_node.called)
         self.assertFalse(self.os_primary.do_provisioning_action.called)
         self.assertTrue(self.node.maintenance)
@@ -245,8 +232,8 @@ class OneViewPeriodicTasks(db_base.DbTestCase):
     ):
         mock_node_get.get.return_value = self.node
         _setup_node_in_cleanfailed_state_without_oneview_error(self.node)
-        self.os_primary.iter_nodes.return_value = \
-            nodes_taken_on_cleanfail_no_info
+        self.os_primary.iter_nodes.return_value = (
+            nodes_taken_on_cleanfail_no_info)
         self.deploy._periodic_check_nodes_taken_on_cleanfail(
             self.os_primary, self.context
         )
@@ -258,7 +245,6 @@ class OneViewPeriodicTasks(db_base.DbTestCase):
         self.assertNotIn('oneview_error', self.node.driver_internal_info)
 
 
-@mock.patch.object(common, 'get_oneview_client', spec_set=True, autospec=True)
 class OneViewIscsiDeployTestCase(db_base.DbTestCase):
 
     def setUp(self):
@@ -282,35 +268,32 @@ class OneViewIscsiDeployTestCase(db_base.DbTestCase):
                                                node_id=self.node.id)
         self.info = common.get_oneview_info(self.node)
 
-    def test_get_properties(self, mock_get_ov_client):
+    def test_get_properties(self):
         expected = common.COMMON_PROPERTIES
         self.assertEqual(expected, self.driver.deploy.get_properties())
 
     @mock.patch.object(iscsi_deploy.ISCSIDeploy, 'validate',
                        spec_set=True, autospec=True)
-    def test_validate(self, iscsi_deploy_validate_mock, mock_get_ov_client):
+    def test_validate(self, iscsi_deploy_validate):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
             task.driver.deploy.validate(task)
-            iscsi_deploy_validate_mock.assert_called_once_with(mock.ANY, task)
+            iscsi_deploy_validate.assert_called_once_with(mock.ANY, task)
 
-    @mock.patch.object(iscsi_deploy.ISCSIDeploy, 'prepare',
-                       spec_set=True, autospec=True)
+    @mock.patch.object(iscsi_deploy.ISCSIDeploy, 'prepare', autospec=True)
     @mock.patch.object(deploy_utils, 'allocate_server_hardware_to_ironic')
     def test_prepare(self, allocate_server_hardware_mock,
-                     iscsi_deploy_prepare_mock, mock_get_ov_client):
+                     iscsi_deploy_prepare_mock):
         self.node.provision_state = states.DEPLOYING
         self.node.save()
-        with task_manager.acquire(self.context, self.node.uuid,
-                                  shared=False) as task:
+        with task_manager.acquire(self.context, self.node.uuid) as task:
             task.driver.deploy.prepare(task)
             iscsi_deploy_prepare_mock.assert_called_once_with(mock.ANY, task)
             self.assertTrue(allocate_server_hardware_mock.called)
 
     @mock.patch.object(iscsi_deploy.ISCSIDeploy, 'prepare',
                        spec_set=True, autospec=True)
-    def test_prepare_active_node(self, iscsi_deploy_prepare_mock,
-                                 mock_get_ov_client):
+    def test_prepare_active_node(self, iscsi_deploy_prepare_mock):
         """Ensure nodes in running states are not inadvertently changed"""
         test_states = list(states.STABLE_STATES)
         test_states.extend([states.CLEANING,
@@ -328,7 +311,7 @@ class OneViewIscsiDeployTestCase(db_base.DbTestCase):
 
     @mock.patch.object(iscsi_deploy.ISCSIDeploy, 'deploy',
                        spec_set=True, autospec=True)
-    def test_deploy(self, iscsi_deploy_mock, mock_get_ov_client):
+    def test_deploy(self, iscsi_deploy_mock):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
             task.driver.deploy.deploy(task)
@@ -336,7 +319,7 @@ class OneViewIscsiDeployTestCase(db_base.DbTestCase):
 
     @mock.patch.object(iscsi_deploy.ISCSIDeploy, 'tear_down', spec_set=True,
                        autospec=True)
-    def test_tear_down(self, iscsi_tear_down_mock, mock_get_ov_client):
+    def test_tear_down(self, iscsi_tear_down_mock):
         iscsi_tear_down_mock.return_value = states.DELETED
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
@@ -348,9 +331,7 @@ class OneViewIscsiDeployTestCase(db_base.DbTestCase):
                        autospec=True)
     @mock.patch.object(deploy_utils, 'deallocate_server_hardware_from_ironic')
     def test_tear_down_with_automated_clean_disabled(
-        self, deallocate_server_hardware_mock,
-        iscsi_tear_down_mock, mock_get_ov_client
-    ):
+            self, deallocate_server_hardware_mock, iscsi_tear_down_mock):
         CONF.conductor.automated_clean = False
         iscsi_tear_down_mock.return_value = states.DELETED
 
@@ -364,8 +345,8 @@ class OneViewIscsiDeployTestCase(db_base.DbTestCase):
     @mock.patch.object(iscsi_deploy.ISCSIDeploy, 'prepare_cleaning',
                        spec_set=True, autospec=True)
     @mock.patch.object(deploy_utils, 'allocate_server_hardware_to_ironic')
-    def test_prepare_cleaning(self, allocate_server_hardware_mock,
-                              iscsi_prep_clean_mock, mock_get_ov_client):
+    def test_prepare_cleaning(
+            self, allocate_server_hardware_mock, iscsi_prep_clean_mock):
         iscsi_prep_clean_mock.return_value = states.CLEANWAIT
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
@@ -378,9 +359,7 @@ class OneViewIscsiDeployTestCase(db_base.DbTestCase):
                        spec_set=True, autospec=True)
     @mock.patch.object(deploy_utils, 'deallocate_server_hardware_from_ironic')
     def test_tear_down_cleaning(
-        self, deallocate_server_hardware_mock, iscsi_tear_down_clean_mock,
-        mock_get_ov_client
-    ):
+            self, deallocate_server_hardware_mock, iscsi_tear_down_clean_mock):
         iscsi_tear_down_clean_mock.return_value = states.CLEANWAIT
 
         with task_manager.acquire(self.context, self.node.uuid,
@@ -390,7 +369,6 @@ class OneViewIscsiDeployTestCase(db_base.DbTestCase):
             self.assertTrue(deallocate_server_hardware_mock.called)
 
 
-@mock.patch.object(common, 'get_oneview_client', spec_set=True, autospec=True)
 class OneViewAgentDeployTestCase(db_base.DbTestCase):
     def setUp(self):
         super(OneViewAgentDeployTestCase, self).setUp()
@@ -413,13 +391,13 @@ class OneViewAgentDeployTestCase(db_base.DbTestCase):
                                                node_id=self.node.id)
         self.info = common.get_oneview_info(self.node)
 
-    def test_get_properties(self, mock_get_ov_client):
+    def test_get_properties(self):
         expected = common.COMMON_PROPERTIES
         self.assertEqual(expected, self.driver.deploy.get_properties())
 
     @mock.patch.object(agent.AgentDeploy, 'validate',
                        spec_set=True, autospec=True)
-    def test_validate(self, agent_deploy_validate_mock, mock_get_ov_client):
+    def test_validate(self, agent_deploy_validate_mock):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
             task.driver.deploy.validate(task)
@@ -428,8 +406,8 @@ class OneViewAgentDeployTestCase(db_base.DbTestCase):
     @mock.patch.object(agent.AgentDeploy, 'prepare',
                        spec_set=True, autospec=True)
     @mock.patch.object(deploy_utils, 'allocate_server_hardware_to_ironic')
-    def test_prepare(self, allocate_server_hardware_mock,
-                     agent_deploy_prepare_mock, mock_get_ov_client):
+    def test_prepare(
+            self, allocate_server_hardware_mock, agent_deploy_prepare_mock):
         self.node.provision_state = states.DEPLOYING
         self.node.save()
         with task_manager.acquire(self.context, self.node.uuid,
@@ -440,8 +418,7 @@ class OneViewAgentDeployTestCase(db_base.DbTestCase):
 
     @mock.patch.object(agent.AgentDeploy, 'prepare',
                        spec_set=True, autospec=True)
-    def test_prepare_active_node(self, agent_deploy_prepare_mock,
-                                 mock_get_ov_client):
+    def test_prepare_active_node(self, agent_deploy_prepare_mock):
         """Ensure nodes in running states are not inadvertently changed"""
         test_states = list(states.STABLE_STATES)
         test_states.extend([states.CLEANING,
@@ -459,7 +436,7 @@ class OneViewAgentDeployTestCase(db_base.DbTestCase):
 
     @mock.patch.object(agent.AgentDeploy, 'deploy',
                        spec_set=True, autospec=True)
-    def test_deploy(self, agent_deploy_mock, mock_get_ov_client):
+    def test_deploy(self, agent_deploy_mock):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
             task.driver.deploy.deploy(task)
@@ -469,9 +446,7 @@ class OneViewAgentDeployTestCase(db_base.DbTestCase):
                        autospec=True)
     @mock.patch.object(deploy_utils, 'deallocate_server_hardware_from_ironic')
     def test_tear_down_with_automated_clean_disabled(
-        self, deallocate_server_hardware_mock,
-        agent_tear_down_mock, mock_get_ov_client
-    ):
+            self, deallocate_server_hardware_mock, agent_tear_down_mock):
         CONF.conductor.automated_clean = False
         agent_tear_down_mock.return_value = states.DELETED
         with task_manager.acquire(self.context, self.node.uuid,
@@ -484,8 +459,8 @@ class OneViewAgentDeployTestCase(db_base.DbTestCase):
     @mock.patch.object(agent.AgentDeploy, 'prepare_cleaning',
                        spec_set=True, autospec=True)
     @mock.patch.object(deploy_utils, 'allocate_server_hardware_to_ironic')
-    def test_prepare_cleaning(self, allocate_server_hardware_mock,
-                              agent_prep_clean_mock, mock_get_ov_client):
+    def test_prepare_cleaning(
+            self, allocate_server_hardware_mock, agent_prep_clean_mock):
         agent_prep_clean_mock.return_value = states.CLEANWAIT
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
@@ -498,9 +473,7 @@ class OneViewAgentDeployTestCase(db_base.DbTestCase):
                        spec_set=True, autospec=True)
     @mock.patch.object(deploy_utils, 'deallocate_server_hardware_from_ironic')
     def test_tear_down_cleaning(
-        self, deallocate_server_hardware_mock, agent_tear_down_clean_mock,
-        mock_get_ov_client
-    ):
+            self, deallocate_server_hardware_mock, agent_tear_down_clean_mock):
         agent_tear_down_clean_mock.return_value = states.CLEANWAIT
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
