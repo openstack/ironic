@@ -21,7 +21,7 @@ When used with Compute service
 ------------------------------
 
 To enable the configuration drive for a specific request, pass
-``--config-drive true`` parameter to the ``nova boot`` command, for example::
+``--config-drive true`` parameter to the :command:`nova boot` command, for example::
 
     nova boot --config-drive true --flavor baremetal --image test-image instance-1
 
@@ -36,7 +36,7 @@ create a configuration drive by setting the following option in the
     force_config_drive=True
 
 In some cases, you may wish to pass a user customized script when deploying an instance.
-To do this, pass ``--user-data /path/to/file`` to the ``nova boot`` command.
+To do this, pass ``--user-data /path/to/file`` to the :command:`nova boot` command.
 
 When used standalone
 --------------------
