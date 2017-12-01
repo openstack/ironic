@@ -219,10 +219,6 @@ class OneViewIscsiDeploy(iscsi_deploy.ISCSIDeploy, OneViewPeriodicTasks):
 
     oneview_driver = common.ISCSI_PXE_ONEVIEW
 
-    def __init__(self):
-        super(OneViewIscsiDeploy, self).__init__()
-        self.oneview_client = common.get_oneview_client()
-
     def get_properties(self):
         return deploy_utils.get_properties()
 
@@ -230,8 +226,7 @@ class OneViewIscsiDeploy(iscsi_deploy.ISCSIDeploy, OneViewPeriodicTasks):
     def validate(self, task):
         common.verify_node_info(task.node)
         try:
-            common.validate_oneview_resources_compatibility(
-                self.oneview_client, task)
+            common.validate_oneview_resources_compatibility(task)
         except exception.OneViewError as oneview_exc:
             raise exception.InvalidParameterValue(oneview_exc)
         super(OneViewIscsiDeploy, self).validate(task)
@@ -263,10 +258,6 @@ class OneViewAgentDeploy(agent.AgentDeploy, OneViewPeriodicTasks):
 
     oneview_driver = common.AGENT_PXE_ONEVIEW
 
-    def __init__(self):
-        super(OneViewAgentDeploy, self).__init__()
-        self.oneview_client = common.get_oneview_client()
-
     def get_properties(self):
         return deploy_utils.get_properties()
 
@@ -274,8 +265,7 @@ class OneViewAgentDeploy(agent.AgentDeploy, OneViewPeriodicTasks):
     def validate(self, task):
         common.verify_node_info(task.node)
         try:
-            common.validate_oneview_resources_compatibility(
-                self.oneview_client, task)
+            common.validate_oneview_resources_compatibility(task)
         except exception.OneViewError as oneview_exc:
             raise exception.InvalidParameterValue(oneview_exc)
         super(OneViewAgentDeploy, self).validate(task)

@@ -34,10 +34,6 @@ oneview_utils = importutils.try_import('oneview_client.utils')
 class OneViewInspect(inspector.Inspector):
     """Interface for in band inspection."""
 
-    def __init__(self):
-        super(OneViewInspect, self).__init__()
-        self.oneview_client = common.get_oneview_client()
-
     def get_properties(self):
         return deploy_utils.get_properties()
 
@@ -59,8 +55,7 @@ class OneViewInspect(inspector.Inspector):
         common.verify_node_info(task.node)
 
         try:
-            common.validate_oneview_resources_compatibility(
-                self.oneview_client, task)
+            common.validate_oneview_resources_compatibility(task)
         except exception.OneViewError as oneview_exc:
             raise exception.InvalidParameterValue(oneview_exc)
 

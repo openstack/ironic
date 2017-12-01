@@ -150,10 +150,6 @@ def set_boot_device(task):
 
 class OneViewManagement(base.ManagementInterface):
 
-    def __init__(self):
-        super(OneViewManagement, self).__init__()
-        self.oneview_client = common.get_oneview_client()
-
     def get_properties(self):
         return deploy_utils.get_properties()
 
@@ -177,8 +173,7 @@ class OneViewManagement(base.ManagementInterface):
         common.verify_node_info(task.node)
 
         try:
-            common.validate_oneview_resources_compatibility(
-                self.oneview_client, task)
+            common.validate_oneview_resources_compatibility(task)
 
             if not deploy_utils.is_node_in_use_by_ironic(task.node):
                 raise exception.InvalidParameterValue(
