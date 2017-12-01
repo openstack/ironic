@@ -15,7 +15,6 @@
 
 from futurist import periodics
 from ironic_lib import metrics_utils
-from oslo_utils import importutils
 
 from ironic.common import exception
 from ironic.common import states
@@ -26,9 +25,6 @@ from ironic.drivers.modules.oneview import common
 from ironic.drivers.modules.oneview import deploy_utils
 
 METRICS = metrics_utils.get_metrics_logger(__name__)
-
-oneview_exception = importutils.try_import('oneview_client.exceptions')
-oneview_utils = importutils.try_import('oneview_client.utils')
 
 
 class OneViewInspect(inspector.Inspector):

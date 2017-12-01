@@ -26,7 +26,6 @@ from ironic.drivers.modules.oneview import common
 from ironic.drivers.modules.oneview import deploy_utils
 
 client_exception = importutils.try_import('hpOneView.exceptions')
-oneview_exceptions = importutils.try_import('oneview_client.exceptions')
 
 LOG = logging.getLogger(__name__)
 METRICS = metrics_utils.get_metrics_logger(__name__)

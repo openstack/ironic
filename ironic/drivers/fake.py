@@ -40,7 +40,6 @@ from ironic.drivers.modules.irmc import inspect as irmc_inspect
 from ironic.drivers.modules.irmc import management as irmc_management
 from ironic.drivers.modules.irmc import power as irmc_power
 from ironic.drivers.modules import iscsi_deploy
-from ironic.drivers.modules.oneview import common as oneview_common
 from ironic.drivers.modules.oneview import management as oneview_management
 from ironic.drivers.modules.oneview import power as oneview_power
 from ironic.drivers.modules import pxe
@@ -219,19 +218,14 @@ class FakeCIMCDriver(base.BaseDriver):
 
 
 class FakeOneViewDriver(base.BaseDriver):
-    """Fake OneView driver. For testing purposes. """
+    """Fake OneView driver. For testing purposes."""
 
     def __init__(self):
-        if not importutils.try_import('oneview_client.client'):
+        if not importutils.try_import('hpOneView.oneview_client'):
             raise exception.DriverLoadError(
                 driver=self.__class__.__name__,
-                reason=_("Unable to import python-oneviewclient library"))
+                reason=_("Unable to import hpOneView library"))
 
-        # Checks connectivity to OneView and version compatibility on driver
-        # initialization
-        oneview_client = oneview_common.get_oneview_client()
-        oneview_client.verify_oneview_version()
-        oneview_client.verify_credentials()
         self.power = oneview_power.OneViewPower()
         self.management = oneview_management.OneViewManagement()
         self.boot = fake.FakeBoot()
