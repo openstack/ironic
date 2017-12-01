@@ -48,6 +48,10 @@ BOOT_DEVICE_MAP_ILO = {
 BOOT_DEVICE_MAP_ILO_REV = {
     v: k for k, v in BOOT_DEVICE_MAP_ILO.items()}
 
+ILO_SYSTEM_PATH = "/rest/v1/Systems/1"
+
+ILO_REQUEST_HEADERS = {"Content-Type": "application/json"}
+
 
 def set_onetime_boot(task):
     """Set onetime boot to server hardware.
@@ -71,21 +75,40 @@ def set_onetime_boot(task):
     server_hardware = task.node.driver_info.get('server_hardware_uri')
     ilo_client = common.get_ilorest_client(server_hardware)
     boot_device = BOOT_DEVICE_MAP_ILO.get(boot_device)
-    path = '/rest/v1/Systems/1'
     body = {
         "Boot": {
             "BootSourceOverrideTarget": boot_device,
             "BootSourceOverrideEnabled": "Once"
         }
     }
-    headers = {"Content-Type": "application/json"}
     try:
-        ilo_client.patch(path=path, body=body, headers=headers)
+        ilo_client.patch(path=ILO_SYSTEM_PATH, body=body,
+                         headers=ILO_REQUEST_HEADERS)
     except Exception as e:
         msg = (_("Error while trying to set onetime boot on Server Hardware: "
                  "%(sh_uri)s. Error: %(error)s") %
                {'sh_uri': server_hardware, 'error': e})
         raise exception.OneViewError(error=msg)
+
+
+def _is_onetime_boot(task):
+    """Check onetime boot from server hardware.
+
+    Check if the onetime boot option of an OneView server hardware
+    is set to 'Once' in iLO.
+
+    :param task: a task from TaskManager.
+    :returns: Boolean value. True if onetime boot is 'Once'
+              False otherwise.
+    :raises: AttributeError if Boot is None.
+    """
+    server_hardware = task.node.driver_info.get('server_hardware_uri')
+    ilo_client = common.get_ilorest_client(server_hardware)
+    response = ilo_client.get(path=ILO_SYSTEM_PATH,
+                              headers=ILO_REQUEST_HEADERS)
+    boot = response.dict.get('Boot')
+    onetime_boot = boot.get('BootSourceOverrideEnabled')
+    return onetime_boot == 'Once'
 
 
 def set_boot_device(task):
@@ -279,7 +302,7 @@ class OneViewManagement(base.ManagementInterface):
 
         boot_device = {
             'boot_device': BOOT_DEVICE_MAP_ONEVIEW_REV.get(primary_device),
-            'persistent': True,
+            'persistent': not _is_onetime_boot(task)
         }
 
         return boot_device
