@@ -48,56 +48,78 @@ LOG = log.getLogger(__name__)
 
 METRICS = metrics_utils.get_metrics_logger(__name__)
 
-DEFAULT_PLAYBOOKS = {
-    'deploy': 'deploy.yaml',
-    'shutdown': 'shutdown.yaml',
-    'clean': 'clean.yaml'
-}
-DEFAULT_CLEAN_STEPS = 'clean_steps.yaml'
-
 OPTIONAL_PROPERTIES = {
-    'ansible_deploy_username': _('Deploy ramdisk username for Ansible. '
-                                 'This user must have passwordless sudo '
-                                 'permissions. Default is "ansible". '
-                                 'Optional.'),
-    'ansible_deploy_key_file': _('Path to private key file. If not specified, '
-                                 'default keys for user running '
-                                 'ironic-conductor process will be used. '
-                                 'Note that for keys with password, those '
-                                 'must be pre-loaded into ssh-agent. '
-                                 'Optional.'),
-    'ansible_deploy_playbook': _('Name of the Ansible playbook used for '
-                                 'deployment. Default is %s. Optional.'
-                                 ) % DEFAULT_PLAYBOOKS['deploy'],
-    'ansible_shutdown_playbook': _('Name of the Ansible playbook used to '
-                                   'power off the node in-band. '
-                                   'Default is %s. Optional.'
-                                   ) % DEFAULT_PLAYBOOKS['shutdown'],
-    'ansible_clean_playbook': _('Name of the Ansible playbook used for '
-                                'cleaning. Default is %s. Optional.'
-                                ) % DEFAULT_PLAYBOOKS['clean'],
-    'ansible_clean_steps_config': _('Name of the file with default cleaning '
-                                    'steps configuration. Default is %s. '
-                                    'Optional.'
-                                    ) % DEFAULT_CLEAN_STEPS
+    'ansible_username': _('Deploy ramdisk username for Ansible. '
+                          'This user must have passwordless sudo '
+                          'permissions. Optional.'),
+    'ansible_key_file': _('Full path to private SSH key file. '
+                          'If not specified, default keys for user running '
+                          'ironic-conductor process will be used. '
+                          'Note that for keys with password, those '
+                          'must be pre-loaded into ssh-agent. '
+                          'Optional.'),
+    'ansible_playbooks_path': _('Path to folder holding playbooks to use '
+                                'for this node. Optional. '
+                                'Default is set in ironic config.'),
+    'ansible_deploy_playbook': _('Name of the Ansible playbook file inside '
+                                 'the "ansible_playbooks_path" folder which '
+                                 'is used for node deployment. Optional.'),
+    'ansible_shutdown_playbook': _('Name of the Ansible playbook file inside '
+                                   'the "ansible_playbooks_path" folder which '
+                                   'is used for node shutdown. Optional.'),
+    'ansible_clean_playbook': _('Name of the Ansible playbook file inside '
+                                'the "ansible_playbooks_path" folder which '
+                                'is used for node cleaning. Optional.'),
+    'ansible_clean_steps_config': _('Name of the file inside the '
+                                    '"ansible_playbooks_path" folder with '
+                                    'cleaning steps configuration. Optional.'),
 }
-COMMON_PROPERTIES = OPTIONAL_PROPERTIES
 
-INVENTORY_FILE = os.path.join(CONF.ansible.playbooks_path, 'inventory')
+COMMON_PROPERTIES = OPTIONAL_PROPERTIES
+# TODO(pas-ha) remove in Rocky
+DEPRECATED_PROPERTIES = {
+    'ansible_deploy_username': {
+        'name': 'ansible_username',
+        'warned': False},
+    'ansible_deploy_key_file': {
+        'name': 'ansible_key_file',
+        'warned': False}}
 
 
 class PlaybookNotFound(exception.IronicException):
     _msg_fmt = _('Failed to set ansible playbook for action %(action)s')
 
 
+def _get_playbooks_path(node):
+    return node.driver_info.get('ansible_playbooks_path',
+                                CONF.ansible.playbooks_path)
+
+
 def _parse_ansible_driver_info(node, action='deploy'):
-    user = node.driver_info.get('ansible_deploy_username', 'ansible')
-    key = node.driver_info.get('ansible_deploy_key_file')
+    # TODO(pas-ha) remove in Rocky
+    for old, new in DEPRECATED_PROPERTIES.items():
+        if old in node.driver_info:
+            if not new['warned']:
+                LOG.warning("Driver property '%(old)s' is deprecated, "
+                            "and will be ignored in Rocky release. "
+                            "Use '%(new)s' instead.", old=old, new=new['name'])
+                new['warned'] = True
+    # TODO(pas-ha) simplify in Rocky
+    user = node.driver_info.get(
+        'ansible_username',
+        node.driver_info.get('ansible_deploy_username',
+                             CONF.ansible.default_username))
+    key = node.driver_info.get(
+        'ansible_key_file',
+        node.driver_info.get('ansible_deploy_key_file',
+                             CONF.ansible.default_key_file))
     playbook = node.driver_info.get('ansible_%s_playbook' % action,
-                                    DEFAULT_PLAYBOOKS.get(action))
+                                    getattr(CONF.ansible,
+                                            'default_%s_playbook' % action,
+                                            None))
     if not playbook:
         raise PlaybookNotFound(action=action)
-    return playbook, user, key
+    return os.path.basename(playbook), user, key
 
 
 def _get_configdrive_path(basename):
@@ -119,12 +141,14 @@ def _prepare_extra_vars(host_list, variables=None):
     return extra_vars
 
 
-def _run_playbook(name, extra_vars, key, tags=None, notags=None):
+def _run_playbook(node, name, extra_vars, key, tags=None, notags=None):
     """Execute ansible-playbook."""
-    playbook = os.path.join(CONF.ansible.playbooks_path, name)
+    root = _get_playbooks_path(node)
+    playbook = os.path.join(root, name)
+    inventory = os.path.join(root, 'inventory')
     ironic_vars = {'ironic': extra_vars}
     args = [CONF.ansible.ansible_playbook_script, playbook,
-            '-i', INVENTORY_FILE,
+            '-i', inventory,
             '-e', json.dumps(ironic_vars),
             ]
 
@@ -326,9 +350,11 @@ def _validate_clean_steps(steps, node_uuid):
 
 def _get_clean_steps(node, interface=None, override_priorities=None):
     """Get cleaning steps."""
-    clean_steps_file = node.driver_info.get('ansible_clean_steps_config',
-                                            DEFAULT_CLEAN_STEPS)
-    path = os.path.join(CONF.ansible.playbooks_path, clean_steps_file)
+    clean_steps_file = node.driver_info.get(
+        'ansible_clean_steps_config', CONF.ansible.default_clean_steps_config)
+    path = os.path.join(node.driver_info.get('ansible_playbooks_path',
+                                             CONF.ansible.playbooks_path),
+                        os.path.basename(clean_steps_file))
     try:
         with open(path) as f:
             internal_steps = yaml.safe_load(f)
@@ -403,6 +429,8 @@ class AnsibleDeploy(agent_base.HeartbeatMixin, base.DeployInterface):
         deploy_utils.check_for_missing_params(params, error_msg)
         # validate root device hints, proper exceptions are raised from there
         _parse_root_device_hints(node)
+        # TODO(pas-ha) validate that all playbooks and ssh key (if set)
+        # are pointing to actual files
 
     def _ansible_deploy(self, task, node_address):
         """Internal function for deployment to a node."""
@@ -418,7 +446,7 @@ class AnsibleDeploy(agent_base.HeartbeatMixin, base.DeployInterface):
 
         LOG.debug('Starting deploy on node %s', node.uuid)
         # any caller should manage exceptions raised from here
-        _run_playbook(playbook, extra_vars, key)
+        _run_playbook(node, playbook, extra_vars, key)
 
     @METRICS.timer('AnsibleDeploy.deploy')
     @task_manager.require_exclusive_lock
@@ -501,8 +529,7 @@ class AnsibleDeploy(agent_base.HeartbeatMixin, base.DeployInterface):
                   {'node': node.uuid, 'step': stepname})
         step_tags = step['args'].get('tags', [])
         try:
-            _run_playbook(playbook, extra_vars, key,
-                          tags=step_tags)
+            _run_playbook(node, playbook, extra_vars, key, tags=step_tags)
         except exception.InstanceDeployFailure as e:
             LOG.error("Ansible failed cleaning step %(step)s "
                       "on node %(node)s.",
@@ -591,7 +618,7 @@ class AnsibleDeploy(agent_base.HeartbeatMixin, base.DeployInterface):
                         node, action='shutdown')
                     node_list = [(node.uuid, node_address, user, node.extra)]
                     extra_vars = _prepare_extra_vars(node_list)
-                    _run_playbook(playbook, extra_vars, key)
+                    _run_playbook(node, playbook, extra_vars, key)
                     _wait_until_powered_off(task)
                 except Exception as e:
                     LOG.warning('Failed to soft power off node %(node_uuid)s '
