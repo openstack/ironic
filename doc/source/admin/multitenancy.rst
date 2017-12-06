@@ -200,6 +200,11 @@ Cisco Nexus 9000 series
   Driver Installation Guide
   <http://networking-cisco.readthedocs.io/projects/test/en/latest/install/ml2-nexus.html#nexus-mechanism-driver-installation-guide>`_.
 
+FUJITSU CFX2000
+  ``networking-fujitsu`` ML2 driver supports this switch. The documentation
+  is available `here
+  <https://git.openstack.org/cgit/openstack/networking-fujitsu/tree/doc/source/ml2_cfab.rst>`_.
+
 Networking Generic Switch
   This is an ML2 mechanism driver built for testing against virtual bare metal
   environments and some switches that are not covered by hardware specific ML2
