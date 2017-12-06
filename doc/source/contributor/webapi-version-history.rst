@@ -2,7 +2,7 @@
 REST API Version History
 ========================
 
-1.35 (Queens, 10.0.0)
+1.35 (Queens, 9.2.0)
 ---------------------
 
 Added ability to provide ``configdrive`` when node is updated
