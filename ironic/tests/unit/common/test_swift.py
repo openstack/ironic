@@ -32,7 +32,9 @@ if six.PY3:
     file = io.BytesIO
 
 
-@mock.patch.object(swift, '_get_swift_session', autospec=True)
+@mock.patch.object(swift, '_get_swift_session', autospec=True,
+                   return_value=mock.Mock(verify=False, cert=('spam', 'ham'),
+                                          timeout=42))
 @mock.patch.object(swift_client, 'Connection', autospec=True)
 class SwiftTestCase(base.TestCase):
 
@@ -42,10 +44,18 @@ class SwiftTestCase(base.TestCase):
 
     def test___init__(self, connection_mock, keystone_mock):
         """Check if client is properly initialized with swift"""
-
+        self.config(group='swift',
+                    endpoint_override='http://example.com/objects')
         swift.SwiftAPI()
         connection_mock.assert_called_once_with(
-            session=keystone_mock.return_value)
+            retries=2,
+            session=keystone_mock.return_value,
+            timeout=42,
+            insecure=True,
+            cert='spam',
+            cert_key='ham',
+            os_options={'object_storage_url': 'http://example.com/objects'}
+        )
 
     def test___init___radosgw(self, connection_mock, swift_session_mock):
         """Check if client is properly initialized with radosgw"""
@@ -66,7 +76,8 @@ class SwiftTestCase(base.TestCase):
         swift.SwiftAPI()
         params = {'authurl': auth_url,
                   'user': username,
-                  'key': password}
+                  'key': password,
+                  'retries': 2}
         connection_mock.assert_called_once_with(**params)
         self.assertFalse(swift_session_mock.called)
 

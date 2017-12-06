@@ -1122,7 +1122,7 @@ function configure_ironic_conductor {
     # TODO(pas-ha) this block is for transition period only,
     # after all clients are moved to use keystoneauth adapters,
     # it will be deleted
-    local sections_with_adapter="service_catalog glance cinder inspector"
+    local sections_with_adapter="service_catalog glance cinder inspector swift"
     for conf_section in $sections_with_adapter; do
         configure_adapter_for $conf_section
     done

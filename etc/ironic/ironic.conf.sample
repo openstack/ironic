@@ -3979,11 +3979,27 @@
 # Domain name to scope to (string value)
 #domain_name = <None>
 
+# Always use this endpoint URL for requests for this client.
+# (string value)
+#endpoint_override = <None>
+
 # Verify HTTPS connections. (boolean value)
 #insecure = false
 
 # PEM encoded client certificate key file (string value)
 #keyfile = <None>
+
+# The maximum major version of a given API, intended to be
+# used as the upper bound of a range with min_version.
+# Mutually exclusive with version. (string value)
+#max_version = <None>
+
+# The minimum major version of a given API, intended to be
+# used as the lower bound of a range with max_version.
+# Mutually exclusive with version. If min_version is given
+# with no max_version it is as if max version is "latest".
+# (string value)
+#min_version = <None>
 
 # User's password (string value)
 #password = <None>
@@ -4001,6 +4017,18 @@
 # Project name to scope to (string value)
 # Deprecated group/name - [swift]/tenant_name
 #project_name = <None>
+
+# The default region_name for endpoint URL discovery. (string
+# value)
+#region_name = <None>
+
+# The default service_name for endpoint URL discovery. (string
+# value)
+#service_name = <None>
+
+# The default service_type for endpoint URL discovery. (string
+# value)
+#service_type = object-store
 
 # Maximum number of times to retry a Swift request, before
 # failing. (integer value)
@@ -4030,3 +4058,12 @@
 # Username (string value)
 # Deprecated group/name - [swift]/user_name
 #username = <None>
+
+# List of interfaces, in order of preference, for endpoint
+# URL. (list value)
+#valid_interfaces = internal,public
+
+# Minimum Major API version within a given Major API version
+# for endpoint URL discovery. Mutually exclusive with
+# min_version and max_version (string value)
+#version = <None>
