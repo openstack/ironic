@@ -1198,21 +1198,13 @@ function configure_ironic_conductor {
     # directly from glance, and don't set them where the image is pushed
     # over iSCSI.
     if is_glance_configuration_required; then
-        if [[ "$SWIFT_ENABLE_TEMPURLS" == "True" ]] ; then
-            iniset $IRONIC_CONF_FILE glance swift_temp_url_key $SWIFT_TEMPURL_KEY
-        else
+        if [[ "$SWIFT_ENABLE_TEMPURLS" == "False" ]] ; then
             die $LINENO "SWIFT_ENABLE_TEMPURLS must be True. This is " \
                         "required either because IRONIC_DEPLOY_DRIVER was " \
                         "set to some agent_* driver OR configuration of " \
                         "Glance with Swift was explicitly requested with " \
                         "IRONIC_CONFIGURE_GLANCE_WITH_SWIFT=True"
         fi
-        iniset $IRONIC_CONF_FILE glance swift_endpoint_url ${SWIFT_SERVICE_PROTOCOL}://${SERVICE_HOST}:${SWIFT_DEFAULT_BIND_PORT:-8080}
-        iniset $IRONIC_CONF_FILE glance swift_api_version v1
-        local tenant_id
-        tenant_id=$(get_or_create_project $SERVICE_PROJECT_NAME default)
-        iniset $IRONIC_CONF_FILE glance swift_account AUTH_${tenant_id}
-        iniset $IRONIC_CONF_FILE glance swift_container glance
         iniset $IRONIC_CONF_FILE glance swift_temp_url_duration 3600
     fi
 

@@ -33,7 +33,9 @@ opts = [
     # radosgw-admin user modify --uid=user --temp-url-key=secretkey
     cfg.StrOpt('swift_temp_url_key',
                help=_('The secret token given to Swift to allow temporary URL '
-                      'downloads. Required for temporary URLs.'),
+                      'downloads. Required for temporary URLs. For the '
+                      'Swift backend, the key on the service project (as set '
+                      'in the [swift] section) is used by default.'),
                secret=True),
     cfg.IntOpt('swift_temp_url_duration',
                default=1200,
@@ -70,7 +72,8 @@ opts = [
                'Do not include trailing "/". '
                'For example, use "https://swift.example.com". If using RADOS '
                'Gateway, endpoint may also contain /swift path; if it does '
-               'not, it will be appended. Required for temporary URLs.')),
+               'not, it will be appended. Used for temporary URLs, will '
+               'be fetched from the service catalog, if not provided.')),
     cfg.StrOpt(
         'swift_api_version',
         default='v1',
@@ -82,9 +85,10 @@ opts = [
         help=_('The account that Glance uses to communicate with '
                'Swift. The format is "AUTH_uuid". "uuid" is the '
                'UUID for the account configured in the glance-api.conf. '
-               'Required for temporary URLs when Glance backend is Swift. '
                'For example: "AUTH_a422b2-91f3-2f46-74b7-d7c9e8958f5d30". '
-               'Swift temporary URL format: '
+               'If not set, the default value is calculated based on the ID '
+               'of the project used to access Swift (as set in the [swift] '
+               'section). Swift temporary URL format: '
                '"endpoint_url/api_version/[account/]container/object_id"')),
     cfg.StrOpt(
         'swift_container',

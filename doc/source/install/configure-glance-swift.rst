@@ -50,18 +50,18 @@ and Object Storage service as described below.
 
          $ openstack object store account set --property Temp-Url-Key=secret
 
+#. Optionally, configure the ironic-conductor service. The default
+   configuration assumes that:
 
-#. Configure the ironic-conductor service.
-   The configuration file is typically located at
-   ``/etc/ironic/ironic.conf``.
-   Some of the required values are available in the response of an
-   ``openstack object store account show`` command;
-   others have to match those configured in Image and Object Store services
-   configuration files. Below is a example of a minimal set of configuration
-   options to specify when Object Storage service is provided by swift
-   (check configuration file sample included within ironic
-   code ``etc/ironic/ironic.conf.sample`` for full list of available options
-   and their detailed descriptions):
+   #. the Object Storage service is implemented by swift_,
+   #. the Object Storage service URL is available from the service catalog,
+   #. the project, used by the Image service to access the Object Storage, is
+      the same as the project, used by the Bare Metal service to access it,
+   #. the container, used by the Image service, is called ``glance``.
+
+   If any of these assumptions do not hold, you may want to change your
+   configuration file (typically located at ``/etc/ironic/ironic.conf``),
+   for example:
 
    .. code-block:: ini
 
@@ -74,3 +74,5 @@ and Object Storage service as described below.
       swift_temp_url_key = secret
 
 #. (Re)start the ironic-conductor service.
+
+.. _swift: https://docs.openstack.org/swift/latest/

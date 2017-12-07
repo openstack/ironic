@@ -1,0 +1,15 @@
+features:
+  - |
+    If the ``[glance]swift_account`` option is not set, the default value is
+    now calculated based on the ID of the project used to access the object
+    store.  Previously this option was required. This change does not affect
+    using RadosGW as an object store backend.
+  - |
+    If the ``[glance]swift_temp_url_key`` option is not set, ironic now tries
+    to fetch the key from the project used to access swift (often
+    called ``service``). This change does not affect using RadosGW as an
+    object store backend.
+  - |
+    If the ``[glance]swift_endpoint_url`` option is not set, ironic now tries
+    to fetch the Object Store service URL from the service catalog. The
+    ``/v1/AUTH_*`` suffix is stripped, if present.

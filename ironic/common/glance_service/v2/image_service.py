@@ -14,6 +14,7 @@
 #    under the License.
 
 import collections
+import re
 import time
 
 from oslo_utils import uuidutils
@@ -25,6 +26,8 @@ from ironic.common.glance_service import base_image_service
 from ironic.common.glance_service import service
 from ironic.common.glance_service import service_utils
 from ironic.common.i18n import _
+from ironic.common import keystone
+from ironic.common import swift
 from ironic.conf import CONF
 
 TempUrlCacheElement = collections.namedtuple('TempUrlCacheElement',
@@ -126,12 +129,26 @@ class GlanceImageService(base_image_service.BaseImageService,
 
         url_fragments = {
             'api_version': CONF.glance.swift_api_version,
-            'account': CONF.glance.swift_account,
             'container': self._get_swift_container(image_id),
             'object_id': image_id
         }
 
         endpoint_url = CONF.glance.swift_endpoint_url
+        if not endpoint_url:
+            swift_session = swift.get_swift_session()
+            adapter = keystone.get_adapter('swift', session=swift_session)
+            endpoint_url = adapter.get_endpoint()
+
+        if not endpoint_url:
+            raise exc.MissingParameterValue(_(
+                'Swift temporary URLs require a Swift endpoint URL, but it '
+                'was not found in the service catalog. '
+                'You must provide "swift_endpoint_url" as a config option.'))
+
+        # Strip /v1/AUTH_%(tenant_id)s, if present
+        endpoint_url = re.sub('/v1/AUTH_[^/]+/?$', '', endpoint_url)
+
+        key = CONF.glance.swift_temp_url_key
         if CONF.deploy.object_store_endpoint_type == 'radosgw':
             chunks = urlparse.urlsplit(CONF.glance.swift_endpoint_url)
             if not chunks.path:
@@ -143,8 +160,28 @@ class GlanceImageService(base_image_service.BaseImageService,
                       'hostname, optional port and optional /swift path '
                       'without trailing slash; provided value is: %s')
                     % endpoint_url)
+
             template = '/{api_version}/{container}/{object_id}'
         else:
+            account = CONF.glance.swift_account
+            if not account:
+                swift_session = swift.get_swift_session()
+                auth_ref = swift_session.auth.get_auth_ref(swift_session)
+                account = 'AUTH_%s' % auth_ref.project_id
+
+            if not key:
+                swift_api = swift.SwiftAPI()
+                key_header = 'x-account-meta-temp-url-key'
+                key = swift_api.connection.head_account().get(key_header)
+
+            if not key:
+                raise exc.MissingParameterValue(_(
+                    'Swift temporary URLs require a shared secret to be '
+                    'created. You must provide "swift_temp_url_key" as a '
+                    'config option or pre-generate the key on the project '
+                    'used to access Swift.'))
+
+            url_fragments['account'] = account
             template = '/{api_version}/{account}/{container}/{object_id}'
 
         url_path = template.format(**url_fragments)
@@ -152,7 +189,7 @@ class GlanceImageService(base_image_service.BaseImageService,
         return self._generate_temp_url(
             path=url_path,
             seconds=CONF.glance.swift_temp_url_duration,
-            key=CONF.glance.swift_temp_url_key,
+            key=key,
             method='GET',
             endpoint=endpoint_url,
             image_id=image_id
@@ -160,19 +197,11 @@ class GlanceImageService(base_image_service.BaseImageService,
 
     def _validate_temp_url_config(self):
         """Validate the required settings for a temporary URL."""
-        if not CONF.glance.swift_temp_url_key:
+        if (not CONF.glance.swift_temp_url_key and
+                CONF.deploy.object_store_endpoint_type != 'swift'):
             raise exc.MissingParameterValue(_(
                 'Swift temporary URLs require a shared secret to be created. '
                 'You must provide "swift_temp_url_key" as a config option.'))
-        if not CONF.glance.swift_endpoint_url:
-            raise exc.MissingParameterValue(_(
-                'Swift temporary URLs require a Swift endpoint URL. '
-                'You must provide "swift_endpoint_url" as a config option.'))
-        if (not CONF.glance.swift_account and
-                CONF.deploy.object_store_endpoint_type == 'swift'):
-            raise exc.MissingParameterValue(_(
-                'Swift temporary URLs require a Swift account string. '
-                'You must provide "swift_account" as a config option.'))
         if (CONF.glance.swift_temp_url_duration <
                 CONF.glance.swift_temp_url_expected_download_start_delay):
             raise exc.InvalidParameterValue(_(
