@@ -39,12 +39,17 @@ from ironic.common.i18n import _
 
 BASE_VERSION = versions.BASE_VERSION
 
-MIN_VER = base.Version(
-    {base.Version.string: versions.MIN_VERSION_STRING},
-    versions.MIN_VERSION_STRING, versions.MAX_VERSION_STRING)
-MAX_VER = base.Version(
-    {base.Version.string: versions.MAX_VERSION_STRING},
-    versions.MIN_VERSION_STRING, versions.MAX_VERSION_STRING)
+
+def min_version():
+    return base.Version(
+        {base.Version.string: versions.min_version_string()},
+        versions.min_version_string(), versions.max_version_string())
+
+
+def max_version():
+    return base.Version(
+        {base.Version.string: versions.max_version_string()},
+        versions.min_version_string(), versions.max_version_string())
 
 
 class MediaType(base.APIBase):
@@ -200,29 +205,29 @@ class Controller(rest.RestController):
                 "Mutually exclusive versions requested. Version %(ver)s "
                 "requested but not supported by this service. The supported "
                 "version range is: [%(min)s, %(max)s].") %
-                {'ver': version, 'min': versions.MIN_VERSION_STRING,
-                 'max': versions.MAX_VERSION_STRING},
+                {'ver': version, 'min': versions.min_version_string(),
+                 'max': versions.max_version_string()},
                 headers=headers)
         # ensure the minor version is within the supported range
-        if version < MIN_VER or version > MAX_VER:
+        if version < min_version() or version > max_version():
             raise exc.HTTPNotAcceptable(_(
                 "Version %(ver)s was requested but the minor version is not "
                 "supported by this service. The supported version range is: "
                 "[%(min)s, %(max)s].") %
-                {'ver': version, 'min': versions.MIN_VERSION_STRING,
-                 'max': versions.MAX_VERSION_STRING},
+                {'ver': version, 'min': versions.min_version_string(),
+                 'max': versions.max_version_string()},
                 headers=headers)
 
     @pecan.expose()
     def _route(self, args, request=None):
-        v = base.Version(pecan.request.headers, versions.MIN_VERSION_STRING,
-                         versions.MAX_VERSION_STRING)
+        v = base.Version(pecan.request.headers, versions.min_version_string(),
+                         versions.max_version_string())
 
         # Always set the min and max headers
         pecan.response.headers[base.Version.min_string] = (
-            versions.MIN_VERSION_STRING)
+            versions.min_version_string())
         pecan.response.headers[base.Version.max_string] = (
-            versions.MAX_VERSION_STRING)
+            versions.max_version_string())
 
         # assert that requested version is supported
         self._check_version(v, pecan.response.headers)

@@ -365,13 +365,12 @@
 #host = localhost
 
 # Used for rolling upgrades. Setting this option downgrades
-# (or pins) the internal ironic RPC communication and database
-# objects to their respective versions, so they are compatible
-# with older services. When doing a rolling upgrade from
-# version N to version N+1, set (to pin) this to N. To unpin
-# (default), leave it unset and the latest versions of RPC
-# communication and database objects will be used. (string
-# value)
+# (or pins) the Bare Metal API, the internal ironic RPC
+# communication, and the database objects to their respective
+# versions, so they are compatible with older services. When
+# doing a rolling upgrade from version N to version N+1, set
+# (to pin) this to N. To unpin (default), leave it unset and
+# the latest versions will be used. (string value)
 # Allowed values: pike, 9.2, 9.1, 9.0, 8.0
 #pin_release_version = <None>
 
@@ -1025,7 +1024,9 @@
 #domain_name = <None>
 
 # Always use this endpoint URL for requests for this client.
-# (string value)
+# NOTE: The unversioned endpoint should be specified here; to
+# request a particular API version, use the `version`, `min-
+# version`, and/or `max-version` options. (string value)
 #endpoint_override = <None>
 
 # Verify HTTPS connections. (boolean value)
@@ -1662,7 +1663,9 @@
 #domain_name = <None>
 
 # Always use this endpoint URL for requests for this client.
-# (string value)
+# NOTE: The unversioned endpoint should be specified here; to
+# request a particular API version, use the `version`, `min-
+# version`, and/or `max-version` options. (string value)
 #endpoint_override = <None>
 
 # DEPRECATED: Allow to perform insecure SSL (https) requests
@@ -1972,7 +1975,9 @@
 #enabled = false
 
 # Always use this endpoint URL for requests for this client.
-# (string value)
+# NOTE: The unversioned endpoint should be specified here; to
+# request a particular API version, use the `version`, `min-
+# version`, and/or `max-version` options. (string value)
 #endpoint_override = <None>
 
 # Verify HTTPS connections. (boolean value)
@@ -2234,6 +2239,24 @@
 # service user utilizes for validating tokens, because normal
 # end users may not be able to reach that endpoint. (string
 # value)
+# Deprecated group/name - [keystone_authtoken]/auth_uri
+#www_authenticate_uri = <None>
+
+# DEPRECATED: Complete "public" Identity API endpoint. This
+# endpoint should not be an "admin" endpoint, as it should be
+# accessible by all end users. Unauthenticated clients are
+# redirected to this endpoint to authenticate. Although this
+# endpoint should ideally be unversioned, client support in
+# the wild varies. If you're using a versioned v2 endpoint
+# here, then this should *not* be the same endpoint the
+# service user utilizes for validating tokens, because normal
+# end users may not be able to reach that endpoint. This
+# option is deprecated in favor of www_authenticate_uri and
+# will be removed in the S release. (string value)
+# This option is deprecated for removal since Queens.
+# Its value may be silently ignored in the future.
+# Reason: The auth_uri option is deprecated in favor of
+# www_authenticate_uri and will be removed in the S  release.
 #auth_uri = <None>
 
 # API version of the admin Identity API endpoint. (string
@@ -3800,7 +3823,9 @@
 #domain_name = <None>
 
 # Always use this endpoint URL for requests for this client.
-# (string value)
+# NOTE: The unversioned endpoint should be specified here; to
+# request a particular API version, use the `version`, `min-
+# version`, and/or `max-version` options. (string value)
 #endpoint_override = <None>
 
 # Verify HTTPS connections. (boolean value)

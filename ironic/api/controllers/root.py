@@ -85,8 +85,8 @@ class Root(base.APIBase):
         root.description = ("Ironic is an OpenStack project which aims to "
                             "provision baremetal machines.")
         root.default_version = Version(ID_VERSION1,
-                                       versions.MIN_VERSION_STRING,
-                                       versions.MAX_VERSION_STRING)
+                                       versions.min_version_string(),
+                                       versions.max_version_string())
         root.versions = [root.default_version]
         return root
 

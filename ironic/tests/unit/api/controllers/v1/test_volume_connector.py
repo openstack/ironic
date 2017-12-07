@@ -59,7 +59,7 @@ class TestVolumeConnectorObject(base.TestCase):
 
 
 class TestListVolumeConnectors(test_api_base.BaseApiTest):
-    headers = {api_base.Version.string: str(api_v1.MAX_VER)}
+    headers = {api_base.Version.string: str(api_v1.max_version())}
 
     def setUp(self):
         super(TestListVolumeConnectors, self).setUp()
@@ -83,7 +83,7 @@ class TestListVolumeConnectors(test_api_base.BaseApiTest):
                                                node_id=self.node.id)
         response = self.get_json(
             '/volume/connectors',
-            headers={api_base.Version.string: str(api_v1.MIN_VER)},
+            headers={api_base.Version.string: str(api_v1.min_version())},
             expect_errors=True)
         self.assertEqual(http_client.NOT_FOUND, response.status_int)
 
@@ -103,7 +103,7 @@ class TestListVolumeConnectors(test_api_base.BaseApiTest):
             self.context, node_id=self.node.id)
         response = self.get_json(
             '/volume/connectors/%s' % connector.uuid,
-            headers={api_base.Version.string: str(api_v1.MIN_VER)},
+            headers={api_base.Version.string: str(api_v1.min_version())},
             expect_errors=True)
         self.assertEqual(http_client.NOT_FOUND, response.status_int)
 
@@ -151,7 +151,7 @@ class TestListVolumeConnectors(test_api_base.BaseApiTest):
         fields = 'uuid,extra'
         response = self.get_json(
             '/volume/connectors/%s?fields=%s' % (connector.uuid, fields),
-            headers={api_base.Version.string: str(api_v1.MIN_VER)},
+            headers={api_base.Version.string: str(api_v1.min_version())},
             expect_errors=True)
         self.assertEqual(http_client.NOT_FOUND, response.status_int)
 
@@ -181,7 +181,7 @@ class TestListVolumeConnectors(test_api_base.BaseApiTest):
                                                node_id=self.node.id)
         response = self.get_json(
             '/volume/connectors?detail=True',
-            headers={api_base.Version.string: str(api_v1.MIN_VER)},
+            headers={api_base.Version.string: str(api_v1.min_version())},
             expect_errors=True)
         self.assertEqual(http_client.NOT_FOUND, response.status_int)
 
@@ -348,7 +348,7 @@ class TestListVolumeConnectors(test_api_base.BaseApiTest):
 
 @mock.patch.object(rpcapi.ConductorAPI, 'update_volume_connector')
 class TestPatch(test_api_base.BaseApiTest):
-    headers = {api_base.Version.string: str(api_v1.MAX_VER)}
+    headers = {api_base.Version.string: str(api_v1.max_version())}
 
     def setUp(self):
         super(TestPatch, self).setUp()
@@ -388,7 +388,7 @@ class TestPatch(test_api_base.BaseApiTest):
                                       node_uuid=self.node.uuid)])
 
     def test_update_invalid_api_version(self, mock_upd):
-        headers = {api_base.Version.string: str(api_v1.MIN_VER)}
+        headers = {api_base.Version.string: str(api_v1.min_version())}
         response = self.patch_json('/volume/connectors/%s'
                                    % self.connector.uuid,
                                    [{'path': '/extra/foo',
@@ -714,7 +714,7 @@ class TestPatch(test_api_base.BaseApiTest):
 
 
 class TestPost(test_api_base.BaseApiTest):
-    headers = {api_base.Version.string: str(api_v1.MAX_VER)}
+    headers = {api_base.Version.string: str(api_v1.max_version())}
 
     def setUp(self):
         super(TestPost, self).setUp()
@@ -754,7 +754,7 @@ class TestPost(test_api_base.BaseApiTest):
         pdict = post_get_test_volume_connector()
         response = self.post_json(
             '/volume/connectors', pdict,
-            headers={api_base.Version.string: str(api_v1.MIN_VER)},
+            headers={api_base.Version.string: str(api_v1.min_version())},
             expect_errors=True)
         self.assertEqual(http_client.NOT_FOUND, response.status_int)
 
@@ -879,7 +879,7 @@ class TestPost(test_api_base.BaseApiTest):
 
 @mock.patch.object(rpcapi.ConductorAPI, 'destroy_volume_connector')
 class TestDelete(test_api_base.BaseApiTest):
-    headers = {api_base.Version.string: str(api_v1.MAX_VER)}
+    headers = {api_base.Version.string: str(api_v1.max_version())}
 
     def setUp(self):
         super(TestDelete, self).setUp()
@@ -907,7 +907,7 @@ class TestDelete(test_api_base.BaseApiTest):
                                       node_uuid=self.node.uuid)])
 
     def test_delete_volume_connector_byid_invalid_api_version(self, mock_dvc):
-        headers = {api_base.Version.string: str(api_v1.MIN_VER)}
+        headers = {api_base.Version.string: str(api_v1.min_version())}
         response = self.delete('/volume/connectors/%s' % self.connector.uuid,
                                expect_errors=True, headers=headers)
         self.assertEqual(http_client.NOT_FOUND, response.status_int)

@@ -59,7 +59,7 @@ class TestVolumeTargetObject(base.TestCase):
 
 
 class TestListVolumeTargets(test_api_base.BaseApiTest):
-    headers = {api_base.Version.string: str(api_v1.MAX_VER)}
+    headers = {api_base.Version.string: str(api_v1.max_version())}
 
     def setUp(self):
         super(TestListVolumeTargets, self).setUp()
@@ -83,7 +83,7 @@ class TestListVolumeTargets(test_api_base.BaseApiTest):
             self.context, node_id=self.node.id)
         response = self.get_json(
             '/volume/targets',
-            headers={api_base.Version.string: str(api_v1.MIN_VER)},
+            headers={api_base.Version.string: str(api_v1.min_version())},
             expect_errors=True)
         self.assertEqual(http_client.NOT_FOUND, response.status_int)
 
@@ -103,7 +103,7 @@ class TestListVolumeTargets(test_api_base.BaseApiTest):
                                                      node_id=self.node.id)
         response = self.get_json(
             '/volume/targets/%s' % target.uuid,
-            headers={api_base.Version.string: str(api_v1.MIN_VER)},
+            headers={api_base.Version.string: str(api_v1.min_version())},
             expect_errors=True)
         self.assertEqual(http_client.NOT_FOUND, response.status_int)
 
@@ -170,7 +170,7 @@ class TestListVolumeTargets(test_api_base.BaseApiTest):
                                             node_id=self.node.id)
         response = self.get_json(
             '/volume/targets?detail=True',
-            headers={api_base.Version.string: str(api_v1.MIN_VER)},
+            headers={api_base.Version.string: str(api_v1.min_version())},
             expect_errors=True)
         self.assertEqual(http_client.NOT_FOUND, response.status_int)
 
@@ -328,7 +328,7 @@ class TestListVolumeTargets(test_api_base.BaseApiTest):
 
 @mock.patch.object(rpcapi.ConductorAPI, 'update_volume_target')
 class TestPatch(test_api_base.BaseApiTest):
-    headers = {api_base.Version.string: str(api_v1.MAX_VER)}
+    headers = {api_base.Version.string: str(api_v1.max_version())}
 
     def setUp(self):
         super(TestPatch, self).setUp()
@@ -368,7 +368,7 @@ class TestPatch(test_api_base.BaseApiTest):
                                       node_uuid=self.node.uuid)])
 
     def test_update_byid_invalid_api_version(self, mock_upd):
-        headers = {api_base.Version.string: str(api_v1.MIN_VER)}
+        headers = {api_base.Version.string: str(api_v1.min_version())}
         response = self.patch_json('/volume/targets/%s'
                                    % self.target.uuid,
                                    [{'path': '/extra/foo',
@@ -702,7 +702,7 @@ class TestPatch(test_api_base.BaseApiTest):
 
 
 class TestPost(test_api_base.BaseApiTest):
-    headers = {api_base.Version.string: str(api_v1.MAX_VER)}
+    headers = {api_base.Version.string: str(api_v1.max_version())}
 
     def setUp(self):
         super(TestPost, self).setUp()
@@ -742,7 +742,7 @@ class TestPost(test_api_base.BaseApiTest):
         pdict = post_get_test_volume_target()
         response = self.post_json(
             '/volume/targets', pdict,
-            headers={api_base.Version.string: str(api_v1.MIN_VER)},
+            headers={api_base.Version.string: str(api_v1.min_version())},
             expect_errors=True)
         self.assertEqual(http_client.NOT_FOUND, response.status_int)
 
@@ -860,7 +860,7 @@ class TestPost(test_api_base.BaseApiTest):
 
 @mock.patch.object(rpcapi.ConductorAPI, 'destroy_volume_target')
 class TestDelete(test_api_base.BaseApiTest):
-    headers = {api_base.Version.string: str(api_v1.MAX_VER)}
+    headers = {api_base.Version.string: str(api_v1.max_version())}
 
     def setUp(self):
         super(TestDelete, self).setUp()
@@ -889,7 +889,7 @@ class TestDelete(test_api_base.BaseApiTest):
                                       node_uuid=self.node.uuid)])
 
     def test_delete_volume_target_byid_invalid_api_version(self, mock_dvc):
-        headers = {api_base.Version.string: str(api_v1.MIN_VER)}
+        headers = {api_base.Version.string: str(api_v1.min_version())}
         response = self.delete('/volume/targets/%s' % self.target.uuid,
                                headers=headers,
                                expect_errors=True)

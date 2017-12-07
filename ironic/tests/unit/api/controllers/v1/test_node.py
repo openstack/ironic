@@ -90,7 +90,8 @@ class TestListNodes(test_api_base.BaseApiTest):
         node = obj_utils.create_test_node(self.context,
                                           chassis_id=self.chassis.id)
         data = self.get_json(
-            '/nodes', headers={api_base.Version.string: str(api_v1.MAX_VER)})
+            '/nodes',
+            headers={api_base.Version.string: str(api_v1.max_version())})
         self.assertIn('instance_uuid', data['nodes'][0])
         self.assertIn('maintenance', data['nodes'][0])
         self.assertIn('power_state', data['nodes'][0])
@@ -125,7 +126,7 @@ class TestListNodes(test_api_base.BaseApiTest):
                                           chassis_id=self.chassis.id)
         data = self.get_json(
             '/nodes/%s' % node.uuid,
-            headers={api_base.Version.string: str(api_v1.MAX_VER)})
+            headers={api_base.Version.string: str(api_v1.max_version())})
         self.assertEqual(node.uuid, data['uuid'])
         self.assertIn('driver', data)
         self.assertIn('driver_info', data)
@@ -184,7 +185,7 @@ class TestListNodes(test_api_base.BaseApiTest):
         fields = 'extra,instance_info'
         data = self.get_json(
             '/nodes/%s?fields=%s' % (node.uuid, fields),
-            headers={api_base.Version.string: str(api_v1.MAX_VER)})
+            headers={api_base.Version.string: str(api_v1.max_version())})
         # We always append "links"
         self.assertItemsEqual(['extra', 'instance_info', 'links'], data)
 
@@ -197,7 +198,7 @@ class TestListNodes(test_api_base.BaseApiTest):
 
         data = self.get_json(
             '/nodes?fields=%s' % fields,
-            headers={api_base.Version.string: str(api_v1.MAX_VER)})
+            headers={api_base.Version.string: str(api_v1.max_version())})
 
         self.assertEqual(3, len(data['nodes']))
         for node in data['nodes']:
@@ -210,7 +211,7 @@ class TestListNodes(test_api_base.BaseApiTest):
         fields = 'uuid,spongebob'
         response = self.get_json(
             '/nodes/%s?fields=%s' % (node.uuid, fields),
-            headers={api_base.Version.string: str(api_v1.MAX_VER)},
+            headers={api_base.Version.string: str(api_v1.max_version())},
             expect_errors=True)
         self.assertEqual(http_client.BAD_REQUEST, response.status_int)
         self.assertEqual('application/json', response.content_type)
@@ -222,7 +223,7 @@ class TestListNodes(test_api_base.BaseApiTest):
         fields = 'uuid,extra'
         response = self.get_json(
             '/nodes/%s?fields=%s' % (node.uuid, fields),
-            headers={api_base.Version.string: str(api_v1.MIN_VER)},
+            headers={api_base.Version.string: str(api_v1.min_version())},
             expect_errors=True)
         self.assertEqual(http_client.NOT_ACCEPTABLE, response.status_int)
 
@@ -233,7 +234,7 @@ class TestListNodes(test_api_base.BaseApiTest):
         fields = 'driver_info'
         data = self.get_json(
             '/nodes/%s?fields=%s' % (node.uuid, fields),
-            headers={api_base.Version.string: str(api_v1.MAX_VER)})
+            headers={api_base.Version.string: str(api_v1.max_version())})
         # We always append "links"
         self.assertItemsEqual(['driver_info', 'links'], data)
         self.assertEqual('******', data['driver_info']['fake_password'])
@@ -254,7 +255,7 @@ class TestListNodes(test_api_base.BaseApiTest):
         fields = 'network_interface'
         response = self.get_json(
             '/nodes/%s?fields=%s' % (node.uuid, fields),
-            headers={api_base.Version.string: str(api_v1.MAX_VER)})
+            headers={api_base.Version.string: str(api_v1.max_version())})
         self.assertIn('network_interface', response)
 
     def test_get_all_interface_fields_invalid_api_version(self):
@@ -273,7 +274,7 @@ class TestListNodes(test_api_base.BaseApiTest):
         fields_arg = ','.join(api_utils.V31_FIELDS)
         response = self.get_json(
             '/nodes/%s?fields=%s' % (node.uuid, fields_arg),
-            headers={api_base.Version.string: str(api_v1.MAX_VER)})
+            headers={api_base.Version.string: str(api_v1.max_version())})
         for field in api_utils.V31_FIELDS:
             self.assertIn(field, response)
 
@@ -293,7 +294,7 @@ class TestListNodes(test_api_base.BaseApiTest):
         fields = 'storage_interface'
         response = self.get_json(
             '/nodes/%s?fields=%s' % (node.uuid, fields),
-            headers={api_base.Version.string: str(api_v1.MAX_VER)})
+            headers={api_base.Version.string: str(api_v1.max_version())})
         self.assertIn('storage_interface', response)
 
     def test_detail(self):
@@ -301,7 +302,7 @@ class TestListNodes(test_api_base.BaseApiTest):
                                           chassis_id=self.chassis.id)
         data = self.get_json(
             '/nodes/detail',
-            headers={api_base.Version.string: str(api_v1.MAX_VER)})
+            headers={api_base.Version.string: str(api_v1.max_version())})
         self.assertEqual(node.uuid, data['nodes'][0]["uuid"])
         self.assertIn('name', data['nodes'][0])
         self.assertIn('driver', data['nodes'][0])
@@ -339,7 +340,7 @@ class TestListNodes(test_api_base.BaseApiTest):
 
         data = self.get_json(
             '/nodes/%s' % node.uuid,
-            headers={api_base.Version.string: str(api_v1.MIN_VER)})
+            headers={api_base.Version.string: str(api_v1.min_version())})
         self.assertEqual(states.NOSTATE, data['provision_state'])
 
         data = self.get_json('/nodes/%s' % node.uuid,
@@ -351,7 +352,7 @@ class TestListNodes(test_api_base.BaseApiTest):
                                           driver_internal_info={"foo": "bar"})
         data = self.get_json(
             '/nodes/%s' % node.uuid,
-            headers={api_base.Version.string: str(api_v1.MIN_VER)})
+            headers={api_base.Version.string: str(api_v1.min_version())})
         self.assertNotIn('driver_internal_info', data)
 
         data = self.get_json('/nodes/%s' % node.uuid,
@@ -375,7 +376,7 @@ class TestListNodes(test_api_base.BaseApiTest):
                                           inspection_started_at=some_time)
         data = self.get_json(
             '/nodes/%s' % node.uuid,
-            headers={api_base.Version.string: str(api_v1.MIN_VER)})
+            headers={api_base.Version.string: str(api_v1.min_version())})
         self.assertNotIn('inspection_finished_at', data)
         self.assertNotIn('inspection_started_at', data)
 
@@ -391,7 +392,7 @@ class TestListNodes(test_api_base.BaseApiTest):
                                           clean_step={"foo": "bar"})
         data = self.get_json(
             '/nodes/%s' % node.uuid,
-            headers={api_base.Version.string: str(api_v1.MIN_VER)})
+            headers={api_base.Version.string: str(api_v1.min_version())})
         self.assertNotIn('clean_step', data)
 
         data = self.get_json('/nodes/%s' % node.uuid,
@@ -737,14 +738,14 @@ class TestListNodes(test_api_base.BaseApiTest):
 
         data = self.get_json(
             '/nodes/%s/volume/connectors' % node.uuid,
-            headers={api_base.Version.string: str(api_v1.MAX_VER)})
+            headers={api_base.Version.string: str(api_v1.max_version())})
         self.assertEqual(2, len(data['connectors']))
         self.assertNotIn('next', data)
 
         # Test collection pagination
         data = self.get_json(
             '/nodes/%s/volume/connectors?limit=1' % node.uuid,
-            headers={api_base.Version.string: str(api_v1.MAX_VER)})
+            headers={api_base.Version.string: str(api_v1.max_version())})
         self.assertEqual(1, len(data['connectors']))
         self.assertIn('next', data)
 
@@ -755,7 +756,7 @@ class TestListNodes(test_api_base.BaseApiTest):
         response = self.get_json(
             '/nodes/volume/connectors',
             expect_errors=True,
-            headers={api_base.Version.string: str(api_v1.MAX_VER)})
+            headers={api_base.Version.string: str(api_v1.max_version())})
         self.assertEqual(http_client.NOT_FOUND, response.status_int)
 
     def test_volume_connectors_subresource_node_not_found(self):
@@ -763,7 +764,7 @@ class TestListNodes(test_api_base.BaseApiTest):
         response = self.get_json(
             '/nodes/%s/volume/connectors' % non_existent_uuid,
             expect_errors=True,
-            headers={api_base.Version.string: str(api_v1.MAX_VER)})
+            headers={api_base.Version.string: str(api_v1.max_version())})
         self.assertEqual(http_client.NOT_FOUND, response.status_int)
 
     def test_volume_targets_subresource(self):
@@ -776,14 +777,14 @@ class TestListNodes(test_api_base.BaseApiTest):
 
         data = self.get_json(
             '/nodes/%s/volume/targets' % node.uuid,
-            headers={api_base.Version.string: str(api_v1.MAX_VER)})
+            headers={api_base.Version.string: str(api_v1.max_version())})
         self.assertEqual(2, len(data['targets']))
         self.assertNotIn('next', data)
 
         # Test collection pagination
         data = self.get_json(
             '/nodes/%s/volume/targets?limit=1' % node.uuid,
-            headers={api_base.Version.string: str(api_v1.MAX_VER)})
+            headers={api_base.Version.string: str(api_v1.max_version())})
         self.assertEqual(1, len(data['targets']))
         self.assertIn('next', data)
 
@@ -794,7 +795,7 @@ class TestListNodes(test_api_base.BaseApiTest):
         response = self.get_json(
             '/nodes/volume/targets',
             expect_errors=True,
-            headers={api_base.Version.string: str(api_v1.MAX_VER)})
+            headers={api_base.Version.string: str(api_v1.max_version())})
         self.assertEqual(http_client.NOT_FOUND, response.status_int)
 
     def test_volume_targets_subresource_node_not_found(self):
@@ -802,7 +803,7 @@ class TestListNodes(test_api_base.BaseApiTest):
         response = self.get_json(
             '/nodes/%s/volume/targets' % non_existent_uuid,
             expect_errors=True,
-            headers={api_base.Version.string: str(api_v1.MAX_VER)})
+            headers={api_base.Version.string: str(api_v1.max_version())})
         self.assertEqual(http_client.NOT_FOUND, response.status_int)
 
     @mock.patch.object(timeutils, 'utcnow')
@@ -1085,7 +1086,7 @@ class TestListNodes(test_api_base.BaseApiTest):
     def test_get_nodes_by_driver_invalid_api_version(self):
         response = self.get_json(
             '/nodes?driver=fake',
-            headers={api_base.Version.string: str(api_v1.MIN_VER)},
+            headers={api_base.Version.string: str(api_v1.min_version())},
             expect_errors=True)
         self.assertEqual(http_client.NOT_ACCEPTABLE, response.status_code)
         self.assertTrue(response.json['error_message'])
@@ -1147,7 +1148,7 @@ class TestListNodes(test_api_base.BaseApiTest):
 
         response = self.get_json(
             base_url % 'fake',
-            headers={api_base.Version.string: str(api_v1.MIN_VER)},
+            headers={api_base.Version.string: str(api_v1.min_version())},
             expect_errors=True)
         self.assertEqual(http_client.NOT_ACCEPTABLE, response.status_code)
         self.assertTrue(response.json['error_message'])
@@ -1307,7 +1308,7 @@ class TestListNodes(test_api_base.BaseApiTest):
                                           driver_info=driver_info)
         data = self.get_json(
             '/nodes/%s' % node.uuid,
-            headers={api_base.Version.string: str(api_v1.MAX_VER)})
+            headers={api_base.Version.string: str(api_v1.max_version())})
 
         self.assertEqual("******", data["driver_info"]["ssh_password"])
         self.assertEqual("******", data["driver_info"]["ssh_key_contents"])
@@ -1562,7 +1563,7 @@ class TestPatch(test_api_base.BaseApiTest):
             '/nodes/%s/volume/connectors' % self.node.uuid,
             [{'path': '/extra/foo', 'value': 'bar', 'op': 'add'}],
             expect_errors=True,
-            headers={api_base.Version.string: str(api_v1.MAX_VER)})
+            headers={api_base.Version.string: str(api_v1.max_version())})
         self.assertEqual(http_client.BAD_REQUEST, response.status_int)
 
     def test_patch_volume_connectors_subresource(self):
@@ -1574,7 +1575,7 @@ class TestPatch(test_api_base.BaseApiTest):
                                                 connector.uuid),
             [{'path': '/extra/foo', 'value': 'bar', 'op': 'add'}],
             expect_errors=True,
-            headers={api_base.Version.string: str(api_v1.MAX_VER)})
+            headers={api_base.Version.string: str(api_v1.max_version())})
         self.assertEqual(http_client.FORBIDDEN, response.status_int)
 
     def test_patch_volume_targets_subresource(self):
@@ -1585,7 +1586,7 @@ class TestPatch(test_api_base.BaseApiTest):
                                              target.uuid),
             [{'path': '/extra/foo', 'value': 'bar', 'op': 'add'}],
             expect_errors=True,
-            headers={api_base.Version.string: str(api_v1.MAX_VER)})
+            headers={api_base.Version.string: str(api_v1.max_version())})
         self.assertEqual(http_client.FORBIDDEN, response.status_int)
 
     def test_remove_uuid(self):
@@ -1943,7 +1944,7 @@ class TestPatch(test_api_base.BaseApiTest):
                                           uuid=uuidutils.generate_uuid())
         self.mock_update_node.return_value = node
         network_interface = 'flat'
-        headers = {api_base.Version.string: str(api_v1.MAX_VER)}
+        headers = {api_base.Version.string: str(api_v1.max_version())}
         response = self.patch_json('/nodes/%s' % node.uuid,
                                    [{'path': '/network_interface',
                                      'value': network_interface,
@@ -2029,7 +2030,7 @@ class TestPatch(test_api_base.BaseApiTest):
         node = obj_utils.create_test_node(self.context,
                                           uuid=uuidutils.generate_uuid())
         self.mock_update_node.return_value = node
-        headers = {api_base.Version.string: str(api_v1.MAX_VER)}
+        headers = {api_base.Version.string: str(api_v1.max_version())}
         for field in api_utils.V31_FIELDS:
             response = self.patch_json('/nodes/%s' % node.uuid,
                                        [{'path': '/%s' % field,
@@ -2075,7 +2076,7 @@ class TestPatch(test_api_base.BaseApiTest):
                                           uuid=uuidutils.generate_uuid())
         self.mock_update_node.return_value = node
         storage_interface = 'cinder'
-        headers = {api_base.Version.string: str(api_v1.MAX_VER)}
+        headers = {api_base.Version.string: str(api_v1.max_version())}
         response = self.patch_json('/nodes/%s' % node.uuid,
                                    [{'path': '/storage_interface',
                                      'value': storage_interface,
@@ -2473,7 +2474,7 @@ class TestPost(test_api_base.BaseApiTest):
         response = self.post_json(
             '/nodes/volume/connectors', pdict,
             expect_errors=True,
-            headers={api_base.Version.string: str(api_v1.MAX_VER)})
+            headers={api_base.Version.string: str(api_v1.max_version())})
         self.assertEqual(http_client.NOT_FOUND, response.status_int)
 
     def test_post_volume_connectors_subresource(self):
@@ -2483,7 +2484,7 @@ class TestPost(test_api_base.BaseApiTest):
         response = self.post_json(
             '/nodes/%s/volume/connectors' % node.uuid, pdict,
             expect_errors=True,
-            headers={api_base.Version.string: str(api_v1.MAX_VER)})
+            headers={api_base.Version.string: str(api_v1.max_version())})
         self.assertEqual(http_client.FORBIDDEN, response.status_int)
 
     def test_post_volume_targets_subresource(self):
@@ -2493,7 +2494,7 @@ class TestPost(test_api_base.BaseApiTest):
         response = self.post_json(
             '/nodes/%s/volume/targets' % node.uuid, pdict,
             expect_errors=True,
-            headers={api_base.Version.string: str(api_v1.MAX_VER)})
+            headers={api_base.Version.string: str(api_v1.max_version())})
         self.assertEqual(http_client.FORBIDDEN, response.status_int)
 
     def test_create_node_no_mandatory_field_driver(self):
@@ -2589,11 +2590,11 @@ class TestPost(test_api_base.BaseApiTest):
             network_interface='flat')
         response = self.post_json('/nodes', ndict,
                                   headers={api_base.Version.string:
-                                           str(api_v1.MAX_VER)})
+                                           str(api_v1.max_version())})
         self.assertEqual(http_client.CREATED, response.status_int)
         result = self.get_json('/nodes/%s' % ndict['uuid'],
                                headers={api_base.Version.string:
-                                        str(api_v1.MAX_VER)})
+                                        str(api_v1.max_version())})
         self.assertEqual('flat', result['network_interface'])
 
     def test_create_node_network_interface_old_api_version(self):
@@ -2608,7 +2609,7 @@ class TestPost(test_api_base.BaseApiTest):
             network_interface='foo')
         response = self.post_json('/nodes', ndict, expect_errors=True,
                                   headers={api_base.Version.string:
-                                           str(api_v1.MAX_VER)})
+                                           str(api_v1.max_version())})
         self.assertEqual('application/json', response.content_type)
         self.assertEqual(http_client.BAD_REQUEST, response.status_int)
 
@@ -2617,11 +2618,11 @@ class TestPost(test_api_base.BaseApiTest):
             resource_class='foo')
         response = self.post_json('/nodes', ndict,
                                   headers={api_base.Version.string:
-                                           str(api_v1.MAX_VER)})
+                                           str(api_v1.max_version())})
         self.assertEqual(http_client.CREATED, response.status_int)
         result = self.get_json('/nodes/%s' % ndict['uuid'],
                                headers={api_base.Version.string:
-                                        str(api_v1.MAX_VER)})
+                                        str(api_v1.max_version())})
         self.assertEqual('foo', result['resource_class'])
 
     def test_create_node_resource_class_old_api_version(self):
@@ -2643,7 +2644,7 @@ class TestPost(test_api_base.BaseApiTest):
         ndict = test_api_utils.post_get_test_node(storage_interface='foo')
         response = self.post_json('/nodes', ndict, expect_errors=True,
                                   headers={api_base.Version.string:
-                                           str(api_v1.MAX_VER)})
+                                           str(api_v1.max_version())})
         self.assertEqual('application/json', response.content_type)
         self.assertEqual(http_client.BAD_REQUEST, response.status_int)
 
@@ -2750,7 +2751,7 @@ class TestDelete(test_api_base.BaseApiTest):
         response = self.delete(
             '/nodes/%s/volume/connectors' % node.uuid,
             expect_errors=True,
-            headers={api_base.Version.string: str(api_v1.MAX_VER)})
+            headers={api_base.Version.string: str(api_v1.max_version())})
         self.assertEqual(http_client.BAD_REQUEST, response.status_int)
 
     def test_delete_volume_connectors_subresource(self):
@@ -2760,7 +2761,7 @@ class TestDelete(test_api_base.BaseApiTest):
         response = self.delete(
             '/nodes/%s/volume/connectors/%s' % (node.uuid, connector.uuid),
             expect_errors=True,
-            headers={api_base.Version.string: str(api_v1.MAX_VER)})
+            headers={api_base.Version.string: str(api_v1.max_version())})
         self.assertEqual(http_client.FORBIDDEN, response.status_int)
 
     def test_delete_volume_targets_subresource(self):
@@ -2770,7 +2771,7 @@ class TestDelete(test_api_base.BaseApiTest):
         response = self.delete(
             '/nodes/%s/volume/targets/%s' % (node.uuid, target.uuid),
             expect_errors=True,
-            headers={api_base.Version.string: str(api_v1.MAX_VER)})
+            headers={api_base.Version.string: str(api_v1.max_version())})
         self.assertEqual(http_client.FORBIDDEN, response.status_int)
 
     @mock.patch.object(notification_utils, '_emit_api_notification')

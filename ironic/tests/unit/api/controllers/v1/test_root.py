@@ -40,7 +40,7 @@ class TestCheckVersions(test_base.TestCase):
 
     def test_check_version_invalid_major_version(self):
         self.version.major = v1_api.BASE_VERSION + 1
-        self.version.minor = v1_api.MIN_VER.minor
+        self.version.minor = v1_api.min_version().minor
         self.assertRaises(
             webob_exc.HTTPNotAcceptable,
             v1_api.Controller()._check_version,
@@ -48,7 +48,7 @@ class TestCheckVersions(test_base.TestCase):
 
     def test_check_version_too_low(self):
         self.version.major = v1_api.BASE_VERSION
-        self.version.minor = v1_api.MIN_VER.minor - 1
+        self.version.minor = v1_api.min_version().minor - 1
         self.assertRaises(
             webob_exc.HTTPNotAcceptable,
             v1_api.Controller()._check_version,
@@ -56,14 +56,14 @@ class TestCheckVersions(test_base.TestCase):
 
     def test_check_version_too_high(self):
         self.version.major = v1_api.BASE_VERSION
-        self.version.minor = v1_api.MAX_VER.minor + 1
+        self.version.minor = v1_api.max_version().minor + 1
         e = self.assertRaises(
             webob_exc.HTTPNotAcceptable,
             v1_api.Controller()._check_version,
-            self.version, {'fake-headers': v1_api.MAX_VER.minor})
-        self.assertEqual(v1_api.MAX_VER.minor, e.headers['fake-headers'])
+            self.version, {'fake-headers': v1_api.max_version().minor})
+        self.assertEqual(v1_api.max_version().minor, e.headers['fake-headers'])
 
     def test_check_version_ok(self):
         self.version.major = v1_api.BASE_VERSION
-        self.version.minor = v1_api.MIN_VER.minor
+        self.version.minor = v1_api.min_version().minor
         v1_api.Controller()._check_version(self.version)
