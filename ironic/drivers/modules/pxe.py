@@ -35,6 +35,7 @@ from ironic.common import states
 from ironic.conductor import utils as manager_utils
 from ironic.conf import CONF
 from ironic.drivers import base
+from ironic.drivers.modules import boot_mode_utils
 from ironic.drivers.modules import deploy_utils
 from ironic.drivers.modules import image_cache
 from ironic.drivers import utils as driver_utils
@@ -528,6 +529,7 @@ class PXEBoot(base.BootInterface):
         # if we are in DEPLOYING state.
         if node.provision_state == states.DEPLOYING:
             pxe_info.update(_get_instance_image_info(node, task.context))
+            boot_mode_utils.sync_boot_mode(task)
 
         pxe_options = _build_pxe_config_options(task, pxe_info)
         pxe_options.update(ramdisk_params)
@@ -590,6 +592,8 @@ class PXEBoot(base.BootInterface):
         :param task: a task from TaskManager.
         :returns: None
         """
+        boot_mode_utils.sync_boot_mode(task)
+
         node = task.node
         boot_option = deploy_utils.get_boot_option(node)
         boot_device = None
@@ -679,6 +683,7 @@ class PXEBoot(base.BootInterface):
         :returns: None
         """
         node = task.node
+
         try:
             images_info = _get_instance_image_info(node, task.context)
         except exception.MissingParameterValue as e:

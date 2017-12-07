@@ -771,12 +771,17 @@ def get_boot_mode_for_deploy(node):
     'trusted_boot' is set to 'true' in 'instance_info/capabilities' of node.
     Otherwise it returns value of 'boot_mode' in 'properties/capabilities'
     of node if set. If that is not set, it returns boot mode in
+    'driver_internal_info/deploy_boot_mode' for the node.
+    If that is not set, it returns boot mode in
     'instance_info/deploy_boot_mode' for the node.
     It would return None if boot mode is present neither in 'capabilities' of
-    node 'properties' nor in node's 'instance_info' (which could also be None).
+    node 'properties' nor in node's 'driver_internal_info' nor in node's
+    'instance_info' (which could also be None).
 
     :param node: an ironic node object.
     :returns: 'bios', 'uefi' or None
+    :raises: InvalidParameterValue, if the node boot mode disagrees with
+        the boot mode set to node properties/capabilities
     """
 
     if is_secure_boot_requested(node):
@@ -789,15 +794,56 @@ def get_boot_mode_for_deploy(node):
         LOG.debug('Deploy boot mode is bios for %s.', node.uuid)
         return 'bios'
 
-    boot_mode = driver_utils.get_node_capability(node, 'boot_mode')
+    # NOTE(etingof):
+    # The search for a boot mode should be in the priority order:
+    #
+    # 1) instance_info
+    # 2) properties.capabilities
+    # 3) driver_internal_info
+    #
+    # Because:
+    #
+    # (1) can be deleted before teardown
+    # (3) will never be touched if node properties/capabilities
+    #     are still present.
+    # (2) becomes operational default as the last resort
+
+    instance_info = node.instance_info
+
+    cap_boot_mode = driver_utils.get_node_capability(node, 'boot_mode')
+
+    boot_mode = instance_info.get('deploy_boot_mode')
     if boot_mode is None:
-        instance_info = node.instance_info
-        boot_mode = instance_info.get('deploy_boot_mode')
+        boot_mode = cap_boot_mode
+        if cap_boot_mode is None:
+            driver_internal_info = node.driver_internal_info
+            boot_mode = driver_internal_info.get('deploy_boot_mode')
+
+    if not boot_mode:
+        return
+
+    boot_mode = boot_mode.lower()
+
+    # NOTE(etingof):
+    # Make sure that the ultimate boot_mode agrees with the one set to
+    # node properties/capabilities. This locks down node to use only
+    # boot mode specified in properties/capabilities.
+    # TODO(etingof): this logic will have to go away when we switch to traits
+    if cap_boot_mode:
+        cap_boot_mode = cap_boot_mode.lower()
+        if cap_boot_mode != boot_mode:
+            msg = (_("Node %(uuid)s boot mode %(boot_mode)s violates "
+                     "node properties/capabilities %(caps)s") %
+                   {'uuid': node.uuid,
+                    'boot_mode': boot_mode,
+                    'caps': cap_boot_mode})
+            LOG.error(msg)
+            raise exception.InvalidParameterValue(msg)
 
     LOG.debug('Deploy boot mode is %(boot_mode)s for %(node)s.',
               {'boot_mode': boot_mode, 'node': node.uuid})
 
-    return boot_mode.lower() if boot_mode else boot_mode
+    return boot_mode
 
 
 def get_pxe_boot_file(node):

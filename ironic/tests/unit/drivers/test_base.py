@@ -478,6 +478,27 @@ class TestManagementInterface(base.TestCase):
         self.assertRaises(exception.UnsupportedDriverExtension,
                           management.inject_nmi, task_mock)
 
+    def test_get_supported_boot_modes_default_impl(self):
+        management = fake.FakeManagement()
+        task_mock = mock.MagicMock(spec_set=['node'])
+
+        self.assertRaises(exception.UnsupportedDriverExtension,
+                          management.get_supported_boot_modes, task_mock)
+
+    def test_set_boot_mode_default_impl(self):
+        management = fake.FakeManagement()
+        task_mock = mock.MagicMock(spec_set=['node'])
+
+        self.assertRaises(exception.UnsupportedDriverExtension,
+                          management.set_boot_mode, task_mock, 'whatever')
+
+    def test_get_boot_mode_default_impl(self):
+        management = fake.FakeManagement()
+        task_mock = mock.MagicMock(spec_set=['node'])
+
+        self.assertRaises(exception.UnsupportedDriverExtension,
+                          management.get_boot_mode, task_mock)
+
 
 class TestBaseDriver(base.TestCase):
 

@@ -586,6 +586,10 @@ class DriverLoadError(IronicException):
                  "loaded. Reason: %(reason)s.")
 
 
+class DriverOperationError(IronicException):
+    _msg_fmt = _("Runtime driver %(driver)s failure. Reason: %(reason)s.")
+
+
 class ConsoleError(IronicException):
     pass
 
@@ -602,15 +606,15 @@ class PasswordFileFailedToCreate(IronicException):
     _msg_fmt = _("Failed to create the password file. %(error)s")
 
 
-class IloOperationError(IronicException):
+class IloOperationError(DriverOperationError):
     _msg_fmt = _("%(operation)s failed, error: %(error)s")
 
 
-class IloOperationNotSupported(IronicException):
+class IloOperationNotSupported(DriverOperationError):
     _msg_fmt = _("%(operation)s not supported. error: %(error)s")
 
 
-class DracOperationError(IronicException):
+class DracOperationError(DriverOperationError):
     _msg_fmt = _('DRAC operation failed. Reason: %(error)s')
 
 
@@ -643,7 +647,7 @@ class SwiftObjectNotFoundError(SwiftOperationError):
                  "not found. Operation '%(operation)s' failed.")
 
 
-class SNMPFailure(IronicException):
+class SNMPFailure(DriverOperationError):
     _msg_fmt = _("SNMP operation '%(operation)s' failed: %(error)s")
 
 
@@ -652,11 +656,11 @@ class FileSystemNotSupported(IronicException):
                  "File system %(fs)s is not supported.")
 
 
-class IRMCOperationError(IronicException):
+class IRMCOperationError(DriverOperationError):
     _msg_fmt = _('iRMC %(operation)s failed. Reason: %(error)s')
 
 
-class IRMCSharedFileSystemNotMounted(IronicException):
+class IRMCSharedFileSystemNotMounted(DriverOperationError):
     _msg_fmt = _("iRMC shared file system '%(share)s' is not mounted.")
 
 
@@ -676,7 +680,7 @@ class DirectoryNotWritable(IronicException):
     _msg_fmt = _("Directory %(dir)s is not writable.")
 
 
-class UcsOperationError(IronicException):
+class UcsOperationError(DriverOperationError):
     _msg_fmt = _("Cisco UCS client: operation %(operation)s failed for node"
                  " %(node)s. Reason: %(error)s")
 
@@ -691,11 +695,11 @@ class ImageUploadFailed(IronicException):
                  "%(web_server)s, reason: %(reason)s")
 
 
-class CIMCException(IronicException):
+class CIMCException(DriverOperationError):
     _msg_fmt = _("Cisco IMC exception occurred for node %(node)s: %(error)s")
 
 
-class OneViewError(IronicException):
+class OneViewError(DriverOperationError):
     _msg_fmt = _("OneView exception occurred. Error: %(error)s")
 
 
@@ -737,7 +741,7 @@ class StorageError(IronicException):
     _msg_fmt = _("Storage operation failure.")
 
 
-class RedfishError(IronicException):
+class RedfishError(DriverOperationError):
     _msg_fmt = _("Redfish exception occurred. Error: %(error)s")
 
 

@@ -1905,6 +1905,9 @@ class IRMCPXEBootBasicTestCase(test_pxe.PXEBootTestCase):
 
     driver = 'pxe_irmc'
     boot_interface = None
+    # NOTE(etingof): add driver-specific configuration
+    driver_info = dict(test_pxe.PXEBootTestCase.driver_info)
+    driver_info.update(PARSED_IFNO)
 
     def test_get_properties(self):
         with task_manager.acquire(self.context, self.node.uuid,

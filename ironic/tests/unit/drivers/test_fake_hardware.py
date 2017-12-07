@@ -19,6 +19,7 @@
 
 
 from ironic.common import boot_devices
+from ironic.common import boot_modes
 from ironic.common import exception
 from ironic.common import states
 from ironic.conductor import task_manager
@@ -110,6 +111,13 @@ class FakeHardwareTestCase(db_base.DbTestCase):
         expected = {'boot_device': boot_devices.PXE, 'persistent': False}
         self.assertEqual(expected,
                          self.driver.management.get_boot_device(self.task))
+
+    def test_management_interface_set_boot_mode_good(self):
+        self.assertRaises(
+            exception.UnsupportedDriverExtension,
+            self.driver.management.set_boot_mode,
+            self.task, boot_modes.LEGACY_BIOS
+        )
 
     def test_inspect_interface(self):
         self.assertEqual({}, self.driver.inspect.get_properties())

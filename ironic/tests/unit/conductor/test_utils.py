@@ -14,6 +14,7 @@ import mock
 from oslo_config import cfg
 from oslo_utils import uuidutils
 
+from ironic.common import boot_modes
 from ironic.common import exception
 from ironic.common import network
 from ironic.common import states
@@ -75,6 +76,77 @@ class NodeSetBootDeviceTestCase(db_base.DbTestCase):
         self.task.node.provision_state = states.ADOPTING
         conductor_utils.node_set_boot_device(self.task, device='pxe')
         self.assertFalse(mock_sbd.called)
+
+
+class NodeGetBootModeTestCase(db_base.DbTestCase):
+
+    def setUp(self):
+        super(NodeGetBootModeTestCase, self).setUp()
+        self.node = obj_utils.create_test_node(self.context,
+                                               uuid=uuidutils.generate_uuid())
+        self.task = task_manager.TaskManager(self.context, self.node.uuid)
+
+    @mock.patch.object(fake.FakeManagement, 'get_boot_mode', autospec=True)
+    def test_node_get_boot_mode_valid(self, mock_gbm):
+        mock_gbm.return_value = 'bios'
+        boot_mode = conductor_utils.node_get_boot_mode(self.task)
+        self.assertEqual(boot_mode, 'bios')
+        mock_gbm.assert_called_once_with(mock.ANY, self.task)
+
+    @mock.patch.object(fake.FakeManagement, 'get_boot_mode', autospec=True)
+    def test_node_get_boot_mode_unsupported(self, mock_gbm):
+        mock_gbm.side_effect = exception.UnsupportedDriverExtension(
+            driver=self.task.node.driver, extension='get_boot_mode')
+        self.assertRaises(exception.UnsupportedDriverExtension,
+                          conductor_utils.node_get_boot_mode, self.task)
+
+
+class NodeSetBootModeTestCase(db_base.DbTestCase):
+
+    def setUp(self):
+        super(NodeSetBootModeTestCase, self).setUp()
+        self.node = obj_utils.create_test_node(self.context,
+                                               uuid=uuidutils.generate_uuid())
+        self.task = task_manager.TaskManager(self.context, self.node.uuid)
+
+    @mock.patch.object(fake.FakeManagement, 'get_supported_boot_modes',
+                       autospec=True)
+    def test_node_set_boot_mode_non_existent_mode(self, mock_gsbm):
+
+        mock_gsbm.return_value = [boot_modes.LEGACY_BIOS]
+
+        self.assertRaises(exception.InvalidParameterValue,
+                          conductor_utils.node_set_boot_mode,
+                          self.task,
+                          mode='non-existing')
+
+    @mock.patch.object(fake.FakeManagement, 'set_boot_mode', autospec=True)
+    @mock.patch.object(fake.FakeManagement, 'get_supported_boot_modes',
+                       autospec=True)
+    def test_node_set_boot_mode_valid(self, mock_gsbm, mock_sbm):
+        mock_gsbm.return_value = [boot_modes.LEGACY_BIOS]
+
+        conductor_utils.node_set_boot_mode(self.task,
+                                           mode=boot_modes.LEGACY_BIOS)
+        mock_sbm.assert_called_once_with(mock.ANY, self.task,
+                                         mode=boot_modes.LEGACY_BIOS)
+
+    @mock.patch.object(fake.FakeManagement, 'set_boot_mode', autospec=True)
+    @mock.patch.object(fake.FakeManagement, 'get_supported_boot_modes',
+                       autospec=True)
+    def test_node_set_boot_mode_adopting(self, mock_gsbm, mock_sbm):
+        mock_gsbm.return_value = [boot_modes.LEGACY_BIOS]
+
+        old_provision_state = self.task.node.provision_state
+        self.task.node.provision_state = states.ADOPTING
+        try:
+            conductor_utils.node_set_boot_mode(self.task,
+                                               mode=boot_modes.LEGACY_BIOS)
+
+        finally:
+            self.task.node.provision_state = old_provision_state
+
+        self.assertFalse(mock_sbm.called)
 
 
 class NodePowerActionTestCase(db_base.DbTestCase):

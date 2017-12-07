@@ -26,6 +26,7 @@ from oslo_utils import fileutils
 from oslo_utils import uuidutils
 
 from ironic.common import boot_devices
+from ironic.common import boot_modes
 from ironic.common import dhcp_factory
 from ironic.common import exception
 from ironic.common.glance_service import base_image_service
@@ -752,6 +753,8 @@ class PXEBootTestCase(db_base.DbTestCase):
 
     driver = 'fake-hardware'
     boot_interface = 'pxe'
+    driver_info = DRV_INFO_DICT
+    driver_internal_info = DRV_INTERNAL_INFO_DICT
 
     def setUp(self):
         super(PXEBootTestCase, self).setUp()
@@ -776,8 +779,8 @@ class PXEBootTestCase(db_base.DbTestCase):
             vendor_interface=('no-vendor' if self.driver == 'fake-hardware'
                               else None),
             instance_info=instance_info,
-            driver_info=DRV_INFO_DICT,
-            driver_internal_info=DRV_INTERNAL_INFO_DICT)
+            driver_info=self.driver_info,
+            driver_internal_info=self.driver_internal_info)
         self.port = obj_utils.create_test_port(self.context,
                                                node_id=self.node.id)
         self.config(group='conductor', api_url='http://127.0.0.1:1234/')
@@ -908,6 +911,7 @@ class PXEBootTestCase(db_base.DbTestCase):
                 self.assertRaises(exception.InvalidParameterValue,
                                   task.driver.boot.validate, task)
 
+    @mock.patch.object(manager_utils, 'node_get_boot_mode', autospec=True)
     @mock.patch.object(manager_utils, 'node_set_boot_device', autospec=True)
     @mock.patch.object(dhcp_factory, 'DHCPFactory')
     @mock.patch.object(pxe, '_get_instance_image_info', autospec=True)
@@ -921,11 +925,13 @@ class PXEBootTestCase(db_base.DbTestCase):
                               mock_instance_img_info,
                               dhcp_factory_mock,
                               set_boot_device_mock,
+                              get_boot_mode_mock,
                               uefi=False,
                               cleaning=False,
                               ipxe_use_swift=False,
                               whole_disk_image=False,
-                              mode='deploy'):
+                              mode='deploy',
+                              node_boot_mode=None):
         mock_build_pxe.return_value = {}
         kernel_label = '%s_kernel' % mode
         ramdisk_label = '%s_ramdisk' % mode
@@ -939,6 +945,7 @@ class PXEBootTestCase(db_base.DbTestCase):
         mock_cache_r_k.return_value = None
         provider_mock = mock.MagicMock()
         dhcp_factory_mock.return_value = provider_mock
+        get_boot_mode_mock.return_value = node_boot_mode
         driver_internal_info = self.node.driver_internal_info
         driver_internal_info['is_whole_disk_image'] = whole_disk_image
         self.node.driver_internal_info = driver_internal_info
@@ -952,6 +959,8 @@ class PXEBootTestCase(db_base.DbTestCase):
             task.driver.boot.prepare_ramdisk(task, {'foo': 'bar'})
             mock_deploy_img_info.assert_called_once_with(task.node, mode=mode)
             provider_mock.update_dhcp.assert_called_once_with(task, dhcp_opts)
+            if self.node.provision_state == states.DEPLOYING:
+                get_boot_mode_mock.assert_called_once_with(task)
             set_boot_device_mock.assert_called_once_with(task,
                                                          boot_devices.PXE,
                                                          persistent=False)
@@ -1096,6 +1105,104 @@ class PXEBootTestCase(db_base.DbTestCase):
         self.node.provision_state = states.CLEANING
         self.node.save()
         self._test_prepare_ramdisk(cleaning=True)
+
+    @mock.patch.object(manager_utils, 'node_set_boot_mode', autospec=True)
+    def test_prepare_ramdisk_set_boot_mode_on_bm(
+            self, set_boot_mode_mock):
+        self.node.provision_state = states.DEPLOYING
+        properties = self.node.properties
+        properties['capabilities'] = 'boot_mode:uefi'
+        self.node.properties = properties
+        self.node.save()
+        self._test_prepare_ramdisk(uefi=True)
+        set_boot_mode_mock.assert_called_once_with(mock.ANY, boot_modes.UEFI)
+
+    @mock.patch.object(manager_utils, 'node_set_boot_mode', autospec=True)
+    def test_prepare_ramdisk_set_boot_mode_on_ironic(
+            self, set_boot_mode_mock):
+        self.node.provision_state = states.DEPLOYING
+        self.node.save()
+        self._test_prepare_ramdisk(node_boot_mode=boot_modes.LEGACY_BIOS)
+
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            driver_internal_info = task.node.driver_internal_info
+            self.assertIn('deploy_boot_mode', driver_internal_info)
+            self.assertEqual(boot_modes.LEGACY_BIOS,
+                             driver_internal_info['deploy_boot_mode'])
+            self.assertEqual(set_boot_mode_mock.call_count, 0)
+
+    @mock.patch.object(manager_utils, 'node_set_boot_mode', autospec=True)
+    def test_prepare_ramdisk_set_default_boot_mode_on_ironic_bios(
+            self, set_boot_mode_mock):
+        self.node.provision_state = states.DEPLOYING
+        self.node.save()
+
+        self.config(default_boot_mode=boot_modes.LEGACY_BIOS, group='deploy')
+
+        self._test_prepare_ramdisk()
+
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            driver_internal_info = task.node.driver_internal_info
+            self.assertIn('deploy_boot_mode', driver_internal_info)
+            self.assertEqual(boot_modes.LEGACY_BIOS,
+                             driver_internal_info['deploy_boot_mode'])
+            self.assertEqual(set_boot_mode_mock.call_count, 1)
+
+    @mock.patch.object(manager_utils, 'node_set_boot_mode', autospec=True)
+    def test_prepare_ramdisk_set_default_boot_mode_on_ironic_uefi(
+            self, set_boot_mode_mock):
+        self.node.provision_state = states.DEPLOYING
+        self.node.save()
+
+        self.config(default_boot_mode=boot_modes.UEFI, group='deploy')
+
+        self._test_prepare_ramdisk(uefi=True)
+
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            driver_internal_info = task.node.driver_internal_info
+            self.assertIn('deploy_boot_mode', driver_internal_info)
+            self.assertEqual(boot_modes.UEFI,
+                             driver_internal_info['deploy_boot_mode'])
+            self.assertEqual(set_boot_mode_mock.call_count, 1)
+
+    @mock.patch.object(manager_utils, 'node_set_boot_mode', autospec=True)
+    def test_prepare_ramdisk_conflicting_boot_modes(
+            self, set_boot_mode_mock):
+        self.node.provision_state = states.DEPLOYING
+        properties = self.node.properties
+        properties['capabilities'] = 'boot_mode:uefi'
+        self.node.properties = properties
+        self.node.save()
+        self._test_prepare_ramdisk(uefi=True,
+                                   node_boot_mode=boot_modes.LEGACY_BIOS)
+        set_boot_mode_mock.assert_called_once_with(mock.ANY, boot_modes.UEFI)
+
+    @mock.patch.object(manager_utils, 'node_set_boot_mode', autospec=True)
+    def test_prepare_ramdisk_conflicting_boot_modes_set_unsupported(
+            self, set_boot_mode_mock):
+        self.node.provision_state = states.DEPLOYING
+        properties = self.node.properties
+        properties['capabilities'] = 'boot_mode:uefi'
+        self.node.properties = properties
+        self.node.save()
+        set_boot_mode_mock.side_effect = exception.UnsupportedDriverExtension(
+            extension='management', driver='test-driver'
+        )
+        self.assertRaises(exception.UnsupportedDriverExtension,
+                          self._test_prepare_ramdisk,
+                          uefi=True, node_boot_mode=boot_modes.LEGACY_BIOS)
+
+    @mock.patch.object(manager_utils, 'node_set_boot_mode', autospec=True)
+    def test_prepare_ramdisk_set_boot_mode_not_called(
+            self, set_boot_mode_mock):
+        self.node.provision_state = states.DEPLOYING
+        self.node.save()
+        properties = self.node.properties
+        properties['capabilities'] = 'boot_mode:uefi'
+        self.node.properties = properties
+        self.node.save()
+        self._test_prepare_ramdisk(uefi=True, node_boot_mode=boot_modes.UEFI)
+        self.assertEqual(set_boot_mode_mock.call_count, 0)
 
     @mock.patch.object(pxe, '_clean_up_pxe_env', autospec=True)
     @mock.patch.object(pxe, '_get_image_info', autospec=True)
@@ -1290,6 +1397,7 @@ class PXEBootTestCase(db_base.DbTestCase):
             dhcp_opts = pxe_utils.dhcp_options_for_instance(task)
             pxe_config_path = pxe_utils.get_pxe_config_file_path(
                 task.node.uuid)
+            task.node.properties['capabilities'] = 'boot_mode:bios'
             task.driver.boot.prepare_instance(task)
             self.assertFalse(get_image_info_mock.called)
             self.assertFalse(cache_mock.called)
@@ -1297,7 +1405,8 @@ class PXEBootTestCase(db_base.DbTestCase):
             create_pxe_config_mock.assert_called_once_with(
                 task, mock.ANY, CONF.pxe.pxe_config_template)
             switch_pxe_config_mock.assert_called_once_with(
-                pxe_config_path, None, None, False, iscsi_boot=True)
+                pxe_config_path, None, boot_modes.LEGACY_BIOS, False,
+                iscsi_boot=True)
             set_boot_device_mock.assert_called_once_with(task,
                                                          boot_devices.PXE,
                                                          persistent=True)
@@ -1307,7 +1416,10 @@ class PXEBootTestCase(db_base.DbTestCase):
     def test_prepare_instance_localboot(self, clean_up_pxe_config_mock,
                                         set_boot_device_mock):
         with task_manager.acquire(self.context, self.node.uuid) as task:
-            task.node.instance_info['capabilities'] = {'boot_option': 'local'}
+            instance_info = task.node.instance_info
+            instance_info['capabilities'] = {'boot_option': 'local'}
+            task.node.instance_info = instance_info
+            task.node.save()
             task.driver.boot.prepare_instance(task)
             clean_up_pxe_config_mock.assert_called_once_with(task)
             set_boot_device_mock.assert_called_once_with(task,
@@ -1319,7 +1431,10 @@ class PXEBootTestCase(db_base.DbTestCase):
     def test_is_force_persistent_boot_device_enabled(
             self, clean_up_pxe_config_mock, set_boot_device_mock):
         with task_manager.acquire(self.context, self.node.uuid) as task:
-            task.node.instance_info['capabilities'] = {'boot_option': 'local'}
+            instance_info = task.node.instance_info
+            instance_info['capabilities'] = {'boot_option': 'local'}
+            task.node.instance_info = instance_info
+            task.node.save()
             task.driver.boot.prepare_instance(task)
             clean_up_pxe_config_mock.assert_called_once_with(task)
             driver_info = task.node.driver_info
@@ -1336,7 +1451,10 @@ class PXEBootTestCase(db_base.DbTestCase):
         self.node.provision_state = states.ACTIVE
         self.node.save()
         with task_manager.acquire(self.context, self.node.uuid) as task:
-            task.node.instance_info['capabilities'] = {'boot_option': 'local'}
+            instance_info = task.node.instance_info
+            instance_info['capabilities'] = {'boot_option': 'local'}
+            task.node.instance_info = instance_info
+            task.node.save()
             task.driver.boot.prepare_instance(task)
             clean_up_pxe_config_mock.assert_called_once_with(task)
             self.assertFalse(set_boot_device_mock.called)
