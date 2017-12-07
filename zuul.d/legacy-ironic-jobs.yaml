@@ -104,22 +104,6 @@
       - openstack/virtualbmc
 
 - job:
-    name: ironic-grenade-dsvm
-    parent: legacy-ironic-dsvm-base
-    run: playbooks/legacy/grenade-dsvm-ironic/run.yaml
-    post-run: playbooks/legacy/grenade-dsvm-ironic/post.yaml
-    timeout: 10800
-    required-projects:
-      - openstack-dev/grenade
-      - openstack-infra/devstack-gate
-      - openstack/ironic
-      - openstack/ironic-lib
-      - openstack/ironic-python-agent
-      - openstack/pyghmi
-      - openstack/python-ironicclient
-      - openstack/virtualbmc
-
-- job:
     name: ironic-tempest-dsvm-ipa-partition-bios-agent_ipmitool-tinyipa
     parent: legacy-ironic-dsvm-base
     run: playbooks/legacy/tempest-dsvm-ironic-ipa-partition-bios-agent_ipmitool-tinyipa/run.yaml

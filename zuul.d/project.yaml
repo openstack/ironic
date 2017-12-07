@@ -9,8 +9,6 @@
         - ironic-tempest-dsvm-ipa-wholedisk-bios-pxe_ipmitool-tinyipa
         - ironic-tempest-dsvm-multitenant-network
         # Non-voting jobs
-        - ironic-grenade-dsvm:
-            voting: false
         - ironic-tempest-dsvm-ipa-wholedisk-agent_ipmitool-tinyipa-multinode:
             voting: false
         - ironic-tempest-dsvm-ipa-wholedisk-bios-pxe_snmp-tinyipa:
