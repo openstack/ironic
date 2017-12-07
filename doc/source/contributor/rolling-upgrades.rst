@@ -55,10 +55,11 @@ and ``ToVer`` releases in this order:
 
 2. Upgrade code and restart ironic-api services, one at a time.
 
-3. Unpin RPC and object versions so that the services can now use the latest
-   versions in ``ToVer``. This is done via updating the new configuration
-   option described below in `RPC and object version pinning`_ and then
-   restarting the services. ironic-conductor services should be restarted
+3. Unpin API, RPC and object versions so that the services can now use the
+   latest versions in ``ToVer``. This is done via updating the
+   configuration option described below in `API, RPC and object version
+   pinning`_ and then restarting the services.
+   ironic-conductor services should be restarted
    first, followed by the ironic-api services. This is to ensure that when new
    functionality is exposed on the unpinned API service (via API micro
    version), it is available on the backend.
@@ -113,33 +114,42 @@ The policy for changes to the DB model is as follows:
   accessed and/or store a large dataset), these cases must be mentioned in the
   release notes.
 
-RPC and object version pinning
-------------------------------
+API, RPC and object version pinning
+-----------------------------------
 
 For the ironic services to be running old and new releases at the same time
-during a rolling upgrade, the services need to be able to handle different RPC
-versions and object versions.
+during a rolling upgrade, the services need to be able to handle different API,
+RPC and object versions.
 
 This versioning is handled via the configuration option:
-``[DEFAULT]/pin_release_version``. It is used to pin the RPC and IronicObject
-(e.g., Node, Conductor, Chassis, Port, and Portgroup) versions for
+``[DEFAULT]/pin_release_version``. It is used to pin the API, RPC and
+IronicObject (e.g., Node, Conductor, Chassis, Port, and Portgroup) versions for
 all the ironic services.
 
 The default value of empty indicates that ironic-api and ironic-conductor
-will use the latest versions of RPC and IronicObjects. Its possible values are
-releases, named (e.g. ``ocata``) or sem-versioned (e.g. ``7.0``).
+will use the latest versions of API, RPC and IronicObjects. Its possible values
+are releases, named (e.g. ``ocata``) or sem-versioned (e.g. ``7.0``).
 
 Internally, in `common/release_mappings.py
 <https://git.openstack.org/cgit/openstack/ironic/tree/ironic/common/release_mappings.py>`_,
-ironic maintains a mapping that indicates the RPC and
+ironic maintains a mapping that indicates the API, RPC and
 IronicObject versions associated with each release. This mapping is
 maintained manually.
 
 During a rolling upgrade, the services using the new release will set the
 configuration option value to be the name (or version) of the old release.
-This will indicate to the services running the new release, which RPC and
+This will indicate to the services running the new release, which API, RPC and
 object versions that they should be compatible with, in order to communicate
 with the services using the old release.
+
+Handling API versions
+---------------------
+
+When the (newer) service is pinned, the maximum API version it supports
+will be the pinned version -- which the older service supports (as described
+above at `API, RPC and object version pinning`_). The ironic-api
+service returns HTTP status code 406 for any requests with API versions that
+are higher than this maximum version.
 
 Handling RPC versions
 ---------------------
@@ -312,19 +322,14 @@ So the new, pinned ironic-api service needs to act like it was the older
 service:
 
 * New features should not be made available, unless they are somehow totally
-  supported in the old and new releases. As a `future enhancement
-  <https://bugs.launchpad.net/ironic/+bug/1708549>`_, since new features or
-  new REST APIs are associated with new API microversions, we should enhance
-  the ``[DEFAULT]/pin_release_version`` configuration option to also include
-  pinning the API microversion.
+  supported in the old and new releases. Pinning the API version is in place
+  to handle this.
 
-* For requests that cannot or should not be handled, the response should be
-  HTTP 406 (Not Acceptable). This is the same response to requests that have
-  an incorrect (old) version specified.
-
-  * This includes accessing a new field of an object. For example, if a
-    "new_field" field was added to Node, any requests pertaining to
-    Node.new_field should not be processed.
+  * If, for whatever reason, the API version pinning doesn't prevent a request
+    from being handled that cannot or should not be handled, it should be
+    coded so that the response has HTTP status code 406 (Not Acceptable).
+    This is the same response to requests that have an incorrect (old) version
+    specified.
 
 Ironic RPC versions
 -------------------

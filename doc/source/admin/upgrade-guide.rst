@@ -115,13 +115,13 @@ Concepts
 
 There are four aspects of the rolling upgrade process to keep in mind:
 
-* RPC version pinning and versioned object backports
+* API and RPC version pinning, and versioned object backports
 * online data migrations
 * graceful service shutdown
 * API load balancer draining
 
-RPC version pinning and versioned object backports
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+API & RPC version pinning and versioned object backports
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Through careful RPC versioning, newer services are able to talk to older
 services (and vice-versa). The ``[DEFAULT]/pin_release_version`` configuration
@@ -132,6 +132,14 @@ and objects to their appropriate versions from the pinned release. If the
 incorrect or unspecified ``[DEFAULT]/pin_release_version`` configuration value.
 For example, when ``[DEFAULT]/pin_release_version`` is not set to the older
 release version, no conversion will happen during the upgrade.
+
+For the ironic-api service, the API version is pinned via the same
+``[DEFAULT]/pin_release_version`` configuration option as above. When pinned,
+the new ironic-api services will not service any API requests with Bare Metal
+API versions that are higher than what the old ironic-api services support.
+HTTP status code 406 is returned for such requests. This prevents new features
+(available in new API versions) from being used until after the upgrade
+has been completed.
 
 Online data migrations
 ~~~~~~~~~~~~~~~~~~~~~~
@@ -191,10 +199,6 @@ services that have not yet been upgraded.
 Rolling upgrade process
 -----------------------
 
-.. warning::
-   New features and/or new API versions should not be used until after the upgrade
-   has been completed.
-
 Before maintenance window
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -214,7 +218,7 @@ Before maintenance window
   N+1) releases can perform operations against the same schema.
 
 .. note::
-   Ironic bases its RPC and object storage format versions on the
+   Ironic bases its API, RPC and object storage format versions on the
    ``[DEFAULT]/pin_release_version`` configuration option. It is
    advisable to automate the deployment of changes in configuration
    files to make the process less error prone and repeatable.
@@ -254,7 +258,11 @@ During maintenance window
    * set the ``[DEFAULT]/pin_release_version`` configuration option value to
      the version you are upgrading from (that is, the old version). Based on
      this setting, the new ironic-api services will downgrade any RPC
-     communication and data objects to conform to the old service.
+     communication and data objects to conform to the old service. In addition,
+     the new services will return HTTP status code 406 for any requests with
+     newer API versions that the old services did not support. This prevents
+     new features (available in new API versions) from being used until after
+     the upgrade has been completed.
      For example, if you are upgrading from Ocata to Pike, set this value to
      ``ocata``.
    * restart the service
@@ -262,8 +270,9 @@ During maintenance window
 
    After upgrading all the ironic-api services, the Bare Metal service is
    running in the new version but with downgraded RPC communication and
-   database object storage formats. New features can fail when objects are in
-   the downgraded object formats and some internal RPC API functions may still
+   database object storage formats. New features (in new API versions) are
+   not supported, because they could fail when objects are in the
+   downgraded object formats and some internal RPC API functions may still
    not be available.
 
 #. For all the ironic-conductor services, one at a time:
