@@ -48,8 +48,11 @@
   command: mount -o bind /{{ item }} {{ tmp_rootfs_mount }}/{{ item }}
   with_items:
     - dev
-    - sys
     - proc
+
+- name: mount /sys for chroot
+  become: yes
+  command: mount -t sysfs sysfs {{ tmp_rootfs_mount }}/sys
 
 - block:
   - name: get grub version string
@@ -70,10 +73,14 @@
     become: yes
     command: chroot {{ tmp_rootfs_mount }} /bin/sh -c '{{ grub_config_cmd }} -o {{ grub_config_file }}'
   always:
-  - name: unmount dirs for chroot
+  - name: unmount /{{ item }} for chroot
     become: yes
     command: umount {{ tmp_rootfs_mount }}/{{ item }}
+    register: task_result
+    retries: '{{ umount_retry_count }}'
+    delay: '{{ umount_retry_delay }}'
+    until: task_result.rc == 0
     with_items:
-      - dev
       - sys
       - proc
+      - dev

@@ -1,1 +1,3 @@
 tmp_rootfs_mount: /tmp/rootfs
+umount_retry_count: 5
+umount_retry_delay: 3
