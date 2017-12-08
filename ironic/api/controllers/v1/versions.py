@@ -112,8 +112,8 @@ MINOR_35_REBUILD_CONFIG_DRIVE = 35
 
 # When adding another version, update:
 # - MINOR_MAX_VERSION
-# - doc/source/dev/webapi-version-history.rst with a detailed explanation of
-#   what changed in the new version
+# - doc/source/contributor/webapi-version-history.rst with a detailed
+#   explanation of what changed in the new version
 # - common/release_mappings.py, RELEASE_MAPPING['master']['api']
 
 MINOR_MAX_VERSION = MINOR_35_REBUILD_CONFIG_DRIVE
