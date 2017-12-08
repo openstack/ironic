@@ -57,10 +57,14 @@ dbapi = db_api.get_instance()
 #                  migrated (at the beginning of this call) and the number
 #                  of migrated objects.
 #        """
+# NOTE(vdrok): Do not access objects' attributes, instead only provide object
+# and attribute name tuples, so that not to trigger the load of the whole
+# object, in case it is lazy loaded. The attribute will be accessed when needed
+# by doing getattr on the object
 ONLINE_MIGRATIONS = (
     # Added in Pike, modified in Queens
     # TODO(rloo): remove in Rocky
-    dbapi.backfill_version_column,
+    (dbapi, 'backfill_version_column'),
 )
 
 
@@ -129,7 +133,8 @@ class DBCommand(object):
         """
         total_migrated = 0
 
-        for migration_func in ONLINE_MIGRATIONS:
+        for migration_func_obj, migration_func_name in ONLINE_MIGRATIONS:
+            migration_func = getattr(migration_func_obj, migration_func_name)
             num_to_migrate = max_count - total_migrated
             try:
                 total_to_do, num_migrated = migration_func(context,

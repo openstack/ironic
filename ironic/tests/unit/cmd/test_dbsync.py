@@ -53,11 +53,12 @@ class OnlineMigrationTestCase(db_base.DbTestCase):
 
     @mock.patch.object(dbsync, 'ONLINE_MIGRATIONS', autospec=True)
     def test__run_migration_functions(self, mock_migrations):
+        mock_migrations.__iter__.return_value = ((self.dbapi, 'foo'),)
         mock_func = mock.MagicMock(side_effect=((15, 15),), __name__='foo')
-        mock_migrations.__iter__.return_value = (mock_func,)
-        self.assertTrue(
-            self.db_cmds._run_migration_functions(self.context, 50))
-        mock_func.assert_called_once_with(self.context, 50)
+        with mock.patch.object(self.dbapi, 'foo', mock_func, create=True):
+            self.assertTrue(
+                self.db_cmds._run_migration_functions(self.context, 50))
+            mock_func.assert_called_once_with(self.context, 50)
 
     @mock.patch.object(dbsync, 'ONLINE_MIGRATIONS', autospec=True)
     def test__run_migration_functions_none(self, mock_migrations):
@@ -68,74 +69,96 @@ class OnlineMigrationTestCase(db_base.DbTestCase):
 
     @mock.patch.object(dbsync, 'ONLINE_MIGRATIONS', autospec=True)
     def test__run_migration_functions_exception(self, mock_migrations):
+        mock_migrations.__iter__.return_value = ((self.dbapi, 'foo'),)
         # Migration function raises exception
         mock_func = mock.MagicMock(side_effect=TypeError("bar"),
                                    __name__='foo')
-        mock_migrations.__iter__.return_value = (mock_func,)
-        self.assertRaises(TypeError, self.db_cmds._run_migration_functions,
-                          self.context, 50)
+        with mock.patch.object(self.dbapi, 'foo', mock_func, create=True):
+            self.assertRaises(
+                TypeError, self.db_cmds._run_migration_functions,
+                self.context, 50)
         mock_func.assert_called_once_with(self.context, 50)
 
     @mock.patch.object(dbsync, 'ONLINE_MIGRATIONS', autospec=True)
     def test__run_migration_functions_2(self, mock_migrations):
         # 2 migration functions, migration completed
+        mock_migrations.__iter__.return_value = ((self.dbapi, 'func1'),
+                                                 (self.dbapi, 'func2'))
         mock_func1 = mock.MagicMock(side_effect=((15, 15),), __name__='func1')
         mock_func2 = mock.MagicMock(side_effect=((20, 20),), __name__='func2')
-        mock_migrations.__iter__.return_value = (mock_func1, mock_func2)
-        self.assertTrue(
-            self.db_cmds._run_migration_functions(self.context, 50))
+        with mock.patch.object(self.dbapi, 'func1', mock_func1, create=True):
+            with mock.patch.object(self.dbapi, 'func2', mock_func2,
+                                   create=True):
+                self.assertTrue(
+                    self.db_cmds._run_migration_functions(self.context, 50))
         mock_func1.assert_called_once_with(self.context, 50)
         mock_func2.assert_called_once_with(self.context, 35)
 
     @mock.patch.object(dbsync, 'ONLINE_MIGRATIONS', autospec=True)
     def test__run_migration_functions_2_notdone(self, mock_migrations):
         # 2 migration functions; only first function was run but not completed
+        mock_migrations.__iter__.return_value = ((self.dbapi, 'func1'),
+                                                 (self.dbapi, 'func2'))
         mock_func1 = mock.MagicMock(side_effect=((15, 10),), __name__='func1')
         mock_func2 = mock.MagicMock(side_effect=((20, 0),), __name__='func2')
-        mock_migrations.__iter__.return_value = (mock_func1, mock_func2)
-        self.assertFalse(
-            self.db_cmds._run_migration_functions(self.context, 10))
+        with mock.patch.object(self.dbapi, 'func1', mock_func1, create=True):
+            with mock.patch.object(self.dbapi, 'func2', mock_func2,
+                                   create=True):
+                self.assertFalse(
+                    self.db_cmds._run_migration_functions(self.context, 10))
         mock_func1.assert_called_once_with(self.context, 10)
         self.assertFalse(mock_func2.called)
 
     @mock.patch.object(dbsync, 'ONLINE_MIGRATIONS', autospec=True)
     def test__run_migration_functions_2_onedone(self, mock_migrations):
         # 2 migration functions; only first function was run and completed
+        mock_migrations.__iter__.return_value = ((self.dbapi, 'func1'),
+                                                 (self.dbapi, 'func2'))
         mock_func1 = mock.MagicMock(side_effect=((10, 10),), __name__='func1')
         mock_func2 = mock.MagicMock(side_effect=((20, 0),), __name__='func2')
-        mock_migrations.__iter__.return_value = (mock_func1, mock_func2)
-        self.assertFalse(
-            self.db_cmds._run_migration_functions(self.context, 10))
+        with mock.patch.object(self.dbapi, 'func1', mock_func1, create=True):
+            with mock.patch.object(self.dbapi, 'func2', mock_func2,
+                                   create=True):
+                self.assertFalse(
+                    self.db_cmds._run_migration_functions(self.context, 10))
         mock_func1.assert_called_once_with(self.context, 10)
         self.assertFalse(mock_func2.called)
 
     @mock.patch.object(dbsync, 'ONLINE_MIGRATIONS', autospec=True)
     def test__run_migration_functions_2_done(self, mock_migrations):
         # 2 migration functions; migrations completed
+        mock_migrations.__iter__.return_value = ((self.dbapi, 'func1'),
+                                                 (self.dbapi, 'func2'))
         mock_func1 = mock.MagicMock(side_effect=((10, 10),), __name__='func1')
         mock_func2 = mock.MagicMock(side_effect=((0, 0),), __name__='func2')
-        mock_migrations.__iter__.return_value = (mock_func1, mock_func2)
-        self.assertTrue(
-            self.db_cmds._run_migration_functions(self.context, 15))
+        with mock.patch.object(self.dbapi, 'func1', mock_func1, create=True):
+            with mock.patch.object(self.dbapi, 'func2', mock_func2,
+                                   create=True):
+                self.assertTrue(
+                    self.db_cmds._run_migration_functions(self.context, 15))
         mock_func1.assert_called_once_with(self.context, 15)
         mock_func2.assert_called_once_with(self.context, 5)
 
     @mock.patch.object(dbsync, 'ONLINE_MIGRATIONS', autospec=True)
     def test__run_migration_functions_two_calls_done(self, mock_migrations):
         # 2 migration functions; migrations completed after calling twice
+        mock_migrations.__iter__.return_value = ((self.dbapi, 'func1'),
+                                                 (self.dbapi, 'func2'))
         mock_func1 = mock.MagicMock(side_effect=((10, 10), (0, 0)),
                                     __name__='func1')
         mock_func2 = mock.MagicMock(side_effect=((0, 0), (0, 0)),
                                     __name__='func2')
-        mock_migrations.__iter__.return_value = (mock_func1, mock_func2)
-        self.assertFalse(
-            self.db_cmds._run_migration_functions(self.context, 10))
-        mock_func1.assert_called_once_with(self.context, 10)
-        self.assertFalse(mock_func2.called)
-        self.assertTrue(
-            self.db_cmds._run_migration_functions(self.context, 10))
-        mock_func1.assert_has_calls((mock.call(self.context, 10),) * 2)
-        mock_func2.assert_called_once_with(self.context, 10)
+        with mock.patch.object(self.dbapi, 'func1', mock_func1, create=True):
+            with mock.patch.object(self.dbapi, 'func2', mock_func2,
+                                   create=True):
+                self.assertFalse(
+                    self.db_cmds._run_migration_functions(self.context, 10))
+                mock_func1.assert_called_once_with(self.context, 10)
+                self.assertFalse(mock_func2.called)
+                self.assertTrue(
+                    self.db_cmds._run_migration_functions(self.context, 10))
+                mock_func1.assert_has_calls((mock.call(self.context, 10),) * 2)
+                mock_func2.assert_called_once_with(self.context, 10)
 
     @mock.patch.object(dbsync.DBCommand, '_run_migration_functions',
                        autospec=True)
