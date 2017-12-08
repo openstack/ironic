@@ -62,24 +62,6 @@ LOG = logging.getLogger(__name__)
 MIGRATIONS_TIMEOUT = 300
 
 
-def _get_connect_string(backend, user, passwd, database):
-    """Get database connection
-
-    Try to get a connection with a very specific set of values, if we get
-    these then we'll run the tests, otherwise they are skipped
-    """
-    if backend == "postgres":
-        backend = "postgresql+psycopg2"
-    elif backend == "mysql":
-        backend = "mysql+mysqldb"
-    else:
-        raise Exception("Unrecognized backend: '%s'" % backend)
-
-    return ("%(backend)s://%(user)s:%(passwd)s@localhost/%(database)s"
-            % {'backend': backend, 'user': user, 'passwd': passwd,
-               'database': database})
-
-
 @contextlib.contextmanager
 def patch_with_engine(engine):
     with mock.patch.object(enginefacade.writer,
