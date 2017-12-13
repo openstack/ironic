@@ -13,11 +13,14 @@
       - ^setup.cfg$
       - ^tools/.*$
       - ^tox.ini$
+    # NOTE: When adding to 'required-projects' also need to add a corresponding
+    # "export PROJECTS=..." line in all the playbooks/legacy/*/run.yaml files
     required-projects:
       - openstack-infra/devstack-gate
       - openstack/ironic
       - openstack/ironic-lib
       - openstack/ironic-python-agent
+      - openstack/ironic-tempest-plugin
       - openstack/pyghmi
       - openstack/python-ironicclient
       - openstack/tempest
@@ -38,11 +41,14 @@
       - ^setup.cfg$
       - ^tools/.*$
       - ^tox.ini$
+    # NOTE: When adding to 'required-projects' also need to add a corresponding
+    # "export PROJECTS=..." line in all the playbooks/legacy/*/run.yaml files
     required-projects:
       - openstack-infra/devstack-gate
       - openstack/ironic
       - openstack/ironic-lib
       - openstack/ironic-python-agent
+      - openstack/ironic-tempest-plugin
       - openstack/pyghmi
       - openstack/python-ironicclient
       - openstack/tempest
