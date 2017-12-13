@@ -170,6 +170,7 @@ class Node(Base):
     inspection_started_at = Column(DateTime, nullable=True)
     extra = Column(db_types.JsonEncodedDict)
 
+    bios_interface = Column(String(255), nullable=True)
     boot_interface = Column(String(255), nullable=True)
     console_interface = Column(String(255), nullable=True)
     deploy_interface = Column(String(255), nullable=True)
