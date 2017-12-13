@@ -29,7 +29,7 @@ from ironic.conf import CONF
 _SWIFT_SESSION = None
 
 
-def _get_swift_session():
+def get_swift_session():
     global _SWIFT_SESSION
     if not _SWIFT_SESSION:
         auth = keystone.get_auth('swift')
@@ -39,6 +39,9 @@ def _get_swift_session():
 
 class SwiftAPI(object):
     """API for communicating with Swift."""
+
+    connection = None
+    """Underlying Swift connection object."""
 
     def __init__(self):
         """Initialize the connection with swift or radosgw
@@ -64,7 +67,7 @@ class SwiftAPI(object):
             # support.
             # TODO(pas-ha) pass the context here and use token from context
             # with service auth
-            params['session'] = session = _get_swift_session()
+            params['session'] = session = get_swift_session()
             adapter = keystone.get_adapter('swift', session=session)
             params['os_options'] = {
                 'object_storage_url': adapter.get_endpoint()}

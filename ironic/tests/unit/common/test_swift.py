@@ -32,7 +32,7 @@ if six.PY3:
     file = io.BytesIO
 
 
-@mock.patch.object(swift, '_get_swift_session', autospec=True,
+@mock.patch.object(swift, 'get_swift_session', autospec=True,
                    return_value=mock.Mock(verify=False, cert=('spam', 'ham'),
                                           timeout=42))
 @mock.patch.object(swift_client, 'Connection', autospec=True)
