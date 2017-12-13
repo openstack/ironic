@@ -443,7 +443,8 @@ class RPCAPITestCase(db_base.DbTestCase):
                           'call',
                           node_id='fake-node',
                           callback_url='http://ramdisk.url:port',
-                          version='1.34')
+                          agent_version=None,
+                          version='1.42')
 
     def test_destroy_volume_connector(self):
         fake_volume_connector = db_utils.get_test_volume_connector()

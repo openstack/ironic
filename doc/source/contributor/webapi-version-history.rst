@@ -2,6 +2,12 @@
 REST API Version History
 ========================
 
+1.36 (Queens, 10.0.0)
+---------------------
+
+Added ``agent_version`` parameter to deploy heartbeat request for version
+negotiation with Ironic Python Agent features.
+
 1.35 (Queens, 9.2.0)
 ---------------------
 

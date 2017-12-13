@@ -72,6 +72,7 @@ BASE_VERSION = 1
 # v1.33: Add node storage interface
 # v1.34: Add physical network field to port.
 # v1.35: Add ability to provide configdrive when rebuilding node.
+# v1.36: Add Ironic Python Agent version support.
 
 MINOR_0_JUNO = 0
 MINOR_1_INITIAL_VERSION = 1
@@ -109,6 +110,7 @@ MINOR_32_VOLUME = 32
 MINOR_33_STORAGE_INTERFACE = 33
 MINOR_34_PORT_PHYSICAL_NETWORK = 34
 MINOR_35_REBUILD_CONFIG_DRIVE = 35
+MINOR_36_AGENT_VERSION_HEARTBEAT = 36
 
 # When adding another version, update:
 # - MINOR_MAX_VERSION
@@ -116,7 +118,7 @@ MINOR_35_REBUILD_CONFIG_DRIVE = 35
 #   explanation of what changed in the new version
 # - common/release_mappings.py, RELEASE_MAPPING['master']['api']
 
-MINOR_MAX_VERSION = MINOR_35_REBUILD_CONFIG_DRIVE
+MINOR_MAX_VERSION = MINOR_36_AGENT_VERSION_HEARTBEAT
 
 # String representations of the minor and maximum versions
 _MIN_VERSION_STRING = '{}.{}'.format(BASE_VERSION, MINOR_1_INITIAL_VERSION)

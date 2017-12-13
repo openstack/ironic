@@ -87,6 +87,13 @@ volume_target_id:
   required: true
   type: string
 
+agent_version:
+  description: |
+    The version of the ironic-python-agent ramdisk, sent back to the Bare Metal
+    service and stored during provisioning.
+  in: query
+  required: true
+  type: string
 callback_url:
   description: |
     The URL of an active ironic-python-agent ramdisk, sent back to the Bare

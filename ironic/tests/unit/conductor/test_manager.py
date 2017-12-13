@@ -6159,8 +6159,9 @@ class DoNodeAdoptionTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         self.assertEqual(states.NOSTATE, node.target_provision_state)
         self.assertIsNone(node.last_error)
 
+    @mock.patch('ironic.drivers.modules.fake.FakeDeploy.heartbeat')
     @mock.patch('ironic.conductor.manager.ConductorManager._spawn_worker')
-    def test_heartbeat(self, mock_spawn):
+    def test_heartbeat(self, mock_spawn, mock_heartbeat):
         """Test heartbeating."""
         node = obj_utils.create_test_node(
             self.context, driver='fake',
@@ -6168,9 +6169,86 @@ class DoNodeAdoptionTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
             target_provision_state=states.ACTIVE)
 
         self._start_service()
+
+        mock_spawn.reset_mock()
+
+        def fake_spawn(func, *args, **kwargs):
+            func(*args, **kwargs)
+            return mock.MagicMock()
+        mock_spawn.side_effect = fake_spawn
+
         self.service.heartbeat(self.context, node.uuid, 'http://callback')
-        mock_spawn.assert_called_with(self.driver.deploy.heartbeat,
-                                      mock.ANY, 'http://callback')
+        mock_heartbeat.assert_called_with(mock.ANY, 'http://callback', '3.0.0')
+
+    @mock.patch('ironic.drivers.modules.fake.FakeDeploy.heartbeat')
+    @mock.patch('ironic.conductor.manager.ConductorManager._spawn_worker')
+    def test_heartbeat_agent_version(self, mock_spawn, mock_heartbeat):
+        """Test heartbeating."""
+        node = obj_utils.create_test_node(
+            self.context, driver='fake',
+            provision_state=states.DEPLOYING,
+            target_provision_state=states.ACTIVE)
+
+        self._start_service()
+
+        mock_spawn.reset_mock()
+
+        def fake_spawn(func, *args, **kwargs):
+            func(*args, **kwargs)
+            return mock.MagicMock()
+        mock_spawn.side_effect = fake_spawn
+
+        self.service.heartbeat(
+            self.context, node.uuid, 'http://callback', '1.4.1')
+        mock_heartbeat.assert_called_with(mock.ANY, 'http://callback', '1.4.1')
+
+    @mock.patch('ironic.drivers.modules.fake.FakeDeploy.heartbeat')
+    @mock.patch.object(manager, 'LOG', autospec=True)
+    @mock.patch('ironic.conductor.manager.ConductorManager._spawn_worker')
+    def test_heartbeat_agent_version_deprecated(self, mock_spawn, log_mock,
+                                                mock_heartbeat):
+        """Test heartbeating."""
+        node = obj_utils.create_test_node(
+            self.context, driver='fake',
+            provision_state=states.DEPLOYING,
+            target_provision_state=states.ACTIVE)
+
+        self._start_service()
+
+        mock_spawn.reset_mock()
+
+        def fake_spawn(func, *args, **kwargs):
+            func(*args, **kwargs)
+            return mock.MagicMock()
+        mock_spawn.side_effect = fake_spawn
+
+        mock_heartbeat.side_effect = [TypeError("Too many parameters"),
+                                      None, TypeError("Too many parameters"),
+                                      None]
+
+        # NOTE(sambetts) Test to make sure deploy driver that doesn't support
+        # version yet falls back to old behviour and logs a warning.
+        self.service.heartbeat(
+            self.context, node.uuid, 'http://callback', '1.4.1')
+        calls = [
+            mock.call(mock.ANY, 'http://callback', '1.4.1'),
+            mock.call(mock.ANY, 'http://callback')
+        ]
+        mock_heartbeat.assert_has_calls(calls)
+        self.assertTrue(log_mock.warning.called)
+
+        # NOTE(sambetts) Test to make sure that the deprecation warning isn't
+        # thrown again.
+        log_mock.reset_mock()
+        mock_heartbeat.reset_mock()
+        self.service.heartbeat(
+            self.context, node.uuid, 'http://callback', '1.4.1')
+        calls = [
+            mock.call(mock.ANY, 'http://callback', '1.4.1'),
+            mock.call(mock.ANY, 'http://callback')
+        ]
+        mock_heartbeat.assert_has_calls(calls)
+        self.assertFalse(log_mock.warning.called)
 
 
 @mgr_utils.mock_record_keepalive
