@@ -72,16 +72,8 @@
         cmd: |
           cat << 'EOF' >> ironic-vars-early
             # use tempest plugin
-          if [[ "$ZUUL_BRANCH" != "master" ]] ; then
-            # NOTE(jroll) if this is not a patch against master, then
-            # fetch master to install the plugin
-            export DEVSTACK_LOCAL_CONFIG+=$'\n'"TEMPEST_PLUGINS+=' git+git://git.openstack.org/openstack/ironic'"
-          else
-            # on master, use the local change, so we can pick up any changes to the plugin
-            export DEVSTACK_LOCAL_CONFIG+=$'\n'"TEMPEST_PLUGINS+=' /opt/stack/new/ironic'"
-          fi
-          export TEMPEST_CONCURRENCY=1
-
+            export DEVSTACK_LOCAL_CONFIG+=$'\n'"TEMPEST_PLUGINS+=' /opt/stack/new/ironic-tempest-plugin'"
+            export TEMPEST_CONCURRENCY=1
           EOF
         chdir: '{{ ansible_user_dir }}/workspace'
       environment: '{{ zuul | zuul_legacy_vars }}'
@@ -93,6 +85,7 @@
           export PROJECTS="openstack/ironic $PROJECTS"
           export PROJECTS="openstack/ironic-lib $PROJECTS"
           export PROJECTS="openstack/ironic-python-agent $PROJECTS"
+          export PROJECTS="openstack/ironic-tempest-plugin $PROJECTS"
           export PROJECTS="openstack/python-ironicclient $PROJECTS"
           export PROJECTS="openstack/pyghmi $PROJECTS"
           export PROJECTS="openstack/virtualbmc $PROJECTS"
