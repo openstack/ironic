@@ -118,25 +118,6 @@ class PolicyTestCase(base.TestCase):
             oslo_policy.PolicyNotRegistered,
             policy.authorize, 'has_bar_role', creds, creds)
 
-    def test_enforce_existing_rule_passes(self):
-        creds = {'roles': ['foo']}
-        self.assertTrue(policy.enforce('has_foo_role', creds, creds))
-
-    def test_enforce_missing_rule_fails(self):
-        creds = {'roles': ['foo']}
-        self.assertFalse(policy.enforce('has_bar_role', creds, creds))
-
-    def test_enforce_existing_rule_fails(self):
-        creds = {'roles': ['bar']}
-        self.assertFalse(policy.enforce('has_foo_role', creds, creds))
-
-    def test_enforce_existing_rule_raises(self):
-        creds = {'roles': ['bar']}
-        self.assertRaises(
-            exception.IronicException,
-            policy.enforce, 'has_foo_role', creds, creds, True,
-            exception.IronicException)
-
     @mock.patch.object(cfg, 'CONF', autospec=True)
     @mock.patch.object(policy, 'get_enforcer', autospec=True)
     def test_get_oslo_policy_enforcer_no_args(self, mock_gpe, mock_cfg):

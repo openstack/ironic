@@ -458,8 +458,6 @@ def authorize(rule, target, creds, *args, **kwargs):
     Checks authorization of a rule against the target and credentials, and
     raises an exception if the rule is not defined.
     Always returns true if CONF.auth_strategy == noauth.
-
-    Beginning with the Newton cycle, this should be used in place of 'enforce'.
     """
     if CONF.auth_strategy == 'noauth':
         return True
@@ -479,23 +477,3 @@ def check(rule, target, creds, *args, **kwargs):
     """
     enforcer = get_enforcer()
     return enforcer.enforce(rule, target, creds, *args, **kwargs)
-
-
-def enforce(rule, target, creds, do_raise=False, exc=None, *args, **kwargs):
-    """A shortcut for policy.Enforcer.enforce()
-
-    Checks authorization of a rule against the target and credentials.
-    Always returns true if CONF.auth_strategy == noauth.
-
-    """
-    # NOTE(deva): this method is obsoleted by authorize(), but retained for
-    # backwards compatibility in case it has been used downstream.
-    # It may be removed in the Pike cycle.
-    LOG.warning("Deprecation warning: calls to ironic.common.policy.enforce() "
-                "should be replaced with authorize(). This method may be "
-                "removed in a future release.")
-    if CONF.auth_strategy == 'noauth':
-        return True
-    enforcer = get_enforcer()
-    return enforcer.enforce(rule, target, creds, do_raise=do_raise,
-                            exc=exc, *args, **kwargs)
