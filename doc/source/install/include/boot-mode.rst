@@ -3,11 +3,9 @@
 Boot mode support
 -----------------
 
-The following drivers support setting of boot mode (Legacy BIOS or UEFI).
-
-* ``pxe_ipmitool``
-
-The boot modes can be configured in Bare Metal service in the following way:
+Most of the bare metal drivers (including the generic ``ipmi`` hardware type)
+support setting of boot mode (Legacy BIOS or UEFI). The boot modes can be
+configured in the Bare Metal service in the following way:
 
 * When no boot mode setting is provided, these drivers default the boot_mode
   to Legacy BIOS.

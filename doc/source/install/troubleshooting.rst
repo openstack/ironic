@@ -41,7 +41,7 @@ service and Bare Metal service::
     | last_error             | None                                                                 |
     | created_at             | 2014-11-20T23:57:03+00:00                                            |
     | target_provision_state | None                                                                 |
-    | driver                 | pxe_ipmitool                                                         |
+    | driver                 | ipmi                                                                 |
     | updated_at             | 2014-11-21T00:47:34+00:00                                            |
     | instance_info          | {}                                                                   |
     | chassis_uuid           | 7b49bbc5-2eb7-4269-b6ea-3f1a51448a59                                 |

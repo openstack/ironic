@@ -29,9 +29,11 @@ Choosing a driver
 -----------------
 
 When enrolling a node, the most important information to supply is *driver*.
-This can be either a *classic driver* or a *hardware type* - see
-:doc:`enabling-drivers` for the difference. The ``driver list`` command can
-be used to list all drivers (of both types) enabled on all hosts:
+See :doc:`enabling-drivers` for a detailed explanation of bare metal drivers,
+hardware types and interfaces. Starting with the Pike release, we recommend
+the use of *hardware types* instead of *classic drivers*, since classic drivers
+may be deprecated in the near future. The ``driver list`` command can be used
+to list all drivers enabled on all hosts:
 
 .. code-block:: console
 
@@ -44,7 +46,8 @@ be used to list all drivers (of both types) enabled on all hosts:
     +---------------------+-----------------------+
 
 Starting with API version 1.31 (and ``python-ironicclient`` 1.13), you can
-also list only classic or only dynamic drivers:
+also list only classic drivers or only hardware types via the ``--type``
+argument:
 
 .. code-block:: console
 
@@ -67,7 +70,7 @@ command:
 
 .. code-block:: console
 
-    $ openstack baremetal driver property list pxe_ipmitool
+    $ openstack baremetal driver property list ipmi
     +----------------------+-------------------------------------------------------------------------------------------------------------+
     | Property             | Description                                                                                                 |
     +----------------------+-------------------------------------------------------------------------------------------------------------+
@@ -124,8 +127,7 @@ for provisioning. Some steps are shown separately for illustration purposes,
 and may be combined if desired.
 
 #. Create a node in the Bare Metal service with the ``node create`` command.
-   At a minimum, you must specify the driver name (for example,
-   ``pxe_ipmitool``, ``agent_ipmitool`` or ``ipmi``).
+   At a minimum, you must specify the driver name (for example, ``ipmi``).
 
    This command returns the node UUID along with other information
    about the node. The node's provision state will be ``enroll``:
@@ -133,14 +135,14 @@ and may be combined if desired.
    .. code-block:: console
 
     $ export OS_BAREMETAL_API_VERSION=1.11
-    $ openstack baremetal node create --driver pxe_ipmitool
+    $ openstack baremetal node create --driver ipmi
     +--------------+--------------------------------------+
     | Property     | Value                                |
     +--------------+--------------------------------------+
     | uuid         | dfc6189f-ad83-4261-9bda-b27258eb1987 |
     | driver_info  | {}                                   |
     | extra        | {}                                   |
-    | driver       | pxe_ipmitool                         |
+    | driver       | ipmi                                 |
     | chassis_uuid |                                      |
     | properties   | {}                                   |
     | name         | None                                 |
@@ -161,7 +163,7 @@ and may be combined if desired.
     | provision_updated_at   | None                                 |
     | maintenance            | False                                |
     | power_state            | None                                 |
-    | driver                 | pxe_ipmitool                         |
+    | driver                 | ipmi                                 |
     | properties             | {}                                   |
     | instance_uuid          | None                                 |
     | name                   | None                                 |
@@ -229,7 +231,7 @@ and may be combined if desired.
 
    .. code-block:: console
 
-     $ openstack baremetal node create --driver pxe_ipmitool \
+     $ openstack baremetal node create --driver ipmi \
          --driver-info ipmi_username=$USER \
          --driver-info ipmi_password=$PASS \
          --driver-info ipmi_address=$ADDRESS
@@ -314,7 +316,7 @@ Adding scheduling information
 
    .. code-block:: console
 
-     $ openstack baremetal node create --driver pxe_ipmitool \
+     $ openstack baremetal node create --driver ipmi \
          --driver-info ipmi_username=$USER \
          --driver-info ipmi_password=$PASS \
          --driver-info ipmi_address=$ADDRESS \
@@ -510,7 +512,7 @@ The node is named 'example' in the following examples:
 
 .. code-block:: console
 
-    $ openstack baremetal node create --driver agent_ipmitool --name example
+    $ openstack baremetal node create --driver ipmi --name example
 
 or
 
@@ -524,14 +526,14 @@ UUID interchangeably:
 
 .. code-block:: console
 
-    $ openstack baremetal node create --driver agent_ipmitool --name example
+    $ openstack baremetal node create --driver ipmi --name example
     +--------------+--------------------------------------+
     | Property     | Value                                |
     +--------------+--------------------------------------+
     | uuid         | 71e01002-8662-434d-aafd-f068f69bb85e |
     | driver_info  | {}                                   |
     | extra        | {}                                   |
-    | driver       | agent_ipmitool                       |
+    | driver       | ipmi                                 |
     | chassis_uuid |                                      |
     | properties   | {}                                   |
     | name         | example                              |

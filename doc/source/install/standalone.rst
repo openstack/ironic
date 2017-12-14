@@ -31,34 +31,30 @@ You should make the following changes to ``/etc/ironic/ironic.conf``:
       for you.
 
 If you don't use Image service, it's possible to provide images to Bare Metal
-service via hrefs.
+service via a URL.
 
 .. note::
-   At the moment, only two types of hrefs are acceptable instead of Image
-   service UUIDs: HTTP(S) hrefs (for example, "http://my.server.net/images/img")
-   and file hrefs (file:///images/img).
+   At the moment, only two types of URLs are acceptable instead of Image
+   service UUIDs: HTTP(S) URLs (for example, "http://my.server.net/images/img")
+   and file URLs (file:///images/img).
 
-There are however some limitations for different drivers:
+There are however some limitations for different hardware interfaces:
 
-* If you're using one of the drivers that use agent deploy method (namely,
-  ``agent_ilo`` or ``agent_ipmitool``)
-  you have to know MD5 checksum for your instance image. To
-  compute it, you can use the following command::
+* If you're using :ref:`direct-deploy`, you have to provide the Bare Metal
+  service with the MD5 checksum of your instance image. To compute it, you can
+  use the following command::
 
    md5sum image.qcow2
    ed82def8730f394fb85aef8a208635f6  image.qcow2
 
-  Apart from that, because of the way the agent deploy method works, image
-  hrefs can use only HTTP(S) protocol.
+* :ref:`direct-deploy` requires the instance image be accessible through a
+  HTTP(s) URL.
 
-* If you're using ``iscsi_ilo`` or ``agent_ilo`` driver, Object Storage service
-  is required, as these drivers need to store floppy image that is used to pass
-  parameters to deployment iso. For this method also only HTTP(S) hrefs are
-  acceptable, as HP iLO servers cannot attach other types of hrefs as virtual
-  media.
-
-* Other drivers use PXE deploy method and there are no special requirements
-  in this case.
+* Some :doc:`boot interfaces </admin/interfaces/boot>` (for example,
+  ``ilo-virtual-media``) require the Object Storage service, as these
+  drivers need to store floppy image that is used to pass parameters
+  to deployment iso. For this method also only HTTP(S) URLs are acceptable,
+  as HP iLO servers cannot attach other types of URLs as virtual media.
 
 Steps to start a deployment are pretty similar to those when using Compute:
 
@@ -73,10 +69,10 @@ Steps to start a deployment are pretty similar to those when using Compute:
     export OS_URL=http://localhost:6385/
 
 #. Create a node in Bare Metal service. At minimum, you must specify the driver
-   name (for example, "pxe_ipmitool"). You can also specify all the required
+   name (for example, ``ipmi``). You can also specify all the required
    driver parameters in one command. This will return the node UUID::
 
-    openstack node create --driver pxe_ipmitool \
+    openstack node create --driver ipmi \
         --driver-info ipmi_address=ipmi.server.net \
         --driver-info ipmi_username=user \
         --driver-info ipmi_password=pass \
@@ -92,7 +88,7 @@ Steps to start a deployment are pretty similar to those when using Compute:
     |              | u'ipmi.server.net', u'ipmi_username': u'user', u'ipmi_password':         |
     |              | u'******'}                                                               |
     | extra        | {}                                                                       |
-    | driver       | pxe_ipmitool                                                             |
+    | driver       | ipmi                                                                     |
     | chassis_uuid |                                                                          |
     | properties   | {}                                                                       |
     +--------------+--------------------------------------------------------------------------+
@@ -112,22 +108,32 @@ Steps to start a deployment are pretty similar to those when using Compute:
 
     openstack baremetal port create $MAC_ADDRESS --node $NODE_UUID
 
-#. As there is no Compute service flavor and instance image is not provided with
-   nova boot command, you also need to specify some fields in ``instance_info``.
-   For PXE deployment, they are ``image_source``, ``kernel``, ``ramdisk``,
-   ``root_gb``::
+#. You also need to specify some fields in the node's ``instance_info``:
+
+   * ``image_source`` - URL of the whole disk or root partition image,
+     mandatory. For :ref:`direct-deploy` only HTTP(s) links are accepted,
+     while :ref:`iscsi-deploy` also accepts links to local files (prefixed
+     with ``file://``).
+
+   * ``root_gb`` - size of the root partition, mandatory.
+
+     .. TODO(dtantsur): root_gb should not be mandatory for whole disk images,
+                        but it seems to be.
+
+   * ``image_checksum`` - MD5 checksum of the image specified by
+     ``image_source``, only required for :ref:`direct-deploy`.
+
+   * ``kernel``, ``ramdisk`` - HTTP(s) or file URLs of the kernel and
+     initramfs of the target OS, only required for partition images.
+
+   For example::
 
     openstack baremetal node set $NODE_UUID \
         --instance-info image_source=$IMG \
+        --instance-info image_checksum=$MD5HASH \
         --instance-info kernel=$KERNEL \
         --instance-info ramdisk=$RAMDISK \
         --instance-info root_gb=10
-
-   Here $IMG, $KERNEL, $RAMDISK can also be HTTP(S) or file hrefs. For agent
-   drivers, you don't need to specify kernel and ramdisk, but MD5 checksum of
-   instance image is required::
-
-    openstack baremetal node set $NODE_UUID --instance-info image_checksum=$MD5HASH
 
 #. Validate that all parameters are correct::
 
