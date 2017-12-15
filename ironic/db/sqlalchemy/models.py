@@ -278,3 +278,15 @@ class VolumeTarget(Base):
     boot_index = Column(Integer)
     volume_id = Column(String(36))
     extra = Column(db_types.JsonEncodedDict)
+
+
+class NodeTrait(Base):
+    """Represents a trait of a bare metal node."""
+
+    __tablename__ = 'node_traits'
+    __table_args__ = (
+        Index('node_traits_idx', 'trait'),
+        table_args())
+    node_id = Column(Integer, ForeignKey('nodes.id'),
+                     primary_key=True, nullable=False)
+    trait = Column(String(255), primary_key=True, nullable=False)

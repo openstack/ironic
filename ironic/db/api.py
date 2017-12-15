@@ -143,7 +143,7 @@ class Connection(object):
                          'properties': { ... },
                          'extra': { ... },
                         }
-        :raises: InvalidParameterValue if create a node with tags.
+        :raises: InvalidParameterValue if 'values' contains 'tags' or 'traits'.
         :returns: A node.
         """
 
@@ -186,7 +186,7 @@ class Connection(object):
         """Destroy a node and its associated resources.
 
         Destroy a node, including any associated ports, port groups,
-        tags, volume connectors, and volume targets.
+        tags, traits, volume connectors, and volume targets.
 
         :param node_id: The ID or UUID of a node.
         """
@@ -922,3 +922,69 @@ class Connection(object):
                   of migrated objects.
         """
         # TODO(rloo) Delete this in Rocky cycle.
+
+    @abc.abstractmethod
+    def set_node_traits(self, node_id, traits):
+        """Replace all of the node traits with specified list of traits.
+
+        This ignores duplicate traits in the specified list.
+
+        :param node_id: The id of a node.
+        :param traits: List of traits.
+        :returns: A list of NodeTrait objects.
+        :raises: InvalidParameterValue if setting the traits would exceed the
+            per-node traits limit.
+        :raises: NodeNotFound if the node is not found.
+        """
+
+    @abc.abstractmethod
+    def unset_node_traits(self, node_id):
+        """Remove all traits of the node.
+
+        :param node_id: The id of a node.
+        :raises: NodeNotFound if the node is not found.
+        """
+
+    @abc.abstractmethod
+    def get_node_traits_by_node_id(self, node_id):
+        """Get node traits based on its id.
+
+        :param node_id: The id of a node.
+        :returns: A list of NodeTrait objects.
+        :raises: NodeNotFound if the node is not found.
+        """
+
+    @abc.abstractmethod
+    def add_node_trait(self, node_id, trait):
+        """Add trait to the node.
+
+        If the node_id and trait pair already exists, this should still
+        succeed.
+
+        :param node_id: The id of a node.
+        :param trait: A trait string.
+        :returns: the NodeTrait object.
+        :raises: InvalidParameterValue if adding the trait would exceed the
+            per-node traits limit.
+        :raises: NodeNotFound if the node is not found.
+        """
+
+    @abc.abstractmethod
+    def delete_node_trait(self, node_id, trait):
+        """Delete specified trait from the node.
+
+        :param node_id: The id of a node.
+        :param trait: A trait string.
+        :raises: NodeNotFound if the node is not found.
+        :raises: NodeTraitNotFound if the trait is not found.
+        """
+
+    @abc.abstractmethod
+    def node_trait_exists(self, node_id, trait):
+        """Check if the specified trait exists on the node.
+
+        :param node_id: The id of a node.
+        :param trait: A trait string.
+        :returns: True if the trait exists otherwise False.
+        :raises: NodeNotFound if the node is not found.
+        """

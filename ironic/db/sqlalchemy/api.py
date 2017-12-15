@@ -48,6 +48,10 @@ LOG = log.getLogger(__name__)
 
 _CONTEXT = threading.local()
 
+# NOTE(mgoddard): We limit the number of traits per node to 50 as this is the
+# maximum number of traits per resource provider allowed in placement.
+MAX_TRAITS_PER_NODE = 50
+
 
 def get_backend():
     """The backend is this module itself."""
@@ -324,6 +328,11 @@ class Connection(api.Connection):
             msg = _("Cannot create node with tags.")
             raise exception.InvalidParameterValue(err=msg)
 
+        # TODO(mgoddard): Support creating node with traits
+        if 'traits' in values:
+            msg = _("Cannot create node with traits.")
+            raise exception.InvalidParameterValue(err=msg)
+
         node = models.Node()
         node.update(values)
         with _session_for_write() as session:
@@ -338,8 +347,9 @@ class Connection(api.Connection):
                         instance_uuid=values['instance_uuid'],
                         node=values['uuid'])
                 raise exception.NodeAlreadyExists(uuid=values['uuid'])
-            # Set tags to [] for new created node
+            # Set tags & traits to [] for new created node
             node['tags'] = []
+            node['traits'] = []
             return node
 
     def get_node_by_id(self, node_id):
@@ -408,6 +418,11 @@ class Connection(api.Connection):
             # Delete all tags attached to the node
             tag_query = model_query(models.NodeTag).filter_by(node_id=node_id)
             tag_query.delete()
+
+            # Delete all traits attached to the node
+            trait_query = model_query(
+                models.NodeTrait).filter_by(node_id=node_id)
+            trait_query.delete()
 
             volume_connector_query = model_query(
                 models.VolumeConnector).filter_by(node_id=node_id)
@@ -1265,3 +1280,87 @@ class Connection(api.Connection):
                 break
 
         return total_to_migrate, total_migrated
+
+    @staticmethod
+    def _verify_max_traits_per_node(node_id, num_traits):
+        """Verify that an operation would not exceed the per-node trait limit.
+
+        :param node_id: The ID of a node.
+        :param num_traits: The number of traits the node would have after the
+            operation.
+        :raises: InvalidParameterValue if the operation would exceed the
+            per-node trait limit.
+        """
+        if num_traits > MAX_TRAITS_PER_NODE:
+            msg = _("Could not modify traits for node %(node_id)s as it would "
+                    "exceed the maximum number of traits per node "
+                    "(%(num_traits)d vs. %(max_traits)d)")
+            raise exception.InvalidParameterValue(
+                msg, node_id=node_id, num_traits=num_traits,
+                max_traits=MAX_TRAITS_PER_NODE)
+
+    @oslo_db_api.retry_on_deadlock
+    def set_node_traits(self, node_id, traits):
+        # Remove duplicate traits
+        traits = set(traits)
+
+        self._verify_max_traits_per_node(node_id, len(traits))
+
+        with _session_for_write() as session:
+            # NOTE(mgoddard): Node existence is checked in unset_node_traits.
+            self.unset_node_traits(node_id)
+            node_traits = []
+            for trait in traits:
+                node_trait = models.NodeTrait(trait=trait, node_id=node_id)
+                session.add(node_trait)
+                node_traits.append(node_trait)
+
+        return node_traits
+
+    @oslo_db_api.retry_on_deadlock
+    def unset_node_traits(self, node_id):
+        self._check_node_exists(node_id)
+        with _session_for_write():
+            model_query(models.NodeTrait).filter_by(node_id=node_id).delete()
+
+    def get_node_traits_by_node_id(self, node_id):
+        self._check_node_exists(node_id)
+        result = (model_query(models.NodeTrait)
+                  .filter_by(node_id=node_id)
+                  .all())
+        return result
+
+    @oslo_db_api.retry_on_deadlock
+    def add_node_trait(self, node_id, trait):
+        node_trait = models.NodeTrait(trait=trait, node_id=node_id)
+
+        self._check_node_exists(node_id)
+        try:
+            with _session_for_write() as session:
+                session.add(node_trait)
+                session.flush()
+
+                num_traits = (model_query(models.NodeTrait)
+                              .filter_by(node_id=node_id).count())
+                self._verify_max_traits_per_node(node_id, num_traits)
+        except db_exc.DBDuplicateEntry:
+            # NOTE(mgoddard): Ignore traits duplicates
+            pass
+
+        return node_trait
+
+    @oslo_db_api.retry_on_deadlock
+    def delete_node_trait(self, node_id, trait):
+        self._check_node_exists(node_id)
+        with _session_for_write():
+            result = model_query(models.NodeTrait).filter_by(
+                node_id=node_id, trait=trait).delete()
+
+            if not result:
+                raise exception.NodeTraitNotFound(node_id=node_id, trait=trait)
+
+    def node_trait_exists(self, node_id, trait):
+        self._check_node_exists(node_id)
+        q = model_query(
+            models.NodeTrait).filter_by(node_id=node_id, trait=trait)
+        return model_query(q.exists()).scalar()
