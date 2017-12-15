@@ -94,7 +94,20 @@ The web console can be configured in Bare Metal service in the following way:
   configuration file (/etc/ironic/ironic.conf). See the reference for
   configuration in :ref:`kernel-boot-parameters`.
 
+* Enable the ``ipmitool-shellinabox`` console interface, for example:
+
+  .. code-block:: ini
+
+    [DEFAULT]
+    enabled_console_interfaces = ipmitool-shellinabox,no-console
+
 * Configure node web console.
+
+  If the node uses a hardware type, for example ``ipmi``, set the node's
+  console interface to ``ipmitool-shellinabox``::
+
+   openstack --os-baremetal-api-version 1.31 baremetal node set <node-uuid> \
+       --console-interface ipmitool-shellinabox
 
   Enable the web console, for example::
 
@@ -116,7 +129,7 @@ The web console can be configured in Bare Metal service in the following way:
 
    openstack baremetal driver property list <driver>
 
-  For ``*_ipmitool`` and ``*_ipminative`` drivers, this option is ``ipmi_terminal_port``.
+  For the ``ipmi`` hardware type, this option is ``ipmi_terminal_port``.
   Give a customized port number to ``<customized_port>``,
   for example ``8023``, this customized port is used in web console url.
 
@@ -142,11 +155,8 @@ The web console can be configured in Bare Metal service in the following way:
 Node serial console
 -------------------
 
-Serial consoles for nodes are implemented using `socat`_.
-In Newton, the following drivers support socat consoles for nodes:
-
-* agent_ipmitool_socat
-* pxe_ipmitool_socat
+Serial consoles for nodes are implemented using `socat`_. It is supported by
+the ``ipmi`` and ``irmc`` hardware types.
 
 Serial consoles can be configured in the Bare Metal service as follows:
 
@@ -168,7 +178,20 @@ Serial consoles can be configured in the Bare Metal service as follows:
   service configuration file. See the reference on how to configure them in
   :ref:`kernel-boot-parameters`.
 
+* Enable the ``ipmitool-socat`` console interface, for example:
+
+  .. code-block:: ini
+
+    [DEFAULT]
+    enabled_console_interfaces = ipmitool-socat,no-console
+
 * Configure node console.
+
+  If the node uses a hardware type, for example ``ipmi``, set the node's
+  console interface to ``ipmitool-socat``::
+
+   openstack --os-baremetal-api-version 1.31 baremetal node set <node-uuid> \
+       --console-interface ipmitool-socat
 
   Enable the serial console, for example::
 

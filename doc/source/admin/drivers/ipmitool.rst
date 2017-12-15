@@ -45,16 +45,6 @@ Please see :doc:`/install/configure-ipmi` for the required dependencies.
     [DEFAULT]
     enabled_hardware_types = ipmi
 
-#. The ``pxe_ipmitool`` classic driver is enabled by default. To enable one or
-   more of the other IPMI classic drivers, add them to the
-   ``enabled_drivers`` configuration option in your ``ironic.conf``.
-   The following enables ``pxe_ipmitool`` and ``agent_ipmitool`` drivers:
-
-   .. code-block:: ini
-
-    [DEFAULT]
-    enabled_drivers = pxe_ipmitool,agent_ipmitool
-
 #. Restart the Ironic conductor service.
 
 Please see :doc:`/install/enabling-drivers` for more details.

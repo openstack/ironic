@@ -43,15 +43,17 @@ Ironic added support for automated cleaning in the Kilo release.
 
 Enabling automated cleaning
 ---------------------------
-To enable automated cleaning, ensure that your ironic.conf is set as follows.
-(Prior to Mitaka, this option was named 'clean_nodes'.)::
+
+To enable automated cleaning, ensure that your ironic.conf is set as follows:
+
+.. code-block:: ini
 
   [conductor]
   automated_clean=true
 
 This will enable the default set of cleaning steps, based on your hardware and
-ironic drivers. If you're using an agent_* driver, this includes, by default,
-erasing all of the previous tenant's data.
+ironic hardware types used for nodes. This includes, by default, erasing all
+of the previous tenant's data.
 
 You may also need to configure a `Cleaning Network`_.
 
@@ -60,7 +62,7 @@ Cleaning steps
 
 Cleaning steps used for automated cleaning are ordered from higher to lower
 priority, where a larger integer is a higher priority. In case of a conflict
-between priorities across drivers, the following resolution order is used:
+between priorities across interfaces, the following resolution order is used:
 Power, Management, Deploy, and RAID interfaces.
 
 You can skip a cleaning step by setting the priority for that cleaning step
@@ -146,7 +148,7 @@ An example of the request body for this API::
     }]
   }
 
-In the above example, the driver's RAID interface would configure hardware
+In the above example, the node's RAID interface would configure hardware
 RAID without non-root volumes, and then all devices would be erased
 (in that order).
 
@@ -206,19 +208,20 @@ out-of-band. Ironic supports using both methods to clean a node.
 In-band
 -------
 In-band steps are performed by ironic making API calls to a ramdisk running
-on the node using a Deploy driver. Currently, all the drivers using
-ironic-python-agent ramdisk support in-band cleaning. By default,
-ironic-python-agent ships with a minimal cleaning configuration, only erasing
-disks. However, with this ramdisk, you can add your own cleaning steps and/or
-override default cleaning steps with a custom Hardware Manager.
+on the node using a deploy interface. Currently, all the deploy interfaces
+support in-band cleaning. By default, ironic-python-agent ships with a minimal
+cleaning configuration, only erasing disks. However, you can add your own
+cleaning steps and/or override default cleaning steps with a custom
+Hardware Manager.
 
 Out-of-band
 -----------
 Out-of-band are actions performed by your management controller, such as IPMI,
-iLO, or DRAC. Out-of-band steps will be performed by ironic using a Power or
-Management driver. Which steps are performed depends on the driver and hardware.
+iLO, or DRAC. Out-of-band steps will be performed by ironic using a power or
+management interface. Which steps are performed depends on the hardware type
+and hardware itself.
 
-For Out-of-Band cleaning operations supported by iLO drivers, refer to
+For Out-of-Band cleaning operations supported by iLO hardware types, refer to
 :ref:`ilo_node_cleaning`.
 
 FAQ
@@ -228,8 +231,12 @@ How are cleaning steps ordered?
 -------------------------------
 For automated cleaning, cleaning steps are ordered by integer priority, where
 a larger integer is a higher priority. In case of a conflict between priorities
-across drivers, the following resolution order is used: Power, Management,
-Deploy, and RAID interfaces.
+across hardware interfaces, the following resolution order is used:
+
+#. Power interface
+#. Management interface
+#. Deploy interface
+#. RAID interface
 
 For manual cleaning, the cleaning steps should be specified in the desired
 order.
@@ -257,7 +264,7 @@ to disable erase_devices, you'd set the following configuration option::
   [deploy]
   erase_devices_priority=0
 
-To enable/disable the in-band disk erase using ``agent_ilo`` driver, use the
+To enable/disable the in-band disk erase using ``ilo`` hardware type, use the
 following configuration option::
 
   [ilo]
@@ -292,7 +299,7 @@ some tradeoffs to having it enabled. For instance, ironic cannot deploy a new
 instance to a node that is currently cleaning, and cleaning can be a time
 consuming process. To mitigate this, we suggest using disks with support for
 cryptographic ATA Security Erase, as typically the erase_devices step in the
-deploy driver takes the longest time to complete of all cleaning steps.
+deploy interface takes the longest time to complete of all cleaning steps.
 
 Why can't I power on/off a node while it's cleaning?
 ----------------------------------------------------
