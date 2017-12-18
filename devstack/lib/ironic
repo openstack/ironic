@@ -128,6 +128,7 @@ IRONIC_TEMPLATES_DIR=${IRONIC_TEMPLATES_DIR:-$IRONIC_DEVSTACK_DIR/tools/ironic/t
 IRONIC_BAREMETAL_BASIC_OPS=$(trueorfalse False IRONIC_BAREMETAL_BASIC_OPS)
 IRONIC_TFTPBOOT_DIR=${IRONIC_TFTPBOOT_DIR:-$IRONIC_DATA_DIR/tftpboot}
 IRONIC_TFTPSERVER_IP=${IRONIC_TFTPSERVER_IP:-$HOST_IP}
+IRONIC_TFTP_BLOCKSIZE=${IRONIC_TFTP_BLOCKSIZE:-$((PUBLIC_BRIDGE_MTU-50))}
 IRONIC_VM_COUNT=${IRONIC_VM_COUNT:-1}
 IRONIC_VM_SPECS_CPU=${IRONIC_VM_SPECS_CPU:-1}
 IRONIC_VM_SPECS_RAM=${IRONIC_VM_SPECS_RAM:-1280}
@@ -2143,6 +2144,7 @@ function configure_tftpd {
     [ -f /etc/init/tftpd-hpa.conf ] && echo "manual" | sudo tee /etc/init/tftpd-hpa.override
     sudo cp $IRONIC_TEMPLATES_DIR/tftpd-xinetd.template /etc/xinetd.d/tftp
     sudo sed -e "s|%TFTPBOOT_DIR%|$IRONIC_TFTPBOOT_DIR|g" -i /etc/xinetd.d/tftp
+    sudo sed -e "s|%MAX_BLOCKSIZE%|$IRONIC_TFTP_BLOCKSIZE|g" -i /etc/xinetd.d/tftp
 
     # setup tftp file mapping to satisfy requests at the root (booting) and
     # /tftpboot/ sub-dir (as per deploy-ironic elements)

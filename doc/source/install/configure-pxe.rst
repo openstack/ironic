@@ -63,6 +63,17 @@ node(s) where ``ironic-conductor`` is running.
 
        sudo systemctl restart xinetd
 
+.. note::
+
+  In certain environments the network's MTU may cause TFTP UDP packets to get
+  fragmented. Certain PXE firmwares struggle to reconstruct the fragmented
+  packets which can cause significant slow down or even prevent the server from
+  PXE booting. In order to avoid this, TFTPd provides an option to limit the
+  packet size so that it they do not get fragmented. To set this additional
+  option in the server_args above::
+
+    --blocksize <MAX MTU minus 32>
+
 #. Copy the PXE image to ``/tftpboot``. The PXE image might be found at [1]_:
 
    Ubuntu (Up to and including 14.04)::
