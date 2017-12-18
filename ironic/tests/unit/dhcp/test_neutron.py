@@ -63,7 +63,9 @@ class TestNeutron(db_base.DbTestCase):
         expected = {'port': {'extra_dhcp_opts': opts}}
 
         api = dhcp_factory.DHCPFactory()
-        api.provider.update_port_dhcp_opts(port_id, opts)
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            api.provider.update_port_dhcp_opts(port_id, opts,
+                                               context=task.context)
         client_mock.return_value.update_port.assert_called_once_with(
             port_id, expected)
 
@@ -75,10 +77,11 @@ class TestNeutron(db_base.DbTestCase):
             neutron_client_exc.NeutronClientException())
 
         api = dhcp_factory.DHCPFactory()
-        self.assertRaises(
-            exception.FailedToUpdateDHCPOptOnPort,
-            api.provider.update_port_dhcp_opts,
-            port_id, opts)
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            self.assertRaises(
+                exception.FailedToUpdateDHCPOptOnPort,
+                api.provider.update_port_dhcp_opts,
+                port_id, opts, context=task.context)
 
     @mock.patch('ironic.dhcp.neutron.NeutronDHCPApi.update_port_dhcp_opts',
                 autospec=True)
@@ -92,7 +95,8 @@ class TestNeutron(db_base.DbTestCase):
             opts = pxe_utils.dhcp_options_for_instance(task)
             api = dhcp_factory.DHCPFactory()
             api.update_dhcp(task, opts)
-        mock_updo.assert_called_once_with(mock.ANY, 'vif-uuid', opts)
+            mock_updo.assert_called_once_with(mock.ANY, 'vif-uuid', opts,
+                                              context=task.context)
 
     @mock.patch('ironic.dhcp.neutron.NeutronDHCPApi.update_port_dhcp_opts',
                 autospec=True)
@@ -144,10 +148,8 @@ class TestNeutron(db_base.DbTestCase):
 
     @mock.patch.object(neutron, 'LOG', autospec=True)
     @mock.patch('time.sleep', autospec=True)
-    @mock.patch.object(neutron.NeutronDHCPApi, 'update_port_dhcp_opts',
-                       autospec=True)
     @mock.patch('ironic.common.network.get_node_vif_ids', autospec=True)
-    def test_update_dhcp_set_sleep_and_fake(self, mock_gnvi, mock_updo,
+    def test_update_dhcp_set_sleep_and_fake(self, mock_gnvi,
                                             mock_ts, mock_log):
         mock_gnvi.return_value = {'ports': {'port-uuid': 'vif-uuid'},
                                   'portgroups': {}}
@@ -156,27 +158,30 @@ class TestNeutron(db_base.DbTestCase):
                                   self.node.uuid) as task:
             opts = pxe_utils.dhcp_options_for_instance(task)
             api = dhcp_factory.DHCPFactory()
-            api.update_dhcp(task, opts)
-            mock_log.debug.assert_called_once_with(
-                "Waiting %d seconds for Neutron.", 30)
-            mock_ts.assert_called_with(30)
-        mock_updo.assert_called_once_with(mock.ANY, 'vif-uuid', opts)
+            with mock.patch.object(api.provider, 'update_port_dhcp_opts',
+                                   autospec=True) as mock_updo:
+                api.update_dhcp(task, opts)
+                mock_log.debug.assert_called_once_with(
+                    "Waiting %d seconds for Neutron.", 30)
+                mock_ts.assert_called_with(30)
+                mock_updo.assert_called_once_with('vif-uuid', opts,
+                                                  context=task.context)
 
     @mock.patch.object(neutron, 'LOG', autospec=True)
-    @mock.patch.object(neutron.NeutronDHCPApi, 'update_port_dhcp_opts',
-                       autospec=True)
     @mock.patch('ironic.common.network.get_node_vif_ids', autospec=True)
-    def test_update_dhcp_unset_sleep_and_fake(self, mock_gnvi, mock_updo,
-                                              mock_log):
+    def test_update_dhcp_unset_sleep_and_fake(self, mock_gnvi, mock_log):
         mock_gnvi.return_value = {'ports': {'port-uuid': 'vif-uuid'},
                                   'portgroups': {}}
         with task_manager.acquire(self.context,
                                   self.node.uuid) as task:
             opts = pxe_utils.dhcp_options_for_instance(task)
             api = dhcp_factory.DHCPFactory()
-            api.update_dhcp(task, opts)
-            mock_log.debug.assert_not_called()
-        mock_updo.assert_called_once_with(mock.ANY, 'vif-uuid', opts)
+            with mock.patch.object(api.provider, 'update_port_dhcp_opts',
+                                   autospec=True) as mock_updo:
+                api.update_dhcp(task, opts)
+                mock_log.debug.assert_not_called()
+                mock_updo.assert_called_once_with('vif-uuid', opts,
+                                                  context=task.context)
 
     def test__get_fixed_ip_address(self):
         port_id = 'fake-port-id'

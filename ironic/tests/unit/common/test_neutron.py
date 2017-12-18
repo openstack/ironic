@@ -10,12 +10,14 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+from keystoneauth1 import loading as kaloading
 import mock
 from neutronclient.common import exceptions as neutron_client_exc
 from neutronclient.v2_0 import client
 from oslo_config import cfg
 from oslo_utils import uuidutils
 
+from ironic.common import context
 from ironic.common import exception
 from ironic.common import neutron
 from ironic.conductor import task_manager
@@ -25,85 +27,145 @@ from ironic.tests.unit.db import base as db_base
 from ironic.tests.unit.objects import utils as object_utils
 
 
-@mock.patch.object(neutron, '_get_neutron_session', autospec=True)
-@mock.patch.object(client.Client, "__init__", autospec=True)
+@mock.patch('ironic.common.keystone.get_service_auth', autospec=True,
+            return_value=mock.sentinel.sauth)
+@mock.patch('ironic.common.keystone.get_auth', autospec=True,
+            return_value=mock.sentinel.auth)
+@mock.patch('ironic.common.keystone.get_adapter', autospec=True)
+@mock.patch('ironic.common.keystone.get_session', autospec=True,
+            return_value=mock.sentinel.session)
+@mock.patch.object(client.Client, "__init__", return_value=None, autospec=True)
 class TestNeutronClient(base.TestCase):
 
     def setUp(self):
         super(TestNeutronClient, self).setUp()
-        self.config(url_timeout=30,
-                    retries=2,
+        # NOTE(pas-ha) register keystoneauth dynamic options manually
+        plugin = kaloading.get_plugin_loader('password')
+        opts = kaloading.get_auth_plugin_conf_options(plugin)
+        self.cfg_fixture.register_opts(opts, group='neutron')
+        self.config(retries=2,
                     group='neutron')
-        self.config(admin_user='test-admin-user',
-                    admin_tenant_name='test-admin-tenant',
-                    admin_password='test-admin-password',
-                    auth_uri='test-auth-uri',
-                    group='keystone_authtoken')
-        # TODO(pas-ha) register session options to test legacy path
-        self.config(insecure=False,
-                    cafile='test-file',
+        self.config(username='test-admin-user',
+                    project_name='test-admin-tenant',
+                    password='test-admin-password',
+                    auth_url='test-auth-uri',
+                    auth_type='password',
+                    interface='internal',
+                    service_type='network',
+                    timeout=10,
                     group='neutron')
+        # force-reset the global session object
+        neutron._NEUTRON_SESSION = None
+        self.context = context.RequestContext(global_request_id='global')
 
-    def test_get_neutron_client_with_token(self, mock_client_init,
-                                           mock_session):
-        token = 'test-token-123'
-        sess = mock.Mock()
-        sess.get_endpoint.return_value = 'fake-url'
-        mock_session.return_value = sess
-        expected = {'timeout': 30,
-                    'retries': 2,
-                    'insecure': False,
-                    'ca_cert': 'test-file',
-                    'token': token,
-                    'endpoint_url': 'fake-url'}
+    def _call_and_assert_client(self, client_mock, url,
+                                auth=mock.sentinel.auth):
+        neutron.get_client(context=self.context)
+        client_mock.assert_called_once_with(mock.ANY,  # this is 'self'
+                                            session=mock.sentinel.session,
+                                            auth=auth, retries=2,
+                                            endpoint_override=url,
+                                            global_request_id='global')
 
-        mock_client_init.return_value = None
-        neutron.get_client(token=token)
-        mock_client_init.assert_called_once_with(mock.ANY, **expected)
+    @mock.patch('ironic.common.context.RequestContext', autospec=True)
+    def test_get_neutron_client_with_token(self, mock_ctxt, mock_client_init,
+                                           mock_session, mock_adapter,
+                                           mock_auth, mock_sauth):
+        mock_ctxt.return_value = ctxt = mock.Mock()
+        ctxt.auth_token = 'test-token-123'
+        mock_adapter.return_value = adapter = mock.Mock()
+        adapter.get_endpoint.return_value = 'neutron_url'
+        neutron.get_client(token='test-token-123')
+        mock_ctxt.assert_called_once_with(auth_token='test-token-123')
+        mock_client_init.assert_called_once_with(
+            mock.ANY,  # this is 'self'
+            session=mock.sentinel.session,
+            auth=mock.sentinel.sauth,
+            retries=2,
+            endpoint_override='neutron_url',
+            global_request_id=ctxt.global_id)
+
+        # testing handling of default url_timeout
+        mock_session.assert_called_once_with('neutron', timeout=10)
+        mock_adapter.assert_called_once_with('neutron',
+                                             session=mock.sentinel.session,
+                                             auth=mock.sentinel.auth)
+        mock_sauth.assert_called_once_with(mock_ctxt.return_value,
+                                           'neutron_url', mock.sentinel.auth)
+
+    def test_get_neutron_client_with_context(self, mock_client_init,
+                                             mock_session, mock_adapter,
+                                             mock_auth, mock_sauth):
+        self.context = context.RequestContext(global_request_id='global',
+                                              auth_token='test-token-123')
+        mock_adapter.return_value = adapter = mock.Mock()
+        adapter.get_endpoint.return_value = 'neutron_url'
+        self._call_and_assert_client(mock_client_init, 'neutron_url',
+                                     auth=mock.sentinel.sauth)
+        # testing handling of default url_timeout
+        mock_session.assert_called_once_with('neutron', timeout=10)
+        mock_adapter.assert_called_once_with('neutron',
+                                             session=mock.sentinel.session,
+                                             auth=mock.sentinel.auth)
+        mock_sauth.assert_called_once_with(self.context, 'neutron_url',
+                                           mock.sentinel.auth)
 
     def test_get_neutron_client_without_token(self, mock_client_init,
-                                              mock_session):
-        self.config(url='test-url',
-                    group='neutron')
-        sess = mock.Mock()
-        mock_session.return_value = sess
-        expected = {'retries': 2,
-                    'endpoint_override': 'test-url',
-                    'session': sess}
-        mock_client_init.return_value = None
-        neutron.get_client(token=None)
-        mock_client_init.assert_called_once_with(mock.ANY, **expected)
+                                              mock_session, mock_adapter,
+                                              mock_auth, mock_sauth):
+        mock_adapter.return_value = adapter = mock.Mock()
+        adapter.get_endpoint.return_value = 'neutron_url'
+        self._call_and_assert_client(mock_client_init, 'neutron_url')
+        mock_session.assert_called_once_with('neutron', timeout=10)
+        mock_adapter.assert_called_once_with('neutron',
+                                             session=mock.sentinel.session,
+                                             auth=mock.sentinel.auth)
+        self.assertEqual(0, mock_sauth.call_count)
 
-    def test_get_neutron_client_with_region(self, mock_client_init,
-                                            mock_session):
+    def test_get_neutron_client_with_deprecated_opts(self, mock_client_init,
+                                                     mock_session,
+                                                     mock_adapter, mock_auth,
+                                                     mock_sauth):
         self.config(region_name='fake_region',
                     group='keystone')
-        sess = mock.Mock()
-        mock_session.return_value = sess
-        expected = {'retries': 2,
-                    'region_name': 'fake_region',
-                    'session': sess}
-
-        mock_client_init.return_value = None
-        neutron.get_client(token=None)
-        mock_client_init.assert_called_once_with(mock.ANY, **expected)
-
-    def test_get_neutron_client_noauth(self, mock_client_init, mock_session):
-        self.config(auth_strategy='noauth',
-                    url='test-url',
+        self.config(url='neutron_url',
+                    url_timeout=10,
+                    timeout=None,
+                    service_type=None,
                     group='neutron')
-        expected = {'ca_cert': 'test-file',
-                    'insecure': False,
-                    'endpoint_url': 'test-url',
-                    'timeout': 30,
-                    'retries': 2,
-                    'auth_strategy': 'noauth'}
+        mock_adapter.return_value = adapter = mock.Mock()
+        adapter.get_endpoint.return_value = 'neutron_url'
+        self._call_and_assert_client(mock_client_init, 'neutron_url')
+        mock_session.assert_called_once_with('neutron', timeout=10)
+        mock_adapter.assert_called_once_with('neutron',
+                                             session=mock.sentinel.session,
+                                             auth=mock.sentinel.auth,
+                                             region_name='fake_region',
+                                             endpoint_override='neutron_url')
 
-        mock_client_init.return_value = None
-        neutron.get_client(token=None)
-        mock_client_init.assert_called_once_with(mock.ANY, **expected)
+    def test_get_neutron_client_noauth(self, mock_client_init, mock_session,
+                                       mock_adapter, mock_auth, mock_sauth):
+        self.config(auth_strategy='noauth',
+                    endpoint_override='neutron_url',
+                    url_timeout=None,
+                    auth_type=None,
+                    timeout=10,
+                    group='neutron')
+        mock_adapter.return_value = adapter = mock.Mock()
+        adapter.get_endpoint.return_value = 'neutron_url'
 
-    def test_out_range_auth_strategy(self, mock_client_init, mock_session):
+        self._call_and_assert_client(mock_client_init, 'neutron_url')
+
+        self.assertEqual('none', neutron.CONF.neutron.auth_type)
+        mock_session.assert_called_once_with('neutron', timeout=10)
+        mock_adapter.assert_called_once_with('neutron',
+                                             session=mock.sentinel.session,
+                                             auth=mock.sentinel.auth)
+        mock_auth.assert_called_once_with('neutron')
+        self.assertEqual(0, mock_sauth.call_count)
+
+    def test_out_range_auth_strategy(self, mock_client_init, mock_session,
+                                     mock_adapter, mock_auth, mock_eauth):
         self.assertRaises(ValueError, cfg.CONF.set_override,
                           'auth_strategy', 'fake', 'neutron')
 
@@ -473,6 +535,7 @@ class TestValidateNetwork(base.TestCase):
         super(TestValidateNetwork, self).setUp()
 
         self.uuid = uuidutils.generate_uuid()
+        self.context = context.RequestContext()
 
     def test_by_uuid(self, client_mock):
         net_mock = client_mock.return_value.list_networks
@@ -482,7 +545,8 @@ class TestValidateNetwork(base.TestCase):
             ]
         }
 
-        self.assertEqual(self.uuid, neutron.validate_network(self.uuid))
+        self.assertEqual(self.uuid, neutron.validate_network(
+            self.uuid, context=self.context))
         net_mock.assert_called_once_with(fields=['id'],
                                          id=self.uuid)
 
@@ -494,7 +558,8 @@ class TestValidateNetwork(base.TestCase):
             ]
         }
 
-        self.assertEqual(self.uuid, neutron.validate_network('name'))
+        self.assertEqual(self.uuid, neutron.validate_network(
+            'name', context=self.context))
         net_mock.assert_called_once_with(fields=['id'],
                                          name='name')
 
@@ -506,7 +571,8 @@ class TestValidateNetwork(base.TestCase):
 
         self.assertRaisesRegex(exception.InvalidParameterValue,
                                'was not found',
-                               neutron.validate_network, self.uuid)
+                               neutron.validate_network,
+                               self.uuid, context=self.context)
         net_mock.assert_called_once_with(fields=['id'],
                                          id=self.uuid)
 
@@ -515,7 +581,8 @@ class TestValidateNetwork(base.TestCase):
         net_mock.side_effect = neutron_client_exc.NeutronClientException('foo')
 
         self.assertRaisesRegex(exception.NetworkError, 'foo',
-                               neutron.validate_network, 'name')
+                               neutron.validate_network, 'name',
+                               context=self.context)
         net_mock.assert_called_once_with(fields=['id'],
                                          name='name')
 
@@ -528,7 +595,8 @@ class TestValidateNetwork(base.TestCase):
 
         self.assertRaisesRegex(exception.InvalidParameterValue,
                                'More than one network',
-                               neutron.validate_network, 'name')
+                               neutron.validate_network, 'name',
+                               context=self.context)
         net_mock.assert_called_once_with(fields=['id'],
                                          name='name')
 
@@ -536,13 +604,17 @@ class TestValidateNetwork(base.TestCase):
 @mock.patch.object(neutron, 'get_client', autospec=True)
 class TestUpdatePortAddress(base.TestCase):
 
+    def setUp(self):
+        super(TestUpdatePortAddress, self).setUp()
+        self.context = context.RequestContext()
+
     def test_update_port_address(self, mock_client):
         address = 'fe:54:00:77:07:d9'
         port_id = 'fake-port-id'
         expected = {'port': {'mac_address': address}}
         mock_client.return_value.show_port.return_value = {}
 
-        neutron.update_port_address(port_id, address)
+        neutron.update_port_address(port_id, address, context=self.context)
         mock_client.return_value.update_port.assert_called_once_with(port_id,
                                                                      expected)
 
@@ -559,8 +631,11 @@ class TestUpdatePortAddress(base.TestCase):
                  mock.call(port_id, {'port': {'binding:host_id': 'host',
                                      'binding:profile': 'foo'}})]
 
-        neutron.update_port_address(port_id, address)
-        mock_unp.assert_called_once_with(port_id, client=mock_client())
+        neutron.update_port_address(port_id, address, context=self.context)
+        mock_unp.assert_called_once_with(
+            port_id,
+            client=mock_client(context=self.context),
+            context=self.context)
         mock_client.return_value.update_port.assert_has_calls(calls)
 
     @mock.patch.object(neutron, 'unbind_neutron_port', autospec=True)
@@ -571,7 +646,7 @@ class TestUpdatePortAddress(base.TestCase):
         mock_client.return_value.show_port.return_value = {
             'port': {'binding:profile': 'foo'}}
 
-        neutron.update_port_address(port_id, address)
+        neutron.update_port_address(port_id, address, context=self.context)
         self.assertFalse(mock_unp.called)
         mock_client.return_value.update_port.assert_any_call(port_id, expected)
 
@@ -582,7 +657,8 @@ class TestUpdatePortAddress(base.TestCase):
             neutron_client_exc.NeutronClientException())
 
         self.assertRaises(exception.FailedToUpdateMacOnPort,
-                          neutron.update_port_address, port_id, address)
+                          neutron.update_port_address,
+                          port_id, address, context=self.context)
         self.assertFalse(mock_client.return_value.update_port.called)
 
     @mock.patch.object(neutron, 'unbind_neutron_port', autospec=True)
@@ -595,8 +671,12 @@ class TestUpdatePortAddress(base.TestCase):
                      'binding:host_id': 'host'}}
         mock_unp.side_effect = (exception.NetworkError('boom'))
         self.assertRaises(exception.FailedToUpdateMacOnPort,
-                          neutron.update_port_address, port_id, address)
-        mock_unp.assert_called_once_with(port_id, client=mock_client())
+                          neutron.update_port_address,
+                          port_id, address, context=self.context)
+        mock_unp.assert_called_once_with(
+            port_id,
+            client=mock_client(context=self.context),
+            context=self.context)
         self.assertFalse(mock_client.return_value.update_port.called)
 
     @mock.patch.object(neutron, 'unbind_neutron_port', autospec=True)
@@ -610,11 +690,15 @@ class TestUpdatePortAddress(base.TestCase):
 
         self.assertRaises(exception.FailedToUpdateMacOnPort,
                           neutron.update_port_address,
-                          port_id, address)
+                          port_id, address, context=self.context)
 
 
 @mock.patch.object(neutron, 'get_client', autospec=True)
 class TestUnbindPort(base.TestCase):
+
+    def setUp(self):
+        super(TestUnbindPort, self).setUp()
+        self.context = context.RequestContext()
 
     def test_unbind_neutron_port_client_passed(self, mock_client):
         port_id = 'fake-port-id'
@@ -624,7 +708,9 @@ class TestUnbindPort(base.TestCase):
                 'binding:profile': {}
             }
         }
-        neutron.unbind_neutron_port(port_id, mock_client())
+        neutron.unbind_neutron_port(port_id,
+                                    mock_client(context=self.context),
+                                    context=self.context)
         self.assertEqual(1, mock_client.call_count)
         mock_client.return_value.update_port.assert_called_once_with(port_id,
                                                                      body)
@@ -641,8 +727,8 @@ class TestUnbindPort(base.TestCase):
         }
         port_id = 'fake-port-id'
         self.assertRaises(exception.NetworkError, neutron.unbind_neutron_port,
-                          port_id)
-        mock_client.assert_called_once_with()
+                          port_id, context=self.context)
+        mock_client.assert_called_once_with(context=self.context)
         mock_client.return_value.update_port.assert_called_once_with(port_id,
                                                                      body)
         mock_log.exception.assert_called_once()
@@ -655,8 +741,8 @@ class TestUnbindPort(base.TestCase):
                 'binding:profile': {}
             }
         }
-        neutron.unbind_neutron_port(port_id)
-        mock_client.assert_called_once_with()
+        neutron.unbind_neutron_port(port_id, context=self.context)
+        mock_client.assert_called_once_with(context=self.context)
         mock_client.return_value.update_port.assert_called_once_with(port_id,
                                                                      body)
 
@@ -671,8 +757,8 @@ class TestUnbindPort(base.TestCase):
                 'binding:profile': {}
             }
         }
-        neutron.unbind_neutron_port(port_id)
-        mock_client.assert_called_once_with()
+        neutron.unbind_neutron_port(port_id, context=self.context)
+        mock_client.assert_called_once_with(context=self.context)
         mock_client.return_value.update_port.assert_called_once_with(port_id,
                                                                      body)
         mock_log.info.assert_called_once_with('Port %s was not found while '

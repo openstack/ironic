@@ -51,7 +51,7 @@ class FlatNetwork(common.NeutronVIFPortIDMixin,
             is invalid.
         :raises: MissingParameterValue, if some parameters are missing.
         """
-        self.get_cleaning_network_uuid()
+        self.get_cleaning_network_uuid(context=task.context)
 
     def add_provisioning_network(self, task):
         """Add the provisioning network to a node.
@@ -65,7 +65,7 @@ class FlatNetwork(common.NeutronVIFPortIDMixin,
         if not host_id:
             return
 
-        client = neutron.get_client()
+        client = neutron.get_client(context=task.context)
         for port_like_obj in task.ports + task.portgroups:
             vif_port_id = (
                 port_like_obj.internal_info.get(common.TENANT_VIF_KEY) or
@@ -116,10 +116,12 @@ class FlatNetwork(common.NeutronVIFPortIDMixin,
         :raises: NetworkError, InvalidParameterValue
         """
         # If we have left over ports from a previous cleaning, remove them
-        neutron.rollback_ports(task, self.get_cleaning_network_uuid())
+        neutron.rollback_ports(task,
+                               self.get_cleaning_network_uuid(
+                                   context=task.context))
         LOG.info('Adding cleaning network to node %s', task.node.uuid)
         vifs = neutron.add_ports_to_network(
-            task, self.get_cleaning_network_uuid())
+            task, self.get_cleaning_network_uuid(context=task.context))
         for port in task.ports:
             if port.uuid in vifs:
                 internal_info = port.internal_info
@@ -136,8 +138,8 @@ class FlatNetwork(common.NeutronVIFPortIDMixin,
         """
         LOG.info('Removing ports from cleaning network for node %s',
                  task.node.uuid)
-        neutron.remove_ports_from_network(task,
-                                          self.get_cleaning_network_uuid())
+        neutron.remove_ports_from_network(
+            task, self.get_cleaning_network_uuid(context=task.context))
         for port in task.ports:
             if 'cleaning_vif_port_id' in port.internal_info:
                 internal_info = port.internal_info

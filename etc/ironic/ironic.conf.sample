@@ -2590,11 +2590,16 @@
 # Authentication URL (string value)
 #auth_url = <None>
 
-# Authentication strategy to use when connecting to neutron.
-# Running neutron in noauth mode (related to but not affected
-# by this setting) is insecure and should only be used for
-# testing. (string value)
+# DEPRECATED: Authentication strategy to use when connecting
+# to neutron. Running neutron in noauth mode (related to but
+# not affected by this setting) is insecure and should only be
+# used for testing. (string value)
 # Allowed values: keystone, noauth
+# This option is deprecated for removal.
+# Its value may be silently ignored in the future.
+# Reason: To configure neutron for noauth mode, set
+# [neutron]/auth_type = none and
+# [neutron]/endpoint_override=<NEUTRON_API_URL> instead
 #auth_strategy = keystone
 
 # Authentication type to load (string value)
@@ -2640,11 +2645,27 @@
 # Domain name to scope to (string value)
 #domain_name = <None>
 
+# Always use this endpoint URL for requests for this client.
+# (string value)
+#endpoint_override = <None>
+
 # Verify HTTPS connections. (boolean value)
 #insecure = false
 
 # PEM encoded client certificate key file (string value)
 #keyfile = <None>
+
+# The maximum major version of a given API, intended to be
+# used as the upper bound of a range with min_version.
+# Mutually exclusive with version. (string value)
+#max_version = <None>
+
+# The minimum major version of a given API, intended to be
+# used as the lower bound of a range with max_version.
+# Mutually exclusive with version. If min_version is given
+# with no max_version it is as if max version is "latest".
+# (string value)
+#min_version = <None>
 
 # User's password (string value)
 #password = <None>
@@ -2682,9 +2703,21 @@
 # is used. (list value)
 #provisioning_network_security_groups =
 
+# The default region_name for endpoint URL discovery. (string
+# value)
+#region_name = <None>
+
 # Client retries in the case of a failed request. (integer
 # value)
 #retries = 3
+
+# The default service_name for endpoint URL discovery. (string
+# value)
+#service_name = <None>
+
+# The default service_type for endpoint URL discovery. (string
+# value)
+#service_type = network
 
 # Tenant ID (string value)
 #tenant_id = <None>
@@ -2698,14 +2731,24 @@
 # Trust ID (string value)
 #trust_id = <None>
 
-# URL for connecting to neutron. Default value translates to
-# 'http://$my_ip:9696' when auth_strategy is 'noauth', and to
-# discovery from Keystone catalog when auth_strategy is
-# 'keystone'. (string value)
+# DEPRECATED: URL for connecting to neutron. Default value
+# translates to 'http://$my_ip:9696' when auth_strategy is
+# 'noauth', and to discovery from Keystone catalog when
+# auth_strategy is 'keystone'. (string value)
+# This option is deprecated for removal.
+# Its value may be silently ignored in the future.
+# Reason: Use [neutron]/endpoint_override option instead. It
+# has no default value and must be set explicitly if required
+# to connect to specific neutron URL, for example when
+# [neutron]auth_strategy is noauth.
 #url = <None>
 
-# Timeout value for connecting to neutron in seconds. (integer
-# value)
+# DEPRECATED: Timeout value for connecting to neutron in
+# seconds. (integer value)
+# This option is deprecated for removal.
+# Its value may be silently ignored in the future.
+# Reason: Use [neutron]/timeout option instead. It has no
+# default value and must be set explicitly.
 #url_timeout = 30
 
 # User's domain id (string value)
@@ -2720,6 +2763,15 @@
 # Username (string value)
 # Deprecated group/name - [neutron]/user_name
 #username = <None>
+
+# List of interfaces, in order of preference, for endpoint
+# URL. (list value)
+#valid_interfaces = internal,public
+
+# Minimum Major API version within a given Major API version
+# for endpoint URL discovery. Mutually exclusive with
+# min_version and max_version (string value)
+#version = <None>
 
 
 [oneview]

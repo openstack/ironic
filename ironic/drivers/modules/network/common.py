@@ -267,7 +267,7 @@ def plug_port_to_tenant_network(task, port_like_obj, client=None):
         body['port']['extra_dhcp_opts'] = [client_id_opt]
 
     if not client:
-        client = neutron.get_client()
+        client = neutron.get_client(context=task.context)
 
     try:
         client.update_port(vif_id, body)
@@ -402,7 +402,8 @@ class NeutronVIFPortIDMixin(VIFPortIDMixin):
         vif = self._get_vif_id_by_port_like_obj(port_obj)
         if 'address' in port_obj.obj_what_changed():
             if vif:
-                neutron.update_port_address(vif, port_obj.address)
+                neutron.update_port_address(vif, port_obj.address,
+                                            context=task.context)
 
         if 'extra' in port_obj.obj_what_changed():
             original_port = objects.Port.get_by_id(context, port_obj.id)
@@ -421,7 +422,7 @@ class NeutronVIFPortIDMixin(VIFPortIDMixin):
                                      'opt_value': updated_client_id}
 
                     api.provider.update_port_dhcp_opts(
-                        vif, [client_id_opt])
+                        vif, [client_id_opt], context=task.context)
                 # Log warning if there is no VIF and an instance
                 # is associated with the node.
                 elif node.instance_uuid:
@@ -467,7 +468,8 @@ class NeutronVIFPortIDMixin(VIFPortIDMixin):
                 portgroup_obj.address):
             pg_vif = self._get_vif_id_by_port_like_obj(portgroup_obj)
             if pg_vif:
-                neutron.update_port_address(pg_vif, portgroup_obj.address)
+                neutron.update_port_address(pg_vif, portgroup_obj.address,
+                                            context=task.context)
 
         if 'extra' in portgroup_obj.obj_what_changed():
             original_portgroup = objects.Portgroup.get_by_id(context,
@@ -522,7 +524,7 @@ class NeutronVIFPortIDMixin(VIFPortIDMixin):
                  network.
         """
         vif_id = vif_info['id']
-        client = neutron.get_client()
+        client = neutron.get_client(context=task.context)
 
         # Determine whether any of the node's ports have a physical network. If
         # not, we don't need to check the VIF's network's physical networks as
@@ -549,7 +551,8 @@ class NeutronVIFPortIDMixin(VIFPortIDMixin):
         # Address is optional for portgroups
         if port_like_obj.address:
             try:
-                neutron.update_port_address(vif_id, port_like_obj.address)
+                neutron.update_port_address(vif_id, port_like_obj.address,
+                                            context=task.context)
             except exception.FailedToUpdateMacOnPort:
                 raise exception.NetworkError(_(
                     "Unable to attach VIF %(vif)s because Ironic can not "
@@ -580,4 +583,4 @@ class NeutronVIFPortIDMixin(VIFPortIDMixin):
 
         # NOTE(vsaienko) allow to unplug VIFs from ACTIVE instance.
         if task.node.provision_state == states.ACTIVE:
-            neutron.unbind_neutron_port(vif_id)
+            neutron.unbind_neutron_port(vif_id, context=task.context)

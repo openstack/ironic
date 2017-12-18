@@ -77,11 +77,12 @@ class TestFlatInterface(db_base.DbTestCase):
     def test_validate(self, validate_mock):
         with task_manager.acquire(self.context, self.node.id) as task:
             self.interface.validate(task)
-        validate_mock.assert_called_once_with(CONF.neutron.cleaning_network,
-                                              'cleaning network')
+            validate_mock.assert_called_once_with(
+                CONF.neutron.cleaning_network,
+                'cleaning network', context=task.context)
 
     @mock.patch.object(neutron, 'validate_network',
-                       side_effect=lambda n, t: n)
+                       side_effect=lambda n, t, context=None: n)
     @mock.patch.object(neutron, 'add_ports_to_network')
     @mock.patch.object(neutron, 'rollback_ports')
     def test_add_cleaning_network(self, rollback_mock, add_mock,
@@ -95,13 +96,13 @@ class TestFlatInterface(db_base.DbTestCase):
                 task, CONF.neutron.cleaning_network)
             validate_mock.assert_called_once_with(
                 CONF.neutron.cleaning_network,
-                'cleaning network')
+                'cleaning network', context=task.context)
         self.port.refresh()
         self.assertEqual('vif-port-id',
                          self.port.internal_info['cleaning_vif_port_id'])
 
     @mock.patch.object(neutron, 'validate_network',
-                       side_effect=lambda n, t: n)
+                       side_effect=lambda n, t, context=None: n)
     @mock.patch.object(neutron, 'remove_ports_from_network')
     def test_remove_cleaning_network(self, remove_mock, validate_mock):
         with task_manager.acquire(self.context, self.node.id) as task:
@@ -110,7 +111,7 @@ class TestFlatInterface(db_base.DbTestCase):
                 task, CONF.neutron.cleaning_network)
             validate_mock.assert_called_once_with(
                 CONF.neutron.cleaning_network,
-                'cleaning network')
+                'cleaning network', context=task.context)
         self.port.refresh()
         self.assertNotIn('cleaning_vif_port_id', self.port.internal_info)
 

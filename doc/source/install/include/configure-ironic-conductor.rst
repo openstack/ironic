@@ -150,7 +150,7 @@ Configuring ironic-conductor service
       [neutron]
 
       # URL for connecting to neutron. (string value)
-      url=<NETWORKING_SERVICE_ENDPOINT>
+      endpoint_override = <NETWORKING_SERVICE_ENDPOINT>
 
 #. Configure a specific ironic-api service URL - only if you do not want
    to use discovery of the Baremetal service endpoint from keystone catalog
