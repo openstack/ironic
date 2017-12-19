@@ -17,7 +17,7 @@ import collections
 
 from oslo_concurrency import lockutils
 from oslo_log import log
-from stevedore import dispatch
+from stevedore import named
 
 from ironic.common import exception
 from ironic.common.i18n import _
@@ -495,31 +495,23 @@ class BaseDriverFactory(object):
                     raise exception.DriverLoadError(driver=ep.name, reason=exc)
                 raise exc
 
-        def _check_func(ext):
-            return ext.name in cls._enabled_driver_list
-
-        cls._extension_manager = (
-            dispatch.NameDispatchExtensionManager(
-                cls._entrypoint_name,
-                _check_func,
-                invoke_on_load=True,
-                on_load_failure_callback=_catch_driver_not_found,
-                propagate_map_exceptions=True))
-
-        # NOTE(deva): if we were unable to load any configured driver, perhaps
-        #             because it is not present on the system, raise an error.
-        if (sorted(cls._enabled_driver_list) !=
-                sorted(cls._extension_manager.names())):
-            found = cls._extension_manager.names()
-            names = [n for n in cls._enabled_driver_list if n not in found]
-            # just in case more than one could not be found ...
+        def missing_callback(names):
             names = ', '.join(names)
             raise exception.DriverNotFoundInEntrypoint(
                 names=names, entrypoint=cls._entrypoint_name)
 
+        cls._extension_manager = (
+            named.NamedExtensionManager(
+                cls._entrypoint_name,
+                cls._enabled_driver_list,
+                invoke_on_load=True,
+                on_load_failure_callback=_catch_driver_not_found,
+                propagate_map_exceptions=True,
+                on_missing_entrypoints_callback=missing_callback))
+
         # warn for any untested/unsupported/deprecated drivers or interfaces
-        cls._extension_manager.map(cls._extension_manager.names(),
-                                   _warn_if_unsupported)
+        if cls._enabled_driver_list:
+            cls._extension_manager.map(_warn_if_unsupported)
 
         LOG.info(cls._logging_template, cls._extension_manager.names())
 

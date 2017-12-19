@@ -14,7 +14,7 @@
 
 import mock
 from oslo_utils import uuidutils
-from stevedore import dispatch
+from stevedore import named
 
 from ironic.common import driver_factory
 from ironic.common import exception
@@ -45,7 +45,7 @@ class DriverLoadTestCase(db_base.DbTestCase):
 
     def test_driver_load_error_if_driver_enabled(self):
         self.config(enabled_drivers=['fake'])
-        with mock.patch.object(dispatch.NameDispatchExtensionManager,
+        with mock.patch.object(named.NamedExtensionManager,
                                '__init__', self._fake_init_driver_err):
             self.assertRaises(
                 exception.DriverLoadError,
@@ -53,20 +53,20 @@ class DriverLoadTestCase(db_base.DbTestCase):
 
     def test_wrap_in_driver_load_error_if_driver_enabled(self):
         self.config(enabled_drivers=['fake'])
-        with mock.patch.object(dispatch.NameDispatchExtensionManager,
+        with mock.patch.object(named.NamedExtensionManager,
                                '__init__', self._fake_init_name_err):
             self.assertRaises(
                 exception.DriverLoadError,
                 driver_factory.DriverFactory._init_extension_manager)
 
-    @mock.patch.object(dispatch.NameDispatchExtensionManager, 'names',
+    @mock.patch.object(named.NamedExtensionManager, 'names',
                        autospec=True)
     def test_no_driver_load_error_if_driver_disabled(self, mock_em):
         self.config(enabled_drivers=[])
-        with mock.patch.object(dispatch.NameDispatchExtensionManager,
+        with mock.patch.object(named.NamedExtensionManager,
                                '__init__', self._fake_init_driver_err):
             driver_factory.DriverFactory._init_extension_manager()
-            self.assertEqual(3, mock_em.call_count)
+            self.assertEqual(1, mock_em.call_count)
 
     @mock.patch.object(driver_factory.LOG, 'warning', autospec=True)
     def test_driver_duplicated_entry(self, mock_log):
