@@ -51,6 +51,9 @@ Ironic supports rolling upgrades as described in the
 The upgrade process will cause the ironic services to be running the ``FromVer``
 and ``ToVer`` releases in this order:
 
+0. Upgrade ironic code and run database schema migrations via the
+   ``ironic-dbsync upgrade`` command.
+
 1. Upgrade code and restart ironic-conductor services, one at a time.
 
 2. Upgrade code and restart ironic-api services, one at a time.
@@ -433,6 +436,9 @@ following needs to be considered:
 
 Online data migrations
 ----------------------
+The ``ironic-dbsync online_data_migrations`` command will perform online
+data migrations.
+
 Keep in mind the `Policy for changes to the DB model`_.
 Future incompatible changes in SQLAlchemy models, like removing or renaming
 columns and tables can break rolling upgrades (when ironic services are run
@@ -482,3 +488,15 @@ longer contains references to the old schema. Before removing any resources
 from the database by modifying the schema, make sure that your implementation
 checks that all objects in the affected tables have been migrated. This check
 can be implemented using the version column.
+
+"ironic-dbsync upgrade" command
+-------------------------------
+The ``ironic-dbsync upgrade`` command first checks that the versions of the
+objects are compatible with the (new) release of ironic, before it will make
+any DB schema changes. If one or more objects are not compatible, the upgrade
+will not be performed.
+
+This check is done by comparing the objects' ``version`` field in the database
+with the expected (or supported) versions of these objects. The supported
+versions are the versions specified in
+``ironic.common.release_mappings.RELEASE_MAPPING``.
