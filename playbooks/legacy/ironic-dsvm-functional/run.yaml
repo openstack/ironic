@@ -46,7 +46,7 @@
           export DEVSTACK_GATE_NEUTRON=1
           export DEVSTACK_GATE_VIRT_DRIVER=ironic
           export TEMPEST_CONCURRENCY=2
-          export BRANCH_OVERRIDE=default
+          export BRANCH_OVERRIDE="{{ branch_override | default('default') }}"
           if [ "$BRANCH_OVERRIDE" != "default" ] ; then
               export OVERRIDE_ZUUL_BRANCH=$BRANCH_OVERRIDE
           fi
