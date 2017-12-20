@@ -74,6 +74,14 @@
           export DEVSTACK_LOCAL_CONFIG+=$'\n'"IRONIC_AUTOMATED_CLEAN_ENABLED=False"
           export DEVSTACK_LOCAL_CONFIG+=$'\n'"IRONIC_USE_MOD_WSGI=True"
 
+          # NOTE(pas-ha) ansible deploy is new in Queens,
+          # and this job does not exist in Newton/Ocata.
+          # Do not enable ansible deploy for Pike so that stable/pike job on
+          # branch-less ironic-tempest-plugin passes using branch_override.
+          if [[ "$ZUUL_BRANCH" != "stable/pike" && "$BRANCH_OVERRIDE" != "stable/pike" ]]; then
+            export DEVSTACK_LOCAL_CONFIG+=$'\n'"IRONIC_ENABLED_DEPLOY_INTERFACES=iscsi,direct,ansible"
+          fi
+
           # Ensure the ironic-vars-EARLY file exists
           touch ironic-vars-early
           # Pull in the EARLY variables injected by the optional builders
