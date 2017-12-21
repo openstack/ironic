@@ -41,8 +41,8 @@ INSTANCE_INFO = {
 DRIVER_INFO = {
     'deploy_kernel': 'glance://deploy_kernel_uuid',
     'deploy_ramdisk': 'glance://deploy_ramdisk_uuid',
-    'ansible_deploy_username': 'test',
-    'ansible_deploy_key_file': '/path/key',
+    'ansible_username': 'test',
+    'ansible_key_file': '/path/key',
     'ipmi_address': '127.0.0.1',
 }
 DRIVER_INTERNAL_INFO = {
@@ -71,11 +71,46 @@ class AnsibleDeployTestCaseBase(db_base.DbTestCase):
 class TestAnsibleMethods(AnsibleDeployTestCaseBase):
 
     def test__parse_ansible_driver_info(self):
+        self.node.driver_info['ansible_deploy_playbook'] = 'spam.yaml'
         playbook, user, key = ansible_deploy._parse_ansible_driver_info(
             self.node, 'deploy')
-        self.assertEqual(ansible_deploy.DEFAULT_PLAYBOOKS['deploy'], playbook)
+        self.assertEqual('spam.yaml', playbook)
         self.assertEqual('test', user)
         self.assertEqual('/path/key', key)
+
+    def test__parse_ansible_driver_info_defaults(self):
+        self.node.driver_info.pop('ansible_username')
+        self.node.driver_info.pop('ansible_key_file')
+        self.config(group='ansible',
+                    default_username='spam',
+                    default_key_file='/ham/eggs',
+                    default_deploy_playbook='parrot.yaml')
+        playbook, user, key = ansible_deploy._parse_ansible_driver_info(
+            self.node, 'deploy')
+        # testing absolute path to the playbook
+        self.assertEqual('parrot.yaml', playbook)
+        self.assertEqual('spam', user)
+        self.assertEqual('/ham/eggs', key)
+
+    @mock.patch.object(ansible_deploy.LOG, 'warning', autospec=True)
+    def test__parse_ansible_driver_info_deprecated_opts(self, warn_mock):
+        self.node.driver_info[
+            'ansible_deploy_username'] = self.node.driver_info.pop(
+                'ansible_username')
+        self.node.driver_info[
+            'ansible_deploy_key_file'] = self.node.driver_info.pop(
+                'ansible_key_file')
+        playbook, user, key = ansible_deploy._parse_ansible_driver_info(
+            self.node, 'deploy')
+        self.assertEqual(ansible_deploy.CONF.ansible.default_deploy_playbook,
+                         playbook)
+        self.assertEqual('test', user)
+        self.assertEqual('/path/key', key)
+        self.assertEqual(2, warn_mock.call_count)
+        # check that we remeber about warnings havig been displayed
+        playbook, user, key = ansible_deploy._parse_ansible_driver_info(
+            self.node, 'deploy')
+        self.assertEqual(2, warn_mock.call_count)
 
     def test__parse_ansible_driver_info_no_playbook(self):
         self.assertRaises(exception.IronicException,
@@ -101,13 +136,14 @@ class TestAnsibleMethods(AnsibleDeployTestCaseBase):
         self.config(group='ansible', ansible_extra_args='--timeout=100')
         extra_vars = {'foo': 'bar'}
 
-        ansible_deploy._run_playbook('deploy', extra_vars, '/path/to/key',
+        ansible_deploy._run_playbook(self.node, 'deploy',
+                                     extra_vars, '/path/to/key',
                                      tags=['spam'], notags=['ham'])
 
         execute_mock.assert_called_once_with(
             'env', 'ANSIBLE_CONFIG=/path/to/config',
             'ansible-playbook', '/path/to/playbooks/deploy', '-i',
-            ansible_deploy.INVENTORY_FILE, '-e', '{"ironic": {"foo": "bar"}}',
+            '/path/to/playbooks/inventory', '-e', '{"ironic": {"foo": "bar"}}',
             '--tags=spam', '--skip-tags=ham',
             '--private-key=/path/to/key', '-vvv', '--timeout=100')
 
@@ -119,12 +155,13 @@ class TestAnsibleMethods(AnsibleDeployTestCaseBase):
         self.config(debug=False)
         extra_vars = {'foo': 'bar'}
 
-        ansible_deploy._run_playbook('deploy', extra_vars, '/path/to/key')
+        ansible_deploy._run_playbook(self.node, 'deploy', extra_vars,
+                                     '/path/to/key')
 
         execute_mock.assert_called_once_with(
             'env', 'ANSIBLE_CONFIG=/path/to/config',
             'ansible-playbook', '/path/to/playbooks/deploy', '-i',
-            ansible_deploy.INVENTORY_FILE, '-e', '{"ironic": {"foo": "bar"}}',
+            '/path/to/playbooks/inventory', '-e', '{"ironic": {"foo": "bar"}}',
             '--private-key=/path/to/key')
 
     @mock.patch.object(com_utils, 'execute', return_value=('out', 'err'),
@@ -135,12 +172,13 @@ class TestAnsibleMethods(AnsibleDeployTestCaseBase):
         self.config(debug=True)
         extra_vars = {'foo': 'bar'}
 
-        ansible_deploy._run_playbook('deploy', extra_vars, '/path/to/key')
+        ansible_deploy._run_playbook(self.node, 'deploy', extra_vars,
+                                     '/path/to/key')
 
         execute_mock.assert_called_once_with(
             'env', 'ANSIBLE_CONFIG=/path/to/config',
             'ansible-playbook', '/path/to/playbooks/deploy', '-i',
-            ansible_deploy.INVENTORY_FILE, '-e', '{"ironic": {"foo": "bar"}}',
+            '/path/to/playbooks/inventory', '-e', '{"ironic": {"foo": "bar"}}',
             '--private-key=/path/to/key', '-vvvv')
 
     @mock.patch.object(com_utils, 'execute',
@@ -155,12 +193,13 @@ class TestAnsibleMethods(AnsibleDeployTestCaseBase):
 
         exc = self.assertRaises(exception.InstanceDeployFailure,
                                 ansible_deploy._run_playbook,
-                                'deploy', extra_vars, '/path/to/key')
+                                self.node, 'deploy', extra_vars,
+                                '/path/to/key')
         self.assertIn('VIKINGS!', six.text_type(exc))
         execute_mock.assert_called_once_with(
             'env', 'ANSIBLE_CONFIG=/path/to/config',
             'ansible-playbook', '/path/to/playbooks/deploy', '-i',
-            ansible_deploy.INVENTORY_FILE, '-e', '{"ironic": {"foo": "bar"}}',
+            '/path/to/playbooks/inventory', '-e', '{"ironic": {"foo": "bar"}}',
             '--private-key=/path/to/key')
 
     def test__parse_partitioning_info_root_msdos(self):
@@ -619,7 +658,7 @@ class TestAnsibleDeploy(AnsibleDeployTestCaseBase):
             prepare_extra_mock.assert_called_once_with(
                 ironic_nodes['ironic_nodes'])
             run_playbook_mock.assert_called_once_with(
-                'test_pl', ironic_nodes, 'test_k', tags=['clean'])
+                task.node, 'test_pl', ironic_nodes, 'test_k', tags=['clean'])
 
     @mock.patch.object(ansible_deploy, '_parse_ansible_driver_info',
                        return_value=('test_pl', 'test_u', 'test_k'),
@@ -735,7 +774,7 @@ class TestAnsibleDeploy(AnsibleDeployTestCaseBase):
                 [(self.node['uuid'], '127.0.0.1', 'test_u', {'ham': 'spam'})],
                 variables=_vars)
             run_playbook_mock.assert_called_once_with(
-                'test_pl', ironic_nodes, 'test_k')
+                task.node, 'test_pl', ironic_nodes, 'test_k')
 
     @mock.patch.object(ansible_deploy, '_run_playbook', autospec=True)
     @mock.patch.object(ansible_deploy, '_prepare_extra_vars', autospec=True)
@@ -770,8 +809,8 @@ class TestAnsibleDeploy(AnsibleDeployTestCaseBase):
             prepare_extra_mock.assert_called_once_with(
                 [(self.node['uuid'], '127.0.0.1', 'test_u', {'ham': 'spam'})],
                 variables=_vars)
-            run_playbook_mock.assert_called_once_with('test_pl', ironic_nodes,
-                                                      'test_k')
+            run_playbook_mock.assert_called_once_with(
+                task.node, 'test_pl', ironic_nodes, 'test_k')
 
     @mock.patch.object(fake.FakePower, 'get_power_state',
                        return_value=states.POWER_OFF)
@@ -804,7 +843,7 @@ class TestAnsibleDeploy(AnsibleDeployTestCaseBase):
     @mock.patch.object(utils, 'node_power_action', autospec=True)
     def test_reboot_and_finish_deploy_soft_poweroff_retry(self,
                                                           power_action_mock,
-                                                          ansible_mock):
+                                                          run_playbook_mock):
         self.config(group='ansible',
                     post_deploy_get_power_state_retry_interval=0)
         self.config(group='ansible',
@@ -834,8 +873,8 @@ class TestAnsibleDeploy(AnsibleDeployTestCaseBase):
                                     ((task, states.POWER_ON),)]
             self.assertEqual(expected_power_calls,
                              power_action_mock.call_args_list)
-            ansible_mock.assert_called_once_with('shutdown.yaml',
-                                                 mock.ANY, mock.ANY)
+            run_playbook_mock.assert_called_once_with(
+                task.node, 'shutdown.yaml', mock.ANY, mock.ANY)
 
     @mock.patch.object(ansible_deploy, '_get_node_ip', autospec=True,
                        return_value='1.2.3.4')
