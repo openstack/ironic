@@ -115,7 +115,7 @@
               export OVERRIDE_ZUUL_BRANCH=$BRANCH_OVERRIDE
           fi
 
-          if [[ ! "stable/newton stable/ocata stable/pike" =~ $ZUUL_BRANCH ]] ; then
+          if [[ "$ZUUL_BRANCH" != "stable/ocata" && "$BRANCH_OVERRIDE" != "stable/ocata" ]]; then
               export DEVSTACK_GATE_TLSPROXY=1
           fi
 
