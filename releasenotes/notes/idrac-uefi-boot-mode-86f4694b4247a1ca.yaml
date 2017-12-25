@@ -1,0 +1,11 @@
+---
+fixes:
+  - |
+    Fixes an issue that caused the integrated Dell Remote Access
+    Controller (iDRAC) ``management`` hardware interface implementation,
+    ``idrac``, to fail to boot nodes in Unified Extensible Firmware Interface
+    (UEFI) boot mode. That interface is supported by the ``idrac`` hardware
+    type. The issue is resolved for Dell EMC PowerEdge 13th and 14th generation
+    servers. It is not resolved for PowerEdge 12th generation and earlier
+    servers. For more information, see `story 1656841
+    <https://storyboard.openstack.org/#!/story/1656841>`_.
