@@ -72,7 +72,7 @@ Steps to start a deployment are pretty similar to those when using Compute:
    name (for example, ``ipmi``). You can also specify all the required
    driver parameters in one command. This will return the node UUID::
 
-    openstack node create --driver ipmi \
+    openstack baremetal node create --driver ipmi \
         --driver-info ipmi_address=ipmi.server.net \
         --driver-info ipmi_username=user \
         --driver-info ipmi_password=pass \
