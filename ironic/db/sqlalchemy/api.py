@@ -75,8 +75,14 @@ def _wrap_session(session):
     return session
 
 
-def _get_node_query_with_tags():
-    return model_query(models.Node).options(joinedload('tags'))
+def _get_node_query_with_all():
+    """Return a query object for the Node model joined with all relevant fields.
+
+    :returns: a query object.
+    """
+    return model_query(models.Node)\
+        .options(joinedload('tags'))\
+        .options(joinedload('traits'))
 
 
 def model_query(model, *args, **kwargs):
@@ -270,7 +276,7 @@ class Connection(api.Connection):
 
     def get_node_list(self, filters=None, limit=None, marker=None,
                       sort_key=None, sort_dir=None):
-        query = _get_node_query_with_tags()
+        query = _get_node_query_with_all()
         query = self._add_nodes_filters(query, filters)
         return _paginate_query(models.Node, limit, marker,
                                sort_key, sort_dir, query)
@@ -278,7 +284,7 @@ class Connection(api.Connection):
     @oslo_db_api.retry_on_deadlock
     def reserve_node(self, tag, node_id):
         with _session_for_write():
-            query = _get_node_query_with_tags()
+            query = _get_node_query_with_all()
             query = add_identity_filter(query, node_id)
             # be optimistic and assume we usually create a reservation
             count = query.filter_by(reservation=None).update(
@@ -353,7 +359,7 @@ class Connection(api.Connection):
             return node
 
     def get_node_by_id(self, node_id):
-        query = _get_node_query_with_tags()
+        query = _get_node_query_with_all()
         query = query.filter_by(id=node_id)
         try:
             return query.one()
@@ -361,7 +367,7 @@ class Connection(api.Connection):
             raise exception.NodeNotFound(node=node_id)
 
     def get_node_by_uuid(self, node_uuid):
-        query = _get_node_query_with_tags()
+        query = _get_node_query_with_all()
         query = query.filter_by(uuid=node_uuid)
         try:
             return query.one()
@@ -369,7 +375,7 @@ class Connection(api.Connection):
             raise exception.NodeNotFound(node=node_uuid)
 
     def get_node_by_name(self, node_name):
-        query = _get_node_query_with_tags()
+        query = _get_node_query_with_all()
         query = query.filter_by(name=node_name)
         try:
             return query.one()
@@ -380,7 +386,7 @@ class Connection(api.Connection):
         if not uuidutils.is_uuid_like(instance):
             raise exception.InvalidUUID(uuid=instance)
 
-        query = _get_node_query_with_tags()
+        query = _get_node_query_with_all()
         query = query.filter_by(instance_uuid=instance)
 
         try:
