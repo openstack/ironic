@@ -217,6 +217,14 @@ class BaseImageService(object):
                 return
 
         image_chunks = self.call(method, image_id)
+        # NOTE(dtantsur): when using Glance V2, image_chunks is a wrapper
+        # around real data, so we have to check the wrapped data for None.
+        # Glance V1 returns HTTP 404 in this case, so no need to fix it.
+        # TODO(dtantsur): remove the hasattr check when we no longer support
+        # Glance V1.
+        if hasattr(image_chunks, 'wrapped') and image_chunks.wrapped is None:
+            raise exception.ImageDownloadFailed(
+                image_href=image_href, reason=_('image contains no data.'))
 
         if data is None:
             return image_chunks

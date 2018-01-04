@@ -92,11 +92,11 @@ class TestGlanceImageService(base.TestCase):
 
     def setUp(self):
         super(TestGlanceImageService, self).setUp()
-        client = stubs.StubGlanceClient()
+        self.client = stubs.StubGlanceClient()
         self.context = context.RequestContext(auth_token=True)
         self.context.user_id = 'fake'
         self.context.project_id = 'fake'
-        self.service = service.GlanceImageService(client, 1, self.context)
+        self.service = service.GlanceImageService(self.client, 2, self.context)
 
         self.config(glance_api_servers=['http://localhost'], group='glance')
         self.config(auth_strategy='keystone', group='glance')
@@ -202,6 +202,17 @@ class TestGlanceImageService(base.TestCase):
         self.config(glance_num_retries=1, group='glance')
         stub_service.download(image_id, writer)
         self.assertTrue(mock_sleep.called)
+
+    def test_download_no_data(self):
+        self.client.fake_wrapped = None
+        image_id = uuidutils.generate_uuid()
+
+        image = self._make_datetime_fixture()
+        with mock.patch.object(self.client, 'get', return_value=image,
+                               autospec=True):
+            self.assertRaisesRegex(exception.ImageDownloadFailed,
+                                   'image contains no data',
+                                   self.service.download, image_id)
 
     @mock.patch('sendfile.sendfile', autospec=True)
     @mock.patch('os.path.getsize', autospec=True)
