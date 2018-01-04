@@ -931,7 +931,7 @@ reason:
 requested_provision_state:
   description: |
     One of the provisioning verbs: manage, provide, inspect, clean, active,
-    rebuild, delete (deleted), abort.
+    rebuild, delete (deleted), abort, adopt.
   in: body
   required: true
   type: string
