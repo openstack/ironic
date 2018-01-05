@@ -392,6 +392,27 @@ class TestNeutronNetworkActions(db_base.DbTestCase):
             self.assertIn("Some errors were encountered when updating",
                           log_mock.warning.call_args_list[1][0][0])
 
+    def test_add_network_no_port(self):
+        # No port registered
+        node = object_utils.create_test_node(self.context,
+                                             uuid=uuidutils.generate_uuid())
+        with task_manager.acquire(self.context, node.uuid) as task:
+            self.assertEqual([], task.ports)
+            self.assertRaisesRegex(exception.NetworkError, 'No available',
+                                   neutron.add_ports_to_network,
+                                   task, self.network_uuid)
+
+    def test_add_network_no_pxe_enabled_ports(self):
+        # Have port but no PXE enabled
+        port = self.ports[0]
+        port.pxe_enabled = False
+        port.save()
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            self.assertFalse(task.ports[0].pxe_enabled)
+            self.assertRaisesRegex(exception.NetworkError, 'No available',
+                                   neutron.add_ports_to_network,
+                                   task, self.network_uuid)
+
     @mock.patch.object(neutron, 'remove_neutron_ports', autospec=True)
     def test_remove_ports_from_network(self, remove_mock):
         with task_manager.acquire(self.context, self.node.uuid) as task:
