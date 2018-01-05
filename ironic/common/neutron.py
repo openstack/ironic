@@ -238,6 +238,11 @@ def add_ports_to_network(task, network_uuid, security_groups=None):
     failures = []
     portmap = get_node_portmap(task)
     pxe_enabled_ports = [p for p in task.ports if p.pxe_enabled]
+
+    if not pxe_enabled_ports:
+        raise exception.NetworkError(_(
+            "No available PXE-enabled port on node %s.") % node.uuid)
+
     for ironic_port in pxe_enabled_ports:
         # Skip ports that are missing required information for deploy.
         if not validate_port_info(node, ironic_port):
@@ -278,9 +283,9 @@ def add_ports_to_network(task, network_uuid, security_groups=None):
                         "the following ports: %(ports)s.",
                         {'node': node.uuid, 'ports': failures})
     else:
-        LOG.info('Successfully created ports for node %(node_uuid)s in '
-                 'network %(net)s.',
-                 {'node_uuid': node.uuid, 'net': network_uuid})
+        LOG.info('For node %(node_uuid)s in network %(net)s, successfully ',
+                 'created ports (ironic ID: neutron ID): %(ports)s.',
+                 {'node_uuid': node.uuid, 'net': network_uuid, 'ports': ports})
 
     return ports
 
