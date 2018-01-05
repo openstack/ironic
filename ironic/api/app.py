@@ -91,7 +91,7 @@ def setup_app(pecan_config=None, extra_hooks=None):
 
     if CONF.auth_strategy == "keystone":
         app = auth_token.AuthTokenMiddleware(
-            app, dict(cfg.CONF),
+            app, {"oslo_config_config": cfg.CONF},
             public_api_routes=pecan_config.app.acl_public_routes)
 
     if CONF.profiler.enabled:
