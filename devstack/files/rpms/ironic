@@ -7,6 +7,7 @@ libguestfs
 libguestfs-tools
 libvirt
 libvirt-python
+qemu-system-x86
 net-tools
 openssh-clients
 openvswitch
