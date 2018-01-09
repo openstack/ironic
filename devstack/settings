@@ -10,7 +10,3 @@ local_mtu=$(ip link show | sed -ne 's/.*mtu \([0-9]\+\).*/\1/p' | sort -n | head
 # 50 bytes is overhead for vxlan (which is greater than GRE
 # allowing us to use either overlay option with this MTU.
 PUBLIC_BRIDGE_MTU=$((local_mtu - 50))
-
-# NOTE(vdrok): we don't use the multicell setup because it won't let the
-# reschedules happen. We hit them quite often in multinode job.
-CELLSV2_SETUP="singleconductor"
