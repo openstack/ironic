@@ -21,6 +21,7 @@ from oslo_versionedobjects import base as object_base
 from ironic.common import exception
 from ironic.common.i18n import _
 from ironic.db import api as db_api
+from ironic import objects
 from ironic.objects import base
 from ironic.objects import fields as object_fields
 from ironic.objects import notification
@@ -57,7 +58,8 @@ class Node(base.IronicObject, object_base.VersionedObjectDictCompat):
     # Version 1.20: Type of network_interface changed to just nullable string
     # Version 1.21: Add storage_interface field
     # Version 1.22: Add rescue_interface field
-    VERSION = '1.22'
+    # Version 1.23: Add traits field
+    VERSION = '1.23'
 
     dbapi = db_api.get_instance()
 
@@ -128,6 +130,8 @@ class Node(base.IronicObject, object_base.VersionedObjectDictCompat):
         'rescue_interface': object_fields.StringField(nullable=True),
         'storage_interface': object_fields.StringField(nullable=True),
         'vendor_interface': object_fields.StringField(nullable=True),
+
+        'traits': object_fields.ObjectField('TraitList', nullable=True),
     }
 
     def _validate_property_values(self, properties):
@@ -156,6 +160,14 @@ class Node(base.IronicObject, object_base.VersionedObjectDictCompat):
                      'but provided values are: %(msgs)s') %
                    {'node': self.uuid, 'msgs': ', '.join(invalid_msgs_list)})
             raise exception.InvalidParameterValue(msg)
+
+    def _set_from_db_object(self, context, db_object, fields=None):
+        fields = set(fields or self.fields) - {'traits'}
+        super(Node, self)._set_from_db_object(context, db_object, fields)
+        self.traits = object_base.obj_make_list(
+            context, objects.TraitList(context),
+            objects.Trait, db_object['traits'])
+        self.traits.obj_reset_changes()
 
     # NOTE(xek): We don't want to enable RPC on this call just yet. Remotable
     # methods can be used in the future to replace current explicit RPC calls.
@@ -329,6 +341,7 @@ class Node(base.IronicObject, object_base.VersionedObjectDictCompat):
         """
         values = self.do_version_changes_for_db()
         self._validate_property_values(values.get('properties'))
+        self._validate_and_remove_traits(values)
         db_node = self.dbapi.create_node(values)
         self._from_db_object(self._context, self, db_node)
 
@@ -375,8 +388,29 @@ class Node(base.IronicObject, object_base.VersionedObjectDictCompat):
             # Clean driver_internal_info when changes driver
             self.driver_internal_info = {}
             updates = self.do_version_changes_for_db()
+        self._validate_and_remove_traits(updates)
         db_node = self.dbapi.update_node(self.uuid, updates)
         self._from_db_object(self._context, self, db_node)
+
+    @staticmethod
+    def _validate_and_remove_traits(fields):
+        """Validate traits in fields for create or update, remove if present.
+
+        :param fields: a dict of Node fields for create or update.
+        :raises: BadRequest if fields contains a traits that are not None.
+        """
+        if 'traits' in fields:
+            # NOTE(mgoddard): Traits should be updated via the the node
+            # object's traits field, which is itself an object. We shouldn't
+            # get here with changes to traits, as this should be handled by the
+            # API. When services are pinned to Pike, we can get here with
+            # traits set to None in updates, due to changes made to the object
+            # in _convert_to_version.
+            if fields['traits']:
+                # NOTE(mgoddard): We shouldn't get here as this should be
+                # handled by the API.
+                raise exception.BadRequest()
+            fields.pop('traits')
 
     # NOTE(xek): We don't want to enable RPC on this call just yet. Remotable
     # methods can be used in the future to replace current explicit RPC calls.
@@ -429,6 +463,9 @@ class Node(base.IronicObject, object_base.VersionedObjectDictCompat):
         Version 1.22: rescue_interface field was added. Its default value is
             None. For versions prior to this, it should be set to None (or
             removed).
+        Version 1.23: traits field was added. Its default value is
+            None. For versions prior to this, it should be set to None (or
+            removed).
 
         :param target_version: the desired version of the object
         :param remove_unavailable_fields: True to remove fields that are
@@ -452,6 +489,17 @@ class Node(base.IronicObject, object_base.VersionedObjectDictCompat):
             elif self.rescue_interface is not None:
                 # DB: set unavailable field to the default of None.
                 self.rescue_interface = None
+
+        traits_is_set = self.obj_attr_is_set('traits')
+        if target_version >= (1, 23):
+            # Target version supports traits.
+            if not traits_is_set:
+                self.traits = None
+        elif traits_is_set:
+            if remove_unavailable_fields:
+                delattr(self, 'traits')
+            elif self.traits is not None:
+                self.traits = None
 
 
 @base.IronicObjectRegistry.register
@@ -503,6 +551,8 @@ class NodePayload(notification.NotificationPayloadBase):
     # is able to be leveraged, we need to add the rescue_interface
     # field to payload and increment the object versions for all objects
     # that inherit the NodePayload object.
+
+    # TODO(mgoddard): Add a traits field to the NodePayload object.
 
     # Version 1.0: Initial version, based off of Node version 1.18.
     # Version 1.1: Type of network_interface changed to just nullable string

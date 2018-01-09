@@ -82,6 +82,10 @@ class ObjectField(object_fields.ObjectField):
     pass
 
 
+class ListOfObjectsField(object_fields.ListOfObjectsField):
+    pass
+
+
 class FlexibleDict(object_fields.FieldType):
     @staticmethod
     def coerce(obj, attr, value):

@@ -341,6 +341,9 @@ class Connection(api.Connection):
 
         node = models.Node()
         node.update(values)
+        # Set tags & traits to [] for new created node
+        node['tags'] = []
+        node['traits'] = []
         with _session_for_write() as session:
             try:
                 session.add(node)
@@ -353,9 +356,6 @@ class Connection(api.Connection):
                         instance_uuid=values['instance_uuid'],
                         node=values['uuid'])
                 raise exception.NodeAlreadyExists(uuid=values['uuid'])
-            # Set tags & traits to [] for new created node
-            node['tags'] = []
-            node['traits'] = []
             return node
 
     def get_node_by_id(self, node_id):
@@ -463,7 +463,7 @@ class Connection(api.Connection):
     @oslo_db_api.retry_on_deadlock
     def _do_update_node(self, node_id, values):
         with _session_for_write():
-            query = model_query(models.Node)
+            query = _get_node_query_with_all()
             query = add_identity_filter(query, node_id)
             try:
                 ref = query.with_lockmode('update').one()
@@ -978,7 +978,8 @@ class Connection(api.Connection):
         return model_query(q.exists()).scalar()
 
     def get_node_by_port_addresses(self, addresses):
-        q = model_query(models.Node).distinct().join(models.Port)
+        q = _get_node_query_with_all()
+        q = q.distinct().join(models.Port)
         q = q.filter(models.Port.address.in_(addresses))
 
         try:

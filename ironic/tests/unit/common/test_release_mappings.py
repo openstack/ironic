@@ -97,6 +97,8 @@ class ReleaseMappingsTestCase(base.TestCase):
         # releases or are sent through RPC should have their counterpart
         # versioned objects.
         model_names -= exceptions
+        # NodeTrait maps to two objects
+        model_names |= set(['Trait', 'TraitList'])
         object_names = set(
             release_mappings.RELEASE_MAPPING['master']['objects'])
         self.assertEqual(model_names, object_names)

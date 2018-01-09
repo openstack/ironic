@@ -669,6 +669,7 @@ class DbNodeTestCase(base.DbTestCase):
 
         res = self.dbapi.get_node_by_port_addresses(addresses)
         self.assertEqual(node.uuid, res.uuid)
+        self.assertEqual([], res.traits)
 
     def test_get_node_by_port_addresses_not_found(self):
         node = utils.create_test_node(

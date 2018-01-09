@@ -124,11 +124,13 @@ RELEASE_MAPPING = {
         'api': '1.36',
         'rpc': '1.43',
         'objects': {
-            'Node': ['1.22'],
+            'Node': ['1.23'],
             'Conductor': ['1.2'],
             'Chassis': ['1.3'],
             'Port': ['1.7'],
             'Portgroup': ['1.3'],
+            'Trait': ['1.0'],
+            'TraitList': ['1.0'],
             'VolumeConnector': ['1.0'],
             'VolumeTarget': ['1.0'],
         }

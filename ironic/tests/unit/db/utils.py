@@ -25,6 +25,7 @@ from ironic.objects import conductor
 from ironic.objects import node
 from ironic.objects import port
 from ironic.objects import portgroup
+from ironic.objects import trait
 from ironic.objects import volume_connector
 from ironic.objects import volume_target
 
@@ -508,9 +509,7 @@ def get_test_xclarity_driver_info():
 
 def get_test_node_trait(**kw):
     return {
-        # TODO(mgoddard): Replace None below with the NodeTrait RPC object
-        # VERSION when the RPC object is added.
-        'version': kw.get('version', None),
+        'version': kw.get('version', trait.Trait.VERSION),
         "trait": kw.get("trait", "trait1"),
         "node_id": kw.get("node_id", "123"),
         'created_at': kw.get('created_at'),

@@ -58,7 +58,17 @@ def get_test_node(ctxt, **kw):
         del db_node['id']
     node = objects.Node(ctxt)
     for key in db_node:
-        setattr(node, key, db_node[key])
+        if key == 'traits':
+            # convert list of strings to object
+            raw_traits = db_node['traits']
+            trait_list = []
+            for raw_trait in raw_traits:
+                trait = objects.Trait(ctxt, trait=raw_trait)
+                trait_list.append(trait)
+            node.traits = objects.TraitList(ctxt, objects=trait_list)
+            node.traits.obj_reset_changes()
+        else:
+            setattr(node, key, db_node[key])
     return node
 
 

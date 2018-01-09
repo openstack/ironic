@@ -220,7 +220,7 @@ class IronicObject(object_base.VersionedObject):
         """
         fields = fields or self.fields
         for field in fields:
-            self[field] = db_object[field]
+            setattr(self, field, db_object[field])
 
     @staticmethod
     def _from_db_object(context, obj, db_object, fields=None):
