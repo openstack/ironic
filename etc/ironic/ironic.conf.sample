@@ -227,6 +227,32 @@
 # "ironic.hardware.interfaces.raid" entrypoint. (string value)
 #default_raid_interface = <None>
 
+# Specify the list of rescue interfaces to load during service
+# initialization. Missing rescue interfaces, or rescue
+# interfaces which fail to initialize, will prevent the
+# ironic-conductor service from starting. At least one rescue
+# interface that is supported by each enabled hardware type
+# must be enabled here, or the ironic-conductor service will
+# not start. Must not be an empty list. The default value is a
+# recommended set of production-oriented rescue interfaces. A
+# complete list of rescue interfaces present on your system
+# may be found by enumerating the
+# "ironic.hardware.interfaces.rescue" entrypoint. When setting
+# this value, please make sure that every enabled hardware
+# type will have the same set of enabled rescue interfaces on
+# every ironic-conductor service. This option is part of
+# rescue feature work, which is not currently exposed to
+# users. (list value)
+#enabled_rescue_interfaces = no-rescue
+
+# Default rescue interface to be used for nodes that do not
+# have rescue_interface field set. A complete list of rescue
+# interfaces present on your system may be found by
+# enumerating the "ironic.hardware.interfaces.rescue"
+# entrypoint. This option is part of rescue feature work,
+# which is not currently exposed to users. (string value)
+#default_rescue_interface = <None>
+
 # Specify the list of storage interfaces to load during
 # service initialization. Missing storage interfaces, or
 # storage interfaces which fail to initialize, will prevent

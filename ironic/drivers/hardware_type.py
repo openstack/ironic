@@ -84,6 +84,11 @@ class AbstractHardwareType(object):
         return [noop.NoRAID]
 
     @property
+    def supported_rescue_interfaces(self):
+        """List of supported rescue interfaces."""
+        return [noop.NoRescue]
+
+    @property
     def supported_storage_interfaces(self):
         """List of supported storage interfaces."""
         return [noop_storage.NoopStorage]

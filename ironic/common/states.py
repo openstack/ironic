@@ -185,6 +185,28 @@ potentially due to invalid or incompatible information being defined for the
 node.
 """
 
+RESCUE = 'rescue'
+""" Node is in rescue mode. """
+
+RESCUEFAIL = 'rescue failed'
+""" Node rescue failed. """
+
+RESCUEWAIT = 'rescue wait'
+""" Node is waiting on an external callback.
+
+This will be the node `provision_state` while the node is waiting for
+the driver to finish rescuing the node.
+"""
+
+RESCUING = 'rescuing'
+""" Node is in process of being rescued. """
+
+UNRESCUEFAIL = 'unrescue failed'
+""" Node unrescue failed. """
+
+UNRESCUING = 'unrescuing'
+""" Node is being restored from rescue mode (to active state). """
+
 UPDATE_ALLOWED_STATES = (DEPLOYFAIL, INSPECTING, INSPECTFAIL, CLEANFAIL, ERROR,
                          VERIFYING, ADOPTFAIL)
 """Transitional states in which we allow updating a node."""

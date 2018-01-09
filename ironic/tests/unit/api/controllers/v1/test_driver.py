@@ -208,7 +208,12 @@ class TestListDrivers(base.BaseApiTest):
 
         if use_dynamic:
             for iface in driver_base.ALL_INTERFACES:
-                if storage_if or iface != 'storage':
+                # TODO(stendulker): Remove this check in 'rescue' API
+                # patch.
+                if iface == 'rescue':
+                    self.assertNotIn('default_rescue_interface', data)
+                    self.assertNotIn('enabled_rescue_interfaces', data)
+                elif storage_if or iface != 'storage':
                     self.assertIn('default_%s_interface' % iface, data)
                     self.assertIn('enabled_%s_interfaces' % iface, data)
             self.assertIsNotNone(data['default_deploy_interface'])

@@ -260,3 +260,73 @@ class TestNodeObject(db_base.DbTestCase, obj_utils.SchemasTestMixIn):
 
     def test_payload_schemas(self):
         self._check_payload_schemas(objects.node, objects.Node.fields)
+
+
+class TestConvertToVersion(db_base.DbTestCase):
+
+    def setUp(self):
+        super(TestConvertToVersion, self).setUp()
+        self.ctxt = context.get_admin_context()
+        self.fake_node = db_utils.get_test_node(driver='fake-hardware')
+
+    def test_rescue_supported_missing(self):
+        # rescue_interface not set, should be set to default.
+        node = objects.Node(self.context, **self.fake_node)
+        delattr(node, 'rescue_interface')
+        node.obj_reset_changes()
+
+        node._convert_to_version("1.22")
+
+        self.assertIsNone(node.rescue_interface)
+        self.assertEqual({'rescue_interface': None},
+                         node.obj_get_changes())
+
+    def test_rescue_supported_set(self):
+        # rescue_interface set, no change required.
+        node = objects.Node(self.context, **self.fake_node)
+
+        node.rescue_interface = 'fake'
+        node.obj_reset_changes()
+        node._convert_to_version("1.22")
+        self.assertEqual('fake', node.rescue_interface)
+        self.assertEqual({}, node.obj_get_changes())
+
+    def test_rescue_unsupported_missing(self):
+        # rescue_interface not set, no change required.
+        node = objects.Node(self.context, **self.fake_node)
+
+        delattr(node, 'rescue_interface')
+        node.obj_reset_changes()
+        node._convert_to_version("1.21")
+        self.assertNotIn('rescue_interface', node)
+        self.assertEqual({}, node.obj_get_changes())
+
+    def test_rescue_unsupported_set_remove(self):
+        # rescue_interface set, should be removed.
+        node = objects.Node(self.context, **self.fake_node)
+
+        node.rescue_interface = 'fake'
+        node.obj_reset_changes()
+        node._convert_to_version("1.21")
+        self.assertNotIn('rescue_interface', node)
+        self.assertEqual({}, node.obj_get_changes())
+
+    def test_rescue_unsupported_set_no_remove_non_default(self):
+        # rescue_interface set, should be set to default.
+        node = objects.Node(self.context, **self.fake_node)
+
+        node.rescue_interface = 'fake'
+        node.obj_reset_changes()
+        node._convert_to_version("1.21", False)
+        self.assertIsNone(node.rescue_interface)
+        self.assertEqual({'rescue_interface': None}, node.obj_get_changes())
+
+    def test_rescue_unsupported_set_no_remove_default(self):
+        # rescue_interface set, no change required.
+        node = objects.Node(self.context, **self.fake_node)
+
+        node.rescue_interface = None
+        node.obj_reset_changes()
+        node._convert_to_version("1.21", False)
+        self.assertIsNone(node.rescue_interface)
+        self.assertEqual({}, node.obj_get_changes())

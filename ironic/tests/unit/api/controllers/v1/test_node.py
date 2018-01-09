@@ -2174,17 +2174,36 @@ class TestPost(test_api_base.BaseApiTest):
         self.assertEqual('neutron', result['network_interface'])
 
     def test_create_node_specify_interfaces(self):
-        headers = {api_base.Version.string: '1.31'}
-        for field in api_utils.V31_FIELDS:
-            cfg.CONF.set_override('enabled_%ss' % field, ['fake'])
-        for field in api_utils.V31_FIELDS:
+        headers = {api_base.Version.string: '1.33'}
+        all_interface_fields = api_utils.V31_FIELDS + ['network_interface',
+                                                       'rescue_interface',
+                                                       'storage_interface']
+        for field in all_interface_fields:
+            if field == 'network_interface':
+                cfg.CONF.set_override('enabled_%ss' % field, ['flat'])
+            elif field == 'storage_interface':
+                cfg.CONF.set_override('enabled_%ss' % field, ['noop'])
+            else:
+                cfg.CONF.set_override('enabled_%ss' % field, ['fake'])
+
+        for field in all_interface_fields:
+            expected = 'fake'
+            if field == 'network_interface':
+                expected = 'flat'
+            elif field == 'storage_interface':
+                expected = 'noop'
+            elif field == 'rescue_interface':
+                # TODO(stendulker): Enable testing of rescue interface
+                # in its API patch.
+                continue
+
             node = {
                 'uuid': uuidutils.generate_uuid(),
-                field: 'fake',
+                field: expected,
                 'driver': 'fake-hardware'
             }
             result = self._test_create_node(headers=headers, **node)
-            self.assertEqual('fake', result[field])
+            self.assertEqual(expected, result[field])
 
     def test_create_node_specify_interfaces_bad_version(self):
         headers = {api_base.Version.string: '1.30'}
