@@ -1,8 +1,8 @@
 ---
 other:
-  - The agent heartbeat API (POST /v1/heartbeat/<node>) can now receive a new
-    ``agent_version`` parameter. If received this will be stored in the node's
-    driver_internal_info['agent_version'] field. This information will be used
-    by the Bare Metal service to gracefully degrade support for agent features
-    that are requested by the Bare Metal service, ensuring that we don't
-    request a feature that an older ramdisk doesn't support.
+  - The agent heartbeat API (POST ``/v1/heartbeat/<node>``) can now receive
+    a new ``agent_version`` parameter. If received, this will be stored in the
+    node's ``driver_internal_info['agent_version']`` field. This information
+    will be used by the Bare Metal service to gracefully degrade support for
+    agent features that are requested by the Bare Metal service, ensuring that
+    we don't request a feature that an older ramdisk doesn't support.

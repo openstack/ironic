@@ -1,13 +1,17 @@
 ---
 features:
   - |
-    Adds new capabilities (``server_model``, ``rom_firmware_version``, ``pci_gpu_devices``,
-    ``trusted_boot`` and ``irmc_firmware_version``) to the iRMC out-of-band hardware inspection
-    for FUJITSU PRIMERGY bare metal nodes with firmware iRMC S4 and beyond.
-    Before inspecting, if a server is powered off, it will be turned on automatically.
-    After inspection, power status will be restored to the previous state.
+    Adds new capabilities (``server_model``, ``rom_firmware_version``,
+    ``pci_gpu_devices``, ``trusted_boot`` and ``irmc_firmware_version``) to
+    the iRMC out-of-band hardware inspection for FUJITSU PRIMERGY bare metal
+    nodes with firmware iRMC S4 and newer.
+other:
+  - |
+    During the out-of-band inspection for nodes using the ``irmc`` hardware
+    type, nodes will be powered on. The original power state will be restored
+    after inspection is finished.
 upgrade:
   - |
-    Update of python-scciclient to version 0.6.0 is required by the iRMC driver to support
-    new out-of-band inspection capabilities. If the version is not updated, the new
-    capabilities will not be updated.
+    *python-scciclient* of version 0.6.0 or newer is required by the ``irmc``
+    hardware type to support new out-of-band inspection capabilities. If an
+    older version is used, the new capabilities will not be discovered.
