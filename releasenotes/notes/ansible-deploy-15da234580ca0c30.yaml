@@ -14,16 +14,14 @@ features:
     ``ironic-staging-drivers`` project to this ``ansible`` interface,
     operators have to consider the following differences:
 
-    - callback-less operation is not supported
-    - driver_info fields 'ansible_deploy_username' and
-      'ansible_deploy_key_file' are deprecated and will be removed
-      in the Rocky release, use 'ansible_username' and 'ansible_key_file'
-      respectively
-    - base path for playbooks can be defined in driver_info as well
-      (as 'ansible_playbooks_path' field, defaults to the value of
-      ``[ansible]/playbooks_path`` from ironic configuration file
-    - default playbooks for actions and cleaning steps file can be set in
+    - Callback-less operation is not supported.
+    - Node's ``driver_info`` fields ``ansible_deploy_username`` and
+      ``ansible_deploy_key_file`` are deprecated and will be removed
+      in the Rocky release. Instead, please use ``ansible_username`` and
+      ``ansible_key_file`` respectively.
+    - Base path for playbooks can be defined in the node's
+      ``driver_info['ansible_playbooks_path']`` field. The default is the value
+      of the ``[ansible]/playbooks_path`` option from the ironic configuration
+      file.
+    - Default playbooks for actions and cleaning steps file can be set in
       ironic configuration file as various ``[ansible]/default_*`` options.
-
-    Please read the ``ansible`` deploy interface documentation for more
-    information.

@@ -1,22 +1,6 @@
 ---
 features:
   - |
-    Adds the ability to set keystoneauth settings in the
-    ``[glance]`` configuration section for service automatic
-    discovery.
-  - |
-    Adds the ability to set keystoneauth settings in the
-    ``[cinder]`` configuration section for service automatic
-    discovery.
-  - |
-    Adds the ability to set keystoneauth settings in the
-    ``[inspector]`` configuration section for service automatic
-    discovery.
-  - |
-    Adds the ability to set keystoneauth settings in the
-    ``[swift]`` configuration section for service automatic
-    discovery.
-  - |
-    Adds the ability to set keystoneauth settings in the
-    ``[neutron]`` configuration section for service automatic
-    discovery.
+    Adds the ability to set keystoneauth settings for automatic service
+    discovery in the following configuration sections: ``[glance]``,
+    ``[cinder]``, ``[inspector]``, ``[swift]`` and ``[neutron]``.

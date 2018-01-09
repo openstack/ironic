@@ -34,14 +34,14 @@ other:
 
     The functions/methods in question are:
 
-      - ``ironic.common.neutron.get_client``
-      - ``ironic.common.neutron.unbind_neutron_port``
-      - ``ironic.common.neutron.update_port_address``
-      - ``ironic.common.neutron.validate_network``
-      - ``ironic.common.neutron.NeutronNetworkInterfaceMixin.get_cleaning_network``
-      - ``ironic.common.neutron.NeutronNetworkInterfaceMixin.get_provisioning_network``
-      - ``ironic.dhcp.neutron.NeutronDHCPApi.update_port_dhcp_opts``
-      - ``ironic.dhcp.none.NeutronDHCPApi.update_port_dhcp_opts``
+    - ``ironic.common.neutron.get_client``
+    - ``ironic.common.neutron.unbind_neutron_port``
+    - ``ironic.common.neutron.update_port_address``
+    - ``ironic.common.neutron.validate_network``
+    - ``ironic.common.neutron.NeutronNetworkInterfaceMixin.get_cleaning_network``
+    - ``ironic.common.neutron.NeutronNetworkInterfaceMixin.get_provisioning_network``
+    - ``ironic.dhcp.neutron.NeutronDHCPApi.update_port_dhcp_opts``
+    - ``ironic.dhcp.none.NeutronDHCPApi.update_port_dhcp_opts``
 
     If you are using any of the above functions/methods in your out-of-tree
     ironic driver or driver interface code, you should update the code
