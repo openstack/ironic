@@ -98,6 +98,20 @@
 # DELETE  /nodes/{node_ident}/vifs/{node_vif_ident}
 #"baremetal:node:vif:detach": "rule:is_admin"
 
+# List node traits
+# GET  /nodes/{node_ident}/traits
+#"baremetal:node:traits:list": "rule:is_admin or rule:is_observer"
+
+# Add a trait to, or replace all traits of, a node
+# PUT  /nodes/{node_ident}/traits
+# PUT  /nodes/{node_ident}/traits/{trait}
+#"baremetal:node:traits:set": "rule:is_admin"
+
+# Remove one or all traits from a node
+# DELETE  /nodes/{node_ident}/traits
+# DELETE  /nodes/{node_ident}/traits/{trait}
+#"baremetal:node:traits:delete": "rule:is_admin"
+
 # Retrieve Port records
 # GET  /ports
 # GET  /ports/detail

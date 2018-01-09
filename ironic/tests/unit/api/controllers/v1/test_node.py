@@ -118,6 +118,7 @@ class TestListNodes(test_api_base.BaseApiTest):
         for field in api_utils.V31_FIELDS:
             self.assertNotIn(field, data['nodes'][0])
         self.assertNotIn('storage_interface', data['nodes'][0])
+        self.assertNotIn('traits', data['nodes'][0])
         # never expose the chassis_id
         self.assertNotIn('chassis_id', data['nodes'][0])
 
@@ -152,6 +153,7 @@ class TestListNodes(test_api_base.BaseApiTest):
         for field in api_utils.V31_FIELDS:
             self.assertIn(field, data)
         self.assertIn('storage_interface', data)
+        self.assertIn('traits', data)
         # never expose the chassis_id
         self.assertNotIn('chassis_id', data)
 
@@ -178,6 +180,13 @@ class TestListNodes(test_api_base.BaseApiTest):
             '/nodes/%s' % node.uuid,
             headers={api_base.Version.string: '1.32'})
         self.assertNotIn('storage_interface', data)
+
+    def test_node_traits_hidden_in_lower_version(self):
+        node = obj_utils.create_test_node(self.context)
+        data = self.get_json(
+            '/nodes/%s' % node.uuid,
+            headers={api_base.Version.string: '1.36'})
+        self.assertNotIn('traits', data)
 
     def test_get_one_custom_fields(self):
         node = obj_utils.create_test_node(self.context,
@@ -297,6 +306,25 @@ class TestListNodes(test_api_base.BaseApiTest):
             headers={api_base.Version.string: str(api_v1.max_version())})
         self.assertIn('storage_interface', response)
 
+    def test_get_traits_fields_invalid_api_version(self):
+        node = obj_utils.create_test_node(self.context,
+                                          chassis_id=self.chassis.id)
+        fields = 'traits'
+        response = self.get_json(
+            '/nodes/%s?fields=%s' % (node.uuid, fields),
+            headers={api_base.Version.string: '1.36'},
+            expect_errors=True)
+        self.assertEqual(http_client.NOT_ACCEPTABLE, response.status_int)
+
+    def test_get_traits_fields(self):
+        node = obj_utils.create_test_node(self.context,
+                                          chassis_id=self.chassis.id)
+        fields = 'traits'
+        response = self.get_json(
+            '/nodes/%s?fields=%s' % (node.uuid, fields),
+            headers={api_base.Version.string: str(api_v1.max_version())})
+        self.assertIn('traits', response)
+
     def test_detail(self):
         node = obj_utils.create_test_node(self.context,
                                           chassis_id=self.chassis.id)
@@ -325,6 +353,7 @@ class TestListNodes(test_api_base.BaseApiTest):
         for field in api_utils.V31_FIELDS:
             self.assertIn(field, data['nodes'][0])
         self.assertIn('storage_interface', data['nodes'][0])
+        self.assertIn('traits', data['nodes'][0])
         # never expose the chassis_id
         self.assertNotIn('chassis_id', data['nodes'][0])
 
@@ -455,6 +484,18 @@ class TestListNodes(test_api_base.BaseApiTest):
         self.assertEqual(node.storage_interface,
                          new_data['nodes'][0]["storage_interface"])
 
+    def test_hide_fields_in_newer_versions_traits(self):
+        node = obj_utils.create_test_node(self.context)
+        objects.TraitList.create(self.context, node.id, ['CUSTOM_1'])
+        node.refresh()
+
+        data = self.get_json(
+            '/nodes/detail', headers={api_base.Version.string: '1.36'})
+        self.assertNotIn('traits', data['nodes'][0])
+        new_data = self.get_json(
+            '/nodes/detail', headers={api_base.Version.string: '1.37'})
+        self.assertEqual(['CUSTOM_1'], new_data['nodes'][0]["traits"])
+
     def test_many(self):
         nodes = []
         for id in range(5):
@@ -563,9 +604,11 @@ class TestListNodes(test_api_base.BaseApiTest):
     def test_sort_key_invalid(self):
         invalid_keys_list = ['foo', 'properties', 'driver_info', 'extra',
                              'instance_info', 'driver_internal_info',
-                             'clean_step']
+                             'clean_step', 'traits']
+        headers = {api_base.Version.string: str(api_v1.max_version())}
         for invalid_key in invalid_keys_list:
             response = self.get_json('/nodes?sort_key=%s' % invalid_key,
+                                     headers=headers,
                                      expect_errors=True)
             self.assertEqual(http_client.BAD_REQUEST, response.status_int)
             self.assertEqual('application/json', response.content_type)
@@ -1159,6 +1202,25 @@ class TestListNodes(test_api_base.BaseApiTest):
 
     def test_get_nodes_by_resource_class_invalid_api_version_detail(self):
         self._test_get_nodes_by_resource_class_invalid_api_version(detail=True)
+
+    def _test_get_nodes_by_traits_not_allowed(self, detail=False):
+        if detail:
+            base_url = '/nodes/detail?traits=%s'
+        else:
+            base_url = '/nodes?traits=%s'
+
+        response = self.get_json(
+            base_url % 'CUSTOM_TRAIT_1',
+            headers={api_base.Version.string: str(api_v1.max_version())},
+            expect_errors=True)
+        self.assertEqual(http_client.BAD_REQUEST, response.status_code)
+        self.assertTrue(response.json['error_message'])
+
+    def test_get_nodes_by_traits_not_allowed(self):
+        self._test_get_nodes_by_traits_not_allowed(detail=False)
+
+    def test_get_nodes_by_traits_not_allowed_detail(self):
+        self._test_get_nodes_by_traits_not_allowed(detail=True)
 
     def test_get_console_information(self):
         node = obj_utils.create_test_node(self.context)
@@ -2100,6 +2162,20 @@ class TestPatch(test_api_base.BaseApiTest):
         self.assertEqual('application/json', response.content_type)
         self.assertEqual(http_client.NOT_ACCEPTABLE, response.status_code)
 
+    def test_update_traits(self):
+        node = obj_utils.create_test_node(self.context,
+                                          uuid=uuidutils.generate_uuid())
+        self.mock_update_node.return_value = node
+        headers = {api_base.Version.string: str(api_v1.max_version())}
+        response = self.patch_json('/nodes/%s' % node.uuid,
+                                   [{'path': '/traits',
+                                     'value': ['CUSTOM_1'],
+                                     'op': 'add'}],
+                                   headers=headers,
+                                   expect_errors=True)
+        self.assertEqual('application/json', response.content_type)
+        self.assertEqual(http_client.BAD_REQUEST, response.status_code)
+
 
 def _create_node_locally(node):
     driver_factory.check_and_update_node_interfaces(node)
@@ -2204,6 +2280,14 @@ class TestPost(test_api_base.BaseApiTest):
             }
             result = self._test_create_node(headers=headers, **node)
             self.assertEqual(expected, result[field])
+
+    def test_create_node_specify_traits(self):
+        headers = {api_base.Version.string: str(api_v1.max_version())}
+        ndict = test_api_utils.post_get_test_node()
+        ndict['traits'] = ['CUSTOM_4']
+        response = self.post_json('/nodes', ndict, headers=headers,
+                                  expect_errors=True)
+        self.assertEqual(http_client.BAD_REQUEST, response.status_int)
 
     def test_create_node_specify_interfaces_bad_version(self):
         headers = {api_base.Version.string: '1.30'}
@@ -4081,3 +4165,249 @@ class TestAttachDetachVif(test_api_base.BaseApiTest):
 
         self.assertEqual(http_client.CONFLICT, ret.status_code)
         self.assertTrue(ret.json['error_message'])
+
+
+class TestTraits(test_api_base.BaseApiTest):
+
+    def setUp(self):
+        super(TestTraits, self).setUp()
+        self.version = "1.37"
+        self.node = obj_utils.create_test_node(
+            self.context,
+            provision_state=states.AVAILABLE, name='node-39')
+        self.traits = ['CUSTOM_1', 'CUSTOM_2']
+        self._add_traits(self.node, self.traits)
+        p = mock.patch.object(rpcapi.ConductorAPI, 'get_topic_for')
+        self.mock_gtf = p.start()
+        self.mock_gtf.return_value = 'test-topic'
+        self.addCleanup(p.stop)
+
+    def _add_traits(self, node, traits):
+        if traits:
+            node.traits = objects.TraitList.create(
+                self.context, node.id, traits)
+
+    def test_get_all_traits(self):
+        ret = self.get_json('/nodes/%s/traits' % self.node.uuid,
+                            headers={api_base.Version.string: self.version})
+        self.assertEqual({'traits': ['CUSTOM_1', 'CUSTOM_2']}, ret)
+
+    def test_get_all_traits_fails_with_node_not_found(self):
+        ret = self.get_json('/nodes/badname/traits',
+                            headers={api_base.Version.string: self.version},
+                            expect_errors=True)
+        self.assertEqual(http_client.NOT_FOUND, ret.status_code)
+
+    def test_get_all_traits_fails_with_bad_version(self):
+        ret = self.get_json('/nodes/%s/traits' % self.node.uuid,
+                            headers={api_base.Version.string: "1.36"},
+                            expect_errors=True)
+        self.assertEqual(http_client.NOT_ACCEPTABLE, ret.status_code)
+
+    @mock.patch.object(rpcapi.ConductorAPI, 'add_node_traits')
+    def test_set_all_traits(self, mock_add):
+        request_body = {'traits': ['CUSTOM_3']}
+        ret = self.put_json('/nodes/%s/traits' % self.node.name,
+                            request_body,
+                            headers={api_base.Version.string: self.version})
+        self.assertEqual(http_client.NO_CONTENT, ret.status_code)
+        mock_add.assert_called_once_with(mock.ANY, self.node.id,
+                                         ['CUSTOM_3'], replace=True,
+                                         topic='test-topic')
+
+    @mock.patch.object(rpcapi.ConductorAPI, 'add_node_traits')
+    def test_set_all_traits_empty(self, mock_add):
+        request_body = {'traits': []}
+        ret = self.put_json('/nodes/%s/traits' % self.node.name,
+                            request_body,
+                            headers={api_base.Version.string: self.version})
+        self.assertEqual(http_client.NO_CONTENT, ret.status_code)
+        mock_add.assert_called_once_with(mock.ANY, self.node.id,
+                                         [], replace=True,
+                                         topic='test-topic')
+
+    @mock.patch.object(rpcapi.ConductorAPI, 'add_node_traits')
+    def test_set_all_traits_rejects_bad_trait(self, mock_add):
+        request_body = {'traits': ['CUSTOM_3', 'BAD_TRAIT']}
+        ret = self.put_json('/nodes/%s/traits' % self.node.name,
+                            request_body,
+                            headers={api_base.Version.string: self.version},
+                            expect_errors=True)
+        self.assertEqual(http_client.BAD_REQUEST, ret.status_code)
+        self.assertFalse(mock_add.called)
+
+    @mock.patch.object(rpcapi.ConductorAPI, 'add_node_traits')
+    def test_set_all_traits_rejects_too_long_trait(self, mock_add):
+        # Maximum length is 255.
+        long_trait = 'CUSTOM_' + 'T' * 249
+        request_body = {'traits': ['CUSTOM_3', long_trait]}
+        ret = self.put_json('/nodes/%s/traits' % self.node.name,
+                            request_body,
+                            headers={api_base.Version.string: self.version},
+                            expect_errors=True)
+        self.assertEqual(http_client.BAD_REQUEST, ret.status_code)
+        self.assertFalse(mock_add.called)
+
+    @mock.patch.object(rpcapi.ConductorAPI, 'add_node_traits')
+    def test_set_all_traits_rejects_no_body(self, mock_add):
+        ret = self.put_json('/nodes/%s/traits' % self.node.name, {},
+                            headers={api_base.Version.string: self.version},
+                            expect_errors=True)
+        self.assertEqual(http_client.BAD_REQUEST, ret.status_code)
+        self.assertFalse(mock_add.called)
+
+    def test_set_all_traits_fails_with_bad_version(self):
+        request_body = {'traits': []}
+        ret = self.put_json('/nodes/%s/traits' % self.node.uuid, request_body,
+                            headers={api_base.Version.string: "1.36"},
+                            expect_errors=True)
+        self.assertEqual(http_client.METHOD_NOT_ALLOWED, ret.status_code)
+
+    @mock.patch.object(rpcapi.ConductorAPI, 'add_node_traits')
+    def test_add_single_trait(self, mock_add):
+        ret = self.put_json('/nodes/%s/traits/CUSTOM_3' % self.node.name, {},
+                            headers={api_base.Version.string: self.version})
+        self.assertEqual(http_client.NO_CONTENT, ret.status_code)
+        mock_add.assert_called_once_with(mock.ANY, self.node.id,
+                                         ['CUSTOM_3'], replace=False,
+                                         topic='test-topic')
+
+    @mock.patch.object(rpcapi.ConductorAPI, 'add_node_traits')
+    def test_no_add_single_trait_via_body(self, mock_add):
+        request_body = {'trait': 'CUSTOM_3'}
+        ret = self.put_json('/nodes/%s/traits' % self.node.name,
+                            request_body,
+                            headers={api_base.Version.string: self.version},
+                            expect_errors=True)
+        self.assertEqual(http_client.BAD_REQUEST, ret.status_code)
+        self.assertFalse(mock_add.called)
+
+    @mock.patch.object(rpcapi.ConductorAPI, 'add_node_traits')
+    def test_no_add_single_trait_via_body_2(self, mock_add):
+        request_body = {'traits': ['CUSTOM_3']}
+        ret = self.put_json('/nodes/%s/traits/CUSTOM_3' % self.node.name,
+                            request_body,
+                            headers={api_base.Version.string: self.version},
+                            expect_errors=True)
+        self.assertEqual(http_client.BAD_REQUEST, ret.status_code)
+        self.assertFalse(mock_add.called)
+
+    @mock.patch.object(rpcapi.ConductorAPI, 'add_node_traits')
+    def test_add_single_trait_rejects_bad_trait(self, mock_add):
+        ret = self.put_json('/nodes/%s/traits/bad_trait' % self.node.name, {},
+                            headers={api_base.Version.string: self.version},
+                            expect_errors=True)
+        self.assertEqual(http_client.BAD_REQUEST, ret.status_code)
+        self.assertFalse(mock_add.called)
+
+    @mock.patch.object(rpcapi.ConductorAPI, 'add_node_traits')
+    def test_add_single_trait_rejects_too_long_trait(self, mock_add):
+        # Maximum length is 255.
+        long_trait = 'CUSTOM_' + 'T' * 249
+        ret = self.put_json('/nodes/%s/traits/%s' % (
+                            self.node.name, long_trait), {},
+                            headers={api_base.Version.string: self.version},
+                            expect_errors=True)
+        self.assertEqual(http_client.BAD_REQUEST, ret.status_code)
+        self.assertFalse(mock_add.called)
+
+    @mock.patch.object(rpcapi.ConductorAPI, 'add_node_traits')
+    def test_add_single_trait_fails_max_trait_limit(self, mock_add):
+        mock_add.side_effect = exception.InvalidParameterValue(
+            err='too many traits')
+        ret = self.put_json('/nodes/%s/traits/CUSTOM_3' % self.node.name, {},
+                            headers={api_base.Version.string: self.version},
+                            expect_errors=True)
+        self.assertEqual(http_client.BAD_REQUEST, ret.status_code)
+        mock_add.assert_called_once_with(mock.ANY, self.node.id,
+                                         ['CUSTOM_3'], replace=False,
+                                         topic='test-topic')
+
+    @mock.patch.object(rpcapi.ConductorAPI, 'add_node_traits')
+    def test_add_single_trait_fails_if_node_locked(self, mock_add):
+        mock_add.side_effect = exception.NodeLocked(
+            node=self.node.uuid, host='host1')
+        ret = self.put_json('/nodes/%s/traits/CUSTOM_3' % self.node.name, {},
+                            headers={api_base.Version.string: self.version},
+                            expect_errors=True)
+        self.assertEqual(http_client.CONFLICT, ret.status_code)
+        mock_add.assert_called_once_with(mock.ANY, self.node.id,
+                                         ['CUSTOM_3'], replace=False,
+                                         topic='test-topic')
+
+    @mock.patch.object(rpcapi.ConductorAPI, 'add_node_traits')
+    def test_add_single_trait_fails_if_node_not_found(self, mock_add):
+        mock_add.side_effect = exception.NodeNotFound(node=self.node.uuid)
+        ret = self.put_json('/nodes/%s/traits/CUSTOM_3' % self.node.name, {},
+                            headers={api_base.Version.string: self.version},
+                            expect_errors=True)
+        self.assertEqual(http_client.NOT_FOUND, ret.status_code)
+        mock_add.assert_called_once_with(mock.ANY, self.node.id,
+                                         ['CUSTOM_3'], replace=False,
+                                         topic='test-topic')
+
+    def test_add_single_traits_fails_with_bad_version(self):
+        ret = self.put_json('/nodes/%s/traits/CUSTOM_TRAIT1' % self.node.uuid,
+                            {}, headers={api_base.Version.string: "1.36"},
+                            expect_errors=True)
+        self.assertEqual(http_client.METHOD_NOT_ALLOWED, ret.status_code)
+
+    @mock.patch.object(rpcapi.ConductorAPI, 'remove_node_traits')
+    def test_delete_all_traits(self, mock_remove):
+        ret = self.delete('/nodes/%s/traits' % self.node.name,
+                          headers={api_base.Version.string: self.version})
+        self.assertEqual(http_client.NO_CONTENT, ret.status_code)
+        mock_remove.assert_called_once_with(mock.ANY, self.node.id,
+                                            None, topic='test-topic')
+
+    def test_delete_all_traits_fails_with_bad_version(self):
+        ret = self.delete('/nodes/%s/traits' % self.node.uuid,
+                          headers={api_base.Version.string: "1.36"},
+                          expect_errors=True)
+        self.assertEqual(http_client.NOT_FOUND, ret.status_code)
+
+    @mock.patch.object(rpcapi.ConductorAPI, 'remove_node_traits')
+    def test_delete_trait(self, mock_remove):
+        ret = self.delete('/nodes/%s/traits/CUSTOM_1' % self.node.name,
+                          headers={api_base.Version.string: self.version})
+        self.assertEqual(http_client.NO_CONTENT, ret.status_code)
+        mock_remove.assert_called_once_with(mock.ANY, self.node.id,
+                                            ['CUSTOM_1'], topic='test-topic')
+
+    @mock.patch.object(rpcapi.ConductorAPI, 'remove_node_traits')
+    def test_delete_trait_fails_if_node_locked(self, mock_remove):
+        mock_remove.side_effect = exception.NodeLocked(
+            node=self.node.uuid, host='host1')
+        ret = self.delete('/nodes/%s/traits/CUSTOM_1' % self.node.name,
+                          headers={api_base.Version.string: self.version},
+                          expect_errors=True)
+        self.assertEqual(http_client.CONFLICT, ret.status_code)
+        mock_remove.assert_called_once_with(mock.ANY, self.node.id,
+                                            ['CUSTOM_1'], topic='test-topic')
+
+    @mock.patch.object(rpcapi.ConductorAPI, 'remove_node_traits')
+    def test_delete_trait_fails_if_node_not_found(self, mock_remove):
+        mock_remove.side_effect = exception.NodeNotFound(node=self.node.uuid)
+        ret = self.delete('/nodes/%s/traits/CUSTOM_1' % self.node.name,
+                          headers={api_base.Version.string: self.version},
+                          expect_errors=True)
+        self.assertEqual(http_client.NOT_FOUND, ret.status_code)
+        mock_remove.assert_called_once_with(mock.ANY, self.node.id,
+                                            ['CUSTOM_1'], topic='test-topic')
+
+    @mock.patch.object(rpcapi.ConductorAPI, 'remove_node_traits')
+    def test_delete_trait_fails_if_trait_not_found(self, mock_remove):
+        mock_remove.side_effect = exception.NodeTraitNotFound(
+            node_id=self.node.uuid, trait='CUSTOM_12')
+        ret = self.delete('/nodes/%s/traits/CUSTOM_12' % self.node.name,
+                          headers={api_base.Version.string: self.version},
+                          expect_errors=True)
+        self.assertEqual(http_client.NOT_FOUND, ret.status_code)
+        mock_remove.assert_called_once_with(mock.ANY, self.node.id,
+                                            ['CUSTOM_12'], topic='test-topic')
+
+    def test_delete_trait_fails_with_bad_version(self):
+        ret = self.delete('/nodes/%s/traits/CUSTOM_TRAIT1' % self.node.uuid,
+                          headers={api_base.Version.string: "1.36"},
+                          expect_errors=True)
+        self.assertEqual(http_client.NOT_FOUND, ret.status_code)

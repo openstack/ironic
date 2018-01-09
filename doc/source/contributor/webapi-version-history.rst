@@ -2,6 +2,33 @@
 REST API Version History
 ========================
 
+1.37 (Queens, 10.1.0)
+---------------------
+
+Adds support for node traits, with the following new endpoints.
+
+* GET /v1/nodes/<node identifier>/traits lists the traits for a node.
+
+* PUT /v1/nodes/<node identifier>/traits sets all traits for a node.
+
+* PUT /v1/nodes/<node identifier>/traits/<trait> adds a trait to a node.
+
+* DELETE /v1/nodes/<node identifier>/traits removes all traits from a node.
+
+* DELETE /v1/nodes/<node identifier>/traits/<trait> removes a trait from a
+  node.
+
+A node's traits are also included the following node query and list responses:
+
+* GET /v1/nodes/<node identifier>
+
+* GET /v1/nodes/detail
+
+* GET /v1/nodes?fields=traits
+
+Traits cannot be specified on node creation, nor can they be updated via a
+PATCH request on the node.
+
 1.36 (Queens, 10.0.0)
 ---------------------
 
