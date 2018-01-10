@@ -88,10 +88,17 @@ def _save_disk_layout(node, i_info):
 def check_image_size(task):
     """Check if the requested image is larger than the root partition size.
 
+    Does nothing for whole-disk images.
+
     :param task: a TaskManager instance containing the node to act on.
     :raises: InstanceDeployFailure if size of the image is greater than root
         partition.
     """
+    if task.node.driver_internal_info['is_whole_disk_image']:
+        # The root partition is already created and populated, no use
+        # validating its size
+        return
+
     i_info = deploy_utils.parse_instance_info(task.node)
     image_path = _get_image_file_path(task.node.uuid)
     image_mb = disk_utils.get_image_mb(image_path)
