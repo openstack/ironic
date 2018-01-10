@@ -1,5 +1,0 @@
-The ironic tempest plugin code has been moved to a new dedicated repository:
-
-  openstack/ironic-tempest-plugin/
-
-Please update any dependencies to use this new repository for doing ironic tempest tests.
