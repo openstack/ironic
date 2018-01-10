@@ -116,6 +116,17 @@ class IscsiDeployMethodsTestCase(db_base.DbTestCase):
                 iscsi_deploy._get_image_file_path(task.node.uuid))
 
     @mock.patch.object(disk_utils, 'get_image_mb', autospec=True)
+    def test_check_image_size_whole_disk_image(self, get_image_mb_mock):
+        get_image_mb_mock.return_value = 1025
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            task.node.instance_info['root_gb'] = 1
+            task.node.driver_internal_info['is_whole_disk_image'] = True
+            # No error for whole disk images
+            iscsi_deploy.check_image_size(task)
+            self.assertFalse(get_image_mb_mock.called)
+
+    @mock.patch.object(disk_utils, 'get_image_mb', autospec=True)
     def test_check_image_size_fails(self, get_image_mb_mock):
         get_image_mb_mock.return_value = 1025
         with task_manager.acquire(self.context, self.node.uuid,
