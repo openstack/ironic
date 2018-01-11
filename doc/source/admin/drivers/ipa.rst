@@ -17,9 +17,8 @@ For more information see the `ironic-python-agent documentation
 Drivers
 =======
 
-Starting with the Kilo release all drivers (except for fake ones) are using
-IPA for deployment. There are two types of them, which can be distinguished
-by prefix:
+Starting with the Kilo release all deploy interfaces (except for fake ones)
+are using IPA. There are two types of them:
 
 * For nodes using the :ref:`iscsi-deploy` interface, IPA exposes the root hard
   drive as an iSCSI share and calls back to the ironic conductor. The
@@ -32,13 +31,12 @@ by prefix:
   process: downloading an image from swift, putting it on the machine and doing
   any post-deploy actions.
 
-Which one to choose depends on your environment. iSCSI-based drivers put
-higher load on conductors, agent-based drivers currently require the whole
-image to fit in the node's memory.
+Which one to choose depends on your environment. :ref:`iscsi-deploy` puts
+higher load on conductors, :ref:`direct-deploy` currently requires the whole
+image to fit in the node's memory, except when using raw images. It also
+requires :doc:`/install/configure-glance-swift`.
 
 .. todo: other differences?
-
-.. todo: explain configuring swift for temporary URL's
 
 Requirements
 ------------
@@ -46,14 +44,15 @@ Requirements
 Using IPA requires it to be present and configured on the deploy ramdisk, see
 :ref:`deploy-ramdisk`
 
-Using proxies for image download in agent drivers
-=================================================
+Using proxies for image download
+================================
 
 Overview
 --------
 
-IPA supports using proxies while downloading the user image. For example, this
-could be used to speed up download by using caching proxy.
+When using the :ref:`direct-deploy`, IPA supports using proxies for downloading
+the user image. For example, this could be used to speed up download by using
+a caching proxy.
 
 Steps to enable proxies
 -----------------------
@@ -100,9 +99,7 @@ Steps to enable proxies
 
 #. Add one or more of ``image_http_proxy``, ``image_https_proxy``,
    ``image_no_proxy`` to driver_info properties in each node that will use the
-   proxy. Please refer to the ``openstack baremetal driver property list``
-   output of the ``agent_*`` driver you're using for descriptions of these
-   properties.
+   proxy.
 
 Advanced configuration
 ======================

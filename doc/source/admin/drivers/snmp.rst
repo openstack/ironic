@@ -2,12 +2,17 @@
 SNMP driver
 ===========
 
-The SNMP power driver enables control of power distribution units of the type
+The SNMP hardware type enables control of power distribution units of the type
 frequently found in data centre racks. PDUs frequently have a management
 ethernet interface and SNMP support enabling control of the power outlets.
 
-The SNMP power driver works with the PXE driver for network deployment and
-network-configured boot.
+The SNMP power interface works with the :ref:`pxe-boot` interface for network
+deployment and network-configured boot.
+
+.. note::
+    Unlike most of the other power interfaces, the SNMP power interface does
+    not have a corresponding management interface. The SNMP hardware type uses
+    the ``fake`` management interface instead.
 
 List of supported devices
 =========================
@@ -57,8 +62,8 @@ Software Requirements
 - The PySNMP package must be installed, variously referred to as ``pysnmp``
   or ``python-pysnmp``
 
-Enabling the SNMP Power Driver
-==============================
+Enabling the SNMP Hardware Type
+===============================
 
 #. Add ``snmp`` to the list of ``enabled_hardware_types`` in ``ironic.conf``.
    Also update ``enabled_management_interfaces`` and
@@ -70,15 +75,6 @@ Enabling the SNMP Power Driver
     enabled_hardware_types = snmp
     enabled_management_interfaces = fake
     enabled_power_interfaces = snmp
-
-#. Alternatively, if you prefer using the classic driver instead of the
-   ``snmp`` hardware type, add ``pxe_snmp`` to the list of ``enabled_drivers``
-   in ``ironic.conf``:
-
-   .. code-block:: ini
-
-    [DEFAULT]
-    enabled_drivers = pxe_snmp
 
 #. To set the default boot option, update ``default_boot_option`` in
    ``ironic.conf``:
@@ -94,10 +90,10 @@ Enabling the SNMP Power Driver
       to set an explicit value for this option.
 
    .. note::
-      It is important to set ``boot_option`` to ``netboot`` as SNMP drivers
-      do not support setting of boot devices. One can also configure a node
-      to boot using ``netboot`` by setting its ``capabilities`` and updating
-      Nova flavor as described below:
+      It is important to set ``boot_option`` to ``netboot`` as SNMP hardware
+      type does not support setting of boot devices. One can also configure
+      a node to boot using ``netboot`` by setting its ``capabilities`` and
+      updating Nova flavor as described below:
 
       .. code-block:: console
 
@@ -114,9 +110,8 @@ Enabling the SNMP Power Driver
 Ironic Node Configuration
 =========================
 
-Nodes configured to use the SNMP driver should have the ``driver`` field
-set to the hardware type ``snmp`` (preferred) or to the classic driver
-``pxe_snmp``.
+Nodes configured to use the SNMP hardware type should have the ``driver`` field
+set to the hardware type ``snmp``.
 
 The following property values have to be added to the node's
 ``driver_info`` field:
@@ -134,7 +129,8 @@ The following property values have to be added to the node's
 - ``snmp_security``: (Required for SNMPv3) SNMPv3 User-based Security Model
   (USM) user name.
 
-The following command can be used to enroll a node with the ``snmp`` driver:
+The following command can be used to enroll a node with the ``snmp`` hardware
+type:
 
 .. code-block:: bash
 
@@ -148,8 +144,8 @@ The following command can be used to enroll a node with the ``snmp`` driver:
 PDU Configuration
 =================
 
-This version of the SNMP power driver does not support SNMPv3 authentication
+This version of the SNMP power interface does not support SNMPv3 authentication
 or encryption features. When using SNMPv3, the SNMPv3 agent at the PDU must
 be configured in ``noAuthNoPriv`` mode. Also, the ``snmp_security`` parameter
 is used to configure SNMP USM user name to the SNMP manager at the power
-driver.  The same USM user name must be configured to the target SNMP agent.
+interface.  The same USM user name must be configured to the target SNMP agent.

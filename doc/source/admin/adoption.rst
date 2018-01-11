@@ -26,17 +26,17 @@ How it works
 ============
 
 A node initially enrolled begins in the ``enroll`` state. An operator
-must then move the node to ``manageable`` state, which causes the driver's
+must then move the node to ``manageable`` state, which causes the node's
 ``power`` interface to be validated. Once in ``manageable`` state,
 an operator can then explicitly choose to adopt a node.
 
-Adoption of a node results in the validation of the driver ``boot`` interface,
+Adoption of a node results in the validation of its ``boot`` interface,
 and upon success the process leverages what is referred to as the "takeover"
 logic. The takeover process is intended for conductors to take over the
 management of nodes for a conductor that has failed.
 
-The takeover process involves the driver deploy ``prepare`` and ``take_over``
-methods being called. These steps take driver specific actions such as
+The takeover process involves the deploy interface's ``prepare`` and
+``take_over`` methods being called. These steps take specific actions such as
 downloading and staging the deployment kernel and ramdisk, ISO image, any
 required boot image, or boot ISO image and then places any PXE or virtual
 media configuration necessary for the node should it be required.
@@ -101,7 +101,7 @@ Requirements for use are essentially the same as to deploy a node:
 * Sufficient driver information to allow for a successful
   power management validation.
 
-* Sufficient instance_info to pass deploy driver preparation.
+* Sufficient instance_info to pass deploy interface preparation.
 
 Each driver may have additional requirements dependent upon the
 configuration that is supplied. An example of this would be defining
@@ -110,8 +110,8 @@ to attempt to retrieve the pertinent files. Inability to do so will
 result in the adoption failing, and the node being placed in the
 ``adopt failed`` state.
 
-agent_ipmitool example
-----------------------
+Example
+-------
 
 This is an example to create a new node, named ``testnode``, with
 sufficient information to pass basic validation in order to be taken
@@ -122,7 +122,7 @@ from the ``manageable`` state to ``active`` state::
     export OS_BAREMETAL_API_VERSION=1.17
 
     openstack baremetal node create --name testnode \
-        --driver agent_ipmitool \
+        --driver ipmi \
         --driver-info ipmi_address=<ip_address> \
         --driver-info ipmi_username=<username> \
         --driver-info ipmi_password=<password> \

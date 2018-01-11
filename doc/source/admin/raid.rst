@@ -17,14 +17,14 @@ for their corresponding REST API requests.
 
 Prerequisites
 =============
-The bare metal node needs to use a driver that supports RAID
-configuration. Drivers may implement RAID configuration either in-band or
-out-of-band.
+The bare metal node needs to use a hardware type that supports RAID
+configuration. RAID interfaces may implement RAID configuration either in-band
+or out-of-band.
 
 In-band RAID configuration is done using the Ironic Python Agent
 ramdisk. For in-band RAID configuration using agent ramdisk, a hardware
 manager which supports RAID should be bundled with the ramdisk.
-The drivers supporting RAID configuration could be found using the CLI
+Whether a node supports RAID configuration could be found using the CLI
 command ``openstack baremetal node validate <node-uuid>``.
 
 Build agent ramdisk which supports RAID configuration
@@ -66,7 +66,8 @@ If the ``target_raid_config`` is an empty dictionary, it unsets the value of
 done on the node.
 
 Each dictionary of logical disk contains the desired properties of logical
-disk supported by the driver.  These properties are discoverable by::
+disk supported by the hardware type or classic driver. These properties are
+discoverable by::
 
     openstack baremetal --os-baremetal-api-version 1.15 driver raid property list <driver name>
 
@@ -103,7 +104,7 @@ The RAID properties can be split into 4 different types:
    - ``is_root_volume`` - Set to ``true`` if this is the root volume. At
      most one logical disk can have this set to ``true``; the other
      logical disks must have this set to ``false``. The
-     ``root device hint`` will be saved, if the driver is capable of
+     ``root device hint`` will be saved, if the RAID interface is capable of
      retrieving it. This is ``false`` by default.
 
 #. Backing physical disk hints. These hints are specified for each logical
@@ -133,9 +134,9 @@ The RAID properties can be split into 4 different types:
    on a wider range of attributes (eg. S.M.A.R.T. status, physical location).
    The values for these properties are hardware dependent.
 
-   - ``controller`` - The name of the controller as read by the driver.
+   - ``controller`` - The name of the controller as read by the RAID interface.
    - ``physical_disks`` - A list of physical disks to use as read by the
-     driver.
+     RAID interface.
 
 .. note::
     If properties from both "Backing physical disk hints" or
@@ -242,7 +243,8 @@ To get the current RAID configuration::
 Workflow
 ========
 
-* Operator configures the bare metal node with a driver that has a ``RAIDInterface``.
+* Operator configures the bare metal node with a hardware type that has
+  a ``RAIDInterface`` other than ``no-raid`` (``None`` for classic drivers).
 
 * For in-band RAID configuration, operator builds an agent ramdisk which
   supports RAID configuration by bundling the hardware manager with the

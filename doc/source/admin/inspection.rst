@@ -16,24 +16,20 @@ to the `bug 1405131 <https://bugs.launchpad.net/ironic/+bug/1405131>`_.
 
 There are two kinds of inspection supported by Bare Metal service:
 
-#. Out-of-band inspection is currently implemented by iLO drivers, listed at
-   :ref:`ilo`.
+#. Out-of-band inspection is currently implemented by several hardware types,
+   including ``ilo``, ``idrac`` and ``irmc``.
 
 #. `In-band inspection`_ by utilizing the ironic-inspector_ project.
 
-Inspection can be initiated using node-set-provision-state.
-The node should be in MANAGEABLE state before inspection is initiated.
-
-* Move node to manageable state::
+The node should be in the ``manageable`` state before inspection is initiated.
+If it is in the ``enroll`` or ``available`` state, move it to ``manageable``
+first::
 
     openstack baremetal node manage <node_UUID>
 
-* Initiate inspection::
+Then inspection can be initiated using the following command::
 
     openstack baremetal node inspect <node_UUID>
-
-.. note::
-    The above commands require the python-ironicclient_ to be version 0.5.0 or greater.
 
 .. _capabilities-discovery:
 
@@ -41,8 +37,8 @@ Capabilities discovery
 ----------------------
 
 This is an incomplete list of capabilities we want to discover during
-inspection. The exact support is driver-specific though, the most complete
-list is provided by the iLO :ref:`ilo-inspection`.
+inspection. The exact support is hardware and hardware type specific though,
+the most complete list is provided by the iLO :ref:`ilo-inspection`.
 
 ``secure_boot`` (``true`` or ``false``)
     whether secure boot is supported for the node
@@ -69,8 +65,8 @@ for scheduling::
 
   nova flavor-key my-baremetal-flavor set capabilities:secure_boot="true"
 
-Please see a specific driver page for the exact list of capabilities this
-driver can discover.
+Please see a specific :doc:`hardware type page </admin/drivers>` for
+the exact list of capabilities this hardware type can discover.
 
 In-band inspection
 ------------------
@@ -81,29 +77,33 @@ than the out-of-band inspection, but it is not vendor-specific and works
 across a wide range of hardware. In-band inspection is using the
 ironic-inspector_ project.
 
-Currently it is supported by the following generic drivers::
+It is supported by all hardware types, and used by default, if enabled, by the
+``ipmi`` hardware type. The ``inspector`` *inspect* interface has to be
+enabled to use it:
 
-    pxe_ipmitool
-    pxe_ipminative
-    agent_ipmitool
-    agent_ipminative
-    fake_inspector
+.. code-block:: ini
 
-It is also the default inspection approach for the following vendor drivers::
+    [DEFAULT]
+    enabled_inspect_interfaces = inspector,no-inspect
 
-    pxe_drac
-    pxe_ucs
-    pxe_cimc
-    agent_ucs
-    agent_cimc
+If using classic drivers supporting in-band inspection, like ``pxe_ipmitool``,
+another option has to be set as well:
 
-This feature needs to be explicitly enabled in the ironic configuration file
-by setting ``enabled = True`` in ``[inspector]`` section.
+.. code-block:: ini
+
+    [inspector]
+    enabled = True
+
 You must additionally install python-ironic-inspector-client_ to use
 this functionality.
-You must set ``service_url`` if the ironic-inspector service is
-being run on a separate host from the ironic-conductor service, or is using
-non-standard port.
+
+If the ironic-inspector service is not registered in the service catalog, set
+the following option:
+
+.. code-block:: ini
+
+    [inspector]
+    endpoint-override = http://inspector.example.com:5050
 
 In order to ensure that ports in Bare Metal service are synchronized with
 NIC ports on the node, the following settings in the ironic-inspector
@@ -113,17 +113,6 @@ configuration file must be set::
     add_ports = all
     keep_ports = present
 
-.. note::
-    During Kilo cycle we used an older version of Inspector called
-    ironic-discoverd_. Inspector is expected to be a mostly drop-in
-    replacement, and the same client library should be used to connect to both.
-
-    For Kilo, install ironic-discoverd_ of version 1.1.0 or higher
-    instead of python-ironic-inspector-client and use ``[discoverd]`` option
-    group in both Bare Metal service and ironic-discoverd configuration
-    files instead of ones provided above.
-
 .. _ironic-inspector: https://pypi.python.org/pypi/ironic-inspector
-.. _ironic-discoverd: https://pypi.python.org/pypi/ironic-discoverd
 .. _python-ironic-inspector-client: https://pypi.python.org/pypi/python-ironic-inspector-client
 .. _python-ironicclient: https://pypi.python.org/pypi/python-ironicclient
