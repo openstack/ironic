@@ -397,7 +397,7 @@
 # doing a rolling upgrade from version N to version N+1, set
 # (to pin) this to N. To unpin (default), leave it unset and
 # the latest versions will be used. (string value)
-# Allowed values: pike, 9.2, 9.1, 9.0, 8.0
+# Allowed values: pike, 9.2, 9.1, 9.0, 8.0, 10.0
 #pin_release_version = <None>
 
 # Path to the rootwrap configuration file to use for running
@@ -3655,6 +3655,15 @@
 #
 # From oslo.policy
 #
+
+# This option controls whether or not to enforce scope when
+# evaluating policies. If ``True``, the scope of the token
+# used in the request is compared to the ``scope_types`` of
+# the policy being enforced. If the scopes do not match, an
+# ``InvalidScope`` exception will be raised. If ``False``, a
+# message will be logged informing operators that policies are
+# being invoked with mismatching scope. (boolean value)
+#enforce_scope = false
 
 # The file that defines policies. (string value)
 #policy_file = policy.json
