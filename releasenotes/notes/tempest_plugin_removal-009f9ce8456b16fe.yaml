@@ -1,0 +1,9 @@
+---
+other:
+  - |
+    The tempest plugin code that was in ``ironic_tempest_plugin/`` has been
+    removed.  Tempest plugin code has been migrated to the project
+    `openstack/ironic-tempest-plugin
+    <https://git.openstack.org/cgit/openstack/ironic-tempest-plugin>`_. This
+    was an OpenStack wide `goal for the Queens cycle
+    <https://governance.openstack.org/tc/goals/queens/split-tempest-plugins.html>`_.
