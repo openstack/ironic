@@ -758,3 +758,7 @@ class VifInvalidForAttach(Conflict):
 class AgentAPIError(IronicException):
     _msg_fmt = _('Agent API for node %(node)s returned HTTP status code '
                  '%(status)s with error: %(error)s')
+
+
+class NodeTraitNotFound(IronicException):
+    _msg_fmt = _("Node %(node_id)s doesn't have a trait '%(trait)s'")

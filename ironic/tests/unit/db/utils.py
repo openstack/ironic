@@ -194,6 +194,7 @@ def get_test_node(**kw):
         'target_raid_config': kw.get('target_raid_config'),
         'tags': kw.get('tags', []),
         'resource_class': kw.get('resource_class'),
+        'traits': kw.get('traits', []),
     }
 
     for iface in drivers_base.ALL_INTERFACES:
@@ -213,13 +214,12 @@ def create_test_node(**kw):
 
     """
     node = get_test_node(**kw)
-    # Let DB generate ID if it isn't specified explicitly
-    if 'id' not in kw:
-        del node['id']
-    # Create node with tags will raise an exception. If tags are not
-    # specified explicitly just delete it.
-    if 'tags' not in kw:
-        del node['tags']
+    # Let DB generate an ID if one isn't specified explicitly.
+    # Creating a node with tags or traits will raise an exception. If tags or
+    # traits are not specified explicitly just delete them.
+    for field in {'id', 'tags', 'traits'}:
+        if field not in kw:
+            del node[field]
     dbapi = db_api.get_instance()
     return dbapi.create_node(node)
 
@@ -489,3 +489,28 @@ def create_test_node_tag(**kw):
     tag = get_test_node_tag(**kw)
     dbapi = db_api.get_instance()
     return dbapi.add_node_tag(tag['node_id'], tag['tag'])
+
+
+def get_test_node_trait(**kw):
+    return {
+        # TODO(mgoddard): Replace None below with the NodeTrait RPC object
+        # VERSION when the RPC object is added.
+        'version': kw.get('version', None),
+        "trait": kw.get("trait", "trait1"),
+        "node_id": kw.get("node_id", "123"),
+        'created_at': kw.get('created_at'),
+        'updated_at': kw.get('updated_at'),
+    }
+
+
+def create_test_node_trait(**kw):
+    """Create test node trait entry in DB and return NodeTrait DB object.
+
+    Function to be used to create test NodeTrait objects in the database.
+
+    :param kw: kwargs with overriding values for trait's attributes.
+    :returns: Test NodeTrait DB object.
+    """
+    trait = get_test_node_trait(**kw)
+    dbapi = db_api.get_instance()
+    return dbapi.add_node_trait(trait['node_id'], trait['trait'])

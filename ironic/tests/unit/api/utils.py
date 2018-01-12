@@ -99,6 +99,7 @@ def node_post_data(**kw):
     node.pop('conductor_affinity')
     node.pop('chassis_id')
     node.pop('tags')
+    node.pop('traits')
 
     # NOTE(jroll): pop out fields that were introduced in later API versions,
     # unless explicitly requested. Otherwise, these will cause tests using

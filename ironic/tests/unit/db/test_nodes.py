@@ -38,6 +38,11 @@ class DbNodeTestCase(base.DbTestCase):
                           utils.create_test_node,
                           tags=['tag1', 'tag2'])
 
+    def test_create_node_with_traits(self):
+        self.assertRaises(exception.InvalidParameterValue,
+                          utils.create_test_node,
+                          traits=['trait1', 'trait2'])
+
     def test_create_node_already_exists(self):
         utils.create_test_node()
         self.assertRaises(exception.NodeAlreadyExists,
@@ -398,6 +403,26 @@ class DbNodeTestCase(base.DbTestCase):
 
         self.assertRaises(exception.VolumeTargetNotFound,
                           self.dbapi.get_volume_target_by_id, target.id)
+
+    def test_traits_get_destroyed_after_destroying_a_node(self):
+        node = utils.create_test_node()
+
+        trait = utils.create_test_node_trait(node_id=node.id)
+
+        self.assertTrue(self.dbapi.node_trait_exists(node.id, trait.trait))
+        self.dbapi.destroy_node(node.id)
+        self.assertRaises(exception.NodeNotFound,
+                          self.dbapi.node_trait_exists, node.id, trait.trait)
+
+    def test_traits_get_destroyed_after_destroying_a_node_by_uuid(self):
+        node = utils.create_test_node()
+
+        trait = utils.create_test_node_trait(node_id=node.id)
+
+        self.assertTrue(self.dbapi.node_trait_exists(node.id, trait.trait))
+        self.dbapi.destroy_node(node.uuid)
+        self.assertRaises(exception.NodeNotFound,
+                          self.dbapi.node_trait_exists, node.id, trait.trait)
 
     def test_update_node(self):
         node = utils.create_test_node()

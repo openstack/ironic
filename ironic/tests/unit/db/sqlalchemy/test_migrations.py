@@ -640,6 +640,31 @@ class MigrationCheckersMixin(object):
         self.assertIsInstance(nodes.c.rescue_interface.type,
                               sqlalchemy.types.String)
 
+    def _pre_upgrade_b4130a7fc904(self, engine):
+        # Create a node to which traits can be added.
+        data = {'uuid': uuidutils.generate_uuid()}
+        nodes = db_utils.get_table(engine, 'nodes')
+        nodes.insert().execute(data)
+        node = nodes.select(nodes.c.uuid == data['uuid']).execute().first()
+        data['id'] = node['id']
+        return data
+
+    def _check_b4130a7fc904(self, engine, data):
+        node_traits = db_utils.get_table(engine, 'node_traits')
+        col_names = [column.name for column in node_traits.c]
+        self.assertIn('node_id', col_names)
+        self.assertIsInstance(node_traits.c.node_id.type,
+                              sqlalchemy.types.Integer)
+        self.assertIn('trait', col_names)
+        self.assertIsInstance(node_traits.c.trait.type,
+                              sqlalchemy.types.String)
+
+        trait = {'node_id': data['id'], 'trait': 'trait1'}
+        node_traits.insert().execute(trait)
+        trait = node_traits.select(
+            node_traits.c.node_id == data['id']).execute().first()
+        self.assertEqual('trait1', trait['trait'])
+
     def test_upgrade_and_version(self):
         with patch_with_engine(self.engine):
             self.migration_api.upgrade('head')
