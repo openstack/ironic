@@ -488,6 +488,29 @@ IRONIC_CLEANING_TIMEOUT=${IRONIC_CLEANING_TIMEOUT:-900}
 IRONIC_CLEANING_DELAY=10
 IRONIC_CLEANING_ATTEMPTS=$(( $IRONIC_CLEANING_TIMEOUT / $IRONIC_CLEANING_DELAY ))
 
+# Username to use by Ansible to access ramdisk,
+# to be set as '[ansible]/default_username' option.
+# If not set here (default), will be set to 'tc' for TinyIPA ramdisk,
+# for other ramdisks it must be either provided here,
+# or set manually per-node via ironic API
+IRONIC_ANSIBLE_SSH_USER=${IRONIC_ANSIBLE_SSH_USER:-}
+# Path to the private SSH key to use by ansible deploy interface
+# that will be set as '[ansible]/default_key_file' option in config.
+# The public key path is assumed to be ${IRONIC_ANSIBLE_SSH_KEY}.pub
+# and will be used when rebuilding the image to include this public key
+# in ~/.ssh/authorized_keys of a $IRONIC_ANSIBLE_SSH_USER in the ramdisk.
+# Only the TinyIPA ramdisks are currently supported for such rebuild.
+# For TinyIPA ramdisks, if the specified file doesn't exist, it will
+# be created and will contain a new RSA passwordless key. We assume
+# that the directories in the path to this file exist and are
+# writable.
+# For other ramdisk types, make sure the corresponding public key is baked into
+# the ramdisk to be used by DevStack and provide the path to the private key here,
+# or set it manually per node via ironic API.
+# FIXME(pas-ha) auto-generated keys currently won't work for multi-node
+# DevStack deployment, as we do not distribute this generated key to subnodes yet.
+IRONIC_ANSIBLE_SSH_KEY=${IRONIC_ANSIBLE_SSH_KEY:-$IRONIC_DATA_DIR/ansible_ssh_key}
+
 # Functions
 # ---------
 
@@ -534,7 +557,7 @@ function is_ironic_enabled {
 }
 
 function is_deployed_by_agent {
-    [[ -z "${IRONIC_DEPLOY_DRIVER%%agent*}" ]] && return 0
+    [[ -z "${IRONIC_DEPLOY_DRIVER%%agent*}" || "$IRONIC_DEFAULT_DEPLOY_INTERFACE" == 'direct' ]] && return 0
     return 1
 }
 
@@ -582,8 +605,20 @@ function is_drac_enabled {
     return 1
 }
 
+function is_ansible_deploy_enabled {
+    [[ -z "${IRONIC_ENABLED_DEPLOY_INTERFACES%%*ansible*}" ]] && return 0
+    return 1
+}
+
+function is_ansible_with_tinyipa {
+    # NOTE(pas-ha) we support rebuilding the ramdisk to include (generated) SSH keys
+    # as needed for ansible deploy interface only for TinyIPA ramdisks for now
+    is_ansible_deploy_enabled && [[ "$IRONIC_RAMDISK_TYPE" == "tinyipa" ]] && return 0
+    return 1
+}
+
 function is_glance_configuration_required {
-    is_deployed_by_agent || [[ "$IRONIC_CONFIGURE_GLANCE_WITH_SWIFT" == "True" ]] && return 0
+    is_deployed_by_agent || is_ansible_deploy_enabled || [[ "$IRONIC_CONFIGURE_GLANCE_WITH_SWIFT" == "True" ]] && return 0
     return 1
 }
 
@@ -599,6 +634,15 @@ if is_deployed_by_redfish && [[ "$IRONIC_ENABLED_HARDWARE_TYPES" != *"redfish"* 
         "type is enabled. Take a look at the " \
         "IRONIC_ENABLED_HARDWARE_TYPES configuration option" \
         "for DevStack"
+fi
+
+# Assert that for non-TynyIPA ramdisks and Ansible, the private SSH key file to use exists.
+if is_ansible_deploy_enabled && [[ "$IRONIC_RAMDISK_TYPE" != "tinyipa" ]]; then
+    if [[ ! -f $IRONIC_ANSIBLE_SSH_KEY ]]; then
+        die $LINENO "Using non-TinyIPA ramdisks with ansible deploy interface" \
+            "requires setting IRONIC_ANSIBLE_SSH_KEY to existing"\
+            "private SSH key file to be used by Ansible."
+    fi
 fi
 
 # Syslinux >= 5.00 pxelinux.0 binary is not "stand-alone" anymore,
@@ -783,6 +827,10 @@ function install_ironic {
 
     if is_drac_enabled; then
         pip_install python-dracclient
+    fi
+
+    if is_ansible_deploy_enabled; then
+        pip_install "$(grep '^ansible' $IRONIC_DIR/driver-requirements.txt | awk '{print $1}')"
     fi
 }
 
@@ -1140,6 +1188,32 @@ function configure_ironic_conductor {
         # specific driver interfaces in DevStack
         iniset $IRONIC_CONF_FILE DEFAULT enabled_power_interfaces "redfish"
         iniset $IRONIC_CONF_FILE DEFAULT enabled_management_interfaces "redfish"
+    fi
+
+    if is_ansible_deploy_enabled; then
+        if is_ansible_with_tinyipa; then
+            if [[ ! -f $IRONIC_ANSIBLE_SSH_KEY ]]; then
+                # generate ssh key if absent as we will rebuild the ramdisk
+                # TODO(pas-ha) make it work for multi-node DevStack:
+                # - generate outside of this script
+                # - pass path in as $IRONIC_ANSIBLE_SSH_KEY
+                # - distribute private key to subnodes under the same path
+                # Similar to what we do for n-g-s, may be even re-use its key.
+                ssh-keygen -t rsa -N '' -f $IRONIC_ANSIBLE_SSH_KEY
+                chmod 600 $IRONIC_ANSIBLE_SSH_KEY
+            fi
+            if [[ -z $IRONIC_ANSIBLE_SSH_USER ]]; then
+                # we definitely know the default username to use for TinyIPA image
+                IRONIC_ANSIBLE_SSH_USER='tc'
+            fi
+        fi
+        iniset $IRONIC_CONF_FILE ansible default_key_file $IRONIC_ANSIBLE_SSH_KEY
+        if [[ -n $IRONIC_ANSIBLE_SSH_USER ]]; then
+            iniset $IRONIC_CONF_FILE ansible default_username $IRONIC_ANSIBLE_SSH_USER
+        fi
+        # TODO(pas-ha) find a way to include the CA bundle into the image during rebuild,
+        # at least for the tinyipa ramdisk
+        iniset $IRONIC_CONF_FILE ansible image_store_insecure "True"
     fi
 
     iniset $IRONIC_CONF_FILE DEFAULT rootwrap_config $IRONIC_ROOTWRAP_CONF
@@ -1997,6 +2071,10 @@ function build_tinyipa_ramdisk {
     git_clone $IRONIC_PYTHON_AGENT_REPO $IRONIC_PYTHON_AGENT_DIR $IRONIC_PYTHON_AGENT_BRANCH
     cd $IRONIC_PYTHON_AGENT_DIR/imagebuild/tinyipa
     export BUILD_AND_INSTALL_TINYIPA=true
+    if is_ansible_deploy_enabled; then
+        export AUTHORIZE_SSH=true
+        export SSH_PUBLIC_KEY=$IRONIC_ANSIBLE_SSH_KEY.pub
+    fi
     make
     cp tinyipa.gz $ramdisk_path
     cp tinyipa.vmlinuz $kernel_path
@@ -2006,6 +2084,19 @@ function build_tinyipa_ramdisk {
     fi
     make clean
     cd -
+}
+
+function rebuild_tinyipa_for_ansible {
+    local ansible_tinyipa_ramdisk_name
+    pushd $IRONIC_PYTHON_AGENT_DIR/imagebuild/tinyipa
+    export TINYIPA_RAMDISK_FILE=$IRONIC_DEPLOY_RAMDISK
+    export SSH_PUBLIC_KEY=$IRONIC_ANSIBLE_SSH_KEY.pub
+    make addssh
+    ansible_tinyipa_ramdisk_name="ansible-$(basename $IRONIC_DEPLOY_RAMDISK)"
+    mv $ansible_tinyipa_ramdisk_name $TOP_DIR/files
+    make clean
+    popd
+    IRONIC_DEPLOY_RAMDISK=$TOP_DIR/files/$ansible_tinyipa_ramdisk_name
 }
 
 # install_diskimage_builder() - Collect source and prepare or install from pip
@@ -2073,6 +2164,11 @@ function upload_baremetal_ironic_deploy {
                 # download the agent image tarball
                 wget "$IRONIC_AGENT_KERNEL_URL" -O $IRONIC_DEPLOY_KERNEL
                 wget "$IRONIC_AGENT_RAMDISK_URL" -O $IRONIC_DEPLOY_RAMDISK
+                if is_ansible_with_tinyipa; then
+                    # NOTE(pas-ha) if using ansible-deploy and tinyipa,
+                    # this will rebuild ramdisk and override $IRONIC_DEPLOY_RAMDISK
+                    rebuild_tinyipa_for_ansible
+                fi
             fi
         fi
 
@@ -2104,6 +2200,9 @@ function upload_baremetal_ironic_deploy {
             die_if_not_set $LINENO IRONIC_DEPLOY_ISO_ID "Failed to load deploy iso into glance"
         fi
     else
+        if is_ansible_with_tinyipa; then
+            ironic_deploy_ramdisk_name="ansible-$ironic_deploy_ramdisk_name"
+        fi
         IRONIC_DEPLOY_KERNEL_ID=$(openstack image show $ironic_deploy_kernel_name -f value -c id)
         IRONIC_DEPLOY_RAMDISK_ID=$(openstack image show $ironic_deploy_ramdisk_name -f value -c id)
     fi
@@ -2219,6 +2318,7 @@ function ironic_configure_tempest {
 
     iniset $TEMPEST_CONFIG baremetal enabled_drivers $IRONIC_ENABLED_DRIVERS
     iniset $TEMPEST_CONFIG baremetal enabled_hardware_types $IRONIC_ENABLED_HARDWARE_TYPES
+    iniset $TEMPEST_CONFIG baremetal enabled_deploy_interfaces $IRONIC_ENABLED_DEPLOY_INTERFACES
 
     local adjusted_root_disk_size_gb
     if [[ "$IRONIC_IS_HARDWARE" == "False" ]]; then
