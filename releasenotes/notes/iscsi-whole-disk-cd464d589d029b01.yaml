@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    No longer validates requested root partition size for whole-disk images
+    using ``iscsi`` deploy interface, see `bug 1742451
+    <https://bugs.launchpad.net/ironic/+bug/1742451>`_ for details.
