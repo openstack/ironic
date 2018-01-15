@@ -35,7 +35,7 @@ on Launchpad: https://launchpad.net/ironic/liberty/4.2.0.
   should migrate to a ramdisk running ironic-python-agent, which now also
   supports the pxe_* drivers that the bash ramdisk was responsible for.
   For more info on building an ironic-python-agent ramdisk, see:
-  http://docs.openstack.org/developer/ironic/deploy/install-guide.html#building-or-downloading-a-deploy-ramdisk-image
+  https://docs.openstack.org/developer/ironic/deploy/install-guide.html#building-or-downloading-a-deploy-ramdisk-image
 
 * Raised API version to 1.14
 
@@ -91,7 +91,7 @@ on Launchpad: https://launchpad.net/ironic/liberty/4.2.0.
 
   This driver supports managing Cisco UCS C-series servers through the
   CIMC API, rather than IPMI. Documentation is available at:
-  http://docs.openstack.org/developer/ironic/drivers/cimc.html
+  https://docs.openstack.org/developer/ironic/drivers/cimc.html
 
 * iLO virtual media drivers can work without Swift
 
@@ -101,7 +101,7 @@ on Launchpad: https://launchpad.net/ironic/liberty/4.2.0.
   node and needs to be configured in ironic.conf.
 
   iLO driver documentation is available at:
-  http://docs.openstack.org/developer/ironic/drivers/ilo.html
+  https://docs.openstack.org/developer/ironic/drivers/ilo.html
 
 Known issues
 ~~~~~~~~~~~~
