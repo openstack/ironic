@@ -353,7 +353,8 @@ class DbNodeTestCase(base.DbTestCase):
 
         self.assertTrue(self.dbapi.node_tag_exists(node.id, tag.tag))
         self.dbapi.destroy_node(node.id)
-        self.assertFalse(self.dbapi.node_tag_exists(node.id, tag.tag))
+        self.assertRaises(exception.NodeNotFound,
+                          self.dbapi.node_tag_exists, node.id, tag.tag)
 
     def test_tags_get_destroyed_after_destroying_a_node_by_uuid(self):
         node = utils.create_test_node()
@@ -362,7 +363,8 @@ class DbNodeTestCase(base.DbTestCase):
 
         self.assertTrue(self.dbapi.node_tag_exists(node.id, tag.tag))
         self.dbapi.destroy_node(node.uuid)
-        self.assertFalse(self.dbapi.node_tag_exists(node.id, tag.tag))
+        self.assertRaises(exception.NodeNotFound,
+                          self.dbapi.node_tag_exists, node.id, tag.tag)
 
     def test_volume_connector_get_destroyed_after_destroying_a_node(self):
         node = utils.create_test_node()

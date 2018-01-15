@@ -662,6 +662,7 @@ class Connection(object):
         :param node_id: The id of a node.
         :param tag: A tag string.
         :returns: True if the tag exists otherwise False.
+        :raises: NodeNotFound if the node is not found.
         """
 
     @abc.abstractmethod
