@@ -238,7 +238,7 @@ class TestNeutron(db_base.DbTestCase):
         fake_client = mock.Mock()
         fake_client.show_port.side_effect = (
             neutron_client_exc.NeutronClientException())
-        self.assertRaises(exception.FailedToGetIPAddressOnPort,
+        self.assertRaises(exception.NetworkError,
                           api._get_fixed_ip_address, port_id, fake_client)
         fake_client.show_port.assert_called_once_with(port_id)
 

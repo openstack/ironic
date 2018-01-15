@@ -135,16 +135,16 @@ class NeutronDHCPApi(base.BaseDHCP):
         :param port_uuid: Neutron port id.
         :param client: Neutron client instance.
         :returns: Neutron port ip address.
-        :raises: FailedToGetIPAddressOnPort
+        :raises: NetworkError
         :raises: InvalidIPv4Address
+        :raises: FailedToGetIPAddressOnPort
         """
         ip_address = None
         try:
             neutron_port = client.show_port(port_uuid).get('port')
         except neutron_client_exc.NeutronClientException:
-            LOG.exception("Failed to Get IP address on Neutron port %s.",
-                          port_uuid)
-            raise exception.FailedToGetIPAddressOnPort(port_id=port_uuid)
+            raise exception.NetworkError(
+                _('Could not retrieve neutron port: %s') % port_uuid)
 
         fixed_ips = neutron_port.get('fixed_ips')
 
@@ -158,8 +158,9 @@ class NeutronDHCPApi(base.BaseDHCP):
             if netutils.is_valid_ipv4(ip_address):
                 return ip_address
             else:
-                LOG.error("Neutron returned invalid IPv4 address %s.",
-                          ip_address)
+                LOG.error("Neutron returned invalid IPv4 "
+                          "address %(ip_address)s on port %(port_uuid)s.",
+                          {'ip_address': ip_address, 'port_uuid': port_uuid})
                 raise exception.InvalidIPv4Address(ip_address=ip_address)
         else:
             LOG.error("No IP address assigned to Neutron port %s.",
@@ -209,7 +210,8 @@ class NeutronDHCPApi(base.BaseDHCP):
                                                            client)
                 ip_addresses.append(vif_ip_address)
             except (exception.FailedToGetIPAddressOnPort,
-                    exception.InvalidIPv4Address):
+                    exception.InvalidIPv4Address,
+                    exception.NetworkError):
                     failures.append(obj.uuid)
 
         if failures:
