@@ -68,3 +68,50 @@ that is unique to your SAN. For example, to create a volume connector for iSCSI:
 
    openstack --os-baremetal-api-version 1.33 baremetal volume connector create \
              --node $NODE_UUID --type iqn --connector-id iqn.2017-08.org.openstack.$NODE_UUID
+
+Advanced Topics
+===============
+
+Use without the Compute Service
+-------------------------------
+
+As discussed in other sections, the Bare Metal service has a concept of a
+`connector` that is used to represent an interface that is intended to
+be utilized to attach the remote volume.
+
+In addition to the connectors, we have a concept of a `target` that can be
+defined via the API. While a user of this feature through the Compute
+service would automatically have a new target record created for them,
+it is not explicitly required, and can be performed manually.
+
+A target record can be created using a command similar to the example below::
+
+    openstack --os-baremetal-api-version 1.33 baremetal volume target create \
+              --node $NODE_UUID --type iscsi --boot-index 0 --volume $VOLUME_UUID
+
+.. Note:: A ``boot-index`` value of ``0`` represents the boot volume for a
+          node. As the ``boot-index`` is per-node in sequential order,
+          only one boot volume is permitted for each node.
+
+Cinder Multi-attach
+-------------------
+
+Volume multi-attach is a function that is commonly performed in computing
+clusters where dedicated storage subsystems are utilized. For some time now,
+the Block Storage service has supported the concept of multi-attach.
+However, the Compute service, as of the Pike release, does not yet have
+support to leverage multi-attach. Concurrently, multi-attach requires the
+backend volume driver running as part of the Block Storage service to
+contain support for multi-attach volumes.
+
+When support for storage interfaces was added to the Bare Metal service,
+specifically for the ``cinder`` storage interface, the concept of volume
+multi-attach was accounted for, however has not been fully tested,
+and is unlikely to be fully tested until there is Compute service integration
+as well as volume driver support.
+
+The data model for storage of volume targets in the Bare Metal service
+has no constraints on the same target volume from being utilized.
+When interacting with the Block Storage service, the Bare Metal service
+will prevent the use of volumes that are being reported as ``in-use``
+if they do not explicitly support multi-attach.
