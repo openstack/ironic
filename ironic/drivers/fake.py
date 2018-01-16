@@ -70,6 +70,14 @@ class FakeDriver(base.BaseDriver):
         self.inspect = fake.FakeInspect()
         self.raid = fake.FakeRAID()
 
+    @classmethod
+    def to_hardware_type(cls):
+        return 'fake-hardware', {
+            iface: 'fake'
+            for iface in ['boot', 'console', 'deploy', 'inspect',
+                          'management', 'power', 'raid', 'rescue', 'vendor']
+        }
+
 
 class FakeSoftPowerDriver(FakeDriver):
     """Example implementation of a Driver."""
@@ -89,6 +97,17 @@ class FakeIPMIToolDriver(base.BaseDriver):
         self.vendor = ipmitool.VendorPassthru()
         self.management = ipmitool.IPMIManagement()
 
+    @classmethod
+    def to_hardware_type(cls):
+        return 'fake-hardware', {
+            'boot': 'fake',
+            'console': 'ipmitool-shellinabox',
+            'deploy': 'fake',
+            'management': 'ipmitool',
+            'power': 'ipmitool',
+            'vendor': 'ipmitool'
+        }
+
 
 class FakeIPMIToolSocatDriver(base.BaseDriver):
     """Example implementation of a Driver."""
@@ -100,6 +119,17 @@ class FakeIPMIToolSocatDriver(base.BaseDriver):
         self.vendor = ipmitool.VendorPassthru()
         self.management = ipmitool.IPMIManagement()
 
+    @classmethod
+    def to_hardware_type(cls):
+        return 'fake-hardware', {
+            'boot': 'fake',
+            'console': 'ipmitool-socat',
+            'deploy': 'fake',
+            'management': 'ipmitool',
+            'power': 'ipmitool',
+            'vendor': 'ipmitool'
+        }
+
 
 class FakePXEDriver(base.BaseDriver):
     """Example implementation of a Driver."""
@@ -108,6 +138,15 @@ class FakePXEDriver(base.BaseDriver):
         self.power = fake.FakePower()
         self.boot = pxe.PXEBoot()
         self.deploy = iscsi_deploy.ISCSIDeploy()
+
+    @classmethod
+    def to_hardware_type(cls):
+        return 'fake-hardware', {
+            'boot': 'pxe',
+            'deploy': 'iscsi',
+            'management': 'fake',
+            'power': 'fake',
+        }
 
 
 class FakeAgentDriver(base.BaseDriver):
@@ -118,6 +157,16 @@ class FakeAgentDriver(base.BaseDriver):
         self.boot = pxe.PXEBoot()
         self.deploy = agent.AgentDeploy()
         self.raid = agent.AgentRAID()
+
+    @classmethod
+    def to_hardware_type(cls):
+        return 'fake-hardware', {
+            'boot': 'pxe',
+            'deploy': 'direct',
+            'management': 'fake',
+            'power': 'fake',
+            'raid': 'agent'
+        }
 
 
 class FakeIloDriver(base.BaseDriver):
@@ -162,6 +211,15 @@ class FakeSNMPDriver(base.BaseDriver):
         self.power = snmp.SNMPPower()
         self.deploy = fake.FakeDeploy()
 
+    @classmethod
+    def to_hardware_type(cls):
+        return 'snmp', {
+            'boot': 'fake',
+            'deploy': 'fake',
+            'management': 'fake',
+            'power': 'snmp',
+        }
+
 
 class FakeIRMCDriver(base.BaseDriver):
     """Fake iRMC driver."""
@@ -190,6 +248,17 @@ class FakeIPMIToolInspectorDriver(base.BaseDriver):
         # unconditional, as this driver is designed for testing inspector
         # integration.
         self.inspect = inspector.Inspector()
+
+    @classmethod
+    def to_hardware_type(cls):
+        return 'fake-hardware', {
+            'boot': 'fake',
+            'console': 'ipmitool-shellinabox',
+            'deploy': 'fake',
+            'inspect': 'inspector',
+            'management': 'ipmitool',
+            'power': 'ipmitool',
+        }
 
 
 class FakeUcsDriver(base.BaseDriver):

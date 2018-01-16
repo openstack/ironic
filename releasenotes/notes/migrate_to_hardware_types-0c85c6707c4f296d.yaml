@@ -1,0 +1,23 @@
+---
+upgrade:
+  - |
+    Adds new data migration ``migrate_to_hardware_types`` that will try to
+    migrate nodes from classic drivers to hardware types on upgrade. Matching
+    hardware types and interfaces have to be provided on classic drivers
+    themselves. Nodes that cannot be migrated are skipped. This can primary
+    happen for three reasons:
+
+    * migration is not implemented for the classic driver,
+    * the matching hardware type is not enabled,
+    * one or more matching hardware interfaces are not enabled.
+
+    In the latter case, the new migration command line option
+    ``reset_unsupported_interfaces`` can be used to reset optional interfaces
+    (all except for ``boot``, ``deploy``, ``management`` and ``power``) to
+    their no-op implementations (e.g. ``no-inspect``) if the matching
+    implementation is not enabled. Use it like::
+
+        ironic-dbsync online_data_migrations --option migrate_to_hardware_types.reset_unsupported_interfaces=true
+
+    This migration can be repeated several times to migrate skipped nodes
+    after the configuration is changed.

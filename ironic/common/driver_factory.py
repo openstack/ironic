@@ -17,6 +17,7 @@ import collections
 
 from oslo_concurrency import lockutils
 from oslo_log import log
+import stevedore
 from stevedore import named
 
 from ironic.common import exception
@@ -558,3 +559,100 @@ _INTERFACE_LOADERS = {
 # refactor them later to use _INTERFACE_LOADERS.
 NetworkInterfaceFactory = _INTERFACE_LOADERS['network']
 StorageInterfaceFactory = _INTERFACE_LOADERS['storage']
+
+
+def calculate_migration_delta(driver_name, driver_class,
+                              reset_unsupported_interfaces=False):
+    """Calculate an update for the given classic driver extension.
+
+    This function calculates a database update required to convert a node
+    with a classic driver to hardware types and interfaces.
+
+    This function is used in the data migrations and is not a part of the
+    public Python API.
+
+    :param driver_name: the entry point name of the driver
+    :param driver_class: class of classic driver.
+    :param reset_unsupported_interfaces: if set to True, target interfaces
+        that are not enabled will be replaced with a no-<interface name>,
+        if possible.
+    :returns: Node fields requiring update as a dict (field -> new value).
+        None if a migration is not possible.
+    """
+    # NOTE(dtantsur): provide defaults for optional interfaces
+    defaults = {'console': 'no-console',
+                'inspect': 'no-inspect',
+                'raid': 'no-raid',
+                'rescue': 'no-rescue',
+                'vendor': 'no-vendor'}
+    try:
+        hw_type, new_ifaces = driver_class.to_hardware_type()
+    except NotImplementedError:
+        LOG.warning('Skipping migrating nodes with driver %s, '
+                    'migration not supported', driver_name)
+        return None
+    else:
+        ifaces = dict(defaults, **new_ifaces)
+
+    if hw_type not in CONF.enabled_hardware_types:
+        LOG.warning('Skipping migrating nodes with driver %(drv)s: '
+                    'hardware type %(hw_type)s is not enabled',
+                    {'drv': driver_name, 'hw_type': hw_type})
+        return None
+
+    not_enabled = []
+    delta = {'driver': hw_type}
+    for iface, value in ifaces.items():
+        conf = 'enabled_%s_interfaces' % iface
+        if value not in getattr(CONF, conf):
+            not_enabled.append((iface, value))
+        else:
+            delta['%s_interface' % iface] = value
+
+    if not_enabled and reset_unsupported_interfaces:
+        still_not_enabled = []
+        for iface, value in not_enabled:
+            try:
+                default = defaults[iface]
+            except KeyError:
+                still_not_enabled.append((iface, value))
+            else:
+                conf = 'enabled_%s_interfaces' % iface
+                if default not in getattr(CONF, conf):
+                    still_not_enabled.append((iface, value))
+                else:
+                    delta['%s_interface' % iface] = default
+
+        not_enabled = still_not_enabled
+
+    if not_enabled:
+        LOG.warning('Skipping migrating nodes with driver %(drv)s, '
+                    'the following interfaces are not supported: '
+                    '%(ifaces)s',
+                    {'drv': driver_name,
+                     'ifaces': ', '.join('%s_interface=%s' % tpl
+                                         for tpl in not_enabled)})
+        return None
+
+    return delta
+
+
+def classic_drivers_to_migrate():
+    """Get drivers requiring migration.
+
+    This function is used in the data migrations and is not a part of the
+    public Python API.
+
+    :returns: a dict mapping driver names to driver classes
+    """
+    def failure_callback(mgr, ep, exc):
+        LOG.warning('Unable to load classic driver %(drv)s: %(err)s',
+                    {'drv': ep.name, 'err': exc})
+
+    extension_manager = (
+        stevedore.ExtensionManager(
+            'ironic.drivers',
+            invoke_on_load=False,
+            on_load_failure_callback=failure_callback))
+
+    return {ext.name: ext.plugin for ext in extension_manager}

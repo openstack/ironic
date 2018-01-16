@@ -100,6 +100,15 @@ class PXEAndSNMPDriver(base.BaseDriver):
         # Only PXE as a boot device is supported.
         self.management = None
 
+    @classmethod
+    def to_hardware_type(cls):
+        return 'snmp', {
+            'boot': 'pxe',
+            'deploy': 'iscsi',
+            'management': 'fake',
+            'power': 'snmp',
+        }
+
 
 class PXEAndIRMCDriver(base.BaseDriver):
     """PXE + iRMC driver using SCCI.
