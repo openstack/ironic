@@ -290,3 +290,9 @@ class NodeTrait(Base):
     node_id = Column(Integer, ForeignKey('nodes.id'),
                      primary_key=True, nullable=False)
     trait = Column(String(255), primary_key=True, nullable=False)
+    node = orm.relationship(
+        "Node",
+        backref='traits',
+        primaryjoin='and_(NodeTrait.node_id == Node.id)',
+        foreign_keys=node_id
+    )
