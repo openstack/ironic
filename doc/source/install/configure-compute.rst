@@ -90,6 +90,9 @@ service's controller nodes and compute nodes.
        # subset of the 999 hosts. The big value is used to avoid race
        # conditions, when several instances are scheduled on the same bare
        # metal nodes. This is not a problem when resource classes are used.
+       # You should carefully consider increasing this option from its
+       # default value of 1 in mixed hypervisor case, as placement
+       # of virtual instances will become less optimal.
        host_subset_size=999
 
        # This flag enables a different set of scheduler filters, which is more
@@ -97,7 +100,24 @@ service's controller nodes and compute nodes.
        # with their exact counterparts, to make sure only nodes strictly
        # matching the flavor are picked. These filters do not work with
        # scheduling based on resource classes only.
+       # You must not enable this option if you have compute hosts
+       # with other than 'ironic' drivers as enabling it will make scheduling
+       # of virtual instances problematic.
        use_baremetal_filters=True
+
+#. Consider enabling the following option on controller nodes:
+
+   .. code-block:: ini
+
+     [filter_scheduler]
+
+     # Enabling this option is beneficial as it reduces re-scheduling events
+     # for ironic nodes when scheduling is based on resource classes,
+     # especially for mixed hypervisor case with host_subset_size = 1.
+     # However enabling it will also make packing of VMs on hypervisors
+     # less dense even when scheduling weights are completely disabled.
+     #shuffle_best_same_weighed_hosts = false
+
 
 #. Carefully consider the following option:
 
