@@ -31,6 +31,7 @@ class AgentPXEOneViewInspectTestCase(db_base.DbTestCase):
     def setUp(self):
         super(AgentPXEOneViewInspectTestCase, self).setUp()
         self.config(enabled=True, group='inspector')
+        self.config(manager_url='https://1.2.3.4', group='oneview')
         mgr_utils.mock_the_extension_manager(driver="agent_pxe_oneview")
         self.node = obj_utils.create_test_node(
             self.context, driver='agent_pxe_oneview',
@@ -69,6 +70,7 @@ class ISCSIPXEOneViewInspectTestCase(db_base.DbTestCase):
     def setUp(self):
         super(ISCSIPXEOneViewInspectTestCase, self).setUp()
         self.config(enabled=True, group='inspector')
+        self.config(manager_url='https://1.2.3.4', group='oneview')
         mgr_utils.mock_the_extension_manager(driver="iscsi_pxe_oneview")
         self.node = obj_utils.create_test_node(
             self.context, driver='iscsi_pxe_oneview',

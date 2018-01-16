@@ -13,8 +13,11 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import re
+
 from oslo_log import log as logging
 from oslo_utils import importutils
+from six.moves.urllib import parse
 
 from ironic.common import exception
 from ironic.common.i18n import _
@@ -28,6 +31,9 @@ client = importutils.try_import('oneview_client.client')
 oneview_utils = importutils.try_import('oneview_client.utils')
 oneview_states = importutils.try_import('oneview_client.states')
 oneview_exceptions = importutils.try_import('oneview_client.exceptions')
+
+hponeview_client = importutils.try_import('hpOneView.oneview_client')
+redfish = importutils.try_import('redfish')
 
 REQUIRED_ON_DRIVER_INFO = {
     'server_hardware_uri': _("Server Hardware URI. Required in driver_info."),
@@ -47,6 +53,8 @@ OPTIONAL_ON_PROPERTIES = {
     'enclosure_group_uri': _(
         "Enclosure Group URI. Optional in properties/capabilities."),
 }
+
+ILOREST_BASE_PORT = "443"
 
 COMMON_PROPERTIES = {}
 COMMON_PROPERTIES.update(REQUIRED_ON_DRIVER_INFO)
@@ -80,6 +88,90 @@ def get_oneview_client():
         max_polling_attempts=CONF.oneview.max_polling_attempts
     )
     return oneview_client
+
+
+def prepare_manager_url(manager_url):
+    # NOTE(mrtenio) python-oneviewclient uses https or http in the manager_url
+    # while python-hpOneView does not. This will not be necessary when
+    # python-hpOneView client is the only OneView library.
+    if manager_url:
+        url_match = "^(http[s]?://)?([^/]+)(/.*)?$"
+        manager_url = re.search(url_match, manager_url).group(2)
+    return manager_url
+
+
+def get_hponeview_client():
+    """Generate an instance of the hpOneView client.
+
+    Generates an instance of the hpOneView client using the hpOneView library.
+
+    :returns: an instance of the OneViewClient
+    :raises: InvalidParameterValue if mandatory information is missing on the
+             node or on invalid input.
+    :raises: OneViewError if try a secure connection without CA certificate.
+    """
+    manager_url = prepare_manager_url(CONF.oneview.manager_url)
+
+    insecure = CONF.oneview.allow_insecure_connections
+    ssl_certificate = CONF.oneview.tls_cacert_file
+
+    if not (insecure or ssl_certificate):
+        msg = _("TLS CA certificate to connect with OneView is missing.")
+        raise exception.OneViewError(error=msg)
+
+    # NOTE(nicodemos) Ignore the CA certificate if it's an insecure connection
+    if insecure and ssl_certificate:
+        LOG.debug("Doing an insecure connection with OneView, the CA "
+                  "certificate file: %s will be ignored.", ssl_certificate)
+        ssl_certificate = None
+
+    config = {
+        "ip": manager_url,
+        "credentials": {
+            "userName": CONF.oneview.username,
+            "password": CONF.oneview.password
+        },
+        "ssl_certificate": ssl_certificate
+    }
+    return hponeview_client.OneViewClient(config)
+
+
+def get_ilorest_client(server_hardware):
+    """Generate an instance of the iLORest library client.
+
+    :param: server_hardware: a server hardware uuid or uri
+    :returns: an instance of the iLORest client
+    :raises: InvalidParameterValue if mandatory information is missing on the
+             node or on invalid input.
+    """
+    oneview_client = get_hponeview_client()
+    remote_console = oneview_client.server_hardware.get_remote_console_url(
+        server_hardware
+    )
+    host_ip, ilo_token = _get_ilo_access(remote_console)
+    base_url = "https://%s:%s" % (host_ip, ILOREST_BASE_PORT)
+    return redfish.rest_client(base_url=base_url, sessionkey=ilo_token)
+
+
+def _get_ilo_access(remote_console):
+    """Get the needed information to access ilo.
+
+    Get the host_ip and a token of an iLO remote console instance which can be
+    used to perform operations on that controller.
+
+    The Remote Console url has the following format:
+    hplocons://addr=1.2.3.4&sessionkey=a79659e3b3b7c8209c901ac3509a6719
+
+    :param: remote_console: OneView Remote Console object with a
+            remoteConsoleUrl
+    :returns: A tuple with the Host IP and Token to access ilo, for
+              example: ('1.2.3.4', 'a79659e3b3b7c8209c901ac3509a6719')
+    """
+    url = remote_console.get('remoteConsoleUrl')
+    url_parse = parse.urlparse(url)
+    host_ip = parse.parse_qs(url_parse.netloc).get('addr')[0]
+    token = parse.parse_qs(url_parse.netloc).get('sessionkey')[0]
+    return host_ip, token
 
 
 def verify_node_info(node):
