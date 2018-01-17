@@ -7,7 +7,7 @@ Install and configure for Ubuntu
 This section describes how to install and configure the Bare Metal
 service for Ubuntu 14.04 (LTS).
 
-.. include:: include/common-prerequisites.rst
+.. include:: include/common-prerequisites.inc
 
 Install and configure components
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -22,10 +22,10 @@ Install and configure components
 
    Services are enabled by default on Ubuntu.
 
-.. include:: include/common-configure.rst
+.. include:: include/common-configure.inc
 
-.. include:: include/configure-ironic-api.rst
+.. include:: include/configure-ironic-api.inc
 
-.. include:: include/configure-ironic-api-mod_wsgi.rst
+.. include:: include/configure-ironic-api-mod_wsgi.inc
 
-.. include:: include/configure-ironic-conductor.rst
+.. include:: include/configure-ironic-conductor.inc

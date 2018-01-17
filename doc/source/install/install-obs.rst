@@ -12,7 +12,7 @@ for openSUSE Leap 42.2 and SUSE Linux Enterprise Server 12 SP2.
    Server is not officially supported. Nevertheless, installation should be
    possible.
 
-.. include:: include/common-prerequisites.rst
+.. include:: include/common-prerequisites.inc
 
 Install and configure components
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -30,10 +30,10 @@ Install and configure components
       # systemctl enable openstack-ironic-api openstack-ironic-conductor
       # systemctl start openstack-ironic-api openstack-ironic-conductor
 
-.. include:: include/common-configure.rst
+.. include:: include/common-configure.inc
 
-.. include:: include/configure-ironic-api.rst
+.. include:: include/configure-ironic-api.inc
 
-.. include:: include/configure-ironic-api-mod_wsgi.rst
+.. include:: include/configure-ironic-api-mod_wsgi.inc
 
-.. include:: include/configure-ironic-conductor.rst
+.. include:: include/configure-ironic-conductor.inc

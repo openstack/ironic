@@ -3,18 +3,18 @@
 Advanced features
 =================
 
-.. include:: include/local-boot-partition-images.rst
+.. include:: include/local-boot-partition-images.inc
 
-.. include:: include/root-device-hints.rst
+.. include:: include/root-device-hints.inc
 
-.. include:: include/kernel-boot-parameters.rst
+.. include:: include/kernel-boot-parameters.inc
 
-.. include:: include/boot-mode.rst
+.. include:: include/boot-mode.inc
 
-.. include:: include/disk-label.rst
+.. include:: include/disk-label.inc
 
-.. include:: include/trusted-boot.rst
+.. include:: include/trusted-boot.inc
 
-.. include:: include/notifications.rst
+.. include:: include/notifications.inc
 
-.. include:: include/console.rst
+.. include:: include/console.inc
