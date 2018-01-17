@@ -75,8 +75,8 @@ referencing the RFE bug. Contributors are welcome to submit a spec and/or code
 before the RFE is approved, however those patches will not land until the RFE
 is approved.
 
-Here is a list of steps to do during the new process of adding a new feature to
-Ironic:
+Feature Submission Process
+--------------------------
 
 #. Submit a bug report at https://bugs.launchpad.net/ironic/+filebug.
    There are two fields that must be filled: 'summary' and
@@ -121,6 +121,9 @@ Ironic:
 #. If the RFE is rejected, the ironic-drivers team will move the bug to
    "Won't Fix" status.
 
+Change Tracking
+---------------
+
 When working on an RFE, please be sure to tag your commits properly:
 "Partial-Bug: #xxxx" or "Related-Bug: #xxxx" for intermediate commits for the
 feature, and "Closes-Bug: #xxxx" for the final commit. It is also helpful to
@@ -132,12 +135,80 @@ but the main work is going to happen within ironic, please use the same bug for
 all the code you're submitting, there is no need to create a separate RFE in
 every project.
 
-Note that currently the Ironic bug tracker is managed by the open 'ironic-bugs'
-team, not the ironic-drivers team. This means that anyone may edit bug details,
-and there is room to game the system here. **RFEs may only be approved by
-members of the ironic-drivers team**. Attempts to sneak around this rule will
-not be tolerated, and will be called out in public on the mailing list.
+.. note:: Currently the Ironic bug tracker is managed by the open
+          'ironic-bugs' team, not the ironic-drivers team. This means that
+          anyone may edit bug details, and there is room to game the system
+          here. **RFEs may only be approved by members of the ironic-drivers
+          team**.
 
+Managing Change Sets
+--------------------
+
+If you would like some help, or if you (or some members of your team)
+are unable to continue working on the feature, updating and
+maintaining the changes, please let the rest of the ironic community
+know. You could leave a comment in one or more of the
+changes/patches, bring it up in IRC, the weekly meeting,
+or on the OpenStack development email list.
+Communicating this will make other contributors aware of the
+situation and allow for others to step forward and volunteer to
+continue with the work.
+
+In the event that a contributor leaves the community, do not expect
+the contributor's changes to be continued unless someone volunteers
+to do so.
+
+Timeline Expectations
+=====================
+
+As with any large project, it does take time for features and changes to be
+merged in any of the project repositories. This is largely due to limited
+review bandwidth coupled with varying reviewer priorities and focuses.
+
+When establishing an understanding of complexity, the following things should
+be kept in mind.
+
+* Generally, small and minor changes can gain consensus and merge fairly
+  quickly. These sorts of changes would be: bug fixes, minor documentation
+  updates, follow-up changes.
+
+* Medium changes generally consist of driver feature parity changes,
+  where one driver is working to match functionality of another driver.
+
+  * These changes generally only require an RFE for the purposes of
+    tracking and correlating the change.
+  * Documentation updates are expected to be submitted with or immediately
+    following the initial change set.
+
+* Larger or controversial changes generally take much longer to merge.
+  This is often due to the necessity of reviewers to gain additional
+  context and for change sets to be iterated upon to reach a state
+  where there is consensus. These sorts of changes include: database,
+  object, internal interface additions, RPC, rest API changes.
+
+  * These changes will very often require specifications to reach
+    consensus, unless there are pre-existing patterns or code already
+    present.
+  * These changes may require many reviews and iterations, and can
+    also expect to be impacted by merge conflicts as other code or
+    features are merged.
+  * These changes must typically be split into a series of changes.
+    Reviewers typically shy away from larger single change sets due
+    to increased difficulty in reviewing.
+  * Do not expect any API or user-visible data model changes to merge
+    after the API client freeze. Some substrate changes may merge if
+    not user visible.
+
+* You should expect complex features, such as cross-project features
+  or integration, to take longer than a single development cycle to land.
+
+  * Building consensus is vital.
+  * Often these changes are controversial or have multiple
+    considerations that need to be worked through in the specification
+    process, which may cause the design to change. As such, it may
+    take months to reach consensus over design.
+  * These features are best broken into larger chunks and tackled
+    in an incremental fashion.
 
 Live Upgrade Related Concerns
 =============================
