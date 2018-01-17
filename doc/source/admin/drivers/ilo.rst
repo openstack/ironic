@@ -1831,7 +1831,7 @@ The keyword arguments used for the clean step are as follows:
 * ``url``: URL of SPP (Service Pack for Proliant) ISO. It is mandatory. The
   URL schemes supported are ``http``, ``https`` and ``swift``.
 * ``checksum``: MD5 checksum of SPP ISO to verify the image. It is mandatory.
-* ``components``: List of filenames of the fimware components to be flashed.
+* ``components``: List of filenames of the firmware components to be flashed.
   It is optional. If not provided, the firmware update is performed on all
   the firmware components.
 
