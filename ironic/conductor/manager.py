@@ -94,7 +94,7 @@ class ConductorManager(base_manager.BaseConductorManager):
     # NOTE(rloo): This must be in sync with rpcapi.ConductorAPI's.
     # NOTE(pas-ha): This also must be in sync with
     #               ironic.common.release_mappings.RELEASE_MAPPING['master']
-    RPC_API_VERSION = '1.43'
+    RPC_API_VERSION = '1.44'
 
     target = messaging.Target(version=RPC_API_VERSION)
 
@@ -3059,6 +3059,64 @@ class ConductorManager(base_manager.BaseConductorManager):
                         for name, ver in object_versions.items()])})
         return objinst.obj_to_primitive(target_version=target,
                                         version_manifest=object_versions)
+
+    @METRICS.timer('ConductorManager.add_node_traits')
+    @messaging.expected_exceptions(exception.InvalidParameterValue,
+                                   exception.NodeLocked,
+                                   exception.NodeNotFound)
+    def add_node_traits(self, context, node_id, traits, replace=False):
+        """Add or replace traits for a node.
+
+        :param context: request context.
+        :param node_id: node ID or UUID.
+        :param traits: a list of traits to add to the node.
+        :param replace: True to replace all of the node's traits.
+        :raises: InvalidParameterValue if adding the traits would exceed the
+            per-node traits limit. Traits added prior to reaching the limit
+            will not be removed.
+        :raises: NodeLocked if node is locked by another conductor.
+        :raises: NodeNotFound if the node does not exist.
+        """
+        LOG.debug("RPC add_node_traits called for the node %(node_id)s with "
+                  "traits %(traits)s", {'node_id': node_id, 'traits': traits})
+        with task_manager.acquire(context, node_id,
+                                  purpose='add node traits'):
+            if replace:
+                objects.TraitList.create(context, node_id=node_id,
+                                         traits=traits)
+            else:
+                for trait in traits:
+                    trait = objects.Trait(context, node_id=node_id,
+                                          trait=trait)
+                    trait.create()
+
+    @METRICS.timer('ConductorManager.remove_node_traits')
+    @messaging.expected_exceptions(exception.NodeLocked,
+                                   exception.NodeNotFound,
+                                   exception.NodeTraitNotFound)
+    def remove_node_traits(self, context, node_id, traits):
+        """Remove some or all traits from a node.
+
+        :param context: request context.
+        :param node_id: node ID or UUID.
+        :param traits: a list of traits to remove from the node, or None. If
+            None, all traits will be removed from the node.
+        :raises: NodeLocked if node is locked by another conductor.
+        :raises: NodeNotFound if the node does not exist.
+        :raises: NodeTraitNotFound if one of the traits is not found. Traits
+            removed prior to the non-existent trait will not be replaced.
+        """
+        LOG.debug("RPC remove_node_traits called for the node %(node_id)s "
+                  "with traits %(traits)s",
+                  {'node_id': node_id, 'traits': traits})
+        with task_manager.acquire(context, node_id,
+                                  purpose='remove node traits'):
+            if traits is None:
+                objects.TraitList.destroy(context, node_id=node_id)
+            else:
+                for trait in traits:
+                    objects.Trait.destroy(context, node_id=node_id,
+                                          trait=trait)
 
 
 @METRICS.timer('get_vendor_passthru_metadata')

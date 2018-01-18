@@ -527,3 +527,32 @@ class RPCAPITestCase(db_base.DbTestCase):
 
     def test_can_send_rescue_false(self):
         self._test_can_send_rescue(False)
+
+    def test_add_node_traits(self):
+        self._test_rpcapi('add_node_traits',
+                          'call',
+                          node_id='fake-node',
+                          traits=['trait1'],
+                          version='1.44')
+
+    def test_add_node_traits_replace(self):
+        self._test_rpcapi('add_node_traits',
+                          'call',
+                          node_id='fake-node',
+                          traits=['trait1'],
+                          replace=True,
+                          version='1.44')
+
+    def test_remove_node_traits(self):
+        self._test_rpcapi('remove_node_traits',
+                          'call',
+                          node_id='fake-node',
+                          traits=['trait1'],
+                          version='1.44')
+
+    def test_remove_node_traits_all(self):
+        self._test_rpcapi('remove_node_traits',
+                          'call',
+                          node_id='fake-node',
+                          traits=None,
+                          version='1.44')
