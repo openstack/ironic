@@ -513,4 +513,17 @@ def create_test_node_trait(**kw):
     """
     trait = get_test_node_trait(**kw)
     dbapi = db_api.get_instance()
-    return dbapi.add_node_trait(trait['node_id'], trait['trait'])
+    return dbapi.add_node_trait(trait['node_id'], trait['trait'],
+                                trait['version'])
+
+
+def create_test_node_traits(traits, **kw):
+    """Create test node trait entries in DB and return NodeTrait DB objects.
+
+    Function to be used to create test NodeTrait objects in the database.
+
+    :param traits: a list of Strings; traits to create.
+    :param kw: kwargs with overriding values for trait's attributes.
+    :returns: a list of test NodeTrait DB objects.
+    """
+    return [create_test_node_trait(trait=trait, **kw) for trait in traits]

@@ -1306,7 +1306,7 @@ class Connection(api.Connection):
                 max_traits=MAX_TRAITS_PER_NODE)
 
     @oslo_db_api.retry_on_deadlock
-    def set_node_traits(self, node_id, traits):
+    def set_node_traits(self, node_id, traits, version):
         # Remove duplicate traits
         traits = set(traits)
 
@@ -1317,7 +1317,8 @@ class Connection(api.Connection):
             self.unset_node_traits(node_id)
             node_traits = []
             for trait in traits:
-                node_trait = models.NodeTrait(trait=trait, node_id=node_id)
+                node_trait = models.NodeTrait(trait=trait, node_id=node_id,
+                                              version=version)
                 session.add(node_trait)
                 node_traits.append(node_trait)
 
@@ -1337,8 +1338,9 @@ class Connection(api.Connection):
         return result
 
     @oslo_db_api.retry_on_deadlock
-    def add_node_trait(self, node_id, trait):
-        node_trait = models.NodeTrait(trait=trait, node_id=node_id)
+    def add_node_trait(self, node_id, trait, version):
+        node_trait = models.NodeTrait(trait=trait, node_id=node_id,
+                                      version=version)
 
         self._check_node_exists(node_id)
         try:

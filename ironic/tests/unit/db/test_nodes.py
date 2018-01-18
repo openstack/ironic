@@ -66,7 +66,8 @@ class DbNodeTestCase(base.DbTestCase):
     def test_get_node_by_id(self):
         node = utils.create_test_node()
         self.dbapi.set_node_tags(node.id, ['tag1', 'tag2'])
-        self.dbapi.set_node_traits(node.id, ['trait1', 'trait2'])
+        utils.create_test_node_traits(node_id=node.id,
+                                      traits=['trait1', 'trait2'])
         res = self.dbapi.get_node_by_id(node.id)
         self.assertEqual(node.id, res.id)
         self.assertEqual(node.uuid, res.uuid)
@@ -77,7 +78,8 @@ class DbNodeTestCase(base.DbTestCase):
     def test_get_node_by_uuid(self):
         node = utils.create_test_node()
         self.dbapi.set_node_tags(node.id, ['tag1', 'tag2'])
-        self.dbapi.set_node_traits(node.id, ['trait1', 'trait2'])
+        utils.create_test_node_traits(node_id=node.id,
+                                      traits=['trait1', 'trait2'])
         res = self.dbapi.get_node_by_uuid(node.uuid)
         self.assertEqual(node.id, res.id)
         self.assertEqual(node.uuid, res.uuid)
@@ -88,7 +90,8 @@ class DbNodeTestCase(base.DbTestCase):
     def test_get_node_by_name(self):
         node = utils.create_test_node()
         self.dbapi.set_node_tags(node.id, ['tag1', 'tag2'])
-        self.dbapi.set_node_traits(node.id, ['trait1', 'trait2'])
+        utils.create_test_node_traits(node_id=node.id,
+                                      traits=['trait1', 'trait2'])
         res = self.dbapi.get_node_by_name(node.name)
         self.assertEqual(node.id, res.id)
         self.assertEqual(node.uuid, res.uuid)
@@ -299,7 +302,8 @@ class DbNodeTestCase(base.DbTestCase):
         node = utils.create_test_node(
             instance_uuid='12345678-9999-0000-aaaa-123456789012')
         self.dbapi.set_node_tags(node.id, ['tag1', 'tag2'])
-        self.dbapi.set_node_traits(node.id, ['trait1', 'trait2'])
+        utils.create_test_node_traits(node_id=node.id,
+                                      traits=['trait1', 'trait2'])
 
         res = self.dbapi.get_node_by_instance(node.instance_uuid)
         self.assertEqual(node.uuid, res.uuid)
@@ -528,7 +532,8 @@ class DbNodeTestCase(base.DbTestCase):
     def test_reserve_node(self):
         node = utils.create_test_node()
         self.dbapi.set_node_tags(node.id, ['tag1', 'tag2'])
-        self.dbapi.set_node_traits(node.id, ['trait1', 'trait2'])
+        utils.create_test_node_traits(node_id=node.id,
+                                      traits=['trait1', 'trait2'])
         uuid = node.uuid
 
         r1 = 'fake-reservation'

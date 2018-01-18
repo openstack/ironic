@@ -24,31 +24,34 @@ class DbNodeTraitTestCase(base.DbTestCase):
         self.node = db_utils.create_test_node()
 
     def test_set_node_traits(self):
-        result = self.dbapi.set_node_traits(self.node.id, ['trait1', 'trait2'])
+        result = self.dbapi.set_node_traits(self.node.id, ['trait1', 'trait2'],
+                                            '1.0')
         self.assertEqual(self.node.id, result[0].node_id)
         self.assertItemsEqual(['trait1', 'trait2'],
                               [trait.trait for trait in result])
 
-        result = self.dbapi.set_node_traits(self.node.id, [])
+        result = self.dbapi.set_node_traits(self.node.id, [], '1.0')
         self.assertEqual([], result)
 
     def test_set_node_traits_duplicate(self):
         result = self.dbapi.set_node_traits(self.node.id,
-                                            ['trait1', 'trait2', 'trait2'])
+                                            ['trait1', 'trait2', 'trait2'],
+                                            '1.0')
         self.assertEqual(self.node.id, result[0].node_id)
         self.assertItemsEqual(['trait1', 'trait2'],
                               [trait.trait for trait in result])
 
     def test_set_node_traits_at_limit(self):
         traits = ['trait%d' % n for n in range(50)]
-        result = self.dbapi.set_node_traits(self.node.id, traits)
+        result = self.dbapi.set_node_traits(self.node.id, traits, '1.0')
         self.assertEqual(self.node.id, result[0].node_id)
         self.assertItemsEqual(traits, [trait.trait for trait in result])
 
     def test_set_node_traits_over_limit(self):
         traits = ['trait%d' % n for n in range(51)]
         self.assertRaises(exception.InvalidParameterValue,
-                          self.dbapi.set_node_traits, self.node.id, traits)
+                          self.dbapi.set_node_traits, self.node.id, traits,
+                          '1.0')
         # Ensure the traits were not set.
         result = self.dbapi.get_node_traits_by_node_id(self.node.id)
         self.assertEqual([], result)
@@ -56,10 +59,11 @@ class DbNodeTraitTestCase(base.DbTestCase):
     def test_set_node_traits_node_not_exist(self):
         self.assertRaises(exception.NodeNotFound,
                           self.dbapi.set_node_traits, '1234',
-                          ['trait1', 'trait2'])
+                          ['trait1', 'trait2'], '1.0')
 
     def test_get_node_traits_by_node_id(self):
-        self.dbapi.set_node_traits(self.node.id, ['trait1', 'trait2'])
+        db_utils.create_test_node_traits(node_id=self.node.id,
+                                         traits=['trait1', 'trait2'])
         result = self.dbapi.get_node_traits_by_node_id(self.node.id)
         self.assertEqual(self.node.id, result[0].node_id)
         self.assertItemsEqual(['trait1', 'trait2'],
@@ -74,7 +78,8 @@ class DbNodeTraitTestCase(base.DbTestCase):
                           self.dbapi.get_node_traits_by_node_id, '123')
 
     def test_unset_node_traits(self):
-        self.dbapi.set_node_traits(self.node.id, ['trait1', 'trait2'])
+        db_utils.create_test_node_traits(node_id=self.node.id,
+                                         traits=['trait1', 'trait2'])
         self.dbapi.unset_node_traits(self.node.id)
         result = self.dbapi.get_node_traits_by_node_id(self.node.id)
         self.assertEqual([], result)
@@ -89,13 +94,13 @@ class DbNodeTraitTestCase(base.DbTestCase):
                           self.dbapi.unset_node_traits, '123')
 
     def test_add_node_trait(self):
-        result = self.dbapi.add_node_trait(self.node.id, 'trait1')
+        result = self.dbapi.add_node_trait(self.node.id, 'trait1', '1.0')
         self.assertEqual(self.node.id, result.node_id)
         self.assertEqual('trait1', result.trait)
 
     def test_add_node_trait_duplicate(self):
-        self.dbapi.add_node_trait(self.node.id, 'trait1')
-        result = self.dbapi.add_node_trait(self.node.id, 'trait1')
+        self.dbapi.add_node_trait(self.node.id, 'trait1', '1.0')
+        result = self.dbapi.add_node_trait(self.node.id, 'trait1', '1.0')
         self.assertEqual(self.node.id, result.node_id)
         self.assertEqual('trait1', result.trait)
         result = self.dbapi.get_node_traits_by_node_id(self.node.id)
@@ -103,36 +108,38 @@ class DbNodeTraitTestCase(base.DbTestCase):
 
     def test_add_node_trait_at_limit(self):
         traits = ['trait%d' % n for n in range(49)]
-        self.dbapi.set_node_traits(self.node.id, traits)
+        db_utils.create_test_node_traits(node_id=self.node.id, traits=traits)
 
-        result = self.dbapi.add_node_trait(self.node.id, 'trait49')
+        result = self.dbapi.add_node_trait(self.node.id, 'trait49', '1.0')
         self.assertEqual(self.node.id, result.node_id)
         self.assertEqual('trait49', result.trait)
 
     def test_add_node_trait_duplicate_at_limit(self):
         traits = ['trait%d' % n for n in range(50)]
-        self.dbapi.set_node_traits(self.node.id, traits)
+        db_utils.create_test_node_traits(node_id=self.node.id, traits=traits)
 
-        result = self.dbapi.add_node_trait(self.node.id, 'trait49')
+        result = self.dbapi.add_node_trait(self.node.id, 'trait49', '1.0')
         self.assertEqual(self.node.id, result.node_id)
         self.assertEqual('trait49', result.trait)
 
     def test_add_node_trait_over_limit(self):
         traits = ['trait%d' % n for n in range(50)]
-        self.dbapi.set_node_traits(self.node.id, traits)
+        db_utils.create_test_node_traits(node_id=self.node.id, traits=traits)
 
         self.assertRaises(exception.InvalidParameterValue,
-                          self.dbapi.add_node_trait, self.node.id, 'trait50')
+                          self.dbapi.add_node_trait, self.node.id, 'trait50',
+                          '1.0')
         # Ensure the trait was not added.
         result = self.dbapi.get_node_traits_by_node_id(self.node.id)
         self.assertNotIn('trait50', [trait.trait for trait in result])
 
     def test_add_node_trait_node_not_exist(self):
         self.assertRaises(exception.NodeNotFound,
-                          self.dbapi.add_node_trait, '123', 'trait1')
+                          self.dbapi.add_node_trait, '123', 'trait1', '1.0')
 
     def test_delete_node_trait(self):
-        self.dbapi.set_node_traits(self.node.id, ['trait1', 'trait2'])
+        db_utils.create_test_node_traits(node_id=self.node.id,
+                                         traits=['trait1', 'trait2'])
         self.dbapi.delete_node_trait(self.node.id, 'trait1')
         result = self.dbapi.get_node_traits_by_node_id(self.node.id)
         self.assertEqual(1, len(result))
@@ -147,7 +154,8 @@ class DbNodeTraitTestCase(base.DbTestCase):
                           self.dbapi.delete_node_trait, '123', 'trait1')
 
     def test_node_trait_exists(self):
-        self.dbapi.set_node_traits(self.node.id, ['trait1', 'trait2'])
+        db_utils.create_test_node_traits(node_id=self.node.id,
+                                         traits=['trait1', 'trait2'])
         result = self.dbapi.node_trait_exists(self.node.id, 'trait1')
         self.assertTrue(result)
 

@@ -924,13 +924,14 @@ class Connection(object):
         # TODO(rloo) Delete this in Rocky cycle.
 
     @abc.abstractmethod
-    def set_node_traits(self, node_id, traits):
+    def set_node_traits(self, node_id, traits, version):
         """Replace all of the node traits with specified list of traits.
 
         This ignores duplicate traits in the specified list.
 
         :param node_id: The id of a node.
         :param traits: List of traits.
+        :param version: the version of the object.Trait.
         :returns: A list of NodeTrait objects.
         :raises: InvalidParameterValue if setting the traits would exceed the
             per-node traits limit.
@@ -955,7 +956,7 @@ class Connection(object):
         """
 
     @abc.abstractmethod
-    def add_node_trait(self, node_id, trait):
+    def add_node_trait(self, node_id, trait, version):
         """Add trait to the node.
 
         If the node_id and trait pair already exists, this should still
@@ -963,6 +964,7 @@ class Connection(object):
 
         :param node_id: The id of a node.
         :param trait: A trait string.
+        :param version: the version of the object.Trait.
         :returns: the NodeTrait object.
         :raises: InvalidParameterValue if adding the trait would exceed the
             per-node traits limit.
