@@ -27,24 +27,8 @@
     - shell:
         cmd: |
           cat << 'EOF' >> ironic-extra-vars
-            export DEVSTACK_LOCAL_CONFIG+=$'\n'"IRONIC_DEPLOY_DRIVER_ISCSI_WITH_IPA=True"
-          # Standardize VM size for each supported ramdisk
-          case "tinyipa" in
-              'tinyipa')
-                  export DEVSTACK_LOCAL_CONFIG+=$'\n'"IRONIC_VM_SPECS_RAM=384"
-                  export DEVSTACK_LOCAL_CONFIG+=$'\n'"IRONIC_RAMDISK_TYPE=tinyipa"
-                  ;;
-              'tinyipa256')
-                  export DEVSTACK_LOCAL_CONFIG+=$'\n'"IRONIC_VM_SPECS_RAM=256"
-                  export DEVSTACK_LOCAL_CONFIG+=$'\n'"IRONIC_RAMDISK_TYPE=tinyipa"
-                  ;;
-              'coreos')
-                  export DEVSTACK_LOCAL_CONFIG+=$'\n'"IRONIC_VM_SPECS_RAM=1280"
-                  export DEVSTACK_LOCAL_CONFIG+=$'\n'"IRONIC_RAMDISK_TYPE=coreos"
-                  ;;
-          # if using a ramdisk without a known good value, use the devstack
-          # default by not exporting any value for IRONIC_VM_SPECS_RAM
-          esac
+            export DEVSTACK_LOCAL_CONFIG+=$'\n'"IRONIC_VM_SPECS_RAM=384"
+            export DEVSTACK_LOCAL_CONFIG+=$'\n'"IRONIC_RAMDISK_TYPE=tinyipa"
 
           EOF
         chdir: '{{ ansible_user_dir }}/workspace'
@@ -128,28 +112,12 @@
           export DEVSTACK_LOCAL_CONFIG+=$'\n'"SWIFT_ENABLE_TEMPURLS=True"
           export DEVSTACK_LOCAL_CONFIG+=$'\n'"SWIFT_TEMPURL_KEY=secretkey"
 
-          if [ "wholedisk" == "wholedisk" ] ; then
-            export DEVSTACK_LOCAL_CONFIG+=$'\n'"IRONIC_TEMPEST_WHOLE_DISK_IMAGE=True"
-            export DEVSTACK_LOCAL_CONFIG+=$'\n'"IRONIC_VM_EPHEMERAL_DISK=0"
-          else
-            export DEVSTACK_LOCAL_CONFIG+=$'\n'"IRONIC_TEMPEST_WHOLE_DISK_IMAGE=False"
-            export DEVSTACK_LOCAL_CONFIG+=$'\n'"IRONIC_VM_EPHEMERAL_DISK=1"
-          fi
+          export DEVSTACK_LOCAL_CONFIG+=$'\n'"IRONIC_TEMPEST_WHOLE_DISK_IMAGE=True"
+          export DEVSTACK_LOCAL_CONFIG+=$'\n'"IRONIC_VM_EPHEMERAL_DISK=0"
 
-          if [ -n "" ] ; then
-            export DEVSTACK_GATE_IRONIC_BUILD_RAMDISK=1
-            export DEVSTACK_LOCAL_CONFIG+=$'\n'"IRONIC_INSPECTOR_BUILD_RAMDISK=True"
-            export DEVSTACK_LOCAL_CONFIG+=$'\n'"USE_SUBNETPOOL=False"
-          else
-            export DEVSTACK_GATE_IRONIC_BUILD_RAMDISK=0
-            export DEVSTACK_LOCAL_CONFIG+=$'\n'"IRONIC_INSPECTOR_BUILD_RAMDISK=False"
-          fi
+          export DEVSTACK_GATE_IRONIC_BUILD_RAMDISK=0
+          export DEVSTACK_LOCAL_CONFIG+=$'\n'"IRONIC_INSPECTOR_BUILD_RAMDISK=False"
 
-          if [ "bios" == "uefi" ] ; then
-            export DEVSTACK_LOCAL_CONFIG+=$'\n'"IRONIC_BOOT_MODE=uefi"
-          fi
-
-          export DEVSTACK_PROJECT_FROM_GIT=""
           export DEVSTACK_LOCAL_CONFIG+=$'\n'"IRONIC_VM_COUNT=7"
 
           # Ensure the ironic-vars-EARLY file exists

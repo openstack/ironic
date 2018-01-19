@@ -38,6 +38,5 @@
     experimental:
       jobs:
         - ironic-dsvm-functional
-        - ironic-tempest-dsvm-ipa-resourceclasses-partition-pxe_ipmitool-tinyipa
         - ironic-tempest-dsvm-parallel
         - ironic-tempest-dsvm-pxe_ipa-full
