@@ -91,13 +91,14 @@ class ConductorAPI(object):
     |    1.40 - Added inject_nmi
     |    1.41 - Added create_port
     |    1.42 - Added optional agent_version to heartbeat
+    |    1.43 - Added do_node_rescue, do_node_unrescue and can_send_rescue
 
     """
 
     # NOTE(rloo): This must be in sync with manager.ConductorManager's.
     # NOTE(pas-ha): This also must be in sync with
     #               ironic.common.release_mappings.RELEASE_MAPPING['master']
-    RPC_API_VERSION = '1.42'
+    RPC_API_VERSION = '1.43'
 
     def __init__(self, topic=None):
         super(ConductorAPI, self).__init__()
@@ -157,6 +158,10 @@ class ConductorAPI(object):
     def can_send_create_port(self):
         """Return whether the RPCAPI supports the create_port method."""
         return self.client.can_send_version("1.41")
+
+    def can_send_rescue(self):
+        """Return whether the RPCAPI supports node rescue methods."""
+        return self.client.can_send_version("1.43")
 
     def create_node(self, context, node_obj, topic=None):
         """Synchronously, have a conductor validate and create a node.
@@ -975,3 +980,40 @@ class ConductorAPI(object):
         """
         cctxt = self.client.prepare(topic=topic or self.topic, version='1.38')
         return cctxt.call(context, 'vif_list', node_id=node_id)
+
+    def do_node_rescue(self, context, node_id, rescue_password, topic=None):
+        """Signal to conductor service to perform a rescue.
+
+        :param context: request context.
+        :param node_id: node ID or UUID.
+        :param rescue_password: A string representing the password to be set
+            inside the rescue environment.
+        :param topic: RPC topic. Defaults to self.topic.
+        :raises: InstanceRescueFailure
+        :raises: NoFreeConductorWorker when there is no free worker to start
+                 async task.
+
+        The node must already be configured and in the appropriate
+        state before this method is called.
+
+        """
+        cctxt = self.client.prepare(topic=topic or self.topic, version='1.43')
+        return cctxt.call(context, 'do_node_rescue', node_id=node_id,
+                          rescue_password=rescue_password)
+
+    def do_node_unrescue(self, context, node_id, topic=None):
+        """Signal to conductor service to perform an unrescue.
+
+        :param context: request context.
+        :param node_id: node ID or UUID.
+        :param topic: RPC topic. Defaults to self.topic.
+        :raises: InstanceUnrescueFailure
+        :raises: NoFreeConductorWorker when there is no free worker to start
+                 async task.
+
+        The node must already be configured and in the appropriate
+        state before this method is called.
+
+        """
+        cctxt = self.client.prepare(topic=topic or self.topic, version='1.43')
+        return cctxt.call(context, 'do_node_unrescue', node_id=node_id)

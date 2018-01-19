@@ -762,3 +762,13 @@ class AgentAPIError(IronicException):
 
 class NodeTraitNotFound(IronicException):
     _msg_fmt = _("Node %(node_id)s doesn't have a trait '%(trait)s'")
+
+
+class InstanceRescueFailure(IronicException):
+    _msg_fmt = _('Failed to rescue instance %(instance)s for node '
+                 '%(node)s: %(reason)s')
+
+
+class InstanceUnrescueFailure(IronicException):
+    _msg_fmt = _('Failed to unrescue instance %(instance)s for node '
+                 '%(node)s: %(reason)s')
