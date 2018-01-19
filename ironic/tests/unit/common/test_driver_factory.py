@@ -480,7 +480,8 @@ class CheckAndUpdateNodeInterfacesTestCase(db_base.DbTestCase):
 class DefaultInterfaceTestCase(db_base.DbTestCase):
     def setUp(self):
         super(DefaultInterfaceTestCase, self).setUp()
-        self.config(enabled_hardware_types=['manual-management'])
+        self.config(enabled_hardware_types=['manual-management'],
+                    enabled_drivers=['fake'])
         self.driver = driver_factory.get_hardware_type('manual-management')
 
     def test_from_config(self):
@@ -493,16 +494,27 @@ class DefaultInterfaceTestCase(db_base.DbTestCase):
         iface = driver_factory.default_interface(self.driver, 'storage')
         self.assertEqual('noop', iface)
 
+    def test_network_from_additional_defaults_hardware_type(self):
+        self.config(default_network_interface=None)
+        self.config(dhcp_provider='none', group='dhcp')
+        self.config(enabled_network_interfaces=['neutron'])
+        iface = driver_factory.default_interface(self.driver, 'network')
+        self.assertEqual('neutron', iface)
+
     def test_network_from_additional_defaults(self):
         self.config(default_network_interface=None)
         self.config(dhcp_provider='none', group='dhcp')
-        iface = driver_factory.default_interface(self.driver, 'network')
+        iface = driver_factory.default_interface(
+            driver_factory.get_driver_or_hardware_type('fake'),
+            'network')
         self.assertEqual('noop', iface)
 
     def test_network_from_additional_defaults_neutron_dhcp(self):
         self.config(default_network_interface=None)
         self.config(dhcp_provider='neutron', group='dhcp')
-        iface = driver_factory.default_interface(self.driver, 'network')
+        iface = driver_factory.default_interface(
+            driver_factory.get_driver_or_hardware_type('fake'),
+            'network')
         self.assertEqual('flat', iface)
 
     def test_calculated_with_one(self):

@@ -80,3 +80,10 @@ class FakeHardware(hardware_type.AbstractHardwareType):
     def supported_vendor_interfaces(self):
         """List of classes of supported rescue interfaces."""
         return [fake.FakeVendorB, fake.FakeVendorA]
+
+    @property
+    def supported_network_interfaces(self):
+        # import late to avoid circular imports
+        from ironic.drivers.modules.network import flat
+        from ironic.drivers.modules.network import noop
+        return [flat.FlatNetwork, noop.NoopNetwork]

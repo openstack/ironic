@@ -1,0 +1,9 @@
+---
+fixes:
+  - |
+    Fixes a bug seen when no ``default_network_interface`` is set, because the
+    conductor tries use the ``flat`` network interface instead even if it is
+    not included in the conductor's ``enabled_network_interfaces`` config
+    option.  Resulting in `Failed to register hardware types` error. See
+    `bug 1744332 <https://bugs.launchpad.net/ironic/+bug/1744332>`_
+    for more information.
