@@ -57,7 +57,7 @@ class OnlineMigrationTestCase(db_base.DbTestCase):
         mock_func = mock.MagicMock(side_effect=((15, 15),), __name__='foo')
         with mock.patch.object(self.dbapi, 'foo', mock_func, create=True):
             self.assertTrue(
-                self.db_cmds._run_migration_functions(self.context, 50))
+                self.db_cmds._run_migration_functions(self.context, 50, {}))
             mock_func.assert_called_once_with(self.context, 50)
 
     @mock.patch.object(dbsync, 'ONLINE_MIGRATIONS', autospec=True)
@@ -65,7 +65,7 @@ class OnlineMigrationTestCase(db_base.DbTestCase):
         # No migration functions to run
         mock_migrations.__iter__.return_value = ()
         self.assertTrue(
-            self.db_cmds._run_migration_functions(self.context, 50))
+            self.db_cmds._run_migration_functions(self.context, 50, {}))
 
     @mock.patch.object(dbsync, 'ONLINE_MIGRATIONS', autospec=True)
     def test__run_migration_functions_exception(self, mock_migrations):
@@ -76,7 +76,7 @@ class OnlineMigrationTestCase(db_base.DbTestCase):
         with mock.patch.object(self.dbapi, 'foo', mock_func, create=True):
             self.assertRaises(
                 TypeError, self.db_cmds._run_migration_functions,
-                self.context, 50)
+                self.context, 50, {})
         mock_func.assert_called_once_with(self.context, 50)
 
     @mock.patch.object(dbsync, 'ONLINE_MIGRATIONS', autospec=True)
@@ -89,10 +89,12 @@ class OnlineMigrationTestCase(db_base.DbTestCase):
         with mock.patch.object(self.dbapi, 'func1', mock_func1, create=True):
             with mock.patch.object(self.dbapi, 'func2', mock_func2,
                                    create=True):
-                self.assertTrue(
-                    self.db_cmds._run_migration_functions(self.context, 50))
-        mock_func1.assert_called_once_with(self.context, 50)
-        mock_func2.assert_called_once_with(self.context, 35)
+                options = {'func1': {'key': 'value'},
+                           'func2': {'x': 1, 'y': 2}}
+                self.assertTrue(self.db_cmds._run_migration_functions(
+                    self.context, 50, options))
+        mock_func1.assert_called_once_with(self.context, 50, key='value')
+        mock_func2.assert_called_once_with(self.context, 35, x=1, y=2)
 
     @mock.patch.object(dbsync, 'ONLINE_MIGRATIONS', autospec=True)
     def test__run_migration_functions_2_notdone(self, mock_migrations):
@@ -104,8 +106,8 @@ class OnlineMigrationTestCase(db_base.DbTestCase):
         with mock.patch.object(self.dbapi, 'func1', mock_func1, create=True):
             with mock.patch.object(self.dbapi, 'func2', mock_func2,
                                    create=True):
-                self.assertFalse(
-                    self.db_cmds._run_migration_functions(self.context, 10))
+                self.assertFalse(self.db_cmds._run_migration_functions(
+                    self.context, 10, {}))
         mock_func1.assert_called_once_with(self.context, 10)
         self.assertFalse(mock_func2.called)
 
@@ -119,8 +121,8 @@ class OnlineMigrationTestCase(db_base.DbTestCase):
         with mock.patch.object(self.dbapi, 'func1', mock_func1, create=True):
             with mock.patch.object(self.dbapi, 'func2', mock_func2,
                                    create=True):
-                self.assertFalse(
-                    self.db_cmds._run_migration_functions(self.context, 10))
+                self.assertFalse(self.db_cmds._run_migration_functions(
+                    self.context, 10, {}))
         mock_func1.assert_called_once_with(self.context, 10)
         self.assertFalse(mock_func2.called)
 
@@ -134,8 +136,8 @@ class OnlineMigrationTestCase(db_base.DbTestCase):
         with mock.patch.object(self.dbapi, 'func1', mock_func1, create=True):
             with mock.patch.object(self.dbapi, 'func2', mock_func2,
                                    create=True):
-                self.assertTrue(
-                    self.db_cmds._run_migration_functions(self.context, 15))
+                self.assertTrue(self.db_cmds._run_migration_functions(
+                    self.context, 15, {}))
         mock_func1.assert_called_once_with(self.context, 15)
         mock_func2.assert_called_once_with(self.context, 5)
 
@@ -151,12 +153,12 @@ class OnlineMigrationTestCase(db_base.DbTestCase):
         with mock.patch.object(self.dbapi, 'func1', mock_func1, create=True):
             with mock.patch.object(self.dbapi, 'func2', mock_func2,
                                    create=True):
-                self.assertFalse(
-                    self.db_cmds._run_migration_functions(self.context, 10))
+                self.assertFalse(self.db_cmds._run_migration_functions(
+                    self.context, 10, {}))
                 mock_func1.assert_called_once_with(self.context, 10)
                 self.assertFalse(mock_func2.called)
-                self.assertTrue(
-                    self.db_cmds._run_migration_functions(self.context, 10))
+                self.assertTrue(self.db_cmds._run_migration_functions(
+                    self.context, 10, {}))
                 mock_func1.assert_has_calls((mock.call(self.context, 10),) * 2)
                 mock_func2.assert_called_once_with(self.context, 10)
 
@@ -167,7 +169,41 @@ class OnlineMigrationTestCase(db_base.DbTestCase):
         exit = self.assertRaises(SystemExit,
                                  self.db_cmds._run_online_data_migrations)
         self.assertEqual(0, exit.code)
-        mock_functions.assert_called_once_with(self.db_cmds, mock.ANY, 50)
+        mock_functions.assert_called_once_with(self.db_cmds, mock.ANY, 50, {})
+
+    @mock.patch.object(dbsync.DBCommand, '_run_migration_functions',
+                       autospec=True)
+    def test__run_online_data_migrations_with_options(self, mock_functions):
+        mock_functions.return_value = True
+        exit = self.assertRaises(SystemExit,
+                                 self.db_cmds._run_online_data_migrations,
+                                 options=["m1.key1=value1", "m1.key2=value2",
+                                          "m2.key3=value3"])
+        self.assertEqual(0, exit.code)
+        mock_functions.assert_called_once_with(self.db_cmds, mock.ANY, 50,
+                                               {'m1': {'key1': 'value1',
+                                                       'key2': 'value2'},
+                                                'm2': {'key3': 'value3'}})
+
+    @mock.patch.object(dbsync.DBCommand, '_run_migration_functions',
+                       autospec=True)
+    def test__run_online_data_migrations_invalid_option1(self, mock_functions):
+        mock_functions.return_value = True
+        exit = self.assertRaises(SystemExit,
+                                 self.db_cmds._run_online_data_migrations,
+                                 options=["m1key1=value1"])
+        self.assertEqual(127, exit.code)
+        self.assertFalse(mock_functions.called)
+
+    @mock.patch.object(dbsync.DBCommand, '_run_migration_functions',
+                       autospec=True)
+    def test__run_online_data_migrations_invalid_option2(self, mock_functions):
+        mock_functions.return_value = True
+        exit = self.assertRaises(SystemExit,
+                                 self.db_cmds._run_online_data_migrations,
+                                 options=["m1.key1value1"])
+        self.assertEqual(127, exit.code)
+        self.assertFalse(mock_functions.called)
 
     @mock.patch.object(dbsync.DBCommand, '_run_migration_functions',
                        autospec=True)
@@ -177,7 +213,7 @@ class OnlineMigrationTestCase(db_base.DbTestCase):
                                  self.db_cmds._run_online_data_migrations)
         self.assertEqual(0, exit.code)
         mock_functions.assert_has_calls(
-            (mock.call(self.db_cmds, mock.ANY, 50),) * 2)
+            (mock.call(self.db_cmds, mock.ANY, 50, {}),) * 2)
 
     @mock.patch.object(dbsync.DBCommand, '_run_migration_functions',
                        autospec=True)
@@ -187,7 +223,7 @@ class OnlineMigrationTestCase(db_base.DbTestCase):
                                  self.db_cmds._run_online_data_migrations,
                                  max_count=30)
         self.assertEqual(1, exit.code)
-        mock_functions.assert_called_once_with(self.db_cmds, mock.ANY, 30)
+        mock_functions.assert_called_once_with(self.db_cmds, mock.ANY, 30, {})
 
     @mock.patch.object(dbsync.DBCommand, '_run_migration_functions',
                        autospec=True)
@@ -204,4 +240,4 @@ class OnlineMigrationTestCase(db_base.DbTestCase):
     def test__run_online_data_migrations_exception(self, mock_functions):
         mock_functions.side_effect = TypeError("yuck")
         self.assertRaises(TypeError, self.db_cmds._run_online_data_migrations)
-        mock_functions.assert_called_once_with(self.db_cmds, mock.ANY, 50)
+        mock_functions.assert_called_once_with(self.db_cmds, mock.ANY, 50, {})

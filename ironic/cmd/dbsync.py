@@ -111,9 +111,10 @@ class DBCommand(object):
 
     def online_data_migrations(self):
         self._check_versions()
-        self._run_online_data_migrations(max_count=CONF.command.max_count)
+        self._run_online_data_migrations(max_count=CONF.command.max_count,
+                                         options=CONF.command.options)
 
-    def _run_migration_functions(self, context, max_count):
+    def _run_migration_functions(self, context, max_count, options):
         """Runs the migration functions.
 
         Runs the data migration functions in the ONLINE_MIGRATIONS list.
@@ -124,6 +125,8 @@ class DBCommand(object):
         :param: context: an admin context
         :param: max_count: the maximum number of objects (rows) to migrate;
             a value >= 1.
+        :param: options: migration options - dict mapping migration name
+            to a dictionary of options for this migration.
         :raises: Exception from the migration function
         :returns: Boolean value indicating whether migrations are done. Returns
             False if max_count objects have been migrated (since at that
@@ -135,10 +138,12 @@ class DBCommand(object):
 
         for migration_func_obj, migration_func_name in ONLINE_MIGRATIONS:
             migration_func = getattr(migration_func_obj, migration_func_name)
+            migration_opts = options.get(migration_func_name, {})
             num_to_migrate = max_count - total_migrated
             try:
                 total_to_do, num_migrated = migration_func(context,
-                                                           num_to_migrate)
+                                                           num_to_migrate,
+                                                           **migration_opts)
             except Exception as e:
                 print(_("Error while running %(migration)s: %(err)s.")
                       % {'migration': migration_func.__name__, 'err': e},
@@ -165,7 +170,7 @@ class DBCommand(object):
 
         return True
 
-    def _run_online_data_migrations(self, max_count=None):
+    def _run_online_data_migrations(self, max_count=None, options=None):
         """Perform online data migrations for the release.
 
         Online data migrations are done by running all the data migration
@@ -177,13 +182,27 @@ class DBCommand(object):
         :param: max_count: the maximum number of individual object migrations
             or modified rows, a value >= 1. If None, migrations are run in a
             loop in batches of 50, until completion.
+        :param: options: options to pass to migrations. List of values in the
+            form of <migration name>.<option>=<value>
         :raises: SystemExit. With exit code of:
             0: when all migrations are complete.
             1: when objects were migrated and the command needs to be
                re-run (because there might be more objects to be migrated)
-            127: if max_count is < 1
+            127: if max_count is < 1 or any option is invalid
         :raises: Exception from a migration function
         """
+        parsed_options = {}
+        if options:
+            for option in options:
+                try:
+                    migration, key_value = option.split('.', 1)
+                    key, value = key_value.split('=', 1)
+                except ValueError:
+                    print(_("Malformed option %s") % option)
+                    sys.exit(127)
+                else:
+                    parsed_options.setdefault(migration, {})[key] = value
+
         admin_context = context.get_admin_context()
         finished_migrating = False
         if max_count is None:
@@ -192,7 +211,7 @@ class DBCommand(object):
                     'completed.') % max_count)
             while not finished_migrating:
                 finished_migrating = self._run_migration_functions(
-                    admin_context, max_count)
+                    admin_context, max_count, parsed_options)
             print(_('Data migrations have completed.'))
             sys.exit(0)
 
@@ -201,7 +220,8 @@ class DBCommand(object):
             sys.exit(127)
 
         finished_migrating = self._run_migration_functions(admin_context,
-                                                           max_count)
+                                                           max_count,
+                                                           parsed_options)
         if finished_migrating:
             print(_('Data migrations have completed.'))
             sys.exit(0)
@@ -269,6 +289,11 @@ def add_command_parsers(subparsers):
         '--max-count', metavar='<number>', dest='max_count', type=int,
         help=_("Maximum number of objects to migrate. If unspecified, all "
                "objects are migrated."))
+    parser.add_argument(
+        '--option', metavar='<migration.opt=val>', action='append',
+        dest='options', default=[],
+        help=_("Options to pass to the migrations in the form of "
+               "<migration name>.<option>=<value>"))
     parser.set_defaults(func=command_object.online_data_migrations)
 
 

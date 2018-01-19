@@ -112,6 +112,11 @@ online_data_migrations
   If not specified, all the objects will be migrated (in batches of 50 to
   avoid locking the database for long periods of time).
 
+.. option:: --option <MIGRATION.KEY=VALUE>
+
+  If a migration accepts additional parameters, they can be passed via this
+  argument. It can be specified several times.
+
 This command will migrate objects in the database to their most recent versions.
 This command must be successfully run (return code 0) before upgrading to a
 future release.
@@ -124,7 +129,7 @@ It returns:
 
 * 0 (success) after migrations are finished or there are no data to migrate
 
-* 127 (error) if max-count is not a positive value
+* 127 (error) if max-count is not a positive value or an option is invalid
 
 * 2 (error) if the database is not compatible with this release. This command
   needs to be run using the previous release of ironic, before upgrading and
