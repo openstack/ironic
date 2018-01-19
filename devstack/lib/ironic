@@ -84,6 +84,9 @@ IRONIC_USE_WSGI=$(trueorfalse $IRONIC_USE_MOD_WSGI IRONIC_USE_WSGI)
 # Deploy callback timeout can be changed from its default (1800), if required.
 IRONIC_CALLBACK_TIMEOUT=${IRONIC_CALLBACK_TIMEOUT:-}
 
+# Ping timeout after the node becomes active
+IRONIC_PING_TIMEOUT=${IRONIC_PING_TIMEOUT:-}
+
 # Deploy to hardware platform
 IRONIC_HW_NODE_CPU=${IRONIC_HW_NODE_CPU:-1}
 IRONIC_HW_NODE_RAM=${IRONIC_HW_NODE_RAM:-512}
@@ -2461,6 +2464,9 @@ function ironic_configure_tempest {
     if [[ -n "$TEMPEST_BAREMETAL_MAX_MICROVERSION" ]]; then
         iniset $TEMPEST_CONFIG baremetal max_microversion $TEMPEST_BAREMETAL_MAX_MICROVERSION
     fi
+    if [[ -n "$IRONIC_PING_TIMEOUT" ]]; then
+        iniset $TEMPEST_CONFIG validation ping_timeout $IRONIC_PING_TIMEOUT
+    fi
 
     if is_service_enabled nova; then
         local bm_flavor_id
@@ -2503,10 +2509,8 @@ function ironic_configure_tempest {
         iniset $TEMPEST_CONFIG baremetal partition_image_ref $image_uuid
     fi
 
-    if [[ "$IRONIC_IPXE_ENABLED" == "True" ]] ; then
-        iniset $TEMPEST_CONFIG baremetal whole_disk_image_url "http://$IRONIC_HTTP_SERVER:$IRONIC_HTTP_PORT/${IRONIC_WHOLEDISK_IMAGE_NAME}.img"
-        iniset $TEMPEST_CONFIG baremetal whole_disk_image_checksum $(md5sum $FILES/${IRONIC_WHOLEDISK_IMAGE_NAME}.img)
-    fi
+    iniset $TEMPEST_CONFIG baremetal whole_disk_image_url "http://$IRONIC_HTTP_SERVER:$IRONIC_HTTP_PORT/${IRONIC_WHOLEDISK_IMAGE_NAME}.img"
+    iniset $TEMPEST_CONFIG baremetal whole_disk_image_checksum $(md5sum $FILES/${IRONIC_WHOLEDISK_IMAGE_NAME}.img)
 
     iniset $TEMPEST_CONFIG baremetal enabled_drivers ""
     iniset $TEMPEST_CONFIG baremetal enabled_hardware_types $IRONIC_ENABLED_HARDWARE_TYPES
