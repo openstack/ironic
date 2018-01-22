@@ -726,10 +726,32 @@ class Traits(base.APIBase):
         return cls(traits=traits)
 
 
-def _get_trait_names(traits):
-    if not traits:
-        return []
-    return [t.trait for t in traits]
+def _get_chassis_uuid(node):
+    """Return the UUID of a node's chassis, or None.
+
+    :param node: a Node object.
+    :returns: the UUID of the node's chassis, or None if the node has no
+        chassis set.
+    """
+    if not node.chassis_id:
+        return
+    chassis = objects.Chassis.get_by_id(pecan.request.context, node.chassis_id)
+    return chassis.uuid
+
+
+def _make_trait_list(context, node_id, traits):
+    """Return a TraitList object for the specified node and traits.
+
+    The Trait objects will not be created in the database.
+
+    :param context: a request context.
+    :param node_id: the ID of a node.
+    :param traits: a list of trait strings to add to the TraitList.
+    :returns: a TraitList object.
+    """
+    trait_objs = [objects.Trait(context, node_id=node_id, trait=t)
+                  for t in traits]
+    return objects.TraitList(context, objects=trait_objs)
 
 
 class NodeTraitsController(rest.RestController):
@@ -747,7 +769,7 @@ class NodeTraitsController(rest.RestController):
         node = api_utils.get_rpc_node(self.node_ident)
         traits = objects.TraitList.get_by_node_id(pecan.request.context,
                                                   node.id)
-        return Traits(traits=_get_trait_names(traits))
+        return Traits(traits=traits.get_trait_names())
 
     @METRICS.timer('NodeTraitsController.put')
     @expose.expose(None, wtypes.text, wtypes.ArrayType(str),
@@ -761,7 +783,8 @@ class NodeTraitsController(rest.RestController):
             Mutually exclusive with 'trait'. If not None, replaces the node's
             traits with this list.
         """
-        cdict = pecan.request.context.to_policy_values()
+        context = pecan.request.context
+        cdict = context.to_policy_values()
         policy.authorize('baremetal:node:traits:set', cdict, cdict)
         node = api_utils.get_rpc_node(self.node_ident)
 
@@ -781,16 +804,27 @@ class NodeTraitsController(rest.RestController):
                 raise exception.Invalid(msg)
             traits = [trait]
             replace = False
+            new_traits = {t.trait for t in node.traits} | {trait}
         else:
             replace = True
+            new_traits = set(traits)
 
         for trait in traits:
             api_utils.validate_trait(trait)
 
-        topic = pecan.request.rpcapi.get_topic_for(node)
-        pecan.request.rpcapi.add_node_traits(
-            pecan.request.context, node.id, traits, replace=replace,
-            topic=topic)
+        # Update the node's traits to reflect the desired state.
+        node.traits = _make_trait_list(context, node.id, sorted(new_traits))
+        node.obj_reset_changes()
+        chassis_uuid = _get_chassis_uuid(node)
+        notify.emit_start_notification(context, node, 'update',
+                                       chassis_uuid=chassis_uuid)
+        with notify.handle_error_notification(context, node, 'update',
+                                              chassis_uuid=chassis_uuid):
+            topic = pecan.request.rpcapi.get_topic_for(node)
+            pecan.request.rpcapi.add_node_traits(
+                context, node.id, traits, replace=replace, topic=topic)
+        notify.emit_end_notification(context, node, 'update',
+                                     chassis_uuid=chassis_uuid)
 
     @METRICS.timer('NodeTraitsController.delete')
     @expose.expose(None, wtypes.text,
@@ -801,18 +835,31 @@ class NodeTraitsController(rest.RestController):
         :param trait: String value; trait to remove from a node, or None. If
                       None, all traits are removed.
         """
-        cdict = pecan.request.context.to_policy_values()
+        context = pecan.request.context
+        cdict = context.to_policy_values()
         policy.authorize('baremetal:node:traits:delete', cdict, cdict)
         node = api_utils.get_rpc_node(self.node_ident)
 
         if trait:
             traits = [trait]
+            new_traits = {t.trait for t in node.traits} - {trait}
         else:
             traits = None
+            new_traits = set()
 
-        topic = pecan.request.rpcapi.get_topic_for(node)
-        pecan.request.rpcapi.remove_node_traits(
-            pecan.request.context, node.id, traits, topic=topic)
+        # Update the node's traits to reflect the desired state.
+        node.traits = _make_trait_list(context, node.id, sorted(new_traits))
+        node.obj_reset_changes()
+        chassis_uuid = _get_chassis_uuid(node)
+        notify.emit_start_notification(context, node, 'update',
+                                       chassis_uuid=chassis_uuid)
+        with notify.handle_error_notification(context, node, 'update',
+                                              chassis_uuid=chassis_uuid):
+            topic = pecan.request.rpcapi.get_topic_for(node)
+            pecan.request.rpcapi.remove_node_traits(
+                context, node.id, traits, topic=topic)
+        notify.emit_end_notification(context, node, 'update',
+                                     chassis_uuid=chassis_uuid)
 
 
 class Node(base.APIBase):
@@ -998,8 +1045,8 @@ class Node(base.APIBase):
             if hasattr(self, k):
                 self.fields.append(k)
                 # TODO(jroll) is there a less hacky way to do this?
-                if k == 'traits' and 'traits' in kwargs:
-                    value = _get_trait_names(kwargs['traits'])
+                if k == 'traits' and kwargs.get('traits') is not None:
+                    value = kwargs['traits'].get_trait_names()
                 else:
                     value = kwargs.get(k, wtypes.Unset)
                 setattr(self, k, value)
@@ -1937,10 +1984,7 @@ class NodesController(rest.RestController):
             raise exception.OperationNotPermitted()
 
         rpc_node = api_utils.get_rpc_node(node_ident)
-        chassis_uuid = None
-        if rpc_node.chassis_id:
-            chassis_uuid = objects.Chassis.get_by_id(context,
-                                                     rpc_node.chassis_id).uuid
+        chassis_uuid = _get_chassis_uuid(rpc_node)
         notify.emit_start_notification(context, rpc_node, 'delete',
                                        chassis_uuid=chassis_uuid)
         with notify.handle_error_notification(context, rpc_node, 'delete',

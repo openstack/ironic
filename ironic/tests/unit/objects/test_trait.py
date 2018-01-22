@@ -87,3 +87,13 @@ class TestTraitObject(db_base.DbTestCase, obj_utils.SchemasTestMixIn):
 
         self.assertTrue(result)
         mock_trait_exists.assert_called_once_with(self.node_id, "trait")
+
+    def test_get_trait_names(self):
+        trait = objects.Trait(context=self.context,
+                              node_id=self.fake_trait['node_id'],
+                              trait=self.fake_trait['trait'])
+        trait_list = objects.TraitList(context=self.context, objects=[trait])
+
+        result = trait_list.get_trait_names()
+
+        self.assertEqual([self.fake_trait['trait']], result)

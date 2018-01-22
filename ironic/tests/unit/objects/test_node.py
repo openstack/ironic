@@ -16,6 +16,7 @@
 import datetime
 
 import mock
+from oslo_utils import uuidutils
 from testtools import matchers
 
 from ironic.common import context
@@ -425,3 +426,100 @@ class TestConvertToVersion(db_base.DbTestCase):
 
         self.assertIsNone(node.traits)
         self.assertEqual({}, node.obj_get_changes())
+
+
+class TestNodePayloads(db_base.DbTestCase):
+
+    def setUp(self):
+        super(TestNodePayloads, self).setUp()
+        self.ctxt = context.get_admin_context()
+        self.fake_node = db_utils.get_test_node()
+        self.node = obj_utils.get_test_node(self.ctxt, **self.fake_node)
+
+    def _test_node_payload(self, payload):
+        self.assertEqual(self.node.clean_step, payload.clean_step)
+        self.assertEqual(self.node.console_enabled,
+                         payload.console_enabled)
+        self.assertEqual(self.node.created_at, payload.created_at)
+        self.assertEqual(self.node.driver, payload.driver)
+        self.assertEqual(self.node.extra, payload.extra)
+        self.assertEqual(self.node.inspection_finished_at,
+                         payload.inspection_finished_at)
+        self.assertEqual(self.node.inspection_started_at,
+                         payload.inspection_started_at)
+        self.assertEqual(self.node.instance_uuid, payload.instance_uuid)
+        self.assertEqual(self.node.last_error, payload.last_error)
+        self.assertEqual(self.node.maintenance, payload.maintenance)
+        self.assertEqual(self.node.maintenance_reason,
+                         payload.maintenance_reason)
+        self.assertEqual(self.node.boot_interface, payload.boot_interface)
+        self.assertEqual(self.node.console_interface,
+                         payload.console_interface)
+        self.assertEqual(self.node.deploy_interface, payload.deploy_interface)
+        self.assertEqual(self.node.inspect_interface,
+                         payload.inspect_interface)
+        self.assertEqual(self.node.management_interface,
+                         payload.management_interface)
+        self.assertEqual(self.node.network_interface,
+                         payload.network_interface)
+        self.assertEqual(self.node.power_interface, payload.power_interface)
+        self.assertEqual(self.node.raid_interface, payload.raid_interface)
+        self.assertEqual(self.node.storage_interface,
+                         payload.storage_interface)
+        self.assertEqual(self.node.vendor_interface,
+                         payload.vendor_interface)
+        self.assertEqual(self.node.name, payload.name)
+        self.assertEqual(self.node.power_state, payload.power_state)
+        self.assertEqual(self.node.properties, payload.properties)
+        self.assertEqual(self.node.provision_state, payload.provision_state)
+        self.assertEqual(self.node.provision_updated_at,
+                         payload.provision_updated_at)
+        self.assertEqual(self.node.resource_class, payload.resource_class)
+        self.assertEqual(self.node.target_power_state,
+                         payload.target_power_state)
+        self.assertEqual(self.node.target_provision_state,
+                         payload.target_provision_state)
+        self.assertEqual(self.node.traits.get_trait_names(), payload.traits)
+        self.assertEqual(self.node.updated_at, payload.updated_at)
+        self.assertEqual(self.node.uuid, payload.uuid)
+
+    def test_node_payload(self):
+        payload = objects.NodePayload(self.node)
+        self._test_node_payload(payload)
+
+    def test_node_payload_no_traits(self):
+        delattr(self.node, 'traits')
+        payload = objects.NodePayload(self.node)
+        self.assertEqual([], payload.traits)
+
+    def test_node_payload_traits_is_none(self):
+        self.node.traits = None
+        payload = objects.NodePayload(self.node)
+        self.assertEqual([], payload.traits)
+
+    def test_node_set_power_state_payload(self):
+        payload = objects.NodeSetPowerStatePayload(self.node, 'POWER_ON')
+        self._test_node_payload(payload)
+        self.assertEqual('POWER_ON', payload.to_power)
+
+    def test_node_corrected_power_state_payload(self):
+        payload = objects.NodeCorrectedPowerStatePayload(self.node, 'POWER_ON')
+        self._test_node_payload(payload)
+        self.assertEqual('POWER_ON', payload.from_power)
+
+    def test_node_set_provision_state_payload(self):
+        payload = objects.NodeSetProvisionStatePayload(self.node, 'AVAILABLE',
+                                                       'DEPLOYING', 'DEPLOY')
+        self._test_node_payload(payload)
+        self.assertEqual(self.node.instance_info, payload.instance_info)
+        self.assertEqual('DEPLOY', payload.event)
+        self.assertEqual('AVAILABLE', payload.previous_provision_state)
+        self.assertEqual('DEPLOYING', payload.previous_target_provision_state)
+
+    def test_node_crud_payload(self):
+        chassis_uuid = uuidutils.generate_uuid()
+        payload = objects.NodeCRUDPayload(self.node, chassis_uuid)
+        self._test_node_payload(payload)
+        self.assertEqual(chassis_uuid, payload.chassis_uuid)
+        self.assertEqual(self.node.instance_info, payload.instance_info)
+        self.assertEqual(self.node.driver_info, payload.driver_info)

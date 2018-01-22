@@ -4312,6 +4312,7 @@ class TestTraits(test_api_base.BaseApiTest):
             provision_state=states.AVAILABLE, name='node-39')
         self.traits = ['CUSTOM_1', 'CUSTOM_2']
         self._add_traits(self.node, self.traits)
+        self.node.obj_reset_changes()
         p = mock.patch.object(rpcapi.ConductorAPI, 'get_topic_for')
         self.mock_gtf = p.start()
         self.mock_gtf.return_value = 'test-topic'
@@ -4325,7 +4326,7 @@ class TestTraits(test_api_base.BaseApiTest):
     def test_get_all_traits(self):
         ret = self.get_json('/nodes/%s/traits' % self.node.uuid,
                             headers={api_base.Version.string: self.version})
-        self.assertEqual({'traits': ['CUSTOM_1', 'CUSTOM_2']}, ret)
+        self.assertEqual({'traits': self.traits}, ret)
 
     def test_get_all_traits_fails_with_node_not_found(self):
         ret = self.get_json('/nodes/badname/traits',
@@ -4340,18 +4341,60 @@ class TestTraits(test_api_base.BaseApiTest):
         self.assertEqual(http_client.NOT_ACCEPTABLE, ret.status_code)
 
     @mock.patch.object(rpcapi.ConductorAPI, 'add_node_traits')
-    def test_set_all_traits(self, mock_add):
-        request_body = {'traits': ['CUSTOM_3']}
+    @mock.patch.object(notification_utils, '_emit_api_notification')
+    def test_set_all_traits(self, mock_notify, mock_add):
+        traits = ['CUSTOM_3']
+        request_body = {'traits': traits}
         ret = self.put_json('/nodes/%s/traits' % self.node.name,
                             request_body,
                             headers={api_base.Version.string: self.version})
         self.assertEqual(http_client.NO_CONTENT, ret.status_code)
         mock_add.assert_called_once_with(mock.ANY, self.node.id,
-                                         ['CUSTOM_3'], replace=True,
+                                         traits, replace=True,
                                          topic='test-topic')
+        mock_notify.assert_has_calls(
+            [mock.call(mock.ANY, mock.ANY, 'update',
+                       obj_fields.NotificationLevel.INFO,
+                       obj_fields.NotificationStatus.START, chassis_uuid=None),
+             mock.call(mock.ANY, mock.ANY, 'update',
+                       obj_fields.NotificationLevel.INFO,
+                       obj_fields.NotificationStatus.END,
+                       chassis_uuid=None)])
+        notify_args = mock_notify.call_args_list
+        self.assertEqual(traits, notify_args[0][0][1].traits.get_trait_names())
+        self.assertEqual(traits, notify_args[1][0][1].traits.get_trait_names())
 
     @mock.patch.object(rpcapi.ConductorAPI, 'add_node_traits')
-    def test_set_all_traits_empty(self, mock_add):
+    @mock.patch.object(notification_utils, '_emit_api_notification')
+    def test_set_all_traits_with_chassis(self, mock_notify, mock_add):
+        traits = ['CUSTOM_3']
+        chassis = obj_utils.create_test_chassis(self.context)
+        self.node.chassis_id = chassis.id
+        self.node.save()
+        request_body = {'traits': traits}
+        ret = self.put_json('/nodes/%s/traits' % self.node.name,
+                            request_body,
+                            headers={api_base.Version.string: self.version})
+        self.assertEqual(http_client.NO_CONTENT, ret.status_code)
+        mock_add.assert_called_once_with(mock.ANY, self.node.id,
+                                         traits, replace=True,
+                                         topic='test-topic')
+        mock_notify.assert_has_calls(
+            [mock.call(mock.ANY, mock.ANY, 'update',
+                       obj_fields.NotificationLevel.INFO,
+                       obj_fields.NotificationStatus.START,
+                       chassis_uuid=chassis.uuid),
+             mock.call(mock.ANY, mock.ANY, 'update',
+                       obj_fields.NotificationLevel.INFO,
+                       obj_fields.NotificationStatus.END,
+                       chassis_uuid=chassis.uuid)])
+        notify_args = mock_notify.call_args_list
+        self.assertEqual(traits, notify_args[0][0][1].traits.get_trait_names())
+        self.assertEqual(traits, notify_args[1][0][1].traits.get_trait_names())
+
+    @mock.patch.object(rpcapi.ConductorAPI, 'add_node_traits')
+    @mock.patch.object(notification_utils, '_emit_api_notification')
+    def test_set_all_traits_empty(self, mock_notify, mock_add):
         request_body = {'traits': []}
         ret = self.put_json('/nodes/%s/traits' % self.node.name,
                             request_body,
@@ -4360,9 +4403,21 @@ class TestTraits(test_api_base.BaseApiTest):
         mock_add.assert_called_once_with(mock.ANY, self.node.id,
                                          [], replace=True,
                                          topic='test-topic')
+        mock_notify.assert_has_calls(
+            [mock.call(mock.ANY, mock.ANY, 'update',
+                       obj_fields.NotificationLevel.INFO,
+                       obj_fields.NotificationStatus.START, chassis_uuid=None),
+             mock.call(mock.ANY, mock.ANY, 'update',
+                       obj_fields.NotificationLevel.INFO,
+                       obj_fields.NotificationStatus.END,
+                       chassis_uuid=None)])
+        notify_args = mock_notify.call_args_list
+        self.assertEqual([], notify_args[0][0][1].traits.get_trait_names())
+        self.assertEqual([], notify_args[1][0][1].traits.get_trait_names())
 
     @mock.patch.object(rpcapi.ConductorAPI, 'add_node_traits')
-    def test_set_all_traits_rejects_bad_trait(self, mock_add):
+    @mock.patch.object(notification_utils, '_emit_api_notification')
+    def test_set_all_traits_rejects_bad_trait(self, mock_notify, mock_add):
         request_body = {'traits': ['CUSTOM_3', 'BAD_TRAIT']}
         ret = self.put_json('/nodes/%s/traits' % self.node.name,
                             request_body,
@@ -4370,9 +4425,12 @@ class TestTraits(test_api_base.BaseApiTest):
                             expect_errors=True)
         self.assertEqual(http_client.BAD_REQUEST, ret.status_code)
         self.assertFalse(mock_add.called)
+        self.assertFalse(mock_notify.called)
 
     @mock.patch.object(rpcapi.ConductorAPI, 'add_node_traits')
-    def test_set_all_traits_rejects_too_long_trait(self, mock_add):
+    @mock.patch.object(notification_utils, '_emit_api_notification')
+    def test_set_all_traits_rejects_too_long_trait(self, mock_notify,
+                                                   mock_add):
         # Maximum length is 255.
         long_trait = 'CUSTOM_' + 'T' * 249
         request_body = {'traits': ['CUSTOM_3', long_trait]}
@@ -4382,14 +4440,17 @@ class TestTraits(test_api_base.BaseApiTest):
                             expect_errors=True)
         self.assertEqual(http_client.BAD_REQUEST, ret.status_code)
         self.assertFalse(mock_add.called)
+        self.assertFalse(mock_notify.called)
 
     @mock.patch.object(rpcapi.ConductorAPI, 'add_node_traits')
-    def test_set_all_traits_rejects_no_body(self, mock_add):
+    @mock.patch.object(notification_utils, '_emit_api_notification')
+    def test_set_all_traits_rejects_no_body(self, mock_notify, mock_add):
         ret = self.put_json('/nodes/%s/traits' % self.node.name, {},
                             headers={api_base.Version.string: self.version},
                             expect_errors=True)
         self.assertEqual(http_client.BAD_REQUEST, ret.status_code)
         self.assertFalse(mock_add.called)
+        self.assertFalse(mock_notify.called)
 
     def test_set_all_traits_fails_with_bad_version(self):
         request_body = {'traits': []}
@@ -4399,16 +4460,30 @@ class TestTraits(test_api_base.BaseApiTest):
         self.assertEqual(http_client.METHOD_NOT_ALLOWED, ret.status_code)
 
     @mock.patch.object(rpcapi.ConductorAPI, 'add_node_traits')
-    def test_add_single_trait(self, mock_add):
+    @mock.patch.object(notification_utils, '_emit_api_notification')
+    def test_add_single_trait(self, mock_notify, mock_add):
         ret = self.put_json('/nodes/%s/traits/CUSTOM_3' % self.node.name, {},
                             headers={api_base.Version.string: self.version})
         self.assertEqual(http_client.NO_CONTENT, ret.status_code)
         mock_add.assert_called_once_with(mock.ANY, self.node.id,
                                          ['CUSTOM_3'], replace=False,
                                          topic='test-topic')
+        mock_notify.assert_has_calls(
+            [mock.call(mock.ANY, mock.ANY, 'update',
+                       obj_fields.NotificationLevel.INFO,
+                       obj_fields.NotificationStatus.START, chassis_uuid=None),
+             mock.call(mock.ANY, mock.ANY, 'update',
+                       obj_fields.NotificationLevel.INFO,
+                       obj_fields.NotificationStatus.END,
+                       chassis_uuid=None)])
+        traits = self.traits + ['CUSTOM_3']
+        notify_args = mock_notify.call_args_list
+        self.assertEqual(traits, notify_args[0][0][1].traits.get_trait_names())
+        self.assertEqual(traits, notify_args[1][0][1].traits.get_trait_names())
 
     @mock.patch.object(rpcapi.ConductorAPI, 'add_node_traits')
-    def test_no_add_single_trait_via_body(self, mock_add):
+    @mock.patch.object(notification_utils, '_emit_api_notification')
+    def test_no_add_single_trait_via_body(self, mock_notify, mock_add):
         request_body = {'trait': 'CUSTOM_3'}
         ret = self.put_json('/nodes/%s/traits' % self.node.name,
                             request_body,
@@ -4416,9 +4491,11 @@ class TestTraits(test_api_base.BaseApiTest):
                             expect_errors=True)
         self.assertEqual(http_client.BAD_REQUEST, ret.status_code)
         self.assertFalse(mock_add.called)
+        self.assertFalse(mock_notify.called)
 
     @mock.patch.object(rpcapi.ConductorAPI, 'add_node_traits')
-    def test_no_add_single_trait_via_body_2(self, mock_add):
+    @mock.patch.object(notification_utils, '_emit_api_notification')
+    def test_no_add_single_trait_via_body_2(self, mock_notify, mock_add):
         request_body = {'traits': ['CUSTOM_3']}
         ret = self.put_json('/nodes/%s/traits/CUSTOM_3' % self.node.name,
                             request_body,
@@ -4426,17 +4503,22 @@ class TestTraits(test_api_base.BaseApiTest):
                             expect_errors=True)
         self.assertEqual(http_client.BAD_REQUEST, ret.status_code)
         self.assertFalse(mock_add.called)
+        self.assertFalse(mock_notify.called)
 
     @mock.patch.object(rpcapi.ConductorAPI, 'add_node_traits')
-    def test_add_single_trait_rejects_bad_trait(self, mock_add):
+    @mock.patch.object(notification_utils, '_emit_api_notification')
+    def test_add_single_trait_rejects_bad_trait(self, mock_notify, mock_add):
         ret = self.put_json('/nodes/%s/traits/bad_trait' % self.node.name, {},
                             headers={api_base.Version.string: self.version},
                             expect_errors=True)
         self.assertEqual(http_client.BAD_REQUEST, ret.status_code)
         self.assertFalse(mock_add.called)
+        self.assertFalse(mock_notify.called)
 
     @mock.patch.object(rpcapi.ConductorAPI, 'add_node_traits')
-    def test_add_single_trait_rejects_too_long_trait(self, mock_add):
+    @mock.patch.object(notification_utils, '_emit_api_notification')
+    def test_add_single_trait_rejects_too_long_trait(self, mock_notify,
+                                                     mock_add):
         # Maximum length is 255.
         long_trait = 'CUSTOM_' + 'T' * 249
         ret = self.put_json('/nodes/%s/traits/%s' % (
@@ -4445,9 +4527,12 @@ class TestTraits(test_api_base.BaseApiTest):
                             expect_errors=True)
         self.assertEqual(http_client.BAD_REQUEST, ret.status_code)
         self.assertFalse(mock_add.called)
+        self.assertFalse(mock_notify.called)
 
     @mock.patch.object(rpcapi.ConductorAPI, 'add_node_traits')
-    def test_add_single_trait_fails_max_trait_limit(self, mock_add):
+    @mock.patch.object(notification_utils, '_emit_api_notification')
+    def test_add_single_trait_fails_max_trait_limit(self, mock_notify,
+                                                    mock_add):
         mock_add.side_effect = exception.InvalidParameterValue(
             err='too many traits')
         ret = self.put_json('/nodes/%s/traits/CUSTOM_3' % self.node.name, {},
@@ -4457,9 +4542,23 @@ class TestTraits(test_api_base.BaseApiTest):
         mock_add.assert_called_once_with(mock.ANY, self.node.id,
                                          ['CUSTOM_3'], replace=False,
                                          topic='test-topic')
+        mock_notify.assert_has_calls(
+            [mock.call(mock.ANY, mock.ANY, 'update',
+                       obj_fields.NotificationLevel.INFO,
+                       obj_fields.NotificationStatus.START, chassis_uuid=None),
+             mock.call(mock.ANY, mock.ANY, 'update',
+                       obj_fields.NotificationLevel.ERROR,
+                       obj_fields.NotificationStatus.ERROR,
+                       chassis_uuid=None)])
+        traits = self.traits + ['CUSTOM_3']
+        notify_args = mock_notify.call_args_list
+        self.assertEqual(traits, notify_args[0][0][1].traits.get_trait_names())
+        self.assertEqual(traits, notify_args[1][0][1].traits.get_trait_names())
 
     @mock.patch.object(rpcapi.ConductorAPI, 'add_node_traits')
-    def test_add_single_trait_fails_if_node_locked(self, mock_add):
+    @mock.patch.object(notification_utils, '_emit_api_notification')
+    def test_add_single_trait_fails_if_node_locked(self, mock_notify,
+                                                   mock_add):
         mock_add.side_effect = exception.NodeLocked(
             node=self.node.uuid, host='host1')
         ret = self.put_json('/nodes/%s/traits/CUSTOM_3' % self.node.name, {},
@@ -4469,9 +4568,23 @@ class TestTraits(test_api_base.BaseApiTest):
         mock_add.assert_called_once_with(mock.ANY, self.node.id,
                                          ['CUSTOM_3'], replace=False,
                                          topic='test-topic')
+        mock_notify.assert_has_calls(
+            [mock.call(mock.ANY, mock.ANY, 'update',
+                       obj_fields.NotificationLevel.INFO,
+                       obj_fields.NotificationStatus.START, chassis_uuid=None),
+             mock.call(mock.ANY, mock.ANY, 'update',
+                       obj_fields.NotificationLevel.ERROR,
+                       obj_fields.NotificationStatus.ERROR,
+                       chassis_uuid=None)])
+        traits = self.traits + ['CUSTOM_3']
+        notify_args = mock_notify.call_args_list
+        self.assertEqual(traits, notify_args[0][0][1].traits.get_trait_names())
+        self.assertEqual(traits, notify_args[1][0][1].traits.get_trait_names())
 
     @mock.patch.object(rpcapi.ConductorAPI, 'add_node_traits')
-    def test_add_single_trait_fails_if_node_not_found(self, mock_add):
+    @mock.patch.object(notification_utils, '_emit_api_notification')
+    def test_add_single_trait_fails_if_node_not_found(self, mock_notify,
+                                                      mock_add):
         mock_add.side_effect = exception.NodeNotFound(node=self.node.uuid)
         ret = self.put_json('/nodes/%s/traits/CUSTOM_3' % self.node.name, {},
                             headers={api_base.Version.string: self.version},
@@ -4480,6 +4593,18 @@ class TestTraits(test_api_base.BaseApiTest):
         mock_add.assert_called_once_with(mock.ANY, self.node.id,
                                          ['CUSTOM_3'], replace=False,
                                          topic='test-topic')
+        mock_notify.assert_has_calls(
+            [mock.call(mock.ANY, mock.ANY, 'update',
+                       obj_fields.NotificationLevel.INFO,
+                       obj_fields.NotificationStatus.START, chassis_uuid=None),
+             mock.call(mock.ANY, mock.ANY, 'update',
+                       obj_fields.NotificationLevel.ERROR,
+                       obj_fields.NotificationStatus.ERROR,
+                       chassis_uuid=None)])
+        traits = self.traits + ['CUSTOM_3']
+        notify_args = mock_notify.call_args_list
+        self.assertEqual(traits, notify_args[0][0][1].traits.get_trait_names())
+        self.assertEqual(traits, notify_args[1][0][1].traits.get_trait_names())
 
     def test_add_single_traits_fails_with_bad_version(self):
         ret = self.put_json('/nodes/%s/traits/CUSTOM_TRAIT1' % self.node.uuid,
@@ -4488,12 +4613,48 @@ class TestTraits(test_api_base.BaseApiTest):
         self.assertEqual(http_client.METHOD_NOT_ALLOWED, ret.status_code)
 
     @mock.patch.object(rpcapi.ConductorAPI, 'remove_node_traits')
-    def test_delete_all_traits(self, mock_remove):
+    @mock.patch.object(notification_utils, '_emit_api_notification')
+    def test_delete_all_traits(self, mock_notify, mock_remove):
         ret = self.delete('/nodes/%s/traits' % self.node.name,
                           headers={api_base.Version.string: self.version})
         self.assertEqual(http_client.NO_CONTENT, ret.status_code)
         mock_remove.assert_called_once_with(mock.ANY, self.node.id,
                                             None, topic='test-topic')
+        mock_notify.assert_has_calls(
+            [mock.call(mock.ANY, mock.ANY, 'update',
+                       obj_fields.NotificationLevel.INFO,
+                       obj_fields.NotificationStatus.START, chassis_uuid=None),
+             mock.call(mock.ANY, mock.ANY, 'update',
+                       obj_fields.NotificationLevel.INFO,
+                       obj_fields.NotificationStatus.END,
+                       chassis_uuid=None)])
+        notify_args = mock_notify.call_args_list
+        self.assertEqual([], notify_args[0][0][1].traits.get_trait_names())
+        self.assertEqual([], notify_args[1][0][1].traits.get_trait_names())
+
+    @mock.patch.object(rpcapi.ConductorAPI, 'remove_node_traits')
+    @mock.patch.object(notification_utils, '_emit_api_notification')
+    def test_delete_all_traits_with_chassis(self, mock_notify, mock_remove):
+        chassis = obj_utils.create_test_chassis(self.context)
+        self.node.chassis_id = chassis.id
+        self.node.save()
+        ret = self.delete('/nodes/%s/traits' % self.node.name,
+                          headers={api_base.Version.string: self.version})
+        self.assertEqual(http_client.NO_CONTENT, ret.status_code)
+        mock_remove.assert_called_once_with(mock.ANY, self.node.id,
+                                            None, topic='test-topic')
+        mock_notify.assert_has_calls(
+            [mock.call(mock.ANY, mock.ANY, 'update',
+                       obj_fields.NotificationLevel.INFO,
+                       obj_fields.NotificationStatus.START,
+                       chassis_uuid=chassis.uuid),
+             mock.call(mock.ANY, mock.ANY, 'update',
+                       obj_fields.NotificationLevel.INFO,
+                       obj_fields.NotificationStatus.END,
+                       chassis_uuid=chassis.uuid)])
+        notify_args = mock_notify.call_args_list
+        self.assertEqual([], notify_args[0][0][1].traits.get_trait_names())
+        self.assertEqual([], notify_args[1][0][1].traits.get_trait_names())
 
     def test_delete_all_traits_fails_with_bad_version(self):
         ret = self.delete('/nodes/%s/traits' % self.node.uuid,
@@ -4502,15 +4663,29 @@ class TestTraits(test_api_base.BaseApiTest):
         self.assertEqual(http_client.NOT_FOUND, ret.status_code)
 
     @mock.patch.object(rpcapi.ConductorAPI, 'remove_node_traits')
-    def test_delete_trait(self, mock_remove):
+    @mock.patch.object(notification_utils, '_emit_api_notification')
+    def test_delete_trait(self, mock_notify, mock_remove):
         ret = self.delete('/nodes/%s/traits/CUSTOM_1' % self.node.name,
                           headers={api_base.Version.string: self.version})
         self.assertEqual(http_client.NO_CONTENT, ret.status_code)
         mock_remove.assert_called_once_with(mock.ANY, self.node.id,
                                             ['CUSTOM_1'], topic='test-topic')
+        mock_notify.assert_has_calls(
+            [mock.call(mock.ANY, mock.ANY, 'update',
+                       obj_fields.NotificationLevel.INFO,
+                       obj_fields.NotificationStatus.START, chassis_uuid=None),
+             mock.call(mock.ANY, mock.ANY, 'update',
+                       obj_fields.NotificationLevel.INFO,
+                       obj_fields.NotificationStatus.END,
+                       chassis_uuid=None)])
+        traits = ['CUSTOM_2']
+        notify_args = mock_notify.call_args_list
+        self.assertEqual(traits, notify_args[0][0][1].traits.get_trait_names())
+        self.assertEqual(traits, notify_args[1][0][1].traits.get_trait_names())
 
     @mock.patch.object(rpcapi.ConductorAPI, 'remove_node_traits')
-    def test_delete_trait_fails_if_node_locked(self, mock_remove):
+    @mock.patch.object(notification_utils, '_emit_api_notification')
+    def test_delete_trait_fails_if_node_locked(self, mock_notify, mock_remove):
         mock_remove.side_effect = exception.NodeLocked(
             node=self.node.uuid, host='host1')
         ret = self.delete('/nodes/%s/traits/CUSTOM_1' % self.node.name,
@@ -4519,9 +4694,23 @@ class TestTraits(test_api_base.BaseApiTest):
         self.assertEqual(http_client.CONFLICT, ret.status_code)
         mock_remove.assert_called_once_with(mock.ANY, self.node.id,
                                             ['CUSTOM_1'], topic='test-topic')
+        mock_notify.assert_has_calls(
+            [mock.call(mock.ANY, mock.ANY, 'update',
+                       obj_fields.NotificationLevel.INFO,
+                       obj_fields.NotificationStatus.START, chassis_uuid=None),
+             mock.call(mock.ANY, mock.ANY, 'update',
+                       obj_fields.NotificationLevel.ERROR,
+                       obj_fields.NotificationStatus.ERROR,
+                       chassis_uuid=None)])
+        traits = ['CUSTOM_2']
+        notify_args = mock_notify.call_args_list
+        self.assertEqual(traits, notify_args[0][0][1].traits.get_trait_names())
+        self.assertEqual(traits, notify_args[1][0][1].traits.get_trait_names())
 
     @mock.patch.object(rpcapi.ConductorAPI, 'remove_node_traits')
-    def test_delete_trait_fails_if_node_not_found(self, mock_remove):
+    @mock.patch.object(notification_utils, '_emit_api_notification')
+    def test_delete_trait_fails_if_node_not_found(self, mock_notify,
+                                                  mock_remove):
         mock_remove.side_effect = exception.NodeNotFound(node=self.node.uuid)
         ret = self.delete('/nodes/%s/traits/CUSTOM_1' % self.node.name,
                           headers={api_base.Version.string: self.version},
@@ -4529,9 +4718,23 @@ class TestTraits(test_api_base.BaseApiTest):
         self.assertEqual(http_client.NOT_FOUND, ret.status_code)
         mock_remove.assert_called_once_with(mock.ANY, self.node.id,
                                             ['CUSTOM_1'], topic='test-topic')
+        mock_notify.assert_has_calls(
+            [mock.call(mock.ANY, mock.ANY, 'update',
+                       obj_fields.NotificationLevel.INFO,
+                       obj_fields.NotificationStatus.START, chassis_uuid=None),
+             mock.call(mock.ANY, mock.ANY, 'update',
+                       obj_fields.NotificationLevel.ERROR,
+                       obj_fields.NotificationStatus.ERROR,
+                       chassis_uuid=None)])
+        traits = ['CUSTOM_2']
+        notify_args = mock_notify.call_args_list
+        self.assertEqual(traits, notify_args[0][0][1].traits.get_trait_names())
+        self.assertEqual(traits, notify_args[1][0][1].traits.get_trait_names())
 
     @mock.patch.object(rpcapi.ConductorAPI, 'remove_node_traits')
-    def test_delete_trait_fails_if_trait_not_found(self, mock_remove):
+    @mock.patch.object(notification_utils, '_emit_api_notification')
+    def test_delete_trait_fails_if_trait_not_found(self, mock_notify,
+                                                   mock_remove):
         mock_remove.side_effect = exception.NodeTraitNotFound(
             node_id=self.node.uuid, trait='CUSTOM_12')
         ret = self.delete('/nodes/%s/traits/CUSTOM_12' % self.node.name,
@@ -4540,6 +4743,19 @@ class TestTraits(test_api_base.BaseApiTest):
         self.assertEqual(http_client.NOT_FOUND, ret.status_code)
         mock_remove.assert_called_once_with(mock.ANY, self.node.id,
                                             ['CUSTOM_12'], topic='test-topic')
+        mock_notify.assert_has_calls(
+            [mock.call(mock.ANY, mock.ANY, 'update',
+                       obj_fields.NotificationLevel.INFO,
+                       obj_fields.NotificationStatus.START, chassis_uuid=None),
+             mock.call(mock.ANY, mock.ANY, 'update',
+                       obj_fields.NotificationLevel.ERROR,
+                       obj_fields.NotificationStatus.ERROR,
+                       chassis_uuid=None)])
+        notify_args = mock_notify.call_args_list
+        self.assertEqual(self.traits,
+                         notify_args[0][0][1].traits.get_trait_names())
+        self.assertEqual(self.traits,
+                         notify_args[1][0][1].traits.get_trait_names())
 
     def test_delete_trait_fails_with_bad_version(self):
         ret = self.delete('/nodes/%s/traits/CUSTOM_TRAIT1' % self.node.uuid,

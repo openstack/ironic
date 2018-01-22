@@ -548,8 +548,6 @@ class NodePayload(notification.NotificationPayloadBase):
         'uuid': ('node', 'uuid')
     }
 
-    # TODO(mgoddard): Add a traits field to the NodePayload object.
-
     # Version 1.0: Initial version, based off of Node version 1.18.
     # Version 1.1: Type of network_interface changed to just nullable string
     #              similar to version 1.20 of Node.
@@ -557,7 +555,8 @@ class NodePayload(notification.NotificationPayloadBase):
     # Version 1.3: Add dynamic interfaces fields exposed via API.
     # Version 1.4: Add storage interface field exposed via API.
     # Version 1.5: Add rescue interface field exposed via API.
-    VERSION = '1.5'
+    # Version 1.6: Add traits field exposed via API.
+    VERSION = '1.6'
     fields = {
         'clean_step': object_fields.FlexibleDictField(nullable=True),
         'console_enabled': object_fields.BooleanField(nullable=True),
@@ -589,6 +588,7 @@ class NodePayload(notification.NotificationPayloadBase):
         'resource_class': object_fields.StringField(nullable=True),
         'target_power_state': object_fields.StringField(nullable=True),
         'target_provision_state': object_fields.StringField(nullable=True),
+        'traits': object_fields.ListOfStringsField(nullable=True),
         'updated_at': object_fields.DateTimeField(nullable=True),
         'uuid': object_fields.UUIDField()
     }
@@ -596,6 +596,12 @@ class NodePayload(notification.NotificationPayloadBase):
     def __init__(self, node, **kwargs):
         super(NodePayload, self).__init__(**kwargs)
         self.populate_schema(node=node)
+        # NOTE(mgoddard): Populate traits with a list of trait names, rather
+        # than the TraitList object.
+        if node.obj_attr_is_set('traits') and node.traits is not None:
+            self.traits = node.traits.get_trait_names()
+        else:
+            self.traits = []
 
 
 @base.IronicObjectRegistry.register
@@ -618,7 +624,8 @@ class NodeSetPowerStatePayload(NodePayload):
     # Version 1.3: Parent NodePayload version 1.3
     # Version 1.4: Parent NodePayload version 1.4
     # Version 1.5: Parent NodePayload version 1.5
-    VERSION = '1.5'
+    # Version 1.6: Parent NodePayload version 1.6
+    VERSION = '1.6'
 
     fields = {
         # "to_power" indicates the future target_power_state of the node. A
@@ -664,7 +671,8 @@ class NodeCorrectedPowerStatePayload(NodePayload):
     # Version 1.3: Parent NodePayload version 1.3
     # Version 1.4: Parent NodePayload version 1.4
     # Version 1.5: Parent NodePayload version 1.5
-    VERSION = '1.5'
+    # Version 1.6: Parent NodePayload version 1.6
+    VERSION = '1.6'
 
     fields = {
         'from_power': object_fields.StringField(nullable=True)
@@ -694,8 +702,8 @@ class NodeSetProvisionStatePayload(NodePayload):
     # Version 1.2: Parent NodePayload version 1.2
     # Version 1.3: Parent NodePayload version 1.3
     # Version 1.4: Parent NodePayload version 1.4
-    # Version 1.5: Parent NodePayload version 1.5
-    VERSION = '1.5'
+    # Version 1.6: Parent NodePayload version 1.6
+    VERSION = '1.6'
 
     SCHEMA = dict(NodePayload.SCHEMA,
                   **{'instance_info': ('node', 'instance_info')})
@@ -732,7 +740,8 @@ class NodeCRUDPayload(NodePayload):
     # Version 1.1: Parent NodePayload version 1.3
     # Version 1.2: Parent NodePayload version 1.4
     # Version 1.3: Parent NodePayload version 1.5
-    VERSION = '1.3'
+    # Version 1.4: Parent NodePayload version 1.6
+    VERSION = '1.4'
 
     SCHEMA = dict(NodePayload.SCHEMA,
                   **{'instance_info': ('node', 'instance_info'),

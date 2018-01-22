@@ -173,3 +173,7 @@ class TraitList(object_base.ObjectListBase, base.IronicObject):
         :raises: NodeNotFound if the node no longer appears in the database.
         """
         cls.dbapi.unset_node_traits(node_id)
+
+    def get_trait_names(self):
+        """Return a list of names of the traits in this list."""
+        return [t.trait for t in self.objects]
