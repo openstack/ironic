@@ -4233,3 +4233,24 @@
 # for endpoint URL discovery. Mutually exclusive with
 # min_version and max_version (string value)
 #version = <None>
+
+
+[xclarity]
+
+#
+# From ironic
+#
+
+# IP address of XClarity controller. (string value)
+#manager_ip = <None>
+
+# Username to access the XClarity controller. (string value)
+#username = <None>
+
+# Password for XClarity controller username. (string value)
+#password = <None>
+
+# Port to be used for XClarity operations. (port value)
+# Minimum value: 0
+# Maximum value: 65535
+#port = 443

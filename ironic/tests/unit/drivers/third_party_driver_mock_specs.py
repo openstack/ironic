@@ -180,3 +180,21 @@ SUSHY_CONSTANTS_SPEC = (
     'BOOT_SOURCE_ENABLED_CONTINUOUS',
     'BOOT_SOURCE_ENABLED_ONCE',
 )
+
+XCLARITY_SPEC = (
+    'client',
+    'states',
+    'exceptions',
+    'models',
+    'utils',
+)
+
+XCLARITY_CLIENT_CLS_SPEC = (
+)
+
+XCLARITY_STATES_SPEC = (
+    'STATE_POWERING_OFF',
+    'STATE_POWERING_ON',
+    'STATE_POWER_OFF',
+    'STATE_POWER_ON',
+)
