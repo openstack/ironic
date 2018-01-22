@@ -11,6 +11,16 @@ attributes to influence the placement of instances to bare metal compute nodes.
 Traits specified for a node in the Bare Metal service will be registered on the
 corresponding resource provider in the Compute service's placement API.
 
+Traits can be either standard or custom.  Standard traits are listed in the
+`os_traits library <https://docs.openstack.org/os-traits/latest/>`_.  Custom
+traits must meet the following requirements:
+
+* prefixed with ``CUSTOM_``
+* contain only upper case characters A to Z, digits 0 to 9, or underscores
+* no longer than 255 characters in length
+
+A bare metal node can have a maximum of 50 traits.
+
 List Traits of a Node
 =====================
 

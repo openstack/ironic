@@ -104,3 +104,46 @@ the standard properties:
 
 Note how ``baremetal.with-GPU`` in the node's ``resource_class`` field becomes
 ``CUSTOM_BAREMETAL_WITH_GPU`` in the flavor's properties.
+
+.. _scheduling-traits:
+
+Scheduling based on traits
+--------------------------
+
+Starting with the Queens release, the Compute service supports scheduling based
+on qualitative attributes using traits.  Starting with Bare Metal REST API
+version 1.37, it is possible to assign a list of traits to each bare metal
+node.  Traits assigned to a bare metal node will be assigned to the
+corresponding resource provider in the Compute service placement API.
+
+When creating a flavor in the Compute service, required traits may be specified
+via flavor properties.  The Compute service will then schedule instances only
+to bare metal nodes with all of the required traits.
+
+Traits can be either standard or custom.  Standard traits are listed in the
+`os_traits library <https://docs.openstack.org/os-traits/latest/>`_.  Custom
+traits must meet the following requirements:
+
+* prefixed with ``CUSTOM_``
+* contain only upper case characters A to Z, digits 0 to 9, or underscores
+* no longer than 255 characters in length
+
+A bare metal node can have a maximum of 50 traits.
+
+Example
+^^^^^^^
+
+To add the standard trait ``HW_CPU_X86_VMX`` and a custom trait
+``CUSTOM_TRAIT1`` to a node:
+
+.. code-block:: console
+
+      $ openstack --os-baremetal-api-version 1.37 baremetal node add trait \
+        $NODE_UUID CUSTOM_TRAIT1 HW_CPU_X86_VMX
+
+Then, update the flavor to require these traits:
+
+.. code-block:: console
+
+      $ nova flavor-key my-baremetal-flavor set trait:CUSTOM_TRAIT1=required
+      $ nova flavor-key my-baremetal-flavor set trait:HW_CPU_X86_VMX=required
