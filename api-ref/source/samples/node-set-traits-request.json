@@ -1,0 +1,6 @@
+{
+  "traits": [
+    "CUSTOM_TRAIT1",
+    "HW_CPU_X86_VMX"
+  ]
+}
