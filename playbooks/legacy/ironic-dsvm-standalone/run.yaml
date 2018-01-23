@@ -57,7 +57,7 @@
           export DEVSTACK_GATE_NEUTRON=1
           export DEVSTACK_GATE_IRONIC_BUILD_RAMDISK=0
           export DEVSTACK_GATE_VIRT_DRIVER=ironic
-          export DEVSTACK_GATE_IRONIC_DRIVER=agent_ipmitool
+          export DEVSTACK_GATE_IRONIC_DRIVER=ipmi
           export OVERRIDE_ENABLED_SERVICES="g-api,g-reg,q-agt,q-dhcp,q-l3,q-svc,key,mysql,rabbit,ir-api,ir-cond,s-account,s-container,s-object,s-proxy,tempest"
 
           export BRANCH_OVERRIDE="{{ branch_override | default('default') }}"
@@ -67,9 +67,12 @@
 
           export DEVSTACK_LOCAL_CONFIG="enable_plugin ironic git://git.openstack.org/openstack/ironic"
           export DEVSTACK_LOCAL_CONFIG+=$'\n'"IRONIC_VM_COUNT=6"
-          export DEVSTACK_LOCAL_CONFIG+=$'\n'"IRONIC_DEPLOY_DRIVER=agent_ipmitool"
+          export DEVSTACK_LOCAL_CONFIG+=$'\n'"IRONIC_DEPLOY_DRIVER=ipmi"
+          export DEVSTACK_LOCAL_CONFIG+=$'\n'"IRONIC_DEFAULT_DEPLOY_INTERFACE=direct"
           export DEVSTACK_LOCAL_CONFIG+=$'\n'"SWIFT_ENABLE_TEMPURLS=True"
           export DEVSTACK_LOCAL_CONFIG+=$'\n'"SWIFT_TEMPURL_KEY=secretkey"
+          # keep classic drivers enabled here until we remove them, as
+          # standalone tests cover both types of drivers.
           export DEVSTACK_LOCAL_CONFIG+=$'\n'"IRONIC_ENABLED_DRIVERS=fake,agent_ipmitool,pxe_ipmitool"
           export DEVSTACK_LOCAL_CONFIG+=$'\n'"IRONIC_AUTOMATED_CLEAN_ENABLED=False"
           export DEVSTACK_LOCAL_CONFIG+=$'\n'"IRONIC_USE_MOD_WSGI=True"
