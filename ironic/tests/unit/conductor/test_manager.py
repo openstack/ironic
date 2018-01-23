@@ -6943,23 +6943,23 @@ class NodeTraitsTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         self.service.add_node_traits(self.context, self.node.id,
                                      self.traits[:1])
         traits = objects.TraitList.get_by_node_id(self.context, self.node.id)
-        self.assertEqual([trait.trait for trait in traits], self.traits[:1])
+        self.assertEqual(self.traits[:1], [trait.trait for trait in traits])
 
         self.service.add_node_traits(self.context, self.node.id,
                                      self.traits[1:])
         traits = objects.TraitList.get_by_node_id(self.context, self.node.id)
-        self.assertEqual([trait.trait for trait in traits], self.traits)
+        self.assertEqual(self.traits, [trait.trait for trait in traits])
 
     def test_add_node_traits_replace(self):
         self.service.add_node_traits(self.context, self.node.id,
                                      self.traits[:1], replace=True)
         traits = objects.TraitList.get_by_node_id(self.context, self.node.id)
-        self.assertEqual([trait.trait for trait in traits], self.traits[:1])
+        self.assertEqual(self.traits[:1], [trait.trait for trait in traits])
 
         self.service.add_node_traits(self.context, self.node.id,
                                      self.traits[1:], replace=True)
         traits = objects.TraitList.get_by_node_id(self.context, self.node.id)
-        self.assertEqual([trait.trait for trait in traits], self.traits[1:])
+        self.assertEqual(self.traits[1:], [trait.trait for trait in traits])
 
     def _test_add_node_traits_exception(self, expected_exc):
         with mock.patch.object(objects.Trait, 'create') as mock_create:
@@ -6970,7 +6970,7 @@ class NodeTraitsTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         # Compare true exception hidden by @messaging.expected_exceptions
         self.assertEqual(expected_exc, exc.exc_info[0])
         traits = objects.TraitList.get_by_node_id(self.context, self.node.id)
-        self.assertEqual(traits.objects, [])
+        self.assertEqual([], traits.objects)
 
     def test_add_node_traits_invalid_parameter_value(self):
         self._test_add_node_traits_exception(exception.InvalidParameterValue)
@@ -6986,24 +6986,24 @@ class NodeTraitsTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         self.service.remove_node_traits(self.context, self.node.id,
                                         self.traits[:1])
         traits = objects.TraitList.get_by_node_id(self.context, self.node.id)
-        self.assertEqual([trait.trait for trait in traits], self.traits[1:])
+        self.assertEqual(self.traits[1:], [trait.trait for trait in traits])
 
         self.service.remove_node_traits(self.context, self.node.id,
                                         self.traits[1:])
         traits = objects.TraitList.get_by_node_id(self.context, self.node.id)
-        self.assertEqual(traits.objects, [])
+        self.assertEqual([], traits.objects)
 
     def test_remove_node_traits_all(self):
         objects.TraitList.create(self.context, self.node.id, self.traits)
         self.service.remove_node_traits(self.context, self.node.id, None)
         traits = objects.TraitList.get_by_node_id(self.context, self.node.id)
-        self.assertEqual(traits.objects, [])
+        self.assertEqual([], traits.objects)
 
     def test_remove_node_traits_empty(self):
         objects.TraitList.create(self.context, self.node.id, self.traits)
         self.service.remove_node_traits(self.context, self.node.id, [])
         traits = objects.TraitList.get_by_node_id(self.context, self.node.id)
-        self.assertEqual([trait.trait for trait in traits], self.traits)
+        self.assertEqual(self.traits, [trait.trait for trait in traits])
 
     def _test_remove_node_traits_exception(self, expected_exc):
         objects.TraitList.create(self.context, self.node.id, self.traits)
@@ -7015,7 +7015,7 @@ class NodeTraitsTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         # Compare true exception hidden by @messaging.expected_exceptions
         self.assertEqual(expected_exc, exc.exc_info[0])
         traits = objects.TraitList.get_by_node_id(self.context, self.node.id)
-        self.assertEqual([trait.trait for trait in traits], self.traits)
+        self.assertEqual(self.traits, [trait.trait for trait in traits])
 
     def test_remove_node_traits_node_locked(self):
         self._test_remove_node_traits_exception(exception.NodeLocked)

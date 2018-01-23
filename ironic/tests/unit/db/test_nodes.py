@@ -31,7 +31,9 @@ from ironic.tests.unit.db import utils
 class DbNodeTestCase(base.DbTestCase):
 
     def test_create_node(self):
-        utils.create_test_node()
+        node = utils.create_test_node()
+        self.assertEqual([], node.tags)
+        self.assertEqual([], node.traits)
 
     def test_create_node_with_tags(self):
         self.assertRaises(exception.InvalidParameterValue,
