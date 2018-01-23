@@ -85,7 +85,11 @@ driver_opts = [
                        'complete list of drivers present on your system may '
                        'be found by enumerating the "ironic.drivers" '
                        'entrypoint. An example may be found in the '
-                       'developer documentation online.')),
+                       'developer documentation online.'),
+                deprecated_for_removal=True,
+                deprecated_reason=_('Hardware types should be used instead '
+                                    'of classic drivers. They are enabled '
+                                    'via the enabled_hardware_types option.')),
     cfg.ListOpt('enabled_hardware_types',
                 default=['ipmi'],
                 help=_('Specify the list of hardware types to load during '

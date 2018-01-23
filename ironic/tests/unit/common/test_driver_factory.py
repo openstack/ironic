@@ -31,7 +31,7 @@ from ironic.tests.unit.objects import utils as obj_utils
 
 
 class FakeEp(object):
-    name = 'fake'
+    name = 'fake-hardware'
 
 
 class DriverLoadTestCase(db_base.DbTestCase):
@@ -45,52 +45,62 @@ class DriverLoadTestCase(db_base.DbTestCase):
                                                driver='aaa', reason='bbb'))
 
     def test_driver_load_error_if_driver_enabled(self):
-        self.config(enabled_drivers=['fake'])
+        self.config(enabled_hardware_types=['fake-hardware'])
         with mock.patch.object(named.NamedExtensionManager,
                                '__init__', self._fake_init_driver_err):
             self.assertRaises(
                 exception.DriverLoadError,
-                driver_factory.DriverFactory._init_extension_manager)
+                driver_factory.HardwareTypesFactory._init_extension_manager)
 
     def test_wrap_in_driver_load_error_if_driver_enabled(self):
-        self.config(enabled_drivers=['fake'])
+        self.config(enabled_hardware_types=['fake-hardware'])
         with mock.patch.object(named.NamedExtensionManager,
                                '__init__', self._fake_init_name_err):
             self.assertRaises(
                 exception.DriverLoadError,
-                driver_factory.DriverFactory._init_extension_manager)
+                driver_factory.HardwareTypesFactory._init_extension_manager)
 
     @mock.patch.object(named.NamedExtensionManager, 'names',
                        autospec=True)
     def test_no_driver_load_error_if_driver_disabled(self, mock_em):
-        self.config(enabled_drivers=[])
+        self.config(enabled_hardware_types=[])
         with mock.patch.object(named.NamedExtensionManager,
                                '__init__', self._fake_init_driver_err):
-            driver_factory.DriverFactory._init_extension_manager()
+            driver_factory.HardwareTypesFactory._init_extension_manager()
             self.assertEqual(1, mock_em.call_count)
 
     @mock.patch.object(driver_factory.LOG, 'warning', autospec=True)
     def test_driver_duplicated_entry(self, mock_log):
-        self.config(enabled_drivers=['fake', 'fake'])
-        driver_factory.DriverFactory._init_extension_manager()
+        self.config(enabled_hardware_types=['fake-hardware',
+                                            'fake-hardware'])
+        driver_factory.HardwareTypesFactory._init_extension_manager()
         self.assertEqual(
-            ['fake'], driver_factory.DriverFactory._extension_manager.names())
+            ['fake-hardware'],
+            driver_factory.HardwareTypesFactory._extension_manager.names())
         self.assertTrue(mock_log.called)
 
     @mock.patch.object(driver_factory.LOG, 'warning', autospec=True)
     def test_driver_empty_entry(self, mock_log):
-        self.config(enabled_drivers=['fake', ''])
-        driver_factory.DriverFactory._init_extension_manager()
+        self.config(enabled_hardware_types=['fake-hardware', ''])
+        driver_factory.HardwareTypesFactory._init_extension_manager()
         self.assertEqual(
-            ['fake'], driver_factory.DriverFactory._extension_manager.names())
+            ['fake-hardware'],
+            driver_factory.HardwareTypesFactory._extension_manager.names())
         self.assertTrue(mock_log.called)
 
     @mock.patch.object(driver_factory, '_warn_if_unsupported', autospec=True)
     def test_driver_init_checks_unsupported(self, mock_warn):
+        self.config(enabled_hardware_types=['fake-hardware'])
+        driver_factory.HardwareTypesFactory._init_extension_manager()
+        self.assertEqual(
+            ['fake-hardware'],
+            driver_factory.HardwareTypesFactory._extension_manager.names())
+        self.assertTrue(mock_warn.called)
+
+    @mock.patch.object(driver_factory.LOG, 'warning', autospec=True)
+    def test_classic_drivers_unsupported(self, mock_warn):
         self.config(enabled_drivers=['fake'])
         driver_factory.DriverFactory._init_extension_manager()
-        self.assertEqual(
-            ['fake'], driver_factory.DriverFactory._extension_manager.names())
         self.assertTrue(mock_warn.called)
 
     def test_build_driver_for_task(self):
@@ -103,6 +113,7 @@ class DriverLoadTestCase(db_base.DbTestCase):
                 else:
                     self.assertIsNotNone(impl)
 
+    @mock.patch.object(drivers_base.BaseDriver, 'supported', True)
     @mock.patch.object(driver_factory, '_attach_interfaces_to_driver',
                        autospec=True)
     @mock.patch.object(driver_factory.LOG, 'warning', autospec=True)

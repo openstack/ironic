@@ -49,11 +49,13 @@ class BaseDriver(object):
     the interfaces are appropriate.
     """
 
-    supported = True
+    supported = False
     """Indicates if a driver is supported.
 
     This will be set to False for drivers which are untested in first- or
     third-party CI, or in the process of being deprecated.
+
+    All classic drivers are now deprecated, and thus unsupported.
     """
 
     # NOTE(jlvillal): These should be tuples to help prevent child classes from
