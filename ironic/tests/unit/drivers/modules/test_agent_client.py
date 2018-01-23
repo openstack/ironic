@@ -44,7 +44,8 @@ class MockNode(object):
         }
         self.instance_info = {}
 
-    def as_dict(self):
+    def as_dict(self, secure=False):
+        assert secure, 'agent_client must pass secure=True'
         return {
             'uuid': self.uuid,
             'driver_internal_info': self.driver_internal_info,
@@ -227,7 +228,7 @@ class TestAgentClient(base.TestCase):
         self.client._command = mock.MagicMock(spec_set=[])
         ports = []
         expected_params = {
-            'node': self.node.as_dict(),
+            'node': self.node.as_dict(secure=True),
             'ports': []
         }
 
@@ -243,7 +244,7 @@ class TestAgentClient(base.TestCase):
         step = {'priority': 10, 'step': 'erase_devices', 'interface': 'deploy'}
         expected_params = {
             'step': step,
-            'node': self.node.as_dict(),
+            'node': self.node.as_dict(secure=True),
             'ports': [],
             'clean_version':
                 self.node.driver_internal_info['hardware_manager_version']
