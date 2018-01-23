@@ -33,6 +33,20 @@ class TestNodeObject(base.DbTestCase):
         self.fake_node = utils.get_test_node()
         self.node = obj_utils.get_test_node(self.ctxt, **self.fake_node)
 
+    def test_as_dict_insecure(self):
+        self.node.driver_info['ipmi_password'] = 'fake'
+        self.node.instance_info['configdrive'] = 'data'
+        d = self.node.as_dict()
+        self.assertEqual('fake', d['driver_info']['ipmi_password'])
+        self.assertEqual('data', d['instance_info']['configdrive'])
+
+    def test_as_dict_secure(self):
+        self.node.driver_info['ipmi_password'] = 'fake'
+        self.node.instance_info['configdrive'] = 'data'
+        d = self.node.as_dict(secure=True)
+        self.assertEqual('******', d['driver_info']['ipmi_password'])
+        self.assertEqual('******', d['instance_info']['configdrive'])
+
     def test_get_by_id(self):
         node_id = self.fake_node['id']
         with mock.patch.object(self.dbapi, 'get_node_by_id',
