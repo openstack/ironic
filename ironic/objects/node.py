@@ -134,6 +134,15 @@ class Node(base.IronicObject, object_base.VersionedObjectDictCompat):
         'traits': object_fields.ObjectField('TraitList', nullable=True),
     }
 
+    def as_dict(self, secure=False):
+        d = super(Node, self).as_dict()
+        if secure:
+            d['driver_info'] = strutils.mask_dict_password(
+                d.get('driver_info', {}), "******")
+            d['instance_info'] = strutils.mask_dict_password(
+                d.get('instance_info', {}), "******")
+        return d
+
     def _validate_property_values(self, properties):
         """Check if the input of local_gb, cpus and memory_mb are valid.
 
