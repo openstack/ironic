@@ -107,7 +107,7 @@ class TestAnsibleMethods(AnsibleDeployTestCaseBase):
         self.assertEqual('test', user)
         self.assertEqual('/path/key', key)
         self.assertEqual(2, warn_mock.call_count)
-        # check that we remeber about warnings havig been displayed
+        # check that we remember about warnings havig been displayed
         playbook, user, key = ansible_deploy._parse_ansible_driver_info(
             self.node, 'deploy')
         self.assertEqual(2, warn_mock.call_count)
