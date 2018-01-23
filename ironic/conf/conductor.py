@@ -52,6 +52,12 @@ opts = [
                default=60,
                help=_('Interval between checks of provision timeouts, '
                       'in seconds.')),
+    cfg.IntOpt('check_rescue_state_interval',
+               default=60,
+               min=1,
+               help=_('Interval (seconds) between checks of rescue '
+                      'timeouts. This option is part of rescue feature '
+                      'work, which is not currently exposed to users.')),
     cfg.IntOpt('deploy_callback_timeout',
                default=1800,
                help=_('Timeout (seconds) to wait for a callback from '
@@ -145,6 +151,15 @@ opts = [
                       'ramdisk doing the cleaning. If the timeout is reached '
                       'the node will be put in the "clean failed" provision '
                       'state. Set to 0 to disable timeout.')),
+    cfg.IntOpt('rescue_callback_timeout',
+               default=1800,
+               min=0,
+               help=_('Timeout (seconds) to wait for a callback from the '
+                      'rescue ramdisk. If the timeout is reached the node '
+                      'will be put in the "rescue failed" provision state. '
+                      'Set to 0 to disable timeout. This option is part of '
+                      'rescue feature work, which is not currently exposed '
+                      'to users.')),
     cfg.IntOpt('soft_power_off_timeout',
                default=600,
                min=1,

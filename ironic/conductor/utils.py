@@ -398,14 +398,48 @@ def cleaning_error_handler(task, msg, tear_down_cleaning=True,
         task.process_event('fail', target_state=target_state)
 
 
+@task_manager.require_exclusive_lock
+def cleanup_rescuewait_timeout(task):
+    """Cleanup rescue task after timeout.
+
+    :param task: a TaskManager instance.
+    """
+    node = task.node
+    msg = _('Timeout reached while waiting for rescue ramdisk callback '
+            'for node')
+    errmsg = msg + ' %(node)s'
+    LOG.error(errmsg, {'node': node.uuid})
+    try:
+        node_power_action(task, states.POWER_OFF)
+        task.driver.rescue.clean_up(task)
+        node.last_error = msg
+        node.save()
+    except Exception as e:
+        if isinstance(e, exception.IronicException):
+            error_msg = _('Cleanup failed for %(node_info)s after rescue '
+                          'timeout: %(error)s')
+            node_info = ('node')
+            node.last_error = error_msg % {'node_info': node_info, 'error': e}
+            node_info = ('node %s') % node.uuid
+            LOG.error(error_msg, {'node_info': node_info, 'error': e})
+        else:
+            node.last_error = _('Rescue timed out, but an unhandled '
+                                'exception was encountered while aborting. '
+                                'More info may be found in the log file.')
+            LOG.exception('Rescue timed out for node %(node)s, an exception '
+                          'was encountered while aborting. Error: %(err)s',
+                          {'node': node.uuid, 'err': e})
+        node.save()
+
+
 def _spawn_error_handler(e, node, state):
     """Handle spawning error for node."""
     if isinstance(e, exception.NoFreeConductorWorker):
         node.last_error = (_("No free conductor workers available"))
         node.save()
         LOG.warning("No free conductor workers available to perform "
-                    "%(state)s on node %(node)s",
-                    {'state': state, 'node': node.uuid})
+                    "%(operation)s on node %(node)s",
+                    {'operation': state, 'node': node.uuid})
 
 
 def spawn_cleaning_error_handler(e, node):
