@@ -140,6 +140,46 @@ class NeutronNetwork(common.NeutronVIFPortIDMixin,
                 port.internal_info = internal_info
                 port.save()
 
+    def add_rescuing_network(self, task):
+        """Create neutron ports for each port to boot the rescue ramdisk.
+
+        :param task: a TaskManager instance.
+        :returns: a dictionary in the form {port.uuid: neutron_port['id']}
+        """
+        # If we have left over ports from a previous rescue, remove them
+        neutron.rollback_ports(task, self.get_rescuing_network_uuid(
+            context=task.context))
+        LOG.info('Adding rescuing network to node %s', task.node.uuid)
+        security_groups = CONF.neutron.rescuing_network_security_groups
+        vifs = neutron.add_ports_to_network(
+            task,
+            self.get_rescuing_network_uuid(context=task.context),
+            security_groups=security_groups)
+        for port in task.ports:
+            if port.uuid in vifs:
+                internal_info = port.internal_info
+                internal_info['rescuing_vif_port_id'] = vifs[port.uuid]
+                port.internal_info = internal_info
+                port.save()
+        return vifs
+
+    def remove_rescuing_network(self, task):
+        """Deletes neutron port created for booting the rescue ramdisk.
+
+        :param task: a TaskManager instance.
+        :raises: NetworkError
+        """
+        LOG.info('Removing rescuing network from node %s',
+                 task.node.uuid)
+        neutron.remove_ports_from_network(
+            task, self.get_rescuing_network_uuid(context=task.context))
+        for port in task.ports:
+            if 'rescuing_vif_port_id' in port.internal_info:
+                internal_info = port.internal_info
+                del internal_info['rescuing_vif_port_id']
+                port.internal_info = internal_info
+                port.save()
+
     def configure_tenant_networks(self, task):
         """Configure tenant networks for a node.
 

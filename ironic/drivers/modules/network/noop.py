@@ -67,8 +67,9 @@ class NoopNetwork(base.NetworkInterface):
         """Returns the currently used VIF associated with port or portgroup
 
         We are booting the node only in one network at a time, and presence of
-        cleaning_vif_port_id means we're doing cleaning, of
-        provisioning_vif_port_id - provisioning.
+        cleaning_vif_port_id means we're doing cleaning,
+        of provisioning_vif_port_id - provisioning
+        of rescuing_vif_port_id - rescuing.
         Otherwise it's a tenant network
 
         :param task: A TaskManager instance.

@@ -566,6 +566,7 @@ class NeutronNetworkInterfaceMixin(object):
 
     _cleaning_network_uuid = None
     _provisioning_network_uuid = None
+    _rescuing_network_uuid = None
 
     def get_cleaning_network_uuid(self, context=None):
         if self._cleaning_network_uuid is None:
@@ -580,3 +581,12 @@ class NeutronNetworkInterfaceMixin(object):
                 CONF.neutron.provisioning_network,
                 _('provisioning network'), context=context)
         return self._provisioning_network_uuid
+
+    def get_rescuing_network_uuid(self, context=None):
+        # TODO(stendulker): FlatNetwork should not use this method.
+        # FlatNetwork uses tenant network for rescue operation.
+        if self._rescuing_network_uuid is None:
+            self._rescuing_network_uuid = validate_network(
+                CONF.neutron.rescuing_network,
+                _('rescuing network'), context=context)
+        return self._rescuing_network_uuid

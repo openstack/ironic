@@ -7,7 +7,9 @@
 # Authentication strategy used by ironic-api. "noauth" should
 # not be used in a production environment because all
 # authentication will be disabled. (string value)
-# Allowed values: noauth, keystone
+# Possible values:
+# noauth - <No description provided>
+# keystone - <No description provided>
 #auth_strategy = keystone
 
 # Return server tracebacks in the API response for any error
@@ -362,7 +364,12 @@
 # Specifies the minimum level for which to send notifications.
 # If not set, no notifications will be sent. The default is
 # for this option to be unset. (string value)
-# Allowed values: debug, info, warning, error, critical
+# Possible values:
+# debug - <No description provided>
+# info - <No description provided>
+# warning - <No description provided>
+# error - <No description provided>
+# critical - <No description provided>
 #notification_level = <None>
 
 # Directory where the ironic python module is installed.
@@ -397,7 +404,13 @@
 # doing a rolling upgrade from version N to version N+1, set
 # (to pin) this to N. To unpin (default), leave it unset and
 # the latest versions will be used. (string value)
-# Allowed values: pike, 9.2, 9.1, 9.0, 8.0, 10.0
+# Possible values:
+# pike - <No description provided>
+# 9.2 - <No description provided>
+# 9.1 - <No description provided>
+# 9.0 - <No description provided>
+# 8.0 - <No description provided>
+# 10.0 - <No description provided>
 #pin_release_version = <None>
 
 # Path to the rootwrap configuration file to use for running
@@ -554,7 +567,10 @@
 #rpc_zmq_bind_address = *
 
 # MatchMaker driver. (string value)
-# Allowed values: redis, sentinel, dummy
+# Possible values:
+# redis - <No description provided>
+# sentinel - <No description provided>
+# dummy - <No description provided>
 #rpc_zmq_matchmaker = redis
 
 # Number of ZeroMQ contexts, defaults to 1. (integer value)
@@ -630,7 +646,9 @@
 # Default serialization mechanism for
 # serializing/deserializing outgoing/incoming messages (string
 # value)
-# Allowed values: json, msgpack
+# Possible values:
+# json - <No description provided>
+# msgpack - <No description provided>
 #rpc_zmq_serialization = json
 
 # This option configures round-robin mode in zmq socket. True
@@ -821,12 +839,17 @@
 # Whether Ironic should collect the deployment logs on
 # deployment failure (on_failure), always or never. (string
 # value)
-# Allowed values: always, on_failure, never
+# Possible values:
+# always - <No description provided>
+# on_failure - <No description provided>
+# never - <No description provided>
 #deploy_logs_collect = on_failure
 
 # The name of the storage backend where the logs will be
 # stored. (string value)
-# Allowed values: local, swift
+# Possible values:
+# local - <No description provided>
+# swift - <No description provided>
 #deploy_logs_storage_backend = local
 
 # The path to the directory where the logs should be stored,
@@ -1596,7 +1619,9 @@
 # but it will be changed to "local" in the future. It is
 # recommended to set an explicit value for this option.
 # (string value)
-# Allowed values: netboot, local
+# Possible values:
+# netboot - <No description provided>
+# local - <No description provided>
 #default_boot_option = <None>
 
 # Whether to upload the config drive to object store. Set this
@@ -1607,7 +1632,9 @@
 
 # Type of object store endpoint type to be used as a backend
 # (string value)
-# Allowed values: swift, radosgw
+# Possible values:
+# swift - <No description provided>
+# radosgw - <No description provided>
 # Deprecated group/name - [glance]/temp_url_endpoint_type
 #object_store_endpoint_type = swift
 
@@ -1694,7 +1721,9 @@
 
 # DEPRECATED: Authentication strategy to use when connecting
 # to glance. (string value)
-# Allowed values: keystone, noauth
+# Possible values:
+# keystone - <No description provided>
+# noauth - <No description provided>
 # This option is deprecated for removal.
 # Its value may be silently ignored in the future.
 # Reason: To configure glance in noauth mode, set
@@ -1999,7 +2028,10 @@
 # for backward compatibility. When "auto" is specified,
 # default boot mode will be selected based on boot mode
 # settings on the system. (string value)
-# Allowed values: auto, bios, uefi
+# Possible values:
+# auto - <No description provided>
+# bios - <No description provided>
+# uefi - <No description provided>
 #default_boot_mode = auto
 
 
@@ -2191,7 +2223,9 @@
 #remote_image_server = <None>
 
 # Share type of virtual media (string value)
-# Allowed values: CIFS, NFS
+# Possible values:
+# CIFS - <No description provided>
+# NFS - <No description provided>
 #remote_image_share_type = CIFS
 
 # share name of remote_image_server (string value)
@@ -2209,23 +2243,32 @@
 # Port to be used for iRMC operations (port value)
 # Minimum value: 0
 # Maximum value: 65535
-# Allowed values: 443, 80
+# Possible values:
+# 443 - <No description provided>
+# 80 - <No description provided>
 #port = 443
 
 # Authentication method to be used for iRMC operations (string
 # value)
-# Allowed values: basic, digest
+# Possible values:
+# basic - <No description provided>
+# digest - <No description provided>
 #auth_method = basic
 
 # Timeout (in seconds) for iRMC operations (integer value)
 #client_timeout = 60
 
 # Sensor data retrieval method. (string value)
-# Allowed values: ipmitool, scci
+# Possible values:
+# ipmitool - <No description provided>
+# scci - <No description provided>
 #sensor_method = ipmitool
 
 # SNMP protocol version (string value)
-# Allowed values: v1, v2c, v3
+# Possible values:
+# v1 - <No description provided>
+# v2c - <No description provided>
+# v3 - <No description provided>
 #snmp_version = v2c
 
 # SNMP port (port value)
@@ -2416,7 +2459,10 @@
 # token data is encrypted and authenticated in the cache. If
 # the value is not one of these options or empty, auth_token
 # will raise an exception on initialization. (string value)
-# Allowed values: None, MAC, ENCRYPT
+# Possible values:
+# None - <No description provided>
+# MAC - <No description provided>
+# ENCRYPT - <No description provided>
 #memcache_security_strategy = None
 
 # (Optional, mandatory if memcache_security_strategy is
@@ -2603,7 +2649,9 @@
 #
 
 # Backend to use for the metrics system. (string value)
-# Allowed values: noop, statsd
+# Possible values:
+# noop - <No description provided>
+# statsd - <No description provided>
 #backend = noop
 
 # Prepend the hostname to all metric names. The format of
@@ -2667,7 +2715,9 @@
 # to neutron. Running neutron in noauth mode (related to but
 # not affected by this setting) is insecure and should only be
 # used for testing. (string value)
-# Allowed values: keystone, noauth
+# Possible values:
+# keystone - <No description provided>
+# noauth - <No description provided>
 # This option is deprecated for removal.
 # Its value may be silently ignored in the future.
 # Reason: To configure neutron for noauth mode, set
@@ -2781,6 +2831,25 @@
 # The default region_name for endpoint URL discovery. (string
 # value)
 #region_name = <None>
+
+# Neutron network UUID or name for booting the ramdisk for
+# rescue mode. This is not the network that the rescue ramdisk
+# will use post-boot -- the tenant network is used for that.
+# Required for "neutron" network interface, if rescue mode
+# will be used. It is not used for the "flat" or "noop"
+# network interfaces. If a name is provided, it must be unique
+# among all networks or rescue will fail. This option is part
+# of rescue feature work, which is not currently exposed to
+# users. (string value)
+#rescuing_network = <None>
+
+# List of Neutron Security Group UUIDs to be applied during
+# the node rescue process. Optional for the "neutron" network
+# interface and not used for the "flat" or "noop" network
+# interfaces. If not specified, the default security group is
+# used. This option is part of rescue feature work, which is
+# not currently exposed to users. (list value)
+#rescuing_network_security_groups =
 
 # Client retries in the case of a failed request. (integer
 # value)
@@ -3164,15 +3233,24 @@
 # value)
 #kafka_consumer_timeout = 1.0
 
-# Pool Size for Kafka Consumers (integer value)
+# DEPRECATED: Pool Size for Kafka Consumers (integer value)
+# This option is deprecated for removal.
+# Its value may be silently ignored in the future.
+# Reason: Driver no longer uses connection pool.
 #pool_size = 10
 
-# The pool size limit for connections expiration policy
-# (integer value)
+# DEPRECATED: The pool size limit for connections expiration
+# policy (integer value)
+# This option is deprecated for removal.
+# Its value may be silently ignored in the future.
+# Reason: Driver no longer uses connection pool.
 #conn_pool_min_size = 2
 
-# The time-to-live in sec of idle connections in the pool
-# (integer value)
+# DEPRECATED: The time-to-live in sec of idle connections in
+# the pool (integer value)
+# This option is deprecated for removal.
+# Its value may be silently ignored in the future.
+# Reason: Driver no longer uses connection pool.
 #conn_pool_ttl = 1200
 
 # Group id for Kafka consumer. Consumers in one group will
@@ -3271,7 +3349,9 @@
 # one we are currently connected to becomes unavailable. Takes
 # effect only if more than one RabbitMQ node is provided in
 # config. (string value)
-# Allowed values: round-robin, shuffle
+# Possible values:
+# round-robin - <No description provided>
+# shuffle - <No description provided>
 #kombu_failover_strategy = round-robin
 
 # DEPRECATED: The RabbitMQ broker address where a single node
@@ -3310,7 +3390,10 @@
 #rabbit_password = guest
 
 # The RabbitMQ login method. (string value)
-# Allowed values: PLAIN, AMQPLAIN, RABBIT-CR-DEMO
+# Possible values:
+# PLAIN - <No description provided>
+# AMQPLAIN - <No description provided>
+# RABBIT-CR-DEMO - <No description provided>
 #rabbit_login_method = AMQPLAIN
 
 # DEPRECATED: The RabbitMQ virtual host. (string value)
@@ -3397,7 +3480,10 @@
 #host_connection_reconnect_delay = 0.25
 
 # Connection factory implementation (string value)
-# Allowed values: new, single, read_write
+# Possible values:
+# new - <No description provided>
+# single - <No description provided>
+# read_write - <No description provided>
 #connection_factory = single
 
 # Maximum number of connections to keep queued. (integer
@@ -3425,7 +3511,9 @@
 # Default serialization mechanism for
 # serializing/deserializing outgoing/incoming messages (string
 # value)
-# Allowed values: json, msgpack
+# Possible values:
+# json - <No description provided>
+# msgpack - <No description provided>
 #default_serializer_type = json
 
 # Persist notification messages. (boolean value)
@@ -3497,7 +3585,10 @@
 #rpc_zmq_bind_address = *
 
 # MatchMaker driver. (string value)
-# Allowed values: redis, sentinel, dummy
+# Possible values:
+# redis - <No description provided>
+# sentinel - <No description provided>
+# dummy - <No description provided>
 #rpc_zmq_matchmaker = redis
 
 # Number of ZeroMQ contexts, defaults to 1. (integer value)
@@ -3573,7 +3664,9 @@
 # Default serialization mechanism for
 # serializing/deserializing outgoing/incoming messages (string
 # value)
-# Allowed values: json, msgpack
+# Possible values:
+# json - <No description provided>
+# msgpack - <No description provided>
 #rpc_zmq_serialization = json
 
 # This option configures round-robin mode in zmq socket. True
@@ -3682,7 +3775,10 @@
 
 # Content Type to send and receive data for REST based policy
 # check (string value)
-# Allowed values: application/x-www-form-urlencoded, application/json
+# Possible values:
+# application/x-www-form-urlencoded - <No description
+# provided>
+# application/json - <No description provided>
 #remote_content_type = application/x-www-form-urlencoded
 
 # server identity verification for REST based policy check
@@ -3914,7 +4010,9 @@
 
 # The IP version that will be used for PXE booting. Defaults
 # to 4. EXPERIMENTAL (string value)
-# Allowed values: 4, 6
+# Possible values:
+# 4 - <No description provided>
+# 6 - <No description provided>
 #ip_version = 4
 
 # Download deploy images directly from swift using temporary

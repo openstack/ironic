@@ -153,6 +153,9 @@ class TestNetwork(db_base.DbTestCase):
     def test_get_node_vif_ids_during_provisioning(self):
         self._test_get_node_vif_ids_multitenancy('provisioning_vif_port_id')
 
+    def test_get_node_vif_ids_during_rescuing(self):
+        self._test_get_node_vif_ids_multitenancy('rescuing_vif_port_id')
+
 
 class GetPortgroupByIdTestCase(db_base.DbTestCase):
 

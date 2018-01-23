@@ -626,7 +626,7 @@ class TestVifPortIDMixin(db_base.DbTestCase):
 
     def test_get_current_vif_internal_info_provisioning(self):
         internal_info = {'provisioning_vif_port_id': 'foo',
-                         'vif_port_id': 'bar'}
+                         'tenant_vif_port_id': 'bar'}
         self.port.internal_info = internal_info
         self.port.save()
         with task_manager.acquire(self.context, self.node.id) as task:
@@ -640,6 +640,15 @@ class TestVifPortIDMixin(db_base.DbTestCase):
         with task_manager.acquire(self.context, self.node.id) as task:
             vif = self.interface.get_current_vif(task, self.port)
             self.assertEqual('bar', vif)
+
+    def test_get_current_vif_internal_info_rescuing(self):
+        internal_info = {'rescuing_vif_port_id': 'foo',
+                         'tenant_vif_port_id': 'bar'}
+        self.port.internal_info = internal_info
+        self.port.save()
+        with task_manager.acquire(self.context, self.node.id) as task:
+            vif = self.interface.get_current_vif(task, self.port)
+            self.assertEqual('foo', vif)
 
     def test_get_current_vif_none(self):
         internal_info = extra = {}

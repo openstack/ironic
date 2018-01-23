@@ -1036,8 +1036,9 @@ class NetworkInterface(BaseInterface):
         """Returns the currently used VIF associated with port or portgroup
 
         We are booting the node only in one network at a time, and presence of
-        cleaning_vif_port_id means we're doing cleaning, of
-        provisioning_vif_port_id - provisioning.
+        cleaning_vif_port_id means we're doing cleaning,
+        of provisioning_vif_port_id - provisioning,
+        of rescuing_vif_port_id - rescuing.
         Otherwise it's a tenant network.
 
         :param task: A TaskManager instance.
@@ -1091,6 +1092,28 @@ class NetworkInterface(BaseInterface):
         :param task: A TaskManager instance.
         :raises: NetworkError
         """
+
+    def add_rescuing_network(self, task):
+        """Add the rescuing network to the node.
+
+        :param task: A TaskManager instance.
+        :returns: a dictionary in the form {port.uuid: neutron_port['id']}
+        :raises: NetworkError
+        :raises: InvalidParameterValue, if the network interface configuration
+            is invalid.
+        """
+        return {}
+
+    def remove_rescuing_network(self, task):
+        """Removes the rescuing network from a node.
+
+        :param task: A TaskManager instance.
+        :raises: NetworkError
+        :raises: InvalidParameterValue, if the network interface configuration
+            is invalid.
+        :raises: MissingParameterValue, if some parameters are missing.
+        """
+        pass
 
 
 @six.add_metaclass(abc.ABCMeta)
