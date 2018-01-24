@@ -8,10 +8,18 @@ with the Networking service for DHCP, PXE boot and other requirements.
 This section covers configuring Networking for a single flat network for bare
 metal provisioning.
 
+Baremetal service requires the baremetal mechanism driver to be installed and
+enabled in the networking service for flat networks. Documentation regarding
+installation and configuration of the baremetal mechanism driver is available
+at `here <https://docs.openstack.org/networking-baremetal/latest/index.html>`_.
+
 You will also need to provide Bare Metal service with the MAC address(es) of
 each node that it is provisioning; Bare Metal service in turn will pass this
 information to Networking service for DHCP and PXE boot configuration.
 An example of this is shown in the :ref:`enrollment` section.
+
+#. Install the networking-baremetal ml2 mechanism driver and l2 agent in the
+   Networking service.
 
 #. Edit ``/etc/neutron/plugins/ml2/ml2_conf.ini`` and modify these:
 
@@ -20,7 +28,7 @@ An example of this is shown in the :ref:`enrollment` section.
       [ml2]
       type_drivers = flat
       tenant_network_types = flat
-      mechanism_drivers = openvswitch
+      mechanism_drivers = openvswitch,baremetal
 
       [ml2_type_flat]
       flat_networks = physnet1
@@ -33,6 +41,25 @@ An example of this is shown in the :ref:`enrollment` section.
       bridge_mappings = physnet1:br-eth2
       # Replace eth2 with the interface on the neutron node which you
       # are using to connect to the bare metal server
+
+#. Restart the ``neutron-server`` service, to load the new configuration.
+
+#. Create and edit ``/etc/neutron/plugins/ml2/ironic_neutron_agent.ini`` and
+   add the required configuration. For example:
+
+   .. code-block:: ini
+
+      [ironic]
+      project_domain_name = Default
+      project_name = service
+      user_domain_name = Default
+      password = password
+      username = ironic
+      auth_url = http://identity-server.example.com/identity
+      auth_type = password
+      region_name = RegionOne
+
+#. Make sure the ``ironic-neutron-agent`` service is started.
 
 #. If neutron-openvswitch-agent runs with ``ovs_neutron_plugin.ini`` as the input
    config-file, edit ``ovs_neutron_plugin.ini`` to configure the bridge mappings
