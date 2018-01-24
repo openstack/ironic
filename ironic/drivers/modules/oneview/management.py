@@ -25,22 +25,68 @@ from ironic.drivers import base
 from ironic.drivers.modules.oneview import common
 from ironic.drivers.modules.oneview import deploy_utils
 
-LOG = logging.getLogger(__name__)
+client_exception = importutils.try_import('hpOneView.exceptions')
+oneview_exceptions = importutils.try_import('oneview_client.exceptions')
 
+LOG = logging.getLogger(__name__)
 METRICS = metrics_utils.get_metrics_logger(__name__)
 
-BOOT_DEVICE_MAPPING_TO_OV = {
-    boot_devices.DISK: 'HardDisk',
-    boot_devices.PXE: 'PXE',
+BOOT_DEVICE_MAP_ONEVIEW = {
     boot_devices.CDROM: 'CD',
+    boot_devices.DISK: 'HardDisk',
+    boot_devices.PXE: 'PXE'
 }
 
-BOOT_DEVICE_OV_TO_GENERIC = {
-    v: k
-    for k, v in BOOT_DEVICE_MAPPING_TO_OV.items()
+BOOT_DEVICE_MAP_ONEVIEW_REV = {
+    v: k for k, v in BOOT_DEVICE_MAP_ONEVIEW.items()}
+
+BOOT_DEVICE_MAP_ILO = {
+    boot_devices.CDROM: 'Cd',
+    boot_devices.DISK: 'Hdd',
+    boot_devices.PXE: 'Pxe'
 }
 
-oneview_exceptions = importutils.try_import('oneview_client.exceptions')
+BOOT_DEVICE_MAP_ILO_REV = {
+    v: k for k, v in BOOT_DEVICE_MAP_ILO.items()}
+
+
+def set_onetime_boot(task):
+    """Set onetime boot to server hardware.
+
+    Change the onetime boot option of an OneView server hardware.
+
+    :param task: a task from TaskManager.
+    """
+    driver_internal_info = task.node.driver_internal_info
+    next_boot_device = driver_internal_info.get('next_boot_device')
+
+    if not next_boot_device:
+        return
+
+    boot_device = next_boot_device.get('boot_device')
+    persistent = next_boot_device.get('persistent')
+
+    if persistent:
+        return
+
+    server_hardware = task.node.driver_info.get('server_hardware_uri')
+    ilo_client = common.get_ilorest_client(server_hardware)
+    boot_device = BOOT_DEVICE_MAP_ILO.get(boot_device)
+    path = '/rest/v1/Systems/1'
+    body = {
+        "Boot": {
+            "BootSourceOverrideTarget": boot_device,
+            "BootSourceOverrideEnabled": "Once"
+        }
+    }
+    headers = {"Content-Type": "application/json"}
+    try:
+        ilo_client.patch(path=path, body=body, headers=headers)
+    except Exception as e:
+        msg = (_("Error while trying to set onetime boot on Server Hardware: "
+                 "%(sh_uri)s. Error: %(error)s") %
+               {'sh_uri': server_hardware, 'error': e})
+        raise exception.OneViewError(error=msg)
 
 
 def set_boot_device(task):
@@ -51,12 +97,10 @@ def set_boot_device(task):
     :param task: a task from TaskManager.
     :raises: InvalidParameterValue if an invalid boot device is
              specified.
-    :raises: OperationNotPermitted if the server has no server profile or
-             if the server is already powered on.
     :raises: OneViewError if the communication with OneView fails
     """
-    oneview_client = common.get_oneview_client()
-    common.has_server_profile(task, oneview_client)
+    oneview_client = common.get_hponeview_client()
+    common.ensure_server_profile(task)
     driver_internal_info = task.node.driver_internal_info
     next_boot_device = driver_internal_info.get('next_boot_device')
 
@@ -64,7 +108,7 @@ def set_boot_device(task):
         boot_device = next_boot_device.get('boot_device')
         persistent = next_boot_device.get('persistent')
 
-        if boot_device not in sorted(BOOT_DEVICE_MAPPING_TO_OV):
+        if boot_device not in sorted(BOOT_DEVICE_MAP_ONEVIEW):
             raise exception.InvalidParameterValue(
                 _("Invalid boot device %s specified.") % boot_device)
 
@@ -73,16 +117,24 @@ def set_boot_device(task):
                   {"boot_device": boot_device, "persistent": persistent,
                    "node": task.node.uuid})
 
+        profile = task.node.driver_info.get('applied_server_profile_uri')
+        boot_device = BOOT_DEVICE_MAP_ONEVIEW.get(boot_device)
+
         try:
-            oneview_info = common.get_oneview_info(task.node)
-            device_to_oneview = BOOT_DEVICE_MAPPING_TO_OV.get(boot_device)
-            oneview_client.set_boot_device(oneview_info,
-                                           device_to_oneview,
-                                           onetime=not persistent)
+            server_profile = oneview_client.server_profiles.get(profile)
+            boot = server_profile.get('boot', {})
+            order = boot.get('order', [])
+            if boot_device in order:
+                order.remove(boot_device)
+            order.insert(0, boot_device)
+            boot['order'] = order
+            server_profile['boot'] = boot
+            oneview_client.server_profiles.update(server_profile, profile)
+            set_onetime_boot(task)
             driver_internal_info.pop('next_boot_device', None)
             task.node.driver_internal_info = driver_internal_info
             task.node.save()
-        except oneview_exceptions.OneViewException as oneview_exc:
+        except client_exception.HPOneViewException as oneview_exc:
             msg = (_(
                 "Error setting boot device on OneView. Error: %s")
                 % oneview_exc
@@ -128,9 +180,7 @@ class OneViewManagement(base.ManagementInterface):
             common.validate_oneview_resources_compatibility(
                 self.oneview_client, task)
 
-            if not deploy_utils.is_node_in_use_by_ironic(
-                self.oneview_client, task.node
-            ):
+            if not deploy_utils.is_node_in_use_by_ironic(task.node):
                 raise exception.InvalidParameterValue(
                     _("Node %s is not in use by ironic.") % task.node.uuid)
         except exception.OneViewError as oneview_exc:
@@ -145,7 +195,7 @@ class OneViewManagement(base.ManagementInterface):
                   in :mod:`ironic.common.boot_devices`.
         """
 
-        return sorted(BOOT_DEVICE_MAPPING_TO_OV.keys())
+        return sorted(BOOT_DEVICE_MAP_ONEVIEW)
 
     @METRICS.timer('OneViewManagement.set_boot_device')
     @task_manager.require_exclusive_lock
@@ -198,37 +248,43 @@ class OneViewManagement(base.ManagementInterface):
                 :mod:`ironic.common.boot_devices` [PXE, DISK, CDROM]
             :persistent: Whether the boot device will persist to all
                 future boots or not, None if it is unknown.
-        :raises: OperationNotPermitted if no Server Profile is associated with
-        the node
         :raises: InvalidParameterValue if the boot device is unknown
         :raises: OneViewError if the communication with OneView fails
         """
+        oneview_client = common.get_hponeview_client()
         driver_internal_info = task.node.driver_internal_info
         next_boot_device = driver_internal_info.get('next_boot_device')
 
         if next_boot_device:
             return next_boot_device
 
-        oneview_info = common.get_oneview_info(task.node)
+        driver_info = task.node.driver_info
+        server_profile = driver_info.get('applied_server_profile_uri')
 
         try:
-            boot_order = self.oneview_client.get_boot_order(oneview_info)
-        except oneview_exceptions.OneViewException as oneview_exc:
-            msg = (_(
-                "Error getting boot device from OneView. Error: %s")
-                % oneview_exc
-            )
+            profile = oneview_client.server_profiles.get(server_profile)
+            primary_device = None
+            boot = profile.get('boot', {})
+            boot_order = boot.get('order', [])
+            if boot_order:
+                primary_device = boot_order[0]
+        except client_exception.HPOneViewException as exc:
+            msg = _("Error on node: %(node)s while getting Server Profile: "
+                    "%(profile)s of the from OneView. Error: %(error)s.") % {
+                        'profile': server_profile,
+                        'node': task.node.uuid,
+                        'error': exc
+            }
             raise exception.OneViewError(msg)
 
-        primary_device = boot_order[0]
-        if primary_device not in BOOT_DEVICE_OV_TO_GENERIC:
+        if primary_device not in BOOT_DEVICE_MAP_ONEVIEW_REV:
             raise exception.InvalidParameterValue(
-                _("Unsupported boot Device %(device)s for Node: %(node)s")
+                _("Unsupported boot device %(device)s for node: %(node)s")
                 % {"device": primary_device, "node": task.node.uuid}
             )
 
         boot_device = {
-            'boot_device': BOOT_DEVICE_OV_TO_GENERIC.get(primary_device),
+            'boot_device': BOOT_DEVICE_MAP_ONEVIEW_REV.get(primary_device),
             'persistent': True,
         }
 

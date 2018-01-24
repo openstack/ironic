@@ -73,6 +73,16 @@ class AgentPXEOneViewDriver(base.BaseDriver):
                 driver=self.__class__.__name__,
                 reason=_("Unable to import python-oneviewclient library"))
 
+        if not importutils.try_import('hpOneView.oneview_client'):
+            raise exception.DriverLoadError(
+                driver=self.__class__.__name__,
+                reason=_("Unable to import hpOneView library"))
+
+        if not importutils.try_import('redfish'):
+            raise exception.DriverLoadError(
+                driver=self.__class__.__name__,
+                reason=_("Unable to import python-ilorest-library"))
+
         # Checks connectivity to OneView and version compatibility on driver
         # initialization
         oneview_client = common.get_oneview_client()
@@ -100,6 +110,16 @@ class ISCSIPXEOneViewDriver(base.BaseDriver):
             raise exception.DriverLoadError(
                 driver=self.__class__.__name__,
                 reason=_("Unable to import python-oneviewclient library"))
+
+        if not importutils.try_import('hpOneView.oneview_client'):
+            raise exception.DriverLoadError(
+                driver=self.__class__.__name__,
+                reason=_("Unable to import hpOneView library"))
+
+        if not importutils.try_import('redfish'):
+            raise exception.DriverLoadError(
+                driver=self.__class__.__name__,
+                reason=_("Unable to import python-ilorest-library"))
 
         # Checks connectivity to OneView and version compatibility on driver
         # initialization

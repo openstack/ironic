@@ -27,20 +27,20 @@ LOG = logging.getLogger(__name__)
 
 oneview_exception = importutils.try_import('oneview_client.exceptions')
 oneview_utils = importutils.try_import('oneview_client.utils')
+client_exception = importutils.try_import('hpOneView.exceptions')
 
 
 def get_properties():
     return common.COMMON_PROPERTIES
 
 
-def prepare(oneview_client, task):
+def prepare(task):
     """Applies Server Profile and update the node when preparing.
 
     This method is responsible for applying a Server Profile to the Server
     Hardware and add the uri of the applied Server Profile in the node's
     'applied_server_profile_uri' field on properties/capabilities.
 
-    :param oneview_client: an instance of the OneView client
     :param task: A TaskManager object
     :raises InstanceDeployFailure: If the node doesn't have the needed OneView
             informations, if Server Hardware is in use by an OneView user, or
@@ -56,14 +56,13 @@ def prepare(oneview_client, task):
                 {"instance_name": instance_display_name,
                  "instance_uuid": instance_uuid}
             )
-            allocate_server_hardware_to_ironic(oneview_client, task.node,
-                                               server_profile_name)
+            allocate_server_hardware_to_ironic(task.node, server_profile_name)
         except exception.OneViewError as e:
             raise exception.InstanceDeployFailure(node=task.node.uuid,
                                                   reason=e)
 
 
-def tear_down(oneview_client, task):
+def tear_down(task):
     """Remove Server profile and update the node when tear down.
 
     This method is responsible for power a Server Hardware off, remove a Server
@@ -71,26 +70,24 @@ def tear_down(oneview_client, task):
     Profile from the node's 'applied_server_profile_uri' in
     properties/capabilities.
 
-    :param oneview_client: an instance of the OneView client
     :param task: A TaskManager object
     :raises InstanceDeployFailure: If node has no uri of applied Server
             Profile, or if some error occur while deleting Server Profile.
 
     """
     try:
-        deallocate_server_hardware_from_ironic(oneview_client, task.node)
+        deallocate_server_hardware_from_ironic(task)
     except exception.OneViewError as e:
         raise exception.InstanceDeployFailure(node=task.node.uuid, reason=e)
 
 
-def prepare_cleaning(oneview_client, task):
+def prepare_cleaning(task):
     """Applies Server Profile and update the node when preparing cleaning.
 
     This method is responsible for applying a Server Profile to the Server
     Hardware and add the uri of the applied Server Profile in the node's
     'applied_server_profile_uri' field on properties/capabilities.
 
-    :param oneview_client: an instance of the OneView client
     :param task: A TaskManager object
     :raises NodeCleaningFailure: If the node doesn't have the needed OneView
             informations, if Server Hardware is in use by an OneView user, or
@@ -99,8 +96,7 @@ def prepare_cleaning(oneview_client, task):
     """
     try:
         server_profile_name = "Ironic Cleaning [%s]" % task.node.uuid
-        allocate_server_hardware_to_ironic(oneview_client, task.node,
-                                           server_profile_name)
+        allocate_server_hardware_to_ironic(task.node, server_profile_name)
     except exception.OneViewError as e:
         oneview_error = common.SERVER_HARDWARE_ALLOCATION_ERROR
         driver_internal_info = task.node.driver_internal_info
@@ -111,7 +107,7 @@ def prepare_cleaning(oneview_client, task):
                                             reason=e)
 
 
-def tear_down_cleaning(oneview_client, task):
+def tear_down_cleaning(task):
     """Remove Server profile and update the node when tear down cleaning.
 
     This method is responsible for power a Server Hardware off, remove a Server
@@ -119,49 +115,75 @@ def tear_down_cleaning(oneview_client, task):
     Profile from the node's 'applied_server_profile_uri' in
     properties/capabilities.
 
-    :param oneview_client: an instance of the OneView client
     :param task: A TaskManager object
     :raises NodeCleaningFailure: If node has no uri of applied Server Profile,
             or if some error occur while deleting Server Profile.
 
     """
     try:
-        deallocate_server_hardware_from_ironic(oneview_client, task.node)
+        deallocate_server_hardware_from_ironic(task)
     except exception.OneViewError as e:
         raise exception.NodeCleaningFailure(node=task.node.uuid, reason=e)
+
+
+def _create_profile_from_template(
+        oneview_client, server_profile_name,
+        server_hardware_uri, server_profile_template):
+    """Create a server profile from a server profile template.
+
+    :param oneview_client: an HPE OneView Client instance
+    :param server_profile_name: the name of the new server profile
+    :param server_hardware_uri: the server_hardware assigned to server profile
+    :param server_profile_template: the server profile template id or uri
+    :returns: The new server profile generated with the name and server
+              hardware passed on parameters
+    :raises OneViewError: if the communication with OneView fails
+
+    """
+    server_profile = oneview_client.server_profile_templates.get_new_profile(
+        server_profile_template
+    )
+    server_profile['name'] = server_profile_name
+    server_profile['serverHardwareUri'] = server_hardware_uri
+    server_profile['serverProfileTemplateUri'] = ""
+    try:
+        return oneview_client.server_profiles.create(server_profile)
+    except client_exception.HPOneViewException as e:
+        msg = (_("Error while creating a Server Profile for Server Hardware: "
+                 "%(sh_uri)s. Error: %(error)s") %
+               {'sh_uri': server_hardware_uri, 'error': e})
+        raise exception.OneViewError(error=msg)
 
 
 def _is_node_in_use(server_hardware, applied_sp_uri, by_oneview=False):
     """Check if node is in use by ironic or by OneView.
 
+    :param server_hardware: Server Hardware object.
+    :param applied_sp_uri: Server Profile URI applied in the node.
     :param by_oneview: Boolean value. True when want to verify if node is in
                        use by OneView. False to verify if node is in use by
                        ironic.
-    :param node: an ironic node object
     :returns: Boolean value. True if by_oneview param is also True and node is
               in use by OneView, False otherwise. True if by_oneview param is
               False and node is in use by ironic, False otherwise.
-
     """
-
     operation = operator.ne if by_oneview else operator.eq
-    return (server_hardware.server_profile_uri not in (None, '') and
-            operation(applied_sp_uri, server_hardware.server_profile_uri))
+    server_profile_uri = server_hardware.get('serverProfileUri')
+    return (server_profile_uri and
+            operation(applied_sp_uri, server_profile_uri))
 
 
-def is_node_in_use_by_oneview(oneview_client, node):
+def is_node_in_use_by_oneview(node):
     """Check if node is in use by OneView user.
 
-    :param oneview_client: an instance of the OneView client
-    :param node: an ironic node object
+    :param node: an ironic node object.
     :returns: Boolean value. True if node is in use by OneView,
               False otherwise.
     :raises OneViewError: if not possible to get OneView's informations
             for the given node, if not possible to retrieve Server Hardware
             from OneView.
-
     """
-
+    oneview_client = common.get_hponeview_client()
     positive = _("Node '%s' is in use by OneView.") % node.uuid
     negative = _("Node '%s' is not in use by OneView.") % node.uuid
 
@@ -175,19 +197,17 @@ def is_node_in_use_by_oneview(oneview_client, node):
                                          predicate, positive, negative)
 
 
-def is_node_in_use_by_ironic(oneview_client, node):
+def is_node_in_use_by_ironic(node):
     """Check if node is in use by ironic in OneView.
 
-    :param oneview_client: an instance of the OneView client
-    :param node: an ironic node object
+    :param node: an ironic node object.
     :returns: Boolean value. True if node is in use by ironic,
               False otherwise.
     :raises OneViewError: if not possible to get OneView's information
             for the given node, if not possible to retrieve Server Hardware
             from OneView.
-
     """
-
+    oneview_client = common.get_hponeview_client()
     positive = _("Node '%s' is in use by Ironic.") % node.uuid
     negative = _("Node '%s' is not in use by Ironic.") % node.uuid
 
@@ -215,25 +235,17 @@ def _check_applied_server_profile(oneview_client, node,
 
     """
     oneview_info = common.get_oneview_info(node)
-
-    sh_uuid = oneview_utils.get_uuid_from_uri(
-        oneview_info.get("server_hardware_uri")
-    )
-
     try:
-        server_hardware = oneview_client.get_server_hardware_by_uuid(
-            sh_uuid
+        server_hardware = oneview_client.server_hardware.get(
+            oneview_info.get('server_hardware_uri')
         )
-    except oneview_exception.OneViewResourceNotFoundError as e:
+    except client_exception.HPOneViewResourceNotFound as e:
         msg = (_("Error while obtaining Server Hardware from node "
                  "%(node_uuid)s. Error: %(error)s") %
                {'node_uuid': node.uuid, 'error': e})
         raise exception.OneViewError(error=msg)
 
-    applied_sp_uri = (
-        node.driver_info.get('applied_server_profile_uri')
-    )
-
+    applied_sp_uri = node.driver_info.get('applied_server_profile_uri')
     result = predicate(server_hardware, applied_sp_uri)
 
     if result:
@@ -248,10 +260,10 @@ def _add_applied_server_profile_uri_field(node, applied_profile):
     """Adds the applied Server Profile uri to a node.
 
     :param node: an ironic node object
-
+    :param applied_profile: the server_profile that will be applied to node
     """
     driver_info = node.driver_info
-    driver_info['applied_server_profile_uri'] = applied_profile.uri
+    driver_info['applied_server_profile_uri'] = applied_profile.get('uri')
     node.driver_info = driver_info
     node.save()
 
@@ -268,38 +280,35 @@ def _del_applied_server_profile_uri_field(node):
     node.save()
 
 
-def allocate_server_hardware_to_ironic(oneview_client, node,
-                                       server_profile_name):
+def allocate_server_hardware_to_ironic(node, server_profile_name):
     """Allocate Server Hardware to ironic.
 
-    :param oneview_client: an instance of the OneView client
-    :param node: an ironic node object
+    :param node: an ironic node object.
     :param server_profile_name: a formatted string with the Server Profile
-           name
+           name.
     :raises OneViewError: if an error occurs while allocating the Server
-            Hardware to ironic
-
+            Hardware to ironic or the node is already in use by OneView.
     """
-    node_in_use_by_oneview = is_node_in_use_by_oneview(oneview_client, node)
+    oneview_client = common.get_hponeview_client()
+    node_in_use_by_oneview = is_node_in_use_by_oneview(node)
 
     if not node_in_use_by_oneview:
 
         oneview_info = common.get_oneview_info(node)
 
         applied_sp_uri = node.driver_info.get('applied_server_profile_uri')
+        sh_uri = oneview_info.get("server_hardware_uri")
+        spt_uri = oneview_info.get("server_profile_template_uri")
+        server_hardware = oneview_client.server_hardware.get(sh_uri)
 
-        sh_uuid = oneview_utils.get_uuid_from_uri(
-            oneview_info.get("server_hardware_uri")
-        )
-        spt_uuid = oneview_utils.get_uuid_from_uri(
-            oneview_info.get("server_profile_template_uri")
-        )
-        server_hardware = oneview_client.get_server_hardware_by_uuid(sh_uuid)
+        if not server_hardware:
+            msg = _("An error occurred during allocating server hardware to "
+                    "ironic. Server hardware: %s not found.") % sh_uri
+            raise exception.OneViewError(error=msg)
 
         # Don't have Server Profile on OneView but has
         # `applied_server_profile_uri` on driver_info
-        if (server_hardware.server_profile_uri in (None, '') and
-                applied_sp_uri is not (None, '')):
+        if not server_hardware.get('serverProfileUri') and applied_sp_uri:
 
             _del_applied_server_profile_uri_field(node)
             LOG.info(
@@ -311,8 +320,8 @@ def allocate_server_hardware_to_ironic(oneview_client, node,
 
         # applied_server_profile_uri exists and is equal to Server profile
         # applied on Hardware. Do not apply again.
-        if (applied_sp_uri and server_hardware.server_profile_uri and
-            server_hardware.server_profile_uri == applied_sp_uri):
+        if (applied_sp_uri and server_hardware.get(
+                'serverProfileUri') == applied_sp_uri):
             LOG.info(
                 "The Server Profile %(applied_sp_uri)s was already applied "
                 "by ironic on node %(node_uuid)s. Reusing.",
@@ -321,8 +330,8 @@ def allocate_server_hardware_to_ironic(oneview_client, node,
             return
 
         try:
-            applied_profile = oneview_client.clone_template_and_apply(
-                server_profile_name, sh_uuid, spt_uuid
+            applied_profile = _create_profile_from_template(
+                oneview_client, server_profile_name, sh_uri, spt_uri
             )
             _add_applied_server_profile_uri_field(node, applied_profile)
 
@@ -330,46 +339,42 @@ def allocate_server_hardware_to_ironic(oneview_client, node,
                 "Server Profile %(server_profile_uuid)s was successfully"
                 " applied to node %(node_uuid)s.",
                 {"node_uuid": node.uuid,
-                 "server_profile_uuid": applied_profile.uri}
+                 "server_profile_uuid": applied_profile.get('uri')}
             )
 
-        except oneview_exception.OneViewServerProfileAssignmentError as e:
+        except client_exception.HPOneViewInvalidResource as e:
             LOG.error("An error occurred during allocating server "
                       "hardware to ironic during prepare: %s", e)
             raise exception.OneViewError(error=e)
     else:
-        msg = (_("Node %s is already in use by OneView.") %
-               node.uuid)
-
+        msg = _("Node %s is already in use by OneView.") % node.uuid
         raise exception.OneViewError(error=msg)
 
 
-def deallocate_server_hardware_from_ironic(oneview_client, node):
+def deallocate_server_hardware_from_ironic(task):
     """Deallocate Server Hardware from ironic.
 
-    :param oneview_client: an instance of the OneView client
-    :param node: an ironic node object
+    :param task: a TaskManager object
     :raises OneViewError: if an error occurs while deallocating the Server
             Hardware to ironic
 
     """
+    node = task.node
+    oneview_client = common.get_hponeview_client()
 
-    if is_node_in_use_by_ironic(oneview_client, node):
-
+    if is_node_in_use_by_ironic(node):
         oneview_info = common.get_oneview_info(node)
-        server_profile_uuid = oneview_utils.get_uuid_from_uri(
-            oneview_info.get('applied_server_profile_uri')
-        )
+        server_profile_uri = oneview_info.get('applied_server_profile_uri')
 
         try:
-            oneview_client.power_off(oneview_info)
-            oneview_client.delete_server_profile(server_profile_uuid)
+            task.driver.power.set_power_state(task, states.POWER_OFF)
+            oneview_client.server_profiles.delete(server_profile_uri)
             _del_applied_server_profile_uri_field(node)
             LOG.info("Server Profile %(server_profile_uuid)s was deleted "
                      "from node %(node_uuid)s in OneView.",
-                     {'server_profile_uuid': server_profile_uuid,
+                     {'server_profile_uri': server_profile_uri,
                       'node_uuid': node.uuid})
-        except (ValueError, oneview_exception.OneViewException) as e:
+        except client_exception.HPOneViewException as e:
             msg = (_("Error while deleting applied Server Profile from node "
                      "%(node_uuid)s. Error: %(error)s") %
                    {'node_uuid': node.uuid, 'error': e})

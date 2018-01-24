@@ -26,11 +26,34 @@ from ironic.drivers.modules.oneview import common
 from ironic.drivers.modules.oneview import deploy_utils
 from ironic.drivers.modules.oneview import management
 
+client_exception = importutils.try_import('hpOneView.exceptions')
+oneview_exceptions = importutils.try_import('oneview_client.exceptions')
+
 LOG = logging.getLogger(__name__)
 
 METRICS = metrics_utils.get_metrics_logger(__name__)
 
-oneview_exceptions = importutils.try_import('oneview_client.exceptions')
+POWER_ON = {'powerState': 'On'}
+POWER_OFF = {'powerState': 'Off', 'powerControl': 'PressAndHold'}
+REBOOT = {'powerState': 'On', 'powerControl': 'ColdBoot'}
+SOFT_REBOOT = {'powerState': 'On', 'powerControl': 'Reset'}
+SOFT_POWER_OFF = {'powerState': 'Off', 'powerControl': 'PressAndHold'}
+
+GET_POWER_STATE_MAP = {
+    'On': states.POWER_ON,
+    'Off': states.POWER_OFF,
+    'Resetting': states.REBOOT,
+    'PoweringOff': states.POWER_ON,
+    'PoweringOn': states.POWER_OFF
+}
+
+SET_POWER_STATE_MAP = {
+    states.POWER_ON: POWER_ON,
+    states.POWER_OFF: POWER_OFF,
+    states.REBOOT: REBOOT,
+    states.SOFT_REBOOT: SOFT_REBOOT,
+    states.SOFT_POWER_OFF: SOFT_POWER_OFF
+}
 
 
 class OneViewPower(base.PowerInterface):
@@ -68,10 +91,9 @@ class OneViewPower(base.PowerInterface):
 
         try:
             common.validate_oneview_resources_compatibility(
-                self.oneview_client, task)
-
-            if deploy_utils.is_node_in_use_by_oneview(self.oneview_client,
-                                                      task.node):
+                self.oneview_client, task
+            )
+            if deploy_utils.is_node_in_use_by_oneview(task.node):
                 raise exception.InvalidParameterValue(
                     _("Node %s is in use by OneView.") % task.node.uuid)
         except exception.OneViewError as oneview_exc:
@@ -87,20 +109,21 @@ class OneViewPower(base.PowerInterface):
         :raises: OneViewError if fails to retrieve power state of OneView
                  resource
         """
-        oneview_info = common.get_oneview_info(task.node)
-
+        oneview_client = common.get_hponeview_client()
+        server_hardware = task.node.driver_info.get('server_hardware_uri')
         try:
-            power_state = self.oneview_client.get_node_power_state(
-                oneview_info
-            )
-        except oneview_exceptions.OneViewException as oneview_exc:
+            server_hardware = oneview_client.server_hardware.get(
+                server_hardware)
+        except client_exception.HPOneViewException as exc:
             LOG.error(
                 "Error getting power state for node %(node)s. Error:"
                 "%(error)s",
-                {'node': task.node.uuid, 'error': oneview_exc}
+                {'node': task.node.uuid, 'error': exc}
             )
-            raise exception.OneViewError(error=oneview_exc)
-        return common.translate_oneview_power_state(power_state)
+            raise exception.OneViewError(error=exc)
+        else:
+            power_state = server_hardware.get('powerState')
+            return GET_POWER_STATE_MAP.get(power_state)
 
     @METRICS.timer('OneViewPower.set_power_state')
     @task_manager.require_exclusive_lock
@@ -114,38 +137,50 @@ class OneViewPower(base.PowerInterface):
         :raises: PowerStateFailure if the power couldn't be set to power_state.
         :raises: OneViewError if OneView fails setting the power state.
         """
-        if deploy_utils.is_node_in_use_by_oneview(self.oneview_client,
-                                                  task.node):
+        oneview_client = common.get_hponeview_client()
+
+        if deploy_utils.is_node_in_use_by_oneview(task.node):
             raise exception.PowerStateFailure(_(
                 "Cannot set power state '%(power_state)s' to node %(node)s. "
                 "The node is in use by OneView.") %
                 {'power_state': power_state,
                  'node': task.node.uuid})
 
-        oneview_info = common.get_oneview_info(task.node)
+        if power_state not in SET_POWER_STATE_MAP:
+            raise exception.InvalidParameterValue(
+                _("set_power_state called with invalid power state %(state)s "
+                  "on node: %(node)s") % {
+                    'state': power_state,
+                    'node': task.node.uuid
+                })
 
         LOG.debug('Setting power state of node %(node_uuid)s to '
                   '%(power_state)s',
                   {'node_uuid': task.node.uuid, 'power_state': power_state})
 
+        server_hardware = task.node.driver_info.get('server_hardware_uri')
+
         try:
             if power_state == states.POWER_ON:
                 management.set_boot_device(task)
-                self.oneview_client.power_on(oneview_info)
-            elif power_state == states.POWER_OFF:
-                self.oneview_client.power_off(oneview_info)
+                oneview_client.server_hardware.update_power_state(
+                    SET_POWER_STATE_MAP.get(power_state), server_hardware)
             elif power_state == states.REBOOT:
-                self.oneview_client.power_off(oneview_info)
+                oneview_client.server_hardware.update_power_state(
+                    SET_POWER_STATE_MAP.get(states.POWER_OFF), server_hardware)
                 management.set_boot_device(task)
-                self.oneview_client.power_on(oneview_info)
+                oneview_client.server_hardware.update_power_state(
+                    SET_POWER_STATE_MAP.get(states.POWER_ON), server_hardware)
             else:
-                raise exception.InvalidParameterValue(
-                    _("set_power_state called with invalid power state %s.")
-                    % power_state)
-        except oneview_exceptions.OneViewException as exc:
+                oneview_client.server_hardware.update_power_state(
+                    SET_POWER_STATE_MAP.get(power_state), server_hardware)
+        except client_exception.HPOneViewException as exc:
             raise exception.OneViewError(
-                _("Error setting power state: %s") % exc
-            )
+                _("Failed to setting power state on node: %(node)s. "
+                  "Error: %(error)s.") % {
+                      'node': task.node.uuid,
+                      'error': exc
+                })
 
     @METRICS.timer('OneViewPower.reboot')
     @task_manager.require_exclusive_lock
@@ -156,5 +191,8 @@ class OneViewPower(base.PowerInterface):
         :raises: PowerStateFailure if the final state of the node is not
                  POWER_ON.
         """
-
-        self.set_power_state(task, states.REBOOT)
+        current_power_state = self.get_power_state(task)
+        if current_power_state == states.POWER_ON:
+            self.set_power_state(task, states.REBOOT)
+        else:
+            self.set_power_state(task, states.POWER_ON)

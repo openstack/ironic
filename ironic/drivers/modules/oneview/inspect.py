@@ -68,7 +68,7 @@ class OneViewInspect(inspector.Inspector):
     def inspect_hardware(self, task):
         profile_name = 'Ironic Inspecting [%s]' % task.node.uuid
         deploy_utils.allocate_server_hardware_to_ironic(
-            self.oneview_client, task.node, profile_name
+            task.node, profile_name
         )
         return super(OneViewInspect, self).inspect_hardware(task)
 
@@ -96,12 +96,9 @@ class OneViewInspect(inspector.Inspector):
         state_after = task.node.provision_state
 
         # inspection finished
-        if (
-            state_before == states.INSPECTING and state_after in [
+        if state_before == states.INSPECTING and state_after in [
                 states.MANAGEABLE, states.INSPECTFAIL
-            ]
-        ):
-            deploy_utils.deallocate_server_hardware_from_ironic(
-                self.oneview_client, task.node)
+        ]:
+            deploy_utils.deallocate_server_hardware_from_ironic(task.node)
 
         return result

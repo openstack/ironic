@@ -17,7 +17,6 @@ import mock
 from oslo_utils import importutils
 
 from ironic.common import exception
-from ironic.common import states
 from ironic.conductor import task_manager
 from ironic.drivers.modules.oneview import common
 from ironic.tests.unit.conductor import mgr_utils
@@ -26,7 +25,6 @@ from ironic.tests.unit.db import utils as db_utils
 from ironic.tests.unit.objects import utils as obj_utils
 
 hponeview_client = importutils.try_import('hpOneView.oneview_client')
-oneview_states = importutils.try_import('oneview_client.states')
 
 
 class OneViewCommonTestCase(db_base.DbTestCase):
@@ -257,24 +255,6 @@ class OneViewCommonTestCase(db_base.DbTestCase):
             common._verify_node_info("properties",
                                      {"a": '', "b": None, "c": "something"},
                                      ["a", "b", "c"])
-
-    def _test_translate_oneview_states(self, power_state_to_translate,
-                                       expected_translated_power_state):
-        translated_power_state = common.translate_oneview_power_state(
-            power_state_to_translate)
-        self.assertEqual(translated_power_state,
-                         expected_translated_power_state)
-
-    def test_all_scenarios_for_translate_oneview_states(self):
-        self._test_translate_oneview_states(
-            oneview_states.ONEVIEW_POWERING_OFF, states.POWER_ON)
-        self._test_translate_oneview_states(
-            oneview_states.ONEVIEW_POWER_OFF, states.POWER_OFF)
-        self._test_translate_oneview_states(
-            oneview_states.ONEVIEW_POWERING_ON, states.POWER_OFF)
-        self._test_translate_oneview_states(
-            oneview_states.ONEVIEW_RESETTING, states.REBOOT)
-        self._test_translate_oneview_states("anything", states.ERROR)
 
     @mock.patch.object(common, 'get_oneview_client', spec_set=True,
                        autospec=True)

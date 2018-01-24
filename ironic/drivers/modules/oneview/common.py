@@ -21,7 +21,6 @@ from six.moves.urllib import parse
 
 from ironic.common import exception
 from ironic.common.i18n import _
-from ironic.common import states
 from ironic.conf import CONF
 from ironic.drivers import utils
 
@@ -34,6 +33,7 @@ oneview_exceptions = importutils.try_import('oneview_client.exceptions')
 
 hponeview_client = importutils.try_import('hpOneView.oneview_client')
 redfish = importutils.try_import('redfish')
+client_exception = importutils.try_import('hpOneView.exceptions')
 
 REQUIRED_ON_DRIVER_INFO = {
     'server_hardware_uri': _("Server Hardware URI. Required in driver_info."),
@@ -281,24 +281,6 @@ def validate_oneview_resources_compatibility(oneview_client, task):
         raise exception.OneViewError(error=msg)
 
 
-def translate_oneview_power_state(power_state):
-    """Translates OneView's power states strings to Ironic's format.
-
-    :param: power_state: power state string to be translated
-    :returns: the power state translated
-    """
-
-    power_states_map = {
-        oneview_states.ONEVIEW_POWER_ON: states.POWER_ON,
-        oneview_states.ONEVIEW_POWERING_OFF: states.POWER_ON,
-        oneview_states.ONEVIEW_POWER_OFF: states.POWER_OFF,
-        oneview_states.ONEVIEW_POWERING_ON: states.POWER_OFF,
-        oneview_states.ONEVIEW_RESETTING: states.REBOOT
-    }
-
-    return power_states_map.get(power_state, states.ERROR)
-
-
 def _verify_node_info(node_namespace, node_info_dict, info_required):
     """Verify if info_required is present in node_namespace of the node info.
 
@@ -334,35 +316,31 @@ def node_has_server_profile(func):
     :param func: a given decorated function.
     """
     def inner(self, *args, **kwargs):
-        oneview_client = self.oneview_client
         task = args[0]
-        has_server_profile(task, oneview_client)
+        ensure_server_profile(task)
         return func(self, *args, **kwargs)
     return inner
 
 
-def has_server_profile(task, oneview_client):
+def ensure_server_profile(task):
     """Checks if the node's Server Hardware has a Server Profile associated.
 
     Function to check if the Server Profile is applied to the Server Hardware.
 
-    :param oneview_client: an instance of the OneView client
     :param task: a TaskManager instance containing the node to act on.
+    :raises: OneViewError if failed to get server profile from OneView
     """
-    oneview_info = get_oneview_info(task.node)
+    oneview_client = get_hponeview_client()
     try:
-        node_has_server_profile = (
-            oneview_client.get_server_profile_from_hardware(oneview_info)
-        )
-    except oneview_exceptions.OneViewException as oneview_exc:
+        profile_uri = task.node.driver_info.get('applied_server_profile_uri')
+        oneview_client.server_profiles.get(profile_uri)
+    except client_exception.HPOneViewException as exc:
         LOG.error(
-            "Failed to get server profile from OneView appliance for"
-            " node %(node)s. Error: %(message)s",
-            {"node": task.node.uuid, "message": oneview_exc}
+            "Failed to get server profile: %(profile)s from OneView appliance "
+            "for node %(node)s. Error: %(message)s", {
+                "profile": profile_uri,
+                "node": task.node.uuid,
+                "message": exc
+            }
         )
-        raise exception.OneViewError(error=oneview_exc)
-    if not node_has_server_profile:
-        raise exception.OperationNotPermitted(
-            _("A Server Profile is not associated with node %s.") %
-            task.node.uuid
-        )
+        raise exception.OneViewError(error=exc)

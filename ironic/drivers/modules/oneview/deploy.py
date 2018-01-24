@@ -67,9 +67,7 @@ class OneViewPeriodicTasks(object):
             node = objects.Node.get(context, node_uuid)
 
             try:
-                oneview_using = deploy_utils.is_node_in_use_by_oneview(
-                    self.oneview_client, node
-                )
+                oneview_using = deploy_utils.is_node_in_use_by_oneview(node)
             except exception.OneViewError as e:
                 # NOTE(xavierr): Skip this node and process the
                 # remaining nodes. This node will be checked in
@@ -130,7 +128,7 @@ class OneViewPeriodicTasks(object):
 
                 try:
                     oneview_using = deploy_utils.is_node_in_use_by_oneview(
-                        self.oneview_client, node
+                        node
                     )
                 except exception.OneViewError as e:
                     # NOTE(xavierr): Skip this node and process the
@@ -240,23 +238,23 @@ class OneViewIscsiDeploy(iscsi_deploy.ISCSIDeploy, OneViewPeriodicTasks):
 
     @METRICS.timer('OneViewIscsiDeploy.prepare')
     def prepare(self, task):
-        deploy_utils.prepare(self.oneview_client, task)
+        deploy_utils.prepare(task)
         super(OneViewIscsiDeploy, self).prepare(task)
 
     @METRICS.timer('OneViewIscsiDeploy.tear_down')
     def tear_down(self, task):
         if not CONF.conductor.automated_clean:
-            deploy_utils.tear_down(self.oneview_client, task)
+            deploy_utils.tear_down(task)
         return super(OneViewIscsiDeploy, self).tear_down(task)
 
     @METRICS.timer('OneViewIscsiDeploy.prepare_cleaning')
     def prepare_cleaning(self, task):
-        deploy_utils.prepare_cleaning(self.oneview_client, task)
+        deploy_utils.prepare_cleaning(task)
         return super(OneViewIscsiDeploy, self).prepare_cleaning(task)
 
     @METRICS.timer('OneViewIscsiDeploy.tear_down_cleaning')
     def tear_down_cleaning(self, task):
-        deploy_utils.tear_down_cleaning(self.oneview_client, task)
+        deploy_utils.tear_down_cleaning(task)
         super(OneViewIscsiDeploy, self).tear_down_cleaning(task)
 
 
@@ -284,21 +282,21 @@ class OneViewAgentDeploy(agent.AgentDeploy, OneViewPeriodicTasks):
 
     @METRICS.timer('OneViewAgentDeploy.prepare')
     def prepare(self, task):
-        deploy_utils.prepare(self.oneview_client, task)
+        deploy_utils.prepare(task)
         super(OneViewAgentDeploy, self).prepare(task)
 
     @METRICS.timer('OneViewAgentDeploy.tear_down')
     def tear_down(self, task):
         if not CONF.conductor.automated_clean:
-            deploy_utils.tear_down(self.oneview_client, task)
+            deploy_utils.tear_down(task)
         return super(OneViewAgentDeploy, self).tear_down(task)
 
     @METRICS.timer('OneViewAgentDeploy.prepare_cleaning')
     def prepare_cleaning(self, task):
-        deploy_utils.prepare_cleaning(self.oneview_client, task)
+        deploy_utils.prepare_cleaning(task)
         return super(OneViewAgentDeploy, self).prepare_cleaning(task)
 
     @METRICS.timer('OneViewAgentDeploy.tear_down_cleaning')
     def tear_down_cleaning(self, task):
-        deploy_utils.tear_down_cleaning(self.oneview_client, task)
+        deploy_utils.tear_down_cleaning(task)
         super(OneViewAgentDeploy, self).tear_down_cleaning(task)
