@@ -463,7 +463,9 @@ class Connection(api.Connection):
     @oslo_db_api.retry_on_deadlock
     def _do_update_node(self, node_id, values):
         with _session_for_write():
-            query = _get_node_query_with_all()
+            # NOTE(mgoddard): Don't issue a joined query for the update as this
+            # does not work with PostgreSQL.
+            query = model_query(models.Node)
             query = add_identity_filter(query, node_id)
             try:
                 ref = query.with_lockmode('update').one()
@@ -484,7 +486,11 @@ class Connection(api.Connection):
                     values['inspection_started_at'] = None
 
             ref.update(values)
-        return ref
+
+            # Return the updated node model joined with all relevant fields.
+            query = _get_node_query_with_all()
+            query = add_identity_filter(query, node_id)
+            return query.one()
 
     def get_port_by_id(self, port_id):
         query = model_query(models.Port).filter_by(id=port_id)
