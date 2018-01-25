@@ -10,25 +10,30 @@ a driver.
 The first thing to note is that the Ironic API supports two vendor
 endpoints: A driver vendor passthru and a node vendor passthru.
 
-* The driver vendor passthru allows drivers to expose a custom top-level
+* The ``VendorInterface`` allows hardware types to expose a custom top-level
   functionality which is not specific to a Node. For example, let's say
-  the driver `pxe_ipmitool` exposed a method called `authentication_types`
+  the driver `ipmi` exposed a method called `authentication_types`
   that would return what are the authentication types supported. It could
   be accessed via the Ironic API like:
 
-::
+  ::
 
-  GET http://<address>:<port>/v1/drivers/pxe_ipmitool/vendor_passthru/authentication_types
+    GET http://<address>:<port>/v1/drivers/ipmi/vendor_passthru/authentication_types
+
+  .. warning::
+      The Bare Metal API currently only allows to use driver passthru for the
+      default ``vendor`` interface implementation for a given hardware type.
+      This limitation will be lifted in the future.
 
 * The node vendor passthru allows drivers to expose custom functionality
-  on per-node basis. For example the same driver `pxe_ipmitool` exposing a
+  on per-node basis. For example the same driver `ipmi` exposing a
   method called `send_raw` that would send raw bytes to the BMC, the method
   also receives a parameter called `raw_bytes` which the value would be
   the bytes to be sent. It could be accessed via the Ironic API like:
 
-::
+  ::
 
-  POST {'raw_bytes': '0x01 0x02'} http://<address>:<port>/v1/nodes/<node UUID>/vendor_passthru/send_raw
+    POST {'raw_bytes': '0x01 0x02'} http://<address>:<port>/v1/nodes/<node UUID>/vendor_passthru/send_raw
 
 
 Writing Vendor Methods
@@ -106,11 +111,11 @@ Both decorators accept these parameters:
   if you want to use a different name this parameter is where this name
   can be set. For example:
 
-.. code-block:: python
+  .. code-block:: python
 
-  @passthru(['PUT'], method="alternative_name")
-  def name(self, task, **kwargs):
-      ...
+    @passthru(['PUT'], method="alternative_name")
+    def name(self, task, **kwargs):
+        ...
 
 * description: A string containing a nice description about what that
   method is supposed to do. Defaults to "" (empty string).
@@ -137,6 +142,24 @@ parameter:
    Each asynchronous request consumes a worker thread in the
    ``ironic-conductor`` process. This can lead to starvation of the
    thread pool, resulting in a denial of service.
+
+Give the new vendor interface implementation a human-friendly name and create
+an entry point for it in the ``setup.cfg``::
+
+    ironic.hardware.interfaces.vendor =
+        example = ironic.drivers.modules.example:ExampleVendor
+
+Finally, add it to the list of supported vendor interfaces for relevant
+hardware types, for example:
+
+.. code-block:: python
+
+    class ExampleHardware(generic.GenericHardware):
+        ...
+
+        @property
+        def supported_vendor_interfaces(self):
+            return [example.ExampleVendor]
 
 Backwards Compatibility
 =======================
