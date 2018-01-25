@@ -6903,3 +6903,100 @@ class UpdateVolumeTargetTestCase(mgr_utils.ServiceSetUpMixin,
                                 self.context, volume_target)
         # Compare true exception hidden by @messaging.expected_exceptions
         self.assertEqual(exception.InvalidStateRequested, exc.exc_info[0])
+
+
+@mgr_utils.mock_record_keepalive
+class NodeTraitsTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
+
+    def setUp(self):
+        super(NodeTraitsTestCase, self).setUp()
+        self.traits = ['trait1', 'trait2']
+        self.node = obj_utils.create_test_node(self.context,
+                                               driver='fake-hardware')
+
+    def test_add_node_traits(self):
+        self.service.add_node_traits(self.context, self.node.id,
+                                     self.traits[:1])
+        traits = objects.TraitList.get_by_node_id(self.context, self.node.id)
+        self.assertEqual([trait.trait for trait in traits], self.traits[:1])
+
+        self.service.add_node_traits(self.context, self.node.id,
+                                     self.traits[1:])
+        traits = objects.TraitList.get_by_node_id(self.context, self.node.id)
+        self.assertEqual([trait.trait for trait in traits], self.traits)
+
+    def test_add_node_traits_replace(self):
+        self.service.add_node_traits(self.context, self.node.id,
+                                     self.traits[:1], replace=True)
+        traits = objects.TraitList.get_by_node_id(self.context, self.node.id)
+        self.assertEqual([trait.trait for trait in traits], self.traits[:1])
+
+        self.service.add_node_traits(self.context, self.node.id,
+                                     self.traits[1:], replace=True)
+        traits = objects.TraitList.get_by_node_id(self.context, self.node.id)
+        self.assertEqual([trait.trait for trait in traits], self.traits[1:])
+
+    def _test_add_node_traits_exception(self, expected_exc):
+        with mock.patch.object(objects.Trait, 'create') as mock_create:
+            mock_create.side_effect = expected_exc('Boo')
+            exc = self.assertRaises(messaging.rpc.ExpectedException,
+                                    self.service.add_node_traits, self.context,
+                                    self.node.id, self.traits)
+        # Compare true exception hidden by @messaging.expected_exceptions
+        self.assertEqual(expected_exc, exc.exc_info[0])
+        traits = objects.TraitList.get_by_node_id(self.context, self.node.id)
+        self.assertEqual(traits.objects, [])
+
+    def test_add_node_traits_invalid_parameter_value(self):
+        self._test_add_node_traits_exception(exception.InvalidParameterValue)
+
+    def test_add_node_traits_node_locked(self):
+        self._test_add_node_traits_exception(exception.NodeLocked)
+
+    def test_add_node_traits_node_not_found(self):
+        self._test_add_node_traits_exception(exception.NodeNotFound)
+
+    def test_remove_node_traits(self):
+        objects.TraitList.create(self.context, self.node.id, self.traits)
+        self.service.remove_node_traits(self.context, self.node.id,
+                                        self.traits[:1])
+        traits = objects.TraitList.get_by_node_id(self.context, self.node.id)
+        self.assertEqual([trait.trait for trait in traits], self.traits[1:])
+
+        self.service.remove_node_traits(self.context, self.node.id,
+                                        self.traits[1:])
+        traits = objects.TraitList.get_by_node_id(self.context, self.node.id)
+        self.assertEqual(traits.objects, [])
+
+    def test_remove_node_traits_all(self):
+        objects.TraitList.create(self.context, self.node.id, self.traits)
+        self.service.remove_node_traits(self.context, self.node.id, None)
+        traits = objects.TraitList.get_by_node_id(self.context, self.node.id)
+        self.assertEqual(traits.objects, [])
+
+    def test_remove_node_traits_empty(self):
+        objects.TraitList.create(self.context, self.node.id, self.traits)
+        self.service.remove_node_traits(self.context, self.node.id, [])
+        traits = objects.TraitList.get_by_node_id(self.context, self.node.id)
+        self.assertEqual([trait.trait for trait in traits], self.traits)
+
+    def _test_remove_node_traits_exception(self, expected_exc):
+        objects.TraitList.create(self.context, self.node.id, self.traits)
+        with mock.patch.object(objects.Trait, 'destroy') as mock_destroy:
+            mock_destroy.side_effect = expected_exc('Boo')
+            exc = self.assertRaises(messaging.rpc.ExpectedException,
+                                    self.service.remove_node_traits,
+                                    self.context, self.node.id, self.traits)
+        # Compare true exception hidden by @messaging.expected_exceptions
+        self.assertEqual(expected_exc, exc.exc_info[0])
+        traits = objects.TraitList.get_by_node_id(self.context, self.node.id)
+        self.assertEqual([trait.trait for trait in traits], self.traits)
+
+    def test_remove_node_traits_node_locked(self):
+        self._test_remove_node_traits_exception(exception.NodeLocked)
+
+    def test_remove_node_traits_node_not_found(self):
+        self._test_remove_node_traits_exception(exception.NodeNotFound)
+
+    def test_remove_node_traits_node_trait_not_found(self):
+        self._test_remove_node_traits_exception(exception.NodeTraitNotFound)

@@ -92,13 +92,14 @@ class ConductorAPI(object):
     |    1.41 - Added create_port
     |    1.42 - Added optional agent_version to heartbeat
     |    1.43 - Added do_node_rescue, do_node_unrescue and can_send_rescue
+    |    1.44 - Added add_node_traits and remove_node_traits.
 
     """
 
     # NOTE(rloo): This must be in sync with manager.ConductorManager's.
     # NOTE(pas-ha): This also must be in sync with
     #               ironic.common.release_mappings.RELEASE_MAPPING['master']
-    RPC_API_VERSION = '1.43'
+    RPC_API_VERSION = '1.44'
 
     def __init__(self, topic=None):
         super(ConductorAPI, self).__init__()
@@ -1017,3 +1018,37 @@ class ConductorAPI(object):
         """
         cctxt = self.client.prepare(topic=topic or self.topic, version='1.43')
         return cctxt.call(context, 'do_node_unrescue', node_id=node_id)
+
+    def add_node_traits(self, context, node_id, traits, replace=False,
+                        topic=None):
+        """Add or replace traits for a node.
+
+        :param context: request context.
+        :param node_id: node ID or UUID.
+        :param traits: a list of traits to add to the node.
+        :param replace: True to replace all of the node's traits.
+        :param topic: RPC topic. Defaults to self.topic.
+        :raises: InvalidParameterValue if adding the traits would exceed the
+            per-node traits limit.
+        :raises: NodeLocked if node is locked by another conductor.
+        :raises: NodeNotFound if the node does not exist.
+        """
+        cctxt = self.client.prepare(topic=topic or self.topic, version='1.44')
+        return cctxt.call(context, 'add_node_traits', node_id=node_id,
+                          traits=traits, replace=replace)
+
+    def remove_node_traits(self, context, node_id, traits, topic=None):
+        """Remove some or all traits from a node.
+
+        :param context: request context.
+        :param node_id: node ID or UUID.
+        :param traits: a list of traits to remove from the node, or None. If
+            None, all traits will be removed from the node.
+        :param topic: RPC topic. Defaults to self.topic.
+        :raises: NodeLocked if node is locked by another conductor.
+        :raises: NodeNotFound if the node does not exist.
+        :raises: NodeTraitNotFound if one of the traits is not found.
+        """
+        cctxt = self.client.prepare(topic=topic or self.topic, version='1.44')
+        return cctxt.call(context, 'remove_node_traits', node_id=node_id,
+                          traits=traits)
