@@ -40,17 +40,29 @@ provisioning will happen in a multi-tenant environment (which means using the
    default, otherwise ``noop`` is the default.
 
 #. Define a provider network in the Networking service, which we shall refer to
-   as the "provisioning" network, and add it in the ``neutron`` section of the
-   ironic-conductor configuration file. Using the ``neutron`` network interface
+   as the "provisioning" network. Using the ``neutron`` network interface
    requires that ``provisioning_network`` and ``cleaning_network``
    configuration options are set to valid identifiers (UUID or name) of
-   networks in the  Networking service. If these options are not set correctly,
-   cleaning or provisioning will fail to start::
+   networks in the Networking service. If these options are not set correctly,
+   cleaning or provisioning will fail to start. There are two ways to set these
+   values:
 
-    [neutron]
-    ...
-    cleaning_network=$CLEAN_UUID_OR_NAME
-    provisioning_network=$PROVISION_UUID_OR_NAME
+   - Under the ``neutron`` section of ironic configuration file:
+
+     .. code-block:: ini
+
+      [neutron]
+      cleaning_network = $CLEAN_UUID_OR_NAME
+      provisioning_network = $PROVISION_UUID_OR_NAME
+
+   - Under ``provisioning_network`` and ``cleaning_network`` keys of the node's
+     ``driver_info`` field as ``driver_info['provisioning_network']`` and
+     ``driver_info['cleaning_network']`` respectively.
+
+   .. note::
+      If these ``provisioning_network`` and ``cleaning_network`` values are
+      not specified in node's `driver_info` then ironic falls back to the
+      configuration in the ``neutron`` section.
 
    Please refer to :doc:`configure-cleaning` for more information about
    cleaning.

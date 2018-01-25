@@ -249,6 +249,20 @@ and may be combined if desired.
 
    See :doc:`configure-glance-images` for details.
 
+#. Optionally you can specify the provisioning and/or cleaning network UUID
+   or name in the node's  ``driver_info``. The ``neutron`` network interface
+   requires both ``provisioning_network`` and ``cleaning_network``, while
+   the ``flat`` network interface requires the ``cleaning_network`` to be set
+   either in the configuration or on the nodes. For example:
+
+   .. code-block:: console
+
+    $ openstack baremetal node set $NODE_UUID \
+        --driver-info cleaning_network=$CLEAN_UUID_OR_NAME \
+        --driver-info provisioning_network=$PROVISION_UUID_OR_NAME
+
+   See :doc:`configure-tenant-networks` for details.
+
 #. You must also inform the Bare Metal service of the network interface cards
    which are part of the node by creating a port with each NIC's MAC address.
    These MAC addresses are passed to the Networking service during instance

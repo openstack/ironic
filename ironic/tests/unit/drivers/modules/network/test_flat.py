@@ -81,6 +81,19 @@ class TestFlatInterface(db_base.DbTestCase):
                 CONF.neutron.cleaning_network,
                 'cleaning network', context=task.context)
 
+    @mock.patch.object(neutron, 'validate_network', autospec=True)
+    def test_validate_from_node(self, validate_mock):
+        cleaning_network_uuid = '3aea0de6-4b92-44da-9aa0-52d134c83fdf'
+        driver_info = self.node.driver_info
+        driver_info['cleaning_network'] = cleaning_network_uuid
+        self.node.driver_info = driver_info
+        self.node.save()
+        with task_manager.acquire(self.context, self.node.id) as task:
+            self.interface.validate(task)
+        validate_mock.assert_called_once_with(
+            cleaning_network_uuid,
+            'cleaning network', context=task.context)
+
     @mock.patch.object(neutron, 'validate_network',
                        side_effect=lambda n, t, context=None: n)
     @mock.patch.object(neutron, 'add_ports_to_network')
@@ -103,6 +116,32 @@ class TestFlatInterface(db_base.DbTestCase):
 
     @mock.patch.object(neutron, 'validate_network',
                        side_effect=lambda n, t, context=None: n)
+    @mock.patch.object(neutron, 'add_ports_to_network')
+    @mock.patch.object(neutron, 'rollback_ports')
+    def test_add_cleaning_network_from_node(self, rollback_mock, add_mock,
+                                            validate_mock):
+        add_mock.return_value = {self.port.uuid: 'vif-port-id'}
+        # Make sure that changing the network UUID works
+        for cleaning_network_uuid in ['3aea0de6-4b92-44da-9aa0-52d134c83fdf',
+                                      '438be438-6aae-4fb1-bbcb-613ad7a38286']:
+            driver_info = self.node.driver_info
+            driver_info['cleaning_network'] = cleaning_network_uuid
+            self.node.driver_info = driver_info
+            self.node.save()
+            with task_manager.acquire(self.context, self.node.id) as task:
+                self.interface.add_cleaning_network(task)
+                rollback_mock.assert_called_with(
+                    task, cleaning_network_uuid)
+                add_mock.assert_called_with(task, cleaning_network_uuid)
+                validate_mock.assert_called_with(
+                    cleaning_network_uuid,
+                    'cleaning network', context=task.context)
+        self.port.refresh()
+        self.assertEqual('vif-port-id',
+                         self.port.internal_info['cleaning_vif_port_id'])
+
+    @mock.patch.object(neutron, 'validate_network',
+                       side_effect=lambda n, t, context=None: n)
     @mock.patch.object(neutron, 'remove_ports_from_network')
     def test_remove_cleaning_network(self, remove_mock, validate_mock):
         with task_manager.acquire(self.context, self.node.id) as task:
@@ -111,6 +150,25 @@ class TestFlatInterface(db_base.DbTestCase):
                 task, CONF.neutron.cleaning_network)
             validate_mock.assert_called_once_with(
                 CONF.neutron.cleaning_network,
+                'cleaning network', context=task.context)
+        self.port.refresh()
+        self.assertNotIn('cleaning_vif_port_id', self.port.internal_info)
+
+    @mock.patch.object(neutron, 'validate_network',
+                       side_effect=lambda n, t, context=None: n)
+    @mock.patch.object(neutron, 'remove_ports_from_network')
+    def test_remove_cleaning_network_from_node(self, remove_mock,
+                                               validate_mock):
+        cleaning_network_uuid = '3aea0de6-4b92-44da-9aa0-52d134c83fdf'
+        driver_info = self.node.driver_info
+        driver_info['cleaning_network'] = cleaning_network_uuid
+        self.node.driver_info = driver_info
+        self.node.save()
+        with task_manager.acquire(self.context, self.node.id) as task:
+            self.interface.remove_cleaning_network(task)
+            remove_mock.assert_called_once_with(task, cleaning_network_uuid)
+            validate_mock.assert_called_once_with(
+                cleaning_network_uuid,
                 'cleaning network', context=task.context)
         self.port.refresh()
         self.assertNotIn('cleaning_vif_port_id', self.port.internal_info)

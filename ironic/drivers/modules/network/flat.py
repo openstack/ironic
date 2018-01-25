@@ -51,7 +51,7 @@ class FlatNetwork(common.NeutronVIFPortIDMixin,
             is invalid.
         :raises: MissingParameterValue, if some parameters are missing.
         """
-        self.get_cleaning_network_uuid(context=task.context)
+        self.get_cleaning_network_uuid(task)
 
     def add_provisioning_network(self, task):
         """Add the provisioning network to a node.
@@ -117,11 +117,10 @@ class FlatNetwork(common.NeutronVIFPortIDMixin,
         """
         # If we have left over ports from a previous cleaning, remove them
         neutron.rollback_ports(task,
-                               self.get_cleaning_network_uuid(
-                                   context=task.context))
+                               self.get_cleaning_network_uuid(task))
         LOG.info('Adding cleaning network to node %s', task.node.uuid)
         vifs = neutron.add_ports_to_network(
-            task, self.get_cleaning_network_uuid(context=task.context))
+            task, self.get_cleaning_network_uuid(task))
         for port in task.ports:
             if port.uuid in vifs:
                 internal_info = port.internal_info
@@ -139,7 +138,7 @@ class FlatNetwork(common.NeutronVIFPortIDMixin,
         LOG.info('Removing ports from cleaning network for node %s',
                  task.node.uuid)
         neutron.remove_ports_from_network(
-            task, self.get_cleaning_network_uuid(context=task.context))
+            task, self.get_cleaning_network_uuid(task))
         for port in task.ports:
             if 'cleaning_vif_port_id' in port.internal_info:
                 internal_info = port.internal_info
