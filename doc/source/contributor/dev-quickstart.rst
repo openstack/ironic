@@ -270,14 +270,25 @@ want to run a MySQL server on it all the time).
 
 #. Create a configuration file within the ironic source directory::
 
+    # generate a sample config
+    tox -egenconfig
+
     # copy sample config and modify it as necessary
     cp etc/ironic/ironic.conf.sample etc/ironic/ironic.conf.local
 
     # disable auth since we are not running keystone here
     sed -i "s/#auth_strategy = keystone/auth_strategy = noauth/" etc/ironic/ironic.conf.local
 
-    # Use the 'fake_ipmitool' test driver
-    sed -i "s/#enabled_drivers = pxe_ipmitool/enabled_drivers = fake_ipmitool/" etc/ironic/ironic.conf.local
+    # use the 'fake-hardware' test hardware type
+    sed -i "s/#enabled_hardware_types = .*/enabled_hardware_types = fake-hardware/" etc/ironic/ironic.conf.local
+
+    # use the 'fake' deploy and boot interfaces
+    sed -i "s/#enabled_deploy_interfaces = .*/enabled_deploy_interfaces = fake/" etc/ironic/ironic.conf.local
+    sed -i "s/#enabled_boot_interfaces = .*/enabled_boot_interfaces = fake/" etc/ironic/ironic.conf.local
+
+    # enable both fake and ipmitool management and power interfaces
+    sed -i "s/#enabled_management_interfaces = .*/enabled_management_interfaces = fake,ipmitool/" etc/ironic/ironic.conf.local
+    sed -i "s/#enabled_power_interfaces = .*/enabled_power_interfaces = fake,ipmitool/" etc/ironic/ironic.conf.local
 
     # set a fake host name [useful if you want to test multiple services on the same host]
     sed -i "s/#host = .*/host = test-host/" etc/ironic/ironic.conf.local
@@ -321,7 +332,14 @@ present in the python virtualenv, and observe both services' debug outputs in
 the other two windows. This is a good way to test new features or play with the
 functionality without necessarily starting DevStack.
 
-To get started, list the available commands and resources::
+To get started, export the following variables to point the client at the
+local instance of ironic and disable the authentication::
+
+    export OS_AUTH_TYPE=token_endpoint
+    export OS_TOKEN=fake
+    export OS_ENDPOINT=http://127.0.0.1:6385
+
+Then list the available commands and resources::
 
     # get a list of available commands
     openstack help baremetal
@@ -339,10 +357,13 @@ Here is an example walkthrough of creating a node::
     IPMI_USER="admin"         # replace with the BMC's user name
     IPMI_PASS="pass"          # replace with the BMC's password
 
-    # enroll the node with the "fake" deploy driver and the "ipmitool" power driver
-    # Note that driver info may be added at node creation time with "--driver-info"
+    # enroll the node with the fake hardware type and IPMI-based power and
+    # management interfaces. Note that driver info may be added at node
+    # creation time with "--driver-info"
     NODE=$(openstack baremetal node create \
-           --driver fake_ipmitool \
+           --driver fake-hardware \
+           --management-interface ipmitool \
+           --power-interface ipmitool \
            --driver-info ipmi_address=$IPMI_ADDR \
            --driver-info ipmi_username=$IPMI_USER \
            -f value -c uuid)
@@ -429,10 +450,9 @@ Switch to the stack user and clone DevStack::
     git clone https://git.openstack.org/openstack-dev/devstack.git devstack
 
 Create devstack/local.conf with minimal settings required to enable Ironic.
-You can use either of two drivers for deploy: agent\_\* or pxe\_\*, see
-:doc:`/admin/interfaces/deploy` for explanation. An example local.conf that
-enables both types of drivers and uses the ``agent_ipmitool`` driver
-by default::
+An example local.conf that enables both ``direct`` and ``iscsi``
+:doc:`deploy interfaces </admin/interfaces/deploy>` and uses the ``ipmi``
+hardware type by default::
 
     cd devstack
     cat >local.conf <<END
@@ -452,7 +472,7 @@ by default::
     # Disable nova novnc service, ironic does not support it anyway.
     disable_service n-novnc
 
-    # Enable Swift for agent_* drivers
+    # Enable Swift for the direct deploy interface.
     enable_service s-proxy
     enable_service s-object
     enable_service s-container
@@ -464,7 +484,7 @@ by default::
     # Disable Cinder
     disable_service cinder c-sch c-api c-vol
 
-    # Swift temp URL's are required for agent_* drivers.
+    # Swift temp URL's are required for the direct deploy interface
     SWIFT_ENABLE_TEMPURLS=True
 
     # Create 3 virtual machines to pose as Ironic's baremetal nodes.
@@ -472,12 +492,19 @@ by default::
     IRONIC_BAREMETAL_BASIC_OPS=True
     DEFAULT_INSTANCE_TYPE=baremetal
 
-    # Enable Ironic drivers.
-    IRONIC_ENABLED_DRIVERS=fake,agent_ipmitool,pxe_ipmitool
+    # Enable additional hardware types, if needed.
+    #IRONIC_ENABLED_HARDWARE_TYPES=ipmi,fake-hardware
+    # Don't forget that many hardware types require enabling of additional
+    # interfaces, most often power and management:
+    #IRONIC_ENABLED_MANAGEMENT_INTERFACES=ipmitool,fake
+    #IRONIC_ENABLED_POWER_INTERFACES=ipmitool,fake
+    # The 'ipmi' hardware type's default deploy interface is 'iscsi'.
+    # This would change the default to 'direct':
+    #IRONIC_DEFAULT_DEPLOY_INTERFACE=direct
 
     # Change this to alter the default driver for nodes created by devstack.
     # This driver should be in the enabled list above.
-    IRONIC_DEPLOY_DRIVER=agent_ipmitool
+    IRONIC_DEPLOY_DRIVER=ipmi
 
     # The parameters below represent the minimum possible values to create
     # functional nodes.
@@ -518,9 +545,10 @@ by default::
       enable_plugin ironic https://git.openstack.org/openstack/ironic
 
 .. note::
-    When a \*_ipmitool driver is set and IRONIC_IS_HARDWARE variable is false devstack
-    will automatically set up `VirtualBMC <https://github.com/openstack/virtualbmc>`_
-    to control the power state of the virtual baremetal nodes.
+    When the ``ipmi`` hardware type is used and IRONIC_IS_HARDWARE variable is
+    ``false`` devstack will automatically set up `VirtualBMC
+    <https://github.com/openstack/virtualbmc>`_ to control the power state of
+    the virtual baremetal nodes.
 
 .. note::
     When running QEMU as non-root user (e.g. ``qemu`` on Fedora or ``libvirt-qemu`` on Ubuntu),
