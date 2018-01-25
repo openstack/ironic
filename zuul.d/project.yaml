@@ -1,5 +1,4 @@
 - project:
-    name: openstack/ironic
     check:
       jobs:
         - ironic-tempest-dsvm-ipa-partition-bios-agent_ipmitool-tinyipa
