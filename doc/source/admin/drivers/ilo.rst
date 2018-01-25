@@ -235,9 +235,9 @@ Prerequisites
   which contains a set of modules for managing HPE ProLiant hardware.
 
   Install ``proliantutils`` module on the ironic conductor node. Minimum
-  version required is 2.4.1::
+  version required is 2.5.0::
 
-   $ pip install "proliantutils>=2.4.1"
+   $ pip install "proliantutils>=2.5.0"
 
 * ``ipmitool`` command must be present on the service node(s) where
   ``ironic-conductor`` is running. On most distros, this is provided as part
@@ -1812,7 +1812,7 @@ firmware components on the node. Refer to `SUM User Guide`_ to get more
 information on SUM based firmware update.
 
 ``update_firmware_sum`` clean step requires the agent ramdisk with
-``Proliant Hardware Manager`` from the proliantutils version 2.4.0 or higher.
+``Proliant Hardware Manager`` from the proliantutils version 2.5.0 or higher.
 See `DIB support for Proliant Hardware Manager`_ to create the agent ramdisk
 with ``Proliant Hardware Manager``.
 

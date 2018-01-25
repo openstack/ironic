@@ -34,6 +34,7 @@ from ironic.drivers.modules.ilo import common as ilo_common
 from ironic.drivers.modules.ilo import firmware_processor
 from ironic.drivers.modules import ipmitool
 from ironic.drivers import utils as driver_utils
+from ironic.objects import volume_target
 
 LOG = logging.getLogger(__name__)
 
@@ -44,7 +45,8 @@ ilo_error = importutils.try_import('proliantutils.exception')
 BOOT_DEVICE_MAPPING_TO_ILO = {
     boot_devices.PXE: 'NETWORK',
     boot_devices.DISK: 'HDD',
-    boot_devices.CDROM: 'CDROM'
+    boot_devices.CDROM: 'CDROM',
+    boot_devices.ISCSIBOOT: 'ISCSI'
 }
 BOOT_DEVICE_ILO_TO_GENERIC = {
     v: k for k, v in BOOT_DEVICE_MAPPING_TO_ILO.items()}
@@ -513,3 +515,68 @@ class IloManagement(base.ManagementInterface):
                           '%(node)s for "update_firmware_sum" clean step. '
                           'Error: %(error)s',
                           {'node': node.uuid, 'error': e})
+
+    @METRICS.timer('IloManagement.set_iscsi_boot_target')
+    def set_iscsi_boot_target(self, task):
+        """Set iSCSI details of the system in UEFI boot mode.
+
+        The initiator is set with the target details like
+        IQN, LUN, IP, Port etc.
+        :param task: a task from TaskManager.
+        :raises: IloCommandNotSupportedInBiosError if system in BIOS boot mode.
+        :raises: IloError on an error from iLO.
+        """
+        # Getting target info
+        node = task.node
+        boot_volume = node.driver_internal_info.get('boot_from_volume')
+        volume = volume_target.VolumeTarget.get_by_uuid(task.context,
+                                                        boot_volume)
+        properties = volume.properties
+        username = properties.get('auth_username', None)
+        password = properties.get('auth_password', None)
+        portal = properties['target_portal']
+        iqn = properties['target_iqn']
+        lun = properties['target_lun']
+        host, port = portal.split(':')
+
+        ilo_object = ilo_common.get_ilo_object(task.node)
+        try:
+            if username is None:
+                ilo_object.set_iscsi_info(iqn, lun, host, port)
+            else:
+                ilo_object.set_iscsi_info(iqn, lun, host, port, 'CHAP',
+                                          username, password)
+        except ilo_error.IloCommandNotSupportedInBiosError as ilo_exception:
+            operation = (_("Setting of target IQN %(target_iqn)s for node "
+                           "%(node)s")
+                         % {'target_iqn': iqn, 'node': node.uuid})
+            raise exception.IloOperationNotSupported(operation=operation,
+                                                     error=ilo_exception)
+        except ilo_error.IloError as ilo_exception:
+            operation = (_("Setting of target IQN %(target_iqn)s for node "
+                           "%(node)s")
+                         % {'target_iqn': iqn, 'node': node.uuid})
+            raise exception.IloOperationError(operation=operation,
+                                              error=ilo_exception)
+
+    @METRICS.timer('IloManagement.clear_iscsi_boot_target')
+    def clear_iscsi_boot_target(self, task):
+        """Unset iSCSI details of the system in UEFI boot mode.
+
+        :param task: a task from TaskManager.
+        :raises: IloCommandNotSupportedInBiosError if system in BIOS boot mode.
+        :raises: IloError on an error from iLO.
+        """
+        ilo_object = ilo_common.get_ilo_object(task.node)
+        try:
+            ilo_object.unset_iscsi_info()
+        except ilo_error.IloCommandNotSupportedInBiosError as ilo_exception:
+            operation = (_("Unsetting of iSCSI target for node %(node)s")
+                         % {'node': task.node.uuid})
+            raise exception.IloOperationNotSupported(operation=operation,
+                                                     error=ilo_exception)
+        except ilo_error.IloError as ilo_exception:
+            operation = (_("Unsetting of iSCSI target for node %(node)s")
+                         % {'node': task.node.uuid})
+            raise exception.IloOperationError(operation=operation,
+                                              error=ilo_exception)

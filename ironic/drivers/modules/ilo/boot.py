@@ -383,6 +383,8 @@ def disable_secure_boot_if_supported(task):
 
 class IloVirtualMediaBoot(base.BootInterface):
 
+    capabilities = ['iscsi_volume_boot']
+
     def get_properties(self):
         return COMMON_PROPERTIES
 
@@ -397,8 +399,12 @@ class IloVirtualMediaBoot(base.BootInterface):
             in instance_info for non-Glance image.
         """
 
-        _validate_instance_image_info(task)
         _validate_driver_info(task)
+
+        if not task.driver.storage.should_write_image(task):
+            return
+        else:
+            _validate_instance_image_info(task)
 
     @METRICS.timer('IloVirtualMediaBoot.prepare_ramdisk')
     def prepare_ramdisk(self, task, ramdisk_params):
@@ -464,8 +470,12 @@ class IloVirtualMediaBoot(base.BootInterface):
         relevant information from the node's instance_info.
         It does the following depending on boot_option for deploy:
 
-        - If the boot_option requested for this deploy is 'local' or image
-          is a whole disk image, then it sets the node to boot from disk.
+        - If the boot mode is 'uefi' and its booting from volume, then it
+          sets the iSCSI target info and node to boot from 'UefiTarget'
+          boot device.
+        - If not 'boot from volume' and the boot_option requested for
+          this deploy is 'local' or image is a whole disk image, then
+          it sets the node to boot from disk.
         - Otherwise it finds/creates the boot ISO to boot the instance
           image, attaches the boot ISO to the bare metal and then sets
           the node to boot from CDROM.
@@ -473,25 +483,44 @@ class IloVirtualMediaBoot(base.BootInterface):
         :param task: a task from TaskManager.
         :returns: None
         :raises: IloOperationError, if some operation on iLO failed.
+        :raises: InstanceDeployFailure, if its try to boot iSCSI volume in
+                 'BIOS' boot mode.
         """
 
         ilo_common.cleanup_vmedia_boot(task)
 
-        # For iscsi_ilo driver, we boot from disk every time if the image
-        # deployed is a whole disk image.
-        node = task.node
-        iwdi = node.driver_internal_info.get('is_whole_disk_image')
-        if deploy_utils.get_boot_option(node) == "local" or iwdi:
-            manager_utils.node_set_boot_device(task, boot_devices.DISK,
-                                               persistent=True)
-        else:
-            drv_int_info = node.driver_internal_info
-            root_uuid_or_disk_id = drv_int_info.get('root_uuid_or_disk_id')
-            if root_uuid_or_disk_id:
-                self._configure_vmedia_boot(task, root_uuid_or_disk_id)
+        boot_mode = deploy_utils.get_boot_mode_for_deploy(task.node)
+
+        if deploy_utils.is_iscsi_boot(task):
+            # It will set iSCSI info onto iLO
+            if boot_mode == 'uefi':
+                # Need to set 'ilo_uefi_iscsi_boot' param for clean up
+                driver_internal_info = task.node.driver_internal_info
+                driver_internal_info['ilo_uefi_iscsi_boot'] = True
+                task.node.driver_internal_info = driver_internal_info
+                task.node.save()
+                task.driver.management.set_iscsi_boot_target(task)
+                manager_utils.node_set_boot_device(
+                    task, boot_devices.ISCSIBOOT, persistent=True)
             else:
-                LOG.warning("The UUID for the root partition could not "
-                            "be found for node %s", node.uuid)
+                msg = 'Virtual media can not boot volume in BIOS boot mode.'
+                raise exception.InstanceDeployFailure(msg)
+        else:
+            # For iscsi_ilo driver, we boot from disk every time if the image
+            # deployed is a whole disk image.
+            node = task.node
+            iwdi = node.driver_internal_info.get('is_whole_disk_image')
+            if deploy_utils.get_boot_option(node) == "local" or iwdi:
+                manager_utils.node_set_boot_device(task, boot_devices.DISK,
+                                                   persistent=True)
+            else:
+                drv_int_info = node.driver_internal_info
+                root_uuid_or_disk_id = drv_int_info.get('root_uuid_or_disk_id')
+                if root_uuid_or_disk_id:
+                    self._configure_vmedia_boot(task, root_uuid_or_disk_id)
+                else:
+                    LOG.warning("The UUID for the root partition could not "
+                                "be found for node %s", node.uuid)
         # Set boot mode
         ilo_common.update_boot_mode(task)
         # Need to enable secure boot, if being requested
@@ -502,7 +531,9 @@ class IloVirtualMediaBoot(base.BootInterface):
         """Cleans up the boot of instance.
 
         This method cleans up the environment that was setup for booting
-        the instance. It ejects virtual media
+        the instance. It ejects virtual media.
+        In case of UEFI iSCSI booting, it cleans up iSCSI target information
+        from the node.
 
         :param task: a task from TaskManager.
         :returns: None
@@ -512,16 +543,23 @@ class IloVirtualMediaBoot(base.BootInterface):
         LOG.debug("Cleaning up the instance.")
         manager_utils.node_power_action(task, states.POWER_OFF)
         disable_secure_boot_if_supported(task)
-
-        _clean_up_boot_iso_for_instance(task.node)
-
         driver_internal_info = task.node.driver_internal_info
-        driver_internal_info.pop('boot_iso_created_in_web_server', None)
-        driver_internal_info.pop('root_uuid_or_disk_id', None)
-        task.node.driver_internal_info = driver_internal_info
-        task.node.save()
 
-        ilo_common.cleanup_vmedia_boot(task)
+        if (deploy_utils.is_iscsi_boot(task) and
+            task.node.driver_internal_info.get('ilo_uefi_iscsi_boot')):
+            # It will clear iSCSI info from iLO
+            task.driver.management.clear_iscsi_boot_target(task)
+            driver_internal_info.pop('ilo_uefi_iscsi_boot', None)
+            task.node.driver_internal_info = driver_internal_info
+            task.node.save()
+        else:
+            _clean_up_boot_iso_for_instance(task.node)
+            driver_internal_info = task.node.driver_internal_info
+            driver_internal_info.pop('boot_iso_created_in_web_server', None)
+            driver_internal_info.pop('root_uuid_or_disk_id', None)
+            task.node.driver_internal_info = driver_internal_info
+            task.node.save()
+            ilo_common.cleanup_vmedia_boot(task)
 
     @METRICS.timer('IloVirtualMediaBoot.clean_up_ramdisk')
     def clean_up_ramdisk(self, task):
@@ -601,6 +639,8 @@ class IloPXEBoot(pxe.PXEBoot):
         relevant information from the node's instance_info. In case of netboot,
         it updates the dhcp entries and switches the PXE config. In case of
         localboot, it cleans up the PXE config.
+        In case of 'boot from volume', it updates the iSCSI info onto iLO and
+        sets the node to boot from 'UefiTarget' boot device.
 
         :param task: a task from TaskManager.
         :returns: None
@@ -612,7 +652,22 @@ class IloPXEBoot(pxe.PXEBoot):
         # Need to enable secure boot, if being requested
         ilo_common.update_secure_boot_mode(task, True)
 
-        super(IloPXEBoot, self).prepare_instance(task)
+        boot_mode = deploy_utils.get_boot_mode_for_deploy(task.node)
+
+        if deploy_utils.is_iscsi_boot(task) and boot_mode == 'uefi':
+            # Need to set 'ilo_uefi_iscsi_boot' param for clean up
+            driver_internal_info = task.node.driver_internal_info
+            driver_internal_info['ilo_uefi_iscsi_boot'] = True
+            task.node.driver_internal_info = driver_internal_info
+            task.node.save()
+            # It will set iSCSI info onto iLO
+            task.driver.management.set_iscsi_boot_target(task)
+            manager_utils.node_set_boot_device(task, boot_devices.ISCSIBOOT,
+                                               persistent=True)
+        else:
+            # Volume boot in BIOS boot mode is handled using
+            # PXE boot interface
+            super(IloPXEBoot, self).prepare_instance(task)
 
     @METRICS.timer('IloPXEBoot.clean_up_instance')
     def clean_up_instance(self, task):
@@ -621,6 +676,8 @@ class IloPXEBoot(pxe.PXEBoot):
         This method cleans up the PXE environment that was setup for booting
         the instance. It unlinks the instance kernel/ramdisk in the node's
         directory in tftproot and removes it's PXE config.
+        In case of UEFI iSCSI booting, it cleans up iSCSI target information
+        from the node.
 
         :param task: a task from TaskManager.
         :returns: None
@@ -629,5 +686,17 @@ class IloPXEBoot(pxe.PXEBoot):
 
         manager_utils.node_power_action(task, states.POWER_OFF)
         disable_secure_boot_if_supported(task)
+        driver_internal_info = task.node.driver_internal_info
 
-        super(IloPXEBoot, self).clean_up_instance(task)
+        if (deploy_utils.is_iscsi_boot(task) and
+            task.node.driver_internal_info.get('ilo_uefi_iscsi_boot')):
+            # It will clear iSCSI info from iLO in case of booting from
+            # volume in UEFI boot mode
+            task.driver.management.clear_iscsi_boot_target(task)
+            driver_internal_info.pop('ilo_uefi_iscsi_boot', None)
+            task.node.driver_internal_info = driver_internal_info
+            task.node.save()
+        else:
+            # Volume boot in BIOS boot mode is handled using
+            # PXE boot interface
+            super(IloPXEBoot, self).clean_up_instance(task)
