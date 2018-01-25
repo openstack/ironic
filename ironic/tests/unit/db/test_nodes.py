@@ -450,6 +450,30 @@ class DbNodeTestCase(base.DbTestCase):
 
         res = self.dbapi.update_node(node.id, {'extra': new_extra})
         self.assertEqual(new_extra, res.extra)
+        self.assertEqual([], res.tags)
+        self.assertEqual([], res.traits)
+
+    def test_update_node_with_tags(self):
+        node = utils.create_test_node()
+        tag = utils.create_test_node_tag(node_id=node.id)
+
+        old_extra = node.extra
+        new_extra = {'foo': 'bar'}
+        self.assertNotEqual(old_extra, new_extra)
+
+        res = self.dbapi.update_node(node.id, {'extra': new_extra})
+        self.assertEqual([tag.tag], [t.tag for t in res.tags])
+
+    def test_update_node_with_traits(self):
+        node = utils.create_test_node()
+        trait = utils.create_test_node_trait(node_id=node.id)
+
+        old_extra = node.extra
+        new_extra = {'foo': 'bar'}
+        self.assertNotEqual(old_extra, new_extra)
+
+        res = self.dbapi.update_node(node.id, {'extra': new_extra})
+        self.assertEqual([trait.trait], [t.trait for t in res.traits])
 
     def test_update_node_not_found(self):
         node_uuid = uuidutils.generate_uuid()
