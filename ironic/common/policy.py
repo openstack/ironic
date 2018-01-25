@@ -180,6 +180,25 @@ node_policies = [
         'Detach a VIF from a node',
         [{'path': '/nodes/{node_ident}/vifs/{node_vif_ident}',
           'method': 'DELETE'}]),
+
+    policy.DocumentedRuleDefault(
+        'baremetal:node:traits:list',
+        'rule:is_admin or rule:is_observer',
+        'List node traits',
+        [{'path': '/nodes/{node_ident}/traits', 'method': 'GET'}]),
+    policy.DocumentedRuleDefault(
+        'baremetal:node:traits:set',
+        'rule:is_admin',
+        'Add a trait to, or replace all traits of, a node',
+        [{'path': '/nodes/{node_ident}/traits', 'method': 'PUT'},
+         {'path': '/nodes/{node_ident}/traits/{trait}', 'method': 'PUT'}]),
+    policy.DocumentedRuleDefault(
+        'baremetal:node:traits:delete',
+        'rule:is_admin',
+        'Remove one or all traits from a node',
+        [{'path': '/nodes/{node_ident}/traits', 'method': 'DELETE'},
+         {'path': '/nodes/{node_ident}/traits/{trait}',
+          'method': 'DELETE'}]),
 ]
 
 port_policies = [

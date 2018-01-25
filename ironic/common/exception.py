@@ -760,7 +760,7 @@ class AgentAPIError(IronicException):
                  '%(status)s with error: %(error)s')
 
 
-class NodeTraitNotFound(IronicException):
+class NodeTraitNotFound(NotFound):
     _msg_fmt = _("Node %(node_id)s doesn't have a trait '%(trait)s'")
 
 

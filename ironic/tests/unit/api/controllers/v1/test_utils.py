@@ -15,6 +15,7 @@
 #    under the License.
 
 import mock
+import os_traits
 from oslo_config import cfg
 from oslo_utils import uuidutils
 import pecan
@@ -57,6 +58,28 @@ class TestApiUtils(base.TestCase):
         self.assertRaises(wsme.exc.ClientSideError,
                           utils.validate_sort_dir,
                           'fake-sort')
+
+    def test_validate_trait(self):
+        utils.validate_trait(os_traits.HW_CPU_X86_AVX2)
+        utils.validate_trait("CUSTOM_1")
+        utils.validate_trait("CUSTOM_TRAIT_GOLD")
+        self.assertRaises(wsme.exc.ClientSideError,
+                          utils.validate_trait, "A" * 256)
+        self.assertRaises(wsme.exc.ClientSideError,
+                          utils.validate_trait, "CuSTOM_1")
+        self.assertRaises(wsme.exc.ClientSideError,
+                          utils.validate_trait, "")
+        self.assertRaises(wsme.exc.ClientSideError,
+                          utils.validate_trait, "CUSTOM_bob")
+        self.assertRaises(wsme.exc.ClientSideError,
+                          utils.validate_trait, "CUSTOM_1-BOB")
+        self.assertRaises(wsme.exc.ClientSideError,
+                          utils.validate_trait, "aCUSTOM_1a")
+        large = "CUSTOM_" + ("1" * 248)
+        self.assertEqual(255, len(large))
+        utils.validate_trait(large)
+        self.assertRaises(wsme.exc.ClientSideError,
+                          utils.validate_trait, large + "1")
 
     def test_get_patch_values_no_path(self):
         patch = [{'path': '/name', 'op': 'update', 'value': 'node-0'}]
@@ -426,6 +449,13 @@ class TestApiUtils(base.TestCase):
         self.assertTrue(utils.allow_storage_interface())
         mock_request.version.minor = 32
         self.assertFalse(utils.allow_storage_interface())
+
+    @mock.patch.object(pecan, 'request', spec_set=['version'])
+    def test_allow_traits(self, mock_request):
+        mock_request.version.minor = 37
+        self.assertTrue(utils.allow_traits())
+        mock_request.version.minor = 36
+        self.assertFalse(utils.allow_traits())
 
     @mock.patch.object(pecan, 'request', spec_set=['version'])
     @mock.patch.object(objects.Port, 'supports_physical_network')

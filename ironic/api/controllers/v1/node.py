@@ -156,6 +156,9 @@ def hide_fields_in_newer_versions(obj):
     if not api_utils.allow_storage_interface():
         obj.storage_interface = wsme.Unset
 
+    if not api_utils.allow_traits():
+        obj.traits = wsme.Unset
+
 
 def update_state_in_older_versions(obj):
     """Change provision state names for API backwards compatibility.
@@ -686,6 +689,107 @@ def _check_clean_steps(clean_steps):
                                               exc)
 
 
+class Traits(base.APIBase):
+    """API representation of the traits for a node."""
+
+    traits = wtypes.ArrayType(str)
+    """node traits"""
+
+    @classmethod
+    def sample(cls):
+        traits = ["CUSTOM_TRAIT1", "CUSTOM_TRAIT2"]
+        return cls(traits=traits)
+
+
+def _get_trait_names(traits):
+    if not traits:
+        return []
+    return [t.trait for t in traits]
+
+
+class NodeTraitsController(rest.RestController):
+
+    def __init__(self, node_ident):
+        super(NodeTraitsController, self).__init__()
+        self.node_ident = node_ident
+
+    @METRICS.timer('NodeTraitsController.get_all')
+    @expose.expose(Traits)
+    def get_all(self):
+        """List node traits."""
+        cdict = pecan.request.context.to_policy_values()
+        policy.authorize('baremetal:node:traits:list', cdict, cdict)
+        node = api_utils.get_rpc_node(self.node_ident)
+        traits = objects.TraitList.get_by_node_id(pecan.request.context,
+                                                  node.id)
+        return Traits(traits=_get_trait_names(traits))
+
+    @METRICS.timer('NodeTraitsController.put')
+    @expose.expose(None, wtypes.text, wtypes.ArrayType(str),
+                   status_code=http_client.NO_CONTENT)
+    def put(self, trait=None, traits=None):
+        """Add a trait to a node.
+
+        :param trait: String value; trait to add to a node, or None. Mutually
+            exclusive with 'traits'. If not None, adds this trait to the node.
+        :param traits: List of Strings; traits to set for a node, or None.
+            Mutually exclusive with 'trait'. If not None, replaces the node's
+            traits with this list.
+        """
+        cdict = pecan.request.context.to_policy_values()
+        policy.authorize('baremetal:node:traits:set', cdict, cdict)
+        node = api_utils.get_rpc_node(self.node_ident)
+
+        if (trait and traits is not None) or not (trait or traits is not None):
+            msg = _("A single node trait may be added via PUT "
+                    "/v1/nodes/<node identifier>/traits/<trait> with no body, "
+                    "or all node traits may be replaced via PUT "
+                    "/v1/nodes/<node identifier>/traits with the list of "
+                    "traits specified in the request body.")
+            raise exception.Invalid(msg)
+
+        if trait:
+            if pecan.request.body and pecan.request.json_body:
+                # Ensure PUT nodes/uuid1/traits/trait1 with a non-empty body
+                # fails.
+                msg = _("No body should be provided when adding a trait")
+                raise exception.Invalid(msg)
+            traits = [trait]
+            replace = False
+        else:
+            replace = True
+
+        for trait in traits:
+            api_utils.validate_trait(trait)
+
+        topic = pecan.request.rpcapi.get_topic_for(node)
+        pecan.request.rpcapi.add_node_traits(
+            pecan.request.context, node.id, traits, replace=replace,
+            topic=topic)
+
+    @METRICS.timer('NodeTraitsController.delete')
+    @expose.expose(None, wtypes.text,
+                   status_code=http_client.NO_CONTENT)
+    def delete(self, trait=None):
+        """Remove one or all traits from a node.
+
+        :param trait: String value; trait to remove from a node, or None. If
+                      None, all traits are removed.
+        """
+        cdict = pecan.request.context.to_policy_values()
+        policy.authorize('baremetal:node:traits:delete', cdict, cdict)
+        node = api_utils.get_rpc_node(self.node_ident)
+
+        if trait:
+            traits = [trait]
+        else:
+            traits = None
+
+        topic = pecan.request.rpcapi.get_topic_for(node)
+        pecan.request.rpcapi.remove_node_traits(
+            pecan.request.context, node.id, traits, topic=topic)
+
+
 class Node(base.APIBase):
     """API representation of a bare metal node.
 
@@ -849,6 +953,9 @@ class Node(base.APIBase):
     vendor_interface = wsme.wsattr(wtypes.text)
     """The vendor interface to be used for this node"""
 
+    traits = wtypes.ArrayType(str)
+    """The traits associated with this node"""
+
     # NOTE(deva): "conductor_affinity" shouldn't be presented on the
     #             API because it's an internal value. Don't add it here.
 
@@ -862,7 +969,12 @@ class Node(base.APIBase):
             # Add fields we expose.
             if hasattr(self, k):
                 self.fields.append(k)
-                setattr(self, k, kwargs.get(k, wtypes.Unset))
+                # TODO(jroll) is there a less hacky way to do this?
+                if k == 'traits' and 'traits' in kwargs:
+                    value = _get_trait_names(kwargs['traits'])
+                else:
+                    value = kwargs.get(k, wtypes.Unset)
+                setattr(self, k, value)
 
         # NOTE(lucasagomes): chassis_id is an attribute created on-the-fly
         # by _set_chassis_uuid(), it needs to be present in the fields so
@@ -998,7 +1110,7 @@ class Node(base.APIBase):
                      deploy_interface=None, inspect_interface=None,
                      management_interface=None, power_interface=None,
                      raid_interface=None, vendor_interface=None,
-                     storage_interface=None)
+                     storage_interface=None, traits=[])
         # NOTE(matty_dubs): The chassis_uuid getter() is based on the
         # _chassis_uuid variable:
         sample._chassis_uuid = 'edcad704-b2da-41d5-96d9-afd580ecfa12'
@@ -1258,13 +1370,15 @@ class NodesController(rest.RestController):
 
     invalid_sort_key_list = ['properties', 'driver_info', 'extra',
                              'instance_info', 'driver_internal_info',
-                             'clean_step', 'raid_config', 'target_raid_config']
+                             'clean_step', 'raid_config', 'target_raid_config',
+                             'traits']
 
     _subcontroller_map = {
         'ports': port.PortsController,
         'portgroups': portgroup.PortgroupsController,
         'vifs': NodeVIFController,
         'volume': volume.VolumeController,
+        'traits': NodeTraitsController,
     }
 
     @pecan.expose()
@@ -1280,6 +1394,11 @@ class NodesController(rest.RestController):
             (remainder[0] == 'vifs' and
                 not api_utils.allow_vifs_subcontroller())):
             pecan.abort(http_client.NOT_FOUND)
+        if remainder[0] == 'traits' and not api_utils.allow_traits():
+            # NOTE(mgoddard): Returning here will ensure we exhibit the
+            # behaviour of previous releases for microversions without this
+            # endpoint.
+            return
         subcontroller = self._subcontroller_map.get(remainder[0])
         if subcontroller:
             return subcontroller(node_ident=ident), remainder[1:]
@@ -1394,7 +1513,9 @@ class NodesController(rest.RestController):
         """Update rpc_node based on changed fields in a node.
 
         """
-        for field in objects.Node.fields:
+        # NOTE(mgoddard): Traits cannot be updated via a node PATCH.
+        fields = set(objects.Node.fields) - {'traits'}
+        for field in fields:
             try:
                 patch_val = getattr(node, field)
             except AttributeError:
@@ -1622,6 +1743,11 @@ class NodesController(rest.RestController):
                 node.storage_interface is not wtypes.Unset):
             raise exception.NotAcceptable()
 
+        if node.traits is not wtypes.Unset:
+            msg = _("Cannot specify node traits on node creation. Traits must "
+                    "be set via the node traits API.")
+            raise exception.Invalid(msg)
+
         # NOTE(deva): get_topic_for checks if node.driver is in the hash ring
         #             and raises NoValidHost if it is not.
         #             We need to ensure that node has a UUID before it can
@@ -1692,6 +1818,12 @@ class NodesController(rest.RestController):
         s_interface = api_utils.get_patch_values(patch, '/storage_interface')
         if s_interface and not api_utils.allow_storage_interface():
             raise exception.NotAcceptable()
+
+        traits = api_utils.get_patch_values(patch, '/traits')
+        if traits:
+            msg = _("Cannot update node traits via node patch. Node traits "
+                    "should be updated via the node traits API.")
+            raise exception.Invalid(msg)
 
         rpc_node = api_utils.get_rpc_node(node_ident)
 

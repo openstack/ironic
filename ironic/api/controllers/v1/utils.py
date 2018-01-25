@@ -14,8 +14,10 @@
 #    under the License.
 
 import inspect
+import re
 
 import jsonpatch
+import os_traits
 from oslo_config import cfg
 from oslo_utils import uuidutils
 import pecan
@@ -65,6 +67,9 @@ V31_FIELDS = [
     'vendor_interface',
 ]
 
+STANDARD_TRAITS = os_traits.get_traits()
+CUSTOM_TRAIT_REGEX = re.compile("^%s[A-Z0-9_]+$" % os_traits.CUSTOM_NAMESPACE)
+
 
 def validate_limit(limit):
     if limit is None:
@@ -82,6 +87,22 @@ def validate_sort_dir(sort_dir):
                                          "Acceptable values are "
                                          "'asc' or 'desc'") % sort_dir)
     return sort_dir
+
+
+def validate_trait(trait):
+    error = wsme.exc.ClientSideError(
+        _('Invalid trait. A valid trait must be no longer than 255 '
+          'characters. Standard traits are defined in the os_traits library. '
+          'A custom trait must start with the prefix CUSTOM_ and use '
+          'the following characters: A-Z, 0-9 and _'))
+    if len(trait) > 255 or len(trait) < 1:
+        raise error
+
+    if trait in STANDARD_TRAITS:
+        return
+
+    if CUSTOM_TRAIT_REGEX.match(trait) is None:
+        raise error
 
 
 def apply_jsonpatch(doc, patch):
@@ -301,6 +322,8 @@ def check_allowed_fields(fields):
         if set(V31_FIELDS).intersection(set(fields)):
             raise exception.NotAcceptable()
     if 'storage_interface' in fields and not allow_storage_interface():
+        raise exception.NotAcceptable()
+    if 'traits' in fields and not allow_traits():
         raise exception.NotAcceptable()
 
 
@@ -630,3 +653,11 @@ def get_controller_reserved_names(cls):
         reserved_names += cls._custom_actions.keys()
 
     return reserved_names
+
+
+def allow_traits():
+    """Check if traits are allowed for the node.
+
+    Version 1.37 of the API allows traits for the node.
+    """
+    return pecan.request.version.minor >= versions.MINOR_37_NODE_TRAITS
