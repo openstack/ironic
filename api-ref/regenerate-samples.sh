@@ -11,7 +11,7 @@ fi
 OS_AUTH_TOKEN=$(openstack token issue | grep ' id ' | awk '{print $4}')
 IRONIC_URL="http://127.0.0.1:6385"
 
-IRONIC_API_VERSION="1.34"
+IRONIC_API_VERSION="1.37"
 
 export OS_AUTH_TOKEN IRONIC_URL
 
@@ -168,6 +168,10 @@ GET v1/nodes/$NID > node-show-response.json
 
 # Put the Node in maintenance mode, then continue doing everything else
 PUT v1/nodes/$NID/maintenance node-maintenance-request.json
+
+# Node traits
+PUT v1/nodes/$NID/traits node-set-traits-request.json
+GET v1/nodes/$NID/traits > node-traits-list-response.json
 
 ############
 # PORTGROUPS

@@ -111,7 +111,7 @@ and any defaults added for non-specified fields. Most fields default to "null"
 or "".
 
 The list and example below are representative of the response as of API
-microversion 1.33.
+microversion 1.37.
 
 .. rest_parameters:: parameters.yaml
 
@@ -151,6 +151,7 @@ microversion 1.33.
     - power_interface: power_interface
     - raid_interface: raid_interface
     - storage_interface: storage_interface
+    - traits: n_traits
     - vendor_interface: vendor_interface
     - volume: n_volume
 
@@ -239,6 +240,9 @@ possible by passing in flags with the request.
 This method is particularly useful to locate the Node associated to a given
 Nova instance, eg. with a request to ``v1/nodes/detail?instance_uuid={NOVA INSTANCE UUID}``
 
+.. versionadded:: 1.37
+  Introduced the ``traits`` field.
+
 Normal response codes: 200
 
 .. TODO: add error codes
@@ -300,6 +304,7 @@ Response
     - power_interface: power_interface
     - raid_interface: raid_interface
     - storage_interface: storage_interface
+    - traits: n_traits
     - vendor_interface: vendor_interface
     - volume: n_volume
 
@@ -317,6 +322,9 @@ Show Node Details
 Shows details for a node. By default, this will return the full representation
 of the resource; an optional ``fields`` parameter can be supplied to return
 only the specified set.
+
+.. versionadded:: 1.37
+  Introduced the ``traits`` field.
 
 Normal response codes: 200
 
@@ -371,6 +379,7 @@ Response
     - power_interface: power_interface
     - raid_interface: raid_interface
     - storage_interface: storage_interface
+    - traits: n_traits
     - vendor_interface: vendor_interface
     - volume: n_volume
 
@@ -452,6 +461,7 @@ Response
     - power_interface: power_interface
     - raid_interface: raid_interface
     - storage_interface: storage_interface
+    - traits: n_traits
     - vendor_interface: vendor_interface
     - volume: n_volume
 

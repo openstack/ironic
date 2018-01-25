@@ -77,6 +77,7 @@
   "target_power_state": null,
   "target_provision_state": null,
   "target_raid_config": {},
+  "traits": [],
   "updated_at": null,
   "uuid": "6d85703a-565d-469a-96ce-30b6de53079d",
   "vendor_interface": null,

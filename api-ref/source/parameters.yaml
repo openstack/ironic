@@ -74,6 +74,12 @@ portgroup_ident:
   in: path
   required: true
   type: string
+trait:
+  description: |
+    A single trait for this node.
+  in: path
+  required: true
+  type: string
 volume_connector_id:
   description: |
     The UUID of the Volume connector.
@@ -698,6 +704,12 @@ n_states:
   description: |
     Links to the collection of states. Note that this resource is also used to
     request state transitions.
+  in: body
+  required: true
+  type: array
+n_traits:
+  description: |
+    List of traits for this node.
   in: body
   required: true
   type: array

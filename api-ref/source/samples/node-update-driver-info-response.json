@@ -81,6 +81,10 @@
   "target_power_state": null,
   "target_provision_state": null,
   "target_raid_config": {},
+  "traits": [
+    "CUSTOM_TRAIT1",
+    "HW_CPU_X86_VMX"
+  ],
   "updated_at": "2016-08-18T22:28:49.653974+00:00",
   "uuid": "6d85703a-565d-469a-96ce-30b6de53079d",
   "vendor_interface": null,
