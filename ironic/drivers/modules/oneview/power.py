@@ -58,10 +58,6 @@ SET_POWER_STATE_MAP = {
 
 class OneViewPower(base.PowerInterface):
 
-    def __init__(self):
-        super(OneViewPower, self).__init__()
-        self.oneview_client = common.get_oneview_client()
-
     def get_properties(self):
         return deploy_utils.get_properties()
 
@@ -90,9 +86,7 @@ class OneViewPower(base.PowerInterface):
         common.verify_node_info(task.node)
 
         try:
-            common.validate_oneview_resources_compatibility(
-                self.oneview_client, task
-            )
+            common.validate_oneview_resources_compatibility(task)
             if deploy_utils.is_node_in_use_by_oneview(task.node):
                 raise exception.InvalidParameterValue(
                     _("Node %s is in use by OneView.") % task.node.uuid)

@@ -272,13 +272,17 @@ class OneViewIscsiDeployTestCase(db_base.DbTestCase):
         expected = common.COMMON_PROPERTIES
         self.assertEqual(expected, self.driver.deploy.get_properties())
 
+    @mock.patch.object(common, 'validate_oneview_resources_compatibility',
+                       spect_set=True, autospec=True)
     @mock.patch.object(iscsi_deploy.ISCSIDeploy, 'validate',
                        spec_set=True, autospec=True)
-    def test_validate(self, iscsi_deploy_validate):
+    def test_validate(
+            self, iscsi_deploy_validate_mock, mock_validate):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
             task.driver.deploy.validate(task)
-            iscsi_deploy_validate.assert_called_once_with(mock.ANY, task)
+            self.assertTrue(mock_validate.called)
+            iscsi_deploy_validate_mock.assert_called_once_with(mock.ANY, task)
 
     @mock.patch.object(iscsi_deploy.ISCSIDeploy, 'prepare', autospec=True)
     @mock.patch.object(deploy_utils, 'allocate_server_hardware_to_ironic')
@@ -395,13 +399,16 @@ class OneViewAgentDeployTestCase(db_base.DbTestCase):
         expected = common.COMMON_PROPERTIES
         self.assertEqual(expected, self.driver.deploy.get_properties())
 
+    @mock.patch.object(common, 'validate_oneview_resources_compatibility',
+                       spect_set=True, autospec=True)
     @mock.patch.object(agent.AgentDeploy, 'validate',
                        spec_set=True, autospec=True)
-    def test_validate(self, agent_deploy_validate_mock):
+    def test_validate(
+            self, agent_deploy_validate_mock, mock_validate):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
             task.driver.deploy.validate(task)
-            agent_deploy_validate_mock.assert_called_once_with(mock.ANY, task)
+            self.assertTrue(mock_validate.called)
 
     @mock.patch.object(agent.AgentDeploy, 'prepare',
                        spec_set=True, autospec=True)
