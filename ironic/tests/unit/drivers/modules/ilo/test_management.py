@@ -776,7 +776,7 @@ class IloManagementTestCase(db_base.DbTestCase):
             task.node.save()
             ilo_object_mock = get_ilo_object_mock.return_value
             ilo_object_mock.set_iscsi_info.side_effect = (
-                ilo_error.IloError)
+                ilo_error.IloError('error'))
             self.assertRaises(exception.IloOperationError,
                               task.driver.management.set_iscsi_boot_target,
                               task)
@@ -801,7 +801,7 @@ class IloManagementTestCase(db_base.DbTestCase):
             task.node.save()
             ilo_object_mock = get_ilo_object_mock.return_value
             ilo_object_mock.set_iscsi_info.side_effect = (
-                ilo_error.IloCommandNotSupportedInBiosError)
+                ilo_error.IloCommandNotSupportedInBiosError('error'))
             self.assertRaises(exception.IloOperationNotSupported,
                               task.driver.management.set_iscsi_boot_target,
                               task)
@@ -823,7 +823,7 @@ class IloManagementTestCase(db_base.DbTestCase):
                                   shared=False) as task:
             ilo_object_mock = get_ilo_object_mock.return_value
             ilo_object_mock.unset_iscsi_info.side_effect = (
-                ilo_error.IloError)
+                ilo_error.IloError('error'))
             self.assertRaises(exception.IloOperationError,
                               task.driver.management.clear_iscsi_boot_target,
                               task)
@@ -835,7 +835,7 @@ class IloManagementTestCase(db_base.DbTestCase):
                                   shared=False) as task:
             ilo_object_mock = get_ilo_object_mock.return_value
             ilo_object_mock.unset_iscsi_info.side_effect = (
-                ilo_error.IloCommandNotSupportedInBiosError)
+                ilo_error.IloCommandNotSupportedInBiosError('error'))
             self.assertRaises(exception.IloOperationNotSupported,
                               task.driver.management.clear_iscsi_boot_target,
                               task)
