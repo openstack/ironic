@@ -26,7 +26,7 @@ from pysnmp import error as snmp_error
 from ironic.common import exception
 from ironic.common import states
 from ironic.conductor import task_manager
-from ironic.drivers.modules import snmp as snmp
+from ironic.drivers.modules import snmp
 from ironic.tests import base
 from ironic.tests.unit.conductor import mgr_utils
 from ironic.tests.unit.db import base as db_base
