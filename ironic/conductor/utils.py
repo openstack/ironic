@@ -398,48 +398,74 @@ def cleaning_error_handler(task, msg, tear_down_cleaning=True,
         task.process_event('fail', target_state=target_state)
 
 
+def rescuing_error_handler(task, msg, set_fail_state=True):
+    """Cleanup rescue task after timeout or failure.
+
+    :param task: a TaskManager instance.
+    :param msg: a message to set into node's last_error field
+    :param set_fail_state: a boolean flag to indicate if node needs to be
+                           transitioned to a failed state. By default node
+                           would be transitioned to a failed state.
+    """
+    node = task.node
+    try:
+        node_power_action(task, states.POWER_OFF)
+        task.driver.rescue.clean_up(task)
+        node.last_error = msg
+    except exception.IronicException as e:
+        node.last_error = (_('Rescue operation was unsuccessful, clean up '
+                             'failed for node: %(error)s') % {'error': e})
+        LOG.error(('Rescue operation was unsuccessful, clean up failed for '
+                   'node %(node)s: %(error)s'),
+                  {'node': node.uuid, 'error': e})
+    except Exception as e:
+        node.last_error = (_('Rescue failed, but an unhandled exception was '
+                             'encountered while aborting: %(error)s') %
+                           {'error': e})
+        LOG.exception('Rescue failed for node %(node)s, an exception was '
+                      'encountered while aborting.', {'node': node.uuid})
+    finally:
+        node.save()
+
+    if set_fail_state:
+        try:
+            task.process_event('fail')
+        except exception.InvalidState:
+            node = task.node
+            LOG.error('Internal error. Node %(node)s in provision state '
+                      '"%(state)s" could not transition to a failed state.',
+                      {'node': node.uuid, 'state': node.provision_state})
+
+
 @task_manager.require_exclusive_lock
 def cleanup_rescuewait_timeout(task):
     """Cleanup rescue task after timeout.
 
     :param task: a TaskManager instance.
     """
-    node = task.node
     msg = _('Timeout reached while waiting for rescue ramdisk callback '
             'for node')
     errmsg = msg + ' %(node)s'
-    LOG.error(errmsg, {'node': node.uuid})
-    try:
-        node_power_action(task, states.POWER_OFF)
-        task.driver.rescue.clean_up(task)
-        node.last_error = msg
-        node.save()
-    except Exception as e:
-        if isinstance(e, exception.IronicException):
-            error_msg = _('Cleanup failed for %(node_info)s after rescue '
-                          'timeout: %(error)s')
-            node_info = ('node')
-            node.last_error = error_msg % {'node_info': node_info, 'error': e}
-            node_info = ('node %s') % node.uuid
-            LOG.error(error_msg, {'node_info': node_info, 'error': e})
-        else:
-            node.last_error = _('Rescue timed out, but an unhandled '
-                                'exception was encountered while aborting. '
-                                'More info may be found in the log file.')
-            LOG.exception('Rescue timed out for node %(node)s, an exception '
-                          'was encountered while aborting. Error: %(err)s',
-                          {'node': node.uuid, 'err': e})
-        node.save()
+    LOG.error(errmsg, {'node': task.node.uuid})
+    rescuing_error_handler(task, msg, set_fail_state=False)
 
 
-def _spawn_error_handler(e, node, state):
-    """Handle spawning error for node."""
+def _spawn_error_handler(e, node, operation):
+    """Handle error while trying to spawn a process.
+
+    Handle error while trying to spawn a process to perform an
+    operation on a node.
+
+    :param e: the exception object that was raised.
+    :param node: an Ironic node object.
+    :param operation: the operation being performed on the node.
+    """
     if isinstance(e, exception.NoFreeConductorWorker):
         node.last_error = (_("No free conductor workers available"))
         node.save()
         LOG.warning("No free conductor workers available to perform "
                     "%(operation)s on node %(node)s",
-                    {'operation': state, 'node': node.uuid})
+                    {'operation': operation, 'node': node.uuid})
 
 
 def spawn_cleaning_error_handler(e, node):

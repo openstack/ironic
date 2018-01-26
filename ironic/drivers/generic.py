@@ -34,8 +34,7 @@ from ironic.drivers.modules.storage import noop as noop_storage
 class GenericHardware(hardware_type.AbstractHardwareType):
     """Abstract base class representing generic hardware.
 
-    This class provides reasonable defaults for boot, deploy, inspect, network
-    and raid interfaces.
+    This class provides reasonable defaults for all of the interfaces.
     """
 
     @property
@@ -68,6 +67,13 @@ class GenericHardware(hardware_type.AbstractHardwareType):
         # AgentRAID requires RAID bits on the IPA image that are not shipped by
         # default. Hence, even if AgentRAID is enabled, NoRAID is the default.
         return [noop.NoRAID, agent.AgentRAID]
+
+    @property
+    def supported_rescue_interfaces(self):
+        """List of supported rescue interfaces."""
+        # AgentRescue requires IPA with the rescue extension enabled, so
+        # NoRescue is the default
+        return [noop.NoRescue, agent.AgentRescue]
 
     @property
     def supported_storage_interfaces(self):

@@ -646,42 +646,52 @@ class TestPXEUtils(db_base.DbTestCase):
     def test_dhcp_options_for_instance_ipv6(self):
         self._dhcp_options_for_instance(ip_version=6)
 
-    def _test_get_deploy_kr_info(self, expected_dir):
+    def _test_get_kernel_ramdisk_info(self, expected_dir, mode='deploy'):
         node_uuid = 'fake-node'
+
         driver_info = {
-            'deploy_kernel': 'glance://deploy-kernel',
-            'deploy_ramdisk': 'glance://deploy-ramdisk',
+            '%s_kernel' % mode: 'glance://%s-kernel' % mode,
+            '%s_ramdisk' % mode: 'glance://%s-ramdisk' % mode,
         }
 
-        expected = {
-            'deploy_kernel': ('glance://deploy-kernel',
-                              expected_dir + '/fake-node/deploy_kernel'),
-            'deploy_ramdisk': ('glance://deploy-ramdisk',
-                               expected_dir + '/fake-node/deploy_ramdisk'),
-        }
-
-        kr_info = pxe_utils.get_deploy_kr_info(node_uuid, driver_info)
+        expected = {}
+        for k, v in driver_info.items():
+            expected[k] = (v, expected_dir + '/fake-node/%s' % k)
+        kr_info = pxe_utils.get_kernel_ramdisk_info(node_uuid,
+                                                    driver_info,
+                                                    mode=mode)
         self.assertEqual(expected, kr_info)
 
-    def test_get_deploy_kr_info(self):
+    def test_get_kernel_ramdisk_info(self):
         expected_dir = '/tftp'
         self.config(tftp_root=expected_dir, group='pxe')
-        self._test_get_deploy_kr_info(expected_dir)
+        self._test_get_kernel_ramdisk_info(expected_dir)
 
-    def test_get_deploy_kr_info_ipxe(self):
+    def test_get_kernel_ramdisk_info_ipxe(self):
         expected_dir = '/http'
         self.config(ipxe_enabled=True, group='pxe')
         self.config(http_root=expected_dir, group='deploy')
-        self._test_get_deploy_kr_info(expected_dir)
+        self._test_get_kernel_ramdisk_info(expected_dir)
 
-    def test_get_deploy_kr_info_bad_driver_info(self):
+    def test_get_kernel_ramdisk_info_bad_driver_info(self):
         self.config(tftp_root='/tftp', group='pxe')
         node_uuid = 'fake-node'
         driver_info = {}
         self.assertRaises(KeyError,
-                          pxe_utils.get_deploy_kr_info,
+                          pxe_utils.get_kernel_ramdisk_info,
                           node_uuid,
                           driver_info)
+
+    def test_get_rescue_kr_info(self):
+        expected_dir = '/tftp'
+        self.config(tftp_root=expected_dir, group='pxe')
+        self._test_get_kernel_ramdisk_info(expected_dir, mode='rescue')
+
+    def test_get_rescue_kr_info_ipxe(self):
+        expected_dir = '/http'
+        self.config(ipxe_enabled=True, group='pxe')
+        self.config(http_root=expected_dir, group='deploy')
+        self._test_get_kernel_ramdisk_info(expected_dir, mode='rescue')
 
     def _dhcp_options_for_instance_ipxe(self, task, boot_file):
         self.config(tftp_server='192.0.2.1', group='pxe')

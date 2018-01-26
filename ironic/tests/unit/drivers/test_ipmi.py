@@ -61,6 +61,9 @@ class IPMIHardwareTestCase(db_base.DbTestCase):
             self.assertIsInstance(
                 task.driver.storage,
                 kwargs.get('storage', noop_storage.NoopStorage))
+            self.assertIsInstance(
+                task.driver.rescue,
+                kwargs.get('rescue', noop.NoRescue))
 
     def test_default_interfaces(self):
         node = obj_utils.create_test_node(self.context, driver='ipmi')
@@ -91,6 +94,14 @@ class IPMIHardwareTestCase(db_base.DbTestCase):
             storage_interface='cinder')
         with task_manager.acquire(self.context, node.id) as task:
             self._validate_interfaces(task, storage=cinder.CinderStorage)
+
+    def test_override_with_agent_rescue(self):
+        self.config(enabled_rescue_interfaces=['agent'])
+        node = obj_utils.create_test_node(
+            self.context, driver='ipmi',
+            rescue_interface='agent')
+        with task_manager.acquire(self.context, node.id) as task:
+            self._validate_interfaces(task, rescue=agent.AgentRescue)
 
 
 class IPMIClassicDriversTestCase(testtools.TestCase):

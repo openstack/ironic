@@ -213,3 +213,16 @@ class AgentClient(object):
                              method='log.collect_system_logs',
                              params={},
                              wait=True)
+
+    @METRICS.timer('AgentClient.finalize_rescue')
+    def finalize_rescue(self, node):
+        """Instruct the ramdisk to finalize entering of rescue mode."""
+        rescue_pass = node.instance_info.get('rescue_password')
+        if not rescue_pass:
+            raise exception.IronicException(_('Agent rescue requires '
+                                              'rescue_password in '
+                                              'instance_info'))
+        params = {'rescue_password': rescue_pass}
+        return self._command(node=node,
+                             method='rescue.finalize_rescue',
+                             params=params)

@@ -1271,9 +1271,93 @@ class ErrorHandlersTestCase(tests_base.TestCase):
         self.assertTrue(log_mock.error.called)
         node_power_mock.assert_called_once_with(mock.ANY, states.POWER_OFF)
         self.task.driver.rescue.clean_up.assert_called_once_with(self.task)
-        self.assertIn('Rescue timed out', self.node.last_error)
+        self.assertIn('Rescue failed', self.node.last_error)
         self.node.save.assert_called_once_with()
         self.assertTrue(log_mock.exception.called)
+
+    @mock.patch.object(conductor_utils, 'node_power_action')
+    def _test_rescuing_error_handler(self, node_power_mock,
+                                     set_state=True):
+        self.node.provision_state = states.RESCUEWAIT
+        conductor_utils.rescuing_error_handler(self.task,
+                                               'some exception for node',
+                                               set_fail_state=set_state)
+        node_power_mock.assert_called_once_with(mock.ANY, states.POWER_OFF)
+        self.task.driver.rescue.clean_up.assert_called_once_with(self.task)
+        self.node.save.assert_called_once_with()
+        if set_state:
+            self.assertTrue(self.task.process_event.called)
+        else:
+            self.assertFalse(self.task.process_event.called)
+
+    def test_rescuing_error_handler(self):
+        self._test_rescuing_error_handler()
+
+    def test_rescuing_error_handler_set_failed_state_false(self):
+        self._test_rescuing_error_handler(set_state=False)
+
+    @mock.patch.object(conductor_utils.LOG, 'error')
+    @mock.patch.object(conductor_utils, 'node_power_action')
+    def test_rescuing_error_handler_ironic_exc(self, node_power_mock,
+                                               log_mock):
+        self.node.provision_state = states.RESCUEWAIT
+        expected_exc = exception.IronicException('moocow')
+        clean_up_mock = self.task.driver.rescue.clean_up
+        clean_up_mock.side_effect = expected_exc
+        conductor_utils.rescuing_error_handler(self.task,
+                                               'some exception for node')
+        node_power_mock.assert_called_once_with(mock.ANY, states.POWER_OFF)
+        self.task.driver.rescue.clean_up.assert_called_once_with(self.task)
+        log_mock.assert_called_once_with('Rescue operation was unsuccessful, '
+                                         'clean up failed for node %(node)s: '
+                                         '%(error)s',
+                                         {'node': self.node.uuid,
+                                          'error': expected_exc})
+        self.node.save.assert_called_once_with()
+
+    @mock.patch.object(conductor_utils.LOG, 'exception')
+    @mock.patch.object(conductor_utils, 'node_power_action')
+    def test_rescuing_error_handler_other_exc(self, node_power_mock,
+                                              log_mock):
+        self.node.provision_state = states.RESCUEWAIT
+        expected_exc = RuntimeError()
+        clean_up_mock = self.task.driver.rescue.clean_up
+        clean_up_mock.side_effect = expected_exc
+        conductor_utils.rescuing_error_handler(self.task,
+                                               'some exception for node')
+        node_power_mock.assert_called_once_with(mock.ANY, states.POWER_OFF)
+        self.task.driver.rescue.clean_up.assert_called_once_with(self.task)
+        log_mock.assert_called_once_with('Rescue failed for node '
+                                         '%(node)s, an exception was '
+                                         'encountered while aborting.',
+                                         {'node': self.node.uuid})
+        self.node.save.assert_called_once_with()
+
+    @mock.patch.object(conductor_utils.LOG, 'error')
+    @mock.patch.object(conductor_utils, 'node_power_action')
+    def test_rescuing_error_handler_bad_state(self, node_power_mock,
+                                              log_mock):
+        self.node.provision_state = states.RESCUE
+        self.task.process_event.side_effect = exception.InvalidState
+        expected_exc = exception.IronicException('moocow')
+        clean_up_mock = self.task.driver.rescue.clean_up
+        clean_up_mock.side_effect = expected_exc
+        conductor_utils.rescuing_error_handler(self.task,
+                                               'some exception for node')
+        node_power_mock.assert_called_once_with(mock.ANY, states.POWER_OFF)
+        self.task.driver.rescue.clean_up.assert_called_once_with(self.task)
+        self.task.process_event.assert_called_once_with('fail')
+        log_calls = [mock.call('Rescue operation was unsuccessful, clean up '
+                               'failed for node %(node)s: %(error)s',
+                               {'node': self.node.uuid,
+                                'error': expected_exc}),
+                     mock.call('Internal error. Node %(node)s in provision '
+                               'state "%(state)s" could not transition to a '
+                               'failed state.',
+                               {'node': self.node.uuid,
+                                'state': self.node.provision_state})]
+        log_mock.assert_has_calls(log_calls)
+        self.node.save.assert_called_once_with()
 
 
 class ValidatePortPhysnetTestCase(db_base.DbTestCase):

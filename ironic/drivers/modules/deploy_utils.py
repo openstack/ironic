@@ -65,6 +65,10 @@ SUPPORTED_CAPABILITIES = {
     'disk_label': ('msdos', 'gpt'),
 }
 
+# States related to rescue mode.
+RESCUE_LIKE_STATES = (states.RESCUING, states.RESCUEWAIT, states.RESCUEFAIL,
+                      states.UNRESCUING, states.UNRESCUEFAIL)
+
 DISK_LAYOUT_PARAMS = ('root_gb', 'swap_mb', 'ephemeral_gb')
 
 

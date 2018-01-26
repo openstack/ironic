@@ -284,3 +284,22 @@ class TestAgentClient(base.TestCase):
         self.client.sync(self.node)
         self.client._command.assert_called_once_with(
             node=self.node, method='standby.sync', params={}, wait=True)
+
+    def test_finalize_rescue(self):
+        self.client._command = mock.MagicMock(spec_set=[])
+        self.node.instance_info['rescue_password'] = 'password'
+        expected_params = {
+            'rescue_password': 'password',
+        }
+        self.client.finalize_rescue(self.node)
+        self.client._command.assert_called_once_with(
+            node=self.node, method='rescue.finalize_rescue',
+            params=expected_params)
+
+    def test_finalize_rescue_exc(self):
+        # node does not have 'rescue_password' set in its 'instance_info'
+        self.client._command = mock.MagicMock(spec_set=[])
+        self.assertRaises(exception.IronicException,
+                          self.client.finalize_rescue,
+                          self.node)
+        self.assertFalse(self.client._command.called)

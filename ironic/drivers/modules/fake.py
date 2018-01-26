@@ -79,10 +79,10 @@ class FakeBoot(base.BootInterface):
     def validate(self, task):
         pass
 
-    def prepare_ramdisk(self, task, ramdisk_params):
+    def prepare_ramdisk(self, task, ramdisk_params, mode='deploy'):
         pass
 
-    def clean_up_ramdisk(self, task):
+    def clean_up_ramdisk(self, task, mode='deploy'):
         pass
 
     def prepare_instance(self, task):

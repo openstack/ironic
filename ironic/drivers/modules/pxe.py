@@ -59,19 +59,26 @@ COMMON_PROPERTIES = REQUIRED_PROPERTIES.copy()
 COMMON_PROPERTIES.update(OPTIONAL_PROPERTIES)
 
 
-def _parse_driver_info(node):
+def _parse_driver_info(node, mode='deploy'):
     """Gets the driver specific Node deployment info.
 
     This method validates whether the 'driver_info' property of the
     supplied node contains the required information for this driver to
-    deploy images to the node.
+    deploy images to, or rescue, the node.
 
     :param node: a single Node.
+    :param mode: Label indicating a deploy or rescue operation being
+                 carried out on the node. Supported values are
+                 'deploy' and 'rescue'. Defaults to 'deploy', indicating
+                 deploy operation is being carried out.
     :returns: A dict with the driver_info values.
     :raises: MissingParameterValue
     """
     info = node.driver_info
-    d_info = {k: info.get(k) for k in ('deploy_kernel', 'deploy_ramdisk')}
+
+    params_to_check = pxe_utils.KERNEL_RAMDISK_LABELS[mode]
+
+    d_info = {k: info.get(k) for k in params_to_check}
     error_msg = _("Cannot validate PXE bootloader. Some parameters were"
                   " missing in node's driver_info")
     deploy_utils.check_for_missing_params(d_info, error_msg)
@@ -121,29 +128,37 @@ def _get_instance_image_info(node, ctx):
     return image_info
 
 
-def _get_deploy_image_info(node):
-    """Generate the paths for TFTP files for deploy images.
+def _get_image_info(node, mode='deploy'):
+    """Generate the paths for TFTP files for deploy or rescue images.
 
-    This method generates the paths for the deploy kernel and
-    deploy ramdisk.
+    This method generates the paths for the deploy (or rescue) kernel and
+    deploy (or rescue) ramdisk.
 
     :param node: a node object
-    :returns: a dictionary whose keys are the names of the images (
-        deploy_kernel, deploy_ramdisk) and values are the absolute
-        paths of them.
-    :raises: MissingParameterValue, if deploy_kernel/deploy_ramdisk is
-        missing in node's driver_info.
+    :param mode: Label indicating a deploy or rescue operation being
+        carried out on the node. Supported values are 'deploy' and 'rescue'.
+        Defaults to 'deploy', indicating deploy operation is being carried out.
+    :returns: a dictionary whose keys are the names of the images
+        (deploy_kernel, deploy_ramdisk, or rescue_kernel, rescue_ramdisk) and
+        values are the absolute paths of them.
+    :raises: MissingParameterValue, if deploy_kernel/deploy_ramdisk or
+        rescue_kernel/rescue_ramdisk is missing in node's driver_info.
     """
-    d_info = _parse_driver_info(node)
-    return pxe_utils.get_deploy_kr_info(node.uuid, d_info)
+    d_info = _parse_driver_info(node, mode=mode)
+
+    return pxe_utils.get_kernel_ramdisk_info(
+        node.uuid, d_info, mode=mode)
 
 
-def _build_deploy_pxe_options(task, pxe_info):
+def _build_deploy_pxe_options(task, pxe_info, mode='deploy'):
     pxe_opts = {}
     node = task.node
 
-    for label, option in (('deploy_kernel', 'deployment_aki_path'),
-                          ('deploy_ramdisk', 'deployment_ari_path')):
+    kernel_label = '%s_kernel' % mode
+    ramdisk_label = '%s_ramdisk' % mode
+
+    for label, option in ((kernel_label, 'deployment_aki_path'),
+                          (ramdisk_label, 'deployment_ari_path')):
         if CONF.pxe.ipxe_enabled:
             image_href = pxe_info[label][0]
             if (CONF.pxe.ipxe_use_swift and
@@ -218,20 +233,25 @@ def _build_pxe_config_options(task, pxe_info, service=False):
     :returns: A dictionary of pxe options to be used in the pxe bootfile
         template.
     """
+    node = task.node
+    mode = ('rescue' if node.provision_state in deploy_utils.RESCUE_LIKE_STATES
+            else 'deploy')
     if service:
         pxe_options = {}
-    elif (task.node.driver_internal_info.get('boot_from_volume') and
+    elif (node.driver_internal_info.get('boot_from_volume') and
             CONF.pxe.ipxe_enabled):
         pxe_options = _get_volume_pxe_options(task)
     else:
-        pxe_options = _build_deploy_pxe_options(task, pxe_info)
+        pxe_options = _build_deploy_pxe_options(task, pxe_info, mode=mode)
 
-    # NOTE(pas-ha) we still must always add user image kernel and ramdisk info
-    # as later during switching PXE config to service mode the template
-    # will not be regenerated anew, but instead edited as-is.
-    # This can be changed later if/when switching PXE config will also use
-    # proper templating instead of editing existing files on disk.
-    pxe_options.update(_build_instance_pxe_options(task, pxe_info))
+    if mode == 'deploy':
+        # NOTE(pas-ha) we still must always add user image kernel and ramdisk
+        # info as later during switching PXE config to service mode the
+        # template will not be regenerated anew, but instead edited as-is.
+        # This can be changed later if/when switching PXE config will also use
+        # proper templating instead of editing existing files on disk.
+        pxe_options.update(_build_instance_pxe_options(task, pxe_info))
+
     pxe_options.update(_build_extra_pxe_options())
 
     return pxe_options
@@ -241,10 +261,10 @@ def _build_service_pxe_config(task, instance_image_info,
                               root_uuid_or_disk_id):
     node = task.node
     pxe_config_path = pxe_utils.get_pxe_config_file_path(node.uuid)
-    # NOTE(pas-ha) if it is takeover of ACTIVE node,
-    # first ensure that basic PXE configs and links
+    # NOTE(pas-ha) if it is takeover of ACTIVE node or node performing
+    # unrescue operation, first ensure that basic PXE configs and links
     # are in place before switching pxe config
-    if (node.provision_state == states.ACTIVE and
+    if (node.provision_state in [states.ACTIVE, states.UNRESCUING] and
             not os.path.isfile(pxe_config_path)):
         pxe_options = _build_pxe_config_options(task, instance_image_info,
                                                 service=True)
@@ -435,7 +455,7 @@ class PXEBoot(base.BootInterface):
         _parse_driver_info(node)
         # NOTE(TheJulia): If we're not writing an image, we can skip
         # the remainder of this method.
-        if not task.driver.storage.should_write_image(task):
+        if (not task.driver.storage.should_write_image(task)):
             return
 
         d_info = deploy_utils.get_image_instance_info(node)
@@ -449,17 +469,21 @@ class PXEBoot(base.BootInterface):
         deploy_utils.validate_image_properties(task.context, d_info, props)
 
     @METRICS.timer('PXEBoot.prepare_ramdisk')
-    def prepare_ramdisk(self, task, ramdisk_params):
+    def prepare_ramdisk(self, task, ramdisk_params, mode='deploy'):
         """Prepares the boot of Ironic ramdisk using PXE.
 
-        This method prepares the boot of the deploy kernel/ramdisk after
-        reading relevant information from the node's driver_info and
+        This method prepares the boot of the deploy or rescue kernel/ramdisk
+        after reading relevant information from the node's driver_info and
         instance_info.
 
         :param task: a task from TaskManager.
         :param ramdisk_params: the parameters to be passed to the ramdisk.
             pxe driver passes these parameters as kernel command-line
             arguments.
+        :param mode: Label indicating a deploy or rescue operation
+            being carried out on the node. Supported values are
+            'deploy' and 'rescue'. Defaults to 'deploy', indicating
+            deploy operation is being carried out.
         :returns: None
         :raises: MissingParameterValue, if some information is missing in
             node's driver_info or instance_info.
@@ -482,7 +506,7 @@ class PXEBoot(base.BootInterface):
         provider = dhcp_factory.DHCPFactory()
         provider.update_dhcp(task, dhcp_opts)
 
-        pxe_info = _get_deploy_image_info(node)
+        pxe_info = _get_image_info(node, mode=mode)
 
         # NODE: Try to validate and fetch instance images only
         # if we are in DEPLOYING state.
@@ -503,29 +527,37 @@ class PXEBoot(base.BootInterface):
                                            persistent=persistent)
 
         if CONF.pxe.ipxe_enabled and CONF.pxe.ipxe_use_swift:
-            pxe_info.pop('deploy_kernel', None)
-            pxe_info.pop('deploy_ramdisk', None)
+            kernel_label = '%s_kernel' % mode
+            ramdisk_label = '%s_ramdisk' % mode
+            pxe_info.pop(kernel_label, None)
+            pxe_info.pop(ramdisk_label, None)
+
         if pxe_info:
             _cache_ramdisk_kernel(task.context, node, pxe_info)
 
     @METRICS.timer('PXEBoot.clean_up_ramdisk')
-    def clean_up_ramdisk(self, task):
+    def clean_up_ramdisk(self, task, mode='deploy'):
         """Cleans up the boot of ironic ramdisk.
 
         This method cleans up the PXE environment that was setup for booting
-        the deploy ramdisk. It unlinks the deploy kernel/ramdisk in the node's
-        directory in tftproot and removes it's PXE config.
+        the deploy or rescue ramdisk. It unlinks the deploy/rescue
+        kernel/ramdisk in the node's directory in tftproot and removes it's PXE
+        config.
 
         :param task: a task from TaskManager.
+        :param mode: Label indicating a deploy or rescue operation
+            was carried out on the node. Supported values are 'deploy' and
+            'rescue'. Defaults to 'deploy', indicating deploy operation was
+            carried out.
         :returns: None
         """
         node = task.node
         try:
-            images_info = _get_deploy_image_info(node)
+            images_info = _get_image_info(node, mode=mode)
         except exception.MissingParameterValue as e:
-            LOG.warning('Could not get deploy image info '
+            LOG.warning('Could not get %(mode)s image info '
                         'to clean up images for node %(node)s: %(err)s',
-                        {'node': node.uuid, 'err': e})
+                        {'mode': mode, 'node': node.uuid, 'err': e})
         else:
             _clean_up_pxe_env(task, images_info)
 

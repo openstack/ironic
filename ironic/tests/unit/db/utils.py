@@ -53,6 +53,8 @@ def get_test_pxe_driver_info():
     return {
         "deploy_kernel": "glance://deploy_kernel_uuid",
         "deploy_ramdisk": "glance://deploy_ramdisk_uuid",
+        "rescue_kernel": "glance://rescue_kernel_uuid",
+        "rescue_ramdisk": "glance://rescue_ramdisk_uuid"
     }
 
 
@@ -66,6 +68,7 @@ def get_test_pxe_instance_info():
     return {
         "image_source": "glance://image_uuid",
         "root_gb": 100,
+        "rescue_password": "password"
     }
 
 
