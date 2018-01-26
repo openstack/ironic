@@ -3223,12 +3223,13 @@ class MiscTestCase(mgr_utils.ServiceSetUpMixin, mgr_utils.CommonMixIn,
                                                                 'otherdriver'))
 
     @mock.patch.object(images, 'is_whole_disk_image')
-    def test_validate_driver_interfaces(self, mock_iwdi):
+    def test_validate_dynamic_driver_interfaces(self, mock_iwdi):
         mock_iwdi.return_value = False
         target_raid_config = {'logical_disks': [{'size_gb': 1,
                                                  'raid_level': '1'}]}
         node = obj_utils.create_test_node(
-            self.context, driver='fake', target_raid_config=target_raid_config,
+            self.context, driver='fake-hardware',
+            target_raid_config=target_raid_config,
             network_interface='noop')
         ret = self.service.validate_driver_interfaces(self.context,
                                                       node.uuid)
@@ -3240,8 +3241,32 @@ class MiscTestCase(mgr_utils.ServiceSetUpMixin, mgr_utils.CommonMixIn,
                     'raid': {'result': True},
                     'deploy': {'result': True},
                     'network': {'result': True},
-                    'storage': {'result': True}}
+                    'storage': {'result': True},
+                    'rescue': {'result': True}}
+        self.assertEqual(expected, ret)
+        mock_iwdi.assert_called_once_with(self.context, node.instance_info)
 
+    @mock.patch.object(images, 'is_whole_disk_image')
+    def test_validate_driver_interfaces(self, mock_iwdi):
+        mock_iwdi.return_value = False
+        target_raid_config = {'logical_disks': [{'size_gb': 1,
+                                                 'raid_level': '1'}]}
+        node = obj_utils.create_test_node(
+            self.context, driver='fake', target_raid_config=target_raid_config,
+            network_interface='noop')
+        ret = self.service.validate_driver_interfaces(self.context,
+                                                      node.uuid)
+        reason = ('not supported')
+        expected = {'console': {'result': True},
+                    'power': {'result': True},
+                    'inspect': {'result': True},
+                    'management': {'result': True},
+                    'boot': {'result': True},
+                    'raid': {'result': True},
+                    'deploy': {'result': True},
+                    'network': {'result': True},
+                    'storage': {'result': True},
+                    'rescue': {'reason': reason, 'result': None}}
         self.assertEqual(expected, ret)
         mock_iwdi.assert_called_once_with(self.context, node.instance_info)
 

@@ -2250,7 +2250,7 @@ class TestPost(test_api_base.BaseApiTest):
         self.assertEqual('neutron', result['network_interface'])
 
     def test_create_node_specify_interfaces(self):
-        headers = {api_base.Version.string: '1.33'}
+        headers = {api_base.Version.string: '1.38'}
         all_interface_fields = api_utils.V31_FIELDS + ['network_interface',
                                                        'rescue_interface',
                                                        'storage_interface']
@@ -2268,11 +2268,6 @@ class TestPost(test_api_base.BaseApiTest):
                 expected = 'flat'
             elif field == 'storage_interface':
                 expected = 'noop'
-            elif field == 'rescue_interface':
-                # TODO(stendulker): Enable testing of rescue interface
-                # in its API patch.
-                continue
-
             node = {
                 'uuid': uuidutils.generate_uuid(),
                 field: expected,
@@ -2955,6 +2950,12 @@ class TestPut(test_api_base.BaseApiTest):
         p = mock.patch.object(rpcapi.ConductorAPI, 'inspect_hardware')
         self.mock_dnih = p.start()
         self.addCleanup(p.stop)
+        p = mock.patch.object(rpcapi.ConductorAPI, 'do_node_rescue')
+        self.mock_dnr = p.start()
+        self.addCleanup(p.stop)
+        p = mock.patch.object(rpcapi.ConductorAPI, 'do_node_unrescue')
+        self.mock_dnur = p.start()
+        self.addCleanup(p.stop)
 
     def _test_power_state_success(self, target_state, timeout, api_version):
         if timeout is None:
@@ -3325,6 +3326,271 @@ class TestPut(test_api_base.BaseApiTest):
         mock_dpa.assert_called_once_with(mock.ANY, self.node.uuid,
                                          states.VERBS['provide'],
                                          'test-topic')
+
+    def test_rescue_raises_error_before_1_38(self):
+        """Test that a lower API client cannot use the rescue verb"""
+        ret = self.put_json('/nodes/%s/states/provision' % self.node.uuid,
+                            {'target': states.VERBS['rescue'],
+                             'rescue_password': 'password'},
+                            headers={api_base.Version.string: "1.37"},
+                            expect_errors=True)
+        self.assertEqual(http_client.NOT_ACCEPTABLE, ret.status_code)
+
+    def test_unrescue_raises_error_before_1_38(self):
+        """Test that a lower API client cannot use the unrescue verb"""
+        ret = self.put_json('/nodes/%s/states/provision' % self.node.uuid,
+                            {'target': states.VERBS['unrescue']},
+                            headers={api_base.Version.string: "1.37"},
+                            expect_errors=True)
+        self.assertEqual(http_client.NOT_ACCEPTABLE, ret.status_code)
+
+    def test_provision_unexpected_rescue_password(self):
+        self.node.provision_state = states.AVAILABLE
+        self.node.save()
+        ret = self.put_json('/nodes/%s/states/provision' % self.node.uuid,
+                            {'target': states.ACTIVE,
+                             'rescue_password': 'password'},
+                            headers={api_base.Version.string: "1.38"},
+                            expect_errors=True)
+        self.assertEqual(http_client.BAD_REQUEST, ret.status_code)
+        self.assertFalse(self.mock_dnr.called)
+
+    def test_provision_rescue_no_password(self):
+        self.node.provision_state = states.ACTIVE
+        self.node.save()
+        ret = self.put_json('/nodes/%s/states/provision' % self.node.uuid,
+                            {'target': states.VERBS['rescue']},
+                            headers={api_base.Version.string: "1.38"},
+                            expect_errors=True)
+        self.assertEqual(http_client.BAD_REQUEST, ret.status_code)
+        self.assertFalse(self.mock_dnr.called)
+
+    def test_provision_rescue_empty_password(self):
+        self.node.provision_state = states.ACTIVE
+        self.node.save()
+        ret = self.put_json('/nodes/%s/states/provision' % self.node.uuid,
+                            {'target': states.VERBS['rescue'],
+                             'rescue_password': '      '},
+                            headers={api_base.Version.string: "1.38"},
+                            expect_errors=True)
+        self.assertEqual(http_client.BAD_REQUEST, ret.status_code)
+        self.assertFalse(self.mock_dnr.called)
+
+    def test_provision_rescue_in_active(self):
+        self.node.provision_state = states.ACTIVE
+        self.node.save()
+        ret = self.put_json('/nodes/%s/states/provision' % self.node.uuid,
+                            {'target': states.VERBS['rescue'],
+                             'rescue_password': 'password'},
+                            headers={api_base.Version.string: "1.38"})
+        self.assertEqual(http_client.ACCEPTED, ret.status_code)
+        self.assertEqual(b'', ret.body)
+        self.mock_dnr.assert_called_once_with(
+            mock.ANY, self.node.uuid, 'password', 'test-topic')
+
+    def test_provision_rescue_in_deleting(self):
+        node = self.node
+        node.provision_state = states.DELETING
+        node.target_provision_state = states.AVAILABLE
+        node.reservation = 'fake-host'
+        node.save()
+        ret = self.put_json('/nodes/%s/states/provision' % node.uuid,
+                            {'target': states.VERBS['rescue'],
+                             'rescue_password': 'password'},
+                            headers={api_base.Version.string: "1.38"},
+                            expect_errors=True)
+        self.assertEqual(http_client.CONFLICT, ret.status_code)
+        self.assertFalse(self.mock_dnr.called)
+
+    def test_provision_rescue_in_rescue(self):
+        node = self.node
+        node.provision_state = states.RESCUE
+        node.reservation = 'fake-host'
+        node.save()
+        ret = self.put_json('/nodes/%s/states/provision' % node.uuid,
+                            {'target': states.VERBS['rescue'],
+                             'rescue_password': 'password'},
+                            headers={api_base.Version.string: "1.38"})
+        self.assertEqual(http_client.ACCEPTED, ret.status_code)
+        self.assertEqual(b'', ret.body)
+        self.mock_dnr.assert_called_once_with(
+            mock.ANY, self.node.uuid, 'password', 'test-topic')
+
+    def test_provision_rescue_in_rescuefail(self):
+        node = self.node
+        node.provision_state = states.RESCUEFAIL
+        node.target_provision_state = states.RESCUE
+        node.reservation = 'fake-host'
+        node.save()
+        ret = self.put_json('/nodes/%s/states/provision' % node.uuid,
+                            {'target': states.VERBS['rescue'],
+                             'rescue_password': 'password'},
+                            headers={api_base.Version.string: "1.38"})
+        self.assertEqual(http_client.ACCEPTED, ret.status_code)
+        self.assertEqual(b'', ret.body)
+        self.mock_dnr.assert_called_once_with(
+            mock.ANY, self.node.uuid, 'password', 'test-topic')
+
+    def test_provision_rescue_in_rescuewait(self):
+        node = self.node
+        node.provision_state = states.RESCUEWAIT
+        node.target_provision_state = states.RESCUE
+        node.reservation = 'fake-host'
+        node.save()
+        ret = self.put_json('/nodes/%s/states/provision' % node.uuid,
+                            {'target': states.VERBS['rescue'],
+                             'rescue_password': 'password'},
+                            headers={api_base.Version.string: "1.38"},
+                            expect_errors=True)
+        self.assertEqual(http_client.CONFLICT, ret.status_code)
+        self.assertFalse(self.mock_dnr.called)
+
+    def test_provision_rescue_in_rescuing(self):
+        node = self.node
+        node.provision_state = states.RESCUING
+        node.target_provision_state = states.RESCUE
+        node.reservation = 'fake-host'
+        node.save()
+        ret = self.put_json('/nodes/%s/states/provision' % node.uuid,
+                            {'target': states.VERBS['rescue'],
+                             'rescue_password': 'password'},
+                            headers={api_base.Version.string: "1.38"},
+                            expect_errors=True)
+        self.assertEqual(http_client.CONFLICT, ret.status_code)
+        self.assertFalse(self.mock_dnr.called)
+
+    def test_provision_rescue_in_unrescuefail(self):
+        node = self.node
+        node.provision_state = states.UNRESCUEFAIL
+        node.target_provision_state = states.ACTIVE
+        node.reservation = 'fake-host'
+        node.save()
+        ret = self.put_json('/nodes/%s/states/provision' % node.uuid,
+                            {'target': states.VERBS['rescue'],
+                             'rescue_password': 'password'},
+                            headers={api_base.Version.string: "1.38"})
+        self.assertEqual(http_client.ACCEPTED, ret.status_code)
+        self.assertEqual(b'', ret.body)
+        self.mock_dnr.assert_called_once_with(
+            mock.ANY, self.node.uuid, 'password', 'test-topic')
+
+    def test_provision_rescue_in_unrescuing(self):
+        node = self.node
+        node.provision_state = states.UNRESCUING
+        node.target_provision_state = states.ACTIVE
+        node.reservation = 'fake-host'
+        node.save()
+        ret = self.put_json('/nodes/%s/states/provision' % node.uuid,
+                            {'target': states.VERBS['rescue']},
+                            headers={api_base.Version.string: "1.38"},
+                            expect_errors=True)
+        self.assertEqual(http_client.CONFLICT, ret.status_code)
+        self.assertFalse(self.mock_dnr.called)
+
+    def test_provision_unrescue_in_active(self):
+        node = self.node
+        node.provision_state = states.ACTIVE
+        node.reservation = 'fake-host'
+        node.save()
+        ret = self.put_json('/nodes/%s/states/provision' % node.uuid,
+                            {'target': states.VERBS['unrescue']},
+                            headers={api_base.Version.string: "1.38"},
+                            expect_errors=True)
+        self.assertEqual(http_client.CONFLICT, ret.status_code)
+        self.assertFalse(self.mock_dnur.called)
+
+    def test_provision_unrescue_in_deleting(self):
+        node = self.node
+        node.provision_state = states.DELETING
+        node.target_provision_state = states.AVAILABLE
+        node.reservation = 'fake-host'
+        node.save()
+        ret = self.put_json('/nodes/%s/states/provision' % node.uuid,
+                            {'target': states.VERBS['unrescue']},
+                            headers={api_base.Version.string: "1.38"},
+                            expect_errors=True)
+        self.assertEqual(http_client.CONFLICT, ret.status_code)
+        self.assertFalse(self.mock_dnur.called)
+
+    def test_provision_unrescue_in_rescue(self):
+        node = self.node
+        node.provision_state = states.RESCUE
+        node.reservation = 'fake-host'
+        node.save()
+        ret = self.put_json('/nodes/%s/states/provision' % node.uuid,
+                            {'target': states.VERBS['unrescue']},
+                            headers={api_base.Version.string: "1.38"})
+        self.assertEqual(http_client.ACCEPTED, ret.status_code)
+        self.assertEqual(b'', ret.body)
+        self.mock_dnur.assert_called_once_with(
+            mock.ANY, self.node.uuid, 'test-topic')
+
+    def test_provision_unrescue_in_rescuefail(self):
+        node = self.node
+        node.provision_state = states.RESCUEFAIL
+        node.target_provision_state = states.RESCUE
+        node.reservation = 'fake-host'
+        node.save()
+        ret = self.put_json('/nodes/%s/states/provision' % node.uuid,
+                            {'target': states.VERBS['unrescue']},
+                            headers={api_base.Version.string: "1.38"})
+        self.assertEqual(http_client.ACCEPTED, ret.status_code)
+        self.assertEqual(b'', ret.body)
+        self.mock_dnur.assert_called_once_with(
+            mock.ANY, self.node.uuid, 'test-topic')
+
+    def test_provision_unrescue_in_rescuewait(self):
+        node = self.node
+        node.provision_state = states.RESCUEWAIT
+        node.target_provision_state = states.RESCUE
+        node.reservation = 'fake-host'
+        node.save()
+        ret = self.put_json('/nodes/%s/states/provision' % node.uuid,
+                            {'target': states.VERBS['unrescue']},
+                            headers={api_base.Version.string: "1.38"},
+                            expect_errors=True)
+        self.assertEqual(http_client.CONFLICT, ret.status_code)
+        self.assertFalse(self.mock_dnur.called)
+
+    def test_provision_unrescue_in_rescuing(self):
+        node = self.node
+        node.provision_state = states.RESCUING
+        node.target_provision_state = states.RESCUE
+        node.reservation = 'fake-host'
+        node.save()
+        ret = self.put_json('/nodes/%s/states/provision' % node.uuid,
+                            {'target': states.VERBS['unrescue']},
+                            headers={api_base.Version.string: "1.38"},
+                            expect_errors=True)
+        self.assertEqual(http_client.CONFLICT, ret.status_code)
+        self.assertFalse(self.mock_dnur.called)
+
+    def test_provision_unrescue_in_unrescuefail(self):
+        node = self.node
+        node.provision_state = states.UNRESCUEFAIL
+        node.target_provision_state = states.ACTIVE
+        node.reservation = 'fake-host'
+        node.save()
+        ret = self.put_json('/nodes/%s/states/provision' % node.uuid,
+                            {'target': states.VERBS['unrescue']},
+                            headers={api_base.Version.string: "1.38"})
+        self.assertEqual(http_client.ACCEPTED, ret.status_code)
+        self.assertEqual(b'', ret.body)
+        self.mock_dnur.assert_called_once_with(
+            mock.ANY, self.node.uuid, 'test-topic')
+
+    def test_provision_unrescue_in_unrescuing(self):
+        node = self.node
+        node.provision_state = states.UNRESCUING
+        node.target_provision_state = states.ACTIVE
+        node.reservation = 'fake-host'
+        node.save()
+        ret = self.put_json('/nodes/%s/states/provision' % node.uuid,
+                            {'target': states.VERBS['unrescue']},
+                            headers={api_base.Version.string: "1.38"},
+                            expect_errors=True)
+        self.assertEqual(http_client.CONFLICT, ret.status_code)
+        self.assertFalse(self.mock_dnur.called)
 
     def test_inspect_already_in_progress(self):
         node = self.node

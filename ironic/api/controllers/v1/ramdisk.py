@@ -38,7 +38,8 @@ _LOOKUP_RETURN_FIELDS = ('uuid', 'properties', 'instance_info',
                          'driver_internal_info')
 _LOOKUP_ALLOWED_STATES = {states.DEPLOYING, states.DEPLOYWAIT,
                           states.CLEANING, states.CLEANWAIT,
-                          states.INSPECTING}
+                          states.INSPECTING,
+                          states.RESCUING, states.RESCUEWAIT}
 
 
 def config():

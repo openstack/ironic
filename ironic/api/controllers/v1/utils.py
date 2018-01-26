@@ -54,6 +54,8 @@ MIN_VERB_VERSIONS = {
     states.VERBS['abort']: versions.MINOR_13_ABORT_VERB,
     states.VERBS['clean']: versions.MINOR_15_MANUAL_CLEAN,
     states.VERBS['adopt']: versions.MINOR_17_ADOPT_VERB,
+    states.VERBS['rescue']: versions.MINOR_38_RESCUE_INTERFACE,
+    states.VERBS['unrescue']: versions.MINOR_38_RESCUE_INTERFACE,
 }
 
 V31_FIELDS = [
@@ -324,6 +326,8 @@ def check_allowed_fields(fields):
     if 'storage_interface' in fields and not allow_storage_interface():
         raise exception.NotAcceptable()
     if 'traits' in fields and not allow_traits():
+        raise exception.NotAcceptable()
+    if 'rescue_interface' in fields and not allow_rescue_interface():
         raise exception.NotAcceptable()
 
 
@@ -633,6 +637,14 @@ def allow_agent_version_in_heartbeat():
     """
     return (pecan.request.version.minor >=
             versions.MINOR_36_AGENT_VERSION_HEARTBEAT)
+
+
+def allow_rescue_interface():
+    """Check if we should support rescue and unrescue operations and interface.
+
+    Version 1.38 of the API added support for rescue and unrescue.
+    """
+    return pecan.request.version.minor >= versions.MINOR_38_RESCUE_INTERFACE
 
 
 def get_controller_reserved_names(cls):
