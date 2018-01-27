@@ -107,9 +107,13 @@ class TestFlatInterface(db_base.DbTestCase):
                 task, CONF.neutron.cleaning_network)
             add_mock.assert_called_once_with(
                 task, CONF.neutron.cleaning_network)
-            validate_mock.assert_called_once_with(
-                CONF.neutron.cleaning_network,
-                'cleaning network', context=task.context)
+            validate_calls = [
+                mock.call(CONF.neutron.cleaning_network, 'cleaning network',
+                          context=task.context),
+                mock.call(CONF.neutron.cleaning_network, 'cleaning network',
+                          context=task.context)
+            ]
+            validate_mock.assert_has_calls(validate_calls)
         self.port.refresh()
         self.assertEqual('vif-port-id',
                          self.port.internal_info['cleaning_vif_port_id'])

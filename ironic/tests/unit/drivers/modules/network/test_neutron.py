@@ -120,9 +120,13 @@ class NeutronInterfaceTestCase(db_base.DbTestCase):
             add_ports_mock.assert_called_once_with(
                 task, CONF.neutron.provisioning_network,
                 security_groups=[])
-            validate_mock.assert_called_once_with(
-                CONF.neutron.provisioning_network,
-                'provisioning network', context=task.context)
+            validate_calls = [
+                mock.call(CONF.neutron.provisioning_network,
+                          'provisioning network', context=task.context),
+                mock.call(CONF.neutron.provisioning_network,
+                          'provisioning network', context=task.context)
+            ]
+            validate_mock.assert_has_calls(validate_calls)
         self.port.refresh()
         self.assertEqual(self.neutron_port['id'],
                          self.port.internal_info['provisioning_vif_port_id'])
@@ -151,9 +155,13 @@ class NeutronInterfaceTestCase(db_base.DbTestCase):
                 add_ports_mock.assert_called_with(
                     task, provisioning_network_uuid,
                     security_groups=[])
-                validate_mock.assert_called_with(
-                    provisioning_network_uuid,
-                    'provisioning network', context=task.context)
+                validate_calls = [
+                    mock.call(provisioning_network_uuid,
+                              'provisioning network', context=task.context),
+                    mock.call(provisioning_network_uuid,
+                              'provisioning network', context=task.context)
+                ]
+                validate_mock.assert_has_calls(validate_calls)
         self.port.refresh()
         self.assertEqual(self.neutron_port['id'],
                          self.port.internal_info['provisioning_vif_port_id'])
@@ -234,9 +242,13 @@ class NeutronInterfaceTestCase(db_base.DbTestCase):
             rollback_mock.assert_called_once_with(
                 task, CONF.neutron.cleaning_network)
             self.assertEqual(res, add_ports_mock.return_value)
-            validate_mock.assert_called_once_with(
-                CONF.neutron.cleaning_network,
-                'cleaning network', context=task.context)
+            validate_calls = [
+                mock.call(CONF.neutron.cleaning_network,
+                          'cleaning network', context=task.context),
+                mock.call(CONF.neutron.cleaning_network,
+                          'cleaning network', context=task.context)
+            ]
+            validate_mock.assert_has_calls(validate_calls)
         self.port.refresh()
         self.assertEqual(self.neutron_port['id'],
                          self.port.internal_info['cleaning_vif_port_id'])
@@ -350,9 +362,13 @@ class NeutronInterfaceTestCase(db_base.DbTestCase):
             rollback_mock.assert_called_once_with(
                 task, CONF.neutron.rescuing_network)
             self.assertEqual(add_ports_mock.return_value, res)
-            validate_mock.assert_called_once_with(
-                CONF.neutron.rescuing_network,
-                'rescuing network', context=task.context)
+            validate_calls = [
+                mock.call(CONF.neutron.rescuing_network,
+                          'rescuing network', context=task.context),
+                mock.call(CONF.neutron.rescuing_network,
+                          'rescuing network', context=task.context)
+            ]
+            validate_mock.assert_has_calls(validate_calls)
         other_port.refresh()
         self.assertEqual(neutron_other_port['id'],
                          other_port.internal_info['rescuing_vif_port_id'])
@@ -386,9 +402,13 @@ class NeutronInterfaceTestCase(db_base.DbTestCase):
             rollback_mock.assert_called_once_with(
                 task, rescuing_network_uuid)
             self.assertEqual(add_ports_mock.return_value, res)
-            validate_mock.assert_called_once_with(
-                rescuing_network_uuid,
-                'rescuing network', context=task.context)
+            validate_calls = [
+                mock.call(rescuing_network_uuid,
+                          'rescuing network', context=task.context),
+                mock.call(rescuing_network_uuid,
+                          'rescuing network', context=task.context)
+            ]
+            validate_mock.assert_has_calls(validate_calls)
         other_port.refresh()
         self.assertEqual(neutron_other_port['id'],
                          other_port.internal_info['rescuing_vif_port_id'])

@@ -564,22 +564,14 @@ def get_physnets_by_port_uuid(client, port_uuid):
 
 class NeutronNetworkInterfaceMixin(object):
 
-    _cleaning_network_uuid = None
-    _provisioning_network_uuid = None
-    _rescuing_network_uuid = None
-
     def get_cleaning_network_uuid(self, task):
         cleaning_network = (
             task.node.driver_info.get('cleaning_network') or
             CONF.neutron.cleaning_network
         )
-        # NOTE(dtantsur): if the last used cleaning network UUID is
-        # the same as the new one, we can skip validating it.
-        if (self._cleaning_network_uuid is None or
-                self._cleaning_network_uuid != cleaning_network):
-            self._cleaning_network_uuid = validate_network(
-                cleaning_network, _('cleaning network'),
-                context=task.context)
+        return validate_network(
+            cleaning_network, _('cleaning network'),
+            context=task.context)
         return self._cleaning_network_uuid
 
     def get_provisioning_network_uuid(self, task):
@@ -587,14 +579,9 @@ class NeutronNetworkInterfaceMixin(object):
             task.node.driver_info.get('provisioning_network') or
             CONF.neutron.provisioning_network
         )
-        # NOTE(dtantsur): if the last used provisioning network UUID is
-        # the same as the new one, we can skip validating it.
-        if (self._provisioning_network_uuid is None or
-                self._provisioning_network_uuid != provisioning_network):
-            self._provisioning_network_uuid = validate_network(
-                provisioning_network, _('provisioning network'),
-                context=task.context)
-        return self._provisioning_network_uuid
+        return validate_network(
+            provisioning_network, _('provisioning network'),
+            context=task.context)
 
     # TODO(stendulker): FlatNetwork should not use this method.
     # FlatNetwork uses tenant network for rescue operation.
@@ -603,11 +590,6 @@ class NeutronNetworkInterfaceMixin(object):
             task.node.driver_info.get('rescuing_network') or
             CONF.neutron.rescuing_network
         )
-        # NOTE(dtantsur): if the last used provisioning network UUID is
-        # the same as the new one, we can skip validating it.
-        if (self._rescuing_network_uuid is None or
-                self._rescuing_network_uuid != rescuing_network):
-            self._rescuing_network_uuid = validate_network(
-                rescuing_network, _('rescuing network'),
-                context=task.context)
-        return self._rescuing_network_uuid
+        return validate_network(
+            rescuing_network, _('rescuing network'),
+            context=task.context)
