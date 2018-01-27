@@ -22,6 +22,7 @@ from testtools import matchers
 
 from ironic.api.controllers import base as api_base
 from ironic.api.controllers.v1 import driver
+from ironic.api.controllers.v1 import versions as api_versions
 from ironic.common import exception
 from ironic.conductor import rpcapi
 from ironic.drivers import base as driver_base
@@ -59,7 +60,8 @@ class TestListDrivers(base.BaseApiTest):
         expected = sorted(expected, key=lambda d: d['name'])
         if use_dynamic:
             if latest_if:
-                headers[api_base.Version.string] = '1.38'
+                headers[api_base.Version.string] = \
+                    api_versions.max_version_string()
             else:
                 headers[api_base.Version.string] = '1.30'
 
@@ -198,7 +200,8 @@ class TestListDrivers(base.BaseApiTest):
 
         headers = {}
         if latest_if:
-            headers[api_base.Version.string] = '1.38'
+            headers[api_base.Version.string] = \
+                api_versions.max_version_string()
         else:
             headers[api_base.Version.string] = '1.30'
 

@@ -3353,6 +3353,8 @@ class TestPut(test_api_base.BaseApiTest):
                             headers={api_base.Version.string: "1.38"},
                             expect_errors=True)
         self.assertEqual(http_client.BAD_REQUEST, ret.status_code)
+        self.assertIn('\\"rescue_password\\" is only valid',
+                      ret.json['error_message'])
         self.assertFalse(self.mock_dnr.called)
 
     def test_provision_rescue_no_password(self):
@@ -3363,6 +3365,8 @@ class TestPut(test_api_base.BaseApiTest):
                             headers={api_base.Version.string: "1.38"},
                             expect_errors=True)
         self.assertEqual(http_client.BAD_REQUEST, ret.status_code)
+        self.assertIn('A non-empty \\"rescue_password\\" is required',
+                      ret.json['error_message'])
         self.assertFalse(self.mock_dnr.called)
 
     def test_provision_rescue_empty_password(self):
@@ -3374,37 +3378,13 @@ class TestPut(test_api_base.BaseApiTest):
                             headers={api_base.Version.string: "1.38"},
                             expect_errors=True)
         self.assertEqual(http_client.BAD_REQUEST, ret.status_code)
+        self.assertIn('A non-empty \\"rescue_password\\" is required',
+                      ret.json['error_message'])
         self.assertFalse(self.mock_dnr.called)
 
-    def test_provision_rescue_in_active(self):
-        self.node.provision_state = states.ACTIVE
-        self.node.save()
-        ret = self.put_json('/nodes/%s/states/provision' % self.node.uuid,
-                            {'target': states.VERBS['rescue'],
-                             'rescue_password': 'password'},
-                            headers={api_base.Version.string: "1.38"})
-        self.assertEqual(http_client.ACCEPTED, ret.status_code)
-        self.assertEqual(b'', ret.body)
-        self.mock_dnr.assert_called_once_with(
-            mock.ANY, self.node.uuid, 'password', 'test-topic')
-
-    def test_provision_rescue_in_deleting(self):
+    def _test_provision_rescue_in_allowed_state(self, prov_state):
         node = self.node
-        node.provision_state = states.DELETING
-        node.target_provision_state = states.AVAILABLE
-        node.reservation = 'fake-host'
-        node.save()
-        ret = self.put_json('/nodes/%s/states/provision' % node.uuid,
-                            {'target': states.VERBS['rescue'],
-                             'rescue_password': 'password'},
-                            headers={api_base.Version.string: "1.38"},
-                            expect_errors=True)
-        self.assertEqual(http_client.CONFLICT, ret.status_code)
-        self.assertFalse(self.mock_dnr.called)
-
-    def test_provision_rescue_in_rescue(self):
-        node = self.node
-        node.provision_state = states.RESCUE
+        node.provision_state = prov_state
         node.reservation = 'fake-host'
         node.save()
         ret = self.put_json('/nodes/%s/states/provision' % node.uuid,
@@ -3415,26 +3395,17 @@ class TestPut(test_api_base.BaseApiTest):
         self.assertEqual(b'', ret.body)
         self.mock_dnr.assert_called_once_with(
             mock.ANY, self.node.uuid, 'password', 'test-topic')
+        self.mock_dnr.reset_mock()
 
-    def test_provision_rescue_in_rescuefail(self):
-        node = self.node
-        node.provision_state = states.RESCUEFAIL
-        node.target_provision_state = states.RESCUE
-        node.reservation = 'fake-host'
-        node.save()
-        ret = self.put_json('/nodes/%s/states/provision' % node.uuid,
-                            {'target': states.VERBS['rescue'],
-                             'rescue_password': 'password'},
-                            headers={api_base.Version.string: "1.38"})
-        self.assertEqual(http_client.ACCEPTED, ret.status_code)
-        self.assertEqual(b'', ret.body)
-        self.mock_dnr.assert_called_once_with(
-            mock.ANY, self.node.uuid, 'password', 'test-topic')
+    def test_provision_rescue_in_allowed_states(self):
+        allowed_states = [states.ACTIVE, states.RESCUE,
+                          states.RESCUEFAIL, states.UNRESCUEFAIL]
+        for state in allowed_states:
+            self._test_provision_rescue_in_allowed_state(state)
 
-    def test_provision_rescue_in_rescuewait(self):
+    def _test_provision_rescue_in_disallowed_state(self, prov_state):
         node = self.node
-        node.provision_state = states.RESCUEWAIT
-        node.target_provision_state = states.RESCUE
+        node.provision_state = prov_state
         node.reservation = 'fake-host'
         node.save()
         ret = self.put_json('/nodes/%s/states/provision' % node.uuid,
@@ -3445,76 +3416,15 @@ class TestPut(test_api_base.BaseApiTest):
         self.assertEqual(http_client.CONFLICT, ret.status_code)
         self.assertFalse(self.mock_dnr.called)
 
-    def test_provision_rescue_in_rescuing(self):
-        node = self.node
-        node.provision_state = states.RESCUING
-        node.target_provision_state = states.RESCUE
-        node.reservation = 'fake-host'
-        node.save()
-        ret = self.put_json('/nodes/%s/states/provision' % node.uuid,
-                            {'target': states.VERBS['rescue'],
-                             'rescue_password': 'password'},
-                            headers={api_base.Version.string: "1.38"},
-                            expect_errors=True)
-        self.assertEqual(http_client.CONFLICT, ret.status_code)
-        self.assertFalse(self.mock_dnr.called)
+    def test_provision_rescue_in_disallowed_states(self):
+        disallowed_states = [states.DELETING, states.RESCUEWAIT,
+                             states.RESCUING, states.UNRESCUING]
+        for state in disallowed_states:
+            self._test_provision_rescue_in_disallowed_state(state)
 
-    def test_provision_rescue_in_unrescuefail(self):
+    def _test_provision_unrescue_in_allowed_state(self, prov_state):
         node = self.node
-        node.provision_state = states.UNRESCUEFAIL
-        node.target_provision_state = states.ACTIVE
-        node.reservation = 'fake-host'
-        node.save()
-        ret = self.put_json('/nodes/%s/states/provision' % node.uuid,
-                            {'target': states.VERBS['rescue'],
-                             'rescue_password': 'password'},
-                            headers={api_base.Version.string: "1.38"})
-        self.assertEqual(http_client.ACCEPTED, ret.status_code)
-        self.assertEqual(b'', ret.body)
-        self.mock_dnr.assert_called_once_with(
-            mock.ANY, self.node.uuid, 'password', 'test-topic')
-
-    def test_provision_rescue_in_unrescuing(self):
-        node = self.node
-        node.provision_state = states.UNRESCUING
-        node.target_provision_state = states.ACTIVE
-        node.reservation = 'fake-host'
-        node.save()
-        ret = self.put_json('/nodes/%s/states/provision' % node.uuid,
-                            {'target': states.VERBS['rescue']},
-                            headers={api_base.Version.string: "1.38"},
-                            expect_errors=True)
-        self.assertEqual(http_client.CONFLICT, ret.status_code)
-        self.assertFalse(self.mock_dnr.called)
-
-    def test_provision_unrescue_in_active(self):
-        node = self.node
-        node.provision_state = states.ACTIVE
-        node.reservation = 'fake-host'
-        node.save()
-        ret = self.put_json('/nodes/%s/states/provision' % node.uuid,
-                            {'target': states.VERBS['unrescue']},
-                            headers={api_base.Version.string: "1.38"},
-                            expect_errors=True)
-        self.assertEqual(http_client.CONFLICT, ret.status_code)
-        self.assertFalse(self.mock_dnur.called)
-
-    def test_provision_unrescue_in_deleting(self):
-        node = self.node
-        node.provision_state = states.DELETING
-        node.target_provision_state = states.AVAILABLE
-        node.reservation = 'fake-host'
-        node.save()
-        ret = self.put_json('/nodes/%s/states/provision' % node.uuid,
-                            {'target': states.VERBS['unrescue']},
-                            headers={api_base.Version.string: "1.38"},
-                            expect_errors=True)
-        self.assertEqual(http_client.CONFLICT, ret.status_code)
-        self.assertFalse(self.mock_dnur.called)
-
-    def test_provision_unrescue_in_rescue(self):
-        node = self.node
-        node.provision_state = states.RESCUE
+        node.provision_state = prov_state
         node.reservation = 'fake-host'
         node.save()
         ret = self.put_json('/nodes/%s/states/provision' % node.uuid,
@@ -3524,25 +3434,17 @@ class TestPut(test_api_base.BaseApiTest):
         self.assertEqual(b'', ret.body)
         self.mock_dnur.assert_called_once_with(
             mock.ANY, self.node.uuid, 'test-topic')
+        self.mock_dnur.reset_mock()
 
-    def test_provision_unrescue_in_rescuefail(self):
-        node = self.node
-        node.provision_state = states.RESCUEFAIL
-        node.target_provision_state = states.RESCUE
-        node.reservation = 'fake-host'
-        node.save()
-        ret = self.put_json('/nodes/%s/states/provision' % node.uuid,
-                            {'target': states.VERBS['unrescue']},
-                            headers={api_base.Version.string: "1.38"})
-        self.assertEqual(http_client.ACCEPTED, ret.status_code)
-        self.assertEqual(b'', ret.body)
-        self.mock_dnur.assert_called_once_with(
-            mock.ANY, self.node.uuid, 'test-topic')
+    def test_provision_unrescue_in_allowed_states(self):
+        allowed_states = [states.RESCUE, states.RESCUEFAIL,
+                          states.UNRESCUEFAIL]
+        for state in allowed_states:
+            self._test_provision_unrescue_in_allowed_state(state)
 
-    def test_provision_unrescue_in_rescuewait(self):
+    def _test_provision_unrescue_in_disallowed_state(self, prov_state):
         node = self.node
-        node.provision_state = states.RESCUEWAIT
-        node.target_provision_state = states.RESCUE
+        node.provision_state = prov_state
         node.reservation = 'fake-host'
         node.save()
         ret = self.put_json('/nodes/%s/states/provision' % node.uuid,
@@ -3552,45 +3454,12 @@ class TestPut(test_api_base.BaseApiTest):
         self.assertEqual(http_client.CONFLICT, ret.status_code)
         self.assertFalse(self.mock_dnur.called)
 
-    def test_provision_unrescue_in_rescuing(self):
-        node = self.node
-        node.provision_state = states.RESCUING
-        node.target_provision_state = states.RESCUE
-        node.reservation = 'fake-host'
-        node.save()
-        ret = self.put_json('/nodes/%s/states/provision' % node.uuid,
-                            {'target': states.VERBS['unrescue']},
-                            headers={api_base.Version.string: "1.38"},
-                            expect_errors=True)
-        self.assertEqual(http_client.CONFLICT, ret.status_code)
-        self.assertFalse(self.mock_dnur.called)
-
-    def test_provision_unrescue_in_unrescuefail(self):
-        node = self.node
-        node.provision_state = states.UNRESCUEFAIL
-        node.target_provision_state = states.ACTIVE
-        node.reservation = 'fake-host'
-        node.save()
-        ret = self.put_json('/nodes/%s/states/provision' % node.uuid,
-                            {'target': states.VERBS['unrescue']},
-                            headers={api_base.Version.string: "1.38"})
-        self.assertEqual(http_client.ACCEPTED, ret.status_code)
-        self.assertEqual(b'', ret.body)
-        self.mock_dnur.assert_called_once_with(
-            mock.ANY, self.node.uuid, 'test-topic')
-
-    def test_provision_unrescue_in_unrescuing(self):
-        node = self.node
-        node.provision_state = states.UNRESCUING
-        node.target_provision_state = states.ACTIVE
-        node.reservation = 'fake-host'
-        node.save()
-        ret = self.put_json('/nodes/%s/states/provision' % node.uuid,
-                            {'target': states.VERBS['unrescue']},
-                            headers={api_base.Version.string: "1.38"},
-                            expect_errors=True)
-        self.assertEqual(http_client.CONFLICT, ret.status_code)
-        self.assertFalse(self.mock_dnur.called)
+    def test_provision_unrescue_in_disallowed_states(self):
+        disallowed_states = [states.ACTIVE, states.DELETING,
+                             states.RESCUEWAIT, states.RESCUING,
+                             states.UNRESCUING]
+        for state in disallowed_states:
+            self._test_provision_unrescue_in_disallowed_state(state)
 
     def test_inspect_already_in_progress(self):
         node = self.node
