@@ -23,7 +23,6 @@ from ironic.common.i18n import _
 from ironic.drivers import base
 from ironic.drivers import generic
 from ironic.drivers.modules import noop
-from ironic.drivers.modules.oneview import common
 from ironic.drivers.modules.oneview import deploy
 from ironic.drivers.modules.oneview import inspect
 from ironic.drivers.modules.oneview import management
@@ -68,11 +67,6 @@ class AgentPXEOneViewDriver(base.BaseDriver):
     """
 
     def __init__(self):
-        if not importutils.try_import('oneview_client.client'):
-            raise exception.DriverLoadError(
-                driver=self.__class__.__name__,
-                reason=_("Unable to import python-oneviewclient library"))
-
         if not importutils.try_import('hpOneView.oneview_client'):
             raise exception.DriverLoadError(
                 driver=self.__class__.__name__,
@@ -83,11 +77,6 @@ class AgentPXEOneViewDriver(base.BaseDriver):
                 driver=self.__class__.__name__,
                 reason=_("Unable to import python-ilorest-library"))
 
-        # Checks connectivity to OneView and version compatibility on driver
-        # initialization
-        oneview_client = common.get_oneview_client()
-        oneview_client.verify_oneview_version()
-        oneview_client.verify_credentials()
         self.power = power.OneViewPower()
         self.management = management.OneViewManagement()
         self.boot = pxe.PXEBoot()
@@ -106,11 +95,6 @@ class ISCSIPXEOneViewDriver(base.BaseDriver):
     """
 
     def __init__(self):
-        if not importutils.try_import('oneview_client.client'):
-            raise exception.DriverLoadError(
-                driver=self.__class__.__name__,
-                reason=_("Unable to import python-oneviewclient library"))
-
         if not importutils.try_import('hpOneView.oneview_client'):
             raise exception.DriverLoadError(
                 driver=self.__class__.__name__,
@@ -121,11 +105,6 @@ class ISCSIPXEOneViewDriver(base.BaseDriver):
                 driver=self.__class__.__name__,
                 reason=_("Unable to import python-ilorest-library"))
 
-        # Checks connectivity to OneView and version compatibility on driver
-        # initialization
-        oneview_client = common.get_oneview_client()
-        oneview_client.verify_oneview_version()
-        oneview_client.verify_credentials()
         self.power = power.OneViewPower()
         self.management = management.OneViewManagement()
         self.boot = pxe.PXEBoot()

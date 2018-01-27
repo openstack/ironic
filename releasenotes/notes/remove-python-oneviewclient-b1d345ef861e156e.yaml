@@ -1,0 +1,16 @@
+---
+issues:
+  - |
+    The library ``python-ilorest-library`` is a fork of the
+    ``python-redfish-library`` and imported with same name, hence conflict
+    when together. ``python-redfish-library`` cannot be used when ``oneview``
+    hardware type is in use.
+upgrade:
+  - |
+    The ``oneview`` hardware type now use ``hpOneView`` and
+    ``python-ilorest-library`` libraries to communicate with OneView
+    appliances. The ``python-oneviewclient`` library is no longer used.
+upgrade:
+  - |
+    Configuration ``[oneview]max_polling_attempts`` is removed since
+    ``hpOneView`` doesn't support this option.

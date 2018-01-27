@@ -27,11 +27,6 @@ from ironic.drivers import utils
 
 LOG = logging.getLogger(__name__)
 
-client = importutils.try_import('oneview_client.client')
-oneview_utils = importutils.try_import('oneview_client.utils')
-oneview_states = importutils.try_import('oneview_client.states')
-oneview_exceptions = importutils.try_import('oneview_client.exceptions')
-
 hponeview_client = importutils.try_import('hpOneView.oneview_client')
 redfish = importutils.try_import('redfish')
 client_exception = importutils.try_import('hpOneView.exceptions')
@@ -70,25 +65,6 @@ AGENT_PXE_ONEVIEW = 'agent_pxe_oneview'
 # caused by updates on translation in upgrades of ironic.
 NODE_IN_USE_BY_ONEVIEW = 'node in use by OneView'
 SERVER_HARDWARE_ALLOCATION_ERROR = 'server hardware allocation error'
-
-
-def get_oneview_client():
-    """Generates an instance of the OneView client.
-
-    Generates an instance of the OneView client using the imported
-    oneview_client library.
-
-    :returns: an instance of the OneView client
-    """
-    oneview_client = client.Client(
-        manager_url=CONF.oneview.manager_url,
-        username=CONF.oneview.username,
-        password=CONF.oneview.password,
-        allow_insecure_connections=CONF.oneview.allow_insecure_connections,
-        tls_cacert_file=CONF.oneview.tls_cacert_file,
-        max_polling_attempts=CONF.oneview.max_polling_attempts
-    )
-    return oneview_client
 
 
 def prepare_manager_url(manager_url):

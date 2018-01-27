@@ -2954,10 +2954,6 @@
 # Path to CA certificate. (string value)
 #tls_cacert_file = <None>
 
-# Max connection retries to check changes on OneView. (integer
-# value)
-#max_polling_attempts = 12
-
 # Whether to enable the periodic tasks for OneView driver be
 # aware when OneView hardware resources are taken and released
 # by Ironic or OneView users and proactively manage nodes in

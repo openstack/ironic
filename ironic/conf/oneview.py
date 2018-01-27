@@ -31,9 +31,6 @@ opts = [
                 help=_('Option to allow insecure connection with OneView.')),
     cfg.StrOpt('tls_cacert_file',
                help=_('Path to CA certificate.')),
-    cfg.IntOpt('max_polling_attempts',
-               default=12,
-               help=_('Max connection retries to check changes on OneView.')),
     cfg.BoolOpt('enable_periodic_tasks',
                 default=True,
                 help=_('Whether to enable the periodic tasks for OneView '
