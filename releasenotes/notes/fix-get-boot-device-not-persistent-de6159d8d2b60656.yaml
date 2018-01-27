@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    The ``oneview`` management interface now correctly detects whether the
+    current boot device setting is persistent at the machine's iLO.
+    Previously it always returned ``True``.
+    See https://bugs.launchpad.net/ironic/+bug/1706725 for details.
