@@ -16,7 +16,9 @@
 import json
 
 import mock
+import stevedore
 
+from ironic.common import driver_factory
 from ironic.common import exception
 from ironic.common import raid
 from ironic.drivers import base as driver_base
@@ -451,3 +453,56 @@ class TestBareDriver(base.TestCase):
              'rescue', 'storage'),
             driver_base.BareDriver.standard_interfaces
         )
+
+
+class TestToHardwareType(base.TestCase):
+    def setUp(self):
+        super(TestToHardwareType, self).setUp()
+        self.driver_classes = list(
+            driver_factory.classic_drivers_to_migrate().values())
+        self.existing_ifaces = {}
+        for iface in driver_base.ALL_INTERFACES:
+            self.existing_ifaces[iface] = stevedore.ExtensionManager(
+                'ironic.hardware.interfaces.%s' % iface,
+                invoke_on_load=False).names()
+        self.hardware_types = stevedore.ExtensionManager(
+            'ironic.hardware.types', invoke_on_load=False).names()
+        # These are the interfaces that don't have a no-op version
+        self.mandatory_interfaces = ['boot', 'deploy', 'management', 'power']
+
+    def test_to_hardware_type_returns_hardware_type(self):
+        for driver in self.driver_classes:
+            try:
+                hw_type = driver.to_hardware_type()[0]
+            except NotImplementedError:
+                continue
+            self.assertIn(hw_type, self.hardware_types,
+                          '%s returns unknown hardware type %s' %
+                          (driver, hw_type))
+
+    def test_to_hardware_type_returns_existing_interfaces(self):
+        # Check that all defined implementations of to_hardware_type
+        # contain only existing interface types
+        for driver in self.driver_classes:
+            try:
+                delta = driver.to_hardware_type()[1]
+            except NotImplementedError:
+                continue
+            for iface, value in delta.items():
+                self.assertIn(iface, self.existing_ifaces,
+                              '%s returns unknown interface %s' %
+                              (driver, iface))
+                self.assertIn(value, self.existing_ifaces[iface],
+                              '%s returns unknown %s interface %s' %
+                              (driver, iface, value))
+
+    def test_to_hardware_type_mandatory_interfaces(self):
+        for driver in self.driver_classes:
+            try:
+                delta = driver.to_hardware_type()[1]
+            except NotImplementedError:
+                continue
+            for iface in self.mandatory_interfaces:
+                self.assertIn(iface, delta,
+                              '%s does not return mandatory interface %s' %
+                              (driver, iface))

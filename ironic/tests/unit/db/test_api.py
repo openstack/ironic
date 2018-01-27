@@ -10,9 +10,11 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import mock
 from oslo_utils import uuidutils
 
 from ironic.common import context
+from ironic.common import driver_factory
 from ironic.common import release_mappings
 from ironic.db import api as db_api
 from ironic.tests.unit.db import base
@@ -137,3 +139,35 @@ class BackfillVersionTestCase(base.DbTestCase):
         for hostname in conductors:
             conductor = self.dbapi.get_conductor(hostname)
             self.assertEqual(self.conductor_ver, conductor.version)
+
+
+@mock.patch.object(driver_factory, 'calculate_migration_delta', autospec=True)
+@mock.patch.object(driver_factory, 'classic_drivers_to_migrate', autospec=True)
+class MigrateToHardwareTypesTestCase(base.DbTestCase):
+
+    def setUp(self):
+        super(MigrateToHardwareTypesTestCase, self).setUp()
+        self.context = context.get_admin_context()
+        self.dbapi = db_api.get_instance()
+        self.node = utils.create_test_node(uuid=uuidutils.generate_uuid(),
+                                           driver='classic_driver')
+
+    def test_migrate(self, mock_drivers, mock_delta):
+        mock_drivers.return_value = {'classic_driver': mock.sentinel.drv1,
+                                     'another_driver': mock.sentinel.drv2}
+        mock_delta.return_value = {'driver': 'new_driver',
+                                   'inspect_interface': 'new_inspect'}
+        result = self.dbapi.migrate_to_hardware_types(self.context, 0)
+        self.assertEqual((1, 1), result)
+        node = self.dbapi.get_node_by_id(self.node.id)
+        self.assertEqual('new_driver', node.driver)
+        self.assertEqual('new_inspect', node.inspect_interface)
+
+    def test_migrate_unsupported(self, mock_drivers, mock_delta):
+        mock_drivers.return_value = {'classic_driver': mock.sentinel.drv1,
+                                     'another_driver': mock.sentinel.drv2}
+        mock_delta.return_value = None
+        result = self.dbapi.migrate_to_hardware_types(self.context, 0)
+        self.assertEqual((1, 1), result)
+        node = self.dbapi.get_node_by_id(self.node.id)
+        self.assertEqual('classic_driver', node.driver)

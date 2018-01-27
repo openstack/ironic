@@ -147,6 +147,18 @@ class BaseDriver(object):
                 properties.update(iface.get_properties())
         return properties
 
+    @classmethod
+    def to_hardware_type(cls):
+        """Return corresponding hardware type and hardware interfaces.
+
+        :returns: a tuple with two items:
+
+            * new driver field - the target hardware type
+            * dictionary containing interfaces to update, e.g.
+              {'deploy': 'iscsi', 'power': 'ipmitool'}
+        """
+        raise NotImplementedError()
+
 
 class BareDriver(BaseDriver):
     """A bare driver object which will have interfaces attached later.

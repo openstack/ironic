@@ -14,6 +14,8 @@
 Hardware types and classic drivers for IPMI (using ipmitool).
 """
 
+from oslo_config import cfg
+
 from ironic.drivers import base
 from ironic.drivers import generic
 from ironic.drivers.modules import agent
@@ -22,6 +24,9 @@ from ironic.drivers.modules import ipmitool
 from ironic.drivers.modules import iscsi_deploy
 from ironic.drivers.modules import noop
 from ironic.drivers.modules import pxe
+
+
+CONF = cfg.CONF
 
 
 class IPMIHardware(generic.GenericHardware):
@@ -53,6 +58,22 @@ class IPMIHardware(generic.GenericHardware):
         return [ipmitool.VendorPassthru, noop.NoVendor]
 
 
+def _to_hardware_type():
+    # NOTE(dtantsur): classic drivers are not affected by the
+    # enabled_inspect_interfaces configuration option.
+    if CONF.inspector.enabled:
+        inspect_interface = 'inspector'
+    else:
+        inspect_interface = 'no-inspect'
+
+    return {'boot': 'pxe',
+            'inspect': inspect_interface,
+            'management': 'ipmitool',
+            'power': 'ipmitool',
+            'raid': 'agent',
+            'vendor': 'ipmitool'}
+
+
 class PXEAndIPMIToolDriver(base.BaseDriver):
     """PXE + IPMITool driver.
 
@@ -74,6 +95,12 @@ class PXEAndIPMIToolDriver(base.BaseDriver):
         self.vendor = ipmitool.VendorPassthru()
         self.raid = agent.AgentRAID()
 
+    @classmethod
+    def to_hardware_type(cls):
+        return 'ipmi', dict(_to_hardware_type(),
+                            console='ipmitool-shellinabox',
+                            deploy='iscsi')
+
 
 class PXEAndIPMIToolAndSocatDriver(PXEAndIPMIToolDriver):
     """PXE + IPMITool + socat driver.
@@ -92,6 +119,12 @@ class PXEAndIPMIToolAndSocatDriver(PXEAndIPMIToolDriver):
     def __init__(self):
         PXEAndIPMIToolDriver.__init__(self)
         self.console = ipmitool.IPMISocatConsole()
+
+    @classmethod
+    def to_hardware_type(cls):
+        return 'ipmi', dict(_to_hardware_type(),
+                            console='ipmitool-socat',
+                            deploy='iscsi')
 
 
 class AgentAndIPMIToolDriver(base.BaseDriver):
@@ -116,6 +149,12 @@ class AgentAndIPMIToolDriver(base.BaseDriver):
         self.inspect = inspector.Inspector.create_if_enabled(
             'AgentAndIPMIToolDriver')
 
+    @classmethod
+    def to_hardware_type(cls):
+        return 'ipmi', dict(_to_hardware_type(),
+                            console='ipmitool-shellinabox',
+                            deploy='direct')
+
 
 class AgentAndIPMIToolAndSocatDriver(AgentAndIPMIToolDriver):
     """Agent + IPMITool + socat driver.
@@ -134,3 +173,9 @@ class AgentAndIPMIToolAndSocatDriver(AgentAndIPMIToolDriver):
     def __init__(self):
         AgentAndIPMIToolDriver.__init__(self)
         self.console = ipmitool.IPMISocatConsole()
+
+    @classmethod
+    def to_hardware_type(cls):
+        return 'ipmi', dict(_to_hardware_type(),
+                            console='ipmitool-socat',
+                            deploy='direct')

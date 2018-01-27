@@ -924,6 +924,25 @@ class Connection(object):
         # TODO(rloo) Delete this in Rocky cycle.
 
     @abc.abstractmethod
+    def migrate_to_hardware_types(self, context, max_count,
+                                  reset_unsupported_interfaces=False):
+        """Migrate nodes from classic drivers to hardware types.
+
+        Go through all nodes with a classic driver and try to migrate them to a
+        corresponding hardware type and a correct set of hardware interfaces.
+
+        :param context: the admin context
+        :param max_count: The maximum number of objects to migrate. Must be
+                          >= 0. If zero, all the objects will be migrated.
+        :param reset_unsupported_interfaces: whether to reset unsupported
+            optional interfaces to their no-XXX versions.
+        :returns: A 2-tuple, 1. the total number of objects that need to be
+                  migrated (at the beginning of this call) and 2. the number
+                  of migrated objects.
+        """
+        # TODO(dtantsur) Delete this in Rocky cycle.
+
+    @abc.abstractmethod
     def set_node_traits(self, node_id, traits, version):
         """Replace all of the node traits with specified list of traits.
 

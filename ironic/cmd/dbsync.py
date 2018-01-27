@@ -65,6 +65,8 @@ ONLINE_MIGRATIONS = (
     # Added in Pike, modified in Queens
     # TODO(rloo): remove in Rocky
     (dbapi, 'backfill_version_column'),
+    # TODO(dtantsur): remove when classic drivers are removed (Rocky?)
+    (dbapi, 'migrate_to_hardware_types'),
 )
 
 
