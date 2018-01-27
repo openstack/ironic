@@ -42,6 +42,7 @@ from ironic.drivers.modules import pxe
 from ironic.tests.unit.conductor import mgr_utils
 from ironic.tests.unit.db import base as db_base
 from ironic.tests.unit.db import utils as db_utils
+from ironic.tests.unit.drivers.modules import test_pxe
 from ironic.tests.unit.drivers import third_party_driver_mock_specs \
     as mock_specs
 from ironic.tests.unit.objects import utils as obj_utils
@@ -1229,7 +1230,7 @@ class IRMCPXEBootTestCase(db_base.DbTestCase):
             task.driver.boot.prepare_ramdisk(task, {})
             mock_backup_bios.assert_called_once_with(task)
             mock_parent_prepare.assert_called_once_with(
-                task.driver.boot, task, {})
+                task.driver.boot, task, {}, mode='deploy')
 
     @mock.patch.object(irmc_management, 'backup_bios_config', spec_set=True,
                        autospec=True)
@@ -1244,7 +1245,7 @@ class IRMCPXEBootTestCase(db_base.DbTestCase):
             task.driver.boot.prepare_ramdisk(task, {})
             self.assertFalse(mock_backup_bios.called)
             mock_parent_prepare.assert_called_once_with(
-                task.driver.boot, task, {})
+                task.driver.boot, task, {}, mode='deploy')
 
     @mock.patch.object(irmc_common, 'set_secure_boot_mode', spec_set=True,
                        autospec=True)
@@ -1799,3 +1800,15 @@ class IRMCVirtualMediaBootWithVolumeTestCase(db_base.DbTestCase):
         mock_viom.VIOMConfiguration.assert_called_once_with(PARSED_IFNO,
                                                             self.node.uuid)
         mock_conf.terminate.assert_called_once_with(reboot=False)
+
+
+class IRMCPXEBootBasicTestCase(test_pxe.PXEBootTestCase):
+
+    driver = 'pxe_irmc'
+
+    def test_get_properties(self):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            properties = task.driver.get_properties()
+            for p in pxe.COMMON_PROPERTIES:
+                self.assertIn(p, properties)

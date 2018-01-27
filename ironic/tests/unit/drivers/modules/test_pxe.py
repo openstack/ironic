@@ -730,6 +730,8 @@ class CleanUpPxeEnvTestCase(db_base.DbTestCase):
 
 class PXEBootTestCase(db_base.DbTestCase):
 
+    driver = 'fake_pxe'
+
     def setUp(self):
         super(PXEBootTestCase, self).setUp()
         self.context.auth_token = 'fake'
@@ -737,12 +739,12 @@ class PXEBootTestCase(db_base.DbTestCase):
         self.config(tftp_root=self.temp_dir, group='pxe')
         self.temp_dir = tempfile.mkdtemp()
         self.config(images_path=self.temp_dir, group='pxe')
-        mgr_utils.mock_the_extension_manager(driver="fake_pxe")
+        mgr_utils.mock_the_extension_manager(driver=self.driver)
         instance_info = INST_INFO_DICT
         instance_info['deploy_key'] = 'fake-56789'
         self.node = obj_utils.create_test_node(
             self.context,
-            driver='fake_pxe',
+            driver=self.driver,
             instance_info=instance_info,
             driver_info=DRV_INFO_DICT,
             driver_internal_info=DRV_INTERNAL_INFO_DICT)
@@ -814,7 +816,7 @@ class PXEBootTestCase(db_base.DbTestCase):
         new_node = obj_utils.create_test_node(
             self.context,
             uuid='aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee',
-            driver='fake_pxe', instance_info=INST_INFO_DICT,
+            driver=self.driver, instance_info=INST_INFO_DICT,
             driver_info=DRV_INFO_DICT)
         with task_manager.acquire(self.context, new_node.uuid,
                                   shared=True) as task:
