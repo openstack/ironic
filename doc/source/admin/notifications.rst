@@ -132,7 +132,7 @@ Example of node CRUD notification::
     "payload":{
         "ironic_object.namespace":"ironic",
         "ironic_object.name":"NodeCRUDPayload",
-        "ironic_object.version":"1.2",
+        "ironic_object.version":"1.3",
         "ironic_object.data":{
             "chassis_uuid": "db0eef9d-45b2-4dc0-94a8-fc283c01171f",
             "clean_step": None,
@@ -158,6 +158,7 @@ Example of node CRUD notification::
             "network_interface": "flat",
             "power_interface": "ipmitool",
             "raid_interface": "no-raid",
+            "rescue_interface": "no-rescue",
             "storage_interface": "noop",
             "vendor_interface": "no-vendor",
             "name": None,
@@ -354,7 +355,7 @@ node maintenance notification::
     "payload":{
         "ironic_object.namespace":"ironic",
         "ironic_object.name":"NodePayload",
-        "ironic_object.version":"1.4",
+        "ironic_object.version":"1.5",
         "ironic_object.data":{
             "clean_step": None,
             "console_enabled": False,
@@ -376,6 +377,7 @@ node maintenance notification::
             "network_interface": "flat",
             "power_interface": "ipmitool",
             "raid_interface": "no-raid",
+            "rescue_interface": "no-rescue",
             "storage_interface": "noop",
             "vendor_interface": "no-vendor",
             "name": None,
@@ -430,7 +432,7 @@ notification::
     "payload":{
         "ironic_object.namespace":"ironic",
         "ironic_object.name":"NodePayload",
-        "ironic_object.version":"1.4",
+        "ironic_object.version":"1.5",
         "ironic_object.data":{
             "clean_step": None,
             "console_enabled": True,
@@ -452,6 +454,7 @@ notification::
             "network_interface": "flat",
             "power_interface": "ipmitool",
             "raid_interface": "no-raid",
+            "rescue_interface": "no-rescue",
             "storage_interface": "noop",
             "vendor_interface": "no-vendor",
             "name": None,
@@ -499,7 +502,7 @@ ironic-conductor is attempting to change the node::
     "payload":{
         "ironic_object.namespace":"ironic",
         "ironic_object.name":"NodeSetPowerStatePayload",
-        "ironic_object.version":"1.4",
+        "ironic_object.version":"1.5",
         "ironic_object.data":{
             "clean_step": None,
             "console_enabled": False,
@@ -520,6 +523,7 @@ ironic-conductor is attempting to change the node::
             "network_interface": "flat",
             "power_interface": "ipmitool",
             "raid_interface": "no-raid",
+            "rescue_interface": "no-rescue",
             "storage_interface": "noop",
             "vendor_interface": "no-vendor",
             "name": None,
@@ -562,7 +566,7 @@ prior to the correction::
     "payload":{
         "ironic_object.namespace":"ironic",
         "ironic_object.name":"NodeCorrectedPowerStatePayload",
-        "ironic_object.version":"1.4",
+        "ironic_object.version":"1.5",
         "ironic_object.data":{
             "clean_step": None,
             "console_enabled": False,
@@ -583,6 +587,7 @@ prior to the correction::
             "network_interface": "flat",
             "power_interface": "ipmitool",
             "raid_interface": "no-raid",
+            "rescue_interface": "no-rescue",
             "storage_interface": "noop",
             "vendor_interface": "no-vendor",
             "name": None,
@@ -636,7 +641,7 @@ indicate a node's provision states before state change, "event" is the FSM
     "payload":{
         "ironic_object.namespace":"ironic",
         "ironic_object.name":"NodeSetProvisionStatePayload",
-        "ironic_object.version":"1.4",
+        "ironic_object.version":"1.5",
         "ironic_object.data":{
             "clean_step": None,
             "console_enabled": False,
@@ -658,6 +663,7 @@ indicate a node's provision states before state change, "event" is the FSM
             "network_interface": "flat",
             "power_interface": "ipmitool",
             "raid_interface": "no-raid",
+            "rescue_interface": "no-rescue",
             "storage_interface": "noop",
             "vendor_interface": "no-vendor",
             "name": None,
