@@ -98,18 +98,14 @@ opts = [
                       'network interface, if rescue mode will be used. It '
                       'is not used for the "flat" or "noop" network '
                       'interfaces. If a name is provided, it must be unique '
-                      'among all networks or rescue will fail. This option '
-                      'is part of rescue feature work, which is not currently '
-                      'exposed to users.')),
+                      'among all networks or rescue will fail.')),
     cfg.ListOpt('rescuing_network_security_groups',
                 default=[],
                 help=_('List of Neutron Security Group UUIDs to be applied '
                        'during the node rescue process. Optional for the '
                        '"neutron" network interface and not used for the '
                        '"flat" or "noop" network interfaces. If not '
-                       'specified, the default security group is used. This '
-                       'option is part of rescue feature work, which is '
-                       'not currently exposed to users.')),
+                       'specified, the default security group is used.')),
 ]
 
 
