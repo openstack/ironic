@@ -148,8 +148,9 @@ class Node(base.IronicObject, object_base.VersionedObjectDictCompat):
                 continue
             try:
                 int_value = int(value)
-                assert int_value >= 0
-            except (ValueError, AssertionError):
+                if int_value < 0:
+                    raise ValueError("Value must be non-negative")
+            except (ValueError, TypeError):
                 msg = (('%(param)s=%(value)s') %
                        {'param': param, 'value': value})
                 invalid_msgs_list.append(msg)
