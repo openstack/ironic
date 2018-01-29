@@ -137,7 +137,7 @@ Cloud-init integration
 
 The configuration drive can be
 especially useful when used with `cloud-init
-<http://cloudinit.readthedocs.org/en/latest/topics/datasources.html#config-drive>`_,
+<http://cloudinit.readthedocs.io/en/latest/topics/datasources/configdrive.html>`_,
 but in order to use it we should follow some rules:
 
 * ``Cloud-init`` data should be organized in the `expected format`_.
