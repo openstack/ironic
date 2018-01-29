@@ -702,14 +702,17 @@ class IloVirtualMediaBootTestCase(db_base.DbTestCase):
                        autospec=True)
     @mock.patch.object(ilo_boot, '_validate_driver_info',
                        spec_set=True, autospec=True)
-    def test_validate_boot_from_volume(self, mock_val_driver_info,
-                                       storage_mock):
+    @mock.patch.object(ilo_boot, '_validate_instance_image_info',
+                       spec_set=True, autospec=True)
+    def test_validate_boot_from_volume(self, mock_val_instance_image_info,
+                                       mock_val_driver_info, storage_mock):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
             task.node.driver_info['ilo_deploy_iso'] = 'deploy-iso'
             storage_mock.return_value = False
             task.driver.boot.validate(task)
             mock_val_driver_info.assert_called_once_with(task)
+            self.assertFalse(mock_val_instance_image_info.called)
 
     @mock.patch.object(ilo_boot, 'prepare_node_for_deploy',
                        spec_set=True, autospec=True)
@@ -911,8 +914,8 @@ class IloVirtualMediaBootTestCase(db_base.DbTestCase):
             clear_iscsi_boot_target_mock.assert_called_once_with(mock.ANY,
                                                                  task)
             update_secure_boot_mode_mock.assert_called_once_with(task, False)
-        self.assertIsNone(self.node.driver_internal_info.get(
-                          'ilo_uefi_iscsi_boot'))
+            self.assertIsNone(task.node.driver_internal_info.get(
+                              'ilo_uefi_iscsi_boot'))
 
     @mock.patch.object(ilo_common, 'cleanup_vmedia_boot', spec_set=True,
                        autospec=True)
@@ -929,7 +932,7 @@ class IloVirtualMediaBootTestCase(db_base.DbTestCase):
             is_iscsi_boot_mock, cleanup_iso_mock, cleanup_vmedia_mock):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
-            is_iscsi_boot_mock.return_value = True
+            is_iscsi_boot_mock.return_value = False
             task.driver.boot.clean_up_instance(task)
             cleanup_iso_mock.assert_called_once_with(task.node)
             cleanup_vmedia_mock.assert_called_once_with(task)
@@ -976,6 +979,8 @@ class IloVirtualMediaBootTestCase(db_base.DbTestCase):
                                                          persistent=True)
             update_boot_mode_mock.assert_called_once_with(task)
             update_secure_boot_mode_mock.assert_called_once_with(task, True)
+            self.assertIsNone(task.node.driver_internal_info.get(
+                              'ilo_uefi_iscsi_boot'))
 
     def test_prepare_instance_whole_disk_image_local(self):
         self.node.instance_info = {'capabilities': '{"boot_option": "local"}'}
@@ -1012,6 +1017,8 @@ class IloVirtualMediaBootTestCase(db_base.DbTestCase):
                 mock.ANY, task, "12312642-09d3-467f-8e09-12385826a123")
             update_boot_mode_mock.assert_called_once_with(task)
             update_secure_boot_mode_mock.assert_called_once_with(task, True)
+            self.assertIsNone(task.node.driver_internal_info.get(
+                              'ilo_uefi_iscsi_boot'))
 
     @mock.patch.object(ilo_common, 'cleanup_vmedia_boot', spec_set=True,
                        autospec=True)
@@ -1034,6 +1041,10 @@ class IloVirtualMediaBootTestCase(db_base.DbTestCase):
             is_iscsi_boot_mock, cleanup_vmedia_boot_mock):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
+            driver_internal_info = task.node.driver_internal_info
+            driver_internal_info['ilo_uefi_iscsi_boot'] = True
+            task.node.driver_internal_info = driver_internal_info
+            task.node.save()
             is_iscsi_boot_mock.return_value = True
             get_boot_mode_mock.return_value = 'uefi'
             task.driver.boot.prepare_instance(task)
@@ -1043,6 +1054,8 @@ class IloVirtualMediaBootTestCase(db_base.DbTestCase):
                 task, boot_devices.ISCSIBOOT, persistent=True)
             update_boot_mode_mock.assert_called_once_with(task)
             update_secure_boot_mode_mock.assert_called_once_with(task, True)
+            self.assertTrue(task.node.driver_internal_info.get(
+                            'ilo_uefi_iscsi_boot'))
 
     @mock.patch.object(ilo_common, 'cleanup_vmedia_boot', spec_set=True,
                        autospec=True)
@@ -1062,6 +1075,8 @@ class IloVirtualMediaBootTestCase(db_base.DbTestCase):
                                    "in BIOS boot mode.",
                                    task.driver.boot.prepare_instance, task)
             cleanup_vmedia_boot_mock.assert_called_once_with(task)
+            self.assertIsNone(task.node.driver_internal_info.get(
+                              'ilo_uefi_iscsi_boot'))
 
 
 class IloPXEBootTestCase(db_base.DbTestCase):
@@ -1146,6 +1161,33 @@ class IloPXEBootTestCase(db_base.DbTestCase):
 
     @mock.patch.object(deploy_utils, 'is_iscsi_boot',
                        spec_set=True, autospec=True)
+    @mock.patch.object(ilo_management.IloManagement, 'clear_iscsi_boot_target',
+                       spec_set=True, autospec=True)
+    @mock.patch.object(ilo_common, 'update_secure_boot_mode', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(manager_utils, 'node_power_action', spec_set=True,
+                       autospec=True)
+    def test_clean_up_instance_boot_from_volume(self, node_power_mock,
+                                                update_secure_boot_mode_mock,
+                                                clear_iscsi_boot_target_mock,
+                                                is_iscsi_boot_mock):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            driver_internal_info = task.node.driver_internal_info
+            driver_internal_info['ilo_uefi_iscsi_boot'] = True
+            task.node.driver_internal_info = driver_internal_info
+            task.node.save()
+            is_iscsi_boot_mock.return_value = True
+            task.driver.boot.clean_up_instance(task)
+            clear_iscsi_boot_target_mock.assert_called_once_with(mock.ANY,
+                                                                 task)
+            node_power_mock.assert_called_once_with(task, states.POWER_OFF)
+            update_secure_boot_mode_mock.assert_called_once_with(task, False)
+            self.assertIsNone(task.node.driver_internal_info.get(
+                              'ilo_uefi_iscsi_boot'))
+
+    @mock.patch.object(deploy_utils, 'is_iscsi_boot',
+                       spec_set=True, autospec=True)
     @mock.patch.object(deploy_utils, 'get_boot_mode_for_deploy',
                        spec_set=True, autospec=True)
     @mock.patch.object(ilo_common, 'update_secure_boot_mode', spec_set=True,
@@ -1167,6 +1209,8 @@ class IloPXEBootTestCase(db_base.DbTestCase):
             update_boot_mode_mock.assert_called_once_with(task)
             update_secure_boot_mode_mock.assert_called_once_with(task, True)
             pxe_prepare_instance_mock.assert_called_once_with(mock.ANY, task)
+            self.assertIsNone(task.node.driver_internal_info.get(
+                              'ilo_uefi_iscsi_boot'))
 
     @mock.patch.object(deploy_utils, 'is_iscsi_boot',
                        spec_set=True, autospec=True)
@@ -1191,6 +1235,8 @@ class IloPXEBootTestCase(db_base.DbTestCase):
             update_boot_mode_mock.assert_called_once_with(task)
             update_secure_boot_mode_mock.assert_called_once_with(task, True)
             pxe_prepare_instance_mock.assert_called_once_with(mock.ANY, task)
+            self.assertIsNone(task.node.driver_internal_info.get(
+                              'ilo_uefi_iscsi_boot'))
 
     @mock.patch.object(deploy_utils, 'is_iscsi_boot',
                        spec_set=True, autospec=True)
@@ -1219,32 +1265,5 @@ class IloPXEBootTestCase(db_base.DbTestCase):
                 task, boot_devices.ISCSIBOOT, persistent=True)
             update_boot_mode_mock.assert_called_once_with(task)
             update_secure_boot_mode_mock.assert_called_once_with(task, True)
-        self.assertIsNone(self.node.driver_internal_info.get(
-                          'ilo_uefi_iscsi_boot'))
-
-    @mock.patch.object(deploy_utils, 'is_iscsi_boot',
-                       spec_set=True, autospec=True)
-    @mock.patch.object(ilo_management.IloManagement, 'clear_iscsi_boot_target',
-                       spec_set=True, autospec=True)
-    @mock.patch.object(ilo_common, 'update_secure_boot_mode', spec_set=True,
-                       autospec=True)
-    @mock.patch.object(manager_utils, 'node_power_action', spec_set=True,
-                       autospec=True)
-    def test_clean_up_instance_boot_from_volume(self, node_power_mock,
-                                                update_secure_boot_mode_mock,
-                                                clear_iscsi_boot_target_mock,
-                                                is_iscsi_boot_mock):
-        with task_manager.acquire(self.context, self.node.uuid,
-                                  shared=False) as task:
-            driver_internal_info = task.node.driver_internal_info
-            driver_internal_info['ilo_uefi_iscsi_boot'] = True
-            task.node.driver_internal_info = driver_internal_info
-            task.node.save()
-            is_iscsi_boot_mock.return_value = True
-            task.driver.boot.clean_up_instance(task)
-            clear_iscsi_boot_target_mock.assert_called_once_with(mock.ANY,
-                                                                 task)
-            node_power_mock.assert_called_once_with(task, states.POWER_OFF)
-            update_secure_boot_mode_mock.assert_called_once_with(task, False)
-        self.assertIsNone(self.node.driver_internal_info.get(
-                          'ilo_uefi_iscsi_boot'))
+            self.assertTrue(task.node.driver_internal_info.get(
+                            'ilo_uefi_iscsi_boot'))

@@ -733,7 +733,8 @@ class IloManagementTestCase(db_base.DbTestCase):
             task.driver.management.set_iscsi_boot_target(task)
             ilo_object_mock.set_iscsi_info.assert_called_once_with(
                 'fake_iqn', 0, 'fake_host', '3260',
-                'CHAP', 'fake_username', 'fake_password')
+                auth_method='CHAP', username='fake_username',
+                password='fake_password')
 
     @mock.patch.object(ilo_common, 'get_ilo_object', spec_set=True,
                        autospec=True)
@@ -754,7 +755,8 @@ class IloManagementTestCase(db_base.DbTestCase):
             ilo_object_mock = get_ilo_object_mock.return_value
             task.driver.management.set_iscsi_boot_target(task)
             ilo_object_mock.set_iscsi_info.assert_called_once_with(
-                'fake_iqn', 0, 'fake_host', '3260')
+                'fake_iqn', 0, 'fake_host', '3260', auth_method=None,
+                password=None, username=None)
 
     @mock.patch.object(ilo_common, 'get_ilo_object', spec_set=True,
                        autospec=True)
@@ -778,6 +780,24 @@ class IloManagementTestCase(db_base.DbTestCase):
             ilo_object_mock.set_iscsi_info.side_effect = (
                 ilo_error.IloError('error'))
             self.assertRaises(exception.IloOperationError,
+                              task.driver.management.set_iscsi_boot_target,
+                              task)
+
+    def test_set_iscsi_boot_target_missed_properties(self):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            vol_id = uuidutils.generate_uuid()
+            obj_utils.create_test_volume_target(
+                self.context, node_id=self.node.id, volume_type='iscsi',
+                boot_index=0, volume_id='1234', uuid=vol_id,
+                properties={'target_iqn': 'fake_iqn',
+                            'auth_username': 'fake_username',
+                            'auth_password': 'fake_password'})
+            driver_internal_info = task.node.driver_internal_info
+            driver_internal_info['boot_from_volume'] = vol_id
+            task.node.driver_internal_info = driver_internal_info
+            task.node.save()
+            self.assertRaises(exception.MissingParameterValue,
                               task.driver.management.set_iscsi_boot_target,
                               task)
 

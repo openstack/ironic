@@ -523,6 +523,7 @@ class IloManagement(base.ManagementInterface):
         The initiator is set with the target details like
         IQN, LUN, IP, Port etc.
         :param task: a task from TaskManager.
+        :raises: MissingParameterValue if a required parameter is missing.
         :raises: IloCommandNotSupportedInBiosError if system in BIOS boot mode.
         :raises: IloError on an error from iLO.
         """
@@ -532,20 +533,24 @@ class IloManagement(base.ManagementInterface):
         volume = volume_target.VolumeTarget.get_by_uuid(task.context,
                                                         boot_volume)
         properties = volume.properties
-        username = properties.get('auth_username', None)
-        password = properties.get('auth_password', None)
-        portal = properties['target_portal']
-        iqn = properties['target_iqn']
-        lun = properties['target_lun']
-        host, port = portal.split(':')
-
+        username = properties.get('auth_username')
+        password = properties.get('auth_password')
+        try:
+            portal = properties['target_portal']
+            iqn = properties['target_iqn']
+            lun = properties['target_lun']
+            host, port = portal.split(':')
+        except KeyError as e:
+            raise exception.MissingParameterValue(
+                _('Failed to get iSCSI target info for node '
+                  '%(node)s. Error: %(error)s') % {'node': task.node.uuid,
+                                                   'error': e})
         ilo_object = ilo_common.get_ilo_object(task.node)
         try:
-            if username is None:
-                ilo_object.set_iscsi_info(iqn, lun, host, port)
-            else:
-                ilo_object.set_iscsi_info(iqn, lun, host, port, 'CHAP',
-                                          username, password)
+            auth_method = 'CHAP' if username else None
+            ilo_object.set_iscsi_info(
+                iqn, lun, host, port, auth_method=auth_method,
+                username=username, password=password)
         except ilo_error.IloCommandNotSupportedInBiosError as ilo_exception:
             operation = (_("Setting of target IQN %(target_iqn)s for node "
                            "%(node)s")
