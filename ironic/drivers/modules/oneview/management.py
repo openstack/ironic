@@ -100,14 +100,15 @@ def _is_onetime_boot(task):
     :param task: a task from TaskManager.
     :returns: Boolean value. True if onetime boot is 'Once'
               False otherwise.
-    :raises: AttributeError if Boot is None.
     """
     server_hardware = task.node.driver_info.get('server_hardware_uri')
     ilo_client = common.get_ilorest_client(server_hardware)
     response = ilo_client.get(path=ILO_SYSTEM_PATH,
                               headers=ILO_REQUEST_HEADERS)
-    boot = response.dict.get('Boot')
-    onetime_boot = boot.get('BootSourceOverrideEnabled')
+    onetime_boot = None
+    boot = response.dict.get('Boot', {})
+    if boot:
+        onetime_boot = boot.get('BootSourceOverrideEnabled')
     return onetime_boot == 'Once'
 
 

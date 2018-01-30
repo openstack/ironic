@@ -1,5 +1,5 @@
 ---
 features:
   - |
-    Adds support for ``timeout`` parameter when powering on/off and reboot
+    Adds support for ``timeout`` parameter when powering on/off or rebooting
     a bare metal node managed by the ``oneview`` hardware type.

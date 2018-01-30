@@ -98,8 +98,8 @@ def get_hponeview_client():
 
     # NOTE(nicodemos) Ignore the CA certificate if it's an insecure connection
     if insecure and ssl_certificate:
-        LOG.debug("Doing an insecure connection with OneView, the CA "
-                  "certificate file: %s will be ignored.", ssl_certificate)
+        LOG.warning("Performing an insecure connection with OneView, the CA "
+                    "certificate file: %s will be ignored.", ssl_certificate)
         ssl_certificate = None
 
     config = {
@@ -322,7 +322,7 @@ def _get_server_hardware_mac_from_ilo(server_hardware):
         LOG.error("Failed in JSON object getting path: %s", ilo_path)
         raise exception.OneViewError(error=exc)
     except (ValueError, TypeError, IndexError) as exc:
-        LOG.error(
+        LOG.exception(
             "Failed to get mac from server hardware %(server_hardware)s "
             "via iLO. Error: %(message)s", {
                 "server_hardware": server_hardware.get("uri"),
