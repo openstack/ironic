@@ -4363,6 +4363,7 @@ class TestTraits(test_api_base.BaseApiTest):
         notify_args = mock_notify.call_args_list
         self.assertEqual(traits, notify_args[0][0][1].traits.get_trait_names())
         self.assertEqual(traits, notify_args[1][0][1].traits.get_trait_names())
+        self.assertIsNone(ret.location)
 
     @mock.patch.object(rpcapi.ConductorAPI, 'add_node_traits')
     @mock.patch.object(notification_utils, '_emit_api_notification')
@@ -4391,6 +4392,7 @@ class TestTraits(test_api_base.BaseApiTest):
         notify_args = mock_notify.call_args_list
         self.assertEqual(traits, notify_args[0][0][1].traits.get_trait_names())
         self.assertEqual(traits, notify_args[1][0][1].traits.get_trait_names())
+        self.assertIsNone(ret.location)
 
     @mock.patch.object(rpcapi.ConductorAPI, 'add_node_traits')
     @mock.patch.object(notification_utils, '_emit_api_notification')
@@ -4414,6 +4416,7 @@ class TestTraits(test_api_base.BaseApiTest):
         notify_args = mock_notify.call_args_list
         self.assertEqual([], notify_args[0][0][1].traits.get_trait_names())
         self.assertEqual([], notify_args[1][0][1].traits.get_trait_names())
+        self.assertIsNone(ret.location)
 
     @mock.patch.object(rpcapi.ConductorAPI, 'add_node_traits')
     @mock.patch.object(notification_utils, '_emit_api_notification')
@@ -4480,6 +4483,11 @@ class TestTraits(test_api_base.BaseApiTest):
         notify_args = mock_notify.call_args_list
         self.assertEqual(traits, notify_args[0][0][1].traits.get_trait_names())
         self.assertEqual(traits, notify_args[1][0][1].traits.get_trait_names())
+        # Check location header.
+        self.assertIsNotNone(ret.location)
+        expected_location = '/v1/nodes/%s/traits/CUSTOM_3' % self.node.name
+        self.assertEqual(expected_location,
+                         urlparse.urlparse(ret.location).path)
 
     @mock.patch.object(rpcapi.ConductorAPI, 'add_node_traits')
     @mock.patch.object(notification_utils, '_emit_api_notification')
@@ -4606,7 +4614,7 @@ class TestTraits(test_api_base.BaseApiTest):
         self.assertEqual(traits, notify_args[0][0][1].traits.get_trait_names())
         self.assertEqual(traits, notify_args[1][0][1].traits.get_trait_names())
 
-    def test_add_single_traits_fails_with_bad_version(self):
+    def test_add_single_trait_fails_with_bad_version(self):
         ret = self.put_json('/nodes/%s/traits/CUSTOM_TRAIT1' % self.node.uuid,
                             {}, headers={api_base.Version.string: "1.36"},
                             expect_errors=True)

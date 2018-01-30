@@ -826,6 +826,11 @@ class NodeTraitsController(rest.RestController):
         notify.emit_end_notification(context, node, 'update',
                                      chassis_uuid=chassis_uuid)
 
+        if not replace:
+            # For single traits, set the HTTP Location Header.
+            url_args = '/'.join((self.node_ident, 'traits', trait))
+            pecan.response.location = link.build_url('nodes', url_args)
+
     @METRICS.timer('NodeTraitsController.delete')
     @expose.expose(None, wtypes.text,
                    status_code=http_client.NO_CONTENT)

@@ -81,9 +81,9 @@ def _get_node_query_with_all():
 
     :returns: a query object.
     """
-    return model_query(models.Node)\
-        .options(joinedload('tags'))\
-        .options(joinedload('traits'))
+    return (model_query(models.Node)
+            .options(joinedload('tags'))
+            .options(joinedload('traits')))
 
 
 def model_query(model, *args, **kwargs):
@@ -342,9 +342,6 @@ class Connection(api.Connection):
 
         node = models.Node()
         node.update(values)
-        # Set tags & traits to [] for new created node
-        node['tags'] = []
-        node['traits'] = []
         with _session_for_write() as session:
             try:
                 session.add(node)
@@ -357,7 +354,13 @@ class Connection(api.Connection):
                         instance_uuid=values['instance_uuid'],
                         node=values['uuid'])
                 raise exception.NodeAlreadyExists(uuid=values['uuid'])
-            return node
+            # Set tags & traits to [] for new created node
+            # NOTE(mgoddard): We need to set the tags and traits fields in the
+            # session context, otherwise SQLAlchemy will try and fail to lazy
+            # load the attributes, resulting in an exception being raised.
+            node['tags'] = []
+            node['traits'] = []
+        return node
 
     def get_node_by_id(self, node_id):
         query = _get_node_query_with_all()

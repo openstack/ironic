@@ -42,9 +42,10 @@ class TestTraitObject(db_base.DbTestCase, obj_utils.SchemasTestMixIn):
 
     @mock.patch.object(dbapi.IMPL, 'set_node_traits', autospec=True)
     def test_create_list(self, mock_set_traits):
-        traits = [self.fake_trait['trait']]
+        fake_trait2 = db_utils.get_test_node_trait(trait='CUSTOM_TRAIT2')
+        traits = [self.fake_trait['trait'], fake_trait2['trait']]
 
-        mock_set_traits.return_value = [self.fake_trait, self.fake_trait]
+        mock_set_traits.return_value = [self.fake_trait, fake_trait2]
 
         result = objects.TraitList.create(self.context, self.node_id, traits)
 
@@ -52,6 +53,9 @@ class TestTraitObject(db_base.DbTestCase, obj_utils.SchemasTestMixIn):
         self.assertEqual(self.context, result._context)
         self.assertEqual(2, len(result))
         self.assertEqual(self.fake_trait['node_id'], result[0].node_id)
+        self.assertEqual(self.fake_trait['trait'], result[0].trait)
+        self.assertEqual(fake_trait2['node_id'], result[1].node_id)
+        self.assertEqual(fake_trait2['trait'], result[1].trait)
 
     @mock.patch.object(dbapi.IMPL, 'unset_node_traits', autospec=True)
     def test_destroy_list(self, mock_unset_traits):
