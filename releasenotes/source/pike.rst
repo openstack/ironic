@@ -4,3 +4,4 @@
 
 .. release-notes::
    :branch: stable/pike
+   :earliest-version: 8.0.0

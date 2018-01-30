@@ -85,7 +85,10 @@ This includes:
   * updating the release notes RST to include the new branch.
 
     The generated RST does not include the version range in the title, so we
-    typically submit a follow-up patch to do that.
+    typically submit a follow-up patch to do that. We also manually mark
+    the ``earliest-version`` directive on the new page, due to a `reno bug
+    <https://bugs.launchpad.net/reno/+bug/1746076>` that may cause this to
+    be incorrect for stable branches.
 
 We need to submit patches for changes in the stable branch to:
 

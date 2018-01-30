@@ -4,6 +4,7 @@ Liberty Series (4.0.0 - 4.2.5) Release Notes
 
 .. release-notes::
    :branch: origin/stable/liberty
+   :earliest-version: 4.2.2
 
 .. _V4-2-1:
 
