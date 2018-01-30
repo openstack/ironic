@@ -15,6 +15,7 @@ the services.
    Node Adoption <adoption>
    RAID Configuration <raid>
    BIOS Settings <bios>
+   Node Rescuing <rescue>
    Configuring to boot from volume <boot-from-volume>
    Multi-tenant Networking <multitenancy>
    Port Groups <portgroups>
