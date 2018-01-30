@@ -369,6 +369,19 @@ Adding scheduling information
 
    Some capabilities can also be discovered during `Hardware Inspection`_.
 
+#. If you wish to perform advanced scheduling of instances based on qualitative
+   attributes of bare metal nodes, you may add traits to each bare metal node
+   that will be exposed to the Compute scheduler (see: :ref:`scheduling-traits`
+   for a more in-depth discussion of traits in the Bare Metal service).  For
+   example, to add the standard trait ``HW_CPU_X86_VMX`` and a custom trait
+   ``CUSTOM_TRAIT1`` to a node:
+
+   .. code-block:: console
+
+    $ openstack baremetal node add trait $NODE_UUID \
+        CUSTOM_TRAIT1 HW_CPU_X86_VMX
+
+
 Validating node information
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
