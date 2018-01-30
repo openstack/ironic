@@ -56,6 +56,8 @@ features like:
 * Out-of-band discovery of server attributes through hardware inspection
 * In-band RAID configuration
 * Firmware configuration and secure firmware update
+* `Firmware based UEFI iSCSI boot from volume support`_
+
 
 Hardware Interfaces
 ^^^^^^^^^^^^^^^^^^^
@@ -1938,6 +1940,29 @@ To create an agent ramdisk with ``Proliant Hardware Manager``, use the
 
 See the `proliant-tools`_ for more information on creating agent ramdisk with
 ``proliant-tools`` element in DIB.
+
+Firmware based UEFI iSCSI boot from volume support
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+With Gen9 (UEFI firmware version 1.40 or higher) and Gen10 HPE Proliant
+servers, the driver supports firmware based UEFI boot of an iSCSI cinder volume.
+
+This feature requires the node to be configured to boot in ``UEFI`` boot mode,
+as well as user image should be ``UEFI`` bootable image, and ``PortFast``
+needs to be enabled in switch configuration for immediate spanning tree
+forwarding state so it wouldn't take much time setting the iSCSI target as
+persistent device.
+
+The driver does not support this functionality when in ``bios`` boot mode. In
+case the node is configured with ``ilo-pxe`` boot interface and the boot mode
+configured on the bare metal is ``bios``, the iscsi boot from volume is performed
+using ``ipxe``. See :doc:`/admin/boot-from-volume` for more details.
+
+To use this feature, configure the boot mode of the bare metal to ``uefi`` and
+configure the corresponding ironic node using the steps given in :doc:`/admin/boot-from-volume`.
+In a cloud environment with nodes configured to boot from ``bios`` and ``uefi`` boot
+modes, the virtual media driver only supports uefi boot mode, and that attempting to
+use iscsi boot at the same time with a bios volume will result in an error.
+
 
 .. _`ssacli documentation`: http://h20566.www2.hpe.com/hpsc/doc/public/display?docId=c03909334
 .. _`proliant-tools`: https://docs.openstack.org/diskimage-builder/latest/elements/proliant-tools/README.html
