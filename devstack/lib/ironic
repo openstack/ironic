@@ -591,7 +591,7 @@ function is_deployed_by_drac {
 }
 
 function is_deployed_by_snmp {
-    [[ -z "${IRONIC_DEPLOY_DRIVER##*_snmp}" ]] && return 0
+    [[ -z "${IRONIC_DEPLOY_DRIVER##*snmp}" ]] && return 0
     return 1
 }
 
@@ -1188,6 +1188,13 @@ function configure_ironic_conductor {
         # specific driver interfaces in DevStack
         iniset $IRONIC_CONF_FILE DEFAULT enabled_power_interfaces "redfish"
         iniset $IRONIC_CONF_FILE DEFAULT enabled_management_interfaces "redfish"
+    fi
+
+    if is_deployed_by_snmp; then
+        # TODO(lucasagomes): We need to make it easier to configure
+        # specific driver interfaces in DevStack
+        iniset $IRONIC_CONF_FILE DEFAULT enabled_power_interfaces "snmp"
+        iniset $IRONIC_CONF_FILE DEFAULT enabled_management_interfaces "fake"
     fi
 
     if is_ansible_deploy_enabled; then
