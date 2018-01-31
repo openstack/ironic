@@ -56,6 +56,15 @@ class IRMCVirtualMediaIscsiDriver(base.BaseDriver):
         self.management = management.IRMCManagement()
         self.inspect = inspect.IRMCInspect()
 
+    @classmethod
+    def to_hardware_type(cls):
+        return 'irmc', {'boot': 'irmc-virtual-media',
+                        'console': 'ipmitool-shellinabox',
+                        'deploy': 'iscsi',
+                        'inspect': 'irmc',
+                        'management': 'irmc',
+                        'power': 'irmc'}
+
 
 class IRMCVirtualMediaAgentDriver(base.BaseDriver):
     """iRMC Driver using SCCI.
@@ -79,6 +88,15 @@ class IRMCVirtualMediaAgentDriver(base.BaseDriver):
         self.console = ipmitool.IPMIShellinaboxConsole()
         self.management = management.IRMCManagement()
         self.inspect = inspect.IRMCInspect()
+
+    @classmethod
+    def to_hardware_type(cls):
+        return 'irmc', {'boot': 'irmc-virtual-media',
+                        'console': 'ipmitool-shellinabox',
+                        'deploy': 'direct',
+                        'inspect': 'irmc',
+                        'management': 'irmc',
+                        'power': 'irmc'}
 
 
 class IRMCHardware(generic.GenericHardware):

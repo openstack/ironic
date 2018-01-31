@@ -1,0 +1,5 @@
+---
+other:
+  - |
+    All ``fake`` classic drivers now implement fake soft power actions.
+    The ``fake_soft_power`` driver is now identical to ``fake``.
