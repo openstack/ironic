@@ -1,7 +1,7 @@
 ---
 features:
   - Enhanced boot interface 'ilo-pxe' and 'ilo-virtual-media' to support
-    firmware based booting from iSCSI volume.
+    firmware based booting from iSCSI volume in UEFI boot mode.
 upgrade:
   - The ``update_persistent_boot`` and ``[un]set_iscsi_info`` interfaces
     of 'proliantutils' library has been enhanced to support booting from

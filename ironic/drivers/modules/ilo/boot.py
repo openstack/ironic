@@ -539,7 +539,6 @@ class IloVirtualMediaBoot(base.BootInterface):
         :returns: None
         :raises: IloOperationError, if some operation on iLO failed.
         """
-
         LOG.debug("Cleaning up the instance.")
         manager_utils.node_power_action(task, states.POWER_OFF)
         disable_secure_boot_if_supported(task)
@@ -550,16 +549,13 @@ class IloVirtualMediaBoot(base.BootInterface):
             # It will clear iSCSI info from iLO
             task.driver.management.clear_iscsi_boot_target(task)
             driver_internal_info.pop('ilo_uefi_iscsi_boot', None)
-            task.node.driver_internal_info = driver_internal_info
-            task.node.save()
         else:
             _clean_up_boot_iso_for_instance(task.node)
-            driver_internal_info = task.node.driver_internal_info
             driver_internal_info.pop('boot_iso_created_in_web_server', None)
             driver_internal_info.pop('root_uuid_or_disk_id', None)
-            task.node.driver_internal_info = driver_internal_info
-            task.node.save()
             ilo_common.cleanup_vmedia_boot(task)
+        task.node.driver_internal_info = driver_internal_info
+        task.node.save()
 
     @METRICS.timer('IloVirtualMediaBoot.clean_up_ramdisk')
     def clean_up_ramdisk(self, task):
@@ -688,7 +684,6 @@ class IloPXEBoot(pxe.PXEBoot):
         :returns: None
         :raises: IloOperationError, if some operation on iLO failed.
         """
-
         manager_utils.node_power_action(task, states.POWER_OFF)
         disable_secure_boot_if_supported(task)
         driver_internal_info = task.node.driver_internal_info
