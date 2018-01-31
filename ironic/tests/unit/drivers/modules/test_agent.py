@@ -1344,7 +1344,6 @@ class AgentRescueTestCase(db_base.DbTestCase):
                                                  mock_prepare_instance,
                                                  mock_conf_tenant_net,
                                                  mock_remove_rescue_net):
-        """Test unrescue in case where boot driver prepares instance reboot."""
         self.config(manage_agent_boot=False, group='agent')
         with task_manager.acquire(self.context, self.node.uuid) as task:
             result = task.driver.rescue.unrescue(task)
@@ -1366,24 +1365,24 @@ class AgentRescueTestCase(db_base.DbTestCase):
             self.assertFalse(mock_validate_network.called)
             mock_boot_validate.assert_called_once_with(mock.ANY, task)
 
-    @mock.patch.object(neutron_common, 'validate_network', autospec=True)
+    @mock.patch('ironic.drivers.modules.network.neutron.NeutronNetwork.'
+                'get_rescuing_network_uuid', autospec=True)
     @mock.patch.object(fake.FakeBoot, 'validate', autospec=True)
     def test_agent_rescue_validate_neutron_net(self, mock_boot_validate,
-                                               mock_validate_network):
+                                               mock_rescuing_net):
         self.config(enabled_network_interfaces=['neutron'])
         self.node.network_interface = 'neutron'
         self.node.save()
         with task_manager.acquire(self.context, self.node.uuid) as task:
             task.driver.rescue.validate(task)
-            mock_validate_network.assert_called_once_with(
-                CONF.neutron.rescuing_network, 'rescuing network',
-                context=task.context)
+            mock_rescuing_net.assert_called_once_with(mock.ANY, task)
             mock_boot_validate.assert_called_once_with(mock.ANY, task)
 
-    @mock.patch.object(neutron_common, 'validate_network', autospec=True)
+    @mock.patch('ironic.drivers.modules.network.neutron.NeutronNetwork.'
+                'get_rescuing_network_uuid', autospec=True)
     @mock.patch.object(fake.FakeBoot, 'validate', autospec=True)
     def test_agent_rescue_validate_no_manage_agent(self, mock_boot_validate,
-                                                   mock_validate_network):
+                                                   mock_rescuing_net):
         # If ironic's not managing booting of ramdisks, we don't set up PXE for
         # the ramdisk/kernel, so validation can pass without this info
         self.config(manage_agent_boot=False, group='agent')
@@ -1394,76 +1393,85 @@ class AgentRescueTestCase(db_base.DbTestCase):
         self.node.save()
         with task_manager.acquire(self.context, self.node.uuid) as task:
             task.driver.rescue.validate(task)
-            self.assertFalse(mock_validate_network.called)
+            self.assertFalse(mock_rescuing_net.called)
             self.assertFalse(mock_boot_validate.called)
 
-    @mock.patch.object(neutron_common, 'validate_network', autospec=True)
+    @mock.patch('ironic.drivers.modules.network.neutron.NeutronNetwork.'
+                'get_rescuing_network_uuid', autospec=True)
     @mock.patch.object(fake.FakeBoot, 'validate', autospec=True)
     def test_agent_rescue_validate_fails_no_rescue_ramdisk(
-            self, mock_boot_validate, mock_validate_network):
+            self, mock_boot_validate, mock_rescuing_net):
         driver_info = self.node.driver_info
         del driver_info['rescue_ramdisk']
         self.node.driver_info = driver_info
         self.node.save()
         with task_manager.acquire(self.context, self.node.uuid) as task:
-            self.assertRaises(exception.MissingParameterValue,
-                              task.driver.rescue.validate, task)
-            self.assertFalse(mock_validate_network.called)
+            self.assertRaisesRegex(exception.MissingParameterValue,
+                                   'Node.*missing.*rescue_ramdisk',
+                                   task.driver.rescue.validate, task)
+            self.assertFalse(mock_rescuing_net.called)
             mock_boot_validate.assert_called_once_with(mock.ANY, task)
 
-    @mock.patch.object(neutron_common, 'validate_network', autospec=True)
+    @mock.patch('ironic.drivers.modules.network.neutron.NeutronNetwork.'
+                'get_rescuing_network_uuid', autospec=True)
     @mock.patch.object(fake.FakeBoot, 'validate', autospec=True)
     def test_agent_rescue_validate_fails_no_rescue_kernel(
-            self, mock_boot_validate, mock_validate_network):
+            self, mock_boot_validate, mock_rescuing_net):
         driver_info = self.node.driver_info
         del driver_info['rescue_kernel']
         self.node.driver_info = driver_info
         self.node.save()
         with task_manager.acquire(self.context, self.node.uuid) as task:
-            self.assertRaises(exception.MissingParameterValue,
-                              task.driver.rescue.validate, task)
-            self.assertFalse(mock_validate_network.called)
+            self.assertRaisesRegex(exception.MissingParameterValue,
+                                   'Node.*missing.*rescue_kernel',
+                                   task.driver.rescue.validate, task)
+            self.assertFalse(mock_rescuing_net.called)
             mock_boot_validate.assert_called_once_with(mock.ANY, task)
 
-    @mock.patch.object(neutron_common, 'validate_network', autospec=True)
+    @mock.patch('ironic.drivers.modules.network.neutron.NeutronNetwork.'
+                'get_rescuing_network_uuid', autospec=True)
     @mock.patch.object(fake.FakeBoot, 'validate', autospec=True)
     def test_agent_rescue_validate_fails_no_rescue_password(
-            self, mock_boot_validate, mock_validate_network):
+            self, mock_boot_validate, mock_rescuing_net):
         instance_info = self.node.instance_info
         del instance_info['rescue_password']
         self.node.instance_info = instance_info
         self.node.save()
         with task_manager.acquire(self.context, self.node.uuid) as task:
-            self.assertRaises(exception.MissingParameterValue,
-                              task.driver.rescue.validate, task)
-            self.assertFalse(mock_validate_network.called)
+            self.assertRaisesRegex(exception.MissingParameterValue,
+                                   'Node.*missing.*rescue_password',
+                                   task.driver.rescue.validate, task)
+            self.assertFalse(mock_rescuing_net.called)
             mock_boot_validate.assert_called_once_with(mock.ANY, task)
 
-    @mock.patch.object(neutron_common, 'validate_network', autospec=True)
+    @mock.patch('ironic.drivers.modules.network.neutron.NeutronNetwork.'
+                'get_rescuing_network_uuid', autospec=True)
     @mock.patch.object(fake.FakeBoot, 'validate', autospec=True)
     def test_agent_rescue_validate_fails_empty_rescue_password(
-            self, mock_boot_validate, mock_validate_network):
+            self, mock_boot_validate, mock_rescuing_net):
         instance_info = self.node.instance_info
         instance_info['rescue_password'] = "    "
         self.node.instance_info = instance_info
         self.node.save()
         with task_manager.acquire(self.context, self.node.uuid) as task:
-            self.assertRaises(exception.InvalidParameterValue,
-                              task.driver.rescue.validate, task)
-            self.assertFalse(mock_validate_network.called)
+            self.assertRaisesRegex(exception.InvalidParameterValue,
+                                   "'instance_info/rescue_password'.*empty",
+                                   task.driver.rescue.validate, task)
+            self.assertFalse(mock_rescuing_net.called)
             mock_boot_validate.assert_called_once_with(mock.ANY, task)
 
-    @mock.patch.object(neutron_common, 'validate_network', autospec=True)
+    @mock.patch('ironic.drivers.modules.network.neutron.NeutronNetwork.'
+                'get_rescuing_network_uuid', autospec=True)
     @mock.patch.object(reflection, 'get_signature', autospec=True)
     @mock.patch.object(fake.FakeBoot, 'validate', autospec=True)
     def test_agent_rescue_validate_incompat_exc(self, mock_boot_validate,
                                                 mock_get_signature,
-                                                mock_validate_network):
+                                                mock_rescuing_net):
         mock_get_signature.return_value.parameters = ['task']
         with task_manager.acquire(self.context, self.node.uuid) as task:
             self.assertRaises(exception.IncompatibleInterface,
                               task.driver.rescue.validate, task)
-            self.assertFalse(mock_validate_network.called)
+            self.assertFalse(mock_rescuing_net.called)
             self.assertFalse(mock_boot_validate.called)
 
     @mock.patch.object(flat_network.FlatNetwork, 'remove_rescuing_network',

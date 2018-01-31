@@ -96,7 +96,7 @@ class IPMIHardwareTestCase(db_base.DbTestCase):
             self._validate_interfaces(task, storage=cinder.CinderStorage)
 
     def test_override_with_agent_rescue(self):
-        self.config(enabled_rescue_interfaces=['agent'])
+        self.config(enabled_rescue_interfaces=['no-rescue', 'agent'])
         node = obj_utils.create_test_node(
             self.context, driver='ipmi',
             rescue_interface='agent')
