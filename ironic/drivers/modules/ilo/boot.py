@@ -607,15 +607,19 @@ class IloVirtualMediaBoot(base.BootInterface):
 class IloPXEBoot(pxe.PXEBoot):
 
     @METRICS.timer('IloPXEBoot.prepare_ramdisk')
-    def prepare_ramdisk(self, task, ramdisk_params):
+    def prepare_ramdisk(self, task, ramdisk_params, mode='deploy'):
         """Prepares the boot of Ironic ramdisk using PXE.
 
-        This method prepares the boot of the deploy ramdisk after
+        This method prepares the boot of the deploy or rescue ramdisk after
         reading relevant information from the node's driver_info and
         instance_info.
 
         :param task: a task from TaskManager.
         :param ramdisk_params: the parameters to be passed to the ramdisk.
+        :param mode: Label indicating a deploy or rescue operation
+            being carried out on the node. Supported values are
+            'deploy' and 'rescue'. Defaults to 'deploy', indicating
+            deploy operation is being carried out.
         :returns: None
         :raises: MissingParameterValue, if some information is missing in
             node's driver_info or instance_info.
@@ -626,10 +630,11 @@ class IloPXEBoot(pxe.PXEBoot):
         :raises: IloOperationError, if some operation on iLO failed.
         """
 
-        if task.node.provision_state == states.DEPLOYING:
+        if task.node.provision_state in (states.DEPLOYING, states.RESCUING):
             prepare_node_for_deploy(task)
 
-        super(IloPXEBoot, self).prepare_ramdisk(task, ramdisk_params)
+        super(IloPXEBoot, self).prepare_ramdisk(task, ramdisk_params,
+                                                mode=mode)
 
     @METRICS.timer('IloPXEBoot.prepare_instance')
     def prepare_instance(self, task):
