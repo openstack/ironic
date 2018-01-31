@@ -1,0 +1,4 @@
+---
+features:
+  - |
+    Adds missing ``ilo`` vendor interface to the ``ilo`` hardware type.
