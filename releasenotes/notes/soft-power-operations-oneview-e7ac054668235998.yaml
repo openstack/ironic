@@ -1,0 +1,5 @@
+---
+features:
+  - |
+    Enables support for soft power off and soft
+    reboot in the ``oneview`` hardware type.

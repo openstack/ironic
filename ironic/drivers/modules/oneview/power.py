@@ -36,7 +36,7 @@ POWER_ON = {'powerState': 'On'}
 POWER_OFF = {'powerState': 'Off', 'powerControl': 'PressAndHold'}
 REBOOT = {'powerState': 'On', 'powerControl': 'ColdBoot'}
 SOFT_REBOOT = {'powerState': 'On', 'powerControl': 'Reset'}
-SOFT_POWER_OFF = {'powerState': 'Off', 'powerControl': 'PressAndHold'}
+SOFT_POWER_OFF = {'powerState': 'Off', 'powerControl': 'MomentaryPress'}
 
 GET_POWER_STATE_MAP = {
     'On': states.POWER_ON,
@@ -162,9 +162,14 @@ class OneViewPower(base.PowerInterface):
                 oneview_client.server_hardware.update_power_state(
                     SET_POWER_STATE_MAP.get(power_state),
                     server_hardware, timeout=timeout)
-            elif power_state == states.REBOOT:
+            elif (power_state == states.REBOOT or
+                  power_state == states.SOFT_REBOOT):
+                power_off_mode = (states.POWER_OFF
+                                  if power_state == states.REBOOT
+                                  else states.SOFT_POWER_OFF)
+
                 oneview_client.server_hardware.update_power_state(
-                    SET_POWER_STATE_MAP.get(states.POWER_OFF),
+                    SET_POWER_STATE_MAP.get(power_off_mode),
                     server_hardware, timeout=timeout)
                 management.set_boot_device(task)
                 oneview_client.server_hardware.update_power_state(
@@ -198,3 +203,15 @@ class OneViewPower(base.PowerInterface):
             self.set_power_state(task, states.REBOOT, timeout=timeout)
         else:
             self.set_power_state(task, states.POWER_ON, timeout=timeout)
+
+    @METRICS.timer('OneViewPower.get_supported_power_states')
+    def get_supported_power_states(self, task):
+        """Get a list of the supported power states.
+
+        :param task: A TaskManager instance containing the node to act on.
+                     Currently not used.
+        :returns: A list with the supported power states defined
+                  in :mod:`ironic.common.states`.
+        """
+        return [states.POWER_ON, states.POWER_OFF, states.REBOOT,
+                states.SOFT_REBOOT, states.SOFT_POWER_OFF]
