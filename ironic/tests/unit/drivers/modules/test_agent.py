@@ -178,6 +178,7 @@ class TestAgentDeploy(db_base.DbTestCase):
             'driver_info': DRIVER_INFO,
             'driver_internal_info': DRIVER_INTERNAL_INFO,
             'storage_interface': 'noop',
+            'network_interface': 'noop'
         }
         self.node = object_utils.create_test_node(self.context, **n)
         self.ports = [
@@ -351,6 +352,9 @@ class TestAgentDeploy(db_base.DbTestCase):
                        storage_detach_volumes_mock):
         object_utils.create_test_volume_target(
             self.context, node_id=self.node.id)
+        node = self.node
+        node.network_interface = 'flat'
+        node.save()
         with task_manager.acquire(
                 self.context, self.node['uuid'], shared=False) as task:
             driver_return = self.driver.tear_down(task)
@@ -386,6 +390,9 @@ class TestAgentDeploy(db_base.DbTestCase):
             build_instance_info_mock, build_options_mock,
             pxe_prepare_ramdisk_mock, storage_driver_info_mock,
             storage_attach_volumes_mock):
+        node = self.node
+        node.network_interface = 'flat'
+        node.save()
         with task_manager.acquire(
                 self.context, self.node['uuid'], shared=False) as task:
             task.node.provision_state = states.DEPLOYING
@@ -601,6 +608,9 @@ class TestAgentDeploy(db_base.DbTestCase):
             build_options_mock, pxe_prepare_ramdisk_mock,
             validate_net_mock, add_provisioning_net_mock):
         self.config(group='agent', manage_agent_boot=False)
+        node = self.node
+        node.network_interface = 'flat'
+        node.save()
         with task_manager.acquire(
                 self.context, self.node['uuid'], shared=False) as task:
             task.node.provision_state = states.DEPLOYING
@@ -700,6 +710,9 @@ class TestAgentDeploy(db_base.DbTestCase):
             add_provisioning_net_mock, storage_driver_info_mock,
             storage_attach_volumes_mock, should_write_image_mock):
         should_write_image_mock.return_value = False
+        node = self.node
+        node.network_interface = 'flat'
+        node.save()
         with task_manager.acquire(
                 self.context, self.node['uuid'], shared=False) as task:
             task.node.provision_state = states.DEPLOYING
@@ -750,6 +763,9 @@ class TestAgentDeploy(db_base.DbTestCase):
                                       validate_net_mock,
                                       add_provisioning_net_mock):
         mock_write.return_value = False
+        node = self.node
+        node.network_interface = 'flat'
+        node.save()
         with task_manager.acquire(
                 self.context, self.node['uuid'], shared=False) as task:
             task.node.provision_state = states.DEPLOYING
