@@ -65,6 +65,7 @@
       "provision_updated_at": "2016-08-18T22:28:49.946416+00:00",
       "raid_config": {},
       "raid_interface": null,
+      "rescue_interface": null,
       "reservation": null,
       "resource_class": null,
       "states": [
@@ -159,6 +160,7 @@
       "provision_updated_at": null,
       "raid_config": {},
       "raid_interface": "no-raid",
+      "rescue_interface": "no-rescue",
       "reservation": null,
       "resource_class": null,
       "states": [

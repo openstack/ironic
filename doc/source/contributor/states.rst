@@ -147,11 +147,13 @@ active (stable state)
     provision state using the ``deleted`` verb.
   * ``active`` (through ``deploying``) by setting the node's provision state
     using the ``rebuild`` verb.
+  * ``rescue`` (through ``rescuing``) by setting the node's provision state
+    using the ``rescue`` verb.
 
 deleting
   Nodes in ``deleting`` state are being torn down from running an active
   workload. In ``deleting``, ironic tears down and removes any configuration and
-  resources it added in ``deploying``.
+  resources it added in ``deploying`` or ``rescuing``.
 
 error (stable state)
   This is the state a node will move into when deleting an active deployment
@@ -168,3 +170,59 @@ adopting
   existing workload on them, do not need to be deployed or cleaned again, so
   this transition allows these nodes to move directly from ``manageable`` to
   ``active``.
+
+rescuing
+  Nodes in ``rescuing`` are being prepared to perform rescue operations.
+  This consists of running a series of tasks, such as:
+
+  * Setting appropriate BIOS configurations.
+  * Creating any additional resources (node-specific network config, etc.) that
+    may be required by additional subsystems.
+
+rescue wait
+  Just like the ``rescuing`` state, the nodes in ``rescue wait`` are being
+  rescued. The difference is that in ``rescue wait`` the conductor is
+  waiting for the ramdisk to boot or execute parts of the rescue which
+  need to run in-band on the node (for example, setting the password for
+  user named ``rescue``).
+
+  The rescue operation of a node in ``rescue wait`` can be aborted by
+  setting the node's provision state using the ``abort`` verb.
+
+rescue failed
+  This is the state a node will move into when a rescue operation fails,
+  for example a timeout waiting for the ramdisk to PXE boot. From here the
+  node can be transitioned to:
+
+  * ``rescue`` (through ``rescuing``) by setting the node's provision state
+    using the ``rescue`` verb.
+  * ``active`` (through ``unrescuing``) by setting the node's provision state
+    using the ``unrescue`` verb.
+  * ``available`` (through ``deleting``) by setting the node's provision state
+    using the ``deleted`` verb.
+
+rescue (stable state)
+  Nodes in ``rescue`` have a rescue ramdisk running on them. Ironic may collect
+  out-of-band sensor information (including power state) on a regular basis.
+  Nodes in ``rescue`` can transition to:
+
+  * ``active`` (through ``unrescuing``) by setting the node's provision state
+    using the ``unrescue`` verb.
+  * ``available`` (through ``deleting``) by setting the node's provision state
+    using the ``deleted`` verb.
+
+unrescuing
+  Nodes in ``unrescuing`` are being prepared to transition to ``active`` state
+  from ``rescue`` state. This consists of running a series of tasks, such as
+  setting appropriate BIOS configurations such as changing boot device.
+
+unrescue failed
+  This is the state a node will move into when an unrescue operation fails.
+  From here the node can be transitioned to:
+
+  * ``rescue`` (through ``rescuing``) by setting the node's provision state
+    using the ``rescue`` verb.
+  * ``active`` (through ``unrescuing``) by setting the node's provision state
+    using the ``unrescue`` verb.
+  * ``available`` (through ``deleting``) by setting the node's provision state
+    using the ``deleted`` verb.

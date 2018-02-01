@@ -456,6 +456,13 @@ default_raid_interface:
   in: body
   required: true
   type: string
+default_rescue_interface:
+  description: |
+    The default rescue interface used for a node with a dynamic driver, if
+    no rescue interface is specified for the node.
+  in: body
+  required: true
+  type: string
 default_storage_interface:
   description: |
     The default storage interface used for a node with a dynamic driver, if
@@ -558,6 +565,12 @@ enabled_power_interfaces:
 enabled_raid_interfaces:
   description: |
     The enabled RAID interfaces for this driver.
+  in: body
+  required: true
+  type: list
+enabled_rescue_interfaces:
+  description: |
+    The enabled rescue interfaces for this driver.
   in: body
   required: true
   type: list
@@ -950,9 +963,22 @@ reason:
 requested_provision_state:
   description: |
     One of the provisioning verbs: manage, provide, inspect, clean, active,
-    rebuild, delete (deleted), abort, adopt.
+    rebuild, delete (deleted), abort, adopt, rescue, unrescue.
   in: body
   required: true
+  type: string
+rescue_interface:
+  description: |
+    The interface used for node rescue, e.g. "no-rescue".
+  in: body
+  required: true
+  type: string
+rescue_password:
+  description: |
+    Non-empty password used to configure rescue ramdisk during node rescue
+    operation.
+  in: body
+  required: false
   type: string
 reservation:
   description: |
@@ -1082,6 +1108,12 @@ v_power:
 v_raid:
   description: |
     Status of the "raid" interface
+  in: body
+  required: true
+  type: object
+v_rescue:
+  description: |
+    Status of the "rescue" interface
   in: body
   required: true
   type: object
