@@ -1102,33 +1102,30 @@ class IloPXEBootTestCase(db_base.DbTestCase):
 
             self.assertFalse(prepare_node_mock.called)
             pxe_prepare_ramdisk_mock.assert_called_once_with(
-                mock.ANY, task, None, mode='deploy')
+                mock.ANY, task, None)
 
     @mock.patch.object(ilo_boot, 'prepare_node_for_deploy', spec_set=True,
                        autospec=True)
     @mock.patch.object(pxe.PXEBoot, 'prepare_ramdisk', spec_set=True,
                        autospec=True)
     def _test_prepare_ramdisk_needs_node_prep(self, pxe_prepare_ramdisk_mock,
-                                              prepare_node_mock, prov_state,
-                                              mode):
+                                              prepare_node_mock, prov_state):
         self.node.provision_state = prov_state
         self.node.save()
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
             self.assertIsNone(
-                task.driver.boot.prepare_ramdisk(task, None, mode=mode))
+                task.driver.boot.prepare_ramdisk(task, None))
 
             prepare_node_mock.assert_called_once_with(task)
             pxe_prepare_ramdisk_mock.assert_called_once_with(
-                mock.ANY, task, None, mode=mode)
+                mock.ANY, task, None)
 
     def test_prepare_ramdisk_in_deploying(self):
-        self._test_prepare_ramdisk_needs_node_prep(prov_state=states.DEPLOYING,
-                                                   mode='deploy')
+        self._test_prepare_ramdisk_needs_node_prep(prov_state=states.DEPLOYING)
 
     def test_prepare_ramdisk_in_rescuing(self):
-        self._test_prepare_ramdisk_needs_node_prep(prov_state=states.RESCUING,
-                                                   mode='rescue')
+        self._test_prepare_ramdisk_needs_node_prep(prov_state=states.RESCUING)
 
     @mock.patch.object(deploy_utils, 'is_iscsi_boot',
                        spec_set=True, autospec=True)

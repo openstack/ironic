@@ -916,11 +916,10 @@ class PXEBootTestCase(db_base.DbTestCase):
             mock_deploy_img_info.return_value = {
                 'rescue_kernel': 'a',
                 'rescue_ramdisk': 'r'}
-            self.node.provision_state = states.RESCUING
         self.node.save()
         with task_manager.acquire(self.context, self.node.uuid) as task:
             dhcp_opts = pxe_utils.dhcp_options_for_instance(task)
-            task.driver.boot.prepare_ramdisk(task, {'foo': 'bar'}, mode=mode)
+            task.driver.boot.prepare_ramdisk(task, {'foo': 'bar'})
             mock_deploy_img_info.assert_called_once_with(task.node, mode=mode)
             provider_mock.update_dhcp.assert_called_once_with(task, dhcp_opts)
             set_boot_device_mock.assert_called_once_with(task,
@@ -1078,14 +1077,18 @@ class PXEBootTestCase(db_base.DbTestCase):
             image_info = {kernel_label: ['', '/path/to/' + kernel_label],
                           ramdisk_label: ['', '/path/to/' + ramdisk_label]}
             get_image_info_mock.return_value = image_info
-            task.driver.boot.clean_up_ramdisk(task, mode=mode)
+            task.driver.boot.clean_up_ramdisk(task)
             clean_up_pxe_env_mock.assert_called_once_with(task, image_info)
             get_image_info_mock.assert_called_once_with(task.node, mode=mode)
 
     def test_clean_up_ramdisk(self):
+        self.node.provision_state = states.DEPLOYING
+        self.node.save()
         self._test_clean_up_ramdisk()
 
     def test_clean_up_ramdisk_rescue(self):
+        self.node.provision_state = states.RESCUING
+        self.node.save()
         self._test_clean_up_ramdisk(mode='rescue')
 
     @mock.patch.object(manager_utils, 'node_set_boot_device', autospec=True)

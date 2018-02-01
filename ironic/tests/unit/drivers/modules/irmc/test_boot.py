@@ -1230,7 +1230,7 @@ class IRMCPXEBootTestCase(db_base.DbTestCase):
             task.driver.boot.prepare_ramdisk(task, {})
             mock_backup_bios.assert_called_once_with(task)
             mock_parent_prepare.assert_called_once_with(
-                task.driver.boot, task, {}, mode='deploy')
+                task.driver.boot, task, {})
 
     @mock.patch.object(irmc_management, 'backup_bios_config', spec_set=True,
                        autospec=True)
@@ -1245,7 +1245,7 @@ class IRMCPXEBootTestCase(db_base.DbTestCase):
             task.driver.boot.prepare_ramdisk(task, {})
             self.assertFalse(mock_backup_bios.called)
             mock_parent_prepare.assert_called_once_with(
-                task.driver.boot, task, {}, mode='deploy')
+                task.driver.boot, task, {})
 
     @mock.patch.object(irmc_common, 'set_secure_boot_mode', spec_set=True,
                        autospec=True)
