@@ -124,6 +124,11 @@ def get_ironic_api_url():
     return ironic_api
 
 
+def rescue_or_deploy_mode(node):
+    return ('rescue' if node.provision_state in RESCUE_LIKE_STATES
+            else 'deploy')
+
+
 def discovery(portal_address, portal_port):
     """Do iSCSI discovery on portal."""
     utils.execute('iscsiadm',

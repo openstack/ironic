@@ -16,7 +16,6 @@ import types
 
 import mock
 from oslo_config import cfg
-from oslo_utils import reflection
 
 from ironic.common import dhcp_factory
 from ironic.common import exception
@@ -1281,7 +1280,7 @@ class AgentRescueTestCase(db_base.DbTestCase):
             mock_add_rescue_net.assert_called_once_with(mock.ANY, task)
             mock_build_agent_opts.assert_called_once_with(task.node)
             mock_prepare_ramdisk.assert_called_once_with(
-                mock.ANY, task, {'ipa-api-url': 'fake-api'}, mode='rescue')
+                mock.ANY, task, {'ipa-api-url': 'fake-api'})
             self.assertEqual(states.RESCUEWAIT, result)
 
     @mock.patch.object(flat_network.FlatNetwork, 'add_rescuing_network',
@@ -1329,7 +1328,7 @@ class AgentRescueTestCase(db_base.DbTestCase):
                 [mock.call(task, states.POWER_OFF),
                  mock.call(task, states.POWER_ON)])
             mock_clean_ramdisk.assert_called_once_with(
-                mock.ANY, task, mode='rescue')
+                mock.ANY, task)
             mock_remove_rescue_net.assert_called_once_with(mock.ANY, task)
             mock_conf_tenant_net.assert_called_once_with(mock.ANY, task)
             mock_prepare_instance.assert_called_once_with(mock.ANY, task)
@@ -1463,20 +1462,6 @@ class AgentRescueTestCase(db_base.DbTestCase):
             self.assertFalse(mock_rescuing_net.called)
             mock_boot_validate.assert_called_once_with(mock.ANY, task)
 
-    @mock.patch('ironic.drivers.modules.network.neutron.NeutronNetwork.'
-                'get_rescuing_network_uuid', autospec=True)
-    @mock.patch.object(reflection, 'get_signature', autospec=True)
-    @mock.patch.object(fake.FakeBoot, 'validate', autospec=True)
-    def test_agent_rescue_validate_incompat_exc(self, mock_boot_validate,
-                                                mock_get_signature,
-                                                mock_rescuing_net):
-        mock_get_signature.return_value.parameters = ['task']
-        with task_manager.acquire(self.context, self.node.uuid) as task:
-            self.assertRaises(exception.IncompatibleInterface,
-                              task.driver.rescue.validate, task)
-            self.assertFalse(mock_rescuing_net.called)
-            self.assertFalse(mock_boot_validate.called)
-
     @mock.patch.object(flat_network.FlatNetwork, 'remove_rescuing_network',
                        spec_set=True, autospec=True)
     @mock.patch.object(fake.FakeBoot, 'clean_up_ramdisk', autospec=True)
@@ -1486,7 +1471,7 @@ class AgentRescueTestCase(db_base.DbTestCase):
             task.driver.rescue.clean_up(task)
             self.assertNotIn('rescue_password', task.node.instance_info)
             mock_clean_ramdisk.assert_called_once_with(
-                mock.ANY, task, mode='rescue')
+                mock.ANY, task)
             mock_remove_rescue_net.assert_called_once_with(mock.ANY, task)
 
     @mock.patch.object(flat_network.FlatNetwork, 'remove_rescuing_network',

@@ -15,7 +15,6 @@
 from ironic_lib import metrics_utils
 from ironic_lib import utils as il_utils
 from oslo_log import log
-from oslo_utils import reflection
 from oslo_utils import units
 import six.moves.urllib_parse as urlparse
 
@@ -738,7 +737,7 @@ class AgentRescue(base.RescueInterface):
         if CONF.agent.manage_agent_boot:
             ramdisk_opts = deploy_utils.build_agent_options(task.node)
             # prepare_ramdisk will set the boot device
-            task.driver.boot.prepare_ramdisk(task, ramdisk_opts, mode='rescue')
+            task.driver.boot.prepare_ramdisk(task, ramdisk_opts)
         manager_utils.node_power_action(task, states.POWER_ON)
 
         return states.RESCUEWAIT
@@ -775,9 +774,6 @@ class AgentRescue(base.RescueInterface):
             has an invalid value when 'neutron' network is used.
         :raises: MissingParameterValue if node is missing one or more required
             parameters
-        :raises: IncompatibleInterface if 'prepare_ramdisk' and
-            'clean_up_ramdisk' of node's boot interface do not support 'mode'
-            argument.
         """
         node = task.node
         missing_params = []
@@ -787,15 +783,6 @@ class AgentRescue(base.RescueInterface):
             task.driver.network.get_rescuing_network_uuid(task)
 
         if CONF.agent.manage_agent_boot:
-            if ('mode' not in reflection.get_signature(
-                task.driver.boot.prepare_ramdisk).parameters or
-                'mode' not in reflection.get_signature(
-                task.driver.boot.clean_up_ramdisk).parameters):
-                raise exception.IncompatibleInterface(
-                    interface_type='boot',
-                    interface_impl="of 'prepare_ramdisk' and/or "
-                                   "'clean_up_ramdisk' with 'mode' argument",
-                    hardware_type=node.driver)
             # TODO(stendulker): boot.validate() performs validation of
             # provisioning related parameters which is not required during
             # rescue operation.
@@ -833,5 +820,5 @@ class AgentRescue(base.RescueInterface):
         """
         manager_utils.remove_node_rescue_password(task.node, save=True)
         if CONF.agent.manage_agent_boot:
-            task.driver.boot.clean_up_ramdisk(task, mode='rescue')
+            task.driver.boot.clean_up_ramdisk(task)
         task.driver.network.remove_rescuing_network(task)

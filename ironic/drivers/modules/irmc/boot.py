@@ -1040,7 +1040,7 @@ class IRMCPXEBoot(pxe.PXEBoot):
     """iRMC PXE boot."""
 
     @METRICS.timer('IRMCPXEBoot.prepare_ramdisk')
-    def prepare_ramdisk(self, task, ramdisk_params, mode='deploy'):
+    def prepare_ramdisk(self, task, ramdisk_params):
         """Prepares the boot of Ironic ramdisk using PXE.
 
         This method prepares the boot of the deploy kernel/ramdisk after
@@ -1051,10 +1051,6 @@ class IRMCPXEBoot(pxe.PXEBoot):
         :param ramdisk_params: the parameters to be passed to the ramdisk.
             pxe driver passes these parameters as kernel command-line
             arguments.
-        :param mode: Label indicating a deploy or rescue operation
-            being carried out on the node. Supported values are
-            'deploy' and 'rescue'. Defaults to 'deploy', indicating
-            deploy operation is being carried out.
         :returns: None
         :raises: MissingParameterValue, if some information is missing in
             node's driver_info or instance_info.
@@ -1068,8 +1064,7 @@ class IRMCPXEBoot(pxe.PXEBoot):
         if task.node.provision_state == states.DEPLOYING:
             irmc_management.backup_bios_config(task)
 
-        super(IRMCPXEBoot, self).prepare_ramdisk(task, ramdisk_params,
-                                                 mode=mode)
+        super(IRMCPXEBoot, self).prepare_ramdisk(task, ramdisk_params)
 
     @METRICS.timer('IRMCPXEBoot.prepare_instance')
     def prepare_instance(self, task):

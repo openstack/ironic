@@ -234,8 +234,7 @@ def _build_pxe_config_options(task, pxe_info, service=False):
         template.
     """
     node = task.node
-    mode = ('rescue' if node.provision_state in deploy_utils.RESCUE_LIKE_STATES
-            else 'deploy')
+    mode = deploy_utils.rescue_or_deploy_mode(node)
     if service:
         pxe_options = {}
     elif (node.driver_internal_info.get('boot_from_volume') and
@@ -469,7 +468,7 @@ class PXEBoot(base.BootInterface):
         deploy_utils.validate_image_properties(task.context, d_info, props)
 
     @METRICS.timer('PXEBoot.prepare_ramdisk')
-    def prepare_ramdisk(self, task, ramdisk_params, mode='deploy'):
+    def prepare_ramdisk(self, task, ramdisk_params):
         """Prepares the boot of Ironic ramdisk using PXE.
 
         This method prepares the boot of the deploy or rescue kernel/ramdisk
@@ -493,6 +492,7 @@ class PXEBoot(base.BootInterface):
             operation failed on the node.
         """
         node = task.node
+        mode = deploy_utils.rescue_or_deploy_mode(node)
 
         if CONF.pxe.ipxe_enabled:
             # NOTE(mjturek): At this point, the ipxe boot script should
@@ -536,7 +536,7 @@ class PXEBoot(base.BootInterface):
             _cache_ramdisk_kernel(task.context, node, pxe_info)
 
     @METRICS.timer('PXEBoot.clean_up_ramdisk')
-    def clean_up_ramdisk(self, task, mode='deploy'):
+    def clean_up_ramdisk(self, task):
         """Cleans up the boot of ironic ramdisk.
 
         This method cleans up the PXE environment that was setup for booting
@@ -552,6 +552,7 @@ class PXEBoot(base.BootInterface):
         :returns: None
         """
         node = task.node
+        mode = deploy_utils.rescue_or_deploy_mode(node)
         try:
             images_info = _get_image_info(node, mode=mode)
         except exception.MissingParameterValue as e:
