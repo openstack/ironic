@@ -370,12 +370,14 @@ class TestAgentDeploy(db_base.DbTestCase):
         self.node.refresh()
         self.assertEqual('bar', self.node.instance_info['foo'])
 
+    @mock.patch.object(flat_network.FlatNetwork, 'add_provisioning_network',
+                       spec_set=True, autospec=True)
     @mock.patch.object(pxe.PXEBoot, 'prepare_ramdisk')
     @mock.patch.object(deploy_utils, 'build_agent_options')
     @mock.patch.object(deploy_utils, 'build_instance_info_for_deploy')
     def test_prepare_manage_agent_boot_false(
             self, build_instance_info_mock, build_options_mock,
-            pxe_prepare_ramdisk_mock):
+            pxe_prepare_ramdisk_mock, add_provisioning_net_mock):
         self.config(group='agent', manage_agent_boot=False)
         with task_manager.acquire(
                 self.context, self.node['uuid'], shared=False) as task:
@@ -385,6 +387,7 @@ class TestAgentDeploy(db_base.DbTestCase):
             self.driver.prepare(task)
 
             build_instance_info_mock.assert_called_once_with(task)
+            add_provisioning_net_mock.assert_called_once_with(mock.ANY, task)
             self.assertFalse(build_options_mock.called)
             self.assertFalse(pxe_prepare_ramdisk_mock.called)
 

@@ -60,11 +60,6 @@ class FlatNetwork(common.NeutronVIFPortIDMixin,
         :raises: NetworkError when failed to set binding:host_id
         """
         LOG.debug("Binding flat network ports")
-        node = task.node
-        host_id = node.instance_info.get('nova_host_id')
-        if not host_id:
-            return
-
         client = neutron.get_client(context=task.context)
         for port_like_obj in task.ports + task.portgroups:
             vif_port_id = (
@@ -75,7 +70,8 @@ class FlatNetwork(common.NeutronVIFPortIDMixin,
                 continue
             body = {
                 'port': {
-                    'binding:host_id': host_id
+                    'binding:host_id': task.node.uuid,
+                    'binding:vnic_type': neutron.VNIC_BAREMETAL
                 }
             }
             try:

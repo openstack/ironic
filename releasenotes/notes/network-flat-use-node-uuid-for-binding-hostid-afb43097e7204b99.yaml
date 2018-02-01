@@ -1,0 +1,33 @@
+---
+features:
+  - Adds support for `routed networks
+    <https://docs.openstack.org/neutron/latest/admin/config-routed-networks>`_
+    when using ``flat`` network interfaces. This feature requires the
+    ``baremetal`` ml2 mechanism driver and l2 agent in
+    `openstack/networking-baremetal
+    <https://docs.openstack.org/networking-baremetal>`_.
+upgrade:
+  - |
+    The ``baremetal`` ml2 mechanism driver and l2 agent is now recommended for
+    use with the ``flat`` network interface. When installed, the ``baremetal``
+    mechanism driver and agent ensure that ports are properly bound in the
+    Networking service. Installation and configuration of the ml2 components
+    are documented `here <https://docs.openstack.org/networking-baremetal>`_.
+
+    In a configuration without the ml2 mechanism driver and l2 agent, the
+    Networking service's ports will not be correctly bound. In the Networking
+    service ports will have status: ``DOWN``, and binding_vif_type:
+    ``binding_failed``. This was always the status for ironic ``flat`` network
+    interface ports prior to the introduction of the ``baremetal`` mechanism
+    driver. For a non-routed network, Bare Metal nodes can still be deployed
+    and are functional, despite this port binding state in the Networking
+    service.
+fixes:
+  - For the ``flat`` networking interface, fixes an issue where the Networking
+    service would reject port bindings because no host would match the
+    *host-id* used in such configurations. The ``flat`` networking interface no
+    longer requires a networking agent (such as ``neutron-openvswitch-agent``)
+    to be run on the ``nova-compute`` proxy node which executes the ironic virt
+    driver. Instead, the interface uses the
+    `baremetal mechanism driver
+    <https://docs.openstack.org/networking-baremetal>`_.
