@@ -80,10 +80,8 @@ class FakeDriver(base.BaseDriver):
 
 class FakeSoftPowerDriver(FakeDriver):
     """Example implementation of a Driver."""
-
-    def __init__(self):
-        super(FakeSoftPowerDriver, self).__init__()
-        self.power = fake.FakeSoftPower()
+    # NOTE(dtantsur): identical to FakeDriver now, will be removed with other
+    # classic drivers
 
 
 class FakeIPMIToolDriver(base.BaseDriver):
@@ -181,6 +179,16 @@ class FakeIloDriver(base.BaseDriver):
         self.management = ilo_management.IloManagement()
         self.inspect = ilo_inspect.IloInspect()
 
+    @classmethod
+    def to_hardware_type(cls):
+        return 'fake-hardware', {
+            'boot': 'fake',
+            'deploy': 'fake',
+            'inspect': 'ilo',
+            'management': 'ilo',
+            'power': 'ilo'
+        }
+
 
 class FakeDracDriver(base.BaseDriver):
     """Fake Drac driver."""
@@ -198,6 +206,21 @@ class FakeDracDriver(base.BaseDriver):
         self.vendor = drac_vendor.DracVendorPassthru()
         self.inspect = drac_inspect.DracInspect()
 
+    @classmethod
+    def to_hardware_type(cls):
+        return 'fake-hardware', {
+            'boot': 'fake',
+            # NOTE(dtantsur): the classic driver uses boot=None and
+            # deploy=iscsi. This cannot work, so correcting it based on the
+            # intended purpose of these fake drivers.
+            'deploy': 'fake',
+            'inspect': 'idrac',
+            'management': 'idrac',
+            'power': 'idrac',
+            'raid': 'idrac',
+            'vendor': 'idrac'
+        }
+
 
 class FakeSNMPDriver(base.BaseDriver):
     """Fake SNMP driver."""
@@ -212,7 +235,7 @@ class FakeSNMPDriver(base.BaseDriver):
 
     @classmethod
     def to_hardware_type(cls):
-        return 'snmp', {
+        return 'fake-hardware', {
             'boot': 'fake',
             'deploy': 'fake',
             'management': 'fake',
@@ -232,6 +255,16 @@ class FakeIRMCDriver(base.BaseDriver):
         self.deploy = fake.FakeDeploy()
         self.management = irmc_management.IRMCManagement()
         self.inspect = irmc_inspect.IRMCInspect()
+
+    @classmethod
+    def to_hardware_type(cls):
+        return 'fake-hardware', {
+            'boot': 'fake',
+            'deploy': 'fake',
+            'inspect': 'irmc',
+            'management': 'irmc',
+            'power': 'irmc'
+        }
 
 
 class FakeIPMIToolInspectorDriver(base.BaseDriver):
@@ -257,6 +290,7 @@ class FakeIPMIToolInspectorDriver(base.BaseDriver):
             'inspect': 'inspector',
             'management': 'ipmitool',
             'power': 'ipmitool',
+            'vendor': 'ipmitool',
         }
 
 
@@ -272,6 +306,15 @@ class FakeUcsDriver(base.BaseDriver):
         self.deploy = fake.FakeDeploy()
         self.management = ucs_mgmt.UcsManagement()
 
+    @classmethod
+    def to_hardware_type(cls):
+        return 'fake-hardware', {
+            'boot': 'fake',
+            'deploy': 'fake',
+            'management': 'ucsm',
+            'power': 'ucsm'
+        }
+
 
 class FakeCIMCDriver(base.BaseDriver):
     """Fake CIMC driver."""
@@ -284,6 +327,15 @@ class FakeCIMCDriver(base.BaseDriver):
         self.power = cimc_power.Power()
         self.deploy = fake.FakeDeploy()
         self.management = cimc_mgmt.CIMCManagement()
+
+    @classmethod
+    def to_hardware_type(cls):
+        return 'fake-hardware', {
+            'boot': 'fake',
+            'deploy': 'fake',
+            'management': 'cimc',
+            'power': 'cimc'
+        }
 
 
 class FakeOneViewDriver(base.BaseDriver):
@@ -300,3 +352,13 @@ class FakeOneViewDriver(base.BaseDriver):
         self.boot = fake.FakeBoot()
         self.deploy = fake.FakeDeploy()
         self.inspect = fake.FakeInspect()
+
+    @classmethod
+    def to_hardware_type(cls):
+        return 'fake-hardware', {
+            'boot': 'fake',
+            'deploy': 'fake',
+            'inspect': 'fake',
+            'management': 'oneview',
+            'power': 'oneview'
+        }

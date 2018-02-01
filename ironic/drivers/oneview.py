@@ -16,6 +16,8 @@
 """
 OneView Driver and supporting meta-classes.
 """
+
+from oslo_config import cfg
 from oslo_utils import importutils
 
 from ironic.common import exception
@@ -28,6 +30,9 @@ from ironic.drivers.modules.oneview import inspect
 from ironic.drivers.modules.oneview import management
 from ironic.drivers.modules.oneview import power
 from ironic.drivers.modules import pxe
+
+
+CONF = cfg.CONF
 
 
 class OneViewHardware(generic.GenericHardware):
@@ -84,6 +89,21 @@ class AgentPXEOneViewDriver(base.BaseDriver):
         self.inspect = inspect.OneViewInspect.create_if_enabled(
             'AgentPXEOneViewDriver')
 
+    @classmethod
+    def to_hardware_type(cls):
+        # NOTE(dtantsur): classic drivers are not affected by the
+        # enabled_inspect_interfaces configuration option.
+        if CONF.inspector.enabled:
+            inspect_interface = 'oneview'
+        else:
+            inspect_interface = 'no-inspect'
+
+        return 'oneview', {'boot': 'pxe',
+                           'deploy': 'oneview-direct',
+                           'inspect': inspect_interface,
+                           'management': 'oneview',
+                           'power': 'oneview'}
+
 
 class ISCSIPXEOneViewDriver(base.BaseDriver):
     """OneViewDriver using OneViewClient interface.
@@ -111,3 +131,18 @@ class ISCSIPXEOneViewDriver(base.BaseDriver):
         self.deploy = deploy.OneViewIscsiDeploy()
         self.inspect = inspect.OneViewInspect.create_if_enabled(
             'ISCSIPXEOneViewDriver')
+
+    @classmethod
+    def to_hardware_type(cls):
+        # NOTE(dtantsur): classic drivers are not affected by the
+        # enabled_inspect_interfaces configuration option.
+        if CONF.inspector.enabled:
+            inspect_interface = 'oneview'
+        else:
+            inspect_interface = 'no-inspect'
+
+        return 'oneview', {'boot': 'pxe',
+                           'deploy': 'oneview-iscsi',
+                           'inspect': inspect_interface,
+                           'management': 'oneview',
+                           'power': 'oneview'}

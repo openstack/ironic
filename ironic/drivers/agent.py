@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from oslo_config import cfg
 from oslo_utils import importutils
 
 from ironic.common import exception
@@ -25,6 +26,9 @@ from ironic.drivers.modules import inspector
 from ironic.drivers.modules import pxe
 from ironic.drivers.modules.ucs import management as ucs_mgmt
 from ironic.drivers.modules.ucs import power as ucs_power
+
+
+CONF = cfg.CONF
 
 
 # For backward compatibility
@@ -55,6 +59,21 @@ class AgentAndUcsDriver(base.BaseDriver):
         self.inspect = inspector.Inspector.create_if_enabled(
             'AgentAndUcsDriver')
 
+    @classmethod
+    def to_hardware_type(cls):
+        # NOTE(dtantsur): classic drivers are not affected by the
+        # enabled_inspect_interfaces configuration option.
+        if CONF.inspector.enabled:
+            inspect_interface = 'inspector'
+        else:
+            inspect_interface = 'no-inspect'
+
+        return 'cisco-ucs-managed', {'boot': 'pxe',
+                                     'deploy': 'direct',
+                                     'inspect': inspect_interface,
+                                     'management': 'ucsm',
+                                     'power': 'ucsm'}
+
 
 class AgentAndCIMCDriver(base.BaseDriver):
     """Agent + Cisco CIMC driver.
@@ -78,3 +97,18 @@ class AgentAndCIMCDriver(base.BaseDriver):
         self.management = cimc_mgmt.CIMCManagement()
         self.inspect = inspector.Inspector.create_if_enabled(
             'AgentAndCIMCDriver')
+
+    @classmethod
+    def to_hardware_type(cls):
+        # NOTE(dtantsur): classic drivers are not affected by the
+        # enabled_inspect_interfaces configuration option.
+        if CONF.inspector.enabled:
+            inspect_interface = 'inspector'
+        else:
+            inspect_interface = 'no-inspect'
+
+        return 'cisco-ucs-standalone', {'boot': 'pxe',
+                                        'deploy': 'direct',
+                                        'inspect': inspect_interface,
+                                        'management': 'cimc',
+                                        'power': 'cimc'}

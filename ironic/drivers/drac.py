@@ -15,6 +15,7 @@
 DRAC Driver for remote system management using Dell Remote Access Card.
 """
 
+from oslo_config import cfg
 from oslo_utils import importutils
 
 from ironic.common import exception
@@ -30,6 +31,9 @@ from ironic.drivers.modules import inspector
 from ironic.drivers.modules import iscsi_deploy
 from ironic.drivers.modules import noop
 from ironic.drivers.modules import pxe
+
+
+CONF = cfg.CONF
 
 
 class IDRACHardware(generic.GenericHardware):
@@ -85,6 +89,16 @@ class PXEDracDriver(base.BaseDriver):
         self.vendor = vendor_passthru.DracVendorPassthru()
         self.inspect = drac_inspect.DracInspect()
 
+    @classmethod
+    def to_hardware_type(cls):
+        return 'idrac', {'boot': 'pxe',
+                         'deploy': 'iscsi',
+                         'inspect': 'idrac',
+                         'management': 'idrac',
+                         'power': 'idrac',
+                         'raid': 'idrac',
+                         'vendor': 'idrac'}
+
 
 class PXEDracInspectorDriver(PXEDracDriver):
     """Drac driver using PXE for deploy and OOB inspection interface."""
@@ -93,3 +107,20 @@ class PXEDracInspectorDriver(PXEDracDriver):
         super(PXEDracInspectorDriver, self).__init__()
         self.inspect = inspector.Inspector.create_if_enabled(
             'PXEDracInspectorDriver')
+
+    @classmethod
+    def to_hardware_type(cls):
+        # NOTE(dtantsur): classic drivers are not affected by the
+        # enabled_inspect_interfaces configuration option.
+        if CONF.inspector.enabled:
+            inspect_interface = 'inspector'
+        else:
+            inspect_interface = 'no-inspect'
+
+        return 'idrac', {'boot': 'pxe',
+                         'deploy': 'iscsi',
+                         'inspect': inspect_interface,
+                         'management': 'idrac',
+                         'power': 'idrac',
+                         'raid': 'idrac',
+                         'vendor': 'idrac'}

@@ -17,6 +17,7 @@
 PXE Driver and supporting meta-classes.
 """
 
+from oslo_config import cfg
 from oslo_utils import importutils
 
 from ironic.common import exception
@@ -43,6 +44,9 @@ from ironic.drivers.modules import pxe
 from ironic.drivers.modules import snmp
 from ironic.drivers.modules.ucs import management as ucs_mgmt
 from ironic.drivers.modules.ucs import power as ucs_power
+
+
+CONF = cfg.CONF
 
 
 # For backward compatibility
@@ -74,6 +78,17 @@ class PXEAndIloDriver(base.BaseDriver):
         self.management = ilo_management.IloManagement()
         self.inspect = ilo_inspect.IloInspect()
         self.raid = agent.AgentRAID()
+
+    @classmethod
+    def to_hardware_type(cls):
+        return 'ilo', {'boot': 'ilo-pxe',
+                       'console': 'ilo',
+                       'deploy': 'iscsi',
+                       'inspect': 'ilo',
+                       'management': 'ilo',
+                       'power': 'ilo',
+                       'raid': 'agent',
+                       'vendor': 'ilo'}
 
 
 class PXEAndSNMPDriver(base.BaseDriver):
@@ -130,6 +145,15 @@ class PXEAndIRMCDriver(base.BaseDriver):
         self.management = irmc_management.IRMCManagement()
         self.inspect = irmc_inspect.IRMCInspect()
 
+    @classmethod
+    def to_hardware_type(cls):
+        return 'irmc', {'boot': 'irmc-pxe',
+                        'console': 'ipmitool-shellinabox',
+                        'deploy': 'iscsi',
+                        'inspect': 'irmc',
+                        'management': 'irmc',
+                        'power': 'irmc'}
+
 
 class PXEAndUcsDriver(base.BaseDriver):
     """PXE + Cisco UCSM driver.
@@ -153,6 +177,21 @@ class PXEAndUcsDriver(base.BaseDriver):
         self.inspect = inspector.Inspector.create_if_enabled(
             'PXEAndUcsDriver')
 
+    @classmethod
+    def to_hardware_type(cls):
+        # NOTE(dtantsur): classic drivers are not affected by the
+        # enabled_inspect_interfaces configuration option.
+        if CONF.inspector.enabled:
+            inspect_interface = 'inspector'
+        else:
+            inspect_interface = 'no-inspect'
+
+        return 'cisco-ucs-managed', {'boot': 'pxe',
+                                     'deploy': 'iscsi',
+                                     'inspect': inspect_interface,
+                                     'management': 'ucsm',
+                                     'power': 'ucsm'}
+
 
 class PXEAndCIMCDriver(base.BaseDriver):
     """PXE + Cisco IMC driver.
@@ -175,3 +214,18 @@ class PXEAndCIMCDriver(base.BaseDriver):
         self.management = cimc_mgmt.CIMCManagement()
         self.inspect = inspector.Inspector.create_if_enabled(
             'PXEAndCIMCDriver')
+
+    @classmethod
+    def to_hardware_type(cls):
+        # NOTE(dtantsur): classic drivers are not affected by the
+        # enabled_inspect_interfaces configuration option.
+        if CONF.inspector.enabled:
+            inspect_interface = 'inspector'
+        else:
+            inspect_interface = 'no-inspect'
+
+        return 'cisco-ucs-standalone', {'boot': 'pxe',
+                                        'deploy': 'iscsi',
+                                        'inspect': inspect_interface,
+                                        'management': 'cimc',
+                                        'power': 'cimc'}

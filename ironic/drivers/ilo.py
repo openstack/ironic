@@ -97,6 +97,17 @@ class IloVirtualMediaIscsiDriver(base.BaseDriver):
         self.inspect = inspect.IloInspect()
         self.raid = agent.AgentRAID()
 
+    @classmethod
+    def to_hardware_type(cls):
+        return 'ilo', {'boot': 'ilo-virtual-media',
+                       'console': 'ilo',
+                       'deploy': 'iscsi',
+                       'inspect': 'ilo',
+                       'management': 'ilo',
+                       'power': 'ilo',
+                       'raid': 'agent',
+                       'vendor': 'ilo'}
+
 
 class IloVirtualMediaAgentDriver(base.BaseDriver):
     """IloDriver using IloClient interface.
@@ -121,3 +132,13 @@ class IloVirtualMediaAgentDriver(base.BaseDriver):
         self.management = management.IloManagement()
         self.inspect = inspect.IloInspect()
         self.raid = agent.AgentRAID()
+
+    @classmethod
+    def to_hardware_type(cls):
+        return 'ilo', {'boot': 'ilo-virtual-media',
+                       'console': 'ilo',
+                       'deploy': 'direct',
+                       'inspect': 'ilo',
+                       'management': 'ilo',
+                       'power': 'ilo',
+                       'raid': 'agent'}

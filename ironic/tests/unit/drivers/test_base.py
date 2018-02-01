@@ -476,18 +476,39 @@ class TestToHardwareType(base.TestCase):
                 hw_type = driver.to_hardware_type()[0]
             except NotImplementedError:
                 continue
+            except KeyError:
+                self.fail('%s does not return a tuple' % driver)
+
             self.assertIn(hw_type, self.hardware_types,
                           '%s returns unknown hardware type %s' %
                           (driver, hw_type))
 
     def test_to_hardware_type_returns_existing_interfaces(self):
+        self.config(enabled=False, group='inspector')
         # Check that all defined implementations of to_hardware_type
         # contain only existing interface types
         for driver in self.driver_classes:
             try:
                 delta = driver.to_hardware_type()[1]
-            except NotImplementedError:
-                continue
+            except Exception:
+                continue  # covered by other tests
+            for iface, value in delta.items():
+                self.assertIn(iface, self.existing_ifaces,
+                              '%s returns unknown interface %s' %
+                              (driver, iface))
+                self.assertIn(value, self.existing_ifaces[iface],
+                              '%s returns unknown %s interface %s' %
+                              (driver, iface, value))
+
+    def test_to_hardware_type_returns_existing_interfaces_inspector(self):
+        self.config(enabled=True, group='inspector')
+        # Check that all defined implementations of to_hardware_type
+        # contain only existing interface types
+        for driver in self.driver_classes:
+            try:
+                delta = driver.to_hardware_type()[1]
+            except Exception:
+                continue  # covered by other tests
             for iface, value in delta.items():
                 self.assertIn(iface, self.existing_ifaces,
                               '%s returns unknown interface %s' %
@@ -500,9 +521,53 @@ class TestToHardwareType(base.TestCase):
         for driver in self.driver_classes:
             try:
                 delta = driver.to_hardware_type()[1]
-            except NotImplementedError:
-                continue
+            except Exception:
+                continue  # covered by other tests
             for iface in self.mandatory_interfaces:
                 self.assertIn(iface, delta,
                               '%s does not return mandatory interface %s' %
                               (driver, iface))
+
+    def test_to_hardware_type_for_all_in_tree_drivers(self):
+        missing = set()
+        for driver in self.driver_classes:
+            # We don't want to test out-of-tree drivers installed locally
+            if not driver.__module__.startswith('ironic.'):
+                continue
+            try:
+                driver.to_hardware_type()
+            except NotImplementedError:
+                missing.add(driver.__name__)
+
+        if missing:
+            self.fail('to_hardware_type not implemented for %s' %
+                      ', '.join(missing))
+
+    def test_to_hardware_type_boot_deploy(self):
+        for driver in self.driver_classes:
+            # We don't want to test out-of-tree drivers installed locally
+            if not driver.__module__.startswith('ironic.'):
+                continue
+
+            try:
+                delta = driver.to_hardware_type()[1]
+                boot = delta['boot']
+                deploy = delta['deploy']
+            except NotImplementedError:
+                continue  # covered by other tests
+
+            name = driver.__name__.lower()
+            # Try to guess the correct values for boot and deploy based on our
+            # naming schema
+            if 'pxe' in name:
+                self.assertIn('pxe', boot,
+                              'boot interface should be based on pxe for %s' %
+                              driver)
+            if 'agent' in name:
+                self.assertIn('direct', deploy,
+                              'deploy interface should be direct for %s' %
+                              driver)
+            elif 'iscsi' in name or 'pxe' in name:
+                self.assertIn('iscsi', deploy,
+                              'deploy interface should be iscsi for %s' %
+                              driver)
