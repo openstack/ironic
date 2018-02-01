@@ -127,7 +127,7 @@ class OneViewPower(base.PowerInterface):
         :param power_state: The desired power state POWER_ON, POWER_OFF or
                             REBOOT from :mod:`ironic.common.states`.
         :param timeout: timeout (in seconds) positive integer (> 0) for any
-                        power state. ``None`` indicates to use default timeout.
+                        power state. ``None`` indicates the default timeout.
         :raises: InvalidParameterValue if an invalid power state was specified.
         :raises: PowerStateFailure if the power couldn't be set to power_state.
         :raises: OneViewError if OneView fails setting the power state.
@@ -154,7 +154,7 @@ class OneViewPower(base.PowerInterface):
                   {'node_uuid': task.node.uuid, 'power_state': power_state})
 
         server_hardware = task.node.driver_info.get('server_hardware_uri')
-        timeout = (-1 if timeout is None else timeout)
+        timeout = -1 if timeout is None else timeout
 
         try:
             if power_state == states.POWER_ON:

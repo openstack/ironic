@@ -16,7 +16,7 @@
 import mock
 
 from ironic.conductor import task_manager
-from ironic.drivers.modules.oneview import common as oneview_common
+from ironic.drivers.modules.oneview import common as ov_common
 from ironic.drivers.modules.oneview import deploy_utils
 from ironic.tests.unit.conductor import mgr_utils
 from ironic.tests.unit.db import base as db_base
@@ -43,8 +43,8 @@ class AgentPXEOneViewInspectTestCase(db_base.DbTestCase):
                                   shared=True) as task:
             self.assertEqual(expected, task.driver.inspect.get_properties())
 
-    @mock.patch.object(
-        oneview_common, 'validate_oneview_resources_compatibility')
+    @mock.patch.object(ov_common, 'validate_oneview_resources_compatibility',
+                       autospect=True)
     def test_validate(self, mock_validate):
         self.config(enabled=False, group='inspector')
         with task_manager.acquire(self.context, self.node.uuid,
@@ -52,7 +52,8 @@ class AgentPXEOneViewInspectTestCase(db_base.DbTestCase):
             task.driver.inspect.validate(task)
             self.assertTrue(mock_validate.called)
 
-    @mock.patch.object(deploy_utils, 'allocate_server_hardware_to_ironic')
+    @mock.patch.object(deploy_utils, 'allocate_server_hardware_to_ironic',
+                       autospect=True)
     def test_inspect_hardware(self, mock_allocate_server_hardware_to_ironic):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
@@ -79,8 +80,8 @@ class ISCSIPXEOneViewInspectTestCase(db_base.DbTestCase):
                                   shared=True) as task:
             self.assertEqual(expected, task.driver.inspect.get_properties())
 
-    @mock.patch.object(
-        oneview_common, 'validate_oneview_resources_compatibility')
+    @mock.patch.object(ov_common, 'validate_oneview_resources_compatibility',
+                       autospect=True)
     def test_validate(self, mock_validate):
         self.config(enabled=False, group='inspector')
         with task_manager.acquire(self.context, self.node.uuid,
@@ -88,7 +89,8 @@ class ISCSIPXEOneViewInspectTestCase(db_base.DbTestCase):
             task.driver.inspect.validate(task)
             self.assertTrue(mock_validate.called)
 
-    @mock.patch.object(deploy_utils, 'allocate_server_hardware_to_ironic')
+    @mock.patch.object(deploy_utils, 'allocate_server_hardware_to_ironic',
+                       autospect=True)
     def test_inspect_hardware(self, mock_allocate_server_hardware_to_ironic):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:

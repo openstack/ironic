@@ -7,10 +7,10 @@ issues:
     hardware type is in use.
 upgrade:
   - |
-    The ``oneview`` hardware type now use ``hpOneView`` and
+    The ``oneview`` hardware type now uses ``hpOneView`` and
     ``python-ilorest-library`` libraries to communicate with OneView
     appliances. The ``python-oneviewclient`` library is no longer used.
 upgrade:
   - |
-    Configuration ``[oneview]max_polling_attempts`` is removed since
-    ``hpOneView`` doesn't support this option.
+    Configuration option ``[oneview]max_polling_attempts`` is removed since
+    the ``hpOneView`` library doesn't support it.
