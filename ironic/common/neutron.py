@@ -572,7 +572,6 @@ class NeutronNetworkInterfaceMixin(object):
         return validate_network(
             cleaning_network, _('cleaning network'),
             context=task.context)
-        return self._cleaning_network_uuid
 
     def get_provisioning_network_uuid(self, task):
         provisioning_network = (
