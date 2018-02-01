@@ -68,6 +68,7 @@ class AgentDeployMixinBaseTest(db_base.DbTestCase):
             'instance_info': INSTANCE_INFO,
             'driver_info': DRIVER_INFO,
             'driver_internal_info': DRIVER_INTERNAL_INFO,
+            'network_interface': 'noop'
         }
         self.node = object_utils.create_test_node(self.context, **n)
 
@@ -432,9 +433,9 @@ class AgentDeployMixinTest(AgentDeployMixinBaseTest):
                        spec=types.FunctionType)
     @mock.patch.object(agent_client.AgentClient, 'power_off',
                        spec=types.FunctionType)
-    @mock.patch('ironic.drivers.modules.network.flat.FlatNetwork.'
+    @mock.patch('ironic.drivers.modules.network.noop.NoopNetwork.'
                 'remove_provisioning_network', spec_set=True, autospec=True)
-    @mock.patch('ironic.drivers.modules.network.flat.FlatNetwork.'
+    @mock.patch('ironic.drivers.modules.network.noop.NoopNetwork.'
                 'configure_tenant_networks', spec_set=True, autospec=True)
     def test_reboot_and_finish_deploy_soft_poweroff_doesnt_complete(
             self, configure_tenant_net_mock, remove_provisioning_net_mock,
@@ -463,9 +464,9 @@ class AgentDeployMixinTest(AgentDeployMixinBaseTest):
     @mock.patch.object(manager_utils, 'node_power_action', autospec=True)
     @mock.patch.object(agent_client.AgentClient, 'power_off',
                        spec=types.FunctionType)
-    @mock.patch('ironic.drivers.modules.network.flat.FlatNetwork.'
+    @mock.patch('ironic.drivers.modules.network.noop.NoopNetwork.'
                 'remove_provisioning_network', spec_set=True, autospec=True)
-    @mock.patch('ironic.drivers.modules.network.flat.FlatNetwork.'
+    @mock.patch('ironic.drivers.modules.network.noop.NoopNetwork.'
                 'configure_tenant_networks', spec_set=True, autospec=True)
     def test_reboot_and_finish_deploy_soft_poweroff_fails(
             self, configure_tenant_net_mock, remove_provisioning_net_mock,
@@ -495,9 +496,9 @@ class AgentDeployMixinTest(AgentDeployMixinBaseTest):
                        spec=types.FunctionType)
     @mock.patch.object(agent_client.AgentClient, 'power_off',
                        spec=types.FunctionType)
-    @mock.patch('ironic.drivers.modules.network.flat.FlatNetwork.'
+    @mock.patch('ironic.drivers.modules.network.noop.NoopNetwork.'
                 'remove_provisioning_network', spec_set=True, autospec=True)
-    @mock.patch('ironic.drivers.modules.network.flat.FlatNetwork.'
+    @mock.patch('ironic.drivers.modules.network.noop.NoopNetwork.'
                 'configure_tenant_networks', spec_set=True, autospec=True)
     def test_reboot_and_finish_deploy_get_power_state_fails(
             self, configure_tenant_net_mock, remove_provisioning_net_mock,
@@ -590,9 +591,9 @@ class AgentDeployMixinTest(AgentDeployMixinBaseTest):
                        spec=types.FunctionType)
     @mock.patch.object(agent_client.AgentClient, 'power_off',
                        spec=types.FunctionType)
-    @mock.patch('ironic.drivers.modules.network.flat.FlatNetwork.'
+    @mock.patch('ironic.drivers.modules.network.noop.NoopNetwork.'
                 'remove_provisioning_network', spec_set=True, autospec=True)
-    @mock.patch('ironic.drivers.modules.network.flat.FlatNetwork.'
+    @mock.patch('ironic.drivers.modules.network.noop.NoopNetwork.'
                 'configure_tenant_networks', spec_set=True, autospec=True)
     def test_reboot_and_finish_deploy_power_on_fails(
             self, configure_tenant_net_mock, remove_provisioning_net_mock,

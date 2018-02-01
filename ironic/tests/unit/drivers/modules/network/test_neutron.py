@@ -582,12 +582,10 @@ class NeutronInterfaceTestCase(db_base.DbTestCase):
                 'binding:vnic_type': 'baremetal',
                 'binding:host_id': self.node.uuid,
                 'binding:profile': {'local_link_information':
-                                    [self.port.local_link_connection]}
+                                    [self.port.local_link_connection]},
+                'mac_address': '52:54:00:cf:2d:32'
             }
         }
-        utils.create_test_port(self.context, node_id=self.node.id,
-                               address='52:54:00:cf:2d:33', extra={},
-                               uuid=uuidutils.generate_uuid())
         upd_mock = mock.Mock()
         client_mock.return_value.update_port = upd_mock
         with task_manager.acquire(self.context, self.node.id) as task:
@@ -647,10 +645,12 @@ class NeutronInterfaceTestCase(db_base.DbTestCase):
         port1_body['port']['binding:profile'] = {
             'local_link_information': [self.port.local_link_connection]
         }
+        port1_body['port']['mac_address'] = '52:54:00:cf:2d:32'
         port2_body = copy.deepcopy(expected_body)
         port2_body['port']['binding:profile'] = {
             'local_link_information': [second_port.local_link_connection]
         }
+        port2_body['port']['mac_address'] = '52:54:00:cf:2d:33'
         if is_client_id:
             port1_body['port']['extra_dhcp_opts'] = (
                 [{'opt_name': '61', 'opt_value': client_ids[0]}])
@@ -727,12 +727,14 @@ class NeutronInterfaceTestCase(db_base.DbTestCase):
         call1_body['port']['binding:profile'] = {
             'local_link_information': [self.port.local_link_connection],
         }
+        call1_body['port']['mac_address'] = '52:54:00:cf:2d:32'
         call2_body = copy.deepcopy(expected_body)
         call2_body['port']['binding:profile'] = {
             'local_link_information': [port1.local_link_connection,
                                        port2.local_link_connection],
             'local_group_information': local_group_info
         }
+        call2_body['port']['mac_address'] = 'ff:54:00:cf:2d:32'
         with task_manager.acquire(self.context, self.node.id) as task:
             # Override task.portgroups here, to have ability to check
             # that mocked get_local_group_information was called with
