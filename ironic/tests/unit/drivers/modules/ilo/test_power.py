@@ -209,20 +209,35 @@ class IloPowerTestCase(db_base.DbTestCase):
                              task.driver.power.get_power_state(task))
             mock_get_power.assert_called_once_with(task.node)
 
+    @mock.patch.object(ilo_power.LOG, 'warning')
     @mock.patch.object(ilo_power, '_set_power_state', spec_set=True,
                        autospec=True)
-    def test_set_power_state(self, mock_set_power):
+    def test_set_power_state(self, mock_set_power, mock_log):
         mock_set_power.return_value = states.POWER_ON
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
             task.driver.power.set_power_state(task, states.POWER_ON)
         mock_set_power.assert_called_once_with(task, states.POWER_ON)
+        self.assertFalse(mock_log.called)
 
+    @mock.patch.object(ilo_power.LOG, 'warning')
+    @mock.patch.object(ilo_power, '_set_power_state', spec_set=True,
+                       autospec=True)
+    def test_set_power_state_timeout(self, mock_set_power, mock_log):
+        mock_set_power.return_value = states.POWER_ON
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            task.driver.power.set_power_state(task, states.POWER_ON,
+                                              timeout=13)
+        mock_set_power.assert_called_once_with(task, states.POWER_ON)
+        self.assertTrue(mock_log.called)
+
+    @mock.patch.object(ilo_power.LOG, 'warning')
     @mock.patch.object(ilo_power, '_set_power_state', spec_set=True,
                        autospec=True)
     @mock.patch.object(ilo_power, '_get_power_state', spec_set=True,
                        autospec=True)
-    def test_reboot(self, mock_get_power, mock_set_power):
+    def test_reboot(self, mock_get_power, mock_set_power, mock_log):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
             mock_get_power.return_value = states.POWER_ON
@@ -230,3 +245,19 @@ class IloPowerTestCase(db_base.DbTestCase):
             task.driver.power.reboot(task)
             mock_get_power.assert_called_once_with(task.node)
             mock_set_power.assert_called_once_with(task, states.REBOOT)
+            self.assertFalse(mock_log.called)
+
+    @mock.patch.object(ilo_power.LOG, 'warning')
+    @mock.patch.object(ilo_power, '_set_power_state', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(ilo_power, '_get_power_state', spec_set=True,
+                       autospec=True)
+    def test_reboot_timeout(self, mock_get_power, mock_set_power, mock_log):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            mock_get_power.return_value = states.POWER_ON
+            mock_set_power.return_value = states.POWER_ON
+            task.driver.power.reboot(task, timeout=123)
+            mock_get_power.assert_called_once_with(task.node)
+            mock_set_power.assert_called_once_with(task, states.REBOOT)
+            self.assertTrue(mock_log.called)

@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from oslo_log import log as logging
 from oslo_service import loopingcall
 from oslo_utils import importutils
 
@@ -24,6 +25,8 @@ from ironic.drivers import base
 from ironic.drivers.modules.cimc import common
 
 imcsdk = importutils.try_import('ImcSdk')
+
+LOG = logging.getLogger(__name__)
 
 
 if imcsdk:
@@ -116,15 +119,24 @@ class Power(base.PowerInterface):
                                               states.ERROR)
 
     @task_manager.require_exclusive_lock
-    def set_power_state(self, task, pstate):
+    def set_power_state(self, task, pstate, timeout=None):
         """Set the power state of the task's node.
 
         :param task: a TaskManager instance containing the node to act on.
         :param pstate: Any power state from :mod:`ironic.common.states`.
+        :param timeout: timeout (in seconds). Unsupported by this interface.
         :raises: MissingParameterValue if a required parameter is missing.
         :raises: InvalidParameterValue if an invalid power state is passed
         :raises: CIMCException if there is an error communicating with CIMC
         """
+        # TODO(rloo): Support timeouts!
+        if timeout is not None:
+            LOG.warning(
+                "The 'cimc' Power Interface's 'set_power_state' method "
+                "doesn't support the 'timeout' parameter. Ignoring "
+                "timeout=%(timeout)s",
+                {'timeout': timeout})
+
         if pstate not in IRONIC_TO_CIMC_POWER_STATE:
             msg = _("set_power_state called for %(node)s with "
                     "invalid state %(state)s")
@@ -150,16 +162,23 @@ class Power(base.PowerInterface):
             raise exception.PowerStateFailure(pstate=pstate)
 
     @task_manager.require_exclusive_lock
-    def reboot(self, task):
+    def reboot(self, task, timeout=None):
         """Perform a hard reboot of the task's node.
 
         If the node is already powered on then it shall reboot the node, if
         its off then the node will just be turned on.
 
         :param task: a TaskManager instance containing the node to act on.
+        :param timeout: timeout (in seconds). Unsupported by this interface.
         :raises: MissingParameterValue if a required parameter is missing.
         :raises: CIMCException if there is an error communicating with CIMC
         """
+        # TODO(rloo): Support timeouts!
+        if timeout is not None:
+            LOG.warning("The 'cimc' Power Interface's 'reboot' method "
+                        "doesn't support the 'timeout' parameter. Ignoring "
+                        "timeout=%(timeout)s",
+                        {'timeout': timeout})
         current_power_state = self.get_power_state(task)
 
         if current_power_state == states.POWER_ON:

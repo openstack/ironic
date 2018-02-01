@@ -1,0 +1,13 @@
+---
+fixes:
+  - |
+    Fixes an issue where the ``timeout`` that was specified for a node's
+    power state transition was not used for the *ipmitool*, *irmc* and
+    *oneview* Power Interfaces.
+    See `bug 1746849 <https://bugs.launchpad.net/ironic/+bug/1746849>`_
+    for details.
+other:
+  - |
+    The ironic-conductor expects that all PowerInterface's set_power_state()
+    and reboot() methods accept a ``timeout`` parameter. Any out-of-tree
+    implementations that don't, will cause TypeError exceptions to be raised.

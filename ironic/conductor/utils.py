@@ -16,7 +16,6 @@ from oslo_config import cfg
 from oslo_log import log
 from oslo_service import loopingcall
 from oslo_utils import excutils
-from oslo_utils import reflection
 
 from ironic.common import exception
 from ironic.common.i18n import _
@@ -226,32 +225,12 @@ def node_power_action(task, new_state, timeout=None):
             task.driver.storage.attach_volumes(task)
 
         if new_state != states.REBOOT:
-            if ('timeout' in reflection.get_signature(
-                    task.driver.power.set_power_state).parameters):
-                task.driver.power.set_power_state(task, new_state,
-                                                  timeout=timeout)
-            else:
-                # FIXME(naohirot):
-                # After driver composition, we should print power interface
-                # name here instead of driver.
-                LOG.warning(
-                    "The set_power_state method of %(driver_name)s "
-                    "doesn't support 'timeout' parameter.",
-                    {'driver_name': node.driver})
-                task.driver.power.set_power_state(task, new_state)
-
+            task.driver.power.set_power_state(task, new_state, timeout=timeout)
         else:
             # TODO(TheJulia): We likely ought to consider toggling
             # volume attachments, although we have no mechanism to
             # really verify what cinder has connector wise.
-            if ('timeout' in reflection.get_signature(
-                    task.driver.power.reboot).parameters):
-                task.driver.power.reboot(task, timeout=timeout)
-            else:
-                LOG.warning("The reboot method of %(driver_name)s "
-                            "doesn't support 'timeout' parameter.",
-                            {'driver_name': node.driver})
-                task.driver.power.reboot(task)
+            task.driver.power.reboot(task, timeout=timeout)
     except Exception as e:
         with excutils.save_and_reraise_exception():
             node['target_power_state'] = states.NOSTATE

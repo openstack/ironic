@@ -201,7 +201,8 @@ class ChangeNodePowerStateTestCase(mgr_utils.ServiceSetUpMixin,
                 self._stop_service()
 
                 get_power_mock.assert_called_once_with(mock.ANY)
-                set_power_mock.assert_called_once_with(mock.ANY, new_state)
+                set_power_mock.assert_called_once_with(
+                    mock.ANY, new_state, timeout=None)
                 node.refresh()
                 self.assertEqual(initial_state, node.power_state)
                 self.assertIsNone(node.target_power_state)
@@ -334,7 +335,8 @@ class ChangeNodePowerStateTestCase(mgr_utils.ServiceSetUpMixin,
             # Give async worker a chance to finish
             self._stop_service()
 
-            set_power_mock.assert_called_once_with(mock.ANY, states.POWER_ON)
+            set_power_mock.assert_called_once_with(
+                mock.ANY, states.POWER_ON, timeout=None)
 
             # 2 notifications should be sent: 1 .start and 1 .error
             self.assertEqual(2, mock_notif.call_count)

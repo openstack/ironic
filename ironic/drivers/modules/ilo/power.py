@@ -200,30 +200,44 @@ class IloPower(base.PowerInterface):
 
     @METRICS.timer('IloPower.set_power_state')
     @task_manager.require_exclusive_lock
-    def set_power_state(self, task, power_state):
+    def set_power_state(self, task, power_state, timeout=None):
         """Turn the current power state on or off.
 
         :param task: a TaskManager instance.
-        :param node: The Node.
         :param power_state: The desired power state POWER_ON,POWER_OFF or
             REBOOT from :mod:`ironic.common.states`.
+        :param timeout: timeout (in seconds). Unsupported by this interface.
         :raises: InvalidParameterValue if an invalid power state was specified.
         :raises: IloOperationError on an error from IloClient library.
         :raises: PowerStateFailure if the power couldn't be set to power_state.
         """
+        # TODO(rloo): Support timeouts!
+        if timeout is not None:
+            LOG.warning("The 'ilo' Power Interface's 'set_power_state' method "
+                        "doesn't support the 'timeout' parameter. Ignoring "
+                        "timeout=%(timeout)s",
+                        {'timeout': timeout})
+
         _set_power_state(task, power_state)
 
     @METRICS.timer('IloPower.reboot')
     @task_manager.require_exclusive_lock
-    def reboot(self, task):
+    def reboot(self, task, timeout=None):
         """Reboot the node
 
         :param task: a TaskManager instance.
-        :param node: The Node.
+        :param timeout: timeout (in seconds). Unsupported by this interface.
         :raises: PowerStateFailure if the final state of the node is not
             POWER_ON.
         :raises: IloOperationError on an error from IloClient library.
         """
+        # TODO(rloo): Support timeouts!
+        if timeout is not None:
+            LOG.warning("The 'ilo' Power Interface's 'reboot' method "
+                        "doesn't support the 'timeout' parameter. Ignoring "
+                        "timeout=%(timeout)s",
+                        {'timeout': timeout})
+
         node = task.node
         current_pstate = _get_power_state(node)
         if current_pstate == states.POWER_ON:

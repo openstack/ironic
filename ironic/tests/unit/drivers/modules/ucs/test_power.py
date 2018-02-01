@@ -137,13 +137,15 @@ class UcsPowerTestCase(db_base.DbTestCase):
                               task)
         power.get_power_state.assert_called_with()
 
+    @mock.patch.object(ucs_power.LOG, 'warning')
     @mock.patch('ironic.drivers.modules.ucs.helper.ucs_helper',
                 spec_set=True, autospec=True)
     @mock.patch('ironic.drivers.modules.ucs.power._wait_for_state_change',
                 spec_set=True, autospec=True)
     @mock.patch('ironic.drivers.modules.ucs.power.ucs_power.UcsPower',
                 spec_set=True, autospec=True)
-    def test_set_power_state(self, mock_power_helper, mock__wait, mock_helper):
+    def test_set_power_state(self, mock_power_helper, mock__wait, mock_helper,
+                             mock_log):
         target_state = states.POWER_ON
         mock_power = mock_power_helper.return_value
         mock_power.get_power_state.side_effect = ['down', 'up']
@@ -157,6 +159,32 @@ class UcsPowerTestCase(db_base.DbTestCase):
         mock_power.set_power_state.assert_called_once_with('up')
         mock_power.get_power_state.assert_called_once_with()
         mock__wait.assert_called_once_with(target_state, mock_power)
+        self.assertFalse(mock_log.called)
+
+    @mock.patch.object(ucs_power.LOG, 'warning')
+    @mock.patch('ironic.drivers.modules.ucs.helper.ucs_helper',
+                spec_set=True, autospec=True)
+    @mock.patch('ironic.drivers.modules.ucs.power._wait_for_state_change',
+                spec_set=True, autospec=True)
+    @mock.patch('ironic.drivers.modules.ucs.power.ucs_power.UcsPower',
+                spec_set=True, autospec=True)
+    def test_set_power_state_timeout(self, mock_power_helper, mock__wait,
+                                     mock_helper, mock_log):
+        target_state = states.POWER_ON
+        mock_power = mock_power_helper.return_value
+        mock_power.get_power_state.side_effect = ['down', 'up']
+        mock_helper.generate_ucsm_handle.return_value = (True, mock.Mock())
+        mock__wait.return_value = target_state
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            self.assertIsNone(self.interface.set_power_state(task,
+                                                             target_state,
+                                                             timeout=23))
+
+        mock_power.set_power_state.assert_called_once_with('up')
+        mock_power.get_power_state.assert_called_once_with()
+        mock__wait.assert_called_once_with(target_state, mock_power)
+        self.assertTrue(mock_log.called)
 
     @mock.patch('ironic.drivers.modules.ucs.helper.ucs_helper',
                 spec_set=True, autospec=True)
@@ -249,13 +277,15 @@ class UcsPowerTestCase(db_base.DbTestCase):
         mock_power.get_power_state.assert_called_once_with()
         mock__wait.assert_called_once_with(target_state, mock_power)
 
+    @mock.patch.object(ucs_power.LOG, 'warning')
     @mock.patch('ironic.drivers.modules.ucs.helper.ucs_helper',
                 spec_set=True, autospec=True)
     @mock.patch('ironic.drivers.modules.ucs.power._wait_for_state_change',
                 spec_set=True, autospec=True)
     @mock.patch('ironic.drivers.modules.ucs.power.ucs_power.UcsPower',
                 spec_set=True, autospec=True)
-    def test_reboot(self, mock_power_helper, mock__wait, mock_helper):
+    def test_reboot(self, mock_power_helper, mock__wait, mock_helper,
+                    mock_log):
         mock_helper.generate_ucsm_handle.return_value = (True, mock.Mock())
         mock_power = mock_power_helper.return_value
         mock__wait.return_value = states.POWER_ON
@@ -263,6 +293,25 @@ class UcsPowerTestCase(db_base.DbTestCase):
                                   shared=False) as task:
             self.assertIsNone(self.interface.reboot(task))
             mock_power.reboot.assert_called_once_with()
+            self.assertFalse(mock_log.called)
+
+    @mock.patch.object(ucs_power.LOG, 'warning')
+    @mock.patch('ironic.drivers.modules.ucs.helper.ucs_helper',
+                spec_set=True, autospec=True)
+    @mock.patch('ironic.drivers.modules.ucs.power._wait_for_state_change',
+                spec_set=True, autospec=True)
+    @mock.patch('ironic.drivers.modules.ucs.power.ucs_power.UcsPower',
+                spec_set=True, autospec=True)
+    def test_reboot_timeout(self, mock_power_helper, mock__wait, mock_helper,
+                            mock_log):
+        mock_helper.generate_ucsm_handle.return_value = (True, mock.Mock())
+        mock_power = mock_power_helper.return_value
+        mock__wait.return_value = states.POWER_ON
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            self.assertIsNone(self.interface.reboot(task, timeout=88))
+            mock_power.reboot.assert_called_once_with()
+            self.assertTrue(mock_log.called)
 
     @mock.patch('ironic.drivers.modules.ucs.helper.ucs_helper',
                 spec_set=True, autospec=True)

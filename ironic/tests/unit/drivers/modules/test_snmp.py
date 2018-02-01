@@ -1267,12 +1267,24 @@ class SNMPDriverTestCase(db_base.DbTestCase):
                               task.driver.power.get_power_state, task)
         mock_driver.power_state.assert_called_once_with()
 
-    def test_set_power_state_on(self, mock_get_driver):
+    @mock.patch.object(snmp.LOG, 'warning')
+    def test_set_power_state_on(self, mock_log, mock_get_driver):
         mock_driver = mock_get_driver.return_value
         mock_driver.power_on.return_value = states.POWER_ON
         with task_manager.acquire(self.context, self.node.uuid) as task:
             task.driver.power.set_power_state(task, states.POWER_ON)
         mock_driver.power_on.assert_called_once_with()
+        self.assertFalse(mock_log.called)
+
+    @mock.patch.object(snmp.LOG, 'warning')
+    def test_set_power_state_on_timeout(self, mock_log, mock_get_driver):
+        mock_driver = mock_get_driver.return_value
+        mock_driver.power_on.return_value = states.POWER_ON
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            task.driver.power.set_power_state(task, states.POWER_ON,
+                                              timeout=222)
+        mock_driver.power_on.assert_called_once_with()
+        self.assertTrue(mock_log.called)
 
     def test_set_power_state_off(self, mock_get_driver):
         mock_driver = mock_get_driver.return_value
@@ -1305,7 +1317,7 @@ class SNMPDriverTestCase(db_base.DbTestCase):
                               task, states.POWER_OFF)
         mock_driver.power_off.assert_called_once_with()
 
-    def test_set_power_state_on_timeout(self, mock_get_driver):
+    def test_set_power_state_on_error(self, mock_get_driver):
         mock_driver = mock_get_driver.return_value
         mock_driver.power_on.return_value = states.ERROR
         with task_manager.acquire(self.context, self.node.uuid) as task:
@@ -1314,7 +1326,7 @@ class SNMPDriverTestCase(db_base.DbTestCase):
                               task, states.POWER_ON)
         mock_driver.power_on.assert_called_once_with()
 
-    def test_set_power_state_off_timeout(self, mock_get_driver):
+    def test_set_power_state_off_error(self, mock_get_driver):
         mock_driver = mock_get_driver.return_value
         mock_driver.power_off.return_value = states.ERROR
         with task_manager.acquire(self.context, self.node.uuid) as task:
@@ -1323,12 +1335,23 @@ class SNMPDriverTestCase(db_base.DbTestCase):
                               task, states.POWER_OFF)
         mock_driver.power_off.assert_called_once_with()
 
-    def test_reboot(self, mock_get_driver):
+    @mock.patch.object(snmp.LOG, 'warning')
+    def test_reboot(self, mock_log, mock_get_driver):
         mock_driver = mock_get_driver.return_value
         mock_driver.power_reset.return_value = states.POWER_ON
         with task_manager.acquire(self.context, self.node.uuid) as task:
             task.driver.power.reboot(task)
         mock_driver.power_reset.assert_called_once_with()
+        self.assertFalse(mock_log.called)
+
+    @mock.patch.object(snmp.LOG, 'warning')
+    def test_reboot_timeout(self, mock_log, mock_get_driver):
+        mock_driver = mock_get_driver.return_value
+        mock_driver.power_reset.return_value = states.POWER_ON
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            task.driver.power.reboot(task, timeout=1)
+        mock_driver.power_reset.assert_called_once_with()
+        self.assertTrue(mock_log.called)
 
     def test_reboot_snmp_failure(self, mock_get_driver):
         mock_driver = mock_get_driver.return_value
@@ -1338,7 +1361,7 @@ class SNMPDriverTestCase(db_base.DbTestCase):
                               task.driver.power.reboot, task)
         mock_driver.power_reset.assert_called_once_with()
 
-    def test_reboot_timeout(self, mock_get_driver):
+    def test_reboot_error(self, mock_get_driver):
         mock_driver = mock_get_driver.return_value
         mock_driver.power_reset.return_value = states.ERROR
         with task_manager.acquire(self.context, self.node.uuid) as task:

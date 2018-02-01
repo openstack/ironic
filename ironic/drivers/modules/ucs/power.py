@@ -120,7 +120,7 @@ class Power(base.PowerInterface):
 
     @task_manager.require_exclusive_lock
     @ucs_helper.requires_ucs_client
-    def set_power_state(self, task, pstate, helper=None):
+    def set_power_state(self, task, pstate, timeout=None, helper=None):
         """Turn the power on or off.
 
         Set the power state of a node.
@@ -128,6 +128,7 @@ class Power(base.PowerInterface):
         :param task: instance of `ironic.manager.task_manager.TaskManager`.
         :param pstate: Either POWER_ON or POWER_OFF from :class:
             `ironic.common.states`.
+        :param timeout: timeout (in seconds). Unsupported by this interface.
         :param helper: ucs helper instance
         :raises: InvalidParameterValue if an invalid power state was specified.
         :raises: MissingParameterValue if required CiscoDriver parameters
@@ -135,6 +136,13 @@ class Power(base.PowerInterface):
         :raises: UcsOperationError on error from UCS Client.
         :raises: PowerStateFailure if the desired power state couldn't be set.
         """
+        # TODO(rloo): Support timeouts!
+        if timeout is not None:
+            LOG.warning(
+                "The 'ucsm' Power Interface's 'set_power_state' method "
+                "doesn't support the 'timeout' parameter. Ignoring "
+                "timeout=%(timeout)s",
+                {'timeout': timeout})
 
         if pstate not in (states.POWER_ON, states.POWER_OFF):
             msg = _("set_power_state called with invalid power state "
@@ -170,15 +178,23 @@ class Power(base.PowerInterface):
 
     @task_manager.require_exclusive_lock
     @ucs_helper.requires_ucs_client
-    def reboot(self, task, helper=None):
+    def reboot(self, task, timeout=None, helper=None):
         """Cycles the power to a node.
 
         :param task: a TaskManager instance.
+        :param timeout: timeout (in seconds). Unsupported by this interface.
         :param helper: ucs helper instance.
         :raises: UcsOperationError on error from UCS Client.
         :raises: PowerStateFailure if the final state of the node is not
             POWER_ON.
         """
+        # TODO(rloo): Support timeouts!
+        if timeout is not None:
+            LOG.warning("The 'ucsm' Power Interface's 'reboot' method "
+                        "doesn't support the 'timeout' parameter. Ignoring "
+                        "timeout=%(timeout)s",
+                        {'timeout': timeout})
+
         try:
             ucs_power_handle = ucs_power.UcsPower(helper)
             ucs_power_handle.reboot()
