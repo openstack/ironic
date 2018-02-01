@@ -175,8 +175,7 @@ class TestFlatInterface(db_base.DbTestCase):
         self.assertNotIn('cleaning_vif_port_id', self.port.internal_info)
 
     @mock.patch.object(neutron, 'get_client')
-    def test_add_provisioning_network_set_binding_host_id(
-            self, client_mock):
+    def test__bind_flat_ports_set_binding_host_id(self, client_mock):
         upd_mock = mock.Mock()
         client_mock.return_value.update_port = upd_mock
         extra = {'vif_port_id': 'foo'}
@@ -184,14 +183,14 @@ class TestFlatInterface(db_base.DbTestCase):
                                address='52:54:00:cf:2d:33', extra=extra,
                                uuid=uuidutils.generate_uuid())
         exp_body = {'port': {'binding:host_id': self.node.uuid,
-                             'binding:vnic_type': neutron.VNIC_BAREMETAL}}
+                             'binding:vnic_type': neutron.VNIC_BAREMETAL,
+                             'mac_address': '52:54:00:cf:2d:33'}}
         with task_manager.acquire(self.context, self.node.id) as task:
-            self.interface.add_provisioning_network(task)
+            self.interface._bind_flat_ports(task)
         upd_mock.assert_called_once_with('foo', exp_body)
 
     @mock.patch.object(neutron, 'get_client')
-    def test_add_provisioning_network_set_binding_host_id_portgroup(
-            self, client_mock):
+    def test__bind_flat_ports_set_binding_host_id_portgroup(self, client_mock):
         upd_mock = mock.Mock()
         client_mock.return_value.update_port = upd_mock
         internal_info = {'tenant_vif_port_id': 'foo'}
@@ -201,17 +200,46 @@ class TestFlatInterface(db_base.DbTestCase):
         utils.create_test_port(
             self.context, node_id=self.node.id, address='52:54:00:cf:2d:33',
             extra={'vif_port_id': 'bar'}, uuid=uuidutils.generate_uuid())
-        exp_body = {'port': {'binding:host_id': self.node.uuid,
-                             'binding:vnic_type': neutron.VNIC_BAREMETAL}}
+        exp_body1 = {'port': {'binding:host_id': self.node.uuid,
+                              'binding:vnic_type': neutron.VNIC_BAREMETAL,
+                              'mac_address': '52:54:00:cf:2d:33'}}
+        exp_body2 = {'port': {'binding:host_id': self.node.uuid,
+                              'binding:vnic_type': neutron.VNIC_BAREMETAL,
+                              'mac_address': '52:54:00:cf:2d:31'}}
         with task_manager.acquire(self.context, self.node.id) as task:
-            self.interface.add_provisioning_network(task)
+            self.interface._bind_flat_ports(task)
         upd_mock.assert_has_calls([
-            mock.call('bar', exp_body), mock.call('foo', exp_body)
-        ])
+            mock.call('bar', exp_body1), mock.call('foo', exp_body2)])
+
+    @mock.patch.object(neutron, 'unbind_neutron_port')
+    def test__unbind_flat_ports(self, unbind_neutron_port_mock):
+        extra = {'vif_port_id': 'foo'}
+        utils.create_test_port(self.context, node_id=self.node.id,
+                               address='52:54:00:cf:2d:33', extra=extra,
+                               uuid=uuidutils.generate_uuid())
+        with task_manager.acquire(self.context, self.node.id) as task:
+            self.interface._unbind_flat_ports(task)
+        unbind_neutron_port_mock.assert_called_once_with('foo',
+                                                         context=self.context)
+
+    @mock.patch.object(neutron, 'unbind_neutron_port')
+    def test__unbind_flat_ports_portgroup(self, unbind_neutron_port_mock):
+        internal_info = {'tenant_vif_port_id': 'foo'}
+        utils.create_test_portgroup(self.context, node_id=self.node.id,
+                                    internal_info=internal_info,
+                                    uuid=uuidutils.generate_uuid())
+        extra = {'vif_port_id': 'bar'}
+        utils.create_test_port(self.context, node_id=self.node.id,
+                               address='52:54:00:cf:2d:33', extra=extra,
+                               uuid=uuidutils.generate_uuid())
+        with task_manager.acquire(self.context, self.node.id) as task:
+            self.interface._unbind_flat_ports(task)
+        unbind_neutron_port_mock.has_calls(
+            [mock.call('foo', context=self.context),
+             mock.call('bar', context=self.context)])
 
     @mock.patch.object(neutron, 'get_client')
-    def test_add_provisioning_network_binding_host_id_raise(
-            self, client_mock):
+    def test__bind_flat_ports_set_binding_host_id_raise(self, client_mock):
         client_mock.return_value.update_port.side_effect = \
             (neutron_exceptions.ConnectionFailed())
         extra = {'vif_port_id': 'foo'}
@@ -220,5 +248,28 @@ class TestFlatInterface(db_base.DbTestCase):
                                uuid=uuidutils.generate_uuid())
         with task_manager.acquire(self.context, self.node.id) as task:
             self.assertRaises(exception.NetworkError,
-                              self.interface.add_provisioning_network,
-                              task)
+                              self.interface._bind_flat_ports, task)
+
+    @mock.patch.object(flat_interface.FlatNetwork, '_bind_flat_ports')
+    def test_add_rescuing_network(self, bind_mock):
+        with task_manager.acquire(self.context, self.node.id) as task:
+            self.interface.add_rescuing_network(task)
+            bind_mock.assert_called_once_with(task)
+
+    @mock.patch.object(flat_interface.FlatNetwork, '_unbind_flat_ports')
+    def test_remove_rescuing_network(self, unbind_mock):
+        with task_manager.acquire(self.context, self.node.id) as task:
+            self.interface.remove_rescuing_network(task)
+            unbind_mock.assert_called_once_with(task)
+
+    @mock.patch.object(flat_interface.FlatNetwork, '_bind_flat_ports')
+    def test_add_provisioning_network(self, bind_mock):
+        with task_manager.acquire(self.context, self.node.id) as task:
+            self.interface.add_provisioning_network(task)
+            bind_mock.assert_called_once_with(task)
+
+    @mock.patch.object(flat_interface.FlatNetwork, '_unbind_flat_ports')
+    def test_remove_provisioning_network(self, unbind_mock):
+        with task_manager.acquire(self.context, self.node.id) as task:
+            self.interface.remove_provisioning_network(task)
+            unbind_mock.assert_called_once_with(task)

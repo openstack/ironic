@@ -255,6 +255,7 @@ def plug_port_to_tenant_network(task, port_like_obj, client=None):
         'port': {
             'binding:vnic_type': neutron.VNIC_BAREMETAL,
             'binding:host_id': node.uuid,
+            'mac_address': port_like_obj.address
         }
     }
     binding_profile = {'local_link_information': local_link_info}

@@ -1,0 +1,13 @@
+---
+fixes:
+  - |
+    Fixes an issue where Neutron ports would be left with a baremetal MAC
+    address associated after an instance is deleted from a baremetal host. This
+    caused problems with MAC address conflicts in follow up deployments to the
+    same baremetal host. `bug 2004428
+    <https://storyboard.openstack.org/#!/story/2004428>`_.
+  - |
+    Fixes an issue where a flat Neutron port would be left with a host ID
+    associated with it after an instance is deleted from a baremetal host. This
+    caused problems with reusing the same port for a new instance as it is
+    already bound to the old instance.

@@ -10,6 +10,8 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+import random
+
 from neutronclient.common import exceptions as neutron_exceptions
 from neutronclient.v2_0 import client as clientv20
 from oslo_log import log
@@ -37,6 +39,26 @@ PHYSNET_PARAM_NAME = 'provider:physical_network'
 
 SEGMENTS_PARAM_NAME = 'segments'
 """Name of the neutron network API segments parameter."""
+
+BASE_MAC = ['fa', '16', '3e', '00', '00', '00']
+
+
+def _get_random_mac(base_mac):
+    """Get a random MAC address string of the specified base format.
+
+    The first 3 octets will remain unchanged. If the 4th octet is not
+    00, it will also be used. The others will be randomly generated.
+
+    :param base_mac: Base MAC address represented by an array of 6 strings/int
+    :returns: The MAC address string.
+    """
+
+    mac = [int(base_mac[0], 16), int(base_mac[1], 16),
+           int(base_mac[2], 16), random.getrandbits(8),
+           random.getrandbits(8), random.getrandbits(8)]
+    if base_mac[3] != '00':
+        mac[3] = int(base_mac[3], 16)
+    return ':'.join(["%02x" % x for x in mac])
 
 
 def _get_neutron_session():
@@ -102,11 +124,18 @@ def unbind_neutron_port(port_id, client=None, context=None):
     if not client:
         client = get_client(context=context)
 
-    body = {'port': {'binding:host_id': '',
-                     'binding:profile': {}}}
+    body_unbind = {'port': {'binding:host_id': '',
+                            'binding:profile': {}}}
+    body_reset_mac = {'port': {
+        'mac_address': _get_random_mac(BASE_MAC)}}
 
     try:
-        client.update_port(port_id, body)
+        client.update_port(port_id, body_unbind)
+        # NOTE(hjensas): We need to reset the mac address in a separate step.
+        #   Exception PortBound will be raised by neutron as it refuses to
+        #   update the mac address of a bound port if we attempt to unbind and
+        #   reset the mac in the same call.
+        client.update_port(port_id, body_reset_mac)
     # NOTE(vsaienko): Ignore if port was deleted before calling vif detach.
     except neutron_exceptions.PortNotFoundClient:
         LOG.info('Port %s was not found while unbinding.', port_id)
