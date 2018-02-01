@@ -2,10 +2,9 @@
 upgrade:
   - |
     Adds new data migration ``migrate_to_hardware_types`` that will try to
-    migrate nodes from classic drivers to hardware types on upgrade. Matching
-    hardware types and interfaces have to be provided on classic drivers
-    themselves. Nodes that cannot be migrated are skipped. This can primary
-    happen for three reasons:
+    migrate nodes from classic drivers to hardware types on upgrade. Nodes
+    that cannot be migrated are skipped. This may happen due to one of these
+    reasons:
 
     * migration is not implemented for the classic driver,
     * the matching hardware type is not enabled,
@@ -21,3 +20,14 @@ upgrade:
 
     This migration can be repeated several times to migrate skipped nodes
     after the configuration is changed.
+other:
+  - |
+    A classic driver implementation can now provide matching hardware type and
+    interfaces to enable automatic migration to hardware types. See `the
+    specification
+    <http://specs.openstack.org/openstack/ironic-specs/specs/approved/classic-drivers-future.html#automatic-migration>`_
+    for an explanation on how to do it.
+
+    .. note::
+        This feature will only be available until the classic drivers support
+        is removed (presumably in the Rocky release).

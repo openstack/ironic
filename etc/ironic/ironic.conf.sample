@@ -26,14 +26,19 @@
 # is provided in the creation request. (string value)
 #default_resource_class = <None>
 
-# Specify the list of drivers to load during service
-# initialization. Missing drivers, or drivers which fail to
-# initialize, will prevent the conductor service from
+# DEPRECATED: Specify the list of drivers to load during
+# service initialization. Missing drivers, or drivers which
+# fail to initialize, will prevent the conductor service from
 # starting. The option default is a recommended set of
 # production-oriented drivers. A complete list of drivers
 # present on your system may be found by enumerating the
 # "ironic.drivers" entrypoint. An example may be found in the
 # developer documentation online. (list value)
+# This option is deprecated for removal.
+# Its value may be silently ignored in the future.
+# Reason: Hardware types should be used instead of classic
+# drivers. They are enabled via the enabled_hardware_types
+# option.
 #enabled_drivers = pxe_ipmitool
 
 # Specify the list of hardware types to load during service

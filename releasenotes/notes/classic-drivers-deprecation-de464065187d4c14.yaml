@@ -1,0 +1,22 @@
+---
+prelude: >
+    This release deprecates classic drivers in favor of hardware types. Please
+    check `the migration guide
+    <https://docs.openstack.org/ironic/latest/admin/upgrade-to-hardware-types.html>`_
+    for information on which hardware types and interfaces to enable before
+    upgrade and how to update the nodes. The ``ironic-dbsync
+    online_data_migrations`` command will handle the migration, if all
+    required hardware types and interfaces are enabled before the upgrade.
+deprecations:
+  - |
+    The classic drivers, as well as the ``enabled_drivers`` configuration
+    option, are now deprecated and may be removed in the Rocky relese.
+    A deprecation warning will be logged for every loaded classic driver.
+    Check `the migration guide
+    <https://docs.openstack.org/ironic/latest/admin/upgrade-to-hardware-types.html>`_
+    for information on how to update your nodes.
+
+    .. note::
+        Check `the classic drivers future specification
+        <http://specs.openstack.org/openstack/ironic-specs/specs/approved/classic-drivers-future.html>`_
+        for technical information behind this deprecation.
