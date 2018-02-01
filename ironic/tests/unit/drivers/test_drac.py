@@ -97,7 +97,7 @@ class IDRACHardwareTestCase(BaseIDRACTestCase):
                         'idrac', 'inspector', 'no-inspect'],
                     enabled_network_interfaces=['flat', 'neutron', 'noop'],
                     enabled_raid_interfaces=['idrac', 'no-raid'],
-                    enabled_vendor_interfaces=['idrac'])
+                    enabled_vendor_interfaces=['idrac', 'no-vendor'])
 
     def test_default_interfaces(self):
         node = obj_utils.create_test_node(self.context, driver='idrac')
@@ -129,6 +129,14 @@ class IDRACHardwareTestCase(BaseIDRACTestCase):
             self._validate_interfaces(task.driver,
                                       console=noop.NoConsole,
                                       raid=noop.NoRAID)
+
+    def test_override_no_vendor(self):
+        node = obj_utils.create_test_node(self.context, driver='idrac',
+                                          vendor_interface='no-vendor')
+        with task_manager.acquire(self.context, node.id) as task:
+            self._validate_interfaces(task.driver,
+                                      console=noop.NoConsole,
+                                      vendor=noop.NoVendor)
 
 
 @mock.patch.object(importutils, 'try_import', spec_set=True, autospec=True)
