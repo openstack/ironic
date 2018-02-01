@@ -48,7 +48,7 @@ class IloHardwareTestCase(db_base.DbTestCase):
                     enabled_management_interfaces=['ilo'],
                     enabled_power_interfaces=['ilo'],
                     enabled_raid_interfaces=['no-raid', 'agent'],
-                    enabled_vendor_interfaces=['no-vendor'])
+                    enabled_vendor_interfaces=['ilo', 'no-vendor'])
 
     def test_default_interfaces(self):
         node = obj_utils.create_test_node(self.context,
@@ -69,7 +69,7 @@ class IloHardwareTestCase(db_base.DbTestCase):
             self.assertIsInstance(task.driver.raid,
                                   noop.NoRAID)
             self.assertIsInstance(task.driver.vendor,
-                                  noop.NoVendor)
+                                  ilo.vendor.VendorPassthru)
 
     def test_override_with_inspector(self):
         self.config(enabled_inspect_interfaces=['inspector', 'ilo'])
@@ -77,7 +77,8 @@ class IloHardwareTestCase(db_base.DbTestCase):
             self.context, driver='ilo',
             deploy_interface='direct',
             inspect_interface='inspector',
-            raid_interface='agent')
+            raid_interface='agent',
+            vendor_interface='no-vendor')
         with task_manager.acquire(self.context, node.id) as task:
             self.assertIsInstance(task.driver.boot,
                                   ilo.boot.IloVirtualMediaBoot)
@@ -117,7 +118,7 @@ class IloHardwareTestCase(db_base.DbTestCase):
             self.assertIsInstance(task.driver.raid,
                                   agent.AgentRAID)
             self.assertIsInstance(task.driver.vendor,
-                                  noop.NoVendor)
+                                  ilo.vendor.VendorPassthru)
 
 
 @mock.patch.object(ilo.importutils, 'try_import', spec_set=True,

@@ -66,6 +66,11 @@ class IloHardware(generic.GenericHardware):
         """List of supported power interfaces."""
         return [power.IloPower]
 
+    @property
+    def supported_vendor_interfaces(self):
+        """List of supported power interfaces."""
+        return [vendor.VendorPassthru, noop.NoVendor]
+
 
 class IloVirtualMediaIscsiDriver(base.BaseDriver):
     """IloDriver using IloClient interface.
