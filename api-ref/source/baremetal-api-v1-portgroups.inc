@@ -83,6 +83,7 @@ Request
 
     - node_uuid: node_uuid
     - address: portgroup_address
+    - name: portgroup_name
 
 **Example Portgroup creation request:**
 

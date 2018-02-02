@@ -843,7 +843,7 @@ portgroup_address:
     Physical hardware address of this Portgroup, typically the hardware
     MAC address.
   in: body
-  required: true
+  required: false
   type: string
 portgroup_internal_info:
   description: |
