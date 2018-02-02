@@ -327,7 +327,8 @@ agent_config:
   type: JSON
 agent_node:
   description: |
-    JSON document containing a subset of Node fields, used by the
+    JSON document containing the Node fields "uuid", "properties",
+    "instance_info", and "driver_internal_info"; used by the
     ironic-python-agent process as it operates on the Node.
   in: body
   required: true

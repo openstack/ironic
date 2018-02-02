@@ -46,8 +46,7 @@ service.
 
 The query string should include either or both a ``node_uuid`` or an
 ``addresses`` query parameter. If a matching Node is found, information about
-that Node shall be returned, including instance-specific information such as
-the configdrive.
+that Node shall be returned.
 
 Normal response codes: 200
 
