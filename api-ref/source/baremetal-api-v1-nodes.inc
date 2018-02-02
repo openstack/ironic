@@ -248,6 +248,9 @@ Nova instance, eg. with a request to ``v1/nodes/detail?instance_uuid={NOVA INSTA
 .. versionadded:: 1.37
   Introduced the ``traits`` field.
 
+.. versionadded:: 1.38
+  Introduced the ``rescue_interface`` field.
+
 Normal response codes: 200
 
 .. TODO: add error codes
@@ -331,6 +334,9 @@ only the specified set.
 
 .. versionadded:: 1.37
   Introduced the ``traits`` field.
+
+.. versionadded:: 1.38
+  Introduced the ``rescue_interface`` field.
 
 Normal response codes: 200
 
