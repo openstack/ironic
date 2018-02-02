@@ -8,17 +8,30 @@ with the Networking service for DHCP, PXE boot and other requirements.
 This section covers configuring Networking for a single flat network for bare
 metal provisioning.
 
-Baremetal service requires the baremetal mechanism driver to be installed and
-enabled in the networking service for flat networks. Documentation regarding
-installation and configuration of the baremetal mechanism driver is available
-at `here <https://docs.openstack.org/networking-baremetal/latest/index.html>`_.
+It is recommended to use the baremetal ML2 mechanism driver and L2 agent for
+proper integration with the Networking service. Documentation regarding
+installation and configuration of the baremetal mechanism driver and L2 agent
+is available `here
+<https://docs.openstack.org/networking-baremetal/latest/index.html>`_.
+
+For use with `routed networks
+<https://docs.openstack.org/neutron/latest/admin/config-routed-networks>`_
+the baremetal ML2 components are required.
+
+.. Note::  When the baremetal ML2 components are *not* used, ports in the
+           Networking service will have status: ``DOWN``, and binding_vif_type:
+           ``binding_failed``. This was always the status for Bare Metal
+           service ``flat`` network interface ports prior to the introduction
+           of the baremetal ML2 integration. For a non-routed network, bare
+           metal servers can still be deployed and are functional, despite this
+           port binding state in the Networking service.
 
 You will also need to provide Bare Metal service with the MAC address(es) of
 each node that it is provisioning; Bare Metal service in turn will pass this
 information to Networking service for DHCP and PXE boot configuration.
 An example of this is shown in the :ref:`enrollment` section.
 
-#. Install the networking-baremetal ml2 mechanism driver and l2 agent in the
+#. Install the networking-baremetal ML2 mechanism driver and L2 agent in the
    Networking service.
 
 #. Edit ``/etc/neutron/plugins/ml2/ml2_conf.ini`` and modify these:
