@@ -105,14 +105,13 @@
           export DEVSTACK_GATE_VIRT_DRIVER=ironic
           export DEVSTACK_GATE_CONFIGDRIVE=1
           export DEVSTACK_GATE_IRONIC_DRIVER=pxe_ipmitool
-          export BRANCH_OVERRIDE=default
+          export BRANCH_OVERRIDE="{{ zuul.override_checkout | default('default') }}"
           if [ "$BRANCH_OVERRIDE" != "default" ] ; then
               export OVERRIDE_ZUUL_BRANCH=$BRANCH_OVERRIDE
           fi
 
-          if [[ ! "stable/newton stable/ocata stable/pike" =~ $ZUUL_BRANCH ]] ; then
-              export DEVSTACK_GATE_TLSPROXY=1
-          fi
+          # We do not support TLS proxy on Ocata
+          export DEVSTACK_GATE_TLSPROXY=0
 
           if [ "pxe_ipmitool" == "pxe_snmp" ] ; then
               # explicitly enable pxe_snmp driver
