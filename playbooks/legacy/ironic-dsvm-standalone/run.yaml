@@ -60,7 +60,7 @@
           export DEVSTACK_GATE_IRONIC_DRIVER=ipmi
           export OVERRIDE_ENABLED_SERVICES="g-api,g-reg,q-agt,q-dhcp,q-l3,q-svc,key,mysql,rabbit,ir-api,ir-cond,s-account,s-container,s-object,s-proxy,tempest"
 
-          export BRANCH_OVERRIDE="{{ branch_override | default('default') }}"
+          export BRANCH_OVERRIDE="{{ zuul.override_checkout | default('default') }}"
           if [ "$BRANCH_OVERRIDE" != "default" ] ; then
               export OVERRIDE_ZUUL_BRANCH=$BRANCH_OVERRIDE
           fi
@@ -80,7 +80,7 @@
           # NOTE(pas-ha) ansible deploy is new in Queens,
           # and this job does not exist in Newton/Ocata.
           # Do not enable ansible deploy for Pike so that stable/pike job on
-          # branch-less ironic-tempest-plugin passes using branch_override.
+          # branch-less ironic-tempest-plugin passes using zuul.override_checkout.
           if [[ "$ZUUL_BRANCH" != "stable/pike" && "$BRANCH_OVERRIDE" != "stable/pike" ]]; then
             export DEVSTACK_LOCAL_CONFIG+=$'\n'"IRONIC_ENABLED_DEPLOY_INTERFACES=iscsi,direct,ansible"
           fi
