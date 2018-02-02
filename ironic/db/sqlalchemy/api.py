@@ -984,6 +984,7 @@ class Connection(api.Connection):
                 raise exception.NodeTagNotFound(node_id=node_id, tag=tag)
 
     def node_tag_exists(self, node_id, tag):
+        self._check_node_exists(node_id)
         q = model_query(models.NodeTag).filter_by(node_id=node_id, tag=tag)
         return model_query(q.exists()).scalar()
 

@@ -108,3 +108,7 @@ class DbNodeTagTestCase(base.DbTestCase):
     def test_node_tag_not_exists(self):
         ret = self.dbapi.node_tag_exists(self.node.id, 'tag1')
         self.assertFalse(ret)
+
+    def test_node_tag_node_not_exist(self):
+        self.assertRaises(exception.NodeNotFound,
+                          self.dbapi.node_tag_exists, '123', 'tag1')
