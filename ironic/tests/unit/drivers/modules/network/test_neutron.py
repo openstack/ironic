@@ -341,6 +341,27 @@ class NeutronInterfaceTestCase(db_base.DbTestCase):
 
     @mock.patch.object(neutron_common, 'validate_network',
                        side_effect=lambda n, t, context=None: n)
+    def test_validate_rescue(self, validate_mock):
+        rescuing_network_uuid = '3aea0de6-4b92-44da-9aa0-52d134c83fdf'
+        driver_info = self.node.driver_info
+        driver_info['rescuing_network'] = rescuing_network_uuid
+        self.node.driver_info = driver_info
+        self.node.save()
+        with task_manager.acquire(self.context, self.node.id) as task:
+            self.interface.validate_rescue(task)
+            validate_mock.assert_called_once_with(
+                rescuing_network_uuid, 'rescuing network',
+                context=task.context),
+
+    def test_validate_rescue_exc(self):
+        self.config(rescuing_network="", group='neutron')
+        with task_manager.acquire(self.context, self.node.id) as task:
+            self.assertRaisesRegex(exception.MissingParameterValue,
+                                   'rescuing network is not set',
+                                   self.interface.validate_rescue, task)
+
+    @mock.patch.object(neutron_common, 'validate_network',
+                       side_effect=lambda n, t, context=None: n)
     @mock.patch.object(neutron_common, 'rollback_ports')
     @mock.patch.object(neutron_common, 'add_ports_to_network')
     def test_add_rescuing_network(self, add_ports_mock, rollback_mock,
