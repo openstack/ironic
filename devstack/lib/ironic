@@ -492,6 +492,12 @@ IRONIC_CLEANING_TIMEOUT=${IRONIC_CLEANING_TIMEOUT:-1200}
 IRONIC_CLEANING_DELAY=10
 IRONIC_CLEANING_ATTEMPTS=$(( $IRONIC_CLEANING_TIMEOUT / $IRONIC_CLEANING_DELAY ))
 
+# Timeout for ironic-neutron-agent to report state before providing nodes.
+# The agent reports every 60 seconds, 2 minutes should do.
+IRONIC_NEUTRON_AGENT_REPORT_STATE_DELAY=10
+IRONIC_NEUTRON_AGENT_REPORT_STATE_TIMEOUT=${IRONIC_NEUTRON_AGENT_REPORT_STATE_TIMEOUT:-120}
+IRONIC_NEUTRON_AGENT_REPORT_STATE_ATTEMPTS=$(( $IRONIC_NEUTRON_AGENT_REPORT_STATE_TIMEOUT / IRONIC_NEUTRON_AGENT_REPORT_STATE_DELAY ))
+
 # Username to use by Ansible to access ramdisk,
 # to be set as '[ansible]/default_username' option.
 # If not set here (default), will be set to 'tc' for TinyIPA ramdisk,
@@ -1700,6 +1706,36 @@ function provide_nodes {
     fi
 }
 
+function wait_for_ironic_neuton_agent_report_state_for_all_nodes {
+    local nodes=$@
+    echo "Waiting for ironic-neutron-agent to report state for nodes: $nodes"
+    local attempt
+    for attempt in $(seq 1 $IRONIC_NEUTRON_AGENT_REPORT_STATE_ATTEMPTS); do
+        local reported
+        reported=$(openstack network agent list -f value -c Host -c Binary | grep ironic-neutron-agent | cut -d ' ' -f 1 | paste -s -d ' ')
+        echo "Currently reported nodes: $reported"
+
+        local can_break
+        for node_id in $nodes; do
+            if echo $reported | grep -q $node_id; then
+                can_break="True"
+            else
+                can_break="False"
+                break
+            fi
+        done
+        if [[ $can_break == "True" ]]; then
+            break
+        fi
+        sleep $IRONIC_NEUTRON_AGENT_REPORT_STATE_DELAY
+    done
+
+    if [[ "$can_break" == "False" ]]; then
+        die $LINENO "ironic-neutron-agent did not report some nodes."
+    fi
+}
+
+
 function enroll_nodes {
     local chassis_id
     chassis_id=$($IRONIC_CMD chassis create --description "ironic test chassis" -f value -c uuid)
@@ -1947,6 +1983,12 @@ function enroll_nodes {
 
         total_nodes=$((total_nodes+1))
     done < $ironic_hwinfo_file
+
+    # NOTE(hjensas): ensure ironic-neutron-agent has done report_state for all
+    # nodes we attempt cleaning.
+    if [[ "${IRONIC_USE_NEUTRON_SEGMENTS}" == "True" ]]; then
+        wait_for_ironic_neuton_agent_report_state_for_all_nodes $node_uuids
+    fi
 
     # NOTE(dtantsur): doing it outside of the loop, because of cleaning
     provide_nodes $node_uuids
