@@ -67,7 +67,6 @@ IRONIC_AUTH_CACHE_DIR=${IRONIC_AUTH_CACHE_DIR:-/var/cache/ironic}
 IRONIC_CONF_DIR=${IRONIC_CONF_DIR:-/etc/ironic}
 IRONIC_CONF_FILE=$IRONIC_CONF_DIR/ironic.conf
 IRONIC_ROOTWRAP_CONF=$IRONIC_CONF_DIR/rootwrap.conf
-IRONIC_POLICY_JSON=$IRONIC_CONF_DIR/policy.json
 if is_suse; then
     IRONIC_WSGI_DIR=${IRONIC_WSGI_DIR:-/srv/www/htdocs/ironic}
 else
@@ -1056,8 +1055,9 @@ function cleanup_ironic_provision_network {
 function configure_ironic {
     configure_ironic_dirs
 
-    # Copy over ironic configuration file and configure common parameters.
-    cp $IRONIC_DIR/etc/ironic/ironic.conf.sample $IRONIC_CONF_FILE
+    # (re)create ironic configuration file and configure common parameters.
+    rm -f $IRONIC_CONF_FILE
+
     iniset $IRONIC_CONF_FILE DEFAULT debug True
     inicomment $IRONIC_CONF_FILE DEFAULT log_file
     iniset $IRONIC_CONF_FILE database connection `database_connection_url ironic`
@@ -1127,7 +1127,6 @@ EOF
 function configure_ironic_api {
     iniset $IRONIC_CONF_FILE DEFAULT auth_strategy $IRONIC_AUTH_STRATEGY
     configure_auth_token_middleware $IRONIC_CONF_FILE ironic $IRONIC_AUTH_CACHE_DIR/api
-    iniset $IRONIC_CONF_FILE oslo_policy policy_file $IRONIC_POLICY_JSON
 
     iniset_rpc_backend ironic $IRONIC_CONF_FILE
 
@@ -1141,8 +1140,6 @@ function configure_ironic_api {
     else
         iniset $IRONIC_CONF_FILE api port $IRONIC_SERVICE_PORT
     fi
-
-    cp -p $IRONIC_DIR/etc/ironic/policy.json $IRONIC_POLICY_JSON
 }
 
 # configure_client_for() - is used by configure_ironic_conductor.

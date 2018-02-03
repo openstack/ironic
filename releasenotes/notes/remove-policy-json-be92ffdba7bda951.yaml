@@ -1,0 +1,15 @@
+---
+upgrade:
+  - |
+    The default policy file located at ``etc/ironic/policy.json`` was removed
+    in this release, as no policy file is required to run the ironic-api
+    service.
+other:
+  - |
+    The sample configuration file located at ``etc/ironic/ironic.conf.sample``
+    and the sample policy file located at ``etc/ironic/policy.json.sample``
+    were removed in this release, as they are now published with documentation.
+    See `the sample configuration file
+    <https://docs.openstack.org/ironic/latest/configuration/sample-config.html>`_
+    and `the sample policy file
+    <https://docs.openstack.org/ironic/latest/configuration/sample-policy.html>`_.
