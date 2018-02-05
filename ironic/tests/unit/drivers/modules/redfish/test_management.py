@@ -17,6 +17,7 @@ import mock
 from oslo_utils import importutils
 
 from ironic.common import boot_devices
+from ironic.common import boot_modes
 from ironic.common import exception
 from ironic.conductor import task_manager
 from ironic.drivers.modules.redfish import management as redfish_mgmt
@@ -151,6 +152,68 @@ class RedfishManagementTestCase(db_base.DbTestCase):
             response = task.driver.management.get_boot_device(task)
             expected = {'boot_device': boot_devices.PXE,
                         'persistent': True}
+            self.assertEqual(expected, response)
+
+    def test_get_supported_boot_modes(self):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            supported_boot_modes = (
+                task.driver.management.get_supported_boot_modes(task))
+            self.assertEqual(list(redfish_mgmt.BOOT_MODE_MAP_REV),
+                             supported_boot_modes)
+
+    @mock.patch.object(redfish_utils, 'get_system', autospec=True)
+    def test_set_boot_mode(self, mock_get_system):
+        fake_system = mock.Mock()
+        mock_get_system.return_value = fake_system
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            expected_values = [
+                (boot_modes.LEGACY_BIOS, sushy.BOOT_SOURCE_MODE_BIOS),
+                (boot_modes.UEFI, sushy.BOOT_SOURCE_MODE_UEFI)
+            ]
+
+            for mode, expected in expected_values:
+                task.driver.management.set_boot_mode(task, mode=mode)
+
+                # Asserts
+                fake_system.set_system_boot_source.assert_called_once_with(
+                    mock.ANY, enabled=mock.ANY, mode=mode)
+                mock_get_system.assert_called_once_with(task.node)
+
+                # Reset mocks
+                fake_system.set_system_boot_source.reset_mock()
+                mock_get_system.reset_mock()
+
+    @mock.patch('ironic.drivers.modules.redfish.management.sushy')
+    @mock.patch.object(redfish_utils, 'get_system', autospec=True)
+    def test_set_boot_mode_fail(self, mock_get_system, mock_sushy):
+        fake_system = mock.Mock()
+        mock_sushy.exceptions.SushyError = MockedSushyError
+        fake_system.set_system_boot_source.side_effect = MockedSushyError
+        mock_get_system.return_value = fake_system
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            self.assertRaisesRegex(
+                exception.RedfishError, 'Setting boot mode',
+                task.driver.management.set_boot_mode, task, boot_modes.UEFI)
+            fake_system.set_system_boot_source.assert_called_once_with(
+                mock.ANY, enabled=mock.ANY, mode=boot_modes.UEFI)
+            mock_get_system.assert_called_once_with(task.node)
+
+    @mock.patch.object(redfish_utils, 'get_system', autospec=True)
+    def test_get_boot_mode(self, mock_get_system):
+        boot_attribute = {
+            'target': sushy.BOOT_SOURCE_TARGET_PXE,
+            'enabled': sushy.BOOT_SOURCE_ENABLED_CONTINUOUS,
+            'mode': sushy.BOOT_SOURCE_MODE_BIOS,
+        }
+        fake_system = mock.Mock(boot=boot_attribute)
+        mock_get_system.return_value = fake_system
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            response = task.driver.management.get_boot_mode(task)
+            expected = boot_modes.LEGACY_BIOS
             self.assertEqual(expected, response)
 
     def test_get_sensors_data(self):
