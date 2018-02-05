@@ -451,13 +451,7 @@ class IloVirtualMediaBoot(base.BootInterface):
                                         states.RESCUING):
             return
 
-        # Powering off the Node before initiating boot for node cleaning.
-        # If node is in system POST, setting boot device fails.
-        manager_utils.node_power_action(task, states.POWER_OFF)
-
-        if node.provision_state in (states.DEPLOYING,
-                                    states.RESCUING):
-            prepare_node_for_deploy(task)
+        prepare_node_for_deploy(task)
 
         # Clear ilo_boot_iso if it's a glance image to force recreate
         # another one again (or use existing one in glance).
@@ -655,7 +649,8 @@ class IloPXEBoot(pxe.PXEBoot):
         :raises: IloOperationError, if some operation on iLO failed.
         """
 
-        if task.node.provision_state in (states.DEPLOYING, states.RESCUING):
+        if task.node.provision_state in (states.DEPLOYING, states.RESCUING,
+                                         states.CLEANING):
             prepare_node_for_deploy(task)
 
         super(IloPXEBoot, self).prepare_ramdisk(task, ramdisk_params)
