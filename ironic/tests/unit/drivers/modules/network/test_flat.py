@@ -217,10 +217,6 @@ class TestFlatInterface(db_base.DbTestCase):
             self, client_mock):
         client_mock.return_value.update_port.side_effect = \
             (neutron_exceptions.ConnectionFailed())
-        instance_info = self.node.instance_info
-        instance_info['nova_host_id'] = 'nova_host_id'
-        self.node.instance_info = instance_info
-        self.node.save()
         extra = {'vif_port_id': 'foo'}
         utils.create_test_port(self.context, node_id=self.node.id,
                                address='52:54:00:cf:2d:33', extra=extra,
