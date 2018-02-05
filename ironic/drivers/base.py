@@ -1107,6 +1107,16 @@ class NetworkInterface(BaseInterface):
         :raises: NetworkError
         """
 
+    def validate_rescue(self, task):
+        """Validates the network interface for rescue operation.
+
+        :param task: a TaskManager instance.
+        :raises: InvalidParameterValue, if the network interface configuration
+            is invalid.
+        :raises: MissingParameterValue, if some parameters are missing.
+        """
+        pass
+
     def add_rescuing_network(self, task):
         """Add the rescuing network to the node.
 

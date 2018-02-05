@@ -32,7 +32,6 @@ from ironic.conf import CONF
 from ironic.drivers import base
 from ironic.drivers.modules import agent_base_vendor
 from ironic.drivers.modules import deploy_utils
-from ironic.drivers.modules.network import neutron
 
 
 LOG = log.getLogger(__name__)
@@ -778,9 +777,8 @@ class AgentRescue(base.RescueInterface):
         node = task.node
         missing_params = []
 
-        # Validate rescuing network if node is using 'neutron' network
-        if isinstance(task.driver.network, neutron.NeutronNetwork):
-            task.driver.network.get_rescuing_network_uuid(task)
+        # Validate rescuing network
+        task.driver.network.validate_rescue(task)
 
         if CONF.agent.manage_agent_boot:
             # TODO(stendulker): boot.validate() performs validation of

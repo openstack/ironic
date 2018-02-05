@@ -1,0 +1,8 @@
+---
+other:
+  - |
+    Adds new method ``validate_rescue()`` to network interface to validate
+    rescuing network. This method is called during validation of rescue
+    interface. This fixes the `validation of rescuing network based on
+    network type in rescue interface
+    <https://bugs.launchpad.net/ironic/+bug/1747100>`_.

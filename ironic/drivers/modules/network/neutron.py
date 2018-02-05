@@ -139,6 +139,16 @@ class NeutronNetwork(common.NeutronVIFPortIDMixin,
                 port.internal_info = internal_info
                 port.save()
 
+    def validate_rescue(self, task):
+        """Validates the network interface for rescue operation.
+
+        :param task: a TaskManager instance.
+        :raises: InvalidParameterValue, if the network interface configuration
+            is invalid.
+        :raises: MissingParameterValue, if some parameters are missing.
+        """
+        self.get_rescuing_network_uuid(task)
+
     def add_rescuing_network(self, task):
         """Create neutron ports for each port to boot the rescue ramdisk.
 
