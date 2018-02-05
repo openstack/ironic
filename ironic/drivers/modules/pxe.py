@@ -55,6 +55,13 @@ OPTIONAL_PROPERTIES = {
                                       "deploy and cleaning operations. "
                                       "Defaults to False. Optional."),
 }
+RESCUE_PROPERTIES = {
+    'rescue_kernel': _('UUID (from Glance) of the rescue kernel. This value '
+                       'is required for rescue mode.'),
+    'rescue_ramdisk': _('UUID (from Glance) of the rescue ramdisk with agent '
+                        'that is used at node rescue time. This value is '
+                        'required for rescue mode.'),
+}
 COMMON_PROPERTIES = REQUIRED_PROPERTIES.copy()
 COMMON_PROPERTIES.update(OPTIONAL_PROPERTIES)
 
@@ -414,6 +421,9 @@ class PXEBoot(base.BootInterface):
 
         :returns: dictionary of <property name>:<property description> entries.
         """
+        # TODO(stendulker): COMMON_PROPERTIES should also include rescue
+        # related properties (RESCUE_PROPERTIES). We can add them in Rocky,
+        # when classic drivers get removed.
         return COMMON_PROPERTIES
 
     @METRICS.timer('PXEBoot.validate')
@@ -668,3 +678,13 @@ class PXEBoot(base.BootInterface):
                         {'node': node.uuid, 'err': e})
         else:
             _clean_up_pxe_env(task, images_info)
+
+    @METRICS.timer('PXEBoot.validate_rescue')
+    def validate_rescue(self, task):
+        """Validate that the node has required properties for rescue.
+
+        :param task: a TaskManager instance with the node being checked
+        :raises: MissingParameterValue if node is missing one or more required
+            parameters
+        """
+        _parse_driver_info(task.node, mode='rescue')

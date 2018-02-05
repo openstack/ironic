@@ -1360,66 +1360,34 @@ class AgentRescueTestCase(db_base.DbTestCase):
     @mock.patch.object(flat_network.FlatNetwork, 'validate_rescue',
                        autospec=True)
     @mock.patch.object(fake.FakeBoot, 'validate', autospec=True)
-    def test_agent_rescue_validate(self, mock_boot_validate,
+    @mock.patch.object(fake.FakeBoot, 'validate_rescue', autospec=True)
+    def test_agent_rescue_validate(self, mock_boot_validate_rescue,
+                                   mock_boot_validate,
                                    mock_validate_network):
         with task_manager.acquire(self.context, self.node.uuid) as task:
             task.driver.rescue.validate(task)
             mock_validate_network.assert_called_once_with(mock.ANY, task)
             mock_boot_validate.assert_called_once_with(mock.ANY, task)
+            mock_boot_validate_rescue.assert_called_once_with(mock.ANY, task)
 
     @mock.patch.object(flat_network.FlatNetwork, 'validate_rescue',
                        autospec=True)
     @mock.patch.object(fake.FakeBoot, 'validate', autospec=True)
-    def test_agent_rescue_validate_no_manage_agent(self, mock_boot_validate,
+    @mock.patch.object(fake.FakeBoot, 'validate_rescue', autospec=True)
+    def test_agent_rescue_validate_no_manage_agent(self,
+                                                   mock_boot_validate_rescue,
+                                                   mock_boot_validate,
                                                    mock_rescuing_net):
-        # If ironic's not managing booting of ramdisks, we don't set up PXE for
-        # the ramdisk/kernel, so validation can pass without this info
         self.config(manage_agent_boot=False, group='agent')
-        driver_info = self.node.driver_info
-        del driver_info['rescue_ramdisk']
-        del driver_info['rescue_kernel']
-        self.node.driver_info = driver_info
-        self.node.save()
         with task_manager.acquire(self.context, self.node.uuid) as task:
             task.driver.rescue.validate(task)
             mock_rescuing_net.assert_called_once_with(mock.ANY, task)
             self.assertFalse(mock_boot_validate.called)
+            self.assertFalse(mock_boot_validate_rescue.called)
 
     @mock.patch.object(flat_network.FlatNetwork, 'validate_rescue',
                        autospec=True)
-    @mock.patch.object(fake.FakeBoot, 'validate', autospec=True)
-    def test_agent_rescue_validate_fails_no_rescue_ramdisk(
-            self, mock_boot_validate, mock_rescuing_net):
-        driver_info = self.node.driver_info
-        del driver_info['rescue_ramdisk']
-        self.node.driver_info = driver_info
-        self.node.save()
-        with task_manager.acquire(self.context, self.node.uuid) as task:
-            self.assertRaisesRegex(exception.MissingParameterValue,
-                                   'Node.*missing.*rescue_ramdisk',
-                                   task.driver.rescue.validate, task)
-            mock_rescuing_net.assert_called_once_with(mock.ANY, task)
-            mock_boot_validate.assert_called_once_with(mock.ANY, task)
-
-    @mock.patch.object(flat_network.FlatNetwork, 'validate_rescue',
-                       autospec=True)
-    @mock.patch.object(fake.FakeBoot, 'validate', autospec=True)
-    def test_agent_rescue_validate_fails_no_rescue_kernel(
-            self, mock_boot_validate, mock_rescuing_net):
-        driver_info = self.node.driver_info
-        del driver_info['rescue_kernel']
-        self.node.driver_info = driver_info
-        self.node.save()
-        with task_manager.acquire(self.context, self.node.uuid) as task:
-            self.assertRaisesRegex(exception.MissingParameterValue,
-                                   'Node.*missing.*rescue_kernel',
-                                   task.driver.rescue.validate, task)
-            mock_rescuing_net.assert_called_once_with(mock.ANY, task)
-            mock_boot_validate.assert_called_once_with(mock.ANY, task)
-
-    @mock.patch.object(flat_network.FlatNetwork, 'validate_rescue',
-                       autospec=True)
-    @mock.patch.object(fake.FakeBoot, 'validate', autospec=True)
+    @mock.patch.object(fake.FakeBoot, 'validate_rescue', autospec=True)
     def test_agent_rescue_validate_fails_no_rescue_password(
             self, mock_boot_validate, mock_rescuing_net):
         instance_info = self.node.instance_info
@@ -1435,7 +1403,7 @@ class AgentRescueTestCase(db_base.DbTestCase):
 
     @mock.patch.object(flat_network.FlatNetwork, 'validate_rescue',
                        autospec=True)
-    @mock.patch.object(fake.FakeBoot, 'validate', autospec=True)
+    @mock.patch.object(fake.FakeBoot, 'validate_rescue', autospec=True)
     def test_agent_rescue_validate_fails_empty_rescue_password(
             self, mock_boot_validate, mock_rescuing_net):
         instance_info = self.node.instance_info

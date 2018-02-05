@@ -58,14 +58,6 @@ OPTIONAL_PROPERTIES = {
                         '``image_https_proxy`` are not specified. Optional.'),
 }
 
-RESCUE_PROPERTIES = {
-    'rescue_kernel': _('UUID (from Glance) of the rescue kernel. This value '
-                       'is required for rescue mode.'),
-    'rescue_ramdisk': _('UUID (from Glance) of the rescue ramdisk with agent '
-                        'that is used at node rescue time. This value is '
-                        'required for rescue mode.'),
-}
-
 COMMON_PROPERTIES = REQUIRED_PROPERTIES.copy()
 COMMON_PROPERTIES.update(OPTIONAL_PROPERTIES)
 COMMON_PROPERTIES.update(agent_base_vendor.VENDOR_PROPERTIES)
@@ -709,11 +701,8 @@ class AgentRescue(base.RescueInterface):
     """Implementation of RescueInterface which uses agent ramdisk."""
 
     def get_properties(self):
-        """Return the properties of the interface.
-
-        :returns: dictionary of <property name>:<property description> entries.
-        """
-        return RESCUE_PROPERTIES.copy()
+        """Return the properties of the interface. """
+        return {}
 
     @METRICS.timer('AgentRescue.rescue')
     @task_manager.require_exclusive_lock
@@ -770,35 +759,25 @@ class AgentRescue(base.RescueInterface):
         :param task: a TaskManager instance with the node being checked
         :raises: InvalidParameterValue if 'instance_info/rescue_password' has
             empty password or rescuing network UUID config option
-            has an invalid value when 'neutron' network is used.
+            has an invalid value.
         :raises: MissingParameterValue if node is missing one or more required
             parameters
         """
-        node = task.node
-        missing_params = []
-
         # Validate rescuing network
         task.driver.network.validate_rescue(task)
-
         if CONF.agent.manage_agent_boot:
-            # TODO(stendulker): boot.validate() performs validation of
-            # provisioning related parameters which is not required during
-            # rescue operation.
+            # Validate boot properties
             task.driver.boot.validate(task)
-            for req in RESCUE_PROPERTIES:
-                if node.driver_info.get(req) is None:
-                    missing_params.append('driver_info/' + req)
+            # Validate boot properties related to rescue
+            task.driver.boot.validate_rescue(task)
 
+        node = task.node
         rescue_pass = node.instance_info.get('rescue_password')
         if rescue_pass is None:
-            missing_params.append('instance_info/rescue_password')
-
-        if missing_params:
-            msg = _('Node %(node)s is missing parameter(s): '
-                    '%(params)s. These are required for rescuing node.')
-            raise exception.MissingParameterValue(
-                msg % {'node': node.uuid,
-                       'params': ', '.join(missing_params)})
+            msg = _("Node %(node)s is missing "
+                    "'instance_info/rescue_password'. "
+                    "It is required for rescuing node.")
+            raise exception.MissingParameterValue(msg % {'node': node.uuid})
 
         if not rescue_pass.strip():
             msg = (_("The 'instance_info/rescue_password' is an empty string "

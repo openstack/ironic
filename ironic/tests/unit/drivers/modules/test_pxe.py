@@ -34,6 +34,7 @@ from ironic.common import states
 from ironic.common import utils as common_utils
 from ironic.conductor import task_manager
 from ironic.conductor import utils as manager_utils
+from ironic.drivers import base as drivers_base
 from ironic.drivers.modules import agent_base_vendor
 from ironic.drivers.modules import deploy_utils
 from ironic.drivers.modules import pxe
@@ -1295,3 +1296,57 @@ class PXEBootTestCase(db_base.DbTestCase):
             clean_up_pxe_env_mock.assert_called_once_with(task, image_info)
             get_image_info_mock.assert_called_once_with(
                 task.node, task.context)
+
+
+class PXEValidateRescueTestCase(db_base.DbTestCase):
+
+    def setUp(self):
+        super(PXEValidateRescueTestCase, self).setUp()
+        for iface in drivers_base.ALL_INTERFACES:
+            impl = 'fake'
+            if iface == 'network':
+                impl = 'flat'
+            if iface == 'rescue':
+                impl = 'agent'
+            if iface == 'boot':
+                impl = 'pxe'
+            config_kwarg = {'enabled_%s_interfaces' % iface: [impl],
+                            'default_%s_interface' % iface: impl}
+            self.config(**config_kwarg)
+        self.config(enabled_hardware_types=['fake-hardware'])
+        driver_info = DRV_INFO_DICT
+        driver_info.update({'rescue_ramdisk': 'my_ramdisk',
+                            'rescue_kernel': 'my_kernel'})
+        instance_info = INST_INFO_DICT
+        instance_info.update({'rescue_password': 'password'})
+        n = {
+            'driver': 'fake-hardware',
+            'instance_info': instance_info,
+            'driver_info': driver_info,
+            'driver_internal_info': DRV_INTERNAL_INFO_DICT,
+        }
+        self.node = obj_utils.create_test_node(self.context, **n)
+
+    def test_validate_rescue(self):
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            task.driver.boot.validate_rescue(task)
+
+    def test_validate_rescue_no_rescue_ramdisk(self):
+        driver_info = self.node.driver_info
+        del driver_info['rescue_ramdisk']
+        self.node.driver_info = driver_info
+        self.node.save()
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            self.assertRaisesRegex(exception.MissingParameterValue,
+                                   'Missing.*rescue_ramdisk',
+                                   task.driver.boot.validate_rescue, task)
+
+    def test_validate_rescue_fails_no_rescue_kernel(self):
+        driver_info = self.node.driver_info
+        del driver_info['rescue_kernel']
+        self.node.driver_info = driver_info
+        self.node.save()
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            self.assertRaisesRegex(exception.MissingParameterValue,
+                                   'Missing.*rescue_kernel',
+                                   task.driver.boot.validate_rescue, task)
