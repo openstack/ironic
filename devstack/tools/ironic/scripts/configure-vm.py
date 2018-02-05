@@ -73,6 +73,8 @@ def main():
                         help='The libvirt network driver to use')
     parser.add_argument('--interface-count', default=1, type=int,
                         help='The number of interfaces to add to VM.'),
+    parser.add_argument('--mac', default=None,
+                        help='The mac for the first interface on the vm')
     parser.add_argument('--console-log',
                         help='File to log console')
     parser.add_argument('--emulator', default=None,
@@ -99,6 +101,7 @@ def main():
         'cpus': args.cpus,
         'bootdev': args.bootdev,
         'interface_count': args.interface_count,
+        'mac': args.mac,
         'nicdriver': args.libvirt_nic_driver,
         'emulator': args.emulator,
         'disk_format': args.disk_format,
