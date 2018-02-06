@@ -662,7 +662,7 @@ def get_controller_reserved_names(cls):
         if isinstance(member, rest.RestController)]
 
     if hasattr(cls, '_custom_actions'):
-        reserved_names += cls._custom_actions.keys()
+        reserved_names += list(cls._custom_actions)
 
     return reserved_names
 

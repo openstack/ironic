@@ -126,7 +126,7 @@ class IloManagement(base.ManagementInterface):
                   in :mod:`ironic.common.boot_devices`.
 
         """
-        return list(BOOT_DEVICE_MAPPING_TO_ILO.keys())
+        return list(BOOT_DEVICE_MAPPING_TO_ILO)
 
     @METRICS.timer('IloManagement.get_boot_device')
     def get_boot_device(self, task):

@@ -59,7 +59,7 @@ def _extract_attributes(image):
             output[attr] = getattr(image, attr, None)
         output['schema'] = image['schema']
 
-        for image_property in set(image.keys()) - set(IMAGE_ATTRIBUTES):
+        for image_property in set(image) - set(IMAGE_ATTRIBUTES):
             output['properties'][image_property] = image[image_property]
 
     return output

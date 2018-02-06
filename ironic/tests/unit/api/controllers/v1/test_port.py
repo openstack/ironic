@@ -421,7 +421,7 @@ class TestListPorts(test_api_base.BaseApiTest):
                                    uuid=uuid,
                                    node_id=self.node.id)
         data = self.get_json('/ports/%s' % uuid)
-        self.assertIn('links', data.keys())
+        self.assertIn('links', data)
         self.assertEqual(2, len(data['links']))
         self.assertIn(uuid, data['links'][0]['href'])
         for l in data['links']:
@@ -1007,10 +1007,10 @@ class TestPatch(test_api_base.BaseApiTest):
         self.port.save()
 
         # mutate extra so we replace all of them
-        extra = dict((k, extra[k] + 'x') for k in extra.keys())
+        extra = dict((k, extra[k] + 'x') for k in extra)
 
         patch = []
-        for k in extra.keys():
+        for k in extra:
             patch.append({'path': '/extra/%s' % k,
                           'value': extra[k],
                           'op': 'replace'})
@@ -1100,7 +1100,7 @@ class TestPatch(test_api_base.BaseApiTest):
     def test_add_multi(self, mock_upd):
         extra = {"foo1": "bar1", "foo2": "bar2", "foo3": "bar3"}
         patch = []
-        for k in extra.keys():
+        for k in extra:
             patch.append({'path': '/extra/%s' % k,
                           'value': extra[k],
                           'op': 'add'})

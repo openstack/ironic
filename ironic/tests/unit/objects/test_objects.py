@@ -349,11 +349,11 @@ class _TestObject(object):
         myobj3_fields = ['new_field']
         self.assertTrue(issubclass(TestSubclassedObject, MyObj))
         self.assertEqual(len(myobj_fields), len(MyObj.fields))
-        self.assertEqual(set(myobj_fields), set(MyObj.fields.keys()))
+        self.assertEqual(set(myobj_fields), set(MyObj.fields))
         self.assertEqual(len(myobj_fields) + len(myobj3_fields),
                          len(TestSubclassedObject.fields))
         self.assertEqual(set(myobj_fields) | set(myobj3_fields),
-                         set(TestSubclassedObject.fields.keys()))
+                         set(TestSubclassedObject.fields))
 
     def _test_get_changes(self, target_version='1.5'):
         obj = MyObj(self.context)
