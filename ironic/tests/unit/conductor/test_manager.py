@@ -6619,7 +6619,7 @@ class DoNodeAdoptionTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
                                       None]
 
         # NOTE(sambetts) Test to make sure deploy driver that doesn't support
-        # version yet falls back to old behviour and logs a warning.
+        # version yet falls back to old behaviour and logs a warning.
         self.service.heartbeat(
             self.context, node.uuid, 'http://callback', '1.4.1')
         calls = [
