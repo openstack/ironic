@@ -1182,9 +1182,9 @@ def _validate_argsinfo(argsinfo):
     :param argsinfo: a dictionary of keyword arguments where key is the name of
         the argument and value is a dictionary as follows::
 
-            ‘description’: <description>. Required. This should include
+            'description': <description>. Required. This should include
                            possible values.
-            ‘required’: Boolean. Optional; default is False. True if this
+            'required': Boolean. Optional; default is False. True if this
                         argument is required.  If so, it must be specified in
                         the clean request; false if it is optional.
     :raises InvalidParameterValue: if any of the arguments are invalid
@@ -1276,9 +1276,9 @@ def clean_step(priority, abortable=False, argsinfo=None):
     :param argsinfo: a dictionary of keyword arguments where key is the name of
         the argument and value is a dictionary as follows::
 
-            ‘description’: <description>. Required. This should include
+            'description': <description>. Required. This should include
                            possible values.
-            ‘required’: Boolean. Optional; default is False. True if this
+            'required': Boolean. Optional; default is False. True if this
                         argument is required.  If so, it must be specified in
                         the clean request; false if it is optional.
     :raises InvalidParameterValue: if any of the arguments are invalid
