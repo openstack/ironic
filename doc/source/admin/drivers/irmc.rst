@@ -8,17 +8,9 @@ Overview
 ========
 
 The iRMC driver enables control FUJITSU PRIMERGY via ServerView
-Common Command Interface (SCCI).
-
-Support for FUJITSU PRIMERGY servers consists of the ``irmc`` hardware
-type, along with three classic drivers that were instituted before the
-implementation of the functionality enabling the hardware type.
-
-The classic drivers are:
-
-* ``pxe_irmc``
-* ``iscsi_irmc``
-* ``agent_irmc``
+Common Command Interface (SCCI). Support for FUJITSU PRIMERGY servers consists
+of the ``irmc`` hardware type and a few hardware interfaces specific for that
+hardware type.
 
 Prerequisites
 =============
@@ -31,11 +23,9 @@ Prerequisites
 Hardware Type
 =============
 
-The ``irmc`` hardware type is introduced to support the new Ironic driver
-model. It is recommended to use ``irmc`` hardware type for FUJITSU PRIMERGY
-hardware instead of the classic drivers.
-
-For how to enable ``irmc`` hardware type, see :ref:`enable-hardware-types`.
+The ``irmc`` hardware type is available for FUJITSU PRIMERGY servers. For
+information on how to enable the ``irmc`` hardware type, see
+:ref:`enable-hardware-types`.
 
 Hardware interfaces
 ^^^^^^^^^^^^^^^^^^^
@@ -45,14 +35,15 @@ hardware interfaces:
 
 * boot
     Supports ``irmc-virtual-media``, ``irmc-pxe``, and ``pxe``.
-    The default is ``irmc-virtual-media``.
+    The default is ``irmc-virtual-media``. The ``irmc-virtual-media`` boot
+    interface enables the virtual media based deploy with IPA (Ironic Python
+    Agent).
 
     .. warning::
        We deprecated the ``pxe`` boot interface when used with ``irmc``
        hardware type. Support for this interface will be removed in the
        future. Instead, use ``irmc-pxe``. ``irmc-pxe`` boot interface
-       was introduced in Pike and is used in the ``pxe_irmc`` classic
-       driver.
+       was introduced in Pike.
 
 * console
     Supports ``ipmitool-socat``, ``ipmitool-shellinabox``, and ``no-console``.
@@ -62,16 +53,17 @@ hardware interfaces:
     Supports ``irmc``, ``inspector``, and ``no-inspect``.
     The default is ``irmc``.
 
-.. note::
-   `Ironic Inspector <https://docs.openstack.org/ironic-inspector/latest/>`_
-   needs to be present and configured to use ``inspector`` as the
-   inspect interface.
+    .. note::
+       `Ironic Inspector <https://docs.openstack.org/ironic-inspector/latest/>`_
+       needs to be present and configured to use ``inspector`` as the
+       inspect interface.
 
 * management
     Supports only ``irmc``.
 
 * power
-    Supports only ``irmc``.
+    Supports only ``irmc``, which enables power control via ServerView Common
+    Command Interface (SCCI).
 
 For other hardware interfaces, ``irmc`` hardware type supports the
 Bare Metal reference interfaces. For more details about the hardware
@@ -106,8 +98,84 @@ Here is a command example to enroll a node with ``irmc`` hardware type.
       --deploy-interface direct \
       --inspect-interface irmc
 
+Node configuration
+^^^^^^^^^^^^^^^^^^
+
+* Each node is configured for ``irmc`` hardware type by setting the following
+  ironic node object’s properties:
+
+  - ``driver_info/irmc_address`` property to be ``IP address`` or
+    ``hostname`` of the iRMC.
+  - ``driver_info/irmc_username`` property to be ``username`` for
+    the iRMC with administrator privileges.
+  - ``driver_info/irmc_password`` property to be ``password`` for
+    irmc_username.
+  - ``properties/capabilities`` property to be ``boot_mode:uefi`` if
+    UEFI boot is required.
+  - ``properties/capabilities`` property to be ``secure_boot:true`` if
+    UEFI Secure Boot is required. Please refer to `UEFI Secure Boot Support`_
+    for more information.
+
+* The following properties are also required if ``irmc-virtual-media`` boot
+  interface is used:
+
+  - ``driver_info/irmc_deploy_iso`` property to be either deploy iso
+    file name, Glance UUID, or Image Service URL.
+  - ``instance info/irmc_boot_iso`` property to be either boot iso
+    file name, Glance UUID, or Image Service URL. This is optional
+    property when ``boot_option`` is set to ``netboot``.
+
+* All of the nodes are configured by setting the following configuration
+  options in the ``[irmc]`` section of ``/etc/ironic/ironic.conf``:
+
+  - ``port``: Port to be used for iRMC operations; either 80
+    or 443. The default value is 443. Optional.
+  - ``auth_method``: Authentication method for iRMC operations;
+    either ``basic`` or ``digest``. The default value is ``basic``. Optional.
+  - ``client_timeout``: Timeout (in seconds) for iRMC
+    operations. The default value is 60. Optional.
+  - ``sensor_method``: Sensor data retrieval method; either
+    ``ipmitool`` or ``scci``. The default value is ``ipmitool``. Optional.
+
+* The following options are required if ``irmc-virtual-media`` boot
+  interface is enabled:
+
+  - ``remote_image_share_root``: Ironic conductor node's ``NFS`` or
+    ``CIFS`` root path. The default value is ``/remote_image_share_root``.
+  - ``remote_image_server``: IP of remote image server.
+  - ``remote_image_share_type``: Share type of virtual media, either
+    ``NFS`` or ``CIFS``. The default is ``CIFS``.
+  - ``remote_image_share_name``: share name of ``remote_image_server``.
+    The default value is ``share``.
+  - ``remote_image_user_name``: User name of ``remote_image_server``.
+  - ``remote_image_user_password``: Password of ``remote_image_user_name``.
+  - ``remote_image_user_domain``: Domain name of ``remote_image_user_name``.
+
+* The following options are required if ``irmc`` inspect interface is enabled:
+
+  - ``snmp_version``: SNMP protocol version; either ``v1``, ``v2c`` or
+    ``v3``. The default value is ``v2c``. Optional.
+  - ``snmp_port``: SNMP port. The default value is ``161``. Optional.
+  - ``snmp_community``: SNMP community required for versions ``v1``
+    and ``v2c``. The default value is ``public``. Optional.
+  - ``snmp_security``: SNMP security name required for version ``v3``.
+    Optional.
+
+* Each node can be further configured by setting the following ironic
+  node object’s properties which override the parameter values in
+  ``[irmc]`` section of ``/etc/ironic/ironic.conf``:
+
+  - ``driver_info/irmc_port`` property overrides ``port``.
+  - ``driver_info/irmc_auth_method`` property overrides ``auth_method``.
+  - ``driver_info/irmc_client_timeout`` property overrides ``client_timeout``.
+  - ``driver_info/irmc_sensor_method`` property overrides ``sensor_method``.
+  - ``driver_info/irmc_snmp_version`` property overrides ``snmp_version``.
+  - ``driver_info/irmc_snmp_port`` property overrides ``snmp_port``.
+  - ``driver_info/irmc_snmp_community`` property overrides ``snmp_community``.
+  - ``driver_info/irmc_snmp_security`` property overrides ``snmp_security``.
+
 Upgrading to ``irmc`` hardware type
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 When upgrading from a classic driver to the ``irmc`` hardware type,
 make sure you specify the hardware interfaces that are used by the
@@ -115,8 +183,19 @@ classic driver. :doc:`/admin/upgrade-to-hardware-types` has more
 information, including the hardware interfaces corresponding to
 the classic drivers.
 
-Classic Drivers
-===============
+Classic Drivers (Deprecated)
+============================
+
+These are the classic drivers (deprecated) for FUJITSU PRIMERGY servers.
+
+* ``pxe_irmc``
+* ``iscsi_irmc``
+* ``agent_irmc``
+
+.. warning::
+   The classic drivers are deprecated in the Queens release and will be removed
+   in the Rocky release. The ``irmc`` hardware type should be used instead of
+   the classic drivers.
 
 pxe_irmc driver
 ^^^^^^^^^^^^^^^
@@ -218,12 +297,11 @@ Node configuration
   - ``properties/capabilities`` property to be ``secure_boot:true`` if
     Secure Boot is required. Please refer to `UEFI Secure Boot Support`_
     for more information.
-  - ``driver_info/irmc_deploy_iso`` property to be either ``deploy iso
-    file name``, ``Glance UUID``, ``Glance URL`` or ``Image Service
-    URL``.
-  - ``instance info/irmc_boot_iso`` property to be either ``boot iso
-    file name``, ``Glance UUID``, ``Glance URL`` or ``Image Service
-    URL``. This is optional property for ``netboot``.
+  - ``driver_info/irmc_deploy_iso`` property to be either deploy iso
+    file name, Glance UUID, or Image Service URL.
+  - ``instance info/irmc_boot_iso`` property to be either boot iso
+    file name, Glance UUID, or Image Service URL. This is optional
+    property when ``boot_option`` is set to ``netboot``.
 
 * All of nodes are configured by setting the following configuration
   options in ``[irmc]`` section of ``/etc/ironic/ironic.conf``:
@@ -303,9 +381,11 @@ Node configuration
   - ``properties/capabilities`` property to be ``secure_boot:true`` if
     Secure Boot is required. Please refer to `UEFI Secure Boot Support`_
     for more information.
-  - ``driver_info/irmc_deploy_iso`` property to be either ``deploy iso
-    file name``, ``Glance UUID``, ``Glance URL`` or ``Image Service
-    URL``.
+  - ``driver_info/irmc_deploy_iso`` property to be either deploy iso
+    file name, Glance UUID, or Image Service URL.
+  - ``instance info/irmc_boot_iso`` property to be either boot iso
+    file name, Glance UUID, or Image Service URL. This is optional
+    property when ``boot_option`` is set to ``netboot``.
 
 * All of nodes are configured by setting the following configuration
   options in ``[irmc]`` section of ``/etc/ironic/ironic.conf``:
@@ -352,12 +432,13 @@ Node configuration
   - ``driver_info/irmc_snmp_community`` property overrides ``snmp_community``.
   - ``driver_info/irmc_snmp_security`` property overrides ``snmp_security``.
 
-Functionalities across drivers
-==============================
+Optional functionalities for the ``irmc`` hardware type
+=======================================================
 
 UEFI Secure Boot Support
 ^^^^^^^^^^^^^^^^^^^^^^^^
-The hardware type ``irmc`` and iRMC classic drivers support secure boot deploy.
+The hardware type ``irmc`` (and all iRMC classic drivers) supports secure boot
+deploy.
 
 .. warning::
      Secure boot feature is not supported with ``pxe`` boot interface.
@@ -385,14 +466,8 @@ following sections describes both methods:
 
 Node Cleaning Support
 ^^^^^^^^^^^^^^^^^^^^^
-The ``irmc`` hardware type and the following iRMC classic drivers support
-node cleaning:
-
-* ``pxe_irmc``
-* ``iscsi_irmc``
-* ``agent_irmc``
-
-For more information on node cleaning, see :ref:`cleaning`
+The ``irmc`` hardware type (and all iRMC classic drivers) supports node
+cleaning. For more information on node cleaning, see :ref:`cleaning`.
 
 Supported **Automated** Cleaning Operations
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -422,23 +497,18 @@ For more information on node automated cleaning, see :ref:`automated_cleaning`
 
 Boot from Remote Volume
 ^^^^^^^^^^^^^^^^^^^^^^^
-The iRMC driver supports the generic iPXE-based remote volume booting when
-using the ``pxe_irmc`` classic driver or the following boot interfaces with
-the ``irmc`` hardware type:
+The ``irmc`` hardware type (and ``pxe_irmc`` classic driver) supports the
+generic iPXE-based remote volume booting when using the following boot
+interfaces:
 
 * ``irmc-pxe``
 * ``pxe``
 
-In addition, the iRMC driver also supports remote volume booting without iPXE.
-This is available when using the ``irmc-virtual-media`` boot interface with the
-``irmc`` hardware type. It is also supported with the following classic
-drivers:
-
-* ``iscsi_irmc``
-* ``agent_irmc``
-
-This feature configures a node to boot from a remote volume by using the API of
-iRMC. It supports iSCSI and FibreChannel.
+In addition, the ``irmc`` hardware type supports remote volume booting without
+iPXE. This is available when using the ``irmc-virtual-media`` boot interface
+(and ``iscsi_irmc`` and ``agent_irmc`` classic drivers). This feature
+configures a node to boot from a remote volume by using the API of iRMC. It
+supports iSCSI and FibreChannel.
 
 Configuration
 ~~~~~~~~~~~~~
@@ -494,12 +564,8 @@ Adapters supported by
 Hardware Inspection Support
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-The ``irmc`` hardware type (only ``irmc`` inspect interface is supported) and
-the following iRMC classic drivers support Hardware Inspection:
-
-* ``pxe_irmc``
-* ``iscsi_irmc``
-* ``agent_irmc``
+The ``irmc`` hardware type (and all iRMC classic drivers) provides the
+iRMC-specific hardware inspection with ``irmc`` inspect interface.
 
 .. note::
    SNMP requires being enabled in ServerView® iRMC S4 Web Server(Network
