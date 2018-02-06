@@ -368,8 +368,8 @@ clean_step:
 clean_steps:
   description: |
     An ordered list of cleaning steps that will be performed on the node. A
-    cleaning step is a dictionary with required keys ‘interface’ and ‘step’, and
-    optional key ‘args’. If specified, the value for ‘args’ is a keyword variable
+    cleaning step is a dictionary with required keys 'interface' and 'step', and
+    optional key 'args'. If specified, the value for 'args' is a keyword variable
     argument dictionary that is passed to the cleaning step method.
   in: body
   required: false
