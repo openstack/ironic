@@ -1788,7 +1788,7 @@ class NodesController(rest.RestController):
         api_utils.check_allow_specify_fields(fields)
         api_utils.check_allowed_fields(fields)
 
-        rpc_node = api_utils.get_rpc_node(node_ident)
+        rpc_node = api_utils.get_rpc_node_with_suffix(node_ident)
         return Node.convert_with_links(rpc_node, fields=fields)
 
     @METRICS.timer('NodesController.post')
@@ -1913,7 +1913,7 @@ class NodesController(rest.RestController):
         if r_interface and not api_utils.allow_rescue_interface():
             raise exception.NotAcceptable()
 
-        rpc_node = api_utils.get_rpc_node(node_ident)
+        rpc_node = api_utils.get_rpc_node_with_suffix(node_ident)
 
         remove_inst_uuid_patch = [{'op': 'remove', 'path': '/instance_uuid'}]
         if rpc_node.maintenance and patch == remove_inst_uuid_patch:
@@ -1988,7 +1988,7 @@ class NodesController(rest.RestController):
         if self.from_chassis:
             raise exception.OperationNotPermitted()
 
-        rpc_node = api_utils.get_rpc_node(node_ident)
+        rpc_node = api_utils.get_rpc_node_with_suffix(node_ident)
         chassis_uuid = _get_chassis_uuid(rpc_node)
         notify.emit_start_notification(context, rpc_node, 'delete',
                                        chassis_uuid=chassis_uuid)

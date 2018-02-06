@@ -13,11 +13,14 @@
 # under the License.
 
 from ironic.api.middleware import auth_token
+from ironic.api.middleware import json_ext
 from ironic.api.middleware import parsable_error
 
 
 ParsableErrorMiddleware = parsable_error.ParsableErrorMiddleware
 AuthTokenMiddleware = auth_token.AuthTokenMiddleware
+JsonExtensionMiddleware = json_ext.JsonExtensionMiddleware
 
 __all__ = ('ParsableErrorMiddleware',
-           'AuthTokenMiddleware')
+           'AuthTokenMiddleware',
+           'JsonExtensionMiddleware')

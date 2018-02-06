@@ -157,6 +157,45 @@ class TestListNodes(test_api_base.BaseApiTest):
         # never expose the chassis_id
         self.assertNotIn('chassis_id', data)
 
+    def test_get_one_with_json(self):
+        # Test backward compatibility with guess_content_type_from_ext
+        node = obj_utils.create_test_node(self.context,
+                                          chassis_id=self.chassis.id)
+        data = self.get_json(
+            '/nodes/%s.json' % node.uuid,
+            headers={api_base.Version.string: str(api_v1.max_version())})
+        self.assertEqual(node.uuid, data['uuid'])
+
+    def test_get_one_with_json_in_name(self):
+        # Test that it is possible to name a node ending with .json
+        node = obj_utils.create_test_node(self.context,
+                                          name='node.json',
+                                          chassis_id=self.chassis.id)
+        data = self.get_json(
+            '/nodes/%s' % node.name,
+            headers={api_base.Version.string: str(api_v1.max_version())})
+        self.assertEqual(node.uuid, data['uuid'])
+
+    def test_get_one_with_suffix(self):
+        # This tests that we don't mess with mime-like suffixes
+        node = obj_utils.create_test_node(self.context,
+                                          name='test.1',
+                                          chassis_id=self.chassis.id)
+        data = self.get_json(
+            '/nodes/%s' % node.name,
+            headers={api_base.Version.string: str(api_v1.max_version())})
+        self.assertEqual(node.uuid, data['uuid'])
+
+    def test_get_one_with_double_json(self):
+        # Check that .json is only stripped once
+        node = obj_utils.create_test_node(self.context,
+                                          name='node.json',
+                                          chassis_id=self.chassis.id)
+        data = self.get_json(
+            '/nodes/%s.json' % node.name,
+            headers={api_base.Version.string: str(api_v1.max_version())})
+        self.assertEqual(node.uuid, data['uuid'])
+
     def test_node_states_field_hidden_in_lower_version(self):
         node = obj_utils.create_test_node(self.context,
                                           chassis_id=self.chassis.id)
@@ -1381,7 +1420,7 @@ class TestPatch(test_api_base.BaseApiTest):
     def setUp(self):
         super(TestPatch, self).setUp()
         self.chassis = obj_utils.create_test_chassis(self.context)
-        self.node = obj_utils.create_test_node(self.context, name='node-57',
+        self.node = obj_utils.create_test_node(self.context, name='node-57.1',
                                                chassis_id=self.chassis.id)
         self.node_no_name = obj_utils.create_test_node(
             self.context, uuid='deadbeef-0000-1111-2222-333333333333',
@@ -1447,6 +1486,25 @@ class TestPatch(test_api_base.BaseApiTest):
          .updated_at) = "2013-12-03T06:20:41.184720+00:00"
         response = self.patch_json(
             '/nodes/%s' % self.node.name,
+            [{'path': '/instance_uuid',
+              'value': 'aaaaaaaa-1111-bbbb-2222-cccccccccccc',
+              'op': 'replace'}],
+            headers={api_base.Version.string: "1.5"})
+        self.assertEqual('application/json', response.content_type)
+        self.assertEqual(http_client.OK, response.status_code)
+        self.assertEqual(self.mock_update_node.return_value.updated_at,
+                         timeutils.parse_isotime(response.json['updated_at']))
+        self.mock_update_node.assert_called_once_with(
+            mock.ANY, mock.ANY, 'test-topic')
+
+    def test_update_ok_by_name_with_json(self):
+        self.mock_update_node.return_value = self.node
+        (self
+         .mock_update_node
+         .return_value
+         .updated_at) = "2013-12-03T06:20:41.184720+00:00"
+        response = self.patch_json(
+            '/nodes/%s.json' % self.node.name,
             [{'path': '/instance_uuid',
               'value': 'aaaaaaaa-1111-bbbb-2222-cccccccccccc',
               'op': 'replace'}],
@@ -2780,8 +2838,15 @@ class TestDelete(test_api_base.BaseApiTest):
 
     @mock.patch.object(rpcapi.ConductorAPI, 'destroy_node')
     def test_delete_node_by_name(self, mock_dn):
-        node = obj_utils.create_test_node(self.context, name='foo')
+        node = obj_utils.create_test_node(self.context, name='foo.1')
         self.delete('/nodes/%s' % node.name,
+                    headers={api_base.Version.string: "1.5"})
+        mock_dn.assert_called_once_with(mock.ANY, node.uuid, 'test-topic')
+
+    @mock.patch.object(rpcapi.ConductorAPI, 'destroy_node')
+    def test_delete_node_by_name_with_json(self, mock_dn):
+        node = obj_utils.create_test_node(self.context, name='foo')
+        self.delete('/nodes/%s.json' % node.name,
                     headers={api_base.Version.string: "1.5"})
         mock_dn.assert_called_once_with(mock.ANY, node.uuid, 'test-topic')
 

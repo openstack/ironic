@@ -26,6 +26,7 @@ from ironic.api.controllers import base
 from ironic.api import hooks
 from ironic.api import middleware
 from ironic.api.middleware import auth_token
+from ironic.api.middleware import json_ext
 from ironic.common import exception
 from ironic.conf import CONF
 
@@ -73,6 +74,11 @@ def setup_app(pecan_config=None, extra_hooks=None):
         force_canonical=getattr(pecan_config.app, 'force_canonical', True),
         hooks=app_hooks,
         wrap_app=middleware.ParsableErrorMiddleware,
+        # NOTE(dtantsur): enabling this causes weird issues with nodes named
+        # as if they had a known mime extension, e.g. "mynode.1". We do
+        # simulate the same behaviour for .json extensions for backward
+        # compatibility through JsonExtensionMiddleware.
+        guess_content_type_from_ext=False,
     )
 
     if CONF.audit.enabled:
@@ -105,6 +111,8 @@ def setup_app(pecan_config=None, extra_hooks=None):
         expose_headers=[base.Version.max_string, base.Version.min_string,
                         base.Version.string]
     )
+
+    app = json_ext.JsonExtensionMiddleware(app)
 
     return app
 
