@@ -170,7 +170,7 @@ class AgentClient(object):
     @METRICS.timer('AgentClient.get_clean_steps')
     def get_clean_steps(self, node, ports):
         params = {
-            'node': node.as_dict(),
+            'node': node.as_dict(secure=True),
             'ports': [port.as_dict() for port in ports]
         }
         return self._command(node=node,
@@ -182,7 +182,7 @@ class AgentClient(object):
     def execute_clean_step(self, step, node, ports):
         params = {
             'step': step,
-            'node': node.as_dict(),
+            'node': node.as_dict(secure=True),
             'ports': [port.as_dict() for port in ports],
             'clean_version': node.driver_internal_info.get(
                 'hardware_manager_version')
