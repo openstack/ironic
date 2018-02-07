@@ -344,7 +344,7 @@ Adding scheduling information
 
 #. If you wish to perform more advanced scheduling of the instances based on
    hardware capabilities, you may add metadata to each node that will be
-   exposed to the the Compute scheduler (see: `ComputeCapabilitiesFilter`_).
+   exposed to the Compute scheduler (see: `ComputeCapabilitiesFilter`_).
    A full explanation of this is outside of the scope of this document. It can
    be done through the special ``capabilities`` member of node properties:
 
