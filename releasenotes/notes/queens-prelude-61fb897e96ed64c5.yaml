@@ -1,0 +1,31 @@
+---
+prelude: |
+    The 10.1.0 (Queens) release includes many new features and bug fixes.
+
+    Please review the "Upgrade Notes" sections (for 9.2.0, 10.0.0 and 10.1.0)
+    which describe the required actions to upgrade your installation from
+    9.1.x (Pike) to 10.1.0 (Queens).
+
+    A few major changes since 9.1.x (Pike) are worth mentioning:
+
+    - New `traits API
+      <https://developer.openstack.org/api-ref/baremetal/#node-traits-nodes>`_.
+
+    - New ``ansible`` deploy interface that allows greater customization of
+      the provisioning process.
+
+    - Support for rescuing and unrescuing nodes.
+
+    - Support for `routed networks
+      <https://docs.openstack.org/neutron/latest/admin/config-routed-networks>`_
+      when using the ``flat`` network interface.
+
+    - New ``xclarity`` hardware type for managing Lenovo server hardware.
+
+    Finally, this release deprecates classic drivers in favor of hardware
+    types. Please check `the migration guide
+    <https://docs.openstack.org/ironic/latest/admin/upgrade-to-hardware-types.html>`_
+    for information on which hardware types and interfaces to enable before
+    upgrade and how to update the nodes. The ``ironic-dbsync
+    online_data_migrations`` command will handle the migration, if all
+    required hardware types and interfaces are enabled before the upgrade.
