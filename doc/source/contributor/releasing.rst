@@ -61,9 +61,6 @@ Things to do before releasing
     <https://github.com/openstack/ironic/blob/54efd312395a56cbeee5c556df34afd8153c8076/ironic/tests/unit/common/test_release_mappings.py#L68>`_
     and grenade that tests new-release -> master) will fail.
 
-  * Regenerate the sample config file, so that the choices for the
-    ``[DEFAULT]/pin_release_version`` configuration are accurate.
-
 Things to do after releasing
 ============================
 
@@ -118,9 +115,6 @@ We need to submit patches for changes on master to:
     ``RELEASE_MAPPING`` associated with the oldest named release. Since we
     support upgrades between adjacent named releases, the master branch will
     only support upgrades from the most recent named release to master.
-
-  * regenerate the sample config file, so that the choices for the
-    ``[DEFAULT]/pin_release_version`` configuration are accurate.
 
   * remove any DB migration scripts from ``ironic.cmd.dbsync.ONLINE_MIGRATIONS``
     and remove the corresponding code from ironic. (These migration scripts
