@@ -1,39 +1,55 @@
 ---
 features:
   - |
-    Adds version 1.38 of the Bare Metal API, which provides supports for
-    rescuing (and unrescuing) a node. This includes:
+    Adds support for rescuing and unrescuing nodes:
 
-    *  A node in the ``active`` provision state can be rescued via the
-       ``GET /v1/nodes/{node_ident}/states/provision`` API, by specifying
-       ``rescue`` as the ``target`` value, and a ``rescue_password``
-       value. When the node has been rescued, it will be in the ``rescue``
-       provision state. A rescue ramdisk will be running, configured with
-       the specified ``rescue_password``, and listening with ssh on the
-       tenant network.
+    - Adds version 1.38 of the Bare Metal API, which includes:
 
-    *  A node in the ``rescue`` provision state can be unrescued (to the
-       ``active`` state) via the
-       ``GET /v1/nodes/{node_ident}/states/provision`` API, by specifying
-       ``unrescue`` as the ``target`` value.
+      *  A node in the ``active`` provision state can be rescued via the
+         ``GET /v1/nodes/{node_ident}/states/provision`` API, by specifying
+         ``rescue`` as the ``target`` value, and a ``rescue_password``
+         value. When the node has been rescued, it will be in the ``rescue``
+         provision state. A rescue ramdisk will be running, configured with
+         the specified ``rescue_password``, and listening with ssh on the
+         tenant network.
 
-    * The ``rescue_interface`` field of the node resource. A rescue
-      interface can be set when creating or updating a node.
+      *  A node in the ``rescue`` provision state can be unrescued (to the
+         ``active`` state) via the
+         ``GET /v1/nodes/{node_ident}/states/provision`` API, by specifying
+         ``unrescue`` as the ``target`` value.
 
-    * It also exposes ``default_rescue_interface`` and
-      ``enable_rescue_interfaces`` fields of the driver resource.
+      * The ``rescue_interface`` field of the node resource. A rescue
+        interface can be set when creating or updating a node.
 
-    * Adds new configuration options ``[DEFAULT]/enabled_rescue_interfaces``
-      and ``[DEFAULT]/default_rescue_interface``. Rescue interfaces are
-      enabled via the ``[DEFAULT]/enabled_rescue_interfaces``. A default
-      rescue interface to use when creating or updating nodes can be
-      specified with the ``[DEFAULT]/enabled_rescue_interfaces``.
+      * The ``default_rescue_interface`` and ``enabled_rescue_interfaces``
+        fields of the driver resource.
 
-    * Adds new options ``[conductor]/check_rescue_state_interval`` and
-      ``[conductor]/rescue_callback_timeout`` to fail the rescue operation
-      upon timeout, for the nodes that are stuck in the rescue wait state.
+    - Adds new configuration options for the rescue feature:
 
-    * Adds support for providing separate ``rescuing`` network with its
-      security groups using new options ``[neutron]/rescuing_network`` and
-      ``[neutron]/rescuing_network_security_groups`` respectively. It is
-      required to provide ``[neutron]/rescuing_network``.
+      * Rescue interfaces are enabled via
+        ``[DEFAULT]/enabled_rescue_interfaces``. A default rescue interface
+        to use when creating or updating nodes can be specified with
+        ``[DEFAULT]/enabled_rescue_interfaces``.
+
+      * Adds ``[conductor]/check_rescue_state_interval`` and
+        ``[conductor]/rescue_callback_timeout`` to fail the rescue operation
+        upon timeout, for the nodes that are stuck in the rescue wait state.
+
+      * Adds support for providing ``rescuing`` network (UUIR or name) with its
+        security groups using new options ``[neutron]/rescuing_network`` and
+        ``[neutron]/rescuing_network_security_groups`` respectively. It is
+        required to provide ``[neutron]/rescuing_network``. Alternatively,
+        the rescuing network can be provided per node via the node's
+        ``driver_info['rescuing_network']`` field.
+
+    - Adds ``rescue_interface`` field to the following node-related
+      notifications:
+
+      * ``baremetal.node.create.*``, new payload version 1.3
+      * ``baremetal.node.update.*``, new payload version 1.3
+      * ``baremetal.node.delete.*``, new payload version 1.3
+      * ``baremetal.node.maintenance.*``, new payload version 1.5
+      * ``baremetal.node.console.*``, new payload version 1.5
+      * ``baremetal.node.power_set.*``, new payload version 1.5
+      * ``baremetal.node.power_state_corrected.*``, new payload version 1.5
+      * ``baremetal.node.provision_set.*``, new payload version 1.5
