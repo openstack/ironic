@@ -120,6 +120,21 @@ RELEASE_MAPPING = {
             'VolumeTarget': ['1.0'],
         }
     },
+    '10.1': {
+        'api': '1.38',
+        'rpc': '1.44',
+        'objects': {
+            'Node': ['1.23'],
+            'Conductor': ['1.2'],
+            'Chassis': ['1.3'],
+            'Port': ['1.7'],
+            'Portgroup': ['1.3'],
+            'Trait': ['1.0'],
+            'TraitList': ['1.0'],
+            'VolumeConnector': ['1.0'],
+            'VolumeTarget': ['1.0'],
+        }
+    },
     'master': {
         'api': '1.38',
         'rpc': '1.44',
@@ -150,6 +165,7 @@ RELEASE_MAPPING = {
 #
 #            There should be at most two named mappings here.
 RELEASE_MAPPING['pike'] = RELEASE_MAPPING['9.1']
+RELEASE_MAPPING['queens'] = RELEASE_MAPPING['10.1']
 
 # List of available versions with named versions first; 'master' is excluded.
 RELEASE_VERSIONS = sorted(set(RELEASE_MAPPING) - {'master'}, reverse=True)
