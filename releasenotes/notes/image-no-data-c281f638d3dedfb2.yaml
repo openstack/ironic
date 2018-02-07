@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Fails deployment with the correct error message in a node's ``last_error``
+    field if an image from the Image service doesn't contain any data.
+    See `bug 1741223 <https://bugs.launchpad.net/bugs/1741223>`_ for details.

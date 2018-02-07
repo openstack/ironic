@@ -18,7 +18,17 @@ from glanceclient import exc as glance_exc
 NOW_GLANCE_FORMAT = "2010-10-11T10:30:22"
 
 
+class _GlanceWrapper(object):
+    def __init__(self, wrapped):
+        self.wrapped = wrapped
+
+    def __iter__(self):
+        return iter(())
+
+
 class StubGlanceClient(object):
+
+    fake_wrapped = object()
 
     def __init__(self, images=None):
         self._images = []
@@ -38,7 +48,7 @@ class StubGlanceClient(object):
 
     def data(self, image_id):
         self.get(image_id)
-        return []
+        return _GlanceWrapper(self.fake_wrapped)
 
 
 class FakeImage(object):
