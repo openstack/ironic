@@ -11,7 +11,7 @@ deprecations:
   - |
     Relying on the value of ``[DEFAULT]/auth_strategy`` configuration option to
     configure usage of standalone mode for ironic-inspector is deprecated and
-    will be impossible the the Rocky release.
+    will be impossible the Rocky release.
     Instead, set ``[inspector]/auth_type`` configuration option to ``none`` and
     provide the ironic-inspector inspector API address as
     ``[inspector]/endpoint_override`` configuration option.
