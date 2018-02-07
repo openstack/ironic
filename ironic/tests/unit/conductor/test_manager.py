@@ -1432,7 +1432,7 @@ class DoNodeDeployTearDownTestCase(mgr_utils.ServiceSetUpMixin,
     def test__do_node_deploy_driver_raises_prepare_error(self, mock_prepare,
                                                          mock_deploy):
         self._start_service()
-        # test when driver.deploy.prepare raises an exception
+        # test when driver.deploy.prepare raises an ironic error
         mock_prepare.side_effect = exception.InstanceDeployFailure('test')
         node = obj_utils.create_test_node(self.context, driver='fake',
                                           provision_state=states.DEPLOYING,
@@ -1453,9 +1453,34 @@ class DoNodeDeployTearDownTestCase(mgr_utils.ServiceSetUpMixin,
         self.assertFalse(mock_deploy.called)
 
     @mock.patch('ironic.drivers.modules.fake.FakeDeploy.deploy')
+    @mock.patch('ironic.drivers.modules.fake.FakeDeploy.prepare')
+    def test__do_node_deploy_unexpected_prepare_error(self, mock_prepare,
+                                                      mock_deploy):
+        self._start_service()
+        # test when driver.deploy.prepare raises an exception
+        mock_prepare.side_effect = RuntimeError('test')
+        node = obj_utils.create_test_node(self.context, driver='fake',
+                                          provision_state=states.DEPLOYING,
+                                          target_provision_state=states.ACTIVE)
+        task = task_manager.TaskManager(self.context, node.uuid)
+
+        self.assertRaises(RuntimeError,
+                          manager.do_node_deploy, task,
+                          self.service.conductor.id)
+        node.refresh()
+        self.assertEqual(states.DEPLOYFAIL, node.provision_state)
+        # NOTE(deva): failing a deploy does not clear the target state
+        #             any longer. Instead, it is cleared when the instance
+        #             is deleted.
+        self.assertEqual(states.ACTIVE, node.target_provision_state)
+        self.assertIsNotNone(node.last_error)
+        self.assertTrue(mock_prepare.called)
+        self.assertFalse(mock_deploy.called)
+
+    @mock.patch('ironic.drivers.modules.fake.FakeDeploy.deploy')
     def test__do_node_deploy_driver_raises_error(self, mock_deploy):
         self._start_service()
-        # test when driver.deploy.deploy raises an exception
+        # test when driver.deploy.deploy raises an ironic error
         mock_deploy.side_effect = exception.InstanceDeployFailure('test')
         node = obj_utils.create_test_node(self.context, driver='fake',
                                           provision_state=states.DEPLOYING,
@@ -1463,6 +1488,28 @@ class DoNodeDeployTearDownTestCase(mgr_utils.ServiceSetUpMixin,
         task = task_manager.TaskManager(self.context, node.uuid)
 
         self.assertRaises(exception.InstanceDeployFailure,
+                          manager.do_node_deploy, task,
+                          self.service.conductor.id)
+        node.refresh()
+        self.assertEqual(states.DEPLOYFAIL, node.provision_state)
+        # NOTE(deva): failing a deploy does not clear the target state
+        #             any longer. Instead, it is cleared when the instance
+        #             is deleted.
+        self.assertEqual(states.ACTIVE, node.target_provision_state)
+        self.assertIsNotNone(node.last_error)
+        mock_deploy.assert_called_once_with(mock.ANY)
+
+    @mock.patch('ironic.drivers.modules.fake.FakeDeploy.deploy')
+    def test__do_node_deploy_driver_unexpected_exception(self, mock_deploy):
+        self._start_service()
+        # test when driver.deploy.deploy raises an exception
+        mock_deploy.side_effect = RuntimeError('test')
+        node = obj_utils.create_test_node(self.context, driver='fake',
+                                          provision_state=states.DEPLOYING,
+                                          target_provision_state=states.ACTIVE)
+        task = task_manager.TaskManager(self.context, node.uuid)
+
+        self.assertRaises(RuntimeError,
                           manager.do_node_deploy, task,
                           self.service.conductor.id)
         node.refresh()

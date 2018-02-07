@@ -3174,11 +3174,11 @@ def do_node_deploy(task, conductor_id, configdrive=None):
     """Prepare the environment and deploy a node."""
     node = task.node
 
-    def handle_failure(e, task, logmsg, errmsg):
+    def handle_failure(e, task, logmsg, errmsg, traceback=False):
+        args = {'node': task.node.uuid, 'err': e}
+        LOG.error(logmsg, args, exc_info=traceback)
         # NOTE(deva): there is no need to clear conductor_affinity
         task.process_event('fail')
-        args = {'node': task.node.uuid, 'err': e}
-        LOG.error(logmsg, args)
         node.last_error = errmsg % e
 
     try:
@@ -3196,22 +3196,37 @@ def do_node_deploy(task, conductor_id, configdrive=None):
 
         try:
             task.driver.deploy.prepare(task)
-        except Exception as e:
+        except exception.IronicException as e:
             with excutils.save_and_reraise_exception():
                 handle_failure(
                     e, task,
                     ('Error while preparing to deploy to node %(node)s: '
                      '%(err)s'),
-                    _("Failed to prepare to deploy. Error: %s"))
-
-        try:
-            new_state = task.driver.deploy.deploy(task)
+                    _("Failed to prepare to deploy: %s"))
         except Exception as e:
             with excutils.save_and_reraise_exception():
                 handle_failure(
                     e, task,
+                    ('Unexpected error while preparing to deploy to node '
+                     '%(node)s'),
+                    _("Failed to prepare to deploy. Exception: %s"),
+                    traceback=True)
+
+        try:
+            new_state = task.driver.deploy.deploy(task)
+        except exception.IronicException as e:
+            with excutils.save_and_reraise_exception():
+                handle_failure(
+                    e, task,
                     'Error in deploy of node %(node)s: %(err)s',
-                    _("Failed to deploy. Error: %s"))
+                    _("Failed to deploy: %s"))
+        except Exception as e:
+            with excutils.save_and_reraise_exception():
+                handle_failure(
+                    e, task,
+                    'Unexpected error while deploying node %(node)s',
+                    _("Failed to deploy. Exception: %s"),
+                    traceback=True)
 
         # Update conductor_affinity to reference this conductor's ID
         # since there may be local persistent state
