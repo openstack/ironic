@@ -175,9 +175,18 @@ def default_interface(driver_or_hw_type, interface_type,
                                   hardware_type.AbstractHardwareType)
     # Explicit interface defaults
     additional_defaults = {
-        'network': 'flat' if CONF.dhcp.dhcp_provider == 'neutron' else 'noop',
         'storage': 'noop'
     }
+
+    if not is_hardware_type:
+        # For non hardware types we need to set a fallback for the network
+        # interface however hardware_types specify their own defaults if not in
+        # the config file.
+        if (CONF.dhcp.dhcp_provider == 'neutron' and
+                'flat' in CONF.enabled_network_interfaces):
+            additional_defaults['network'] = 'flat'
+        elif 'noop' in CONF.enabled_network_interfaces:
+            additional_defaults['network'] = 'noop'
 
     # The fallback default from the configuration
     impl_name = getattr(CONF, 'default_%s_interface' % interface_type)
