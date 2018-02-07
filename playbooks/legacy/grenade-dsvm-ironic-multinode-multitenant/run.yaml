@@ -1,3 +1,10 @@
+# !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+# NOTE(sambetts) DO NOT UPDATE this job when you update the other jobs with
+# changes related to the current branch. The devstack local config defined in
+# this job is run against the last (old) version of the devstack plugin in the
+# grenade steps.
+# !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
 - hosts: primary
   name: Autoconverted job legacy-grenade-dsvm-ironic-multinode-multitenant from old
     job gate-grenade-dsvm-ironic-multinode-multitenant-ubuntu-xenial
@@ -147,8 +154,7 @@
           export DEVSTACK_GATE_NEUTRON=1
           export DEVSTACK_GATE_VIRT_DRIVER=ironic
           export DEVSTACK_GATE_CONFIGDRIVE=1
-          export DEVSTACK_GATE_IRONIC_DRIVER=ipmi
-          export DEVSTACK_LOCAL_CONFIG+=$'\n'"IRONIC_DEFAULT_DEPLOY_INTERFACE=direct"
+          export DEVSTACK_GATE_IRONIC_DRIVER=agent_ipmitool
           export BRANCH_OVERRIDE="{{ zuul.override_checkout | default('default') }}"
           if [ "$BRANCH_OVERRIDE" != "default" ] ; then
               export OVERRIDE_ZUUL_BRANCH=$BRANCH_OVERRIDE
@@ -158,7 +164,7 @@
               export DEVSTACK_GATE_TLSPROXY=1
           fi
 
-          # direct deploy requires Swift temporary URLs
+          # agent_* drivers require Swift temporary URLs
           export DEVSTACK_LOCAL_CONFIG+=$'\n'"SWIFT_ENABLE_TEMPURLS=True"
           export DEVSTACK_LOCAL_CONFIG+=$'\n'"SWIFT_TEMPURL_KEY=secretkey"
 

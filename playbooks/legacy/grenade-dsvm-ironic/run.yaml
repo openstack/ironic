@@ -1,3 +1,10 @@
+# !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+# NOTE(sambetts) DO NOT UPDATE this job when you update the other jobs with
+# changes related to the current branch. The devstack local config defined in
+# this job is run against the last (old) version of the devstack plugin in the
+# grenade steps.
+# !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
 - hosts: all
   name: Autoconverted job legacy-grenade-dsvm-ironic from old job gate-grenade-dsvm-ironic-ubuntu-xenial-nv
   tasks:
@@ -109,8 +116,7 @@
           export DEVSTACK_GATE_NEUTRON=1
           export DEVSTACK_GATE_VIRT_DRIVER=ironic
           export DEVSTACK_GATE_CONFIGDRIVE=1
-          export DEVSTACK_GATE_IRONIC_DRIVER=ipmi
-          export DEVSTACK_LOCAL_CONFIG+=$'\n'"IRONIC_DEFAULT_DEPLOY_INTERFACE=iscsi"
+          export DEVSTACK_GATE_IRONIC_DRIVER=pxe_ipmitool
           export BRANCH_OVERRIDE="{{ zuul.override_checkout | default('default') }}"
           if [ "$BRANCH_OVERRIDE" != "default" ] ; then
               export OVERRIDE_ZUUL_BRANCH=$BRANCH_OVERRIDE
