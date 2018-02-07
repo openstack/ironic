@@ -20,6 +20,7 @@ from ironic.common import network
 from ironic.common import states
 from ironic.conductor import task_manager
 from ironic.conductor import utils as conductor_utils
+from ironic.drivers import base as drivers_base
 from ironic import objects
 from ironic.objects import fields as obj_fields
 from ironic.tests import base as tests_base
@@ -29,6 +30,25 @@ from ironic.tests.unit.db import utils as db_utils
 from ironic.tests.unit.objects import utils as obj_utils
 
 CONF = cfg.CONF
+
+
+class TestPowerNoTimeout(drivers_base.PowerInterface):
+    """Missing 'timeout' parameter for get_power_state & reboot"""
+
+    def get_properties(self):
+        return {}
+
+    def validate(self, task):
+        pass
+
+    def get_power_state(self, task):
+        return task.node.power_state
+
+    def set_power_state(self, task, power_state, timeout=None):
+        task.node.power_state = power_state
+
+    def reboot(self, task):
+        pass
 
 
 class NodeSetBootDeviceTestCase(db_base.DbTestCase):
@@ -185,7 +205,7 @@ class NodePowerActionTestCase(db_base.DbTestCase):
                 self.assertFalse(get_power_mock.called)
 
             node.refresh()
-            reboot_mock.assert_called_once_with(mock.ANY)
+            reboot_mock.assert_called_once_with(mock.ANY, timeout=None)
             self.assertEqual(states.POWER_ON, node['power_state'])
             self.assertIsNone(node['target_power_state'])
             self.assertIsNone(node['last_error'])
@@ -442,8 +462,8 @@ class NodePowerActionTestCase(db_base.DbTestCase):
 
                 node.refresh()
                 get_power_mock.assert_called_once_with(mock.ANY)
-                set_power_mock.assert_called_once_with(mock.ANY,
-                                                       states.POWER_ON)
+                set_power_mock.assert_called_once_with(
+                    mock.ANY, states.POWER_ON, timeout=None)
                 self.assertEqual(states.POWER_OFF, node['power_state'])
                 self.assertIsNone(node['target_power_state'])
                 self.assertIsNotNone(node['last_error'])
@@ -476,8 +496,8 @@ class NodePowerActionTestCase(db_base.DbTestCase):
 
                 node.refresh()
                 get_power_mock.assert_called_once_with(mock.ANY)
-                set_power_mock.assert_called_once_with(mock.ANY,
-                                                       states.POWER_ON)
+                set_power_mock.assert_called_once_with(
+                    mock.ANY, states.POWER_ON, timeout=None)
                 self.assertEqual(states.POWER_OFF, node.power_state)
                 self.assertIsNone(node.target_power_state)
                 self.assertIsNotNone(node.last_error)
@@ -699,6 +719,33 @@ class NodePowerActionTestCase(db_base.DbTestCase):
                                          'ironic-conductor', CONF.host,
                                          'baremetal.node.power_set.error',
                                          obj_fields.NotificationLevel.ERROR)
+
+    def test_node_power_action_reboot_no_timeout(self):
+        """Test node reboot using Power Interface with no timeout arg."""
+        node = obj_utils.create_test_node(self.context,
+                                          uuid=uuidutils.generate_uuid(),
+                                          driver='fake-hardware',
+                                          console_interface='no-console',
+                                          inspect_interface='no-inspect',
+                                          raid_interface='no-raid',
+                                          rescue_interface='no-rescue',
+                                          vendor_interface='no-vendor',
+                                          power_state=states.POWER_ON)
+        self.config(enabled_boot_interfaces=['fake'])
+        self.config(enabled_deploy_interfaces=['fake'])
+        self.config(enabled_management_interfaces=['fake'])
+        self.config(enabled_power_interfaces=['fake'])
+
+        task = task_manager.TaskManager(self.context, node.uuid)
+        task.driver.power = TestPowerNoTimeout()
+        self.assertRaisesRegex(TypeError,
+                               'unexpected keyword argument',
+                               conductor_utils.node_power_action,
+                               task, states.REBOOT)
+        node.refresh()
+        self.assertEqual(states.POWER_ON, node['power_state'])
+        self.assertIsNone(node['target_power_state'])
+        self.assertTrue('unexpected keyword argument' in node['last_error'])
 
 
 class NodeSoftPowerActionTestCase(db_base.DbTestCase):

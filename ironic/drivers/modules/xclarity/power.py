@@ -71,15 +71,23 @@ class XClarityPower(base.PowerInterface):
 
     @METRICS.timer('XClarityPower.set_power_state')
     @task_manager.require_exclusive_lock
-    def set_power_state(self, task, power_state):
+    def set_power_state(self, task, power_state, timeout=None):
         """Turn the current power state on or off.
 
         :param task: a TaskManager instance.
         :param power_state: The desired power state POWER_ON, POWER_OFF or
                             REBOOT from :mod:`ironic.common.states`.
+        :param timeout: timeout (in seconds). Unsupported by this interface.
         :raises: InvalidParameterValue if an invalid power state was specified.
         :raises: XClarityError if XClarity fails setting the power state.
         """
+        # TODO(rloo): Support timeouts!
+        if timeout is not None:
+            LOG.warning(
+                "The 'xclarity' Power Interface's 'set_power_state' method "
+                "doesn't support the 'timeout' parameter. Ignoring "
+                "timeout=%(timeout)s",
+                {'timeout': timeout})
 
         if power_state == states.REBOOT:
             target_power_state = self.get_power_state(task)
@@ -103,10 +111,17 @@ class XClarityPower(base.PowerInterface):
 
     @METRICS.timer('XClarityPower.reboot')
     @task_manager.require_exclusive_lock
-    def reboot(self, task):
+    def reboot(self, task, timeout=None):
         """Reboot the node
 
         :param task: a TaskManager instance.
+        :param timeout: timeout (in seconds). Unsupported by this interface.
         """
+        # TODO(rloo): Support timeouts!
+        if timeout is not None:
+            LOG.warning("The 'xclarity' Power Interface's 'reboot' method "
+                        "doesn't support the 'timeout' parameter. Ignoring "
+                        "timeout=%(timeout)s",
+                        {'timeout': timeout})
 
         self.set_power_state(task, states.REBOOT)

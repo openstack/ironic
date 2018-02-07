@@ -700,7 +700,7 @@ class SNMPPower(base.PowerInterface):
         return power_state
 
     @task_manager.require_exclusive_lock
-    def set_power_state(self, task, pstate):
+    def set_power_state(self, task, pstate, timeout=None):
         """Turn the power on or off.
 
         Set the power state of a node.
@@ -708,6 +708,7 @@ class SNMPPower(base.PowerInterface):
         :param task: A instance of `ironic.manager.task_manager.TaskManager`.
         :param pstate: Either POWER_ON or POWER_OFF from :class:
             `ironic.common.states`.
+        :param timeout: timeout (in seconds). Unsupported by this interface.
         :raises: MissingParameterValue if required SNMP parameters are missing.
         :raises: InvalidParameterValue if SNMP parameters are invalid or
             `pstate` is invalid.
@@ -715,6 +716,13 @@ class SNMPPower(base.PowerInterface):
             as requested after the timeout.
         :raises: SNMPFailure if an SNMP request fails.
         """
+        # TODO(rloo): Support timeouts!
+        if timeout is not None:
+            LOG.warning(
+                "The 'snmp' Power Interface's 'set_power_state' method "
+                "doesn't support the 'timeout' parameter. Ignoring "
+                "timeout=%(timeout)s",
+                {'timeout': timeout})
 
         driver = _get_driver(task.node)
         if pstate == states.POWER_ON:
@@ -729,16 +737,23 @@ class SNMPPower(base.PowerInterface):
             raise exception.PowerStateFailure(pstate=pstate)
 
     @task_manager.require_exclusive_lock
-    def reboot(self, task):
+    def reboot(self, task, timeout=None):
         """Cycles the power to a node.
 
         :param task: A instance of `ironic.manager.task_manager.TaskManager`.
+        :param timeout: timeout (in seconds). Unsupported by this interface.
         :raises: MissingParameterValue if required SNMP parameters are missing.
         :raises: InvalidParameterValue if SNMP parameters are invalid.
         :raises: PowerStateFailure if the final power state of the node is not
             POWER_ON after the timeout.
         :raises: SNMPFailure if an SNMP request fails.
         """
+        # TODO(rloo): Support timeouts!
+        if timeout is not None:
+            LOG.warning("The 'snmp' Power Interface's 'reboot' method "
+                        "doesn't support the 'timeout' parameter. Ignoring "
+                        "timeout=%(timeout)s",
+                        {'timeout': timeout})
 
         driver = _get_driver(task.node)
         state = driver.power_reset()

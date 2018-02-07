@@ -149,27 +149,43 @@ class DracPower(base.PowerInterface):
 
     @METRICS.timer('DracPower.set_power_state')
     @task_manager.require_exclusive_lock
-    def set_power_state(self, task, power_state):
+    def set_power_state(self, task, power_state, timeout=None):
         """Set the power state of the node.
 
         :param task: a TaskManager instance containing the node to act on.
         :param power_state: a power state from :mod:`ironic.common.states`.
+        :param timeout: timeout (in seconds). Unsupported by this interface.
         :raises: InvalidParameterValue if required DRAC credentials are
                  missing.
         :raises: DracOperationError on an error from python-dracclient.
         """
+        # TODO(rloo): Support timeouts!
+        if timeout is not None:
+            LOG.warning(
+                "The 'idrac' Power Interface's 'set_power_state' method "
+                "doesn't support the 'timeout' parameter. Ignoring "
+                "timeout=%(timeout)s",
+                {'timeout': timeout})
+
         _set_power_state(task.node, power_state)
 
     @METRICS.timer('DracPower.reboot')
     @task_manager.require_exclusive_lock
-    def reboot(self, task):
+    def reboot(self, task, timeout=None):
         """Perform a reboot of the task's node.
 
         :param task: a TaskManager instance containing the node to act on.
+        :param timeout: timeout (in seconds). Unsupported by this interface.
         :raises: InvalidParameterValue if required DRAC credentials are
                  missing.
         :raises: DracOperationError on an error from python-dracclient.
         """
+        # TODO(rloo): Support timeouts!
+        if timeout is not None:
+            LOG.warning("The 'idrac' Power Interface's 'reboot' method "
+                        "doesn't support the 'timeout' parameter. Ignoring "
+                        "timeout=%(timeout)s",
+                        {'timeout': timeout})
 
         current_power_state = _get_power_state(task.node)
         if current_power_state == states.POWER_ON:

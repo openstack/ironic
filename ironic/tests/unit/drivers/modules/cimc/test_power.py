@@ -190,7 +190,8 @@ class PowerTestCase(test_common.CIMCBaseTestCase):
                 handle.get_imc_managedobject.assert_called_with(
                     None, None, params={"Dn": "sys/rack-unit-1"})
 
-    def test_set_power_state_on_ok(self, mock_handle):
+    @mock.patch.object(power.LOG, 'warning')
+    def test_set_power_state_on_ok(self, mock_log, mock_handle):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
             with mock_handle(task) as handle:
@@ -213,6 +214,7 @@ class PowerTestCase(test_common.CIMCBaseTestCase):
 
                 handle.get_imc_managedobject.assert_called_with(
                     None, None, params={"Dn": "sys/rack-unit-1"})
+                self.assertFalse(mock_log.called)
 
     def test_set_power_state_on_fail(self, mock_handle):
         with task_manager.acquire(self.context, self.node.uuid,
@@ -235,6 +237,33 @@ class PowerTestCase(test_common.CIMCBaseTestCase):
 
                 handle.get_imc_managedobject.assert_called_with(
                     None, None, params={"Dn": "sys/rack-unit-1"})
+
+    @mock.patch.object(power.LOG, 'warning')
+    def test_set_power_state_on_timeout(self, mock_log, mock_handle):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            with mock_handle(task) as handle:
+                mock_rack_unit = mock.MagicMock()
+                mock_rack_unit.get_attr.side_effect = [
+                    imcsdk.ComputeRackUnit.CONST_OPER_POWER_OFF,
+                    imcsdk.ComputeRackUnit.CONST_OPER_POWER_ON
+                ]
+                handle.get_imc_managedobject.return_value = [mock_rack_unit]
+
+                task.driver.power.set_power_state(task, states.POWER_ON,
+                                                  timeout=10)
+
+                handle.set_imc_managedobject.assert_called_once_with(
+                    None, class_id="ComputeRackUnit",
+                    params={
+                        imcsdk.ComputeRackUnit.ADMIN_POWER:
+                            imcsdk.ComputeRackUnit.CONST_ADMIN_POWER_UP,
+                        imcsdk.ComputeRackUnit.DN: "sys/rack-unit-1"
+                    })
+
+                handle.get_imc_managedobject.assert_called_with(
+                    None, None, params={"Dn": "sys/rack-unit-1"})
+                self.assertTrue(mock_log.called)
 
     def test_set_power_state_off_ok(self, mock_handle):
         with task_manager.acquire(self.context, self.node.uuid,
@@ -282,14 +311,17 @@ class PowerTestCase(test_common.CIMCBaseTestCase):
                 handle.get_imc_managedobject.assert_called_with(
                     None, None, params={"Dn": "sys/rack-unit-1"})
 
+    @mock.patch.object(power.LOG, 'warning')
     @mock.patch.object(power.Power, "set_power_state", autospec=True)
     @mock.patch.object(power.Power, "get_power_state", autospec=True)
-    def test_reboot_on(self, mock_get_state, mock_set_state, mock_handle):
+    def test_reboot_on(self, mock_get_state, mock_set_state, mock_log,
+                       mock_handle):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
             mock_get_state.return_value = states.POWER_ON
             task.driver.power.reboot(task)
             mock_set_state.assert_called_with(mock.ANY, task, states.REBOOT)
+            self.assertFalse(mock_log.called)
 
     @mock.patch.object(power.Power, "set_power_state", autospec=True)
     @mock.patch.object(power.Power, "get_power_state", autospec=True)
@@ -299,3 +331,15 @@ class PowerTestCase(test_common.CIMCBaseTestCase):
             mock_get_state.return_value = states.POWER_OFF
             task.driver.power.reboot(task)
             mock_set_state.assert_called_with(mock.ANY, task, states.POWER_ON)
+
+    @mock.patch.object(power.LOG, 'warning')
+    @mock.patch.object(power.Power, "set_power_state", autospec=True)
+    @mock.patch.object(power.Power, "get_power_state", autospec=True)
+    def test_reboot_on_timeout(self, mock_get_state, mock_set_state, mock_log,
+                               mock_handle):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            mock_get_state.return_value = states.POWER_ON
+            task.driver.power.reboot(task, timeout=30)
+            mock_set_state.assert_called_with(mock.ANY, task, states.REBOOT)
+            self.assertTrue(mock_log.called)
