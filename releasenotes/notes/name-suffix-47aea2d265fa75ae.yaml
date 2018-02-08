@@ -1,0 +1,19 @@
+---
+fixes:
+  - |
+    Nodes and port groups with names ending with known file extensions are now
+    correctly handled by the API. See `bug 1643995
+    <https://bugs.launchpad.net/bugs/1643995>`_ for more details.
+issues:
+  - |
+    If you have two nodes or port groups with names that only differ in
+    a ``.json`` suffix (for example, ``test`` and ``test.json``) you won't be
+    able to get, update or delete the one with the suffix via the
+    ``/v1/nodes/<node>`` endpoint (``/v1/portgroups/<portgroup>`` for port
+    groups). Similarly, the ``/v1/heartbeat/<node>`` endpoint won't work
+    for the node with the suffix.
+
+    To work around it, add one more ``.json`` suffix (for example, use
+    ``/v1/nodes/test`` for node ``test`` and ``/v1/nodes/test.json.json``
+    for ``test.json``). This issue will be addressed in one of the future
+    API revisions.

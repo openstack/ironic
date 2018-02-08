@@ -86,6 +86,29 @@ class TestListPortgroups(test_api_base.BaseApiTest):
         # never expose the node_id
         self.assertNotIn('node_id', data)
 
+    def test_get_one_with_json(self):
+        portgroup = obj_utils.create_test_portgroup(self.context,
+                                                    node_id=self.node.id)
+        data = self.get_json('/portgroups/%s.json' % portgroup.uuid,
+                             headers=self.headers)
+        self.assertEqual(portgroup.uuid, data['uuid'])
+
+    def test_get_one_with_json_in_name(self):
+        portgroup = obj_utils.create_test_portgroup(self.context,
+                                                    name='pg.json',
+                                                    node_id=self.node.id)
+        data = self.get_json('/portgroups/%s' % portgroup.uuid,
+                             headers=self.headers)
+        self.assertEqual(portgroup.uuid, data['uuid'])
+
+    def test_get_one_with_suffix(self):
+        portgroup = obj_utils.create_test_portgroup(self.context,
+                                                    name='pg.1',
+                                                    node_id=self.node.id)
+        data = self.get_json('/portgroups/%s' % portgroup.uuid,
+                             headers=self.headers)
+        self.assertEqual(portgroup.uuid, data['uuid'])
+
     def test_get_one_custom_fields(self):
         portgroup = obj_utils.create_test_portgroup(self.context,
                                                     node_id=self.node.id)
@@ -477,6 +500,7 @@ class TestPatch(test_api_base.BaseApiTest):
         super(TestPatch, self).setUp()
         self.node = obj_utils.create_test_node(self.context)
         self.portgroup = obj_utils.create_test_portgroup(self.context,
+                                                         name='pg.1',
                                                          node_id=self.node.id)
 
         p = mock.patch.object(rpcapi.ConductorAPI, 'get_topic_for')
@@ -514,6 +538,19 @@ class TestPatch(test_api_base.BaseApiTest):
         mock_upd.return_value = self.portgroup
         mock_upd.return_value.extra = extra
         response = self.patch_json('/portgroups/%s' % self.portgroup.name,
+                                   [{'path': '/extra/foo',
+                                     'value': 'bar',
+                                     'op': 'add'}],
+                                   headers=self.headers)
+        self.assertEqual('application/json', response.content_type)
+        self.assertEqual(http_client.OK, response.status_code)
+        self.assertEqual(extra, response.json['extra'])
+
+    def test_update_byname_with_json(self, mock_upd):
+        extra = {'foo': 'bar'}
+        mock_upd.return_value = self.portgroup
+        mock_upd.return_value.extra = extra
+        response = self.patch_json('/portgroups/%s.json' % self.portgroup.name,
                                    [{'path': '/extra/foo',
                                      'value': 'bar',
                                      'op': 'add'}],
@@ -1211,6 +1248,7 @@ class TestDelete(test_api_base.BaseApiTest):
         super(TestDelete, self).setUp()
         self.node = obj_utils.create_test_node(self.context)
         self.portgroup = obj_utils.create_test_portgroup(self.context,
+                                                         name='pg.1',
                                                          node_id=self.node.id)
 
         gtf = mock.patch.object(rpcapi.ConductorAPI, 'get_topic_for')
@@ -1266,6 +1304,11 @@ class TestDelete(test_api_base.BaseApiTest):
 
     def test_delete_portgroup_byname(self, mock_dpt):
         self.delete('/portgroups/%s' % self.portgroup.name,
+                    headers=self.headers)
+        self.assertTrue(mock_dpt.called)
+
+    def test_delete_portgroup_byname_with_json(self, mock_dpt):
+        self.delete('/portgroups/%s.json' % self.portgroup.name,
                     headers=self.headers)
         self.assertTrue(mock_dpt.called)
 

@@ -422,7 +422,8 @@ class PortgroupsController(pecan.rest.RestController):
 
         api_utils.check_allowed_portgroup_fields(fields)
 
-        rpc_portgroup = api_utils.get_rpc_portgroup(portgroup_ident)
+        rpc_portgroup = api_utils.get_rpc_portgroup_with_suffix(
+            portgroup_ident)
         return Portgroup.convert_with_links(rpc_portgroup, fields=fields)
 
     @METRICS.timer('PortgroupsController.post')
@@ -502,7 +503,8 @@ class PortgroupsController(pecan.rest.RestController):
                  api_utils.is_path_updated(patch, '/properties'))):
             raise exception.NotAcceptable()
 
-        rpc_portgroup = api_utils.get_rpc_portgroup(portgroup_ident)
+        rpc_portgroup = api_utils.get_rpc_portgroup_with_suffix(
+            portgroup_ident)
 
         names = api_utils.get_patch_values(patch, '/name')
         for name in names:
@@ -573,7 +575,8 @@ class PortgroupsController(pecan.rest.RestController):
         if self.parent_node_ident:
             raise exception.OperationNotPermitted()
 
-        rpc_portgroup = api_utils.get_rpc_portgroup(portgroup_ident)
+        rpc_portgroup = api_utils.get_rpc_portgroup_with_suffix(
+            portgroup_ident)
         rpc_node = objects.Node.get_by_id(pecan.request.context,
                                           rpc_portgroup.node_id)
 

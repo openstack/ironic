@@ -164,6 +164,20 @@ def allow_node_logical_names():
     return pecan.request.version.minor >= versions.MINOR_5_NODE_NAME
 
 
+def _get_with_suffix(get_func, ident, exc_class):
+    """Helper to get a resource taking into account API .json suffix."""
+    try:
+        return get_func(ident)
+    except exc_class:
+        if not pecan.request.environ['HAS_JSON_SUFFIX']:
+            raise
+
+        # NOTE(dtantsur): strip .json prefix to maintain compatibility
+        # with the guess_content_type_from_ext feature. Try to return it
+        # back if the resulting resource was not found.
+        return get_func(ident + '.json')
+
+
 def get_rpc_node(node_ident):
     """Get the RPC node from the node uuid or logical name.
 
@@ -188,6 +202,21 @@ def get_rpc_node(node_ident):
     raise exception.NodeNotFound(node=node_ident)
 
 
+def get_rpc_node_with_suffix(node_ident):
+    """Get the RPC node from the node uuid or logical name.
+
+    If HAS_JSON_SUFFIX flag is set in the pecan environment, try also looking
+    for node_ident with '.json' suffix. Otherwise identical to get_rpc_node.
+
+    :param node_ident: the UUID or logical name of a node.
+
+    :returns: The RPC Node.
+    :raises: InvalidUuidOrName if the name or uuid provided is not valid.
+    :raises: NodeNotFound if the node is not found.
+    """
+    return _get_with_suffix(get_rpc_node, node_ident, exception.NodeNotFound)
+
+
 def get_rpc_portgroup(portgroup_ident):
     """Get the RPC portgroup from the portgroup UUID or logical name.
 
@@ -208,6 +237,23 @@ def get_rpc_portgroup(portgroup_ident):
         return objects.Portgroup.get_by_name(pecan.request.context,
                                              portgroup_ident)
     raise exception.InvalidUuidOrName(name=portgroup_ident)
+
+
+def get_rpc_portgroup_with_suffix(portgroup_ident):
+    """Get the RPC portgroup from the portgroup UUID or logical name.
+
+    If HAS_JSON_SUFFIX flag is set in the pecan environment, try also looking
+    for portgroup_ident with '.json' suffix. Otherwise identical
+    to get_rpc_portgroup.
+
+    :param portgroup_ident: the UUID or logical name of a portgroup.
+
+    :returns: The RPC portgroup.
+    :raises: InvalidUuidOrName if the name or uuid provided is not valid.
+    :raises: PortgroupNotFound if the portgroup is not found.
+    """
+    return _get_with_suffix(get_rpc_portgroup, portgroup_ident,
+                            exception.PortgroupNotFound)
 
 
 def is_valid_node_name(name):

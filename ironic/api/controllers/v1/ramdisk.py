@@ -180,7 +180,7 @@ class HeartbeatController(rest.RestController):
         cdict = pecan.request.context.to_policy_values()
         policy.authorize('baremetal:node:ipa_heartbeat', cdict, cdict)
 
-        rpc_node = api_utils.get_rpc_node(node_ident)
+        rpc_node = api_utils.get_rpc_node_with_suffix(node_ident)
 
         try:
             topic = pecan.request.rpcapi.get_topic_for(rpc_node)
