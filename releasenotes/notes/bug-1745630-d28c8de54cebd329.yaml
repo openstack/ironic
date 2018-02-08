@@ -1,0 +1,8 @@
+---
+fixes:
+  - |
+    Fixes a bug to get a node stuck in ``deploying`` state when the size of
+    the configdrive exceeds the limitation of the database. In MySQL, the
+    limitation is about 64KiB. With this fix, the provision state gets
+    ``deploy failed`` in this case. See `bug 1745630
+    <https://bugs.launchpad.net/ironic/+bug/1745630>`_ for details.
