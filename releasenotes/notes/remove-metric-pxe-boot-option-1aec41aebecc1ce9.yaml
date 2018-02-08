@@ -1,0 +1,6 @@
+---
+other:
+  - |
+    Removes the software metric named ``validate_boot_option_for_trusted_boot``.
+    This was the timing for a short-lived, internal function that is already
+    included in the ``PXEBoot.validate`` metric.

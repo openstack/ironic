@@ -338,7 +338,6 @@ def _get_volume_pxe_options(task):
     return pxe_options
 
 
-@METRICS.timer('validate_boot_option_for_trusted_boot')
 def validate_boot_parameters_for_trusted_boot(node):
     """Check if boot parameters are valid for trusted boot."""
     boot_mode = deploy_utils.get_boot_mode_for_deploy(node)
