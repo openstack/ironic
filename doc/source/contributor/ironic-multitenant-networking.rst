@@ -65,15 +65,8 @@ configured in Neutron.
     enable_service ir-api
     enable_service ir-cond
 
-    # Enable Neutron which is required by Ironic and disable nova-network.
-    disable_service n-net
+    # Disable nova novnc service, ironic does not support it anyway.
     disable_service n-novnc
-    enable_service q-svc
-    enable_service q-agt
-    enable_service q-dhcp
-    enable_service q-l3
-    enable_service q-meta
-    enable_service neutron
 
     # Enable Swift for agent_* drivers
     enable_service s-proxy
@@ -83,9 +76,6 @@ configured in Neutron.
 
     # Disable Horizon
     disable_service horizon
-
-    # Disable Heat
-    disable_service heat h-api h-api-cfn h-api-cw h-eng
 
     # Disable Cinder
     disable_service cinder c-sch c-api c-vol
