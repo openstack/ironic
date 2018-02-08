@@ -2943,7 +2943,12 @@ class ConductorManager(base_manager.BaseConductorManager):
         """
         LOG.debug("RPC vif_detach called for the node %(node_id)s with "
                   "vif_id %(vif_id)s", {'node_id': node_id, 'vif_id': vif_id})
+        # NOTE(TheJulia): This task is explicitly called without a lock as
+        # long lived locks occur during node tear-down as a node goes into
+        # cleaning. The lack of a lock allows nova to remove the VIF record.
+        # See: https://bugs.launchpad.net/ironic/+bug/1743652
         with task_manager.acquire(context, node_id,
+                                  shared=True,
                                   purpose='detach vif') as task:
             task.driver.network.validate(task)
             task.driver.network.vif_detach(task, vif_id)

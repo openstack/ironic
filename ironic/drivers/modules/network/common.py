@@ -581,8 +581,8 @@ class NeutronVIFPortIDMixin(VIFPortIDMixin):
         # attached, and fail if not.
         port_like_obj = self._get_port_like_obj_by_vif_id(task, vif_id)
 
-        self._clear_vif_from_port_like_obj(port_like_obj)
-
         # NOTE(vsaienko) allow to unplug VIFs from ACTIVE instance.
         if task.node.provision_state == states.ACTIVE:
             neutron.unbind_neutron_port(vif_id, context=task.context)
+
+        self._clear_vif_from_port_like_obj(port_like_obj)

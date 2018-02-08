@@ -1,0 +1,8 @@
+---
+fixes:
+  - |
+    Addresses a condition where the Compute Service may have been unable to
+    remove VIF attachment records while a baremetal node is being unprovisiond. This
+    condition resulted in VIF records being orphaned, blocking future
+    deployments without manual intervention.
+    See `bug 1743652 <https://bugs.launchpad.net/ironic/+bug/1743652>`_ for more details.

@@ -35,6 +35,7 @@ from ironic.common import boot_devices
 from ironic.common import driver_factory
 from ironic.common import exception
 from ironic.common import images
+from ironic.common import neutron
 from ironic.common import states
 from ironic.common import swift
 from ironic.conductor import manager
@@ -4393,17 +4394,17 @@ class VifTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         mock_detach.assert_called_once_with(mock.ANY, "interface")
         mock_valid.assert_called_once_with(mock.ANY, mock.ANY)
 
-    @mock.patch.object(n_flat.FlatNetwork, 'vif_detach', autpspec=True)
-    def test_vif_detach_node_locked(self, mock_detach, mock_valid):
+    @mock.patch.object(neutron, 'unbind_neutron_port', autpspec=True)
+    def test_vif_detach_node_is_locked(self, mock_detach, mock_valid):
         node = obj_utils.create_test_node(self.context, driver='fake',
                                           reservation='fake-reserv')
-        exc = self.assertRaises(messaging.rpc.ExpectedException,
-                                self.service.vif_detach,
-                                self.context, node.uuid, "interface")
-        # Compare true exception hidden by @messaging.expected_exceptions
-        self.assertEqual(exception.NodeLocked, exc.exc_info[0])
+        obj_utils.create_test_port(self.context,
+                                   node_id=node.id,
+                                   internal_info={
+                                       'tenant_vif_port_id': 'fake-id'})
+        self.service.vif_detach(self.context, node.uuid, 'fake-id')
         self.assertFalse(mock_detach.called)
-        self.assertFalse(mock_valid.called)
+        self.assertTrue(mock_valid.called)
 
     @mock.patch.object(n_flat.FlatNetwork, 'vif_detach', autpspec=True)
     def test_vif_detach_raises_network_error(self, mock_detach,
