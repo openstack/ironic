@@ -219,7 +219,7 @@ IRONIC_DEPLOY_KERNEL=${IRONIC_DEPLOY_KERNEL:-$TOP_DIR/files/ir-deploy-$IRONIC_DE
 IRONIC_DEPLOY_ISO=${IRONIC_DEPLOY_ISO:-$TOP_DIR/files/ir-deploy-$IRONIC_DEPLOY_DRIVER.iso}
 
 # NOTE(jroll) this needs to be updated when stable branches are cut
-IPA_DOWNLOAD_BRANCH=${IPA_DOWNLOAD_BRANCH:-master}
+IPA_DOWNLOAD_BRANCH=${IPA_DOWNLOAD_BRANCH:-stable/queens}
 IPA_DOWNLOAD_BRANCH=$(echo $IPA_DOWNLOAD_BRANCH | tr / -)
 
 # Configure URLs required to download ramdisk if we're not building it, and
@@ -428,7 +428,7 @@ IRONIC_DEPLOY_LOGS_LOCAL_PATH=${IRONIC_DEPLOY_LOGS_LOCAL_PATH:-$IRONIC_VM_LOG_DI
 TEMPEST_BAREMETAL_MIN_MICROVERSION=${TEMPEST_BAREMETAL_MIN_MICROVERSION:-}
 
 # Define baremetal max_microversion in tempest config. No default value means that it is picked from tempest.
-TEMPEST_BAREMETAL_MAX_MICROVERSION=${TEMPEST_BAREMETAL_MAX_MICROVERSION:-}
+TEMPEST_BAREMETAL_MAX_MICROVERSION=${TEMPEST_BAREMETAL_MAX_MICROVERSION:-'1.38'}
 
 # get_pxe_boot_file() - Get the PXE/iPXE boot file path
 function get_pxe_boot_file {
