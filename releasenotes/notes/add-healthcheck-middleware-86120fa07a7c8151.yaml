@@ -1,0 +1,10 @@
+---
+features:
+  - |
+    Adds the healthcheck middleware from oslo, configurable via the
+    ``[healthcheck]/enabled`` option. This middleware adds a status check at
+    `/healthcheck`. This is useful for load balancers to determine if a service
+    is up (and add or remove it from rotation), or for monitoring tools to see
+    the health of the server. This endpoint is unauthenticated, as not all load
+    balancers or monitoring tools support authenticating with a health check
+    endpoint.

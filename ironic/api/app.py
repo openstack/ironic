@@ -18,6 +18,7 @@
 import keystonemiddleware.audit as audit_middleware
 from oslo_config import cfg
 import oslo_middleware.cors as cors_middleware
+from oslo_middleware import healthcheck
 import osprofiler.web as osprofiler_web
 import pecan
 
@@ -102,6 +103,14 @@ def setup_app(pecan_config=None, extra_hooks=None):
 
     if CONF.profiler.enabled:
         app = osprofiler_web.WsgiMiddleware(app)
+
+    # add in the healthcheck middleware if enabled
+    # NOTE(jroll) this is after the auth token middleware as we don't want auth
+    # in front of this, and WSGI works from the outside in. Requests to
+    # /healthcheck will be handled and returned before the auth middleware
+    # is reached.
+    if CONF.healthcheck.enabled:
+        app = healthcheck.Healthcheck(app, CONF)
 
     # Create a CORS wrapper, and attach ironic-specific defaults that must be
     # included in all CORS responses.

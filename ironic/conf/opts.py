@@ -47,6 +47,7 @@ _opts = [
     ('dhcp', ironic.conf.dhcp.opts),
     ('drac', ironic.conf.drac.opts),
     ('glance', ironic.conf.glance.list_opts()),
+    ('healthcheck', ironic.conf.healthcheck.opts),
     ('ilo', ironic.conf.ilo.opts),
     ('inspector', ironic.conf.inspector.list_opts()),
     ('ipmi', ironic.conf.ipmi.opts),
