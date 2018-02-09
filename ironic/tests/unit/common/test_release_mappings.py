@@ -22,7 +22,6 @@ from ironic.conductor import rpcapi
 from ironic.db.sqlalchemy import models
 from ironic.objects import base as obj_base
 from ironic.tests import base
-from ironic import version
 
 
 def _check_versions_compatibility(conf_version, actual_version):
@@ -69,13 +68,6 @@ class ReleaseMappingsTestCase(base.TestCase):
         for mapping in release_mappings.RELEASE_MAPPING.values():
             objects = set(mapping['objects'])
             self.assertTrue(objects.issubset(registered_objects))
-
-    def test_contains_current_release_entry(self):
-        version_info = str(version.version_info)
-        # NOTE(sborkows): We only need first two values from version (like 5.1)
-        # and assume version_info is of the form 'x.y.z'.
-        current_release = version_info[:version_info.rfind('.')]
-        self.assertIn(current_release, release_mappings.RELEASE_MAPPING)
 
     def test_current_rpc_version(self):
         self.assertEqual(rpcapi.ConductorAPI.RPC_API_VERSION,
