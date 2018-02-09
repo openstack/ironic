@@ -55,45 +55,6 @@
 # oldest named release.
 
 RELEASE_MAPPING = {
-    '8.0': {
-        'api': '1.31',
-        'rpc': '1.40',
-        'objects': {
-            'Node': ['1.21'],
-            'Conductor': ['1.2'],
-            'Chassis': ['1.3'],
-            'Port': ['1.6'],
-            'Portgroup': ['1.3'],
-            'VolumeConnector': ['1.0'],
-            'VolumeTarget': ['1.0'],
-        }
-    },
-    '9.0': {
-        'api': '1.34',
-        'rpc': '1.41',
-        'objects': {
-            'Node': ['1.21'],
-            'Conductor': ['1.2'],
-            'Chassis': ['1.3'],
-            'Port': ['1.7'],
-            'Portgroup': ['1.3'],
-            'VolumeConnector': ['1.0'],
-            'VolumeTarget': ['1.0'],
-        }
-    },
-    '9.1': {
-        'api': '1.34',
-        'rpc': '1.41',
-        'objects': {
-            'Node': ['1.21'],
-            'Conductor': ['1.2'],
-            'Chassis': ['1.3'],
-            'Port': ['1.7'],
-            'Portgroup': ['1.3'],
-            'VolumeConnector': ['1.0'],
-            'VolumeTarget': ['1.0'],
-        }
-    },
     '9.2': {
         'rpc': '1.41',
         'api': '1.35',
@@ -164,7 +125,6 @@ RELEASE_MAPPING = {
 #            release (that we are no longer supporting for a rolling upgrade).
 #
 #            There should be at most two named mappings here.
-RELEASE_MAPPING['pike'] = RELEASE_MAPPING['9.1']
 RELEASE_MAPPING['queens'] = RELEASE_MAPPING['10.1']
 
 # List of available versions with named versions first; 'master' is excluded.
