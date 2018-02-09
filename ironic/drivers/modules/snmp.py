@@ -689,7 +689,7 @@ class SNMPPower(base.PowerInterface):
 
         Poll the SNMP device for the current power state of the node.
 
-        :param task: A instance of `ironic.manager.task_manager.TaskManager`.
+        :param task: An instance of `ironic.manager.task_manager.TaskManager`.
         :raises: MissingParameterValue if required SNMP parameters are missing.
         :raises: InvalidParameterValue if SNMP parameters are invalid.
         :raises: SNMPFailure if an SNMP request fails.
@@ -705,7 +705,7 @@ class SNMPPower(base.PowerInterface):
 
         Set the power state of a node.
 
-        :param task: A instance of `ironic.manager.task_manager.TaskManager`.
+        :param task: An instance of `ironic.manager.task_manager.TaskManager`.
         :param pstate: Either POWER_ON or POWER_OFF from :class:
             `ironic.common.states`.
         :param timeout: timeout (in seconds). Unsupported by this interface.
@@ -740,7 +740,7 @@ class SNMPPower(base.PowerInterface):
     def reboot(self, task, timeout=None):
         """Cycles the power to a node.
 
-        :param task: A instance of `ironic.manager.task_manager.TaskManager`.
+        :param task: An instance of `ironic.manager.task_manager.TaskManager`.
         :param timeout: timeout (in seconds). Unsupported by this interface.
         :raises: MissingParameterValue if required SNMP parameters are missing.
         :raises: InvalidParameterValue if SNMP parameters are invalid.
