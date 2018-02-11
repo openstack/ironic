@@ -37,6 +37,7 @@ class AgentClient(object):
         self.session.headers.update({'Content-Type': 'application/json'})
 
     def _get_command_url(self, node):
+        """Get URL endpoint for agent command request"""
         agent_url = node.driver_internal_info.get('agent_url')
         if not agent_url:
             raise exception.IronicException(_('Agent driver requires '
@@ -47,6 +48,7 @@ class AgentClient(object):
                  'api_version': CONF.agent.agent_api_version})
 
     def _get_command_body(self, method, params):
+        """Generate command body from method and params"""
         return jsonutils.dumps({
             'name': method,
             'params': params,
@@ -54,6 +56,21 @@ class AgentClient(object):
 
     @METRICS.timer('AgentClient._command')
     def _command(self, node, method, params, wait=False):
+        """Sends command to agent.
+
+        :param node: A Node object.
+        :param method: A string represents the command to be executed by
+                       agent.
+        :param params: A dictionary containing params used to form the request
+                       body.
+        :param wait: True to wait for the command to finish executing, False
+                     otherwise.
+        :raises: IronicException when failed to issue the request or there was
+                 a malformed response from the agent.
+        :raises: AgentAPIError when agent failed to execute specified command.
+        :returns: A dict containing command result from agent, see
+                  get_commands_status for a sample.
+        """
         url = self._get_command_url(node)
         body = self._get_command_body(method, params)
         request_params = {
@@ -105,6 +122,32 @@ class AgentClient(object):
 
     @METRICS.timer('AgentClient.get_commands_status')
     def get_commands_status(self, node):
+        """Get command status from agent.
+
+        :param node: A Node object.
+        :return: A list of command results, each result is related to a
+            command been issued to agent. A typical result can be:
+
+            ::
+
+              {
+                'command_name': <command name related to the result>,
+                'command_params': <params related with the command>,
+                'command_status': <current command status,
+                                  e.g. 'RUNNING', 'SUCCEEDED', 'FAILED'>,
+                'command_error': <error message if command execution
+                                 failed>,
+                'command_result': <command result if command execution
+                                  succeeded, the value is command specific,
+                                  e.g.:
+                                  * a dictionary containing keys clean_result
+                                    and clean_step for the command
+                                    clean.execute_clean_step;
+                                  * a string representing result message for
+                                    the command standby.cache_image;
+                                  * None for the command standby.sync.>
+              }
+        """
         url = self._get_command_url(node)
         LOG.debug('Fetching status of agent commands for node %s', node.uuid)
         resp = self.session.get(url)
@@ -120,7 +163,19 @@ class AgentClient(object):
 
     @METRICS.timer('AgentClient.prepare_image')
     def prepare_image(self, node, image_info, wait=False):
-        """Call the `prepare_image` method on the node."""
+        """Call the `prepare_image` method on the node.
+
+        :param node: A Node object.
+        :param image_info: A dictionary containing various image related
+                           information.
+        :param wait: True to wait for the command to finish executing, False
+                     otherwise.
+        :raises: IronicException when failed to issue the request or there was
+                 a malformed response from the agent.
+        :raises: AgentAPIError when agent failed to execute specified command.
+        :returns: A dict containing command status from agent.
+                  See :func:`get_commands_status` for a command result sample.
+        """
         LOG.debug('Preparing image %(image)s on node %(node)s.',
                   {'image': image_info.get('id'),
                    'node': node.uuid})
@@ -148,6 +203,11 @@ class AgentClient(object):
         :param wipe_disk_metadata: True if the agent should wipe first the
                                    disk magic strings like the partition
                                    table, RAID or filesystem signature.
+        :raises: IronicException when failed to issue the request or there was
+                 a malformed response from the agent.
+        :raises: AgentAPIError when agent failed to execute specified command.
+        :returns: A dict containing command response from agent.
+                  See :func:`get_commands_status` for a command result sample.
         """
         params = {'iqn': iqn,
                   'portal_port': portal_port,
@@ -159,7 +219,19 @@ class AgentClient(object):
 
     @METRICS.timer('AgentClient.install_bootloader')
     def install_bootloader(self, node, root_uuid, efi_system_part_uuid=None):
-        """Install a boot loader on the image."""
+        """Install a boot loader on the image.
+
+        :param node: A node object.
+        :param root_uuid: The UUID of the root partition.
+        :param efi_system_part_uuid: The UUID of the efi system partition
+               where the bootloader will be installed to, only used for uefi
+               boot mode.
+        :raises: IronicException when failed to issue the request or there was
+                 a malformed response from the agent.
+        :raises: AgentAPIError when agent failed to execute specified command.
+        :returns: A dict containing command response from agent.
+                  See :func:`get_commands_status` for a command result sample.
+        """
         params = {'root_uuid': root_uuid,
                   'efi_system_part_uuid': efi_system_part_uuid}
         return self._command(node=node,
@@ -169,6 +241,25 @@ class AgentClient(object):
 
     @METRICS.timer('AgentClient.get_clean_steps')
     def get_clean_steps(self, node, ports):
+        """Get clean steps from agent.
+
+        :param node: A node object.
+        :param ports: Ports associated with the node.
+        :raises: IronicException when failed to issue the request or there was
+                 a malformed response from the agent.
+        :raises: AgentAPIError when agent failed to execute specified command.
+        :returns: A dict containing command response from agent.
+            See :func:`get_commands_status` for a command result sample.
+            The value of key command_result is in the form of:
+
+            ::
+
+              {
+                'clean_steps': <a list of clean steps>,
+                'hardware_manager_version': <manager version>
+              }
+
+        """
         params = {
             'node': node.as_dict(secure=True),
             'ports': [port.as_dict() for port in ports]
@@ -180,6 +271,26 @@ class AgentClient(object):
 
     @METRICS.timer('AgentClient.execute_clean_step')
     def execute_clean_step(self, step, node, ports):
+        """Execute specified clean step.
+
+        :param step: A clean step dictionary to execute.
+        :param node: A Node object.
+        :param ports: Ports associated with the node.
+        :raises: IronicException when failed to issue the request or there was
+                 a malformed response from the agent.
+        :raises: AgentAPIError when agent failed to execute specified command.
+        :returns: A dict containing command response from agent.
+            See :func:`get_commands_status` for a command result sample.
+            The value of key command_result is in the form of:
+
+            ::
+
+              {
+                'clean_result': <the result of execution, step specific>,
+                'clean_step': <the clean step issued to agent>
+              }
+
+        """
         params = {
             'step': step,
             'node': node.as_dict(secure=True),
@@ -193,14 +304,30 @@ class AgentClient(object):
 
     @METRICS.timer('AgentClient.power_off')
     def power_off(self, node):
-        """Soft powers off the bare metal node by shutting down ramdisk OS."""
+        """Soft powers off the bare metal node by shutting down ramdisk OS.
+
+        :param node: A Node object.
+        :raises: IronicException when failed to issue the request or there was
+                 a malformed response from the agent.
+        :raises: AgentAPIError when agent failed to execute specified command.
+        :returns: A dict containing command response from agent.
+                  See :func:`get_commands_status` for a command result sample.
+        """
         return self._command(node=node,
                              method='standby.power_off',
                              params={})
 
     @METRICS.timer('AgentClient.sync')
     def sync(self, node):
-        """Flush file system buffers forcing changed blocks to disk."""
+        """Flush file system buffers forcing changed blocks to disk.
+
+        :param node: A Node object.
+        :raises: IronicException when failed to issue the request or there was
+                 a malformed response from the agent.
+        :raises: AgentAPIError when agent failed to execute specified command.
+        :returns: A dict containing command response from agent.
+                  See :func:`get_commands_status` for a command result sample.
+        """
         return self._command(node=node,
                              method='standby.sync',
                              params={},
@@ -208,7 +335,15 @@ class AgentClient(object):
 
     @METRICS.timer('AgentClient.collect_system_logs')
     def collect_system_logs(self, node):
-        """Collect and package diagnostic and support data from the ramdisk."""
+        """Collect and package diagnostic and support data from the ramdisk.
+
+        :param node: A Node object.
+        :raises: IronicException when failed to issue the request or there was
+                 a malformed response from the agent.
+        :raises: AgentAPIError when agent failed to execute specified command.
+        :returns: A dict containing command response from agent.
+                  See :func:`get_commands_status` for a command result sample.
+        """
         return self._command(node=node,
                              method='log.collect_system_logs',
                              params={},
@@ -216,7 +351,16 @@ class AgentClient(object):
 
     @METRICS.timer('AgentClient.finalize_rescue')
     def finalize_rescue(self, node):
-        """Instruct the ramdisk to finalize entering of rescue mode."""
+        """Instruct the ramdisk to finalize entering of rescue mode.
+
+        :param node: A Node object.
+        :raises: IronicException if rescue_password is missing, or when failed
+                 to issue the request, or there was a malformed response from
+                 the agent.
+        :raises: AgentAPIError when agent failed to execute specified command.
+        :returns: A dict containing command response from agent.
+                  See :func:`get_commands_status` for a command result sample.
+        """
         rescue_pass = node.instance_info.get('rescue_password')
         if not rescue_pass:
             raise exception.IronicException(_('Agent rescue requires '
