@@ -1,0 +1,9 @@
+---
+fixes:
+  - |
+    Fixes an issue where a node's ``instance_info.traits`` field could be
+    incorrectly formatted, or contain traits that are not traits of the node.
+    When validating drivers and prior to deployment, the Bare Metal service now
+    validates that a node's traits include all the traits in its
+    ``instance_info.traits`` field.  See `bug 1755146
+    <https://bugs.launchpad.net/ironic/+bug/1755146>`_ for details.

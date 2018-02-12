@@ -1225,6 +1225,11 @@ class ServiceDoNodeDeployTestCase(mgr_utils.ServiceSetUpMixin,
                                                 mock_iwdi):
         self._test_do_node_deploy_validate_fail(mock_validate, mock_iwdi)
 
+    @mock.patch.object(conductor_utils, 'validate_instance_info_traits')
+    def test_do_node_deploy_traits_validate_fail(self, mock_validate,
+                                                 mock_iwdi):
+        self._test_do_node_deploy_validate_fail(mock_validate, mock_iwdi)
+
     def test_do_node_deploy_partial_ok(self, mock_iwdi):
         mock_iwdi.return_value = False
         self._start_service()
@@ -3405,6 +3410,23 @@ class MiscTestCase(mgr_utils.ServiceSetUpMixin, mgr_utils.CommonMixIn,
             self.assertFalse(ret['deploy']['result'])
             self.assertEqual(reason, ret['deploy']['reason'])
 
+            mock_iwdi.assert_called_once_with(self.context, node.instance_info)
+
+    @mock.patch.object(images, 'is_whole_disk_image')
+    def test_validate_driver_interfaces_validation_fail_instance_traits(
+            self, mock_iwdi):
+        mock_iwdi.return_value = False
+        node = obj_utils.create_test_node(self.context, driver='fake',
+                                          network_interface='noop')
+        with mock.patch(
+            'ironic.conductor.utils.validate_instance_info_traits'
+        ) as ii_traits:
+            reason = 'fake reason'
+            ii_traits.side_effect = exception.InvalidParameterValue(reason)
+            ret = self.service.validate_driver_interfaces(self.context,
+                                                          node.uuid)
+            self.assertFalse(ret['deploy']['result'])
+            self.assertEqual(reason, ret['deploy']['reason'])
             mock_iwdi.assert_called_once_with(self.context, node.instance_info)
 
     @mock.patch.object(manager.ConductorManager, '_fail_if_in_state',
