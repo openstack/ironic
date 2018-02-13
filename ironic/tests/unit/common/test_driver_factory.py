@@ -618,8 +618,8 @@ class TestFakeHardware(hardware_type.AbstractHardwareType):
         return [fake.FakeVendorB, fake.FakeVendorA]
 
 
-OPTIONAL_INTERFACES = set(drivers_base.BareDriver().standard_interfaces) - {
-    'management', 'boot'}
+OPTIONAL_INTERFACES = (set(drivers_base.BareDriver().standard_interfaces) -
+                       {'management', 'boot'}) | {'vendor'}
 
 
 class HardwareTypeLoadTestCase(db_base.DbTestCase):
@@ -797,16 +797,16 @@ class HardwareTypeLoadTestCase(db_base.DbTestCase):
         ht = fake_hardware.FakeHardware()
         expected = {
             'boot': set(['fake']),
-            'console': set(['fake']),
+            'console': set(['fake', 'no-console']),
             'deploy': set(['fake']),
-            'inspect': set(['fake']),
+            'inspect': set(['fake', 'no-inspect']),
             'management': set(['fake']),
             'network': set(['noop']),
             'power': set(['fake']),
-            'raid': set(['fake']),
-            'rescue': set(['fake']),
-            'storage': set([]),
-            'vendor': set(['fake'])
+            'raid': set(['fake', 'no-raid']),
+            'rescue': set(['fake', 'no-rescue']),
+            'storage': set(['noop']),
+            'vendor': set(['fake', 'no-vendor'])
         }
         if enable_storage:
             self.config(enabled_storage_interfaces=['fake'])
