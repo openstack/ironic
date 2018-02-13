@@ -2448,6 +2448,13 @@ class ConductorManager(base_manager.BaseConductorManager):
                                           purpose=lock_purpose) as task:
                     if not getattr(task.driver, 'management', None):
                         continue
+
+                    if task.node.maintenance:
+                        LOG.debug('Skipping sending sensors data for node '
+                                  '%s as it is in maintenance mode',
+                                  task.node.uuid)
+                        continue
+
                     task.driver.management.validate(task)
                     sensors_data = task.driver.management.get_sensors_data(
                         task)
