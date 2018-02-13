@@ -58,6 +58,12 @@ REQUIRED_PROPERTIES = {
                          "Required."),
 }
 
+RESCUE_PROPERTIES = {
+    'irmc_rescue_iso': _("UUID (from Glance) of the rescue ISO. Only "
+                         "required if rescue mode is being used and ironic "
+                         "is managing booting the rescue ramdisk.")
+}
+
 OPTIONAL_PROPERTIES = {
     'irmc_pci_physical_ids':
         _("Physical IDs of PCI cards. A dictionary of pairs of resource UUID "
@@ -96,7 +102,7 @@ def _parse_config_option():
         raise exception.InvalidParameterValue(msg)
 
 
-def _parse_driver_info(node):
+def _parse_driver_info(node, mode='deploy'):
     """Gets the driver specific Node deployment info.
 
     This method validates whether the 'driver_info' property of the
@@ -104,6 +110,9 @@ def _parse_driver_info(node):
     for this driver to deploy images to the node.
 
     :param node: a target node of the deployment
+    :param mode: Label indicating a deploy or rescue operation being
+                 carried out on the node. Supported values are
+                 'deploy' and 'rescue'. Defaults to 'deploy'.
     :returns: the driver_info values of the node.
     :raises: MissingParameterValue, if any of the required parameters are
         missing.
@@ -113,19 +122,26 @@ def _parse_driver_info(node):
     d_info = node.driver_info
     deploy_info = {}
 
-    deploy_info['irmc_deploy_iso'] = d_info.get('irmc_deploy_iso')
-    error_msg = _("Error validating iRMC virtual media deploy. Some parameters"
-                  " were missing in node's driver_info")
+    if mode == 'deploy':
+        image_iso = d_info.get('irmc_deploy_iso')
+        deploy_info['irmc_deploy_iso'] = image_iso
+    else:
+        image_iso = d_info.get('irmc_rescue_iso')
+        deploy_info['irmc_rescue_iso'] = image_iso
+
+    error_msg = (_("Error validating iRMC virtual media for %s. Some "
+                   "parameters were missing in node's driver_info") % mode)
     deploy_utils.check_for_missing_params(deploy_info, error_msg)
 
-    if service_utils.is_image_href_ordinary_file_name(
-            deploy_info['irmc_deploy_iso']):
-        deploy_iso = os.path.join(CONF.irmc.remote_image_share_root,
-                                  deploy_info['irmc_deploy_iso'])
-        if not os.path.isfile(deploy_iso):
-            msg = (_("Deploy ISO file, %(deploy_iso)s, "
+    if service_utils.is_image_href_ordinary_file_name(image_iso):
+        image_iso_file = os.path.join(CONF.irmc.remote_image_share_root,
+                                      image_iso)
+        if not os.path.isfile(image_iso_file):
+            msg = (_("%(mode)s ISO file, %(iso_file)s, "
                      "not found for node: %(node)s.") %
-                   {'deploy_iso': deploy_iso, 'node': node.uuid})
+                   {'mode': mode.capitalize(),
+                    'iso_file': image_iso_file,
+                    'node': node.uuid})
             raise exception.InvalidParameterValue(msg)
 
     return deploy_info
@@ -185,13 +201,16 @@ def _parse_deploy_info(node):
     return deploy_info
 
 
-def _setup_deploy_iso(task, ramdisk_options):
+def _setup_vmedia(task, mode, ramdisk_options):
     """Attaches virtual media and sets it as boot device.
 
-    This method attaches the given deploy ISO as virtual media, prepares the
-    arguments for ramdisk in virtual media floppy.
+    This method attaches the deploy or rescue ISO as virtual media, prepares
+    the arguments for ramdisk in virtual media floppy.
 
     :param task: a TaskManager instance containing the node to act on.
+    :param mode: Label indicating a deploy or rescue operation being
+                 carried out on the node. Supported values are
+                 'deploy' and 'rescue'.
     :param ramdisk_options: the options to be passed to the ramdisk in virtual
         media floppy.
     :raises: ImageRefValidationFailed if no image service can handle specified
@@ -201,35 +220,31 @@ def _setup_deploy_iso(task, ramdisk_options):
     :raises: InvalidParameterValue if the validation of the
         PowerInterface or ManagementInterface fails.
     """
-    d_info = task.node.driver_info
 
-    deploy_iso_href = d_info['irmc_deploy_iso']
-    if service_utils.is_image_href_ordinary_file_name(deploy_iso_href):
-        deploy_iso_file = deploy_iso_href
+    if mode == 'rescue':
+        iso = task.node.driver_info['irmc_rescue_iso']
     else:
-        deploy_iso_file = _get_deploy_iso_name(task.node)
-        deploy_iso_fullpathname = os.path.join(
-            CONF.irmc.remote_image_share_root, deploy_iso_file)
-        images.fetch(task.context, deploy_iso_href, deploy_iso_fullpathname)
+        iso = task.node.driver_info['irmc_deploy_iso']
 
-    _setup_vmedia_for_boot(task, deploy_iso_file, ramdisk_options)
+    if service_utils.is_image_href_ordinary_file_name(iso):
+        iso_file = iso
+    else:
+        iso_file = _get_iso_name(task.node, label=mode)
+        iso_fullpathname = os.path.join(
+            CONF.irmc.remote_image_share_root, iso_file)
+        images.fetch(task.context, iso, iso_fullpathname)
+
+    _setup_vmedia_for_boot(task, iso_file, ramdisk_options)
     manager_utils.node_set_boot_device(task, boot_devices.CDROM)
 
 
-def _get_deploy_iso_name(node):
-    """Returns the deploy ISO file name for a given node.
+def _get_iso_name(node, label):
+    """Returns the ISO file name for a given node.
 
     :param node: the node for which ISO file name is to be provided.
+    :param label: a string used as a base name for the ISO file.
     """
-    return "deploy-%s.iso" % node.uuid
-
-
-def _get_boot_iso_name(node):
-    """Returns the boot ISO file name for a given node.
-
-    :param node: the node for which ISO file name is to be provided.
-    """
-    return "boot-%s.iso" % node.uuid
+    return "%s-%s.iso" % (label, node.uuid)
 
 
 def _prepare_boot_iso(task, root_uuid):
@@ -253,7 +268,7 @@ def _prepare_boot_iso(task, root_uuid):
         if service_utils.is_image_href_ordinary_file_name(boot_iso_href):
             driver_internal_info['irmc_boot_iso'] = boot_iso_href
         else:
-            boot_iso_filename = _get_boot_iso_name(task.node)
+            boot_iso_filename = _get_iso_name(task.node, label='boot')
             boot_iso_fullpathname = os.path.join(
                 CONF.irmc.remote_image_share_root, boot_iso_filename)
             images.fetch(task.context, boot_iso_href, boot_iso_fullpathname)
@@ -271,13 +286,13 @@ def _prepare_boot_iso(task, root_uuid):
         ramdisk_href = (task.node.instance_info.get('ramdisk') or
                         image_properties['ramdisk_id'])
 
-        deploy_iso_filename = _get_deploy_iso_name(task.node)
+        deploy_iso_filename = _get_iso_name(task.node, label='deploy')
         deploy_iso = ('file://' + os.path.join(
             CONF.irmc.remote_image_share_root, deploy_iso_filename))
         boot_mode = deploy_utils.get_boot_mode_for_deploy(task.node)
         kernel_params = CONF.pxe.pxe_append_params
 
-        boot_iso_filename = _get_boot_iso_name(task.node)
+        boot_iso_filename = _get_iso_name(task.node, label='boot')
         boot_iso_fullpathname = os.path.join(
             CONF.irmc.remote_image_share_root, boot_iso_filename)
 
@@ -399,7 +414,8 @@ def _cleanup_vmedia_boot(task):
     _detach_virtual_fd(node)
 
     _remove_share_file(_get_floppy_image_name(node))
-    _remove_share_file(_get_deploy_iso_name(node))
+    _remove_share_file(_get_iso_name(node, label='deploy'))
+    _remove_share_file(_get_iso_name(node, label='rescue'))
 
 
 def _remove_share_file(share_filename):
@@ -408,7 +424,7 @@ def _remove_share_file(share_filename):
     :param share_filename: a file name to be removed.
     """
     share_fullpathname = os.path.join(
-        CONF.irmc.remote_image_share_name, share_filename)
+        CONF.irmc.remote_image_share_root, share_filename)
     ironic_utils.unlink_without_raise(share_fullpathname)
 
 
@@ -877,6 +893,9 @@ class IRMCVirtualMediaBoot(base.BootInterface, IRMCVolumeBootMixIn):
         super(IRMCVirtualMediaBoot, self).__init__()
 
     def get_properties(self):
+        # TODO(tiendc): COMMON_PROPERTIES should also include rescue
+        # related properties (RESCUE_PROPERTIES). We can add them in Rocky,
+        # when classic drivers get removed.
         return COMMON_PROPERTIES
 
     @METRICS.timer('IRMCVirtualMediaBoot.validate')
@@ -913,13 +932,13 @@ class IRMCVirtualMediaBoot(base.BootInterface, IRMCVolumeBootMixIn):
 
     @METRICS.timer('IRMCVirtualMediaBoot.prepare_ramdisk')
     def prepare_ramdisk(self, task, ramdisk_params):
-        """Prepares the deploy ramdisk using virtual media.
+        """Prepares the deploy or rescue ramdisk using virtual media.
 
-        Prepares the options for the deployment ramdisk, sets the node to boot
-        from virtual media cdrom.
+        Prepares the options for the deploy or rescue ramdisk, sets the node
+        to boot from virtual media cdrom.
 
         :param task: a TaskManager instance containing the node to act on.
-        :param ramdisk_params: the options to be passed to the deploy ramdisk.
+        :param ramdisk_params: the options to be passed to the ramdisk.
         :raises: ImageRefValidationFailed if no image service can handle
                  specified href.
         :raises: ImageCreationFailed, if it failed while creating the floppy
@@ -930,11 +949,12 @@ class IRMCVirtualMediaBoot(base.BootInterface, IRMCVolumeBootMixIn):
         """
 
         # NOTE(TheJulia): If this method is being called by something
-        # aside from deployment and clean, such as conductor takeover, we
-        # should treat this as a no-op and move on otherwise we would modify
-        # the state of the node due to virtual media operations.
-        if (task.node.provision_state != states.DEPLOYING and
-                task.node.provision_state != states.CLEANING):
+        # aside from deployment, clean and rescue, such as conductor takeover,
+        # we should treat this as a no-op and move on otherwise we would
+        # modify the state of the node due to virtual media operations.
+        if task.node.provision_state not in (states.DEPLOYING,
+                                             states.CLEANING,
+                                             states.RESCUING):
             return
 
         # NOTE(tiendc): Before deploying, we need to backup BIOS config
@@ -951,14 +971,19 @@ class IRMCVirtualMediaBoot(base.BootInterface, IRMCVolumeBootMixIn):
         deploy_nic_mac = deploy_utils.get_single_nic_with_vif_port_id(task)
         ramdisk_params['BOOTIF'] = deploy_nic_mac
 
-        _setup_deploy_iso(task, ramdisk_params)
+        if task.node.provision_state == states.RESCUING:
+            mode = 'rescue'
+        else:
+            mode = 'deploy'
+
+        _setup_vmedia(task, mode, ramdisk_params)
 
     @METRICS.timer('IRMCVirtualMediaBoot.clean_up_ramdisk')
     def clean_up_ramdisk(self, task):
         """Cleans up the boot of ironic ramdisk.
 
         This method cleans up the environment that was setup for booting the
-        deploy ramdisk.
+        deploy or rescue ramdisk.
 
         :param task: a task from TaskManager.
         :returns: None
@@ -1018,10 +1043,18 @@ class IRMCVirtualMediaBoot(base.BootInterface, IRMCVolumeBootMixIn):
         if deploy_utils.is_secure_boot_requested(task.node):
             irmc_common.set_secure_boot_mode(task.node, enable=False)
 
-        _remove_share_file(_get_boot_iso_name(task.node))
+        _remove_share_file(_get_iso_name(task.node, label='boot'))
         driver_internal_info = task.node.driver_internal_info
         driver_internal_info.pop('irmc_boot_iso', None)
-        driver_internal_info.pop('root_uuid_or_disk_id', None)
+
+        # When rescue, this function is called. But we need to retain the
+        # root_uuid_or_disk_id to use on unrescue (see prepare_instance).
+        boot_local_or_iwdi = (
+            deploy_utils.get_boot_option(task.node) == "local" or
+            driver_internal_info.get('is_whole_disk_image'))
+        if task.node.provision_state != states.RESCUING or boot_local_or_iwdi:
+            driver_internal_info.pop('root_uuid_or_disk_id', None)
+
         task.node.driver_internal_info = driver_internal_info
         task.node.save()
         _cleanup_vmedia_boot(task)
@@ -1034,6 +1067,18 @@ class IRMCVirtualMediaBoot(base.BootInterface, IRMCVolumeBootMixIn):
             task, node.driver_internal_info['irmc_boot_iso'])
         manager_utils.node_set_boot_device(task, boot_devices.CDROM,
                                            persistent=True)
+
+    @METRICS.timer('IRMCVirtualMediaBoot.validate_rescue')
+    def validate_rescue(self, task):
+        """Validate that the node has required properties for rescue.
+
+        :param task: a TaskManager instance with the node being checked
+        :raises: MissingParameterValue if node is missing one or more required
+            parameters
+        :raises: InvalidParameterValue, if any of the parameters have invalid
+            value.
+        """
+        _parse_driver_info(task.node, mode='rescue')
 
 
 class IRMCPXEBoot(pxe.PXEBoot):
