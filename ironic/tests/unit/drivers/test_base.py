@@ -412,6 +412,16 @@ class TestDeployInterface(base.TestCase):
         self.assertTrue(mock_log.called)
 
 
+class TestBootInterface(base.TestCase):
+
+    def test_validate_rescue_default_impl(self):
+        boot = fake.FakeBoot()
+        task_mock = mock.MagicMock(spec_set=['node'])
+
+        self.assertRaises(exception.UnsupportedDriverExtension,
+                          boot.validate_rescue, task_mock)
+
+
 class TestManagementInterface(base.TestCase):
 
     def test_inject_nmi_default_impl(self):

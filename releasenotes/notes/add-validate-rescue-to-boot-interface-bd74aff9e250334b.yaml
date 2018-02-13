@@ -1,0 +1,6 @@
+---
+other:
+  - |
+    Adds new method ``validate_rescue()`` to boot interface to validate
+    node's properties related to rescue operation. This method is called
+    by the validate() method of rescue interface.

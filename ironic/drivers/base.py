@@ -486,6 +486,17 @@ class BootInterface(BaseInterface):
         :returns: None
         """
 
+    def validate_rescue(self, task):
+        """Validate that the node has required properties for rescue.
+
+        :param task: a TaskManager instance with the node being checked
+        :raises: MissingParameterValue if node is missing one or more required
+            parameters
+        :raises: UnsupportedDriverExtension
+        """
+        raise exception.UnsupportedDriverExtension(
+            driver=task.node.driver, extension='validate_rescue')
+
 
 class PowerInterface(BaseInterface):
     """Interface for power-related actions."""
