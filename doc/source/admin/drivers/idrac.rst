@@ -60,4 +60,15 @@ hardware type::
 
 .. TODO(dtantsur): describe RAID support and inspection
 
+Known Issues
+============
+
+Nodes go into maintenance mode
+------------------------------
+
+After some period of time, nodes managed by the ``idrac`` hardware type may go
+into maintenance mode in Ironic.  This issue can be worked around by changing
+the Ironic power state poll interval to 70 seconds.  See
+``[conductor]sync_power_state_interval`` in ``/etc/ironic/ironic.conf``.
+
 .. _iDRAC: http://www.dell.com/learn/us/en/15/solutions/integrated-dell-remote-access-controller-idrac
