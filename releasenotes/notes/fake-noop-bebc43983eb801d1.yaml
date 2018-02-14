@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Adds missed noop implementations (e.g. ``no-inspect``) to the
+    ``fake-hardware`` hardware type. This fixes enabling this hardware type
+    without enabling all (even optional) ``fake`` interfaces.
