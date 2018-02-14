@@ -49,7 +49,7 @@ def mock_the_extension_manager(driver="fake", namespace="ironic.drivers"):
             break
 
     # NOTE(lucasagomes): Initialize the _extension_manager before
-    #                    instantiaing a DriverFactory class to avoid
+    #                    instantiating a DriverFactory class to avoid
     #                    a real NameDispatchExtensionManager to be created
     #                    with the real namespace.
     driver_factory.DriverFactory._extension_manager = (

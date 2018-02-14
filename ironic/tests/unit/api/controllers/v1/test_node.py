@@ -3345,7 +3345,7 @@ class TestPut(test_api_base.BaseApiTest):
         self.assertEqual(urlparse.urlparse(ret.location).path,
                          expected_location)
 
-    # NOTE(deva): this test asserts API funcionality which is not part of
+    # NOTE(deva): this test asserts API functionality which is not part of
     # the new-ironic-state-machine in Kilo. It is retained for backwards
     # compatibility with Juno.
     # TODO(deva): add a deprecation-warning to the REST result
