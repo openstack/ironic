@@ -250,11 +250,11 @@ class PXEPrivateMethodsTestCase(db_base.DbTestCase):
             'deployment_aki_path': pxe_kernel,
             'tftp_server': tftp_server,
             'ipxe_timeout': 0,
+            'ari_path': ramdisk,
+            'aki_path': kernel,
         }
 
-        if mode == 'deploy':
-            expected_options.update({'ari_path': ramdisk, 'aki_path': kernel})
-        elif mode == 'rescue':
+        if mode == 'rescue':
             self.node.provision_state = states.RESCUING
             self.node.save()
 
@@ -413,10 +413,11 @@ class PXEPrivateMethodsTestCase(db_base.DbTestCase):
             'deployment_aki_path': pxe_kernel,
             'tftp_server': tftp_server,
             'ipxe_timeout': ipxe_timeout_in_ms,
+            'ari_path': ramdisk,
+            'aki_path': kernel,
         }
-        if mode == 'deploy':
-            expected_options.update({'ari_path': ramdisk, 'aki_path': kernel})
-        elif mode == 'rescue':
+
+        if mode == 'rescue':
             self.node.provision_state = states.RESCUING
             self.node.save()
 
