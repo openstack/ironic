@@ -50,12 +50,6 @@ There are however some limitations for different hardware interfaces:
 * :ref:`direct-deploy` requires the instance image be accessible through a
   HTTP(s) URL.
 
-* Some :doc:`boot interfaces </admin/interfaces/boot>` (for example,
-  ``ilo-virtual-media``) require the Object Storage service, as these
-  drivers need to store floppy image that is used to pass parameters
-  to deployment iso. For this method also only HTTP(S) URLs are acceptable,
-  as HP iLO servers cannot attach other types of URLs as virtual media.
-
 Steps to start a deployment are pretty similar to those when using Compute:
 
 #. To use the `openstack baremetal CLI
