@@ -61,7 +61,6 @@ the developer community about any implementation using this functionality.
   :maxdepth: 1
 
   Driver Overview <drivers>
-  Driver Base Class Definition <api/ironic.drivers.base>
   Writing "vendor_passthru" methods <vendor-passthru>
   Third party continuous integration testing <third-party-ci>
 

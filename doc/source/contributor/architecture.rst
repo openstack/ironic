@@ -30,49 +30,10 @@ Drivers
 
 The internal driver API provides a consistent interface between the
 Conductor service and the driver implementations. A driver is defined by
-a class inheriting from the `BaseDriver`_ class, defining certain interfaces;
-each interface is an instance of the relevant driver module.
-
-For example, a fake driver class might look like this::
-
-    class FakePower(base.PowerInterface):
-        def get_properties(self):
-            return {}
-
-        def validate(self, task):
-            pass
-
-        def get_power_state(self, task):
-            return states.NOSTATE
-
-        def set_power_state(self, task, power_state):
-            pass
-
-        def reboot(self, task):
-            pass
-
-    class FakeDriver(base.BaseDriver):
-        def __init__(self):
-            self.power = FakePower()
-
-
-There are three categories of driver interfaces:
-
-- `Core` interfaces provide the essential functionality for Ironic within
-  OpenStack, and may be depended upon by other services. All drivers
-  must implement these interfaces. The Core interfaces are `power` and `deploy`.
-- `Standard` interfaces provide functionality beyond the needs of OpenStack,
-  but which have been standardized across all drivers and becomes part of
-  Ironic's API.  If a driver implements this interface, it must adhere to the
-  standard. This is presented to encourage vendors to work together with the
-  Ironic project and implement common features in a consistent way, thus
-  reducing the burden on consumers of the API. The Standard interfaces are
-  `management`, `console`, `boot`, `inspect`, and `raid`.
-- The `Vendor` interface allows an exemption to the API contract when a vendor
-  wishes to expose unique functionality provided by their hardware and is
-  unable to do so within the `Core` or `Standard` interfaces. In this case,
-  Ironic will merely relay the message from the API service to the appropriate
-  driver.
+a *hardware type* deriving from the AbstractHardwareType_ class, defining
+supported *hardware interfaces*. See :doc:`/install/enabling-drivers`
+for a more detailed explanation. See :doc:`drivers` for an explanation on how
+to write new hardware types and interfaces.
 
 Driver-Specific Periodic Tasks
 ------------------------------
@@ -113,7 +74,7 @@ driver actions such as take-over or clean-up.
 
 
 .. _API service: webapi.html
-.. _BaseDriver: api/ironic.drivers.base.html#ironic.drivers.base.BaseDriver
+.. _AbstractHardwareType: api/ironic.drivers.hardware_type.html#ironic.drivers.hardware_type.AbstractHardwareType
 .. _Conductor service: api/ironic.conductor.manager.html
 .. _DB API: api/ironic.db.api.html
 .. _diskimage-builder: https://docs.openstack.org/diskimage-builder/latest/
