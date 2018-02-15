@@ -16,6 +16,7 @@
 import datetime
 
 from ironic_lib import metrics_utils
+from oslo_log import log
 from oslo_utils import uuidutils
 import pecan
 from pecan import rest
@@ -37,6 +38,7 @@ from ironic.common import utils as common_utils
 from ironic import objects
 
 METRICS = metrics_utils.get_metrics_logger(__name__)
+LOG = log.getLogger(__name__)
 
 
 _DEFAULT_RETURN_FIELDS = ('uuid', 'address')
@@ -263,8 +265,27 @@ class PortCollection(collection.Collection):
     @staticmethod
     def convert_with_links(rpc_ports, limit, url=None, fields=None, **kwargs):
         collection = PortCollection()
-        collection.ports = [Port.convert_with_links(p, fields=fields)
-                            for p in rpc_ports]
+        collection.ports = []
+        for rpc_port in rpc_ports:
+            try:
+                port = Port.convert_with_links(rpc_port, fields=fields)
+            except exception.NodeNotFound:
+                # NOTE(dtantsur): node was deleted after we fetched the port
+                # list, meaning that the port was also deleted. Skip it.
+                LOG.debug('Skipping port %s as its node was deleted',
+                          rpc_port.uuid)
+                continue
+            except exception.PortgroupNotFound:
+                # NOTE(dtantsur): port group was deleted after we fetched the
+                # port list, it may mean that the port was deleted too, but
+                # we don't know it. Pretend that the port group was removed.
+                LOG.debug('Removing port group UUID from port %s as the port '
+                          'group was deleted', rpc_port.uuid)
+                rpc_port.portgroup_id = None
+                port = Port.convert_with_links(rpc_port, fields=fields)
+
+            collection.ports.append(port)
+
         collection.next = collection.get_next(limit, url=url, **kwargs)
         return collection
 
