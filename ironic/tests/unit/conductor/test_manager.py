@@ -24,6 +24,7 @@ import datetime
 import eventlet
 import mock
 from oslo_config import cfg
+from oslo_db import exception as db_exception
 import oslo_messaging as messaging
 from oslo_utils import uuidutils
 from oslo_versionedobjects import base as ovo_base
@@ -49,7 +50,6 @@ from ironic.drivers.modules.network import flat as n_flat
 from ironic import objects
 from ironic.objects import base as obj_base
 from ironic.objects import fields as obj_fields
-from ironic.tests import base as tests_base
 from ironic.tests.unit.conductor import mgr_utils
 from ironic.tests.unit.db import base as db_base
 from ironic.tests.unit.db import utils as db_utils
@@ -1581,6 +1581,59 @@ class DoNodeDeployTearDownTestCase(mgr_utils.ServiceSetUpMixin,
 
         mock_swift.side_effect = exception.SwiftOperationError('error')
         self.assertRaises(exception.SwiftOperationError,
+                          manager.do_node_deploy, task,
+                          self.service.conductor.id,
+                          configdrive=b'fake config drive')
+        node.refresh()
+        self.assertEqual(states.DEPLOYFAIL, node.provision_state)
+        self.assertEqual(states.ACTIVE, node.target_provision_state)
+        self.assertIsNotNone(node.last_error)
+        self.assertFalse(mock_deploy.called)
+
+    @mock.patch('ironic.drivers.modules.fake.FakeDeploy.deploy')
+    def test__do_node_deploy_configdrive_db_error(self, mock_deploy):
+        self._start_service()
+        node = obj_utils.create_test_node(self.context, driver='fake',
+                                          provision_state=states.DEPLOYING,
+                                          target_provision_state=states.ACTIVE)
+        task = task_manager.TaskManager(self.context, node.uuid)
+        task.node.save()
+        expected_instance_info = dict(node.instance_info)
+        with mock.patch.object(dbapi.IMPL, 'update_node') as mock_db:
+            db_node = self.dbapi.get_node_by_uuid(node.uuid)
+            mock_db.side_effect = [db_exception.DBDataError('DB error'),
+                                   db_node, db_node]
+            self.assertRaises(db_exception.DBDataError,
+                              manager.do_node_deploy, task,
+                              self.service.conductor.id,
+                              configdrive=b'fake config drive')
+            expected_instance_info.update(configdrive=b'fake config drive')
+            expected_calls = [
+                mock.call(node.uuid,
+                          {'version': mock.ANY,
+                           'instance_info': expected_instance_info}),
+                mock.call(node.uuid,
+                          {'version': mock.ANY,
+                           'provision_state': states.DEPLOYFAIL,
+                           'target_provision_state': states.ACTIVE}),
+                mock.call(node.uuid,
+                          {'version': mock.ANY,
+                           'last_error': mock.ANY})]
+            self.assertEqual(expected_calls, mock_db.mock_calls)
+            self.assertFalse(mock_deploy.called)
+
+    @mock.patch.object(manager, '_store_configdrive')
+    @mock.patch('ironic.drivers.modules.fake.FakeDeploy.deploy')
+    def test__do_node_deploy_configdrive_unexpected_error(self, mock_deploy,
+                                                          mock_store):
+        self._start_service()
+        node = obj_utils.create_test_node(self.context, driver='fake',
+                                          provision_state=states.DEPLOYING,
+                                          target_provision_state=states.ACTIVE)
+        task = task_manager.TaskManager(self.context, node.uuid)
+
+        mock_store.side_effect = RuntimeError('unexpected')
+        self.assertRaises(RuntimeError,
                           manager.do_node_deploy, task,
                           self.service.conductor.id,
                           configdrive=b'fake config drive')
@@ -5742,16 +5795,17 @@ class ManagerSyncLocalStateTestCase(mgr_utils.CommonMixIn, db_base.DbTestCase):
 
 
 @mock.patch.object(swift, 'SwiftAPI')
-class StoreConfigDriveTestCase(tests_base.TestCase):
+class StoreConfigDriveTestCase(db_base.DbTestCase):
 
     def setUp(self):
         super(StoreConfigDriveTestCase, self).setUp()
-        self.node = obj_utils.get_test_node(self.context, driver='fake',
-                                            instance_info=None)
+        self.node = obj_utils.create_test_node(self.context, driver='fake',
+                                               instance_info=None)
 
     def test_store_configdrive(self, mock_swift):
         manager._store_configdrive(self.node, 'foo')
         expected_instance_info = {'configdrive': 'foo'}
+        self.node.refresh()
         self.assertEqual(expected_instance_info, self.node.instance_info)
         self.assertFalse(mock_swift.called)
 
@@ -5779,6 +5833,7 @@ class StoreConfigDriveTestCase(tests_base.TestCase):
             object_headers=expected_obj_header)
         mock_swift.return_value.get_temp_url.assert_called_once_with(
             container_name, expected_obj_name, timeout)
+        self.node.refresh()
         self.assertEqual(expected_instance_info, self.node.instance_info)
 
 
