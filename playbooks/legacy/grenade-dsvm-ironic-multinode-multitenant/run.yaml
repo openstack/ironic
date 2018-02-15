@@ -15,6 +15,35 @@
         path: '{{ ansible_user_dir }}/workspace'
         state: directory
 
+    # NOTE(TheJulia): Python supports recompiling bytecode if a precompiled
+    # (.pyc) file is written to disk. Python will automatically recompile
+    # should that file disappear and attempt to load and use that bytecode.
+    # This can lead to unexpected and undesirable behavior such as python
+    # crashing.
+    #
+    # As this job scenario upgrades across possible structural changes to
+    # python modules, and operates in a mixed environment between releases
+    # it is a good idea to prevent scenarios where newer modules installed
+    # by packages are leveraged by un-upgraded services because their
+    # underlying python packages have been updated during runtime.
+    #
+    # This is unique to Ironic's rolling upgrade grenade job, as Nova is
+    # excluded from being upgraded in the stack, and Ironic is left in
+    # a half-upgraded situation. The net result of which is we have an
+    # unstable Nova installation.
+    # https://bugs.launchpad.net/ironic/+bug/1744139
+    #
+    # TODO(TheJulia): We either need to find a better way to test rolling
+    # upgrades. Something which supports virtualenvs would be ideal, as
+    # well as something that allows us greater upgrade order control as
+    # the Ironic upgrade sequence is problematic and breaks towards the end
+    # of every cycle.
+    - shell:
+        cmd: |
+          echo 'DefaultEnvironment="PYTHONDONTWRITEBYTECODE=1"' >>/etc/systemd/system.conf
+          systemctl daemon-reexec
+      become: yes
+
     - shell:
         cmd: |
           set -e
