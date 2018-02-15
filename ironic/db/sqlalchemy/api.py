@@ -208,8 +208,21 @@ class Connection(api.Connection):
 
     def _add_nodes_filters(self, query, filters):
         if filters is None:
-            filters = []
-
+            filters = dict()
+        supported_filters = {'console_enabled', 'maintenance', 'driver',
+                             'resource_class', 'provision_state', 'uuid', 'id',
+                             'chassis_uuid', 'associated', 'reserved',
+                             'reserved_by_any_of', 'provisioned_before',
+                             'inspection_started_before'}
+        unsupported_filters = set(filters).difference(supported_filters)
+        if unsupported_filters:
+            msg = _("SqlAlchemy API does not support "
+                    "filtering by %s") % ', '.join(unsupported_filters)
+            raise ValueError(msg)
+        for field in ['console_enabled', 'maintenance', 'driver',
+                      'resource_class', 'provision_state', 'uuid', 'id']:
+            if field in filters:
+                query = query.filter_by(**{field: filters[field]})
         if 'chassis_uuid' in filters:
             # get_chassis_by_uuid() to raise an exception if the chassis
             # is not found
@@ -228,14 +241,6 @@ class Connection(api.Connection):
         if 'reserved_by_any_of' in filters:
             query = query.filter(models.Node.reservation.in_(
                 filters['reserved_by_any_of']))
-        if 'maintenance' in filters:
-            query = query.filter_by(maintenance=filters['maintenance'])
-        if 'driver' in filters:
-            query = query.filter_by(driver=filters['driver'])
-        if 'resource_class' in filters:
-            query = query.filter_by(resource_class=filters['resource_class'])
-        if 'provision_state' in filters:
-            query = query.filter_by(provision_state=filters['provision_state'])
         if 'provisioned_before' in filters:
             limit = (timeutils.utcnow() -
                      datetime.timedelta(seconds=filters['provisioned_before']))
@@ -245,8 +250,6 @@ class Connection(api.Connection):
                      (datetime.timedelta(
                          seconds=filters['inspection_started_before'])))
             query = query.filter(models.Node.inspection_started_at < limit)
-        if 'console_enabled' in filters:
-            query = query.filter_by(console_enabled=filters['console_enabled'])
 
         return query
 
