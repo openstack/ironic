@@ -203,6 +203,49 @@ class TestListPorts(test_api_base.BaseApiTest):
         # never expose the node_id
         self.assertNotIn('node_id', data['ports'][0])
 
+    # NOTE(dtantsur): apparently autospec does not work on class methods..
+    @mock.patch.object(objects.Node, 'get')
+    def test_list_with_deleted_node(self, mock_get_node):
+        # check that we don't end up with HTTP 400 when node deletion races
+        # with listing ports - see https://launchpad.net/bugs/1748893
+        obj_utils.create_test_port(self.context, node_id=self.node.id)
+        mock_get_node.side_effect = exception.NodeNotFound('boom')
+        data = self.get_json('/ports')
+        self.assertEqual([], data['ports'])
+
+    # NOTE(dtantsur): apparently autospec does not work on class methods..
+    @mock.patch.object(objects.Node, 'get')
+    def test_list_detailed_with_deleted_node(self, mock_get_node):
+        # check that we don't end up with HTTP 400 when node deletion races
+        # with listing ports - see https://launchpad.net/bugs/1748893
+        port = obj_utils.create_test_port(self.context, node_id=self.node.id)
+        port2 = obj_utils.create_test_port(self.context, node_id=self.node.id,
+                                           uuid=uuidutils.generate_uuid(),
+                                           address='66:44:55:33:11:22')
+        mock_get_node.side_effect = [exception.NodeNotFound('boom'), self.node]
+        data = self.get_json('/ports/detail')
+        # The "correct" port is still returned
+        self.assertEqual(1, len(data['ports']))
+        self.assertIn(data['ports'][0]['uuid'], {port.uuid, port2.uuid})
+        self.assertEqual(self.node.uuid, data['ports'][0]['node_uuid'])
+
+    # NOTE(dtantsur): apparently autospec does not work on class methods..
+    @mock.patch.object(objects.Portgroup, 'get')
+    def test_list_with_deleted_port_group(self, mock_get_pg):
+        # check that we don't end up with HTTP 400 when port group deletion
+        # races with listing ports - see https://launchpad.net/bugs/1748893
+        portgroup = obj_utils.create_test_portgroup(self.context,
+                                                    node_id=self.node.id)
+        port = obj_utils.create_test_port(self.context, node_id=self.node.id,
+                                          portgroup_id=portgroup.id)
+        mock_get_pg.side_effect = exception.PortgroupNotFound('boom')
+        data = self.get_json(
+            '/ports/detail',
+            headers={api_base.Version.string: str(api_v1.max_version())}
+        )
+        self.assertEqual(port.uuid, data['ports'][0]["uuid"])
+        self.assertIsNone(data['ports'][0]["portgroup_uuid"])
+
     def test_get_one(self):
         port = obj_utils.create_test_port(self.context, node_id=self.node.id)
         data = self.get_json('/ports/%s' % port.uuid)

@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Fixes rare race condition which resulted in the port list API returning
+    HTTP 400 (bad request) if some nodes were being removed in parallel.
+    See `bug 1748893 <https://bugs.launchpad.net/bugs/1748893>`_ for details.
