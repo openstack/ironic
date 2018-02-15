@@ -57,9 +57,8 @@ Things to do before releasing
     It is important to do this before a stable/<release> branch is made (or if
     `the grenade switch is made <http://lists.openstack.org/pipermail/openstack-dev/2017-February/111849.html>`_
     to use the latest release from stable as the 'old' release).
-    Otherwise, once it is made, CI (a `unit test
-    <https://github.com/openstack/ironic/blob/54efd312395a56cbeee5c556df34afd8153c8076/ironic/tests/unit/common/test_release_mappings.py#L68>`_
-    and grenade that tests new-release -> master) will fail.
+    Otherwise, once it is made, CI (the grenade job that tests new-release ->
+    master) will fail.
 
 Things to do after releasing
 ============================
