@@ -242,17 +242,6 @@ class IronicObject(object_base.VersionedObject):
         objname = obj.obj_name()
         db_version = db_object['version']
 
-        if db_version is None:
-            # NOTE(rloo): This can only happen if the DB is corrupt or this
-            # is the conductor object. (Because the rest of the objects will
-            # all have their DB version set properly.)
-            # TODO(rloo): This entire if clause can be deleted in Rocky
-            # since the dbsync online migration populates all the conductor
-            # versions and it must be run to completion before upgrading to
-            # Rocky.
-            db_version = versions.RELEASE_MAPPING['pike']['objects'].get(
-                objname, ['1.0'])[0]
-
         if not versionutils.is_compatible(db_version, obj.__class__.VERSION):
             raise ovo_exception.IncompatibleObjectVersion(
                 objname=objname, objver=db_version,
