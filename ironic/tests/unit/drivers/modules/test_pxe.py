@@ -414,6 +414,7 @@ class PXEPrivateMethodsTestCase(db_base.DbTestCase):
             'ipxe_timeout': ipxe_timeout_in_ms,
             'ari_path': ramdisk,
             'aki_path': kernel,
+            'initrd_filename': ramdisk_label,
         }
 
         if mode == 'rescue':
@@ -430,6 +431,7 @@ class PXEPrivateMethodsTestCase(db_base.DbTestCase):
                 'password': 'fake_password'})
             expected_options.pop('deployment_aki_path')
             expected_options.pop('deployment_ari_path')
+            expected_options.pop('initrd_filename')
 
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:

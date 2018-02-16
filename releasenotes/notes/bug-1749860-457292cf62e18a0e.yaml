@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Fixes rescue timeout due to incorrect kernel parameter in the iPXE script.
+    See `bug 1749860 <https://bugs.launchpad.net/ironic/+bug/1749860>`_ for
+    details.
