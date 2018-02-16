@@ -57,6 +57,7 @@ class TestPXEUtils(db_base.DbTestCase):
             'deployment_ari_path': 'http://1.2.3.4:1234/deploy_ramdisk',
             'aki_path': 'http://1.2.3.4:1234/kernel',
             'ari_path': 'http://1.2.3.4:1234/ramdisk',
+            'initrd_filename': 'deploy_ramdisk',
         })
 
         self.ipxe_options_timeout = self.ipxe_options.copy()
@@ -73,6 +74,7 @@ class TestPXEUtils(db_base.DbTestCase):
             'username': 'fake_username',
             'password': 'fake_password'
         })
+        self.ipxe_options_boot_from_volume.pop('initrd_filename', None)
 
         self.node = object_utils.create_test_node(self.context)
 
