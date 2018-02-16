@@ -94,6 +94,9 @@
           # if using a ramdisk without a known good value, use the devstack
           # default by not exporting any value for IRONIC_VM_SPECS_RAM
           esac
+            # NOTE(mgoddard): We cannot test node traits when upgrading from
+            # pike, as node traits support was added in queens.
+            export DEVSTACK_LOCAL_CONFIG+=$'\n'"IRONIC_DEFAULT_TRAITS=\"\""
 
           EOF
         chdir: '{{ ansible_user_dir }}/workspace'
