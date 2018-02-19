@@ -186,6 +186,26 @@ class DbNodeTestCase(base.DbTestCase):
         self.assertEqual(sorted([node1.id, node3.id]),
                          sorted([r.id for r in res]))
 
+        res = self.dbapi.get_node_list(filters={'id': node1.id})
+        self.assertEqual([node1.id], [r.id for r in res])
+
+        res = self.dbapi.get_node_list(filters={'uuid': node1.uuid})
+        self.assertEqual([node1.id], [r.id for r in res])
+
+        # ensure unknown filters explode
+        filters = {'bad_filter': 'foo'}
+        self.assertRaisesRegex(ValueError,
+                               'bad_filter',
+                               self.dbapi.get_node_list,
+                               filters=filters)
+
+        # even with good filters present
+        filters = {'bad_filter': 'foo', 'id': node1.id}
+        self.assertRaisesRegex(ValueError,
+                               'bad_filter',
+                               self.dbapi.get_node_list,
+                               filters=filters)
+
     @mock.patch.object(timeutils, 'utcnow', autospec=True)
     def test_get_nodeinfo_list_provision(self, mock_utcnow):
         past = datetime.datetime(2000, 1, 1, 0, 0)
