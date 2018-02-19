@@ -98,7 +98,7 @@ class Trait(base.IronicObject):
 
 
 @base.IronicObjectRegistry.register
-class TraitList(object_base.ObjectListBase, base.IronicObject):
+class TraitList(base.IronicObjectListBase, base.IronicObject):
     # Version 1.0: Initial version
     VERSION = '1.0'
 

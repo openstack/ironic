@@ -1051,7 +1051,7 @@ class Node(base.APIBase):
                 self.fields.append(k)
                 # TODO(jroll) is there a less hacky way to do this?
                 if k == 'traits' and kwargs.get('traits') is not None:
-                    value = kwargs['traits'].get_trait_names()
+                    value = [t['trait'] for t in kwargs['traits']['objects']]
                 else:
                     value = kwargs.get(k, wtypes.Unset)
                 setattr(self, k, value)
