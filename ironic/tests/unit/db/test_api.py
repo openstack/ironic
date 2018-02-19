@@ -60,13 +60,6 @@ class UpgradingTestCase(base.DbTestCase):
             self.assertEqual(v, conductor.version)
         self.assertTrue(self.dbapi.check_versions())
 
-    def test_check_versions_conductor_no_version(self):
-        # works in Queens only
-        conductor = utils.create_test_conductor(version=None)
-        conductor = self.dbapi.get_conductor(conductor.hostname)
-        self.assertIsNone(conductor.version)
-        self.assertTrue(self.dbapi.check_versions())
-
     def test_check_versions_conductor_old(self):
         conductor = utils.create_test_conductor(version='1.0')
         conductor = self.dbapi.get_conductor(conductor.hostname)
