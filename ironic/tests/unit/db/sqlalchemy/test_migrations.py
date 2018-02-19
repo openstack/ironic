@@ -42,11 +42,12 @@ import fixtures
 import mock
 from oslo_db import exception as db_exc
 from oslo_db.sqlalchemy import enginefacade
+from oslo_db.sqlalchemy import test_fixtures
 from oslo_db.sqlalchemy import test_migrations
 from oslo_db.sqlalchemy import utils as db_utils
-from oslo_db.tests.sqlalchemy import base as test_base
 from oslo_log import log as logging
 from oslo_utils import uuidutils
+from oslotest import base as test_base
 import sqlalchemy
 import sqlalchemy.exc
 
@@ -182,6 +183,7 @@ class MigrationCheckersMixin(object):
 
     def setUp(self):
         super(MigrationCheckersMixin, self).setUp()
+        self.engine = enginefacade.writer.get_engine()
         self.config = migration._alembic_config()
         self.migration_api = migration
         self.useFixture(fixtures.Timeout(MIGRATIONS_TIMEOUT,
@@ -692,20 +694,23 @@ class MigrationCheckersMixin(object):
 
 class TestMigrationsMySQL(MigrationCheckersMixin,
                           WalkVersionsMixin,
-                          test_base.MySQLOpportunisticTestCase):
-    pass
+                          test_fixtures.OpportunisticDBTestMixin,
+                          test_base.BaseTestCase):
+    FIXTURE = test_fixtures.MySQLOpportunisticFixture
 
 
 class TestMigrationsPostgreSQL(MigrationCheckersMixin,
                                WalkVersionsMixin,
-                               test_base.PostgreSQLOpportunisticTestCase):
-    pass
+                               test_fixtures.OpportunisticDBTestMixin,
+                               test_base.BaseTestCase):
+    FIXTURE = test_fixtures.PostgresqlOpportunisticFixture
 
 
 class ModelsMigrationSyncMixin(object):
 
     def setUp(self):
         super(ModelsMigrationSyncMixin, self).setUp()
+        self.engine = enginefacade.writer.get_engine()
         self.useFixture(fixtures.Timeout(MIGRATIONS_TIMEOUT,
                                          gentle=True))
 
@@ -722,11 +727,13 @@ class ModelsMigrationSyncMixin(object):
 
 class ModelsMigrationsSyncMysql(ModelsMigrationSyncMixin,
                                 test_migrations.ModelsMigrationsSync,
-                                test_base.MySQLOpportunisticTestCase):
-    pass
+                                test_fixtures.OpportunisticDBTestMixin,
+                                test_base.BaseTestCase):
+    FIXTURE = test_fixtures.MySQLOpportunisticFixture
 
 
 class ModelsMigrationsSyncPostgres(ModelsMigrationSyncMixin,
                                    test_migrations.ModelsMigrationsSync,
-                                   test_base.PostgreSQLOpportunisticTestCase):
-    pass
+                                   test_fixtures.OpportunisticDBTestMixin,
+                                   test_base.BaseTestCase):
+    FIXTURE = test_fixtures.PostgresqlOpportunisticFixture
