@@ -14,6 +14,7 @@ Tests for the API /ports/ methods.
 """
 
 import datetime
+import types
 
 import mock
 from oslo_config import cfg
@@ -203,8 +204,9 @@ class TestListPorts(test_api_base.BaseApiTest):
         # never expose the node_id
         self.assertNotIn('node_id', data['ports'][0])
 
-    # NOTE(dtantsur): apparently autospec does not work on class methods..
-    @mock.patch.object(objects.Node, 'get')
+    # NOTE(jlvillal): autospec=True doesn't work on staticmethods:
+    # https://bugs.python.org/issue23078
+    @mock.patch.object(objects.Node, 'get', spec_set=types.FunctionType)
     def test_list_with_deleted_node(self, mock_get_node):
         # check that we don't end up with HTTP 400 when node deletion races
         # with listing ports - see https://launchpad.net/bugs/1748893
@@ -213,8 +215,9 @@ class TestListPorts(test_api_base.BaseApiTest):
         data = self.get_json('/ports')
         self.assertEqual([], data['ports'])
 
-    # NOTE(dtantsur): apparently autospec does not work on class methods..
-    @mock.patch.object(objects.Node, 'get')
+    # NOTE(jlvillal): autospec=True doesn't work on staticmethods:
+    # https://bugs.python.org/issue23078
+    @mock.patch.object(objects.Node, 'get', spec_set=types.FunctionType)
     def test_list_detailed_with_deleted_node(self, mock_get_node):
         # check that we don't end up with HTTP 400 when node deletion races
         # with listing ports - see https://launchpad.net/bugs/1748893
@@ -229,8 +232,9 @@ class TestListPorts(test_api_base.BaseApiTest):
         self.assertIn(data['ports'][0]['uuid'], {port.uuid, port2.uuid})
         self.assertEqual(self.node.uuid, data['ports'][0]['node_uuid'])
 
-    # NOTE(dtantsur): apparently autospec does not work on class methods..
-    @mock.patch.object(objects.Portgroup, 'get')
+    # NOTE(jlvillal): autospec=True doesn't work on staticmethods:
+    # https://bugs.python.org/issue23078
+    @mock.patch.object(objects.Portgroup, 'get', spec_set=types.FunctionType)
     def test_list_with_deleted_port_group(self, mock_get_pg):
         # check that we don't end up with HTTP 400 when port group deletion
         # races with listing ports - see https://launchpad.net/bugs/1748893
