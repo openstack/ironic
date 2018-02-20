@@ -1,0 +1,5 @@
+---
+fixes:
+  - Fixes `bug 1749755 <https://bugs.launchpad.net/ironic/+bug/1749755>`_
+    causing timeouts to not work properly because an unsupported
+    sqalchemy filter was being used.
