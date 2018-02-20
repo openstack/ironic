@@ -506,66 +506,11 @@ class _TestObject(object):
     def test__from_db_object_old(self):
         self._test__from_db_object('1.4')
 
-    @mock.patch('ironic.common.release_mappings.RELEASE_MAPPING',
-                autospec=True)
-    def test__from_db_object_no_version(self, mock_release_mapping):
-        # DB doesn't have version; get it from mapping
-        mock_release_mapping.__getitem__.return_value = {
-            'objects': {
-                'MyObj': ['1.4'],
-            }
-        }
+    def test__from_db_object_map_version_bad(self):
         obj = MyObj(self.context)
         dbobj = {'created_at': timeutils.utcnow(),
                  'updated_at': timeutils.utcnow(),
-                 'version': None,
-                 'foo': 123, 'bar': 'test', 'missing': ''}
-        MyObj._from_db_object(self.context, obj, dbobj)
-        self.assertEqual(obj.__class__.VERSION, obj.VERSION)
-        self.assertEqual(123, obj.foo)
-        self.assertEqual('test', obj.bar)
-        self.assertEqual('foo', obj.missing)
-
-    @mock.patch('ironic.common.release_mappings.RELEASE_MAPPING',
-                autospec=True)
-    def test__from_db_object_no_version_subset_of_fields(self,
-                                                         mock_release_mapping):
-        # DB doesn't have version; get it from mapping
-        mock_release_mapping.__getitem__.return_value = {
-            'objects': {
-                'MyObj': ['1.5'],
-            }
-        }
-        obj = MyObj(self.context)
-        dbobj = {'created_at': timeutils.utcnow(),
-                 'updated_at': timeutils.utcnow(),
-                 'version': None,
-                 'foo': 123, 'bar': 'test', 'missing': '',
-                 'nested_object': 'test'}
-        # Mock obj_load_attr as this is what is called if an attribute that we
-        # try to access is not yet set. For all ironic objects it's a noop,
-        # we've implemented it in MyObj purely for testing
-        with mock.patch.object(obj, 'obj_load_attr', autospec=True):
-            MyObj._from_db_object(self.context, obj, dbobj,
-                                  fields=['foo', 'bar'])
-            self.assertEqual(obj.__class__.VERSION, obj.VERSION)
-            self.assertEqual(123, obj.foo)
-            self.assertEqual('test', obj.bar)
-            self.assertRaises(AttributeError, getattr, obj, 'missing')
-            self.assertEqual('testtest', obj.nested_object)
-
-    @mock.patch('ironic.common.release_mappings.RELEASE_MAPPING',
-                autospec=True)
-    def test__from_db_object_map_version_bad(self, mock_release_mapping):
-        mock_release_mapping.__getitem__.return_value = {
-            'objects': {
-                'MyObj': ['1.6'],
-            }
-        }
-        obj = MyObj(self.context)
-        dbobj = {'created_at': timeutils.utcnow(),
-                 'updated_at': timeutils.utcnow(),
-                 'version': None,
+                 'version': '1.99',
                  'foo': 123, 'bar': 'test', 'missing': ''}
         self.assertRaises(object_exception.IncompatibleObjectVersion,
                           MyObj._from_db_object, self.context, obj, dbobj)
