@@ -1,0 +1,7 @@
+---
+features:
+  - |
+    Adds support for rescue interface ``agent`` for ``ilo`` hardware type
+    when corresponding boot interface being used is ``ilo-virtual-media``.
+    The supported values of rescue interface for ``ilo`` hardware type
+    are ``agent`` and ``no-rescue``. The default value is ``no-rescue``.

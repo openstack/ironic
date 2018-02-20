@@ -49,10 +49,15 @@ REQUIRED_PROPERTIES = {
     'ilo_deploy_iso': _("UUID (from Glance) of the deployment ISO. "
                         "Required.")
 }
+RESCUE_PROPERTIES = {
+    'ilo_rescue_iso': _("UUID (from Glance) of the rescue ISO. Only "
+                        "required if rescue mode is being used and ironic is "
+                        "managing booting the rescue ramdisk.")
+}
 COMMON_PROPERTIES = REQUIRED_PROPERTIES
 
 
-def parse_driver_info(node):
+def parse_driver_info(node, mode='deploy'):
     """Gets the driver specific Node deployment info.
 
     This method validates whether the 'driver_info' property of the
@@ -60,16 +65,23 @@ def parse_driver_info(node):
     deploy images to the node.
 
     :param node: a single Node.
+    :param mode: Label indicating a deploy or rescue operation being
+                 carried out on the node. Supported values are
+                 'deploy' and 'rescue'. Defaults to 'deploy', indicating
+                 deploy operation is being carried out.
     :returns: A dict with the driver_info values.
     :raises: MissingParameterValue, if any of the required parameters are
         missing.
     """
     info = node.driver_info
     d_info = {}
-    d_info['ilo_deploy_iso'] = info.get('ilo_deploy_iso')
+    if mode == 'rescue':
+        d_info['ilo_rescue_iso'] = info.get('ilo_rescue_iso')
+    else:
+        d_info['ilo_deploy_iso'] = info.get('ilo_deploy_iso')
 
-    error_msg = _("Error validating iLO virtual media deploy. Some parameters"
-                  " were missing in node's driver_info")
+    error_msg = (_("Error validating iLO virtual media for %s. Some "
+                   "parameters were missing in node's driver_info") % mode)
     deploy_utils.check_for_missing_params(d_info, error_msg)
 
     return d_info
@@ -386,6 +398,9 @@ class IloVirtualMediaBoot(base.BootInterface):
     capabilities = ['iscsi_volume_boot']
 
     def get_properties(self):
+        # TODO(stendulker): COMMON_PROPERTIES should also include rescue
+        # related properties (RESCUE_PROPERTIES). We can add them in Rocky,
+        # when classic drivers get removed.
         return COMMON_PROPERTIES
 
     @METRICS.timer('IloVirtualMediaBoot.validate')
@@ -410,7 +425,7 @@ class IloVirtualMediaBoot(base.BootInterface):
     def prepare_ramdisk(self, task, ramdisk_params):
         """Prepares the boot of deploy ramdisk using virtual media.
 
-        This method prepares the boot of the deploy ramdisk after
+        This method prepares the boot of the deploy or rescue ramdisk after
         reading relevant information from the node's driver_info and
         instance_info.
 
@@ -428,23 +443,25 @@ class IloVirtualMediaBoot(base.BootInterface):
 
         node = task.node
         # NOTE(TheJulia): If this method is being called by something
-        # aside from deployment and clean, such as conductor takeover, we
-        # should treat this as a no-op and move on otherwise we would modify
-        # the state of the node due to virtual media operations.
-        if (node.provision_state != states.DEPLOYING and
-                node.provision_state != states.CLEANING):
+        # aside from deployment, clean and rescue, such as conductor takeover,
+        # we should treat this as a no-op and move on otherwise we would
+        # modify the state of the node due to virtual media operations.
+        if node.provision_state not in (states.DEPLOYING,
+                                        states.CLEANING,
+                                        states.RESCUING):
             return
 
         # Powering off the Node before initiating boot for node cleaning.
         # If node is in system POST, setting boot device fails.
         manager_utils.node_power_action(task, states.POWER_OFF)
 
-        if task.node.provision_state == states.DEPLOYING:
+        if node.provision_state in (states.DEPLOYING,
+                                    states.RESCUING):
             prepare_node_for_deploy(task)
 
         # Clear ilo_boot_iso if it's a glance image to force recreate
         # another one again (or use existing one in glance).
-        # This is mainly for rebuild scenario.
+        # This is mainly for rebuild and rescue scenario.
         if service_utils.is_glance_image(
                 node.instance_info.get('image_source')):
             instance_info = node.instance_info
@@ -458,9 +475,12 @@ class IloVirtualMediaBoot(base.BootInterface):
 
         deploy_nic_mac = deploy_utils.get_single_nic_with_vif_port_id(task)
         ramdisk_params['BOOTIF'] = deploy_nic_mac
-        deploy_iso = node.driver_info['ilo_deploy_iso']
+        if node.provision_state == states.RESCUING:
+            iso = node.driver_info['ilo_rescue_iso']
+        else:
+            iso = node.driver_info['ilo_deploy_iso']
 
-        ilo_common.setup_vmedia(task, deploy_iso, ramdisk_params)
+        ilo_common.setup_vmedia(task, iso, ramdisk_params)
 
     @METRICS.timer('IloVirtualMediaBoot.prepare_instance')
     def prepare_instance(self, task):
@@ -552,7 +572,11 @@ class IloVirtualMediaBoot(base.BootInterface):
         else:
             _clean_up_boot_iso_for_instance(task.node)
             driver_internal_info.pop('boot_iso_created_in_web_server', None)
-            driver_internal_info.pop('root_uuid_or_disk_id', None)
+            # Need to retain 'root_uuid_or_disk_id' during rescue. It would
+            # be required if boot iso needs to be created during unrescue
+            # operation.
+            if task.node.provision_state != states.RESCUING:
+                driver_internal_info.pop('root_uuid_or_disk_id', None)
             ilo_common.cleanup_vmedia_boot(task)
         task.node.driver_internal_info = driver_internal_info
         task.node.save()
@@ -562,13 +586,12 @@ class IloVirtualMediaBoot(base.BootInterface):
         """Cleans up the boot of ironic ramdisk.
 
         This method cleans up virtual media devices setup for the deploy
-        ramdisk.
+        or rescue ramdisk.
 
         :param task: a task from TaskManager.
         :returns: None
         :raises: IloOperationError, if some operation on iLO failed.
         """
-
         ilo_common.cleanup_vmedia_boot(task)
 
     def _configure_vmedia_boot(self, task, root_uuid):
@@ -598,6 +621,16 @@ class IloVirtualMediaBoot(base.BootInterface):
         i_info['ilo_boot_iso'] = boot_iso
         node.instance_info = i_info
         node.save()
+
+    @METRICS.timer('IloVirtualMediaBoot.validate_rescue')
+    def validate_rescue(self, task):
+        """Validate that the node has required properties for rescue.
+
+        :param task: a TaskManager instance with the node being checked
+        :raises: MissingParameterValue if node is missing one or more required
+            parameters
+        """
+        parse_driver_info(task.node, mode='rescue')
 
 
 class IloPXEBoot(pxe.PXEBoot):
