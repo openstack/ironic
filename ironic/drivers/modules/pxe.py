@@ -250,13 +250,12 @@ def _build_pxe_config_options(task, pxe_info, service=False):
     else:
         pxe_options = _build_deploy_pxe_options(task, pxe_info, mode=mode)
 
-    if mode == 'deploy':
-        # NOTE(pas-ha) we still must always add user image kernel and ramdisk
-        # info as later during switching PXE config to service mode the
-        # template will not be regenerated anew, but instead edited as-is.
-        # This can be changed later if/when switching PXE config will also use
-        # proper templating instead of editing existing files on disk.
-        pxe_options.update(_build_instance_pxe_options(task, pxe_info))
+    # NOTE(pas-ha) we still must always add user image kernel and ramdisk
+    # info as later during switching PXE config to service mode the
+    # template will not be regenerated anew, but instead edited as-is.
+    # This can be changed later if/when switching PXE config will also use
+    # proper templating instead of editing existing files on disk.
+    pxe_options.update(_build_instance_pxe_options(task, pxe_info))
 
     pxe_options.update(_build_extra_pxe_options())
 

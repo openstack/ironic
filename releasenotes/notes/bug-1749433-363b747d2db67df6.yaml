@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Fixes a bug preventing a node from booting into the user instance after unrescuing
+    if instance netboot is used. See `bug 1749433
+    <https://bugs.launchpad.net/ironic/+bug/1749433>`_ for details.
