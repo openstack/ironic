@@ -1,0 +1,9 @@
+---
+upgrade:
+  - Extends the ``instance_info`` column in the nodes table for MySQL/MariaDB
+    from up to 64KiB to up to 4GiB (type is changed from TEXT to LONGTEXT).
+    This upgrade will not be executed on PostgreSQL as its TEXT is unlimited.
+fixes:
+  - The config drive passed to the node can now contain more than 64KiB
+    in case of MySQL/MariaDB. For more details see `bug 1596421
+    <https://bugs.launchpad.net/ironic/+bug/1596421>`_.
