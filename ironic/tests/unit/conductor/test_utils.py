@@ -1229,10 +1229,18 @@ class ErrorHandlersTestCase(tests_base.TestCase):
 
     @mock.patch.object(conductor_utils, 'LOG')
     def test_cleaning_error_handler_tear_down_error(self, log_mock):
+        def _side_effect(task):
+            # simulate overwriting last error by another operation (e.g. power)
+            task.node.last_error = None
+            raise Exception('bar')
+
         driver = self.task.driver.deploy
-        driver.tear_down_cleaning.side_effect = Exception('bar')
-        conductor_utils.cleaning_error_handler(self.task, 'foo')
+        msg = 'foo'
+        driver.tear_down_cleaning.side_effect = _side_effect
+        conductor_utils.cleaning_error_handler(self.task, msg)
         self.assertTrue(log_mock.exception.called)
+        self.assertIn(msg, self.node.last_error)
+        self.assertIn(msg, self.node.maintenance_reason)
 
     @mock.patch.object(conductor_utils, 'LOG')
     def test_spawn_cleaning_error_handler_no_worker(self, log_mock):
