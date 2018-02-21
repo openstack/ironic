@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Reverts the fix for orphaned VIF records from the previous release, as
+    it causes a regression. See `bug 1750785
+    <https://bugs.launchpad.net/ironic/+bug/1750785>`_ for details.
