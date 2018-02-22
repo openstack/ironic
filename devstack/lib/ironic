@@ -139,8 +139,11 @@ if [[ -n "$BUILD_TIMEOUT" ]]; then
     echo "WARNING: BUILD_TIMEOUT variable is renamed to IRONIC_TEMPEST_BUILD_TIMEOUT and will be deprecated in Pike."
 fi
 
-IRONIC_DEFAULT_API_VERSION=${IRONIC_DEFAULT_API_VERSION:-latest}
-IRONIC_CMD="openstack --os-baremetal-api-version $IRONIC_DEFAULT_API_VERSION baremetal"
+IRONIC_DEFAULT_API_VERSION=${IRONIC_DEFAULT_API_VERSION:-}
+IRONIC_CMD="openstack baremetal"
+if [[ -n "$IRONIC_DEFAULT_API_VERSION" ]]; then
+    IRONIC_CMD="$IRONIC_CMD --os-baremetal-api-version $IRONIC_DEFAULT_API_VERSION"
+fi
 
 # driver / hardware type options
 IRONIC_ENABLED_DRIVERS=${IRONIC_ENABLED_DRIVERS:-fake,pxe_ipmitool,agent_ipmitool}
