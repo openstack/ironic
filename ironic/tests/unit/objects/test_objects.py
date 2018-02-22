@@ -620,6 +620,40 @@ class _TestObject(object):
             self.assertIn("'TestObj' object does not support item assignment",
                           err_message)
 
+    def test_as_dict(self):
+        obj = MyObj(self.context)
+        obj.foo = 1
+        result = obj.as_dict()
+        expected = {'foo': 1}
+        self.assertEqual(expected, result)
+
+    def test_as_dict_with_nested_object(self):
+        @base.IronicObjectRegistry.register_if(False)
+        class TestObj(base.IronicObject,
+                      object_base.VersionedObjectDictCompat):
+            fields = {'my_obj': fields.ObjectField('MyObj')}
+
+        obj1 = MyObj(self.context)
+        obj1.foo = 1
+        obj2 = TestObj(self.context)
+        obj2.my_obj = obj1
+        result = obj2.as_dict()
+        expected = {'my_obj': {'foo': 1}}
+        self.assertEqual(expected, result)
+
+    def test_as_dict_with_nested_object_list(self):
+        @base.IronicObjectRegistry.register_if(False)
+        class TestObj(base.IronicObjectListBase, base.IronicObject):
+            fields = {'objects': fields.ListOfObjectsField('MyObj')}
+
+        obj1 = MyObj(self.context)
+        obj1.foo = 1
+        obj2 = TestObj(self.context)
+        obj2.objects = [obj1]
+        result = obj2.as_dict()
+        expected = {'objects': [{'foo': 1}]}
+        self.assertEqual(expected, result)
+
 
 class TestObject(_LocalTest, _TestObject):
     pass

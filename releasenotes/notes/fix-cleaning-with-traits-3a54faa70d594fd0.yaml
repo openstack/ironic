@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    Fixes an issue seen during cleaning when the node being cleaned has one or
+    more traits assigned. This issue caused cleaning to fail, and the node to
+    enter the ``clean failed`` state.  See `bug 1750027
+    <https://bugs.launchpad.net/ironic/+bug/1750027>`_ for details.

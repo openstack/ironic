@@ -16,6 +16,7 @@
 import datetime
 
 import mock
+from oslo_serialization import jsonutils
 from oslo_utils import uuidutils
 from testtools import matchers
 
@@ -41,6 +42,8 @@ class TestNodeObject(db_base.DbTestCase, obj_utils.SchemasTestMixIn):
         d = self.node.as_dict()
         self.assertEqual('fake', d['driver_info']['ipmi_password'])
         self.assertEqual('data', d['instance_info']['configdrive'])
+        # Ensure the node can be serialised.
+        jsonutils.dumps(d)
 
     def test_as_dict_secure(self):
         self.node.driver_info['ipmi_password'] = 'fake'
@@ -48,6 +51,17 @@ class TestNodeObject(db_base.DbTestCase, obj_utils.SchemasTestMixIn):
         d = self.node.as_dict(secure=True)
         self.assertEqual('******', d['driver_info']['ipmi_password'])
         self.assertEqual('******', d['instance_info']['configdrive'])
+        # Ensure the node can be serialised.
+        jsonutils.dumps(d)
+
+    def test_as_dict_with_traits(self):
+        self.fake_node['traits'] = ['CUSTOM_1']
+        self.node = obj_utils.get_test_node(self.ctxt, **self.fake_node)
+        d = self.node.as_dict()
+        expected_traits = {'objects': [{'trait': 'CUSTOM_1'}]}
+        self.assertEqual(expected_traits, d['traits'])
+        # Ensure the node can be serialised.
+        jsonutils.dumps(d)
 
     def test_get_by_id(self):
         node_id = self.fake_node['id']

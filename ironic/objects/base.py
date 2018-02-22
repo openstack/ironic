@@ -64,9 +64,21 @@ class IronicObject(object_base.VersionedObject):
     }
 
     def as_dict(self):
-        return dict((k, getattr(self, k))
+        """Return the object represented as a dict.
+
+        The returned object is JSON-serialisable.
+        """
+
+        def _attr_as_dict(field):
+            """Return an attribute as a dict, handling nested objects."""
+            attr = getattr(self, field)
+            if isinstance(attr, IronicObject):
+                attr = attr.as_dict()
+            return attr
+
+        return dict((k, _attr_as_dict(k))
                     for k in self.fields
-                    if hasattr(self, k))
+                    if self.obj_attr_is_set(k))
 
     def obj_refresh(self, loaded_object):
         """Applies updates for objects that inherit from base.IronicObject.
@@ -318,6 +330,16 @@ class IronicObject(object_base.VersionedObject):
         changes['version'] = self.VERSION
 
         return changes
+
+
+class IronicObjectListBase(object_base.ObjectListBase):
+
+    def as_dict(self):
+        """Return the object represented as a dict.
+
+        The returned object is JSON-serialisable.
+        """
+        return {'objects': [obj.as_dict() for obj in self.objects]}
 
 
 class IronicObjectSerializer(object_base.VersionedObjectSerializer):
