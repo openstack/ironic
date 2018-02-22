@@ -1042,10 +1042,6 @@ class NetworkInterface(BaseInterface):
     def vif_detach(self, task, vif_id):
         """Detach a virtual network interface from a node
 
-        Warning: This method is called by the conductor as a shared
-        task, to ensure that a vif can be detached during a long-lived lock.
-        Such as those that occur when a node is being unprovisioned.
-
         :param task: A TaskManager instance.
         :param vif_id: A VIF ID to detach
         :raises: NetworkError, VifNotAttached
