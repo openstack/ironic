@@ -192,9 +192,3 @@
     parent: legacy-ironic-dsvm-base
     run: playbooks/legacy/tempest-dsvm-ironic-pxe_ipa-full/run.yaml
     timeout: 9600
-
-- job:
-    name: ironic-tempest-dsvm-ipa-resourceclasses-partition-pxe_ipmitool-tinyipa
-    parent: legacy-ironic-dsvm-base
-    run: playbooks/legacy/tempest-dsvm-ironic-ipa-resourceclasses-partition-pxe_ipmitool-tinyipa/run.yaml
-    timeout: 5400
