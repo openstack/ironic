@@ -25,6 +25,8 @@ RELEASE_NOTES_DIR = "releasenotes/notes/"
 IGNORE_FILES = (
     'releasenotes/notes/fix-get-deploy-info-port.yaml',  # Newton 6.0.0
     'releasenotes/notes/fix-mitaka-ipa-iscsi.yaml',      # Newton 6.0.0
+    # Rocky, accidentally got in
+    'releasenotes/notes/add-id-and-uuid-filtering-to-sqalchemy-api.yaml',
 )
 
 
