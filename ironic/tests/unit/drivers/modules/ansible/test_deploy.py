@@ -56,22 +56,13 @@ class AnsibleDeployTestCaseBase(db_base.DbTestCase):
     def setUp(self):
         super(AnsibleDeployTestCaseBase, self).setUp()
 
-        # NOTE(pas-ha) we load ipmi hw type, and ipmitool interface checks
-        # for validity of the CONF.tempdir when a task object is created.
-        # We need to fake it in some tests and we don't care if and how it
-        # was called, so just mock it out.
-        # TODO(pas-ha) replace impi hw type with more appropriate fake hw type
-        # when such becomes available
-        patcher = mock.patch('ironic.common.utils.check_dir', autospec=True)
-        patcher.start()
-        self.addCleanup(patcher.stop)
-
-        self.config(enabled_deploy_interfaces='direct,iscsi,ansible')
-        mgr_utils.mock_the_extension_manager(driver='ipmi',
+        self.config(enabled_deploy_interfaces='ansible',
+                    enabled_power_interfaces='fake',
+                    enabled_management_interfaces='fake')
+        mgr_utils.mock_the_extension_manager(driver='manual-management',
                                              namespace='ironic.hardware.types')
         node = {
-            'driver': 'ipmi',
-            'deploy_interface': 'ansible',
+            'driver': 'manual-management',
             'instance_info': INSTANCE_INFO,
             'driver_info': DRIVER_INFO,
             'driver_internal_info': DRIVER_INTERNAL_INFO,
