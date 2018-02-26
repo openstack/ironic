@@ -124,10 +124,28 @@ The following property values have to be added to the node's
 - ``snmp_version``: (optional) SNMP protocol version
   (permitted values ``1``, ``2c`` or ``3``). If not specified, SNMPv1
   is chosen.
-- ``snmp_community``: (Required for SNMPv1 and SNMPv2c) SNMP community
-  parameter for reads and writes to the PDU.
-- ``snmp_security``: (Required for SNMPv3) SNMPv3 User-based Security Model
-  (USM) user name.
+- ``snmp_community``: (Required for SNMPv1/SNMPv2c) SNMP community
+  name parameter for reads and writes to the PDU.
+- ``snmp_user``: (Required for SNMPv3) SNMPv3 User-based Security Model
+  (USM) user name. Synonym for now obsolete ``snmp_security`` parameter.
+- ``snmp_auth_protocol``: SNMPv3 message authentication protocol ID.
+  Valid values include: ``none``, ``md5``, ``sha`` for all pysnmp versions
+  and additionally ``sha224``, ``sha256``, ``sha384``, ``sha512`` for
+  pysnmp versions 4.4.1 and later. Default is ``none`` unless ``snmp_auth_key``
+  is provided. In the latter case ``md5`` is the default.
+- ``snmp_auth_key``: SNMPv3 message authentication key. Must be 8+
+  characters long. Required when message authentication is used.
+- ``snmp_priv_protocol``: SNMPv3 message privacy (encryption) protocol ID.
+  Valid values include: ``none``, ``des``, ``3des``, ``aes``, ``aes192``,
+  ``aes256`` for all pysnmp version and additionally ``aes192blmt``,
+  ``aes256blmt`` for pysnmp versions 4.4.3+. Note that message privacy
+  requires using message authentication. Default is ``none`` unless
+  ``snmp_priv_key`` is provided. In the latter case ``des`` is the default.
+- ``snmp_priv_key``:  SNMPv3 message privacy (encryption) key. Must be 8+
+  characters long. Required when message encryption is used.
+- ``snmp_context_engine_id``: SNMPv3 context engine ID. Default is
+  the value of authoritative engine ID.
+- ``snmp_context_name``: SNMPv3 context name. Default is an empty string.
 
 The following command can be used to enroll a node with the ``snmp`` hardware
 type:
@@ -140,12 +158,3 @@ type:
     --driver-info snmp_outlet=<outlet_index> \
     --driver-info snmp_community=<community_string> \
     --properties capabilities=boot_option:netboot
-
-PDU Configuration
-=================
-
-This version of the SNMP power interface does not support SNMPv3 authentication
-or encryption features. When using SNMPv3, the SNMPv3 agent at the PDU must
-be configured in ``noAuthNoPriv`` mode. Also, the ``snmp_security`` parameter
-is used to configure SNMP USM user name to the SNMP manager at the power
-interface.  The same USM user name must be configured to the target SNMP agent.

@@ -1,0 +1,22 @@
+---
+features:
+  - |
+    Adds SNMPv3 message authentication and encryption features to ironic
+    ``snmp`` hardware type. To enable these features, the following
+    parameters should be used in the node's ``driver_info``:
+
+    * ``snmp_user``
+    * ``snmp_auth_protocol``
+    * ``snmp_auth_key``
+    * ``snmp_priv_protocol``
+    * ``snmp_priv_key``
+
+    Also adds support for the ``context_engine_id`` and ``context_name``
+    parameters of SNMPv3 message at ironic ``snmp`` hardware type. They
+    can be configured in the node's ``driver_info``.
+
+deprecations:
+  - |
+    Deprecates the ``snmp_security`` field in ``driver_info`` for ironic
+    ``snmp`` hardware type, it will be removed in Stein release. Please use
+    ``snmp_user`` field instead.
