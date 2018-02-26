@@ -4,7 +4,7 @@
   "deploy_ramdisk": "UUID (from Glance) of the ramdisk that is mounted at boot time. Required.",
   "image_http_proxy": "URL of a proxy server for HTTP connections. Optional.",
   "image_https_proxy": "URL of a proxy server for HTTPS connections. Optional.",
-  "image_no_proxy": "A comma-separated list of host names, IP addresses and domain names (with optional :port) that will be excluded from proxying. To denote a doman name, use a dot to prefix the domain name. This value will be ignored if ``image_http_proxy`` and ``image_https_proxy`` are not specified. Optional.",
+  "image_no_proxy": "A comma-separated list of host names, IP addresses and domain names (with optional :port) that will be excluded from proxying. To denote a domain name, use a dot to prefix the domain name. This value will be ignored if ``image_http_proxy`` and ``image_https_proxy`` are not specified. Optional.",
   "ipmi_address": "IP address or hostname of the node. Required.",
   "ipmi_bridging": "bridging_type; default is \"no\". One of \"single\", \"dual\", \"no\". Optional.",
   "ipmi_force_boot_device": "Whether Ironic should specify the boot device to the BMC each time the server is turned on, eg. because the BMC is not capable of remembering the selected boot device across power cycles; default value is False. Optional.",
