@@ -20,11 +20,9 @@ STATE_POWERING_OFF = "power on"
 
 import sys
 
-import six
-
 import mock
-
 from oslo_utils import importutils
+import six
 
 from ironic.common import states
 from ironic.conductor import task_manager

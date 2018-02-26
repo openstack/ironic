@@ -30,7 +30,7 @@ import tempfile
 import eventlet
 eventlet.monkey_patch(os=False)
 
-import fixtures
+import fixtures  # noqa for I202 due to 'import eventlet' above
 from ironic_lib import utils
 import mock
 from oslo_concurrency import processutils

@@ -22,7 +22,6 @@ from ironic.drivers.modules import iscsi_deploy
 from ironic.drivers.modules import pxe
 from ironic.drivers.xclarity import management as xc_management
 from ironic.drivers.xclarity import power as xc_power
-
 from ironic.tests.unit.db import base as db_base
 from ironic.tests.unit.objects import utils as obj_utils
 

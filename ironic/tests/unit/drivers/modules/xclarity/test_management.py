@@ -15,11 +15,9 @@
 
 import sys
 
-import six
-
 import mock
-
 from oslo_utils import importutils
+import six
 
 from ironic.common import boot_devices
 from ironic.conductor import task_manager
