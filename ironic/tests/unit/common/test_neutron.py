@@ -528,6 +528,33 @@ class TestNeutronNetworkActions(db_base.DbTestCase):
         self.assertTrue(res)
         self.assertFalse(log_mock.warning.called)
 
+    @mock.patch.object(neutron, 'LOG', autospec=True)
+    def test_validate_port_info_flat_interface_with_client_id(self, log_mock):
+        self.node.network_interface = 'flat'
+        self.node.save()
+        llc = {}
+        port = object_utils.create_test_port(
+            self.context, node_id=self.node.id, uuid=uuidutils.generate_uuid(),
+            address='52:54:00:cf:2d:33', local_link_connection=llc,
+            extra={'client-id': self._CLIENT_ID})
+        res = neutron.validate_port_info(self.node, port)
+        self.assertTrue(res)
+        self.assertFalse(log_mock.warning.called)
+
+    @mock.patch.object(neutron, 'LOG', autospec=True)
+    def test_validate_port_info_neutron_interface_with_client_id(
+            self, log_mock):
+        self.node.network_interface = 'neutron'
+        self.node.save()
+        llc = {}
+        port = object_utils.create_test_port(
+            self.context, node_id=self.node.id, uuid=uuidutils.generate_uuid(),
+            address='52:54:00:cf:2d:33', local_link_connection=llc,
+            extra={'client-id': self._CLIENT_ID})
+        res = neutron.validate_port_info(self.node, port)
+        self.assertTrue(res)
+        self.assertFalse(log_mock.warning.called)
+
 
 @mock.patch.object(neutron, 'get_client', autospec=True)
 class TestValidateNetwork(base.TestCase):
