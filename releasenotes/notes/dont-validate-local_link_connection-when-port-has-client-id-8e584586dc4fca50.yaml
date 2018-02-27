@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    Fixes an issue with validation of Infiniband ports. Infiniband ports do not
+    require the ``local_link_connection`` field to be populated as the network
+    topology is discoverable by the Infiniband Subnet Manager. See `bug 1753222
+    <https://launchpad.net/bugs/1753222>`_ for details.
