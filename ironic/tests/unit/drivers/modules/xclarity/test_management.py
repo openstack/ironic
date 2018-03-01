@@ -22,6 +22,7 @@ import mock
 from oslo_utils import importutils
 
 from ironic.common import boot_devices
+from ironic.common import exception
 from ironic.conductor import task_manager
 from ironic.drivers.modules.xclarity import common
 from ironic.drivers.modules.xclarity import management
@@ -82,9 +83,9 @@ class XClarityManagementDriverTestCase(db_base.DbTestCase):
             if 'ironic.drivers.modules.xclarity' in sys.modules:
                 six.moves.reload_module(
                     sys.modules['ironic.drivers.modules.xclarity'])
-            ex = common.XClarityError('E')
+            ex = exception.XClarityError('E')
             mock_get_xc_client.return_value.set_node_boot_info.side_effect = ex
-            self.assertRaises(common.XClarityError,
+            self.assertRaises(exception.XClarityError,
                               task.driver.management.set_boot_device,
                               task,
                               "pxe")
@@ -117,9 +118,9 @@ class XClarityManagementDriverTestCase(db_base.DbTestCase):
             if 'ironic.drivers.modules.xclarity' in sys.modules:
                 six.moves.reload_module(
                     sys.modules['ironic.drivers.modules.xclarity'])
-            ex = common.XClarityError('E')
+            ex = exception.XClarityError('E')
             mock_xc_client.return_value.get_node_all_boot_info.side_effect = ex
             self.assertRaises(
-                common.XClarityError,
+                exception.XClarityError,
                 task.driver.management.get_boot_device,
                 task)

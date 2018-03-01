@@ -67,7 +67,7 @@ def get_xclarity_client():
         msg = (_("Error getting connection to XClarity manager IP: %(ip)s. "
                  "Error: %(exc)s"), {'ip': CONF.xclarity.manager_ip,
                                      'exc': exc})
-        raise XClarityError(error=msg)
+        raise exception.XClarityError(error=msg)
     return xclarity_client
 
 
@@ -132,7 +132,3 @@ def is_node_managed_by_xclarity(xclarity_client, node):
         return xclarity_client.is_node_managed(hardware_id)
     except exception.MissingParameterValue:
         return False
-
-
-class XClarityError(exception.IronicException):
-    _msg_fmt = _("XClarity exception occurred. Error: %(error)s")

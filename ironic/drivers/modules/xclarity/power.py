@@ -16,6 +16,7 @@ from ironic_lib import metrics_utils
 from oslo_log import log as logging
 from oslo_utils import importutils
 
+from ironic.common import exception
 from ironic.common import states
 from ironic.conductor import task_manager
 from ironic.drivers import base
@@ -66,7 +67,7 @@ class XClarityPower(base.PowerInterface):
                  "%(error)s"),
                 {'node': task.node.uuid, 'error': xclarity_exc}
             )
-            raise common.XClarityError(error=xclarity_exc)
+            raise exception.XClarityError(error=xclarity_exc)
         return common.translate_xclarity_power_state(power_state)
 
     @METRICS.timer('XClarityPower.set_power_state')
@@ -107,12 +108,12 @@ class XClarityPower(base.PowerInterface):
                 "Error setting power state of node %(node_uuid)s to "
                 "%(power_state)s",
                 {'node_uuid': task.node.uuid, 'power_state': power_state})
-            raise common.XClarityError(error=xclarity_exc)
+            raise exception.XClarityError(error=xclarity_exc)
 
     @METRICS.timer('XClarityPower.reboot')
     @task_manager.require_exclusive_lock
     def reboot(self, task, timeout=None):
-        """Reboot the node
+        """Soft reboot the node
 
         :param task: a TaskManager instance.
         :param timeout: timeout (in seconds). Unsupported by this interface.
