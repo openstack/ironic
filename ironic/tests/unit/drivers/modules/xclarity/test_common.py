@@ -14,7 +14,6 @@
 #    under the License.
 
 import mock
-
 from oslo_utils import importutils
 
 from ironic.drivers.modules.xclarity import common
