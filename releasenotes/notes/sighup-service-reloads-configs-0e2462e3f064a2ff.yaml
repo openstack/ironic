@@ -1,0 +1,17 @@
+---
+features:
+  - |
+    Issuing a SIGHUP (e.g. ``pkill -HUP ironic``) to an ironic-api or
+    ironic-conductor service will cause the service to reload and use any
+    changed values for *mutable* configuration options. The mutable
+    configuration options are:
+
+    * [DEFAULT]/debug
+    * [DEFAULT]/log_config_append
+    * [DEFAULT]/pin_release_version
+
+    Mutable configuration options are indicated as such in the `sample configuration
+    file <https://docs.openstack.org/ironic/latest/configuration/sample-config.html>`_
+    by ``Note: This option can be changed without restarting``.
+
+    A warning is logged for any changes to immutable configuration options.
