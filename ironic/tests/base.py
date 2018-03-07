@@ -32,7 +32,6 @@ eventlet.monkey_patch(os=False)
 
 import fixtures  # noqa for I202 due to 'import eventlet' above
 from ironic_lib import utils
-import mock
 from oslo_concurrency import processutils
 from oslo_config import fixture as config_fixture
 from oslo_log import log as logging
@@ -103,22 +102,21 @@ class TestCase(oslo_test_base.BaseTestCase):
         for factory in driver_factory._INTERFACE_LOADERS.values():
             factory._extension_manager = None
 
-        # Block access to utils.execute() and related functions.
-        # NOTE(bigjools): Not using a decorator on tests because I don't
-        # want to force every test method to accept a new arg. Instead, they
-        # can override or examine this self._exec_patch Mock as needed.
+        # Ban running external processes via 'execute' like functions. If the
+        # patched function is called, an exception is raised to warn the
+        # tester.
         if self.block_execute:
-            self._exec_patch = mock.Mock()
-            self._exec_patch.side_effect = Exception(
-                "Don't call ironic_lib.utils.execute() / "
-                "processutils.execute() or similar functions in tests!")
-
-            self.patch(processutils, 'execute', self._exec_patch)
-            self.patch(subprocess, 'Popen', self._exec_patch)
-            self.patch(subprocess, 'call', self._exec_patch)
-            self.patch(subprocess, 'check_call', self._exec_patch)
-            self.patch(subprocess, 'check_output', self._exec_patch)
-            self.patch(utils, 'execute', self._exec_patch)
+            # NOTE(jlvillal): Intentionally not using mock as if you mock a
+            # mock it causes things to not work correctly. As doing an
+            # autospec=True causes strangeness. By using a simple function we
+            # can then mock it without issue.
+            self.patch(processutils, 'execute', do_not_call)
+            self.patch(subprocess, 'call', do_not_call)
+            self.patch(subprocess, 'check_call', do_not_call)
+            self.patch(subprocess, 'check_output', do_not_call)
+            self.patch(utils, 'execute', do_not_call)
+            # subprocess.Popen is a class
+            self.patch(subprocess, 'Popen', DoNotCallPopen)
 
     def _set_config(self):
         self.cfg_fixture = self.useFixture(config_fixture.Config(CONF))
@@ -201,3 +199,35 @@ class TestCase(oslo_test_base.BaseTestCase):
         self.assertEqual(event_type, notif_args['event_type'].
                          to_event_type_field())
         self.assertEqual(level, notif_args['level'])
+
+
+def do_not_call(*args, **kwargs):
+    """Helper function to raise an exception if it is called"""
+    raise Exception(
+        "Don't call ironic_lib.utils.execute() / "
+        "processutils.execute() or similar functions in tests!")
+
+
+class DoNotCallPopen(object):
+    """Helper class to mimic subprocess.popen()
+
+    It's job is to raise an exception if it is called. We create stub functions
+    so mocks that use autospec=True will work.
+    """
+    def __init__(self, *args, **kwargs):
+        do_not_call(*args, **kwargs)
+
+    def communicate(input=None):
+        pass
+
+    def kill():
+        pass
+
+    def poll():
+        pass
+
+    def terminate():
+        pass
+
+    def wait():
+        pass
