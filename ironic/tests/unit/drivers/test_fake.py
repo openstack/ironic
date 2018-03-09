@@ -53,7 +53,7 @@ class FakeDriverTestCase(db_base.DbTestCase):
     def test_get_properties(self):
         expected = ['A1', 'A2', 'B1', 'B2']
         properties = self.driver.get_properties()
-        self.assertEqual(sorted(expected), sorted(properties.keys()))
+        self.assertEqual(sorted(expected), sorted(properties))
 
     def test_power_interface(self):
         self.assertEqual({}, self.driver.power.get_properties())

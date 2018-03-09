@@ -1364,9 +1364,9 @@ class IPMIToolDriverTestCase(db_base.DbTestCase):
 
         expected = list(ipmi.COMMON_PROPERTIES) + list(ipmi.CONSOLE_PROPERTIES)
         self.assertEqual(sorted(expected),
-                         sorted(self.driver.console.get_properties().keys()))
+                         sorted(self.driver.console.get_properties()))
         self.assertEqual(sorted(expected),
-                         sorted(self.driver.get_properties().keys()))
+                         sorted(self.driver.get_properties()))
 
     @mock.patch.object(ipmi, '_exec_ipmitool', autospec=True)
     def test_get_power_state(self, mock_exec):

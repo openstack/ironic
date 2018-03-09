@@ -396,7 +396,7 @@ class PhysicalWorkTestCase(tests_base.TestCase):
             raise ValueError("Only the following kwargs are allowed in "
                              "_test_deploy_partition_image: %(allowed)s. "
                              "Disallowed values: %(disallowed)s."
-                             % {"allowed": ", ".join(deploy_args.keys()),
+                             % {"allowed": ", ".join(deploy_args),
                                 "disallowed": ", ".join(disallowed_values)})
         deploy_args.update(kwargs)
 

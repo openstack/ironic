@@ -718,14 +718,14 @@ class TestListNodes(test_api_base.BaseApiTest):
         data = self.get_json(
             '/nodes/%s' % node.uuid,
             headers={'X-OpenStack-Ironic-API-Version': '1.24'})
-        self.assertIn('portgroups', data.keys())
+        self.assertIn('portgroups', data)
 
     def test_portgroups_subresource_link_hidden_for_older_versions(self):
         node = obj_utils.create_test_node(self.context)
         data = self.get_json(
             '/nodes/%s' % node.uuid,
             headers={'X-OpenStack-Ironic-API-Version': '1.20'})
-        self.assertNotIn('portgroups', data.keys())
+        self.assertNotIn('portgroups', data)
 
     def test_portgroups_subresource_old_api_version(self):
         node = obj_utils.create_test_node(self.context)

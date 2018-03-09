@@ -50,7 +50,7 @@ class TestV1Root(base.BaseApiTest):
             self.assertNotIn(f, ['', []])
         # Check if all known resources are present and there are no extra ones.
         not_resources = ('id', 'links', 'media_types')
-        actual_resources = tuple(set(data.keys()) - set(not_resources))
+        actual_resources = tuple(set(data) - set(not_resources))
         expected_resources = (['chassis', 'drivers', 'nodes', 'ports'] +
                               additional_expected_resources)
         self.assertEqual(sorted(expected_resources), sorted(actual_resources))

@@ -70,7 +70,7 @@ class ManualManagementHardwareTestCase(db_base.DbTestCase):
             'force_persistent_boot_device']
         hardware_type = driver_factory.get_hardware_type("manual-management")
         properties = hardware_type.get_properties()
-        self.assertEqual(sorted(expected_prop_keys), sorted(properties.keys()))
+        self.assertEqual(sorted(expected_prop_keys), sorted(properties))
 
     @mock.patch.object(driver_factory, 'default_interface', autospec=True)
     def test_get_properties_none(self, mock_def_iface):

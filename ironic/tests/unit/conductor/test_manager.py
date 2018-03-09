@@ -5538,7 +5538,7 @@ class ManagerTestProperties(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         self.driver = driver_factory.get_driver(driver)
         self._start_service()
         properties = self.service.get_driver_properties(self.context, driver)
-        self.assertEqual(sorted(expected), sorted(properties.keys()))
+        self.assertEqual(sorted(expected), sorted(properties))
 
     def test_driver_properties_fake(self):
         expected = ['A1', 'A2', 'B1', 'B2']
@@ -5633,7 +5633,7 @@ class ManagerTestHardwareTypeProperties(mgr_utils.ServiceSetUpMixin,
         self._start_service()
         properties = self.service.get_driver_properties(self.context,
                                                         hardware_type)
-        self.assertEqual(sorted(expected), sorted(properties.keys()))
+        self.assertEqual(sorted(expected), sorted(properties))
 
     def test_hardware_type_properties_manual_management(self):
         expected = ['deploy_kernel', 'deploy_ramdisk',

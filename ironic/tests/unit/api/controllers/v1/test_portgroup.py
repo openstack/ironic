@@ -281,18 +281,18 @@ class TestListPortgroups(test_api_base.BaseApiTest):
         data = self.get_json('/portgroups/%s/ports' % pg.uuid,
                              headers=self.headers)
         self.assertEqual(2, len(data['ports']))
-        self.assertNotIn('next', data.keys())
+        self.assertNotIn('next', data)
 
         data = self.get_json('/portgroups/%s/ports/detail' % pg.uuid,
                              headers=self.headers)
         self.assertEqual(2, len(data['ports']))
-        self.assertNotIn('next', data.keys())
+        self.assertNotIn('next', data)
 
         # Test collection pagination
         data = self.get_json('/portgroups/%s/ports?limit=1' % pg.uuid,
                              headers=self.headers)
         self.assertEqual(1, len(data['ports']))
-        self.assertIn('next', data.keys())
+        self.assertIn('next', data)
 
         # Test get one old api version, /portgroups controller not allowed
         response = self.get_json('/portgroups/%s/ports/%s' % (
@@ -724,10 +724,10 @@ class TestPatch(test_api_base.BaseApiTest):
         self.portgroup.save()
 
         # mutate extra so we replace all of them
-        extra = dict((k, extra[k] + 'x') for k in extra.keys())
+        extra = dict((k, extra[k] + 'x') for k in extra)
 
         patch = []
-        for k in extra.keys():
+        for k in extra:
             patch.append({'path': '/extra/%s' % k,
                           'value': extra[k],
                           'op': 'replace'})
@@ -830,7 +830,7 @@ class TestPatch(test_api_base.BaseApiTest):
     def test_add_multi(self, mock_upd):
         extra = {"foo1": "bar1", "foo2": "bar2", "foo3": "bar3"}
         patch = []
-        for k in extra.keys():
+        for k in extra:
             patch.append({'path': '/extra/%s' % k,
                           'value': extra[k],
                           'op': 'add'})

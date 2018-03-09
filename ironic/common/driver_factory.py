@@ -254,7 +254,7 @@ def check_and_update_node_interfaces(node, driver_or_hw_type=None):
                                   hardware_type.AbstractHardwareType)
 
     if is_hardware_type:
-        factories = _INTERFACE_LOADERS.keys()
+        factories = list(_INTERFACE_LOADERS)
     else:
         # Only network and storage interfaces are dynamic for classic drivers
         factories = ['network', 'storage']

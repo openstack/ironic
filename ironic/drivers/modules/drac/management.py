@@ -150,7 +150,7 @@ class DracManagement(base.ManagementInterface):
                   in :mod:`ironic.common.boot_devices`.
 
         """
-        return list(_BOOT_DEVICES_MAP.keys())
+        return list(_BOOT_DEVICES_MAP)
 
     @METRICS.timer('DracManagement.get_boot_device')
     def get_boot_device(self, task):
