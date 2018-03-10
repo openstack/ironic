@@ -7,12 +7,12 @@ iLO drivers
 Overview
 ========
 iLO drivers enable to take advantage of features of iLO management engine in
-HPE ProLiant servers. iLO drivers are targeted for HPE ProLiant Gen8 and Gen9
-systems which have `iLO 4 management engine`_. From **Pike** release iLO
-drivers start supporting ProLiant Gen10 systems which have
-`iLO 5 management engine`_. iLO5 conforms to `Redfish`_ API and hence
-hardware type ``redfish`` (see :doc:`redfish`) is also an option for this kind
-of hardware but it will lack the iLO specific features.
+HPE ProLiant servers. The ``ilo`` hardware type is targeted for HPE ProLiant
+Gen8 and Gen9 systems which have `iLO 4 management engine`_. From **Pike**
+release ``ilo`` hardware type supports ProLiant Gen10 systems which have
+`iLO 5 management engine`_. iLO5 conforms to `Redfish`_ API and hence hardware
+type ``redfish`` (see :doc:`redfish`) is also an option for this kind of
+hardware but it lacks the iLO specific features.
 
 For more details and for up-to-date information (like tested platforms,
 known issues, etc), please check the `iLO driver wiki page <https://wiki.openstack.org/wiki/Ironic/Drivers/iLODrivers>`_.
@@ -20,55 +20,48 @@ known issues, etc), please check the `iLO driver wiki page <https://wiki.opensta
 For enabling Gen10 systems and getting detailed information on Gen10 feature
 support in Ironic please check this `Gen10 wiki section`_.
 
-ProLiant hardware is supported by the ``ilo`` hardware type and the following
-classic drivers:
+Hardware type
+=============
 
-* ``iscsi_ilo``
-* ``agent_ilo``
-* ``pxe_ilo``
+ProLiant hardware is primarily supported by the ``ilo`` hardware type. This
+hardware can be used with reference hardware type ``ipmi`` (see
+:doc:`ipmitool`) and ``redfish`` (see :doc:`redfish`). For information on how
+to enable the ``ilo`` hardware type, see :ref:`enable-hardware-types`.
 
 .. note::
-   All HPE ProLiant servers support reference hardware type ``ipmi``
-   (see :doc:`ipmitool`). HPE ProLiant Gen10 servers also support
-   hardware type ``redfish`` (see :doc:`redfish`).
+   Only HPE ProLiant Gen10 servers supports hardware type ``redfish``.
 
-The ``iscsi_ilo`` and ``agent_ilo`` drivers provide security enhanced
-PXE-less deployment by using iLO virtual media to boot up the bare metal node.
-These drivers send management info through the management channel and separate
-it from the data channel which is used for deployment.
+The hardware type ``ilo`` supports following HPE server features:
 
-``iscsi_ilo`` and ``agent_ilo`` drivers use deployment ramdisk
-built from ``diskimage-builder``. The ``iscsi_ilo`` driver deploys from
-ironic conductor and supports both net-boot and local-boot of instance.
-``agent_ilo`` deploys from bare metal node and supports both net-boot
-and local-boot of instance.
-
-``pxe_ilo`` driver uses PXE/iSCSI for deployment (just like normal PXE driver)
-and deploys from ironic conductor. Additionally it supports automatic setting of
-requested boot mode from nova. This driver doesn't require iLO Advanced license.
-
-The hardware type ``ilo`` and iLO-based classic drivers support HPE server
-features like:
-
-* UEFI secure boot
-* Certificate based validation of iLO
-* Hardware based secure disk erase using Smart Storage Administrator (SSA) CLI
-* Out-of-band discovery of server attributes through hardware inspection
-* In-band RAID configuration
-* Firmware configuration and secure firmware update
+* `Boot mode support`_
+* `UEFI Secure Boot Support`_
+* `Node Cleaning Support`_
+* `Hardware Inspection Support`_
+* `Swiftless deploy for intermediate images`_
+* `HTTP(S) Based Deploy Support`_
+* `Support for iLO drivers with Standalone Ironic`_
+* `RAID Support`_
+* `Disk Erase Support`_
+* `Initiating firmware update as manual clean step`_
+* `Smart Update Manager (SUM) based firmware update`_
+* `Activating iLO Advanced license as manual clean step`_
 * `Firmware based UEFI iSCSI boot from volume support`_
+* `Certificate based validation in iLO`_
 
-
-Hardware Interfaces
+Hardware interfaces
 ^^^^^^^^^^^^^^^^^^^
 
 The ``ilo`` hardware type supports following hardware interfaces:
 
 * boot
     Supports ``ilo-virtual-media`` and ``ilo-pxe``. The default is
-    ``ilo-virtual-media``. They can be enabled by using the
-    ``[DEFAULT]enabled_boot_interfaces`` option in ``ironic.conf``
-    as given below:
+    ``ilo-virtual-media``. The ``ilo-virtual-media`` interface provides
+    security enhanced PXE-less deployment by using iLO virtual media to boot
+    up the bare metal node. The ``ilo-pxe`` interface uses PXE/iSCSI for
+    deployment(just like :ref:`pxe-boot`). This interface doesn't require
+    iLO Advanced license. They can be enabled by using the
+    ``[DEFAULT]enabled_boot_interfaces`` option in ``ironic.conf`` as given
+    below:
 
     .. code-block:: ini
 
@@ -172,63 +165,61 @@ The following command can be used to enroll a ProLiant node with
 Please refer to :doc:`/install/enabling-drivers` for detailed
 explanation of hardware type.
 
-To enable the same feature set as provided by all iLO classic drivers,
-apply the following configuration:
+Node configuration
+^^^^^^^^^^^^^^^^^^
 
-.. code-block:: ini
+* Each node is configured for ``ilo`` hardware type by setting the following
+  ironic node object’s properties in ``driver_info``:
 
-    [DEFAULT]
-    enabled_hardware_types = ilo
-    enabled_boot_interfaces = ilo-virtual-media,ilo-pxe
-    enabled_power_interfaces = ilo
-    enabled_console_interfaces = ilo
-    enabled_raid_interfaces = agent
-    enabled_management_interfaces = ilo
-    enabled_inspect_interfaces = ilo
+  - ``ilo_address``: IP address or hostname of the iLO.
+  - ``ilo_username``: Username for the iLO with administrator privileges.
+  - ``ilo_password``: Password for the above iLO user.
+  - ``client_port``: (optional) Port to be used for iLO operations if you are
+    using a custom port on the iLO.  Default port used is 443.
+  - ``client_timeout``: (optional) Timeout for iLO operations. Default timeout
+    is 60 seconds.
+  - ``ca_file``: (optional) CA certificate file to validate iLO.
+  - ``console_port``: (optional) Node's UDP port for console access. Any unused
+    port on the ironic conductor node may be used. This is required only when
+    ``ilo-console`` interface is used.
 
-The following commands can be used to enroll a node with the same
-feature set as one of the classic drivers, but using the ``ilo``
-hardware type:
+* The following properties are also required in node object’s
+  ``driver_info`` if ``ilo-virtual-media`` boot interface is used:
 
-* ``iscsi_ilo``:
+  - ``ilo_deploy_iso``: The glance UUID of the deploy ramdisk ISO image.
+  - ``instance info/ilo_boot_iso`` property to be either boot iso
+    Glance UUID or a HTTP(S) URL. This is optional property and is used when
+    ``boot_option`` is set to ``netboot``.
 
-  .. code-block:: console
+* The following properties are also required in node object’s
+  ``driver_info`` if ``ilo-pxe`` boot interface is used:
 
-     openstack baremetal node create --os-baremetal-api-version=1.31 \
-         --driver ilo \
-         --deploy-interface iscsi \
-         --boot-interface ilo-virtual-media \
-         --driver-info ilo_address=<ilo-ip-address> \
-         --driver-info ilo_username=<ilo-username> \
-         --driver-info ilo_password=<ilo-password> \
-         --driver-info ilo_deploy_iso=<glance-uuid-of-deploy-iso>
+  - ``deploy_kernel``: The glance UUID or a HTTP(S) URL of the deployment kernel.
+  - ``deploy_ramdisk``: The glance UUID or a HTTP(S) URL of the deployment ramdisk.
 
-* ``pxe_ilo``:
+* The  following parameters are mandatory in ``driver_info``
+  if ``ilo-inspect`` inspect inteface is used and SNMPv3 inspection
+  (`SNMPv3 Authentication` in `HPE iLO4 User Guide`_) is desired:
 
-  .. code-block:: console
+  * ``snmp_auth_user`` : The SNMPv3 user.
 
-     openstack baremetal node create --os-baremetal-api-version=1.31 \
-         --driver ilo \
-         --deploy-interface iscsi \
-         --boot-interface ilo-pxe \
-         --driver-info ilo_address=<ilo-ip-address> \
-         --driver-info ilo_username=<ilo-username> \
-         --driver-info ilo_password=<ilo-password> \
-         --driver-info deploy_kernel=<glance-uuid-of-pxe-deploy-kernel> \
-         --driver-info deploy_ramdisk=<glance-uuid-of-deploy-ramdisk>
+  * ``snmp_auth_prot_password`` : The auth protocol pass phrase.
 
-* ``agent_ilo``:
+  * ``snmp_auth_priv_password`` : The privacy protocol pass phrase.
 
-  .. code-block:: console
+  The  following parameters are optional for SNMPv3 inspection:
 
-     openstack baremetal node create --os-baremetal-api-version=1.31 \
-         --driver ilo \
-         --deploy-interface direct \
-         --boot-interface ilo-virtual-media \
-         --driver-info ilo_address=<ilo-ip-address> \
-         --driver-info ilo_username=<ilo-username> \
-         --driver-info ilo_password=<ilo-password> \
-         --driver-info ilo_deploy_iso=<glance-uuid-of-deploy-iso>
+  * ``snmp_auth_protocol`` : The Auth Protocol. The valid values
+    are "MD5" and "SHA". The iLO default value is "MD5".
+
+  * ``snmp_auth_priv_protocol`` : The Privacy protocol. The valid
+    values are "AES" and "DES". The iLO default value is "DES".
+
+.. note::
+   If configuration values for ``ca_file``, ``client_port`` and
+   ``client_timeout`` are not provided in the ``driver_info`` of the node,
+   the corresponding config variables defined under ``[ilo]`` section in
+   ironic.conf will be used.
 
 Prerequisites
 =============
@@ -246,8 +237,8 @@ Prerequisites
   of the ``ipmitool`` package. Please refer to `Hardware Inspection Support`_
   for more information on recommended version.
 
-Different Configuration for ilo drivers
-=======================================
+Different configuration for ilo hardware type
+=============================================
 
 Glance Configuration
 ^^^^^^^^^^^^^^^^^^^^
@@ -339,11 +330,11 @@ Web server configuration on conductor
      # http://192.1.2.3:8080 (string value)
      http_url=http://192.168.0.2:8080
 
-``use_web_server_for_images``: If the variable is set to ``false``, ``iscsi_ilo``
-and ``agent_ilo`` uses swift containers to host the intermediate floppy
-image and the boot ISO. If the variable is set to ``true``, these drivers
-use the local web server for hosting the intermediate files. The default value
-for ``use_web_server_for_images`` is False.
+``use_web_server_for_images``: If the variable is set to ``false``,
+the ``ilo-virtual-media`` boot interface uses swift containers to host the
+intermediate floppy image and the boot ISO. If the variable is set to
+``true``, it uses the local web server for hosting the intermediate files.
+The default value for ``use_web_server_for_images`` is False.
 
 ``http_url``: The value for this variable is prefixed with the generated
 intermediate files to generate a URL which is attached in the virtual media.
@@ -353,7 +344,7 @@ the intermediate floppy image and the boot ISO.
 
 .. note::
    HTTPS is strongly recommended over HTTP web server configuration for security
-   enhancement. The ``iscsi_ilo`` and ``agent_ilo`` will send the instance's
+   enhancement. The ``ilo-virtual-media`` boot interface will send the instance's
    configdrive over an encrypted channel if web server is HTTPS enabled.
 
 Enable driver
@@ -368,19 +359,93 @@ Enable driver
 
     glance image-create --name deploy-ramdisk.iso --disk-format iso --container-format bare < deploy-ramdisk.iso
 
-4. Add the driver name to the list of ``enabled_drivers`` in
-   ``/etc/ironic/ironic.conf``.  For example, for `iscsi_ilo` driver::
+4. Enable hardware type and hardware interfaces in
+   ``/etc/ironic/ironic.conf``::
 
-    enabled_drivers = fake,pxe_ipmitool,iscsi_ilo
-
-   Similarly it can be added for ``agent_ilo`` and ``pxe_ilo`` drivers.
+    [DEFAULT]
+    enabled_hardware_types = ilo
+    enabled_boot_interfaces = ilo-virtual-media,ilo-pxe
+    enabled_power_interfaces = ilo
+    enabled_console_interfaces = ilo
+    enabled_raid_interfaces = agent
+    enabled_management_interfaces = ilo
+    enabled_inspect_interfaces = ilo
 
 5. Restart the ironic conductor service::
 
     $ service ironic-conductor restart
 
-Drivers
-=======
+Classic Drivers (Deprecated)
+============================
+
+These are the classic drivers (deprecated) for ProLiant hardware:
+
+* ``pxe_ilo``
+* ``iscsi_ilo``
+* ``agent_ilo``
+
+.. warning::
+   The classic drivers are deprecated in the Queens release and will be removed
+   in the Rocky release. The ``ilo`` hardware type should be used instead of
+   the classic drivers.
+
+To enable the same feature set as provided by all iLO classic drivers,
+apply the following configuration:
+
+.. code-block:: ini
+
+    [DEFAULT]
+    enabled_hardware_types = ilo
+    enabled_boot_interfaces = ilo-virtual-media,ilo-pxe
+    enabled_power_interfaces = ilo
+    enabled_console_interfaces = ilo
+    enabled_raid_interfaces = agent
+    enabled_management_interfaces = ilo
+    enabled_inspect_interfaces = ilo
+
+The following commands can be used to enroll a node with the same
+feature set as one of the classic drivers, but using the ``ilo``
+hardware type:
+
+* ``iscsi_ilo``:
+
+  .. code-block:: console
+
+     openstack baremetal node create --os-baremetal-api-version=1.31 \
+         --driver ilo \
+         --deploy-interface iscsi \
+         --boot-interface ilo-virtual-media \
+         --driver-info ilo_address=<ilo-ip-address> \
+         --driver-info ilo_username=<ilo-username> \
+         --driver-info ilo_password=<ilo-password> \
+         --driver-info ilo_deploy_iso=<glance-uuid-of-deploy-iso>
+
+* ``pxe_ilo``:
+
+  .. code-block:: console
+
+     openstack baremetal node create --os-baremetal-api-version=1.31 \
+         --driver ilo \
+         --deploy-interface iscsi \
+         --boot-interface ilo-pxe \
+         --driver-info ilo_address=<ilo-ip-address> \
+         --driver-info ilo_username=<ilo-username> \
+         --driver-info ilo_password=<ilo-password> \
+         --driver-info deploy_kernel=<glance-uuid-of-pxe-deploy-kernel> \
+         --driver-info deploy_ramdisk=<glance-uuid-of-deploy-ramdisk>
+
+* ``agent_ilo``:
+
+  .. code-block:: console
+
+     openstack baremetal node create --os-baremetal-api-version=1.31 \
+         --driver ilo \
+         --deploy-interface direct \
+         --boot-interface ilo-virtual-media \
+         --driver-info ilo_address=<ilo-ip-address> \
+         --driver-info ilo_username=<ilo-username> \
+         --driver-info ilo_password=<ilo-password> \
+         --driver-info ilo_deploy_iso=<glance-uuid-of-deploy-iso>
 
 iscsi_ilo driver
 ^^^^^^^^^^^^^^^^
@@ -1962,6 +2027,18 @@ configure the corresponding ironic node using the steps given in :doc:`/admin/bo
 In a cloud environment with nodes configured to boot from ``bios`` and ``uefi`` boot
 modes, the virtual media driver only supports uefi boot mode, and that attempting to
 use iscsi boot at the same time with a bios volume will result in an error.
+
+
+Certificate based validation in iLO
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+The driver supports validation of certificates on the HPE Proliant servers.
+The path to certificate file needs to be appropriately set in ``ca_file`` in
+the node's ``driver_info``. To update SSL certificates into iLO,
+refer to `HPE Integrated Lights-Out Security Technology Brief <http://h20564.www2.hpe.com/hpsc/doc/public/display?docId=c04530504>`_.
+Use iLO hostname or IP address as a 'Common Name (CN)' while
+generating Certificate Signing Request (CSR). Use the same value as
+`ilo_address` while enrolling node to Bare Metal service to avoid SSL
+certificate validation errors related to hostname mismatch.
 
 
 .. _`ssacli documentation`: http://h20566.www2.hpe.com/hpsc/doc/public/display?docId=c03909334
