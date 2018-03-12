@@ -80,7 +80,7 @@ squashfs-tools [platform:dpkg platform:redhat imagebuild]
 squashfs [platform:suse imagebuild]
 libguestfs0 [platform:dpkg imagebuild]
 libguestfs [platform:rpm imagebuild]
-python-libguestfs [platform:dpkg imagebuild]
+python-guestfs [platform:dpkg imagebuild]
 # for TinyIPA build
 wget [imagebuild]
 python-pip [imagebuild]
