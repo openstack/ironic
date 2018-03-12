@@ -108,7 +108,14 @@ We need to submit patches for changes on master to:
   and `pbr documentation
   <https://docs.openstack.org/pbr/latest/user/features.html#version>`_ for details.
 
-* to support rolling upgrades, since the release was a named release:
+* to support rolling upgrades, since the release was a named release, we
+  need to make these changes. Note that we need to wait until *after* the
+  switch in grenade is made to test the latest release (N) with master
+  (e.g. `for stable/queens <https://review.openstack.org/#/c/543615>`_).
+  Doing these changes sooner -- after the ironic release and before the switch
+  when grenade is testing the prior release (N-1) with master, will cause
+  the tests to fail. (You may want to ask/remind infra/qa team, as to
+  when they will do this switch.)
 
   * In ``ironic/common/release_mappings.py``, delete any entries from
     ``RELEASE_MAPPING`` associated with the oldest named release. Since we
