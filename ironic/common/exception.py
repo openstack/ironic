@@ -92,7 +92,6 @@ class IronicException(Exception):
     """
     _msg_fmt = _("An unknown exception occurred.")
     code = http_client.INTERNAL_SERVER_ERROR
-    headers = {}
     safe = False
 
     def __init__(self, message=None, **kwargs):
