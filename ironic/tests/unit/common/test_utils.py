@@ -418,27 +418,31 @@ class TempFilesTestCase(base.TestCase):
         mock_dir_writable.assert_called_once_with('/fake/path')
         mock_free_space.assert_called_once_with('/fake/path', 5)
 
-    @mock.patch.object(os.path, 'exists', autospec=True)
     @mock.patch.object(utils, '_check_dir_writable', autospec=True)
     @mock.patch.object(utils, '_check_dir_free_space', autospec=True)
-    def test_check_dir_no_dir(self, mock_free_space, mock_dir_writable,
-                              mock_exists):
-        mock_exists.return_value = False
+    def test_check_dir_no_dir(self, mock_free_space, mock_dir_writable):
         self.config(tempdir='/fake/path')
-        self.assertRaises(exception.PathNotFound, utils.check_dir)
-        mock_exists.assert_called_once_with(CONF.tempdir)
+        # NOTE(dtantsur): self.config uses os.path.exists, so we cannot mock
+        # on the method level.
+        with mock.patch.object(os.path, 'exists',
+                               autospec=True) as mock_exists:
+            mock_exists.return_value = False
+            self.assertRaises(exception.PathNotFound, utils.check_dir)
+            mock_exists.assert_called_once_with(CONF.tempdir)
         self.assertFalse(mock_free_space.called)
         self.assertFalse(mock_dir_writable.called)
 
-    @mock.patch.object(os.path, 'exists', autospec=True)
     @mock.patch.object(utils, '_check_dir_writable', autospec=True)
     @mock.patch.object(utils, '_check_dir_free_space', autospec=True)
-    def test_check_dir_ok(self, mock_free_space, mock_dir_writable,
-                          mock_exists):
-        mock_exists.return_value = True
+    def test_check_dir_ok(self, mock_free_space, mock_dir_writable):
         self.config(tempdir='/fake/path')
-        utils.check_dir()
-        mock_exists.assert_called_once_with(CONF.tempdir)
+        # NOTE(dtantsur): self.config uses os.path.exists, so we cannot mock
+        # on the method level.
+        with mock.patch.object(os.path, 'exists',
+                               autospec=True) as mock_exists:
+            mock_exists.return_value = True
+            utils.check_dir()
+            mock_exists.assert_called_once_with(CONF.tempdir)
         mock_dir_writable.assert_called_once_with(CONF.tempdir)
         mock_free_space.assert_called_once_with(CONF.tempdir, 1)
 
