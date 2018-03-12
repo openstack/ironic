@@ -774,10 +774,7 @@ def validate_instance_info_traits(node):
     if not all(isinstance(t, six.string_types) for t in instance_traits):
         invalid()
 
-    # TODO(mgoddard): Remove the obj_attr_is_set() call in Rocky
-    # when all node objects will have a traits field.
-    node_traits = (node.traits.get_trait_names()
-                   if node.obj_attr_is_set('traits') else [])
+    node_traits = node.traits.get_trait_names()
     missing = set(instance_traits) - set(node_traits)
     if missing:
         err = (_("Cannot specify instance traits that are not also set on the "

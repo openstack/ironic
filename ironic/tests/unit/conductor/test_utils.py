@@ -1814,11 +1814,3 @@ class ValidateInstanceInfoTraitsTestCase(tests_base.TestCase):
                                'Cannot specify instance traits that are not',
                                conductor_utils.validate_instance_info_traits,
                                self.node)
-
-    def test_validate_instance_info_traits_no_node_traits(self):
-        self.node.instance_info['traits'] = ['trait1', 'trait2']
-        delattr(self.node, 'traits')
-        self.assertRaisesRegex(exception.InvalidParameterValue,
-                               'Cannot specify instance traits that are not',
-                               conductor_utils.validate_instance_info_traits,
-                               self.node)
