@@ -128,7 +128,8 @@ class IRMCHardwareTestCase(db_base.DbTestCase):
                     enabled_inspect_interfaces=['irmc'],
                     enabled_management_interfaces=['irmc'],
                     enabled_power_interfaces=['irmc'],
-                    enabled_raid_interfaces=['no-raid', 'agent'])
+                    enabled_raid_interfaces=['no-raid', 'agent'],
+                    enabled_rescue_interfaces=['no-rescue', 'agent'])
 
     def test_default_interfaces(self):
         node = obj_utils.create_test_node(self.context, driver='irmc')
@@ -147,6 +148,8 @@ class IRMCHardwareTestCase(db_base.DbTestCase):
                                   irmc.power.IRMCPower)
             self.assertIsInstance(task.driver.raid,
                                   noop.NoRAID)
+            self.assertIsInstance(task.driver.rescue,
+                                  noop.NoRescue)
 
     def test_override_with_inspector(self):
         self.config(enabled_inspect_interfaces=['inspector', 'irmc'])
@@ -170,3 +173,29 @@ class IRMCHardwareTestCase(db_base.DbTestCase):
                                   irmc.power.IRMCPower)
             self.assertIsInstance(task.driver.raid,
                                   agent.AgentRAID)
+            self.assertIsInstance(task.driver.rescue,
+                                  noop.NoRescue)
+
+    def test_override_with_agent_rescue(self):
+        node = obj_utils.create_test_node(
+            self.context, driver='irmc',
+            deploy_interface='direct',
+            rescue_interface='agent',
+            raid_interface='agent')
+        with task_manager.acquire(self.context, node.id) as task:
+            self.assertIsInstance(task.driver.boot,
+                                  irmc.boot.IRMCVirtualMediaBoot)
+            self.assertIsInstance(task.driver.console,
+                                  ipmitool.IPMISocatConsole)
+            self.assertIsInstance(task.driver.deploy,
+                                  agent.AgentDeploy)
+            self.assertIsInstance(task.driver.inspect,
+                                  irmc.inspect.IRMCInspect)
+            self.assertIsInstance(task.driver.management,
+                                  irmc.management.IRMCManagement)
+            self.assertIsInstance(task.driver.power,
+                                  irmc.power.IRMCPower)
+            self.assertIsInstance(task.driver.raid,
+                                  agent.AgentRAID)
+            self.assertIsInstance(task.driver.rescue,
+                                  agent.AgentRescue)

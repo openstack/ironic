@@ -111,7 +111,8 @@ class IRMCDeployPrivateMethodsTestCase(db_base.DbTestCase):
         self.node.driver_info['irmc_deploy_iso'] = 'deploy.iso'
         driver_info_expected = {'irmc_deploy_iso': 'deploy.iso'}
 
-        driver_info_actual = irmc_boot._parse_driver_info(self.node)
+        driver_info_actual = irmc_boot._parse_driver_info(self.node,
+                                                          mode='deploy')
 
         isfile_mock.assert_called_once_with(
             '/remote_image_share_root/deploy.iso')
@@ -123,17 +124,18 @@ class IRMCDeployPrivateMethodsTestCase(db_base.DbTestCase):
             self, is_image_href_ordinary_file_name_mock):
         """With required 'irmc_deploy_iso' not in share."""
         self.node.driver_info[
-            'irmc_deploy_iso'] = 'bc784057-a140-4130-add3-ef890457e6b3'
-        driver_info_expected = {'irmc_deploy_iso':
+            'irmc_rescue_iso'] = 'bc784057-a140-4130-add3-ef890457e6b3'
+        driver_info_expected = {'irmc_rescue_iso':
                                 'bc784057-a140-4130-add3-ef890457e6b3'}
         is_image_href_ordinary_file_name_mock.return_value = False
 
-        driver_info_actual = irmc_boot._parse_driver_info(self.node)
+        driver_info_actual = irmc_boot._parse_driver_info(self.node,
+                                                          mode='rescue')
 
         self.assertEqual(driver_info_expected, driver_info_actual)
 
     @mock.patch.object(os.path, 'isfile', spec_set=True, autospec=True)
-    def test__parse_driver_info_with_deploy_iso_invalid(self, isfile_mock):
+    def test__parse_driver_info_with_iso_invalid(self, isfile_mock):
         """With required 'irmc_deploy_iso' non existed."""
         isfile_mock.return_value = False
 
@@ -146,19 +148,19 @@ class IRMCDeployPrivateMethodsTestCase(db_base.DbTestCase):
 
             e = self.assertRaises(exception.InvalidParameterValue,
                                   irmc_boot._parse_driver_info,
-                                  task.node)
+                                  task.node, mode='deploy')
             self.assertEqual(error_msg, str(e))
 
-    def test__parse_driver_info_with_deploy_iso_missing(self):
-        """With required 'irmc_deploy_iso' empty."""
-        self.node.driver_info['irmc_deploy_iso'] = None
+    def test__parse_driver_info_with_iso_missing(self):
+        """With required 'irmc_rescue_iso' empty."""
+        self.node.driver_info['irmc_rescue_iso'] = None
 
-        error_msg = ("Error validating iRMC virtual media deploy. Some"
+        error_msg = ("Error validating iRMC virtual media for rescue. Some"
                      " parameters were missing in node's driver_info."
-                     " Missing are: ['irmc_deploy_iso']")
+                     " Missing are: ['irmc_rescue_iso']")
         e = self.assertRaises(exception.MissingParameterValue,
                               irmc_boot._parse_driver_info,
-                              self.node)
+                              self.node, mode='rescue')
         self.assertEqual(error_msg, str(e))
 
     def test__parse_instance_info_with_boot_iso_file_name_ok(self):
@@ -274,15 +276,16 @@ class IRMCDeployPrivateMethodsTestCase(db_base.DbTestCase):
                        autospec=True)
     @mock.patch.object(images, 'fetch', spec_set=True,
                        autospec=True)
-    def test__setup_deploy_iso_with_file(self,
-                                         fetch_mock,
-                                         setup_vmedia_mock,
-                                         set_boot_device_mock):
+    def test__setup_vmedia_with_file_deploy(self,
+                                            fetch_mock,
+                                            setup_vmedia_mock,
+                                            set_boot_device_mock):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
             task.node.driver_info['irmc_deploy_iso'] = 'deploy_iso_filename'
             ramdisk_opts = {'a': 'b'}
-            irmc_boot._setup_deploy_iso(task, ramdisk_opts)
+            irmc_boot._setup_vmedia(task, mode='deploy',
+                                    ramdisk_options=ramdisk_opts)
 
             self.assertFalse(fetch_mock.called)
 
@@ -299,7 +302,33 @@ class IRMCDeployPrivateMethodsTestCase(db_base.DbTestCase):
                        autospec=True)
     @mock.patch.object(images, 'fetch', spec_set=True,
                        autospec=True)
-    def test_setup_deploy_iso_with_image_service(
+    def test__setup_vmedia_with_file_rescue(self,
+                                            fetch_mock,
+                                            setup_vmedia_mock,
+                                            set_boot_device_mock):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            task.node.driver_info['irmc_rescue_iso'] = 'rescue_iso_filename'
+            ramdisk_opts = {'a': 'b'}
+            irmc_boot._setup_vmedia(task, mode='rescue',
+                                    ramdisk_options=ramdisk_opts)
+
+            self.assertFalse(fetch_mock.called)
+
+            setup_vmedia_mock.assert_called_once_with(
+                task,
+                'rescue_iso_filename',
+                ramdisk_opts)
+            set_boot_device_mock.assert_called_once_with(task,
+                                                         boot_devices.CDROM)
+
+    @mock.patch.object(manager_utils, 'node_set_boot_device', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(irmc_boot, '_setup_vmedia_for_boot', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(images, 'fetch', spec_set=True,
+                       autospec=True)
+    def test_setup_vmedia_with_image_service_deploy(
             self,
             fetch_mock,
             setup_vmedia_mock,
@@ -310,7 +339,8 @@ class IRMCDeployPrivateMethodsTestCase(db_base.DbTestCase):
                                   shared=False) as task:
             task.node.driver_info['irmc_deploy_iso'] = 'glance://deploy_iso'
             ramdisk_opts = {'a': 'b'}
-            irmc_boot._setup_deploy_iso(task, ramdisk_opts)
+            irmc_boot._setup_vmedia(task, mode='deploy',
+                                    ramdisk_options=ramdisk_opts)
 
             fetch_mock.assert_called_once_with(
                 task.context,
@@ -324,14 +354,41 @@ class IRMCDeployPrivateMethodsTestCase(db_base.DbTestCase):
             set_boot_device_mock.assert_called_once_with(
                 task, boot_devices.CDROM)
 
-    def test__get_deploy_iso_name(self):
-        actual = irmc_boot._get_deploy_iso_name(self.node)
-        expected = "deploy-%s.iso" % self.node.uuid
-        self.assertEqual(expected, actual)
+    @mock.patch.object(manager_utils, 'node_set_boot_device', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(irmc_boot, '_setup_vmedia_for_boot', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(images, 'fetch', spec_set=True,
+                       autospec=True)
+    def test_setup_vmedia_with_image_service_rescue(
+            self,
+            fetch_mock,
+            setup_vmedia_mock,
+            set_boot_device_mock):
+        CONF.irmc.remote_image_share_root = '/'
 
-    def test__get_boot_iso_name(self):
-        actual = irmc_boot._get_boot_iso_name(self.node)
-        expected = "boot-%s.iso" % self.node.uuid
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            task.node.driver_info['irmc_rescue_iso'] = 'glance://rescue_iso'
+            ramdisk_opts = {'a': 'b'}
+            irmc_boot._setup_vmedia(task, mode='rescue',
+                                    ramdisk_options=ramdisk_opts)
+
+            fetch_mock.assert_called_once_with(
+                task.context,
+                'glance://rescue_iso',
+                "/rescue-%s.iso" % self.node.uuid)
+
+            setup_vmedia_mock.assert_called_once_with(
+                task,
+                "rescue-%s.iso" % self.node.uuid,
+                ramdisk_opts)
+            set_boot_device_mock.assert_called_once_with(
+                task, boot_devices.CDROM)
+
+    def test__get_iso_name(self):
+        actual = irmc_boot._get_iso_name(self.node, label='deploy')
+        expected = "deploy-%s.iso" % self.node.uuid
         self.assertEqual(expected, actual)
 
     @mock.patch.object(images, 'create_boot_iso', spec_set=True, autospec=True)
@@ -599,7 +656,7 @@ class IRMCDeployPrivateMethodsTestCase(db_base.DbTestCase):
                 task.node,
                 'bootable_iso_filename')
 
-    @mock.patch.object(irmc_boot, '_get_deploy_iso_name', spec_set=True,
+    @mock.patch.object(irmc_boot, '_get_iso_name', spec_set=True,
                        autospec=True)
     @mock.patch.object(irmc_boot, '_get_floppy_image_name', spec_set=True,
                        autospec=True)
@@ -614,7 +671,7 @@ class IRMCDeployPrivateMethodsTestCase(db_base.DbTestCase):
                                      _detach_virtual_fd_mock,
                                      _remove_share_file_mock,
                                      _get_floppy_image_name_mock,
-                                     _get_deploy_iso_name_mock):
+                                     _get_iso_name_mock):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
             irmc_boot._cleanup_vmedia_boot(task)
@@ -622,20 +679,23 @@ class IRMCDeployPrivateMethodsTestCase(db_base.DbTestCase):
             _detach_virtual_cd_mock.assert_called_once_with(task.node)
             _detach_virtual_fd_mock.assert_called_once_with(task.node)
             _get_floppy_image_name_mock.assert_called_once_with(task.node)
-            _get_deploy_iso_name_mock.assert_called_once_with(task.node)
-            self.assertTrue(_remove_share_file_mock.call_count, 2)
+            _get_iso_name_mock.assert_has_calls(
+                [mock.call(task.node, label='deploy'),
+                 mock.call(task.node, label='rescue')])
+            self.assertTrue(_remove_share_file_mock.call_count, 3)
             _remove_share_file_mock.assert_has_calls(
                 [mock.call(_get_floppy_image_name_mock(task.node)),
-                 mock.call(_get_deploy_iso_name_mock(task.node))])
+                 mock.call(_get_iso_name_mock(task.node, label='deploy')),
+                 mock.call(_get_iso_name_mock(task.node, label='rescue'))])
 
     @mock.patch.object(ironic_utils, 'unlink_without_raise', spec_set=True,
                        autospec=True)
     def test__remove_share_file(self, unlink_without_raise_mock):
-        CONF.irmc.remote_image_share_name = '/'
+        CONF.irmc.remote_image_share_root = '/share'
 
         irmc_boot._remove_share_file("boot.iso")
 
-        unlink_without_raise_mock.assert_called_once_with('/boot.iso')
+        unlink_without_raise_mock.assert_called_once_with('/share/boot.iso')
 
     @mock.patch.object(irmc_common, 'get_irmc_client', spec_set=True,
                        autospec=True)
@@ -833,9 +893,18 @@ class IRMCVirtualMediaBootTestCase(db_base.DbTestCase):
         irmc_boot.check_share_fs_mounted_patcher.start()
         self.addCleanup(irmc_boot.check_share_fs_mounted_patcher.stop)
         super(IRMCVirtualMediaBootTestCase, self).setUp()
-        mgr_utils.mock_the_extension_manager(driver="iscsi_irmc")
+        self.config(enabled_hardware_types=['irmc'],
+                    enabled_boot_interfaces=['irmc-virtual-media'],
+                    enabled_console_interfaces=['ipmitool-socat'],
+                    enabled_deploy_interfaces=['iscsi'],
+                    enabled_inspect_interfaces=['irmc'],
+                    enabled_management_interfaces=['irmc'],
+                    enabled_power_interfaces=['irmc'],
+                    enabled_raid_interfaces=['no-raid'],
+                    enabled_rescue_interfaces=['agent'],
+                    enabled_vendor_interfaces=['no-vendor'])
         self.node = obj_utils.create_test_node(
-            self.context, driver='iscsi_irmc', driver_info=INFO_DICT)
+            self.context, driver='irmc', driver_info=INFO_DICT)
 
     @mock.patch.object(deploy_utils, 'validate_image_properties',
                        spec_set=True, autospec=True)
@@ -915,14 +984,15 @@ class IRMCVirtualMediaBootTestCase(db_base.DbTestCase):
 
     @mock.patch.object(irmc_management, 'backup_bios_config', spec_set=True,
                        autospec=True)
-    @mock.patch.object(irmc_boot, '_setup_deploy_iso',
+    @mock.patch.object(irmc_boot, '_setup_vmedia',
                        spec_set=True, autospec=True)
     @mock.patch.object(deploy_utils, 'get_single_nic_with_vif_port_id',
                        spec_set=True, autospec=True)
     def _test_prepare_ramdisk(self,
                               get_single_nic_with_vif_port_id_mock,
-                              _setup_deploy_iso_mock,
-                              mock_backup_bios):
+                              _setup_vmedia_mock,
+                              mock_backup_bios,
+                              mode='deploy'):
         instance_info = self.node.instance_info
         instance_info['irmc_boot_iso'] = 'glance://abcdef'
         instance_info['image_source'] = '6b2f0c0c-79e8-4db6-842e-43c9764204af'
@@ -938,8 +1008,8 @@ class IRMCVirtualMediaBootTestCase(db_base.DbTestCase):
             expected_ramdisk_opts = {'a': 'b', 'BOOTIF': '12:34:56:78:90:ab'}
             get_single_nic_with_vif_port_id_mock.assert_called_once_with(
                 task)
-            _setup_deploy_iso_mock.assert_called_once_with(
-                task, expected_ramdisk_opts)
+            _setup_vmedia_mock.assert_called_once_with(
+                task, mode, expected_ramdisk_opts)
             self.assertEqual('glance://abcdef',
                              self.node.instance_info['irmc_boot_iso'])
             provision_state = task.node.provision_state
@@ -951,12 +1021,17 @@ class IRMCVirtualMediaBootTestCase(db_base.DbTestCase):
         self.node.save()
         self._test_prepare_ramdisk()
 
+    def test_prepare_ramdisk_glance_image_rescuing(self):
+        self.node.provision_state = states.RESCUING
+        self.node.save()
+        self._test_prepare_ramdisk(mode='rescue')
+
     def test_prepare_ramdisk_glance_image_cleaning(self):
         self.node.provision_state = states.CLEANING
         self.node.save()
         self._test_prepare_ramdisk()
 
-    @mock.patch.object(irmc_boot, '_setup_deploy_iso', spec_set=True,
+    @mock.patch.object(irmc_boot, '_setup_vmedia', spec_set=True,
                        autospec=True)
     def test_prepare_ramdisk_not_deploying_not_cleaning(self, mock_is_image):
         """Ensure deploy ops are blocked when not deploying and not cleaning"""
@@ -1037,7 +1112,7 @@ class IRMCVirtualMediaBootTestCase(db_base.DbTestCase):
             task.driver.boot.clean_up_instance(task)
 
             _remove_share_file_mock.assert_called_once_with(
-                irmc_boot._get_boot_iso_name(task.node))
+                irmc_boot._get_iso_name(task.node, label='boot'))
             self.assertNotIn('irmc_boot_iso',
                              task.node.driver_internal_info)
             self.assertNotIn('root_uuid_or_disk_id',
@@ -1207,6 +1282,35 @@ class IRMCVirtualMediaBootTestCase(db_base.DbTestCase):
             task.driver.boot.clean_up_instance(task)
             self.assertFalse(mock_set_secure_boot_mode.called)
             mock_cleanup_vmedia_boot.assert_called_once_with(task)
+
+    @mock.patch.object(os.path, 'isfile', return_value=True,
+                       autospec=True)
+    def test_validate_rescue(self, mock_isfile):
+        driver_info = self.node.driver_info
+        driver_info['irmc_rescue_iso'] = 'rescue.iso'
+        self.node.driver_info = driver_info
+        self.node.save()
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            task.driver.boot.validate_rescue(task)
+
+    def test_validate_rescue_no_rescue_ramdisk(self):
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            self.assertRaisesRegex(exception.MissingParameterValue,
+                                   'Missing.*irmc_rescue_iso',
+                                   task.driver.boot.validate_rescue, task)
+
+    @mock.patch.object(os.path, 'isfile', return_value=False,
+                       autospec=True)
+    def test_validate_rescue_ramdisk_not_exist(self, mock_isfile):
+        driver_info = self.node.driver_info
+        driver_info['irmc_rescue_iso'] = 'rescue.iso'
+        self.node.driver_info = driver_info
+        self.node.save()
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            self.assertRaisesRegex(exception.InvalidParameterValue,
+                                   'Rescue ISO file, .*'
+                                   'not found for node: .*',
+                                   task.driver.boot.validate_rescue, task)
 
 
 class IRMCPXEBootTestCase(db_base.DbTestCase):
