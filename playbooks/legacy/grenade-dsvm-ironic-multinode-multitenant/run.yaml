@@ -135,9 +135,6 @@
           cat << 'EOF' >> ironic-extra-vars
             export DEVSTACK_LOCAL_CONFIG+=$'\n'"IRONIC_VM_SPECS_RAM=384"
             export DEVSTACK_LOCAL_CONFIG+=$'\n'"IRONIC_RAMDISK_TYPE=tinyipa"
-            # TODO(mgoddard): Remove this when the queens ironic devstack
-            # plugin has support for registering traits.
-            export DEVSTACK_LOCAL_CONFIG+=$'\n'"IRONIC_DEFAULT_TRAITS=\"\""
 
           EOF
         chdir: '{{ ansible_user_dir }}/workspace'
