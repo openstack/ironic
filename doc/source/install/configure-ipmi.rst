@@ -63,10 +63,10 @@ to enable it, you should make the following two changes in ``ironic.conf``:
 
 .. code-block:: ini
 
-    [DEFAULT]
-    notification_driver = messaging
     [conductor]
     send_sensor_data = true
+    [oslo_messaging_notifications]
+    driver = messagingv2
 
 If you want to customize the sensor types which will be sent to Telemetry,
 change the ``send_sensor_data_types`` option. For example, the below
