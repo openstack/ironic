@@ -58,12 +58,17 @@ opts = [
                help=_('API version to use for communicating with the ramdisk '
                       'agent.')),
     cfg.StrOpt('deploy_logs_collect',
-               choices=['always', 'on_failure', 'never'],
+               choices=[('always', _('always collect the logs')),
+                        ('on_failure', _('only collect logs if there is a '
+                                         'failure')),
+                        ('never', _('never collect logs'))],
                default='on_failure',
                help=_('Whether Ironic should collect the deployment logs on '
                       'deployment failure (on_failure), always or never.')),
     cfg.StrOpt('deploy_logs_storage_backend',
-               choices=['local', 'swift'],
+               choices=[('local', _('store the logs locally')),
+                        ('swift', _('store the logs in Object Storage '
+                                    'service'))],
                default='local',
                help=_('The name of the storage backend where the logs '
                       'will be stored.')),

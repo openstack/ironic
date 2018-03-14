@@ -66,7 +66,8 @@ opts = [
                 help=_('Whether to power off a node after deploy failure. '
                        'Defaults to True.')),
     cfg.StrOpt('default_boot_option',
-               choices=['netboot', 'local'],
+               choices=[('netboot', _('boot from a network')),
+                        ('local', _('local boot'))],
                help=_('Default boot option to use when no boot option is '
                       'requested in node\'s driver_info. Currently the '
                       'default is "netboot", but it will be changed to '
@@ -83,7 +84,8 @@ opts = [
                default='swift',
                deprecated_group='glance',
                deprecated_name='temp_url_endpoint_type',
-               choices=['swift', 'radosgw'],
+               choices=[('swift', _('use Object Storage service')),
+                        ('radosgw', _('use RADOS object store'))],
                help=_('Type of object store endpoint type to be '
                       'used as a backend')),
 ]

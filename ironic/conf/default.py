@@ -56,7 +56,9 @@ api_opts = [
     cfg.StrOpt(
         'auth_strategy',
         default='keystone',
-        choices=['noauth', 'keystone'],
+        choices=[('noauth', _('no authentication')),
+                 ('keystone', _('use the Identity service for '
+                                'authentication'))],
         help=_('Authentication strategy used by ironic-api. "noauth" should '
                'not be used in a production environment because all '
                'authentication will be disabled.')),
@@ -240,7 +242,11 @@ netconf_opts = [
 # default for options without set defaults that aren't required.
 notification_opts = [
     cfg.StrOpt('notification_level',
-               choices=['debug', 'info', 'warning', 'error', 'critical'],
+               choices=[('debug', _('"debug" level')),
+                        ('info', _('"info" level')),
+                        ('warning', _('"warning" level')),
+                        ('error', _('"error" level')),
+                        ('critical', _('"critical" level'))],
                help=_('Specifies the minimum level for which to send '
                       'notifications. If not set, no notifications will '
                       'be sent. The default is for this option to be unset.'))
@@ -281,7 +287,7 @@ service_opts = [
                       'an AMQP key, and if using ZeroMQ, a valid '
                       'hostname, FQDN, or IP address.')),
     cfg.StrOpt('pin_release_version',
-               choices=versions.RELEASE_VERSIONS,
+               choices=versions.RELEASE_VERSIONS_DESCS,
                mutable=True,
                help=_('Used for rolling upgrades. Setting this option '
                       'downgrades (or pins) the Bare Metal API, '

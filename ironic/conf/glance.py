@@ -127,7 +127,9 @@ opts = [
                       'glance.')),
     cfg.StrOpt('auth_strategy',
                default='keystone',
-               choices=['keystone', 'noauth'],
+               choices=[('keystone', _('use the Identity service for '
+                                       'authentication')),
+                        ('noauth', _('no authentication'))],
                deprecated_for_removal=True,
                deprecated_reason=_("To configure glance in noauth mode, "
                                    "set [glance]/auth_type=none and "

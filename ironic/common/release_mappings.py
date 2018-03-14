@@ -12,6 +12,9 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+from ironic.common.i18n import _
+
+
 # NOTE(xek): This decides the version cap of RPC messages sent to conductor
 # and objects during rolling upgrades, when [DEFAULT]/pin_release_version
 # configuration is set.
@@ -129,6 +132,9 @@ RELEASE_MAPPING['queens'] = RELEASE_MAPPING['10.1']
 
 # List of available versions with named versions first; 'master' is excluded.
 RELEASE_VERSIONS = sorted(set(RELEASE_MAPPING) - {'master'}, reverse=True)
+
+# List of available (version, description) tuples.
+RELEASE_VERSIONS_DESCS = [(v, _('"%s" release') % v) for v in RELEASE_VERSIONS]
 
 
 def get_object_versions(releases=None, objects=None):

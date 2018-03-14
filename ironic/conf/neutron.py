@@ -49,7 +49,9 @@ opts = [
                help=_('Client retries in the case of a failed request.')),
     cfg.StrOpt('auth_strategy',
                default='keystone',
-               choices=['keystone', 'noauth'],
+               choices=[('keystone', _('use the Identity service for '
+                                       'authentication')),
+                        ('noauth', _('no authentication'))],
                deprecated_for_removal=True,
                deprecated_reason=_("To configure neutron for noauth mode, "
                                    "set [neutron]/auth_type = none and "

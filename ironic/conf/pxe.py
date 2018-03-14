@@ -113,7 +113,8 @@ opts = [
                       'via iPXE. Defaults to 0 (no timeout)')),
     cfg.StrOpt('ip_version',
                default='4',
-               choices=['4', '6'],
+               choices=[('4', _('IPv4')),
+                        ('6', _('IPv6'))],
                help=_('The IP version that will be used for PXE booting. '
                       'Defaults to 4. EXPERIMENTAL')),
     cfg.BoolOpt('ipxe_use_swift',
