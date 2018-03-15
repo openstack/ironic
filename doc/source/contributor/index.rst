@@ -91,10 +91,7 @@ booting from Cinder volumes with VMs.
 Full Ironic Server Python API Reference
 ---------------------------------------
 
-* :ref:`modindex`
-
-.. # api/autoindex is hidden since it's in the modindex link above.
 .. toctree::
-  :hidden:
+  :maxdepth: 1
 
-  api/autoindex
+  api/modules
