@@ -47,6 +47,17 @@ class SwiftTestCase(base.TestCase):
         connection_mock.assert_called_once_with(
             session=keystone_mock.return_value)
 
+    def test___init___endpoint(self, connection_mock, keystone_mock):
+        """Check if client is properly initialized with endpoint override"""
+
+        CONF.swift.endpoint_override = 'dummy_override_url'
+
+        swift.SwiftAPI()
+        connection_mock.assert_called_once_with(
+            session=keystone_mock.return_value,
+            os_options={'object_storage_url': 'dummy_override_url'}
+        )
+
     def test___init___radosgw(self, connection_mock, swift_session_mock):
         """Check if client is properly initialized with radosgw"""
 

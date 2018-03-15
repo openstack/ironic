@@ -55,6 +55,11 @@ class SwiftAPI(object):
             # with swift is initialized. Since v3.2.0 swiftclient supports
             # instantiating the API client from keystoneauth session.
             params = {'session': _get_swift_session()}
+
+            if CONF.swift.endpoint_override:
+                params['os_options'] = {
+                    'object_storage_url': CONF.swift.endpoint_override}
+
         self.connection = swift_client.Connection(**params)
 
     def create_object(self, container, obj, filename,

@@ -20,6 +20,9 @@ from ironic.common.i18n import _
 from ironic.conf import auth
 
 opts = [
+    cfg.StrOpt('endpoint_override',
+               help=_('Always use this endpoint URL for requests to Swift. '
+                      'It also controls base URL used for image TempURLs.')),
     cfg.IntOpt('swift_max_retries',
                default=2,
                help=_('Maximum number of times to retry a Swift request, '

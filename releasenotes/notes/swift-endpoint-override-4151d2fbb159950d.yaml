@@ -1,0 +1,8 @@
+---
+fixes:
+  - Adds ``[swift]/endpoint_override`` option to explicitly set the endpoint
+    URL used for Swift. Ironic uses the Swift connection URL as a base for
+    generation of some TempURLs. Added parameter enables operators to fix
+    the problem when image is attached (via TempURL) as vmedia (e.g. in iLO
+    driver) and BMC doesn't have connectivity to public network.
+    By default this parameter is not set for backward compatibility.
