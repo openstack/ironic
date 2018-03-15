@@ -131,6 +131,7 @@ IRONIC_VM_NETWORK_BRIDGE=${IRONIC_VM_NETWORK_BRIDGE:-brbm}
 IRONIC_VM_INTERFACE_COUNT=${IRONIC_VM_INTERFACE_COUNT:-2}
 IRONIC_VM_MACS_CSV_FILE=${IRONIC_VM_MACS_CSV_FILE:-$IRONIC_DATA_DIR/ironic_macs.csv}
 IRONIC_CLEAN_NET_NAME=${IRONIC_CLEAN_NET_NAME:-${IRONIC_PROVISION_NETWORK_NAME:-${PRIVATE_NETWORK_NAME}}}
+IRONIC_RESCUE_NET_NAME=${IRONIC_RESCUE_NET_NAME:-${IRONIC_CLEAN_NET_NAME}}
 IRONIC_EXTRA_PXE_PARAMS=${IRONIC_EXTRA_PXE_PARAMS:-}
 IRONIC_TTY_DEV=${IRONIC_TTY_DEV:-ttyS0}
 
@@ -149,7 +150,7 @@ fi
 IRONIC_ENABLED_DRIVERS=${IRONIC_ENABLED_DRIVERS:-fake,pxe_ipmitool,agent_ipmitool}
 IRONIC_ENABLED_HARDWARE_TYPES=${IRONIC_ENABLED_HARDWARE_TYPES:-"ipmi"}
 # list of all available driver interfaces types
-IRONIC_DRIVER_INTERFACE_TYPES="boot power management deploy console inspect raid storage network vendor"
+IRONIC_DRIVER_INTERFACE_TYPES="boot power management deploy console inspect raid rescue storage network vendor"
 IRONIC_ENABLED_BOOT_INTERFACES=${IRONIC_ENABLED_BOOT_INTERFACES:-"pxe"}
 IRONIC_ENABLED_CONSOLE_INTERFACES=${IRONIC_ENABLED_CONSOLE_INTERFACES:-"no-console"}
 IRONIC_ENABLED_DEPLOY_INTERFACES=${IRONIC_ENABLED_DEPLOY_INTERFACES:-"iscsi,direct"}
@@ -158,6 +159,7 @@ IRONIC_ENABLED_MANAGEMENT_INTERFACES=${IRONIC_ENABLED_MANAGEMENT_INTERFACES:-"ip
 IRONIC_ENABLED_NETWORK_INTERFACES=${IRONIC_ENABLED_NETWORK_INTERFACES:-"flat,noop"}
 IRONIC_ENABLED_POWER_INTERFACES=${IRONIC_ENABLED_POWER_INTERFACES:-"ipmitool"}
 IRONIC_ENABLED_RAID_INTERFACES=${IRONIC_ENABLED_RAID_INTERFACES:-"agent,no-raid"}
+IRONIC_ENABLED_RESCUE_INTERFACES=${IRONIC_ENABLED_RESCUE_INTERFACES:-"agent,no-rescue"}
 IRONIC_ENABLED_STORAGE_INTERFACES=${IRONIC_ENABLED_STORAGE_INTERFACES:-"cinder,noop"}
 IRONIC_ENABLED_VENDOR_INTERFACES=${IRONIC_ENABLED_VENDOR_INTERFACES:-"ipmitool,no-vendor"}
 # for usage with hardware types
@@ -169,6 +171,7 @@ IRONIC_DEFAULT_MANAGEMENT_INTERFACE=${IRONIC_DEFAULT_MANAGEMENT_INTERFACE:-}
 IRONIC_DEFAULT_NETWORK_INTERFACE=${IRONIC_DEFAULT_NETWORK_INTERFACE:-}
 IRONIC_DEFAULT_POWER_INTERFACE=${IRONIC_DEFAULT_POWER_INTERFACE:-}
 IRONIC_DEFAULT_RAID_INTERFACE=${IRONIC_DEFAULT_RAID_INTERFACE:-}
+IRONIC_DEFAULT_RESCUE_INTERFACE=${IRONIC_DEFAULT_RESCUE_INTERFACE:-}
 IRONIC_DEFAULT_STORAGE_INTERFACE=${IRONIC_DEFAULT_STORAGE_INTERFACE:-}
 IRONIC_DEFAULT_VENDOR_INTERFACE=${IRONIC_DEFAULT_VENDOR_INTERFACE:-}
 # If IRONIC_VM_ENGINE is explicitly set to "auto" or "kvm",
@@ -987,10 +990,16 @@ function configure_ironic_networks {
 
     echo_summary "Configuring Ironic cleaning network"
     configure_ironic_cleaning_network
+    echo_summary "Configuring Ironic rescue network"
+    configure_ironic_rescue_network
 }
 
 function configure_ironic_cleaning_network {
     iniset $IRONIC_CONF_FILE neutron cleaning_network $IRONIC_CLEAN_NET_NAME
+}
+
+function configure_ironic_rescue_network {
+    iniset $IRONIC_CONF_FILE neutron rescuing_network $IRONIC_RESCUE_NET_NAME
 }
 
 function configure_ironic_provision_network {
@@ -1795,7 +1804,9 @@ function enroll_nodes {
         node_options="\
             $node_options \
             --driver-info deploy_kernel=$IRONIC_DEPLOY_KERNEL_ID \
-            --driver-info deploy_ramdisk=$IRONIC_DEPLOY_RAMDISK_ID"
+            --driver-info deploy_ramdisk=$IRONIC_DEPLOY_RAMDISK_ID \
+            --driver-info rescue_kernel=$IRONIC_DEPLOY_KERNEL_ID \
+            --driver-info rescue_ramdisk=$IRONIC_DEPLOY_RAMDISK_ID"
 
     else
         local ironic_node_cpu=$IRONIC_HW_NODE_CPU
@@ -1871,6 +1882,8 @@ function enroll_nodes {
             bmc_passwd=$(echo $hardware_info |awk '{print $4}')
             local node_options="--driver-info deploy_kernel=$IRONIC_DEPLOY_KERNEL_ID"
             node_options+=" --driver-info deploy_ramdisk=$IRONIC_DEPLOY_RAMDISK_ID"
+            node_options+=" --driver-info rescue_kernel=$IRONIC_DEPLOY_KERNEL_ID"
+            node_options+=" --driver-info rescue_ramdisk=$IRONIC_DEPLOY_RAMDISK_ID"
 
             if is_deployed_by_ipmitool; then
                 node_options+=" --driver-info ipmi_address=$bmc_address \
@@ -2412,6 +2425,7 @@ function ironic_configure_tempest {
     iniset $TEMPEST_CONFIG baremetal enabled_drivers $IRONIC_ENABLED_DRIVERS
     iniset $TEMPEST_CONFIG baremetal enabled_hardware_types $IRONIC_ENABLED_HARDWARE_TYPES
     iniset $TEMPEST_CONFIG baremetal enabled_deploy_interfaces $IRONIC_ENABLED_DEPLOY_INTERFACES
+    iniset $TEMPEST_CONFIG baremetal enabled_rescue_interfaces $IRONIC_ENABLED_RESCUE_INTERFACES
 
     local adjusted_root_disk_size_gb
     if [[ "$IRONIC_IS_HARDWARE" == "False" ]]; then
@@ -2426,6 +2440,8 @@ function ironic_configure_tempest {
         iniset $TEMPEST_CONFIG baremetal active_timeout $IRONIC_TEMPEST_BUILD_TIMEOUT
         iniset $TEMPEST_CONFIG baremetal deploywait_timeout $IRONIC_TEMPEST_BUILD_TIMEOUT
         iniset $TEMPEST_CONFIG baremetal power_timeout $IRONIC_TEMPEST_BUILD_TIMEOUT
+        iniset $TEMPEST_CONFIG baremetal rescue_timeout $IRONIC_TEMPEST_BUILD_TIMEOUT
+        iniset $TEMPEST_CONFIG baremetal unrescue_timeout $IRONIC_TEMPEST_BUILD_TIMEOUT
     fi
 
     # Enabled features
