@@ -92,6 +92,10 @@
             # use tempest plugin
             export DEVSTACK_LOCAL_CONFIG+=$'\n'"TEMPEST_PLUGINS+=' /opt/stack/new/ironic-tempest-plugin'"
             export TEMPEST_CONCURRENCY=4
+            # Run all ironic tests and the multinode smoke test from nova.
+            # TODO(dtantsur): add test_attach_interfaces from nova when our
+            # devstack plugin creates more than one port per node.
+            export DEVSTACK_GATE_TEMPEST_REGEX="(ironic|test_schedule_to_all_nodes)"
           EOF
         chdir: '{{ ansible_user_dir }}/workspace'
       environment: '{{ zuul | zuul_legacy_vars }}'
