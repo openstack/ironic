@@ -87,8 +87,6 @@
           export DEVSTACK_GATE_CONFIGDRIVE=1
           export DEVSTACK_GATE_IRONIC_DRIVER=ipmi
           export DEVSTACK_LOCAL_CONFIG+=$'\n'"IRONIC_DEFAULT_DEPLOY_INTERFACE=direct"
-          # TODO: move this to ironic-inspector devstack plugin
-          export DEVSTACK_LOCAL_CONFIG+=$'\n'"IRONIC_ENABLED_INSPECT_INTERFACES=inspector"
           export BRANCH_OVERRIDE="{{ zuul.override_checkout | default('default') }}"
           if [ "$BRANCH_OVERRIDE" != "default" ] ; then
               export OVERRIDE_ZUUL_BRANCH=$BRANCH_OVERRIDE
