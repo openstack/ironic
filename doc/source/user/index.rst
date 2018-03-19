@@ -49,45 +49,6 @@ Swift can be used with Ironic, but are missing from this diagram.)
 .. figure:: ../images/conceptual_architecture.png
    :alt: ConceptualArchitecture
 
-Logical Architecture
-====================
-
-The diagram below shows the logical architecture. It shows the basic
-components that form the Ironic service, the relation of Ironic service with
-other OpenStack services and the logical flow of a boot instance request
-resulting in the provisioning of a physical server.
-
-.. figure:: ../images/logical_architecture.png
-   :alt: Logical Architecture
-
-The Ironic service is composed of the following components:
-
-#. a RESTful API service, by which operators and other services may interact
-   with the managed bare metal servers.
-
-#. a Conductor service, which does the bulk of the work. Functionality is
-   exposed via the API service. The Conductor and API services communicate
-   via RPC.
-
-#. various Drivers that support heterogeneous hardware
-
-#. a Message Queue
-
-#. a Database for storing information about the resources. Among other things,
-   this includes the state of the conductors, nodes (physical servers), and
-   drivers.
-
-As in Figure 1.2. Logical Architecture, a user request to boot an instance is
-passed to the Nova Compute service via Nova API and Nova Scheduler. The Compute
-service hands over this request to the Ironic service, where the request passes
-from the Ironic API, to the Conductor, to a Driver to successfully provision a
-physical server for the user.
-
-Just as the Nova Compute service talks to various OpenStack services like
-Glance, Neutron, Swift etc to provision a virtual machine instance, here the
-Ironic service talks to the same OpenStack services for image, network and
-other resource needs to provision a bare metal instance.
-
 
 Key Technologies for Bare Metal Hosting
 =======================================
@@ -131,31 +92,7 @@ operation. It is a method to manage systems that may be unresponsive or powered
 off by using only a network connection to the hardware rather than to an
 operating system.
 
-
-Ironic Deployment Architecture
-==============================
-
-The Ironic RESTful API service is used to enroll hardware that Ironic will
-manage. A cloud administrator usually registers the hardware, specifying their
-attributes such as MAC addresses and IPMI credentials. There can be multiple
-instances of the API service.
-
-The Ironic conductor service does the bulk of the work.
-For security reasons, it is advisable to place the conductor service on
-an isolated host, since it is the only service that requires access to both
-the data plane and IPMI control plane.
-
-There can be multiple instances of the conductor service to support
-various class of drivers and also to manage fail over. Instances of the
-conductor service should be on separate nodes. Each conductor can itself run
-many drivers to operate heterogeneous hardware. This is depicted in the
-following figure.
-
-The API exposes a list of supported drivers and the names of conductor hosts
-servicing them.
-
-.. figure:: ../images/deployment_architecture_2.png
-   :alt: Deployment Architecture 2
+.. _understanding-deployment:
 
 Understanding Bare Metal Deployment
 ===================================
