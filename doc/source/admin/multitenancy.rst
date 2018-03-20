@@ -62,6 +62,11 @@ network.
        vendor-specific identifier. Some ML2 plugins may require this
        field.
 
+.. note::
+      This isn't applicable to Infiniband ports because the network topology
+      is discoverable by the Infiniband Subnet Manager.
+      If specified, local_link_connection information will be ignored.
+
 .. _multitenancy-physnets:
 
 Physical networks
@@ -140,6 +145,24 @@ Configuring nodes
          --local-link-connection port_id=$SWITCH_PORT \
          --pxe-enabled true \
          --physical-network physnet1
+
+   An Infiniband port requires client ID, while local link connection information will
+   be populated by Infiniband Subnet Manager.
+   The client ID consists of <12-byte vendor prefix>:<8 byte port GUID>.
+   There is no standard process for deriving the port's MAC address ($HW_MAC_ADDRESS);
+   it is vendor specific.
+   For example, Mellanox ConnectX Family Devices prefix is ff:00:00:00:00:00:02:00:00:02:c9:00.
+   If port GUID was f4:52:14:03:00:38:39:81 the client ID would be
+   ff:00:00:00:00:00:02:00:00:02:c9:00:f4:52:14:03:00:38:39:81.
+   Mellanox ConnectX Family Device's HW_MAC_ADDRESS consists of 6 bytes;
+   the port GUID's lower 3 and higher 3 bytes. In this example it would be f4:52:14:38:39:81.
+   Putting it all together, create an Infiniband port as follows::
+
+     openstack baremetal port create $HW_MAC_ADDRESS --node $NODE_UUID \
+         --pxe-enabled true \
+         --extra client-id=$CLIENT_ID \
+         --physical-network physnet1
+
 
 #. Check the port configuration::
 
