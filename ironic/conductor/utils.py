@@ -346,6 +346,16 @@ def cleaning_error_handler(task, msg, tear_down_cleaning=True,
                            set_fail_state=True):
     """Put a failed node in CLEANFAIL and maintenance."""
     node = task.node
+
+    if tear_down_cleaning:
+        try:
+            task.driver.deploy.tear_down_cleaning(task)
+        except Exception as e:
+            msg2 = ('Failed to tear down cleaning on node %(uuid)s, '
+                    'reason: %(err)s' % {'err': e, 'uuid': node.uuid})
+            LOG.exception(msg2)
+            msg = _('%s. Also failed to tear down cleaning.') % msg
+
     if node.provision_state in (
             states.CLEANING,
             states.CLEANWAIT,
@@ -364,13 +374,6 @@ def cleaning_error_handler(task, msg, tear_down_cleaning=True,
     node.maintenance = True
     node.maintenance_reason = msg
     node.save()
-    if tear_down_cleaning:
-        try:
-            task.driver.deploy.tear_down_cleaning(task)
-        except Exception as e:
-            msg = ('Failed to tear down cleaning on node %(uuid)s, '
-                   'reason: %(err)s' % {'err': e, 'uuid': node.uuid})
-            LOG.exception(msg)
 
     if set_fail_state:
         target_state = states.MANAGEABLE if manual_clean else None
