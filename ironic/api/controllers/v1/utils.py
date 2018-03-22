@@ -721,6 +721,15 @@ def allow_traits():
     return pecan.request.version.minor >= versions.MINOR_37_NODE_TRAITS
 
 
+def allow_inspect_wait_state():
+    """Check if inspect wait is allowed for the node.
+
+    Version 1.39 of the API adds 'inspect wait' state to substitute
+    'inspecting' state during asynchronous hardware inspection.
+    """
+    return pecan.request.version.minor >= versions.MINOR_39_INSPECT_WAIT
+
+
 def handle_post_port_like_extra_vif(p_dict):
     """Handle a Post request that sets .extra['vif_port_id'].
 

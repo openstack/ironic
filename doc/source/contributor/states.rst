@@ -68,8 +68,15 @@ manageable (stable state)
 
 inspecting
   ``inspecting`` will utilize node introspection to update hardware-derived
-  node properties to reflect the current state of the hardware. If
-  introspection fails, the node will transition to ``inspect failed``.
+  node properties to reflect the current state of the hardware. Typically,
+  the node will transition to ``manageable`` if inspection is synchronous,
+  or ``inspect wait`` if asynchronous. The node will transition to
+  ``inspect failed`` if error occurred.
+
+inspect wait
+  This is the provision state used when an asynchronous inspection is in
+  progress. A successfully inspected node shall transition to ``manageable``
+  state.
 
 inspect failed
   This is the state a node will move into when inspection of the node fails. From

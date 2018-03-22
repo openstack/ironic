@@ -150,7 +150,7 @@ class CommonFunctionsTestCase(BaseTestCase):
 class InspectHardwareTestCase(BaseTestCase):
     def test_ok(self, mock_client):
         mock_introspect = mock_client.return_value.introspect
-        self.assertEqual(states.INSPECTING,
+        self.assertEqual(states.INSPECTWAIT,
                          self.driver.inspect.inspect_hardware(self.task))
         mock_introspect.assert_called_once_with(self.node.uuid)
 
@@ -169,11 +169,17 @@ class InspectHardwareTestCase(BaseTestCase):
 class CheckStatusTestCase(BaseTestCase):
     def setUp(self):
         super(CheckStatusTestCase, self).setUp()
-        self.node.provision_state = states.INSPECTING
+        self.node.provision_state = states.INSPECTWAIT
 
     def test_not_inspecting(self, mock_client):
         mock_get = mock_client.return_value.get_status
         self.node.provision_state = states.MANAGEABLE
+        inspector._check_status(self.task)
+        self.assertFalse(mock_get.called)
+
+    def test_not_check_inspecting(self, mock_client):
+        mock_get = mock_client.return_value.get_status
+        self.node.provision_state = states.INSPECTING
         inspector._check_status(self.task)
         self.assertFalse(mock_get.called)
 

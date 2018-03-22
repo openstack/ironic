@@ -1,0 +1,22 @@
+---
+upgrade:
+  - |
+    Adds an ``inspect wait`` state to handle asynchronous hardware
+    introspection. Caution should be taken due to the timeout monitoring
+    is shifted from ``inspecting`` to ``inspect wait``, please stop all
+    running asynchronous hardware inspection or wait until it is finished
+    before upgrading to the Rocky release. Otherwise nodes in asynchronous
+    inspection will be left at ``inspecting`` state forever unless the
+    database is manually updated.
+deprecations:
+  - |
+    Adds an ``inspect wait`` state to handle asynchronous hardware
+    introspection. The ``[conductor]inspect_timeout`` configuration option
+    is deprecated for removal, please use ``[conductor]inspect_wait_timeout``
+    instead to specify the timeout of inspection process.
+other:
+  - |
+    Adds an ``inspect wait`` state to handle asynchronous hardware
+    introspection. Returning ``INSPECTING`` from the ``inspect_hardware``
+    method of inspect interface is deprecated, ``INSPECTWAIT`` should be
+    returned instead.

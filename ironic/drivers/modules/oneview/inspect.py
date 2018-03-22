@@ -66,7 +66,7 @@ class OneViewInspect(inspector.Inspector):
     @periodics.periodic(spacing=CONF.inspector.status_check_period,
                         enabled=CONF.inspector.enabled)
     def _periodic_check_result(self, manager, context):
-        filters = {'provision_state': states.INSPECTING}
+        filters = {'provision_state': states.INSPECTWAIT}
         node_iter = manager.iter_nodes(filters=filters)
 
         for node_uuid, driver in node_iter:
@@ -87,7 +87,7 @@ class OneViewInspect(inspector.Inspector):
         state_after = task.node.provision_state
 
         # inspection finished
-        if state_before == states.INSPECTING and state_after in [
+        if state_before == states.INSPECTWAIT and state_after in [
                 states.MANAGEABLE, states.INSPECTFAIL
         ]:
             deploy_utils.deallocate_server_hardware_from_ironic(task.node)

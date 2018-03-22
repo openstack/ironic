@@ -122,8 +122,9 @@ opts = [
                help=_('Name of the Swift container to store config drive '
                       'data. Used when configdrive_use_object_store is '
                       'True.')),
-    cfg.IntOpt('inspect_timeout',
+    cfg.IntOpt('inspect_wait_timeout',
                default=1800,
+               deprecated_name='inspect_timeout',
                help=_('Timeout (seconds) for waiting for node inspection. '
                       '0 - unlimited.')),
     cfg.BoolOpt('automated_clean',

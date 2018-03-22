@@ -170,7 +170,8 @@ class ConductorManager(base_manager.BaseConductorManager):
         # TODO(dtantsur): reconsider allowing changing some (but not all)
         # interfaces for active nodes in the future.
         allowed_update_states = [states.ENROLL, states.INSPECTING,
-                                 states.MANAGEABLE, states.AVAILABLE]
+                                 states.INSPECTWAIT, states.MANAGEABLE,
+                                 states.AVAILABLE]
         action = _("Node %(node)s can not have %(field)s "
                    "updated unless it is in one of allowed "
                    "(%(allowed)s) states or in maintenance mode.")
@@ -2231,7 +2232,7 @@ class ConductorManager(base_manager.BaseConductorManager):
                  registered on another port already.
         :raises: InvalidState if port connectivity attributes
                  are updated while node not in a MANAGEABLE or ENROLL or
-                 INSPECTING state or not in MAINTENANCE mode.
+                 INSPECTING or INSPECTWAIT state or not in MAINTENANCE mode.
         :raises: Conflict if trying to set extra/vif_port_id or
                  pxe_enabled=True on port which is a member of portgroup with
                  standalone_ports_supported=False.
@@ -2268,6 +2269,7 @@ class ConductorManager(base_manager.BaseConductorManager):
                                  'physical_network'}
             allowed_update_states = [states.ENROLL,
                                      states.INSPECTING,
+                                     states.INSPECTWAIT,
                                      states.MANAGEABLE]
             if (set(port_obj.obj_what_changed()) & connectivity_attr
                     and not (node.provision_state in allowed_update_states
@@ -2312,8 +2314,8 @@ class ConductorManager(base_manager.BaseConductorManager):
         :raises: PortgroupMACAlreadyExists if the update is setting a MAC which
                  is registered on another portgroup already.
         :raises: InvalidState if portgroup-node association is updated while
-                 node not in a MANAGEABLE or ENROLL or INSPECTING state or not
-                 in MAINTENANCE mode.
+                 node not in a MANAGEABLE or ENROLL or INSPECTING or
+                 INSPECTWAIT state or not in MAINTENANCE mode.
         :raises: PortgroupNotEmpty if there are ports associated with this
                  portgroup.
         :raises: Conflict when trying to set standalone_ports_supported=False
@@ -2332,10 +2334,11 @@ class ConductorManager(base_manager.BaseConductorManager):
             if 'node_id' in portgroup_obj.obj_what_changed():
                 # NOTE(zhenguo): If portgroup update is modifying the
                 # portgroup-node association then node should be in
-                # MANAGEABLE/INSPECTING/ENROLL provisioning state or in
-                # maintenance mode, otherwise InvalidState is raised.
+                # MANAGEABLE/INSPECTING/INSPECTWAIT/ENROLL provisioning state
+                # or in maintenance mode, otherwise InvalidState is raised.
                 allowed_update_states = [states.ENROLL,
                                          states.INSPECTING,
+                                         states.INSPECTWAIT,
                                          states.MANAGEABLE]
                 if (node.provision_state not in allowed_update_states
                     and not node.maintenance):
@@ -2771,24 +2774,24 @@ class ConductorManager(base_manager.BaseConductorManager):
                     action='inspect', node=task.node.uuid,
                     state=task.node.provision_state)
 
-    @METRICS.timer('ConductorManager._check_inspect_timeouts')
+    @METRICS.timer('ConductorManager._check_inspect_wait_timeouts')
     @periodics.periodic(spacing=CONF.conductor.check_provision_state_interval)
-    def _check_inspect_timeouts(self, context):
-        """Periodically checks inspect_timeout and fails upon reaching it.
+    def _check_inspect_wait_timeouts(self, context):
+        """Periodically checks inspect_wait_timeout and fails upon reaching it.
 
         :param: context: request context
 
         """
-        callback_timeout = CONF.conductor.inspect_timeout
+        callback_timeout = CONF.conductor.inspect_wait_timeout
         if not callback_timeout:
             return
 
         filters = {'reserved': False,
-                   'provision_state': states.INSPECTING,
+                   'provision_state': states.INSPECTWAIT,
                    'inspection_started_before': callback_timeout}
         sort_key = 'inspection_started_at'
         last_error = _("timeout reached while inspecting the node")
-        self._fail_if_in_state(context, filters, states.INSPECTING,
+        self._fail_if_in_state(context, filters, states.INSPECTWAIT,
                                sort_key, last_error=last_error)
 
     @METRICS.timer('ConductorManager.set_target_raid_config')
@@ -3484,7 +3487,7 @@ def _do_inspect_hardware(task):
     :param: task: a TaskManager instance with an exclusive lock
                   on its node.
     :raises: HardwareInspectionFailure if driver doesn't
-             return the state as states.MANAGEABLE or
+             return the state as states.MANAGEABLE, states.INSPECTWAIT or
              states.INSPECTING.
 
     """
@@ -3512,7 +3515,20 @@ def _do_inspect_hardware(task):
         task.process_event('done')
         LOG.info('Successfully inspected node %(node)s',
                  {'node': node.uuid})
-    elif new_state != states.INSPECTING:
+    # TODO(kaifeng): remove INSPECTING support during S* cycle.
+    elif new_state in (states.INSPECTING, states.INSPECTWAIT):
+        task.process_event('wait')
+        if new_state == states.INSPECTING:
+            inspect_intf_name = task.driver.inspect.__class__.__name__
+            LOG.warning('Received INSPECTING state from %(intf)s. Returning '
+                        'INSPECTING from InspectInterface.inspect_hardware '
+                        'is deprecated, and will cause node be moved to '
+                        'INSPECTFAIL state after deprecation period. Please '
+                        'return INSPECTWAIT instead if the inspection process '
+                        'is asynchronous.', {'intf': inspect_intf_name})
+        LOG.info('Successfully started introspection on node %(node)s',
+                 {'node': node.uuid})
+    else:
         error = (_("During inspection, driver returned unexpected "
                    "state %(state)s") % {'state': new_state})
         handle_failure(error)

@@ -613,7 +613,7 @@ class UpdateNodeTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
 
     def test_update_node_interface_in_allowed_state(self):
         for state in [states.ENROLL, states.MANAGEABLE, states.INSPECTING,
-                      states.AVAILABLE]:
+                      states.INSPECTWAIT, states.AVAILABLE]:
             self._test_update_node_interface_in_allowed_state(state)
 
     def test_update_node_interface_in_maintenance(self):
@@ -4013,6 +4013,22 @@ class UpdatePortTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
 
     @mock.patch.object(n_flat.FlatNetwork, 'port_changed', autospec=True)
     @mock.patch.object(n_flat.FlatNetwork, 'validate', autospec=True)
+    def test_update_port_to_node_in_inspect_wait_state(self, mock_val,
+                                                       mock_pc):
+        node = obj_utils.create_test_node(self.context, driver='fake',
+                                          provision_state=states.INSPECTWAIT)
+        port = obj_utils.create_test_port(self.context,
+                                          node_id=node.id,
+                                          extra={'foo': 'bar'})
+        port.pxe_enabled = True
+        self.service.update_port(self.context, port)
+        port.refresh()
+        self.assertEqual(True, port.pxe_enabled)
+        mock_val.assert_called_once_with(mock.ANY, mock.ANY)
+        mock_pc.assert_called_once_with(mock.ANY, mock.ANY, port)
+
+    @mock.patch.object(n_flat.FlatNetwork, 'port_changed', autospec=True)
+    @mock.patch.object(n_flat.FlatNetwork, 'validate', autospec=True)
     def test_update_port_node_active_state_and_maintenance(self, mock_val,
                                                            mock_pc):
         node = obj_utils.create_test_node(self.context, driver='fake',
@@ -4624,6 +4640,32 @@ class UpdatePortgroupTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         update_node = obj_utils.create_test_node(
             self.context, driver='fake',
             provision_state=states.MANAGEABLE,
+            uuid=uuidutils.generate_uuid())
+        mock_get_ports.return_value = []
+
+        self._start_service()
+
+        portgroup.node_id = update_node.id
+        self.service.update_portgroup(self.context, portgroup)
+        portgroup.refresh()
+        self.assertEqual(update_node.id, portgroup.node_id)
+        mock_get_ports.assert_called_once_with(portgroup.uuid)
+        mock_val.assert_called_once_with(mock.ANY, mock.ANY)
+        mock_pgc.assert_called_once_with(mock.ANY, mock.ANY, portgroup)
+
+    @mock.patch.object(dbapi.IMPL, 'get_ports_by_portgroup_id')
+    @mock.patch.object(n_flat.FlatNetwork, 'portgroup_changed', autospec=True)
+    @mock.patch.object(n_flat.FlatNetwork, 'validate', autospec=True)
+    def test_update_portgroup_to_node_in_inspect_wait_state(self, mock_val,
+                                                            mock_pgc,
+                                                            mock_get_ports):
+        node = obj_utils.create_test_node(self.context, driver='fake')
+        portgroup = obj_utils.create_test_portgroup(self.context,
+                                                    node_id=node.id,
+                                                    extra={'foo': 'bar'})
+        update_node = obj_utils.create_test_node(
+            self.context, driver='fake',
+            provision_state=states.INSPECTWAIT,
             uuid=uuidutils.generate_uuid())
         mock_get_ports.return_value = []
 
@@ -5893,8 +5935,22 @@ class NodeInspectHardware(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         mock_inspect.return_value = states.INSPECTING
         manager._do_inspect_hardware(task)
         node.refresh()
-        self.assertEqual(states.INSPECTING, node.provision_state)
-        self.assertEqual(states.NOSTATE, node.target_provision_state)
+        self.assertEqual(states.INSPECTWAIT, node.provision_state)
+        self.assertEqual(states.MANAGEABLE, node.target_provision_state)
+        self.assertIsNone(node.last_error)
+        mock_inspect.assert_called_once_with(mock.ANY)
+
+    @mock.patch('ironic.drivers.modules.fake.FakeInspect.inspect_hardware')
+    def test_inspect_hardware_return_inspect_wait(self, mock_inspect):
+        self._start_service()
+        node = obj_utils.create_test_node(self.context, driver='fake',
+                                          provision_state=states.INSPECTING)
+        task = task_manager.TaskManager(self.context, node.uuid)
+        mock_inspect.return_value = states.INSPECTWAIT
+        manager._do_inspect_hardware(task)
+        node.refresh()
+        self.assertEqual(states.INSPECTWAIT, node.provision_state)
+        self.assertEqual(states.MANAGEABLE, node.target_provision_state)
         self.assertIsNone(node.last_error)
         mock_inspect.assert_called_once_with(mock.ANY)
 
@@ -5915,17 +5971,17 @@ class NodeInspectHardware(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         mock_inspect.assert_called_once_with(mock.ANY)
         self.assertTrue(log_mock.error.called)
 
-    def test__check_inspect_timeouts(self):
+    def test__check_inspect_wait_timeouts(self):
         self._start_service()
-        CONF.set_override('inspect_timeout', 1, group='conductor')
+        CONF.set_override('inspect_wait_timeout', 1, group='conductor')
         node = obj_utils.create_test_node(
             self.context, driver='fake',
-            provision_state=states.INSPECTING,
+            provision_state=states.INSPECTWAIT,
             target_provision_state=states.MANAGEABLE,
             provision_updated_at=datetime.datetime(2000, 1, 1, 0, 0),
             inspection_started_at=datetime.datetime(2000, 1, 1, 0, 0))
 
-        self.service._check_inspect_timeouts(self.context)
+        self.service._check_inspect_wait_timeouts(self.context)
         self._stop_service()
         node.refresh()
         self.assertEqual(states.INSPECTFAIL, node.provision_state)
@@ -6030,26 +6086,26 @@ class NodeInspectHardware(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
 @mock.patch.object(task_manager, 'acquire')
 @mock.patch.object(manager.ConductorManager, '_mapped_to_this_conductor')
 @mock.patch.object(dbapi.IMPL, 'get_nodeinfo_list')
-class ManagerCheckInspectTimeoutsTestCase(mgr_utils.CommonMixIn,
-                                          db_base.DbTestCase):
+class ManagerCheckInspectWaitTimeoutsTestCase(mgr_utils.CommonMixIn,
+                                              db_base.DbTestCase):
     def setUp(self):
-        super(ManagerCheckInspectTimeoutsTestCase, self).setUp()
-        self.config(inspect_timeout=300, group='conductor')
+        super(ManagerCheckInspectWaitTimeoutsTestCase, self).setUp()
+        self.config(inspect_wait_timeout=300, group='conductor')
         self.service = manager.ConductorManager('hostname', 'test-topic')
         self.service.dbapi = self.dbapi
 
-        self.node = self._create_node(provision_state=states.INSPECTING,
+        self.node = self._create_node(provision_state=states.INSPECTWAIT,
                                       target_provision_state=states.MANAGEABLE)
         self.task = self._create_task(node=self.node)
 
         self.node2 = self._create_node(
-            provision_state=states.INSPECTING,
+            provision_state=states.INSPECTWAIT,
             target_provision_state=states.MANAGEABLE)
         self.task2 = self._create_task(node=self.node2)
 
         self.filters = {'reserved': False,
                         'inspection_started_before': 300,
-                        'provision_state': states.INSPECTING}
+                        'provision_state': states.INSPECTWAIT}
         self.columns = ['uuid', 'driver']
 
     def _assert_get_nodeinfo_args(self, get_nodeinfo_mock):
@@ -6059,9 +6115,9 @@ class ManagerCheckInspectTimeoutsTestCase(mgr_utils.CommonMixIn,
 
     def test__check_inspect_timeouts_disabled(self, get_nodeinfo_mock,
                                               mapped_mock, acquire_mock):
-        self.config(inspect_timeout=0, group='conductor')
+        self.config(inspect_wait_timeout=0, group='conductor')
 
-        self.service._check_inspect_timeouts(self.context)
+        self.service._check_inspect_wait_timeouts(self.context)
 
         self.assertFalse(get_nodeinfo_mock.called)
         self.assertFalse(mapped_mock.called)
@@ -6072,7 +6128,7 @@ class ManagerCheckInspectTimeoutsTestCase(mgr_utils.CommonMixIn,
         get_nodeinfo_mock.return_value = self._get_nodeinfo_list_response()
         mapped_mock.return_value = False
 
-        self.service._check_inspect_timeouts(self.context)
+        self.service._check_inspect_wait_timeouts(self.context)
 
         self._assert_get_nodeinfo_args(get_nodeinfo_mock)
         mapped_mock.assert_called_once_with(self.node.uuid, self.node.driver)
@@ -6084,7 +6140,7 @@ class ManagerCheckInspectTimeoutsTestCase(mgr_utils.CommonMixIn,
         mapped_mock.return_value = True
         acquire_mock.side_effect = self._get_acquire_side_effect(self.task)
 
-        self.service._check_inspect_timeouts(self.context)
+        self.service._check_inspect_wait_timeouts(self.context)
 
         self._assert_get_nodeinfo_args(get_nodeinfo_mock)
         mapped_mock.assert_called_once_with(self.node.uuid, self.node.driver)
@@ -6101,7 +6157,7 @@ class ManagerCheckInspectTimeoutsTestCase(mgr_utils.CommonMixIn,
         acquire_mock.side_effect = exception.NodeNotFound(node='fake')
 
         # Exception eaten
-        self.service._check_inspect_timeouts(self.context)
+        self.service._check_inspect_wait_timeouts(self.context)
 
         self._assert_get_nodeinfo_args(get_nodeinfo_mock)
         mapped_mock.assert_called_once_with(self.node.uuid,
@@ -6121,7 +6177,7 @@ class ManagerCheckInspectTimeoutsTestCase(mgr_utils.CommonMixIn,
                                                         host='fake')
 
         # Exception eaten
-        self.service._check_inspect_timeouts(self.context)
+        self.service._check_inspect_wait_timeouts(self.context)
 
         self._assert_get_nodeinfo_args(get_nodeinfo_mock)
         mapped_mock.assert_called_once_with(self.node.uuid,
@@ -6142,7 +6198,7 @@ class ManagerCheckInspectTimeoutsTestCase(mgr_utils.CommonMixIn,
         mapped_mock.return_value = True
         acquire_mock.side_effect = self._get_acquire_side_effect(task)
 
-        self.service._check_inspect_timeouts(self.context)
+        self.service._check_inspect_wait_timeouts(self.context)
 
         self._assert_get_nodeinfo_args(get_nodeinfo_mock)
         mapped_mock.assert_called_once_with(
@@ -6155,7 +6211,7 @@ class ManagerCheckInspectTimeoutsTestCase(mgr_utils.CommonMixIn,
     def test__check_inspect_timeouts_to_maintenance_after_lock(
             self, get_nodeinfo_mock, mapped_mock, acquire_mock):
         task = self._create_task(
-            node_attrs=dict(provision_state=states.INSPECTING,
+            node_attrs=dict(provision_state=states.INSPECTWAIT,
                             target_provision_state=states.MANAGEABLE,
                             maintenance=True,
                             uuid=self.node.uuid))
@@ -6165,7 +6221,7 @@ class ManagerCheckInspectTimeoutsTestCase(mgr_utils.CommonMixIn,
         acquire_mock.side_effect = (
             self._get_acquire_side_effect([task, self.task2]))
 
-        self.service._check_inspect_timeouts(self.context)
+        self.service._check_inspect_wait_timeouts(self.context)
 
         self._assert_get_nodeinfo_args(get_nodeinfo_mock)
         self.assertEqual([mock.call(self.node.uuid, task.node.driver),
@@ -6190,7 +6246,7 @@ class ManagerCheckInspectTimeoutsTestCase(mgr_utils.CommonMixIn,
             [(self.task, exception.NoFreeConductorWorker()), self.task2])
 
         # Exception should be nuked
-        self.service._check_inspect_timeouts(self.context)
+        self.service._check_inspect_wait_timeouts(self.context)
 
         self._assert_get_nodeinfo_args(get_nodeinfo_mock)
         # mapped should be only called for the first node as we should
@@ -6212,7 +6268,7 @@ class ManagerCheckInspectTimeoutsTestCase(mgr_utils.CommonMixIn,
 
         # Should re-raise
         self.assertRaises(exception.IronicException,
-                          self.service._check_inspect_timeouts,
+                          self.service._check_inspect_wait_timeouts,
                           self.context)
 
         self._assert_get_nodeinfo_args(get_nodeinfo_mock)
@@ -6238,7 +6294,7 @@ class ManagerCheckInspectTimeoutsTestCase(mgr_utils.CommonMixIn,
         acquire_mock.side_effect = (
             self._get_acquire_side_effect([self.task] * 3))
 
-        self.service._check_inspect_timeouts(self.context)
+        self.service._check_inspect_wait_timeouts(self.context)
 
         # Should only have ran 2.
         self.assertEqual([mock.call(self.node.uuid, self.node.driver)] * 2,

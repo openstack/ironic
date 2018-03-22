@@ -173,6 +173,10 @@ def update_state_in_older_versions(obj):
     if (pecan.request.version.minor < versions.MINOR_2_AVAILABLE_STATE and
             obj.provision_state == ir_states.AVAILABLE):
         obj.provision_state = ir_states.NOSTATE
+    # if requested version < 1.39, convert INSPECTWAIT to INSPECTING
+    if (not api_utils.allow_inspect_wait_state() and
+            obj.provision_state == ir_states.INSPECTWAIT):
+        obj.provision_state = ir_states.INSPECTING
 
 
 class BootDeviceController(rest.RestController):
@@ -1928,6 +1932,13 @@ class NodesController(rest.RestController):
                     "is in progress.")
             raise wsme.exc.ClientSideError(
                 msg % node_ident, status_code=http_client.CONFLICT)
+        elif (rpc_node.provision_state == ir_states.INSPECTING and
+              api_utils.allow_inspect_wait_state()):
+            msg = _('Cannot update node "%(node)s" while it is in state '
+                    '"%(state)s".') % {'node': rpc_node.uuid,
+                                       'state': ir_states.INSPECTING}
+            raise wsme.exc.ClientSideError(msg,
+                                           status_code=http_client.CONFLICT)
 
         names = api_utils.get_patch_values(patch, '/name')
         if len(names):

@@ -75,7 +75,7 @@ BASE_VERSION = 1
 # v1.36: Add Ironic Python Agent version support.
 # v1.37: Add node traits.
 # v1.38: Add rescue and unrescue provision states
-#        Add rescue_interface to the node object
+# v1.39: Add inspect wait provision state.
 
 MINOR_0_JUNO = 0
 MINOR_1_INITIAL_VERSION = 1
@@ -116,6 +116,7 @@ MINOR_35_REBUILD_CONFIG_DRIVE = 35
 MINOR_36_AGENT_VERSION_HEARTBEAT = 36
 MINOR_37_NODE_TRAITS = 37
 MINOR_38_RESCUE_INTERFACE = 38
+MINOR_39_INSPECT_WAIT = 39
 
 # When adding another version, update:
 # - MINOR_MAX_VERSION
@@ -123,7 +124,7 @@ MINOR_38_RESCUE_INTERFACE = 38
 #   explanation of what changed in the new version
 # - common/release_mappings.py, RELEASE_MAPPING['master']['api']
 
-MINOR_MAX_VERSION = MINOR_38_RESCUE_INTERFACE
+MINOR_MAX_VERSION = MINOR_39_INSPECT_WAIT
 
 # String representations of the minor and maximum versions
 _MIN_VERSION_STRING = '{}.{}'.format(BASE_VERSION, MINOR_1_INITIAL_VERSION)
