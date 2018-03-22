@@ -108,7 +108,7 @@ class XClarityManagement(base.ManagementInterface):
                 "Error getting boot device from XClarity for node %(node)s. "
                 "Error: %(error)s", {'node': task.node.uuid,
                                      'error': xclarity_exc})
-            raise common.XClarityError(error=xclarity_exc)
+            raise exception.XClarityError(error=xclarity_exc)
 
         persistent = False
         primary = None
@@ -216,4 +216,4 @@ class XClarityManagement(base.ManagementInterface):
                 {'boot_device': xclarity_boot_device, 'node': task.node.uuid,
                  'error': xclarity_exc}
             )
-            raise common.XClarityError(error=xclarity_exc)
+            raise exception.XClarityError(error=xclarity_exc)

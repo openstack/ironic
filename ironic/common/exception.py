@@ -771,3 +771,7 @@ class InstanceRescueFailure(IronicException):
 class InstanceUnrescueFailure(IronicException):
     _msg_fmt = _('Failed to unrescue instance %(instance)s for node '
                  '%(node)s: %(reason)s')
+
+
+class XClarityError(IronicException):
+    _msg_fmt = _("XClarity exception occurred. Error: %(error)s")

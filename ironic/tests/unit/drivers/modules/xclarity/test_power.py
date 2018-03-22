@@ -24,6 +24,7 @@ import mock
 from oslo_utils import importutils
 import six
 
+from ironic.common import exception
 from ironic.common import states
 from ironic.conductor import task_manager
 from ironic.drivers.modules.xclarity import common
@@ -82,9 +83,9 @@ class XClarityPowerDriverTestCase(db_base.DbTestCase):
             if 'ironic.drivers.modules.xclarity' in sys.modules:
                 six.moves.reload_module(
                     sys.modules['ironic.drivers.modules.xclarity'])
-            ex = common.XClarityError('E')
+            ex = exception.XClarityError('E')
             mock_xc_client.return_value.get_node_power_status.side_effect = ex
-            self.assertRaises(common.XClarityError,
+            self.assertRaises(exception.XClarityError,
                               task.driver.power.get_power_state,
                               task)
 
@@ -119,9 +120,9 @@ class XClarityPowerDriverTestCase(db_base.DbTestCase):
             if 'ironic.drivers.modules.xclarity' in sys.modules:
                 six.moves.reload_module(
                     sys.modules['ironic.drivers.modules.xclarity'])
-            ex = common.XClarityError('E')
+            ex = exception.XClarityError('E')
             mock_xc_client.return_value.set_node_power_status.side_effect = ex
-            self.assertRaises(common.XClarityError,
+            self.assertRaises(exception.XClarityError,
                               task.driver.power.set_power_state,
                               task, states.POWER_OFF)
 
