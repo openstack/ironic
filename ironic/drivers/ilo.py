@@ -22,6 +22,7 @@ from ironic.drivers.modules.ilo import console
 from ironic.drivers.modules.ilo import inspect
 from ironic.drivers.modules.ilo import management
 from ironic.drivers.modules.ilo import power
+from ironic.drivers.modules.ilo import raid
 from ironic.drivers.modules.ilo import vendor
 from ironic.drivers.modules import inspector
 from ironic.drivers.modules import noop
@@ -69,3 +70,15 @@ class IloHardware(generic.GenericHardware):
     def supported_vendor_interfaces(self):
         """List of supported power interfaces."""
         return [vendor.VendorPassthru, noop.NoVendor]
+
+
+class Ilo5Hardware(IloHardware):
+    """iLO5 hardware type.
+
+    iLO5 hardware type is targeted for iLO5 based Proliant Gen10 servers.
+    """
+
+    @property
+    def supported_raid_interfaces(self):
+        """List of supported raid interfaces."""
+        return [raid.Ilo5RAID, noop.NoRAID]

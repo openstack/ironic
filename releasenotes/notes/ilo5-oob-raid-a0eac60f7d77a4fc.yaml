@@ -1,0 +1,12 @@
+---
+features:
+  - Adds new hardware type ``ilo5``. Including all other hardware interfaces
+    ``ilo`` hardware type supports, this has one new RAID interface ``ilo5``.
+  - Adds functionality to perform out-of-band RAID operation for iLO5 based
+    HPE Proliant servers.
+upgrade:
+  - The ``create_raid_configuration``, ``delete_raid_configuration`` and
+    ``read_raid_configuration`` interfaces of 'proliantutils' library has been
+    enhanced to support out-of-band RAID operation for ``ilo5`` hardware type.
+    To leverage this feature, the 'proliantutils' library needs to be upgraded
+    to version '2.7.0'.

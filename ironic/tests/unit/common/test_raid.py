@@ -161,6 +161,21 @@ class ValidateRaidConfigurationTestCase(base.TestCase):
 
 class RaidPublicMethodsTestCase(db_base.DbTestCase):
 
+    def setUp(self):
+        super(RaidPublicMethodsTestCase, self).setUp()
+        self.target_raid_config = {
+            "logical_disks": [
+                {'size_gb': 200, 'raid_level': 0, 'is_root_volume': True},
+                {'size_gb': 200, 'raid_level': 5}
+            ]}
+        n = {
+            'boot_interface': 'pxe',
+            'deploy_interface': 'direct',
+            'raid_interface': 'agent',
+            'target_raid_config': self.target_raid_config,
+        }
+        self.node = obj_utils.create_test_node(self.context, **n)
+
     def test_get_logical_disk_properties(self):
         with open(drivers_base.RAID_CONFIG_SCHEMA, 'r') as raid_schema_fobj:
             schema = json.load(raid_schema_fobj)
@@ -186,7 +201,7 @@ class RaidPublicMethodsTestCase(db_base.DbTestCase):
 
     def _test_update_raid_info(self, current_config,
                                capabilities=None):
-        node = obj_utils.create_test_node(self.context)
+        node = self.node
         if capabilities:
             properties = node.properties
             properties['capabilities'] = capabilities
@@ -239,3 +254,37 @@ class RaidPublicMethodsTestCase(db_base.DbTestCase):
         self.assertRaises(exception.InvalidParameterValue,
                           self._test_update_raid_info,
                           current_config)
+
+    def test_filter_target_raid_config(self):
+        result = raid.filter_target_raid_config(self.node)
+        self.assertEqual(self.node.target_raid_config, result)
+
+    def test_filter_target_raid_config_skip_root(self):
+        result = raid.filter_target_raid_config(
+            self.node, create_root_volume=False)
+        exp_target_raid_config = {
+            "logical_disks": [{'size_gb': 200, 'raid_level': 5}]}
+        self.assertEqual(exp_target_raid_config, result)
+
+    def test_filter_target_raid_config_skip_nonroot(self):
+        result = raid.filter_target_raid_config(
+            self.node, create_nonroot_volumes=False)
+        exp_target_raid_config = {
+            "logical_disks": [{'size_gb': 200,
+                               'raid_level': 0,
+                               'is_root_volume': True}]}
+        self.assertEqual(exp_target_raid_config, result)
+
+    def test_filter_target_raid_config_no_target_raid_config_after_skipping(
+            self):
+        self.assertRaises(exception.MissingParameterValue,
+                          raid.filter_target_raid_config,
+                          self.node, create_root_volume=False,
+                          create_nonroot_volumes=False)
+
+    def test_filter_target_raid_config_empty_target_raid_config(self):
+        self.node.target_raid_config = {}
+        self.node.save()
+        self.assertRaises(exception.MissingParameterValue,
+                          raid.filter_target_raid_config,
+                          self.node)
