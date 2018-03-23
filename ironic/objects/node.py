@@ -410,7 +410,7 @@ class Node(base.IronicObject, object_base.VersionedObjectDictCompat):
         :raises: BadRequest if fields contains a traits that are not None.
         """
         if 'traits' in fields:
-            # NOTE(mgoddard): Traits should be updated via the the node
+            # NOTE(mgoddard): Traits should be updated via the node
             # object's traits field, which is itself an object. We shouldn't
             # get here with changes to traits, as this should be handled by the
             # API. When services are pinned to Pike, we can get here with
