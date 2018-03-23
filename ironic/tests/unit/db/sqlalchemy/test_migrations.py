@@ -712,6 +712,13 @@ class MigrationCheckersMixin(object):
         self.assertIsInstance(nodes.c.bios_interface.type,
                               sqlalchemy.types.String)
 
+    def _check_fb3f10dd262e(self, engine, data):
+        nodes_tbl = db_utils.get_table(engine, 'nodes')
+        col_names = [column.name for column in nodes_tbl.c]
+        self.assertIn('fault', col_names)
+        self.assertIsInstance(nodes_tbl.c.fault.type,
+                              sqlalchemy.types.String)
+
     def test_upgrade_and_version(self):
         with patch_with_engine(self.engine):
             self.migration_api.upgrade('head')

@@ -143,6 +143,7 @@ class DbNodeTestCase(base.DbTestCase):
             driver='driver-two',
             uuid=uuidutils.generate_uuid(),
             maintenance=True,
+            fault='boom',
             resource_class='foo')
         node3 = utils.create_test_node(
             driver='driver-one',
@@ -176,6 +177,12 @@ class DbNodeTestCase(base.DbTestCase):
         res = self.dbapi.get_nodeinfo_list(filters={'maintenance': False})
         self.assertEqual(sorted([node1.id, node3.id]),
                          sorted([r.id for r in res]))
+
+        res = self.dbapi.get_nodeinfo_list(filters={'fault': 'boom'})
+        self.assertEqual([node2.id], [r.id for r in res])
+
+        res = self.dbapi.get_nodeinfo_list(filters={'fault': 'moob'})
+        self.assertEqual([], [r.id for r in res])
 
         res = self.dbapi.get_nodeinfo_list(filters={'resource_class': 'foo'})
         self.assertEqual([node2.id], [r.id for r in res])
@@ -284,6 +291,7 @@ class DbNodeTestCase(base.DbTestCase):
             uuid=uuidutils.generate_uuid(),
             chassis_id=ch2['id'],
             maintenance=True,
+            fault='boom',
             resource_class='foo')
 
         res = self.dbapi.get_node_list(filters={'chassis_uuid': ch1['uuid']})
@@ -315,6 +323,12 @@ class DbNodeTestCase(base.DbTestCase):
 
         res = self.dbapi.get_node_list(filters={'maintenance': False})
         self.assertEqual([node1.id], [r.id for r in res])
+
+        res = self.dbapi.get_nodeinfo_list(filters={'fault': 'boom'})
+        self.assertEqual([node2.id], [r.id for r in res])
+
+        res = self.dbapi.get_nodeinfo_list(filters={'fault': 'moob'})
+        self.assertEqual([], [r.id for r in res])
 
         res = self.dbapi.get_node_list(filters={'resource_class': 'foo'})
         self.assertEqual([node2.id], [r.id for r in res])

@@ -60,7 +60,8 @@ class Node(base.IronicObject, object_base.VersionedObjectDictCompat):
     # Version 1.22: Add rescue_interface field
     # Version 1.23: Add traits field
     # Version 1.24: Add bios_interface field
-    VERSION = '1.24'
+    # Version 1.25: Add fault field
+    VERSION = '1.25'
 
     dbapi = db_api.get_instance()
 
@@ -106,6 +107,7 @@ class Node(base.IronicObject, object_base.VersionedObjectDictCompat):
 
         'maintenance': object_fields.BooleanField(),
         'maintenance_reason': object_fields.StringField(nullable=True),
+        'fault': object_fields.StringField(nullable=True),
         'console_enabled': object_fields.BooleanField(),
 
         # Any error from the most recent (last) asynchronous transaction
@@ -463,6 +465,18 @@ class Node(base.IronicObject, object_base.VersionedObjectDictCompat):
         node = cls._from_db_object(context, cls(), db_node)
         return node
 
+    def _convert_fault_field(self, target_version,
+                             remove_unavailable_fields=True):
+        fault_is_set = self.obj_attr_is_set('fault')
+        if target_version >= (1, 25):
+            if not fault_is_set:
+                self.fault = None
+        elif fault_is_set:
+            if remove_unavailable_fields:
+                delattr(self, 'fault')
+            elif self.fault is not None:
+                self.fault = None
+
     def _convert_to_version(self, target_version,
                             remove_unavailable_fields=True):
         """Convert to the target version.
@@ -480,6 +494,8 @@ class Node(base.IronicObject, object_base.VersionedObjectDictCompat):
         Version 1.24: bios_interface field was added. Its default value is
             None. For versions prior to this, it should be set to None (or
             removed).
+        Version 1.25: fault field was added. For versions prior to
+            this, it should be removed.
 
         :param target_version: the desired version of the object
         :param remove_unavailable_fields: True to remove fields that are
@@ -529,6 +545,8 @@ class Node(base.IronicObject, object_base.VersionedObjectDictCompat):
             elif self.bios_interface is not None:
                 # DB: set unavailable field to the default of None.
                 self.bios_interface = None
+
+        self._convert_fault_field(target_version, remove_unavailable_fields)
 
 
 @base.IronicObjectRegistry.register

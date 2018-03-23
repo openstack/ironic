@@ -165,6 +165,7 @@ class Node(Base):
 
     maintenance = Column(Boolean, default=False)
     maintenance_reason = Column(Text, nullable=True)
+    fault = Column(String(255), nullable=True)
     console_enabled = Column(Boolean, default=False)
     inspection_finished_at = Column(DateTime, nullable=True)
     inspection_started_at = Column(DateTime, nullable=True)
