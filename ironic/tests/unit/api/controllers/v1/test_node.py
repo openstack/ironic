@@ -250,6 +250,17 @@ class TestListNodes(test_api_base.BaseApiTest):
         self.assertEqual('inspect wait',
                          higher_version_data['provision_state'])
 
+    def test_node_fault_hidden_in_lower_version(self):
+        node = obj_utils.create_test_node(self.context)
+        data = self.get_json(
+            '/nodes/%s' % node.uuid,
+            headers={api_base.Version.string: '1.41'})
+        self.assertNotIn('fault', data)
+        data = self.get_json(
+            '/nodes/%s' % node.uuid,
+            headers={api_base.Version.string: '1.42'})
+        self.assertIn('fault', data)
+
     def test_get_one_custom_fields(self):
         node = obj_utils.create_test_node(self.context,
                                           chassis_id=self.chassis.id)
@@ -2279,6 +2290,19 @@ class TestPatch(test_api_base.BaseApiTest):
                                    expect_errors=True)
         self.assertEqual('application/json', response.content_type)
         self.assertEqual(http_client.BAD_REQUEST, response.status_code)
+
+    def test_patch_fault_forbidden(self):
+        node = obj_utils.create_test_node(self.context,
+                                          uuid=uuidutils.generate_uuid())
+        response = self.patch_json('/nodes/%s' % node.uuid,
+                                   [{'path': '/fault',
+                                     'op': 'replace',
+                                     'value': 'why care'}],
+                                   headers={api_base.Version.string: "1.42"},
+                                   expect_errors=True)
+        self.assertEqual('application/json', response.content_type)
+        self.assertEqual(http_client.BAD_REQUEST, response.status_code)
+        self.assertTrue(response.json['error_message'])
 
 
 def _create_node_locally(node):

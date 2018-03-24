@@ -132,7 +132,7 @@ and any defaults added for non-specified fields. Most fields default to "null"
 or "".
 
 The list and example below are representative of the response as of API
-microversion 1.38.
+microversion 1.42.
 
 .. rest_parameters:: parameters.yaml
 
@@ -144,6 +144,7 @@ microversion 1.38.
     - target_provision_state: target_provision_state
     - maintenance: maintenance
     - maintenance_reason: maintenance_reason
+    - fault: fault
     - last_error: last_error
     - reservation: reservation
     - driver: driver_name
@@ -268,6 +269,9 @@ Nova instance, eg. with a request to ``v1/nodes/detail?instance_uuid={NOVA INSTA
 .. versionadded:: 1.38
   Introduced the ``rescue_interface`` field.
 
+.. versionadded:: 1.42
+  Introduced the ``fault`` field.
+
 Normal response codes: 200
 
 Error codes: 400,403,406
@@ -279,6 +283,7 @@ Request
 
    - instance_uuid: r_instance_uuid
    - maintenance: r_maintenance
+   - fault: r_fault
    - associated: r_associated
    - provision_state: r_provision_state
    - driver: r_driver
@@ -301,6 +306,7 @@ Response
     - target_provision_state: target_provision_state
     - maintenance: maintenance
     - maintenance_reason: maintenance_reason
+    - fault: fault
     - last_error: last_error
     - reservation: reservation
     - driver: driver_name
@@ -355,6 +361,9 @@ only the specified set.
 .. versionadded:: 1.38
   Introduced the ``rescue_interface`` field.
 
+.. versionadded:: 1.42
+  Introduced the ``fault`` field.
+
 Normal response codes: 200
 
 Error codes: 400,403,404,406
@@ -380,6 +389,7 @@ Response
     - target_provision_state: target_provision_state
     - maintenance: maintenance
     - maintenance_reason: maintenance_reason
+    - fault: fault
     - last_error: last_error
     - reservation: reservation
     - driver: driver_name
@@ -463,6 +473,7 @@ Response
     - target_provision_state: target_provision_state
     - maintenance: maintenance
     - maintenance_reason: maintenance_reason
+    - fault: fault
     - last_error: last_error
     - reservation: reservation
     - driver: driver_name

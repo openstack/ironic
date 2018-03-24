@@ -1,0 +1,18 @@
+---
+features:
+  - |
+    Adds support for the ``fault`` field in the node, beginning with API
+    version 1.42. This field records the fault, if any, detected by ironic for
+    a node. If no fault is detected, the ``fault`` is ``None``. The ``fault``
+    is set to one of following values according to different circumstances:
+
+    * ``power failure``: when a node is put into maintenance due to power sync
+      failures that exceed max retries.
+    * ``clean failure``: when a node is put into maintenance due to failure of
+      a cleaning operation.
+    * ``rescue abort failure``: when a node is put into maintenance due to
+      failure of cleaning up during rescue abort.
+
+    The ``fault`` will be set to ``None`` if an operator manually set
+    maintenance to ``False``. The ``fault`` field can be used as a filter for
+    querying nodes.

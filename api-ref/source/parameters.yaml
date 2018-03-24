@@ -198,6 +198,13 @@ r_driver:
   in: query
   required: false
   type: string
+r_fault:
+  description: |
+    Filter the list of returned nodes, and only return those with the specified
+    ``fault``.
+  in: query
+  required: false
+  type: string
 r_instance_uuid:
   description: |
     Filter the list of returned nodes, and only return the node with this
@@ -594,6 +601,16 @@ extra:
   in: body
   required: true
   type: object
+fault:
+  description: |
+    The fault indicates the active fault detected by ironic, typically the
+    Node is in "maintenance mode".
+    None means no fault has been detected by ironic. "power failure" indicates
+    ironic failed to retrieve power state from this node. There are other
+    possible types, e.g., "clean failure" and "rescue abort failure".
+  in: body
+  required: false
+  type: string
 hosts:
   description: |
     A list of active hosts that support this driver.

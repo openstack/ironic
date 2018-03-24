@@ -79,6 +79,7 @@ BASE_VERSION = 1
 # v1.40: Add bios.properties.
 #        Add bios_interface to the node object.
 # v1.41: Add inspection abort support.
+# v1.42: Expose fault field to node.
 
 MINOR_0_JUNO = 0
 MINOR_1_INITIAL_VERSION = 1
@@ -122,6 +123,7 @@ MINOR_38_RESCUE_INTERFACE = 38
 MINOR_39_INSPECT_WAIT = 39
 MINOR_40_BIOS_INTERFACE = 40
 MINOR_41_INSPECTION_ABORT = 41
+MINOR_42_FAULT = 42
 
 # When adding another version, update:
 # - MINOR_MAX_VERSION
@@ -129,7 +131,7 @@ MINOR_41_INSPECTION_ABORT = 41
 #   explanation of what changed in the new version
 # - common/release_mappings.py, RELEASE_MAPPING['master']['api']
 
-MINOR_MAX_VERSION = MINOR_41_INSPECTION_ABORT
+MINOR_MAX_VERSION = MINOR_42_FAULT
 
 # String representations of the minor and maximum versions
 _MIN_VERSION_STRING = '{}.{}'.format(BASE_VERSION, MINOR_1_INITIAL_VERSION)
