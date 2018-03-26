@@ -68,7 +68,7 @@ Testing Network Integration
 ---------------------------
 
 In order to test the integration between the Bare Metal and Networking
-services, support has been added to `devstack <https://launchpad.net/devstack>`_
+services, support has been added to `devstack <https://docs.openstack.org/devstack/latest/>`_
 to mimic an external physical switch.  Here we include a recommended
 configuration for devstack to bring up this environment.
 

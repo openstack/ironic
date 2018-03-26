@@ -88,14 +88,14 @@ updated
 but we will only allow it in extenuating circumstances. (It can be
 updated by *only* updating the file in that branch. DO NOT update the file
 in master and cherry-pick it. If you do, `see how the mess was cleaned up
-<https://bugs.launchpad.net/ironic/+bug/1670401>`_.)
+<https://storyboard.openstack.org/#!/story/1670401>`_.)
 
 ...get a decision on something?
 -------------------------------
 
 You have an issue and would like a decision to be made. First, make sure
 that the issue hasn't already been addressed, by looking at documentation,
-bugs, specifications, or asking. Information and links can be found on the
+stories, specifications, or asking. Information and links can be found on the
 `Ironic wiki`_ page.
 
 There are several ways to solicit comments and opinions:
