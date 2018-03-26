@@ -120,9 +120,7 @@ Supported Drivers
 -----------------
 
 For a list of supported drivers (those that are continuously tested on every
-upstream commit) please consult the wiki page::
-
-  https://wiki.openstack.org/wiki/Ironic/Drivers
+upstream commit) please consult the :doc:`drivers page </admin/drivers>`.
 
 Node Vendor Passthru
 --------------------
