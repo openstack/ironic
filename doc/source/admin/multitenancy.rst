@@ -17,6 +17,8 @@ not support trunk ports belonging to multiple networks.
 Concepts
 ========
 
+.. _network-interfaces:
+
 Network interfaces
 ------------------
 
