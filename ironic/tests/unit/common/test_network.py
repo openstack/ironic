@@ -13,11 +13,15 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import mock
 from oslo_utils import uuidutils
 
 from ironic.common import exception
 from ironic.common import network
+from ironic.common import neutron as neutron_common
+from ironic.common import states
 from ironic.conductor import task_manager
+from ironic.drivers.modules.network import common as driver_common
 from ironic.tests.unit.conductor import mgr_utils
 from ironic.tests.unit.db import base as db_base
 from ironic.tests.unit.db import utils as db_utils
@@ -155,6 +159,47 @@ class TestNetwork(db_base.DbTestCase):
 
     def test_get_node_vif_ids_during_rescuing(self):
         self._test_get_node_vif_ids_multitenancy('rescuing_vif_port_id')
+
+    def test_remove_vifs_from_node(self):
+        db_utils.create_test_port(
+            node_id=self.node.id, address='aa:bb:cc:dd:ee:ff',
+            internal_info={driver_common.TENANT_VIF_KEY: 'test-vif-A'})
+        db_utils.create_test_portgroup(
+            node_id=self.node.id, address='dd:ee:ff:aa:bb:cc',
+            internal_info={driver_common.TENANT_VIF_KEY: 'test-vif-B'})
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            network.remove_vifs_from_node(task)
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            result = network.get_node_vif_ids(task)
+        self.assertEqual({}, result['ports'])
+        self.assertEqual({}, result['portgroups'])
+
+
+class TestRemoveVifsTestCase(db_base.DbTestCase):
+
+    def setUp(self):
+        super(TestRemoveVifsTestCase, self).setUp()
+        self.node = object_utils.create_test_node(
+            self.context,
+            network_interface='flat',
+            provision_state=states.DELETING)
+
+    @mock.patch.object(neutron_common, 'unbind_neutron_port')
+    def test_remove_vifs_from_node_failure(self, mock_unbind):
+        db_utils.create_test_port(
+            node_id=self.node.id, address='aa:bb:cc:dd:ee:ff',
+            internal_info={driver_common.TENANT_VIF_KEY: 'test-vif-A'})
+        db_utils.create_test_portgroup(
+            node_id=self.node.id, address='dd:ee:ff:aa:bb:cc',
+            internal_info={driver_common.TENANT_VIF_KEY: 'test-vif-B'})
+        mock_unbind.side_effect = [exception.NetworkError, None]
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            network.remove_vifs_from_node(task)
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            result = network.get_node_vif_ids(task)
+        self.assertEqual({}, result['ports'])
+        self.assertEqual({}, result['portgroups'])
+        self.assertEqual(2, mock_unbind.call_count)
 
 
 class GetPortgroupByIdTestCase(db_base.DbTestCase):
