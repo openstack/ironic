@@ -62,6 +62,7 @@ from ironic.common import exception
 from ironic.common.glance_service import service_utils as glance_utils
 from ironic.common.i18n import _
 from ironic.common import images
+from ironic.common import network
 from ironic.common import states
 from ironic.common import swift
 from ironic.conductor import base_manager
@@ -926,6 +927,7 @@ class ConductorManager(base_manager.BaseConductorManager):
             driver_internal_info = node.driver_internal_info
             driver_internal_info.pop('instance', None)
             node.driver_internal_info = driver_internal_info
+            network.remove_vifs_from_node(task)
             node.save()
 
         # Begin cleaning

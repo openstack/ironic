@@ -935,6 +935,20 @@ class TestNeutronVifPortIDMixin(db_base.DbTestCase):
     @mock.patch.object(common.VIFPortIDMixin, '_clear_vif_from_port_like_obj')
     @mock.patch.object(neutron_common, 'unbind_neutron_port', autospec=True)
     @mock.patch.object(common.VIFPortIDMixin, '_get_port_like_obj_by_vif_id')
+    def test_vif_detach_deleting_node(self, mock_get, mock_unp, mock_clear):
+        self.node.provision_state = states.DELETING
+        self.node.save()
+        mock_get.return_value = self.port
+        with task_manager.acquire(self.context, self.node.id) as task:
+            self.interface.vif_detach(task, 'fake_vif_id')
+            mock_unp.assert_called_once_with('fake_vif_id',
+                                             context=task.context)
+        mock_get.assert_called_once_with(task, 'fake_vif_id')
+        mock_clear.assert_called_once_with(self.port)
+
+    @mock.patch.object(common.VIFPortIDMixin, '_clear_vif_from_port_like_obj')
+    @mock.patch.object(neutron_common, 'unbind_neutron_port', autospec=True)
+    @mock.patch.object(common.VIFPortIDMixin, '_get_port_like_obj_by_vif_id')
     def test_vif_detach_active_node_failure(self, mock_get, mock_unp,
                                             mock_clear):
         self.node.provision_state = states.ACTIVE
