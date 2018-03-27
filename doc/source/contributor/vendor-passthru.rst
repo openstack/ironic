@@ -82,7 +82,7 @@ the node vendor passthru endpoint:
               if 'raw_bytes' not in kwargs:
                   raise MissingParameterValue()
 
-      @base.driver_passthru(['GET'], async=False)
+      @base.driver_passthru(['GET'], async_call=False)
       def authentication_types(self, context, **kwargs):
           return {"types": ["NONE", "MD5", "MD2"]}
 
@@ -122,8 +122,10 @@ Both decorators accept these parameters:
 
 .. _VendorInterface: ../api/ironic.drivers.base.html#ironic.drivers.base.VendorInterface
 
-* async: A boolean value to determine whether this method should run
+* async_call: A boolean value to determine whether this method should run
   asynchronously or synchronously. Defaults to True (Asynchronously).
+
+  .. note:: This parameter was previously called "async".
 
 The node vendor passthru decorator (`@passthru`) also accepts the following
 parameter:

@@ -154,7 +154,7 @@ class FakeVendorB(base.VendorInterface):
     def second_method(self, task, http_method, bar):
         return True if bar == 'kazoo' else False
 
-    @base.passthru(['POST'], async=False,
+    @base.passthru(['POST'], async_call=False,
                    description=_("Test if the value of bar is meow"))
     def third_method_sync(self, task, http_method, bar):
         return True if bar == 'meow' else False

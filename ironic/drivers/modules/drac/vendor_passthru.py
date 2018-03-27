@@ -50,7 +50,7 @@ class DracVendorPassthru(base.VendorInterface):
         return drac_common.parse_driver_info(task.node)
 
     @METRICS.timer('DracVendorPassthru.get_bios_config')
-    @base.passthru(['GET'], async=False,
+    @base.passthru(['GET'], async_call=False,
                    description=_("Returns a dictionary containing the BIOS "
                                  "settings from a node."))
     def get_bios_config(self, task, **kwargs):
@@ -70,7 +70,7 @@ class DracVendorPassthru(base.VendorInterface):
         return bios_attrs
 
     @METRICS.timer('DracVendorPassthru.set_bios_config')
-    @base.passthru(['POST'], async=False,
+    @base.passthru(['POST'], async_call=False,
                    description=_("Change the BIOS configuration on a node. "
                                  "Required argument : a dictionary of "
                                  "{'AttributeName': 'NewValue'}. Returns "
@@ -94,7 +94,7 @@ class DracVendorPassthru(base.VendorInterface):
         return drac_bios.set_config(task, **kwargs)
 
     @METRICS.timer('DracVendorPassthru.commit_bios_config')
-    @base.passthru(['POST'], async=False,
+    @base.passthru(['POST'], async_call=False,
                    description=_("Commit a BIOS configuration job submitted "
                                  "through set_bios_config(). Required "
                                  "argument: 'reboot' - indicates whether a "
@@ -126,7 +126,7 @@ class DracVendorPassthru(base.VendorInterface):
         return {'job_id': job_id, 'reboot_required': not reboot}
 
     @METRICS.timer('DracVendorPassthru.abandon_bios_config')
-    @base.passthru(['DELETE'], async=False,
+    @base.passthru(['DELETE'], async_call=False,
                    description=_("Abandon a BIOS configuration job previously "
                                  "submitted through set_bios_config()."))
     @task_manager.require_exclusive_lock
@@ -142,7 +142,7 @@ class DracVendorPassthru(base.VendorInterface):
         """
         drac_bios.abandon_config(task)
 
-    @base.passthru(['GET'], async=False,
+    @base.passthru(['GET'], async_call=False,
                    description=_('Returns a dictionary containing the key '
                                  '"unfinished_jobs"; its value is a list of '
                                  'dictionaries. Each dictionary represents '
