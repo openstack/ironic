@@ -169,6 +169,14 @@ opts = [
                       'complete, i.e., so that a baremetal node is in the '
                       'desired power state. If timed out, the power operation '
                       'is considered a failure.')),
+    cfg.IntOpt('power_failure_recovery_interval',
+               min=0, default=300,
+               help=_('Interval (in seconds) between checking the power '
+                      'state for nodes previously put into maintenance mode '
+                      'due to power synchronization failure. A node is '
+                      'automatically moved out of maintenance mode once its '
+                      'power state is retrieved successfully. Set to 0 to '
+                      'disable this check.')),
 ]
 
 

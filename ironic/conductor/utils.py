@@ -19,6 +19,7 @@ from oslo_utils import excutils
 import six
 
 from ironic.common import exception
+from ironic.common import faults
 from ironic.common.i18n import _
 from ironic.common import network
 from ironic.common import states
@@ -375,6 +376,7 @@ def cleaning_error_handler(task, msg, tear_down_cleaning=True,
     node.last_error = msg
     node.maintenance = True
     node.maintenance_reason = msg
+    node.fault = faults.CLEAN_FAILURE
     node.save()
 
     if set_fail_state:

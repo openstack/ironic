@@ -1,0 +1,18 @@
+---
+features:
+  - |
+    Adds power failure recovery to ironic. For nodes that ironic had put into
+    maintenance mode due to power failure, ironic periodically checks their
+    power state, and moves them out of maintenance mode when power state can
+    be retrieved. The interval of this check is configured via
+    ``[conductor]power_failure_recovery_interval`` configuration option, the
+    default value is 300 (seconds). Set to 0 to disable this behavior.
+upgrade:
+  - |
+    Power failure recovery introduces a new configuration option
+    ``[conductor]power_failure_recovery_interval``, which is enabled and set
+    to 300 seconds by default. In case the default value is not suitable for
+    the needs or scale of a deployment, please make adjustment or turn it off
+    during upgrade. The power failure recovery does not apply to nodes that
+    were in maintenance mode due to power failure before upgrade, they have
+    to be manually moved out of maintenance mode.
