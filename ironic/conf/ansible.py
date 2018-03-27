@@ -92,7 +92,7 @@ opts = [
     cfg.StrOpt('default_username',
                default='ansible',
                help=_("Name of the user to use for Ansible when connecting "
-                      "to the ramdisk over SSH. It may be overriden "
+                      "to the ramdisk over SSH. It may be overridden "
                       "by per-node 'ansible_username' option "
                       "in node's 'driver_info' field.")),
     cfg.StrOpt('default_key_file',
@@ -101,14 +101,14 @@ opts = [
                       "over SSH. Default is to use default SSH keys "
                       "configured for the user running the ironic-conductor "
                       "service. Private keys with password must be pre-loaded "
-                      "into 'ssh-agent'. It may be overriden by per-node "
+                      "into 'ssh-agent'. It may be overridden by per-node "
                       "'ansible_key_file' option in node's "
                       "'driver_info' field.")),
     cfg.StrOpt('default_deploy_playbook',
                default='deploy.yaml',
                help=_("Path (relative to $playbooks_path or absolute) "
                       "to the default playbook used for deployment. "
-                      "It may be overriden by per-node "
+                      "It may be overridden by per-node "
                       "'ansible_deploy_playbook' option in node's "
                       "'driver_info' field.")),
     cfg.StrOpt('default_shutdown_playbook',
@@ -116,14 +116,14 @@ opts = [
                help=_("Path (relative to $playbooks_path or absolute) "
                       "to the default playbook used for graceful in-band "
                       "shutdown of the node. "
-                      "It may be overriden by per-node "
+                      "It may be overridden by per-node "
                       "'ansible_shutdown_playbook' option in node's "
                       "'driver_info' field.")),
     cfg.StrOpt('default_clean_playbook',
                default='clean.yaml',
                help=_("Path (relative to $playbooks_path or absolute) "
                       "to the default playbook used for node cleaning. "
-                      "It may be overriden by per-node "
+                      "It may be overridden by per-node "
                       "'ansible_clean_playbook' option in node's "
                       "'driver_info' field.")),
     cfg.StrOpt('default_clean_steps_config',
@@ -131,7 +131,7 @@ opts = [
                help=_("Path (relative to $playbooks_path or absolute) "
                       "to the default auxiliary cleaning steps file used "
                       "during the node cleaning. "
-                      "It may be overriden by per-node "
+                      "It may be overridden by per-node "
                       "'ansible_clean_steps_config' option in node's "
                       "'driver_info' field.")),
 ]

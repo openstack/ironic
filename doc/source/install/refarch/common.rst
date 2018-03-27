@@ -175,7 +175,7 @@ configuration file, for example:
     [deploy]
     default_boot_option = local
 
-This default can be overriden by setting the ``boot_option`` capability on a
+This default can be overridden by setting the ``boot_option`` capability on a
 node. See :ref:`local-boot-partition-images` for details.
 
 .. note::
