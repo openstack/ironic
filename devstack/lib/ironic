@@ -1753,7 +1753,7 @@ function provide_nodes {
     fi
 }
 
-function wait_for_ironic_neuton_agent_report_state_for_all_nodes {
+function wait_for_ironic_neutron_agent_report_state_for_all_nodes {
     local nodes=$@
     echo "Waiting for ironic-neutron-agent to report state for nodes: $nodes"
     local attempt
@@ -2054,7 +2054,7 @@ function enroll_nodes {
     # NOTE(hjensas): ensure ironic-neutron-agent has done report_state for all
     # nodes we attempt cleaning.
     if [[ "${IRONIC_USE_NEUTRON_SEGMENTS}" == "True" ]]; then
-        wait_for_ironic_neuton_agent_report_state_for_all_nodes $node_uuids
+        wait_for_ironic_neutron_agent_report_state_for_all_nodes $node_uuids
     fi
 
     # NOTE(dtantsur): doing it outside of the loop, because of cleaning
