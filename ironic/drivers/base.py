@@ -225,7 +225,7 @@ class BaseInterface(object):
         This method is often executed synchronously in API requests, so it
         should not conduct long-running checks.
 
-        :param task: a TaskManager instance containing the node to act on.
+        :param task: A TaskManager instance containing the node to act on.
         :raises: InvalidParameterValue on malformed parameter(s)
         :raises: MissingParameterValue on missing parameter(s)
         """
@@ -312,7 +312,7 @@ class DeployInterface(BaseInterface):
         performed any preparatory steps, such as pre-caching some data for the
         node.
 
-        :param task: a TaskManager instance containing the node to act on.
+        :param task: A TaskManager instance containing the node to act on.
         :returns: status of the deploy. One of ironic.common.states.
         """
 
@@ -323,7 +323,7 @@ class DeployInterface(BaseInterface):
         Given a node that has been previously deployed to,
         do all cleanup and tear down necessary to "un-deploy" that node.
 
-        :param task: a TaskManager instance containing the node to act on.
+        :param task: A TaskManager instance containing the node to act on.
         :returns: status of the deploy. One of ironic.common.states.
         """
 
@@ -339,7 +339,7 @@ class DeployInterface(BaseInterface):
 
         This method is called before `deploy`.
 
-        :param task: a TaskManager instance containing the node to act on.
+        :param task: A TaskManager instance containing the node to act on.
         """
 
     @abc.abstractmethod
@@ -357,7 +357,7 @@ class DeployInterface(BaseInterface):
 
         This method is called before `tear_down`.
 
-        :param task: a TaskManager instance containing the node to act on.
+        :param task: A TaskManager instance containing the node to act on.
         """
 
     @abc.abstractmethod
@@ -376,7 +376,7 @@ class DeployInterface(BaseInterface):
             in Neutron as part of remapping that node's control to itself.
             This is performed within the `takeover` method.
 
-        :param task: a TaskManager instance containing the node to act on.
+        :param task: A TaskManager instance containing the node to act on.
         """
 
     def prepare_cleaning(self, task):
@@ -394,7 +394,7 @@ class DeployInterface(BaseInterface):
         NOTE(JoshNang) this should be moved to BootInterface when it gets
         implemented.
 
-        :param task: a TaskManager instance containing the node to act on.
+        :param task: A TaskManager instance containing the node to act on.
         :returns: If this function is going to be asynchronous, should return
             `states.CLEANWAIT`. Otherwise, should return `None`. The interface
             will need to call _get_cleaning_steps and then RPC to
@@ -411,14 +411,14 @@ class DeployInterface(BaseInterface):
         NOTE(JoshNang) this should be moved to BootInterface when it gets
         implemented.
 
-        :param task: a TaskManager instance containing the node to act on.
+        :param task: A TaskManager instance containing the node to act on.
         """
         pass
 
     def heartbeat(self, task, callback_url, agent_version):
         """Record a heartbeat for the node.
 
-        :param task: a TaskManager instance containing the node to act on.
+        :param task: A TaskManager instance containing the node to act on.
         :param callback_url: a URL to use to call to the ramdisk.
         :param agent_version: The version of the agent that is heartbeating
         :return: None
@@ -439,8 +439,8 @@ class BootInterface(BaseInterface):
         This method prepares the boot of the deploy or rescue ramdisk after
         reading relevant information from the node's database.
 
-        :param task: a task from TaskManager.
-        :param ramdisk_params: the options to be passed to the ironic ramdisk.
+        :param task: A task from TaskManager.
+        :param ramdisk_params: The options to be passed to the ironic ramdisk.
             Different implementations might want to boot the ramdisk in
             different ways by passing parameters to them.  For example,
 
@@ -460,7 +460,7 @@ class BootInterface(BaseInterface):
         This method cleans up the environment that was setup for booting the
         deploy or rescue ramdisk.
 
-        :param task: a task from TaskManager.
+        :param task: A task from TaskManager.
         :returns: None
         """
 
@@ -471,7 +471,7 @@ class BootInterface(BaseInterface):
         This method prepares the boot of the instance after reading
         relevant information from the node's database.
 
-        :param task: a task from TaskManager.
+        :param task: A task from TaskManager.
         :returns: None
         """
 
@@ -482,14 +482,14 @@ class BootInterface(BaseInterface):
         This method cleans up the environment that was setup for booting
         the instance.
 
-        :param task: a task from TaskManager.
+        :param task: A task from TaskManager.
         :returns: None
         """
 
     def validate_rescue(self, task):
         """Validate that the node has required properties for rescue.
 
-        :param task: a TaskManager instance with the node being checked
+        :param task: A TaskManager instance with the node being checked
         :raises: MissingParameterValue if node is missing one or more required
             parameters
         :raises: UnsupportedDriverExtension
@@ -506,16 +506,16 @@ class PowerInterface(BaseInterface):
     def get_power_state(self, task):
         """Return the power state of the task's node.
 
-        :param task: a TaskManager instance containing the node to act on.
+        :param task: A TaskManager instance containing the node to act on.
         :raises: MissingParameterValue if a required parameter is missing.
-        :returns: a power state. One of :mod:`ironic.common.states`.
+        :returns: A power state. One of :mod:`ironic.common.states`.
         """
 
     @abc.abstractmethod
     def set_power_state(self, task, power_state, timeout=None):
         """Set the power state of the task's node.
 
-        :param task: a TaskManager instance containing the node to act on.
+        :param task: A TaskManager instance containing the node to act on.
         :param power_state: Any power state from :mod:`ironic.common.states`.
         :param timeout: timeout (in seconds) positive integer (> 0) for any
           power state. ``None`` indicates to use default timeout.
@@ -529,7 +529,7 @@ class PowerInterface(BaseInterface):
         Drivers are expected to properly handle case when node is powered off
         by powering it on.
 
-        :param task: a TaskManager instance containing the node to act on.
+        :param task: A TaskManager instance containing the node to act on.
         :param timeout: timeout (in seconds) positive integer (> 0) for any
           power state. ``None`` indicates to use default timeout.
         :raises: MissingParameterValue if a required parameter is missing.
@@ -555,14 +555,14 @@ class ConsoleInterface(BaseInterface):
 
         This method should not raise an exception if console already started.
 
-        :param task: a TaskManager instance containing the node to act on.
+        :param task: A TaskManager instance containing the node to act on.
         """
 
     @abc.abstractmethod
     def stop_console(self, task):
         """Stop the remote console session for the task's node.
 
-        :param task: a TaskManager instance containing the node to act on.
+        :param task: A TaskManager instance containing the node to act on.
         """
 
     @abc.abstractmethod
@@ -572,7 +572,7 @@ class ConsoleInterface(BaseInterface):
         This method should return the necessary information for the
         client to access the console.
 
-        :param task: a TaskManager instance containing the node to act on.
+        :param task: A TaskManager instance containing the node to act on.
         :returns: the console connection information.
         """
 
@@ -585,7 +585,7 @@ class RescueInterface(BaseInterface):
     def rescue(self, task):
         """Boot the task's node into a rescue environment.
 
-        :param task: a TaskManager instance containing the node to act on.
+        :param task: A TaskManager instance containing the node to act on.
         :raises: InstanceRescueFailure if node validation or rescue operation
                  fails.
         :returns: states.RESCUEWAIT if rescue is in progress asynchronously
@@ -596,7 +596,7 @@ class RescueInterface(BaseInterface):
     def unrescue(self, task):
         """Tear down the rescue environment, and return to normal.
 
-        :param task: a TaskManager instance containing the node to act on.
+        :param task: A TaskManager instance containing the node to act on.
         :raises: InstanceUnrescueFailure if node validation or unrescue
                  operation fails.
         :returns: states.ACTIVE if it is successful.
@@ -608,7 +608,7 @@ class RescueInterface(BaseInterface):
         This is particularly useful for nodes where rescuing is asynchronous
         and a timeout occurs.
 
-        :param task: a TaskManager instance containing the node to act on.
+        :param task: A TaskManager instance containing the node to act on.
         :returns: None
         """
         pass
@@ -744,9 +744,9 @@ class VendorInterface(BaseInterface):
 
         If invalid, raises an exception; otherwise returns None.
 
-        :param task: a task from TaskManager.
-        :param method: method to be validated
-        :param kwargs: info for action.
+        :param task: A task from TaskManager.
+        :param method: Method to be validated
+        :param kwargs: Info for action.
         :raises: UnsupportedDriverExtension if 'method' can not be mapped to
                  the supported interfaces.
         :raises: InvalidParameterValue if kwargs does not contain 'method'.
@@ -775,7 +775,7 @@ class ManagementInterface(BaseInterface):
     def get_supported_boot_devices(self, task):
         """Get a list of the supported boot devices.
 
-        :param task: a task from TaskManager.
+        :param task: A task from TaskManager.
         :returns: A list with the supported boot devices defined
                   in :mod:`ironic.common.boot_devices`.
         """
@@ -786,8 +786,8 @@ class ManagementInterface(BaseInterface):
 
         Set the boot device to use on next reboot of the node.
 
-        :param task: a task from TaskManager.
-        :param device: the boot device, one of
+        :param task: A task from TaskManager.
+        :param device: The boot device, one of
                        :mod:`ironic.common.boot_devices`.
         :param persistent: Boolean value. True if the boot device will
                            persist to all future boots, False if not.
@@ -804,12 +804,12 @@ class ManagementInterface(BaseInterface):
         Provides the current boot device of the node. Be aware that not
         all drivers support this.
 
-        :param task: a task from TaskManager.
+        :param task: A task from TaskManager.
         :raises: MissingParameterValue if a required parameter is missing
-        :returns: a dictionary containing:
+        :returns: A dictionary containing:
 
             :boot_device:
-                the boot device, one of :mod:`ironic.common.boot_devices` or
+                Ahe boot device, one of :mod:`ironic.common.boot_devices` or
                 None if it is unknown.
             :persistent:
                 Whether the boot device will persist to all future boots or
@@ -821,10 +821,10 @@ class ManagementInterface(BaseInterface):
     def get_sensors_data(self, task):
         """Get sensors data method.
 
-        :param task: a TaskManager instance.
+        :param task: A TaskManager instance.
         :raises: FailedToGetSensorData when getting the sensor data fails.
         :raises: FailedToParseSensorData when parsing sensor data fails.
-        :returns: returns a consistent format dict of sensor data grouped by
+        :returns: Returns a consistent format dict of sensor data grouped by
                   sensor type, which can be processed by Ceilometer.
                   eg,
 
@@ -884,10 +884,10 @@ class InspectInterface(BaseInterface):
         Inspect hardware to obtain the essential & additional hardware
         properties.
 
-        :param task: a task from TaskManager.
+        :param task: A task from TaskManager.
         :raises: HardwareInspectionFailure, if unable to get essential
                  hardware properties.
-        :returns: resulting state of the inspection i.e. states.MANAGEABLE
+        :returns: Resulting state of the inspection i.e. states.MANAGEABLE
                   or None.
         """
 
@@ -914,7 +914,7 @@ class RAIDInterface(BaseInterface):
         configuration. Driver implementations of this interface can override
         this method for doing more validations (such as BMC's credentials).
 
-        :param task: a TaskManager instance.
+        :param task: A TaskManager instance.
         :raises: InvalidParameterValue, if the RAID configuration is invalid.
         :raises: MissingParameterValue, if some parameters are missing.
         """
@@ -930,7 +930,7 @@ class RAIDInterface(BaseInterface):
         implementations of this interface can override this method to support
         custom parameters for RAID configuration.
 
-        :param task: a TaskManager instance.
+        :param task: A TaskManager instance.
         :param raid_config: The RAID configuration to validate.
         :raises: InvalidParameterValue, if the RAID configuration is invalid.
         """
@@ -952,7 +952,7 @@ class RAIDInterface(BaseInterface):
         may be called to sync the node's RAID-related information with the
         RAID configuration applied on the node.
 
-        :param task: a TaskManager instance.
+        :param task: A TaskManager instance.
         :param create_root_volume: Setting this to False indicates
             not to create root volume that is specified in the node's
             target_raid_config. Default value is True.
@@ -971,7 +971,7 @@ class RAIDInterface(BaseInterface):
         After RAID configuration is deleted, node.raid_config should be
         cleared by the implementation.
 
-        :param task: a TaskManager instance.
+        :param task: A TaskManager instance.
         :returns: states.CLEANWAIT if deletion is in progress
             asynchronously or None if it is complete.
         """
@@ -1003,7 +1003,7 @@ class NetworkInterface(BaseInterface):
     def validate(self, task):
         """Validates the network interface.
 
-        :param task: a TaskManager instance.
+        :param task: A TaskManager instance.
         :raises: InvalidParameterValue, if the network interface configuration
             is invalid.
         :raises: MissingParameterValue, if some parameters are missing.
@@ -1013,7 +1013,7 @@ class NetworkInterface(BaseInterface):
     def port_changed(self, task, port_obj):
         """Handle any actions required when a port changes
 
-        :param task: a TaskManager instance.
+        :param task: A TaskManager instance.
         :param port_obj: a changed Port object.
         :raises: Conflict, FailedToUpdateDHCPOptOnPort
         """
@@ -1022,7 +1022,7 @@ class NetworkInterface(BaseInterface):
     def portgroup_changed(self, task, portgroup_obj):
         """Handle any actions required when a port changes
 
-        :param task: a TaskManager instance.
+        :param task: A TaskManager instance.
         :param portgroup_obj: a changed Port object.
         :raises: Conflict, FailedToUpdateDHCPOptOnPort
         """
@@ -1121,7 +1121,7 @@ class NetworkInterface(BaseInterface):
     def validate_rescue(self, task):
         """Validates the network interface for rescue operation.
 
-        :param task: a TaskManager instance.
+        :param task: A TaskManager instance.
         :raises: InvalidParameterValue, if the network interface configuration
             is invalid.
         :raises: MissingParameterValue, if some parameters are missing.
@@ -1161,7 +1161,7 @@ class StorageInterface(BaseInterface):
     def attach_volumes(self, task):
         """Informs the storage subsystem to attach all volumes for the node.
 
-        :param task: a TaskManager instance.
+        :param task: A TaskManager instance.
         :raises: UnsupportedDriverExtension
         """
 
@@ -1169,7 +1169,7 @@ class StorageInterface(BaseInterface):
     def detach_volumes(self, task):
         """Informs the storage subsystem to detach all volumes for the node.
 
-        :param task: a TaskManager instance.
+        :param task: A TaskManager instance.
         :raises: UnsupportedDriverExtension
         """
 
@@ -1177,7 +1177,7 @@ class StorageInterface(BaseInterface):
     def should_write_image(self, task):
         """Determines if deploy should perform the image write-out.
 
-        :param task: a TaskManager instance.
+        :param task: A TaskManager instance.
         :returns: Boolean value to indicate if the interface expects
                   the image to be written by Ironic.
         :raises: UnsupportedDriverExtension
