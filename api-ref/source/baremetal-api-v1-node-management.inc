@@ -343,7 +343,7 @@ Request a change to the Node's provision state.
 
 Acceptable target states depend on the Node's current provision state. More
 detailed documentation of the Ironic State Machine is available
-`in the developer docs <http://docs.openstack.org/ironic/latest/contributor/states.html>`_.
+`in the developer docs <https://docs.openstack.org/ironic/latest/contributor/states.html>`_.
 
 .. versionadded:: 1.35
    A ``configdrive`` can be provided when setting the node's provision target state to ``rebuild``.
@@ -389,7 +389,7 @@ Set RAID Config
 
 Store the supplied configuration on the Node's ``target_raid_config`` property.
 This property must be structured JSON, and will be validated by the driver upon receipt. The request
-schema is defined in the `documentation for the RAID feature <http://docs.openstack.org/ironic/latest/admin/raid.html>`_
+schema is defined in the `documentation for the RAID feature <https://docs.openstack.org/ironic/latest/admin/raid.html>`_
 
 .. note:: Calling this API only stores the requested configuration; it will be applied the next time
   that the Node transitions through the ``cleaning`` phase.

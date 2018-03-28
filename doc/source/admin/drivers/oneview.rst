@@ -435,7 +435,7 @@ References
 .. [1] HP OneView - https://www.hpe.com/us/en/integrated-systems/software.html
 .. [2] :ref:`architecture_drivers`
 .. [3] hpOneView - https://pypi.python.org/pypi/hpOneView
-.. [6] Dynamic Allocation in OneView drivers - http://specs.openstack.org/openstack/ironic-specs/specs/not-implemented/oneview-drivers-dynamic-allocation.html
+.. [6] Dynamic Allocation in OneView drivers - https://specs.openstack.org/openstack/ironic-specs/specs/not-implemented/oneview-drivers-dynamic-allocation.html
 .. [7] ironic-oneviewd - https://pypi.python.org/pypi/ironic-oneviewd/
 .. [8] ironic-oneview-cli - https://pypi.python.org/pypi/ironic-oneview-cli/
 .. [9] ironic-inspector - https://docs.openstack.org/ironic-inspector/latest/
