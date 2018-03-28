@@ -107,6 +107,18 @@
     parent: legacy-ironic-dsvm-base
     run: playbooks/legacy/ironic-dsvm-standalone/run.yaml
     timeout: 10800
+    irrelevant-files:
+      - ^test-requirements.txt$
+      - ^.*\.rst$
+      - ^api-ref/.*$
+      - ^doc/.*$
+      - ^install-guide/.*$
+      - ^ironic/locale/.*$
+      - ^ironic/tests/.*$
+      - ^releasenotes/.*$
+      - ^setup.cfg$
+      - ^tools/.*$
+      - ^tox.ini$
     required-projects:
       - openstack-infra/devstack-gate
       - openstack/ironic
