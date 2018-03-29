@@ -402,7 +402,9 @@ class TestAnsibleMethods(AnsibleDeployTestCaseBase):
         i_info['configdrive'] = 'fake-content'
         self.node.instance_info = i_info
         self.node.save()
-        self.config(tempdir='/path/to/tmpfiles')
+        configdrive_path = ('%(tempdir)s/%(node)s.cndrive' %
+                            {'tempdir': ansible_deploy.CONF.tempdir,
+                             'node': self.node.uuid})
         expected = {"image": {"url": "http://image",
                               "validate_certs": "yes",
                               "source": "fake-image",
@@ -410,16 +412,14 @@ class TestAnsibleMethods(AnsibleDeployTestCaseBase):
                               "disk_format": "qcow2",
                               "checksum": "md5:checksum"},
                     'configdrive': {'type': 'file',
-                                    'location': '/path/to/tmpfiles/%s.cndrive'
-                                    % self.node.uuid}}
+                                    'location': configdrive_path}}
         with mock.patch.object(ansible_deploy, 'open', mock.mock_open(),
                                create=True) as open_mock:
             with task_manager.acquire(self.context, self.node.uuid) as task:
                 self.assertEqual(expected,
                                  ansible_deploy._prepare_variables(task))
             open_mock.assert_has_calls((
-                mock.call('/path/to/tmpfiles/%s.cndrive' % self.node.uuid,
-                          'w'),
+                mock.call(configdrive_path, 'w'),
                 mock.call().__enter__(),
                 mock.call().write('fake-content'),
                 mock.call().__exit__(None, None, None)))
