@@ -1774,3 +1774,51 @@ class MiscTestCase(db_base.DbTestCase):
 
     def test_remove_node_rescue_password_save_false(self):
         self._test_remove_node_rescue_password(save=False)
+
+
+class ValidateInstanceInfoTraitsTestCase(tests_base.TestCase):
+
+    def setUp(self):
+        super(ValidateInstanceInfoTraitsTestCase, self).setUp()
+        self.node = obj_utils.get_test_node(self.context, driver='fake',
+                                            traits=['trait1', 'trait2'])
+
+    def test_validate_instance_info_traits_no_instance_traits(self):
+        conductor_utils.validate_instance_info_traits(self.node)
+
+    def test_validate_instance_info_traits_empty_instance_traits(self):
+        self.node.instance_info['traits'] = []
+        conductor_utils.validate_instance_info_traits(self.node)
+
+    def test_parse_instance_info_traits_invalid_type(self):
+        self.node.instance_info['traits'] = 'not-a-list'
+        self.assertRaisesRegex(exception.InvalidParameterValue,
+                               'Error parsing traits from Node',
+                               conductor_utils.validate_instance_info_traits,
+                               self.node)
+
+    def test_parse_instance_info_traits_invalid_trait_type(self):
+        self.node.instance_info['traits'] = ['trait1', {}]
+        self.assertRaisesRegex(exception.InvalidParameterValue,
+                               'Error parsing traits from Node',
+                               conductor_utils.validate_instance_info_traits,
+                               self.node)
+
+    def test_validate_instance_info_traits(self):
+        self.node.instance_info['traits'] = ['trait1', 'trait2']
+        conductor_utils.validate_instance_info_traits(self.node)
+
+    def test_validate_instance_info_traits_missing(self):
+        self.node.instance_info['traits'] = ['trait1', 'trait3']
+        self.assertRaisesRegex(exception.InvalidParameterValue,
+                               'Cannot specify instance traits that are not',
+                               conductor_utils.validate_instance_info_traits,
+                               self.node)
+
+    def test_validate_instance_info_traits_no_node_traits(self):
+        self.node.instance_info['traits'] = ['trait1', 'trait2']
+        delattr(self.node, 'traits')
+        self.assertRaisesRegex(exception.InvalidParameterValue,
+                               'Cannot specify instance traits that are not',
+                               conductor_utils.validate_instance_info_traits,
+                               self.node)

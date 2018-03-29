@@ -16,6 +16,7 @@ from oslo_config import cfg
 from oslo_log import log
 from oslo_service import loopingcall
 from oslo_utils import excutils
+import six
 
 from ironic.common import exception
 from ironic.common.i18n import _
@@ -747,3 +748,39 @@ def remove_node_rescue_password(node, save=True):
         node.instance_info = instance_info
         if save:
             node.save()
+
+
+def validate_instance_info_traits(node):
+    """Validate traits in instance_info.
+
+    All traits in instance_info must also exist as node traits.
+
+    :param node: an Ironic node object.
+    :raises: InvalidParameterValue if the instance traits are badly formatted,
+        or contain traits that are not set on the node.
+    """
+
+    def invalid():
+        err = (_("Error parsing traits from Node %(node)s instance_info "
+                 "field. A list of strings is expected.")
+               % {"node": node.uuid})
+        raise exception.InvalidParameterValue(err)
+
+    if not node.instance_info.get('traits'):
+        return
+    instance_traits = node.instance_info['traits']
+    if not isinstance(instance_traits, list):
+        invalid()
+    if not all(isinstance(t, six.string_types) for t in instance_traits):
+        invalid()
+
+    # TODO(mgoddard): Remove the obj_attr_is_set() call in Rocky
+    # when all node objects will have a traits field.
+    node_traits = (node.traits.get_trait_names()
+                   if node.obj_attr_is_set('traits') else [])
+    missing = set(instance_traits) - set(node_traits)
+    if missing:
+        err = (_("Cannot specify instance traits that are not also set on the "
+                 "node. Node %(node)s is missing traits %(traits)s") %
+               {"node": node.uuid, "traits": ", ".join(missing)})
+        raise exception.InvalidParameterValue(err)
