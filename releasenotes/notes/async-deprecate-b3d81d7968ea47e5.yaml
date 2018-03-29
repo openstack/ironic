@@ -1,0 +1,4 @@
+---
+other:
+    async parameter of passthru and driver_passthru decorators is deprecated
+    and will be removed in next cycle. async_call should be used instead.

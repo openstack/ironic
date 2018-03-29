@@ -617,9 +617,13 @@ class TestVendorPassthru(base.TestCase):
 
     @mock.patch.object(pecan, 'request',
                        spec_set=['method', 'context', 'rpcapi'])
-    def _vendor_passthru(self, mock_request, async=True,
+    def _vendor_passthru(self, mock_request, async_call=True,
                          driver_passthru=False):
-        return_value = {'return': 'SpongeBob', 'async': async, 'attach': False}
+        return_value = {
+            'return': 'SpongeBob',
+            'async': async_call,
+            'attach': False
+        }
         mock_request.method = 'post'
         mock_request.context = 'fake-context'
 
@@ -640,20 +644,20 @@ class TestVendorPassthru(base.TestCase):
         self.assertIsInstance(response, wsme.api.Response)
         self.assertEqual('SpongeBob', response.obj)
         self.assertEqual(response.return_type, wsme.types.Unset)
-        sc = http_client.ACCEPTED if async else http_client.OK
+        sc = http_client.ACCEPTED if async_call else http_client.OK
         self.assertEqual(sc, response.status_code)
 
     def test_vendor_passthru_async(self):
         self._vendor_passthru()
 
     def test_vendor_passthru_sync(self):
-        self._vendor_passthru(async=False)
+        self._vendor_passthru(async_call=False)
 
     def test_driver_vendor_passthru_async(self):
         self._vendor_passthru(driver_passthru=True)
 
     def test_driver_vendor_passthru_sync(self):
-        self._vendor_passthru(async=False, driver_passthru=True)
+        self._vendor_passthru(async_call=False, driver_passthru=True)
 
     @mock.patch.object(pecan, 'response', spec_set=['app_iter'])
     @mock.patch.object(pecan, 'request',

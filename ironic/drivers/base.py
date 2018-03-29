@@ -619,8 +619,9 @@ VendorMetadata = collections.namedtuple('VendorMetadata', ['method',
                                                            'metadata'])
 
 
-def _passthru(http_methods, method=None, async=True, driver_passthru=False,
-              description=None, attach=False, require_exclusive_lock=True):
+def _passthru(http_methods, method=None, async=None, async_call=None,
+              driver_passthru=False, description=None,
+              attach=False, require_exclusive_lock=True):
     """A decorator for registering a function as a passthru function.
 
     Decorator ensures function is ready to catch any ironic exceptions
@@ -634,7 +635,8 @@ def _passthru(http_methods, method=None, async=True, driver_passthru=False,
     :param http_methods: A list of supported HTTP methods by the vendor
                          function.
     :param method: an arbitrary string describing the action to be taken.
-    :param async: Boolean value. If True invoke the passthru function
+    :param async: Deprecated, please use async_call instead.
+    :param async_call: Boolean value. If True invoke the passthru function
                   asynchronously; if False, synchronously. If a passthru
                   function touches the BMC we strongly recommend it to
                   run asynchronously. Defaults to True.
@@ -653,6 +655,22 @@ def _passthru(http_methods, method=None, async=True, driver_passthru=False,
                                    for a synchronous passthru method. If False,
                                    don't lock the node. Defaults to True.
     """
+    if async_call is None:
+        if async is not None:
+            LOG.warning(
+                'async parameter is deprecated, please use async_call instead.'
+                'deprecated parameter will be removed in the next cycle.'
+            )
+            async_call = async
+        else:
+            async_call = True
+    else:
+        if async is not None:
+            raise TypeError(
+                "async_call and async parameters couldn't be used together, "
+                "use async_call instead of async"
+            )
+
     def handle_passthru(func):
         api_method = method
         if api_method is None:
@@ -661,7 +679,7 @@ def _passthru(http_methods, method=None, async=True, driver_passthru=False,
         supported_ = [i.upper() for i in http_methods]
         description_ = description or ''
         metadata = VendorMetadata(api_method, {'http_methods': supported_,
-                                               'async': async,
+                                               'async': async_call,
                                                'description': description_,
                                                'attach': attach})
         if driver_passthru:
@@ -687,17 +705,19 @@ def _passthru(http_methods, method=None, async=True, driver_passthru=False,
     return handle_passthru
 
 
-def passthru(http_methods, method=None, async=True, description=None,
-             attach=False, require_exclusive_lock=True):
-    return _passthru(http_methods, method, async, driver_passthru=False,
+def passthru(http_methods, method=None, async=None, description=None,
+             attach=False, require_exclusive_lock=True, async_call=None):
+    return _passthru(http_methods, method, async, async_call,
+                     driver_passthru=False,
                      description=description, attach=attach,
                      require_exclusive_lock=require_exclusive_lock)
 
 
-def driver_passthru(http_methods, method=None, async=True, description=None,
-                    attach=False):
-    return _passthru(http_methods, method, async, driver_passthru=True,
-                     description=description, attach=attach)
+def driver_passthru(http_methods, method=None, async=None, description=None,
+                    attach=False, async_call=None):
+    return _passthru(http_methods, method, async, async_call,
+                     driver_passthru=True, description=description,
+                     attach=attach)
 
 
 class VendorInterface(BaseInterface):
