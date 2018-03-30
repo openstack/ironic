@@ -380,6 +380,27 @@ def cleaning_error_handler(task, msg, tear_down_cleaning=True,
         task.process_event('fail', target_state=target_state)
 
 
+@task_manager.require_exclusive_lock
+def abort_on_conductor_take_over(task):
+    """Set node's state when a task was aborted due to conductor take over.
+
+    :param task: a TaskManager instance.
+    """
+    msg = _('Operation was aborted due to conductor take over')
+    # By this time the "fail" even was processed, so we cannot end up in
+    # CLEANING or CLEAN WAIT, only in CLEAN FAIL.
+    if task.node.provision_state == states.CLEANFAIL:
+        cleaning_error_handler(task, msg, set_fail_state=False)
+    else:
+        # For aborted deployment (and potentially other operations), just set
+        # the last_error accordingly.
+        task.node.last_error = msg
+        task.node.save()
+
+    LOG.warning('Aborted the current operation on node %s due to '
+                'conductor take over', task.node.uuid)
+
+
 def rescuing_error_handler(task, msg, set_fail_state=True):
     """Cleanup rescue task after timeout or failure.
 

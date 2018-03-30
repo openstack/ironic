@@ -22,6 +22,7 @@ from futurist import rejection
 from oslo_db import exception as db_exception
 from oslo_log import log
 from oslo_utils import excutils
+import six
 
 from ironic.common import context as ironic_context
 from ironic.common import driver_factory
@@ -440,7 +441,8 @@ class BaseConductorManager(object):
                          this would process nodes whose provision_updated_at
                          field value was 60 or more seconds before 'now'.
         :param: provision_state: provision_state that the node is in,
-                                 for the provisioning activity to have failed.
+                                 for the provisioning activity to have failed,
+                                 either one string or a set.
         :param: sort_key: the nodes are sorted based on this key.
         :param: callback_method: the callback method to be invoked in a
                                  spawned thread, for a failed node. This
@@ -457,6 +459,9 @@ class BaseConductorManager(object):
                                    fsm.
 
         """
+        if isinstance(provision_state, six.string_types):
+            provision_state = {provision_state}
+
         node_iter = self.iter_nodes(filters=filters,
                                     sort_key=sort_key,
                                     sort_dir='asc')
@@ -467,7 +472,7 @@ class BaseConductorManager(object):
                 with task_manager.acquire(context, node_uuid,
                                           purpose='node state check') as task:
                     if (task.node.maintenance or
-                            task.node.provision_state != provision_state):
+                            task.node.provision_state not in provision_state):
                         continue
 
                     target_state = (None if not keep_target_state else

@@ -1242,6 +1242,25 @@ class ErrorHandlersTestCase(tests_base.TestCase):
         self.assertIn(msg, self.node.last_error)
         self.assertIn(msg, self.node.maintenance_reason)
 
+    def test_abort_on_conductor_take_over_cleaning(self):
+        self.node.maintenance = False
+        self.node.provision_state = states.CLEANFAIL
+        conductor_utils.abort_on_conductor_take_over(self.task)
+        self.assertTrue(self.node.maintenance)
+        self.assertIn('take over', self.node.maintenance_reason)
+        self.assertIn('take over', self.node.last_error)
+        self.task.driver.deploy.tear_down_cleaning.assert_called_once_with(
+            self.task)
+        self.node.save.assert_called_once_with()
+
+    def test_abort_on_conductor_take_over_deploying(self):
+        self.node.maintenance = False
+        self.node.provision_state = states.DEPLOYFAIL
+        conductor_utils.abort_on_conductor_take_over(self.task)
+        self.assertFalse(self.node.maintenance)
+        self.assertIn('take over', self.node.last_error)
+        self.node.save.assert_called_once_with()
+
     @mock.patch.object(conductor_utils, 'LOG')
     def test_spawn_cleaning_error_handler_no_worker(self, log_mock):
         exc = exception.NoFreeConductorWorker()

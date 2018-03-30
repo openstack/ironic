@@ -1561,15 +1561,24 @@ class ConductorManager(base_manager.BaseConductorManager):
         self._fail_if_in_state(context, filters, states.DEPLOYWAIT,
                                sort_key, callback_method, err_handler)
 
-    @METRICS.timer('ConductorManager._check_deploying_status')
+    @METRICS.timer('ConductorManager._check_orphan_nodes')
     @periodics.periodic(spacing=CONF.conductor.check_provision_state_interval)
-    def _check_deploying_status(self, context):
-        """Periodically checks the status of nodes in DEPLOYING state.
+    def _check_orphan_nodes(self, context):
+        """Periodically checks the status of nodes that were taken over.
 
-        Periodically checks the nodes in DEPLOYING and the state of the
-        conductor deploying them. If we find out that a conductor that
-        was provisioning the node has died we then break release the
-        node and gracefully mark the deployment as failed.
+        Periodically checks the nodes that are managed by this conductor but
+        have a reservation from a conductor that went offline.
+
+        1. Nodes in DEPLOYING state move to DEPLOY FAIL.
+
+        2. Nodes in CLEANING state move to CLEAN FAIL with maintenance set.
+
+        3. Nodes in a transient power state get the power operation aborted.
+
+        4. Reservation is removed.
+
+        The latter operation happens even for nodes in maintenance mode,
+        otherwise it's not possible to move them out of maintenance.
 
         :param context: request context.
         """
@@ -1578,12 +1587,14 @@ class ConductorManager(base_manager.BaseConductorManager):
             return
 
         node_iter = self.iter_nodes(
-            fields=['id', 'reservation'],
-            filters={'provision_state': states.DEPLOYING,
-                     'maintenance': False,
-                     'reserved_by_any_of': offline_conductors})
+            fields=['id', 'reservation', 'maintenance', 'provision_state',
+                    'target_power_state'],
+            filters={'reserved_by_any_of': offline_conductors})
 
-        for node_uuid, driver, node_id, conductor_hostname in node_iter:
+        state_cleanup_required = []
+
+        for (node_uuid, driver, node_id, conductor_hostname,
+             maintenance, provision_state, target_power_state) in node_iter:
             # NOTE(lucasagomes): Although very rare, this may lead to a
             # race condition. By the time we release the lock the conductor
             # that was previously managing the node could be back online.
@@ -1604,11 +1615,43 @@ class ConductorManager(base_manager.BaseConductorManager):
                 LOG.warning("During checking for deploying state, when "
                             "releasing the lock of the node %s, it was "
                             "already unlocked.", node_uuid)
+            else:
+                LOG.warning('Forcibly removed reservation of conductor %(old)s'
+                            ' on node %(node)s as that conductor went offline',
+                            {'old': conductor_hostname, 'node': node_uuid})
+
+            # TODO(dtantsur): clean up all states that are not stable and
+            # are not one of WAIT states.
+            if not maintenance and (provision_state in (states.DEPLOYING,
+                                                        states.CLEANING) or
+                                    target_power_state is not None):
+                LOG.debug('Node %(node)s taken over from conductor %(old)s '
+                          'requires state clean up: provision state is '
+                          '%(state)s, target power state is %(pstate)s',
+                          {'node': node_uuid, 'old': conductor_hostname,
+                           'state': provision_state,
+                           'pstate': target_power_state})
+                state_cleanup_required.append(node_uuid)
+
+        for node_uuid in state_cleanup_required:
+            with task_manager.acquire(context, node_uuid,
+                                      purpose='power state clean up') as task:
+                if not task.node.maintenance and task.node.target_power_state:
+                    old_state = task.node.target_power_state
+                    task.node.target_power_state = None
+                    task.node.last_error = _('Pending power operation was '
+                                             'aborted due to conductor take '
+                                             'over')
+                    task.node.save()
+                    LOG.warning('Aborted pending power operation %(op)s '
+                                'on node %(node)s due to conductor take over',
+                                {'op': old_state, 'node': node_uuid})
 
             self._fail_if_in_state(
-                context, {'id': node_id}, states.DEPLOYING,
+                context, {'uuid': node_uuid},
+                {states.DEPLOYING, states.CLEANING},
                 'provision_updated_at',
-                callback_method=utils.cleanup_after_timeout,
+                callback_method=utils.abort_on_conductor_take_over,
                 err_handler=utils.provisioning_error_handler)
 
     @METRICS.timer('ConductorManager._do_adoption')
