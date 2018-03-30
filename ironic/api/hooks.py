@@ -30,6 +30,10 @@ from ironic.db import api as dbapi
 LOG = log.getLogger(__name__)
 
 CHECKED_DEPRECATED_POLICY_ARGS = False
+INBOUND_HEADER = 'X-Openstack-Request-Id'
+GLOBAL_REQ_ID = 'openstack.global_request_id'
+ID_FORMAT = (r'^req-[a-f0-9]{8}-[a-f0-9]{4}-'
+             r'[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$')
 
 
 def policy_deprecation_check():
@@ -85,6 +89,12 @@ class ContextHook(hooks.PecanHook):
 
     def before(self, state):
         is_public_api = state.request.environ.get('is_public_api', False)
+
+        # set the global_request_id if we have an inbound request id
+        gr_id = state.request.headers.get(INBOUND_HEADER, "")
+        if re.match(ID_FORMAT, gr_id):
+            state.request.environ[GLOBAL_REQ_ID] = gr_id
+
         ctx = context.RequestContext.from_environ(state.request.environ,
                                                   is_public_api=is_public_api)
         # Do not pass any token with context for noauth mode
