@@ -1,0 +1,4 @@
+---
+fixes:
+  - |
+    Fixes empty ``last_error`` field on cleaning failures.
