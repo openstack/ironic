@@ -109,6 +109,9 @@ IRONIC_HW_ARCH=${IRONIC_HW_ARCH:-x86_64}
 # *_drac:
 #   <BMC address> <MAC address> <BMC username> <BMC password>
 #
+# * irmc:
+#   <BMC address> <MAC address> <BMC username> <BMC password>
+#
 IRONIC_HWINFO_FILE=${IRONIC_HWINFO_FILE:-$IRONIC_DATA_DIR/hardware_info}
 
 # Set up defaults for functional / integration testing
@@ -621,6 +624,11 @@ function is_deployed_by_snmp {
 
 function is_deployed_by_redfish {
     [[ "$IRONIC_DEPLOY_DRIVER" == redfish ]] && return 0
+    return 1
+}
+
+function is_deployed_by_irmc {
+    [[ -z "${IRONIC_DEPLOY_DRIVER##*irmc}" ]] && return 0
     return 1
 }
 
@@ -1936,6 +1944,13 @@ function enroll_nodes {
                 node_options+=" --driver-info drac_host=$bmc_address \
                     --driver-info drac_password=$bmc_passwd \
                     --driver-info drac_username=$bmc_username"
+            elif is_deployed_by_irmc; then
+                node_options+=" --driver-info irmc_address=$bmc_address \
+                    --driver-info irmc_password=$bmc_passwd \
+                    --driver-info irmc_username=$bmc_username"
+                if [[ -n "$IRONIC_DEPLOY_ISO_ID" ]]; then
+                    node_options+=" --driver-info irmc_deploy_iso=$IRONIC_DEPLOY_ISO_ID"
+                fi
             fi
 
             interface_info="${mac_address}"
