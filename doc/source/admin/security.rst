@@ -31,7 +31,16 @@ operators significant control over API access:
 * Access may be divided between an "administrative" role with full access and
   "observer" role with read-only access. By default, these roles are assigned
   the names ``baremetal_admin`` and ``baremetal_observer``, respectively.
-* As before, passwords may be hidden in ``driver_info``.
+* By default, passwords and instance secrets are hidden in ``driver_info`` and
+  ``instance_info``, respectively. In case of debugging or diagnosing, the
+  behavior can be overridden by changing the policy file. To allow password
+  in ``driver_info`` unmasked for users with administrative privileges, apply
+  following changes to policy configuration file::
+
+    "show_password": "role:is_admin"
+
+  And restart the Bare Metal API service to take effect. Please check
+  :doc:`/configuration/policy` for more details.
 
 Prior to the Newton (6.1.0) release, the Bare Metal service only supported two
 policy options:
@@ -41,7 +50,8 @@ policy options:
   privileges may only access public API resources.
 * Passwords contained in the ``driver_info`` field may be hidden from all API
   responses with the ``show_password`` policy setting. This defaults to always
-  hide passwords, regardless of the user's role.
+  hide passwords, regardless of the user's role. You can override it with
+  policy configuration as described above.
 
 
 Multi-tenancy
