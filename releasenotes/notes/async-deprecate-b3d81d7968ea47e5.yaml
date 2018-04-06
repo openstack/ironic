@@ -1,4 +1,9 @@
 ---
 other:
-    async parameter of passthru and driver_passthru decorators is deprecated
-    and will be removed in next cycle. async_call should be used instead.
+    For out-of-tree drivers that have `vendor passthru methods
+    <https://docs.openstack.org/ironic/latest/contributor/vendor-passthru.html>`_.
+    The ``async`` parameter of the ``passthru`` and ``driver_passthru``
+    decorators is deprecated and will be removed in the Stein cycle.
+    Please use its replacement instead, the ``async_call`` parameter.
+    For more information, see `bug 1751306
+    <https://storyboard.openstack.org/#!/story/1751306>`_.
