@@ -655,11 +655,15 @@ def _passthru(http_methods, method=None, async=None, async_call=None,
                                    for a synchronous passthru method. If False,
                                    don't lock the node. Defaults to True.
     """
+    # TODO(rloo): In Stein cycle, remove support for 'async' parameter.
+    #             The default value for 'async_call' should then be changed
+    #             to True.
     if async_call is None:
         if async is not None:
             LOG.warning(
-                'async parameter is deprecated, please use async_call instead.'
-                'deprecated parameter will be removed in the next cycle.'
+                'The "async" parameter is deprecated, please use "async_call" '
+                'instead. The "async" parameter will be removed in the Stein '
+                'cycle.'
             )
             async_call = async
         else:
@@ -667,8 +671,9 @@ def _passthru(http_methods, method=None, async=None, async_call=None,
     else:
         if async is not None:
             raise TypeError(
-                "async_call and async parameters couldn't be used together, "
-                "use async_call instead of async"
+                "'async_call' and 'async' parameters cannot be used together. "
+                "Use 'async_call' instead of 'async' since 'async' is "
+                "deprecated and will be removed in the Stein cycle."
             )
 
     def handle_passthru(func):
