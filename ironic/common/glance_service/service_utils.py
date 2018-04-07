@@ -171,6 +171,15 @@ def is_image_available(context, image):
     return str(user_id) == str(context.user_id)
 
 
+def is_image_active(image):
+    """Check the image status.
+
+    This check is needed in case the Glance image is stuck in queued status
+    or pending_delete.
+    """
+    return str(getattr(image, 'status', None)) == "active"
+
+
 def is_glance_image(image_href):
     if not isinstance(image_href, six.string_types):
         return False
