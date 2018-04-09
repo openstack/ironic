@@ -10,3 +10,11 @@ to get better familiar with the concepts used in this guide.
    :maxdepth: 2
 
    common
+
+Scenarios
+---------
+
+.. toctree::
+   :maxdepth: 2
+
+   small-cloud-trusted-tenants

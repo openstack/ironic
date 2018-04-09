@@ -328,6 +328,8 @@ distribution that uses ``systemd``:
    ip_addr
    iptables
 
+.. _troubleshooting-stp:
+
 DHCP during PXE or iPXE is inconsistent or unreliable
 =====================================================
 

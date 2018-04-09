@@ -7,6 +7,8 @@ architectures.
 .. contents::
    :local:
 
+.. _refarch-common-components:
+
 Components
 ----------
 
@@ -46,7 +48,7 @@ components.
 
   .. warning::
     The ``ironic-python-agent`` service is not intended to be used or executed
-    anywhere other than a provisioning/cleaning ramdisk.
+    anywhere other than a provisioning/cleaning/rescue ramdisk.
 
 Hardware and drivers
 --------------------
@@ -81,6 +83,8 @@ IPMI_ and thus can utilize :doc:`/admin/drivers/ipmitool`. Some newer hardware
 also supports :doc:`/admin/drivers/redfish`. Several vendors
 provide more specific drivers that usually provide additional capabilities.
 Check :doc:`/admin/drivers` to find the most suitable one.
+
+.. _refarch-common-boot:
 
 Boot interface
 ~~~~~~~~~~~~~~
@@ -182,6 +186,8 @@ node. See :ref:`local-boot-partition-images` for details.
     Currently, network boot is used by default. However, we plan on changing it
     in the future, so it's safer to set the ``default_boot_option`` explicitly.
 
+.. _refarch-common-networking:
+
 Networking
 ----------
 
@@ -194,13 +200,20 @@ documentation. However, several considerations are common for all of them:
   not be accessible by end users, and should not have access to the internet.
 
 * There has to be a *cleaning* network, which is used by nodes during
-  the cleaning process. In the majority of cases, the same network should
-  be used for cleaning and provisioning for simplicity.
+  the cleaning process.
 
-Unless noted otherwise, everything in these sections apply to both networks.
+* There should be a *rescuing* network, which is used by nodes during
+  the rescue process. It can be skipped if the rescue process is not supported.
+
+.. note::
+    In the majority of cases, the same network should be used for cleaning,
+    provisioning and rescue for simplicity.
+
+Unless noted otherwise, everything in these sections apply to all three
+networks.
 
 * The baremetal nodes must have access to the Bare Metal API while connected
-  to the provisioning/cleaning network.
+  to the provisioning/cleaning/rescuing network.
 
   .. note::
       Only two endpoints need to be exposed there::
@@ -213,25 +226,32 @@ Unless noted otherwise, everything in these sections apply to both networks.
 
 * If the ``pxe`` boot interface (or any boot interface based on it) is used,
   then the baremetal nodes should have untagged (access mode) connectivity
-  to the provisioning/cleaning networks. It allows PXE firmware, which does not
-  support VLANs, to communicate with the services required for provisioning.
+  to the provisioning/cleaning/rescuing networks. It allows PXE firmware, which
+  does not support VLANs, to communicate with the services required
+  for provisioning.
 
   .. note::
       It depends on the *network interface* whether the Bare Metal service will
       handle it automatically. Check the networking documentation for the
       specific architecture.
 
+  Sometimes it may be necessary to disable the spanning tree protocol delay on
+  the switch - see :ref:`troubleshooting-stp`.
+
 * The Baremetal nodes need to have access to any services required for
-  provisioning/cleaning, while connected to the provisioning/cleaning network.
-  This may include:
+  provisioning/cleaning/rescue, while connected to the
+  provisioning/cleaning/rescuing network. This may include:
 
   * a TFTP server for PXE boot and also an HTTP server when iPXE is enabled
   * either an HTTP server or the Object Storage service in case of the
     ``direct`` deploy interface and some virtual media boot interfaces
 
 * The Baremetal Conductors need to have access to the booted baremetal nodes
-  during provisioning/cleaning. A conductor communicates with an internal
-  API, provided by **ironic-python-agent**, to conduct actions on nodes.
+  during provisioning/cleaning/rescue. A conductor communicates with
+  an internal API, provided by **ironic-python-agent**, to conduct actions
+  on nodes.
+
+.. _refarch-common-ha:
 
 HA and Scalability
 ------------------
