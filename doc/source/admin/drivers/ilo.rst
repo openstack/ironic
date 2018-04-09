@@ -1274,7 +1274,7 @@ Inspection can also discover the following extra capabilities for iLO drivers:
 
      * The capability ``nic_capacity`` can only be discovered if ipmitool
        version >= 1.8.15 is used on the conductor. The latest version can be
-       downloaded from `here <http://sourceforge.net/projects/ipmitool/>`__.
+       downloaded from `here <https://sourceforge.net/projects/ipmitool/>`__.
      * The iLO firmware version needs to be 2.10 or above for nic_capacity to be
        discovered.
 
@@ -2041,13 +2041,13 @@ generating Certificate Signing Request (CSR). Use the same value as
 certificate validation errors related to hostname mismatch.
 
 
-.. _`ssacli documentation`: http://h20566.www2.hpe.com/hpsc/doc/public/display?docId=c03909334
+.. _`ssacli documentation`: https://support.hpe.com/hpsc/doc/public/display?docId=c03909334
 .. _`proliant-tools`: https://docs.openstack.org/diskimage-builder/latest/elements/proliant-tools/README.html
-.. _`HPE iLO4 User Guide`: http://h20566.www2.hpe.com/hpsc/doc/public/display?docId=c03334051
+.. _`HPE iLO4 User Guide`: https://h20566.www2.hpe.com/hpsc/doc/public/display?docId=c03334051
 .. _`iLO 4 management engine`: https://www.hpe.com/us/en/servers/integrated-lights-out-ilo.html
 .. _`iLO 5 management engine`: https://www.hpe.com/us/en/servers/integrated-lights-out-ilo.html#innovations
 .. _`Redfish`: https://www.dmtf.org/standards/redfish
 .. _`Gen10 wiki section`: https://wiki.openstack.org/wiki/Ironic/Drivers/iLODrivers/master#Enabling_ProLiant_Gen10_systems_in_Ironic
-.. _`Guidelines for SPP ISO`: http://h17007.www1.hpe.com/us/en/enterprise/servers/products/service_pack/spp
-.. _`SUM`: http://h17007.www1.hpe.com/us/en/enterprise/servers/products/service_pack/hpsum/index.aspx
-.. _`SUM User Guide`: http://h20565.www2.hpe.com/hpsc/doc/public/display?docId=c05210448
+.. _`Guidelines for SPP ISO`: https://h17007.www1.hpe.com/us/en/enterprise/servers/products/service_pack/spp
+.. _`SUM`: https://h17007.www1.hpe.com/us/en/enterprise/servers/products/service_pack/hpsum/index.aspx
+.. _`SUM User Guide`: https://h20565.www2.hpe.com/hpsc/doc/public/display?docId=c05210448

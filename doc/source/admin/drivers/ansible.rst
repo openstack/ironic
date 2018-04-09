@@ -452,7 +452,7 @@ You can use these modules in your playbooks as well.
     The name is chosen so that the ``parted`` module included in Ansible
     is not shadowed.
 
-.. _Ansible: http://docs.ansible.com/ansible/latest/index.html
-.. _Ironic Python Agent: http://docs.openstack.org/developer/ironic-python-agent
-.. _ironic-staging-drivers: http://git.openstack.org/cgit/openstack/ironic-staging-drivers/tree/imagebuild?h=stable/pike
-.. _ironic-python-agent-builder: http://git.openstack.org/cgit/openstack/ironic-python-agent-builder
+.. _Ansible: https://docs.ansible.com/ansible/latest/index.html
+.. _Ironic Python Agent: https://docs.openstack.org/ironic-python-agent/latest/
+.. _ironic-staging-drivers: https://git.openstack.org/cgit/openstack/ironic-staging-drivers/tree/imagebuild?h=stable/pike
+.. _ironic-python-agent-builder: https://git.openstack.org/cgit/openstack/ironic-python-agent-builder
