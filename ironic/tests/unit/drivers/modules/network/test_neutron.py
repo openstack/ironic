@@ -328,9 +328,9 @@ class NeutronInterfaceTestCase(db_base.DbTestCase):
         }
         if is_client_id:
             port1_body['port']['extra_dhcp_opts'] = (
-                [{'opt_name': 'client-id', 'opt_value': client_ids[0]}])
+                [{'opt_name': '61', 'opt_value': client_ids[0]}])
             port2_body['port']['extra_dhcp_opts'] = (
-                [{'opt_name': 'client-id', 'opt_value': client_ids[1]}])
+                [{'opt_name': '61', 'opt_value': client_ids[1]}])
         with task_manager.acquire(self.context, self.node.id) as task:
             self.interface.configure_tenant_networks(task)
             client_mock.assert_called_once_with()

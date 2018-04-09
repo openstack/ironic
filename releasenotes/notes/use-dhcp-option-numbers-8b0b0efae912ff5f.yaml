@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    Uses standard DHCP option codes instead of dnsmasq-specific option names,
+    because different backends use different option names. This fixes the
+    `compatibility issues with neutron's DHCP backends
+    <https://bugs.launchpad.net/ironic/+bug/1717236>`.
