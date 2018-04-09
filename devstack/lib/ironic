@@ -1617,7 +1617,11 @@ function create_bridge_and_vms {
     bridge_mac=$(ip link show dev $IRONIC_VM_NETWORK_BRIDGE | grep -Eo "ether [A-Za-z0-9:]+"|sed "s/ether\ //")
 
     for vm_name in $(_ironic_bm_vm_names); do
-        sudo -E su $STACK_USER -c "$IRONIC_SCRIPTS_DIR/create-node.sh -n $vm_name \
+        # The su appears to be important here for picking up the stack user's
+        # new libvirt group abilities that allow it to speak to virsh.
+        # We pass through PATH explicitly as sudo has a tendency to sanitize it
+        # from the env even with -E.
+        sudo -E su -p $STACK_USER -c "PATH=$PATH $IRONIC_SCRIPTS_DIR/create-node.sh -n $vm_name \
             -c $IRONIC_VM_SPECS_CPU -m $IRONIC_VM_SPECS_RAM -d $IRONIC_VM_SPECS_DISK \
             -a $IRONIC_VM_SPECS_CPU_ARCH -b $IRONIC_VM_NETWORK_BRIDGE $vm_opts -p $vbmc_port -o $pdu_outlet \
             -i $IRONIC_VM_INTERFACE_COUNT -f $IRONIC_VM_SPECS_DISK_FORMAT  -M $PUBLIC_BRIDGE_MTU $log_arg" >> $IRONIC_VM_MACS_CSV_FILE
@@ -2421,7 +2425,11 @@ function cleanup_baremetal_basic_ops {
 
     local vm_name
     for vm_name in $(_ironic_bm_vm_names); do
-        sudo su $STACK_USER -c "$IRONIC_SCRIPTS_DIR/cleanup-node.sh $vm_name"
+        # The su appears to be important here for picking up the stack user's
+        # new libvirt group abilities that allow it to speak to virsh.
+        # We pass through PATH explicitly as sudo has a tendency to sanitize it
+        # from the env even with -E.
+        sudo -E su -p $STACK_USER -c "PATH=$PATH $IRONIC_SCRIPTS_DIR/cleanup-node.sh $vm_name"
 
         # Cleanup node bridge/interfaces
         for i in $(seq 1 $IRONIC_VM_INTERFACE_COUNT); do
