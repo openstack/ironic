@@ -24,12 +24,12 @@ except TypeError:
 
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom ones.
-extensions = ['sphinx.ext.autodoc',
-              'sphinx.ext.viewcode',
+extensions = ['sphinx.ext.viewcode',
               'sphinx.ext.graphviz',
               'sphinxcontrib.httpdomain',
               'sphinxcontrib.pecanwsme.rest',
               'sphinxcontrib.seqdiag',
+              'sphinxcontrib.apidoc',
               'wsmeext.sphinxext',
               'oslo_config.sphinxext',
               'oslo_config.sphinxconfiggen',
@@ -42,6 +42,15 @@ try:
     extensions.append('openstackdocstheme')
 except ImportError:
     openstackdocstheme = None
+
+# sphinxcontrib.apidoc options
+apidoc_module_dir = '../../ironic'
+apidoc_output_dir = 'contributor/api'
+apidoc_excluded_paths = [
+    'db/sqlalchemy/alembic/env'
+    'db/sqlalchemy/alembic/versions/*',
+    'drivers/modules/ansible/playbooks*']
+apidoc_separate_modules = True
 
 repository_name = 'openstack/ironic'
 bug_project = 'ironic'
