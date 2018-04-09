@@ -30,6 +30,8 @@ from sqlalchemy import schema, String, Text
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy import orm
 
+from ironic.common import exception
+from ironic.common.i18n import _
 from ironic.conf import CONF
 
 _DEFAULT_SQL_CONNECTION = 'sqlite:///' + path.join('$state_path',
@@ -296,3 +298,18 @@ class NodeTrait(Base):
         primaryjoin='and_(NodeTrait.node_id == Node.id)',
         foreign_keys=node_id
     )
+
+
+def get_class(model_name):
+    """Returns the model class with the specified name.
+
+    :param model_name: the name of the class
+    :returns: the class with the specified name
+    :raises: Exception if there is no class associated with the name
+    """
+    for model in Base.__subclasses__():
+        if model.__name__ == model_name:
+            return model
+
+    raise exception.IronicException(
+        _("Cannot find model with name: %s") % model_name)

@@ -17,7 +17,6 @@ from oslo_utils import uuidutils
 from ironic.common import exception
 from ironic.common import neutron as neutron_common
 from ironic.common import states
-from ironic.common import utils as common_utils
 from ironic.conductor import task_manager
 from ironic.drivers.modules.network import common
 from ironic.tests.unit.conductor import mgr_utils
@@ -949,10 +948,8 @@ class TestNeutronVifPortIDMixin(db_base.DbTestCase):
         mock_get.assert_called_once_with(task, 'fake_vif_id')
         mock_clear.assert_called_once_with(self.port)
 
-    @mock.patch.object(common_utils, 'warn_about_deprecated_extra_vif_port_id',
-                       autospec=True)
     @mock.patch.object(neutron_common, 'update_port_address', autospec=True)
-    def test_port_changed_address(self, mac_update_mock, mock_warn):
+    def test_port_changed_address(self, mac_update_mock):
         new_address = '11:22:33:44:55:bb'
         self.port.address = new_address
         with task_manager.acquire(self.context, self.node.id) as task:
@@ -960,7 +957,6 @@ class TestNeutronVifPortIDMixin(db_base.DbTestCase):
             mac_update_mock.assert_called_once_with(
                 self.port.extra['vif_port_id'], new_address,
                 context=task.context)
-            self.assertFalse(mock_warn.called)
 
     @mock.patch.object(neutron_common, 'update_port_address', autospec=True)
     def test_port_changed_address_VIF_MAC_update_fail(self, mac_update_mock):
@@ -995,21 +991,8 @@ class TestNeutronVifPortIDMixin(db_base.DbTestCase):
             dhcp_update_mock.assert_called_once_with(
                 'fake-id', expected_dhcp_opts, context=task.context)
 
-    @mock.patch.object(common_utils, 'warn_about_deprecated_extra_vif_port_id',
-                       autospec=True)
     @mock.patch('ironic.dhcp.neutron.NeutronDHCPApi.update_port_dhcp_opts')
-    def test_port_changed_vif(self, dhcp_update_mock, mock_warn):
-        expected_extra = {'vif_port_id': 'new_ake-id', 'client-id': 'fake1'}
-        self.port.extra = expected_extra
-        with task_manager.acquire(self.context, self.node.id) as task:
-            self.interface.port_changed(task, self.port)
-            self.assertFalse(dhcp_update_mock.called)
-            self.assertEqual(1, mock_warn.call_count)
-
-    @mock.patch.object(common_utils, 'warn_about_deprecated_extra_vif_port_id',
-                       autospec=True)
-    @mock.patch('ironic.dhcp.neutron.NeutronDHCPApi.update_port_dhcp_opts')
-    def test_port_changed_extra_add_new_key(self, dhcp_update_mock, mock_warn):
+    def test_port_changed_extra_add_new_key(self, dhcp_update_mock):
         self.port.extra = {'vif_port_id': 'fake-id'}
         self.port.save()
         expected_extra = self.port.extra
@@ -1018,20 +1001,6 @@ class TestNeutronVifPortIDMixin(db_base.DbTestCase):
         with task_manager.acquire(self.context, self.node.id) as task:
             self.interface.port_changed(task, self.port)
             self.assertFalse(dhcp_update_mock.called)
-            self.assertEqual(0, mock_warn.call_count)
-
-    @mock.patch.object(common_utils, 'warn_about_deprecated_extra_vif_port_id',
-                       autospec=True)
-    @mock.patch('ironic.dhcp.neutron.NeutronDHCPApi.update_port_dhcp_opts')
-    def test_port_changed_extra_no_deprecation_if_removing_vif(
-            self, dhcp_update_mock, mock_warn):
-        self.port.extra = {'vif_port_id': 'foo'}
-        self.port.save()
-        self.port.extra = {'foo': 'bar'}
-        with task_manager.acquire(self.context, self.node.id) as task:
-            self.interface.port_changed(task, self.port)
-            self.assertFalse(dhcp_update_mock.called)
-            self.assertEqual(0, mock_warn.call_count)
 
     @mock.patch('ironic.dhcp.neutron.NeutronDHCPApi.update_port_dhcp_opts')
     def test_port_changed_client_id_fail(self, dhcp_update_mock):
@@ -1225,48 +1194,6 @@ class TestNeutronVifPortIDMixin(db_base.DbTestCase):
             self.interface.portgroup_changed(task, pg)
         self.assertFalse(mac_update_mock.called)
 
-    @mock.patch.object(common_utils, 'warn_about_deprecated_extra_vif_port_id',
-                       autospec=True)
-    @mock.patch.object(neutron_common, 'update_port_address', autospec=True)
-    def test_update_portgroup_vif(self, mac_update_mock, mock_warn):
-        pg = obj_utils.create_test_portgroup(
-            self.context, node_id=self.node.id)
-        extra = {'vif_port_id': 'foo'}
-        pg.extra = extra
-        with task_manager.acquire(self.context, self.node.id) as task:
-            self.interface.portgroup_changed(task, pg)
-        self.assertFalse(mac_update_mock.called)
-        self.assertEqual(1, mock_warn.call_count)
-
-    @mock.patch.object(common_utils, 'warn_about_deprecated_extra_vif_port_id',
-                       autospec=True)
-    @mock.patch.object(neutron_common, 'update_port_address', autospec=True)
-    def test_update_portgroup_vif_removal_no_deprecation(self, mac_update_mock,
-                                                         mock_warn):
-        pg = obj_utils.create_test_portgroup(
-            self.context, node_id=self.node.id, extra={'vif_port_id': 'foo'})
-        pg.extra = {}
-        with task_manager.acquire(self.context, self.node.id) as task:
-            self.interface.portgroup_changed(task, pg)
-        self.assertFalse(mac_update_mock.called)
-        self.assertFalse(mock_warn.called)
-
-    @mock.patch.object(common_utils, 'warn_about_deprecated_extra_vif_port_id',
-                       autospec=True)
-    @mock.patch.object(neutron_common, 'update_port_address', autospec=True)
-    def test_update_portgroup_extra_new_key(self, mac_update_mock, mock_warn):
-        pg = obj_utils.create_test_portgroup(
-            self.context, node_id=self.node.id,
-            extra={'vif_port_id': 'vif-id'})
-        expected_extra = pg.extra
-        expected_extra['foo'] = 'bar'
-        pg.extra = expected_extra
-        with task_manager.acquire(self.context, self.node.id) as task:
-            self.interface.portgroup_changed(task, pg)
-        self.assertFalse(mac_update_mock.called)
-        self.assertFalse(mock_warn.called)
-        self.assertEqual(expected_extra, pg.extra)
-
     @mock.patch.object(neutron_common, 'update_port_address', autospec=True)
     def test_update_portgroup_address_fail(self, mac_update_mock):
         pg = obj_utils.create_test_portgroup(
@@ -1283,10 +1210,8 @@ class TestNeutronVifPortIDMixin(db_base.DbTestCase):
             mac_update_mock.assert_called_once_with(
                 'fake-id', new_address, context=task.context)
 
-    @mock.patch.object(common_utils, 'warn_about_deprecated_extra_vif_port_id',
-                       autospec=True)
     @mock.patch.object(neutron_common, 'update_port_address', autospec=True)
-    def test_update_portgroup_address_no_vif(self, mac_update_mock, mock_warn):
+    def test_update_portgroup_address_no_vif(self, mac_update_mock):
         pg = obj_utils.create_test_portgroup(
             self.context, node_id=self.node.id)
         new_address = '11:22:33:44:55:bb'
@@ -1295,7 +1220,6 @@ class TestNeutronVifPortIDMixin(db_base.DbTestCase):
             self.interface.portgroup_changed(task, pg)
         self.assertEqual(new_address, pg.address)
         self.assertFalse(mac_update_mock.called)
-        self.assertFalse(mock_warn.called)
 
     @mock.patch.object(neutron_common, 'update_port_address', autospec=True)
     def test_update_portgroup_nostandalone_ports_pxe_ports_exc(

@@ -16,6 +16,7 @@
 from oslo_utils import netutils
 from oslo_utils import strutils
 from oslo_utils import uuidutils
+from oslo_utils import versionutils
 from oslo_versionedobjects import base as object_base
 
 from ironic.common import exception
@@ -26,13 +27,47 @@ from ironic.objects import fields as object_fields
 from ironic.objects import notification
 
 
+def migrate_vif_port_id(context, max_count):
+    """Copy portgroup's VIF info from extra to internal_info.
+
+    :param context: The context.
+    :param max_count: The maximum number of objects to migrate. Must be
+                      >= 0. If zero, all the objects will be migrated.
+    :returns: A 2-tuple -- the total number of objects that need to be
+              migrated (at the beginning of this call) and the number
+              of migrated objects.
+    """
+    # TODO(rloo): remove this method in Stein, when we remove from dbsync.py
+
+    # NOTE(rloo): if we introduce newer portgroup versions in the same cycle,
+    # we could add those versions along with 1.4. This is only so we don't
+    # duplicate work; it isn't necessary.
+    db_objs = Portgroup.dbapi.get_not_versions('Portgroup', ['1.4'])
+    total = len(db_objs)
+    max_count = max_count or total
+    done = 0
+    for db_obj in db_objs:
+        # NOTE(rloo): this will indirectly invoke
+        #             Portgroup._convert_to_version() which does all the real
+        #             work
+        portgroup = Portgroup._from_db_object(context, Portgroup(), db_obj)
+        portgroup.save()
+        done += 1
+        if done == max_count:
+            break
+    return total, done
+
+
 @base.IronicObjectRegistry.register
 class Portgroup(base.IronicObject, object_base.VersionedObjectDictCompat):
     # Version 1.0: Initial version
     # Version 1.1: Add internal_info field
     # Version 1.2: Add standalone_ports_supported field
     # Version 1.3: Add mode and properties fields
-    VERSION = '1.3'
+    # Version 1.4: Migrate/copy extra['vif_port_id'] to
+    #              internal_info['tenant_vif_port_id'] (not an explicit db
+    #              change)
+    VERSION = '1.4'
 
     dbapi = dbapi.get_instance()
 
@@ -48,6 +83,37 @@ class Portgroup(base.IronicObject, object_base.VersionedObjectDictCompat):
         'mode': object_fields.StringField(nullable=True),
         'properties': object_fields.FlexibleDictField(nullable=True),
     }
+
+    def _convert_to_version(self, target_version,
+                            remove_unavailable_fields=True):
+        """Convert to the target version.
+
+        Convert the object to the target version. The target version may be
+        the same, older, or newer than the version of the object. This is
+        used for DB interactions as well as for serialization/deserialization.
+
+        Version 1.4: if extra['vif_port_id'] is specified (non-null) and
+            internal_info['tenant_vif_port_id'] is not specified, copy the
+            .extra value to internal_info. There is nothing to do here when
+            downgrading to an older version.
+
+        :param target_version: the desired version of the object
+        :param remove_unavailable_fields: True to remove fields that are
+            unavailable in the target version; set this to True when
+            (de)serializing. False to set the unavailable fields to appropriate
+            values; set this to False for DB interactions.
+        """
+        target_version = versionutils.convert_version_to_tuple(target_version)
+        if target_version >= (1, 4):
+            if self.obj_attr_is_set('extra'):
+                vif = self.extra.get('vif_port_id')
+                if vif:
+                    internal_info = (self.internal_info
+                                     if self.obj_attr_is_set('internal_info')
+                                     else {})
+                    if 'tenant_vif_port_id' not in internal_info:
+                        internal_info['tenant_vif_port_id'] = vif
+                        self.internal_info = internal_info
 
     # NOTE(xek): We don't want to enable RPC on this call just yet. Remotable
     # methods can be used in the future to replace current explicit RPC calls.

@@ -1,0 +1,13 @@
+---
+upgrade:
+  - |
+    ``ironic-dbsync online_data_migrations`` will migrate any port's and
+    port group's extra['vif_port_id'] value to their
+    internal_info['tenant_vif_port_id'].
+    For API versions >= 1.28, the ability to attach/detach the VIF via
+    the port's or port group's extra['vif_port_id'] will not be supported
+    starting with the Stein release.
+
+    Any out-of-tree network interface implementation that had a different
+    behavior in support of attach/detach VIFs via the port or port group's
+    extra['vif_port_id'] must be updated appropriately.

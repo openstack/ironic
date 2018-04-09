@@ -26,7 +26,6 @@ from ironic.common import network
 from ironic.common import neutron
 from ironic.common.pxe_utils import DHCP_CLIENT_ID
 from ironic.common import states
-from ironic.common import utils
 from ironic import objects
 
 CONF = cfg.CONF
@@ -410,10 +409,7 @@ class NeutronVIFPortIDMixin(VIFPortIDMixin):
         if 'extra' in port_obj.obj_what_changed():
             original_port = objects.Port.get_by_id(context, port_obj.id)
             updated_client_id = port_obj.extra.get('client-id')
-            if (port_obj.extra.get('vif_port_id') and
-                    (port_obj.extra['vif_port_id'] !=
-                     original_port.extra.get('vif_port_id'))):
-                utils.warn_about_deprecated_extra_vif_port_id()
+
             if (original_port.extra.get('client-id') !=
                 updated_client_id):
                 # DHCP Option with opt_value=None will remove it
@@ -462,7 +458,6 @@ class NeutronVIFPortIDMixin(VIFPortIDMixin):
         :raises: FailedToUpdateDHCPOptOnPort, Conflict
         """
 
-        context = task.context
         portgroup_uuid = portgroup_obj.uuid
         # NOTE(vsaienko) address is not mandatory field in portgroup.
         # Do not touch neutron port if we removed address on portgroup.
@@ -472,14 +467,6 @@ class NeutronVIFPortIDMixin(VIFPortIDMixin):
             if pg_vif:
                 neutron.update_port_address(pg_vif, portgroup_obj.address,
                                             context=task.context)
-
-        if 'extra' in portgroup_obj.obj_what_changed():
-            original_portgroup = objects.Portgroup.get_by_id(context,
-                                                             portgroup_obj.id)
-            if (portgroup_obj.extra.get('vif_port_id') and
-                    portgroup_obj.extra['vif_port_id'] !=
-                    original_portgroup.extra.get('vif_port_id')):
-                utils.warn_about_deprecated_extra_vif_port_id()
 
         if ('standalone_ports_supported' in
                 portgroup_obj.obj_what_changed()):

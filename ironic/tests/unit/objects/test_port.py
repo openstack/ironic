@@ -18,6 +18,7 @@ import types
 
 import mock
 from oslo_config import cfg
+from oslo_utils import uuidutils
 from testtools import matchers
 
 from ironic.common import exception
@@ -169,7 +170,9 @@ class TestConvertToVersion(db_base.DbTestCase):
 
     def setUp(self):
         super(TestConvertToVersion, self).setUp()
-        self.fake_port = db_utils.get_test_port()
+        self.vif_id = 'some_uuid'
+        extra = {'vif_port_id': self.vif_id}
+        self.fake_port = db_utils.get_test_port(extra=extra)
 
     def test_physnet_supported_missing(self):
         # Physical network not set, should be set to default.
@@ -224,3 +227,73 @@ class TestConvertToVersion(db_base.DbTestCase):
         port._convert_to_version("1.6", False)
         self.assertIsNone(port.physical_network)
         self.assertEqual({}, port.obj_get_changes())
+
+    def test_vif_in_extra_lower_version(self):
+        # no conversion
+        port = objects.Port(self.context, **self.fake_port)
+        port._convert_to_version("1.7", False)
+        self.assertFalse('tenant_vif_port_id' in port.internal_info)
+
+    def test_vif_in_extra(self):
+        for v in ['1.8', '1.9']:
+            port = objects.Port(self.context, **self.fake_port)
+            port._convert_to_version(v, False)
+            self.assertEqual(self.vif_id,
+                             port.internal_info['tenant_vif_port_id'])
+
+    def test_vif_in_extra_not_in_extra(self):
+        port = objects.Port(self.context, **self.fake_port)
+        port.extra.pop('vif_port_id')
+        port._convert_to_version('1.8', False)
+        self.assertFalse('tenant_vif_port_id' in port.internal_info)
+
+    def test_vif_in_extra_in_internal_info(self):
+        vif2 = 'another_uuid'
+        port = objects.Port(self.context, **self.fake_port)
+        port.internal_info['tenant_vif_port_id'] = vif2
+        port._convert_to_version('1.8', False)
+        # no change
+        self.assertEqual(vif2, port.internal_info['tenant_vif_port_id'])
+
+
+class TestMigrateVifPortId(db_base.DbTestCase):
+
+    def setUp(self):
+        super(TestMigrateVifPortId, self).setUp()
+        self.vif_id = 'some_uuid'
+        self.db_ports = []
+        extra = {'vif_port_id': self.vif_id}
+        for i in range(3):
+            port = db_utils.create_test_port(
+                uuid=uuidutils.generate_uuid(),
+                address='52:54:00:cf:2d:3%s' % i,
+                extra=extra, version='1.7')
+            self.db_ports.append(port)
+
+    @mock.patch.object(objects.Port, '_convert_to_version', autospec=True)
+    def test_migrate_vif_port_id_all(self, mock_convert):
+        with mock.patch.object(self.dbapi, 'get_not_versions',
+                               autospec=True) as mock_get_not_versions:
+            mock_get_not_versions.return_value = self.db_ports
+            total, done = objects.port.migrate_vif_port_id(self.context, 0)
+            self.assertEqual(3, total)
+            self.assertEqual(3, done)
+            mock_get_not_versions.assert_called_once_with('Port', ['1.8'])
+            calls = 3 * [
+                mock.call(mock.ANY, '1.8', remove_unavailable_fields=False),
+            ]
+            self.assertEqual(calls, mock_convert.call_args_list)
+
+    @mock.patch.object(objects.Port, '_convert_to_version', autospec=True)
+    def test_migrate_vif_port_id_one(self, mock_convert):
+        with mock.patch.object(self.dbapi, 'get_not_versions',
+                               autospec=True) as mock_get_not_versions:
+            mock_get_not_versions.return_value = self.db_ports
+            total, done = objects.port.migrate_vif_port_id(self.context, 1)
+            self.assertEqual(3, total)
+            self.assertEqual(1, done)
+            mock_get_not_versions.assert_called_once_with('Port', ['1.8'])
+            calls = [
+                mock.call(mock.ANY, '1.8', remove_unavailable_fields=False),
+            ]
+            self.assertEqual(calls, mock_convert.call_args_list)

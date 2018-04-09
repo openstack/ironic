@@ -34,7 +34,6 @@ from ironic.api import expose
 from ironic.common import exception
 from ironic.common.i18n import _
 from ironic.common import policy
-from ironic.common import utils as common_utils
 from ironic import objects
 
 METRICS = metrics_utils.get_metrics_logger(__name__)
@@ -563,10 +562,7 @@ class PortsController(rest.RestController):
             # request.
             raise exception.NotAcceptable()
 
-        extra = pdict.get('extra')
-        vif = extra.get('vif_port_id') if extra else None
-        if vif:
-            common_utils.warn_about_deprecated_extra_vif_port_id()
+        vif = api_utils.handle_post_port_like_extra_vif(pdict)
 
         if (pdict.get('portgroup_uuid') and
                 (pdict.get('pxe_enabled') or vif)):
@@ -653,6 +649,8 @@ class PortsController(rest.RestController):
             port = Port(**api_utils.apply_jsonpatch(port_dict, patch))
         except api_utils.JSONPATCH_EXCEPTIONS as e:
             raise exception.PatchError(patch=patch, reason=e)
+
+        api_utils.handle_patch_port_like_extra_vif(rpc_port, port, patch)
 
         if api_utils.is_path_removed(patch, '/portgroup_uuid'):
             rpc_port.portgroup_id = None
