@@ -170,40 +170,40 @@ class DbNodeTestCase(base.DbTestCase):
         res = self.dbapi.get_nodeinfo_list(filters={'reserved': False})
         self.assertEqual([node2.id], [r[0] for r in res])
 
-        res = self.dbapi.get_node_list(filters={'maintenance': True})
+        res = self.dbapi.get_nodeinfo_list(filters={'maintenance': True})
         self.assertEqual([node2.id], [r.id for r in res])
 
-        res = self.dbapi.get_node_list(filters={'maintenance': False})
+        res = self.dbapi.get_nodeinfo_list(filters={'maintenance': False})
         self.assertEqual(sorted([node1.id, node3.id]),
                          sorted([r.id for r in res]))
 
-        res = self.dbapi.get_node_list(filters={'resource_class': 'foo'})
+        res = self.dbapi.get_nodeinfo_list(filters={'resource_class': 'foo'})
         self.assertEqual([node2.id], [r.id for r in res])
 
-        res = self.dbapi.get_node_list(
+        res = self.dbapi.get_nodeinfo_list(
             filters={'reserved_by_any_of': ['fake-host',
                                             'another-fake-host']})
         self.assertEqual(sorted([node1.id, node3.id]),
                          sorted([r.id for r in res]))
 
-        res = self.dbapi.get_node_list(filters={'id': node1.id})
+        res = self.dbapi.get_nodeinfo_list(filters={'id': node1.id})
         self.assertEqual([node1.id], [r.id for r in res])
 
-        res = self.dbapi.get_node_list(filters={'uuid': node1.uuid})
+        res = self.dbapi.get_nodeinfo_list(filters={'uuid': node1.uuid})
         self.assertEqual([node1.id], [r.id for r in res])
 
         # ensure unknown filters explode
         filters = {'bad_filter': 'foo'}
         self.assertRaisesRegex(ValueError,
                                'bad_filter',
-                               self.dbapi.get_node_list,
+                               self.dbapi.get_nodeinfo_list,
                                filters=filters)
 
         # even with good filters present
         filters = {'bad_filter': 'foo', 'id': node1.id}
         self.assertRaisesRegex(ValueError,
                                'bad_filter',
-                               self.dbapi.get_node_list,
+                               self.dbapi.get_nodeinfo_list,
                                filters=filters)
 
     @mock.patch.object(timeutils, 'utcnow', autospec=True)
@@ -283,7 +283,8 @@ class DbNodeTestCase(base.DbTestCase):
             driver='driver-two',
             uuid=uuidutils.generate_uuid(),
             chassis_id=ch2['id'],
-            maintenance=True)
+            maintenance=True,
+            resource_class='foo')
 
         res = self.dbapi.get_node_list(filters={'chassis_uuid': ch1['uuid']})
         self.assertEqual([node1.id], [r.id for r in res])
@@ -314,6 +315,29 @@ class DbNodeTestCase(base.DbTestCase):
 
         res = self.dbapi.get_node_list(filters={'maintenance': False})
         self.assertEqual([node1.id], [r.id for r in res])
+
+        res = self.dbapi.get_node_list(filters={'resource_class': 'foo'})
+        self.assertEqual([node2.id], [r.id for r in res])
+
+        res = self.dbapi.get_node_list(filters={'id': node1.id})
+        self.assertEqual([node1.id], [r.id for r in res])
+
+        res = self.dbapi.get_node_list(filters={'uuid': node1.uuid})
+        self.assertEqual([node1.id], [r.id for r in res])
+
+        # ensure unknown filters explode
+        filters = {'bad_filter': 'foo'}
+        self.assertRaisesRegex(ValueError,
+                               'bad_filter',
+                               self.dbapi.get_node_list,
+                               filters=filters)
+
+        # even with good filters present
+        filters = {'bad_filter': 'foo', 'id': node1.id}
+        self.assertRaisesRegex(ValueError,
+                               'bad_filter',
+                               self.dbapi.get_node_list,
+                               filters=filters)
 
     def test_get_node_list_chassis_not_found(self):
         self.assertRaises(exception.ChassisNotFound,
