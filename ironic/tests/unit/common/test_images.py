@@ -261,7 +261,8 @@ class FsImageTestCase(base.TestCase):
     def test__create_root_fs(self, path_exists_mock,
                              dirname_mock, mkdir_mock, cp_mock):
 
-        path_exists_mock_func = lambda path: path == 'root_dir'
+        def path_exists_mock_func(path):
+            return path == 'root_dir'
 
         files_info = {
             'a1': 'b1',
