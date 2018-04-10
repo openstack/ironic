@@ -28,6 +28,7 @@ from ironic.drivers.modules.network import noop as noop_net
 from ironic.drivers.modules import noop
 from ironic.drivers.modules import pxe
 from ironic.drivers.modules.storage import cinder
+from ironic.drivers.modules.storage import external as external_storage
 from ironic.drivers.modules.storage import noop as noop_storage
 
 
@@ -78,7 +79,8 @@ class GenericHardware(hardware_type.AbstractHardwareType):
     @property
     def supported_storage_interfaces(self):
         """List of supported storage interfaces."""
-        return [noop_storage.NoopStorage, cinder.CinderStorage]
+        return [noop_storage.NoopStorage, cinder.CinderStorage,
+                external_storage.ExternalStorage]
 
 
 class ManualManagementHardware(GenericHardware):

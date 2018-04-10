@@ -93,6 +93,63 @@ A target record can be created using a command similar to the example below::
           node. As the ``boot-index`` is per-node in sequential order,
           only one boot volume is permitted for each node.
 
+Use Without Cinder
+------------------
+
+In the Rocky release, an ``external`` storage interface is available that
+can be utilized without a Block Storage Service installation.
+
+Under normal circumstances the ``cinder`` storage interface
+interacts with the Block Storage Service to orchestrate and manage
+attachment and detachment of volumes from the underlying block service
+system.
+
+The ``external`` storage interface contains the logic to allow the Bare
+Metal service to determine if the Bare Metal node has been requested with
+a remote storage volume for booting. This is in contrast to the default
+``noop`` storage interface which does not contain logic to determine if
+the node should or could boot from a remote volume.
+
+It must be noted that minimal configuration or value validation occurs
+with the ``external`` storage interface. The ``cinder`` storage interface
+contains more extensive validation, that is likely un-necessary in a
+``external`` scenario.
+
+Setting the external storage interface::
+
+    openstack baremetal node set --storage-interface external $NODE_UUID
+
+Setting a volume::
+
+    openstack baremetal volume target create --node $NODE_UUID \
+        --type iscsi --boot-index 0 --volume-id $VOLUME_UUID \
+        --property target_iqn="iqn.2010-10.com.example:vol-X" \
+        --property target_lun="0" \
+        --property target_portal="192.168.0.123:3260" \
+        --property auth_method="CHAP" \
+        --property auth_username="ABC" \
+        --property auth_password="XYZ" \
+
+Ensure that no image_source is defined::
+
+    openstack baremetal node unset \
+        --instance-info image_source $NODE_UUID
+
+Deploy the node::
+
+    openstack baremetal node deploy $NODE_UUID
+
+Upon deploy, the boot interface for the baremetal node will attempt
+to either create iPXE configuration OR set boot parameters out-of-band via
+the management controller. Such action is boot interface specific and may not
+support all forms of volume target configuration. As of the Rocky release,
+the bare metal service does not support writing an Operating System image
+to a remote boot from volume target, so that also must be ensured by
+the user in advance.
+
+Records of volume targets are removed upon the node being undeployed,
+and as such are not presistent across deployments.
+
 Cinder Multi-attach
 -------------------
 
