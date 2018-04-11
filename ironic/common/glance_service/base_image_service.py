@@ -183,12 +183,18 @@ class BaseImageService(object):
         :returns: A dict containing image metadata.
 
         :raises: ImageNotFound
+        :raises: ImageUnacceptable if the image status is not active
         """
         LOG.debug("Getting image metadata from glance. Image: %s",
                   image_href)
         image_id = service_utils.parse_image_id(image_href)
 
         image = self.call(method, image_id)
+
+        if not service_utils.is_image_active(image):
+            raise exception.ImageUnacceptable(
+                image_id=image_id,
+                reason=_("The image is required to be in an active state."))
 
         if not service_utils.is_image_available(self.context, image):
             raise exception.ImageNotFound(image_id=image_id)

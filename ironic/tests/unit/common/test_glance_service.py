@@ -105,7 +105,7 @@ class TestGlanceImageService(base.TestCase):
     def _make_fixture(**kwargs):
         fixture = {'name': None,
                    'properties': {},
-                   'status': None,
+                   'status': "active",
                    'is_public': None}
         fixture.update(kwargs)
         return stubs.FakeImage(fixture)
@@ -145,7 +145,7 @@ class TestGlanceImageService(base.TestCase):
             'updated_at': None,
             'deleted_at': None,
             'deleted': None,
-            'status': None,
+            'status': "active",
             'properties': {},
             'owner': None,
         }
