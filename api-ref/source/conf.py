@@ -30,6 +30,11 @@ import sys
 
 import openstackdocstheme
 
+# The version info for the project you're documenting, acts as replacement for
+# |version| and |release|, also used in various other places throughout the
+# built documents.
+from ironic.version import version_info
+
 html_theme = 'openstackdocs'
 html_theme_path = [openstackdocstheme.get_html_theme_path()]
 html_theme_options = {
@@ -66,11 +71,6 @@ master_doc = 'index'
 project = u'Ironic API Reference'
 copyright = u'OpenStack Foundation'
 
-# The version info for the project you're documenting, acts as replacement for
-# |version| and |release|, also used in various other places throughout the
-# built documents.
-#
-from ironic.version import version_info
 # The full version, including alpha/beta/rc tags.
 release = version_info.release_string()
 # The short X.Y version.

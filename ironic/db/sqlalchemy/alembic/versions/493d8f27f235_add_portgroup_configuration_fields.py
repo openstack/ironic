@@ -18,15 +18,15 @@ Create Date: 2016-11-15 18:09:31.362613
 
 """
 
-# revision identifiers, used by Alembic.
-revision = '493d8f27f235'
-down_revision = '1a59178ebdf6'
-
 from alembic import op
 import sqlalchemy as sa
 from sqlalchemy import sql
 
 from ironic.conf import CONF
+
+# revision identifiers, used by Alembic.
+revision = '493d8f27f235'
+down_revision = '1a59178ebdf6'
 
 
 def upgrade():

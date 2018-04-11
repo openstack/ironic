@@ -13,11 +13,6 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-STATE_POWER_ON = "power on"
-STATE_POWER_OFF = "power off"
-STATE_POWERING_ON = "power on"
-STATE_POWERING_OFF = "power on"
-
 import sys
 
 import mock
@@ -33,6 +28,11 @@ from ironic.tests.unit.conductor import mgr_utils
 from ironic.tests.unit.db import base as db_base
 from ironic.tests.unit.db import utils as db_utils
 from ironic.tests.unit.objects import utils as obj_utils
+
+STATE_POWER_ON = "power on"
+STATE_POWER_OFF = "power off"
+STATE_POWERING_ON = "power on"
+STATE_POWERING_OFF = "power on"
 
 xclarity_constants = importutils.try_import('xclarity_client.constants')
 xclarity_client_exceptions = importutils.try_import(

@@ -19,7 +19,7 @@
 # concurrency models can cause undefined behavior and potentially API timeouts.
 import os
 
-os.environ['EVENTLET_NO_GREENDNS'] = 'yes'
+os.environ['EVENTLET_NO_GREENDNS'] = 'yes'  # noqa E402
 
 import eventlet
 
