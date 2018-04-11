@@ -51,7 +51,7 @@ Configuring ironic-api service
       auth_type=password
 
       # Complete public Identity API endpoint (string value)
-      auth_uri=http://PUBLIC_IDENTITY_IP:5000
+      www_authenticate_uri=http://PUBLIC_IDENTITY_IP:5000
 
       # Complete admin Identity API endpoint. (string value)
       auth_url=http://PRIVATE_IDENTITY_IP:35357
