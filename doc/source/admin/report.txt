@@ -457,7 +457,7 @@ keystone_authtoken:
   auth_protocol = https
   auth_section = None
   auth_type = password
-  auth_uri = http://10.223.197.220/identity
+  www_authenticate_uri = http://10.223.197.220/identity
   auth_version = None
   cache = None
   cafile = /opt/stack/data/ca-bundle.pem
