@@ -18,8 +18,8 @@ help you get your accounts set up in Launchpad and Gerrit, familiarize you with
 the workflow for the OpenStack continuous integration and testing systems, and
 help you with your first commit.
 
-LaunchPad Project
------------------
+LaunchPad
+---------
 
 Most of the tools used for OpenStack require a launchpad.net ID for
 authentication.
@@ -27,7 +27,18 @@ authentication.
 .. seealso::
 
    * https://launchpad.net
-   * https://launchpad.net/ironic
+
+Storyboard
+----------
+
+The ironic project moved from Launchpad to `StoryBoard
+<https://storyboard.openstack.org/>`_ for work and task tracking.
+This provides an aggregate view called a "Project Group"
+and individual "Projects". A good starting place is the
+`project group <https://storyboard.openstack.org/#!/project_group/75>`_
+representing the whole of the ironic community, as opposed to
+the `ironic project <https://storyboard.openstack.org/#!/project/943>`_
+storyboard which represents ironic as a repository.
 
 Related Projects
 ----------------
@@ -37,18 +48,18 @@ developed by the same community.
 
 .. seealso::
 
-   * https://launchpad.net/bifrost
-   * https://launchpad.net/ironic-inspector
-   * https://launchpad.net/ironic-lib
-   * https://launchpad.net/ironic-python-agent
-   * https://launchpad.net/python-ironicclient
-   * https://launchpad.net/python-ironic-inspector-client
+   * https://docs.openstack.org/bifrost/latest/
+   * https://docs.openstack.org/ironic-inspector/latest/
+   * https://docs.openstack.org/ironic-lib/latest/
+   * https://docs.openstack.org/ironic-python-agent/latest/
+   * https://docs.openstack.org/python-ironicclient/latest/
+   * https://docs.openstack.org/python-ironic-inspector-client/latest/
 
 Project Hosting Details
 -----------------------
 
 Bug tracker
-    https://bugs.launchpad.net/ironic
+    https://storyboard.openstack.org/#!/project/943
 
 Mailing list (prefix Subject line with ``[ironic]``)
     http://lists.openstack.org/cgi-bin/mailman/listinfo/openstack-dev
@@ -65,81 +76,77 @@ Code Review
 Adding New Features
 ===================
 
-Starting with the Mitaka development cycle, Ironic tracks new features using
-RFEs (Requests for Feature Enhancements) instead of blueprints. These are bugs
-with 'rfe' tag, and they should be submitted before a spec or code is proposed.
-When a member of `ironic-drivers launchpad team
-<https://launchpad.net/~ironic-drivers/+members>`_ decides that the proposal
-is worth implementing, a spec (if needed) and code should be submitted,
-referencing the RFE bug. Contributors are welcome to submit a spec and/or code
-before the RFE is approved, however those patches will not land until the RFE
-is approved.
+Ironic tracks new features using RFEs (Requests for Feature Enhancements)
+instead of blueprints. These are stories with 'rfe' tag, and they should
+be submitted before a spec or code is proposed.
+
+When a member of the `ironic-core team <https://review.openstack.org/#/admin/groups/165,members>`_
+decides that the proposal is worth implementing, a spec (if needed) and code
+should be submitted, referencing the RFE task or story ID number. Contributors
+are welcome to submit a spec and/or code before the RFE is approved, however
+those patches will not land until the RFE is approved.
 
 Feature Submission Process
 --------------------------
 
-#. Submit a bug report at https://bugs.launchpad.net/ironic/+filebug.
-   There are two fields that must be filled: 'summary' and
-   'further information'. The 'summary' must be brief enough to fit in one
-   line: if you can’t describe it in a few words it may mean that you are
+#. Submit a bug report on the `ironic StoryBoard
+   <https://storyboard.openstack.org/#!/project/943>`_.
+   There are two fields that must be filled: 'Title' and
+   'Description'. 'Tasks' can be added and are associated with a project.
+   If you can’t describe it in a sentence or two, it may mean that you are
    either trying to capture more than one RFE at once, or that you are having
-   a hard time defining what you are trying to solve at all.
+   a hard time defining what you are trying to solve at all. This may also be
+   a sign that your feature may require a specification document.
 
-#. Describe the proposed change in the 'further information' field. The
+#. Describe the proposed change in the 'Description' field. The
    description should provide enough details for a knowledgeable developer to
    understand what is the existing problem in the current platform that needs
    to be addressed, or what is the enhancement that would make the platform
    more capable, both from a functional and a non-functional standpoint.
 
-#. Submit the bug, add an 'rfe' tag to it and assign yourself or whoever is
+#. Submit the story, add an 'rfe' tag to it and assign yourself or whoever is
    going to work on this feature.
 
-#. As soon as a member of the ironic-drivers team acknowledges the bug, it
-   will be moved into the 'Triaged' state. The importance will be set to
-   'Wishlist' to signal the fact that the report is indeed a feature and there
-   is no severity associated to it. Discussion about the RFE, and whether to
-   approve it, happens in bug comments while in the 'Triaged' state.
+#. As soon as a member of the team acknowledges the story,
+   we will move the story to the 'Review' state. As time goes on, Discussion
+   about the RFE, and whether to approve it will occur.
 
-#. The ironic-drivers team will evaluate the RFE and may advise the submitter
-   to file a spec in ironic-specs to elaborate on the feature request, in case
-   the RFE requires extra scrutiny, more design discussion, etc. For the spec
-   submission process, please see the `Ironic Specs Process`_.
+#. Contributors will evaluate the RFE and may advise the submitter to file a
+   spec in the ironic-specs repository to elaborate on the feature request.
+   Typically this is when an RFE requires extra scrutiny, more design
+   discussion, etc. For the spec submission process, please see the
+   `Ironic Specs Process`_. A specific task should be created to track the
+   creation of a specification.
 
 #. If a spec is not required, once the discussion has happened and there is
-   positive consensus among the ironic-drivers team on the RFE, the RFE is
+   positive consensus among the ironic-core team on the RFE, the RFE is
    'approved', and its tag will move from 'rfe' to 'rfe-approved'. This means
    that the feature is approved and the related code may be merged.
 
-#. If a spec is required, the spec must be submitted (with the bug properly
-   referenced as 'Partial-Bug' in the commit message), reviewed, and merged
+#. If a spec is required, the spec must be submitted (with a new task as part
+   of the story referenced as 'Task' in the commit message), reviewed, and merged
    before the RFE will be 'approved' (and the tag changed to 'rfe-approved').
 
-#. The bug then goes through the usual process -- first to 'In progress' when
-   the spec/code is being worked on, then 'Fix Released' when it is
+#. The tasks then goes through the usual process -- first to 'Review' when
+   the spec/code is being worked on, then 'Merged' when it is
    implemented.
 
-#. If the RFE is rejected, the ironic-drivers team will move the bug to
-   "Won't Fix" status.
+#. If the RFE is rejected, the ironic-core team will move the story to
+   "Invalid" status.
 
 Change Tracking
 ---------------
 
 When working on an RFE, please be sure to tag your commits properly:
-"Partial-Bug: #xxxx" or "Related-Bug: #xxxx" for intermediate commits for the
-feature, and "Closes-Bug: #xxxx" for the final commit. It is also helpful to
-set a consistent review topic, such as "bug/xxxx" for all patches related to
-the RFE.
+"Story: #xxxx" or "Task: #xxxx". It is also helpful to set a consistent
+review topic, such as "story/xxxx" for all patches related to the RFE.
 
 If the RFE spans across several projects (e.g. ironic and python-ironicclient),
-but the main work is going to happen within ironic, please use the same bug for
-all the code you're submitting, there is no need to create a separate RFE in
-every project.
+but the main work is going to happen within ironic, please use the same story
+for all the code you're submitting, there is no need to create a separate RFE
+in every project.
 
-.. note:: Currently the Ironic bug tracker is managed by the open
-          'ironic-bugs' team, not the ironic-drivers team. This means that
-          anyone may edit bug details, and there is room to game the system
-          here. **RFEs may only be approved by members of the ironic-drivers
-          team**.
+.. note:: **RFEs may only be approved by members of the ironic-core team**.
 
 Managing Change Sets
 --------------------

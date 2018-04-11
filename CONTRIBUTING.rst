@@ -5,6 +5,6 @@ you must follow the steps documented at:
 
 Pull requests submitted through GitHub will be ignored.
 
-Bugs should be filed on Launchpad, not GitHub:
+Bugs should be filed in StoryBoard, not GitHub:
 
-   https://bugs.launchpad.net/ironic
+   https://storyboard.openstack.org/#!/project/943

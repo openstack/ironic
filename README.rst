@@ -31,8 +31,8 @@ Project resources
 * APIs: https://developer.openstack.org/api-ref/baremetal/index.html
 
 Project status, bugs, and requests for feature enhancements (RFEs) are tracked
-on Launchpad:
-https://launchpad.net/ironic
+in StoryBoard:
+https://storyboard.openstack.org/#!/project/943
 
 For information on how to contribute to ironic, see
 https://docs.openstack.org/ironic/latest/contributor
