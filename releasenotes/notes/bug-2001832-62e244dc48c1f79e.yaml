@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    Fixes a bug where a node's hardware type cannot be changed to another
+    hardware type which doesn't support any hardware interface currently used.
+    See `bug 2001832 <https://storyboard.openstack.org/#!/story/2001832>`_
+    for details.
