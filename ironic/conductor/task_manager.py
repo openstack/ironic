@@ -149,23 +149,20 @@ def require_exclusive_lock(f):
     return wrapper
 
 
-def acquire(context, node_id, shared=False, driver_name=None,
-            purpose='unspecified action'):
+def acquire(context, node_id, shared=False, purpose='unspecified action'):
     """Shortcut for acquiring a lock on a Node.
 
     :param context: Request context.
     :param node_id: ID or UUID of node to lock.
     :param shared: Boolean indicating whether to take a shared or exclusive
                    lock. Default: False.
-    :param driver_name: Name of Driver. Default: None.
     :param purpose: human-readable purpose to put to debug logs.
     :returns: An instance of :class:`TaskManager`.
 
     """
     # NOTE(lintan): This is a workaround to set the context of periodic tasks.
     context.ensure_thread_contain_context()
-    return TaskManager(context, node_id, shared=shared,
-                       driver_name=driver_name, purpose=purpose)
+    return TaskManager(context, node_id, shared=shared, purpose=purpose)
 
 
 class TaskManager(object):
@@ -176,7 +173,7 @@ class TaskManager(object):
 
     """
 
-    def __init__(self, context, node_id, shared=False, driver_name=None,
+    def __init__(self, context, node_id, shared=False,
                  purpose='unspecified action'):
         """Create a new TaskManager.
 
@@ -189,8 +186,6 @@ class TaskManager(object):
         :param node_id: ID or UUID of node to lock.
         :param shared: Boolean indicating whether to take a shared or exclusive
                        lock. Default: False.
-        :param driver_name: The name of the driver to load, if different
-                            from the Node's current driver.
         :param purpose: human-readable purpose to put to debug logs.
         :raises: DriverNotFound
         :raises: InterfaceNotFoundInEntrypoint
@@ -236,8 +231,7 @@ class TaskManager(object):
                 context, self.node.id)
             self.volume_targets = objects.VolumeTarget.list_by_node_id(
                 context, self.node.id)
-            self.driver = driver_factory.build_driver_for_task(
-                self, driver_name=driver_name)
+            self.driver = driver_factory.build_driver_for_task(self)
 
         except Exception:
             with excutils.save_and_reraise_exception():

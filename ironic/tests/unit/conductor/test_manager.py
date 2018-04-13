@@ -706,6 +706,21 @@ class UpdateNodeTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
             states.ACTIVE, resource_class='old', new_resource_class=None,
             expect_error=True)
 
+    def test_update_node_hardware_type(self):
+        existing_hardware = 'fake-hardware'
+        existing_interface = 'fake'
+        new_hardware = 'manual-management'
+        new_interface = 'pxe'
+        node = obj_utils.create_test_node(self.context,
+                                          driver=existing_hardware,
+                                          boot_interface=existing_interface)
+        node.driver = new_hardware
+        node.boot_interface = new_interface
+        self.service.update_node(self.context, node)
+        node.refresh()
+        self.assertEqual(new_hardware, node.driver)
+        self.assertEqual(new_interface, node.boot_interface)
+
 
 @mgr_utils.mock_record_keepalive
 class VendorPassthruTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):

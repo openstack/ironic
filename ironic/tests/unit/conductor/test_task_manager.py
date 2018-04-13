@@ -67,36 +67,7 @@ class TaskManagerTestCase(db_base.DbTestCase):
             self.assertEqual(get_voltgt_mock.return_value, task.volume_targets)
             self.assertEqual(build_driver_mock.return_value, task.driver)
             self.assertFalse(task.shared)
-            build_driver_mock.assert_called_once_with(task, driver_name=None)
-
-        node_get_mock.assert_called_once_with(self.context, 'fake-node-id')
-        reserve_mock.assert_called_once_with(self.context, self.host,
-                                             'fake-node-id')
-        get_ports_mock.assert_called_once_with(self.context, self.node.id)
-        get_portgroups_mock.assert_called_once_with(self.context, self.node.id)
-        get_volconn_mock.assert_called_once_with(self.context, self.node.id)
-        get_voltgt_mock.assert_called_once_with(self.context, self.node.id)
-        release_mock.assert_called_once_with(self.context, self.host,
-                                             self.node.id)
-
-    def test_excl_lock_with_driver(
-            self, get_voltgt_mock, get_volconn_mock, get_portgroups_mock,
-            get_ports_mock, build_driver_mock,
-            reserve_mock, release_mock, node_get_mock):
-        reserve_mock.return_value = self.node
-        with task_manager.TaskManager(self.context, 'fake-node-id',
-                                      driver_name='fake-driver') as task:
-            self.assertEqual(self.context, task.context)
-            self.assertEqual(self.node, task.node)
-            self.assertEqual(get_ports_mock.return_value, task.ports)
-            self.assertEqual(get_portgroups_mock.return_value, task.portgroups)
-            self.assertEqual(get_volconn_mock.return_value,
-                             task.volume_connectors)
-            self.assertEqual(get_voltgt_mock.return_value, task.volume_targets)
-            self.assertEqual(build_driver_mock.return_value, task.driver)
-            self.assertFalse(task.shared)
-            build_driver_mock.assert_called_once_with(
-                task, driver_name='fake-driver')
+            build_driver_mock.assert_called_once_with(task)
 
         node_get_mock.assert_called_once_with(self.context, 'fake-node-id')
         reserve_mock.assert_called_once_with(self.context, self.host,
@@ -150,8 +121,7 @@ class TaskManagerTestCase(db_base.DbTestCase):
                 self.assertEqual(mock.sentinel.driver2, task2.driver)
                 self.assertFalse(task2.shared)
 
-                self.assertEqual([mock.call(task, driver_name=None),
-                                  mock.call(task2, driver_name=None)],
+                self.assertEqual([mock.call(task), mock.call(task2)],
                                  build_driver_mock.call_args_list)
 
         self.assertEqual([mock.call(self.context, 'node-id1'),
@@ -312,7 +282,7 @@ class TaskManagerTestCase(db_base.DbTestCase):
                                              'fake-node-id')
         get_ports_mock.assert_called_once_with(self.context, self.node.id)
         get_portgroups_mock.assert_called_once_with(self.context, self.node.id)
-        build_driver_mock.assert_called_once_with(mock.ANY, driver_name=None)
+        build_driver_mock.assert_called_once_with(mock.ANY)
         release_mock.assert_called_once_with(self.context, self.host,
                                              self.node.id)
 
@@ -333,37 +303,7 @@ class TaskManagerTestCase(db_base.DbTestCase):
             self.assertEqual(build_driver_mock.return_value, task.driver)
             self.assertTrue(task.shared)
 
-            build_driver_mock.assert_called_once_with(task, driver_name=None)
-
-        self.assertFalse(reserve_mock.called)
-        self.assertFalse(release_mock.called)
-        node_get_mock.assert_called_once_with(self.context, 'fake-node-id')
-        get_ports_mock.assert_called_once_with(self.context, self.node.id)
-        get_portgroups_mock.assert_called_once_with(self.context, self.node.id)
-        get_volconn_mock.assert_called_once_with(self.context, self.node.id)
-        get_voltgt_mock.assert_called_once_with(self.context, self.node.id)
-
-    def test_shared_lock_with_driver(
-            self, get_voltgt_mock, get_volconn_mock, get_portgroups_mock,
-            get_ports_mock, build_driver_mock,
-            reserve_mock, release_mock, node_get_mock):
-        node_get_mock.return_value = self.node
-        with task_manager.TaskManager(self.context,
-                                      'fake-node-id',
-                                      shared=True,
-                                      driver_name='fake-driver') as task:
-            self.assertEqual(self.context, task.context)
-            self.assertEqual(self.node, task.node)
-            self.assertEqual(get_ports_mock.return_value, task.ports)
-            self.assertEqual(get_portgroups_mock.return_value, task.portgroups)
-            self.assertEqual(get_volconn_mock.return_value,
-                             task.volume_connectors)
-            self.assertEqual(get_voltgt_mock.return_value, task.volume_targets)
-            self.assertEqual(build_driver_mock.return_value, task.driver)
-            self.assertTrue(task.shared)
-
-            build_driver_mock.assert_called_once_with(
-                task, driver_name='fake-driver')
+            build_driver_mock.assert_called_once_with(task)
 
         self.assertFalse(reserve_mock.called)
         self.assertFalse(release_mock.called)
@@ -491,7 +431,7 @@ class TaskManagerTestCase(db_base.DbTestCase):
         get_portgroups_mock.assert_called_once_with(self.context, self.node.id)
         get_volconn_mock.assert_called_once_with(self.context, self.node.id)
         get_voltgt_mock.assert_called_once_with(self.context, self.node.id)
-        build_driver_mock.assert_called_once_with(mock.ANY, driver_name=None)
+        build_driver_mock.assert_called_once_with(mock.ANY)
 
     def test_upgrade_lock(
             self, get_voltgt_mock, get_volconn_mock, get_portgroups_mock,
@@ -520,8 +460,7 @@ class TaskManagerTestCase(db_base.DbTestCase):
             self.assertFalse(task.shared)
             self.assertEqual('spam', task._purpose)
 
-            build_driver_mock.assert_called_once_with(mock.ANY,
-                                                      driver_name=None)
+            build_driver_mock.assert_called_once_with(mock.ANY)
 
         # make sure reserve() was called only once
         reserve_mock.assert_called_once_with(self.context, self.host,
