@@ -59,10 +59,9 @@ class XClarityManagementDriverTestCase(db_base.DbTestCase):
         mock_validate.assert_called_with(task.node)
 
     def test_get_properties(self, mock_get_xc_client):
-
-        expected = common.REQUIRED_ON_DRIVER_INFO
-        self.assertItemsEqual(expected,
-                              self.node.driver_info)
+        expected = common.COMMON_PROPERTIES
+        driver = management.XClarityManagement()
+        self.assertEqual(expected, driver.get_properties())
 
     @mock.patch.object(management.XClarityManagement, 'get_boot_device',
                        return_value='pxe')

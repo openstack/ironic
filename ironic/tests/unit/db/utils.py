@@ -506,6 +506,10 @@ def get_test_xclarity_properties():
 
 def get_test_xclarity_driver_info():
     return {
+        'xclarity_manager_ip': "1.2.3.4",
+        'xclarity_username': "USERID",
+        'xclarity_password': "fake",
+        'xclarity_port': 443,
         'xclarity_hardware_id': 'fake_sh_id',
     }
 
