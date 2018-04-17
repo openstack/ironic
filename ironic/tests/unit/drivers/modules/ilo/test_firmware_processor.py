@@ -13,16 +13,12 @@
 # under the License.
 
 """Test class for Firmware Processor used by iLO management interface."""
+import io
 
 import mock
 from oslo_utils import importutils
-import six
 from six.moves import builtins as __builtin__
 import six.moves.urllib.parse as urlparse
-
-if six.PY3:
-    import io
-    file = io.BytesIO
 
 from ironic.common import exception
 from ironic.drivers.modules.ilo import common as ilo_common
@@ -380,7 +376,7 @@ class FirmwareProcessorTestCase(base.TestCase):
     def test__download_file_based_fw_to_copies_file_to_target(
             self, file_image_service_mock, open_mock):
         # | GIVEN |
-        fd_mock = mock.MagicMock(spec=file)
+        fd_mock = mock.MagicMock(spec=io.BytesIO)
         open_mock.return_value = fd_mock
         fd_mock.__enter__.return_value = fd_mock
         any_file_based_firmware_file = 'file:///tmp/any_file_path'
@@ -399,7 +395,7 @@ class FirmwareProcessorTestCase(base.TestCase):
     def test__download_http_based_fw_to_downloads_the_fw_file(
             self, image_service_mock, open_mock):
         # | GIVEN |
-        fd_mock = mock.MagicMock(spec=file)
+        fd_mock = mock.MagicMock(spec=io.BytesIO)
         open_mock.return_value = fd_mock
         fd_mock.__enter__.return_value = fd_mock
         any_http_based_firmware_file = 'http://netloc/path_to_firmware_file'

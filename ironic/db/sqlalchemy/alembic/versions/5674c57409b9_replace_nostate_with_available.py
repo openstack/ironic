@@ -18,13 +18,13 @@ Create Date: 2015-01-14 16:55:44.718196
 
 """
 
-# revision identifiers, used by Alembic.
-revision = '5674c57409b9'
-down_revision = '242cc6a923b3'
-
 from alembic import op
 from sqlalchemy import String
 from sqlalchemy.sql import table, column, null
+
+# revision identifiers, used by Alembic.
+revision = '5674c57409b9'
+down_revision = '242cc6a923b3'
 
 node = table('nodes',
              column('uuid', String(36)),

@@ -18,12 +18,12 @@ Create Date: 2016-06-28 13:30:19.396203
 
 """
 
+from alembic import op
+from oslo_db.sqlalchemy import types as db_types
+
 # revision identifiers, used by Alembic.
 revision = 'e918ff30eb42'
 down_revision = 'b4130a7fc904'
-
-from alembic import op
-from oslo_db.sqlalchemy import types as db_types
 
 
 def upgrade():

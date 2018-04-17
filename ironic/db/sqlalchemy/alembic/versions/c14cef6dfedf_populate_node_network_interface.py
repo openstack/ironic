@@ -18,15 +18,15 @@ Create Date: 2016-08-01 14:05:24.197314
 
 """
 
-# revision identifiers, used by Alembic.
-revision = 'c14cef6dfedf'
-down_revision = 'dd34e1f1303b'
-
 from alembic import op
 from sqlalchemy import String
 from sqlalchemy.sql import table, column, null
 
 from ironic.conf import CONF
+
+# revision identifiers, used by Alembic.
+revision = 'c14cef6dfedf'
+down_revision = 'dd34e1f1303b'
 
 
 node = table('nodes',

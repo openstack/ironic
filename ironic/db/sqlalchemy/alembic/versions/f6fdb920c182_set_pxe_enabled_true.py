@@ -18,13 +18,13 @@ Create Date: 2016-02-12 16:53:21.008580
 
 """
 
-# revision identifiers, used by Alembic.
-revision = 'f6fdb920c182'
-down_revision = '5ea1b0d310e'
-
 from alembic import op
 from sqlalchemy import Boolean, String
 from sqlalchemy.sql import table, column, null
+
+# revision identifiers, used by Alembic.
+revision = 'f6fdb920c182'
+down_revision = '5ea1b0d310e'
 
 port = table('ports',
              column('uuid', String(36)),

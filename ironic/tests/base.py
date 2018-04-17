@@ -28,9 +28,8 @@ import sys
 import tempfile
 
 import eventlet
-eventlet.monkey_patch(os=False)
-
-import fixtures  # noqa for I202 due to 'import eventlet' above
+eventlet.monkey_patch(os=False)  # noqa E402
+import fixtures
 from ironic_lib import utils
 from oslo_concurrency import processutils
 from oslo_config import fixture as config_fixture
