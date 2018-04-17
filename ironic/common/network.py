@@ -12,7 +12,11 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+from oslo_log import log
+
 from ironic.common import exception
+
+LOG = log.getLogger(__name__)
 
 
 def get_node_vif_ids(task):
@@ -108,3 +112,34 @@ def get_physnets_by_portgroup_id(task, portgroup_id, exclude_port=None):
         raise exception.PortgroupPhysnetInconsistent(
             portgroup=portgroup.uuid, physical_networks=", ".join(pg_physnets))
     return pg_physnets
+
+
+def remove_vifs_from_node(task):
+    """Remove all vif attachment records from a node.
+
+    :param task: a TaskManager instance.
+    """
+    vifs = task.driver.network.vif_list(task)
+    for vif_entry in vifs:
+        vif = vif_entry.get('id')
+        if not vif:
+            LOG.warning('Incorrect vif entry for %(node)s lacks an ID field, '
+                        'and is thus unsupported. Found: %(found)s.',
+                        {'node': task.node.uuid,
+                         'found': vif_entry})
+            continue
+        try:
+            task.driver.network.vif_detach(task, vif)
+        except exception.VifNotAttached as e:
+            LOG.warning('While removing records of VIF attachments from node '
+                        '%(node)s, we recieved indication that %(vif)s is '
+                        'no longer attached. There should not happen under '
+                        'normal circumstances.',
+                        {'node': task.node.uuid,
+                         'vif': vif})
+
+        except exception.NetworkError as e:
+            LOG.error('An error has been encountered while removing a '
+                      'VIF record for %(node)s. Error: %(error)s',
+                      {'node': task.node.uuid,
+                       'error': e})

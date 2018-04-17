@@ -1791,9 +1791,13 @@ class DoNodeDeployTearDownTestCase(mgr_utils.ServiceSetUpMixin,
         self.assertEqual({}, node.instance_info)
         mock_tear_down.assert_called_once_with(mock.ANY)
 
+    # TODO(TheJulia): Since we're functionally bound to neutron support
+    # by default, the fake drivers still invoke neutron.
+    @mock.patch('ironic.common.neutron.unbind_neutron_port')
     @mock.patch('ironic.conductor.manager.ConductorManager._do_node_clean')
     @mock.patch('ironic.drivers.modules.fake.FakeDeploy.tear_down')
-    def test__do_node_tear_down_ok(self, mock_tear_down, mock_clean):
+    def test__do_node_tear_down_ok(self, mock_tear_down, mock_clean,
+                                   mock_unbind):
         # test when driver.deploy.tear_down succeeds
         node = obj_utils.create_test_node(
             self.context, driver='fake', provision_state=states.DELETING,
@@ -1802,11 +1806,15 @@ class DoNodeDeployTearDownTestCase(mgr_utils.ServiceSetUpMixin,
             instance_info={'foo': 'bar'},
             driver_internal_info={'is_whole_disk_image': False,
                                   'instance': {'ephemeral_gb': 10}})
+        port = obj_utils.create_test_port(
+            self.context, node_id=node.id,
+            internal_info={'tenant_vif_port_id': 'foo'})
 
         task = task_manager.TaskManager(self.context, node.uuid)
         self._start_service()
         self.service._do_node_tear_down(task, node.provision_state)
         node.refresh()
+        port.refresh()
         # Node will be moved to AVAILABLE after cleaning, not tested here
         self.assertEqual(states.CLEANING, node.provision_state)
         self.assertEqual(states.AVAILABLE, node.target_provision_state)
@@ -1816,6 +1824,8 @@ class DoNodeDeployTearDownTestCase(mgr_utils.ServiceSetUpMixin,
         self.assertNotIn('instance', node.driver_internal_info)
         mock_tear_down.assert_called_once_with(mock.ANY)
         mock_clean.assert_called_once_with(mock.ANY)
+        self.assertEqual({}, port.internal_info)
+        mock_unbind.assert_called_once_with('foo', context=mock.ANY)
 
     @mock.patch('ironic.drivers.modules.fake.FakeRescue.clean_up')
     @mock.patch('ironic.conductor.manager.ConductorManager._do_node_clean')
