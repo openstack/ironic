@@ -6,7 +6,7 @@ upgrade:
     If your use of the BareMetal service is reliant upon the behavior of
     the VIFs being retained, which was introduced as a behavior change
     during the Ocata cycle, then you must update your tooling to explicitly
-    re-add the the VIF attachments prior to deployment.
+    re-add the VIF attachments prior to deployment.
 fixes:
   - |
     Removes all records of VIF attachments upon the teardown of a deployed

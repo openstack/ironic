@@ -123,23 +123,25 @@ def remove_vifs_from_node(task):
     for vif_entry in vifs:
         vif = vif_entry.get('id')
         if not vif:
-            LOG.warning('Incorrect vif entry for %(node)s lacks an ID field, '
-                        'and is thus unsupported. Found: %(found)s.',
+            LOG.warning('Node %(node)s has an incorrect VIF entry: %(found)s. '
+                        'This entry lacks an "id" field and is thus '
+                        'unsupported.',
                         {'node': task.node.uuid,
                          'found': vif_entry})
             continue
         try:
             task.driver.network.vif_detach(task, vif)
-        except exception.VifNotAttached as e:
+        except exception.VifNotAttached:
             LOG.warning('While removing records of VIF attachments from node '
-                        '%(node)s, we recieved indication that %(vif)s is '
-                        'no longer attached. There should not happen under '
+                        '%(node)s, we received indication that VIF %(vif)s is '
+                        'no longer attached. This should not happen under '
                         'normal circumstances.',
                         {'node': task.node.uuid,
                          'vif': vif})
 
         except exception.NetworkError as e:
-            LOG.error('An error has been encountered while removing a '
-                      'VIF record for %(node)s. Error: %(error)s',
+            LOG.error('For node %(node)s, an error occurred while removing a '
+                      'VIF record for VIF %(vif)s. Error: %(error)s',
                       {'node': task.node.uuid,
+                       'vif': vif,
                        'error': e})
