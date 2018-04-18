@@ -900,10 +900,8 @@ class IloVirtualMediaBootTestCase(db_base.DbTestCase):
                                 is_iscsi_boot_mock):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
-            root_uuid = "12312642-09d3-467f-8e09-12385826a123"
             driver_internal_info = task.node.driver_internal_info
             driver_internal_info['boot_iso_created_in_web_server'] = False
-            driver_internal_info['root_uuid_or_disk_id'] = root_uuid
             task.node.driver_internal_info = driver_internal_info
             task.node.save()
             is_iscsi_boot_mock.return_value = False
@@ -913,11 +911,6 @@ class IloVirtualMediaBootTestCase(db_base.DbTestCase):
             driver_internal_info = task.node.driver_internal_info
             self.assertNotIn('boot_iso_created_in_web_server',
                              driver_internal_info)
-            if task.node.provision_state != states.RESCUING:
-                self.assertNotIn('root_uuid_or_disk_id', driver_internal_info)
-            else:
-                self.assertEqual(root_uuid,
-                                 driver_internal_info['root_uuid_or_disk_id'])
             node_power_mock.assert_called_once_with(task,
                                                     states.POWER_OFF)
             update_secure_boot_mode_mock.assert_called_once_with(task, False)
@@ -980,7 +973,6 @@ class IloVirtualMediaBootTestCase(db_base.DbTestCase):
             driver_internal_info = task.node.driver_internal_info
             self.assertNotIn('boot_iso_created_in_web_server',
                              driver_internal_info)
-            self.assertNotIn('root_uuid_or_disk_id', driver_internal_info)
             node_power_mock.assert_called_once_with(task,
                                                     states.POWER_OFF)
             update_secure_boot_mode_mock.assert_called_once_with(task, False)

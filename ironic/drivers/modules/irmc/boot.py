@@ -1047,14 +1047,6 @@ class IRMCVirtualMediaBoot(base.BootInterface, IRMCVolumeBootMixIn):
         driver_internal_info = task.node.driver_internal_info
         driver_internal_info.pop('irmc_boot_iso', None)
 
-        # When rescue, this function is called. But we need to retain the
-        # root_uuid_or_disk_id to use on unrescue (see prepare_instance).
-        boot_local_or_iwdi = (
-            deploy_utils.get_boot_option(task.node) == "local" or
-            driver_internal_info.get('is_whole_disk_image'))
-        if task.node.provision_state != states.RESCUING or boot_local_or_iwdi:
-            driver_internal_info.pop('root_uuid_or_disk_id', None)
-
         task.node.driver_internal_info = driver_internal_info
         task.node.save()
         _cleanup_vmedia_boot(task)
