@@ -566,11 +566,6 @@ class IloVirtualMediaBoot(base.BootInterface):
         else:
             _clean_up_boot_iso_for_instance(task.node)
             driver_internal_info.pop('boot_iso_created_in_web_server', None)
-            # Need to retain 'root_uuid_or_disk_id' during rescue. It would
-            # be required if boot iso needs to be created during unrescue
-            # operation.
-            if task.node.provision_state != states.RESCUING:
-                driver_internal_info.pop('root_uuid_or_disk_id', None)
             ilo_common.cleanup_vmedia_boot(task)
         task.node.driver_internal_info = driver_internal_info
         task.node.save()
