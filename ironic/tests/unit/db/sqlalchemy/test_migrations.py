@@ -667,6 +667,44 @@ class MigrationCheckersMixin(object):
             node_traits.c.node_id == data['id']).execute().first()
         self.assertEqual('trait1', trait['trait'])
 
+    def _pre_upgrade_82c315d60161(self, engine):
+        # Create a node to which bios setting can be added.
+        data = {'uuid': uuidutils.generate_uuid()}
+        nodes = db_utils.get_table(engine, 'nodes')
+        nodes.insert().execute(data)
+        node = nodes.select(nodes.c.uuid == data['uuid']).execute().first()
+        data['id'] = node['id']
+        return data
+
+    def _check_82c315d60161(self, engine, data):
+        bios_settings = db_utils.get_table(engine, 'bios_settings')
+        col_names = [column.name for column in bios_settings.c]
+        expected_names = ['node_id', 'created_at', 'updated_at',
+                          'name', 'value', 'version']
+        self.assertEqual(sorted(expected_names), sorted(col_names))
+        self.assertIsInstance(bios_settings.c.node_id.type,
+                              sqlalchemy.types.Integer)
+        self.assertIsInstance(bios_settings.c.created_at.type,
+                              sqlalchemy.types.DateTime)
+        self.assertIsInstance(bios_settings.c.updated_at.type,
+                              sqlalchemy.types.DateTime)
+        self.assertIsInstance(bios_settings.c.name.type,
+                              sqlalchemy.types.String)
+        self.assertIsInstance(bios_settings.c.version.type,
+                              sqlalchemy.types.String)
+        self.assertIsInstance(bios_settings.c.value.type,
+                              sqlalchemy.types.Text)
+
+        setting = {'node_id': data['id'],
+                   'name': 'virtualization',
+                   'value': 'on'}
+        bios_settings.insert().execute(setting)
+        setting = bios_settings.select(
+            sqlalchemy.sql.and_(
+                bios_settings.c.node_id == data['id'],
+                bios_settings.c.name == setting['name'])).execute().first()
+        self.assertEqual('on', setting['value'])
+
     def test_upgrade_and_version(self):
         with patch_with_engine(self.engine):
             self.migration_api.upgrade('head')
