@@ -929,6 +929,9 @@ class ConductorManager(base_manager.BaseConductorManager):
             node.instance_uuid = None
             driver_internal_info = node.driver_internal_info
             driver_internal_info.pop('instance', None)
+            driver_internal_info.pop('clean_steps', None)
+            driver_internal_info.pop('root_uuid_or_disk_id', None)
+            driver_internal_info.pop('is_whole_disk_image', None)
             node.driver_internal_info = driver_internal_info
             network.remove_vifs_from_node(task)
             node.save()

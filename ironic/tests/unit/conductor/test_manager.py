@@ -1805,6 +1805,8 @@ class DoNodeDeployTearDownTestCase(mgr_utils.ServiceSetUpMixin,
             instance_uuid=uuidutils.generate_uuid(),
             instance_info={'foo': 'bar'},
             driver_internal_info={'is_whole_disk_image': False,
+                                  'clean_steps': {},
+                                  'root_uuid_or_disk_id': 'foo',
                                   'instance': {'ephemeral_gb': 10}})
         port = obj_utils.create_test_port(
             self.context, node_id=node.id,
@@ -1822,6 +1824,9 @@ class DoNodeDeployTearDownTestCase(mgr_utils.ServiceSetUpMixin,
         self.assertIsNone(node.instance_uuid)
         self.assertEqual({}, node.instance_info)
         self.assertNotIn('instance', node.driver_internal_info)
+        self.assertNotIn('clean_steps', node.driver_internal_info)
+        self.assertNotIn('root_uuid_or_disk_id', node.driver_internal_info)
+        self.assertNotIn('is_whole_disk_image', node.driver_internal_info)
         mock_tear_down.assert_called_once_with(mock.ANY)
         mock_clean.assert_called_once_with(mock.ANY)
         self.assertEqual({}, port.internal_info)
