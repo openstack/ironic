@@ -544,3 +544,42 @@ def create_test_node_traits(traits, **kw):
     :returns: a list of test NodeTrait DB objects.
     """
     return [create_test_node_trait(trait=trait, **kw) for trait in traits]
+
+
+def create_test_bios_setting(**kw):
+    """Create test bios entry in DB and return BIOSSetting DB object.
+
+    Function to be used to create test BIOSSetting object in the database.
+
+    :param kw: kwargs with overriding values for node bios settings.
+    :returns: Test BIOSSetting DB object.
+
+    """
+    bios_setting = get_test_bios_setting(**kw)
+    dbapi = db_api.get_instance()
+    node_id = bios_setting['node_id']
+    version = bios_setting['version']
+    settings = [{'name': bios_setting['name'],
+                 'value': bios_setting['value']}]
+    return dbapi.create_bios_setting_list(node_id, settings, version)[0]
+
+
+def get_test_bios_setting(**kw):
+    return {
+        'node_id': kw.get('node_id', '123'),
+        'name': kw.get('name', 'virtualization'),
+        'value': kw.get('value', 'on'),
+        # TODO(zshi) change default version to
+        # bios_setting.BIOSSetting.VERSION
+        'version': kw.get('version', '1.0'),
+        'created_at': kw.get('created_at'),
+        'updated_at': kw.get('updated_at'),
+    }
+
+
+def get_test_bios_setting_setting_list():
+    return [
+        {'name': 'virtualization', 'value': 'on'},
+        {'name': 'hyperthread', 'value': 'enabled'},
+        {'name': 'numlock', 'value': 'off'}
+    ]
