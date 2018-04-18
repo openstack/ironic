@@ -473,18 +473,28 @@ IRONIC_PXE_BOOT_IMAGE=${IRONIC_PXE_BOOT_IMAGE:-$(get_pxe_boot_file)}
 
 IRONIC_AUTOMATED_CLEAN_ENABLED=$(trueorfalse True IRONIC_AUTOMATED_CLEAN_ENABLED)
 
+IRONIC_SECURE_BOOT=${IRONIC_SECURE_BOOT:-False}
+IRONIC_UEFI_BOOT_LOADER=${IRONIC_UEFI_BOOT_LOADER:-grub2}
+IRONIC_GRUB2_SHIM_FILE=${IRONIC_GRUB2_SHIM_FILE:-}
+IRONIC_GRUB2_FILE=${IRONIC_GRUB2_FILE:-}
 IRONIC_UEFI_FILES_DIR=${IRONIC_UEFI_FILES_DIR:-/var/lib/libvirt/images}
 UEFI_LOADER_PATH=$IRONIC_UEFI_FILES_DIR/OVMF_CODE.fd
 UEFI_NVRAM_PATH=$IRONIC_UEFI_FILES_DIR/OVMF_VARS.fd
 
 # Sanity checks
 if [[ "$IRONIC_BOOT_MODE" == "uefi" ]]; then
-    if [[ "$IRONIC_IPXE_ENABLED" == "False" ]]; then
-        die $LINENO "Boot mode UEFI is only supported when used with iPXE for now."
+    if [[ "$IRONIC_IPXE_ENABLED" == "False" ]] && [[ "$IRONIC_UEFI_BOOT_LOADER" != "grub2" ]]; then
+        die $LINENO "Boot mode UEFI is only supported with iPXE and grub2 bootloaders."
     fi
 
     if ! is_fedora && ! is_ubuntu; then
         die $LINENO "Boot mode UEFI only works in Ubuntu or Fedora for now."
+    fi
+
+    if [[ "$IRONIC_IPXE_ENABLED" == "False" ]]; then
+        if [[ -z $IRONIC_GRUB2_SHIM_FILE ]] || [[ -z $IRONIC_GRUB2_FILE ]] || [[ ! -f $IRONIC_GRUB2_SHIM_FILE ]] || [[ ! -f $IRONIC_GRUB2_FILE ]]; then
+            die $LINENO "Grub2 Bootloader and Shim file missing."
+        fi
     fi
 fi
 
@@ -1839,6 +1849,13 @@ function enroll_nodes {
         if [[ "$IRONIC_BOOT_MODE" == "uefi" ]]; then
             node_capabilities+=" --property capabilities=boot_mode:uefi"
         fi
+        if [[ "$IRONIC_SECURE_BOOT" == "True" ]]; then
+            if [[ -n "$node_capabilities" ]]; then
+                node_capabilities+=",secure_boot:true"
+            else
+                node_capabilities+=" --property capabilities=secure_boot:true"
+            fi
+        fi
 
         if [[ "$IRONIC_IS_HARDWARE" == "False" ]]; then
             interface_info=$(echo $hardware_info | awk '{print $1}')
@@ -2065,6 +2082,10 @@ function enroll_nodes {
                 openstack flavor set baremetal --property "trait:$trait"="required"
             done
 
+            if [[ "$IRONIC_SECURE_BOOT" == "True" ]]; then
+                openstack flavor set baremetal --property "capabilities:secure_boot"="true"
+            fi
+
             # NOTE(dtantsur): sometimes nova compute fails to start with ironic due
             # to keystone restarting and not being able to authenticate us.
             # Restart it just to be sure (and avoid gate problems like bug 1537076)
@@ -2136,10 +2157,43 @@ function configure_tftpd {
 
     # setup tftp file mapping to satisfy requests at the root (booting) and
     # /tftpboot/ sub-dir (as per deploy-ironic elements)
-    echo "r ^([^/]) $IRONIC_TFTPBOOT_DIR/\1" >$IRONIC_TFTPBOOT_DIR/map-file
-    echo "r ^(/tftpboot/) $IRONIC_TFTPBOOT_DIR/\2" >>$IRONIC_TFTPBOOT_DIR/map-file
+    # this section is only for ubuntu and fedora
+    if [[ "$IRONIC_IPXE_ENABLED" == "False" && \
+            ( "$IRONIC_BOOT_MODE" == "uefi" || "$IRONIC_SECURE_BOOT" == "True" ) && \
+            "$IRONIC_UEFI_BOOT_LOADER" == "grub2" ]]; then
+        local grub_dir
 
-    chmod -R 0755 $IRONIC_TFTPBOOT_DIR
+        echo "re ^($IRONIC_TFTPBOOT_DIR/) $IRONIC_TFTPBOOT_DIR/\2"  >$IRONIC_TFTPBOOT_DIR/map-file
+        echo "re ^$IRONIC_TFTPBOOT_DIR/ $IRONIC_TFTPBOOT_DIR/"  >>$IRONIC_TFTPBOOT_DIR/map-file
+        echo "re ^(^/) $IRONIC_TFTPBOOT_DIR/\1"  >>$IRONIC_TFTPBOOT_DIR/map-file
+        echo "re ^([^/]) $IRONIC_TFTPBOOT_DIR/\1" >>$IRONIC_TFTPBOOT_DIR/map-file
+
+        sudo cp $IRONIC_GRUB2_SHIM_FILE $IRONIC_TFTPBOOT_DIR/bootx64.efi
+        sudo cp $IRONIC_GRUB2_FILE $IRONIC_TFTPBOOT_DIR/grubx64.efi
+        if is_fedora; then
+            grub_dir=$IRONIC_TFTPBOOT_DIR/EFI/fedora
+        elif is_ubuntu; then
+            grub_dir=$IRONIC_TFTPBOOT_DIR/grub
+        fi
+        mkdir -p $grub_dir
+        cat << EOF > $grub_dir/grub.cfg
+set default=master
+set timeout=5
+set hidden_timeout_quiet=false
+
+menuentry "master"  {
+configfile $IRONIC_TFTPBOOT_DIR/\$net_default_ip.conf
+}
+EOF
+        chmod 644 $grub_dir/grub.cfg
+        iniset $IRONIC_CONF_FILE pxe uefi_pxe_config_template '$pybasedir/drivers/modules/pxe_grub_config.template'
+        iniset $IRONIC_CONF_FILE pxe uefi_pxe_bootfile_name  "bootx64.efi"
+    else
+        echo "r ^([^/]) $IRONIC_TFTPBOOT_DIR/\1" >$IRONIC_TFTPBOOT_DIR/map-file
+        echo "r ^(/tftpboot/) $IRONIC_TFTPBOOT_DIR/\2" >>$IRONIC_TFTPBOOT_DIR/map-file
+    fi
+
+    sudo chmod -R 0755 $IRONIC_TFTPBOOT_DIR
     restart_service xinetd
 }
 
