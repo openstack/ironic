@@ -334,7 +334,7 @@ agent_node:
   required: true
   type: JSON
 
-# variables in the API response body
+# variables in the API body
 boot_device:
   description: |
     The boot device for a Node, eg. "pxe" or "disk".
@@ -936,12 +936,6 @@ pxe_enabled:
   in: body
   required: true
   type: boolean
-r_driver_name:
-  description: |
-    The name of the driver used to manage this Node.
-  in: body
-  required: true
-  type: string
 raid_config:
   description: |
     Represents the current RAID configuration of the node. Introduced with
@@ -958,6 +952,115 @@ raid_interface:
 reason:
   description: |
     Specify the reason for setting the Node into maintenance mode.
+  in: body
+  required: false
+  type: string
+req_boot_interface:
+  description: |
+    The boot interface for a Node, e.g. "pxe".
+  in: body
+  required: false
+  type: string
+req_console_interface:
+  description: |
+    The console interface for a node, e.g. "no-console".
+  in: body
+  required: false
+  type: string
+req_deploy_interface:
+  description: |
+    The deploy interface for a node, e.g. "iscsi".
+  in: body
+  required: false
+  type: string
+req_driver_info:
+  description: |
+    All the metadata required by the driver to manage this Node. List of fields
+    varies between drivers, and can be retrieved from the
+    ``/v1/drivers/<DRIVER_NAME>/properties`` resource.
+  in: body
+  required: false
+  type: JSON
+req_driver_name:
+  description: |
+    The name of the driver used to manage this Node.
+  in: body
+  required: true
+  type: string
+req_extra:
+  description: |
+    A set of one or more arbitrary metadata key and
+    value pairs.
+  in: body
+  required: false
+  type: object
+req_inspect_interface:
+  description: |
+    The interface used for node inspection, e.g. "no-inspect".
+  in: body
+  required: false
+  type: string
+req_management_interface:
+  description: |
+    Interface for out-of-band node management, e.g. "ipmitool".
+  in: body
+  required: false
+  type: string
+req_network_interface:
+  description: |
+    Which Network Interface provider to use when plumbing the network
+    connections for this Node.
+  in: body
+  required: false
+  type: string
+req_power_interface:
+  description: |
+    Interface used for performing power actions on the node, e.g. "ipmitool".
+  in: body
+  required: false
+  type: string
+req_properties:
+  description: |
+    Physical characteristics of this Node. Populated during inspection, if
+    performed. Can be edited via the REST API at any time.
+  in: body
+  required: false
+  type: JSON
+req_raid_interface:
+  description: |
+    Interface used for configuring RAID on this node, e.g. "no-raid".
+  in: body
+  required: false
+  type: string
+req_rescue_interface:
+  description: |
+    The interface used for node rescue, e.g. “no-rescue”.
+  in: body
+  required: false
+  type: string
+req_resource_class_create:
+  description: |
+    A string which can be used by external schedulers to identify this Node as
+    a unit of a specific type of resource.
+  in: body
+  required: false
+  type: string
+req_storage_interface:
+  description: |
+    Interface used for attaching and detaching volumes on this node, e.g.
+    "cinder".
+  in: body
+  required: false
+  type: string
+req_uuid:
+  description: |
+    The UUID for the resource.
+  in: body
+  required: false
+  type: string
+req_vendor_interface:
+  description: |
+    Interface for vendor-specific functionality on this node, e.g. "no-vendor".
   in: body
   required: false
   type: string
