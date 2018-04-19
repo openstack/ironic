@@ -789,14 +789,16 @@ function setup_redfish {
         pip_install_gr "sushy"
     fi
 
-    if use_library_from_git "sushy-tools"; then
-        git_clone_by_name "sushy-tools"
-        setup_dev_lib "sushy-tools"
-    else
-        pip_install "sushy-tools"
-    fi
+    if [[ "$IRONIC_IS_HARDWARE" == "False" ]]; then
+        if use_library_from_git "sushy-tools"; then
+            git_clone_by_name "sushy-tools"
+            setup_dev_lib "sushy-tools"
+        else
+            pip_install "sushy-tools"
+        fi
 
-    start_redfish_emulator
+        start_redfish_emulator
+    fi
 }
 
 # install_ironic() - Install the things!
@@ -863,7 +865,7 @@ function install_ironic {
         setup_virtualpdu
     fi
 
-    if is_deployed_by_redfish && [[ "$IRONIC_IS_HARDWARE" == "False" ]]; then
+    if is_deployed_by_redfish; then
         setup_redfish
     fi
 
@@ -1961,6 +1963,14 @@ function enroll_nodes {
                 node_options+=" --driver-info drac_host=$bmc_address \
                     --driver-info drac_password=$bmc_passwd \
                     --driver-info drac_username=$bmc_username"
+            elif is_deployed_by_redfish; then
+                local bmc_redfish_system_id
+                bmc_redfish_system_id=$(echo $hardware_info |awk '{print $5}')
+                node_options+=" --driver-info redfish_address=https://$bmc_address \
+                    --driver-info redfish_system_id=$bmc_redfish_system_id \
+                    --driver-info redfish_password=$bmc_passwd \
+                    --driver-info redfish_username=$bmc_username \
+                    --driver-info redfish_verify_ca=False"
             elif is_deployed_by_irmc; then
                 node_options+=" --driver-info irmc_address=$bmc_address \
                     --driver-info irmc_password=$bmc_passwd \
