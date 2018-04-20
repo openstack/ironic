@@ -224,7 +224,7 @@ Node configuration
 Prerequisites
 =============
 
-* `proliantutils <https://pypi.python.org/pypi/proliantutils>`_ is a python package
+* `proliantutils <https://pypi.org/project/proliantutils>`_ is a python package
   which contains a set of modules for managing HPE ProLiant hardware.
 
   Install ``proliantutils`` module on the ironic conductor node. Minimum
@@ -1028,7 +1028,7 @@ flavor.
 
 Use element ``ubuntu-signed`` or ``fedora`` to build signed deploy iso and
 user images from
-`diskimage-builder <https://pypi.python.org/pypi/diskimage-builder>`_.
+`diskimage-builder <https://pypi.org/project/diskimage-builder>`_.
 Please refer to :ref:`deploy-ramdisk` for more information on building
 deploy ramdisk.
 

@@ -15,8 +15,8 @@ hardware type.
 Prerequisites
 =============
 
-* Install `python-scciclient <https://pypi.python.org/pypi/python-scciclient>`_
-  and `pysnmp <https://pypi.python.org/pypi/pysnmp>`_ packages::
+* Install `python-scciclient <https://pypi.org/project/python-scciclient>`_
+  and `pysnmp <https://pypi.org/project/pysnmp>`_ packages::
 
   $ pip install "python-scciclient>=0.6.0" pysnmp
 
@@ -592,9 +592,9 @@ configuration:
 * The python-scciclient package requires pyghmi version >= 1.0.22 and pysnmp
   version >= 4.2.3. They are used by the conductor service on the conductor.
   The latest version of pyghmi can be downloaded from `here
-  <https://pypi.python.org/pypi/pyghmi/>`__
+  <https://pypi.org/project/pyghmi/>`__
   and pysnmp can be downloaded from `here
-  <https://pypi.python.org/pypi/pysnmp/>`__.
+  <https://pypi.org/project/pysnmp/>`__.
 
 Supported properties
 ~~~~~~~~~~~~~~~~~~~~

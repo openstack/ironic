@@ -113,6 +113,6 @@ configuration file must be set::
     add_ports = all
     keep_ports = present
 
-.. _ironic-inspector: https://pypi.python.org/pypi/ironic-inspector
-.. _python-ironic-inspector-client: https://pypi.python.org/pypi/python-ironic-inspector-client
-.. _python-ironicclient: https://pypi.python.org/pypi/python-ironicclient
+.. _ironic-inspector: https://pypi.org/project/ironic-inspector
+.. _python-ironic-inspector-client: https://pypi.org/project/python-ironic-inspector-client
+.. _python-ironicclient: https://pypi.org/project/python-ironicclient
