@@ -1,0 +1,20 @@
+---
+fixes:
+  - |
+    Fixes ``direct`` deploy interface to invoke ``boot.prepare_instance``
+    irrespective of image type being provisioned. It was calling
+    ``boot.prepare_instance`` only if the image being provisioned is a
+    partition image. See bugs `1713916
+    <https://storyboard.openstack.org/#!/story/1713916>`_ and `1750958
+    <https://storyboard.openstack.org/#!/story/1750958>`_ for details.
+upgrade:
+  - |
+    With the deploy ramdisk based on Ironic Python Agent version 3.1.0
+    and beyond, the drivers using ``direct`` deploy interface performs
+    ``netboot`` or ``local`` boot for whole disk image based on value
+    of boot option setting. When you upgrade Ironic Python Agent in your
+    deploy ramdisk, ensure that boot option is set appropriately for the
+    node. The boot option can be set using configuration
+    ``[deploy]/default_boot_option`` or as a ``boot_option`` capability
+    in node's ``properties['capabilities']``. Also please note that this
+    functionality requires ``hexdump`` command in the ramdisk.
