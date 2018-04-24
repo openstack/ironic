@@ -119,7 +119,7 @@ class Inspector(base.InspectInterface):
         ironic-inspector. Results will be checked in a periodic task.
 
         :param task: a task from TaskManager.
-        :returns: states.INSPECTING
+        :returns: states.INSPECTWAIT
         """
         LOG.debug('Starting inspection for node %(uuid)s using '
                   'ironic-inspector', {'uuid': task.node.uuid})
@@ -128,13 +128,13 @@ class Inspector(base.InspectInterface):
         # we can release a lock as soon as possible and allow ironic-inspector
         # to operate on a node.
         eventlet.spawn_n(_start_inspection, task.node.uuid, task.context)
-        return states.INSPECTING
+        return states.INSPECTWAIT
 
     @periodics.periodic(spacing=CONF.inspector.status_check_period,
                         enabled=CONF.inspector.enabled)
     def _periodic_check_result(self, manager, context):
         """Periodic task checking results of inspection."""
-        filters = {'provision_state': states.INSPECTING}
+        filters = {'provision_state': states.INSPECTWAIT}
         node_iter = manager.iter_nodes(filters=filters)
 
         for node_uuid, driver in node_iter:
@@ -171,7 +171,7 @@ def _start_inspection(node_uuid, context):
 def _check_status(task):
     """Check inspection status for node given by a task."""
     node = task.node
-    if node.provision_state != states.INSPECTING:
+    if node.provision_state != states.INSPECTWAIT:
         return
     if not isinstance(task.driver.inspect, Inspector):
         return

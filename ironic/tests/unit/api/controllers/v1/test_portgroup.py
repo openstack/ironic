@@ -31,6 +31,7 @@ from ironic.api.controllers.v1 import notification_utils
 from ironic.api.controllers.v1 import portgroup as api_portgroup
 from ironic.api.controllers.v1 import utils as api_utils
 from ironic.common import exception
+from ironic.common import states
 from ironic.common import utils as common_utils
 from ironic.conductor import rpcapi
 from ironic import objects
@@ -973,6 +974,37 @@ class TestPatch(test_api_base.BaseApiTest):
         self.assertEqual('application/json', response.content_type)
         self.assertTrue(response.json['error_message'])
         self.assertFalse(mock_upd.called)
+
+    def test_update_in_inspecting_not_allowed(self, mock_upd):
+        self.node.provision_state = states.INSPECTING
+        self.node.save()
+        address = 'AA:BB:CC:DD:EE:FF'
+        response = self.patch_json('/portgroups/%s' % self.portgroup.uuid,
+                                   [{'path': '/address',
+                                     'value': address,
+                                     'op': 'replace'}],
+                                   expect_errors=True,
+                                   headers={api_base.Version.string: "1.39"})
+        self.assertEqual(http_client.CONFLICT, response.status_code)
+        self.assertFalse(mock_upd.called)
+
+    def test_update_in_inspecting_allowed(self, mock_upd):
+        self.node.provision_state = states.INSPECTING
+        self.node.save()
+        address = 'AA:BB:CC:DD:EE:FF'
+        mock_upd.return_value = self.portgroup
+        mock_upd.return_value.address = address.lower()
+        response = self.patch_json('/portgroups/%s' % self.portgroup.uuid,
+                                   [{'path': '/address',
+                                     'value': address,
+                                     'op': 'replace'}],
+                                   expect_errors=True,
+                                   headers={api_base.Version.string: "1.38"})
+        self.assertEqual(http_client.OK, response.status_int)
+        self.assertEqual(address.lower(), response.json['address'])
+        self.assertTrue(mock_upd.called)
+        kargs = mock_upd.call_args[0][1]
+        self.assertEqual(address.lower(), kargs.address)
 
 
 @mock.patch.object(rpcapi.ConductorAPI, 'update_portgroup', autospec=True,

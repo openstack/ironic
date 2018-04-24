@@ -2,6 +2,12 @@
 REST API Version History
 ========================
 
+1.39 (Rocky, master)
+--------------------
+
+Added ``inspect wait`` to available provision states. A node is shown as
+``inspect wait`` instead of ``inspecting`` during asynchronous inspection.
+
 1.38 (Queens, 10.1.0)
 ---------------------
 

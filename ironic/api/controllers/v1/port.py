@@ -34,6 +34,7 @@ from ironic.api import expose
 from ironic.common import exception
 from ironic.common.i18n import _
 from ironic.common import policy
+from ironic.common import states as ir_states
 from ironic import objects
 
 METRICS = metrics_utils.get_metrics_logger(__name__)
@@ -668,6 +669,15 @@ class PortsController(rest.RestController):
                 rpc_port[field] = patch_val
 
         rpc_node = objects.Node.get_by_id(context, rpc_port.node_id)
+        if (rpc_node.provision_state == ir_states.INSPECTING and
+                api_utils.allow_inspect_wait_state()):
+            msg = _('Cannot update port "%(port)s" on "%(node)s" while it is '
+                    'in state "%(state)s".') % {'port': rpc_port.uuid,
+                                                'node': rpc_node.uuid,
+                                                'state': ir_states.INSPECTING}
+            raise wsme.exc.ClientSideError(msg,
+                                           status_code=http_client.CONFLICT)
+
         notify_extra = {'node_uuid': rpc_node.uuid,
                         'portgroup_uuid': port.portgroup_uuid}
         notify.emit_start_notification(context, rpc_port, 'update',

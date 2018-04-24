@@ -227,6 +227,20 @@ class TestListNodes(test_api_base.BaseApiTest):
             headers={api_base.Version.string: '1.36'})
         self.assertNotIn('traits', data)
 
+    def test_node_inspect_wait_state_between_api_versions(self):
+        node = obj_utils.create_test_node(self.context,
+                                          provision_state='inspect wait')
+        lower_version_data = self.get_json(
+            '/nodes/%s' % node.uuid,
+            headers={api_base.Version.string: '1.38'})
+        self.assertEqual('inspecting', lower_version_data['provision_state'])
+
+        higher_version_data = self.get_json(
+            '/nodes/%s' % node.uuid,
+            headers={api_base.Version.string: '1.39'})
+        self.assertEqual('inspect wait',
+                         higher_version_data['provision_state'])
+
     def test_get_one_custom_fields(self):
         node = obj_utils.create_test_node(self.context,
                                           chassis_id=self.chassis.id)
@@ -1639,6 +1653,29 @@ class TestPatch(test_api_base.BaseApiTest):
         response = self.patch_json('/nodes/%s' % node.uuid,
                                    [{'path': '/instance_uuid',
                                      'op': 'remove'}])
+        self.assertEqual(http_client.OK, response.status_code)
+
+    def test_update_in_inspecting_not_allowed(self):
+        node = obj_utils.create_test_node(self.context,
+                                          uuid=uuidutils.generate_uuid(),
+                                          provision_state=states.INSPECTING)
+        self.mock_update_node.return_value = node
+        response = self.patch_json('/nodes/%s' % node.uuid,
+                                   [{'path': '/instance_uuid',
+                                     'op': 'remove'}],
+                                   headers={api_base.Version.string: "1.39"},
+                                   expect_errors=True)
+        self.assertEqual(http_client.CONFLICT, response.status_code)
+
+    def test_update_in_inspecting_allowed(self):
+        node = obj_utils.create_test_node(self.context,
+                                          uuid=uuidutils.generate_uuid(),
+                                          provision_state=states.INSPECTING)
+        self.mock_update_node.return_value = node
+        response = self.patch_json('/nodes/%s' % node.uuid,
+                                   [{'path': '/instance_uuid',
+                                     'op': 'remove'}],
+                                   headers={api_base.Version.string: "1.38"})
         self.assertEqual(http_client.OK, response.status_code)
 
     def test_add_state_in_deployfail(self):

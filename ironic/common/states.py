@@ -164,12 +164,19 @@ INSPECTING = 'inspecting'
 """ Node is under inspection.
 
 This is the provision state used when inspection is started. A successfully
-inspected node shall transition to MANAGEABLE state.
+inspected node shall transition to MANAGEABLE state. For asynchronous
+inspection, node shall transition to INSPECTWAIT state.
 """
-
 
 INSPECTFAIL = 'inspect failed'
 """ Node inspection failed. """
+
+INSPECTWAIT = 'inspect wait'
+""" Node is under inspection.
+
+This is the provision state used when an asynchronous inspection is in
+progress. A successfully inspected node shall transition to MANAGEABLE state.
+"""
 
 ADOPTING = 'adopting'
 """ Node is being adopted.
@@ -209,8 +216,9 @@ UNRESCUEFAIL = 'unrescue failed'
 UNRESCUING = 'unrescuing'
 """ Node is being restored from rescue mode (to active state). """
 
-UPDATE_ALLOWED_STATES = (DEPLOYFAIL, INSPECTING, INSPECTFAIL, CLEANFAIL, ERROR,
-                         VERIFYING, ADOPTFAIL, RESCUEFAIL, UNRESCUEFAIL)
+UPDATE_ALLOWED_STATES = (DEPLOYFAIL, INSPECTING, INSPECTFAIL, INSPECTWAIT,
+                         CLEANFAIL, ERROR, VERIFYING, ADOPTFAIL, RESCUEFAIL,
+                         UNRESCUEFAIL)
 """Transitional states in which we allow updating a node."""
 
 DELETE_ALLOWED_STATES = (AVAILABLE, MANAGEABLE, ENROLL, ADOPTFAIL)
@@ -220,8 +228,8 @@ STABLE_STATES = (ENROLL, MANAGEABLE, AVAILABLE, ACTIVE, ERROR, RESCUE)
 """States that will not transition unless receiving a request."""
 
 UNSTABLE_STATES = (DEPLOYING, DEPLOYWAIT, CLEANING, CLEANWAIT, VERIFYING,
-                   DELETING, INSPECTING, ADOPTING, RESCUING, RESCUEWAIT,
-                   UNRESCUING)
+                   DELETING, INSPECTING, INSPECTWAIT, ADOPTING, RESCUING,
+                   RESCUEWAIT, UNRESCUING)
 """States that can be changed without external request."""
 
 ##############
@@ -292,6 +300,7 @@ machine.add_transition(AVAILABLE, DEPLOYING, 'deploy')
 # Add inspect* states.
 machine.add_state(INSPECTING, target=MANAGEABLE, **watchers)
 machine.add_state(INSPECTFAIL, target=MANAGEABLE, **watchers)
+machine.add_state(INSPECTWAIT, target=MANAGEABLE, **watchers)
 
 # Add adopt* states
 machine.add_state(ADOPTING, target=ACTIVE, **watchers)
@@ -391,6 +400,15 @@ machine.add_transition(INSPECTING, MANAGEABLE, 'done')
 
 # Inspection may fail.
 machine.add_transition(INSPECTING, INSPECTFAIL, 'fail')
+
+# Transition for asynchronous inspection
+machine.add_transition(INSPECTING, INSPECTWAIT, 'wait')
+
+# Inspection is done
+machine.add_transition(INSPECTWAIT, MANAGEABLE, 'done')
+
+# Inspection failed.
+machine.add_transition(INSPECTWAIT, INSPECTFAIL, 'fail')
 
 # Move the node to manageable state for any other
 # action.
