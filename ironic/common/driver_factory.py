@@ -33,7 +33,7 @@ LOG = log.getLogger(__name__)
 EM_SEMAPHORE = 'extension_manager'
 
 
-def build_driver_for_task(task, driver_name=None):
+def build_driver_for_task(task):
     """Builds a composable driver for a given task.
 
     Starts with a `BareDriver` object, and attaches implementations of the
@@ -42,8 +42,6 @@ def build_driver_for_task(task, driver_name=None):
     driver factories and are configurable via the database.
 
     :param task: The task containing the node to build a driver for.
-    :param driver_name: The name of the classic driver or hardware type to use
-                        as a base, if different than task.node.driver.
     :returns: A driver object for the task.
     :raises: DriverNotFound if node.driver could not be found in either
              "ironic.drivers" or "ironic.hardware.types" namespaces.
@@ -53,7 +51,7 @@ def build_driver_for_task(task, driver_name=None):
              the requested implementation is not compatible with it.
     """
     node = task.node
-    driver_name = driver_name or node.driver
+    driver_name = node.driver
 
     driver_or_hw_type = get_driver_or_hardware_type(driver_name)
     try:
