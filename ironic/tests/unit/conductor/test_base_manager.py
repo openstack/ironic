@@ -111,12 +111,17 @@ class StartStopTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         self.assertEqual(2, net_factory.call_count)
         self.assertEqual(2, storage_factory.call_count)
 
-    @mock.patch.object(driver_factory.DriverFactory, '__getitem__')
-    def test_start_registers_driver_specific_tasks(self, get_mock):
-        init_names = ['fake1']
-        self.config(enabled_drivers=init_names)
-
+    @mock.patch.object(driver_factory, 'all_interfaces', autospec=True)
+    @mock.patch.object(driver_factory, 'hardware_types', autospec=True)
+    @mock.patch.object(driver_factory, 'drivers', autospec=True)
+    def test_start_registers_driver_specific_tasks(self, mock_drivers,
+                                                   mock_hw_types, mock_ifaces):
         class TestInterface(object):
+            @periodics.periodic(spacing=100500)
+            def iface(self):
+                pass
+
+        class TestInterface2(object):
             @periodics.periodic(spacing=100500)
             def iface(self):
                 pass
@@ -132,22 +137,27 @@ class StartStopTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
             def task(self, context):
                 pass
 
-        obj = Driver()
-        get_mock.return_value = mock.Mock(obj=obj)
+        driver = Driver()
+        iface1 = TestInterface()
+        iface2 = TestInterface2()
+        expected = [iface1.iface, iface2.iface]
 
-        with mock.patch.object(
-                driver_factory.DriverFactory()._extension_manager,
-                'names') as mock_names:
-            mock_names.return_value = init_names
-            self._start_service(start_periodic_tasks=True)
+        mock_drivers.return_value = {'fake1': driver}
+        mock_ifaces.return_value = {
+            'management': {'fake1': iface1},
+            'power': {'fake2': iface2}
+        }
+
+        self._start_service(start_periodic_tasks=True)
 
         tasks = {c[0] for c in self.service._periodic_task_callables}
-        self.assertTrue(periodics.is_periodic(obj.iface.iface))
-        self.assertIn(obj.iface.iface, tasks)
+        for item in expected:
+            self.assertTrue(periodics.is_periodic(item))
+            self.assertIn(item, tasks)
 
         # no periodic tasks from the Driver object
-        self.assertTrue(periodics.is_periodic(obj.task))
-        self.assertNotIn(obj.task, tasks)
+        self.assertTrue(periodics.is_periodic(driver.task))
+        self.assertNotIn(driver.task, tasks)
 
     @mock.patch.object(driver_factory.DriverFactory, '__init__')
     def test_start_fails_on_missing_driver(self, mock_df):
@@ -194,7 +204,7 @@ class StartStopTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         df_mock.return_value = driver_factory_mock
         self.service.init_host()
         self.assertFalse(log_mock.error.called)
-        df_mock.assert_called_once_with()
+        df_mock.assert_called_with()
         self.assertFalse(del_mock.called)
 
     @mock.patch.object(base_manager, 'LOG')
@@ -208,7 +218,7 @@ class StartStopTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         ht_mock.return_value = driver_factory_mock
         self.service.init_host()
         self.assertFalse(log_mock.error.called)
-        ht_mock.assert_called_once_with()
+        ht_mock.assert_called_with()
         self.assertFalse(del_mock.called)
 
     @mock.patch.object(base_manager, 'LOG')

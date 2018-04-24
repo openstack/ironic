@@ -149,33 +149,7 @@ class BaseConductorManager(object):
             LOG.error(msg, {'host': self.host, 'names': name_clashes})
             raise exception.DriverNameConflict(names=name_clashes)
 
-        # Collect driver-specific periodic tasks.
-        # Conductor periodic tasks accept context argument, driver periodic
-        # tasks accept this manager and context. We have to ensure that the
-        # same driver interface class is not traversed twice, otherwise
-        # we'll have several instances of the same task.
-        LOG.debug('Collecting periodic tasks')
-        self._periodic_task_callables = []
-        periodic_task_classes = set()
-        self._collect_periodic_tasks(self, (admin_context,))
-        for driver_obj in drivers.values():
-            for iface_name in driver_obj.all_interfaces:
-                iface = getattr(driver_obj, iface_name, None)
-                if iface and iface.__class__ not in periodic_task_classes:
-                    self._collect_periodic_tasks(iface, (self, admin_context))
-                    periodic_task_classes.add(iface.__class__)
-
-        if (len(self._periodic_task_callables) >
-                CONF.conductor.workers_pool_size):
-            LOG.warning('This conductor has %(tasks)d periodic tasks '
-                        'enabled, but only %(workers)d task workers '
-                        'allowed by [conductor]workers_pool_size option',
-                        {'tasks': len(self._periodic_task_callables),
-                         'workers': CONF.conductor.workers_pool_size})
-
-        self._periodic_tasks = periodics.PeriodicWorker(
-            self._periodic_task_callables,
-            executor_factory=periodics.ExistingExecutor(self._executor))
+        self._collect_periodic_tasks(admin_context)
 
         # Check for required config options if object_store_endpoint_type is
         # radosgw
@@ -267,6 +241,66 @@ class BaseConductorManager(object):
                                state, 'provision_updated_at',
                                last_error=last_error)
 
+    def _collect_periodic_tasks(self, admin_context):
+        """Collect driver-specific periodic tasks.
+
+        Conductor periodic tasks accept context argument, driver periodic
+        tasks accept this manager and context. We have to ensure that the
+        same driver interface class is not traversed twice, otherwise
+        we'll have several instances of the same task.
+
+        :param admin_context: Administrator context to pass to tasks.
+        """
+        LOG.debug('Collecting periodic tasks')
+        # collected callables
+        periodic_task_callables = []
+        # list of visited classes to avoid adding the same tasks twice
+        periodic_task_classes = set()
+
+        def _collect_from(obj, args):
+            """Collect tasks from the given object.
+
+            :param obj: the object to collect tasks from.
+            :param args: a tuple of arguments to pass to tasks.
+            """
+            if obj and obj.__class__ not in periodic_task_classes:
+                for name, member in inspect.getmembers(obj):
+                    if periodics.is_periodic(member):
+                        LOG.debug('Found periodic task %(owner)s.%(member)s',
+                                  {'owner': obj.__class__.__name__,
+                                   'member': name})
+                        periodic_task_callables.append((member, args, {}))
+                periodic_task_classes.add(obj.__class__)
+
+        # First, collect tasks from the conductor itself
+        _collect_from(self, (admin_context,))
+
+        # Second, collect tasks from hardware interfaces
+        for ifaces in driver_factory.all_interfaces().values():
+            for iface in ifaces.values():
+                _collect_from(iface, args=(self, admin_context))
+        # TODO(dtantsur): allow periodics on hardware types themselves?
+
+        # Finally, collect tasks from interfaces of classic drivers, since they
+        # are not necessary registered as new-style hardware interfaces.
+        for driver_obj in driver_factory.drivers().values():
+            for iface_name in driver_obj.all_interfaces:
+                iface = getattr(driver_obj, iface_name, None)
+                _collect_from(iface, args=(self, admin_context))
+
+        if len(periodic_task_callables) > CONF.conductor.workers_pool_size:
+            LOG.warning('This conductor has %(tasks)d periodic tasks '
+                        'enabled, but only %(workers)d task workers '
+                        'allowed by [conductor]workers_pool_size option',
+                        {'tasks': len(periodic_task_callables),
+                         'workers': CONF.conductor.workers_pool_size})
+
+        self._periodic_tasks = periodics.PeriodicWorker(
+            periodic_task_callables,
+            executor_factory=periodics.ExistingExecutor(self._executor))
+        # This is only used in tests currently. Delete it?
+        self._periodic_task_callables = periodic_task_callables
+
     def del_host(self, deregister=True):
         # Conductor deregistration fails if called on non-initialized
         # conductor (e.g. when rpc server is unreachable).
@@ -330,22 +364,6 @@ class BaseConductorManager(object):
 
         # TODO(jroll) validate against other conductor, warn if different
         # how do we do this performantly? :|
-
-    def _collect_periodic_tasks(self, obj, args):
-        """Collect periodic tasks from a given object.
-
-        Populates self._periodic_task_callables with tuples
-        (callable, args, kwargs).
-
-        :param obj: object containing periodic tasks as methods
-        :param args: tuple with arguments to pass to every task
-        """
-        for name, member in inspect.getmembers(obj):
-            if periodics.is_periodic(member):
-                LOG.debug('Found periodic task %(owner)s.%(member)s',
-                          {'owner': obj.__class__.__name__,
-                           'member': name})
-                self._periodic_task_callables.append((member, args, {}))
 
     def _on_periodic_tasks_stop(self, fut):
         try:
