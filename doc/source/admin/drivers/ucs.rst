@@ -96,4 +96,4 @@ The following sequence of commands can be used to enroll a UCS node.
 
 References
 ==========
-.. [1] UcsSdk - https://pypi.python.org/pypi/UcsSdk
+.. [1] UcsSdk - https://pypi.org/project/UcsSdk

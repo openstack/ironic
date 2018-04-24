@@ -12,7 +12,7 @@
 
 """
 Modules required to work with ironic_inspector:
-    https://pypi.python.org/pypi/ironic-inspector
+    https://pypi.org/project/ironic-inspector
 """
 
 import eventlet

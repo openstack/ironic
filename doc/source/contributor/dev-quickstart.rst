@@ -105,7 +105,7 @@ name. For example::
 
 You may pass options to the test programs using positional arguments.
 To run a specific unit test, this passes the -r option and desired test
-(regex string) to `os-testr <https://pypi.python.org/pypi/os-testr>`_::
+(regex string) to `os-testr <https://pypi.org/project/os-testr>`_::
 
     # run a specific test for Python 2.7
     tox -epy27 -- -r test_conductor
