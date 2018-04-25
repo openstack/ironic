@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Fixes collection of periodic tasks from hardware interfaces that are not
+    used in any enabled classic drivers. See `bug 2001884
+    <https://storyboard.openstack.org/#!/story/2001884>`_ for details.
