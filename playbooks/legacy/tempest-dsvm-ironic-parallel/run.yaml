@@ -46,7 +46,7 @@
               export OVERRIDE_ZUUL_BRANCH=$BRANCH_OVERRIDE
           fi
           # Run only baremetal tests
-          export DEVSTACK_GATE_TEMPEST_REGEX='ironic'
+          export DEVSTACK_GATE_TEMPEST_REGEX="ironic_tempest_plugin.tests.scenario"
 
           cp devstack-gate/devstack-vm-gate-wrap.sh ./safe-devstack-vm-gate-wrap.sh
           ./safe-devstack-vm-gate-wrap.sh

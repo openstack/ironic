@@ -2,6 +2,8 @@
     check:
       jobs:
         - ironic-dsvm-standalone
+        - ironic-tempest-dsvm-functional-python2
+        - ironic-tempest-dsvm-functional-python3
         - ironic-grenade-dsvm
         - ironic-grenade-dsvm-multinode-multitenant
         - ironic-tempest-dsvm-bfv
@@ -22,6 +24,8 @@
       queue: ironic
       jobs:
         - ironic-dsvm-standalone
+        - ironic-tempest-dsvm-functional-python2
+        - ironic-tempest-dsvm-functional-python3
         - ironic-grenade-dsvm
         - ironic-grenade-dsvm-multinode-multitenant
         - ironic-tempest-dsvm-bfv

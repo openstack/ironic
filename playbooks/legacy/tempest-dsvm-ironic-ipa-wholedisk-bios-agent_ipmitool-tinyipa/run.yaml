@@ -37,7 +37,7 @@
     - shell:
         cmd: |
           cat << 'EOF' >> ironic-extra-vars
-            export DEVSTACK_GATE_TEMPEST_REGEX="ironic"
+            export DEVSTACK_GATE_TEMPEST_REGEX="ironic_tempest_plugin.tests.scenario"
 
           EOF
         chdir: '{{ ansible_user_dir }}/workspace'

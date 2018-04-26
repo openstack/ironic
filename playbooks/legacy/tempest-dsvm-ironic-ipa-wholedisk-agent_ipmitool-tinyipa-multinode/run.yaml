@@ -79,7 +79,7 @@
             # Run all ironic tests and the multinode smoke test from nova.
             # TODO(dtantsur): add test_attach_interfaces from nova when our
             # devstack plugin creates more than one port per node.
-            export DEVSTACK_GATE_TEMPEST_REGEX="(ironic|test_schedule_to_all_nodes)"
+            export DEVSTACK_GATE_TEMPEST_REGEX="(ironic_tempest_plugin.tests.scenario|test_schedule_to_all_nodes)"
           EOF
         chdir: '{{ ansible_user_dir }}/workspace'
       environment: '{{ zuul | zuul_legacy_vars }}'
