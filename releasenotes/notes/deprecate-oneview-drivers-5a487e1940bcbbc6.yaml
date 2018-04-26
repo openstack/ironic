@@ -1,0 +1,12 @@
+---
+deprecations:
+  - |
+    The ``oneview`` hardware type, as well as the supporting
+    driver interfaces have been deprecated and are scheduled to be removed
+    from ironic in the Stein development cycle. This is due to the lack of
+    operational Third Party testing to help ensure that the support for
+    Oneview is functional.
+    Oneview Third Party CI was shutdown just prior to the start of the Rocky
+    development cycle, and at the time of this deprecation the Ironic
+    community has no indication that testing will be restablished.
+    Should testing be restablished, this deprecation shall be rescinded.

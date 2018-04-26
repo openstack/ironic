@@ -30,6 +30,13 @@ METRICS = metrics_utils.get_metrics_logger(__name__)
 class OneViewInspect(inspector.Inspector):
     """Interface for in band inspection."""
 
+    # NOTE(TheJulia): Marking as unsupported as 3rd party CI was taken down
+    # shortly before the beginning of the Rocky cycle, and no replies have
+    # indicated that 3rd party CI will be re-established nor visible
+    # actions observed regarding re-establishing 3rd party CI.
+    # TODO(TheJulia): This should be expected to be removed in Stein.
+    supported = False
+
     def get_properties(self):
         return deploy_utils.get_properties()
 

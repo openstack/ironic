@@ -40,6 +40,12 @@ class OneViewHardware(generic.GenericHardware):
 
     OneView hardware type is targeted for OneView
     """
+    # NOTE(TheJulia): Marking as unsupported as 3rd party CI was taken down
+    # shortly before the beginning of the Rocky cycle, and no replies have
+    # indicated that 3rd party CI will be re-established nor visible
+    # actions observed regarding re-establishing 3rd party CI.
+    # TODO(TheJulia): This should be expected to be removed in Stein.
+    supported = False
 
     @property
     def supported_deploy_interfaces(self):
@@ -70,6 +76,12 @@ class AgentPXEOneViewDriver(base.BaseDriver):
     management. And
     :class:ironic.drivers.modules.oneview.deploy.OneViewAgentDeploy for deploy.
     """
+    # NOTE(TheJulia): Marking as unsupported as 3rd party CI was taken down
+    # shortly before the beginning of the Rocky cycle, and no replies have
+    # indicated that 3rd party CI will be re-established nor visible
+    # actions observed regarding re-establishing 3rd party CI.
+    # TODO(TheJulia): This should be expected to be removed in Stein.
+    supported = False
 
     def __init__(self):
         if not importutils.try_import('hpOneView.oneview_client'):
@@ -113,6 +125,12 @@ class ISCSIPXEOneViewDriver(base.BaseDriver):
     management. And
     :class:ironic.drivers.modules.oneview.deploy.OneViewIscsiDeploy for deploy.
     """
+    # NOTE(TheJulia): Marking as unsupported as 3rd party CI was taken down
+    # shortly before the beginning of the Rocky cycle, and no replies have
+    # indicated that 3rd party CI will be re-established nor visible
+    # actions observed regarding re-establishing 3rd party CI.
+    # TODO(TheJulia): This should be expected to be removed in Stein.
+    supported = False
 
     def __init__(self):
         if not importutils.try_import('hpOneView.oneview_client'):

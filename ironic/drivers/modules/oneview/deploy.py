@@ -217,6 +217,13 @@ class OneViewPeriodicTasks(object):
 class OneViewIscsiDeploy(iscsi_deploy.ISCSIDeploy, OneViewPeriodicTasks):
     """Class for OneView ISCSI deployment driver."""
 
+    # NOTE(TheJulia): Marking as unsupported as 3rd party CI was taken down
+    # shortly before the beginning of the Rocky cycle, and no replies have
+    # indicated that 3rd party CI will be re-established nor visible
+    # actions observed regarding re-establishing 3rd party CI.
+    # TODO(TheJulia): This should be expected to be removed in Stein.
+    supported = False
+
     oneview_driver = common.ISCSI_PXE_ONEVIEW
 
     def get_properties(self):
@@ -255,6 +262,13 @@ class OneViewIscsiDeploy(iscsi_deploy.ISCSIDeploy, OneViewPeriodicTasks):
 
 class OneViewAgentDeploy(agent.AgentDeploy, OneViewPeriodicTasks):
     """Class for OneView Agent deployment driver."""
+
+    # NOTE(TheJulia): Marking as unsupported as 3rd party CI was taken down
+    # shortly before the beginning of the Rocky cycle, and no replies have
+    # indicated that 3rd party CI will be re-established nor visible
+    # actions observed regarding re-establishing 3rd party CI.
+    # TODO(TheJulia): This should be expected to be removed in Stein.
+    supported = False
 
     oneview_driver = common.AGENT_PXE_ONEVIEW
 
