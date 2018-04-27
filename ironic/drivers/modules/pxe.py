@@ -630,7 +630,10 @@ class PXEBoot(base.BootInterface):
                     LOG.warning("The disk id for the whole disk image can't "
                                 "be found, unable to switch the pxe config "
                                 "from deployment mode to service (boot) mode "
-                                "for node %(node)s", {"node": task.node.uuid})
+                                "for node %(node)s. Booting the instance "
+                                "from disk.", {"node": task.node.uuid})
+                    pxe_utils.clean_up_pxe_config(task)
+                    boot_device = boot_devices.DISK
             else:
                 _build_service_pxe_config(task, instance_image_info,
                                           root_uuid_or_disk_id)
