@@ -171,6 +171,15 @@ class TestGlanceImageService(base.TestCase):
                           self.service.show,
                           uuidutils.generate_uuid())
 
+    def test_show_raises_when_image_not_active(self):
+        image_id = uuidutils.generate_uuid()
+        image = self._make_fixture(name='image1', is_public=True,
+                                   id=image_id, status="queued")
+        with mock.patch.object(self.service, 'call', return_value=image,
+                               autospec=True):
+            self.assertRaises(exception.ImageUnacceptable,
+                              self.service.show, image_id)
+
     @mock.patch.object(time, 'sleep', autospec=True)
     def test_download_with_retries(self, mock_sleep):
         tries = [0]
