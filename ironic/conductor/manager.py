@@ -50,6 +50,7 @@ import eventlet
 from futurist import periodics
 from futurist import waiters
 from ironic_lib import metrics_utils
+from oslo_db import exception as db_exception
 from oslo_log import log
 import oslo_messaging as messaging
 from oslo_utils import excutils
@@ -2810,6 +2811,7 @@ def _store_configdrive(node, configdrive):
     i_info = node.instance_info
     i_info['configdrive'] = configdrive
     node.instance_info = i_info
+    node.save()
 
 
 @METRICS.timer('do_node_deploy')
@@ -2829,7 +2831,7 @@ def do_node_deploy(task, conductor_id, configdrive=None):
         try:
             if configdrive:
                 _store_configdrive(node, configdrive)
-        except exception.SwiftOperationError as e:
+        except (exception.SwiftOperationError, exception.ConfigInvalid) as e:
             with excutils.save_and_reraise_exception():
                 handle_failure(
                     e, task,
@@ -2837,6 +2839,25 @@ def do_node_deploy(task, conductor_id, configdrive=None):
                      '%(node)s to Swift'),
                     _('Failed to upload the configdrive to Swift. '
                       'Error: %s'))
+        except db_exception.DBDataError as e:
+            with excutils.save_and_reraise_exception():
+                # NOTE(hshiina): This error happens when the configdrive is
+                #                too large. Remove the configdrive from the
+                #                object to update DB successfully in handling
+                #                the failure.
+                node.obj_reset_changes()
+                handle_failure(
+                    e, task,
+                    ('Error while storing the configdrive for %(node)s into '
+                     'the database: %(err)s'),
+                    _("Failed to store the configdrive in the database. : %s"))
+        except Exception as e:
+            with excutils.save_and_reraise_exception():
+                handle_failure(
+                    e, task,
+                    ('Unexpected error while preparing the configdrive for '
+                     'node %(node)s'),
+                    _("Failed to prepare the configdrive. Exception: %s"))
 
         try:
             task.driver.deploy.prepare(task)
