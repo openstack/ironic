@@ -32,16 +32,6 @@ Configure the Identity service for the Bare Metal service
       $ openstack endpoint create --region RegionOne \
           baremetal internal http://$IRONIC_NODE:6385
 
-   If only keystone v2 API is available, use this command instead:
-
-   .. code-block:: console
-
-      $ openstack endpoint create --region RegionOne \
-          --publicurl http://$IRONIC_NODE:6385 \
-          --internalurl http://$IRONIC_NODE:6385 \
-          --adminurl http://$IRONIC_NODE:6385 \
-          baremetal
-
 #. You may delegate limited privileges related to the Bare Metal service
    to your Users by creating Roles with the OpenStack Identity service.  By
    default, the Bare Metal service expects the "baremetal_admin" and
