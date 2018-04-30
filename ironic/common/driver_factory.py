@@ -396,6 +396,15 @@ def interfaces(interface_type):
     return _get_all_drivers(_INTERFACE_LOADERS[interface_type]())
 
 
+def all_interfaces():
+    """Get all interfaces for all interface types.
+
+    :returns: Dictionary mapping interface type to dictionary mapping
+        interface name to interface object.
+    """
+    return {iface: interfaces(iface) for iface in _INTERFACE_LOADERS}
+
+
 def enabled_supported_interfaces(hardware_type):
     """Get usable interfaces for a given hardware type.
 
