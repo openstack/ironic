@@ -4,6 +4,13 @@
 OneView drivers
 ===============
 
+.. note::
+   The `oneview` drivers and hardware type, along with related interfaces
+   to support OneView, have been deprecated, and should be expected to be
+   removed from ironic in the Stein cycle. Please see
+   `storyboard <https://storyboard.openstack.org/#!/story/2001924>`_ for
+   additional details.
+
 Overview
 ========
 
