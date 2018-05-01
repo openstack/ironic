@@ -47,7 +47,8 @@ class TestImageCacheFetch(base.TestCase):
         self.dest_dir = tempfile.mkdtemp()
         self.dest_path = os.path.join(self.dest_dir, 'dest')
         self.uuid = uuidutils.generate_uuid()
-        self.master_path = os.path.join(self.master_dir, self.uuid)
+        self.master_path = ''.join([os.path.join(self.master_dir, self.uuid),
+                                    '.converted'])
 
     @mock.patch.object(image_cache, '_fetch', autospec=True)
     @mock.patch.object(image_cache.ImageCache, 'clean_up', autospec=True)
@@ -77,6 +78,26 @@ class TestImageCacheFetch(base.TestCase):
         mock_cache_upd.assert_called_once_with(self.master_path, self.uuid,
                                                None)
         mock_dest_upd.assert_called_once_with(self.master_path, self.dest_path)
+        self.assertFalse(mock_link.called)
+        self.assertFalse(mock_download.called)
+        self.assertFalse(mock_clean_up.called)
+
+    @mock.patch.object(image_cache.ImageCache, 'clean_up', autospec=True)
+    @mock.patch.object(image_cache.ImageCache, '_download_image',
+                       autospec=True)
+    @mock.patch.object(os, 'link', autospec=True)
+    @mock.patch.object(image_cache, '_delete_dest_path_if_stale',
+                       return_value=True, autospec=True)
+    @mock.patch.object(image_cache, '_delete_master_path_if_stale',
+                       return_value=True, autospec=True)
+    def test_fetch_image_dest_and_master_uptodate_no_force_raw(
+            self, mock_cache_upd, mock_dest_upd, mock_link, mock_download,
+            mock_clean_up):
+        master_path = os.path.join(self.master_dir, self.uuid)
+        self.cache.fetch_image(self.uuid, self.dest_path, force_raw=False)
+        mock_cache_upd.assert_called_once_with(master_path, self.uuid,
+                                               None)
+        mock_dest_upd.assert_called_once_with(master_path, self.dest_path)
         self.assertFalse(mock_link.called)
         self.assertFalse(mock_download.called)
         self.assertFalse(mock_clean_up.called)
@@ -149,11 +170,27 @@ class TestImageCacheFetch(base.TestCase):
         href = u'http://abc.com/ubuntu.qcow2'
         href_encoded = href.encode('utf-8') if six.PY2 else href
         href_converted = str(uuid.uuid5(uuid.NAMESPACE_URL, href_encoded))
-        master_path = os.path.join(self.master_dir, href_converted)
+        master_path = ''.join([os.path.join(self.master_dir, href_converted),
+                               '.converted'])
         self.cache.fetch_image(href, self.dest_path)
         mock_download.assert_called_once_with(
             self.cache, href, master_path, self.dest_path,
             ctx=None, force_raw=True)
+        self.assertTrue(mock_clean_up.called)
+
+    @mock.patch.object(image_cache.ImageCache, 'clean_up', autospec=True)
+    @mock.patch.object(image_cache.ImageCache, '_download_image',
+                       autospec=True)
+    def test_fetch_image_not_uuid_no_force_raw(self, mock_download,
+                                               mock_clean_up):
+        href = u'http://abc.com/ubuntu.qcow2'
+        href_encoded = href.encode('utf-8') if six.PY2 else href
+        href_converted = str(uuid.uuid5(uuid.NAMESPACE_URL, href_encoded))
+        master_path = os.path.join(self.master_dir, href_converted)
+        self.cache.fetch_image(href, self.dest_path, force_raw=False)
+        mock_download.assert_called_once_with(
+            self.cache, href, master_path, self.dest_path,
+            ctx=None, force_raw=False)
         self.assertTrue(mock_clean_up.called)
 
     @mock.patch.object(image_cache, '_fetch', autospec=True)

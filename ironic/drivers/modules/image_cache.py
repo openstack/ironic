@@ -99,6 +99,11 @@ class ImageCache(object):
             href_encoded = href.encode('utf-8') if six.PY2 else href
             master_file_name = str(uuid.uuid5(uuid.NAMESPACE_URL,
                                               href_encoded))
+        # NOTE(kaifeng) The ".converted" suffix acts as an indicator that the
+        # image cached has gone through the conversion logic.
+        if force_raw:
+            master_file_name = master_file_name + '.converted'
+
         master_path = os.path.join(self.master_dir, master_file_name)
 
         if CONF.parallel_image_downloads:

@@ -19,10 +19,12 @@ import tempfile
 import time
 import types
 
+import fixtures
 from ironic_lib import disk_utils
 import mock
 from oslo_concurrency import processutils
 from oslo_config import cfg
+from oslo_utils import fileutils
 from oslo_utils import uuidutils
 import testtools
 from testtools import matchers
@@ -1718,6 +1720,42 @@ class AgentMethodsTestCase(db_base.DbTestCase):
         self.assertEqual('https://api-url', options['ipa-api-url'])
         self.assertEqual(0, options['coreos.configdrive'])
 
+    def test_direct_deploy_should_convert_raw_image_true(self):
+        cfg.CONF.set_override('force_raw_images', True)
+        cfg.CONF.set_override('stream_raw_images', True, group='agent')
+        internal_info = self.node.driver_internal_info
+        internal_info['is_whole_disk_image'] = True
+        self.node.driver_internal_info = internal_info
+        self.assertTrue(
+            utils.direct_deploy_should_convert_raw_image(self.node))
+
+    def test_direct_deploy_should_convert_raw_image_no_force_raw(self):
+        cfg.CONF.set_override('force_raw_images', False)
+        cfg.CONF.set_override('stream_raw_images', True, group='agent')
+        internal_info = self.node.driver_internal_info
+        internal_info['is_whole_disk_image'] = True
+        self.node.driver_internal_info = internal_info
+        self.assertFalse(
+            utils.direct_deploy_should_convert_raw_image(self.node))
+
+    def test_direct_deploy_should_convert_raw_image_no_stream(self):
+        cfg.CONF.set_override('force_raw_images', True)
+        cfg.CONF.set_override('stream_raw_images', False, group='agent')
+        internal_info = self.node.driver_internal_info
+        internal_info['is_whole_disk_image'] = True
+        self.node.driver_internal_info = internal_info
+        self.assertFalse(
+            utils.direct_deploy_should_convert_raw_image(self.node))
+
+    def test_direct_deploy_should_convert_raw_image_partition(self):
+        cfg.CONF.set_override('force_raw_images', True)
+        cfg.CONF.set_override('stream_raw_images', True, group='agent')
+        internal_info = self.node.driver_internal_info
+        internal_info['is_whole_disk_image'] = False
+        self.node.driver_internal_info = internal_info
+        self.assertFalse(
+            utils.direct_deploy_should_convert_raw_image(self.node))
+
 
 @mock.patch.object(disk_utils, 'is_block_device', autospec=True)
 @mock.patch.object(utils, 'login_iscsi', lambda *_: None)
@@ -2381,6 +2419,118 @@ class TestBuildInstanceInfoForDeploy(db_base.DbTestCase):
 
             self.assertRaises(exception.ImageRefValidationFailed,
                               utils.build_instance_info_for_deploy, task)
+
+
+class TestBuildInstanceInfoForHttpProvisioning(db_base.DbTestCase):
+    def setUp(self):
+        super(TestBuildInstanceInfoForHttpProvisioning, self).setUp()
+        self.node = obj_utils.create_test_node(self.context,
+                                               boot_interface='pxe',
+                                               deploy_interface='direct')
+        i_info = self.node.instance_info
+        i_info['image_source'] = '733d1c44-a2ea-414b-aca7-69decf20d810'
+        i_info['root_gb'] = 100
+        driver_internal_info = self.node.driver_internal_info
+        driver_internal_info['is_whole_disk_image'] = True
+        self.node.driver_internal_info = driver_internal_info
+        self.node.instance_info = i_info
+        self.node.save()
+
+        self.md5sum_mock = self.useFixture(fixtures.MockPatchObject(
+            fileutils, 'compute_file_checksum')).mock
+        self.md5sum_mock.return_value = 'fake md5'
+        self.cache_image_mock = self.useFixture(fixtures.MockPatchObject(
+            utils, 'cache_instance_image', autospec=True)).mock
+        self.cache_image_mock.return_value = (
+            '733d1c44-a2ea-414b-aca7-69decf20d810',
+            '/var/lib/ironic/images/{}/disk'.format(self.node.uuid))
+        self.ensure_tree_mock = self.useFixture(fixtures.MockPatchObject(
+            utils.fileutils, 'ensure_tree', autospec=True)).mock
+        self.create_link_mock = self.useFixture(fixtures.MockPatchObject(
+            common_utils, 'create_link_without_raise', autospec=True)).mock
+
+        cfg.CONF.set_override('http_url', 'http://172.172.24.10:8080',
+                              group='deploy')
+        cfg.CONF.set_override('image_download_source', 'http', group='agent')
+
+        self.expected_url = '/'.join([cfg.CONF.deploy.http_url,
+                                     cfg.CONF.deploy.http_image_subdir,
+                                     self.node.uuid])
+
+    @mock.patch.object(image_service.HttpImageService, 'validate_href',
+                       autospec=True)
+    @mock.patch.object(image_service, 'GlanceImageService', autospec=True)
+    def test_build_instance_info_no_force_raw(self, glance_mock,
+                                              validate_mock):
+        cfg.CONF.set_override('force_raw_images', False)
+
+        image_info = {'checksum': 'aa', 'disk_format': 'qcow2',
+                      'container_format': 'bare', 'properties': {}}
+        glance_mock.return_value.show = mock.MagicMock(spec_set=[],
+                                                       return_value=image_info)
+
+        with task_manager.acquire(
+                self.context, self.node.uuid, shared=False) as task:
+
+            instance_info = utils.build_instance_info_for_deploy(task)
+
+            glance_mock.assert_called_once_with(version=2,
+                                                context=task.context)
+            glance_mock.return_value.show.assert_called_once_with(
+                self.node.instance_info['image_source'])
+            self.cache_image_mock.assert_called_once_with(task.context,
+                                                          task.node,
+                                                          force_raw=False)
+            symlink_dir = utils._get_http_image_symlink_dir_path()
+            symlink_file = utils._get_http_image_symlink_file_path(
+                self.node.uuid)
+            image_path = utils._get_image_file_path(self.node.uuid)
+            self.ensure_tree_mock.assert_called_once_with(symlink_dir)
+            self.create_link_mock.assert_called_once_with(image_path,
+                                                          symlink_file)
+            self.assertEqual(instance_info['image_checksum'], 'aa')
+            self.assertEqual(instance_info['image_disk_format'], 'qcow2')
+            self.md5sum_mock.assert_not_called()
+            validate_mock.assert_called_once_with(mock.ANY, self.expected_url,
+                                                  secret=True)
+
+    @mock.patch.object(image_service.HttpImageService, 'validate_href',
+                       autospec=True)
+    @mock.patch.object(image_service, 'GlanceImageService', autospec=True)
+    def test_build_instance_info_force_raw(self, glance_mock,
+                                           validate_mock):
+        cfg.CONF.set_override('force_raw_images', True)
+
+        image_info = {'checksum': 'aa', 'disk_format': 'qcow2',
+                      'container_format': 'bare', 'properties': {}}
+        glance_mock.return_value.show = mock.MagicMock(spec_set=[],
+                                                       return_value=image_info)
+
+        with task_manager.acquire(
+                self.context, self.node.uuid, shared=False) as task:
+
+            instance_info = utils.build_instance_info_for_deploy(task)
+
+            glance_mock.assert_called_once_with(version=2,
+                                                context=task.context)
+            glance_mock.return_value.show.assert_called_once_with(
+                self.node.instance_info['image_source'])
+            self.cache_image_mock.assert_called_once_with(task.context,
+                                                          task.node,
+                                                          force_raw=True)
+            symlink_dir = utils._get_http_image_symlink_dir_path()
+            symlink_file = utils._get_http_image_symlink_file_path(
+                self.node.uuid)
+            image_path = utils._get_image_file_path(self.node.uuid)
+            self.ensure_tree_mock.assert_called_once_with(symlink_dir)
+            self.create_link_mock.assert_called_once_with(image_path,
+                                                          symlink_file)
+            self.assertEqual(instance_info['image_checksum'], 'fake md5')
+            self.assertEqual(instance_info['image_disk_format'], 'raw')
+            self.md5sum_mock.assert_called_once_with(image_path,
+                                                     algorithm='md5')
+            validate_mock.assert_called_once_with(mock.ANY, self.expected_url,
+                                                  secret=True)
 
 
 class TestStorageInterfaceUtils(db_base.DbTestCase):

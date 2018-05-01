@@ -560,6 +560,8 @@ IRONIC_ANSIBLE_SSH_USER=${IRONIC_ANSIBLE_SSH_USER:-}
 # DevStack deployment, as we do not distribute this generated key to subnodes yet.
 IRONIC_ANSIBLE_SSH_KEY=${IRONIC_ANSIBLE_SSH_KEY:-$IRONIC_DATA_DIR/ansible_ssh_key}
 
+IRONIC_AGENT_IMAGE_DOWNLOAD_SOURCE=${IRONIC_AGENT_IMAGE_DOWNLOAD_SOURCE:-swift}
+
 # Functions
 # ---------
 
@@ -1105,6 +1107,8 @@ function configure_ironic {
     iniset $IRONIC_CONF_FILE agent deploy_logs_collect $IRONIC_DEPLOY_LOGS_COLLECT
     iniset $IRONIC_CONF_FILE agent deploy_logs_storage_backend $IRONIC_DEPLOY_LOGS_STORAGE_BACKEND
     iniset $IRONIC_CONF_FILE agent deploy_logs_local_path $IRONIC_DEPLOY_LOGS_LOCAL_PATH
+    # Set image_download_source for direct interface
+    iniset $IRONIC_CONF_FILE agent image_download_source $IRONIC_AGENT_IMAGE_DOWNLOAD_SOURCE
 
     # Configure Ironic conductor, if it was enabled.
     if is_service_enabled ir-cond; then

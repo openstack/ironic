@@ -1,0 +1,15 @@
+---
+features:
+  - Adds the ability to provision with ``direct`` deploy interface and custom
+    HTTP service running at ironic conductor node. A new configuration option
+    ``[agent]image_download_source`` is introduced. When set to ``swift``,
+    the ``direct`` deploy interface uses tempurl generated via the Object
+    service as the source of instance image during provisioning, this is the
+    default configuration. When set to ``http``, the ``direct`` deploy
+    interface downloads instance image from the Image service, and caches the
+    image in the ironic conductor node. The cached instance images are
+    referenced by symbolic links located at subdirectory
+    ``[deploy]http_image_subdir`` under path ``[deploy]http_root``. The custom
+    HTTP server running at ironic conductor node is supposed to be configured
+    properly to make IPA has unauthenticated access to image URL described
+    above.

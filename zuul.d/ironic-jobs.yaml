@@ -247,3 +247,22 @@
         s-container: True
         s-object: True
         s-proxy: True
+
+- job:
+    name: ironic-tempest-dsvm-ipa-wholedisk-bios-agent_ipmitool-tinyipa-indirect
+    description: ironic-tempest-dsvm-ipa-wholedisk-bios-agent_ipmitool-tinyipa-indirect
+    parent: ironic-tempest-dsvm-ipa-wholedisk-bios-agent_ipmitool-tinyipa
+    timeout: 5400
+    vars:
+      devstack_localrc:
+        IRONIC_AGENT_IMAGE_DOWNLOAD_SOURCE: http
+
+- job:
+    name: ironic-tempest-dsvm-ipa-partition-bios-agent_ipmitool-tinyipa-indirect
+    description: ironic-tempest-dsvm-ipa-partition-bios-agent_ipmitool-tinyipa-indirect
+    parent: ironic-tempest-dsvm-ipa-wholedisk-bios-agent_ipmitool-tinyipa
+    timeout: 5400
+    vars:
+      devstack_localrc:
+        IRONIC_AGENT_IMAGE_DOWNLOAD_SOURCE: http
+        IRONIC_TEMPEST_WHOLE_DISK_IMAGE: False
