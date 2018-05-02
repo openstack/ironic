@@ -283,7 +283,7 @@ def add_ports_to_network(task, network_uuid, security_groups=None):
                         "the following ports: %(ports)s.",
                         {'node': node.uuid, 'ports': failures})
     else:
-        LOG.info('For node %(node_uuid)s in network %(net)s, successfully ',
+        LOG.info('For node %(node_uuid)s in network %(net)s, successfully '
                  'created ports (ironic ID: neutron ID): %(ports)s.',
                  {'node_uuid': node.uuid, 'net': network_uuid, 'ports': ports})
 
