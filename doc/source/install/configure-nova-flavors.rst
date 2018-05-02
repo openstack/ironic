@@ -3,11 +3,15 @@
 Create flavors for use with the Bare Metal service
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Scheduling based on properties
-==============================
-
 You'll need to create a special bare metal flavor in the Compute service.
-The flavor is mapped to the bare metal node through the hardware specifications.
+The flavor is mapped to the bare metal node through the node's
+``resource_class`` field (available starting with Bare Metal API version 1.21).
+A flavor can request *exactly one* instance of a bare metal resource class.
+
+Note that when creating the flavor, it's useful to add the ``RAM_MB`` and
+``CPU`` properties as a convenience to users, although they are not used for
+scheduling.  The ``DISK_GB`` property is also not used for scheduling, but is
+still used to determine the root partition size.
 
 #. Change these to match your hardware:
 
@@ -16,38 +20,19 @@ The flavor is mapped to the bare metal node through the hardware specifications.
       $ RAM_MB=1024
       $ CPU=2
       $ DISK_GB=100
-      $ ARCH={i686|x86_64}
 
 #. Create the bare metal flavor by executing the following command:
 
    .. code-block:: console
 
-      $ nova flavor-create my-baremetal-flavor auto $RAM_MB $DISK_GB $CPU
+      $ openstack flavor create --ram $RAM_MB --vcpus $CPU --disk $DISK_GB \
+        my-baremetal-flavor
 
-   .. note:: You can replace ``auto`` with your own flavor id.
+   .. note:: You can add ``--id <id>`` to specify an ID for the flavor.
 
-#. Set the architecture as extra_specs information of the flavor. This
-   will be used to match against the properties of bare metal nodes:
-
-   .. code-block:: console
-
-      $ nova flavor-key my-baremetal-flavor set cpu_arch=$ARCH
-
-.. _scheduling-resource-classes:
-
-Scheduling based on resource classes
-====================================
-
-As of the Pike release, a Compute service flavor is able to use the node's
-``resource_class`` field (available starting with Bare Metal API version 1.21)
-for scheduling, instead of the CPU, RAM, and disk properties defined in
-the flavor. A flavor can request *exactly one* instance of a bare metal
-resource class.
-
-Start with creating the flavor in the same way as described in
-`Scheduling based on properties`_. The ``CPU``, ``RAM_MB`` and ``DISK_GB``
-values are not going to be used for scheduling, but the ``DISK_GB``
-value will still be used to determine the root partition size.
+See the `docs on this command
+<https://docs.openstack.org/python-openstackclient/latest/cli/command-objects/flavor.html#flavor-create>`_
+for other options that may be specified.
 
 After creation, associate each flavor with one custom resource class. The name
 of a custom resource class that corresponds to a node's resource class (in the
@@ -62,20 +47,16 @@ the flavor with this custom resource class via:
 
 .. code-block:: console
 
-      $ nova flavor-key my-baremetal-flavor set resources:CUSTOM_BAREMETAL_SMALL=1
+      $ openstack flavor set --property resources:CUSTOM_BAREMETAL_SMALL=1 my-baremetal-flavor
 
-Another set of flavor properties should be used to disable scheduling
+Another set of flavor properties must be used to disable scheduling
 based on standard properties for a bare metal flavor:
 
 .. code-block:: console
 
-      $ nova flavor-key my-baremetal-flavor set resources:VCPU=0
-      $ nova flavor-key my-baremetal-flavor set resources:MEMORY_MB=0
-      $ nova flavor-key my-baremetal-flavor set resources:DISK_GB=0
-
-.. warning::
-   The last step will be mandatory in the Queens release, as the Compute
-   service will stop providing standard resources for bare metal nodes.
+      $ openstack flavor set --property resources:VCPU=0 my-baremetal-flavor
+      $ openstack flavor set --property resources:MEMORY_MB=0 my-baremetal-flavor
+      $ openstack flavor set --property resources:DISK_GB=0 my-baremetal-flavor
 
 Example
 -------
@@ -97,10 +78,10 @@ the standard properties:
 
 .. code-block:: console
 
-      $ nova flavor-key my-baremetal-flavor set resources:CUSTOM_BAREMETAL_WITH_GPU=1
-      $ nova flavor-key my-baremetal-flavor set resources:VCPU=0
-      $ nova flavor-key my-baremetal-flavor set resources:MEMORY_MB=0
-      $ nova flavor-key my-baremetal-flavor set resources:DISK_GB=0
+      $ openstack flavor set --property resources:CUSTOM_BAREMETAL_WITH_GPU=1 my-baremetal-flavor
+      $ openstack flavor set --property resources:VCPU=0 my-baremetal-flavor
+      $ openstack flavor set --property resources:MEMORY_MB=0 my-baremetal-flavor
+      $ openstack flavor set --property resources:DISK_GB=0 my-baremetal-flavor
 
 Note how ``baremetal.with-GPU`` in the node's ``resource_class`` field becomes
 ``CUSTOM_BAREMETAL_WITH_GPU`` in the flavor's properties.
@@ -145,5 +126,5 @@ Then, update the flavor to require these traits:
 
 .. code-block:: console
 
-      $ nova flavor-key my-baremetal-flavor set trait:CUSTOM_TRAIT1=required
-      $ nova flavor-key my-baremetal-flavor set trait:HW_CPU_X86_VMX=required
+      $ openstack flavor set --property trait:CUSTOM_TRAIT1=required my-baremetal-flavor
+      $ openstack flavor set --property trait:HW_CPU_X86_VMX=required my-baremetal-flavor

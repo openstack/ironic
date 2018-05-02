@@ -66,44 +66,7 @@ service's controller nodes and compute nodes.
         option is to run the following command on any Compute controller node
         after each node is enrolled::
 
-            nova-manage cell_v2 discover_hosts
-
-#. If you have not switched to make use of :ref:`scheduling-resource-classes`,
-   then the following options should be set as well. They must be removed from
-   the configuration file after switching to resource classes.
-
-   .. code-block:: ini
-
-       [scheduler]
-
-       # Use the ironic scheduler host manager. This host manager will consume
-       # all CPUs, disk space, and RAM from a host as bare metal hosts, can not
-       # be subdivided into multiple instances. Scheduling based on resource
-       # classes does not use CPU/disk/RAM, so the default host manager can be
-       # used in such cases.
-       host_manager=ironic_host_manager
-
-       [filter_scheduler]
-
-       # Size of subset of best hosts selected by scheduler.
-       # New instances will be scheduled on a host chosen randomly from a
-       # subset of the 999 hosts. The big value is used to avoid race
-       # conditions, when several instances are scheduled on the same bare
-       # metal nodes. This is not a problem when resource classes are used.
-       # You should carefully consider increasing this option from its
-       # default value of 1 in mixed hypervisor case, as placement
-       # of virtual instances will become less optimal.
-       host_subset_size=999
-
-       # This flag enables a different set of scheduler filters, which is more
-       # suitable for bare metals. CPU, disk and memory filters are replaced
-       # with their exact counterparts, to make sure only nodes strictly
-       # matching the flavor are picked. These filters do not work with
-       # scheduling based on resource classes only.
-       # You must not enable this option if you have compute hosts
-       # with other than 'ironic' drivers as enabling it will make scheduling
-       # of virtual instances problematic.
-       use_baremetal_filters=True
+            nova-manage cell_v2 discover_hosts --by-service
 
 #. Consider enabling the following option on controller nodes:
 
