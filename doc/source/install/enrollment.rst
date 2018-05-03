@@ -307,10 +307,6 @@ Adding scheduling information
    To use resource classes for scheduling you need to update your flavors as
    described in :doc:`configure-nova-flavors`.
 
-   .. warning::
-      Scheduling based on resource classes will replace scheduling based on
-      properties in the Queens release.
-
    .. note::
       This is not required for standalone deployments, only for those using
       the Compute service for provisioning bare metal instances.
@@ -322,8 +318,7 @@ Adding scheduling information
     $ openstack baremetal node set $NODE_UUID \
         --property cpus=$CPU_COUNT \
         --property memory_mb=$RAM_MB \
-        --property local_gb=$DISK_GB \
-        --property cpu_arch=$ARCH
+        --property local_gb=$DISK_GB
 
    As above, these can also be specified at node creation by passing the
    **--property** option to ``node create`` multiple times:
@@ -336,15 +331,9 @@ Adding scheduling information
          --driver-info ipmi_address=$ADDRESS \
          --property cpus=$CPU_COUNT \
          --property memory_mb=$RAM_MB \
-         --property local_gb=$DISK_GB \
-         --property cpu_arch=$ARCH
+         --property local_gb=$DISK_GB
 
    These values can also be discovered during `Hardware Inspection`_.
-
-   .. warning::
-      If scheduling based on resource classes is not used, the three properties
-      ``cpus``, ``memory_mb`` and ``local_gb`` must match ones defined on the
-      flavor created when :doc:`configure-nova-flavors`.
 
    .. warning::
       The value provided for the ``local_gb`` property must match the size of
