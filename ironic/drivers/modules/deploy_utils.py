@@ -1050,7 +1050,9 @@ def get_image_instance_info(node):
             info['ramdisk'] = node.instance_info.get('ramdisk')
 
     error_msg = (_("Cannot validate image information for node %s because one "
-                   "or more parameters are missing from its instance_info")
+                   "or more parameters are missing from its instance_info and "
+                   "insufficent information is present to boot from a remote "
+                   "volume")
                  % node.uuid)
     check_for_missing_params(info, error_msg)
 
