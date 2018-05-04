@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    The iPXE template kernel command line argument ``ip`` has been removed as it
+    is incompatible with the ``BOOTIF`` and missing ``autoconf`` parameters with
+    dracut. Further details can be found in
+    `storyboard <https://storyboard.openstack.org/#!/story/2001969>`_.
