@@ -29,6 +29,7 @@ from ironic.common import exception
 from ironic.common.i18n import _
 from ironic.common import states
 from ironic.drivers import base
+from ironic import objects
 
 
 class FakePower(base.PowerInterface):
@@ -233,6 +234,33 @@ class FakeRAID(base.RAIDInterface):
         pass
 
     def delete_configuration(self, task):
+        pass
+
+
+class FakeBIOS(base.BIOSInterface):
+    """Example implementation of simple BIOSInterface."""
+
+    def get_properties(self):
+        return {}
+
+    def validate(self, task):
+        pass
+
+    def apply_configuration(self, task, settings):
+        node_id = task.node.id
+        try:
+            objects.BIOSSettingList.create(task.context, node_id, settings)
+        except exception.BIOSSettingAlreadyExists:
+            objects.BIOSSettingList.save(task.context, node_id, settings)
+
+    def factory_reset(self, task):
+        node_id = task.node.id
+        setting_objs = objects.BIOSSettingList.get_by_node_id(
+            task.context, node_id)
+        for setting in setting_objs:
+            objects.BIOSSetting.delete(task.context, node_id, setting.name)
+
+    def cache_bios_settings(self, task):
         pass
 
 

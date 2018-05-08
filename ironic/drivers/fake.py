@@ -73,7 +73,7 @@ class FakeDriver(base.BaseDriver):
     def to_hardware_type(cls):
         return 'fake-hardware', {
             iface: 'fake'
-            for iface in ['boot', 'console', 'deploy', 'inspect',
+            for iface in ['bios', 'boot', 'console', 'deploy', 'inspect',
                           'management', 'power', 'raid', 'rescue', 'vendor']
         }
 

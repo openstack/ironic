@@ -52,6 +52,18 @@ _DEFAULT_IFACE_HELP = _('Default {0} interface to be used for nodes that '
                         'be found by enumerating the '
                         '"ironic.hardware.interfaces.{0}" entrypoint.')
 
+# TODO(zshi) Remove this in BIOS API patch.
+_ENABLED_IFACE_HELP_FOR_BIOS = (_ENABLED_IFACE_HELP +
+                                _(' This option is part of BIOS feature '
+                                  'work, which is not currently exposed to '
+                                  'users.'))
+
+# TODO(zshi) Remove this in BIOS API patch.
+_DEFAULT_IFACE_HELP_FOR_BIOS = (_DEFAULT_IFACE_HELP +
+                                _(' This option is part of BIOS feature '
+                                  'work, which is not currently exposed to '
+                                  'users.'))
+
 api_opts = [
     cfg.StrOpt(
         'auth_strategy',
@@ -103,6 +115,11 @@ driver_opts = [
                        'A complete list of hardware types present on your '
                        'system may be found by enumerating the '
                        '"ironic.hardware.types" entrypoint.')),
+    cfg.ListOpt('enabled_bios_interfaces',
+                default=['no-bios'],
+                help=_ENABLED_IFACE_HELP_FOR_BIOS.format('bios')),
+    cfg.StrOpt('default_bios_interface',
+               help=_DEFAULT_IFACE_HELP_FOR_BIOS.format('bios')),
     cfg.ListOpt('enabled_boot_interfaces',
                 default=['pxe'],
                 help=_ENABLED_IFACE_HELP.format('boot')),

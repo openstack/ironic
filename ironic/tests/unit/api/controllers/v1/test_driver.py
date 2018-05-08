@@ -215,9 +215,11 @@ class TestListDrivers(base.BaseApiTest):
 
         if use_dynamic:
             for iface in driver_base.ALL_INTERFACES:
-                if latest_if or iface not in ['rescue', 'storage']:
-                    self.assertIn('default_%s_interface' % iface, data)
-                    self.assertIn('enabled_%s_interfaces' % iface, data)
+                if iface != 'bios':
+                    if latest_if or iface not in ['rescue', 'storage']:
+                        self.assertIn('default_%s_interface' % iface, data)
+                        self.assertIn('enabled_%s_interfaces' % iface, data)
+
             self.assertIsNotNone(data['default_deploy_interface'])
             self.assertIsNotNone(data['enabled_deploy_interfaces'])
         else:

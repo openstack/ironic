@@ -596,7 +596,8 @@ def calculate_migration_delta(driver_name, driver_class,
         None if a migration is not possible.
     """
     # NOTE(dtantsur): provide defaults for optional interfaces
-    defaults = {'console': 'no-console',
+    defaults = {'bios': 'no-bios',
+                'console': 'no-console',
                 'inspect': 'no-inspect',
                 'raid': 'no-raid',
                 'rescue': 'no-rescue',

@@ -108,7 +108,7 @@ class DriverLoadTestCase(db_base.DbTestCase):
         with task_manager.acquire(self.context, node.id) as task:
             for iface in drivers_base.ALL_INTERFACES:
                 impl = getattr(task.driver, iface)
-                if iface == 'rescue':
+                if iface in ['bios', 'rescue']:
                     self.assertIsNone(impl)
                 else:
                     self.assertIsNotNone(impl)
@@ -573,6 +573,11 @@ class DefaultInterfaceTestCase(db_base.DbTestCase):
 
 class TestFakeHardware(hardware_type.AbstractHardwareType):
     @property
+    def supported_bios_interfaces(self):
+        """List of supported bios interfaces."""
+        return [fake.FakeBIOS]
+
+    @property
     def supported_boot_interfaces(self):
         """List of supported boot interfaces."""
         return [fake.FakeBoot]
@@ -796,6 +801,7 @@ class HardwareTypeLoadTestCase(db_base.DbTestCase):
     def _test_enabled_supported_interfaces(self, enable_storage):
         ht = fake_hardware.FakeHardware()
         expected = {
+            'bios': set(['fake', 'no-bios']),
             'boot': set(['fake']),
             'console': set(['fake', 'no-console']),
             'deploy': set(['fake']),
@@ -850,6 +856,7 @@ class ClassicDriverMigrationTestCase(base.TestCase):
         delta = driver_factory.calculate_migration_delta(
             'drv', self.driver_cls, False)
         self.assertEqual({'driver': 'hw-type',
+                          'bios_interface': 'no-bios',
                           'console_interface': 'new-console',
                           'inspect_interface': 'new-inspect',
                           'raid_interface': 'no-raid',
@@ -881,6 +888,7 @@ class ClassicDriverMigrationTestCase(base.TestCase):
         delta = driver_factory.calculate_migration_delta(
             'drv', self.driver_cls, True)
         self.assertEqual({'driver': 'hw-type',
+                          'bios_interface': 'no-bios',
                           'console_interface': 'new-console',
                           'inspect_interface': 'no-inspect',
                           'raid_interface': 'no-raid',
