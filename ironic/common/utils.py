@@ -153,7 +153,7 @@ def is_valid_no_proxy(no_proxy):
     """
     if not isinstance(no_proxy, six.string_types):
         return False
-    hostname_re = re.compile('(?!-)[A-Z\d-]{1,63}(?<!-)$', re.IGNORECASE)
+    hostname_re = re.compile('(?!-)[A-Z\\d-]{1,63}(?<!-)$', re.IGNORECASE)
     for hostname in no_proxy.split(','):
         hostname = hostname.strip().split(':')[0]
         if not hostname:

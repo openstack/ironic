@@ -33,7 +33,7 @@ class AuthTokenMiddleware(auth_token.AuthProtocol):
         self._ironic_app = app
         # TODO(mrda): Remove .xml and ensure that doesn't result in a
         # 401 Authentication Required instead of 404 Not Found
-        route_pattern_tpl = '%s(\.json|\.xml)?$'
+        route_pattern_tpl = '%s(\\.json|\\.xml)?$'
 
         try:
             self.public_api_routes = [re.compile(route_pattern_tpl % route_tpl)
