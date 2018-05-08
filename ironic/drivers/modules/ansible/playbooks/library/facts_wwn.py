@@ -47,7 +47,7 @@ def get_devices_wwn(devices, module):
 
 
 def main():
-    module = AnsibleModule(
+    module = AnsibleModule(  # noqa This is normal for Ansible modules.
         argument_spec=dict(
             devices=dict(required=True, type='list'),
         ),
