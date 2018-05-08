@@ -827,7 +827,7 @@ class ConductorManager(base_manager.BaseConductorManager):
                 raise exception.InstanceDeployFailure(
                     _("Failed to validate deploy or power info for node "
                       "%(node_uuid)s. Error: %(msg)s") %
-                    {'node_uuid': node.uuid, 'msg': e})
+                    {'node_uuid': node.uuid, 'msg': e}, code=e.code)
 
             LOG.debug("do_node_deploy Calling event: %(event)s for node: "
                       "%(node)s", {'event': event, 'node': node.uuid})

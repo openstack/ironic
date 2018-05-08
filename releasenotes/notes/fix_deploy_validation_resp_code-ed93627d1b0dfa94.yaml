@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    Fixes the HTTP response code for a validation failure when attempting to
+    move an ironic node to the active state. Validation failure in this
+    scenario now responses with a 400 status code correctly indicating a user
+    input error.

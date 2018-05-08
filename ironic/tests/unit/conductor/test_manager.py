@@ -1218,6 +1218,7 @@ class ServiceDoNodeDeployTestCase(mgr_utils.ServiceSetUpMixin,
                                 self.context, node.uuid)
         # Compare true exception hidden by @messaging.expected_exceptions
         self.assertEqual(exception.InstanceDeployFailure, exc.exc_info[0])
+        self.assertEqual(exc.exc_info[1].code, 400)
         # Check the message of InstanceDeployFailure. In a
         # messaging.rpc.ExpectedException sys.exc_info() is stored in exc_info
         # in the exception object. So InstanceDeployFailure will be in

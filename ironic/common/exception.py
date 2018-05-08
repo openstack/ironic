@@ -104,6 +104,8 @@ class IronicException(Exception):
                 self.kwargs['code'] = self.code
             except AttributeError:
                 pass
+        else:
+            self.code = int(kwargs['code'])
 
         if not message:
             try:
