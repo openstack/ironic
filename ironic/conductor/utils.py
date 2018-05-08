@@ -221,8 +221,8 @@ def node_power_action(task, new_state, timeout=None):
 
     # take power action
     try:
-        if (target_state == states.POWER_ON and
-                node.provision_state == states.ACTIVE):
+        if (target_state == states.POWER_ON
+                and node.provision_state == states.ACTIVE):
             task.driver.storage.attach_volumes(task)
 
         if new_state != states.REBOOT:
@@ -260,8 +260,8 @@ def node_power_action(task, new_state, timeout=None):
                   'new_state': new_state})
         # NOTE(TheJulia): Similarly to power-on, when we power-off
         # a node, we should detach any volume attachments.
-        if (target_state == states.POWER_OFF and
-                node.provision_state == states.ACTIVE):
+        if (target_state == states.POWER_OFF
+                and node.provision_state == states.ACTIVE):
             try:
                 task.driver.storage.detach_volumes(task)
             except exception.StorageError as e:

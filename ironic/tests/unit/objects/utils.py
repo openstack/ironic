@@ -250,8 +250,8 @@ def get_payloads_with_schemas(from_module):
             # First class is this payload class, parent class is the 2nd
             # one in the tuple
             parent = base_classes[1]
-            if (not hasattr(parent, 'SCHEMA') or
-                parent.SCHEMA != payload.SCHEMA):
+            if (not hasattr(parent, 'SCHEMA')
+                or parent.SCHEMA != payload.SCHEMA):
                 payloads.append(payload)
 
     return payloads

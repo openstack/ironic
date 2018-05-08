@@ -224,8 +224,8 @@ class PXEPrivateMethodsTestCase(db_base.DbTestCase):
                                          ramdisk_label))
         }
 
-        if (whle_dsk_img or
-            deploy_utils.get_boot_option(self.node) == 'local'):
+        if (whle_dsk_img
+            or deploy_utils.get_boot_option(self.node) == 'local'):
                 ramdisk = 'no_ramdisk'
                 kernel = 'no_kernel'
         else:
@@ -385,8 +385,8 @@ class PXEPrivateMethodsTestCase(db_base.DbTestCase):
 
         kernel = os.path.join(http_url, self.node.uuid, 'kernel')
         ramdisk = os.path.join(http_url, self.node.uuid, 'ramdisk')
-        if (whle_dsk_img or
-            deploy_utils.get_boot_option(self.node) == 'local'):
+        if (whle_dsk_img
+            or deploy_utils.get_boot_option(self.node) == 'local'):
                 ramdisk = 'no_ramdisk'
                 kernel = 'no_kernel'
         else:

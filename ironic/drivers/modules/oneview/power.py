@@ -169,8 +169,8 @@ class OneViewPower(base.PowerInterface):
                 oneview_client.server_hardware.update_power_state(
                     SET_POWER_STATE_MAP.get(power_state),
                     server_hardware, timeout=timeout)
-            elif (power_state == states.REBOOT or
-                  power_state == states.SOFT_REBOOT):
+            elif (power_state == states.REBOOT
+                  or power_state == states.SOFT_REBOOT):
                 power_off_mode = (states.POWER_OFF
                                   if power_state == states.REBOOT
                                   else states.SOFT_POWER_OFF)

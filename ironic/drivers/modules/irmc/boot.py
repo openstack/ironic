@@ -281,10 +281,10 @@ def _prepare_boot_iso(task, root_uuid):
         image_props = ['kernel_id', 'ramdisk_id']
         image_properties = images.get_image_properties(
             task.context, image_href, image_props)
-        kernel_href = (task.node.instance_info.get('kernel') or
-                       image_properties['kernel_id'])
-        ramdisk_href = (task.node.instance_info.get('ramdisk') or
-                        image_properties['ramdisk_id'])
+        kernel_href = (task.node.instance_info.get('kernel')
+                       or image_properties['kernel_id'])
+        ramdisk_href = (task.node.instance_info.get('ramdisk')
+                        or image_properties['ramdisk_id'])
 
         deploy_iso_filename = _get_iso_name(task.node, label='deploy')
         deploy_iso = ('file://' + os.path.join(

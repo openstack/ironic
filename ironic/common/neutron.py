@@ -63,12 +63,12 @@ def get_client(token=None, context=None):
     # 'noauth' then would correspond to 'auth_type=none' and
     # 'endpoint_override'
     adapter_params = {}
-    if (CONF.neutron.auth_strategy == 'noauth' and
-            CONF.neutron.auth_type is None):
+    if (CONF.neutron.auth_strategy == 'noauth'
+            and CONF.neutron.auth_type is None):
         CONF.set_override('auth_type', 'none', group='neutron')
         if not CONF.neutron.endpoint_override:
-            adapter_params['endpoint_override'] = (CONF.neutron.url or
-                                                   DEFAULT_NEUTRON_URL)
+            adapter_params['endpoint_override'] = (CONF.neutron.url
+                                                   or DEFAULT_NEUTRON_URL)
     else:
         if CONF.keystone.region_name and not CONF.neutron.region_name:
             adapter_params['region_name'] = CONF.keystone.region_name
@@ -464,8 +464,8 @@ def validate_port_info(node, port):
     # Subnet Manager.
     if port.extra.get('client-id'):
         return True
-    if (node.network_interface == 'neutron' and
-            not port.local_link_connection):
+    if (node.network_interface == 'neutron'
+            and not port.local_link_connection):
         LOG.warning("The local_link_connection is required for "
                     "'neutron' network interface and is not present "
                     "in the nodes %(node)s port %(port)s",
@@ -577,8 +577,8 @@ class NeutronNetworkInterfaceMixin(object):
 
     def get_cleaning_network_uuid(self, task):
         cleaning_network = (
-            task.node.driver_info.get('cleaning_network') or
-            CONF.neutron.cleaning_network
+            task.node.driver_info.get('cleaning_network')
+            or CONF.neutron.cleaning_network
         )
         return validate_network(
             cleaning_network, _('cleaning network'),
@@ -586,8 +586,8 @@ class NeutronNetworkInterfaceMixin(object):
 
     def get_provisioning_network_uuid(self, task):
         provisioning_network = (
-            task.node.driver_info.get('provisioning_network') or
-            CONF.neutron.provisioning_network
+            task.node.driver_info.get('provisioning_network')
+            or CONF.neutron.provisioning_network
         )
         return validate_network(
             provisioning_network, _('provisioning network'),
@@ -597,8 +597,8 @@ class NeutronNetworkInterfaceMixin(object):
     # FlatNetwork uses tenant network for rescue operation.
     def get_rescuing_network_uuid(self, task):
         rescuing_network = (
-            task.node.driver_info.get('rescuing_network') or
-            CONF.neutron.rescuing_network
+            task.node.driver_info.get('rescuing_network')
+            or CONF.neutron.rescuing_network
         )
         return validate_network(
             rescuing_network, _('rescuing network'),

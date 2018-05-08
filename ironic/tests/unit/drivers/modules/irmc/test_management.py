@@ -471,7 +471,7 @@ class IRMCManagementTestCase(db_base.DbTestCase):
             e = self.assertRaises(exception.FailedToGetSensorData,
                                   self.driver.management.get_sensors_data,
                                   task)
-        self.assertEqual("Failed to get sensor data for node 1be26c0b-" +
+        self.assertEqual("Failed to get sensor data for node 1be26c0b-"
                          "03f2-4d2e-ae87-c02d7f33c123. Error: Fake Error",
                          str(e))
 

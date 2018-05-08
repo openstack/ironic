@@ -316,8 +316,8 @@ class GenericUtilsTestCase(base.TestCase):
         valid_no_proxy = [
             ('a' * 63 + '.' + '0' * 63 + '.c.' + 'd' * 61 + '.' + 'e' * 61),
             ('A' * 63 + '.' + '0' * 63 + '.C.' + 'D' * 61 + '.' + 'E' * 61),
-            ('.' + 'a' * 62 + '.' + '0' * 62 + '.c.' + 'd' * 61 + '.' +
-             'e' * 61),
+            ('.' + 'a' * 62 + '.' + '0' * 62 + '.c.' + 'd' * 61 + '.'
+             + 'e' * 61),
             ',,example.com:3128,',
             '192.168.1.1',  # IP should be valid
         ]
@@ -336,14 +336,14 @@ class GenericUtilsTestCase(base.TestCase):
 
         # Invalid values for 'no_proxy'
         invalid_no_proxy = [
-            ('A' * 64 + '.' + '0' * 63 + '.C.' + 'D' * 61 + '.' +
-             'E' * 61),  # too long (> 253)
+            ('A' * 64 + '.' + '0' * 63 + '.C.' + 'D' * 61 + '.'
+             + 'E' * 61),  # too long (> 253)
             ('a' * 100),
             'a..com',
-            ('.' + 'a' * 63 + '.' + '0' * 62 + '.c.' + 'd' * 61 + '.' +
-             'e' * 61),  # too long (> 251 after deleting .)
-            ('*.' + 'a' * 60 + '.' + '0' * 60 + '.c.' + 'd' * 61 + '.' +
-             'e' * 61),  # starts with *.
+            ('.' + 'a' * 63 + '.' + '0' * 62 + '.c.' + 'd' * 61 + '.'
+             + 'e' * 61),  # too long (> 251 after deleting .)
+            ('*.' + 'a' * 60 + '.' + '0' * 60 + '.c.' + 'd' * 61 + '.'
+             + 'e' * 61),  # starts with *.
             'c.-a.com',
             'c.a-.com',
         ]

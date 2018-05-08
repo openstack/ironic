@@ -480,12 +480,12 @@ def is_whole_disk_image(ctx, instance_info):
             iproperties = get_image_properties(ctx, image_source)
         except Exception:
             return
-        is_whole_disk_image = (not iproperties.get('kernel_id') and
-                               not iproperties.get('ramdisk_id'))
+        is_whole_disk_image = (not iproperties.get('kernel_id')
+                               and not iproperties.get('ramdisk_id'))
     else:
         # Non glance image ref
-        if (not instance_info.get('kernel') and
-            not instance_info.get('ramdisk')):
+        if (not instance_info.get('kernel')
+            and not instance_info.get('ramdisk')):
             is_whole_disk_image = True
 
     return is_whole_disk_image

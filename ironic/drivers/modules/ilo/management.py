@@ -92,9 +92,9 @@ def _execute_ilo_clean_step(node, step, *args, **kwargs):
 
 def _should_collect_logs(command):
     """Returns boolean to check whether logs need to collected or not."""
-    return ((CONF.agent.deploy_logs_collect == 'on_failure' and
-             command['command_status'] == 'FAILED') or
-            CONF.agent.deploy_logs_collect == 'always')
+    return ((CONF.agent.deploy_logs_collect == 'on_failure'
+             and command['command_status'] == 'FAILED')
+            or CONF.agent.deploy_logs_collect == 'always')
 
 
 class IloManagement(base.ManagementInterface):

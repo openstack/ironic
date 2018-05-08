@@ -244,8 +244,8 @@ class MigrationCheckersMixin(object):
         data_conductor = {'hostname': 'test_host'}
         conductors.insert().execute(data_conductor)
         conductor = conductors.select(
-            conductors.c.hostname ==
-            data_conductor['hostname']).execute().first()
+            conductors.c.hostname
+            == data_conductor['hostname']).execute().first()
 
         data_node = {'uuid': uuidutils.generate_uuid(),
                      'conductor_affinity': conductor['id']}

@@ -364,8 +364,8 @@ def _max_volume_size_mb(raid_level, physical_disks, free_space_mb,
     disks_count = len(physical_disks)
     overhead_disks_count = _raid_level_overhead(raid_level, spans_count)
 
-    return int(stripes_per_disk * stripe_size_kb *
-               (disks_count - overhead_disks_count) / units.Ki)
+    return int(stripes_per_disk * stripe_size_kb
+               * (disks_count - overhead_disks_count) / units.Ki)
 
 
 def _volume_usage_per_disk_mb(logical_disk, physical_disks, spans_count=1,
@@ -441,8 +441,8 @@ def _find_configuration(logical_disks, physical_disks):
 
     # step 1 - process volumes with predefined disks and exact size
     for volume in [volume for volume in logical_disks
-                   if ('physical_disks' in volume and
-                       volume['size_mb'] != 'MAX')]:
+                   if ('physical_disks' in volume
+                       and volume['size_mb'] != 'MAX')]:
         _calculate_volume_props(volume, physical_disks, free_space_mb)
         processed_volumes.append(volume)
 
@@ -476,8 +476,8 @@ def _find_configuration(logical_disks, physical_disks):
 
     # step 3 - process volumes with predefined disks and size_mb == 'MAX'
     for volume in [volume for volume in logical_disks
-                   if ('physical_disks' in volume and
-                       volume['size_mb'] == 'MAX')]:
+                   if ('physical_disks' in volume
+                       and volume['size_mb'] == 'MAX')]:
         _calculate_volume_props(volume, physical_disks, free_space_mb)
         processed_volumes.append(volume)
 
@@ -541,12 +541,12 @@ def _assign_disks_to_volume(logical_disks, physical_disks_by_type,
     for (controller, disk_type,
          interface_type, size_mb), disks in physical_disks_by_type.items():
 
-        if ('disk_type' in logical_disk and
-            logical_disk['disk_type'] != disk_type):
+        if ('disk_type' in logical_disk
+            and logical_disk['disk_type'] != disk_type):
             continue
 
-        if ('interface_type' in logical_disk and
-            logical_disk['interface_type'] != interface_type):
+        if ('interface_type' in logical_disk
+            and logical_disk['interface_type'] != interface_type):
             continue
 
         # filter out disks without free disk space
@@ -573,8 +573,8 @@ def _assign_disks_to_volume(logical_disks, physical_disks_by_type,
         candidate_max_disks = min([max_disks, len(disks)])
 
         for disks_count in range(min_disks, candidate_max_disks + 1):
-            if ('number_of_physical_disks' in logical_disk and
-                logical_disk['number_of_physical_disks'] != disks_count):
+            if ('number_of_physical_disks' in logical_disk
+                and logical_disk['number_of_physical_disks'] != disks_count):
                     continue
 
             # skip invalid disks_count

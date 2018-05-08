@@ -35,9 +35,9 @@ node = table('nodes',
 
 
 def upgrade():
-    network_iface = (CONF.default_network_interface or
-                     ('flat' if CONF.dhcp.dhcp_provider == 'neutron'
-                      else 'noop'))
+    network_iface = (CONF.default_network_interface
+                     or ('flat' if CONF.dhcp.dhcp_provider == 'neutron'
+                         else 'noop'))
     op.execute(
         node.update().where(
             node.c.network_interface == null()).values(

@@ -191,8 +191,8 @@ def _get_completed_cleaning_command(task, commands):
         LOG.debug('Clean step still running for node %(node)s: %(step)s',
                   {'step': last_step, 'node': task.node.uuid})
         return
-    elif (last_command['command_status'] == 'SUCCEEDED' and
-          last_step != task.node.clean_step):
+    elif (last_command['command_status'] == 'SUCCEEDED'
+          and last_step != task.node.clean_step):
         # A previous clean_step was running, the new command has not yet
         # started.
         LOG.debug('Clean step not yet started for node %(node)s: %(step)s',
@@ -307,16 +307,16 @@ class HeartbeatMixin(object):
                 LOG.debug('Heartbeat from node %(node)s in maintenance mode; '
                           'not taking any action.', {'node': node.uuid})
                 return
-            elif (node.provision_state == states.DEPLOYWAIT and
-                  not self.deploy_has_started(task)):
+            elif (node.provision_state == states.DEPLOYWAIT
+                  and not self.deploy_has_started(task)):
                 msg = _('Node failed to deploy.')
                 self.continue_deploy(task)
-            elif (node.provision_state == states.DEPLOYWAIT and
-                  self.deploy_is_done(task)):
+            elif (node.provision_state == states.DEPLOYWAIT
+                  and self.deploy_is_done(task)):
                 msg = _('Node failed to move to active state.')
                 self.reboot_to_instance(task)
-            elif (node.provision_state == states.DEPLOYWAIT and
-                  self.deploy_has_started(task)):
+            elif (node.provision_state == states.DEPLOYWAIT
+                  and self.deploy_has_started(task)):
                 node.touch_provisioning()
             elif node.provision_state == states.CLEANWAIT:
                 node.touch_provisioning()
@@ -364,8 +364,8 @@ class HeartbeatMixin(object):
             raise exception.InstanceRescueFailure(node=node.uuid,
                                                   instance=node.instance_uuid,
                                                   reason=e)
-        if ((not result.get('command_status')) or
-                result.get('command_status') != 'SUCCEEDED'):
+        if ((not result.get('command_status'))
+                or result.get('command_status') != 'SUCCEEDED'):
             # NOTE(mariojv) Caller will clean up failed rescue in exception
             # handler.
             fail_reason = (_('Agent returned bad result for command '

@@ -494,10 +494,10 @@ class IRMCDeployPrivateMethodsTestCase(db_base.DbTestCase):
                 task.context, 'image-uuid', ['kernel_id', 'ramdisk_id'])
             create_boot_iso_mock.assert_called_once_with(
                 task.context,
-                '/remote_image_share_root/' +
+                '/remote_image_share_root/'
                 "boot-%s.iso" % self.node.uuid,
                 'kernel_uuid', 'ramdisk_uuid',
-                'file:///remote_image_share_root/' +
+                'file:///remote_image_share_root/'
                 "deploy-%s.iso" % self.node.uuid,
                 'root-uuid', 'kernel-params', 'uefi')
             task.node.refresh()
@@ -746,7 +746,7 @@ class IRMCDeployPrivateMethodsTestCase(db_base.DbTestCase):
                                   task.node,
                                   'iso_filename')
             get_irmc_client_mock.assert_called_once_with(task.node)
-            self.assertEqual("iRMC Inserting virtual cdrom failed. " +
+            self.assertEqual("iRMC Inserting virtual cdrom failed. "
                              "Reason: fake error", str(e))
 
     @mock.patch.object(irmc_common, 'get_irmc_client', spec_set=True,
@@ -772,7 +772,7 @@ class IRMCDeployPrivateMethodsTestCase(db_base.DbTestCase):
             e = self.assertRaises(exception.IRMCOperationError,
                                   irmc_boot._detach_virtual_cd,
                                   task.node)
-            self.assertEqual("iRMC Ejecting virtual cdrom failed. " +
+            self.assertEqual("iRMC Ejecting virtual cdrom failed. "
                              "Reason: fake error", str(e))
 
     @mock.patch.object(irmc_common, 'get_irmc_client', spec_set=True,
@@ -825,7 +825,7 @@ class IRMCDeployPrivateMethodsTestCase(db_base.DbTestCase):
                                   task.node,
                                   'iso_filename')
             get_irmc_client_mock.assert_called_once_with(task.node)
-            self.assertEqual("iRMC Inserting virtual floppy failed. " +
+            self.assertEqual("iRMC Inserting virtual floppy failed. "
                              "Reason: fake error", str(e))
 
     @mock.patch.object(irmc_common, 'get_irmc_client', spec_set=True,

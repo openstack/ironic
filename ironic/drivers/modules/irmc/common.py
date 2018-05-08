@@ -111,9 +111,9 @@ def parse_driver_info(node):
         error_msgs.append(
             _("Value '%s' is not an integer for 'irmc_snmp_port'") %
             d_info['irmc_snmp_port'])
-    if (d_info['irmc_snmp_version'].lower() in ('v1', 'v2c') and
-        d_info['irmc_snmp_community'] and
-        not isinstance(d_info['irmc_snmp_community'], six.string_types)):
+    if (d_info['irmc_snmp_version'].lower() in ('v1', 'v2c')
+        and d_info['irmc_snmp_community']
+        and not isinstance(d_info['irmc_snmp_community'], six.string_types)):
         error_msgs.append(
             _("Value '%s' is not a string for 'irmc_snmp_community'") %
             d_info['irmc_snmp_community'])

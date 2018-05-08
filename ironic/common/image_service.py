@@ -214,8 +214,8 @@ class FileImageService(BaseImageService):
         try:
             # We should have read and write access to source file to create
             # hard link to it.
-            if (local_device == os.stat(source_image_path).st_dev and
-                    os.access(source_image_path, os.R_OK | os.W_OK)):
+            if (local_device == os.stat(source_image_path).st_dev
+                    and os.access(source_image_path, os.R_OK | os.W_OK)):
                 image_file.close()
                 os.remove(dest_image_path)
                 os.link(source_image_path, dest_image_path)

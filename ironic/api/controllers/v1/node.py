@@ -170,12 +170,12 @@ def update_state_in_older_versions(obj):
                 to be updated by this method.
     """
     # if requested version is < 1.2, convert AVAILABLE to the old NOSTATE
-    if (pecan.request.version.minor < versions.MINOR_2_AVAILABLE_STATE and
-            obj.provision_state == ir_states.AVAILABLE):
+    if (pecan.request.version.minor < versions.MINOR_2_AVAILABLE_STATE
+            and obj.provision_state == ir_states.AVAILABLE):
         obj.provision_state = ir_states.NOSTATE
     # if requested version < 1.39, convert INSPECTWAIT to INSPECTING
-    if (not api_utils.allow_inspect_wait_state() and
-            obj.provision_state == ir_states.INSPECTWAIT):
+    if (not api_utils.allow_inspect_wait_state()
+            and obj.provision_state == ir_states.INSPECTWAIT):
         obj.provision_state = ir_states.INSPECTING
 
 
@@ -522,8 +522,8 @@ class NodeStatesController(rest.RestController):
         rpc_node = api_utils.get_rpc_node(node_ident)
         topic = pecan.request.rpcapi.get_topic_for(rpc_node)
 
-        if ((target in [ir_states.SOFT_REBOOT, ir_states.SOFT_POWER_OFF] or
-             timeout) and not api_utils.allow_soft_power_off()):
+        if ((target in [ir_states.SOFT_REBOOT, ir_states.SOFT_POWER_OFF]
+             or timeout) and not api_utils.allow_soft_power_off()):
             raise exception.NotAcceptable()
         # FIXME(naohirot): This check is workaround because
         #                  wtypes.IntegerType(minimum=1) is not effective
@@ -644,8 +644,8 @@ class NodeStatesController(rest.RestController):
             raise wsme.exc.ClientSideError(
                 msg, status_code=http_client.BAD_REQUEST)
 
-        if (rescue_password is not None and
-            target != ir_states.VERBS['rescue']):
+        if (rescue_password is not None
+            and target != ir_states.VERBS['rescue']):
             msg = (_('"rescue_password" is only valid when setting target '
                      'provision state to %s') % ir_states.VERBS['rescue'])
             raise wsme.exc.ClientSideError(
@@ -1473,10 +1473,10 @@ class NodesController(rest.RestController):
             pecan.abort(http_client.BAD_REQUEST, e.args[0])
         if not remainder:
             return
-        if ((remainder[0] == 'portgroups' and
-                not api_utils.allow_portgroups_subcontrollers()) or
-            (remainder[0] == 'vifs' and
-                not api_utils.allow_vifs_subcontroller())):
+        if ((remainder[0] == 'portgroups'
+                and not api_utils.allow_portgroups_subcontrollers())
+            or (remainder[0] == 'vifs'
+                and not api_utils.allow_vifs_subcontroller())):
             pecan.abort(http_client.NOT_FOUND)
         if remainder[0] == 'traits' and not api_utils.allow_traits():
             # NOTE(mgoddard): Returning here will ensure we exhibit the
@@ -1764,8 +1764,8 @@ class NodesController(rest.RestController):
         if node is not None:
             # We're invoking this interface using positional notation, or
             # explicitly using 'node'.  Try and determine which one.
-            if (not api_utils.allow_node_logical_names() and
-                not uuidutils.is_uuid_like(node)):
+            if (not api_utils.allow_node_logical_names()
+                and not uuidutils.is_uuid_like(node)):
                 raise exception.NotAcceptable()
 
         rpc_node = api_utils.get_rpc_node(node_uuid or node)
@@ -1809,13 +1809,13 @@ class NodesController(rest.RestController):
         if self.from_chassis:
             raise exception.OperationNotPermitted()
 
-        if (not api_utils.allow_resource_class() and
-                node.resource_class is not wtypes.Unset):
+        if (not api_utils.allow_resource_class()
+                and node.resource_class is not wtypes.Unset):
             raise exception.NotAcceptable()
 
         n_interface = node.network_interface
-        if (not api_utils.allow_network_interface() and
-                n_interface is not wtypes.Unset):
+        if (not api_utils.allow_network_interface()
+                and n_interface is not wtypes.Unset):
             raise exception.NotAcceptable()
 
         if not api_utils.allow_dynamic_interfaces():
@@ -1823,8 +1823,8 @@ class NodesController(rest.RestController):
                 if getattr(node, field) is not wsme.Unset:
                     raise exception.NotAcceptable()
 
-        if (not api_utils.allow_storage_interface() and
-                node.storage_interface is not wtypes.Unset):
+        if (not api_utils.allow_storage_interface()
+                and node.storage_interface is not wtypes.Unset):
             raise exception.NotAcceptable()
 
         if node.traits is not wtypes.Unset:
@@ -1832,8 +1832,8 @@ class NodesController(rest.RestController):
                     "be set via the node traits API.")
             raise exception.Invalid(msg)
 
-        if (not api_utils.allow_rescue_interface() and
-                node.rescue_interface is not wtypes.Unset):
+        if (not api_utils.allow_rescue_interface()
+                and node.rescue_interface is not wtypes.Unset):
             raise exception.NotAcceptable()
 
         # NOTE(deva): get_topic_for checks if node.driver is in the hash ring
@@ -1932,8 +1932,8 @@ class NodesController(rest.RestController):
                     "is in progress.")
             raise wsme.exc.ClientSideError(
                 msg % node_ident, status_code=http_client.CONFLICT)
-        elif (rpc_node.provision_state == ir_states.INSPECTING and
-              api_utils.allow_inspect_wait_state()):
+        elif (rpc_node.provision_state == ir_states.INSPECTING
+              and api_utils.allow_inspect_wait_state()):
             msg = _('Cannot update node "%(node)s" while it is in state '
                     '"%(state)s".') % {'node': rpc_node.uuid,
                                        'state': ir_states.INSPECTING}

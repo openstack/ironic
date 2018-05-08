@@ -153,8 +153,8 @@ class BaseConductorManager(object):
 
         # Check for required config options if object_store_endpoint_type is
         # radosgw
-        if (CONF.deploy.configdrive_use_object_store and
-            CONF.deploy.object_store_endpoint_type == "radosgw"):
+        if (CONF.deploy.configdrive_use_object_store
+            and CONF.deploy.object_store_endpoint_type == "radosgw"):
             if (None in (CONF.swift.auth_url, CONF.swift.username,
                          CONF.swift.password)):
                 msg = _("Parameters missing to make a connection with "
@@ -489,8 +489,8 @@ class BaseConductorManager(object):
             try:
                 with task_manager.acquire(context, node_uuid,
                                           purpose='node state check') as task:
-                    if (task.node.maintenance or
-                            task.node.provision_state not in provision_state):
+                    if (task.node.maintenance
+                            or task.node.provision_state not in provision_state):
                         continue
 
                     target_state = (None if not keep_target_state else

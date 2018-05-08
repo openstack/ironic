@@ -443,13 +443,13 @@ class PortgroupsController(pecan.rest.RestController):
         if self.parent_node_ident:
             raise exception.OperationNotPermitted()
 
-        if (not api_utils.allow_portgroup_mode_properties() and
-                (portgroup.mode is not wtypes.Unset or
-                 portgroup.properties is not wtypes.Unset)):
+        if (not api_utils.allow_portgroup_mode_properties()
+                and (portgroup.mode is not wtypes.Unset
+                     or portgroup.properties is not wtypes.Unset)):
             raise exception.NotAcceptable()
 
-        if (portgroup.name and
-                not api_utils.is_valid_logical_name(portgroup.name)):
+        if (portgroup.name
+                and not api_utils.is_valid_logical_name(portgroup.name)):
             error_msg = _("Cannot create portgroup with invalid name "
                           "'%(name)s'") % {'name': portgroup.name}
             raise wsme.exc.ClientSideError(
@@ -497,9 +497,9 @@ class PortgroupsController(pecan.rest.RestController):
         if self.parent_node_ident:
             raise exception.OperationNotPermitted()
 
-        if (not api_utils.allow_portgroup_mode_properties() and
-                (api_utils.is_path_updated(patch, '/mode') or
-                 api_utils.is_path_updated(patch, '/properties'))):
+        if (not api_utils.allow_portgroup_mode_properties()
+                and (api_utils.is_path_updated(patch, '/mode')
+                     or api_utils.is_path_updated(patch, '/properties'))):
             raise exception.NotAcceptable()
 
         rpc_portgroup = api_utils.get_rpc_portgroup_with_suffix(
@@ -507,8 +507,7 @@ class PortgroupsController(pecan.rest.RestController):
 
         names = api_utils.get_patch_values(patch, '/name')
         for name in names:
-            if (name and
-                    not api_utils.is_valid_logical_name(name)):
+            if (name and not api_utils.is_valid_logical_name(name)):
                 error_msg = _("Portgroup %(portgroup)s: Cannot change name to"
                               " invalid name '%(name)s'") % {'portgroup':
                                                              portgroup_ident,
@@ -544,8 +543,8 @@ class PortgroupsController(pecan.rest.RestController):
                 rpc_portgroup[field] = patch_val
 
         rpc_node = objects.Node.get_by_id(context, rpc_portgroup.node_id)
-        if (rpc_node.provision_state == ir_states.INSPECTING and
-                api_utils.allow_inspect_wait_state()):
+        if (rpc_node.provision_state == ir_states.INSPECTING
+                and api_utils.allow_inspect_wait_state()):
             msg = _('Cannot update portgroup "%(portgroup)s" on node '
                     '"%(node)s" while it is in state "%(state)s".') % {
                 'portgroup': rpc_portgroup.uuid, 'node': rpc_node.uuid,

@@ -129,8 +129,8 @@ class BaseDriver(object):
 
     @property
     def all_interfaces(self):
-        return (list(self.core_interfaces + self.standard_interfaces) +
-                ['vendor'])
+        return (list(self.core_interfaces + self.standard_interfaces)
+                + ['vendor'])
 
     @property
     def non_vendor_interfaces(self):
