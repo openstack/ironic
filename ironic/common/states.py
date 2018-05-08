@@ -216,6 +216,8 @@ UNRESCUEFAIL = 'unrescue failed'
 UNRESCUING = 'unrescuing'
 """ Node is being restored from rescue mode (to active state). """
 
+# NOTE(kaifeng): INSPECTING is allowed to keep backwards compatibility,
+# starting from API 1.39 node update is disallowed in this state.
 UPDATE_ALLOWED_STATES = (DEPLOYFAIL, INSPECTING, INSPECTFAIL, INSPECTWAIT,
                          CLEANFAIL, ERROR, VERIFYING, ADOPTFAIL, RESCUEFAIL,
                          UNRESCUEFAIL)
