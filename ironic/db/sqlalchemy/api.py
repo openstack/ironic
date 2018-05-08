@@ -77,7 +77,7 @@ def _wrap_session(session):
 
 
 def _get_node_query_with_all():
-    """Return a query object for the Node model joined with all relevant fields.
+    """Return a query object for the Node joined with all relevant fields.
 
     :returns: a query object.
     """
@@ -254,7 +254,8 @@ class Connection(api.Connection):
                 filters['reserved_by_any_of']))
         if 'provisioned_before' in filters:
             limit = (timeutils.utcnow()
-                     - datetime.timedelta(seconds=filters['provisioned_before']))
+                     - datetime.timedelta(
+                         seconds=filters['provisioned_before']))
             query = query.filter(models.Node.provision_updated_at < limit)
         if 'inspection_started_before' in filters:
             limit = ((timeutils.utcnow())

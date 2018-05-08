@@ -417,7 +417,7 @@ def _validate_server_profile_template_server_hardware_type(
 
 
 def _validate_spt_enclosure_group(server_profile_template, server_hardware):
-    """Validate Server Profile Template's Enclosure Group and Server Hardware's.
+    """Validate Server Profile Template's Enclosure Group and Hardware's.
 
     :param: server_profile_template: OneView Server Profile Template object.
     :param: server_hardware: OneView Server Hardware object.

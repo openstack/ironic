@@ -69,7 +69,7 @@ class OneViewPower(base.PowerInterface):
 
     @METRICS.timer('OneViewPower.validate')
     def validate(self, task):
-        """Checks required info on 'driver_info' and validates node with OneView
+        """Checks required info on 'driver_info' and validates node for OneView
 
         Validates whether the 'oneview_info' property of the supplied
         task's node contains the required info such as server_hardware_uri,

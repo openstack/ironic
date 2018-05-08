@@ -155,7 +155,8 @@ def is_image_available(context, image):
         return True
 
     if ((getattr(image, 'is_public', None)
-         or getattr(image, 'visibility', None) == 'public') or context.is_admin):
+            or getattr(image, 'visibility', None) == 'public')
+            or context.is_admin):
         return True
     properties = image.properties
     if context.project_id and ('owner_id' in properties):
