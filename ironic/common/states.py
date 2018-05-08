@@ -266,6 +266,7 @@ def on_enter(new_state, event):
     LOG.debug("Entering new state '%s' in response to event '%s'",
               new_state, event)
 
+
 watchers = {}
 watchers['on_exit'] = on_exit
 watchers['on_enter'] = on_enter

@@ -77,6 +77,7 @@ def _convert_timestamps_to_datetimes(image_meta):
                 timeutils.parse_isotime(image_meta[attr]))
     return image_meta
 
+
 _CONVERT_PROPS = ('block_device_mapping', 'mappings')
 
 
