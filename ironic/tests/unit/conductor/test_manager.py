@@ -2382,6 +2382,34 @@ class DoNodeCleanTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
     def test__do_node_clean_manual_network_validate_fail(self, mock_validate):
         self.__do_node_clean_validate_fail(mock_validate, clean_steps=[])
 
+    @mock.patch('ironic.drivers.modules.network.flat.FlatNetwork.validate')
+    @mock.patch('ironic.drivers.modules.fake.FakeBIOS.cache_bios_settings')
+    def test__do_node_clean_cache_bios(self, mock_bios, mock_validate,
+                                       clean_steps=None):
+        tgt_prov_state = states.MANAGEABLE if clean_steps else states.AVAILABLE
+        node = obj_utils.create_test_node(
+            self.context, driver='fake',
+            provision_state=states.CLEANING,
+            target_provision_state=tgt_prov_state)
+        with task_manager.acquire(
+                self.context, node.uuid, shared=False) as task:
+            self.service._do_node_clean(task, clean_steps=clean_steps)
+        node.refresh()
+        self.assertFalse(mock_bios.called)
+        if clean_steps:
+            self.assertEqual(states.CLEANFAIL, node.provision_state)
+            self.assertEqual(tgt_prov_state, node.target_provision_state)
+        else:
+            self.assertEqual(states.AVAILABLE, node.provision_state)
+            self.assertEqual(states.NOSTATE, node.target_provision_state)
+        mock_validate.assert_called_once_with(task)
+
+    def test__do_node_clean_manual_cache_bios(self):
+        self.test__do_node_clean_cache_bios(clean_steps=[self.deploy_raid])
+
+    def test__do_node_clean_automated_cache_bios(self):
+        self.test__do_node_clean_cache_bios()
+
     @mock.patch('ironic.drivers.modules.fake.FakePower.validate')
     def test__do_node_clean_automated_disabled(self, mock_validate):
         self.config(automated_clean=False, group='conductor')

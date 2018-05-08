@@ -1175,6 +1175,17 @@ class ConductorManager(base_manager.BaseConductorManager):
             node.driver_internal_info = info
             node.save()
 
+        # Do caching of bios settings if supported by driver,
+        # this will be called for both manual and automated cleaning.
+        # TODO(zshi) remove this check when classic drivers are removed
+        if getattr(task.driver, 'bios', None):
+            try:
+                task.driver.bios.cache_bios_settings(task)
+            except Exception as e:
+                msg = (_('Caching of bios settings failed on node %(node)s.')
+                       % {'node': node.uuid})
+                LOG.exception(msg)
+
         # Allow the deploy driver to set up the ramdisk again (necessary for
         # IPA cleaning)
         try:
