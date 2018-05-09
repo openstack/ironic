@@ -1,0 +1,9 @@
+---
+fixes:
+  - Adds more ``ipmitool`` error messages to be treated as retryable by the
+    ipmitool interfaces (such as power and management hardware interfaces).
+    Specifically, ``Node busy``, ``Timeout``, ``Out of space`` and
+    ``BMC initialization in progress`` reporting emitted by ``ipmitool``
+    will cause ironic to retry IPMI command.
+    This change should improve the reliability of IPMI-based communicaton
+    with BMC.

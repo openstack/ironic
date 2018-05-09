@@ -338,6 +338,114 @@ def _make_password_file_stub(password):
     yield awesome_password_filename
 
 
+class IPMIToolPrivateMethodTestCaseMeta(type):
+    """Generate and inject parametrized test cases"""
+
+    ipmitool_errors = [
+        'insufficient resources for session',
+        'Node busy',
+        'Timeout',
+        'Out of space',
+        'BMC initialization in progress'
+    ]
+
+    def __new__(mcs, name, bases, attrs):
+
+        def gen_test_methods(message):
+
+            @mock.patch.object(ipmi, '_is_option_supported', autospec=True)
+            @mock.patch.object(utils, 'execute', autospec=True)
+            def exec_ipmitool_exception_retry(
+                    self, mock_exec, mock_support):
+                ipmi.LAST_CMD_TIME = {}
+                mock_support.return_value = False
+                mock_exec.side_effect = [
+                    processutils.ProcessExecutionError(
+                        stderr=message
+                    ),
+                    (None, None)
+                ]
+
+                # Directly set the configuration values such that
+                # the logic will cause _exec_ipmitool to retry twice.
+                self.config(min_command_interval=1, group='ipmi')
+                self.config(retry_timeout=2, group='ipmi')
+
+                ipmi._exec_ipmitool(self.info, 'A B C')
+
+                mock_support.assert_called_once_with('timing')
+                self.assertEqual(2, mock_exec.call_count)
+
+            @mock.patch.object(ipmi, '_is_option_supported', autospec=True)
+            @mock.patch.object(utils, 'execute', autospec=True)
+            def exec_ipmitool_exception_retries_exceeded(
+                    self, mock_exec, mock_support):
+                ipmi.LAST_CMD_TIME = {}
+                mock_support.return_value = False
+
+                mock_exec.side_effect = [processutils.ProcessExecutionError(
+                    stderr=message
+                )]
+
+                # Directly set the configuration values such that
+                # the logic will cause _exec_ipmitool to timeout.
+                self.config(min_command_interval=1, group='ipmi')
+                self.config(retry_timeout=1, group='ipmi')
+
+                self.assertRaises(processutils.ProcessExecutionError,
+                                  ipmi._exec_ipmitool,
+                                  self.info, 'A B C')
+                mock_support.assert_called_once_with('timing')
+                self.assertEqual(1, mock_exec.call_count)
+
+            @mock.patch.object(ipmi, '_is_option_supported', autospec=True)
+            @mock.patch.object(utils, 'execute', autospec=True)
+            def exec_ipmitool_exception_non_retryable_failure(
+                    self, mock_exec, mock_support):
+                ipmi.LAST_CMD_TIME = {}
+                mock_support.return_value = False
+
+                # Return a retryable error, then an error that cannot
+                # be retried thus resulting in a single retry
+                # attempt by _exec_ipmitool.
+                mock_exec.side_effect = [
+                    processutils.ProcessExecutionError(
+                        stderr=message
+                    ),
+                    processutils.ProcessExecutionError(
+                        stderr="Unknown"
+                    ),
+                ]
+
+                # Directly set the configuration values such that
+                # the logic will cause _exec_ipmitool to retry up
+                # to 3 times.
+                self.config(min_command_interval=1, group='ipmi')
+                self.config(retry_timeout=3, group='ipmi')
+
+                self.assertRaises(processutils.ProcessExecutionError,
+                                  ipmi._exec_ipmitool,
+                                  self.info, 'A B C')
+                mock_support.assert_called_once_with('timing')
+                self.assertEqual(2, mock_exec.call_count)
+
+            return (exec_ipmitool_exception_retry,
+                    exec_ipmitool_exception_retries_exceeded,
+                    exec_ipmitool_exception_non_retryable_failure)
+
+        # NOTE(etingof): this loop will inject some methods into the
+        # class being built to be then picked up by unittest to test
+        # ironic's handling of specific `ipmitool` errors
+        for ipmi_message in mcs.ipmitool_errors:
+            for fun in gen_test_methods(ipmi_message):
+                suffix = ipmi_message.lower().replace(' ', '_')
+                test_name = "test_%s_%s" % (fun.__name__, suffix)
+                attrs[test_name] = fun
+
+        return type.__new__(mcs, name, bases, attrs)
+
+
+@six.add_metaclass(IPMIToolPrivateMethodTestCaseMeta)
 class IPMIToolPrivateMethodTestCase(db_base.DbTestCase):
 
     def setUp(self):
@@ -358,6 +466,10 @@ class IPMIToolPrivateMethodTestCase(db_base.DbTestCase):
         mock_sleep_fixture = self.useFixture(
             fixtures.MockPatchObject(time, 'sleep', autospec=True))
         self.mock_sleep = mock_sleep_fixture.mock
+
+    # NOTE(etingof): besides the conventional unittest methods that follow,
+    # the metaclass will inject some more `test_` methods aimed at testing
+    # the handling of specific errors potentially returned by the `ipmitool`
 
     def _mock_system_random_distribution(self):
         # random.SystemRandom with gauss distribution is used by oslo_service's
@@ -1067,85 +1179,6 @@ class IPMIToolPrivateMethodTestCase(db_base.DbTestCase):
         mock_support.assert_called_once_with('timing')
         mock_exec.assert_called_once_with(*args)
         self.assertEqual(1, mock_exec.call_count)
-
-    @mock.patch.object(ipmi, '_is_option_supported', autospec=True)
-    @mock.patch.object(utils, 'execute', autospec=True)
-    def test__exec_ipmitool_exception_retry(
-            self, mock_exec, mock_support):
-
-        ipmi.LAST_CMD_TIME = {}
-        mock_support.return_value = False
-        mock_exec.side_effect = [
-            processutils.ProcessExecutionError(
-                stderr="insufficient resources for session"
-            ),
-            (None, None)
-        ]
-
-        # Directly set the configuration values such that
-        # the logic will cause _exec_ipmitool to retry twice.
-        self.config(min_command_interval=1, group='ipmi')
-        self.config(retry_timeout=2, group='ipmi')
-
-        ipmi._exec_ipmitool(self.info, 'A B C')
-
-        mock_support.assert_called_once_with('timing')
-        self.assertEqual(2, mock_exec.call_count)
-
-    @mock.patch.object(ipmi, '_is_option_supported', autospec=True)
-    @mock.patch.object(utils, 'execute', autospec=True)
-    def test__exec_ipmitool_exception_retries_exceeded(
-            self, mock_exec, mock_support):
-
-        ipmi.LAST_CMD_TIME = {}
-        mock_support.return_value = False
-
-        mock_exec.side_effect = [processutils.ProcessExecutionError(
-            stderr="insufficient resources for session"
-        )]
-
-        # Directly set the configuration values such that
-        # the logic will cause _exec_ipmitool to timeout.
-        self.config(min_command_interval=1, group='ipmi')
-        self.config(retry_timeout=1, group='ipmi')
-
-        self.assertRaises(processutils.ProcessExecutionError,
-                          ipmi._exec_ipmitool,
-                          self.info, 'A B C')
-        mock_support.assert_called_once_with('timing')
-        self.assertEqual(1, mock_exec.call_count)
-
-    @mock.patch.object(ipmi, '_is_option_supported', autospec=True)
-    @mock.patch.object(utils, 'execute', autospec=True)
-    def test__exec_ipmitool_exception_non_retryable_failure(
-            self, mock_exec, mock_support):
-
-        ipmi.LAST_CMD_TIME = {}
-        mock_support.return_value = False
-
-        # Return a retryable error, then an error that cannot
-        # be retried thus resulting in a single retry
-        # attempt by _exec_ipmitool.
-        mock_exec.side_effect = [
-            processutils.ProcessExecutionError(
-                stderr="insufficient resources for session"
-            ),
-            processutils.ProcessExecutionError(
-                stderr="Unknown"
-            ),
-        ]
-
-        # Directly set the configuration values such that
-        # the logic will cause _exec_ipmitool to retry up
-        # to 3 times.
-        self.config(min_command_interval=1, group='ipmi')
-        self.config(retry_timeout=3, group='ipmi')
-
-        self.assertRaises(processutils.ProcessExecutionError,
-                          ipmi._exec_ipmitool,
-                          self.info, 'A B C')
-        mock_support.assert_called_once_with('timing')
-        self.assertEqual(2, mock_exec.call_count)
 
     @mock.patch.object(ipmi, '_is_option_supported', autospec=True)
     @mock.patch.object(ipmi, '_make_password_file', _make_password_file_stub)
