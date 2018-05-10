@@ -22,6 +22,7 @@ opts = [
     cfg.StrOpt('username',
                help=_('Username to access the XClarity controller.')),
     cfg.StrOpt('password',
+               secret=True,
                help=_('Password for XClarity controller username.')),
     cfg.PortOpt('port',
                 default=443,
