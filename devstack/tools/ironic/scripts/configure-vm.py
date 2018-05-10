@@ -132,5 +132,6 @@ def main():
     a = conn.defineXML(libvirt_template)
     print("Created machine %s with UUID %s" % (args.name, a.UUIDString()))
 
+
 if __name__ == '__main__':
     main()

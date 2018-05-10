@@ -330,6 +330,7 @@ class LocalLinkConnectionType(wtypes.UserType):
             return None
         return LocalLinkConnectionType.validate(value)
 
+
 locallinkconnectiontype = LocalLinkConnectionType()
 
 
