@@ -439,9 +439,9 @@ def _exec_ipmitool(driver_info, command, check_exit_code=None):
                 with excutils.save_and_reraise_exception() as ctxt:
                     err_list = [x for x in IPMITOOL_RETRYABLE_FAILURES
                                 if x in six.text_type(e)]
-                    if ((time.time() > end_time) or
-                        (num_tries == 0) or
-                        not err_list):
+                    if ((time.time() > end_time)
+                        or (num_tries == 0)
+                        or not err_list):
                         LOG.error('IPMI Error while attempting "%(cmd)s" '
                                   'for node %(node)s. Error: %(error)s',
                                   {'node': driver_info['uuid'],
@@ -983,9 +983,9 @@ class IPMIManagement(base.ManagementInterface):
         driver_info = task.node.driver_info
         driver_internal_info = task.node.driver_internal_info
 
-        if (driver_info.get('ipmi_force_boot_device', False) and
-                driver_internal_info.get('persistent_boot_device') and
-                driver_internal_info.get('is_next_boot_persistent', True)):
+        if (driver_info.get('ipmi_force_boot_device', False)
+                and driver_internal_info.get('persistent_boot_device')
+                and driver_internal_info.get('is_next_boot_persistent', True)):
             return {
                 'boot_device': driver_internal_info['persistent_boot_device'],
                 'persistent': True

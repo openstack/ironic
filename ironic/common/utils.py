@@ -90,8 +90,8 @@ def is_valid_datapath_id(datapath_id):
 
     """
     m = "^[0-9a-f]{16}$"
-    return (isinstance(datapath_id, six.string_types) and
-            re.match(m, datapath_id.lower()))
+    return (isinstance(datapath_id, six.string_types)
+            and re.match(m, datapath_id.lower()))
 
 
 _is_valid_logical_name_re = re.compile(r'^[A-Z0-9-._~]+$', re.I)

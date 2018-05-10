@@ -142,8 +142,8 @@ def is_path_removed(patch, path):
     """
     path = path.rstrip('/')
     for p in patch:
-        if ((p['path'] == path or p['path'].startswith(path + '/')) and
-                p['op'] == 'remove'):
+        if ((p['path'] == path or p['path'].startswith(path + '/'))
+                and p['op'] == 'remove'):
             return True
 
 
@@ -349,8 +349,8 @@ def check_allow_specify_fields(fields):
     attributes, this method checks if the required version is being
     requested.
     """
-    if (fields is not None and pecan.request.version.minor <
-            versions.MINOR_8_FETCHING_SUBSET_OF_FIELDS):
+    if (fields is not None and pecan.request.version.minor
+            < versions.MINOR_8_FETCHING_SUBSET_OF_FIELDS):
         raise exception.NotAcceptable()
 
 
@@ -385,8 +385,8 @@ def check_allowed_portgroup_fields(fields):
     """
     if fields is None:
         return
-    if (('mode' in fields or 'properties' in fields) and
-            not allow_portgroup_mode_properties()):
+    if (('mode' in fields or 'properties' in fields)
+            and not allow_portgroup_mode_properties()):
         raise exception.NotAcceptable()
 
 
@@ -402,8 +402,8 @@ def check_for_invalid_state_and_allow_filter(provision_state):
     Version 1.9 of the API allows filter nodes by provision state.
     """
     if provision_state is not None:
-        if (pecan.request.version.minor <
-                versions.MINOR_9_PROVISION_STATE_FILTER):
+        if (pecan.request.version.minor
+                < versions.MINOR_9_PROVISION_STATE_FILTER):
             raise exception.NotAcceptable()
         valid_states = states.machine.states
         if provision_state not in valid_states:
@@ -416,8 +416,8 @@ def check_allow_specify_driver(driver):
 
     Version 1.16 of the API allows filter nodes by driver.
     """
-    if (driver is not None and pecan.request.version.minor <
-            versions.MINOR_16_DRIVER_FILTER):
+    if (driver is not None and pecan.request.version.minor
+            < versions.MINOR_16_DRIVER_FILTER):
         raise exception.NotAcceptable(_(
             "Request not acceptable. The minimal required API version "
             "should be %(base)s.%(opr)s") %
@@ -430,8 +430,8 @@ def check_allow_specify_resource_class(resource_class):
 
     Version 1.21 of the API allows filtering nodes by resource_class.
     """
-    if (resource_class is not None and pecan.request.version.minor <
-            versions.MINOR_21_RESOURCE_CLASS):
+    if (resource_class is not None and pecan.request.version.minor
+            < versions.MINOR_21_RESOURCE_CLASS):
         raise exception.NotAcceptable(_(
             "Request not acceptable. The minimal required API version "
             "should be %(base)s.%(opr)s") %
@@ -519,8 +519,8 @@ def allow_links_node_states_and_driver_properties():
     Version 1.14 of the API allows the display of links to node states
     and driver properties.
     """
-    return (pecan.request.version.minor >=
-            versions.MINOR_14_LINKS_NODESTATES_DRIVERPROPERTIES)
+    return (pecan.request.version.minor
+            >= versions.MINOR_14_LINKS_NODESTATES_DRIVERPROPERTIES)
 
 
 def allow_port_internal_info():
@@ -528,8 +528,8 @@ def allow_port_internal_info():
 
     Version 1.18 of the API exposes internal_info readonly field for the port.
     """
-    return (pecan.request.version.minor >=
-            versions.MINOR_18_PORT_INTERNAL_INFO)
+    return (pecan.request.version.minor
+            >= versions.MINOR_18_PORT_INTERNAL_INFO)
 
 
 def allow_port_advanced_net_fields():
@@ -537,8 +537,8 @@ def allow_port_advanced_net_fields():
 
     Version 1.19 of the API added support for these new fields in port object.
     """
-    return (pecan.request.version.minor >=
-            versions.MINOR_19_PORT_ADVANCED_NET_FIELDS)
+    return (pecan.request.version.minor
+            >= versions.MINOR_19_PORT_ADVANCED_NET_FIELDS)
 
 
 def allow_network_interface():
@@ -546,8 +546,8 @@ def allow_network_interface():
 
     Version 1.20 of the API added support for network interfaces.
     """
-    return (pecan.request.version.minor >=
-            versions.MINOR_20_NETWORK_INTERFACE)
+    return (pecan.request.version.minor
+            >= versions.MINOR_20_NETWORK_INTERFACE)
 
 
 def allow_resource_class():
@@ -555,8 +555,8 @@ def allow_resource_class():
 
     Version 1.21 of the API added support for resource_class.
     """
-    return (pecan.request.version.minor >=
-            versions.MINOR_21_RESOURCE_CLASS)
+    return (pecan.request.version.minor
+            >= versions.MINOR_21_RESOURCE_CLASS)
 
 
 def allow_ramdisk_endpoints():
@@ -572,8 +572,8 @@ def allow_portgroups():
 
     Version 1.23 of the API added support for PortGroups.
     """
-    return (pecan.request.version.minor >=
-            versions.MINOR_23_PORTGROUPS)
+    return (pecan.request.version.minor
+            >= versions.MINOR_23_PORTGROUPS)
 
 
 def allow_portgroups_subcontrollers():
@@ -582,8 +582,8 @@ def allow_portgroups_subcontrollers():
     Version 1.24 of the API added support for Portgroups as
     subcontrollers
     """
-    return (pecan.request.version.minor >=
-            versions.MINOR_24_PORTGROUPS_SUBCONTROLLERS)
+    return (pecan.request.version.minor
+            >= versions.MINOR_24_PORTGROUPS_SUBCONTROLLERS)
 
 
 def allow_remove_chassis_uuid():
@@ -592,8 +592,8 @@ def allow_remove_chassis_uuid():
     Version 1.25 of the API added support for chassis_uuid
     removal
     """
-    return (pecan.request.version.minor >=
-            versions.MINOR_25_UNSET_CHASSIS_UUID)
+    return (pecan.request.version.minor
+            >= versions.MINOR_25_UNSET_CHASSIS_UUID)
 
 
 def allow_portgroup_mode_properties():
@@ -602,8 +602,8 @@ def allow_portgroup_mode_properties():
     Version 1.26 of the API added mode and properties fields to portgroup
     object.
     """
-    return (pecan.request.version.minor >=
-            versions.MINOR_26_PORTGROUP_MODE_PROPERTIES)
+    return (pecan.request.version.minor
+            >= versions.MINOR_26_PORTGROUP_MODE_PROPERTIES)
 
 
 def allow_vifs_subcontroller():
@@ -612,8 +612,8 @@ def allow_vifs_subcontroller():
     Version 1.28 of the API added support for VIFs to be
     attached to Nodes.
     """
-    return (pecan.request.version.minor >=
-            versions.MINOR_28_VIFS_SUBCONTROLLER)
+    return (pecan.request.version.minor
+            >= versions.MINOR_28_VIFS_SUBCONTROLLER)
 
 
 def allow_dynamic_drivers():
@@ -622,8 +622,8 @@ def allow_dynamic_drivers():
     Version 1.30 of the API added support for all of the driver
     composition related calls in the /v1/drivers API.
     """
-    return (pecan.request.version.minor >=
-            versions.MINOR_30_DYNAMIC_DRIVERS)
+    return (pecan.request.version.minor
+            >= versions.MINOR_30_DYNAMIC_DRIVERS)
 
 
 def allow_dynamic_interfaces():
@@ -632,8 +632,8 @@ def allow_dynamic_interfaces():
     Version 1.31 of the API added support for viewing and setting the fields
     in ``V31_FIELDS`` on the node object.
     """
-    return (pecan.request.version.minor >=
-            versions.MINOR_31_DYNAMIC_INTERFACES)
+    return (pecan.request.version.minor
+            >= versions.MINOR_31_DYNAMIC_INTERFACES)
 
 
 def allow_volume():
@@ -649,8 +649,8 @@ def allow_storage_interface():
 
     Version 1.33 of the API added support for storage interfaces.
     """
-    return (pecan.request.version.minor >=
-            versions.MINOR_33_STORAGE_INTERFACE)
+    return (pecan.request.version.minor
+            >= versions.MINOR_33_STORAGE_INTERFACE)
 
 
 def allow_port_physical_network():
@@ -661,9 +661,9 @@ def allow_port_physical_network():
     supports the physical_network field as this may not be the case during a
     rolling upgrade.
     """
-    return ((pecan.request.version.minor >=
-             versions.MINOR_34_PORT_PHYSICAL_NETWORK) and
-            objects.Port.supports_physical_network())
+    return ((pecan.request.version.minor
+             >= versions.MINOR_34_PORT_PHYSICAL_NETWORK)
+            and objects.Port.supports_physical_network())
 
 
 def allow_node_rebuild_with_configdrive():
@@ -671,8 +671,8 @@ def allow_node_rebuild_with_configdrive():
 
     Version 1.35 of the API added support for node rebuild with configdrive.
     """
-    return (pecan.request.version.minor >=
-            versions.MINOR_35_REBUILD_CONFIG_DRIVE)
+    return (pecan.request.version.minor
+            >= versions.MINOR_35_REBUILD_CONFIG_DRIVE)
 
 
 def allow_agent_version_in_heartbeat():
@@ -681,8 +681,8 @@ def allow_agent_version_in_heartbeat():
     Version 1.36 of the API added the ability for agents to pass their version
     information to Ironic on heartbeat.
     """
-    return (pecan.request.version.minor >=
-            versions.MINOR_36_AGENT_VERSION_HEARTBEAT)
+    return (pecan.request.version.minor
+            >= versions.MINOR_36_AGENT_VERSION_HEARTBEAT)
 
 
 def allow_rescue_interface():

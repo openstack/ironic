@@ -56,8 +56,8 @@ class StringFieldThatAcceptsCallable(object_fields.StringField):
 
     def __repr__(self):
         default = self._default
-        if (self._default != object_fields.UnspecifiedDefault and
-                callable(self._default)):
+        if (self._default != object_fields.UnspecifiedDefault
+                and callable(self._default)):
             default = "%s-%s" % (
                 self._default.__name__,
                 hashlib.md5(inspect.getsource(

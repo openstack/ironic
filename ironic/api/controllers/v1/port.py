@@ -394,14 +394,14 @@ class PortsController(rest.RestController):
         """
         if fields is None:
             return
-        if (not api_utils.allow_port_advanced_net_fields() and
-                set(fields).intersection(self.advanced_net_fields)):
+        if (not api_utils.allow_port_advanced_net_fields()
+                and set(fields).intersection(self.advanced_net_fields)):
             raise exception.NotAcceptable()
-        if ('portgroup_uuid' in fields and not
-                api_utils.allow_portgroups_subcontrollers()):
+        if ('portgroup_uuid' in fields
+                and not api_utils.allow_portgroups_subcontrollers()):
             raise exception.NotAcceptable()
-        if ('physical_network' in fields and not
-                api_utils.allow_port_physical_network()):
+        if ('physical_network' in fields
+                and not api_utils.allow_port_physical_network()):
             raise exception.NotAcceptable()
 
     @METRICS.timer('PortsController.get_all')
@@ -451,8 +451,8 @@ class PortsController(rest.RestController):
             # We're invoking this interface using positional notation, or
             # explicitly using 'node'.  Try and determine which one.
             # Make sure only one interface, node or node_uuid is used
-            if (not api_utils.allow_node_logical_names() and
-                not uuidutils.is_uuid_like(node)):
+            if (not api_utils.allow_node_logical_names()
+                and not uuidutils.is_uuid_like(node)):
                 raise exception.NotAcceptable()
 
         return self._get_ports_collection(node_uuid or node, address,
@@ -498,8 +498,8 @@ class PortsController(rest.RestController):
             # We're invoking this interface using positional notation, or
             # explicitly using 'node'.  Try and determine which one.
             # Make sure only one interface, node or node_uuid is used
-            if (not api_utils.allow_node_logical_names() and
-                not uuidutils.is_uuid_like(node)):
+            if (not api_utils.allow_node_logical_names()
+                and not uuidutils.is_uuid_like(node)):
                 raise exception.NotAcceptable()
 
         # NOTE(lucasagomes): /detail should only work against collections
@@ -565,8 +565,8 @@ class PortsController(rest.RestController):
 
         vif = api_utils.handle_post_port_like_extra_vif(pdict)
 
-        if (pdict.get('portgroup_uuid') and
-                (pdict.get('pxe_enabled') or vif)):
+        if (pdict.get('portgroup_uuid')
+                and (pdict.get('pxe_enabled') or vif)):
             rpc_pg = objects.Portgroup.get_by_uuid(context,
                                                    pdict['portgroup_uuid'])
             if not rpc_pg.standalone_ports_supported:
@@ -626,11 +626,11 @@ class PortsController(rest.RestController):
             raise exception.OperationNotPermitted()
 
         fields_to_check = set()
-        for field in (self.advanced_net_fields +
-                      ['portgroup_uuid', 'physical_network']):
+        for field in (self.advanced_net_fields
+                      + ['portgroup_uuid', 'physical_network']):
             field_path = '/%s' % field
-            if (api_utils.get_patch_values(patch, field_path) or
-                    api_utils.is_path_removed(patch, field_path)):
+            if (api_utils.get_patch_values(patch, field_path)
+                    or api_utils.is_path_removed(patch, field_path)):
                 fields_to_check.add(field)
         self._check_allowed_port_fields(fields_to_check)
 
@@ -669,8 +669,8 @@ class PortsController(rest.RestController):
                 rpc_port[field] = patch_val
 
         rpc_node = objects.Node.get_by_id(context, rpc_port.node_id)
-        if (rpc_node.provision_state == ir_states.INSPECTING and
-                api_utils.allow_inspect_wait_state()):
+        if (rpc_node.provision_state == ir_states.INSPECTING
+                and api_utils.allow_inspect_wait_state()):
             msg = _('Cannot update port "%(port)s" on "%(node)s" while it is '
                     'in state "%(state)s".') % {'port': rpc_port.uuid,
                                                 'node': rpc_node.uuid,

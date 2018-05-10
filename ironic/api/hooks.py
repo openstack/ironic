@@ -145,8 +145,8 @@ class NoExceptionTracebackHook(hooks.PecanHook):
         # Do nothing if there is no error.
         # Status codes in the range 200 (OK) to 399 (400 = BAD_REQUEST) are not
         # an error.
-        if (http_client.OK <= state.response.status_int <
-                http_client.BAD_REQUEST):
+        if (http_client.OK <= state.response.status_int
+                < http_client.BAD_REQUEST):
             return
 
         json_body = state.response.json
@@ -175,5 +175,5 @@ class PublicUrlHook(hooks.PecanHook):
     """
 
     def before(self, state):
-        state.request.public_url = (cfg.CONF.api.public_endpoint or
-                                    state.request.host_url)
+        state.request.public_url = (cfg.CONF.api.public_endpoint
+                                    or state.request.host_url)

@@ -109,8 +109,8 @@ def _get_instance_image_info(node, ctx):
     image_info = {}
     # NOTE(pas-ha) do not report image kernel and ramdisk for
     # local boot or whole disk images so that they are not cached
-    if (node.driver_internal_info.get('is_whole_disk_image') or
-        deploy_utils.get_boot_option(node) == 'local'):
+    if (node.driver_internal_info.get('is_whole_disk_image')
+        or deploy_utils.get_boot_option(node) == 'local'):
             return image_info
 
     root_dir = pxe_utils.get_root_dir()
@@ -168,8 +168,8 @@ def _build_deploy_pxe_options(task, pxe_info, mode='deploy'):
                           (ramdisk_label, 'deployment_ari_path')):
         if CONF.pxe.ipxe_enabled:
             image_href = pxe_info[label][0]
-            if (CONF.pxe.ipxe_use_swift and
-                service_utils.is_glance_image(image_href)):
+            if (CONF.pxe.ipxe_use_swift
+                and service_utils.is_glance_image(image_href)):
                     pxe_opts[option] = images.get_temp_url_for_glance_image(
                         task.context, image_href)
             else:
@@ -246,8 +246,8 @@ def _build_pxe_config_options(task, pxe_info, service=False):
     mode = deploy_utils.rescue_or_deploy_mode(node)
     if service:
         pxe_options = {}
-    elif (node.driver_internal_info.get('boot_from_volume') and
-            CONF.pxe.ipxe_enabled):
+    elif (node.driver_internal_info.get('boot_from_volume')
+            and CONF.pxe.ipxe_enabled):
         pxe_options = _get_volume_pxe_options(task)
     else:
         pxe_options = _build_deploy_pxe_options(task, pxe_info, mode=mode)
@@ -271,8 +271,8 @@ def _build_service_pxe_config(task, instance_image_info,
     # NOTE(pas-ha) if it is takeover of ACTIVE node or node performing
     # unrescue operation, first ensure that basic PXE configs and links
     # are in place before switching pxe config
-    if (node.provision_state in [states.ACTIVE, states.UNRESCUING] and
-            not os.path.isfile(pxe_config_path)):
+    if (node.provision_state in [states.ACTIVE, states.UNRESCUING]
+            and not os.path.isfile(pxe_config_path)):
         pxe_options = _build_pxe_config_options(task, instance_image_info,
                                                 service=True)
         pxe_config_template = deploy_utils.get_pxe_config_template(node)
@@ -353,9 +353,9 @@ def validate_boot_parameters_for_trusted_boot(node):
     is_whole_disk_image = node.driver_internal_info.get('is_whole_disk_image')
     # 'is_whole_disk_image' is not supported by trusted boot, because there is
     # no Kernel/Ramdisk to measure at all.
-    if (boot_mode != 'bios' or
-        is_whole_disk_image or
-        boot_option != 'netboot'):
+    if (boot_mode != 'bios'
+        or is_whole_disk_image
+        or boot_option != 'netboot'):
         msg = (_("Trusted boot is only supported in BIOS boot mode with "
                  "netboot and without whole_disk_image, but Node "
                  "%(node_uuid)s was configured with boot_mode: %(boot_mode)s, "
@@ -448,8 +448,8 @@ class PXEBoot(base.BootInterface):
                 % node.uuid)
 
         if CONF.pxe.ipxe_enabled:
-            if (not CONF.deploy.http_url or
-                not CONF.deploy.http_root):
+            if (not CONF.deploy.http_url
+                or not CONF.deploy.http_root):
                 raise exception.MissingParameterValue(_(
                     "iPXE boot is enabled but no HTTP URL or HTTP "
                     "root was specified."))
@@ -468,8 +468,8 @@ class PXEBoot(base.BootInterface):
             return
 
         d_info = deploy_utils.get_image_instance_info(node)
-        if (node.driver_internal_info.get('is_whole_disk_image') or
-                deploy_utils.get_boot_option(node) == 'local'):
+        if (node.driver_internal_info.get('is_whole_disk_image')
+                or deploy_utils.get_boot_option(node) == 'local'):
             props = []
         elif service_utils.is_glance_image(d_info['image_source']):
             props = ['kernel_id', 'ramdisk_id']

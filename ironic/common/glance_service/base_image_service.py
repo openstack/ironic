@@ -83,8 +83,8 @@ def check_image_service(func):
 
         # TODO(pas-ha) remove in Rocky
         # NOTE(pas-ha) new option must win if configured
-        if (CONF.glance.glance_api_servers and
-                not CONF.glance.endpoint_override):
+        if (CONF.glance.glance_api_servers
+                and not CONF.glance.endpoint_override):
             # NOTE(pas-ha) all the 2 methods have image_href as the first
             #              positional arg, but check in kwargs too
             image_href = args[0] if args else kwargs.get('image_href')
@@ -211,8 +211,8 @@ class BaseImageService(object):
         """
         image_id = service_utils.parse_image_id(image_href)
 
-        if (self.version == 2 and
-                'file' in CONF.glance.allowed_direct_url_schemes):
+        if (self.version == 2
+                and 'file' in CONF.glance.allowed_direct_url_schemes):
 
             location = self._get_location(image_id)
             url = urlparse.urlparse(location)

@@ -248,8 +248,8 @@ class ImageCache(object):
                          for f in os.listdir(self.master_dir))
         total_size = sum(os.path.getsize(f)
                          for f in total_listing)
-        while listing and (total_size > self._cache_size or
-                           (amount is not None and amount > 0)):
+        while listing and (total_size > self._cache_size
+                           or (amount is not None and amount > 0)):
             file_name, last_used, stat = listing.pop()
             try:
                 os.unlink(file_name)
@@ -420,8 +420,8 @@ def _delete_dest_path_if_stale(master_path, dest_path):
         # Image not cached, re-download
         return False
     master_path_exists = os.path.exists(master_path)
-    if (not master_path_exists or
-            os.stat(master_path).st_ino != os.stat(dest_path).st_ino):
+    if (not master_path_exists
+            or os.stat(master_path).st_ino != os.stat(dest_path).st_ino):
         # Image exists in cache, but dest_path out of date
         os.unlink(dest_path)
         return False

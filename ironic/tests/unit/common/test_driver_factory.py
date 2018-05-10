@@ -119,8 +119,8 @@ class DriverLoadTestCase(db_base.DbTestCase):
     @mock.patch.object(driver_factory.LOG, 'warning', autospec=True)
     def test_build_driver_for_task_incorrect(self, mock_warn, mock_attach):
         # Cannot set these node interfaces for classic driver
-        no_set_interfaces = (drivers_base.ALL_INTERFACES -
-                             set(['network', 'storage']))
+        no_set_interfaces = (drivers_base.ALL_INTERFACES
+                             - set(['network', 'storage']))
         for iface in no_set_interfaces:
             iface_name = '%s_interface' % iface
             node_kwargs = {'uuid': uuidutils.generate_uuid(),
@@ -305,8 +305,8 @@ class CheckAndUpdateNodeInterfacesTestCase(db_base.DbTestCase):
 
     def test_create_node_classic_driver_not_allowed_interfaces_set(self):
         # Cannot set these node interfaces for classic driver
-        no_set_interfaces = (drivers_base.ALL_INTERFACES -
-                             set(['network', 'storage']))
+        no_set_interfaces = (drivers_base.ALL_INTERFACES
+                             - set(['network', 'storage']))
         for iface in no_set_interfaces:
             iface_name = '%s_interface' % iface
             node_kwargs = {'uuid': uuidutils.generate_uuid(),
@@ -319,8 +319,8 @@ class CheckAndUpdateNodeInterfacesTestCase(db_base.DbTestCase):
                 driver_factory.check_and_update_node_interfaces, node)
 
     def test_create_node_classic_driver_no_interfaces_set(self):
-        no_set_interfaces = (drivers_base.ALL_INTERFACES -
-                             set(['network', 'storage']))
+        no_set_interfaces = (drivers_base.ALL_INTERFACES
+                             - set(['network', 'storage']))
         node_kwargs = {'uuid': uuidutils.generate_uuid()}
         node = obj_utils.get_test_node(self.context, driver='fake',
                                        **node_kwargs)
@@ -368,8 +368,8 @@ class CheckAndUpdateNodeInterfacesTestCase(db_base.DbTestCase):
 
     def test_update_node_set_classic_driver_and_not_allowed_interfaces(self):
         """Update driver to classic and interfaces specified"""
-        not_allowed_interfaces = (drivers_base.ALL_INTERFACES -
-                                  set(['network', 'storage']))
+        not_allowed_interfaces = (drivers_base.ALL_INTERFACES
+                                  - set(['network', 'storage']))
         self.config(enabled_drivers=['fake', 'fake_agent'])
         for iface in not_allowed_interfaces:
             iface_name = '%s_interface' % iface
@@ -400,8 +400,8 @@ class CheckAndUpdateNodeInterfacesTestCase(db_base.DbTestCase):
 
     def test_update_node_set_classic_driver_unset_interfaces(self):
         """Update driver to classic and set interfaces to None"""
-        no_set_interfaces = (drivers_base.ALL_INTERFACES -
-                             set(['network', 'storage']))
+        no_set_interfaces = (drivers_base.ALL_INTERFACES
+                             - set(['network', 'storage']))
         self.config(enabled_drivers=['fake', 'fake_agent'])
         for iface in no_set_interfaces:
             iface_name = '%s_interface' % iface
@@ -416,8 +416,8 @@ class CheckAndUpdateNodeInterfacesTestCase(db_base.DbTestCase):
 
     def test_update_node_classic_driver_unset_interfaces(self):
         """Update interfaces to None for node with classic driver"""
-        no_set_interfaces = (drivers_base.ALL_INTERFACES -
-                             set(['network', 'storage']))
+        no_set_interfaces = (drivers_base.ALL_INTERFACES
+                             - set(['network', 'storage']))
         self.config(enabled_drivers=['fake', 'fake_agent'])
         for iface in no_set_interfaces:
             iface_name = '%s_interface' % iface
@@ -431,8 +431,8 @@ class CheckAndUpdateNodeInterfacesTestCase(db_base.DbTestCase):
     def test_update_node_set_classic_driver_no_interfaces(self):
         """Update driver to classic no interfaces specified"""
         self._set_config_interface_options_hardware_type()
-        no_set_interfaces = (drivers_base.ALL_INTERFACES -
-                             set(['network', 'storage']))
+        no_set_interfaces = (drivers_base.ALL_INTERFACES
+                             - set(['network', 'storage']))
         for iface in no_set_interfaces:
             iface_name = '%s_interface' % iface
             node_kwargs = {'uuid': uuidutils.generate_uuid()}
@@ -618,8 +618,8 @@ class TestFakeHardware(hardware_type.AbstractHardwareType):
         return [fake.FakeVendorB, fake.FakeVendorA]
 
 
-OPTIONAL_INTERFACES = (set(drivers_base.BareDriver().standard_interfaces) -
-                       {'management', 'boot'}) | {'vendor'}
+OPTIONAL_INTERFACES = (set(drivers_base.BareDriver().standard_interfaces)
+                       - {'management', 'boot'}) | {'vendor'}
 
 
 class HardwareTypeLoadTestCase(db_base.DbTestCase):

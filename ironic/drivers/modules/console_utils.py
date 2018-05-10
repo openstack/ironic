@@ -199,8 +199,8 @@ def start_shellinabox_console(node_uuid, port, console_cmd):
         # if it is, then the shellinaboxd is invoked successfully as a daemon.
         # otherwise check the error.
         if locals['returncode'] is not None:
-            if (locals['returncode'] == 0 and os.path.exists(pid_file) and
-                psutil.pid_exists(_get_console_pid(node_uuid))):
+            if (locals['returncode'] == 0 and os.path.exists(pid_file)
+                and psutil.pid_exists(_get_console_pid(node_uuid))):
                 raise loopingcall.LoopingCallDone()
             else:
                 (stdout, stderr) = popen_obj.communicate()
@@ -324,8 +324,8 @@ def start_socat_console(node_uuid, port, console_cmd):
         if wait_state['returncode'] is None:
             # If the pid file is created and the process is running,
             # we stop checking it periodically.
-            if (os.path.exists(pid_file) and
-                    psutil.pid_exists(_get_console_pid(node_uuid))):
+            if (os.path.exists(pid_file)
+                    and psutil.pid_exists(_get_console_pid(node_uuid))):
                 raise loopingcall.LoopingCallDone()
         else:
             # socat returned, it failed to start.

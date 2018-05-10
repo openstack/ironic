@@ -83,9 +83,9 @@ def is_volume_available(volume):
 
     :returns: Boolean if volume is available.
     """
-    return (volume.status == AVAILABLE or
-            (volume.status == IN_USE and
-                volume.multiattach))
+    return (volume.status == AVAILABLE
+            or (volume.status == IN_USE
+                and volume.multiattach))
 
 
 def is_volume_attached(node, volume):

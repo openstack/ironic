@@ -142,8 +142,8 @@ class LookupController(rest.RestController):
             # at all and nodes in a wrong state by different error messages.
             raise exception.NotFound()
 
-        if (CONF.api.restrict_lookup and
-                node.provision_state not in _LOOKUP_ALLOWED_STATES):
+        if (CONF.api.restrict_lookup
+                and node.provision_state not in _LOOKUP_ALLOWED_STATES):
             raise exception.NotFound()
 
         return LookupResult.convert_with_links(node)

@@ -79,8 +79,8 @@ class CinderStorage(base.StorageInterface):
         ipxe_enabled = CONF.pxe.ipxe_enabled
 
         for connector in task.volume_connectors:
-            if (connector.type in VALID_ISCSI_TYPES and
-                    connector.connector_id is not None):
+            if (connector.type in VALID_ISCSI_TYPES
+                    and connector.connector_id is not None):
                 iscsi_uuids_found.append(connector.uuid)
                 if not ipxe_enabled:
                     msg = _("The [pxe]/ipxe_enabled option must "
@@ -88,8 +88,8 @@ class CinderStorage(base.StorageInterface):
                             "booting to an iSCSI volume.")
                     self._fail_validation(task, msg)
 
-            if (connector.type in VALID_FC_TYPES and
-                    connector.connector_id is not None):
+            if (connector.type in VALID_FC_TYPES
+                    and connector.connector_id is not None):
                 # NOTE(TheJulia): Unlike iSCSI with cinder, we have no need
                 # to warn about multiple IQN entries, since we are able to
                 # submit multiple fibre channel WWPN entries.
@@ -313,8 +313,9 @@ class CinderStorage(base.StorageInterface):
                 # NOTE(TheJulia): If the node is in ACTIVE state, we can
                 # tolerate failures detaching as the node is likely being
                 # powered down to cause a detachment event.
-                allow_errors = (task.node.provision_state == states.ACTIVE or
-                                aborting_attach and outer_args['attempt'] > 0)
+                allow_errors = (task.node.provision_state == states.ACTIVE
+                                or aborting_attach and outer_args['attempt']
+                                > 0)
                 cinder.detach_volumes(task, targets, connector,
                                       allow_errors=allow_errors)
             except exception.StorageError as e:

@@ -78,9 +78,9 @@ def _is_port_physnet_allowed(port, physnets):
         ignored.
     :returns: True if the port's physical network is allowed, False otherwise.
     """
-    return (not physnets or
-            port.physical_network is None or
-            port.physical_network in physnets)
+    return (not physnets
+            or port.physical_network is None
+            or port.physical_network in physnets)
 
 
 def _get_free_portgroups_and_ports(task, vif_id, physnets):
@@ -218,8 +218,8 @@ def plug_port_to_tenant_network(task, port_like_obj, client=None):
     client_id_opt = None
 
     vif_id = (
-        port_like_obj.internal_info.get(TENANT_VIF_KEY) or
-        port_like_obj.extra.get('vif_port_id'))
+        port_like_obj.internal_info.get(TENANT_VIF_KEY)
+        or port_like_obj.extra.get('vif_port_id'))
 
     if not vif_id:
         obj_name = port_like_obj.__class__.__name__.lower()
@@ -340,8 +340,8 @@ class VIFPortIDMixin(object):
         """
         # FIXME(sambetts) Remove this when we no longer support a nova
         # driver that uses port.extra
-        return (port_like_obj.internal_info.get(TENANT_VIF_KEY) or
-                port_like_obj.extra.get('vif_port_id'))
+        return (port_like_obj.internal_info.get(TENANT_VIF_KEY)
+                or port_like_obj.extra.get('vif_port_id'))
 
     def vif_list(self, task):
         """List attached VIF IDs for a node
@@ -371,10 +371,10 @@ class VIFPortIDMixin(object):
         :returns: VIF ID associated with p_obj or None.
         """
 
-        return (p_obj.internal_info.get('cleaning_vif_port_id') or
-                p_obj.internal_info.get('provisioning_vif_port_id') or
-                p_obj.internal_info.get('rescuing_vif_port_id') or
-                self._get_vif_id_by_port_like_obj(p_obj) or None)
+        return (p_obj.internal_info.get('cleaning_vif_port_id')
+                or p_obj.internal_info.get('provisioning_vif_port_id')
+                or p_obj.internal_info.get('rescuing_vif_port_id')
+                or self._get_vif_id_by_port_like_obj(p_obj) or None)
 
 
 class NeutronVIFPortIDMixin(VIFPortIDMixin):
@@ -410,8 +410,8 @@ class NeutronVIFPortIDMixin(VIFPortIDMixin):
             original_port = objects.Port.get_by_id(context, port_obj.id)
             updated_client_id = port_obj.extra.get('client-id')
 
-            if (original_port.extra.get('client-id') !=
-                updated_client_id):
+            if (original_port.extra.get('client-id')
+                != updated_client_id):
                 # DHCP Option with opt_value=None will remove it
                 # from the neutron port
                 if vif:
@@ -431,8 +431,8 @@ class NeutronVIFPortIDMixin(VIFPortIDMixin):
                         {'port': port_uuid,
                          'instance': node.instance_uuid})
 
-        if portgroup_obj and ((set(port_obj.obj_what_changed()) &
-                              {'pxe_enabled', 'portgroup_id'}) or vif):
+        if portgroup_obj and ((set(port_obj.obj_what_changed())
+                              & {'pxe_enabled', 'portgroup_id'}) or vif):
             if not portgroup_obj.standalone_ports_supported:
                 reason = []
                 if port_obj.pxe_enabled:
@@ -461,8 +461,8 @@ class NeutronVIFPortIDMixin(VIFPortIDMixin):
         portgroup_uuid = portgroup_obj.uuid
         # NOTE(vsaienko) address is not mandatory field in portgroup.
         # Do not touch neutron port if we removed address on portgroup.
-        if ('address' in portgroup_obj.obj_what_changed() and
-                portgroup_obj.address):
+        if ('address' in portgroup_obj.obj_what_changed()
+                and portgroup_obj.address):
             pg_vif = self._get_vif_id_by_port_like_obj(portgroup_obj)
             if pg_vif:
                 neutron.update_port_address(pg_vif, portgroup_obj.address,

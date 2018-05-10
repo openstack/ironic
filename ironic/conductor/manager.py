@@ -181,8 +181,8 @@ class ConductorManager(base_manager.BaseConductorManager):
             if interface_field not in delta:
                 continue
 
-            if not (node_obj.provision_state in allowed_update_states or
-                    node_obj.maintenance):
+            if not (node_obj.provision_state in allowed_update_states
+                    or node_obj.maintenance):
                 raise exception.InvalidState(
                     action % {'node': node_obj.uuid,
                               'allowed': ', '.join(allowed_update_states),
@@ -193,8 +193,8 @@ class ConductorManager(base_manager.BaseConductorManager):
         with task_manager.acquire(context, node_id, shared=False,
                                   purpose='node update') as task:
             # Prevent instance_uuid overwriting
-            if ('instance_uuid' in delta and node_obj.instance_uuid and
-                task.node.instance_uuid):
+            if ('instance_uuid' in delta and node_obj.instance_uuid
+                and task.node.instance_uuid):
                 raise exception.NodeAssociated(
                     node=node_id, instance=task.node.instance_uuid)
 
@@ -202,8 +202,8 @@ class ConductorManager(base_manager.BaseConductorManager):
             # instance, nova will not update its internal record. That will
             # result in the new resource class exposed on the node as available
             # for consumption, and nova may try to schedule on this node again.
-            if ('resource_class' in delta and task.node.resource_class and
-                    task.node.provision_state not in allowed_update_states):
+            if ('resource_class' in delta and task.node.resource_class
+                    and task.node.provision_state not in allowed_update_states):
                 raise exception.InvalidState(
                     action % {'node': node_obj.uuid,
                               'allowed': ', '.join(allowed_update_states),
@@ -257,8 +257,8 @@ class ConductorManager(base_manager.BaseConductorManager):
                     {'driver': task.node.driver, 'state': new_state})
 
             if new_state in (states.SOFT_REBOOT, states.SOFT_POWER_OFF):
-                power_timeout = (timeout or
-                                 CONF.conductor.soft_power_off_timeout)
+                power_timeout = (timeout
+                                 or CONF.conductor.soft_power_off_timeout)
             else:
                 power_timeout = timeout
 
@@ -1390,8 +1390,8 @@ class ConductorManager(base_manager.BaseConductorManager):
                                   purpose='provision action %s'
                                   % action) as task:
             node = task.node
-            if (action == states.VERBS['provide'] and
-                    node.provision_state == states.MANAGEABLE):
+            if (action == states.VERBS['provide']
+                    and node.provision_state == states.MANAGEABLE):
                 task.process_event(
                     'provide',
                     callback=self._spawn_worker,
@@ -1399,8 +1399,8 @@ class ConductorManager(base_manager.BaseConductorManager):
                     err_handler=utils.provisioning_error_handler)
                 return
 
-            if (action == states.VERBS['manage'] and
-                    node.provision_state == states.ENROLL):
+            if (action == states.VERBS['manage']
+                    and node.provision_state == states.ENROLL):
                 task.process_event(
                     'manage',
                     callback=self._spawn_worker,
@@ -1408,8 +1408,8 @@ class ConductorManager(base_manager.BaseConductorManager):
                     err_handler=utils.provisioning_error_handler)
                 return
 
-            if (action == states.VERBS['adopt'] and
-                    node.provision_state in (states.MANAGEABLE,
+            if (action == states.VERBS['adopt']
+                    and node.provision_state in (states.MANAGEABLE,
                 states.ADOPTFAIL)):
                 task.process_event(
                     'adopt',
@@ -1418,14 +1418,14 @@ class ConductorManager(base_manager.BaseConductorManager):
                     err_handler=utils.provisioning_error_handler)
                 return
 
-            if (action == states.VERBS['abort'] and
-                    node.provision_state == states.CLEANWAIT):
+            if (action == states.VERBS['abort']
+                    and node.provision_state == states.CLEANWAIT):
 
                 # Check if the clean step is abortable; if so abort it.
                 # Otherwise, indicate in that clean step, that cleaning
                 # should be aborted after that step is done.
-                if (node.clean_step and not
-                    node.clean_step.get('abortable')):
+                if (node.clean_step
+                    and not node.clean_step.get('abortable')):
                     LOG.info('The current clean step "%(clean_step)s" for '
                              'node %(node)s is not abortable. Adding a '
                              'flag to abort the cleaning after the clean '
@@ -1456,8 +1456,8 @@ class ConductorManager(base_manager.BaseConductorManager):
                     target_state=target_state)
                 return
 
-            if (action == states.VERBS['abort'] and
-                    node.provision_state == states.RESCUEWAIT):
+            if (action == states.VERBS['abort']
+                    and node.provision_state == states.RESCUEWAIT):
                 utils.remove_node_rescue_password(node, save=True)
                 task.process_event(
                     'abort',
@@ -1519,10 +1519,10 @@ class ConductorManager(base_manager.BaseConductorManager):
                     #             at the same time.
                     # NOTE(dtantsur): it's also pointless (and dangerous) to
                     # sync power state when a power action is in progress
-                    if (task.node.provision_state in SYNC_EXCLUDED_STATES or
-                            task.node.maintenance or
-                            task.node.target_power_state or
-                            task.node.reservation):
+                    if (task.node.provision_state in SYNC_EXCLUDED_STATES
+                            or task.node.maintenance
+                            or task.node.target_power_state
+                            or task.node.reservation):
                         continue
                     count = do_sync_power_state(
                         task, self.power_state_sync_count[node_uuid])
@@ -1628,8 +1628,8 @@ class ConductorManager(base_manager.BaseConductorManager):
             # TODO(dtantsur): clean up all states that are not stable and
             # are not one of WAIT states.
             if not maintenance and (provision_state in (states.DEPLOYING,
-                                                        states.CLEANING) or
-                                    target_power_state is not None):
+                                                        states.CLEANING)
+                                    or target_power_state is not None):
                 LOG.debug('Node %(node)s taken over from conductor %(old)s '
                           'requires state clean up: provision state is '
                           '%(state)s, target power state is %(pstate)s',
@@ -1826,9 +1826,9 @@ class ConductorManager(base_manager.BaseConductorManager):
                     # NOTE(deva): now that we have the lock, check again to
                     # avoid racing with deletes and other state changes
                     node = task.node
-                    if (node.maintenance or
-                            node.conductor_affinity == self.conductor.id or
-                            node.provision_state != states.ACTIVE):
+                    if (node.maintenance
+                            or node.conductor_affinity == self.conductor.id
+                            or node.provision_state != states.ACTIVE):
                         continue
 
                     task.spawn_after(self._spawn_worker,
@@ -1937,8 +1937,8 @@ class ConductorManager(base_manager.BaseConductorManager):
             # CLEANFAIL -> MANAGEABLE
             # INSPECTIONFAIL -> MANAGEABLE
             # DEPLOYFAIL -> DELETING
-            if (not node.maintenance and
-                    node.provision_state not in states.DELETE_ALLOWED_STATES):
+            if (not node.maintenance
+                    and node.provision_state not in states.DELETE_ALLOWED_STATES):
                 msg = (_('Can not delete node "%(node)s" while it is in '
                          'provision state "%(state)s". Valid provision states '
                          'to perform deletion are: "%(valid_states)s", '
@@ -2253,8 +2253,8 @@ class ConductorManager(base_manager.BaseConductorManager):
             # Only allow updating MAC addresses for active nodes if maintenance
             # mode is on.
             if ((node.provision_state == states.ACTIVE or node.instance_uuid)
-                and 'address' in port_obj.obj_what_changed() and
-                not node.maintenance):
+                and 'address' in port_obj.obj_what_changed()
+                and not node.maintenance):
                     action = _("Cannot update hardware address for port "
                                "%(port)s as node %(node)s is active or has "
                                "instance UUID assigned")
@@ -3083,8 +3083,8 @@ class ConductorManager(base_manager.BaseConductorManager):
             if not objinst.obj_attr_is_set(name):
                 # Avoid demand-loading anything
                 continue
-            if (not oldobj.obj_attr_is_set(name) or
-                    getattr(oldobj, name) != getattr(objinst, name)):
+            if (not oldobj.obj_attr_is_set(name)
+                    or getattr(oldobj, name) != getattr(objinst, name)):
                 updates[name] = field.to_primitive(objinst, name,
                                                    getattr(objinst, name))
         # This is safe since a field named this would conflict with the

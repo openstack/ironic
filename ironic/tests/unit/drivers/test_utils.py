@@ -227,16 +227,16 @@ class UtilsTestCase(db_base.DbTestCase):
             driver_utils.capabilities_to_dict,
             capabilities_already_dict
         )
-        self.assertEqual("Value of 'capabilities' must be string. Got " +
-                         str(dict), str(exc))
+        self.assertEqual("Value of 'capabilities' must be string. Got "
+                         + str(dict), str(exc))
 
         exc = self.assertRaises(
             exception.InvalidParameterValue,
             driver_utils.capabilities_to_dict,
             capabilities_something_else
         )
-        self.assertEqual("Value of 'capabilities' must be string. Got " +
-                         str(int), str(exc))
+        self.assertEqual("Value of 'capabilities' must be string. Got "
+                         + str(int), str(exc))
 
     def test_normalize_mac_string(self):
         mac_raw = "0A:1B-2C-3D:4F"
@@ -268,8 +268,8 @@ class UtilsRamdiskLogsTestCase(tests_base.TestCase):
         node2 = obj_utils.get_test_node(
             self.context, instance_uuid=instance_uuid)
         name = driver_utils.get_ramdisk_logs_file_name(node2)
-        expected_name = ('1be26c0b-03f2-4d2e-ae87-c02d7f33c123_' +
-                         instance_uuid + '_2000-01-01-00-00-00.tar.gz')
+        expected_name = ('1be26c0b-03f2-4d2e-ae87-c02d7f33c123_'
+                         + instance_uuid + '_2000-01-01-00-00-00.tar.gz')
         self.assertEqual(expected_name, name)
 
     @mock.patch.object(driver_utils, 'store_ramdisk_logs', autospec=True)

@@ -80,7 +80,7 @@ class OneViewCommonTestCase(db_base.DbTestCase):
         mock_oneview.assert_called_once_with(credentials)
 
     def test_get_ilo_access(self):
-        url = ("hplocons://addr=1.2.3.4&sessionkey" +
+        url = ("hplocons://addr=1.2.3.4&sessionkey"
                "=a79659e3b3b7c8209c901ac3509a6719")
         remote_console = {'remoteConsoleUrl': url}
         host_ip, token = common._get_ilo_access(remote_console)

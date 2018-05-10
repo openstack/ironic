@@ -197,13 +197,13 @@ class GlanceImageService(base_image_service.BaseImageService,
 
     def _validate_temp_url_config(self):
         """Validate the required settings for a temporary URL."""
-        if (not CONF.glance.swift_temp_url_key and
-                CONF.deploy.object_store_endpoint_type != 'swift'):
+        if (not CONF.glance.swift_temp_url_key
+                and CONF.deploy.object_store_endpoint_type != 'swift'):
             raise exc.MissingParameterValue(_(
                 'Swift temporary URLs require a shared secret to be created. '
                 'You must provide "swift_temp_url_key" as a config option.'))
-        if (CONF.glance.swift_temp_url_duration <
-                CONF.glance.swift_temp_url_expected_download_start_delay):
+        if (CONF.glance.swift_temp_url_duration
+                < CONF.glance.swift_temp_url_expected_download_start_delay):
             raise exc.InvalidParameterValue(_(
                 '"swift_temp_url_duration" must be greater than or equal to '
                 '"[glance]swift_temp_url_expected_download_start_delay" '
@@ -244,8 +244,8 @@ class GlanceImageService(base_image_service.BaseImageService,
             num_dashes = image_id[:seed_num_chars].count('-')
             num_chars = seed_num_chars + num_dashes
             name_suffix = image_id[:num_chars]
-            new_container_name = (CONF.glance.swift_container +
-                                  '_' + name_suffix)
+            new_container_name = (CONF.glance.swift_container
+                                  + '_' + name_suffix)
             return new_container_name
         else:
             return CONF.glance.swift_container
@@ -270,8 +270,8 @@ class GlanceImageService(base_image_service.BaseImageService,
         usage time.
         """
         max_valid_time = (
-            int(time.time()) +
-            CONF.glance.swift_temp_url_expected_download_start_delay)
+            int(time.time())
+            + CONF.glance.swift_temp_url_expected_download_start_delay)
         keys_to_remove = [
             k for k, v in self._cache.items()
             if (v.url_expires_at < max_valid_time)]

@@ -99,8 +99,8 @@ class FSM(machines.FiniteMachine):
 
     def _post_process_event(self, event, result):
         # Clear '_target_state' if we've reached it
-        if (self._target_state is not None and
-                self._target_state == self._current.name):
+        if (self._target_state is not None
+                and self._target_state == self._current.name):
             self._target_state = None
         # If new state has a different target, update the '_target_state'
         if self._states[self._current.name]['target'] is not None:
@@ -136,8 +136,8 @@ class FSM(machines.FiniteMachine):
         super(FSM, self).initialize(start_state=start_state)
         current_state = self._current.name
         self._validate_target_state(target_state)
-        self._target_state = (target_state or
-                              self._states[current_state]['target'])
+        self._target_state = (target_state
+                              or self._states[current_state]['target'])
 
     @_translate_excp
     def process_event(self, event, target_state=None):

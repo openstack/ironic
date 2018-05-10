@@ -88,8 +88,8 @@ class IronicObject(object_base.VersionedObject):
         object.
         """
         for field in self.fields:
-            if (self.obj_attr_is_set(field) and
-                    self[field] != loaded_object[field]):
+            if (self.obj_attr_is_set(field)
+                    and self[field] != loaded_object[field]):
                 self[field] = loaded_object[field]
 
     def _convert_to_version(self, target_version,
@@ -167,8 +167,8 @@ class IronicObject(object_base.VersionedObject):
         # is supported by this service. self.VERSION is the version of
         # this object instance -- it may get set via e.g. the
         # serialization or deserialization process, or here.
-        if (self.__class__.VERSION != target_version or
-            self.VERSION != self.__class__.VERSION):
+        if (self.__class__.VERSION != target_version
+            or self.VERSION != self.__class__.VERSION):
             self.VERSION = target_version
 
     @classmethod

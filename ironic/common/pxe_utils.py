@@ -227,8 +227,8 @@ def create_pxe_config(task, pxe_options, template=None):
     _ensure_config_dirs_exist(task.node.uuid)
 
     pxe_config_file_path = get_pxe_config_file_path(task.node.uuid)
-    is_uefi_boot_mode = (deploy_utils.get_boot_mode_for_deploy(task.node) ==
-                         'uefi')
+    is_uefi_boot_mode = (deploy_utils.get_boot_mode_for_deploy(task.node)
+                         == 'uefi')
 
     # grub bootloader panics with '{}' around any of its tags in its
     # config file. To overcome that 'ROOT' and 'DISK_IDENTIFIER' are enclosed
@@ -274,8 +274,8 @@ def create_ipxe_boot_script():
     # NOTE(pas-ha) to prevent unneeded writes,
     # only write to file if its content is different from required,
     # which should be rather rare
-    if (not os.path.isfile(bootfile_path) or
-            not utils.file_has_content(bootfile_path, boot_script)):
+    if (not os.path.isfile(bootfile_path)
+            or not utils.file_has_content(bootfile_path, boot_script)):
         utils.write_to_file(bootfile_path, boot_script)
 
 
@@ -287,8 +287,8 @@ def clean_up_pxe_config(task):
     """
     LOG.debug("Cleaning up PXE config for node %s", task.node.uuid)
 
-    is_uefi_boot_mode = (deploy_utils.get_boot_mode_for_deploy(task.node) ==
-                         'uefi')
+    is_uefi_boot_mode = (deploy_utils.get_boot_mode_for_deploy(task.node)
+                         == 'uefi')
     if is_uefi_boot_mode and not CONF.pxe.ipxe_enabled:
         api = dhcp_factory.DHCPFactory().provider
         ip_addresses = api.get_ip_addresses(task)

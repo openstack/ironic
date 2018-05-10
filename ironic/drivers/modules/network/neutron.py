@@ -62,9 +62,9 @@ class NeutronNetwork(common.NeutronVIFPortIDMixin,
         self.get_cleaning_network_uuid(task)
         self.get_provisioning_network_uuid(task)
         node = task.node
-        if (node.provision_state == states.DEPLOYING and
-            node.driver_internal_info.get('is_whole_disk_image') and
-            deploy_utils.get_boot_option(node) == 'netboot'):
+        if (node.provision_state == states.DEPLOYING
+            and node.driver_internal_info.get('is_whole_disk_image')
+            and deploy_utils.get_boot_option(node) == 'netboot'):
             error_msg = (_('The node %s cannot perform "local" boot for '
                            'whole disk image when node is using "neutron" '
                            'network and is configured with "netboot" boot '
@@ -254,8 +254,8 @@ class NeutronNetwork(common.NeutronVIFPortIDMixin,
         portgroups = task.portgroups
         for port_like_obj in ports + portgroups:
             vif_port_id = (
-                port_like_obj.internal_info.get(common.TENANT_VIF_KEY) or
-                port_like_obj.extra.get('vif_port_id'))
+                port_like_obj.internal_info.get(common.TENANT_VIF_KEY)
+                or port_like_obj.extra.get('vif_port_id'))
             if not vif_port_id:
                 continue
             neutron.unbind_neutron_port(vif_port_id, context=task.context)

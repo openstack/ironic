@@ -32,8 +32,8 @@ class WSGIService(service.ServiceBase):
         """
         self.name = name
         self.app = app.VersionSelectorApplication()
-        self.workers = (CONF.api.api_workers or
-                        processutils.get_worker_count())
+        self.workers = (CONF.api.api_workers
+                        or processutils.get_worker_count())
         if self.workers and self.workers < 1:
             raise exception.ConfigInvalid(
                 _("api_workers value of %d is invalid, "

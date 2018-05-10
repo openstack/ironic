@@ -253,12 +253,12 @@ class Connection(api.Connection):
             query = query.filter(models.Node.reservation.in_(
                 filters['reserved_by_any_of']))
         if 'provisioned_before' in filters:
-            limit = (timeutils.utcnow() -
-                     datetime.timedelta(seconds=filters['provisioned_before']))
+            limit = (timeutils.utcnow()
+                     - datetime.timedelta(seconds=filters['provisioned_before']))
             query = query.filter(models.Node.provision_updated_at < limit)
         if 'inspection_started_before' in filters:
-            limit = ((timeutils.utcnow()) -
-                     (datetime.timedelta(
+            limit = ((timeutils.utcnow())
+                     - (datetime.timedelta(
                          seconds=filters['inspection_started_before'])))
             query = query.filter(models.Node.inspection_started_at < limit)
 
@@ -489,12 +489,12 @@ class Connection(api.Connection):
                 if values['provision_state'] == states.INSPECTING:
                     values['inspection_started_at'] = timeutils.utcnow()
                     values['inspection_finished_at'] = None
-                elif (ref.provision_state == states.INSPECTING and
-                      values['provision_state'] == states.MANAGEABLE):
+                elif (ref.provision_state == states.INSPECTING
+                      and values['provision_state'] == states.MANAGEABLE):
                     values['inspection_finished_at'] = timeutils.utcnow()
                     values['inspection_started_at'] = None
-                elif (ref.provision_state == states.INSPECTING and
-                      values['provision_state'] == states.INSPECTFAIL):
+                elif (ref.provision_state == states.INSPECTING
+                      and values['provision_state'] == states.INSPECTFAIL):
                     values['inspection_started_at'] = None
 
             ref.update(values)

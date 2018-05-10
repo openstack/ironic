@@ -160,10 +160,10 @@ def _get_boot_iso(task, root_uuid):
             task.context, image_href, ['boot_iso', 'kernel_id', 'ramdisk_id']))
 
     boot_iso_uuid = image_properties.get('boot_iso')
-    kernel_href = (task.node.instance_info.get('kernel') or
-                   image_properties.get('kernel_id'))
-    ramdisk_href = (task.node.instance_info.get('ramdisk') or
-                    image_properties.get('ramdisk_id'))
+    kernel_href = (task.node.instance_info.get('kernel')
+                   or image_properties.get('kernel_id'))
+    ramdisk_href = (task.node.instance_info.get('ramdisk')
+                    or image_properties.get('ramdisk_id'))
 
     if boot_iso_uuid:
         LOG.debug("Found boot_iso %s in Glance", boot_iso_uuid)
@@ -558,8 +558,8 @@ class IloVirtualMediaBoot(base.BootInterface):
         disable_secure_boot_if_supported(task)
         driver_internal_info = task.node.driver_internal_info
 
-        if (deploy_utils.is_iscsi_boot(task) and
-            task.node.driver_internal_info.get('ilo_uefi_iscsi_boot')):
+        if (deploy_utils.is_iscsi_boot(task)
+            and task.node.driver_internal_info.get('ilo_uefi_iscsi_boot')):
             # It will clear iSCSI info from iLO
             task.driver.management.clear_iscsi_boot_target(task)
             driver_internal_info.pop('ilo_uefi_iscsi_boot', None)
@@ -706,8 +706,8 @@ class IloPXEBoot(pxe.PXEBoot):
         disable_secure_boot_if_supported(task)
         driver_internal_info = task.node.driver_internal_info
 
-        if (deploy_utils.is_iscsi_boot(task) and
-            task.node.driver_internal_info.get('ilo_uefi_iscsi_boot')):
+        if (deploy_utils.is_iscsi_boot(task)
+            and task.node.driver_internal_info.get('ilo_uefi_iscsi_boot')):
             # It will clear iSCSI info from iLO in case of booting from
             # volume in UEFI boot mode
             task.driver.management.clear_iscsi_boot_target(task)

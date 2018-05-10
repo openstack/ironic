@@ -741,8 +741,8 @@ class SNMPDeviceDriverTestCase(db_base.DbTestCase):
         mock_client = mock_get_client.return_value
         driver = snmp._get_driver(self.node)
         attempts = CONF.snmp.power_timeout // driver.retry_interval
-        mock_client.get.side_effect = ([driver.value_power_off] +
-                                       [42] * attempts)
+        mock_client.get.side_effect = ([driver.value_power_off]
+                                       + [42] * attempts)
         pstate = driver.power_reset()
         calls = [mock.call(driver._snmp_oid(), driver.value_power_off),
                  mock.call(driver._snmp_oid(), driver.value_power_on)]
@@ -773,8 +773,8 @@ class SNMPDeviceDriverTestCase(db_base.DbTestCase):
         mock_client = mock_get_client.return_value
         driver = snmp._get_driver(self.node)
         attempts = CONF.snmp.power_timeout // driver.retry_interval
-        mock_client.get.side_effect = ([driver.value_power_off] *
-                                       (1 + attempts))
+        mock_client.get.side_effect = ([driver.value_power_off]
+                                       * (1 + attempts))
         pstate = driver.power_reset()
         calls = [mock.call(driver._snmp_oid(), driver.value_power_off),
                  mock.call(driver._snmp_oid(), driver.value_power_on)]

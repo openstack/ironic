@@ -903,8 +903,8 @@ class DracRaidInterfaceTestCase(db_base.DbTestCase):
                 'Disk.Bay.5:Enclosure.Internal.0-1:RAID.Integrated.1-1'],
             'is_root_volume': True
         }
-        self.logical_disks = ([self.root_logical_disk] +
-                              self.nonroot_logical_disks)
+        self.logical_disks = ([self.root_logical_disk]
+                              + self.nonroot_logical_disks)
         self.target_raid_configuration = {'logical_disks': self.logical_disks}
         self.node.target_raid_config = self.target_raid_configuration
         self.node.save()

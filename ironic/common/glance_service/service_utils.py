@@ -153,8 +153,8 @@ def is_image_available(context, image):
     if hasattr(context, 'auth_token') and context.auth_token:
         return True
 
-    if ((getattr(image, 'is_public', None) or
-         getattr(image, 'visibility', None) == 'public') or context.is_admin):
+    if ((getattr(image, 'is_public', None)
+         or getattr(image, 'visibility', None) == 'public') or context.is_admin):
         return True
     properties = image.properties
     if context.project_id and ('owner_id' in properties):
@@ -183,8 +183,8 @@ def is_image_active(image):
 def is_glance_image(image_href):
     if not isinstance(image_href, six.string_types):
         return False
-    return (image_href.startswith('glance://') or
-            uuidutils.is_uuid_like(image_href))
+    return (image_href.startswith('glance://')
+            or uuidutils.is_uuid_like(image_href))
 
 
 def is_image_href_ordinary_file_name(image_href):
@@ -197,6 +197,6 @@ def is_image_href_ordinary_file_name(image_href):
 
     :returns: True if image_href is ordinary file name, False otherwise.
     """
-    return not (is_glance_image(image_href) or
-                urlparse.urlparse(image_href).scheme.lower() in
+    return not (is_glance_image(image_href)
+                or urlparse.urlparse(image_href).scheme.lower() in
                 image_service.protocol_mapping)

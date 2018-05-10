@@ -520,8 +520,8 @@ def set_failed_state(task, msg, collect_logs=True):
     """
     node = task.node
 
-    if (collect_logs and
-            CONF.agent.deploy_logs_collect in ('on_failure', 'always')):
+    if (collect_logs
+            and CONF.agent.deploy_logs_collect in ('on_failure', 'always')):
         driver_utils.collect_ramdisk_logs(node)
 
     try:
@@ -1079,8 +1079,8 @@ def parse_instance_info(node):
     i_info['image_source'] = info.get('image_source')
     iwdi = node.driver_internal_info.get('is_whole_disk_image')
     if not iwdi:
-        if (i_info['image_source'] and
-                not service_utils.is_glance_image(
+        if (i_info['image_source']
+                and not service_utils.is_glance_image(
                     i_info['image_source'])):
             i_info['kernel'] = info.get('kernel')
             i_info['ramdisk'] = info.get('ramdisk')
@@ -1292,8 +1292,8 @@ def populate_storage_driver_internal_info(task):
         driver_internal_info['boot_from_volume'] = vol_uuid
     # NOTE(TheJulia): This would be a convenient place to check
     # if we need to know about deploying the volume.
-    if (check_interface_capability(task.driver.deploy, deploy_capability) and
-            task.driver.storage.should_write_image(task)):
+    if (check_interface_capability(task.driver.deploy, deploy_capability)
+            and task.driver.storage.should_write_image(task)):
         driver_internal_info['boot_from_volume_deploy'] = vol_uuid
         # NOTE(TheJulia): This is also a useful place to include a
         # root device hint since we should/might/be able to obtain

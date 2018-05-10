@@ -700,8 +700,8 @@ class TestGlanceSwiftTempURL(base.TestCase):
         temp_url = self.service.swift_temp_url(image_info=self.fake_image)
 
         self.assertEqual(
-            (urlparse.urljoin(CONF.glance.swift_endpoint_url, 'swift') +
-             tempurl_mock.return_value),
+            (urlparse.urljoin(CONF.glance.swift_endpoint_url, 'swift')
+             + tempurl_mock.return_value),
             temp_url)
         tempurl_mock.assert_called_with(
             path=path,
@@ -865,8 +865,8 @@ class TestSwiftTempUrlCache(base.TestCase):
         temp_url = self.glance_service.swift_temp_url(
             image_info=fake_image)
 
-        self.assertEqual(CONF.glance.swift_endpoint_url +
-                         tempurl_mock.return_value,
+        self.assertEqual(CONF.glance.swift_endpoint_url
+                         + tempurl_mock.return_value,
                          temp_url)
         cleanup_mock.assert_called_once_with()
         tempurl_mock.assert_called_with(
@@ -921,8 +921,8 @@ class TestSwiftTempUrlCache(base.TestCase):
         query = '?temp_url_sig=hmacsig&temp_url_expires=%s'
         self.glance_service._cache[fake_image['id']] = (
             glance_v2.TempUrlCacheElement(
-                url=(CONF.glance.swift_endpoint_url + path +
-                     query % old_exp_time),
+                url=(CONF.glance.swift_endpoint_url + path
+                     + query % old_exp_time),
                 url_expires_at=old_exp_time)
         )
 
@@ -935,8 +935,8 @@ class TestSwiftTempUrlCache(base.TestCase):
         fresh_temp_url = self.glance_service.swift_temp_url(
             image_info=fake_image)
 
-        self.assertEqual(CONF.glance.swift_endpoint_url +
-                         tempurl_mock.return_value,
+        self.assertEqual(CONF.glance.swift_endpoint_url
+                         + tempurl_mock.return_value,
                          fresh_temp_url)
         tempurl_mock.assert_called_with(
             path=path,
@@ -994,8 +994,8 @@ class TestSwiftTempUrlCache(base.TestCase):
             image_id=fake_image['id']
         )
 
-        self.assertEqual(CONF.glance.swift_endpoint_url +
-                         tempurl_mock.return_value,
+        self.assertEqual(CONF.glance.swift_endpoint_url
+                         + tempurl_mock.return_value,
                          temp_url)
         tempurl_mock.assert_called_with(
             path=path,

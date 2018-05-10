@@ -167,8 +167,8 @@ def _is_node_in_use(server_hardware, applied_sp_uri, by_oneview=False):
     """
     operation = operator.ne if by_oneview else operator.eq
     server_profile_uri = server_hardware.get('serverProfileUri')
-    return (server_profile_uri and
-            operation(applied_sp_uri, server_profile_uri))
+    return (server_profile_uri
+            and operation(applied_sp_uri, server_profile_uri))
 
 
 def is_node_in_use_by_oneview(node):

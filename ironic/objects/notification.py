@@ -94,8 +94,8 @@ class NotificationBase(base.IronicObject):
         """
         if CONF.notification_level is None:
             return False
-        return (NOTIFY_LEVELS[self.level] >=
-                NOTIFY_LEVELS[CONF.notification_level])
+        return (NOTIFY_LEVELS[self.level]
+                >= NOTIFY_LEVELS[CONF.notification_level])
 
     def emit(self, context):
         """Send the notification.
