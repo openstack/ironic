@@ -1,0 +1,7 @@
+---
+security:
+  - |
+    Fixes an issue where an enabled console could be left running after a node
+    was unprovisioned.  This allowed a user to view the console even after the
+    instance was gone. Ironic now stops the console during unprovisioning to
+    block this.
