@@ -68,7 +68,7 @@ opts = [
         'swift_endpoint_url',
         help=_('The "endpoint" (scheme, hostname, optional port) for '
                'the Swift URL of the form '
-               '"endpoint_url/api_version/[account/]container/object_id". '
+               '"endpoint_url/api_version/account/container/object_id". '
                'Do not include trailing "/". '
                'For example, use "https://swift.example.com". If using RADOS '
                'Gateway, endpoint may also contain /swift path; if it does '
@@ -79,7 +79,7 @@ opts = [
         default='v1',
         help=_('The Swift API version to create a temporary URL for. '
                'Defaults to "v1". Swift temporary URL format: '
-               '"endpoint_url/api_version/[account/]container/object_id"')),
+               '"endpoint_url/api_version/account/container/object_id"')),
     cfg.StrOpt(
         'swift_account',
         help=_('The account that Glance uses to communicate with '
@@ -89,7 +89,7 @@ opts = [
                'If not set, the default value is calculated based on the ID '
                'of the project used to access Swift (as set in the [swift] '
                'section). Swift temporary URL format: '
-               '"endpoint_url/api_version/[account/]container/object_id"')),
+               '"endpoint_url/api_version/account/container/object_id"')),
     cfg.StrOpt(
         'swift_container',
         default='glance',
@@ -97,7 +97,7 @@ opts = [
                'images in. Defaults to "glance", which is the default '
                'in glance-api.conf. '
                'Swift temporary URL format: '
-               '"endpoint_url/api_version/[account/]container/object_id"')),
+               '"endpoint_url/api_version/account/container/object_id"')),
     cfg.IntOpt('swift_store_multiple_containers_seed',
                default=0,
                help=_('This should match a config by the same name in the '

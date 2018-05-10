@@ -149,40 +149,26 @@ class GlanceImageService(base_image_service.BaseImageService,
         endpoint_url = re.sub('/v1/AUTH_[^/]+/?$', '', endpoint_url)
 
         key = CONF.glance.swift_temp_url_key
-        if CONF.deploy.object_store_endpoint_type == 'radosgw':
-            chunks = urlparse.urlsplit(CONF.glance.swift_endpoint_url)
-            if not chunks.path:
-                endpoint_url = urlparse.urljoin(
-                    endpoint_url, 'swift')
-            elif chunks.path != '/swift':
-                raise exc.InvalidParameterValue(
-                    _('Swift endpoint URL should only contain scheme, '
-                      'hostname, optional port and optional /swift path '
-                      'without trailing slash; provided value is: %s')
-                    % endpoint_url)
+        account = CONF.glance.swift_account
+        if not account:
+            swift_session = swift.get_swift_session()
+            auth_ref = swift_session.auth.get_auth_ref(swift_session)
+            account = 'AUTH_%s' % auth_ref.project_id
 
-            template = '/{api_version}/{container}/{object_id}'
-        else:
-            account = CONF.glance.swift_account
-            if not account:
-                swift_session = swift.get_swift_session()
-                auth_ref = swift_session.auth.get_auth_ref(swift_session)
-                account = 'AUTH_%s' % auth_ref.project_id
+        if not key:
+            swift_api = swift.SwiftAPI()
+            key_header = 'x-account-meta-temp-url-key'
+            key = swift_api.connection.head_account().get(key_header)
 
-            if not key:
-                swift_api = swift.SwiftAPI()
-                key_header = 'x-account-meta-temp-url-key'
-                key = swift_api.connection.head_account().get(key_header)
+        if not key:
+            raise exc.MissingParameterValue(_(
+                'Swift temporary URLs require a shared secret to be '
+                'created. You must provide "swift_temp_url_key" as a '
+                'config option or pre-generate the key on the project '
+                'used to access Swift.'))
 
-            if not key:
-                raise exc.MissingParameterValue(_(
-                    'Swift temporary URLs require a shared secret to be '
-                    'created. You must provide "swift_temp_url_key" as a '
-                    'config option or pre-generate the key on the project '
-                    'used to access Swift.'))
-
-            url_fragments['account'] = account
-            template = '/{api_version}/{account}/{container}/{object_id}'
+        url_fragments['account'] = account
+        template = '/{api_version}/{account}/{container}/{object_id}'
 
         url_path = template.format(**url_fragments)
 
@@ -197,11 +183,6 @@ class GlanceImageService(base_image_service.BaseImageService,
 
     def _validate_temp_url_config(self):
         """Validate the required settings for a temporary URL."""
-        if (not CONF.glance.swift_temp_url_key
-                and CONF.deploy.object_store_endpoint_type != 'swift'):
-            raise exc.MissingParameterValue(_(
-                'Swift temporary URLs require a shared secret to be created. '
-                'You must provide "swift_temp_url_key" as a config option.'))
         if (CONF.glance.swift_temp_url_duration
                 < CONF.glance.swift_temp_url_expected_download_start_delay):
             raise exc.InvalidParameterValue(_(

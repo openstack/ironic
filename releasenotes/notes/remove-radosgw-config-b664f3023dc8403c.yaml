@@ -1,0 +1,9 @@
+---
+upgrade:
+  - |
+    The ``swift/endpoint_type`` configuration option is now removed.
+    python-swiftclient 3.2.0 (Ocata) and above removed support for the native
+    URL type used by radosgw. Since using a ``swift/endpoint_type`` value of
+    ``radosgw`` would fail anyway, it is removed. Deployers must now configure
+    ceph with ``rgw swift account in url = True``. This must be set before
+    upgrading to this release.
