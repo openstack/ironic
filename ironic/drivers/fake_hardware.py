@@ -32,6 +32,10 @@ class FakeHardware(hardware_type.AbstractHardwareType):
     All fake implementations are still expected to be enabled in the
     configuration.
     """
+    @property
+    def supported_bios_interfaces(self):
+        """List of classes of supported bios interfaces."""
+        return [fake.FakeBIOS, noop.NoBIOS]
 
     @property
     def supported_boot_interfaces(self):

@@ -176,14 +176,21 @@ class BareDriver(BaseDriver):
     """
     core_interfaces = BaseDriver.core_interfaces + ('network',)
 
+    bios = None
+    """`Standard` attribute for BIOS related features.
+
+    A reference to an instance of :class:BIOSInterface.
+    May be None, if unsupported by a driver.
+    """
+
     storage = None
     """`Standard` attribute for (remote) storage interface.
 
     A reference to an instance of :class:StorageInterface.
     """
 
-    standard_interfaces = (BaseDriver.standard_interfaces + ('rescue',
-                           'storage',))
+    standard_interfaces = (BaseDriver.standard_interfaces + ('bios',
+                           'rescue', 'storage',))
 
 
 ALL_INTERFACES = set(BareDriver().all_interfaces)
@@ -914,6 +921,87 @@ class InspectInterface(BaseInterface):
                  hardware properties.
         :returns: Resulting state of the inspection i.e. states.MANAGEABLE
                   or None.
+        """
+
+
+class BIOSInterface(BaseInterface):
+    interface_type = 'bios'
+
+    def __new__(cls, *args, **kwargs):
+        # Wrap the apply_configuration and factory_reset into a decorator
+        # which call cache_bios_settings() to update the node's BIOS setting
+        # table after apply_configuration and factory_reset have finished.
+
+        super_new = super(BIOSInterface, cls).__new__
+        instance = super_new(cls, *args, **kwargs)
+
+        def wrapper(func):
+            @six.wraps(func)
+            def wrapped(self, task, *args, **kwargs):
+                func(task, *args, **kwargs)
+                instance.cache_bios_settings(task)
+            return wrapped
+
+        for n, method in inspect.getmembers(instance, inspect.ismethod):
+            if n == "apply_configuration":
+                instance.apply_configuration = wrapper(method)
+            elif n == "factory_reset":
+                instance.factory_reset = wrapper(method)
+        return instance
+
+    @abc.abstractmethod
+    def apply_configuration(self, task, settings):
+        """Validate & apply BIOS settings on the given node.
+
+        This method takes the BIOS settings from the settings param and
+        applies BIOS settings on the given node. It may also validate the
+        given bios settings before applying any settings and manage
+        failures when setting an invalid BIOS config. In the case of
+        needing password to update the BIOS config, it will be taken from
+        the driver_info properties. After the BIOS configuration is done,
+        cache_bios_settings will be called to update the node's BIOS setting
+        table with the BIOS configuration applied on the node.
+
+        :param task: a TaskManager instance.
+        :param settings: Dictonary containing the BIOS configuration.
+        :raises: UnsupportedDriverExtension, if the node's driver doesn't
+            support BIOS configuration.
+        :raises: InvalidParameterValue, if validation of settings fails.
+        :raises: MissingParameterValue, if some required parameters are
+            missing.
+        :returns: states.CLEANWAIT if BIOS configuration is in progress
+            asynchronously or None if it is complete.
+        """
+
+    @abc.abstractmethod
+    def factory_reset(self, task):
+        """Reset BIOS configuration to factory default on the given node.
+
+        This method resets BIOS configuration to factory default on the
+        given node. After the BIOS reset action is done, cache_bios_settings
+        will be called to update the node's BIOS settings table with default
+        bios settings.
+
+        :param task: a TaskManager instance.
+        :raises: UnsupportedDriverExtension, if the node's driver doesn't
+            support BIOS reset.
+        :returns: states.CLEANWAIT if BIOS configuration is in progress
+            asynchronously or None if it is complete.
+        """
+
+    @abc.abstractmethod
+    def cache_bios_settings(self, task):
+        """Store or update BIOS properties on the given node.
+
+        This method stores BIOS properties to the bios_settings table during
+        'cleaning' operation and updates bios_settings table when
+        apply_configuration() and factory_reset() are called to set new BIOS
+        configurations. It will also update the timestamp of each bios setting.
+
+        :param task: a TaskManager instance.
+        :raises: UnsupportedDriverExtension, if the node's driver doesn't
+            support getting BIOS properties from bare metal.
+        :returns: None.
         """
 
 

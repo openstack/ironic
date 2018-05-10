@@ -68,3 +68,16 @@ class NoRAID(FailMixin, base.RAIDInterface):
 
     def validate_raid_config(self, task, raid_config):
         _fail(self, task)
+
+
+class NoBIOS(FailMixin, base.BIOSInterface):
+    """BIOS interface implementation that raises errors on all requests."""
+
+    def apply_configuration(self, task, settings):
+        _fail(self, task, settings)
+
+    def factory_reset(self, task):
+        _fail(self, task)
+
+    def cache_bios_settings(self, task):
+        pass

@@ -730,6 +730,7 @@ class NodePowerActionTestCase(db_base.DbTestCase):
                                           raid_interface='no-raid',
                                           rescue_interface='no-rescue',
                                           vendor_interface='no-vendor',
+                                          bios_interface='no-bios',
                                           power_state=states.POWER_ON)
         self.config(enabled_boot_interfaces=['fake'])
         self.config(enabled_deploy_interfaces=['fake'])

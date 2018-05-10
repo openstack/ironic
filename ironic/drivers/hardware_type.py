@@ -62,6 +62,10 @@ class AbstractHardwareType(object):
         """List of supported power interfaces."""
 
     # Optional hardware interfaces
+    @property
+    def supported_bios_interfaces(self):
+        """List of supported bios interfaces."""
+        return [noop.NoBIOS]
 
     @property
     def supported_console_interfaces(self):

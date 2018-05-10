@@ -177,6 +177,7 @@ class ServiceSetUpMixin(object):
         self.config(enabled_raid_interfaces=['fake', 'no-raid'])
         self.config(enabled_rescue_interfaces=['fake', 'no-rescue'])
         self.config(enabled_vendor_interfaces=['fake', 'no-vendor'])
+        self.config(enabled_bios_interfaces=['fake', 'no-bios'])
 
         self.service = manager.ConductorManager(self.hostname, 'test-topic')
         mock_the_extension_manager()

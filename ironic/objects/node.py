@@ -59,7 +59,8 @@ class Node(base.IronicObject, object_base.VersionedObjectDictCompat):
     # Version 1.21: Add storage_interface field
     # Version 1.22: Add rescue_interface field
     # Version 1.23: Add traits field
-    VERSION = '1.23'
+    # Version 1.24: Add bios_interface field
+    VERSION = '1.24'
 
     dbapi = db_api.get_instance()
 
@@ -119,6 +120,7 @@ class Node(base.IronicObject, object_base.VersionedObjectDictCompat):
 
         'extra': object_fields.FlexibleDictField(nullable=True),
 
+        'bios_interface': object_fields.StringField(nullable=True),
         'boot_interface': object_fields.StringField(nullable=True),
         'console_interface': object_fields.StringField(nullable=True),
         'deploy_interface': object_fields.StringField(nullable=True),
@@ -130,7 +132,6 @@ class Node(base.IronicObject, object_base.VersionedObjectDictCompat):
         'rescue_interface': object_fields.StringField(nullable=True),
         'storage_interface': object_fields.StringField(nullable=True),
         'vendor_interface': object_fields.StringField(nullable=True),
-
         'traits': object_fields.ObjectField('TraitList', nullable=True),
     }
 
@@ -476,6 +477,9 @@ class Node(base.IronicObject, object_base.VersionedObjectDictCompat):
         Version 1.23: traits field was added. Its default value is
             None. For versions prior to this, it should be set to None (or
             removed).
+        Version 1.24: bios_interface field was added. Its default value is
+            None. For versions prior to this, it should be set to None (or
+            removed).
 
         :param target_version: the desired version of the object
         :param remove_unavailable_fields: True to remove fields that are
@@ -510,6 +514,21 @@ class Node(base.IronicObject, object_base.VersionedObjectDictCompat):
                 delattr(self, 'traits')
             elif self.traits is not None:
                 self.traits = None
+
+        bios_iface_is_set = self.obj_attr_is_set('bios_interface')
+        if target_version >= (1, 24):
+            # Target version supports bios_interface.
+            if not bios_iface_is_set:
+                # Set it to its default value if it is not set.
+                self.bios_interface = None
+        elif bios_iface_is_set:
+            # Target version does not support bios_interface, and it is set.
+            if remove_unavailable_fields:
+                # (De)serialising: remove unavailable fields.
+                delattr(self, 'bios_interface')
+            elif self.bios_interface is not None:
+                # DB: set unavailable field to the default of None.
+                self.bios_interface = None
 
 
 @base.IronicObjectRegistry.register
@@ -557,6 +576,11 @@ class NodePayload(notification.NotificationPayloadBase):
         'updated_at': ('node', 'updated_at'),
         'uuid': ('node', 'uuid')
     }
+
+    # TODO(zshi): At a later point in time, once bios_interface is able
+    # to be leveraged, we need to add the bios_interface field to payload
+    # and increment the object versions for all objects that inherit the
+    # NodePayload object.
 
     # Version 1.0: Initial version, based off of Node version 1.18.
     # Version 1.1: Type of network_interface changed to just nullable string

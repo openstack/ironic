@@ -422,6 +422,43 @@ class TestDeployInterface(base.TestCase):
         self.assertTrue(mock_log.called)
 
 
+class MyBIOSInterface(driver_base.BIOSInterface):
+
+    def get_properties(self):
+        pass
+
+    def validate(self, task):
+        pass
+
+    def apply_configuration(self, task, settings):
+        pass
+
+    def factory_reset(self, task):
+        pass
+
+    def cache_bios_settings(self, task):
+        pass
+
+
+class TestBIOSInterface(base.TestCase):
+
+    @mock.patch.object(MyBIOSInterface, 'cache_bios_settings', autospec=True)
+    def test_apply_configuration_wrapper(self, cache_bios_settings_mock):
+        bios = MyBIOSInterface()
+        task_mock = mock.MagicMock()
+
+        bios.apply_configuration(bios, task_mock, "")
+        cache_bios_settings_mock.assert_called_once_with(bios, task_mock)
+
+    @mock.patch.object(MyBIOSInterface, 'cache_bios_settings', autospec=True)
+    def test_factory_reset_wrapper(self, cache_bios_settings_mock):
+        bios = MyBIOSInterface()
+        task_mock = mock.MagicMock()
+
+        bios.factory_reset(bios, task_mock)
+        cache_bios_settings_mock.assert_called_once_with(bios, task_mock)
+
+
 class TestBootInterface(base.TestCase):
 
     def test_validate_rescue_default_impl(self):
@@ -449,16 +486,20 @@ class TestBaseDriver(base.TestCase):
         # get modified by a child class
         self.assertEqual(('deploy', 'power'),
                          driver_base.BaseDriver.core_interfaces)
-        self.assertEqual(('boot', 'console', 'inspect', 'management', 'raid'),
-                         driver_base.BaseDriver.standard_interfaces)
+        self.assertEqual(
+            ('boot', 'console', 'inspect', 'management', 'raid'),
+            driver_base.BaseDriver.standard_interfaces
+        )
         # Ensure that instantiating an instance of a derived class does not
         # change our variables.
         driver_base.BareDriver()
 
         self.assertEqual(('deploy', 'power'),
                          driver_base.BaseDriver.core_interfaces)
-        self.assertEqual(('boot', 'console', 'inspect', 'management', 'raid'),
-                         driver_base.BaseDriver.standard_interfaces)
+        self.assertEqual(
+            ('boot', 'console', 'inspect', 'management', 'raid'),
+            driver_base.BaseDriver.standard_interfaces
+        )
 
 
 class TestBareDriver(base.TestCase):
@@ -469,7 +510,7 @@ class TestBareDriver(base.TestCase):
         self.assertEqual(('deploy', 'power', 'network'),
                          driver_base.BareDriver.core_interfaces)
         self.assertEqual(
-            ('boot', 'console', 'inspect', 'management', 'raid',
+            ('boot', 'console', 'inspect', 'management', 'raid', 'bios',
              'rescue', 'storage'),
             driver_base.BareDriver.standard_interfaces
         )

@@ -497,6 +497,69 @@ class TestConvertToVersion(db_base.DbTestCase):
         self.assertIsNone(node.traits)
         self.assertEqual({}, node.obj_get_changes())
 
+    def test_bios_supported_missing(self):
+        # bios_interface not set, should be set to default.
+        node = obj_utils.get_test_node(self.ctxt, **self.fake_node)
+        delattr(node, 'bios_interface')
+        node.obj_reset_changes()
+
+        node._convert_to_version("1.24")
+
+        self.assertIsNone(node.bios_interface)
+        self.assertEqual({'bios_interface': None},
+                         node.obj_get_changes())
+
+    def test_bios_supported_set(self):
+        # bios_interface set, no change required.
+        node = obj_utils.get_test_node(self.ctxt, **self.fake_node)
+
+        node.bios_interface = 'fake'
+        node.obj_reset_changes()
+        node._convert_to_version("1.24")
+        self.assertEqual('fake', node.bios_interface)
+        self.assertEqual({}, node.obj_get_changes())
+
+    def test_bios_unsupported_missing(self):
+        # bios_interface not set, no change required.
+        node = obj_utils.get_test_node(self.ctxt, **self.fake_node)
+
+        delattr(node, 'bios_interface')
+        node.obj_reset_changes()
+        node._convert_to_version("1.23")
+        self.assertNotIn('bios_interface', node)
+        self.assertEqual({}, node.obj_get_changes())
+
+    def test_bios_unsupported_set_remove(self):
+        # bios_interface set, should be removed.
+        node = obj_utils.get_test_node(self.ctxt, **self.fake_node)
+
+        node.bios_interface = 'fake'
+        node.obj_reset_changes()
+        node._convert_to_version("1.23")
+        self.assertNotIn('bios_interface', node)
+        self.assertEqual({}, node.obj_get_changes())
+
+    def test_bios_unsupported_set_no_remove_non_default(self):
+        # bios_interface set, should be set to default.
+        node = obj_utils.get_test_node(self.ctxt, **self.fake_node)
+
+        node.bios_interface = 'fake'
+        node.obj_reset_changes()
+        node._convert_to_version("1.23", False)
+        self.assertIsNone(node.bios_interface)
+        self.assertEqual({'bios_interface': None},
+                         node.obj_get_changes())
+
+    def test_bios_unsupported_set_no_remove_default(self):
+        # bios_interface set, no change required.
+        node = obj_utils.get_test_node(self.ctxt, **self.fake_node)
+
+        node.bios_interface = None
+        node.obj_reset_changes()
+        node._convert_to_version("1.23", False)
+        self.assertIsNone(node.bios_interface)
+        self.assertEqual({}, node.obj_get_changes())
+
 
 class TestNodePayloads(db_base.DbTestCase):
 

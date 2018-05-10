@@ -34,9 +34,10 @@ CLEANING_INTERFACE_PRIORITY = {
     # by which interface is implementing the clean step. The clean step of the
     # interface with the highest value here, will be executed first in that
     # case.
-    'power': 4,
-    'management': 3,
-    'deploy': 2,
+    'power': 5,
+    'management': 4,
+    'deploy': 3,
+    'bios': 2,
     'raid': 1,
 }
 
