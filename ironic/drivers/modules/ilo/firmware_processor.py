@@ -106,7 +106,7 @@ def _validate_sum_components(components):
     """
     not_supported = []
     for component in components:
-        if not re.search('\.(scexe|exe|rpm)$', component):
+        if not re.search('\\.(scexe|exe|rpm)$', component):
             not_supported.append(component)
 
     if not_supported:
