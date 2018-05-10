@@ -60,7 +60,7 @@ def stream_to_dest(url, dest, chunksize, hash_algo, verify=True, certs=None):
 
 
 def main():
-    module = AnsibleModule(
+    module = AnsibleModule(  # noqa This is normal for Ansible modules.
         argument_spec=dict(
             url=dict(required=True, type='str'),
             dest=dict(required=True, type='str'),

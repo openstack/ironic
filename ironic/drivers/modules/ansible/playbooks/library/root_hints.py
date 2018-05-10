@@ -61,7 +61,7 @@ def root_hint(hints, devices):
 
 
 def main():
-    module = AnsibleModule(
+    module = AnsibleModule(  # noqa This is normal for Ansible modules.
         argument_spec=dict(
             root_device_hints=dict(required=True, type='dict'),
             ansible_devices=dict(required=True, type='dict'),
