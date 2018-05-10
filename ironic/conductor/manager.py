@@ -905,6 +905,11 @@ class ConductorManager(base_manager.BaseConductorManager):
                 # rescuing network as well.
                 task.driver.rescue.clean_up(task)
 
+            # stop the console
+            # do it in this thread since we're already out of the main
+            # conductor thread.
+            if node.console_enabled:
+                self._set_console_mode(task, False)
             task.driver.deploy.clean_up(task)
             task.driver.deploy.tear_down(task)
         except Exception as e:
@@ -2168,23 +2173,25 @@ class ConductorManager(base_manager.BaseConductorManager):
                 # take_over() right now.
             else:
                 task.driver.console.stop_console(task)
+
         except Exception as e:
-            op = _('enabling') if enabled else _('disabling')
-            msg = (_('Error %(op)s the console on node %(node)s. '
-                     'Reason: %(error)s') % {'op': op,
-                                             'node': node.uuid,
-                                             'error': e})
-            node.last_error = msg
-            LOG.error(msg)
-            node.save()
-            notify_utils.emit_console_notification(
-                task, 'console_set', fields.NotificationStatus.ERROR)
-        else:
-            node.console_enabled = enabled
-            node.last_error = None
-            node.save()
-            notify_utils.emit_console_notification(
-                task, 'console_set', fields.NotificationStatus.END)
+            with excutils.save_and_reraise_exception():
+                op = _('enabling') if enabled else _('disabling')
+                msg = (_('Error %(op)s the console on node %(node)s. '
+                         'Reason: %(error)s') % {'op': op,
+                                                 'node': node.uuid,
+                                                 'error': e})
+                node.last_error = msg
+                LOG.error(msg)
+                node.save()
+                notify_utils.emit_console_notification(
+                    task, 'console_set', fields.NotificationStatus.ERROR)
+
+        node.console_enabled = enabled
+        node.last_error = None
+        node.save()
+        notify_utils.emit_console_notification(
+            task, 'console_set', fields.NotificationStatus.END)
 
     @METRICS.timer('ConductorManager.create_port')
     @messaging.expected_exceptions(exception.NodeLocked,

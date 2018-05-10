@@ -1805,21 +1805,48 @@ class DoNodeDeployTearDownTestCase(mgr_utils.ServiceSetUpMixin,
         self.assertIsNotNone(node.last_error)
         # Assert instance_info was erased
         self.assertEqual({}, node.instance_info)
-        mock_tear_down.assert_called_once_with(mock.ANY)
+        mock_tear_down.assert_called_once_with(task)
+
+    @mock.patch('ironic.conductor.manager.ConductorManager._set_console_mode')
+    def test_do_node_tear_down_console_raises_error(self, mock_console):
+        # test when _set_console_mode raises exception
+        node = obj_utils.create_test_node(
+            self.context, driver='fake', provision_state=states.DELETING,
+            target_provision_state=states.AVAILABLE,
+            instance_info={'foo': 'bar'},
+            console_enabled=True,
+            driver_internal_info={'is_whole_disk_image': False})
+
+        task = task_manager.TaskManager(self.context, node.uuid)
+        self._start_service()
+        mock_console.side_effect = exception.ConsoleError('test')
+        self.assertRaises(exception.ConsoleError,
+                          self.service._do_node_tear_down, task,
+                          node.provision_state)
+        node.refresh()
+        self.assertEqual(states.ERROR, node.provision_state)
+        self.assertEqual(states.NOSTATE, node.target_provision_state)
+        self.assertIsNotNone(node.last_error)
+        # Assert instance_info was erased
+        self.assertEqual({}, node.instance_info)
+        mock_console.assert_called_once_with(task, False)
 
     # TODO(TheJulia): Since we're functionally bound to neutron support
     # by default, the fake drivers still invoke neutron.
+    @mock.patch('ironic.conductor.manager.ConductorManager._set_console_mode')
     @mock.patch('ironic.common.neutron.unbind_neutron_port')
     @mock.patch('ironic.conductor.manager.ConductorManager._do_node_clean')
     @mock.patch('ironic.drivers.modules.fake.FakeDeploy.tear_down')
-    def test__do_node_tear_down_ok(self, mock_tear_down, mock_clean,
-                                   mock_unbind):
+    def _test__do_node_tear_down_ok(self, mock_tear_down, mock_clean,
+                                    mock_unbind, mock_console,
+                                    enabled_console=False):
         # test when driver.deploy.tear_down succeeds
         node = obj_utils.create_test_node(
             self.context, driver='fake', provision_state=states.DELETING,
             target_provision_state=states.AVAILABLE,
             instance_uuid=uuidutils.generate_uuid(),
             instance_info={'foo': 'bar'},
+            console_enabled=enabled_console,
             driver_internal_info={'is_whole_disk_image': False,
                                   'clean_steps': {},
                                   'root_uuid_or_disk_id': 'foo',
@@ -1843,10 +1870,20 @@ class DoNodeDeployTearDownTestCase(mgr_utils.ServiceSetUpMixin,
         self.assertNotIn('clean_steps', node.driver_internal_info)
         self.assertNotIn('root_uuid_or_disk_id', node.driver_internal_info)
         self.assertNotIn('is_whole_disk_image', node.driver_internal_info)
-        mock_tear_down.assert_called_once_with(mock.ANY)
-        mock_clean.assert_called_once_with(mock.ANY)
+        mock_tear_down.assert_called_once_with(task)
+        mock_clean.assert_called_once_with(task)
         self.assertEqual({}, port.internal_info)
         mock_unbind.assert_called_once_with('foo', context=mock.ANY)
+        if enabled_console:
+            mock_console.assert_called_once_with(task, False)
+        else:
+            mock_console.assert_not_called()
+
+    def test__do_node_tear_down_ok_without_console(self):
+        self._test__do_node_tear_down_ok(enabled_console=False)
+
+    def test__do_node_tear_down_ok_with_console(self):
+        self._test__do_node_tear_down_ok(enabled_console=True)
 
     @mock.patch('ironic.drivers.modules.fake.FakeRescue.clean_up')
     @mock.patch('ironic.conductor.manager.ConductorManager._do_node_clean')
