@@ -184,7 +184,12 @@ Step 1: Create a Python virtualenv
 
     . .tox/venv/bin/activate
 
-#. Install the openstack baremetal client::
+#. Install the `openstack` client command utility::
+
+    pip install python-openstackclient
+
+
+#. Install the `openstack baremetal` client::
 
     pip install python-ironicclient
 
