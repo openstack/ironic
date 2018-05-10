@@ -416,13 +416,12 @@ a node console are:
 * ``baremetal.node.console_restore.end``
 * ``baremetal.node.console_restore.error``
 
-``console_set`` action is used when start or stop console is initiated via API
-request. The ``console_restore`` action is used when the console was already
-enabled, but a driver must restart the console because an ironic-conductor was
-restarted. This may also be sent when an ironic-conductor takes over a node
-that was being managed by another ironic-conductor. "start" and "end"
-notifications have INFO level, "error" has ERROR. Example of node console
-notification::
+``console_set`` action is used when start or stop console is initiated. The
+``console_restore`` action is used when the console was already enabled, but a
+driver must restart the console because an ironic-conductor was restarted. This
+may also be sent when an ironic-conductor takes over a node that was being
+managed by another ironic-conductor. "start" and "end" notifications have INFO
+level, "error" has ERROR. Example of node console notification::
 
    {
     "priority": "info",
