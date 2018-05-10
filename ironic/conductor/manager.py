@@ -170,6 +170,9 @@ class ConductorManager(base_manager.BaseConductorManager):
 
         # TODO(dtantsur): reconsider allowing changing some (but not all)
         # interfaces for active nodes in the future.
+        # NOTE(kaifeng): INSPECTING is allowed to keep backwards
+        # compatibility, starting from API 1.39 node update is disallowed
+        # in this state.
         allowed_update_states = [states.ENROLL, states.INSPECTING,
                                  states.INSPECTWAIT, states.MANAGEABLE,
                                  states.AVAILABLE]
