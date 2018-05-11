@@ -64,7 +64,7 @@ def get_admin_context():
     """Create an administrator context."""
 
     context = RequestContext(auth_token=None,
-                             tenant=None,
+                             project_id=None,
                              is_admin=True,
                              overwrite=False)
     return context

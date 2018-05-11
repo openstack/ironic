@@ -69,7 +69,7 @@ class MyObj(base.IronicObject, object_base.VersionedObjectDictCompat):
 
     @object_base.remotable
     def update_test(self, context=None):
-        if context and context.tenant == 'alternate':
+        if context and context.project_id == 'alternate':
             self.bar = 'alternate-context'
         else:
             self.bar = 'updated'
@@ -232,8 +232,9 @@ class _TestObject(object):
                           base.IronicObject.obj_class_from_name, 'foo', '1.0')
 
     def test_with_alternate_context(self):
-        ctxt1 = context.RequestContext(auth_token='foo', tenant='foo')
-        ctxt2 = context.RequestContext(auth_token='bar', tenant='alternate')
+        ctxt1 = context.RequestContext(auth_token='foo', project_id='foo')
+        ctxt2 = context.RequestContext(auth_token='bar',
+                                       project_id='alternate')
         obj = MyObj.query(ctxt1)
         obj.update_test(ctxt2)
         self.assertEqual('alternate-context', obj.bar)
