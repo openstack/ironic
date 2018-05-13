@@ -56,9 +56,9 @@ class XClarityPowerDriverTestCase(db_base.DbTestCase):
             driver_info=db_utils.get_test_xclarity_driver_info())
 
     def test_get_properties(self, mock_get_xc_client):
-        expected = common.REQUIRED_ON_DRIVER_INFO
-        self.assertItemsEqual(expected,
-                              self.node.driver_info)
+        expected = common.COMMON_PROPERTIES
+        driver = power.XClarityPower()
+        self.assertEqual(expected, driver.get_properties())
 
     @mock.patch.object(common, 'get_server_hardware_id',
                        spect_set=True, autospec=True)

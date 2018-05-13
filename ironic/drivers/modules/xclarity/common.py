@@ -18,6 +18,7 @@ from oslo_utils import importutils
 from ironic.common import exception
 from ironic.common.i18n import _
 from ironic.common import states
+from ironic.common import utils
 from ironic.conf import CONF
 
 LOG = logging.getLogger(__name__)
@@ -28,45 +29,102 @@ xclarity_client_exceptions = importutils.try_import(
     'xclarity_client.exceptions')
 
 REQUIRED_ON_DRIVER_INFO = {
-    'xclarity_hardware_id': _("XClarity Server Hardware ID. "
-                              "Required in driver_info."),
-}
-
-COMMON_PROPERTIES = {
-    'xclarity_address': _("IP address of the XClarity node."),
-    'xclarity_username': _("Username for the XClarity with administrator "
-                           "privileges."),
+    'xclarity_manager_ip': _("IP address of the XClarity Controller."),
+    'xclarity_username': _("Username for the XClarity Controller "
+                           "with administrator privileges."),
     'xclarity_password': _("Password for xclarity_username."),
-    'xclarity_port': _("Port to be used for xclarity_username."),
+    'xclarity_hardware_id': _("Server Hardware ID managed by XClarity."),
 }
 
+OPTIONAL_ON_DRIVER_INFO = {
+    'xclarity_port': _("Port to be used for XClarity Controller connection. "
+                       "Optional"),
+}
+
+COMMON_PROPERTIES = {}
 COMMON_PROPERTIES.update(REQUIRED_ON_DRIVER_INFO)
+COMMON_PROPERTIES.update(OPTIONAL_ON_DRIVER_INFO)
 
 
 def get_properties():
     return COMMON_PROPERTIES
 
 
-def get_xclarity_client():
+def parse_driver_info(node):
+    """Parse a node's driver_info values.
+
+    Parses the driver_info of the node, reads default values
+    and returns a dict containing the combination of both.
+
+    :param node: an ironic node object to get informatin from.
+    :returns: a dict containing information parsed from driver_info.
+    :raises: InvalidParameterValue if some required information
+             is missing on the node or inputs is invalid.
+    """
+    driver_info = node.driver_info
+    parsed_driver_info = {}
+
+    error_msgs = []
+    for param in REQUIRED_ON_DRIVER_INFO:
+        if param == "xclarity_hardware_id":
+            try:
+                parsed_driver_info[param] = str(driver_info[param])
+            except KeyError:
+                error_msgs.append(_("'%s' not provided to XClarity.") % param)
+            except UnicodeEncodeError:
+                error_msgs.append(_("'%s' contains non-ASCII symbol.") % param)
+        else:
+            # corresponding config names don't have 'xclarity_' prefix
+            if param in driver_info:
+                parsed_driver_info[param] = str(driver_info[param])
+            elif param not in driver_info and\
+                    CONF.xclarity.get(param[len('xclarity_'):]) is not None:
+                parsed_driver_info[param] = str(
+                    CONF.xclarity.get(param[len('xclarity_'):]))
+                LOG.warning('The configuration [xclarity]/%(config)s '
+                            'is deprecated and will be removed in the '
+                            'Stein release. Please update the node '
+                            '%(node_uuid)s driver_info field to use '
+                            '"%(field)s" instead',
+                            {'config': param[len('xclarity_'):],
+                             'node_uuid': node.uuid, 'field': param})
+            else:
+                error_msgs.append(_("'%s' not provided to XClarity.") % param)
+
+    port = driver_info.get('xclarity_port', CONF.xclarity.get('port'))
+    parsed_driver_info['xclarity_port'] = utils.validate_network_port(
+        port, 'xclarity_port')
+
+    if error_msgs:
+        msg = (_('The following errors were encountered while parsing '
+                 'driver_info:\n%s') % '\n'.join(error_msgs))
+        raise exception.InvalidParameterValue(msg)
+
+    return parsed_driver_info
+
+
+def get_xclarity_client(node):
     """Generates an instance of the XClarity client.
 
     Generates an instance of the XClarity client using the imported
     xclarity_client library.
 
+    :param node: an ironic node object.
     :returns: an instance of the XClarity client
     :raises: XClarityError if can't get to the XClarity client
     """
+    driver_info = parse_driver_info(node)
     try:
         xclarity_client = client.Client(
-            ip=CONF.xclarity.manager_ip,
-            username=CONF.xclarity.username,
-            password=CONF.xclarity.password,
-            port=CONF.xclarity.port
+            ip=driver_info.get('xclarity_manager_ip'),
+            username=driver_info.get('xclarity_username'),
+            password=driver_info.get('xclarity_password'),
+            port=driver_info.get('xclarity_port')
         )
     except xclarity_client_exceptions.XClarityError as exc:
-        msg = (_("Error getting connection to XClarity manager IP: %(ip)s. "
-                 "Error: %(exc)s"), {'ip': CONF.xclarity.manager_ip,
-                                     'exc': exc})
+        msg = (_("Error getting connection to XClarity address: %(ip)s. "
+                 "Error: %(exc)s"),
+               {'ip': driver_info.get('xclarity_manager_ip'), 'exc': exc})
         raise exception.XClarityError(error=msg)
     return xclarity_client
 
@@ -118,17 +176,3 @@ def translate_xclarity_power_action(power_action):
     }
 
     return power_action_map[power_action]
-
-
-def is_node_managed_by_xclarity(xclarity_client, node):
-    """Determines whether dynamic allocation is enabled for a specifc node.
-
-    :param: xclarity_client: an instance of the XClarity client
-    :param: node: node object to get information from
-    :returns: Boolean depending on whether node is managed by XClarity
-    """
-    try:
-        hardware_id = get_server_hardware_id(node)
-        return xclarity_client.is_node_managed(hardware_id)
-    except exception.MissingParameterValue:
-        return False

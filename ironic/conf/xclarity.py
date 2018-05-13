@@ -18,14 +18,24 @@ from ironic.common.i18n import _
 
 opts = [
     cfg.StrOpt('manager_ip',
-               help=_('IP address of XClarity controller.')),
+               help=_('IP address of the XClarity Controller. '
+                      'Configuration here is deprecated and will be removed '
+                      'in the Stein release. Please update the driver_info '
+                      'field to use "xclarity_manager_ip" instead')),
     cfg.StrOpt('username',
-               help=_('Username to access the XClarity controller.')),
+               help=_('Username for the XClarity Controller. '
+                      'Configuration here is deprecated and will be removed '
+                      'in the Stein release. Please update the driver_info '
+                      'field to use "xclarity_username" instead')),
     cfg.StrOpt('password',
-               help=_('Password for XClarity controller username.')),
+               help=_('Password for XClarity Controller username. '
+                      'Configuration here is deprecated and will be removed '
+                      'in the Stein release. Please update the driver_info '
+                      'field to use "xclarity_password" instead')),
     cfg.PortOpt('port',
                 default=443,
-                help=_('Port to be used for XClarity operations.')),
+                help=_('Port to be used for XClarity Controller '
+                       'connection.')),
 ]
 
 

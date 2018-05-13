@@ -1,0 +1,19 @@
+---
+features:
+  - |
+    Adds new parameter fields to driver_info, which will become
+    mandatory in Stein release:
+
+    * ``xclarity_manager_ip``: IP address of the XClarity Controller.
+    * ``xclarity_username``: Username for the XClarity Controller.
+    * ``xclarity_password``: Password for XClarity Controller username.
+    * ``xclarity_port``: Port to be used for XClarity Controller connection.
+deprecations:
+  - |
+    Configuration options ``[xclarity]/manager_ip``, ``[xclarity]/username``,
+    and ``[xclarity]/password`` are deprecated and will be removed in
+    the Stein release.
+fixes:
+  - |
+    Fixes an issue where parameters required in driver_info and
+    descriptions in documentation are different.

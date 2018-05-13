@@ -31,21 +31,21 @@ xclarity_client_exceptions = importutils.try_import(
 
 
 class XClarityPower(base.PowerInterface):
-    def __init__(self):
-        super(XClarityPower, self).__init__()
-        self.xclarity_client = common.get_xclarity_client()
 
     def get_properties(self):
         return common.get_properties()
 
     @METRICS.timer('XClarityPower.validate')
     def validate(self, task):
-        """It validates if the node is being used by XClarity.
+        """Validate the driver-specific info supplied.
+
+        This method validates if the 'driver_info' property of the supplied
+        task's node contains the required information for this driver to
+        manage the power state of the node.
 
         :param task: a task from TaskManager.
         """
-
-        common.is_node_managed_by_xclarity(self.xclarity_client, task.node)
+        common.parse_driver_info(task.node)
 
     @METRICS.timer('XClarityPower.get_power_state')
     def get_power_state(self, task):
@@ -57,15 +57,16 @@ class XClarityPower(base.PowerInterface):
         :raises: XClarityError if fails to retrieve power state of XClarity
                  resource
         """
-        server_hardware_id = common.get_server_hardware_id(task.node)
+        node = task.node
+        client = common.get_xclarity_client(node)
+        server_hardware_id = common.get_server_hardware_id(node)
         try:
-            power_state = self.xclarity_client.get_node_power_status(
-                server_hardware_id)
+            power_state = client.get_node_power_status(server_hardware_id)
         except xclarity_client_exceptions.XClarityException as xclarity_exc:
             LOG.error(
                 ("Error getting power state for node %(node)s. Error: "
                  "%(error)s"),
-                {'node': task.node.uuid, 'error': xclarity_exc}
+                {'node': node.uuid, 'error': xclarity_exc}
             )
             raise exception.XClarityError(error=xclarity_exc)
         return common.translate_xclarity_power_state(power_state)
@@ -95,14 +96,15 @@ class XClarityPower(base.PowerInterface):
             if target_power_state == states.POWER_OFF:
                 power_state = states.POWER_ON
 
-        server_hardware_id = common.get_server_hardware_id(task.node)
+        node = task.node
+        client = common.get_xclarity_client(node)
+        server_hardware_id = common.get_server_hardware_id(node)
         LOG.debug("Setting power state of node %(node_uuid)s to "
                   "%(power_state)s",
-                  {'node_uuid': task.node.uuid, 'power_state': power_state})
+                  {'node_uuid': node.uuid, 'power_state': power_state})
 
         try:
-            self.xclarity_client.set_node_power_status(server_hardware_id,
-                                                       power_state)
+            client.set_node_power_status(server_hardware_id, power_state)
         except xclarity_client_exceptions.XClarityError as xclarity_exc:
             LOG.error(
                 "Error setting power state of node %(node_uuid)s to "

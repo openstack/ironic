@@ -47,20 +47,21 @@ SUPPORTED_BOOT_DEVICES = [
 
 
 class XClarityManagement(base.ManagementInterface):
-    def __init__(self):
-        super(XClarityManagement, self).__init__()
-        self.xclarity_client = common.get_xclarity_client()
 
     def get_properties(self):
         return common.COMMON_PROPERTIES
 
     @METRICS.timer('XClarityManagement.validate')
     def validate(self, task):
-        """It validates if the node is being used by XClarity.
+        """Validate the driver-specific info supplied.
+
+        This method validates if the 'driver_info' property of the supplied
+        task's node contains the required information for this driver to
+        manage the node.
 
         :param task: a task from TaskManager.
         """
-        common.is_node_managed_by_xclarity(self.xclarity_client, task.node)
+        common.parse_driver_info(task.node)
 
     @METRICS.timer('XClarityManagement.get_supported_boot_devices')
     def get_supported_boot_devices(self, task):
@@ -97,16 +98,18 @@ class XClarityManagement(base.ManagementInterface):
         :raises: InvalidParameterValue if the boot device is unknown
         :raises: XClarityError if the communication with XClarity fails
         """
-        server_hardware_id = common.get_server_hardware_id(task.node)
+        node = task.node
+        client = common.get_xclarity_client(node)
+        server_hardware_id = common.get_server_hardware_id(node)
         try:
             boot_info = (
-                self.xclarity_client.get_node_all_boot_info(
+                client.get_node_all_boot_info(
                     server_hardware_id)
             )
         except xclarity_client_exceptions.XClarityError as xclarity_exc:
             LOG.error(
                 "Error getting boot device from XClarity for node %(node)s. "
-                "Error: %(error)s", {'node': task.node.uuid,
+                "Error: %(error)s", {'node': node.uuid,
                                      'error': xclarity_exc})
             raise exception.XClarityError(error=xclarity_exc)
 
@@ -182,7 +185,9 @@ class XClarityManagement(base.ManagementInterface):
         :param task: a TaskManager instance.
         :param singleuse: if this device will be used only once at next boot
         """
-        boot_info = self.xclarity_client.get_node_all_boot_info(
+        node = task.node
+        client = common.get_xclarity_client(node)
+        boot_info = client.get_node_all_boot_info(
             server_hardware_id)
         xclarity_boot_device = self._translate_ironic_to_xclarity(
             new_primary_boot_device)
@@ -190,7 +195,7 @@ class XClarityManagement(base.ManagementInterface):
         LOG.debug(
             ("Setting boot device to %(device)s for XClarity "
              "node %(node)s"),
-            {'device': xclarity_boot_device, 'node': task.node.uuid}
+            {'device': xclarity_boot_device, 'node': node.uuid}
         )
         for item in boot_info['bootOrder']['bootOrderList']:
             if singleuse and item['bootType'] == 'SingleUse':
@@ -205,15 +210,15 @@ class XClarityManagement(base.ManagementInterface):
                 item['currentBootOrderDevices'] = current
 
         try:
-            self.xclarity_client.set_node_boot_info(server_hardware_id,
-                                                    boot_info,
-                                                    xclarity_boot_device,
-                                                    singleuse)
+            client.set_node_boot_info(server_hardware_id,
+                                      boot_info,
+                                      xclarity_boot_device,
+                                      singleuse)
         except xclarity_client_exceptions.XClarityError as xclarity_exc:
             LOG.error(
                 ('Error setting boot device %(boot_device)s for the XClarity '
                  'node %(node)s. Error: %(error)s'),
-                {'boot_device': xclarity_boot_device, 'node': task.node.uuid,
+                {'boot_device': xclarity_boot_device, 'node': node.uuid,
                  'error': xclarity_exc}
             )
             raise exception.XClarityError(error=xclarity_exc)
