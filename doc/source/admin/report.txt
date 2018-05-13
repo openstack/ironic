@@ -453,7 +453,7 @@ keystone_authtoken:
   auth-url = http://10.223.197.220/identity_admin
   auth_admin_prefix =
   auth_host = 127.0.0.1
-  auth_port = 35357
+  auth_port = 5000
   auth_protocol = https
   auth_section = None
   auth_type = password
