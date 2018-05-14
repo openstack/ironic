@@ -36,7 +36,6 @@ from ironic.drivers.modules.network import neutron as neutron_network
 from ironic.drivers.modules import pxe
 from ironic.drivers.modules.storage import noop as noop_storage
 from ironic.drivers import utils as driver_utils
-from ironic.tests.unit.conductor import mgr_utils
 from ironic.tests.unit.db import base as db_base
 from ironic.tests.unit.db import utils as db_utils
 from ironic.tests.unit.objects import utils as object_utils
@@ -52,6 +51,7 @@ CONF = cfg.CONF
 class TestAgentMethods(db_base.DbTestCase):
     def setUp(self):
         super(TestAgentMethods, self).setUp()
+        self.config(enabled_drivers=['fake_agent'])
         self.node = object_utils.create_test_node(self.context,
                                                   driver='fake_agent')
         dhcp_factory.DHCPFactory._dhcp_provider = None
@@ -62,7 +62,6 @@ class TestAgentMethods(db_base.DbTestCase):
             'size': 10 * 1024 * 1024,
             'disk_format': 'qcow2',
         }
-        mgr_utils.mock_the_extension_manager(driver='fake_agent')
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
             task.node.properties['memory_mb'] = 10
@@ -71,7 +70,6 @@ class TestAgentMethods(db_base.DbTestCase):
 
     @mock.patch.object(images, 'image_show', autospec=True)
     def test_check_image_size_without_memory_mb(self, show_mock):
-        mgr_utils.mock_the_extension_manager(driver='fake_agent')
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
             task.node.properties.pop('memory_mb', None)
@@ -84,7 +82,6 @@ class TestAgentMethods(db_base.DbTestCase):
             'size': 11 * 1024 * 1024,
             'disk_format': 'qcow2',
         }
-        mgr_utils.mock_the_extension_manager(driver='fake_agent')
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
             task.node.properties['memory_mb'] = 10
@@ -100,7 +97,6 @@ class TestAgentMethods(db_base.DbTestCase):
             'size': 9 * 1024 * 1024,
             'disk_format': 'qcow2',
         }
-        mgr_utils.mock_the_extension_manager(driver='fake_agent')
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
             task.node.properties['memory_mb'] = 10
@@ -118,7 +114,6 @@ class TestAgentMethods(db_base.DbTestCase):
             'size': 15 * 1024 * 1024,
             'disk_format': 'raw',
         }
-        mgr_utils.mock_the_extension_manager(driver='fake_agent')
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
             task.node.properties['memory_mb'] = 10
@@ -132,7 +127,6 @@ class TestAgentMethods(db_base.DbTestCase):
             'size': 15 * 1024 * 1024,
             'disk_format': 'raw',
         }
-        mgr_utils.mock_the_extension_manager(driver='fake_agent')
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
             task.node.properties['memory_mb'] = 10
@@ -147,7 +141,7 @@ class TestAgentMethods(db_base.DbTestCase):
 class TestAgentDeploy(db_base.DbTestCase):
     def setUp(self):
         super(TestAgentDeploy, self).setUp()
-        mgr_utils.mock_the_extension_manager(driver='fake_agent')
+        self.config(enabled_drivers=['fake_agent'])
         self.driver = agent.AgentDeploy()
         # NOTE(TheJulia): We explicitly set the noop storage interface as the
         # default below for deployment tests in order to raise any change
@@ -1257,7 +1251,7 @@ class AgentRAIDTestCase(db_base.DbTestCase):
 
     def setUp(self):
         super(AgentRAIDTestCase, self).setUp()
-        mgr_utils.mock_the_extension_manager(driver="fake_agent")
+        self.config(enabled_drivers=['fake_agent'])
         self.target_raid_config = {
             "logical_disks": [
                 {'size_gb': 200, 'raid_level': 0, 'is_root_volume': True},

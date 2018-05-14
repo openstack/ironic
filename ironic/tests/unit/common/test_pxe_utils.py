@@ -24,7 +24,6 @@ import six
 from ironic.common import pxe_utils
 from ironic.common import utils
 from ironic.conductor import task_manager
-from ironic.tests.unit.conductor import mgr_utils
 from ironic.tests.unit.db import base as db_base
 from ironic.tests.unit.objects import utils as object_utils
 
@@ -35,7 +34,6 @@ class TestPXEUtils(db_base.DbTestCase):
 
     def setUp(self):
         super(TestPXEUtils, self).setUp()
-        mgr_utils.mock_the_extension_manager(driver="fake")
 
         self.pxe_options = {
             'deployment_aki_path': u'/tftpboot/1be26c0b-03f2-4d2e-ae87-'

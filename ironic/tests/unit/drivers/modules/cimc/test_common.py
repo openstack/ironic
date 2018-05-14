@@ -20,7 +20,6 @@ from oslo_utils import uuidutils
 from ironic.common import exception
 from ironic.conductor import task_manager
 from ironic.drivers.modules.cimc import common as cimc_common
-from ironic.tests.unit.conductor import mgr_utils
 from ironic.tests.unit.db import base as db_base
 from ironic.tests.unit.db import utils as db_utils
 from ironic.tests.unit.objects import utils as obj_utils
@@ -36,7 +35,7 @@ class CIMCBaseTestCase(db_base.DbTestCase):
 
     def setUp(self):
         super(CIMCBaseTestCase, self).setUp()
-        mgr_utils.mock_the_extension_manager(driver="fake_cimc")
+        self.config(enabled_drivers=['fake_cimc'])
         self.node = obj_utils.create_test_node(
             self.context,
             driver='fake_cimc',

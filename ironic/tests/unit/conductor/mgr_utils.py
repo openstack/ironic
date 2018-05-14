@@ -17,6 +17,7 @@
 
 """Test utils for Ironic Managers."""
 
+import fixtures
 from futurist import periodics
 import mock
 from oslo_utils import strutils
@@ -29,6 +30,13 @@ from ironic.common import exception
 from ironic.common import states
 from ironic.conductor import manager
 from ironic import objects
+
+
+class DriverFactoryFixture(fixtures.Fixture):
+    """A fixture to mock a factor of drivers/hardware types/interfaces."""
+
+    def __init__(self, factory_class, ):
+        self.factory_class = factory_class
 
 
 def mock_the_extension_manager(driver="fake", namespace="ironic.drivers"):
@@ -180,8 +188,7 @@ class ServiceSetUpMixin(object):
         self.config(enabled_bios_interfaces=['fake', 'no-bios'])
 
         self.service = manager.ConductorManager(self.hostname, 'test-topic')
-        mock_the_extension_manager()
-        self.driver = driver_factory.get_driver("fake")
+        self.driver = driver_factory.get_driver('fake')
 
     def _stop_service(self):
         try:

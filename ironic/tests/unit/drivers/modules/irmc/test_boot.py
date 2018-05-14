@@ -39,7 +39,6 @@ from ironic.drivers.modules.irmc import boot as irmc_boot
 from ironic.drivers.modules.irmc import common as irmc_common
 from ironic.drivers.modules.irmc import management as irmc_management
 from ironic.drivers.modules import pxe
-from ironic.tests.unit.conductor import mgr_utils
 from ironic.tests.unit.db import base as db_base
 from ironic.tests.unit.db import utils as db_utils
 from ironic.tests.unit.drivers.modules import test_pxe
@@ -74,7 +73,7 @@ class IRMCDeployPrivateMethodsTestCase(db_base.DbTestCase):
         irmc_boot.check_share_fs_mounted_patcher.start()
         self.addCleanup(irmc_boot.check_share_fs_mounted_patcher.stop)
         super(IRMCDeployPrivateMethodsTestCase, self).setUp()
-        mgr_utils.mock_the_extension_manager(driver='iscsi_irmc')
+        self.config(enabled_drivers=['iscsi_irmc'])
         self.node = obj_utils.create_test_node(
             self.context, driver='iscsi_irmc', driver_info=INFO_DICT)
 
@@ -1313,7 +1312,7 @@ class IRMCPXEBootTestCase(db_base.DbTestCase):
 
     def setUp(self):
         super(IRMCPXEBootTestCase, self).setUp()
-        mgr_utils.mock_the_extension_manager(driver="pxe_irmc")
+        self.config(enabled_drivers=['pxe_irmc'])
         self.node = obj_utils.create_test_node(
             self.context, driver='pxe_irmc', driver_info=INFO_DICT)
 

@@ -19,7 +19,6 @@ from ironic.common import neutron as neutron_common
 from ironic.common import states
 from ironic.conductor import task_manager
 from ironic.drivers.modules.network import common
-from ironic.tests.unit.conductor import mgr_utils
 from ironic.tests.unit.db import base as db_base
 from ironic.tests.unit.objects import utils as obj_utils
 
@@ -31,7 +30,6 @@ class TestCommonFunctions(db_base.DbTestCase):
     def setUp(self):
         super(TestCommonFunctions, self).setUp()
         self.config(enabled_drivers=['fake'])
-        mgr_utils.mock_the_extension_manager()
         self.node = obj_utils.create_test_node(self.context,
                                                network_interface='neutron')
         self.port = obj_utils.create_test_port(
@@ -439,7 +437,6 @@ class TestVifPortIDMixin(db_base.DbTestCase):
     def setUp(self):
         super(TestVifPortIDMixin, self).setUp()
         self.config(enabled_drivers=['fake'])
-        mgr_utils.mock_the_extension_manager()
         self.interface = common.VIFPortIDMixin()
         self.node = obj_utils.create_test_node(self.context,
                                                network_interface='neutron')
@@ -664,7 +661,6 @@ class TestNeutronVifPortIDMixin(db_base.DbTestCase):
     def setUp(self):
         super(TestNeutronVifPortIDMixin, self).setUp()
         self.config(enabled_drivers=['fake'])
-        mgr_utils.mock_the_extension_manager()
         self.interface = common.NeutronVIFPortIDMixin()
         self.node = obj_utils.create_test_node(self.context,
                                                network_interface='neutron')

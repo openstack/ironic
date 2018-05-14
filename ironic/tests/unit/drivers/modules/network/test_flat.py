@@ -19,7 +19,6 @@ from ironic.common import exception
 from ironic.common import neutron
 from ironic.conductor import task_manager
 from ironic.drivers.modules.network import flat as flat_interface
-from ironic.tests.unit.conductor import mgr_utils
 from ironic.tests.unit.db import base as db_base
 from ironic.tests.unit.objects import utils
 
@@ -32,7 +31,6 @@ class TestFlatInterface(db_base.DbTestCase):
     def setUp(self):
         super(TestFlatInterface, self).setUp()
         self.config(enabled_drivers=['fake'])
-        mgr_utils.mock_the_extension_manager()
         self.interface = flat_interface.FlatNetwork()
         self.node = utils.create_test_node(self.context)
         self.port = utils.create_test_port(

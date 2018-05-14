@@ -21,7 +21,6 @@ from ironic.common import exception
 from ironic.conductor import task_manager
 from ironic.drivers.modules.redfish import management as redfish_mgmt
 from ironic.drivers.modules.redfish import utils as redfish_utils
-from ironic.tests.unit.conductor import mgr_utils
 from ironic.tests.unit.db import base as db_base
 from ironic.tests.unit.db import utils as db_utils
 from ironic.tests.unit.objects import utils as obj_utils
@@ -42,8 +41,6 @@ class RedfishManagementTestCase(db_base.DbTestCase):
         self.config(enabled_hardware_types=['redfish'],
                     enabled_power_interfaces=['redfish'],
                     enabled_management_interfaces=['redfish'])
-        mgr_utils.mock_the_extension_manager(
-            driver='redfish', namespace='ironic.hardware.types')
         self.node = obj_utils.create_test_node(
             self.context, driver='redfish', driver_info=INFO_DICT)
 

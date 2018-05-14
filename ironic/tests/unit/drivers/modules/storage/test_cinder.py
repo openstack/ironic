@@ -22,7 +22,6 @@ from ironic.conductor import task_manager
 from ironic.drivers.modules.storage import cinder
 from ironic.drivers import utils as driver_utils
 from ironic import objects
-from ironic.tests.unit.conductor import mgr_utils
 from ironic.tests.unit.db import base as db_base
 from ironic.tests.unit.objects import utils as object_utils
 
@@ -36,9 +35,7 @@ class CinderInterfaceTestCase(db_base.DbTestCase):
         self.config(action_retries=3,
                     action_retry_interval=0,
                     group='cinder')
-        self.config(enabled_drivers=['fake'])
         self.config(enabled_storage_interfaces=['noop', 'cinder'])
-        mgr_utils.mock_the_extension_manager()
         self.interface = cinder.CinderStorage()
 
     @mock.patch.object(cinder, 'LOG', autospec=True)

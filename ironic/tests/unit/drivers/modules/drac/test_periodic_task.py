@@ -22,7 +22,6 @@ from ironic.conductor import task_manager
 from ironic.drivers.modules import agent_base_vendor
 from ironic.drivers.modules.drac import common as drac_common
 from ironic.drivers.modules.drac import raid as drac_raid
-from ironic.tests.unit.conductor import mgr_utils
 from ironic.tests.unit.db import base as db_base
 from ironic.tests.unit.db import utils as db_utils
 from ironic.tests.unit.drivers.modules.drac import utils as test_utils
@@ -35,7 +34,7 @@ class DracPeriodicTaskTestCase(db_base.DbTestCase):
 
     def setUp(self):
         super(DracPeriodicTaskTestCase, self).setUp()
-        mgr_utils.mock_the_extension_manager(driver='fake_drac')
+        self.config(enabled_drivers=['fake_drac'])
         self.node = obj_utils.create_test_node(self.context,
                                                driver='fake_drac',
                                                driver_info=INFO_DICT)

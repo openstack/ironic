@@ -23,7 +23,6 @@ from ironic.common import states
 from ironic.conductor import task_manager
 from ironic.drivers import base as drivers_base
 from ironic.drivers.modules.network import neutron
-from ironic.tests.unit.conductor import mgr_utils
 from ironic.tests.unit.db import base as db_base
 from ironic.tests.unit.objects import utils
 
@@ -46,7 +45,6 @@ class NeutronInterfaceTestCase(db_base.DbTestCase):
                             'default_%s_interface' % iface: name}
             self.config(**config_kwarg)
 
-        mgr_utils.mock_the_extension_manager()
         self.interface = neutron.NeutronNetwork()
         self.node = utils.create_test_node(self.context,
                                            driver='fake-hardware',

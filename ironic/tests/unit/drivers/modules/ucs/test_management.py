@@ -24,7 +24,6 @@ from ironic.common import exception
 from ironic.conductor import task_manager
 from ironic.drivers.modules.ucs import helper as ucs_helper
 from ironic.drivers.modules.ucs import management as ucs_mgmt
-from ironic.tests.unit.conductor import mgr_utils
 from ironic.tests.unit.db import base as db_base
 from ironic.tests.unit.db import utils as db_utils
 from ironic.tests.unit.objects import utils as obj_utils
@@ -38,7 +37,7 @@ class UcsManagementTestCase(db_base.DbTestCase):
 
     def setUp(self):
         super(UcsManagementTestCase, self).setUp()
-        mgr_utils.mock_the_extension_manager(driver='fake_ucs')
+        self.config(enabled_drivers=['fake_ucs'])
         self.node = obj_utils.create_test_node(self.context,
                                                driver='fake_ucs',
                                                driver_info=INFO_DICT)

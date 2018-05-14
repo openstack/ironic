@@ -26,7 +26,6 @@ from ironic.common import exception
 from ironic.common import keystone
 from ironic.conductor import task_manager
 from ironic.tests import base
-from ironic.tests.unit.conductor import mgr_utils
 from ironic.tests.unit.db import base as db_base
 from ironic.tests.unit.objects import utils as object_utils
 
@@ -120,8 +119,6 @@ class TestCinderUtils(db_base.DbTestCase):
 
     def setUp(self):
         super(TestCinderUtils, self).setUp()
-        mgr_utils.mock_the_extension_manager(driver='fake')
-        self.config(enabled_drivers=['fake'])
         self.node = object_utils.create_test_node(
             self.context,
             instance_uuid=uuidutils.generate_uuid())
@@ -197,8 +194,6 @@ class TestCinderActions(db_base.DbTestCase):
 
     def setUp(self):
         super(TestCinderActions, self).setUp()
-        mgr_utils.mock_the_extension_manager(driver='fake')
-        self.config(enabled_drivers=['fake'])
         self.node = object_utils.create_test_node(
             self.context,
             instance_uuid=uuidutils.generate_uuid())

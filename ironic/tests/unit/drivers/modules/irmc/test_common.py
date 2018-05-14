@@ -22,7 +22,6 @@ from oslo_config import cfg
 from ironic.common import exception
 from ironic.conductor import task_manager
 from ironic.drivers.modules.irmc import common as irmc_common
-from ironic.tests.unit.conductor import mgr_utils
 from ironic.tests.unit.db import base as db_base
 from ironic.tests.unit.db import utils as db_utils
 from ironic.tests.unit.drivers import third_party_driver_mock_specs \
@@ -143,7 +142,7 @@ class IRMCCommonMethodsTestCase(db_base.DbTestCase):
 
     def setUp(self):
         super(IRMCCommonMethodsTestCase, self).setUp()
-        mgr_utils.mock_the_extension_manager(driver="fake_irmc")
+        self.config(enabled_drivers=['fake_irmc'])
         self.info = db_utils.get_test_irmc_info()
         self.node = obj_utils.create_test_node(
             self.context,

@@ -22,7 +22,6 @@ from ironic.common import neutron as neutron_common
 from ironic.common import states
 from ironic.conductor import task_manager
 from ironic.drivers.modules.network import common as driver_common
-from ironic.tests.unit.conductor import mgr_utils
 from ironic.tests.unit.db import base as db_base
 from ironic.tests.unit.db import utils as db_utils
 from ironic.tests.unit.objects import utils as object_utils
@@ -32,7 +31,6 @@ class TestNetwork(db_base.DbTestCase):
 
     def setUp(self):
         super(TestNetwork, self).setUp()
-        mgr_utils.mock_the_extension_manager(driver='fake')
         self.node = object_utils.create_test_node(self.context)
 
     def test_get_node_vif_ids_no_ports_no_portgroups(self):
