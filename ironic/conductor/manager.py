@@ -1190,7 +1190,8 @@ class ConductorManager(base_manager.BaseConductorManager):
             try:
                 task.driver.bios.cache_bios_settings(task)
             except Exception as e:
-                msg = (_('Caching of bios settings failed on node %(node)s.')
+                msg = (_('Caching of bios settings failed on node %(node)s. '
+                         'Continuing with node cleaning.')
                        % {'node': node.uuid})
                 LOG.exception(msg)
 
