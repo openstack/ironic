@@ -23,7 +23,7 @@ class RequestContextTestCase(tests_base.TestCase):
         self.context_dict = {
             'auth_token': 'auth_token1',
             "user": "user1",
-            "tenant": "tenant1",
+            "project_id": "project1",
             "project_name": "somename",
             'is_admin': True,
             'read_only': True,
