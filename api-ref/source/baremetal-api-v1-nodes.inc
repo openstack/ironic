@@ -95,7 +95,24 @@ Request
 
 .. rest_parameters:: parameters.yaml
 
-   - driver: r_driver_name
+   - boot_interface: req_boot_interface
+   - console_interface: req_console_interface
+   - deploy_interface: req_deploy_interface
+   - driver_info: req_driver_info
+   - driver: req_driver_name
+   - extra: req_extra
+   - inspect_interface: req_inspect_interface
+   - management_interface: req_management_interface
+   - name: node_name
+   - network_interface: req_network_interface
+   - power_interface: req_power_interface
+   - properties: req_properties
+   - raid_interface: req_raid_interface
+   - rescue_interface: req_rescue_interface
+   - resource_class: req_resource_class_create
+   - storage_interface: req_storage_interface
+   - uuid: req_uuid
+   - vendor_interface: req_vendor_interface
 
 **Example Node creation request with a dynamic driver:**
 
