@@ -29,3 +29,5 @@ fi
 
 # NOTE(vdrok): Do not setup multicell during upgrade
 export CELLSV2_SETUP="singleconductor"
+# NOTE(vsaienko) Do not run ironic-api under wsgi after upgrade
+export IRONIC_USE_MOD_WSGI=False

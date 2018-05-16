@@ -73,7 +73,6 @@
           export DEVSTACK_LOCAL_CONFIG+=$'\n'"SWIFT_TEMPURL_KEY=secretkey"
           export DEVSTACK_LOCAL_CONFIG+=$'\n'"IRONIC_ENABLED_DRIVERS=fake"
           export DEVSTACK_LOCAL_CONFIG+=$'\n'"IRONIC_AUTOMATED_CLEAN_ENABLED=False"
-          export DEVSTACK_LOCAL_CONFIG+=$'\n'"IRONIC_USE_MOD_WSGI=True"
 
           # NOTE(pas-ha) ansible deploy is new in Queens,
           # and this job does not exist in Newton/Ocata.
