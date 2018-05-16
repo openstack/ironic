@@ -28,6 +28,7 @@ opts = [
                       'in the Stein release. Please update the driver_info '
                       'field to use "xclarity_username" instead')),
     cfg.StrOpt('password',
+               secret=True,
                help=_('Password for XClarity Controller username. '
                       'Configuration here is deprecated and will be removed '
                       'in the Stein release. Please update the driver_info '
