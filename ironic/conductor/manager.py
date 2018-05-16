@@ -206,7 +206,8 @@ class ConductorManager(base_manager.BaseConductorManager):
             # result in the new resource class exposed on the node as available
             # for consumption, and nova may try to schedule on this node again.
             if ('resource_class' in delta and task.node.resource_class
-                    and task.node.provision_state not in allowed_update_states):
+                    and task.node.provision_state
+                    not in allowed_update_states):
                 raise exception.InvalidState(
                     action % {'node': node_obj.uuid,
                               'allowed': ', '.join(allowed_update_states),
@@ -1962,7 +1963,8 @@ class ConductorManager(base_manager.BaseConductorManager):
             # INSPECTIONFAIL -> MANAGEABLE
             # DEPLOYFAIL -> DELETING
             if (not node.maintenance
-                    and node.provision_state not in states.DELETE_ALLOWED_STATES):
+                    and node.provision_state
+                    not in states.DELETE_ALLOWED_STATES):
                 msg = (_('Can not delete node "%(node)s" while it is in '
                          'provision state "%(state)s". Valid provision states '
                          'to perform deletion are: "%(valid_states)s", '

@@ -42,7 +42,7 @@ class OneViewInspect(inspector.Inspector):
 
     @METRICS.timer('OneViewInspect.validate')
     def validate(self, task):
-        """Checks required info on 'driver_info' and validates node with OneView
+        """Checks required info on 'driver_info' and validates node for OneView
 
         Validates whether the 'driver_info' property of the supplied
         task's node contains the required info such as server_hardware_uri,

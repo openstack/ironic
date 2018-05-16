@@ -490,7 +490,8 @@ class BaseConductorManager(object):
                 with task_manager.acquire(context, node_uuid,
                                           purpose='node state check') as task:
                     if (task.node.maintenance
-                            or task.node.provision_state not in provision_state):
+                            or task.node.provision_state
+                            not in provision_state):
                         continue
 
                     target_state = (None if not keep_target_state else

@@ -146,7 +146,7 @@ class Portgroup(base.IronicObject, object_base.VersionedObjectDictCompat):
     # @object_base.remotable_classmethod
     @classmethod
     def get_by_id(cls, context, portgroup_id):
-        """Find a portgroup based on its integer ID and return a Portgroup object.
+        """Find a portgroup by its integer ID and return a Portgroup object.
 
         :param cls: the :class:`Portgroup`
         :param context: Security context
@@ -165,7 +165,7 @@ class Portgroup(base.IronicObject, object_base.VersionedObjectDictCompat):
     # @object_base.remotable_classmethod
     @classmethod
     def get_by_uuid(cls, context, uuid):
-        """Find a portgroup based on UUID and return a :class:`Portgroup` object.
+        """Find a portgroup by UUID and return a :class:`Portgroup` object.
 
         :param cls: the :class:`Portgroup`
         :param context: Security context
@@ -184,7 +184,7 @@ class Portgroup(base.IronicObject, object_base.VersionedObjectDictCompat):
     # @object_base.remotable_classmethod
     @classmethod
     def get_by_address(cls, context, address):
-        """Find a portgroup based on address and return a :class:`Portgroup` object.
+        """Find portgroup by address and return a :class:`Portgroup` object.
 
         :param cls: the :class:`Portgroup`
         :param context: Security context
@@ -203,7 +203,7 @@ class Portgroup(base.IronicObject, object_base.VersionedObjectDictCompat):
     # @object_base.remotable_classmethod
     @classmethod
     def get_by_name(cls, context, name):
-        """Find a portgroup based on name and return a :class:`Portgroup` object.
+        """Find portgroup based on name and return a :class:`Portgroup` object.
 
         :param cls: the :class:`Portgroup`
         :param context: Security context
