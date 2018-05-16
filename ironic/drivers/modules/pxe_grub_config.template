@@ -12,6 +12,11 @@ menuentry "boot_partition"  {
     initrdefi {{ pxe_options.ari_path }}
 }
 
+menuentry "boot_ramdisk"  {
+    linuxefi {{ pxe_options.deployment_aki_path }} root=/dev/ram0 text {{ pxe_options.pxe_append_params|default("", true) }} {{ pxe_options.ramdisk_opts|default('', true) }}
+    initrdefi {{ pxe_options.deployment_ari_path }}
+}
+
 menuentry "boot_whole_disk"  {
     linuxefi chain.c32 mbr:{{ DISK_IDENTIFIER }}
 }

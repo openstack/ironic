@@ -35,6 +35,7 @@ from ironic.common import states
 from ironic.conductor import utils as manager_utils
 from ironic.conf import CONF
 from ironic.drivers import base
+from ironic.drivers.modules import agent
 from ironic.drivers.modules import boot_mode_utils
 from ironic.drivers.modules import deploy_utils
 from ironic.drivers.modules import image_cache
@@ -211,6 +212,18 @@ def _build_instance_pxe_options(task, pxe_info):
     pxe_opts.setdefault('aki_path', 'no_kernel')
     pxe_opts.setdefault('ari_path', 'no_ramdisk')
 
+    # TODO(TheJulia): We should only do this if we have a ramdisk interface.
+    # We should check the capabilities of the class, but that becomes a bit
+    # of a pain for unit testing. We can sort this out in Stein since we will
+    # need to revisit a major portion of this file to effetively begin the
+    # ipxe boot interface promotion.
+    if isinstance(task.driver.deploy, PXERamdiskDeploy):
+        i_info = task.node.instance_info
+        try:
+            pxe_opts['ramdisk_opts'] = i_info['ramdisk_kernel_arguments']
+        except KeyError:
+            pass
+
     return pxe_opts
 
 
@@ -266,7 +279,8 @@ def _build_pxe_config_options(task, pxe_info, service=False):
 
 
 def _build_service_pxe_config(task, instance_image_info,
-                              root_uuid_or_disk_id):
+                              root_uuid_or_disk_id,
+                              ramdisk_boot=False):
     node = task.node
     pxe_config_path = pxe_utils.get_pxe_config_file_path(node.uuid)
     # NOTE(pas-ha) if it is takeover of ACTIVE node or node performing
@@ -283,7 +297,7 @@ def _build_service_pxe_config(task, instance_image_info,
         pxe_config_path, root_uuid_or_disk_id,
         boot_mode_utils.get_boot_mode_for_deploy(node),
         iwdi, deploy_utils.is_trusted_boot_requested(node),
-        deploy_utils.is_iscsi_boot(task))
+        deploy_utils.is_iscsi_boot(task), ramdisk_boot)
 
 
 def _get_volume_pxe_options(task):
@@ -417,7 +431,7 @@ def _clean_up_pxe_env(task, images_info):
 
 class PXEBoot(base.BootInterface):
 
-    capabilities = ['iscsi_volume_boot']
+    capabilities = ['iscsi_volume_boot', 'ramdisk_boot']
 
     def __init__(self):
         if CONF.pxe.ipxe_enabled:
@@ -597,7 +611,6 @@ class PXEBoot(base.BootInterface):
         node = task.node
         boot_option = deploy_utils.get_boot_option(node)
         boot_device = None
-
         if deploy_utils.is_iscsi_boot(task):
             dhcp_opts = pxe_utils.dhcp_options_for_instance(task)
             provider = dhcp_factory.DHCPFactory()
@@ -616,6 +629,22 @@ class PXEBoot(base.BootInterface):
                 pxe_config_path, None,
                 boot_mode_utils.get_boot_mode_for_deploy(node), False,
                 iscsi_boot=True)
+            boot_device = boot_devices.PXE
+
+        elif boot_option == "ramdisk":
+            instance_image_info = _get_instance_image_info(
+                task.node, task.context)
+            _cache_ramdisk_kernel(task.context, task.node,
+                                  instance_image_info)
+            dhcp_opts = pxe_utils.dhcp_options_for_instance(task)
+            provider = dhcp_factory.DHCPFactory()
+            provider.update_dhcp(task, dhcp_opts)
+            pxe_config_path = pxe_utils.get_pxe_config_file_path(
+                task.node.uuid)
+            deploy_utils.switch_pxe_config(
+                pxe_config_path, None,
+                boot_mode_utils.get_boot_mode_for_deploy(node), False,
+                iscsi_boot=False, ramdisk_boot=True)
             boot_device = boot_devices.PXE
 
         elif boot_option != "local":
@@ -702,3 +731,79 @@ class PXEBoot(base.BootInterface):
             parameters
         """
         _parse_driver_info(task.node, mode='rescue')
+
+
+class PXERamdiskDeploy(agent.AgentDeploy, agent.AgentDeployMixin,
+                       base.DeployInterface):
+
+    def validate(self, task):
+        # Initially this is likely okay, we can iterate on this and
+        # enable other drivers that have similar functionality that
+        # be invoked in a ramdisk friendly way.
+        if not isinstance(task.driver.boot, PXEBoot):
+            raise exception.InvalidParameterValue(
+                err=('Invalid configuration: The ramdisk deploy '
+                     'interface requires the pxe boot interface.'))
+        # Eventually we should be doing this.
+        if 'ramdisk_boot' not in task.driver.boot.capabilities:
+            raise exception.InvalidParameterValue(
+                err=('Invalid configuration: The boot interface '
+                     'must have the `ramdisk_boot` capability. '
+                     'Not found.'))
+        task.driver.boot.validate(task)
+
+        # Validate node capabilities
+        deploy_utils.validate_capabilities(task.node)
+
+    def deploy(self, task):
+        if 'configdrive' in task.node.instance_info:
+            LOG.warning('A configuration drive is present with '
+                        'in the deployment request of node %(node)s. '
+                        'The configuration drive will be ignored for '
+                        'this deployment.',
+                        {'node': task.node})
+        manager_utils.node_power_action(task, states.POWER_OFF)
+        # Tenant neworks must enable connectivity to the boot
+        # location, as reboot() can otherwise be very problematic.
+        # IDEA(TheJulia): Maybe a "trusted environment" mode flag
+        # that we otherwise fail validation on for drivers that
+        # require explicit security postures.
+        task.driver.network.configure_tenant_networks(task)
+
+        # calling boot.prepare_instance will also set the node
+        # to PXE boot, and update PXE templates accordingly
+        task.driver.boot.prepare_instance(task)
+
+        # Power-on the instance, with PXE prepared, we're done.
+        manager_utils.node_power_action(task, states.POWER_ON)
+        LOG.info('Deployment setup for node %s done', task.node.uuid)
+        # TODO(TheJulia): Update this in stein to support deploy steps.
+        return states.DEPLOYDONE
+
+    def prepare(self, task):
+        node = task.node
+        # Log a warning if the boot_option is wrong... and
+        # otherwise reset it.
+        if deploy_utils.get_boot_option(node) != 'ramdisk':
+            LOG.warning('Incorrect "boot_option" set for node %(node)s '
+                        'and will be overridden to "ramdisk" as the '
+                        'to match the deploy interface.',
+                        {'node': node.uuid})
+            i_info = task.node.instance_info
+            i_info.update({'capabilities': {'boot_option': 'ramdisk'}})
+            node.instance_info = i_info
+            node.save()
+
+        deploy_utils.populate_storage_driver_internal_info(task)
+        if node.provision_state == states.DEPLOYING:
+            # Ask the network interface to validate itself so
+            # we can ensure we are able to proceed.
+            task.driver.network.validate(task)
+
+            manager_utils.node_power_action(task, states.POWER_OFF)
+            # NOTE(TheJulia): If this was any other interface, we would
+            # unconfigure tenant networks, add provisioning networks, etc.
+            task.driver.storage.attach_volumes(task)
+        if node.provision_state in (states.ACTIVE, states.UNRESCUING):
+            # In the event of takeover or unrescue.
+            task.driver.boot.prepare_instance(task)
