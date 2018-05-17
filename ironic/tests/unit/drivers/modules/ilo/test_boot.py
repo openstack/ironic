@@ -38,7 +38,6 @@ from ironic.drivers.modules.ilo import management as ilo_management
 from ironic.drivers.modules import pxe
 from ironic.drivers.modules.storage import noop as noop_storage
 from ironic.drivers import utils as driver_utils
-from ironic.tests.unit.conductor import mgr_utils
 from ironic.tests.unit.db import base as db_base
 from ironic.tests.unit.db import utils as db_utils
 from ironic.tests.unit.objects import utils as obj_utils
@@ -56,7 +55,7 @@ class IloBootCommonMethodsTestCase(db_base.DbTestCase):
 
     def setUp(self):
         super(IloBootCommonMethodsTestCase, self).setUp()
-        mgr_utils.mock_the_extension_manager(driver="iscsi_ilo")
+        self.config(enabled_drivers=['iscsi_ilo'])
         self.node = obj_utils.create_test_node(
             self.context, driver='iscsi_ilo', driver_info=INFO_DICT)
 
@@ -76,7 +75,7 @@ class IloBootPrivateMethodsTestCase(db_base.DbTestCase):
 
     def setUp(self):
         super(IloBootPrivateMethodsTestCase, self).setUp()
-        mgr_utils.mock_the_extension_manager(driver="iscsi_ilo")
+        self.config(enabled_drivers=['iscsi_ilo'])
         self.node = obj_utils.create_test_node(
             self.context, driver='iscsi_ilo', driver_info=INFO_DICT)
 
@@ -1130,7 +1129,7 @@ class IloPXEBootTestCase(db_base.DbTestCase):
 
     def setUp(self):
         super(IloPXEBootTestCase, self).setUp()
-        mgr_utils.mock_the_extension_manager(driver="pxe_ilo")
+        self.config(enabled_drivers=['pxe_ilo'])
         self.node = obj_utils.create_test_node(
             self.context, driver='pxe_ilo', driver_info=INFO_DICT)
 

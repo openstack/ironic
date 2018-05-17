@@ -42,6 +42,7 @@ from ironic.common import config as ironic_config
 from ironic.common import context as ironic_context
 from ironic.common import driver_factory
 from ironic.common import hash_ring
+from ironic.common import utils as common_utils
 from ironic.conf import CONF
 from ironic.drivers import base as drivers_base
 from ironic.objects import base as objects_base
@@ -154,6 +155,12 @@ class TestCase(oslo_test_base.BaseTestCase):
     def config(self, **kw):
         """Override config options for a test."""
         self.cfg_fixture.config(**kw)
+
+    def config_temp_dir(self, option, group=None):
+        """Override a config option with a temporary directory."""
+        temp_dir = tempfile.mkdtemp()
+        self.addCleanup(lambda: common_utils.rmtree_without_raise(temp_dir))
+        self.config(**{option: temp_dir, 'group': group})
 
     def set_defaults(self, **kw):
         """Set default values of config options."""

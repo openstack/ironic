@@ -27,7 +27,6 @@ from ironic.conductor import task_manager
 from ironic.conductor import utils as manager_utils
 from ironic.drivers.modules.ilo import common as ilo_common
 from ironic.drivers.modules.ilo import power as ilo_power
-from ironic.tests.unit.conductor import mgr_utils
 from ironic.tests.unit.db import base as db_base
 from ironic.tests.unit.db import utils as db_utils
 from ironic.tests.unit.objects import utils as obj_utils
@@ -44,7 +43,7 @@ class IloPowerInternalMethodsTestCase(db_base.DbTestCase):
     def setUp(self):
         super(IloPowerInternalMethodsTestCase, self).setUp()
         driver_info = INFO_DICT
-        mgr_utils.mock_the_extension_manager(driver="fake_ilo")
+        self.config(enabled_drivers=['fake_ilo'])
         self.node = db_utils.create_test_node(
             driver='fake_ilo',
             driver_info=driver_info,
@@ -169,7 +168,7 @@ class IloPowerTestCase(db_base.DbTestCase):
     def setUp(self):
         super(IloPowerTestCase, self).setUp()
         driver_info = INFO_DICT
-        mgr_utils.mock_the_extension_manager(driver="fake_ilo")
+        self.config(enabled_drivers=['fake_ilo'])
         self.node = obj_utils.create_test_node(self.context,
                                                driver='fake_ilo',
                                                driver_info=driver_info)

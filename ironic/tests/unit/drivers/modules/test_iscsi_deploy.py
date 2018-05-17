@@ -40,7 +40,6 @@ from ironic.drivers.modules.network import flat as flat_network
 from ironic.drivers.modules import pxe
 from ironic.drivers.modules.storage import noop as noop_storage
 from ironic.drivers import utils as driver_utils
-from ironic.tests.unit.conductor import mgr_utils
 from ironic.tests.unit.db import base as db_base
 from ironic.tests.unit.db import utils as db_utils
 from ironic.tests.unit.objects import utils as obj_utils
@@ -62,7 +61,7 @@ class IscsiDeployPrivateMethodsTestCase(db_base.DbTestCase):
             'driver_info': DRV_INFO_DICT,
             'driver_internal_info': DRV_INTERNAL_INFO_DICT,
         }
-        mgr_utils.mock_the_extension_manager(driver="fake_pxe")
+        self.config(enabled_drivers=['fake_pxe'])
         self.node = obj_utils.create_test_node(self.context, **n)
 
     def test__save_disk_layout(self):
@@ -104,7 +103,7 @@ class IscsiDeployMethodsTestCase(db_base.DbTestCase):
             'driver_info': DRV_INFO_DICT,
             'driver_internal_info': DRV_INTERNAL_INFO_DICT,
         }
-        mgr_utils.mock_the_extension_manager(driver="fake_pxe")
+        self.config(enabled_drivers=['fake_pxe'])
         self.node = obj_utils.create_test_node(self.context, **n)
 
     @mock.patch.object(disk_utils, 'get_image_mb', autospec=True)
@@ -546,7 +545,7 @@ class ISCSIDeployTestCase(db_base.DbTestCase):
 
     def setUp(self):
         super(ISCSIDeployTestCase, self).setUp()
-        mgr_utils.mock_the_extension_manager(driver="fake_pxe")
+        self.config(enabled_drivers=['fake_pxe'])
         self.driver = driver_factory.get_driver("fake_pxe")
         # NOTE(TheJulia): We explicitly set the noop storage interface as the
         # default below for deployment tests in order to raise any change
@@ -933,7 +932,7 @@ class CleanUpFullFlowTestCase(db_base.DbTestCase):
         self.config(image_cache_size=0, group='pxe')
 
         # Configure node
-        mgr_utils.mock_the_extension_manager(driver="fake_pxe")
+        self.config(enabled_drivers=['fake_pxe'])
         instance_info = INST_INFO_DICT
         instance_info['deploy_key'] = 'fake-56789'
         self.node = obj_utils.create_test_node(

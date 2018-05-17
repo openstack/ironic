@@ -411,8 +411,9 @@ def _clean_up_pxe_env(task, images_info):
 
 class PXEBoot(base.BootInterface):
 
+    capabilities = ['iscsi_volume_boot']
+
     def __init__(self):
-        self.capabilities = ['iscsi_volume_boot']
         if CONF.pxe.ipxe_enabled:
             pxe_utils.create_ipxe_boot_script()
 

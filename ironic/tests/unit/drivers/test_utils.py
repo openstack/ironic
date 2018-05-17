@@ -29,7 +29,6 @@ from ironic.drivers.modules import agent_client
 from ironic.drivers.modules import fake
 from ironic.drivers import utils as driver_utils
 from ironic.tests import base as tests_base
-from ironic.tests.unit.conductor import mgr_utils
 from ironic.tests.unit.db import base as db_base
 from ironic.tests.unit.objects import utils as obj_utils
 
@@ -38,7 +37,6 @@ class UtilsTestCase(db_base.DbTestCase):
 
     def setUp(self):
         super(UtilsTestCase, self).setUp()
-        mgr_utils.mock_the_extension_manager()
         self.driver = driver_factory.get_driver("fake")
         self.node = obj_utils.create_test_node(self.context)
 

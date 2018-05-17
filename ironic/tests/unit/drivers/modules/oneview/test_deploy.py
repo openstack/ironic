@@ -25,7 +25,6 @@ from ironic.drivers.modules import iscsi_deploy
 from ironic.drivers.modules.oneview import common
 from ironic.drivers.modules.oneview import deploy
 from ironic.drivers.modules.oneview import deploy_utils
-from ironic.tests.unit.conductor import mgr_utils
 from ironic.tests.unit.db import base as db_base
 from ironic.tests.unit.db import utils as db_utils
 from ironic.tests.unit.objects import utils as obj_utils
@@ -92,7 +91,7 @@ class OneViewPeriodicTasks(db_base.DbTestCase):
         self.config(username='user', group='oneview')
         self.config(password='password', group='oneview')
 
-        mgr_utils.mock_the_extension_manager(driver='fake_oneview')
+        self.config(enabled_drivers=['fake_oneview'])
         self.driver = driver_factory.get_driver('fake_oneview')
         self.deploy = OneViewDriverDeploy()
         self.os_primary = mock.MagicMock(spec=METHODS)
@@ -247,7 +246,7 @@ class OneViewIscsiDeployTestCase(db_base.DbTestCase):
         self.config(username='user', group='oneview')
         self.config(password='password', group='oneview')
 
-        mgr_utils.mock_the_extension_manager(driver='iscsi_pxe_oneview')
+        self.config(enabled_drivers=['iscsi_pxe_oneview'])
         self.driver = driver_factory.get_driver('iscsi_pxe_oneview')
 
         OV_DRV_INFO_DICT = db_utils.get_test_oneview_driver_info()
@@ -374,7 +373,7 @@ class OneViewAgentDeployTestCase(db_base.DbTestCase):
         self.config(username='user', group='oneview')
         self.config(password='password', group='oneview')
 
-        mgr_utils.mock_the_extension_manager(driver='agent_pxe_oneview')
+        self.config(enabled_drivers=['agent_pxe_oneview'])
         self.driver = driver_factory.get_driver('agent_pxe_oneview')
 
         OV_DRV_INFO_DICT = db_utils.get_test_oneview_driver_info()

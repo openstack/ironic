@@ -39,7 +39,6 @@ from ironic.drivers.modules import agent_base_vendor
 from ironic.drivers.modules import deploy_utils
 from ironic.drivers.modules import pxe
 from ironic.drivers.modules.storage import noop as noop_storage
-from ironic.tests.unit.conductor import mgr_utils
 from ironic.tests.unit.db import base as db_base
 from ironic.tests.unit.db import utils as db_utils
 from ironic.tests.unit.objects import utils as obj_utils
@@ -51,6 +50,7 @@ DRV_INFO_DICT = db_utils.get_test_pxe_driver_info()
 DRV_INTERNAL_INFO_DICT = db_utils.get_test_pxe_driver_internal_info()
 
 
+@mock.patch.object(pxe.PXEBoot, '__init__', lambda self: None)
 class PXEPrivateMethodsTestCase(db_base.DbTestCase):
 
     def setUp(self):
@@ -61,7 +61,8 @@ class PXEPrivateMethodsTestCase(db_base.DbTestCase):
             'driver_info': DRV_INFO_DICT,
             'driver_internal_info': DRV_INTERNAL_INFO_DICT,
         }
-        mgr_utils.mock_the_extension_manager(driver="fake_pxe")
+        self.config(enabled_drivers=['fake_pxe'])
+        self.config_temp_dir('http_root', group='deploy')
         self.node = obj_utils.create_test_node(self.context, **n)
 
     def _test__parse_driver_info_missing_kernel(self, mode='deploy'):
@@ -711,7 +712,7 @@ class PXEPrivateMethodsTestCase(db_base.DbTestCase):
 class CleanUpPxeEnvTestCase(db_base.DbTestCase):
     def setUp(self):
         super(CleanUpPxeEnvTestCase, self).setUp()
-        mgr_utils.mock_the_extension_manager(driver="fake_pxe")
+        self.config(enabled_drivers=['fake_pxe'])
         instance_info = INST_INFO_DICT
         instance_info['deploy_key'] = 'fake-56789'
         self.node = obj_utils.create_test_node(
@@ -732,6 +733,7 @@ class CleanUpPxeEnvTestCase(db_base.DbTestCase):
         mock_cache.return_value.clean_up.assert_called_once_with()
 
 
+@mock.patch.object(pxe.PXEBoot, '__init__', lambda self: None)
 class PXEBootTestCase(db_base.DbTestCase):
 
     driver = 'fake_pxe'
@@ -739,11 +741,10 @@ class PXEBootTestCase(db_base.DbTestCase):
     def setUp(self):
         super(PXEBootTestCase, self).setUp()
         self.context.auth_token = 'fake'
-        self.temp_dir = tempfile.mkdtemp()
-        self.config(tftp_root=self.temp_dir, group='pxe')
-        self.temp_dir = tempfile.mkdtemp()
-        self.config(images_path=self.temp_dir, group='pxe')
-        mgr_utils.mock_the_extension_manager(driver=self.driver)
+        self.config_temp_dir('tftp_root', group='pxe')
+        self.config_temp_dir('images_path', group='pxe')
+        self.config_temp_dir('http_root', group='deploy')
+        self.config(enabled_drivers=[self.driver])
         instance_info = INST_INFO_DICT
         instance_info['deploy_key'] = 'fake-56789'
         self.node = obj_utils.create_test_node(
