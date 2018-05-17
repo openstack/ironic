@@ -22,7 +22,6 @@ from ironic.common import exception
 from ironic.common import neutron
 from ironic.conductor import task_manager
 from ironic.tests import base
-from ironic.tests.unit.conductor import mgr_utils
 from ironic.tests.unit.db import base as db_base
 from ironic.tests.unit.objects import utils as object_utils
 
@@ -177,8 +176,6 @@ class TestNeutronNetworkActions(db_base.DbTestCase):
 
     def setUp(self):
         super(TestNeutronNetworkActions, self).setUp()
-        mgr_utils.mock_the_extension_manager(driver='fake')
-        self.config(enabled_drivers=['fake'])
         self.node = object_utils.create_test_node(self.context)
         self.ports = [object_utils.create_test_port(
             self.context, node_id=self.node.id,

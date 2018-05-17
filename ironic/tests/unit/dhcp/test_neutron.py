@@ -23,7 +23,6 @@ from ironic.common import exception
 from ironic.common import pxe_utils
 from ironic.conductor import task_manager
 from ironic.dhcp import neutron
-from ironic.tests.unit.conductor import mgr_utils
 from ironic.tests.unit.db import base as db_base
 from ironic.tests.unit.objects import utils as object_utils
 
@@ -32,11 +31,9 @@ class TestNeutron(db_base.DbTestCase):
 
     def setUp(self):
         super(TestNeutron, self).setUp()
-        mgr_utils.mock_the_extension_manager(driver='fake')
         self.config(
             cleaning_network='00000000-0000-0000-0000-000000000000',
             group='neutron')
-        self.config(enabled_drivers=['fake'])
         self.config(dhcp_provider='neutron',
                     group='dhcp')
         self.node = object_utils.create_test_node(self.context)

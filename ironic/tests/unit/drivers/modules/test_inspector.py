@@ -20,7 +20,6 @@ from ironic.common import exception
 from ironic.common import states
 from ironic.conductor import task_manager
 from ironic.drivers.modules import inspector
-from ironic.tests.unit.conductor import mgr_utils
 from ironic.tests.unit.db import base as db_base
 from ironic.tests.unit.objects import utils as obj_utils
 
@@ -28,7 +27,7 @@ from ironic.tests.unit.objects import utils as obj_utils
 class DisabledTestCase(db_base.DbTestCase):
     def _do_mock(self):
         # NOTE(dtantsur): fake driver always has inspection, using another one
-        mgr_utils.mock_the_extension_manager("pxe_ipmitool")
+        self.config(enabled_drivers=['pxe_ipmitool'])
         self.driver = driver_factory.get_driver("pxe_ipmitool")
 
     def test_disabled(self):
@@ -114,7 +113,7 @@ class BaseTestCase(db_base.DbTestCase):
     def setUp(self):
         super(BaseTestCase, self).setUp()
         self.config(enabled=True, group='inspector')
-        mgr_utils.mock_the_extension_manager("fake_inspector")
+        self.config(enabled_drivers=['fake_inspector'])
         self.driver = driver_factory.get_driver("fake_inspector")
         self.node = obj_utils.get_test_node(self.context)
         self.task = mock.MagicMock(spec=task_manager.TaskManager)

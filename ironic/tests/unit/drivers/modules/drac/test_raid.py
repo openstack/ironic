@@ -24,7 +24,6 @@ from ironic.conductor import task_manager
 from ironic.drivers.modules.drac import common as drac_common
 from ironic.drivers.modules.drac import job as drac_job
 from ironic.drivers.modules.drac import raid as drac_raid
-from ironic.tests.unit.conductor import mgr_utils
 from ironic.tests.unit.db import base as db_base
 from ironic.tests.unit.db import utils as db_utils
 from ironic.tests.unit.drivers.modules.drac import utils as test_utils
@@ -39,7 +38,7 @@ class DracQueryRaidConfigurationTestCase(db_base.DbTestCase):
 
     def setUp(self):
         super(DracQueryRaidConfigurationTestCase, self).setUp()
-        mgr_utils.mock_the_extension_manager(driver='fake_drac')
+        self.config(enabled_drivers=['fake_drac'])
         self.node = obj_utils.create_test_node(self.context,
                                                driver='fake_drac',
                                                driver_info=INFO_DICT)
@@ -150,7 +149,7 @@ class DracManageVirtualDisksTestCase(db_base.DbTestCase):
 
     def setUp(self):
         super(DracManageVirtualDisksTestCase, self).setUp()
-        mgr_utils.mock_the_extension_manager(driver='fake_drac')
+        self.config(enabled_drivers=['fake_drac'])
         self.node = obj_utils.create_test_node(self.context,
                                                driver='fake_drac',
                                                driver_info=INFO_DICT)
@@ -275,7 +274,7 @@ class DracCreateRaidConfigurationHelpersTestCase(db_base.DbTestCase):
 
     def setUp(self):
         super(DracCreateRaidConfigurationHelpersTestCase, self).setUp()
-        mgr_utils.mock_the_extension_manager(driver='fake_drac')
+        self.config(enabled_drivers=['fake_drac'])
         self.node = obj_utils.create_test_node(self.context,
                                                driver='fake_drac',
                                                driver_info=INFO_DICT)
@@ -528,7 +527,7 @@ class DracRaidInterfaceTestCase(db_base.DbTestCase):
 
     def setUp(self):
         super(DracRaidInterfaceTestCase, self).setUp()
-        mgr_utils.mock_the_extension_manager(driver='fake_drac')
+        self.config(enabled_drivers=['fake_drac'])
         self.node = obj_utils.create_test_node(self.context,
                                                driver='fake_drac',
                                                driver_info=INFO_DICT)

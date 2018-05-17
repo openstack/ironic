@@ -48,7 +48,6 @@ from ironic.drivers.modules import deploy_utils
 from ironic.drivers.modules import ipmitool as ipmi
 from ironic.drivers import utils as driver_utils
 from ironic.tests import base
-from ironic.tests.unit.conductor import mgr_utils
 from ironic.tests.unit.db import base as db_base
 from ironic.tests.unit.db import utils as db_utils
 from ironic.tests.unit.objects import utils as obj_utils
@@ -343,7 +342,7 @@ class IPMIToolPrivateMethodTestCase(db_base.DbTestCase):
     def setUp(self):
         super(IPMIToolPrivateMethodTestCase, self).setUp()
         self.driver_name = "fake_ipmitool"
-        mgr_utils.mock_the_extension_manager(driver=self.driver_name)
+        self.config(enabled_drivers=[self.driver_name])
         self.driver = driver_factory.get_driver(self.driver_name)
         self.node = obj_utils.create_test_node(
             self.context,
@@ -1340,7 +1339,7 @@ class IPMIToolDriverTestCase(db_base.DbTestCase):
         else:
             self.driver_name = "fake_ipmitool_socat"
 
-        mgr_utils.mock_the_extension_manager(driver=self.driver_name)
+        self.config(enabled_drivers=[self.driver_name])
         self.driver = driver_factory.get_driver(self.driver_name)
 
         self.node = obj_utils.create_test_node(self.context,

@@ -12,7 +12,6 @@
 
 from ironic.conductor import task_manager
 from ironic.drivers.modules.network import noop
-from ironic.tests.unit.conductor import mgr_utils
 from ironic.tests.unit.db import base as db_base
 from ironic.tests.unit.objects import utils
 
@@ -22,7 +21,6 @@ class NoopInterfaceTestCase(db_base.DbTestCase):
     def setUp(self):
         super(NoopInterfaceTestCase, self).setUp()
         self.config(enabled_drivers=['fake'])
-        mgr_utils.mock_the_extension_manager()
         self.interface = noop.NoopNetwork()
         self.node = utils.create_test_node(self.context,
                                            network_interface='noop')

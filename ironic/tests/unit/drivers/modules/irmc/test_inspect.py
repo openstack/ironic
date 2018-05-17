@@ -27,7 +27,6 @@ from ironic.drivers.modules.irmc import common as irmc_common
 from ironic.drivers.modules.irmc import inspect as irmc_inspect
 from ironic.drivers.modules.irmc import power as irmc_power
 from ironic import objects
-from ironic.tests.unit.conductor import mgr_utils
 from ironic.tests.unit.db import base as db_base
 from ironic.tests.unit.db import utils as db_utils
 from ironic.tests.unit.drivers import (
@@ -43,7 +42,7 @@ class IRMCInspectInternalMethodsTestCase(db_base.DbTestCase):
     def setUp(self):
         super(IRMCInspectInternalMethodsTestCase, self).setUp()
         driver_info = INFO_DICT
-        mgr_utils.mock_the_extension_manager(driver='fake_irmc')
+        self.config(enabled_drivers=['fake_irmc'])
         self.node = obj_utils.create_test_node(self.context,
                                                driver='fake_irmc',
                                                driver_info=driver_info)
@@ -140,7 +139,7 @@ class IRMCInspectTestCase(db_base.DbTestCase):
     def setUp(self):
         super(IRMCInspectTestCase, self).setUp()
         driver_info = INFO_DICT
-        mgr_utils.mock_the_extension_manager(driver="fake_irmc")
+        self.config(enabled_drivers=['fake_irmc'])
         self.node = obj_utils.create_test_node(self.context,
                                                driver='fake_irmc',
                                                driver_info=driver_info)

@@ -24,7 +24,6 @@ from ironic.drivers import base as drivers_base
 from ironic import objects
 from ironic.objects import fields as obj_fields
 from ironic.tests import base as tests_base
-from ironic.tests.unit.conductor import mgr_utils
 from ironic.tests.unit.db import base as db_base
 from ironic.tests.unit.db import utils as db_utils
 from ironic.tests.unit.objects import utils as obj_utils
@@ -53,9 +52,12 @@ class TestPowerNoTimeout(drivers_base.PowerInterface):
 
 class NodeSetBootDeviceTestCase(db_base.DbTestCase):
 
-    def test_node_set_boot_device_non_existent_device(self):
-        mgr_utils.mock_the_extension_manager(driver="fake_ipmitool")
+    def setUp(self):
+        super(NodeSetBootDeviceTestCase, self).setUp()
+        self.config(enabled_drivers=['fake_ipmitool'])
         self.driver = driver_factory.get_driver("fake_ipmitool")
+
+    def test_node_set_boot_device_non_existent_device(self):
         ipmi_info = db_utils.get_test_ipmi_info()
         node = obj_utils.create_test_node(self.context,
                                           uuid=uuidutils.generate_uuid(),
@@ -68,8 +70,6 @@ class NodeSetBootDeviceTestCase(db_base.DbTestCase):
                           device='fake')
 
     def test_node_set_boot_device_valid(self):
-        mgr_utils.mock_the_extension_manager(driver="fake_ipmitool")
-        self.driver = driver_factory.get_driver("fake_ipmitool")
         ipmi_info = db_utils.get_test_ipmi_info()
         node = obj_utils.create_test_node(self.context,
                                           uuid=uuidutils.generate_uuid(),
@@ -86,8 +86,6 @@ class NodeSetBootDeviceTestCase(db_base.DbTestCase):
                                              persistent=False)
 
     def test_node_set_boot_device_adopting(self):
-        mgr_utils.mock_the_extension_manager(driver="fake_ipmitool")
-        self.driver = driver_factory.get_driver("fake_ipmitool")
         ipmi_info = db_utils.get_test_ipmi_info()
         node = obj_utils.create_test_node(self.context,
                                           uuid=uuidutils.generate_uuid(),
@@ -106,7 +104,6 @@ class NodeSetBootDeviceTestCase(db_base.DbTestCase):
 class NodePowerActionTestCase(db_base.DbTestCase):
     def setUp(self):
         super(NodePowerActionTestCase, self).setUp()
-        mgr_utils.mock_the_extension_manager()
         self.driver = driver_factory.get_driver("fake")
 
     def test_node_power_action_power_on(self):
@@ -753,7 +750,7 @@ class NodeSoftPowerActionTestCase(db_base.DbTestCase):
 
     def setUp(self):
         super(NodeSoftPowerActionTestCase, self).setUp()
-        mgr_utils.mock_the_extension_manager(driver="fake_soft_power")
+        self.config(enabled_drivers=['fake_soft_power'])
         self.driver = driver_factory.get_driver("fake_soft_power")
 
     def test_node_power_action_power_soft_reboot(self):
@@ -908,7 +905,6 @@ class CleanupAfterTimeoutTestCase(tests_base.TestCase):
 class NodeCleaningStepsTestCase(db_base.DbTestCase):
     def setUp(self):
         super(NodeCleaningStepsTestCase, self).setUp()
-        mgr_utils.mock_the_extension_manager()
 
         self.power_update = {
             'step': 'update_firmware', 'priority': 10, 'interface': 'power'}
