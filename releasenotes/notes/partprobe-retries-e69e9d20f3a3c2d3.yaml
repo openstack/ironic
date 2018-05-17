@@ -1,0 +1,14 @@
+---
+upgrade:
+  - |
+    Adds a new configuration option ``[disk_utils]partprobe_attempts`` which
+    defaults to 10. This is the maximum number of times to try to read a
+    partition (if creating a config drive) via a ``partprobe`` command. Set
+    it to 1 if you want the previous behavior, where no retries were done.
+fixes:
+  - |
+    Adds a new configuration option ``[disk_utils]partprobe_attempts`` which
+    defaults to 10. This is the maximum number of times to try to read a
+    partition (if creating a config drive) via a ``partprobe`` command.
+    Previously, no retries were done which caused failures. This addresses
+    `bug 1756760 <https://storyboard.openstack.org/#!/story/1756760>`_.
