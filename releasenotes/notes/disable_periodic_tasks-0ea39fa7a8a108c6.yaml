@@ -1,0 +1,49 @@
+---
+features:
+  - |
+    Setting these configuration options to 0 will disable the periodic tasks:
+
+    * [conductor]sync_power_state_interval: sync power states for the nodes
+    * [conductor]check_provision_state_interval:
+
+      * check deployments and time out if the deployment takes too long
+      * check the status of cleaning a node and time out if it takes too long
+      * check the status of inspecting a node and time out if it takes too long
+      * check for and handle nodes that are taken over by new conductors (if an
+        old conductor disappeared)
+
+    * [conductor]send_sensor_data_interval: send sensor data to ceilometer
+    * [conductor]sync_local_state_interval: refresh a conductor's copy of the
+      consistent hash ring. If any mappings have changed, determines which,
+      if any, nodes need to be "taken over". The ensuing actions could include
+      preparing a PXE environment, updating the DHCP server, and so on.
+    * [oneview]periodic_check_interval:
+
+      * check for nodes taken over by OneView users
+      * check for nodes freed by OneView users
+
+fixes:
+  - |
+    Fixes an issue where setting these configuration options to 0 caused a
+    ValueError exception to be raised. You can now set them to 0 to disable the
+    associated periodic tasks. (For more information, see `story 2002059
+    <https://storyboard.openstack.org/#!/story/2002059>`_.):
+
+    * [conductor]sync_power_state_interval: sync power states for the nodes
+    * [conductor]check_provision_state_interval:
+
+      * check deployments and time out if the deployment takes too long
+      * check the status of cleaning a node and time out if it takes too long
+      * check the status of inspecting a node and time out if it takes too long
+      * check for and handle nodes that are taken over by new conductors (if an
+        old conductor disappeared)
+
+    * [conductor]send_sensor_data_interval: send sensor data to ceilometer
+    * [conductor]sync_local_state_interval: refresh a conductor's copy of the
+      consistent hash ring. If any mappings have changed, determines which,
+      if any, nodes need to be "taken over". The ensuing actions could include
+      preparing a PXE environment, updating the DHCP server, and so on.
+    * [oneview]periodic_check_interval:
+
+      * check for nodes taken over by OneView users
+      * check for nodes freed by OneView users

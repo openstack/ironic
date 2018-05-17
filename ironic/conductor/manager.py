@@ -1494,7 +1494,8 @@ class ConductorManager(base_manager.BaseConductorManager):
                     state=node.provision_state)
 
     @METRICS.timer('ConductorManager._sync_power_states')
-    @periodics.periodic(spacing=CONF.conductor.sync_power_state_interval)
+    @periodics.periodic(spacing=CONF.conductor.sync_power_state_interval,
+                        enabled=CONF.conductor.sync_power_state_interval > 0)
     def _sync_power_states(self, context):
         """Periodic task to sync power states for the nodes.
 
@@ -1564,7 +1565,10 @@ class ConductorManager(base_manager.BaseConductorManager):
                 eventlet.sleep(0)
 
     @METRICS.timer('ConductorManager._check_deploy_timeouts')
-    @periodics.periodic(spacing=CONF.conductor.check_provision_state_interval)
+    @periodics.periodic(
+        spacing=CONF.conductor.check_provision_state_interval,
+        enabled=CONF.conductor.check_provision_state_interval > 0
+        and CONF.conductor.deploy_callback_timeout != 0)
     def _check_deploy_timeouts(self, context):
         """Periodically checks whether a deploy RPC call has timed out.
 
@@ -1572,6 +1576,8 @@ class ConductorManager(base_manager.BaseConductorManager):
 
         :param context: request context.
         """
+        # FIXME(rloo): If the value is < 0, it will be enabled. That doesn't
+        #              seem right.
         callback_timeout = CONF.conductor.deploy_callback_timeout
         if not callback_timeout:
             return
@@ -1587,7 +1593,9 @@ class ConductorManager(base_manager.BaseConductorManager):
                                sort_key, callback_method, err_handler)
 
     @METRICS.timer('ConductorManager._check_orphan_nodes')
-    @periodics.periodic(spacing=CONF.conductor.check_provision_state_interval)
+    @periodics.periodic(
+        spacing=CONF.conductor.check_provision_state_interval,
+        enabled=CONF.conductor.check_provision_state_interval > 0)
     def _check_orphan_nodes(self, context):
         """Periodically checks the status of nodes that were taken over.
 
@@ -1774,7 +1782,10 @@ class ConductorManager(base_manager.BaseConductorManager):
                 task, 'console_restore', fields.NotificationStatus.ERROR)
 
     @METRICS.timer('ConductorManager._check_cleanwait_timeouts')
-    @periodics.periodic(spacing=CONF.conductor.check_provision_state_interval)
+    @periodics.periodic(
+        spacing=CONF.conductor.check_provision_state_interval,
+        enabled=CONF.conductor.check_provision_state_interval > 0
+        and CONF.conductor.clean_callback_timeout != 0)
     def _check_cleanwait_timeouts(self, context):
         """Periodically checks for nodes being cleaned.
 
@@ -1783,6 +1794,8 @@ class ConductorManager(base_manager.BaseConductorManager):
 
         :param context: request context.
         """
+        # FIXME(rloo): If the value is < 0, it will be enabled. That doesn't
+        #              seem right.
         callback_timeout = CONF.conductor.clean_callback_timeout
         if not callback_timeout:
             return
@@ -1818,7 +1831,8 @@ class ConductorManager(base_manager.BaseConductorManager):
                                )
 
     @METRICS.timer('ConductorManager._sync_local_state')
-    @periodics.periodic(spacing=CONF.conductor.sync_local_state_interval)
+    @periodics.periodic(spacing=CONF.conductor.sync_local_state_interval,
+                        enabled=CONF.conductor.sync_local_state_interval > 0)
     def _sync_local_state(self, context):
         """Perform any actions necessary to sync local state.
 
@@ -2574,7 +2588,8 @@ class ConductorManager(base_manager.BaseConductorManager):
                 eventlet.sleep(0)
 
     @METRICS.timer('ConductorManager._send_sensor_data')
-    @periodics.periodic(spacing=CONF.conductor.send_sensor_data_interval)
+    @periodics.periodic(spacing=CONF.conductor.send_sensor_data_interval,
+                        enabled=CONF.conductor.send_sensor_data)
     def _send_sensor_data(self, context):
         """Periodically sends sensor data to Ceilometer."""
 
@@ -2806,13 +2821,18 @@ class ConductorManager(base_manager.BaseConductorManager):
                     state=task.node.provision_state)
 
     @METRICS.timer('ConductorManager._check_inspect_wait_timeouts')
-    @periodics.periodic(spacing=CONF.conductor.check_provision_state_interval)
+    @periodics.periodic(
+        spacing=CONF.conductor.check_provision_state_interval,
+        enabled=CONF.conductor.check_provision_state_interval > 0
+        and CONF.conductor.inspect_wait_timeout != 0)
     def _check_inspect_wait_timeouts(self, context):
         """Periodically checks inspect_wait_timeout and fails upon reaching it.
 
         :param: context: request context
 
         """
+        # FIXME(rloo): If the value is < 0, it will be enabled. That doesn't
+        #              seem right.
         callback_timeout = CONF.conductor.inspect_wait_timeout
         if not callback_timeout:
             return
