@@ -32,6 +32,7 @@ from ironic.conductor import utils as manager_utils
 from ironic.conf import CONF
 from ironic.drivers import base
 from ironic.drivers.modules import agent_base_vendor
+from ironic.drivers.modules import boot_mode_utils
 from ironic.drivers.modules import deploy_utils
 
 
@@ -215,7 +216,7 @@ class AgentDeployMixin(agent_base_vendor.AgentDeployMixin):
             for label in PARTITION_IMAGE_LABELS:
                 image_info[label] = node.instance_info.get(label)
             boot_option = deploy_utils.get_boot_option(node)
-            boot_mode = deploy_utils.get_boot_mode_for_deploy(node)
+            boot_mode = boot_mode_utils.get_boot_mode_for_deploy(node)
             if boot_mode:
                 image_info['deploy_boot_mode'] = boot_mode
             else:
@@ -310,7 +311,7 @@ class AgentDeployMixin(agent_base_vendor.AgentDeployMixin):
 
         efi_sys_uuid = None
         if not iwdi:
-            if deploy_utils.get_boot_mode_for_deploy(node) == 'uefi':
+            if boot_mode_utils.get_boot_mode_for_deploy(node) == 'uefi':
                 efi_sys_uuid = (
                     self._get_uuid_from_result(task,
                                                'efi_system_partition_uuid'))

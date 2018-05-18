@@ -36,6 +36,7 @@ from ironic.common import swift
 from ironic.common import utils
 from ironic.conductor import utils as manager_utils
 from ironic.conf import CONF
+from ironic.drivers.modules import boot_mode_utils
 from ironic.drivers.modules import deploy_utils
 
 ilo_client = importutils.try_import('proliantutils.ilo.client')
@@ -483,7 +484,7 @@ def update_boot_mode(task):
     """
 
     node = task.node
-    boot_mode = deploy_utils.get_boot_mode_for_deploy(node)
+    boot_mode = boot_mode_utils.get_boot_mode_for_deploy(node)
 
     # No boot mode found. Check if default_boot_mode is defined
     if not boot_mode and (CONF.ilo.default_boot_mode in ['bios', 'uefi']):

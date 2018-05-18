@@ -35,6 +35,7 @@ from ironic.common import states
 from ironic.common import swift
 from ironic.conductor import utils as manager_utils
 from ironic.drivers import base
+from ironic.drivers.modules import boot_mode_utils
 from ironic.drivers.modules import deploy_utils
 from ironic.drivers.modules.ilo import common as ilo_common
 from ironic.drivers.modules import pxe
@@ -184,7 +185,7 @@ def _get_boot_iso(task, root_uuid):
     # Option 3 - Create boot_iso from kernel/ramdisk, upload to Swift
     # or web server and provide its name.
     deploy_iso_uuid = deploy_info['ilo_deploy_iso']
-    boot_mode = deploy_utils.get_boot_mode_for_deploy(task.node)
+    boot_mode = boot_mode_utils.get_boot_mode_for_deploy(task.node)
     boot_iso_object_name = _get_boot_iso_object_name(task.node)
     kernel_params = CONF.pxe.pxe_append_params
     with tempfile.NamedTemporaryFile(dir=CONF.tempdir) as fileobj:
@@ -368,7 +369,7 @@ def prepare_node_for_deploy(task):
         # Need to update boot mode that will be used during deploy, if one is
         # not provided.
         # Since secure boot was disabled, we are in 'uefi' boot mode.
-        if deploy_utils.get_boot_mode_for_deploy(task.node) is None:
+        if boot_mode_utils.get_boot_mode_for_deploy(task.node) is None:
             instance_info = task.node.instance_info
             instance_info['deploy_boot_mode'] = 'uefi'
             task.node.instance_info = instance_info
@@ -503,7 +504,7 @@ class IloVirtualMediaBoot(base.BootInterface):
 
         ilo_common.cleanup_vmedia_boot(task)
 
-        boot_mode = deploy_utils.get_boot_mode_for_deploy(task.node)
+        boot_mode = boot_mode_utils.get_boot_mode_for_deploy(task.node)
 
         if deploy_utils.is_iscsi_boot(task):
             # It will set iSCSI info onto iLO
@@ -671,7 +672,7 @@ class IloPXEBoot(pxe.PXEBoot):
         # Need to enable secure boot, if being requested
         ilo_common.update_secure_boot_mode(task, True)
 
-        boot_mode = deploy_utils.get_boot_mode_for_deploy(task.node)
+        boot_mode = boot_mode_utils.get_boot_mode_for_deploy(task.node)
 
         if deploy_utils.is_iscsi_boot(task) and boot_mode == 'uefi':
             # Need to set 'ilo_uefi_iscsi_boot' param for clean up

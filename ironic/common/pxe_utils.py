@@ -25,6 +25,7 @@ from ironic.common import dhcp_factory
 from ironic.common import exception
 from ironic.common.i18n import _
 from ironic.common import utils
+from ironic.drivers.modules import boot_mode_utils
 from ironic.drivers.modules import deploy_utils
 
 CONF = cfg.CONF
@@ -227,7 +228,7 @@ def create_pxe_config(task, pxe_options, template=None):
     _ensure_config_dirs_exist(task.node.uuid)
 
     pxe_config_file_path = get_pxe_config_file_path(task.node.uuid)
-    is_uefi_boot_mode = (deploy_utils.get_boot_mode_for_deploy(task.node)
+    is_uefi_boot_mode = (boot_mode_utils.get_boot_mode_for_deploy(task.node)
                          == 'uefi')
 
     # grub bootloader panics with '{}' around any of its tags in its
@@ -287,7 +288,7 @@ def clean_up_pxe_config(task):
     """
     LOG.debug("Cleaning up PXE config for node %s", task.node.uuid)
 
-    is_uefi_boot_mode = (deploy_utils.get_boot_mode_for_deploy(task.node)
+    is_uefi_boot_mode = (boot_mode_utils.get_boot_mode_for_deploy(task.node)
                          == 'uefi')
     if is_uefi_boot_mode and not CONF.pxe.ipxe_enabled:
         api = dhcp_factory.DHCPFactory().provider

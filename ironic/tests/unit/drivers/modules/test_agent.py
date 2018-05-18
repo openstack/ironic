@@ -29,6 +29,7 @@ from ironic.drivers import base as drivers_base
 from ironic.drivers.modules import agent
 from ironic.drivers.modules import agent_base_vendor
 from ironic.drivers.modules import agent_client
+from ironic.drivers.modules import boot_mode_utils
 from ironic.drivers.modules import deploy_utils
 from ironic.drivers.modules import fake
 from ironic.drivers.modules.network import flat as flat_network
@@ -1034,7 +1035,8 @@ class TestAgentDeploy(db_base.DbTestCase):
             self.assertEqual(states.NOSTATE, task.node.target_provision_state)
 
     @mock.patch.object(agent.LOG, 'warning', spec_set=True, autospec=True)
-    @mock.patch.object(deploy_utils, 'get_boot_mode_for_deploy', autospec=True)
+    @mock.patch.object(boot_mode_utils, 'get_boot_mode_for_deploy',
+                       autospec=True)
     @mock.patch.object(agent.AgentDeployMixin, '_get_uuid_from_result',
                        autospec=True)
     @mock.patch.object(manager_utils, 'node_power_action', autospec=True)
@@ -1119,7 +1121,8 @@ class TestAgentDeploy(db_base.DbTestCase):
             self.assertEqual(states.ACTIVE, task.node.target_provision_state)
 
     @mock.patch.object(agent.LOG, 'warning', spec_set=True, autospec=True)
-    @mock.patch.object(deploy_utils, 'get_boot_mode_for_deploy', autospec=True)
+    @mock.patch.object(boot_mode_utils, 'get_boot_mode_for_deploy',
+                       autospec=True)
     @mock.patch.object(agent.AgentDeployMixin, '_get_uuid_from_result',
                        autospec=True)
     @mock.patch.object(manager_utils, 'node_power_action', autospec=True)

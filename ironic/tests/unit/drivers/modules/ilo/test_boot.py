@@ -31,6 +31,7 @@ from ironic.common import states
 from ironic.common import swift
 from ironic.conductor import task_manager
 from ironic.conductor import utils as manager_utils
+from ironic.drivers.modules import boot_mode_utils
 from ironic.drivers.modules import deploy_utils
 from ironic.drivers.modules.ilo import boot as ilo_boot
 from ironic.drivers.modules.ilo import common as ilo_common
@@ -141,7 +142,7 @@ class IloBootPrivateMethodsTestCase(db_base.DbTestCase):
             boot_iso_expected = u'glance://uui\u0111'
             self.assertEqual(boot_iso_expected, boot_iso_actual)
 
-    @mock.patch.object(deploy_utils, 'get_boot_mode_for_deploy',
+    @mock.patch.object(boot_mode_utils, 'get_boot_mode_for_deploy',
                        spec_set=True, autospec=True)
     @mock.patch.object(ilo_boot.LOG, 'error', spec_set=True, autospec=True)
     @mock.patch.object(images, 'get_image_properties', spec_set=True,
@@ -1056,7 +1057,7 @@ class IloVirtualMediaBootTestCase(db_base.DbTestCase):
                        autospec=True)
     @mock.patch.object(deploy_utils, 'is_iscsi_boot',
                        spec_set=True, autospec=True)
-    @mock.patch.object(deploy_utils, 'get_boot_mode_for_deploy',
+    @mock.patch.object(boot_mode_utils, 'get_boot_mode_for_deploy',
                        spec_set=True, autospec=True)
     @mock.patch.object(ilo_management.IloManagement, 'set_iscsi_boot_target',
                        spec_set=True, autospec=True)
@@ -1093,7 +1094,7 @@ class IloVirtualMediaBootTestCase(db_base.DbTestCase):
                        autospec=True)
     @mock.patch.object(deploy_utils, 'is_iscsi_boot',
                        spec_set=True, autospec=True)
-    @mock.patch.object(deploy_utils, 'get_boot_mode_for_deploy',
+    @mock.patch.object(boot_mode_utils, 'get_boot_mode_for_deploy',
                        spec_set=True, autospec=True)
     def test_prepare_instance_boot_from_volume_bios(
             self, get_boot_mode_mock,
@@ -1226,7 +1227,7 @@ class IloPXEBootTestCase(db_base.DbTestCase):
 
     @mock.patch.object(deploy_utils, 'is_iscsi_boot',
                        spec_set=True, autospec=True)
-    @mock.patch.object(deploy_utils, 'get_boot_mode_for_deploy',
+    @mock.patch.object(boot_mode_utils, 'get_boot_mode_for_deploy',
                        spec_set=True, autospec=True)
     @mock.patch.object(ilo_common, 'update_secure_boot_mode', spec_set=True,
                        autospec=True)
@@ -1252,7 +1253,7 @@ class IloPXEBootTestCase(db_base.DbTestCase):
 
     @mock.patch.object(deploy_utils, 'is_iscsi_boot',
                        spec_set=True, autospec=True)
-    @mock.patch.object(deploy_utils, 'get_boot_mode_for_deploy',
+    @mock.patch.object(boot_mode_utils, 'get_boot_mode_for_deploy',
                        spec_set=True, autospec=True)
     @mock.patch.object(ilo_common, 'update_secure_boot_mode', spec_set=True,
                        autospec=True)
@@ -1278,7 +1279,7 @@ class IloPXEBootTestCase(db_base.DbTestCase):
 
     @mock.patch.object(deploy_utils, 'is_iscsi_boot',
                        spec_set=True, autospec=True)
-    @mock.patch.object(deploy_utils, 'get_boot_mode_for_deploy',
+    @mock.patch.object(boot_mode_utils, 'get_boot_mode_for_deploy',
                        spec_set=True, autospec=True)
     @mock.patch.object(ilo_management.IloManagement, 'set_iscsi_boot_target',
                        spec_set=True, autospec=True)

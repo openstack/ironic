@@ -24,7 +24,6 @@ from ironic_lib import disk_utils
 from ironic_lib import metrics_utils
 from oslo_concurrency import processutils
 from oslo_log import log as logging
-from oslo_serialization import jsonutils
 from oslo_utils import excutils
 from oslo_utils import netutils
 from oslo_utils import strutils
@@ -40,15 +39,16 @@ from ironic.common import utils
 from ironic.conductor import utils as manager_utils
 from ironic.conf import CONF
 from ironic.drivers.modules import agent_client
+from ironic.drivers.modules import boot_mode_utils
 from ironic.drivers.modules import image_cache
 from ironic.drivers import utils as driver_utils
 from ironic import objects
-
 
 # TODO(Faizan): Move this logic to common/utils.py and deprecate
 # rootwrap_config.
 # This is required to set the default value of ironic_lib option
 # only if rootwrap_config does not contain the default value.
+
 if CONF.rootwrap_config != '/etc/ironic/rootwrap.conf':
     root_helper = 'sudo ironic-rootwrap %s' % CONF.rootwrap_config
     CONF.set_default('root_helper', root_helper, 'ironic_lib')
@@ -560,43 +560,6 @@ def get_single_nic_with_vif_port_id(task):
             return port.address
 
 
-def parse_instance_info_capabilities(node):
-    """Parse the instance_info capabilities.
-
-    One way of having these capabilities set is via Nova, where the
-    capabilities are defined in the Flavor extra_spec and passed to
-    Ironic by the Nova Ironic driver.
-
-    NOTE: Although our API fully supports JSON fields, to maintain the
-    backward compatibility with Juno the Nova Ironic driver is sending
-    it as a string.
-
-    :param node: a single Node.
-    :raises: InvalidParameterValue if the capabilities string is not a
-             dictionary or is malformed.
-    :returns: A dictionary with the capabilities if found, otherwise an
-              empty dictionary.
-    """
-
-    def parse_error():
-        error_msg = (_('Error parsing capabilities from Node %s instance_info '
-                       'field. A dictionary or a "jsonified" dictionary is '
-                       'expected.') % node.uuid)
-        raise exception.InvalidParameterValue(error_msg)
-
-    capabilities = node.instance_info.get('capabilities', {})
-    if isinstance(capabilities, six.string_types):
-        try:
-            capabilities = jsonutils.loads(capabilities)
-        except (ValueError, TypeError):
-            parse_error()
-
-    if not isinstance(capabilities, dict):
-        parse_error()
-
-    return capabilities
-
-
 def agent_get_clean_steps(task, interface=None, override_priorities=None):
     """Get the list of cached clean steps from the agent.
 
@@ -713,42 +676,6 @@ def try_set_boot_device(task, device, persistent=True):
                             "the boot device manually.", task.node.uuid)
 
 
-def is_secure_boot_requested(node):
-    """Returns True if secure_boot is requested for deploy.
-
-    This method checks node property for secure_boot and returns True
-    if it is requested.
-
-    :param node: a single Node.
-    :raises: InvalidParameterValue if the capabilities string is not a
-             dictionary or is malformed.
-    :returns: True if secure_boot is requested.
-    """
-
-    capabilities = parse_instance_info_capabilities(node)
-    sec_boot = capabilities.get('secure_boot', 'false').lower()
-
-    return sec_boot == 'true'
-
-
-def is_trusted_boot_requested(node):
-    """Returns True if trusted_boot is requested for deploy.
-
-    This method checks instance property for trusted_boot and returns True
-    if it is requested.
-
-    :param node: a single Node.
-    :raises: InvalidParameterValue if the capabilities string is not a
-             dictionary or is malformed.
-    :returns: True if trusted_boot is requested.
-    """
-
-    capabilities = parse_instance_info_capabilities(node)
-    trusted_boot = capabilities.get('trusted_boot', 'false').lower()
-
-    return trusted_boot == 'true'
-
-
 def get_disk_label(node):
     """Return the disk label requested for deploy, if any.
 
@@ -757,91 +684,8 @@ def get_disk_label(node):
              dictionary or is malformed.
     :returns: the disk label or None if no disk label was specified.
     """
-    capabilities = parse_instance_info_capabilities(node)
+    capabilities = boot_mode_utils.parse_instance_info_capabilities(node)
     return capabilities.get('disk_label')
-
-
-def get_boot_mode_for_deploy(node):
-    """Returns the boot mode that would be used for deploy.
-
-    This method returns boot mode to be used for deploy.
-    It returns 'uefi' if 'secure_boot' is set to 'true' or returns 'bios' if
-    'trusted_boot' is set to 'true' in 'instance_info/capabilities' of node.
-    Otherwise it returns value of 'boot_mode' in 'properties/capabilities'
-    of node if set. If that is not set, it returns boot mode in
-    'driver_internal_info/deploy_boot_mode' for the node.
-    If that is not set, it returns boot mode in
-    'instance_info/deploy_boot_mode' for the node.
-    It would return None if boot mode is present neither in 'capabilities' of
-    node 'properties' nor in node's 'driver_internal_info' nor in node's
-    'instance_info' (which could also be None).
-
-    :param node: an ironic node object.
-    :returns: 'bios', 'uefi' or None
-    :raises: InvalidParameterValue, if the node boot mode disagrees with
-        the boot mode set to node properties/capabilities
-    """
-
-    if is_secure_boot_requested(node):
-        LOG.debug('Deploy boot mode is uefi for %s.', node.uuid)
-        return 'uefi'
-
-    if is_trusted_boot_requested(node):
-        # TODO(lintan) Trusted boot also supports uefi, but at the moment,
-        # it should only boot with bios.
-        LOG.debug('Deploy boot mode is bios for %s.', node.uuid)
-        return 'bios'
-
-    # NOTE(etingof):
-    # The search for a boot mode should be in the priority order:
-    #
-    # 1) instance_info
-    # 2) properties.capabilities
-    # 3) driver_internal_info
-    #
-    # Because:
-    #
-    # (1) can be deleted before teardown
-    # (3) will never be touched if node properties/capabilities
-    #     are still present.
-    # (2) becomes operational default as the last resort
-
-    instance_info = node.instance_info
-
-    cap_boot_mode = driver_utils.get_node_capability(node, 'boot_mode')
-
-    boot_mode = instance_info.get('deploy_boot_mode')
-    if boot_mode is None:
-        boot_mode = cap_boot_mode
-        if cap_boot_mode is None:
-            driver_internal_info = node.driver_internal_info
-            boot_mode = driver_internal_info.get('deploy_boot_mode')
-
-    if not boot_mode:
-        return
-
-    boot_mode = boot_mode.lower()
-
-    # NOTE(etingof):
-    # Make sure that the ultimate boot_mode agrees with the one set to
-    # node properties/capabilities. This locks down node to use only
-    # boot mode specified in properties/capabilities.
-    # TODO(etingof): this logic will have to go away when we switch to traits
-    if cap_boot_mode:
-        cap_boot_mode = cap_boot_mode.lower()
-        if cap_boot_mode != boot_mode:
-            msg = (_("Node %(uuid)s boot mode %(boot_mode)s violates "
-                     "node properties/capabilities %(caps)s") %
-                   {'uuid': node.uuid,
-                    'boot_mode': boot_mode,
-                    'caps': cap_boot_mode})
-            LOG.error(msg)
-            raise exception.InvalidParameterValue(msg)
-
-    LOG.debug('Deploy boot mode is %(boot_mode)s for %(node)s.',
-              {'boot_mode': boot_mode, 'node': node.uuid})
-
-    return boot_mode
 
 
 def get_pxe_boot_file(node):
@@ -916,7 +760,7 @@ def validate_capabilities(node):
                  'value': value, 'valid_values': ', '.join(valid_values)})
 
         # Validate capability_name in node's instance_info/['capabilities']
-        capabilities = parse_instance_info_capabilities(node)
+        capabilities = boot_mode_utils.parse_instance_info_capabilities(node)
         value = capabilities.get(capability_name)
 
         if value and (value not in valid_values):
@@ -988,7 +832,7 @@ def get_boot_option(node):
     :returns: A string representing the boot option type. Defaults to
         'netboot'.
     """
-    capabilities = parse_instance_info_capabilities(node)
+    capabilities = boot_mode_utils.parse_instance_info_capabilities(node)
     return capabilities.get('boot_option', get_default_boot_option()).lower()
 
 
@@ -1385,3 +1229,12 @@ def is_iscsi_boot(task):
         except exception.VolumeTargetNotFound:
             return False
     return False
+
+
+# NOTE(etingof): retain original location of these funcs for compatibility
+is_secure_boot_requested = boot_mode_utils.is_secure_boot_requested
+is_trusted_boot_requested = boot_mode_utils.is_trusted_boot_requested
+get_boot_mode_for_deploy = boot_mode_utils.get_boot_mode_for_deploy
+parse_instance_info_capabilities = (
+    boot_mode_utils.parse_instance_info_capabilities
+)

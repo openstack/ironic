@@ -53,8 +53,8 @@ from ironic.conductor import task_manager
 from ironic.conductor import utils as cond_utils
 from ironic.conf import CONF
 from ironic.drivers import base
+from ironic.drivers.modules import boot_mode_utils
 from ironic.drivers.modules import console_utils
-from ironic.drivers.modules import deploy_utils
 from ironic.drivers import utils as driver_utils
 
 
@@ -944,7 +944,7 @@ class IPMIManagement(base.ManagementInterface):
         # uefi mode, this will work with newer and older versions of the
         # ipmitool utility. Also see:
         # https://bugs.launchpad.net/ironic/+bug/1611306
-        boot_mode = deploy_utils.get_boot_mode_for_deploy(task.node)
+        boot_mode = boot_mode_utils.get_boot_mode_for_deploy(task.node)
         if persistent and boot_mode == 'uefi':
             raw_cmd = ('0x00 0x08 0x05 0xe0 %s 0x00 0x00 0x00' %
                        BOOT_DEVICE_HEXA_MAP[device])

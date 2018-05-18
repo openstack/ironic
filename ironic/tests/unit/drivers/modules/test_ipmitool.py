@@ -42,8 +42,8 @@ from ironic.common import states
 from ironic.common import utils
 from ironic.conductor import task_manager
 import ironic.conf
+from ironic.drivers.modules import boot_mode_utils
 from ironic.drivers.modules import console_utils
-from ironic.drivers.modules import deploy_utils
 from ironic.drivers.modules import ipmitool as ipmi
 from ironic.drivers import utils as driver_utils
 from ironic.tests import base
@@ -1974,7 +1974,7 @@ class IPMIToolDriverTestCase(Base):
                               self.management.set_boot_device,
                               task, boot_devices.PXE)
 
-    @mock.patch.object(deploy_utils, 'get_boot_mode_for_deploy')
+    @mock.patch.object(boot_mode_utils, 'get_boot_mode_for_deploy')
     @mock.patch.object(ipmi, '_exec_ipmitool', autospec=True)
     def test_management_interface_set_boot_device_uefi(self, mock_exec,
                                                        mock_boot_mode):
@@ -1990,7 +1990,7 @@ class IPMIToolDriverTestCase(Base):
         ]
         mock_exec.assert_has_calls(mock_calls)
 
-    @mock.patch.object(deploy_utils, 'get_boot_mode_for_deploy')
+    @mock.patch.object(boot_mode_utils, 'get_boot_mode_for_deploy')
     @mock.patch.object(ipmi, '_exec_ipmitool', autospec=True)
     def test_management_interface_set_boot_device_uefi_and_persistent(
             self, mock_exec, mock_boot_mode):

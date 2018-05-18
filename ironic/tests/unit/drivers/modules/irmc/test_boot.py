@@ -34,6 +34,7 @@ from ironic.common import images
 from ironic.common import states
 from ironic.conductor import task_manager
 from ironic.conductor import utils as manager_utils
+from ironic.drivers.modules import boot_mode_utils
 from ironic.drivers.modules import deploy_utils
 from ironic.drivers.modules.irmc import boot as irmc_boot
 from ironic.drivers.modules.irmc import common as irmc_common
@@ -391,8 +392,8 @@ class IRMCDeployPrivateMethodsTestCase(db_base.DbTestCase):
         self.assertEqual(expected, actual)
 
     @mock.patch.object(images, 'create_boot_iso', spec_set=True, autospec=True)
-    @mock.patch.object(deploy_utils, 'get_boot_mode_for_deploy', spec_set=True,
-                       autospec=True)
+    @mock.patch.object(boot_mode_utils, 'get_boot_mode_for_deploy',
+                       spec_set=True, autospec=True)
     @mock.patch.object(images, 'get_image_properties', spec_set=True,
                        autospec=True)
     @mock.patch.object(images, 'fetch', spec_set=True,
@@ -419,8 +420,8 @@ class IRMCDeployPrivateMethodsTestCase(db_base.DbTestCase):
                              task.node.driver_internal_info['irmc_boot_iso'])
 
     @mock.patch.object(images, 'create_boot_iso', spec_set=True, autospec=True)
-    @mock.patch.object(deploy_utils, 'get_boot_mode_for_deploy', spec_set=True,
-                       autospec=True)
+    @mock.patch.object(boot_mode_utils, 'get_boot_mode_for_deploy',
+                       spec_set=True, autospec=True)
     @mock.patch.object(images, 'get_image_properties', spec_set=True,
                        autospec=True)
     @mock.patch.object(images, 'fetch', spec_set=True,
@@ -460,8 +461,8 @@ class IRMCDeployPrivateMethodsTestCase(db_base.DbTestCase):
                              task.node.driver_internal_info['irmc_boot_iso'])
 
     @mock.patch.object(images, 'create_boot_iso', spec_set=True, autospec=True)
-    @mock.patch.object(deploy_utils, 'get_boot_mode_for_deploy', spec_set=True,
-                       autospec=True)
+    @mock.patch.object(boot_mode_utils, 'get_boot_mode_for_deploy',
+                       spec_set=True, autospec=True)
     @mock.patch.object(images, 'get_image_properties', spec_set=True,
                        autospec=True)
     @mock.patch.object(images, 'fetch', spec_set=True,

@@ -33,6 +33,7 @@ from ironic.conductor import utils as manager_utils
 from ironic.conf import CONF
 from ironic.drivers import base
 from ironic.drivers.modules import agent_base_vendor
+from ironic.drivers.modules import boot_mode_utils
 from ironic.drivers.modules import deploy_utils
 from ironic.drivers.modules import image_cache
 
@@ -349,7 +350,7 @@ def _get_boot_mode(node):
     :param node: A single Node.
     :returns: A string representing the boot mode type. Defaults to 'bios'.
     """
-    boot_mode = deploy_utils.get_boot_mode_for_deploy(node)
+    boot_mode = boot_mode_utils.get_boot_mode_for_deploy(node)
     if boot_mode:
         return boot_mode
     return "bios"

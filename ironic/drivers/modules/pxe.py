@@ -281,7 +281,7 @@ def _build_service_pxe_config(task, instance_image_info,
     iwdi = node.driver_internal_info.get('is_whole_disk_image')
     deploy_utils.switch_pxe_config(
         pxe_config_path, root_uuid_or_disk_id,
-        deploy_utils.get_boot_mode_for_deploy(node),
+        boot_mode_utils.get_boot_mode_for_deploy(node),
         iwdi, deploy_utils.is_trusted_boot_requested(node),
         deploy_utils.is_iscsi_boot(task))
 
@@ -354,7 +354,7 @@ def _get_volume_pxe_options(task):
 
 def validate_boot_parameters_for_trusted_boot(node):
     """Check if boot parameters are valid for trusted boot."""
-    boot_mode = deploy_utils.get_boot_mode_for_deploy(node)
+    boot_mode = boot_mode_utils.get_boot_mode_for_deploy(node)
     boot_option = deploy_utils.get_boot_option(node)
     is_whole_disk_image = node.driver_internal_info.get('is_whole_disk_image')
     # 'is_whole_disk_image' is not supported by trusted boot, because there is
@@ -614,7 +614,7 @@ class PXEBoot(base.BootInterface):
                     task, pxe_options, pxe_config_template)
             deploy_utils.switch_pxe_config(
                 pxe_config_path, None,
-                deploy_utils.get_boot_mode_for_deploy(node), False,
+                boot_mode_utils.get_boot_mode_for_deploy(node), False,
                 iscsi_boot=True)
             boot_device = boot_devices.PXE
 

@@ -34,6 +34,7 @@ from ironic.common import states
 from ironic.conductor import utils as manager_utils
 from ironic.conf import CONF
 from ironic.drivers import base
+from ironic.drivers.modules import boot_mode_utils
 from ironic.drivers.modules import deploy_utils
 from ironic.drivers.modules.irmc import common as irmc_common
 from ironic.drivers.modules.irmc import management as irmc_management
@@ -289,7 +290,7 @@ def _prepare_boot_iso(task, root_uuid):
         deploy_iso_filename = _get_iso_name(task.node, label='deploy')
         deploy_iso = ('file://' + os.path.join(
             CONF.irmc.remote_image_share_root, deploy_iso_filename))
-        boot_mode = deploy_utils.get_boot_mode_for_deploy(task.node)
+        boot_mode = boot_mode_utils.get_boot_mode_for_deploy(task.node)
         kernel_params = CONF.pxe.pxe_append_params
 
         boot_iso_filename = _get_iso_name(task.node, label='boot')
