@@ -92,7 +92,7 @@ sc2UnitNodeMacAddress OBJECT-TYPE
 MAC_ADDRESS_OID = '1.3.6.1.4.1.231.2.10.2.2.10.3.1.1.9.1'
 CAPABILITIES_PROPERTIES = {'trusted_boot', 'irmc_firmware_version',
                            'rom_firmware_version', 'server_model',
-                           'pci_gpu_devices'}
+                           'pci_gpu_devices', 'cpu_fpga'}
 
 
 def _get_mac_addresses(node):
@@ -117,10 +117,11 @@ def _get_mac_addresses(node):
             if c == NODE_CLASS_OID_VALUE['primary']]
 
 
-def _inspect_hardware(node, **kwargs):
+def _inspect_hardware(node, existing_traits=None, **kwargs):
     """Inspect the node and get hardware information.
 
     :param node: node object.
+    :param existing_traits: existing traits list.
     :param kwargs: the dictionary of additional parameters.
     :raises: HardwareInspectionFailure, if unable to get essential
              hardware properties.
@@ -129,6 +130,7 @@ def _inspect_hardware(node, **kwargs):
               values, the list contains mac addresses.
     """
     capabilities_props = set(CAPABILITIES_PROPERTIES)
+    new_traits = list(existing_traits) if existing_traits else []
 
     # Remove all capabilities item which will be inspected in the existing
     # capabilities of node
@@ -140,12 +142,17 @@ def _inspect_hardware(node, **kwargs):
                     existing_cap.remove(prop)
         node.properties['capabilities'] = ",".join(existing_cap)
 
-    # get gpu_ids in ironic configuration
-    values = [gpu_id.lower() for gpu_id in CONF.irmc.gpu_ids]
+    # get gpu_ids, fpga_ids in ironic configuration
+    gpu_ids = [gpu_id.lower() for gpu_id in CONF.irmc.gpu_ids]
+    fpga_ids = [fpga_id.lower() for fpga_id in CONF.irmc.fpga_ids]
 
     # if gpu_ids = [], pci_gpu_devices will not be inspected
-    if len(values) == 0:
+    if len(gpu_ids) == 0:
         capabilities_props.remove('pci_gpu_devices')
+
+    # if fpga_ids = [], cpu_fpga will not be inspected
+    if len(fpga_ids) == 0:
+        capabilities_props.remove('cpu_fpga')
 
     try:
         report = irmc_common.get_irmc_report(node)
@@ -155,17 +162,26 @@ def _inspect_hardware(node, **kwargs):
         capabilities = scci.get_capabilities_properties(
             d_info,
             capabilities_props,
-            values,
+            gpu_ids,
+            fpga_ids=fpga_ids,
             **kwargs)
         if capabilities:
             if capabilities.get('pci_gpu_devices') == 0:
                 capabilities.pop('pci_gpu_devices')
+
+            cpu_fpga = capabilities.pop('cpu_fpga', 0)
+            if cpu_fpga == 0 and 'CUSTOM_CPU_FPGA' in new_traits:
+                new_traits.remove('CUSTOM_CPU_FPGA')
+            elif cpu_fpga != 0 and 'CUSTOM_CPU_FPGA' not in new_traits:
+                new_traits.append('CUSTOM_CPU_FPGA')
+
             if capabilities.get('trusted_boot') is False:
                 capabilities.pop('trusted_boot')
             capabilities = utils.get_updated_capabilities(
                 node.properties.get('capabilities'), capabilities)
             if capabilities:
                 props['capabilities'] = capabilities
+
         macs = _get_mac_addresses(node)
     except (scci.SCCIInvalidInputError,
             scci.SCCIClientError,
@@ -175,7 +191,7 @@ def _inspect_hardware(node, **kwargs):
                  {'node_id': node.uuid, 'error': e})
         raise exception.HardwareInspectionFailure(error=error)
 
-    return (props, macs)
+    return props, macs, new_traits
 
 
 class IRMCInspect(base.InspectInterface):
@@ -184,13 +200,18 @@ class IRMCInspect(base.InspectInterface):
     def __init__(self):
         """Validate the driver-specific inspection information.
 
-        This action will validate gpu_ids value along with starting
-        ironic-conductor service.
+        This action will validate gpu_ids and fpga_ids value along with
+        starting ironic-conductor service.
         """
         for gpu_id in CONF.irmc.gpu_ids:
             if not re.match('^0x[0-9a-f]{4}/0x[0-9a-f]{4}$', gpu_id.lower()):
                 raise exception.InvalidParameterValue(_(
                     "Invalid [irmc]/gpu_ids configuration option."))
+
+        for fpga_id in CONF.irmc.fpga_ids:
+            if not re.match('^0x[0-9a-f]{4}/0x[0-9a-f]{4}$', fpga_id.lower()):
+                raise exception.InvalidParameterValue(_(
+                    "Invalid [irmc]/fpga_ids configuration option."))
 
         super(IRMCInspect, self).__init__()
 
@@ -239,9 +260,14 @@ class IRMCInspect(base.InspectInterface):
                      {'node_uuid': task.node.uuid})
 
             kwargs['sleep_flag'] = True
-
-        (props, macs) = _inspect_hardware(node, **kwargs)
+        traits_obj = objects.TraitList.get_by_node_id(task.context, node.id)
+        existing_traits = traits_obj.get_trait_names()
+        props, macs, new_traits = _inspect_hardware(node,
+                                                    existing_traits,
+                                                    **kwargs)
         node.properties = dict(node.properties, **props)
+        if existing_traits != new_traits:
+            objects.TraitList.create(task.context, node.id, new_traits)
         node.save()
 
         for mac in macs:
