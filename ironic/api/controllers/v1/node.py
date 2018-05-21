@@ -865,8 +865,13 @@ class NodeTraitsController(rest.RestController):
         with notify.handle_error_notification(context, node, 'update',
                                               chassis_uuid=chassis_uuid):
             topic = pecan.request.rpcapi.get_topic_for(node)
-            pecan.request.rpcapi.remove_node_traits(
-                context, node.id, traits, topic=topic)
+            try:
+                pecan.request.rpcapi.remove_node_traits(
+                    context, node.id, traits, topic=topic)
+            except exception.NodeTraitNotFound:
+                # NOTE(hshiina): Internal node ID should not be exposed.
+                raise exception.NodeTraitNotFound(node_id=node.uuid,
+                                                  trait=trait)
         notify.emit_end_notification(context, node, 'update',
                                      chassis_uuid=chassis_uuid)
 

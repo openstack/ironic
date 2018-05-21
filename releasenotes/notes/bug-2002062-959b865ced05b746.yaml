@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    Fixes a bug that exposes an internal node ID in an error message when
+    requested to delete a trait which doesn't exist. See
+    `bug 2002062 <https://storyboard.openstack.org/#!/story/2002062>`_ for
+    details.
