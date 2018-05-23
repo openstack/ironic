@@ -334,12 +334,17 @@ def _get_volume_pxe_options(task):
              'iscsi_initiator_iqn': iscsi_initiator_iqn})
         # NOTE(TheJulia): This may be the route to multi-path, define
         # volumes via sanhook in the ipxe template and let the OS sort it out.
-        additional_targets = []
+        extra_targets = []
+
         for target in task.volume_targets:
             if target.boot_index != 0 and 'iscsi' in target.volume_type:
-                additional_targets.append(
-                    __generate_iscsi_url(target.properties))
-        pxe_options.update({'iscsi_volumes': additional_targets,
+                iscsi_url = __generate_iscsi_url(target.properties)
+                username = target.properties['auth_username']
+                password = target.properties['auth_password']
+                extra_targets.append({'url': iscsi_url,
+                                      'username': username,
+                                      'password': password})
+        pxe_options.update({'iscsi_volumes': extra_targets,
                             'boot_from_volume': True})
     # TODO(TheJulia): FibreChannel boot, i.e. wwpn in volume_type
     # for FCoE, should go here.

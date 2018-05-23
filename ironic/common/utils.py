@@ -497,7 +497,7 @@ def render_template(template, params, is_file=True):
         loader = jinja2.DictLoader({tmpl_name: template})
     env = jinja2.Environment(loader=loader)
     tmpl = env.get_template(tmpl_name)
-    return tmpl.render(params)
+    return tmpl.render(params, enumerate=enumerate)
 
 
 def warn_about_deprecated_extra_vif_port_id():

@@ -428,9 +428,13 @@ class PXEPrivateMethodsTestCase(db_base.DbTestCase):
                 'boot_from_volume': True,
                 'iscsi_boot_url': 'iscsi:fake_host::3260:0:fake_iqn',
                 'iscsi_initiator_iqn': 'fake_iqn_initiator',
-                'iscsi_volumes': ['iscsi:fake_host::3260:1:fake_iqn'],
+                'iscsi_volumes': [{'url': 'iscsi:fake_host::3260:1:fake_iqn',
+                                   'username': 'fake_username_1',
+                                   'password': 'fake_password_1'
+                                   }],
                 'username': 'fake_username',
-                'password': 'fake_password'})
+                'password': 'fake_password'
+            })
             expected_options.pop('deployment_aki_path')
             expected_options.pop('deployment_ari_path')
             expected_options.pop('initrd_filename')
@@ -488,7 +492,9 @@ class PXEPrivateMethodsTestCase(db_base.DbTestCase):
             boot_index=1, volume_id='1235', uuid=vol_id2,
             properties={'target_lun': 1,
                         'target_portal': 'fake_host:3260',
-                        'target_iqn': 'fake_iqn'})
+                        'target_iqn': 'fake_iqn',
+                        'auth_username': 'fake_username_1',
+                        'auth_password': 'fake_password_1'})
         self.node.driver_internal_info.update({'boot_from_volume': vol_id})
         self._test_build_pxe_config_options_ipxe(boot_from_volume=True)
 
@@ -515,7 +521,9 @@ class PXEPrivateMethodsTestCase(db_base.DbTestCase):
             boot_index=1, volume_id='1235', uuid=vol_id2,
             properties={'target_lun': [1, 3],
                         'target_portal': ['fake_host:3260', 'faker_host:3261'],
-                        'target_iqn': ['fake_iqn', 'faker_iqn']})
+                        'target_iqn': ['fake_iqn', 'faker_iqn'],
+                        'auth_username': 'fake_username_1',
+                        'auth_password': 'fake_password_1'})
         self.node.driver_internal_info.update({'boot_from_volume': vol_id})
         self._test_build_pxe_config_options_ipxe(boot_from_volume=True)
 
@@ -541,7 +549,9 @@ class PXEPrivateMethodsTestCase(db_base.DbTestCase):
             boot_index=1, volume_id='1235', uuid=vol_id2,
             properties={'target_lun': 1,
                         'target_portal': 'fake_host:3260',
-                        'target_iqn': 'fake_iqn'})
+                        'target_iqn': 'fake_iqn',
+                        'auth_username': 'fake_username_1',
+                        'auth_password': 'fake_password_1'})
         self.node.driver_internal_info.update({'boot_from_volume': vol_id})
         driver_internal_info = self.node.driver_internal_info
         driver_internal_info['boot_from_volume'] = vol_id
@@ -552,7 +562,12 @@ class PXEPrivateMethodsTestCase(db_base.DbTestCase):
                     'username': 'fake_username', 'password': 'fake_password',
                     'iscsi_boot_url': 'iscsi:fake_host::3260:0:fake_iqn',
                     'iscsi_initiator_iqn': 'fake_iqn_initiator',
-                    'iscsi_volumes': ['iscsi:fake_host::3260:1:fake_iqn']}
+                    'iscsi_volumes': [{
+                        'url': 'iscsi:fake_host::3260:1:fake_iqn',
+                        'username': 'fake_username_1',
+                        'password': 'fake_password_1'
+                    }]
+                    }
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
             options = pxe._get_volume_pxe_options(task)
