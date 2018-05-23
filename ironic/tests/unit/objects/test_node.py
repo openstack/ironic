@@ -408,6 +408,7 @@ class TestConvertToVersion(db_base.DbTestCase):
         node = obj_utils.get_test_node(self.ctxt, **self.fake_node)
 
         node.rescue_interface = 'fake'
+        node.fault = None
         node.obj_reset_changes()
         node._convert_to_version("1.21", False)
         self.assertIsNone(node.rescue_interface)
@@ -420,6 +421,7 @@ class TestConvertToVersion(db_base.DbTestCase):
 
         node.rescue_interface = None
         node.traits = None
+        node.fault = None
         node.obj_reset_changes()
         node._convert_to_version("1.21", False)
         self.assertIsNone(node.rescue_interface)
@@ -466,6 +468,7 @@ class TestConvertToVersion(db_base.DbTestCase):
         # traits not set, should be set to default.
         node = obj_utils.get_test_node(self.ctxt, **self.fake_node)
         delattr(node, 'traits')
+        node.fault = None
         node.obj_reset_changes()
 
         node._convert_to_version("1.22", False)
@@ -478,18 +481,19 @@ class TestConvertToVersion(db_base.DbTestCase):
         node = obj_utils.get_test_node(self.ctxt, **self.fake_node)
         node.traits = objects.TraitList(self.ctxt)
         node.traits.obj_reset_changes()
+        node.fault = None
         node.obj_reset_changes()
 
         node._convert_to_version("1.22", False)
 
         self.assertIsNone(node.traits)
-        self.assertEqual({'traits': None},
-                         node.obj_get_changes())
+        self.assertEqual({'traits': None}, node.obj_get_changes())
 
     def test_trait_unsupported_set_no_remove_default(self):
         # traits set, no change required.
         node = obj_utils.get_test_node(self.ctxt, **self.fake_node)
         node.traits = None
+        node.fault = None
         node.obj_reset_changes()
 
         node._convert_to_version("1.22", False)
@@ -544,21 +548,75 @@ class TestConvertToVersion(db_base.DbTestCase):
         node = obj_utils.get_test_node(self.ctxt, **self.fake_node)
 
         node.bios_interface = 'fake'
+        node.fault = None
         node.obj_reset_changes()
         node._convert_to_version("1.23", False)
         self.assertIsNone(node.bios_interface)
-        self.assertEqual({'bios_interface': None},
-                         node.obj_get_changes())
+        self.assertEqual({'bios_interface': None}, node.obj_get_changes())
 
     def test_bios_unsupported_set_no_remove_default(self):
         # bios_interface set, no change required.
         node = obj_utils.get_test_node(self.ctxt, **self.fake_node)
 
         node.bios_interface = None
+        node.fault = None
         node.obj_reset_changes()
         node._convert_to_version("1.23", False)
         self.assertIsNone(node.bios_interface)
         self.assertEqual({}, node.obj_get_changes())
+
+    def test_fault_supported_missing(self):
+        node = obj_utils.get_test_node(self.ctxt, **self.fake_node)
+        delattr(node, 'fault')
+        node.obj_reset_changes()
+
+        node._convert_to_version("1.25")
+
+        self.assertIsNone(node.fault)
+        self.assertEqual({'fault': None}, node.obj_get_changes())
+
+    def test_fault_supported_untouched(self):
+        node = obj_utils.get_test_node(self.ctxt, **self.fake_node)
+        node.maintenance = True
+        node.fault = 'a fake fault'
+        node.obj_reset_changes()
+
+        node._convert_to_version("1.25")
+
+        self.assertEqual('a fake fault', node.fault)
+        self.assertEqual({}, node.obj_get_changes())
+
+    def test_fault_unsupported_missing(self):
+        node = obj_utils.get_test_node(self.ctxt, **self.fake_node)
+        delattr(node, 'fault')
+        node.obj_reset_changes()
+
+        node._convert_to_version("1.24")
+
+        self.assertNotIn('fault', node)
+        self.assertEqual({}, node.obj_get_changes())
+
+    def test_fault_unsupported_set_remove(self):
+        node = obj_utils.get_test_node(self.ctxt, **self.fake_node)
+        node.maintenance = True
+        node.fault = 'some fake fault'
+        node.obj_reset_changes()
+
+        node._convert_to_version("1.24")
+
+        self.assertNotIn('fault', node)
+        self.assertEqual({}, node.obj_get_changes())
+
+    def test_fault_unsupported_set_remove_in_maintenance(self):
+        node = obj_utils.get_test_node(self.ctxt, **self.fake_node)
+        node.maintenance = True
+        node.fault = 'some fake type'
+        node.obj_reset_changes()
+
+        node._convert_to_version("1.24", False)
+
+        self.assertIsNone(node.fault)
+        self.assertEqual({'fault': None}, node.obj_get_changes())
 
 
 class TestNodePayloads(db_base.DbTestCase):

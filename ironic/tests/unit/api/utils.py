@@ -110,6 +110,8 @@ def node_post_data(**kw):
             node.pop(name)
     if 'resource_class' not in kw:
         node.pop('resource_class')
+    if 'fault' not in kw:
+        node.pop('fault')
 
     internal = node_controller.NodePatchType.internal_attrs()
     return remove_internal(node, internal)

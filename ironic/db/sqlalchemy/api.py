@@ -224,14 +224,15 @@ class Connection(api.Connection):
                              'resource_class', 'provision_state', 'uuid', 'id',
                              'chassis_uuid', 'associated', 'reserved',
                              'reserved_by_any_of', 'provisioned_before',
-                             'inspection_started_before'}
+                             'inspection_started_before', 'fault'}
         unsupported_filters = set(filters).difference(supported_filters)
         if unsupported_filters:
             msg = _("SqlAlchemy API does not support "
                     "filtering by %s") % ', '.join(unsupported_filters)
             raise ValueError(msg)
         for field in ['console_enabled', 'maintenance', 'driver',
-                      'resource_class', 'provision_state', 'uuid', 'id']:
+                      'resource_class', 'provision_state', 'uuid', 'id',
+                      'fault']:
             if field in filters:
                 query = query.filter_by(**{field: filters[field]})
         if 'chassis_uuid' in filters:
