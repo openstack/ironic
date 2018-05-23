@@ -784,3 +784,15 @@ def validate_instance_info_traits(node):
                  "node. Node %(node)s is missing traits %(traits)s") %
                {"node": node.uuid, "traits": ", ".join(missing)})
         raise exception.InvalidParameterValue(err)
+
+
+def notify_conductor_resume_clean(task):
+    LOG.debug('Sending RPC to conductor to resume cleaning for node %s',
+              task.node.uuid)
+    from ironic.conductor import rpcapi
+    uuid = task.node.uuid
+    rpc = rpcapi.ConductorAPI()
+    topic = rpc.get_topic_for(task.node)
+    # Need to release the lock to let the conductor take it
+    task.release_resources()
+    rpc.continue_node_clean(task.context, uuid, topic=topic)

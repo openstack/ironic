@@ -19,7 +19,7 @@ import mock
 
 from ironic.common import driver_factory
 from ironic.conductor import task_manager
-from ironic.drivers.modules import agent_base_vendor
+from ironic.conductor import utils as manager_utils
 from ironic.drivers.modules.drac import common as drac_common
 from ironic.drivers.modules.drac import raid as drac_raid
 from ironic.tests.unit.db import base as db_base
@@ -144,7 +144,7 @@ class DracPeriodicTaskTestCase(db_base.DbTestCase):
                        autospec=True)
     @mock.patch.object(drac_raid.DracRAID, 'get_logical_disks',
                        spec_set=True, autospec=True)
-    @mock.patch.object(agent_base_vendor, '_notify_conductor_resume_clean')
+    @mock.patch.object(manager_utils, 'notify_conductor_resume_clean')
     def test__check_node_raid_jobs_with_completed_job(
             self, mock_notify_conductor_resume_clean,
             mock_get_logical_disks, mock_get_drac_client):
@@ -212,7 +212,7 @@ class DracPeriodicTaskTestCase(db_base.DbTestCase):
                        autospec=True)
     @mock.patch.object(drac_raid.DracRAID, 'get_logical_disks',
                        spec_set=True, autospec=True)
-    @mock.patch.object(agent_base_vendor, '_notify_conductor_resume_clean')
+    @mock.patch.object(manager_utils, 'notify_conductor_resume_clean')
     def test__check_node_raid_jobs_with_completed_job_already_failed(
             self, mock_notify_conductor_resume_clean,
             mock_get_logical_disks, mock_get_drac_client):
@@ -252,7 +252,7 @@ class DracPeriodicTaskTestCase(db_base.DbTestCase):
                        autospec=True)
     @mock.patch.object(drac_raid.DracRAID, 'get_logical_disks',
                        spec_set=True, autospec=True)
-    @mock.patch.object(agent_base_vendor, '_notify_conductor_resume_clean')
+    @mock.patch.object(manager_utils, 'notify_conductor_resume_clean')
     def test__check_node_raid_jobs_with_multiple_jobs_completed(
             self, mock_notify_conductor_resume_clean,
             mock_get_logical_disks, mock_get_drac_client):
@@ -293,7 +293,7 @@ class DracPeriodicTaskTestCase(db_base.DbTestCase):
                        autospec=True)
     @mock.patch.object(drac_raid.DracRAID, 'get_logical_disks',
                        spec_set=True, autospec=True)
-    @mock.patch.object(agent_base_vendor, '_notify_conductor_resume_clean')
+    @mock.patch.object(manager_utils, 'notify_conductor_resume_clean')
     def test__check_node_raid_jobs_with_multiple_jobs_failed(
             self, mock_notify_conductor_resume_clean,
             mock_get_logical_disks, mock_get_drac_client):

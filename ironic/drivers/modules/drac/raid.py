@@ -28,9 +28,9 @@ from ironic.common.i18n import _
 from ironic.common import raid as raid_common
 from ironic.common import states
 from ironic.conductor import task_manager
+from ironic.conductor import utils as manager_utils
 from ironic.conf import CONF
 from ironic.drivers import base
-from ironic.drivers.modules import agent_base_vendor
 from ironic.drivers.modules.drac import common as drac_common
 from ironic.drivers.modules.drac import job as drac_job
 
@@ -889,4 +889,4 @@ class DracRAID(base.RAIDInterface):
     def _resume_cleaning(self, task):
         raid_common.update_raid_info(
             task.node, self.get_logical_disks(task))
-        agent_base_vendor._notify_conductor_resume_clean(task)
+        manager_utils.notify_conductor_resume_clean(task)

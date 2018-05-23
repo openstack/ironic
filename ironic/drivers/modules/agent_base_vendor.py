@@ -28,7 +28,6 @@ from ironic.common import boot_devices
 from ironic.common import exception
 from ironic.common.i18n import _
 from ironic.common import states
-from ironic.conductor import rpcapi
 from ironic.conductor import utils as manager_utils
 from ironic.conf import CONF
 from ironic.drivers.modules import agent_client
@@ -150,17 +149,6 @@ def _cleaning_reboot(task):
     driver_internal_info['cleaning_reboot'] = True
     task.node.driver_internal_info = driver_internal_info
     task.node.save()
-
-
-def _notify_conductor_resume_clean(task):
-    LOG.debug('Sending RPC to conductor to resume cleaning for node %s',
-              task.node.uuid)
-    uuid = task.node.uuid
-    rpc = rpcapi.ConductorAPI()
-    topic = rpc.get_topic_for(task.node)
-    # Need to release the lock to let the conductor take it
-    task.release_resources()
-    rpc.continue_node_clean(task.context, uuid, topic=topic)
 
 
 def _get_completed_cleaning_command(task, commands):
@@ -339,7 +327,7 @@ class HeartbeatMixin(object):
                     manager_utils.set_node_cleaning_steps(task)
                     # The exceptions from RPC are not possible as we using cast
                     # here
-                    _notify_conductor_resume_clean(task)
+                    manager_utils.notify_conductor_resume_clean(task)
                 else:
                     msg = _('Node failed to check cleaning progress.')
                     self.continue_cleaning(task)
@@ -478,7 +466,7 @@ class AgentDeployMixin(HeartbeatMixin):
                 info = task.node.driver_internal_info
                 info.pop('cleaning_reboot', None)
                 task.node.driver_internal_info = info
-                _notify_conductor_resume_clean(task)
+                manager_utils.notify_conductor_resume_clean(task)
                 return
             else:
                 # Agent has no commands whatsoever
@@ -543,7 +531,7 @@ class AgentDeployMixin(HeartbeatMixin):
                     LOG.exception(msg)
                     return manager_utils.cleaning_error_handler(task, msg)
 
-            _notify_conductor_resume_clean(task)
+            manager_utils.notify_conductor_resume_clean(task)
 
         elif command.get('command_status') == 'SUCCEEDED':
             clean_step_hook = _get_post_clean_step_hook(node)
@@ -573,7 +561,7 @@ class AgentDeployMixin(HeartbeatMixin):
 
             LOG.info('Agent on node %s returned cleaning command success, '
                      'moving to next clean step', node.uuid)
-            _notify_conductor_resume_clean(task)
+            manager_utils.notify_conductor_resume_clean(task)
         else:
             msg = (_('Agent returned unknown status for clean step %(step)s '
                      'on node %(node)s : %(err)s.') %
