@@ -25,6 +25,7 @@ from ironic.api.controllers.v1 import types
 from ironic.api.controllers.v1 import utils as api_utils
 from ironic.api import expose
 from ironic.common import exception
+from ironic.common.i18n import _
 from ironic.common import policy
 from ironic.common import states
 from ironic.common import utils
