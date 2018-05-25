@@ -284,7 +284,7 @@ Configuring and enabling the driver
 1. Add ``agent_pxe_oneview`` to the list of ``enabled_drivers`` in your
    ``ironic.conf``. For example::
 
-    enabled_drivers = fake,pxe_ipmitool,agent_pxe_oneview
+    enabled_drivers = pxe_ipmitool,agent_pxe_oneview
 
 2. Update the [oneview] section of your ``ironic.conf`` file with your
    OneView credentials and CA certificate files information.

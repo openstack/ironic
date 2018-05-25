@@ -1,0 +1,5 @@
+---
+upgrade:
+  - |
+    The deprecated classic drivers ``fake`` and ``fake_soft_power`` were
+    removed. Please use the ``fake-hardware`` hardware type instead.

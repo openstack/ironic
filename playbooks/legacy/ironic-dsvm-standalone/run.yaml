@@ -71,7 +71,6 @@
           export DEVSTACK_LOCAL_CONFIG+=$'\n'"IRONIC_DEFAULT_DEPLOY_INTERFACE=direct"
           export DEVSTACK_LOCAL_CONFIG+=$'\n'"SWIFT_ENABLE_TEMPURLS=True"
           export DEVSTACK_LOCAL_CONFIG+=$'\n'"SWIFT_TEMPURL_KEY=secretkey"
-          export DEVSTACK_LOCAL_CONFIG+=$'\n'"IRONIC_ENABLED_DRIVERS=fake"
           export DEVSTACK_LOCAL_CONFIG+=$'\n'"IRONIC_AUTOMATED_CLEAN_ENABLED=False"
 
           # NOTE(pas-ha) ansible deploy is new in Queens,

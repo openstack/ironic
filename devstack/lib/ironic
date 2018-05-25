@@ -157,7 +157,12 @@ if [[ -n "$IRONIC_DEFAULT_API_VERSION" ]]; then
 fi
 
 # driver / hardware type options
-IRONIC_ENABLED_DRIVERS=${IRONIC_ENABLED_DRIVERS:-fake,pxe_ipmitool,agent_ipmitool}
+IRONIC_ENABLED_DRIVERS=${IRONIC_ENABLED_DRIVERS:-pxe_ipmitool,agent_ipmitool}
+# NOTE(dtantsur): some places (I'm looking at you, devstack-gate) still
+# hardcode "fake", and we cannot fix them without breaking stable branches.
+# This ugly hack is only needed until we delete IRONIC_ENABLED_DRIVERS
+# in the near future.
+IRONIC_ENABLED_DRIVERS=$(echo $IRONIC_ENABLED_DRIVERS | sed -r 's/fake,?//')
 IRONIC_ENABLED_HARDWARE_TYPES=${IRONIC_ENABLED_HARDWARE_TYPES:-"ipmi,fake-hardware"}
 # list of all available driver interfaces types
 IRONIC_DRIVER_INTERFACE_TYPES="bios boot power management deploy console inspect raid rescue storage network vendor"
