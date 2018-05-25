@@ -1609,6 +1609,10 @@ function create_bridge_and_vms {
         vm_opts+=" -L $UEFI_LOADER_PATH -N $UEFI_NVRAM_PATH"
     fi
 
+    if [[ -n "$LIBVIRT_NIC_DRIVER" ]]; then
+        vm_opts+=" -D $LIBVIRT_NIC_DRIVER"
+    fi
+
     local bridge_mac
     bridge_mac=$(ip link show dev $IRONIC_VM_NETWORK_BRIDGE | grep -Eo "ether [A-Za-z0-9:]+"|sed "s/ether\ //")
 
