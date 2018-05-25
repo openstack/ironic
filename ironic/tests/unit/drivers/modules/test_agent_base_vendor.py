@@ -107,6 +107,33 @@ class HeartbeatMixinTest(AgentDeployMixinBaseTest):
             self.assertEqual(0, rti_mock.call_count)
             self.assertEqual(0, cd_mock.call_count)
 
+    @mock.patch('time.sleep', lambda _t: None)
+    @mock.patch.object(agent_base_vendor.HeartbeatMixin, 'continue_deploy',
+                       autospec=True)
+    @mock.patch.object(agent_base_vendor.HeartbeatMixin,
+                       'reboot_to_instance', autospec=True)
+    @mock.patch.object(agent_base_vendor, '_notify_conductor_resume_clean',
+                       autospec=True)
+    def test_heartbeat_with_reservation(self, ncrc_mock, rti_mock, cd_mock):
+        # NOTE(pas-ha) checking only for states that are not noop
+        for state in (states.DEPLOYWAIT, states.CLEANWAIT):
+            for m in (ncrc_mock, rti_mock, cd_mock):
+                m.reset_mock()
+            self.node.provision_state = state
+            self.node.reservation = 'localhost'
+            self.node.save()
+            old_drv_info = self.node.driver_internal_info.copy()
+            agent_url = 'url-%s' % state
+            with task_manager.acquire(self.context, self.node.uuid,
+                                      shared=True) as task:
+                self.deploy.heartbeat(task, agent_url, '3.2.0')
+                self.assertTrue(task.shared)
+                self.assertEqual(old_drv_info, task.node.driver_internal_info)
+                self.assertIsNone(task.node.last_error)
+            self.assertEqual(0, ncrc_mock.call_count)
+            self.assertEqual(0, rti_mock.call_count)
+            self.assertEqual(0, cd_mock.call_count)
+
     @mock.patch.object(agent_base_vendor.HeartbeatMixin, 'continue_deploy',
                        autospec=True)
     @mock.patch.object(agent_base_vendor.HeartbeatMixin,

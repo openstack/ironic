@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    When a node is found to be locked when a heart beat arrives, no longer
+    records the error in node's ``last_error`` field, since it's not
+    an error in most cases.

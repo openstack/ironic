@@ -290,7 +290,13 @@ class HeartbeatMixin(object):
                        'state': task.node.provision_state})
             return
 
-        task.upgrade_lock()
+        try:
+            task.upgrade_lock()
+        except exception.NodeLocked:
+            LOG.warning('Node %s is currently locked, skipping heartbeat '
+                        'processing (will retry on the next heartbeat)',
+                        task.node.uuid)
+            return
 
         node = task.node
         LOG.debug('Heartbeat from node %s', node.uuid)
