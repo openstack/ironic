@@ -129,11 +129,27 @@ class TestCase(oslo_test_base.BaseTestCase):
                     group='neutron')
         self.config(rescuing_network=uuidutils.generate_uuid(),
                     group='neutron')
-        self.config(enabled_drivers=['fake'])
-        self.config(enabled_hardware_types=['fake-hardware'])
-        self.config(enabled_network_interfaces=['flat', 'noop', 'neutron'])
+        self.config(enabled_drivers=[])
+        self.config(enabled_hardware_types=['fake-hardware',
+                                            'manual-management'])
         for iface in drivers_base.ALL_INTERFACES:
-            self.config(**{'default_%s_interface' % iface: None})
+            # Restore some reasonable defaults
+            if iface == 'network':
+                values = ['flat', 'noop', 'neutron']
+            else:
+                values = ['fake']
+
+            if iface == 'deploy':
+                values.extend(['iscsi', 'direct'])
+            elif iface == 'boot':
+                values.append('pxe')
+            elif iface == 'storage':
+                values.append('noop')
+            elif iface not in {'network', 'power', 'management'}:
+                values.append('no-%s' % iface)
+
+            self.config(**{'enabled_%s_interfaces' % iface: values,
+                           'default_%s_interface' % iface: None})
         self.set_defaults(host='fake-mini',
                           debug=True)
         self.set_defaults(connection="sqlite://",

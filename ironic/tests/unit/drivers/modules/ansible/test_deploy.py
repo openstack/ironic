@@ -55,10 +55,10 @@ class AnsibleDeployTestCaseBase(db_base.DbTestCase):
     def setUp(self):
         super(AnsibleDeployTestCaseBase, self).setUp()
 
-        self.config(enabled_hardware_types='manual-management',
-                    enabled_deploy_interfaces='ansible',
-                    enabled_power_interfaces='fake',
-                    enabled_management_interfaces='fake')
+        self.config(enabled_hardware_types=['manual-management'],
+                    enabled_deploy_interfaces=['ansible'],
+                    enabled_power_interfaces=['fake'],
+                    enabled_management_interfaces=['fake'])
         node = {
             'driver': 'manual-management',
             'instance_info': INSTANCE_INFO,

@@ -31,7 +31,6 @@ class TestDHCPFactory(base.TestCase):
 
     def setUp(self):
         super(TestDHCPFactory, self).setUp()
-        self.config(enabled_drivers=['fake'])
         self.config(url='test-url',
                     url_timeout=30,
                     group='neutron')

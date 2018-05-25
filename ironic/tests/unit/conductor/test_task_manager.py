@@ -85,7 +85,7 @@ class TaskManagerTestCase(db_base.DbTestCase):
             reserve_mock, release_mock, node_get_mock):
         node2 = obj_utils.create_test_node(self.context,
                                            uuid=uuidutils.generate_uuid(),
-                                           driver='fake')
+                                           driver='fake-hardware')
 
         reserve_mock.return_value = self.node
         get_ports_mock.return_value = mock.sentinel.ports1

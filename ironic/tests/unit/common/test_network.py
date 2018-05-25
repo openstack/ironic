@@ -48,7 +48,7 @@ class TestNetwork(db_base.DbTestCase):
         port1 = db_utils.create_test_port(node_id=self.node.id,
                                           address='aa:bb:cc:dd:ee:ff',
                                           uuid=uuidutils.generate_uuid(),
-                                          driver='fake', **kwargs1)
+                                          **kwargs1)
         expected = {'portgroups': {},
                     'ports': {port1.uuid: 'test-vif-A'}}
         with task_manager.acquire(self.context, self.node.uuid) as task:
@@ -91,11 +91,11 @@ class TestNetwork(db_base.DbTestCase):
         port1 = db_utils.create_test_port(node_id=self.node.id,
                                           address='aa:bb:cc:dd:ee:ff',
                                           uuid=uuidutils.generate_uuid(),
-                                          driver='fake', **kwargs1)
+                                          **kwargs1)
         port2 = db_utils.create_test_port(node_id=self.node.id,
                                           address='dd:ee:ff:aa:bb:cc',
                                           uuid=uuidutils.generate_uuid(),
-                                          driver='fake', **kwargs2)
+                                          **kwargs2)
         expected = {'portgroups': {},
                     'ports': {port1.uuid: 'test-vif-A',
                               port2.uuid: 'test-vif-B'}}
@@ -201,9 +201,8 @@ class TestRemoveVifsTestCase(db_base.DbTestCase):
 
 
 class GetPortgroupByIdTestCase(db_base.DbTestCase):
-
     def test_portgroup_by_id(self):
-        node = object_utils.create_test_node(self.context, driver='fake')
+        node = object_utils.create_test_node(self.context)
         portgroup = object_utils.create_test_portgroup(self.context,
                                                        node_id=node.id)
         object_utils.create_test_portgroup(self.context,
@@ -216,7 +215,7 @@ class GetPortgroupByIdTestCase(db_base.DbTestCase):
         self.assertEqual(portgroup.id, res.id)
 
     def test_portgroup_by_id_no_such_portgroup(self):
-        node = object_utils.create_test_node(self.context, driver='fake')
+        node = object_utils.create_test_node(self.context)
         object_utils.create_test_portgroup(self.context, node_id=node.id)
         with task_manager.acquire(self.context, node.uuid) as task:
             portgroup_id = 'invalid-portgroup-id'
@@ -227,7 +226,7 @@ class GetPortgroupByIdTestCase(db_base.DbTestCase):
 class GetPortsByPortgroupIdTestCase(db_base.DbTestCase):
 
     def test_ports_by_portgroup_id(self):
-        node = object_utils.create_test_node(self.context, driver='fake')
+        node = object_utils.create_test_node(self.context)
         portgroup = object_utils.create_test_portgroup(self.context,
                                                        node_id=node.id)
         port = object_utils.create_test_port(self.context, node_id=node.id,
@@ -240,7 +239,7 @@ class GetPortsByPortgroupIdTestCase(db_base.DbTestCase):
         self.assertEqual([port.id], [p.id for p in res])
 
     def test_ports_by_portgroup_id_empty(self):
-        node = object_utils.create_test_node(self.context, driver='fake')
+        node = object_utils.create_test_node(self.context)
         portgroup = object_utils.create_test_portgroup(self.context,
                                                        node_id=node.id)
         with task_manager.acquire(self.context, node.uuid) as task:
@@ -251,20 +250,20 @@ class GetPortsByPortgroupIdTestCase(db_base.DbTestCase):
 class GetPhysnetsForNodeTestCase(db_base.DbTestCase):
 
     def test_get_physnets_for_node_no_ports(self):
-        node = object_utils.create_test_node(self.context, driver='fake')
+        node = object_utils.create_test_node(self.context)
         with task_manager.acquire(self.context, node.uuid) as task:
             res = network.get_physnets_for_node(task)
         self.assertEqual(set(), res)
 
     def test_get_physnets_for_node_excludes_None(self):
-        node = object_utils.create_test_node(self.context, driver='fake')
+        node = object_utils.create_test_node(self.context)
         object_utils.create_test_port(self.context, node_id=node.id)
         with task_manager.acquire(self.context, node.uuid) as task:
             res = network.get_physnets_for_node(task)
         self.assertEqual(set(), res)
 
     def test_get_physnets_for_node_multiple_ports(self):
-        node = object_utils.create_test_node(self.context, driver='fake')
+        node = object_utils.create_test_node(self.context)
         object_utils.create_test_port(self.context, node_id=node.id,
                                       physical_network='physnet1')
         object_utils.create_test_port(self.context, node_id=node.id,
@@ -280,7 +279,7 @@ class GetPhysnetsByPortgroupID(db_base.DbTestCase):
 
     def setUp(self):
         super(GetPhysnetsByPortgroupID, self).setUp()
-        self.node = object_utils.create_test_node(self.context, driver='fake')
+        self.node = object_utils.create_test_node(self.context)
         self.portgroup = object_utils.create_test_portgroup(
             self.context, node_id=self.node.id)
 

@@ -21,6 +21,7 @@ from ironic.common import states
 from ironic.conductor import task_manager
 from ironic.conductor import utils as conductor_utils
 from ironic.drivers import base as drivers_base
+from ironic.drivers.modules import fake
 from ironic import objects
 from ironic.objects import fields as obj_fields
 from ironic.tests import base as tests_base
@@ -102,32 +103,29 @@ class NodeSetBootDeviceTestCase(db_base.DbTestCase):
 
 
 class NodePowerActionTestCase(db_base.DbTestCase):
-    def setUp(self):
-        super(NodePowerActionTestCase, self).setUp()
-        self.driver = driver_factory.get_driver("fake")
-
-    def test_node_power_action_power_on(self):
+    @mock.patch.object(fake.FakePower, 'get_power_state', autospec=True)
+    def test_node_power_action_power_on(self, get_power_mock):
         """Test node_power_action to turn node power on."""
         node = obj_utils.create_test_node(self.context,
                                           uuid=uuidutils.generate_uuid(),
-                                          driver='fake',
+                                          driver='fake-hardware',
                                           power_state=states.POWER_OFF)
         task = task_manager.TaskManager(self.context, node.uuid)
 
-        with mock.patch.object(self.driver.power,
-                               'get_power_state') as get_power_mock:
-            get_power_mock.return_value = states.POWER_OFF
+        get_power_mock.return_value = states.POWER_OFF
 
-            conductor_utils.node_power_action(task, states.POWER_ON)
+        conductor_utils.node_power_action(task, states.POWER_ON)
 
-            node.refresh()
-            get_power_mock.assert_called_once_with(mock.ANY)
-            self.assertEqual(states.POWER_ON, node['power_state'])
-            self.assertIsNone(node['target_power_state'])
-            self.assertIsNone(node['last_error'])
+        node.refresh()
+        get_power_mock.assert_called_once_with(mock.ANY, mock.ANY)
+        self.assertEqual(states.POWER_ON, node['power_state'])
+        self.assertIsNone(node['target_power_state'])
+        self.assertIsNone(node['last_error'])
 
     @mock.patch('ironic.objects.node.NodeSetPowerStateNotification')
-    def test_node_power_action_power_on_notify(self, mock_notif):
+    @mock.patch.object(fake.FakePower, 'get_power_state', autospec=True)
+    def test_node_power_action_power_on_notify(self, get_power_mock,
+                                               mock_notif):
         """Test node_power_action to power on node and send notification."""
         self.config(notification_level='info')
         self.config(host='my-host')
@@ -135,110 +133,107 @@ class NodePowerActionTestCase(db_base.DbTestCase):
         mock_notif.__name__ = 'NodeSetPowerStateNotification'
         node = obj_utils.create_test_node(self.context,
                                           uuid=uuidutils.generate_uuid(),
-                                          driver='fake',
+                                          driver='fake-hardware',
                                           power_state=states.POWER_OFF)
         task = task_manager.TaskManager(self.context, node.uuid)
 
-        with mock.patch.object(self.driver.power,
-                               'get_power_state') as get_power_mock:
-            get_power_mock.return_value = states.POWER_OFF
+        get_power_mock.return_value = states.POWER_OFF
 
-            conductor_utils.node_power_action(task, states.POWER_ON)
+        conductor_utils.node_power_action(task, states.POWER_ON)
 
-            node.refresh()
-            get_power_mock.assert_called_once_with(mock.ANY)
-            self.assertEqual(states.POWER_ON, node.power_state)
-            self.assertIsNone(node.target_power_state)
-            self.assertIsNone(node.last_error)
+        node.refresh()
+        get_power_mock.assert_called_once_with(mock.ANY, mock.ANY)
+        self.assertEqual(states.POWER_ON, node.power_state)
+        self.assertIsNone(node.target_power_state)
+        self.assertIsNone(node.last_error)
 
-            # 2 notifications should be sent: 1 .start and 1 .end
-            self.assertEqual(2, mock_notif.call_count)
-            self.assertEqual(2, mock_notif.return_value.emit.call_count)
+        # 2 notifications should be sent: 1 .start and 1 .end
+        self.assertEqual(2, mock_notif.call_count)
+        self.assertEqual(2, mock_notif.return_value.emit.call_count)
 
-            first_notif_args = mock_notif.call_args_list[0][1]
-            second_notif_args = mock_notif.call_args_list[1][1]
+        first_notif_args = mock_notif.call_args_list[0][1]
+        second_notif_args = mock_notif.call_args_list[1][1]
 
-            self.assertNotificationEqual(first_notif_args,
-                                         'ironic-conductor', CONF.host,
-                                         'baremetal.node.power_set.start',
-                                         obj_fields.NotificationLevel.INFO)
-            self.assertNotificationEqual(second_notif_args,
-                                         'ironic-conductor', CONF.host,
-                                         'baremetal.node.power_set.end',
-                                         obj_fields.NotificationLevel.INFO)
+        self.assertNotificationEqual(first_notif_args,
+                                     'ironic-conductor', CONF.host,
+                                     'baremetal.node.power_set.start',
+                                     obj_fields.NotificationLevel.INFO)
+        self.assertNotificationEqual(second_notif_args,
+                                     'ironic-conductor', CONF.host,
+                                     'baremetal.node.power_set.end',
+                                     obj_fields.NotificationLevel.INFO)
 
-    def test_node_power_action_power_off(self):
+    @mock.patch.object(fake.FakePower, 'get_power_state', autospec=True)
+    def test_node_power_action_power_off(self, get_power_mock):
         """Test node_power_action to turn node power off."""
         node = obj_utils.create_test_node(self.context,
                                           uuid=uuidutils.generate_uuid(),
-                                          driver='fake',
+                                          driver='fake-hardware',
                                           power_state=states.POWER_ON)
         task = task_manager.TaskManager(self.context, node.uuid)
 
-        with mock.patch.object(self.driver.power,
-                               'get_power_state') as get_power_mock:
-            get_power_mock.return_value = states.POWER_ON
+        get_power_mock.return_value = states.POWER_ON
 
-            conductor_utils.node_power_action(task, states.POWER_OFF)
+        conductor_utils.node_power_action(task, states.POWER_OFF)
 
-            node.refresh()
-            get_power_mock.assert_called_once_with(mock.ANY)
-            self.assertEqual(states.POWER_OFF, node['power_state'])
-            self.assertIsNone(node['target_power_state'])
-            self.assertIsNone(node['last_error'])
+        node.refresh()
+        get_power_mock.assert_called_once_with(mock.ANY, mock.ANY)
+        self.assertEqual(states.POWER_OFF, node['power_state'])
+        self.assertIsNone(node['target_power_state'])
+        self.assertIsNone(node['last_error'])
 
-    def test_node_power_action_power_reboot(self):
+    @mock.patch.object(fake.FakePower, 'reboot', autospec=True)
+    @mock.patch.object(fake.FakePower, 'get_power_state', autospec=True)
+    def test_node_power_action_power_reboot(self, get_power_mock, reboot_mock):
         """Test for reboot a node."""
         node = obj_utils.create_test_node(self.context,
                                           uuid=uuidutils.generate_uuid(),
-                                          driver='fake',
+                                          driver='fake-hardware',
                                           power_state=states.POWER_ON)
         task = task_manager.TaskManager(self.context, node.uuid)
 
-        with mock.patch.object(self.driver.power, 'reboot') as reboot_mock:
-            with mock.patch.object(self.driver.power,
-                                   'get_power_state') as get_power_mock:
-                conductor_utils.node_power_action(task, states.REBOOT)
-                self.assertFalse(get_power_mock.called)
+        conductor_utils.node_power_action(task, states.REBOOT)
+        self.assertFalse(get_power_mock.called)
 
-            node.refresh()
-            reboot_mock.assert_called_once_with(mock.ANY, timeout=None)
-            self.assertEqual(states.POWER_ON, node['power_state'])
-            self.assertIsNone(node['target_power_state'])
-            self.assertIsNone(node['last_error'])
+        node.refresh()
+        reboot_mock.assert_called_once_with(mock.ANY, mock.ANY, timeout=None)
+        self.assertEqual(states.POWER_ON, node['power_state'])
+        self.assertIsNone(node['target_power_state'])
+        self.assertIsNone(node['last_error'])
 
-    def test_node_power_action_invalid_state(self):
+    @mock.patch.object(fake.FakePower, 'get_power_state', autospec=True)
+    def test_node_power_action_invalid_state(self, get_power_mock):
         """Test for exception when changing to an invalid power state."""
         node = obj_utils.create_test_node(self.context,
                                           uuid=uuidutils.generate_uuid(),
-                                          driver='fake',
+                                          driver='fake-hardware',
                                           power_state=states.POWER_ON)
         task = task_manager.TaskManager(self.context, node.uuid)
 
-        with mock.patch.object(self.driver.power,
-                               'get_power_state') as get_power_mock:
-            get_power_mock.return_value = states.POWER_ON
+        get_power_mock.return_value = states.POWER_ON
 
-            self.assertRaises(exception.InvalidParameterValue,
-                              conductor_utils.node_power_action,
-                              task,
-                              "INVALID_POWER_STATE")
+        self.assertRaises(exception.InvalidParameterValue,
+                          conductor_utils.node_power_action,
+                          task,
+                          "INVALID_POWER_STATE")
 
-            node.refresh()
-            self.assertFalse(get_power_mock.called)
-            self.assertEqual(states.POWER_ON, node['power_state'])
-            self.assertIsNone(node['target_power_state'])
-            self.assertIsNotNone(node['last_error'])
+        node.refresh()
+        self.assertFalse(get_power_mock.called)
+        self.assertEqual(states.POWER_ON, node['power_state'])
+        self.assertIsNone(node['target_power_state'])
+        self.assertIsNotNone(node['last_error'])
 
-            # last_error is cleared when a new transaction happens
-            conductor_utils.node_power_action(task, states.POWER_OFF)
-            node.refresh()
-            self.assertEqual(states.POWER_OFF, node['power_state'])
-            self.assertIsNone(node['target_power_state'])
-            self.assertIsNone(node['last_error'])
+        # last_error is cleared when a new transaction happens
+        conductor_utils.node_power_action(task, states.POWER_OFF)
+        node.refresh()
+        self.assertEqual(states.POWER_OFF, node['power_state'])
+        self.assertIsNone(node['target_power_state'])
+        self.assertIsNone(node['last_error'])
 
     @mock.patch('ironic.objects.node.NodeSetPowerStateNotification')
-    def test_node_power_action_invalid_state_notify(self, mock_notif):
+    @mock.patch.object(fake.FakePower, 'get_power_state', autospec=True)
+    def test_node_power_action_invalid_state_notify(self, get_power_mock,
+                                                    mock_notif):
         """Test for notification when changing to an invalid power state."""
         self.config(notification_level='info')
         self.config(host='my-host')
@@ -246,40 +241,38 @@ class NodePowerActionTestCase(db_base.DbTestCase):
         mock_notif.__name__ = 'NodeSetPowerStateNotification'
         node = obj_utils.create_test_node(self.context,
                                           uuid=uuidutils.generate_uuid(),
-                                          driver='fake',
+                                          driver='fake-hardware',
                                           power_state=states.POWER_ON)
         task = task_manager.TaskManager(self.context, node.uuid)
 
-        with mock.patch.object(self.driver.power,
-                               'get_power_state') as get_power_mock:
-            get_power_mock.return_value = states.POWER_ON
+        get_power_mock.return_value = states.POWER_ON
 
-            self.assertRaises(exception.InvalidParameterValue,
-                              conductor_utils.node_power_action,
-                              task,
-                              "INVALID_POWER_STATE")
+        self.assertRaises(exception.InvalidParameterValue,
+                          conductor_utils.node_power_action,
+                          task,
+                          "INVALID_POWER_STATE")
 
-            node.refresh()
-            self.assertFalse(get_power_mock.called)
-            self.assertEqual(states.POWER_ON, node.power_state)
-            self.assertIsNone(node.target_power_state)
-            self.assertIsNotNone(node.last_error)
+        node.refresh()
+        self.assertFalse(get_power_mock.called)
+        self.assertEqual(states.POWER_ON, node.power_state)
+        self.assertIsNone(node.target_power_state)
+        self.assertIsNotNone(node.last_error)
 
-            # 2 notifications should be sent: 1 .start and 1 .error
-            self.assertEqual(2, mock_notif.call_count)
-            self.assertEqual(2, mock_notif.return_value.emit.call_count)
+        # 2 notifications should be sent: 1 .start and 1 .error
+        self.assertEqual(2, mock_notif.call_count)
+        self.assertEqual(2, mock_notif.return_value.emit.call_count)
 
-            first_notif_args = mock_notif.call_args_list[0][1]
-            second_notif_args = mock_notif.call_args_list[1][1]
+        first_notif_args = mock_notif.call_args_list[0][1]
+        second_notif_args = mock_notif.call_args_list[1][1]
 
-            self.assertNotificationEqual(first_notif_args,
-                                         'ironic-conductor', CONF.host,
-                                         'baremetal.node.power_set.start',
-                                         obj_fields.NotificationLevel.INFO)
-            self.assertNotificationEqual(second_notif_args,
-                                         'ironic-conductor', CONF.host,
-                                         'baremetal.node.power_set.error',
-                                         obj_fields.NotificationLevel.ERROR)
+        self.assertNotificationEqual(first_notif_args,
+                                     'ironic-conductor', CONF.host,
+                                     'baremetal.node.power_set.start',
+                                     obj_fields.NotificationLevel.INFO)
+        self.assertNotificationEqual(second_notif_args,
+                                     'ironic-conductor', CONF.host,
+                                     'baremetal.node.power_set.error',
+                                     obj_fields.NotificationLevel.ERROR)
 
     def test_node_power_action_already_being_processed(self):
         """Test node power action after aborted power action.
@@ -292,7 +285,7 @@ class NodePowerActionTestCase(db_base.DbTestCase):
         """
         node = obj_utils.create_test_node(self.context,
                                           uuid=uuidutils.generate_uuid(),
-                                          driver='fake',
+                                          driver='fake-hardware',
                                           power_state=states.POWER_ON,
                                           target_power_state=states.POWER_OFF)
         task = task_manager.TaskManager(self.context, node.uuid)
@@ -305,7 +298,10 @@ class NodePowerActionTestCase(db_base.DbTestCase):
         self.assertIsNone(node['last_error'])
 
     @mock.patch.object(conductor_utils, 'LOG', autospec=True)
-    def test_node_power_action_in_same_state(self, log_mock):
+    @mock.patch.object(fake.FakePower, 'set_power_state', autospec=True)
+    @mock.patch.object(fake.FakePower, 'get_power_state', autospec=True)
+    def test_node_power_action_in_same_state(self, get_power_mock,
+                                             set_power_mock, log_mock):
         """Test setting node state to its present state.
 
         Test that we don't try to set the power state if the requested
@@ -313,32 +309,32 @@ class NodePowerActionTestCase(db_base.DbTestCase):
         """
         node = obj_utils.create_test_node(self.context,
                                           uuid=uuidutils.generate_uuid(),
-                                          driver='fake',
+                                          driver='fake-hardware',
                                           last_error='anything but None',
                                           power_state=states.POWER_ON)
         task = task_manager.TaskManager(self.context, node.uuid)
 
-        with mock.patch.object(self.driver.power,
-                               'get_power_state') as get_power_mock:
-            get_power_mock.return_value = states.POWER_ON
+        get_power_mock.return_value = states.POWER_ON
 
-            with mock.patch.object(self.driver.power,
-                                   'set_power_state') as set_power_mock:
-                conductor_utils.node_power_action(task, states.POWER_ON)
+        conductor_utils.node_power_action(task, states.POWER_ON)
 
-                node.refresh()
-                get_power_mock.assert_called_once_with(mock.ANY)
-                self.assertFalse(set_power_mock.called,
-                                 "set_power_state unexpectedly called")
-                self.assertEqual(states.POWER_ON, node['power_state'])
-                self.assertIsNone(node['target_power_state'])
-                self.assertIsNone(node['last_error'])
-                log_mock.warning.assert_called_once_with(
-                    u"Not going to change node %(node)s power state because "
-                    u"current state = requested state = '%(state)s'.",
-                    {'state': states.POWER_ON, 'node': node.uuid})
+        node.refresh()
+        get_power_mock.assert_called_once_with(mock.ANY, mock.ANY)
+        self.assertFalse(set_power_mock.called,
+                         "set_power_state unexpectedly called")
+        self.assertEqual(states.POWER_ON, node['power_state'])
+        self.assertIsNone(node['target_power_state'])
+        self.assertIsNone(node['last_error'])
+        log_mock.warning.assert_called_once_with(
+            u"Not going to change node %(node)s power state because "
+            u"current state = requested state = '%(state)s'.",
+            {'state': states.POWER_ON, 'node': node.uuid})
 
-    def test_node_power_action_in_same_state_db_not_in_sync(self):
+    @mock.patch.object(fake.FakePower, 'set_power_state', autospec=True)
+    @mock.patch.object(fake.FakePower, 'get_power_state', autospec=True)
+    def test_node_power_action_in_same_state_db_not_in_sync(self,
+                                                            get_power_mock,
+                                                            set_power_mock):
         """Test setting node state to its present state if DB is out of sync.
 
         Under rare conditions (see bug #1403106) database might contain stale
@@ -346,53 +342,51 @@ class NodePowerActionTestCase(db_base.DbTestCase):
         """
         node = obj_utils.create_test_node(self.context,
                                           uuid=uuidutils.generate_uuid(),
-                                          driver='fake',
+                                          driver='fake-hardware',
                                           last_error='anything but None',
                                           power_state=states.POWER_ON)
         task = task_manager.TaskManager(self.context, node.uuid)
 
-        with mock.patch.object(self.driver.power,
-                               'get_power_state') as get_power_mock:
-            get_power_mock.return_value = states.POWER_OFF
+        get_power_mock.return_value = states.POWER_OFF
 
-            with mock.patch.object(self.driver.power,
-                                   'set_power_state') as set_power_mock:
-                conductor_utils.node_power_action(task, states.POWER_OFF)
+        conductor_utils.node_power_action(task, states.POWER_OFF)
 
-                node.refresh()
-                get_power_mock.assert_called_once_with(mock.ANY)
-                self.assertFalse(set_power_mock.called,
-                                 "set_power_state unexpectedly called")
-                self.assertEqual(states.POWER_OFF, node['power_state'])
-                self.assertIsNone(node['target_power_state'])
-                self.assertIsNone(node['last_error'])
+        node.refresh()
+        get_power_mock.assert_called_once_with(mock.ANY, mock.ANY)
+        self.assertFalse(set_power_mock.called,
+                         "set_power_state unexpectedly called")
+        self.assertEqual(states.POWER_OFF, node['power_state'])
+        self.assertIsNone(node['target_power_state'])
+        self.assertIsNone(node['last_error'])
 
-    def test_node_power_action_failed_getting_state(self):
+    @mock.patch.object(fake.FakePower, 'get_power_state', autospec=True)
+    def test_node_power_action_failed_getting_state(self, get_power_mock):
         """Test for exception when we can't get the current power state."""
         node = obj_utils.create_test_node(self.context,
                                           uuid=uuidutils.generate_uuid(),
-                                          driver='fake',
+                                          driver='fake-hardware',
                                           power_state=states.POWER_ON)
         task = task_manager.TaskManager(self.context, node.uuid)
 
-        with mock.patch.object(self.driver.power,
-                               'get_power_state') as get_power_state_mock:
-            get_power_state_mock.side_effect = (
-                exception.InvalidParameterValue('failed getting power state'))
+        get_power_mock.side_effect = (
+            exception.InvalidParameterValue('failed getting power state'))
 
-            self.assertRaises(exception.InvalidParameterValue,
-                              conductor_utils.node_power_action,
-                              task,
-                              states.POWER_ON)
+        self.assertRaises(exception.InvalidParameterValue,
+                          conductor_utils.node_power_action,
+                          task,
+                          states.POWER_ON)
 
-            node.refresh()
-            get_power_state_mock.assert_called_once_with(mock.ANY)
-            self.assertEqual(states.POWER_ON, node['power_state'])
-            self.assertIsNone(node['target_power_state'])
-            self.assertIsNotNone(node['last_error'])
+        node.refresh()
+        get_power_mock.assert_called_once_with(mock.ANY, mock.ANY)
+        self.assertEqual(states.POWER_ON, node['power_state'])
+        self.assertIsNone(node['target_power_state'])
+        self.assertIsNotNone(node['last_error'])
 
     @mock.patch('ironic.objects.node.NodeSetPowerStateNotification')
-    def test_node_power_action_failed_getting_state_notify(self, mock_notif):
+    @mock.patch.object(fake.FakePower, 'get_power_state', autospec=True)
+    def test_node_power_action_failed_getting_state_notify(self,
+                                                           get_power_mock,
+                                                           mock_notif):
         """Test for notification when we can't get the current power state."""
         self.config(notification_level='info')
         self.config(host='my-host')
@@ -400,73 +394,74 @@ class NodePowerActionTestCase(db_base.DbTestCase):
         mock_notif.__name__ = 'NodeSetPowerStateNotification'
         node = obj_utils.create_test_node(self.context,
                                           uuid=uuidutils.generate_uuid(),
-                                          driver='fake',
+                                          driver='fake-hardware',
                                           power_state=states.POWER_ON)
         task = task_manager.TaskManager(self.context, node.uuid)
 
-        with mock.patch.object(self.driver.power,
-                               'get_power_state') as get_power_state_mock:
-            get_power_state_mock.side_effect = (
-                exception.InvalidParameterValue('failed getting power state'))
+        get_power_mock.side_effect = (
+            exception.InvalidParameterValue('failed getting power state'))
 
-            self.assertRaises(exception.InvalidParameterValue,
-                              conductor_utils.node_power_action,
-                              task,
-                              states.POWER_ON)
+        self.assertRaises(exception.InvalidParameterValue,
+                          conductor_utils.node_power_action,
+                          task,
+                          states.POWER_ON)
 
-            node.refresh()
-            get_power_state_mock.assert_called_once_with(mock.ANY)
-            self.assertEqual(states.POWER_ON, node.power_state)
-            self.assertIsNone(node.target_power_state)
-            self.assertIsNotNone(node.last_error)
+        node.refresh()
+        get_power_mock.assert_called_once_with(mock.ANY, mock.ANY)
+        self.assertEqual(states.POWER_ON, node.power_state)
+        self.assertIsNone(node.target_power_state)
+        self.assertIsNotNone(node.last_error)
 
-            # 2 notifications should be sent: 1 .start and 1 .error
-            self.assertEqual(2, mock_notif.call_count)
-            self.assertEqual(2, mock_notif.return_value.emit.call_count)
+        # 2 notifications should be sent: 1 .start and 1 .error
+        self.assertEqual(2, mock_notif.call_count)
+        self.assertEqual(2, mock_notif.return_value.emit.call_count)
 
-            first_notif_args = mock_notif.call_args_list[0][1]
-            second_notif_args = mock_notif.call_args_list[1][1]
+        first_notif_args = mock_notif.call_args_list[0][1]
+        second_notif_args = mock_notif.call_args_list[1][1]
 
-            self.assertNotificationEqual(first_notif_args,
-                                         'ironic-conductor', CONF.host,
-                                         'baremetal.node.power_set.start',
-                                         obj_fields.NotificationLevel.INFO)
-            self.assertNotificationEqual(second_notif_args,
-                                         'ironic-conductor', CONF.host,
-                                         'baremetal.node.power_set.error',
-                                         obj_fields.NotificationLevel.ERROR)
+        self.assertNotificationEqual(first_notif_args,
+                                     'ironic-conductor', CONF.host,
+                                     'baremetal.node.power_set.start',
+                                     obj_fields.NotificationLevel.INFO)
+        self.assertNotificationEqual(second_notif_args,
+                                     'ironic-conductor', CONF.host,
+                                     'baremetal.node.power_set.error',
+                                     obj_fields.NotificationLevel.ERROR)
 
-    def test_node_power_action_set_power_failure(self):
+    @mock.patch.object(fake.FakePower, 'set_power_state', autospec=True)
+    @mock.patch.object(fake.FakePower, 'get_power_state', autospec=True)
+    def test_node_power_action_set_power_failure(self, get_power_mock,
+                                                 set_power_mock):
         """Test if an exception is thrown when the set_power call fails."""
         node = obj_utils.create_test_node(self.context,
                                           uuid=uuidutils.generate_uuid(),
-                                          driver='fake',
+                                          driver='fake-hardware',
                                           power_state=states.POWER_OFF)
         task = task_manager.TaskManager(self.context, node.uuid)
 
-        with mock.patch.object(self.driver.power,
-                               'get_power_state') as get_power_mock:
-            with mock.patch.object(self.driver.power,
-                                   'set_power_state') as set_power_mock:
-                get_power_mock.return_value = states.POWER_OFF
-                set_power_mock.side_effect = exception.IronicException()
+        get_power_mock.return_value = states.POWER_OFF
+        set_power_mock.side_effect = exception.IronicException()
 
-                self.assertRaises(
-                    exception.IronicException,
-                    conductor_utils.node_power_action,
-                    task,
-                    states.POWER_ON)
+        self.assertRaises(
+            exception.IronicException,
+            conductor_utils.node_power_action,
+            task,
+            states.POWER_ON)
 
-                node.refresh()
-                get_power_mock.assert_called_once_with(mock.ANY)
-                set_power_mock.assert_called_once_with(
-                    mock.ANY, states.POWER_ON, timeout=None)
-                self.assertEqual(states.POWER_OFF, node['power_state'])
-                self.assertIsNone(node['target_power_state'])
-                self.assertIsNotNone(node['last_error'])
+        node.refresh()
+        get_power_mock.assert_called_once_with(mock.ANY, mock.ANY)
+        set_power_mock.assert_called_once_with(
+            mock.ANY, mock.ANY, states.POWER_ON, timeout=None)
+        self.assertEqual(states.POWER_OFF, node['power_state'])
+        self.assertIsNone(node['target_power_state'])
+        self.assertIsNotNone(node['last_error'])
 
     @mock.patch('ironic.objects.node.NodeSetPowerStateNotification')
-    def test_node_power_action_set_power_failure_notify(self, mock_notif):
+    @mock.patch.object(fake.FakePower, 'set_power_state', autospec=True)
+    @mock.patch.object(fake.FakePower, 'get_power_state', autospec=True)
+    def test_node_power_action_set_power_failure_notify(self, get_power_mock,
+                                                        set_power_mock,
+                                                        mock_notif):
         """Test if a notification is sent when the set_power call fails."""
         self.config(notification_level='info')
         self.config(host='my-host')
@@ -474,109 +469,99 @@ class NodePowerActionTestCase(db_base.DbTestCase):
         mock_notif.__name__ = 'NodeSetPowerStateNotification'
         node = obj_utils.create_test_node(self.context,
                                           uuid=uuidutils.generate_uuid(),
-                                          driver='fake',
+                                          driver='fake-hardware',
                                           power_state=states.POWER_OFF)
         task = task_manager.TaskManager(self.context, node.uuid)
 
-        with mock.patch.object(self.driver.power,
-                               'get_power_state') as get_power_mock:
-            with mock.patch.object(self.driver.power,
-                                   'set_power_state') as set_power_mock:
-                get_power_mock.return_value = states.POWER_OFF
-                set_power_mock.side_effect = exception.IronicException()
+        get_power_mock.return_value = states.POWER_OFF
+        set_power_mock.side_effect = exception.IronicException()
 
-                self.assertRaises(
-                    exception.IronicException,
-                    conductor_utils.node_power_action,
-                    task,
-                    states.POWER_ON)
+        self.assertRaises(
+            exception.IronicException,
+            conductor_utils.node_power_action,
+            task,
+            states.POWER_ON)
 
-                node.refresh()
-                get_power_mock.assert_called_once_with(mock.ANY)
-                set_power_mock.assert_called_once_with(
-                    mock.ANY, states.POWER_ON, timeout=None)
-                self.assertEqual(states.POWER_OFF, node.power_state)
-                self.assertIsNone(node.target_power_state)
-                self.assertIsNotNone(node.last_error)
+        node.refresh()
+        get_power_mock.assert_called_once_with(mock.ANY, mock.ANY)
+        set_power_mock.assert_called_once_with(
+            mock.ANY, mock.ANY, states.POWER_ON, timeout=None)
+        self.assertEqual(states.POWER_OFF, node.power_state)
+        self.assertIsNone(node.target_power_state)
+        self.assertIsNotNone(node.last_error)
 
-                # 2 notifications should be sent: 1 .start and 1 .error
-                self.assertEqual(2, mock_notif.call_count)
-                self.assertEqual(2, mock_notif.return_value.emit.call_count)
+        # 2 notifications should be sent: 1 .start and 1 .error
+        self.assertEqual(2, mock_notif.call_count)
+        self.assertEqual(2, mock_notif.return_value.emit.call_count)
 
-                first_notif_args = mock_notif.call_args_list[0][1]
-                second_notif_args = mock_notif.call_args_list[1][1]
+        first_notif_args = mock_notif.call_args_list[0][1]
+        second_notif_args = mock_notif.call_args_list[1][1]
 
-                self.assertNotificationEqual(first_notif_args,
-                                             'ironic-conductor', CONF.host,
-                                             'baremetal.node.power_set.start',
-                                             obj_fields.NotificationLevel.INFO)
-                self.assertNotificationEqual(
-                    second_notif_args, 'ironic-conductor', CONF.host,
-                    'baremetal.node.power_set.error',
-                    obj_fields.NotificationLevel.ERROR)
+        self.assertNotificationEqual(first_notif_args,
+                                     'ironic-conductor', CONF.host,
+                                     'baremetal.node.power_set.start',
+                                     obj_fields.NotificationLevel.INFO)
+        self.assertNotificationEqual(
+            second_notif_args, 'ironic-conductor', CONF.host,
+            'baremetal.node.power_set.error',
+            obj_fields.NotificationLevel.ERROR)
 
-    def test_node_power_action_power_on_storage_attach(self):
+    @mock.patch.object(fake.FakeStorage, 'attach_volumes', autospec=True)
+    def test_node_power_action_power_on_storage_attach(self, attach_mock):
         """Test node_power_action to turn node power on and attach storage."""
         node = obj_utils.create_test_node(self.context,
                                           uuid=uuidutils.generate_uuid(),
-                                          driver='fake',
+                                          driver='fake-hardware',
                                           power_state=states.POWER_OFF,
-                                          storage_interface="cinder",
+                                          storage_interface="fake",
                                           provision_state=states.ACTIVE)
         task = task_manager.TaskManager(self.context, node.uuid)
 
-        with mock.patch.object(task.driver.storage,
-                               'attach_volumes',
-                               autospec=True) as attach_mock:
-            conductor_utils.node_power_action(task, states.POWER_ON)
+        conductor_utils.node_power_action(task, states.POWER_ON)
 
-            node.refresh()
-            attach_mock.assert_called_once_with(task)
-            self.assertEqual(states.POWER_ON, node['power_state'])
-            self.assertIsNone(node['target_power_state'])
-            self.assertIsNone(node['last_error'])
+        node.refresh()
+        attach_mock.assert_called_once_with(mock.ANY, task)
+        self.assertEqual(states.POWER_ON, node['power_state'])
+        self.assertIsNone(node['target_power_state'])
+        self.assertIsNone(node['last_error'])
 
-    def test_node_power_action_reboot_storage_attach(self):
+    @mock.patch.object(fake.FakeStorage, 'attach_volumes', autospec=True)
+    def test_node_power_action_reboot_storage_attach(self, attach_mock):
         """Test node_power_action to reboot the node and attach storage."""
         node = obj_utils.create_test_node(self.context,
                                           uuid=uuidutils.generate_uuid(),
-                                          driver='fake',
+                                          driver='fake-hardware',
                                           power_state=states.POWER_ON,
-                                          storage_interface="cinder",
+                                          storage_interface="fake",
                                           provision_state=states.ACTIVE)
         task = task_manager.TaskManager(self.context, node.uuid)
 
-        with mock.patch.object(task.driver.storage,
-                               'attach_volumes',
-                               autospec=True) as attach_mock:
-            conductor_utils.node_power_action(task, states.REBOOT)
+        conductor_utils.node_power_action(task, states.REBOOT)
 
-            node.refresh()
-            attach_mock.assert_called_once_with(task)
-            self.assertEqual(states.POWER_ON, node['power_state'])
-            self.assertIsNone(node['target_power_state'])
-            self.assertIsNone(node['last_error'])
+        node.refresh()
+        attach_mock.assert_called_once_with(mock.ANY, task)
+        self.assertEqual(states.POWER_ON, node['power_state'])
+        self.assertIsNone(node['target_power_state'])
+        self.assertIsNone(node['last_error'])
 
-    def test_node_power_action_power_off_storage_detach(self):
+    @mock.patch.object(fake.FakeStorage, 'detach_volumes', autospec=True)
+    def test_node_power_action_power_off_storage_detach(self, detach_mock):
         """Test node_power_action to turn node power off and detach storage."""
         node = obj_utils.create_test_node(self.context,
                                           uuid=uuidutils.generate_uuid(),
-                                          driver='fake',
+                                          driver='fake-hardware',
                                           power_state=states.POWER_ON,
-                                          storage_interface="cinder",
+                                          storage_interface="fake",
                                           provision_state=states.ACTIVE)
         task = task_manager.TaskManager(self.context, node.uuid)
 
-        with mock.patch.object(task.driver.storage,
-                               'detach_volumes',
-                               autospec=True) as detach_mock:
-            conductor_utils.node_power_action(task, states.POWER_OFF)
+        conductor_utils.node_power_action(task, states.POWER_OFF)
 
-            node.refresh()
-            detach_mock.assert_called_once_with(task)
-            self.assertEqual(states.POWER_OFF, node['power_state'])
-            self.assertIsNone(node['target_power_state'])
-            self.assertIsNone(node['last_error'])
+        node.refresh()
+        detach_mock.assert_called_once_with(mock.ANY, task)
+        self.assertEqual(states.POWER_OFF, node['power_state'])
+        self.assertIsNone(node['target_power_state'])
+        self.assertIsNone(node['last_error'])
 
     def test__calculate_target_state(self):
         for new_state in (states.POWER_ON, states.REBOOT, states.SOFT_REBOOT):
@@ -589,7 +574,8 @@ class NodePowerActionTestCase(db_base.DbTestCase):
                 conductor_utils._calculate_target_state(new_state))
         self.assertIsNone(conductor_utils._calculate_target_state('bad_state'))
 
-    def test__can_skip_state_change_different_state(self):
+    @mock.patch.object(fake.FakePower, 'get_power_state', autospec=True)
+    def test__can_skip_state_change_different_state(self, get_power_mock):
         """Test setting node state to different state.
 
         Test that we should change state if requested state is different from
@@ -597,23 +583,22 @@ class NodePowerActionTestCase(db_base.DbTestCase):
         """
         node = obj_utils.create_test_node(self.context,
                                           uuid=uuidutils.generate_uuid(),
-                                          driver='fake',
+                                          driver='fake-hardware',
                                           last_error='anything but None',
                                           power_state=states.POWER_ON)
         task = task_manager.TaskManager(self.context, node.uuid)
 
-        with mock.patch.object(self.driver.power,
-                               'get_power_state') as get_power_mock:
-            get_power_mock.return_value = states.POWER_ON
+        get_power_mock.return_value = states.POWER_ON
 
-            result = conductor_utils._can_skip_state_change(
-                task, states.POWER_OFF)
+        result = conductor_utils._can_skip_state_change(
+            task, states.POWER_OFF)
 
-            self.assertFalse(result)
-            get_power_mock.assert_called_once_with(mock.ANY)
+        self.assertFalse(result)
+        get_power_mock.assert_called_once_with(mock.ANY, mock.ANY)
 
     @mock.patch.object(conductor_utils, 'LOG', autospec=True)
-    def test__can_skip_state_change_same_state(self, mock_log):
+    @mock.patch.object(fake.FakePower, 'get_power_state', autospec=True)
+    def test__can_skip_state_change_same_state(self, get_power_mock, mock_log):
         """Test setting node state to its present state.
 
         Test that we don't try to set the power state if the requested
@@ -621,30 +606,29 @@ class NodePowerActionTestCase(db_base.DbTestCase):
         """
         node = obj_utils.create_test_node(self.context,
                                           uuid=uuidutils.generate_uuid(),
-                                          driver='fake',
+                                          driver='fake-hardware',
                                           last_error='anything but None',
                                           power_state=states.POWER_ON)
         task = task_manager.TaskManager(self.context, node.uuid)
 
-        with mock.patch.object(self.driver.power,
-                               'get_power_state') as get_power_mock:
-            get_power_mock.return_value = states.POWER_ON
+        get_power_mock.return_value = states.POWER_ON
 
-            result = conductor_utils._can_skip_state_change(
-                task, states.POWER_ON)
+        result = conductor_utils._can_skip_state_change(
+            task, states.POWER_ON)
 
-            self.assertTrue(result)
-            node.refresh()
-            get_power_mock.assert_called_once_with(mock.ANY)
-            self.assertEqual(states.POWER_ON, node['power_state'])
-            self.assertEqual(states.NOSTATE, node['target_power_state'])
-            self.assertIsNone(node['last_error'])
-            mock_log.warning.assert_called_once_with(
-                u"Not going to change node %(node)s power state because "
-                u"current state = requested state = '%(state)s'.",
-                {'state': states.POWER_ON, 'node': node.uuid})
+        self.assertTrue(result)
+        node.refresh()
+        get_power_mock.assert_called_once_with(mock.ANY, mock.ANY)
+        self.assertEqual(states.POWER_ON, node['power_state'])
+        self.assertEqual(states.NOSTATE, node['target_power_state'])
+        self.assertIsNone(node['last_error'])
+        mock_log.warning.assert_called_once_with(
+            u"Not going to change node %(node)s power state because "
+            u"current state = requested state = '%(state)s'.",
+            {'state': states.POWER_ON, 'node': node.uuid})
 
-    def test__can_skip_state_change_db_not_in_sync(self):
+    @mock.patch.object(fake.FakePower, 'get_power_state', autospec=True)
+    def test__can_skip_state_change_db_not_in_sync(self, get_power_mock):
         """Test setting node state to its present state if DB is out of sync.
 
         Under rare conditions (see bug #1403106) database might contain stale
@@ -652,29 +636,27 @@ class NodePowerActionTestCase(db_base.DbTestCase):
         """
         node = obj_utils.create_test_node(self.context,
                                           uuid=uuidutils.generate_uuid(),
-                                          driver='fake',
+                                          driver='fake-hardware',
                                           last_error='anything but None',
                                           power_state=states.POWER_ON)
         task = task_manager.TaskManager(self.context, node.uuid)
 
-        with mock.patch.object(self.driver.power,
-                               'get_power_state') as get_power_mock:
-            get_power_mock.return_value = states.POWER_OFF
+        get_power_mock.return_value = states.POWER_OFF
 
-            result = conductor_utils._can_skip_state_change(
-                task, states.POWER_OFF)
+        result = conductor_utils._can_skip_state_change(task, states.POWER_OFF)
 
-            self.assertTrue(result)
+        self.assertTrue(result)
 
-            node.refresh()
-            get_power_mock.assert_called_once_with(mock.ANY)
-            self.assertEqual(states.POWER_OFF, node['power_state'])
-            self.assertEqual(states.NOSTATE, node['target_power_state'])
-            self.assertIsNone(node['last_error'])
+        node.refresh()
+        get_power_mock.assert_called_once_with(mock.ANY, mock.ANY)
+        self.assertEqual(states.POWER_OFF, node['power_state'])
+        self.assertEqual(states.NOSTATE, node['target_power_state'])
+        self.assertIsNone(node['last_error'])
 
     @mock.patch('ironic.objects.node.NodeSetPowerStateNotification')
+    @mock.patch.object(fake.FakePower, 'get_power_state', autospec=True)
     def test__can_skip_state_change_failed_getting_state_notify(
-            self, mock_notif):
+            self, get_power_mock, mock_notif):
         """Test for notification & exception when can't get power state.
 
         Test to make sure we generate a notification and also that an exception
@@ -686,36 +668,34 @@ class NodePowerActionTestCase(db_base.DbTestCase):
         mock_notif.__name__ = 'NodeSetPowerStateNotification'
         node = obj_utils.create_test_node(self.context,
                                           uuid=uuidutils.generate_uuid(),
-                                          driver='fake',
+                                          driver='fake-hardware',
                                           power_state=states.POWER_ON)
         task = task_manager.TaskManager(self.context, node.uuid)
 
-        with mock.patch.object(self.driver.power,
-                               'get_power_state') as get_power_state_mock:
-            get_power_state_mock.side_effect = (
-                exception.InvalidParameterValue('failed getting power state'))
+        get_power_mock.side_effect = (
+            exception.InvalidParameterValue('failed getting power state'))
 
-            self.assertRaises(exception.InvalidParameterValue,
-                              conductor_utils._can_skip_state_change,
-                              task,
-                              states.POWER_ON)
+        self.assertRaises(exception.InvalidParameterValue,
+                          conductor_utils._can_skip_state_change,
+                          task,
+                          states.POWER_ON)
 
-            node.refresh()
-            get_power_state_mock.assert_called_once_with(mock.ANY)
-            self.assertEqual(states.POWER_ON, node.power_state)
-            self.assertEqual(states.NOSTATE, node['target_power_state'])
-            self.assertIsNotNone(node.last_error)
+        node.refresh()
+        get_power_mock.assert_called_once_with(mock.ANY, mock.ANY)
+        self.assertEqual(states.POWER_ON, node.power_state)
+        self.assertEqual(states.NOSTATE, node['target_power_state'])
+        self.assertIsNotNone(node.last_error)
 
-            # 1 notification should be sent for the error
-            self.assertEqual(1, mock_notif.call_count)
-            self.assertEqual(1, mock_notif.return_value.emit.call_count)
+        # 1 notification should be sent for the error
+        self.assertEqual(1, mock_notif.call_count)
+        self.assertEqual(1, mock_notif.return_value.emit.call_count)
 
-            notif_args = mock_notif.call_args_list[0][1]
+        notif_args = mock_notif.call_args_list[0][1]
 
-            self.assertNotificationEqual(notif_args,
-                                         'ironic-conductor', CONF.host,
-                                         'baremetal.node.power_set.error',
-                                         obj_fields.NotificationLevel.ERROR)
+        self.assertNotificationEqual(notif_args,
+                                     'ironic-conductor', CONF.host,
+                                     'baremetal.node.power_set.error',
+                                     obj_fields.NotificationLevel.ERROR)
 
     def test_node_power_action_reboot_no_timeout(self):
         """Test node reboot using Power Interface with no timeout arg."""
@@ -748,113 +728,103 @@ class NodePowerActionTestCase(db_base.DbTestCase):
 
 class NodeSoftPowerActionTestCase(db_base.DbTestCase):
 
-    def setUp(self):
-        super(NodeSoftPowerActionTestCase, self).setUp()
-        self.config(enabled_drivers=['fake_soft_power'])
-        self.driver = driver_factory.get_driver("fake_soft_power")
-
-    def test_node_power_action_power_soft_reboot(self):
+    @mock.patch.object(fake.FakePower, 'get_power_state', autospec=True)
+    def test_node_power_action_power_soft_reboot(self, get_power_mock):
         """Test for soft reboot a node."""
         node = obj_utils.create_test_node(self.context,
                                           uuid=uuidutils.generate_uuid(),
-                                          driver='fake_soft_power',
+                                          driver='fake-hardware',
                                           power_state=states.POWER_ON)
         task = task_manager.TaskManager(self.context, node.uuid)
 
-        with mock.patch.object(self.driver.power,
-                               'get_power_state') as get_power_mock:
-            get_power_mock.return_value = states.POWER_ON
+        get_power_mock.return_value = states.POWER_ON
 
-            conductor_utils.node_power_action(task, states.SOFT_REBOOT)
+        conductor_utils.node_power_action(task, states.SOFT_REBOOT)
 
-            node.refresh()
-            self.assertFalse(get_power_mock.called)
-            self.assertEqual(states.POWER_ON, node['power_state'])
-            self.assertIsNone(node['target_power_state'])
-            self.assertIsNone(node['last_error'])
+        node.refresh()
+        self.assertFalse(get_power_mock.called)
+        self.assertEqual(states.POWER_ON, node['power_state'])
+        self.assertIsNone(node['target_power_state'])
+        self.assertIsNone(node['last_error'])
 
-    def test_node_power_action_power_soft_reboot_timeout(self):
+    @mock.patch.object(fake.FakePower, 'get_power_state', autospec=True)
+    def test_node_power_action_power_soft_reboot_timeout(self, get_power_mock):
         """Test for soft reboot a node."""
         node = obj_utils.create_test_node(self.context,
                                           uuid=uuidutils.generate_uuid(),
-                                          driver='fake_soft_power',
+                                          driver='fake-hardware',
                                           power_state=states.POWER_ON)
         task = task_manager.TaskManager(self.context, node.uuid)
 
-        with mock.patch.object(self.driver.power,
-                               'get_power_state') as get_power_mock:
-            get_power_mock.return_value = states.POWER_ON
+        get_power_mock.return_value = states.POWER_ON
 
-            conductor_utils.node_power_action(task, states.SOFT_REBOOT,
-                                              timeout=2)
+        conductor_utils.node_power_action(task, states.SOFT_REBOOT,
+                                          timeout=2)
 
-            node.refresh()
-            self.assertFalse(get_power_mock.called)
-            self.assertEqual(states.POWER_ON, node['power_state'])
-            self.assertIsNone(node['target_power_state'])
-            self.assertIsNone(node['last_error'])
+        node.refresh()
+        self.assertFalse(get_power_mock.called)
+        self.assertEqual(states.POWER_ON, node['power_state'])
+        self.assertIsNone(node['target_power_state'])
+        self.assertIsNone(node['last_error'])
 
-    def test_node_power_action_soft_power_off(self):
+    @mock.patch.object(fake.FakePower, 'get_power_state', autospec=True)
+    def test_node_power_action_soft_power_off(self, get_power_mock):
         """Test node_power_action to turn node soft power off."""
         node = obj_utils.create_test_node(self.context,
                                           uuid=uuidutils.generate_uuid(),
-                                          driver='fake_soft_power',
+                                          driver='fake-hardware',
                                           power_state=states.POWER_ON)
         task = task_manager.TaskManager(self.context, node.uuid)
 
-        with mock.patch.object(self.driver.power,
-                               'get_power_state') as get_power_mock:
-            get_power_mock.return_value = states.POWER_ON
+        get_power_mock.return_value = states.POWER_ON
 
-            conductor_utils.node_power_action(task, states.SOFT_POWER_OFF)
+        conductor_utils.node_power_action(task, states.SOFT_POWER_OFF)
 
-            node.refresh()
-            get_power_mock.assert_called_once_with(mock.ANY)
-            self.assertEqual(states.POWER_OFF, node['power_state'])
-            self.assertIsNone(node['target_power_state'])
-            self.assertIsNone(node['last_error'])
+        node.refresh()
+        get_power_mock.assert_called_once_with(mock.ANY, mock.ANY)
+        self.assertEqual(states.POWER_OFF, node['power_state'])
+        self.assertIsNone(node['target_power_state'])
+        self.assertIsNone(node['last_error'])
 
-    def test_node_power_action_soft_power_off_timeout(self):
+    @mock.patch.object(fake.FakePower, 'get_power_state', autospec=True)
+    def test_node_power_action_soft_power_off_timeout(self, get_power_mock):
         """Test node_power_action to turn node soft power off."""
         node = obj_utils.create_test_node(self.context,
                                           uuid=uuidutils.generate_uuid(),
-                                          driver='fake_soft_power',
+                                          driver='fake-hardware',
                                           power_state=states.POWER_ON)
         task = task_manager.TaskManager(self.context, node.uuid)
 
-        with mock.patch.object(self.driver.power,
-                               'get_power_state') as get_power_mock:
-            get_power_mock.return_value = states.POWER_ON
+        get_power_mock.return_value = states.POWER_ON
 
-            conductor_utils.node_power_action(task, states.SOFT_POWER_OFF,
-                                              timeout=2)
+        conductor_utils.node_power_action(task, states.SOFT_POWER_OFF,
+                                          timeout=2)
 
-            node.refresh()
-            get_power_mock.assert_called_once_with(mock.ANY)
-            self.assertEqual(states.POWER_OFF, node['power_state'])
-            self.assertIsNone(node['target_power_state'])
-            self.assertIsNone(node['last_error'])
+        node.refresh()
+        get_power_mock.assert_called_once_with(mock.ANY, mock.ANY)
+        self.assertEqual(states.POWER_OFF, node['power_state'])
+        self.assertIsNone(node['target_power_state'])
+        self.assertIsNone(node['last_error'])
 
-    def test_node_power_action_soft_power_off_storage_detach(self):
+    @mock.patch.object(fake.FakeStorage, 'detach_volumes', autospec=True)
+    def test_node_power_action_soft_power_off_storage_detach(self,
+                                                             detach_mock):
         """Test node_power_action to soft power off node and detach storage."""
         node = obj_utils.create_test_node(self.context,
                                           uuid=uuidutils.generate_uuid(),
-                                          driver='fake_soft_power',
+                                          driver='fake-hardware',
                                           power_state=states.POWER_ON,
-                                          storage_interface="cinder",
+                                          storage_interface="fake",
                                           provision_state=states.ACTIVE)
         task = task_manager.TaskManager(self.context, node.uuid)
 
-        with mock.patch.object(task.driver.storage,
-                               'detach_volumes',
-                               autospec=True) as detach_mock:
-            conductor_utils.node_power_action(task, states.SOFT_POWER_OFF)
+        conductor_utils.node_power_action(task, states.SOFT_POWER_OFF)
 
-            node.refresh()
-            detach_mock.assert_called_once_with(task)
-            self.assertEqual(states.POWER_OFF, node['power_state'])
-            self.assertIsNone(node['target_power_state'])
-            self.assertIsNone(node['last_error'])
+        node.refresh()
+        detach_mock.assert_called_once_with(mock.ANY, task)
+        self.assertEqual(states.POWER_OFF, node['power_state'])
+        self.assertIsNone(node['target_power_state'])
+        self.assertIsNone(node['last_error'])
 
 
 class CleanupAfterTimeoutTestCase(tests_base.TestCase):
@@ -922,13 +892,15 @@ class NodeCleaningStepsTestCase(db_base.DbTestCase):
             'argsinfo': {'arg1': {'description': 'desc1', 'required': True},
                          'arg2': {'description': 'desc2'}}}
 
+    @mock.patch('ironic.drivers.modules.fake.FakeBIOS.get_clean_steps',
+                lambda self, task: [])
     @mock.patch('ironic.drivers.modules.fake.FakeDeploy.get_clean_steps')
     @mock.patch('ironic.drivers.modules.fake.FakePower.get_clean_steps')
     def test__get_cleaning_steps(self, mock_power_steps, mock_deploy_steps):
         # Test getting cleaning steps, with one driver returning None, two
         # conflicting priorities, and asserting they are ordered properly.
         node = obj_utils.create_test_node(
-            self.context, driver='fake',
+            self.context, driver='fake-hardware',
             provision_state=states.CLEANING,
             target_provision_state=states.AVAILABLE)
 
@@ -942,12 +914,14 @@ class NodeCleaningStepsTestCase(db_base.DbTestCase):
 
         self.assertEqual(self.clean_steps, steps)
 
+    @mock.patch('ironic.drivers.modules.fake.FakeBIOS.get_clean_steps',
+                lambda self, task: [])
     @mock.patch('ironic.drivers.modules.fake.FakeDeploy.get_clean_steps')
     @mock.patch('ironic.drivers.modules.fake.FakePower.get_clean_steps')
     def test__get_cleaning_steps_unsorted(self, mock_power_steps,
                                           mock_deploy_steps):
         node = obj_utils.create_test_node(
-            self.context, driver='fake',
+            self.context, driver='fake-hardware',
             provision_state=states.CLEANING,
             target_provision_state=states.MANAGEABLE)
 
@@ -968,7 +942,7 @@ class NodeCleaningStepsTestCase(db_base.DbTestCase):
         # conflicting priorities, and asserting they are ordered properly.
         # Should discard zero-priority (manual) clean step
         node = obj_utils.create_test_node(
-            self.context, driver='fake',
+            self.context, driver='fake-hardware',
             provision_state=states.CLEANING,
             target_provision_state=states.AVAILABLE)
 
@@ -990,7 +964,7 @@ class NodeCleaningStepsTestCase(db_base.DbTestCase):
         mock_steps.return_value = self.clean_steps
 
         node = obj_utils.create_test_node(
-            self.context, driver='fake',
+            self.context, driver='fake-hardware',
             provision_state=states.CLEANING,
             target_provision_state=states.AVAILABLE,
             last_error=None,
@@ -1015,7 +989,7 @@ class NodeCleaningStepsTestCase(db_base.DbTestCase):
         mock_validate_user_steps.return_value = clean_steps
 
         node = obj_utils.create_test_node(
-            self.context, driver='fake',
+            self.context, driver='fake-hardware',
             provision_state=states.CLEANING,
             target_provision_state=states.MANAGEABLE,
             last_error=None,
@@ -1439,7 +1413,8 @@ class ValidatePortPhysnetTestCase(db_base.DbTestCase):
 
     def setUp(self):
         super(ValidatePortPhysnetTestCase, self).setUp()
-        self.node = obj_utils.create_test_node(self.context, driver='fake')
+        self.node = obj_utils.create_test_node(self.context,
+                                               driver='fake-hardware')
 
     @mock.patch.object(objects.Port, 'obj_what_changed')
     def test_validate_port_physnet_no_portgroup_create(self, mock_owc):
@@ -1758,7 +1733,7 @@ class MiscTestCase(db_base.DbTestCase):
         super(MiscTestCase, self).setUp()
         self.node = obj_utils.create_test_node(
             self.context,
-            driver='fake',
+            driver='fake-hardware',
             instance_info={'rescue_password': 'pass'})
 
     def _test_remove_node_rescue_password(self, save=True):
@@ -1781,7 +1756,8 @@ class ValidateInstanceInfoTraitsTestCase(tests_base.TestCase):
 
     def setUp(self):
         super(ValidateInstanceInfoTraitsTestCase, self).setUp()
-        self.node = obj_utils.get_test_node(self.context, driver='fake',
+        self.node = obj_utils.get_test_node(self.context,
+                                            driver='fake-hardware',
                                             traits=['trait1', 'trait2'])
 
     def test_validate_instance_info_traits_no_instance_traits(self):

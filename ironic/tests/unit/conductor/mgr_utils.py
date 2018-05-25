@@ -22,7 +22,6 @@ import mock
 from oslo_utils import strutils
 from oslo_utils import uuidutils
 
-from ironic.common import driver_factory
 from ironic.common import exception
 from ironic.common import states
 from ironic.conductor import manager
@@ -126,25 +125,10 @@ class ServiceSetUpMixin(object):
     def setUp(self):
         super(ServiceSetUpMixin, self).setUp()
         self.hostname = 'test-host'
-        self.config(enabled_drivers=['fake'])
         self.config(node_locked_retry_attempts=1, group='conductor')
         self.config(node_locked_retry_interval=0, group='conductor')
 
-        self.config(enabled_hardware_types=['fake-hardware',
-                                            'manual-management'])
-        self.config(enabled_boot_interfaces=['fake', 'pxe'])
-        self.config(enabled_console_interfaces=['fake', 'no-console'])
-        self.config(enabled_deploy_interfaces=['fake', 'iscsi'])
-        self.config(enabled_inspect_interfaces=['fake', 'no-inspect'])
-        self.config(enabled_management_interfaces=['fake'])
-        self.config(enabled_power_interfaces=['fake'])
-        self.config(enabled_raid_interfaces=['fake', 'no-raid'])
-        self.config(enabled_rescue_interfaces=['fake', 'no-rescue'])
-        self.config(enabled_vendor_interfaces=['fake', 'no-vendor'])
-        self.config(enabled_bios_interfaces=['fake', 'no-bios'])
-
         self.service = manager.ConductorManager(self.hostname, 'test-topic')
-        self.driver = driver_factory.get_driver('fake')
 
     def _stop_service(self):
         try:

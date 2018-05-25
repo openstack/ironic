@@ -17,28 +17,24 @@
 
 """Test class for Fake driver."""
 
-import mock
 
 from ironic.common import boot_devices
-from ironic.common import driver_factory
 from ironic.common import exception
 from ironic.common import states
 from ironic.conductor import task_manager
 from ironic.drivers import base as driver_base
 from ironic.tests.unit.db import base as db_base
-from ironic.tests.unit.objects import utils as obj_utils
+from ironic.tests.unit.db import utils as db_utils
 
 
-class FakeDriverTestCase(db_base.DbTestCase):
+class FakeHardwareTestCase(db_base.DbTestCase):
 
     def setUp(self):
-        super(FakeDriverTestCase, self).setUp()
-        self.driver = driver_factory.get_driver("fake")
-        self.node = obj_utils.get_test_node(self.context)
-        self.task = mock.MagicMock(spec=task_manager.TaskManager)
-        self.task.shared = False
-        self.task.node = self.node
-        self.task.driver = self.driver
+        super(FakeHardwareTestCase, self).setUp()
+        self.node = db_utils.create_test_node()
+        self.task = task_manager.acquire(self.context, self.node.id)
+        self.addCleanup(self.task.release_resources)
+        self.driver = self.task.driver
 
     def test_driver_interfaces(self):
         self.assertIsInstance(self.driver.power, driver_base.PowerInterface)
@@ -49,7 +45,7 @@ class FakeDriverTestCase(db_base.DbTestCase):
                               driver_base.ConsoleInterface)
 
     def test_get_properties(self):
-        expected = ['A1', 'A2', 'B1', 'B2']
+        expected = ['B1', 'B2']
         properties = self.driver.get_properties()
         self.assertEqual(sorted(expected), sorted(properties))
 

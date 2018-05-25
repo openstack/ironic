@@ -449,7 +449,7 @@ class TestListDrivers(base.BaseApiTest):
         driver._RAID_PROPERTIES = {}
         self.register_fake_conductors()
         disk_prop_mock.side_effect = exception.UnsupportedDriverExtension(
-            extension='raid', driver='fake')
+            extension='raid', driver='fake-hardware')
         path = '/drivers/%s/raid/logical_disk_properties' % self.d1
         ret = self.get_json(path,
                             headers={api_base.Version.string: "1.12"},
@@ -467,7 +467,7 @@ class TestDriverProperties(base.BaseApiTest):
     def test_driver_properties_fake(self, mock_topic, mock_properties):
         # Can get driver properties for fake driver.
         driver._DRIVER_PROPERTIES = {}
-        driver_name = 'fake'
+        driver_name = 'test'
         mock_topic.return_value = 'fake_topic'
         mock_properties.return_value = {'prop1': 'Property 1. Required.'}
         data = self.get_json('/drivers/%s/properties' % driver_name)
@@ -501,12 +501,17 @@ class TestDriverProperties(base.BaseApiTest):
         # only one RPC-conductor call will be made and the info cached
         # for subsequent requests
         driver._DRIVER_PROPERTIES = {}
-        driver_name = 'fake'
+        driver_name = 'manual-management'
         mock_topic.return_value = 'fake_topic'
         mock_properties.return_value = {'prop1': 'Property 1. Required.'}
-        data = self.get_json('/drivers/%s/properties' % driver_name)
-        data = self.get_json('/drivers/%s/properties' % driver_name)
-        data = self.get_json('/drivers/%s/properties' % driver_name)
+
+        with mock.patch.object(self.dbapi, 'get_active_hardware_type_dict',
+                               autospec=True) as mock_hw_type:
+            mock_hw_type.return_value = {driver_name: 'fake_topic'}
+            data = self.get_json('/drivers/%s/properties' % driver_name)
+            data = self.get_json('/drivers/%s/properties' % driver_name)
+            data = self.get_json('/drivers/%s/properties' % driver_name)
+
         self.assertEqual(mock_properties.return_value, data)
         mock_topic.assert_called_once_with(driver_name)
         mock_properties.assert_called_once_with(mock.ANY, driver_name,

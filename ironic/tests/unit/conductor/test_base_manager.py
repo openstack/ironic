@@ -175,11 +175,6 @@ class StartStopTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
                                'options enabled_boot_interfaces',
                                self.service.init_host)
 
-    def test_starts_without_enabled_hardware_types(self):
-        self.config(enabled_hardware_types=[])
-        self.config(enabled_boot_interfaces=[])
-        self._start_service()
-
     @mock.patch.object(base_manager, 'LOG')
     @mock.patch.object(driver_factory, 'HardwareTypesFactory')
     @mock.patch.object(driver_factory, 'DriverFactory')
@@ -206,20 +201,6 @@ class StartStopTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         self.service.init_host()
         self.assertFalse(log_mock.error.called)
         df_mock.assert_called_with()
-        self.assertFalse(del_mock.called)
-
-    @mock.patch.object(base_manager, 'LOG')
-    @mock.patch.object(base_manager.BaseConductorManager, 'del_host',
-                       autospec=True)
-    @mock.patch.object(driver_factory, 'HardwareTypesFactory')
-    def test_starts_with_only_classic_drivers(self, ht_mock, del_mock,
-                                              log_mock):
-        # don't load any dynamic drivers
-        driver_factory_mock = mock.MagicMock(names=[])
-        ht_mock.return_value = driver_factory_mock
-        self.service.init_host()
-        self.assertFalse(log_mock.error.called)
-        ht_mock.assert_called_with()
         self.assertFalse(del_mock.called)
 
     @mock.patch.object(base_manager, 'LOG')

@@ -34,8 +34,7 @@ class ManualManagementHardwareTestCase(db_base.DbTestCase):
         super(ManualManagementHardwareTestCase, self).setUp()
         self.config(enabled_hardware_types=['manual-management'],
                     enabled_power_interfaces=['fake'],
-                    enabled_management_interfaces=['fake'],
-                    enabled_inspect_interfaces=['no-inspect'])
+                    enabled_management_interfaces=['fake'])
         self.config(enabled=True, group='inspector')
 
     def test_default_interfaces(self):
@@ -50,7 +49,8 @@ class ManualManagementHardwareTestCase(db_base.DbTestCase):
             self.assertIsInstance(task.driver.raid, noop.NoRAID)
 
     def test_supported_interfaces(self):
-        self.config(enabled_inspect_interfaces=['inspector', 'no-inspect'])
+        self.config(enabled_inspect_interfaces=['inspector', 'no-inspect'],
+                    enabled_raid_interfaces=['agent'])
         node = obj_utils.create_test_node(self.context,
                                           driver='manual-management',
                                           deploy_interface='direct',

@@ -30,6 +30,8 @@ from ironic.tests.unit.objects import utils as object_utils
 CONF = cfg.CONF
 
 
+# Prevent /httpboot validation on creating the node
+@mock.patch('ironic.drivers.modules.pxe.PXEBoot.__init__', lambda self: None)
 class TestPXEUtils(db_base.DbTestCase):
 
     def setUp(self):

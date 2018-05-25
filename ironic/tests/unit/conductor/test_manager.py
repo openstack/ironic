@@ -548,7 +548,7 @@ class UpdateNodeTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         self._test_associate_node(states.POWER_ON)
 
     def test_update_node_invalid_driver(self):
-        existing_driver = 'fake'
+        existing_driver = 'fake-hardware'
         wrong_driver = 'wrong-driver'
         node = obj_utils.create_test_node(self.context,
                                           driver=existing_driver,
@@ -577,7 +577,7 @@ class UpdateNodeTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         'power_interface': UpdateInterfaces(None, 'fake'),
         'raid_interface': UpdateInterfaces(None, 'fake'),
         'rescue_interface': UpdateInterfaces(None, 'no-rescue'),
-        'storage_interface': UpdateInterfaces('noop', 'cinder'),
+        'storage_interface': UpdateInterfaces('noop', 'fake'),
     }
 
     def _create_node_with_interfaces(self, prov_state, maintenance=False):
@@ -721,10 +721,10 @@ class VendorPassthruTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
 
     @mock.patch.object(task_manager.TaskManager, 'upgrade_lock')
     @mock.patch.object(task_manager.TaskManager, 'spawn_after')
-    def _test_vendor_passthru_async(self, driver, vendor_iface, mock_spawn,
-                                    mock_upgrade):
-        node = obj_utils.create_test_node(self.context, driver=driver,
-                                          vendor_interface=vendor_iface)
+    def test_vendor_passthru_async(self, mock_spawn,
+                                   mock_upgrade):
+        node = obj_utils.create_test_node(self.context,
+                                          vendor_interface='fake')
         info = {'bar': 'baz'}
         self._start_service()
 
@@ -746,12 +746,6 @@ class VendorPassthruTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         self.assertIsNone(node.last_error)
         # Verify reservation has been cleared.
         self.assertIsNone(node.reservation)
-
-    def test_vendor_passthru_async(self):
-        self._test_vendor_passthru_async('fake', None)
-
-    def test_vendor_passthru_async_hw_type(self):
-        self._test_vendor_passthru_async('fake-hardware', 'fake')
 
     @mock.patch.object(task_manager.TaskManager, 'upgrade_lock')
     @mock.patch.object(task_manager.TaskManager, 'spawn_after')
@@ -876,26 +870,6 @@ class VendorPassthruTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         # Verify reservation has been cleared.
         self.assertIsNone(node.reservation)
 
-    def test_vendor_passthru_vendor_interface_not_supported(self):
-        # TODO(dtantsur): remove this test when classic drivers are removed
-        # (interfaces in dynamic drivers cannot be None).
-        node = obj_utils.create_test_node(self.context, driver='fake')
-        info = {'bar': 'baz'}
-        self.driver.vendor = None
-        self._start_service()
-
-        exc = self.assertRaises(messaging.rpc.ExpectedException,
-                                self.service.vendor_passthru,
-                                self.context, node.uuid,
-                                'whatever_method', 'POST', info)
-        # Compare true exception hidden by @messaging.expected_exceptions
-        self.assertEqual(exception.UnsupportedDriverExtension,
-                         exc.exc_info[0])
-
-        node.refresh()
-        # Verify reservation has been cleared.
-        self.assertIsNone(node.reservation)
-
     def test_vendor_passthru_worker_pool_full(self):
         node = obj_utils.create_test_node(self.context, driver='fake-hardware')
         info = {'bar': 'baz'}
@@ -936,30 +910,13 @@ class VendorPassthruTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         del fake_routes['test_method']['func']
         self.assertEqual(fake_routes, data)
 
-    def test_get_node_vendor_passthru_methods_not_supported(self):
-        # TODO(dtantsur): remove this test when classic drivers are removed
-        # (interfaces in dynamic drivers cannot be None).
-        node = obj_utils.create_test_node(self.context, driver='fake')
-        self.driver.vendor = None
-        exc = self.assertRaises(messaging.rpc.ExpectedException,
-                                self.service.get_node_vendor_passthru_methods,
-                                self.context, node.uuid)
-        # Compare true exception hidden by @messaging.expected_exceptions
-        self.assertEqual(exception.UnsupportedDriverExtension,
-                         exc.exc_info[0])
-
     @mock.patch.object(driver_factory, 'get_interface')
     @mock.patch.object(manager.ConductorManager, '_spawn_worker')
-    def _test_driver_vendor_passthru_sync(self, is_hw_type, mock_spawn,
-                                          mock_get_if):
+    def test_driver_vendor_passthru_sync(self, mock_spawn, mock_get_if):
         expected = {'foo': 'bar'}
         vendor_mock = mock.Mock(spec=drivers_base.VendorInterface)
-        if is_hw_type:
-            mock_get_if.return_value = vendor_mock
-            driver_name = 'fake-hardware'
-        else:
-            self.driver.vendor = vendor_mock
-            driver_name = 'fake'
+        mock_get_if.return_value = vendor_mock
+        driver_name = 'fake-hardware'
         test_method = mock.MagicMock(return_value=expected)
         vendor_mock.driver_routes = {
             'test_method': {'func': test_method,
@@ -984,14 +941,7 @@ class VendorPassthruTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         test_method.assert_called_once_with(self.context, **vendor_args)
         # No worker was spawned
         self.assertFalse(mock_spawn.called)
-        if is_hw_type:
-            mock_get_if.assert_called_once_with(mock.ANY, 'vendor', 'fake')
-
-    def test_driver_vendor_passthru_sync(self):
-        self._test_driver_vendor_passthru_sync(False)
-
-    def test_driver_vendor_passthru_sync_hw_type(self):
-        self._test_driver_vendor_passthru_sync(True)
+        mock_get_if.assert_called_once_with(mock.ANY, 'vendor', 'fake')
 
     @mock.patch.object(driver_factory, 'get_interface', autospec=True)
     @mock.patch.object(manager.ConductorManager, '_spawn_worker')
@@ -1033,20 +983,6 @@ class VendorPassthruTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         self.assertEqual(exception.InvalidParameterValue,
                          exc.exc_info[0])
 
-    def test_driver_vendor_passthru_vendor_interface_not_supported(self):
-        # Test for when no vendor interface is set at all
-        # TODO(dtantsur): remove this test when classic drivers are removed
-        # (interfaces in dynamic drivers cannot be None).
-        self.driver.vendor = None
-        self.service.init_host()
-        exc = self.assertRaises(messaging.ExpectedException,
-                                self.service.driver_vendor_passthru,
-                                self.context, 'fake', 'test_method',
-                                'POST', {})
-        # Compare true exception hidden by @messaging.expected_exceptions
-        self.assertEqual(exception.UnsupportedDriverExtension,
-                         exc.exc_info[0])
-
     def test_driver_vendor_passthru_method_not_supported(self):
         # Test for when the vendor interface is set, but hasn't passed a
         # driver_passthru_mapping to MixinVendorInterface
@@ -1085,16 +1021,11 @@ class VendorPassthruTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         self.assertEqual(exception.NoValidDefaultForInterface,
                          exc.exc_info[0])
 
-    @mock.patch.object(driver_factory, 'get_interface')
-    def _test_get_driver_vendor_passthru_methods(self, is_hw_type,
-                                                 mock_get_if):
+    @mock.patch.object(driver_factory, 'get_interface', autospec=True)
+    def test_get_driver_vendor_passthru_methods(self, mock_get_if):
         vendor_mock = mock.Mock(spec=drivers_base.VendorInterface)
-        if is_hw_type:
-            mock_get_if.return_value = vendor_mock
-            driver_name = 'fake-hardware'
-        else:
-            self.driver.vendor = vendor_mock
-            driver_name = 'fake'
+        mock_get_if.return_value = vendor_mock
+        driver_name = 'fake-hardware'
         fake_routes = {'test_method': {'async': True,
                                        'description': 'foo',
                                        'http_methods': ['POST'],
@@ -1111,29 +1042,7 @@ class VendorPassthruTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         del fake_routes['test_method']['func']
         self.assertEqual(fake_routes, data)
 
-        if is_hw_type:
-            mock_get_if.assert_called_once_with(mock.ANY, 'vendor', 'fake')
-        else:
-            mock_get_if.assert_not_called()
-
-    def test_get_driver_vendor_passthru_methods(self):
-        self._test_get_driver_vendor_passthru_methods(False)
-
-    def test_get_driver_vendor_passthru_methods_hw_type(self):
-        self._test_get_driver_vendor_passthru_methods(True)
-
-    def test_get_driver_vendor_passthru_methods_not_supported(self):
-        # TODO(dtantsur): remove this test when classic drivers are removed
-        # (interfaces in dynamic drivers cannot be None).
-        self.service.init_host()
-        self.driver.vendor = None
-        exc = self.assertRaises(
-            messaging.rpc.ExpectedException,
-            self.service.get_driver_vendor_passthru_methods,
-            self.context, 'fake')
-        # Compare true exception hidden by @messaging.expected_exceptions
-        self.assertEqual(exception.UnsupportedDriverExtension,
-                         exc.exc_info[0])
+        mock_get_if.assert_called_once_with(mock.ANY, 'vendor', 'fake')
 
     @mock.patch.object(driver_factory, 'default_interface', autospec=True)
     def test_get_driver_vendor_passthru_methods_no_default_interface(
@@ -3089,21 +2998,6 @@ class DoNodeRescueTestCase(mgr_utils.CommonMixIn, mgr_utils.ServiceSetUpMixin,
     def test_do_node_rescue_when_network_validate_fail(self, mock_validate):
         self._test_do_node_rescue_when_validate_fail(mock_validate)
 
-    def test_do_node_rescue_not_supported(self):
-        # TODO(dtantsur): remove this test when classic drivers are removed
-        # (interfaces in dynamic drivers cannot be None).
-        node = obj_utils.create_test_node(
-            self.context, driver='fake',
-            provision_state=states.ACTIVE,
-            network_interface='noop',
-            target_provision_state=states.NOSTATE,
-            instance_info={})
-        exc = self.assertRaises(messaging.rpc.ExpectedException,
-                                self.service.do_node_rescue,
-                                self.context, node.uuid, "password")
-        self.assertEqual(exception.UnsupportedDriverExtension,
-                         exc.exc_info[0], str(exc.exc_info))
-
     def test_do_node_rescue_maintenance(self):
         node = obj_utils.create_test_node(
             self.context, driver='fake-hardware',
@@ -3224,19 +3118,6 @@ class DoNodeRescueTestCase(mgr_utils.CommonMixIn, mgr_utils.ServiceSetUpMixin,
                                 self.context, node.uuid)
         # Compare true exception hidden by @messaging.expected_exceptions
         self.assertEqual(exception.InstanceUnrescueFailure, exc.exc_info[0])
-
-    def test_do_node_unrescue_not_supported(self):
-        # TODO(dtantsur): remove this test when classic drivers are removed
-        # (interfaces in dynamic drivers cannot be None).
-        node = obj_utils.create_test_node(
-            self.context, driver='fake',
-            provision_state=states.RESCUE,
-            instance_info={})
-        exc = self.assertRaises(messaging.rpc.ExpectedException,
-                                self.service.do_node_unrescue,
-                                self.context, node.uuid)
-        self.assertEqual(exception.UnsupportedDriverExtension,
-                         exc.exc_info[0])
 
     def test_do_node_unrescue_maintenance(self):
         node = obj_utils.create_test_node(
@@ -3497,32 +3378,6 @@ class MiscTestCase(mgr_utils.ServiceSetUpMixin, mgr_utils.CommonMixIn,
         self.assertEqual(expected, ret)
         mock_iwdi.assert_called_once_with(self.context, node.instance_info)
 
-    @mock.patch.object(images, 'is_whole_disk_image')
-    def test_validate_driver_interfaces_classic_driver(self, mock_iwdi):
-        mock_iwdi.return_value = False
-        target_raid_config = {'logical_disks': [{'size_gb': 1,
-                                                 'raid_level': '1'}]}
-        node = obj_utils.create_test_node(
-            self.context, driver='fake',
-            target_raid_config=target_raid_config,
-            network_interface='noop')
-        ret = self.service.validate_driver_interfaces(self.context,
-                                                      node.uuid)
-        reason = ('not supported')
-        expected = {'console': {'result': True},
-                    'power': {'result': True},
-                    'inspect': {'result': True},
-                    'management': {'result': True},
-                    'boot': {'result': True},
-                    'raid': {'result': True},
-                    'deploy': {'result': True},
-                    'network': {'result': True},
-                    'storage': {'result': True},
-                    'rescue': {'reason': reason, 'result': None}}
-
-        self.assertEqual(expected, ret)
-        mock_iwdi.assert_called_once_with(self.context, node.instance_info)
-
     @mock.patch.object(fake.FakeDeploy, 'validate', autospec=True)
     @mock.patch.object(images, 'is_whole_disk_image')
     def test_validate_driver_interfaces_validation_fail(self, mock_iwdi,
@@ -3664,23 +3519,6 @@ class ConsoleTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
              mock.call(mock.ANY, 'console_set',
                        obj_fields.NotificationStatus.END)])
 
-    def test_set_console_mode_not_supported(self):
-        # TODO(dtantsur): remove this test when classic drivers are removed
-        # (interfaces in dynamic drivers cannot be None).
-        node = obj_utils.create_test_node(self.context, driver='fake',
-                                          last_error=None)
-        self._start_service()
-        # null the console interface
-        self.driver.console = None
-        exc = self.assertRaises(messaging.rpc.ExpectedException,
-                                self.service.set_console_mode, self.context,
-                                node.uuid, True)
-        # Compare true exception hidden by @messaging.expected_exceptions
-        self.assertEqual(exception.UnsupportedDriverExtension,
-                         exc.exc_info[0])
-        self._stop_service()
-        node.refresh()
-
     @mock.patch.object(fake.FakeConsole, 'validate', autospec=True)
     def test_set_console_mode_validation_fail(self, mock_val):
         node = obj_utils.create_test_node(self.context, driver='fake-hardware',
@@ -3742,17 +3580,16 @@ class ConsoleTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         self.assertFalse(mock_sc.called)
         self.assertFalse(mock_notify.called)
 
+    @mock.patch.object(fake.FakeConsole, 'stop_console', autospec=True)
     @mock.patch.object(notification_utils, 'emit_console_notification')
-    def test_disable_console_already_disabled(self, mock_notify):
+    def test_disable_console_already_disabled(self, mock_notify, mock_sc):
         node = obj_utils.create_test_node(self.context, driver='fake-hardware',
                                           console_enabled=False)
         self._start_service()
-        with mock.patch.object(self.driver.console,
-                               'stop_console') as mock_sc:
-            self.service.set_console_mode(self.context, node.uuid, False)
-            self._stop_service()
-            self.assertFalse(mock_sc.called)
-            self.assertFalse(mock_notify.called)
+        self.service.set_console_mode(self.context, node.uuid, False)
+        self._stop_service()
+        self.assertFalse(mock_sc.called)
+        self.assertFalse(mock_notify.called)
 
     @mock.patch.object(fake.FakeConsole, 'get_console', autospec=True)
     def test_get_console(self, mock_gc):
@@ -3763,20 +3600,6 @@ class ConsoleTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         data = self.service.get_console_information(self.context,
                                                     node.uuid)
         self.assertEqual(console_info, data)
-
-    def test_get_console_not_supported(self):
-        # TODO(dtantsur): remove this test when classic drivers are removed
-        # (interfaces in dynamic drivers cannot be None).
-        node = obj_utils.create_test_node(self.context, driver='fake',
-                                          console_enabled=True)
-        # null the console interface
-        self.driver.console = None
-        exc = self.assertRaises(messaging.rpc.ExpectedException,
-                                self.service.get_console_information,
-                                self.context, node.uuid)
-        # Compare true exception hidden by @messaging.expected_exceptions
-        self.assertEqual(exception.UnsupportedDriverExtension,
-                         exc.exc_info[0])
 
     def test_get_console_disabled(self):
         node = obj_utils.create_test_node(self.context, driver='fake-hardware',
@@ -4288,17 +4111,14 @@ class SensorsTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         CONF.set_override('send_sensor_data', True, group='conductor')
 
         task = acquire_mock.return_value.__enter__.return_value
-        task.driver = self.driver
         task.node.maintenance = False
-        with mock.patch.object(self.driver.management,
-                               'get_sensors_data') as get_sensors_data_mock:
-            with mock.patch.object(self.driver.management,
-                                   'validate') as validate_mock:
-                get_sensors_data_mock.return_value = 'fake-sensor-data'
-                self.service._sensors_nodes_task(self.context, nodes)
-                self.assertEqual(5, acquire_mock.call_count)
-                self.assertEqual(5, validate_mock.call_count)
-                self.assertEqual(5, get_sensors_data_mock.call_count)
+        get_sensors_data_mock = task.driver.management.get_sensors_data
+        validate_mock = task.driver.management.validate
+        get_sensors_data_mock.return_value = 'fake-sensor-data'
+        self.service._sensors_nodes_task(self.context, nodes)
+        self.assertEqual(5, acquire_mock.call_count)
+        self.assertEqual(5, validate_mock.call_count)
+        self.assertEqual(5, get_sensors_data_mock.call_count)
 
     @mock.patch.object(task_manager, 'acquire')
     def test_send_sensor_task_shutdown(self, acquire_mock):
@@ -4319,20 +4139,13 @@ class SensorsTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
 
         self._start_service()
 
-        self.driver.management = None
         task = acquire_mock.return_value.__enter__.return_value
-        task.driver = self.driver
         task.node.maintenance = False
+        task.driver.management = None
 
-        with mock.patch.object(fake.FakeManagement, 'get_sensors_data',
-                               autospec=True) as get_sensors_data_mock:
-            with mock.patch.object(fake.FakeManagement, 'validate',
-                                   autospec=True) as validate_mock:
-                self.service._sensors_nodes_task(self.context, nodes)
+        self.service._sensors_nodes_task(self.context, nodes)
 
         self.assertTrue(acquire_mock.called)
-        self.assertFalse(get_sensors_data_mock.called)
-        self.assertFalse(validate_mock.called)
 
     @mock.patch.object(manager.LOG, 'debug', autospec=True)
     @mock.patch.object(task_manager, 'acquire', autospec=True)
@@ -4343,17 +4156,15 @@ class SensorsTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         CONF.set_override('send_sensor_data', True, group='conductor')
 
         task = acquire_mock.return_value.__enter__.return_value
-        task.driver = self.driver
         task.node.maintenance = True
-        with mock.patch.object(self.driver.management,
-                               'get_sensors_data') as get_sensors_data_mock:
-            with mock.patch.object(self.driver.management,
-                                   'validate') as validate_mock:
-                self.service._sensors_nodes_task(self.context, nodes)
-                self.assertTrue(acquire_mock.called)
-                self.assertFalse(validate_mock.called)
-                self.assertFalse(get_sensors_data_mock.called)
-                self.assertTrue(debug_log.called)
+        get_sensors_data_mock = task.driver.management.get_sensors_data
+        validate_mock = task.driver.management.validate
+
+        self.service._sensors_nodes_task(self.context, nodes)
+        self.assertTrue(acquire_mock.called)
+        self.assertFalse(validate_mock.called)
+        self.assertFalse(get_sensors_data_mock.called)
+        self.assertTrue(debug_log.called)
 
     @mock.patch.object(manager.ConductorManager, '_spawn_worker')
     @mock.patch.object(manager.ConductorManager, '_mapped_to_this_conductor')
@@ -4434,19 +4245,6 @@ class BootDeviceTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         # Compare true exception hidden by @messaging.expected_exceptions
         self.assertEqual(exception.NodeLocked, exc.exc_info[0])
 
-    def test_set_boot_device_not_supported(self):
-        # TODO(dtantsur): remove this test when classic drivers are removed
-        # (interfaces in dynamic drivers cannot be None).
-        node = obj_utils.create_test_node(self.context, driver='fake')
-        # null the console interface
-        self.driver.management = None
-        exc = self.assertRaises(messaging.rpc.ExpectedException,
-                                self.service.set_boot_device,
-                                self.context, node.uuid, boot_devices.DISK)
-        # Compare true exception hidden by @messaging.expected_exceptions
-        self.assertEqual(exception.UnsupportedDriverExtension,
-                         exc.exc_info[0])
-
     @mock.patch.object(fake.FakeManagement, 'validate', autospec=True)
     def test_set_boot_device_validate_fail(self, mock_val):
         node = obj_utils.create_test_node(self.context, driver='fake-hardware')
@@ -4472,19 +4270,6 @@ class BootDeviceTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         # Compare true exception hidden by @messaging.expected_exceptions
         self.assertEqual(exception.NodeLocked, exc.exc_info[0])
 
-    def test_get_boot_device_not_supported(self):
-        # TODO(dtantsur): remove this test when classic drivers are removed
-        # (interfaces in dynamic drivers cannot be None).
-        node = obj_utils.create_test_node(self.context, driver='fake')
-        # null the management interface
-        self.driver.management = None
-        exc = self.assertRaises(messaging.rpc.ExpectedException,
-                                self.service.get_boot_device,
-                                self.context, node.uuid)
-        # Compare true exception hidden by @messaging.expected_exceptions
-        self.assertEqual(exception.UnsupportedDriverExtension,
-                         exc.exc_info[0])
-
     @mock.patch.object(fake.FakeManagement, 'validate', autospec=True)
     def test_get_boot_device_validate_fail(self, mock_val):
         node = obj_utils.create_test_node(self.context, driver='fake-hardware')
@@ -4500,19 +4285,6 @@ class BootDeviceTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         bootdevs = self.service.get_supported_boot_devices(self.context,
                                                            node.uuid)
         self.assertEqual([boot_devices.PXE], bootdevs)
-
-    def test_get_supported_boot_devices_iface_not_supported(self):
-        # TODO(dtantsur): remove this test when classic drivers are removed
-        # (interfaces in dynamic drivers cannot be None).
-        node = obj_utils.create_test_node(self.context, driver='fake')
-        # null the management interface
-        self.driver.management = None
-        exc = self.assertRaises(messaging.rpc.ExpectedException,
-                                self.service.get_supported_boot_devices,
-                                self.context, node.uuid)
-        # Compare true exception hidden by @messaging.expected_exceptions
-        self.assertEqual(exception.UnsupportedDriverExtension,
-                         exc.exc_info[0])
 
 
 @mgr_utils.mock_record_keepalive
@@ -4534,19 +4306,6 @@ class NmiTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
                                 self.context, node.uuid)
         # Compare true exception hidden by @messaging.expected_exceptions
         self.assertEqual(exception.NodeLocked, exc.exc_info[0])
-
-    def test_inject_nmi_not_supported(self):
-        # TODO(dtantsur): remove this test when classic drivers are removed
-        # (interfaces in dynamic drivers cannot be None).
-        node = obj_utils.create_test_node(self.context, driver='fake')
-        # null the management interface
-        self.driver.management = None
-        exc = self.assertRaises(messaging.rpc.ExpectedException,
-                                self.service.inject_nmi,
-                                self.context, node.uuid)
-        # Compare true exception hidden by @messaging.expected_exceptions
-        self.assertEqual(exception.UnsupportedDriverExtension,
-                         exc.exc_info[0])
 
     @mock.patch.object(fake.FakeManagement, 'validate', autospec=True)
     def test_inject_nmi_validate_invalid_param(self, mock_val):
@@ -4897,7 +4656,7 @@ class UpdatePortgroupTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
 @mgr_utils.mock_record_keepalive
 class RaidTestCases(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
 
-    driver_name = 'fake'
+    driver_name = 'fake-hardware'
     raid_interface = None
 
     def setUp(self):
@@ -4914,14 +4673,6 @@ class RaidTestCases(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         self.assertIn('raid_level', properties)
         self.assertIn('size_gb', properties)
 
-    def test_get_raid_logical_disk_properties_iface_not_supported(self):
-        self.driver.raid = None
-        self._start_service()
-        exc = self.assertRaises(messaging.rpc.ExpectedException,
-                                self.service.get_raid_logical_disk_properties,
-                                self.context, self.driver_name)
-        self.assertEqual(exception.UnsupportedDriverExtension, exc.exc_info[0])
-
     def test_set_target_raid_config(self):
         raid_config = {'logical_disks': [{'size_gb': 100, 'raid_level': '1'}]}
         self.service.set_target_raid_config(
@@ -4937,18 +4688,6 @@ class RaidTestCases(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
             self.context, self.node.uuid, raid_config)
         self.node.refresh()
         self.assertEqual({}, self.node.target_raid_config)
-
-    def test_set_target_raid_config_iface_not_supported(self):
-        raid_config = {'logical_disks': [{'size_gb': 100, 'raid_level': '1'}]}
-        self.driver.raid = None
-        exc = self.assertRaises(
-            messaging.rpc.ExpectedException,
-            self.service.set_target_raid_config,
-            self.context, self.node.uuid, raid_config)
-        self.node.refresh()
-        self.assertEqual({}, self.node.target_raid_config)
-        self.assertEqual(exception.UnsupportedDriverExtension, exc.exc_info[0])
-        self.assertIn(self.driver_name, six.text_type(exc.exc_info[1]))
 
     def test_set_target_raid_config_invalid_parameter_value(self):
         # Missing raid_level in the below raid config.
@@ -7597,7 +7336,7 @@ class DoNodeInspectAbortTestCase(mgr_utils.CommonMixIn,
         task = task_manager.TaskManager(self.context, node.uuid)
         mock_acquire.side_effect = self._get_acquire_side_effect(task)
         mock_abort.side_effect = exception.UnsupportedDriverExtension(
-            driver='fake', extension='inspect')
+            driver='fake-hardware', extension='inspect')
         self._start_service()
         exc = self.assertRaises(messaging.rpc.ExpectedException,
                                 self.service.do_provisioning_action,

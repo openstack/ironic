@@ -20,7 +20,6 @@ class NoopInterfaceTestCase(db_base.DbTestCase):
 
     def setUp(self):
         super(NoopInterfaceTestCase, self).setUp()
-        self.config(enabled_drivers=['fake'])
         self.interface = noop.NoopNetwork()
         self.node = utils.create_test_node(self.context,
                                            network_interface='noop')

@@ -30,7 +30,6 @@ class TestFlatInterface(db_base.DbTestCase):
 
     def setUp(self):
         super(TestFlatInterface, self).setUp()
-        self.config(enabled_drivers=['fake'])
         self.interface = flat_interface.FlatNetwork()
         self.node = utils.create_test_node(self.context)
         self.port = utils.create_test_port(

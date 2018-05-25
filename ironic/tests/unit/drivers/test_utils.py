@@ -20,7 +20,6 @@ import mock
 from oslo_config import cfg
 from oslo_utils import timeutils
 
-from ironic.common import driver_factory
 from ironic.common import exception
 from ironic.common import swift
 from ironic.conductor import task_manager
@@ -37,31 +36,7 @@ class UtilsTestCase(db_base.DbTestCase):
 
     def setUp(self):
         super(UtilsTestCase, self).setUp()
-        self.driver = driver_factory.get_driver("fake")
         self.node = obj_utils.create_test_node(self.context)
-
-    def test_vendor_interface_get_properties(self):
-        expected = {'A1': 'A1 description. Required.',
-                    'A2': 'A2 description. Optional.',
-                    'B1': 'B1 description. Required.',
-                    'B2': 'B2 description. Required.'}
-        props = self.driver.vendor.get_properties()
-        self.assertEqual(expected, props)
-
-    @mock.patch.object(fake.FakeVendorA, 'validate', autospec=True)
-    def test_vendor_interface_validate_valid_methods(self,
-                                                     mock_fakea_validate):
-        with task_manager.acquire(self.context, self.node.uuid) as task:
-            self.driver.vendor.validate(task, method='first_method')
-            mock_fakea_validate.assert_called_once_with(
-                self.driver.vendor.mapping['first_method'],
-                task, method='first_method')
-
-    def test_vendor_interface_validate_bad_method(self):
-        with task_manager.acquire(self.context, self.node.uuid) as task:
-            self.assertRaises(exception.InvalidParameterValue,
-                              self.driver.vendor.validate,
-                              task, method='fake_method')
 
     def test_get_node_mac_addresses(self):
         ports = []
@@ -378,3 +353,41 @@ class UtilsRamdiskLogsTestCase(tests_base.TestCase):
 
         mock_makedirs.assert_called_once_with(log_path)
         mock_logs_name.assert_called_once_with(self.node, label=None)
+
+
+class MixinVendorInterfaceTestCase(db_base.DbTestCase):
+
+    def setUp(self):
+        super(MixinVendorInterfaceTestCase, self).setUp()
+        self.a = fake.FakeVendorA()
+        self.b = fake.FakeVendorB()
+        self.mapping = {'first_method': self.a,
+                        'second_method': self.b,
+                        'third_method_sync': self.b,
+                        'fourth_method_shared_lock': self.b}
+        self.vendor = driver_utils.MixinVendorInterface(self.mapping)
+        self.node = obj_utils.create_test_node(self.context,
+                                               driver='fake-hardware')
+
+    def test_vendor_interface_get_properties(self):
+        expected = {'A1': 'A1 description. Required.',
+                    'A2': 'A2 description. Optional.',
+                    'B1': 'B1 description. Required.',
+                    'B2': 'B2 description. Required.'}
+        props = self.vendor.get_properties()
+        self.assertEqual(expected, props)
+
+    @mock.patch.object(fake.FakeVendorA, 'validate', autospec=True)
+    def test_vendor_interface_validate_valid_methods(self,
+                                                     mock_fakea_validate):
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            self.vendor.validate(task, method='first_method')
+            mock_fakea_validate.assert_called_once_with(
+                self.vendor.mapping['first_method'],
+                task, method='first_method')
+
+    def test_vendor_interface_validate_bad_method(self):
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            self.assertRaises(exception.InvalidParameterValue,
+                              self.vendor.validate,
+                              task, method='fake_method')
