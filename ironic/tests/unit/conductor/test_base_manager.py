@@ -30,6 +30,7 @@ from ironic.conductor import notification_utils
 from ironic.conductor import task_manager
 from ironic.drivers import fake_hardware
 from ironic.drivers import generic
+from ironic.drivers.modules import fake
 from ironic import objects
 from ironic.objects import fields
 from ironic.tests import base as tests_base
@@ -447,76 +448,85 @@ class RegisterInterfacesTestCase(mgr_utils.ServiceSetUpMixin,
         self.assertFalse(reg_mock.called)
 
 
+@mock.patch.object(fake.FakeConsole, 'start_console', autospec=True)
+@mock.patch.object(notification_utils, 'emit_console_notification')
 class StartConsolesTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
-    @mock.patch.object(notification_utils, 'emit_console_notification')
-    def test__start_consoles(self, mock_notify):
+    def test__start_consoles(self, mock_notify, mock_start_console):
         obj_utils.create_test_node(self.context,
-                                   driver='fake',
+                                   driver='fake-hardware',
                                    console_enabled=True)
         obj_utils.create_test_node(
             self.context,
             uuid=uuidutils.generate_uuid(),
-            driver='fake',
+            driver='fake-hardware',
             console_enabled=True
         )
         obj_utils.create_test_node(
             self.context,
             uuid=uuidutils.generate_uuid(),
-            driver='fake'
+            driver='fake-hardware'
         )
         self._start_service()
-        with mock.patch.object(self.driver.console,
-                               'start_console') as mock_start_console:
-            self.service._start_consoles(self.context)
-            self.assertEqual(2, mock_start_console.call_count)
-            mock_notify.assert_has_calls(
-                [mock.call(mock.ANY, 'console_restore',
-                           fields.NotificationStatus.START),
-                 mock.call(mock.ANY, 'console_restore',
-                           fields.NotificationStatus.END)])
+        self.service._start_consoles(self.context)
+        self.assertEqual(2, mock_start_console.call_count)
+        mock_notify.assert_has_calls(
+            [mock.call(mock.ANY, 'console_restore',
+                       fields.NotificationStatus.START),
+             mock.call(mock.ANY, 'console_restore',
+                       fields.NotificationStatus.END)])
 
-    @mock.patch.object(notification_utils, 'emit_console_notification')
-    def test__start_consoles_no_console_enabled(self, mock_notify):
+    def test__start_consoles_no_console_enabled(self, mock_notify,
+                                                mock_start_console):
         obj_utils.create_test_node(self.context,
-                                   driver='fake',
+                                   driver='fake-hardware',
                                    console_enabled=False)
         self._start_service()
-        with mock.patch.object(self.driver.console,
-                               'start_console') as mock_start_console:
-            self.service._start_consoles(self.context)
-            self.assertFalse(mock_start_console.called)
-            self.assertFalse(mock_notify.called)
+        self.service._start_consoles(self.context)
+        self.assertFalse(mock_start_console.called)
+        self.assertFalse(mock_notify.called)
 
-    @mock.patch.object(notification_utils, 'emit_console_notification')
-    def test__start_consoles_failed(self, mock_notify):
+    def test__start_consoles_failed(self, mock_notify, mock_start_console):
         test_node = obj_utils.create_test_node(self.context,
-                                               driver='fake',
+                                               driver='fake-hardware',
                                                console_enabled=True)
         self._start_service()
-        with mock.patch.object(self.driver.console,
-                               'start_console') as mock_start_console:
-            mock_start_console.side_effect = Exception()
-            self.service._start_consoles(self.context)
-            mock_start_console.assert_called_once_with(mock.ANY)
-            test_node.refresh()
-            self.assertFalse(test_node.console_enabled)
-            self.assertIsNotNone(test_node.last_error)
-            mock_notify.assert_has_calls(
-                [mock.call(mock.ANY, 'console_restore',
-                           fields.NotificationStatus.START),
-                 mock.call(mock.ANY, 'console_restore',
-                           fields.NotificationStatus.ERROR)])
+        mock_start_console.side_effect = Exception()
+        self.service._start_consoles(self.context)
+        mock_start_console.assert_called_once_with(mock.ANY, mock.ANY)
+        test_node.refresh()
+        self.assertFalse(test_node.console_enabled)
+        self.assertIsNotNone(test_node.last_error)
+        mock_notify.assert_has_calls(
+            [mock.call(mock.ANY, 'console_restore',
+                       fields.NotificationStatus.START),
+             mock.call(mock.ANY, 'console_restore',
+                       fields.NotificationStatus.ERROR)])
 
-    @mock.patch.object(notification_utils, 'emit_console_notification')
     @mock.patch.object(base_manager, 'LOG')
-    def test__start_consoles_node_locked(self, log_mock, mock_notify):
+    def test__start_consoles_node_locked(self, log_mock, mock_notify,
+                                         mock_start_console):
         test_node = obj_utils.create_test_node(self.context,
-                                               driver='fake',
+                                               driver='fake-hardware',
                                                console_enabled=True,
                                                reservation='fake-host')
         self._start_service()
-        with mock.patch.object(self.driver.console,
-                               'start_console') as mock_start_console:
+        self.service._start_consoles(self.context)
+        self.assertFalse(mock_start_console.called)
+        test_node.refresh()
+        self.assertTrue(test_node.console_enabled)
+        self.assertIsNone(test_node.last_error)
+        self.assertTrue(log_mock.warning.called)
+        self.assertFalse(mock_notify.called)
+
+    @mock.patch.object(base_manager, 'LOG')
+    def test__start_consoles_node_not_found(self, log_mock, mock_notify,
+                                            mock_start_console):
+        test_node = obj_utils.create_test_node(self.context,
+                                               driver='fake-hardware',
+                                               console_enabled=True)
+        self._start_service()
+        with mock.patch.object(task_manager, 'acquire') as mock_acquire:
+            mock_acquire.side_effect = exception.NodeNotFound(node='not found')
             self.service._start_consoles(self.context)
             self.assertFalse(mock_start_console.called)
             test_node.refresh()
@@ -524,22 +534,3 @@ class StartConsolesTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
             self.assertIsNone(test_node.last_error)
             self.assertTrue(log_mock.warning.called)
             self.assertFalse(mock_notify.called)
-
-    @mock.patch.object(notification_utils, 'emit_console_notification')
-    @mock.patch.object(base_manager, 'LOG')
-    def test__start_consoles_node_not_found(self, log_mock, mock_notify):
-        test_node = obj_utils.create_test_node(self.context,
-                                               driver='fake',
-                                               console_enabled=True)
-        self._start_service()
-        with mock.patch.object(task_manager, 'acquire') as mock_acquire:
-            mock_acquire.side_effect = exception.NodeNotFound(node='not found')
-            with mock.patch.object(self.driver.console,
-                                   'start_console') as mock_start_console:
-                self.service._start_consoles(self.context)
-                self.assertFalse(mock_start_console.called)
-                test_node.refresh()
-                self.assertTrue(test_node.console_enabled)
-                self.assertIsNone(test_node.last_error)
-                self.assertTrue(log_mock.warning.called)
-                self.assertFalse(mock_notify.called)

@@ -17,60 +17,16 @@
 
 """Test utils for Ironic Managers."""
 
-import fixtures
 from futurist import periodics
 import mock
 from oslo_utils import strutils
 from oslo_utils import uuidutils
-import pkg_resources
-from stevedore import dispatch
 
 from ironic.common import driver_factory
 from ironic.common import exception
 from ironic.common import states
 from ironic.conductor import manager
 from ironic import objects
-
-
-class DriverFactoryFixture(fixtures.Fixture):
-    """A fixture to mock a factor of drivers/hardware types/interfaces."""
-
-    def __init__(self, factory_class, ):
-        self.factory_class = factory_class
-
-
-def mock_the_extension_manager(driver="fake", namespace="ironic.drivers"):
-    """Get a fake stevedore NameDispatchExtensionManager instance.
-
-    :param namespace: A string representing the namespace over which to
-                      search for entrypoints.
-    :returns mock_ext_mgr: A DriverFactory instance that has been faked.
-    :returns mock_ext: A real plugin loaded by mock_ext_mgr in the specified
-                       namespace.
-
-    """
-    entry_point = None
-    for ep in list(pkg_resources.iter_entry_points(namespace)):
-        s = "%s" % ep
-        if driver == s[:s.index(' =')]:
-            entry_point = ep
-            break
-
-    # NOTE(lucasagomes): Initialize the _extension_manager before
-    #                    instantiating a DriverFactory class to avoid
-    #                    a real NameDispatchExtensionManager to be created
-    #                    with the real namespace.
-    driver_factory.DriverFactory._extension_manager = (
-        dispatch.NameDispatchExtensionManager('ironic.no-such-namespace',
-                                              lambda x: True))
-    mock_ext_mgr = driver_factory.DriverFactory()
-    mock_ext = mock_ext_mgr._extension_manager._load_one_plugin(
-        entry_point, True, [], {}, False)
-    mock_ext_mgr._extension_manager.extensions = [mock_ext]
-    mock_ext_mgr._extension_manager.by_name = dict((e.name, e)
-                                                   for e in [mock_ext])
-
-    return (mock_ext_mgr, mock_ext)
 
 
 class CommonMixIn(object):
