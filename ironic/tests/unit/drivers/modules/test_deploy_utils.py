@@ -42,7 +42,6 @@ from ironic.drivers.modules import pxe
 from ironic.drivers.modules.storage import cinder
 from ironic.drivers import utils as driver_utils
 from ironic.tests import base as tests_base
-from ironic.tests.unit.conductor import mgr_utils
 from ironic.tests.unit.db import base as db_base
 from ironic.tests.unit.db import utils as db_utils
 from ironic.tests.unit.objects import utils as obj_utils
@@ -1066,7 +1065,7 @@ class OtherFunctionTestCase(db_base.DbTestCase):
 
     def setUp(self):
         super(OtherFunctionTestCase, self).setUp()
-        mgr_utils.mock_the_extension_manager(driver="fake_pxe")
+        self.config(enabled_drivers=['fake_pxe'])
         self.node = obj_utils.create_test_node(self.context, driver='fake_pxe')
 
     def test_get_dev(self):
@@ -1259,7 +1258,7 @@ class VirtualMediaDeployUtilsTestCase(db_base.DbTestCase):
 
     def setUp(self):
         super(VirtualMediaDeployUtilsTestCase, self).setUp()
-        mgr_utils.mock_the_extension_manager(driver="iscsi_ilo")
+        self.config(enabled_drivers=['iscsi_ilo'])
         info_dict = db_utils.get_test_ilo_info()
         self.node = obj_utils.create_test_node(
             self.context, driver='iscsi_ilo', driver_info=info_dict)
@@ -1441,7 +1440,6 @@ class TrySetBootDeviceTestCase(db_base.DbTestCase):
 
     def setUp(self):
         super(TrySetBootDeviceTestCase, self).setUp()
-        mgr_utils.mock_the_extension_manager(driver="fake")
         self.node = obj_utils.create_test_node(self.context, driver="fake")
 
     @mock.patch.object(manager_utils, 'node_set_boot_device', autospec=True)
@@ -1498,7 +1496,7 @@ class AgentMethodsTestCase(db_base.DbTestCase):
 
     def setUp(self):
         super(AgentMethodsTestCase, self).setUp()
-        mgr_utils.mock_the_extension_manager(driver='fake_agent')
+        self.config(enabled_drivers=['fake_agent'])
 
         self.clean_steps = {
             'deploy': [
@@ -2204,7 +2202,7 @@ class TestBuildInstanceInfoForDeploy(db_base.DbTestCase):
                                                        return_value=image_info)
         glance_mock.return_value.swift_temp_url.return_value = (
             'http://temp-url')
-        mgr_utils.mock_the_extension_manager(driver='fake_agent')
+        self.config(enabled_drivers=['fake_agent'])
         with task_manager.acquire(
                 self.context, self.node.uuid, shared=False) as task:
 
@@ -2266,7 +2264,7 @@ class TestBuildInstanceInfoForDeploy(db_base.DbTestCase):
                            'image_checksum': 'aa',
                            'image_container_format': 'bare',
                            'image_disk_format': 'qcow2'}
-        mgr_utils.mock_the_extension_manager(driver='fake_agent')
+        self.config(enabled_drivers=['fake_agent'])
         with task_manager.acquire(
                 self.context, self.node.uuid, shared=False) as task:
 
@@ -2302,7 +2300,7 @@ class TestBuildInstanceInfoForDeploy(db_base.DbTestCase):
         self.node.driver_internal_info = driver_internal_info
         self.node.save()
 
-        mgr_utils.mock_the_extension_manager(driver='fake_agent')
+        self.config(enabled_drivers=['fake_agent'])
         with task_manager.acquire(
                 self.context, self.node.uuid, shared=False) as task:
 
@@ -2331,7 +2329,7 @@ class TestBuildInstanceInfoForDeploy(db_base.DbTestCase):
         self.node.driver_internal_info = driver_internal_info
         self.node.save()
 
-        mgr_utils.mock_the_extension_manager(driver='fake_agent')
+        self.config(enabled_drivers=['fake_agent'])
         validate_href_mock.side_effect = ['http://image-ref',
                                           'http://kernel-ref',
                                           'http://ramdisk-ref']
@@ -2370,7 +2368,7 @@ class TestBuildInstanceInfoForDeploy(db_base.DbTestCase):
         self.node.instance_info = i_info
         self.node.save()
 
-        mgr_utils.mock_the_extension_manager(driver='fake_agent')
+        self.config(enabled_drivers=['fake_agent'])
         with task_manager.acquire(
                 self.context, self.node.uuid, shared=False) as task:
 

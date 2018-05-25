@@ -25,7 +25,6 @@ from ironic.drivers.modules.oneview import common
 from ironic.drivers.modules.oneview import deploy_utils
 from ironic.drivers.modules.oneview import management
 from ironic.drivers.modules.oneview import power
-from ironic.tests.unit.conductor import mgr_utils
 from ironic.tests.unit.db import base as db_base
 from ironic.tests.unit.db import utils as db_utils
 from ironic.tests.unit.objects import utils as obj_utils
@@ -42,8 +41,7 @@ class OneViewPowerDriverTestCase(db_base.DbTestCase):
         self.config(password='password', group='oneview')
         self.config(tls_cacert_file='ca_file', group='oneview')
         self.config(allow_insecure_connections=False, group='oneview')
-
-        mgr_utils.mock_the_extension_manager(driver='fake_oneview')
+        self.config(enabled_drivers=['fake_oneview'])
         self.driver = driver_factory.get_driver('fake_oneview')
 
         self.node = obj_utils.create_test_node(

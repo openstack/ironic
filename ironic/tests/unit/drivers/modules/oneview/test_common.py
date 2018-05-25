@@ -19,7 +19,6 @@ from oslo_utils import importutils
 from ironic.common import exception
 from ironic.conductor import task_manager
 from ironic.drivers.modules.oneview import common
-from ironic.tests.unit.conductor import mgr_utils
 from ironic.tests.unit.db import base as db_base
 from ironic.tests.unit.db import utils as db_utils
 from ironic.tests.unit.objects import utils as obj_utils
@@ -41,7 +40,7 @@ class OneViewCommonTestCase(db_base.DbTestCase):
         self.config(password='password', group='oneview')
         self.config(tls_cacert_file='ca_file', group='oneview')
         self.config(allow_insecure_connections=False, group='oneview')
-        mgr_utils.mock_the_extension_manager(driver="fake_oneview")
+        self.config(enabled_drivers=['fake_oneview'])
 
     def test_prepare_manager_url(self):
         self.assertEqual(

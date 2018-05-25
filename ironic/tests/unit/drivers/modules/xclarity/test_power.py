@@ -24,7 +24,6 @@ from ironic.common import states
 from ironic.conductor import task_manager
 from ironic.drivers.modules.xclarity import common
 from ironic.drivers.modules.xclarity import power
-from ironic.tests.unit.conductor import mgr_utils
 from ironic.tests.unit.db import base as db_base
 from ironic.tests.unit.db import utils as db_utils
 from ironic.tests.unit.objects import utils as obj_utils
@@ -48,8 +47,6 @@ class XClarityPowerDriverTestCase(db_base.DbTestCase):
         self.config(enabled_hardware_types=['xclarity'],
                     enabled_power_interfaces=['xclarity'],
                     enabled_management_interfaces=['xclarity'])
-        mgr_utils.mock_the_extension_manager(
-            driver='xclarity', namespace='ironic.hardware.types')
         self.node = obj_utils.create_test_node(
             self.context,
             driver='xclarity',

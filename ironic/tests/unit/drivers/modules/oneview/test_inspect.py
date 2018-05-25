@@ -18,7 +18,6 @@ import mock
 from ironic.conductor import task_manager
 from ironic.drivers.modules.oneview import common as ov_common
 from ironic.drivers.modules.oneview import deploy_utils
-from ironic.tests.unit.conductor import mgr_utils
 from ironic.tests.unit.db import base as db_base
 from ironic.tests.unit.db import utils as db_utils
 from ironic.tests.unit.objects import utils as obj_utils
@@ -30,7 +29,7 @@ class AgentPXEOneViewInspectTestCase(db_base.DbTestCase):
         super(AgentPXEOneViewInspectTestCase, self).setUp()
         self.config(enabled=True, group='inspector')
         self.config(manager_url='https://1.2.3.4', group='oneview')
-        mgr_utils.mock_the_extension_manager(driver="agent_pxe_oneview")
+        self.config(enabled_drivers=['agent_pxe_oneview'])
         self.node = obj_utils.create_test_node(
             self.context, driver='agent_pxe_oneview',
             properties=db_utils.get_test_oneview_properties(),
@@ -46,7 +45,6 @@ class AgentPXEOneViewInspectTestCase(db_base.DbTestCase):
     @mock.patch.object(ov_common, 'validate_oneview_resources_compatibility',
                        autospect=True)
     def test_validate(self, mock_validate):
-        self.config(enabled=False, group='inspector')
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
             task.driver.inspect.validate(task)
@@ -67,7 +65,7 @@ class ISCSIPXEOneViewInspectTestCase(db_base.DbTestCase):
         super(ISCSIPXEOneViewInspectTestCase, self).setUp()
         self.config(enabled=True, group='inspector')
         self.config(manager_url='https://1.2.3.4', group='oneview')
-        mgr_utils.mock_the_extension_manager(driver="iscsi_pxe_oneview")
+        self.config(enabled_drivers=['iscsi_pxe_oneview'])
         self.node = obj_utils.create_test_node(
             self.context, driver='iscsi_pxe_oneview',
             properties=db_utils.get_test_oneview_properties(),
@@ -83,7 +81,6 @@ class ISCSIPXEOneViewInspectTestCase(db_base.DbTestCase):
     @mock.patch.object(ov_common, 'validate_oneview_resources_compatibility',
                        autospect=True)
     def test_validate(self, mock_validate):
-        self.config(enabled=False, group='inspector')
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
             task.driver.inspect.validate(task)

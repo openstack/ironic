@@ -35,7 +35,6 @@ from ironic.conductor import task_manager
 from ironic.conductor import utils as manager_utils
 from ironic.drivers.modules import deploy_utils
 from ironic.drivers.modules.ilo import common as ilo_common
-from ironic.tests.unit.conductor import mgr_utils
 from ironic.tests.unit.db import base as db_base
 from ironic.tests.unit.db import utils as db_utils
 from ironic.tests.unit.objects import utils as obj_utils
@@ -214,7 +213,7 @@ class IloCommonMethodsTestCase(db_base.DbTestCase):
 
     def setUp(self):
         super(IloCommonMethodsTestCase, self).setUp()
-        mgr_utils.mock_the_extension_manager(driver="fake_ilo")
+        self.config(enabled_drivers=['fake_ilo'])
         self.info = db_utils.get_test_ilo_info()
         self.node = obj_utils.create_test_node(
             self.context, driver='fake_ilo', driver_info=self.info)

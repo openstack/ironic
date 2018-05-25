@@ -24,7 +24,6 @@ from ironic.drivers.modules.ansible import deploy as ansible_deploy
 from ironic.drivers.modules import deploy_utils
 from ironic.drivers.modules import fake
 from ironic.drivers.modules import pxe
-from ironic.tests.unit.conductor import mgr_utils
 from ironic.tests.unit.db import base as db_base
 from ironic.tests.unit.objects import utils as object_utils
 
@@ -56,11 +55,10 @@ class AnsibleDeployTestCaseBase(db_base.DbTestCase):
     def setUp(self):
         super(AnsibleDeployTestCaseBase, self).setUp()
 
-        self.config(enabled_deploy_interfaces='ansible',
+        self.config(enabled_hardware_types='manual-management',
+                    enabled_deploy_interfaces='ansible',
                     enabled_power_interfaces='fake',
                     enabled_management_interfaces='fake')
-        mgr_utils.mock_the_extension_manager(driver='manual-management',
-                                             namespace='ironic.hardware.types')
         node = {
             'driver': 'manual-management',
             'instance_info': INSTANCE_INFO,
