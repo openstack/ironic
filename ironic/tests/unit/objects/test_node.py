@@ -408,7 +408,6 @@ class TestConvertToVersion(db_base.DbTestCase):
         node = obj_utils.get_test_node(self.ctxt, **self.fake_node)
 
         node.rescue_interface = 'fake'
-        node.fault = None
         node.obj_reset_changes()
         node._convert_to_version("1.21", False)
         self.assertIsNone(node.rescue_interface)
@@ -421,7 +420,6 @@ class TestConvertToVersion(db_base.DbTestCase):
 
         node.rescue_interface = None
         node.traits = None
-        node.fault = None
         node.obj_reset_changes()
         node._convert_to_version("1.21", False)
         self.assertIsNone(node.rescue_interface)
@@ -468,7 +466,6 @@ class TestConvertToVersion(db_base.DbTestCase):
         # traits not set, should be set to default.
         node = obj_utils.get_test_node(self.ctxt, **self.fake_node)
         delattr(node, 'traits')
-        node.fault = None
         node.obj_reset_changes()
 
         node._convert_to_version("1.22", False)
@@ -481,7 +478,6 @@ class TestConvertToVersion(db_base.DbTestCase):
         node = obj_utils.get_test_node(self.ctxt, **self.fake_node)
         node.traits = objects.TraitList(self.ctxt)
         node.traits.obj_reset_changes()
-        node.fault = None
         node.obj_reset_changes()
 
         node._convert_to_version("1.22", False)
@@ -493,7 +489,6 @@ class TestConvertToVersion(db_base.DbTestCase):
         # traits set, no change required.
         node = obj_utils.get_test_node(self.ctxt, **self.fake_node)
         node.traits = None
-        node.fault = None
         node.obj_reset_changes()
 
         node._convert_to_version("1.22", False)
@@ -548,7 +543,6 @@ class TestConvertToVersion(db_base.DbTestCase):
         node = obj_utils.get_test_node(self.ctxt, **self.fake_node)
 
         node.bios_interface = 'fake'
-        node.fault = None
         node.obj_reset_changes()
         node._convert_to_version("1.23", False)
         self.assertIsNone(node.bios_interface)
@@ -559,7 +553,6 @@ class TestConvertToVersion(db_base.DbTestCase):
         node = obj_utils.get_test_node(self.ctxt, **self.fake_node)
 
         node.bios_interface = None
-        node.fault = None
         node.obj_reset_changes()
         node._convert_to_version("1.23", False)
         self.assertIsNone(node.bios_interface)
