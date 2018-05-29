@@ -140,7 +140,7 @@ def _cleaning_reboot(task):
                {'step': task.node.clean_step,
                 'node': task.node.uuid,
                 'err': e})
-        LOG.error(msg)
+        LOG.error(msg, exc_info=not isinstance(e, exception.IronicException))
         # do not set cleaning_reboot if we didn't reboot
         manager_utils.cleaning_error_handler(task, msg)
         return
@@ -203,7 +203,7 @@ def _get_completed_cleaning_command(task, commands):
 
 
 @METRICS.timer('log_and_raise_deployment_error')
-def log_and_raise_deployment_error(task, msg, collect_logs=True):
+def log_and_raise_deployment_error(task, msg, collect_logs=True, exc=None):
     """Helper method to log the error and raise exception.
 
     :param task: a TaskManager instance containing the node to act on.
@@ -212,8 +212,11 @@ def log_and_raise_deployment_error(task, msg, collect_logs=True):
                          logs from IPA-based ramdisk. Defaults to True.
                          Actual log collection is also affected by
                          CONF.agent.deploy_logs_collect config option.
+    :param exc: Exception that caused the failure.
     """
-    LOG.error(msg)
+    log_traceback = (exc is not None and
+                     not isinstance(exc, exception.IronicException))
+    LOG.error(msg, exc_info=log_traceback)
     deploy_utils.set_failed_state(task, msg, collect_logs=collect_logs)
     raise exception.InstanceDeployFailure(msg)
 
@@ -549,10 +552,11 @@ class AgentDeployMixin(HeartbeatMixin):
                 except Exception as e:
                     msg = (_('For node %(node)s, post clean step hook '
                              '%(method)s failed for clean step %(step)s.'
-                             'Error: %(error)s') %
+                             '%(cls)s: %(error)s') %
                            {'method': clean_step_hook.__name__,
                             'node': node.uuid,
                             'error': e,
+                            'cls': e.__class__.__name__,
                             'step': node.clean_step})
                     LOG.exception(msg)
                     return manager_utils.cleaning_error_handler(task, msg)
@@ -613,10 +617,12 @@ class AgentDeployMixin(HeartbeatMixin):
                 except Exception as e:
                     LOG.warning('Failed to soft power off node %(node_uuid)s '
                                 'in at least %(timeout)d seconds. '
-                                'Error: %(error)s',
+                                '%(cls)s: %(error)s',
                                 {'node_uuid': node.uuid,
                                  'timeout': (wait * (attempts - 1)) / 1000,
-                                 'error': e})
+                                 'cls': e.__class__.__name__, 'error': e},
+                                exc_info=not isinstance(
+                                    e, exception.IronicException))
                     manager_utils.node_power_action(task, states.POWER_OFF)
             else:
                 # Flush the file system prior to hard rebooting the node
@@ -635,9 +641,10 @@ class AgentDeployMixin(HeartbeatMixin):
                 manager_utils.node_power_action(task, states.POWER_OFF)
         except Exception as e:
             msg = (_('Error rebooting node %(node)s after deploy. '
-                     'Error: %(error)s') %
-                   {'node': node.uuid, 'error': e})
-            log_and_raise_deployment_error(task, msg)
+                     '%(cls)s: %(error)s') %
+                   {'node': node.uuid, 'cls': e.__class__.__name__,
+                    'error': e})
+            log_and_raise_deployment_error(task, msg, exc=e)
 
         try:
             task.driver.network.remove_provisioning_network(task)
@@ -646,11 +653,13 @@ class AgentDeployMixin(HeartbeatMixin):
             manager_utils.node_power_action(task, states.POWER_ON)
         except Exception as e:
             msg = (_('Error rebooting node %(node)s after deploy. '
-                     'Error: %(error)s') %
-                   {'node': node.uuid, 'error': e})
+                     '%(cls)s: %(error)s') %
+                   {'node': node.uuid, 'cls': e.__class__.__name__,
+                    'error': e})
             # NOTE(mgoddard): Don't collect logs since the node has been
             # powered off.
-            log_and_raise_deployment_error(task, msg, collect_logs=False)
+            log_and_raise_deployment_error(task, msg, collect_logs=False,
+                                           exc=e)
 
         task.process_event('done')
         LOG.info('Deployment to node %s done', task.node.uuid)
@@ -674,11 +683,12 @@ class AgentDeployMixin(HeartbeatMixin):
         try:
             task.driver.boot.prepare_instance(task)
         except Exception as e:
-            LOG.error('Deploy failed for instance %(instance)s. '
-                      'Error: %(error)s',
-                      {'instance': node.instance_uuid, 'error': e})
-            msg = _('Failed to continue agent deployment.')
-            log_and_raise_deployment_error(task, msg)
+            LOG.error('Preparing instance for booting failed for instance '
+                      '%(instance)s. %(cls)s: %(error)s',
+                      {'instance': node.instance_uuid,
+                       'cls': e.__class__.__name__, 'error': e})
+            msg = _('Failed to prepare instance for booting')
+            log_and_raise_deployment_error(task, msg, exc=e)
 
     @METRICS.timer('AgentDeployMixin.configure_local_boot')
     def configure_local_boot(self, task, root_uuid=None,
@@ -724,6 +734,6 @@ class AgentDeployMixin(HeartbeatMixin):
                      "when deploying node %(node)s. Error: %(error)s") %
                    {'boot_dev': boot_devices.DISK, 'node': node.uuid,
                     'error': e})
-            log_and_raise_deployment_error(task, msg)
+            log_and_raise_deployment_error(task, msg, exc=e)
 
         LOG.info('Local boot successfully configured for node %s', node.uuid)
