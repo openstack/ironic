@@ -1182,6 +1182,7 @@ class ErrorHandlersTestCase(tests_base.TestCase):
                                                         target_state=None)
         self.assertTrue(self.node.maintenance)
         self.assertEqual(clean_error, self.node.maintenance_reason)
+        self.assertEqual('clean failure', self.node.fault)
 
     def test_cleaning_error_handler(self):
         self.node.provision_state = states.CLEANING
@@ -1196,6 +1197,7 @@ class ErrorHandlersTestCase(tests_base.TestCase):
         self.assertEqual(msg, self.node.last_error)
         self.assertTrue(self.node.maintenance)
         self.assertEqual(msg, self.node.maintenance_reason)
+        self.assertEqual('clean failure', self.node.fault)
         driver = self.task.driver.deploy
         driver.tear_down_cleaning.assert_called_once_with(self.task)
         self.task.process_event.assert_called_once_with('fail',
@@ -1238,6 +1240,7 @@ class ErrorHandlersTestCase(tests_base.TestCase):
         self.assertTrue(log_mock.exception.called)
         self.assertIn(msg, self.node.last_error)
         self.assertIn(msg, self.node.maintenance_reason)
+        self.assertEqual('clean failure', self.node.fault)
 
     def test_abort_on_conductor_take_over_cleaning(self):
         self.node.maintenance = False
@@ -1246,6 +1249,7 @@ class ErrorHandlersTestCase(tests_base.TestCase):
         self.assertTrue(self.node.maintenance)
         self.assertIn('take over', self.node.maintenance_reason)
         self.assertIn('take over', self.node.last_error)
+        self.assertEqual('clean failure', self.node.fault)
         self.task.driver.deploy.tear_down_cleaning.assert_called_once_with(
             self.task)
         self.node.save.assert_called_once_with()

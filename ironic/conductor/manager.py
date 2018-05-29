@@ -59,6 +59,7 @@ from six.moves import queue
 
 from ironic.common import driver_factory
 from ironic.common import exception
+from ironic.common import faults
 from ironic.common.glance_service import service_utils as glance_utils
 from ironic.common.i18n import _
 from ironic.common import images
@@ -164,9 +165,11 @@ class ConductorManager(base_manager.BaseConductorManager):
         # NOTE(jroll) clear maintenance_reason if node.update sets
         # maintenance to False for backwards compatibility, for tools
         # not using the maintenance endpoint.
+        # NOTE(kaifeng) also clear fault when out of maintenance.
         delta = node_obj.obj_what_changed()
         if 'maintenance' in delta and not node_obj.maintenance:
             node_obj.maintenance_reason = None
+            node_obj.fault = None
 
         # TODO(dtantsur): reconsider allowing changing some (but not all)
         # interfaces for active nodes in the future.
@@ -744,6 +747,7 @@ class ConductorManager(base_manager.BaseConductorManager):
             node.last_error = error_msg
             node.maintenance = True
             node.maintenance_reason = error_msg
+            node.fault = faults.RESCUE_ABORT_FAILURE
             node.save()
             return
 
@@ -1558,6 +1562,96 @@ class ConductorManager(base_manager.BaseConductorManager):
                          {'node': node_uuid})
             except exception.NodeLocked:
                 LOG.info("During sync_power_state, node %(node)s was "
+                         "already locked by another process. Skip.",
+                         {'node': node_uuid})
+            finally:
+                # Yield on every iteration
+                eventlet.sleep(0)
+
+    @METRICS.timer('ConductorManager._power_failure_recovery')
+    @periodics.periodic(spacing=CONF.conductor.power_failure_recovery_interval,
+                        enabled=bool(
+                            CONF.conductor.power_failure_recovery_interval))
+    def _power_failure_recovery(self, context):
+        """Periodic task to check power states for nodes in maintenance.
+
+        Attempt to grab a lock and sync only if the following
+        conditions are met:
+
+        1) Node is mapped to this conductor.
+        2) Node is in maintenance with maintenance type of power failure.
+        3) Node is not reserved.
+        4) Node is not in the ENROLL state.
+        """
+        def should_sync_power_state_for_recovery(task):
+            """Check if ironic should sync power state for recovery."""
+
+            # NOTE(dtantsur): it's also pointless (and dangerous) to
+            # sync power state when a power action is in progress
+            if (task.node.provision_state == states.ENROLL or
+                    not task.node.maintenance or
+                    task.node.fault != faults.POWER_FAILURE or
+                    task.node.target_power_state or
+                    task.node.reservation):
+                return False
+            return True
+
+        def handle_recovery(task, actual_power_state):
+            """Handle recovery when power sync is succeeded."""
+            task.upgrade_lock()
+            node = task.node
+            # Update power state
+            old_power_state = node.power_state
+            node.power_state = actual_power_state
+            # Clear maintenance related fields
+            node.maintenance = False
+            node.maintenance_reason = None
+            node.fault = None
+            node.save()
+            LOG.info("Node %(node)s is recovered from power failure "
+                     "with actual power state '%(state)s'.",
+                     {'node': node.uuid, 'state': actual_power_state})
+            if old_power_state != actual_power_state:
+                notify_utils.emit_power_state_corrected_notification(
+                    task, old_power_state)
+
+        # NOTE(kaifeng) To avoid conflicts with periodic task of the
+        # regular power state checking, maintenance is still a required
+        # condition.
+        filters = {'maintenance': True,
+                   'fault': faults.POWER_FAILURE}
+        node_iter = self.iter_nodes(fields=['id'], filters=filters)
+        for (node_uuid, driver, node_id) in node_iter:
+            try:
+                with task_manager.acquire(context, node_uuid,
+                                          purpose='power failure recovery',
+                                          shared=True) as task:
+                    if not should_sync_power_state_for_recovery(task):
+                        continue
+                    try:
+                        # Validate driver info in case of parameter changed
+                        # in maintenance.
+                        task.driver.power.validate(task)
+                        # The driver may raise an exception, or may return
+                        # ERROR. Handle both the same way.
+                        power_state = task.driver.power.get_power_state(task)
+                        if power_state == states.ERROR:
+                            raise exception.PowerStateFailure(
+                                _("Power driver returned ERROR state "
+                                  "while trying to get power state."))
+                    except Exception as e:
+                        LOG.debug("During power_failure_recovery, could "
+                                  "not get power state for node %(node)s, "
+                                  "Error: %(err)s.",
+                                  {'node': task.node.uuid, 'err': e})
+                    else:
+                        handle_recovery(task, power_state)
+            except exception.NodeNotFound:
+                LOG.info("During power_failure_recovery, node %(node)s was "
+                         "not found and presumed deleted by another process.",
+                         {'node': node_uuid})
+            except exception.NodeLocked:
+                LOG.info("During power_failure_recovery, node %(node)s was "
                          "already locked by another process. Skip.",
                          {'node': node_uuid})
             finally:
@@ -3391,6 +3485,7 @@ def handle_sync_power_state_max_retries_exceeded(task, actual_power_state,
     node.last_error = msg
     node.maintenance = True
     node.maintenance_reason = msg
+    node.fault = faults.POWER_FAILURE
     node.save()
     if old_power_state != actual_power_state:
         notify_utils.emit_power_state_corrected_notification(

@@ -477,9 +477,11 @@ class UpdateNodeTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         res = self.service.update_node(self.context, node)
         self.assertEqual({'test': 'two'}, res['extra'])
 
-    def test_update_node_clears_maintenance_reason(self):
-        node = obj_utils.create_test_node(self.context, driver='fake-hardware',
+    def test_update_node_maintenance_set_false(self):
+        node = obj_utils.create_test_node(self.context,
+                                          driver='fake-hardware',
                                           maintenance=True,
+                                          fault='clean failure',
                                           maintenance_reason='reason')
 
         # check that ManagerService.update_node actually updates the node
@@ -487,6 +489,7 @@ class UpdateNodeTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         res = self.service.update_node(self.context, node)
         self.assertFalse(res['maintenance'])
         self.assertIsNone(res['maintenance_reason'])
+        self.assertIsNone(res['fault'])
 
     def test_update_node_already_locked(self):
         node = obj_utils.create_test_node(self.context, driver='fake-hardware',
@@ -2110,6 +2113,7 @@ class DoNodeDeployTearDownTestCase(mgr_utils.ServiceSetUpMixin,
             self.assertIsNotNone(task.node.last_error)
             self.assertIsNotNone(task.node.maintenance_reason)
             self.assertTrue(task.node.maintenance)
+            self.assertEqual('clean failure', task.node.fault)
 
 
 @mgr_utils.mock_record_keepalive
@@ -3356,6 +3360,8 @@ class DoNodeRescueTestCase(mgr_utils.CommonMixIn, mgr_utils.ServiceSetUpMixin,
             self.assertIsNotNone(task.node.last_error)
             self.assertIsNotNone(task.node.maintenance_reason)
             self.assertTrue(task.node.maintenance)
+            self.assertEqual('rescue abort failure',
+                             task.node.fault)
 
 
 @mgr_utils.mock_record_keepalive
@@ -5157,6 +5163,7 @@ class ManagerDoSyncPowerStateTestCase(db_base.DbTestCase):
                          self.service.power_state_sync_count[self.node.uuid])
         self.assertTrue(self.node.maintenance)
         self.assertIsNotNone(self.node.maintenance_reason)
+        self.assertEqual('power failure', self.node.fault)
 
     def test_max_retries_exceeded2(self, node_power_action):
         self.config(force_power_state_during_sync=True, group='conductor')
@@ -5176,6 +5183,7 @@ class ManagerDoSyncPowerStateTestCase(db_base.DbTestCase):
         self.assertEqual(3,
                          self.service.power_state_sync_count[self.node.uuid])
         self.assertTrue(self.node.maintenance)
+        self.assertEqual('power failure', self.node.fault)
 
     @mock.patch('ironic.objects.node.NodeCorrectedPowerStateNotification')
     def test_max_retries_exceeded_notify(self, mock_notif, node_power_action):
@@ -5503,6 +5511,158 @@ class ManagerSyncPowerStatesTestCase(mgr_utils.CommonMixIn,
         sync_calls = [mock.call(tasks[0], mock.ANY),
                       mock.call(tasks[5], mock.ANY)]
         self.assertEqual(sync_calls, sync_mock.call_args_list)
+
+
+@mock.patch.object(task_manager, 'acquire')
+@mock.patch.object(manager.ConductorManager, '_mapped_to_this_conductor')
+@mock.patch.object(dbapi.IMPL, 'get_nodeinfo_list')
+class ManagerPowerRecoveryTestCase(mgr_utils.CommonMixIn,
+                                   db_base.DbTestCase):
+    def setUp(self):
+        super(ManagerPowerRecoveryTestCase, self).setUp()
+        self.service = manager.ConductorManager('hostname', 'test-topic')
+        self.service.dbapi = self.dbapi
+        self.driver = mock.Mock(spec_set=drivers_base.BaseDriver)
+        self.power = self.driver.power
+        self.task = mock.Mock(spec_set=['context', 'driver', 'node',
+                                        'upgrade_lock', 'shared'])
+        self.node = self._create_node(maintenance=True,
+                                      fault='power failure',
+                                      maintenance_reason='Unreachable BMC')
+        self.task.node = self.node
+        self.task.driver = self.driver
+        self.filters = {'maintenance': True,
+                        'fault': 'power failure'}
+        self.columns = ['uuid', 'driver', 'id']
+
+    def test_node_not_mapped(self, get_nodeinfo_mock,
+                             mapped_mock, acquire_mock):
+        get_nodeinfo_mock.return_value = self._get_nodeinfo_list_response()
+        mapped_mock.return_value = False
+
+        self.service._power_failure_recovery(self.context)
+
+        get_nodeinfo_mock.assert_called_once_with(
+            columns=self.columns, filters=self.filters)
+        mapped_mock.assert_called_once_with(self.node.uuid,
+                                            self.node.driver)
+        self.assertFalse(acquire_mock.called)
+        self.assertFalse(self.power.validate.called)
+
+    def _power_failure_recovery(self, node_dict, get_nodeinfo_mock,
+                                mapped_mock, acquire_mock):
+        get_nodeinfo_mock.return_value = self._get_nodeinfo_list_response()
+        mapped_mock.return_value = True
+
+        task = self._create_task(node_attrs=node_dict)
+        acquire_mock.side_effect = self._get_acquire_side_effect(task)
+
+        self.service._power_failure_recovery(self.context)
+
+        get_nodeinfo_mock.assert_called_once_with(
+            columns=self.columns, filters=self.filters)
+        mapped_mock.assert_called_once_with(self.node.uuid,
+                                            self.node.driver)
+        acquire_mock.assert_called_once_with(self.context, self.node.uuid,
+                                             purpose=mock.ANY,
+                                             shared=True)
+        self.assertFalse(self.power.validate.called)
+
+    def test_node_locked_on_acquire(self, get_nodeinfo_mock, mapped_mock,
+                                    acquire_mock):
+        node_dict = dict(reservation='host1', uuid=self.node.uuid)
+        self._power_failure_recovery(node_dict, get_nodeinfo_mock,
+                                     mapped_mock, acquire_mock)
+
+    def test_node_in_enroll_on_acquire(self, get_nodeinfo_mock, mapped_mock,
+                                       acquire_mock):
+        node_dict = dict(provision_state=states.ENROLL,
+                         target_provision_state=states.NOSTATE,
+                         maintenance=True, uuid=self.node.uuid)
+        self._power_failure_recovery(node_dict, get_nodeinfo_mock,
+                                     mapped_mock, acquire_mock)
+
+    def test_node_in_power_transition_on_acquire(self, get_nodeinfo_mock,
+                                                 mapped_mock, acquire_mock):
+        node_dict = dict(target_power_state=states.POWER_ON,
+                         maintenance=True, uuid=self.node.uuid)
+        self._power_failure_recovery(node_dict, get_nodeinfo_mock,
+                                     mapped_mock, acquire_mock)
+
+    def test_node_not_in_maintenance_on_acquire(self, get_nodeinfo_mock,
+                                                mapped_mock, acquire_mock):
+        node_dict = dict(maintenance=False, uuid=self.node.uuid)
+        self._power_failure_recovery(node_dict, get_nodeinfo_mock,
+                                     mapped_mock, acquire_mock)
+
+    def test_node_disappears_on_acquire(self, get_nodeinfo_mock,
+                                        mapped_mock, acquire_mock):
+        get_nodeinfo_mock.return_value = self._get_nodeinfo_list_response()
+        mapped_mock.return_value = True
+        acquire_mock.side_effect = exception.NodeNotFound(node=self.node.uuid,
+                                                          host='fake')
+
+        self.service._power_failure_recovery(self.context)
+
+        get_nodeinfo_mock.assert_called_once_with(
+            columns=self.columns, filters=self.filters)
+        mapped_mock.assert_called_once_with(self.node.uuid,
+                                            self.node.driver)
+        acquire_mock.assert_called_once_with(self.context, self.node.uuid,
+                                             purpose=mock.ANY,
+                                             shared=True)
+        self.assertFalse(self.power.validate.called)
+
+    @mock.patch.object(notification_utils,
+                       'emit_power_state_corrected_notification')
+    def test_node_recovery_success(self, notify_mock, get_nodeinfo_mock,
+                                   mapped_mock, acquire_mock):
+        self.node.power_state = states.POWER_ON
+        get_nodeinfo_mock.return_value = self._get_nodeinfo_list_response()
+        mapped_mock.return_value = True
+        acquire_mock.side_effect = self._get_acquire_side_effect(self.task)
+        self.power.get_power_state.return_value = states.POWER_OFF
+
+        self.service._power_failure_recovery(self.context)
+
+        get_nodeinfo_mock.assert_called_once_with(
+            columns=self.columns, filters=self.filters)
+        mapped_mock.assert_called_once_with(self.node.uuid,
+                                            self.node.driver)
+        acquire_mock.assert_called_once_with(self.context, self.node.uuid,
+                                             purpose=mock.ANY,
+                                             shared=True)
+        self.power.validate.assert_called_once_with(self.task)
+        self.power.get_power_state.assert_called_once_with(self.task)
+        self.task.upgrade_lock.assert_called_once_with()
+        self.assertFalse(self.node.maintenance)
+        self.assertIsNone(self.node.fault)
+        self.assertIsNone(self.node.maintenance_reason)
+        self.assertEqual(states.POWER_OFF, self.node.power_state)
+        notify_mock.assert_called_once_with(self.task, states.POWER_ON)
+
+    def test_node_recovery_failed(self, get_nodeinfo_mock,
+                                  mapped_mock, acquire_mock):
+        get_nodeinfo_mock.return_value = self._get_nodeinfo_list_response()
+        mapped_mock.return_value = True
+        acquire_mock.side_effect = self._get_acquire_side_effect(self.task)
+        self.power.get_power_state.return_value = states.ERROR
+
+        self.service._power_failure_recovery(self.context)
+
+        get_nodeinfo_mock.assert_called_once_with(
+            columns=self.columns, filters=self.filters)
+        mapped_mock.assert_called_once_with(self.node.uuid,
+                                            self.node.driver)
+        acquire_mock.assert_called_once_with(self.context, self.node.uuid,
+                                             purpose=mock.ANY,
+                                             shared=True)
+        self.power.validate.assert_called_once_with(self.task)
+        self.power.get_power_state.assert_called_once_with(self.task)
+        self.assertFalse(self.task.upgrade_lock.called)
+        self.assertTrue(self.node.maintenance)
+        self.assertEqual('power failure', self.node.fault)
+        self.assertEqual('Unreachable BMC', self.node.maintenance_reason)
 
 
 @mock.patch.object(task_manager, 'acquire')
