@@ -1,0 +1,6 @@
+---
+features:
+  - Adds support for reading and changing the node's ``bios_interface`` field
+    and enables the GET endpoints to check BIOS settings, if they have already
+    been cached. This requires a compatible ``bios_interface`` to be set.
+    This feature is available starting with API version 1.40.

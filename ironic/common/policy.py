@@ -199,6 +199,13 @@ node_policies = [
         [{'path': '/nodes/{node_ident}/traits', 'method': 'DELETE'},
          {'path': '/nodes/{node_ident}/traits/{trait}',
           'method': 'DELETE'}]),
+
+    policy.DocumentedRuleDefault(
+        'baremetal:node:bios:get',
+        'rule:is_admin or rule:is_observer',
+        'Retrieve Node BIOS information',
+        [{'path': '/nodes/{node_ident}/bios', 'method': 'GET'},
+         {'path': '/nodes/{node_ident}/bios/{setting}', 'method': 'GET'}])
 ]
 
 port_policies = [

@@ -76,6 +76,8 @@ BASE_VERSION = 1
 # v1.37: Add node traits.
 # v1.38: Add rescue and unrescue provision states
 # v1.39: Add inspect wait provision state.
+# v1.40: Add bios.properties.
+#        Add bios_interface to the node object.
 
 MINOR_0_JUNO = 0
 MINOR_1_INITIAL_VERSION = 1
@@ -117,6 +119,7 @@ MINOR_36_AGENT_VERSION_HEARTBEAT = 36
 MINOR_37_NODE_TRAITS = 37
 MINOR_38_RESCUE_INTERFACE = 38
 MINOR_39_INSPECT_WAIT = 39
+MINOR_40_BIOS_INTERFACE = 40
 
 # When adding another version, update:
 # - MINOR_MAX_VERSION
@@ -124,7 +127,7 @@ MINOR_39_INSPECT_WAIT = 39
 #   explanation of what changed in the new version
 # - common/release_mappings.py, RELEASE_MAPPING['master']['api']
 
-MINOR_MAX_VERSION = MINOR_39_INSPECT_WAIT
+MINOR_MAX_VERSION = MINOR_40_BIOS_INTERFACE
 
 # String representations of the minor and maximum versions
 _MIN_VERSION_STRING = '{}.{}'.format(BASE_VERSION, MINOR_1_INITIAL_VERSION)

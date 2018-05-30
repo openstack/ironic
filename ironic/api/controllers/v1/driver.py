@@ -79,6 +79,10 @@ def hide_fields_in_newer_versions(obj):
         obj.default_rescue_interface = wsme.Unset
         obj.enabled_rescue_interfaces = wsme.Unset
 
+    if not api_utils.allow_bios_interface():
+        obj.default_bios_interface = wsme.Unset
+        obj.enabled_bios_interfaces = wsme.Unset
+
 
 class Driver(base.APIBase):
     """API representation of a driver."""
@@ -99,6 +103,7 @@ class Driver(base.APIBase):
     """A list containing links to driver properties"""
 
     """Default interface for a hardware type"""
+    default_bios_interface = wtypes.text
     default_boot_interface = wtypes.text
     default_console_interface = wtypes.text
     default_deploy_interface = wtypes.text
@@ -112,6 +117,7 @@ class Driver(base.APIBase):
     default_vendor_interface = wtypes.text
 
     """A list of enabled interfaces for a hardware type"""
+    enabled_bios_interfaces = [wtypes.text]
     enabled_boot_interfaces = [wtypes.text]
     enabled_console_interfaces = [wtypes.text]
     enabled_deploy_interfaces = [wtypes.text]
