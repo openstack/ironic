@@ -49,7 +49,9 @@ apidoc_output_dir = 'contributor/api'
 apidoc_excluded_paths = [
     'db/sqlalchemy/alembic/env'
     'db/sqlalchemy/alembic/versions/*',
-    'drivers/modules/ansible/playbooks*']
+    'drivers/modules/ansible/playbooks*',
+    'tests',
+]
 apidoc_separate_modules = True
 
 repository_name = 'openstack/ironic'
