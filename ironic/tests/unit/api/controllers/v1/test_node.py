@@ -4926,11 +4926,13 @@ class TestTraits(test_api_base.BaseApiTest):
     def test_delete_trait_fails_if_trait_not_found(self, mock_notify,
                                                    mock_remove):
         mock_remove.side_effect = exception.NodeTraitNotFound(
-            node_id=self.node.uuid, trait='CUSTOM_12')
+            node_id=self.node.id, trait='CUSTOM_12')
         ret = self.delete('/nodes/%s/traits/CUSTOM_12' % self.node.name,
                           headers={api_base.Version.string: self.version},
                           expect_errors=True)
         self.assertEqual(http_client.NOT_FOUND, ret.status_code)
+        self.assertIn(self.node.uuid, ret.json['error_message'])
+        self.assertNotIn(self.node.id, ret.json['error_message'])
         mock_remove.assert_called_once_with(mock.ANY, self.node.id,
                                             ['CUSTOM_12'], topic='test-topic')
         mock_notify.assert_has_calls(
