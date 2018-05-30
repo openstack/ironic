@@ -18,8 +18,8 @@ they are in the ``available`` provision state.
 
 .. note::
    Any bare metal node that is visible to the Compute service may have a
-   workload scheduled to it, if both the ``power`` and ``deploy`` interfaces
-   pass the ``validate`` check.
+   workload scheduled to it, if both the ``power`` and ``management``
+   interfaces pass the ``validate`` check.
    If you wish to exclude a node from the Compute service's scheduler, for
    instance so that you can perform maintenance on it, you can set the node to
    "maintenance" mode.
