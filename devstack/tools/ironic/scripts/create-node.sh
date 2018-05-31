@@ -12,7 +12,7 @@ export PS4='+ ${BASH_SOURCE:-}:${FUNCNAME[0]:-}:L${LINENO:-}:   '
 # Keep track of the DevStack directory
 TOP_DIR=$(cd $(dirname "$0")/.. && pwd)
 
-while getopts "n:c:i:m:M:d:a:b:e:E:p:o:f:l:L:N:A:" arg; do
+while getopts "n:c:i:m:M:d:a:b:e:E:p:o:f:l:L:N:A:D:" arg; do
     case $arg in
         n) NAME=$OPTARG;;
         c) CPU=$OPTARG;;
@@ -33,6 +33,7 @@ while getopts "n:c:i:m:M:d:a:b:e:E:p:o:f:l:L:N:A:" arg; do
         L) UEFI_LOADER=$OPTARG;;
         N) UEFI_NVRAM=$OPTARG;;
         A) MAC_ADDRESS=$OPTARG;;
+        D) NIC_DRIVER=$OPTARG;;
     esac
 done
 
@@ -43,7 +44,7 @@ if [ -z "$UEFI_LOADER" ] && [ ! -z "$UEFI_NVRAM" ]; then
     exit 1
 fi
 
-LIBVIRT_NIC_DRIVER=${LIBVIRT_NIC_DRIVER:-"virtio"}
+LIBVIRT_NIC_DRIVER=${NIC_DRIVER:-"virtio"}
 LIBVIRT_STORAGE_POOL=${LIBVIRT_STORAGE_POOL:-"default"}
 LIBVIRT_CONNECT_URI=${LIBVIRT_CONNECT_URI:-"qemu:///system"}
 
