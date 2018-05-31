@@ -2,6 +2,11 @@
 REST API Version History
 ========================
 
+1.41 (Rocky, master)
+--------------------
+
+Added support to abort inspection of a node in the ``inspect wait`` state.
+
 1.40 (Rocky, master)
 ---------------------
 

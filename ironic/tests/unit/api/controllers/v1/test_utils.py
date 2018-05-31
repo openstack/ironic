@@ -514,6 +514,13 @@ class TestApiUtils(base.TestCase):
         mock_request.version.minor = 37
         self.assertFalse(utils.allow_rescue_interface())
 
+    @mock.patch.object(pecan, 'request', spec_set=['version'])
+    def test_allow_inspect_abort(self, mock_request):
+        mock_request.version.minor = 41
+        self.assertTrue(utils.allow_inspect_abort())
+        mock_request.version.minor = 40
+        self.assertFalse(utils.allow_inspect_abort())
+
 
 class TestNodeIdent(base.TestCase):
 

@@ -66,7 +66,7 @@ class GetClientTestCase(db_base.DbTestCase):
         super(GetClientTestCase, self).setUp()
         # NOTE(pas-ha) force-reset  global inspector session object
         inspector._INSPECTOR_SESSION = None
-        self.api_version = (1, 0)
+        self.api_version = (1, 3)
         self.context = context.RequestContext(global_request_id='global')
 
     def test__get_client(self, mock_init, mock_session, mock_auth,
@@ -216,3 +216,17 @@ class CheckStatusTestCase(BaseTestCase):
         mock_get.assert_called_once_with(self.node.uuid)
         self.task.process_event.assert_called_once_with('fail')
         self.assertIn('boom', self.node.last_error)
+
+
+@mock.patch('ironic.drivers.modules.inspector._get_client', autospec=True)
+class InspectHardwareAbortTestCase(BaseTestCase):
+    def test_abort_ok(self, mock_client):
+        mock_abort = mock_client.return_value.abort
+        self.driver.inspect.abort(self.task)
+        mock_abort.assert_called_once_with(self.node.uuid)
+
+    def test_abort_error(self, mock_client):
+        mock_abort = mock_client.return_value.abort
+        mock_abort.side_effect = RuntimeError('boom')
+        self.assertRaises(RuntimeError, self.driver.inspect.abort, self.task)
+        mock_abort.assert_called_once_with(self.node.uuid)
