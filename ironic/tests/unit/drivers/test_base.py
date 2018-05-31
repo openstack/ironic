@@ -447,7 +447,7 @@ class TestBIOSInterface(base.TestCase):
         bios = MyBIOSInterface()
         task_mock = mock.MagicMock()
 
-        bios.apply_configuration(bios, task_mock, "")
+        bios.apply_configuration(task_mock, "")
         cache_bios_settings_mock.assert_called_once_with(bios, task_mock)
 
     @mock.patch.object(MyBIOSInterface, 'cache_bios_settings', autospec=True)
@@ -455,7 +455,7 @@ class TestBIOSInterface(base.TestCase):
         bios = MyBIOSInterface()
         task_mock = mock.MagicMock()
 
-        bios.factory_reset(bios, task_mock)
+        bios.factory_reset(task_mock)
         cache_bios_settings_mock.assert_called_once_with(bios, task_mock)
 
 

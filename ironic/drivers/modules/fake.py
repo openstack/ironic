@@ -246,6 +246,10 @@ class FakeBIOS(base.BIOSInterface):
     def validate(self, task):
         pass
 
+    @base.clean_step(priority=0, argsinfo={
+        'settings': {'description': ('List of BIOS settings, each item needs '
+                     'to contain a dictionary with name/value pairs'),
+                     'required': True}})
     def apply_configuration(self, task, settings):
         node_id = task.node.id
         try:
@@ -253,6 +257,7 @@ class FakeBIOS(base.BIOSInterface):
         except exception.BIOSSettingAlreadyExists:
             objects.BIOSSettingList.save(task.context, node_id, settings)
 
+    @base.clean_step(priority=0)
     def factory_reset(self, task):
         node_id = task.node.id
         setting_objs = objects.BIOSSettingList.get_by_node_id(
@@ -260,6 +265,7 @@ class FakeBIOS(base.BIOSInterface):
         for setting in setting_objs:
             objects.BIOSSetting.delete(task.context, node_id, setting.name)
 
+    @base.clean_step(priority=0)
     def cache_bios_settings(self, task):
         pass
 
