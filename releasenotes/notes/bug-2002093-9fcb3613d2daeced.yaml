@@ -1,0 +1,9 @@
+---
+upgrade:
+  - |
+    To use CoreOS based deploy/cleaning ramdisk built using Ironic Python Agent
+    from the Rocky release, Ironic should be upgraded to the Rocky release if
+    PXE is used. Otherwise, a node cannot be deployed or cleaned because the
+    IPA fails to boot due to an unsupported parameter passed via PXE. See
+    `bug 2002093 <https://storyboard.openstack.org/#!/story/2002093>`_ for
+    details.
