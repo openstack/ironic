@@ -22,11 +22,14 @@ imgfree
 {% if pxe_options.password %}set password {{ pxe_options.password }}{% endif %}
 {% if pxe_options.iscsi_initiator_iqn %}set initiator-iqn {{ pxe_options.iscsi_initiator_iqn }}{% endif %}
 sanhook --drive 0x80 {{ pxe_options.iscsi_boot_url }} || goto fail_iscsi_retry
-{%- if pxe_options.iscsi_volumes %}{% for volume in pxe_options
-.iscsi_volumes %}
-{%- set drive_id = 80 + loop.index %}
-sanhook --drive 0x{{ drive_id }} {{ volume }} || goto fail_iscsi_retry
+{%- if pxe_options.iscsi_volumes %}{% for i, volume in enumerate(pxe_options.iscsi_volumes) %}
+set username {{ volume.username }}
+set password {{ volume.password }}
+{%- set drive_id = 129 + i %}
+sanhook --drive {{ '0x%x' % drive_id }} {{ volume.url }} || goto fail_iscsi_retry
 {%- endfor %}{% endif %}
+{% if pxe_options.iscsi_volumes %}set username {{ pxe_options.username }}{% endif %}
+{% if pxe_options.iscsi_volumes %}set password {{ pxe_options.password }}{% endif %}
 sanboot --no-describe || goto fail_iscsi_retry
 
 :fail_iscsi_retry

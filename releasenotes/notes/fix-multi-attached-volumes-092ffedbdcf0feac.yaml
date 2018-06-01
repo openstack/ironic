@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    Fix an issue with iPXE is used for authentication during boot from volume
+    with multi attached volumes.
