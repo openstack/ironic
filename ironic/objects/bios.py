@@ -87,7 +87,7 @@ class BIOSSetting(base.IronicObject):
 
         :param context: Security context.
         :param node_id: The node id.
-        :param name: Bios setting name to be retrieved.
+        :param name: BIOS setting name to be retrieved.
         :raises: NodeNotFound if the node id is not found.
         :raises: BIOSSettingNotFound if the bios setting name is not found.
         :returns: A :class:'BIOSSetting' object.
@@ -105,11 +105,11 @@ class BIOSSetting(base.IronicObject):
 
         :param context: Security context.
         :param node_id: The node id.
-        :param name: Bios setting name to be deleted.
+        :param name: BIOS setting name to be deleted.
         :raises: NodeNotFound if the node id is not found.
         :raises: BIOSSettingNotFound if the bios setting name is not found.
         """
-        cls.dbapi.delete_bios_setting(node_id, name)
+        cls.dbapi.delete_bios_setting_list(node_id, [name])
 
 
 @base.IronicObjectRegistry.register
@@ -182,6 +182,22 @@ class BIOSSettingList(base.IronicObjectListBase, base.IronicObject):
     # Implications of calling new remote procedures should be thought through.
     # @object_base.remotable_classmethod
     @classmethod
+    def delete(cls, context, node_id, names):
+        """Delete BIOS Settings based on node_id and names.
+
+        :param context: Security context.
+        :param node_id: The node id.
+        :param names: List of BIOS setting names to be deleted.
+        :raises: NodeNotFound if the node id is not found.
+        :raises: BIOSSettingNotFound if any of BIOS setting fails to delete.
+        """
+        cls.dbapi.delete_bios_setting_list(node_id, names)
+
+    # NOTE(xek): We don't want to enable RPC on this call just yet. Remotable
+    # methods can be used in the future to replace current explicit RPC calls.
+    # Implications of calling new remote procedures should be thought through.
+    # @object_base.remotable_classmethod
+    @classmethod
     def get_by_node_id(cls, context, node_id):
         """Get BIOS Setting based on node_id.
 
@@ -193,3 +209,48 @@ class BIOSSettingList(base.IronicObjectListBase, base.IronicObject):
         node_bios_setting = cls.dbapi.get_bios_setting_list(node_id)
         return object_base.obj_make_list(
             context, cls(), BIOSSetting, node_bios_setting)
+
+    # NOTE(xek): We don't want to enable RPC on this call just yet. Remotable
+    # methods can be used in the future to replace current explicit RPC calls.
+    # Implications of calling new remote procedures should be thought through.
+    # @object_base.remotable_classmethod
+    @classmethod
+    def sync_node_setting(cls, context, node_id, settings):
+        """Returns lists of create/update/delete/unchanged settings.
+
+        This method sync with 'bios_settings' database table and sorts
+        out four lists of create/update/delete/unchanged settings.
+
+        :param context: Security context.
+        :param node_id: The node id.
+        :param settings: BIOS settings to be synced.
+        :returns: A 4-tuple of lists of BIOS settings to be created,
+            updated, deleted and unchanged.
+        """
+        create_list = []
+        update_list = []
+        delete_list = []
+        nochange_list = []
+        current_settings_dict = {}
+
+        given_setting_names = [setting['name'] for setting in settings]
+        current_settings = cls.get_by_node_id(context, node_id)
+
+        for setting in current_settings:
+            current_settings_dict[setting.name] = setting.value
+
+        for setting in settings:
+            if setting['name'] in current_settings_dict:
+                if setting['value'] != current_settings_dict[setting['name']]:
+                    update_list.append(setting)
+                else:
+                    nochange_list.append(setting)
+            else:
+                create_list.append(setting)
+
+        for setting in current_settings:
+            if setting.name not in given_setting_names:
+                delete_list.append({'name': setting.name,
+                                    'value': setting.value})
+
+        return (create_list, update_list, delete_list, nochange_list)

@@ -58,24 +58,6 @@ class DbBIOSSettingTestCase(base.DbTestCase):
                           self.dbapi.get_bios_setting_list,
                           '456')
 
-    def test_delete_bios_setting(self):
-        db_utils.create_test_bios_setting(node_id=self.node.id)
-        self.dbapi.delete_bios_setting(self.node.id, 'virtualization')
-        self.assertRaises(exception.BIOSSettingNotFound,
-                          self.dbapi.get_bios_setting,
-                          self.node.id, 'virtualization')
-
-    def test_delete_bios_setting_node_not_exist(self):
-        self.assertRaises(exception.NodeNotFound,
-                          self.dbapi.delete_bios_setting,
-                          '456', 'virtualization')
-
-    def test_delete_bios_setting_setting_not_exist(self):
-        db_utils.create_test_bios_setting(node_id=self.node.id)
-        self.assertRaises(exception.BIOSSettingNotFound,
-                          self.dbapi.delete_bios_setting,
-                          self.node.id, 'hyperthread')
-
     def test_create_bios_setting_list(self):
         settings = db_utils.get_test_bios_setting_setting_list()
         result = self.dbapi.create_bios_setting_list(
@@ -121,3 +103,30 @@ class DbBIOSSettingTestCase(base.DbTestCase):
         self.assertRaises(exception.NodeNotFound,
                           self.dbapi.update_bios_setting_list,
                           '456', [], '1.0')
+
+    def test_delete_bios_setting_list(self):
+        settings = db_utils.get_test_bios_setting_setting_list()
+        self.dbapi.create_bios_setting_list(self.node.id, settings, '1.0')
+        name_list = [setting['name'] for setting in settings]
+        self.dbapi.delete_bios_setting_list(self.node.id, name_list)
+        self.assertRaises(exception.BIOSSettingNotFound,
+                          self.dbapi.get_bios_setting,
+                          self.node.id, 'virtualization')
+        self.assertRaises(exception.BIOSSettingNotFound,
+                          self.dbapi.get_bios_setting,
+                          self.node.id, 'hyperthread')
+        self.assertRaises(exception.BIOSSettingNotFound,
+                          self.dbapi.get_bios_setting,
+                          self.node.id, 'numlock')
+
+    def test_delete_bios_setting_list_node_not_exist(self):
+        self.assertRaises(exception.NodeNotFound,
+                          self.dbapi.delete_bios_setting_list,
+                          '456', ['virtualization'])
+
+    def test_delete_bios_setting_list_setting_not_exist(self):
+        settings = db_utils.get_test_bios_setting_setting_list()
+        self.dbapi.create_bios_setting_list(self.node.id, settings, '1.0')
+        self.assertRaises(exception.BIOSSettingListNotFound,
+                          self.dbapi.delete_bios_setting_list,
+                          self.node.id, ['fake-bios-option'])

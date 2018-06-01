@@ -785,3 +785,7 @@ class BIOSSettingAlreadyExists(Conflict):
 
 class BIOSSettingNotFound(NotFound):
     _msg_fmt = _("Node %(node)s doesn't have a BIOS setting '%(name)s'")
+
+
+class BIOSSettingListNotFound(NotFound):
+    _msg_fmt = _("Node %(node)s doesn't have BIOS settings '%(names)s'")

@@ -10,6 +10,8 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import types
+
 import mock
 
 from ironic.common import context
@@ -141,9 +143,56 @@ class TestBIOSSettingObject(db_base.DbTestCase, obj_utils.SchemasTestMixIn):
         self.assertEqual(bios_setting2['name'], bios_obj_list[1].name)
         self.assertEqual(bios_setting2['value'], bios_obj_list[1].value)
 
-    @mock.patch.object(dbapi.IMPL, 'delete_bios_setting', autospec=True)
+    @mock.patch.object(dbapi.IMPL, 'delete_bios_setting_list', autospec=True)
     def test_delete(self, mock_delete):
         objects.BIOSSetting.delete(self.context, self.node_id,
                                    self.bios_setting['name'])
         mock_delete.assert_called_once_with(self.node_id,
-                                            self.bios_setting['name'])
+                                            [self.bios_setting['name']])
+
+    @mock.patch.object(dbapi.IMPL, 'delete_bios_setting_list', autospec=True)
+    def test_list_delete(self, mock_delete):
+        bios_setting2 = db_utils.get_test_bios_setting(name='hyperthread')
+        name_list = [self.bios_setting['name'], bios_setting2['name']]
+        objects.BIOSSettingList.delete(self.context, self.node_id, name_list)
+        mock_delete.assert_called_once_with(self.node_id, name_list)
+
+    @mock.patch('ironic.objects.bios.BIOSSettingList.get_by_node_id',
+                spec_set=types.FunctionType)
+    def test_sync_node_setting_create_and_update(self, mock_get):
+        node = obj_utils.create_test_node(self.ctxt)
+        bios_obj = [obj_utils.create_test_bios_setting(
+            self.ctxt, node_id=node.id)]
+        mock_get.return_value = bios_obj
+        settings = db_utils.get_test_bios_setting_setting_list()
+        settings[0]['value'] = 'off'
+        create, update, delete, nochange = (
+            objects.BIOSSettingList.sync_node_setting(self.ctxt, node.id,
+                                                      settings))
+
+        self.assertEqual(create, settings[1:])
+        self.assertEqual(update, [settings[0]])
+        self.assertEqual(delete, [])
+        self.assertEqual(nochange, [])
+
+    @mock.patch('ironic.objects.bios.BIOSSettingList.get_by_node_id',
+                spec_set=types.FunctionType)
+    def test_sync_node_setting_delete_nochange(self, mock_get):
+        node = obj_utils.create_test_node(self.ctxt)
+        bios_obj_1 = obj_utils.create_test_bios_setting(
+            self.ctxt, node_id=node.id)
+        bios_obj_2 = obj_utils.create_test_bios_setting(
+            self.ctxt, node_id=node.id, name='numlock', value='off')
+        mock_get.return_value = [bios_obj_1, bios_obj_2]
+        settings = db_utils.get_test_bios_setting_setting_list()
+        settings[0]['name'] = 'fake-bios-option'
+        create, update, delete, nochange = (
+            objects.BIOSSettingList.sync_node_setting(self.ctxt, node.id,
+                                                      settings))
+
+        expected_delete = [{'name': bios_obj_1.name,
+                            'value': bios_obj_1.value}]
+        self.assertEqual(create, settings[:2])
+        self.assertEqual(update, [])
+        self.assertEqual(delete, expected_delete)
+        self.assertEqual(nochange, [settings[2]])

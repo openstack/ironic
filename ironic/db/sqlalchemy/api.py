@@ -1431,14 +1431,18 @@ class Connection(api.Connection):
         return bios_settings
 
     @oslo_db_api.retry_on_deadlock
-    def delete_bios_setting(self, node_id, name):
+    def delete_bios_setting_list(self, node_id, names):
         self._check_node_exists(node_id)
+        missing_bios_settings = []
         with _session_for_write():
-            count = model_query(models.BIOSSetting).filter_by(
-                node_id=node_id, name=name).delete()
-            if count == 0:
-                raise exception.BIOSSettingNotFound(
-                    node=node_id, name=name)
+            for name in names:
+                count = model_query(models.BIOSSetting).filter_by(
+                    node_id=node_id, name=name).delete()
+                if count == 0:
+                    missing_bios_settings.append(name)
+        if len(missing_bios_settings) > 0:
+            raise exception.BIOSSettingListNotFound(
+                node=node_id, names=','.join(missing_bios_settings))
 
     def get_bios_setting(self, node_id, name):
         self._check_node_exists(node_id)

@@ -1050,13 +1050,13 @@ class Connection(object):
         """
 
     @abc.abstractmethod
-    def delete_bios_setting(self, node_id, name):
-        """Delete BIOS setting.
+    def delete_bios_setting_list(self, node_id, names):
+        """Delete a list of BIOS settings.
 
         :param node_id: The node id.
-        :param name: String containing name of bios setting to be deleted.
+        :param names: List of BIOS setting names to be deleted.
         :raises: NodeNotFound if the node is not found.
-        :raises: BIOSSettingNotFound if the bios setting is not found.
+        :raises: BIOSSettingNotFound if any of BIOS setting name is not found.
         """
 
     @abc.abstractmethod
@@ -1064,10 +1064,10 @@ class Connection(object):
         """Retrieve BIOS setting value.
 
         :param node_id: The node id.
-        :param name: String containing name of bios setting to be retrieved.
+        :param name: String containing name of BIOS setting to be retrieved.
         :returns: The BIOSSetting object.
         :raises: NodeNotFound if the node is not found.
-        :raises: BIOSSettingNotFound if the bios setting is not found.
+        :raises: BIOSSettingNotFound if the BIOS setting is not found.
         """
 
     @abc.abstractmethod
