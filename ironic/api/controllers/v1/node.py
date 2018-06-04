@@ -147,6 +147,9 @@ def hide_fields_in_newer_versions(obj):
     if pecan.request.version.minor < versions.MINOR_20_NETWORK_INTERFACE:
         obj.network_interface = wsme.Unset
 
+    if pecan.request.version.minor < versions.MINOR_42_FAULT:
+        obj.fault = wsme.Unset
+
     if not api_utils.allow_resource_class():
         obj.resource_class = wsme.Unset
 
@@ -961,6 +964,9 @@ class Node(base.APIBase):
     maintenance_reason = wsme.wsattr(wtypes.text, readonly=True)
     """Indicates reason for putting a node in maintenance mode."""
 
+    fault = wsme.wsattr(wtypes.text, readonly=True)
+    """Indicates the active fault of a node."""
+
     target_provision_state = wsme.wsattr(wtypes.text, readonly=True)
     """The user modified desired provision state of the node."""
 
@@ -1207,7 +1213,7 @@ class Node(base.APIBase):
                          'memory_mb': '1024', 'local_gb': '10', 'cpus': '1'},
                      updated_at=time, created_at=time,
                      provision_updated_at=time, instance_info={},
-                     maintenance=False, maintenance_reason=None,
+                     maintenance=False, maintenance_reason=None, fault=None,
                      inspection_finished_at=None, inspection_started_at=time,
                      console_enabled=False, clean_step={},
                      raid_config=None, target_raid_config=None,
@@ -1241,7 +1247,8 @@ class NodePatchType(types.JsonPatchType):
                            '/provision_updated_at', '/maintenance_reason',
                            '/driver_internal_info', '/inspection_finished_at',
                            '/inspection_started_at', '/clean_step',
-                           '/raid_config', '/target_raid_config']
+                           '/raid_config', '/target_raid_config',
+                           '/fault']
 
 
 class NodeCollection(collection.Collection):

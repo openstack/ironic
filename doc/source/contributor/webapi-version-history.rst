@@ -2,6 +2,12 @@
 REST API Version History
 ========================
 
+1.42 (Rocky, master)
+--------------------
+
+Added ``fault`` to the node object, to indicate currently detected fault on
+the node.
+
 1.41 (Rocky, master)
 --------------------
 
