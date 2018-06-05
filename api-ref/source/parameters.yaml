@@ -201,7 +201,8 @@ r_driver:
 r_fault:
   description: |
     Filter the list of returned nodes, and only return those with the specified
-    ``fault``.
+    ``fault``. Possible values are determined by faults supported by ironic,
+    e.g., ``power failure``, ``clean failure`` or ``rescue abort failure``.
   in: query
   required: false
   type: string

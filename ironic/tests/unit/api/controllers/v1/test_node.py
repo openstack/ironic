@@ -1295,6 +1295,35 @@ class TestListNodes(test_api_base.BaseApiTest):
     def test_get_nodes_by_traits_not_allowed_detail(self):
         self._test_get_nodes_by_traits_not_allowed(detail=True)
 
+    def test_get_nodes_by_fault(self):
+        node1 = obj_utils.create_test_node(self.context,
+                                           uuid=uuidutils.generate_uuid(),
+                                           fault='power failure')
+        node2 = obj_utils.create_test_node(self.context,
+                                           uuid=uuidutils.generate_uuid(),
+                                           fault="clean failure")
+
+        for base_url in ('/nodes', '/nodes/detail'):
+            data = self.get_json(base_url + '?fault=power failure',
+                                 headers={api_base.Version.string: "1.42"})
+            uuids = [n['uuid'] for n in data['nodes']]
+            self.assertIn(node1.uuid, uuids)
+            self.assertNotIn(node2.uuid, uuids)
+            data = self.get_json(base_url + '?fault=clean failure',
+                                 headers={api_base.Version.string: "1.42"})
+            uuids = [n['uuid'] for n in data['nodes']]
+            self.assertIn(node2.uuid, uuids)
+            self.assertNotIn(node1.uuid, uuids)
+
+    def test_get_nodes_by_fault_not_allowed(self):
+        for url in ('/nodes?fault=test', '/nodes/detail?fault=test'):
+            response = self.get_json(
+                url, headers={api_base.Version.string: "1.41"},
+                expect_errors=True)
+            self.assertEqual('application/json', response.content_type)
+            self.assertEqual(http_client.NOT_ACCEPTABLE, response.status_code)
+            self.assertTrue(response.json['error_message'])
+
     def test_get_console_information(self):
         node = obj_utils.create_test_node(self.context)
         expected_console_info = {'test': 'test-data'}

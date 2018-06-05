@@ -212,6 +212,9 @@ provision state, and maintenance setting for each Node.
   Added the ``resource_class`` Request parameter, allowing the list of returned
   Nodes to be filtered by this field.
 
+.. versionadded:: 1.42
+  Introduced the ``fault`` field.
+
 Normal response codes: 200
 
 Error codes: 400,403,406
@@ -227,6 +230,7 @@ Request
    - provision_state: r_provision_state
    - driver: r_driver
    - resource_class: r_resource_class
+   - fault: r_fault
    - fields: fields
    - limit: limit
    - marker: marker

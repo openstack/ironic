@@ -479,6 +479,19 @@ def check_allow_configdrive(target):
             msg, status_code=http_client.BAD_REQUEST)
 
 
+def check_allow_filter_by_fault(fault):
+    """Check if filtering nodes by fault is allowed.
+
+    Version 1.42 of the API allows filtering nodes by fault.
+    """
+    if (fault is not None and pecan.request.version.minor
+            < versions.MINOR_42_FAULT):
+        raise exception.NotAcceptable(_(
+            "Request not acceptable. The minimal required API version "
+            "should be %(base)s.%(opr)s") % {'base': versions.BASE_VERSION,
+                                             'opr': versions.MINOR_42_FAULT})
+
+
 def initial_node_provision_state():
     """Return node state to use by default when creating new nodes.
 

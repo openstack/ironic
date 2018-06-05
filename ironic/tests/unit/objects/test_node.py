@@ -636,6 +636,7 @@ class TestNodePayloads(db_base.DbTestCase):
         self.assertEqual(self.node.maintenance, payload.maintenance)
         self.assertEqual(self.node.maintenance_reason,
                          payload.maintenance_reason)
+        self.assertEqual(self.node.fault, payload.fault)
         self.assertEqual(self.node.boot_interface, payload.boot_interface)
         self.assertEqual(self.node.console_interface,
                          payload.console_interface)
