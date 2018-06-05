@@ -22,7 +22,6 @@ from oslo_utils import importutils
 from ironic.common import exception
 from ironic.common.i18n import _
 from ironic.drivers import base
-from ironic.drivers.modules import agent
 from ironic.drivers.modules.cimc import management as cimc_mgmt
 from ironic.drivers.modules.cimc import power as cimc_power
 from ironic.drivers.modules.drac import inspect as drac_inspect
@@ -34,7 +33,6 @@ from ironic.drivers.modules import fake
 from ironic.drivers.modules.ilo import inspect as ilo_inspect
 from ironic.drivers.modules.ilo import management as ilo_management
 from ironic.drivers.modules.ilo import power as ilo_power
-from ironic.drivers.modules import inspector
 from ironic.drivers.modules import ipmitool
 from ironic.drivers.modules.irmc import inspect as irmc_inspect
 from ironic.drivers.modules.irmc import management as irmc_management
@@ -42,7 +40,6 @@ from ironic.drivers.modules.irmc import power as irmc_power
 from ironic.drivers.modules import iscsi_deploy
 from ironic.drivers.modules.oneview import management as oneview_management
 from ironic.drivers.modules.oneview import power as oneview_power
-from ironic.drivers.modules import pxe
 from ironic.drivers.modules import snmp
 from ironic.drivers.modules.ucs import management as ucs_mgmt
 from ironic.drivers.modules.ucs import power as ucs_power
@@ -89,44 +86,6 @@ class FakeIPMIToolSocatDriver(base.BaseDriver):
             'management': 'ipmitool',
             'power': 'ipmitool',
             'vendor': 'ipmitool'
-        }
-
-
-class FakePXEDriver(base.BaseDriver):
-    """Example implementation of a Driver."""
-
-    def __init__(self):
-        self.power = fake.FakePower()
-        self.boot = pxe.PXEBoot()
-        self.deploy = iscsi_deploy.ISCSIDeploy()
-
-    @classmethod
-    def to_hardware_type(cls):
-        return 'fake-hardware', {
-            'boot': 'pxe',
-            'deploy': 'iscsi',
-            'management': 'fake',
-            'power': 'fake',
-        }
-
-
-class FakeAgentDriver(base.BaseDriver):
-    """Example implementation of an AgentDriver."""
-
-    def __init__(self):
-        self.power = fake.FakePower()
-        self.boot = pxe.PXEBoot()
-        self.deploy = agent.AgentDeploy()
-        self.raid = agent.AgentRAID()
-
-    @classmethod
-    def to_hardware_type(cls):
-        return 'fake-hardware', {
-            'boot': 'pxe',
-            'deploy': 'direct',
-            'management': 'fake',
-            'power': 'fake',
-            'raid': 'agent'
         }
 
 
@@ -228,33 +187,6 @@ class FakeIRMCDriver(base.BaseDriver):
             'inspect': 'irmc',
             'management': 'irmc',
             'power': 'irmc'
-        }
-
-
-class FakeIPMIToolInspectorDriver(base.BaseDriver):
-    """Fake Inspector driver."""
-
-    def __init__(self):
-        self.power = ipmitool.IPMIPower()
-        self.console = ipmitool.IPMIShellinaboxConsole()
-        self.deploy = fake.FakeDeploy()
-        self.vendor = ipmitool.VendorPassthru()
-        self.management = ipmitool.IPMIManagement()
-        # NOTE(dtantsur): unlike other uses of Inspector, this one is
-        # unconditional, as this driver is designed for testing inspector
-        # integration.
-        self.inspect = inspector.Inspector()
-
-    @classmethod
-    def to_hardware_type(cls):
-        return 'fake-hardware', {
-            'boot': 'fake',
-            'console': 'ipmitool-shellinabox',
-            'deploy': 'fake',
-            'inspect': 'inspector',
-            'management': 'ipmitool',
-            'power': 'ipmitool',
-            'vendor': 'ipmitool',
         }
 
 

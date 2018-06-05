@@ -56,12 +56,12 @@ class PXEPrivateMethodsTestCase(db_base.DbTestCase):
     def setUp(self):
         super(PXEPrivateMethodsTestCase, self).setUp()
         n = {
-            'driver': 'fake_pxe',
+            'driver': 'fake-hardware',
+            'boot_interface': 'pxe',
             'instance_info': INST_INFO_DICT,
             'driver_info': DRV_INFO_DICT,
             'driver_internal_info': DRV_INTERNAL_INFO_DICT,
         }
-        self.config(enabled_drivers=['fake_pxe'])
         self.config_temp_dir('http_root', group='deploy')
         self.node = obj_utils.create_test_node(self.context, **n)
 
@@ -727,11 +727,10 @@ class PXEPrivateMethodsTestCase(db_base.DbTestCase):
 class CleanUpPxeEnvTestCase(db_base.DbTestCase):
     def setUp(self):
         super(CleanUpPxeEnvTestCase, self).setUp()
-        self.config(enabled_drivers=['fake_pxe'])
         instance_info = INST_INFO_DICT
         instance_info['deploy_key'] = 'fake-56789'
         self.node = obj_utils.create_test_node(
-            self.context, driver='fake_pxe',
+            self.context, boot_interface='pxe',
             instance_info=instance_info,
             driver_info=DRV_INFO_DICT,
             driver_internal_info=DRV_INTERNAL_INFO_DICT,
@@ -751,7 +750,8 @@ class CleanUpPxeEnvTestCase(db_base.DbTestCase):
 @mock.patch.object(pxe.PXEBoot, '__init__', lambda self: None)
 class PXEBootTestCase(db_base.DbTestCase):
 
-    driver = 'fake_pxe'
+    driver = 'fake-hardware'
+    boot_interface = 'pxe'
 
     def setUp(self):
         super(PXEBootTestCase, self).setUp()
@@ -759,12 +759,22 @@ class PXEBootTestCase(db_base.DbTestCase):
         self.config_temp_dir('tftp_root', group='pxe')
         self.config_temp_dir('images_path', group='pxe')
         self.config_temp_dir('http_root', group='deploy')
-        self.config(enabled_drivers=[self.driver])
         instance_info = INST_INFO_DICT
         instance_info['deploy_key'] = 'fake-56789'
+        if self.driver != 'fake-hardware':
+            # TODO(dtantsur): remove this when removing the vendor classic
+            # drivers
+            self.config(enabled_drivers=[self.driver])
+
         self.node = obj_utils.create_test_node(
             self.context,
             driver=self.driver,
+            boot_interface=self.boot_interface,
+            # Avoid fake properties in get_properties() output
+            # TODO(dtantsur): remove the 'if' condition when removing
+            # the vendor classic drivers
+            vendor_interface=('no-vendor' if self.driver == 'fake-hardware'
+                              else None),
             instance_info=instance_info,
             driver_info=DRV_INFO_DICT,
             driver_internal_info=DRV_INTERNAL_INFO_DICT)
@@ -836,8 +846,8 @@ class PXEBootTestCase(db_base.DbTestCase):
         new_node = obj_utils.create_test_node(
             self.context,
             uuid='aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee',
-            driver=self.driver, instance_info=INST_INFO_DICT,
-            driver_info=DRV_INFO_DICT)
+            driver=self.driver, boot_interface=self.boot_interface,
+            instance_info=INST_INFO_DICT, driver_info=DRV_INFO_DICT)
         with task_manager.acquire(self.context, new_node.uuid,
                                   shared=True) as task:
             self.assertRaises(exception.MissingParameterValue,

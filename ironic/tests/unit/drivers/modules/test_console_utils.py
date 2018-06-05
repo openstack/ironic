@@ -51,7 +51,6 @@ class ConsoleUtilsTestCase(db_base.DbTestCase):
         super(ConsoleUtilsTestCase, self).setUp()
         self.node = obj_utils.get_test_node(
             self.context,
-            driver='fake_ipmitool',
             driver_info=INFO_DICT)
         self.info = ipmi._parse_driver_info(self.node)
 

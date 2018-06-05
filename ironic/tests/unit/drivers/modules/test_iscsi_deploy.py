@@ -24,8 +24,8 @@ import mock
 from oslo_config import cfg
 from oslo_utils import fileutils
 
+from ironic.common import boot_devices
 from ironic.common import dhcp_factory
-from ironic.common import driver_factory
 from ironic.common import exception
 from ironic.common import pxe_utils
 from ironic.common import states
@@ -35,6 +35,7 @@ from ironic.conductor import utils as manager_utils
 from ironic.drivers.modules import agent_base_vendor
 from ironic.drivers.modules import agent_client
 from ironic.drivers.modules import deploy_utils
+from ironic.drivers.modules import fake
 from ironic.drivers.modules import iscsi_deploy
 from ironic.drivers.modules.network import flat as flat_network
 from ironic.drivers.modules import pxe
@@ -56,12 +57,12 @@ class IscsiDeployPrivateMethodsTestCase(db_base.DbTestCase):
     def setUp(self):
         super(IscsiDeployPrivateMethodsTestCase, self).setUp()
         n = {
-            'driver': 'fake_pxe',
+            'boot_interface': 'pxe',
+            'deploy_interface': 'iscsi',
             'instance_info': INST_INFO_DICT,
             'driver_info': DRV_INFO_DICT,
             'driver_internal_info': DRV_INTERNAL_INFO_DICT,
         }
-        self.config(enabled_drivers=['fake_pxe'])
         self.node = obj_utils.create_test_node(self.context, **n)
 
     def test__save_disk_layout(self):
@@ -98,12 +99,12 @@ class IscsiDeployMethodsTestCase(db_base.DbTestCase):
         instance_info = dict(INST_INFO_DICT)
         instance_info['deploy_key'] = 'fake-56789'
         n = {
-            'driver': 'fake_pxe',
+            'boot_interface': 'pxe',
+            'deploy_interface': 'iscsi',
             'instance_info': instance_info,
             'driver_info': DRV_INFO_DICT,
             'driver_internal_info': DRV_INTERNAL_INFO_DICT,
         }
-        self.config(enabled_drivers=['fake_pxe'])
         self.node = obj_utils.create_test_node(self.context, **n)
 
     @mock.patch.object(disk_utils, 'get_image_mb', autospec=True)
@@ -545,14 +546,12 @@ class ISCSIDeployTestCase(db_base.DbTestCase):
 
     def setUp(self):
         super(ISCSIDeployTestCase, self).setUp()
-        self.config(enabled_drivers=['fake_pxe'])
-        self.driver = driver_factory.get_driver("fake_pxe")
         # NOTE(TheJulia): We explicitly set the noop storage interface as the
         # default below for deployment tests in order to raise any change
         # in the default which could be a breaking behavior change
         # as the storage interface is explicitly an "opt-in" interface.
         self.node = obj_utils.create_test_node(
-            self.context, driver='fake_pxe',
+            self.context, boot_interface='pxe', deploy_interface='iscsi',
             instance_info=INST_INFO_DICT,
             driver_info=DRV_INFO_DICT,
             driver_internal_info=DRV_INTERNAL_INFO_DICT,
@@ -869,6 +868,7 @@ class ISCSIDeployTestCase(db_base.DbTestCase):
                     mock.ANY, task)
                 m_prep_instance.assert_called_once_with(task)
 
+    @mock.patch.object(fake.FakeManagement, 'set_boot_device', autospec=True)
     @mock.patch.object(agent_base_vendor.AgentDeployMixin,
                        'reboot_and_finish_deploy', autospec=True)
     @mock.patch.object(agent_base_vendor.AgentDeployMixin,
@@ -876,7 +876,8 @@ class ISCSIDeployTestCase(db_base.DbTestCase):
     @mock.patch.object(iscsi_deploy, 'do_agent_iscsi_deploy', autospec=True)
     def test_continue_deploy_localboot(self, do_agent_iscsi_deploy_mock,
                                        configure_local_boot_mock,
-                                       reboot_and_finish_deploy_mock):
+                                       reboot_and_finish_deploy_mock,
+                                       set_boot_device_mock):
 
         self.node.instance_info = {
             'capabilities': {'boot_option': 'local'}}
@@ -895,7 +896,10 @@ class ISCSIDeployTestCase(db_base.DbTestCase):
                 efi_system_part_uuid=None)
             reboot_and_finish_deploy_mock.assert_called_once_with(
                 task.driver.deploy, task)
+            set_boot_device_mock.assert_called_once_with(
+                mock.ANY, task, device=boot_devices.DISK, persistent=True)
 
+    @mock.patch.object(fake.FakeManagement, 'set_boot_device', autospec=True)
     @mock.patch.object(agent_base_vendor.AgentDeployMixin,
                        'reboot_and_finish_deploy', autospec=True)
     @mock.patch.object(agent_base_vendor.AgentDeployMixin,
@@ -903,7 +907,8 @@ class ISCSIDeployTestCase(db_base.DbTestCase):
     @mock.patch.object(iscsi_deploy, 'do_agent_iscsi_deploy', autospec=True)
     def test_continue_deploy_localboot_uefi(self, do_agent_iscsi_deploy_mock,
                                             configure_local_boot_mock,
-                                            reboot_and_finish_deploy_mock):
+                                            reboot_and_finish_deploy_mock,
+                                            set_boot_device_mock):
 
         self.node.instance_info = {
             'capabilities': {'boot_option': 'local'}}
@@ -923,6 +928,8 @@ class ISCSIDeployTestCase(db_base.DbTestCase):
                 efi_system_part_uuid='efi-part-uuid')
             reboot_and_finish_deploy_mock.assert_called_once_with(
                 task.driver.deploy, task)
+            set_boot_device_mock.assert_called_once_with(
+                mock.ANY, task, device=boot_devices.DISK, persistent=True)
 
 
 # Cleanup of iscsi_deploy with pxe boot interface
@@ -932,11 +939,10 @@ class CleanUpFullFlowTestCase(db_base.DbTestCase):
         self.config(image_cache_size=0, group='pxe')
 
         # Configure node
-        self.config(enabled_drivers=['fake_pxe'])
         instance_info = INST_INFO_DICT
         instance_info['deploy_key'] = 'fake-56789'
         self.node = obj_utils.create_test_node(
-            self.context, driver='fake_pxe',
+            self.context, boot_interface='pxe', deploy_interface='iscsi',
             instance_info=instance_info,
             driver_info=DRV_INFO_DICT,
             driver_internal_info=DRV_INTERNAL_INFO_DICT,

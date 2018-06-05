@@ -51,9 +51,9 @@ CONF = cfg.CONF
 class TestAgentMethods(db_base.DbTestCase):
     def setUp(self):
         super(TestAgentMethods, self).setUp()
-        self.config(enabled_drivers=['fake_agent'])
         self.node = object_utils.create_test_node(self.context,
-                                                  driver='fake_agent')
+                                                  boot_interface='pxe',
+                                                  deploy_interface='direct')
         dhcp_factory.DHCPFactory._dhcp_provider = None
 
     @mock.patch.object(images, 'image_show', autospec=True)
@@ -141,14 +141,14 @@ class TestAgentMethods(db_base.DbTestCase):
 class TestAgentDeploy(db_base.DbTestCase):
     def setUp(self):
         super(TestAgentDeploy, self).setUp()
-        self.config(enabled_drivers=['fake_agent'])
         self.driver = agent.AgentDeploy()
         # NOTE(TheJulia): We explicitly set the noop storage interface as the
         # default below for deployment tests in order to raise any change
         # in the default which could be a breaking behavior change
         # as the storage interface is explicitly an "opt-in" interface.
         n = {
-            'driver': 'fake_agent',
+            'boot_interface': 'pxe',
+            'deploy_interface': 'direct',
             'instance_info': INSTANCE_INFO,
             'driver_info': DRIVER_INFO,
             'driver_internal_info': DRIVER_INTERNAL_INFO,
@@ -1251,7 +1251,7 @@ class AgentRAIDTestCase(db_base.DbTestCase):
 
     def setUp(self):
         super(AgentRAIDTestCase, self).setUp()
-        self.config(enabled_drivers=['fake_agent'])
+        self.config(enabled_raid_interfaces=['fake', 'agent', 'no-raid'])
         self.target_raid_config = {
             "logical_disks": [
                 {'size_gb': 200, 'raid_level': 0, 'is_root_volume': True},
@@ -1260,7 +1260,9 @@ class AgentRAIDTestCase(db_base.DbTestCase):
         self.clean_step = {'step': 'create_configuration',
                            'interface': 'raid'}
         n = {
-            'driver': 'fake_agent',
+            'boot_interface': 'pxe',
+            'deploy_interface': 'direct',
+            'raid_interface': 'agent',
             'instance_info': INSTANCE_INFO,
             'driver_info': DRIVER_INFO,
             'driver_internal_info': DRIVER_INTERNAL_INFO,
@@ -1446,7 +1448,6 @@ class AgentRescueTestCase(db_base.DbTestCase):
         driver_info.update({'rescue_ramdisk': 'my_ramdisk',
                             'rescue_kernel': 'my_kernel'})
         n = {
-            'driver': 'fake-hardware',
             'instance_info': instance_info,
             'driver_info': driver_info,
             'driver_internal_info': DRIVER_INTERNAL_INFO,

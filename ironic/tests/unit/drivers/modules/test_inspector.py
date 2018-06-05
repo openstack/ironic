@@ -113,23 +113,23 @@ class BaseTestCase(db_base.DbTestCase):
     def setUp(self):
         super(BaseTestCase, self).setUp()
         self.config(enabled=True, group='inspector')
-        self.config(enabled_drivers=['fake_inspector'])
-        self.driver = driver_factory.get_driver("fake_inspector")
-        self.node = obj_utils.get_test_node(self.context)
+        self.node = obj_utils.get_test_node(self.context,
+                                            inspect_interface='inspector')
+        self.iface = inspector.Inspector()
         self.task = mock.MagicMock(spec=task_manager.TaskManager)
         self.task.context = self.context
         self.task.shared = False
         self.task.node = self.node
-        self.task.driver = self.driver
+        self.task.driver = mock.Mock(spec=['inspect'], inspect=self.iface)
         self.api_version = (1, 0)
 
 
 class CommonFunctionsTestCase(BaseTestCase):
     def test_validate_ok(self):
-        self.driver.inspect.validate(self.task)
+        self.iface.validate(self.task)
 
     def test_get_properties(self):
-        res = self.driver.inspect.get_properties()
+        res = self.iface.get_properties()
         self.assertEqual({}, res)
 
     def test_create_if_enabled(self):
@@ -150,14 +150,14 @@ class InspectHardwareTestCase(BaseTestCase):
     def test_ok(self, mock_client):
         mock_introspect = mock_client.return_value.introspect
         self.assertEqual(states.INSPECTWAIT,
-                         self.driver.inspect.inspect_hardware(self.task))
+                         self.iface.inspect_hardware(self.task))
         mock_introspect.assert_called_once_with(self.node.uuid)
 
     @mock.patch.object(task_manager, 'acquire', autospec=True)
     def test_error(self, mock_acquire, mock_client):
         mock_introspect = mock_client.return_value.introspect
         mock_introspect.side_effect = RuntimeError('boom')
-        self.driver.inspect.inspect_hardware(self.task)
+        self.iface.inspect_hardware(self.task)
         mock_introspect.assert_called_once_with(self.node.uuid)
         task = mock_acquire.return_value.__enter__.return_value
         self.assertIn('boom', task.node.last_error)
@@ -222,11 +222,11 @@ class CheckStatusTestCase(BaseTestCase):
 class InspectHardwareAbortTestCase(BaseTestCase):
     def test_abort_ok(self, mock_client):
         mock_abort = mock_client.return_value.abort
-        self.driver.inspect.abort(self.task)
+        self.iface.abort(self.task)
         mock_abort.assert_called_once_with(self.node.uuid)
 
     def test_abort_error(self, mock_client):
         mock_abort = mock_client.return_value.abort
         mock_abort.side_effect = RuntimeError('boom')
-        self.assertRaises(RuntimeError, self.driver.inspect.abort, self.task)
+        self.assertRaises(RuntimeError, self.iface.abort, self.task)
         mock_abort.assert_called_once_with(self.node.uuid)

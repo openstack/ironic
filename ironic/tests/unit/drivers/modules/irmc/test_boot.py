@@ -1904,6 +1904,7 @@ class IRMCVirtualMediaBootWithVolumeTestCase(db_base.DbTestCase):
 class IRMCPXEBootBasicTestCase(test_pxe.PXEBootTestCase):
 
     driver = 'pxe_irmc'
+    boot_interface = None
 
     def test_get_properties(self):
         with task_manager.acquire(self.context, self.node.uuid,
