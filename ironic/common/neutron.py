@@ -70,8 +70,6 @@ def get_client(token=None, context=None):
             adapter_params['endpoint_override'] = (CONF.neutron.url
                                                    or DEFAULT_NEUTRON_URL)
     else:
-        if CONF.keystone.region_name and not CONF.neutron.region_name:
-            adapter_params['region_name'] = CONF.keystone.region_name
         if CONF.neutron.url and not CONF.neutron.endpoint_override:
             adapter_params['endpoint_override'] = CONF.neutron.url
     adapter = keystone.get_adapter('neutron', session=session,

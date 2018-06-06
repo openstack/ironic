@@ -1,0 +1,12 @@
+---
+upgrade:
+  - |
+    Deprecated option ``[keystone]\region_name`` was removed and will be
+    ignored.
+    Instead use ``region_name`` option in other sections related to contacting
+    other services (``[service_catalog]``, ``[cinder]``, ``[glance]``,
+    ``[neutron]``, [``swift``] and ``[inspector]``).
+
+    As the option ``[keystone]\region_name`` was the only option in
+    ``[keystone]`` section of ironic configuration file, this section was
+    removed as well.

@@ -98,11 +98,7 @@ def check_image_service(func):
 
         service_auth = keystone.get_auth('glance')
 
-        # TODO(pas-ha) remove in Rocky
         adapter_params = {}
-        if CONF.keystone.region_name and not CONF.glance.region_name:
-            adapter_params['region_name'] = CONF.keystone.region_name
-
         adapter = keystone.get_adapter('glance', session=session,
                                        auth=service_auth, **adapter_params)
         self.endpoint = adapter.get_endpoint()

@@ -449,7 +449,6 @@ class CheckImageServiceTestCase(base.TestCase):
                     glance_cafile='cafile',
                     region_name=None,
                     group='glance')
-        self.config(region_name='OtherRegion', group='keystone')
 
         wrapped_func = base_image_service.check_image_service(func)
         self.assertEqual(((), params), wrapped_func(self.service, **params))
@@ -460,7 +459,7 @@ class CheckImageServiceTestCase(base.TestCase):
                                           cacert='cafile')
         mock_adapter.assert_called_once_with(
             'glance', session=mock.sentinel.session,
-            auth=mock.sentinel.auth, region_name='OtherRegion')
+            auth=mock.sentinel.auth)
         self.assertEqual(0, mock_sauth.call_count)
         mock_auth.assert_called_once_with('glance')
 

@@ -54,8 +54,6 @@ def get_client(context):
     # NOTE(pas-ha) new option must always win if set
     if CONF.cinder.url and not CONF.cinder.endpoint_override:
         adapter_opts['endpoint_override'] = CONF.cinder.url
-    if CONF.keystone.region_name and not CONF.cinder.region_name:
-        adapter_opts['region_name'] = CONF.keystone.region_name
 
     adapter = keystone.get_adapter('cinder', session=session,
                                    auth=service_auth, **adapter_opts)
