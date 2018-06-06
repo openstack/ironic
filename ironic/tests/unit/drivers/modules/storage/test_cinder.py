@@ -35,13 +35,15 @@ class CinderInterfaceTestCase(db_base.DbTestCase):
         self.config(action_retries=3,
                     action_retry_interval=0,
                     group='cinder')
-        self.config(enabled_storage_interfaces=['noop', 'cinder'])
+        self.config(enabled_boot_interfaces=['fake'],
+                    enabled_storage_interfaces=['noop', 'cinder'])
         self.interface = cinder.CinderStorage()
+        self.node = object_utils.create_test_node(self.context,
+                                                  boot_interface='fake',
+                                                  storage_interface='cinder')
 
     @mock.patch.object(cinder, 'LOG', autospec=True)
     def test__fail_validation(self, mock_log):
-        self.node = object_utils.create_test_node(self.context,
-                                                  storage_interface='cinder')
         """Ensure the validate helper logs and raises exceptions."""
         fake_error = 'a error!'
         expected = ("Failed to validate cinder storage interface for node "
@@ -55,8 +57,6 @@ class CinderInterfaceTestCase(db_base.DbTestCase):
 
     @mock.patch.object(cinder, 'LOG', autospec=True)
     def test__generate_connector_raises_with_insufficent_data(self, mock_log):
-        self.node = object_utils.create_test_node(self.context,
-                                                  storage_interface='cinder')
         with task_manager.acquire(self.context, self.node.id) as task:
             self.assertRaises(exception.StorageError,
                               self.interface._generate_connector,
@@ -64,8 +64,6 @@ class CinderInterfaceTestCase(db_base.DbTestCase):
         self.assertTrue(mock_log.error.called)
 
     def test__generate_connector_iscsi(self):
-        self.node = object_utils.create_test_node(self.context,
-                                                  storage_interface='cinder')
         expected = {
             'initiator': 'iqn.address',
             'ip': 'ip.address',
@@ -84,8 +82,6 @@ class CinderInterfaceTestCase(db_base.DbTestCase):
     @mock.patch.object(cinder, 'LOG', autospec=True)
     def test__generate_connector_iscsi_and_unknown(self, mock_log):
         """Validate we return and log with valid and invalid connectors."""
-        self.node = object_utils.create_test_node(self.context,
-                                                  storage_interface='cinder')
         expected = {
             'initiator': 'iqn.address',
             'host': self.node.uuid,
@@ -104,8 +100,6 @@ class CinderInterfaceTestCase(db_base.DbTestCase):
     @mock.patch.object(cinder, 'LOG', autospec=True)
     def test__generate_connector_unknown_raises_excption(self, mock_log):
         """Validate an exception is raised with only an invalid connector."""
-        self.node = object_utils.create_test_node(self.context,
-                                                  storage_interface='cinder')
         object_utils.create_test_volume_connector(
             self.context, node_id=self.node.id, type='foo',
             connector_id='bar')
@@ -119,8 +113,6 @@ class CinderInterfaceTestCase(db_base.DbTestCase):
 
     def test__generate_connector_single_path(self):
         """Validate an exception is raised with only an invalid connector."""
-        self.node = object_utils.create_test_node(self.context,
-                                                  storage_interface='cinder')
         expected = {
             'initiator': 'iqn.address',
             'host': self.node.uuid}
@@ -132,8 +124,6 @@ class CinderInterfaceTestCase(db_base.DbTestCase):
         self.assertDictEqual(expected, return_value)
 
     def test__generate_connector_multiple_fc_wwns(self):
-        self.node = object_utils.create_test_node(self.context,
-                                                  storage_interface='cinder')
         """Validate handling of WWPNs and WWNNs."""
         expected = {
             'wwpns': ['wwpn1', 'wwpn2'],
@@ -171,8 +161,6 @@ class CinderInterfaceTestCase(db_base.DbTestCase):
     @mock.patch.object(cinder.CinderStorage, '_fail_validation', autospec=True)
     @mock.patch.object(cinder, 'LOG', autospec=True)
     def test_validate_success_no_settings(self, mock_log, mock_fail):
-        self.node = object_utils.create_test_node(self.context,
-                                                  storage_interface='cinder')
         with task_manager.acquire(self.context, self.node.id) as task:
             self.interface.validate(task)
         self.assertFalse(mock_fail.called)
@@ -180,9 +168,6 @@ class CinderInterfaceTestCase(db_base.DbTestCase):
 
     @mock.patch.object(cinder, 'LOG', autospec=True)
     def test_validate_failure_if_iscsi_boot_no_connectors(self, mock_log):
-        self.node = object_utils.create_test_node(self.context,
-                                                  storage_interface='cinder')
-
         valid_types = ', '.join(cinder.VALID_ISCSI_TYPES)
         expected_msg = ("Failed to validate cinder storage interface for node "
                         "%(id)s. In order to enable the 'iscsi_boot' "
@@ -200,8 +185,6 @@ class CinderInterfaceTestCase(db_base.DbTestCase):
 
     @mock.patch.object(cinder, 'LOG', autospec=True)
     def test_validate_failure_if_fc_boot_no_connectors(self, mock_log):
-        self.node = object_utils.create_test_node(self.context,
-                                                  storage_interface='cinder')
         valid_types = ', '.join(cinder.VALID_FC_TYPES)
         expected_msg = ("Failed to validate cinder storage interface for node "
                         "%(id)s. In order to enable the 'fibre_channel_boot' "
@@ -222,8 +205,6 @@ class CinderInterfaceTestCase(db_base.DbTestCase):
     @mock.patch.object(cinder, 'LOG', autospec=True)
     def test_validate_success_iscsi_connector(self, mock_log, mock_fail):
         """Perform validate with only an iSCSI connector in place."""
-        self.node = object_utils.create_test_node(self.context,
-                                                  storage_interface='cinder')
         object_utils.create_test_volume_connector(
             self.context, node_id=self.node.id, type='iqn',
             connector_id='iqn.address')
@@ -236,8 +217,6 @@ class CinderInterfaceTestCase(db_base.DbTestCase):
     @mock.patch.object(cinder, 'LOG', autospec=True)
     def test_validate_success_fc_connectors(self, mock_log, mock_fail):
         """Perform validate with only FC connectors in place"""
-        self.node = object_utils.create_test_node(self.context,
-                                                  storage_interface='cinder')
         object_utils.create_test_volume_connector(
             self.context, node_id=self.node.id, type='wwpn',
             connector_id='wwpn.address', uuid=uuidutils.generate_uuid())
@@ -253,8 +232,6 @@ class CinderInterfaceTestCase(db_base.DbTestCase):
     @mock.patch.object(cinder, 'LOG', autospec=True)
     def test_validate_success_connectors_and_boot(self, mock_log, mock_fail):
         """Perform validate with volume connectors and boot capabilities."""
-        self.node = object_utils.create_test_node(self.context,
-                                                  storage_interface='cinder')
         object_utils.create_test_volume_connector(
             self.context, node_id=self.node.id, type='iqn',
             connector_id='iqn.address', uuid=uuidutils.generate_uuid())
@@ -277,8 +254,6 @@ class CinderInterfaceTestCase(db_base.DbTestCase):
     @mock.patch.object(cinder, 'LOG', autospec=True)
     def test_validate_success_iscsi_targets(self, mock_log, mock_fail):
         """Validate success with full iscsi scenario."""
-        self.node = object_utils.create_test_node(self.context,
-                                                  storage_interface='cinder')
         object_utils.create_test_volume_connector(
             self.context, node_id=self.node.id, type='iqn',
             connector_id='iqn.address', uuid=uuidutils.generate_uuid())
@@ -295,8 +270,6 @@ class CinderInterfaceTestCase(db_base.DbTestCase):
     @mock.patch.object(cinder, 'LOG', autospec=True)
     def test_validate_success_fc_targets(self, mock_log, mock_fail):
         """Validate success with full fc scenario."""
-        self.node = object_utils.create_test_node(self.context,
-                                                  storage_interface='cinder')
         object_utils.create_test_volume_connector(
             self.context, node_id=self.node.id, type='wwpn',
             connector_id='fc.address', uuid=uuidutils.generate_uuid())
@@ -318,8 +291,6 @@ class CinderInterfaceTestCase(db_base.DbTestCase):
     def test_validate_fails_with_ipxe_not_enabled(self, mock_log):
         """Ensure a validation failure is raised when iPXE not enabled."""
         self.config(ipxe_enabled=False, group='pxe')
-        self.node = object_utils.create_test_node(self.context,
-                                                  storage_interface='cinder')
         object_utils.create_test_volume_connector(
             self.context, node_id=self.node.id, type='iqn',
             connector_id='foo.address')
@@ -336,8 +307,6 @@ class CinderInterfaceTestCase(db_base.DbTestCase):
     @mock.patch.object(cinder, 'LOG', autospec=True)
     def test_validate_fails_when_fc_connectors_unequal(self, mock_log):
         """Validate should fail with only wwnn FC connector in place"""
-        self.node = object_utils.create_test_node(self.context,
-                                                  storage_interface='cinder')
         object_utils.create_test_volume_connector(
             self.context, node_id=self.node.id, type='wwnn',
             connector_id='wwnn.address')
@@ -350,8 +319,6 @@ class CinderInterfaceTestCase(db_base.DbTestCase):
     @mock.patch.object(cinder, 'LOG', autospec=True)
     def test_validate_fail_on_unknown_volume_types(self, mock_log):
         """Ensure exception is raised when connector/target do not match."""
-        self.node = object_utils.create_test_node(self.context,
-                                                  storage_interface='cinder')
         object_utils.create_test_volume_connector(
             self.context, node_id=self.node.id, type='iqn',
             connector_id='foo.address')
@@ -368,8 +335,6 @@ class CinderInterfaceTestCase(db_base.DbTestCase):
     @mock.patch.object(cinder, 'LOG', autospec=True)
     def test_validate_fails_iscsi_conn_fc_target(self, mock_log):
         """Validate failure of iSCSI connectors with FC target."""
-        self.node = object_utils.create_test_node(self.context,
-                                                  storage_interface='cinder')
         object_utils.create_test_volume_connector(
             self.context, node_id=self.node.id, type='iqn',
             connector_id='foo.address')
@@ -386,8 +351,6 @@ class CinderInterfaceTestCase(db_base.DbTestCase):
     @mock.patch.object(cinder, 'LOG', autospec=True)
     def test_validate_fails_fc_conn_iscsi_target(self, mock_log):
         """Validate failure of FC connectors with iSCSI target."""
-        self.node = object_utils.create_test_node(self.context,
-                                                  storage_interface='cinder')
         object_utils.create_test_volume_connector(
             self.context, node_id=self.node.id, type='fibre_channel',
             connector_id='foo.address')
@@ -408,8 +371,6 @@ class CinderInterfaceTestCase(db_base.DbTestCase):
     @mock.patch.object(cinder, 'LOG')
     def test_attach_detach_volumes_no_volumes(self, mock_log,
                                               mock_attach, mock_detach):
-        self.node = object_utils.create_test_node(self.context,
-                                                  storage_interface='cinder')
         with task_manager.acquire(self.context, self.node.id) as task:
             self.interface.attach_volumes(task)
             self.interface.detach_volumes(task)
@@ -424,8 +385,6 @@ class CinderInterfaceTestCase(db_base.DbTestCase):
                                                             mock_attach,
                                                             mock_detach):
         """Without connectors, attach and detach should fail."""
-        self.node = object_utils.create_test_node(self.context,
-                                                  storage_interface='cinder')
         object_utils.create_test_volume_target(
             self.context, node_id=self.node.id, volume_type='iscsi',
             boot_index=0, volume_id='1234')
@@ -447,8 +406,6 @@ class CinderInterfaceTestCase(db_base.DbTestCase):
                                                             mock_log,
                                                             mock_attach,
                                                             mock_detach):
-        self.node = object_utils.create_test_node(self.context,
-                                                  storage_interface='cinder')
         target_uuid = uuidutils.generate_uuid()
         test_volume_target = object_utils.create_test_volume_target(
             self.context, node_id=self.node.id, volume_type='iscsi',
@@ -481,9 +438,6 @@ class CinderInterfaceTestCase(db_base.DbTestCase):
     @mock.patch.object(cinder, 'LOG', autospec=True)
     def test_attach_volumes_failure(self, mock_log, mock_attach, mock_detach):
         """Verify detach is called upon attachment failing."""
-
-        self.node = object_utils.create_test_node(self.context,
-                                                  storage_interface='cinder')
         object_utils.create_test_volume_target(
             self.context, node_id=self.node.id, volume_type='iscsi',
             boot_index=0, volume_id='1234')
@@ -516,8 +470,6 @@ class CinderInterfaceTestCase(db_base.DbTestCase):
         Volume attachment fails if the number of attachments completed
         does not match the number of configured targets.
         """
-        self.node = object_utils.create_test_node(self.context,
-                                                  storage_interface='cinder')
         object_utils.create_test_volume_target(
             self.context, node_id=self.node.id, volume_type='iscsi',
             boot_index=0, volume_id='1234')
@@ -538,8 +490,6 @@ class CinderInterfaceTestCase(db_base.DbTestCase):
     @mock.patch.object(cinder_common, 'detach_volumes', autospec=True)
     @mock.patch.object(cinder, 'LOG', autospec=True)
     def test_detach_volumes_failure(self, mock_log, mock_detach):
-        self.node = object_utils.create_test_node(self.context,
-                                                  storage_interface='cinder')
         object_utils.create_test_volume_target(
             self.context, node_id=self.node.id, volume_type='iscsi',
             boot_index=0, volume_id='1234')
@@ -568,8 +518,6 @@ class CinderInterfaceTestCase(db_base.DbTestCase):
     def test_detach_volumes_failure_raises_exception(self,
                                                      mock_log,
                                                      mock_detach):
-        self.node = object_utils.create_test_node(self.context,
-                                                  storage_interface='cinder')
         object_utils.create_test_volume_target(
             self.context, node_id=self.node.id, volume_type='iscsi',
             boot_index=0, volume_id='1234')
@@ -589,8 +537,6 @@ class CinderInterfaceTestCase(db_base.DbTestCase):
             self.assertEqual(4, mock_detach.call_count)
 
     def test_should_write_image(self):
-        self.node = object_utils.create_test_node(self.context,
-                                                  storage_interface='cinder')
         object_utils.create_test_volume_target(
             self.context, node_id=self.node.id, volume_type='iscsi',
             boot_index=0, volume_id='1234')

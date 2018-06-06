@@ -180,8 +180,7 @@ class RaidPublicMethodsTestCase(db_base.DbTestCase):
 
     def _test_update_raid_info(self, current_config,
                                capabilities=None):
-        node = obj_utils.create_test_node(self.context,
-                                          driver='fake')
+        node = obj_utils.create_test_node(self.context)
         if capabilities:
             properties = node.properties
             properties['capabilities'] = capabilities

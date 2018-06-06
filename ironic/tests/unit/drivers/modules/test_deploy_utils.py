@@ -975,7 +975,8 @@ class GetPxeBootConfigTestCase(db_base.DbTestCase):
 
     def setUp(self):
         super(GetPxeBootConfigTestCase, self).setUp()
-        self.node = obj_utils.get_test_node(self.context, driver='fake')
+        self.node = obj_utils.get_test_node(self.context,
+                                            driver='fake-hardware')
         self.config(pxe_bootfile_name='bios-bootfile', group='pxe')
         self.config(uefi_pxe_bootfile_name='uefi-bootfile', group='pxe')
         self.config(pxe_config_template='bios-template', group='pxe')
@@ -1308,7 +1309,8 @@ class ParseInstanceInfoCapabilitiesTestCase(tests_base.TestCase):
 
     def setUp(self):
         super(ParseInstanceInfoCapabilitiesTestCase, self).setUp()
-        self.node = obj_utils.get_test_node(self.context, driver='fake')
+        self.node = obj_utils.get_test_node(self.context,
+                                            driver='fake-hardware')
 
     def test_parse_instance_info_capabilities_string(self):
         self.node.instance_info = {'capabilities': '{"cat": "meow"}'}
@@ -1440,7 +1442,8 @@ class TrySetBootDeviceTestCase(db_base.DbTestCase):
 
     def setUp(self):
         super(TrySetBootDeviceTestCase, self).setUp()
-        self.node = obj_utils.create_test_node(self.context, driver="fake")
+        self.node = obj_utils.create_test_node(self.context,
+                                               driver="fake-hardware")
 
     @mock.patch.object(manager_utils, 'node_set_boot_device', autospec=True)
     def test_try_set_boot_device_okay(self, node_set_boot_device_mock):
@@ -2380,7 +2383,8 @@ class TestStorageInterfaceUtils(db_base.DbTestCase):
     def setUp(self):
         super(TestStorageInterfaceUtils, self).setUp()
         self.node = obj_utils.create_test_node(self.context,
-                                               driver='fake')
+                                               driver='fake-hardware')
+        self.config(enabled_storage_interfaces=['noop', 'fake', 'cinder'])
 
     def test_check_interface_capability(self):
         class fake_driver(object):
@@ -2415,18 +2419,14 @@ class TestStorageInterfaceUtils(db_base.DbTestCase):
                 self.context, self.node.uuid, shared=False) as task:
             self.assertIsNone(utils.get_remote_boot_volume(task))
 
-    @mock.patch.object(fake, 'FakeBoot', autospec=True)
-    @mock.patch.object(fake, 'FakeDeploy', autospec=True)
+    @mock.patch.object(fake.FakeBoot, 'capabilities',
+                       ['iscsi_volume_boot'], create=True)
+    @mock.patch.object(fake.FakeDeploy, 'capabilities',
+                       ['iscsi_volume_deploy'], create=True)
     @mock.patch.object(cinder.CinderStorage, 'should_write_image',
                        autospec=True)
     def test_populate_storage_driver_internal_info_iscsi(self,
-                                                         mock_should_write,
-                                                         mock_deploy,
-                                                         mock_boot):
-        mock_deploy.return_value = mock.Mock(
-            capabilities=['iscsi_volume_deploy'])
-        mock_boot.return_value = mock.Mock(
-            capabilities=['iscsi_volume_boot'])
+                                                         mock_should_write):
         mock_should_write.return_value = True
         vol_uuid = uuidutils.generate_uuid()
         obj_utils.create_test_volume_target(
@@ -2453,18 +2453,14 @@ class TestStorageInterfaceUtils(db_base.DbTestCase):
                 task.node.driver_internal_info.get('boot_from_volume_deploy',
                                                    None))
 
-    @mock.patch.object(fake, 'FakeBoot', autospec=True)
-    @mock.patch.object(fake, 'FakeDeploy', autospec=True)
+    @mock.patch.object(fake.FakeBoot, 'capabilities',
+                       ['fibre_channel_volume_boot'], create=True)
+    @mock.patch.object(fake.FakeDeploy, 'capabilities',
+                       ['fibre_channel_volume_deploy'], create=True)
     @mock.patch.object(cinder.CinderStorage, 'should_write_image',
                        autospec=True)
     def test_populate_storage_driver_internal_info_fc(self,
-                                                      mock_should_write,
-                                                      mock_deploy,
-                                                      mock_boot):
-        mock_deploy.return_value = mock.Mock(
-            capabilities=['fibre_channel_volume_deploy'])
-        mock_boot.return_value = mock.Mock(
-            capabilities=['fibre_channel_volume_boot'])
+                                                      mock_should_write):
         mock_should_write.return_value = True
         self.node.storage_interface = "cinder"
         self.node.save()
@@ -2487,15 +2483,11 @@ class TestStorageInterfaceUtils(db_base.DbTestCase):
                 task.node.driver_internal_info.get('boot_from_volume_deploy',
                                                    None))
 
-    @mock.patch.object(fake, 'FakeBoot', autospec=True)
-    @mock.patch.object(fake, 'FakeDeploy', autospec=True)
-    def test_populate_storage_driver_internal_info_error(
-            self, mock_deploy, mock_boot):
-        mock_deploy.return_value = mock.Mock(
-            capabilities=['fibre_channel_volume_deploy'])
-        mock_boot.return_value = mock.Mock(
-            capabilities=['fibre_channel_volume_boot'])
-
+    @mock.patch.object(fake.FakeBoot, 'capabilities',
+                       ['fibre_channel_volume_boot'], create=True)
+    @mock.patch.object(fake.FakeDeploy, 'capabilities',
+                       ['fibre_channel_volume_deploy'], create=True)
+    def test_populate_storage_driver_internal_info_error(self):
         obj_utils.create_test_volume_target(
             self.context, node_id=self.node.id, volume_type='iscsi',
             boot_index=0, volume_id='1234')

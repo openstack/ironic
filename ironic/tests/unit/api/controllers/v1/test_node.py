@@ -1178,17 +1178,17 @@ class TestListNodes(test_api_base.BaseApiTest):
     def test_get_nodes_by_driver(self):
         node = obj_utils.create_test_node(self.context,
                                           uuid=uuidutils.generate_uuid(),
-                                          driver='pxe_ipmitool')
+                                          driver='ipmi')
         node1 = obj_utils.create_test_node(self.context,
                                            uuid=uuidutils.generate_uuid(),
-                                           driver='fake')
+                                           driver='fake-hardware')
 
-        data = self.get_json('/nodes?driver=pxe_ipmitool',
+        data = self.get_json('/nodes?driver=ipmi',
                              headers={api_base.Version.string: "1.16"})
         uuids = [n['uuid'] for n in data['nodes']]
         self.assertIn(node.uuid, uuids)
         self.assertNotIn(node1.uuid, uuids)
-        data = self.get_json('/nodes?driver=fake',
+        data = self.get_json('/nodes?driver=fake-hardware',
                              headers={api_base.Version.string: "1.16"})
         uuids = [n['uuid'] for n in data['nodes']]
         self.assertIn(node1.uuid, uuids)
@@ -1215,11 +1215,9 @@ class TestListNodes(test_api_base.BaseApiTest):
 
         node = obj_utils.create_test_node(self.context,
                                           uuid=uuidutils.generate_uuid(),
-                                          driver='fake',
                                           resource_class='foo')
         node1 = obj_utils.create_test_node(self.context,
                                            uuid=uuidutils.generate_uuid(),
-                                           driver='fake',
                                            resource_class='bar')
 
         data = self.get_json(base_url % 'foo',
@@ -2346,7 +2344,6 @@ class TestPost(test_api_base.BaseApiTest):
 
     def setUp(self):
         super(TestPost, self).setUp()
-        self.config(enabled_drivers=['fake'])
         self.chassis = obj_utils.create_test_chassis(self.context)
         p = mock.patch.object(rpcapi.ConductorAPI, 'get_topic_for')
         self.mock_gtf = p.start()
@@ -2450,22 +2447,8 @@ class TestPost(test_api_base.BaseApiTest):
                                       expect_errors=True)
             self.assertEqual(http_client.NOT_ACCEPTABLE, response.status_int)
 
-    def test_create_node_classic_driver_specify_interface(self):
-        headers = {api_base.Version.string: '1.31'}
-        for field in api_utils.V31_FIELDS:
-            node = {
-                'uuid': uuidutils.generate_uuid(),
-                field: 'fake',
-            }
-            ndict = test_api_utils.post_get_test_node(**node)
-            response = self.post_json('/nodes', ndict,
-                                      headers=headers,
-                                      expect_errors=True)
-            self.assertEqual(http_client.BAD_REQUEST, response.status_int)
-            self.assertEqual('application/json', response.content_type)
-            self.assertTrue(response.json['error_message'])
-
     def test_create_node_explicit_storage_interface(self):
+        self.config(enabled_storage_interfaces=['cinder', 'noop', 'fake'])
         headers = {api_base.Version.string: '1.33'}
         result = self._test_create_node(headers=headers,
                                         storage_interface='cinder')
@@ -3990,7 +3973,7 @@ class TestPut(test_api_base.BaseApiTest):
         raid_config = {'logical_disks': [{'size_gb': 100, 'raid_level': 1}]}
         set_raid_config_mock.side_effect = (
             exception.UnsupportedDriverExtension(extension='raid',
-                                                 driver='fake'))
+                                                 driver='fake-hardware'))
         ret = self.put_json(
             '/nodes/%s/states/raid' % self.node.uuid, raid_config,
             headers={api_base.Version.string: "1.12"},

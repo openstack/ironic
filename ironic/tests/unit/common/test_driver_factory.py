@@ -35,7 +35,6 @@ class FakeEp(object):
 
 
 class DriverLoadTestCase(db_base.DbTestCase):
-
     def _fake_init_name_err(self, *args, **kwargs):
         kwargs['on_load_failure_callback'](None, FakeEp, NameError('aaa'))
 
@@ -97,43 +96,6 @@ class DriverLoadTestCase(db_base.DbTestCase):
             driver_factory.HardwareTypesFactory._extension_manager.names())
         self.assertTrue(mock_warn.called)
 
-    @mock.patch.object(driver_factory.LOG, 'warning', autospec=True)
-    def test_classic_drivers_unsupported(self, mock_warn):
-        self.config(enabled_drivers=['fake'])
-        driver_factory.DriverFactory._init_extension_manager()
-        self.assertTrue(mock_warn.called)
-
-    def test_build_driver_for_task(self):
-        node = obj_utils.create_test_node(self.context, driver='fake')
-        with task_manager.acquire(self.context, node.id) as task:
-            for iface in drivers_base.ALL_INTERFACES:
-                impl = getattr(task.driver, iface)
-                if iface in ['bios', 'rescue']:
-                    self.assertIsNone(impl)
-                else:
-                    self.assertIsNotNone(impl)
-
-    @mock.patch.object(drivers_base.BaseDriver, 'supported', True)
-    @mock.patch.object(driver_factory, '_attach_interfaces_to_driver',
-                       autospec=True)
-    @mock.patch.object(driver_factory.LOG, 'warning', autospec=True)
-    def test_build_driver_for_task_incorrect(self, mock_warn, mock_attach):
-        # Cannot set these node interfaces for classic driver
-        no_set_interfaces = (drivers_base.ALL_INTERFACES
-                             - set(['network', 'storage']))
-        for iface in no_set_interfaces:
-            iface_name = '%s_interface' % iface
-            node_kwargs = {'uuid': uuidutils.generate_uuid(),
-                           iface_name: 'fake'}
-            node = obj_utils.create_test_node(self.context, driver='fake',
-                                              **node_kwargs)
-            with task_manager.acquire(self.context, node.id) as task:
-                mock_warn.assert_called_once_with(mock.ANY, mock.ANY)
-                mock_warn.reset_mock()
-                mock_attach.assert_called_once_with(mock.ANY, task.node,
-                                                    mock.ANY)
-                mock_attach.reset_mock()
-
 
 class WarnUnsupportedDriversTestCase(base.TestCase):
     @mock.patch.object(driver_factory.LOG, 'warning', autospec=True)
@@ -154,23 +116,13 @@ class WarnUnsupportedDriversTestCase(base.TestCase):
         self._test__warn_if_unsupported(False)
 
 
-class GetDriverTestCase(base.TestCase):
-    def test_get_driver_known(self):
-        driver = driver_factory.get_driver('fake')
-        self.assertIsInstance(driver, drivers_base.BaseDriver)
-
-    def test_get_driver_unknown(self):
-        self.assertRaises(exception.DriverNotFound,
-                          driver_factory.get_driver, 'unknown_driver')
-
-
 class NetworkInterfaceFactoryTestCase(db_base.DbTestCase):
     @mock.patch.object(driver_factory, '_warn_if_unsupported', autospec=True)
     def test_build_driver_for_task(self, mock_warn):
         # flat, neutron, and noop network interfaces are enabled in base test
         # case
         factory = driver_factory.NetworkInterfaceFactory
-        node = obj_utils.create_test_node(self.context, driver='fake',
+        node = obj_utils.create_test_node(self.context,
                                           network_interface='flat')
         with task_manager.acquire(self.context, node.id) as task:
             extension_mgr = factory._extension_manager
@@ -188,38 +140,11 @@ class NetworkInterfaceFactoryTestCase(db_base.DbTestCase):
         # each activated interface or driver causes the number to increment.
         self.assertTrue(mock_warn.called)
 
-    def test_build_driver_for_task_default_is_none(self):
-        # flat, neutron, and noop network interfaces are enabled in base test
-        # case
-        factory = driver_factory.NetworkInterfaceFactory
-        self.config(dhcp_provider='none', group='dhcp')
-        node = obj_utils.create_test_node(self.context, driver='fake')
-        with task_manager.acquire(self.context, node.id) as task:
-            extension_mgr = factory._extension_manager
-            self.assertIn('flat', extension_mgr)
-            self.assertIn('neutron', extension_mgr)
-            self.assertIn('noop', extension_mgr)
-            self.assertEqual(extension_mgr['noop'].obj, task.driver.network)
-
-    def test_build_driver_for_task_default_network_interface_is_set(self):
-        # flat, neutron, and noop network interfaces are enabled in base test
-        # case
-        factory = driver_factory.NetworkInterfaceFactory
-        self.config(dhcp_provider='none', group='dhcp')
-        self.config(default_network_interface='flat')
-        node = obj_utils.create_test_node(self.context, driver='fake')
-        with task_manager.acquire(self.context, node.id) as task:
-            extension_mgr = factory._extension_manager
-            self.assertIn('flat', extension_mgr)
-            self.assertIn('neutron', extension_mgr)
-            self.assertIn('noop', extension_mgr)
-            self.assertEqual(extension_mgr['flat'].obj, task.driver.network)
-
     def test_build_driver_for_task_default_is_flat(self):
         # flat, neutron, and noop network interfaces are enabled in base test
         # case
         factory = driver_factory.NetworkInterfaceFactory
-        node = obj_utils.create_test_node(self.context, driver='fake')
+        node = obj_utils.create_test_node(self.context)
         with task_manager.acquire(self.context, node.id) as task:
             extension_mgr = factory._extension_manager
             self.assertIn('flat', extension_mgr)
@@ -228,7 +153,7 @@ class NetworkInterfaceFactoryTestCase(db_base.DbTestCase):
             self.assertEqual(extension_mgr['flat'].obj, task.driver.network)
 
     def test_build_driver_for_task_unknown_network_interface(self):
-        node = obj_utils.create_test_node(self.context, driver='fake',
+        node = obj_utils.create_test_node(self.context,
                                           network_interface='meow')
         self.assertRaises(exception.InterfaceNotFoundInEntrypoint,
                           task_manager.acquire, self.context, node.id)
@@ -236,16 +161,10 @@ class NetworkInterfaceFactoryTestCase(db_base.DbTestCase):
 
 class StorageInterfaceFactoryTestCase(db_base.DbTestCase):
 
-    def setUp(self):
-        super(StorageInterfaceFactoryTestCase, self).setUp()
-        driver_factory.DriverFactory._extension_manager = None
-        driver_factory.StorageInterfaceFactory._extension_manager = None
-        self.config(enabled_drivers=['fake'])
-
     def test_build_interface_for_task(self):
         """Validate a node has no default storage interface."""
         factory = driver_factory.StorageInterfaceFactory
-        node = obj_utils.create_test_node(self.context, driver='fake')
+        node = obj_utils.create_test_node(self.context, driver='fake-hardware')
         with task_manager.acquire(self.context, node.id) as task:
             manager = factory._extension_manager
             self.assertIn('noop', manager)
@@ -265,70 +184,35 @@ class NewFactoryTestCase(db_base.DbTestCase):
 
 class CheckAndUpdateNodeInterfacesTestCase(db_base.DbTestCase):
     def test_no_network_interface(self):
-        node = obj_utils.get_test_node(self.context, driver='fake')
+        node = obj_utils.get_test_node(self.context)
         self.assertTrue(driver_factory.check_and_update_node_interfaces(node))
         self.assertEqual('flat', node.network_interface)
 
     def test_none_network_interface(self):
-        node = obj_utils.get_test_node(self.context, driver='fake',
-                                       network_interface=None)
+        node = obj_utils.get_test_node(self.context, network_interface=None)
         self.assertTrue(driver_factory.check_and_update_node_interfaces(node))
         self.assertEqual('flat', node.network_interface)
 
     def test_no_network_interface_default_from_conf(self):
         self.config(default_network_interface='noop')
-        node = obj_utils.get_test_node(self.context, driver='fake')
+        node = obj_utils.get_test_node(self.context)
         self.assertTrue(driver_factory.check_and_update_node_interfaces(node))
         self.assertEqual('noop', node.network_interface)
 
-    def test_no_network_interface_default_from_dhcp(self):
-        self.config(dhcp_provider='none', group='dhcp')
-        node = obj_utils.get_test_node(self.context, driver='fake')
-        self.assertTrue(driver_factory.check_and_update_node_interfaces(node))
-        # "none" dhcp provider corresponds to "noop" network_interface
-        self.assertEqual('noop', node.network_interface)
-
-    def test_create_node_classic_driver_valid_interfaces(self):
-        node = obj_utils.get_test_node(self.context, driver='fake',
+    def test_create_node_valid_interfaces(self):
+        node = obj_utils.get_test_node(self.context,
                                        network_interface='noop',
                                        storage_interface='noop')
-        self.assertFalse(driver_factory.check_and_update_node_interfaces(node))
+        self.assertTrue(driver_factory.check_and_update_node_interfaces(node))
         self.assertEqual('noop', node.network_interface)
         self.assertEqual('noop', node.storage_interface)
 
-    def test_create_node_classic_driver_invalid_network_interface(self):
-        node = obj_utils.get_test_node(self.context, driver='fake',
+    def test_create_node_invalid_network_interface(self):
+        node = obj_utils.get_test_node(self.context,
                                        network_interface='banana')
         self.assertRaises(exception.InterfaceNotFoundInEntrypoint,
                           driver_factory.check_and_update_node_interfaces,
                           node)
-
-    def test_create_node_classic_driver_not_allowed_interfaces_set(self):
-        # Cannot set these node interfaces for classic driver
-        no_set_interfaces = (drivers_base.ALL_INTERFACES
-                             - set(['network', 'storage']))
-        for iface in no_set_interfaces:
-            iface_name = '%s_interface' % iface
-            node_kwargs = {'uuid': uuidutils.generate_uuid(),
-                           iface_name: 'fake'}
-            node = obj_utils.get_test_node(self.context, driver='fake',
-                                           **node_kwargs)
-            self.assertRaisesRegex(
-                exception.InvalidParameterValue,
-                'driver fake.*%s' % iface_name,
-                driver_factory.check_and_update_node_interfaces, node)
-
-    def test_create_node_classic_driver_no_interfaces_set(self):
-        no_set_interfaces = (drivers_base.ALL_INTERFACES
-                             - set(['network', 'storage']))
-        node_kwargs = {'uuid': uuidutils.generate_uuid()}
-        node = obj_utils.get_test_node(self.context, driver='fake',
-                                       **node_kwargs)
-        driver_factory.check_and_update_node_interfaces(node)
-
-        for iface in no_set_interfaces:
-            iface_name = '%s_interface' % iface
-            self.assertIsNone(getattr(node, iface_name))
 
     def _get_valid_default_interface_name(self, iface):
         i_name = 'fake'
@@ -344,15 +228,6 @@ class CheckAndUpdateNodeInterfacesTestCase(db_base.DbTestCase):
                             'default_%s_interface' % iface: i_name}
             self.config(**config_kwarg)
 
-    def test_create_node_dynamic_driver_invalid_network_interface(self):
-        self._set_config_interface_options_hardware_type()
-
-        node = obj_utils.get_test_node(self.context, driver='fake-hardware',
-                                       network_interface='banana')
-        self.assertRaises(exception.InterfaceNotFoundInEntrypoint,
-                          driver_factory.check_and_update_node_interfaces,
-                          node)
-
     def test_create_node_dynamic_driver_interfaces_set(self):
         self._set_config_interface_options_hardware_type()
 
@@ -363,101 +238,6 @@ class CheckAndUpdateNodeInterfacesTestCase(db_base.DbTestCase):
                            iface_name: i_name}
             node = obj_utils.get_test_node(
                 self.context, driver='fake-hardware', **node_kwargs)
-            driver_factory.check_and_update_node_interfaces(node)
-            self.assertEqual(i_name, getattr(node, iface_name))
-
-    def test_update_node_set_classic_driver_and_not_allowed_interfaces(self):
-        """Update driver to classic and interfaces specified"""
-        not_allowed_interfaces = (drivers_base.ALL_INTERFACES
-                                  - set(['network', 'storage']))
-        self.config(enabled_drivers=['fake', 'fake_agent'])
-        for iface in not_allowed_interfaces:
-            iface_name = '%s_interface' % iface
-            node_kwargs = {'uuid': uuidutils.generate_uuid()}
-            node = obj_utils.create_test_node(self.context, driver='fake',
-                                              **node_kwargs)
-            setattr(node, iface_name, 'fake')
-            node.driver = 'fake_agent'
-            self.assertRaisesRegex(
-                exception.InvalidParameterValue,
-                'driver fake.*%s' % iface_name,
-                driver_factory.check_and_update_node_interfaces, node)
-
-    def test_update_node_set_classic_driver_and_allowed_interfaces(self):
-        """Update driver to classic and interfaces specified"""
-        self._set_config_interface_options_hardware_type()
-        self.config(enabled_drivers=['fake', 'fake_agent'])
-        for iface in ['network', 'storage']:
-            iface_name = '%s_interface' % iface
-            node_kwargs = {'uuid': uuidutils.generate_uuid()}
-            node = obj_utils.create_test_node(self.context, driver='fake',
-                                              **node_kwargs)
-            i_name = self._get_valid_default_interface_name(iface)
-            setattr(node, iface_name, i_name)
-            node.driver = 'fake_agent'
-            driver_factory.check_and_update_node_interfaces(node)
-            self.assertEqual(i_name, getattr(node, iface_name))
-
-    def test_update_node_set_classic_driver_unset_interfaces(self):
-        """Update driver to classic and set interfaces to None"""
-        no_set_interfaces = (drivers_base.ALL_INTERFACES
-                             - set(['network', 'storage']))
-        self.config(enabled_drivers=['fake', 'fake_agent'])
-        for iface in no_set_interfaces:
-            iface_name = '%s_interface' % iface
-            node_kwargs = {'uuid': uuidutils.generate_uuid()}
-            node = obj_utils.create_test_node(self.context, driver='fake',
-                                              **node_kwargs)
-            setattr(node, iface_name, None)
-            node.driver = 'fake_agent'
-            driver_factory.check_and_update_node_interfaces(node)
-            self.assertEqual('fake_agent', node.driver)
-            self.assertIsNone(getattr(node, iface_name))
-
-    def test_update_node_classic_driver_unset_interfaces(self):
-        """Update interfaces to None for node with classic driver"""
-        no_set_interfaces = (drivers_base.ALL_INTERFACES
-                             - set(['network', 'storage']))
-        self.config(enabled_drivers=['fake', 'fake_agent'])
-        for iface in no_set_interfaces:
-            iface_name = '%s_interface' % iface
-            node_kwargs = {'uuid': uuidutils.generate_uuid()}
-            node = obj_utils.create_test_node(self.context, driver='fake',
-                                              **node_kwargs)
-            setattr(node, iface_name, None)
-            driver_factory.check_and_update_node_interfaces(node)
-            self.assertIsNone(getattr(node, iface_name))
-
-    def test_update_node_set_classic_driver_no_interfaces(self):
-        """Update driver to classic no interfaces specified"""
-        self._set_config_interface_options_hardware_type()
-        no_set_interfaces = (drivers_base.ALL_INTERFACES
-                             - set(['network', 'storage']))
-        for iface in no_set_interfaces:
-            iface_name = '%s_interface' % iface
-            node_kwargs = {'uuid': uuidutils.generate_uuid()}
-            node_kwargs[iface_name] = 'fake'
-            node = obj_utils.create_test_node(self.context,
-                                              driver='fake-hardware',
-                                              **node_kwargs)
-            node.driver = 'fake'
-            driver_factory.check_and_update_node_interfaces(node)
-            self.assertEqual('fake', node.driver)
-            self.assertIsNone(getattr(node, iface_name))
-            self.assertEqual('noop', node.network_interface)
-
-    def test_update_node_set_dynamic_driver_and_interfaces(self):
-        """Update driver to dynamic and interfaces specified"""
-        self._set_config_interface_options_hardware_type()
-
-        for iface in drivers_base.ALL_INTERFACES:
-            iface_name = '%s_interface' % iface
-            node_kwargs = {'uuid': uuidutils.generate_uuid()}
-            node = obj_utils.create_test_node(self.context, driver='fake',
-                                              **node_kwargs)
-            i_name = self._get_valid_default_interface_name(iface)
-            setattr(node, iface_name, i_name)
-            node.driver = 'fake-hardware'
             driver_factory.check_and_update_node_interfaces(node)
             self.assertEqual(i_name, getattr(node, iface_name))
 
@@ -480,8 +260,7 @@ class CheckAndUpdateNodeInterfacesTestCase(db_base.DbTestCase):
 class DefaultInterfaceTestCase(db_base.DbTestCase):
     def setUp(self):
         super(DefaultInterfaceTestCase, self).setUp()
-        self.config(enabled_hardware_types=['manual-management'],
-                    enabled_drivers=['fake'])
+        self.config(enabled_hardware_types=['manual-management'])
         self.driver = driver_factory.get_hardware_type('manual-management')
 
     def test_from_config(self):
@@ -500,22 +279,6 @@ class DefaultInterfaceTestCase(db_base.DbTestCase):
         self.config(enabled_network_interfaces=['neutron'])
         iface = driver_factory.default_interface(self.driver, 'network')
         self.assertEqual('neutron', iface)
-
-    def test_network_from_additional_defaults(self):
-        self.config(default_network_interface=None)
-        self.config(dhcp_provider='none', group='dhcp')
-        iface = driver_factory.default_interface(
-            driver_factory.get_driver_or_hardware_type('fake'),
-            'network')
-        self.assertEqual('noop', iface)
-
-    def test_network_from_additional_defaults_neutron_dhcp(self):
-        self.config(default_network_interface=None)
-        self.config(dhcp_provider='neutron', group='dhcp')
-        iface = driver_factory.default_interface(
-            driver_factory.get_driver_or_hardware_type('fake'),
-            'network')
-        self.assertEqual('flat', iface)
 
     def test_calculated_with_one(self):
         self.config(default_deploy_interface=None)
@@ -655,14 +418,16 @@ class HardwareTypeLoadTestCase(db_base.DbTestCase):
         self.assertIsInstance(hw_type, fake_hardware.FakeHardware)
 
     def test_get_hardware_type_missing(self):
+        self.config(enabled_drivers=['fake_agent'])
         self.assertRaises(exception.DriverNotFound,
-                          # "fake" is a classic driver
-                          driver_factory.get_hardware_type, 'fake')
+                          # "fake_agent" is a classic driver
+                          driver_factory.get_hardware_type, 'fake_agent')
 
     def test_get_driver_or_hardware_type(self):
+        self.config(enabled_drivers=['fake_agent'])
         hw_type = driver_factory.get_driver_or_hardware_type('fake-hardware')
         self.assertIsInstance(hw_type, fake_hardware.FakeHardware)
-        driver = driver_factory.get_driver_or_hardware_type('fake')
+        driver = driver_factory.get_driver_or_hardware_type('fake_agent')
         self.assertNotIsInstance(driver, fake_hardware.FakeHardware)
 
     def test_get_driver_or_hardware_type_missing(self):
@@ -745,12 +510,12 @@ class HardwareTypeLoadTestCase(db_base.DbTestCase):
                           task_manager.acquire, self.context, node.id)
 
     def test_no_storage_interface(self):
-        node = obj_utils.get_test_node(self.context, driver='fake')
+        node = obj_utils.get_test_node(self.context)
         self.assertTrue(driver_factory.check_and_update_node_interfaces(node))
         self.assertEqual('noop', node.storage_interface)
 
     def test_none_storage_interface(self):
-        node = obj_utils.get_test_node(self.context, driver='fake',
+        node = obj_utils.get_test_node(self.context,
                                        storage_interface=None)
         self.assertTrue(driver_factory.check_and_update_node_interfaces(node))
         self.assertEqual('noop', node.storage_interface)
@@ -758,21 +523,16 @@ class HardwareTypeLoadTestCase(db_base.DbTestCase):
     def test_no_storage_interface_default_from_conf(self):
         self.config(enabled_storage_interfaces=['noop', 'fake'])
         self.config(default_storage_interface='fake')
-        node = obj_utils.get_test_node(self.context, driver='fake')
+        node = obj_utils.get_test_node(self.context)
         self.assertTrue(driver_factory.check_and_update_node_interfaces(node))
         self.assertEqual('fake', node.storage_interface)
 
     def test_invalid_storage_interface(self):
-        node = obj_utils.get_test_node(self.context, driver='fake',
+        node = obj_utils.get_test_node(self.context,
                                        storage_interface='scoop')
         self.assertRaises(exception.InterfaceNotFoundInEntrypoint,
                           driver_factory.check_and_update_node_interfaces,
                           node)
-
-    def test_none_rescue_interface(self):
-        node = obj_utils.get_test_node(self.context, driver='fake')
-        self.assertTrue(driver_factory.check_and_update_node_interfaces(node))
-        self.assertIsNone(node.rescue_interface)
 
     def test_no_rescue_interface_default_from_conf(self):
         self.config(enabled_rescue_interfaces=['fake'])

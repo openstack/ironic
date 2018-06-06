@@ -29,7 +29,6 @@ class TestCommonFunctions(db_base.DbTestCase):
 
     def setUp(self):
         super(TestCommonFunctions, self).setUp()
-        self.config(enabled_drivers=['fake'])
         self.node = obj_utils.create_test_node(self.context,
                                                network_interface='neutron')
         self.port = obj_utils.create_test_port(
@@ -436,7 +435,6 @@ class TestVifPortIDMixin(db_base.DbTestCase):
 
     def setUp(self):
         super(TestVifPortIDMixin, self).setUp()
-        self.config(enabled_drivers=['fake'])
         self.interface = common.VIFPortIDMixin()
         self.node = obj_utils.create_test_node(self.context,
                                                network_interface='neutron')
@@ -660,7 +658,6 @@ class TestNeutronVifPortIDMixin(db_base.DbTestCase):
 
     def setUp(self):
         super(TestNeutronVifPortIDMixin, self).setUp()
-        self.config(enabled_drivers=['fake'])
         self.interface = common.NeutronVIFPortIDMixin()
         self.node = obj_utils.create_test_node(self.context,
                                                network_interface='neutron')
