@@ -92,26 +92,6 @@ class TestAnsibleMethods(AnsibleDeployTestCaseBase):
         self.assertEqual('spam', user)
         self.assertEqual('/ham/eggs', key)
 
-    @mock.patch.object(ansible_deploy.LOG, 'warning', autospec=True)
-    def test__parse_ansible_driver_info_deprecated_opts(self, warn_mock):
-        self.node.driver_info[
-            'ansible_deploy_username'] = self.node.driver_info.pop(
-                'ansible_username')
-        self.node.driver_info[
-            'ansible_deploy_key_file'] = self.node.driver_info.pop(
-                'ansible_key_file')
-        playbook, user, key = ansible_deploy._parse_ansible_driver_info(
-            self.node, 'deploy')
-        self.assertEqual(ansible_deploy.CONF.ansible.default_deploy_playbook,
-                         playbook)
-        self.assertEqual('test', user)
-        self.assertEqual('/path/key', key)
-        self.assertEqual(2, warn_mock.call_count)
-        # check that we remember about warnings havig been displayed
-        playbook, user, key = ansible_deploy._parse_ansible_driver_info(
-            self.node, 'deploy')
-        self.assertEqual(2, warn_mock.call_count)
-
     def test__parse_ansible_driver_info_no_playbook(self):
         self.assertRaises(exception.IronicException,
                           ansible_deploy._parse_ansible_driver_info,
