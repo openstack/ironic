@@ -31,12 +31,16 @@
         cmd: |
           cat << 'EOF' >> ironic-extra-vars
             export PROJECTS="openstack-dev/grenade $PROJECTS"
-          export DEVSTACK_GATE_GRENADE=pullup
-          export DEVSTACK_GATE_OS_TEST_TIMEOUT=2400
-          export DEVSTACK_GATE_TEMPEST_BAREMETAL_BUILD_TIMEOUT=1200
-          export DEVSTACK_LOCAL_CONFIG+=$'\n'"IRONIC_BUILD_DEPLOY_RAMDISK=False"
-          export DEVSTACK_GATE_TLSPROXY=0
-          export BUILD_TIMEOUT
+            export DEVSTACK_GATE_GRENADE=pullup
+            export DEVSTACK_GATE_OS_TEST_TIMEOUT=2400
+            export DEVSTACK_GATE_TEMPEST_BAREMETAL_BUILD_TIMEOUT=1200
+            export DEVSTACK_LOCAL_CONFIG+=$'\n'"IRONIC_BUILD_DEPLOY_RAMDISK=False"
+            export DEVSTACK_GATE_TLSPROXY=0
+            export BUILD_TIMEOUT
+
+            # Standardize VM size for each supported ramdisk
+            export DEVSTACK_LOCAL_CONFIG+=$'\n'"IRONIC_VM_SPECS_RAM=384"
+            export DEVSTACK_LOCAL_CONFIG+=$'\n'"IRONIC_RAMDISK_TYPE=tinyipa"
 
           EOF
         chdir: '{{ ansible_user_dir }}/workspace'
@@ -48,16 +52,6 @@
             # use tempest plugin
             export DEVSTACK_LOCAL_CONFIG+=$'\n'"TEMPEST_PLUGINS+=' /opt/stack/new/ironic-tempest-plugin'"
             export TEMPEST_CONCURRENCY=1
-          EOF
-        chdir: '{{ ansible_user_dir }}/workspace'
-      environment: '{{ zuul | zuul_legacy_vars }}'
-
-    - shell:
-        cmd: |
-          cat << 'EOF' >> ironic-extra-vars
-            export DEVSTACK_LOCAL_CONFIG+=$'\n'"IRONIC_VM_SPECS_RAM=384"
-            export DEVSTACK_LOCAL_CONFIG+=$'\n'"IRONIC_RAMDISK_TYPE=tinyipa"
-
           EOF
         chdir: '{{ ansible_user_dir }}/workspace'
       environment: '{{ zuul | zuul_legacy_vars }}'
