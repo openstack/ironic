@@ -76,14 +76,6 @@ OPTIONAL_PROPERTIES = {
 }
 
 COMMON_PROPERTIES = OPTIONAL_PROPERTIES
-# TODO(pas-ha) remove in Rocky
-DEPRECATED_PROPERTIES = {
-    'ansible_deploy_username': {
-        'name': 'ansible_username',
-        'warned': False},
-    'ansible_deploy_key_file': {
-        'name': 'ansible_key_file',
-        'warned': False}}
 
 
 class PlaybookNotFound(exception.IronicException):
@@ -96,23 +88,10 @@ def _get_playbooks_path(node):
 
 
 def _parse_ansible_driver_info(node, action='deploy'):
-    # TODO(pas-ha) remove in Rocky
-    for old, new in DEPRECATED_PROPERTIES.items():
-        if old in node.driver_info:
-            if not new['warned']:
-                LOG.warning("Driver property '%(old)s' is deprecated, "
-                            "and will be ignored in Rocky release. "
-                            "Use '%(new)s' instead.", old=old, new=new['name'])
-                new['warned'] = True
-    # TODO(pas-ha) simplify in Rocky
-    user = node.driver_info.get(
-        'ansible_username',
-        node.driver_info.get('ansible_deploy_username',
-                             CONF.ansible.default_username))
-    key = node.driver_info.get(
-        'ansible_key_file',
-        node.driver_info.get('ansible_deploy_key_file',
-                             CONF.ansible.default_key_file))
+    user = node.driver_info.get('ansible_username',
+                                CONF.ansible.default_username)
+    key = node.driver_info.get('ansible_key_file',
+                               CONF.ansible.default_key_file)
     playbook = node.driver_info.get('ansible_%s_playbook' % action,
                                     getattr(CONF.ansible,
                                             'default_%s_playbook' % action,

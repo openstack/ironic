@@ -1,0 +1,8 @@
+---
+upgrade:
+  - |
+    Deprecated options ``ansible_deploy_username`` and
+    ``ansible_deploy_key_file`` in node driver_info for the ``ansible``
+    deploy interface were removed and will be ignored.
+    Use ``ansible_username`` and ``ansible_key_file`` options in the node
+    driver_info respectively.
