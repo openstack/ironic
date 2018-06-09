@@ -1,5 +1,12 @@
 ---
 upgrade:
   - |
-    The deprecated classic drivers ``fake`` and ``fake_soft_power`` were
-    removed. Please use the ``fake-hardware`` hardware type instead.
+    The following deprecated classic drivers were removed:
+
+    * ``fake``
+    * ``fake_agent``
+    * ``fake_inspector``
+    * ``fake_pxe``
+    * ``fake_soft_power``
+
+    Please use the ``fake-hardware`` hardware type instead.

@@ -1066,8 +1066,8 @@ class OtherFunctionTestCase(db_base.DbTestCase):
 
     def setUp(self):
         super(OtherFunctionTestCase, self).setUp()
-        self.config(enabled_drivers=['fake_pxe'])
-        self.node = obj_utils.create_test_node(self.context, driver='fake_pxe')
+        self.node = obj_utils.create_test_node(self.context,
+                                               boot_interface='pxe')
 
     def test_get_dev(self):
         expected = '/dev/disk/by-path/ip-1.2.3.4:5678-iscsi-iqn.fake-lun-9'
@@ -1499,7 +1499,6 @@ class AgentMethodsTestCase(db_base.DbTestCase):
 
     def setUp(self):
         super(AgentMethodsTestCase, self).setUp()
-        self.config(enabled_drivers=['fake_agent'])
 
         self.clean_steps = {
             'deploy': [
@@ -1516,7 +1515,8 @@ class AgentMethodsTestCase(db_base.DbTestCase):
                  'priority': 10}
             ]
         }
-        n = {'driver': 'fake_agent',
+        n = {'boot_interface': 'pxe',
+             'deploy_interface': 'direct',
              'driver_internal_info': {
                  'agent_cached_clean_steps': self.clean_steps}}
         self.node = obj_utils.create_test_node(self.context, **n)
@@ -1752,7 +1752,7 @@ class ValidateImagePropertiesTestCase(db_base.DbTestCase):
     @mock.patch.object(image_service, 'get_image_service', autospec=True)
     def test_validate_image_properties_glance_image(self, image_service_mock):
         node = obj_utils.create_test_node(
-            self.context, driver='fake_pxe',
+            self.context, boot_interface='pxe',
             instance_info=INST_INFO_DICT,
             driver_info=DRV_INFO_DICT,
             driver_internal_info=DRV_INTERNAL_INFO_DICT,
@@ -1772,7 +1772,7 @@ class ValidateImagePropertiesTestCase(db_base.DbTestCase):
     def test_validate_image_properties_glance_image_missing_prop(
             self, image_service_mock):
         node = obj_utils.create_test_node(
-            self.context, driver='fake_pxe',
+            self.context, boot_interface='pxe',
             instance_info=INST_INFO_DICT,
             driver_info=DRV_INFO_DICT,
             driver_internal_info=DRV_INTERNAL_INFO_DICT,
@@ -1826,7 +1826,7 @@ class ValidateImagePropertiesTestCase(db_base.DbTestCase):
         }
         image_service_show_mock.return_value = {'size': 1, 'properties': {}}
         node = obj_utils.create_test_node(
-            self.context, driver='fake_pxe',
+            self.context, boot_interface='pxe',
             instance_info=instance_info,
             driver_info=DRV_INFO_DICT,
             driver_internal_info=DRV_INTERNAL_INFO_DICT,
@@ -1849,7 +1849,7 @@ class ValidateImagePropertiesTestCase(db_base.DbTestCase):
         img_service_show_mock.side_effect = exception.ImageRefValidationFailed(
             image_href='http://ubuntu', reason='HTTPError')
         node = obj_utils.create_test_node(
-            self.context, driver='fake_pxe',
+            self.context, boot_interface='pxe',
             instance_info=instance_info,
             driver_info=DRV_INFO_DICT,
             driver_internal_info=DRV_INTERNAL_INFO_DICT,
@@ -1869,7 +1869,7 @@ class ValidateParametersTestCase(db_base.DbTestCase):
         # make sure we get back the expected things
         node = obj_utils.create_test_node(
             self.context,
-            driver='fake_pxe',
+            boot_interface='pxe',
             instance_info=instance_info,
             driver_info=driver_info,
             driver_internal_info=DRV_INTERNAL_INFO_DICT,
@@ -1935,7 +1935,7 @@ class InstanceInfoTestCase(db_base.DbTestCase):
     def test_parse_instance_info_good(self):
         # make sure we get back the expected things
         node = obj_utils.create_test_node(
-            self.context, driver='fake_pxe',
+            self.context, boot_interface='pxe',
             instance_info=INST_INFO_DICT,
             driver_internal_info=DRV_INTERNAL_INFO_DICT
         )
@@ -2184,7 +2184,8 @@ class TestBuildInstanceInfoForDeploy(db_base.DbTestCase):
     def setUp(self):
         super(TestBuildInstanceInfoForDeploy, self).setUp()
         self.node = obj_utils.create_test_node(self.context,
-                                               driver='fake_agent')
+                                               boot_interface='pxe',
+                                               deploy_interface='direct')
 
     @mock.patch.object(image_service.HttpImageService, 'validate_href',
                        autospec=True)
@@ -2205,7 +2206,6 @@ class TestBuildInstanceInfoForDeploy(db_base.DbTestCase):
                                                        return_value=image_info)
         glance_mock.return_value.swift_temp_url.return_value = (
             'http://temp-url')
-        self.config(enabled_drivers=['fake_agent'])
         with task_manager.acquire(
                 self.context, self.node.uuid, shared=False) as task:
 
@@ -2267,7 +2267,6 @@ class TestBuildInstanceInfoForDeploy(db_base.DbTestCase):
                            'image_checksum': 'aa',
                            'image_container_format': 'bare',
                            'image_disk_format': 'qcow2'}
-        self.config(enabled_drivers=['fake_agent'])
         with task_manager.acquire(
                 self.context, self.node.uuid, shared=False) as task:
 
@@ -2303,7 +2302,6 @@ class TestBuildInstanceInfoForDeploy(db_base.DbTestCase):
         self.node.driver_internal_info = driver_internal_info
         self.node.save()
 
-        self.config(enabled_drivers=['fake_agent'])
         with task_manager.acquire(
                 self.context, self.node.uuid, shared=False) as task:
 
@@ -2332,7 +2330,6 @@ class TestBuildInstanceInfoForDeploy(db_base.DbTestCase):
         self.node.driver_internal_info = driver_internal_info
         self.node.save()
 
-        self.config(enabled_drivers=['fake_agent'])
         validate_href_mock.side_effect = ['http://image-ref',
                                           'http://kernel-ref',
                                           'http://ramdisk-ref']
@@ -2371,7 +2368,6 @@ class TestBuildInstanceInfoForDeploy(db_base.DbTestCase):
         self.node.instance_info = i_info
         self.node.save()
 
-        self.config(enabled_drivers=['fake_agent'])
         with task_manager.acquire(
                 self.context, self.node.uuid, shared=False) as task:
 
