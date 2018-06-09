@@ -1,0 +1,5 @@
+function configure_ironic_upgrade {
+    # Remove the fake driver from the configuration (forced by devstack-gate)
+    drivers=$(iniget $IRONIC_CONF_FILE DEFAULT enabled_drivers | sed -r 's/fake,?//')
+    iniset $IRONIC_CONF_FILE DEFAULT enabled_drivers $drivers
+}

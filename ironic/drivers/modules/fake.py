@@ -60,10 +60,6 @@ class FakePower(base.PowerInterface):
                 states.SOFT_REBOOT, states.SOFT_POWER_OFF]
 
 
-# NOTE(dtantsur): for backward compatibility
-FakeSoftPower = FakePower
-
-
 class FakeBoot(base.BootInterface):
     """Example implementation of a simple boot interface."""
 

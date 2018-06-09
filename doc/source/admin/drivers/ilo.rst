@@ -843,7 +843,7 @@ Configuring and Enabling the driver
 3. Add ``pxe_ilo`` to the list of ``enabled_drivers`` in
    ``/etc/ironic/ironic.conf``.  For example:::
 
-    enabled_drivers = fake,pxe_ipmitool,pxe_ilo
+    enabled_drivers = pxe_ipmitool,pxe_ilo
 
 4. Restart the ironic conductor service::
 

@@ -46,42 +46,6 @@ from ironic.drivers.modules import pxe
 from ironic.drivers.modules import snmp
 from ironic.drivers.modules.ucs import management as ucs_mgmt
 from ironic.drivers.modules.ucs import power as ucs_power
-from ironic.drivers import utils
-
-
-class FakeDriver(base.BaseDriver):
-    """Example implementation of a Driver."""
-
-    def __init__(self):
-        self.power = fake.FakePower()
-        self.deploy = fake.FakeDeploy()
-        self.boot = fake.FakeBoot()
-
-        self.a = fake.FakeVendorA()
-        self.b = fake.FakeVendorB()
-        self.mapping = {'first_method': self.a,
-                        'second_method': self.b,
-                        'third_method_sync': self.b,
-                        'fourth_method_shared_lock': self.b}
-        self.vendor = utils.MixinVendorInterface(self.mapping)
-        self.console = fake.FakeConsole()
-        self.management = fake.FakeManagement()
-        self.inspect = fake.FakeInspect()
-        self.raid = fake.FakeRAID()
-
-    @classmethod
-    def to_hardware_type(cls):
-        return 'fake-hardware', {
-            iface: 'fake'
-            for iface in ['bios', 'boot', 'console', 'deploy', 'inspect',
-                          'management', 'power', 'raid', 'rescue', 'vendor']
-        }
-
-
-class FakeSoftPowerDriver(FakeDriver):
-    """Example implementation of a Driver."""
-    # NOTE(dtantsur): identical to FakeDriver now, will be removed with other
-    # classic drivers
 
 
 class FakeIPMIToolDriver(base.BaseDriver):
