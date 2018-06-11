@@ -82,7 +82,7 @@ class HeartbeatMixinTest(AgentDeployMixinBaseTest):
                        autospec=True)
     @mock.patch.object(agent_base_vendor.HeartbeatMixin,
                        'reboot_to_instance', autospec=True)
-    @mock.patch.object(agent_base_vendor, '_notify_conductor_resume_clean',
+    @mock.patch.object(manager_utils, 'notify_conductor_resume_clean',
                        autospec=True)
     def test_heartbeat_in_maintenance(self, ncrc_mock, rti_mock, cd_mock):
         # NOTE(pas-ha) checking only for states that are not noop
@@ -112,7 +112,7 @@ class HeartbeatMixinTest(AgentDeployMixinBaseTest):
                        autospec=True)
     @mock.patch.object(agent_base_vendor.HeartbeatMixin,
                        'reboot_to_instance', autospec=True)
-    @mock.patch.object(agent_base_vendor, '_notify_conductor_resume_clean',
+    @mock.patch.object(manager_utils, 'notify_conductor_resume_clean',
                        autospec=True)
     def test_heartbeat_with_reservation(self, ncrc_mock, rti_mock, cd_mock):
         # NOTE(pas-ha) checking only for states that are not noop
@@ -138,7 +138,7 @@ class HeartbeatMixinTest(AgentDeployMixinBaseTest):
                        autospec=True)
     @mock.patch.object(agent_base_vendor.HeartbeatMixin,
                        'reboot_to_instance', autospec=True)
-    @mock.patch.object(agent_base_vendor, '_notify_conductor_resume_clean',
+    @mock.patch.object(manager_utils, 'notify_conductor_resume_clean',
                        autospec=True)
     def test_heartbeat_noops_in_wrong_state(self, ncrc_mock, rti_mock,
                                             cd_mock):
@@ -213,7 +213,7 @@ class HeartbeatMixinTest(AgentDeployMixinBaseTest):
     @mock.patch.object(agent_base_vendor.HeartbeatMixin,
                        'refresh_clean_steps', autospec=True)
     @mock.patch.object(manager_utils, 'set_node_cleaning_steps', autospec=True)
-    @mock.patch.object(agent_base_vendor, '_notify_conductor_resume_clean',
+    @mock.patch.object(manager_utils, 'notify_conductor_resume_clean',
                        autospec=True)
     def test_heartbeat_resume_clean(self, mock_notify, mock_set_steps,
                                     mock_refresh, mock_touch):
@@ -234,7 +234,7 @@ class HeartbeatMixinTest(AgentDeployMixinBaseTest):
     @mock.patch.object(agent_base_vendor.HeartbeatMixin,
                        'refresh_clean_steps', autospec=True)
     @mock.patch.object(manager_utils, 'set_node_cleaning_steps', autospec=True)
-    @mock.patch.object(agent_base_vendor, '_notify_conductor_resume_clean',
+    @mock.patch.object(manager_utils, 'notify_conductor_resume_clean',
                        autospec=True)
     def test_heartbeat_resume_clean_fails(self, mock_notify, mock_set_steps,
                                           mock_refresh, mock_touch,
@@ -913,7 +913,7 @@ class AgentDeployMixinTest(AgentDeployMixinBaseTest):
             self.assertFalse(prepare_mock.called)
             self.assertFalse(failed_state_mock.called)
 
-    @mock.patch.object(agent_base_vendor, '_notify_conductor_resume_clean',
+    @mock.patch.object(manager_utils, 'notify_conductor_resume_clean',
                        autospec=True)
     @mock.patch.object(agent_client.AgentClient, 'get_commands_status',
                        autospec=True)
@@ -996,7 +996,7 @@ class AgentDeployMixinTest(AgentDeployMixinBaseTest):
             self.deploy.continue_cleaning(task)
             reboot_mock.assert_called_once_with(task, states.REBOOT)
 
-    @mock.patch.object(agent_base_vendor, '_notify_conductor_resume_clean',
+    @mock.patch.object(manager_utils, 'notify_conductor_resume_clean',
                        autospec=True)
     @mock.patch.object(agent_client.AgentClient, 'get_commands_status',
                        autospec=True)
@@ -1023,7 +1023,7 @@ class AgentDeployMixinTest(AgentDeployMixinBaseTest):
 
     @mock.patch.object(agent_base_vendor,
                        '_get_post_clean_step_hook', autospec=True)
-    @mock.patch.object(agent_base_vendor, '_notify_conductor_resume_clean',
+    @mock.patch.object(manager_utils, 'notify_conductor_resume_clean',
                        autospec=True)
     @mock.patch.object(agent_client.AgentClient, 'get_commands_status',
                        autospec=True)
@@ -1050,7 +1050,7 @@ class AgentDeployMixinTest(AgentDeployMixinBaseTest):
             hook_mock.assert_called_once_with(task, command_status)
             notify_mock.assert_called_once_with(task)
 
-    @mock.patch.object(agent_base_vendor, '_notify_conductor_resume_clean',
+    @mock.patch.object(manager_utils, 'notify_conductor_resume_clean',
                        autospec=True)
     @mock.patch.object(agent_base_vendor,
                        '_get_post_clean_step_hook', autospec=True)
@@ -1083,7 +1083,7 @@ class AgentDeployMixinTest(AgentDeployMixinBaseTest):
             error_handler_mock.assert_called_once_with(task, mock.ANY)
             self.assertFalse(notify_mock.called)
 
-    @mock.patch.object(agent_base_vendor, '_notify_conductor_resume_clean',
+    @mock.patch.object(manager_utils, 'notify_conductor_resume_clean',
                        autospec=True)
     @mock.patch.object(agent_client.AgentClient, 'get_commands_status',
                        autospec=True)
@@ -1112,7 +1112,7 @@ class AgentDeployMixinTest(AgentDeployMixinBaseTest):
             self.deploy.continue_cleaning(task)
             self.assertFalse(notify_mock.called)
 
-    @mock.patch.object(agent_base_vendor, '_notify_conductor_resume_clean',
+    @mock.patch.object(manager_utils, 'notify_conductor_resume_clean',
                        autospec=True)
     @mock.patch.object(agent_client.AgentClient, 'get_commands_status',
                        autospec=True)
@@ -1144,7 +1144,7 @@ class AgentDeployMixinTest(AgentDeployMixinBaseTest):
             error_mock.assert_called_once_with(task, mock.ANY)
 
     @mock.patch.object(manager_utils, 'set_node_cleaning_steps', autospec=True)
-    @mock.patch.object(agent_base_vendor, '_notify_conductor_resume_clean',
+    @mock.patch.object(manager_utils, 'notify_conductor_resume_clean',
                        autospec=True)
     @mock.patch.object(agent_base_vendor.AgentDeployMixin,
                        'refresh_clean_steps', autospec=True)
@@ -1183,7 +1183,7 @@ class AgentDeployMixinTest(AgentDeployMixinBaseTest):
 
     @mock.patch.object(manager_utils, 'cleaning_error_handler', autospec=True)
     @mock.patch.object(manager_utils, 'set_node_cleaning_steps', autospec=True)
-    @mock.patch.object(agent_base_vendor, '_notify_conductor_resume_clean',
+    @mock.patch.object(manager_utils, 'notify_conductor_resume_clean',
                        autospec=True)
     @mock.patch.object(agent_base_vendor.AgentDeployMixin,
                        'refresh_clean_steps', autospec=True)
