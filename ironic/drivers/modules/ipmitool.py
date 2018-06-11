@@ -121,12 +121,22 @@ ipmitool_command_options = {
     'dual_bridge': ['ipmitool', '-m', '0', '-b', '0', '-t', '0',
                     '-B', '0', '-T', '0', '-h']}
 
-# Note(TheJulia): This string is hardcoded in ipmitool's lanplus driver
-# and is substituted in return for the error code received from the IPMI
-# controller.  As of 1.8.15, no internationalization support appears to
-# be in ipmitool which means the string should always be returned in this
-# form regardless of locale.
-IPMITOOL_RETRYABLE_FAILURES = ['insufficient resources for session']
+# Note(etingof): For more information on IPMI error codes and `ipmitool`
+# human interface please refer to:
+# https://www.intel.com/content/dam/www/public/us/en/documents/product-briefs/ipmi-second-gen-interface-spec-v2-rev1-1.pdf
+# https://github.com/scottjg/ipmitool/blob/master/lib/ipmi_strings.c#L367
+#
+# Note(TheJulia): The strings below are hardcoded in ipmitool and get
+# substituted in return for the error code received from the IPMI controller.
+# As of 1.8.15, no internationalization support appears to be in ipmitool
+# which means the strings should always be returned in this form regardless
+# of locale.
+IPMITOOL_RETRYABLE_FAILURES = ['insufficient resources for session',
+                               # Generic completion codes considered retryable
+                               'Node busy',
+                               'Timeout',
+                               'Out of space',
+                               'BMC initialization in progress']
 
 # NOTE(lucasagomes): A mapping for the boot devices and their hexadecimal
 # value. For more information about these values see the "Set System Boot
