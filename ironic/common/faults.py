@@ -23,3 +23,5 @@ CLEAN_FAILURE = 'clean failure'
 RESCUE_ABORT_FAILURE = 'rescue abort failure'
 """ Node is moved to maintenance due to failure of cleaning up during
     rescue abort. """
+
+VALID_FAULTS = (POWER_FAILURE, CLEAN_FAILURE, RESCUE_ABORT_FAILURE)

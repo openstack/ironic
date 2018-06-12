@@ -1313,8 +1313,19 @@ class TestListNodes(test_api_base.BaseApiTest):
             self.assertIn(node2.uuid, uuids)
             self.assertNotIn(node1.uuid, uuids)
 
+    def test_get_nodes_by_fault_with_invalid_fault(self):
+        for url in ('/nodes?fault=somefake',
+                    '/nodes/detail?fault=somefake'):
+            response = self.get_json(
+                url, headers={api_base.Version.string: "1.42"},
+                expect_errors=True)
+            self.assertEqual('application/json', response.content_type)
+            self.assertEqual(http_client.BAD_REQUEST, response.status_code)
+            self.assertTrue(response.json['error_message'])
+
     def test_get_nodes_by_fault_not_allowed(self):
-        for url in ('/nodes?fault=test', '/nodes/detail?fault=test'):
+        for url in ('/nodes?fault=power failure',
+                    '/nodes/detail?fault=power failure'):
             response = self.get_json(
                 url, headers={api_base.Version.string: "1.41"},
                 expect_errors=True)

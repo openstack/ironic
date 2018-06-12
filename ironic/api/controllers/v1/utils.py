@@ -29,6 +29,7 @@ import wsme
 
 from ironic.api.controllers.v1 import versions
 from ironic.common import exception
+from ironic.common import faults
 from ironic.common.i18n import _
 from ironic.common import states
 from ironic.common import utils
@@ -490,6 +491,13 @@ def check_allow_filter_by_fault(fault):
             "Request not acceptable. The minimal required API version "
             "should be %(base)s.%(opr)s") % {'base': versions.BASE_VERSION,
                                              'opr': versions.MINOR_42_FAULT})
+
+    if fault is not None and fault not in faults.VALID_FAULTS:
+        msg = (_('Unrecognized fault "%(fault)s" is specified, allowed faults '
+                 'are %(valid_faults)s') %
+               {'fault': fault, 'valid_faults': faults.VALID_FAULTS})
+        raise wsme.exc.ClientSideError(
+            msg, status_code=http_client.BAD_REQUEST)
 
 
 def initial_node_provision_state():
