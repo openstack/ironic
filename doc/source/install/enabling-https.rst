@@ -75,7 +75,7 @@ To enable secure HTTPS communication between Bare Metal service and Image servic
     glance_cafile=/path/to/certfile
 
    .. note::
-      'glance_cafile' is a optional path to a CA certificate bundle to be used to validate the SSL certificate
+      'glance_cafile' is an optional path to a CA certificate bundle to be used to validate the SSL certificate
       served by Image service.
 
 #. If not using the keystone service catalog for the Image service API endpoint
