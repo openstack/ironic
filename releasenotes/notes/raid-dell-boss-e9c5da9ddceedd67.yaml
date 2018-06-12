@@ -1,0 +1,4 @@
+---
+fixes:
+  - Fixes support for RAID 1 creation on Dell Boot Optimized Storage Solution
+    (BOSS).
