@@ -14,7 +14,6 @@ import mock
 from oslo_config import cfg
 from oslo_utils import uuidutils
 
-from ironic.common import driver_factory
 from ironic.common import exception
 from ironic.common import network
 from ironic.common import states
@@ -55,51 +54,27 @@ class NodeSetBootDeviceTestCase(db_base.DbTestCase):
 
     def setUp(self):
         super(NodeSetBootDeviceTestCase, self).setUp()
-        self.config(enabled_drivers=['fake_ipmitool'])
-        self.driver = driver_factory.get_driver("fake_ipmitool")
+        self.node = obj_utils.create_test_node(self.context,
+                                               uuid=uuidutils.generate_uuid())
+        self.task = task_manager.TaskManager(self.context, self.node.uuid)
 
     def test_node_set_boot_device_non_existent_device(self):
-        ipmi_info = db_utils.get_test_ipmi_info()
-        node = obj_utils.create_test_node(self.context,
-                                          uuid=uuidutils.generate_uuid(),
-                                          driver='fake_ipmitool',
-                                          driver_info=ipmi_info)
-        task = task_manager.TaskManager(self.context, node.uuid)
         self.assertRaises(exception.InvalidParameterValue,
                           conductor_utils.node_set_boot_device,
-                          task,
+                          self.task,
                           device='fake')
 
-    def test_node_set_boot_device_valid(self):
-        ipmi_info = db_utils.get_test_ipmi_info()
-        node = obj_utils.create_test_node(self.context,
-                                          uuid=uuidutils.generate_uuid(),
-                                          driver='fake_ipmitool',
-                                          driver_info=ipmi_info)
-        task = task_manager.TaskManager(self.context, node.uuid)
+    @mock.patch.object(fake.FakeManagement, 'set_boot_device', autospec=True)
+    def test_node_set_boot_device_valid(self, mock_sbd):
+        conductor_utils.node_set_boot_device(self.task, device='pxe')
+        mock_sbd.assert_called_once_with(mock.ANY, self.task,
+                                         device='pxe', persistent=False)
 
-        with mock.patch.object(self.driver.management,
-                               'set_boot_device') as mock_sbd:
-            conductor_utils.node_set_boot_device(task,
-                                                 device='pxe')
-            mock_sbd.assert_called_once_with(task,
-                                             device='pxe',
-                                             persistent=False)
-
-    def test_node_set_boot_device_adopting(self):
-        ipmi_info = db_utils.get_test_ipmi_info()
-        node = obj_utils.create_test_node(self.context,
-                                          uuid=uuidutils.generate_uuid(),
-                                          driver='fake_ipmitool',
-                                          driver_info=ipmi_info,
-                                          provision_state=states.ADOPTING)
-        task = task_manager.TaskManager(self.context, node.uuid)
-
-        with mock.patch.object(self.driver.management,
-                               'set_boot_device') as mock_sbd:
-            conductor_utils.node_set_boot_device(task,
-                                                 device='pxe')
-            self.assertFalse(mock_sbd.called)
+    @mock.patch.object(fake.FakeManagement, 'set_boot_device', autospec=True)
+    def test_node_set_boot_device_adopting(self, mock_sbd):
+        self.task.node.provision_state = states.ADOPTING
+        conductor_utils.node_set_boot_device(self.task, device='pxe')
+        self.assertFalse(mock_sbd.called)
 
 
 class NodePowerActionTestCase(db_base.DbTestCase):

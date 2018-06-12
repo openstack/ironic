@@ -33,60 +33,14 @@ from ironic.drivers.modules import fake
 from ironic.drivers.modules.ilo import inspect as ilo_inspect
 from ironic.drivers.modules.ilo import management as ilo_management
 from ironic.drivers.modules.ilo import power as ilo_power
-from ironic.drivers.modules import ipmitool
 from ironic.drivers.modules.irmc import inspect as irmc_inspect
 from ironic.drivers.modules.irmc import management as irmc_management
 from ironic.drivers.modules.irmc import power as irmc_power
 from ironic.drivers.modules import iscsi_deploy
 from ironic.drivers.modules.oneview import management as oneview_management
 from ironic.drivers.modules.oneview import power as oneview_power
-from ironic.drivers.modules import snmp
 from ironic.drivers.modules.ucs import management as ucs_mgmt
 from ironic.drivers.modules.ucs import power as ucs_power
-
-
-class FakeIPMIToolDriver(base.BaseDriver):
-    """Example implementation of a Driver."""
-
-    def __init__(self):
-        self.power = ipmitool.IPMIPower()
-        self.console = ipmitool.IPMIShellinaboxConsole()
-        self.deploy = fake.FakeDeploy()
-        self.vendor = ipmitool.VendorPassthru()
-        self.management = ipmitool.IPMIManagement()
-
-    @classmethod
-    def to_hardware_type(cls):
-        return 'fake-hardware', {
-            'boot': 'fake',
-            'console': 'ipmitool-shellinabox',
-            'deploy': 'fake',
-            'management': 'ipmitool',
-            'power': 'ipmitool',
-            'vendor': 'ipmitool'
-        }
-
-
-class FakeIPMIToolSocatDriver(base.BaseDriver):
-    """Example implementation of a Driver."""
-
-    def __init__(self):
-        self.power = ipmitool.IPMIPower()
-        self.console = ipmitool.IPMISocatConsole()
-        self.deploy = fake.FakeDeploy()
-        self.vendor = ipmitool.VendorPassthru()
-        self.management = ipmitool.IPMIManagement()
-
-    @classmethod
-    def to_hardware_type(cls):
-        return 'fake-hardware', {
-            'boot': 'fake',
-            'console': 'ipmitool-socat',
-            'deploy': 'fake',
-            'management': 'ipmitool',
-            'power': 'ipmitool',
-            'vendor': 'ipmitool'
-        }
 
 
 class FakeIloDriver(base.BaseDriver):
@@ -142,27 +96,6 @@ class FakeDracDriver(base.BaseDriver):
             'power': 'idrac',
             'raid': 'idrac',
             'vendor': 'idrac'
-        }
-
-
-class FakeSNMPDriver(base.BaseDriver):
-    """Fake SNMP driver."""
-
-    def __init__(self):
-        if not importutils.try_import('pysnmp'):
-            raise exception.DriverLoadError(
-                driver=self.__class__.__name__,
-                reason=_("Unable to import pysnmp library"))
-        self.power = snmp.SNMPPower()
-        self.deploy = fake.FakeDeploy()
-
-    @classmethod
-    def to_hardware_type(cls):
-        return 'fake-hardware', {
-            'boot': 'fake',
-            'deploy': 'fake',
-            'management': 'fake',
-            'power': 'snmp',
         }
 
 
