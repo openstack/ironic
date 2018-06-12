@@ -29,6 +29,7 @@ Project resources
 * Bugs: https://bugs.launchpad.net/ironic
 * Wiki: https://wiki.openstack.org/wiki/Ironic
 * APIs: https://developer.openstack.org/api-ref/baremetal/index.html
+* Release Notes: https://docs.openstack.org/releasenotes/ironic/
 
 Project status, bugs, and requests for feature enhancements (RFEs) are tracked
 in StoryBoard:
