@@ -22,7 +22,7 @@ We refer to a ``named release`` of ironic as the release associated with a
 development cycle like Pike.
 
 In addition, ironic follows the `standard deprecation policy
-<http://governance.openstack.org/reference/tags/assert_follows-standard-deprecation.html>`_,
+<https://governance.openstack.org/tc/reference/tags/assert_follows-standard-deprecation.html>`_,
 which says that the deprecation period must be at least three months
 and a cycle boundary. This means that there will never be anything that
 is both deprecated *and* removed between two named releases.
@@ -98,7 +98,7 @@ The policy for changes to the DB model is as follows:
 
 * The dropping of columns or tables and corresponding objects' fields is
   subject to ironic's `deprecation policy
-  <http://governance.openstack.org/reference/tags/assert_follows-standard-deprecation.html>`_.
+  <https://governance.openstack.org/tc/reference/tags/assert_follows-standard-deprecation.html>`_.
   But its alembic script has to wait one more deprecation period, otherwise
   an ``unknown column`` exception will be thrown when ``FromVer`` services
   access the DB. This is because :command:`ironic-dbsync upgrade` upgrades the
