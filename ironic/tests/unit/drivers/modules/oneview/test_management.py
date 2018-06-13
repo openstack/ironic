@@ -18,35 +18,25 @@ from oslo_utils import importutils
 from oslo_utils import uuidutils
 
 from ironic.common import boot_devices
-from ironic.common import driver_factory
 from ironic.common import exception
 from ironic.conductor import task_manager
 from ironic.drivers.modules.oneview import common
 from ironic.drivers.modules.oneview import deploy_utils
 from ironic.drivers.modules.oneview import management
-from ironic.tests.unit.db import base as db_base
-from ironic.tests.unit.db import utils as db_utils
+from ironic.tests.unit.drivers.modules.oneview import test_common
 from ironic.tests.unit.objects import utils as obj_utils
 
 client_exception = importutils.try_import('hpOneView.exceptions')
 
 
 @mock.patch.object(common, 'get_hponeview_client')
-class OneViewManagementDriverFunctionsTestCase(db_base.DbTestCase):
+class OneViewManagementDriverFunctionsTestCase(test_common.BaseOneViewTest):
 
     def setUp(self):
         super(OneViewManagementDriverFunctionsTestCase, self).setUp()
         self.config(manager_url='https://1.2.3.4', group='oneview')
         self.config(username='user', group='oneview')
         self.config(password='password', group='oneview')
-        self.config(enabled_drivers=['fake_oneview'])
-        self.driver = driver_factory.get_driver("fake_oneview")
-
-        self.node = obj_utils.create_test_node(
-            self.context, driver='fake_oneview',
-            properties=db_utils.get_test_oneview_properties(),
-            driver_info=db_utils.get_test_oneview_driver_info(),
-        )
         self.info = common.get_oneview_info(self.node)
 
     @mock.patch.object(common, 'get_ilorest_client')
@@ -212,7 +202,7 @@ class OneViewManagementDriverFunctionsTestCase(db_base.DbTestCase):
             )
 
 
-class OneViewManagementDriverTestCase(db_base.DbTestCase):
+class OneViewManagementDriverTestCase(test_common.BaseOneViewTest):
 
     def setUp(self):
         super(OneViewManagementDriverTestCase, self).setUp()
@@ -221,15 +211,6 @@ class OneViewManagementDriverTestCase(db_base.DbTestCase):
         self.config(password='password', group='oneview')
         self.config(tls_cacert_file='ca_file', group='oneview')
         self.config(allow_insecure_connections=False, group='oneview')
-
-        self.config(enabled_drivers=['fake_oneview'])
-        self.driver = driver_factory.get_driver("fake_oneview")
-
-        self.node = obj_utils.create_test_node(
-            self.context, driver='fake_oneview',
-            properties=db_utils.get_test_oneview_properties(),
-            driver_info=db_utils.get_test_oneview_driver_info(),
-        )
         self.info = common.get_oneview_info(self.node)
 
     @mock.patch.object(deploy_utils, 'is_node_in_use_by_ironic',
@@ -254,7 +235,7 @@ class OneViewManagementDriverTestCase(db_base.DbTestCase):
     def test_validate_fail(self):
         node = obj_utils.create_test_node(
             self.context, uuid=uuidutils.generate_uuid(),
-            id=999, driver='fake_oneview'
+            id=999, driver='oneview'
         )
         with task_manager.acquire(self.context, node.uuid) as task:
             self.assertRaises(exception.MissingParameterValue,
@@ -271,7 +252,7 @@ class OneViewManagementDriverTestCase(db_base.DbTestCase):
     def test_get_properties(self):
         expected = common.COMMON_PROPERTIES
         self.assertItemsEqual(expected,
-                              self.driver.management.get_properties())
+                              management.OneViewManagement().get_properties())
 
     def test_set_boot_device_persistent_true(self):
         with task_manager.acquire(self.context, self.node.uuid) as task:
@@ -326,7 +307,7 @@ class OneViewManagementDriverTestCase(db_base.DbTestCase):
                 profile = {'boot': {'order': [oneview_device]}}
                 oneview_client.server_profiles.get.return_value = profile
                 expected = {'boot_device': ironic_device, 'persistent': True}
-                response = self.driver.management.get_boot_device(task)
+                response = management.OneViewManagement().get_boot_device(task)
                 self.assertEqual(expected, response)
                 self.assertTrue(oneview_client.server_profiles.get.called)
                 self.assertTrue(ilo_client.get.called)
@@ -344,7 +325,7 @@ class OneViewManagementDriverTestCase(db_base.DbTestCase):
                 'boot_device': boot_devices.DISK,
                 'persistent': True
             }
-            response = self.driver.management.get_boot_device(task)
+            response = management.OneViewManagement().get_boot_device(task)
             self.assertEqual(expected_response, response)
             self.assertFalse(ilo_client.get.called)
 
@@ -358,7 +339,7 @@ class OneViewManagementDriverTestCase(db_base.DbTestCase):
         with task_manager.acquire(self.context, self.node.uuid) as task:
             self.assertRaises(
                 exception.OneViewError,
-                self.driver.management.get_boot_device,
+                management.OneViewManagement().get_boot_device,
                 task
             )
             self.assertTrue(client.server_profiles.get.called)

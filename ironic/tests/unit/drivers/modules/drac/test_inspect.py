@@ -24,21 +24,18 @@ from ironic.conductor import task_manager
 from ironic.drivers.modules.drac import common as drac_common
 from ironic.drivers.modules.drac import inspect as drac_inspect
 from ironic import objects
-from ironic.tests.unit.db import base as db_base
-from ironic.tests.unit.db import utils as db_utils
 from ironic.tests.unit.drivers.modules.drac import utils as test_utils
 from ironic.tests.unit.objects import utils as obj_utils
 
-INFO_DICT = db_utils.get_test_drac_info()
+INFO_DICT = test_utils.INFO_DICT
 
 
-class DracInspectionTestCase(db_base.DbTestCase):
+class DracInspectionTestCase(test_utils.BaseDracTest):
 
     def setUp(self):
         super(DracInspectionTestCase, self).setUp()
-        self.config(enabled_drivers=['fake_drac'])
         self.node = obj_utils.create_test_node(self.context,
-                                               driver='fake_drac',
+                                               driver='idrac',
                                                driver_info=INFO_DICT)
         memory = [{'id': 'DIMM.Socket.A1',
                    'size_mb': 16384,

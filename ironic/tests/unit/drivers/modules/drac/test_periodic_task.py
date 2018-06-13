@@ -17,28 +17,25 @@ Test class for DRAC periodic tasks
 
 import mock
 
-from ironic.common import driver_factory
 from ironic.conductor import task_manager
 from ironic.conductor import utils as manager_utils
 from ironic.drivers.modules.drac import common as drac_common
 from ironic.drivers.modules.drac import raid as drac_raid
 from ironic.tests.unit.db import base as db_base
-from ironic.tests.unit.db import utils as db_utils
 from ironic.tests.unit.drivers.modules.drac import utils as test_utils
 from ironic.tests.unit.objects import utils as obj_utils
 
-INFO_DICT = db_utils.get_test_drac_info()
+INFO_DICT = test_utils.INFO_DICT
 
 
 class DracPeriodicTaskTestCase(db_base.DbTestCase):
 
     def setUp(self):
         super(DracPeriodicTaskTestCase, self).setUp()
-        self.config(enabled_drivers=['fake_drac'])
         self.node = obj_utils.create_test_node(self.context,
-                                               driver='fake_drac',
+                                               driver='idrac',
                                                driver_info=INFO_DICT)
-        self.driver = driver_factory.get_driver("fake_drac")
+        self.raid = drac_raid.DracRAID()
         self.job = {
             'id': 'JID_001436912645',
             'name': 'ConfigBIOS:BIOS.Setup.1-1',
@@ -73,17 +70,16 @@ class DracPeriodicTaskTestCase(db_base.DbTestCase):
                       {'raid_config_job_ids': ['42']})]
         mock_manager.iter_nodes.return_value = node_list
         # mock task_manager.acquire
-        task = mock.Mock(node=self.node,
-                         driver=self.driver)
+        task = mock.Mock(node=self.node, driver=mock.Mock(raid=self.raid))
         mock_acquire.return_value = mock.MagicMock(
             __enter__=mock.MagicMock(return_value=task))
         # mock _check_node_raid_jobs
-        self.driver.raid._check_node_raid_jobs = mock.Mock()
+        self.raid._check_node_raid_jobs = mock.Mock()
 
-        self.driver.raid._query_raid_config_job_status(mock_manager,
-                                                       self.context)
+        self.raid._query_raid_config_job_status(mock_manager,
+                                                self.context)
 
-        self.driver.raid._check_node_raid_jobs.assert_called_once_with(task)
+        self.raid._check_node_raid_jobs.assert_called_once_with(task)
 
     @mock.patch.object(task_manager, 'acquire', autospec=True)
     def test__query_raid_config_job_status_no_config_jobs(self, mock_acquire):
@@ -92,16 +88,15 @@ class DracPeriodicTaskTestCase(db_base.DbTestCase):
         node_list = [(self.node.uuid, 'pxe_drac', {})]
         mock_manager.iter_nodes.return_value = node_list
         # mock task_manager.acquire
-        task = mock.Mock(node=self.node,
-                         driver=self.driver)
+        task = mock.Mock(node=self.node, driver=mock.Mock(raid=self.raid))
         mock_acquire.return_value = mock.MagicMock(
             __enter__=mock.MagicMock(return_value=task))
         # mock _check_node_raid_jobs
-        self.driver.raid._check_node_raid_jobs = mock.Mock()
+        self.raid._check_node_raid_jobs = mock.Mock()
 
-        self.driver.raid._query_raid_config_job_status(mock_manager, None)
+        self.raid._query_raid_config_job_status(mock_manager, None)
 
-        self.assertEqual(0, self.driver.raid._check_node_raid_jobs.call_count)
+        self.assertEqual(0, self.raid._check_node_raid_jobs.call_count)
 
     def test__query_raid_config_job_status_no_nodes(self):
         # mock manager
@@ -109,11 +104,11 @@ class DracPeriodicTaskTestCase(db_base.DbTestCase):
         node_list = []
         mock_manager.iter_nodes.return_value = node_list
         # mock _check_node_raid_jobs
-        self.driver.raid._check_node_raid_jobs = mock.Mock()
+        self.raid._check_node_raid_jobs = mock.Mock()
 
-        self.driver.raid._query_raid_config_job_status(mock_manager, None)
+        self.raid._query_raid_config_job_status(mock_manager, None)
 
-        self.assertEqual(0, self.driver.raid._check_node_raid_jobs.call_count)
+        self.assertEqual(0, self.raid._check_node_raid_jobs.call_count)
 
     @mock.patch.object(drac_common, 'get_drac_client', spec_set=True,
                        autospec=True)
@@ -130,7 +125,7 @@ class DracPeriodicTaskTestCase(db_base.DbTestCase):
         mock_client.get_job.return_value = test_utils.dict_to_namedtuple(
             values=self.job)
 
-        self.driver.raid._check_node_raid_jobs(task)
+        self.raid._check_node_raid_jobs(task)
 
         mock_client.get_job.assert_called_once_with('42')
         self.assertEqual(0, mock_client.list_virtual_disks.call_count)
@@ -168,7 +163,7 @@ class DracPeriodicTaskTestCase(db_base.DbTestCase):
             'logical_disks': [expected_logical_disk]
         }
 
-        self.driver.raid._check_node_raid_jobs(task)
+        self.raid._check_node_raid_jobs(task)
 
         mock_client.get_job.assert_called_once_with('42')
         self.node.refresh()
@@ -198,7 +193,7 @@ class DracPeriodicTaskTestCase(db_base.DbTestCase):
         mock_client.list_virtual_disks.return_value = [
             test_utils.dict_to_namedtuple(values=self.virtual_disk)]
 
-        self.driver.raid._check_node_raid_jobs(task)
+        self.raid._check_node_raid_jobs(task)
 
         mock_client.get_job.assert_called_once_with('42')
         self.assertEqual(0, mock_client.list_virtual_disks.call_count)
@@ -237,7 +232,7 @@ class DracPeriodicTaskTestCase(db_base.DbTestCase):
             'logical_disks': [expected_logical_disk]
         }
 
-        self.driver.raid._check_node_raid_jobs(task)
+        self.raid._check_node_raid_jobs(task)
 
         mock_client.get_job.assert_called_once_with('42')
         self.node.refresh()
@@ -276,7 +271,7 @@ class DracPeriodicTaskTestCase(db_base.DbTestCase):
             'logical_disks': [expected_logical_disk]
         }
 
-        self.driver.raid._check_node_raid_jobs(task)
+        self.raid._check_node_raid_jobs(task)
 
         mock_client.get_job.assert_has_calls([mock.call('42'),
                                               mock.call('36')])
@@ -321,7 +316,7 @@ class DracPeriodicTaskTestCase(db_base.DbTestCase):
             'logical_disks': [expected_logical_disk]
         }
 
-        self.driver.raid._check_node_raid_jobs(task)
+        self.raid._check_node_raid_jobs(task)
 
         mock_client.get_job.assert_has_calls([mock.call('42'),
                                               mock.call('36')])

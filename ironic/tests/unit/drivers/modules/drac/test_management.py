@@ -27,17 +27,15 @@ from ironic.conductor import task_manager
 from ironic.drivers.modules.drac import common as drac_common
 from ironic.drivers.modules.drac import job as drac_job
 from ironic.drivers.modules.drac import management as drac_mgmt
-from ironic.tests.unit.db import base as db_base
-from ironic.tests.unit.db import utils as db_utils
 from ironic.tests.unit.drivers.modules.drac import utils as test_utils
 from ironic.tests.unit.objects import utils as obj_utils
 
-INFO_DICT = db_utils.get_test_drac_info()
+INFO_DICT = test_utils.INFO_DICT
 
 
 @mock.patch.object(drac_common, 'get_drac_client', spec_set=True,
                    autospec=True)
-class DracManagementInternalMethodsTestCase(db_base.DbTestCase):
+class DracManagementInternalMethodsTestCase(test_utils.BaseDracTest):
 
     def boot_modes(self, *next_modes):
         modes = [
@@ -52,9 +50,8 @@ class DracManagementInternalMethodsTestCase(db_base.DbTestCase):
 
     def setUp(self):
         super(DracManagementInternalMethodsTestCase, self).setUp()
-        self.config(enabled_drivers=['fake_drac'])
         self.node = obj_utils.create_test_node(self.context,
-                                               driver='fake_drac',
+                                               driver='idrac',
                                                driver_info=INFO_DICT)
 
         self.boot_device_pxe = {
@@ -179,13 +176,12 @@ class DracManagementInternalMethodsTestCase(db_base.DbTestCase):
 
 @mock.patch.object(drac_common, 'get_drac_client', spec_set=True,
                    autospec=True)
-class DracManagementTestCase(db_base.DbTestCase):
+class DracManagementTestCase(test_utils.BaseDracTest):
 
     def setUp(self):
         super(DracManagementTestCase, self).setUp()
-        self.config(enabled_drivers=['fake_drac'])
         self.node = obj_utils.create_test_node(self.context,
-                                               driver='fake_drac',
+                                               driver='idrac',
                                                driver_info=INFO_DICT)
 
     def test_get_properties(self, mock_get_drac_client):

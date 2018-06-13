@@ -35,10 +35,12 @@ class CIMCBaseTestCase(db_base.DbTestCase):
 
     def setUp(self):
         super(CIMCBaseTestCase, self).setUp()
-        self.config(enabled_drivers=['fake_cimc'])
+        self.config(enabled_hardware_types=['cisco-ucs-standalone'],
+                    enabled_power_interfaces=['cimc', 'fake'],
+                    enabled_management_interfaces=['cimc', 'fake'])
         self.node = obj_utils.create_test_node(
             self.context,
-            driver='fake_cimc',
+            driver='cisco-ucs-standalone',
             driver_info=INFO_DICT,
             instance_uuid=uuidutils.generate_uuid())
         CONF.set_override('max_retry', 2, 'cimc')

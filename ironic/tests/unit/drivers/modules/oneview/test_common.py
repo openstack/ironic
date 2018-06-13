@@ -26,21 +26,33 @@ from ironic.tests.unit.objects import utils as obj_utils
 hponeview_client = importutils.try_import('hpOneView.oneview_client')
 
 
-class OneViewCommonTestCase(db_base.DbTestCase):
+class BaseOneViewTest(db_base.DbTestCase):
 
     def setUp(self):
-        super(OneViewCommonTestCase, self).setUp()
+        super(BaseOneViewTest, self).setUp()
+        self.config(enabled_hardware_types=['oneview', 'fake-hardware'],
+                    enabled_deploy_interfaces=['oneview-direct',
+                                               'oneview-iscsi', 'fake'],
+                    enabled_management_interfaces=['oneview', 'fake'],
+                    enabled_inspect_interfaces=['oneview', 'fake',
+                                                'no-inspect'],
+                    enabled_power_interfaces=['oneview', 'fake'])
         self.node = obj_utils.create_test_node(
-            self.context, driver='fake_oneview',
+            self.context, driver='oneview',
             properties=db_utils.get_test_oneview_properties(),
             driver_info=db_utils.get_test_oneview_driver_info(),
         )
+
+
+class OneViewCommonTestCase(BaseOneViewTest):
+
+    def setUp(self):
+        super(OneViewCommonTestCase, self).setUp()
         self.config(manager_url='https://1.2.3.4', group='oneview')
         self.config(username='user', group='oneview')
         self.config(password='password', group='oneview')
         self.config(tls_cacert_file='ca_file', group='oneview')
         self.config(allow_insecure_connections=False, group='oneview')
-        self.config(enabled_drivers=['fake_oneview'])
 
     def test_prepare_manager_url(self):
         self.assertEqual(

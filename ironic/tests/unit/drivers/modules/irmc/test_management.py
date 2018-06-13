@@ -22,23 +22,19 @@ import xml.etree.ElementTree as ET
 import mock
 
 from ironic.common import boot_devices
-from ironic.common import driver_factory
 from ironic.common import exception
 from ironic.common import states
 from ironic.conductor import task_manager
 from ironic.conductor import utils as manager_utils
+from ironic.drivers.modules import fake
 from ironic.drivers.modules import ipmitool
 from ironic.drivers.modules.irmc import common as irmc_common
 from ironic.drivers.modules.irmc import management as irmc_management
 from ironic.drivers.modules.irmc import power as irmc_power
 from ironic.drivers import utils as driver_utils
-from ironic.tests.unit.db import base as db_base
-from ironic.tests.unit.db import utils as db_utils
+from ironic.tests.unit.drivers.modules.irmc import test_common
 from ironic.tests.unit.drivers import third_party_driver_mock_specs \
     as mock_specs
-from ironic.tests.unit.objects import utils as obj_utils
-
-INFO_DICT = db_utils.get_test_irmc_info()
 
 
 @mock.patch.object(irmc_management.irmc, 'elcm',
@@ -48,16 +44,9 @@ INFO_DICT = db_utils.get_test_irmc_info()
 @mock.patch.object(irmc_power.IRMCPower, 'get_power_state',
                    return_value=states.POWER_ON,
                    specset=True, autospec=True)
-class IRMCManagementFunctionsTestCase(db_base.DbTestCase):
+class IRMCManagementFunctionsTestCase(test_common.BaseIRMCTest):
     def setUp(self):
         super(IRMCManagementFunctionsTestCase, self).setUp()
-        driver_info = INFO_DICT
-
-        self.config(enabled_drivers=['fake_irmc'])
-        self.driver = driver_factory.get_driver("fake_irmc")
-        self.node = obj_utils.create_test_node(self.context,
-                                               driver='fake_irmc',
-                                               driver_info=driver_info)
         self.info = irmc_common.parse_driver_info(self.node)
 
         irmc_management.irmc.scci.SCCIError = Exception
@@ -151,16 +140,9 @@ class IRMCManagementFunctionsTestCase(db_base.DbTestCase):
             self.assertTrue(mock_elcm.restore_bios_config.called)
 
 
-class IRMCManagementTestCase(db_base.DbTestCase):
+class IRMCManagementTestCase(test_common.BaseIRMCTest):
     def setUp(self):
         super(IRMCManagementTestCase, self).setUp()
-        driver_info = INFO_DICT
-
-        self.config(enabled_drivers=['fake_irmc'])
-        self.driver = driver_factory.get_driver("fake_irmc")
-        self.node = obj_utils.create_test_node(self.context,
-                                               driver='fake_irmc',
-                                               driver_info=driver_info)
         self.info = irmc_common.parse_driver_info(self.node)
 
     def test_get_properties(self):
@@ -169,6 +151,9 @@ class IRMCManagementTestCase(db_base.DbTestCase):
         expected.update(ipmitool.CONSOLE_PROPERTIES)
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
+            # Remove the boot and deploy interfaces properties
+            task.driver.boot = fake.FakeBoot()
+            task.driver.deploy = fake.FakeDeploy()
             self.assertEqual(expected, task.driver.get_properties())
 
     @mock.patch.object(irmc_common, 'parse_driver_info', spec_set=True,
@@ -208,7 +193,7 @@ class IRMCManagementTestCase(db_base.DbTestCase):
             task.node.properties['capabilities'] = ''
             if boot_mode:
                 driver_utils.add_node_capability(task, 'boot_mode', boot_mode)
-            self.driver.management.set_boot_device(task, **params)
+            irmc_management.IRMCManagement().set_boot_device(task, **params)
             send_raw_mock.assert_has_calls([
                 mock.call(task, "0x00 0x08 0x03 0x08"),
                 mock.call(task, expected_raw_code)])
@@ -367,7 +352,7 @@ class IRMCManagementTestCase(db_base.DbTestCase):
         with task_manager.acquire(self.context, self.node.uuid) as task:
             driver_utils.add_node_capability(task, 'boot_mode', 'uefi')
             self.assertRaises(exception.InvalidParameterValue,
-                              self.driver.management.set_boot_device,
+                              irmc_management.IRMCManagement().set_boot_device,
                               task,
                               "unknown")
 
@@ -389,7 +374,8 @@ class IRMCManagementTestCase(db_base.DbTestCase):
 
         with task_manager.acquire(self.context, self.node.uuid) as task:
             task.node.driver_info['irmc_sensor_method'] = 'scci'
-            sensor_dict = self.driver.management.get_sensors_data(task)
+            sensor_dict = irmc_management.IRMCManagement().get_sensors_data(
+                task)
 
         expected = {
             'Fan (4)': {
@@ -437,7 +423,8 @@ class IRMCManagementTestCase(db_base.DbTestCase):
 
         with task_manager.acquire(self.context, self.node.uuid) as task:
             task.node.driver_info['irmc_sensor_method'] = 'scci'
-            sensor_dict = self.driver.management.get_sensors_data(task)
+            sensor_dict = irmc_management.IRMCManagement().get_sensors_data(
+                task)
 
         self.assertEqual(len(sensor_dict), 0)
 
@@ -467,9 +454,9 @@ class IRMCManagementTestCase(db_base.DbTestCase):
 
         with task_manager.acquire(self.context, self.node.uuid) as task:
             task.node.driver_info['irmc_sensor_method'] = 'scci'
-            e = self.assertRaises(exception.FailedToGetSensorData,
-                                  self.driver.management.get_sensors_data,
-                                  task)
+            e = self.assertRaises(
+                exception.FailedToGetSensorData,
+                irmc_management.IRMCManagement().get_sensors_data, task)
         self.assertEqual("Failed to get sensor data for node 1be26c0b-"
                          "03f2-4d2e-ae87-c02d7f33c123. Error: Fake Error",
                          str(e))
@@ -482,7 +469,7 @@ class IRMCManagementTestCase(db_base.DbTestCase):
                                                 mock_log):
         irmc_client = mock_get_irmc_client.return_value
         with task_manager.acquire(self.context, self.node.uuid) as task:
-            self.driver.management.inject_nmi(task)
+            irmc_management.IRMCManagement().inject_nmi(task)
 
             irmc_client.assert_called_once_with(
                 irmc_management.irmc.scci.POWER_RAISE_NMI)
@@ -500,7 +487,7 @@ class IRMCManagementTestCase(db_base.DbTestCase):
 
         with task_manager.acquire(self.context, self.node.uuid) as task:
             self.assertRaises(exception.IRMCOperationError,
-                              self.driver.management.inject_nmi,
+                              irmc_management.IRMCManagement().inject_nmi,
                               task)
 
             irmc_client.assert_called_once_with(

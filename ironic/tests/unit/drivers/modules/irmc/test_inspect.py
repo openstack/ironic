@@ -27,25 +27,13 @@ from ironic.drivers.modules.irmc import common as irmc_common
 from ironic.drivers.modules.irmc import inspect as irmc_inspect
 from ironic.drivers.modules.irmc import power as irmc_power
 from ironic import objects
-from ironic.tests.unit.db import base as db_base
-from ironic.tests.unit.db import utils as db_utils
 from ironic.tests.unit.drivers import (
     third_party_driver_mock_specs as mock_specs
 )
-from ironic.tests.unit.objects import utils as obj_utils
-
-INFO_DICT = db_utils.get_test_irmc_info()
+from ironic.tests.unit.drivers.modules.irmc import test_common
 
 
-class IRMCInspectInternalMethodsTestCase(db_base.DbTestCase):
-
-    def setUp(self):
-        super(IRMCInspectInternalMethodsTestCase, self).setUp()
-        driver_info = INFO_DICT
-        self.config(enabled_drivers=['fake_irmc'])
-        self.node = obj_utils.create_test_node(self.context,
-                                               driver='fake_irmc',
-                                               driver_info=driver_info)
+class IRMCInspectInternalMethodsTestCase(test_common.BaseIRMCTest):
 
     @mock.patch('ironic.drivers.modules.irmc.inspect.snmp.SNMPClient',
                 spec_set=True, autospec=True)
@@ -134,15 +122,7 @@ class IRMCInspectInternalMethodsTestCase(db_base.DbTestCase):
             self.assertFalse(_get_mac_addresses_mock.called)
 
 
-class IRMCInspectTestCase(db_base.DbTestCase):
-
-    def setUp(self):
-        super(IRMCInspectTestCase, self).setUp()
-        driver_info = INFO_DICT
-        self.config(enabled_drivers=['fake_irmc'])
-        self.node = obj_utils.create_test_node(self.context,
-                                               driver='fake_irmc',
-                                               driver_info=driver_info)
+class IRMCInspectTestCase(test_common.BaseIRMCTest):
 
     def test_get_properties(self):
         with task_manager.acquire(self.context, self.node.uuid,

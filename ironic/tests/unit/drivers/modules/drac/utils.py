@@ -13,6 +13,23 @@
 
 import collections
 
+from ironic.tests.unit.db import base as db_base
+from ironic.tests.unit.db import utils as db_utils
+
+
+INFO_DICT = db_utils.get_test_drac_info()
+
+
+class BaseDracTest(db_base.DbTestCase):
+    def setUp(self):
+        super(BaseDracTest, self).setUp()
+        self.config(enabled_hardware_types=['idrac', 'fake-hardware'],
+                    enabled_power_interfaces=['idrac', 'fake'],
+                    enabled_management_interfaces=['idrac', 'fake'],
+                    enabled_inspect_interfaces=['idrac', 'fake', 'no-inspect'],
+                    enabled_vendor_interfaces=['idrac', 'fake', 'no-vendor'],
+                    enabled_raid_interfaces=['idrac', 'fake', 'no-raid'])
+
 
 def dict_to_namedtuple(name='GenericNamedTuple', values=None):
     """Converts a dict to a collections.namedtuple"""

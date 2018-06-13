@@ -17,7 +17,6 @@ Test class for iRMC Power Driver
 """
 
 import mock
-from oslo_utils import uuidutils
 
 from ironic.common import exception
 from ironic.common import states
@@ -25,23 +24,10 @@ from ironic.conductor import task_manager
 from ironic.drivers.modules.irmc import boot as irmc_boot
 from ironic.drivers.modules.irmc import common as irmc_common
 from ironic.drivers.modules.irmc import power as irmc_power
-from ironic.tests.unit.db import base as db_base
-from ironic.tests.unit.db import utils as db_utils
-from ironic.tests.unit.objects import utils as obj_utils
-
-INFO_DICT = db_utils.get_test_irmc_info()
+from ironic.tests.unit.drivers.modules.irmc import test_common
 
 
-class IRMCPowerInternalMethodsTestCase(db_base.DbTestCase):
-
-    def setUp(self):
-        super(IRMCPowerInternalMethodsTestCase, self).setUp()
-        self.config(enabled_drivers=['fake_irmc'])
-        driver_info = INFO_DICT
-        self.node = db_utils.create_test_node(
-            driver='fake_irmc',
-            driver_info=driver_info,
-            instance_uuid=uuidutils.generate_uuid())
+class IRMCPowerInternalMethodsTestCase(test_common.BaseIRMCTest):
 
     def test__is_expected_power_state(self):
         target_state = states.SOFT_POWER_OFF
@@ -284,14 +270,7 @@ class IRMCPowerInternalMethodsTestCase(db_base.DbTestCase):
                 task, states.SOFT_POWER_OFF, timeout=None)
 
 
-class IRMCPowerTestCase(db_base.DbTestCase):
-    def setUp(self):
-        super(IRMCPowerTestCase, self).setUp()
-        driver_info = INFO_DICT
-        self.config(enabled_drivers=['fake_irmc'])
-        self.node = obj_utils.create_test_node(self.context,
-                                               driver='fake_irmc',
-                                               driver_info=driver_info)
+class IRMCPowerTestCase(test_common.BaseIRMCTest):
 
     def test_get_properties(self):
         with task_manager.acquire(self.context, self.node.uuid,

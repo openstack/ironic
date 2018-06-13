@@ -16,36 +16,25 @@
 import mock
 from oslo_utils import importutils
 
-from ironic.common import driver_factory
 from ironic.common import exception
 from ironic.common import states
 from ironic.conductor import task_manager
 from ironic.drivers.modules.oneview import common
 from ironic.drivers.modules.oneview import deploy_utils
 from ironic import objects
-from ironic.tests.unit.db import base as db_base
-from ironic.tests.unit.db import utils as db_utils
-from ironic.tests.unit.objects import utils as obj_utils
+from ironic.tests.unit.drivers.modules.oneview import test_common
 
 oneview_models = importutils.try_import('oneview_client.models')
 
 
 @mock.patch.object(common, 'get_hponeview_client')
-class OneViewDeployUtilsTestCase(db_base.DbTestCase):
+class OneViewDeployUtilsTestCase(test_common.BaseOneViewTest):
 
     def setUp(self):
         super(OneViewDeployUtilsTestCase, self).setUp()
         self.config(manager_url='https://1.2.3.4', group='oneview')
         self.config(username='user', group='oneview')
         self.config(password='password', group='oneview')
-        self.config(enabled_drivers=['fake_oneview'])
-        self.driver = driver_factory.get_driver('fake_oneview')
-
-        self.node = obj_utils.create_test_node(
-            self.context, driver='fake_oneview',
-            properties=db_utils.get_test_oneview_properties(),
-            driver_info=db_utils.get_test_oneview_driver_info(),
-        )
         self.info = common.get_oneview_info(self.node)
         deploy_utils.is_node_in_use_by_oneview = mock.Mock(return_value=False)
         deploy_utils.is_node_in_use_by_ironic = mock.Mock(return_value=True)
