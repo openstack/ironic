@@ -8,14 +8,13 @@
             export DEVSTACK_LOCAL_CONFIG+=$'\n'"IRONIC_VM_SPECS_RAM=384"
             export DEVSTACK_LOCAL_CONFIG+=$'\n'"IRONIC_RAMDISK_TYPE=tinyipa"
 
-          EOF
-        chdir: '{{ ansible_user_dir }}/workspace'
-      environment: '{{ zuul | zuul_legacy_vars }}'
-
-    - shell:
-        cmd: |
-          cat << 'EOF' >> ironic-extra-vars
             export DEVSTACK_GATE_TEMPEST_REGEX="baremetal_boot_from_volume"
+
+            export DEVSTACK_LOCAL_CONFIG+=$'\n'"IRONIC_ENABLED_STORAGE_INTERFACES=cinder,noop"
+            export DEVSTACK_LOCAL_CONFIG+=$'\n'"IRONIC_STORAGE_INTERFACE=cinder"
+            # We have to enable cinder this way, as normally when
+            # DEVSTACK_GATE_IRONIC=1 it disables all the cinder services.
+            export ENABLED_SERVICES=cinder,c-sch,c-api,c-vol
 
           EOF
         chdir: '{{ ansible_user_dir }}/workspace'
@@ -27,19 +26,6 @@
             # use tempest plugin
             export DEVSTACK_LOCAL_CONFIG+=$'\n'"TEMPEST_PLUGINS+=' /opt/stack/new/ironic-tempest-plugin'"
             export TEMPEST_CONCURRENCY=1
-
-          EOF
-        chdir: '{{ ansible_user_dir }}/workspace'
-      environment: '{{ zuul | zuul_legacy_vars }}'
-
-    - shell:
-        cmd: |
-          cat << 'EOF' >> ironic-extra-vars
-            export DEVSTACK_LOCAL_CONFIG+=$'\n'"IRONIC_ENABLED_STORAGE_INTERFACES=cinder,noop"
-          export DEVSTACK_LOCAL_CONFIG+=$'\n'"IRONIC_STORAGE_INTERFACE=cinder"
-          # We have to enable cinder this way, as normally when
-          # DEVSTACK_GATE_IRONIC=1 it disables all the cinder services.
-          export ENABLED_SERVICES=cinder,c-sch,c-api,c-vol
 
           EOF
         chdir: '{{ ansible_user_dir }}/workspace'

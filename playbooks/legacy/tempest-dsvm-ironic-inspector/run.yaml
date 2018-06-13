@@ -8,38 +8,17 @@
             export DEVSTACK_LOCAL_CONFIG+=$'\n'"IRONIC_VM_SPECS_RAM=384"
             export DEVSTACK_LOCAL_CONFIG+=$'\n'"IRONIC_RAMDISK_TYPE=tinyipa"
 
-          EOF
-        chdir: '{{ ansible_user_dir }}/workspace'
-      environment: '{{ zuul | zuul_legacy_vars }}'
-
-    - shell:
-        cmd: |
-          cat << 'EOF' >> ironic-extra-vars
             export DEVSTACK_GATE_TEMPEST_REGEX="InspectorBasicTest"
 
-          EOF
-        chdir: '{{ ansible_user_dir }}/workspace'
-      environment: '{{ zuul | zuul_legacy_vars }}'
-
-    - shell:
-        cmd: |
-          cat << 'EOF' >> ironic-extra-vars
             export PROJECTS="openstack/ironic-inspector $PROJECTS"
-          export PROJECTS="openstack/python-ironic-inspector-client $PROJECTS"
-          export DEVSTACK_GATE_IRONIC_INSPECTOR=1
+            export PROJECTS="openstack/python-ironic-inspector-client $PROJECTS"
+            export DEVSTACK_GATE_IRONIC_INSPECTOR=1
 
-          export DEVSTACK_LOCAL_CONFIG+=$'\n'"enable_plugin ironic-inspector git://git.openstack.org/openstack/ironic-inspector"
+            export DEVSTACK_LOCAL_CONFIG+=$'\n'"enable_plugin ironic-inspector git://git.openstack.org/openstack/ironic-inspector"
 
-          export DEVSTACK_LOCAL_CONFIG+=$'\n'"IRONIC_INSPECTOR_MANAGE_FIREWALL=True"
+            # Make IPXE configuration consistent between Mitaka and Master
+            export DEVSTACK_LOCAL_CONFIG+=$'\n'"IRONIC_INSPECTOR_MANAGE_FIREWALL=True"
 
-          EOF
-        chdir: '{{ ansible_user_dir }}/workspace'
-      environment: '{{ zuul | zuul_legacy_vars }}'
-
-    - shell:
-        cmd: |
-          cat << 'EOF' >> ironic-vars-early
-            # use tempest plugin
             export DEVSTACK_LOCAL_CONFIG+=$'\n'"TEMPEST_PLUGINS+=' /opt/stack/new/ironic-tempest-plugin'"
             export TEMPEST_CONCURRENCY=1
 

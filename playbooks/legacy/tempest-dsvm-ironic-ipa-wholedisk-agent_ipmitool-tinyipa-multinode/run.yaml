@@ -9,41 +9,27 @@
             export DEVSTACK_LOCAL_CONFIG+=$'\n'"IRONIC_VM_SPECS_RAM=384"
             export DEVSTACK_LOCAL_CONFIG+=$'\n'"IRONIC_RAMDISK_TYPE=tinyipa"
 
-          EOF
-        chdir: '{{ ansible_user_dir }}/workspace'
-      environment: '{{ zuul | zuul_legacy_vars }}'
-
-    - shell:
-        cmd: |
-          cat << 'EOF' >> ironic-extra-vars
             export DEVSTACK_GATE_TOPOLOGY="multinode"
 
-          EOF
-        chdir: '{{ ansible_user_dir }}/workspace'
-      environment: '{{ zuul | zuul_legacy_vars }}'
-
-    - shell:
-        cmd: |
-          cat << 'EOF' >> ironic-extra-vars
             export DEVSTACK_GATE_OS_TEST_TIMEOUT=2400
-          # networking-generic-switch requires sudo to execute ovs-vsctl commands
-          export DEVSTACK_GATE_REMOVE_STACK_SUDO=0
-          export PROJECTS="openstack/networking-generic-switch $PROJECTS"
-          export DEVSTACK_LOCAL_CONFIG+=$'\n'"enable_plugin networking-generic-switch git://git.openstack.org/openstack/networking-generic-switch"
-          export DEVSTACK_LOCAL_CONFIG+=$'\n'"IRONIC_USE_LINK_LOCAL=True"
-          export DEVSTACK_LOCAL_CONFIG+=$'\n'"OVS_PHYSICAL_BRIDGE=brbm"
-          export DEVSTACK_LOCAL_CONFIG+=$'\n'"PHYSICAL_NETWORK=mynetwork"
-          export DEVSTACK_LOCAL_CONFIG+=$'\n'"IRONIC_PROVISION_NETWORK_NAME=ironic-provision"
-          export DEVSTACK_LOCAL_CONFIG+=$'\n'"IRONIC_PROVISION_SUBNET_PREFIX=10.0.5.0/24"
-          export DEVSTACK_LOCAL_CONFIG+=$'\n'"IRONIC_PROVISION_SUBNET_GATEWAY=10.0.5.1"
-          export DEVSTACK_LOCAL_CONFIG+=$'\n'"Q_PLUGIN=ml2"
-          export DEVSTACK_LOCAL_CONFIG+=$'\n'"Q_USE_PROVIDERNET_FOR_PUBLIC=False"
-          export DEVSTACK_LOCAL_CONFIG+=$'\n'"ENABLE_TENANT_VLANS=True"
-          export DEVSTACK_LOCAL_CONFIG+=$'\n'"Q_ML2_TENANT_NETWORK_TYPE=vlan"
-          export DEVSTACK_LOCAL_CONFIG+=$'\n'"TENANT_VLAN_RANGE=100:150"
-          export DEVSTACK_LOCAL_CONFIG+=$'\n'"IRONIC_ENABLED_NETWORK_INTERFACES=flat,neutron"
-          export DEVSTACK_LOCAL_CONFIG+=$'\n'"IRONIC_NETWORK_INTERFACE=neutron"
-          export DEVSTACK_LOCAL_CONFIG+=$'\n'"IRONIC_AUTOMATED_CLEAN_ENABLED=False"
+            # networking-generic-switch requires sudo to execute ovs-vsctl commands
+            export DEVSTACK_GATE_REMOVE_STACK_SUDO=0
+            export PROJECTS="openstack/networking-generic-switch $PROJECTS"
+            export DEVSTACK_LOCAL_CONFIG+=$'\n'"enable_plugin networking-generic-switch git://git.openstack.org/openstack/networking-generic-switch"
+            export DEVSTACK_LOCAL_CONFIG+=$'\n'"IRONIC_USE_LINK_LOCAL=True"
+            export DEVSTACK_LOCAL_CONFIG+=$'\n'"OVS_PHYSICAL_BRIDGE=brbm"
+            export DEVSTACK_LOCAL_CONFIG+=$'\n'"PHYSICAL_NETWORK=mynetwork"
+            export DEVSTACK_LOCAL_CONFIG+=$'\n'"IRONIC_PROVISION_NETWORK_NAME=ironic-provision"
+            export DEVSTACK_LOCAL_CONFIG+=$'\n'"IRONIC_PROVISION_SUBNET_PREFIX=10.0.5.0/24"
+            export DEVSTACK_LOCAL_CONFIG+=$'\n'"IRONIC_PROVISION_SUBNET_GATEWAY=10.0.5.1"
+            export DEVSTACK_LOCAL_CONFIG+=$'\n'"Q_PLUGIN=ml2"
+            export DEVSTACK_LOCAL_CONFIG+=$'\n'"Q_USE_PROVIDERNET_FOR_PUBLIC=False"
+            export DEVSTACK_LOCAL_CONFIG+=$'\n'"ENABLE_TENANT_VLANS=True"
+            export DEVSTACK_LOCAL_CONFIG+=$'\n'"Q_ML2_TENANT_NETWORK_TYPE=vlan"
+            export DEVSTACK_LOCAL_CONFIG+=$'\n'"TENANT_VLAN_RANGE=100:150"
+            export DEVSTACK_LOCAL_CONFIG+=$'\n'"IRONIC_ENABLED_NETWORK_INTERFACES=flat,neutron"
+            export DEVSTACK_LOCAL_CONFIG+=$'\n'"IRONIC_NETWORK_INTERFACE=neutron"
+            export DEVSTACK_LOCAL_CONFIG+=$'\n'"IRONIC_AUTOMATED_CLEAN_ENABLED=False"
 
           EOF
         chdir: '{{ ansible_user_dir }}/workspace'

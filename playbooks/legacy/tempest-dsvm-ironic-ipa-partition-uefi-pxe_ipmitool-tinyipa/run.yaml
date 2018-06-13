@@ -9,13 +9,6 @@
             export DEVSTACK_LOCAL_CONFIG+=$'\n'"IRONIC_VM_SPECS_RAM=384"
             export DEVSTACK_LOCAL_CONFIG+=$'\n'"IRONIC_RAMDISK_TYPE=tinyipa"
 
-          EOF
-        chdir: '{{ ansible_user_dir }}/workspace'
-      environment: '{{ zuul | zuul_legacy_vars }}'
-
-    - shell:
-        cmd: |
-          cat << 'EOF' >> ironic-extra-vars
             export DEVSTACK_GATE_TEMPEST_REGEX="ironic_tempest_plugin.tests.scenario"
 
           EOF
