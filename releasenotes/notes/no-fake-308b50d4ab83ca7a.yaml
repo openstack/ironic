@@ -6,7 +6,10 @@ upgrade:
     * ``fake``
     * ``fake_agent``
     * ``fake_inspector``
+    * ``fake_ipmitool``
+    * ``fake_ipmitool_socat``
     * ``fake_pxe``
+    * ``fake_snmp``
     * ``fake_soft_power``
 
     Please use the ``fake-hardware`` hardware type instead.

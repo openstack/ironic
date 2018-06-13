@@ -37,7 +37,6 @@ from oslo_utils import uuidutils
 import six
 
 from ironic.common import boot_devices
-from ironic.common import driver_factory
 from ironic.common import exception
 from ironic.common import states
 from ironic.common import utils
@@ -444,19 +443,36 @@ class IPMIToolPrivateMethodTestCaseMeta(type):
         return type.__new__(mcs, name, bases, attrs)
 
 
+class Base(db_base.DbTestCase):
+
+    def setUp(self):
+        super(Base, self).setUp()
+        self.config(enabled_power_interfaces=['fake', 'ipmitool'],
+                    enabled_management_interfaces=['fake', 'ipmitool'],
+                    enabled_vendor_interfaces=['fake', 'ipmitool',
+                                               'no-vendor'],
+                    enabled_console_interfaces=['fake', 'ipmitool-socat',
+                                                'ipmitool-shellinabox',
+                                                'no-console'])
+        self.node = obj_utils.create_test_node(
+            self.context,
+            console_interface='ipmitool-socat',
+            management_interface='ipmitool',
+            power_interface='ipmitool',
+            vendor_interface='ipmitool',
+            driver_info=INFO_DICT)
+        self.info = ipmi._parse_driver_info(self.node)
+        self.console = ipmi.IPMISocatConsole()
+        self.management = ipmi.IPMIManagement()
+        self.power = ipmi.IPMIPower()
+        self.vendor = ipmi.VendorPassthru()
+
+
 @six.add_metaclass(IPMIToolPrivateMethodTestCaseMeta)
-class IPMIToolPrivateMethodTestCase(db_base.DbTestCase):
+class IPMIToolPrivateMethodTestCase(Base):
 
     def setUp(self):
         super(IPMIToolPrivateMethodTestCase, self).setUp()
-        self.driver_name = "fake_ipmitool"
-        self.config(enabled_drivers=[self.driver_name])
-        self.driver = driver_factory.get_driver(self.driver_name)
-        self.node = obj_utils.create_test_node(
-            self.context,
-            driver='fake_ipmitool',
-            driver_info=INFO_DICT)
-        self.info = ipmi._parse_driver_info(self.node)
 
         # power actions use oslo_service.BackoffLoopingCall,
         # mock random.SystemRandom gauss distribution
@@ -597,8 +613,7 @@ class IPMIToolPrivateMethodTestCase(db_base.DbTestCase):
                              'target_channel', 'target_address']
         info = BRIDGE_INFO_DICT.copy()
         info['ipmi_bridging'] = 'no'
-        node = obj_utils.get_test_node(self.context, driver='fake_ipmitool',
-                                       driver_info=info)
+        node = obj_utils.get_test_node(self.context, driver_info=info)
         ret = ipmi._parse_driver_info(node)
 
         # ensure that _is_option_supported was not called
@@ -619,7 +634,7 @@ class IPMIToolPrivateMethodTestCase(db_base.DbTestCase):
         _OPTIONS = ['address', 'username', 'password', 'uuid',
                     'local_address', 'transit_channel', 'transit_address',
                     'target_channel', 'target_address']
-        node = obj_utils.get_test_node(self.context, driver='fake_ipmitool',
+        node = obj_utils.get_test_node(self.context,
                                        driver_info=BRIDGE_INFO_DICT)
 
         expected = [mock.call('dual_bridge')]
@@ -645,7 +660,7 @@ class IPMIToolPrivateMethodTestCase(db_base.DbTestCase):
     @mock.patch.object(ipmi, '_is_option_supported', autospec=True)
     def test__parse_driver_info_with_dual_bridging_not_supported(
             self, mock_support):
-        node = obj_utils.get_test_node(self.context, driver='fake_ipmitool',
+        node = obj_utils.get_test_node(self.context,
                                        driver_info=BRIDGE_INFO_DICT)
         # if dual bridge is not supported then check if error is raised
         mock_support.return_value = False
@@ -677,8 +692,7 @@ class IPMIToolPrivateMethodTestCase(db_base.DbTestCase):
 
         info = BRIDGE_INFO_DICT.copy()
         info['ipmi_bridging'] = 'single'
-        node = obj_utils.get_test_node(self.context, driver='fake_ipmitool',
-                                       driver_info=info)
+        node = obj_utils.get_test_node(self.context, driver_info=info)
 
         expected = [mock.call('single_bridge')]
 
@@ -709,8 +723,7 @@ class IPMIToolPrivateMethodTestCase(db_base.DbTestCase):
             self, mock_support):
         info = BRIDGE_INFO_DICT.copy()
         info['ipmi_bridging'] = 'single'
-        node = obj_utils.get_test_node(self.context, driver='fake_ipmitool',
-                                       driver_info=info)
+        node = obj_utils.get_test_node(self.context, driver_info=info)
 
         # if single bridge is not supported then check if error is raised
         mock_support.return_value = False
@@ -1090,7 +1103,7 @@ class IPMIToolPrivateMethodTestCase(db_base.DbTestCase):
                                                mock_exec,
                                                mock_support):
 
-        node = obj_utils.get_test_node(self.context, driver='fake_ipmitool',
+        node = obj_utils.get_test_node(self.context,
                                        driver_info=BRIDGE_INFO_DICT)
         # when support for dual bridge command is called returns True
         mock_support.return_value = True
@@ -1127,7 +1140,7 @@ class IPMIToolPrivateMethodTestCase(db_base.DbTestCase):
                                                  mock_support):
         single_bridge_info = dict(BRIDGE_INFO_DICT)
         single_bridge_info['ipmi_bridging'] = 'single'
-        node = obj_utils.get_test_node(self.context, driver='fake_ipmitool',
+        node = obj_utils.get_test_node(self.context,
                                        driver_info=single_bridge_info)
         # when support for single bridge command is called returns True
         mock_support.return_value = True
@@ -1363,42 +1376,26 @@ class IPMIToolPrivateMethodTestCase(db_base.DbTestCase):
         self.assertFalse(mock_status.called)
 
 
-class IPMIToolDriverTestCase(db_base.DbTestCase):
-
-    def setUp(self, terminal=None):
-        super(IPMIToolDriverTestCase, self).setUp()
-        if terminal is None:
-            self.driver_name = "fake_ipmitool"
-        else:
-            self.driver_name = "fake_ipmitool_socat"
-
-        self.config(enabled_drivers=[self.driver_name])
-        self.driver = driver_factory.get_driver(self.driver_name)
-
-        self.node = obj_utils.create_test_node(self.context,
-                                               driver=self.driver_name,
-                                               driver_info=INFO_DICT)
-        self.info = ipmi._parse_driver_info(self.node)
+class IPMIToolDriverTestCase(Base):
 
     @mock.patch.object(ipmi, "_parse_driver_info", autospec=True)
     def test_power_validate(self, mock_parse):
-        node = obj_utils.get_test_node(self.context, driver='fake_ipmitool',
-                                       driver_info=INFO_DICT)
         mock_parse.return_value = {}
 
-        with task_manager.acquire(self.context, node.uuid) as task:
+        with task_manager.acquire(self.context, self.node.uuid) as task:
             task.driver.power.validate(task)
             mock_parse.assert_called_once_with(mock.ANY)
 
     def test_get_properties(self):
         expected = ipmi.COMMON_PROPERTIES
-        self.assertEqual(expected, self.driver.power.get_properties())
+        self.assertEqual(expected, self.power.get_properties())
 
         expected = list(ipmi.COMMON_PROPERTIES) + list(ipmi.CONSOLE_PROPERTIES)
         self.assertEqual(sorted(expected),
-                         sorted(self.driver.console.get_properties()))
-        self.assertEqual(sorted(expected),
-                         sorted(self.driver.get_properties()))
+                         sorted(self.console.get_properties()))
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            self.assertEqual(sorted(expected),
+                             sorted(task.driver.get_properties()))
 
     @mock.patch.object(ipmi, '_exec_ipmitool', autospec=True)
     def test_get_power_state(self, mock_exec):
@@ -1411,13 +1408,13 @@ class IPMIToolDriverTestCase(db_base.DbTestCase):
         mock_exec.side_effect = returns
 
         with task_manager.acquire(self.context, self.node.uuid) as task:
-            pstate = self.driver.power.get_power_state(task)
+            pstate = self.power.get_power_state(task)
             self.assertEqual(states.POWER_OFF, pstate)
 
-            pstate = self.driver.power.get_power_state(task)
+            pstate = self.power.get_power_state(task)
             self.assertEqual(states.POWER_ON, pstate)
 
-            pstate = self.driver.power.get_power_state(task)
+            pstate = self.power.get_power_state(task)
             self.assertEqual(states.ERROR, pstate)
 
         self.assertEqual(mock_exec.call_args_list, expected)
@@ -1427,7 +1424,7 @@ class IPMIToolDriverTestCase(db_base.DbTestCase):
         mock_exec.side_effect = processutils.ProcessExecutionError("error")
         with task_manager.acquire(self.context, self.node.uuid) as task:
             self.assertRaises(exception.IPMIFailure,
-                              self.driver.power.get_power_state,
+                              self.power.get_power_state,
                               task)
         mock_exec.assert_called_once_with(self.info, "power status")
 
@@ -1439,8 +1436,7 @@ class IPMIToolDriverTestCase(db_base.DbTestCase):
         mock_on.return_value = states.POWER_ON
         with task_manager.acquire(self.context,
                                   self.node.uuid) as task:
-            self.driver.power.set_power_state(task,
-                                              states.POWER_ON)
+            self.power.set_power_state(task, states.POWER_ON)
 
             mock_on.assert_called_once_with(task, self.info, timeout=None)
         self.assertFalse(mock_off.called)
@@ -1453,9 +1449,7 @@ class IPMIToolDriverTestCase(db_base.DbTestCase):
         mock_on.return_value = states.POWER_ON
         with task_manager.acquire(self.context,
                                   self.node.uuid) as task:
-            self.driver.power.set_power_state(task,
-                                              states.POWER_ON,
-                                              timeout=2)
+            self.power.set_power_state(task, states.POWER_ON, timeout=2)
 
             mock_on.assert_called_once_with(task, self.info, timeout=2)
         self.assertFalse(mock_off.called)
@@ -1470,8 +1464,7 @@ class IPMIToolDriverTestCase(db_base.DbTestCase):
         mock_on.return_value = states.POWER_ON
         with task_manager.acquire(self.context,
                                   self.node.uuid) as task:
-            self.driver.power.set_power_state(task,
-                                              states.POWER_ON)
+            self.power.set_power_state(task, states.POWER_ON)
             mock_next_boot.assert_called_once_with(task, self.info)
 
             mock_on.assert_called_once_with(task, self.info, timeout=None)
@@ -1487,9 +1480,7 @@ class IPMIToolDriverTestCase(db_base.DbTestCase):
         mock_on.return_value = states.POWER_ON
         with task_manager.acquire(self.context,
                                   self.node.uuid) as task:
-            self.driver.power.set_power_state(task,
-                                              states.POWER_ON,
-                                              timeout=2)
+            self.power.set_power_state(task, states.POWER_ON, timeout=2)
             mock_next_boot.assert_called_once_with(task, self.info)
 
             mock_on.assert_called_once_with(task, self.info, timeout=2)
@@ -1504,8 +1495,7 @@ class IPMIToolDriverTestCase(db_base.DbTestCase):
 
         with task_manager.acquire(self.context,
                                   self.node.uuid) as task:
-            self.driver.power.set_power_state(task,
-                                              states.POWER_OFF)
+            self.power.set_power_state(task, states.POWER_OFF)
 
             mock_off.assert_called_once_with(task, self.info, timeout=None)
         self.assertFalse(mock_on.called)
@@ -1519,9 +1509,7 @@ class IPMIToolDriverTestCase(db_base.DbTestCase):
 
         with task_manager.acquire(self.context,
                                   self.node.uuid) as task:
-            self.driver.power.set_power_state(task,
-                                              states.POWER_OFF,
-                                              timeout=2)
+            self.power.set_power_state(task, states.POWER_OFF, timeout=2)
 
             mock_off.assert_called_once_with(task, self.info, timeout=2)
         self.assertFalse(mock_on.called)
@@ -1535,8 +1523,7 @@ class IPMIToolDriverTestCase(db_base.DbTestCase):
 
         with task_manager.acquire(self.context,
                                   self.node['uuid']) as task:
-            self.driver.power.set_power_state(task,
-                                              states.SOFT_POWER_OFF)
+            self.power.set_power_state(task, states.SOFT_POWER_OFF)
 
             mock_off.assert_called_once_with(task, self.info, timeout=None)
         self.assertFalse(mock_on.called)
@@ -1550,9 +1537,7 @@ class IPMIToolDriverTestCase(db_base.DbTestCase):
 
         with task_manager.acquire(self.context,
                                   self.node['uuid']) as task:
-            self.driver.power.set_power_state(task,
-                                              states.SOFT_POWER_OFF,
-                                              timeout=2)
+            self.power.set_power_state(task, states.SOFT_POWER_OFF, timeout=2)
 
             mock_off.assert_called_once_with(task, self.info, timeout=2)
         self.assertFalse(mock_on.called)
@@ -1568,8 +1553,7 @@ class IPMIToolDriverTestCase(db_base.DbTestCase):
 
         with task_manager.acquire(self.context,
                                   self.node['uuid']) as task:
-            self.driver.power.set_power_state(task,
-                                              states.SOFT_REBOOT)
+            self.power.set_power_state(task, states.SOFT_REBOOT)
             mock_next_boot.assert_called_once_with(task, self.info)
             mock_off.assert_called_once_with(task, self.info, timeout=None)
             mock_on.assert_called_once_with(task, self.info, timeout=None)
@@ -1586,9 +1570,7 @@ class IPMIToolDriverTestCase(db_base.DbTestCase):
 
         with task_manager.acquire(self.context,
                                   self.node['uuid']) as task:
-            self.driver.power.set_power_state(task,
-                                              states.SOFT_REBOOT,
-                                              timeout=2)
+            self.power.set_power_state(task, states.SOFT_REBOOT, timeout=2)
             mock_next_boot.assert_called_once_with(task, self.info)
             mock_off.assert_called_once_with(task, self.info, timeout=2)
             mock_on.assert_called_once_with(task, self.info, timeout=2)
@@ -1606,7 +1588,7 @@ class IPMIToolDriverTestCase(db_base.DbTestCase):
         with task_manager.acquire(self.context,
                                   self.node['uuid']) as task:
             self.assertRaises(exception.PowerStateFailure,
-                              self.driver.power.set_power_state,
+                              self.power.set_power_state,
                               task,
                               states.SOFT_REBOOT,
                               timeout=2)
@@ -1625,7 +1607,7 @@ class IPMIToolDriverTestCase(db_base.DbTestCase):
         with task_manager.acquire(self.context,
                                   self.node.uuid) as task:
             self.assertRaises(exception.PowerStateFailure,
-                              self.driver.power.set_power_state,
+                              self.power.set_power_state,
                               task,
                               states.POWER_ON)
 
@@ -1641,7 +1623,7 @@ class IPMIToolDriverTestCase(db_base.DbTestCase):
         with task_manager.acquire(self.context,
                                   self.node.uuid) as task:
             self.assertRaises(exception.PowerStateFailure,
-                              self.driver.power.set_power_state,
+                              self.power.set_power_state,
                               task,
                               states.POWER_ON,
                               timeout=2)
@@ -1652,7 +1634,7 @@ class IPMIToolDriverTestCase(db_base.DbTestCase):
     def test_set_power_invalid_state(self):
         with task_manager.acquire(self.context, self.node.uuid) as task:
             self.assertRaises(exception.InvalidParameterValue,
-                              self.driver.power.set_power_state,
+                              self.power.set_power_state,
                               task,
                               "fake state")
 
@@ -1662,8 +1644,8 @@ class IPMIToolDriverTestCase(db_base.DbTestCase):
 
         with task_manager.acquire(self.context,
                                   self.node.uuid) as task:
-            self.driver.vendor.send_raw(task, http_method='POST',
-                                        raw_bytes='0x00 0x01')
+            self.vendor.send_raw(task, http_method='POST',
+                                 raw_bytes='0x00 0x01')
 
         mock_exec.assert_called_once_with(self.info, 'raw 0x00 0x01')
 
@@ -1674,7 +1656,7 @@ class IPMIToolDriverTestCase(db_base.DbTestCase):
         with task_manager.acquire(self.context,
                                   self.node.uuid) as task:
             self.assertRaises(exception.IPMIFailure,
-                              self.driver.vendor.send_raw,
+                              self.vendor.send_raw,
                               task,
                               http_method='POST',
                               raw_bytes='0x00 0x01')
@@ -1685,7 +1667,7 @@ class IPMIToolDriverTestCase(db_base.DbTestCase):
 
         with task_manager.acquire(self.context,
                                   self.node.uuid) as task:
-            self.driver.vendor.bmc_reset(task, 'POST')
+            self.vendor.bmc_reset(task, 'POST')
 
         mock_exec.assert_called_once_with(self.info, 'bmc reset warm')
 
@@ -1695,7 +1677,7 @@ class IPMIToolDriverTestCase(db_base.DbTestCase):
 
         with task_manager.acquire(self.context,
                                   self.node.uuid) as task:
-            self.driver.vendor.bmc_reset(task, 'POST', warm=False)
+            self.vendor.bmc_reset(task, 'POST', warm=False)
 
         mock_exec.assert_called_once_with(self.info, 'bmc reset cold')
 
@@ -1706,7 +1688,7 @@ class IPMIToolDriverTestCase(db_base.DbTestCase):
         with task_manager.acquire(self.context,
                                   self.node.uuid) as task:
             self.assertRaises(exception.IPMIFailure,
-                              self.driver.vendor.bmc_reset,
+                              self.vendor.bmc_reset,
                               task, 'POST')
 
     @mock.patch.object(driver_utils, 'ensure_next_boot_device', autospec=True)
@@ -1726,7 +1708,7 @@ class IPMIToolDriverTestCase(db_base.DbTestCase):
                                   self.node.uuid) as task:
             expected = [mock.call.power_off(task, self.info, timeout=None),
                         mock.call.power_on(task, self.info, timeout=None)]
-            self.driver.power.reboot(task)
+            self.power.reboot(task)
             mock_next_boot.assert_called_once_with(task, self.info)
 
         self.assertEqual(expected, manager.mock_calls)
@@ -1747,7 +1729,7 @@ class IPMIToolDriverTestCase(db_base.DbTestCase):
         with task_manager.acquire(self.context,
                                   self.node.uuid) as task:
             expected = [mock.call.power_on(task, self.info, timeout=None)]
-            self.driver.power.reboot(task)
+            self.power.reboot(task)
             mock_next_boot.assert_called_once_with(task, self.info)
 
         self.assertEqual(expected, manager.mock_calls)
@@ -1768,7 +1750,7 @@ class IPMIToolDriverTestCase(db_base.DbTestCase):
             expected = [mock.call.power_off(task, self.info, timeout=2),
                         mock.call.power_on(task, self.info, timeout=2)]
 
-            self.driver.power.reboot(task, timeout=2)
+            self.power.reboot(task, timeout=2)
             mock_next_boot.assert_called_once_with(task, self.info)
 
             self.assertEqual(expected, manager.mock_calls)
@@ -1789,7 +1771,7 @@ class IPMIToolDriverTestCase(db_base.DbTestCase):
                                   self.node.uuid) as task:
             expected = [mock.call.power_off(task, self.info, timeout=None)]
             self.assertRaises(exception.PowerStateFailure,
-                              self.driver.power.reboot,
+                              self.power.reboot,
                               task)
 
         self.assertEqual(expected, manager.mock_calls)
@@ -1812,7 +1794,7 @@ class IPMIToolDriverTestCase(db_base.DbTestCase):
             expected = [mock.call.power_off(task, self.info, timeout=None),
                         mock.call.power_on(task, self.info, timeout=None)]
             self.assertRaises(exception.PowerStateFailure,
-                              self.driver.power.reboot,
+                              self.power.reboot,
                               task)
 
         self.assertEqual(expected, manager.mock_calls)
@@ -1834,7 +1816,7 @@ class IPMIToolDriverTestCase(db_base.DbTestCase):
             expected = [mock.call.power_off(task, self.info, timeout=2),
                         mock.call.power_on(task, self.info, timeout=2)]
             self.assertRaises(exception.PowerStateFailure,
-                              self.driver.power.reboot,
+                              self.power.reboot,
                               task, timeout=2)
 
         self.assertEqual(expected, manager.mock_calls)
@@ -1844,49 +1826,44 @@ class IPMIToolDriverTestCase(db_base.DbTestCase):
         info_mock.side_effect = exception.InvalidParameterValue("bad")
         with task_manager.acquire(self.context, self.node.uuid) as task:
             self.assertRaises(exception.InvalidParameterValue,
-                              self.driver.vendor.validate,
+                              self.vendor.validate,
                               task, method='send_raw', raw_bytes='0x00 0x01')
             info_mock.assert_called_once_with(task.node)
 
     def test_vendor_passthru_validate__send_raw_bytes_good(self):
         with task_manager.acquire(self.context, self.node.uuid) as task:
-            self.driver.vendor.validate(task,
-                                        method='send_raw',
-                                        http_method='POST',
-                                        raw_bytes='0x00 0x01')
+            self.vendor.validate(task,
+                                 method='send_raw',
+                                 http_method='POST',
+                                 raw_bytes='0x00 0x01')
 
     def test_vendor_passthru_validate__send_raw_bytes_fail(self):
         with task_manager.acquire(self.context, self.node.uuid) as task:
             self.assertRaises(exception.MissingParameterValue,
-                              self.driver.vendor.validate,
+                              self.vendor.validate,
                               task, method='send_raw')
 
     @mock.patch.object(ipmi.VendorPassthru, 'send_raw', autospec=True)
     def test_vendor_passthru_call_send_raw_bytes(self, raw_bytes_mock):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
-            self.driver.vendor.send_raw(task, http_method='POST',
-                                        raw_bytes='0x00 0x01')
+            self.vendor.send_raw(task, http_method='POST',
+                                 raw_bytes='0x00 0x01')
             raw_bytes_mock.assert_called_once_with(
-                self.driver.vendor, task, http_method='POST',
+                self.vendor, task, http_method='POST',
                 raw_bytes='0x00 0x01')
 
     def test_vendor_passthru_validate__bmc_reset_good(self):
         with task_manager.acquire(self.context, self.node.uuid) as task:
-            self.driver.vendor.validate(task,
-                                        method='bmc_reset')
+            self.vendor.validate(task, method='bmc_reset')
 
     def test_vendor_passthru_validate__bmc_reset_warm_good(self):
         with task_manager.acquire(self.context, self.node.uuid) as task:
-            self.driver.vendor.validate(task,
-                                        method='bmc_reset',
-                                        warm=True)
+            self.vendor.validate(task, method='bmc_reset', warm=True)
 
     def test_vendor_passthru_validate__bmc_reset_cold_good(self):
         with task_manager.acquire(self.context, self.node.uuid) as task:
-            self.driver.vendor.validate(task,
-                                        method='bmc_reset',
-                                        warm=False)
+            self.vendor.validate(task, method='bmc_reset', warm=False)
 
     @mock.patch.object(ipmi, '_exec_ipmitool', autospec=True)
     def _vendor_passthru_call_bmc_reset(self, warm, expected,
@@ -1894,7 +1871,7 @@ class IPMIToolDriverTestCase(db_base.DbTestCase):
         mock_exec.return_value = [None, None]
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
-            self.driver.vendor.bmc_reset(task, 'POST', warm=warm)
+            self.vendor.bmc_reset(task, 'POST', warm=warm)
             mock_exec.assert_called_once_with(
                 mock.ANY, 'bmc reset %s' % expected)
 
@@ -1921,185 +1898,12 @@ class IPMIToolDriverTestCase(db_base.DbTestCase):
             self.assertIsInstance(driver_routes, dict)
             self.assertEqual({}, driver_routes)
 
-    def test_console_validate(self):
-        with task_manager.acquire(
-                self.context, self.node.uuid, shared=True) as task:
-            task.node.driver_info['ipmi_terminal_port'] = 123
-            task.driver.console.validate(task)
-
-    def test_console_validate_missing_port(self):
-        with task_manager.acquire(
-                self.context, self.node.uuid, shared=True) as task:
-            task.node.driver_info.pop('ipmi_terminal_port', None)
-            self.assertRaises(exception.MissingParameterValue,
-                              task.driver.console.validate, task)
-
-    def test_console_validate_invalid_port(self):
-        with task_manager.acquire(
-                self.context, self.node.uuid, shared=True) as task:
-            task.node.driver_info['ipmi_terminal_port'] = ''
-            self.assertRaises(exception.InvalidParameterValue,
-                              task.driver.console.validate, task)
-
-    def test_console_validate_wrong_ipmi_protocol_version(self):
-        with task_manager.acquire(
-                self.context, self.node.uuid, shared=True) as task:
-            task.node.driver_info['ipmi_terminal_port'] = 123
-            task.node.driver_info['ipmi_protocol_version'] = '1.5'
-            self.assertRaises(exception.InvalidParameterValue,
-                              task.driver.console.validate, task)
-
-    def test__get_ipmi_cmd(self):
-        with task_manager.acquire(self.context,
-                                  self.node.uuid) as task:
-            driver_info = ipmi._parse_driver_info(task.node)
-            ipmi_cmd = self.driver.console._get_ipmi_cmd(driver_info,
-                                                         'pw_file')
-            expected_ipmi_cmd = ("/:%(uid)s:%(gid)s:HOME:ipmitool "
-                                 "-H %(address)s -I lanplus -U %(user)s "
-                                 "-f pw_file" %
-                                 {'uid': os.getuid(), 'gid': os.getgid(),
-                                  'address': driver_info['address'],
-                                  'user': driver_info['username']})
-        self.assertEqual(expected_ipmi_cmd, ipmi_cmd)
-
-    def test__get_ipmi_cmd_without_user(self):
-        with task_manager.acquire(self.context,
-                                  self.node.uuid) as task:
-            driver_info = ipmi._parse_driver_info(task.node)
-            driver_info['username'] = None
-            ipmi_cmd = self.driver.console._get_ipmi_cmd(driver_info,
-                                                         'pw_file')
-            expected_ipmi_cmd = ("/:%(uid)s:%(gid)s:HOME:ipmitool "
-                                 "-H %(address)s -I lanplus "
-                                 "-f pw_file" %
-                                 {'uid': os.getuid(), 'gid': os.getgid(),
-                                  'address': driver_info['address']})
-        self.assertEqual(expected_ipmi_cmd, ipmi_cmd)
-
-    @mock.patch.object(ipmi.IPMIConsole, '_start_console', autospec=True)
-    def test_start_console(self, mock_start):
-        mock_start.return_value = None
-
-        with task_manager.acquire(self.context,
-                                  self.node.uuid) as task:
-            self.driver.console.start_console(task)
-            driver_info = ipmi._parse_driver_info(task.node)
-        mock_start.assert_called_once_with(
-            self.driver.console, driver_info,
-            console_utils.start_shellinabox_console)
-
-    @mock.patch.object(ipmi.IPMIConsole, '_get_ipmi_cmd', autospec=True)
-    @mock.patch.object(console_utils, 'start_shellinabox_console',
-                       autospec=True)
-    def test__start_console(self, mock_start, mock_ipmi_cmd):
-        mock_start.return_value = None
-
-        with task_manager.acquire(self.context,
-                                  self.node.uuid) as task:
-            driver_info = ipmi._parse_driver_info(task.node)
-            self.driver.console._start_console(
-                driver_info, console_utils.start_shellinabox_console)
-
-        mock_start.assert_called_once_with(self.info['uuid'],
-                                           self.info['port'],
-                                           mock.ANY)
-        mock_ipmi_cmd.assert_called_once_with(self.driver.console,
-                                              driver_info, mock.ANY)
-
-    @mock.patch.object(console_utils, 'start_shellinabox_console',
-                       autospec=True)
-    def test__start_console_fail(self, mock_start):
-        mock_start.side_effect = exception.ConsoleSubprocessFailed(
-            error='error')
-
-        with task_manager.acquire(self.context,
-                                  self.node.uuid) as task:
-            driver_info = ipmi._parse_driver_info(task.node)
-            self.assertRaises(exception.ConsoleSubprocessFailed,
-                              self.driver.console._start_console,
-                              driver_info,
-                              console_utils.start_shellinabox_console)
-
-    @mock.patch.object(console_utils, 'start_shellinabox_console',
-                       autospec=True)
-    def test__start_console_fail_nodir(self, mock_start):
-        mock_start.side_effect = exception.ConsoleError()
-
-        with task_manager.acquire(self.context,
-                                  self.node.uuid) as task:
-            driver_info = ipmi._parse_driver_info(task.node)
-            self.assertRaises(exception.ConsoleError,
-                              self.driver.console._start_console,
-                              driver_info,
-                              console_utils.start_shellinabox_console)
-        mock_start.assert_called_once_with(self.node.uuid, mock.ANY, mock.ANY)
-
-    @mock.patch.object(console_utils, 'make_persistent_password_file',
-                       autospec=True)
-    @mock.patch.object(console_utils, 'start_shellinabox_console',
-                       autospec=True)
-    def test__start_console_empty_password(self, mock_start, mock_pass):
-        driver_info = self.node.driver_info
-        del driver_info['ipmi_password']
-        self.node.driver_info = driver_info
-        self.node.save()
-
-        with task_manager.acquire(self.context,
-                                  self.node.uuid) as task:
-            driver_info = ipmi._parse_driver_info(task.node)
-            self.driver.console._start_console(
-                driver_info, console_utils.start_shellinabox_console)
-
-        mock_pass.assert_called_once_with(mock.ANY, '\0')
-        mock_start.assert_called_once_with(self.info['uuid'],
-                                           self.info['port'],
-                                           mock.ANY)
-
-    @mock.patch.object(console_utils, 'stop_shellinabox_console',
-                       autospec=True)
-    def test_stop_console(self, mock_stop):
-        mock_stop.return_value = None
-
-        with task_manager.acquire(self.context,
-                                  self.node.uuid) as task:
-            self.driver.console.stop_console(task)
-
-        mock_stop.assert_called_once_with(self.info['uuid'])
-
-    @mock.patch.object(console_utils, 'stop_shellinabox_console',
-                       autospec=True)
-    def test_stop_console_fail(self, mock_stop):
-        mock_stop.side_effect = exception.ConsoleError()
-
-        with task_manager.acquire(self.context,
-                                  self.node.uuid) as task:
-            self.assertRaises(exception.ConsoleError,
-                              self.driver.console.stop_console,
-                              task)
-
-        mock_stop.assert_called_once_with(self.node.uuid)
-
-    @mock.patch.object(console_utils, 'get_shellinabox_console_url',
-                       autospec=True)
-    def test_get_console(self, mock_get):
-        url = 'http://localhost:4201'
-        mock_get.return_value = url
-        expected = {'type': 'shellinabox', 'url': url}
-
-        with task_manager.acquire(self.context,
-                                  self.node.uuid) as task:
-            console_info = self.driver.console.get_console(task)
-
-        self.assertEqual(expected, console_info)
-        mock_get.assert_called_once_with(self.info['port'])
-
     @mock.patch.object(ipmi, '_exec_ipmitool', autospec=True)
     def test_management_interface_set_boot_device_ok(self, mock_exec):
         mock_exec.return_value = [None, None]
 
         with task_manager.acquire(self.context, self.node.uuid) as task:
-            self.driver.management.set_boot_device(task, boot_devices.PXE)
+            self.management.set_boot_device(task, boot_devices.PXE)
 
         mock_calls = [mock.call(self.info, "raw 0x00 0x08 0x03 0x08"),
                       mock.call(self.info, "chassis bootdev pxe")]
@@ -2114,7 +1918,7 @@ class IPMIToolDriverTestCase(db_base.DbTestCase):
             driver_info['ipmi_force_boot_device'] = True
             task.node.driver_info = driver_info
             self.info['force_boot_device'] = True
-            self.driver.management.set_boot_device(task, boot_devices.PXE)
+            self.management.set_boot_device(task, boot_devices.PXE)
             task.node.refresh()
             self.assertIs(
                 False,
@@ -2134,9 +1938,7 @@ class IPMIToolDriverTestCase(db_base.DbTestCase):
             driver_info['ipmi_force_boot_device'] = True
             task.node.driver_info = driver_info
             self.info['force_boot_device'] = True
-            self.driver.management.set_boot_device(task,
-                                                   boot_devices.PXE,
-                                                   True)
+            self.management.set_boot_device(task, boot_devices.PXE, True)
             self.assertEqual(
                 boot_devices.PXE,
                 task.node.driver_internal_info['persistent_boot_device'])
@@ -2148,7 +1950,7 @@ class IPMIToolDriverTestCase(db_base.DbTestCase):
     def test_management_interface_set_boot_device_bad_device(self):
         with task_manager.acquire(self.context, self.node.uuid) as task:
             self.assertRaises(exception.InvalidParameterValue,
-                              self.driver.management.set_boot_device,
+                              self.management.set_boot_device,
                               task, 'fake-device')
 
     @mock.patch.object(ipmi, '_exec_ipmitool', autospec=True)
@@ -2156,7 +1958,7 @@ class IPMIToolDriverTestCase(db_base.DbTestCase):
         mock_exec.side_effect = processutils.ProcessExecutionError()
         with task_manager.acquire(self.context, self.node.uuid) as task:
             self.assertRaises(exception.IPMIFailure,
-                              self.driver.management.set_boot_device,
+                              self.management.set_boot_device,
                               task, boot_devices.PXE)
 
     @mock.patch.object(ipmi, '_exec_ipmitool', autospec=True)
@@ -2169,7 +1971,7 @@ class IPMIToolDriverTestCase(db_base.DbTestCase):
         mock_exec.side_effect = FakeException('boom')
         with task_manager.acquire(self.context, self.node.uuid) as task:
             self.assertRaises(FakeException,
-                              self.driver.management.set_boot_device,
+                              self.management.set_boot_device,
                               task, boot_devices.PXE)
 
     @mock.patch.object(deploy_utils, 'get_boot_mode_for_deploy')
@@ -2180,7 +1982,7 @@ class IPMIToolDriverTestCase(db_base.DbTestCase):
         mock_exec.return_value = [None, None]
 
         with task_manager.acquire(self.context, self.node.uuid) as task:
-            self.driver.management.set_boot_device(task, boot_devices.PXE)
+            self.management.set_boot_device(task, boot_devices.PXE)
 
         mock_calls = [
             mock.call(self.info, "raw 0x00 0x08 0x03 0x08"),
@@ -2196,8 +1998,8 @@ class IPMIToolDriverTestCase(db_base.DbTestCase):
         mock_exec.return_value = [None, None]
 
         with task_manager.acquire(self.context, self.node.uuid) as task:
-            self.driver.management.set_boot_device(task, boot_devices.PXE,
-                                                   persistent=True)
+            self.management.set_boot_device(task, boot_devices.PXE,
+                                            persistent=True)
         mock_calls = [
             mock.call(self.info, "raw 0x00 0x08 0x03 0x08"),
             mock.call(self.info, "raw 0x00 0x08 0x05 0xe0 0x04 0x00 0x00 0x00")
@@ -2278,7 +2080,7 @@ class IPMIToolDriverTestCase(db_base.DbTestCase):
         with task_manager.acquire(self.context, self.node.uuid) as task:
             task.node.driver_info['ipmi_force_boot_device'] = True
             task.node.driver_internal_info['persistent_boot_device'] = 'pxe'
-            bootdev = self.driver.management.get_boot_device(task)
+            bootdev = self.management.get_boot_device(task)
             self.assertEqual('pxe', bootdev['boot_device'])
             self.assertTrue(bootdev['persistent'])
 
@@ -2290,7 +2092,7 @@ class IPMIToolDriverTestCase(db_base.DbTestCase):
         # Missing IPMI driver_info information
         node = obj_utils.create_test_node(self.context,
                                           uuid=uuidutils.generate_uuid(),
-                                          driver=self.driver_name)
+                                          management_interface='ipmitool')
         with task_manager.acquire(self.context, node.uuid) as task:
             self.assertRaises(exception.MissingParameterValue,
                               task.driver.management.validate, task)
@@ -2300,7 +2102,7 @@ class IPMIToolDriverTestCase(db_base.DbTestCase):
     def test_management_interface_inject_nmi_ok(self, mock_exec, mock_log):
         with task_manager.acquire(self.context, self.node.uuid) as task:
             driver_info = ipmi._parse_driver_info(task.node)
-            self.driver.management.inject_nmi(task)
+            self.management.inject_nmi(task)
 
             mock_exec.assert_called_once_with(driver_info, "power diag")
             self.assertFalse(mock_log.called)
@@ -2313,7 +2115,7 @@ class IPMIToolDriverTestCase(db_base.DbTestCase):
         with task_manager.acquire(self.context, self.node.uuid) as task:
             driver_info = ipmi._parse_driver_info(task.node)
             self.assertRaises(exception.IPMIFailure,
-                              self.driver.management.inject_nmi,
+                              self.management.inject_nmi,
                               task)
 
             mock_exec.assert_called_once_with(driver_info, "power diag")
@@ -2552,17 +2354,202 @@ class IPMIToolDriverTestCase(db_base.DbTestCase):
         self.assertEqual(fake_ret, ret)
 
 
-class IPMIToolSocatDriverTestCase(IPMIToolDriverTestCase):
+class IPMIToolShellinaboxTestCase(db_base.DbTestCase):
+    console_interface = 'ipmitool-shellinabox'
+    console_class = ipmi.IPMIShellinaboxConsole
 
     def setUp(self):
-        super(IPMIToolSocatDriverTestCase, self).setUp(terminal="socat")
+        super(IPMIToolShellinaboxTestCase, self).setUp()
+        self.config(enabled_console_interfaces=[self.console_interface,
+                                                'no-console'])
+        self.node = obj_utils.create_test_node(
+            self.context,
+            console_interface=self.console_interface,
+            driver_info=INFO_DICT)
+        self.info = ipmi._parse_driver_info(self.node)
+        self.console = self.console_class()
+
+    def test_console_validate(self):
+        with task_manager.acquire(
+                self.context, self.node.uuid, shared=True) as task:
+            task.node.driver_info['ipmi_terminal_port'] = 123
+            task.driver.console.validate(task)
+
+    def test_console_validate_missing_port(self):
+        with task_manager.acquire(
+                self.context, self.node.uuid, shared=True) as task:
+            task.node.driver_info.pop('ipmi_terminal_port', None)
+            self.assertRaises(exception.MissingParameterValue,
+                              task.driver.console.validate, task)
+
+    def test_console_validate_invalid_port(self):
+        with task_manager.acquire(
+                self.context, self.node.uuid, shared=True) as task:
+            task.node.driver_info['ipmi_terminal_port'] = ''
+            self.assertRaises(exception.InvalidParameterValue,
+                              task.driver.console.validate, task)
+
+    def test_console_validate_wrong_ipmi_protocol_version(self):
+        with task_manager.acquire(
+                self.context, self.node.uuid, shared=True) as task:
+            task.node.driver_info['ipmi_terminal_port'] = 123
+            task.node.driver_info['ipmi_protocol_version'] = '1.5'
+            self.assertRaises(exception.InvalidParameterValue,
+                              task.driver.console.validate, task)
 
     def test__get_ipmi_cmd(self):
         with task_manager.acquire(self.context,
                                   self.node.uuid) as task:
             driver_info = ipmi._parse_driver_info(task.node)
-            ipmi_cmd = self.driver.console._get_ipmi_cmd(driver_info,
-                                                         'pw_file')
+            ipmi_cmd = self.console._get_ipmi_cmd(driver_info, 'pw_file')
+            expected_ipmi_cmd = ("/:%(uid)s:%(gid)s:HOME:ipmitool "
+                                 "-H %(address)s -I lanplus -U %(user)s "
+                                 "-f pw_file" %
+                                 {'uid': os.getuid(), 'gid': os.getgid(),
+                                  'address': driver_info['address'],
+                                  'user': driver_info['username']})
+        self.assertEqual(expected_ipmi_cmd, ipmi_cmd)
+
+    def test__get_ipmi_cmd_without_user(self):
+        with task_manager.acquire(self.context,
+                                  self.node.uuid) as task:
+            driver_info = ipmi._parse_driver_info(task.node)
+            driver_info['username'] = None
+            ipmi_cmd = self.console._get_ipmi_cmd(driver_info, 'pw_file')
+            expected_ipmi_cmd = ("/:%(uid)s:%(gid)s:HOME:ipmitool "
+                                 "-H %(address)s -I lanplus "
+                                 "-f pw_file" %
+                                 {'uid': os.getuid(), 'gid': os.getgid(),
+                                  'address': driver_info['address']})
+        self.assertEqual(expected_ipmi_cmd, ipmi_cmd)
+
+    @mock.patch.object(ipmi.IPMIConsole, '_start_console', autospec=True)
+    def test_start_console(self, mock_start):
+        mock_start.return_value = None
+
+        with task_manager.acquire(self.context,
+                                  self.node.uuid) as task:
+            self.console.start_console(task)
+            driver_info = ipmi._parse_driver_info(task.node)
+        mock_start.assert_called_once_with(
+            self.console, driver_info,
+            console_utils.start_shellinabox_console)
+
+    @mock.patch.object(ipmi.IPMIConsole, '_get_ipmi_cmd', autospec=True)
+    @mock.patch.object(console_utils, 'start_shellinabox_console',
+                       autospec=True)
+    def test__start_console(self, mock_start, mock_ipmi_cmd):
+        mock_start.return_value = None
+
+        with task_manager.acquire(self.context,
+                                  self.node.uuid) as task:
+            driver_info = ipmi._parse_driver_info(task.node)
+            self.console._start_console(
+                driver_info, console_utils.start_shellinabox_console)
+
+        mock_start.assert_called_once_with(self.info['uuid'],
+                                           self.info['port'],
+                                           mock.ANY)
+        mock_ipmi_cmd.assert_called_once_with(self.console,
+                                              driver_info, mock.ANY)
+
+    @mock.patch.object(console_utils, 'start_shellinabox_console',
+                       autospec=True)
+    def test__start_console_fail(self, mock_start):
+        mock_start.side_effect = exception.ConsoleSubprocessFailed(
+            error='error')
+
+        with task_manager.acquire(self.context,
+                                  self.node.uuid) as task:
+            driver_info = ipmi._parse_driver_info(task.node)
+            self.assertRaises(exception.ConsoleSubprocessFailed,
+                              self.console._start_console,
+                              driver_info,
+                              console_utils.start_shellinabox_console)
+
+    @mock.patch.object(console_utils, 'start_shellinabox_console',
+                       autospec=True)
+    def test__start_console_fail_nodir(self, mock_start):
+        mock_start.side_effect = exception.ConsoleError()
+
+        with task_manager.acquire(self.context,
+                                  self.node.uuid) as task:
+            driver_info = ipmi._parse_driver_info(task.node)
+            self.assertRaises(exception.ConsoleError,
+                              self.console._start_console,
+                              driver_info,
+                              console_utils.start_shellinabox_console)
+        mock_start.assert_called_once_with(self.node.uuid, mock.ANY, mock.ANY)
+
+    @mock.patch.object(console_utils, 'make_persistent_password_file',
+                       autospec=True)
+    @mock.patch.object(console_utils, 'start_shellinabox_console',
+                       autospec=True)
+    def test__start_console_empty_password(self, mock_start, mock_pass):
+        driver_info = self.node.driver_info
+        del driver_info['ipmi_password']
+        self.node.driver_info = driver_info
+        self.node.save()
+
+        with task_manager.acquire(self.context,
+                                  self.node.uuid) as task:
+            driver_info = ipmi._parse_driver_info(task.node)
+            self.console._start_console(
+                driver_info, console_utils.start_shellinabox_console)
+
+        mock_pass.assert_called_once_with(mock.ANY, '\0')
+        mock_start.assert_called_once_with(self.info['uuid'],
+                                           self.info['port'],
+                                           mock.ANY)
+
+    @mock.patch.object(console_utils, 'stop_shellinabox_console',
+                       autospec=True)
+    def test_stop_console(self, mock_stop):
+        mock_stop.return_value = None
+
+        with task_manager.acquire(self.context,
+                                  self.node.uuid) as task:
+            self.console.stop_console(task)
+
+        mock_stop.assert_called_once_with(self.info['uuid'])
+
+    @mock.patch.object(console_utils, 'stop_shellinabox_console',
+                       autospec=True)
+    def test_stop_console_fail(self, mock_stop):
+        mock_stop.side_effect = exception.ConsoleError()
+
+        with task_manager.acquire(self.context,
+                                  self.node.uuid) as task:
+            self.assertRaises(exception.ConsoleError,
+                              self.console.stop_console,
+                              task)
+
+        mock_stop.assert_called_once_with(self.node.uuid)
+
+    @mock.patch.object(console_utils, 'get_shellinabox_console_url',
+                       autospec=True)
+    def test_get_console(self, mock_get):
+        url = 'http://localhost:4201'
+        mock_get.return_value = url
+        expected = {'type': 'shellinabox', 'url': url}
+
+        with task_manager.acquire(self.context,
+                                  self.node.uuid) as task:
+            console_info = self.console.get_console(task)
+
+        self.assertEqual(expected, console_info)
+        mock_get.assert_called_once_with(self.info['port'])
+
+
+class IPMIToolSocatDriverTestCase(IPMIToolShellinaboxTestCase):
+    console_interface = 'ipmitool-shellinabox'
+    console_class = ipmi.IPMISocatConsole
+
+    def test__get_ipmi_cmd(self):
+        with task_manager.acquire(self.context,
+                                  self.node.uuid) as task:
+            driver_info = ipmi._parse_driver_info(task.node)
+            ipmi_cmd = self.console._get_ipmi_cmd(driver_info, 'pw_file')
             expected_ipmi_cmd = ("ipmitool -H %(address)s -I lanplus "
                                  "-U %(user)s -f pw_file" %
                                  {'address': driver_info['address'],
@@ -2574,8 +2561,7 @@ class IPMIToolSocatDriverTestCase(IPMIToolDriverTestCase):
                                   self.node.uuid) as task:
             driver_info = ipmi._parse_driver_info(task.node)
             driver_info['username'] = None
-            ipmi_cmd = self.driver.console._get_ipmi_cmd(driver_info,
-                                                         'pw_file')
+            ipmi_cmd = self.console._get_ipmi_cmd(driver_info, 'pw_file')
             expected_ipmi_cmd = ("ipmitool -H %(address)s -I lanplus "
                                  "-f pw_file" %
                                  {'address': driver_info['address']})
@@ -2590,11 +2576,11 @@ class IPMIToolSocatDriverTestCase(IPMIToolDriverTestCase):
 
         with task_manager.acquire(self.context,
                                   self.node.uuid) as task:
-            self.driver.console.start_console(task)
+            self.console.start_console(task)
             driver_info = ipmi._parse_driver_info(task.node)
-        mock_stop.assert_called_once_with(self.driver.console, driver_info)
+        mock_stop.assert_called_once_with(self.console, driver_info)
         mock_start.assert_called_once_with(
-            self.driver.console, driver_info,
+            self.console, driver_info,
             console_utils.start_socat_console)
 
     @mock.patch.object(ipmi.IPMISocatConsole, '_get_ipmi_cmd', autospec=True)
@@ -2606,13 +2592,13 @@ class IPMIToolSocatDriverTestCase(IPMIToolDriverTestCase):
         with task_manager.acquire(self.context,
                                   self.node.uuid) as task:
             driver_info = ipmi._parse_driver_info(task.node)
-            self.driver.console._start_console(
+            self.console._start_console(
                 driver_info, console_utils.start_socat_console)
 
         mock_start.assert_called_once_with(self.info['uuid'],
                                            self.info['port'],
                                            mock.ANY)
-        mock_ipmi_cmd.assert_called_once_with(self.driver.console,
+        mock_ipmi_cmd.assert_called_once_with(self.console,
                                               driver_info, mock.ANY)
 
     @mock.patch.object(console_utils, 'start_socat_console',
@@ -2625,7 +2611,7 @@ class IPMIToolSocatDriverTestCase(IPMIToolDriverTestCase):
                                   self.node.uuid) as task:
             driver_info = ipmi._parse_driver_info(task.node)
             self.assertRaises(exception.ConsoleSubprocessFailed,
-                              self.driver.console._start_console,
+                              self.console._start_console,
                               driver_info,
                               console_utils.start_socat_console)
 
@@ -2642,7 +2628,7 @@ class IPMIToolSocatDriverTestCase(IPMIToolDriverTestCase):
                                   self.node.uuid) as task:
             driver_info = ipmi._parse_driver_info(task.node)
             self.assertRaises(exception.ConsoleError,
-                              self.driver.console._start_console,
+                              self.console._start_console,
                               driver_info,
                               console_utils.start_socat_console)
         mock_start.assert_called_once_with(self.node.uuid, mock.ANY, mock.ANY)
@@ -2660,7 +2646,7 @@ class IPMIToolSocatDriverTestCase(IPMIToolDriverTestCase):
         with task_manager.acquire(self.context,
                                   self.node.uuid) as task:
             driver_info = ipmi._parse_driver_info(task.node)
-            self.driver.console._start_console(
+            self.console._start_console(
                 driver_info, console_utils.start_socat_console)
 
         mock_pass.assert_called_once_with(mock.ANY, '\0')
@@ -2678,10 +2664,10 @@ class IPMIToolSocatDriverTestCase(IPMIToolDriverTestCase):
         with task_manager.acquire(self.context,
                                   self.node.uuid) as task:
             driver_info = ipmi._parse_driver_info(task.node)
-            self.driver.console.stop_console(task)
+            self.console.stop_console(task)
 
         mock_stop.assert_called_once_with(self.info['uuid'])
-        mock_exec_stop.assert_called_once_with(self.driver.console,
+        mock_exec_stop.assert_called_once_with(self.console,
                                                driver_info)
 
     @mock.patch.object(ipmi.IPMISocatConsole, '_exec_stop_console',
@@ -2696,7 +2682,7 @@ class IPMIToolSocatDriverTestCase(IPMIToolDriverTestCase):
         with task_manager.acquire(self.context,
                                   self.node.uuid) as task:
             self.assertRaises(exception.ConsoleError,
-                              self.driver.console.stop_console,
+                              self.console.stop_console,
                               task)
 
         mock_stop.assert_called_once_with(self.node.uuid)
@@ -2710,7 +2696,7 @@ class IPMIToolSocatDriverTestCase(IPMIToolDriverTestCase):
                                   self.node.uuid) as task:
 
             driver_info = ipmi._parse_driver_info(task.node)
-            self.driver.console._exec_stop_console(driver_info)
+            self.console._exec_stop_console(driver_info)
 
         mock_exec.assert_called_once_with(
             driver_info, 'sol deactivate', check_exit_code=[0, 1])
@@ -2724,7 +2710,7 @@ class IPMIToolSocatDriverTestCase(IPMIToolDriverTestCase):
 
         with task_manager.acquire(self.context,
                                   self.node.uuid) as task:
-            console_info = self.driver.console.get_console(task)
+            console_info = self.console.get_console(task)
 
         self.assertEqual(expected, console_info)
         mock_get_url.assert_called_once_with(self.info['port'])

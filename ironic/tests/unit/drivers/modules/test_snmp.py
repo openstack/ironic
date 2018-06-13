@@ -447,9 +447,10 @@ class SNMPDeviceDriverTestCase(db_base.DbTestCase):
 
     def setUp(self):
         super(SNMPDeviceDriverTestCase, self).setUp()
+        self.config(enabled_power_interfaces=['fake', 'snmp'])
         self.node = obj_utils.get_test_node(
             self.context,
-            driver='fake_snmp',
+            power_interface='snmp',
             driver_info=INFO_DICT)
 
     def _update_driver_info(self, **kwargs):
@@ -1219,10 +1220,11 @@ class SNMPDriverTestCase(db_base.DbTestCase):
 
     def setUp(self):
         super(SNMPDriverTestCase, self).setUp()
-        self.config(enabled_drivers=['fake_snmp'])
+        self.config(enabled_power_interfaces=['fake', 'snmp'])
 
         self.node = obj_utils.create_test_node(self.context,
-                                               driver='fake_snmp',
+                                               power_interface='snmp',
+                                               vendor_interface='no-vendor',
                                                driver_info=INFO_DICT)
 
     def _get_snmp_failure(self):
