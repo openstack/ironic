@@ -26,6 +26,10 @@ opts = [
     cfg.StrOpt('http_root',
                default='/httpboot',
                help=_("ironic-conductor node's HTTP root path.")),
+    cfg.BoolOpt('enable_ata_secure_erase',
+                default=True,
+                help=_('Whether to support the use of ATA Secure Erase '
+                       'during the cleaning process. Defaults to True.')),
     cfg.IntOpt('erase_devices_priority',
                help=_('Priority to run in-band erase devices via the Ironic '
                       'Python Agent ramdisk. If unset, will use the priority '

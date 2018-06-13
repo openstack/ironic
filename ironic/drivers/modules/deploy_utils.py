@@ -681,6 +681,8 @@ def agent_add_clean_params(task):
     info['agent_erase_devices_zeroize'] = zeroize
     erase_fallback = CONF.deploy.continue_if_disk_secure_erase_fails
     info['agent_continue_if_ata_erase_failed'] = erase_fallback
+    secure_erase = CONF.deploy.enable_ata_secure_erase
+    info['agent_enable_ata_secure_erase'] = secure_erase
 
     task.node.driver_internal_info = info
     task.node.save()
