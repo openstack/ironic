@@ -23,6 +23,7 @@
       - openstack/pyghmi
       - openstack/python-ironicclient
       - openstack/virtualbmc
+    pre-run: playbooks/legacy/ironic-dsvm-base/pre.yaml
     post-run: playbooks/legacy/ironic-dsvm-base/post.yaml
 
 - job:
@@ -51,6 +52,7 @@
       - openstack/pyghmi
       - openstack/python-ironicclient
       - openstack/virtualbmc
+    pre-run: playbooks/legacy/ironic-dsvm-base-multinode/pre.yaml
     post-run: playbooks/legacy/ironic-dsvm-base-multinode/post.yaml
 
 - job:
