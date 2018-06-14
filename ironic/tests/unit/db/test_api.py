@@ -10,6 +10,8 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import mock
+from oslo_db.sqlalchemy import utils as db_utils
 from oslo_utils import uuidutils
 from testtools import matchers
 
@@ -30,6 +32,12 @@ class UpgradingTestCase(base.DbTestCase):
     def test_check_versions_emptyDB(self):
         # nothing in the DB
         self.assertTrue(self.dbapi.check_versions())
+
+    @mock.patch.object(db_utils, 'column_exists', autospec=True)
+    def test_check_versions_missing_version_columns(self, column_exists):
+        column_exists.return_value = False
+        self.assertRaises(exception.DatabaseVersionTooOld,
+                          self.dbapi.check_versions)
 
     def test_check_versions(self):
         for v in self.object_versions['Node']:

@@ -24,6 +24,7 @@ import sys
 from oslo_config import cfg
 
 from ironic.common import context
+from ironic.common import exception
 from ironic.common.i18n import _
 from ironic.common import service
 from ironic.conf import CONF
@@ -88,14 +89,28 @@ class DBCommand(object):
             # no tables, nothing to check
             return
 
-        if not dbapi.check_versions():
-            sys.stderr.write(_('The database is not compatible with this '
-                               'release of ironic (%s). Please run '
-                               '"ironic-dbsync online_data_migrations" using '
-                               'the previous release.\n')
-                             % version.version_info.release_string())
-            # NOTE(rloo): We return 1 in online_data_migrations() to indicate
-            # that there are more objects to migrate, so don't use 1 here.
+        try:
+            if not dbapi.check_versions():
+                sys.stderr.write(
+                    _('The database is not compatible with this '
+                      'release of ironic (%s). Please run '
+                      '"ironic-dbsync online_data_migrations" using '
+                      'the previous release.\n')
+                    % version.version_info.release_string())
+                # NOTE(rloo): We return 1 in online_data_migrations() to
+                # indicate that there are more objects to migrate,
+                # so don't use 1 here.
+                sys.exit(2)
+        except exception.DatabaseVersionTooOld:
+            sys.stderr.write(
+                _('The database version is not compatible with this '
+                  'release of ironic (%s). This can happen if you are '
+                  'attempting to upgrade from a version older than '
+                  'the previous release (skip versions upgrade). '
+                  'This is an unsupported upgrade method. '
+                  'Please run "ironic-dbsync upgrade" using the previous '
+                  'releases for a fast-forward upgrade.\n')
+                % version.version_info.release_string())
             sys.exit(2)
 
     def upgrade(self):
