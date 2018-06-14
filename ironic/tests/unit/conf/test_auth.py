@@ -23,8 +23,6 @@ class AuthConfTestCase(base.TestCase):
 
     def setUp(self):
         super(AuthConfTestCase, self).setUp()
-        self.config(region_name='fake_region',
-                    group='keystone')
         self.test_group = 'test_group'
         self.cfg_fixture.conf.register_group(cfg.OptGroup(self.test_group))
         ironic_auth.register_auth_opts(self.cfg_fixture.conf, self.test_group)

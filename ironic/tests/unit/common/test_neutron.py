@@ -125,8 +125,6 @@ class TestNeutronClient(base.TestCase):
                                                      mock_session,
                                                      mock_adapter, mock_auth,
                                                      mock_sauth):
-        self.config(region_name='fake_region',
-                    group='keystone')
         self.config(url='neutron_url',
                     url_timeout=10,
                     timeout=None,
@@ -139,7 +137,6 @@ class TestNeutronClient(base.TestCase):
         mock_adapter.assert_called_once_with('neutron',
                                              session=mock.sentinel.session,
                                              auth=mock.sentinel.auth,
-                                             region_name='fake_region',
                                              endpoint_override='neutron_url')
 
     def test_get_neutron_client_noauth(self, mock_client_init, mock_session,
