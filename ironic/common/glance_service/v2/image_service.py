@@ -115,7 +115,7 @@ class GlanceImageService(base_image_service.BaseImageService,
             correctly.
         :raises: MissingParameterValue if a required parameter is not set.
         :raises: ImageUnacceptable if the image info from Glance does not
-            have a image ID.
+            have an image ID.
         """
         self._validate_temp_url_config()
 
