@@ -849,6 +849,71 @@ class ManagementInterface(BaseInterface):
 
         """
 
+    def get_supported_boot_modes(self, task):
+        """Get a list of the supported boot modes.
+
+        NOTE: Not all drivers support this method. Older hardware
+              may not implement that.
+
+        :param task: A task from TaskManager.
+        :raises: UnsupportedDriverExtension if requested operation is
+                 not supported by the driver
+        :raises: DriverOperationError or its derivative in case
+                 of driver runtime error.
+        :raises: MissingParameterValue if a required parameter is missing
+        :returns: A list with the supported boot modes defined
+                  in :mod:`ironic.common.boot_modes`. If boot
+                  mode support can't be determined, empty list
+                  is returned.
+        """
+        raise exception.UnsupportedDriverExtension(
+            driver=task.node.driver, extension='get_supported_boot_modes')
+
+    def set_boot_mode(self, task, mode):
+        """Set the boot mode for a node.
+
+        Set the boot mode to use on next reboot of the node.
+
+        Drivers implementing this method are required to implement
+        the `get_supported_boot_modes` method as well.
+
+        NOTE: Not all drivers support this method. Hardware supporting only
+            one boot mode may not implement that.
+
+        :param task: A task from TaskManager.
+        :param mode: The boot mode, one of
+                     :mod:`ironic.common.boot_modes`.
+        :raises: InvalidParameterValue if an invalid boot mode is
+                 specified.
+        :raises: MissingParameterValue if a required parameter is missing
+        :raises: UnsupportedDriverExtension if requested operation is
+                 not supported by the driver
+        :raises: DriverOperationError or its derivative in case
+                 of driver runtime error.
+        """
+        raise exception.UnsupportedDriverExtension(
+            driver=task.node.driver, extension='set_boot_mode')
+
+    def get_boot_mode(self, task):
+        """Get the current boot mode for a node.
+
+        Provides the current boot mode of the node.
+
+        NOTE: Not all drivers support this method. Older hardware
+              may not implement that.
+
+        :param task: A task from TaskManager.
+        :raises: MissingParameterValue if a required parameter is missing
+        :raises: DriverOperationError or its  derivative in case
+                 of driver runtime error.
+        :raises: UnsupportedDriverExtension if requested operation is
+                 not supported by the driver
+        :returns: The boot mode, one of :mod:`ironic.common.boot_mode` or
+                  None if it is unknown.
+        """
+        raise exception.UnsupportedDriverExtension(
+            driver=task.node.driver, extension='get_boot_mode')
+
     @abc.abstractmethod
     def get_sensors_data(self, task):
         """Get sensors data method.

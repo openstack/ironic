@@ -47,9 +47,6 @@ CLEANING_INTERFACE_PRIORITY = {
 def node_set_boot_device(task, device, persistent=False):
     """Set the boot device for a node.
 
-    Sets the boot device for a node if the node's driver interface
-    contains a 'management' interface.
-
     If the node that the boot device change is being requested for
     is in ADOPTING state, the boot device will not be set as that
     change could potentially result in the future running state of
@@ -63,12 +60,84 @@ def node_set_boot_device(task, device, persistent=False):
         ManagementInterface fails.
 
     """
-    if getattr(task.driver, 'management', None):
-        task.driver.management.validate(task)
-        if task.node.provision_state != states.ADOPTING:
-            task.driver.management.set_boot_device(task,
-                                                   device=device,
-                                                   persistent=persistent)
+    # TODO(etingof): remove `if` once classic drivers are gone
+    if not getattr(task.driver, 'management', None):
+        return
+
+    task.driver.management.validate(task)
+    if task.node.provision_state != states.ADOPTING:
+        task.driver.management.set_boot_device(task,
+                                               device=device,
+                                               persistent=persistent)
+
+
+def node_get_boot_mode(task):
+    """Read currently set boot mode from a node.
+
+    Reads the boot mode for a node. If boot mode can't be discovered,
+    `None` is returned.
+
+    :param task: a TaskManager instance.
+    :raises: DriverOperationError or its derivative in case
+             of driver runtime error.
+    :raises: UnsupportedDriverExtension if current driver does not have
+             management interface or `get_boot_mode()` method is
+             not supported.
+    :returns: Boot mode. One of :mod:`ironic.common.boot_mode` or `None`
+        if boot mode can't be discovered
+    """
+    # TODO(etingof): remove `if` once classic drivers are gone
+    if not getattr(task.driver, 'management', None):
+        return
+
+    task.driver.management.validate(task)
+    return task.driver.management.get_boot_mode(task)
+
+
+# TODO(ietingof): remove `Sets the boot mode...` from the docstring
+# once classic drivers are gone
+@task_manager.require_exclusive_lock
+def node_set_boot_mode(task, mode):
+    """Set the boot mode for a node.
+
+    Sets the boot mode for a node if the node's driver interface
+    contains a 'management' interface.
+
+    If the node that the boot mode change is being requested for
+    is in ADOPTING state, the boot mode will not be set as that
+    change could potentially result in the future running state of
+    an adopted node being modified erroneously.
+
+    :param task: a TaskManager instance.
+    :param mode: Boot mode. Values are one of
+        :mod:`ironic.common.boot_modes`
+    :raises: InvalidParameterValue if the validation of the
+             ManagementInterface fails.
+    :raises: DriverOperationError or its derivative in case
+             of driver runtime error.
+    :raises: UnsupportedDriverExtension if current driver does not have
+             vendor interface or method is unsupported.
+    """
+    if task.node.provision_state == states.ADOPTING:
+        return
+
+    # TODO(etingof): remove `if` once classic drivers are gone
+    if not getattr(task.driver, 'management', None):
+        return
+
+    task.driver.management.validate(task)
+
+    boot_modes = task.driver.management.get_supported_boot_modes(task)
+
+    if mode not in boot_modes:
+        msg = _("Unsupported boot mode %(mode)s specified for "
+                "node %(node_id)s. Supported boot modes are: "
+                "%(modes)s") % {'mode': mode,
+                                'modes': ', '.join(boot_modes),
+                                'node_id': task.node.uuid}
+        raise exception.InvalidParameterValue(msg)
+
+    task.driver.management.set_boot_mode(task, mode=mode)
 
 
 def node_wait_for_power_state(task, new_state, timeout=None):

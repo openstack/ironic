@@ -16,6 +16,7 @@
 
 from oslo_config import cfg
 
+from ironic.common import boot_modes
 from ironic.common.i18n import _
 
 
@@ -73,6 +74,17 @@ opts = [
                       'default is "netboot", but it will be changed to '
                       '"local" in the future. It is recommended to set '
                       'an explicit value for this option.')),
+    cfg.StrOpt('default_boot_mode',
+               choices=[(boot_modes.UEFI, _('UEFI boot mode')),
+                        (boot_modes.LEGACY_BIOS, _('Legacy BIOS boot mode'))],
+               default=boot_modes.LEGACY_BIOS,
+               help=_('Default boot mode to use when no boot mode is '
+                      'requested in node\'s driver_info, capabilities or '
+                      'in the `instance_info` configuration. Currently the '
+                      'default boot mode is "%(bios)s". This option only '
+                      'has effect when management interface supports boot '
+                      'mode management') % {
+                          'bios': boot_modes.LEGACY_BIOS}),
     cfg.BoolOpt('configdrive_use_object_store',
                 default=False,
                 deprecated_group='conductor',

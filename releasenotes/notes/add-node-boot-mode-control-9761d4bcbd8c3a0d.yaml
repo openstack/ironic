@@ -1,0 +1,16 @@
+---
+other:
+  - Adds ``get_boot_mode``, ``set_boot_mode`` and
+    ``get_supported_boot_modes`` methods to driver management interface.
+    Drivers can override these methods implementing boot mode management
+    calls to the BMC of the baremetal nodes being managed.
+features:
+  - The new ironic configuration setting ``[deploy]/default_boot_mode``
+    allows to set the default boot mode when ironic can't pick boot mode
+    automatically based on node configuration, hardware capabilities,
+    bare-metal machine configuration.
+fixes:
+  - If the bare metal machine's boot mode differs from the requested one,
+    ironic will attempt to set requested boot mode on the bare metal
+    machine and fail explicitly if the driver does not support setting
+    boot mode on the node.
