@@ -104,11 +104,11 @@ name. For example::
     tox -epy27 -epep8
 
 You may pass options to the test programs using positional arguments.
-To run a specific unit test, this passes the -r option and desired test
-(regex string) to `os-testr <https://pypi.org/project/os-testr>`_::
+To run a specific unit test, this passes the desired test
+(regex string) to `stestr <https://pypi.org/project/stestr>`_::
 
     # run a specific test for Python 2.7
-    tox -epy27 -- -r test_conductor
+    tox -epy27 -- test_conductor
 
 Debugging unit tests
 --------------------
