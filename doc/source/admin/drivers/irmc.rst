@@ -62,8 +62,8 @@ hardware interfaces:
     Supports only ``irmc``.
 
 * power
-    Supports only ``irmc``, which enables power control via ServerView Common
-    Command Interface (SCCI).
+    Supports ``irmc``, which enables power control via ServerView Common
+    Command Interface (SCCI), by default. Also supports ``ipmitool``.
 
 For other hardware interfaces, ``irmc`` hardware type supports the
 Bare Metal reference interfaces. For more details about the hardware
@@ -653,7 +653,8 @@ This driver supports FUJITSU PRIMERGY BX S4 or RX S8 servers and above.
 - PRIMERGY BX924 S4
 - PRIMERGY RX300 S8
 
-Soft Reboot (Graceful Reset) and Soft Power Off (Graceful Power Off)
-are only available if `ServerView agents <http://manuals.ts.fujitsu.com/index.php?id=5406-5873-5925-5945-16159>`_
+When ``irmc`` power interface is used, Soft Reboot (Graceful Reset) and Soft
+Power Off (Graceful Power Off) are only available if
+`ServerView agents <http://manuals.ts.fujitsu.com/index.php?id=5406-5873-5925-5945-16159>`_
 are installed. See `iRMC S4 Manual <http://manuals.ts.fujitsu.com/index.php?id=5406-5873-5925-5988>`_
 for more details.

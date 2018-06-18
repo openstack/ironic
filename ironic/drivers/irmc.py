@@ -134,4 +134,4 @@ class IRMCHardware(generic.GenericHardware):
     @property
     def supported_power_interfaces(self):
         """List of supported power interfaces."""
-        return [power.IRMCPower]
+        return [power.IRMCPower, ipmitool.IPMIPower]
