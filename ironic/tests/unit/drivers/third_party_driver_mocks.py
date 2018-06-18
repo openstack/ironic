@@ -241,7 +241,9 @@ if not sushy:
         RESET_FORCE_RESTART='force restart',
         RESET_NMI='nmi',
         BOOT_SOURCE_ENABLED_CONTINUOUS='continuous',
-        BOOT_SOURCE_ENABLED_ONCE='once'
+        BOOT_SOURCE_ENABLED_ONCE='once',
+        BOOT_SOURCE_MODE_BIOS='bios',
+        BOOT_SOURCE_MODE_UEFI='uefi'
     )
 
     sys.modules['sushy'] = sushy

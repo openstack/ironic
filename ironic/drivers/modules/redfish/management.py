@@ -17,6 +17,7 @@ from oslo_log import log
 from oslo_utils import importutils
 
 from ironic.common import boot_devices
+from ironic.common import boot_modes
 from ironic.common import exception
 from ironic.common.i18n import _
 from ironic.conductor import task_manager
@@ -36,6 +37,13 @@ if sushy:
     }
 
     BOOT_DEVICE_MAP_REV = {v: k for k, v in BOOT_DEVICE_MAP.items()}
+
+    BOOT_MODE_MAP = {
+        sushy.BOOT_SOURCE_MODE_UEFI: boot_modes.UEFI,
+        sushy.BOOT_SOURCE_MODE_BIOS: boot_modes.LEGACY_BIOS
+    }
+
+    BOOT_MODE_MAP_REV = {v: k for k, v in BOOT_MODE_MAP.items()}
 
     BOOT_DEVICE_PERSISTENT_MAP = {
         sushy.BOOT_SOURCE_ENABLED_CONTINUOUS: True,
@@ -103,9 +111,7 @@ class RedfishManagement(base.ManagementInterface):
         :raises: RedfishError on an error from the Sushy library
         """
         system = redfish_utils.get_system(task.node)
-        # TODO(lucasagomes): set_system_boot_source() also supports mode
-        # for UEFI and BIOS we should get it from instance_info and pass
-        # it along this call
+
         try:
             system.set_system_boot_source(
                 BOOT_DEVICE_MAP_REV[device],
@@ -140,6 +146,81 @@ class RedfishManagement(base.ManagementInterface):
         return {'boot_device': BOOT_DEVICE_MAP.get(system.boot.get('target')),
                 'persistent': BOOT_DEVICE_PERSISTENT_MAP.get(
                     system.boot.get('enabled'))}
+
+    def get_supported_boot_modes(self, task):
+        """Get a list of the supported boot modes.
+
+        :param task: A task from TaskManager.
+        :returns: A list with the supported boot modes defined
+                  in :mod:`ironic.common.boot_modes`. If boot
+                  mode support can't be determined, empty list
+                  is returned.
+        """
+        return list(BOOT_MODE_MAP_REV)
+
+    @task_manager.require_exclusive_lock
+    def set_boot_mode(self, task, mode):
+        """Set the boot mode for a node.
+
+        Set the boot mode to use on next reboot of the node.
+
+        :param task: A task from TaskManager.
+        :param mode: The boot mode, one of
+                     :mod:`ironic.common.boot_modes`.
+        :raises: InvalidParameterValue if an invalid boot mode is
+                 specified.
+        :raises: MissingParameterValue if a required parameter is missing
+        :raises: RedfishConnectionError when it fails to connect to Redfish
+        :raises: RedfishError on an error from the Sushy library
+        """
+        system = redfish_utils.get_system(task.node)
+
+        boot_device = system.boot.get('target')
+        if not boot_device:
+            error_msg = (_('Cannot change boot mode on node %(node)s '
+                           'because its boot device is not set.') %
+                         {'node': task.node.uuid})
+            LOG.error(error_msg)
+            raise exception.RedfishError(error_msg)
+
+        boot_override = system.boot.get('enabled')
+        if not boot_override:
+            error_msg = (_('Cannot change boot mode on node %(node)s '
+                           'because its boot source override is not set.') %
+                         {'node': task.node.uuid})
+            LOG.error(error_msg)
+            raise exception.RedfishError(error_msg)
+
+        try:
+            system.set_system_boot_source(
+                boot_device,
+                enabled=boot_override,
+                mode=BOOT_MODE_MAP_REV[mode])
+
+        except sushy.exceptions.SushyError as e:
+            error_msg = (_('Setting boot mode to %(mode)s '
+                           'failed for node %(node)s. '
+                           'Error: %(error)s') %
+                         {'node': task.node.uuid, 'mode': mode,
+                          'error': e})
+            LOG.error(error_msg)
+            raise exception.RedfishError(error=error_msg)
+
+    def get_boot_mode(self, task):
+        """Get the current boot mode for a node.
+
+        Provides the current boot mode of the node.
+
+        :param task: A task from TaskManager.
+        :raises: MissingParameterValue if a required parameter is missing
+        :raises: DriverOperationError or its  derivative in case
+                 of driver runtime error.
+        :returns: The boot mode, one of :mod:`ironic.common.boot_mode` or
+                  None if it is unknown.
+        """
+        system = redfish_utils.get_system(task.node)
+
+        return BOOT_MODE_MAP.get(system.boot.get('mode'))
 
     def get_sensors_data(self, task):
         """Get sensors data.
