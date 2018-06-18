@@ -62,6 +62,7 @@ the developer community about any implementation using this functionality.
 
   Driver Overview <drivers>
   Writing "vendor_passthru" methods <vendor-passthru>
+  Creating new BIOS interfaces <bios_develop>
   Third party continuous integration testing <third-party-ci>
 
 Testing Network Integration

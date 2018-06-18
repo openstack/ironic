@@ -53,6 +53,18 @@ Enabling hardware interfaces
 
 There are several types of hardware interfaces:
 
+bios
+    manages configuration of the BIOS settings of a bare metal node.
+    This interface is vendor-specific and can be enabled via the
+    ``enabled_bios_interfaces`` option:
+
+    .. code-block:: ini
+
+        [DEFAULT]
+        enabled_hardware_types = <hardware_type_name>
+        enabled_bios_interfaces = <bios_interface_name>
+
+    See :doc:`/admin/bios` for details. This interface is vendor-specific.
 boot
     manages booting of both the deploy ramdisk and the user instances on the
     bare metal node. See :doc:`/admin/interfaces/boot` for details.

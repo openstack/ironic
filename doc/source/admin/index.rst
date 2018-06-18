@@ -14,6 +14,7 @@ the services.
    Node Cleaning <cleaning>
    Node Adoption <adoption>
    RAID Configuration <raid>
+   BIOS Settings <bios>
    Configuring to boot from volume <boot-from-volume>
    Multi-tenant Networking <multitenancy>
    Port Groups <portgroups>
