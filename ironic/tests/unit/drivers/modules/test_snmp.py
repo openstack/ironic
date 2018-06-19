@@ -52,7 +52,7 @@ class SNMPClientTestCase(base.TestCase):
         self.assertEqual(self.port, client.port)
         self.assertEqual(snmp.SNMP_V1, client.version)
         self.assertIsNone(client.community)
-        self.assertNotIn('security', client.__dict__)
+        self.assertNotIn('user', client.__dict__)
         self.assertEqual(mock_cmdgen.return_value, client.cmd_gen)
 
     @mock.patch.object(cmdgen, 'CommunityData', autospec=True)
@@ -67,7 +67,15 @@ class SNMPClientTestCase(base.TestCase):
         client = snmp.SNMPClient(self.address, self.port, snmp.SNMP_V3)
         client._get_auth()
         mock_cmdgen.assert_called_once_with()
-        mock_user.assert_called_once_with(client.security)
+        mock_user.assert_called_once_with(
+            client.user,
+            authKey=client.auth_key,
+            authProtocol=client.auth_proto,
+            privKey=client.priv_key,
+            privProtocol=client.priv_proto,
+            contextEngineId=client.context_engine_id,
+            contextName=client.context_name
+        )
 
     @mock.patch.object(cmdgen, 'UdpTransportTarget', autospec=True)
     def test__get_transport(self, mock_transport, mock_cmdgen):
@@ -237,7 +245,7 @@ class SNMPValidateParametersTestCase(db_base.DbTestCase):
         self.assertEqual(INFO_DICT['snmp_outlet'], str(info['outlet']))
         self.assertEqual(INFO_DICT['snmp_version'], info['version'])
         self.assertEqual(INFO_DICT['snmp_community'], info['community'])
-        self.assertNotIn('security', info)
+        self.assertNotIn('user', info)
 
     def test__parse_driver_info_apc(self):
         # Make sure the APC driver type is parsed.
@@ -314,13 +322,156 @@ class SNMPValidateParametersTestCase(db_base.DbTestCase):
         self.assertEqual('private', info['community'])
 
     def test__parse_driver_info_snmp_v3(self):
+        # Make sure SNMPv3 is parsed with user string.
+        info = db_utils.get_test_snmp_info(snmp_version='3',
+                                           snmp_user='pass')
+        node = self._get_test_node(info)
+        info = snmp._parse_driver_info(node)
+        self.assertEqual('3', info['version'])
+        self.assertEqual('pass', info['user'])
+
+    def test__parse_driver_info_snmp_v3_auth_default_proto(self):
+        info = db_utils.get_test_snmp_info(snmp_version='3',
+                                           snmp_user='pass',
+                                           snmp_auth_key='12345678')
+        node = self._get_test_node(info)
+        info = snmp._parse_driver_info(node)
+        self.assertEqual('12345678', info['auth_key'])
+        self.assertEqual(snmp.snmp_auth_protocols['md5'],
+                         info['auth_protocol'])
+
+    def test__parse_driver_info_snmp_v3_auth_key_proto(self):
+        info = db_utils.get_test_snmp_info(snmp_version='3',
+                                           snmp_user='pass',
+                                           snmp_auth_key='12345678',
+                                           snmp_auth_protocol='sha')
+        node = self._get_test_node(info)
+        info = snmp._parse_driver_info(node)
+        self.assertEqual('12345678', info['auth_key'])
+        self.assertEqual(snmp.snmp_auth_protocols['sha'],
+                         info['auth_protocol'])
+
+    def test__parse_driver_info_snmp_v3_auth_nokey(self):
+        info = db_utils.get_test_snmp_info(snmp_version='3',
+                                           snmp_user='pass',
+                                           snmp_auth_protocol='sha')
+        node = self._get_test_node(info)
+        self.assertRaisesRegex(
+            exception.InvalidParameterValue,
+            'missing.*authentication key',
+            snmp._parse_driver_info,
+            node
+        )
+
+    def test__parse_driver_info_snmp_v3_auth_badproto(self):
+        info = db_utils.get_test_snmp_info(snmp_version='3',
+                                           snmp_user='pass',
+                                           snmp_auth_key='12345678',
+                                           snmp_auth_protocol='whatever')
+        node = self._get_test_node(info)
+        self.assertRaisesRegex(
+            exception.InvalidParameterValue,
+            '.*?unknown SNMPv3 authentication protocol.*',
+            snmp._parse_driver_info,
+            node
+        )
+
+    def test__parse_driver_info_snmp_v3_auth_short_key(self):
+        info = db_utils.get_test_snmp_info(snmp_version='3',
+                                           snmp_user='pass',
+                                           snmp_auth_key='1234567')
+        node = self._get_test_node(info)
+        self.assertRaisesRegex(
+            exception.InvalidParameterValue,
+            '.*?short SNMPv3 authentication key.*',
+            snmp._parse_driver_info,
+            node
+        )
+
+    def test__parse_driver_info_snmp_v3_priv_default_proto(self):
+        info = db_utils.get_test_snmp_info(snmp_version='3',
+                                           snmp_user='pass',
+                                           snmp_auth_key='12345678',
+                                           snmp_priv_key='87654321')
+        node = self._get_test_node(info)
+        info = snmp._parse_driver_info(node)
+        self.assertEqual('87654321', info['priv_key'])
+        self.assertEqual(snmp.snmp_priv_protocols['des'],
+                         info['priv_protocol'])
+
+    def test__parse_driver_info_snmp_v3_priv_key_proto(self):
+        info = db_utils.get_test_snmp_info(snmp_version='3',
+                                           snmp_user='pass',
+                                           snmp_auth_key='12345678',
+                                           snmp_priv_protocol='3des',
+                                           snmp_priv_key='87654321')
+        node = self._get_test_node(info)
+        info = snmp._parse_driver_info(node)
+        self.assertEqual('87654321', info['priv_key'])
+        self.assertEqual(snmp.snmp_priv_protocols['3des'],
+                         info['priv_protocol'])
+
+    def test__parse_driver_info_snmp_v3_priv_nokey(self):
+        info = db_utils.get_test_snmp_info(snmp_version='3',
+                                           snmp_user='pass',
+                                           snmp_priv_protocol='3des')
+        node = self._get_test_node(info)
+        self.assertRaisesRegex(
+            exception.InvalidParameterValue,
+            '.*?SNMPv3 privacy requires authentication.*',
+            snmp._parse_driver_info,
+            node
+        )
+
+    def test__parse_driver_info_snmp_v3_priv_badproto(self):
+        info = db_utils.get_test_snmp_info(snmp_version='3',
+                                           snmp_user='pass',
+                                           snmp_priv_key='12345678',
+                                           snmp_priv_protocol='whatever')
+        node = self._get_test_node(info)
+        self.assertRaisesRegex(
+            exception.InvalidParameterValue,
+            '.*?unknown SNMPv3 privacy protocol.*',
+            snmp._parse_driver_info,
+            node
+        )
+
+    def test__parse_driver_info_snmp_v3_priv_short_key(self):
+        info = db_utils.get_test_snmp_info(snmp_version='3',
+                                           snmp_user='pass',
+                                           snmp_priv_key='1234567')
+        node = self._get_test_node(info)
+        self.assertRaisesRegex(
+            exception.InvalidParameterValue,
+            '.*?short SNMPv3 privacy key.*',
+            snmp._parse_driver_info,
+            node
+        )
+
+    def test__parse_driver_info_snmp_v3_compat(self):
         # Make sure SNMPv3 is parsed with a security string.
         info = db_utils.get_test_snmp_info(snmp_version='3',
                                            snmp_security='pass')
         node = self._get_test_node(info)
         info = snmp._parse_driver_info(node)
         self.assertEqual('3', info['version'])
-        self.assertEqual('pass', info['security'])
+        self.assertEqual('pass', info['user'])
+
+    def test__parse_driver_info_snmp_v3_context_engine_id(self):
+        info = db_utils.get_test_snmp_info(snmp_version='3',
+                                           snmp_user='pass',
+                                           snmp_context_engine_id='whatever')
+        node = self._get_test_node(info)
+        info = snmp._parse_driver_info(node)
+        self.assertEqual('whatever', info['context_engine_id'])
+
+    def test__parse_driver_info_snmp_v3_context_name(self):
+        info = db_utils.get_test_snmp_info(snmp_version='3',
+                                           snmp_user='pass',
+                                           snmp_context_name='whatever')
+        node = self._get_test_node(info)
+        info = snmp._parse_driver_info(node)
+        self.assertEqual('whatever', info['context_name'])
 
     def test__parse_driver_info_snmp_port_default(self):
         # Make sure default SNMP UDP port numbers are correct
@@ -394,7 +545,7 @@ class SNMPValidateParametersTestCase(db_base.DbTestCase):
         # Make sure exception is raised when version is invalid.
         info = db_utils.get_test_snmp_info(snmp_version='42',
                                            snmp_community='public',
-                                           snmp_security='pass')
+                                           snmp_user='pass')
         node = self._get_test_node(info)
         self.assertRaises(exception.InvalidParameterValue,
                           snmp._parse_driver_info,
@@ -428,10 +579,10 @@ class SNMPValidateParametersTestCase(db_base.DbTestCase):
                           snmp._parse_driver_info,
                           node)
 
-    def test__parse_driver_info_missing_security(self):
-        # Make sure exception is raised when security is missing with SNMPv3.
+    def test__parse_driver_info_missing_user(self):
+        # Make sure exception is raised when user is missing with SNMPv3.
         info = db_utils.get_test_snmp_info(snmp_version='3')
-        del info['snmp_security']
+        del info['snmp_user']
         node = self._get_test_node(info)
         self.assertRaises(exception.MissingParameterValue,
                           snmp._parse_driver_info,

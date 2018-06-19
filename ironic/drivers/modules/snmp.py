@@ -44,10 +44,62 @@ if pysnmp:
     from pysnmp.entity.rfc3413.oneliner import cmdgen
     from pysnmp import error as snmp_error
     from pysnmp.proto import rfc1902
+
+    snmp_auth_protocols = {
+        'md5': cmdgen.usmHMACMD5AuthProtocol,
+        'sha': cmdgen.usmHMACSHAAuthProtocol,
+        'none': cmdgen.usmNoAuthProtocol,
+    }
+
+    # available since pysnmp 4.4.1
+    try:
+        snmp_auth_protocols.update(
+            {
+                'sha224': cmdgen.usmHMAC128SHA224AuthProtocol,
+                'sha256': cmdgen.usmHMAC192SHA256AuthProtocol,
+                'sha384': cmdgen.usmHMAC256SHA384AuthProtocol,
+                'sha512': cmdgen.usmHMAC384SHA512AuthProtocol,
+
+            }
+        )
+
+    except AttributeError:
+        pass
+
+    snmp_priv_protocols = {
+        'des': cmdgen.usmDESPrivProtocol,
+        '3des': cmdgen.usm3DESEDEPrivProtocol,
+        'aes': cmdgen.usmAesCfb128Protocol,
+        'aes192': cmdgen.usmAesCfb192Protocol,
+        'aes256': cmdgen.usmAesCfb256Protocol,
+        'none': cmdgen.usmNoPrivProtocol,
+    }
+
+    # available since pysnmp 4.4.3
+    try:
+        snmp_priv_protocols.update(
+            {
+                'aes192blmt': cmdgen.usmAesBlumenthalCfb192Protocol,
+                'aes256blmt': cmdgen.usmAesBlumenthalCfb256Protocol,
+
+            }
+        )
+
+    except AttributeError:
+        pass
+
 else:
     cmdgen = None
     snmp_error = None
     rfc1902 = None
+
+    snmp_auth_protocols = {
+        'none': None
+    }
+
+    snmp_priv_protocols = {
+        'none': None
+    }
 
 LOG = logging.getLogger(__name__)
 
@@ -65,20 +117,60 @@ REQUIRED_PROPERTIES = {
 OPTIONAL_PROPERTIES = {
     'snmp_version':
         _("SNMP protocol version: %(v1)s, %(v2c)s or %(v3)s  "
-          "(optional, default %(v1)s)")
+          "(optional, default %(v1)s).")
         % {"v1": SNMP_V1, "v2c": SNMP_V2C, "v3": SNMP_V3},
     'snmp_port':
-        _("SNMP port, default %(port)d") % {"port": SNMP_PORT},
+        _("SNMP port, default %(port)d.") % {"port": SNMP_PORT},
     'snmp_community':
-        _("SNMP community.  Required for versions %(v1)s and %(v2c)s")
+        _("SNMP community. Required for versions %(v1)s and %(v2c)s.")
         % {"v1": SNMP_V1, "v2c": SNMP_V2C},
+    'snmp_user':
+        _("SNMPv3 User-based Security Model (USM) username. "
+          "Required for version %(v3)s.")
+        % {"v3": SNMP_V3},
+    'snmp_auth_protocol':
+        _("SNMPv3 message authentication protocol ID. "
+          "Known values are: %(auth)s. "
+          "Default is 'none' unless 'snmp_auth_key' is provided. "
+          "In the latter case 'md5' is the default.")
+        % {'auth': sorted(snmp_auth_protocols)},
+    'snmp_auth_key':
+        _("SNMPv3 message authentication key. "
+          "Must be 8+ characters long. "
+          "Required when message authentication is used. "
+          "This key is used by the 'snmp_auth_protocol' algorithm."),
+    'snmp_priv_protocol':
+        _("SNMPv3 message privacy (encryption) protocol ID. "
+          "Known values are: %(priv)s. "
+          "Using message privacy requires using message authentication. "
+          "Default is 'none' unless 'snmp_priv_key' is provided. "
+          "In the latter case 'des' is the default.")
+        % {'priv': sorted(snmp_priv_protocols)},
+    'snmp_priv_key':
+        _("SNMPv3 message authentication key. "
+          "Must be 8+ characters long. "
+          "Required when message authentication is used. "
+          "This key is used by the 'snmp_priv_protocol' algorithm."),
+    'snmp_context_engine_id':
+        _("SNMPv3 context engine ID. "
+          "Default is the value of authoritative engine ID."),
+    'snmp_context_name':
+        _("SNMPv3 context name. "
+          "Default is an empty string ('')."),
+}
+
+DEPRECATED_PROPERTIES = {
+    # synonym for `snmp_user`
     'snmp_security':
         _("SNMPv3 User-based Security Model (USM) username. "
-          "Required for version %(v3)s")
+          "Required for version %(v3)s. "
+          "This property is deprecated, please use `snmp_user` instead.")
         % {"v3": SNMP_V3},
 }
+
 COMMON_PROPERTIES = REQUIRED_PROPERTIES.copy()
 COMMON_PROPERTIES.update(OPTIONAL_PROPERTIES)
+COMMON_PROPERTIES.update(DEPRECATED_PROPERTIES)
 
 
 class SNMPClient(object):
@@ -88,27 +180,50 @@ class SNMPClient(object):
     interaction with PySNMP to simplify dynamic importing and unit testing.
     """
 
-    def __init__(self, address, port, version, community=None, security=None):
+    def __init__(self, address, port, version, community=None,
+                 user=None, auth_proto=None,
+                 auth_key=None, priv_proto=None,
+                 priv_key=None, context_engine_id=None, context_name=None):
+        if not cmdgen:
+            raise exception.DriverLoadError(
+                driver=self.__class__.__name__,
+                reason=_("Unable to import python-pysnmp library")
+            )
+
         self.address = address
         self.port = port
         self.version = version
         if self.version == SNMP_V3:
-            self.security = security
+            self.user = user
+            self.auth_proto = auth_proto
+            self.auth_key = auth_key
+            self.priv_proto = priv_proto
+            self.priv_key = priv_key
+            self.context_engine_id = context_engine_id
+            self.context_name = context_name or ''
         else:
             self.community = community
+
         self.cmd_gen = cmdgen.CommandGenerator()
 
     def _get_auth(self):
         """Return the authorization data for an SNMP request.
 
-        :returns: A
+        :returns: Either
             :class:`pysnmp.entity.rfc3413.oneliner.cmdgen.CommunityData`
-            object.
+            or :class:`pysnmp.entity.rfc3413.oneliner.cmdgen.UsmUserData`
+            object depending on SNMP version being used.
         """
         if self.version == SNMP_V3:
-            # Handling auth/encryption credentials is not (yet) supported.
-            # This version supports a security name analogous to community.
-            return cmdgen.UsmUserData(self.security)
+            return cmdgen.UsmUserData(
+                self.user,
+                authKey=self.auth_key,
+                authProtocol=self.auth_proto,
+                privKey=self.priv_key,
+                privProtocol=self.priv_proto,
+                contextEngineId=self.context_engine_id,
+                contextName=self.context_name
+            )
         else:
             mp_model = 1 if self.version == SNMP_V2C else 0
             return cmdgen.CommunityData(self.community, mpModel=mp_model)
@@ -223,7 +338,13 @@ def _get_client(snmp_info):
                       snmp_info["port"],
                       snmp_info["version"],
                       snmp_info.get("community"),
-                      snmp_info.get("security"))
+                      snmp_info.get("user"),
+                      snmp_info.get("auth_proto"),
+                      snmp_info.get("auth_key"),
+                      snmp_info.get("priv_proto"),
+                      snmp_info.get("priv_key"),
+                      snmp_info.get("context_engine_id"),
+                      snmp_info.get("context_name"))
 
 
 @six.add_metaclass(abc.ABCMeta)
@@ -580,6 +701,124 @@ DRIVER_CLASSES = {
 }
 
 
+def _parse_driver_info_snmpv3_user(node, info):
+    snmp_info = {}
+
+    if 'snmp_user' not in info and 'snmp_security' not in info:
+        raise exception.MissingParameterValue(_(
+            "SNMP driver requires `driver_info/snmp_user` to be set in "
+            "node %(node)s configuration for SNMP version %(ver)s.") %
+            {'node': node.uuid, 'ver': SNMP_V3})
+
+    snmp_info['user'] = info.get('snmp_user', info.get('snmp_security'))
+
+    if 'snmp_security' in info:
+        LOG.warning("The `driver_info/snmp_security` parameter is deprecated "
+                    "in favor of `driver_info/snmp_user` parameter. Please "
+                    "remove the `driver_info/snmp_security` parameter from "
+                    "node %(node)s configuration.", {'node': node.uuid})
+
+        if 'snmp_user' in info:
+            LOG.warning("The `driver_info/snmp_security` parameter is ignored "
+                        "in favor of `driver_info/snmp_user` parameter in "
+                        "node %(node)s configuration.", {'node': node.uuid})
+
+    return snmp_info
+
+
+def _parse_driver_info_snmpv3_crypto(node, info):
+    snmp_info = {}
+
+    if 'snmp_auth_protocol' in info:
+        auth_p = info['snmp_auth_protocol']
+        try:
+            snmp_info['auth_protocol'] = snmp_auth_protocols[auth_p]
+
+        except KeyError:
+            raise exception.InvalidParameterValue(_(
+                "SNMPPowerDriver: unknown SNMPv3 authentication protocol "
+                "`driver_info/snmp_auth_protocol` %(proto)s in node %(node)s "
+                "configuration, known protocols are: %(protos)s") %
+                {'node': node.uuid, 'proto': auth_p,
+                 'protos': ', '.join(snmp_auth_protocols)}
+            )
+    if 'snmp_priv_protocol' in info:
+        priv_p = info['snmp_priv_protocol']
+        try:
+            snmp_info['priv_protocol'] = snmp_priv_protocols[priv_p]
+
+        except KeyError:
+            raise exception.InvalidParameterValue(_(
+                "SNMPPowerDriver: unknown SNMPv3 privacy protocol "
+                "`driver_info/snmp_priv_protocol` %(proto)s in node "
+                "%(node)s configuration, known protocols are: %(protos)s") %
+                {'node': node.uuid, 'proto': priv_p,
+                 'protos': ', '.join(snmp_priv_protocols)}
+            )
+    if 'snmp_auth_key' in info:
+        auth_k = info['snmp_auth_key']
+        if len(auth_k) < 8:
+            raise exception.InvalidParameterValue(_(
+                "SNMPPowerDriver: short SNMPv3 authentication key "
+                "`driver_info/snmp_auth_key` in node %(node)s configuration "
+                "(8+ chars required)") % {'node': node.uuid})
+
+        snmp_info['auth_key'] = auth_k
+
+        if 'auth_protocol' not in snmp_info:
+            snmp_info['auth_protocol'] = snmp_auth_protocols['md5']
+
+    if 'snmp_priv_key' in info:
+        priv_k = info['snmp_priv_key']
+        if len(priv_k) < 8:
+            raise exception.InvalidParameterValue(_(
+                "SNMPPowerDriver: short SNMPv3 privacy key "
+                "`driver_info/snmp_priv_key` node %(node)s configuration "
+                "(8+ chars required)") % {'node': node.uuid})
+
+        snmp_info['priv_key'] = priv_k
+
+        if 'priv_protocol' not in snmp_info:
+            snmp_info['priv_protocol'] = snmp_priv_protocols['des']
+
+    if ('priv_protocol' in snmp_info and
+            'auth_protocol' not in snmp_info):
+        raise exception.MissingParameterValue(_(
+            "SNMPPowerDriver: SNMPv3 privacy requires authentication. "
+            "Please add `driver_info/auth_protocol` property to node "
+            "%(node)s configuration.") % {'node': node.uuid})
+
+    if ('auth_protocol' in snmp_info and
+            'auth_key' not in snmp_info):
+        raise exception.MissingParameterValue(_(
+            "SNMPPowerDriver: missing SNMPv3 authentication key while "
+            "`driver_info/snmp_auth_protocol` is present. Please "
+            "add `driver_info/snmp_auth_key` to node %(node)s "
+            "configuration.") % {'node': node.uuid})
+
+    if ('priv_protocol' in snmp_info and
+            'priv_key' not in snmp_info):
+        raise exception.MissingParameterValue(_(
+            "SNMPPowerDriver: missing SNMPv3 privacy key while "
+            "`driver_info/snmp_priv_protocol` is present. Please"
+            "add `driver_info/snmp_priv_key` to node %(node)s "
+            "configuration.") % {'node': node.uuid})
+
+    return snmp_info
+
+
+def _parse_driver_info_snmpv3_context(node, info):
+    snmp_info = {}
+
+    if 'snmp_context_engine_id' in info:
+        snmp_info['context_engine_id'] = info['snmp_context_engine_id']
+
+    if 'snmp_context_name' in info:
+        snmp_info['context_name'] = info['snmp_context_name']
+
+    return snmp_info
+
+
 def _parse_driver_info(node):
     """Parse a node's driver_info values.
 
@@ -630,11 +869,9 @@ def _parse_driver_info(node):
                 "%s.") % snmp_info['version'])
         snmp_info['community'] = info.get('snmp_community')
     elif snmp_info['version'] == SNMP_V3:
-        if 'snmp_security' not in info:
-            raise exception.MissingParameterValue(_(
-                "SNMP driver requires snmp_security to be set for version %s.")
-                % (SNMP_V3))
-        snmp_info['security'] = info.get('snmp_security')
+        snmp_info.update(_parse_driver_info_snmpv3_user(node, info))
+        snmp_info.update(_parse_driver_info_snmpv3_crypto(node, info))
+        snmp_info.update(_parse_driver_info_snmpv3_context(node, info))
 
     # Target PDU IP address and power outlet identification
     snmp_info['address'] = info['snmp_address']

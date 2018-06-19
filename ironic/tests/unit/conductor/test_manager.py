@@ -5680,6 +5680,10 @@ class ManagerTestProperties(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
                     'force_persistent_boot_device',
                     'snmp_driver', 'snmp_address', 'snmp_port', 'snmp_version',
                     'snmp_community', 'snmp_security', 'snmp_outlet',
+                    'snmp_user',
+                    'snmp_context_engine_id', 'snmp_context_name',
+                    'snmp_auth_key', 'snmp_auth_protocol',
+                    'snmp_priv_key', 'snmp_priv_protocol',
                     'deploy_forces_oob_reboot']
         self._check_driver_properties("snmp", expected)
 
