@@ -24,23 +24,15 @@ from ironic.common import exception
 from ironic.conductor import task_manager
 from ironic.drivers.modules.ucs import helper as ucs_helper
 from ironic.drivers.modules.ucs import management as ucs_mgmt
-from ironic.tests.unit.db import base as db_base
-from ironic.tests.unit.db import utils as db_utils
-from ironic.tests.unit.objects import utils as obj_utils
+from ironic.tests.unit.drivers.modules.ucs import test_helper
 
 ucs_error = importutils.try_import('UcsSdk.utils.exception')
 
-INFO_DICT = db_utils.get_test_ucs_info()
 
-
-class UcsManagementTestCase(db_base.DbTestCase):
+class UcsManagementTestCase(test_helper.BaseUcsTest):
 
     def setUp(self):
         super(UcsManagementTestCase, self).setUp()
-        self.config(enabled_drivers=['fake_ucs'])
-        self.node = obj_utils.create_test_node(self.context,
-                                               driver='fake_ucs',
-                                               driver_info=INFO_DICT)
         self.interface = ucs_mgmt.UcsManagement()
         self.task = mock.Mock()
         self.task.node = self.node

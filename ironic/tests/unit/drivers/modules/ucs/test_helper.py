@@ -27,17 +27,25 @@ from ironic.tests.unit.objects import utils as obj_utils
 
 ucs_error = importutils.try_import('UcsSdk.utils.exception')
 
-INFO_DICT = db_utils.get_test_ucs_info()
+
+class BaseUcsTest(db_base.DbTestCase):
+
+    def setUp(self):
+        super(BaseUcsTest, self).setUp()
+        self.config(enabled_hardware_types=['cisco-ucs-managed',
+                                            'fake-hardware'],
+                    enabled_power_interfaces=['ucsm', 'fake'],
+                    enabled_management_interfaces=['ucsm', 'fake'])
+        self.info = db_utils.get_test_ucs_info()
+        self.node = obj_utils.create_test_node(self.context,
+                                               driver='cisco-ucs-managed',
+                                               driver_info=self.info)
 
 
-class UcsValidateParametersTestCase(db_base.DbTestCase):
+class UcsValidateParametersTestCase(BaseUcsTest):
 
     def setUp(self):
         super(UcsValidateParametersTestCase, self).setUp()
-        self.config(enabled_drivers=['fake_ucs'])
-        self.node = obj_utils.create_test_node(self.context,
-                                               driver='fake_ucs',
-                                               driver_info=INFO_DICT)
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
             self.helper = ucs_helper.CiscoUcsHelper(task)
@@ -45,10 +53,10 @@ class UcsValidateParametersTestCase(db_base.DbTestCase):
     def test_parse_driver_info(self):
         info = ucs_helper.parse_driver_info(self.node)
 
-        self.assertEqual(INFO_DICT['ucs_address'], info['ucs_address'])
-        self.assertEqual(INFO_DICT['ucs_username'], info['ucs_username'])
-        self.assertEqual(INFO_DICT['ucs_password'], info['ucs_password'])
-        self.assertEqual(INFO_DICT['ucs_service_profile'],
+        self.assertEqual(self.info['ucs_address'], info['ucs_address'])
+        self.assertEqual(self.info['ucs_username'], info['ucs_username'])
+        self.assertEqual(self.info['ucs_password'], info['ucs_password'])
+        self.assertEqual(self.info['ucs_service_profile'],
                          info['ucs_service_profile'])
 
     def test_parse_driver_info_missing_address(self):
@@ -110,15 +118,11 @@ class UcsValidateParametersTestCase(db_base.DbTestCase):
         self.helper.logout()
 
 
-class UcsCommonMethodsTestcase(db_base.DbTestCase):
+class UcsCommonMethodsTestcase(BaseUcsTest):
 
     def setUp(self):
         super(UcsCommonMethodsTestcase, self).setUp()
         self.dbapi = dbapi.get_instance()
-        self.config(enabled_drivers=['fake_ucs'])
-        self.node = obj_utils.create_test_node(self.context,
-                                               driver='fake_ucs',
-                                               driver_info=INFO_DICT.copy())
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
             self.helper = ucs_helper.CiscoUcsHelper(task)

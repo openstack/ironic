@@ -1,15 +1,23 @@
 ---
 upgrade:
   - |
-    The following deprecated classic drivers were removed:
+    All fake classic drivers, deprecated in the Queens release, have been
+    removed. This includes:
 
     * ``fake``
     * ``fake_agent``
+    * ``fake_cimc``
+    * ``fake_drac``
+    * ``fake_ilo``
     * ``fake_inspector``
     * ``fake_ipmitool``
     * ``fake_ipmitool_socat``
+    * ``fake_irmc``
+    * ``fake_oneview``
     * ``fake_pxe``
     * ``fake_snmp``
     * ``fake_soft_power``
+    * ``fake_ucs``
 
-    Please use the ``fake-hardware`` hardware type instead.
+    Please use the ``fake-hardware`` hardware type instead (you can combine
+    it with any other interfaces, fake or real).

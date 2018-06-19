@@ -27,6 +27,7 @@ from ironic.drivers.modules.oneview import deploy
 from ironic.drivers.modules.oneview import deploy_utils
 from ironic.tests.unit.db import base as db_base
 from ironic.tests.unit.db import utils as db_utils
+from ironic.tests.unit.drivers.modules.oneview import test_common
 from ironic.tests.unit.objects import utils as obj_utils
 
 METHODS = ['iter_nodes', 'update_node', 'do_provisioning_action']
@@ -37,10 +38,10 @@ oneview_error = common.SERVER_HARDWARE_ALLOCATION_ERROR
 maintenance_reason = common.NODE_IN_USE_BY_ONEVIEW
 
 driver_internal_info = {'oneview_error': oneview_error}
-nodes_taken_by_oneview = [(1, 'fake_oneview')]
-nodes_freed_by_oneview = [(1, 'fake_oneview', maintenance_reason)]
-nodes_taken_on_cleanfail = [(1, 'fake_oneview', driver_internal_info)]
-nodes_taken_on_cleanfail_no_info = [(1, 'fake_oneview', {})]
+nodes_taken_by_oneview = [(1, 'oneview')]
+nodes_freed_by_oneview = [(1, 'oneview', maintenance_reason)]
+nodes_taken_on_cleanfail = [(1, 'oneview', driver_internal_info)]
+nodes_taken_on_cleanfail_no_info = [(1, 'oneview', {})]
 
 GET_POWER_STATE_RETRIES = 5
 
@@ -78,12 +79,12 @@ def _setup_node_in_cleanfailed_state_without_oneview_error(node):
 
 
 class OneViewDriverDeploy(deploy.OneViewPeriodicTasks):
-    oneview_driver = 'fake_oneview'
+    oneview_driver = 'oneview'
 
 
 @mock.patch('ironic.objects.Node', spec_set=True, autospec=True)
 @mock.patch.object(deploy_utils, 'is_node_in_use_by_oneview')
-class OneViewPeriodicTasks(db_base.DbTestCase):
+class OneViewPeriodicTasks(test_common.BaseOneViewTest):
 
     def setUp(self):
         super(OneViewPeriodicTasks, self).setUp()
@@ -91,15 +92,8 @@ class OneViewPeriodicTasks(db_base.DbTestCase):
         self.config(username='user', group='oneview')
         self.config(password='password', group='oneview')
 
-        self.config(enabled_drivers=['fake_oneview'])
-        self.driver = driver_factory.get_driver('fake_oneview')
         self.deploy = OneViewDriverDeploy()
         self.os_primary = mock.MagicMock(spec=METHODS)
-        self.node = obj_utils.create_test_node(
-            self.context, driver='fake_oneview',
-            properties=db_utils.get_test_oneview_properties(),
-            driver_info=db_utils.get_test_oneview_driver_info(),
-        )
 
     def test_node_manageable_maintenance_when_in_use_by_oneview(
         self, mock_is_node_in_use_by_oneview, mock_node_get

@@ -20,27 +20,20 @@ from oslo_utils import importutils
 from ironic.common import exception
 from ironic.common import states
 from ironic.conductor import task_manager
+from ironic.drivers.modules import fake
 from ironic.drivers.modules.ucs import helper as ucs_helper
 from ironic.drivers.modules.ucs import power as ucs_power
-from ironic.tests.unit.db import base as db_base
-from ironic.tests.unit.db import utils as db_utils
-from ironic.tests.unit.objects import utils as obj_utils
+from ironic.tests.unit.drivers.modules.ucs import test_helper
 
 ucs_error = importutils.try_import('UcsSdk.utils.exception')
 
-INFO_DICT = db_utils.get_test_ucs_info()
 CONF = cfg.CONF
 
 
-class UcsPowerTestCase(db_base.DbTestCase):
+class UcsPowerTestCase(test_helper.BaseUcsTest):
 
     def setUp(self):
         super(UcsPowerTestCase, self).setUp()
-        driver_info = INFO_DICT
-        self.config(enabled_drivers=['fake_ucs'])
-        self.node = obj_utils.create_test_node(self.context,
-                                               driver='fake_ucs',
-                                               driver_info=driver_info)
         CONF.set_override('max_retry', 2, 'cisco_ucs')
         CONF.set_override('action_interval', 0, 'cisco_ucs')
         self.interface = ucs_power.Power()
@@ -50,6 +43,9 @@ class UcsPowerTestCase(db_base.DbTestCase):
         expected.update(ucs_helper.COMMON_PROPERTIES)
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
+            # Remove properties from boot and deploy interfaces
+            task.driver.boot = fake.FakeBoot()
+            task.driver.deploy = fake.FakeDeploy()
             self.assertEqual(expected, task.driver.get_properties())
 
     @mock.patch.object(ucs_helper, 'parse_driver_info',

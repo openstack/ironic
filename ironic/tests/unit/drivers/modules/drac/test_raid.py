@@ -24,23 +24,20 @@ from ironic.conductor import task_manager
 from ironic.drivers.modules.drac import common as drac_common
 from ironic.drivers.modules.drac import job as drac_job
 from ironic.drivers.modules.drac import raid as drac_raid
-from ironic.tests.unit.db import base as db_base
-from ironic.tests.unit.db import utils as db_utils
 from ironic.tests.unit.drivers.modules.drac import utils as test_utils
 from ironic.tests.unit.objects import utils as obj_utils
 
-INFO_DICT = db_utils.get_test_drac_info()
+INFO_DICT = test_utils.INFO_DICT
 
 
 @mock.patch.object(drac_common, 'get_drac_client', spec_set=True,
                    autospec=True)
-class DracQueryRaidConfigurationTestCase(db_base.DbTestCase):
+class DracQueryRaidConfigurationTestCase(test_utils.BaseDracTest):
 
     def setUp(self):
         super(DracQueryRaidConfigurationTestCase, self).setUp()
-        self.config(enabled_drivers=['fake_drac'])
         self.node = obj_utils.create_test_node(self.context,
-                                               driver='fake_drac',
+                                               driver='idrac',
                                                driver_info=INFO_DICT)
 
         raid_controller_dict = {
@@ -145,13 +142,12 @@ class DracQueryRaidConfigurationTestCase(db_base.DbTestCase):
 
 @mock.patch.object(drac_common, 'get_drac_client', spec_set=True,
                    autospec=True)
-class DracManageVirtualDisksTestCase(db_base.DbTestCase):
+class DracManageVirtualDisksTestCase(test_utils.BaseDracTest):
 
     def setUp(self):
         super(DracManageVirtualDisksTestCase, self).setUp()
-        self.config(enabled_drivers=['fake_drac'])
         self.node = obj_utils.create_test_node(self.context,
-                                               driver='fake_drac',
+                                               driver='idrac',
                                                driver_info=INFO_DICT)
 
     @mock.patch.object(drac_job, 'validate_job_queue', spec_set=True,
@@ -270,13 +266,12 @@ class DracManageVirtualDisksTestCase(db_base.DbTestCase):
             'controller1')
 
 
-class DracCreateRaidConfigurationHelpersTestCase(db_base.DbTestCase):
+class DracCreateRaidConfigurationHelpersTestCase(test_utils.BaseDracTest):
 
     def setUp(self):
         super(DracCreateRaidConfigurationHelpersTestCase, self).setUp()
-        self.config(enabled_drivers=['fake_drac'])
         self.node = obj_utils.create_test_node(self.context,
-                                               driver='fake_drac',
+                                               driver='idrac',
                                                driver_info=INFO_DICT)
 
         self.physical_disk = {
@@ -523,13 +518,12 @@ class DracCreateRaidConfigurationHelpersTestCase(db_base.DbTestCase):
             logical_disks)
 
 
-class DracRaidInterfaceTestCase(db_base.DbTestCase):
+class DracRaidInterfaceTestCase(test_utils.BaseDracTest):
 
     def setUp(self):
         super(DracRaidInterfaceTestCase, self).setUp()
-        self.config(enabled_drivers=['fake_drac'])
         self.node = obj_utils.create_test_node(self.context,
-                                               driver='fake_drac',
+                                               driver='idrac',
                                                driver_info=INFO_DICT)
 
         self.physical_disk = {

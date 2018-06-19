@@ -20,18 +20,17 @@ import mock
 
 from ironic.common import exception
 from ironic.drivers.modules.drac import common as drac_common
-from ironic.tests.unit.db import base as db_base
 from ironic.tests.unit.db import utils as db_utils
+from ironic.tests.unit.drivers.modules.drac import utils as test_utils
 from ironic.tests.unit.objects import utils as obj_utils
 
 INFO_DICT = db_utils.get_test_drac_info()
 
 
-class DracCommonMethodsTestCase(db_base.DbTestCase):
-
+class DracCommonMethodsTestCase(test_utils.BaseDracTest):
     def test_parse_driver_info(self):
         node = obj_utils.create_test_node(self.context,
-                                          driver='fake_drac',
+                                          driver='idrac',
                                           driver_info=INFO_DICT)
         info = drac_common.parse_driver_info(node)
         self.assertEqual(INFO_DICT['drac_address'], info['drac_address'])
@@ -47,7 +46,7 @@ class DracCommonMethodsTestCase(db_base.DbTestCase):
         driver_info['drac_host'] = '4.5.6.7'
         driver_info.pop('drac_address')
         node = obj_utils.create_test_node(self.context,
-                                          driver='fake_drac',
+                                          driver='idrac',
                                           driver_info=driver_info)
         info = drac_common.parse_driver_info(node)
         self.assertEqual('4.5.6.7', info['drac_address'])
@@ -59,7 +58,7 @@ class DracCommonMethodsTestCase(db_base.DbTestCase):
         driver_info = db_utils.get_test_drac_info()
         driver_info['drac_host'] = '4.5.6.7'
         node = obj_utils.create_test_node(self.context,
-                                          driver='fake_drac',
+                                          driver='idrac',
                                           driver_info=driver_info)
         info = drac_common.parse_driver_info(node)
         self.assertEqual('4.5.6.7', driver_info['drac_host'])
@@ -68,7 +67,7 @@ class DracCommonMethodsTestCase(db_base.DbTestCase):
 
     def test_parse_driver_info_missing_host(self):
         node = obj_utils.create_test_node(self.context,
-                                          driver='fake_drac',
+                                          driver='idrac',
                                           driver_info=INFO_DICT)
         del node.driver_info['drac_address']
         self.assertRaises(exception.InvalidParameterValue,
@@ -76,7 +75,7 @@ class DracCommonMethodsTestCase(db_base.DbTestCase):
 
     def test_parse_driver_info_missing_port(self):
         node = obj_utils.create_test_node(self.context,
-                                          driver='fake_drac',
+                                          driver='idrac',
                                           driver_info=INFO_DICT)
         del node.driver_info['drac_port']
 
@@ -85,7 +84,7 @@ class DracCommonMethodsTestCase(db_base.DbTestCase):
 
     def test_parse_driver_info_invalid_port(self):
         node = obj_utils.create_test_node(self.context,
-                                          driver='fake_drac',
+                                          driver='idrac',
                                           driver_info=INFO_DICT)
         node.driver_info['drac_port'] = 'foo'
         self.assertRaises(exception.InvalidParameterValue,
@@ -93,7 +92,7 @@ class DracCommonMethodsTestCase(db_base.DbTestCase):
 
     def test_parse_driver_info_missing_path(self):
         node = obj_utils.create_test_node(self.context,
-                                          driver='fake_drac',
+                                          driver='idrac',
                                           driver_info=INFO_DICT)
         del node.driver_info['drac_path']
 
@@ -102,7 +101,7 @@ class DracCommonMethodsTestCase(db_base.DbTestCase):
 
     def test_parse_driver_info_missing_protocol(self):
         node = obj_utils.create_test_node(self.context,
-                                          driver='fake_drac',
+                                          driver='idrac',
                                           driver_info=INFO_DICT)
         del node.driver_info['drac_protocol']
 
@@ -111,7 +110,7 @@ class DracCommonMethodsTestCase(db_base.DbTestCase):
 
     def test_parse_driver_info_invalid_protocol(self):
         node = obj_utils.create_test_node(self.context,
-                                          driver='fake_drac',
+                                          driver='idrac',
                                           driver_info=INFO_DICT)
         node.driver_info['drac_protocol'] = 'foo'
 
@@ -120,7 +119,7 @@ class DracCommonMethodsTestCase(db_base.DbTestCase):
 
     def test_parse_driver_info_missing_username(self):
         node = obj_utils.create_test_node(self.context,
-                                          driver='fake_drac',
+                                          driver='idrac',
                                           driver_info=INFO_DICT)
         del node.driver_info['drac_username']
         self.assertRaises(exception.InvalidParameterValue,
@@ -128,7 +127,7 @@ class DracCommonMethodsTestCase(db_base.DbTestCase):
 
     def test_parse_driver_info_missing_password(self):
         node = obj_utils.create_test_node(self.context,
-                                          driver='fake_drac',
+                                          driver='idrac',
                                           driver_info=INFO_DICT)
         del node.driver_info['drac_password']
         self.assertRaises(exception.InvalidParameterValue,
@@ -139,7 +138,7 @@ class DracCommonMethodsTestCase(db_base.DbTestCase):
         expected_call = mock.call('1.2.3.4', 'admin', 'fake', 443, '/wsman',
                                   'https')
         node = obj_utils.create_test_node(self.context,
-                                          driver='fake_drac',
+                                          driver='idrac',
                                           driver_info=INFO_DICT)
 
         drac_common.get_drac_client(node)

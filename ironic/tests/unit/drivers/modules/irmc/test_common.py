@@ -29,14 +29,23 @@ from ironic.tests.unit.drivers import third_party_driver_mock_specs \
 from ironic.tests.unit.objects import utils as obj_utils
 
 
-class IRMCValidateParametersTestCase(db_base.DbTestCase):
+class BaseIRMCTest(db_base.DbTestCase):
 
     def setUp(self):
-        super(IRMCValidateParametersTestCase, self).setUp()
+        super(BaseIRMCTest, self).setUp()
+        self.config(enabled_hardware_types=['irmc', 'fake-hardware'],
+                    enabled_power_interfaces=['irmc', 'fake'],
+                    enabled_management_interfaces=['irmc', 'fake'],
+                    enabled_boot_interfaces=['irmc-pxe', 'fake'],
+                    enabled_inspect_interfaces=['irmc', 'no-inspect', 'fake'])
+        self.info = db_utils.get_test_irmc_info()
         self.node = obj_utils.create_test_node(
             self.context,
-            driver='fake_irmc',
-            driver_info=db_utils.get_test_irmc_info())
+            driver='irmc',
+            driver_info=self.info)
+
+
+class IRMCValidateParametersTestCase(BaseIRMCTest):
 
     def test_parse_driver_info(self):
         info = irmc_common.parse_driver_info(self.node)
@@ -138,16 +147,7 @@ class IRMCValidateParametersTestCase(db_base.DbTestCase):
                           irmc_common.parse_driver_info, self.node)
 
 
-class IRMCCommonMethodsTestCase(db_base.DbTestCase):
-
-    def setUp(self):
-        super(IRMCCommonMethodsTestCase, self).setUp()
-        self.config(enabled_drivers=['fake_irmc'])
-        self.info = db_utils.get_test_irmc_info()
-        self.node = obj_utils.create_test_node(
-            self.context,
-            driver='fake_irmc',
-            driver_info=self.info)
+class IRMCCommonMethodsTestCase(BaseIRMCTest):
 
     @mock.patch.object(irmc_common, 'scci',
                        spec_set=mock_specs.SCCICLIENT_IRMC_SCCI_SPEC)

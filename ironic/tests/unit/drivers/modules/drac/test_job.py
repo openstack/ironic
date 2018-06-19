@@ -22,23 +22,20 @@ from ironic.common import exception
 from ironic.conductor import task_manager
 from ironic.drivers.modules.drac import common as drac_common
 from ironic.drivers.modules.drac import job as drac_job
-from ironic.tests.unit.db import base as db_base
-from ironic.tests.unit.db import utils as db_utils
 from ironic.tests.unit.drivers.modules.drac import utils as test_utils
 from ironic.tests.unit.objects import utils as obj_utils
 
-INFO_DICT = db_utils.get_test_drac_info()
+INFO_DICT = test_utils.INFO_DICT
 
 
 @mock.patch.object(drac_common, 'get_drac_client', spec_set=True,
                    autospec=True)
-class DracJobTestCase(db_base.DbTestCase):
+class DracJobTestCase(test_utils.BaseDracTest):
 
     def setUp(self):
         super(DracJobTestCase, self).setUp()
-        self.config(enabled_drivers=['fake_drac'])
         self.node = obj_utils.create_test_node(self.context,
-                                               driver='fake_drac',
+                                               driver='idrac',
                                                driver_info=INFO_DICT)
         self.job_dict = {
             'id': 'JID_001436912645',
@@ -117,13 +114,12 @@ class DracJobTestCase(db_base.DbTestCase):
 
 @mock.patch.object(drac_common, 'get_drac_client', spec_set=True,
                    autospec=True)
-class DracVendorPassthruJobTestCase(db_base.DbTestCase):
+class DracVendorPassthruJobTestCase(test_utils.BaseDracTest):
 
     def setUp(self):
         super(DracVendorPassthruJobTestCase, self).setUp()
-        self.config(enabled_drivers=['fake_drac'])
         self.node = obj_utils.create_test_node(self.context,
-                                               driver='fake_drac',
+                                               driver='idrac',
                                                driver_info=INFO_DICT)
         self.job_dict = {
             'id': 'JID_001436912645',

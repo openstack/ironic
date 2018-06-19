@@ -27,8 +27,8 @@ from ironic.conductor import task_manager
 from ironic.conductor import utils as manager_utils
 from ironic.drivers.modules.ilo import common as ilo_common
 from ironic.drivers.modules.ilo import power as ilo_power
-from ironic.tests.unit.db import base as db_base
 from ironic.tests.unit.db import utils as db_utils
+from ironic.tests.unit.drivers.modules.ilo import test_common
 from ironic.tests.unit.objects import utils as obj_utils
 
 ilo_error = importutils.try_import('proliantutils.exception')
@@ -38,15 +38,12 @@ CONF = cfg.CONF
 
 
 @mock.patch.object(ilo_common, 'get_ilo_object', spec_set=True, autospec=True)
-class IloPowerInternalMethodsTestCase(db_base.DbTestCase):
+class IloPowerInternalMethodsTestCase(test_common.BaseIloTest):
 
     def setUp(self):
         super(IloPowerInternalMethodsTestCase, self).setUp()
-        driver_info = INFO_DICT
-        self.config(enabled_drivers=['fake_ilo'])
-        self.node = db_utils.create_test_node(
-            driver='fake_ilo',
-            driver_info=driver_info,
+        self.node = obj_utils.create_test_node(
+            self.context, driver='ilo', driver_info=INFO_DICT,
             instance_uuid=uuidutils.generate_uuid())
         CONF.set_override('power_retry', 2, 'ilo')
         CONF.set_override('power_wait', 0, 'ilo')
@@ -163,15 +160,7 @@ class IloPowerInternalMethodsTestCase(db_base.DbTestCase):
             self.assertFalse(set_boot_device_mock.called)
 
 
-class IloPowerTestCase(db_base.DbTestCase):
-
-    def setUp(self):
-        super(IloPowerTestCase, self).setUp()
-        driver_info = INFO_DICT
-        self.config(enabled_drivers=['fake_ilo'])
-        self.node = obj_utils.create_test_node(self.context,
-                                               driver='fake_ilo',
-                                               driver_info=driver_info)
+class IloPowerTestCase(test_common.BaseIloTest):
 
     def test_get_properties(self):
         expected = ilo_common.COMMON_PROPERTIES

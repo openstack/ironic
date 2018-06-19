@@ -24,6 +24,7 @@ from ironic_lib import utils as ironic_utils
 import mock
 from oslo_config import cfg
 from oslo_utils import importutils
+from oslo_utils import uuidutils
 import six
 import six.moves.builtins as __builtin__
 
@@ -52,13 +53,23 @@ if six.PY3:
 CONF = cfg.CONF
 
 
-class IloValidateParametersTestCase(db_base.DbTestCase):
+class BaseIloTest(db_base.DbTestCase):
 
     def setUp(self):
-        super(IloValidateParametersTestCase, self).setUp()
+        super(BaseIloTest, self).setUp()
+        self.config(enabled_hardware_types=['ilo', 'fake-hardware'],
+                    enabled_boot_interfaces=['ilo-pxe', 'ilo-virtual-media',
+                                             'fake'],
+                    enabled_power_interfaces=['ilo', 'fake'],
+                    enabled_management_interfaces=['ilo', 'fake'],
+                    enabled_inspect_interfaces=['ilo', 'fake', 'no-inspect'])
+        self.info = INFO_DICT.copy()
         self.node = obj_utils.create_test_node(
-            self.context, driver='fake_ilo',
-            driver_info=INFO_DICT)
+            self.context, uuid=uuidutils.generate_uuid(),
+            driver='ilo', driver_info=self.info)
+
+
+class IloValidateParametersTestCase(BaseIloTest):
 
     @mock.patch.object(os.path, 'isfile', return_value=True, autospec=True)
     def _test_parse_driver_info(self, isFile_mock):
@@ -209,14 +220,7 @@ class IloValidateParametersTestCase(db_base.DbTestCase):
         self.assertIn('client_timeout', str(e))
 
 
-class IloCommonMethodsTestCase(db_base.DbTestCase):
-
-    def setUp(self):
-        super(IloCommonMethodsTestCase, self).setUp()
-        self.config(enabled_drivers=['fake_ilo'])
-        self.info = db_utils.get_test_ilo_info()
-        self.node = obj_utils.create_test_node(
-            self.context, driver='fake_ilo', driver_info=self.info)
+class IloCommonMethodsTestCase(BaseIloTest):
 
     @mock.patch.object(os.path, 'isfile', return_value=True, autospec=True)
     @mock.patch.object(ilo_client, 'IloClient', spec_set=True,
