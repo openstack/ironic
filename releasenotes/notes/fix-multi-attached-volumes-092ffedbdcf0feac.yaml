@@ -1,5 +1,6 @@
 ---
 fixes:
   - |
-    Fix an issue with iPXE is used for authentication during boot from volume
-    with multi attached volumes.
+    Fixes an issue with iPXE where the incorrect iscsi volume
+    authentication data was being used with boot from volume when
+    multi-attach volumes were present.

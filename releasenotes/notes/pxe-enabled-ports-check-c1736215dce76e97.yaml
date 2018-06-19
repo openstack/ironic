@@ -1,6 +1,7 @@
 ---
 fixes:
   - |
-    When creating a neutron port for booting a ramdisk, an error is raised if
-    there are no PXE-enabled ports available for the node. See `bug 2001811
+    Fixes an issue where no error was raised if there were no PXE-enabled
+    ports available for the node, when creating a neutron port.
+    See `bug 2001811
     <https://storyboard.openstack.org/#!/story/2001811>`_ for more details.

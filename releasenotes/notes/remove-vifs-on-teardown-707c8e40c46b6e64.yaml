@@ -3,13 +3,14 @@ upgrade:
   - |
     The behavior for retention of VIF interface attachments has changed.
 
-    If your use of the BareMetal service is reliant upon the behavior of
+    If your use of the Bare Metal service is reliant upon the behavior of
     the VIFs being retained, which was introduced as a behavior change
     during the Ocata cycle, then you must update your tooling to explicitly
     re-add the VIF attachments prior to deployment.
 fixes:
   - |
-    Removes all records of VIF attachments upon the teardown of a deployed
+    Fixes potential case of VIF records being orphaned as the service
+    now removes all records of VIF attachments upon the teardown of a deployed
     node. This is in order to resolve issues related to where it is
     operationally impossible in some circumstances to remove a VIF
     attachment while a node is being undeployed as the Compute service
