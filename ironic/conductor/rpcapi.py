@@ -128,6 +128,10 @@ class ConductorAPI(object):
         """
         self.ring_manager.reset()
 
+        # There are no conductors, temporary failure - 503 Service Unavailable
+        if not self.ring_manager.ring:
+            raise exception.TemporaryFailure()
+
         try:
             ring = self.ring_manager[node.driver]
             dest = ring.get_nodes(node.uuid.encode('utf-8'),

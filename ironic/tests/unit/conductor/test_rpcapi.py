@@ -98,7 +98,7 @@ class RPCAPITestCase(db_base.DbTestCase):
         CONF.set_override('host', 'fake-host')
 
         rpcapi = conductor_rpcapi.ConductorAPI(topic='fake-topic')
-        self.assertRaises(exception.NoValidHost,
+        self.assertRaises(exception.TemporaryFailure,
                           rpcapi.get_topic_for,
                           self.fake_node_obj)
 
