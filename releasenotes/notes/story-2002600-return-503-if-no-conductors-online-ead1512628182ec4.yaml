@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Ironic API now returns ``503 Service Unavailable`` for action requiring a
+    conductor when no conductors are online.
+    `Bug: 2002600 <https://storyboard.openstack.org/#!/story/2002600>`_.
