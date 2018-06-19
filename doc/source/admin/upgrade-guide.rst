@@ -301,6 +301,13 @@ release.
 * Upgrade ``python-ironicclient`` along with other services connecting
   to the Bare Metal service as a client, such as ``nova-compute``.
 
+  .. warning::
+    A ``nova-compute`` instance tries to attach VIFs to all active instances
+    on start up. Make sure that for all active nodes there is at least one
+    running ``ironic-conductor`` process to manage them. Otherwise the
+    instances will be moved to the ``ERROR`` state on the ``nova-compute``
+    start up.
+
 * Run the ``ironic-dbsync online_data_migrations`` command to make sure
   that data migrations are applied. The command lets you limit
   the impact of the data migrations with the ``--max-count`` option, which
