@@ -1,0 +1,14 @@
+---
+prelude: >
+    I R O N I C turns the dial to `11`
+
+    In preparation for the OpenStack Rocky development cycle release,
+    the "ironic" Bare Metal as a Service team announces the release of
+    version 11.0. While it is not quite like a volume knob, this release
+    lays the foundation for features coming in future releases and
+    user experience enhancements.
+
+    Some of these include the BIOS configuration framework, power fault
+    recovery, additonal error handling, refactoring, removal of classic
+    drivers, and many bug fixes.
+
