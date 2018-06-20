@@ -262,7 +262,8 @@ class PortgroupsController(pecan.rest.RestController):
 
     def _get_portgroups_collection(self, node_ident, address,
                                    marker, limit, sort_key, sort_dir,
-                                   resource_url=None, fields=None):
+                                   resource_url=None, fields=None,
+                                   detail=None):
         """Return portgroups collection.
 
         :param node_ident: UUID or name of a node.
@@ -305,12 +306,16 @@ class PortgroupsController(pecan.rest.RestController):
             portgroups = objects.Portgroup.list(pecan.request.context, limit,
                                                 marker_obj, sort_key=sort_key,
                                                 sort_dir=sort_dir)
+        parameters = {}
+        if detail is not None:
+            parameters['detail'] = detail
 
         return PortgroupCollection.convert_with_links(portgroups, limit,
                                                       url=resource_url,
                                                       fields=fields,
                                                       sort_key=sort_key,
-                                                      sort_dir=sort_dir)
+                                                      sort_dir=sort_dir,
+                                                      **parameters)
 
     def _get_portgroups_by_address(self, address):
         """Retrieve a portgroup by its address.
@@ -330,9 +335,11 @@ class PortgroupsController(pecan.rest.RestController):
 
     @METRICS.timer('PortgroupsController.get_all')
     @expose.expose(PortgroupCollection, types.uuid_or_name, types.macaddress,
-                   types.uuid, int, wtypes.text, wtypes.text, types.listtype)
+                   types.uuid, int, wtypes.text, wtypes.text, types.listtype,
+                   types.boolean)
     def get_all(self, node=None, address=None, marker=None,
-                limit=None, sort_key='id', sort_dir='asc', fields=None):
+                limit=None, sort_key='id', sort_dir='asc', fields=None,
+                detail=None):
         """Retrieve a list of portgroups.
 
         :param node: UUID or name of a node, to get only portgroups for that
@@ -358,13 +365,14 @@ class PortgroupsController(pecan.rest.RestController):
         api_utils.check_allowed_portgroup_fields(fields)
         api_utils.check_allowed_portgroup_fields([sort_key])
 
-        if fields is None:
-            fields = _DEFAULT_RETURN_FIELDS
+        fields = api_utils.get_request_return_fields(fields, detail,
+                                                     _DEFAULT_RETURN_FIELDS)
 
         return self._get_portgroups_collection(node, address,
                                                marker, limit,
                                                sort_key, sort_dir,
-                                               fields=fields)
+                                               fields=fields,
+                                               detail=detail)
 
     @METRICS.timer('PortgroupsController.detail')
     @expose.expose(PortgroupCollection, types.uuid_or_name, types.macaddress,

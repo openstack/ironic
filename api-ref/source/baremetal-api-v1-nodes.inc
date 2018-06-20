@@ -132,7 +132,7 @@ and any defaults added for non-specified fields. Most fields default to "null"
 or "".
 
 The list and example below are representative of the response as of API
-microversion 1.42.
+microversion 1.43.
 
 .. rest_parameters:: parameters.yaml
 
@@ -215,6 +215,10 @@ provision state, and maintenance setting for each Node.
 .. versionadded:: 1.42
   Introduced the ``fault`` field.
 
+.. versionadded:: 1.43
+  Added the ``detail`` boolean request parameter. When specified ``True`` this
+  causes the response to include complete details about each node.
+
 Normal response codes: 200
 
 Error codes: 400,403,406
@@ -236,6 +240,7 @@ Request
    - marker: marker
    - sort_dir: sort_dir
    - sort_key: sort_key
+   - detail: detail
 
 Response
 --------
@@ -260,6 +265,9 @@ List Nodes Detailed
 ===================
 
 .. rest_method::  GET /v1/nodes/detail
+
+.. deprecated::
+   Use ?detail=True query string instead.
 
 Return a list of bare metal Nodes with complete details. Some filtering is
 possible by passing in flags with the request.

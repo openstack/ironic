@@ -430,6 +430,72 @@ class TestListNodes(test_api_base.BaseApiTest):
         # never expose the chassis_id
         self.assertNotIn('chassis_id', data['nodes'][0])
 
+    def test_detail_using_query(self):
+        node = obj_utils.create_test_node(self.context,
+                                          chassis_id=self.chassis.id)
+        data = self.get_json(
+            '/nodes?detail=True',
+            headers={api_base.Version.string: str(api_v1.max_version())})
+        self.assertEqual(node.uuid, data['nodes'][0]["uuid"])
+        self.assertIn('name', data['nodes'][0])
+        self.assertIn('driver', data['nodes'][0])
+        self.assertIn('driver_info', data['nodes'][0])
+        self.assertIn('extra', data['nodes'][0])
+        self.assertIn('properties', data['nodes'][0])
+        self.assertIn('chassis_uuid', data['nodes'][0])
+        self.assertIn('reservation', data['nodes'][0])
+        self.assertIn('maintenance', data['nodes'][0])
+        self.assertIn('console_enabled', data['nodes'][0])
+        self.assertIn('target_power_state', data['nodes'][0])
+        self.assertIn('target_provision_state', data['nodes'][0])
+        self.assertIn('provision_updated_at', data['nodes'][0])
+        self.assertIn('inspection_finished_at', data['nodes'][0])
+        self.assertIn('inspection_started_at', data['nodes'][0])
+        self.assertIn('raid_config', data['nodes'][0])
+        self.assertIn('target_raid_config', data['nodes'][0])
+        self.assertIn('network_interface', data['nodes'][0])
+        self.assertIn('resource_class', data['nodes'][0])
+        for field in api_utils.V31_FIELDS:
+            self.assertIn(field, data['nodes'][0])
+        # never expose the chassis_id
+        self.assertNotIn('chassis_id', data['nodes'][0])
+
+    def test_detail_query_false(self):
+        obj_utils.create_test_node(self.context)
+        data1 = self.get_json(
+            '/nodes',
+            headers={api_base.Version.string: str(api_v1.max_version())})
+        data2 = self.get_json(
+            '/nodes?detail=False',
+            headers={api_base.Version.string: str(api_v1.max_version())})
+        self.assertEqual(data1['nodes'], data2['nodes'])
+
+    def test_detail_using_query_false_and_fields(self):
+        obj_utils.create_test_node(self.context)
+        data = self.get_json(
+            '/nodes?detail=False&fields=name',
+            headers={api_base.Version.string: str(api_v1.max_version())})
+        self.assertIn('name', data['nodes'][0])
+        self.assertNotIn('uuid', data['nodes'][0])
+
+    def test_detail_using_query_and_fields(self):
+        obj_utils.create_test_node(self.context,
+                                   chassis_id=self.chassis.id)
+        response = self.get_json(
+            '/nodes?detail=True&fields=name',
+            headers={api_base.Version.string: str(api_v1.max_version())},
+            expect_errors=True)
+        self.assertEqual(http_client.BAD_REQUEST, response.status_int)
+
+    def test_detail_using_query_old_version(self):
+        obj_utils.create_test_node(self.context,
+                                   chassis_id=self.chassis.id)
+        response = self.get_json(
+            '/nodes?detail=True',
+            headers={api_base.Version.string: str(api_v1.min_version())},
+            expect_errors=True)
+        self.assertEqual(http_client.BAD_REQUEST, response.status_int)
+
     def test_detail_against_single(self):
         node = obj_utils.create_test_node(self.context)
         response = self.get_json('/nodes/%s/detail' % node.uuid,

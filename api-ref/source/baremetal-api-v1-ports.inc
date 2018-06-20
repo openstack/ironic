@@ -42,6 +42,10 @@ By default, this query will return the uuid and address for each Port.
 .. versionadded:: 1.34
   Added the ``physical_network`` field.
 
+.. versionadded:: 1.43
+  Added the ``detail`` boolean request parameter. When specified ``True`` this
+  causes the response to include complete details about each port.
+
 Normal response code: 200
 
 Request
@@ -58,6 +62,7 @@ Request
     - marker: marker
     - sort_dir: sort_dir
     - sort_key: sort_key
+    - detail: detail
 
 Response
 --------

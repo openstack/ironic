@@ -174,7 +174,7 @@ class ChassisController(rest.RestController):
     invalid_sort_key_list = ['extra']
 
     def _get_chassis_collection(self, marker, limit, sort_key, sort_dir,
-                                resource_url=None, fields=None):
+                                resource_url=None, fields=None, detail=None):
         limit = api_utils.validate_limit(limit)
         sort_dir = api_utils.validate_sort_dir(sort_dir)
         marker_obj = None
@@ -190,17 +190,22 @@ class ChassisController(rest.RestController):
         chassis = objects.Chassis.list(pecan.request.context, limit,
                                        marker_obj, sort_key=sort_key,
                                        sort_dir=sort_dir)
+        parameters = {}
+        if detail is not None:
+            parameters['detail'] = detail
+
         return ChassisCollection.convert_with_links(chassis, limit,
                                                     url=resource_url,
                                                     fields=fields,
                                                     sort_key=sort_key,
-                                                    sort_dir=sort_dir)
+                                                    sort_dir=sort_dir,
+                                                    **parameters)
 
     @METRICS.timer('ChassisController.get_all')
     @expose.expose(ChassisCollection, types.uuid, int,
-                   wtypes.text, wtypes.text, types.listtype)
+                   wtypes.text, wtypes.text, types.listtype, types.boolean)
     def get_all(self, marker=None, limit=None, sort_key='id', sort_dir='asc',
-                fields=None):
+                fields=None, detail=None):
         """Retrieve a list of chassis.
 
         :param marker: pagination marker for large data sets.
@@ -217,10 +222,12 @@ class ChassisController(rest.RestController):
         policy.authorize('baremetal:chassis:get', cdict, cdict)
 
         api_utils.check_allow_specify_fields(fields)
-        if fields is None:
-            fields = _DEFAULT_RETURN_FIELDS
+
+        fields = api_utils.get_request_return_fields(fields, detail,
+                                                     _DEFAULT_RETURN_FIELDS)
+
         return self._get_chassis_collection(marker, limit, sort_key, sort_dir,
-                                            fields=fields)
+                                            fields=fields, detail=detail)
 
     @METRICS.timer('ChassisController.detail')
     @expose.expose(ChassisCollection, types.uuid, int,

@@ -123,6 +123,49 @@ class TestListChassis(test_api_base.BaseApiTest):
         self.assertIn('extra', data['chassis'][0])
         self.assertIn('nodes', data['chassis'][0])
 
+    def test_detail_query(self):
+        chassis = obj_utils.create_test_chassis(self.context)
+        data = self.get_json(
+            '/chassis?detail=True',
+            headers={api_base.Version.string: str(api_v1.max_version())})
+        self.assertEqual(chassis.uuid, data['chassis'][0]["uuid"])
+        self.assertIn('extra', data['chassis'][0])
+        self.assertIn('nodes', data['chassis'][0])
+
+    def test_detail_query_false(self):
+        obj_utils.create_test_chassis(self.context)
+        data1 = self.get_json(
+            '/chassis',
+            headers={api_base.Version.string: str(api_v1.max_version())})
+        data2 = self.get_json(
+            '/chassis?detail=False',
+            headers={api_base.Version.string: str(api_v1.max_version())})
+        self.assertEqual(data1['chassis'], data2['chassis'])
+
+    def test_detail_using_query_and_fields(self):
+        obj_utils.create_test_chassis(self.context)
+        response = self.get_json(
+            '/chassis?detail=True&fields=description',
+            headers={api_base.Version.string: str(api_v1.max_version())},
+            expect_errors=True)
+        self.assertEqual(http_client.BAD_REQUEST, response.status_int)
+
+    def test_detail_using_query_false_and_fields(self):
+        obj_utils.create_test_chassis(self.context)
+        data = self.get_json(
+            '/chassis?detail=False&fields=description',
+            headers={api_base.Version.string: str(api_v1.max_version())})
+        self.assertIn('description', data['chassis'][0])
+        self.assertNotIn('uuid', data['chassis'][0])
+
+    def test_detail_using_query_old_version(self):
+        obj_utils.create_test_chassis(self.context)
+        response = self.get_json(
+            '/chassis?detail=True',
+            headers={api_base.Version.string: str(api_v1.min_version())},
+            expect_errors=True)
+        self.assertEqual(http_client.BAD_REQUEST, response.status_int)
+
     def test_detail_against_single(self):
         chassis = obj_utils.create_test_chassis(self.context)
         response = self.get_json('/chassis/%s/detail' % chassis['uuid'],

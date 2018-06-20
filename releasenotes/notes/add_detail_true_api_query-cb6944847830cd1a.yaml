@@ -1,0 +1,11 @@
+---
+features:
+  - |
+    Add ``?detail=`` boolean query to the API list endpoints to provide a more
+    RESTful alternative to the existing ``/nodes/detail`` and similar endpoints. The
+    default is False. Now these API requests are possible:
+
+    * ``/nodes?detail=True``
+    * ``/ports?detail=True``
+    * ``/chassis?detail=True``
+    * ``/portgroups?detail=True``

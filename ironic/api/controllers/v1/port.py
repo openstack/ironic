@@ -314,7 +314,7 @@ class PortsController(rest.RestController):
 
     def _get_ports_collection(self, node_ident, address, portgroup_ident,
                               marker, limit, sort_key, sort_dir,
-                              resource_url=None, fields=None):
+                              resource_url=None, fields=None, detail=None):
 
         limit = api_utils.validate_limit(limit)
         sort_dir = api_utils.validate_sort_dir(sort_dir)
@@ -362,12 +362,17 @@ class PortsController(rest.RestController):
             ports = objects.Port.list(pecan.request.context, limit,
                                       marker_obj, sort_key=sort_key,
                                       sort_dir=sort_dir)
+        parameters = {}
+
+        if detail is not None:
+            parameters['detail'] = detail
 
         return PortCollection.convert_with_links(ports, limit,
                                                  url=resource_url,
                                                  fields=fields,
                                                  sort_key=sort_key,
-                                                 sort_dir=sort_dir)
+                                                 sort_dir=sort_dir,
+                                                 **parameters)
 
     def _get_ports_by_address(self, address):
         """Retrieve a port by its address.
@@ -407,10 +412,11 @@ class PortsController(rest.RestController):
     @METRICS.timer('PortsController.get_all')
     @expose.expose(PortCollection, types.uuid_or_name, types.uuid,
                    types.macaddress, types.uuid, int, wtypes.text,
-                   wtypes.text, types.listtype, types.uuid_or_name)
+                   wtypes.text, types.listtype, types.uuid_or_name,
+                   types.boolean)
     def get_all(self, node=None, node_uuid=None, address=None, marker=None,
                 limit=None, sort_key='id', sort_dir='asc', fields=None,
-                portgroup=None):
+                portgroup=None, detail=None):
         """Retrieve a list of ports.
 
         Note that the 'node_uuid' interface is deprecated in favour
@@ -441,11 +447,12 @@ class PortsController(rest.RestController):
         api_utils.check_allow_specify_fields(fields)
         self._check_allowed_port_fields(fields)
         self._check_allowed_port_fields([sort_key])
+
         if portgroup and not api_utils.allow_portgroups_subcontrollers():
             raise exception.NotAcceptable()
 
-        if fields is None:
-            fields = _DEFAULT_RETURN_FIELDS
+        fields = api_utils.get_request_return_fields(fields, detail,
+                                                     _DEFAULT_RETURN_FIELDS)
 
         if not node_uuid and node:
             # We're invoking this interface using positional notation, or
@@ -457,7 +464,8 @@ class PortsController(rest.RestController):
 
         return self._get_ports_collection(node_uuid or node, address,
                                           portgroup, marker, limit, sort_key,
-                                          sort_dir, fields=fields)
+                                          sort_dir, fields=fields,
+                                          detail=detail)
 
     @METRICS.timer('PortsController.detail')
     @expose.expose(PortCollection, types.uuid_or_name, types.uuid,

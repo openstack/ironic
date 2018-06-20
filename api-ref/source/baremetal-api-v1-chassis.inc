@@ -203,6 +203,10 @@ List chassis
 
 Lists all chassis.
 
+.. versionadded:: 1.43
+  Added the ``detail`` boolean request parameter. When specified ``True`` this
+  causes the response to include complete details about each chassis.
+
 Normal response codes: 200
 
 .. TODO: add error codes
@@ -217,6 +221,7 @@ Request
    - sort_dir: sort_dir
    - sort_key: sort_key
    - fields: fields
+   - detail: detail
 
 Response Parameters
 -------------------

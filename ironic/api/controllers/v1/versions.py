@@ -80,6 +80,7 @@ BASE_VERSION = 1
 #        Add bios_interface to the node object.
 # v1.41: Add inspection abort support.
 # v1.42: Expose fault field to node.
+# v1.43: Add detail=True flag to all API endpoints
 
 MINOR_0_JUNO = 0
 MINOR_1_INITIAL_VERSION = 1
@@ -124,6 +125,7 @@ MINOR_39_INSPECT_WAIT = 39
 MINOR_40_BIOS_INTERFACE = 40
 MINOR_41_INSPECTION_ABORT = 41
 MINOR_42_FAULT = 42
+MINOR_43_ENABLE_DETAIL_QUERY = 43
 
 # When adding another version, update:
 # - MINOR_MAX_VERSION
@@ -131,7 +133,7 @@ MINOR_42_FAULT = 42
 #   explanation of what changed in the new version
 # - common/release_mappings.py, RELEASE_MAPPING['master']['api']
 
-MINOR_MAX_VERSION = MINOR_42_FAULT
+MINOR_MAX_VERSION = MINOR_43_ENABLE_DETAIL_QUERY
 
 # String representations of the minor and maximum versions
 _MIN_VERSION_STRING = '{}.{}'.format(BASE_VERSION, MINOR_1_INITIAL_VERSION)
