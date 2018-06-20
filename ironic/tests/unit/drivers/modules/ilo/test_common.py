@@ -62,6 +62,7 @@ class BaseIloTest(db_base.DbTestCase):
         self.config(enabled_hardware_types=['ilo', 'fake-hardware'],
                     enabled_boot_interfaces=['ilo-pxe', 'ilo-virtual-media',
                                              'fake'],
+                    enabled_bios_interfaces=['ilo', 'no-bios'],
                     enabled_power_interfaces=['ilo', 'fake'],
                     enabled_management_interfaces=['ilo', 'fake'],
                     enabled_inspect_interfaces=['ilo', 'fake', 'no-inspect'],
@@ -71,6 +72,7 @@ class BaseIloTest(db_base.DbTestCase):
         self.node = obj_utils.create_test_node(
             self.context, uuid=uuidutils.generate_uuid(),
             driver='ilo', boot_interface=self.boot_interface,
+            bios_interface='ilo',
             driver_info=self.info)
 
 

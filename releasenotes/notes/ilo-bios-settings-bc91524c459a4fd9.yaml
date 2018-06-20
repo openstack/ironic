@@ -1,0 +1,8 @@
+---
+features:
+  - |
+    Implements ``bios`` interface for ``ilo`` hardware type.
+    Adds the list of supported bios interfaces for the `ilo` hardware type.
+    Adds manual cleaning steps ``apply_configuration`` and ``factory_reset``
+    which support managing the BIOS settings for the iLO servers using `ilo`
+    hardware type.
