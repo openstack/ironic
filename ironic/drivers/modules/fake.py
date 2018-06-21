@@ -234,7 +234,7 @@ class FakeRAID(base.RAIDInterface):
 
 
 class FakeBIOS(base.BIOSInterface):
-    """Example implementation of simple BIOSInterface."""
+    """Fake implementation of simple BIOSInterface."""
 
     def get_properties(self):
         return {}
@@ -247,14 +247,36 @@ class FakeBIOS(base.BIOSInterface):
                      'to contain a dictionary with name/value pairs'),
                      'required': True}})
     def apply_configuration(self, task, settings):
+        # Note: the implementation of apply_configuration in fake interface
+        # is just for testing purpose, for real driver implementation, please
+        # refer to develop doc at https://docs.openstack.org/ironic/latest/
+        # contributor/bios_develop.html.
         node_id = task.node.id
-        try:
-            objects.BIOSSettingList.create(task.context, node_id, settings)
-        except exception.BIOSSettingAlreadyExists:
-            objects.BIOSSettingList.save(task.context, node_id, settings)
+        create_list, update_list, delete_list, nochange_list = (
+            objects.BIOSSettingList.sync_node_setting(task.context, node_id,
+                                                      settings))
+
+        if len(create_list) > 0:
+            objects.BIOSSettingList.create(task.context, node_id, create_list)
+        if len(update_list) > 0:
+            objects.BIOSSettingList.save(task.context, node_id, update_list)
+        if len(delete_list) > 0:
+            delete_names = [setting['name'] for setting in delete_list]
+            objects.BIOSSettingList.delete(task.context, node_id,
+                                           delete_names)
+
+        # nochange_list is part of return of sync_node_setting and it might be
+        # useful to the drivers to give a message if no change is required
+        # during application of settings.
+        if len(nochange_list) > 0:
+            pass
 
     @base.clean_step(priority=0)
     def factory_reset(self, task):
+        # Note: the implementation of factory_reset in fake interface is
+        # just for testing purpose, for real driver implementation, please
+        # refer to develop doc at https://docs.openstack.org/ironic/latest/
+        # contributor/bios_develop.html.
         node_id = task.node.id
         setting_objs = objects.BIOSSettingList.get_by_node_id(
             task.context, node_id)
@@ -263,6 +285,10 @@ class FakeBIOS(base.BIOSInterface):
 
     @base.clean_step(priority=0)
     def cache_bios_settings(self, task):
+        # Note: the implementation of cache_bios_settings in fake interface
+        # is just for testing purpose, for real driver implementation, please
+        # refer to develop doc at https://docs.openstack.org/ironic/latest/
+        # contributor/bios_develop.html.
         pass
 
 
