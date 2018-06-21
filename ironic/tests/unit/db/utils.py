@@ -20,6 +20,7 @@ from oslo_utils import timeutils
 from ironic.common import states
 from ironic.db import api as db_api
 from ironic.drivers import base as drivers_base
+from ironic.objects import bios
 from ironic.objects import chassis
 from ironic.objects import conductor
 from ironic.objects import node
@@ -581,9 +582,7 @@ def get_test_bios_setting(**kw):
         'node_id': kw.get('node_id', '123'),
         'name': kw.get('name', 'virtualization'),
         'value': kw.get('value', 'on'),
-        # TODO(zshi) change default version to
-        # bios_setting.BIOSSetting.VERSION
-        'version': kw.get('version', '1.0'),
+        'version': kw.get('version', bios.BIOSSetting.VERSION),
         'created_at': kw.get('created_at'),
         'updated_at': kw.get('updated_at'),
     }
