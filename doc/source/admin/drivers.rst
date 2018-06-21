@@ -26,6 +26,7 @@ Hardware Types
   drivers/redfish
   drivers/snmp
   drivers/ucs
+  drivers/xclarity
 
 
 Unsupported drivers
