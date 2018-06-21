@@ -359,7 +359,7 @@ node maintenance notification::
     "payload":{
         "ironic_object.namespace":"ironic",
         "ironic_object.name":"NodePayload",
-        "ironic_object.version":"1.7",
+        "ironic_object.version":"1.8",
         "ironic_object.data":{
             "clean_step": None,
             "console_enabled": False,
@@ -374,6 +374,7 @@ node maintenance notification::
             "maintenance": True,
             "maintenance_reason": "hw upgrade",
             "fault": None,
+            "bios_interface": "no-bios",
             "boot_interface": "pxe",
             "console_interface": "no-console",
             "deploy_interface": "iscsi",
@@ -439,7 +440,7 @@ level, "error" has ERROR. Example of node console notification::
     "payload":{
         "ironic_object.namespace":"ironic",
         "ironic_object.name":"NodePayload",
-        "ironic_object.version":"1.7",
+        "ironic_object.version":"1.8",
         "ironic_object.data":{
             "clean_step": None,
             "console_enabled": True,
@@ -454,6 +455,7 @@ level, "error" has ERROR. Example of node console notification::
             "maintenance": False,
             "maintenance_reason": None,
             "fault": None,
+            "bios_interface": "no-bios",
             "boot_interface": "pxe",
             "console_interface": "no-console",
             "deploy_interface": "iscsi",
