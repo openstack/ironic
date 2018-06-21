@@ -310,6 +310,9 @@ def remove_neutron_ports(task, params):
 
         try:
             client.delete_port(port['id'])
+        # NOTE(mgoddard): Ignore if the port was deleted by nova.
+        except neutron_exceptions.PortNotFoundClient:
+            LOG.info('Port %s was not found while deleting.', port['id'])
         except neutron_exceptions.NeutronClientException as e:
             msg = (_('Could not remove VIF %(vif)s of node %(node)s, possibly '
                      'a network issue: %(exc)s') %
