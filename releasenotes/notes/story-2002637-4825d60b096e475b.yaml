@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    Fixes an issue seen during node tear down where a port being deleted by the
+    Bare Metal service could be deleted by the Compute service, leading to an
+    unhandled error from the Networking service. See `story 2002637
+    <https://storyboard.openstack.org/#!/story/2002637>`__ for further details.
