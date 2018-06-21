@@ -15,7 +15,7 @@ cleaning.
 Prerequisites
 =============
 
-Bare metal servers shall be configured by the administrator to be managed
+Bare metal servers must be configured by the administrator to be managed
 via ironic hardware type that supports BIOS configuration.
 
 Enabling hardware types
@@ -56,22 +56,22 @@ To retrieve the cached BIOS configuration from a specified node::
 BIOS settings are cached on each node cleaning operation or when settings
 have been applied successfully via BIOS cleaning steps. The return of above
 command is a table of last cached BIOS settings from specified node.
-If '-f json' is added as suffix to above command, it returns BIOS settings
+If ``-f json`` is added as suffix to above command, it returns BIOS settings
 as following::
 
     [
       {
-        "<setting name>":
+        "setting name":
           {
-            "name": <setting name>,
-            "value": <value>
+            "name": "setting name",
+            "value": "value"
           }
       },
       {
-        "<setting name>":
+        "setting name":
           {
-            "name": <setting name>,
-            "value": <value>
+            "name": "setting name",
+            "value": "value"
           }
       },
       ...
@@ -81,14 +81,14 @@ To get a specified BIOS setting for a node::
 
     $ openstack baremetal node bios setting show <node-uuid> <setting-name>
 
-If '-f json' is added as suffix to above command, it returns BIOS settings
+If ``-f json`` is added as suffix to above command, it returns BIOS settings
 as following::
 
     {
-      "<setting name>":
+      "setting name":
         {
-          "name": <setting name>,
-          "value": <value>
+          "name": "setting name",
+          "value": "value"
         }
     }
 
@@ -131,12 +131,12 @@ This cleaning step applies a set of BIOS settings for a node::
           "args": {
             "settings": [
               {
-                "name": <name>,
-                "value": <value>
+                "name": "name",
+                "value": "value"
               },
               {
-                "name": <name>,
-                "value": <value>
+                "name": "name",
+                "value": "value"
               }
             ]
           }
