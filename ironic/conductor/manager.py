@@ -1250,11 +1250,10 @@ class ConductorManager(base_manager.BaseConductorManager):
         # whereas for automated cleaning, it is AVAILABLE.
         manual_clean = node.target_provision_state == states.MANAGEABLE
 
-        driver_internal_info = node.driver_internal_info
         if step_index is None:
             steps = []
         else:
-            steps = driver_internal_info['clean_steps'][step_index:]
+            steps = node.driver_internal_info['clean_steps'][step_index:]
 
         LOG.info('Executing %(state)s on node %(node)s, remaining steps: '
                  '%(steps)s', {'node': node.uuid, 'steps': steps,
@@ -1265,6 +1264,7 @@ class ConductorManager(base_manager.BaseConductorManager):
             # Save which step we're about to start so we can restart
             # if necessary
             node.clean_step = step
+            driver_internal_info = node.driver_internal_info
             driver_internal_info['clean_step_index'] = step_index + ind
             node.driver_internal_info = driver_internal_info
             node.save()
@@ -1305,6 +1305,7 @@ class ConductorManager(base_manager.BaseConductorManager):
 
         # Clear clean_step
         node.clean_step = None
+        driver_internal_info = node.driver_internal_info
         driver_internal_info['clean_steps'] = None
         driver_internal_info.pop('clean_step_index', None)
         node.driver_internal_info = driver_internal_info
