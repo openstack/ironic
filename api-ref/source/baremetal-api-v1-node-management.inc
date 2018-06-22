@@ -153,8 +153,8 @@ Request
 .. rest_parameters:: parameters.yaml
 
     - node_ident: node_ident
-    - boot_device: boot_device
-    - persistent: persistent
+    - boot_device: req_boot_device
+    - persistent: req_persistent
 
 **Example JSON request body to set boot device:**
 
@@ -322,7 +322,7 @@ Request
 .. rest_parameters:: parameters.yaml
 
     - node_ident: node_ident
-    - target: target_power_state
+    - target: req_target_power_state
     - timeout: power_timeout
 
 **Example request to power off a Node:**
@@ -366,7 +366,7 @@ Request
 .. rest_parameters:: parameters.yaml
 
     - node_ident: node_ident
-    - target: requested_provision_state
+    - target: req_provision_state
     - configdrive: configdrive
     - clean_steps: clean_steps
     - rescue_password: rescue_password
@@ -404,7 +404,7 @@ Request
 .. rest_parameters:: parameters.yaml
 
     - node_ident: node_ident
-    - target_raid_config: target_raid_config
+    - target_raid_config: req_target_raid_config
 
 **Example requested RAID config:**
 
@@ -445,4 +445,4 @@ Request
 .. rest_parameters:: parameters.yaml
 
     - node_ident: node_ident
-    - enabled: console_enabled
+    - enabled: req_console_enabled

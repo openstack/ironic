@@ -107,8 +107,8 @@ The BODY of the PATCH request must be a JSON PATCH document, adhering to
 .. rest_parameters:: parameters.yaml
 
    - chassis_id: chassis_ident
-   - description: description
-   - extra: extra
+   - description: req_description
+   - extra: req_extra
 
 Request Example
 ---------------
@@ -167,9 +167,9 @@ Request
 
 .. rest_parameters:: parameters.yaml
 
-   - chassis: chassis
-   - description: description
-   - extra: extra
+   - chassis: req_chassis
+   - description: req_description
+   - extra: req_extra
 
 Request Example
 ---------------

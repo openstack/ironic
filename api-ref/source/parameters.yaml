@@ -973,12 +973,30 @@ reason:
   in: body
   required: false
   type: string
+req_boot_device:
+  description: |
+    The boot device for a Node, eg. "pxe" or "disk".
+  in: body
+  required: true
+  type: string
 req_boot_interface:
   description: |
     The boot interface for a Node, e.g. "pxe".
   in: body
   required: false
   type: string
+req_chassis:
+  description: |
+    A ``chassis`` object.
+  in: body
+  required: true
+  type: array
+req_console_enabled:
+  description: |
+    Indicates whether console access is enabled or disabled on this node.
+  in: body
+  required: true
+  type: boolean
 req_console_interface:
   description: |
     The console interface for a node, e.g. "no-console".
@@ -988,6 +1006,12 @@ req_console_interface:
 req_deploy_interface:
   description: |
     The deploy interface for a node, e.g. "iscsi".
+  in: body
+  required: false
+  type: string
+req_description:
+  description: |
+    Descriptive text about the Ironic service.
   in: body
   required: false
   type: string
@@ -1018,6 +1042,16 @@ req_inspect_interface:
   in: body
   required: false
   type: string
+req_local_link_connection:
+  description: |
+    The Port binding profile. If specified, must contain ``switch_id`` (only
+    a MAC address or an OpenFlow based datapath_id of the switch are accepted
+    in this field) and ``port_id`` (identifier of the physical port on the
+    switch to which node's port is connected to) fields. ``switch_info`` is an
+    optional string field to be used to store any vendor-specific information.
+  in: body
+  required: false
+  type: JSON
 req_management_interface:
   description: |
     Interface for out-of-band node management, e.g. "ipmitool".
@@ -1028,6 +1062,52 @@ req_network_interface:
   description: |
     Which Network Interface provider to use when plumbing the network
     connections for this Node.
+  in: body
+  required: false
+  type: string
+req_node_uuid:
+  description: |
+    UUID of the Node this resource belongs to.
+  in: body
+  required: true
+  type: string
+req_node_vif_ident:
+  description: |
+    The UUID or name of the VIF.
+  in: body
+  required: true
+  type: string
+req_persistent:
+  description: |
+    Whether the boot device should be set only for the next reboot, or
+    persistently.
+  in: body
+  required: false
+  type: boolean
+req_physical_network:
+  description: |
+    The name of the physical network to which a port is connected. May be
+    empty.
+  in: body
+  required: false
+  type: string
+req_port_address:
+  description: |
+    Physical hardware address of this network Port, typically the hardware
+    MAC address.
+  in: body
+  required: true
+  type: string
+req_portgroup_address:
+  description: |
+    Physical hardware address of this Portgroup, typically the hardware
+    MAC address.
+  in: body
+  required: false
+  type: string
+req_portgroup_uuid:
+  description: |
+    UUID of the Portgroup this resource belongs to.
   in: body
   required: false
   type: string
@@ -1044,6 +1124,18 @@ req_properties:
   in: body
   required: false
   type: JSON
+req_provision_state:
+  description: |
+    The requested provisioning state of this Node.
+  in: body
+  required: true
+  type: string
+req_pxe_enabled:
+  description: |
+    Indicates whether PXE is enabled or disabled on the Port.
+  in: body
+  required: false
+  type: boolean
 req_raid_interface:
   description: |
     Interface used for configuring RAID on this node, e.g. "no-raid".
@@ -1070,6 +1162,22 @@ req_storage_interface:
   in: body
   required: false
   type: string
+req_target_power_state:
+  description: |
+    If a power state transition has been requested, this field represents the
+    requested (ie, "target") state either "power on", "power off", "rebooting",
+    "soft power off" or "soft rebooting".
+  in: body
+  required: true
+  type: string
+req_target_raid_config:
+  description: |
+    Represents the requested RAID configuration of the node, which will be
+    applied when the Node next transitions through the CLEANING state. Introduced
+    with the cleaning feature.
+  in: body
+  required: true
+  type: JSON
 req_uuid:
   description: |
     The UUID for the resource.

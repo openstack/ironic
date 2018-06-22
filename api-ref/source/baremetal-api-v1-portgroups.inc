@@ -86,8 +86,8 @@ Request
 
 .. rest_parameters:: parameters.yaml
 
-    - node_uuid: node_uuid
-    - address: portgroup_address
+    - node_uuid: req_node_uuid
+    - address: req_portgroup_address
     - name: portgroup_name
 
 **Example Portgroup creation request:**

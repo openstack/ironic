@@ -107,13 +107,13 @@ Request
 
 .. rest_parameters:: parameters.yaml
 
-    - node_uuid: node_uuid
-    - address: port_address
-    - portgroup_uuid: portgroup_uuid
-    - local_link_connection: local_link_connection
-    - pxe_enabled: pxe_enabled
-    - physical_network: physical_network
-    - extra: extra
+    - node_uuid: req_node_uuid
+    - address: req_port_address
+    - portgroup_uuid: req_portgroup_uuid
+    - local_link_connection: req_local_link_connection
+    - pxe_enabled: req_pxe_enabled
+    - physical_network: req_physical_network
+    - extra: req_extra
 
 **Example Port creation request:**
 
