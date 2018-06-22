@@ -574,6 +574,7 @@ class NodePayload(notification.NotificationPayloadBase):
         'maintenance_reason': ('node', 'maintenance_reason'),
         'fault': ('node', 'fault'),
         'name': ('node', 'name'),
+        'bios_interface': ('node', 'bios_interface'),
         'boot_interface': ('node', 'boot_interface'),
         'console_interface': ('node', 'console_interface'),
         'deploy_interface': ('node', 'deploy_interface'),
@@ -596,11 +597,6 @@ class NodePayload(notification.NotificationPayloadBase):
         'uuid': ('node', 'uuid')
     }
 
-    # TODO(zshi): At a later point in time, once bios_interface is able
-    # to be leveraged, we need to add the bios_interface field to payload
-    # and increment the object versions for all objects that inherit the
-    # NodePayload object.
-
     # Version 1.0: Initial version, based off of Node version 1.18.
     # Version 1.1: Type of network_interface changed to just nullable string
     #              similar to version 1.20 of Node.
@@ -610,7 +606,8 @@ class NodePayload(notification.NotificationPayloadBase):
     # Version 1.5: Add rescue interface field exposed via API.
     # Version 1.6: Add traits field exposed via API.
     # Version 1.7: Add fault field exposed via API.
-    VERSION = '1.7'
+    # Version 1.8: Add bios interface field exposed via API.
+    VERSION = '1.8'
     fields = {
         'clean_step': object_fields.FlexibleDictField(nullable=True),
         'console_enabled': object_fields.BooleanField(nullable=True),
@@ -624,6 +621,7 @@ class NodePayload(notification.NotificationPayloadBase):
         'maintenance': object_fields.BooleanField(nullable=True),
         'maintenance_reason': object_fields.StringField(nullable=True),
         'fault': object_fields.StringField(nullable=True),
+        'bios_interface': object_fields.StringField(nullable=True),
         'boot_interface': object_fields.StringField(nullable=True),
         'console_interface': object_fields.StringField(nullable=True),
         'deploy_interface': object_fields.StringField(nullable=True),
@@ -681,7 +679,8 @@ class NodeSetPowerStatePayload(NodePayload):
     # Version 1.5: Parent NodePayload version 1.5
     # Version 1.6: Parent NodePayload version 1.6
     # Version 1.7: Parent NodePayload version 1.7
-    VERSION = '1.7'
+    # Version 1.8: Parent NodePayload version 1.8
+    VERSION = '1.8'
 
     fields = {
         # "to_power" indicates the future target_power_state of the node. A
@@ -729,7 +728,8 @@ class NodeCorrectedPowerStatePayload(NodePayload):
     # Version 1.5: Parent NodePayload version 1.5
     # Version 1.6: Parent NodePayload version 1.6
     # Version 1.7: Parent NodePayload version 1.7
-    VERSION = '1.7'
+    # Version 1.8: Parent NodePayload version 1.8
+    VERSION = '1.8'
 
     fields = {
         'from_power': object_fields.StringField(nullable=True)
@@ -761,7 +761,8 @@ class NodeSetProvisionStatePayload(NodePayload):
     # Version 1.4: Parent NodePayload version 1.4
     # Version 1.6: Parent NodePayload version 1.6
     # Version 1.7: Parent NodePayload version 1.7
-    VERSION = '1.7'
+    # Version 1.8: Parent NodePayload version 1.8
+    VERSION = '1.8'
 
     SCHEMA = dict(NodePayload.SCHEMA,
                   **{'instance_info': ('node', 'instance_info')})
@@ -800,7 +801,8 @@ class NodeCRUDPayload(NodePayload):
     # Version 1.3: Parent NodePayload version 1.5
     # Version 1.4: Parent NodePayload version 1.6
     # Version 1.5: Parent NodePayload version 1.7
-    VERSION = '1.5'
+    # Version 1.6: Parent NodePayload version 1.8
+    VERSION = '1.6'
 
     SCHEMA = dict(NodePayload.SCHEMA,
                   **{'instance_info': ('node', 'instance_info'),
