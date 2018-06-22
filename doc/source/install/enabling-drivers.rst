@@ -64,7 +64,7 @@ bios
         enabled_hardware_types = <hardware_type_name>
         enabled_bios_interfaces = <bios_interface_name>
 
-    See :doc:`/admin/bios` for details. This interface is vendor-specific.
+    See :doc:`/admin/bios` for details.
 boot
     manages booting of both the deploy ramdisk and the user instances on the
     bare metal node. See :doc:`/admin/interfaces/boot` for details.

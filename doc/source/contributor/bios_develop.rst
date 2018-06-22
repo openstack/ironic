@@ -47,7 +47,7 @@ the following three methods:
             node_id = task.node.id
             node_info = driver_common.parse_driver_info(task.node)
             settings = driver_client.get_bios_settings(node_info)
-            create_list, update_list, delete_list = (
+            create_list, update_list, delete_list, nochange_list = (
                 objects.BIOSSettingList.sync_node_setting(settings))
 
             if len(create_list) > 0:
@@ -57,9 +57,12 @@ the following three methods:
                 objects.BIOSSettingList.save(
                     task.context, node_id, update_list)
             if len(delete_list) > 0:
+                delete_names = []
                 for setting in delete_list:
-                    objects.BIOSSetting.delete(
-                        task.context, node_id, setting.name)
+                    delete_names.append(setting.name)
+                objects.BIOSSettingList.delete(
+                    task.context, node_id, delete_names)
+
 
   .. note::
      ``driver.client`` is vendor specific library to control and manage
@@ -82,8 +85,8 @@ the following three methods:
 * Implement a method named ``apply_configuration``. This method needs to use
   the clean_step decorator. It takes the given BIOS settings and applies them
   on the node. It also calls ``cache_bios_settings`` automatically to update
-  existing bios_settings table after successfully applying given settings on
-  the node.
+  existing ``bios_settings`` table after successfully applying given settings
+  on the node.
 
   .. code-block:: python
 
@@ -106,12 +109,18 @@ the following three methods:
 
       [
         {
-          'name': String,
-          'value': String,
+          "setting name":
+            {
+              "name": "String",
+              "value": "String"
+            }
         },
         {
-          'name': String,
-          'value': String,
+          "setting name":
+            {
+              "name": "String",
+              "value": "String"
+            }
         },
         ...
       ]
