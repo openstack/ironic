@@ -16,19 +16,9 @@
 Test class for iLO Drivers
 """
 
-import mock
-import testtools
-
-from ironic.common import exception
 from ironic.conductor import task_manager
 from ironic.drivers import ilo
 from ironic.drivers.modules import agent
-from ironic.drivers.modules.ilo import boot
-from ironic.drivers.modules.ilo import console
-from ironic.drivers.modules.ilo import inspect
-from ironic.drivers.modules.ilo import management
-from ironic.drivers.modules.ilo import power
-from ironic.drivers.modules.ilo import vendor
 from ironic.drivers.modules import inspector
 from ironic.drivers.modules import iscsi_deploy
 from ironic.drivers.modules import noop
@@ -153,52 +143,3 @@ class IloHardwareTestCase(db_base.DbTestCase):
                                   agent.AgentRescue)
             self.assertIsInstance(task.driver.vendor,
                                   ilo.vendor.VendorPassthru)
-
-
-@mock.patch.object(ilo.importutils, 'try_import', spec_set=True,
-                   autospec=True)
-class IloVirtualMediaIscsiDriversTestCase(testtools.TestCase):
-
-    def test_ilo_iscsi_driver(self, mock_try_import):
-        mock_try_import.return_value = True
-
-        driver = ilo.IloVirtualMediaIscsiDriver()
-
-        self.assertIsInstance(driver.power, power.IloPower)
-        self.assertIsInstance(driver.boot, boot.IloVirtualMediaBoot)
-        self.assertIsInstance(driver.deploy, iscsi_deploy.ISCSIDeploy)
-        self.assertIsInstance(driver.console, console.IloConsoleInterface)
-        self.assertIsInstance(driver.management, management.IloManagement)
-        self.assertIsInstance(driver.vendor, vendor.VendorPassthru)
-        self.assertIsInstance(driver.inspect, inspect.IloInspect)
-        self.assertIsInstance(driver.raid, agent.AgentRAID)
-
-    def test_ilo_iscsi_driver_exc(self, mock_try_import):
-        mock_try_import.return_value = None
-
-        self.assertRaises(exception.DriverLoadError,
-                          ilo.IloVirtualMediaIscsiDriver)
-
-
-@mock.patch.object(ilo.importutils, 'try_import', spec_set=True,
-                   autospec=True)
-class IloVirtualMediaAgentDriversTestCase(testtools.TestCase):
-
-    def test_ilo_agent_driver(self, mock_try_import):
-        mock_try_import.return_value = True
-
-        driver = ilo.IloVirtualMediaAgentDriver()
-
-        self.assertIsInstance(driver.power, power.IloPower)
-        self.assertIsInstance(driver.boot, boot.IloVirtualMediaBoot)
-        self.assertIsInstance(driver.deploy, agent.AgentDeploy)
-        self.assertIsInstance(driver.console, console.IloConsoleInterface)
-        self.assertIsInstance(driver.management, management.IloManagement)
-        self.assertIsInstance(driver.inspect, inspect.IloInspect)
-        self.assertIsInstance(driver.raid, agent.AgentRAID)
-
-    def test_ilo_iscsi_driver_exc(self, mock_try_import):
-        mock_try_import.return_value = None
-
-        self.assertRaises(exception.DriverLoadError,
-                          ilo.IloVirtualMediaAgentDriver)

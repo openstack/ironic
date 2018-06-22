@@ -521,8 +521,8 @@ class IloVirtualMediaBoot(base.BootInterface):
                 msg = 'Virtual media can not boot volume in BIOS boot mode.'
                 raise exception.InstanceDeployFailure(msg)
         else:
-            # For iscsi_ilo driver, we boot from disk every time if the image
-            # deployed is a whole disk image.
+            # Boot from disk every time if the image deployed is
+            # a whole disk image.
             node = task.node
             iwdi = node.driver_internal_info.get('is_whole_disk_image')
             if deploy_utils.get_boot_option(node) == "local" or iwdi:

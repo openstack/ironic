@@ -440,9 +440,8 @@ class ISCSIDeploy(AgentDeployMixin, base.DeployInterface):
                       'volume.', node.uuid)
             return
 
-        # TODO(rameshg87): iscsi_ilo driver uses this method. Remove
-        # and copy-paste it's contents here once iscsi_ilo deploy driver
-        # broken down into separate boot and deploy implementations.
+        # TODO(rameshg87): iscsi_ilo driver used to call this function. Remove
+        # and copy-paste it's contents here.
         validate(task)
 
     @METRICS.timer('ISCSIDeploy.deploy')

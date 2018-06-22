@@ -1256,14 +1256,11 @@ class OtherFunctionTestCase(db_base.DbTestCase):
                           utils.get_ironic_api_url)
 
 
-class VirtualMediaDeployUtilsTestCase(db_base.DbTestCase):
+class GetSingleNicTestCase(db_base.DbTestCase):
 
     def setUp(self):
-        super(VirtualMediaDeployUtilsTestCase, self).setUp()
-        self.config(enabled_drivers=['iscsi_ilo'])
-        info_dict = db_utils.get_test_ilo_info()
-        self.node = obj_utils.create_test_node(
-            self.context, driver='iscsi_ilo', driver_info=info_dict)
+        super(GetSingleNicTestCase, self).setUp()
+        self.node = obj_utils.create_test_node(self.context)
 
     def test_get_single_nic_with_vif_port_id(self):
         obj_utils.create_test_port(

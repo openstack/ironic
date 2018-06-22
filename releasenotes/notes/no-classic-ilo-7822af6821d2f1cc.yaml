@@ -1,0 +1,5 @@
+---
+upgrade:
+  - |
+    The deprecated iLO classic drivers ``pxe_ilo``, ``iscsi_ilo`` and
+    ``agent_ilo`` have been removed. Please use the ``ilo`` hardware type.

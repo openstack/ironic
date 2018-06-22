@@ -39,26 +39,19 @@ from ironic.drivers.modules.ilo import management as ilo_management
 from ironic.drivers.modules import pxe
 from ironic.drivers.modules.storage import noop as noop_storage
 from ironic.drivers import utils as driver_utils
-from ironic.tests.unit.db import base as db_base
-from ironic.tests.unit.db import utils as db_utils
-from ironic.tests.unit.objects import utils as obj_utils
+from ironic.tests.unit.drivers.modules.ilo import test_common
 
 
 if six.PY3:
     import io
     file = io.BytesIO
 
-INFO_DICT = db_utils.get_test_ilo_info()
 CONF = cfg.CONF
 
 
-class IloBootCommonMethodsTestCase(db_base.DbTestCase):
+class IloBootCommonMethodsTestCase(test_common.BaseIloTest):
 
-    def setUp(self):
-        super(IloBootCommonMethodsTestCase, self).setUp()
-        self.config(enabled_drivers=['iscsi_ilo'])
-        self.node = obj_utils.create_test_node(
-            self.context, driver='iscsi_ilo', driver_info=INFO_DICT)
+    boot_interface = 'ilo-virtual-media'
 
     def test_parse_driver_info(self):
         self.node.driver_info['ilo_deploy_iso'] = 'deploy-iso'
@@ -72,13 +65,9 @@ class IloBootCommonMethodsTestCase(db_base.DbTestCase):
                           ilo_boot.parse_driver_info, self.node)
 
 
-class IloBootPrivateMethodsTestCase(db_base.DbTestCase):
+class IloBootPrivateMethodsTestCase(test_common.BaseIloTest):
 
-    def setUp(self):
-        super(IloBootPrivateMethodsTestCase, self).setUp()
-        self.config(enabled_drivers=['iscsi_ilo'])
-        self.node = obj_utils.create_test_node(
-            self.context, driver='iscsi_ilo', driver_info=INFO_DICT)
+    boot_interface = 'ilo-virtual-media'
 
     def test__get_boot_iso_object_name(self):
         boot_iso_actual = ilo_boot._get_boot_iso_object_name(self.node)
@@ -668,23 +657,9 @@ class IloBootPrivateMethodsTestCase(db_base.DbTestCase):
             self.assertNotIn('deploy_boot_mode', task.node.instance_info)
 
 
-class IloVirtualMediaBootTestCase(db_base.DbTestCase):
+class IloVirtualMediaBootTestCase(test_common.BaseIloTest):
 
-    def setUp(self):
-        super(IloVirtualMediaBootTestCase, self).setUp()
-        self.config(enabled_hardware_types=['ilo'],
-                    enabled_boot_interfaces=['ilo-virtual-media'],
-                    enabled_console_interfaces=['ilo'],
-                    enabled_deploy_interfaces=['iscsi'],
-                    enabled_inspect_interfaces=['ilo'],
-                    enabled_management_interfaces=['ilo'],
-                    enabled_power_interfaces=['ilo'],
-                    enabled_raid_interfaces=['no-raid'],
-                    enabled_rescue_interfaces=['agent'],
-                    enabled_vendor_interfaces=['no-vendor'])
-        self.config(enabled_hardware_types=['ilo'])
-        self.node = obj_utils.create_test_node(
-            self.context, driver='ilo', driver_info=INFO_DICT)
+    boot_interface = 'ilo-virtual-media'
 
     @mock.patch.object(noop_storage.NoopStorage, 'should_write_image',
                        autospec=True)
@@ -1126,13 +1101,9 @@ class IloVirtualMediaBootTestCase(db_base.DbTestCase):
                                    task.driver.boot.validate_rescue, task)
 
 
-class IloPXEBootTestCase(db_base.DbTestCase):
+class IloPXEBootTestCase(test_common.BaseIloTest):
 
-    def setUp(self):
-        super(IloPXEBootTestCase, self).setUp()
-        self.config(enabled_drivers=['pxe_ilo'])
-        self.node = obj_utils.create_test_node(
-            self.context, driver='pxe_ilo', driver_info=INFO_DICT)
+    boot_interface = 'ilo-pxe'
 
     @mock.patch.object(ilo_boot, 'prepare_node_for_deploy', spec_set=True,
                        autospec=True)

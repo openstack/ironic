@@ -55,6 +55,8 @@ CONF = cfg.CONF
 
 class BaseIloTest(db_base.DbTestCase):
 
+    boot_interface = None
+
     def setUp(self):
         super(BaseIloTest, self).setUp()
         self.config(enabled_hardware_types=['ilo', 'fake-hardware'],
@@ -62,11 +64,14 @@ class BaseIloTest(db_base.DbTestCase):
                                              'fake'],
                     enabled_power_interfaces=['ilo', 'fake'],
                     enabled_management_interfaces=['ilo', 'fake'],
-                    enabled_inspect_interfaces=['ilo', 'fake', 'no-inspect'])
+                    enabled_inspect_interfaces=['ilo', 'fake', 'no-inspect'],
+                    enabled_console_interfaces=['ilo', 'fake', 'no-console'],
+                    enabled_vendor_interfaces=['ilo', 'fake', 'no-vendor'])
         self.info = INFO_DICT.copy()
         self.node = obj_utils.create_test_node(
             self.context, uuid=uuidutils.generate_uuid(),
-            driver='ilo', driver_info=self.info)
+            driver='ilo', boot_interface=self.boot_interface,
+            driver_info=self.info)
 
 
 class IloValidateParametersTestCase(BaseIloTest):

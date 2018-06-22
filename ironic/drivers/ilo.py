@@ -15,13 +15,7 @@
 iLO Driver for managing HP Proliant Gen8 and above servers.
 """
 
-from oslo_utils import importutils
-
-from ironic.common import exception
-from ironic.common.i18n import _
-from ironic.drivers import base
 from ironic.drivers import generic
-from ironic.drivers.modules import agent
 from ironic.drivers.modules.ilo import boot
 from ironic.drivers.modules.ilo import console
 from ironic.drivers.modules.ilo import inspect
@@ -29,7 +23,6 @@ from ironic.drivers.modules.ilo import management
 from ironic.drivers.modules.ilo import power
 from ironic.drivers.modules.ilo import vendor
 from ironic.drivers.modules import inspector
-from ironic.drivers.modules import iscsi_deploy
 from ironic.drivers.modules import noop
 
 
@@ -70,75 +63,3 @@ class IloHardware(generic.GenericHardware):
     def supported_vendor_interfaces(self):
         """List of supported power interfaces."""
         return [vendor.VendorPassthru, noop.NoVendor]
-
-
-class IloVirtualMediaIscsiDriver(base.BaseDriver):
-    """IloDriver using IloClient interface.
-
-    This driver implements the `core` functionality using
-    :class:ironic.drivers.modules.ilo.power.IloPower for power management.
-    and
-    :class:ironic.drivers.modules.ilo.deploy.IloVirtualMediaIscsiDeploy for
-    deploy.
-    """
-
-    def __init__(self):
-        if not importutils.try_import('proliantutils'):
-            raise exception.DriverLoadError(
-                driver=self.__class__.__name__,
-                reason=_("Unable to import proliantutils library"))
-
-        self.power = power.IloPower()
-        self.boot = boot.IloVirtualMediaBoot()
-        self.deploy = iscsi_deploy.ISCSIDeploy()
-        self.console = console.IloConsoleInterface()
-        self.management = management.IloManagement()
-        self.vendor = vendor.VendorPassthru()
-        self.inspect = inspect.IloInspect()
-        self.raid = agent.AgentRAID()
-
-    @classmethod
-    def to_hardware_type(cls):
-        return 'ilo', {'boot': 'ilo-virtual-media',
-                       'console': 'ilo',
-                       'deploy': 'iscsi',
-                       'inspect': 'ilo',
-                       'management': 'ilo',
-                       'power': 'ilo',
-                       'raid': 'agent',
-                       'vendor': 'ilo'}
-
-
-class IloVirtualMediaAgentDriver(base.BaseDriver):
-    """IloDriver using IloClient interface.
-
-    This driver implements the `core` functionality using
-    :class:ironic.drivers.modules.ilo.power.IloPower for power management
-    and
-    :class:ironic.drivers.modules.ilo.deploy.IloVirtualMediaAgentDriver for
-    deploy.
-    """
-
-    def __init__(self):
-        if not importutils.try_import('proliantutils'):
-            raise exception.DriverLoadError(
-                driver=self.__class__.__name__,
-                reason=_("Unable to import proliantutils library"))
-
-        self.power = power.IloPower()
-        self.boot = boot.IloVirtualMediaBoot()
-        self.deploy = agent.AgentDeploy()
-        self.console = console.IloConsoleInterface()
-        self.management = management.IloManagement()
-        self.inspect = inspect.IloInspect()
-        self.raid = agent.AgentRAID()
-
-    @classmethod
-    def to_hardware_type(cls):
-        return 'ilo', {'boot': 'ilo-virtual-media',
-                       'console': 'ilo',
-                       'deploy': 'direct',
-                       'inspect': 'ilo',
-                       'management': 'ilo',
-                       'power': 'ilo',
-                       'raid': 'agent'}

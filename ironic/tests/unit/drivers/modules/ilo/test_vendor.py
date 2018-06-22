@@ -24,22 +24,12 @@ from ironic.conductor import utils as manager_utils
 from ironic.drivers.modules import deploy_utils
 from ironic.drivers.modules.ilo import common as ilo_common
 from ironic.drivers.modules.ilo import vendor as ilo_vendor
-from ironic.tests.unit.db import base as db_base
-from ironic.tests.unit.db import utils as db_utils
-from ironic.tests.unit.objects import utils as obj_utils
+from ironic.tests.unit.drivers.modules.ilo import test_common
 
 
-INFO_DICT = db_utils.get_test_ilo_info()
+class VendorPassthruTestCase(test_common.BaseIloTest):
 
-
-class VendorPassthruTestCase(db_base.DbTestCase):
-
-    def setUp(self):
-        super(VendorPassthruTestCase, self).setUp()
-        self.config(enabled_drivers=['iscsi_ilo'])
-        self.node = obj_utils.create_test_node(self.context,
-                                               driver='iscsi_ilo',
-                                               driver_info=INFO_DICT)
+    boot_interface = 'ilo-virtual-media'
 
     @mock.patch.object(manager_utils, 'node_power_action', spec_set=True,
                        autospec=True)
