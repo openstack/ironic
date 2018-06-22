@@ -30,6 +30,7 @@ import tempfile
 import jinja2
 from oslo_concurrency import processutils
 from oslo_log import log as logging
+from oslo_serialization import jsonutils
 from oslo_utils import netutils
 from oslo_utils import timeutils
 import pytz
@@ -509,3 +510,40 @@ def warn_about_deprecated_extra_vif_port_id():
                     "deprecated and will not be supported starting in the "
                     "Stein release. API endpoint v1/nodes/<node>/vifs should "
                     "be used instead.")
+
+
+def parse_instance_info_capabilities(node):
+    """Parse the instance_info capabilities.
+
+    One way of having these capabilities set is via Nova, where the
+    capabilities are defined in the Flavor extra_spec and passed to
+    Ironic by the Nova Ironic driver.
+
+    NOTE: Although our API fully supports JSON fields, to maintain the
+    backward compatibility with Juno the Nova Ironic driver is sending
+    it as a string.
+
+    :param node: a single Node.
+    :raises: InvalidParameterValue if the capabilities string is not a
+             dictionary or is malformed.
+    :returns: A dictionary with the capabilities if found, otherwise an
+              empty dictionary.
+    """
+
+    def parse_error():
+        error_msg = (_('Error parsing capabilities from Node %s instance_info '
+                       'field. A dictionary or a "jsonified" dictionary is '
+                       'expected.') % node.uuid)
+        raise exception.InvalidParameterValue(error_msg)
+
+    capabilities = node.instance_info.get('capabilities', {})
+    if isinstance(capabilities, six.string_types):
+        try:
+            capabilities = jsonutils.loads(capabilities)
+        except (ValueError, TypeError):
+            parse_error()
+
+    if not isinstance(capabilities, dict):
+        parse_error()
+
+    return capabilities

@@ -684,7 +684,7 @@ def get_disk_label(node):
              dictionary or is malformed.
     :returns: the disk label or None if no disk label was specified.
     """
-    capabilities = boot_mode_utils.parse_instance_info_capabilities(node)
+    capabilities = utils.parse_instance_info_capabilities(node)
     return capabilities.get('disk_label')
 
 
@@ -760,7 +760,7 @@ def validate_capabilities(node):
                  'value': value, 'valid_values': ', '.join(valid_values)})
 
         # Validate capability_name in node's instance_info/['capabilities']
-        capabilities = boot_mode_utils.parse_instance_info_capabilities(node)
+        capabilities = utils.parse_instance_info_capabilities(node)
         value = capabilities.get(capability_name)
 
         if value and (value not in valid_values):
@@ -832,7 +832,7 @@ def get_boot_option(node):
     :returns: A string representing the boot option type. Defaults to
         'netboot'.
     """
-    capabilities = boot_mode_utils.parse_instance_info_capabilities(node)
+    capabilities = utils.parse_instance_info_capabilities(node)
     return capabilities.get('boot_option', get_default_boot_option()).lower()
 
 
@@ -1236,5 +1236,5 @@ is_secure_boot_requested = boot_mode_utils.is_secure_boot_requested
 is_trusted_boot_requested = boot_mode_utils.is_trusted_boot_requested
 get_boot_mode_for_deploy = boot_mode_utils.get_boot_mode_for_deploy
 parse_instance_info_capabilities = (
-    boot_mode_utils.parse_instance_info_capabilities
+    utils.parse_instance_info_capabilities
 )
