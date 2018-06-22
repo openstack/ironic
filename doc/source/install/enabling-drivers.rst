@@ -311,7 +311,7 @@ option, for example:
 .. code-block:: ini
 
     [DEFAULT]
-    enabled_drivers = pxe_ipmitool,pxe_drac
+    enabled_drivers = pxe_ipmitool
 
 The names in this comma-separated list are entry point names of the drivers.
 They have to be available at conductor start-up, and all dependencies must

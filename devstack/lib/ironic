@@ -113,7 +113,7 @@ IRONIC_HW_ARCH=${IRONIC_HW_ARCH:-x86_64}
 # *_oneview:
 #   <Server Hardware URI> <Server Hardware Type URI> <Enclosure Group URI> <Server Profile Template URI> <MAC of primary connection> <Applied Server Profile URI>
 #
-# *_drac:
+# idrac:
 #   <BMC address> <MAC address> <BMC username> <BMC password>
 #
 # * irmc:
@@ -293,7 +293,7 @@ fi
 #
 # Additional valid choices if IRONIC_IS_HARDWARE == true are:
 # ``pxe_iscsi_cimc``, ``pxe_agent_cimc``, ``pxe_ucs``, ``pxe_cimc``,
-# ``*_pxe_oneview`` and ``pxe_drac``
+# ``*_pxe_oneview`` and ``idrac``
 IRONIC_DEPLOY_DRIVER=${IRONIC_DEPLOY_DRIVER:-pxe_ipmitool}
 
 # If the requested driver is not yet enable, enable it, if it is not it will fail anyway
@@ -639,7 +639,7 @@ function is_deployed_by_ilo {
 }
 
 function is_deployed_by_drac {
-    [[ -z "${IRONIC_DEPLOY_DRIVER##*_drac}" ]] && return 0
+    [[ "${IRONIC_DEPLOY_DRIVER}" == idrac ]] && return 0
     return 1
 }
 
@@ -659,7 +659,7 @@ function is_deployed_by_irmc {
 }
 
 function is_drac_enabled {
-    [[ -z "${IRONIC_ENABLED_DRIVERS##*_drac}" ]] && return 0
+    [[ -z "${IRONIC_ENABLED_HARDWARE_TYPES%%*idrac*}" ]] && return 0
     return 1
 }
 

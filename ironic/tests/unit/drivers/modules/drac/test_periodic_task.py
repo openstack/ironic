@@ -66,7 +66,7 @@ class DracPeriodicTaskTestCase(db_base.DbTestCase):
         self.node.save()
         # mock manager
         mock_manager = mock.Mock()
-        node_list = [(self.node.uuid, 'pxe_drac',
+        node_list = [(self.node.uuid, 'idrac',
                       {'raid_config_job_ids': ['42']})]
         mock_manager.iter_nodes.return_value = node_list
         # mock task_manager.acquire
@@ -85,7 +85,7 @@ class DracPeriodicTaskTestCase(db_base.DbTestCase):
     def test__query_raid_config_job_status_no_config_jobs(self, mock_acquire):
         # mock manager
         mock_manager = mock.Mock()
-        node_list = [(self.node.uuid, 'pxe_drac', {})]
+        node_list = [(self.node.uuid, 'idrac', {})]
         mock_manager.iter_nodes.return_value = node_list
         # mock task_manager.acquire
         task = mock.Mock(node=self.node, driver=mock.Mock(raid=self.raid))

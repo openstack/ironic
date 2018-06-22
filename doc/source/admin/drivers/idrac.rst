@@ -5,22 +5,17 @@ iDRAC drivers
 Overview
 ========
 
-iDRAC_ hardware is supported by the ``idrac`` hardware type and the following
-classic drivers:
-
-* ``pxe_drac`` (using out-of-band inspection)
-* ``pxe_drac_inspector`` (using in-band inspection via **ironic-inspector**)
-
-It is also supported by the standard ``ipmi`` hardware type, though with
-a smaller feature set.
+iDRAC_ hardware is supported by the ``idrac`` hardware type. It is also
+supported by the standard ``ipmi`` hardware type, though with a smaller
+feature set.
 
 .. TODO(dtantsur): supported hardware
 
 Enabling
 ========
 
-All iDRAC drivers require the ``python-dracclient`` library to be installed,
-for example::
+The ``idrac`` hardware type requires the ``python-dracclient`` library to be
+installed, for example::
 
     sudo pip install 'python-dracclient>=1.3.0'
 

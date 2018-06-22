@@ -1,0 +1,6 @@
+---
+upgrade:
+  - |
+    The deprecated iDRAC classic drivers ``pxe_drac`` and
+    ``pxe_drac_inspector`` have been removed. Please use the ``idrac``
+    hardware type.
