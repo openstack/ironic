@@ -22,25 +22,17 @@ from ironic.common import exception
 from ironic.conductor import task_manager
 from ironic.drivers.modules.ilo import common as ilo_common
 from ironic.drivers.modules import ipmitool
-from ironic.tests.unit.db import base as db_base
-from ironic.tests.unit.db import utils as db_utils
-from ironic.tests.unit.objects import utils as obj_utils
+from ironic.tests.unit.drivers.modules.ilo import test_common
 
 
 if six.PY3:
     import io
     file = io.BytesIO
 
-INFO_DICT = db_utils.get_test_ilo_info()
 
+class IloConsoleInterfaceTestCase(test_common.BaseIloTest):
 
-class IloConsoleInterfaceTestCase(db_base.DbTestCase):
-
-    def setUp(self):
-        super(IloConsoleInterfaceTestCase, self).setUp()
-        self.config(enabled_drivers=['iscsi_ilo'])
-        self.node = obj_utils.create_test_node(
-            self.context, driver='iscsi_ilo', driver_info=INFO_DICT)
+    boot_interface = 'ilo-virtual-media'
 
     @mock.patch.object(ipmitool.IPMIShellinaboxConsole, 'validate',
                        spec_set=True, autospec=True)

@@ -6,7 +6,7 @@ Introduction
 
 The Bare Metal service delegates actual hardware management to **drivers**.
 Starting with the Ocata release, two types of drivers are supported:
-*classic drivers* (for example, ``pxe_ipmitool``, ``agent_ilo``, etc.) and
+*classic drivers* (for example, ``pxe_ipmitool``, etc.) and
 the newer *hardware types* (for example, generic ``redfish`` and ``ipmi``
 or vendor-specific ``ilo`` and ``irmc``).
 
@@ -311,7 +311,7 @@ option, for example:
 .. code-block:: ini
 
     [DEFAULT]
-    enabled_drivers = pxe_ipmitool,pxe_ilo,pxe_drac
+    enabled_drivers = pxe_ipmitool,pxe_drac
 
 The names in this comma-separated list are entry point names of the drivers.
 They have to be available at conductor start-up, and all dependencies must

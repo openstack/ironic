@@ -24,15 +24,8 @@ from ironic.common import exception
 from ironic.common.i18n import _
 from ironic.drivers import base
 from ironic.drivers import ipmi
-from ironic.drivers.modules import agent
 from ironic.drivers.modules.cimc import management as cimc_mgmt
 from ironic.drivers.modules.cimc import power as cimc_power
-from ironic.drivers.modules.ilo import boot as ilo_boot
-from ironic.drivers.modules.ilo import console as ilo_console
-from ironic.drivers.modules.ilo import inspect as ilo_inspect
-from ironic.drivers.modules.ilo import management as ilo_management
-from ironic.drivers.modules.ilo import power as ilo_power
-from ironic.drivers.modules.ilo import vendor as ilo_vendor
 from ironic.drivers.modules import inspector
 from ironic.drivers.modules import ipmitool
 from ironic.drivers.modules.irmc import boot as irmc_boot
@@ -52,43 +45,6 @@ CONF = cfg.CONF
 # For backward compatibility
 PXEAndIPMIToolDriver = ipmi.PXEAndIPMIToolDriver
 PXEAndIPMIToolAndSocatDriver = ipmi.PXEAndIPMIToolAndSocatDriver
-
-
-class PXEAndIloDriver(base.BaseDriver):
-    """PXE + Ilo Driver using IloClient interface.
-
-    This driver implements the `core` functionality using
-    :class:`ironic.drivers.modules.ilo.power.IloPower` for
-    power management
-    :class:`ironic.drivers.modules.iscsi_deploy.ISCSIDeploy` for
-    image deployment.
-    :class:`ironic.drivers.modules.ilo.boot.IloPXEBoot` for boot
-    related actions.
-    """
-    def __init__(self):
-        if not importutils.try_import('proliantutils'):
-            raise exception.DriverLoadError(
-                driver=self.__class__.__name__,
-                reason=_("Unable to import proliantutils library"))
-        self.power = ilo_power.IloPower()
-        self.boot = ilo_boot.IloPXEBoot()
-        self.deploy = iscsi_deploy.ISCSIDeploy()
-        self.vendor = ilo_vendor.VendorPassthru()
-        self.console = ilo_console.IloConsoleInterface()
-        self.management = ilo_management.IloManagement()
-        self.inspect = ilo_inspect.IloInspect()
-        self.raid = agent.AgentRAID()
-
-    @classmethod
-    def to_hardware_type(cls):
-        return 'ilo', {'boot': 'ilo-pxe',
-                       'console': 'ilo',
-                       'deploy': 'iscsi',
-                       'inspect': 'ilo',
-                       'management': 'ilo',
-                       'power': 'ilo',
-                       'raid': 'agent',
-                       'vendor': 'ilo'}
 
 
 class PXEAndSNMPDriver(base.BaseDriver):
