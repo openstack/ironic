@@ -3,6 +3,7 @@ features:
   - |
     Adds support to abort the inspection of a node in the ``inspect wait``
     state, as long as this operation is supported by the inspect interface in
-    use. Starting from API 1.41, the node in the ``inspect wait`` state
-    accepts ``abort`` provisioning verb to initiate the abort process.
-    This feature is supported by the ``inspector`` inspect interface.
+    use. A node in the ``inspect wait`` state accepts the ``abort``
+    provisioning verb to initiate the abort process.
+    This feature is supported by the ``inspector`` inspect interface and
+    is available starting with API version 1.41.

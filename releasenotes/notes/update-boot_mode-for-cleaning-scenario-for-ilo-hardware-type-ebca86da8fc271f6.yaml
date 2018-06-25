@@ -1,8 +1,8 @@
 ---
 fixes:
   - |
-    Updates the boot mode on the baremetal for cleaning scenario as per
-    given ``boot_mode`` in node's properties/capabilities. This change
-    is for ``ilo`` hardware type.
+    Fixes an issue where the ``ilo`` hardware type would not properly
+    update the boot mode on the bare metal machine for cleaning as per
+    given ``boot_mode`` in node's properties/capabilities.
     See `bug 1559835 <https://bugs.launchpad.net/ironic/+bug/1559835>`_
     for more details.

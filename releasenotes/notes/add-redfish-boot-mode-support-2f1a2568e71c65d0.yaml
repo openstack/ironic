@@ -1,4 +1,4 @@
 ---
 features:
-  - Adds support for reading and setting bare metal node's boot mode
-    using the ``redfish`` management interface.
+  - Adds support to the ``redfish`` management interface for reading
+    and setting bare metal node's boot mode.

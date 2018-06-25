@@ -1,7 +1,7 @@
 ---
 features:
   - |
-    Adds support for rescue interface ``agent`` for ``irmc`` hardware type
-    when corresponding boot interface is ``irmc-virtual-media``.
+    Adds support for rescue interface ``agent`` for the ``irmc`` hardware type
+    when the corresponding boot interface is ``irmc-virtual-media``.
     The supported values of rescue interface for ``irmc`` hardware type
     are ``agent`` and ``no-rescue``. The default value is ``no-rescue``.

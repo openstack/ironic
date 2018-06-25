@@ -1,9 +1,10 @@
 ---
 fixes:
   - |
-    On node take over, any locks that are left from the old conductor are
-    cleared by the new one. Previously it only happened for nodes in
-    ``DEPLOYING`` state.
+    Fixes an issue where only nodes in ``DEPLOYING`` state would have
+    locks cleared for the nodes. Now upon node take over, any locks
+    that are left from the old conductor are cleared by the new one.
+other:
   - |
     On taking over nodes in ``CLEANING`` state, the new conductor moves them
-    to ``CLEAN FAIL`` and set maintenance.
+    to the ``CLEAN FAIL`` state and sets maintenance.

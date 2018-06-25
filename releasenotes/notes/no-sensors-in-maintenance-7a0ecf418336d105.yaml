@@ -1,4 +1,5 @@
 ---
-fixes:
-  - No longer tries to collect or report sensors data for nodes in maintenance
-    mode. See `bug 1652741 <https://bugs.launchpad.net/bugs/1652741>`_.
+other:
+  - The conductor no longer tries to collect or report sensors data for
+    nodes in maintenance mode.
+    See `bug 1652741 <https://bugs.launchpad.net/bugs/1652741>`_.

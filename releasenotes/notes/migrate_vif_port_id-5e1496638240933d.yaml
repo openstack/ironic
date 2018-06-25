@@ -8,6 +8,6 @@ upgrade:
     the port's or port group's extra['vif_port_id'] will not be supported
     starting with the Stein release.
 
-    Any out-of-tree network interface implementation that had a different
+    Any out-of-tree network interface implementations that had a different
     behavior in support of attach/detach VIFs via the port or port group's
     extra['vif_port_id'] must be updated appropriately.

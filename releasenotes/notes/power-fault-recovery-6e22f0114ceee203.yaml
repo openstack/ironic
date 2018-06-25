@@ -13,6 +13,8 @@ upgrade:
     ``[conductor]power_failure_recovery_interval``, which is enabled and set
     to 300 seconds by default. In case the default value is not suitable for
     the needs or scale of a deployment, please make adjustment or turn it off
-    during upgrade. The power failure recovery does not apply to nodes that
-    were in maintenance mode due to power failure before upgrade, they have
-    to be manually moved out of maintenance mode.
+    during upgrade.
+  - |
+    Power failure recovery does not apply to nodes that were in maintenance
+    mode due to power failure before upgrade, they have to be manually moved
+    out of maintenance mode.

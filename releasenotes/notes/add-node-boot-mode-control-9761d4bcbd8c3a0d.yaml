@@ -6,11 +6,11 @@ other:
     calls to the BMC of the baremetal nodes being managed.
 features:
   - The new ironic configuration setting ``[deploy]/default_boot_mode``
-    allows to set the default boot mode when ironic can't pick boot mode
-    automatically based on node configuration, hardware capabilities,
-    bare-metal machine configuration.
+    allows the operator to set the default boot mode when ironic can't
+    pick boot mode automatically based on node configuration, hardware
+    capabilities, or bare-metal machine configuration.
 fixes:
   - If the bare metal machine's boot mode differs from the requested one,
-    ironic will attempt to set requested boot mode on the bare metal
+    ironic will now attempt to set requested boot mode on the bare metal
     machine and fail explicitly if the driver does not support setting
     boot mode on the node.
