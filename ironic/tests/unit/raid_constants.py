@@ -84,6 +84,17 @@ RAID_CONFIG_INVALID_SIZE_GB = '''
 }
 '''
 
+RAID_CONFIG_ZERO_SIZE_GB = '''
+{
+  "logical_disks": [
+      {
+       "raid_level": "1",
+       "size_gb": 0
+      }
+  ]
+}
+'''
+
 RAID_CONFIG_MAX_SIZE_GB = '''
 {
   "logical_disks": [
