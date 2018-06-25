@@ -1279,7 +1279,7 @@ class Connection(api.Connection):
             if delta is None:
                 # NOTE(dtantsur): mark unsupported nodes as migrated. Otherwise
                 # calling online_data_migration without --max-count will result
-                # in a infinite loop.
+                # in an infinite loop.
                 total_migrated += len(ids)
                 continue
 

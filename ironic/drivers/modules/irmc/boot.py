@@ -623,7 +623,7 @@ class IRMCVolumeBootMixIn(object):
     def _validate_iscsi_connectors(self, task):
         """Validate if volume connectors are properly registered for iSCSI.
 
-        For connecting a node to a iSCSI volume, volume connectors containing
+        For connecting a node to an iSCSI volume, volume connectors containing
         an IQN and an IP address are necessary. One of connectors must have
         a physical ID of the PCI card. Network size of a storage network is
         also required by iRMC. which should be registered in the node's
