@@ -467,6 +467,18 @@ class TestNeutronNetworkActions(db_base.DbTestCase):
         self.client_mock.delete_port.assert_called_once_with(
             self.neutron_port['id'])
 
+    def test_remove_neutron_ports_delete_race(self):
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            self.client_mock.delete_port.side_effect = \
+                neutron_client_exc.PortNotFoundClient
+            self.client_mock.list_ports.return_value = {
+                'ports': [self.neutron_port]}
+            neutron.remove_neutron_ports(task, {'param': 'value'})
+        self.client_mock.list_ports.assert_called_once_with(
+            **{'param': 'value'})
+        self.client_mock.delete_port.assert_called_once_with(
+            self.neutron_port['id'])
+
     def test_get_node_portmap(self):
         with task_manager.acquire(self.context, self.node.uuid) as task:
             portmap = neutron.get_node_portmap(task)
