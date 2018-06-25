@@ -1,0 +1,5 @@
+---
+upgrade:
+  - |
+    The deprecated ``pxe_snmp`` classic driver has been removed. Please use
+    the ``snmp`` hardware type instead.

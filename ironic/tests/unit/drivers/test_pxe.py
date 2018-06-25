@@ -25,32 +25,10 @@ from ironic.drivers.modules.irmc import boot as irmc_boot
 from ironic.drivers.modules.irmc import management as irmc_management
 from ironic.drivers.modules.irmc import power as irmc_power
 from ironic.drivers.modules import iscsi_deploy
-from ironic.drivers.modules import pxe as pxe_module
-from ironic.drivers.modules import snmp
 from ironic.drivers import pxe
 
 
 class PXEDriversTestCase(testtools.TestCase):
-
-    @mock.patch.object(pxe.importutils, 'try_import', spec_set=True,
-                       autospec=True)
-    def test_pxe_snmp_driver(self, try_import_mock):
-        try_import_mock.return_value = True
-
-        driver = pxe.PXEAndSNMPDriver()
-
-        self.assertIsInstance(driver.power, snmp.SNMPPower)
-        self.assertIsInstance(driver.boot, pxe_module.PXEBoot)
-        self.assertIsInstance(driver.deploy, iscsi_deploy.ISCSIDeploy)
-        self.assertIsNone(driver.management)
-
-    @mock.patch.object(pxe.importutils, 'try_import', spec_set=True,
-                       autospec=True)
-    def test_pxe_snmp_driver_import_error(self, try_import_mock):
-        try_import_mock.return_value = False
-
-        self.assertRaises(exception.DriverLoadError,
-                          pxe.PXEAndSNMPDriver)
 
     @mock.patch.object(pxe.importutils, 'try_import', spec_set=True,
                        autospec=True)

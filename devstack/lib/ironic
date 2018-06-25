@@ -289,7 +289,7 @@ if [[ "$IRONIC_DEPLOY_ISO_REQUIRED" = "True" \
         or set IRONIC_BUILD_DEPLOY_RAMDISK=True to use ISOs"
 fi
 # Which deploy driver to use - valid choices right now
-# are ``pxe_ipmitool``, ``agent_ipmitool``, ``pxe_snmp`` and ``ipmi``.
+# are ``pxe_ipmitool``, ``agent_ipmitool``, ``snmp`` and ``ipmi``.
 #
 # Additional valid choices if IRONIC_IS_HARDWARE == true are:
 # ``cisco-ucs-managed``, ``cisco-ucs-standalone``
@@ -644,7 +644,7 @@ function is_deployed_by_drac {
 }
 
 function is_deployed_by_snmp {
-    [[ -z "${IRONIC_DEPLOY_DRIVER##*snmp}" ]] && return 0
+    [[ "${IRONIC_DEPLOY_DRIVER}" == snmp ]] && return 0
     return 1
 }
 
