@@ -20,8 +20,6 @@ import mock
 import testtools
 
 from ironic.common import exception
-from ironic.drivers.modules.cimc import management as cimc_management
-from ironic.drivers.modules.cimc import power as cimc_power
 from ironic.drivers.modules import ipmitool
 from ironic.drivers.modules.irmc import boot as irmc_boot
 from ironic.drivers.modules.irmc import management as irmc_management
@@ -29,8 +27,6 @@ from ironic.drivers.modules.irmc import power as irmc_power
 from ironic.drivers.modules import iscsi_deploy
 from ironic.drivers.modules import pxe as pxe_module
 from ironic.drivers.modules import snmp
-from ironic.drivers.modules.ucs import management as ucs_management
-from ironic.drivers.modules.ucs import power as ucs_power
 from ironic.drivers import pxe
 
 
@@ -77,45 +73,3 @@ class PXEDriversTestCase(testtools.TestCase):
 
         self.assertRaises(exception.DriverLoadError,
                           pxe.PXEAndIRMCDriver)
-
-    @mock.patch.object(pxe.importutils, 'try_import', spec_set=True,
-                       autospec=True)
-    def test_pxe_ucs_driver(self, try_import_mock):
-        try_import_mock.return_value = True
-
-        driver = pxe.PXEAndUcsDriver()
-
-        self.assertIsInstance(driver.power, ucs_power.Power)
-        self.assertIsInstance(driver.boot, pxe_module.PXEBoot)
-        self.assertIsInstance(driver.deploy, iscsi_deploy.ISCSIDeploy)
-        self.assertIsInstance(driver.management,
-                              ucs_management.UcsManagement)
-
-    @mock.patch.object(pxe.importutils, 'try_import', spec_set=True,
-                       autospec=True)
-    def test_pxe_ucs_driver_import_error(self, try_import_mock):
-        try_import_mock.return_value = False
-
-        self.assertRaises(exception.DriverLoadError,
-                          pxe.PXEAndUcsDriver)
-
-    @mock.patch.object(pxe.importutils, 'try_import', spec_set=True,
-                       autospec=True)
-    def test_pxe_cimc_driver(self, try_import_mock):
-        try_import_mock.return_value = True
-
-        driver = pxe.PXEAndCIMCDriver()
-
-        self.assertIsInstance(driver.power, cimc_power.Power)
-        self.assertIsInstance(driver.boot, pxe_module.PXEBoot)
-        self.assertIsInstance(driver.deploy, iscsi_deploy.ISCSIDeploy)
-        self.assertIsInstance(driver.management,
-                              cimc_management.CIMCManagement)
-
-    @mock.patch.object(pxe.importutils, 'try_import', spec_set=True,
-                       autospec=True)
-    def test_pxe_cimc_driver_import_error(self, try_import_mock):
-        try_import_mock.return_value = False
-
-        self.assertRaises(exception.DriverLoadError,
-                          pxe.PXEAndCIMCDriver)

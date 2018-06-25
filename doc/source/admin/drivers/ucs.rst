@@ -6,21 +6,14 @@ UCS drivers
 
 Overview
 ========
+
 The UCS driver is targeted for UCS Manager managed Cisco UCS B/C series
-servers. The pxe_ucs, agent_ucs drivers enables you to take advantage of
-UCS Manager by using the python SDK.
+servers. The ``cisco-ucs-managed`` hardware type enables you to take advantage
+of UCS Manager by using the python SDK.
 
-``pxe_ucs`` driver uses PXE/iSCSI (just like ``pxe_ipmitool`` driver) to
-deploy the image and uses UCS to do all management operations on the
-baremetal node (instead of using IPMI).
-
-``agent_ucs`` driver uses IPA ramdisk (just like ``agent_ipmitool`` and
-``agent_ipminative`` drivers.) to deploy the image and uses UCS to do all
-management operations on the baremetal node (instead of using IPMI).
-
-The UCS drivers can use the Ironic Inspector service for in-band inspection of
-equipment. For more information see the `Ironic Inspector documentation
-<https://docs.openstack.org/ironic-inspector/latest>`_.
+The UCS hardware type can use the Ironic Inspector service for in-band
+inspection of equipment. For more information see the `Ironic Inspector
+documentation <https://docs.openstack.org/ironic-inspector/latest>`_.
 
 Prerequisites
 =============
@@ -48,10 +41,10 @@ by this driver.
 
 Configuring and Enabling the driver
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-1. Add ``pxe_ucs`` and/or ``agent_ucs`` to the list of ``enabled_drivers`` in
+1. Add ``cisco-ucs-managed`` to the ``enabled_hardware_types`` in
    ``/etc/ironic/ironic.conf``.  For example::
 
-    enabled_drivers = pxe_ipmitool,pxe_ucs,agent_ucs
+    enabled_hardware_types = ipmi,cisco-ucs-managed
 
 2. Restart the Ironic conductor service::
 
@@ -60,7 +53,7 @@ Configuring and Enabling the driver
 Registering UCS node in Ironic
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 Nodes configured for UCS driver should have the ``driver`` property set to
-``pxe_ucs/agent_ucs``.  The following configuration values are also required in
+``cisco-ucs-managed``.  The following configuration values are also required in
 ``driver_info``:
 
 - ``ucs_address``: IP address or hostname of the UCS Manager
@@ -75,7 +68,7 @@ The following sequence of commands can be used to enroll a UCS node.
 
 * Create Node::
 
-    openstack baremetal node create --driver <pxe_ucs/agent_ucs> \
+    openstack baremetal node create --driver cisco-ucs-managed \
         --driver-info ucs_address=<UCS Manager hostname/ip-address> \
         --driver-info ucs_username=<ucsm_username> \
         --driver-info ucs_password=<ucsm_password> \

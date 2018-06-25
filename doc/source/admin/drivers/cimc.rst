@@ -6,23 +6,14 @@ CIMC drivers
 
 Overview
 ========
-The CIMC drivers are targeted for standalone Cisco UCS C series servers.
-These drivers enable you to take advantage of CIMC by using the
-python SDK.
 
-``pxe_iscsi_cimc`` driver uses PXE boot + iSCSI deploy (just like ``pxe_ipmitool``
-driver) to deploy the image and uses CIMC to do all management operations on
-the baremetal node (instead of using IPMI).
+The ``cisco-ucs-standalone`` hardware type targets standalone Cisco UCS C
+series servers. It enables you to take advantage of CIMC by using
+the python SDK.
 
-``pxe_agent_cimc`` driver uses PXE boot + Agent deploy (just like ``agent_ipmitool``
-and ``agent_ipminative`` drivers.) to deploy the image and uses CIMC to do all
-management operations on the baremetal node (instead of using IPMI). Unlike with
-iSCSI deploy in Agent deploy, the ramdisk is responsible for writing the image to
-the disk, instead of the conductor.
-
-The CIMC drivers can use the Ironic Inspector service for in-band inspection of
-equipment. For more information see the `Ironic Inspector documentation
-<https://docs.openstack.org/ironic-inspector/latest>`_.
+The CIMC hardware type can use the Ironic Inspector service for in-band
+inspection of equipment. For more information see the `Ironic Inspector
+documentation <https://docs.openstack.org/ironic-inspector/latest>`_.
 
 Prerequisites
 =============
@@ -50,10 +41,10 @@ This driver works with UCS C-Series servers and has been tested with:
 
 Configuring and Enabling the driver
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-1. Add ``pxe_iscsi_cimc`` and/or ``pxe_agent_cimc`` to the list of ``enabled_drivers`` in
+1. Add ``cisco-ucs-standalone`` to ``enabled_hardware_types`` in
    ``/etc/ironic/ironic.conf``.  For example::
 
-    enabled_drivers = pxe_ipmitool,pxe_iscsi_cimc,pxe_agent_cimc
+    enabled_hardware_types = ipmi,cisco-ucs-standalone
 
 2. Restart the Ironic conductor service:
 
@@ -68,8 +59,8 @@ Configuring and Enabling the driver
 Registering CIMC Managed UCS node in Ironic
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 Nodes configured for CIMC driver should have the ``driver`` property set to
-``pxe_iscsi_cimc`` or ``pxe_agent_cimc``.  The following configuration values are
-also required in ``driver_info``:
+``cisco-ucs-standalone``.  The following configuration values are also required
+in ``driver_info``:
 
 - ``cimc_address``: IP address or hostname for CIMC
 - ``cimc_username``: CIMC login user name
@@ -81,7 +72,7 @@ The following sequence of commands can be used to enroll a UCS Standalone node.
 
 * Create Node::
 
-    openstack baremetal node create --driver <pxe_iscsi_cimc OR pxe_agent_cimc> \
+    openstack baremetal node create --driver cisco-ucs-standalone \
       --driver-info cimc_address=<CIMC hostname OR ip-address> \
       --driver-info cimc_username=<cimc_username> \
       --driver-info cimc_password=<cimc_password> \

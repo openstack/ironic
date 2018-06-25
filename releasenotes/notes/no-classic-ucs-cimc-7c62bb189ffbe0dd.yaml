@@ -1,0 +1,8 @@
+---
+upgrade:
+  - |
+    The deprecated classic drivers ``pxe_ucs`` and ``agent_ucs`` have been
+    removed. Please use the ``cisco-ucs-managed`` hardware type.
+  - |
+    The deprecated classic drivers ``pxe_iscsi_cimc`` and ``pxe_agent_cimc``
+    have been removed. Please use the ``cisco-ucs-standalone`` hardware type.

@@ -104,10 +104,10 @@ IRONIC_HW_ARCH=${IRONIC_HW_ARCH:-x86_64}
 # *_ipmitool or ipmi:
 #   <BMC address> <MAC address> <BMC username> <BMC password>
 #
-# *_cimc:
+# cisco-ucs-standalone:
 #   <BMC address> <MAC address> <BMC username> <BMC password>
 #
-# *_ucs:
+# cisco-ucs-managed:
 #   <BMC address> <MAC address> <BMC username> <BMC password> <UCS service profile>
 #
 # *_oneview:
@@ -292,7 +292,7 @@ fi
 # are ``pxe_ipmitool``, ``agent_ipmitool``, ``pxe_snmp`` and ``ipmi``.
 #
 # Additional valid choices if IRONIC_IS_HARDWARE == true are:
-# ``pxe_iscsi_cimc``, ``pxe_agent_cimc``, ``pxe_ucs``, ``pxe_cimc``,
+# ``cisco-ucs-managed``, ``cisco-ucs-standalone``
 # ``*_pxe_oneview`` and ``idrac``
 IRONIC_DEPLOY_DRIVER=${IRONIC_DEPLOY_DRIVER:-pxe_ipmitool}
 
@@ -620,12 +620,12 @@ function is_deployed_by_ipmitool {
 }
 
 function is_deployed_by_cimc {
-    [[ -z "${IRONIC_DEPLOY_DRIVER##*_cimc}" ]] && return 0
+    [[ "${IRONIC_DEPLOY_DRIVER}" == cisco-ucs-standalone ]] && return 0
     return 1
 }
 
 function is_deployed_by_ucs {
-    [[ -z "${IRONIC_DEPLOY_DRIVER##*_ucs}" ]] && return 0
+    [[ "${IRONIC_DEPLOY_DRIVER}" == cisco-ucs-managed ]] && return 0
     return 1
 }
 

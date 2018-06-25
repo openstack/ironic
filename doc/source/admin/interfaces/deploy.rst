@@ -25,8 +25,7 @@ when creating or updating a node::
     openstack baremetal node set <NODE> --deploy-interface iscsi
 
 The ``iscsi`` deploy interface is also used in all of the *classic drivers*
-with names starting with ``pxe_`` (except for ``pxe_agent_cimc``)
-and ``iscsi_``.
+with names starting with ``pxe_`` and ``iscsi_``.
 
 .. _iSCSI: https://en.wikipedia.org/wiki/ISCSI
 
