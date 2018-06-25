@@ -198,13 +198,20 @@ class TestListNodes(test_api_base.BaseApiTest):
             headers={api_base.Version.string: str(api_v1.max_version())})
         self.assertEqual(node.uuid, data['uuid'])
 
-    def test_node_states_field_hidden_in_lower_version(self):
-        node = obj_utils.create_test_node(self.context,
-                                          chassis_id=self.chassis.id)
+    def _test_node_field_hidden_in_lower_version(self, field,
+                                                 old_version, new_version):
+        node = obj_utils.create_test_node(self.context)
         data = self.get_json(
             '/nodes/%s' % node.uuid,
-            headers={api_base.Version.string: '1.8'})
-        self.assertNotIn('states', data)
+            headers={api_base.Version.string: old_version})
+        self.assertNotIn(field, data)
+        data = self.get_json(
+            '/nodes/%s' % node.uuid,
+            headers={api_base.Version.string: new_version})
+        self.assertIn(field, data)
+
+    def test_node_states_field_hidden_in_lower_version(self):
+        self._test_node_field_hidden_in_lower_version('states', '1.8', '1.14')
 
     def test_node_interface_fields_hidden_in_lower_version(self):
         node = obj_utils.create_test_node(self.context)
@@ -215,26 +222,15 @@ class TestListNodes(test_api_base.BaseApiTest):
             self.assertNotIn(field, data)
 
     def test_node_storage_interface_hidden_in_lower_version(self):
-        node = obj_utils.create_test_node(self.context,
-                                          storage_interface='cinder')
-        data = self.get_json(
-            '/nodes/%s' % node.uuid,
-            headers={api_base.Version.string: '1.32'})
-        self.assertNotIn('storage_interface', data)
+        self._test_node_field_hidden_in_lower_version('storage_interface',
+                                                      '1.32', '1.33')
 
     def test_node_traits_hidden_in_lower_version(self):
-        node = obj_utils.create_test_node(self.context)
-        data = self.get_json(
-            '/nodes/%s' % node.uuid,
-            headers={api_base.Version.string: '1.36'})
-        self.assertNotIn('traits', data)
+        self._test_node_field_hidden_in_lower_version('traits', '1.36', '1.37')
 
     def test_node_bios_hidden_in_lower_version(self):
-        node = obj_utils.create_test_node(self.context)
-        data = self.get_json(
-            '/nodes/%s' % node.uuid,
-            headers={api_base.Version.string: '1.39'})
-        self.assertNotIn('bios_interface', data)
+        self._test_node_field_hidden_in_lower_version('bios_interface',
+                                                      '1.39', '1.40')
 
     def test_node_inspect_wait_state_between_api_versions(self):
         node = obj_utils.create_test_node(self.context,
@@ -251,15 +247,8 @@ class TestListNodes(test_api_base.BaseApiTest):
                          higher_version_data['provision_state'])
 
     def test_node_fault_hidden_in_lower_version(self):
-        node = obj_utils.create_test_node(self.context)
-        data = self.get_json(
-            '/nodes/%s' % node.uuid,
-            headers={api_base.Version.string: '1.41'})
-        self.assertNotIn('fault', data)
-        data = self.get_json(
-            '/nodes/%s' % node.uuid,
-            headers={api_base.Version.string: '1.42'})
-        self.assertIn('fault', data)
+        self._test_node_field_hidden_in_lower_version('fault',
+                                                      '1.41', '1.42')
 
     def test_get_one_custom_fields(self):
         node = obj_utils.create_test_node(self.context,
