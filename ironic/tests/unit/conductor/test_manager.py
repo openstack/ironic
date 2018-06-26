@@ -1599,6 +1599,9 @@ class DoNodeDeployTearDownTestCase(mgr_utils.ServiceSetUpMixin,
         self.assertIsNone(node.last_error)
         mock_deploy.assert_called_once_with(mock.ANY)
 
+
+@mgr_utils.mock_record_keepalive
+class CheckTimeoutsTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
     @mock.patch('ironic.drivers.modules.fake.FakeDeploy.clean_up')
     def test__check_deploy_timeouts(self, mock_cleanup):
         self._start_service()
@@ -1677,6 +1680,9 @@ class DoNodeDeployTearDownTestCase(mgr_utils.ServiceSetUpMixin,
         mock_clean_up.assert_called_once_with(mock.ANY)
         node_power_mock.assert_called_once_with(mock.ANY, states.POWER_OFF)
 
+
+@mgr_utils.mock_record_keepalive
+class DoNodeTearDownTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
     def test_do_node_tear_down_invalid_state(self):
         self._start_service()
         # test node.provision_state is incorrect for tear_down
@@ -1886,6 +1892,10 @@ class DoNodeDeployTearDownTestCase(mgr_utils.ServiceSetUpMixin,
         # Verify reservation has been cleared.
         self.assertIsNone(node.reservation)
 
+
+@mgr_utils.mock_record_keepalive
+class DoProvisioningActionTestCase(mgr_utils.ServiceSetUpMixin,
+                                   db_base.DbTestCase):
     @mock.patch('ironic.conductor.manager.ConductorManager._spawn_worker',
                 autospec=True)
     def test_do_provisioning_action_worker_pool_full(self, mock_spawn):
@@ -1993,6 +2003,10 @@ class DoNodeDeployTearDownTestCase(mgr_utils.ServiceSetUpMixin,
         self.assertEqual(states.CLEANWAIT, node.provision_state)
         self.assertEqual(states.AVAILABLE, node.target_provision_state)
 
+
+@mgr_utils.mock_record_keepalive
+class DoNodeCleanAbortTestCase(mgr_utils.ServiceSetUpMixin,
+                               db_base.DbTestCase):
     @mock.patch.object(fake.FakeDeploy, 'tear_down_cleaning', autospec=True)
     def _test__do_node_clean_abort(self, step_name, tear_mock):
         node = obj_utils.create_test_node(
