@@ -86,14 +86,6 @@ enabled to use it:
     [DEFAULT]
     enabled_inspect_interfaces = inspector,no-inspect
 
-If using classic drivers supporting in-band inspection, like ``pxe_ipmitool``,
-another option has to be set as well:
-
-.. code-block:: ini
-
-    [inspector]
-    enabled = True
-
 You must additionally install python-ironic-inspector-client_ to use
 this functionality.
 

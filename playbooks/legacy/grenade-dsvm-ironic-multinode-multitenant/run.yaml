@@ -118,7 +118,9 @@
           export DEVSTACK_GATE_NEUTRON=1
           export DEVSTACK_GATE_VIRT_DRIVER=ironic
           export DEVSTACK_GATE_CONFIGDRIVE=1
-          export DEVSTACK_GATE_IRONIC_DRIVER=agent_ipmitool
+          export DEVSTACK_GATE_IRONIC_DRIVER=ipmi
+          export DEVSTACK_LOCAL_CONFIG+=$'\n'"IRONIC_DEFAULT_DEPLOY_INTERFACE=direct"
+
           export BRANCH_OVERRIDE="{{ zuul.override_checkout | default('default') }}"
           if [ "$BRANCH_OVERRIDE" != "default" ] ; then
               export OVERRIDE_ZUUL_BRANCH=$BRANCH_OVERRIDE
@@ -128,7 +130,7 @@
               export DEVSTACK_GATE_TLSPROXY=1
           fi
 
-          # agent_* drivers require Swift temporary URLs
+          # the direct deploy interface requires Swift temporary URLs
           export DEVSTACK_LOCAL_CONFIG+=$'\n'"SWIFT_ENABLE_TEMPURLS=True"
           export DEVSTACK_LOCAL_CONFIG+=$'\n'"SWIFT_TEMPURL_KEY=secretkey"
 

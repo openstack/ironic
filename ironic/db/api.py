@@ -138,7 +138,7 @@ class Connection(object):
                          'instance_uuid': None,
                          'power_state': states.POWER_OFF,
                          'provision_state': states.AVAILABLE,
-                         'driver': 'pxe_ipmitool',
+                         'driver': 'ipmi',
                          'driver_info': { ... },
                          'properties': { ... },
                          'extra': { ... },

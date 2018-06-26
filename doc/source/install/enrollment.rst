@@ -42,7 +42,6 @@ to list all drivers enabled on all hosts:
     | Supported driver(s) | Active host(s)        |
     +---------------------+-----------------------+
     | ipmi                | localhost.localdomain |
-    | pxe_ipmitool        | localhost.localdomain |
     +---------------------+-----------------------+
 
 Starting with API version 1.31 (and ``python-ironicclient`` 1.13), you can

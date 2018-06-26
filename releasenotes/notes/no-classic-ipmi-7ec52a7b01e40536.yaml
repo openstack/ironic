@@ -1,0 +1,5 @@
+---
+upgrade:
+  - |
+    The deprecated classic drivers ``pxe_ipmitool`` and ``agent_ipmitool``
+    have been removed. Please use the ``ipmi`` hardware type instead.
