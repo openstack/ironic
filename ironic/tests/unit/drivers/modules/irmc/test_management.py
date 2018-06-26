@@ -457,9 +457,8 @@ class IRMCManagementTestCase(test_common.BaseIRMCTest):
             e = self.assertRaises(
                 exception.FailedToGetSensorData,
                 irmc_management.IRMCManagement().get_sensors_data, task)
-        self.assertEqual("Failed to get sensor data for node 1be26c0b-"
-                         "03f2-4d2e-ae87-c02d7f33c123. Error: Fake Error",
-                         str(e))
+        self.assertEqual("Failed to get sensor data for node %s. "
+                         "Error: Fake Error" % self.node.uuid, str(e))
 
     @mock.patch.object(irmc_management.LOG, 'error', spec_set=True,
                        autospec=True)

@@ -40,8 +40,8 @@ from ironic.drivers.modules.irmc import boot as irmc_boot
 from ironic.drivers.modules.irmc import common as irmc_common
 from ironic.drivers.modules.irmc import management as irmc_management
 from ironic.drivers.modules import pxe
-from ironic.tests.unit.db import base as db_base
 from ironic.tests.unit.db import utils as db_utils
+from ironic.tests.unit.drivers.modules.irmc import test_common
 from ironic.tests.unit.drivers.modules import test_pxe
 from ironic.tests.unit.drivers import third_party_driver_mock_specs \
     as mock_specs
@@ -68,15 +68,14 @@ PARSED_IFNO = {
 }
 
 
-class IRMCDeployPrivateMethodsTestCase(db_base.DbTestCase):
+class IRMCDeployPrivateMethodsTestCase(test_common.BaseIRMCTest):
+
+    boot_interface = 'irmc-virtual-media'
 
     def setUp(self):
         irmc_boot.check_share_fs_mounted_patcher.start()
         self.addCleanup(irmc_boot.check_share_fs_mounted_patcher.stop)
         super(IRMCDeployPrivateMethodsTestCase, self).setUp()
-        self.config(enabled_drivers=['iscsi_irmc'])
-        self.node = obj_utils.create_test_node(
-            self.context, driver='iscsi_irmc', driver_info=INFO_DICT)
 
         CONF.irmc.remote_image_share_root = '/remote_image_share_root'
         CONF.irmc.remote_image_server = '10.20.30.40'
@@ -887,24 +886,14 @@ class IRMCDeployPrivateMethodsTestCase(db_base.DbTestCase):
         parse_conf_mock.assert_called_once_with()
 
 
-class IRMCVirtualMediaBootTestCase(db_base.DbTestCase):
+class IRMCVirtualMediaBootTestCase(test_common.BaseIRMCTest):
+
+    boot_interface = 'irmc-virtual-media'
 
     def setUp(self):
         irmc_boot.check_share_fs_mounted_patcher.start()
         self.addCleanup(irmc_boot.check_share_fs_mounted_patcher.stop)
         super(IRMCVirtualMediaBootTestCase, self).setUp()
-        self.config(enabled_hardware_types=['irmc'],
-                    enabled_boot_interfaces=['irmc-virtual-media'],
-                    enabled_console_interfaces=['ipmitool-socat'],
-                    enabled_deploy_interfaces=['iscsi'],
-                    enabled_inspect_interfaces=['irmc'],
-                    enabled_management_interfaces=['irmc'],
-                    enabled_power_interfaces=['irmc'],
-                    enabled_raid_interfaces=['no-raid'],
-                    enabled_rescue_interfaces=['agent'],
-                    enabled_vendor_interfaces=['no-vendor'])
-        self.node = obj_utils.create_test_node(
-            self.context, driver='irmc', driver_info=INFO_DICT)
 
     @mock.patch.object(deploy_utils, 'validate_image_properties',
                        spec_set=True, autospec=True)
@@ -1309,13 +1298,7 @@ class IRMCVirtualMediaBootTestCase(db_base.DbTestCase):
                                    task.driver.boot.validate_rescue, task)
 
 
-class IRMCPXEBootTestCase(db_base.DbTestCase):
-
-    def setUp(self):
-        super(IRMCPXEBootTestCase, self).setUp()
-        self.config(enabled_drivers=['pxe_irmc'])
-        self.node = obj_utils.create_test_node(
-            self.context, driver='pxe_irmc', driver_info=INFO_DICT)
+class IRMCPXEBootTestCase(test_common.BaseIRMCTest):
 
     @mock.patch.object(irmc_management, 'backup_bios_config', spec_set=True,
                        autospec=True)
@@ -1468,20 +1451,17 @@ class IRMCPXEBootTestCase(db_base.DbTestCase):
 
 @mock.patch.object(irmc_boot, 'viom',
                    spec_set=mock_specs.SCCICLIENT_VIOM_SPEC)
-class IRMCVirtualMediaBootWithVolumeTestCase(db_base.DbTestCase):
+class IRMCVirtualMediaBootWithVolumeTestCase(test_common.BaseIRMCTest):
+
+    boot_interface = 'irmc-virtual-media'
 
     def setUp(self):
         super(IRMCVirtualMediaBootWithVolumeTestCase, self).setUp()
         irmc_boot.check_share_fs_mounted_patcher.start()
         self.addCleanup(irmc_boot.check_share_fs_mounted_patcher.stop)
-        self.config(enabled_hardware_types=['irmc'],
-                    enabled_boot_interfaces=['irmc-virtual-media'],
-                    enabled_deploy_interfaces=['direct'],
-                    enabled_power_interfaces=['irmc'],
-                    enabled_management_interfaces=['irmc'],
-                    enabled_storage_interfaces=['cinder'])
         driver_info = INFO_DICT
         d_in_info = dict(boot_from_volume='volume-uuid')
+        self.config(enabled_storage_interfaces=['cinder'])
         self.node = obj_utils.create_test_node(self.context,
                                                driver='irmc',
                                                driver_info=driver_info,
@@ -1904,8 +1884,7 @@ class IRMCVirtualMediaBootWithVolumeTestCase(db_base.DbTestCase):
 
 class IRMCPXEBootBasicTestCase(test_pxe.PXEBootTestCase):
 
-    driver = 'pxe_irmc'
-    boot_interface = None
+    boot_interface = 'irmc-pxe'
     # NOTE(etingof): add driver-specific configuration
     driver_info = dict(test_pxe.PXEBootTestCase.driver_info)
     driver_info.update(PARSED_IFNO)

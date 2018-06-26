@@ -18,6 +18,7 @@ Test class for common methods used by iRMC modules.
 
 import mock
 from oslo_config import cfg
+from oslo_utils import uuidutils
 
 from ironic.common import exception
 from ironic.conductor import task_manager
@@ -31,18 +32,22 @@ from ironic.tests.unit.objects import utils as obj_utils
 
 class BaseIRMCTest(db_base.DbTestCase):
 
+    boot_interface = 'irmc-pxe'
+
     def setUp(self):
         super(BaseIRMCTest, self).setUp()
         self.config(enabled_hardware_types=['irmc', 'fake-hardware'],
                     enabled_power_interfaces=['irmc', 'fake'],
                     enabled_management_interfaces=['irmc', 'fake'],
-                    enabled_boot_interfaces=['irmc-pxe', 'fake'],
+                    enabled_boot_interfaces=[self.boot_interface, 'fake'],
                     enabled_inspect_interfaces=['irmc', 'no-inspect', 'fake'])
         self.info = db_utils.get_test_irmc_info()
         self.node = obj_utils.create_test_node(
             self.context,
             driver='irmc',
-            driver_info=self.info)
+            boot_interface=self.boot_interface,
+            driver_info=self.info,
+            uuid=uuidutils.generate_uuid())
 
 
 class IRMCValidateParametersTestCase(BaseIRMCTest):

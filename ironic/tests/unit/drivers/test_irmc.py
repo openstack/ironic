@@ -16,10 +16,6 @@
 Test class for iRMC Deploy Driver
 """
 
-import mock
-import testtools
-
-from ironic.common import exception
 from ironic.conductor import task_manager
 from ironic.drivers import irmc
 from ironic.drivers.modules import agent
@@ -29,90 +25,6 @@ from ironic.drivers.modules import iscsi_deploy
 from ironic.drivers.modules import noop
 from ironic.tests.unit.db import base as db_base
 from ironic.tests.unit.objects import utils as obj_utils
-
-
-class IRMCVirtualMediaIscsiTestCase(testtools.TestCase):
-
-    def setUp(self):
-        irmc.boot.check_share_fs_mounted_patcher.start()
-        self.addCleanup(irmc.boot.check_share_fs_mounted_patcher.stop)
-        super(IRMCVirtualMediaIscsiTestCase, self).setUp()
-
-    @mock.patch.object(irmc.importutils, 'try_import', spec_set=True,
-                       autospec=True)
-    def test___init___share_fs_mounted_ok(self,
-                                          mock_try_import):
-        mock_try_import.return_value = True
-
-        driver = irmc.IRMCVirtualMediaIscsiDriver()
-
-        self.assertIsInstance(driver.power, irmc.power.IRMCPower)
-        self.assertIsInstance(driver.boot,
-                              irmc.boot.IRMCVirtualMediaBoot)
-        self.assertIsInstance(driver.deploy, iscsi_deploy.ISCSIDeploy)
-        self.assertIsInstance(driver.console,
-                              irmc.ipmitool.IPMIShellinaboxConsole)
-        self.assertIsInstance(driver.management,
-                              irmc.management.IRMCManagement)
-        self.assertIsInstance(driver.inspect, irmc.inspect.IRMCInspect)
-
-    @mock.patch.object(irmc.importutils, 'try_import')
-    def test___init___try_import_exception(self, mock_try_import):
-        mock_try_import.return_value = False
-
-        self.assertRaises(exception.DriverLoadError,
-                          irmc.IRMCVirtualMediaIscsiDriver)
-
-    @mock.patch.object(irmc.boot.IRMCVirtualMediaBoot, '__init__',
-                       spec_set=True, autospec=True)
-    def test___init___share_fs_not_mounted_exception(self, __init___mock):
-        __init___mock.side_effect = exception.IRMCSharedFileSystemNotMounted(
-            share='/share')
-
-        self.assertRaises(exception.IRMCSharedFileSystemNotMounted,
-                          irmc.IRMCVirtualMediaIscsiDriver)
-
-
-class IRMCVirtualMediaAgentTestCase(testtools.TestCase):
-
-    def setUp(self):
-        irmc.boot.check_share_fs_mounted_patcher.start()
-        self.addCleanup(irmc.boot.check_share_fs_mounted_patcher.stop)
-        super(IRMCVirtualMediaAgentTestCase, self).setUp()
-
-    @mock.patch.object(irmc.importutils, 'try_import', spec_set=True,
-                       autospec=True)
-    def test___init___share_fs_mounted_ok(self,
-                                          mock_try_import):
-        mock_try_import.return_value = True
-
-        driver = irmc.IRMCVirtualMediaAgentDriver()
-
-        self.assertIsInstance(driver.power, irmc.power.IRMCPower)
-        self.assertIsInstance(driver.boot,
-                              irmc.boot.IRMCVirtualMediaBoot)
-        self.assertIsInstance(driver.deploy, agent.AgentDeploy)
-        self.assertIsInstance(driver.console,
-                              irmc.ipmitool.IPMIShellinaboxConsole)
-        self.assertIsInstance(driver.management,
-                              irmc.management.IRMCManagement)
-        self.assertIsInstance(driver.inspect, irmc.inspect.IRMCInspect)
-
-    @mock.patch.object(irmc.importutils, 'try_import')
-    def test___init___try_import_exception(self, mock_try_import):
-        mock_try_import.return_value = False
-
-        self.assertRaises(exception.DriverLoadError,
-                          irmc.IRMCVirtualMediaAgentDriver)
-
-    @mock.patch.object(irmc.boot.IRMCVirtualMediaBoot, '__init__',
-                       spec_set=True, autospec=True)
-    def test___init___share_fs_not_mounted_exception(self, __init___mock):
-        __init___mock.side_effect = exception.IRMCSharedFileSystemNotMounted(
-            share='/share')
-
-        self.assertRaises(exception.IRMCSharedFileSystemNotMounted,
-                          irmc.IRMCVirtualMediaAgentDriver)
 
 
 class IRMCHardwareTestCase(db_base.DbTestCase):

@@ -764,20 +764,14 @@ class PXEBootTestCase(db_base.DbTestCase):
         self.config_temp_dir('http_root', group='deploy')
         instance_info = INST_INFO_DICT
         instance_info['deploy_key'] = 'fake-56789'
-        if self.driver != 'fake-hardware':
-            # TODO(dtantsur): remove this when removing the vendor classic
-            # drivers
-            self.config(enabled_drivers=[self.driver])
 
+        self.config(enabled_boot_interfaces=[self.boot_interface, 'fake'])
         self.node = obj_utils.create_test_node(
             self.context,
             driver=self.driver,
             boot_interface=self.boot_interface,
             # Avoid fake properties in get_properties() output
-            # TODO(dtantsur): remove the 'if' condition when removing
-            # the vendor classic drivers
-            vendor_interface=('no-vendor' if self.driver == 'fake-hardware'
-                              else None),
+            vendor_interface='no-vendor',
             instance_info=instance_info,
             driver_info=self.driver_info,
             driver_internal_info=self.driver_internal_info)
