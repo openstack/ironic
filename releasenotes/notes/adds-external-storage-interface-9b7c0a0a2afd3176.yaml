@@ -1,0 +1,13 @@
+---
+features:
+  - |
+    Adds ``external`` storage interface which is short for
+    "externally managed". This adds logic to allow the Bare
+    Metal service to identify when a BFV scenario is being
+    requested based upon the configuration set for
+    ``volume targets``.
+
+    The user must create the entry, and no syncronizaiton
+    with a Block Storage service will occur.
+    `Documentation <https://docs.openstack.org/ironic/latest/admin/boot-from-volume.html#use-without-cinder>`_
+    has been updated to reflect how to use this interface.
