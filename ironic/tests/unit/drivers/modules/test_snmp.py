@@ -1496,6 +1496,34 @@ class SNMPDeviceDriverTestCase(db_base.DbTestCase):
         mock_client.get.assert_has_calls(calls)
         self.assertEqual(states.POWER_ON, pstate)
 
+    def test_baytech_mrp27_power_snmp_objects(self, mock_get_client):
+        # Ensure the correct SNMP object OIDs and values are used by the
+        # Baytech MRP 27 Power driver
+        self._update_driver_info(snmp_driver="baytech_mrp27", snmp_outlet="3")
+        driver = snmp._get_driver(self.node)
+
+        oid = (1, 3, 6, 1, 4, 1, 4779, 1, 3, 5, 3, 1, 3, 1, 3)
+        self.assertEqual(oid, driver._snmp_oid())
+        self.assertEqual(1, driver.value_power_on)
+        self.assertEqual(0, driver.value_power_off)
+
+    def test_baytech_mrp27_power_state_on(self, mock_get_client):
+        self._test_simple_device_power_state_on('baytech_mrp27',
+                                                mock_get_client)
+
+    def test_baytech_mrp27_power_state_off(self, mock_get_client):
+        self._test_simple_device_power_state_off('baytech_mrp27',
+                                                 mock_get_client)
+
+    def test_baytech_mrp27_power_on(self, mock_get_client):
+        self._test_simple_device_power_on('baytech_mrp27', mock_get_client)
+
+    def test_baytech_mrp27_power_off(self, mock_get_client):
+        self._test_simple_device_power_off('baytech_mrp27', mock_get_client)
+
+    def test_baytech_mrp27_power_reset(self, mock_get_client):
+        self._test_simple_device_power_reset('baytech_mrp27', mock_get_client)
+
 
 @mock.patch.object(snmp, '_get_driver', autospec=True)
 class SNMPDriverTestCase(db_base.DbTestCase):

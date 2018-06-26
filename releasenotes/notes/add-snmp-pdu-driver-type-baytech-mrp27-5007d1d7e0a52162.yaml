@@ -1,0 +1,5 @@
+---
+features:
+  - |
+    Adds new Power Distribution Unit (PDU) ``snmp`` driver type - BayTech
+    MRP27.
