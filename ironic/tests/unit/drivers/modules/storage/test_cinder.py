@@ -45,9 +45,9 @@ class CinderInterfaceTestCase(db_base.DbTestCase):
     @mock.patch.object(cinder, 'LOG', autospec=True)
     def test__fail_validation(self, mock_log):
         """Ensure the validate helper logs and raises exceptions."""
-        fake_error = 'a error!'
+        fake_error = 'an error!'
         expected = ("Failed to validate cinder storage interface for node "
-                    "%s. a error!" % self.node.uuid)
+                    "%s. an error!" % self.node.uuid)
         with task_manager.acquire(self.context, self.node.id) as task:
             self.assertRaises(exception.InvalidParameterValue,
                               self.interface._fail_validation,
