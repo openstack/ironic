@@ -36,10 +36,6 @@ METRICS = metrics_utils.get_metrics_logger(__name__)
 @six.add_metaclass(abc.ABCMeta)
 class OneViewPeriodicTasks(object):
 
-    @abc.abstractproperty
-    def oneview_driver(self):
-        pass
-
     @periodics.periodic(spacing=CONF.oneview.periodic_check_interval,
                         enabled=CONF.oneview.enable_periodic_tasks)
     def _periodic_check_nodes_taken_by_oneview(self, manager, context):
@@ -58,7 +54,7 @@ class OneViewPeriodicTasks(object):
         filters = {
             'provision_state': states.AVAILABLE,
             'maintenance': False,
-            'driver': self.oneview_driver
+            'driver': 'oneview'
         }
         node_iter = manager.iter_nodes(filters=filters)
 
@@ -116,7 +112,7 @@ class OneViewPeriodicTasks(object):
         filters = {
             'provision_state': states.MANAGEABLE,
             'maintenance': True,
-            'driver': self.oneview_driver
+            'driver': 'oneview'
         }
         node_iter = manager.iter_nodes(fields=['maintenance_reason'],
                                        filters=filters)
@@ -182,7 +178,7 @@ class OneViewPeriodicTasks(object):
 
         filters = {
             'provision_state': states.CLEANFAIL,
-            'driver': self.oneview_driver
+            'driver': 'oneview'
         }
         node_iter = manager.iter_nodes(fields=['driver_internal_info'],
                                        filters=filters)
@@ -223,8 +219,6 @@ class OneViewIscsiDeploy(iscsi_deploy.ISCSIDeploy, OneViewPeriodicTasks):
     # actions observed regarding re-establishing 3rd party CI.
     # TODO(TheJulia): This should be expected to be removed in Stein.
     supported = False
-
-    oneview_driver = common.ISCSI_PXE_ONEVIEW
 
     def get_properties(self):
         return deploy_utils.get_properties()
@@ -269,8 +263,6 @@ class OneViewAgentDeploy(agent.AgentDeploy, OneViewPeriodicTasks):
     # actions observed regarding re-establishing 3rd party CI.
     # TODO(TheJulia): This should be expected to be removed in Stein.
     supported = False
-
-    oneview_driver = common.AGENT_PXE_ONEVIEW
 
     def get_properties(self):
         return deploy_utils.get_properties()

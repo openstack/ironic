@@ -57,9 +57,6 @@ COMMON_PROPERTIES.update(REQUIRED_ON_DRIVER_INFO)
 COMMON_PROPERTIES.update(REQUIRED_ON_PROPERTIES)
 COMMON_PROPERTIES.update(OPTIONAL_ON_PROPERTIES)
 
-ISCSI_PXE_ONEVIEW = 'iscsi_pxe_oneview'
-AGENT_PXE_ONEVIEW = 'agent_pxe_oneview'
-
 # NOTE(xavierr): We don't want to translate NODE_IN_USE_BY_ONEVIEW and
 # SERVER_HARDWARE_ALLOCATION_ERROR to avoid inconsistency in the nodes
 # caused by updates on translation in upgrades of ironic.
