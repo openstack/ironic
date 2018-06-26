@@ -1366,8 +1366,7 @@ class ServiceDoNodeDeployTestCase(mgr_utils.ServiceSetUpMixin,
 
 
 @mgr_utils.mock_record_keepalive
-class DoNodeDeployTearDownTestCase(mgr_utils.ServiceSetUpMixin,
-                                   db_base.DbTestCase):
+class DoNodeDeployTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
     @mock.patch('ironic.drivers.modules.fake.FakeDeploy.deploy')
     @mock.patch('ironic.drivers.modules.fake.FakeDeploy.prepare')
     def test__do_node_deploy_driver_raises_prepare_error(self, mock_prepare,
