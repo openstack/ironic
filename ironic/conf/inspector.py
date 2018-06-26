@@ -19,9 +19,9 @@ from ironic.conf import auth
 
 opts = [
     cfg.BoolOpt('enabled', default=False,
-                help=_('whether to enable inspection using ironic-inspector. '
-                       'This option does not affect new-style dynamic '
-                       'drivers.')),
+                help=_('This option has no affect since the classic drivers '
+                       'removal.'),
+                deprecated_for_removal=True),
     cfg.StrOpt('service_url',
                deprecated_for_removal=True,
                deprecated_reason=_("Use [inspector]/endpoint_override option "
