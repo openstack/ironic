@@ -14,11 +14,10 @@
 #    under the License.
 
 from oslo_log import log as logging
-from oslo_serialization import jsonutils
-import six
 
 from ironic.common import exception
 from ironic.common.i18n import _
+from ironic.common import utils as common_utils
 from ironic.conductor import utils as manager_utils
 from ironic.conf import CONF
 from ironic.drivers import utils as driver_utils
@@ -150,43 +149,6 @@ def sync_boot_mode(task):
         _set_boot_mode_on_bm(task, ironic_boot_mode, fail_if_unsupported=True)
 
 
-def parse_instance_info_capabilities(node):
-    """Parse the instance_info capabilities.
-
-    One way of having these capabilities set is via Nova, where the
-    capabilities are defined in the Flavor extra_spec and passed to
-    Ironic by the Nova Ironic driver.
-
-    NOTE: Although our API fully supports JSON fields, to maintain the
-    backward compatibility with Juno the Nova Ironic driver is sending
-    it as a string.
-
-    :param node: a single Node.
-    :raises: InvalidParameterValue if the capabilities string is not a
-             dictionary or is malformed.
-    :returns: A dictionary with the capabilities if found, otherwise an
-              empty dictionary.
-    """
-
-    def parse_error():
-        error_msg = (_('Error parsing capabilities from Node %s instance_info '
-                       'field. A dictionary or a "jsonified" dictionary is '
-                       'expected.') % node.uuid)
-        raise exception.InvalidParameterValue(error_msg)
-
-    capabilities = node.instance_info.get('capabilities', {})
-    if isinstance(capabilities, six.string_types):
-        try:
-            capabilities = jsonutils.loads(capabilities)
-        except (ValueError, TypeError):
-            parse_error()
-
-    if not isinstance(capabilities, dict):
-        parse_error()
-
-    return capabilities
-
-
 def is_secure_boot_requested(node):
     """Returns True if secure_boot is requested for deploy.
 
@@ -199,7 +161,7 @@ def is_secure_boot_requested(node):
     :returns: True if secure_boot is requested.
     """
 
-    capabilities = parse_instance_info_capabilities(node)
+    capabilities = common_utils.parse_instance_info_capabilities(node)
     sec_boot = capabilities.get('secure_boot', 'false').lower()
 
     return sec_boot == 'true'
@@ -217,7 +179,7 @@ def is_trusted_boot_requested(node):
     :returns: True if trusted_boot is requested.
     """
 
-    capabilities = parse_instance_info_capabilities(node)
+    capabilities = common_utils.parse_instance_info_capabilities(node)
     trusted_boot = capabilities.get('trusted_boot', 'false').lower()
 
     return trusted_boot == 'true'
