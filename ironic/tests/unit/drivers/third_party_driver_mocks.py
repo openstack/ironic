@@ -169,7 +169,7 @@ if 'ironic.drivers.modules.irmc' in sys.modules:
     six.moves.reload_module(sys.modules['ironic.drivers.modules.irmc'])
 
 
-# install mock object to prevent 'iscsi_irmc' and 'agent_irmc' from
+# install mock object to prevent the irmc-virtual-media boot interface from
 # checking whether NFS/CIFS share file system is mounted or not.
 irmc_boot = importutils.import_module(
     'ironic.drivers.modules.irmc.boot')
