@@ -1,0 +1,8 @@
+---
+fixes:
+  - |
+    During node cleaning, the conductor was using a cached copy of the node's
+    driver_internal_info field. It is possible that the copy is outdated,
+    which would cause issues with the state of the node. This has been fixed.
+    For more information, see `bug 2002688
+    <https://storyboard.openstack.org/#!/story/2002688>`_.

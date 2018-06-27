@@ -2752,7 +2752,14 @@ class DoNodeCleanTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
             driver_internal_info={'clean_steps': self.clean_steps,
                                   'clean_step_index': None},
             clean_step={})
-        mock_deploy_execute.return_value = None
+
+        def fake_deploy(conductor_obj, task, step):
+            driver_internal_info = task.node.driver_internal_info
+            driver_internal_info['goober'] = 'test'
+            task.node.driver_internal_info = driver_internal_info
+            task.node.save()
+
+        mock_deploy_execute.side_effect = fake_deploy
         mock_power_execute.return_value = None
 
         with task_manager.acquire(
@@ -2767,6 +2774,7 @@ class DoNodeCleanTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         self.assertEqual(states.NOSTATE, node.target_provision_state)
         self.assertEqual({}, node.clean_step)
         self.assertNotIn('clean_step_index', node.driver_internal_info)
+        self.assertEqual('test', node.driver_internal_info['goober'])
         self.assertIsNone(node.driver_internal_info['clean_steps'])
         mock_power_execute.assert_called_once_with(mock.ANY, mock.ANY,
                                                    self.clean_steps[1])
