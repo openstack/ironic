@@ -60,10 +60,6 @@ def node_set_boot_device(task, device, persistent=False):
         ManagementInterface fails.
 
     """
-    # TODO(etingof): remove `if` once classic drivers are gone
-    if not getattr(task.driver, 'management', None):
-        return
-
     task.driver.management.validate(task)
     if task.node.provision_state != states.ADOPTING:
         task.driver.management.set_boot_device(task,
@@ -86,10 +82,6 @@ def node_get_boot_mode(task):
     :returns: Boot mode. One of :mod:`ironic.common.boot_mode` or `None`
         if boot mode can't be discovered
     """
-    # TODO(etingof): remove `if` once classic drivers are gone
-    if not getattr(task.driver, 'management', None):
-        return
-
     task.driver.management.validate(task)
     return task.driver.management.get_boot_mode(task)
 
@@ -119,10 +111,6 @@ def node_set_boot_mode(task, mode):
              vendor interface or method is unsupported.
     """
     if task.node.provision_state == states.ADOPTING:
-        return
-
-    # TODO(etingof): remove `if` once classic drivers are gone
-    if not getattr(task.driver, 'management', None):
         return
 
     task.driver.management.validate(task)

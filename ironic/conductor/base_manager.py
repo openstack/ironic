@@ -51,18 +51,17 @@ def _check_enabled_interfaces():
 
     :raises: ConfigInvalid if an enabled interfaces config option is empty.
     """
-    if CONF.enabled_hardware_types:
-        empty_confs = []
-        iface_types = ['enabled_%s_interfaces' % i
-                       for i in driver_base.ALL_INTERFACES]
-        for iface_type in iface_types:
-            conf_value = getattr(CONF, iface_type)
-            if not conf_value:
-                empty_confs.append(iface_type)
-        if empty_confs:
-            msg = (_('Configuration options %s cannot be an empty list.') %
-                   ', '.join(empty_confs))
-            raise exception.ConfigInvalid(error_msg=msg)
+    empty_confs = []
+    iface_types = ['enabled_%s_interfaces' % i
+                   for i in driver_base.ALL_INTERFACES]
+    for iface_type in iface_types:
+        conf_value = getattr(CONF, iface_type)
+        if not conf_value:
+            empty_confs.append(iface_type)
+    if empty_confs:
+        msg = (_('Configuration options %s cannot be an empty list.') %
+               ', '.join(empty_confs))
+        raise exception.ConfigInvalid(error_msg=msg)
 
 
 class BaseConductorManager(object):
@@ -111,43 +110,32 @@ class BaseConductorManager(object):
         self.ring_manager = hash_ring.HashRingManager()
         """Consistent hash ring which maps drivers to conductors."""
 
+        # TODO(dtantsur): remove in Stein
+        if CONF.enabled_drivers:
+            raise RuntimeError("The enabled_drivers configuration option "
+                               "no longer has any effect and must be empty")
+
         _check_enabled_interfaces()
 
         # NOTE(deva): these calls may raise DriverLoadError or DriverNotFound
         # NOTE(vdrok): Instantiate network and storage interface factory on
         # startup so that all the interfaces are loaded at the very
         # beginning, and failures prevent the conductor from starting.
-        drivers = driver_factory.drivers()
         hardware_types = driver_factory.hardware_types()
         driver_factory.NetworkInterfaceFactory()
         driver_factory.StorageInterfaceFactory()
 
         # NOTE(jroll) this is passed to the dbapi, which requires a list, not
         # a generator (which keys() returns in py3)
-        driver_names = list(drivers)
         hardware_type_names = list(hardware_types)
 
         # check that at least one driver is loaded, whether classic or dynamic
-        if not driver_names and not hardware_type_names:
-            msg = ("Conductor %s cannot be started because no drivers "
-                   "were loaded. This could be because no classic drivers "
-                   "were specified in the 'enabled_drivers' config option "
-                   "and no dynamic drivers were specified in the "
-                   "'enabled_hardware_types' config option.")
+        if not hardware_type_names:
+            msg = ("Conductor %s cannot be started because no hardware types "
+                   "were specified in the 'enabled_hardware_types' config "
+                   "option.")
             LOG.error(msg, self.host)
             raise exception.NoDriversLoaded(conductor=self.host)
-
-        # check for name clashes between classic and dynamic drivers
-        name_clashes = set(driver_names).intersection(hardware_type_names)
-        if name_clashes:
-            name_clashes = ', '.join(name_clashes)
-            msg = ("Conductor %(host)s cannot be started because there is "
-                   "one or more name conflicts between classic drivers and "
-                   "dynamic drivers (%(names)s). Check any external driver "
-                   "plugins and the 'enabled_drivers' and "
-                   "'enabled_hardware_types' config options.")
-            LOG.error(msg, {'host': self.host, 'names': name_clashes})
-            raise exception.DriverNameConflict(names=name_clashes)
 
         self._collect_periodic_tasks(admin_context)
 
@@ -170,7 +158,7 @@ class BaseConductorManager(object):
         try:
             # Register this conductor with the cluster
             self.conductor = objects.Conductor.register(
-                admin_context, self.host, driver_names)
+                admin_context, self.host, hardware_type_names)
         except exception.ConductorAlreadyRegistered:
             # This conductor was already registered and did not shut down
             # properly, so log a warning and update the record.
@@ -178,7 +166,8 @@ class BaseConductorManager(object):
                         "previously registered. Updating registration",
                         {'hostname': self.host})
             self.conductor = objects.Conductor.register(
-                admin_context, self.host, driver_names, update_existing=True)
+                admin_context, self.host, hardware_type_names,
+                update_existing=True)
 
         # register hardware types and interfaces supported by this conductor
         # and validate them against other conductors
@@ -280,13 +269,6 @@ class BaseConductorManager(object):
             for iface in ifaces.values():
                 _collect_from(iface, args=(self, admin_context))
         # TODO(dtantsur): allow periodics on hardware types themselves?
-
-        # Finally, collect tasks from interfaces of classic drivers, since they
-        # are not necessary registered as new-style hardware interfaces.
-        for driver_obj in driver_factory.drivers().values():
-            for iface_name in driver_obj.all_interfaces:
-                iface = getattr(driver_obj, iface_name, None)
-                _collect_from(iface, args=(self, admin_context))
 
         if len(periodic_task_callables) > CONF.conductor.workers_pool_size:
             LOG.warning('This conductor has %(tasks)d periodic tasks '

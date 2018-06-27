@@ -64,8 +64,6 @@ dbapi = db_api.get_instance()
 # object, in case it is lazy loaded. The attribute will be accessed when needed
 # by doing getattr on the object
 ONLINE_MIGRATIONS = (
-    # TODO(dtantsur): remove when classic drivers are removed (Rocky?)
-    (dbapi, 'migrate_to_hardware_types'),
     # Added in Rocky
     # TODO(rloo): remove in Stein
     (port, 'migrate_vif_port_id'),

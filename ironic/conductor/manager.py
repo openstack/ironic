@@ -72,7 +72,6 @@ from ironic.conductor import task_manager
 from ironic.conductor import utils
 from ironic.conf import CONF
 from ironic.drivers import base as drivers_base
-from ironic.drivers import hardware_type
 from ironic import objects
 from ironic.objects import base as objects_base
 from ironic.objects import fields
@@ -110,7 +109,6 @@ class ConductorManager(base_manager.BaseConductorManager):
     #     InterfaceNotFoundInEntrypoint
     #     IncompatibleInterface,
     #     NoValidDefaultForInterface
-    #     MustBeNone
     @messaging.expected_exceptions(exception.InvalidParameterValue,
                                    exception.DriverNotFound)
     def create_node(self, context, node_obj):
@@ -126,8 +124,6 @@ class ConductorManager(base_manager.BaseConductorManager):
         :raises: NoValidDefaultForInterface if no default can be calculated
                  for some interfaces, and explicit values must be provided.
         :raises: InvalidParameterValue if some fields fail validation.
-        :raises: MustBeNone if one or more of the node's interface
-                 fields were specified when they should not be.
         :raises: DriverNotFound if the driver or hardware type is not found.
         """
         LOG.debug("RPC create_node called for node %s.", node_obj.uuid)
@@ -140,7 +136,6 @@ class ConductorManager(base_manager.BaseConductorManager):
     #     InterfaceNotFoundInEntrypoint
     #     IncompatibleInterface,
     #     NoValidDefaultForInterface
-    #     MustBeNone
     @messaging.expected_exceptions(exception.InvalidParameterValue,
                                    exception.NodeLocked,
                                    exception.InvalidState,
@@ -156,8 +151,6 @@ class ConductorManager(base_manager.BaseConductorManager):
         :param node_obj: a changed (but not saved) node object.
         :raises: NoValidDefaultForInterface if no default can be calculated
                  for some interfaces, and explicit values must be provided.
-        :raises: MustBeNone if one or more of the node's interface
-                 fields were specified when they should not be.
         """
         node_id = node_obj.uuid
         LOG.debug("RPC update_node called for node %s.", node_id)
@@ -329,11 +322,6 @@ class ConductorManager(base_manager.BaseConductorManager):
         # vendor_opts before starting validation.
         with task_manager.acquire(context, node_id, shared=True,
                                   purpose='calling vendor passthru') as task:
-            if not getattr(task.driver, 'vendor', None):
-                raise exception.UnsupportedDriverExtension(
-                    driver=task.node.driver,
-                    extension='vendor interface')
-
             vendor_iface = task.driver.vendor
 
             try:
@@ -425,19 +413,12 @@ class ConductorManager(base_manager.BaseConductorManager):
         # Any locking in a top-level vendor action will need to be done by the
         # implementation, as there is little we could reasonably lock on here.
         LOG.debug("RPC driver_vendor_passthru for driver %s.", driver_name)
-        driver = driver_factory.get_driver_or_hardware_type(driver_name)
+        driver = driver_factory.get_hardware_type(driver_name)
         vendor = None
-        if isinstance(driver, hardware_type.AbstractHardwareType):
-            vendor_name = driver_factory.default_interface(
-                driver, 'vendor', driver_name=driver_name)
-            vendor = driver_factory.get_interface(driver, 'vendor',
-                                                  vendor_name)
-        else:
-            vendor = getattr(driver, 'vendor', None)
-            if not vendor:
-                raise exception.UnsupportedDriverExtension(
-                    driver=driver_name,
-                    extension='vendor interface')
+        vendor_name = driver_factory.default_interface(
+            driver, 'vendor', driver_name=driver_name)
+        vendor = driver_factory.get_interface(driver, 'vendor',
+                                              vendor_name)
 
         try:
             vendor_opts = vendor.driver_routes[driver_method]
@@ -484,11 +465,6 @@ class ConductorManager(base_manager.BaseConductorManager):
         lock_purpose = 'listing vendor passthru methods'
         with task_manager.acquire(context, node_id, shared=True,
                                   purpose=lock_purpose) as task:
-            if not getattr(task.driver, 'vendor', None):
-                raise exception.UnsupportedDriverExtension(
-                    driver=task.node.driver,
-                    extension='vendor interface')
-
             return get_vendor_passthru_metadata(
                 task.driver.vendor.vendor_routes)
 
@@ -519,19 +495,12 @@ class ConductorManager(base_manager.BaseConductorManager):
         # implementation, as there is little we could reasonably lock on here.
         LOG.debug("RPC get_driver_vendor_passthru_methods for driver %s",
                   driver_name)
-        driver = driver_factory.get_driver_or_hardware_type(driver_name)
+        driver = driver_factory.get_hardware_type(driver_name)
         vendor = None
-        if isinstance(driver, hardware_type.AbstractHardwareType):
-            vendor_name = driver_factory.default_interface(
-                driver, 'vendor', driver_name=driver_name)
-            vendor = driver_factory.get_interface(driver, 'vendor',
-                                                  vendor_name)
-        else:
-            vendor = getattr(driver, 'vendor', None)
-            if not vendor:
-                raise exception.UnsupportedDriverExtension(
-                    driver=driver_name,
-                    extension='vendor interface')
+        vendor_name = driver_factory.default_interface(
+            driver, 'vendor', driver_name=driver_name)
+        vendor = driver_factory.get_interface(driver, 'vendor',
+                                              vendor_name)
 
         return get_vendor_passthru_metadata(vendor.driver_routes)
 
@@ -574,9 +543,6 @@ class ConductorManager(base_manager.BaseConductorManager):
                 raise exception.NodeInMaintenance(op=_('rescuing'),
                                                   node=node.uuid)
 
-            if not getattr(task.driver, 'rescue', None):
-                raise exception.UnsupportedDriverExtension(
-                    driver=node.driver, extension='rescue')
             # driver validation may check rescue_password, so save it on the
             # node early
             instance_info = node.instance_info
@@ -675,9 +641,6 @@ class ConductorManager(base_manager.BaseConductorManager):
             if node.maintenance:
                 raise exception.NodeInMaintenance(op=_('unrescuing'),
                                                   node=node.uuid)
-            if not getattr(task.driver, 'rescue', None):
-                raise exception.UnsupportedDriverExtension(
-                    driver=node.driver, extension='rescue')
             try:
                 task.driver.power.validate(task)
             except (exception.InvalidParameterValue,
@@ -1192,14 +1155,13 @@ class ConductorManager(base_manager.BaseConductorManager):
         # Do caching of bios settings if supported by driver,
         # this will be called for both manual and automated cleaning.
         # TODO(zshi) remove this check when classic drivers are removed
-        if getattr(task.driver, 'bios', None):
-            try:
-                task.driver.bios.cache_bios_settings(task)
-            except Exception as e:
-                msg = (_('Caching of bios settings failed on node %(node)s. '
-                         'Continuing with node cleaning.')
-                       % {'node': node.uuid})
-                LOG.exception(msg)
+        try:
+            task.driver.bios.cache_bios_settings(task)
+        except Exception as e:
+            msg = (_('Caching of bios settings failed on node %(node)s. '
+                     'Continuing with node cleaning.')
+                   % {'node': node.uuid})
+            LOG.exception(msg)
 
         # Allow the deploy driver to set up the ramdisk again (necessary for
         # IPA cleaning)
@@ -2023,32 +1985,29 @@ class ConductorManager(base_manager.BaseConductorManager):
                 # interface.
                 if iface_name == 'bios':
                     continue
-                iface = getattr(task.driver, iface_name, None)
+                iface = getattr(task.driver, iface_name)
                 result = reason = None
-                if iface:
-                    try:
-                        iface.validate(task)
-                        if iface_name == 'deploy':
-                            utils.validate_instance_info_traits(task.node)
-                        result = True
-                    except (exception.InvalidParameterValue,
-                            exception.UnsupportedDriverExtension) as e:
-                        result = False
-                        reason = str(e)
-                    except Exception as e:
-                        result = False
-                        reason = (_('Unexpected exception, traceback saved '
-                                    'into log by ironic conductor service '
-                                    'that is running on %(host)s: %(error)s')
-                                  % {'host': self.host, 'error': e})
-                        LOG.exception(
-                            'Unexpected exception occurred while validating '
-                            '%(iface)s driver interface for driver '
-                            '%(driver)s: %(err)s on node %(node)s.',
-                            {'iface': iface_name, 'driver': task.node.driver,
-                             'err': e, 'node': task.node.uuid})
-                else:
-                    reason = _('not supported')
+                try:
+                    iface.validate(task)
+                    if iface_name == 'deploy':
+                        utils.validate_instance_info_traits(task.node)
+                    result = True
+                except (exception.InvalidParameterValue,
+                        exception.UnsupportedDriverExtension) as e:
+                    result = False
+                    reason = str(e)
+                except Exception as e:
+                    result = False
+                    reason = (_('Unexpected exception, traceback saved '
+                                'into log by ironic conductor service '
+                                'that is running on %(host)s: %(error)s')
+                              % {'host': self.host, 'error': e})
+                    LOG.exception(
+                        'Unexpected exception occurred while validating '
+                        '%(iface)s driver interface for driver '
+                        '%(driver)s: %(err)s on node %(node)s.',
+                        {'iface': iface_name, 'driver': task.node.driver,
+                         'err': e, 'node': task.node.uuid})
 
                 ret_dict[iface_name] = {}
                 ret_dict[iface_name]['result'] = result
@@ -2256,9 +2215,6 @@ class ConductorManager(base_manager.BaseConductorManager):
                                   purpose=lock_purpose) as task:
             node = task.node
 
-            if not getattr(task.driver, 'console', None):
-                raise exception.UnsupportedDriverExtension(driver=node.driver,
-                                                           extension='console')
             if not node.console_enabled:
                 raise exception.NodeConsoleNotEnabled(node=node.uuid)
 
@@ -2293,9 +2249,6 @@ class ConductorManager(base_manager.BaseConductorManager):
         with task_manager.acquire(context, node_id, shared=False,
                                   purpose='setting console mode') as task:
             node = task.node
-            if not getattr(task.driver, 'console', None):
-                raise exception.UnsupportedDriverExtension(driver=node.driver,
-                                                           extension='console')
 
             task.driver.console.validate(task)
 
@@ -2632,7 +2585,7 @@ class ConductorManager(base_manager.BaseConductorManager):
         """
         LOG.debug("RPC get_driver_properties called for driver %s.",
                   driver_name)
-        driver = driver_factory.get_driver_or_hardware_type(driver_name)
+        driver = driver_factory.get_hardware_type(driver_name)
         return driver.get_properties()
 
     @METRICS.timer('ConductorManager._sensors_nodes_task')
@@ -2656,9 +2609,6 @@ class ConductorManager(base_manager.BaseConductorManager):
                                           node_uuid,
                                           shared=True,
                                           purpose=lock_purpose) as task:
-                    if not getattr(task.driver, 'management', None):
-                        continue
-
                     if task.node.maintenance:
                         LOG.debug('Skipping sending sensors data for node '
                                   '%s as it is in maintenance mode',
@@ -2782,10 +2732,6 @@ class ConductorManager(base_manager.BaseConductorManager):
                   'device %(device)s', {'node': node_id, 'device': device})
         with task_manager.acquire(context, node_id,
                                   purpose='setting boot device') as task:
-            node = task.node
-            if not getattr(task.driver, 'management', None):
-                raise exception.UnsupportedDriverExtension(
-                    driver=node.driver, extension='management')
             task.driver.management.validate(task)
             task.driver.management.set_boot_device(task, device,
                                                    persistent=persistent)
@@ -2818,9 +2764,6 @@ class ConductorManager(base_manager.BaseConductorManager):
         LOG.debug('RPC get_boot_device called for node %s', node_id)
         with task_manager.acquire(context, node_id,
                                   purpose='getting boot device') as task:
-            if not getattr(task.driver, 'management', None):
-                raise exception.UnsupportedDriverExtension(
-                    driver=task.node.driver, extension='management')
             task.driver.management.validate(task)
             return task.driver.management.get_boot_device(task)
 
@@ -2846,12 +2789,7 @@ class ConductorManager(base_manager.BaseConductorManager):
 
         with task_manager.acquire(context, node_id,
                                   purpose='inject nmi') as task:
-            node = task.node
-            if not getattr(task.driver, 'management', None):
-                raise exception.UnsupportedDriverExtension(
-                    driver=node.driver, extension='management')
             task.driver.management.validate(task)
-
             task.driver.management.inject_nmi(task)
 
     @METRICS.timer('ConductorManager.get_supported_boot_devices')
@@ -2879,9 +2817,6 @@ class ConductorManager(base_manager.BaseConductorManager):
         lock_purpose = 'getting supported boot devices'
         with task_manager.acquire(context, node_id, shared=True,
                                   purpose=lock_purpose) as task:
-            if not getattr(task.driver, 'management', None):
-                raise exception.UnsupportedDriverExtension(
-                    driver=task.node.driver, extension='management')
             return task.driver.management.get_supported_boot_devices(task)
 
     @METRICS.timer('ConductorManager.inspect_hardware')
@@ -2915,10 +2850,6 @@ class ConductorManager(base_manager.BaseConductorManager):
         LOG.debug('RPC inspect_hardware called for node %s', node_id)
         with task_manager.acquire(context, node_id, shared=False,
                                   purpose='hardware inspection') as task:
-            if not getattr(task.driver, 'inspect', None):
-                raise exception.UnsupportedDriverExtension(
-                    driver=task.node.driver, extension='inspect')
-
             task.driver.power.validate(task)
             task.driver.inspect.validate(task)
 
@@ -2983,9 +2914,6 @@ class ConductorManager(base_manager.BaseConductorManager):
                 context, node_id,
                 purpose='setting target RAID config') as task:
             node = task.node
-            if not getattr(task.driver, 'raid', None):
-                raise exception.UnsupportedDriverExtension(
-                    driver=task.node.driver, extension='raid')
             # Operator may try to unset node.target_raid_config.  So, try to
             # validate only if it is not empty.
             if target_raid_config:
@@ -3019,18 +2947,12 @@ class ConductorManager(base_manager.BaseConductorManager):
         LOG.debug("RPC get_raid_logical_disk_properties "
                   "called for driver %s", driver_name)
 
-        driver = driver_factory.get_driver_or_hardware_type(driver_name)
+        driver = driver_factory.get_hardware_type(driver_name)
         raid_iface = None
-        if isinstance(driver, hardware_type.AbstractHardwareType):
-            raid_iface_name = driver_factory.default_interface(
-                driver, 'raid', driver_name=driver_name)
-            raid_iface = driver_factory.get_interface(driver, 'raid',
-                                                      raid_iface_name)
-        else:
-            raid_iface = getattr(driver, 'raid', None)
-            if not raid_iface:
-                raise exception.UnsupportedDriverExtension(
-                    driver=driver_name, extension='raid')
+        raid_iface_name = driver_factory.default_interface(
+            driver, 'raid', driver_name=driver_name)
+        raid_iface = driver_factory.get_interface(driver, 'raid',
+                                                  raid_iface_name)
 
         return raid_iface.get_logical_disk_properties()
 

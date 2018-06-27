@@ -11,7 +11,7 @@
 # under the License.
 
 """
-Hardware types and classic drivers for IPMI (using ipmitool).
+Hardware type for IPMI (using ipmitool).
 """
 
 from ironic.drivers import generic

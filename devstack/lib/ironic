@@ -2508,6 +2508,8 @@ function ironic_configure_tempest {
         iniset $TEMPEST_CONFIG baremetal whole_disk_image_checksum $(md5sum $FILES/${IRONIC_WHOLEDISK_IMAGE_NAME}.img)
     fi
 
+    # NOTE(dtantsur): keep this option here until the defaults change in
+    # ironic-tempest-plugin to disable classic drivers testing.
     iniset $TEMPEST_CONFIG baremetal enabled_drivers ""
     iniset $TEMPEST_CONFIG baremetal enabled_hardware_types $IRONIC_ENABLED_HARDWARE_TYPES
     iniset $TEMPEST_CONFIG baremetal enabled_bios_interfaces $IRONIC_ENABLED_BIOS_INTERFACES

@@ -4824,7 +4824,7 @@ class ManagerDoSyncPowerStateTestCase(db_base.DbTestCase):
     def setUp(self):
         super(ManagerDoSyncPowerStateTestCase, self).setUp()
         self.service = manager.ConductorManager('hostname', 'test-topic')
-        self.driver = mock.Mock(spec_set=drivers_base.BaseDriver)
+        self.driver = mock.Mock(spec_set=drivers_base.BareDriver)
         self.power = self.driver.power
         self.node = obj_utils.create_test_node(
             self.context, driver='fake-hardware', maintenance=False,
@@ -5341,7 +5341,7 @@ class ManagerPowerRecoveryTestCase(mgr_utils.CommonMixIn,
         super(ManagerPowerRecoveryTestCase, self).setUp()
         self.service = manager.ConductorManager('hostname', 'test-topic')
         self.service.dbapi = self.dbapi
-        self.driver = mock.Mock(spec_set=drivers_base.BaseDriver)
+        self.driver = mock.Mock(spec_set=drivers_base.BareDriver)
         self.power = self.driver.power
         self.task = mock.Mock(spec_set=['context', 'driver', 'node',
                                         'upgrade_lock', 'shared'])

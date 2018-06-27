@@ -43,11 +43,6 @@ class HashRingManagerTestCase(db_base.DbTestCase):
             self.dbapi.register_conductor_hardware_interfaces(
                 c.id, 'hardware-type', 'deploy', ['iscsi', 'direct'], 'iscsi')
 
-    def test_hash_ring_manager_get_ring_success(self):
-        self.register_conductors()
-        ring = self.ring_manager['driver1']
-        self.assertEqual(sorted(['host1', 'host2']), sorted(ring.nodes))
-
     def test_hash_ring_manager_hardware_type_success(self):
         self.register_conductors()
         ring = self.ring_manager['hardware-type']
@@ -65,11 +60,11 @@ class HashRingManagerTestCase(db_base.DbTestCase):
         # undesirable, but today is the intended behavior.
         self.assertRaises(exception.DriverNotFound,
                           self.ring_manager.__getitem__,
-                          'driver1')
+                          'hardware-type')
         self.register_conductors()
         self.assertRaises(exception.DriverNotFound,
                           self.ring_manager.__getitem__,
-                          'driver1')
+                          'hardware-type')
 
     def test_hash_ring_manager_refresh(self):
         CONF.set_override('hash_ring_reset_interval', 30)
@@ -77,7 +72,7 @@ class HashRingManagerTestCase(db_base.DbTestCase):
         # hash ring will refresh only when time interval exceeded.
         self.assertRaises(exception.DriverNotFound,
                           self.ring_manager.__getitem__,
-                          'driver1')
+                          'hardware-type')
         self.register_conductors()
         self.ring_manager.updated_at = time.time() - 31
-        self.ring_manager.__getitem__('driver1')
+        self.ring_manager.__getitem__('hardware-type')

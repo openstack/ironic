@@ -30,32 +30,30 @@ from ironic.tests.unit.api import base
 
 
 class TestListDrivers(base.BaseApiTest):
-    d1 = 'fake-driver1'
-    d2 = 'fake-driver2'
-    d3 = 'fake-hardware-type'
+    hw1 = 'fake-hardware-type'
+    hw2 = 'fake-hardware-type-2'
     h1 = 'fake-host1'
     h2 = 'fake-host2'
 
     def register_fake_conductors(self):
         c1 = self.dbapi.register_conductor({
-            'hostname': self.h1,
-            'drivers': [self.d1, self.d2],
+            'hostname': self.h1, 'drivers': [],
         })
         c2 = self.dbapi.register_conductor({
-            'hostname': self.h2,
-            'drivers': [self.d2],
+            'hostname': self.h2, 'drivers': [],
         })
         for c in (c1, c2):
             self.dbapi.register_conductor_hardware_interfaces(
-                c.id, self.d3, 'deploy', ['iscsi', 'direct'], 'direct')
+                c.id, self.hw1, 'deploy', ['iscsi', 'direct'], 'direct')
+        self.dbapi.register_conductor_hardware_interfaces(
+            c1.id, self.hw2, 'deploy', ['iscsi', 'direct'], 'direct')
 
     def _test_drivers(self, use_dynamic, detail=False, latest_if=False):
         self.register_fake_conductors()
         headers = {}
         expected = [
-            {'name': self.d1, 'hosts': [self.h1], 'type': 'classic'},
-            {'name': self.d2, 'hosts': [self.h1, self.h2], 'type': 'classic'},
-            {'name': self.d3, 'hosts': [self.h1, self.h2], 'type': 'dynamic'},
+            {'name': self.hw1, 'hosts': [self.h1, self.h2], 'type': 'dynamic'},
+            {'name': self.hw2, 'hosts': [self.h1], 'type': 'dynamic'},
         ]
         expected = sorted(expected, key=lambda d: d['name'])
         if use_dynamic:
@@ -114,13 +112,13 @@ class TestListDrivers(base.BaseApiTest):
                                autospec=True) as mock_hw:
             mock_hw.return_value = [
                 {
-                    'hardware_type': self.d3,
+                    'hardware_type': self.hw1,
                     'interface_type': 'deploy',
                     'interface_name': 'iscsi',
                     'default': False,
                 },
                 {
-                    'hardware_type': self.d3,
+                    'hardware_type': self.hw1,
                     'interface_type': 'deploy',
                     'interface_name': 'direct',
                     'default': True,
@@ -135,20 +133,20 @@ class TestListDrivers(base.BaseApiTest):
     def test_drivers_with_dynamic_detailed_storage_interface(self):
         self._test_drivers_with_dynamic_detailed(latest_if=True)
 
-    def _test_drivers_type_filter(self, requested_type):
+    def test_drivers_type_filter_classic(self):
         self.register_fake_conductors()
         headers = {api_base.Version.string: '1.30'}
-        data = self.get_json('/drivers?type=%s' % requested_type,
-                             headers=headers)
-        for d in data['drivers']:
-            # just check it's the right type, other tests handle the rest
-            self.assertEqual(requested_type, d['type'])
-
-    def test_drivers_type_filter_classic(self):
-        self._test_drivers_type_filter('classic')
+        data = self.get_json('/drivers?type=classic', headers=headers)
+        self.assertEqual([], data['drivers'])
 
     def test_drivers_type_filter_dynamic(self):
-        self._test_drivers_type_filter('dynamic')
+        self.register_fake_conductors()
+        headers = {api_base.Version.string: '1.30'}
+        data = self.get_json('/drivers?type=dynamic', headers=headers)
+        self.assertNotEqual([], data['drivers'])
+        for d in data['drivers']:
+            # just check it's the right type, other tests handle the rest
+            self.assertEqual('dynamic', d['type'])
 
     def test_drivers_type_filter_bad_version(self):
         headers = {api_base.Version.string: '1.29'}
@@ -184,19 +182,14 @@ class TestListDrivers(base.BaseApiTest):
         self.assertEqual([], data['drivers'])
 
     @mock.patch.object(rpcapi.ConductorAPI, 'get_driver_properties')
-    def _test_drivers_get_one_ok(self, use_dynamic, mock_driver_properties,
+    def _test_drivers_get_one_ok(self, mock_driver_properties,
                                  latest_if=False):
         # get_driver_properties mock is required by validate_link()
         self.register_fake_conductors()
 
-        if use_dynamic:
-            driver = self.d3
-            driver_type = 'dynamic'
-            hosts = [self.h1, self.h2]
-        else:
-            driver = self.d1
-            driver_type = 'classic'
-            hosts = [self.h1]
+        driver = self.hw1
+        driver_type = 'dynamic'
+        hosts = [self.h1, self.h2]
 
         headers = {}
         if latest_if:
@@ -213,47 +206,40 @@ class TestListDrivers(base.BaseApiTest):
         self.assertIn('properties', data)
         self.assertEqual(driver_type, data['type'])
 
-        if use_dynamic:
-            for iface in driver_base.ALL_INTERFACES:
-                if iface != 'bios':
-                    if latest_if or iface not in ['rescue', 'storage']:
-                        self.assertIn('default_%s_interface' % iface, data)
-                        self.assertIn('enabled_%s_interfaces' % iface, data)
+        for iface in driver_base.ALL_INTERFACES:
+            if iface != 'bios':
+                if latest_if or iface not in ['rescue', 'storage']:
+                    self.assertIn('default_%s_interface' % iface, data)
+                    self.assertIn('enabled_%s_interfaces' % iface, data)
 
-            self.assertIsNotNone(data['default_deploy_interface'])
-            self.assertIsNotNone(data['enabled_deploy_interfaces'])
-        else:
-            self.assertIsNone(data['default_deploy_interface'])
-            self.assertIsNone(data['enabled_deploy_interfaces'])
+        self.assertIsNotNone(data['default_deploy_interface'])
+        self.assertIsNotNone(data['enabled_deploy_interfaces'])
 
         self.validate_link(data['links'][0]['href'])
         self.validate_link(data['links'][1]['href'])
         self.validate_link(data['properties'][0]['href'])
         self.validate_link(data['properties'][1]['href'])
 
-    def test_drivers_get_one_ok_classic(self):
-        self._test_drivers_get_one_ok(False)
-
     def _test_drivers_get_one_ok_dynamic(self, latest_if=False):
         with mock.patch.object(self.dbapi, 'list_hardware_type_interfaces',
                                autospec=True) as mock_hw:
             mock_hw.return_value = [
                 {
-                    'hardware_type': self.d3,
+                    'hardware_type': self.hw1,
                     'interface_type': 'deploy',
                     'interface_name': 'iscsi',
                     'default': False,
                 },
                 {
-                    'hardware_type': self.d3,
+                    'hardware_type': self.hw1,
                     'interface_type': 'deploy',
                     'interface_name': 'direct',
                     'default': True,
                 },
             ]
 
-            self._test_drivers_get_one_ok(True, latest_if=latest_if)
-            mock_hw.assert_called_once_with([self.d3])
+            self._test_drivers_get_one_ok(latest_if=latest_if)
+            mock_hw.assert_called_once_with([self.hw1])
 
     def test_drivers_get_one_ok_dynamic_base_interfaces(self):
         self._test_drivers_get_one_ok_dynamic()
@@ -263,35 +249,35 @@ class TestListDrivers(base.BaseApiTest):
 
     def test_driver_properties_hidden_in_lower_version(self):
         self.register_fake_conductors()
-        data = self.get_json('/drivers/%s' % self.d1,
+        data = self.get_json('/drivers/%s' % self.hw1,
                              headers={api_base.Version.string: '1.8'})
         self.assertNotIn('properties', data)
 
     def test_driver_type_hidden_in_lower_version(self):
         self.register_fake_conductors()
-        data = self.get_json('/drivers/%s' % self.d1,
+        data = self.get_json('/drivers/%s' % self.hw1,
                              headers={api_base.Version.string: '1.14'})
         self.assertNotIn('type', data)
 
     def test_drivers_get_one_not_found(self):
-        response = self.get_json('/drivers/%s' % self.d1, expect_errors=True)
+        response = self.get_json('/drivers/nope', expect_errors=True)
         self.assertEqual(http_client.NOT_FOUND, response.status_int)
 
     def _test_links(self, public_url=None):
         cfg.CONF.set_override('public_endpoint', public_url, 'api')
         self.register_fake_conductors()
-        data = self.get_json('/drivers/%s' % self.d1)
+        data = self.get_json('/drivers/%s' % self.hw1)
         self.assertIn('links', data)
         self.assertEqual(2, len(data['links']))
-        self.assertIn(self.d1, data['links'][0]['href'])
+        self.assertIn(self.hw1, data['links'][0]['href'])
         for l in data['links']:
             bookmark = l['rel'] == 'bookmark'
             self.assertTrue(self.validate_link(l['href'], bookmark=bookmark))
 
         if public_url is not None:
-            expected = [{'href': '%s/v1/drivers/%s' % (public_url, self.d1),
+            expected = [{'href': '%s/v1/drivers/%s' % (public_url, self.hw1),
                          'rel': 'self'},
-                        {'href': '%s/drivers/%s' % (public_url, self.d1),
+                        {'href': '%s/drivers/%s' % (public_url, self.hw1),
                          'rel': 'bookmark'}]
             for i in expected:
                 self.assertIn(i, data['links'])
@@ -310,7 +296,7 @@ class TestListDrivers(base.BaseApiTest):
             'async': False,
             'attach': False}
         response = self.post_json(
-            '/drivers/%s/vendor_passthru/do_test' % self.d1,
+            '/drivers/%s/vendor_passthru/do_test' % self.hw1,
             {'test_key': 'test_value'})
         self.assertEqual(http_client.OK, response.status_int)
         self.assertEqual(mocked_driver_vendor_passthru.return_value['return'],
@@ -323,7 +309,7 @@ class TestListDrivers(base.BaseApiTest):
                                                       'async': True,
                                                       'attach': False}
         response = self.post_json(
-            '/drivers/%s/vendor_passthru/do_test' % self.d1,
+            '/drivers/%s/vendor_passthru/do_test' % self.hw1,
             {'test_key': 'test_value'})
         self.assertEqual(http_client.ACCEPTED, response.status_int)
         self.assertIsNone(mocked_driver_vendor_passthru.return_value['return'])
@@ -334,7 +320,7 @@ class TestListDrivers(base.BaseApiTest):
         return_value = {'return': None, 'async': True, 'attach': False}
         mocked_driver_vendor_passthru.return_value = return_value
         response = self.put_json(
-            '/drivers/%s/vendor_passthru/do_test' % self.d1,
+            '/drivers/%s/vendor_passthru/do_test' % self.hw1,
             {'test_key': 'test_value'})
         self.assertEqual(http_client.ACCEPTED, response.status_int)
         self.assertEqual(return_value['return'], response.json)
@@ -345,7 +331,7 @@ class TestListDrivers(base.BaseApiTest):
         return_value = {'return': 'foo', 'async': False, 'attach': False}
         mocked_driver_vendor_passthru.return_value = return_value
         response = self.get_json(
-            '/drivers/%s/vendor_passthru/do_test' % self.d1)
+            '/drivers/%s/vendor_passthru/do_test' % self.hw1)
         self.assertEqual(return_value['return'], response)
 
     @mock.patch.object(rpcapi.ConductorAPI, 'driver_vendor_passthru')
@@ -354,7 +340,7 @@ class TestListDrivers(base.BaseApiTest):
         return_value = {'return': None, 'async': True, 'attach': False}
         mock_driver_vendor_passthru.return_value = return_value
         response = self.delete(
-            '/drivers/%s/vendor_passthru/do_test' % self.d1)
+            '/drivers/%s/vendor_passthru/do_test' % self.hw1)
         self.assertEqual(http_client.ACCEPTED, response.status_int)
         self.assertEqual(return_value['return'], response.json)
 
@@ -362,7 +348,7 @@ class TestListDrivers(base.BaseApiTest):
         # tests when given driver is not found
         # e.g. get_topic_for_driver fails to find the driver
         response = self.post_json(
-            '/drivers/%s/vendor_passthru/do_test' % self.d1,
+            '/drivers/%s/vendor_passthru/do_test' % self.hw1,
             {'test_key': 'test_value'},
             expect_errors=True)
 
@@ -370,7 +356,7 @@ class TestListDrivers(base.BaseApiTest):
 
     def test_driver_vendor_passthru_method_not_found(self):
         response = self.post_json(
-            '/drivers/%s/vendor_passthru' % self.d1,
+            '/drivers/%s/vendor_passthru' % self.hw1,
             {'test_key': 'test_value'},
             expect_errors=True)
 
@@ -385,11 +371,11 @@ class TestListDrivers(base.BaseApiTest):
         self.register_fake_conductors()
         return_value = {'foo': 'bar'}
         get_methods_mock.return_value = return_value
-        path = '/drivers/%s/vendor_passthru/methods' % self.d1
+        path = '/drivers/%s/vendor_passthru/methods' % self.hw1
 
         data = self.get_json(path)
         self.assertEqual(return_value, data)
-        get_methods_mock.assert_called_once_with(mock.ANY, self.d1,
+        get_methods_mock.assert_called_once_with(mock.ANY, self.hw1,
                                                  topic=mock.ANY)
 
         # Now let's test the cache: Reset the mock
@@ -407,11 +393,11 @@ class TestListDrivers(base.BaseApiTest):
         self.register_fake_conductors()
         properties = {'foo': 'description of foo'}
         disk_prop_mock.return_value = properties
-        path = '/drivers/%s/raid/logical_disk_properties' % self.d1
+        path = '/drivers/%s/raid/logical_disk_properties' % self.hw1
         data = self.get_json(path,
                              headers={api_base.Version.string: "1.12"})
         self.assertEqual(properties, data)
-        disk_prop_mock.assert_called_once_with(mock.ANY, self.d1,
+        disk_prop_mock.assert_called_once_with(mock.ANY, self.hw1,
                                                topic=mock.ANY)
 
     @mock.patch.object(rpcapi.ConductorAPI, 'get_raid_logical_disk_properties')
@@ -420,7 +406,7 @@ class TestListDrivers(base.BaseApiTest):
         self.register_fake_conductors()
         properties = {'foo': 'description of foo'}
         disk_prop_mock.return_value = properties
-        path = '/drivers/%s/raid/logical_disk_properties' % self.d1
+        path = '/drivers/%s/raid/logical_disk_properties' % self.hw1
         ret = self.get_json(path,
                             headers={api_base.Version.string: "1.4"},
                             expect_errors=True)
@@ -434,14 +420,14 @@ class TestListDrivers(base.BaseApiTest):
         self.register_fake_conductors()
         properties = {'foo': 'description of foo'}
         disk_prop_mock.return_value = properties
-        path = '/drivers/%s/raid/logical_disk_properties' % self.d1
+        path = '/drivers/%s/raid/logical_disk_properties' % self.hw1
         for i in range(3):
             data = self.get_json(path,
                                  headers={api_base.Version.string: "1.12"})
             self.assertEqual(properties, data)
-        disk_prop_mock.assert_called_once_with(mock.ANY, self.d1,
+        disk_prop_mock.assert_called_once_with(mock.ANY, self.hw1,
                                                topic=mock.ANY)
-        self.assertEqual(properties, driver._RAID_PROPERTIES[self.d1])
+        self.assertEqual(properties, driver._RAID_PROPERTIES[self.hw1])
 
     @mock.patch.object(rpcapi.ConductorAPI, 'get_raid_logical_disk_properties')
     def test_raid_logical_disk_properties_iface_not_supported(
@@ -450,13 +436,13 @@ class TestListDrivers(base.BaseApiTest):
         self.register_fake_conductors()
         disk_prop_mock.side_effect = exception.UnsupportedDriverExtension(
             extension='raid', driver='fake-hardware')
-        path = '/drivers/%s/raid/logical_disk_properties' % self.d1
+        path = '/drivers/%s/raid/logical_disk_properties' % self.hw1
         ret = self.get_json(path,
                             headers={api_base.Version.string: "1.12"},
                             expect_errors=True)
         self.assertEqual(http_client.NOT_FOUND, ret.status_code)
         self.assertTrue(ret.json['error_message'])
-        disk_prop_mock.assert_called_once_with(mock.ANY, self.d1,
+        disk_prop_mock.assert_called_once_with(mock.ANY, self.hw1,
                                                topic=mock.ANY)
 
 

@@ -39,34 +39,29 @@ RAID_CONFIG_SCHEMA = os.path.join(os.path.dirname(__file__),
                                   'raid_config_schema.json')
 
 
-@six.add_metaclass(abc.ABCMeta)
-class BaseDriver(object):
-    """Base class for all drivers.
+class BareDriver(object):
+    """A bare driver object which will have interfaces attached later.
 
-    Defines the `core`, `standardized`, and `vendor-specific` interfaces for
-    drivers. Any loadable driver must implement all `core` interfaces.
-    Actual implementation may instantiate one or more classes, as long as
-    the interfaces are appropriate.
+    Any composable interfaces should be added as class attributes of this
+    class, as well as appended to core_interfaces or standard_interfaces here.
     """
 
-    supported = False
-    """Indicates if a driver is supported.
+    bios = None
+    """`Standard` attribute for BIOS related features.
 
-    This will be set to False for drivers which are untested in first- or
-    third-party CI, or in the process of being deprecated.
-
-    All classic drivers are now deprecated, and thus unsupported.
+    A reference to an instance of :class:BIOSInterface.
     """
 
-    # NOTE(jlvillal): These should be tuples to help prevent child classes from
-    # accidentally modifying the base class values.
-    core_interfaces = ('deploy', 'power')
-    standard_interfaces = ('boot', 'console', 'inspect', 'management', 'raid')
+    boot = None
+    """`Standard` attribute for boot related features.
 
-    power = None
-    """`Core` attribute for managing power state.
+    A reference to an instance of :class:BootInterface.
+    """
 
-    A reference to an instance of :class:PowerInterface.
+    console = None
+    """`Standard` attribute for managing console access.
+
+    A reference to an instance of :class:ConsoleInterface.
     """
 
     deploy = None
@@ -75,66 +70,71 @@ class BaseDriver(object):
     A reference to an instance of :class:DeployInterface.
     """
 
-    console = None
-    """`Standard` attribute for managing console access.
+    inspect = None
+    """`Standard` attribute for inspection related features.
 
-    A reference to an instance of :class:ConsoleInterface.
-    May be None, if unsupported by a driver.
-    """
-
-    rescue = None
-    """`Standard` attribute for accessing rescue features.
-
-    A reference to an instance of :class:RescueInterface.
-    May be None, if unsupported by a driver.
+    A reference to an instance of :class:InspectInterface.
     """
 
     management = None
     """`Standard` attribute for management related features.
 
     A reference to an instance of :class:ManagementInterface.
-    May be None, if unsupported by a driver.
     """
 
-    boot = None
-    """`Standard` attribute for boot related features.
+    network = None
+    """`Core` attribute for network connectivity.
 
-    A reference to an instance of :class:BootInterface.
-    May be None, if unsupported by a driver.
+    A reference to an instance of :class:NetworkInterface.
     """
 
-    vendor = None
-    """Attribute for accessing any vendor-specific extensions.
+    power = None
+    """`Core` attribute for managing power state.
 
-    A reference to an instance of :class:VendorInterface.
-    May be None, if the driver does not implement any vendor extensions.
-    """
-
-    inspect = None
-    """`Standard` attribute for inspection related features.
-
-    A reference to an instance of :class:InspectInterface.
-    May be None, if unsupported by a driver.
+    A reference to an instance of :class:PowerInterface.
     """
 
     raid = None
     """`Standard` attribute for RAID related features.
 
     A reference to an instance of :class:RaidInterface.
-    May be None, if unsupported by a driver.
     """
 
-    def __init__(self):
-        pass
+    rescue = None
+    """`Standard` attribute for accessing rescue features.
+
+    A reference to an instance of :class:RescueInterface.
+    """
+
+    storage = None
+    """`Standard` attribute for (remote) storage interface.
+
+    A reference to an instance of :class:StorageInterface.
+    """
+
+    vendor = None
+    """Attribute for accessing any vendor-specific extensions.
+
+    A reference to an instance of :class:VendorInterface.
+    """
+
+    @property
+    def core_interfaces(self):
+        """Interfaces that are required to be implemented."""
+        return ['boot', 'deploy', 'management', 'network', 'power']
+
+    @property
+    def optional_interfaces(self):
+        """Interfaces that can be no-op."""
+        return ['bios', 'console', 'inspect', 'raid', 'rescue', 'storage']
 
     @property
     def all_interfaces(self):
-        return (list(self.core_interfaces + self.standard_interfaces)
-                + ['vendor'])
+        return self.non_vendor_interfaces + ['vendor']
 
     @property
     def non_vendor_interfaces(self):
-        return list(self.core_interfaces + self.standard_interfaces)
+        return list(self.core_interfaces + self.optional_interfaces)
 
     def get_properties(self):
         """Get the properties of the driver.
@@ -149,55 +149,9 @@ class BaseDriver(object):
                 properties.update(iface.get_properties())
         return properties
 
-    @classmethod
-    def to_hardware_type(cls):
-        """Return corresponding hardware type and hardware interfaces.
-
-        :returns: a tuple with two items:
-
-            * new driver field - the target hardware type
-            * dictionary containing interfaces to update, e.g.
-              {'deploy': 'iscsi', 'power': 'ipmitool'}
-        """
-        raise NotImplementedError()
-
-
-class BareDriver(BaseDriver):
-    """A bare driver object which will have interfaces attached later.
-
-    Any composable interfaces should be added as class attributes of this
-    class, as well as appended to core_interfaces or standard_interfaces here.
-    """
-
-    network = None
-    """`Core` attribute for network connectivity.
-
-    A reference to an instance of :class:NetworkInterface.
-    """
-    core_interfaces = BaseDriver.core_interfaces + ('network',)
-
-    bios = None
-    """`Standard` attribute for BIOS related features.
-
-    A reference to an instance of :class:BIOSInterface.
-    May be None, if unsupported by a driver.
-    """
-
-    storage = None
-    """`Standard` attribute for (remote) storage interface.
-
-    A reference to an instance of :class:StorageInterface.
-    """
-
-    standard_interfaces = (BaseDriver.standard_interfaces + ('bios',
-                           'rescue', 'storage',))
-
 
 ALL_INTERFACES = set(BareDriver().all_interfaces)
-"""Constant holding all known interfaces.
-
-Includes interfaces not exposed via BaseDriver.all_interfaces.
-"""
+"""Constant holding all known interfaces."""
 
 
 @six.add_metaclass(abc.ABCMeta)
