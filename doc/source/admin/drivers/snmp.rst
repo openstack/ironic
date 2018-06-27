@@ -116,7 +116,9 @@ set to the hardware type ``snmp``.
 The following property values have to be added to the node's
 ``driver_info`` field:
 
-- ``snmp_driver``: PDU manufacturer driver
+- ``snmp_driver``: PDU manufacturer driver name or ``auto`` to automatically
+  choose ironic snmp driver based on ``SNMPv2-MIB::sysObjectID`` value as
+  reported by PDU.
 - ``snmp_address``: the IPv4 address of the PDU controlling this node.
 - ``snmp_port``: (optional) A non-standard UDP port to use for SNMP operations.
   If not specified, the default port (161) is used.

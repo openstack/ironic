@@ -1,0 +1,7 @@
+---
+features:
+  - |
+    Adds new ``auto`` type of the ``driver_info/snmp_driver`` setting which
+    makes ironic automatically select a suitable SNMP driver type based on
+    the ``SNMPv2-MIB::sysObjectID`` value as reported by the PDU being
+    managed.

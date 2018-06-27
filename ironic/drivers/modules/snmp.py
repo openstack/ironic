@@ -527,6 +527,7 @@ class SNMPDriverAten(SNMPDriverSimple):
     1.3.6.1.4.1.21317.1.3.2.2.2.2 Outlet Power
     Values: 1=Off, 2=On, 3=Pending, 4=Reset
     """
+    system_id = (21317,)
     oid_device = (21317, 1, 3, 2, 2, 2, 2)
     value_power_on = 2
     value_power_off = 1
@@ -548,6 +549,7 @@ class SNMPDriverAPCMasterSwitch(SNMPDriverSimple):
     Values: 1=On, 2=Off, 3=PowerCycle, [...more options follow]
     """
 
+    system_id = (318, 1, 1, 4)
     oid_device = (318, 1, 1, 4, 4, 2, 1, 3)
     value_power_on = 1
     value_power_off = 2
@@ -561,6 +563,7 @@ class SNMPDriverAPCMasterSwitchPlus(SNMPDriverSimple):
     Values: 1=On, 3=Off, [...more options follow]
     """
 
+    system_id = (318, 1, 1, 6)
     oid_device = (318, 1, 1, 6, 5, 1, 1, 5)
     value_power_on = 1
     value_power_off = 3
@@ -574,6 +577,7 @@ class SNMPDriverAPCRackPDU(SNMPDriverSimple):
     Values: 1=On, 2=Off, 3=PowerCycle, [...more options follow]
     """
 
+    system_id = (318, 1, 1, 12)
     oid_device = (318, 1, 1, 12, 3, 3, 1, 1, 4)
     value_power_on = 1
     value_power_off = 2
@@ -591,6 +595,7 @@ class SNMPDriverCyberPower(SNMPDriverSimple):
     #                 been implemented based upon its published MIB
     #                 documentation.
 
+    system_id = (3808,)
     oid_device = (3808, 1, 1, 3, 3, 3, 1, 1, 4)
     value_power_on = 1
     value_power_off = 2
@@ -604,6 +609,7 @@ class SNMPDriverTeltronix(SNMPDriverSimple):
     Values: 1=Off, 2=On
     """
 
+    system_id = (23620,)
     oid_device = (23620, 1, 2, 2, 1, 4)
     value_power_on = 2
     value_power_off = 1
@@ -628,6 +634,7 @@ class SNMPDriverEatonPower(SNMPDriverBase):
     #                 been implemented based upon its published MIB
     #                 documentation.
 
+    system_id = (534,)
     oid_device = (534, 6, 6, 7, 6, 6, 1)
     oid_status = (2,)
     oid_poweron = (3,)
@@ -688,6 +695,66 @@ class SNMPDriverEatonPower(SNMPDriverBase):
         self.client.set(oid, value)
 
 
+class SNMPDriverAuto(SNMPDriverBase):
+
+    SYS_OBJ_OID = (1, 3, 6, 1, 2, 1, 1, 2)
+
+    def __init__(self, *args, **kwargs):
+        super(SNMPDriverAuto, self).__init__(*args, **kwargs)
+
+        drivers_map = {}
+
+        for name, obj in DRIVER_CLASSES.items():
+            if not getattr(obj, 'system_id', False):
+                continue
+
+            system_id = self.oid_enterprise + getattr(obj, 'system_id')
+
+            if (system_id in drivers_map and
+                    drivers_map[system_id] is not obj):
+                raise exception.InvalidParameterValue(_(
+                    "SNMPDriverAuto: duplicate driver system ID prefix "
+                    "%(system_id)s") % {'system_id': system_id})
+
+            drivers_map[system_id] = obj
+            LOG.debug("SNMP driver mapping %(system_id)s -> %(name)s",
+                      {'system_id': system_id, 'name': obj.__name__})
+
+        system_id = self.client.get(self.SYS_OBJ_OID)
+
+        LOG.debug("SNMP device reports sysObjectID %(system_id)s",
+                  {'system_id': system_id})
+
+        system_id_prefix = tuple(system_id)
+
+        # pick driver by the longest matching sysObjectID prefix
+        while len(system_id_prefix) > len(self.oid_enterprise):
+            try:
+                Driver = drivers_map[system_id_prefix]
+                LOG.debug("Chosen SNMP driver %(name)s based on sysObjectID "
+                          "prefix %(system_id_prefix)s", {Driver.__name__,
+                                                          system_id_prefix})
+                self.driver = Driver(*args, **kwargs)
+                return
+
+            except KeyError:
+                system_id_prefix = system_id_prefix[:-1]
+
+        raise exception.InvalidParameterValue(_(
+            "SNMPDriverAuto: no driver matching %(system_id)s") %
+            {'system_id': system_id})
+
+    def _snmp_power_state(self):
+        current_power_state = self.driver._snmp_power_state()
+        return current_power_state
+
+    def _snmp_power_on(self):
+        return self.driver._snmp_power_on()
+
+    def _snmp_power_off(self):
+        return self.driver._snmp_power_off()
+
+
 # A dictionary of supported drivers keyed by snmp_driver attribute
 DRIVER_CLASSES = {
     'apc': SNMPDriverAPCMasterSwitch,
@@ -697,7 +764,8 @@ DRIVER_CLASSES = {
     'aten': SNMPDriverAten,
     'cyberpower': SNMPDriverCyberPower,
     'eatonpower': SNMPDriverEatonPower,
-    'teltronix': SNMPDriverTeltronix
+    'teltronix': SNMPDriverTeltronix,
+    'auto': SNMPDriverAuto
 }
 
 

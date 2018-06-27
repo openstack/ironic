@@ -595,6 +595,19 @@ class SNMPDeviceDriverTestCase(db_base.DbTestCase):
 
     The SNMP client object is mocked to allow various error cases to be tested.
     """
+    pdus = {
+        (1, 3, 6, 1, 4, 1, 318, 1, 1, 4): 'apc_masterswitch',
+        # also try longer sysObjectID
+        (1, 3, 6, 1, 4, 1, 318, 1, 1, 4, 1, 2, 3, 4): 'apc_masterswitch',
+        (1, 3, 6, 1, 4, 1, 318, 1, 1, 6): 'apc_masterswitchplus',
+        (1, 3, 6, 1, 4, 1, 318, 1, 1, 12): 'apc_rackpdu',
+        (1, 3, 6, 1, 4, 1, 21317): 'aten',
+        (1, 3, 6, 1, 4, 1, 3808): 'cyberpower',
+        (1, 3, 6, 1, 4, 1, 23620): 'teltronix',
+        # TODO(etingof): SNMPDriverEatonPower misses the `.oid` attribute
+        # and therefore fails tests
+        # (1, 3, 6, 1, 4, 1, 534): 'eatonpower',
+    }
 
     def setUp(self):
         super(SNMPDeviceDriverTestCase, self).setUp()
@@ -1255,6 +1268,130 @@ class SNMPDeviceDriverTestCase(db_base.DbTestCase):
 
     def test_teltronix_power_reset(self, mock_get_client):
         self._test_simple_device_power_reset('teltronix', mock_get_client)
+
+    def test_auto_power_state_unknown_pdu(self, mock_get_client):
+        mock_client = mock_get_client.return_value
+        mock_client.get.return_value = 'unknown'
+        self._update_driver_info(snmp_driver="auto")
+        self.assertRaises(exception.InvalidParameterValue,
+                          snmp._get_driver,
+                          self.node)
+
+    def test_auto_power_state_pdu_discovery_failure(self, mock_get_client):
+        mock_client = mock_get_client.return_value
+        mock_client.get.side_effect = exception.SNMPFailure(operation='get',
+                                                            error='')
+        self._update_driver_info(snmp_driver="auto")
+        self.assertRaises(exception.SNMPFailure, snmp._get_driver, self.node)
+
+    def test_auto_power_state_on(self, mock_get_client):
+        for sys_obj_oid, expected_snmp_driver in self.pdus.items():
+            mock_client = mock_get_client.return_value
+            mock_client.reset_mock()
+            mock_client.get.return_value = sys_obj_oid
+            self._update_driver_info(snmp_driver="auto")
+            driver = snmp._get_driver(self.node)
+
+            second_node = obj_utils.get_test_node(
+                self.context,
+                driver='fake_snmp',
+                driver_info=INFO_DICT)
+            second_node["driver_info"].update(snmp_driver=expected_snmp_driver)
+            second_node_driver = snmp._get_driver(second_node)
+            mock_client.get.return_value = second_node_driver.value_power_on
+
+            pstate = driver.power_state()
+            mock_client.get.assert_called_with(second_node_driver.oid)
+            self.assertEqual(states.POWER_ON, pstate)
+
+    def test_auto_power_state_off(self, mock_get_client):
+        for sys_obj_oid, expected_snmp_driver in self.pdus.items():
+            mock_client = mock_get_client.return_value
+            mock_client.reset_mock()
+            mock_client.get.return_value = sys_obj_oid
+            self._update_driver_info(snmp_driver="auto")
+            driver = snmp._get_driver(self.node)
+
+            second_node = obj_utils.get_test_node(
+                self.context,
+                driver='fake_snmp',
+                driver_info=INFO_DICT)
+            second_node["driver_info"].update(snmp_driver=expected_snmp_driver)
+            second_node_driver = snmp._get_driver(second_node)
+            mock_client.get.return_value = second_node_driver.value_power_off
+
+            pstate = driver.power_state()
+            mock_client.get.assert_called_with(second_node_driver.oid)
+            self.assertEqual(states.POWER_OFF, pstate)
+
+    def test_auto_power_on(self, mock_get_client):
+        for sys_obj_oid, expected_snmp_driver in self.pdus.items():
+            mock_client = mock_get_client.return_value
+            mock_client.reset_mock()
+            mock_client.get.return_value = sys_obj_oid
+            self._update_driver_info(snmp_driver="auto")
+            driver = snmp._get_driver(self.node)
+
+            second_node = obj_utils.get_test_node(
+                self.context,
+                driver='fake_snmp',
+                driver_info=INFO_DICT)
+            second_node["driver_info"].update(snmp_driver=expected_snmp_driver)
+            second_node_driver = snmp._get_driver(second_node)
+            mock_client.get.return_value = second_node_driver.value_power_on
+
+            pstate = driver.power_on()
+            mock_client.set.assert_called_once_with(
+                second_node_driver.oid,
+                second_node_driver.value_power_on)
+            self.assertEqual(states.POWER_ON, pstate)
+
+    def test_auto_power_off(self, mock_get_client):
+        for sys_obj_oid, expected_snmp_driver in self.pdus.items():
+            mock_client = mock_get_client.return_value
+            mock_client.reset_mock()
+            mock_client.get.return_value = sys_obj_oid
+            self._update_driver_info(snmp_driver="auto")
+            driver = snmp._get_driver(self.node)
+
+            second_node = obj_utils.get_test_node(
+                self.context,
+                driver='fake_snmp',
+                driver_info=INFO_DICT)
+            second_node["driver_info"].update(snmp_driver=expected_snmp_driver)
+            second_node_driver = snmp._get_driver(second_node)
+            mock_client.get.return_value = second_node_driver.value_power_off
+
+            pstate = driver.power_off()
+            mock_client.set.assert_called_once_with(
+                second_node_driver.oid,
+                second_node_driver.value_power_off)
+            self.assertEqual(states.POWER_OFF, pstate)
+
+    def test_auto_power_reset(self, mock_get_client):
+        for sys_obj_oid, expected_snmp_driver in self.pdus.items():
+            mock_client = mock_get_client.return_value
+            mock_client.reset_mock()
+            mock_client.get.side_effect = [sys_obj_oid, sys_obj_oid]
+            self._update_driver_info(snmp_driver="auto")
+            driver = snmp._get_driver(self.node)
+
+            second_node = obj_utils.get_test_node(
+                self.context,
+                driver='fake_snmp',
+                driver_info=INFO_DICT)
+            second_node["driver_info"].update(snmp_driver=expected_snmp_driver)
+            second_node_driver = snmp._get_driver(second_node)
+            mock_client.get.side_effect = [second_node_driver.value_power_off,
+                                           second_node_driver.value_power_on]
+
+            pstate = driver.power_reset()
+            calls = [mock.call(second_node_driver.oid,
+                               second_node_driver.value_power_off),
+                     mock.call(second_node_driver.oid,
+                               second_node_driver.value_power_on)]
+            mock_client.set.assert_has_calls(calls)
+            self.assertEqual(states.POWER_ON, pstate)
 
     def test_eaton_power_snmp_objects(self, mock_get_client):
         # Ensure the correct SNMP object OIDs and values are used by the Eaton
