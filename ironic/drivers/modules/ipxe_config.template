@@ -1,13 +1,29 @@
 #!ipxe
 
+set attempts:int32 10
+set i:int32 0
+
 goto deploy
 
 :deploy
 imgfree
-kernel {% if pxe_options.ipxe_timeout > 0 %}--timeout {{ pxe_options.ipxe_timeout }} {% endif %}{{ pxe_options.deployment_aki_path }} selinux=0 troubleshoot=0 text {{ pxe_options.pxe_append_params|default("", true) }} BOOTIF=${mac} ipa-api-url={{ pxe_options['ipa-api-url'] }} initrd={{ pxe_options.initrd_filename|default("deploy_ramdisk", true) }} coreos.configdrive=0 || goto deploy
+kernel {% if pxe_options.ipxe_timeout > 0 %}--timeout {{ pxe_options.ipxe_timeout }} {% endif %}{{ pxe_options.deployment_aki_path }} selinux=0 troubleshoot=0 text {{ pxe_options.pxe_append_params|default("", true) }} BOOTIF=${mac} ipa-api-url={{ pxe_options['ipa-api-url'] }} initrd={{ pxe_options.initrd_filename|default("deploy_ramdisk", true) }} coreos.configdrive=0 || goto retry
 
-initrd {% if pxe_options.ipxe_timeout > 0 %}--timeout {{ pxe_options.ipxe_timeout }} {% endif %}{{ pxe_options.deployment_ari_path }} || goto deploy
+initrd {% if pxe_options.ipxe_timeout > 0 %}--timeout {{ pxe_options.ipxe_timeout }} {% endif %}{{ pxe_options.deployment_ari_path }} || goto retry
 boot
+
+:retry
+iseq ${i} ${attempts} && goto fail ||
+inc i
+echo No response, retrying in {i} seconds.
+sleep ${i}
+goto deploy
+
+:fail
+echo Failed to get a response after ${attempts} attempts
+echo Powering off in 30 seconds.
+sleep 30
+poweroff
 
 :boot_partition
 imgfree
