@@ -63,8 +63,7 @@ class OneViewInspect(inspector.Inspector):
         )
         return super(OneViewInspect, self).inspect_hardware(task)
 
-    @periodics.periodic(spacing=CONF.inspector.status_check_period,
-                        enabled=CONF.inspector.enabled)
+    @periodics.periodic(spacing=CONF.inspector.status_check_period)
     def _periodic_check_result(self, manager, context):
         filters = {'provision_state': states.INSPECTING}
         node_iter = manager.iter_nodes(filters=filters)
