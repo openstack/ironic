@@ -73,20 +73,19 @@ class OneViewInspect(inspector.Inspector):
     @periodics.periodic(spacing=CONF.inspector.status_check_period,
                         enabled=CONF.inspector.enabled)
     def _periodic_check_result(self, manager, context):
-        filters = {'provision_state': states.INSPECTWAIT}
+        filters = {'provision_state': states.INSPECTWAIT,
+                   'driver': 'oneview'}
         node_iter = manager.iter_nodes(filters=filters)
 
         for node_uuid, driver in node_iter:
-            if driver in [common.AGENT_PXE_ONEVIEW,
-                          common.ISCSI_PXE_ONEVIEW]:
-                try:
-                    lock_purpose = 'checking hardware inspection status'
-                    with task_manager.acquire(context, node_uuid,
-                                              shared=True,
-                                              purpose=lock_purpose) as task:
-                        self._check_status(task)
-                except (exception.NodeLocked, exception.NodeNotFound):
-                    continue
+            try:
+                lock_purpose = 'checking hardware inspection status'
+                with task_manager.acquire(context, node_uuid,
+                                          shared=True,
+                                          purpose=lock_purpose) as task:
+                    self._check_status(task)
+            except (exception.NodeLocked, exception.NodeNotFound):
+                continue
 
     def _check_status(self, task):
         state_before = task.node.provision_state

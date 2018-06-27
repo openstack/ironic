@@ -28,6 +28,8 @@ hponeview_client = importutils.try_import('hpOneView.oneview_client')
 
 class BaseOneViewTest(db_base.DbTestCase):
 
+    deploy_interface = None
+
     def setUp(self):
         super(BaseOneViewTest, self).setUp()
         self.config(enabled_hardware_types=['oneview', 'fake-hardware'],
@@ -39,6 +41,7 @@ class BaseOneViewTest(db_base.DbTestCase):
                     enabled_power_interfaces=['oneview', 'fake'])
         self.node = obj_utils.create_test_node(
             self.context, driver='oneview',
+            deploy_interface=self.deploy_interface,
             properties=db_utils.get_test_oneview_properties(),
             driver_info=db_utils.get_test_oneview_driver_info(),
         )

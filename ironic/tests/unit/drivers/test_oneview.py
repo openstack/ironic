@@ -15,16 +15,9 @@
 
 """Test class for HPE OneView Drivers."""
 
-import mock
-import testtools
-
-from ironic.common import exception
 from ironic.conductor import task_manager
 from ironic.drivers.modules import agent
 from ironic.drivers.modules import noop
-from ironic.drivers.modules.oneview import deploy
-from ironic.drivers.modules.oneview import management
-from ironic.drivers.modules.oneview import power
 from ironic.drivers.modules import pxe
 from ironic.drivers.modules.storage import noop as noop_storage
 from ironic.drivers import oneview
@@ -131,42 +124,3 @@ class OneViewHardwareTestCase(db_base.DbTestCase):
                                   oneview.power.OneViewPower)
             self.assertIsInstance(task.driver.raid,
                                   agent.AgentRAID)
-
-
-@mock.patch.object(oneview.importutils, 'try_import', autospec=True)
-class AgentPXEOneViewDriversTestCase(testtools.TestCase):
-
-    def test_oneview_agent_driver(self, mock_try_import):
-        mock_try_import.return_value = True
-        driver = oneview.AgentPXEOneViewDriver()
-
-        self.assertIsInstance(driver.boot, pxe.PXEBoot)
-        self.assertIsInstance(driver.power, power.OneViewPower)
-        self.assertIsInstance(driver.deploy, deploy.OneViewAgentDeploy)
-        self.assertIsInstance(driver.management, management.OneViewManagement)
-
-    def test_oneview_agent_driver_exc(self, mock_try_import):
-        mock_try_import.return_value = None
-
-        self.assertRaises(exception.DriverLoadError,
-                          oneview.AgentPXEOneViewDriver)
-
-
-@mock.patch.object(oneview.importutils, 'try_import', autospec=True)
-class ISCSIPXEOneViewDriversTestCase(testtools.TestCase):
-
-    def test_oneview_iscsi_driver(self, mock_try_import):
-        mock_try_import.return_value = True
-
-        driver = oneview.ISCSIPXEOneViewDriver()
-
-        self.assertIsInstance(driver.boot, pxe.PXEBoot)
-        self.assertIsInstance(driver.power, power.OneViewPower)
-        self.assertIsInstance(driver.deploy, deploy.OneViewIscsiDeploy)
-        self.assertIsInstance(driver.management, management.OneViewManagement)
-
-    def test_oneview_iscsi_driver_exc(self, mock_try_import):
-        mock_try_import.return_value = None
-
-        self.assertRaises(exception.DriverLoadError,
-                          oneview.ISCSIPXEOneViewDriver)

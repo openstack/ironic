@@ -18,59 +18,15 @@ import mock
 from ironic.conductor import task_manager
 from ironic.drivers.modules.oneview import common as ov_common
 from ironic.drivers.modules.oneview import deploy_utils
-from ironic.tests.unit.db import base as db_base
-from ironic.tests.unit.db import utils as db_utils
-from ironic.tests.unit.objects import utils as obj_utils
+from ironic.tests.unit.drivers.modules.oneview import test_common
 
 
-class AgentPXEOneViewInspectTestCase(db_base.DbTestCase):
+class OneViewInspectTestCase(test_common.BaseOneViewTest):
 
     def setUp(self):
-        super(AgentPXEOneViewInspectTestCase, self).setUp()
+        super(OneViewInspectTestCase, self).setUp()
         self.config(enabled=True, group='inspector')
         self.config(manager_url='https://1.2.3.4', group='oneview')
-        self.config(enabled_drivers=['agent_pxe_oneview'])
-        self.node = obj_utils.create_test_node(
-            self.context, driver='agent_pxe_oneview',
-            properties=db_utils.get_test_oneview_properties(),
-            driver_info=db_utils.get_test_oneview_driver_info(),
-        )
-
-    def test_get_properties(self):
-        expected = deploy_utils.get_properties()
-        with task_manager.acquire(self.context, self.node.uuid,
-                                  shared=True) as task:
-            self.assertEqual(expected, task.driver.inspect.get_properties())
-
-    @mock.patch.object(ov_common, 'validate_oneview_resources_compatibility',
-                       autospect=True)
-    def test_validate(self, mock_validate):
-        with task_manager.acquire(self.context, self.node.uuid,
-                                  shared=False) as task:
-            task.driver.inspect.validate(task)
-            self.assertTrue(mock_validate.called)
-
-    @mock.patch.object(deploy_utils, 'allocate_server_hardware_to_ironic',
-                       autospect=True)
-    def test_inspect_hardware(self, mock_allocate_server_hardware_to_ironic):
-        with task_manager.acquire(self.context, self.node.uuid,
-                                  shared=False) as task:
-            task.driver.inspect.inspect_hardware(task)
-            self.assertTrue(mock_allocate_server_hardware_to_ironic.called)
-
-
-class ISCSIPXEOneViewInspectTestCase(db_base.DbTestCase):
-
-    def setUp(self):
-        super(ISCSIPXEOneViewInspectTestCase, self).setUp()
-        self.config(enabled=True, group='inspector')
-        self.config(manager_url='https://1.2.3.4', group='oneview')
-        self.config(enabled_drivers=['iscsi_pxe_oneview'])
-        self.node = obj_utils.create_test_node(
-            self.context, driver='iscsi_pxe_oneview',
-            properties=db_utils.get_test_oneview_properties(),
-            driver_info=db_utils.get_test_oneview_driver_info(),
-        )
 
     def test_get_properties(self):
         expected = deploy_utils.get_properties()

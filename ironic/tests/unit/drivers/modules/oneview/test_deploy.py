@@ -15,7 +15,6 @@
 
 import mock
 
-from ironic.common import driver_factory
 from ironic.common import exception
 from ironic.common import states
 from ironic.conductor import task_manager
@@ -25,14 +24,10 @@ from ironic.drivers.modules import iscsi_deploy
 from ironic.drivers.modules.oneview import common
 from ironic.drivers.modules.oneview import deploy
 from ironic.drivers.modules.oneview import deploy_utils
-from ironic.tests.unit.db import base as db_base
-from ironic.tests.unit.db import utils as db_utils
 from ironic.tests.unit.drivers.modules.oneview import test_common
 from ironic.tests.unit.objects import utils as obj_utils
 
 METHODS = ['iter_nodes', 'update_node', 'do_provisioning_action']
-PXE_DRV_INFO_DICT = db_utils.get_test_pxe_driver_info()
-PXE_INST_INFO_DICT = db_utils.get_test_pxe_instance_info()
 
 oneview_error = common.SERVER_HARDWARE_ALLOCATION_ERROR
 maintenance_reason = common.NODE_IN_USE_BY_ONEVIEW
@@ -232,7 +227,9 @@ class OneViewPeriodicTasks(test_common.BaseOneViewTest):
         self.assertNotIn('oneview_error', self.node.driver_internal_info)
 
 
-class OneViewIscsiDeployTestCase(db_base.DbTestCase):
+class OneViewIscsiDeployTestCase(test_common.BaseOneViewTest):
+
+    deploy_interface = 'oneview-iscsi'
 
     def setUp(self):
         super(OneViewIscsiDeployTestCase, self).setUp()
@@ -240,24 +237,14 @@ class OneViewIscsiDeployTestCase(db_base.DbTestCase):
         self.config(username='user', group='oneview')
         self.config(password='password', group='oneview')
 
-        self.config(enabled_drivers=['iscsi_pxe_oneview'])
-        self.driver = driver_factory.get_driver('iscsi_pxe_oneview')
-
-        OV_DRV_INFO_DICT = db_utils.get_test_oneview_driver_info()
-        OV_DRV_INFO_DICT.update(PXE_DRV_INFO_DICT)
-        self.node = obj_utils.create_test_node(
-            self.context, driver='iscsi_pxe_oneview',
-            properties=db_utils.get_test_oneview_properties(),
-            driver_info=OV_DRV_INFO_DICT,
-            instance_info=PXE_INST_INFO_DICT,
-        )
         self.port = obj_utils.create_test_port(self.context,
                                                node_id=self.node.id)
         self.info = common.get_oneview_info(self.node)
 
     def test_get_properties(self):
         expected = common.COMMON_PROPERTIES
-        self.assertEqual(expected, self.driver.deploy.get_properties())
+        self.assertEqual(expected,
+                         deploy.OneViewIscsiDeploy().get_properties())
 
     @mock.patch.object(common, 'validate_oneview_resources_compatibility',
                        spect_set=True, autospec=True)
@@ -360,31 +347,24 @@ class OneViewIscsiDeployTestCase(db_base.DbTestCase):
             self.assertTrue(deallocate_server_hardware_mock.called)
 
 
-class OneViewAgentDeployTestCase(db_base.DbTestCase):
+class OneViewAgentDeployTestCase(test_common.BaseOneViewTest):
+
+    deploy_interface = 'oneview-direct'
+
     def setUp(self):
         super(OneViewAgentDeployTestCase, self).setUp()
         self.config(manager_url='https://1.2.3.4', group='oneview')
         self.config(username='user', group='oneview')
         self.config(password='password', group='oneview')
 
-        self.config(enabled_drivers=['agent_pxe_oneview'])
-        self.driver = driver_factory.get_driver('agent_pxe_oneview')
-
-        OV_DRV_INFO_DICT = db_utils.get_test_oneview_driver_info()
-        OV_DRV_INFO_DICT.update(PXE_DRV_INFO_DICT)
-        self.node = obj_utils.create_test_node(
-            self.context, driver='agent_pxe_oneview',
-            properties=db_utils.get_test_oneview_properties(),
-            driver_info=OV_DRV_INFO_DICT,
-            instance_info=PXE_INST_INFO_DICT,
-        )
         self.port = obj_utils.create_test_port(self.context,
                                                node_id=self.node.id)
         self.info = common.get_oneview_info(self.node)
 
     def test_get_properties(self):
         expected = common.COMMON_PROPERTIES
-        self.assertEqual(expected, self.driver.deploy.get_properties())
+        self.assertEqual(expected,
+                         deploy.OneViewAgentDeploy().get_properties())
 
     @mock.patch.object(common, 'validate_oneview_resources_compatibility',
                        spect_set=True, autospec=True)

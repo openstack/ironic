@@ -5,8 +5,8 @@ OneView drivers
 ===============
 
 .. note::
-   The `oneview` drivers and hardware type, along with related interfaces
-   to support OneView, have been deprecated, and should be expected to be
+   The `oneview` hardware type, along with related interfaces to support
+   OneView, have been deprecated, and should be expected to be
    removed from ironic in the Stein cycle. Please see
    `storyboard <https://storyboard.openstack.org/#!/story/2001924>`_ for
    additional details.
@@ -21,30 +21,14 @@ instance. In this context, the ``HP OneView driver`` for ironic enables the
 users of OneView to use ironic as a bare metal provider to their managed
 physical hardware.
 
-HPE OneView hardware is supported by the ``oneview`` hardware type and the
-following classic drivers:
-
-* ``iscsi_pxe_oneview``
-* ``agent_pxe_oneview``
-
-Classic Drivers
-===============
-
-The ``iscsi_pxe_oneview`` and ``agent_pxe_oneview`` drivers implement the core
-interfaces of an ironic Driver [2]_, and use the ``hpOneView`` [3]_ library
-to provide communication between ironic and OneView through OneView's REST API.
-
-.. note::
-   Classic drivers will be deprecated in favor of Hardware Types.
+HPE OneView hardware is supported by the ``oneview`` hardware type.
 
 To provide a bare metal instance there are four components involved in the
 process:
 
 * The ironic service
 * The ironic-inspector service (if using hardware inspection)
-* The ironic driver for OneView, which can be:
-    * `iscsi_pxe_oneview` or
-    * `agent_pxe_oneview`
+* The ironic hardware type for OneView
 * The hpOneView library
 * The OneView appliance
 
@@ -69,9 +53,6 @@ the node is no longer in use, these tasks will make place them back in
 
 Prerequisites
 =============
-
-The following requirements apply for both ``iscsi_pxe_oneview`` and
-``agent_pxe_oneview`` drivers:
 
 * ``OneView appliance`` is the HP physical infrastructure manager to be
   integrated with the OneView drivers.
@@ -216,49 +197,11 @@ hardware type:
        --driver oneview \
        --deploy-interface oneview-iscsi
 
+Deploy process with oneview-iscsi deploy interface
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Drivers
-=======
-
-iscsi_pxe_oneview driver
-^^^^^^^^^^^^^^^^^^^^^^^^
-
-Overview
-~~~~~~~~
-
-``iscsi_pxe_oneview`` driver uses PXEBoot for boot and ISCSIDeploy for deploy.
-
-Configuring and enabling the driver
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-1. Add ``iscsi_pxe_oneview`` to the list of ``enabled_drivers`` in your
-   ``ironic.conf`` file. For example::
-
-    enabled_drivers = iscsi_pxe_oneview
-
-2. Update the [oneview] section of your ``ironic.conf`` file with your
-   OneView credentials and CA certificate files information.
-
-.. note::
-   An operator can set the ``periodic_check_interval`` option in the [oneview]
-   section to set the interval between running the periodic check. The default
-   value is 300 seconds (5 minutes). A lower value will reduce the likelihood
-   of races between ironic and OneView at the cost of being more resource
-   intensive.
-
-3. Restart the ironic conductor service. For Ubuntu users, do::
-
-    $ sudo service ironic-conductor restart
-
-See :doc:`/install/index` for more information.
-
-Deploy process
-~~~~~~~~~~~~~~
-
-Here is an overview of the deploy process for this driver:
-
-1. Admin configures the Proliant baremetal node to use ``iscsi_pxe_oneview``
-   driver.
+1. Admin configures the Proliant baremetal node to use ``oneview-iscsi``
+   deploy interface.
 2. ironic gets a request to deploy a Glance image on the baremetal node.
 3. Driver sets the boot device to PXE.
 4. Driver powers on the baremetal node.
@@ -270,45 +213,11 @@ Here is an overview of the deploy process for this driver:
 10. Driver powers on the machine.
 11. Baremetal node is active and ready to be used.
 
-agent_pxe_oneview driver
-^^^^^^^^^^^^^^^^^^^^^^^^
+Deploy process with oneview-direct deploy interface
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Overview
-~~~~~~~~
-
-``agent_pxe_oneview`` driver uses PXEBoot for boot and AgentDeploy for deploy.
-
-Configuring and enabling the driver
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-1. Add ``agent_pxe_oneview`` to the list of ``enabled_drivers`` in your
-   ``ironic.conf``. For example::
-
-    enabled_drivers = pxe_ipmitool,agent_pxe_oneview
-
-2. Update the [oneview] section of your ``ironic.conf`` file with your
-   OneView credentials and CA certificate files information.
-
-.. note::
-   An operator can set the ``periodic_check_interval`` option in the [oneview]
-   section to set the interval between running the periodic check. The default
-   value is 300 seconds (5 minutes). A lower value will reduce the likelihood
-   of races between ironic and OneView at the cost of being more resource
-   intensive.
-
-3. Restart the ironic conductor service. For Ubuntu users, do::
-
-    $ service ironic-conductor restart
-
-See :doc:`/install/index` for more information.
-
-Deploy process
-~~~~~~~~~~~~~~
-
-Here is an overview of the deploy process for this driver:
-
-1. Admin configures the Proliant baremetal node to use ``agent_pxe_oneview``
-   driver.
+1. Admin configures the Proliant baremetal node to use ``oneview-direct``
+   deploy interface.
 2. ironic gets a request to deploy a Glance image on the baremetal node.
 3. Driver sets the boot device to PXE.
 4. Driver powers on the baremetal node.
@@ -339,8 +248,8 @@ Registering a OneView node in ironic
 ====================================
 
 Nodes configured to use any of the OneView drivers should have the ``driver``
-property set to ``iscsi_pxe_oneview`` or ``agent_pxe_oneview``. Considering
-our context, a node is the representation of a ``Server Hardware`` in OneView,
+property set to ``oneview``. Considering our context, a node is the
+representation of a ``Server Hardware`` in OneView,
 and should be consistent with all its properties and related components, such
 as ``Server Hardware Type``, ``Server Profile Template``, ``Enclosure Group``,
 etc. In this case, to be enrolled, the node must have the following parameters:
@@ -419,7 +328,7 @@ In order to ease user manual tasks, which are often time-consuming, we provide
 useful tools that work nicely with the OneView drivers.
 
 ironic-oneview-cli
-^^^^^^^^^^^^^^^^^^
+~~~~~~~~~~~~~~~~~~
 
 The ``ironic-oneView`` CLI is a command line interface for management tasks
 involving OneView nodes. Its features include a facility to create of ironic
@@ -430,7 +339,7 @@ For more details on how Ironic-OneView CLI works and how to set it up, see
 [8]_.
 
 ironic-oneviewd
-^^^^^^^^^^^^^^^
+~~~~~~~~~~~~~~~
 
 The ``ironic-oneviewd`` daemon monitors the ironic inventory of resources and
 provides facilities to operators managing OneView driver deployments.
@@ -440,8 +349,6 @@ For more details on how Ironic-OneViewd works and how to set it up, see [7]_.
 References
 ==========
 .. [1] HP OneView - https://www.hpe.com/us/en/integrated-systems/software.html
-.. [2] :ref:`architecture_drivers`
-.. [3] hpOneView - https://pypi.org/project/hpOneView
 .. [6] Dynamic Allocation in OneView drivers - https://specs.openstack.org/openstack/ironic-specs/specs/not-implemented/oneview-drivers-dynamic-allocation.html
 .. [7] ironic-oneviewd - https://pypi.org/project/ironic-oneviewd/
 .. [8] ironic-oneview-cli - https://pypi.org/project/ironic-oneview-cli/

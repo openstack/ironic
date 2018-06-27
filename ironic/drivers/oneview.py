@@ -14,25 +14,15 @@
 #    under the License.
 
 """
-OneView Driver and supporting meta-classes.
+OneView hardware type.
 """
 
-from oslo_config import cfg
-from oslo_utils import importutils
-
-from ironic.common import exception
-from ironic.common.i18n import _
-from ironic.drivers import base
 from ironic.drivers import generic
 from ironic.drivers.modules import noop
 from ironic.drivers.modules.oneview import deploy
 from ironic.drivers.modules.oneview import inspect
 from ironic.drivers.modules.oneview import management
 from ironic.drivers.modules.oneview import power
-from ironic.drivers.modules import pxe
-
-
-CONF = cfg.CONF
 
 
 class OneViewHardware(generic.GenericHardware):
@@ -66,101 +56,3 @@ class OneViewHardware(generic.GenericHardware):
     def supported_power_interfaces(self):
         """List of supported power interfaces."""
         return [power.OneViewPower]
-
-
-class AgentPXEOneViewDriver(base.BaseDriver):
-    """OneViewDriver using OneViewClient interface.
-
-    This driver implements the `core` functionality using
-    :class:ironic.drivers.modules.oneview.power.OneViewPower for power
-    management. And
-    :class:ironic.drivers.modules.oneview.deploy.OneViewAgentDeploy for deploy.
-    """
-    # NOTE(TheJulia): Marking as unsupported as 3rd party CI was taken down
-    # shortly before the beginning of the Rocky cycle, and no replies have
-    # indicated that 3rd party CI will be re-established nor visible
-    # actions observed regarding re-establishing 3rd party CI.
-    # TODO(TheJulia): This should be expected to be removed in Stein.
-    supported = False
-
-    def __init__(self):
-        if not importutils.try_import('hpOneView.oneview_client'):
-            raise exception.DriverLoadError(
-                driver=self.__class__.__name__,
-                reason=_("Unable to import hpOneView library"))
-
-        if not importutils.try_import('redfish'):
-            raise exception.DriverLoadError(
-                driver=self.__class__.__name__,
-                reason=_("Unable to import python-ilorest-library"))
-
-        self.power = power.OneViewPower()
-        self.management = management.OneViewManagement()
-        self.boot = pxe.PXEBoot()
-        self.deploy = deploy.OneViewAgentDeploy()
-        self.inspect = inspect.OneViewInspect.create_if_enabled(
-            'AgentPXEOneViewDriver')
-
-    @classmethod
-    def to_hardware_type(cls):
-        # NOTE(dtantsur): classic drivers are not affected by the
-        # enabled_inspect_interfaces configuration option.
-        if CONF.inspector.enabled:
-            inspect_interface = 'oneview'
-        else:
-            inspect_interface = 'no-inspect'
-
-        return 'oneview', {'boot': 'pxe',
-                           'deploy': 'oneview-direct',
-                           'inspect': inspect_interface,
-                           'management': 'oneview',
-                           'power': 'oneview'}
-
-
-class ISCSIPXEOneViewDriver(base.BaseDriver):
-    """OneViewDriver using OneViewClient interface.
-
-    This driver implements the `core` functionality using
-    :class:ironic.drivers.modules.oneview.power.OneViewPower for power
-    management. And
-    :class:ironic.drivers.modules.oneview.deploy.OneViewIscsiDeploy for deploy.
-    """
-    # NOTE(TheJulia): Marking as unsupported as 3rd party CI was taken down
-    # shortly before the beginning of the Rocky cycle, and no replies have
-    # indicated that 3rd party CI will be re-established nor visible
-    # actions observed regarding re-establishing 3rd party CI.
-    # TODO(TheJulia): This should be expected to be removed in Stein.
-    supported = False
-
-    def __init__(self):
-        if not importutils.try_import('hpOneView.oneview_client'):
-            raise exception.DriverLoadError(
-                driver=self.__class__.__name__,
-                reason=_("Unable to import hpOneView library"))
-
-        if not importutils.try_import('redfish'):
-            raise exception.DriverLoadError(
-                driver=self.__class__.__name__,
-                reason=_("Unable to import python-ilorest-library"))
-
-        self.power = power.OneViewPower()
-        self.management = management.OneViewManagement()
-        self.boot = pxe.PXEBoot()
-        self.deploy = deploy.OneViewIscsiDeploy()
-        self.inspect = inspect.OneViewInspect.create_if_enabled(
-            'ISCSIPXEOneViewDriver')
-
-    @classmethod
-    def to_hardware_type(cls):
-        # NOTE(dtantsur): classic drivers are not affected by the
-        # enabled_inspect_interfaces configuration option.
-        if CONF.inspector.enabled:
-            inspect_interface = 'oneview'
-        else:
-            inspect_interface = 'no-inspect'
-
-        return 'oneview', {'boot': 'pxe',
-                           'deploy': 'oneview-iscsi',
-                           'inspect': inspect_interface,
-                           'management': 'oneview',
-                           'power': 'oneview'}
