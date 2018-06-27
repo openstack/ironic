@@ -140,8 +140,7 @@ class Inspector(base.InspectInterface):
                   'ironic-inspector', {'uuid': node_uuid})
         _get_client(task.context).abort(node_uuid)
 
-    @periodics.periodic(spacing=CONF.inspector.status_check_period,
-                        enabled=CONF.inspector.enabled)
+    @periodics.periodic(spacing=CONF.inspector.status_check_period)
     def _periodic_check_result(self, manager, context):
         """Periodic task checking results of inspection."""
         filters = {'provision_state': states.INSPECTWAIT}

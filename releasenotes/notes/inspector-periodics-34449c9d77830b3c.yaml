@@ -1,0 +1,8 @@
+---
+fixes:
+  - |
+    The periodic tasks for the ``inspector`` inspect interface are no longer
+    disabled if the ``[inspector]enabled`` option is not set to ``True``.
+    The help string of this option claims that it does not apply to hardware
+    types. In any case, the periodic tasks are only run if any enabled
+    classic driver or hardware interface requires them.
