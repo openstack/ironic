@@ -116,7 +116,7 @@ IRONIC_HW_ARCH=${IRONIC_HW_ARCH:-x86_64}
 # idrac:
 #   <BMC address> <MAC address> <BMC username> <BMC password>
 #
-# * irmc:
+# irmc:
 #   <BMC address> <MAC address> <BMC username> <BMC password>
 #
 IRONIC_HWINFO_FILE=${IRONIC_HWINFO_FILE:-$IRONIC_DATA_DIR/hardware_info}
@@ -285,7 +285,8 @@ fi
 # are ``ipmi``, ``snmp`` and ``redfish``.
 #
 # Additional valid choices if IRONIC_IS_HARDWARE == true are:
-# ``cisco-ucs-managed``, ``cisco-ucs-standalone``, ``oneview`` and ``idrac``.
+# ``cisco-ucs-managed``, ``cisco-ucs-standalone``, ``oneview``, ``idrac``,
+# and ``irmc``.
 IRONIC_DEPLOY_DRIVER=${IRONIC_DEPLOY_DRIVER:-ipmi}
 
 # If the requested driver is not yet enable, enable it, if it is not it will fail anyway
@@ -647,7 +648,7 @@ function is_deployed_by_redfish {
 }
 
 function is_deployed_by_irmc {
-    [[ -z "${IRONIC_DEPLOY_DRIVER##*irmc}" ]] && return 0
+    [[ "$IRONIC_DEPLOY_DRIVER" == irmc ]] && return 0
     return 1
 }
 
