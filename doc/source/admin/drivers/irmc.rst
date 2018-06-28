@@ -1,8 +1,8 @@
 .. _irmc:
 
-============
-iRMC drivers
-============
+===========
+iRMC driver
+===========
 
 Overview
 ========
@@ -179,8 +179,7 @@ Optional functionalities for the ``irmc`` hardware type
 
 UEFI Secure Boot Support
 ^^^^^^^^^^^^^^^^^^^^^^^^
-The hardware type ``irmc`` (and all iRMC classic drivers) supports secure boot
-deploy.
+The hardware type ``irmc`` supports secure boot deploy.
 
 .. warning::
      Secure boot feature is not supported with ``pxe`` boot interface.
@@ -188,7 +187,7 @@ deploy.
 The UEFI secure boot can be configured by adding ``secure_boot`` parameter,
 which is a boolean value. Enabling the secure boot is different when
 Bare Metal service is used with Compute service or without Compute service. The
-following sections describes both methods:
+following sections describe both methods:
 
 * Enabling secure boot with Compute service:
   To enable secure boot we need to set a capability on the bare metal node
@@ -208,8 +207,8 @@ following sections describes both methods:
 
 Node Cleaning Support
 ^^^^^^^^^^^^^^^^^^^^^
-The ``irmc`` hardware type (and all iRMC classic drivers) supports node
-cleaning. For more information on node cleaning, see :ref:`cleaning`.
+The ``irmc`` hardware type supports node cleaning.
+For more information on node cleaning, see :ref:`cleaning`.
 
 Supported **Automated** Cleaning Operations
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -255,7 +254,7 @@ Configuration
 
 In addition to the configuration for generic drivers to
 :ref:`remote volume boot <boot-from-volume>`,
-the iRMC drivers require the following configuration:
+the iRMC driver requires the following configuration:
 
 * It is necessary to set physical port IDs to network ports and volume
   connectors. All cards including those not used for volume boot should be
@@ -297,15 +296,15 @@ the iRMC drivers require the following configuration:
 Supported hardware
 ~~~~~~~~~~~~~~~~~~
 
-The drivers support the PCI controllers, Fibrechannel Cards, Converged Network
+The driver supports the PCI controllers, Fibrechannel Cards, Converged Network
 Adapters supported by
 `Fujitsu ServerView Virtual-IO Manager <http://www.fujitsu.com/fts/products/computing/servers/primergy/management/primergy-blade-server-io-virtualization.html>`_.
 
 Hardware Inspection Support
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-The ``irmc`` hardware type (and all iRMC classic drivers) provides the
-iRMC-specific hardware inspection with ``irmc`` inspect interface.
+The ``irmc`` hardware type provides the iRMC-specific hardware inspection
+with ``irmc`` inspect interface.
 
 .. note::
    SNMP requires being enabled in ServerView® iRMC S4 Web Server(Network
@@ -314,7 +313,7 @@ iRMC-specific hardware inspection with ``irmc`` inspect interface.
 Configuration
 ~~~~~~~~~~~~~
 
-The Hardware Inspection Support in the iRMC drivers requires the following
+The Hardware Inspection Support in the iRMC driver requires the following
 configuration:
 
 * It is necessary to set ironic configuration with ``gpu_ids`` option
@@ -351,7 +350,7 @@ The inspection process will discover the following essential properties
 * ``local_gb``: disk size
 
 Inspection can also discover the following extra capabilities for iRMC
-drivers:
+driver:
 
 * ``irmc_firmware_version``: iRMC firmware version
 
