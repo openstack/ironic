@@ -10,10 +10,7 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-import testtools
-
 from ironic.conductor import task_manager
-from ironic.drivers import ipmi
 from ironic.drivers.modules import agent
 from ironic.drivers.modules import ipmitool
 from ironic.drivers.modules import iscsi_deploy
@@ -102,52 +99,3 @@ class IPMIHardwareTestCase(db_base.DbTestCase):
             rescue_interface='agent')
         with task_manager.acquire(self.context, node.id) as task:
             self._validate_interfaces(task, rescue=agent.AgentRescue)
-
-
-class IPMIClassicDriversTestCase(testtools.TestCase):
-
-    def test_pxe_ipmitool_driver(self):
-        driver = ipmi.PXEAndIPMIToolDriver()
-
-        self.assertIsInstance(driver.power, ipmitool.IPMIPower)
-        self.assertIsInstance(driver.console, ipmitool.IPMIShellinaboxConsole)
-        self.assertIsInstance(driver.boot, pxe.PXEBoot)
-        self.assertIsInstance(driver.deploy, iscsi_deploy.ISCSIDeploy)
-        self.assertIsInstance(driver.management, ipmitool.IPMIManagement)
-        self.assertIsNone(driver.inspect)
-        self.assertIsInstance(driver.vendor, ipmitool.VendorPassthru)
-        self.assertIsInstance(driver.raid, agent.AgentRAID)
-
-    def test_pxe_ipmitool_socat_driver(self):
-        driver = ipmi.PXEAndIPMIToolAndSocatDriver()
-
-        self.assertIsInstance(driver.power, ipmitool.IPMIPower)
-        self.assertIsInstance(driver.console, ipmitool.IPMISocatConsole)
-        self.assertIsInstance(driver.boot, pxe.PXEBoot)
-        self.assertIsInstance(driver.deploy, iscsi_deploy.ISCSIDeploy)
-        self.assertIsInstance(driver.management, ipmitool.IPMIManagement)
-        self.assertIsNone(driver.inspect)
-        self.assertIsInstance(driver.vendor, ipmitool.VendorPassthru)
-        self.assertIsInstance(driver.raid, agent.AgentRAID)
-
-    def test_agent_ipmitool_driver(self):
-        driver = ipmi.AgentAndIPMIToolDriver()
-
-        self.assertIsInstance(driver.power, ipmitool.IPMIPower)
-        self.assertIsInstance(driver.console, ipmitool.IPMIShellinaboxConsole)
-        self.assertIsInstance(driver.boot, pxe.PXEBoot)
-        self.assertIsInstance(driver.deploy, agent.AgentDeploy)
-        self.assertIsInstance(driver.management, ipmitool.IPMIManagement)
-        self.assertIsInstance(driver.vendor, ipmitool.VendorPassthru)
-        self.assertIsInstance(driver.raid, agent.AgentRAID)
-
-    def test_agent_ipmitool_socat_driver(self):
-        driver = ipmi.AgentAndIPMIToolAndSocatDriver()
-
-        self.assertIsInstance(driver.power, ipmitool.IPMIPower)
-        self.assertIsInstance(driver.console, ipmitool.IPMISocatConsole)
-        self.assertIsInstance(driver.boot, pxe.PXEBoot)
-        self.assertIsInstance(driver.deploy, agent.AgentDeploy)
-        self.assertIsInstance(driver.management, ipmitool.IPMIManagement)
-        self.assertIsInstance(driver.vendor, ipmitool.VendorPassthru)
-        self.assertIsInstance(driver.raid, agent.AgentRAID)

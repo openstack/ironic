@@ -421,13 +421,6 @@ class HardwareTypeLoadTestCase(db_base.DbTestCase):
         self.assertRaises(exception.DriverNotFound,
                           driver_factory.get_hardware_type, 'fake_agent')
 
-    def test_get_driver_or_hardware_type(self):
-        self.config(enabled_drivers=['pxe_ipmitool'])
-        hw_type = driver_factory.get_driver_or_hardware_type('fake-hardware')
-        self.assertIsInstance(hw_type, fake_hardware.FakeHardware)
-        driver = driver_factory.get_driver_or_hardware_type('pxe_ipmitool')
-        self.assertNotIsInstance(driver, fake_hardware.FakeHardware)
-
     def test_get_driver_or_hardware_type_missing(self):
         self.assertRaises(exception.DriverNotFound,
                           driver_factory.get_driver_or_hardware_type,

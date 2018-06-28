@@ -90,7 +90,7 @@ api_opts = [
 
 driver_opts = [
     cfg.ListOpt('enabled_drivers',
-                default=['pxe_ipmitool'],
+                default=[],
                 help=_('Specify the list of drivers to load during service '
                        'initialization. Missing drivers, or drivers which '
                        'fail to initialize, will prevent the conductor '

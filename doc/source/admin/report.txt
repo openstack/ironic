@@ -262,10 +262,6 @@ default:
   enabled_deploy_interfaces =
     direct
     iscsi
-  enabled_drivers =
-    agent_ipmitool
-    fake
-    pxe_ipmitool
   enabled_hardware_types =
     ipmi
     redfish

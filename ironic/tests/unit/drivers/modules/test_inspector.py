@@ -15,41 +15,11 @@ import ironic_inspector_client as client
 import mock
 
 from ironic.common import context
-from ironic.common import driver_factory
-from ironic.common import exception
 from ironic.common import states
 from ironic.conductor import task_manager
 from ironic.drivers.modules import inspector
 from ironic.tests.unit.db import base as db_base
 from ironic.tests.unit.objects import utils as obj_utils
-
-
-class DisabledTestCase(db_base.DbTestCase):
-    def _do_mock(self):
-        # NOTE(dtantsur): fake driver always has inspection, using another one
-        self.config(enabled_drivers=['pxe_ipmitool'])
-        self.driver = driver_factory.get_driver("pxe_ipmitool")
-
-    def test_disabled(self):
-        self.config(enabled=False, group='inspector')
-        self._do_mock()
-        self.assertIsNone(self.driver.inspect)
-        # Direct loading of the class is still possible
-        inspector.Inspector()
-
-    def test_enabled(self):
-        self.config(enabled=True, group='inspector')
-        self._do_mock()
-        self.assertIsNotNone(self.driver.inspect)
-
-    @mock.patch.object(inspector, 'client', None)
-    def test_init_inspector_not_imported(self):
-        self.assertRaises(exception.DriverLoadError,
-                          inspector.Inspector)
-
-    def test_init_ok(self):
-        self.config(enabled=True, group='inspector')
-        inspector.Inspector()
 
 
 @mock.patch('ironic.common.keystone.get_adapter', autospec=True)
@@ -131,17 +101,6 @@ class CommonFunctionsTestCase(BaseTestCase):
     def test_get_properties(self):
         res = self.iface.get_properties()
         self.assertEqual({}, res)
-
-    def test_create_if_enabled(self):
-        res = inspector.Inspector.create_if_enabled('driver')
-        self.assertIsInstance(res, inspector.Inspector)
-
-    @mock.patch.object(inspector.LOG, 'info', autospec=True)
-    def test_create_if_enabled_disabled(self, warn_mock):
-        self.config(enabled=False, group='inspector')
-        res = inspector.Inspector.create_if_enabled('driver')
-        self.assertIsNone(res)
-        self.assertTrue(warn_mock.called)
 
 
 @mock.patch.object(eventlet, 'spawn_n', lambda f, *a, **kw: f(*a, **kw))

@@ -101,7 +101,7 @@ IRONIC_HW_ARCH=${IRONIC_HW_ARCH:-x86_64}
 # 192.168.110.107 00:1e:67:57:50:4c root otc123
 #
 # Supported IRONIC_DEPLOY_DRIVERs:
-# *_ipmitool or ipmi:
+# ipmi:
 #   <BMC address> <MAC address> <BMC username> <BMC password>
 #
 # cisco-ucs-standalone:
@@ -156,13 +156,6 @@ if [[ -n "$IRONIC_DEFAULT_API_VERSION" ]]; then
     IRONIC_CMD="$IRONIC_CMD --os-baremetal-api-version $IRONIC_DEFAULT_API_VERSION"
 fi
 
-# driver / hardware type options
-IRONIC_ENABLED_DRIVERS=${IRONIC_ENABLED_DRIVERS:-pxe_ipmitool,agent_ipmitool}
-# NOTE(dtantsur): some places (I'm looking at you, devstack-gate) still
-# hardcode "fake", and we cannot fix them without breaking stable branches.
-# This ugly hack is only needed until we delete IRONIC_ENABLED_DRIVERS
-# in the near future.
-IRONIC_ENABLED_DRIVERS=$(echo $IRONIC_ENABLED_DRIVERS | sed -r 's/fake,?//')
 IRONIC_ENABLED_HARDWARE_TYPES=${IRONIC_ENABLED_HARDWARE_TYPES:-"ipmi,fake-hardware"}
 # list of all available driver interfaces types
 IRONIC_DRIVER_INTERFACE_TYPES="bios boot power management deploy console inspect raid rescue storage network vendor"
@@ -289,16 +282,16 @@ if [[ "$IRONIC_DEPLOY_ISO_REQUIRED" = "True" \
         or set IRONIC_BUILD_DEPLOY_RAMDISK=True to use ISOs"
 fi
 # Which deploy driver to use - valid choices right now
-# are ``pxe_ipmitool``, ``agent_ipmitool``, ``snmp`` and ``ipmi``.
+# are ``ipmi``, ``snmp`` and ``redfish``.
 #
 # Additional valid choices if IRONIC_IS_HARDWARE == true are:
 # ``cisco-ucs-managed``, ``cisco-ucs-standalone``, ``oneview`` and ``idrac``.
-IRONIC_DEPLOY_DRIVER=${IRONIC_DEPLOY_DRIVER:-pxe_ipmitool}
+IRONIC_DEPLOY_DRIVER=${IRONIC_DEPLOY_DRIVER:-ipmi}
 
 # If the requested driver is not yet enable, enable it, if it is not it will fail anyway
-if [[ -z "$(echo ${IRONIC_ENABLED_DRIVERS},${IRONIC_ENABLED_HARDWARE_TYPES} | grep -w ${IRONIC_DEPLOY_DRIVER})" ]]; then
+if [[ -z "$(echo ${IRONIC_ENABLED_HARDWARE_TYPES} | grep -w ${IRONIC_DEPLOY_DRIVER})" ]]; then
     die "The deploy driver $IRONIC_DEPLOY_DRIVER is not in the list of enabled \
-        drivers $IRONIC_ENABLED_DRIVERS or hardware types $IRONIC_ENABLED_HARDWARE_TYPES"
+        hardware types $IRONIC_ENABLED_HARDWARE_TYPES"
 fi
 
 # Support entry points installation of console scripts
@@ -613,8 +606,8 @@ function is_deployed_by_agent {
     return 1
 }
 
-function is_deployed_by_ipmitool {
-    [[ "$IRONIC_DEPLOY_DRIVER" == ipmi || -z "${IRONIC_DEPLOY_DRIVER##*_ipmitool}" ]] && return 0
+function is_deployed_by_ipmi {
+    [[ "$IRONIC_DEPLOY_DRIVER" == ipmi ]] && return 0
     return 1
 }
 
@@ -873,7 +866,7 @@ function install_ironic {
         restart_libvirt
     fi
 
-    if is_deployed_by_ipmitool && [[ "$IRONIC_IS_HARDWARE" == "False" ]]; then
+    if is_deployed_by_ipmi && [[ "$IRONIC_IS_HARDWARE" == "False" ]]; then
         setup_virtualbmc
     fi
 
@@ -1221,7 +1214,6 @@ function configure_ironic_conductor {
     configure_rootwrap ironic
 
     # set up drivers / hardware types
-    iniset $IRONIC_CONF_FILE DEFAULT enabled_drivers $IRONIC_ENABLED_DRIVERS
     iniset $IRONIC_CONF_FILE DEFAULT enabled_hardware_types $IRONIC_ENABLED_HARDWARE_TYPES
 
     # configure enabled and default interfaces
@@ -1820,7 +1812,7 @@ function enroll_nodes {
         local ironic_node_arch=x86_64
         local ironic_hwinfo_file=$IRONIC_VM_MACS_CSV_FILE
 
-        if is_deployed_by_ipmitool; then
+        if is_deployed_by_ipmi; then
             local node_options="\
                 --driver-info ipmi_address=${HOST_IP} \
                 --driver-info ipmi_username=admin \
@@ -1873,7 +1865,7 @@ function enroll_nodes {
         if [[ "$IRONIC_IS_HARDWARE" == "False" ]]; then
             interface_info=$(echo $hardware_info | awk '{print $1}')
 
-            if is_deployed_by_ipmitool; then
+            if is_deployed_by_ipmi; then
                 local vbmc_port
                 vbmc_port=$(echo $hardware_info | awk '{print $2}')
                 node_options+=" --driver-info ipmi_port=$vbmc_port"
@@ -1921,7 +1913,7 @@ function enroll_nodes {
             bmc_passwd=$(echo $hardware_info |awk '{print $4}')
             local node_options="$common_node_options"
 
-            if is_deployed_by_ipmitool; then
+            if is_deployed_by_ipmi; then
                 node_options+=" --driver-info ipmi_address=$bmc_address \
                     --driver-info ipmi_password=$bmc_passwd \
                     --driver-info ipmi_username=$bmc_username"
@@ -2515,7 +2507,7 @@ function ironic_configure_tempest {
         iniset $TEMPEST_CONFIG baremetal whole_disk_image_checksum $(md5sum $FILES/${IRONIC_WHOLEDISK_IMAGE_NAME}.img)
     fi
 
-    iniset $TEMPEST_CONFIG baremetal enabled_drivers $IRONIC_ENABLED_DRIVERS
+    iniset $TEMPEST_CONFIG baremetal enabled_drivers ""
     iniset $TEMPEST_CONFIG baremetal enabled_hardware_types $IRONIC_ENABLED_HARDWARE_TYPES
     iniset $TEMPEST_CONFIG baremetal enabled_bios_interfaces $IRONIC_ENABLED_BIOS_INTERFACES
     iniset $TEMPEST_CONFIG baremetal enabled_deploy_interfaces $IRONIC_ENABLED_DEPLOY_INTERFACES

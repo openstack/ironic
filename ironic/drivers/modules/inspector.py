@@ -74,21 +74,6 @@ def _get_client(context):
 class Inspector(base.InspectInterface):
     """In-band inspection via ironic-inspector project."""
 
-    @classmethod
-    def create_if_enabled(cls, driver_name):
-        """Create instance of Inspector if it's enabled.
-
-        Reports log warning with given driver_name if it's not.
-
-        :return: Inspector instance or None
-        """
-        if CONF.inspector.enabled:
-            return cls()
-        else:
-            LOG.info("Inspection via ironic-inspector is disabled in "
-                     "configuration for driver %s. To enable, change "
-                     "[inspector] enabled = True.", driver_name)
-
     def __init__(self):
         if not client:
             raise exception.DriverLoadError(

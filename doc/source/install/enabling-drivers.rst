@@ -6,9 +6,8 @@ Introduction
 
 The Bare Metal service delegates actual hardware management to **drivers**.
 Starting with the Ocata release, two types of drivers are supported:
-*classic drivers* (for example, ``pxe_ipmitool``, etc.) and
-the newer *hardware types* (for example, generic ``redfish`` and ``ipmi``
-or vendor-specific ``ilo`` and ``irmc``).
+*classic drivers*  and the newer *hardware types* (for example, generic
+``redfish`` and ``ipmi`` or vendor-specific ``ilo`` and ``irmc``).
 
 Drivers, in turn, consist of *hardware interfaces*: sets of functionality
 dealing with some aspect of bare metal provisioning in a vendor-specific way.
@@ -300,32 +299,6 @@ existing nodes.
    These options should be used with care. If a hardware type does not
    support the provided default implementation, its users will have to always
    provide an explicit value for this interface when creating a node.
-
-Enabling classic drivers
-------------------------
-
-Classic drivers are enabled in the configuration file of the
-**ironic-conductor** service by setting the ``enabled_drivers`` configuration
-option, for example:
-
-.. code-block:: ini
-
-    [DEFAULT]
-    enabled_drivers = pxe_ipmitool
-
-The names in this comma-separated list are entry point names of the drivers.
-They have to be available at conductor start-up, and all dependencies must
-be installed locally. For example,
-
-* drivers starting with ``pxe`` and some drivers starting with ``agent``
-  require :doc:`configure-pxe`,
-
-* drivers starting with ``pxe`` or having ``iscsi`` in their name require
-  :doc:`configure-iscsi`,
-
-* drivers ending with ``ipmitool`` require :doc:`configure-ipmi`.
-
-See :doc:`/admin/drivers` for the required configuration of each driver.
 
 .. _driver composition reform specification: https://specs.openstack.org/openstack/ironic-specs/specs/approved/driver-composition-reform.html
 .. _setup.cfg: https://git.openstack.org/cgit/openstack/ironic/tree/setup.cfg

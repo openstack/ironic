@@ -1,28 +1,14 @@
-===============
-IPMITool driver
-===============
+===========
+IPMI driver
+===========
 
 Overview
 ========
 
-The IPMI_ (Intelligent Platform Management Interface) drivers manage nodes
-by using IPMI protocol versions 2.0 or 1.5. They use the IPMItool_ utility
-which is an open-source command-line interface (CLI) for controlling
+The ``ipmi``  hardware type manage nodes by using IPMI_ (Intelligent Platform
+Management Interface) protocol versions 2.0 or 1.5. It uses the IPMItool_
+utility which is an open-source command-line interface (CLI) for controlling
 IPMI-enabled devices.
-
-The following hardware types and classic drivers use IPMItool for power and
-management:
-
-* hardware types:
-
-  * ``ipmi``
-
-* classic drivers:
-
-  * ``agent_ipmitool``
-  * ``pxe_ipmitool``
-  * ``agent_ipmitool_socat``
-  * ``pxe_ipmitool_socat``
 
 Glossary
 ========
@@ -32,7 +18,7 @@ Glossary
 * BMC_  - Baseboard Management Controller.
 * RMCP - Remote Management Control Protocol.
 
-Enabling the IPMItool driver(s)
+Enabling the IPMI hardware type
 ===============================
 
 Please see :doc:`/install/configure-ipmi` for the required dependencies.
@@ -49,12 +35,11 @@ Please see :doc:`/install/configure-ipmi` for the required dependencies.
 
 Please see :doc:`/install/enabling-drivers` for more details.
 
-Registering a node with the IPMItool driver
-===========================================
+Registering a node with the IPMI driver
+=======================================
 
 Nodes configured to use the IPMItool drivers should have the ``driver`` field
-set to ``ipmi`` (hardware type) or to the name of one of the classic drivers
-that support IPMItool.
+set to ``ipmi``.
 
 The following configuration value is required and has to be added to
 the node's ``driver_info`` field:
