@@ -1,8 +1,8 @@
 .. _oneview:
 
-===============
-OneView drivers
-===============
+==============
+OneView driver
+==============
 
 .. note::
    The `oneview` hardware type, along with related interfaces to support
@@ -55,7 +55,7 @@ Prerequisites
 =============
 
 * ``OneView appliance`` is the HP physical infrastructure manager to be
-  integrated with the OneView drivers.
+  integrated with the OneView driver.
 
   Minimum version supported is 2.0.
 
@@ -77,7 +77,7 @@ Tested platforms
 
 * The Enclosure used for testing was the ``BladeSystem c7000 Enclosure G2``.
 
-* The drivers should work on HP Proliant Gen8 and Gen9 Servers supported by
+* The driver should work on HP Proliant Gen8 and Gen9 Servers supported by
   OneView 2.0 and above, or any hardware whose network can be managed by
   OneView's ServerProfile. It has been tested with the following servers:
 
@@ -165,8 +165,7 @@ The ``oneview`` hardware type supports the following hardware interfaces:
 The ``oneview`` hardware type also supports the standard *network* and
 *storage* interfaces.
 
-To enable the same feature set as provided by all oneview classic drivers,
-apply the following configuration:
+Here is an example of putting multiple interfaces configuration at once:
 
 .. code-block:: ini
 
@@ -176,26 +175,6 @@ apply the following configuration:
     enabled_inspect_interfaces = oneview
     enabled_power_interfaces = oneview
     enabled_management_interfaces = oneview
-
-The following commands can be used to enroll a node with the same
-feature set as one of the classic drivers, but using the ``oneview``
-hardware type:
-
-* ``oneview-direct``:
-
-  .. code-block:: console
-
-    openstack baremetal node create --os-baremetal-api-version=1.31 \
-        --driver oneview \
-        --deploy-interface oneview-direct
-
-* ``oneview-iscsi``:
-
-  .. code-block:: console
-
-    openstack baremetal node create --os-baremetal-api-version=1.31 \
-       --driver oneview \
-       --deploy-interface oneview-iscsi
 
 Deploy process with oneview-iscsi deploy interface
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -233,10 +212,10 @@ Deploy process with oneview-direct deploy interface
 Hardware inspection
 ===================
 
-OneView drivers for ironic have the ability to do hardware inspection.
+The OneView driver for ironic has the ability to do hardware inspection.
 Hardware inspection is the process of discovering hardware properties like
 memory size, CPU cores, processor architecture and disk size, of a given
-hardware. OneView drivers do in-band inspection, that involves booting a
+hardware. The OneView driver does in-band inspection, that involves booting a
 ramdisk on the hardware and fetching information directly from it. For that,
 your cloud controller needs to have the ``ironic-inspector`` component
 [9]_ running and properly enabled in ironic's configuration file.
@@ -247,7 +226,7 @@ See [10]_ for more information on how to install and configure
 Registering a OneView node in ironic
 ====================================
 
-Nodes configured to use any of the OneView drivers should have the ``driver``
+Nodes configured to use the OneView driver should have the ``driver``
 property set to ``oneview``. Considering our context, a node is the
 representation of a ``Server Hardware`` in OneView,
 and should be consistent with all its properties and related components, such
@@ -267,9 +246,17 @@ etc. In this case, to be enrolled, the node must have the following parameters:
   - ``enclosure_group_uri`` (optional): URI of the ``Enclosure Group`` of the
     ``Server Hardware``.
 
-To enroll a node with any of the OneView drivers, do::
+To enroll a node with the OneView driver using default values for the
+supported hardware interfaces, do::
 
-  $ openstack baremetal node create --driver $DRIVER_NAME
+  $ openstack baremetal node create --driver oneview
+
+To enroll a node with the OneView driver using specific hardware
+interfaces, do::
+
+  $ openstack baremetal node create --driver oneview \
+      --deploy-interface oneview-direct \
+      --power-interface oneview
 
 To update the ``driver_info`` field of a newly enrolled OneView node, do::
 
@@ -325,7 +312,7 @@ Profile``, ``Server Profile Template`` and other OneView entities, refer to
 ===============
 
 In order to ease user manual tasks, which are often time-consuming, we provide
-useful tools that work nicely with the OneView drivers.
+useful tools that work nicely with the OneView driver.
 
 ironic-oneview-cli
 ~~~~~~~~~~~~~~~~~~
