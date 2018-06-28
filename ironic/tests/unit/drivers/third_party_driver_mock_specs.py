@@ -71,9 +71,8 @@ PYWSMAN_SPEC = (
 
 # pywsnmp
 PYWSNMP_SPEC = (
-    'entity',
+    'hlapi',
     'error',
-    'proto',
 )
 
 # scciclient

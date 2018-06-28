@@ -1,0 +1,5 @@
+---
+upgrade:
+  - The minimum required version of pysnmp has been bumped to 4.3. This
+    pysnmp version introduces simpler, faster and more functional high-level
+    SNMP API on which ironic `snmp` driver has been migrated.

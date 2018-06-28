@@ -41,24 +41,23 @@ from ironic.drivers import base
 
 pysnmp = importutils.try_import('pysnmp')
 if pysnmp:
-    from pysnmp.entity.rfc3413.oneliner import cmdgen
     from pysnmp import error as snmp_error
-    from pysnmp.proto import rfc1902
+    from pysnmp import hlapi as snmp
 
     snmp_auth_protocols = {
-        'md5': cmdgen.usmHMACMD5AuthProtocol,
-        'sha': cmdgen.usmHMACSHAAuthProtocol,
-        'none': cmdgen.usmNoAuthProtocol,
+        'md5': snmp.usmHMACMD5AuthProtocol,
+        'sha': snmp.usmHMACSHAAuthProtocol,
+        'none': snmp.usmNoAuthProtocol,
     }
 
     # available since pysnmp 4.4.1
     try:
         snmp_auth_protocols.update(
             {
-                'sha224': cmdgen.usmHMAC128SHA224AuthProtocol,
-                'sha256': cmdgen.usmHMAC192SHA256AuthProtocol,
-                'sha384': cmdgen.usmHMAC256SHA384AuthProtocol,
-                'sha512': cmdgen.usmHMAC384SHA512AuthProtocol,
+                'sha224': snmp.usmHMAC128SHA224AuthProtocol,
+                'sha256': snmp.usmHMAC192SHA256AuthProtocol,
+                'sha384': snmp.usmHMAC256SHA384AuthProtocol,
+                'sha512': snmp.usmHMAC384SHA512AuthProtocol,
 
             }
         )
@@ -67,20 +66,20 @@ if pysnmp:
         pass
 
     snmp_priv_protocols = {
-        'des': cmdgen.usmDESPrivProtocol,
-        '3des': cmdgen.usm3DESEDEPrivProtocol,
-        'aes': cmdgen.usmAesCfb128Protocol,
-        'aes192': cmdgen.usmAesCfb192Protocol,
-        'aes256': cmdgen.usmAesCfb256Protocol,
-        'none': cmdgen.usmNoPrivProtocol,
+        'des': snmp.usmDESPrivProtocol,
+        '3des': snmp.usm3DESEDEPrivProtocol,
+        'aes': snmp.usmAesCfb128Protocol,
+        'aes192': snmp.usmAesCfb192Protocol,
+        'aes256': snmp.usmAesCfb256Protocol,
+        'none': snmp.usmNoPrivProtocol,
     }
 
     # available since pysnmp 4.4.3
     try:
         snmp_priv_protocols.update(
             {
-                'aes192blmt': cmdgen.usmAesBlumenthalCfb192Protocol,
-                'aes256blmt': cmdgen.usmAesBlumenthalCfb256Protocol,
+                'aes192blmt': snmp.usmAesBlumenthalCfb192Protocol,
+                'aes256blmt': snmp.usmAesBlumenthalCfb256Protocol,
 
             }
         )
@@ -89,9 +88,8 @@ if pysnmp:
         pass
 
 else:
-    cmdgen = None
+    snmp = None
     snmp_error = None
-    rfc1902 = None
 
     snmp_auth_protocols = {
         'none': None
@@ -198,7 +196,7 @@ class SNMPClient(object):
                  user=None, auth_proto=None,
                  auth_key=None, priv_proto=None,
                  priv_key=None, context_engine_id=None, context_name=None):
-        if not cmdgen:
+        if not snmp:
             raise exception.DriverLoadError(
                 driver=self.__class__.__name__,
                 reason=_("Unable to import python-pysnmp library")
@@ -213,13 +211,14 @@ class SNMPClient(object):
             self.auth_key = auth_key
             self.priv_proto = priv_proto
             self.priv_key = priv_key
-            self.context_engine_id = context_engine_id
-            self.context_name = context_name or ''
         else:
             self.read_community = read_community
             self.write_community = write_community
 
-        self.cmd_gen = cmdgen.CommandGenerator()
+        self.context_engine_id = context_engine_id
+        self.context_name = context_name or ''
+
+        self.snmp_engine = snmp.SnmpEngine()
 
     def _get_auth(self, write_mode=False):
         """Return the authorization data for an SNMP request.
@@ -227,23 +226,22 @@ class SNMPClient(object):
         :param write_mode: `True` if write class SNMP command is
             executed. Default is `False`.
         :returns: Either
-            :class:`pysnmp.entity.rfc3413.oneliner.cmdgen.CommunityData`
-            or :class:`pysnmp.entity.rfc3413.oneliner.cmdgen.UsmUserData`
+            :class:`pysnmp.hlapi.CommunityData`
+            or :class:`pysnmp.hlapi.UsmUserData`
             object depending on SNMP version being used.
         """
         if self.version == SNMP_V3:
-            return cmdgen.UsmUserData(
+            return snmp.UsmUserData(
                 self.user,
                 authKey=self.auth_key,
                 authProtocol=self.auth_proto,
                 privKey=self.priv_key,
-                privProtocol=self.priv_proto,
-                contextEngineId=self.context_engine_id,
-                contextName=self.context_name
+                privProtocol=self.priv_proto
             )
+
         else:
             mp_model = 1 if self.version == SNMP_V2C else 0
-            return cmdgen.CommunityData(
+            return snmp.CommunityData(
                 self.write_community if write_mode else self.read_community,
                 mpModel=mp_model
             )
@@ -252,16 +250,30 @@ class SNMPClient(object):
         """Return the transport target for an SNMP request.
 
         :returns: A :class:
-            `pysnmp.entity.rfc3413.oneliner.cmdgen.UdpTransportTarget` object.
-        :raises: snmp_error.PySnmpError if the transport address is bad.
+            `pysnmp.hlapi.UdpTransportTarget` object.
+        :raises: :class:`pysnmp.error.PySnmpError` if the transport address
+            is bad.
         """
         # The transport target accepts timeout and retries parameters, which
         # default to 1 (second) and 5 respectively. These are deemed sensible
         # enough to allow for an unreliable network or slow device.
-        return cmdgen.UdpTransportTarget(
+        return snmp.UdpTransportTarget(
             (self.address, self.port),
             timeout=CONF.snmp.udp_transport_timeout,
             retries=CONF.snmp.udp_transport_retries)
+
+    def _get_context(self):
+        """Return the SNMP context for an SNMP request.
+
+        :returns: A :class:
+            `pysnmp.hlapi.ContextData` object.
+        :raises: :class:`pysnmp.error.PySnmpError` if SNMP context data
+            is bad.
+        """
+        return snmp.ContextData(
+            contextEngineId=self.context_engine_id,
+            contextName=self.context_name
+        )
 
     def get(self, oid):
         """Use PySNMP to perform an SNMP GET operation on a single object.
@@ -271,13 +283,16 @@ class SNMPClient(object):
         :returns: The value of the requested object.
         """
         try:
-            results = self.cmd_gen.getCmd(self._get_auth(),
-                                          self._get_transport(),
-                                          oid)
+            snmp_gen = snmp.getCmd(self.snmp_engine,
+                                   self._get_auth(),
+                                   self._get_transport(),
+                                   self._get_context(),
+                                   snmp.ObjectType(snmp.ObjectIdentity(oid)))
+
         except snmp_error.PySnmpError as e:
             raise exception.SNMPFailure(operation="GET", error=e)
 
-        error_indication, error_status, error_index, var_binds = results
+        error_indication, error_status, error_index, var_binds = next(snmp_gen)
 
         if error_indication:
             # SNMP engine-level error.
@@ -301,13 +316,17 @@ class SNMPClient(object):
         :returns: A list of values of the requested table object.
         """
         try:
-            results = self.cmd_gen.nextCmd(self._get_auth(),
-                                           self._get_transport(),
-                                           oid)
+            snmp_gen = snmp.nextCmd(self.snmp_engine,
+                                    self._get_auth(),
+                                    self._get_transport(),
+                                    self._get_context(),
+                                    snmp.ObjectType(snmp.ObjectIdentity(oid)))
+
         except snmp_error.PySnmpError as e:
             raise exception.SNMPFailure(operation="GET_NEXT", error=e)
 
-        error_indication, error_status, error_index, var_bind_table = results
+        (error_indication, error_status, error_index,
+         var_bind_table) = next(snmp_gen)
 
         if error_indication:
             # SNMP engine-level error.
@@ -329,13 +348,17 @@ class SNMPClient(object):
         :raises: SNMPFailure if an SNMP request fails.
         """
         try:
-            results = self.cmd_gen.setCmd(self._get_auth(write_mode=True),
-                                          self._get_transport(),
-                                          (oid, value))
+            snmp_gen = snmp.setCmd(self.snmp_engine,
+                                   self._get_auth(write_mode=True),
+                                   self._get_transport(),
+                                   self._get_context(),
+                                   snmp.ObjectType(
+                                       snmp.ObjectIdentity(oid), value))
+
         except snmp_error.PySnmpError as e:
             raise exception.SNMPFailure(operation="SET", error=e)
 
-        error_indication, error_status, error_index, var_binds = results
+        error_indication, error_status, error_index, var_binds = next(snmp_gen)
 
         if error_indication:
             # SNMP engine-level error.
@@ -533,11 +556,11 @@ class SNMPDriverSimple(SNMPDriverBase):
         return power_state
 
     def _snmp_power_on(self):
-        value = rfc1902.Integer(self.value_power_on)
+        value = snmp.Integer(self.value_power_on)
         self.client.set(self.oid, value)
 
     def _snmp_power_off(self):
-        value = rfc1902.Integer(self.value_power_off)
+        value = snmp.Integer(self.value_power_off)
         self.client.set(self.oid, value)
 
 
@@ -707,12 +730,12 @@ class SNMPDriverEatonPower(SNMPDriverBase):
 
     def _snmp_power_on(self):
         oid = self._snmp_oid(self.oid_poweron)
-        value = rfc1902.Integer(self.value_power_on)
+        value = snmp.Integer(self.value_power_on)
         self.client.set(oid, value)
 
     def _snmp_power_off(self):
         oid = self._snmp_oid(self.oid_poweroff)
-        value = rfc1902.Integer(self.value_power_off)
+        value = snmp.Integer(self.value_power_off)
         self.client.set(oid, value)
 
 
