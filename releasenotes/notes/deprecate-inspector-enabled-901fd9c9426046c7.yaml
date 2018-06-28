@@ -1,0 +1,7 @@
+---
+deprecations:
+  - |
+    The ``[inspector]enabled`` configuration option is deprecated. It only
+    affected classic drivers, and with their removal it no longer has any
+    effect. Use the ``enabled_inspect_interfaces`` option to enable/disable
+    support for ironic-inspector.
