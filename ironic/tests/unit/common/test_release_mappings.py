@@ -78,7 +78,8 @@ class ReleaseMappingsTestCase(base.TestCase):
         obj_versions = release_mappings.get_object_versions(
             releases=['master'])
         for obj, vers in obj_versions.items():
-            self.assertEqual(registered_objects[obj][0].VERSION, vers.pop())
+            # vers is a set of versions, not ordered
+            self.assertIn(registered_objects[obj][0].VERSION, vers)
 
     def test_contains_all_db_objects(self):
         self.assertIn('master', release_mappings.RELEASE_MAPPING)
