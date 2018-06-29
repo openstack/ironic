@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Fixes an issue where RAID 10 creation fails with greater than 16 drives
+    when using the ``idrac`` hardware type.  See bug `2002771
+    <https://storyboard.openstack.org/#!/story/2002771>`_ for details.
