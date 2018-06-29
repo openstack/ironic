@@ -53,6 +53,7 @@ Aten             all?         Yes           aten
 CyberPower       all?         Untested      cyberpower
 EatonPower       all?         Untested      eatonpower
 Teltronix        all?         Yes           teltronix
+BayTech          MRP27        Yes           baytech_mrp27
 ==============   ==========   ==========    =====================
 
 
