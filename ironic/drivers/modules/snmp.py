@@ -122,7 +122,20 @@ OPTIONAL_PROPERTIES = {
     'snmp_port':
         _("SNMP port, default %(port)d.") % {"port": SNMP_PORT},
     'snmp_community':
-        _("SNMP community. Required for versions %(v1)s and %(v2c)s.")
+        _("SNMP community name to use for read and/or write class SNMP "
+          "commands unless `snmp_community_read` and/or "
+          "`snmp_community_write` properties are present in which case the "
+          "latter takes over. Applicable only to versions %(v1)s and %(v2c)s.")
+        % {"v1": SNMP_V1, "v2c": SNMP_V2C},
+    'snmp_community_read':
+        _("SNMP community name to use for read class SNMP commands. "
+          "Takes precedence over the `snmp_community` property. "
+          "Applicable only to versions %(v1)s and %(v2c)s.")
+        % {"v1": SNMP_V1, "v2c": SNMP_V2C},
+    'snmp_community_write':
+        _("SNMP community name to use for write class SNMP commands. "
+          "Takes precedence over the `snmp_community` property. "
+          "Applicable only to versions %(v1)s and %(v2c)s.")
         % {"v1": SNMP_V1, "v2c": SNMP_V2C},
     'snmp_user':
         _("SNMPv3 User-based Security Model (USM) username. "
@@ -180,7 +193,8 @@ class SNMPClient(object):
     interaction with PySNMP to simplify dynamic importing and unit testing.
     """
 
-    def __init__(self, address, port, version, community=None,
+    def __init__(self, address, port, version,
+                 read_community=None, write_community=None,
                  user=None, auth_proto=None,
                  auth_key=None, priv_proto=None,
                  priv_key=None, context_engine_id=None, context_name=None):
@@ -202,13 +216,16 @@ class SNMPClient(object):
             self.context_engine_id = context_engine_id
             self.context_name = context_name or ''
         else:
-            self.community = community
+            self.read_community = read_community
+            self.write_community = write_community
 
         self.cmd_gen = cmdgen.CommandGenerator()
 
-    def _get_auth(self):
+    def _get_auth(self, write_mode=False):
         """Return the authorization data for an SNMP request.
 
+        :param write_mode: `True` if write class SNMP command is
+            executed. Default is `False`.
         :returns: Either
             :class:`pysnmp.entity.rfc3413.oneliner.cmdgen.CommunityData`
             or :class:`pysnmp.entity.rfc3413.oneliner.cmdgen.UsmUserData`
@@ -226,7 +243,10 @@ class SNMPClient(object):
             )
         else:
             mp_model = 1 if self.version == SNMP_V2C else 0
-            return cmdgen.CommunityData(self.community, mpModel=mp_model)
+            return cmdgen.CommunityData(
+                self.write_community if write_mode else self.read_community,
+                mpModel=mp_model
+            )
 
     def _get_transport(self):
         """Return the transport target for an SNMP request.
@@ -309,7 +329,7 @@ class SNMPClient(object):
         :raises: SNMPFailure if an SNMP request fails.
         """
         try:
-            results = self.cmd_gen.setCmd(self._get_auth(),
+            results = self.cmd_gen.setCmd(self._get_auth(write_mode=True),
                                           self._get_transport(),
                                           (oid, value))
         except snmp_error.PySnmpError as e:
@@ -337,7 +357,8 @@ def _get_client(snmp_info):
     return SNMPClient(snmp_info["address"],
                       snmp_info["port"],
                       snmp_info["version"],
-                      snmp_info.get("community"),
+                      snmp_info.get("read_community"),
+                      snmp_info.get("write_community"),
                       snmp_info.get("user"),
                       snmp_info.get("auth_proto"),
                       snmp_info.get("auth_key"),
@@ -931,11 +952,22 @@ def _parse_driver_info(node):
 
     # Extract version-dependent required parameters
     if snmp_info['version'] in (SNMP_V1, SNMP_V2C):
-        if 'snmp_community' not in info:
+        read_community = info.get('snmp_community_read')
+        if read_community is None:
+            read_community = info.get('snmp_community')
+
+        write_community = info.get('snmp_community_write')
+        if write_community is None:
+            write_community = info.get('snmp_community')
+
+        if not read_community or not write_community:
             raise exception.MissingParameterValue(_(
-                "SNMP driver requires snmp_community to be set for version "
-                "%s.") % snmp_info['version'])
-        snmp_info['community'] = info.get('snmp_community')
+                "SNMP driver requires `snmp_community` or "
+                "`snmp_community_read`/`snmp_community_write` properties "
+                "to be set for version %s.") % snmp_info['version'])
+        snmp_info['read_community'] = read_community
+        snmp_info['write_community'] = write_community
+
     elif snmp_info['version'] == SNMP_V3:
         snmp_info.update(_parse_driver_info_snmpv3_user(node, info))
         snmp_info.update(_parse_driver_info_snmpv3_crypto(node, info))

@@ -51,16 +51,30 @@ class SNMPClientTestCase(base.TestCase):
         self.assertEqual(self.address, client.address)
         self.assertEqual(self.port, client.port)
         self.assertEqual(snmp.SNMP_V1, client.version)
-        self.assertIsNone(client.community)
+        self.assertIsNone(client.read_community)
+        self.assertIsNone(client.write_community)
         self.assertNotIn('user', client.__dict__)
         self.assertEqual(mock_cmdgen.return_value, client.cmd_gen)
 
     @mock.patch.object(cmdgen, 'CommunityData', autospec=True)
-    def test__get_auth_v1(self, mock_community, mock_cmdgen):
-        client = snmp.SNMPClient(self.address, self.port, snmp.SNMP_V1)
+    def test__get_auth_v1_read(self, mock_community, mock_cmdgen):
+        client = snmp.SNMPClient(self.address, self.port, snmp.SNMP_V1,
+                                 read_community='public',
+                                 write_community='private')
         client._get_auth()
         mock_cmdgen.assert_called_once_with()
-        mock_community.assert_called_once_with(client.community, mpModel=0)
+        mock_community.assert_called_once_with(client.read_community,
+                                               mpModel=0)
+
+    @mock.patch.object(cmdgen, 'CommunityData', autospec=True)
+    def test__get_auth_v1_write(self, mock_community, mock_cmdgen):
+        client = snmp.SNMPClient(self.address, self.port, snmp.SNMP_V1,
+                                 read_community='public',
+                                 write_community='private')
+        client._get_auth(write_mode=True)
+        mock_cmdgen.assert_called_once_with()
+        mock_community.assert_called_once_with(client.write_community,
+                                               mpModel=0)
 
     @mock.patch.object(cmdgen, 'UsmUserData', autospec=True)
     def test__get_auth_v3(self, mock_user, mock_cmdgen):
@@ -244,7 +258,8 @@ class SNMPValidateParametersTestCase(db_base.DbTestCase):
         self.assertEqual(INFO_DICT['snmp_port'], str(info['port']))
         self.assertEqual(INFO_DICT['snmp_outlet'], str(info['outlet']))
         self.assertEqual(INFO_DICT['snmp_version'], info['version'])
-        self.assertEqual(INFO_DICT['snmp_community'], info['community'])
+        self.assertEqual(INFO_DICT['snmp_community'], info['read_community'])
+        self.assertEqual(INFO_DICT['snmp_community'], info['write_community'])
         self.assertNotIn('user', info)
 
     def test__parse_driver_info_apc(self):
@@ -310,7 +325,8 @@ class SNMPValidateParametersTestCase(db_base.DbTestCase):
         node = self._get_test_node(info)
         info = snmp._parse_driver_info(node)
         self.assertEqual('1', info['version'])
-        self.assertEqual('public', info['community'])
+        self.assertEqual('public', info['read_community'])
+        self.assertEqual('public', info['write_community'])
 
     def test__parse_driver_info_snmp_v2c(self):
         # Make sure SNMPv2c is parsed with a community string.
@@ -319,7 +335,42 @@ class SNMPValidateParametersTestCase(db_base.DbTestCase):
         node = self._get_test_node(info)
         info = snmp._parse_driver_info(node)
         self.assertEqual('2c', info['version'])
-        self.assertEqual('private', info['community'])
+        self.assertEqual('private', info['read_community'])
+        self.assertEqual('private', info['write_community'])
+
+    def test__parse_driver_info_read_write_community(self):
+        # Make sure separate read/write community name take precedence
+        info = db_utils.get_test_snmp_info(snmp_version='1',
+                                           snmp_community='impossible',
+                                           snmp_community_read='public',
+                                           snmp_community_write='private')
+        node = self._get_test_node(info)
+        info = snmp._parse_driver_info(node)
+        self.assertEqual('1', info['version'])
+        self.assertEqual('public', info['read_community'])
+        self.assertEqual('private', info['write_community'])
+
+    def test__parse_driver_info_read_community(self):
+        # Make sure separate read community name take precedence
+        info = db_utils.get_test_snmp_info(snmp_version='1',
+                                           snmp_community='foo',
+                                           snmp_community_read='bar')
+        node = self._get_test_node(info)
+        info = snmp._parse_driver_info(node)
+        self.assertEqual('1', info['version'])
+        self.assertEqual('bar', info['read_community'])
+        self.assertEqual('foo', info['write_community'])
+
+    def test__parse_driver_info_write_community(self):
+        # Make sure separate write community name take precedence
+        info = db_utils.get_test_snmp_info(snmp_version='1',
+                                           snmp_community='foo',
+                                           snmp_community_write='bar')
+        node = self._get_test_node(info)
+        info = snmp._parse_driver_info(node)
+        self.assertEqual('1', info['version'])
+        self.assertEqual('foo', info['read_community'])
+        self.assertEqual('bar', info['write_community'])
 
     def test__parse_driver_info_snmp_v3(self):
         # Make sure SNMPv3 is parsed with user string.
@@ -539,7 +590,8 @@ class SNMPValidateParametersTestCase(db_base.DbTestCase):
         node = self._get_test_node(info)
         info = snmp._parse_driver_info(node)
         self.assertEqual('1', info['version'])
-        self.assertEqual(INFO_DICT['snmp_community'], info['community'])
+        self.assertEqual(INFO_DICT['snmp_community'], info['read_community'])
+        self.assertEqual(INFO_DICT['snmp_community'], info['write_community'])
 
     def test__parse_driver_info_invalid_version(self):
         # Make sure exception is raised when version is invalid.

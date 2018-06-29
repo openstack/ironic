@@ -1,0 +1,8 @@
+---
+features:
+  - |
+    Adds new optional ``snmp_community_read`` and ``snmp_community_write``
+    properties to ``snmp`` driver configuration (specified via a node's
+    ``driver_info`` field). If present, the value(s)
+    will be used respectively for SNMP reads and/or writes to the PDU.
+    When not present, ``snmp_community`` value will be used instead.
