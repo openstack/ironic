@@ -497,8 +497,14 @@ def _calculate_volume_props(logical_disk, physical_disks, free_space_mb):
 
     disks_per_span = len(selected_disks) / spans_count
 
-    logical_disk['span_depth'] = spans_count
-    logical_disk['span_length'] = disks_per_span
+    # Best practice is to not pass span_length and span_depth when creating a
+    # RAID10.  The iDRAC will dynamically calculate these values using maximum
+    # values obtained from the RAID controller.
+    logical_disk['span_depth'] = None
+    logical_disk['span_length'] = None
+    if logical_disk['raid_level'] != '1+0':
+        logical_disk['span_depth'] = spans_count
+        logical_disk['span_length'] = disks_per_span
 
     max_volume_size_mb = _max_volume_size_mb(
         logical_disk['raid_level'], selected_disks, free_space_mb,

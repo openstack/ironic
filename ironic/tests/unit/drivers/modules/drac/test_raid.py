@@ -670,6 +670,57 @@ class DracRaidInterfaceTestCase(db_base.DbTestCase):
 
         self.root_logical_disk = {
             'size_gb': 100,
+            'raid_level': '5+0',
+            'is_root_volume': True
+        }
+        self.logical_disks = [self.root_logical_disk]
+        self.target_raid_configuration = {'logical_disks': self.logical_disks}
+        self.node.target_raid_config = self.target_raid_configuration
+        self.node.save()
+
+        physical_disks = self._generate_physical_disks()
+        mock_list_physical_disks.return_value = physical_disks
+
+        mock_commit_config.return_value = '42'
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            task.driver.raid.create_configuration(
+                task, create_root_volume=True, create_nonroot_volumes=True)
+
+            mock_client.create_virtual_disk.assert_called_once_with(
+                'RAID.Integrated.1-1',
+                ['Disk.Bay.0:Enclosure.Internal.0-1:RAID.Integrated.1-1',
+                 'Disk.Bay.1:Enclosure.Internal.0-1:RAID.Integrated.1-1',
+                 'Disk.Bay.2:Enclosure.Internal.0-1:RAID.Integrated.1-1',
+                 'Disk.Bay.3:Enclosure.Internal.0-1:RAID.Integrated.1-1',
+                 'Disk.Bay.4:Enclosure.Internal.0-1:RAID.Integrated.1-1',
+                 'Disk.Bay.5:Enclosure.Internal.0-1:RAID.Integrated.1-1'],
+                '5+0', 102400, None, 3, 2)
+
+            # Commits to the controller
+            mock_commit_config.assert_called_once_with(
+                mock.ANY, raid_controller='RAID.Integrated.1-1', reboot=True)
+
+        self.node.refresh()
+        self.assertEqual(['42'],
+                         self.node.driver_internal_info['raid_config_job_ids'])
+
+    @mock.patch.object(drac_common, 'get_drac_client', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(drac_raid, 'list_physical_disks', autospec=True)
+    @mock.patch.object(drac_job, 'validate_job_queue', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(drac_raid, 'commit_config', spec_set=True,
+                       autospec=True)
+    def test_create_configuration_with_nested_raid_10(
+            self, mock_commit_config, mock_validate_job_queue,
+            mock_list_physical_disks, mock_get_drac_client):
+        mock_client = mock.Mock()
+        mock_get_drac_client.return_value = mock_client
+
+        self.root_logical_disk = {
+            'size_gb': 100,
             'raid_level': '1+0',
             'is_root_volume': True
         }
@@ -694,7 +745,7 @@ class DracRaidInterfaceTestCase(db_base.DbTestCase):
                  'Disk.Bay.1:Enclosure.Internal.0-1:RAID.Integrated.1-1',
                  'Disk.Bay.2:Enclosure.Internal.0-1:RAID.Integrated.1-1',
                  'Disk.Bay.3:Enclosure.Internal.0-1:RAID.Integrated.1-1'],
-                '1+0', 102400, None, 2, 2)
+                '1+0', 102400, None, None, None)
 
             # Commits to the controller
             mock_commit_config.assert_called_once_with(
