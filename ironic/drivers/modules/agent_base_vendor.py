@@ -666,7 +666,8 @@ class AgentDeployMixin(HeartbeatMixin):
             manager_utils.notify_conductor_resume_deploy(task)
 
     @METRICS.timer('AgentDeployMixin.prepare_instance_to_boot')
-    def prepare_instance_to_boot(self, task, root_uuid, efi_sys_uuid):
+    def prepare_instance_to_boot(self, task, root_uuid, efi_sys_uuid,
+                                 prep_boot_part_uuid=None):
         """Prepares instance to boot.
 
         :param task: a TaskManager object containing the node
@@ -680,7 +681,8 @@ class AgentDeployMixin(HeartbeatMixin):
             # Install the boot loader
             self.configure_local_boot(
                 task, root_uuid=root_uuid,
-                efi_system_part_uuid=efi_sys_uuid)
+                efi_system_part_uuid=efi_sys_uuid,
+                prep_boot_part_uuid=prep_boot_part_uuid)
         try:
             task.driver.boot.prepare_instance(task)
         except Exception as e:
@@ -693,7 +695,8 @@ class AgentDeployMixin(HeartbeatMixin):
 
     @METRICS.timer('AgentDeployMixin.configure_local_boot')
     def configure_local_boot(self, task, root_uuid=None,
-                             efi_system_part_uuid=None):
+                             efi_system_part_uuid=None,
+                             prep_boot_part_uuid=None):
         """Helper method to configure local boot on the node.
 
         This method triggers bootloader installation on the node.
@@ -707,6 +710,8 @@ class AgentDeployMixin(HeartbeatMixin):
             have a bootloader installed.
         :param efi_system_part_uuid: The UUID of the efi system partition.
             This is used only in uefi boot mode.
+        :param prep_boot_part_uuid: The UUID of the PReP Boot partition.
+            This is used only for booting ppc64* hardware.
         :raises: InstanceDeployFailure if bootloader installation failed or
             on encountering error while setting the boot device on the node.
         """
@@ -720,7 +725,8 @@ class AgentDeployMixin(HeartbeatMixin):
                        'efi': efi_system_part_uuid})
             result = self._client.install_bootloader(
                 node, root_uuid=root_uuid,
-                efi_system_part_uuid=efi_system_part_uuid)
+                efi_system_part_uuid=efi_system_part_uuid,
+                prep_boot_part_uuid=prep_boot_part_uuid)
             if result['command_status'] == 'FAILED':
                 msg = (_("Failed to install a bootloader when "
                          "deploying node %(node)s. Error: %(error)s") %

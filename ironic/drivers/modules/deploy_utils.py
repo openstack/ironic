@@ -345,7 +345,8 @@ def deploy_partition_image(
         address, port, iqn, lun, image_path,
         root_mb, swap_mb, ephemeral_mb, ephemeral_format, node_uuid,
         preserve_ephemeral=False, configdrive=None,
-        boot_option=None, boot_mode="bios", disk_label=None):
+        boot_option=None, boot_mode="bios", disk_label=None,
+        cpu_arch=""):
     """All-in-one function to deploy a partition image to a node.
 
     :param address: The iSCSI IP address.
@@ -370,6 +371,7 @@ def deploy_partition_image(
     :param disk_label: The disk label to be used when creating the
         partition table. Valid values are: "msdos", "gpt" or None; If None
         Ironic will figure it out according to the boot_mode parameter.
+    :param cpu_arch: Architecture of the node being deployed to.
     :raises: InstanceDeployFailure if image virtual size is bigger than root
         partition size.
     :returns: a dictionary containing the following keys:
@@ -392,7 +394,7 @@ def deploy_partition_image(
             dev, root_mb, swap_mb, ephemeral_mb, ephemeral_format, image_path,
             node_uuid, preserve_ephemeral=preserve_ephemeral,
             configdrive=configdrive, boot_option=boot_option,
-            boot_mode=boot_mode, disk_label=disk_label)
+            boot_mode=boot_mode, disk_label=disk_label, cpu_arch=cpu_arch)
 
     return uuid_dict_returned
 

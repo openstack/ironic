@@ -179,7 +179,8 @@ def get_deploy_info(node, address, iqn, port=None, lun='1'):
                        'ephemeral_mb': i_info['ephemeral_mb'],
                        'preserve_ephemeral': i_info['preserve_ephemeral'],
                        'boot_option': deploy_utils.get_boot_option(node),
-                       'boot_mode': _get_boot_mode(node)})
+                       'boot_mode': _get_boot_mode(node),
+                       'cpu_arch': node.properties.get('cpu_arch')})
 
         # Append disk label if specified
         disk_label = deploy_utils.get_disk_label(node)
@@ -408,7 +409,10 @@ class AgentDeployMixin(agent_base_vendor.AgentDeployMixin):
         uuid_dict_returned = do_agent_iscsi_deploy(task, self._client)
         root_uuid = uuid_dict_returned.get('root uuid')
         efi_sys_uuid = uuid_dict_returned.get('efi system partition uuid')
-        self.prepare_instance_to_boot(task, root_uuid, efi_sys_uuid)
+        prep_boot_part_uuid = uuid_dict_returned.get(
+            'PrEP Boot partition uuid')
+        self.prepare_instance_to_boot(task, root_uuid, efi_sys_uuid,
+                                      prep_boot_part_uuid=prep_boot_part_uuid)
         self.reboot_and_finish_deploy(task)
 
 

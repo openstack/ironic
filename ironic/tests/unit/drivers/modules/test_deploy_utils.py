@@ -383,6 +383,7 @@ class PhysicalWorkTestCase(tests_base.TestCase):
             'boot_mode': None,
             'boot_option': None,
             'configdrive': None,
+            'cpu_arch': None,
             'disk_label': None,
             'ephemeral_format': None,
             'ephemeral_mb': None,
@@ -422,6 +423,7 @@ class PhysicalWorkTestCase(tests_base.TestCase):
             'boot_option': deploy_args['boot_option'],
             'configdrive': deploy_args['configdrive'],
             'disk_label': deploy_args['disk_label'],
+            'cpu_arch': deploy_args['cpu_arch'] or '',
             'preserve_ephemeral': deploy_args['preserve_ephemeral']
         }
         utils.deploy_partition_image(
@@ -444,7 +446,8 @@ class PhysicalWorkTestCase(tests_base.TestCase):
             # not set
             'boot_option': deploy_args['boot_option'] or 'netboot',
             'boot_mode': deploy_args['boot_mode'],
-            'disk_label': deploy_args['disk_label']
+            'disk_label': deploy_args['disk_label'],
+            'cpu_arch': deploy_args['cpu_arch'] or ''
         }
         mock_work_on_disk.assert_called_once_with(
             dev, deploy_args['root_mb'], deploy_args['swap_mb'],
@@ -501,6 +504,9 @@ class PhysicalWorkTestCase(tests_base.TestCase):
 
     def test_deploy_partition_image_with_configdrive(self):
         self._test_deploy_partition_image(configdrive='http://1.2.3.4/cd')
+
+    def test_deploy_partition_image_with_cpu_arch(self):
+        self._test_deploy_partition_image(cpu_arch='generic')
 
     @mock.patch.object(disk_utils, 'create_config_drive_partition',
                        autospec=True)
@@ -775,7 +781,8 @@ class PhysicalWorkTestCase(tests_base.TestCase):
                                          preserve_ephemeral=False,
                                          boot_option="netboot",
                                          boot_mode="bios",
-                                         disk_label=None)]
+                                         disk_label=None,
+                                         cpu_arch="")]
 
         self.assertRaises(TestException, utils.deploy_partition_image,
                           address, port, iqn, lun, image_path,

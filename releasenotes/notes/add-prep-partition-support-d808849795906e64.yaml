@@ -1,0 +1,7 @@
+---
+features:
+  - Added support for local booting a partition image for ppc64*
+    hardware. If a PReP partition is detected when deploying to a
+    ppc64* machine, the partition will be specified to IPA causing
+    the bootloader to be installed there directly. This feature
+    requires a ironic-python-agent ramdisk with ironic-lib >=2.14.

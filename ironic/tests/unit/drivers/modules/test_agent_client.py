@@ -247,18 +247,28 @@ class TestAgentClient(base.TestCase):
             node=self.node, method='iscsi.start_iscsi_target',
             params=params, wait=True)
 
-    def test_install_bootloader(self):
+    def _test_install_bootloader(self, root_uuid, efi_system_part_uuid=None,
+                                 prep_boot_part_uuid=None):
         self.client._command = mock.MagicMock(spec_set=[])
-        root_uuid = 'fake-root-uuid'
-        efi_system_part_uuid = 'fake-efi-system-part-uuid'
         params = {'root_uuid': root_uuid,
-                  'efi_system_part_uuid': efi_system_part_uuid}
+                  'efi_system_part_uuid': efi_system_part_uuid,
+                  'prep_boot_part_uuid': prep_boot_part_uuid}
 
         self.client.install_bootloader(
-            self.node, root_uuid, efi_system_part_uuid=efi_system_part_uuid)
+            self.node, root_uuid, efi_system_part_uuid=efi_system_part_uuid,
+            prep_boot_part_uuid=prep_boot_part_uuid)
         self.client._command.assert_called_once_with(
             node=self.node, method='image.install_bootloader', params=params,
             wait=True)
+
+    def test_install_bootloader(self):
+        self._test_install_bootloader(root_uuid='fake-root-uuid',
+                                      efi_system_part_uuid='fake-efi-uuid')
+
+    def test_install_bootloaderi_with_prep(self):
+        self._test_install_bootloader(root_uuid='fake-root-uuid',
+                                      efi_system_part_uuid='fake-efi-uuid',
+                                      prep_boot_part_uuid='fake-prep-uuid')
 
     def test_get_clean_steps(self):
         self.client._command = mock.MagicMock(spec_set=[])
