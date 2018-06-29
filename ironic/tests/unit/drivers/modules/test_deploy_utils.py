@@ -1623,6 +1623,7 @@ class AgentMethodsTestCase(db_base.DbTestCase):
                               'deploy')
         cfg.CONF.set_override('continue_if_disk_secure_erase_fails', True,
                               'deploy')
+        cfg.CONF.set_override('enable_ata_secure_erase', False, 'deploy')
         with task_manager.acquire(
                 self.context, self.node.uuid, shared=False) as task:
             utils.agent_add_clean_params(task)
@@ -1632,6 +1633,8 @@ class AgentMethodsTestCase(db_base.DbTestCase):
                 'agent_erase_devices_zeroize'])
             self.assertIs(True, task.node.driver_internal_info[
                 'agent_continue_if_ata_erase_failed'])
+            self.assertIs(False, task.node.driver_internal_info[
+                'agent_enable_ata_secure_erase'])
 
     @mock.patch.object(pxe.PXEBoot, 'prepare_ramdisk', autospec=True)
     @mock.patch('ironic.conductor.utils.node_power_action', autospec=True)

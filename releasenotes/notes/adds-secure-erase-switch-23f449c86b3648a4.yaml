@@ -1,0 +1,7 @@
+---
+features:
+  - |
+    Adds the ``[deploy]enable_ata_secure_erase`` option which allows an
+    operator to disable ATA Secure Erase for all nodes being managed by
+    the conductor. This setting defaults to ``True`` which aligns with
+    the prior behavior of the Bare Metal service.
