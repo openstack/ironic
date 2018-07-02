@@ -118,8 +118,8 @@ RELEASE_MAPPING = {
         'api': '1.45',
         'rpc': '1.46',
         'objects': {
-            'Node': ['1.26'],
-            'Conductor': ['1.2'],
+            'Node': ['1.26', '1.27'],
+            'Conductor': ['1.3'],
             'Chassis': ['1.3'],
             'Port': ['1.8'],
             'Portgroup': ['1.4'],

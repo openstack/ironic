@@ -182,6 +182,7 @@ def get_test_node(**kw):
         'uuid': kw.get('uuid', '1be26c0b-03f2-4d2e-ae87-c02d7f33c123'),
         'chassis_id': kw.get('chassis_id', None),
         'conductor_affinity': kw.get('conductor_affinity', None),
+        'conductor_group': kw.get('conductor_group', ''),
         'power_state': kw.get('power_state', states.NOSTATE),
         'target_power_state': kw.get('target_power_state', states.NOSTATE),
         'provision_state': kw.get('provision_state', states.AVAILABLE),
@@ -381,6 +382,7 @@ def get_test_conductor(**kw):
         'version': kw.get('version', conductor.Conductor.VERSION),
         'hostname': kw.get('hostname', 'test-conductor-node'),
         'drivers': kw.get('drivers', ['fake-driver', 'null-driver']),
+        'conductor_group': kw.get('conductor_group', ''),
         'created_at': kw.get('created_at', timeutils.utcnow()),
         'updated_at': kw.get('updated_at', timeutils.utcnow()),
     }

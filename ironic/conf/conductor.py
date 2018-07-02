@@ -177,6 +177,12 @@ opts = [
                       'automatically moved out of maintenance mode once its '
                       'power state is retrieved successfully. Set to 0 to '
                       'disable this check.')),
+    cfg.StrOpt('conductor_group',
+               default='',
+               help=_('Name of the conductor group to join. Can be up to '
+                      '255 characters and is case insensitive. This '
+                      'conductor will only manage nodes with a matching '
+                      '"conductor_group" field set on the node.')),
 ]
 
 

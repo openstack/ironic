@@ -216,6 +216,51 @@ class TestNodeObject(db_base.DbTestCase, obj_utils.SchemasTestMixIn):
                 self.assertRaises(exception.BadRequest, n.save)
                 self.assertFalse(mock_update_node.called)
 
+    def test_save_with_conductor_group(self):
+        uuid = self.fake_node['uuid']
+        with mock.patch.object(self.dbapi, 'get_node_by_uuid',
+                               autospec=True) as mock_get_node:
+            mock_get_node.return_value = self.fake_node
+            with mock.patch.object(self.dbapi, 'update_node',
+                                   autospec=True) as mock_update_node:
+                mock_update_node.return_value = (
+                    db_utils.get_test_node(conductor_group='group1'))
+                n = objects.Node.get(self.context, uuid)
+                n.conductor_group = 'group1'
+                n.save()
+                self.assertTrue(mock_update_node.called)
+                mock_update_node.assert_called_once_with(
+                    uuid, {'conductor_group': 'group1',
+                           'version': objects.Node.VERSION})
+
+    def test_save_with_conductor_group_uppercase(self):
+        uuid = self.fake_node['uuid']
+        with mock.patch.object(self.dbapi, 'get_node_by_uuid',
+                               autospec=True) as mock_get_node:
+            mock_get_node.return_value = self.fake_node
+            with mock.patch.object(self.dbapi, 'update_node',
+                                   autospec=True) as mock_update_node:
+                mock_update_node.return_value = (
+                    db_utils.get_test_node(conductor_group='group1'))
+                n = objects.Node.get(self.context, uuid)
+                n.conductor_group = 'GROUP1'
+                n.save()
+                mock_update_node.assert_called_once_with(
+                    uuid, {'conductor_group': 'group1',
+                           'version': objects.Node.VERSION})
+
+    def test_save_with_conductor_group_fail(self):
+        uuid = self.fake_node['uuid']
+        with mock.patch.object(self.dbapi, 'get_node_by_uuid',
+                               autospec=True) as mock_get_node:
+            mock_get_node.return_value = self.fake_node
+            with mock.patch.object(self.dbapi, 'update_node',
+                                   autospec=True) as mock_update_node:
+                n = objects.Node.get(self.context, uuid)
+                n.conductor_group = 'group:1'
+                self.assertRaises(exception.InvalidConductorGroup, n.save)
+                self.assertFalse(mock_update_node.called)
+
     def test_refresh(self):
         uuid = self.fake_node['uuid']
         returns = [dict(self.fake_node, properties={"fake": "first"}),
@@ -610,6 +655,56 @@ class TestConvertToVersion(db_base.DbTestCase):
 
         self.assertIsNone(node.fault)
         self.assertEqual({'fault': None}, node.obj_get_changes())
+
+    def test_conductor_group_supported_set(self):
+        node = obj_utils.get_test_node(self.ctxt, **self.fake_node)
+        node.conductor_group = 'group1'
+        node.obj_reset_changes()
+
+        node._convert_to_version('1.27')
+
+        self.assertEqual('group1', node.conductor_group)
+        self.assertEqual({}, node.obj_get_changes())
+
+    def test_conductor_group_supported_unset(self):
+        node = obj_utils.get_test_node(self.ctxt, **self.fake_node)
+        delattr(node, 'conductor_group')
+        node.obj_reset_changes()
+
+        node._convert_to_version('1.27')
+
+        self.assertEqual('', node.conductor_group)
+        self.assertEqual({'conductor_group': ''}, node.obj_get_changes())
+
+    def test_conductor_group_unsupported_set(self):
+        node = obj_utils.get_test_node(self.ctxt, **self.fake_node)
+        node.conductor_group = 'group1'
+        node.obj_reset_changes()
+
+        node._convert_to_version('1.26')
+
+        self.assertNotIn('conductor_group', node)
+        self.assertEqual({}, node.obj_get_changes())
+
+    def test_conductor_group_unsupported_unset(self):
+        node = obj_utils.get_test_node(self.ctxt, **self.fake_node)
+        delattr(node, 'conductor_group')
+        node.obj_reset_changes()
+
+        node._convert_to_version('1.26')
+
+        self.assertNotIn('conductor_group', node)
+        self.assertEqual({}, node.obj_get_changes())
+
+    def test_conductor_group_unsupported_set_no_remove(self):
+        node = obj_utils.get_test_node(self.ctxt, **self.fake_node)
+        node.conductor_group = 'group1'
+        node.obj_reset_changes()
+
+        node._convert_to_version('1.26', remove_unavailable_fields=False)
+
+        self.assertEqual('', node.conductor_group)
+        self.assertEqual({'conductor_group': ''}, node.obj_get_changes())
 
 
 class TestNodePayloads(db_base.DbTestCase):

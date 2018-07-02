@@ -172,6 +172,9 @@ def hide_fields_in_newer_versions(obj):
     if not api_utils.allow_bios_interface():
         obj.bios_interface = wsme.Unset
 
+    # TODO(jroll) add a microversion here
+    obj.conductor_group = wsme.Unset
+
 
 def update_state_in_older_versions(obj):
     """Change provision state names for API backwards compatibility.
@@ -1073,6 +1076,9 @@ class Node(base.APIBase):
 
     bios_interface = wsme.wsattr(wtypes.text)
     """The bios interface to be used for this node"""
+
+    conductor_group = wsme.wsattr(wtypes.text)
+    """The conductor group to manage this node"""
 
     # NOTE(deva): "conductor_affinity" shouldn't be presented on the
     #             API because it's an internal value. Don't add it here.

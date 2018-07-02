@@ -593,3 +593,24 @@ class JinjaTemplatingTestCase(base.TestCase):
                          utils.render_template(path,
                                                self.params))
         jinja_fsl_mock.assert_called_once_with('/path/to')
+
+
+class ValidateConductorGroupTestCase(base.TestCase):
+    def test_validate_conductor_group_success(self):
+        self.assertIsNone(utils.validate_conductor_group('foo'))
+        self.assertIsNone(utils.validate_conductor_group('group1'))
+        self.assertIsNone(utils.validate_conductor_group('group1.with.dot'))
+        self.assertIsNone(utils.validate_conductor_group('group1_with_under'))
+        self.assertIsNone(utils.validate_conductor_group('group1-with-dash'))
+
+    def test_validate_conductor_group_fail(self):
+        self.assertRaises(exception.InvalidConductorGroup,
+                          utils.validate_conductor_group, 'foo:bar')
+        self.assertRaises(exception.InvalidConductorGroup,
+                          utils.validate_conductor_group, 'foo*bar')
+        self.assertRaises(exception.InvalidConductorGroup,
+                          utils.validate_conductor_group, 'foo$bar')
+        self.assertRaises(exception.InvalidConductorGroup,
+                          utils.validate_conductor_group, object())
+        self.assertRaises(exception.InvalidConductorGroup,
+                          utils.validate_conductor_group, None)

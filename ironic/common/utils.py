@@ -547,3 +547,10 @@ def parse_instance_info_capabilities(node):
         parse_error()
 
     return capabilities
+
+
+def validate_conductor_group(conductor_group):
+    if not isinstance(conductor_group, six.string_types):
+        raise exception.InvalidConductorGroup(group=conductor_group)
+    if not re.match(r'^[a-zA-Z0-9_\-\.]*$', conductor_group):
+        raise exception.InvalidConductorGroup(group=conductor_group)
