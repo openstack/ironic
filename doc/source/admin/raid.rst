@@ -66,8 +66,7 @@ If the ``target_raid_config`` is an empty dictionary, it unsets the value of
 done on the node.
 
 Each dictionary of logical disk contains the desired properties of logical
-disk supported by the hardware type or classic driver. These properties are
-discoverable by::
+disk supported by the hardware type. These properties are discoverable by::
 
     openstack baremetal --os-baremetal-api-version 1.15 driver raid property list <driver name>
 
@@ -244,7 +243,7 @@ Workflow
 ========
 
 * Operator configures the bare metal node with a hardware type that has
-  a ``RAIDInterface`` other than ``no-raid`` (``None`` for classic drivers).
+  a ``RAIDInterface`` other than ``no-raid``.
 
 * For in-band RAID configuration, operator builds an agent ramdisk which
   supports RAID configuration by bundling the hardware manager with the

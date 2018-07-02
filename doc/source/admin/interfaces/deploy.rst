@@ -24,9 +24,6 @@ when creating or updating a node::
     openstack baremetal node create --driver ipmi --deploy-interface iscsi
     openstack baremetal node set <NODE> --deploy-interface iscsi
 
-The ``iscsi`` deploy interface is also used in all of the *classic drivers*
-with names starting with ``pxe_`` and ``iscsi_``.
-
 .. _iSCSI: https://en.wikipedia.org/wiki/ISCSI
 
 .. _direct-deploy:
@@ -46,14 +43,10 @@ You can specify this deploy interface when creating or updating a node::
     openstack baremetal node create --driver ipmi --deploy-interface direct
     openstack baremetal node set <NODE> --deploy-interface direct
 
-The ``direct`` deploy interface is also used in all *classic drivers*
-whose names include ``agent``.
-
 .. note::
     For historical reasons the ``direct`` deploy interface is sometimes called
-    ``agent``, and some *classic drivers* using it are called ``agent_*``.
-    This is because before the Kilo release **ironic-python-agent** used to
-    only support this deploy interface.
+    ``agent``. This is because before the Kilo release **ironic-python-agent**
+    used to only support this deploy interface.
 
 .. _ansible-deploy:
 
