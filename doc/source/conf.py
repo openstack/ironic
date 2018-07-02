@@ -47,7 +47,7 @@ except ImportError:
 apidoc_module_dir = '../../ironic'
 apidoc_output_dir = 'contributor/api'
 apidoc_excluded_paths = [
-    'db/sqlalchemy/alembic/env'
+    'db/sqlalchemy/alembic/env',
     'db/sqlalchemy/alembic/versions/*',
     'drivers/modules/ansible/playbooks*',
     'tests',
