@@ -1,12 +1,12 @@
 .. _ilo:
 
-===========
-iLO drivers
-===========
+==========
+iLO driver
+==========
 
 Overview
 ========
-iLO drivers enable to take advantage of features of iLO management engine in
+iLO driver enables to take advantage of features of iLO management engine in
 HPE ProLiant servers. The ``ilo`` hardware type is targeted for HPE ProLiant
 Gen8 and Gen9 systems which have `iLO 4 management engine`_. From **Pike**
 release ``ilo`` hardware type supports ProLiant Gen10 systems which have
@@ -39,7 +39,7 @@ The hardware type ``ilo`` supports following HPE server features:
 * `Hardware Inspection Support`_
 * `Swiftless deploy for intermediate images`_
 * `HTTP(S) Based Deploy Support`_
-* `Support for iLO drivers with Standalone Ironic`_
+* `Support for iLO driver with Standalone Ironic`_
 * `RAID Support`_
 * `Disk Erase Support`_
 * `Initiating firmware update as manual clean step`_
@@ -375,25 +375,25 @@ Enable driver
 
     $ service ironic-conductor restart
 
-Functionalities across drivers
-==============================
+Optional functionalities for the ``ilo`` hardware type
+======================================================
 
 Boot mode support
 ^^^^^^^^^^^^^^^^^
-The hardware type ``ilo`` and iLO-based classic drivers support automatic
-detection and setting of boot mode (Legacy BIOS or UEFI).
+The hardware type ``ilo`` supports automatic detection and setting
+of boot mode (Legacy BIOS or UEFI).
 
 * When boot mode capability is not configured:
 
   - If config variable ``default_boot_mode`` in ``[ilo]`` section of
     ironic configuration file is set to either 'bios' or 'uefi', then iLO
-    drivers use that boot mode for provisioning the baremetal ProLiant
+    driver uses that boot mode for provisioning the baremetal ProLiant
     servers.
 
-  - If the pending boot mode is set on the node then iLO drivers use that boot
+  - If the pending boot mode is set on the node then iLO driver uses that boot
     mode for provisioning the baremetal ProLiant servers.
 
-  - If the pending boot mode is not set on the node then iLO drivers use 'uefi'
+  - If the pending boot mode is not set on the node then iLO driver uses 'uefi'
     boot mode for UEFI capable servers and "bios" when UEFI is not supported.
 
 * When boot mode capability is configured, the driver sets the pending boot
@@ -443,8 +443,7 @@ element to the diskimage-builder command to build the image.  For example::
 
 UEFI Secure Boot Support
 ^^^^^^^^^^^^^^^^^^^^^^^^
-The hardware type ``ilo`` and iLO-based classic drivers support secure boot
-deploy.
+The hardware type ``ilo`` supports secure boot deploy.
 
 The UEFI secure boot can be configured in ironic by adding
 ``secure_boot`` parameter in the ``capabilities`` parameter  within
@@ -521,7 +520,7 @@ For more up-to-date information, refer
 
 Node Cleaning Support
 ^^^^^^^^^^^^^^^^^^^^^
-The hardware type ``ilo`` and iLO-based classic drivers support node cleaning.
+The hardware type ``ilo`` supports node cleaning.
 
 For more information on node cleaning, see :ref:`cleaning`
 
@@ -594,7 +593,7 @@ Supported **Manual** Cleaning Operations
     advanced license is already active and the user wants to overwrite the
     current license key, for example in case of a multi-server activation key
     delivered with a flexible-quantity kit or after completing an Activation
-    Key Agreement (AKA), then these drivers can still be used for executing
+    Key Agreement (AKA), then the driver can still be used for executing
     this cleaning step.
   ``update_firmware``:
     Updates the firmware of the devices. Also an out-of-band step associated
@@ -632,8 +631,7 @@ For more information on node manual cleaning, see :ref:`manual_cleaning`
 
 Hardware Inspection Support
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
-The hardware type ``ilo`` and iLO-based classic drivers support hardware
-inspection.
+The hardware type ``ilo`` supports hardware inspection.
 
 .. note::
 
@@ -677,7 +675,7 @@ The inspection process will discover the following essential properties
 
 * ``local_gb``: disk size
 
-Inspection can also discover the following extra capabilities for iLO drivers:
+Inspection can also discover the following extra capabilities for iLO driver:
 
 * ``ilo_firmware_version``: iLO firmware version
 
@@ -790,13 +788,12 @@ Please refer to `Netboot with HTTP(S) based deploy`_ for partition image boot
 and `Localboot with HTTP(S) based deploy`_ for whole disk image boot.
 
 
-Support for iLO drivers with Standalone Ironic
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Support for iLO driver with Standalone Ironic
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 It is possible to use ironic as standalone services without other
-OpenStack services. The ``ilo`` hardware type and the iLO-based classic
-drivers can be used in standalone ironic. This feature is referred to as
-``iLO drivers with standalone ironic`` in this document.
+OpenStack services. The ``ilo`` hardware type can be used in standalone ironic.
+This feature is referred to as ``iLO driver with standalone ironic`` in this document.
 
 Configuration
 ~~~~~~~~~~~~~
@@ -1174,7 +1171,7 @@ Localboot in standalone ironic
 
 Activating iLO Advanced license as manual clean step
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-iLO drivers can activate the iLO Advanced license key as a manual cleaning
+iLO driver can activate the iLO Advanced license key as a manual cleaning
 step. Any manual cleaning step can only be initiated when a node is in the
 ``manageable`` state. Once the manual cleaning is finished, the node will be
 put in the ``manageable`` state again. User can follow steps from
@@ -1204,7 +1201,7 @@ The different attributes of ``activate_license`` clean step are as follows:
 
 Initiating firmware update as manual clean step
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-iLO drivers can invoke secure firmware update as a manual cleaning step. Any
+iLO driver can invoke secure firmware update as a manual cleaning step. Any
 manual cleaning step can only be initiated when a node is in the ``manageable``
 state. Once the manual cleaning is finished, the node will be put in the
 ``manageable`` state again. A user can follow steps from :ref:`manual_cleaning`
@@ -1282,8 +1279,8 @@ All the fields in the firmware image block are mandatory.
      project. The ``service`` project (tenant) is a special project created in
      the Keystone system designed for the use of the core OpenStack services.
      When Ironic makes use of Swift for storage purpose, the account is generally
-     ``service`` and the container is generally ``ironic`` and ``ilo`` drivers
-     use a container named ``ironic_ilo_container`` for their own purpose.
+     ``service`` and the container is generally ``ironic`` and ``ilo`` driver
+     uses a container named ``ironic_ilo_container`` for their own purpose.
 
   .. note::
      While using firmware files with a ``.rpm`` extension, make sure the commands
@@ -1321,7 +1318,7 @@ Smart Update Manager (SUM) based firmware update
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The firmware update based on `SUM`_ is an inband clean step supported by iLO
-drivers. The firmware update is performed on all or list of user specified
+driver. The firmware update is performed on all or list of user specified
 firmware components on the node. Refer to `SUM User Guide`_ to get more
 information on SUM based firmware update.
 
@@ -1394,14 +1391,14 @@ where things failed. You can then fix or work around and then try again.
 RAID Support
 ^^^^^^^^^^^^
 
-The inband RAID functionality is supported by iLO drivers. See :ref:`raid`
+The inband RAID functionality is supported by iLO driver. See :ref:`raid`
 for more information.
 Bare Metal service update node with following information after successful
 configuration of RAID:
 
 * Node ``properties/local_gb`` is set to the size of root volume.
 * Node ``properties/root_device`` is filled with ``wwn`` details of root
-  volume. It is used by iLO drivers as root device hint during provisioning.
+  volume. It is used by iLO driver as root device hint during provisioning.
 * The value of raid level of root volume is added as ``raid_level`` capability
   to the node's ``capabilities`` parameter within ``properties`` field. The
   operator can specify the ``raid_level`` capability in nova flavor for node
@@ -1423,7 +1420,7 @@ use the ``proliant-tools`` element in DIB::
 Disk Erase Support
 ^^^^^^^^^^^^^^^^^^
 
-``erase_devices`` is an inband clean step supported by iLO drives. It
+``erase_devices`` is an inband clean step supported by iLO driver. It
 performs erase on all the disks including the disks visible to OS as
 well as the raw disks visible to the Smart Storage Administrator (SSA).
 
