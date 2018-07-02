@@ -119,13 +119,7 @@ def get_nodes_controller_reserved_names():
     return _NODES_CONTROLLER_RESERVED_WORDS
 
 
-def hide_fields_in_newer_versions(obj):
-    """This method hides fields that were added in newer API versions.
-
-    Certain node fields were introduced at certain API versions.
-    These fields are only made available when the request's API version
-    matches or exceeds the versions when these fields were introduced.
-    """
+def _hide_fields_in_newer_versions_part_one(obj):
     if pecan.request.version.minor < versions.MINOR_3_DRIVER_INTERNAL_INFO:
         obj.driver_internal_info = wsme.Unset
 
@@ -153,6 +147,8 @@ def hide_fields_in_newer_versions(obj):
     if pecan.request.version.minor < versions.MINOR_44_NODE_DEPLOY_STEP:
         obj.deploy_step = wsme.Unset
 
+
+def _hide_fields_in_newer_versions_part_two(obj):
     if not api_utils.allow_resource_class():
         obj.resource_class = wsme.Unset
 
@@ -172,8 +168,21 @@ def hide_fields_in_newer_versions(obj):
     if not api_utils.allow_bios_interface():
         obj.bios_interface = wsme.Unset
 
-    # TODO(jroll) add a microversion here
-    obj.conductor_group = wsme.Unset
+    if not api_utils.allow_conductor_group():
+        obj.conductor_group = wsme.Unset
+
+
+def hide_fields_in_newer_versions(obj):
+    """This method hides fields that were added in newer API versions.
+
+    Certain node fields were introduced at certain API versions.
+    These fields are only made available when the request's API version
+    matches or exceeds the versions when these fields were introduced.
+
+    This is broken into two methods for cyclomatic complexity's sake.
+    """
+    _hide_fields_in_newer_versions_part_one(obj)
+    _hide_fields_in_newer_versions_part_two(obj)
 
 
 def update_state_in_older_versions(obj):
@@ -1096,6 +1105,11 @@ class Node(base.APIBase):
                 # TODO(jroll) is there a less hacky way to do this?
                 if k == 'traits' and kwargs.get('traits') is not None:
                     value = [t['trait'] for t in kwargs['traits']['objects']]
+                # NOTE(jroll) this is special-cased to "" and not Unset,
+                # because it is used in hash ring calculations
+                elif k == 'conductor_group' and (k not in kwargs or
+                                                 kwargs[k] is wtypes.Unset):
+                    value = ''
                 else:
                     value = kwargs.get(k, wtypes.Unset)
                 setattr(self, k, value)
@@ -1901,6 +1915,12 @@ class NodesController(rest.RestController):
                 and node.rescue_interface is not wtypes.Unset):
             raise exception.NotAcceptable()
 
+        # NOTE(jroll) this is special-cased to "" and not Unset,
+        # because it is used in hash ring calculations
+        if (not api_utils.allow_conductor_group()
+                and node.conductor_group != ""):
+            raise exception.NotAcceptable()
+
         # NOTE(deva): get_topic_for checks if node.driver is in the hash ring
         #             and raises NoValidHost if it is not.
         #             We need to ensure that node has a UUID before it can
@@ -1980,6 +2000,10 @@ class NodesController(rest.RestController):
             msg = _("The reset_interfaces parameter can only be used when "
                     "changing the node's driver.")
             raise exception.Invalid(msg)
+
+        conductor_group = api_utils.get_patch_values(patch, '/conductor_group')
+        if conductor_group and not api_utils.allow_conductor_group():
+            raise exception.NotAcceptable()
 
     @METRICS.timer('NodesController.patch')
     @wsme.validate(types.uuid, types.boolean, [NodePatchType])

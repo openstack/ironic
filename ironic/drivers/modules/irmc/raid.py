@@ -432,7 +432,7 @@ class IRMCRAID(base.RAIDInterface):
                    'maintenance': False}
         fields = ['raid_config']
         node_list = manager.iter_nodes(fields=fields, filters=filters)
-        for (node_uuid, driver, raid_config) in node_list:
+        for (node_uuid, driver, conductor_group, raid_config) in node_list:
             try:
                 lock_purpose = 'checking async RAID configuration tasks'
                 with task_manager.acquire(context, node_uuid,

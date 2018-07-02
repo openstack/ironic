@@ -256,6 +256,13 @@ class TestListNodes(test_api_base.BaseApiTest):
         self._test_node_field_hidden_in_lower_version('deploy_step',
                                                       '1.43', '1.44')
 
+    def test_node_conductor_group_hidden_in_lower_version(self):
+        node = obj_utils.create_test_node(self.context)
+        data = self.get_json(
+            '/nodes/%s' % node.uuid,
+            headers={api_base.Version.string: '1.44'})
+        self.assertNotIn('conductor_group', data)
+
     def test_get_one_custom_fields(self):
         node = obj_utils.create_test_node(self.context,
                                           chassis_id=self.chassis.id)
@@ -392,6 +399,16 @@ class TestListNodes(test_api_base.BaseApiTest):
             '/nodes/%s?fields=%s' % (node.uuid, fields),
             headers={api_base.Version.string: str(api_v1.max_version())})
         self.assertIn('traits', response)
+
+    def test_get_conductor_group_fields_invalid_api_version(self):
+        node = obj_utils.create_test_node(self.context,
+                                          chassis_id=self.chassis.id)
+        fields = 'conductor_group'
+        response = self.get_json(
+            '/nodes/%s?fields=%s' % (node.uuid, fields),
+            headers={api_base.Version.string: '1.43'},
+            expect_errors=True)
+        self.assertEqual(http_client.NOT_ACCEPTABLE, response.status_int)
 
     def test_detail(self):
         node = obj_utils.create_test_node(self.context,
@@ -2474,6 +2491,20 @@ class TestPatch(test_api_base.BaseApiTest):
         self.assertEqual(http_client.BAD_REQUEST, response.status_code)
         self.assertTrue(response.json['error_message'])
 
+    def test_update_conductor_group_old_api(self):
+        node = obj_utils.create_test_node(self.context,
+                                          uuid=uuidutils.generate_uuid())
+        self.mock_update_node.return_value = node
+        headers = {api_base.Version.string: '1.44'}
+        response = self.patch_json('/nodes/%s' % node.uuid,
+                                   [{'path': '/conductor_group',
+                                     'value': 'foogroup',
+                                     'op': 'add'}],
+                                   headers=headers,
+                                   expect_errors=True)
+        self.assertEqual('application/json', response.content_type)
+        self.assertEqual(http_client.NOT_ACCEPTABLE, response.status_code)
+
 
 def _create_node_locally(node):
     driver_factory.check_and_update_node_interfaces(node)
@@ -2696,6 +2727,13 @@ class TestPost(test_api_base.BaseApiTest):
             cn_mock.assert_called_once_with(mock.ANY)
             # Check that 'id' is not in first arg of positional args
             self.assertNotIn('id', cn_mock.call_args[0][0])
+
+    def test_create_node_specify_conductor_group_bad_version(self):
+        headers = {api_base.Version.string: '1.43'}
+        ndict = test_api_utils.post_get_test_node(conductor_group='foo')
+        response = self.post_json('/nodes', ndict, headers=headers,
+                                  expect_errors=True)
+        self.assertEqual(http_client.NOT_ACCEPTABLE, response.status_int)
 
     def _test_jsontype_attributes(self, attr_name):
         kwargs = {attr_name: {'str': 'foo', 'int': 123, 'float': 0.1,

@@ -22,6 +22,7 @@ from futurist import rejection
 from oslo_db import exception as db_exception
 from oslo_log import log
 from oslo_utils import excutils
+from oslo_utils import versionutils
 import six
 
 from ironic.common import context as ironic_context
@@ -29,6 +30,7 @@ from ironic.common import driver_factory
 from ironic.common import exception
 from ironic.common import hash_ring
 from ironic.common.i18n import _
+from ironic.common import release_mappings as versions
 from ironic.common import rpc
 from ironic.common import states
 from ironic.conductor import notification_utils as notify_utils
@@ -107,7 +109,10 @@ class BaseConductorManager(object):
             check_and_reject=rejection_func)
         """Executor for performing tasks async."""
 
-        self.ring_manager = hash_ring.HashRingManager()
+        # TODO(jroll) delete the use_groups argument and use the default
+        # in Stein.
+        self.ring_manager = hash_ring.HashRingManager(
+            use_groups=self._use_groups())
         """Consistent hash ring which maps drivers to conductors."""
 
         # TODO(dtantsur): remove in Stein
@@ -216,6 +221,14 @@ class BaseConductorManager(object):
                 self.del_host()
 
         self._started = True
+
+    def _use_groups(self):
+        release_ver = versions.RELEASE_MAPPING.get(CONF.pin_release_version)
+        # NOTE(jroll) self.RPC_API_VERSION is actually defined in a subclass,
+        # but we only use this class from there.
+        version_cap = (release_ver['rpc'] if release_ver
+                       else self.RPC_API_VERSION)
+        return versionutils.is_compatible('1.47', version_cap)
 
     def _fail_transient_state(self, state, last_error):
         """Apply "fail" transition to nodes in a transient state.
@@ -362,21 +375,23 @@ class BaseConductorManager(object):
         Requests node set from and filters out nodes that are not
         mapped to this conductor.
 
-        Yields tuples (node_uuid, driver, ...) where ... is derived from
-        fields argument, e.g.: fields=None means yielding ('uuid', 'driver'),
-        fields=['foo'] means yielding ('uuid', 'driver', 'foo').
+        Yields tuples (node_uuid, driver, conductor_group, ...) where ... is
+        derived from fields argument, e.g.: fields=None means yielding ('uuid',
+        'driver', 'conductor_group'), fields=['foo'] means yielding ('uuid',
+        'driver', 'conductor_group', 'foo').
 
-        :param fields: list of fields to fetch in addition to uuid and driver
+        :param fields: list of fields to fetch in addition to uuid, driver,
+                       and conductor_group
         :param kwargs: additional arguments to pass to dbapi when looking for
                        nodes
         :return: generator yielding tuples of requested fields
         """
-        columns = ['uuid', 'driver'] + list(fields or ())
+        columns = ['uuid', 'driver', 'conductor_group'] + list(fields or ())
         node_list = self.dbapi.get_nodeinfo_list(columns=columns, **kwargs)
         for result in node_list:
             if self._shutdown:
                 break
-            if self._mapped_to_this_conductor(*result[:2]):
+            if self._mapped_to_this_conductor(*result[:3]):
                 yield result
 
     def _spawn_worker(self, func, *args, **kwargs):
@@ -407,7 +422,7 @@ class BaseConductorManager(object):
                               {'err': e})
             self._keepalive_evt.wait(CONF.conductor.heartbeat_interval)
 
-    def _mapped_to_this_conductor(self, node_uuid, driver):
+    def _mapped_to_this_conductor(self, node_uuid, driver, conductor_group):
         """Check that node is mapped to this conductor.
 
         Note that because mappings are eventually consistent, it is possible
@@ -416,7 +431,7 @@ class BaseConductorManager(object):
         take out a lock.
         """
         try:
-            ring = self.ring_manager[driver]
+            ring = self.ring_manager.get_ring(driver, conductor_group)
         except exception.DriverNotFound:
             return False
 
@@ -468,7 +483,7 @@ class BaseConductorManager(object):
                                     sort_dir='asc')
 
         workers_count = 0
-        for node_uuid, driver in node_iter:
+        for node_uuid, driver, conductor_group in node_iter:
             try:
                 with task_manager.acquire(context, node_uuid,
                                           purpose='node state check') as task:
@@ -507,7 +522,7 @@ class BaseConductorManager(object):
 
         node_iter = self.iter_nodes(filters=filters)
 
-        for node_uuid, driver in node_iter:
+        for node_uuid, driver, conductor_group in node_iter:
             try:
                 with task_manager.acquire(context, node_uuid, shared=False,
                                           purpose='start console') as task:

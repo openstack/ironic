@@ -28,7 +28,8 @@ class HashRingManagerTestCase(db_base.DbTestCase):
 
     def setUp(self):
         super(HashRingManagerTestCase, self).setUp()
-        self.ring_manager = hash_ring.HashRingManager()
+        self.use_groups = False
+        self.ring_manager = hash_ring.HashRingManager(use_groups=False)
 
     def register_conductors(self):
         c1 = self.dbapi.register_conductor({
@@ -39,40 +40,88 @@ class HashRingManagerTestCase(db_base.DbTestCase):
             'hostname': 'host2',
             'drivers': ['driver1'],
         })
-        for c in (c1, c2):
+        c3 = self.dbapi.register_conductor({
+            'hostname': 'host3',
+            'drivers': ['driver1, driver2'],
+            'conductor_group': 'foogroup',
+        })
+        c4 = self.dbapi.register_conductor({
+            'hostname': 'host4',
+            'drivers': ['driver1'],
+            'conductor_group': 'foogroup',
+        })
+        c5 = self.dbapi.register_conductor({
+            'hostname': 'host5',
+            'drivers': ['driver1'],
+            'conductor_group': 'bargroup',
+        })
+        for c in (c1, c2, c3, c4, c5):
             self.dbapi.register_conductor_hardware_interfaces(
                 c.id, 'hardware-type', 'deploy', ['iscsi', 'direct'], 'iscsi')
 
     def test_hash_ring_manager_hardware_type_success(self):
         self.register_conductors()
-        ring = self.ring_manager['hardware-type']
-        self.assertEqual(sorted(['host1', 'host2']), sorted(ring.nodes))
+        ring = self.ring_manager.get_ring('hardware-type', '')
+        self.assertEqual(sorted(['host1', 'host2', 'host3', 'host4', 'host5']),
+                         sorted(ring.nodes))
+
+    def test_hash_ring_manager_hardware_type_success_groups(self):
+        # groupings should be ignored here
+        self.register_conductors()
+        ring = self.ring_manager.get_ring('hardware-type', 'foogroup')
+        self.assertEqual(sorted(['host1', 'host2', 'host3', 'host4', 'host5']),
+                         sorted(ring.nodes))
 
     def test_hash_ring_manager_driver_not_found(self):
         self.register_conductors()
         self.assertRaises(exception.DriverNotFound,
-                          self.ring_manager.__getitem__,
-                          'driver3')
+                          self.ring_manager.get_ring,
+                          'driver3', '')
 
     def test_hash_ring_manager_no_refresh(self):
         # If a new conductor is registered after the ring manager is
         # initialized, it won't be seen. Long term this is probably
         # undesirable, but today is the intended behavior.
         self.assertRaises(exception.DriverNotFound,
-                          self.ring_manager.__getitem__,
-                          'hardware-type')
+                          self.ring_manager.get_ring,
+                          'hardware-type', '')
         self.register_conductors()
         self.assertRaises(exception.DriverNotFound,
-                          self.ring_manager.__getitem__,
-                          'hardware-type')
+                          self.ring_manager.get_ring,
+                          'hardware-type', '')
 
     def test_hash_ring_manager_refresh(self):
         CONF.set_override('hash_ring_reset_interval', 30)
         # Initialize the ring manager to make _hash_rings not None, then
         # hash ring will refresh only when time interval exceeded.
         self.assertRaises(exception.DriverNotFound,
-                          self.ring_manager.__getitem__,
-                          'hardware-type')
+                          self.ring_manager.get_ring,
+                          'hardware-type', '')
         self.register_conductors()
         self.ring_manager.updated_at = time.time() - 31
-        self.ring_manager.__getitem__('hardware-type')
+        self.ring_manager.get_ring('hardware-type', '')
+
+    def test_hash_ring_manager_uncached(self):
+        ring_mgr = hash_ring.HashRingManager(cache=False,
+                                             use_groups=self.use_groups)
+        ring = ring_mgr.ring
+        self.assertIsNotNone(ring)
+        self.assertIsNone(hash_ring.HashRingManager._hash_rings)
+
+
+class HashRingManagerWithGroupsTestCase(HashRingManagerTestCase):
+
+    def setUp(self):
+        super(HashRingManagerWithGroupsTestCase, self).setUp()
+        self.ring_manager = hash_ring.HashRingManager(use_groups=True)
+        self.use_groups = True
+
+    def test_hash_ring_manager_hardware_type_success(self):
+        self.register_conductors()
+        ring = self.ring_manager.get_ring('hardware-type', '')
+        self.assertEqual(sorted(['host1', 'host2']), sorted(ring.nodes))
+
+    def test_hash_ring_manager_hardware_type_success_groups(self):
+        self.register_conductors()
+        ring = self.ring_manager.get_ring('hardware-type', 'foogroup')
+        self.assertEqual(sorted(['host3', 'host4']), sorted(ring.nodes))

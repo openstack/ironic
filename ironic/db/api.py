@@ -518,9 +518,10 @@ class Connection(object):
         """
 
     @abc.abstractmethod
-    def get_active_hardware_type_dict(self):
+    def get_active_hardware_type_dict(self, use_groups=False):
         """Retrieve hardware types for the registered and active conductors.
 
+        :param use_groups: Whether to factor conductor_group into the keys.
         :returns: A dict which maps hardware type names to the set of hosts
                   which support them. For example:
 

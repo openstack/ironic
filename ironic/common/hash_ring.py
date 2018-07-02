@@ -28,14 +28,20 @@ class HashRingManager(object):
     _hash_rings = None
     _lock = threading.Lock()
 
-    def __init__(self):
+    def __init__(self, use_groups=True, cache=True):
         self.dbapi = dbapi.get_instance()
         self.updated_at = time.time()
+        self.use_groups = use_groups
+        self.cache = cache
 
     @property
     def ring(self):
         interval = CONF.hash_ring_reset_interval
         limit = time.time() - interval
+
+        if not self.cache:
+            return self._load_hash_rings()
+
         # Hot path, no lock
         if self.__class__._hash_rings is not None and self.updated_at >= limit:
             return self.__class__._hash_rings
@@ -49,11 +55,13 @@ class HashRingManager(object):
 
     def _load_hash_rings(self):
         rings = {}
-        d2c = self.dbapi.get_active_hardware_type_dict()
+        d2c = self.dbapi.get_active_hardware_type_dict(
+            use_groups=self.use_groups)
 
         for driver_name, hosts in d2c.items():
             rings[driver_name] = hashring.HashRing(
                 hosts, partitions=2 ** CONF.hash_partition_exponent)
+
         return rings
 
     @classmethod
@@ -61,8 +69,10 @@ class HashRingManager(object):
         with cls._lock:
             cls._hash_rings = None
 
-    def __getitem__(self, driver_name):
+    def get_ring(self, driver_name, conductor_group):
         try:
+            if self.use_groups:
+                return self.ring['%s:%s' % (conductor_group, driver_name)]
             return self.ring[driver_name]
         except KeyError:
             raise exception.DriverNotFound(

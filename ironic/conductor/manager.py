@@ -100,7 +100,7 @@ class ConductorManager(base_manager.BaseConductorManager):
     # NOTE(rloo): This must be in sync with rpcapi.ConductorAPI's.
     # NOTE(pas-ha): This also must be in sync with
     #               ironic.common.release_mappings.RELEASE_MAPPING['master']
-    RPC_API_VERSION = '1.46'
+    RPC_API_VERSION = '1.47'
 
     target = messaging.Target(version=RPC_API_VERSION)
 
@@ -1596,7 +1596,7 @@ class ConductorManager(base_manager.BaseConductorManager):
 
         filters = {'maintenance': False}
         node_iter = self.iter_nodes(fields=['id'], filters=filters)
-        for (node_uuid, driver, node_id) in node_iter:
+        for (node_uuid, driver, conductor_group, node_id) in node_iter:
             try:
                 # NOTE(dtantsur): start with a shared lock, upgrade if needed
                 with task_manager.acquire(context, node_uuid,
@@ -1685,7 +1685,7 @@ class ConductorManager(base_manager.BaseConductorManager):
         filters = {'maintenance': True,
                    'fault': faults.POWER_FAILURE}
         node_iter = self.iter_nodes(fields=['id'], filters=filters)
-        for (node_uuid, driver, node_id) in node_iter:
+        for (node_uuid, driver, conductor_group, node_id) in node_iter:
             try:
                 with task_manager.acquire(context, node_uuid,
                                           purpose='power failure recovery',
@@ -1777,7 +1777,7 @@ class ConductorManager(base_manager.BaseConductorManager):
 
         state_cleanup_required = []
 
-        for (node_uuid, driver, node_id, conductor_hostname,
+        for (node_uuid, driver, conductor_group, node_id, conductor_hostname,
              maintenance, provision_state, target_power_state) in node_iter:
             # NOTE(lucasagomes): Although very rare, this may lead to a
             # race condition. By the time we release the lock the conductor
@@ -1994,7 +1994,8 @@ class ConductorManager(base_manager.BaseConductorManager):
                                     filters=filters)
 
         workers_count = 0
-        for node_uuid, driver, node_id, conductor_affinity in node_iter:
+        for (node_uuid, driver, conductor_group, node_id,
+             conductor_affinity) in node_iter:
             if conductor_affinity == self.conductor.id:
                 continue
 
@@ -2661,7 +2662,8 @@ class ConductorManager(base_manager.BaseConductorManager):
         """Sends sensors data for nodes from synchronized queue."""
         while not self._shutdown:
             try:
-                node_uuid, driver, instance_uuid = nodes.get_nowait()
+                (node_uuid, driver, conductor_group,
+                 instance_uuid) = nodes.get_nowait()
             except queue.Empty:
                 break
             # populate the message which will be sent to ceilometer

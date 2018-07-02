@@ -68,7 +68,7 @@ class iRMCPeriodicTaskTestCase(test_common.BaseIRMCTest):
         task = mock.Mock(node=self.node, driver=self.driver)
         mock_acquire.return_value = mock.MagicMock(
             __enter__=mock.MagicMock(return_value=task))
-        node_list = [(self.node.uuid, 'irmc', raid_config)]
+        node_list = [(self.node.uuid, 'irmc', '', raid_config)]
         mock_manager.iter_nodes.return_value = node_list
         task.driver.raid = noop.NoRAID()
         raid_object = irmc_raid.IRMCRAID()
@@ -85,7 +85,7 @@ class iRMCPeriodicTaskTestCase(test_common.BaseIRMCTest):
         task = mock.Mock(node=self.node, driver=self.driver)
         mock_acquire.return_value = mock.MagicMock(
             __enter__=mock.MagicMock(return_value=task))
-        node_list = [(self.node.uuid, 'irmc', raid_config)]
+        node_list = [(self.node.uuid, 'irmc', '', raid_config)]
         mock_manager.iter_nodes.return_value = node_list
         # Set none target_raid_config input
         task.node.target_raid_config = None
@@ -103,7 +103,7 @@ class iRMCPeriodicTaskTestCase(test_common.BaseIRMCTest):
         task = mock.Mock(node=self.node, driver=self.driver)
         mock_acquire.return_value = mock.MagicMock(
             __enter__=mock.MagicMock(return_value=task))
-        node_list = [(self.node.uuid, 'irmc', raid_config)]
+        node_list = [(self.node.uuid, 'irmc', '', raid_config)]
         mock_manager.iter_nodes.return_value = node_list
         task.driver.raid._query_raid_config_fgi_status(mock_manager,
                                                        self.context)
@@ -125,7 +125,7 @@ class iRMCPeriodicTaskTestCase(test_common.BaseIRMCTest):
         task = mock.Mock(node=self.node, driver=self.driver)
         mock_acquire.return_value = mock.MagicMock(
             __enter__=mock.MagicMock(return_value=task))
-        node_list = [(self.node.uuid, 'irmc', raid_config)]
+        node_list = [(self.node.uuid, 'irmc', '', raid_config)]
         mock_manager.iter_nodes.return_value = node_list
         task.driver.raid._query_raid_config_fgi_status(mock_manager,
                                                        self.context)
@@ -140,7 +140,7 @@ class iRMCPeriodicTaskTestCase(test_common.BaseIRMCTest):
         task = mock.Mock(node=self.node, driver=self.driver)
         mock_acquire.return_value = mock.MagicMock(
             __enter__=mock.MagicMock(return_value=task))
-        node_list = [(self.node.uuid, 'irmc', raid_config)]
+        node_list = [(self.node.uuid, 'irmc', '', raid_config)]
         mock_manager.iter_nodes.return_value = node_list
         # Set provision state value
         task.node.provision_state = 'cleaning'
@@ -157,7 +157,7 @@ class iRMCPeriodicTaskTestCase(test_common.BaseIRMCTest):
             self, mock_acquire, report_mock, fgi_mock, clean_fail_mock):
         mock_manager = mock.Mock()
         fgi_mock.return_value = 'completing'
-        node_list = [(self.node.uuid, 'irmc', self.raid_config)]
+        node_list = [(self.node.uuid, 'irmc', '', self.raid_config)]
         mock_manager.iter_nodes.return_value = node_list
         task = mock.Mock(node=self.node, driver=self.driver)
         mock_acquire.return_value = mock.MagicMock(
@@ -188,7 +188,7 @@ class iRMCPeriodicTaskTestCase(test_common.BaseIRMCTest):
         task = mock.Mock(node=self.node, driver=self.driver)
         mock_acquire.return_value = mock.MagicMock(
             __enter__=mock.MagicMock(return_value=task))
-        node_list = [(self.node.uuid, 'irmc', raid_config)]
+        node_list = [(self.node.uuid, 'irmc', '', raid_config)]
         mock_manager.iter_nodes.return_value = node_list
         # Set provision state value
         task.node.provision_state = 'clean wait'
@@ -216,7 +216,7 @@ class iRMCPeriodicTaskTestCase(test_common.BaseIRMCTest):
         task = mock.Mock(node=self.node, driver=self.driver)
         mock_acquire.return_value = mock.MagicMock(
             __enter__=mock.MagicMock(return_value=task))
-        node_list = [(self.node.uuid, 'irmc', raid_config)]
+        node_list = [(self.node.uuid, 'irmc', '', raid_config)]
         mock_manager.iter_nodes.return_value = node_list
         # Set provision state value
         task.node.provision_state = 'clean wait'
@@ -245,8 +245,8 @@ class iRMCPeriodicTaskTestCase(test_common.BaseIRMCTest):
         task = mock.Mock(node=self.node, driver=self.driver)
         mock_acquire.return_value = mock.MagicMock(
             __enter__=mock.MagicMock(return_value=task))
-        node_list = [(self.node_2.uuid, 'irmc', raid_config_2),
-                     (self.node.uuid, 'irmc', raid_config)]
+        node_list = [(self.node_2.uuid, 'irmc', '', raid_config_2),
+                     (self.node.uuid, 'irmc', '', raid_config)]
         mock_manager.iter_nodes.return_value = node_list
         # Set provision state value
         task.node.provision_state = 'clean wait'
@@ -273,8 +273,8 @@ class iRMCPeriodicTaskTestCase(test_common.BaseIRMCTest):
         raid_config_2 = self.raid_config.copy()
         fgi_status_dict = {}
         fgi_mock.side_effect = [{}, {'0': 'Idle', '1': 'Idle'}]
-        node_list = [(self.node_2.uuid, 'fake-hardware', raid_config_2),
-                     (self.node.uuid, 'irmc', raid_config)]
+        node_list = [(self.node_2.uuid, 'fake-hardware', '', raid_config_2),
+                     (self.node.uuid, 'irmc', '', raid_config)]
         mock_manager.iter_nodes.return_value = node_list
         task = mock.Mock(node=self.node_2, driver=self.driver)
         mock_acquire.return_value = mock.MagicMock(

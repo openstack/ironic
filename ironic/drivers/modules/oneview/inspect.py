@@ -76,7 +76,7 @@ class OneViewInspect(inspector.Inspector):
                    'driver': 'oneview'}
         node_iter = manager.iter_nodes(filters=filters)
 
-        for node_uuid, driver in node_iter:
+        for node_uuid, driver, conductor_group in node_iter:
             try:
                 lock_purpose = 'checking hardware inspection status'
                 with task_manager.acquire(context, node_uuid,
