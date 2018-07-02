@@ -726,6 +726,40 @@ class MigrationCheckersMixin(object):
         self.assertIsInstance(nodes.c.deploy_step.type,
                               sqlalchemy.types.String)
 
+    def _pre_upgrade_664f85c2f622(self, engine):
+        # Create a node and a conductor to verify existing records
+        # get a conductor_group of ""
+        data = {
+            'conductor_id': 98765432,
+            'node_uuid': uuidutils.generate_uuid(),
+        }
+
+        nodes = db_utils.get_table(engine, 'nodes')
+        nodes.insert().execute({'uuid': data['node_uuid']})
+
+        conductors = db_utils.get_table(engine, 'conductors')
+        conductors.insert().execute({'id': data['conductor_id'],
+                                     'hostname': uuidutils.generate_uuid()})
+
+        return data
+
+    def _check_664f85c2f622(self, engine, data):
+        nodes_tbl = db_utils.get_table(engine, 'nodes')
+        conductors_tbl = db_utils.get_table(engine, 'conductors')
+        for tbl in (nodes_tbl, conductors_tbl):
+            col_names = [column.name for column in tbl.c]
+            self.assertIn('conductor_group', col_names)
+            self.assertIsInstance(tbl.c.conductor_group.type,
+                                  sqlalchemy.types.String)
+
+        node = nodes_tbl.select(
+            nodes_tbl.c.uuid == data['node_uuid']).execute().first()
+        self.assertEqual(node['conductor_group'], "")
+
+        conductor = conductors_tbl.select(
+            conductors_tbl.c.id == data['conductor_id']).execute().first()
+        self.assertEqual(conductor['conductor_group'], "")
+
     def test_upgrade_and_version(self):
         with patch_with_engine(self.engine):
             self.migration_api.upgrade('head')
