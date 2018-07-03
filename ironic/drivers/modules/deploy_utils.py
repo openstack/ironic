@@ -510,7 +510,7 @@ def set_failed_state(task, msg, collect_logs=True):
     with the given error message. It also powers off the baremetal node.
 
     :param task: a TaskManager instance containing the node to act on.
-    :param msg: the message to set in last_error of the node.
+    :param msg: the message to set in logs and last_error of the node.
     :param collect_logs: Boolean indicating whether to attempt to collect
                          logs from IPA-based ramdisk. Defaults to True.
                          Actual log collection is also affected by
@@ -523,7 +523,7 @@ def set_failed_state(task, msg, collect_logs=True):
         driver_utils.collect_ramdisk_logs(node)
 
     try:
-        task.process_event('fail')
+        manager_utils.deploying_error_handler(task, msg, msg, clean_up=False)
     except exception.InvalidState:
         msg2 = ('Internal error. Node %(node)s in provision state '
                 '"%(state)s" could not transition to a failed state.'

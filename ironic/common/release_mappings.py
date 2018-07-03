@@ -103,7 +103,7 @@ RELEASE_MAPPING = {
         'api': '1.43',
         'rpc': '1.44',
         'objects': {
-            'Node': ['1.24', '1.25'],
+            'Node': ['1.25', '1.24'],
             'Conductor': ['1.2'],
             'Chassis': ['1.3'],
             'Port': ['1.8'],
@@ -116,9 +116,9 @@ RELEASE_MAPPING = {
     },
     'master': {
         'api': '1.43',
-        'rpc': '1.44',
+        'rpc': '1.45',
         'objects': {
-            'Node': ['1.24', '1.25', '1.26'],
+            'Node': ['1.26'],
             'Conductor': ['1.2'],
             'Chassis': ['1.3'],
             'Port': ['1.8'],

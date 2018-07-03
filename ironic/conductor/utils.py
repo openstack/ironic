@@ -42,6 +42,20 @@ CLEANING_INTERFACE_PRIORITY = {
     'raid': 1,
 }
 
+DEPLOYING_INTERFACE_PRIORITY = {
+    # When two deploy steps have the same priority, their order is determined
+    # by which interface is implementing the step. The step of the interface
+    # with the highest value here, will be executed first in that case.
+    # TODO(rloo): If we think it makes sense to have the interface priorities
+    # the same for cleaning & deploying, replace the two with one e.g.
+    # 'INTERFACE_PRIORITIES'.
+    'power': 5,
+    'management': 4,
+    'deploy': 3,
+    'bios': 2,
+    'raid': 1,
+}
+
 
 @task_manager.require_exclusive_lock
 def node_set_boot_device(task, device, persistent=False):
@@ -335,27 +349,9 @@ def cleanup_after_timeout(task):
 
     :param task: a TaskManager instance.
     """
-    node = task.node
     msg = (_('Timeout reached while waiting for callback for node %s')
-           % node.uuid)
-    node.last_error = msg
-    LOG.error(msg)
-    node.save()
-
-    error_msg = _('Cleanup failed for node %(node)s after deploy timeout: '
-                  ' %(error)s')
-    try:
-        task.driver.deploy.clean_up(task)
-    except Exception as e:
-        msg = error_msg % {'node': node.uuid, 'error': e}
-        LOG.error(msg)
-        if isinstance(e, exception.IronicException):
-            node.last_error = msg
-        else:
-            node.last_error = _('Deploy timed out, but an unhandled '
-                                'exception was encountered while aborting. '
-                                'More info may be found in the log file.')
-        node.save()
+           % task.node.uuid)
+    deploying_error_handler(task, msg, msg)
 
 
 def provisioning_error_handler(e, node, provision_state,
@@ -439,6 +435,57 @@ def cleaning_error_handler(task, msg, tear_down_cleaning=True,
     if set_fail_state:
         target_state = states.MANAGEABLE if manual_clean else None
         task.process_event('fail', target_state=target_state)
+
+
+def deploying_error_handler(task, logmsg, errmsg, traceback=False,
+                            clean_up=True):
+    """Put a failed node in DEPLOYFAIL.
+
+    :param task: the task
+    :param logmsg: message to be logged
+    :param errmsg: message for the user
+    :param traceback: Boolean; True to log a traceback
+    :param clean_up: Boolean; True to clean up
+    """
+    node = task.node
+    LOG.error(logmsg, exc_info=traceback)
+    node.last_error = errmsg
+    node.save()
+
+    cleanup_err = None
+    if clean_up:
+        try:
+            task.driver.deploy.clean_up(task)
+        except Exception as e:
+            msg = ('Cleanup failed for node %(node)s; reason: %(err)s'
+                   % {'node': node.uuid, 'err': e})
+            LOG.exception(msg)
+            if isinstance(e, exception.IronicException):
+                addl = _('Also failed to clean up due to: %s') % e
+            else:
+                addl = _('An unhandled exception was encountered while '
+                         'aborting. More information may be found in the log '
+                         'file.')
+            cleanup_err = _('%(err)s. %(add)s') % {'err': errmsg, 'add': addl}
+
+    node.refresh()
+    if node.provision_state in (
+            states.DEPLOYING,
+            states.DEPLOYWAIT,
+            states.DEPLOYFAIL):
+        # Clear deploy step; we leave the list of deploy steps
+        # in node.driver_internal_info for debugging purposes.
+        node.deploy_step = {}
+        info = node.driver_internal_info
+        info.pop('deploy_step_index', None)
+        node.driver_internal_info = info
+
+    if cleanup_err:
+        node.last_error = cleanup_err
+    node.save()
+
+    # NOTE(deva): there is no need to clear conductor_affinity
+    task.process_event('fail')
 
 
 @task_manager.require_exclusive_lock
@@ -537,6 +584,11 @@ def spawn_cleaning_error_handler(e, node):
     _spawn_error_handler(e, node, states.CLEANING)
 
 
+def spawn_deploying_error_handler(e, node):
+    """Handle spawning error for node deploying."""
+    _spawn_error_handler(e, node, states.DEPLOYING)
+
+
 def spawn_rescue_error_handler(e, node):
     """Handle spawning error for node rescue."""
     if isinstance(e, exception.NoFreeConductorWorker):
@@ -569,13 +621,56 @@ def power_state_error_handler(e, node, power_state):
                     {'node': node.uuid, 'power_state': power_state})
 
 
-def _step_key(step):
+def _clean_step_key(step):
     """Sort by priority, then interface priority in event of tie.
 
     :param step: cleaning step dict to get priority for.
     """
     return (step.get('priority'),
             CLEANING_INTERFACE_PRIORITY[step.get('interface')])
+
+
+def _deploy_step_key(step):
+    """Sort by priority, then interface priority in event of tie.
+
+    :param step: deploy step dict to get priority for.
+    """
+    return (step.get('priority'),
+            DEPLOYING_INTERFACE_PRIORITY[step.get('interface')])
+
+
+def _get_steps(task, interfaces, get_method, enabled=False,
+               sort_step_key=None):
+    """Get steps for task.node.
+
+    :param task: A TaskManager object
+    :param interfaces: A dictionary of (key) interfaces and their
+        (value) priorities. These are the interfaces that will have steps of
+        interest. The priorities are used for deciding the priorities of steps
+        having the same priority.
+    :param get_method: The method used to get the steps from the node's
+        interface; a string.
+    :param enabled: If True, returns only enabled (priority > 0) steps. If
+        False, returns all steps.
+    :param sort_step_key: If set, this is a method (key) used to sort the steps
+        from highest priority to lowest priority. For steps having the same
+        priority, they are sorted from highest interface priority to lowest.
+    :raises: NodeCleaningFailure or InstanceDeployFailure if there was a
+        problem getting the steps.
+    :returns: A list of step dictionaries
+    """
+    # Get steps from each interface
+    steps = list()
+    for interface in interfaces:
+        interface = getattr(task.driver, interface)
+        if interface:
+            interface_steps = [x for x in getattr(interface, get_method)(task)
+                               if not enabled or x['priority'] > 0]
+            steps.extend(interface_steps)
+    if sort_step_key:
+        # Sort the steps from higher priority to lower priority
+        steps = sorted(steps, key=sort_step_key, reverse=True)
+    return steps
 
 
 def _get_cleaning_steps(task, enabled=False, sort=True):
@@ -591,18 +686,31 @@ def _get_cleaning_steps(task, enabled=False, sort=True):
         clean steps.
     :returns: A list of clean step dictionaries
     """
-    # Iterate interfaces and get clean steps from each
-    steps = list()
-    for interface in CLEANING_INTERFACE_PRIORITY:
-        interface = getattr(task.driver, interface)
-        if interface:
-            interface_steps = [x for x in interface.get_clean_steps(task)
-                               if not enabled or x['priority'] > 0]
-            steps.extend(interface_steps)
+    sort_key = None
     if sort:
-        # Sort the steps from higher priority to lower priority
-        steps = sorted(steps, key=_step_key, reverse=True)
-    return steps
+        sort_key = _clean_step_key
+    return _get_steps(task, CLEANING_INTERFACE_PRIORITY, 'get_clean_steps',
+                      enabled=enabled, sort_step_key=sort_key)
+
+
+def _get_deployment_steps(task, enabled=False, sort=True):
+    """Get deployment steps for task.node.
+
+    :param task: A TaskManager object
+    :param enabled: If True, returns only enabled (priority > 0) steps. If
+        False, returns all deploy steps.
+    :param sort: If True, the steps are sorted from highest priority to lowest
+        priority. For steps having the same priority, they are sorted from
+        highest interface priority to lowest.
+    :raises: InstanceDeployFailure if there was a problem getting the
+        deploy steps.
+    :returns: A list of deploy step dictionaries
+    """
+    sort_key = None
+    if sort:
+        sort_key = _deploy_step_key
+    return _get_steps(task, DEPLOYING_INTERFACE_PRIORITY, 'get_deploy_steps',
+                      enabled=enabled, sort_step_key=sort_key)
 
 
 def set_node_cleaning_steps(task):
@@ -639,6 +747,24 @@ def set_node_cleaning_steps(task):
 
     node.clean_step = {}
     driver_internal_info['clean_step_index'] = None
+    node.driver_internal_info = driver_internal_info
+    node.save()
+
+
+def set_node_deployment_steps(task):
+    """Set up the node with deployment step information for deploying.
+
+    Get the deploy steps from the driver.
+
+    :raises: InstanceDeployFailure if there was a problem getting the
+             deployment steps.
+    """
+    node = task.node
+    driver_internal_info = node.driver_internal_info
+    driver_internal_info['deploy_steps'] = _get_deployment_steps(
+        task, enabled=True)
+    node.deploy_step = {}
+    driver_internal_info['deploy_step_index'] = None
     node.driver_internal_info = driver_internal_info
     node.save()
 
@@ -843,13 +969,28 @@ def validate_instance_info_traits(node):
         raise exception.InvalidParameterValue(err)
 
 
-def notify_conductor_resume_clean(task):
-    LOG.debug('Sending RPC to conductor to resume cleaning for node %s',
-              task.node.uuid)
+def _notify_conductor_resume_operation(task, operation, method):
+    """Notify the conductor to resume an operation.
+
+    :param task: the task
+    :param operation: the operation, a string
+    :param method: The name of the RPC method, a string
+    """
+    LOG.debug('Sending RPC to conductor to resume %(op)s for node %(node)s',
+              {'op': operation, 'node': task.node.uuid})
     from ironic.conductor import rpcapi
     uuid = task.node.uuid
     rpc = rpcapi.ConductorAPI()
     topic = rpc.get_topic_for(task.node)
     # Need to release the lock to let the conductor take it
     task.release_resources()
-    rpc.continue_node_clean(task.context, uuid, topic=topic)
+    getattr(rpc, method)(task.context, uuid, topic=topic)
+
+
+def notify_conductor_resume_clean(task):
+    _notify_conductor_resume_operation(task, 'cleaning', 'continue_node_clean')
+
+
+def notify_conductor_resume_deploy(task):
+    _notify_conductor_resume_operation(task, 'deploying',
+                                       'continue_node_deploy')

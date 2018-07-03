@@ -655,8 +655,14 @@ class AgentDeployMixin(HeartbeatMixin):
             log_and_raise_deployment_error(task, msg, collect_logs=False,
                                            exc=e)
 
-        task.process_event('done')
-        LOG.info('Deployment to node %s done', task.node.uuid)
+        if not node.deploy_step:
+            # TODO(rloo): delete this 'if' part after deprecation period, when
+            # we expect all (out-of-tree) drivers to support deploy steps.
+            # After which we will always notify_conductor_resume_deploy().
+            task.process_event('done')
+            LOG.info('Deployment to node %s done', task.node.uuid)
+        else:
+            manager_utils.notify_conductor_resume_deploy(task)
 
     @METRICS.timer('AgentDeployMixin.prepare_instance_to_boot')
     def prepare_instance_to_boot(self, task, root_uuid, efi_sys_uuid):

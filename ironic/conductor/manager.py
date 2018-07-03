@@ -1,5 +1,3 @@
-# coding=utf-8
-
 # Copyright 2013 Hewlett-Packard Development Company, L.P.
 # Copyright 2013 International Business Machines Corporation
 # All Rights Reserved.
@@ -55,6 +53,7 @@ from oslo_log import log
 import oslo_messaging as messaging
 from oslo_utils import excutils
 from oslo_utils import uuidutils
+from oslo_utils import versionutils
 from six.moves import queue
 
 from ironic.common import driver_factory
@@ -64,6 +63,7 @@ from ironic.common.glance_service import service_utils as glance_utils
 from ironic.common.i18n import _
 from ironic.common import images
 from ironic.common import network
+from ironic.common import release_mappings as versions
 from ironic.common import states
 from ironic.common import swift
 from ironic.conductor import base_manager
@@ -89,6 +89,10 @@ SYNC_EXCLUDED_STATES = (states.DEPLOYWAIT, states.CLEANWAIT, states.ENROLL)
 # agent_version parameter and need updating.
 _SEEN_AGENT_VERSION_DEPRECATIONS = []
 
+# NOTE(rloo) This list is used to keep track of deprecation warnings that
+# have already been issued for deploy drivers that do not use deploy steps.
+_SEEN_NO_DEPLOY_STEP_DEPRECATIONS = []
+
 
 class ConductorManager(base_manager.BaseConductorManager):
     """Ironic Conductor manager main class."""
@@ -96,7 +100,7 @@ class ConductorManager(base_manager.BaseConductorManager):
     # NOTE(rloo): This must be in sync with rpcapi.ConductorAPI's.
     # NOTE(pas-ha): This also must be in sync with
     #               ironic.common.release_mappings.RELEASE_MAPPING['master']
-    RPC_API_VERSION = '1.44'
+    RPC_API_VERSION = '1.45'
 
     target = messaging.Target(version=RPC_API_VERSION)
 
@@ -814,6 +818,59 @@ class ConductorManager(base_manager.BaseConductorManager):
                     action=event, node=task.node.uuid,
                     state=task.node.provision_state)
 
+    def _get_node_next_deploy_steps(self, task):
+        return self._get_node_next_steps(task, 'deploy')
+
+    @METRICS.timer('ConductorManager.continue_node_deploy')
+    def continue_node_deploy(self, context, node_id):
+        """RPC method to continue deploying a node.
+
+        This is useful for deploying tasks that are async. When they complete,
+        they call back via RPC, a new worker and lock are set up, and deploying
+        continues. This can also be used to resume deploying on take_over.
+
+        :param context: an admin context.
+        :param node_id: the ID or UUID of a node.
+        :raises: InvalidStateRequested if the node is not in DEPLOYWAIT state
+        :raises: NoFreeConductorWorker when there is no free worker to start
+                 async task
+        :raises: NodeLocked if node is locked by another conductor.
+        :raises: NodeNotFound if the node no longer appears in the database
+
+        """
+        LOG.debug("RPC continue_node_deploy called for node %s.", node_id)
+        with task_manager.acquire(context, node_id, shared=False,
+                                  purpose='continue node deploying') as task:
+            node = task.node
+
+            # FIXME(rloo): This should be states.DEPLOYWAIT, but we're using
+            # this temporarily to get control back to the conductor, to finish
+            # the deployment. Once we split up the deployment into separate
+            # deploy steps and after we've crossed a rolling-upgrade boundary,
+            # we should be able to check for DEPLOYWAIT only.
+            expected_states = [states.DEPLOYWAIT, states.DEPLOYING]
+            if node.provision_state not in expected_states:
+                raise exception.InvalidStateRequested(_(
+                    'Cannot continue deploying on %(node)s. Node is in '
+                    '%(state)s state; should be in one of %(deploy_state)s') %
+                    {'node': node.uuid,
+                     'state': node.provision_state,
+                     'deploy_state': ', '.join(expected_states)})
+
+            next_step_index = self._get_node_next_deploy_steps(task)
+
+            # TODO(rloo): When deprecation period is over and node is in
+            # states.DEPLOYWAIT only, delete the 'if' and always 'resume'.
+            if node.provision_state != states.DEPLOYING:
+                task.process_event('resume')
+
+            task.set_spawn_error_hook(utils.spawn_deploying_error_handler,
+                                      task.node)
+            task.spawn_after(
+                self._spawn_worker,
+                _do_next_deploy_step,
+                task, next_step_index, self.conductor.id)
+
     @METRICS.timer('ConductorManager.do_node_tear_down')
     @messaging.expected_exceptions(exception.NoFreeConductorWorker,
                                    exception.NodeLocked,
@@ -916,49 +973,54 @@ class ConductorManager(base_manager.BaseConductorManager):
         task.process_event('clean')
         self._do_node_clean(task)
 
-    def _get_node_next_clean_steps(self, task, skip_current_step=True):
-        """Get the task's node's next clean steps.
+    def _get_node_next_steps(self, task, step_type,
+                             skip_current_step=True):
+        """Get the task's node's next steps.
 
-        This determines what the next (remaining) clean steps are, and
-        returns the index into the clean steps list that corresponds to the
-        next clean step. The remaining clean steps are determined as follows:
+        This determines what the next (remaining) steps are, and
+        returns the index into the steps list that corresponds to the
+        next step. The remaining steps are determined as follows:
 
-        * If no clean steps have been started yet, all the clean steps
+        * If no steps have been started yet, all the steps
           must be executed
-        * If skip_current_step is False, the remaining clean steps start
-          with the current clean step. Otherwise, the remaining clean steps
-          start with the clean step after the current one.
+        * If skip_current_step is False, the remaining steps start
+          with the current step. Otherwise, the remaining steps
+          start with the step after the current one.
 
-        All the clean steps for an automated or manual cleaning are in
-        node.driver_internal_info['clean_steps']. node.clean_step is the
-        current clean step that was just executed (or None, {} if no steps
-        have been executed yet). node.driver_internal_info['clean_step_index']
-        is the index into the clean steps list (or None, doesn't exist if no
-        steps have been executed yet) and corresponds to node.clean_step.
+        All the steps are in node.driver_internal_info['<step_type>_steps'].
+        node.<step_type>_step is the current step that was just executed
+        (or None, {} if no steps have been executed yet).
+        node.driver_internal_info['<step_type>_step_index'] is the index
+        index into the steps list (or None, doesn't exist if no steps have
+        been executed yet) and corresponds to node.<step_type>_step.
 
         :param task: A TaskManager object
-        :param skip_current_step: True to skip the current clean step; False to
+        :param step_type: The type of steps to process: 'clean' or 'deploy'.
+        :param skip_current_step: True to skip the current step; False to
                                   include it.
-        :returns: index of the next clean step; None if there are no clean
-                  steps to execute.
+        :returns: index of the next step; None if there are none to execute.
 
         """
         node = task.node
-        if not node.clean_step:
+        if not getattr(node, '%s_step' % step_type):
             # first time through, all steps need to be done. Return the
             # index of the first step in the list.
             return 0
 
-        ind = node.driver_internal_info.get('clean_step_index')
+        ind = node.driver_internal_info.get('%s_step_index' % step_type)
         if ind is None:
             return None
 
         if skip_current_step:
             ind += 1
-        if ind >= len(node.driver_internal_info['clean_steps']):
+        if ind >= len(node.driver_internal_info['%s_steps' % step_type]):
             # no steps left to do
             ind = None
         return ind
+
+    def _get_node_next_clean_steps(self, task, skip_current_step=True):
+        return self._get_node_next_steps(task, 'clean',
+                                         skip_current_step=skip_current_step)
 
     @METRICS.timer('ConductorManager.do_node_clean')
     @messaging.expected_exceptions(exception.InvalidParameterValue,
@@ -3310,103 +3372,264 @@ def _store_configdrive(node, configdrive):
 
 @METRICS.timer('do_node_deploy')
 @task_manager.require_exclusive_lock
-def do_node_deploy(task, conductor_id, configdrive=None):
+def do_node_deploy(task, conductor_id=None, configdrive=None):
     """Prepare the environment and deploy a node."""
     node = task.node
 
-    def handle_failure(e, task, logmsg, errmsg, traceback=False):
-        args = {'node': task.node.uuid, 'err': e}
-        LOG.error(logmsg, args, exc_info=traceback)
-        # NOTE(deva): there is no need to clear conductor_affinity
-        task.process_event('fail')
-        node.last_error = errmsg % e
+    try:
+        if configdrive:
+            _store_configdrive(node, configdrive)
+    except (exception.SwiftOperationError, exception.ConfigInvalid) as e:
+        with excutils.save_and_reraise_exception():
+            utils.deploying_error_handler(
+                task,
+                ('Error while uploading the configdrive for %(node)s '
+                 'to Swift') % {'node': node.uuid},
+                _('Failed to upload the configdrive to Swift. '
+                  'Error: %s') % e,
+                clean_up=False)
+    except db_exception.DBDataError as e:
+        with excutils.save_and_reraise_exception():
+            # NOTE(hshiina): This error happens when the configdrive is
+            #                too large. Remove the configdrive from the
+            #                object to update DB successfully in handling
+            #                the failure.
+            node.obj_reset_changes()
+            utils.deploying_error_handler(
+                task,
+                ('Error while storing the configdrive for %(node)s into '
+                 'the database: %(err)s') % {'node': node.uuid, 'err': e},
+                _("Failed to store the configdrive in the database. "
+                  "%s") % e,
+                clean_up=False)
+    except Exception as e:
+        with excutils.save_and_reraise_exception():
+            utils.deploying_error_handler(
+                task,
+                ('Unexpected error while preparing the configdrive for '
+                 'node %(node)s') % {'node': node.uuid},
+                _("Failed to prepare the configdrive. Exception: %s") % e,
+                traceback=True, clean_up=False)
 
     try:
-        try:
-            if configdrive:
-                _store_configdrive(node, configdrive)
-        except (exception.SwiftOperationError, exception.ConfigInvalid) as e:
-            with excutils.save_and_reraise_exception():
-                handle_failure(
-                    e, task,
-                    ('Error while uploading the configdrive for '
-                     '%(node)s to Swift'),
-                    _('Failed to upload the configdrive to Swift. '
-                      'Error: %s'))
-        except db_exception.DBDataError as e:
-            with excutils.save_and_reraise_exception():
-                # NOTE(hshiina): This error happens when the configdrive is
-                #                too large. Remove the configdrive from the
-                #                object to update DB successfully in handling
-                #                the failure.
-                node.obj_reset_changes()
-                handle_failure(
-                    e, task,
-                    ('Error while storing the configdrive for %(node)s into '
-                     'the database: %(err)s'),
-                    _("Failed to store the configdrive in the database. : %s"))
-        except Exception as e:
-            with excutils.save_and_reraise_exception():
-                handle_failure(
-                    e, task,
-                    ('Unexpected error while preparing the configdrive for '
-                     'node %(node)s'),
-                    _("Failed to prepare the configdrive. Exception: %s"),
-                    traceback=True)
+        task.driver.deploy.prepare(task)
+    except exception.IronicException as e:
+        with excutils.save_and_reraise_exception():
+            utils.deploying_error_handler(
+                task,
+                ('Error while preparing to deploy to node %(node)s: '
+                 '%(err)s') % {'node': node.uuid, 'err': e},
+                _("Failed to prepare to deploy: %s") % e,
+                clean_up=False)
+    except Exception as e:
+        with excutils.save_and_reraise_exception():
+            utils.deploying_error_handler(
+                task,
+                ('Unexpected error while preparing to deploy to node '
+                 '%(node)s') % {'node': node.uuid},
+                _("Failed to prepare to deploy. Exception: %s") % e,
+                traceback=True, clean_up=False)
 
+    try:
+        # This gets the deploy steps (if any) and puts them in the node's
+        # driver_internal_info['deploy_steps'].
+        utils.set_node_deployment_steps(task)
+    except exception.InstanceDeployFailure as e:
+        with excutils.save_and_reraise_exception():
+            utils.deploying_error_handler(
+                task,
+                'Error while getting deploy steps; cannot deploy to node '
+                '%(node)s. Error: %(err)s' % {'node': node.uuid, 'err': e},
+                _("Cannot get deploy steps; failed to deploy: %s") % e)
+
+    steps = node.driver_internal_info.get('deploy_steps', [])
+
+    new_rpc_version = True
+    release_ver = versions.RELEASE_MAPPING.get(CONF.pin_release_version)
+    if release_ver:
+        new_rpc_version = versionutils.is_compatible('1.45',
+                                                     release_ver['rpc'])
+
+    if not steps or not new_rpc_version:
+        # TODO(rloo): This if.. (and the above code wrt rpc version)
+        # can be deleted after the deprecation period when we no
+        # longer support drivers with no deploy steps.
+        # Note that after the deprecation period, there needs to be at least
+        # one deploy step. If none, the deployment fails.
+
+        if steps:
+            info = node.driver_internal_info
+            info.pop('deploy_steps')
+            node.driver_internal_info = info
+            node.save()
+
+        # We go back to using the old way, if:
+        # - out-of-tree driver hasn't yet converted to using deploy steps, or
+        # - we're in the middle of a rolling upgrade. This is to prevent the
+        #   corner case of having new conductors with old conductors, and
+        #   a node is deployed with a new conductor (via deploy steps), but
+        #   after the deploy_wait, the node gets handled by an old conductor.
+        #   To avoid this, we need to wait until all the conductors are new,
+        # signalled by the RPC API version being '1.45'.
+        _old_rest_of_do_node_deploy(task, conductor_id, not steps)
+    else:
+        _do_next_deploy_step(task, 0, conductor_id)
+
+
+def _old_rest_of_do_node_deploy(task, conductor_id, no_deploy_steps):
+    """The rest of the do_node_deploy() if not using deploy steps.
+
+    To support out-of-tree drivers that have not yet migrated to using
+    deploy steps.
+
+    :param no_deploy_steps: Boolean; True if there are no deploy steps.
+    """
+    # TODO(rloo): This method can be deleted after the deprecation period
+    #             for supporting drivers with no deploy steps.
+
+    if no_deploy_steps:
+        global _SEEN_NO_DEPLOY_STEP_DEPRECATIONS
+        deploy_driver_name = task.driver.deploy.__class__.__name__
+        if deploy_driver_name not in _SEEN_NO_DEPLOY_STEP_DEPRECATIONS:
+            LOG.warning('Deploy driver %s does not support deploy steps; this '
+                        'will be required after Stein.', deploy_driver_name)
+            _SEEN_NO_DEPLOY_STEP_DEPRECATIONS.append(deploy_driver_name)
+
+    node = task.node
+    try:
+        new_state = task.driver.deploy.deploy(task)
+    except exception.IronicException as e:
+        with excutils.save_and_reraise_exception():
+            utils.deploying_error_handler(
+                task,
+                ('Error in deploy of node %(node)s: %(err)s' %
+                 {'node': node.uuid, 'err': e}),
+                _("Failed to deploy: %s") % e)
+    except Exception as e:
+        with excutils.save_and_reraise_exception():
+            utils.deploying_error_handler(
+                task,
+                ('Unexpected error while deploying node %(node)s' %
+                 {'node': node.uuid}),
+                _("Failed to deploy. Exception: %s") % e,
+                traceback=True)
+
+    # Update conductor_affinity to reference this conductor's ID
+    # since there may be local persistent state
+    node.conductor_affinity = conductor_id
+
+    # NOTE(deva): Some drivers may return states.DEPLOYWAIT
+    #             eg. if they are waiting for a callback
+    if new_state == states.DEPLOYDONE:
+        task.process_event('done')
+        LOG.info('Successfully deployed node %(node)s with '
+                 'instance %(instance)s.',
+                 {'node': node.uuid, 'instance': node.instance_uuid})
+    elif new_state == states.DEPLOYWAIT:
+        task.process_event('wait')
+    else:
+        LOG.error('Unexpected state %(state)s returned while '
+                  'deploying node %(node)s.',
+                  {'state': new_state, 'node': node.uuid})
+    node.save()
+
+
+@task_manager.require_exclusive_lock
+def _do_next_deploy_step(task, step_index, conductor_id):
+    """Do deployment, starting from the specified deploy step.
+
+    :param task: a TaskManager instance with an exclusive lock
+    :param step_index: The first deploy step in the list to execute. This
+        is the index (from 0) into the list of deploy steps in the node's
+        driver_internal_info['deploy_steps']. Is None if there are no steps
+        to execute.
+    """
+    node = task.node
+    if step_index is None:
+        steps = []
+    else:
+        steps = node.driver_internal_info['deploy_steps'][step_index:]
+
+    LOG.info('Executing %(state)s on node %(node)s, remaining steps: '
+             '%(steps)s', {'node': node.uuid, 'steps': steps,
+                           'state': node.provision_state})
+
+    # Execute each step until we hit an async step or run out of steps
+    for ind, step in enumerate(steps):
+        # Save which step we're about to start so we can restart
+        # if necessary
+        node.deploy_step = step
+        driver_internal_info = node.driver_internal_info
+        driver_internal_info['deploy_step_index'] = step_index + ind
+        node.driver_internal_info = driver_internal_info
+        node.save()
+        interface = getattr(task.driver, step.get('interface'))
+        LOG.info('Executing %(step)s on node %(node)s',
+                 {'step': step, 'node': node.uuid})
         try:
-            task.driver.deploy.prepare(task)
+            result = interface.execute_deploy_step(task, step)
         except exception.IronicException as e:
-            with excutils.save_and_reraise_exception():
-                handle_failure(
-                    e, task,
-                    ('Error while preparing to deploy to node %(node)s: '
-                     '%(err)s'),
-                    _("Failed to prepare to deploy: %s"))
+            log_msg = ('Node %(node)s failed deploy step %(step)s. Error: '
+                       '%(err)s' %
+                       {'node': node.uuid, 'step': node.deploy_step, 'err': e})
+            utils.deploying_error_handler(
+                task, log_msg,
+                _("Failed to deploy: %s") % node.deploy_step)
+            return
         except Exception as e:
-            with excutils.save_and_reraise_exception():
-                handle_failure(
-                    e, task,
-                    ('Unexpected error while preparing to deploy to node '
-                     '%(node)s'),
-                    _("Failed to prepare to deploy. Exception: %s"),
-                    traceback=True)
+            log_msg = ('Node %(node)s failed deploy step %(step)s with '
+                       'unexpected error: %(err)s' %
+                       {'node': node.uuid, 'step': node.deploy_step, 'err': e})
+            utils.deploying_error_handler(
+                task, log_msg,
+                _("Failed to deploy. Exception: %s") % e, traceback=True)
+            return
 
-        try:
-            new_state = task.driver.deploy.deploy(task)
-        except exception.IronicException as e:
-            with excutils.save_and_reraise_exception():
-                handle_failure(
-                    e, task,
-                    'Error in deploy of node %(node)s: %(err)s',
-                    _("Failed to deploy: %s"))
-        except Exception as e:
-            with excutils.save_and_reraise_exception():
-                handle_failure(
-                    e, task,
-                    'Unexpected error while deploying node %(node)s',
-                    _("Failed to deploy. Exception: %s"),
-                    traceback=True)
+        if ind == 0:
+            # We've done the very first deploy step.
+            # Update conductor_affinity to reference this conductor's ID
+            # since there may be local persistent state
+            node.conductor_affinity = conductor_id
+            node.save()
 
-        # Update conductor_affinity to reference this conductor's ID
-        # since there may be local persistent state
-        node.conductor_affinity = conductor_id
-
+        # Check if the step is done or not. The step should return
+        # states.CLEANWAIT if the step is still being executed, or
+        # None if the step is done.
         # NOTE(deva): Some drivers may return states.DEPLOYWAIT
         #             eg. if they are waiting for a callback
-        if new_state == states.DEPLOYDONE:
-            task.process_event('done')
-            LOG.info('Successfully deployed node %(node)s with '
-                     'instance %(instance)s.',
-                     {'node': node.uuid, 'instance': node.instance_uuid})
-        elif new_state == states.DEPLOYWAIT:
+        if result == states.DEPLOYWAIT:
+            # Kill this worker, the async step will make an RPC call to
+            # continue_node_deploy() to continue deploying
+            LOG.info('Deploy step %(step)s on node %(node)s being '
+                     'executed asynchronously, waiting for driver.',
+                     {'node': node.uuid, 'step': step})
             task.process_event('wait')
-        else:
-            LOG.error('Unexpected state %(state)s returned while '
-                      'deploying node %(node)s.',
-                      {'state': new_state, 'node': node.uuid})
-    finally:
-        node.save()
+            return
+        elif result is not None:
+            # NOTE(rloo): This is an internal/dev error; shouldn't happen.
+            log_msg = (_('While executing deploy step %(step)s on node '
+                       '%(node)s, step returned unexpected state: %(val)s')
+                       % {'step': step, 'node': node.uuid, 'val': result})
+            utils.deploying_error_handler(
+                task, log_msg,
+                _("Failed to deploy: %s") % node.deploy_step)
+            return
+
+        LOG.info('Node %(node)s finished deploy step %(step)s',
+                 {'node': node.uuid, 'step': step})
+
+    # Finished executing the steps. Clear deploy_step.
+    node.deploy_step = None
+    driver_internal_info = node.driver_internal_info
+    driver_internal_info['deploy_steps'] = None
+    driver_internal_info.pop('deploy_step_index', None)
+    node.driver_internal_info = driver_internal_info
+    node.save()
+
+    task.process_event('done')
+    LOG.info('Successfully deployed node %(node)s with '
+             'instance %(instance)s.',
+             {'node': node.uuid, 'instance': node.instance_uuid})
 
 
 @task_manager.require_exclusive_lock

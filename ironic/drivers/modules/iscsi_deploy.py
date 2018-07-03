@@ -445,6 +445,7 @@ class ISCSIDeploy(AgentDeployMixin, base.DeployInterface):
         validate(task)
 
     @METRICS.timer('ISCSIDeploy.deploy')
+    @base.deploy_step(priority=100)
     @task_manager.require_exclusive_lock
     def deploy(self, task):
         """Start deployment of the task's node.
@@ -474,9 +475,8 @@ class ISCSIDeploy(AgentDeployMixin, base.DeployInterface):
             task.driver.network.configure_tenant_networks(task)
             task.driver.boot.prepare_instance(task)
             manager_utils.node_power_action(task, states.POWER_ON)
-            task.process_event('done')
-            LOG.info('Deployment to node %s done', node.uuid)
-            return states.DEPLOYDONE
+
+            return None
 
     @METRICS.timer('ISCSIDeploy.tear_down')
     @task_manager.require_exclusive_lock

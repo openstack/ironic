@@ -93,13 +93,14 @@ class ConductorAPI(object):
     |    1.42 - Added optional agent_version to heartbeat
     |    1.43 - Added do_node_rescue, do_node_unrescue and can_send_rescue
     |    1.44 - Added add_node_traits and remove_node_traits.
+    |    1.45 - Added continue_node_deploy
 
     """
 
     # NOTE(rloo): This must be in sync with manager.ConductorManager's.
     # NOTE(pas-ha): This also must be in sync with
     #               ironic.common.release_mappings.RELEASE_MAPPING['master']
-    RPC_API_VERSION = '1.44'
+    RPC_API_VERSION = '1.45'
 
     def __init__(self, topic=None):
         super(ConductorAPI, self).__init__()
@@ -422,6 +423,20 @@ class ConductorAPI(object):
         """
         cctxt = self.client.prepare(topic=topic or self.topic, version='1.27')
         return cctxt.cast(context, 'continue_node_clean',
+                          node_id=node_id)
+
+    def continue_node_deploy(self, context, node_id, topic=None):
+        """Signal to conductor service to start the next deployment action.
+
+        NOTE(rloo): this is an RPC cast, there will be no response or
+        exception raised by the conductor for this RPC.
+
+        :param context: request context.
+        :param node_id: node id or uuid.
+        :param topic: RPC topic. Defaults to self.topic.
+        """
+        cctxt = self.client.prepare(topic=topic or self.topic, version='1.45')
+        return cctxt.cast(context, 'continue_node_deploy',
                           node_id=node_id)
 
     def validate_driver_interfaces(self, context, node_id, topic=None):

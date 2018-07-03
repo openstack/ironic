@@ -428,6 +428,7 @@ class AnsibleDeploy(agent_base.HeartbeatMixin, base.DeployInterface):
         _run_playbook(node, playbook, extra_vars, key)
 
     @METRICS.timer('AnsibleDeploy.deploy')
+    @base.deploy_step(priority=100)
     @task_manager.require_exclusive_lock
     def deploy(self, task):
         """Perform a deployment to a node."""
@@ -573,6 +574,15 @@ class AnsibleDeploy(agent_base.HeartbeatMixin, base.DeployInterface):
         self.reboot_and_finish_deploy(task)
         task.driver.boot.clean_up_ramdisk(task)
 
+        if not node.deploy_step:
+            # TODO(rloo): delete this 'if' part after deprecation period, when
+            # we expect all (out-of-tree) drivers to support deploy steps.
+            # After which we will always notify_conductor_resume_deploy().
+            task.process_event('done')
+            LOG.info('Deployment to node %s done', task.node.uuid)
+        else:
+            manager_utils.notify_conductor_resume_deploy(task)
+
     @METRICS.timer('AnsibleDeploy.reboot_and_finish_deploy')
     def reboot_and_finish_deploy(self, task):
         wait = CONF.ansible.post_deploy_get_power_state_retry_interval * 1000
@@ -620,6 +630,3 @@ class AnsibleDeploy(agent_base.HeartbeatMixin, base.DeployInterface):
                      'Error: %(error)s') %
                    {'node': node.uuid, 'error': e})
             agent_base.log_and_raise_deployment_error(task, msg)
-
-        task.process_event('done')
-        LOG.info('Deployment to node %s done', task.node.uuid)

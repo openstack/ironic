@@ -1,0 +1,13 @@
+---
+features:
+  - |
+    The `framework for deployment steps
+    <https://specs.openstack.org/openstack/ironic-specs/specs/approved/deployment-steps-framework.html>`_
+    is in place. All in-tree drivers (DeployInterfaces) have one (big) deploy
+    step; the conductor executes this step when deploying a node.
+deprecations:
+  - |
+    All drivers must implement their deployment process using `deploy steps`.
+    Out-of-tree drivers without deploy steps will be supported until the T* release.
+    For more details, see
+    `story 1753128 <https://storyboard.openstack.org/#!/story/1753128>`_.

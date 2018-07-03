@@ -1077,14 +1077,13 @@ class OtherFunctionTestCase(db_base.DbTestCase):
 
     @mock.patch.object(utils, 'LOG', autospec=True)
     @mock.patch.object(manager_utils, 'node_power_action', autospec=True)
-    @mock.patch.object(task_manager.TaskManager, 'process_event',
-                       autospec=True)
-    def _test_set_failed_state(self, mock_event, mock_power, mock_log,
+    @mock.patch.object(manager_utils, 'deploying_error_handler', autospec=True)
+    def _test_set_failed_state(self, mock_error, mock_power, mock_log,
                                event_value=None, power_value=None,
                                log_calls=None, poweroff=True,
                                collect_logs=True):
         err_msg = 'some failure'
-        mock_event.side_effect = event_value
+        mock_error.side_effect = event_value
         mock_power.side_effect = power_value
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
@@ -1093,7 +1092,8 @@ class OtherFunctionTestCase(db_base.DbTestCase):
             else:
                 utils.set_failed_state(task, err_msg,
                                        collect_logs=collect_logs)
-            mock_event.assert_called_once_with(task, 'fail')
+            mock_error.assert_called_once_with(task, err_msg, err_msg,
+                                               clean_up=False)
             if poweroff:
                 mock_power.assert_called_once_with(task, states.POWER_OFF)
             else:
