@@ -14,7 +14,6 @@
 
 import mock
 from oslo_utils import uuidutils
-import stevedore
 from stevedore import named
 
 from ironic.common import driver_factory
@@ -386,8 +385,8 @@ class TestFakeHardware(hardware_type.AbstractHardwareType):
         return [fake.FakeVendorB, fake.FakeVendorA]
 
 
-OPTIONAL_INTERFACES = (set(drivers_base.BareDriver().standard_interfaces)
-                       - {'management', 'boot'}) | {'vendor'}
+OPTIONAL_INTERFACES = (drivers_base.BareDriver().optional_interfaces +
+                       ['vendor'])
 
 
 class HardwareTypeLoadTestCase(db_base.DbTestCase):
@@ -420,11 +419,6 @@ class HardwareTypeLoadTestCase(db_base.DbTestCase):
     def test_get_hardware_type_missing(self):
         self.assertRaises(exception.DriverNotFound,
                           driver_factory.get_hardware_type, 'fake_agent')
-
-    def test_get_driver_or_hardware_type_missing(self):
-        self.assertRaises(exception.DriverNotFound,
-                          driver_factory.get_driver_or_hardware_type,
-                          'banana')
 
     def test_build_driver_for_task(self):
         node = obj_utils.create_test_node(self.context, driver='fake-hardware',
@@ -577,80 +571,3 @@ class HardwareTypeLoadTestCase(db_base.DbTestCase):
 
     def test_enabled_supported_interfaces_non_default(self):
         self._test_enabled_supported_interfaces(True)
-
-
-class ClassicDriverMigrationTestCase(base.TestCase):
-
-    def setUp(self):
-        super(ClassicDriverMigrationTestCase, self).setUp()
-        self.driver_cls = mock.Mock(spec=['to_hardware_type'])
-        self.driver_cls2 = mock.Mock(spec=['to_hardware_type'])
-        self.new_ifaces = {
-            'console': 'new-console',
-            'inspect': 'new-inspect'
-        }
-
-        self.driver_cls.to_hardware_type.return_value = ('hw-type',
-                                                         self.new_ifaces)
-        self.ext = mock.Mock(plugin=self.driver_cls)
-        self.ext.name = 'drv1'
-        self.ext2 = mock.Mock(plugin=self.driver_cls2)
-        self.ext2.name = 'drv2'
-        self.config(enabled_hardware_types=['hw-type'],
-                    enabled_console_interfaces=['no-console', 'new-console'],
-                    enabled_inspect_interfaces=['no-inspect', 'new-inspect'],
-                    enabled_raid_interfaces=['no-raid'],
-                    enabled_rescue_interfaces=['no-rescue'],
-                    enabled_vendor_interfaces=['no-vendor'])
-
-    def test_calculate_migration_delta(self):
-        delta = driver_factory.calculate_migration_delta(
-            'drv', self.driver_cls, False)
-        self.assertEqual({'driver': 'hw-type',
-                          'bios_interface': 'no-bios',
-                          'console_interface': 'new-console',
-                          'inspect_interface': 'new-inspect',
-                          'raid_interface': 'no-raid',
-                          'rescue_interface': 'no-rescue',
-                          'vendor_interface': 'no-vendor'},
-                         delta)
-
-    def test_calculate_migration_delta_not_implemeted(self):
-        self.driver_cls.to_hardware_type.side_effect = NotImplementedError()
-        delta = driver_factory.calculate_migration_delta(
-            'drv', self.driver_cls, False)
-        self.assertIsNone(delta)
-
-    def test_calculate_migration_delta_unsupported_hw_type(self):
-        self.driver_cls.to_hardware_type.return_value = ('hw-type2',
-                                                         self.new_ifaces)
-        delta = driver_factory.calculate_migration_delta(
-            'drv', self.driver_cls, False)
-        self.assertIsNone(delta)
-
-    def test__calculate_migration_delta_unsupported_interface(self):
-        self.new_ifaces['inspect'] = 'unsupported inspect'
-        delta = driver_factory.calculate_migration_delta(
-            'drv', self.driver_cls, False)
-        self.assertIsNone(delta)
-
-    def test_calculate_migration_delta_unsupported_interface_reset(self):
-        self.new_ifaces['inspect'] = 'unsupported inspect'
-        delta = driver_factory.calculate_migration_delta(
-            'drv', self.driver_cls, True)
-        self.assertEqual({'driver': 'hw-type',
-                          'bios_interface': 'no-bios',
-                          'console_interface': 'new-console',
-                          'inspect_interface': 'no-inspect',
-                          'raid_interface': 'no-raid',
-                          'rescue_interface': 'no-rescue',
-                          'vendor_interface': 'no-vendor'},
-                         delta)
-
-    @mock.patch.object(stevedore, 'ExtensionManager', autospec=True)
-    def test_classic_drivers_to_migrate(self, mock_ext_mgr):
-        mock_ext_mgr.return_value.__iter__.return_value = iter([self.ext,
-                                                                self.ext2])
-        self.assertEqual({'drv1': self.driver_cls,
-                          'drv2': self.driver_cls2},
-                         driver_factory.classic_drivers_to_migrate())

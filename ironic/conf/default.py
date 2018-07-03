@@ -91,15 +91,9 @@ api_opts = [
 driver_opts = [
     cfg.ListOpt('enabled_drivers',
                 default=[],
-                help=_('Specify the list of drivers to load during service '
-                       'initialization. Missing drivers, or drivers which '
-                       'fail to initialize, will prevent the conductor '
-                       'service from starting. The option default is a '
-                       'recommended set of production-oriented drivers. A '
-                       'complete list of drivers present on your system may '
-                       'be found by enumerating the "ironic.drivers" '
-                       'entrypoint. An example may be found in the '
-                       'developer documentation online.'),
+                help=_('This option is left for a start up check only. '
+                       'Any non-empty value will prevent the conductor '
+                       'from starting.'),
                 deprecated_for_removal=True,
                 deprecated_reason=_('Hardware types should be used instead '
                                     'of classic drivers. They are enabled '

@@ -33,7 +33,6 @@ from sqlalchemy.orm.exc import NoResultFound, MultipleResultsFound
 from sqlalchemy.orm import joinedload
 from sqlalchemy import sql
 
-from ironic.common import driver_factory
 from ironic.common import exception
 from ironic.common.i18n import _
 from ironic.common import profiler
@@ -856,17 +855,6 @@ class Connection(api.Connection):
                 'powering process, their power state can be incorrect: '
                 '%(nodes)s', {'nodes': nodes})
 
-    def get_active_driver_dict(self, interval=None):
-        query = model_query(models.Conductor)
-        result = _filter_active_conductors(query, interval=interval)
-
-        # build mapping of drivers to the set of hosts which support them
-        d2c = collections.defaultdict(set)
-        for row in result:
-            for driver in row['drivers']:
-                d2c[driver].add(row['hostname'])
-        return d2c
-
     def get_active_hardware_type_dict(self):
         query = (model_query(models.ConductorHardwareInterfaces,
                              models.Conductor)
@@ -1228,82 +1216,6 @@ class Connection(api.Connection):
                 if query.count():
                     return False
         return True
-
-    @oslo_db_api.retry_on_deadlock
-    def migrate_to_hardware_types(self, context, max_count,
-                                  reset_unsupported_interfaces=False):
-        """Migrate nodes from classic drivers to hardware types.
-
-        Go through all nodes with a classic driver and try to migrate them to
-        a corresponding hardware type and a correct set of hardware interfaces.
-
-        If migration is not possible for any reason (e.g. the target hardware
-        type is not enabled), the nodes are skipped. An operator is expected to
-        correct the configuration and either rerun online_data_migration or
-        migrate the nodes manually.
-
-        :param context: the admin context (not used)
-        :param max_count: The maximum number of objects to migrate. Must be
-                          >= 0. If zero, all the objects will be migrated.
-        :param reset_unsupported_interfaces: whether to reset unsupported
-            optional interfaces to their no-XXX versions.
-        :returns: A 2-tuple, 1. the total number of objects that need to be
-                  migrated (at the beginning of this call) and 2. the number
-                  of migrated objects.
-        """
-        reset_unsupported_interfaces = strutils.bool_from_string(
-            reset_unsupported_interfaces, strict=True)
-
-        drivers = driver_factory.classic_drivers_to_migrate()
-
-        total_to_migrate = (model_query(models.Node)
-                            .filter(models.Node.driver.in_(list(drivers)))
-                            .count())
-
-        total_migrated = 0
-        for driver, driver_cls in drivers.items():
-            if max_count and total_migrated >= max_count:
-                return total_to_migrate, total_migrated
-
-            # UPDATE with LIMIT seems to be a MySQL-only feature, so first
-            # fetch the required number of Node IDs, then update them.
-            query = model_query(models.Node.id).filter_by(driver=driver)
-            if max_count:
-                query = query.limit(max_count - total_migrated)
-            ids = [obj.id for obj in query]
-            if not ids:
-                continue
-
-            delta = driver_factory.calculate_migration_delta(
-                driver, driver_cls, reset_unsupported_interfaces)
-            if delta is None:
-                # NOTE(dtantsur): mark unsupported nodes as migrated. Otherwise
-                # calling online_data_migration without --max-count will result
-                # in an infinite loop.
-                total_migrated += len(ids)
-                continue
-
-            # UPDATE with LIMIT seems to be a MySQL-only feature, so first
-            # fetch the required number of Node IDs, then update them.
-            query = model_query(models.Node.id).filter_by(driver=driver)
-            if max_count:
-                query = query.limit(max_count - total_migrated)
-            ids = [obj.id for obj in query]
-            if not ids:
-                LOG.debug('No nodes with driver %s', driver)
-                continue
-
-            LOG.info('Migrating nodes with driver %(drv)s to %(delta)s',
-                     {'drv': driver, 'delta': delta})
-
-            with _session_for_write():
-                num_migrated = (model_query(models.Node)
-                                .filter_by(driver=driver)
-                                .filter(models.Node.id.in_(ids))
-                                .update(delta, synchronize_session=False))
-                total_migrated += num_migrated
-
-        return total_to_migrate, total_migrated
 
     @staticmethod
     def _verify_max_traits_per_node(node_id, num_traits):

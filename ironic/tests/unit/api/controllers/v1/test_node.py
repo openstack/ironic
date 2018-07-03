@@ -2325,22 +2325,6 @@ class TestPatch(test_api_base.BaseApiTest):
             self.assertEqual('application/json', response.content_type)
             self.assertEqual(http_client.NOT_ACCEPTABLE, response.status_code)
 
-    def test_update_classic_driver_interface_fields(self):
-        headers = {api_base.Version.string: '1.31'}
-        self.mock_update_node.side_effect = (
-            exception.MustBeNone('error'))
-        for field in api_utils.V31_FIELDS:
-            node = obj_utils.create_test_node(self.context,
-                                              uuid=uuidutils.generate_uuid())
-            response = self.patch_json('/nodes/%s' % node.uuid,
-                                       [{'path': '/%s' % field,
-                                         'value': 'fake',
-                                         'op': 'add'}],
-                                       headers=headers,
-                                       expect_errors=True)
-            self.assertEqual(http_client.BAD_REQUEST, response.status_int)
-            self.assertEqual('application/json', response.content_type)
-
     def test_update_storage_interface(self):
         node = obj_utils.create_test_node(self.context,
                                           uuid=uuidutils.generate_uuid())

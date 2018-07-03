@@ -1,0 +1,12 @@
+upgrade:
+  - |
+    It is no longer possible to load a classic driver. Only hardware types
+    are supported from now on.
+  - |
+    The ``/v1/drivers/?type=classic`` API always returns an empty list since
+    classic drivers can no longer be loaded.
+deprecations:
+  - |
+    The ``enabled_drivers`` option is now deprecated. Since classic drivers
+    can no longer be loaded, setting this option to anything non-empty will
+    result in the conductor failing to start.

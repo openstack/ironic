@@ -347,13 +347,8 @@ class NoValidDefaultForInterface(InvalidParameterValue):
     # NOTE(rloo): in the line below, there is no blank space after 'For'
     #             because node_info could be an empty string. If node_info
     #             is not empty, it should start with a space.
-    _msg_fmt = _("For%(node_info)s %(driver_type)s '%(driver)s', no default "
+    _msg_fmt = _("For%(node_info)s hardware type '%(driver)s', no default "
                  "value found for %(interface_type)s interface.")
-
-
-class MustBeNone(InvalidParameterValue):
-    _msg_fmt = _("For node %(node)s with driver %(driver)s, these node "
-                 "fields must be set to None: %(node_fields)s.")
 
 
 class ImageNotFound(NotFound):
@@ -425,14 +420,9 @@ class VolumeTargetNotFound(NotFound):
     _msg_fmt = _("Volume target %(target)s could not be found.")
 
 
-class DriverNameConflict(IronicException):
-    _msg_fmt = _("Classic and dynamic drivers cannot have the "
-                 "same names '%(names)s'.")
-
-
 class NoDriversLoaded(IronicException):
     _msg_fmt = _("Conductor %(conductor)s cannot be started "
-                 "because no drivers were loaded.")
+                 "because no hardware types were loaded.")
 
 
 class ConductorNotFound(NotFound):

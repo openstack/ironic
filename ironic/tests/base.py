@@ -97,7 +97,6 @@ class TestCase(oslo_test_base.BaseTestCase):
         self.useFixture(fixtures.EnvironmentVariable('http_proxy'))
         self.policy = self.useFixture(policy_fixture.PolicyFixture())
 
-        driver_factory.DriverFactory._extension_manager = None
         driver_factory.HardwareTypesFactory._extension_manager = None
         for factory in driver_factory._INTERFACE_LOADERS.values():
             factory._extension_manager = None
@@ -129,7 +128,6 @@ class TestCase(oslo_test_base.BaseTestCase):
                     group='neutron')
         self.config(rescuing_network=uuidutils.generate_uuid(),
                     group='neutron')
-        self.config(enabled_drivers=[])
         self.config(enabled_hardware_types=['fake-hardware',
                                             'manual-management'])
         for iface in drivers_base.ALL_INTERFACES:

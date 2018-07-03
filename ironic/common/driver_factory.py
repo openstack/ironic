@@ -17,7 +17,6 @@ import collections
 
 from oslo_concurrency import lockutils
 from oslo_log import log
-import stevedore
 from stevedore import named
 
 from ironic.common import exception
@@ -25,7 +24,6 @@ from ironic.common.i18n import _
 from ironic.conf import CONF
 from ironic.drivers import base as driver_base
 from ironic.drivers import fake_hardware
-from ironic.drivers import hardware_type
 
 
 LOG = log.getLogger(__name__)
@@ -37,90 +35,58 @@ def build_driver_for_task(task):
     """Builds a composable driver for a given task.
 
     Starts with a `BareDriver` object, and attaches implementations of the
-    various driver interfaces to it. For classic drivers these all come from
-    the monolithic driver singleton, for hardware types - from separate
+    various driver interfaces to it. They come from separate
     driver factories and are configurable via the database.
 
     :param task: The task containing the node to build a driver for.
     :returns: A driver object for the task.
-    :raises: DriverNotFound if node.driver could not be found in either
-             "ironic.drivers" or "ironic.hardware.types" namespaces.
+    :raises: DriverNotFound if node.driver could not be found in the
+             "ironic.hardware.types" namespaces.
     :raises: InterfaceNotFoundInEntrypoint if some node interfaces are set
              to invalid or unsupported values.
-    :raises: IncompatibleInterface if driver is a hardware type and
-             the requested implementation is not compatible with it.
+    :raises: IncompatibleInterface the requested implementation is not
+             compatible with it with the hardware type.
     """
     node = task.node
-    driver_name = node.driver
 
-    driver_or_hw_type = get_driver_or_hardware_type(driver_name)
-    try:
-        check_and_update_node_interfaces(
-            node, driver_or_hw_type=driver_or_hw_type)
-    except exception.MustBeNone as e:
-        # NOTE(rloo). This was raised because nodes with classic drivers
-        #             cannot have any interfaces (except for network and
-        #             storage) set. However, there was a small window
-        #             where this was possible so instead of breaking those
-        #             users totally, we'll spam them with warnings instead.
-        LOG.warning('%s They will be ignored. To avoid this warning, '
-                    'please set them to None.', e)
+    hw_type = get_hardware_type(node.driver)
+    check_and_update_node_interfaces(node, hw_type=hw_type)
 
     bare_driver = driver_base.BareDriver()
-    _attach_interfaces_to_driver(bare_driver, node, driver_or_hw_type)
+    _attach_interfaces_to_driver(bare_driver, node, hw_type)
 
     return bare_driver
 
 
-def _attach_interfaces_to_driver(bare_driver, node, driver_or_hw_type):
+def _attach_interfaces_to_driver(bare_driver, node, hw_type):
     """Attach interface implementations to a bare driver object.
-
-    For classic drivers, copies implementations from the singleton driver
-    object, then attaches the dynamic interfaces (network and storage
-    interfaces for classic drivers, all interfaces for dynamic drivers
-    made of hardware types).
-
-    For hardware types, load all interface implementations dynamically.
 
     :param bare_driver: BareDriver instance to attach interfaces to
     :param node: Node object
-    :param driver_or_hw_type: classic driver or hardware type instance
+    :param hw_type: hardware type instance
     :raises: InterfaceNotFoundInEntrypoint if the entry point was not found.
     :raises: IncompatibleInterface if driver is a hardware type and
              the requested implementation is not compatible with it.
     """
-    if isinstance(driver_or_hw_type, hardware_type.AbstractHardwareType):
-        # For hardware types all interfaces are dynamic
-        dynamic_interfaces = _INTERFACE_LOADERS
-    else:
-        # Copy implementations from the classic driver singleton
-        for iface in driver_or_hw_type.all_interfaces:
-            impl = getattr(driver_or_hw_type, iface, None)
-            setattr(bare_driver, iface, impl)
-
-        # NOTE(TheJulia): This list of interfaces to be applied
-        # to classic drivers, thus requiring separate treatment.
-        dynamic_interfaces = ['network', 'storage']
-
-    for iface in dynamic_interfaces:
+    for iface in _INTERFACE_LOADERS:
         impl_name = getattr(node, '%s_interface' % iface)
-        impl = get_interface(driver_or_hw_type, iface, impl_name)
+        impl = get_interface(hw_type, iface, impl_name)
         setattr(bare_driver, iface, impl)
 
 
-def get_interface(driver_or_hw_type, interface_type, interface_name):
+def get_interface(hw_type, interface_type, interface_name):
     """Get interface implementation instance.
 
     For hardware types also validates compatibility.
 
-    :param driver_or_hw_type: a hardware type or classic driver instance.
+    :param hw_type: a hardware type instance.
     :param interface_type: name of the interface type (e.g. 'boot').
     :param interface_name: name of the interface implementation from an
                            appropriate entry point
                            (ironic.hardware.interfaces.<interface type>).
     :returns: instance of the requested interface implementation.
     :raises: InterfaceNotFoundInEntrypoint if the entry point was not found.
-    :raises: IncompatibleInterface if driver_or_hw_type is a hardware type and
+    :raises: IncompatibleInterface if hw_type is a hardware type and
              the requested implementation is not compatible with it.
     """
     factory = _INTERFACE_LOADERS[interface_type]()
@@ -132,35 +98,31 @@ def get_interface(driver_or_hw_type, interface_type, interface_name):
             entrypoint=factory._entrypoint_name,
             valid=factory.names)
 
-    if not isinstance(driver_or_hw_type, hardware_type.AbstractHardwareType):
-        # NOTE(dtantsur): classic drivers do not have notion of compatibility
-        return impl_instance
-
-    if isinstance(driver_or_hw_type, fake_hardware.FakeHardware):
+    if isinstance(hw_type, fake_hardware.FakeHardware):
         # NOTE(dtantsur): special-case fake hardware type to allow testing with
         # any combinations of interface implementations.
         return impl_instance
 
-    supported_impls = getattr(driver_or_hw_type,
+    supported_impls = getattr(hw_type,
                               'supported_%s_interfaces' % interface_type)
     if type(impl_instance) not in supported_impls:
         raise exception.IncompatibleInterface(
             interface_type=interface_type, interface_impl=impl_instance,
-            hardware_type=driver_or_hw_type.__class__.__name__)
+            hardware_type=hw_type.__class__.__name__)
 
     return impl_instance
 
 
-def default_interface(driver_or_hw_type, interface_type,
+def default_interface(hw_type, interface_type,
                       driver_name=None, node=None):
     """Calculate and return the default interface implementation.
 
     Finds the first implementation that is supported by the hardware type
     and is enabled in the configuration.
 
-    :param driver_or_hw_type: classic driver or hardware type instance object.
+    :param hw_type: hardware type instance object.
     :param interface_type: type of the interface (e.g. 'boot').
-    :param driver_name: entrypoint name of the driver_or_hw_type object. Is
+    :param driver_name: entrypoint name of the hw_type object. Is
                         used for exception message.
     :param node: the identifier of a node. If specified, is used for exception
                  message.
@@ -169,22 +131,10 @@ def default_interface(driver_or_hw_type, interface_type,
     :raises: NoValidDefaultForInterface if no default interface can be found.
     """
     factory = _INTERFACE_LOADERS[interface_type]
-    is_hardware_type = isinstance(driver_or_hw_type,
-                                  hardware_type.AbstractHardwareType)
     # Explicit interface defaults
     additional_defaults = {
         'storage': 'noop'
     }
-
-    if not is_hardware_type:
-        # For non hardware types we need to set a fallback for the network
-        # interface however hardware_types specify their own defaults if not in
-        # the config file.
-        if (CONF.dhcp.dhcp_provider == 'neutron'
-                and 'flat' in CONF.enabled_network_interfaces):
-            additional_defaults['network'] = 'flat'
-        elif 'noop' in CONF.enabled_network_interfaces:
-            additional_defaults['network'] = 'noop'
 
     # The fallback default from the configuration
     impl_name = getattr(CONF, 'default_%s_interface' % interface_type)
@@ -193,9 +143,9 @@ def default_interface(driver_or_hw_type, interface_type,
 
     if impl_name is not None:
         # Check that the default is correct for this type
-        get_interface(driver_or_hw_type, interface_type, impl_name)
-    elif is_hardware_type:
-        supported = getattr(driver_or_hw_type,
+        get_interface(hw_type, interface_type, impl_name)
+    else:
+        supported = getattr(hw_type,
                             'supported_%s_interfaces' % interface_type)
         # Mapping of classes to entry points
         enabled = {obj.__class__: name for (name, obj) in factory().items()}
@@ -211,22 +161,18 @@ def default_interface(driver_or_hw_type, interface_type,
     if impl_name is None:
         # NOTE(rloo). No i18n on driver_type_str because translating substrings
         #             on their own may cause the final string to look odd.
-        if is_hardware_type:
-            driver_type_str = 'hardware type'
-        else:
-            driver_type_str = 'driver'
-        driver_name = driver_name or driver_or_hw_type.__class__.__name__
+        driver_name = driver_name or hw_type.__class__.__name__
         node_info = ""
         if node is not None:
             node_info = _(' node %s with') % node
         raise exception.NoValidDefaultForInterface(
-            interface_type=interface_type, driver_type=driver_type_str,
-            driver=driver_name, node_info=node_info)
+            interface_type=interface_type, driver=driver_name,
+            node_info=node_info)
 
     return impl_name
 
 
-def check_and_update_node_interfaces(node, driver_or_hw_type=None):
+def check_and_update_node_interfaces(node, hw_type=None):
     """Ensure that node interfaces (e.g. for creation or updating) are valid.
 
     Updates (but doesn't save to the database) hardware interfaces with
@@ -236,55 +182,21 @@ def check_and_update_node_interfaces(node, driver_or_hw_type=None):
     a driver instance is built for a node.
 
     :param node: node object to check and potentially update
-    :param driver_or_hw_type: classic driver or hardware type instance object;
-                              will be detected from node.driver if missing
+    :param hw_type: hardware type instance object; will be detected from
+                    node.driver if missing
     :returns: True if any changes were made to the node, otherwise False
     :raises: InterfaceNotFoundInEntrypoint on validation failure
     :raises: NoValidDefaultForInterface if the default value cannot be
              calculated and is not provided in the configuration
-    :raises: DriverNotFound if the node's driver or hardware type is not found
-    :raises: MustBeNone if one or more of the node's interface
-             fields were specified when they should not be.
+    :raises: DriverNotFound if the node's hardware type is not found
     """
-    if driver_or_hw_type is None:
-        driver_or_hw_type = get_driver_or_hardware_type(node.driver)
-    is_hardware_type = isinstance(driver_or_hw_type,
-                                  hardware_type.AbstractHardwareType)
+    if hw_type is None:
+        hw_type = get_hardware_type(node.driver)
 
-    if is_hardware_type:
-        factories = list(_INTERFACE_LOADERS)
-    else:
-        # Only network and storage interfaces are dynamic for classic drivers
-        factories = ['network', 'storage']
+    factories = list(_INTERFACE_LOADERS)
 
-    # These are interfaces that cannot be specified via the node. E.g.,
-    # for classic drivers, none are allowed except for network & storage.
-    not_allowed_ifaces = driver_base.ALL_INTERFACES - set(factories)
-
-    updates = node.obj_what_changed()
     # Result - whether the node object was modified
     result = False
-
-    bad_interface_fields = []
-    for iface in not_allowed_ifaces:
-        field_name = '%s_interface' % iface
-        # NOTE(vsaienko): reset *_interface fields that shouldn't exist for
-        # classic driver, only when driver was changed and field not set
-        # explicitly
-        if 'driver' in updates and field_name not in updates:
-            setattr(node, field_name, None)
-            result = True
-        # NOTE(dtantsur): objects raise NotImplementedError on accessing fields
-        # that are known, but missing from an object. Thus, we cannot just use
-        # getattr(node, field_name, None) here.
-        elif field_name in node:
-            impl_name = getattr(node, field_name)
-            if impl_name is not None:
-                bad_interface_fields.append(field_name)
-
-    if bad_interface_fields:
-        raise exception.MustBeNone(node=node.uuid, driver=node.driver,
-                                   node_fields=','.join(bad_interface_fields))
 
     # Walk through all dynamic interfaces and check/update them
     for iface in factories:
@@ -296,11 +208,11 @@ def check_and_update_node_interfaces(node, driver_or_hw_type=None):
             impl_name = getattr(node, field_name)
             if impl_name is not None:
                 # Check that the provided value is correct for this type
-                get_interface(driver_or_hw_type, iface, impl_name)
+                get_interface(hw_type, iface, impl_name)
                 # Not changing the result, proceeding with the next interface
                 continue
 
-        impl_name = default_interface(driver_or_hw_type, iface,
+        impl_name = default_interface(hw_type, iface,
                                       driver_name=node.driver, node=node.uuid)
 
         # Set the calculated default and set result to True
@@ -308,22 +220,6 @@ def check_and_update_node_interfaces(node, driver_or_hw_type=None):
         result = True
 
     return result
-
-
-def get_driver_or_hardware_type(name):
-    """Get driver or hardware type by its entry point name.
-
-    First, checks the hardware types namespace, then checks the classic
-    drivers namespace. The first object found is returned.
-
-    :param name: entry point name.
-    :returns: An instance of a hardware type or a classic driver.
-    :raises: DriverNotFound if neither hardware type nor classic driver found.
-    """
-    try:
-        return get_hardware_type(name)
-    except exception.DriverNotFound:
-        return get_driver(name)
 
 
 def get_hardware_type(hardware_type):
@@ -339,28 +235,6 @@ def get_hardware_type(hardware_type):
         raise exception.DriverNotFound(driver_name=hardware_type)
 
 
-# TODO(dtantsur): rename to get_classic_driver
-def get_driver(driver_name):
-    """Simple method to get a ref to an instance of a driver.
-
-    Driver loading is handled by the DriverFactory class. This method
-    conveniently wraps that class and returns the actual driver object.
-
-    :param driver_name: the name of the driver class to load
-    :returns: An instance of a class which implements
-              ironic.drivers.base.BaseDriver
-    :raises: DriverNotFound if the requested driver_name could not be
-             found in the "ironic.drivers" namespace.
-
-    """
-
-    try:
-        factory = DriverFactory()
-        return factory.get_driver(driver_name)
-    except KeyError:
-        raise exception.DriverNotFound(driver_name=driver_name)
-
-
 def _get_all_drivers(factory):
     """Get all drivers for `factory` as a dict name -> driver object."""
     # NOTE(jroll) I don't think this needs to be ordered, but
@@ -369,14 +243,6 @@ def _get_all_drivers(factory):
     # that way.
     return collections.OrderedDict((name, factory[name].obj)
                                    for name in factory.names)
-
-
-def drivers():
-    """Get all drivers.
-
-    :returns: Dictionary mapping driver name to driver object.
-    """
-    return _get_all_drivers(DriverFactory())
 
 
 def hardware_types():
@@ -548,11 +414,6 @@ def _warn_if_unsupported(ext):
                     'and may be removed in a future release.', ext.name)
 
 
-class DriverFactory(BaseDriverFactory):
-    _entrypoint_name = 'ironic.drivers'
-    _enabled_driver_list_config_option = 'enabled_drivers'
-
-
 class HardwareTypesFactory(BaseDriverFactory):
     _entrypoint_name = 'ironic.hardware.types'
     _enabled_driver_list_config_option = 'enabled_hardware_types'
@@ -575,101 +436,3 @@ _INTERFACE_LOADERS = {
 # refactor them later to use _INTERFACE_LOADERS.
 NetworkInterfaceFactory = _INTERFACE_LOADERS['network']
 StorageInterfaceFactory = _INTERFACE_LOADERS['storage']
-
-
-def calculate_migration_delta(driver_name, driver_class,
-                              reset_unsupported_interfaces=False):
-    """Calculate an update for the given classic driver extension.
-
-    This function calculates a database update required to convert a node
-    with a classic driver to hardware types and interfaces.
-
-    This function is used in the data migrations and is not a part of the
-    public Python API.
-
-    :param driver_name: the entry point name of the driver
-    :param driver_class: class of classic driver.
-    :param reset_unsupported_interfaces: if set to True, target interfaces
-        that are not enabled will be replaced with a no-<interface name>,
-        if possible.
-    :returns: Node fields requiring update as a dict (field -> new value).
-        None if a migration is not possible.
-    """
-    # NOTE(dtantsur): provide defaults for optional interfaces
-    defaults = {'bios': 'no-bios',
-                'console': 'no-console',
-                'inspect': 'no-inspect',
-                'raid': 'no-raid',
-                'rescue': 'no-rescue',
-                'vendor': 'no-vendor'}
-    try:
-        hw_type, new_ifaces = driver_class.to_hardware_type()
-    except NotImplementedError:
-        LOG.warning('Skipping migrating nodes with driver %s, '
-                    'migration not supported', driver_name)
-        return None
-    else:
-        ifaces = dict(defaults, **new_ifaces)
-
-    if hw_type not in CONF.enabled_hardware_types:
-        LOG.warning('Skipping migrating nodes with driver %(drv)s: '
-                    'hardware type %(hw_type)s is not enabled',
-                    {'drv': driver_name, 'hw_type': hw_type})
-        return None
-
-    not_enabled = []
-    delta = {'driver': hw_type}
-    for iface, value in ifaces.items():
-        conf = 'enabled_%s_interfaces' % iface
-        if value not in getattr(CONF, conf):
-            not_enabled.append((iface, value))
-        else:
-            delta['%s_interface' % iface] = value
-
-    if not_enabled and reset_unsupported_interfaces:
-        still_not_enabled = []
-        for iface, value in not_enabled:
-            try:
-                default = defaults[iface]
-            except KeyError:
-                still_not_enabled.append((iface, value))
-            else:
-                conf = 'enabled_%s_interfaces' % iface
-                if default not in getattr(CONF, conf):
-                    still_not_enabled.append((iface, value))
-                else:
-                    delta['%s_interface' % iface] = default
-
-        not_enabled = still_not_enabled
-
-    if not_enabled:
-        LOG.warning('Skipping migrating nodes with driver %(drv)s, '
-                    'the following interfaces are not supported: '
-                    '%(ifaces)s',
-                    {'drv': driver_name,
-                     'ifaces': ', '.join('%s_interface=%s' % tpl
-                                         for tpl in not_enabled)})
-        return None
-
-    return delta
-
-
-def classic_drivers_to_migrate():
-    """Get drivers requiring migration.
-
-    This function is used in the data migrations and is not a part of the
-    public Python API.
-
-    :returns: a dict mapping driver names to driver classes
-    """
-    def failure_callback(mgr, ep, exc):
-        LOG.warning('Unable to load classic driver %(drv)s: %(err)s',
-                    {'drv': ep.name, 'err': exc})
-
-    extension_manager = (
-        stevedore.ExtensionManager(
-            'ironic.drivers',
-            invoke_on_load=False,
-            on_load_failure_callback=failure_callback))
-
-    return {ext.name: ext.plugin for ext in extension_manager}

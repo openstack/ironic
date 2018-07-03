@@ -82,19 +82,19 @@ class StartStopTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         self._start_service()
         self.service.del_host()
 
-    @mock.patch.object(driver_factory.DriverFactory, '__getitem__',
+    @mock.patch.object(driver_factory.HardwareTypesFactory, '__getitem__',
                        lambda *args: mock.MagicMock())
-    @mock.patch.object(driver_factory, 'StorageInterfaceFactory')
-    @mock.patch.object(driver_factory, 'NetworkInterfaceFactory')
-    def test_start_registers_driver_names(self, net_factory,
-                                          storage_factory):
+    @mock.patch.object(driver_factory, 'default_interface', autospec=True)
+    def test_start_registers_driver_names(self, mock_def_iface):
         init_names = ['fake1', 'fake2']
         restart_names = ['fake3', 'fake4']
 
-        df = driver_factory.DriverFactory()
+        mock_def_iface.return_value = 'fake'
+
+        df = driver_factory.HardwareTypesFactory()
         with mock.patch.object(df._extension_manager, 'names') as mock_names:
             # verify driver names are registered
-            self.config(enabled_drivers=init_names)
+            self.config(enabled_hardware_types=init_names)
             mock_names.return_value = init_names
             self._start_service()
             res = objects.Conductor.get_by_hostname(self.context,
@@ -103,20 +103,36 @@ class StartStopTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
             self._stop_service()
 
             # verify that restart registers new driver names
-            self.config(enabled_drivers=restart_names)
+            self.config(enabled_hardware_types=restart_names)
             mock_names.return_value = restart_names
             self._start_service()
             res = objects.Conductor.get_by_hostname(self.context,
                                                     self.hostname)
             self.assertEqual(restart_names, res['drivers'])
-        self.assertEqual(2, net_factory.call_count)
-        self.assertEqual(2, storage_factory.call_count)
 
+    @mock.patch.object(base_manager.BaseConductorManager,
+                       '_register_and_validate_hardware_interfaces',
+                       autospec=True)
     @mock.patch.object(driver_factory, 'all_interfaces', autospec=True)
     @mock.patch.object(driver_factory, 'hardware_types', autospec=True)
-    @mock.patch.object(driver_factory, 'drivers', autospec=True)
-    def test_start_registers_driver_specific_tasks(self, mock_drivers,
-                                                   mock_hw_types, mock_ifaces):
+    def test_start_registers_driver_specific_tasks(self,
+                                                   mock_hw_types, mock_ifaces,
+                                                   mock_reg_hw_ifaces):
+        class TestHwType(generic.GenericHardware):
+            @property
+            def supported_management_interfaces(self):
+                return []
+
+            @property
+            def supported_power_interfaces(self):
+                return []
+
+            # This should not be collected, since we don't collect periodic
+            # tasks from hardware types
+            @periodics.periodic(spacing=100500)
+            def task(self):
+                pass
+
         class TestInterface(object):
             @periodics.periodic(spacing=100500)
             def iface(self):
@@ -127,23 +143,12 @@ class StartStopTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
             def iface(self):
                 pass
 
-        class Driver(object):
-            core_interfaces = []
-            standard_interfaces = ['iface']
-            all_interfaces = core_interfaces + standard_interfaces
-
-            iface = TestInterface()
-
-            @periodics.periodic(spacing=42)
-            def task(self, context):
-                pass
-
-        driver = Driver()
+        hw_type = TestHwType()
         iface1 = TestInterface()
         iface2 = TestInterface2()
         expected = [iface1.iface, iface2.iface]
 
-        mock_drivers.return_value = {'fake1': driver}
+        mock_hw_types.return_value = {'fake1': hw_type}
         mock_ifaces.return_value = {
             'management': {'fake1': iface1},
             'power': {'fake2': iface2}
@@ -156,11 +161,11 @@ class StartStopTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
             self.assertTrue(periodics.is_periodic(item))
             self.assertIn(item, tasks)
 
-        # no periodic tasks from the Driver object
-        self.assertTrue(periodics.is_periodic(driver.task))
-        self.assertNotIn(driver.task, tasks)
+        # no periodic tasks from the hardware type
+        self.assertTrue(periodics.is_periodic(hw_type.task))
+        self.assertNotIn(hw_type.task, tasks)
 
-    @mock.patch.object(driver_factory.DriverFactory, '__init__')
+    @mock.patch.object(driver_factory.HardwareTypesFactory, '__init__')
     def test_start_fails_on_missing_driver(self, mock_df):
         mock_df.side_effect = exception.DriverNotFound('test')
         with mock.patch.object(self.dbapi, 'register_conductor') as mock_reg:
@@ -177,31 +182,13 @@ class StartStopTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
 
     @mock.patch.object(base_manager, 'LOG')
     @mock.patch.object(driver_factory, 'HardwareTypesFactory')
-    @mock.patch.object(driver_factory, 'DriverFactory')
-    def test_start_fails_on_no_driver_or_hw_types(self, df_mock, ht_mock,
-                                                  log_mock):
+    def test_start_fails_on_hw_types(self, ht_mock, log_mock):
         driver_factory_mock = mock.MagicMock(names=[])
-        df_mock.return_value = driver_factory_mock
         ht_mock.return_value = driver_factory_mock
         self.assertRaises(exception.NoDriversLoaded,
                           self.service.init_host)
         self.assertTrue(log_mock.error.called)
-        df_mock.assert_called_once_with()
         ht_mock.assert_called_once_with()
-
-    @mock.patch.object(base_manager, 'LOG')
-    @mock.patch.object(base_manager.BaseConductorManager, 'del_host',
-                       autospec=True)
-    @mock.patch.object(driver_factory, 'DriverFactory')
-    def test_starts_with_only_dynamic_drivers(self, df_mock, del_mock,
-                                              log_mock):
-        # don't load any classic drivers
-        driver_factory_mock = mock.MagicMock(names=[])
-        df_mock.return_value = driver_factory_mock
-        self.service.init_host()
-        self.assertFalse(log_mock.error.called)
-        df_mock.assert_called_with()
-        self.assertFalse(del_mock.called)
 
     @mock.patch.object(base_manager, 'LOG')
     @mock.patch.object(base_manager.BaseConductorManager,
@@ -213,19 +200,6 @@ class StartStopTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
                           self.service.init_host)
         self.assertTrue(log_mock.error.called)
         del_mock.assert_called_once_with()
-
-    @mock.patch.object(base_manager, 'LOG')
-    @mock.patch.object(driver_factory, 'HardwareTypesFactory')
-    @mock.patch.object(driver_factory, 'DriverFactory')
-    def test_start_fails_on_name_conflict(self, df_mock, ht_mock, log_mock):
-        driver_factory_mock = mock.MagicMock(names=['dupe-driver'])
-        df_mock.return_value = driver_factory_mock
-        ht_mock.return_value = driver_factory_mock
-        self.assertRaises(exception.DriverNameConflict,
-                          self.service.init_host)
-        self.assertTrue(log_mock.error.called)
-        df_mock.assert_called_once_with()
-        ht_mock.assert_called_once_with()
 
     def test_prevent_double_start(self):
         self._start_service()
@@ -282,11 +256,6 @@ class CheckInterfacesTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         self.assertRaisesRegex(exception.ConfigInvalid,
                                'options enabled_boot_interfaces',
                                base_manager._check_enabled_interfaces)
-
-    def test__check_enabled_interfaces_skip_if_no_hw_types(self):
-        self.config(enabled_hardware_types=[])
-        self.config(enabled_boot_interfaces=[])
-        base_manager._check_enabled_interfaces()
 
 
 class KeepAliveTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):

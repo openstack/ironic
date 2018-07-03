@@ -518,20 +518,6 @@ class Connection(object):
         """
 
     @abc.abstractmethod
-    def get_active_driver_dict(self, interval):
-        """Retrieve drivers for the registered and active conductors.
-
-        :param interval: Seconds since last check-in of a conductor.
-        :returns: A dict which maps driver names to the set of hosts
-                  which support them. For example:
-
-                  ::
-
-                    {driverA: set([host1, host2]),
-                     driverB: set([host2, host3])}
-        """
-
-    @abc.abstractmethod
     def get_active_hardware_type_dict(self):
         """Retrieve hardware types for the registered and active conductors.
 
@@ -908,25 +894,6 @@ class Connection(object):
         :returns: A Boolean. True if all the objects have supported versions;
                   False otherwise.
         """
-
-    @abc.abstractmethod
-    def migrate_to_hardware_types(self, context, max_count,
-                                  reset_unsupported_interfaces=False):
-        """Migrate nodes from classic drivers to hardware types.
-
-        Go through all nodes with a classic driver and try to migrate them to a
-        corresponding hardware type and a correct set of hardware interfaces.
-
-        :param context: the admin context
-        :param max_count: The maximum number of objects to migrate. Must be
-                          >= 0. If zero, all the objects will be migrated.
-        :param reset_unsupported_interfaces: whether to reset unsupported
-            optional interfaces to their no-XXX versions.
-        :returns: A 2-tuple, 1. the total number of objects that need to be
-                  migrated (at the beginning of this call) and 2. the number
-                  of migrated objects.
-        """
-        # TODO(dtantsur) Delete this in Rocky cycle.
 
     @abc.abstractmethod
     def set_node_traits(self, node_id, traits, version):
