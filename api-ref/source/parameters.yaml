@@ -492,6 +492,12 @@ deploy_interface:
   in: body
   required: true
   type: string
+deploy_step:
+  description: |
+    The current deploy step.
+  in: body
+  required: false
+  type: string
 description:
   description: |
     Descriptive text about the Ironic service.

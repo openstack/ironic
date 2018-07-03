@@ -81,6 +81,7 @@ BASE_VERSION = 1
 # v1.41: Add inspection abort support.
 # v1.42: Expose fault field to node.
 # v1.43: Add detail=True flag to all API endpoints
+# v1.44: Add node deploy_step field
 
 MINOR_0_JUNO = 0
 MINOR_1_INITIAL_VERSION = 1
@@ -126,6 +127,7 @@ MINOR_40_BIOS_INTERFACE = 40
 MINOR_41_INSPECTION_ABORT = 41
 MINOR_42_FAULT = 42
 MINOR_43_ENABLE_DETAIL_QUERY = 43
+MINOR_44_NODE_DEPLOY_STEP = 44
 
 # When adding another version, update:
 # - MINOR_MAX_VERSION
@@ -133,7 +135,7 @@ MINOR_43_ENABLE_DETAIL_QUERY = 43
 #   explanation of what changed in the new version
 # - common/release_mappings.py, RELEASE_MAPPING['master']['api']
 
-MINOR_MAX_VERSION = MINOR_43_ENABLE_DETAIL_QUERY
+MINOR_MAX_VERSION = MINOR_44_NODE_DEPLOY_STEP
 
 # String representations of the minor and maximum versions
 _MIN_VERSION_STRING = '{}.{}'.format(BASE_VERSION, MINOR_1_INITIAL_VERSION)

@@ -100,9 +100,6 @@ def node_post_data(**kw):
     node.pop('chassis_id')
     node.pop('tags')
     node.pop('traits')
-    # TODO(mgoddard): Remove this once the deploy_step field is supported in
-    # the API.
-    node.pop('deploy_step')
 
     # NOTE(jroll): pop out fields that were introduced in later API versions,
     # unless explicitly requested. Otherwise, these will cause tests using

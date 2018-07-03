@@ -122,6 +122,7 @@ class TestListNodes(test_api_base.BaseApiTest):
         # never expose the chassis_id
         self.assertNotIn('chassis_id', data['nodes'][0])
         self.assertNotIn('bios_interface', data['nodes'][0])
+        self.assertNotIn('deploy_step', data['nodes'][0])
 
     def test_get_one(self):
         node = obj_utils.create_test_node(self.context,
@@ -158,6 +159,7 @@ class TestListNodes(test_api_base.BaseApiTest):
         # never expose the chassis_id
         self.assertNotIn('chassis_id', data)
         self.assertIn('bios_interface', data)
+        self.assertIn('deploy_step', data)
 
     def test_get_one_with_json(self):
         # Test backward compatibility with guess_content_type_from_ext
@@ -249,6 +251,10 @@ class TestListNodes(test_api_base.BaseApiTest):
     def test_node_fault_hidden_in_lower_version(self):
         self._test_node_field_hidden_in_lower_version('fault',
                                                       '1.41', '1.42')
+
+    def test_node_deploy_step_hidden_in_lower_version(self):
+        self._test_node_field_hidden_in_lower_version('deploy_step',
+                                                      '1.43', '1.44')
 
     def test_get_one_custom_fields(self):
         node = obj_utils.create_test_node(self.context,
@@ -2414,6 +2420,19 @@ class TestPatch(test_api_base.BaseApiTest):
                                      'op': 'replace',
                                      'value': 'why care'}],
                                    headers={api_base.Version.string: "1.42"},
+                                   expect_errors=True)
+        self.assertEqual('application/json', response.content_type)
+        self.assertEqual(http_client.BAD_REQUEST, response.status_code)
+        self.assertTrue(response.json['error_message'])
+
+    def test_patch_deploy_step_forbidden(self):
+        node = obj_utils.create_test_node(self.context,
+                                          uuid=uuidutils.generate_uuid())
+        response = self.patch_json('/nodes/%s' % node.uuid,
+                                   [{'path': '/deploy_step',
+                                     'op': 'replace',
+                                     'value': 'deploy this'}],
+                                   headers={api_base.Version.string: "1.43"},
                                    expect_errors=True)
         self.assertEqual('application/json', response.content_type)
         self.assertEqual(http_client.BAD_REQUEST, response.status_code)

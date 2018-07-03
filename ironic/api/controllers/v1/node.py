@@ -150,6 +150,9 @@ def hide_fields_in_newer_versions(obj):
     if pecan.request.version.minor < versions.MINOR_42_FAULT:
         obj.fault = wsme.Unset
 
+    if pecan.request.version.minor < versions.MINOR_44_NODE_DEPLOY_STEP:
+        obj.deploy_step = wsme.Unset
+
     if not api_utils.allow_resource_class():
         obj.resource_class = wsme.Unset
 
@@ -990,6 +993,9 @@ class Node(base.APIBase):
     clean_step = wsme.wsattr({wtypes.text: types.jsontype}, readonly=True)
     """The current clean step"""
 
+    deploy_step = wsme.wsattr({wtypes.text: types.jsontype}, readonly=True)
+    """The current deploy step"""
+
     raid_config = wsme.wsattr({wtypes.text: types.jsontype}, readonly=True)
     """Represents the current RAID configuration of the node """
 
@@ -1215,7 +1221,7 @@ class Node(base.APIBase):
                      provision_updated_at=time, instance_info={},
                      maintenance=False, maintenance_reason=None, fault=None,
                      inspection_finished_at=None, inspection_started_at=time,
-                     console_enabled=False, clean_step={},
+                     console_enabled=False, clean_step={}, deploy_step={},
                      raid_config=None, target_raid_config=None,
                      network_interface='flat', resource_class='baremetal-gold',
                      boot_interface=None, console_interface=None,
@@ -1247,6 +1253,7 @@ class NodePatchType(types.JsonPatchType):
                            '/provision_updated_at', '/maintenance_reason',
                            '/driver_internal_info', '/inspection_finished_at',
                            '/inspection_started_at', '/clean_step',
+                           '/deploy_step',
                            '/raid_config', '/target_raid_config',
                            '/fault']
 
@@ -1484,7 +1491,8 @@ class NodesController(rest.RestController):
 
     invalid_sort_key_list = ['properties', 'driver_info', 'extra',
                              'instance_info', 'driver_internal_info',
-                             'clean_step', 'raid_config', 'target_raid_config',
+                             'clean_step', 'deploy_step',
+                             'raid_config', 'target_raid_config',
                              'traits']
 
     _subcontroller_map = {
