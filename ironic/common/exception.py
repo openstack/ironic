@@ -787,3 +787,7 @@ class BIOSSettingListNotFound(NotFound):
 
 class DatabaseVersionTooOld(IronicException):
     _msg_fmt = _("Database version is too old")
+
+
+class AgentConnectionFailed(IronicException):
+    _msg_fmt = _("Connection to agent failed: %(reason)s")

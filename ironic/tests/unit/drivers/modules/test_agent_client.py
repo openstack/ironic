@@ -133,6 +133,24 @@ class TestAgentClient(base.TestCase):
                          {'method': method, 'node': self.node.uuid,
                           'error': error}, str(e))
 
+    def test__command_fail_connect(self):
+        error = 'Boom'
+        self.client.session.post.side_effect = requests.ConnectionError(error)
+        method = 'foo.bar'
+        params = {}
+
+        self.client._get_command_url(self.node)
+        self.client._get_command_body(method, params)
+
+        e = self.assertRaises(exception.AgentConnectionFailed,
+                              self.client._command,
+                              self.node, method, params)
+        self.assertEqual('Connection to agent failed: Failed to invoke '
+                         'agent command %(method)s for node %(node)s. '
+                         'Error: %(error)s' %
+                         {'method': method, 'node': self.node.uuid,
+                          'error': error}, str(e))
+
     def test__command_error_code(self):
         response_text = '{"faultstring": "you dun goofd"}'
         self.client.session.post.return_value = MockResponse(

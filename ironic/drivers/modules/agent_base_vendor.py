@@ -466,6 +466,7 @@ class AgentDeployMixin(HeartbeatMixin):
                 info = task.node.driver_internal_info
                 info.pop('cleaning_reboot', None)
                 task.node.driver_internal_info = info
+                task.node.save()
                 manager_utils.notify_conductor_resume_clean(task)
                 return
             else:
