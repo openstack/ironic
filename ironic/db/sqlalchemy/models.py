@@ -144,6 +144,7 @@ class Node(Base):
     driver_info = Column(db_types.JsonEncodedDict)
     driver_internal_info = Column(db_types.JsonEncodedDict)
     clean_step = Column(db_types.JsonEncodedDict)
+    deploy_step = Column(db_types.JsonEncodedDict)
     resource_class = Column(String(80), nullable=True)
 
     raid_config = Column(db_types.JsonEncodedDict)
