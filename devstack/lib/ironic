@@ -2148,6 +2148,9 @@ function configure_iptables {
     else
         sudo iptables -I INPUT -d $HOST_IP -p tcp --dport 80 -j ACCEPT || true
         sudo iptables -I INPUT -d $HOST_IP -p tcp --dport 443 -j ACCEPT || true
+        # open ironic API on baremetal network
+        sudo iptables -I INPUT -d $IRONIC_HTTP_SERVER -p tcp --dport 80 -j ACCEPT || true
+        sudo iptables -I INPUT -d $IRONIC_HTTP_SERVER -p tcp --dport 443 -j ACCEPT || true
     fi
     if is_deployed_by_agent; then
         # agent ramdisk gets instance image from swift
