@@ -33,8 +33,7 @@ understanding of the whole deployment process.
     architectures that do not have BIOS support at all.
 
 The ``pxe`` boot interface is used by default for many hardware types,
-including ``ipmi``, and for all classic drivers with names starting with
-``pxe_``. Some hardware types, notably ``ilo`` and ``irmc`` have their
+including ``ipmi``. Some hardware types, notably ``ilo`` and ``irmc`` have their
 specific implementations of the PXE boot interface.
 
 Additional configuration is required for this boot interface - see
