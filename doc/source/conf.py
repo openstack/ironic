@@ -55,7 +55,7 @@ apidoc_excluded_paths = [
 apidoc_separate_modules = True
 
 repository_name = 'openstack/ironic'
-bug_project = 'ironic'
+bug_project = '943'
 bug_tag = ''
 html_last_updated_fmt = '%Y-%m-%d %H:%M'
 
