@@ -2223,6 +2223,18 @@ class TestPatch(test_api_base.BaseApiTest):
         self.assertEqual('application/json', response.content_type)
         self.assertEqual(http_client.OK, response.status_code)
 
+    def test_reset_network_interface(self):
+        node = obj_utils.create_test_node(self.context,
+                                          uuid=uuidutils.generate_uuid())
+        self.mock_update_node.return_value = node
+        headers = {api_base.Version.string: str(api_v1.max_version())}
+        response = self.patch_json('/nodes/%s' % node.uuid,
+                                   [{'path': '/network_interface',
+                                     'op': 'remove'}],
+                                   headers=headers)
+        self.assertEqual('application/json', response.content_type)
+        self.assertEqual(http_client.OK, response.status_code)
+
     def test_update_network_interface_old_api(self):
         node = obj_utils.create_test_node(self.context,
                                           uuid=uuidutils.generate_uuid())
@@ -2310,6 +2322,20 @@ class TestPatch(test_api_base.BaseApiTest):
             self.assertEqual('application/json', response.content_type)
             self.assertEqual(http_client.OK, response.status_code)
 
+    def test_reset_interface_fields(self):
+        # Using remove on an interface resets it to its default
+        node = obj_utils.create_test_node(self.context,
+                                          uuid=uuidutils.generate_uuid())
+        self.mock_update_node.return_value = node
+        headers = {api_base.Version.string: str(api_v1.max_version())}
+        for field in api_utils.V31_FIELDS:
+            response = self.patch_json('/nodes/%s' % node.uuid,
+                                       [{'path': '/%s' % field,
+                                         'op': 'remove'}],
+                                       headers=headers)
+            self.assertEqual('application/json', response.content_type)
+            self.assertEqual(http_client.OK, response.status_code)
+
     def test_update_interface_fields_bad_version(self):
         node = obj_utils.create_test_node(self.context,
                                           uuid=uuidutils.generate_uuid())
@@ -2335,6 +2361,18 @@ class TestPatch(test_api_base.BaseApiTest):
                                    [{'path': '/storage_interface',
                                      'value': storage_interface,
                                      'op': 'add'}],
+                                   headers=headers)
+        self.assertEqual('application/json', response.content_type)
+        self.assertEqual(http_client.OK, response.status_code)
+
+    def test_reset_storage_interface(self):
+        node = obj_utils.create_test_node(self.context,
+                                          uuid=uuidutils.generate_uuid())
+        self.mock_update_node.return_value = node
+        headers = {api_base.Version.string: str(api_v1.max_version())}
+        response = self.patch_json('/nodes/%s' % node.uuid,
+                                   [{'path': '/storage_interface',
+                                     'op': 'remove'}],
                                    headers=headers)
         self.assertEqual('application/json', response.content_type)
         self.assertEqual(http_client.OK, response.status_code)
