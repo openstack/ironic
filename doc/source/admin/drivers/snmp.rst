@@ -127,8 +127,14 @@ The following property values have to be added to the node's
 - ``snmp_version``: (optional) SNMP protocol version
   (permitted values ``1``, ``2c`` or ``3``). If not specified, SNMPv1
   is chosen.
-- ``snmp_community``: (Required for SNMPv1/SNMPv2c) SNMP community
+- ``snmp_community``: (Required for SNMPv1/SNMPv2c unless
+  ``snmp_community_read`` and/or ``snmp_community_write`` properties are
+  present in which case the latter take over) SNMP community
   name parameter for reads and writes to the PDU.
+- ``snmp_community_read``: SNMP community name parameter for reads
+  to the PDU. Takes precedence over the ``snmp_community`` property.
+- ``snmp_community_write``: SNMP community name parameter for writes
+  to the PDU. Takes precedence over the ``snmp_community`` property.
 - ``snmp_user``: (Required for SNMPv3) SNMPv3 User-based Security Model
   (USM) user name. Synonym for now obsolete ``snmp_security`` parameter.
 - ``snmp_auth_protocol``: SNMPv3 message authentication protocol ID.

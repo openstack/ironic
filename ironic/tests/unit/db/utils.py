@@ -137,6 +137,10 @@ def get_test_snmp_info(**kw):
     }
     if result["snmp_version"] in ("1", "2c"):
         result["snmp_community"] = kw.get("snmp_community", "public")
+        if "snmp_community_read" in kw:
+            result["snmp_community_read"] = kw["snmp_community_read"]
+        if "snmp_community_write" in kw:
+            result["snmp_community_write"] = kw["snmp_community_write"]
     elif result["snmp_version"] == "3":
         result["snmp_user"] = kw.get(
             "snmp_user", kw.get("snmp_security", "snmpuser")
