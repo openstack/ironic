@@ -1,0 +1,6 @@
+---
+upgrade:
+  - |
+    The minimum required version of the ``osprofiler`` library is now 1.5.0.
+    This is now a new dependency, ironic has not been able to start with 1.4.0
+    since the Pike release when this dependency was introduced.
