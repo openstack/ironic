@@ -2,25 +2,25 @@
 REST API Version History
 ========================
 
-1.43 (Rocky, master)
----------------------
+1.43 (Rocky, 11.0.0)
+--------------------
 
 Added ``?detail=`` boolean query to the API list endpoints to provide a more
 RESTful alternative to the existing ``/nodes/detail`` and similar endpoints.
 
-1.42 (Rocky, master)
+1.42 (Rocky, 11.0.0)
 --------------------
 
 Added ``fault`` to the node object, to indicate currently detected fault on
 the node.
 
-1.41 (Rocky, master)
+1.41 (Rocky, 11.0.0)
 --------------------
 
 Added support to abort inspection of a node in the ``inspect wait`` state.
 
-1.40 (Rocky, master)
----------------------
+1.40 (Rocky, 11.0.0)
+--------------------
 
 Added BIOS properties as sub resources of nodes:
 
@@ -30,7 +30,7 @@ Added BIOS properties as sub resources of nodes:
 Added ``bios_interface`` field to the node object to allow getting and
 setting the interface.
 
-1.39 (Rocky, master)
+1.39 (Rocky, 11.0.0)
 --------------------
 
 Added ``inspect wait`` to available provision states. A node is shown as
