@@ -99,6 +99,21 @@ RELEASE_MAPPING = {
             'VolumeTarget': ['1.0'],
         }
     },
+    '11.0': {
+        'api': '1.43',
+        'rpc': '1.44',
+        'objects': {
+            'Node': ['1.24', '1.25'],
+            'Conductor': ['1.2'],
+            'Chassis': ['1.3'],
+            'Port': ['1.8'],
+            'Portgroup': ['1.4'],
+            'Trait': ['1.0'],
+            'TraitList': ['1.0'],
+            'VolumeConnector': ['1.0'],
+            'VolumeTarget': ['1.0'],
+        }
+    },
     'master': {
         'api': '1.43',
         'rpc': '1.44',
