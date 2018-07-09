@@ -10,6 +10,10 @@ The Bare Metal service supports booting from a Cinder iSCSI volume as of the
 Pike release. This guide will primarily deal with this use case, but will be
 updated as more paths for booting from a volume, such as FCoE, are introduced.
 
+The boot from volume is supported on both legacy BIOS and
+UEFI (iPXE binary for EFI booting) boot mode. We need to perform with
+suitable images which will be created by diskimage-builder tool.
+
 Prerequisites
 =============
 Currently booting from a volume requires:
@@ -68,6 +72,28 @@ that is unique to your SAN. For example, to create a volume connector for iSCSI:
 
    openstack --os-baremetal-api-version 1.33 baremetal volume connector create \
              --node $NODE_UUID --type iqn --connector-id iqn.2017-08.org.openstack.$NODE_UUID
+
+Image Creation
+==============
+We use ``disk-image-create`` in diskimage-builder tool to create images
+for boot from volume feature. Some required elements for this mechanism for
+corresponding boot modes are as following:
+
+- Legacy BIOS boot mode: ``iscsi-boot`` element.
+- UEFI boot mode: ``iscsi-boot`` and ``block-device-efi`` elements.
+
+An example below::
+
+    export IMAGE_NAME=<image_name>
+    export DIB_CLOUD_INIT_DATASOURCES="ConfigDrive, OpenStack"
+    disk-image-create centos7 vm cloud-init-datasources dhcp-all-interfaces iscsi-boot dracut-regenerate block-device-efi -o $IMAGE_NAME
+
+.. note::
+    * For CentOS images, we must add dependent element named
+      ``dracut-regenerate`` during image creation. Otherwise,
+      the image creation will fail with an error.
+    * For Ubuntu images, we only support ``iscsi-boot`` element without
+      ``dracut-regenerate`` element during image creation.
 
 Advanced Topics
 ===============
