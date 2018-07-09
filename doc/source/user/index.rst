@@ -179,8 +179,8 @@ the same.
    boot of a node.
 
 #. The ironic node's deploy interface caches the instance image (in case of
-   ``iscsi`` deploy interface or most ``pxe_*`` classic drivers), and kernel
-   and ramdisk if needed (it is needed in case of netboot for example).
+   ``iscsi`` deploy interface), and kernel and ramdisk if needed (it is
+   needed in case of netboot for example).
 
 #. The ironic node's power interface instructs the node to power on.
 
@@ -268,7 +268,6 @@ This process is how :ref:`iscsi-deploy` works.
 
 .. seqdiag::
    :scale: 75
-   :alt: pxe_ipmi
 
    diagram {
       Nova; API; Conductor; Neutron; HTTPStore; "TFTP/HTTPd"; Node;
@@ -327,7 +326,6 @@ This process is how :ref:`direct-deploy` works.
 
 .. seqdiag::
    :scale: 75
-   :alt: pxe_ipmi_agent
 
    diagram {
       Nova; API; Conductor; Neutron; HTTPStore; "TFTP/HTTPd"; Node;

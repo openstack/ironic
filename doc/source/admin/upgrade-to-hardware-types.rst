@@ -1,10 +1,11 @@
 Upgrading to Hardware Types
 ===========================
 
-In the future, the Bare Metal service will stop supporting *classic drivers*
-and will only support *hardware types*. Please see
-:doc:`/install/enabling-drivers` for the detailed explanation of the
-difference between these two types of drivers.
+Starting with the Rocky release, the Bare Metal service does not support
+*classic drivers* any more. If you still use *classic drivers*, please
+upgrade to *hardware types* immediately. Please see
+:doc:`/install/enabling-drivers` for details on
+*hardware types* and *hardware interfaces*.
 
 Planning the upgrade
 --------------------
