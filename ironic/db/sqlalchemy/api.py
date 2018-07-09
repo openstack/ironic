@@ -1204,6 +1204,17 @@ class Connection(api.Connection):
                 if not supported_versions:
                     continue
 
+                # NOTE(mgagne): Additional safety check to detect old database
+                # version which does not have the 'version' columns available.
+                # This usually means a skip version upgrade is attempted
+                # from a version earlier than Pike which added
+                # those columns required for the next check.
+                engine = enginefacade.reader.get_engine()
+                if not db_utils.column_exists(engine,
+                                              model.__tablename__,
+                                              model.version.name):
+                    raise exception.DatabaseVersionTooOld()
+
                 # NOTE(rloo): we use model.version, not model, because we
                 #             know that the object has a 'version' column
                 #             but we don't know whether the entire object is

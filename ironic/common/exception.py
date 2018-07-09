@@ -783,3 +783,7 @@ class BIOSSettingNotFound(NotFound):
 
 class BIOSSettingListNotFound(NotFound):
     _msg_fmt = _("Node %(node)s doesn't have BIOS settings '%(names)s'")
+
+
+class DatabaseVersionTooOld(IronicException):
+    _msg_fmt = _("Database version is too old")

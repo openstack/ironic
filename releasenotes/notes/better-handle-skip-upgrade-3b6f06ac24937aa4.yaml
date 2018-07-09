@@ -1,0 +1,11 @@
+---
+fixes:
+  - |
+    Better handles the case when an operator attempts to perform an upgrade
+    from a release older than Pike, directly to a release newer than Pike,
+    skipping one or more releases in between (i.e. a "skip version upgrade").
+    Instead of crashing, the operator will be informed that
+    upgrading from a version older than the previous release is not supported
+    (skip version upgrades) and that (as of Pike) all database migrations need
+    to be performed using the previous releases for a fast-forward upgrade.
+    [Bug `2002558 <https://storyboard.openstack.org/#!/story/2002558>`_]
