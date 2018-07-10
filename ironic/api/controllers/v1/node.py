@@ -1249,7 +1249,7 @@ class Node(base.APIBase):
                      management_interface=None, power_interface=None,
                      raid_interface=None, vendor_interface=None,
                      storage_interface=None, traits=[], rescue_interface=None,
-                     bios_interface=None)
+                     bios_interface=None, conductor_group="")
         # NOTE(matty_dubs): The chassis_uuid getter() is based on the
         # _chassis_uuid variable:
         sample._chassis_uuid = 'edcad704-b2da-41d5-96d9-afd580ecfa12'
@@ -1552,7 +1552,8 @@ class NodesController(rest.RestController):
                               maintenance, provision_state, marker, limit,
                               sort_key, sort_dir, driver=None,
                               resource_class=None, resource_url=None,
-                              fields=None, fault=None, detail=None):
+                              fields=None, fault=None, conductor_group=None,
+                              detail=None):
         if self.from_chassis and not chassis_uuid:
             raise exception.MissingParameterValue(
                 _("Chassis id not specified."))
@@ -1600,6 +1601,8 @@ class NodesController(rest.RestController):
                 filters['resource_class'] = resource_class
             if fault is not None:
                 filters['fault'] = fault
+            if conductor_group is not None:
+                filters['conductor_group'] = conductor_group
 
             nodes = objects.Node.list(pecan.request.context, limit, marker_obj,
                                       sort_key=sort_key, sort_dir=sort_dir,
@@ -1707,11 +1710,12 @@ class NodesController(rest.RestController):
     @expose.expose(NodeCollection, types.uuid, types.uuid, types.boolean,
                    types.boolean, wtypes.text, types.uuid, int, wtypes.text,
                    wtypes.text, wtypes.text, types.listtype, wtypes.text,
-                   wtypes.text, types.boolean)
+                   wtypes.text, wtypes.text, types.boolean)
     def get_all(self, chassis_uuid=None, instance_uuid=None, associated=None,
                 maintenance=None, provision_state=None, marker=None,
                 limit=None, sort_key='id', sort_dir='asc', driver=None,
-                fields=None, resource_class=None, fault=None, detail=None):
+                fields=None, resource_class=None, fault=None,
+                conductor_group=None, detail=None):
         """Retrieve a list of nodes.
 
         :param chassis_uuid: Optional UUID of a chassis, to get only nodes for
@@ -1737,6 +1741,8 @@ class NodesController(rest.RestController):
                        driver.
         :param resource_class: Optional string value to get only nodes with
                                that resource_class.
+        :param conductor_group: Optional string value to get only nodes with
+                                that conductor_group.
         :param fields: Optional, a list with a specified set of fields
                        of the resource to be returned.
         :param fault: Optional string value to get only nodes with that fault.
@@ -1751,6 +1757,7 @@ class NodesController(rest.RestController):
         api_utils.check_allow_specify_driver(driver)
         api_utils.check_allow_specify_resource_class(resource_class)
         api_utils.check_allow_filter_by_fault(fault)
+        api_utils.check_allow_filter_by_conductor_group(conductor_group)
 
         fields = api_utils.get_request_return_fields(fields, detail,
                                                      _DEFAULT_RETURN_FIELDS)
@@ -1762,16 +1769,18 @@ class NodesController(rest.RestController):
                                           driver=driver,
                                           resource_class=resource_class,
                                           fields=fields, fault=fault,
+                                          conductor_group=conductor_group,
                                           detail=detail)
 
     @METRICS.timer('NodesController.detail')
     @expose.expose(NodeCollection, types.uuid, types.uuid, types.boolean,
                    types.boolean, wtypes.text, types.uuid, int, wtypes.text,
-                   wtypes.text, wtypes.text, wtypes.text, wtypes.text)
+                   wtypes.text, wtypes.text, wtypes.text, wtypes.text,
+                   wtypes.text)
     def detail(self, chassis_uuid=None, instance_uuid=None, associated=None,
                maintenance=None, provision_state=None, marker=None,
                limit=None, sort_key='id', sort_dir='asc', driver=None,
-               resource_class=None, fault=None):
+               resource_class=None, fault=None, conductor_group=None):
         """Retrieve a list of nodes with detail.
 
         :param chassis_uuid: Optional UUID of a chassis, to get only nodes for
@@ -1798,6 +1807,8 @@ class NodesController(rest.RestController):
         :param resource_class: Optional string value to get only nodes with
                                that resource_class.
         :param fault: Optional string value to get only nodes with that fault.
+        :param conductor_group: Optional string value to get only nodes with
+                                that conductor_group.
         """
         cdict = pecan.request.context.to_policy_values()
         policy.authorize('baremetal:node:get', cdict, cdict)
@@ -1806,6 +1817,7 @@ class NodesController(rest.RestController):
         api_utils.check_allow_specify_driver(driver)
         api_utils.check_allow_specify_resource_class(resource_class)
         api_utils.check_allow_filter_by_fault(fault)
+        api_utils.check_allow_filter_by_conductor_group(conductor_group)
         api_utils.check_allowed_fields([sort_key])
         # /detail should only work against collections
         parent = pecan.request.path.split('/')[:-1][-1]
@@ -1820,7 +1832,8 @@ class NodesController(rest.RestController):
                                           driver=driver,
                                           resource_class=resource_class,
                                           resource_url=resource_url,
-                                          fault=fault)
+                                          fault=fault,
+                                          conductor_group=conductor_group)
 
     @METRICS.timer('NodesController.validate')
     @expose.expose(wtypes.text, types.uuid_or_name, types.uuid)

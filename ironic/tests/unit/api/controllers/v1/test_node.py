@@ -123,6 +123,7 @@ class TestListNodes(test_api_base.BaseApiTest):
         self.assertNotIn('chassis_id', data['nodes'][0])
         self.assertNotIn('bios_interface', data['nodes'][0])
         self.assertNotIn('deploy_step', data['nodes'][0])
+        self.assertNotIn('conductor_group', data['nodes'][0])
 
     def test_get_one(self):
         node = obj_utils.create_test_node(self.context,
@@ -160,6 +161,7 @@ class TestListNodes(test_api_base.BaseApiTest):
         self.assertNotIn('chassis_id', data)
         self.assertIn('bios_interface', data)
         self.assertIn('deploy_step', data)
+        self.assertIn('conductor_group', data)
 
     def test_get_one_with_json(self):
         # Test backward compatibility with guess_content_type_from_ext
@@ -257,11 +259,8 @@ class TestListNodes(test_api_base.BaseApiTest):
                                                       '1.43', '1.44')
 
     def test_node_conductor_group_hidden_in_lower_version(self):
-        node = obj_utils.create_test_node(self.context)
-        data = self.get_json(
-            '/nodes/%s' % node.uuid,
-            headers={api_base.Version.string: '1.44'})
-        self.assertNotIn('conductor_group', data)
+        self._test_node_field_hidden_in_lower_version('conductor_group',
+                                                      '1.45', '1.46')
 
     def test_get_one_custom_fields(self):
         node = obj_utils.create_test_node(self.context,
@@ -406,9 +405,18 @@ class TestListNodes(test_api_base.BaseApiTest):
         fields = 'conductor_group'
         response = self.get_json(
             '/nodes/%s?fields=%s' % (node.uuid, fields),
-            headers={api_base.Version.string: '1.43'},
+            headers={api_base.Version.string: '1.44'},
             expect_errors=True)
         self.assertEqual(http_client.NOT_ACCEPTABLE, response.status_int)
+
+    def test_get_conductor_group_fields(self):
+        node = obj_utils.create_test_node(self.context,
+                                          chassis_id=self.chassis.id)
+        fields = 'conductor_group'
+        response = self.get_json(
+            '/nodes/%s?fields=%s' % (node.uuid, fields),
+            headers={api_base.Version.string: '1.46'})
+        self.assertIn('conductor_group', response)
 
     def test_detail(self):
         node = obj_utils.create_test_node(self.context,
@@ -439,6 +447,7 @@ class TestListNodes(test_api_base.BaseApiTest):
             self.assertIn(field, data['nodes'][0])
         self.assertIn('storage_interface', data['nodes'][0])
         self.assertIn('traits', data['nodes'][0])
+        self.assertIn('conductor_group', data['nodes'][0])
         # never expose the chassis_id
         self.assertNotIn('chassis_id', data['nodes'][0])
 
@@ -467,6 +476,7 @@ class TestListNodes(test_api_base.BaseApiTest):
         self.assertIn('target_raid_config', data['nodes'][0])
         self.assertIn('network_interface', data['nodes'][0])
         self.assertIn('resource_class', data['nodes'][0])
+        self.assertIn('conductor_group', data['nodes'][0])
         for field in api_utils.V31_FIELDS:
             self.assertIn(field, data['nodes'][0])
         # never expose the chassis_id
@@ -1406,6 +1416,36 @@ class TestListNodes(test_api_base.BaseApiTest):
                     '/nodes/detail?fault=power failure'):
             response = self.get_json(
                 url, headers={api_base.Version.string: "1.41"},
+                expect_errors=True)
+            self.assertEqual('application/json', response.content_type)
+            self.assertEqual(http_client.NOT_ACCEPTABLE, response.status_code)
+            self.assertTrue(response.json['error_message'])
+
+    def test_get_nodes_by_conductor_group(self):
+        node1 = obj_utils.create_test_node(self.context,
+                                           uuid=uuidutils.generate_uuid(),
+                                           conductor_group='group1')
+        node2 = obj_utils.create_test_node(self.context,
+                                           uuid=uuidutils.generate_uuid(),
+                                           conductor_group='group2')
+
+        for base_url in ('/nodes', '/nodes/detail'):
+            data = self.get_json(base_url + '?conductor_group=group1',
+                                 headers={api_base.Version.string: "1.46"})
+            uuids = [n['uuid'] for n in data['nodes']]
+            self.assertIn(node1.uuid, uuids)
+            self.assertNotIn(node2.uuid, uuids)
+            data = self.get_json(base_url + '?conductor_group=group2',
+                                 headers={api_base.Version.string: "1.46"})
+            uuids = [n['uuid'] for n in data['nodes']]
+            self.assertIn(node2.uuid, uuids)
+            self.assertNotIn(node1.uuid, uuids)
+
+    def test_get_nodes_by_conductor_group_not_allowed(self):
+        for url in ('/nodes?conductor_group=group1',
+                    '/nodes/detail?conductor_group=group1'):
+            response = self.get_json(
+                url, headers={api_base.Version.string: "1.44"},
                 expect_errors=True)
             self.assertEqual('application/json', response.content_type)
             self.assertEqual(http_client.NOT_ACCEPTABLE, response.status_code)
@@ -2491,6 +2531,19 @@ class TestPatch(test_api_base.BaseApiTest):
         self.assertEqual(http_client.BAD_REQUEST, response.status_code)
         self.assertTrue(response.json['error_message'])
 
+    def test_update_conductor_group(self):
+        node = obj_utils.create_test_node(self.context,
+                                          uuid=uuidutils.generate_uuid())
+        self.mock_update_node.return_value = node
+        headers = {api_base.Version.string: '1.46'}
+        response = self.patch_json('/nodes/%s' % node.uuid,
+                                   [{'path': '/conductor_group',
+                                     'value': 'foogroup',
+                                     'op': 'add'}],
+                                   headers=headers)
+        self.assertEqual('application/json', response.content_type)
+        self.assertEqual(http_client.OK, response.status_code)
+
     def test_update_conductor_group_old_api(self):
         node = obj_utils.create_test_node(self.context,
                                           uuid=uuidutils.generate_uuid())
@@ -2728,8 +2781,16 @@ class TestPost(test_api_base.BaseApiTest):
             # Check that 'id' is not in first arg of positional args
             self.assertNotIn('id', cn_mock.call_args[0][0])
 
+    def test_create_node_specify_conductor_group(self):
+        headers = {api_base.Version.string: '1.46'}
+        ndict = test_api_utils.post_get_test_node(conductor_group='foo')
+        self.post_json('/nodes', ndict, headers=headers)
+
+        result = self.get_json('/nodes/%s' % ndict['uuid'], headers=headers)
+        self.assertEqual('foo', result['conductor_group'])
+
     def test_create_node_specify_conductor_group_bad_version(self):
-        headers = {api_base.Version.string: '1.43'}
+        headers = {api_base.Version.string: '1.44'}
         ndict = test_api_utils.post_get_test_node(conductor_group='foo')
         response = self.post_json('/nodes', ndict, headers=headers,
                                   expect_errors=True)

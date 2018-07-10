@@ -83,6 +83,7 @@ BASE_VERSION = 1
 # v1.43: Add detail=True flag to all API endpoints
 # v1.44: Add node deploy_step field
 # v1.45: reset_interfaces parameter to node's PATCH
+# v1.46: Add conductor_group to the node object.
 
 MINOR_0_JUNO = 0
 MINOR_1_INITIAL_VERSION = 1
@@ -130,6 +131,7 @@ MINOR_42_FAULT = 42
 MINOR_43_ENABLE_DETAIL_QUERY = 43
 MINOR_44_NODE_DEPLOY_STEP = 44
 MINOR_45_RESET_INTERFACES = 45
+MINOR_46_NODE_CONDUCTOR_GROUP = 46
 
 # When adding another version, update:
 # - MINOR_MAX_VERSION
@@ -137,7 +139,7 @@ MINOR_45_RESET_INTERFACES = 45
 #   explanation of what changed in the new version
 # - common/release_mappings.py, RELEASE_MAPPING['master']['api']
 
-MINOR_MAX_VERSION = MINOR_45_RESET_INTERFACES
+MINOR_MAX_VERSION = MINOR_46_NODE_CONDUCTOR_GROUP
 
 # String representations of the minor and maximum versions
 _MIN_VERSION_STRING = '{}.{}'.format(BASE_VERSION, MINOR_1_INITIAL_VERSION)
