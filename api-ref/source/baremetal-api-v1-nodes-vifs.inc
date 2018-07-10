@@ -22,14 +22,20 @@ Normal response code: 200
 
 Error codes: 400,401,403,404
 
+Request
+-------
+
+.. rest_parameters:: parameters.yaml
+
+    - node_ident: node_ident
+
 Response
 --------
 
 .. rest_parameters:: parameters.yaml
 
-    - id: node_vif_ident
     - vifs: n_vifs
-    - node_ident: node_ident
+    - id: node_vif_ident
 
 **Example list of VIFs that are attached to the node:**
 
