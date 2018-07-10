@@ -138,14 +138,13 @@ An example of this is shown in the :ref:`enrollment` section.
 
    .. code-block:: console
 
-      $ neutron net-create --tenant-id $TENANT_ID sharednet1 --shared \
-            --provider:network_type flat --provider:physical_network physnet1
+      $ openstack network create --project $TENANT_ID sharednet1 --share \
+           --provider-network-type flat --provider-physical-network physnet1
 
 #. Create the subnet on the newly created network:
 
    .. code-block:: console
 
-      $ neutron subnet-create sharednet1 $NETWORK_CIDR --name $SUBNET_NAME \
-            --ip-version=4 --gateway=$GATEWAY_IP --allocation-pool \
-            start=$START_IP,end=$END_IP --enable-dhcp
-
+      $ openstack subnet create $SUBNET_NAME --network sharednet1 \
+        --subnet-range $NETWORK_CIDR --ip-version 4 --gateway $GATEWAY_IP \
+        --allocation-pool start=$START_IP,end=$END_IP --dhcp
