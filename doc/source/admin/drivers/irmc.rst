@@ -449,7 +449,7 @@ configuration:
           "logical_disks":
             [
               {
-                "size_gb": "Max",
+                "size_gb": "MAX",
                 "raid_level": "1+0"
               }
             ]
