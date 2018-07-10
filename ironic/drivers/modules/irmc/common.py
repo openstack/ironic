@@ -21,6 +21,8 @@ import six
 
 from ironic.common import exception
 from ironic.common.i18n import _
+from ironic.common import raid as raid_common
+from ironic.conductor import utils as manager_utils
 from ironic.conf import CONF
 
 scci = importutils.try_import('scciclient.irmc.scci')
@@ -219,3 +221,9 @@ def set_secure_boot_mode(node, enable):
         raise exception.IRMCOperationError(
             operation=_("setting secure boot mode"),
             error=irmc_exception)
+
+
+def resume_cleaning(task):
+    raid_common.update_raid_info(
+        task.node, task.node.raid_config)
+    manager_utils.notify_conductor_resume_clean(task)

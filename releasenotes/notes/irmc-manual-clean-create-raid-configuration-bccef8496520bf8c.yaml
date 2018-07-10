@@ -1,0 +1,6 @@
+---
+features:
+  - Adds out-of-band RAID configuration solution for the iRMC driver which
+    makes the functionality available via manual cleaning.
+    See `iRMC hardware type documentation <https://docs.openstack.org/ironic/latest/admin/drivers/irmc.html>`_
+    for more details.
