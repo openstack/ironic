@@ -20,6 +20,7 @@ from ironic.drivers import generic
 from ironic.drivers.modules import agent
 from ironic.drivers.modules import inspector
 from ironic.drivers.modules import ipmitool
+from ironic.drivers.modules.irmc import bios
 from ironic.drivers.modules.irmc import boot
 from ironic.drivers.modules.irmc import inspect
 from ironic.drivers.modules.irmc import management
@@ -35,6 +36,11 @@ class IRMCHardware(generic.GenericHardware):
     iRMC hardware type is targeted for FUJITSU PRIMERGY servers which
     have iRMC S4 management system.
     """
+
+    @property
+    def supported_bios_interfaces(self):
+        """List of supported bios interfaces."""
+        return [bios.IRMCBIOS, noop.NoBIOS]
 
     @property
     def supported_boot_interfaces(self):

@@ -39,6 +39,7 @@ class BaseIRMCTest(db_base.DbTestCase):
         self.config(enabled_hardware_types=['irmc', 'fake-hardware'],
                     enabled_power_interfaces=['irmc', 'fake'],
                     enabled_management_interfaces=['irmc', 'fake'],
+                    enabled_bios_interfaces=['irmc', 'no-bios', 'fake'],
                     enabled_boot_interfaces=[self.boot_interface, 'fake'],
                     enabled_inspect_interfaces=['irmc', 'no-inspect', 'fake'])
         self.info = db_utils.get_test_irmc_info()
