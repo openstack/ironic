@@ -295,8 +295,9 @@ service_opts = [
                help=_('Name of this node. This can be an opaque identifier. '
                       'It is not necessarily a hostname, FQDN, or IP address. '
                       'However, the node name must be valid within '
-                      'an AMQP key, and if using ZeroMQ, a valid '
-                      'hostname, FQDN, or IP address.')),
+                      'an AMQP key, and if using ZeroMQ (will be removed in '
+                      'the Stein release), a valid hostname, FQDN, '
+                      'or IP address.')),
     cfg.StrOpt('pin_release_version',
                choices=versions.RELEASE_VERSIONS_DESCS,
                mutable=True,
