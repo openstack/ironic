@@ -38,7 +38,8 @@ class RedfishManagementTestCase(db_base.DbTestCase):
         self.config(enabled_hardware_types=['redfish'],
                     enabled_power_interfaces=['redfish'],
                     enabled_management_interfaces=['redfish'],
-                    enabled_inspect_interfaces=['redfish'])
+                    enabled_inspect_interfaces=['redfish'],
+                    enabled_bios_interfaces=['redfish'])
         self.node = obj_utils.create_test_node(
             self.context, driver='redfish', driver_info=INFO_DICT)
 

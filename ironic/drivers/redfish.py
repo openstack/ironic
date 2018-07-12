@@ -16,6 +16,7 @@
 from ironic.drivers import generic
 from ironic.drivers.modules import inspector
 from ironic.drivers.modules import noop
+from ironic.drivers.modules.redfish import bios as redfish_bios
 from ironic.drivers.modules.redfish import inspect as redfish_inspect
 from ironic.drivers.modules.redfish import management as redfish_mgmt
 from ironic.drivers.modules.redfish import power as redfish_power
@@ -23,6 +24,11 @@ from ironic.drivers.modules.redfish import power as redfish_power
 
 class RedfishHardware(generic.GenericHardware):
     """Redfish hardware type."""
+
+    @property
+    def supported_bios_interfaces(self):
+        """List of supported bios interfaces."""
+        return [redfish_bios.RedfishBIOS, noop.NoBIOS]
 
     @property
     def supported_management_interfaces(self):
