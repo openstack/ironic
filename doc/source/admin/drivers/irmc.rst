@@ -18,7 +18,7 @@ Prerequisites
 * Install `python-scciclient <https://pypi.org/project/python-scciclient>`_
   and `pysnmp <https://pypi.org/project/pysnmp>`_ packages::
 
-  $ pip install "python-scciclient>=0.7.1" pysnmp
+  $ pip install "python-scciclient>=0.7.2" pysnmp
 
 Hardware Type
 =============
@@ -101,7 +101,7 @@ Here is a command example to enroll a node with ``irmc`` hardware type.
 
 .. code-block:: console
 
-   openstack baremetal node create --os-baremetal-api-version=1.31 \
+   openstack baremetal node create \
       --bios-interface irmc \
       --boot-interface irmc-pxe \
       --deploy-interface direct \
@@ -494,7 +494,7 @@ The ``irmc`` hardware type provides the iRMC BIOS configuration with ``irmc``
 bios interface.
 
 .. warning::
-     ``irmc`` bios interface does not support``factory_reset``.
+     ``irmc`` bios interface does not support ``factory_reset``.
 
 
 Configuration
@@ -502,45 +502,45 @@ Configuration
 
 The BIOS configuration in the iRMC driver supports the following settings:
 
-  - ``boot_option_filter``: Specifies from which drives can be booted. This
-    supports following options: ``UefiAndLegacy``, ``LegacyOnly``, ``UefiOnly``.
-  - ``check_controllers_health_status_enabled``: The UEFI FW checks the
-    controller health status. This supports following options: ``true``, ``false``.
-  - ``cpu_active_processor_cores``: The number of active processor cores 1...n.
-    Option 0 indicates that all available processor cores are active.
-  - ``cpu_adjacent_cache_line_prefetch_enabled``: The processor loads the requested
-    cache line and the adjacent cache line. This supports following options:
-    ``true``, ``false``.
-  - ``cpu_vt_enabled``: Supports the virtualization of platform hardware and
-    several software environments, based on Virtual Machine Extensions to
-    support the use of several software environments using virtual computers.
-    This supports following options: ``true``, ``false``.
-  - ``flash_write_enabled``: The system BIOS can be written. Flash BIOS update
-    is possible. This supports following options: ``true``, ``false``.
-  - ``hyper_threading_enabled``: Hyper-threading technology allows a single
-    physical processor core to appear as several logical processors. This
-    supports following options: ``true``, ``false``.
-  - ``keep_void_boot_options_enabled``: Boot Options will not be removed from
-    "Boot Option Priority" list. This supports following options: ``true``,
-    ``false``.
-  - ``launch_csm_enabled``: Specifies whether the Compatibility Support Module
-    (CSM) is executed. This supports following options: ``true``, ``false``.
-  - ``os_energy_performance_override_enabled``: Prevents the OS from overruling
-    any energy efficiency policy setting of the setup. This supports following
-    options: ``true``, ``false``.
-  - ``pci_aspm_support``: Active State Power Management (ASPM) is used to
-    power-manage the PCI Express links, thus consuming less power. This
-    supports following options: ``Disabled``, ``Auto``, ``L0Limited``,
-    ``L1only``, ``L0Force``.
-  - ``pci_above_4g_decoding_enabled``: Specifies if memory resources above the
-    4GB address boundary can be assigned to PCI devices. This supports
-    following options: ``true``, ``false``.
-  - ``power_on_source``: Specifies whether the switch on sources for the system
-    are managed by the BIOS or the ACPI operating system. This supports
-    following options: ``BiosControlled``, ``AcpiControlled``.
-  - ``single_root_io_virtualization_support_enabled``: Single Root IO
-    Virtualization Support is active. This supports following
-    options: ``true``, ``false``.
+- ``boot_option_filter``: Specifies from which drives can be booted. This
+  supports following options: ``UefiAndLegacy``, ``LegacyOnly``, ``UefiOnly``.
+- ``check_controllers_health_status_enabled``: The UEFI FW checks the
+  controller health status. This supports following options: ``true``, ``false``.
+- ``cpu_active_processor_cores``: The number of active processor cores 1...n.
+  Option 0 indicates that all available processor cores are active.
+- ``cpu_adjacent_cache_line_prefetch_enabled``: The processor loads the requested
+  cache line and the adjacent cache line. This supports following options:
+  ``true``, ``false``.
+- ``cpu_vt_enabled``: Supports the virtualization of platform hardware and
+  several software environments, based on Virtual Machine Extensions to
+  support the use of several software environments using virtual computers.
+  This supports following options: ``true``, ``false``.
+- ``flash_write_enabled``: The system BIOS can be written. Flash BIOS update
+  is possible. This supports following options: ``true``, ``false``.
+- ``hyper_threading_enabled``: Hyper-threading technology allows a single
+  physical processor core to appear as several logical processors. This
+  supports following options: ``true``, ``false``.
+- ``keep_void_boot_options_enabled``: Boot Options will not be removed from
+  "Boot Option Priority" list. This supports following options: ``true``,
+  ``false``.
+- ``launch_csm_enabled``: Specifies whether the Compatibility Support Module
+  (CSM) is executed. This supports following options: ``true``, ``false``.
+- ``os_energy_performance_override_enabled``: Prevents the OS from overruling
+  any energy efficiency policy setting of the setup. This supports following
+  options: ``true``, ``false``.
+- ``pci_aspm_support``: Active State Power Management (ASPM) is used to
+  power-manage the PCI Express links, thus consuming less power. This
+  supports following options: ``Disabled``, ``Auto``, ``L0Limited``,
+  ``L1only``, ``L0Force``.
+- ``pci_above_4g_decoding_enabled``: Specifies if memory resources above the
+  4GB address boundary can be assigned to PCI devices. This supports
+  following options: ``true``, ``false``.
+- ``power_on_source``: Specifies whether the switch on sources for the system
+  are managed by the BIOS or the ACPI operating system. This supports
+  following options: ``BiosControlled``, ``AcpiControlled``.
+- ``single_root_io_virtualization_support_enabled``: Single Root IO
+  Virtualization Support is active. This supports following
+  options: ``true``, ``false``.
 
 The BIOS configuration is supported as a manual cleaning step. See :ref:`bios`
 for more details and examples.
