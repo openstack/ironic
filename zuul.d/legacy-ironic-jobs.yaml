@@ -93,12 +93,6 @@
     nodeset: legacy-ubuntu-xenial-2-node
 
 - job:
-    name: ironic-tempest-dsvm-ipa-partition-redfish-tinyipa
-    parent: legacy-ironic-dsvm-base
-    run: playbooks/legacy/tempest-dsvm-ironic-ipa-partition-redfish-tinyipa/run.yaml
-    timeout: 5400
-
-- job:
     name: ironic-tempest-dsvm-bfv
     parent: legacy-ironic-dsvm-base
     run: playbooks/legacy/tempest-dsvm-ironic-bfv/run.yaml

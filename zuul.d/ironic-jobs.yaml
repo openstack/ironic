@@ -124,3 +124,17 @@
         s-container: True
         s-object: True
         s-proxy: True
+
+- job:
+    name: ironic-tempest-dsvm-ipa-partition-redfish-tinyipa
+    description: ironic-tempest-dsvm-ipa-partition-redfish-tinyipa
+    parent: ironic-base
+    timeout: 5400
+    irrelevant-files:
+      - ^driver-requirements.txt$
+    vars:
+      tempest_concurrency: 1
+      devstack_localrc:
+        IRONIC_DEPLOY_DRIVER: redfish
+        IRONIC_ENABLED_HARDWARE_TYPES: redfish
+        IRONIC_TEMPEST_WHOLE_DISK_IMAGE: False
