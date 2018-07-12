@@ -1,0 +1,126 @@
+- job:
+    name: ironic-base
+    description: Base job for devstack/tempest based ironic jobs.
+    parent: devstack-tempest
+    timeout: 10800
+    required-projects:
+      - openstack/ironic
+      - openstack/ironic-python-agent
+      - openstack/ironic-tempest-plugin
+      - openstack/pyghmi
+      - openstack/virtualbmc
+    irrelevant-files:
+      - ^.*\.rst$
+      - ^api-ref/.*$
+      - ^doc/.*$
+      - ^install-guide/.*$
+      - ^ironic/locale/.*$
+      - ^ironic/tests/.*$
+      - ^releasenotes/.*$
+      - ^setup.cfg$
+      - ^tools/.*$
+      - ^tox.ini$
+    vars:
+      tox_envlist: all
+      tempest_test_regex: ironic_tempest_plugin.tests.scenario
+      tempest_concurrency: 1
+      devstack_localrc:
+        DEFAULT_INSTANCE_TYPE: baremetal
+        FORCE_CONFIG_DRIVE: True
+        INSTALL_TEMPEST: False # Don't install a tempest package globaly
+        OVERRIDE_PUBLIC_BRIDGE_MTU: 1400
+        TEMPEST_PLUGINS: "'{{ ansible_user_dir }}/src/git.openstack.org/openstack/ironic-tempest-plugin'"
+        VIRT_DRIVER: ironic
+
+        IRONIC_BAREMETAL_BASIC_OPS: True
+        IRONIC_BUILD_DEPLOY_RAMDISK: False
+        IRONIC_CALLBACK_TIMEOUT: 600
+        IRONIC_DEPLOY_DRIVER: ipmi
+        IRONIC_INSPECTOR_BUILD_RAMDISK: False
+        IRONIC_RAMDISK_TYPE: tinyipa
+        IRONIC_TEMPEST_BUILD_TIMEOUT: 600
+        IRONIC_VM_COUNT: 1
+        IRONIC_VM_EPHEMERAL_DISK: 1
+        IRONIC_VM_LOG_DIR: '{{ devstack_base_dir }}/ironic-bm-logs'
+        IRONIC_VM_SPECS_RAM: 384
+
+        Q_AGENT: openvswitch
+        Q_ML2_TENANT_NETWORK_TYPE: vxlan
+
+        SWIFT_ENABLE_TEMPURLS: True
+        SWIFT_TEMPURL_KEY: secretkey
+      devstack_plugins:
+        ironic: git://git.openstack.org/openstack/ironic
+      zuul_copy_output:
+        '{{ devstack_base_dir }}/ironic-bm-logs': 'logs'
+      devstack_services:
+        c-api: False
+        c-bak: False
+        c-sch: False
+        c-vol: False
+        cinder: False
+
+        s-account: False
+        s-container: False
+        s-object: False
+        s-proxy: False
+
+        dstat: True
+        g-api: True
+        g-reg: True
+        key: True
+        mysql: True
+        n-api: True
+        n-api-meta: True
+        n-cauth: True
+        n-cond: True
+        n-cpu: True
+        n-novnc: True
+        n-obj: True
+        n-sch: True
+        placement-api: True
+        q-agt: False
+        q-dhcp: False
+        q-l3: False
+        q-meta: False
+        q-metering: False
+        q-svc: False
+        neutron-api: True
+        neutron-agent: True
+        neutron-dhcp: True
+        neutron-l3: True
+        neutron-metadata-agent: True
+        neutron-metering: True
+        rabbit: True
+
+- job:
+    name: ironic-dsvm-standalone
+    description: Test ironic standalone
+    parent: ironic-base
+    irrelevant-files:
+      - ^test-requirements.txt$
+    vars:
+      tempest_test_regex: ironic_standalone
+      tempest_concurrency: 4
+      devstack_localrc:
+        FORCE_CONFIG_DRIVE: False
+
+        IRONIC_AUTOMATED_CLEAN_ENABLED: False
+        IRONIC_DEFAULT_DEPLOY_INTERFACE: direct
+        IRONIC_ENABLED_DEPLOY_INTERFACES: "iscsi,direct,ansible"
+        IRONIC_VM_COUNT: 6
+      devstack_services:
+        n-api: False
+        n-api-meta: False
+        n-cauth: False
+        n-cond: False
+        n-cpu: False
+        n-novnc: False
+        n-obj: False
+        n-sch: False
+        nova: False
+        placement-api: False
+        s-account: True
+        s-container: True
+        s-object: True
+        s-proxy: True
