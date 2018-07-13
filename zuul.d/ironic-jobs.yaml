@@ -31,7 +31,7 @@
         OVERRIDE_PUBLIC_BRIDGE_MTU: 1400
         TEMPEST_PLUGINS: "'{{ ansible_user_dir }}/src/git.openstack.org/openstack/ironic-tempest-plugin'"
         VIRT_DRIVER: ironic
-
+        BUILD_TIMEOUT: 600
         IRONIC_BAREMETAL_BASIC_OPS: True
         IRONIC_BUILD_DEPLOY_RAMDISK: False
         IRONIC_CALLBACK_TIMEOUT: 600
