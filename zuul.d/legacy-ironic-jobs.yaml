@@ -26,6 +26,9 @@
     pre-run: playbooks/legacy/ironic-dsvm-base/pre.yaml
     post-run: playbooks/legacy/ironic-dsvm-base/post.yaml
 
+# TODO(TheJulia): When we migrate to a non-legacy job, we will need to set the BUILD_TIMEOUT
+# and the DEVSTACK_GATE_TEMPEST_BAREMETAL_BUILD_TIMEOUT to 1200 seconds to prevent
+# needless CI job timeouts as the scale of the job is greater than a normal test jobs.
 - job:
     name: legacy-ironic-dsvm-base-multinode
     parent: legacy-dsvm-base-multinode
@@ -115,6 +118,9 @@
       - openstack/tempest
       - openstack/virtualbmc
 
+# TODO(TheJulia): When we migrate to a non-legacy job, we will need to set the BUILD_TIMEOUT
+# and the DEVSTACK_GATE_TEMPEST_BAREMETAL_BUILD_TIMEOUT to 1200 seconds to prevent
+# needless CI job timeouts as the scale of the job is greater than a normal test jobs.
 - job:
     name: ironic-grenade-dsvm
     parent: legacy-ironic-dsvm-base
