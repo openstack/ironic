@@ -26,7 +26,7 @@ Project resources
 
 * Documentation: https://docs.openstack.org/ironic/latest
 * Source: https://git.openstack.org/cgit/openstack/ironic
-* Bugs: https://bugs.launchpad.net/ironic
+* Bugs: https://storyboard.openstack.org/#!/project/943
 * Wiki: https://wiki.openstack.org/wiki/Ironic
 * APIs: https://developer.openstack.org/api-ref/baremetal/index.html
 * Release Notes: https://docs.openstack.org/releasenotes/ironic/
