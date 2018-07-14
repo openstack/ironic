@@ -102,5 +102,5 @@ For detailed information on how to add consoles see the reference documents
 In case of local boot the Bare Metal service is not able to control kernel boot
 parameters.  To configure console locally, follow 'Local boot' section above.
 
-.. _`kernel params`: https://www.kernel.org/doc/Documentation/kernel-parameters.txt
-.. _`serial console`: https://www.kernel.org/doc/Documentation/serial-console.txt
+.. _`kernel params`: https://www.kernel.org/doc/html/latest/admin-guide/kernel-parameters.html
+.. _`serial console`: https://www.kernel.org/doc/html/latest/admin-guide/serial-console.html
