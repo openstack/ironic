@@ -61,7 +61,8 @@ class Node(base.IronicObject, object_base.VersionedObjectDictCompat):
     # Version 1.23: Add traits field
     # Version 1.24: Add bios_interface field
     # Version 1.25: Add fault field
-    VERSION = '1.25'
+    # Version 1.26: Add deploy_step field
+    VERSION = '1.26'
 
     dbapi = db_api.get_instance()
 
@@ -81,6 +82,11 @@ class Node(base.IronicObject, object_base.VersionedObjectDictCompat):
         # being executed, or None, indicating cleaning is not in progress
         # or has not yet started.
         'clean_step': object_fields.FlexibleDictField(nullable=True),
+
+        # A deploy step dictionary, indicating the current step
+        # being executed, or None, indicating deployment is not in progress
+        # or has not yet started.
+        'deploy_step': object_fields.FlexibleDictField(nullable=True),
 
         'raid_config': object_fields.FlexibleDictField(nullable=True),
         'target_raid_config': object_fields.FlexibleDictField(nullable=True),
@@ -477,6 +483,22 @@ class Node(base.IronicObject, object_base.VersionedObjectDictCompat):
             elif self.fault is not None:
                 self.fault = None
 
+    def _convert_deploy_step_field(self, target_version,
+                                   remove_unavailable_fields=True):
+        # NOTE(rloo): Typically we set the value to None. However,
+        # deploy_step is a FlexibleDictField. Setting it to None
+        # causes it to be set to {} under-the-hood. So I am being
+        # explicit about that here.
+        step_is_set = self.obj_attr_is_set('deploy_step')
+        if target_version >= (1, 26):
+            if not step_is_set:
+                self.deploy_step = {}
+        elif step_is_set:
+            if remove_unavailable_fields:
+                delattr(self, 'deploy_step')
+            elif self.deploy_step:
+                self.deploy_step = {}
+
     def _convert_to_version(self, target_version,
                             remove_unavailable_fields=True):
         """Convert to the target version.
@@ -495,6 +517,8 @@ class Node(base.IronicObject, object_base.VersionedObjectDictCompat):
             None. For versions prior to this, it should be set to None (or
             removed).
         Version 1.25: fault field was added. For versions prior to
+            this, it should be removed.
+        Version 1.26: deploy_step field was added. For versions prior to
             this, it should be removed.
 
         :param target_version: the desired version of the object
@@ -547,6 +571,8 @@ class Node(base.IronicObject, object_base.VersionedObjectDictCompat):
                 self.bios_interface = None
 
         self._convert_fault_field(target_version, remove_unavailable_fields)
+        self._convert_deploy_step_field(target_version,
+                                        remove_unavailable_fields)
 
 
 @base.IronicObjectRegistry.register
