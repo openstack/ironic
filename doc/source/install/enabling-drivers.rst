@@ -5,24 +5,16 @@ Introduction
 ------------
 
 The Bare Metal service delegates actual hardware management to **drivers**.
-Starting with the Ocata release, two types of drivers are supported:
-*classic drivers*  and the newer *hardware types* (for example, generic
-``redfish`` and ``ipmi`` or vendor-specific ``ilo`` and ``irmc``).
+*Drivers*, also called *hardware types*, consist of *hardware interfaces*:
+sets of functionality dealing with some aspect of bare metal provisioning
+in a vendor-specific way. There are generic **hardware types** (eg.
+``redfish`` and ``ipmi``), and vendor-specific ones (eg. ``ilo`` and
+``irmc``).
 
-Drivers, in turn, consist of *hardware interfaces*: sets of functionality
-dealing with some aspect of bare metal provisioning in a vendor-specific way.
-*Classic drivers* have all *hardware interfaces* hardcoded, while *hardware
-types* only declare which *hardware interfaces* they are compatible with.
-
-Please refer to the `driver composition reform specification`_
-for technical details behind *hardware types*.
-
-.. TODO(dtantsur): write devdocs on the driver composition and stop linking
-                   to the specification.
-
-From API user's point of view, both *classic drivers* and *hardware types* can
-be assigned to the ``driver`` field of a node. However, they are configured
-differently.
+.. note::
+   Starting with the Rocky release, the terminologies *driver*,
+   *dynamic driver*, and *hardware type* have the same meaning
+   in the scope of Bare Metal service.
 
 .. _enable-hardware-types:
 
@@ -130,9 +122,8 @@ management
     Using ``ipmitool`` requires :doc:`configure-ipmi`. See
     :doc:`/admin/drivers` for the required configuration of each driver.
 network
-    connects/disconnects bare metal nodes to/from virtual networks. This is
-    the only interface that is also pluggable for classic drivers. See
-    :doc:`configure-tenant-networks` for more details.
+    connects/disconnects bare metal nodes to/from virtual networks.
+    See :doc:`configure-tenant-networks` for more details.
 power
     runs power actions on nodes. Similar to the management interface, it is
     usually vendor-specific, and its name often matches the name of the
@@ -300,6 +291,5 @@ existing nodes.
    support the provided default implementation, its users will have to always
    provide an explicit value for this interface when creating a node.
 
-.. _driver composition reform specification: https://specs.openstack.org/openstack/ironic-specs/specs/approved/driver-composition-reform.html
 .. _setup.cfg: https://git.openstack.org/cgit/openstack/ironic/tree/setup.cfg
 .. _ironic-inspector: https://docs.openstack.org/ironic-inspector/latest/

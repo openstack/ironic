@@ -29,10 +29,6 @@ the following command against that API end point::
 
   openstack baremetal driver list
 
-.. note::
-    This listing also includes *classic drivers* which are deprecated and
-    are not covered by this guide.
-
 Writing a hardware type
 -----------------------
 

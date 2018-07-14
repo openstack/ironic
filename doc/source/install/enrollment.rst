@@ -30,27 +30,12 @@ Choosing a driver
 
 When enrolling a node, the most important information to supply is *driver*.
 See :doc:`enabling-drivers` for a detailed explanation of bare metal drivers,
-hardware types and interfaces. Starting with the Pike release, we recommend
-the use of *hardware types* instead of *classic drivers*, since classic drivers
-may be deprecated in the near future. The ``driver list`` command can be used
+hardware types and interfaces. The ``driver list`` command can be used
 to list all drivers enabled on all hosts:
 
 .. code-block:: console
 
     openstack baremetal driver list
-    +---------------------+-----------------------+
-    | Supported driver(s) | Active host(s)        |
-    +---------------------+-----------------------+
-    | ipmi                | localhost.localdomain |
-    +---------------------+-----------------------+
-
-Starting with API version 1.31 (and ``python-ironicclient`` 1.13), you can
-also list only classic drivers or only hardware types via the ``--type``
-argument:
-
-.. code-block:: console
-
-    openstack baremetal --os-baremetal-api-version 1.31 driver list --type dynamic
     +---------------------+-----------------------+
     | Supported driver(s) | Active host(s)        |
     +---------------------+-----------------------+
@@ -179,9 +164,7 @@ and may be combined if desired.
    pick which hardware interface to use with nodes that use hardware types.
    Each interface is represented by a node field called ``<IFACE>_interface``
    where ``<IFACE>`` in the interface type, e.g. ``boot``. See
-   :doc:`enabling-drivers` for details on hardware interfaces and
-   :doc:`/admin/upgrade-to-hardware-types` for the matching between classic
-   drivers and hardware types.
+   :doc:`enabling-drivers` for details on hardware interfaces.
 
    An interface can be set either separately:
 
@@ -201,10 +184,6 @@ and may be combined if desired.
 
    If no value is provided for some interfaces, `Defaults for hardware
    interfaces`_ are used instead.
-
-   It's an error to try changing this field for a node with a *classic driver*,
-   and setting node's driver to classic one causes these fields to be set
-   to ``None`` automatically.
 
 #. Update the node ``driver_info`` with the required driver properties, so that
    the Bare Metal service can manage the node:
@@ -575,8 +554,6 @@ UUID interchangeably:
 Defaults for hardware interfaces
 --------------------------------
 
-For *classic drivers* all hardware interface implementations (except for the
-*network interface*) are hardcoded and cannot be changed.
 For *hardware types*, users can request one of enabled implementations when
 creating or updating a node as explained in `Creating a node`_.
 
