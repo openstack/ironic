@@ -1,0 +1,10 @@
+---
+features:
+  - |
+    Adds a new configuration option ``[pxe]pxe_config_subdir`` to allow
+    operators to define the specific directory that may be used inside of
+    ``/tftpboot`` or ``/httpboot`` for a boot loader to locate the
+    configuration file for the node. This option defaults to ``pxelinux.cfg``
+    which is the directory that the Syslinux `pxelinux.0` bootloader utilized.
+    Operators may wish to change the directory name if they are using other boot
+    loaders such as `GRUB` or `iPXE`.

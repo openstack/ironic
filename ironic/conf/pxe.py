@@ -92,6 +92,13 @@ opts = [
     cfg.StrOpt('pxe_bootfile_name',
                default='pxelinux.0',
                help=_('Bootfile DHCP parameter.')),
+    cfg.StrOpt('pxe_config_subdir',
+               default='pxelinux.cfg',
+               help=_('Directory in which to create symbolic links which '
+                      'represent the MAC or IP address of the the ports on '
+                      'a node and allow boot loaders to load the PXE '
+                      'file for the node. This directory name is relative '
+                      'to the PXE or iPXE folders.')),
     cfg.StrOpt('uefi_pxe_bootfile_name',
                default='bootx64.efi',
                help=_('Bootfile DHCP parameter for UEFI boot mode.')),
