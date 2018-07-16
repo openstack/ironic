@@ -86,6 +86,9 @@ supplied when the Node is created, or the resource may be updated later.
   Introduced the ``rescue_interface`` field. If this field is not supplied
   when creating the Node, the default value will be used.
 
+.. versionadded:: 1.44
+  Introduced the ``deploy_step`` field.
+
 Normal response codes: 201
 
 Error codes: 400,403,406
@@ -132,7 +135,7 @@ and any defaults added for non-specified fields. Most fields default to "null"
 or "".
 
 The list and example below are representative of the response as of API
-microversion 1.43.
+microversion 1.44.
 
 .. rest_parameters:: parameters.yaml
 
@@ -159,6 +162,7 @@ microversion 1.43.
     - raid_config: raid_config
     - target_raid_config: target_raid_config
     - clean_step: clean_step
+    - deploy_step: deploy_step
     - links: links
     - ports: n_ports
     - portgroups: n_portgroups
@@ -333,6 +337,7 @@ Response
     - raid_config: raid_config
     - target_raid_config: target_raid_config
     - clean_step: clean_step
+    - deploy_step: deploy_step
     - links: links
     - ports: n_ports
     - portgroups: n_portgroups
@@ -416,6 +421,7 @@ Response
     - raid_config: raid_config
     - target_raid_config: target_raid_config
     - clean_step: clean_step
+    - deploy_step: deploy_step
     - links: links
     - ports: n_ports
     - portgroups: n_portgroups
@@ -500,6 +506,7 @@ Response
     - raid_config: raid_config
     - target_raid_config: target_raid_config
     - clean_step: clean_step
+    - deploy_step: deploy_step
     - links: links
     - ports: n_ports
     - portgroups: n_portgroups

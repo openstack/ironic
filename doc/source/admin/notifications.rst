@@ -132,12 +132,13 @@ Example of node CRUD notification::
     "payload":{
         "ironic_object.namespace":"ironic",
         "ironic_object.name":"NodeCRUDPayload",
-        "ironic_object.version":"1.5",
+        "ironic_object.version":"1.6",
         "ironic_object.data":{
             "chassis_uuid": "db0eef9d-45b2-4dc0-94a8-fc283c01171f",
             "clean_step": None,
             "console_enabled": False,
             "created_at": "2016-01-26T20:41:03+00:00",
+            "deploy_step": None,
             "driver": "ipmi",
             "driver_info": {
                 "ipmi_address": "192.168.0.111",
@@ -359,7 +360,7 @@ node maintenance notification::
     "payload":{
         "ironic_object.namespace":"ironic",
         "ironic_object.name":"NodePayload",
-        "ironic_object.version":"1.8",
+        "ironic_object.version":"1.9",
         "ironic_object.data":{
             "clean_step": None,
             "console_enabled": False,
@@ -440,7 +441,7 @@ level, "error" has ERROR. Example of node console notification::
     "payload":{
         "ironic_object.namespace":"ironic",
         "ironic_object.name":"NodePayload",
-        "ironic_object.version":"1.8",
+        "ironic_object.version":"1.9",
         "ironic_object.data":{
             "clean_step": None,
             "console_enabled": True,
@@ -515,11 +516,12 @@ ironic-conductor is attempting to change the node::
     "payload":{
         "ironic_object.namespace":"ironic",
         "ironic_object.name":"NodeSetPowerStatePayload",
-        "ironic_object.version":"1.7",
+        "ironic_object.version":"1.9",
         "ironic_object.data":{
             "clean_step": None,
             "console_enabled": False,
             "created_at": "2016-01-26T20:41:03+00:00",
+            "deploy_step": None,
             "driver": "ipmi",
             "extra": {},
             "inspection_finished_at": None,
@@ -583,11 +585,12 @@ prior to the correction::
     "payload":{
         "ironic_object.namespace":"ironic",
         "ironic_object.name":"NodeCorrectedPowerStatePayload",
-        "ironic_object.version":"1.7",
+        "ironic_object.version":"1.9",
         "ironic_object.data":{
             "clean_step": None,
             "console_enabled": False,
             "created_at": "2016-01-26T20:41:03+00:00",
+            "deploy_step": None,
             "driver": "ipmi",
             "extra": {},
             "inspection_finished_at": None,
@@ -662,11 +665,12 @@ indicate a node's provision states before state change, "event" is the FSM
     "payload":{
         "ironic_object.namespace":"ironic",
         "ironic_object.name":"NodeSetProvisionStatePayload",
-        "ironic_object.version":"1.7",
+        "ironic_object.version":"1.9",
         "ironic_object.data":{
             "clean_step": None,
             "console_enabled": False,
             "created_at": "2016-01-26T20:41:03+00:00",
+            "deploy_step": None,
             "driver": "ipmi",
             "extra": {},
             "inspection_finished_at": None,

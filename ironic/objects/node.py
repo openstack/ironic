@@ -633,11 +633,13 @@ class NodePayload(notification.NotificationPayloadBase):
     # Version 1.6: Add traits field exposed via API.
     # Version 1.7: Add fault field exposed via API.
     # Version 1.8: Add bios interface field exposed via API.
-    VERSION = '1.8'
+    # Version 1.9: Add deploy_step field exposed via API.
+    VERSION = '1.9'
     fields = {
         'clean_step': object_fields.FlexibleDictField(nullable=True),
         'console_enabled': object_fields.BooleanField(nullable=True),
         'created_at': object_fields.DateTimeField(nullable=True),
+        'deploy_step': object_fields.FlexibleDictField(nullable=True),
         'driver': object_fields.StringField(nullable=True),
         'extra': object_fields.FlexibleDictField(nullable=True),
         'inspection_finished_at': object_fields.DateTimeField(nullable=True),
@@ -706,7 +708,8 @@ class NodeSetPowerStatePayload(NodePayload):
     # Version 1.6: Parent NodePayload version 1.6
     # Version 1.7: Parent NodePayload version 1.7
     # Version 1.8: Parent NodePayload version 1.8
-    VERSION = '1.8'
+    # Version 1.9: Parent NodePayload version 1.9
+    VERSION = '1.9'
 
     fields = {
         # "to_power" indicates the future target_power_state of the node. A
@@ -755,7 +758,8 @@ class NodeCorrectedPowerStatePayload(NodePayload):
     # Version 1.6: Parent NodePayload version 1.6
     # Version 1.7: Parent NodePayload version 1.7
     # Version 1.8: Parent NodePayload version 1.8
-    VERSION = '1.8'
+    # Version 1.9: Parent NodePayload version 1.9
+    VERSION = '1.9'
 
     fields = {
         'from_power': object_fields.StringField(nullable=True)
@@ -788,7 +792,8 @@ class NodeSetProvisionStatePayload(NodePayload):
     # Version 1.6: Parent NodePayload version 1.6
     # Version 1.7: Parent NodePayload version 1.7
     # Version 1.8: Parent NodePayload version 1.8
-    VERSION = '1.8'
+    # Version 1.9: Parent NodePayload version 1.9
+    VERSION = '1.9'
 
     SCHEMA = dict(NodePayload.SCHEMA,
                   **{'instance_info': ('node', 'instance_info')})
@@ -828,7 +833,8 @@ class NodeCRUDPayload(NodePayload):
     # Version 1.4: Parent NodePayload version 1.6
     # Version 1.5: Parent NodePayload version 1.7
     # Version 1.6: Parent NodePayload version 1.8
-    VERSION = '1.6'
+    # Version 1.7: Parent NodePayload version 1.9
+    VERSION = '1.7'
 
     SCHEMA = dict(NodePayload.SCHEMA,
                   **{'instance_info': ('node', 'instance_info'),

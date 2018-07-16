@@ -2,6 +2,12 @@
 REST API Version History
 ========================
 
+1.44 (Rocky, master)
+--------------------
+
+Added ``deploy_step`` to the node object, to indicate the current deploy
+step (if any) being performed on the node.
+
 1.43 (Rocky, 11.0.0)
 --------------------
 
