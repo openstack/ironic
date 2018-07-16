@@ -92,6 +92,8 @@ class Conductor(Base):
     hostname = Column(String(255), nullable=False)
     drivers = Column(db_types.JsonEncodedList)
     online = Column(Boolean, default=True)
+    conductor_group = Column(String(255), nullable=False, default='',
+                             server_default='')
 
 
 class ConductorHardwareInterfaces(Base):
@@ -163,6 +165,8 @@ class Node(Base):
                                 ForeignKey('conductors.id',
                                            name='nodes_conductor_affinity_fk'),
                                 nullable=True)
+    conductor_group = Column(String(255), nullable=False, default='',
+                             server_default='')
 
     maintenance = Column(Boolean, default=False)
     maintenance_reason = Column(Text, nullable=True)
