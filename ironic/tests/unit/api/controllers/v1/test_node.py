@@ -2432,7 +2432,7 @@ class TestPatch(test_api_base.BaseApiTest):
                                    [{'path': '/deploy_step',
                                      'op': 'replace',
                                      'value': 'deploy this'}],
-                                   headers={api_base.Version.string: "1.43"},
+                                   headers={api_base.Version.string: "1.44"},
                                    expect_errors=True)
         self.assertEqual('application/json', response.content_type)
         self.assertEqual(http_client.BAD_REQUEST, response.status_code)

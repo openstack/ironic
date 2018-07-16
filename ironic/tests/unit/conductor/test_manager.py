@@ -1342,6 +1342,12 @@ class ServiceDoNodeDeployTestCase(mgr_utils.ServiceSetUpMixin,
         # when getting an unexpected state returned from a deploy_step.
         mock_iwdi.return_value = True
         self._start_service()
+        # NOTE(rloo): We have to mock this here as opposed to using a
+        # decorator. With a decorator, when initialization is done, the
+        # mocked deploy() method isn't considered a deploy step, causing
+        # manager._old_rest_of_do_node_deploy() to be run instead of
+        # manager._do_next_deploy_step(). So we defer mock'ing until after
+        # the init is done.
         with mock.patch.object(fake.FakeDeploy,
                                'deploy', autospec=True) as mock_deploy:
             mock_deploy.return_value = states.DEPLOYING
@@ -1368,10 +1374,17 @@ class ServiceDoNodeDeployTestCase(mgr_utils.ServiceSetUpMixin,
             mock_iwdi.assert_called_once_with(self.context, node.instance_info)
             # Verify is_whole_disk_image reflects correct value on rebuild.
             self.assertTrue(node.driver_internal_info['is_whole_disk_image'])
+            self.assertEqual(1, len(node.driver_internal_info['deploy_steps']))
 
     def test_do_node_deploy_rebuild_active_state_waiting(self, mock_iwdi):
         mock_iwdi.return_value = False
         self._start_service()
+        # NOTE(rloo): We have to mock this here as opposed to using a
+        # decorator. With a decorator, when initialization is done, the
+        # mocked deploy() method isn't considered a deploy step, causing
+        # manager._old_rest_of_do_node_deploy() to be run instead of
+        # manager._do_next_deploy_step(). So we defer mock'ing until after
+        # the init is done.
         with mock.patch.object(fake.FakeDeploy,
                                'deploy', autospec=True) as mock_deploy:
             mock_deploy.return_value = states.DEPLOYWAIT
@@ -1393,10 +1406,17 @@ class ServiceDoNodeDeployTestCase(mgr_utils.ServiceSetUpMixin,
             mock_deploy.assert_called_once_with(mock.ANY, mock.ANY)
             mock_iwdi.assert_called_once_with(self.context, node.instance_info)
             self.assertFalse(node.driver_internal_info['is_whole_disk_image'])
+            self.assertEqual(1, len(node.driver_internal_info['deploy_steps']))
 
     def test_do_node_deploy_rebuild_active_state_done(self, mock_iwdi):
         mock_iwdi.return_value = False
         self._start_service()
+        # NOTE(rloo): We have to mock this here as opposed to using a
+        # decorator. With a decorator, when initialization is done, the
+        # mocked deploy() method isn't considered a deploy step, causing
+        # manager._old_rest_of_do_node_deploy() to be run instead of
+        # manager._do_next_deploy_step(). So we defer mock'ing until after
+        # the init is done.
         with mock.patch.object(fake.FakeDeploy,
                                'deploy', autospec=True) as mock_deploy:
             mock_deploy.return_value = None
@@ -1417,10 +1437,17 @@ class ServiceDoNodeDeployTestCase(mgr_utils.ServiceSetUpMixin,
             mock_deploy.assert_called_once_with(mock.ANY, mock.ANY)
             mock_iwdi.assert_called_once_with(self.context, node.instance_info)
             self.assertFalse(node.driver_internal_info['is_whole_disk_image'])
+            self.assertIsNone(node.driver_internal_info['deploy_steps'])
 
     def test_do_node_deploy_rebuild_deployfail_state(self, mock_iwdi):
         mock_iwdi.return_value = False
         self._start_service()
+        # NOTE(rloo): We have to mock this here as opposed to using a
+        # decorator. With a decorator, when initialization is done, the
+        # mocked deploy() method isn't considered a deploy step, causing
+        # manager._old_rest_of_do_node_deploy() to be run instead of
+        # manager._do_next_deploy_step(). So we defer mock'ing until after
+        # the init is done.
         with mock.patch.object(fake.FakeDeploy,
                                'deploy', autospec=True) as mock_deploy:
             mock_deploy.return_value = None
@@ -1441,10 +1468,17 @@ class ServiceDoNodeDeployTestCase(mgr_utils.ServiceSetUpMixin,
             mock_deploy.assert_called_once_with(mock.ANY, mock.ANY)
             mock_iwdi.assert_called_once_with(self.context, node.instance_info)
             self.assertFalse(node.driver_internal_info['is_whole_disk_image'])
+            self.assertIsNone(node.driver_internal_info['deploy_steps'])
 
     def test_do_node_deploy_rebuild_error_state(self, mock_iwdi):
         mock_iwdi.return_value = False
         self._start_service()
+        # NOTE(rloo): We have to mock this here as opposed to using a
+        # decorator. With a decorator, when initialization is done, the
+        # mocked deploy() method isn't considered a deploy step, causing
+        # manager._old_rest_of_do_node_deploy() to be run instead of
+        # manager._do_next_deploy_step(). So we defer mock'ing until after
+        # the init is done.
         with mock.patch.object(fake.FakeDeploy,
                                'deploy', autospec=True) as mock_deploy:
             mock_deploy.return_value = None
@@ -1465,6 +1499,7 @@ class ServiceDoNodeDeployTestCase(mgr_utils.ServiceSetUpMixin,
             mock_deploy.assert_called_once_with(mock.ANY, mock.ANY)
             mock_iwdi.assert_called_once_with(self.context, node.instance_info)
             self.assertFalse(node.driver_internal_info['is_whole_disk_image'])
+            self.assertIsNone(node.driver_internal_info['deploy_steps'])
 
     def test_do_node_deploy_rebuild_from_available_state(self, mock_iwdi):
         mock_iwdi.return_value = False
@@ -1527,7 +1562,8 @@ class ContinueNodeDeployTestCase(mgr_utils.ServiceSetUpMixin,
             'step': 'deploy_end', 'priority': 20, 'interface': 'deploy'}
         self.deploy_steps = [self.deploy_start, self.deploy_end]
 
-    @mock.patch('ironic.conductor.manager.ConductorManager._spawn_worker')
+    @mock.patch('ironic.conductor.manager.ConductorManager._spawn_worker',
+                autospec=True)
     def test_continue_node_deploy_worker_pool_full(self, mock_spawn):
         # Test the appropriate exception is raised if the worker pool is full
         prv_state = states.DEPLOYWAIT
@@ -1544,7 +1580,8 @@ class ContinueNodeDeployTestCase(mgr_utils.ServiceSetUpMixin,
                           self.service.continue_node_deploy,
                           self.context, node.uuid)
 
-    @mock.patch('ironic.conductor.manager.ConductorManager._spawn_worker')
+    @mock.patch('ironic.conductor.manager.ConductorManager._spawn_worker',
+                autospec=True)
     def test_continue_node_deploy_wrong_state(self, mock_spawn):
         # Test the appropriate exception is raised if node isn't already
         # in DEPLOYWAIT state
@@ -1568,7 +1605,8 @@ class ContinueNodeDeployTestCase(mgr_utils.ServiceSetUpMixin,
         # Verify reservation has been cleared.
         self.assertIsNone(node.reservation)
 
-    @mock.patch('ironic.conductor.manager.ConductorManager._spawn_worker')
+    @mock.patch('ironic.conductor.manager.ConductorManager._spawn_worker',
+                autospec=True)
     def test_continue_node_deploy(self, mock_spawn):
         # test a node can continue deploying via RPC
         prv_state = states.DEPLOYWAIT
@@ -1587,12 +1625,13 @@ class ContinueNodeDeployTestCase(mgr_utils.ServiceSetUpMixin,
         node.refresh()
         self.assertEqual(states.DEPLOYING, node.provision_state)
         self.assertEqual(tgt_prv_state, node.target_provision_state)
-        mock_spawn.assert_called_with(manager._do_next_deploy_step, mock.ANY,
-                                      1, mock.ANY)
+        mock_spawn.assert_called_with(mock.ANY, manager._do_next_deploy_step,
+                                      mock.ANY, 1, mock.ANY)
 
     @mock.patch.object(task_manager.TaskManager, 'process_event',
                        autospec=True)
-    @mock.patch('ironic.conductor.manager.ConductorManager._spawn_worker')
+    @mock.patch('ironic.conductor.manager.ConductorManager._spawn_worker',
+                autospec=True)
     def test_continue_node_deploy_deprecated(self, mock_spawn, mock_event):
         # TODO(rloo): delete this when we remove support for handling
         # deploy steps; node will always be in DEPLOYWAIT then.
@@ -1614,8 +1653,8 @@ class ContinueNodeDeployTestCase(mgr_utils.ServiceSetUpMixin,
         node.refresh()
         self.assertEqual(states.DEPLOYING, node.provision_state)
         self.assertEqual(tgt_prv_state, node.target_provision_state)
-        mock_spawn.assert_called_with(manager._do_next_deploy_step, mock.ANY,
-                                      1, mock.ANY)
+        mock_spawn.assert_called_with(mock.ANY, manager._do_next_deploy_step,
+                                      mock.ANY, 1, mock.ANY)
         self.assertFalse(mock_event.called)
 
 
@@ -1944,7 +1983,9 @@ class DoNodeDeployTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
 
     def test__do_node_deploy_ok_2(self):
         # NOTE(rloo): a different way of testing for the same thing as in
-        # test__do_node_deploy_ok()
+        # test__do_node_deploy_ok(). Instead of specifying the provision &
+        # target_provision_states when creating the node, we call
+        # task.process_event() to "set the stage" (err "states").
         self._start_service()
         with mock.patch.object(fake.FakeDeploy,
                                'deploy', autospec=True) as mock_deploy:
@@ -2044,12 +2085,15 @@ class DoNodeDeployTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         self.assertFalse(mock_deploy_step.called)
         self.assertNotIn('deploy_steps', task.node.driver_internal_info)
 
+    @mock.patch.object(manager, '_SEEN_NO_DEPLOY_STEP_DEPRECATIONS',
+                       autospec=True)
     @mock.patch.object(manager, 'LOG', autospec=True)
     @mock.patch('ironic.drivers.modules.fake.FakeDeploy.deploy', autospec=True)
-    def test__old_rest_of_do_node_deploy_no_steps(self, mock_deploy, mock_log):
+    def test__old_rest_of_do_node_deploy_no_steps(self, mock_deploy, mock_log,
+                                                  mock_deprecate):
         # TODO(rloo): no deploy steps; delete this when we remove support
         # for handling no deploy steps.
-        manager._SEEN_NO_DEPLOY_STEP_DEPRECATIONS = []
+        mock_deprecate.__contains__.side_effect = [False, True]
         self._start_service()
         node = obj_utils.create_test_node(self.context, driver='fake-hardware')
         task = task_manager.TaskManager(self.context, node.uuid)
@@ -2061,12 +2105,18 @@ class DoNodeDeployTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         self.assertTrue(mock_log.warning.called)
         self.assertEqual(self.service.conductor.id,
                          task.node.conductor_affinity)
+        mock_deprecate.__contains__.assert_called_once_with('FakeDeploy')
+        mock_deprecate.add.assert_called_once_with('FakeDeploy')
 
         # Make sure the deprecation warning isn't logged again
         mock_log.reset_mock()
+        mock_deprecate.add.reset_mock()
         manager._old_rest_of_do_node_deploy(task, self.service.conductor.id,
                                             True)
         self.assertFalse(mock_log.warning.called)
+        mock_deprecate.__contains__.assert_has_calls(
+            [mock.call('FakeDeploy'), mock.call('FakeDeploy')])
+        self.assertFalse(mock_deprecate.add.called)
 
     @mock.patch.object(manager, 'LOG', autospec=True)
     @mock.patch('ironic.drivers.modules.fake.FakeDeploy.deploy', autospec=True)
@@ -2074,7 +2124,7 @@ class DoNodeDeployTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
                                                    mock_log):
         # TODO(rloo): has steps but old RPC; delete this when we remove support
         # for handling no deploy steps.
-        manager._SEEN_NO_DEPLOY_STEP_DEPRECATIONS = []
+        manager._SEEN_NO_DEPLOY_STEP_DEPRECATIONS = set()
         self._start_service()
         node = obj_utils.create_test_node(self.context, driver='fake-hardware')
         task = task_manager.TaskManager(self.context, node.uuid)
@@ -2166,7 +2216,8 @@ class DoNextDeployStepTestCase(mgr_utils.ServiceSetUpMixin,
         mock_execute.assert_called_once_with(mock.ANY, task,
                                              self.deploy_steps[1])
 
-    @mock.patch('ironic.drivers.modules.fake.FakeDeploy.execute_deploy_step')
+    @mock.patch('ironic.drivers.modules.fake.FakeDeploy.execute_deploy_step',
+                autospec=True)
     def test__do_next_deploy_step_last_step_done(self, mock_execute):
         # Resume where last_step is the last deploy step that was executed
         driver_internal_info = {'deploy_step_index': 1,
@@ -2193,7 +2244,8 @@ class DoNextDeployStepTestCase(mgr_utils.ServiceSetUpMixin,
         self.assertIsNone(node.driver_internal_info['deploy_steps'])
         self.assertFalse(mock_execute.called)
 
-    @mock.patch('ironic.drivers.modules.fake.FakeDeploy.execute_deploy_step')
+    @mock.patch('ironic.drivers.modules.fake.FakeDeploy.execute_deploy_step',
+                autospec=True)
     def test__do_next_deploy_step_all(self, mock_execute):
         # Run all steps from start to finish (all synchronous)
         driver_internal_info = {'deploy_step_index': None,
@@ -2221,7 +2273,8 @@ class DoNextDeployStepTestCase(mgr_utils.ServiceSetUpMixin,
                                          mock.call(self.deploy_steps[1])]
 
     @mock.patch.object(conductor_utils, 'LOG', autospec=True)
-    @mock.patch('ironic.drivers.modules.fake.FakeDeploy.execute_deploy_step')
+    @mock.patch('ironic.drivers.modules.fake.FakeDeploy.execute_deploy_step',
+                autospec=True)
     def _do_next_deploy_step_execute_fail(self, exc, traceback,
                                           mock_execute, mock_log):
         # When a deploy step fails, go to DEPLOYFAIL
@@ -2247,7 +2300,8 @@ class DoNextDeployStepTestCase(mgr_utils.ServiceSetUpMixin,
         self.assertNotIn('deploy_step_index', node.driver_internal_info)
         self.assertIsNotNone(node.last_error)
         self.assertFalse(node.maintenance)
-        mock_execute.assert_called_once_with(mock.ANY, self.deploy_steps[0])
+        mock_execute.assert_called_once_with(mock.ANY, mock.ANY,
+                                             self.deploy_steps[0])
         mock_log.error.assert_called_once_with(mock.ANY, exc_info=traceback)
 
     def test_do_next_deploy_step_execute_ironic_exception(self):
@@ -2257,7 +2311,8 @@ class DoNextDeployStepTestCase(mgr_utils.ServiceSetUpMixin,
     def test_do_next_deploy_step_execute_exception(self):
         self._do_next_deploy_step_execute_fail(Exception('foo'), True)
 
-    @mock.patch('ironic.drivers.modules.fake.FakeDeploy.execute_deploy_step')
+    @mock.patch('ironic.drivers.modules.fake.FakeDeploy.execute_deploy_step',
+                autospec=True)
     def test_do_next_deploy_step_no_steps(self, mock_execute):
 
         self._start_service()
@@ -2285,7 +2340,8 @@ class DoNextDeployStepTestCase(mgr_utils.ServiceSetUpMixin,
             self.assertFalse(mock_execute.called)
             mock_execute.reset_mock()
 
-    @mock.patch('ironic.drivers.modules.fake.FakeDeploy.execute_deploy_step')
+    @mock.patch('ironic.drivers.modules.fake.FakeDeploy.execute_deploy_step',
+                autospec=True)
     def test_do_next_deploy_step_bad_step_return_value(self, mock_execute):
         # When a deploy step fails, go to DEPLOYFAIL
         self._start_service()
@@ -2309,7 +2365,8 @@ class DoNextDeployStepTestCase(mgr_utils.ServiceSetUpMixin,
         self.assertNotIn('deploy_step_index', node.driver_internal_info)
         self.assertIsNotNone(node.last_error)
         self.assertFalse(node.maintenance)
-        mock_execute.assert_called_once_with(mock.ANY, self.deploy_steps[0])
+        mock_execute.assert_called_once_with(mock.ANY, mock.ANY,
+                                             self.deploy_steps[0])
 
     def test__get_node_next_deploy_steps(self):
         driver_internal_info = {'deploy_steps': self.deploy_steps,
@@ -2340,6 +2397,13 @@ class DoNextDeployStepTestCase(mgr_utils.ServiceSetUpMixin,
         with task_manager.acquire(self.context, node.uuid) as task:
             step_index = self.service._get_node_next_deploy_steps(task)
             self.assertEqual(0, step_index)
+
+    def test__get_node_next_steps_exception(self):
+        node = obj_utils.create_test_node(self.context)
+
+        with task_manager.acquire(self.context, node.uuid) as task:
+            self.assertRaises(exception.Invalid,
+                              self.service._get_node_next_steps, task, 'foo')
 
 
 @mgr_utils.mock_record_keepalive
