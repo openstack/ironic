@@ -41,7 +41,10 @@ class IRMCBIOSTestCase(test_common.BaseIRMCTest):
 
     @mock.patch.object(irmc_bios.irmc.elcm, 'set_bios_configuration',
                        autospec=True)
-    def test_apply_configuration(self, set_bios_configuration_mock):
+    @mock.patch.object(irmc_bios.irmc.elcm, 'get_bios_settings',
+                       autospec=True)
+    def test_apply_configuration(self, get_bios_settings_mock,
+                                 set_bios_configuration_mock):
         settings = [{
             "name": "launch_csm_enabled",
             "value": True
@@ -54,6 +57,7 @@ class IRMCBIOSTestCase(test_common.BaseIRMCTest):
         }]
         with task_manager.acquire(self.context, self.node.uuid) as task:
             irmc_info = irmc_common.parse_driver_info(task.node)
+            get_bios_settings_mock.return_value = settings
             task.driver.bios.apply_configuration(task, settings)
             set_bios_configuration_mock.assert_called_once_with(irmc_info,
                                                                 settings)
