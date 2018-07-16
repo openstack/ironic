@@ -117,24 +117,18 @@ if not dracclient:
     if 'ironic.drivers.modules.drac' in sys.modules:
         six.moves.reload_module(sys.modules['ironic.drivers.modules.drac'])
 
+
 # attempt to load the external 'pysnmp' library, which is required by
 # the optional drivers.modules.snmp module
 pysnmp = importutils.try_import("pysnmp")
 if not pysnmp:
     pysnmp = mock.MagicMock(spec_set=mock_specs.PYWSNMP_SPEC)
     sys.modules["pysnmp"] = pysnmp
-    sys.modules["pysnmp.entity"] = pysnmp.entity
-    sys.modules["pysnmp.entity.rfc3413"] = pysnmp.entity.rfc3413
-    sys.modules["pysnmp.entity.rfc3413.oneliner"] = (
-        pysnmp.entity.rfc3413.oneliner)
-    sys.modules["pysnmp.entity.rfc3413.oneliner.cmdgen"] = (
-        pysnmp.entity.rfc3413.oneliner.cmdgen)
+    sys.modules["pysnmp.hlapi"] = pysnmp.hlapi
     sys.modules["pysnmp.error"] = pysnmp.error
     pysnmp.error.PySnmpError = Exception
-    sys.modules["pysnmp.proto"] = pysnmp.proto
-    sys.modules["pysnmp.proto.rfc1902"] = pysnmp.proto.rfc1902
     # Patch the RFC1902 integer class with a python int
-    pysnmp.proto.rfc1902.Integer = int
+    pysnmp.hlapi.Integer = int
 
 
 # if anything has loaded the snmp driver yet, reload it now that the
