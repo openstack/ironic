@@ -43,6 +43,7 @@
         IRONIC_VM_EPHEMERAL_DISK: 1
         IRONIC_VM_LOG_DIR: '{{ devstack_base_dir }}/ironic-bm-logs'
         IRONIC_VM_SPECS_RAM: 384
+        IRONIC_DEFAULT_RESCUE_INTERFACE: agent
 
         Q_AGENT: openvswitch
         Q_ML2_TENANT_NETWORK_TYPE: vxlan

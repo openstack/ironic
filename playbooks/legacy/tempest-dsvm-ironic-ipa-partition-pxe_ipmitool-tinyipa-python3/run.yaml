@@ -62,6 +62,7 @@
           export DEVSTACK_GATE_CONFIGDRIVE=1
           export DEVSTACK_GATE_IRONIC_DRIVER=ipmi
           export DEVSTACK_LOCAL_CONFIG+=$'\n'"IRONIC_DEFAULT_DEPLOY_INTERFACE=iscsi"
+          export DEVSTACK_LOCAL_CONFIG+=$'\n'"IRONIC_DEFAULT_RESCUE_INTERFACE=agent"
           export BRANCH_OVERRIDE="{{ zuul.override_checkout | default('default') }}"
           if [ "$BRANCH_OVERRIDE" != "default" ] ; then
               export OVERRIDE_ZUUL_BRANCH=$BRANCH_OVERRIDE
