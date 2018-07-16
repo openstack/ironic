@@ -100,7 +100,7 @@ class ConductorManager(base_manager.BaseConductorManager):
     # NOTE(rloo): This must be in sync with rpcapi.ConductorAPI's.
     # NOTE(pas-ha): This also must be in sync with
     #               ironic.common.release_mappings.RELEASE_MAPPING['master']
-    RPC_API_VERSION = '1.45'
+    RPC_API_VERSION = '1.46'
 
     target = messaging.Target(version=RPC_API_VERSION)
 
@@ -144,7 +144,7 @@ class ConductorManager(base_manager.BaseConductorManager):
                                    exception.NodeLocked,
                                    exception.InvalidState,
                                    exception.DriverNotFound)
-    def update_node(self, context, node_obj):
+    def update_node(self, context, node_obj, reset_interfaces=False):
         """Update a node with the supplied data.
 
         This method is the main "hub" for PUT and PATCH requests in the API.
@@ -153,6 +153,8 @@ class ConductorManager(base_manager.BaseConductorManager):
 
         :param context: an admin context
         :param node_obj: a changed (but not saved) node object.
+        :param reset_interfaces: whether to reset hardware interfaces to their
+                                 defaults.
         :raises: NoValidDefaultForInterface if no default can be calculated
                  for some interfaces, and explicit values must be provided.
         """
@@ -179,9 +181,13 @@ class ConductorManager(base_manager.BaseConductorManager):
         action = _("Node %(node)s can not have %(field)s "
                    "updated unless it is in one of allowed "
                    "(%(allowed)s) states or in maintenance mode.")
+        updating_driver = 'driver' in delta
         for iface in drivers_base.ALL_INTERFACES:
             interface_field = '%s_interface' % iface
             if interface_field not in delta:
+                if updating_driver and reset_interfaces:
+                    setattr(node_obj, interface_field, None)
+
                 continue
 
             if not (node_obj.provision_state in allowed_update_states

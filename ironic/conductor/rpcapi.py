@@ -94,13 +94,14 @@ class ConductorAPI(object):
     |    1.43 - Added do_node_rescue, do_node_unrescue and can_send_rescue
     |    1.44 - Added add_node_traits and remove_node_traits.
     |    1.45 - Added continue_node_deploy
+    |    1.46 - Added reset_interfaces to update_node
 
     """
 
     # NOTE(rloo): This must be in sync with manager.ConductorManager's.
     # NOTE(pas-ha): This also must be in sync with
     #               ironic.common.release_mappings.RELEASE_MAPPING['master']
-    RPC_API_VERSION = '1.45'
+    RPC_API_VERSION = '1.46'
 
     def __init__(self, topic=None):
         super(ConductorAPI, self).__init__()
@@ -186,7 +187,8 @@ class ConductorAPI(object):
         cctxt = self.client.prepare(topic=topic or self.topic, version='1.36')
         return cctxt.call(context, 'create_node', node_obj=node_obj)
 
-    def update_node(self, context, node_obj, topic=None):
+    def update_node(self, context, node_obj, topic=None,
+                    reset_interfaces=False):
         """Synchronously, have a conductor update the node's information.
 
         Update the node's information in the database and return a node object.
@@ -201,13 +203,16 @@ class ConductorAPI(object):
         :param context: request context.
         :param node_obj: a changed (but not saved) node object.
         :param topic: RPC topic. Defaults to self.topic.
+        :param reset_interfaces: whether to reset hardware interfaces to their
+                                 defaults.
         :returns: updated node object, including all fields.
         :raises: NoValidDefaultForInterface if no default can be calculated
                  for some interfaces, and explicit values must be provided.
 
         """
         cctxt = self.client.prepare(topic=topic or self.topic, version='1.1')
-        return cctxt.call(context, 'update_node', node_obj=node_obj)
+        return cctxt.call(context, 'update_node', node_obj=node_obj,
+                          reset_interfaces=reset_interfaces)
 
     def change_node_power_state(self, context, node_id, new_state,
                                 topic=None, timeout=None):

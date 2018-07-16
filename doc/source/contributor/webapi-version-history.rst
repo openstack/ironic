@@ -2,6 +2,12 @@
 REST API Version History
 ========================
 
+1.45 (Rocky, master)
+--------------------
+
+Added ``reset_interfaces`` parameter to node's PATCH request, to specify
+whether to reset hardware interfaces to their defaults on driver's update.
+
 1.44 (Rocky, master)
 --------------------
 

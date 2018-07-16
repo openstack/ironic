@@ -115,8 +115,8 @@ RELEASE_MAPPING = {
         }
     },
     'master': {
-        'api': '1.44',
-        'rpc': '1.45',
+        'api': '1.45',
+        'rpc': '1.46',
         'objects': {
             'Node': ['1.26'],
             'Conductor': ['1.2'],

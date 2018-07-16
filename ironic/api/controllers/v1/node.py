@@ -1934,7 +1934,7 @@ class NodesController(rest.RestController):
         return api_node
 
     # NOTE (yolanda): isolate validation to avoid patch too complex pep error
-    def _validate_patch(self, patch):
+    def _validate_patch(self, patch, reset_interfaces):
         if self.from_chassis:
             raise exception.OperationNotPermitted()
 
@@ -1969,20 +1969,33 @@ class NodesController(rest.RestController):
         if b_interface and not api_utils.allow_bios_interface():
             raise exception.NotAcceptable()
 
+        driver = api_utils.get_patch_values(patch, '/driver')
+        if reset_interfaces and not driver:
+            msg = _("The reset_interfaces parameter can only be used when "
+                    "changing the node's driver.")
+            raise exception.Invalid(msg)
+
     @METRICS.timer('NodesController.patch')
-    @wsme.validate(types.uuid, [NodePatchType])
-    @expose.expose(Node, types.uuid_or_name, body=[NodePatchType])
-    def patch(self, node_ident, patch):
+    @wsme.validate(types.uuid, types.boolean, [NodePatchType])
+    @expose.expose(Node, types.uuid_or_name, types.boolean,
+                   body=[NodePatchType])
+    def patch(self, node_ident, reset_interfaces=None, patch=None):
         """Update an existing node.
 
         :param node_ident: UUID or logical name of a node.
+        :param reset_interfaces: whether to reset hardware interfaces to their
+            defaults. Only valid when updating the driver field.
         :param patch: a json PATCH document to apply to this node.
         """
         context = pecan.request.context
         cdict = context.to_policy_values()
         policy.authorize('baremetal:node:update', cdict, cdict)
 
-        self._validate_patch(patch)
+        if (reset_interfaces is not None and not
+                api_utils.allow_reset_interfaces()):
+            raise exception.NotAcceptable()
+
+        self._validate_patch(patch, reset_interfaces)
 
         rpc_node = api_utils.get_rpc_node_with_suffix(node_ident)
 
@@ -2043,7 +2056,8 @@ class NodesController(rest.RestController):
         with notify.handle_error_notification(context, rpc_node, 'update',
                                               chassis_uuid=node.chassis_uuid):
             new_node = pecan.request.rpcapi.update_node(context,
-                                                        rpc_node, topic)
+                                                        rpc_node, topic,
+                                                        reset_interfaces)
 
         api_node = Node.convert_with_links(new_node)
         notify.emit_end_notification(context, new_node, 'update',

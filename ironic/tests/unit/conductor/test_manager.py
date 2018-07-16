@@ -567,17 +567,19 @@ class UpdateNodeTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         self.assertEqual(existing_driver, node.driver)
 
     UpdateInterfaces = namedtuple('UpdateInterfaces', ('old', 'new'))
+    # NOTE(dtantsur): "old" interfaces here do not match the defaults, so that
+    # we can test resetting them.
     IFACE_UPDATE_DICT = {
-        'boot_interface': UpdateInterfaces(None, 'fake'),
-        'console_interface': UpdateInterfaces(None, 'fake'),
-        'deploy_interface': UpdateInterfaces(None, 'fake'),
-        'inspect_interface': UpdateInterfaces(None, 'fake'),
+        'boot_interface': UpdateInterfaces('pxe', 'fake'),
+        'console_interface': UpdateInterfaces('no-console', 'fake'),
+        'deploy_interface': UpdateInterfaces('iscsi', 'fake'),
+        'inspect_interface': UpdateInterfaces('no-inspect', 'fake'),
         'management_interface': UpdateInterfaces(None, 'fake'),
-        'network_interface': UpdateInterfaces('flat', 'noop'),
+        'network_interface': UpdateInterfaces('noop', 'flat'),
         'power_interface': UpdateInterfaces(None, 'fake'),
-        'raid_interface': UpdateInterfaces(None, 'fake'),
-        'rescue_interface': UpdateInterfaces(None, 'no-rescue'),
-        'storage_interface': UpdateInterfaces('noop', 'fake'),
+        'raid_interface': UpdateInterfaces('no-raid', 'fake'),
+        'rescue_interface': UpdateInterfaces('no-rescue', 'fake'),
+        'storage_interface': UpdateInterfaces('fake', 'noop'),
     }
 
     def _create_node_with_interfaces(self, prov_state, maintenance=False):
@@ -585,6 +587,7 @@ class UpdateNodeTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         for iface_name, ifaces in self.IFACE_UPDATE_DICT.items():
             old_ifaces[iface_name] = ifaces.old
         node = obj_utils.create_test_node(self.context, driver='fake-hardware',
+                                          uuid=uuidutils.generate_uuid(),
                                           provision_state=prov_state,
                                           maintenance=maintenance,
                                           **old_ifaces)
@@ -651,6 +654,30 @@ class UpdateNodeTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         node = self._create_node_with_interfaces(states.MANAGEABLE)
         for iface_name in self.IFACE_UPDATE_DICT:
             self._test_update_node_interface_invalid(node, iface_name)
+
+    def test_update_node_with_reset_interfaces(self):
+        # Modify only one interface at a time
+        for iface_name, ifaces in self.IFACE_UPDATE_DICT.items():
+            node = self._create_node_with_interfaces(states.AVAILABLE)
+            setattr(node, iface_name, ifaces.new)
+            # Updating a driver is mandatory for reset_interfaces to work
+            node.driver = 'fake-hardware'
+            self.service.update_node(self.context, node,
+                                     reset_interfaces=True)
+            node.refresh()
+            self.assertEqual(ifaces.new, getattr(node, iface_name))
+            # Other interfaces must be reset to their defaults
+            for other_iface_name, ifaces in self.IFACE_UPDATE_DICT.items():
+                if other_iface_name == iface_name:
+                    continue
+                # For this to work, the "old" interfaces in IFACE_UPDATE_DICT
+                # must not match the defaults.
+                self.assertNotEqual(ifaces.old,
+                                    getattr(node, other_iface_name),
+                                    "%s does not match the default after "
+                                    "reset with setting %s: %s" %
+                                    (other_iface_name, iface_name,
+                                     getattr(node, other_iface_name)))
 
     def _test_update_node_change_resource_class(self, state,
                                                 resource_class=None,

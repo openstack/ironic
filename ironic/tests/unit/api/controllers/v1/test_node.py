@@ -1586,7 +1586,7 @@ class TestPatch(test_api_base.BaseApiTest):
         self.assertEqual(self.mock_update_node.return_value.updated_at,
                          timeutils.parse_isotime(response.json['updated_at']))
         self.mock_update_node.assert_called_once_with(
-            mock.ANY, mock.ANY, 'test-topic')
+            mock.ANY, mock.ANY, 'test-topic', None)
         mock_notify.assert_has_calls([mock.call(mock.ANY, mock.ANY, 'update',
                                       obj_fields.NotificationLevel.INFO,
                                       obj_fields.NotificationStatus.START,
@@ -1628,7 +1628,7 @@ class TestPatch(test_api_base.BaseApiTest):
         self.assertEqual(self.mock_update_node.return_value.updated_at,
                          timeutils.parse_isotime(response.json['updated_at']))
         self.mock_update_node.assert_called_once_with(
-            mock.ANY, mock.ANY, 'test-topic')
+            mock.ANY, mock.ANY, 'test-topic', None)
 
     def test_update_ok_by_name_with_json(self):
         self.mock_update_node.return_value = self.node
@@ -1647,7 +1647,7 @@ class TestPatch(test_api_base.BaseApiTest):
         self.assertEqual(self.mock_update_node.return_value.updated_at,
                          timeutils.parse_isotime(response.json['updated_at']))
         self.mock_update_node.assert_called_once_with(
-            mock.ANY, mock.ANY, 'test-topic')
+            mock.ANY, mock.ANY, 'test-topic', None)
 
     def test_update_state(self):
         response = self.patch_json('/nodes/%s' % self.node.uuid,
@@ -1675,7 +1675,7 @@ class TestPatch(test_api_base.BaseApiTest):
         self.assertEqual(http_client.BAD_REQUEST, response.status_code)
 
         self.mock_update_node.assert_called_once_with(
-            mock.ANY, mock.ANY, 'test-topic')
+            mock.ANY, mock.ANY, 'test-topic', None)
         mock_notify.assert_has_calls([mock.call(mock.ANY, mock.ANY, 'update',
                                       obj_fields.NotificationLevel.INFO,
                                       obj_fields.NotificationStatus.START,
@@ -1697,6 +1697,42 @@ class TestPatch(test_api_base.BaseApiTest):
         self.assertEqual('application/json', response.content_type)
         self.assertEqual(http_client.BAD_REQUEST, response.status_code)
 
+    def test_update_with_reset_interfaces(self):
+        self.mock_update_node.return_value = self.node
+        (self
+         .mock_update_node
+         .return_value
+         .updated_at) = "2013-12-03T06:20:41.184720+00:00"
+        response = self.patch_json(
+            '/nodes/%s?reset_interfaces=True' % self.node.uuid,
+            [{'path': '/driver', 'value': 'ipmi', 'op': 'replace'}],
+            headers={api_base.Version.string: "1.45"})
+        self.assertEqual('application/json', response.content_type)
+        self.assertEqual(http_client.OK, response.status_code)
+        self.assertEqual(self.mock_update_node.return_value.updated_at,
+                         timeutils.parse_isotime(response.json['updated_at']))
+        self.mock_update_node.assert_called_once_with(
+            mock.ANY, mock.ANY, 'test-topic', True)
+
+    def test_reset_interfaces_without_driver(self):
+        response = self.patch_json(
+            '/nodes/%s?reset_interfaces=True' % self.node.uuid,
+            [{'path': '/name', 'value': 'new name', 'op': 'replace'}],
+            headers={api_base.Version.string: "1.45"},
+            expect_errors=True)
+        self.assertEqual('application/json', response.content_type)
+        self.assertEqual(http_client.BAD_REQUEST, response.status_code)
+        self.assertFalse(self.mock_update_node.called)
+
+    def test_reset_interfaces_not_supported(self):
+        response = self.patch_json(
+            '/nodes/%s?reset_interfaces=True' % self.node.uuid,
+            [{'path': '/driver', 'value': 'ipmi', 'op': 'replace'}],
+            expect_errors=True)
+        self.assertEqual('application/json', response.content_type)
+        self.assertEqual(http_client.NOT_ACCEPTABLE, response.status_code)
+        self.assertFalse(self.mock_update_node.called)
+
     def test_add_ok(self):
         self.mock_update_node.return_value = self.node
 
@@ -1708,7 +1744,7 @@ class TestPatch(test_api_base.BaseApiTest):
         self.assertEqual(http_client.OK, response.status_code)
 
         self.mock_update_node.assert_called_once_with(
-            mock.ANY, mock.ANY, 'test-topic')
+            mock.ANY, mock.ANY, 'test-topic', None)
 
     def test_add_root(self):
         self.mock_update_node.return_value = self.node
@@ -1720,7 +1756,7 @@ class TestPatch(test_api_base.BaseApiTest):
         self.assertEqual('application/json', response.content_type)
         self.assertEqual(http_client.OK, response.status_code)
         self.mock_update_node.assert_called_once_with(
-            mock.ANY, mock.ANY, 'test-topic')
+            mock.ANY, mock.ANY, 'test-topic', None)
 
     def test_add_root_non_existent(self):
         response = self.patch_json('/nodes/%s' % self.node.uuid,
@@ -1741,7 +1777,7 @@ class TestPatch(test_api_base.BaseApiTest):
         self.assertEqual(http_client.OK, response.status_code)
 
         self.mock_update_node.assert_called_once_with(
-            mock.ANY, mock.ANY, 'test-topic')
+            mock.ANY, mock.ANY, 'test-topic', None)
 
     def test_remove_non_existent_property_fail(self):
         response = self.patch_json('/nodes/%s' % self.node.uuid,
@@ -1809,7 +1845,7 @@ class TestPatch(test_api_base.BaseApiTest):
         self.assertEqual('application/json', response.content_type)
         self.assertEqual(http_client.OK, response.status_code)
         self.mock_update_node.assert_called_once_with(
-            mock.ANY, mock.ANY, 'test-topic')
+            mock.ANY, mock.ANY, 'test-topic', None)
 
     def test_patch_ports_subresource_no_port_id(self):
         response = self.patch_json('/nodes/%s/ports' % self.node.uuid,
@@ -2013,7 +2049,7 @@ class TestPatch(test_api_base.BaseApiTest):
         self.assertEqual(http_client.OK, response.status_code)
 
         self.mock_update_node.assert_called_once_with(
-            mock.ANY, mock.ANY, 'test-topic')
+            mock.ANY, mock.ANY, 'test-topic', None)
 
     def test_replace_maintenance_by_name(self):
         self.mock_update_node.return_value = self.node
@@ -2027,7 +2063,7 @@ class TestPatch(test_api_base.BaseApiTest):
         self.assertEqual(http_client.OK, response.status_code)
 
         self.mock_update_node.assert_called_once_with(
-            mock.ANY, mock.ANY, 'test-topic')
+            mock.ANY, mock.ANY, 'test-topic', None)
 
     def test_replace_consoled_enabled(self):
         response = self.patch_json('/nodes/%s' % self.node.uuid,

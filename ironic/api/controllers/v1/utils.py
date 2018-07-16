@@ -862,6 +862,12 @@ def allow_detail_query():
             versions.MINOR_43_ENABLE_DETAIL_QUERY)
 
 
+def allow_reset_interfaces():
+    """Check if passing a reset_interfaces query string is allowed."""
+    return (pecan.request.version.minor >=
+            versions.MINOR_45_RESET_INTERFACES)
+
+
 def get_request_return_fields(fields, detail, default_fields):
     """Calculate fields to return from an API request
 
