@@ -192,8 +192,8 @@ class BaseInterface(object):
         """
 
     def __new__(cls, *args, **kwargs):
-        # Get the list of clean steps when the interface is initialized by
-        # the conductor. We use __new__ instead of __init___
+        # Get the list of clean steps and deploy steps, when the interface is
+        # initialized by the conductor. We use __new__ instead of __init___
         # to avoid breaking backwards compatibility with all the drivers.
         # We want to return all steps, regardless of priority.
 
@@ -203,6 +203,7 @@ class BaseInterface(object):
         else:
             instance = super_new(cls, *args, **kwargs)
         instance.clean_steps = []
+        instance.deploy_steps = []
         for n, method in inspect.getmembers(instance, inspect.ismethod):
             if getattr(method, '_is_clean_step', False):
                 # Create a CleanStep to represent this method
@@ -212,10 +213,39 @@ class BaseInterface(object):
                         'argsinfo': method._clean_step_argsinfo,
                         'interface': instance.interface_type}
                 instance.clean_steps.append(step)
-        LOG.debug('Found clean steps %(steps)s for interface %(interface)s',
-                  {'steps': instance.clean_steps,
-                   'interface': instance.interface_type})
+            elif getattr(method, '_is_deploy_step', False):
+                # Create a DeployStep to represent this method
+                step = {'step': method.__name__,
+                        'priority': method._deploy_step_priority,
+                        'argsinfo': method._deploy_step_argsinfo,
+                        'interface': instance.interface_type}
+                instance.deploy_steps.append(step)
+        if instance.clean_steps:
+            LOG.debug('Found clean steps %(steps)s for interface '
+                      '%(interface)s',
+                      {'steps': instance.clean_steps,
+                       'interface': instance.interface_type})
+        if instance.deploy_steps:
+            LOG.debug('Found deploy steps %(steps)s for interface '
+                      '%(interface)s',
+                      {'steps': instance.deploy_steps,
+                       'interface': instance.interface_type})
         return instance
+
+    def _execute_step(self, task, step):
+        """Execute the step on task.node.
+
+        A step must take a single positional argument: a TaskManager
+        object. It may take one or more keyword variable arguments.
+
+        :param task: A TaskManager object
+        :param step: The step dictionary representing the step to execute
+        """
+        args = step.get('args')
+        if args is not None:
+            return getattr(self, step['step'])(task, **args)
+        else:
+            return getattr(self, step['step'])(task)
 
     def get_clean_steps(self, task):
         """Get a list of (enabled and disabled) clean steps for the interface.
@@ -253,11 +283,46 @@ class BaseInterface(object):
             states.CLEANWAIT if the step will continue to execute
             asynchronously.
         """
-        args = step.get('args')
-        if args is not None:
-            return getattr(self, step['step'])(task, **args)
-        else:
-            return getattr(self, step['step'])(task)
+        return self._execute_step(task, step)
+
+    def get_deploy_steps(self, task):
+        """Get a list of (enabled and disabled) deploy steps for the interface.
+
+        This function will return all deploy steps (both enabled and disabled)
+        for the interface, in an unordered list.
+
+        :param task: A TaskManager object, useful for interfaces overriding
+            this function
+        :raises InstanceDeployFailure: if there is a problem getting the steps
+            from the driver. For example, when a node (using an agent driver)
+            has just been enrolled and the agent isn't alive yet to be queried
+            for the available deploy steps.
+        :returns: A list of deploy step dictionaries
+        """
+        return self.deploy_steps
+
+    def execute_deploy_step(self, task, step):
+        """Execute the deploy step on task.node.
+
+        A deploy step must take a single positional argument: a TaskManager
+        object. It may take one or more keyword variable arguments (for
+        use in the future, when deploy steps can be specified via the API).
+
+        A step can be executed synchronously or asynchronously. A step should
+        return None if the method has completed synchronously or
+        states.DEPLOYWAIT if the step will continue to execute asynchronously.
+        If the step executes asynchronously, it should issue a call to the
+        'continue_node_deploy' RPC, so the conductor can begin the next
+        deploy step.
+
+        :param task: A TaskManager object
+        :param step: The deploy step dictionary representing the step to
+            execute
+        :returns: None if this method has completed synchronously, or
+            states.DEPLOYWAIT if the step will continue to execute
+            asynchronously.
+        """
+        return self._execute_step(task, step)
 
 
 class DeployInterface(BaseInterface):
@@ -1460,5 +1525,61 @@ def clean_step(priority, abortable=False, argsinfo=None):
 
         _validate_argsinfo(argsinfo)
         func._clean_step_argsinfo = argsinfo
+        return func
+    return decorator
+
+
+def deploy_step(priority, argsinfo=None):
+    """Decorator for deployment steps.
+
+    Only steps with priorities greater than 0 are used.
+    These steps are ordered by priority from highest value to lowest
+    value. For steps with the same priority, they are ordered by driver
+    interface priority (see conductor.manager.DEPLOYING_INTERFACE_PRIORITY).
+    execute_deploy_step() will be called on each step.
+
+    Decorated deploy steps must take as the only positional argument, a
+    TaskManager object.
+
+    Deploy steps can be either synchronous or asynchronous.  If the step is
+    synchronous, it should return `None` when finished, and the conductor
+    will continue on to the next step. While the deploy step is executing, the
+    node will be in `states.DEPLOYING` provision state. If the step is
+    asynchronous, the step should return `states.DEPLOYWAIT` to the
+    conductor before it starts the asynchronous work.  When the step is
+    complete, the step should make an RPC call to `continue_node_deploy` to
+    move to the next step in deployment. The node will be in
+    `states.DEPLOYWAIT` provision state during the asynchronous work.
+
+    Examples::
+
+        class MyInterface(base.BaseInterface):
+            @base.deploy_step(priority=100)
+            def example_deploying(self, task):
+                # do some deploying
+
+    :param priority: an integer (>=0) priority; used for determining the order
+        in which the step is run in the deployment process.
+    :param argsinfo: a dictionary of keyword arguments where key is the name of
+        the argument and value is a dictionary as follows::
+
+            'description': <description>. Required. This should include
+                           possible values.
+            'required': Boolean. Optional; default is False. True if this
+                        argument is required.  If so, it must be specified in
+                        the deployment request; false if it is optional.
+    :raises InvalidParameterValue: if any of the arguments are invalid
+    """
+    def decorator(func):
+        func._is_deploy_step = True
+        if isinstance(priority, int) and priority >= 0:
+            func._deploy_step_priority = priority
+        else:
+            raise exception.InvalidParameterValue(
+                _('"priority" must be an integer value >= 0, instead of "%s"')
+                % priority)
+
+        _validate_argsinfo(argsinfo)
+        func._deploy_step_argsinfo = argsinfo
         return func
     return decorator

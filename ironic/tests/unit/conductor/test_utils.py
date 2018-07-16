@@ -18,6 +18,7 @@ from ironic.common import boot_modes
 from ironic.common import exception
 from ironic.common import network
 from ironic.common import states
+from ironic.conductor import rpcapi
 from ironic.conductor import task_manager
 from ironic.conductor import utils as conductor_utils
 from ironic.drivers import base as drivers_base
@@ -874,22 +875,27 @@ class NodeSoftPowerActionTestCase(db_base.DbTestCase):
         self.assertIsNone(node['last_error'])
 
 
-class CleanupAfterTimeoutTestCase(tests_base.TestCase):
+class DeployingErrorHandlerTestCase(tests_base.TestCase):
     def setUp(self):
-        super(CleanupAfterTimeoutTestCase, self).setUp()
+        super(DeployingErrorHandlerTestCase, self).setUp()
         self.task = mock.Mock(spec=task_manager.TaskManager)
         self.task.context = self.context
         self.task.driver = mock.Mock(spec_set=['deploy'])
         self.task.shared = False
         self.task.node = mock.Mock(spec_set=objects.Node)
         self.node = self.task.node
+        self.node.provision_state = states.DEPLOYING
+        self.node.last_error = None
+        self.node.deploy_step = None
+        self.node.driver_internal_info = {}
+        self.logmsg = "log message"
+        self.errmsg = "err message"
 
-    def test_cleanup_after_timeout(self):
+    @mock.patch.object(conductor_utils, 'deploying_error_handler',
+                       autospec=True)
+    def test_cleanup_after_timeout(self, mock_handler):
         conductor_utils.cleanup_after_timeout(self.task)
-
-        self.node.save.assert_called_once_with()
-        self.task.driver.deploy.clean_up.assert_called_once_with(self.task)
-        self.assertIn('Timeout reached', self.node.last_error)
+        mock_handler.assert_called_once_with(self.task, mock.ANY, mock.ANY)
 
     def test_cleanup_after_timeout_shared_lock(self):
         self.task.shared = True
@@ -898,25 +904,162 @@ class CleanupAfterTimeoutTestCase(tests_base.TestCase):
                           conductor_utils.cleanup_after_timeout,
                           self.task)
 
-    def test_cleanup_after_timeout_cleanup_ironic_exception(self):
-        clean_up_mock = self.task.driver.deploy.clean_up
-        clean_up_mock.side_effect = exception.IronicException('moocow')
+    def test_deploying_error_handler(self):
+        conductor_utils.deploying_error_handler(self.task, self.logmsg,
+                                                self.errmsg)
 
-        conductor_utils.cleanup_after_timeout(self.task)
+        self.assertEqual([mock.call()] * 2, self.node.save.call_args_list)
+        self.task.driver.deploy.clean_up.assert_called_once_with(self.task)
+        self.assertEqual(self.errmsg, self.node.last_error)
+        self.assertEqual({}, self.node.deploy_step)
+        self.assertNotIn('deploy_step_index', self.node.driver_internal_info)
+        self.task.process_event.assert_called_once_with('fail')
+
+    def _test_deploying_error_handler_cleanup(self, exc, expected_str):
+        clean_up_mock = self.task.driver.deploy.clean_up
+        clean_up_mock.side_effect = exc
+
+        conductor_utils.deploying_error_handler(self.task, self.logmsg,
+                                                self.errmsg)
 
         self.task.driver.deploy.clean_up.assert_called_once_with(self.task)
         self.assertEqual([mock.call()] * 2, self.node.save.call_args_list)
-        self.assertIn('moocow', self.node.last_error)
+        self.assertIn(expected_str, self.node.last_error)
+        self.assertEqual({}, self.node.deploy_step)
+        self.assertNotIn('deploy_step_index', self.node.driver_internal_info)
+        self.task.process_event.assert_called_once_with('fail')
 
-    def test_cleanup_after_timeout_cleanup_random_exception(self):
-        clean_up_mock = self.task.driver.deploy.clean_up
-        clean_up_mock.side_effect = Exception('moocow')
+    def test_deploying_error_handler_cleanup_ironic_exception(self):
+        self._test_deploying_error_handler_cleanup(
+            exception.IronicException('moocow'), 'moocow')
 
-        conductor_utils.cleanup_after_timeout(self.task)
+    def test_deploying_error_handler_cleanup_random_exception(self):
+        self._test_deploying_error_handler_cleanup(
+            Exception('moocow'), 'unhandled exception')
 
-        self.task.driver.deploy.clean_up.assert_called_once_with(self.task)
+    def test_deploying_error_handler_no_cleanup(self):
+        conductor_utils.deploying_error_handler(
+            self.task, self.logmsg, self.errmsg, clean_up=False)
+
+        self.assertFalse(self.task.driver.deploy.clean_up.called)
         self.assertEqual([mock.call()] * 2, self.node.save.call_args_list)
-        self.assertIn('Deploy timed out', self.node.last_error)
+        self.assertEqual(self.errmsg, self.node.last_error)
+        self.assertEqual({}, self.node.deploy_step)
+        self.assertNotIn('deploy_step_index', self.node.driver_internal_info)
+        self.task.process_event.assert_called_once_with('fail')
+
+    def test_deploying_error_handler_not_deploy(self):
+        # Not in a deploy state
+        self.node.provision_state = states.AVAILABLE
+        self.node.driver_internal_info['deploy_step_index'] = 2
+
+        conductor_utils.deploying_error_handler(
+            self.task, self.logmsg, self.errmsg, clean_up=False)
+
+        self.assertEqual([mock.call()] * 2, self.node.save.call_args_list)
+        self.assertEqual(self.errmsg, self.node.last_error)
+        self.assertIsNone(self.node.deploy_step)
+        self.assertIn('deploy_step_index', self.node.driver_internal_info)
+        self.task.process_event.assert_called_once_with('fail')
+
+
+class NodeDeployStepsTestCase(db_base.DbTestCase):
+    def setUp(self):
+        super(NodeDeployStepsTestCase, self).setUp()
+
+        self.deploy_start = {
+            'step': 'deploy_start', 'priority': 50, 'interface': 'deploy'}
+        self.power_one = {
+            'step': 'power_one', 'priority': 40, 'interface': 'power'}
+        self.deploy_middle = {
+            'step': 'deploy_middle', 'priority': 40, 'interface': 'deploy'}
+        self.deploy_end = {
+            'step': 'deploy_end', 'priority': 20, 'interface': 'deploy'}
+        self.power_disable = {
+            'step': 'power_disable', 'priority': 0, 'interface': 'power'}
+        # enabled steps
+        self.deploy_steps = [self.deploy_start, self.power_one,
+                             self.deploy_middle, self.deploy_end]
+        self.node = obj_utils.create_test_node(
+            self.context, driver='fake-hardware')
+
+    @mock.patch('ironic.drivers.modules.fake.FakeDeploy.get_deploy_steps')
+    @mock.patch('ironic.drivers.modules.fake.FakePower.get_deploy_steps')
+    @mock.patch('ironic.drivers.modules.fake.FakeManagement.get_deploy_steps')
+    def test__get_deployment_steps(self, mock_mgt_steps, mock_power_steps,
+                                   mock_deploy_steps):
+        # Test getting deploy steps, with one driver returning None, two
+        # conflicting priorities, and asserting they are ordered properly.
+
+        mock_power_steps.return_value = [self.power_disable, self.power_one]
+        mock_deploy_steps.return_value = [
+            self.deploy_start, self.deploy_middle, self.deploy_end]
+
+        expected = self.deploy_steps + [self.power_disable]
+        with task_manager.acquire(
+                self.context, self.node.uuid, shared=False) as task:
+            steps = conductor_utils._get_deployment_steps(task, enabled=False)
+
+            self.assertEqual(expected, steps)
+            mock_mgt_steps.assert_called_once_with(task)
+            mock_power_steps.assert_called_once_with(task)
+            mock_deploy_steps.assert_called_once_with(task)
+
+    @mock.patch('ironic.drivers.modules.fake.FakeDeploy.get_deploy_steps')
+    @mock.patch('ironic.drivers.modules.fake.FakePower.get_deploy_steps')
+    @mock.patch('ironic.drivers.modules.fake.FakeManagement.get_deploy_steps')
+    def test__get_deploy_steps_unsorted(self, mock_mgt_steps, mock_power_steps,
+                                        mock_deploy_steps):
+
+        mock_deploy_steps.return_value = [self.deploy_end,
+                                          self.deploy_start,
+                                          self.deploy_middle]
+        with task_manager.acquire(
+                self.context, self.node.uuid, shared=False) as task:
+            steps = conductor_utils._get_deployment_steps(task, enabled=False,
+                                                          sort=False)
+            self.assertEqual(mock_deploy_steps.return_value, steps)
+            mock_mgt_steps.assert_called_once_with(task)
+            mock_power_steps.assert_called_once_with(task)
+            mock_deploy_steps.assert_called_once_with(task)
+
+    @mock.patch('ironic.drivers.modules.fake.FakeDeploy.get_deploy_steps')
+    @mock.patch('ironic.drivers.modules.fake.FakePower.get_deploy_steps')
+    @mock.patch('ironic.drivers.modules.fake.FakeManagement.get_deploy_steps')
+    def test__get_deployment_steps_only_enabled(
+            self, mock_mgt_steps, mock_power_steps, mock_deploy_steps):
+        # Test getting only deploy steps, with one driver returning None, two
+        # conflicting priorities, and asserting they are ordered properly.
+        # Should discard zero-priority deploy step.
+
+        mock_power_steps.return_value = [self.power_one, self.power_disable]
+        mock_deploy_steps.return_value = [self.deploy_end,
+                                          self.deploy_middle,
+                                          self.deploy_start]
+
+        with task_manager.acquire(
+                self.context, self.node.uuid, shared=True) as task:
+            steps = conductor_utils._get_deployment_steps(task, enabled=True)
+
+            self.assertEqual(self.deploy_steps, steps)
+            mock_mgt_steps.assert_called_once_with(task)
+            mock_power_steps.assert_called_once_with(task)
+            mock_deploy_steps.assert_called_once_with(task)
+
+    @mock.patch.object(conductor_utils, '_get_deployment_steps')
+    def test_set_node_deployment_steps(self, mock_steps):
+        mock_steps.return_value = self.deploy_steps
+
+        with task_manager.acquire(
+                self.context, self.node.uuid, shared=False) as task:
+            conductor_utils.set_node_deployment_steps(task)
+            self.node.refresh()
+            self.assertEqual(self.deploy_steps,
+                             self.node.driver_internal_info['deploy_steps'])
+            self.assertEqual({}, self.node.deploy_step)
+            self.assertIsNone(
+                self.node.driver_internal_info['deploy_step_index'])
+            mock_steps.assert_called_once_with(task, enabled=True)
 
 
 class NodeCleaningStepsTestCase(db_base.DbTestCase):
@@ -1295,6 +1438,21 @@ class ErrorHandlersTestCase(tests_base.TestCase):
     def test_spawn_cleaning_error_handler_other_error(self, log_mock):
         exc = Exception('foo')
         conductor_utils.spawn_cleaning_error_handler(exc, self.node)
+        self.assertFalse(self.node.save.called)
+        self.assertFalse(log_mock.warning.called)
+
+    @mock.patch.object(conductor_utils, 'LOG')
+    def test_spawn_deploying_error_handler_no_worker(self, log_mock):
+        exc = exception.NoFreeConductorWorker()
+        conductor_utils.spawn_deploying_error_handler(exc, self.node)
+        self.node.save.assert_called_once_with()
+        self.assertIn('No free conductor workers', self.node.last_error)
+        self.assertTrue(log_mock.warning.called)
+
+    @mock.patch.object(conductor_utils, 'LOG')
+    def test_spawn_deploying_error_handler_other_error(self, log_mock):
+        exc = Exception('foo')
+        conductor_utils.spawn_deploying_error_handler(exc, self.node)
         self.assertFalse(self.node.save.called)
         self.assertFalse(log_mock.warning.called)
 
@@ -1797,6 +1955,37 @@ class MiscTestCase(db_base.DbTestCase):
 
     def test_remove_node_rescue_password_save_false(self):
         self._test_remove_node_rescue_password(save=False)
+
+    @mock.patch.object(rpcapi.ConductorAPI, 'continue_node_deploy',
+                       autospec=True)
+    @mock.patch.object(rpcapi.ConductorAPI, 'get_topic_for', autospec=True)
+    def test__notify_conductor_resume_operation(self, mock_topic,
+                                                mock_rpc_call):
+        mock_topic.return_value = 'topic'
+        with task_manager.acquire(
+                self.context, self.node.uuid, shared=False) as task:
+            conductor_utils._notify_conductor_resume_operation(
+                task, 'deploying', 'continue_node_deploy')
+            mock_rpc_call.assert_called_once_with(
+                mock.ANY, task.context, self.node.uuid, topic='topic')
+
+    @mock.patch.object(conductor_utils, '_notify_conductor_resume_operation',
+                       autospec=True)
+    def test_notify_conductor_resume_clean(self, mock_resume):
+        with task_manager.acquire(
+                self.context, self.node.uuid, shared=False) as task:
+            conductor_utils.notify_conductor_resume_clean(task)
+            mock_resume.assert_called_once_with(
+                task, 'cleaning', 'continue_node_clean')
+
+    @mock.patch.object(conductor_utils, '_notify_conductor_resume_operation',
+                       autospec=True)
+    def test_notify_conductor_resume_deploy(self, mock_resume):
+        with task_manager.acquire(
+                self.context, self.node.uuid, shared=False) as task:
+            conductor_utils.notify_conductor_resume_deploy(task)
+            mock_resume.assert_called_once_with(
+                task, 'deploying', 'continue_node_deploy')
 
 
 class ValidateInstanceInfoTraitsTestCase(tests_base.TestCase):

@@ -290,11 +290,13 @@ class TestAgentDeploy(db_base.DbTestCase):
                                                      mock_pxe_instance):
         mock_write.return_value = False
         self.node.provision_state = states.DEPLOYING
+        self.node.deploy_step = {
+            'step': 'deploy', 'priority': 50, 'interface': 'deploy'}
         self.node.save()
         with task_manager.acquire(
                 self.context, self.node['uuid'], shared=False) as task:
             driver_return = self.driver.deploy(task)
-            self.assertEqual(driver_return, states.DEPLOYDONE)
+            self.assertIsNone(driver_return)
             self.assertTrue(mock_pxe_instance.called)
 
     @mock.patch.object(noop_storage.NoopStorage, 'detach_volumes',

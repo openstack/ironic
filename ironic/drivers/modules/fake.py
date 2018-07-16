@@ -85,7 +85,7 @@ class FakeBoot(base.BootInterface):
 class FakeDeploy(base.DeployInterface):
     """Class for a fake deployment driver.
 
-    Example imlementation of a deploy interface that uses a
+    Example implementation of a deploy interface that uses a
     separate power interface.
     """
 
@@ -95,8 +95,9 @@ class FakeDeploy(base.DeployInterface):
     def validate(self, task):
         pass
 
+    @base.deploy_step(priority=100)
     def deploy(self, task):
-        return states.DEPLOYDONE
+        return None
 
     def tear_down(self, task):
         return states.DELETED

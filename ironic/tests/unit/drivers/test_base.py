@@ -354,6 +354,127 @@ class CleanStepTestCase(base.TestCase):
         method_args_mock.assert_called_once_with(task_mock, **args)
 
 
+class DeployStepTestCase(base.TestCase):
+    def test_get_and_execute_deploy_steps(self):
+        # Create a fake Driver class, create some deploy steps, make sure
+        # they are listed correctly, and attempt to execute one of them
+
+        method_mock = mock.MagicMock(spec_set=[])
+        method_args_mock = mock.MagicMock(spec_set=[])
+        task_mock = mock.MagicMock(spec_set=[])
+
+        class BaseTestClass(driver_base.BaseInterface):
+            def get_properties(self):
+                return {}
+
+            def validate(self, task):
+                pass
+
+        class TestClass(BaseTestClass):
+            interface_type = 'test'
+
+            @driver_base.deploy_step(priority=0)
+            def deploy_zero(self, task):
+                pass
+
+            @driver_base.deploy_step(priority=10)
+            def deploy_ten(self, task):
+                method_mock(task)
+
+            def not_deploy_method(self, task):
+                pass
+
+        class TestClass2(BaseTestClass):
+            interface_type = 'test2'
+
+            @driver_base.deploy_step(priority=0)
+            def deploy_zero2(self, task):
+                pass
+
+            @driver_base.deploy_step(priority=20)
+            def deploy_twenty(self, task):
+                method_mock(task)
+
+            def not_deploy_method2(self, task):
+                pass
+
+        class TestClass3(BaseTestClass):
+            interface_type = 'test3'
+
+            @driver_base.deploy_step(priority=0, argsinfo={
+                                     'arg1': {'description': 'desc1',
+                                              'required': True}})
+            def deploy_zero3(self, task, **kwargs):
+                method_args_mock(task, **kwargs)
+
+            @driver_base.deploy_step(priority=15, argsinfo={
+                                     'arg10': {'description': 'desc10'}})
+            def deploy_fifteen(self, task, **kwargs):
+                pass
+
+            def not_deploy_method3(self, task):
+                pass
+
+        obj = TestClass()
+        obj2 = TestClass2()
+        obj3 = TestClass3()
+
+        self.assertEqual(2, len(obj.get_deploy_steps(task_mock)))
+        # Ensure the steps look correct
+        self.assertEqual(10, obj.get_deploy_steps(task_mock)[0]['priority'])
+        self.assertEqual('test', obj.get_deploy_steps(
+            task_mock)[0]['interface'])
+        self.assertEqual('deploy_ten', obj.get_deploy_steps(
+            task_mock)[0]['step'])
+        self.assertEqual(0, obj.get_deploy_steps(task_mock)[1]['priority'])
+        self.assertEqual('test', obj.get_deploy_steps(
+            task_mock)[1]['interface'])
+        self.assertEqual('deploy_zero', obj.get_deploy_steps(
+            task_mock)[1]['step'])
+
+        # Ensure the second obj has different deploy steps
+        self.assertEqual(2, len(obj2.get_deploy_steps(task_mock)))
+        # Ensure the steps look correct
+        self.assertEqual(20, obj2.get_deploy_steps(task_mock)[0]['priority'])
+        self.assertEqual('test2', obj2.get_deploy_steps(
+            task_mock)[0]['interface'])
+        self.assertEqual('deploy_twenty', obj2.get_deploy_steps(
+            task_mock)[0]['step'])
+        self.assertEqual(0, obj2.get_deploy_steps(task_mock)[1]['priority'])
+        self.assertEqual('test2', obj2.get_deploy_steps(
+            task_mock)[1]['interface'])
+        self.assertEqual('deploy_zero2', obj2.get_deploy_steps(
+            task_mock)[1]['step'])
+        self.assertIsNone(obj2.get_deploy_steps(task_mock)[0]['argsinfo'])
+
+        # Ensure the third obj has different deploy steps
+        self.assertEqual(2, len(obj3.get_deploy_steps(task_mock)))
+        self.assertEqual(15, obj3.get_deploy_steps(task_mock)[0]['priority'])
+        self.assertEqual('test3', obj3.get_deploy_steps(
+            task_mock)[0]['interface'])
+        self.assertEqual('deploy_fifteen', obj3.get_deploy_steps(
+            task_mock)[0]['step'])
+        self.assertEqual({'arg10': {'description': 'desc10'}},
+                         obj3.get_deploy_steps(task_mock)[0]['argsinfo'])
+        self.assertEqual(0, obj3.get_deploy_steps(task_mock)[1]['priority'])
+        self.assertEqual(obj3.interface_type, obj3.get_deploy_steps(
+            task_mock)[1]['interface'])
+        self.assertEqual('deploy_zero3', obj3.get_deploy_steps(
+            task_mock)[1]['step'])
+        self.assertEqual({'arg1': {'description': 'desc1', 'required': True}},
+                         obj3.get_deploy_steps(task_mock)[1]['argsinfo'])
+
+        # Ensure we can execute the function.
+        obj.execute_deploy_step(task_mock, obj.get_deploy_steps(task_mock)[0])
+        method_mock.assert_called_once_with(task_mock)
+
+        args = {'arg1': 'val1'}
+        deploy_step = {'interface': 'test3', 'step': 'deploy_zero3',
+                       'args': args}
+        obj3.execute_deploy_step(task_mock, deploy_step)
+        method_args_mock.assert_called_once_with(task_mock, **args)
+
+
 class MyRAIDInterface(driver_base.RAIDInterface):
 
     def create_configuration(self, task):

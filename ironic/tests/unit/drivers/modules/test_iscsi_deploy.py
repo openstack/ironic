@@ -739,17 +739,20 @@ class ISCSIDeployTestCase(db_base.DbTestCase):
                                                     mock_write):
         mock_write.return_value = False
         self.node.provision_state = states.DEPLOYING
+        self.node.deploy_step = {
+            'step': 'deploy', 'priority': 50, 'interface': 'deploy'}
         self.node.save()
         with task_manager.acquire(self.context,
                                   self.node.uuid, shared=False) as task:
-            state = task.driver.deploy.deploy(task)
-            self.assertEqual(state, states.DEPLOYDONE)
+            ret = task.driver.deploy.deploy(task)
+            self.assertIsNone(ret)
             self.assertFalse(mock_cache_instance_image.called)
             self.assertFalse(mock_check_image_size.called)
             mock_remove_network.assert_called_once_with(mock.ANY, task)
             mock_tenant_network.assert_called_once_with(mock.ANY, task)
             mock_prepare_instance.assert_called_once_with(mock.ANY, task)
             self.assertEqual(2, mock_node_power_action.call_count)
+            self.assertEqual(states.DEPLOYING, task.node.provision_state)
 
     @mock.patch.object(noop_storage.NoopStorage, 'detach_volumes',
                        autospec=True)

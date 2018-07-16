@@ -401,6 +401,7 @@ class AgentDeploy(AgentDeployMixin, base.DeployInterface):
         validate_image_proxies(node)
 
     @METRICS.timer('AgentDeploy.deploy')
+    @base.deploy_step(priority=100)
     @task_manager.require_exclusive_lock
     def deploy(self, task):
         """Perform a deployment to a node.
@@ -427,7 +428,7 @@ class AgentDeploy(AgentDeployMixin, base.DeployInterface):
             task.driver.boot.prepare_instance(task)
             manager_utils.node_power_action(task, states.POWER_ON)
             LOG.info('Deployment to node %s done', task.node.uuid)
-            return states.DEPLOYDONE
+            return None
 
     @METRICS.timer('AgentDeploy.tear_down')
     @task_manager.require_exclusive_lock
