@@ -321,6 +321,12 @@ on the Bare Metal service node(s) where ``ironic-conductor`` is running.
       # (string value)
       uefi_pxe_config_template=$pybasedir/drivers/modules/ipxe_config.template
 
+   .. note::
+      The ``[pxe]ipxe_enabled`` option has been deprecated and will be removed
+      in the T* development cycle. Users should instead consider use of the
+      ``ipxe`` boot interface. The same default use of iPXE functionality can
+      be achieved by setting the ``[DEFAULT]default_boot_interface`` option
+      to ``ipxe``.
 
 #. It is possible to configure the Bare Metal service in such a way
    that nodes will boot into the deploy image directly from Object Storage.
