@@ -1,0 +1,6 @@
+---
+features:
+  - |
+    The iRMC driver can now automatically update the
+    node.traits field with CUSTOM_CPU_FPGA value based on
+    information provided by the node during node inspection.

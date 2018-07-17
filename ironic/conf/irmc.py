@@ -89,6 +89,15 @@ opts = [
                        'this option is not defined, then leave out '
                        'pci_gpu_devices in capabilities property. '
                        'Sample gpu_ids value: 0x1000/0x0079,0x2100/0x0080')),
+    cfg.ListOpt('fpga_ids',
+                default=[],
+                help=_('List of vendor IDs and device IDs for CPU FPGA to '
+                       'inspect. List items are in format vendorID/deviceID '
+                       'and separated by commas. CPU inspection will use this '
+                       'value to find existence of CPU FPGA in a node. If '
+                       'this option is not defined, then leave out '
+                       'CUSTOM_CPU_FPGA in node traits. '
+                       'Sample fpga_ids value: 0x1000/0x0079,0x2100/0x0080')),
     cfg.IntOpt('query_raid_config_fgi_status_interval',
                min=1,
                default=300,

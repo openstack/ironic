@@ -59,8 +59,9 @@ class IRMCInspectInternalMethodsTestCase(test_common.BaseIRMCTest):
             self, get_irmc_report_mock, scci_mock, _get_mac_addresses_mock):
         # Set config flags
         gpu_ids = ['0x1000/0x0079', '0x2100/0x0080']
-
+        cpu_fpgas = ['0x1000/0x0179', '0x2100/0x0180']
         self.config(gpu_ids=gpu_ids, group='irmc')
+        self.config(fpga_ids=cpu_fpgas, group='irmc')
         kwargs = {'sleep_flag': False}
 
         inspected_props = {
@@ -73,7 +74,10 @@ class IRMCInspectInternalMethodsTestCase(test_common.BaseIRMCTest):
             'irmc_firmware_version': 'iRMC S4-7.82F',
             'server_model': 'TX2540M1F5',
             'rom_firmware_version': 'V4.6.5.4 R1.15.0 for D3099-B1x',
-            'pci_gpu_devices': 1}
+            'pci_gpu_devices': 1,
+            'cpu_fpga': 1}
+        new_traits = ['CUSTOM_CPU_FPGA']
+        existing_traits = []
 
         inspected_macs = ['aa:aa:aa:aa:aa:aa', 'bb:bb:bb:bb:bb:bb']
         report = 'fake_report'
@@ -84,18 +88,22 @@ class IRMCInspectInternalMethodsTestCase(test_common.BaseIRMCTest):
         _get_mac_addresses_mock.return_value = inspected_macs
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
-            result = irmc_inspect._inspect_hardware(task.node, **kwargs)
+            result = irmc_inspect._inspect_hardware(task.node,
+                                                    existing_traits,
+                                                    **kwargs)
             get_irmc_report_mock.assert_called_once_with(task.node)
             scci_mock.get_essential_properties.assert_called_once_with(
                 report, irmc_inspect.IRMCInspect.ESSENTIAL_PROPERTIES)
             scci_mock.get_capabilities_properties.assert_called_once_with(
                 mock.ANY, irmc_inspect.CAPABILITIES_PROPERTIES,
-                gpu_ids, **kwargs)
+                gpu_ids, fpga_ids=cpu_fpgas, **kwargs)
+
             expected_props = dict(inspected_props)
             inspected_capabilities = utils.get_updated_capabilities(
                 '', inspected_capabilities)
             expected_props['capabilities'] = inspected_capabilities
-            self.assertEqual((expected_props, inspected_macs), result)
+            self.assertEqual((expected_props, inspected_macs, new_traits),
+                             result)
 
     @mock.patch.object(irmc_inspect, '_get_mac_addresses', spec_set=True,
                        autospec=True)
@@ -151,9 +159,15 @@ class IRMCInspectTestCase(test_common.BaseIRMCTest):
                               task.driver.inspect.validate,
                               task)
 
-    def test__init_fail_invalid_input(self):
+    def test__init_fail_invalid_gpu_ids_input(self):
         # Set config flags
         self.config(gpu_ids='100/x079,0x20/', group='irmc')
+        self.assertRaises(exception.InvalidParameterValue,
+                          irmc_inspect.IRMCInspect)
+
+    def test__init_fail_invalid_fpga_ids_input(self):
+        # Set config flags
+        self.config(fpga_ids='100/x079,0x20/', group='irmc')
         self.assertRaises(exception.InvalidParameterValue,
                           irmc_inspect.IRMCInspect)
 
@@ -172,9 +186,12 @@ class IRMCInspectTestCase(test_common.BaseIRMCTest):
             'cpus': 2,
             'cpu_arch': 'x86_64'}
         inspected_macs = ['aa:aa:aa:aa:aa:aa', 'bb:bb:bb:bb:bb:bb']
+        new_traits = ['CUSTOM_CPU_FPGA']
+        existing_traits = []
         power_state_mock.return_value = states.POWER_ON
         _inspect_hardware_mock.return_value = (inspected_props,
-                                               inspected_macs)
+                                               inspected_macs,
+                                               new_traits)
         new_port_mock1 = mock.MagicMock(spec=objects.Port)
         new_port_mock2 = mock.MagicMock(spec=objects.Port)
 
@@ -185,7 +202,8 @@ class IRMCInspectTestCase(test_common.BaseIRMCTest):
             result = task.driver.inspect.inspect_hardware(task)
 
             node_id = task.node.id
-            _inspect_hardware_mock.assert_called_once_with(task.node)
+            _inspect_hardware_mock.assert_called_once_with(task.node,
+                                                           existing_traits)
 
             # note (naohirot):
             # as of mock 1.2, assert_has_calls has a bug which returns
@@ -240,9 +258,12 @@ class IRMCInspectTestCase(test_common.BaseIRMCTest):
             'cpus': 2,
             'cpu_arch': 'x86_64'}
         inspected_macs = ['aa:aa:aa:aa:aa:aa', 'bb:bb:bb:bb:bb:bb']
+        new_traits = ['CUSTOM_CPU_FPGA']
+        existing_traits = []
         power_state_mock.return_value = states.POWER_OFF
         _inspect_hardware_mock.return_value = (inspected_props,
-                                               inspected_macs)
+                                               inspected_macs,
+                                               new_traits)
         new_port_mock1 = mock.MagicMock(spec=objects.Port)
         new_port_mock2 = mock.MagicMock(spec=objects.Port)
 
@@ -254,6 +275,7 @@ class IRMCInspectTestCase(test_common.BaseIRMCTest):
 
             node_id = task.node.id
             _inspect_hardware_mock.assert_called_once_with(task.node,
+                                                           existing_traits,
                                                            sleep_flag=True)
 
             port_mock.assert_has_calls([
@@ -290,6 +312,10 @@ class IRMCInspectTestCase(test_common.BaseIRMCTest):
                               task)
             self.assertFalse(port_mock.called)
 
+    @mock.patch.object(objects.trait.TraitList,
+                       'get_trait_names',
+                       spec_set=True,
+                       autospec=True)
     @mock.patch.object(irmc_inspect.LOG, 'warn', spec_set=True, autospec=True)
     @mock.patch('ironic.objects.Port', spec_set=True, autospec=True)
     @mock.patch.object(irmc_inspect, '_inspect_hardware', spec_set=True,
@@ -298,30 +324,37 @@ class IRMCInspectTestCase(test_common.BaseIRMCTest):
                        autospec=True)
     def test_inspect_hardware_mac_already_exist(
             self, power_state_mock, _inspect_hardware_mock,
-            port_mock, warn_mock):
+            port_mock, warn_mock, trait_mock):
         inspected_props = {
             'memory_mb': '1024',
             'local_gb': 10,
             'cpus': 2,
             'cpu_arch': 'x86_64'}
         inspected_macs = ['aa:aa:aa:aa:aa:aa', 'bb:bb:bb:bb:bb:bb']
+        existing_traits = ['CUSTOM_CPU_FPGA']
+        new_traits = list(existing_traits)
         _inspect_hardware_mock.return_value = (inspected_props,
-                                               inspected_macs)
+                                               inspected_macs,
+                                               new_traits)
         power_state_mock.return_value = states.POWER_ON
         side_effect = exception.MACAlreadyExists("fake exception")
         new_port_mock = port_mock.return_value
         new_port_mock.create.side_effect = side_effect
+        trait_mock.return_value = existing_traits
 
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
             result = task.driver.inspect.inspect_hardware(task)
 
-            _inspect_hardware_mock.assert_called_once_with(task.node)
+            _inspect_hardware_mock.assert_called_once_with(task.node,
+                                                           existing_traits)
             self.assertTrue(port_mock.call_count, 2)
             task.node.refresh()
             self.assertEqual(inspected_props, task.node.properties)
             self.assertEqual(states.MANAGEABLE, result)
 
+    @mock.patch.object(objects.trait.TraitList, 'get_trait_names',
+                       spec_set=True, autospec=True)
     @mock.patch.object(irmc_inspect, '_get_mac_addresses', spec_set=True,
                        autospec=True)
     @mock.patch.object(irmc_inspect, 'scci',
@@ -329,19 +362,28 @@ class IRMCInspectTestCase(test_common.BaseIRMCTest):
     @mock.patch.object(irmc_common, 'get_irmc_report', spec_set=True,
                        autospec=True)
     def _test_inspect_hardware_props(self, gpu_ids,
+                                     fpga_ids,
                                      existed_capabilities,
                                      inspected_capabilities,
                                      expected_capabilities,
+                                     existed_traits,
+                                     expected_traits,
                                      get_irmc_report_mock,
                                      scci_mock,
-                                     _get_mac_addresses_mock):
+                                     _get_mac_addresses_mock,
+                                     trait_mock):
         capabilities_props = set(irmc_inspect.CAPABILITIES_PROPERTIES)
 
         # if gpu_ids = [], pci_gpu_devices will not be inspected
         if len(gpu_ids) == 0:
             capabilities_props.remove('pci_gpu_devices')
 
+        # if fpga_ids = [], cpu_fpga will not be inspected
+        if fpga_ids is None or len(fpga_ids) == 0:
+            capabilities_props.remove('cpu_fpga')
+
         self.config(gpu_ids=gpu_ids, group='irmc')
+        self.config(fpga_ids=fpga_ids, group='irmc')
         kwargs = {'sleep_flag': False}
 
         inspected_props = {
@@ -352,60 +394,77 @@ class IRMCInspectTestCase(test_common.BaseIRMCTest):
 
         inspected_macs = ['aa:aa:aa:aa:aa:aa', 'bb:bb:bb:bb:bb:bb']
         report = 'fake_report'
+
         get_irmc_report_mock.return_value = report
         scci_mock.get_essential_properties.return_value = inspected_props
         scci_mock.get_capabilities_properties.return_value = \
             inspected_capabilities
         _get_mac_addresses_mock.return_value = inspected_macs
+        trait_mock.return_value = existed_traits
+
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
             task.node.properties[u'capabilities'] =\
                 ",".join('%(k)s:%(v)s' % {'k': k, 'v': v}
                          for k, v in existed_capabilities.items())
-            result = irmc_inspect._inspect_hardware(task.node, **kwargs)
+            result = irmc_inspect._inspect_hardware(task.node,
+                                                    existed_traits,
+                                                    **kwargs)
             get_irmc_report_mock.assert_called_once_with(task.node)
             scci_mock.get_essential_properties.assert_called_once_with(
                 report, irmc_inspect.IRMCInspect.ESSENTIAL_PROPERTIES)
             scci_mock.get_capabilities_properties.assert_called_once_with(
                 mock.ANY, capabilities_props,
-                gpu_ids, **kwargs)
+                gpu_ids, fpga_ids=fpga_ids, **kwargs)
             expected_capabilities = utils.get_updated_capabilities(
                 '', expected_capabilities)
 
             set1 = set(expected_capabilities.split(','))
             set2 = set(result[0]['capabilities'].split(','))
             self.assertEqual(set1, set2)
+            self.assertEqual(expected_traits, result[2])
 
     def test_inspect_hardware_existing_cap_in_props(self):
         # Set config flags
         gpu_ids = ['0x1000/0x0079', '0x2100/0x0080']
+        cpu_fpgas = ['0x1000/0x0179', '0x2100/0x0180']
         existed_capabilities = {
             'trusted_boot': True,
             'irmc_firmware_version': 'iRMC S4-7.82F',
             'server_model': 'TX2540M1F5',
             'rom_firmware_version': 'V4.6.5.4 R1.15.0 for D3099-B1x',
-            'pci_gpu_devices': 1}
+            'pci_gpu_devices': 1
+        }
         inspected_capabilities = {
             'trusted_boot': True,
             'irmc_firmware_version': 'iRMC S4-7.82F',
             'server_model': 'TX2540M1F5',
             'rom_firmware_version': 'V4.6.5.4 R1.15.0 for D3099-B1x',
-            'pci_gpu_devices': 1}
+            'pci_gpu_devices': 1,
+            'cpu_fpga': 1
+        }
         expected_capabilities = {
             'trusted_boot': True,
             'irmc_firmware_version': 'iRMC S4-7.82F',
             'server_model': 'TX2540M1F5',
             'rom_firmware_version': 'V4.6.5.4 R1.15.0 for D3099-B1x',
-            'pci_gpu_devices': 1}
+            'pci_gpu_devices': 1
+        }
+        existed_traits = []
+        expected_traits = ['CUSTOM_CPU_FPGA']
 
         self._test_inspect_hardware_props(gpu_ids,
+                                          cpu_fpgas,
                                           existed_capabilities,
                                           inspected_capabilities,
-                                          expected_capabilities)
+                                          expected_capabilities,
+                                          existed_traits,
+                                          expected_traits)
 
-    def test_inspect_hardware_props_empty_gpu_ids(self):
+    def test_inspect_hardware_props_empty_gpu_ids_fpga_ids(self):
         # Set config flags
         gpu_ids = []
+        cpu_fpgas = []
         existed_capabilities = {}
         inspected_capabilities = {
             'trusted_boot': True,
@@ -417,37 +476,52 @@ class IRMCInspectTestCase(test_common.BaseIRMCTest):
             'irmc_firmware_version': 'iRMC S4-7.82F',
             'server_model': 'TX2540M1F5',
             'rom_firmware_version': 'V4.6.5.4 R1.15.0 for D3099-B1x'}
+        existed_traits = []
+        expected_traits = []
 
         self._test_inspect_hardware_props(gpu_ids,
+                                          cpu_fpgas,
                                           existed_capabilities,
                                           inspected_capabilities,
-                                          expected_capabilities)
+                                          expected_capabilities,
+                                          existed_traits,
+                                          expected_traits)
 
     def test_inspect_hardware_props_pci_gpu_devices_return_zero(self):
         # Set config flags
         gpu_ids = ['0x1000/0x0079', '0x2100/0x0080']
-
+        cpu_fpgas = ['0x1000/0x0179', '0x2100/0x0180']
         existed_capabilities = {}
         inspected_capabilities = {
             'trusted_boot': True,
             'irmc_firmware_version': 'iRMC S4-7.82F',
             'server_model': 'TX2540M1F5',
             'rom_firmware_version': 'V4.6.5.4 R1.15.0 for D3099-B1x',
-            'pci_gpu_devices': 0}
+            'pci_gpu_devices': 0,
+            'cpu_fpga': 0
+        }
         expected_capabilities = {
             'trusted_boot': True,
             'irmc_firmware_version': 'iRMC S4-7.82F',
             'server_model': 'TX2540M1F5',
             'rom_firmware_version': 'V4.6.5.4 R1.15.0 for D3099-B1x'}
 
+        existed_traits = []
+        expected_traits = []
+
         self._test_inspect_hardware_props(gpu_ids,
+                                          cpu_fpgas,
                                           existed_capabilities,
                                           inspected_capabilities,
-                                          expected_capabilities)
+                                          expected_capabilities,
+                                          existed_traits,
+                                          expected_traits)
 
-    def test_inspect_hardware_props_empty_gpu_ids_and_existing_cap(self):
+    def test_inspect_hardware_props_empty_gpu_ids_fpga_id_sand_existing_cap(
+            self):
         # Set config flags
         gpu_ids = []
+        cpu_fpgas = []
         existed_capabilities = {
             'trusted_boot': True,
             'irmc_firmware_version': 'iRMC S4-7.82F',
@@ -465,15 +539,22 @@ class IRMCInspectTestCase(test_common.BaseIRMCTest):
             'server_model': 'TX2540M1F5',
             'rom_firmware_version': 'V4.6.5.4 R1.15.0 for D3099-B1x'}
 
+        existed_traits = []
+        expected_traits = []
+
         self._test_inspect_hardware_props(gpu_ids,
+                                          cpu_fpgas,
                                           existed_capabilities,
                                           inspected_capabilities,
-                                          expected_capabilities)
+                                          expected_capabilities,
+                                          existed_traits,
+                                          expected_traits)
 
-    def test_inspect_hardware_props_pci_gpu_devices_zero_and_existing_cap(
+    def test_inspect_hardware_props_gpu_cpu_fpgas_zero_and_existing_cap(
             self):
         # Set config flags
         gpu_ids = ['0x1000/0x0079', '0x2100/0x0080']
+        cpu_fpgas = ['0x1000/0x0179', '0x2100/0x0180']
         existed_capabilities = {
             'trusted_boot': True,
             'irmc_firmware_version': 'iRMC S4-7.82F',
@@ -485,43 +566,59 @@ class IRMCInspectTestCase(test_common.BaseIRMCTest):
             'irmc_firmware_version': 'iRMC S4-7.82F',
             'server_model': 'TX2540M1F5',
             'rom_firmware_version': 'V4.6.5.4 R1.15.0 for D3099-B1x',
-            'pci_gpu_devices': 0}
+            'pci_gpu_devices': 0,
+            'cpu_fpga': 0}
         expected_capabilities = {
             'trusted_boot': True,
             'irmc_firmware_version': 'iRMC S4-7.82F',
             'server_model': 'TX2540M1F5',
             'rom_firmware_version': 'V4.6.5.4 R1.15.0 for D3099-B1x'}
 
+        existed_traits = ['CUSTOM_CPU_FPGA']
+        expected_traits = []
+
         self._test_inspect_hardware_props(gpu_ids,
+                                          cpu_fpgas,
                                           existed_capabilities,
                                           inspected_capabilities,
-                                          expected_capabilities)
+                                          expected_capabilities,
+                                          existed_traits,
+                                          expected_traits)
 
     def test_inspect_hardware_props_trusted_boot_is_false(self):
         # Set config flags
         gpu_ids = ['0x1000/0x0079', '0x2100/0x0080']
+        cpu_fpgas = ['0x1000/0x0179', '0x2100/0x0180']
         existed_capabilities = {}
         inspected_capabilities = {
             'trusted_boot': False,
             'irmc_firmware_version': 'iRMC S4-7.82F',
             'server_model': 'TX2540M1F5',
             'rom_firmware_version': 'V4.6.5.4 R1.15.0 for D3099-B1x',
-            'pci_gpu_devices': 1}
+            'pci_gpu_devices': 1,
+            'cpu_fpga': 1}
         expected_capabilities = {
             'irmc_firmware_version': 'iRMC S4-7.82F',
             'server_model': 'TX2540M1F5',
             'rom_firmware_version': 'V4.6.5.4 R1.15.0 for D3099-B1x',
             'pci_gpu_devices': 1}
 
+        existed_traits = []
+        expected_traits = ['CUSTOM_CPU_FPGA']
+
         self._test_inspect_hardware_props(gpu_ids,
+                                          cpu_fpgas,
                                           existed_capabilities,
                                           inspected_capabilities,
-                                          expected_capabilities)
+                                          expected_capabilities,
+                                          existed_traits,
+                                          expected_traits)
 
     def test_inspect_hardware_props_trusted_boot_is_false_and_existing_cap(
             self):
         # Set config flags
         gpu_ids = ['0x1000/0x0079', '0x2100/0x0080']
+        cpu_fpgas = ['0x1000/0x0179', '0x2100/0x0180']
         existed_capabilities = {
             'trusted_boot': True,
             'irmc_firmware_version': 'iRMC S4-7.82F',
@@ -533,13 +630,55 @@ class IRMCInspectTestCase(test_common.BaseIRMCTest):
             'irmc_firmware_version': 'iRMC S4-7.82F',
             'server_model': 'TX2540M1F5',
             'rom_firmware_version': 'V4.6.5.4 R1.15.0 for D3099-B1x',
-            'pci_gpu_devices': 1}
+            'pci_gpu_devices': 1,
+            'cpu_fpga': 1}
         expected_capabilities = {
             'irmc_firmware_version': 'iRMC S4-7.82F',
             'server_model': 'TX2540M1F5',
             'rom_firmware_version': 'V4.6.5.4 R1.15.0 for D3099-B1x',
             'pci_gpu_devices': 1}
+
+        existed_traits = ['CUSTOM_CPU_FPGA']
+        expected_traits = ['CUSTOM_CPU_FPGA']
+
         self._test_inspect_hardware_props(gpu_ids,
+                                          cpu_fpgas,
                                           existed_capabilities,
                                           inspected_capabilities,
-                                          expected_capabilities)
+                                          expected_capabilities,
+                                          existed_traits,
+                                          expected_traits)
+
+    def test_inspect_hardware_props_gpu_and_cpu_fpgas_results_are_different(
+            self):
+        # Set config flags
+        gpu_ids = ['0x1000/0x0079', '0x2100/0x0080']
+        cpu_fpgas = ['0x1000/0x0179', '0x2100/0x0180']
+        existed_capabilities = {
+            'trusted_boot': True,
+            'irmc_firmware_version': 'iRMC S4-7.82F',
+            'server_model': 'TX2540M1F5',
+            'rom_firmware_version': 'V4.6.5.4 R1.15.0 for D3099-B1x',
+            'pci_gpu_devices': 1}
+        inspected_capabilities = {
+            'trusted_boot': False,
+            'irmc_firmware_version': 'iRMC S4-7.82F',
+            'server_model': 'TX2540M1F5',
+            'rom_firmware_version': 'V4.6.5.4 R1.15.0 for D3099-B1x',
+            'pci_gpu_devices': 0,
+            'cpu_fpga': 1}
+        expected_capabilities = {
+            'irmc_firmware_version': 'iRMC S4-7.82F',
+            'server_model': 'TX2540M1F5',
+            'rom_firmware_version': 'V4.6.5.4 R1.15.0 for D3099-B1x'}
+
+        existed_traits = []
+        expected_traits = ['CUSTOM_CPU_FPGA']
+
+        self._test_inspect_hardware_props(gpu_ids,
+                                          cpu_fpgas,
+                                          existed_capabilities,
+                                          inspected_capabilities,
+                                          expected_capabilities,
+                                          existed_traits,
+                                          expected_traits)
