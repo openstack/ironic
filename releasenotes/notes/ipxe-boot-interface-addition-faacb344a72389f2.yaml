@@ -1,0 +1,20 @@
+---
+features:
+  - |
+    Adds an ``ipxe`` boot interface which allows for instance level iPXE
+    enablement as opposed to conductor-wide enablement of iPXE.
+upgrade:
+  - |
+    Deployments utilizing iPXE should consider use of the ``ipxe``
+    boot interface as opposed to the ``pxe`` boot interface. iPXE
+    functionality in the ``pxe`` boot interface is deprecated and will
+    be removed during the U* development cycle.
+deprecations:
+  - |
+    The ``[pxe]ipxe_enabled`` configuration option has been deprecated in
+    preference for the ``ipxe`` boot interface. The configuration option
+    will be removed during the U* development cycle.
+  - |
+    Support for iPXE in the ``pxe`` boot interface has been deprecated,
+    and will be removed during the U* development cycle. The ``ipxe``
+    boot interface should be used instead.

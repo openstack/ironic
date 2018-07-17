@@ -68,6 +68,10 @@ class FakePower(base.PowerInterface):
 class FakeBoot(base.BootInterface):
     """Example implementation of a simple boot interface."""
 
+    # NOTE(TheJulia): default capabilities to make unit tests
+    # happy with the fake boot interface.
+    capabilities = ['ipxe_boot', 'pxe_boot']
+
     def get_properties(self):
         return {}
 

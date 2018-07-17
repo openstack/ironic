@@ -76,7 +76,12 @@ class CinderStorage(base.StorageInterface):
         iscsi_uuids_found = []
         wwpn_found = 0
         wwnn_found = 0
-        ipxe_enabled = CONF.pxe.ipxe_enabled
+        ipxe_enabled = False
+        if 'pxe_boot' in task.driver.boot.capabilities:
+            if CONF.pxe.ipxe_enabled:
+                ipxe_enabled = True
+        elif 'ipxe_boot' in task.driver.boot.capabilities:
+            ipxe_enabled = True
 
         for connector in task.volume_connectors:
             if (connector.type in VALID_ISCSI_TYPES
@@ -84,7 +89,8 @@ class CinderStorage(base.StorageInterface):
                 iscsi_uuids_found.append(connector.uuid)
                 if not ipxe_enabled:
                     msg = _("The [pxe]/ipxe_enabled option must "
-                            "be set to True to support network "
+                            "be set to True or the boot interface "
+                            "must be set to ``ipxe`` to support network "
                             "booting to an iSCSI volume.")
                     self._fail_validation(task, msg)
 

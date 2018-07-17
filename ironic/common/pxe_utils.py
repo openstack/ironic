@@ -20,6 +20,7 @@ from ironic_lib import utils as ironic_utils
 from oslo_log import log as logging
 from oslo_utils import excutils
 from oslo_utils import fileutils
+from oslo_utils import importutils
 
 from ironic.common import dhcp_factory
 from ironic.common import exception
@@ -58,14 +59,22 @@ def get_root_dir():
         return CONF.pxe.tftp_root
 
 
-def _ensure_config_dirs_exist(node_uuid):
+def get_ipxe_root_dir():
+    return CONF.deploy.http_root
+
+
+def _ensure_config_dirs_exist(task, ipxe_enabled=False):
     """Ensure that the node's and PXE configuration directories exist.
 
-    :param node_uuid: the UUID of the node.
-
+    :param task: A TaskManager instance
+    :param ipxe_enabled: Default false boolean to indicate if ipxe
+                         is in use by the caller.
     """
-    root_dir = get_root_dir()
-    node_dir = os.path.join(root_dir, node_uuid)
+    if ipxe_enabled:
+        root_dir = get_ipxe_root_dir()
+    else:
+        root_dir = get_root_dir()
+    node_dir = os.path.join(root_dir, task.node.uuid)
     pxe_dir = os.path.join(root_dir, PXE_CFG_DIR_NAME)
     # NOTE: We should only change the permissions if the folder
     # does not exist. i.e. if defined, an operator could have
@@ -78,11 +87,12 @@ def _ensure_config_dirs_exist(node_uuid):
                 os.chmod(directory, CONF.pxe.dir_permission)
 
 
-def _link_mac_pxe_configs(task):
+def _link_mac_pxe_configs(task, ipxe_enabled=False):
     """Link each MAC address with the PXE configuration file.
 
     :param task: A TaskManager instance.
-
+    :param ipxe_enabled: Default false boolean to indicate if ipxe
+                         is in use by the caller.
     """
 
     def create_link(mac_path):
@@ -91,26 +101,32 @@ def _link_mac_pxe_configs(task):
             pxe_config_file_path, os.path.dirname(mac_path))
         utils.create_link_without_raise(relative_source_path, mac_path)
 
-    pxe_config_file_path = get_pxe_config_file_path(task.node.uuid)
+    pxe_config_file_path = get_pxe_config_file_path(
+        task.node.uuid, ipxe_enabled=ipxe_enabled)
     for port in task.ports:
         client_id = port.extra.get('client-id')
         # Syslinux, ipxe, depending on settings.
-        create_link(_get_pxe_mac_path(port.address, client_id=client_id))
+        create_link(_get_pxe_mac_path(port.address, client_id=client_id,
+                                      ipxe_enabled=ipxe_enabled))
         # Grub2 MAC address only
         create_link(_get_pxe_grub_mac_path(port.address))
 
 
-def _link_ip_address_pxe_configs(task, hex_form):
+def _link_ip_address_pxe_configs(task, hex_form, ipxe_enabled=False):
     """Link each IP address with the PXE configuration file.
 
     :param task: A TaskManager instance.
     :param hex_form: Boolean value indicating if the conf file name should be
                      hexadecimal equivalent of supplied ipv4 address.
+    :param ipxe_enabled: Default false boolean to indicate if ipxe
+                         is in use by the caller.
     :raises: FailedToGetIPAddressOnPort
     :raises: InvalidIPv4Address
 
     """
-    pxe_config_file_path = get_pxe_config_file_path(task.node.uuid)
+    pxe_config_file_path = get_pxe_config_file_path(
+        task.node.uuid,
+        ipxe_enabled=ipxe_enabled)
 
     api = dhcp_factory.DHCPFactory().provider
     ip_addrs = api.get_ip_addresses(task)
@@ -132,23 +148,29 @@ def _get_pxe_grub_mac_path(mac):
     return os.path.join(get_root_dir(), mac + '.conf')
 
 
-def _get_pxe_mac_path(mac, delimiter='-', client_id=None):
+def _get_pxe_mac_path(mac, delimiter='-', client_id=None,
+                      ipxe_enabled=False):
     """Convert a MAC address into a PXE config file name.
 
     :param mac: A MAC address string in the format xx:xx:xx:xx:xx:xx.
     :param delimiter: The MAC address delimiter. Defaults to dash ('-').
     :param client_id: client_id indicate InfiniBand port.
                       Defaults is None (Ethernet)
+    :param ipxe_enabled: A default False boolean value to tell the method
+                         if the caller is using iPXE.
     :returns: the path to the config file.
 
     """
     mac_file_name = mac.replace(':', delimiter).lower()
-    if not CONF.pxe.ipxe_enabled:
+    if not ipxe_enabled:
         hw_type = '01-'
         if client_id:
             hw_type = '20-'
         mac_file_name = hw_type + mac_file_name
-    return os.path.join(get_root_dir(), PXE_CFG_DIR_NAME, mac_file_name)
+        return os.path.join(get_root_dir(), PXE_CFG_DIR_NAME,
+                            mac_file_name)
+    return os.path.join(get_ipxe_root_dir(), PXE_CFG_DIR_NAME,
+                        mac_file_name)
 
 
 def _get_pxe_ip_address_path(ip_address, hex_form):
@@ -173,7 +195,8 @@ def _get_pxe_ip_address_path(ip_address, hex_form):
     )
 
 
-def get_kernel_ramdisk_info(node_uuid, driver_info, mode='deploy'):
+def get_kernel_ramdisk_info(node_uuid, driver_info, mode='deploy',
+                            ipxe_enabled=False):
     """Get href and tftp path for deploy or rescue kernel and ramdisk.
 
     :param node_uuid: UUID of the node
@@ -182,13 +205,18 @@ def get_kernel_ramdisk_info(node_uuid, driver_info, mode='deploy'):
                  ramdisk are being requested. Supported values are 'deploy'
                  'rescue'. Defaults to 'deploy', indicating deploy paths will
                  be returned.
+    :param ipxe_enabled: A default False boolean value to tell the method
+                         if the caller is using iPXE.
     :returns: a dictionary whose keys are deploy_kernel and deploy_ramdisk or
               rescue_kernel and rescue_ramdisk and whose values are the
               absolute paths to them.
 
     Note: driver_info should be validated outside of this method.
     """
-    root_dir = get_root_dir()
+    if ipxe_enabled:
+        root_dir = get_ipxe_root_dir()
+    else:
+        root_dir = get_root_dir()
     image_info = {}
     labels = KERNEL_RAMDISK_LABELS[mode]
     for label in labels:
@@ -199,17 +227,22 @@ def get_kernel_ramdisk_info(node_uuid, driver_info, mode='deploy'):
     return image_info
 
 
-def get_pxe_config_file_path(node_uuid):
+def get_pxe_config_file_path(node_uuid, ipxe_enabled=False):
     """Generate the path for the node's PXE configuration file.
 
     :param node_uuid: the UUID of the node.
+    :param ipxe_enabled: A default False boolean value to tell the method
+                         if the caller is using iPXE.
     :returns: The path to the node's PXE configuration file.
 
     """
-    return os.path.join(get_root_dir(), node_uuid, 'config')
+    if ipxe_enabled:
+        return os.path.join(get_ipxe_root_dir(), node_uuid, 'config')
+    else:
+        return os.path.join(get_root_dir(), node_uuid, 'config')
 
 
-def create_pxe_config(task, pxe_options, template=None):
+def create_pxe_config(task, pxe_options, template=None, ipxe_enabled=False):
     """Generate PXE configuration file and MAC address links for it.
 
     This method will generate the PXE configuration file for the task's
@@ -231,13 +264,14 @@ def create_pxe_config(task, pxe_options, template=None):
 
     """
     LOG.debug("Building PXE config for node %s", task.node.uuid)
-
     if template is None:
         template = deploy_utils.get_pxe_config_template(task.node)
 
-    _ensure_config_dirs_exist(task.node.uuid)
+    _ensure_config_dirs_exist(task, ipxe_enabled)
 
-    pxe_config_file_path = get_pxe_config_file_path(task.node.uuid)
+    pxe_config_file_path = get_pxe_config_file_path(
+        task.node.uuid,
+        ipxe_enabled=ipxe_enabled)
     is_uefi_boot_mode = (boot_mode_utils.get_boot_mode_for_deploy(task.node)
                          == 'uefi')
 
@@ -269,10 +303,10 @@ def create_pxe_config(task, pxe_options, template=None):
     utils.write_to_file(pxe_config_file_path, pxe_config)
 
     # Always write the mac addresses
-    _link_mac_pxe_configs(task)
-    if is_uefi_boot_mode and not CONF.pxe.ipxe_enabled:
+    _link_mac_pxe_configs(task, ipxe_enabled=ipxe_enabled)
+    if is_uefi_boot_mode and not ipxe_enabled:
         try:
-            _link_ip_address_pxe_configs(task, hex_form)
+            _link_ip_address_pxe_configs(task, hex_form, ipxe_enabled)
         # NOTE(TheJulia): The IP address support will fail if the
         # dhcp_provider interface is set to none. This will result
         # in the MAC addresses and DHCP files being written, and
@@ -312,7 +346,9 @@ def clean_up_pxe_config(task):
 
     is_uefi_boot_mode = (boot_mode_utils.get_boot_mode_for_deploy(task.node)
                          == 'uefi')
-    if is_uefi_boot_mode and not CONF.pxe.ipxe_enabled:
+    ipxe_enabled = is_ipxe_enabled(task)
+
+    if is_uefi_boot_mode and not ipxe_enabled:
         api = dhcp_factory.DHCPFactory().provider
         ip_addresses = api.get_ip_addresses(task)
         if not ip_addresses:
@@ -341,12 +377,17 @@ def clean_up_pxe_config(task):
         client_id = port.extra.get('client-id')
         # syslinux, ipxe, etc.
         ironic_utils.unlink_without_raise(
-            _get_pxe_mac_path(port.address, client_id=client_id))
+            _get_pxe_mac_path(port.address, client_id=client_id,
+                              ipxe_enabled=ipxe_enabled))
         # Grub2 MAC address based confiuration
         ironic_utils.unlink_without_raise(
             _get_pxe_grub_mac_path(port.address))
-    utils.rmtree_without_raise(os.path.join(get_root_dir(),
-                                            task.node.uuid))
+    if ipxe_enabled:
+        utils.rmtree_without_raise(os.path.join(get_ipxe_root_dir(),
+                                                task.node.uuid))
+    else:
+        utils.rmtree_without_raise(os.path.join(get_root_dir(),
+                                                task.node.uuid))
 
 
 def dhcp_options_for_instance(task):
@@ -358,7 +399,7 @@ def dhcp_options_for_instance(task):
 
     boot_file = deploy_utils.get_pxe_boot_file(task.node)
 
-    if CONF.pxe.ipxe_enabled:
+    if is_ipxe_enabled(task):
         script_name = os.path.basename(CONF.pxe.ipxe_boot_script)
         ipxe_script_url = '/'.join([CONF.deploy.http_url, script_name])
         dhcp_provider_name = CONF.dhcp.dhcp_provider
@@ -441,16 +482,16 @@ def is_ipxe_enabled(task):
     :returns: boolean true if ``[pxe]ipxe_enabled`` is configured
               or if the task driver instance is the iPXE driver.
     """
-    # TODO(TheJulia): Due to the order being shuffled of the patches,
-    # I'm mostly leaving this in place.
     # NOTE(TheJulia): importutils used here as we seem to get in circular
     # import weirdness otherwise, specifically when the classes that use
     # the pxe interface as their parent.
-    # iPXEBoot = importutils.import_class(
-    #    'ironic.drivers.modules.ipxe.iPXEBoot')
-    # return CONF.pxe.ipxe_enabled or isinstance(task.driver.boot,
-    #                                            iPXEBoot)
-    return CONF.pxe.ipxe_enabled
+    # TODO(TheJulia): We should remove this as soon as it is no longer
+    # required to help us bridge the split of the interfaces and helper
+    # methods.
+    iPXEBoot = importutils.import_class(
+        'ironic.drivers.modules.ipxe.iPXEBoot')
+    return CONF.pxe.ipxe_enabled or isinstance(task.driver.boot,
+                                               iPXEBoot)
 
 
 def parse_driver_info(node, mode='deploy'):
@@ -479,28 +520,33 @@ def parse_driver_info(node, mode='deploy'):
     return d_info
 
 
-def get_instance_image_info(node, ctx):
+def get_instance_image_info(task, ipxe_enabled=False):
     """Generate the paths for TFTP files for instance related images.
 
     This method generates the paths for instance kernel and
     instance ramdisk. This method also updates the node, so caller should
     already have a non-shared lock on the node.
 
-    :param node: a node object
-    :param ctx: context
+    :param task: A TaskManager instance containing node and context.
+    :param ipxe_enabled: Default false boolean to indicate if ipxe
+                         is in use by the caller.
     :returns: a dictionary whose keys are the names of the images (kernel,
         ramdisk) and values are the absolute paths of them. If it's a whole
         disk image or node is configured for localboot,
         it returns an empty dictionary.
     """
+    ctx = task.context
+    node = task.node
     image_info = {}
     # NOTE(pas-ha) do not report image kernel and ramdisk for
     # local boot or whole disk images so that they are not cached
     if (node.driver_internal_info.get('is_whole_disk_image')
         or deploy_utils.get_boot_option(node) == 'local'):
             return image_info
-
-    root_dir = get_root_dir()
+    if ipxe_enabled:
+        root_dir = get_ipxe_root_dir()
+    else:
+        root_dir = get_root_dir()
     i_info = node.instance_info
     labels = ('kernel', 'ramdisk')
     d_info = deploy_utils.get_image_instance_info(node)
@@ -618,7 +664,8 @@ def build_extra_pxe_options():
             'ipxe_timeout': CONF.pxe.ipxe_timeout * 1000}
 
 
-def build_pxe_config_options(task, pxe_info, service=False):
+def build_pxe_config_options(task, pxe_info, service=False,
+                             ipxe_enabled=False):
     """Build the PXE config options for a node
 
     This method builds the PXE boot options for a node,
@@ -632,6 +679,8 @@ def build_pxe_config_options(task, pxe_info, service=False):
     :param service: if True, build "service mode" pxe config for netboot-ed
         user image and skip adding deployment image kernel and ramdisk info
         to PXE options.
+    :param ipxe_enabled: Default false boolean to indicate if ipxe
+                         is in use by the caller.
     :returns: A dictionary of pxe options to be used in the pxe bootfile
         template.
     """
@@ -640,7 +689,7 @@ def build_pxe_config_options(task, pxe_info, service=False):
     if service:
         pxe_options = {}
     elif (node.driver_internal_info.get('boot_from_volume')
-            and is_ipxe_enabled(task)):
+            and ipxe_enabled):
         pxe_options = get_volume_pxe_options(task)
     else:
         pxe_options = build_deploy_pxe_options(task, pxe_info, mode=mode)
@@ -659,7 +708,8 @@ def build_pxe_config_options(task, pxe_info, service=False):
 
 def build_service_pxe_config(task, instance_image_info,
                              root_uuid_or_disk_id,
-                             ramdisk_boot=False):
+                             ramdisk_boot=False,
+                             ipxe_enabled=False):
     node = task.node
     pxe_config_path = get_pxe_config_file_path(node.uuid)
     # NOTE(pas-ha) if it is takeover of ACTIVE node or node performing
@@ -668,17 +718,18 @@ def build_service_pxe_config(task, instance_image_info,
     if (node.provision_state in [states.ACTIVE, states.UNRESCUING]
             and not os.path.isfile(pxe_config_path)):
         pxe_options = build_pxe_config_options(task, instance_image_info,
-                                               service=True)
+                                               service=True,
+                                               ipxe_enabled=ipxe_enabled)
         pxe_config_template = deploy_utils.get_pxe_config_template(node)
-        create_pxe_config(task, pxe_options, pxe_config_template)
+        create_pxe_config(task, pxe_options, pxe_config_template,
+                          ipxe_enabled=ipxe_enabled)
     iwdi = node.driver_internal_info.get('is_whole_disk_image')
     deploy_utils.switch_pxe_config(
         pxe_config_path, root_uuid_or_disk_id,
         boot_mode_utils.get_boot_mode_for_deploy(node),
         iwdi, deploy_utils.is_trusted_boot_requested(node),
-        deploy_utils.is_iscsi_boot(task), ramdisk_boot)
-    # TODO(TheJulia): Add with ipxe interface
-    #   ipxe_enabled=is_ipxe_enabled(task))
+        deploy_utils.is_iscsi_boot(task), ramdisk_boot,
+        ipxe_enabled=ipxe_enabled)
 
 
 def get_volume_pxe_options(task):
@@ -773,7 +824,8 @@ def validate_boot_parameters_for_trusted_boot(node):
 
 def prepare_instance_pxe_config(task, image_info,
                                 iscsi_boot=False,
-                                ramdisk_boot=False):
+                                ramdisk_boot=False,
+                                ipxe_enabled=False):
     """Prepares the config file for PXE boot
 
     :param task: a task from TaskManager.
@@ -781,6 +833,8 @@ def prepare_instance_pxe_config(task, image_info,
                        metadata to set on the configuration file.
     :param iscsi_boot: if boot is from an iSCSI volume or not.
     :param ramdisk_boot: if the boot is to a ramdisk configuration.
+    :param ipxe_enabled: Default false boolean to indicate if ipxe
+                         is in use by the caller.
     :returns: None
     """
 
@@ -792,13 +846,15 @@ def prepare_instance_pxe_config(task, image_info,
         node.uuid)
     if not os.path.isfile(pxe_config_path):
         pxe_options = build_pxe_config_options(
-            task, image_info, service=ramdisk_boot)
+            task, image_info, service=ramdisk_boot,
+            ipxe_enabled=ipxe_enabled)
         pxe_config_template = (
             deploy_utils.get_pxe_config_template(node))
         create_pxe_config(
-            task, pxe_options, pxe_config_template)
+            task, pxe_options, pxe_config_template,
+            ipxe_enabled=ipxe_enabled)
     deploy_utils.switch_pxe_config(
         pxe_config_path, None,
         boot_mode_utils.get_boot_mode_for_deploy(node), False,
         iscsi_boot=iscsi_boot, ramdisk_boot=ramdisk_boot,
-        ipxe_enabled=is_ipxe_enabled(task))
+        ipxe_enabled=ipxe_enabled)

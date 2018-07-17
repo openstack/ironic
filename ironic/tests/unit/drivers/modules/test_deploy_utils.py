@@ -874,24 +874,24 @@ class SwitchPxeConfigTestCase(tests_base.TestCase):
 
     def test_switch_ipxe_config_partition_image(self):
         boot_mode = 'bios'
-        cfg.CONF.set_override('ipxe_enabled', True, 'pxe')
         fname = self._create_config(ipxe=True)
         utils.switch_pxe_config(fname,
                                 '12345678-1234-1234-1234-1234567890abcdef',
                                 boot_mode,
-                                False)
+                                False,
+                                ipxe_enabled=True)
         with open(fname, 'r') as f:
             pxeconf = f.read()
         self.assertEqual(_IPXECONF_BOOT_PARTITION, pxeconf)
 
     def test_switch_ipxe_config_whole_disk_image(self):
         boot_mode = 'bios'
-        cfg.CONF.set_override('ipxe_enabled', True, 'pxe')
         fname = self._create_config(ipxe=True)
         utils.switch_pxe_config(fname,
                                 '0x12345678',
                                 boot_mode,
-                                True)
+                                True,
+                                ipxe_enabled=True)
         with open(fname, 'r') as f:
             pxeconf = f.read()
         self.assertEqual(_IPXECONF_BOOT_WHOLE_DISK, pxeconf)
@@ -946,36 +946,36 @@ class SwitchPxeConfigTestCase(tests_base.TestCase):
 
     def test_switch_uefi_ipxe_config_partition_image(self):
         boot_mode = 'uefi'
-        cfg.CONF.set_override('ipxe_enabled', True, 'pxe')
         fname = self._create_config(boot_mode=boot_mode, ipxe=True)
         utils.switch_pxe_config(fname,
                                 '12345678-1234-1234-1234-1234567890abcdef',
                                 boot_mode,
-                                False)
+                                False,
+                                ipxe_enabled=True)
         with open(fname, 'r') as f:
             pxeconf = f.read()
         self.assertEqual(_IPXECONF_BOOT_PARTITION, pxeconf)
 
     def test_switch_uefi_ipxe_config_whole_disk_image(self):
         boot_mode = 'uefi'
-        cfg.CONF.set_override('ipxe_enabled', True, 'pxe')
         fname = self._create_config(boot_mode=boot_mode, ipxe=True)
         utils.switch_pxe_config(fname,
                                 '0x12345678',
                                 boot_mode,
-                                True)
+                                True,
+                                ipxe_enabled=True)
         with open(fname, 'r') as f:
             pxeconf = f.read()
         self.assertEqual(_IPXECONF_BOOT_WHOLE_DISK, pxeconf)
 
     def test_switch_ipxe_iscsi_boot(self):
         boot_mode = 'iscsi'
-        cfg.CONF.set_override('ipxe_enabled', True, 'pxe')
         fname = self._create_config(boot_mode=boot_mode, ipxe=True)
         utils.switch_pxe_config(fname,
                                 '0x12345678',
                                 boot_mode,
-                                False, False, True)
+                                False, False, True,
+                                ipxe_enabled=True)
         with open(fname, 'r') as f:
             pxeconf = f.read()
         self.assertEqual(_IPXECONF_BOOT_ISCSI_NO_CONFIG, pxeconf)

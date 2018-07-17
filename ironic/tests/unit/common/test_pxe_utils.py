@@ -344,7 +344,7 @@ class TestPXEUtils(db_base.DbTestCase):
         ]
         with task_manager.acquire(self.context, self.node.uuid) as task:
             task.ports = [port_1, port_2]
-            pxe_utils._link_mac_pxe_configs(task)
+            pxe_utils._link_mac_pxe_configs(task, ipxe_enabled=True)
 
         unlink_mock.assert_has_calls(unlink_calls)
         create_link_mock.assert_has_calls(create_link_calls)
@@ -487,7 +487,7 @@ class TestPXEUtils(db_base.DbTestCase):
                 {'pxe_options': self.pxe_options,
                  'ROOT': '{{ ROOT }}',
                  'DISK_IDENTIFIER': '{{ DISK_IDENTIFIER }}'})
-            link_ip_configs_mock.assert_called_once_with(task, True)
+            link_ip_configs_mock.assert_called_once_with(task, True, False)
 
         pxe_cfg_file_path = pxe_utils.get_pxe_config_file_path(self.node.uuid)
         write_mock.assert_called_with(pxe_cfg_file_path,
@@ -519,7 +519,7 @@ class TestPXEUtils(db_base.DbTestCase):
                 {'pxe_options': self.pxe_options,
                  'ROOT': '(( ROOT ))',
                  'DISK_IDENTIFIER': '(( DISK_IDENTIFIER ))'})
-            link_ip_configs_mock.assert_called_once_with(task, False)
+            link_ip_configs_mock.assert_called_once_with(task, False, False)
 
         pxe_cfg_file_path = pxe_utils.get_pxe_config_file_path(self.node.uuid)
         write_mock.assert_called_with(pxe_cfg_file_path,
@@ -558,8 +558,9 @@ class TestPXEUtils(db_base.DbTestCase):
                 {'pxe_options': self.pxe_options,
                  'ROOT': '(( ROOT ))',
                  'DISK_IDENTIFIER': '(( DISK_IDENTIFIER ))'})
-            link_mac_pxe_configs_mock.assert_called_once_with(task)
-            link_ip_configs_mock.assert_called_once_with(task, False)
+            link_mac_pxe_configs_mock.assert_called_once_with(
+                task, ipxe_enabled=False)
+            link_ip_configs_mock.assert_called_once_with(task, False, False)
 
         pxe_cfg_file_path = pxe_utils.get_pxe_config_file_path(self.node.uuid)
         write_mock.assert_called_with(pxe_cfg_file_path,
@@ -578,7 +579,7 @@ class TestPXEUtils(db_base.DbTestCase):
         with task_manager.acquire(self.context, self.node.uuid) as task:
             task.node.properties['capabilities'] = 'boot_mode:uefi'
             pxe_utils.create_pxe_config(task, self.ipxe_options,
-                                        ipxe_template)
+                                        ipxe_template, ipxe_enabled=True)
 
             ensure_calls = [
                 mock.call(os.path.join(CONF.deploy.http_root, self.node.uuid)),
@@ -591,9 +592,10 @@ class TestPXEUtils(db_base.DbTestCase):
                 {'pxe_options': self.ipxe_options,
                  'ROOT': '{{ ROOT }}',
                  'DISK_IDENTIFIER': '{{ DISK_IDENTIFIER }}'})
-            link_mac_pxe_mock.assert_called_once_with(task)
+            link_mac_pxe_mock.assert_called_once_with(task, ipxe_enabled=True)
 
-        pxe_cfg_file_path = pxe_utils.get_pxe_config_file_path(self.node.uuid)
+        pxe_cfg_file_path = pxe_utils.get_pxe_config_file_path(
+            self.node.uuid, ipxe_enabled=True)
         write_mock.assert_called_with(pxe_cfg_file_path,
                                       render_mock.return_value)
 
@@ -672,11 +674,10 @@ class TestPXEUtils(db_base.DbTestCase):
                          pxe_utils._get_pxe_mac_path(mac))
 
     def test__get_pxe_mac_path_ipxe(self):
-        self.config(ipxe_enabled=True, group='pxe')
         self.config(http_root='/httpboot', group='deploy')
         mac = '00:11:22:33:AA:BB:CC'
         self.assertEqual('/httpboot/pxelinux.cfg/00-11-22-33-aa-bb-cc',
-                         pxe_utils._get_pxe_mac_path(mac))
+                         pxe_utils._get_pxe_mac_path(mac, ipxe_enabled=True))
 
     def test__get_pxe_ip_address_path(self):
         ipaddress = '10.10.0.1'
