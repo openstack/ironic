@@ -30,7 +30,6 @@ class IRMCBIOSTestCase(test_common.BaseIRMCTest):
 
     def setUp(self):
         super(IRMCBIOSTestCase, self).setUp()
-        self.config(enabled_bios_interfaces=['irmc'])
 
     @mock.patch.object(irmc_common, 'parse_driver_info',
                        autospec=True)

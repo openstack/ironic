@@ -167,7 +167,7 @@ class IRMCHardwareTestCase(db_base.DbTestCase):
             self.context, driver='irmc',
             deploy_interface='direct',
             rescue_interface='agent',
-            bios_interface='irmc')
+            bios_interface='no-bios')
         with task_manager.acquire(self.context, node.id) as task:
             self.assertIsInstance(task.driver.boot,
                                   irmc.boot.IRMCVirtualMediaBoot)
@@ -182,6 +182,6 @@ class IRMCHardwareTestCase(db_base.DbTestCase):
             self.assertIsInstance(task.driver.power,
                                   irmc.power.IRMCPower)
             self.assertIsInstance(task.driver.bios,
-                                  irmc_bios.IRMCBIOS)
+                                  noop.NoBIOS)
             self.assertIsInstance(task.driver.rescue,
                                   agent.AgentRescue)

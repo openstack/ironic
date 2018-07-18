@@ -1,6 +1,6 @@
 ---
 features:
   - |
-    Adds new ``bios`` interface to ``irmc`` hardware type. And provide
+    Adds new ``bios`` interface to ``irmc`` hardware type. This provides
     out-of-band BIOS configuration solution for iRMC driver which makes
     the functionality available via manual cleaning.
