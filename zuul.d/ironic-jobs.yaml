@@ -189,3 +189,12 @@
         IRONIC_DEPLOY_DRIVER: snmp
         IRONIC_TEMPEST_WHOLE_DISK_IMAGE: True
         IRONIC_VM_EPHEMERAL_DISK: 0
+
+- job:
+    name: ironic-tempest-dsvm-ipa-partition-uefi-pxe_ipmitool-tinyipa
+    description: ironic-tempest-dsvm-ipa-partition-uefi-pxe_ipmitool-tinyipa
+    parent: ironic-base
+    timeout: 5400
+    vars:
+      devstack_localrc:
+        IRONIC_BOOT_MODE: uefi
