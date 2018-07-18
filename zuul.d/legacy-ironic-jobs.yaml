@@ -59,12 +59,6 @@
     post-run: playbooks/legacy/ironic-dsvm-base-multinode/post.yaml
 
 - job:
-    name: ironic-tempest-dsvm-pxe_ipmitool-postgres
-    parent: legacy-ironic-dsvm-base
-    run: playbooks/legacy/tempest-dsvm-ironic-pxe_ipmitool-postgres/run.yaml
-    timeout: 10800
-
-- job:
     name: ironic-tempest-dsvm-ipa-wholedisk-bios-agent_ipmitool-tinyipa
     parent: legacy-ironic-dsvm-base
     run: playbooks/legacy/tempest-dsvm-ironic-ipa-wholedisk-bios-agent_ipmitool-tinyipa/run.yaml
