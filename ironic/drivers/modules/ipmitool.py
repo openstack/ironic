@@ -98,11 +98,14 @@ OPTIONAL_PROPERTIES = {
                                 "capable of remembering the selected boot "
                                 "device across power cycles; default value "
                                 "is False. Optional."),
-    'ipmi_disable_timeout': _('By default ironic will send a raw IPMI '
-                              'command to disable the 60 second timeout '
-                              'for booting.  Setting this option to '
-                              'False will NOT send that command; default '
-                              'value is True. Optional.'),
+    'ipmi_disable_boot_timeout': _('By default ironic will send a raw IPMI '
+                                   'command to disable the 60 second timeout '
+                                   'for booting. Setting this option to '
+                                   'False will NOT send that command on '
+                                   'this node. The '
+                                   '[ipmi]disable_boot_timeout will be '
+                                   'used if this option is not set. '
+                                   'Optional.'),
 }
 COMMON_PROPERTIES = REQUIRED_PROPERTIES.copy()
 COMMON_PROPERTIES.update(OPTIONAL_PROPERTIES)
@@ -920,8 +923,8 @@ class IPMIManagement(base.ManagementInterface):
         # NOTE(tonyb): Some BMCs do not implement Option 0x03, such as OpenBMC
         # and will error when we try to set this.  Resulting in an abort.  If
         # the BMC doesn't support this timeout there isn't a need to disable
-        # it.  Let's use a driver option to signify that
-        idt = task.node.driver_info.get('ipmi_disable_timeout', True)
+        # it.  Let's use a driver option to signify that.
+        idt = task.node.driver_info.get('ipmi_disable_boot_timeout', True)
         if strutils.bool_from_string(idt):
             # note(JayF): IPMI spec indicates unless you send these raw bytes
             # the boot device setting times out after 60s. Since it's possible
@@ -932,8 +935,8 @@ class IPMIManagement(base.ManagementInterface):
             send_raw(task, timeout_disable)
         else:
             LOG.info('For node %(node_uuid)s, '
-                     'driver_info[\'ipmi_disable_timeout\'] is set to False, '
-                     'so not sending ipmi boot-timeout-disable',
+                     'driver_info[\'ipmi_disable_boot_timeout\'] is set '
+                     'to False, so not sending ipmi boot-timeout-disable',
                      {'node_uuid', task.node.uuid})
 
         if task.node.driver_info.get('ipmi_force_boot_device', False):

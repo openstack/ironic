@@ -6,8 +6,8 @@ fixes:
     received within 60-second timeout (countdown restarts when a Chassis
     Control command is received).  Some BMCs do not support setting this; if
     sent it causes the boot to be aborted instead.  For IPMI hardware type a
-    new driver option ``node['driver_info']['ipmi_disable_timeout']`` can be
-    specified.  It is ``True`` by default; set it to ``False`` to bypass
+    new driver option ``node['driver_info']['ipmi_disable_boot_timeout']`` can
+    be specified.  It is ``True`` by default; set it to ``False`` to bypass
     sending this command.  See `story 2004266
     <https://storyboard.openstack.org/#!/story/2004266>`_ for additional
     information.

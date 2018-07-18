@@ -1960,7 +1960,7 @@ class IPMIToolDriverTestCase(Base):
 
         with task_manager.acquire(self.context, self.node.uuid) as task:
             driver_info = task.node.driver_info
-            driver_info['ipmi_disable_timeout'] = 'False'
+            driver_info['ipmi_disable_boot_timeout'] = 'False'
             task.node.driver_info = driver_info
             self.management.set_boot_device(task, boot_devices.PXE)
 
