@@ -326,17 +326,18 @@ Configuration
 The Hardware Inspection Support in the iRMC driver requires the following
 configuration:
 
-* It is necessary to set ironic configuration with ``gpu_ids`` option
-  in ``[irmc]`` section.
+* It is necessary to set ironic configuration with ``gpu_ids`` and
+  ``fpga_ids`` options in ``[irmc]`` section.
 
-  ``gpu_ids`` is a list of ``<vendorID>/<deviceID>`` where:
+  ``gpu_ids`` and ``fpga_ids`` are lists of ``<vendorID>/<deviceID>`` where:
 
   - ``<vendorID>``: 4 hexadecimal digits starts with '0x'.
   - ``<deviceID>``: 4 hexadecimal digits starts with '0x'.
 
-  Here is a sample value for gpu_ids::
+  Here are sample values for ``gpu_ids`` and ``fpga_ids``::
 
     gpu_ids = 0x1000/0x0079,0x2100/0x0080
+    fpga_ids = 0x1000/0x005b,0x1100/0x0180
 
 * The python-scciclient package requires pyghmi version >= 1.0.22 and pysnmp
   version >= 4.2.3. They are used by the conductor service on the conductor.
@@ -373,6 +374,11 @@ driver:
 
 * ``pci_gpu_devices``: number of gpu devices connected to the bare metal.
 
+Inspection can also set/unset node's traits with the following cpu type for
+iRMC driver:
+
+* ``CUSTOM_CPU_FPGA``: The bare metal contains fpga cpu type.
+
 .. note::
 
    * The disk size is returned only when eLCM License for FUJITSU PRIMERGY
@@ -393,6 +399,14 @@ example::
   openstack flavor set baremetal-flavor-name --property capabilities:pci_gpu_devices="1"
 
 See :ref:`capabilities-discovery` for more details and examples.
+
+The operator can add a trait in compute service flavor, for example::
+
+  openstack baremetal node add trait $NODE_UUID CUSTOM_CPU_FPGA
+
+A valid trait must be no longer than 255 characters. Standard traits are
+defined in the os_traits library. A custom trait must start with the prefix
+``CUSTOM_`` and use the following characters: A-Z, 0-9 and _.
 
 RAID configuration Support
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
