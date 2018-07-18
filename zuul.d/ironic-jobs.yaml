@@ -198,3 +198,12 @@
     vars:
       devstack_localrc:
         IRONIC_BOOT_MODE: uefi
+
+- job:
+    name: ironic-tempest-dsvm-ipa-partition-pxe_ipmitool-tinyipa-python3
+    description: ironic-tempest-dsvm-ipa-partition-pxe_ipmitool-tinyipa-python3
+    parent: ironic-base
+    timeout: 5400
+    vars:
+      devstack_localrc:
+        USE_PYTHON3: True
