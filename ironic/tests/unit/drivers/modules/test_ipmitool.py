@@ -1967,14 +1967,26 @@ class IPMIToolDriverTestCase(Base):
                               task, 'fake-device')
 
     @mock.patch.object(ipmi, '_exec_ipmitool', autospec=True)
-    def test_management_interface_set_boot_device_without_timeout(self,
-                                                                  mock_exec):
+    def test_management_interface_set_boot_device_without_timeout_1(self,
+                                                                    mock_exec):
         mock_exec.return_value = [None, None]
 
         with task_manager.acquire(self.context, self.node.uuid) as task:
             driver_info = task.node.driver_info
-            driver_info['ipmi_disable_timeout'] = 'False'
+            driver_info['ipmi_disable_boot_timeout'] = 'False'
             task.node.driver_info = driver_info
+            self.management.set_boot_device(task, boot_devices.PXE)
+
+        mock_calls = [mock.call(self.info, "chassis bootdev pxe")]
+        mock_exec.assert_has_calls(mock_calls)
+
+    @mock.patch.object(ipmi, '_exec_ipmitool', autospec=True)
+    def test_management_interface_set_boot_device_without_timeout_2(self,
+                                                                    mock_exec):
+        CONF.set_override('disable_boot_timeout', False, 'ipmi')
+        mock_exec.return_value = [None, None]
+
+        with task_manager.acquire(self.context, self.node.uuid) as task:
             self.management.set_boot_device(task, boot_devices.PXE)
 
         mock_calls = [mock.call(self.info, "chassis bootdev pxe")]
