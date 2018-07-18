@@ -14,6 +14,7 @@ from neutronclient.common import exceptions as neutron_exceptions
 from neutronclient.v2_0 import client as clientv20
 from oslo_log import log
 from oslo_utils import uuidutils
+import retrying
 
 from ironic.common import context as ironic_context
 from ironic.common import exception
@@ -21,6 +22,7 @@ from ironic.common.i18n import _
 from ironic.common import keystone
 from ironic.common.pxe_utils import DHCP_CLIENT_ID
 from ironic.conf import CONF
+from ironic import objects
 
 LOG = log.getLogger(__name__)
 
@@ -31,6 +33,7 @@ DEFAULT_NEUTRON_URL = 'http://%s:9696' % CONF.my_ip
 _NEUTRON_SESSION = None
 
 VNIC_BAREMETAL = 'baremetal'
+VNIC_SMARTNIC = 'smart-nic'
 
 PHYSNET_PARAM_NAME = 'provider:physical_network'
 """Name of the neutron network API physical network parameter."""
@@ -256,6 +259,17 @@ def add_ports_to_network(task, network_uuid, security_groups=None):
         binding_profile = {'local_link_information':
                            [portmap[ironic_port.uuid]]}
         body['port']['binding:profile'] = binding_profile
+        link_info = binding_profile['local_link_information'][0]
+        is_smart_nic = is_smartnic_port(ironic_port)
+        if is_smart_nic:
+            LOG.debug('Setting hostname as host_id in case of Smart NIC, '
+                      'port %(port_id)s, hostname %(hostname)s',
+                      {'port_id': ironic_port.uuid,
+                       'hostname': link_info['hostname']})
+            body['port']['binding:host_id'] = link_info['hostname']
+
+            # TODO(hamdyk): use portbindings.VNIC_SMARTNIC from neutron-lib
+            body['port']['binding:vnic_type'] = VNIC_SMARTNIC
         client_id = ironic_port.extra.get('client-id')
         if client_id:
             client_id_opt = {'opt_name': DHCP_CLIENT_ID,
@@ -264,7 +278,11 @@ def add_ports_to_network(task, network_uuid, security_groups=None):
             extra_dhcp_opts.append(client_id_opt)
             body['port']['extra_dhcp_opts'] = extra_dhcp_opts
         try:
+            if is_smart_nic:
+                wait_for_host_agent(client, body['port']['binding:host_id'])
             port = client.create_port(body)
+            if is_smart_nic:
+                wait_for_port_status(client, port['port']['id'], 'ACTIVE')
         except neutron_exceptions.NeutronClientException as e:
             failures.append(ironic_port.uuid)
             LOG.warning("Could not create neutron port for node's "
@@ -342,6 +360,8 @@ def remove_neutron_ports(task, params):
                   '%(node_id)s.',
                   {'vif_port_id': port['id'], 'node_id': node_uuid})
 
+        if is_smartnic_port(port):
+            wait_for_host_agent(client, port['binding:host_id'])
         try:
             client.delete_port(port['id'])
         # NOTE(mgoddard): Ignore if the port was deleted by nova.
@@ -488,6 +508,44 @@ def validate_port_info(node, port):
     return True
 
 
+def validate_agent(client, **kwargs):
+    """Check that the given neutron agent is alive
+
+    :param client: Neutron client
+    :param kwargs: Additional parameters to pass to the neutron client
+            list_agents method.
+    :returns: A boolean to describe the agent status, if more than one agent
+        returns by the client then return True if at least one of them is
+        alive.
+    :raises: NetworkError in case of failure contacting Neutron.
+    """
+    try:
+        agents = client.list_agents(**kwargs)['agents']
+        for agent in agents:
+            if agent['alive']:
+                return True
+            return False
+    except neutron_exceptions.NeutronClientException:
+        raise exception.NetworkError('Failed to contact Neutron server')
+
+
+def is_smartnic_port(port_data):
+    """Check that the port is Smart NIC port
+
+    :param port_data: an instance of ironic.objects.port.Port
+        or port data as dict.
+    :returns: A boolean to indicate port as Smart NIC port.
+    """
+    if isinstance(port_data, objects.Port):
+        return port_data.supports_is_smartnic() and port_data.is_smartnic
+
+    if isinstance(port_data, dict):
+        return port_data.get('is_smartnic', False)
+
+    LOG.warning('Unknown port data type: %(type)s', {'type': type(port_data)})
+    return False
+
+
 def _get_network_by_uuid_or_name(client, uuid_or_name, net_type=_('network'),
                                  **params):
     """Return a neutron network by UUID or name.
@@ -584,6 +642,72 @@ def get_physnets_by_port_uuid(client, port_uuid):
     return set(segment[PHYSNET_PARAM_NAME]
                for segment in segments
                if segment[PHYSNET_PARAM_NAME])
+
+
+@retrying.retry(
+    stop_max_attempt_number=CONF.agent.neutron_agent_max_attempts,
+    retry_on_exception=lambda e: isinstance(e, exception.NetworkError),
+    wait_fixed=CONF.agent.neutron_agent_wait_time_seconds * 1000
+)
+def wait_for_host_agent(client, host_id, target_state='up'):
+    """Wait for neutron agent to become target state
+
+    :param client: A Neutron client object.
+    :param host_id: Agent host_id
+    :param target_state: up: wait for up status,
+        down: wait for down status
+    :returns: boolean indicates the agent state matches
+        param value target_state_up.
+    :raises: exception.NetworkError if host status didn't match the required
+        status after max retry attempts.
+    """
+    if target_state not in ['up', 'down']:
+        raise exception.Invalid(
+            'Invalid requested agent state to validate, accepted values: '
+            'up, down. Requested state: %(target_state)s' % {
+                'target_state': target_state})
+
+    LOG.debug('Validating host %(host_id)s agent is %(status)s',
+              {'host_id': host_id,
+               'status': target_state})
+    is_alive = validate_agent(client, host=host_id)
+    LOG.debug('Agent on host %(host_id)s is %(status)s',
+              {'host_id': host_id,
+               'status': 'up' if is_alive else 'down'})
+    if ((target_state == 'up' and is_alive) or
+            (target_state == 'down' and not is_alive)):
+        return True
+    raise exception.NetworkError(
+        'Agent on host %(host)s failed to reach state %(state)s' % {
+            'host': host_id, 'state': target_state})
+
+
+@retrying.retry(
+    stop_max_attempt_number=CONF.agent.neutron_agent_max_attempts,
+    retry_on_exception=lambda e: isinstance(e, exception.NetworkError),
+    wait_fixed=CONF.agent.neutron_agent_wait_time_seconds * 1000
+)
+def wait_for_port_status(client, port_id, status):
+    """Wait for port status to be the desired status
+
+    :param client: A Neutron client object.
+    :param port_id: Neutron port_id
+    :param status: Port's target status, can be ACTIVE, DOWN ... etc.
+    :returns: boolean indicates that the port status matches the
+        required value passed by param status.
+    :raises: exception.NetworkError if port status didn't match
+        the required status after max retry attempts.
+    """
+    LOG.debug('Validating Port %(port_id)s status is %(status)s',
+              {'port_id': port_id, 'status': status})
+    port_info = _get_port_by_uuid(client, port_id)
+    LOG.debug('Port %(port_id)s status is: %(status)s',
+              {'port_id': port_id, 'status': port_info['status']})
+    if port_info['status'] == status:
+        return True
+    raise exception.NetworkError(
+        'Port %(port_id)s failed to reach status %(status)s' % {
+            'port_id': port_id, 'status': status})
 
 
 class NeutronNetworkInterfaceMixin(object):

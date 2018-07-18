@@ -440,7 +440,10 @@ class AnsibleDeploy(agent_base.HeartbeatMixin, base.DeployInterface):
     def tear_down(self, task):
         """Tear down a previous deployment on the task's node."""
         manager_utils.node_power_action(task, states.POWER_OFF)
+        power_state_to_restore = manager_utils.power_on_node_if_needed(task)
         task.driver.network.unconfigure_tenant_networks(task)
+        manager_utils.restore_power_state_if_needed(
+            task, power_state_to_restore)
         return states.DELETED
 
     @METRICS.timer('AnsibleDeploy.prepare')
@@ -451,7 +454,11 @@ class AnsibleDeploy(agent_base.HeartbeatMixin, base.DeployInterface):
         if node.provision_state == states.DEPLOYING:
             # adding network-driver dependent provisioning ports
             manager_utils.node_power_action(task, states.POWER_OFF)
+            power_state_to_restore = (
+                manager_utils.power_on_node_if_needed(task))
             task.driver.network.add_provisioning_network(task)
+            manager_utils.restore_power_state_if_needed(
+                task, power_state_to_restore)
         if node.provision_state not in [states.ACTIVE, states.ADOPTING]:
             node.instance_info = deploy_utils.build_instance_info_for_deploy(
                 task)
@@ -534,7 +541,10 @@ class AnsibleDeploy(agent_base.HeartbeatMixin, base.DeployInterface):
         if not node.driver_internal_info['clean_steps']:
             # no clean steps configured, nothing to do.
             return
+        power_state_to_restore = manager_utils.power_on_node_if_needed(task)
         task.driver.network.add_cleaning_network(task)
+        manager_utils.restore_power_state_if_needed(
+            task, power_state_to_restore)
         boot_opt = deploy_utils.build_agent_options(node)
         task.driver.boot.prepare_ramdisk(task, boot_opt)
         manager_utils.node_power_action(task, states.REBOOT)
@@ -550,7 +560,10 @@ class AnsibleDeploy(agent_base.HeartbeatMixin, base.DeployInterface):
         """
         manager_utils.node_power_action(task, states.POWER_OFF)
         task.driver.boot.clean_up_ramdisk(task)
+        power_state_to_restore = manager_utils.power_on_node_if_needed(task)
         task.driver.network.remove_cleaning_network(task)
+        manager_utils.restore_power_state_if_needed(
+            task, power_state_to_restore)
 
     @METRICS.timer('AnsibleDeploy.continue_deploy')
     def continue_deploy(self, task):
@@ -622,8 +635,12 @@ class AnsibleDeploy(agent_base.HeartbeatMixin, base.DeployInterface):
                     manager_utils.node_power_action(task, states.POWER_OFF)
             else:
                 manager_utils.node_power_action(task, states.POWER_OFF)
+            power_state_to_restore = (
+                manager_utils.power_on_node_if_needed(task))
             task.driver.network.remove_provisioning_network(task)
             task.driver.network.configure_tenant_networks(task)
+            manager_utils.restore_power_state_if_needed(
+                task, power_state_to_restore)
             manager_utils.node_power_action(task, states.POWER_ON)
         except Exception as e:
             msg = (_('Error rebooting node %(node)s after deploy. '

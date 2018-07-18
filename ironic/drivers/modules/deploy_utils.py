@@ -899,7 +899,10 @@ def prepare_inband_cleaning(task, manage_boot=True):
     :raises: InvalidParameterValue if cleaning network UUID config option has
              an invalid value.
     """
+    power_state_to_restore = manager_utils.power_on_node_if_needed(task)
     task.driver.network.add_cleaning_network(task)
+    manager_utils.restore_power_state_if_needed(
+        task, power_state_to_restore)
 
     # Append required config parameters to node's driver_internal_info
     # to pass to IPA.
@@ -937,7 +940,10 @@ def tear_down_inband_cleaning(task, manage_boot=True):
     if manage_boot:
         task.driver.boot.clean_up_ramdisk(task)
 
+    power_state_to_restore = manager_utils.power_on_node_if_needed(task)
     task.driver.network.remove_cleaning_network(task)
+    manager_utils.restore_power_state_if_needed(
+        task, power_state_to_restore)
 
 
 def get_image_instance_info(node):

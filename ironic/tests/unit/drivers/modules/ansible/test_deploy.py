@@ -23,6 +23,7 @@ from ironic.conductor import utils
 from ironic.drivers.modules.ansible import deploy as ansible_deploy
 from ironic.drivers.modules import deploy_utils
 from ironic.drivers.modules import fake
+from ironic.drivers.modules.network import flat as flat_network
 from ironic.drivers.modules import pxe
 from ironic.tests.unit.db import base as db_base
 from ironic.tests.unit.objects import utils as object_utils
@@ -792,11 +793,13 @@ class TestAnsibleDeploy(AnsibleDeployTestCaseBase):
             run_playbook_mock.assert_called_once_with(
                 task.node, 'test_pl', ironic_nodes, 'test_k')
 
+    @mock.patch.object(utils, 'power_on_node_if_needed', autospec=True)
     @mock.patch.object(fake.FakePower, 'get_power_state',
                        return_value=states.POWER_OFF)
     @mock.patch.object(utils, 'node_power_action', autospec=True)
-    def test_reboot_and_finish_deploy_force_reboot(self, power_action_mock,
-                                                   get_pow_state_mock):
+    def test_reboot_and_finish_deploy_force_reboot(
+            self, power_action_mock, get_pow_state_mock,
+            power_on_node_if_needed_mock):
         d_info = self.node.driver_info
         d_info['deploy_forces_oob_reboot'] = True
         self.node.driver_info = d_info
@@ -806,6 +809,7 @@ class TestAnsibleDeploy(AnsibleDeployTestCaseBase):
         self.node.provision_state = states.DEPLOYING
         self.node.save()
 
+        power_on_node_if_needed_mock.return_value = None
         with task_manager.acquire(self.context, self.node.uuid) as task:
             with mock.patch.object(task.driver, 'network') as net_mock:
                 self.driver.reboot_and_finish_deploy(task)
@@ -819,11 +823,12 @@ class TestAnsibleDeploy(AnsibleDeployTestCaseBase):
                              power_action_mock.call_args_list)
         get_pow_state_mock.assert_not_called()
 
+    @mock.patch.object(utils, 'power_on_node_if_needed', autospec=True)
     @mock.patch.object(ansible_deploy, '_run_playbook', autospec=True)
     @mock.patch.object(utils, 'node_power_action', autospec=True)
-    def test_reboot_and_finish_deploy_soft_poweroff_retry(self,
-                                                          power_action_mock,
-                                                          run_playbook_mock):
+    def test_reboot_and_finish_deploy_soft_poweroff_retry(
+            self, power_action_mock, run_playbook_mock,
+            power_on_node_if_needed_mock):
         self.config(group='ansible',
                     post_deploy_get_power_state_retry_interval=0)
         self.config(group='ansible',
@@ -834,6 +839,7 @@ class TestAnsibleDeploy(AnsibleDeployTestCaseBase):
         self.node.driver_internal_info = di_info
         self.node.save()
 
+        power_on_node_if_needed_mock.return_value = None
         with task_manager.acquire(self.context, self.node.uuid) as task:
             with mock.patch.object(task.driver, 'network') as net_mock:
                 with mock.patch.object(task.driver.power,
@@ -916,3 +922,141 @@ class TestAnsibleDeploy(AnsibleDeployTestCaseBase):
                     task)
                 task.driver.boot.clean_up_ramdisk.assert_called_once_with(
                     task)
+
+    @mock.patch.object(utils, 'restore_power_state_if_needed', autospec=True)
+    @mock.patch.object(utils, 'power_on_node_if_needed')
+    @mock.patch.object(utils, 'node_power_action', autospec=True)
+    def test_tear_down_with_smartnic_port(
+            self, power_mock, power_on_node_if_needed_mock,
+            restore_power_state_mock):
+        with task_manager.acquire(
+                self.context, self.node['uuid'], shared=False) as task:
+            power_on_node_if_needed_mock.return_value = states.POWER_OFF
+            driver_return = self.driver.tear_down(task)
+            power_mock.assert_called_once_with(task, states.POWER_OFF)
+            self.assertEqual(driver_return, states.DELETED)
+            power_on_node_if_needed_mock.assert_called_once_with(task)
+            restore_power_state_mock.assert_called_once_with(
+                task, states.POWER_OFF)
+
+    @mock.patch.object(flat_network.FlatNetwork, 'add_provisioning_network',
+                       autospec=True)
+    @mock.patch.object(utils, 'restore_power_state_if_needed', autospec=True)
+    @mock.patch.object(utils, 'power_on_node_if_needed', autospec=True)
+    @mock.patch.object(utils, 'node_power_action', autospec=True)
+    @mock.patch.object(deploy_utils, 'build_agent_options', autospec=True)
+    @mock.patch.object(deploy_utils, 'build_instance_info_for_deploy',
+                       autospec=True)
+    @mock.patch.object(pxe.PXEBoot, 'prepare_ramdisk')
+    def test_prepare_with_smartnic_port(
+            self, pxe_prepare_ramdisk_mock,
+            build_instance_info_mock, build_options_mock,
+            power_action_mock, power_on_node_if_needed_mock,
+            restore_power_state_mock, net_mock):
+        with task_manager.acquire(
+                self.context, self.node['uuid'], shared=False) as task:
+            task.node.provision_state = states.DEPLOYING
+            build_instance_info_mock.return_value = {'test': 'test'}
+            build_options_mock.return_value = {'op1': 'test1'}
+            power_on_node_if_needed_mock.return_value = states.POWER_OFF
+            self.driver.prepare(task)
+            power_action_mock.assert_called_once_with(
+                task, states.POWER_OFF)
+            build_instance_info_mock.assert_called_once_with(task)
+            build_options_mock.assert_called_once_with(task.node)
+            pxe_prepare_ramdisk_mock.assert_called_once_with(
+                task, {'op1': 'test1'})
+            power_on_node_if_needed_mock.assert_called_once_with(task)
+            restore_power_state_mock.assert_called_once_with(
+                task, states.POWER_OFF)
+
+        self.node.refresh()
+        self.assertEqual('test', self.node.instance_info['test'])
+
+    @mock.patch.object(utils, 'restore_power_state_if_needed', autospec=True)
+    @mock.patch.object(utils, 'power_on_node_if_needed', autospec=True)
+    @mock.patch.object(ansible_deploy, '_run_playbook', autospec=True)
+    @mock.patch.object(utils, 'set_node_cleaning_steps', autospec=True)
+    @mock.patch.object(utils, 'node_power_action', autospec=True)
+    @mock.patch.object(deploy_utils, 'build_agent_options', autospec=True)
+    @mock.patch.object(pxe.PXEBoot, 'prepare_ramdisk')
+    def test_prepare_cleaning_with_smartnic_port(
+            self, prepare_ramdisk_mock, build_options_mock, power_action_mock,
+            set_node_cleaning_steps, run_playbook_mock,
+            power_on_node_if_needed_mock, restore_power_state_mock):
+        step = {'priority': 10, 'interface': 'deploy',
+                'step': 'erase_devices', 'tags': ['clean']}
+        driver_internal_info = dict(DRIVER_INTERNAL_INFO)
+        driver_internal_info['clean_steps'] = [step]
+        self.node.driver_internal_info = driver_internal_info
+        self.node.save()
+
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            task.driver.network.add_cleaning_network = mock.Mock()
+            build_options_mock.return_value = {'op1': 'test1'}
+            power_on_node_if_needed_mock.return_value = states.POWER_OFF
+            state = self.driver.prepare_cleaning(task)
+            set_node_cleaning_steps.assert_called_once_with(task)
+            task.driver.network.add_cleaning_network.assert_called_once_with(
+                task)
+            build_options_mock.assert_called_once_with(task.node)
+            prepare_ramdisk_mock.assert_called_once_with(
+                task, {'op1': 'test1'})
+            power_action_mock.assert_called_once_with(task, states.REBOOT)
+            self.assertFalse(run_playbook_mock.called)
+            self.assertEqual(states.CLEANWAIT, state)
+            power_on_node_if_needed_mock.assert_called_once_with(task)
+            restore_power_state_mock.assert_called_once_with(
+                task, states.POWER_OFF)
+
+    @mock.patch.object(utils, 'restore_power_state_if_needed', autospec=True)
+    @mock.patch.object(utils, 'power_on_node_if_needed', autospec=True)
+    @mock.patch.object(utils, 'node_power_action', autospec=True)
+    @mock.patch.object(pxe.PXEBoot, 'clean_up_ramdisk')
+    def test_tear_down_cleaning_with_smartnic_port(
+            self, clean_ramdisk_mock, power_action_mock,
+            power_on_node_if_needed_mock, restore_power_state_mock):
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            task.driver.network.remove_cleaning_network = mock.Mock()
+            power_on_node_if_needed_mock.return_value = states.POWER_OFF
+            self.driver.tear_down_cleaning(task)
+            power_action_mock.assert_called_once_with(task, states.POWER_OFF)
+            clean_ramdisk_mock.assert_called_once_with(task)
+            (task.driver.network.remove_cleaning_network
+                .assert_called_once_with(task))
+            power_on_node_if_needed_mock.assert_called_once_with(task)
+            restore_power_state_mock.assert_called_once_with(
+                task, states.POWER_OFF)
+
+    @mock.patch.object(flat_network.FlatNetwork, 'remove_provisioning_network',
+                       autospec=True)
+    @mock.patch.object(flat_network.FlatNetwork, 'configure_tenant_networks',
+                       autospec=True)
+    @mock.patch.object(utils, 'restore_power_state_if_needed', autospec=True)
+    @mock.patch.object(utils, 'power_on_node_if_needed', autospec=True)
+    @mock.patch.object(fake.FakePower, 'get_power_state',
+                       return_value=states.POWER_OFF)
+    @mock.patch.object(utils, 'node_power_action', autospec=True)
+    def test_reboot_and_finish_deploy_with_smartnic_port(
+            self, power_action_mock, get_pow_state_mock,
+            power_on_node_if_needed_mock, restore_power_state_mock,
+            configure_tenant_networks_mock, remove_provisioning_network_mock):
+        d_info = self.node.driver_info
+        d_info['deploy_forces_oob_reboot'] = True
+        self.node.driver_info = d_info
+        self.node.save()
+        self.config(group='ansible',
+                    post_deploy_get_power_state_retry_interval=0)
+        self.node.provision_state = states.DEPLOYING
+        self.node.save()
+        power_on_node_if_needed_mock.return_value = states.POWER_OFF
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            self.driver.reboot_and_finish_deploy(task)
+            expected_power_calls = [((task, states.POWER_OFF),),
+                                    ((task, states.POWER_ON),)]
+            self.assertEqual(
+                expected_power_calls, power_action_mock.call_args_list)
+            power_on_node_if_needed_mock.assert_called_once_with(task)
+            restore_power_state_mock.assert_called_once_with(
+                task, states.POWER_OFF)
+        get_pow_state_mock.assert_not_called()

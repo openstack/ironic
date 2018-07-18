@@ -110,6 +110,21 @@ opts = [
                help=_('This is the maximum number of attempts that will be '
                       'done for IPA commands that fails due to network '
                       'problems.')),
+    cfg.IntOpt('neutron_agent_poll_interval',
+               default=2,
+               help=_('The number of seconds Neutron agent will wait between '
+                      'polling for device changes. This value should be '
+                      'the same as CONF.AGENT.polling_interval in Neutron '
+                      'configuration.')),
+    cfg.IntOpt('neutron_agent_max_attempts',
+               default=100,
+               help=_('Max number of attempts to validate a Neutron agent '
+                      'status alive before raising network error for a '
+                      'dead agent.')),
+    cfg.IntOpt('neutron_agent_wait_time_seconds',
+               default=10,
+               help=_('Wait time in seconds between attempts for validating '
+                      'Neutron agent status.')),
 ]
 
 

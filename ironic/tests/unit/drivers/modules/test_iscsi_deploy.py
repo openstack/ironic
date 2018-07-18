@@ -943,6 +943,124 @@ class ISCSIDeployTestCase(db_base.DbTestCase):
             set_boot_device_mock.assert_called_once_with(
                 mock.ANY, task, device=boot_devices.DISK, persistent=True)
 
+    @mock.patch.object(manager_utils, 'restore_power_state_if_needed',
+                       autospec=True)
+    @mock.patch.object(manager_utils, 'power_on_node_if_needed', autospec=True)
+    @mock.patch.object(noop_storage.NoopStorage, 'attach_volumes',
+                       autospec=True)
+    @mock.patch.object(deploy_utils, 'populate_storage_driver_internal_info',
+                       autospec=True)
+    @mock.patch.object(deploy_utils, 'build_agent_options', autospec=True)
+    @mock.patch.object(pxe.PXEBoot, 'prepare_ramdisk', autospec=True)
+    @mock.patch.object(flat_network.FlatNetwork, 'add_provisioning_network',
+                       spec_set=True, autospec=True)
+    @mock.patch.object(flat_network.FlatNetwork,
+                       'unconfigure_tenant_networks',
+                       spec_set=True, autospec=True)
+    def test_prepare_node_deploying_with_smartnic_port(
+            self, unconfigure_tenant_net_mock, add_provisioning_net_mock,
+            mock_prepare_ramdisk, mock_agent_options,
+            storage_driver_info_mock, storage_attach_volumes_mock,
+            power_on_node_if_needed_mock, restore_power_state_mock):
+        mock_agent_options.return_value = {'c': 'd'}
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            task.node.provision_state = states.DEPLOYING
+            power_on_node_if_needed_mock.return_value = states.POWER_OFF
+            task.driver.deploy.prepare(task)
+            mock_agent_options.assert_called_once_with(task.node)
+            mock_prepare_ramdisk.assert_called_once_with(
+                task.driver.boot, task, {'c': 'd'})
+            add_provisioning_net_mock.assert_called_once_with(mock.ANY, task)
+            unconfigure_tenant_net_mock.assert_called_once_with(mock.ANY, task)
+            storage_driver_info_mock.assert_called_once_with(task)
+            storage_attach_volumes_mock.assert_called_once_with(
+                task.driver.storage, task)
+            power_on_node_if_needed_mock.assert_called_once_with(task)
+            restore_power_state_mock.assert_called_once_with(
+                task, states.POWER_OFF)
+
+    @mock.patch.object(manager_utils, 'restore_power_state_if_needed',
+                       autospec=True)
+    @mock.patch.object(manager_utils, 'power_on_node_if_needed', autospec=True)
+    @mock.patch.object(noop_storage.NoopStorage, 'detach_volumes',
+                       autospec=True)
+    @mock.patch.object(flat_network.FlatNetwork,
+                       'remove_provisioning_network',
+                       spec_set=True, autospec=True)
+    @mock.patch.object(flat_network.FlatNetwork,
+                       'unconfigure_tenant_networks',
+                       spec_set=True, autospec=True)
+    @mock.patch.object(manager_utils, 'node_power_action', autospec=True)
+    def test_tear_down_with_smartnic_port(
+            self, node_power_action_mock, unconfigure_tenant_nets_mock,
+            remove_provisioning_net_mock, storage_detach_volumes_mock,
+            power_on_node_if_needed_mock, restore_power_state_mock):
+        obj_utils.create_test_volume_target(
+            self.context, node_id=self.node.id)
+        with task_manager.acquire(
+                self.context, self.node.uuid, shared=False) as task:
+            power_on_node_if_needed_mock.return_value = states.POWER_OFF
+            state = task.driver.deploy.tear_down(task)
+            self.assertEqual(state, states.DELETED)
+            node_power_action_mock.assert_called_once_with(
+                task, states.POWER_OFF)
+            unconfigure_tenant_nets_mock.assert_called_once_with(
+                mock.ANY, task)
+            remove_provisioning_net_mock.assert_called_once_with(
+                mock.ANY, task)
+            storage_detach_volumes_mock.assert_called_once_with(
+                task.driver.storage, task)
+            power_on_node_if_needed_mock.assert_called_once_with(task)
+            restore_power_state_mock.assert_called_once_with(
+                task, states.POWER_OFF)
+        # Verify no volumes exist for new task instances.
+        with task_manager.acquire(self.context,
+                                  self.node.uuid, shared=False) as task:
+            self.assertEqual(0, len(task.volume_targets))
+
+    @mock.patch.object(manager_utils, 'restore_power_state_if_needed',
+                       autospec=True)
+    @mock.patch.object(manager_utils, 'power_on_node_if_needed', autospec=True)
+    @mock.patch.object(noop_storage.NoopStorage, 'should_write_image',
+                       autospec=True)
+    @mock.patch.object(flat_network.FlatNetwork,
+                       'configure_tenant_networks',
+                       spec_set=True, autospec=True)
+    @mock.patch.object(flat_network.FlatNetwork,
+                       'remove_provisioning_network',
+                       spec_set=True, autospec=True)
+    @mock.patch.object(pxe.PXEBoot,
+                       'prepare_instance',
+                       spec_set=True, autospec=True)
+    @mock.patch.object(manager_utils, 'node_power_action', autospec=True)
+    @mock.patch.object(iscsi_deploy, 'check_image_size', autospec=True)
+    @mock.patch.object(deploy_utils, 'cache_instance_image', autospec=True)
+    def test_deploy_storage_check_write_image_false_with_smartnic_port(
+            self, mock_cache_instance_image, mock_check_image_size,
+            mock_node_power_action, mock_prepare_instance,
+            mock_remove_network, mock_tenant_network, mock_write,
+            power_on_node_if_needed_mock, restore_power_state_mock):
+        mock_write.return_value = False
+        self.node.provision_state = states.DEPLOYING
+        self.node.deploy_step = {
+            'step': 'deploy', 'priority': 50, 'interface': 'deploy'}
+        self.node.save()
+        with task_manager.acquire(
+                self.context, self.node.uuid, shared=False) as task:
+            power_on_node_if_needed_mock.return_value = states.POWER_OFF
+            ret = task.driver.deploy.deploy(task)
+            self.assertIsNone(ret)
+            self.assertFalse(mock_cache_instance_image.called)
+            self.assertFalse(mock_check_image_size.called)
+            mock_remove_network.assert_called_once_with(mock.ANY, task)
+            mock_tenant_network.assert_called_once_with(mock.ANY, task)
+            mock_prepare_instance.assert_called_once_with(mock.ANY, task)
+            self.assertEqual(2, mock_node_power_action.call_count)
+            self.assertEqual(states.DEPLOYING, task.node.provision_state)
+            power_on_node_if_needed_mock.assert_called_once_with(task)
+            restore_power_state_mock.assert_called_once_with(
+                task, states.POWER_OFF)
+
 
 # Cleanup of iscsi_deploy with pxe boot interface
 class CleanUpFullFlowTestCase(db_base.DbTestCase):

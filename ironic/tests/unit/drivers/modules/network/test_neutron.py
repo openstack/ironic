@@ -545,6 +545,24 @@ class NeutronInterfaceTestCase(db_base.DbTestCase):
             mock_unbind_port.assert_called_once_with(
                 self.port.extra['vif_port_id'], context=task.context)
 
+    @mock.patch.object(neutron_common, 'get_client')
+    @mock.patch.object(neutron_common, 'wait_for_host_agent')
+    @mock.patch.object(neutron_common, 'unbind_neutron_port')
+    def test_unconfigure_tenant_networks_smartnic(
+            self, mock_unbind_port, wait_agent_mock, client_mock):
+        nclient = mock.MagicMock()
+        client_mock.return_value = nclient
+        local_link_connection = self.port.local_link_connection
+        local_link_connection['hostname'] = 'hostname'
+        self.port.local_link_connection = local_link_connection
+        self.port.is_smartnic = True
+        self.port.save()
+        with task_manager.acquire(self.context, self.node.id) as task:
+            self.interface.unconfigure_tenant_networks(task)
+            mock_unbind_port.assert_called_once_with(
+                self.port.extra['vif_port_id'], context=task.context)
+            wait_agent_mock.assert_called_once_with(nclient, 'hostname')
+
     def test_configure_tenant_networks_no_ports_for_node(self):
         n = utils.create_test_node(self.context, network_interface='neutron',
                                    uuid=uuidutils.generate_uuid())
@@ -571,10 +589,11 @@ class NeutronInterfaceTestCase(db_base.DbTestCase):
         self.assertIn('No neutron ports or portgroups are associated with',
                       log_mock.error.call_args[0][0])
 
+    @mock.patch.object(neutron_common, 'wait_for_host_agent', autospec=True)
     @mock.patch.object(neutron_common, 'get_client')
     @mock.patch.object(neutron, 'LOG')
     def test_configure_tenant_networks_multiple_ports_one_vif_id(
-            self, log_mock, client_mock):
+            self, log_mock, client_mock, wait_agent_mock):
         expected_body = {
             'port': {
                 'binding:vnic_type': 'baremetal',
@@ -592,8 +611,10 @@ class NeutronInterfaceTestCase(db_base.DbTestCase):
         upd_mock.assert_called_once_with(self.port.extra['vif_port_id'],
                                          expected_body)
 
+    @mock.patch.object(neutron_common, 'wait_for_host_agent', autospec=True)
     @mock.patch.object(neutron_common, 'get_client')
-    def test_configure_tenant_networks_update_fail(self, client_mock):
+    def test_configure_tenant_networks_update_fail(self, client_mock,
+                                                   wait_agent_mock):
         client = client_mock.return_value
         client.update_port.side_effect = neutron_exceptions.ConnectionFailed(
             reason='meow')
@@ -603,8 +624,10 @@ class NeutronInterfaceTestCase(db_base.DbTestCase):
                 self.interface.configure_tenant_networks, task)
             client_mock.assert_called_once_with(context=task.context)
 
+    @mock.patch.object(neutron_common, 'wait_for_host_agent', autospec=True)
     @mock.patch.object(neutron_common, 'get_client')
-    def _test_configure_tenant_networks(self, client_mock, is_client_id=False,
+    def _test_configure_tenant_networks(self, client_mock, wait_agent_mock,
+                                        is_client_id=False,
                                         vif_int_info=False):
         upd_mock = mock.Mock()
         client_mock.return_value.update_port = upd_mock
@@ -687,11 +710,12 @@ class NeutronInterfaceTestCase(db_base.DbTestCase):
         self.node.save()
         self._test_configure_tenant_networks(is_client_id=True)
 
+    @mock.patch.object(neutron_common, 'wait_for_host_agent', autospec=True)
     @mock.patch.object(neutron_common, 'get_client', autospec=True)
     @mock.patch.object(neutron_common, 'get_local_group_information',
                        autospec=True)
     def test_configure_tenant_networks_with_portgroups(
-            self, glgi_mock, client_mock):
+            self, glgi_mock, client_mock, wait_agent_mock):
         pg = utils.create_test_portgroup(
             self.context, node_id=self.node.id, address='ff:54:00:cf:2d:32',
             extra={'vif_port_id': uuidutils.generate_uuid()})
@@ -745,3 +769,13 @@ class NeutronInterfaceTestCase(db_base.DbTestCase):
             [mock.call(self.port.extra['vif_port_id'], call1_body),
              mock.call(pg.extra['vif_port_id'], call2_body)]
         )
+
+    def test_need_power_on_true(self):
+        self.port.is_smartnic = True
+        self.port.save()
+        with task_manager.acquire(self.context, self.node.id) as task:
+            self.assertTrue(self.interface.need_power_on(task))
+
+    def test_need_power_on_false(self):
+        with task_manager.acquire(self.context, self.node.id) as task:
+            self.assertFalse(self.interface.need_power_on(task))

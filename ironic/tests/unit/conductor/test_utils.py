@@ -9,11 +9,13 @@
 #    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 #    License for the specific language governing permissions and limitations
 #    under the License.
+import time
 
 import mock
 from oslo_config import cfg
 from oslo_utils import uuidutils
 
+from ironic.common import boot_devices
 from ironic.common import boot_modes
 from ironic.common import exception
 from ironic.common import network
@@ -2010,6 +2012,86 @@ class MiscTestCase(db_base.DbTestCase):
             conductor_utils.notify_conductor_resume_deploy(task)
             mock_resume.assert_called_once_with(
                 task, 'deploying', 'continue_node_deploy')
+
+    @mock.patch.object(time, 'sleep', autospec=True)
+    @mock.patch.object(fake.FakePower, 'get_power_state', autospec=True)
+    @mock.patch.object(drivers_base.NetworkInterface, 'need_power_on')
+    @mock.patch.object(conductor_utils, 'node_set_boot_device',
+                       autospec=True)
+    @mock.patch.object(conductor_utils, 'node_power_action',
+                       autospec=True)
+    def test_power_on_node_if_needed_true(
+            self, power_action_mock, boot_device_mock,
+            need_power_on_mock, get_power_state_mock, time_mock):
+        with task_manager.acquire(
+                self.context, self.node.uuid, shared=False) as task:
+            need_power_on_mock.return_value = True
+            get_power_state_mock.return_value = states.POWER_OFF
+            power_state = conductor_utils.power_on_node_if_needed(task)
+            self.assertEqual(power_state, states.POWER_OFF)
+            boot_device_mock.assert_called_once_with(
+                task, boot_devices.BIOS, persistent=False)
+            power_action_mock.assert_called_once_with(task, states.POWER_ON)
+
+    @mock.patch.object(time, 'sleep', autospec=True)
+    @mock.patch.object(fake.FakePower, 'get_power_state', autospec=True)
+    @mock.patch.object(drivers_base.NetworkInterface, 'need_power_on')
+    @mock.patch.object(conductor_utils, 'node_set_boot_device',
+                       autospec=True)
+    @mock.patch.object(conductor_utils, 'node_power_action',
+                       autospec=True)
+    def test_power_on_node_if_needed_false_power_on(
+            self, power_action_mock, boot_device_mock,
+            need_power_on_mock, get_power_state_mock, time_mock):
+        with task_manager.acquire(
+                self.context, self.node.uuid, shared=False) as task:
+            need_power_on_mock.return_value = True
+            get_power_state_mock.return_value = states.POWER_ON
+            power_state = conductor_utils.power_on_node_if_needed(task)
+            self.assertIsNone(power_state)
+            self.assertEqual(0, boot_device_mock.call_count)
+            self.assertEqual(0, power_action_mock.call_count)
+
+    @mock.patch.object(time, 'sleep', autospec=True)
+    @mock.patch.object(fake.FakePower, 'get_power_state', autospec=True)
+    @mock.patch.object(drivers_base.NetworkInterface, 'need_power_on')
+    @mock.patch.object(conductor_utils, 'node_set_boot_device',
+                       autospec=True)
+    @mock.patch.object(conductor_utils, 'node_power_action',
+                       autospec=True)
+    def test_power_on_node_if_needed_false_no_need(
+            self, power_action_mock, boot_device_mock,
+            need_power_on_mock, get_power_state_mock, time_mock):
+        with task_manager.acquire(
+                self.context, self.node.uuid, shared=False) as task:
+            need_power_on_mock.return_value = False
+            get_power_state_mock.return_value = states.POWER_OFF
+            power_state = conductor_utils.power_on_node_if_needed(task)
+            self.assertIsNone(power_state)
+            self.assertEqual(0, boot_device_mock.call_count)
+            self.assertEqual(0, power_action_mock.call_count)
+
+    @mock.patch.object(time, 'sleep', autospec=True)
+    @mock.patch.object(conductor_utils, 'node_power_action',
+                       autospec=True)
+    def test_restore_power_state_if_needed_true(
+            self, power_action_mock, time_mock):
+        with task_manager.acquire(
+                self.context, self.node.uuid, shared=False) as task:
+            power_state = states.POWER_OFF
+            conductor_utils.restore_power_state_if_needed(task, power_state)
+            power_action_mock.assert_called_once_with(task, power_state)
+
+    @mock.patch.object(time, 'sleep', autospec=True)
+    @mock.patch.object(conductor_utils, 'node_power_action',
+                       autospec=True)
+    def test_restore_power_state_if_needed_false(
+            self, power_action_mock, time_mock):
+        with task_manager.acquire(
+                self.context, self.node.uuid, shared=False) as task:
+            power_state = None
+            conductor_utils.restore_power_state_if_needed(task, power_state)
+            self.assertEqual(0, power_action_mock.call_count)
 
 
 class ValidateInstanceInfoTraitsTestCase(tests_base.TestCase):
