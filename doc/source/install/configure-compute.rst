@@ -117,7 +117,7 @@ service's controller nodes and compute nodes.
        auth_type=password
 
        # Keystone API endpoint
-       auth_url=http://IDENTITY_IP:35357/v3
+       auth_url=http://IDENTITY_IP:5000/v3
 
        # Ironic keystone project name
        project_name=service
