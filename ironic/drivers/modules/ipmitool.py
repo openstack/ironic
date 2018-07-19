@@ -406,8 +406,7 @@ def _exec_ipmitool(driver_info, command, check_exit_code=None):
             args.append(option)
             args.append(driver_info[name])
 
-    # TODO(sambetts) Remove usage of ipmi.retry_timeout in Queens
-    timeout = CONF.ipmi.retry_timeout or CONF.ipmi.command_retry_timeout
+    timeout = CONF.ipmi.command_retry_timeout
 
     # specify retry timing more precisely, if supported
     num_tries = max((timeout // CONF.ipmi.min_command_interval), 1)
@@ -483,9 +482,6 @@ def _set_and_wait(task, power_action, driver_info, timeout=None):
     :returns: one of ironic.common.states
 
     """
-    # TODO(sambetts) Remove usage of ipmi.retry_timeout in Queens
-    default_timeout = CONF.ipmi.retry_timeout
-
     if power_action == states.POWER_ON:
         cmd_name = "on"
         target_state = states.POWER_ON
@@ -495,9 +491,7 @@ def _set_and_wait(task, power_action, driver_info, timeout=None):
     elif power_action == states.SOFT_POWER_OFF:
         cmd_name = "soft"
         target_state = states.POWER_OFF
-        default_timeout = CONF.conductor.soft_power_off_timeout
-
-    timeout = timeout or default_timeout
+        timeout = timeout or CONF.conductor.soft_power_off_timeout
 
     # NOTE(sambetts): Retries for ipmi power action failure will be handled by
     # the _exec_ipmitool function, so no need to wrap this call in its own

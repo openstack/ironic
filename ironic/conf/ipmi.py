@@ -29,20 +29,6 @@ opts = [
                       'can cause the sync power state '
                       'periodic task to hang when there are slow or '
                       'unresponsive BMCs.')),
-    cfg.IntOpt('retry_timeout',
-               help=_('Maximum time in seconds to retry IPMI operations. '
-                      'Setting this too high can cause the '
-                      'sync power state periodic task to hang when there are '
-                      'slow or unresponsive BMCs.'),
-               deprecated_for_removal=True,
-               deprecated_reason=_('Use option [ipmi]/command_retry_timeout '
-                                   'to specify the timeout value for '
-                                   'IPMI command retries, and use option '
-                                   '[conductor]/power_state_change_timeout to '
-                                   'specify the timeout value for waiting for '
-                                   'a power operation to complete so that a '
-                                   'baremetal node reaches the desired '
-                                   'power state.')),
     cfg.IntOpt('min_command_interval',
                default=5,
                help=_('Minimum time, in seconds, between IPMI operations '
