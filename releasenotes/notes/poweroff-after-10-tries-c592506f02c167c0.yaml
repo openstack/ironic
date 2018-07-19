@@ -1,0 +1,9 @@
+---
+fixes:
+  - |
+    Changes the iPXE behavior to retry a total of 10 times with an increasing
+    backoff time between each retry in order to not create a Denial of Service
+    situation with the iPXE HTTP server. Should the retries fail, the node will
+    be powered-off after a warning is displayed on the console for 30 seconds.
+    For more information, see
+    `story <https://storyboard.openstack.org/#!/story/2002928>`_.
