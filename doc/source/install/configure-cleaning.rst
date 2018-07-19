@@ -13,7 +13,7 @@ Configure the Bare Metal service for cleaning
 
    .. code-block:: console
 
-      $ neutron net-list
+      $ openstack network list
 
 #. Configure the cleaning network UUID via the ``cleaning_network``
    option in the Bare Metal service configuration file
