@@ -20,6 +20,7 @@ from oslo_versionedobjects import base as object_base
 
 from ironic.common import exception
 from ironic.common.i18n import _
+from ironic.common import utils
 from ironic.db import api as db_api
 from ironic import objects
 from ironic.objects import base
@@ -62,7 +63,8 @@ class Node(base.IronicObject, object_base.VersionedObjectDictCompat):
     # Version 1.24: Add bios_interface field
     # Version 1.25: Add fault field
     # Version 1.26: Add deploy_step field
-    VERSION = '1.26'
+    # Version 1.27: Add conductor_group field
+    VERSION = '1.27'
 
     dbapi = db_api.get_instance()
 
@@ -98,6 +100,7 @@ class Node(base.IronicObject, object_base.VersionedObjectDictCompat):
         # that has most recently performed some action which could require
         # local state to be maintained (eg, built a PXE config)
         'conductor_affinity': object_fields.IntegerField(nullable=True),
+        'conductor_group': object_fields.StringField(nullable=True),
 
         # One of states.POWER_ON|POWER_OFF|NOSTATE|ERROR
         'power_state': object_fields.StringField(nullable=True),
@@ -361,6 +364,7 @@ class Node(base.IronicObject, object_base.VersionedObjectDictCompat):
         values = self.do_version_changes_for_db()
         self._validate_property_values(values.get('properties'))
         self._validate_and_remove_traits(values)
+        self._validate_and_format_conductor_group(values)
         db_node = self.dbapi.create_node(values)
         self._from_db_object(self._context, self, db_node)
 
@@ -408,6 +412,7 @@ class Node(base.IronicObject, object_base.VersionedObjectDictCompat):
             self.driver_internal_info = {}
             updates = self.do_version_changes_for_db()
         self._validate_and_remove_traits(updates)
+        self._validate_and_format_conductor_group(updates)
         db_node = self.dbapi.update_node(self.uuid, updates)
         self._from_db_object(self._context, self, db_node)
 
@@ -430,6 +435,18 @@ class Node(base.IronicObject, object_base.VersionedObjectDictCompat):
                 # handled by the API.
                 raise exception.BadRequest()
             fields.pop('traits')
+
+    def _validate_and_format_conductor_group(self, fields):
+        """Validate conductor_group and format it for our use.
+
+        Currently formatting is just lowercasing it.
+
+        :param fields: a dict of Node fields for create or update.
+        :raises: InvalidConductorGroup if validation fails.
+        """
+        if 'conductor_group' in fields:
+            utils.validate_conductor_group(fields['conductor_group'])
+            fields['conductor_group'] = fields['conductor_group'].lower()
 
     # NOTE(xek): We don't want to enable RPC on this call just yet. Remotable
     # methods can be used in the future to replace current explicit RPC calls.
@@ -499,6 +516,19 @@ class Node(base.IronicObject, object_base.VersionedObjectDictCompat):
             elif self.deploy_step:
                 self.deploy_step = {}
 
+    def _convert_conductor_group_field(self, target_version,
+                                       remove_unavailable_fields=True):
+        # NOTE(jroll): The default conductor_group is "", not None
+        is_set = self.obj_attr_is_set('conductor_group')
+        if target_version >= (1, 27):
+            if not is_set:
+                self.conductor_group = ''
+        elif is_set:
+            if remove_unavailable_fields:
+                delattr(self, 'conductor_group')
+            elif self.conductor_group:
+                self.conductor_group = ''
+
     def _convert_to_version(self, target_version,
                             remove_unavailable_fields=True):
         """Convert to the target version.
@@ -519,6 +549,8 @@ class Node(base.IronicObject, object_base.VersionedObjectDictCompat):
         Version 1.25: fault field was added. For versions prior to
             this, it should be removed.
         Version 1.26: deploy_step field was added. For versions prior to
+            this, it should be removed.
+        Version 1.27: conductor_group field was added. For versions prior to
             this, it should be removed.
 
         :param target_version: the desired version of the object
@@ -573,6 +605,8 @@ class Node(base.IronicObject, object_base.VersionedObjectDictCompat):
         self._convert_fault_field(target_version, remove_unavailable_fields)
         self._convert_deploy_step_field(target_version,
                                         remove_unavailable_fields)
+        self._convert_conductor_group_field(target_version,
+                                            remove_unavailable_fields)
 
 
 @base.IronicObjectRegistry.register

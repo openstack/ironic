@@ -10,6 +10,8 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import random
+
 import mock
 from oslo_db.sqlalchemy import utils as db_utils
 from oslo_utils import uuidutils
@@ -61,8 +63,10 @@ class UpgradingTestCase(base.DbTestCase):
 
     def test_check_versions_conductor(self):
         for v in self.object_versions['Conductor']:
+            # NOTE(jroll) conductor model doesn't have a uuid :(
             conductor = utils.create_test_conductor(
-                uuid=uuidutils.generate_uuid(), version=v)
+                hostname=uuidutils.generate_uuid(), version=v,
+                id=random.randint(1, 1000000))
             conductor = self.dbapi.get_conductor(conductor.hostname)
             self.assertEqual(v, conductor.version)
         self.assertTrue(self.dbapi.check_versions())

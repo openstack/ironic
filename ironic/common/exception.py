@@ -254,6 +254,10 @@ class InvalidName(Invalid):
     _msg_fmt = _("Expected a logical name but received %(name)s.")
 
 
+class InvalidConductorGroup(Invalid):
+    _msg_fmt = _("Expected a conductor group but received %(group)s.")
+
+
 class InvalidIdentity(Invalid):
     _msg_fmt = _("Expected a UUID or int but received %(identity)s.")
 

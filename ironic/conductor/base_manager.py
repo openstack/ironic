@@ -158,7 +158,8 @@ class BaseConductorManager(object):
         try:
             # Register this conductor with the cluster
             self.conductor = objects.Conductor.register(
-                admin_context, self.host, hardware_type_names)
+                admin_context, self.host, hardware_type_names,
+                CONF.conductor.conductor_group)
         except exception.ConductorAlreadyRegistered:
             # This conductor was already registered and did not shut down
             # properly, so log a warning and update the record.
@@ -167,7 +168,7 @@ class BaseConductorManager(object):
                         {'hostname': self.host})
             self.conductor = objects.Conductor.register(
                 admin_context, self.host, hardware_type_names,
-                update_existing=True)
+                CONF.conductor.conductor_group, update_existing=True)
 
         # register hardware types and interfaces supported by this conductor
         # and validate them against other conductors

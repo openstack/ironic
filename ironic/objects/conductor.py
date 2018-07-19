@@ -17,6 +17,7 @@
 from oslo_versionedobjects import base as object_base
 
 from ironic.common.i18n import _
+from ironic.common import utils
 from ironic.db import api as db_api
 from ironic.objects import base
 from ironic.objects import fields as object_fields
@@ -29,7 +30,8 @@ class Conductor(base.IronicObject, object_base.VersionedObjectDictCompat):
     #              to touch() optional.
     # Version 1.2: Add register_hardware_interfaces() and
     #              unregister_all_hardware_interfaces()
-    VERSION = '1.2'
+    # Version 1.3: Add conductor_group field.
+    VERSION = '1.3'
 
     dbapi = db_api.get_instance()
 
@@ -37,6 +39,7 @@ class Conductor(base.IronicObject, object_base.VersionedObjectDictCompat):
         'id': object_fields.IntegerField(),
         'drivers': object_fields.ListOfStringsField(nullable=True),
         'hostname': object_fields.StringField(),
+        'conductor_group': object_fields.StringField(),
     }
 
     # NOTE(xek): We don't want to enable RPC on this call just yet. Remotable
@@ -95,13 +98,16 @@ class Conductor(base.IronicObject, object_base.VersionedObjectDictCompat):
     # Implications of calling new remote procedures should be thought through.
     # @object_base.remotable
     @classmethod
-    def register(cls, context, hostname, drivers, update_existing=False):
+    def register(cls, context, hostname, drivers, conductor_group,
+                 update_existing=False):
         """Register an active conductor with the cluster.
 
         :param cls: the :class:`Conductor`
         :param context: Security context
         :param hostname: the hostname on which the conductor will run
         :param drivers: the list of drivers enabled in the conductor
+        :param conductor_group: conductor group to join, used for
+                                node:conductor affinity.
         :param update_existing: When false, registration will raise an
                                 exception when a conflicting online record
                                 is found. When true, will overwrite the
@@ -110,9 +116,11 @@ class Conductor(base.IronicObject, object_base.VersionedObjectDictCompat):
         :returns: a :class:`Conductor` object.
 
         """
+        utils.validate_conductor_group(conductor_group)
         db_cond = cls.dbapi.register_conductor(
             {'hostname': hostname,
              'drivers': drivers,
+             'conductor_group': conductor_group.lower(),
              'version': cls.get_target_version()},
             update_existing=update_existing)
         return cls._from_db_object(context, cls(), db_cond)

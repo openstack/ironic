@@ -20,6 +20,7 @@ import types
 import mock
 from oslo_utils import timeutils
 
+from ironic.common import exception
 from ironic import objects
 from ironic.objects import base
 from ironic.objects import fields
@@ -90,7 +91,8 @@ class TestConductorObject(db_base.DbTestCase):
 
     @mock.patch.object(base.IronicObject, 'get_target_version',
                        spec_set=types.FunctionType)
-    def _test_register(self, mock_target_version, update_existing=False):
+    def _test_register(self, mock_target_version, update_existing=False,
+                       conductor_group=''):
         mock_target_version.return_value = '1.5'
         host = self.fake_conductor['hostname']
         drivers = self.fake_conductor['drivers']
@@ -98,12 +100,14 @@ class TestConductorObject(db_base.DbTestCase):
                                autospec=True) as mock_register_cdr:
             mock_register_cdr.return_value = self.fake_conductor
             c = objects.Conductor.register(self.context, host, drivers,
+                                           conductor_group,
                                            update_existing=update_existing)
 
             self.assertIsInstance(c, objects.Conductor)
             mock_register_cdr.assert_called_once_with(
                 {'drivers': drivers,
                  'hostname': host,
+                 'conductor_group': conductor_group.lower(),
                  'version': '1.5'},
                 update_existing=update_existing)
 
@@ -112,6 +116,25 @@ class TestConductorObject(db_base.DbTestCase):
 
     def test_register_update_existing_true(self):
         self._test_register(update_existing=True)
+
+    def test_register_into_group(self):
+        self._test_register(conductor_group='dc1')
+
+    def test_register_into_group_uppercased(self):
+        self._test_register(conductor_group='DC1')
+
+    def test_register_into_group_with_update(self):
+        self._test_register(conductor_group='dc1', update_existing=True)
+
+    @mock.patch.object(base.IronicObject, 'get_target_version',
+                       spec_set=types.FunctionType)
+    def test_register_with_invalid_group(self, mock_target_version):
+        mock_target_version.return_value = '1.5'
+        host = self.fake_conductor['hostname']
+        drivers = self.fake_conductor['drivers']
+        self.assertRaises(exception.InvalidConductorGroup,
+                          objects.Conductor.register,
+                          self.context, host, drivers, 'invalid:group')
 
     @mock.patch.object(objects.Conductor, 'unregister_all_hardware_interfaces',
                        autospec=True)
