@@ -18,4 +18,4 @@ find  "$@"  -not \( -type d -name .?\* -prune \)                    \
                 -wholename \*/devstack/lib/ironic -or               \
                 -name \*.sh                                         \
             \)                                                      \
-            -print0 | xargs -0 bashate -v -iE006 -eE005,E042
+            -print0 | xargs -0 bashate -v -iE006,E044 -eE005,E042
