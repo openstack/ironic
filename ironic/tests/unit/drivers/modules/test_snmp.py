@@ -147,8 +147,8 @@ class SNMPClientTestCase(base.TestCase):
     def test_get_next(self, mock_auth, mock_context, mock_transport,
                       mock_nextcmd):
         var_bind = (self.oid, self.value)
-        mock_nextcmd.return_value = iter([("", None, 0,
-                                           [[var_bind, var_bind]])])
+        mock_nextcmd.return_value = iter([("", None, 0, [var_bind]),
+                                          ("", None, 0, [var_bind])])
         client = snmp.SNMPClient(self.address, self.port, snmp.SNMP_V3)
         val = client.get_next(self.oid)
         self.assertEqual([self.value, self.value], val)

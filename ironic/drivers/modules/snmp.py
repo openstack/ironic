@@ -320,25 +320,32 @@ class SNMPClient(object):
                                     self._get_auth(),
                                     self._get_transport(),
                                     self._get_context(),
-                                    snmp.ObjectType(snmp.ObjectIdentity(oid)))
+                                    snmp.ObjectType(snmp.ObjectIdentity(oid)),
+                                    lexicographicMode=False)
 
         except snmp_error.PySnmpError as e:
             raise exception.SNMPFailure(operation="GET_NEXT", error=e)
 
-        (error_indication, error_status, error_index,
-         var_bind_table) = next(snmp_gen)
+        vals = []
+        for (error_indication, error_status, error_index,
+                var_binds) in snmp_gen:
 
-        if error_indication:
-            # SNMP engine-level error.
-            raise exception.SNMPFailure(operation="GET_NEXT",
-                                        error=error_indication)
+            if error_indication:
+                # SNMP engine-level error.
+                raise exception.SNMPFailure(operation="GET_NEXT",
+                                            error=error_indication)
 
-        if error_status:
-            # SNMP PDU error.
-            raise exception.SNMPFailure(operation="GET_NEXT",
-                                        error=error_status.prettyPrint())
+            if error_status:
+                # SNMP PDU error.
+                raise exception.SNMPFailure(operation="GET_NEXT",
+                                            error=error_status.prettyPrint())
 
-        return [val for row in var_bind_table for name, val in row]
+            # this is not a table, but a table row
+            # e.g. 1-D array of tuples
+            _name, value = var_binds[0]
+            vals.append(value)
+
+        return vals
 
     def set(self, oid, value):
         """Use PySNMP to perform an SNMP SET operation on a single object.
