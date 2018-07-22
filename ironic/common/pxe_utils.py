@@ -32,7 +32,7 @@ CONF = cfg.CONF
 
 LOG = logging.getLogger(__name__)
 
-PXE_CFG_DIR_NAME = 'pxelinux.cfg'
+PXE_CFG_DIR_NAME = CONF.pxe.pxe_config_subdir
 
 DHCP_CLIENT_ID = '61'  # rfc2132
 DHCP_TFTP_SERVER_NAME = '66'  # rfc2132
