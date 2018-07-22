@@ -466,7 +466,7 @@ def deploying_error_handler(task, logmsg, errmsg, traceback=False,
                 addl = _('An unhandled exception was encountered while '
                          'aborting. More information may be found in the log '
                          'file.')
-            cleanup_err = _('%(err)s. %(add)s') % {'err': errmsg, 'add': addl}
+            cleanup_err = '%(err)s. %(add)s' % {'err': errmsg, 'add': addl}
 
     node.refresh()
     if node.provision_state in (
@@ -686,9 +686,7 @@ def _get_cleaning_steps(task, enabled=False, sort=True):
         clean steps.
     :returns: A list of clean step dictionaries
     """
-    sort_key = None
-    if sort:
-        sort_key = _clean_step_key
+    sort_key = _clean_step_key if sort else None
     return _get_steps(task, CLEANING_INTERFACE_PRIORITY, 'get_clean_steps',
                       enabled=enabled, sort_step_key=sort_key)
 
@@ -706,9 +704,7 @@ def _get_deployment_steps(task, enabled=False, sort=True):
         deploy steps.
     :returns: A list of deploy step dictionaries
     """
-    sort_key = None
-    if sort:
-        sort_key = _deploy_step_key
+    sort_key = _deploy_step_key if sort else None
     return _get_steps(task, DEPLOYING_INTERFACE_PRIORITY, 'get_deploy_steps',
                       enabled=enabled, sort_step_key=sort_key)
 

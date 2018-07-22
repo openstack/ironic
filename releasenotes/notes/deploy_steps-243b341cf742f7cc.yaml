@@ -5,9 +5,18 @@ features:
     <https://specs.openstack.org/openstack/ironic-specs/specs/approved/deployment-steps-framework.html>`_
     is in place. All in-tree drivers (DeployInterfaces) have one (big) deploy
     step; the conductor executes this step when deploying a node.
+
+    Starting with the Bare Metal REST API version 1.44, the current deploy
+    step (if any) being executed is available in a node's ``deploy_step``
+    field in the responses for the following queries:
+
+    * ``GET /v1/nodes/<node identifier>``
+    * ``GET /v1/nodes/detail``
+    * ``GET /v1/nodes?fields=deploy_step,...``
 deprecations:
   - |
     All drivers must implement their deployment process using `deploy steps`.
-    Out-of-tree drivers without deploy steps will be supported until the T* release.
+    Out-of-tree drivers without deploy steps will be supported until the
+    Stein release.
     For more details, see
     `story 1753128 <https://storyboard.openstack.org/#!/story/1753128>`_.

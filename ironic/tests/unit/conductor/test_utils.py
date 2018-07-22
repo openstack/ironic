@@ -983,9 +983,12 @@ class NodeDeployStepsTestCase(db_base.DbTestCase):
         self.node = obj_utils.create_test_node(
             self.context, driver='fake-hardware')
 
-    @mock.patch('ironic.drivers.modules.fake.FakeDeploy.get_deploy_steps')
-    @mock.patch('ironic.drivers.modules.fake.FakePower.get_deploy_steps')
-    @mock.patch('ironic.drivers.modules.fake.FakeManagement.get_deploy_steps')
+    @mock.patch('ironic.drivers.modules.fake.FakeDeploy.get_deploy_steps',
+                autospec=True)
+    @mock.patch('ironic.drivers.modules.fake.FakePower.get_deploy_steps',
+                autospec=True)
+    @mock.patch('ironic.drivers.modules.fake.FakeManagement.get_deploy_steps',
+                autospec=True)
     def test__get_deployment_steps(self, mock_mgt_steps, mock_power_steps,
                                    mock_deploy_steps):
         # Test getting deploy steps, with one driver returning None, two
@@ -1001,13 +1004,16 @@ class NodeDeployStepsTestCase(db_base.DbTestCase):
             steps = conductor_utils._get_deployment_steps(task, enabled=False)
 
             self.assertEqual(expected, steps)
-            mock_mgt_steps.assert_called_once_with(task)
-            mock_power_steps.assert_called_once_with(task)
-            mock_deploy_steps.assert_called_once_with(task)
+            mock_mgt_steps.assert_called_once_with(mock.ANY, task)
+            mock_power_steps.assert_called_once_with(mock.ANY, task)
+            mock_deploy_steps.assert_called_once_with(mock.ANY, task)
 
-    @mock.patch('ironic.drivers.modules.fake.FakeDeploy.get_deploy_steps')
-    @mock.patch('ironic.drivers.modules.fake.FakePower.get_deploy_steps')
-    @mock.patch('ironic.drivers.modules.fake.FakeManagement.get_deploy_steps')
+    @mock.patch('ironic.drivers.modules.fake.FakeDeploy.get_deploy_steps',
+                autospec=True)
+    @mock.patch('ironic.drivers.modules.fake.FakePower.get_deploy_steps',
+                autospec=True)
+    @mock.patch('ironic.drivers.modules.fake.FakeManagement.get_deploy_steps',
+                autospec=True)
     def test__get_deploy_steps_unsorted(self, mock_mgt_steps, mock_power_steps,
                                         mock_deploy_steps):
 
@@ -1019,13 +1025,16 @@ class NodeDeployStepsTestCase(db_base.DbTestCase):
             steps = conductor_utils._get_deployment_steps(task, enabled=False,
                                                           sort=False)
             self.assertEqual(mock_deploy_steps.return_value, steps)
-            mock_mgt_steps.assert_called_once_with(task)
-            mock_power_steps.assert_called_once_with(task)
-            mock_deploy_steps.assert_called_once_with(task)
+            mock_mgt_steps.assert_called_once_with(mock.ANY, task)
+            mock_power_steps.assert_called_once_with(mock.ANY, task)
+            mock_deploy_steps.assert_called_once_with(mock.ANY, task)
 
-    @mock.patch('ironic.drivers.modules.fake.FakeDeploy.get_deploy_steps')
-    @mock.patch('ironic.drivers.modules.fake.FakePower.get_deploy_steps')
-    @mock.patch('ironic.drivers.modules.fake.FakeManagement.get_deploy_steps')
+    @mock.patch('ironic.drivers.modules.fake.FakeDeploy.get_deploy_steps',
+                autospec=True)
+    @mock.patch('ironic.drivers.modules.fake.FakePower.get_deploy_steps',
+                autospec=True)
+    @mock.patch('ironic.drivers.modules.fake.FakeManagement.get_deploy_steps',
+                autospec=True)
     def test__get_deployment_steps_only_enabled(
             self, mock_mgt_steps, mock_power_steps, mock_deploy_steps):
         # Test getting only deploy steps, with one driver returning None, two
@@ -1042,11 +1051,12 @@ class NodeDeployStepsTestCase(db_base.DbTestCase):
             steps = conductor_utils._get_deployment_steps(task, enabled=True)
 
             self.assertEqual(self.deploy_steps, steps)
-            mock_mgt_steps.assert_called_once_with(task)
-            mock_power_steps.assert_called_once_with(task)
-            mock_deploy_steps.assert_called_once_with(task)
+            mock_mgt_steps.assert_called_once_with(mock.ANY, task)
+            mock_power_steps.assert_called_once_with(mock.ANY, task)
+            mock_deploy_steps.assert_called_once_with(mock.ANY, task)
 
-    @mock.patch.object(conductor_utils, '_get_deployment_steps')
+    @mock.patch.object(conductor_utils, '_get_deployment_steps',
+                       autospec=True)
     def test_set_node_deployment_steps(self, mock_steps):
         mock_steps.return_value = self.deploy_steps
 
@@ -1441,7 +1451,7 @@ class ErrorHandlersTestCase(tests_base.TestCase):
         self.assertFalse(self.node.save.called)
         self.assertFalse(log_mock.warning.called)
 
-    @mock.patch.object(conductor_utils, 'LOG')
+    @mock.patch.object(conductor_utils, 'LOG', autospec=True)
     def test_spawn_deploying_error_handler_no_worker(self, log_mock):
         exc = exception.NoFreeConductorWorker()
         conductor_utils.spawn_deploying_error_handler(exc, self.node)
@@ -1449,7 +1459,7 @@ class ErrorHandlersTestCase(tests_base.TestCase):
         self.assertIn('No free conductor workers', self.node.last_error)
         self.assertTrue(log_mock.warning.called)
 
-    @mock.patch.object(conductor_utils, 'LOG')
+    @mock.patch.object(conductor_utils, 'LOG', autospec=True)
     def test_spawn_deploying_error_handler_other_error(self, log_mock):
         exc = Exception('foo')
         conductor_utils.spawn_deploying_error_handler(exc, self.node)

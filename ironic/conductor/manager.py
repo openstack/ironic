@@ -89,9 +89,9 @@ SYNC_EXCLUDED_STATES = (states.DEPLOYWAIT, states.CLEANWAIT, states.ENROLL)
 # agent_version parameter and need updating.
 _SEEN_AGENT_VERSION_DEPRECATIONS = []
 
-# NOTE(rloo) This list is used to keep track of deprecation warnings that
-# have already been issued for deploy drivers that do not use deploy steps.
-_SEEN_NO_DEPLOY_STEP_DEPRECATIONS = []
+# NOTE(rloo) This is used to keep track of deprecation warnings that have
+# already been issued for deploy drivers that do not use deploy steps.
+_SEEN_NO_DEPLOY_STEP_DEPRECATIONS = set()
 
 
 class ConductorManager(base_manager.BaseConductorManager):
@@ -1007,6 +1007,13 @@ class ConductorManager(base_manager.BaseConductorManager):
         :returns: index of the next step; None if there are none to execute.
 
         """
+        valid_types = set(['clean', 'deploy'])
+        if step_type not in valid_types:
+            # NOTE(rloo): No need to i18n this, since this would be a
+            # developer error; it isn't user-facing.
+            raise exception.Invalid(
+                'step_type must be one of %(valid)s, not %(step)s'
+                % {'valid': valid_types, 'step': step_type})
         node = task.node
         if not getattr(node, '%s_step' % step_type):
             # first time through, all steps need to be done. Return the
@@ -3494,12 +3501,12 @@ def _old_rest_of_do_node_deploy(task, conductor_id, no_deploy_steps):
     #             for supporting drivers with no deploy steps.
 
     if no_deploy_steps:
-        global _SEEN_NO_DEPLOY_STEP_DEPRECATIONS
         deploy_driver_name = task.driver.deploy.__class__.__name__
         if deploy_driver_name not in _SEEN_NO_DEPLOY_STEP_DEPRECATIONS:
             LOG.warning('Deploy driver %s does not support deploy steps; this '
-                        'will be required after Stein.', deploy_driver_name)
-            _SEEN_NO_DEPLOY_STEP_DEPRECATIONS.append(deploy_driver_name)
+                        'will be required starting with the Stein release.',
+                        deploy_driver_name)
+            _SEEN_NO_DEPLOY_STEP_DEPRECATIONS.add(deploy_driver_name)
 
     node = task.node
     try:
