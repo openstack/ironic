@@ -145,7 +145,7 @@ but in order to use it we should follow some rules:
 
 * Since the Bare Metal service uses a disk partition as the configuration drive,
   it will only work with
-  `cloud-init version >= 0.7.5 <http://bazaar.launchpad.net/~cloud-init-dev/cloud-init/trunk/view/head:/ChangeLog>`_.
+  `cloud-init version >= 0.7.5 <https://github.com/cloud-init/cloud-init/blob/2d6e4219db73e80c135efd83753f9302f778f08d/ChangeLog>`_.
 
 
 * ``Cloud-init`` has a collection of data source modules, so when
