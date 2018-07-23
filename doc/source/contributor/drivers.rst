@@ -49,6 +49,15 @@ The minimum required interfaces are:
   A few common implementations are provided by the ``GenericHardware`` base
   class.
 
+  As of the Rocky release, a deploy interface should decorate its deploy method
+  to indicate that it is a deploy step. Conventionally, the deploy method uses
+  a priority of 100.
+
+  .. code-block:: python
+
+     @ironic.drivers.base.deploy_step(priority=100)
+     def deploy(self, task):
+
   .. note::
     Most of the hardware types should not override this interface.
 

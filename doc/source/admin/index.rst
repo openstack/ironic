@@ -11,6 +11,7 @@ the services.
    Drivers, Hardware Types and Hardware Interfaces <drivers>
    Ironic Python Agent <drivers/ipa>
    Node Hardware Inspection <inspection>
+   Deploy steps <deploy-steps>
    Node Cleaning <cleaning>
    Node Adoption <adoption>
    RAID Configuration <raid>
