@@ -16,6 +16,7 @@ iLO Driver for managing HP Proliant Gen8 and above servers.
 """
 
 from ironic.drivers import generic
+from ironic.drivers.modules.ilo import bios
 from ironic.drivers.modules.ilo import boot
 from ironic.drivers.modules.ilo import console
 from ironic.drivers.modules.ilo import inspect
@@ -37,6 +38,11 @@ class IloHardware(generic.GenericHardware):
     def supported_boot_interfaces(self):
         """List of supported boot interfaces."""
         return [boot.IloVirtualMediaBoot, boot.IloPXEBoot]
+
+    @property
+    def supported_bios_interfaces(self):
+        """List of supported bios interfaces."""
+        return [bios.IloBIOS, noop.NoBIOS]
 
     @property
     def supported_console_interfaces(self):

@@ -32,6 +32,7 @@ class IloHardwareTestCase(db_base.DbTestCase):
         super(IloHardwareTestCase, self).setUp()
         self.config(enabled_hardware_types=['ilo'],
                     enabled_boot_interfaces=['ilo-virtual-media', 'ilo-pxe'],
+                    enabled_bios_interfaces=['no-bios', 'ilo'],
                     enabled_console_interfaces=['ilo'],
                     enabled_deploy_interfaces=['iscsi', 'direct'],
                     enabled_inspect_interfaces=['ilo'],
@@ -47,6 +48,8 @@ class IloHardwareTestCase(db_base.DbTestCase):
         with task_manager.acquire(self.context, node.id) as task:
             self.assertIsInstance(task.driver.boot,
                                   ilo.boot.IloVirtualMediaBoot)
+            self.assertIsInstance(task.driver.bios,
+                                  ilo.bios.IloBIOS)
             self.assertIsInstance(task.driver.console,
                                   ilo.console.IloConsoleInterface)
             self.assertIsInstance(task.driver.deploy,
@@ -143,3 +146,22 @@ class IloHardwareTestCase(db_base.DbTestCase):
                                   agent.AgentRescue)
             self.assertIsInstance(task.driver.vendor,
                                   ilo.vendor.VendorPassthru)
+
+    def test_override_with_no_bios(self):
+        node = obj_utils.create_test_node(
+            self.context, driver='ilo',
+            boot_interface='ilo-pxe',
+            bios_interface='no-bios',
+            deploy_interface='direct',
+            raid_interface='agent')
+        with task_manager.acquire(self.context, node.id) as task:
+            self.assertIsInstance(task.driver.boot,
+                                  ilo.boot.IloPXEBoot)
+            self.assertIsInstance(task.driver.bios,
+                                  noop.NoBIOS)
+            self.assertIsInstance(task.driver.console,
+                                  ilo.console.IloConsoleInterface)
+            self.assertIsInstance(task.driver.deploy,
+                                  agent.AgentDeploy)
+            self.assertIsInstance(task.driver.raid,
+                                  agent.AgentRAID)
