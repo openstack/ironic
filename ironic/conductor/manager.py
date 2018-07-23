@@ -2055,11 +2055,6 @@ class ConductorManager(base_manager.BaseConductorManager):
                                               task.node.instance_info)
             task.node.driver_internal_info['is_whole_disk_image'] = iwdi
             for iface_name in task.driver.non_vendor_interfaces:
-                # TODO(zshi): Remove this check in 'bios' API patch
-                # Do not have to return the validation result for 'bios'
-                # interface.
-                if iface_name == 'bios':
-                    continue
                 iface = getattr(task.driver, iface_name)
                 result = reason = None
                 try:
