@@ -378,7 +378,6 @@ glance:
   swift_temp_url_duration = 3600
   swift_temp_url_expected_download_start_delay = 0
   swift_temp_url_key = ***
-  temp_url_endpoint_type = swift
   timeout = None
 
 ilo:

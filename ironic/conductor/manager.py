@@ -3340,14 +3340,14 @@ def _get_configdrive_obj_name(node):
 def _store_configdrive(node, configdrive):
     """Handle the storage of the config drive.
 
-    If configured, the config drive data are uploaded to swift or radosgw.
+    If configured, the config drive data are uploaded to a swift endpoint.
     The Node's instance_info is updated to include either the temporary
     Swift URL from the upload, or if no upload, the actual config drive data.
 
     :param node: an Ironic node object.
     :param configdrive: A gzipped and base64 encoded configdrive.
     :raises: SwiftOperationError if an error occur when uploading the
-             config drive to swift or radosgw.
+             config drive to the swift endpoint.
     :raises: ConfigInvalid if required keystone authorization credentials
              with swift are missing.
 

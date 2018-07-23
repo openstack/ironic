@@ -61,8 +61,8 @@ Configuration drive storage in an object store
 
 Under normal circumstances, the configuration drive can be stored in the
 Bare Metal service when the size is less than 64KB. Optionally, if the size
-is larger than 64KB there is support to store it in swift or radosgw backed
-object store. Both swift and radosgw use swift-style APIs.
+is larger than 64KB there is support to store it in a swift endpoint. Both
+swift and radosgw use swift-style APIs.
 
 The following option in ``/etc/ironic/ironic.conf`` enables swift as an object
 store backend to store config drive. This uses the Identity service to
@@ -83,7 +83,6 @@ instead. ::
     ...
 
     configdrive_use_object_store = True
-    object_store_endpoint_type = radosgw
 
     [swift]
     ...

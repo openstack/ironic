@@ -95,15 +95,7 @@ opts = [
                 deprecated_name='configdrive_use_swift',
                 help=_('Whether to upload the config drive to object store. '
                        'Set this option to True to store config drive '
-                       'in swift or radosgw.')),
-    cfg.StrOpt('object_store_endpoint_type',
-               default='swift',
-               deprecated_group='glance',
-               deprecated_name='temp_url_endpoint_type',
-               choices=[('swift', _('use Object Storage service')),
-                        ('radosgw', _('use RADOS object store'))],
-               help=_('Type of object store endpoint type to be '
-                      'used as a backend')),
+                       'in a swift endpoint.')),
 ]
 
 

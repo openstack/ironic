@@ -67,7 +67,6 @@ and Object Storage service as described below.
 
       [glance]
 
-      temp_url_endpoint_type = swift
       swift_endpoint_url = http://openstack/swift
       swift_account = AUTH_bc39f1d9dcf9486899088007789ae643
       swift_container = glance
