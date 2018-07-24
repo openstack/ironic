@@ -26,10 +26,12 @@ CONF = cfg.CONF
 
 class HashRingManagerTestCase(db_base.DbTestCase):
 
+    use_groups = False
+
     def setUp(self):
         super(HashRingManagerTestCase, self).setUp()
-        self.use_groups = False
-        self.ring_manager = hash_ring.HashRingManager(use_groups=False)
+        self.ring_manager = hash_ring.HashRingManager(
+            use_groups=self.use_groups)
 
     def register_conductors(self):
         c1 = self.dbapi.register_conductor({
@@ -111,10 +113,7 @@ class HashRingManagerTestCase(db_base.DbTestCase):
 
 class HashRingManagerWithGroupsTestCase(HashRingManagerTestCase):
 
-    def setUp(self):
-        super(HashRingManagerWithGroupsTestCase, self).setUp()
-        self.ring_manager = hash_ring.HashRingManager(use_groups=True)
-        self.use_groups = True
+    use_groups = True
 
     def test_hash_ring_manager_hardware_type_success(self):
         self.register_conductors()
