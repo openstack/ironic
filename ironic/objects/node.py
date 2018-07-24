@@ -625,6 +625,7 @@ class NodePayload(notification.NotificationPayloadBase):
         'conductor_group': ('node', 'conductor_group'),
         'console_enabled': ('node', 'console_enabled'),
         'created_at': ('node', 'created_at'),
+        'deploy_step': ('node', 'deploy_step'),
         'driver': ('node', 'driver'),
         'extra': ('node', 'extra'),
         'inspection_finished_at': ('node', 'inspection_finished_at'),
