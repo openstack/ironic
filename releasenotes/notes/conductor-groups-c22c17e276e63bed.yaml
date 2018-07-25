@@ -1,0 +1,17 @@
+---
+features:
+  - |
+    Conductors and nodes may be arbitrarily grouped to provide a basic level
+    of affinity between conductors and nodes. Conductors use the
+    ``[conductor]/conductor_group`` configuration option to set the group
+    which they belong to. The same value may be set on one or more nodes
+    in the ``conductor_group`` field (available in API version 1.46), and
+    these will be matched such that only conductors with a given group will
+    manage nodes with the same group.
+
+    A group name may be up to 255 characters containing ``a-z``, ``0-9``,
+    ``_``, ``-``, and ``.``. The group is case-insensitive. The default group
+    is the empty string (``""``).
+
+    The "node list" API endpoint (``GET /v1/nodes``) may also be filtered by
+    conductor group in API version 1.46.

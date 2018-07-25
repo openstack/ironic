@@ -144,7 +144,8 @@ class DbNodeTestCase(base.DbTestCase):
             uuid=uuidutils.generate_uuid(),
             maintenance=True,
             fault='boom',
-            resource_class='foo')
+            resource_class='foo',
+            conductor_group='group1')
         node3 = utils.create_test_node(
             driver='driver-one',
             uuid=uuidutils.generate_uuid(),
@@ -186,6 +187,14 @@ class DbNodeTestCase(base.DbTestCase):
 
         res = self.dbapi.get_nodeinfo_list(filters={'resource_class': 'foo'})
         self.assertEqual([node2.id], [r.id for r in res])
+
+        res = self.dbapi.get_nodeinfo_list(
+            filters={'conductor_group': 'group1'})
+        self.assertEqual([node2.id], [r.id for r in res])
+
+        res = self.dbapi.get_nodeinfo_list(
+            filters={'conductor_group': 'group2'})
+        self.assertEqual([], [r.id for r in res])
 
         res = self.dbapi.get_nodeinfo_list(
             filters={'reserved_by_any_of': ['fake-host',
@@ -292,7 +301,8 @@ class DbNodeTestCase(base.DbTestCase):
             chassis_id=ch2['id'],
             maintenance=True,
             fault='boom',
-            resource_class='foo')
+            resource_class='foo',
+            conductor_group='group1')
 
         res = self.dbapi.get_node_list(filters={'chassis_uuid': ch1['uuid']})
         self.assertEqual([node1.id], [r.id for r in res])
@@ -332,6 +342,12 @@ class DbNodeTestCase(base.DbTestCase):
 
         res = self.dbapi.get_node_list(filters={'resource_class': 'foo'})
         self.assertEqual([node2.id], [r.id for r in res])
+
+        res = self.dbapi.get_node_list(filters={'conductor_group': 'group1'})
+        self.assertEqual([node2.id], [r.id for r in res])
+
+        res = self.dbapi.get_node_list(filters={'conductor_group': 'group2'})
+        self.assertEqual([], [r.id for r in res])
 
         res = self.dbapi.get_node_list(filters={'id': node1.id})
         self.assertEqual([node1.id], [r.id for r in res])

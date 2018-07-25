@@ -502,6 +502,20 @@ def check_allow_filter_by_fault(fault):
             msg, status_code=http_client.BAD_REQUEST)
 
 
+def check_allow_filter_by_conductor_group(conductor_group):
+    """Check if filtering nodes by conductor_group is allowed.
+
+    Version 1.46 of the API allows filtering nodes by conductor_group.
+    """
+    if (conductor_group is not None and pecan.request.version.minor
+            < versions.MINOR_46_NODE_CONDUCTOR_GROUP):
+        raise exception.NotAcceptable(_(
+            "Request not acceptable. The minimal required API version "
+            "should be %(base)s.%(opr)s") %
+            {'base': versions.BASE_VERSION,
+             'opr': versions.MINOR_46_NODE_CONDUCTOR_GROUP})
+
+
 def initial_node_provision_state():
     """Return node state to use by default when creating new nodes.
 
@@ -873,9 +887,10 @@ def allow_reset_interfaces():
 def allow_conductor_group():
     """Check if passing a conductor_group for a node is allowed.
 
-    There is no version yet that allows this.
+    Version 1.46 exposes this field.
     """
-    return False
+    return (pecan.request.version.minor >=
+            versions.MINOR_46_NODE_CONDUCTOR_GROUP)
 
 
 def get_request_return_fields(fields, detail, default_fields):

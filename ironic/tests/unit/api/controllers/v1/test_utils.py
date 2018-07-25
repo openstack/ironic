@@ -270,6 +270,22 @@ class TestApiUtils(base.TestCase):
                           utils.check_allow_filter_driver_type, 'classic')
 
     @mock.patch.object(pecan, 'request', spec_set=['version'])
+    def test_check_allow_filter_by_conductor_group(self, mock_request):
+        mock_request.version.minor = 46
+        self.assertIsNone(utils.check_allow_filter_by_conductor_group('foo'))
+
+    @mock.patch.object(pecan, 'request', spec_set=['version'])
+    def test_check_allow_filter_by_conductor_group_none(self, mock_request):
+        mock_request.version.minor = 46
+        self.assertIsNone(utils.check_allow_filter_by_conductor_group(None))
+
+    @mock.patch.object(pecan, 'request', spec_set=['version'])
+    def test_check_allow_filter_by_conductor_group_fail(self, mock_request):
+        mock_request.version.minor = 44
+        self.assertRaises(exception.NotAcceptable,
+                          utils.check_allow_filter_by_conductor_group, 'foo')
+
+    @mock.patch.object(pecan, 'request', spec_set=['version'])
     def test_check_allow_driver_detail(self, mock_request):
         mock_request.version.minor = 30
         self.assertIsNone(utils.check_allow_driver_detail(True))
@@ -521,7 +537,11 @@ class TestApiUtils(base.TestCase):
         mock_request.version.minor = 40
         self.assertFalse(utils.allow_inspect_abort())
 
-    def test_allow_conductor_group(self):
+    @mock.patch.object(pecan, 'request', spec_set=['version'])
+    def test_allow_conductor_group(self, mock_request):
+        mock_request.version.minor = 46
+        self.assertTrue(utils.allow_conductor_group())
+        mock_request.version.minor = 45
         self.assertFalse(utils.allow_conductor_group())
 
 

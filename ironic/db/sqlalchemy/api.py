@@ -223,7 +223,8 @@ class Connection(api.Connection):
                              'resource_class', 'provision_state', 'uuid', 'id',
                              'chassis_uuid', 'associated', 'reserved',
                              'reserved_by_any_of', 'provisioned_before',
-                             'inspection_started_before', 'fault'}
+                             'inspection_started_before', 'fault',
+                             'conductor_group'}
         unsupported_filters = set(filters).difference(supported_filters)
         if unsupported_filters:
             msg = _("SqlAlchemy API does not support "
@@ -231,7 +232,7 @@ class Connection(api.Connection):
             raise ValueError(msg)
         for field in ['console_enabled', 'maintenance', 'driver',
                       'resource_class', 'provision_state', 'uuid', 'id',
-                      'fault']:
+                      'fault', 'conductor_group']:
             if field in filters:
                 query = query.filter_by(**{field: filters[field]})
         if 'chassis_uuid' in filters:
