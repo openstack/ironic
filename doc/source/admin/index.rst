@@ -28,6 +28,7 @@ the services.
    Conductor Groups <conductor-groups>
    Upgrade Guide <upgrade-guide>
    Security <security>
+   Windows Images <building-windows-images>
    Troubleshooting FAQ <troubleshooting>
 
 Dashboard Integration

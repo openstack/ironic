@@ -117,3 +117,18 @@ group, in no particular order. It starts with 0 and increments by 1 for every
 configured port group.
 
 .. _`kernel documentation on bonding`: https://www.kernel.org/doc/Documentation/networking/bonding.txt
+
+Link aggregation/teaming on windows
+-----------------------------------
+
+Portgroups are supported for Windows Server images, which can created by
+:ref:`building_image_windows` instruction.
+
+You can customise an instance after it is launched along with
+`script file <../../../../tools/link_aggregation_on_windows.ps1>`_ in
+``Configuration`` of ``Instance`` and selected ``Configuration Drive`` option.
+Then ironic virt driver will generate network metadata and add all the
+additional information, such as bond mode, transmit hash policy,
+MII link monitoring interval, and of which links the bond consists.
+The information in InstanceMetadata will be used afterwards to generate
+the config drive.
