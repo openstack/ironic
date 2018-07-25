@@ -175,6 +175,7 @@ class Node(Base):
     inspection_finished_at = Column(DateTime, nullable=True)
     inspection_started_at = Column(DateTime, nullable=True)
     extra = Column(db_types.JsonEncodedDict)
+    automated_clean = Column(Boolean, nullable=True)
 
     bios_interface = Column(String(255), nullable=True)
     boot_interface = Column(String(255), nullable=True)
