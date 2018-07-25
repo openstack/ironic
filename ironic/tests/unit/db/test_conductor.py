@@ -215,6 +215,21 @@ class DbConductorTestCase(base.DbTestCase):
         self.assertEqual(expected, result)
 
     @mock.patch.object(timeutils, 'utcnow', autospec=True)
+    def test_get_active_hardware_type_dict_one_host_one_ht_groups(
+            self, mock_utcnow):
+        h = 'fake-host'
+        ht = 'hardware-type'
+        group = 'foogroup'
+        key = '%s:%s' % (group, ht)
+        expected = {key: {h}}
+
+        mock_utcnow.return_value = datetime.datetime.utcnow()
+        self._create_test_cdr(hostname=h, drivers=[], hardware_types=[ht],
+                              conductor_group=group)
+        result = self.dbapi.get_active_hardware_type_dict(use_groups=True)
+        self.assertEqual(expected, result)
+
+    @mock.patch.object(timeutils, 'utcnow', autospec=True)
     def test_get_active_hardware_type_dict_one_host_many_ht(self, mock_utcnow):
         h = 'fake-host'
         ht1 = 'hardware-type'

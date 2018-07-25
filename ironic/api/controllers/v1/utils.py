@@ -378,6 +378,8 @@ def check_allowed_fields(fields):
         raise exception.NotAcceptable()
     if 'rescue_interface' in fields and not allow_rescue_interface():
         raise exception.NotAcceptable()
+    if 'conductor_group' in fields and not allow_conductor_group():
+        raise exception.NotAcceptable()
 
 
 def check_allowed_portgroup_fields(fields):
@@ -866,6 +868,14 @@ def allow_reset_interfaces():
     """Check if passing a reset_interfaces query string is allowed."""
     return (pecan.request.version.minor >=
             versions.MINOR_45_RESET_INTERFACES)
+
+
+def allow_conductor_group():
+    """Check if passing a conductor_group for a node is allowed.
+
+    There is no version yet that allows this.
+    """
+    return False
 
 
 def get_request_return_fields(fields, detail, default_fields):

@@ -521,6 +521,9 @@ class TestApiUtils(base.TestCase):
         mock_request.version.minor = 40
         self.assertFalse(utils.allow_inspect_abort())
 
+    def test_allow_conductor_group(self):
+        self.assertFalse(utils.allow_conductor_group())
+
 
 class TestNodeIdent(base.TestCase):
 

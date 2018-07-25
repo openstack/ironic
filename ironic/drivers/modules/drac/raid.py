@@ -805,7 +805,8 @@ class DracRAID(base.RAIDInterface):
         fields = ['driver_internal_info']
 
         node_list = manager.iter_nodes(fields=fields, filters=filters)
-        for (node_uuid, driver, driver_internal_info) in node_list:
+        for (node_uuid, driver, conductor_group,
+             driver_internal_info) in node_list:
             try:
                 lock_purpose = 'checking async raid configuration jobs'
                 with task_manager.acquire(context, node_uuid,

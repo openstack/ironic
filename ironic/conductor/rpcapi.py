@@ -95,13 +95,14 @@ class ConductorAPI(object):
     |    1.44 - Added add_node_traits and remove_node_traits.
     |    1.45 - Added continue_node_deploy
     |    1.46 - Added reset_interfaces to update_node
+    |    1.47 - Added support for conductor groups
 
     """
 
     # NOTE(rloo): This must be in sync with manager.ConductorManager's.
     # NOTE(pas-ha): This also must be in sync with
     #               ironic.common.release_mappings.RELEASE_MAPPING['master']
-    RPC_API_VERSION = '1.46'
+    RPC_API_VERSION = '1.47'
 
     def __init__(self, topic=None):
         super(ConductorAPI, self).__init__()
@@ -117,8 +118,10 @@ class ConductorAPI(object):
                        else self.RPC_API_VERSION)
         self.client = rpc.get_client(target, version_cap=version_cap,
                                      serializer=serializer)
+
+        use_groups = self.client.can_send_version('1.47')
         # NOTE(deva): this is going to be buggy
-        self.ring_manager = hash_ring.HashRingManager()
+        self.ring_manager = hash_ring.HashRingManager(use_groups=use_groups)
 
     def get_topic_for(self, node):
         """Get the RPC topic for the conductor service the node is mapped to.
@@ -135,13 +138,15 @@ class ConductorAPI(object):
             raise exception.TemporaryFailure()
 
         try:
-            ring = self.ring_manager[node.driver]
+            ring = self.ring_manager.get_ring(node.driver,
+                                              node.conductor_group)
             dest = ring.get_nodes(node.uuid.encode('utf-8'),
                                   replicas=CONF.hash_distribution_replicas)
             return '%s.%s' % (self.topic, dest.pop())
         except exception.DriverNotFound:
             reason = (_('No conductor service registered which supports '
-                        'driver %s.') % node.driver)
+                        'driver %(driver)s for conductor group "%(group)s".') %
+                      {'driver': node.driver, 'group': node.conductor_group})
             raise exception.NoValidHost(reason=reason)
 
     def get_topic_for_driver(self, driver_name):
@@ -156,9 +161,12 @@ class ConductorAPI(object):
         :raises: DriverNotFound
 
         """
-        self.ring_manager.reset()
-
-        ring = self.ring_manager[driver_name]
+        # NOTE(jroll) we want to be able to route this to any conductor,
+        # regardless of groupings. We use a fresh, uncached hash ring that
+        # does not take groups into account.
+        local_ring_manager = hash_ring.HashRingManager(use_groups=False,
+                                                       cache=False)
+        ring = local_ring_manager.get_ring(driver_name, '')
         host = random.choice(list(ring.nodes))
         return self.topic + "." + host
 

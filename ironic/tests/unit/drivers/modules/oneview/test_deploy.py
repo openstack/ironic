@@ -33,10 +33,10 @@ oneview_error = common.SERVER_HARDWARE_ALLOCATION_ERROR
 maintenance_reason = common.NODE_IN_USE_BY_ONEVIEW
 
 driver_internal_info = {'oneview_error': oneview_error}
-nodes_taken_by_oneview = [(1, 'oneview')]
-nodes_freed_by_oneview = [(1, 'oneview', maintenance_reason)]
-nodes_taken_on_cleanfail = [(1, 'oneview', driver_internal_info)]
-nodes_taken_on_cleanfail_no_info = [(1, 'oneview', {})]
+nodes_taken_by_oneview = [(1, 'oneview', '')]
+nodes_freed_by_oneview = [(1, 'oneview', '', maintenance_reason)]
+nodes_taken_on_cleanfail = [(1, 'oneview', '', driver_internal_info)]
+nodes_taken_on_cleanfail_no_info = [(1, 'oneview', '', {})]
 
 GET_POWER_STATE_RETRIES = 5
 

@@ -4262,9 +4262,12 @@ class MiscTestCase(mgr_utils.ServiceSetUpMixin, mgr_utils.CommonMixIn,
         self._start_service()
         n = db_utils.get_test_node()
         self.assertTrue(self.service._mapped_to_this_conductor(
-            n['uuid'], 'fake-hardware'))
+            n['uuid'], 'fake-hardware', ''))
+        self.assertFalse(self.service._mapped_to_this_conductor(
+            n['uuid'], 'fake-hardware', 'foogroup'))
         self.assertFalse(self.service._mapped_to_this_conductor(n['uuid'],
-                                                                'otherdriver'))
+                                                                'otherdriver',
+                                                                ''))
 
     @mock.patch.object(images, 'is_whole_disk_image')
     def test_validate_dynamic_driver_interfaces(self, mock_iwdi):
@@ -4346,8 +4349,9 @@ class MiscTestCase(mgr_utils.ServiceSetUpMixin, mgr_utils.CommonMixIn,
     def test_iter_nodes(self, mock_nodeinfo_list, mock_mapped,
                         mock_fail_if_state):
         self._start_service()
-        self.columns = ['uuid', 'driver', 'id']
-        nodes = [self._create_node(id=i, driver='fake-hardware')
+        self.columns = ['uuid', 'driver', 'conductor_group', 'id']
+        nodes = [self._create_node(id=i, driver='fake-hardware',
+                                   conductor_group='')
                  for i in range(2)]
         mock_nodeinfo_list.return_value = self._get_nodeinfo_list_response(
             nodes)
@@ -4355,7 +4359,7 @@ class MiscTestCase(mgr_utils.ServiceSetUpMixin, mgr_utils.CommonMixIn,
 
         result = list(self.service.iter_nodes(fields=['id'],
                                               filters=mock.sentinel.filters))
-        self.assertEqual([(nodes[0].uuid, 'fake-hardware', 0)], result)
+        self.assertEqual([(nodes[0].uuid, 'fake-hardware', '', 0)], result)
         mock_nodeinfo_list.assert_called_once_with(
             columns=self.columns, filters=mock.sentinel.filters)
         expected_calls = [mock.call(mock.ANY, mock.ANY,
@@ -4375,7 +4379,7 @@ class MiscTestCase(mgr_utils.ServiceSetUpMixin, mgr_utils.CommonMixIn,
     @mock.patch.object(dbapi.IMPL, 'get_nodeinfo_list')
     def test_iter_nodes_shutdown(self, mock_nodeinfo_list):
         self._start_service()
-        self.columns = ['uuid', 'driver', 'id']
+        self.columns = ['uuid', 'driver', 'conductor_group', 'id']
         nodes = [self._create_node(driver='fake-hardware')]
         mock_nodeinfo_list.return_value = self._get_nodeinfo_list_response(
             nodes)
@@ -5019,7 +5023,7 @@ class SensorsTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
     def test_send_sensor_task(self, acquire_mock):
         nodes = queue.Queue()
         for i in range(5):
-            nodes.put_nowait(('fake_uuid-%d' % i, 'fake-hardware', None))
+            nodes.put_nowait(('fake_uuid-%d' % i, 'fake-hardware', '', None))
         self._start_service()
         CONF.set_override('send_sensor_data', True, group='conductor')
 
@@ -5036,7 +5040,7 @@ class SensorsTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
     @mock.patch.object(task_manager, 'acquire')
     def test_send_sensor_task_shutdown(self, acquire_mock):
         nodes = queue.Queue()
-        nodes.put_nowait(('fake_uuid', 'fake-hardware', None))
+        nodes.put_nowait(('fake_uuid', 'fake-hardware', '', None))
         self._start_service()
         self.service._shutdown = True
         CONF.set_override('send_sensor_data', True, group='conductor')
@@ -5046,7 +5050,7 @@ class SensorsTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
     @mock.patch.object(task_manager, 'acquire', autospec=True)
     def test_send_sensor_task_no_management(self, acquire_mock):
         nodes = queue.Queue()
-        nodes.put_nowait(('fake_uuid', 'fake-hardware', None))
+        nodes.put_nowait(('fake_uuid', 'fake-hardware', '', None))
 
         CONF.set_override('send_sensor_data', True, group='conductor')
 
@@ -5064,7 +5068,7 @@ class SensorsTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
     @mock.patch.object(task_manager, 'acquire', autospec=True)
     def test_send_sensor_task_maintenance(self, acquire_mock, debug_log):
         nodes = queue.Queue()
-        nodes.put_nowait(('fake_uuid', 'fake-hardware', None))
+        nodes.put_nowait(('fake_uuid', 'fake-hardware', '', None))
         self._start_service()
         CONF.set_override('send_sensor_data', True, group='conductor')
 
@@ -5948,7 +5952,7 @@ class ManagerSyncPowerStatesTestCase(mgr_utils.CommonMixIn,
         self.service.dbapi = self.dbapi
         self.node = self._create_node()
         self.filters = {'maintenance': False}
-        self.columns = ['uuid', 'driver', 'id']
+        self.columns = ['uuid', 'driver', 'conductor_group', 'id']
 
     def test_node_not_mapped(self, get_nodeinfo_mock,
                              mapped_mock, acquire_mock, sync_mock):
@@ -5960,7 +5964,8 @@ class ManagerSyncPowerStatesTestCase(mgr_utils.CommonMixIn,
         get_nodeinfo_mock.assert_called_once_with(
             columns=self.columns, filters=self.filters)
         mapped_mock.assert_called_once_with(self.node.uuid,
-                                            self.node.driver)
+                                            self.node.driver,
+                                            self.node.conductor_group)
         self.assertFalse(acquire_mock.called)
         self.assertFalse(sync_mock.called)
 
@@ -5977,7 +5982,8 @@ class ManagerSyncPowerStatesTestCase(mgr_utils.CommonMixIn,
         get_nodeinfo_mock.assert_called_once_with(
             columns=self.columns, filters=self.filters)
         mapped_mock.assert_called_once_with(self.node.uuid,
-                                            self.node.driver)
+                                            self.node.driver,
+                                            self.node.conductor_group)
         acquire_mock.assert_called_once_with(self.context, self.node.uuid,
                                              purpose=mock.ANY,
                                              shared=True)
@@ -5999,7 +6005,8 @@ class ManagerSyncPowerStatesTestCase(mgr_utils.CommonMixIn,
         get_nodeinfo_mock.assert_called_once_with(
             columns=self.columns, filters=self.filters)
         mapped_mock.assert_called_once_with(self.node.uuid,
-                                            self.node.driver)
+                                            self.node.driver,
+                                            self.node.conductor_group)
         acquire_mock.assert_called_once_with(self.context, self.node.uuid,
                                              purpose=mock.ANY,
                                              shared=True)
@@ -6020,7 +6027,8 @@ class ManagerSyncPowerStatesTestCase(mgr_utils.CommonMixIn,
         get_nodeinfo_mock.assert_called_once_with(
             columns=self.columns, filters=self.filters)
         mapped_mock.assert_called_once_with(self.node.uuid,
-                                            self.node.driver)
+                                            self.node.driver,
+                                            self.node.conductor_group)
         acquire_mock.assert_called_once_with(self.context, self.node.uuid,
                                              purpose=mock.ANY,
                                              shared=True)
@@ -6041,7 +6049,8 @@ class ManagerSyncPowerStatesTestCase(mgr_utils.CommonMixIn,
         get_nodeinfo_mock.assert_called_once_with(
             columns=self.columns, filters=self.filters)
         mapped_mock.assert_called_once_with(self.node.uuid,
-                                            self.node.driver)
+                                            self.node.driver,
+                                            self.node.conductor_group)
         acquire_mock.assert_called_once_with(self.context, self.node.uuid,
                                              purpose=mock.ANY,
                                              shared=True)
@@ -6061,7 +6070,8 @@ class ManagerSyncPowerStatesTestCase(mgr_utils.CommonMixIn,
         get_nodeinfo_mock.assert_called_once_with(
             columns=self.columns, filters=self.filters)
         mapped_mock.assert_called_once_with(self.node.uuid,
-                                            self.node.driver)
+                                            self.node.driver,
+                                            self.node.conductor_group)
         acquire_mock.assert_called_once_with(self.context, self.node.uuid,
                                              purpose=mock.ANY,
                                              shared=True)
@@ -6079,7 +6089,8 @@ class ManagerSyncPowerStatesTestCase(mgr_utils.CommonMixIn,
         get_nodeinfo_mock.assert_called_once_with(
             columns=self.columns, filters=self.filters)
         mapped_mock.assert_called_once_with(self.node.uuid,
-                                            self.node.driver)
+                                            self.node.driver,
+                                            self.node.conductor_group)
         acquire_mock.assert_called_once_with(self.context, self.node.uuid,
                                              purpose=mock.ANY,
                                              shared=True)
@@ -6097,7 +6108,8 @@ class ManagerSyncPowerStatesTestCase(mgr_utils.CommonMixIn,
         get_nodeinfo_mock.assert_called_once_with(
             columns=self.columns, filters=self.filters)
         mapped_mock.assert_called_once_with(self.node.uuid,
-                                            self.node.driver)
+                                            self.node.driver,
+                                            self.node.conductor_group)
         acquire_mock.assert_called_once_with(self.context, self.node.uuid,
                                              purpose=mock.ANY,
                                              shared=True)
@@ -6142,7 +6154,7 @@ class ManagerSyncPowerStatesTestCase(mgr_utils.CommonMixIn,
 
         get_nodeinfo_mock.return_value = (
             self._get_nodeinfo_list_response(nodes))
-        mapped_mock.side_effect = lambda x, y: mapped_map[x]
+        mapped_mock.side_effect = lambda x, y, z: mapped_map[x]
         acquire_mock.side_effect = self._get_acquire_side_effect(tasks)
         sync_mock.side_effect = sync_results
 
@@ -6154,7 +6166,8 @@ class ManagerSyncPowerStatesTestCase(mgr_utils.CommonMixIn,
 
         get_nodeinfo_mock.assert_called_once_with(
             columns=self.columns, filters=self.filters)
-        mapped_calls = [mock.call(x.uuid, x.driver) for x in nodes]
+        mapped_calls = [mock.call(x.uuid, x.driver,
+                                  x.conductor_group) for x in nodes]
         self.assertEqual(mapped_calls, mapped_mock.call_args_list)
         acquire_calls = [mock.call(self.context, x.uuid,
                                    purpose=mock.ANY,
@@ -6187,7 +6200,7 @@ class ManagerPowerRecoveryTestCase(mgr_utils.CommonMixIn,
         self.task.driver = self.driver
         self.filters = {'maintenance': True,
                         'fault': 'power failure'}
-        self.columns = ['uuid', 'driver', 'id']
+        self.columns = ['uuid', 'driver', 'conductor_group', 'id']
 
     def test_node_not_mapped(self, get_nodeinfo_mock,
                              mapped_mock, acquire_mock):
@@ -6199,7 +6212,8 @@ class ManagerPowerRecoveryTestCase(mgr_utils.CommonMixIn,
         get_nodeinfo_mock.assert_called_once_with(
             columns=self.columns, filters=self.filters)
         mapped_mock.assert_called_once_with(self.node.uuid,
-                                            self.node.driver)
+                                            self.node.driver,
+                                            self.node.conductor_group)
         self.assertFalse(acquire_mock.called)
         self.assertFalse(self.power.validate.called)
 
@@ -6216,7 +6230,8 @@ class ManagerPowerRecoveryTestCase(mgr_utils.CommonMixIn,
         get_nodeinfo_mock.assert_called_once_with(
             columns=self.columns, filters=self.filters)
         mapped_mock.assert_called_once_with(self.node.uuid,
-                                            self.node.driver)
+                                            self.node.driver,
+                                            self.node.conductor_group)
         acquire_mock.assert_called_once_with(self.context, self.node.uuid,
                                              purpose=mock.ANY,
                                              shared=True)
@@ -6261,7 +6276,8 @@ class ManagerPowerRecoveryTestCase(mgr_utils.CommonMixIn,
         get_nodeinfo_mock.assert_called_once_with(
             columns=self.columns, filters=self.filters)
         mapped_mock.assert_called_once_with(self.node.uuid,
-                                            self.node.driver)
+                                            self.node.driver,
+                                            self.node.conductor_group)
         acquire_mock.assert_called_once_with(self.context, self.node.uuid,
                                              purpose=mock.ANY,
                                              shared=True)
@@ -6282,7 +6298,8 @@ class ManagerPowerRecoveryTestCase(mgr_utils.CommonMixIn,
         get_nodeinfo_mock.assert_called_once_with(
             columns=self.columns, filters=self.filters)
         mapped_mock.assert_called_once_with(self.node.uuid,
-                                            self.node.driver)
+                                            self.node.driver,
+                                            self.node.conductor_group)
         acquire_mock.assert_called_once_with(self.context, self.node.uuid,
                                              purpose=mock.ANY,
                                              shared=True)
@@ -6307,7 +6324,8 @@ class ManagerPowerRecoveryTestCase(mgr_utils.CommonMixIn,
         get_nodeinfo_mock.assert_called_once_with(
             columns=self.columns, filters=self.filters)
         mapped_mock.assert_called_once_with(self.node.uuid,
-                                            self.node.driver)
+                                            self.node.driver,
+                                            self.node.conductor_group)
         acquire_mock.assert_called_once_with(self.context, self.node.uuid,
                                              purpose=mock.ANY,
                                              shared=True)
@@ -6341,7 +6359,7 @@ class ManagerCheckDeployTimeoutsTestCase(mgr_utils.CommonMixIn,
         self.filters = {'reserved': False, 'maintenance': False,
                         'provisioned_before': 300,
                         'provision_state': states.DEPLOYWAIT}
-        self.columns = ['uuid', 'driver']
+        self.columns = ['uuid', 'driver', 'conductor_group']
 
     def _assert_get_nodeinfo_args(self, get_nodeinfo_mock):
         get_nodeinfo_mock.assert_called_once_with(
@@ -6365,7 +6383,8 @@ class ManagerCheckDeployTimeoutsTestCase(mgr_utils.CommonMixIn,
         self.service._check_deploy_timeouts(self.context)
 
         self._assert_get_nodeinfo_args(get_nodeinfo_mock)
-        mapped_mock.assert_called_once_with(self.node.uuid, self.node.driver)
+        mapped_mock.assert_called_once_with(self.node.uuid, self.node.driver,
+                                            self.node.conductor_group)
         self.assertFalse(acquire_mock.called)
 
     def test_timeout(self, get_nodeinfo_mock, mapped_mock, acquire_mock):
@@ -6376,7 +6395,8 @@ class ManagerCheckDeployTimeoutsTestCase(mgr_utils.CommonMixIn,
         self.service._check_deploy_timeouts(self.context)
 
         self._assert_get_nodeinfo_args(get_nodeinfo_mock)
-        mapped_mock.assert_called_once_with(self.node.uuid, self.node.driver)
+        mapped_mock.assert_called_once_with(self.node.uuid, self.node.driver,
+                                            self.node.conductor_group)
         acquire_mock.assert_called_once_with(self.context, self.node.uuid,
                                              purpose=mock.ANY)
         self.task.process_event.assert_called_with(
@@ -6397,7 +6417,7 @@ class ManagerCheckDeployTimeoutsTestCase(mgr_utils.CommonMixIn,
 
         self._assert_get_nodeinfo_args(get_nodeinfo_mock)
         mapped_mock.assert_called_once_with(
-            self.node.uuid, self.node.driver)
+            self.node.uuid, self.node.driver, self.node.conductor_group)
         acquire_mock.assert_called_once_with(self.context,
                                              self.node.uuid,
                                              purpose=mock.ANY)
@@ -6415,7 +6435,7 @@ class ManagerCheckDeployTimeoutsTestCase(mgr_utils.CommonMixIn,
 
         self._assert_get_nodeinfo_args(get_nodeinfo_mock)
         mapped_mock.assert_called_once_with(
-            self.node.uuid, self.node.driver)
+            self.node.uuid, self.node.driver, self.node.conductor_group)
         acquire_mock.assert_called_once_with(self.context,
                                              self.node.uuid,
                                              purpose=mock.ANY)
@@ -6434,7 +6454,7 @@ class ManagerCheckDeployTimeoutsTestCase(mgr_utils.CommonMixIn,
 
         self._assert_get_nodeinfo_args(get_nodeinfo_mock)
         mapped_mock.assert_called_once_with(
-            self.node.uuid, self.node.driver)
+            self.node.uuid, self.node.driver, self.node.conductor_group)
         acquire_mock.assert_called_once_with(self.context,
                                              self.node.uuid,
                                              purpose=mock.ANY)
@@ -6456,8 +6476,10 @@ class ManagerCheckDeployTimeoutsTestCase(mgr_utils.CommonMixIn,
         self.service._check_deploy_timeouts(self.context)
 
         self._assert_get_nodeinfo_args(get_nodeinfo_mock)
-        self.assertEqual([mock.call(self.node.uuid, task.node.driver),
-                          mock.call(self.node2.uuid, self.node2.driver)],
+        self.assertEqual([mock.call(self.node.uuid, task.node.driver,
+                                    task.node.conductor_group),
+                          mock.call(self.node2.uuid, self.node2.driver,
+                                    self.node2.conductor_group)],
                          mapped_mock.call_args_list)
         self.assertEqual([mock.call(self.context, self.node.uuid,
                                     purpose=mock.ANY),
@@ -6489,7 +6511,7 @@ class ManagerCheckDeployTimeoutsTestCase(mgr_utils.CommonMixIn,
         # mapped should be only called for the first node as we should
         # have exited the loop early due to NoFreeConductorWorker
         mapped_mock.assert_called_once_with(
-            self.node.uuid, self.node.driver)
+            self.node.uuid, self.node.driver, self.node.conductor_group)
         acquire_mock.assert_called_once_with(self.context,
                                              self.node.uuid,
                                              purpose=mock.ANY)
@@ -6516,7 +6538,8 @@ class ManagerCheckDeployTimeoutsTestCase(mgr_utils.CommonMixIn,
         self._assert_get_nodeinfo_args(get_nodeinfo_mock)
         # mapped should be only called for the first node as we should
         # have exited the loop early due to unknown exception
-        mapped_mock.assert_called_once_with(self.node.uuid, self.node.driver)
+        mapped_mock.assert_called_once_with(self.node.uuid, self.node.driver,
+                                            self.node.conductor_group)
         acquire_mock.assert_called_once_with(self.context,
                                              self.node.uuid,
                                              purpose=mock.ANY)
@@ -6542,7 +6565,8 @@ class ManagerCheckDeployTimeoutsTestCase(mgr_utils.CommonMixIn,
         self.service._check_deploy_timeouts(self.context)
 
         # Should only have ran 2.
-        self.assertEqual([mock.call(self.node.uuid, self.node.driver)] * 2,
+        self.assertEqual([mock.call(self.node.uuid, self.node.driver,
+                                    self.node.conductor_group)] * 2,
                          mapped_mock.call_args_list)
         self.assertEqual([mock.call(self.context, self.node.uuid,
                                     purpose=mock.ANY)] * 2,
@@ -6667,7 +6691,8 @@ class ManagerSyncLocalStateTestCase(mgr_utils.CommonMixIn, db_base.DbTestCase):
         self.filters = {'reserved': False,
                         'maintenance': False,
                         'provision_state': states.ACTIVE}
-        self.columns = ['uuid', 'driver', 'id', 'conductor_affinity']
+        self.columns = ['uuid', 'driver', 'conductor_group', 'id',
+                        'conductor_affinity']
 
     def _assert_get_nodeinfo_args(self, get_nodeinfo_mock):
         get_nodeinfo_mock.assert_called_once_with(
@@ -6680,7 +6705,8 @@ class ManagerSyncLocalStateTestCase(mgr_utils.CommonMixIn, db_base.DbTestCase):
         self.service._sync_local_state(self.context)
 
         self._assert_get_nodeinfo_args(get_nodeinfo_mock)
-        mapped_mock.assert_called_once_with(self.node.uuid, self.node.driver)
+        mapped_mock.assert_called_once_with(self.node.uuid, self.node.driver,
+                                            self.node.conductor_group)
         self.assertFalse(acquire_mock.called)
 
     def test_already_mapped(self, get_nodeinfo_mock, mapped_mock,
@@ -6695,7 +6721,8 @@ class ManagerSyncLocalStateTestCase(mgr_utils.CommonMixIn, db_base.DbTestCase):
         self.service._sync_local_state(self.context)
 
         self._assert_get_nodeinfo_args(get_nodeinfo_mock)
-        mapped_mock.assert_called_once_with(self.node.uuid, self.node.driver)
+        mapped_mock.assert_called_once_with(self.node.uuid, self.node.driver,
+                                            self.node.conductor_group)
         self.assertFalse(acquire_mock.called)
 
     def test_good(self, get_nodeinfo_mock, mapped_mock, acquire_mock):
@@ -6706,7 +6733,8 @@ class ManagerSyncLocalStateTestCase(mgr_utils.CommonMixIn, db_base.DbTestCase):
         self.service._sync_local_state(self.context)
 
         self._assert_get_nodeinfo_args(get_nodeinfo_mock)
-        mapped_mock.assert_called_once_with(self.node.uuid, self.node.driver)
+        mapped_mock.assert_called_once_with(self.node.uuid, self.node.driver,
+                                            self.node.conductor_group)
         acquire_mock.assert_called_once_with(self.context, self.node.uuid,
                                              purpose=mock.ANY)
         # assert spawn_after has been called
@@ -6735,7 +6763,8 @@ class ManagerSyncLocalStateTestCase(mgr_utils.CommonMixIn, db_base.DbTestCase):
         # assert  _mapped_to_this_conductor() gets called 2 times only
         # instead of 3. When NoFreeConductorWorker is raised the loop
         # should be broken
-        expected = [mock.call(self.node.uuid, self.node.driver)] * 2
+        expected = [mock.call(self.node.uuid, self.node.driver,
+                              self.node.conductor_group)] * 2
         self.assertEqual(expected, mapped_mock.call_args_list)
 
         # assert  acquire() gets called 2 times only instead of 3. When
@@ -6764,7 +6793,8 @@ class ManagerSyncLocalStateTestCase(mgr_utils.CommonMixIn, db_base.DbTestCase):
         self._assert_get_nodeinfo_args(get_nodeinfo_mock)
 
         # assert _mapped_to_this_conductor() gets called 3 times
-        expected = [mock.call(self.node.uuid, self.node.driver)] * 3
+        expected = [mock.call(self.node.uuid, self.node.driver,
+                              self.node.conductor_group)] * 3
         self.assertEqual(expected, mapped_mock.call_args_list)
 
         # assert acquire() gets called 3 times
@@ -6795,7 +6825,8 @@ class ManagerSyncLocalStateTestCase(mgr_utils.CommonMixIn, db_base.DbTestCase):
 
         # assert _mapped_to_this_conductor() gets called only once
         # because of the worker limit
-        mapped_mock.assert_called_once_with(self.node.uuid, self.node.driver)
+        mapped_mock.assert_called_once_with(self.node.uuid, self.node.driver,
+                                            self.node.conductor_group)
 
         # assert acquire() gets called only once because of the worker limit
         acquire_mock.assert_called_once_with(self.context, self.node.uuid,
@@ -7050,7 +7081,7 @@ class ManagerCheckInspectWaitTimeoutsTestCase(mgr_utils.CommonMixIn,
         self.filters = {'reserved': False,
                         'inspection_started_before': 300,
                         'provision_state': states.INSPECTWAIT}
-        self.columns = ['uuid', 'driver']
+        self.columns = ['uuid', 'driver', 'conductor_group']
 
     def _assert_get_nodeinfo_args(self, get_nodeinfo_mock):
         get_nodeinfo_mock.assert_called_once_with(
@@ -7075,7 +7106,8 @@ class ManagerCheckInspectWaitTimeoutsTestCase(mgr_utils.CommonMixIn,
         self.service._check_inspect_wait_timeouts(self.context)
 
         self._assert_get_nodeinfo_args(get_nodeinfo_mock)
-        mapped_mock.assert_called_once_with(self.node.uuid, self.node.driver)
+        mapped_mock.assert_called_once_with(self.node.uuid, self.node.driver,
+                                            self.node.conductor_group)
         self.assertFalse(acquire_mock.called)
 
     def test__check_inspect_timeout(self, get_nodeinfo_mock,
@@ -7087,7 +7119,8 @@ class ManagerCheckInspectWaitTimeoutsTestCase(mgr_utils.CommonMixIn,
         self.service._check_inspect_wait_timeouts(self.context)
 
         self._assert_get_nodeinfo_args(get_nodeinfo_mock)
-        mapped_mock.assert_called_once_with(self.node.uuid, self.node.driver)
+        mapped_mock.assert_called_once_with(self.node.uuid, self.node.driver,
+                                            self.node.conductor_group)
         acquire_mock.assert_called_once_with(self.context, self.node.uuid,
                                              purpose=mock.ANY)
         self.task.process_event.assert_called_with('fail', target_state=None)
@@ -7105,7 +7138,8 @@ class ManagerCheckInspectWaitTimeoutsTestCase(mgr_utils.CommonMixIn,
 
         self._assert_get_nodeinfo_args(get_nodeinfo_mock)
         mapped_mock.assert_called_once_with(self.node.uuid,
-                                            self.node.driver)
+                                            self.node.driver,
+                                            self.node.conductor_group)
         acquire_mock.assert_called_once_with(self.context,
                                              self.node.uuid,
                                              purpose=mock.ANY)
@@ -7125,7 +7159,8 @@ class ManagerCheckInspectWaitTimeoutsTestCase(mgr_utils.CommonMixIn,
 
         self._assert_get_nodeinfo_args(get_nodeinfo_mock)
         mapped_mock.assert_called_once_with(self.node.uuid,
-                                            self.node.driver)
+                                            self.node.driver,
+                                            self.node.conductor_group)
         acquire_mock.assert_called_once_with(self.context,
                                              self.node.uuid,
                                              purpose=mock.ANY)
@@ -7146,7 +7181,7 @@ class ManagerCheckInspectWaitTimeoutsTestCase(mgr_utils.CommonMixIn,
 
         self._assert_get_nodeinfo_args(get_nodeinfo_mock)
         mapped_mock.assert_called_once_with(
-            self.node.uuid, self.node.driver)
+            self.node.uuid, self.node.driver, self.node.conductor_group)
         acquire_mock.assert_called_once_with(self.context,
                                              self.node.uuid,
                                              purpose=mock.ANY)
@@ -7168,8 +7203,10 @@ class ManagerCheckInspectWaitTimeoutsTestCase(mgr_utils.CommonMixIn,
         self.service._check_inspect_wait_timeouts(self.context)
 
         self._assert_get_nodeinfo_args(get_nodeinfo_mock)
-        self.assertEqual([mock.call(self.node.uuid, task.node.driver),
-                          mock.call(self.node2.uuid, self.node2.driver)],
+        self.assertEqual([mock.call(self.node.uuid, task.node.driver,
+                                    task.node.conductor_group),
+                          mock.call(self.node2.uuid, self.node2.driver,
+                                    self.node2.conductor_group)],
                          mapped_mock.call_args_list)
         self.assertEqual([mock.call(self.context, self.node.uuid,
                                     purpose=mock.ANY),
@@ -7196,7 +7233,7 @@ class ManagerCheckInspectWaitTimeoutsTestCase(mgr_utils.CommonMixIn,
         # mapped should be only called for the first node as we should
         # have exited the loop early due to NoFreeConductorWorker
         mapped_mock.assert_called_once_with(
-            self.node.uuid, self.node.driver)
+            self.node.uuid, self.node.driver, self.node.conductor_group)
         acquire_mock.assert_called_once_with(self.context,
                                              self.node.uuid,
                                              purpose=mock.ANY)
@@ -7219,7 +7256,7 @@ class ManagerCheckInspectWaitTimeoutsTestCase(mgr_utils.CommonMixIn,
         # mapped should be only called for the first node as we should
         # have exited the loop early due to unknown exception
         mapped_mock.assert_called_once_with(
-            self.node.uuid, self.node.driver)
+            self.node.uuid, self.node.driver, self.node.conductor_group)
         acquire_mock.assert_called_once_with(self.context,
                                              self.node.uuid,
                                              purpose=mock.ANY)
@@ -7241,7 +7278,8 @@ class ManagerCheckInspectWaitTimeoutsTestCase(mgr_utils.CommonMixIn,
         self.service._check_inspect_wait_timeouts(self.context)
 
         # Should only have ran 2.
-        self.assertEqual([mock.call(self.node.uuid, self.node.driver)] * 2,
+        self.assertEqual([mock.call(self.node.uuid, self.node.driver,
+                                    self.node.conductor_group)] * 2,
                          mapped_mock.call_args_list)
         self.assertEqual([mock.call(self.context, self.node.uuid,
                                     purpose=mock.ANY)] * 2,
@@ -7327,7 +7365,8 @@ class ManagerCheckOrphanNodesTestCase(mgr_utils.ServiceSetUpMixin,
 
         self.node.refresh()
         mock_off_cond.assert_called_once_with()
-        mock_mapped.assert_called_once_with(self.node.uuid, 'fake-hardware')
+        mock_mapped.assert_called_once_with(self.node.uuid, 'fake-hardware',
+                                            '')
         mock_fail_if.assert_called_once_with(
             mock.ANY, {'uuid': self.node.uuid},
             {states.DEPLOYING, states.CLEANING},
@@ -7349,7 +7388,8 @@ class ManagerCheckOrphanNodesTestCase(mgr_utils.ServiceSetUpMixin,
 
         self.node.refresh()
         mock_off_cond.assert_called_once_with()
-        mock_mapped.assert_called_once_with(self.node.uuid, 'fake-hardware')
+        mock_mapped.assert_called_once_with(self.node.uuid, 'fake-hardware',
+                                            '')
         mock_fail_if.assert_called_once_with(
             mock.ANY, {'uuid': self.node.uuid},
             {states.DEPLOYING, states.CLEANING},
@@ -7392,8 +7432,8 @@ class ManagerCheckOrphanNodesTestCase(mgr_utils.ServiceSetUpMixin,
 
         self.node.refresh()
         mock_off_cond.assert_called_once_with()
-        expected_calls = [mock.call(self.node.uuid, 'fake-hardware'),
-                          mock.call(node2.uuid, 'fake-hardware')]
+        expected_calls = [mock.call(self.node.uuid, 'fake-hardware', ''),
+                          mock.call(node2.uuid, 'fake-hardware', '')]
         mock_mapped.assert_has_calls(expected_calls)
         # Assert we skipped and didn't try to call _fail_if_in_state
         self.assertFalse(mock_fail_if.called)
@@ -7420,7 +7460,8 @@ class ManagerCheckOrphanNodesTestCase(mgr_utils.ServiceSetUpMixin,
                                             self.node.id)
 
         mock_off_cond.assert_called_once_with()
-        mock_mapped.assert_called_once_with(self.node.uuid, 'fake-hardware')
+        mock_mapped.assert_called_once_with(self.node.uuid, 'fake-hardware',
+                                            '')
         mock_fail_if.assert_called_once_with(
             mock.ANY, {'uuid': self.node.uuid},
             {states.DEPLOYING, states.CLEANING},
@@ -7438,7 +7479,8 @@ class ManagerCheckOrphanNodesTestCase(mgr_utils.ServiceSetUpMixin,
 
         self.node.refresh()
         mock_off_cond.assert_called_once_with()
-        mock_mapped.assert_called_once_with(self.node.uuid, 'fake-hardware')
+        mock_mapped.assert_called_once_with(self.node.uuid, 'fake-hardware',
+                                            '')
         # assert node was released
         self.assertIsNone(self.node.reservation)
         # not changing states in maintenance

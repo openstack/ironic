@@ -855,7 +855,7 @@ class Connection(api.Connection):
                 'powering process, their power state can be incorrect: '
                 '%(nodes)s', {'nodes': nodes})
 
-    def get_active_hardware_type_dict(self):
+    def get_active_hardware_type_dict(self, use_groups=False):
         query = (model_query(models.ConductorHardwareInterfaces,
                              models.Conductor)
                  .join(models.Conductor))
@@ -863,7 +863,12 @@ class Connection(api.Connection):
 
         d2c = collections.defaultdict(set)
         for iface_row, cdr_row in result:
-            d2c[iface_row['hardware_type']].add(cdr_row['hostname'])
+            hw_type = iface_row['hardware_type']
+            if use_groups:
+                key = '%s:%s' % (cdr_row['conductor_group'], hw_type)
+            else:
+                key = hw_type
+            d2c[key].add(cdr_row['hostname'])
         return d2c
 
     def get_offline_conductors(self):

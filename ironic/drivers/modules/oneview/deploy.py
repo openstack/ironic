@@ -58,7 +58,7 @@ class OneViewPeriodicTasks(object):
         }
         node_iter = manager.iter_nodes(filters=filters)
 
-        for node_uuid, driver in node_iter:
+        for node_uuid, driver, conductor_group in node_iter:
 
             node = objects.Node.get(context, node_uuid)
 
@@ -116,7 +116,8 @@ class OneViewPeriodicTasks(object):
         }
         node_iter = manager.iter_nodes(fields=['maintenance_reason'],
                                        filters=filters)
-        for node_uuid, driver, maintenance_reason in node_iter:
+        for (node_uuid, driver, conductor_group,
+             maintenance_reason) in node_iter:
 
             if maintenance_reason == common.NODE_IN_USE_BY_ONEVIEW:
 
@@ -183,7 +184,8 @@ class OneViewPeriodicTasks(object):
         node_iter = manager.iter_nodes(fields=['driver_internal_info'],
                                        filters=filters)
 
-        for node_uuid, driver, driver_internal_info in node_iter:
+        for (node_uuid, driver, conductor_group,
+             driver_internal_info) in node_iter:
 
             node_oneview_error = driver_internal_info.get('oneview_error')
             if node_oneview_error == common.SERVER_HARDWARE_ALLOCATION_ERROR:
