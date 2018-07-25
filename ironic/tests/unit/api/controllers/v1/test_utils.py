@@ -281,7 +281,7 @@ class TestApiUtils(base.TestCase):
 
     @mock.patch.object(pecan, 'request', spec_set=['version'])
     def test_check_allow_filter_by_conductor_group_fail(self, mock_request):
-        mock_request.version.minor = 44
+        mock_request.version.minor = 45
         self.assertRaises(exception.NotAcceptable,
                           utils.check_allow_filter_by_conductor_group, 'foo')
 

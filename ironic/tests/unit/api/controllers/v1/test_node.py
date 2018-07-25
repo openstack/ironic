@@ -405,7 +405,7 @@ class TestListNodes(test_api_base.BaseApiTest):
         fields = 'conductor_group'
         response = self.get_json(
             '/nodes/%s?fields=%s' % (node.uuid, fields),
-            headers={api_base.Version.string: '1.44'},
+            headers={api_base.Version.string: '1.45'},
             expect_errors=True)
         self.assertEqual(http_client.NOT_ACCEPTABLE, response.status_int)
 
@@ -1445,7 +1445,7 @@ class TestListNodes(test_api_base.BaseApiTest):
         for url in ('/nodes?conductor_group=group1',
                     '/nodes/detail?conductor_group=group1'):
             response = self.get_json(
-                url, headers={api_base.Version.string: "1.44"},
+                url, headers={api_base.Version.string: "1.45"},
                 expect_errors=True)
             self.assertEqual('application/json', response.content_type)
             self.assertEqual(http_client.NOT_ACCEPTABLE, response.status_code)
@@ -2548,7 +2548,7 @@ class TestPatch(test_api_base.BaseApiTest):
         node = obj_utils.create_test_node(self.context,
                                           uuid=uuidutils.generate_uuid())
         self.mock_update_node.return_value = node
-        headers = {api_base.Version.string: '1.44'}
+        headers = {api_base.Version.string: '1.45'}
         response = self.patch_json('/nodes/%s' % node.uuid,
                                    [{'path': '/conductor_group',
                                      'value': 'foogroup',
@@ -2790,7 +2790,7 @@ class TestPost(test_api_base.BaseApiTest):
         self.assertEqual('foo', result['conductor_group'])
 
     def test_create_node_specify_conductor_group_bad_version(self):
-        headers = {api_base.Version.string: '1.44'}
+        headers = {api_base.Version.string: '1.45'}
         ndict = test_api_utils.post_get_test_node(conductor_group='foo')
         response = self.post_json('/nodes', ndict, headers=headers,
                                   expect_errors=True)
