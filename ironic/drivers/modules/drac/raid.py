@@ -896,4 +896,8 @@ class DracRAID(base.RAIDInterface):
     def _resume_cleaning(self, task):
         raid_common.update_raid_info(
             task.node, self.get_logical_disks(task))
+        driver_internal_info = task.node.driver_internal_info
+        driver_internal_info['cleaning_reboot'] = True
+        task.node.driver_internal_info = driver_internal_info
+        task.node.save()
         manager_utils.notify_conductor_resume_clean(task)
