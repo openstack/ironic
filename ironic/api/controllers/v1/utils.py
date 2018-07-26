@@ -383,6 +383,8 @@ def check_allowed_fields(fields):
         raise exception.NotAcceptable()
     if 'conductor_group' in fields and not allow_conductor_group():
         raise exception.NotAcceptable()
+    if 'automated_clean' in fields and not allow_automated_clean():
+        raise exception.NotAcceptable()
 
 
 def check_allowed_portgroup_fields(fields):
@@ -894,6 +896,15 @@ def allow_conductor_group():
     """
     return (pecan.request.version.minor >=
             versions.MINOR_46_NODE_CONDUCTOR_GROUP)
+
+
+def allow_automated_clean():
+    """Check if passing automated_clean for a node is allowed.
+
+    Version 1.47 exposes this field.
+    """
+    return (pecan.request.version.minor >=
+            versions.MINOR_47_NODE_AUTOMATED_CLEAN)
 
 
 def get_request_return_fields(fields, detail, default_fields):

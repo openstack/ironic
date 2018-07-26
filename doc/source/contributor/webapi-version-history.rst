@@ -2,6 +2,11 @@
 REST API Version History
 ========================
 
+1.47 (Stein, master)
+--------------------
+
+Added ``automated_clean`` field to the node object, enabling cleaning per node.
+
 1.46 (Rocky, 11.1.0)
 --------------------
 Added ``conductor_group`` field to the node and the node response,

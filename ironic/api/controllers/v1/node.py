@@ -171,6 +171,9 @@ def _hide_fields_in_newer_versions_part_two(obj):
     if not api_utils.allow_conductor_group():
         obj.conductor_group = wsme.Unset
 
+    if not api_utils.allow_automated_clean():
+        obj.automated_clean = wsme.Unset
+
 
 def hide_fields_in_newer_versions(obj):
     """This method hides fields that were added in newer API versions.
@@ -1089,6 +1092,9 @@ class Node(base.APIBase):
     conductor_group = wsme.wsattr(wtypes.text)
     """The conductor group to manage this node"""
 
+    automated_clean = types.boolean
+    """Indicates whether the node will perform automated clean or not."""
+
     # NOTE(deva): "conductor_affinity" shouldn't be presented on the
     #             API because it's an internal value. Don't add it here.
 
@@ -1249,7 +1255,8 @@ class Node(base.APIBase):
                      management_interface=None, power_interface=None,
                      raid_interface=None, vendor_interface=None,
                      storage_interface=None, traits=[], rescue_interface=None,
-                     bios_interface=None, conductor_group="")
+                     bios_interface=None, conductor_group="",
+                     automated_clean=None)
         # NOTE(matty_dubs): The chassis_uuid getter() is based on the
         # _chassis_uuid variable:
         sample._chassis_uuid = 'edcad704-b2da-41d5-96d9-afd580ecfa12'
@@ -1934,6 +1941,10 @@ class NodesController(rest.RestController):
                 and node.conductor_group != ""):
             raise exception.NotAcceptable()
 
+        if (not api_utils.allow_automated_clean()
+                and node.automated_clean is not wtypes.Unset):
+            raise exception.NotAcceptable()
+
         # NOTE(deva): get_topic_for checks if node.driver is in the hash ring
         #             and raises NoValidHost if it is not.
         #             We need to ensure that node has a UUID before it can
@@ -2016,6 +2027,10 @@ class NodesController(rest.RestController):
 
         conductor_group = api_utils.get_patch_values(patch, '/conductor_group')
         if conductor_group and not api_utils.allow_conductor_group():
+            raise exception.NotAcceptable()
+
+        automated_clean = api_utils.get_patch_values(patch, '/automated_clean')
+        if automated_clean and not api_utils.allow_automated_clean():
             raise exception.NotAcceptable()
 
     @METRICS.timer('NodesController.patch')
