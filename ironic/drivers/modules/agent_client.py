@@ -82,9 +82,9 @@ class AgentClient(object):
         try:
             response = self.session.post(url, params=request_params, data=body)
         except requests.ConnectionError as e:
-            msg = (_('Failed to invoke agent command %(method)s for node '
-                     '%(node)s. Error: %(error)s') %
-                   {'method': method, 'node': node.uuid, 'error': e})
+            msg = (_('Failed to connect to the agent running on node %(node)s '
+                     'for invoking command %(method)s. Error: %(error)s') %
+                   {'node': node.uuid, 'method': method, 'error': e})
             LOG.error(msg)
             raise exception.AgentConnectionFailed(reason=msg)
         except requests.RequestException as e:

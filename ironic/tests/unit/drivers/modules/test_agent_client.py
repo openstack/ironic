@@ -145,9 +145,9 @@ class TestAgentClient(base.TestCase):
         e = self.assertRaises(exception.AgentConnectionFailed,
                               self.client._command,
                               self.node, method, params)
-        self.assertEqual('Connection to agent failed: Failed to invoke '
-                         'agent command %(method)s for node %(node)s. '
-                         'Error: %(error)s' %
+        self.assertEqual('Connection to agent failed: Failed to connect to '
+                         'the agent running on node %(node)s for invoking '
+                         'command %(method)s. Error: %(error)s' %
                          {'method': method, 'node': self.node.uuid,
                           'error': error}, str(e))
 
