@@ -1467,12 +1467,10 @@ class PXEBootTestCase(db_base.DbTestCase):
                 task.node, task.context)
 
 
-class PXEBootDeployTestCase(db_base.DbTestCase):
-
-    driver = 'fake-hardware'
+class PXERamdiskDeployTestCase(db_base.DbTestCase):
 
     def setUp(self):
-        super(PXEBootDeployTestCase, self).setUp()
+        super(PXERamdiskDeployTestCase, self).setUp()
         self.temp_dir = tempfile.mkdtemp()
         self.config(tftp_root=self.temp_dir, group='pxe')
         self.temp_dir = tempfile.mkdtemp()
@@ -1490,17 +1488,16 @@ class PXEBootDeployTestCase(db_base.DbTestCase):
             config_kwarg = {'enabled_%s_interfaces' % iface: [impl],
                             'default_%s_interface' % iface: impl}
             self.config(**config_kwarg)
-        self.config(enabled_hardware_types=[self.driver])
+        self.config(enabled_hardware_types=['fake-hardware'])
         instance_info = INST_INFO_DICT
         self.node = obj_utils.create_test_node(
             self.context,
-            driver=self.driver,
+            driver='fake-hardware',
             instance_info=instance_info,
             driver_info=DRV_INFO_DICT,
             driver_internal_info=DRV_INTERNAL_INFO_DICT)
         self.port = obj_utils.create_test_port(self.context,
                                                node_id=self.node.id)
-        self.config(group='conductor', api_url='http://127.0.0.1:1234/')
 
     @mock.patch.object(manager_utils, 'node_set_boot_device', autospec=True)
     @mock.patch.object(deploy_utils, 'switch_pxe_config', autospec=True)
@@ -1553,8 +1550,7 @@ class PXEBootDeployTestCase(db_base.DbTestCase):
         self.node.instance_info = i_info
         self.node.save()
         with task_manager.acquire(self.context, self.node.uuid) as task:
-            self.assertEqual(states.DEPLOYDONE,
-                             task.driver.deploy.deploy(task))
+            self.assertIsNone(task.driver.deploy.deploy(task))
             mock_image_info.assert_called_once_with(
                 task.node, task.context)
             mock_cache.assert_called_once_with(
@@ -1565,8 +1561,7 @@ class PXEBootDeployTestCase(db_base.DbTestCase):
         self.node.save()
         mock_warning.reset_mock()
         with task_manager.acquire(self.context, self.node.uuid) as task:
-            self.assertEqual(states.DEPLOYDONE,
-                             task.driver.deploy.deploy(task))
+            self.assertIsNone(task.driver.deploy.deploy(task))
             self.assertTrue(mock_warning.called)
 
     @mock.patch.object(pxe.PXEBoot, 'prepare_instance', autospec=True)
@@ -1581,13 +1576,18 @@ class PXEBootDeployTestCase(db_base.DbTestCase):
             self.assertEqual({'boot_option': 'ramdisk'},
                              task.node.instance_info['capabilities'])
 
+    @mock.patch.object(pxe.PXEBoot, 'prepare_instance', autospec=True)
+    def test_prepare_active(self, mock_prepare_instance):
+        node = self.node
         node.provision_state = states.ACTIVE
         node.save()
         with task_manager.acquire(self.context, node.uuid) as task:
             task.driver.deploy.prepare(task)
             mock_prepare_instance.assert_called_once_with(mock.ANY, task)
-        mock_prepare_instance.reset_mock()
 
+    @mock.patch.object(pxe.PXEBoot, 'prepare_instance', autospec=True)
+    def test_prepare_unrescuing(self, mock_prepare_instance):
+        node = self.node
         node.provision_state = states.UNRESCUING
         node.save()
         with task_manager.acquire(self.context, node.uuid) as task:
@@ -1630,7 +1630,7 @@ class PXEBootDeployTestCase(db_base.DbTestCase):
                     default_boot_interface='fake')
         with task_manager.acquire(self.context, node.uuid) as task:
             self.assertRaisesRegexp(exception.InvalidParameterValue,
-                                    'requires the pxe boot interface',
+                                    'must have the `ramdisk_boot` capability',
                                     task.driver.deploy.validate, task)
             self.assertFalse(mock_validate_image.called)
 
