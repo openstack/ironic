@@ -2,13 +2,19 @@
 REST API Version History
 ========================
 
-1.45 (Rocky, master)
+1.46 (Rocky, 11.1.0)
+--------------------
+Added ``conductor_group`` field to the node and the node response,
+as well as support to the API to return results by matching
+the parameter.
+
+1.45 (Rocky, 11.1.0)
 --------------------
 
 Added ``reset_interfaces`` parameter to node's PATCH request, to specify
 whether to reset hardware interfaces to their defaults on driver's update.
 
-1.44 (Rocky, master)
+1.44 (Rocky, 11.1.0)
 --------------------
 
 Added ``deploy_step`` to the node object, to indicate the current deploy

@@ -114,11 +114,26 @@ RELEASE_MAPPING = {
             'VolumeTarget': ['1.0'],
         }
     },
+    '11.1': {
+        'api': '1.46',
+        'rpc': '1.47',
+        'objects': {
+            'Node': ['1.27', '1.26'],
+            'Conductor': ['1.3'],
+            'Chassis': ['1.3'],
+            'Port': ['1.8'],
+            'Portgroup': ['1.4'],
+            'Trait': ['1.0'],
+            'TraitList': ['1.0'],
+            'VolumeConnector': ['1.0'],
+            'VolumeTarget': ['1.0'],
+        }
+    },
     'master': {
         'api': '1.46',
         'rpc': '1.47',
         'objects': {
-            'Node': ['1.26', '1.27'],
+            'Node': ['1.27'],
             'Conductor': ['1.3'],
             'Chassis': ['1.3'],
             'Port': ['1.8'],
@@ -143,7 +158,10 @@ RELEASE_MAPPING = {
 #            release (that we are no longer supporting for a rolling upgrade).
 #
 #            There should be at most two named mappings here.
+
+# NOTE(TheJulia): remove queens prior to the Stein release.
 RELEASE_MAPPING['queens'] = RELEASE_MAPPING['10.1']
+RELEASE_MAPPING['rocky'] = RELEASE_MAPPING['11.1']
 
 # List of available versions with named versions first; 'master' is excluded.
 RELEASE_VERSIONS = sorted(set(RELEASE_MAPPING) - {'master'}, reverse=True)
