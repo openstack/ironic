@@ -25,6 +25,7 @@ from ironic.common import exception
 from ironic.common import raid as raid_common
 from ironic.common import states
 from ironic.conductor import task_manager
+from ironic.conductor import utils as manager_utils
 from ironic import conf
 from ironic.drivers import base
 from ironic.drivers.modules.irmc import common as irmc_common
@@ -478,11 +479,10 @@ class IRMCRAID(base.RAIDInterface):
                     if all(fgi_status == 'Idle' for fgi_status in
                            fgi_status_dict.values()):
                         raid_config.update({'fgi_status': RAID_COMPLETED})
-                        raid_common.update_raid_info(node, raid_config)
                         LOG.info('RAID configuration has completed on '
                                  'node %(node)s with fgi_status is %(fgi)s',
                                  {'node': node_uuid, 'fgi': RAID_COMPLETED})
-                        irmc_common.resume_cleaning(task)
+                        self._resume_cleaning(task)
 
             except exception.NodeNotFound:
                 LOG.info('During query_raid_config_job_status, node '
@@ -500,3 +500,7 @@ class IRMCRAID(base.RAIDInterface):
         fgi_message = 'ServerViewRAID not available in Baremetal Server'
         task.node.last_error = fgi_message
         task.process_event('fail')
+
+    def _resume_cleaning(self, task):
+        raid_common.update_raid_info(task.node, task.node.raid_config)
+        manager_utils.notify_conductor_resume_clean(task)

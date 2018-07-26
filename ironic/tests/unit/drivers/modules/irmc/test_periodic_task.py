@@ -202,7 +202,7 @@ class iRMCPeriodicTaskTestCase(test_common.BaseIRMCTest):
         fgi_mock.assert_called_once_with(report_mock.return_value,
                                          self.node.uuid)
 
-    @mock.patch.object(irmc_common, 'resume_cleaning')
+    @mock.patch('ironic.drivers.modules.irmc.raid.IRMCRAID._resume_cleaning')
     @mock.patch('ironic.drivers.modules.irmc.raid.IRMCRAID._set_clean_failed')
     @mock.patch('ironic.drivers.modules.irmc.raid._get_fgi_status')
     @mock.patch.object(irmc_common, 'get_irmc_report')
@@ -230,7 +230,7 @@ class iRMCPeriodicTaskTestCase(test_common.BaseIRMCTest):
                                          self.node.uuid)
         clean_mock.assert_called_once_with(task)
 
-    @mock.patch.object(irmc_common, 'resume_cleaning')
+    @mock.patch('ironic.drivers.modules.irmc.raid.IRMCRAID._resume_cleaning')
     @mock.patch('ironic.drivers.modules.irmc.raid.IRMCRAID._set_clean_failed')
     @mock.patch('ironic.drivers.modules.irmc.raid._get_fgi_status')
     @mock.patch.object(irmc_common, 'get_irmc_report')
@@ -260,7 +260,7 @@ class iRMCPeriodicTaskTestCase(test_common.BaseIRMCTest):
                                          self.node.uuid)
         clean_mock.assert_called_once_with(task)
 
-    @mock.patch.object(irmc_common, 'resume_cleaning')
+    @mock.patch('ironic.drivers.modules.irmc.raid.IRMCRAID._resume_cleaning')
     @mock.patch('ironic.drivers.modules.irmc.raid.IRMCRAID._set_clean_failed')
     @mock.patch('ironic.drivers.modules.irmc.raid._get_fgi_status')
     @mock.patch.object(irmc_common, 'get_irmc_report')
