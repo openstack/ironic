@@ -3304,6 +3304,128 @@ class DoNodeCleanTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         self.assertNotIn('clean_steps', node.driver_internal_info)
         self.assertNotIn('clean_step_index', node.driver_internal_info)
 
+    @mock.patch('ironic.drivers.modules.fake.FakePower.validate',
+                autospec=True)
+    @mock.patch('ironic.drivers.modules.network.flat.FlatNetwork.validate',
+                autospec=True)
+    def test__do_node_clean_automated_disabled_individual_enabled(
+            self, mock_network, mock_validate):
+        self.config(automated_clean=False, group='conductor')
+
+        self._start_service()
+        node = obj_utils.create_test_node(
+            self.context, driver='fake-hardware',
+            provision_state=states.CLEANING,
+            target_provision_state=states.AVAILABLE,
+            last_error=None, automated_clean=True)
+        with task_manager.acquire(
+                self.context, node.uuid, shared=False) as task:
+            self.service._do_node_clean(task)
+        self._stop_service()
+        node.refresh()
+
+        # Assert that the node clean was called
+        self.assertTrue(mock_validate.called)
+        self.assertIn('clean_steps', node.driver_internal_info)
+
+    @mock.patch('ironic.drivers.modules.fake.FakePower.validate',
+                autospec=True)
+    def test__do_node_clean_automated_disabled_individual_disabled(
+            self, mock_validate):
+        self.config(automated_clean=False, group='conductor')
+
+        self._start_service()
+        node = obj_utils.create_test_node(
+            self.context, driver='fake-hardware',
+            provision_state=states.CLEANING,
+            target_provision_state=states.AVAILABLE,
+            last_error=None, automated_clean=False)
+        with task_manager.acquire(
+                self.context, node.uuid, shared=False) as task:
+            self.service._do_node_clean(task)
+        self._stop_service()
+        node.refresh()
+
+        # Assert that the node was moved to available without cleaning
+        self.assertFalse(mock_validate.called)
+        self.assertEqual(states.AVAILABLE, node.provision_state)
+        self.assertEqual(states.NOSTATE, node.target_provision_state)
+        self.assertEqual({}, node.clean_step)
+        self.assertNotIn('clean_steps', node.driver_internal_info)
+        self.assertNotIn('clean_step_index', node.driver_internal_info)
+
+    @mock.patch('ironic.drivers.modules.fake.FakePower.validate',
+                autospec=True)
+    @mock.patch('ironic.drivers.modules.network.flat.FlatNetwork.validate',
+                autospec=True)
+    def test__do_node_clean_automated_enabled(self, mock_validate,
+                                              mock_network):
+        self.config(automated_clean=True, group='conductor')
+
+        self._start_service()
+        node = obj_utils.create_test_node(
+            self.context, driver='fake-hardware',
+            provision_state=states.CLEANING,
+            target_provision_state=states.AVAILABLE,
+            last_error=None)
+        with task_manager.acquire(
+                self.context, node.uuid, shared=False) as task:
+            self.service._do_node_clean(task)
+        self._stop_service()
+        node.refresh()
+
+        # Assert that the node was cleaned
+        self.assertTrue(mock_validate.called)
+        self.assertIn('clean_steps', node.driver_internal_info)
+
+    @mock.patch('ironic.drivers.modules.fake.FakePower.validate',
+                autospec=True)
+    @mock.patch('ironic.drivers.modules.network.flat.FlatNetwork.validate',
+                autospec=True)
+    def test__do_node_clean_automated_enabled_individual_enabled(
+            self, mock_network, mock_validate):
+        self.config(automated_clean=True, group='conductor')
+
+        self._start_service()
+        node = obj_utils.create_test_node(
+            self.context, driver='fake-hardware',
+            provision_state=states.CLEANING,
+            target_provision_state=states.AVAILABLE,
+            last_error=None, automated_clean=True)
+        with task_manager.acquire(
+                self.context, node.uuid, shared=False) as task:
+            self.service._do_node_clean(task)
+        self._stop_service()
+        node.refresh()
+
+        # Assert that the node was cleaned
+        self.assertTrue(mock_validate.called)
+        self.assertIn('clean_steps', node.driver_internal_info)
+
+    @mock.patch('ironic.drivers.modules.fake.FakePower.validate',
+                autospec=True)
+    @mock.patch('ironic.drivers.modules.network.flat.FlatNetwork.validate',
+                autospec=True)
+    def test__do_node_clean_automated_enabled_individual_none(
+            self, mock_validate, mock_network):
+        self.config(automated_clean=True, group='conductor')
+
+        self._start_service()
+        node = obj_utils.create_test_node(
+            self.context, driver='fake-hardware',
+            provision_state=states.CLEANING,
+            target_provision_state=states.AVAILABLE,
+            last_error=None, automated_clean=None)
+        with task_manager.acquire(
+                self.context, node.uuid, shared=False) as task:
+            self.service._do_node_clean(task)
+        self._stop_service()
+        node.refresh()
+
+        # Assert that the node was cleaned
+        self.assertTrue(mock_validate.called)
+        self.assertIn('clean_steps', node.driver_internal_info)
+
     @mock.patch('ironic.drivers.modules.network.flat.FlatNetwork.validate',
                 autospec=True)
     @mock.patch('ironic.drivers.modules.fake.FakeDeploy.prepare_cleaning',

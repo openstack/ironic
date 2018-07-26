@@ -64,7 +64,8 @@ class Node(base.IronicObject, object_base.VersionedObjectDictCompat):
     # Version 1.25: Add fault field
     # Version 1.26: Add deploy_step field
     # Version 1.27: Add conductor_group field
-    VERSION = '1.27'
+    # Version 1.28: Add automated_clean field
+    VERSION = '1.28'
 
     dbapi = db_api.get_instance()
 
@@ -130,7 +131,7 @@ class Node(base.IronicObject, object_base.VersionedObjectDictCompat):
         'inspection_started_at': object_fields.DateTimeField(nullable=True),
 
         'extra': object_fields.FlexibleDictField(nullable=True),
-
+        'automated_clean': objects.fields.BooleanField(nullable=True),
         'bios_interface': object_fields.StringField(nullable=True),
         'boot_interface': object_fields.StringField(nullable=True),
         'console_interface': object_fields.StringField(nullable=True),
@@ -529,6 +530,26 @@ class Node(base.IronicObject, object_base.VersionedObjectDictCompat):
             elif self.conductor_group:
                 self.conductor_group = ''
 
+    # NOTE (yolanda): new method created to avoid repeating code in
+    # _convert_to_version, and to avoid pep8 too complex error
+    def _adjust_field_to_version(self, field_name, field_default_value,
+                                 target_version, major, minor,
+                                 remove_unavailable_fields):
+        field_is_set = self.obj_attr_is_set(field_name)
+        if target_version >= (major, minor):
+            # target version supports the major/minor specified
+            if not field_is_set:
+                # set it to its default value if it is not set
+                setattr(self, field_name, field_default_value)
+        elif field_is_set:
+            # target version does not support the field, and it is set
+            if remove_unavailable_fields:
+                # (De)serialising: remove unavailable fields
+                delattr(self, field_name)
+            elif getattr(self, field_name) is not field_default_value:
+                # DB: set unavailable field to the default value
+                setattr(self, field_name, field_default_value)
+
     def _convert_to_version(self, target_version,
                             remove_unavailable_fields=True):
         """Convert to the target version.
@@ -552,6 +573,8 @@ class Node(base.IronicObject, object_base.VersionedObjectDictCompat):
             this, it should be removed.
         Version 1.27: conductor_group field was added. For versions prior to
             this, it should be removed.
+        Version 1.28: automated_clean was added. For versions prior to this, it
+            should be set to None (or removed).
 
         :param target_version: the desired version of the object
         :param remove_unavailable_fields: True to remove fields that are
@@ -560,47 +583,13 @@ class Node(base.IronicObject, object_base.VersionedObjectDictCompat):
             values; set this to False for DB interactions.
         """
         target_version = versionutils.convert_version_to_tuple(target_version)
-        # Convert the rescue_interface field.
-        rescue_iface_is_set = self.obj_attr_is_set('rescue_interface')
-        if target_version >= (1, 22):
-            # Target version supports rescue_interface.
-            if not rescue_iface_is_set:
-                # Set it to its default value if it is not set.
-                self.rescue_interface = None
-        elif rescue_iface_is_set:
-            # Target version does not support rescue_interface, and it is set.
-            if remove_unavailable_fields:
-                # (De)serialising: remove unavailable fields.
-                delattr(self, 'rescue_interface')
-            elif self.rescue_interface is not None:
-                # DB: set unavailable field to the default of None.
-                self.rescue_interface = None
 
-        traits_is_set = self.obj_attr_is_set('traits')
-        if target_version >= (1, 23):
-            # Target version supports traits.
-            if not traits_is_set:
-                self.traits = None
-        elif traits_is_set:
-            if remove_unavailable_fields:
-                delattr(self, 'traits')
-            elif self.traits is not None:
-                self.traits = None
-
-        bios_iface_is_set = self.obj_attr_is_set('bios_interface')
-        if target_version >= (1, 24):
-            # Target version supports bios_interface.
-            if not bios_iface_is_set:
-                # Set it to its default value if it is not set.
-                self.bios_interface = None
-        elif bios_iface_is_set:
-            # Target version does not support bios_interface, and it is set.
-            if remove_unavailable_fields:
-                # (De)serialising: remove unavailable fields.
-                delattr(self, 'bios_interface')
-            elif self.bios_interface is not None:
-                # DB: set unavailable field to the default of None.
-                self.bios_interface = None
+        # Convert the different fields depending on version
+        fields = [('rescue_interface', 22), ('traits', 23),
+                  ('bios_interface', 24), ('automated_clean', 28)]
+        for name, minor in fields:
+            self._adjust_field_to_version(name, None, target_version,
+                                          1, minor, remove_unavailable_fields)
 
         self._convert_fault_field(target_version, remove_unavailable_fields)
         self._convert_deploy_step_field(target_version,
