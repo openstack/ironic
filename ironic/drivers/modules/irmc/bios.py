@@ -87,6 +87,9 @@ class IRMCBIOS(base.BIOSInterface):
                      '%(settings)s', {'settings': settings,
                                       'node_uuid': task.node.uuid})
             irmc.elcm.set_bios_configuration(irmc_info, settings)
+            # NOTE(trungnv): Fix failed cleaning during rebooting node
+            # when combine OOB and IB steps in manual clean.
+            self._resume_cleaning(task)
         except irmc.scci.SCCIError as e:
             LOG.error('Failed to apply BIOS configuration on node '
                       '%(node_uuid)s. Error: %(error)s',
@@ -138,3 +141,9 @@ class IRMCBIOS(base.BIOSInterface):
             delete_names = [setting['name'] for setting in delete_list]
             objects.BIOSSettingList.delete(task.context, node_id,
                                            delete_names)
+
+    def _resume_cleaning(self, task):
+        driver_internal_info = task.node.driver_internal_info
+        driver_internal_info['cleaning_reboot'] = True
+        task.node.driver_internal_info = driver_internal_info
+        task.node.save()

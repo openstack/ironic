@@ -56,6 +56,7 @@ class IRMCBIOSTestCase(test_common.BaseIRMCTest):
         }]
         with task_manager.acquire(self.context, self.node.uuid) as task:
             irmc_info = irmc_common.parse_driver_info(task.node)
+            task.node.save = mock.Mock()
             get_bios_settings_mock.return_value = settings
             task.driver.bios.apply_configuration(task, settings)
             set_bios_configuration_mock.assert_called_once_with(irmc_info,
