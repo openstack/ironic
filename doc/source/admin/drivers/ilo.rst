@@ -53,6 +53,17 @@ Hardware interfaces
 
 The ``ilo`` hardware type supports following hardware interfaces:
 
+* bios
+    Supports ``ilo`` and ``no-bios``. The default is ``ilo``.
+    They can be enabled by using the ``[DEFAULT]enabled_bios_interfaces``
+    option in ``ironic.conf`` as given below:
+
+    .. code-block:: ini
+
+        [DEFAULT]
+        enabled_hardware_types = ilo
+        enabled_bios_interfaces = ilo,no-bios
+
 * boot
     Supports ``ilo-virtual-media`` and ``ilo-pxe``. The default is
     ``ilo-virtual-media``. The ``ilo-virtual-media`` interface provides
@@ -364,6 +375,7 @@ Enable driver
 
     [DEFAULT]
     enabled_hardware_types = ilo
+    enabled_bios_interfaces = ilo
     enabled_boot_interfaces = ilo-virtual-media,ilo-pxe
     enabled_power_interfaces = ilo
     enabled_console_interfaces = ilo
@@ -1472,6 +1484,178 @@ In a cloud environment with nodes configured to boot from ``bios`` and ``uefi`` 
 modes, the virtual media driver only supports uefi boot mode, and that attempting to
 use iscsi boot at the same time with a bios volume will result in an error.
 
+BIOS configuration support
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+The ``ilo`` hardware type supports ``ilo`` BIOS interface. The support includes
+providing manual clean steps *apply_configuration* and *factory_reset* to
+manage supported BIOS settings on the node. See :ref:`bios` for more details
+and examples.
+
+.. note::
+   The change in the settings will take into effect after next power cycle.
+
+Configuration
+~~~~~~~~~~~~~
+Following are the supported BIOS settings and the corresponding brief
+description for each of the settings. For a detailed description please
+refer to `HPE Integrated Lights-Out REST API Documentation <https://hewlettpackard.github.io/ilo-rest-api-docs>`_.
+
+- ``AdvancedMemProtection``:
+  Configure additional memory protection with ECC (Error Checking and
+  Correcting).
+  Allowed values are ``AdvancedEcc``, ``OnlineSpareAdvancedEcc``,
+  ``MirroredAdvancedEcc``.
+
+- ``AutoPowerOn``:
+  Configure the server to automatically power on when AC power is applied to
+  the system.
+  Allowed values are ``AlwaysPowerOn``, ``AlwaysPowerOff``,
+  ``RestoreLastState``.
+
+- ``BootMode``:
+  Select the boot mode of the system.
+  Allowed values are ``Uefi``, ``LegacyBios``
+
+- ``BootOrderPolicy``:
+  Configure how the system attempts to boot devices per the Boot Order when
+  no bootable device is found.
+  Allowed values are ``RetryIndefinitely``, ``AttemptOnce``,
+  ``ResetAfterFailed``.
+
+- ``CollabPowerControl``:
+  Enables the Operating System to request processor frequency changes even
+  if the Power Regulator option on the server configured for Dynamic Power
+  Savings Mode.
+  Allowed values are ``Enabled``, ``Disabled``.
+
+- ``DynamicPowerCapping``:
+  Configure when the System ROM executes power calibration during the boot
+  process.
+  Allowed values are ``Enabled``, ``Disabled``, ``Auto``.
+
+- ``DynamicPowerResponse``:
+  Enable the System BIOS to control processor performance and power states
+  depending on the processor workload.
+  Allowed values are ``Fast``, ``Slow``.
+
+- ``IntelligentProvisioning``:
+  Enable or disable the Intelligent Provisioning functionality.
+  Allowed values are ``Enabled``, ``Disabled``.
+
+- ``IntelPerfMonitoring``:
+  Exposes certain chipset devices that can be used with the Intel
+  Performance Monitoring Toolkit.
+  Allowed values are ``Enabled``, ``Disabled``.
+
+- ``IntelProcVtd``:
+  Hypervisor or operating system supporting this option can use hardware
+  capabilities provided by Intel's Virtualization Technology for Directed
+  I/O.
+  Allowed values are ``Enabled``, ``Disabled``.
+
+- ``IntelQpiFreq``:
+  Set the QPI Link frequency to a lower speed.
+  Allowed values are ``Auto``, ``MinQpiSpeed``.
+
+- ``IntelTxt``:
+  Option to modify Intel TXT support.
+  Allowed values are ``Enabled``, ``Disabled``.
+
+- ``PowerProfile``:
+  Set the power profile to be used.
+  Allowed values are ``BalancedPowerPerf``, ``MinPower``, ``MaxPerf``,
+  ``Custom``.
+
+- ``PowerRegulator``:
+  Determines how to regulate the power consumption.
+  Allowed values are ``DynamicPowerSavings``, ``StaticLowPower``,
+  ``StaticHighPerf``, ``OsControl``.
+
+- ``ProcAes``:
+  Enable or disable the Advanced Encryption Standard Instruction Set
+  (AES-NI) in the processor.
+  Allowed values are ``Enabled``, ``Disabled``.
+
+- ``ProcCoreDisable``:
+  Disable processor cores using Intel's Core Multi-Processing (CMP)
+  Technology.
+  Allowed values are Integers ranging from ``0`` to ``24``.
+
+- ``ProcHyperthreading``:
+  Enable or disable Intel Hyperthreading.
+  Allowed values are ``Enabled``, ``Disabled``.
+
+- ``ProcNoExecute``:
+  Protect your system against malicious code and viruses.
+  Allowed values are ``Enabled``, ``Disabled``.
+
+- ``ProcTurbo``:
+  Enables the processor to transition to a higher frequency than the
+  processor's rated speed using Turbo Boost Technology if the processor
+  has available power and is within temperature specifications.
+  Allowed values are ``Enabled``, ``Disabled``.
+
+- ``ProcVirtualization``:
+  Enables or Disables a hypervisor or operating system supporting this option
+  to use hardware capabilities provided by Intel's Virtualization Technology.
+  Allowed values are ``Enabled``, ``Disabled``.
+
+- ``SecureBootStatus``:
+  The current state of Secure Boot configuration.
+  Allowed values are ``Enabled``, ``Disabled``.
+
+  .. note::
+     This setting is read-only and can't be modified with ``apply_configuration``
+     clean step.
+
+- ``Sriov``:
+  If enabled, SR-IOV support enables a hypervisor to create virtual instances
+  of a PCI-express device, potentially increasing performance. If enabled,
+  the BIOS allocates additional resources to PCI-express devices.
+  Allowed values are ``Enabled``, ``Disabled``.
+
+- ``ThermalConfig``:
+  select the fan cooling solution for the system.
+  Allowed values are ``OptimalCooling``, ``IncreasedCooling``,
+  ``MaxCooling``
+
+- ``ThermalShutdown``:
+  Control the reaction of the system to caution level thermal events.
+  Allowed values are ``Enabled``, ``Disabled``.
+
+- ``TpmState``:
+  Current TPM device state.
+  Allowed values are ``NotPresent``, ``PresentDisabled``, ``PresentEnabled``.
+
+  .. note::
+     This setting is read-only and can't be modified with ``apply_configuration``
+     clean step.
+
+- ``TpmType``:
+  Current TPM device type.
+  Allowed values are ``NoTpm``, ``Tpm12``, ``Tpm20``, ``Tm10``.
+
+  .. note::
+     This setting is read-only and can't be modified with ``apply_configuration``
+     clean step.
+
+- ``UefiOptimizedBoot``:
+  Enables or Disables the System BIOS boot using native UEFI graphics
+  drivers.
+  Allowed values are ``Enabled``, ``Disabled``.
+
+- ``WorkloadProfile``:
+  Change the Workload Profile to accomodate your desired workload.
+  Allowed values are ``GeneralPowerEfficientCompute``,
+  ``GeneralPeakFrequencyCompute``, ``GeneralThroughputCompute``,
+  ``Virtualization-PowerEfficient``, ``Virtualization-MaxPerformance``,
+  ``LowLatency``, ``MissionCritical``,
+  ``TransactionalApplicationProcessing``, ``HighPerformanceCompute``,
+  ``DecisionSupport``, ``GraphicProcessing``, ``I/OThroughput``, ``Custom``
+
+  .. note::
+     This setting is only applicable to ProLiant Gen10 servers with iLO 5
+     management systems.
 
 Certificate based validation in iLO
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
