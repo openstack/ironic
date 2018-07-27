@@ -367,7 +367,7 @@ class IPMIToolPrivateMethodTestCaseMeta(type):
                 # Directly set the configuration values such that
                 # the logic will cause _exec_ipmitool to retry twice.
                 self.config(min_command_interval=1, group='ipmi')
-                self.config(retry_timeout=2, group='ipmi')
+                self.config(command_retry_timeout=2, group='ipmi')
 
                 ipmi._exec_ipmitool(self.info, 'A B C')
 
@@ -388,7 +388,7 @@ class IPMIToolPrivateMethodTestCaseMeta(type):
                 # Directly set the configuration values such that
                 # the logic will cause _exec_ipmitool to timeout.
                 self.config(min_command_interval=1, group='ipmi')
-                self.config(retry_timeout=1, group='ipmi')
+                self.config(command_retry_timeout=1, group='ipmi')
 
                 self.assertRaises(processutils.ProcessExecutionError,
                                   ipmi._exec_ipmitool,
@@ -419,7 +419,7 @@ class IPMIToolPrivateMethodTestCaseMeta(type):
                 # the logic will cause _exec_ipmitool to retry up
                 # to 3 times.
                 self.config(min_command_interval=1, group='ipmi')
-                self.config(retry_timeout=3, group='ipmi')
+                self.config(command_retry_timeout=3, group='ipmi')
 
                 self.assertRaises(processutils.ProcessExecutionError,
                                   ipmi._exec_ipmitool,
@@ -1299,7 +1299,7 @@ class IPMIToolPrivateMethodTestCase(Base):
     @mock.patch.object(ipmi, '_exec_ipmitool', autospec=True)
     @mock.patch('eventlet.greenthread.sleep', autospec=True)
     def test__power_on_max_retries(self, sleep_mock, mock_exec):
-        self.config(retry_timeout=2, group='ipmi')
+        self.config(command_retry_timeout=2, group='ipmi')
 
         def side_effect(driver_info, command):
             resp_dict = {"power status": ["Chassis Power is off\n", None],
@@ -1366,7 +1366,7 @@ class IPMIToolPrivateMethodTestCase(Base):
             self, sleep_mock, mock_exec, mock_status):
         # Check that if the call to power state change fails, it doesn't
         # call power_status().
-        self.config(retry_timeout=2, group='ipmi')
+        self.config(command_retry_timeout=2, group='ipmi')
 
         mock_exec.side_effect = exception.IPMIFailure(cmd='power on')
 
@@ -1431,7 +1431,7 @@ class IPMIToolDriverTestCase(Base):
     @mock.patch.object(ipmi, '_power_on', autospec=True)
     @mock.patch.object(ipmi, '_power_off', autospec=True)
     def test_set_power_on_ok(self, mock_off, mock_on):
-        self.config(retry_timeout=0, group='ipmi')
+        self.config(command_retry_timeout=0, group='ipmi')
 
         mock_on.return_value = states.POWER_ON
         with task_manager.acquire(self.context,
@@ -1444,7 +1444,7 @@ class IPMIToolDriverTestCase(Base):
     @mock.patch.object(ipmi, '_power_on', autospec=True)
     @mock.patch.object(ipmi, '_power_off', autospec=True)
     def test_set_power_on_timeout_ok(self, mock_off, mock_on):
-        self.config(retry_timeout=0, group='ipmi')
+        self.config(command_retry_timeout=0, group='ipmi')
 
         mock_on.return_value = states.POWER_ON
         with task_manager.acquire(self.context,
@@ -1459,7 +1459,7 @@ class IPMIToolDriverTestCase(Base):
     @mock.patch.object(ipmi, '_power_off', autospec=True)
     def test_set_power_on_with_next_boot(self, mock_off, mock_on,
                                          mock_next_boot):
-        self.config(retry_timeout=0, group='ipmi')
+        self.config(command_retry_timeout=0, group='ipmi')
 
         mock_on.return_value = states.POWER_ON
         with task_manager.acquire(self.context,
@@ -1475,7 +1475,7 @@ class IPMIToolDriverTestCase(Base):
     @mock.patch.object(ipmi, '_power_off', autospec=True)
     def test_set_power_on_with_next_boot_timeout(self, mock_off, mock_on,
                                                  mock_next_boot):
-        self.config(retry_timeout=0, group='ipmi')
+        self.config(command_retry_timeout=0, group='ipmi')
 
         mock_on.return_value = states.POWER_ON
         with task_manager.acquire(self.context,
@@ -1489,7 +1489,7 @@ class IPMIToolDriverTestCase(Base):
     @mock.patch.object(ipmi, '_power_on', autospec=True)
     @mock.patch.object(ipmi, '_power_off', autospec=True)
     def test_set_power_off_ok(self, mock_off, mock_on):
-        self.config(retry_timeout=0, group='ipmi')
+        self.config(command_retry_timeout=0, group='ipmi')
 
         mock_off.return_value = states.POWER_OFF
 
@@ -1503,7 +1503,7 @@ class IPMIToolDriverTestCase(Base):
     @mock.patch.object(ipmi, '_power_on', autospec=True)
     @mock.patch.object(ipmi, '_power_off', autospec=True)
     def test_set_power_off_timeout_ok(self, mock_off, mock_on):
-        self.config(retry_timeout=0, group='ipmi')
+        self.config(command_retry_timeout=0, group='ipmi')
 
         mock_off.return_value = states.POWER_OFF
 
@@ -1517,7 +1517,7 @@ class IPMIToolDriverTestCase(Base):
     @mock.patch.object(ipmi, '_power_on', autospec=True)
     @mock.patch.object(ipmi, '_soft_power_off', autospec=True)
     def test_set_soft_power_off_ok(self, mock_off, mock_on):
-        self.config(retry_timeout=0, group='ipmi')
+        self.config(command_retry_timeout=0, group='ipmi')
 
         mock_off.return_value = states.POWER_OFF
 
@@ -1531,7 +1531,7 @@ class IPMIToolDriverTestCase(Base):
     @mock.patch.object(ipmi, '_power_on', autospec=True)
     @mock.patch.object(ipmi, '_soft_power_off', autospec=True)
     def test_set_soft_power_off_timeout_ok(self, mock_off, mock_on):
-        self.config(retry_timeout=0, group='ipmi')
+        self.config(command_retry_timeout=0, group='ipmi')
 
         mock_off.return_value = states.POWER_OFF
 
@@ -1546,7 +1546,7 @@ class IPMIToolDriverTestCase(Base):
     @mock.patch.object(ipmi, '_power_on', autospec=True)
     @mock.patch.object(ipmi, '_soft_power_off', autospec=True)
     def test_set_soft_reboot_ok(self, mock_off, mock_on, mock_next_boot):
-        self.config(retry_timeout=0, group='ipmi')
+        self.config(command_retry_timeout=0, group='ipmi')
 
         mock_off.return_value = states.POWER_OFF
         mock_on.return_value = states.POWER_ON
@@ -1563,7 +1563,7 @@ class IPMIToolDriverTestCase(Base):
     @mock.patch.object(ipmi, '_soft_power_off', autospec=True)
     def test_set_soft_reboot_timeout_ok(self, mock_off, mock_on,
                                         mock_next_boot):
-        self.config(retry_timeout=0, group='ipmi')
+        self.config(command_retry_timeout=0, group='ipmi')
 
         mock_off.return_value = states.POWER_OFF
         mock_on.return_value = states.POWER_ON
@@ -1580,7 +1580,7 @@ class IPMIToolDriverTestCase(Base):
     @mock.patch.object(ipmi, '_soft_power_off', autospec=True)
     def test_set_soft_reboot_timeout_fail(self, mock_off, mock_on,
                                           mock_next_boot):
-        self.config(retry_timeout=0, group='ipmi')
+        self.config(command_retry_timeout=0, group='ipmi')
 
         mock_off.side_effect = exception.PowerStateFailure(
             pstate=states.POWER_ON)
@@ -1600,7 +1600,7 @@ class IPMIToolDriverTestCase(Base):
     @mock.patch.object(ipmi, '_power_on', autospec=True)
     @mock.patch.object(ipmi, '_power_off', autospec=True)
     def test_set_power_on_fail(self, mock_off, mock_on):
-        self.config(retry_timeout=0, group='ipmi')
+        self.config(command_retry_timeout=0, group='ipmi')
 
         mock_on.side_effect = exception.PowerStateFailure(
             pstate=states.POWER_ON)
@@ -1617,7 +1617,7 @@ class IPMIToolDriverTestCase(Base):
     @mock.patch.object(ipmi, '_power_on', autospec=True)
     @mock.patch.object(ipmi, '_power_off', autospec=True)
     def test_set_power_on_timeout_fail(self, mock_off, mock_on):
-        self.config(retry_timeout=0, group='ipmi')
+        self.config(command_retry_timeout=0, group='ipmi')
 
         mock_on.side_effect = exception.PowerStateFailure(pstate=states.ERROR)
         with task_manager.acquire(self.context,

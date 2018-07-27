@@ -1,0 +1,5 @@
+---
+other:
+  - |
+    The deprecated configuration option ``[ipmi]retry_timeout`` was removed,
+    use ``[ipmi]command_retry_timeout`` instead.
