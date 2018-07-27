@@ -168,10 +168,15 @@ def _restore_bios_config(task):
                  'as the backup data not found.', node_uuid)
         return
 
-    def _remove_bios_config(task):
+    def _remove_bios_config(task, reboot_flag=False):
         """Remove backup bios config from the node."""
         internal_info = task.node.driver_internal_info
         internal_info.pop('irmc_bios_config', None)
+        # NOTE(tiendc): If reboot flag is raised, then the BM will
+        # reboot and cause a bug if the next clean step is in-band.
+        # See https://storyboard.openstack.org/#!/story/2002731
+        if reboot_flag:
+            internal_info['cleaning_reboot'] = True
         task.node.driver_internal_info = internal_info
         task.node.save()
 
@@ -192,7 +197,7 @@ def _restore_bios_config(task):
                                            error=e)
 
     # Remove the backup data after restoring
-    _remove_bios_config(task)
+    _remove_bios_config(task, reboot_flag=True)
 
     LOG.info('BIOS config is restored successfully on node %s',
              node_uuid)
