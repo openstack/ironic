@@ -49,6 +49,7 @@ class TestPXEUtils(db_base.DbTestCase):
                                    u'f33c123/deploy_ramdisk',
             'ipa-api-url': 'http://192.168.122.184:6385',
             'ipxe_timeout': 0,
+            'ramdisk_opts': 'ramdisk_param',
         }
 
         self.ipxe_options = self.pxe_options.copy()

@@ -58,7 +58,7 @@ LOG = logging.getLogger(__name__)
 METRICS = metrics_utils.get_metrics_logger(__name__)
 
 SUPPORTED_CAPABILITIES = {
-    'boot_option': ('local', 'netboot'),
+    'boot_option': ('local', 'netboot', 'ramdisk'),
     'boot_mode': ('bios', 'uefi'),
     'secure_boot': ('true', 'false'),
     'trusted_boot': ('true', 'false'),
@@ -284,13 +284,16 @@ def _replace_root_uuid(path, root_uuid):
 
 
 def _replace_boot_line(path, boot_mode, is_whole_disk_image,
-                       trusted_boot=False, iscsi_boot=False):
+                       trusted_boot=False, iscsi_boot=False,
+                       ramdisk_boot=False):
     if is_whole_disk_image:
         boot_disk_type = 'boot_whole_disk'
     elif trusted_boot:
         boot_disk_type = 'trusted_boot'
     elif iscsi_boot:
         boot_disk_type = 'boot_iscsi'
+    elif ramdisk_boot:
+        boot_disk_type = 'boot_ramdisk'
     else:
         boot_disk_type = 'boot_partition'
 
@@ -312,7 +315,7 @@ def _replace_disk_identifier(path, disk_identifier):
 
 def switch_pxe_config(path, root_uuid_or_disk_id, boot_mode,
                       is_whole_disk_image, trusted_boot=False,
-                      iscsi_boot=False):
+                      iscsi_boot=False, ramdisk_boot=False):
     """Switch a pxe config from deployment mode to service mode.
 
     :param path: path to the pxe config file in tftpboot.
@@ -324,14 +327,16 @@ def switch_pxe_config(path, root_uuid_or_disk_id, boot_mode,
         is_whole_disk_image and trusted_boot are mutually exclusive. You can
         have one or neither, but not both.
     :param iscsi_boot: if boot is from an iSCSI volume or not.
+    :param ramdisk_boot: if the boot is to be to a ramdisk configuration.
     """
-    if not is_whole_disk_image:
-        _replace_root_uuid(path, root_uuid_or_disk_id)
-    else:
-        _replace_disk_identifier(path, root_uuid_or_disk_id)
+    if not ramdisk_boot:
+        if not is_whole_disk_image:
+            _replace_root_uuid(path, root_uuid_or_disk_id)
+        else:
+            _replace_disk_identifier(path, root_uuid_or_disk_id)
 
     _replace_boot_line(path, boot_mode, is_whole_disk_image, trusted_boot,
-                       iscsi_boot)
+                       iscsi_boot, ramdisk_boot)
 
 
 def get_dev(address, port, iqn, lun):
@@ -365,7 +370,8 @@ def deploy_partition_image(
         partition table has not changed).
     :param configdrive: Optional. Base64 encoded Gzipped configdrive content
                         or configdrive HTTP URL.
-    :param boot_option: Can be "local" or "netboot". "netboot" by default.
+    :param boot_option: Can be "local" or "netboot", or "ramdisk".
+                        "netboot" by default.
     :param boot_mode: Can be "bios" or "uefi". "bios" by default.
     :param disk_label: The disk label to be used when creating the
         partition table. Valid values are: "msdos", "gpt" or None; If None

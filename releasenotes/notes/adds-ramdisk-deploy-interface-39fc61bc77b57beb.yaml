@@ -1,0 +1,13 @@
+---
+features:
+  - |
+    Adds a ``ramdisk`` deploy interface for deployments that wish to network
+    boot to a ramdisk, as opposed to perform a complete
+    traditional deployment to a physical media. This may be useful in
+    scientific use cases or where ephemeral baremetal machines are desired.
+
+    The ``ramdisk`` deploy interface is intended for advanced users and has
+    some particular operational caveats that the users should be aware of
+    prior to use, such as network access list requirements and configuration
+    drive architectural restrictions and the inability to leverage
+    configuration drives.

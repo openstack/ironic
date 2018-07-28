@@ -1420,7 +1420,7 @@ class ParseInstanceInfoCapabilitiesTestCase(tests_base.TestCase):
                           utils.validate_capabilities, self.node)
 
     def test_all_supported_capabilities(self):
-        self.assertEqual(('local', 'netboot'),
+        self.assertEqual(('local', 'netboot', 'ramdisk'),
                          utils.SUPPORTED_CAPABILITIES['boot_option'])
         self.assertEqual(('bios', 'uefi'),
                          utils.SUPPORTED_CAPABILITIES['boot_mode'])
