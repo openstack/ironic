@@ -159,3 +159,21 @@
       devstack_services:
         mysql: False
         postgresql: True
+
+- job:
+    name: ironic-tempest-dsvm-ipa-wholedisk-bios-agent_ipmitool-tinyipa
+    description: ironic-tempest-dsvm-ipa-wholedisk-bios-agent_ipmitool-tinyipa
+    parent: ironic-base
+    timeout: 5400
+    vars:
+      devstack_localrc:
+        IRONIC_DEFAULT_DEPLOY_INTERFACE: direct
+        IRONIC_TEMPEST_WHOLE_DISK_IMAGE: True
+        IRONIC_VM_EPHEMERAL_DISK: 0
+        SWIFT_ENABLE_TEMPURLS: True
+        SWIFT_TEMPURL_KEY: secretkey
+      devstack_services:
+        s-account: True
+        s-container: True
+        s-object: True
+        s-proxy: True

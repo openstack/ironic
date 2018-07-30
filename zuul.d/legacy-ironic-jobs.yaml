@@ -59,12 +59,6 @@
     post-run: playbooks/legacy/ironic-dsvm-base-multinode/post.yaml
 
 - job:
-    name: ironic-tempest-dsvm-ipa-wholedisk-bios-agent_ipmitool-tinyipa
-    parent: legacy-ironic-dsvm-base
-    run: playbooks/legacy/tempest-dsvm-ironic-ipa-wholedisk-bios-agent_ipmitool-tinyipa/run.yaml
-    timeout: 5400
-
-- job:
     name: ironic-tempest-dsvm-ipa-wholedisk-bios-pxe_snmp-tinyipa
     parent: legacy-ironic-dsvm-base
     run: playbooks/legacy/tempest-dsvm-ironic-ipa-wholedisk-bios-pxe_snmp-tinyipa/run.yaml
