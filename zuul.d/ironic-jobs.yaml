@@ -177,3 +177,15 @@
         s-container: True
         s-object: True
         s-proxy: True
+
+- job:
+    name: ironic-tempest-dsvm-ipa-wholedisk-bios-pxe_snmp-tinyipa
+    description: ironic-tempest-dsvm-ipa-wholedisk-bios-pxe_snmp-tinyipa
+    parent: ironic-base
+    timeout: 5400
+    vars:
+      devstack_localrc:
+        IRONIC_ENABLED_HARDWARE_TYPES: snmp
+        IRONIC_DEPLOY_DRIVER: snmp
+        IRONIC_TEMPEST_WHOLE_DISK_IMAGE: True
+        IRONIC_VM_EPHEMERAL_DISK: 0
