@@ -1,0 +1,7 @@
+---
+fixes:
+  - If a node gets stuck in one of the states ``deploying``, ``cleaning``,
+    ``verifying``, ``inspecting``, ``adopting``, ``rescuing``, ``unrescuing``
+    for some reason (eg. conductor goes down when executing a task), it will
+    be moved to an appropriate failure state in the next time the conductor
+    starts.

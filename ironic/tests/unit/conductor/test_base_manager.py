@@ -13,6 +13,7 @@
 """Test class for Ironic BaseConductorManager."""
 
 import collections
+import uuid
 
 import eventlet
 import futurist
@@ -24,6 +25,7 @@ from oslo_utils import uuidutils
 
 from ironic.common import driver_factory
 from ironic.common import exception
+from ironic.common import states
 from ironic.conductor import base_manager
 from ironic.conductor import manager
 from ironic.conductor import notification_utils
@@ -205,6 +207,27 @@ class StartStopTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         self._start_service()
         self.assertRaisesRegex(RuntimeError, 'already running',
                                self.service.init_host)
+
+    def test_start_recover_nodes_stuck(self):
+        state_trans = [
+            (states.DEPLOYING, states.DEPLOYFAIL),
+            (states.CLEANING, states.CLEANFAIL),
+            (states.VERIFYING, states.ENROLL),
+            (states.INSPECTING, states.INSPECTFAIL),
+            (states.ADOPTING, states.ADOPTFAIL),
+            (states.RESCUING, states.RESCUEFAIL),
+            (states.UNRESCUING, states.UNRESCUEFAIL),
+        ]
+        nodes = [obj_utils.create_test_node(self.context, uuid=uuid.uuid4(),
+                                            driver='fake-hardware',
+                                            provision_state=state[0])
+                 for state in state_trans]
+
+        self._start_service()
+        for node, state in zip(nodes, state_trans):
+            node.refresh()
+            self.assertEqual(state[1], node.provision_state,
+                             'Test failed when recovering from %s' % state[0])
 
     @mock.patch.object(base_manager, 'LOG')
     def test_warning_on_low_workers_pool(self, log_mock):
