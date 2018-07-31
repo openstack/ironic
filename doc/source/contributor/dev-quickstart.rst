@@ -63,6 +63,10 @@ well.
   on openSUSE or SLE 12, see
   `<https://software.opensuse.org/download.html?project=graphics&package=graphviz-plugins>`_.
 
+To run the tests locally, it is a requirement that your terminal emulator
+supports unicode with the ``en_US.UTF8`` locale. If you use locale-gen to
+manage your locales, make sure you have enabled ``en_US.UTF8`` in
+``/etc/locale.gen`` and rerun ``locale-gen``.
 
 Python Prerequisites
 --------------------
