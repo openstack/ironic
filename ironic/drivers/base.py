@@ -457,6 +457,7 @@ class DeployInterface(BaseInterface):
 class BootInterface(BaseInterface):
     """Interface for boot-related actions."""
     interface_type = 'boot'
+    capabilities = []
 
     @abc.abstractmethod
     def prepare_ramdisk(self, task, ramdisk_params):

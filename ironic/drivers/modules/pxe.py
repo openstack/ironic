@@ -32,6 +32,7 @@ from ironic.common import image_service as service
 from ironic.common import images
 from ironic.common import pxe_utils
 from ironic.common import states
+from ironic.conductor import task_manager
 from ironic.conductor import utils as manager_utils
 from ironic.conf import CONF
 from ironic.drivers import base
@@ -212,17 +213,11 @@ def _build_instance_pxe_options(task, pxe_info):
     pxe_opts.setdefault('aki_path', 'no_kernel')
     pxe_opts.setdefault('ari_path', 'no_ramdisk')
 
-    # TODO(TheJulia): We should only do this if we have a ramdisk interface.
-    # We should check the capabilities of the class, but that becomes a bit
-    # of a pain for unit testing. We can sort this out in Stein since we will
-    # need to revisit a major portion of this file to effetively begin the
-    # ipxe boot interface promotion.
-    if isinstance(task.driver.deploy, PXERamdiskDeploy):
-        i_info = task.node.instance_info
-        try:
-            pxe_opts['ramdisk_opts'] = i_info['ramdisk_kernel_arguments']
-        except KeyError:
-            pass
+    i_info = task.node.instance_info
+    try:
+        pxe_opts['ramdisk_opts'] = i_info['ramdisk_kernel_arguments']
+    except KeyError:
+        pass
 
     return pxe_opts
 
@@ -737,24 +732,19 @@ class PXERamdiskDeploy(agent.AgentDeploy, agent.AgentDeployMixin,
                        base.DeployInterface):
 
     def validate(self, task):
-        # Initially this is likely okay, we can iterate on this and
-        # enable other drivers that have similar functionality that
-        # be invoked in a ramdisk friendly way.
-        if not isinstance(task.driver.boot, PXEBoot):
-            raise exception.InvalidParameterValue(
-                err=('Invalid configuration: The ramdisk deploy '
-                     'interface requires the pxe boot interface.'))
-        # Eventually we should be doing this.
         if 'ramdisk_boot' not in task.driver.boot.capabilities:
             raise exception.InvalidParameterValue(
                 err=('Invalid configuration: The boot interface '
                      'must have the `ramdisk_boot` capability. '
-                     'Not found.'))
+                     'You are using an incompatible boot interface.'))
         task.driver.boot.validate(task)
 
         # Validate node capabilities
         deploy_utils.validate_capabilities(task.node)
 
+    @METRICS.timer('RamdiskDeploy.deploy')
+    @base.deploy_step(priority=100)
+    @task_manager.require_exclusive_lock
     def deploy(self, task):
         if 'configdrive' in task.node.instance_info:
             LOG.warning('A configuration drive is present with '
@@ -777,18 +767,21 @@ class PXERamdiskDeploy(agent.AgentDeploy, agent.AgentDeployMixin,
         # Power-on the instance, with PXE prepared, we're done.
         manager_utils.node_power_action(task, states.POWER_ON)
         LOG.info('Deployment setup for node %s done', task.node.uuid)
-        # TODO(TheJulia): Update this in stein to support deploy steps.
-        return states.DEPLOYDONE
+        return None
 
+    @METRICS.timer('RamdiskDeploy.prepare')
+    @task_manager.require_exclusive_lock
     def prepare(self, task):
         node = task.node
         # Log a warning if the boot_option is wrong... and
         # otherwise reset it.
-        if deploy_utils.get_boot_option(node) != 'ramdisk':
+        boot_option = deploy_utils.get_boot_option(node)
+        if boot_option != 'ramdisk':
             LOG.warning('Incorrect "boot_option" set for node %(node)s '
-                        'and will be overridden to "ramdisk" as the '
-                        'to match the deploy interface.',
-                        {'node': node.uuid})
+                        'and will be overridden to "ramdisk" as to '
+                        'match the deploy interface. Found: %(boot_opt)s.',
+                        {'node': node.uuid,
+                         'boot_opt': boot_option})
             i_info = task.node.instance_info
             i_info.update({'capabilities': {'boot_option': 'ramdisk'}})
             node.instance_info = i_info

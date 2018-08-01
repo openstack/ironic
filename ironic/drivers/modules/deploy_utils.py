@@ -370,7 +370,7 @@ def deploy_partition_image(
         partition table has not changed).
     :param configdrive: Optional. Base64 encoded Gzipped configdrive content
                         or configdrive HTTP URL.
-    :param boot_option: Can be "local" or "netboot", or "ramdisk".
+    :param boot_option: Can be "local" or "netboot".
                         "netboot" by default.
     :param boot_mode: Can be "bios" or "uefi". "bios" by default.
     :param disk_label: The disk label to be used when creating the
