@@ -15,6 +15,7 @@ IRONIC_API_VERSION="1.37"
 
 export OS_AUTH_TOKEN IRONIC_URL
 
+DOC_BIOS_UUID="dff29d23-1ded-43b4-8ae1-5eebb3e30de1"
 DOC_CHASSIS_UUID="dff29d23-1ded-43b4-8ae1-5eebb3e30de1"
 DOC_NODE_UUID="6d85703a-565d-469a-96ce-30b6de53079d"
 DOC_DYNAMIC_NODE_UUID="2b045129-a906-46af-bc1a-092b294b3428"
@@ -303,6 +304,7 @@ GET v1/nodes/$NID/volume/targets?detail=True > node-volume-target-detail-respons
 
 #####################
 # Replace automatically generated UUIDs by already used in documentation
+sed -i "s/$BID/$DOC_BIOS_UUID/" *.json
 sed -i "s/$CID/$DOC_CHASSIS_UUID/" *.json
 sed -i "s/$NID/$DOC_NODE_UUID/" *.json
 sed -i "s/$DNID/$DOC_DYNAMIC_NODE_UUID/" *.json

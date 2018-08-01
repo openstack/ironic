@@ -38,6 +38,12 @@ x-openstack-ironic-api-version:
   type: string
 
 # variables in path
+bios_setting:
+  description: |
+    The name of the Bios setting.
+  in: path
+  required: true
+  type: string
 chassis_ident:
   description: |
     The UUID of the chassis.
@@ -343,6 +349,25 @@ agent_node:
   type: JSON
 
 # variables in the API body
+bios_setting_name:
+  description: |
+    The name of a Bios setting for a Node, eg. "virtualization".
+  in: body
+  required: true
+  type: string
+bios_setting_value:
+  description: |
+    The value of a Bios setting for a Node, eg. "on".
+  in: body
+  required: true
+  type: string
+bios_settings:
+  description: |
+    Optional list of one or more Bios settings. It includes following fields
+    "created_at", "updated_at", "links", "name", "value".
+  in: body
+  required: true
+  type: array
 boot_device:
   description: |
     The boot device for a Node, eg. "pxe" or "disk".
@@ -409,6 +434,13 @@ created_at:
   in: body
   required: true
   type: string
+d_bios_setting:
+  description: |
+    Dictionary containing the definition of a Bios setting. It includes the
+    following fields "created_at", "updated_at", "links", "name", "value".
+  in: body
+  required: true
+  type: dictionary
 default_boot_interface:
   description: |
     The default boot interface used for a node with a dynamic driver, if no
