@@ -983,7 +983,7 @@ class TestAgentDeploy(db_base.DbTestCase):
             self.assertIn("Ironic Python Agent version 3.1.0 and beyond",
                           log_mock.call_args[0][0])
             prepare_instance_mock.assert_called_once_with(mock.ANY, task,
-                                                          None, None)
+                                                          None, None, None)
             power_off_mock.assert_called_once_with(task.node)
             get_power_state_mock.assert_called_once_with(task)
             node_power_action_mock.assert_called_once_with(
@@ -1078,8 +1078,67 @@ class TestAgentDeploy(db_base.DbTestCase):
                              driver_int_info['root_uuid_or_disk_id']),
             boot_mode_mock.assert_called_once_with(task.node)
             self.assertFalse(log_mock.called)
-            prepare_instance_mock.assert_called_once_with(mock.ANY, task,
-                                                          'root_uuid', None)
+            prepare_instance_mock.assert_called_once_with(mock.ANY,
+                                                          task,
+                                                          'root_uuid',
+                                                          None, None)
+            power_off_mock.assert_called_once_with(task.node)
+            get_power_state_mock.assert_called_once_with(task)
+            node_power_action_mock.assert_called_once_with(
+                task, states.POWER_ON)
+            self.assertEqual(states.ACTIVE, task.node.provision_state)
+            self.assertEqual(states.NOSTATE, task.node.target_provision_state)
+
+    @mock.patch.object(agent.LOG, 'warning', spec_set=True, autospec=True)
+    @mock.patch.object(boot_mode_utils, 'get_boot_mode_for_deploy',
+                       autospec=True)
+    @mock.patch.object(agent.AgentDeployMixin, '_get_uuid_from_result',
+                       autospec=True)
+    @mock.patch.object(manager_utils, 'node_power_action', autospec=True)
+    @mock.patch.object(fake.FakePower, 'get_power_state',
+                       spec=types.FunctionType)
+    @mock.patch.object(agent_client.AgentClient, 'power_off',
+                       spec=types.FunctionType)
+    @mock.patch.object(agent.AgentDeployMixin, 'prepare_instance_to_boot',
+                       autospec=True)
+    @mock.patch('ironic.drivers.modules.agent.AgentDeployMixin'
+                '.check_deploy_success', autospec=True)
+    def test_reboot_to_instance_partition_localboot_ppc64(
+            self, check_deploy_mock, prepare_instance_mock,
+            power_off_mock, get_power_state_mock,
+            node_power_action_mock, uuid_mock, boot_mode_mock, log_mock):
+        check_deploy_mock.return_value = None
+        uuid_mock.side_effect = ['root_uuid', 'prep_boot_part_uuid']
+        self.node.provision_state = states.DEPLOYWAIT
+        self.node.target_provision_state = states.ACTIVE
+        self.node.save()
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            get_power_state_mock.return_value = states.POWER_OFF
+            driver_internal_info = task.node.driver_internal_info
+            driver_internal_info['is_whole_disk_image'] = False
+            task.node.driver_internal_info = driver_internal_info
+            boot_option = {'capabilities': '{"boot_option": "local"}'}
+            task.node.instance_info = boot_option
+            properties = task.node.properties
+            properties.update(cpu_arch='ppc64le')
+            task.node.properties = properties
+            boot_mode_mock.return_value = 'bios'
+            task.driver.deploy.reboot_to_instance(task)
+
+            check_deploy_mock.assert_called_once_with(mock.ANY, task.node)
+            driver_int_info = task.node.driver_internal_info
+            self.assertEqual('root_uuid',
+                             driver_int_info['root_uuid_or_disk_id']),
+            uuid_mock_calls = [
+                mock.call(mock.ANY, task, 'root_uuid'),
+                mock.call(mock.ANY, task, 'PReP_Boot_partition_uuid')]
+            uuid_mock.assert_has_calls(uuid_mock_calls)
+            boot_mode_mock.assert_called_once_with(task.node)
+            self.assertFalse(log_mock.called)
+            prepare_instance_mock.assert_called_once_with(
+                mock.ANY, task, 'root_uuid', None, 'prep_boot_part_uuid')
             power_off_mock.assert_called_once_with(task.node)
             get_power_state_mock.assert_called_once_with(task)
             node_power_action_mock.assert_called_once_with(
@@ -1171,7 +1230,7 @@ class TestAgentDeploy(db_base.DbTestCase):
             boot_mode_mock.assert_called_once_with(task.node)
             self.assertFalse(log_mock.called)
             prepare_instance_mock.assert_called_once_with(
-                mock.ANY, task, 'root_uuid', 'efi_uuid')
+                mock.ANY, task, 'root_uuid', 'efi_uuid', None)
             power_off_mock.assert_called_once_with(task.node)
             get_power_state_mock.assert_called_once_with(task)
             node_power_action_mock.assert_called_once_with(

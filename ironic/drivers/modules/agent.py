@@ -265,6 +265,7 @@ class AgentDeployMixin(agent_base_vendor.AgentDeployMixin):
         task.process_event('resume')
         node = task.node
         iwdi = task.node.driver_internal_info.get('is_whole_disk_image')
+        cpu_arch = task.node.properties.get('cpu_arch')
         error = self.check_deploy_success(node)
         if error is not None:
             # TODO(jimrollenhagen) power off if using neutron dhcp to
@@ -285,6 +286,9 @@ class AgentDeployMixin(agent_base_vendor.AgentDeployMixin):
         # In case of local boot using partition image, we need both
         # 'root_uuid_or_disk_id' and 'efi_system_partition_uuid' to configure
         # bootloader for local boot.
+        # NOTE(mjturek): In the case of local boot using a partition image on
+        # ppc64* hardware we need to provide the 'PReP_Boot_partition_uuid' to
+        # direct where the bootloader should be installed.
         driver_internal_info = task.node.driver_internal_info
         root_uuid = self._get_uuid_from_result(task, 'root_uuid')
         if root_uuid:
@@ -312,9 +316,14 @@ class AgentDeployMixin(agent_base_vendor.AgentDeployMixin):
         efi_sys_uuid = None
         if not iwdi:
             if boot_mode_utils.get_boot_mode_for_deploy(node) == 'uefi':
-                efi_sys_uuid = (
-                    self._get_uuid_from_result(task,
-                                               'efi_system_partition_uuid'))
+                efi_sys_uuid = (self._get_uuid_from_result(task,
+                                'efi_system_partition_uuid'))
+
+        prep_boot_part_uuid = None
+        if cpu_arch is not None and cpu_arch.startswith('ppc64'):
+            prep_boot_part_uuid = (self._get_uuid_from_result(task,
+                                   'PReP_Boot_partition_uuid'))
+
         LOG.info('Image successfully written to node %s', node.uuid)
 
         if CONF.agent.manage_agent_boot:
@@ -324,7 +333,8 @@ class AgentDeployMixin(agent_base_vendor.AgentDeployMixin):
             # be done on node during deploy stage can be performed.
             LOG.debug('Executing driver specific tasks before booting up the '
                       'instance for node %s', node.uuid)
-            self.prepare_instance_to_boot(task, root_uuid, efi_sys_uuid)
+            self.prepare_instance_to_boot(task, root_uuid,
+                                          efi_sys_uuid, prep_boot_part_uuid)
         else:
             manager_utils.node_set_boot_device(task, 'disk', persistent=True)
 

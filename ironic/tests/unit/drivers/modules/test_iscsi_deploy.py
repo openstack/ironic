@@ -896,7 +896,7 @@ class ISCSIDeployTestCase(db_base.DbTestCase):
                 task, task.driver.deploy._client)
             configure_local_boot_mock.assert_called_once_with(
                 task.driver.deploy, task, root_uuid='some-root-uuid',
-                efi_system_part_uuid=None)
+                efi_system_part_uuid=None, prep_boot_part_uuid=None)
             reboot_and_finish_deploy_mock.assert_called_once_with(
                 task.driver.deploy, task)
             set_boot_device_mock.assert_called_once_with(
@@ -928,7 +928,7 @@ class ISCSIDeployTestCase(db_base.DbTestCase):
                 task, task.driver.deploy._client)
             configure_local_boot_mock.assert_called_once_with(
                 task.driver.deploy, task, root_uuid='some-root-uuid',
-                efi_system_part_uuid='efi-part-uuid')
+                efi_system_part_uuid='efi-part-uuid', prep_boot_part_uuid=None)
             reboot_and_finish_deploy_mock.assert_called_once_with(
                 task.driver.deploy, task)
             set_boot_device_mock.assert_called_once_with(

@@ -224,7 +224,8 @@ class AgentClient(object):
                              wait=True)
 
     @METRICS.timer('AgentClient.install_bootloader')
-    def install_bootloader(self, node, root_uuid, efi_system_part_uuid=None):
+    def install_bootloader(self, node, root_uuid, efi_system_part_uuid=None,
+                           prep_boot_part_uuid=None):
         """Install a boot loader on the image.
 
         :param node: A node object.
@@ -232,6 +233,9 @@ class AgentClient(object):
         :param efi_system_part_uuid: The UUID of the efi system partition
                where the bootloader will be installed to, only used for uefi
                boot mode.
+        :param prep_boot_part_uuid: The UUID of the PReP Boot partition where
+               the bootloader will be installed to when local booting a
+               partition image on a ppc64* system.
         :raises: IronicException when failed to issue the request or there was
                  a malformed response from the agent.
         :raises: AgentAPIError when agent failed to execute specified command.
@@ -239,7 +243,8 @@ class AgentClient(object):
                   See :func:`get_commands_status` for a command result sample.
         """
         params = {'root_uuid': root_uuid,
-                  'efi_system_part_uuid': efi_system_part_uuid}
+                  'efi_system_part_uuid': efi_system_part_uuid,
+                  'prep_boot_part_uuid': prep_boot_part_uuid}
         return self._command(node=node,
                              method='image.install_bootloader',
                              params=params,
