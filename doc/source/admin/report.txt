@@ -573,7 +573,6 @@ oslo_messaging_rabbit:
     localhost:5672
   rabbit_interval_max = 30
   rabbit_login_method = AMQPLAIN
-  rabbit_max_retries = 0
   rabbit_password = ***
   rabbit_port = 5672
   rabbit_qos_prefetch_count = 0
