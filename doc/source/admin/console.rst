@@ -222,4 +222,47 @@ If ``console_enabled`` is ``false`` or ``console_info`` is ``None`` then
 the serial console is disabled. If you want to launch serial console, see the
 ``Configure node console``.
 
+Node serial console of the Bare Metal service is compatible with the
+serial console of the Compute service. Hence, serial consoles to
+Bare Metal nodes can be seen and interacted with via the Dashboard service.
+In order to achieve that, you need to follow the documentation for
+`Serial Console`_ from the Compute service.
+
+Configuring HA
+~~~~~~~~~~~~~~
+
+When using Bare Metal serial console under High Availability (HA)
+configuration, you may consider some settings below.
+
+* If you use HAProxy, you may need to set the timeout for both client
+  and server sides with appropriate values. Here is an example of the
+  configuration for the timeout parameter.
+
+  ::
+
+    frontend nova_serial_console
+      bind 192.168.20.30:6083
+      timeout client 10m  # This parameter is necessary
+      use_backend nova_serial_console if <...>
+
+    backend nova_serial_console
+      balance source
+      timeout server 10m  # This parameter is necessary
+      option  tcpka
+      option  tcplog
+      server  controller01 192.168.30.11:6083 check inter 2000 rise 2 fall 5
+      server  controller02 192.168.30.12:6083 check inter 2000 rise 2 fall 5
+
+* The Compute service's caching feature may need to be enabled in order
+  to make the Bare Metal serial console work under a HA configuration.
+  Here is an example of caching configuration in ``nova.conf``.
+
+  .. code-block:: ini
+
+    [cache]
+    enabled = true
+    backend = dogpile.cache.memcached
+    memcache_servers = memcache01:11211,memcache02:11211,memcache03:11211
+
 .. _`socat`: http://www.dest-unreach.org/socat
+.. _`Serial Console`: https://docs.openstack.org/nova/latest/admin/remote-console-access.html#serial-console
