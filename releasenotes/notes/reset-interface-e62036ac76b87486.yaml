@@ -2,6 +2,7 @@
 features:
   - |
     Starting with API version 1.45, PATCH requests to ``/v1/nodes/<NODE>``
-    accept the new parameter ``reset_interfaces``. If can be provided whenever
-    the ``driver`` field is updated to reset all hardware interfaces to their
-    defaults, expect for ones updated in the same request.
+    accept the new query parameter ``reset_interfaces``. It can be provided
+    whenever the ``driver`` field is updated. If set to 'true', all hardware
+    interfaces wil be reset to their defaults, except for ones updated in the
+    same request.
