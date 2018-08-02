@@ -27,6 +27,24 @@ from ironic.objects import fields as object_fields
 LOG = log.getLogger(__name__)
 
 
+def max_version(versions):
+    """Return the maximum version in the list.
+
+    :param versions: a list of (string) versions; assumed to have at
+                     least one entry
+    :returns: the maximum version (string)
+    """
+    if len(versions) == 1:
+        return versions[0]
+
+    int_versions = []
+    for v in versions:
+        int_versions.append(versionutils.convert_version_to_int(v))
+    max_val = max(int_versions)
+    ind = int_versions.index(max_val)
+    return versions[ind]
+
+
 class IronicObjectRegistry(object_base.VersionedObjectRegistry):
     def registration_hook(self, cls, index):
         # NOTE(jroll): blatantly stolen from nova
@@ -187,9 +205,9 @@ class IronicObject(object_base.VersionedObject):
             return cls.VERSION
 
         version_manifest = versions.RELEASE_MAPPING[pin]['objects']
-        pinned_version = version_manifest.get(cls.obj_name())
-        if pinned_version:
-            pinned_version = pinned_version[0]
+        pinned_versions = version_manifest.get(cls.obj_name())
+        if pinned_versions:
+            pinned_version = max_version(pinned_versions)
             if not versionutils.is_compatible(pinned_version,
                                               cls.VERSION):
                 LOG.error(

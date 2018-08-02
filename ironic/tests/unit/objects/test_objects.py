@@ -386,6 +386,19 @@ class _TestObject(object):
         }
         self._test_get_changes(target_version='1.4')
 
+    @mock.patch('ironic.common.release_mappings.RELEASE_MAPPING',
+                autospec=True)
+    def test_get_changes_pinned_2versions(self, mock_release_mapping):
+        # obj_get_changes() is not affected by pinning
+        CONF.set_override('pin_release_version',
+                          release_mappings.RELEASE_VERSIONS[-1])
+        mock_release_mapping.__getitem__.return_value = {
+            'objects': {
+                'MyObj': ['1.3', '1.4'],
+            }
+        }
+        self._test_get_changes(target_version='1.4')
+
     def test_convert_to_version_same(self):
         # no changes
         obj = MyObj(self.context)
@@ -986,3 +999,20 @@ class TestRegistry(test_base.TestCase):
         self.assertEqual(MyObj, mock_objects.MyObj)
         reg.registration_hook(MyOlderObj, 0)
         self.assertEqual(MyObj, mock_objects.MyObj)
+
+
+class TestMisc(test_base.TestCase):
+    def test_max_version(self):
+        versions = ['1.25', '1.33', '1.3']
+        maxv = base.max_version(versions)
+        self.assertEqual('1.33', maxv)
+
+    def test_max_version_one(self):
+        versions = ['1.25']
+        maxv = base.max_version(versions)
+        self.assertEqual('1.25', maxv)
+
+    def test_max_version_two(self):
+        versions = ['1.25', '1.26']
+        maxv = base.max_version(versions)
+        self.assertEqual('1.26', maxv)
