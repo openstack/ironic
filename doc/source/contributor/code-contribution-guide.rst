@@ -232,6 +232,8 @@ Here is the list of existing common and agent driver attributes:
 
   * ``is_whole_disk_image``: A Boolean value to indicate whether the user image contains ramdisk/kernel.
   * ``clean_steps``: An ordered list of clean steps that will be performed on the node.
+  * ``deploy_steps``: An ordered list of deploy steps that will be performed on the node. Support for
+    deploy steps was added in the ``11.1.0`` release.
   * ``instance``: A list of dictionaries containing the disk layout values.
   * ``root_uuid_or_disk_id``: A String value of the bare metal node's root partition uuid or disk id.
   * ``persistent_boot_device``: A String value of device from ``ironic.common.boot_devices``.

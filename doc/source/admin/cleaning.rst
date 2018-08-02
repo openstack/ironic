@@ -25,10 +25,10 @@ automated cleaning on the node to ensure it's ready for another workload. This
 ensures the tenant will get a consistent bare metal node deployed every time.
 
 Ironic implements automated cleaning by collecting a list of cleaning steps
-to perform on a node from the Power, Deploy, Management, and RAID interfaces
-of the driver assigned to the node. These steps are then ordered by priority
-and executed on the node when the node is moved
-to ``cleaning`` state, if automated cleaning is enabled.
+to perform on a node from the Power, Deploy, Management, BIOS, and RAID
+interfaces of the driver assigned to the node. These steps are then ordered by
+priority and executed on the node when the node is moved to ``cleaning`` state,
+if automated cleaning is enabled.
 
 With automated cleaning, nodes move to ``cleaning`` state when moving from
 ``active`` -> ``available`` state (when the hardware is recycled from one
@@ -63,7 +63,7 @@ Cleaning steps
 Cleaning steps used for automated cleaning are ordered from higher to lower
 priority, where a larger integer is a higher priority. In case of a conflict
 between priorities across interfaces, the following resolution order is used:
-Power, Management, Deploy, and RAID interfaces.
+Power, Management, Deploy, BIOS, and RAID interfaces.
 
 You can skip a cleaning step by setting the priority for that cleaning step
 to zero or 'None'.
@@ -236,6 +236,7 @@ across hardware interfaces, the following resolution order is used:
 #. Power interface
 #. Management interface
 #. Deploy interface
+#. BIOS interface
 #. RAID interface
 
 For manual cleaning, the cleaning steps should be specified in the desired
