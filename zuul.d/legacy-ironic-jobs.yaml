@@ -65,23 +65,6 @@
     timeout: 10800
     nodeset: legacy-ubuntu-xenial-2-node
 
-- job:
-    name: ironic-tempest-dsvm-ironic-inspector
-    parent: legacy-ironic-dsvm-base
-    run: playbooks/legacy/tempest-dsvm-ironic-inspector/run.yaml
-    timeout: 10800
-    required-projects:
-      - openstack-infra/devstack-gate
-      - openstack/ironic
-      - openstack/ironic-inspector
-      - openstack/ironic-lib
-      - openstack/ironic-python-agent
-      - openstack/pyghmi
-      - openstack/python-ironic-inspector-client
-      - openstack/python-ironicclient
-      - openstack/tempest
-      - openstack/virtualbmc
-
 # TODO(TheJulia): When we migrate to a non-legacy job, we will need to set the BUILD_TIMEOUT
 # and the DEVSTACK_GATE_TEMPEST_BAREMETAL_BUILD_TIMEOUT to 1200 seconds to prevent
 # needless CI job timeouts as the scale of the job is greater than a normal test jobs.
