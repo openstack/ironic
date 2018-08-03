@@ -203,10 +203,10 @@ steps on the ironic conductor node to configure the PXE UEFI environment.
    boot device is set to network/pxe.
 
    .. note::
-    Some drivers, e.g. ``ilo`` and ``irmc``, support automatic setting of the
-    boot mode during deployment. This step is not required for them. Please
-    check :doc:`../admin/drivers` for information on whether your driver
-    requires manual UEFI configuration.
+    Some drivers, e.g. ``ilo``, ``irmc`` and ``redfish``, support automatic
+    setting of the boot mode during deployment. This step is not required
+    for them. Please check :doc:`../admin/drivers` for information on whether
+    your driver requires manual UEFI configuration.
 
 .. note::
   For more information on configuring boot modes, see :ref:`boot_mode_support`.
