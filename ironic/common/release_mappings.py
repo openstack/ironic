@@ -40,9 +40,10 @@ from ironic.common.i18n import _
 # sent over RPC. Notifications/Payloads are not being included here since we
 # don't need to pin them during rolling upgrades.
 #
-# For each object, the versions of that object are listed from latest version
-# to oldest version. This is a list since an object could be in more than one
-# version in a particular release.
+# For each object, list the versions that the object can be in for a particular
+# release. That is, any new versions that were added in that release. If there
+# were no new versions, it should have the same (latest) version as the
+# previous release.
 # NOTE(rloo): We need a list, not just the latest version, for the DB queries
 # that filter for objects that are not in particular versions; for more info,
 # see comments after L1128 of
