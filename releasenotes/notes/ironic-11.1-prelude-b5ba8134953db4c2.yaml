@@ -1,0 +1,17 @@
+---
+prelude: |
+    Ironic `11.1`... Where the volume dial turned more!
+
+    While Pixie Boots has rocked out to Rock and Roll, the Bare Metal
+    as a Service team has wrapped up our Rocky release with 11.1.
+    This new release contains a number of major features that we hope
+    will improve the lives of bare metal operators everywhere!
+
+    * Conductor grouping enabling nodes to be assigned to groups
+      of different conductors.
+    * Deployment steps framework enabling greater flexibility
+      for deployers to request specific steps.
+    * Bios setting interfaces for the ``ilo`` and ``irmc`` hardware types.
+    * Ramdisk deployment interface for disk-less deployments.
+    * Capability to reset nodes to their default interfaces via the API
+      when resetting the node's driver.
