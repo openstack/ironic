@@ -205,3 +205,24 @@
     vars:
       devstack_localrc:
         USE_PYTHON3: True
+
+- job:
+    name: ironic-tempest-dsvm-bfv
+    description: ironic-tempest-dsvm-bfv
+    parent: ironic-base
+    timeout: 9600
+    vars:
+      tempest_test_regex: baremetal_boot_from_volume
+      devstack_localrc:
+        IRONIC_ENABLED_STORAGE_INTERFACES: cinder,noop
+        IRONIC_STORAGE_INTERFACE: cinder
+        IRONIC_DEFAULT_DEPLOY_INTERFACE: direct
+        IRONIC_TEMPEST_WHOLE_DISK_IMAGE: True
+        IRONIC_VM_EPHEMERAL_DISK: 0
+        IRONIC_VM_COUNT: 3
+      devstack_services:
+        c-api: True
+        c-bak: True
+        c-sch: True
+        c-vol: True
+        cinder: True

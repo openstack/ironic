@@ -66,12 +66,6 @@
     nodeset: legacy-ubuntu-xenial-2-node
 
 - job:
-    name: ironic-tempest-dsvm-bfv
-    parent: legacy-ironic-dsvm-base
-    run: playbooks/legacy/tempest-dsvm-ironic-bfv/run.yaml
-    timeout: 9600
-
-- job:
     name: ironic-tempest-dsvm-ironic-inspector
     parent: legacy-ironic-dsvm-base
     run: playbooks/legacy/tempest-dsvm-ironic-inspector/run.yaml
