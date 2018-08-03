@@ -19,6 +19,7 @@ import os
 from ironic_lib import utils as ironic_utils
 from oslo_config import cfg
 from oslo_log import log as logging
+from oslo_utils import excutils
 from oslo_utils import fileutils
 
 from ironic.common import dhcp_factory
@@ -90,7 +91,10 @@ def _link_mac_pxe_configs(task):
     pxe_config_file_path = get_pxe_config_file_path(task.node.uuid)
     for port in task.ports:
         client_id = port.extra.get('client-id')
+        # Syslinux, ipxe, depending on settings.
         create_link(_get_pxe_mac_path(port.address, client_id=client_id))
+        # Grub2 MAC address only
+        create_link(_get_pxe_grub_mac_path(port.address))
 
 
 def _link_ip_address_pxe_configs(task, hex_form):
@@ -121,6 +125,10 @@ def _link_ip_address_pxe_configs(task, hex_form):
                                         ip_address_path)
 
 
+def _get_pxe_grub_mac_path(mac):
+    return os.path.join(get_root_dir(), mac + '.conf')
+
+
 def _get_pxe_mac_path(mac, delimiter='-', client_id=None):
     """Convert a MAC address into a PXE config file name.
 
@@ -137,7 +145,6 @@ def _get_pxe_mac_path(mac, delimiter='-', client_id=None):
         if client_id:
             hw_type = '20-'
         mac_file_name = hw_type + mac_file_name
-
     return os.path.join(get_root_dir(), PXE_CFG_DIR_NAME, mac_file_name)
 
 
@@ -259,7 +266,21 @@ def create_pxe_config(task, pxe_options, template=None):
     utils.write_to_file(pxe_config_file_path, pxe_config)
 
     if is_uefi_boot_mode and not CONF.pxe.ipxe_enabled:
-        _link_ip_address_pxe_configs(task, hex_form)
+        # Always write the mac addresses
+        _link_mac_pxe_configs(task)
+        try:
+            _link_ip_address_pxe_configs(task, hex_form)
+        # NOTE(TheJulia): The IP address support will fail if the
+        # dhcp_provider interface is set to none. This will result
+        # in the MAC addresses and DHCP files being written, and
+        # we can remove IP address creation for the grub use
+        # case, considering that will ease removal of elilo support.
+        except exception.FailedToGetIPaddressesOnPort as e:
+            if CONF.dhcp.dhcp_provider != 'none':
+                with excutils.save_and_reraise_exception():
+                    LOG.error('Unable to create boot config, IP address '
+                              'was unable to be retrieved. %(error)s',
+                              {'error': e})
     else:
         _link_mac_pxe_configs(task)
 
@@ -308,16 +329,21 @@ def clean_up_pxe_config(task):
                                                        True)
             except exception.InvalidIPv4Address:
                 continue
+            except exception.FailedToGetIPAddressOnPort:
+                continue
             # Cleaning up config files created for grub2.
             ironic_utils.unlink_without_raise(ip_address_path)
             # Cleaning up config files created for elilo.
             ironic_utils.unlink_without_raise(hex_ip_path)
-    else:
-        for port in task.ports:
-            client_id = port.extra.get('client-id')
-            ironic_utils.unlink_without_raise(
-                _get_pxe_mac_path(port.address, client_id=client_id))
 
+    for port in task.ports:
+        client_id = port.extra.get('client-id')
+        # syslinux, ipxe, etc.
+        ironic_utils.unlink_without_raise(
+            _get_pxe_mac_path(port.address, client_id=client_id))
+        # Grub2 MAC address based confiuration
+        ironic_utils.unlink_without_raise(
+            _get_pxe_grub_mac_path(port.address))
     utils.rmtree_without_raise(os.path.join(get_root_dir(),
                                             task.node.uuid))
 

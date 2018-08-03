@@ -21,6 +21,7 @@ from oslo_config import cfg
 from oslo_utils import uuidutils
 import six
 
+from ironic.common import exception
 from ironic.common import pxe_utils
 from ironic.common import utils
 from ironic.conductor import task_manager
@@ -256,12 +257,18 @@ class TestPXEUtils(db_base.DbTestCase):
         create_link_calls = [
             mock.call(u'../1be26c0b-03f2-4d2e-ae87-c02d7f33c123/config',
                       '/tftpboot/pxelinux.cfg/01-11-22-33-44-55-66'),
+            mock.call(u'1be26c0b-03f2-4d2e-ae87-c02d7f33c123/config',
+                      '/tftpboot/11:22:33:44:55:66.conf'),
             mock.call(u'../1be26c0b-03f2-4d2e-ae87-c02d7f33c123/config',
-                      '/tftpboot/pxelinux.cfg/01-11-22-33-44-55-67')
+                      '/tftpboot/pxelinux.cfg/01-11-22-33-44-55-67'),
+            mock.call(u'1be26c0b-03f2-4d2e-ae87-c02d7f33c123/config',
+                      '/tftpboot/11:22:33:44:55:67.conf')
         ]
         unlink_calls = [
             mock.call('/tftpboot/pxelinux.cfg/01-11-22-33-44-55-66'),
+            mock.call('/tftpboot/11:22:33:44:55:66.conf'),
             mock.call('/tftpboot/pxelinux.cfg/01-11-22-33-44-55-67'),
+            mock.call('/tftpboot/11:22:33:44:55:67.conf')
         ]
         with task_manager.acquire(self.context, self.node.uuid) as task:
             task.ports = [port_1, port_2]
@@ -289,12 +296,18 @@ class TestPXEUtils(db_base.DbTestCase):
         create_link_calls = [
             mock.call(u'../1be26c0b-03f2-4d2e-ae87-c02d7f33c123/config',
                       '/tftpboot/pxelinux.cfg/20-11-22-33-44-55-66'),
+            mock.call(u'1be26c0b-03f2-4d2e-ae87-c02d7f33c123/config',
+                      '/tftpboot/11:22:33:44:55:66.conf'),
             mock.call(u'../1be26c0b-03f2-4d2e-ae87-c02d7f33c123/config',
-                      '/tftpboot/pxelinux.cfg/20-11-22-33-44-55-67')
+                      '/tftpboot/pxelinux.cfg/20-11-22-33-44-55-67'),
+            mock.call(u'1be26c0b-03f2-4d2e-ae87-c02d7f33c123/config',
+                      '/tftpboot/11:22:33:44:55:67.conf')
         ]
         unlink_calls = [
             mock.call('/tftpboot/pxelinux.cfg/20-11-22-33-44-55-66'),
+            mock.call('/tftpboot/11:22:33:44:55:66.conf'),
             mock.call('/tftpboot/pxelinux.cfg/20-11-22-33-44-55-67'),
+            mock.call('/tftpboot/11:22:33:44:55:67.conf')
         ]
         with task_manager.acquire(self.context, self.node.uuid) as task:
             task.ports = [port_1, port_2]
@@ -316,12 +329,18 @@ class TestPXEUtils(db_base.DbTestCase):
         create_link_calls = [
             mock.call(u'../1be26c0b-03f2-4d2e-ae87-c02d7f33c123/config',
                       '/httpboot/pxelinux.cfg/11-22-33-44-55-66'),
+            mock.call(u'1be26c0b-03f2-4d2e-ae87-c02d7f33c123/config',
+                      '/httpboot/11:22:33:44:55:66.conf'),
             mock.call(u'../1be26c0b-03f2-4d2e-ae87-c02d7f33c123/config',
                       '/httpboot/pxelinux.cfg/11-22-33-44-55-67'),
+            mock.call(u'1be26c0b-03f2-4d2e-ae87-c02d7f33c123/config',
+                      '/httpboot/11:22:33:44:55:67.conf')
         ]
         unlink_calls = [
             mock.call('/httpboot/pxelinux.cfg/11-22-33-44-55-66'),
+            mock.call('/httpboot/11:22:33:44:55:66.conf'),
             mock.call('/httpboot/pxelinux.cfg/11-22-33-44-55-67'),
+            mock.call('/httpboot/11:22:33:44:55:67.conf'),
         ]
         with task_manager.acquire(self.context, self.node.uuid) as task:
             task.ports = [port_1, port_2]
@@ -507,6 +526,46 @@ class TestPXEUtils(db_base.DbTestCase):
                                       render_mock.return_value)
 
     @mock.patch.object(os, 'chmod', autospec=True)
+    @mock.patch('ironic.common.pxe_utils._link_mac_pxe_configs',
+                autospec=True)
+    @mock.patch('ironic.common.pxe_utils._link_ip_address_pxe_configs',
+                autospec=True)
+    @mock.patch('ironic.common.utils.write_to_file', autospec=True)
+    @mock.patch('ironic.common.utils.render_template', autospec=True)
+    @mock.patch('oslo_utils.fileutils.ensure_tree', autospec=True)
+    def test_create_pxe_config_uefi_mac_address(
+            self, ensure_tree_mock, render_mock,
+            write_mock, link_ip_configs_mock,
+            link_mac_pxe_configs_mock, chmod_mock):
+        # TODO(TheJulia): We should... like... fix the template to
+        # enable mac address usage.....
+        grub_tmplte = "ironic/drivers/modules/pxe_grub_config.template"
+        link_ip_configs_mock.side_efect = exception.FailedToGetIPAddressOnPort(
+            port_id='blah')
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            task.node.properties['capabilities'] = 'boot_mode:uefi'
+            pxe_utils.create_pxe_config(task, self.pxe_options,
+                                        grub_tmplte)
+
+            ensure_calls = [
+                mock.call(os.path.join(CONF.pxe.tftp_root, self.node.uuid)),
+                mock.call(os.path.join(CONF.pxe.tftp_root, 'pxelinux.cfg')),
+            ]
+            ensure_tree_mock.assert_has_calls(ensure_calls)
+            chmod_mock.assert_not_called()
+            render_mock.assert_called_with(
+                grub_tmplte,
+                {'pxe_options': self.pxe_options,
+                 'ROOT': '(( ROOT ))',
+                 'DISK_IDENTIFIER': '(( DISK_IDENTIFIER ))'})
+            link_mac_pxe_configs_mock.assert_called_once_with(task)
+            link_ip_configs_mock.assert_called_once_with(task, False)
+
+        pxe_cfg_file_path = pxe_utils.get_pxe_config_file_path(self.node.uuid)
+        write_mock.assert_called_with(pxe_cfg_file_path,
+                                      render_mock.return_value)
+
+    @mock.patch.object(os, 'chmod', autospec=True)
     @mock.patch('ironic.common.pxe_utils._link_mac_pxe_configs', autospec=True)
     @mock.patch('ironic.common.utils.write_to_file', autospec=True)
     @mock.patch('ironic.common.utils.render_template', autospec=True)
@@ -548,8 +607,13 @@ class TestPXEUtils(db_base.DbTestCase):
         with task_manager.acquire(self.context, self.node.uuid) as task:
             pxe_utils.clean_up_pxe_config(task)
 
-        unlink_mock.assert_called_once_with("/tftpboot/pxelinux.cfg/01-%s"
-                                            % address.replace(':', '-'))
+        ensure_calls = [
+            mock.call("/tftpboot/pxelinux.cfg/01-%s"
+                      % address.replace(':', '-')),
+            mock.call("/tftpboot/%s.conf" % address)
+        ]
+
+        unlink_mock.assert_has_calls(ensure_calls)
         rmtree_mock.assert_called_once_with(
             os.path.join(CONF.pxe.tftp_root, self.node.uuid))
 
@@ -806,6 +870,35 @@ class TestPXEUtils(db_base.DbTestCase):
     @mock.patch('ironic_lib.utils.unlink_without_raise', autospec=True)
     @mock.patch('ironic.common.dhcp_factory.DHCPFactory.provider',
                 autospec=True)
+    def test_clean_up_pxe_config_uefi_mac_address(
+            self, provider_mock, unlink_mock, rmtree_mock):
+        ip_address = '10.10.0.1'
+        address = "aa:aa:aa:aa:aa:aa"
+        properties = {'capabilities': 'boot_mode:uefi'}
+        object_utils.create_test_port(self.context, node_id=self.node.id,
+                                      address=address)
+
+        provider_mock.get_ip_addresses.return_value = [ip_address]
+
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            task.node.properties = properties
+            pxe_utils.clean_up_pxe_config(task)
+
+            unlink_calls = [
+                mock.call('/tftpboot/10.10.0.1.conf'),
+                mock.call('/tftpboot/0A0A0001.conf'),
+                mock.call('/tftpboot/pxelinux.cfg/01-%s' %
+                          address.replace(':', '-'))
+            ]
+
+            unlink_mock.assert_has_calls(unlink_calls)
+            rmtree_mock.assert_called_once_with(
+                os.path.join(CONF.pxe.tftp_root, self.node.uuid))
+
+    @mock.patch('ironic.common.utils.rmtree_without_raise', autospec=True)
+    @mock.patch('ironic_lib.utils.unlink_without_raise', autospec=True)
+    @mock.patch('ironic.common.dhcp_factory.DHCPFactory.provider',
+                autospec=True)
     def test_clean_up_pxe_config_uefi_instance_info(self,
                                                     provider_mock, unlink_mock,
                                                     rmtree_mock):
@@ -841,8 +934,13 @@ class TestPXEUtils(db_base.DbTestCase):
             task.node.properties = properties
             pxe_utils.clean_up_pxe_config(task)
 
-            unlink_mock.assert_called_once_with(
-                '/httpboot/pxelinux.cfg/aa-aa-aa-aa-aa-aa')
+            ensure_calls = [
+                mock.call("/httpboot/pxelinux.cfg/%s"
+                          % address.replace(':', '-')),
+                mock.call("/httpboot/%s.conf" % address)
+            ]
+
+            unlink_mock.assert_has_calls(ensure_calls)
             rmtree_mock.assert_called_once_with(
                 os.path.join(CONF.deploy.http_root, self.node.uuid))
 
