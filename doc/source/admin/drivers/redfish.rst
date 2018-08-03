@@ -88,6 +88,22 @@ a node with the ``redfish`` driver. For example:
 For more information about enrolling nodes see :ref:`enrollment`
 in the install guide.
 
+Features of the ``redfish`` hardware type
+=========================================
+
+Boot mode support
+^^^^^^^^^^^^^^^^^
+
+The ``redfish`` hardware type can read current boot mode from the
+bare metal node as well as set it to either Legacy BIOS or UEFI.
+
+.. note::
+
+   Boot mode management is the optional part of the Redfish specification.
+   Not all Redfish-compliant BMCs might implement it. In that case
+   it remains the responsibility of the operator to configure proper
+   boot mode to their bare metal nodes.
+
 .. _Redfish: http://redfish.dmtf.org/
 .. _Sushy: https://git.openstack.org/cgit/openstack/sushy
 .. _TLS: https://en.wikipedia.org/wiki/Transport_Layer_Security
