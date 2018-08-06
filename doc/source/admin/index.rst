@@ -25,6 +25,7 @@ the services.
    Emitting Software Metrics <metrics>
    Auditing API Traffic <api-audit-support>
    Service State Reporting <gmr>
+   Conductor Groups <conductor-groups>
    Upgrade Guide <upgrade-guide>
    Security <security>
    Troubleshooting FAQ <troubleshooting>
