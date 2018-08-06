@@ -30,6 +30,21 @@ Please see :doc:`/install/configure-ipmi` for the required dependencies.
 
     [DEFAULT]
     enabled_hardware_types = ipmi
+    enabled_management_interfaces = ipmitool,noop
+    enabled_power_interfaces = ipmitool
+
+   Optionally, enable the :doc:`vendor passthru interface
+   </contributor/vendor-passthru>` and either or both :doc:`console interfaces
+   </admin/console>`:
+
+   .. code-block:: ini
+
+    [DEFAULT]
+    enabled_hardware_types = ipmi
+    enabled_console_interfaces = ipmitool-socat,ipmitool-shellinabox,no-console
+    enabled_management_interfaces = ipmitool,noop
+    enabled_power_interfaces = ipmitool
+    enabled_vendor_interfaces = ipmitool,no-vendor
 
 #. Restart the Ironic conductor service.
 
@@ -152,6 +167,34 @@ protocol version::
 .. warning::
    Version *1.5* of the IPMI protocol does not support encryption.
    Therefore, it is highly recommended that version 2.0 is used.
+
+Static boot order configuration
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Some hardware is known to misbehave when changing the boot device through the
+IPMI protocol. To work around it you can use the ``noop`` management interface
+implementation with the ``ipmi`` hardware type. In this case the Bare Metal
+service will not change the boot device for you, leaving the pre-configured
+boot order.
+
+For example, in case of the :ref:`pxe-boot`:
+
+#. Via any available means configure the boot order on the node as follows:
+
+   #. Boot from PXE/iPXE on the provisioning NIC.
+
+      .. warning::
+         If it is not possible to limit network boot to only provisioning NIC,
+         make sure that no other DHCP/PXE servers are accessible by the node.
+
+   #. Boot from hard drive.
+
+#. Make sure the ``noop`` management interface is enabled, see example in
+   `Enabling the IPMI hardware type`_.
+
+#. Change the node to use the ``noop`` management interface::
+
+      openstack baremetal node set <NODE> --management-interface noop
 
 .. TODO(lucasagomes): Write about privilege level
 .. TODO(lucasagomes): Write about force boot device

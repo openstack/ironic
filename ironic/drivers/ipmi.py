@@ -17,6 +17,7 @@ Hardware type for IPMI (using ipmitool).
 from ironic.drivers import generic
 from ironic.drivers.modules import ipmitool
 from ironic.drivers.modules import noop
+from ironic.drivers.modules import noop_mgmt
 
 
 class IPMIHardware(generic.GenericHardware):
@@ -35,7 +36,7 @@ class IPMIHardware(generic.GenericHardware):
     @property
     def supported_management_interfaces(self):
         """List of supported management interfaces."""
-        return [ipmitool.IPMIManagement]
+        return [ipmitool.IPMIManagement, noop_mgmt.NoopManagement]
 
     @property
     def supported_power_interfaces(self):
