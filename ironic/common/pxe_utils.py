@@ -265,9 +265,9 @@ def create_pxe_config(task, pxe_options, template=None):
     pxe_config = utils.render_template(template, params)
     utils.write_to_file(pxe_config_file_path, pxe_config)
 
+    # Always write the mac addresses
+    _link_mac_pxe_configs(task)
     if is_uefi_boot_mode and not CONF.pxe.ipxe_enabled:
-        # Always write the mac addresses
-        _link_mac_pxe_configs(task)
         try:
             _link_ip_address_pxe_configs(task, hex_form)
         # NOTE(TheJulia): The IP address support will fail if the
@@ -281,8 +281,6 @@ def create_pxe_config(task, pxe_options, template=None):
                     LOG.error('Unable to create boot config, IP address '
                               'was unable to be retrieved. %(error)s',
                               {'error': e})
-    else:
-        _link_mac_pxe_configs(task)
 
 
 def create_ipxe_boot_script():
