@@ -24,12 +24,17 @@ functionality between a power interface and a deploy interface, when both rely
 on separate vendor_passthru methods.
 """
 
+from oslo_log import log
+
 from ironic.common import boot_devices
 from ironic.common import exception
 from ironic.common.i18n import _
 from ironic.common import states
 from ironic.drivers import base
 from ironic import objects
+
+
+LOG = log.getLogger(__name__)
 
 
 class FakePower(base.PowerInterface):
@@ -189,7 +194,12 @@ class FakeManagement(base.ManagementInterface):
         return {}
 
     def validate(self, task):
-        pass
+        # TODO(dtantsur): remove when snmp hardware type no longer supports the
+        # fake management.
+        if task.node.driver == 'snmp':
+            LOG.warning('Using "fake" management with "snmp" hardware type '
+                        'is deprecated, use "noop" instead for node %s',
+                        task.node.uuid)
 
     def get_supported_boot_devices(self, task):
         return [boot_devices.PXE]
