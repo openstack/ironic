@@ -728,8 +728,7 @@ class PXEBoot(base.BootInterface):
         _parse_driver_info(task.node, mode='rescue')
 
 
-class PXERamdiskDeploy(agent.AgentDeploy, agent.AgentDeployMixin,
-                       base.DeployInterface):
+class PXERamdiskDeploy(agent.AgentDeploy):
 
     def validate(self, task):
         if 'ramdisk_boot' not in task.driver.boot.capabilities:
