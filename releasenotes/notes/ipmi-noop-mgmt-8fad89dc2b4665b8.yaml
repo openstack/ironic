@@ -1,0 +1,7 @@
+---
+features:
+  - |
+    Adds support for the new ``noop`` interface to the ``ipmi`` hardware type.
+    This interface targets hardware that does not correctly change boot mode
+    via the IPMI protocol. Using it requires pre-configuring the boot order
+    on a node to try PXE, then fall back to local booting.

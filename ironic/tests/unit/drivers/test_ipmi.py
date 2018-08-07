@@ -15,6 +15,7 @@ from ironic.drivers.modules import agent
 from ironic.drivers.modules import ipmitool
 from ironic.drivers.modules import iscsi_deploy
 from ironic.drivers.modules import noop
+from ironic.drivers.modules import noop_mgmt
 from ironic.drivers.modules import pxe
 from ironic.drivers.modules.storage import cinder
 from ironic.drivers.modules.storage import noop as noop_storage
@@ -28,7 +29,7 @@ class IPMIHardwareTestCase(db_base.DbTestCase):
         super(IPMIHardwareTestCase, self).setUp()
         self.config(enabled_hardware_types=['ipmi'],
                     enabled_power_interfaces=['ipmitool'],
-                    enabled_management_interfaces=['ipmitool'],
+                    enabled_management_interfaces=['ipmitool', 'noop'],
                     enabled_raid_interfaces=['no-raid', 'agent'],
                     enabled_console_interfaces=['no-console'],
                     enabled_vendor_interfaces=['ipmitool', 'no-vendor'])
@@ -99,3 +100,12 @@ class IPMIHardwareTestCase(db_base.DbTestCase):
             rescue_interface='agent')
         with task_manager.acquire(self.context, node.id) as task:
             self._validate_interfaces(task, rescue=agent.AgentRescue)
+
+    def test_override_with_noop_mgmt(self):
+        self.config(enabled_management_interfaces=['ipmitool', 'noop'])
+        node = obj_utils.create_test_node(
+            self.context, driver='ipmi',
+            management_interface='noop')
+        with task_manager.acquire(self.context, node.id) as task:
+            self._validate_interfaces(task,
+                                      management=noop_mgmt.NoopManagement)
