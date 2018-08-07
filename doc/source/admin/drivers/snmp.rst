@@ -12,7 +12,7 @@ deployment and network-configured boot.
 .. note::
     Unlike most of the other power interfaces, the SNMP power interface does
     not have a corresponding management interface. The SNMP hardware type uses
-    the ``fake`` management interface instead.
+    the ``noop`` management interface instead.
 
 List of supported devices
 =========================
@@ -74,7 +74,7 @@ Enabling the SNMP Hardware Type
 
     [DEFAULT]
     enabled_hardware_types = snmp
-    enabled_management_interfaces = fake
+    enabled_management_interfaces = noop
     enabled_power_interfaces = snmp
 
 #. To set the default boot option, update ``default_boot_option`` in

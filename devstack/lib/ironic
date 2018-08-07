@@ -1249,7 +1249,7 @@ function configure_ironic_conductor {
         # TODO(lucasagomes): We need to make it easier to configure
         # specific driver interfaces in DevStack
         iniset $IRONIC_CONF_FILE DEFAULT enabled_power_interfaces "snmp"
-        iniset $IRONIC_CONF_FILE DEFAULT enabled_management_interfaces "fake"
+        iniset $IRONIC_CONF_FILE DEFAULT enabled_management_interfaces "noop"
     fi
 
     if is_ansible_deploy_enabled; then

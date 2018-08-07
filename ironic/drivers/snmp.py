@@ -18,6 +18,7 @@ SNMP hardware types.
 
 from ironic.drivers import generic
 from ironic.drivers.modules import fake
+from ironic.drivers.modules import noop_mgmt
 from ironic.drivers.modules import snmp
 
 
@@ -32,4 +33,4 @@ class SNMPHardware(generic.GenericHardware):
     @property
     def supported_management_interfaces(self):
         """List of supported management interfaces."""
-        return [fake.FakeManagement]
+        return [noop_mgmt.NoopManagement, fake.FakeManagement]

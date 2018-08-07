@@ -1,0 +1,10 @@
+---
+upgrade:
+  - |
+    The ``snmp`` hardware type now uses the ``noop`` management interface
+    instead of ``fake`` used previously. Support for ``fake`` is left for
+    backward compatibility.
+deprecations:
+  - |
+    Using the ``fake`` management interfaces with the ``snmp`` hardware type
+    is now deprecated, please use ``noop`` instead.
