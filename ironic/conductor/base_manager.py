@@ -179,14 +179,12 @@ class BaseConductorManager(object):
         self._periodic_tasks_worker.add_done_callback(
             self._on_periodic_tasks_stop)
 
-        self._fail_transient_state(
-            states.DEPLOYING,
-            _("The deployment can't be resumed by conductor "
-              "%s. Moving to fail state.") % self.host)
-        self._fail_transient_state(
-            states.CLEANING,
-            _("The cleaning can't be resumed by conductor "
-              "%s. Moving to fail state.") % self.host)
+        for state in states.STUCK_STATES_TREATED_AS_FAIL:
+            self._fail_transient_state(
+                state,
+                _("The %(state)s state can't be resumed by conductor "
+                  "%(host)s. Moving to fail state.") %
+                {'state': state, 'host': self.host})
 
         # Start consoles if it set enabled in a greenthread.
         try:

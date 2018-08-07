@@ -4035,11 +4035,11 @@ class DoNodeRescueTestCase(mgr_utils.CommonMixIn, mgr_utils.ServiceSetUpMixin,
 
     @mock.patch('ironic.drivers.modules.fake.FakeRescue.rescue')
     def test__do_node_rescue_returns_rescuewait(self, mock_rescue):
+        self._start_service()
         node = obj_utils.create_test_node(self.context, driver='fake-hardware',
                                           provision_state=states.RESCUING,
                                           instance_info={'rescue_password':
                                                          'password'})
-        self._start_service()
         with task_manager.TaskManager(self.context, node.uuid) as task:
             mock_rescue.return_value = states.RESCUEWAIT
             self.service._do_node_rescue(task)
@@ -4050,11 +4050,11 @@ class DoNodeRescueTestCase(mgr_utils.CommonMixIn, mgr_utils.ServiceSetUpMixin,
 
     @mock.patch('ironic.drivers.modules.fake.FakeRescue.rescue')
     def test__do_node_rescue_returns_rescue(self, mock_rescue):
+        self._start_service()
         node = obj_utils.create_test_node(self.context, driver='fake-hardware',
                                           provision_state=states.RESCUING,
                                           instance_info={'rescue_password':
                                                          'password'})
-        self._start_service()
         with task_manager.TaskManager(self.context, node.uuid) as task:
             mock_rescue.return_value = states.RESCUE
             self.service._do_node_rescue(task)
@@ -4066,11 +4066,11 @@ class DoNodeRescueTestCase(mgr_utils.CommonMixIn, mgr_utils.ServiceSetUpMixin,
     @mock.patch.object(manager, 'LOG')
     @mock.patch('ironic.drivers.modules.fake.FakeRescue.rescue')
     def test__do_node_rescue_errors(self, mock_rescue, mock_log):
+        self._start_service()
         node = obj_utils.create_test_node(self.context, driver='fake-hardware',
                                           provision_state=states.RESCUING,
                                           instance_info={'rescue_password':
                                                          'password'})
-        self._start_service()
         mock_rescue.side_effect = exception.InstanceRescueFailure(
             'failed to rescue')
         with task_manager.TaskManager(self.context, node.uuid) as task:
@@ -4086,11 +4086,11 @@ class DoNodeRescueTestCase(mgr_utils.CommonMixIn, mgr_utils.ServiceSetUpMixin,
     @mock.patch.object(manager, 'LOG')
     @mock.patch('ironic.drivers.modules.fake.FakeRescue.rescue')
     def test__do_node_rescue_bad_state(self, mock_rescue, mock_log):
+        self._start_service()
         node = obj_utils.create_test_node(self.context, driver='fake-hardware',
                                           provision_state=states.RESCUING,
                                           instance_info={'rescue_password':
                                                          'password'})
-        self._start_service()
         mock_rescue.return_value = states.ACTIVE
         with task_manager.TaskManager(self.context, node.uuid) as task:
             self.service._do_node_rescue(task)
@@ -4156,11 +4156,11 @@ class DoNodeRescueTestCase(mgr_utils.CommonMixIn, mgr_utils.ServiceSetUpMixin,
 
     @mock.patch('ironic.drivers.modules.fake.FakeRescue.unrescue')
     def test__do_node_unrescue(self, mock_unrescue):
+        self._start_service()
         node = obj_utils.create_test_node(self.context, driver='fake-hardware',
                                           provision_state=states.UNRESCUING,
                                           target_provision_state=states.ACTIVE,
                                           instance_info={})
-        self._start_service()
         with task_manager.TaskManager(self.context, node.uuid) as task:
             mock_unrescue.return_value = states.ACTIVE
             self.service._do_node_unrescue(task)
@@ -4171,11 +4171,11 @@ class DoNodeRescueTestCase(mgr_utils.CommonMixIn, mgr_utils.ServiceSetUpMixin,
     @mock.patch.object(manager, 'LOG')
     @mock.patch('ironic.drivers.modules.fake.FakeRescue.unrescue')
     def test__do_node_unrescue_ironic_error(self, mock_unrescue, mock_log):
+        self._start_service()
         node = obj_utils.create_test_node(self.context, driver='fake-hardware',
                                           provision_state=states.UNRESCUING,
                                           target_provision_state=states.ACTIVE,
                                           instance_info={})
-        self._start_service()
         mock_unrescue.side_effect = exception.InstanceUnrescueFailure(
             'Unable to unrescue')
         with task_manager.TaskManager(self.context, node.uuid) as task:
@@ -4190,11 +4190,11 @@ class DoNodeRescueTestCase(mgr_utils.CommonMixIn, mgr_utils.ServiceSetUpMixin,
     @mock.patch.object(manager, 'LOG')
     @mock.patch('ironic.drivers.modules.fake.FakeRescue.unrescue')
     def test__do_node_unrescue_other_error(self, mock_unrescue, mock_log):
+        self._start_service()
         node = obj_utils.create_test_node(self.context, driver='fake-hardware',
                                           provision_state=states.UNRESCUING,
                                           target_provision_state=states.ACTIVE,
                                           instance_info={})
-        self._start_service()
         mock_unrescue.side_effect = RuntimeError('Some failure')
         with task_manager.TaskManager(self.context, node.uuid) as task:
             self.assertRaises(RuntimeError,
@@ -4207,10 +4207,10 @@ class DoNodeRescueTestCase(mgr_utils.CommonMixIn, mgr_utils.ServiceSetUpMixin,
 
     @mock.patch('ironic.drivers.modules.fake.FakeRescue.unrescue')
     def test__do_node_unrescue_bad_state(self, mock_unrescue):
+        self._start_service()
         node = obj_utils.create_test_node(self.context, driver='fake-hardware',
                                           provision_state=states.UNRESCUING,
                                           instance_info={})
-        self._start_service()
         mock_unrescue.return_value = states.RESCUEWAIT
         with task_manager.TaskManager(self.context, node.uuid) as task:
             self.service._do_node_unrescue(task)
@@ -4272,6 +4272,7 @@ class DoNodeVerifyTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
     @mock.patch('ironic.drivers.modules.fake.FakePower.validate')
     def test__do_node_verify(self, mock_validate, mock_get_power_state,
                              mock_notif):
+        self._start_service()
         mock_get_power_state.return_value = states.POWER_OFF
         # Required for exception handling
         mock_notif.__name__ = 'NodeCorrectedPowerStateNotification'
@@ -4282,7 +4283,6 @@ class DoNodeVerifyTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
             last_error=None,
             power_state=states.NOSTATE)
 
-        self._start_service()
         with task_manager.acquire(
                 self.context, node['id'], shared=False) as task:
             self.service._do_node_verify(task)
@@ -4311,6 +4311,7 @@ class DoNodeVerifyTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
     @mock.patch('ironic.drivers.modules.fake.FakePower.validate')
     def test__do_node_verify_validation_fails(self, mock_validate,
                                               mock_get_power_state):
+        self._start_service()
         node = obj_utils.create_test_node(
             self.context, driver='fake-hardware',
             provision_state=states.VERIFYING,
@@ -4320,7 +4321,6 @@ class DoNodeVerifyTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
 
         mock_validate.side_effect = RuntimeError("boom")
 
-        self._start_service()
         with task_manager.acquire(
                 self.context, node['id'], shared=False) as task:
             self.service._do_node_verify(task)
@@ -4339,6 +4339,7 @@ class DoNodeVerifyTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
     @mock.patch('ironic.drivers.modules.fake.FakePower.validate')
     def test__do_node_verify_get_state_fails(self, mock_validate,
                                              mock_get_power_state):
+        self._start_service()
         node = obj_utils.create_test_node(
             self.context, driver='fake-hardware',
             provision_state=states.VERIFYING,
@@ -4348,7 +4349,6 @@ class DoNodeVerifyTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
 
         mock_get_power_state.side_effect = RuntimeError("boom")
 
-        self._start_service()
         with task_manager.acquire(
                 self.context, node['id'], shared=False) as task:
             self.service._do_node_verify(task)

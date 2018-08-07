@@ -234,6 +234,15 @@ UNSTABLE_STATES = (DEPLOYING, DEPLOYWAIT, CLEANING, CLEANWAIT, VERIFYING,
                    RESCUEWAIT, UNRESCUING)
 """States that can be changed without external request."""
 
+STUCK_STATES_TREATED_AS_FAIL = (DEPLOYING, CLEANING, VERIFYING, INSPECTING,
+                                ADOPTING, RESCUING, UNRESCUING)
+"""States that cannot be resumed once a conductor dies.
+
+If a node gets stuck with one of these states for some reason
+(eg. conductor goes down when executing task), node will be moved
+to fail state.
+"""
+
 ##############
 # Power states
 ##############
