@@ -476,11 +476,12 @@ class IRMCDeployPrivateMethodsTestCase(test_common.BaseIRMCTest):
                                          create_boot_iso_mock):
         CONF.pxe.pxe_append_params = 'kernel-params'
 
-        deploy_info_mock.return_value = {'image_source': 'image-uuid'}
+        deploy_info_mock.return_value = \
+            {'image_source': 'image-uuid',
+             'irmc_deploy_iso': '02f9d414-2ce0-4cf5-b48f-dbc1bf678f55'}
         image_props_mock.return_value = {'kernel_id': 'kernel_uuid',
                                          'ramdisk_id': 'ramdisk_uuid'}
 
-        CONF.irmc.remote_image_share_name = '/remote_image_share_root'
         boot_mode_mock.return_value = 'uefi'
 
         with task_manager.acquire(self.context, self.node.uuid,
@@ -496,8 +497,7 @@ class IRMCDeployPrivateMethodsTestCase(test_common.BaseIRMCTest):
                 '/remote_image_share_root/'
                 "boot-%s.iso" % self.node.uuid,
                 'kernel_uuid', 'ramdisk_uuid',
-                'file:///remote_image_share_root/'
-                "deploy-%s.iso" % self.node.uuid,
+                '02f9d414-2ce0-4cf5-b48f-dbc1bf678f55',
                 'root-uuid', 'kernel-params', 'uefi')
             task.node.refresh()
             self.assertEqual("boot-%s.iso" % self.node.uuid,
@@ -524,7 +524,6 @@ class IRMCDeployPrivateMethodsTestCase(test_common.BaseIRMCTest):
         tempfile_mock.side_effect = [mock_image_file_handle]
 
         deploy_args = {'arg1': 'val1', 'arg2': 'val2'}
-        CONF.irmc.remote_image_share_name = '/remote_image_share_root'
 
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
@@ -552,7 +551,6 @@ class IRMCDeployPrivateMethodsTestCase(test_common.BaseIRMCTest):
         tempfile_mock.side_effect = [mock_image_file_handle]
 
         deploy_args = {'arg1': 'val1', 'arg2': 'val2'}
-        CONF.irmc.remote_image_share_name = '/remote_image_share_root'
         copyfile_mock.side_effect = IOError("fake error")
 
         with task_manager.acquire(self.context, self.node.uuid,
