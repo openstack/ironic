@@ -40,7 +40,7 @@ well.
 
     sudo apt-get install build-essential python-dev libssl-dev python-pip libmysqlclient-dev libxml2-dev libxslt-dev libpq-dev git git-review libffi-dev gettext ipmitool psmisc graphviz libjpeg-dev
 
-- Fedora 21/RHEL7/CentOS7::
+- RHEL7/CentOS7::
 
     sudo yum install python-devel openssl-devel python-pip mysql-devel libxml2-devel libxslt-devel postgresql-devel git git-review libffi-devel gettext ipmitool psmisc graphviz gcc libjpeg-turbo-devel
 
@@ -48,7 +48,7 @@ well.
   package git-review available", use the EPEL software repository.
   Instructions can be found at `<https://fedoraproject.org/wiki/EPEL/FAQ#howtouse>`_.
 
-- Fedora 22 or higher::
+- Fedora::
 
     sudo dnf install python-devel openssl-devel python-pip mysql-devel libxml2-devel libxslt-devel postgresql-devel git git-review libffi-devel gettext ipmitool psmisc graphviz gcc libjpeg-turbo-devel
 
@@ -236,43 +236,51 @@ This option will install RabbitMQ and MySQL on your local system. This may not
 be desirable in some situations (eg, you're developing from a laptop and do not
 want to run a MySQL server on it all the time).
 
-#. Install rabbitmq-server::
+#. Install rabbitmq-server:
 
-    # install rabbit message broker
-    # Ubuntu/Debian:
-    sudo apt-get install rabbitmq-server
+   Ubuntu/Debian::
 
-    # Fedora 21/RHEL7/CentOS7:
-    sudo yum install rabbitmq-server
-    sudo systemctl start rabbitmq-server.service
+       sudo apt-get install rabbitmq-server
 
-    # Fedora 22 or higher:
-    sudo dnf install rabbitmq-server
-    sudo systemctl start rabbitmq-server.service
+   RHEL7/CentOS7::
 
-    # openSUSE/SLE 12:
-    sudo zypper install rabbitmq-server
-    sudo systemctl start rabbitmq-server.service
+       sudo yum install rabbitmq-server
+       sudo systemctl start rabbitmq-server.service
 
-#. Install mysql-server::
+   Fedora::
 
-    # Ubuntu/Debian:
-    # sudo apt-get install mysql-server
+       sudo dnf install rabbitmq-server
+       sudo systemctl start rabbitmq-server.service
 
-    # Fedora 21/RHEL7/CentOS7:
-    # sudo yum install mariadb mariadb-server
-    # sudo systemctl start mariadb.service
+   openSUSE/SLE 12::
 
-    # Fedora 22 or higher:
-    # sudo dnf install mariadb mariadb-server
-    # sudo systemctl start mariadb.service
+       sudo zypper install rabbitmq-server
+       sudo systemctl start rabbitmq-server.service
 
-    # openSUSE/SLE 12:
-    # sudo zypper install mariadb
-    # sudo systemctl start mysql.service
+#. Install mysql-server:
 
-    # If using MySQL, you need to create the initial database
-    mysql -u root -pMYSQL_ROOT_PWD -e "create schema ironic"
+   Ubuntu/Debian::
+
+       sudo apt-get install mysql-server
+
+   RHEL7/CentOS7::
+
+       sudo yum install mariadb mariadb-server
+       sudo systemctl start mariadb.service
+
+   Fedora::
+
+       sudo dnf install mariadb mariadb-server
+       sudo systemctl start mariadb.service
+
+   openSUSE/SLE 12::
+
+       sudo zypper install mariadb
+       sudo systemctl start mysql.service
+
+   If using MySQL, you need to create the initial database::
+
+       mysql -u root -pMYSQL_ROOT_PWD -e "create schema ironic"
 
    .. note:: if you choose not to install mysql-server, ironic will default to
             using a local sqlite database.
