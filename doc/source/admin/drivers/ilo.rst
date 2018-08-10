@@ -91,6 +91,13 @@ The ``ilo`` hardware type supports following hardware interfaces:
         enabled_hardware_types = ilo
         enabled_console_interfaces = ilo,no-console
 
+    .. note::
+       To use ``ilo`` console interface you need to enable iLO feature
+       'IPMI/DCMI over LAN Access' on
+       `iLO4 <https://support.hpe.com/hpsc/doc/public/display?docId=c03334051>`_
+       and `iLO5 <https://support.hpe.com/hpsc/doc/public/display?docId=a00018324en_us>`_
+       management engine.
+
 * inspect
     Supports ``ilo`` and ``inspector``. The default is ``ilo``. They
     can be enabled by using the ``[DEFAULT]enabled_inspect_interfaces`` option
@@ -742,6 +749,11 @@ Inspection can also discover the following extra capabilities for iLO driver:
        downloaded from `here <https://sourceforge.net/projects/ipmitool/>`__.
      * The iLO firmware version needs to be 2.10 or above for nic_capacity to be
        discovered.
+     * To discover IPMI based attributes you need to enable iLO feature
+       'IPMI/DCMI over LAN Access' on
+       `iLO4 <https://support.hpe.com/hpsc/doc/public/display?docId=c03334051>`_
+       and `iLO5 <https://support.hpe.com/hpsc/doc/public/display?docId=a00018324en_us>`_
+       management engine.
 
 The operator can specify these capabilities in nova flavor for node to be selected
 for scheduling::
