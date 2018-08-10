@@ -287,9 +287,7 @@ def _prepare_boot_iso(task, root_uuid):
         ramdisk_href = (task.node.instance_info.get('ramdisk')
                         or image_properties['ramdisk_id'])
 
-        deploy_iso_filename = _get_iso_name(task.node, label='deploy')
-        deploy_iso = ('file://' + os.path.join(
-            CONF.irmc.remote_image_share_root, deploy_iso_filename))
+        deploy_iso_href = deploy_info['irmc_deploy_iso']
         boot_mode = boot_mode_utils.get_boot_mode_for_deploy(task.node)
         kernel_params = CONF.pxe.pxe_append_params
 
@@ -299,7 +297,7 @@ def _prepare_boot_iso(task, root_uuid):
 
         images.create_boot_iso(task.context, boot_iso_fullpathname,
                                kernel_href, ramdisk_href,
-                               deploy_iso, root_uuid,
+                               deploy_iso_href, root_uuid,
                                kernel_params, boot_mode)
 
         driver_internal_info['irmc_boot_iso'] = boot_iso_filename
