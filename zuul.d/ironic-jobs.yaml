@@ -226,3 +226,24 @@
         c-sch: True
         c-vol: True
         cinder: True
+
+- job:
+    name: ironic-tempest-dsvm-ironic-inspector
+    description: ironic-tempest-dsvm-ironic-inspector
+    parent: ironic-base
+    required-projects:
+      - openstack/ironic-inspector
+    vars:
+      tempest_test_regex: InspectorBasicTest
+      devstack_localrc:
+        IRONIC_DEFAULT_DEPLOY_INTERFACE: direct
+        IRONIC_INSPECTOR_MANAGE_FIREWALL: True
+        IRONIC_TEMPEST_WHOLE_DISK_IMAGE: True
+        IRONIC_VM_EPHEMERAL_DISK: 0
+      devstack_plugins:
+        ironic-inspector: git://git.openstack.org/openstack/ironic-inspector
+      devstack_services:
+        s-account: True
+        s-container: True
+        s-object: True
+        s-proxy: True
