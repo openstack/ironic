@@ -69,6 +69,12 @@ class ValidateRaidConfigurationTestCase(base.TestCase):
                           raid_config,
                           raid_config_schema=self.schema)
 
+    def test_validate_configuration_zero_size_gb(self):
+        raid_config = json.loads(raid_constants.RAID_CONFIG_ZERO_SIZE_GB)
+
+        raid.validate_configuration(raid_config,
+                                    raid_config_schema=self.schema)
+
     def test_validate_configuration_max_size_gb(self):
         raid_config = json.loads(raid_constants.RAID_CONFIG_MAX_SIZE_GB)
         raid.validate_configuration(raid_config,
