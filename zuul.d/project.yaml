@@ -1,4 +1,12 @@
 - project:
+    templates:
+      - openstack-python-jobs
+      - openstack-python35-jobs
+      - publish-openstack-sphinx-docs
+      - periodic-stable-jobs
+      - check-requirements
+      - release-notes-jobs
+      - install-guide-jobs
     check:
       jobs:
         - ironic-dsvm-standalone
@@ -20,6 +28,7 @@
             voting: false
         - ironic-tempest-dsvm-pxe_ipmitool-postgres:
             voting: false
+        - openstack-tox-cover
     gate:
       queue: ironic
       jobs:
@@ -34,9 +43,13 @@
         - ironic-tempest-dsvm-ipa-partition-uefi-pxe_ipmitool-tinyipa
         - ironic-tempest-dsvm-ipa-wholedisk-agent_ipmitool-tinyipa-multinode
         - ironic-tempest-dsvm-ipa-wholedisk-bios-agent_ipmitool-tinyipa
+        - openstack-tox-cover
     experimental:
       jobs:
         - ironic-dsvm-functional
         - ironic-tempest-dsvm-ipa-resourceclasses-partition-pxe_ipmitool-tinyipa
         - ironic-tempest-dsvm-parallel
         - ironic-tempest-dsvm-pxe_ipa-full
+    post:
+      jobs:
+        - openstack-tox-cover
