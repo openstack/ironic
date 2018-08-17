@@ -95,7 +95,7 @@ opts = [
     cfg.StrOpt('pxe_config_subdir',
                default='pxelinux.cfg',
                help=_('Directory in which to create symbolic links which '
-                      'represent the MAC or IP address of the the ports on '
+                      'represent the MAC or IP address of the ports on '
                       'a node and allow boot loaders to load the PXE '
                       'file for the node. This directory name is relative '
                       'to the PXE or iPXE folders.')),
