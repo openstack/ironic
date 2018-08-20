@@ -6,9 +6,9 @@ Contributor Vision
 
 Background
 ==========
-During the Rocky Project Teams Gathering, The contributors in the room at that
-time took a few minutes to write out out each contributor's vision of where
-they see ironic in five years time.
+During the Rocky Project Teams Gathering (Feburary/March 2018),
+The contributors in the room at that time took a few minutes to write out
+each contributor's vision of where they see ironic in five years time.
 
 After everyone had a chance to spend a few minutes writing, we went around the
 room and gave every contributor the chance to read their vision and allow other
@@ -22,8 +22,8 @@ and truly helped to ensure that the entire team proceeded to use the same
 the week. We also agreed that we should write a shared vision, to have
 something to reference and remind us of where we want to go as a community.
 
-Rocky Vision
-============
+Rocky Vision: For 2022-2023
+===========================
 
 Common Themes
 -------------
@@ -51,7 +51,7 @@ during the discussion among fourteen contributors.
 Vision Statement
 ----------------
 
-The year is 2022. We're meeting planning the Z release of Ironic.
+The year is 2022. We're meeting to plan the Z release of Ironic.
 We stopped to reflect upon the last few years of Ironic's growth,
 how we had come such a long way to become the defacto open source
 baremetal deployment technology. How we had grown our use cases,
