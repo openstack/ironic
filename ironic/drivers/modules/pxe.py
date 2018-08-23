@@ -589,6 +589,37 @@ class PXEBoot(base.BootInterface):
         else:
             _clean_up_pxe_env(task, images_info)
 
+    def _prepare_instance_pxe_config(self, task, image_info,
+                                     iscsi_boot=False,
+                                     ramdisk_boot=False):
+        """Prepares the config file for PXE boot
+
+        :param task: a task from TaskManager.
+        :param image_info: a dict of values of instance image
+            metadata to set on the configuration file.
+        :param iscsi_boot: if boot is from an iSCSI volume or not.
+        :param ramdisk_boot: if the boot is to a ramdisk configuration.
+        :returns: None
+        """
+
+        node = task.node
+        dhcp_opts = pxe_utils.dhcp_options_for_instance(task)
+        provider = dhcp_factory.DHCPFactory()
+        provider.update_dhcp(task, dhcp_opts)
+        pxe_config_path = pxe_utils.get_pxe_config_file_path(
+            node.uuid)
+        if not os.path.isfile(pxe_config_path):
+            pxe_options = _build_pxe_config_options(
+                task, image_info, service=ramdisk_boot)
+            pxe_config_template = (
+                deploy_utils.get_pxe_config_template(node))
+            pxe_utils.create_pxe_config(
+                task, pxe_options, pxe_config_template)
+        deploy_utils.switch_pxe_config(
+            pxe_config_path, None,
+            boot_mode_utils.get_boot_mode_for_deploy(node), False,
+            iscsi_boot=iscsi_boot, ramdisk_boot=ramdisk_boot)
+
     @METRICS.timer('PXEBoot.prepare_instance')
     def prepare_instance(self, task):
         """Prepares the boot of instance.
@@ -606,40 +637,18 @@ class PXEBoot(base.BootInterface):
         node = task.node
         boot_option = deploy_utils.get_boot_option(node)
         boot_device = None
-        if deploy_utils.is_iscsi_boot(task):
-            dhcp_opts = pxe_utils.dhcp_options_for_instance(task)
-            provider = dhcp_factory.DHCPFactory()
-            provider.update_dhcp(task, dhcp_opts)
-
-            # configure iPXE for iscsi boot
-            pxe_config_path = pxe_utils.get_pxe_config_file_path(
-                task.node.uuid)
-            if not os.path.isfile(pxe_config_path):
-                pxe_options = _build_pxe_config_options(task, {})
-                pxe_config_template = (
-                    deploy_utils.get_pxe_config_template(node))
-                pxe_utils.create_pxe_config(
-                    task, pxe_options, pxe_config_template)
-            deploy_utils.switch_pxe_config(
-                pxe_config_path, None,
-                boot_mode_utils.get_boot_mode_for_deploy(node), False,
-                iscsi_boot=True)
-            boot_device = boot_devices.PXE
-
-        elif boot_option == "ramdisk":
+        instance_image_info = {}
+        if boot_option == "ramdisk":
             instance_image_info = _get_instance_image_info(
                 task.node, task.context)
             _cache_ramdisk_kernel(task.context, task.node,
                                   instance_image_info)
-            dhcp_opts = pxe_utils.dhcp_options_for_instance(task)
-            provider = dhcp_factory.DHCPFactory()
-            provider.update_dhcp(task, dhcp_opts)
-            pxe_config_path = pxe_utils.get_pxe_config_file_path(
-                task.node.uuid)
-            deploy_utils.switch_pxe_config(
-                pxe_config_path, None,
-                boot_mode_utils.get_boot_mode_for_deploy(node), False,
-                iscsi_boot=False, ramdisk_boot=True)
+
+        if deploy_utils.is_iscsi_boot(task) or boot_option == "ramdisk":
+            self._prepare_instance_pxe_config(
+                task, instance_image_info,
+                iscsi_boot=deploy_utils.is_iscsi_boot(task),
+                ramdisk_boot=(boot_option == "ramdisk"))
             boot_device = boot_devices.PXE
 
         elif boot_option != "local":
