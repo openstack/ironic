@@ -760,6 +760,11 @@ class MigrationCheckersMixin(object):
             conductors_tbl.c.id == data['conductor_id']).execute().first()
         self.assertEqual(conductor['conductor_group'], "")
 
+    def _check_d2b036ae9378(self, engine, data):
+        nodes = db_utils.get_table(engine, 'nodes')
+        col_names = [column.name for column in nodes.c]
+        self.assertIn('automated_clean', col_names)
+
     def test_upgrade_and_version(self):
         with patch_with_engine(self.engine):
             self.migration_api.upgrade('head')
