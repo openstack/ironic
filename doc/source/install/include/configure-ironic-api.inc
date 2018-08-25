@@ -79,11 +79,10 @@ Configuring ironic-api service
 
 #. Restart the ironic-api service:
 
-   .. TODO(mmitchell): Split this based on operating system
-   .. code-block:: console
+   Fedora/RHEL7/CentOS7/SUSE::
 
-      Fedora/RHEL7/CentOS7/SUSE:
-        sudo systemctl restart openstack-ironic-api
+       sudo systemctl restart openstack-ironic-api
 
-      Ubuntu:
-        sudo service ironic-api restart
+   Ubuntu::
+
+       sudo service ironic-api restart

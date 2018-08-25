@@ -23,11 +23,11 @@ node(s) where ``ironic-conductor`` is running.
 
        sudo apt-get install xinetd tftpd-hpa syslinux-common pxelinux
 
-   Fedora 21/RHEL7/CentOS7::
+   RHEL7/CentOS7::
 
        sudo yum install tftp-server syslinux-tftpboot xinetd
 
-   Fedora 22 or higher::
+   Fedora::
 
        sudo dnf install tftp-server syslinux-tftpboot xinetd
 
@@ -128,11 +128,11 @@ steps on the ironic conductor node to configure the PXE UEFI environment.
 
        sudo apt-get install grub-efi-amd64-signed shim-signed
 
-   Fedora 21/RHEL7/CentOS7::
+   RHEL7/CentOS7::
 
        sudo yum install grub2-efi shim
 
-   Fedora 22 or higher::
+   Fedora::
 
        sudo dnf install grub2-efi shim
 
@@ -147,7 +147,7 @@ steps on the ironic conductor node to configure the PXE UEFI environment.
        sudo cp /usr/lib/shim/shim.efi.signed /tftpboot/bootx64.efi
        sudo cp /usr/lib/grub/x86_64-efi-signed/grubnetx64.efi.signed /tftpboot/grubx64.efi
 
-   Fedora: (21 and later)::
+   Fedora::
 
        sudo cp /boot/efi/EFI/fedora/shim.efi /tftpboot/bootx64.efi
        sudo cp /boot/efi/EFI/fedora/grubx64.efi /tftpboot/grubx64.efi
@@ -272,11 +272,11 @@ on the Bare Metal service node(s) where ``ironic-conductor`` is running.
 
        apt-get install ipxe
 
-   Fedora 21/RHEL7/CentOS7::
+   RHEL7/CentOS7::
 
        yum install ipxe-bootimgs
 
-   Fedora 22 or higher::
+   Fedora::
 
        dnf install ipxe-bootimgs
 

@@ -161,13 +161,12 @@ Configuring ironic-conductor service
 
 #. Restart the ironic-conductor service:
 
-   .. TODO(mmitchell): Split this based on operating system
-   .. code-block:: console
+   Fedora/RHEL7/CentOS7/SUSE::
 
-      Fedora/RHEL7/CentOS7/SUSE:
-        sudo systemctl restart openstack-ironic-conductor
+       sudo systemctl restart openstack-ironic-conductor
 
-      Ubuntu:
-        sudo service ironic-conductor restart
+   Ubuntu::
+
+       sudo service ironic-conductor restart
 
 .. _Keystoneauth documentation: https://docs.openstack.org/keystoneauth/latest/

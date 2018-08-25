@@ -29,31 +29,37 @@ CoreOS tools
 
     git clone https://git.openstack.org/openstack/ironic-python-agent
 
-#. Install the requirements::
+#. Install the requirements:
 
-    Fedora 21/RHEL7/CentOS7:
-        sudo yum install docker gzip util-linux cpio findutils grep gpg
+   RHEL7/CentOS7::
 
-    Fedora 22 or higher:
-        sudo dnf install docker gzip util-linux cpio findutils grep gpg
+       sudo yum install docker gzip util-linux cpio findutils grep gpg
 
-    Ubuntu 14.04 (trusty) or higher:
-        sudo apt-get install docker.io gzip uuid-runtime cpio findutils grep gnupg cgroup-lite
+   Fedora::
 
-    SUSE:
-        sudo zypper install docker gzip util-linux cpio findutils grep gpg2
+       sudo dnf install docker gzip util-linux cpio findutils grep gpg
+
+   Ubuntu 14.04 (trusty) or higher::
+
+       sudo apt-get install docker.io gzip uuid-runtime cpio findutils grep gnupg cgroup-lite
+
+   SUSE::
+
+       sudo zypper install docker gzip util-linux cpio findutils grep gpg2
 
 #. Change directory to ``imagebuild/coreos``::
 
     cd ironic-python-agent/imagebuild/coreos
 
-#. Start the docker daemon::
+#. Start the docker daemon:
 
-    Fedora/RHEL7/CentOS7/SUSE:
-        sudo systemctl start docker
+   Fedora/RHEL7/CentOS7/SUSE::
 
-    Ubuntu:
-        sudo service docker start
+       sudo systemctl start docker
+
+   Ubuntu::
+
+       sudo service docker start
 
 #. Create the image::
 

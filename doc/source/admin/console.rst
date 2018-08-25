@@ -20,32 +20,38 @@ The web console can be configured in Bare Metal service in the following way:
   is not present in base repositories, user must enable EPEL repository, you can find
   more from `FedoraProject page`_.
 
-  Installation example::
+  Installation example:
 
-    Ubuntu:
-        sudo apt-get install shellinabox
+  Ubuntu::
 
-    Fedora 21/RHEL7/CentOS7:
-        sudo yum install shellinabox
+      sudo apt-get install shellinabox
 
-    Fedora 22 or higher:
-         sudo dnf install shellinabox
+  RHEL7/CentOS7::
+
+      sudo yum install shellinabox
+
+  Fedora::
+
+       sudo dnf install shellinabox
 
   You can find more about shellinabox on the `shellinabox page`_.
 
   You can optionally use the SSL certificate in shellinabox. If you want to use the SSL
   certificate in shellinabox, you should install openssl and generate the SSL certificate.
 
-  1. Install openssl, for example::
+  1. Install openssl, for example:
 
-        Ubuntu:
-             sudo apt-get install openssl
+     Ubuntu::
 
-        Fedora 21/RHEL7/CentOS7:
-             sudo yum install openssl
+         sudo apt-get install openssl
 
-        Fedora 22 or higher:
-             sudo dnf install openssl
+     RHEL7/CentOS7::
+
+         sudo yum install openssl
+
+     Fedora::
+
+         sudo dnf install openssl
 
   2. Generate the SSL certificate, here is an example, you can find more about openssl on
      the `openssl page`_::
@@ -163,16 +169,19 @@ Serial consoles can be configured in the Bare Metal service as follows:
 * Install socat on the ironic conductor node. Also, ``socat`` needs to be in
   the $PATH environment variable that the ironic-conductor service uses.
 
-  Installation example::
+  Installation example:
 
-    Ubuntu:
-        sudo apt-get install socat
+  Ubuntu::
 
-    Fedora 21/RHEL7/CentOS7:
-        sudo yum install socat
+      sudo apt-get install socat
 
-    Fedora 22 or higher:
-        sudo dnf install socat
+  RHEL7/CentOS7::
+
+      sudo yum install socat
+
+  Fedora::
+
+      sudo dnf install socat
 
 * Append console parameters for bare metal PXE boot in the Bare Metal
   service configuration file. See the reference on how to configure them in
