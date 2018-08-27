@@ -49,13 +49,20 @@ class TestV1Root(base.BaseApiTest):
         for f in data:
             self.assertNotIn(f, ['', []])
         # Check if all known resources are present and there are no extra ones.
-        not_resources = ('id', 'links', 'media_types')
+        not_resources = ('id', 'links', 'media_types', 'version')
         actual_resources = tuple(set(data) - set(not_resources))
         expected_resources = (['chassis', 'drivers', 'nodes', 'ports']
                               + additional_expected_resources)
         self.assertEqual(sorted(expected_resources), sorted(actual_resources))
         self.assertIn({'type': 'application/vnd.openstack.ironic.v1+json',
                        'base': 'application/json'}, data['media_types'])
+
+        version1 = data['version']
+        self.assertEqual('v1', version1['id'])
+        self.assertEqual('CURRENT', version1['status'])
+        self.assertEqual(versions.min_version_string(),
+                         version1['min_version'])
+        self.assertEqual(versions.max_version_string(), version1['version'])
 
     def test_get_v1_root(self):
         self._test_get_root()

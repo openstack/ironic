@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Adds the version discovery information to the versioned API endpoint
+    (``/v1``). This allows *keystoneauth* version discovery to work on this
+    endpoint.
