@@ -1629,9 +1629,9 @@ class PXERamdiskDeployTestCase(db_base.DbTestCase):
         self.config(enabled_boot_interfaces=['fake'],
                     default_boot_interface='fake')
         with task_manager.acquire(self.context, node.uuid) as task:
-            self.assertRaisesRegexp(exception.InvalidParameterValue,
-                                    'must have the `ramdisk_boot` capability',
-                                    task.driver.deploy.validate, task)
+            self.assertRaisesRegex(exception.InvalidParameterValue,
+                                   'must have the `ramdisk_boot` capability',
+                                   task.driver.deploy.validate, task)
             self.assertFalse(mock_validate_image.called)
 
     @mock.patch.object(pxe.PXEBoot, 'validate', autospec=True)
