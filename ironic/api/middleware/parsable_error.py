@@ -64,6 +64,11 @@ class ParsableErrorMiddleware(object):
                 state['headers'] = headers
                 return start_response(status, headers, exc_info)
 
+        # The default for ironic is application/json. However, Pecan will try
+        # to output HTML errors if no Accept header is provided.
+        if 'HTTP_ACCEPT' not in environ or environ['HTTP_ACCEPT'] == '*/*':
+            environ['HTTP_ACCEPT'] = 'application/json'
+
         app_iter = self.app(environ, replacement_start_response)
         if (state['status_code'] // 100) not in (2, 3):
             req = webob.Request(environ)

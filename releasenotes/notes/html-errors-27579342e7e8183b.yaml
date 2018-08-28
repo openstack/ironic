@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    The bare metal API no longer returns HTML as part of the ``error_message``
+    field in error responses when no ``Accept`` header is provided.
