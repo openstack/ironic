@@ -447,8 +447,8 @@ def _attach_virtual_cd(node, bootable_iso_filename):
             CONF.irmc.remote_image_user_name,
             CONF.irmc.remote_image_user_password)
 
-        irmc_client(cd_set_params, async=False)
-        irmc_client(scci.MOUNT_CD, async=False)
+        irmc_client(cd_set_params, do_async=False)
+        irmc_client(scci.MOUNT_CD, do_async=False)
 
     except scci.SCCIClientError as irmc_exception:
         LOG.exception("Error while inserting virtual cdrom "
@@ -503,8 +503,8 @@ def _attach_virtual_fd(node, floppy_image_filename):
             CONF.irmc.remote_image_user_name,
             CONF.irmc.remote_image_user_password)
 
-        irmc_client(fd_set_params, async=False)
-        irmc_client(scci.MOUNT_FD, async=False)
+        irmc_client(fd_set_params, do_async=False)
+        irmc_client(scci.MOUNT_FD, do_async=False)
 
     except scci.SCCIClientError as irmc_exception:
         LOG.exception("Error while inserting virtual floppy "
