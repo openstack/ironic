@@ -1,0 +1,12 @@
+---
+fixes:
+  - |
+    The
+    `ironic-python-agent <https://git.openstack.org/cgit/openstack/ironic-python-agent>`_
+    version 3.5.0 contains a fix that allows multi-device objects to be
+    selected as a root disk. These devices MAY be created automatically in
+    the case of some ATARAID controllers with pre-existing configuration,
+    or via the actions of a custom hardware manager. Operators who require
+    this functionality are encouraged to ensure that their deployment ramdisks
+    are up to date. See `story 2003445 <https://storyboard.openstack.org/#!/story/2003445>`_
+    for more information.
