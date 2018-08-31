@@ -55,6 +55,16 @@ decorator on an interface method. For example
 Here the ``spacing`` argument is a period in seconds for a given periodic task.
 For example 'spacing=5' means every 5 seconds.
 
+Driver-Specific Steps
+---------------------
+
+Drivers may have specific steps that may need to be executed or offered to a
+user to execute in order to perform specific configuration tasks.
+
+These steps should ideally be located on the management interface to enable
+consistent user experience of the hardware type. What should be avoided is
+duplication of existing interfaces such as the deploy interface to enable
+vendor specific cleaning or deployment steps.
 
 Message Routing
 ===============
