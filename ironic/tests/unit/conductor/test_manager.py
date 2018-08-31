@@ -7418,6 +7418,45 @@ class DestroyPortTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         # Compare true exception hidden by @messaging.expected_exceptions
         self.assertEqual(exception.NodeLocked, exc.exc_info[0])
 
+    def test_destroy_port_node_active_state(self):
+        instance_uuid = uuidutils.generate_uuid()
+        node = obj_utils.create_test_node(self.context, driver='fake-hardware',
+                                          instance_uuid=instance_uuid,
+                                          provision_state='active')
+        port = obj_utils.create_test_port(self.context,
+                                          node_id=node.id,
+                                          extra={'vif_port_id': 'fake-id'})
+        exc = self.assertRaises(messaging.rpc.ExpectedException,
+                                self.service.destroy_port,
+                                self.context, port)
+        self.assertEqual(exception.InvalidState, exc.exc_info[0])
+
+    def test_destroy_port_node_active_and_maintenance(self):
+        instance_uuid = uuidutils.generate_uuid()
+        node = obj_utils.create_test_node(self.context, driver='fake-hardware',
+                                          instance_uuid=instance_uuid,
+                                          provision_state='active',
+                                          maintenance=True)
+        port = obj_utils.create_test_port(self.context,
+                                          node_id=node.id,
+                                          extra={'vif_port_id': 'fake-id'})
+        self.service.destroy_port(self.context, port)
+        self.assertRaises(exception.PortNotFound,
+                          self.dbapi.get_port_by_uuid,
+                          port.uuid)
+
+    def test_destroy_port_with_instance_not_in_active(self):
+        instance_uuid = uuidutils.generate_uuid()
+        node = obj_utils.create_test_node(self.context, driver='fake-hardware',
+                                          instance_uuid=instance_uuid,
+                                          provision_state='deploy failed')
+        port = obj_utils.create_test_port(self.context,
+                                          node_id=node.id)
+        exc = self.assertRaises(messaging.rpc.ExpectedException,
+                                self.service.destroy_port,
+                                self.context, port)
+        self.assertEqual(exception.InvalidState, exc.exc_info[0])
+
 
 @mgr_utils.mock_record_keepalive
 class DestroyPortgroupTestCase(mgr_utils.ServiceSetUpMixin,

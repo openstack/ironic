@@ -2166,7 +2166,8 @@ class ConductorManager(base_manager.BaseConductorManager):
 
     @METRICS.timer('ConductorManager.destroy_port')
     @messaging.expected_exceptions(exception.NodeLocked,
-                                   exception.NodeNotFound)
+                                   exception.NodeNotFound,
+                                   exception.InvalidState)
     def destroy_port(self, context, port):
         """Delete a port.
 
@@ -2181,6 +2182,14 @@ class ConductorManager(base_manager.BaseConductorManager):
                   {'port': port.uuid})
         with task_manager.acquire(context, port.node_id,
                                   purpose='port deletion') as task:
+            node = task.node
+            if ((node.provision_state == states.ACTIVE or node.instance_uuid)
+                and not node.maintenance):
+                    msg = _("Cannot delete the port %(port)s as node "
+                            "%(node)s is active or has "
+                            "instance UUID assigned")
+                    raise exception.InvalidState(msg % {'node': node.uuid,
+                                                        'port': port.uuid})
             port.destroy()
             LOG.info('Successfully deleted port %(port)s. '
                      'The node associated with the port was %(node)s',
