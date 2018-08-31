@@ -25,7 +25,6 @@ Current list of mocked libraries:
 - proliantutils
 - pysnmp
 - scciclient
-- hpOneView
 - pywsman
 - python-dracclient
 """
@@ -69,30 +68,13 @@ if not proliantutils:
     if 'ironic.drivers.ilo' in sys.modules:
         six.moves.reload_module(sys.modules['ironic.drivers.ilo'])
 
-
-hpOneView = importutils.try_import('hpOneView')
-if not hpOneView:
-    hpOneView = mock.MagicMock(spec_set=mock_specs.HPE_ONEVIEW_SPEC)
-    sys.modules['hpOneView'] = hpOneView
-    sys.modules['hpOneView.oneview_client'] = hpOneView.oneview_client
-    sys.modules['hpOneView.resources'] = hpOneView.resources
-    sys.modules['hpOneView.exceptions'] = hpOneView.exceptions
-    hpOneView.exceptions.HPOneViewException = type('HPOneViewException',
-                                                   (Exception,), {})
-sys.modules['hpOneView.oneview_client'].OneViewClient = mock.MagicMock(
-    spec_set=mock_specs.HPE_ONEVIEW_CLS_SPEC
-)
-if 'ironic.drivers.oneview' in sys.modules:
-    six.moves.reload_module(sys.modules['ironic.drivers.modules.oneview'])
-
-
 redfish = importutils.try_import('redfish')
 if not redfish:
     redfish = mock.MagicMock(spec_set=mock_specs.REDFISH_SPEC)
     sys.modules['redfish'] = redfish
-if 'ironic.drivers.oneview' in sys.modules:
-    six.moves.reload_module(sys.modules['ironic.drivers.modules.oneview'])
 
+if 'ironic.drivers.redfish' in sys.modules:
+    six.moves.reload_module(sys.modules['ironic.drivers.modules.redfish'])
 
 # attempt to load the external 'python-dracclient' library, which is required
 # by the optional drivers.modules.drac module

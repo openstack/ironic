@@ -11,10 +11,9 @@ to the target disk.
 iSCSI deploy
 ============
 
-With ``iscsi`` deploy interface (and also ``oneview-iscsi``, specific to the
-``oneview`` hardware type) the deploy ramdisk publishes the node's hard drive
-as an iSCSI_ share. The ironic-conductor then copies the image to this share.
-See :ref:`iSCSI deploy diagram <iscsi-deploy-example>` for a detailed
+With ``iscsi`` deploy interface, the deploy ramdisk publishes the node's hard
+drive as an iSCSI_ share. The ironic-conductor then copies the image to this
+share. See :ref:`iSCSI deploy diagram <iscsi-deploy-example>` for a detailed
 explanation of how this deploy interface works.
 
 This interface is used by default, if enabled (see
@@ -31,8 +30,7 @@ when creating or updating a node::
 Direct deploy
 =============
 
-With ``direct`` deploy interface (and also ``oneview-direct``, specific to the
-``oneview`` hardware type), the deploy ramdisk fetches the image from an
+With ``direct`` deploy interface, the deploy ramdisk fetches the image from an
 HTTP location. It can be an object storage (swift or RadosGW) temporary URL or
 a user-provided HTTP URL. The deploy ramdisk then copies the image to the
 target disk. See :ref:`direct deploy diagram <direct-deploy-example>` for
@@ -94,7 +92,7 @@ While somewhat more complex to set up, this deploy interface provides greater
 flexibility in terms of advanced node preparation during provisioning.
 
 This interface is supported by most but not all hardware types declared
-in ironic (for example, ``oneview`` hardware type does not support it).
+in ironic.
 However this deploy interface is not enabled by default.
 To enable it, add ``ansible`` to the list of enabled deploy
 interfaces in ``enabled_deploy_interfaces`` option in the ``[DEFAULT]``

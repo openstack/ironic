@@ -1,0 +1,7 @@
+---
+other:
+  - |
+    The ``oneview`` hardware type and related interfaces have been
+    removed due to a lack of maintainer and 3rd-party CI. Please see
+    `story 2001924 <https://storyboard.openstack.org/#!/story/2001924>`_
+    for additional information.

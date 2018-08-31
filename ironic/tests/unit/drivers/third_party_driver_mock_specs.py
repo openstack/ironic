@@ -123,24 +123,6 @@ SCCICLIENT_VIOM_CONF_SPEC = (
     'terminate',
 )
 
-HPE_ONEVIEW_SPEC = (
-    'oneview_client',
-    'resources',
-    'exceptions',
-)
-
-HPE_ONEVIEW_CLS_SPEC = (
-)
-
-HPE_ONEVIEW_STATES_SPEC = (
-    'ONEVIEW_POWER_OFF',
-    'ONEVIEW_POWERING_OFF',
-    'ONEVIEW_POWER_ON',
-    'ONEVIEW_POWERING_ON',
-    'ONEVIEW_RESETTING',
-    'ONEVIEW_ERROR',
-)
-
 REDFISH_SPEC = (
     'redfish',
 )

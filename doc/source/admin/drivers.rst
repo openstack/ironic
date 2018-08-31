@@ -22,7 +22,6 @@ Hardware Types
   drivers/ilo
   drivers/ipmitool
   drivers/irmc
-  drivers/oneview
   drivers/redfish
   drivers/snmp
   drivers/ucs

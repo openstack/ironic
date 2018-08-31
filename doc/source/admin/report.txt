@@ -535,16 +535,6 @@ neutron:
   url = None
   url_timeout = 30
 
-oneview:
-  allow_insecure_connections = False
-  enable_periodic_tasks = True
-  manager_url = None
-  max_polling_attempts = 12
-  password = ***
-  periodic_check_interval = 300
-  tls_cacert_file = None
-  username = None
-
 oslo_concurrency:
   disable_process_locking = False
   lock_path = None
