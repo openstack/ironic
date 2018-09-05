@@ -316,7 +316,7 @@ def _clean_up_caches(directory, amount):
     :param directory: the directory (of the cache) to be freed up.
     :param amount: amount of space to reclaim.
     :raises: InsufficientDiskSpace exception, if we cannot free up enough space
-    after trying all the caches.
+             after trying all the caches.
     """
     free = _free_disk_space_for(directory)
 
@@ -352,9 +352,9 @@ def clean_up_caches(ctx, directory, images_info):
     :param ctx: context
     :param directory: the directory (of the cache) to be freed up.
     :param images_info: a list of tuples of the form (image_uuid,path)
-        for which space is to be created in cache.
+                        for which space is to be created in cache.
     :raises: InsufficientDiskSpace exception, if we cannot free up enough space
-    after trying all the caches.
+             after trying all the caches.
     """
     total_size = sum(images.download_size(ctx, uuid)
                      for (uuid, path) in images_info)

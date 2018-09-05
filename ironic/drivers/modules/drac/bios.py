@@ -30,9 +30,8 @@ LOG = logging.getLogger(__name__)
 def get_config(node):
     """Get the BIOS configuration.
 
-    :param node: an ironic node object.
-    :raises: DracOperationError on an error from python-dracclient.
-    :returns: a dictionary containing BIOS settings in the form of:
+    The BIOS settings look like::
+
         {'EnumAttrib': {'name': 'EnumAttrib',
                         'current_value': 'Value',
                         'pending_value': 'New Value', # could also be None
@@ -50,38 +49,46 @@ def get_config(node):
                            'pending_value': None,
                            'read_only': True,
                            'lower_bound': 0,
-                           'upper_bound': 65535}
-        }
+                           'upper_bound': 65535}}
+
+    :param node: an ironic node object.
+    :raises: DracOperationError on an error from python-dracclient.
+    :returns: a dictionary containing BIOS settings
 
     The above values are only examples, of course.  BIOS attributes exposed via
     this API will always be either an enumerated attribute, a string attribute,
     or an integer attribute.  All attributes have the following parameters:
-    :name: is the name of the BIOS attribute.
-    :current_value: is the current value of the attribute.
-                    It will always be either an integer or a string.
-    :pending_value: is the new value that we want the attribute to have.
-                    None means that there is no pending value.
-    :read_only: indicates whether this attribute can be changed.  Trying to
-                change a read-only value will result in an error.
-                The read-only flag can change depending on other attributes.
-                A future version of this call may expose the dependencies
-                that indicate when that may happen.
+
+    :param name: is the name of the BIOS attribute.
+    :param current_value: is the current value of the attribute.
+                          It will always be either an integer or a string.
+    :param pending_value: is the new value that we want the attribute to have.
+                          None means that there is no pending value.
+    :param read_only: indicates whether this attribute can be changed.
+                      Trying to change a read-only value will result in
+                      an error. The read-only flag can change depending
+                      on other attributes.
+                      A future version of this call may expose the
+                      dependencies that indicate when that may happen.
 
     Enumerable attributes also have the following parameters:
-    :possible_values: is an array of values it is permissible to set
-                      the attribute to.
+
+    :param possible_values: is an array of values it is permissible to set
+                            the attribute to.
 
     String attributes also have the following parameters:
-    :min_length: is the minimum length of the string.
-    :max_length: is the maximum length of the string.
-    :pcre_regex: is a PCRE compatible regular expression that the string
-                 must match.  It may be None if the string is read only
-                 or if the string does not have to match any particular
-                 regular expression.
+
+    :param min_length: is the minimum length of the string.
+    :param max_length: is the maximum length of the string.
+    :param pcre_regex: is a PCRE compatible regular expression that the string
+                       must match.  It may be None if the string is read only
+                       or if the string does not have to match any particular
+                       regular expression.
 
     Integer attributes also have the following parameters:
-    :lower_bound: is the minimum value the attribute can have.
-    :upper_bound: is the maximum value the attribute can have.
+
+    :param lower_bound: is the minimum value the attribute can have.
+    :param upper_bound: is the maximum value the attribute can have.
     """
 
     client = drac_common.get_drac_client(node)

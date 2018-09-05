@@ -62,7 +62,7 @@ def _emit_api_notification(context, obj, action, level, status, **kwargs):
                   `ironic.objects.fields.NotificationLevel.ALL`
     :param status: Status to go in the EventType. One of
                    `ironic.objects.fields.NotificationStatus.ALL`
-    :param **kwargs: kwargs to use when creating the notification payload.
+    :param kwargs: kwargs to use when creating the notification payload.
     """
     resource = obj.__class__.__name__.lower()
     # value wsme.Unset can be passed from API representation of resource
@@ -125,7 +125,7 @@ def emit_start_notification(context, obj, action, **kwargs):
     :param context: request context.
     :param obj: resource rpc object.
     :param action: Action string to go in the EventType.
-    :param **kwargs: kwargs to use when creating the notification payload.
+    :param kwargs: kwargs to use when creating the notification payload.
     """
     _emit_api_notification(context, obj, action,
                            fields.NotificationLevel.INFO,
@@ -140,7 +140,7 @@ def handle_error_notification(context, obj, action, **kwargs):
     :param context: request context.
     :param obj: resource rpc object.
     :param action: Action string to go in the EventType.
-    :param **kwargs: kwargs to use when creating the notification payload.
+    :param kwargs: kwargs to use when creating the notification payload.
     """
     try:
         yield
@@ -158,7 +158,7 @@ def emit_end_notification(context, obj, action, **kwargs):
     :param context: request context.
     :param obj: resource rpc object.
     :param action: Action string to go in the EventType.
-    :param **kwargs: kwargs to use when creating the notification payload.
+    :param kwargs: kwargs to use when creating the notification payload.
     """
     _emit_api_notification(context, obj, action,
                            fields.NotificationLevel.INFO,

@@ -216,14 +216,19 @@ def continue_deploy(task, **kwargs):
     :raises: InvalidState if the event is not allowed by the associated
              state machine.
     :returns: a dictionary containing the following keys:
-        For partition image:
-            'root uuid': UUID of root partition
-            'efi system partition uuid': UUID of the uefi system partition
-                                         (if boot mode is uefi).
-            NOTE: If key exists but value is None, it means partition doesn't
-                  exist.
-        For whole disk image:
-            'disk identifier': ID of the disk to which image was deployed.
+
+              For partition image:
+
+              * 'root uuid': UUID of root partition
+              * 'efi system partition uuid': UUID of the uefi system partition
+                (if boot mode is uefi).
+
+                .. note:: If key exists but value is None, it means partition
+                          doesn't exist.
+
+              For whole disk image:
+
+              * 'disk identifier': ID of the disk to which image was deployed.
     """
     node = task.node
 
@@ -297,19 +302,25 @@ def do_agent_iscsi_deploy(task, agent_client):
 
     :param task: a TaskManager object containing the node.
     :param agent_client: an instance of agent_client.AgentClient
-        which will be used during iscsi deploy (for exposing node's
-        target disk via iSCSI, for install boot loader, etc).
+                         which will be used during iscsi deploy
+                         (for exposing node's target disk via iSCSI,
+                         for install boot loader, etc).
     :returns: a dictionary containing the following keys:
-        For partition image:
-            'root uuid': UUID of root partition
-            'efi system partition uuid': UUID of the uefi system partition
-                                         (if boot mode is uefi).
-            NOTE: If key exists but value is None, it means partition doesn't
-                  exist.
-        For whole disk image:
-            'disk identifier': ID of the disk to which image was deployed.
-    :raises: InstanceDeployFailure, if it encounters some error
-        during the deploy.
+
+              For partition image:
+
+              * 'root uuid': UUID of root partition
+              * 'efi system partition uuid': UUID of the uefi system partition
+                (if boot mode is uefi).
+
+                .. note:: If key exists but value is None, it means partition
+                          doesn't exist.
+
+              For whole disk image:
+
+              * 'disk identifier': ID of the disk to which image was deployed.
+    :raises: InstanceDeployFailure if it encounters some error
+             during the deploy.
     """
     node = task.node
     i_info = deploy_utils.parse_instance_info(node)

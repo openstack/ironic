@@ -185,7 +185,7 @@ def attach_volumes(task, volume_list, connector):
                          Some drivers support a 'multipath' boolean key,
                          although it is generally False. The 'host' key
                          is generally used for logging by drivers.
-                         Example:
+                         Example::
 
                              {
                              'wwpns': ['list','of','port','wwns'],
@@ -214,36 +214,35 @@ def attach_volumes(task, volume_list, connector):
                  connection info for the node is already in the database,
                  'data' structure contains only basic info of volume ID in
                  cinder and ironic, so any logic based on that should
-                 retrieve it from the database.
-                 Example:
+                 retrieve it from the database. Example::
 
-                 [{
-                 'driver_volume_type': 'fibre_channel'
-                 'data': {
-                     'encrypted': False,
-                     'target_lun': 1,
-                     'target_wwn': ['1234567890123', '1234567890124'],
-                     'volume_id': '00000000-0000-0000-0000-000000000001',
-                     'ironic_volume_id':
-                     '11111111-0000-0000-0000-000000000001'}
-                 },
-                 {
-                 'driver_volume_type': 'iscsi'
-                 'data': {
-                     'target_iqn': 'iqn.2010-10.org.openstack:volume-00000002',
-                     'target_portal': '127.0.0.0.1:3260',
-                     'volume_id': '00000000-0000-0000-0000-000000000002',
-                     'ironic_volume_id':
-                     '11111111-0000-0000-0000-000000000002',
-                     'target_lun': 2}
-                 },
-                 {
-                 'already_attached': True
-                 'data': {
-                     'volume_id': '00000000-0000-0000-0000-000000000002',
-                     'ironic_volume_id':
-                     '11111111-0000-0000-0000-000000000002'}
-                 }]
+                   [{
+                   'driver_volume_type': 'fibre_channel'
+                   'data': {
+                       'encrypted': False,
+                       'target_lun': 1,
+                       'target_wwn': ['1234567890123', '1234567890124'],
+                       'volume_id': '00000000-0000-0000-0000-000000000001',
+                       'ironic_volume_id':
+                       '11111111-0000-0000-0000-000000000001'}
+                   },
+                   {
+                   'driver_volume_type': 'iscsi'
+                   'data': {
+                       'target_iqn': 'iqn.2010-10.org.openstack:volume-000002',
+                       'target_portal': '127.0.0.0.1:3260',
+                       'volume_id': '00000000-0000-0000-0000-000000000002',
+                       'ironic_volume_id':
+                       '11111111-0000-0000-0000-000000000002',
+                       'target_lun': 2}
+                   },
+                   {
+                   'already_attached': True
+                   'data': {
+                       'volume_id': '00000000-0000-0000-0000-000000000002',
+                       'ironic_volume_id':
+                       '11111111-0000-0000-0000-000000000002'}
+                   }]
        """
     node = task.node
     client = _init_client(task)
@@ -353,7 +352,7 @@ def detach_volumes(task, volume_list, connector, allow_errors=False):
                          Some drivers support a 'multipath' boolean key,
                          although it is generally False. The 'host' key
                          is generally used for logging by drivers.
-                         Example:
+                         Example::
 
                              {
                              'wwpns': ['list','of','port','wwns']

@@ -545,15 +545,18 @@ def setup_vmedia(task, iso, ramdisk_options):
 
     :param task: a TaskManager instance containing the node to act on.
     :param iso: a bootable ISO image href to attach to. Should be either
-        of below:
-        * A Swift object - It should be of format 'swift:<object-name>'.
-          It is assumed that the image object is present in
-          CONF.ilo.swift_ilo_container;
-        * A Glance image - It should be format 'glance://<glance-image-uuid>'
-          or just <glance-image-uuid>;
-        * An HTTP URL.
+                of below:
+
+                * A Swift object - It should be of format
+                  ``swift:<object-name>``.
+                  It is assumed that the image object is present in
+                  CONF.ilo.swift_ilo_container;
+                * A Glance image - It should be format
+                  ``glance://<glance-image-uuid>``
+                  or just ``<glance-image-uuid>``;
+                * An HTTP URL.
     :param ramdisk_options: the options to be passed to the ramdisk in virtual
-        media floppy.
+                            media floppy.
     :raises: ImageCreationFailed, if it failed while creating the floppy image.
     :raises: IloOperationError, if some operation on iLO failed.
     """
@@ -576,15 +579,18 @@ def setup_vmedia_for_boot(task, boot_iso, parameters=None):
 
     :param task: a TaskManager instance containing the node to act on.
     :param boot_iso: a bootable ISO image to attach to. Should be either
-        of below:
-        * A Swift object - It should be of format 'swift:<object-name>'.
-          It is assumed that the image object is present in
-          CONF.ilo.swift_ilo_container;
-        * A Glance image - It should be format 'glance://<glance-image-uuid>'
-          or just <glance-image-uuid>;
-        * An HTTP(S) URL.
+                     of below:
+
+                     * A Swift object - It should be of format
+                       ``swift:<object-name>``.
+                       It is assumed that the image object is present in
+                       CONF.ilo.swift_ilo_container;
+                     * A Glance image - It should be format
+                       ``glance://<glance-image-uuid>``
+                       or just ``<glance-image-uuid>``;
+                     * An HTTP URL.
     :param parameters: the parameters to pass in the virtual floppy image
-        in a dictionary.  This is optional.
+                       in a dictionary.  This is optional.
     :raises: ImageCreationFailed, if it failed while creating the floppy image.
     :raises: SwiftOperationError, if any operation with Swift fails.
     :raises: IloOperationError, if attaching virtual media failed.

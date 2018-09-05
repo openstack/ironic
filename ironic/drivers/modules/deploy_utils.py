@@ -362,29 +362,31 @@ def deploy_partition_image(
     :param root_mb: Size of the root partition in megabytes.
     :param swap_mb: Size of the swap partition in megabytes.
     :param ephemeral_mb: Size of the ephemeral partition in megabytes. If 0,
-        no ephemeral partition will be created.
+                         no ephemeral partition will be created.
     :param ephemeral_format: The type of file system to format the ephemeral
-        partition.
+                             partition.
     :param node_uuid: node's uuid. Used for logging.
     :param preserve_ephemeral: If True, no filesystem is written to the
-        ephemeral block device, preserving whatever content it had (if the
-        partition table has not changed).
+                               ephemeral block device, preserving whatever
+                               content it had (if the partition table has
+                               not changed).
     :param configdrive: Optional. Base64 encoded Gzipped configdrive content
                         or configdrive HTTP URL.
     :param boot_option: Can be "local" or "netboot".
                         "netboot" by default.
     :param boot_mode: Can be "bios" or "uefi". "bios" by default.
     :param disk_label: The disk label to be used when creating the
-        partition table. Valid values are: "msdos", "gpt" or None; If None
-        Ironic will figure it out according to the boot_mode parameter.
+                       partition table. Valid values are: "msdos",
+                       "gpt" or None; If None ironic will figure it
+                       out according to the boot_mode parameter.
     :param cpu_arch: Architecture of the node being deployed to.
     :raises: InstanceDeployFailure if image virtual size is bigger than root
-        partition size.
+             partition size.
     :returns: a dictionary containing the following keys:
-        'root uuid': UUID of root partition
-        'efi system partition uuid': UUID of the uefi system partition
-                                     (if boot mode is uefi).
-        NOTE: If key exists but value is None, it means partition doesn't
+              'root uuid': UUID of root partition
+              'efi system partition uuid': UUID of the uefi system partition
+              (if boot mode is uefi).
+              NOTE: If key exists but value is None, it means partition doesn't
               exist.
     """
     boot_option = boot_option or get_default_boot_option()
@@ -866,23 +868,23 @@ def prepare_inband_cleaning(task, manage_boot=True):
 
     This method does the following:
     1. Prepares the cleaning ports for the bare metal
-       node and updates the clean parameters in node's driver_internal_info.
+    node and updates the clean parameters in node's driver_internal_info.
     2. If 'manage_boot' parameter is set to true, it also calls the
-       'prepare_ramdisk' method of boot interface to boot the agent ramdisk.
+    'prepare_ramdisk' method of boot interface to boot the agent ramdisk.
     3. Reboots the bare metal node.
 
     :param task: a TaskManager object containing the node
     :param manage_boot: If this is set to True, this method calls the
-        'prepare_ramdisk' method of boot interface to boot the agent
-        ramdisk. If False, it skips preparing the boot agent ramdisk using
-        boot interface, and assumes that the environment is setup to
-        automatically boot agent ramdisk every time bare metal node is
-        rebooted.
+                        'prepare_ramdisk' method of boot interface to boot the
+                        agent ramdisk. If False, it skips preparing the boot
+                        agent ramdisk using boot interface, and assumes that
+                        the environment is setup to automatically boot agent
+                        ramdisk every time bare metal node is rebooted.
     :returns: states.CLEANWAIT to signify an asynchronous prepare.
     :raises: NetworkError, NodeCleaningFailure if the previous cleaning ports
-        cannot be removed or if new cleaning ports cannot be created.
+             cannot be removed or if new cleaning ports cannot be created.
     :raises: InvalidParameterValue if cleaning network UUID config option has
-        an invalid value.
+             an invalid value.
     """
     task.driver.network.add_cleaning_network(task)
 
@@ -1157,8 +1159,8 @@ def populate_storage_driver_internal_info(task):
     """Set node driver_internal_info for boot from volume parameters.
 
     :param task: a TaskManager object containing the node.
-    :raises StorageError when a node has an iSCSI or FibreChannel boot volume
-        defined but is not capable to support it.
+    :raises: StorageError when a node has an iSCSI or FibreChannel boot volume
+             defined but is not capable to support it.
     """
     node = task.node
     boot_volume = get_remote_boot_volume(task)
