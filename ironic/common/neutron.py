@@ -384,8 +384,8 @@ def remove_neutron_ports(task, params):
 def get_node_portmap(task):
     """Extract the switch port information for the node.
 
-    :param task: a task containing the Node object.
-    :returns: a dictionary in the form
+    The information is returned in the form of::
+
         {
             port.uuid: {
                 'switch_id': 'abc',
@@ -393,6 +393,9 @@ def get_node_portmap(task):
                 'other_llc_key': 'val'
             }
         }
+
+    :param task: a task containing the Node object.
+    :returns: port information as a dict
     """
 
     portmap = {}
@@ -406,18 +409,21 @@ def get_node_portmap(task):
 def get_local_group_information(task, portgroup):
     """Extract the portgroup information.
 
+    The information is returned in the form of::
+
+        {
+            'id': portgroup.uuid,
+            'name': portgroup.name,
+            'bond_mode': portgroup.mode,
+            'bond_properties': {
+                'bond_propertyA': 'valueA',
+                'bond_propertyB': 'valueB',
+            }
+        }
+
     :param task: a task containing the Node object.
     :param portgroup: Ironic portgroup object to extract data for.
-    :returns: a dictionary in the form:
-              {
-                  'id': portgroup.uuid,
-                  'name': portgroup.name,
-                  'bond_mode': portgroup.mode,
-                  'bond_properties': {
-                      'bond_propertyA': 'valueA',
-                      'bond_propertyB': 'valueB',
-                  }
-              }
+    :returns: port group information as a dict
     """
 
     portgroup_properties = {}

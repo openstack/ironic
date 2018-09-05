@@ -208,8 +208,8 @@ def plug_port_to_tenant_network(task, port_like_obj, client=None):
     :param task: A TaskManager instance.
     :param port_like_obj: port-like object to plug.
     :param client: Neutron client instance.
-    :raises NetworkError: if failed to update Neutron port.
-    :raises VifNotAttached if tenant VIF is not associated with port_like_obj.
+    :raises: NetworkError if failed to update Neutron port.
+    :raises: VifNotAttached if tenant VIF is not associated with port_like_obj.
     """
 
     node = task.node
@@ -506,8 +506,8 @@ class NeutronVIFPortIDMixin(VIFPortIDMixin):
 
         :param task: A TaskManager instance.
         :param vif_info: a dictionary of information about a VIF.
-             It must have an 'id' key, whose value is a unique
-             identifier for that VIF.
+                         It must have an 'id' key, whose value is a unique
+                         identifier for that VIF.
         :raises: NetworkError, VifAlreadyAttached, NoFreePhysicalPorts
         :raises: PortgroupPhysnetInconsistent if one of the node's portgroups
                  has ports which are not all assigned the same physical
@@ -563,7 +563,7 @@ class NeutronVIFPortIDMixin(VIFPortIDMixin):
         :param task: A TaskManager instance.
         :param vif_id: A VIF ID to detach
         :raises: VifNotAttached if VIF not attached.
-        :raises: NetworkError: if unbind Neutron port failed.
+        :raises: NetworkError if unbind Neutron port failed.
         """
         # NOTE(mgoddard): Lookup the port first to check that the VIF is
         # attached, and fail if not.

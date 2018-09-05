@@ -121,10 +121,13 @@ def apply_jsonpatch(doc, patch):
 def get_patch_values(patch, path):
     """Get the patch values corresponding to the specified path.
 
-    If there are multiple values specified for the same path
-    (for example the patch is [{'op': 'add', 'path': '/name', 'value': 'abc'},
-                               {'op': 'add', 'path': '/name', 'value': 'bca'}])
-    return all of them in a list (preserving order).
+    If there are multiple values specified for the same path, for example
+    ::
+
+        [{'op': 'add', 'path': '/name', 'value': 'abc'},
+         {'op': 'add', 'path': '/name', 'value': 'bca'}]
+
+    return all of them in a list (preserving order)
 
     :param patch: HTTP PATCH request body.
     :param path: the path to get the patch values for.

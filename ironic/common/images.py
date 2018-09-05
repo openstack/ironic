@@ -47,11 +47,11 @@ def _create_root_fs(root_directory, files_info):
 
     :param root_directory: the filesystem root directory.
     :param files_info: A dict containing absolute path of file to be copied
-        -> relative path within the vfat image. For example,
-        {
-         '/absolute/path/to/file' -> 'relative/path/within/root'
-         ...
-        }
+                       -> relative path within the vfat image. For example::
+                        {
+                        '/absolute/path/to/file' -> 'relative/path/within/root'
+                        ...
+                        }
     :raises: OSError, if creation of any directory failed.
     :raises: IOError, if copying any of the files failed.
     """
@@ -82,19 +82,20 @@ def create_vfat_image(output_file, files_info=None, parameters=None,
     directory.
 
     :param output_file: The path to the file where the fat fs image needs
-        to be created.
+                        to be created.
     :param files_info: A dict containing absolute path of file to be copied
-        -> relative path within the vfat image. For example,
-        {
-         '/absolute/path/to/file' -> 'relative/path/within/root'
-         ...
-        }
+                       -> relative path within the vfat image. For example::
+
+                        {
+                        '/absolute/path/to/file' -> 'relative/path/within/root'
+                        ...
+                        }
     :param parameters: A dict containing key-value pairs of parameters.
     :param parameters_file: The filename for the parameters file.
     :param fs_size_kib: size of the vfat filesystem in KiB.
     :raises: ImageCreationFailed, if image creation failed while doing any
-        of filesystem manipulation activities like creating dirs, mounting,
-        creating filesystem, copying files, etc.
+             of filesystem manipulation activities like creating dirs,
+             mounting, creating filesystem, copying files, etc.
     """
     try:
         ironic_utils.dd('/dev/zero', output_file, 'count=1',
