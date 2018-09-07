@@ -96,6 +96,13 @@ opts = [
                 help=_('Whether to upload the config drive to object store. '
                        'Set this option to True to store config drive '
                        'in a swift endpoint.')),
+    cfg.StrOpt('http_image_subdir',
+               default='agent_images',
+               help=_('The name of subdirectory under ironic-conductor '
+                      'node\'s HTTP root path which is used to place instance '
+                      'images for the direct deploy interface, when local '
+                      'HTTP service is incorporated to provide instance image '
+                      'instead of swift tempurls.')),
 ]
 
 

@@ -13,21 +13,17 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import os
-
 from ironic_lib import disk_utils
 from ironic_lib import metrics_utils
 from ironic_lib import utils as il_utils
 from oslo_log import log as logging
 from oslo_utils import excutils
-from oslo_utils import fileutils
 from six.moves.urllib import parse
 
 from ironic.common import dhcp_factory
 from ironic.common import exception
 from ironic.common.i18n import _
 from ironic.common import states
-from ironic.common import utils
 from ironic.conductor import task_manager
 from ironic.conductor import utils as manager_utils
 from ironic.conf import CONF
@@ -35,35 +31,12 @@ from ironic.drivers import base
 from ironic.drivers.modules import agent_base_vendor
 from ironic.drivers.modules import boot_mode_utils
 from ironic.drivers.modules import deploy_utils
-from ironic.drivers.modules import image_cache
 
 LOG = logging.getLogger(__name__)
 
 METRICS = metrics_utils.get_metrics_logger(__name__)
 
 DISK_LAYOUT_PARAMS = ('root_gb', 'swap_mb', 'ephemeral_gb')
-
-
-@image_cache.cleanup(priority=50)
-class InstanceImageCache(image_cache.ImageCache):
-
-    def __init__(self):
-        super(self.__class__, self).__init__(
-            CONF.pxe.instance_master_path,
-            # MiB -> B
-            cache_size=CONF.pxe.image_cache_size * 1024 * 1024,
-            # min -> sec
-            cache_ttl=CONF.pxe.image_cache_ttl * 60)
-
-
-def _get_image_dir_path(node_uuid):
-    """Generate the dir for an instances disk."""
-    return os.path.join(CONF.pxe.images_path, node_uuid)
-
-
-def _get_image_file_path(node_uuid):
-    """Generate the full path for an instances disk."""
-    return os.path.join(_get_image_dir_path(node_uuid), 'disk')
 
 
 def _save_disk_layout(node, i_info):
@@ -101,7 +74,7 @@ def check_image_size(task):
         return
 
     i_info = deploy_utils.parse_instance_info(task.node)
-    image_path = _get_image_file_path(task.node.uuid)
+    image_path = deploy_utils._get_image_file_path(task.node.uuid)
     image_mb = disk_utils.get_image_mb(image_path)
     root_mb = 1024 * int(i_info['root_gb'])
     if image_mb > root_mb:
@@ -109,43 +82,6 @@ def check_image_size(task):
                  'virtual size: %(image_mb)d MB, Root size: %(root_mb)d MB')
                % {'image_mb': image_mb, 'root_mb': root_mb})
         raise exception.InstanceDeployFailure(msg)
-
-
-@METRICS.timer('cache_instance_image')
-def cache_instance_image(ctx, node):
-    """Fetch the instance's image from Glance
-
-    This method pulls the AMI and writes them to the appropriate place
-    on local disk.
-
-    :param ctx: context
-    :param node: an ironic node object
-    :returns: a tuple containing the uuid of the image and the path in
-        the filesystem where image is cached.
-    """
-    i_info = deploy_utils.parse_instance_info(node)
-    fileutils.ensure_tree(_get_image_dir_path(node.uuid))
-    image_path = _get_image_file_path(node.uuid)
-    uuid = i_info['image_source']
-
-    LOG.debug("Fetching image %(ami)s for node %(uuid)s",
-              {'ami': uuid, 'uuid': node.uuid})
-
-    deploy_utils.fetch_images(ctx, InstanceImageCache(), [(uuid, image_path)],
-                              CONF.force_raw_images)
-
-    return (uuid, image_path)
-
-
-@METRICS.timer('destroy_images')
-def destroy_images(node_uuid):
-    """Delete instance's image file.
-
-    :param node_uuid: the uuid of the ironic node.
-    """
-    il_utils.unlink_without_raise(_get_image_file_path(node_uuid))
-    utils.rmtree_without_raise(_get_image_dir_path(node_uuid))
-    InstanceImageCache().clean_up()
 
 
 @METRICS.timer('get_deploy_info')
@@ -169,7 +105,7 @@ def get_deploy_info(node, address, iqn, port=None, lun='1'):
         'port': port or CONF.iscsi.portal_port,
         'iqn': iqn,
         'lun': lun,
-        'image_path': _get_image_file_path(node.uuid),
+        'image_path': deploy_utils._get_image_file_path(node.uuid),
         'node_uuid': node.uuid}
 
     is_whole_disk_image = node.driver_internal_info['is_whole_disk_image']
@@ -241,7 +177,7 @@ def continue_deploy(task, **kwargs):
                      'Error: %(error)s') %
                    {'instance': node.instance_uuid, 'error': msg})
         deploy_utils.set_failed_state(task, msg)
-        destroy_images(task.node.uuid)
+        deploy_utils.destroy_images(task.node.uuid)
         if raise_exception:
             raise exception.InstanceDeployFailure(msg)
 
@@ -288,7 +224,7 @@ def continue_deploy(task, **kwargs):
         # for any future rebuilds
         _save_disk_layout(node, deploy_utils.parse_instance_info(node))
 
-    destroy_images(node.uuid)
+    deploy_utils.destroy_images(node.uuid)
     return uuid_dict_returned
 
 
@@ -475,7 +411,7 @@ class ISCSIDeploy(AgentDeployMixin, base.DeployInterface):
         """
         node = task.node
         if task.driver.storage.should_write_image(task):
-            cache_instance_image(task.context, node)
+            deploy_utils.cache_instance_image(task.context, node)
             check_image_size(task)
             manager_utils.node_power_action(task, states.REBOOT)
 
@@ -572,7 +508,7 @@ class ISCSIDeploy(AgentDeployMixin, base.DeployInterface):
 
         :param task: a TaskManager instance containing the node to act on.
         """
-        destroy_images(task.node.uuid)
+        deploy_utils.destroy_images(task.node.uuid)
         task.driver.boot.clean_up_ramdisk(task)
         task.driver.boot.clean_up_instance(task)
         provider = dhcp_factory.DHCPFactory()

@@ -145,6 +145,27 @@ def validate_image_proxies(node):
         raise exception.InvalidParameterValue(msg)
 
 
+def validate_http_provisioning_configuration(node):
+    """Validate configuration options required to perform HTTP provisioning.
+
+    :param node: an ironic node object
+    :raises: MissingParameterValue if required option(s) is not set.
+    """
+    image_source = node.instance_info.get('image_source')
+    if (not service_utils.is_glance_image(image_source) or
+            CONF.agent.image_download_source != 'http'):
+        return
+
+    params = {
+        '[deploy]http_url': CONF.deploy.http_url,
+        '[deploy]http_root': CONF.deploy.http_root,
+        '[deploy]http_image_subdir': CONF.deploy.http_image_subdir
+    }
+    error_msg = _('Node %s failed to validate http provisoning. Some '
+                  'configuration options were missing') % node.uuid
+    deploy_utils.check_for_missing_params(params, error_msg)
+
+
 class AgentDeployMixin(agent_base_vendor.AgentDeployMixin):
 
     @METRICS.timer('AgentDeployMixin.deploy_has_started')
@@ -338,6 +359,10 @@ class AgentDeployMixin(agent_base_vendor.AgentDeployMixin):
         else:
             manager_utils.node_set_boot_device(task, 'disk', persistent=True)
 
+        # Remove symbolic link when deploy is done.
+        if CONF.agent.image_download_source == 'http':
+            deploy_utils.remove_http_instance_symlink(task.node.uuid)
+
         LOG.debug('Rebooting node %s to instance', node.uuid)
         self.reboot_and_finish_deploy(task)
 
@@ -396,6 +421,8 @@ class AgentDeploy(AgentDeployMixin, base.DeployInterface):
                 raise exception.MissingParameterValue(_(
                     "image_source's image_checksum must be provided in "
                     "instance_info for node %s") % node.uuid)
+
+        validate_http_provisioning_configuration(node)
 
         check_image_size(task, image_source)
         # Validate the root device hints
@@ -562,6 +589,8 @@ class AgentDeploy(AgentDeployMixin, base.DeployInterface):
         task.driver.boot.clean_up_instance(task)
         provider = dhcp_factory.DHCPFactory()
         provider.clean_dhcp(task)
+        if CONF.agent.image_download_source == 'http':
+            deploy_utils.destroy_http_instance_images(task.node)
 
     def take_over(self, task):
         """Take over management of this node from a dead conductor.

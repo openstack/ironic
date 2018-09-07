@@ -83,13 +83,13 @@ class IscsiDeployPrivateMethodsTestCase(db_base.DbTestCase):
     def test__get_image_dir_path(self):
         self.assertEqual(os.path.join(CONF.pxe.images_path,
                                       self.node.uuid),
-                         iscsi_deploy._get_image_dir_path(self.node.uuid))
+                         deploy_utils._get_image_dir_path(self.node.uuid))
 
     def test__get_image_file_path(self):
         self.assertEqual(os.path.join(CONF.pxe.images_path,
                                       self.node.uuid,
                                       'disk'),
-                         iscsi_deploy._get_image_file_path(self.node.uuid))
+                         deploy_utils._get_image_file_path(self.node.uuid))
 
 
 class IscsiDeployMethodsTestCase(db_base.DbTestCase):
@@ -115,7 +115,7 @@ class IscsiDeployMethodsTestCase(db_base.DbTestCase):
             task.node.instance_info['root_gb'] = 1
             iscsi_deploy.check_image_size(task)
             get_image_mb_mock.assert_called_once_with(
-                iscsi_deploy._get_image_file_path(task.node.uuid))
+                deploy_utils._get_image_file_path(task.node.uuid))
 
     @mock.patch.object(disk_utils, 'get_image_mb', autospec=True)
     def test_check_image_size_whole_disk_image(self, get_image_mb_mock):
@@ -138,7 +138,7 @@ class IscsiDeployMethodsTestCase(db_base.DbTestCase):
                               iscsi_deploy.check_image_size,
                               task)
             get_image_mb_mock.assert_called_once_with(
-                iscsi_deploy._get_image_file_path(task.node.uuid))
+                deploy_utils._get_image_file_path(task.node.uuid))
 
     @mock.patch.object(deploy_utils, 'fetch_images', autospec=True)
     def test_cache_instance_images_master_path(self, mock_fetch_image):
@@ -149,7 +149,7 @@ class IscsiDeployMethodsTestCase(db_base.DbTestCase):
                     group='pxe')
         fileutils.ensure_tree(CONF.pxe.instance_master_path)
 
-        (uuid, image_path) = iscsi_deploy.cache_instance_image(None, self.node)
+        (uuid, image_path) = deploy_utils.cache_instance_image(None, self.node)
         mock_fetch_image.assert_called_once_with(None,
                                                  mock.ANY,
                                                  [(uuid, image_path)], True)
@@ -161,11 +161,11 @@ class IscsiDeployMethodsTestCase(db_base.DbTestCase):
 
     @mock.patch.object(ironic_utils, 'unlink_without_raise', autospec=True)
     @mock.patch.object(utils, 'rmtree_without_raise', autospec=True)
-    @mock.patch.object(iscsi_deploy, 'InstanceImageCache', autospec=True)
+    @mock.patch.object(deploy_utils, 'InstanceImageCache', autospec=True)
     def test_destroy_images(self, mock_cache, mock_rmtree, mock_unlink):
         self.config(images_path='/path', group='pxe')
 
-        iscsi_deploy.destroy_images('uuid')
+        deploy_utils.destroy_images('uuid')
 
         mock_cache.return_value.clean_up.assert_called_once_with()
         mock_unlink.assert_called_once_with('/path/uuid/disk')
@@ -173,7 +173,7 @@ class IscsiDeployMethodsTestCase(db_base.DbTestCase):
 
     @mock.patch.object(driver_utils, 'collect_ramdisk_logs', autospec=True)
     @mock.patch.object(iscsi_deploy, '_save_disk_layout', autospec=True)
-    @mock.patch.object(iscsi_deploy, 'InstanceImageCache', autospec=True)
+    @mock.patch.object(deploy_utils, 'InstanceImageCache', autospec=True)
     @mock.patch.object(manager_utils, 'node_power_action', autospec=True)
     @mock.patch.object(deploy_utils, 'deploy_partition_image', autospec=True)
     def test_continue_deploy_fail(
@@ -206,7 +206,7 @@ class IscsiDeployMethodsTestCase(db_base.DbTestCase):
 
     @mock.patch.object(driver_utils, 'collect_ramdisk_logs', autospec=True)
     @mock.patch.object(iscsi_deploy, '_save_disk_layout', autospec=True)
-    @mock.patch.object(iscsi_deploy, 'InstanceImageCache', autospec=True)
+    @mock.patch.object(deploy_utils, 'InstanceImageCache', autospec=True)
     @mock.patch.object(manager_utils, 'node_power_action', autospec=True)
     @mock.patch.object(deploy_utils, 'deploy_partition_image', autospec=True)
     def test_continue_deploy_unexpected_fail(
@@ -237,7 +237,7 @@ class IscsiDeployMethodsTestCase(db_base.DbTestCase):
 
     @mock.patch.object(driver_utils, 'collect_ramdisk_logs', autospec=True)
     @mock.patch.object(iscsi_deploy, '_save_disk_layout', autospec=True)
-    @mock.patch.object(iscsi_deploy, 'InstanceImageCache', autospec=True)
+    @mock.patch.object(deploy_utils, 'InstanceImageCache', autospec=True)
     @mock.patch.object(manager_utils, 'node_power_action', autospec=True)
     @mock.patch.object(deploy_utils, 'deploy_partition_image', autospec=True)
     def test_continue_deploy_fail_no_root_uuid_or_disk_id(
@@ -267,7 +267,7 @@ class IscsiDeployMethodsTestCase(db_base.DbTestCase):
 
     @mock.patch.object(driver_utils, 'collect_ramdisk_logs', autospec=True)
     @mock.patch.object(iscsi_deploy, '_save_disk_layout', autospec=True)
-    @mock.patch.object(iscsi_deploy, 'InstanceImageCache', autospec=True)
+    @mock.patch.object(deploy_utils, 'InstanceImageCache', autospec=True)
     @mock.patch.object(manager_utils, 'node_power_action', autospec=True)
     @mock.patch.object(deploy_utils, 'deploy_partition_image', autospec=True)
     def test_continue_deploy_fail_empty_root_uuid(
@@ -298,7 +298,7 @@ class IscsiDeployMethodsTestCase(db_base.DbTestCase):
     @mock.patch.object(iscsi_deploy, '_save_disk_layout', autospec=True)
     @mock.patch.object(iscsi_deploy, 'LOG', autospec=True)
     @mock.patch.object(iscsi_deploy, 'get_deploy_info', autospec=True)
-    @mock.patch.object(iscsi_deploy, 'InstanceImageCache', autospec=True)
+    @mock.patch.object(deploy_utils, 'InstanceImageCache', autospec=True)
     @mock.patch.object(manager_utils, 'node_power_action', autospec=True)
     @mock.patch.object(deploy_utils, 'deploy_partition_image', autospec=True)
     def test_continue_deploy(self, deploy_mock, power_mock, mock_image_cache,
@@ -350,7 +350,7 @@ class IscsiDeployMethodsTestCase(db_base.DbTestCase):
 
     @mock.patch.object(iscsi_deploy, 'LOG', autospec=True)
     @mock.patch.object(iscsi_deploy, 'get_deploy_info', autospec=True)
-    @mock.patch.object(iscsi_deploy, 'InstanceImageCache', autospec=True)
+    @mock.patch.object(deploy_utils, 'InstanceImageCache', autospec=True)
     @mock.patch.object(manager_utils, 'node_power_action', autospec=True)
     @mock.patch.object(deploy_utils, 'deploy_disk_image', autospec=True)
     def test_continue_deploy_whole_disk_image(
@@ -703,7 +703,7 @@ class ISCSIDeployTestCase(db_base.DbTestCase):
 
     @mock.patch.object(manager_utils, 'node_power_action', autospec=True)
     @mock.patch.object(iscsi_deploy, 'check_image_size', autospec=True)
-    @mock.patch.object(iscsi_deploy, 'cache_instance_image', autospec=True)
+    @mock.patch.object(deploy_utils, 'cache_instance_image', autospec=True)
     def test_deploy(self, mock_cache_instance_image,
                     mock_check_image_size, mock_node_power_action):
         with task_manager.acquire(self.context,
@@ -728,7 +728,7 @@ class ISCSIDeployTestCase(db_base.DbTestCase):
                        spec_set=True, autospec=True)
     @mock.patch.object(manager_utils, 'node_power_action', autospec=True)
     @mock.patch.object(iscsi_deploy, 'check_image_size', autospec=True)
-    @mock.patch.object(iscsi_deploy, 'cache_instance_image', autospec=True)
+    @mock.patch.object(deploy_utils, 'cache_instance_image', autospec=True)
     def test_deploy_storage_check_write_image_false(self,
                                                     mock_cache_instance_image,
                                                     mock_check_image_size,
@@ -790,7 +790,7 @@ class ISCSIDeployTestCase(db_base.DbTestCase):
     @mock.patch('ironic.common.dhcp_factory.DHCPFactory.clean_dhcp')
     @mock.patch.object(pxe.PXEBoot, 'clean_up_instance', autospec=True)
     @mock.patch.object(pxe.PXEBoot, 'clean_up_ramdisk', autospec=True)
-    @mock.patch.object(iscsi_deploy, 'destroy_images', autospec=True)
+    @mock.patch.object(deploy_utils, 'destroy_images', autospec=True)
     def test_clean_up(self, destroy_images_mock, clean_up_ramdisk_mock,
                       clean_up_instance_mock, clean_dhcp_mock,
                       set_dhcp_provider_mock):
@@ -982,9 +982,9 @@ class CleanUpFullFlowTestCase(db_base.DbTestCase):
         os.makedirs(self.node_tftp_dir)
         self.kernel_path = os.path.join(self.node_tftp_dir,
                                         'kernel')
-        self.node_image_dir = iscsi_deploy._get_image_dir_path(self.node.uuid)
+        self.node_image_dir = deploy_utils._get_image_dir_path(self.node.uuid)
         os.makedirs(self.node_image_dir)
-        self.image_path = iscsi_deploy._get_image_file_path(self.node.uuid)
+        self.image_path = deploy_utils._get_image_file_path(self.node.uuid)
         self.config_path = pxe_utils.get_pxe_config_file_path(self.node.uuid)
         self.mac_path = pxe_utils._get_pxe_mac_path(self.port.address)
 

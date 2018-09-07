@@ -22,9 +22,11 @@ import time
 
 from ironic_lib import disk_utils
 from ironic_lib import metrics_utils
+from ironic_lib import utils as il_utils
 from oslo_concurrency import processutils
 from oslo_log import log as logging
 from oslo_utils import excutils
+from oslo_utils import fileutils
 from oslo_utils import netutils
 from oslo_utils import strutils
 import six
@@ -1069,6 +1071,98 @@ def _check_disk_layout_unchanged(node, i_info):
                                               {'error_msg': error_msg})
 
 
+def _get_image_dir_path(node_uuid):
+    """Generate the dir for an instances disk."""
+    return os.path.join(CONF.pxe.images_path, node_uuid)
+
+
+def _get_image_file_path(node_uuid):
+    """Generate the full path for an instances disk."""
+    return os.path.join(_get_image_dir_path(node_uuid), 'disk')
+
+
+def _get_http_image_symlink_dir_path():
+    """Generate the dir for storing symlinks to cached instance images."""
+    return os.path.join(CONF.deploy.http_root, CONF.deploy.http_image_subdir)
+
+
+def _get_http_image_symlink_file_path(node_uuid):
+    """Generate the full path for the symlink to an cached instance image."""
+    return os.path.join(_get_http_image_symlink_dir_path(), node_uuid)
+
+
+def direct_deploy_should_convert_raw_image(node):
+    """Whether converts image to raw format for specified node.
+
+    :param node: ironic node object
+    :returns: Boolean, whether the direct deploy interface should convert
+        image to raw.
+    """
+    iwdi = node.driver_internal_info.get('is_whole_disk_image')
+    return CONF.force_raw_images and CONF.agent.stream_raw_images and iwdi
+
+
+@image_cache.cleanup(priority=50)
+class InstanceImageCache(image_cache.ImageCache):
+
+    def __init__(self):
+        super(self.__class__, self).__init__(
+            CONF.pxe.instance_master_path,
+            # MiB -> B
+            cache_size=CONF.pxe.image_cache_size * 1024 * 1024,
+            # min -> sec
+            cache_ttl=CONF.pxe.image_cache_ttl * 60)
+
+
+@METRICS.timer('cache_instance_image')
+def cache_instance_image(ctx, node, force_raw=CONF.force_raw_images):
+    """Fetch the instance's image from Glance
+
+    This method pulls the AMI and writes them to the appropriate place
+    on local disk.
+
+    :param ctx: context
+    :param node: an ironic node object
+    :param force_raw: whether convert image to raw format
+    :returns: a tuple containing the uuid of the image and the path in
+        the filesystem where image is cached.
+    """
+    i_info = parse_instance_info(node)
+    fileutils.ensure_tree(_get_image_dir_path(node.uuid))
+    image_path = _get_image_file_path(node.uuid)
+    uuid = i_info['image_source']
+
+    LOG.debug("Fetching image %(image)s for node %(uuid)s",
+              {'image': uuid, 'uuid': node.uuid})
+
+    fetch_images(ctx, InstanceImageCache(), [(uuid, image_path)],
+                 force_raw)
+
+    return (uuid, image_path)
+
+
+@METRICS.timer('destroy_images')
+def destroy_images(node_uuid):
+    """Delete instance's image file.
+
+    :param node_uuid: the uuid of the ironic node.
+    """
+    il_utils.unlink_without_raise(_get_image_file_path(node_uuid))
+    utils.rmtree_without_raise(_get_image_dir_path(node_uuid))
+    InstanceImageCache().clean_up()
+
+
+def remove_http_instance_symlink(node_uuid):
+    symlink_path = _get_http_image_symlink_file_path(node_uuid)
+    il_utils.unlink_without_raise(symlink_path)
+
+
+def destroy_http_instance_images(node):
+    """Delete instance image file and symbolic link refers to it."""
+    remove_http_instance_symlink(node.uuid)
+    destroy_images(node.uuid)
+
+
 @METRICS.timer('build_instance_info_for_deploy')
 def build_instance_info_for_deploy(task):
     """Build instance_info necessary for deploying to a node.
@@ -1100,17 +1194,55 @@ def build_instance_info_for_deploy(task):
     instance_info = node.instance_info
     iwdi = node.driver_internal_info.get('is_whole_disk_image')
     image_source = instance_info['image_source']
+
     if service_utils.is_glance_image(image_source):
         glance = image_service.GlanceImageService(version=2,
                                                   context=task.context)
         image_info = glance.show(image_source)
         LOG.debug('Got image info: %(info)s for node %(node)s.',
                   {'info': image_info, 'node': node.uuid})
-        swift_temp_url = glance.swift_temp_url(image_info)
-        validate_image_url(swift_temp_url, secret=True)
-        instance_info['image_url'] = swift_temp_url
-        instance_info['image_checksum'] = image_info['checksum']
-        instance_info['image_disk_format'] = image_info['disk_format']
+        if CONF.agent.image_download_source == 'swift':
+            swift_temp_url = glance.swift_temp_url(image_info)
+            validate_image_url(swift_temp_url, secret=True)
+            instance_info['image_url'] = swift_temp_url
+            instance_info['image_checksum'] = image_info['checksum']
+            instance_info['image_disk_format'] = image_info['disk_format']
+        else:
+            # Ironic cache and serve images from httpboot server
+            force_raw = direct_deploy_should_convert_raw_image(node)
+            _, image_path = cache_instance_image(task.context, node,
+                                                 force_raw=force_raw)
+            if force_raw:
+                time_start = time.time()
+                LOG.debug('Start calculating checksum for image %(image)s.',
+                          {'image': image_path})
+                checksum = fileutils.compute_file_checksum(image_path,
+                                                           algorithm='md5')
+                time_elapsed = time.time() - time_start
+                LOG.debug('Recalculated checksum for image %(image)s in '
+                          '%(delta).2f seconds, new checksum %(checksum)s ',
+                          {'image': image_path, 'delta': time_elapsed,
+                           'checksum': checksum})
+                instance_info['image_checksum'] = checksum
+                instance_info['image_disk_format'] = 'raw'
+            else:
+                instance_info['image_checksum'] = image_info['checksum']
+                instance_info['image_disk_format'] = image_info['disk_format']
+
+            # Create symlink and update image url
+            symlink_dir = _get_http_image_symlink_dir_path()
+            fileutils.ensure_tree(symlink_dir)
+            symlink_path = _get_http_image_symlink_file_path(node.uuid)
+            utils.create_link_without_raise(image_path, symlink_path)
+            base_url = CONF.deploy.http_url
+            if base_url.endswith('/'):
+                base_url = base_url[:-1]
+            http_image_url = '/'.join(
+                [base_url, CONF.deploy.http_image_subdir,
+                 node.uuid])
+            validate_image_url(http_image_url, secret=True)
+            instance_info['image_url'] = http_image_url
+
         instance_info['image_container_format'] = (
             image_info['container_format'])
         instance_info['image_tags'] = image_info.get('tags', [])

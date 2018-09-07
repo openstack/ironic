@@ -89,6 +89,19 @@ opts = [
                       'forever or until manually deleted. Used when the '
                       'deploy_logs_storage_backend is configured to '
                       '"swift".')),
+    cfg.StrOpt('image_download_source',
+               choices=[('swift', _('IPA ramdisk retrieves instance image '
+                                    'from the Object Storage service.')),
+                        ('http', _('IPA ramdisk retrieves instance image '
+                                   'from HTTP service served at conductor '
+                                   'nodes.'))],
+               default='swift',
+               help=_('Specifies whether direct deploy interface should try '
+                      'to use the image source directly or if ironic should '
+                      'cache the image on the conductor and serve it from '
+                      'ironic\'s own http server. This option takes effect '
+                      'only when instance image is provided from the Image '
+                      'service.')),
 ]
 
 

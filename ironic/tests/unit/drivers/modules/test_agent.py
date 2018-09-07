@@ -138,6 +138,30 @@ class TestAgentMethods(db_base.DbTestCase):
                               task, 'fake-image')
             show_mock.assert_called_once_with(self.context, 'fake-image')
 
+    @mock.patch.object(deploy_utils, 'check_for_missing_params')
+    def test_validate_http_provisioning_not_glance(self, utils_mock):
+        agent.validate_http_provisioning_configuration(self.node)
+        utils_mock.assert_not_called()
+
+    @mock.patch.object(deploy_utils, 'check_for_missing_params')
+    def test_validate_http_provisioning_not_http(self, utils_mock):
+        i_info = self.node.instance_info
+        i_info['image_source'] = '0448fa34-4db1-407b-a051-6357d5f86c59'
+        self.node.instance_info = i_info
+        agent.validate_http_provisioning_configuration(self.node)
+        utils_mock.assert_not_called()
+
+    def test_validate_http_provisioning_missing_args(self):
+        CONF.set_override('image_download_source', 'http', group='agent')
+        CONF.set_override('http_url', None, group='deploy')
+        i_info = self.node.instance_info
+        i_info['image_source'] = '0448fa34-4db1-407b-a051-6357d5f86c59'
+        self.node.instance_info = i_info
+        self.assertRaisesRegex(exception.MissingParameterValue,
+                               'failed to validate http provisoning',
+                               agent.validate_http_provisioning_configuration,
+                               self.node)
+
 
 class TestAgentDeploy(db_base.DbTestCase):
     def setUp(self):
@@ -164,12 +188,14 @@ class TestAgentDeploy(db_base.DbTestCase):
         expected = agent.COMMON_PROPERTIES
         self.assertEqual(expected, self.driver.get_properties())
 
+    @mock.patch.object(agent, 'validate_http_provisioning_configuration',
+                       autospec=True)
     @mock.patch.object(deploy_utils, 'validate_capabilities',
                        spec_set=True, autospec=True)
     @mock.patch.object(images, 'image_show', autospec=True)
     @mock.patch.object(pxe.PXEBoot, 'validate', autospec=True)
     def test_validate(self, pxe_boot_validate_mock, show_mock,
-                      validate_capability_mock):
+                      validate_capability_mock, validate_http_mock):
         with task_manager.acquire(
                 self.context, self.node['uuid'], shared=False) as task:
             self.driver.validate(task)
@@ -177,14 +203,17 @@ class TestAgentDeploy(db_base.DbTestCase):
                 task.driver.boot, task)
             show_mock.assert_called_once_with(self.context, 'fake-image')
             validate_capability_mock.assert_called_once_with(task.node)
+            validate_http_mock.assert_called_once_with(task.node)
 
+    @mock.patch.object(agent, 'validate_http_provisioning_configuration',
+                       autospec=True)
     @mock.patch.object(deploy_utils, 'validate_capabilities',
                        spec_set=True, autospec=True)
     @mock.patch.object(images, 'image_show', autospec=True)
     @mock.patch.object(pxe.PXEBoot, 'validate', autospec=True)
     def test_validate_driver_info_manage_agent_boot_false(
             self, pxe_boot_validate_mock, show_mock,
-            validate_capability_mock):
+            validate_capability_mock, validate_http_mock):
 
         self.config(manage_agent_boot=False, group='agent')
         self.node.driver_info = {}
@@ -195,6 +224,7 @@ class TestAgentDeploy(db_base.DbTestCase):
             self.assertFalse(pxe_boot_validate_mock.called)
             show_mock.assert_called_once_with(self.context, 'fake-image')
             validate_capability_mock.assert_called_once_with(task.node)
+            validate_http_mock.assert_called_once_with(task.node)
 
     @mock.patch.object(pxe.PXEBoot, 'validate', autospec=True)
     def test_validate_instance_info_missing_params(
@@ -226,10 +256,12 @@ class TestAgentDeploy(db_base.DbTestCase):
             pxe_boot_validate_mock.assert_called_once_with(
                 task.driver.boot, task)
 
+    @mock.patch.object(agent, 'validate_http_provisioning_configuration',
+                       autospec=True)
     @mock.patch.object(images, 'image_show', autospec=True)
     @mock.patch.object(pxe.PXEBoot, 'validate', autospec=True)
     def test_validate_invalid_root_device_hints(
-            self, pxe_boot_validate_mock, show_mock):
+            self, pxe_boot_validate_mock, show_mock, validate_http_mock):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
             task.node.properties['root_device'] = {'size': 'not-int'}
@@ -238,10 +270,14 @@ class TestAgentDeploy(db_base.DbTestCase):
             pxe_boot_validate_mock.assert_called_once_with(
                 task.driver.boot, task)
             show_mock.assert_called_once_with(self.context, 'fake-image')
+            validate_http_mock.assert_called_once_with(task.node)
 
+    @mock.patch.object(agent, 'validate_http_provisioning_configuration',
+                       autospec=True)
     @mock.patch.object(images, 'image_show', autospec=True)
     @mock.patch.object(pxe.PXEBoot, 'validate', autospec=True)
-    def test_validate_invalid_proxies(self, pxe_boot_validate_mock, show_mock):
+    def test_validate_invalid_proxies(self, pxe_boot_validate_mock, show_mock,
+                                      validate_http_mock):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
             task.node.driver_info.update({
@@ -254,6 +290,7 @@ class TestAgentDeploy(db_base.DbTestCase):
             pxe_boot_validate_mock.assert_called_once_with(
                 task.driver.boot, task)
             show_mock.assert_called_once_with(self.context, 'fake-image')
+            validate_http_mock.assert_called_once_with(task.node)
 
     @mock.patch.object(pxe.PXEBoot, 'validate', autospec=True)
     @mock.patch.object(deploy_utils, 'check_for_missing_params',
@@ -948,6 +985,8 @@ class TestAgentDeploy(db_base.DbTestCase):
             self.assertEqual(states.ACTIVE,
                              task.node.target_provision_state)
 
+    @mock.patch.object(deploy_utils, 'remove_http_instance_symlink',
+                       autospec=True)
     @mock.patch.object(agent.LOG, 'warning', spec_set=True, autospec=True)
     @mock.patch.object(agent.AgentDeployMixin, '_get_uuid_from_result',
                        autospec=True)
@@ -963,8 +1002,9 @@ class TestAgentDeploy(db_base.DbTestCase):
     def test_reboot_to_instance(self, check_deploy_mock,
                                 prepare_instance_mock, power_off_mock,
                                 get_power_state_mock, node_power_action_mock,
-                                uuid_mock, log_mock):
+                                uuid_mock, log_mock, remove_symlink_mock):
         self.config(manage_agent_boot=True, group='agent')
+        self.config(image_download_source='http', group='agent')
         check_deploy_mock.return_value = None
         uuid_mock.return_value = None
         self.node.provision_state = states.DEPLOYWAIT
@@ -990,6 +1030,7 @@ class TestAgentDeploy(db_base.DbTestCase):
                 task, states.POWER_ON)
             self.assertEqual(states.ACTIVE, task.node.provision_state)
             self.assertEqual(states.NOSTATE, task.node.target_provision_state)
+            self.assertTrue(remove_symlink_mock.called)
 
     @mock.patch.object(agent.LOG, 'warning', spec_set=True, autospec=True)
     @mock.patch.object(manager_utils, 'node_set_boot_device', autospec=True)
