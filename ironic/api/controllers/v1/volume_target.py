@@ -124,35 +124,49 @@ class VolumeTarget(base.APIBase):
                                                                wtypes.Unset)
 
     @staticmethod
-    def _convert_with_links(target, url, fields=None):
-        # NOTE(lucasagomes): Since we are able to return a specified set of
-        # fields the "uuid" can be unset, so we need to save it in another
-        # variable to use when building the links
-        target_uuid = target.uuid
-        if fields is not None:
-            target.unset_fields_except(fields)
+    def _convert_with_links(target, url):
 
-        # never expose the node_id attribute
-        target.node_id = wtypes.Unset
         target.links = [link.Link.make_link('self', url,
                                             'volume/targets',
-                                            target_uuid),
+                                            target.uuid),
                         link.Link.make_link('bookmark', url,
                                             'volume/targets',
-                                            target_uuid,
+                                            target.uuid,
                                             bookmark=True)
                         ]
         return target
 
     @classmethod
-    def convert_with_links(cls, rpc_target, fields=None):
+    def convert_with_links(cls, rpc_target, fields=None, sanitize=True):
         target = VolumeTarget(**rpc_target.as_dict())
 
         if fields is not None:
             api_utils.check_for_invalid_fields(fields, target.as_dict())
 
-        return cls._convert_with_links(target, pecan.request.public_url,
-                                       fields=fields)
+        target = cls._convert_with_links(target, pecan.request.public_url)
+
+        if not sanitize:
+            return target
+
+        target.sanitize(fields)
+
+        return target
+
+    def sanitize(self, fields=None):
+        """Removes sensitive and unrequested data.
+
+        Will only keep the fields specified in the ``fields`` parameter.
+
+        :param fields:
+            list of fields to preserve, or ``None`` to preserve them all
+        :type fields: list of str
+        """
+
+        if fields is not None:
+            self.unset_fields_except(fields)
+
+        # never expose the node_id attribute
+        self.node_id = wtypes.Unset
 
     @classmethod
     def sample(cls, expand=True):
@@ -199,11 +213,13 @@ class VolumeTargetCollection(collection.Collection):
                            detail=None, **kwargs):
         collection = VolumeTargetCollection()
         collection.targets = [
-            VolumeTarget.convert_with_links(p, fields=fields)
+            VolumeTarget.convert_with_links(p, fields=fields, sanitize=False)
             for p in rpc_targets]
         if detail:
             kwargs['detail'] = detail
         collection.next = collection.get_next(limit, url=url, **kwargs)
+        for target in collection.targets:
+            target.sanitize(fields)
         return collection
 
     @classmethod

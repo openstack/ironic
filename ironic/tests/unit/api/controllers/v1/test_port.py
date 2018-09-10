@@ -368,6 +368,26 @@ class TestListPorts(test_api_base.BaseApiTest):
             # We always append "links"
             self.assertItemsEqual(['uuid', 'extra', 'links'], port)
 
+    def test_get_collection_next_marker_no_uuid(self):
+        fields = 'address'
+        limit = 2
+        ports = []
+        for i in range(3):
+            port = obj_utils.create_test_port(
+                self.context,
+                node_id=self.node.id,
+                uuid=uuidutils.generate_uuid(),
+                address='52:54:00:cf:2d:3%s' % i
+            )
+            ports.append(port)
+
+        data = self.get_json(
+            '/ports?fields=%s&limit=%s' % (fields, limit),
+            headers={api_base.Version.string: str(api_v1.max_version())})
+
+        self.assertEqual(limit, len(data['ports']))
+        self.assertIn('marker=%s' % ports[limit - 1].uuid, data['next'])
+
     def test_get_custom_fields_invalid_fields(self):
         port = obj_utils.create_test_port(self.context, node_id=self.node.id)
         fields = 'uuid,spongebob'

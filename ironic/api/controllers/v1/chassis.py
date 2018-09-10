@@ -76,42 +76,54 @@ class Chassis(base.APIBase):
 
     @staticmethod
     def _convert_with_links(chassis, url, fields=None):
-        # NOTE(lucasagomes): Since we are able to return a specified set of
-        # fields the "uuid" can be unset, so we need to save it in another
-        # variable to use when building the links
-        chassis_uuid = chassis.uuid
-        if fields is not None:
-            chassis.unset_fields_except(fields)
-        else:
+        if fields is None:
             chassis.nodes = [link.Link.make_link('self',
                                                  url,
                                                  'chassis',
-                                                 chassis_uuid + "/nodes"),
+                                                 chassis.uuid + "/nodes"),
                              link.Link.make_link('bookmark',
                                                  url,
                                                  'chassis',
-                                                 chassis_uuid + "/nodes",
+                                                 chassis.uuid + "/nodes",
                                                  bookmark=True)
                              ]
         chassis.links = [link.Link.make_link('self',
                                              url,
-                                             'chassis', chassis_uuid),
+                                             'chassis', chassis.uuid),
                          link.Link.make_link('bookmark',
                                              url,
-                                             'chassis', chassis_uuid,
+                                             'chassis', chassis.uuid,
                                              bookmark=True)
                          ]
         return chassis
 
     @classmethod
-    def convert_with_links(cls, rpc_chassis, fields=None):
+    def convert_with_links(cls, rpc_chassis, fields=None, sanitize=True):
         chassis = Chassis(**rpc_chassis.as_dict())
 
         if fields is not None:
             api_utils.check_for_invalid_fields(fields, chassis.as_dict())
 
-        return cls._convert_with_links(chassis, pecan.request.public_url,
-                                       fields)
+        chassis = cls._convert_with_links(chassis, pecan.request.public_url,
+                                          fields)
+
+        if not sanitize:
+            return chassis
+
+        chassis.sanitize(fields)
+        return chassis
+
+    def sanitize(self, fields=None):
+        """Removes sensitive and unrequested data.
+
+        Will only keep the fields specified in the ``fields`` parameter.
+
+        :param fields:
+            list of fields to preserve, or ``None`` to preserve them all
+        :type fields: list of str
+        """
+        if fields is not None:
+            self.unset_fields_except(fields)
 
     @classmethod
     def sample(cls, expand=True):
@@ -141,10 +153,13 @@ class ChassisCollection(collection.Collection):
     @staticmethod
     def convert_with_links(chassis, limit, url=None, fields=None, **kwargs):
         collection = ChassisCollection()
-        collection.chassis = [Chassis.convert_with_links(ch, fields=fields)
+        collection.chassis = [Chassis.convert_with_links(ch, fields=fields,
+                                                         sanitize=False)
                               for ch in chassis]
         url = url or None
         collection.next = collection.get_next(limit, url=url, **kwargs)
+        for item in collection.chassis:
+            item.sanitize(fields)
         return collection
 
     @classmethod
