@@ -1126,59 +1126,75 @@ class Node(base.APIBase):
     @staticmethod
     def _convert_with_links(node, url, fields=None, show_states_links=True,
                             show_portgroups=True, show_volume=True):
-        # NOTE(lucasagomes): Since we are able to return a specified set of
-        # fields the "uuid" can be unset, so we need to save it in another
-        # variable to use when building the links
-        node_uuid = node.uuid
-        if fields is not None:
-            node.unset_fields_except(fields)
-        else:
+        if fields is None:
             node.ports = [link.Link.make_link('self', url, 'nodes',
-                                              node_uuid + "/ports"),
+                                              node.uuid + "/ports"),
                           link.Link.make_link('bookmark', url, 'nodes',
-                                              node_uuid + "/ports",
+                                              node.uuid + "/ports",
                                               bookmark=True)
                           ]
             if show_states_links:
                 node.states = [link.Link.make_link('self', url, 'nodes',
-                                                   node_uuid + "/states"),
+                                                   node.uuid + "/states"),
                                link.Link.make_link('bookmark', url, 'nodes',
-                                                   node_uuid + "/states",
+                                                   node.uuid + "/states",
                                                    bookmark=True)]
             if show_portgroups:
                 node.portgroups = [
                     link.Link.make_link('self', url, 'nodes',
-                                        node_uuid + "/portgroups"),
+                                        node.uuid + "/portgroups"),
                     link.Link.make_link('bookmark', url, 'nodes',
-                                        node_uuid + "/portgroups",
+                                        node.uuid + "/portgroups",
                                         bookmark=True)]
 
             if show_volume:
                 node.volume = [
                     link.Link.make_link('self', url, 'nodes',
-                                        node_uuid + "/volume"),
+                                        node.uuid + "/volume"),
                     link.Link.make_link('bookmark', url, 'nodes',
-                                        node_uuid + "/volume",
+                                        node.uuid + "/volume",
                                         bookmark=True)]
 
-        # NOTE(lucasagomes): The numeric ID should not be exposed to
-        #                    the user, it's internal only.
-        node.chassis_id = wtypes.Unset
-
         node.links = [link.Link.make_link('self', url, 'nodes',
-                                          node_uuid),
+                                          node.uuid),
                       link.Link.make_link('bookmark', url, 'nodes',
-                                          node_uuid, bookmark=True)
+                                          node.uuid, bookmark=True)
                       ]
         return node
 
     @classmethod
-    def convert_with_links(cls, rpc_node, fields=None):
+    def convert_with_links(cls, rpc_node, fields=None, sanitize=True):
         node = Node(**rpc_node.as_dict())
 
         if fields is not None:
             api_utils.check_for_invalid_fields(fields, node.as_dict())
 
+        show_states_links = (
+            api_utils.allow_links_node_states_and_driver_properties())
+        show_portgroups = api_utils.allow_portgroups_subcontrollers()
+        show_volume = api_utils.allow_volume()
+
+        node = cls._convert_with_links(node, pecan.request.public_url,
+                                       fields=fields,
+                                       show_states_links=show_states_links,
+                                       show_portgroups=show_portgroups,
+                                       show_volume=show_volume)
+        if not sanitize:
+            return node
+
+        node.sanitize(fields)
+
+        return node
+
+    def sanitize(self, fields):
+        """Removes sensitive and unrequested data.
+
+        Will only keep the fields specified in the ``fields`` parameter.
+
+        :param fields:
+            list of fields to preserve, or ``None`` to preserve them all
+        :type fields: list of str
+        """
         cdict = pecan.request.context.to_policy_values()
         # NOTE(deva): the 'show_password' policy setting name exists for legacy
         #             purposes and can not be changed. Changing it will cause
@@ -1188,39 +1204,49 @@ class Node(base.APIBase):
         show_instance_secrets = policy.check("show_instance_secrets",
                                              cdict, cdict)
 
-        if not show_driver_secrets and node.driver_info != wtypes.Unset:
-            node.driver_info = strutils.mask_dict_password(
-                node.driver_info, "******")
+        if not show_driver_secrets and self.driver_info != wtypes.Unset:
+            self.driver_info = strutils.mask_dict_password(
+                self.driver_info, "******")
 
             # NOTE(derekh): mask ssh keys for the ssh power driver.
             # As this driver is deprecated masking here (opposed to strutils)
             # is simpler, and easier to backport. This can be removed along
             # with support for the ssh power driver.
-            if node.driver_info.get('ssh_key_contents'):
-                node.driver_info['ssh_key_contents'] = "******"
+            if self.driver_info.get('ssh_key_contents'):
+                self.driver_info['ssh_key_contents'] = "******"
 
-        if not show_instance_secrets and node.instance_info != wtypes.Unset:
-            node.instance_info = strutils.mask_dict_password(
-                node.instance_info, "******")
+        if not show_instance_secrets and self.instance_info != wtypes.Unset:
+            self.instance_info = strutils.mask_dict_password(
+                self.instance_info, "******")
             # NOTE(deva): agent driver may store a swift temp_url on the
             # instance_info, which shouldn't be exposed to non-admin users.
             # Now that ironic supports additional policies, we need to hide
             # it here, based on this policy.
             # Related to bug #1613903
-            if node.instance_info.get('image_url'):
-                node.instance_info['image_url'] = "******"
+            if self.instance_info.get('image_url'):
+                self.instance_info['image_url'] = "******"
 
-        update_state_in_older_versions(node)
-        hide_fields_in_newer_versions(node)
+        update_state_in_older_versions(self)
+        hide_fields_in_newer_versions(self)
+
+        if fields is not None:
+            self.unset_fields_except(fields)
+
+        # NOTE(lucasagomes): The numeric ID should not be exposed to
+        #                    the user, it's internal only.
+        self.chassis_id = wtypes.Unset
+
         show_states_links = (
             api_utils.allow_links_node_states_and_driver_properties())
         show_portgroups = api_utils.allow_portgroups_subcontrollers()
         show_volume = api_utils.allow_volume()
-        return cls._convert_with_links(node, pecan.request.public_url,
-                                       fields=fields,
-                                       show_states_links=show_states_links,
-                                       show_portgroups=show_portgroups,
-                                       show_volume=show_volume)
+
+        if not show_volume:
+            self.volume = wtypes.Unset
+        if not show_portgroups:
+            self.portgroups = wtypes.Unset
+        if not show_states_links:
+            self.states = wtypes.Unset
 
     @classmethod
     def sample(cls, expand=True):
@@ -1290,9 +1316,14 @@ class NodeCollection(collection.Collection):
     @staticmethod
     def convert_with_links(nodes, limit, url=None, fields=None, **kwargs):
         collection = NodeCollection()
-        collection.nodes = [Node.convert_with_links(n, fields=fields)
+        collection.nodes = [Node.convert_with_links(n, fields=fields,
+                                                    sanitize=False)
                             for n in nodes]
         collection.next = collection.get_next(limit, url=url, **kwargs)
+
+        for node in collection.nodes:
+            node.sanitize(fields)
+
         return collection
 
     @classmethod

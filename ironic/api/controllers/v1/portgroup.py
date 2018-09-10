@@ -131,41 +131,58 @@ class Portgroup(base.APIBase):
     @staticmethod
     def _convert_with_links(portgroup, url, fields=None):
         """Add links to the portgroup."""
-        # NOTE(lucasagomes): Since we are able to return a specified set of
-        # fields the "uuid" can be unset, so we need to save it in another
-        # variable to use when building the links
-        portgroup_uuid = portgroup.uuid
-        if fields is not None:
-            portgroup.unset_fields_except(fields)
-        else:
+        if fields is None:
             portgroup.ports = [
                 link.Link.make_link('self', url, 'portgroups',
-                                    portgroup_uuid + "/ports"),
+                                    portgroup.uuid + "/ports"),
                 link.Link.make_link('bookmark', url, 'portgroups',
-                                    portgroup_uuid + "/ports", bookmark=True)
+                                    portgroup.uuid + "/ports", bookmark=True)
             ]
 
         # never expose the node_id attribute
         portgroup.node_id = wtypes.Unset
 
         portgroup.links = [link.Link.make_link('self', url,
-                                               'portgroups', portgroup_uuid),
+                                               'portgroups', portgroup.uuid),
                            link.Link.make_link('bookmark', url,
-                                               'portgroups', portgroup_uuid,
+                                               'portgroups', portgroup.uuid,
                                                bookmark=True)
                            ]
         return portgroup
 
     @classmethod
-    def convert_with_links(cls, rpc_portgroup, fields=None):
+    def convert_with_links(cls, rpc_portgroup, fields=None, sanitize=True):
         """Add links to the portgroup."""
         portgroup = Portgroup(**rpc_portgroup.as_dict())
 
         if fields is not None:
             api_utils.check_for_invalid_fields(fields, portgroup.as_dict())
 
-        return cls._convert_with_links(portgroup, pecan.request.host_url,
-                                       fields=fields)
+        portgroup = cls._convert_with_links(portgroup, pecan.request.host_url,
+                                            fields=fields)
+
+        if not sanitize:
+            return portgroup
+
+        portgroup.sanitize(fields)
+
+        return portgroup
+
+    def sanitize(self, fields=None):
+        """Removes sensitive and unrequested data.
+
+        Will only keep the fields specified in the ``fields`` parameter.
+
+        :param fields:
+            list of fields to preserve, or ``None`` to preserve them all
+        :type fields: list of str
+        """
+
+        if fields is not None:
+            self.unset_fields_except(fields)
+
+        # never expose the node_id attribute
+        self.node_id = wtypes.Unset
 
     @classmethod
     def sample(cls, expand=True):
@@ -212,9 +229,14 @@ class PortgroupCollection(collection.Collection):
     def convert_with_links(rpc_portgroups, limit, url=None, fields=None,
                            **kwargs):
         collection = PortgroupCollection()
-        collection.portgroups = [Portgroup.convert_with_links(p, fields=fields)
+        collection.portgroups = [Portgroup.convert_with_links(p, fields=fields,
+                                                              sanitize=False)
                                  for p in rpc_portgroups]
         collection.next = collection.get_next(limit, url=url, **kwargs)
+
+        for item in collection.portgroups:
+            item.sanitize(fields=fields)
+
         return collection
 
     @classmethod

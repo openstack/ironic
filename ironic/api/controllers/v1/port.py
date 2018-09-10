@@ -186,40 +186,51 @@ class Port(base.APIBase):
         setattr(self, 'portgroup_uuid', kwargs.get('portgroup_id',
                                                    wtypes.Unset))
 
-    @staticmethod
-    def _convert_with_links(port, url, fields=None):
-        # NOTE(lucasagomes): Since we are able to return a specified set of
-        # fields the "uuid" can be unset, so we need to save it in another
-        # variable to use when building the links
-        port_uuid = port.uuid
-        if fields is not None:
-            port.unset_fields_except(fields)
-
-        # never expose the node_id attribute
-        port.node_id = wtypes.Unset
-
-        # never expose the portgroup_id attribute
-        port.portgroup_id = wtypes.Unset
-
-        port.links = [link.Link.make_link('self', url,
-                                          'ports', port_uuid),
-                      link.Link.make_link('bookmark', url,
-                                          'ports', port_uuid,
-                                          bookmark=True)
-                      ]
-        return port
-
     @classmethod
-    def convert_with_links(cls, rpc_port, fields=None):
+    def convert_with_links(cls, rpc_port, fields=None, sanitize=True):
         port = Port(**rpc_port.as_dict())
 
+        port._validate_fields(fields)
+
+        url = pecan.request.public_url
+
+        port.links = [link.Link.make_link('self', url,
+                                          'ports', port.uuid),
+                      link.Link.make_link('bookmark', url,
+                                          'ports', port.uuid,
+                                          bookmark=True)
+                      ]
+
+        if not sanitize:
+            return port
+
+        port.sanitize(fields=fields)
+
+        return port
+
+    def _validate_fields(self, fields=None):
         if fields is not None:
-            api_utils.check_for_invalid_fields(fields, port.as_dict())
+            api_utils.check_for_invalid_fields(fields, self.as_dict())
 
-        hide_fields_in_newer_versions(port)
+    def sanitize(self, fields=None):
+        """Removes sensitive and unrequested data.
 
-        return cls._convert_with_links(port, pecan.request.public_url,
-                                       fields=fields)
+        Will only keep the fields specified in the ``fields`` parameter.
+
+        :param fields:
+            list of fields to preserve, or ``None`` to preserve them all
+        :type fields: list of str
+        """
+        hide_fields_in_newer_versions(self)
+
+        if fields is not None:
+            self.unset_fields_except(fields)
+
+        # never expose the node_id attribute
+        self.node_id = wtypes.Unset
+
+        # never expose the portgroup_id attribute
+        self.portgroup_id = wtypes.Unset
 
     @classmethod
     def sample(cls, expand=True):
@@ -268,7 +279,8 @@ class PortCollection(collection.Collection):
         collection.ports = []
         for rpc_port in rpc_ports:
             try:
-                port = Port.convert_with_links(rpc_port, fields=fields)
+                port = Port.convert_with_links(rpc_port, fields=fields,
+                                               sanitize=False)
             except exception.NodeNotFound:
                 # NOTE(dtantsur): node was deleted after we fetched the port
                 # list, meaning that the port was also deleted. Skip it.
@@ -282,11 +294,16 @@ class PortCollection(collection.Collection):
                 LOG.debug('Removing port group UUID from port %s as the port '
                           'group was deleted', rpc_port.uuid)
                 rpc_port.portgroup_id = None
-                port = Port.convert_with_links(rpc_port, fields=fields)
+                port = Port.convert_with_links(rpc_port, fields=fields,
+                                               sanitize=False)
 
             collection.ports.append(port)
 
         collection.next = collection.get_next(limit, url=url, **kwargs)
+
+        for item in collection.ports:
+            item.sanitize(fields=fields)
+
         return collection
 
     @classmethod

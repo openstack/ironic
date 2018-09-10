@@ -1,0 +1,8 @@
+---
+fixes:
+  - |
+    Fixes an issue where the pagination marker was not being set if ``uuid`` was not
+    in the list of requested fields when executing a list query. The affected API endpoints
+    were: port, portgroup, volume_target, volume_connector, node and chassis.
+    `See story 2003192 for more details <https://storyboard.openstack.org/#!/story/2003192>`_.
+

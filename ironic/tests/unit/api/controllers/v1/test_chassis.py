@@ -230,6 +230,23 @@ class TestListChassis(test_api_base.BaseApiTest):
         next_marker = data['chassis'][-1]['uuid']
         self.assertIn(next_marker, data['next'])
 
+    def test_get_collection_pagination_no_uuid(self):
+        fields = 'extra'
+        limit = 2
+        chassis_list = []
+        for id_ in range(3):
+            chassis = obj_utils.create_test_chassis(
+                self.context,
+                uuid=uuidutils.generate_uuid())
+            chassis_list.append(chassis)
+
+        data = self.get_json(
+            '/chassis?fields=%s&limit=%s' % (fields, limit),
+            headers={api_base.Version.string: str(api_v1.max_version())})
+
+        self.assertEqual(limit, len(data['chassis']))
+        self.assertIn('marker=%s' % chassis_list[limit - 1].uuid, data['next'])
+
     def test_sort_key(self):
         ch_list = []
         for id_ in range(3):

@@ -117,35 +117,50 @@ class VolumeConnector(base.APIBase):
                                                                wtypes.Unset)
 
     @staticmethod
-    def _convert_with_links(connector, url, fields=None):
-        # NOTE(lucasagomes): Since we are able to return a specified set of
-        # fields the "uuid" can be unset, so we need to save it in another
-        # variable to use when building the links
-        connector_uuid = connector.uuid
-        if fields is not None:
-            connector.unset_fields_except(fields)
+    def _convert_with_links(connector, url):
 
-        # never expose the node_id attribute
-        connector.node_id = wtypes.Unset
         connector.links = [link.Link.make_link('self', url,
                                                'volume/connectors',
-                                               connector_uuid),
+                                               connector.uuid),
                            link.Link.make_link('bookmark', url,
                                                'volume/connectors',
-                                               connector_uuid,
+                                               connector.uuid,
                                                bookmark=True)
                            ]
         return connector
 
     @classmethod
-    def convert_with_links(cls, rpc_connector, fields=None):
+    def convert_with_links(cls, rpc_connector, fields=None, sanitize=True):
         connector = VolumeConnector(**rpc_connector.as_dict())
 
         if fields is not None:
             api_utils.check_for_invalid_fields(fields, connector.as_dict())
 
-        return cls._convert_with_links(connector, pecan.request.public_url,
-                                       fields=fields)
+        connector = cls._convert_with_links(connector,
+                                            pecan.request.public_url)
+
+        if not sanitize:
+            return connector
+
+        connector.sanitize(fields)
+
+        return connector
+
+    def sanitize(self, fields=None):
+        """Removes sensitive and unrequested data.
+
+        Will only keep the fields specified in the ``fields`` parameter.
+
+        :param fields:
+            list of fields to preserve, or ``None`` to preserve them all
+        :type fields: list of str
+        """
+
+        if fields is not None:
+            self.unset_fields_except(fields)
+
+        # never expose the node_id attribute
+        self.node_id = wtypes.Unset
 
     @classmethod
     def sample(cls, expand=True):
@@ -181,11 +196,14 @@ class VolumeConnectorCollection(collection.Collection):
                            detail=None, **kwargs):
         collection = VolumeConnectorCollection()
         collection.connectors = [
-            VolumeConnector.convert_with_links(p, fields=fields)
+            VolumeConnector.convert_with_links(p, fields=fields,
+                                               sanitize=False)
             for p in rpc_connectors]
         if detail:
             kwargs['detail'] = detail
         collection.next = collection.get_next(limit, url=url, **kwargs)
+        for connector in collection.connectors:
+            connector.sanitize(fields)
         return collection
 
     @classmethod

@@ -327,6 +327,26 @@ class TestListPortgroups(test_api_base.BaseApiTest):
         next_marker = data['portgroups'][-1]['uuid']
         self.assertIn(next_marker, data['next'])
 
+    def test_get_collection_pagination_no_uuid(self):
+        fields = 'address'
+        limit = 2
+        portgroups = []
+        for id_ in range(3):
+            portgroup = obj_utils.create_test_portgroup(
+                self.context,
+                node_id=self.node.id,
+                uuid=uuidutils.generate_uuid(),
+                name='portgroup%s' % id_,
+                address='52:54:00:cf:2d:3%s' % id_)
+            portgroups.append(portgroup)
+
+        data = self.get_json(
+            '/portgroups?fields=%s&limit=%s' % (fields, limit),
+            headers=self.headers)
+
+        self.assertEqual(limit, len(data['portgroups']))
+        self.assertIn('marker=%s' % portgroups[limit - 1].uuid, data['next'])
+
     def test_ports_subresource(self):
         pg = obj_utils.create_test_portgroup(self.context,
                                              uuid=uuidutils.generate_uuid(),
