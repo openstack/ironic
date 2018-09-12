@@ -1,0 +1,10 @@
+---
+features:
+  - |
+    Adds support for ``soft power off`` and ``soft reboot`` operations to
+    ``ilo`` power interface.
+deprecations:
+  - |
+    The ``[ilo]/power_retry`` config is deprecated and will be removed in
+    the future release. Please use ``[conductor]/soft_power_off_timeout``
+    instead.
