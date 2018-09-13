@@ -1,0 +1,8 @@
+---
+fixes:
+  - |
+    Makes all ``ilo`` driver BIOS interface clean steps as asynchronous. This is
+    required to ensure the settings on the baremetal node are consistent with
+    the settings stored in the database irrespective of the node clean step
+    status. Refer bug `2004066
+    <https://storyboard.openstack.org/#!/story/2004066>`_ for details.
