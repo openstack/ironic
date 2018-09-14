@@ -585,3 +585,29 @@ class IloManagement(base.ManagementInterface):
                          % {'node': task.node.uuid})
             raise exception.IloOperationError(operation=operation,
                                               error=ilo_exception)
+
+    @METRICS.timer('IloManagement.inject_nmi')
+    @task_manager.require_exclusive_lock
+    def inject_nmi(self, task):
+        """Inject NMI, Non Maskable Interrupt.
+
+        Inject NMI (Non Maskable Interrupt) for a node immediately.
+
+        :param task: A TaskManager instance containing the node to act on.
+        :raises: IloCommandNotSupportedError if system does not support
+            NMI injection.
+        :raises: IloError on an error from iLO.
+        :returns: None
+        """
+        node = task.node
+        ilo_object = ilo_common.get_ilo_object(node)
+        try:
+            operation = (_("Injecting NMI for node %(node)s")
+                         % {'node': node.uuid})
+            ilo_object.inject_nmi()
+        except ilo_error.IloCommandNotSupportedError as ilo_exception:
+            raise exception.IloOperationNotSupported(operation=operation,
+                                                     error=ilo_exception)
+        except ilo_error.IloError as ilo_exception:
+            raise exception.IloOperationError(operation=operation,
+                                              error=ilo_exception)

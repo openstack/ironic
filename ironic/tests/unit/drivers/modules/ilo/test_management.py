@@ -849,3 +849,37 @@ class IloManagementTestCase(test_common.BaseIloTest):
             self.assertRaises(exception.IloOperationNotSupported,
                               task.driver.management.clear_iscsi_boot_target,
                               task)
+
+    @mock.patch.object(ilo_common, 'get_ilo_object', spec_set=True,
+                       autospec=True)
+    def test_inject_nmi(self, get_ilo_object_mock):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            ilo_object_mock = get_ilo_object_mock.return_value
+
+            task.driver.management.inject_nmi(task)
+            ilo_object_mock.inject_nmi.assert_called_once()
+
+    @mock.patch.object(ilo_common, 'get_ilo_object', spec_set=True,
+                       autospec=True)
+    def test_inject_nmi_failed(self, get_ilo_object_mock):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            ilo_object_mock = get_ilo_object_mock.return_value
+            ilo_object_mock.inject_nmi.side_effect = (
+                ilo_error.IloError('error'))
+            self.assertRaises(exception.IloOperationError,
+                              task.driver.management.inject_nmi,
+                              task)
+
+    @mock.patch.object(ilo_common, 'get_ilo_object', spec_set=True,
+                       autospec=True)
+    def test_inject_nmi_not_supported(self, get_ilo_object_mock):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            ilo_object_mock = get_ilo_object_mock.return_value
+            ilo_object_mock.inject_nmi.side_effect = (
+                ilo_error.IloCommandNotSupportedError('error'))
+            self.assertRaises(exception.IloOperationNotSupported,
+                              task.driver.management.inject_nmi,
+                              task)
