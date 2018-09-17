@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Fixes the bug in executing asynchronous BIOS interface clean step by
+    honoring the state returned by the BIOS interface clean step which
+    was ignored earlier.

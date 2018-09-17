@@ -550,10 +550,10 @@ class MyBIOSInterface(driver_base.BIOSInterface):
         pass
 
     def apply_configuration(self, task, settings):
-        pass
+        return "return_value_apply_configuration"
 
     def factory_reset(self, task):
-        pass
+        return "return_value_factory_reset"
 
     def cache_bios_settings(self, task):
         pass
@@ -566,16 +566,18 @@ class TestBIOSInterface(base.TestCase):
         bios = MyBIOSInterface()
         task_mock = mock.MagicMock()
 
-        bios.apply_configuration(task_mock, "")
+        actual = bios.apply_configuration(task_mock, "")
         cache_bios_settings_mock.assert_called_once_with(bios, task_mock)
+        self.assertEqual(actual, "return_value_apply_configuration")
 
     @mock.patch.object(MyBIOSInterface, 'cache_bios_settings', autospec=True)
     def test_factory_reset_wrapper(self, cache_bios_settings_mock):
         bios = MyBIOSInterface()
         task_mock = mock.MagicMock()
 
-        bios.factory_reset(task_mock)
+        actual = bios.factory_reset(task_mock)
         cache_bios_settings_mock.assert_called_once_with(bios, task_mock)
+        self.assertEqual(actual, "return_value_factory_reset")
 
 
 class TestBootInterface(base.TestCase):
