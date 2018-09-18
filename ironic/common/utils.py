@@ -31,6 +31,7 @@ import jinja2
 from oslo_concurrency import processutils
 from oslo_log import log as logging
 from oslo_serialization import jsonutils
+from oslo_utils import fileutils
 from oslo_utils import netutils
 from oslo_utils import timeutils
 import pytz
@@ -229,28 +230,6 @@ def _get_hash_object(hash_algo_name):
     return getattr(hashlib, hash_algo_name)()
 
 
-def hash_file(file_like_object, hash_algo='md5'):
-    """Generate a hash for the contents of a file.
-
-    It returns a hash of the file object as a string of double length,
-    containing only hexadecimal digits. It supports all the algorithms
-    hashlib does.
-    :param file_like_object: file like object whose hash to be calculated.
-    :param hash_algo: name of the hashing strategy, default being 'md5'.
-    :raises: InvalidParameterValue, on unsupported or invalid input.
-    :returns: a condensed digest of the bytes of contents.
-    """
-    checksum = _get_hash_object(hash_algo)
-    while True:
-        chunk = file_like_object.read(32768)
-        if not chunk:
-            break
-        encoded_chunk = (chunk.encode(encoding='utf-8')
-                         if isinstance(chunk, six.string_types) else chunk)
-        checksum.update(encoded_chunk)
-    return checksum.hexdigest()
-
-
 def file_has_content(path, content, hash_algo='md5'):
     """Checks that content of the file is the same as provided reference.
 
@@ -260,8 +239,7 @@ def file_has_content(path, content, hash_algo='md5'):
     :returns: True if the hash of reference content is the same as
         the hash of file's content, False otherwise
     """
-    with open(path, 'rb') as existing:
-        file_hash_hex = hash_file(existing, hash_algo=hash_algo)
+    file_hash_hex = fileutils.compute_file_checksum(path, algorithm=hash_algo)
     ref_hash = _get_hash_object(hash_algo)
     encoded_content = (content.encode(encoding='utf-8')
                        if isinstance(content, six.string_types) else content)

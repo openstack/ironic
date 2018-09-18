@@ -22,6 +22,7 @@ import tempfile
 
 from ironic_lib import utils as ironic_utils
 from oslo_log import log as logging
+from oslo_utils import fileutils
 from oslo_utils import importutils
 import six
 import six.moves.urllib.parse as urlparse
@@ -775,8 +776,8 @@ def verify_image_checksum(image_location, expected_checksum):
              verification fails.
     """
     try:
-        with open(image_location, 'rb') as fd:
-            actual_checksum = utils.hash_file(fd)
+        actual_checksum = fileutils.compute_file_checksum(image_location,
+                                                          algorithm='md5')
     except IOError as e:
         LOG.error("Error opening file: %(file)s", {'file': image_location})
         raise exception.ImageRefValidationFailed(image_href=image_location,
