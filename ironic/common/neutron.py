@@ -410,6 +410,12 @@ def validate_port_info(node, port):
     :param port: Ironic port object.
     :returns: True if port info is valid, False otherwise.
     """
+    # Note(moshele): client-id in the port extra field indicates an InfiniBand
+    # port.  In this case we don't require local_link_connection to be
+    # populated because the network topology is discoverable by the Infiniband
+    # Subnet Manager.
+    if port.extra.get('client-id'):
+        return True
     if (node.network_interface == 'neutron' and
             not port.local_link_connection):
         LOG.warning(_LW("The local_link_connection is required for "
