@@ -62,7 +62,11 @@ OPTIONAL_PROPERTIES = {
                            'ignore verifying the SSL certificate. If it\'s '
                            'a path the driver will use the specified '
                            'certificate or one of the certificates in the '
-                           'directory. Defaults to True. Optional')
+                           'directory. Defaults to True. Optional'),
+    'redfish_auth_type': _('Redfish HTTP client authentication method. Can be '
+                           '"basic", "session" or "auto". If not set, the '
+                           'default value is taken from Ironic '
+                           'configuration as ``[redfish]auth_type`` option.')
 }
 
 COMMON_PROPERTIES = REQUIRED_PROPERTIES.copy()
@@ -142,16 +146,33 @@ def parse_driver_info(node):
               'to a file/directory, not "%(value)s"') % {'value': verify_ca,
                                                          'node': node.uuid})
 
+    auth_type = driver_info.get('redfish_auth_type', CONF.redfish.auth_type)
+    if auth_type not in ('basic', 'session', 'auto'):
+        raise exception.InvalidParameterValue(
+            _('Invalid value "%(value)s" set in '
+              'driver_info/redfish_auth_type on node %(node)s. '
+              'The value should be one of "basic", "session" or "auto".') %
+            {'value': auth_type, 'node': node.uuid})
+
     return {'address': address,
             'system_id': system_id,
             'username': driver_info.get('redfish_username'),
             'password': driver_info.get('redfish_password'),
             'verify_ca': verify_ca,
+            'auth_type': auth_type,
             'node_uuid': node.uuid}
 
 
 class SessionCache(object):
     """Cache of HTTP sessions credentials"""
+    AUTH_CLASSES = {}
+    if sushy:
+        AUTH_CLASSES.update(
+            basic=sushy.auth.BasicAuth,
+            session=sushy.auth.SessionAuth,
+            auto=sushy.auth.SessionOrBasicAuth
+        )
+
     _sessions = collections.OrderedDict()
 
     def __init__(self, driver_info):
@@ -166,11 +187,19 @@ class SessionCache(object):
             return self.__class__._sessions[self._session_key]
 
         except KeyError:
+            auth_type = self._driver_info['auth_type']
+
+            auth_class = self.AUTH_CLASSES[auth_type]
+
+            authenticator = auth_class(
+                username=self._driver_info['username'],
+                password=self._driver_info['password']
+            )
+
             conn = sushy.Sushy(
                 self._driver_info['address'],
-                username=self._driver_info['username'],
-                password=self._driver_info['password'],
-                verify=self._driver_info['verify_ca']
+                verify=self._driver_info['verify_ca'],
+                auth=authenticator
             )
 
             if CONF.redfish.connection_cache_size:
@@ -206,7 +235,6 @@ def get_system(node):
     :raises: RedfishError if the System is not registered in Redfish
     """
     driver_info = parse_driver_info(node)
-    address = driver_info['address']
     system_id = driver_info['system_id']
 
     @retrying.retry(
@@ -229,9 +257,12 @@ def get_system(node):
         # retrying on them
         except sushy.exceptions.ConnectionError as e:
             LOG.warning('For node %(node)s, got a connection error from '
-                        'Redfish at address "%(address)s" when fetching '
-                        'System "%(system)s". Error: %(error)s',
-                        {'system': system_id, 'address': address,
+                        'Redfish at address "%(address)s" using auth type '
+                        '"%(auth_type)s" when fetching System "%(system)s". '
+                        'Error: %(error)s',
+                        {'system': system_id,
+                         'address': driver_info['address'],
+                         'auth_type': driver_info['auth_type'],
                          'node': node.uuid, 'error': e})
             raise exception.RedfishConnectionError(node=node.uuid, error=e)
 
@@ -241,4 +272,5 @@ def get_system(node):
         with excutils.save_and_reraise_exception():
             LOG.error('Failed to connect to Redfish at %(address)s for '
                       'node %(node)s. Error: %(error)s',
-                      {'address': address, 'node': node.uuid, 'error': e})
+                      {'address': driver_info['address'],
+                       'node': node.uuid, 'error': e})

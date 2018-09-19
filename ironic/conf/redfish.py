@@ -36,7 +36,14 @@ opts = [
                       'BMC connections (obtained through Redfish Session '
                       'Service). This option caps the maximum number of '
                       'connections to maintain. The value of `0` disables '
-                      'client connection caching completely.'))
+                      'client connection caching completely.')),
+    cfg.StrOpt('auth_type',
+               choices=[('basic', _('Use HTTP basic authentication')),
+                        ('session', _('Use HTTP session authentication')),
+                        ('auto', _('Try HTTP session authentication first, '
+                                   'fall back to basic HTTP authentication'))],
+               default='auto',
+               help=_('Redfish HTTP client authentication method.'))
 ]
 
 
