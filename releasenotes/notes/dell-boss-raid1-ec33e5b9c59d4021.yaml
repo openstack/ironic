@@ -1,0 +1,6 @@
+---
+issues:
+  - |
+    Building RAID1 is known to not work with Dell BOSS cards using
+    **python-dracclient** 1.4.0 or earlier. Upgrade to **python-dracclient**
+    1.5.0 to use this feature.
