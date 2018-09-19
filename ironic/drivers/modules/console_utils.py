@@ -101,6 +101,23 @@ def _stop_console(node_uuid):
         console_pid = _get_console_pid(node_uuid)
 
         os.kill(console_pid, signal.SIGTERM)
+
+        # make sure the process gets killed hard if required
+        attempt = 0
+        max_attempts = CONF.console.kill_timeout // 0.2
+
+        while attempt < max_attempts:
+            if psutil.pid_exists(console_pid):
+                if attempt == max_attempts - 1:
+                    os.kill(console_pid, signal.SIGKILL)
+                LOG.debug("Waiting for the console process with PID %(pid)s "
+                          "to exit. Node: %(node)s.",
+                          {'pid': console_pid, 'node': node_uuid})
+                time.sleep(0.2)
+                attempt += 1
+            else:
+                break
+
     except OSError as exc:
         if exc.errno != errno.ESRCH:
             msg = (_("Could not stop the console for node '%(node)s'. "
@@ -198,28 +215,24 @@ def start_shellinabox_console(node_uuid, port, console_cmd):
         # check if the console pid is created and the process is running.
         # if it is, then the shellinaboxd is invoked successfully as a daemon.
         # otherwise check the error.
-        if locals['returncode'] is not None:
-            if (locals['returncode'] == 0 and os.path.exists(pid_file)
-                and psutil.pid_exists(_get_console_pid(node_uuid))):
-                raise loopingcall.LoopingCallDone()
-            else:
-                (stdout, stderr) = popen_obj.communicate()
-                locals['errstr'] = _(
-                    "Command: %(command)s.\n"
-                    "Exit code: %(return_code)s.\n"
-                    "Stdout: %(stdout)r\n"
-                    "Stderr: %(stderr)r") % {
-                        'command': ' '.join(args),
-                        'return_code': locals['returncode'],
-                        'stdout': stdout,
-                        'stderr': stderr}
-                LOG.warning(locals['errstr'])
-                raise loopingcall.LoopingCallDone()
+        if (locals['returncode'] == 0 and os.path.exists(pid_file)
+            and psutil.pid_exists(_get_console_pid(node_uuid))):
+            raise loopingcall.LoopingCallDone()
 
-        if (time.time() > expiration):
-            locals['errstr'] = (_("Timeout while waiting for console "
-                                  "subprocess to start for node %s.") %
-                                node_uuid)
+        if (time.time() > expiration or locals['returncode'] is not None):
+            (stdout, stderr) = popen_obj.communicate()
+            locals['errstr'] = _(
+                "Timeout or error while waiting for console "
+                "subprocess to start for node: %(node)s.\n"
+                "Command: %(command)s.\n"
+                "Exit code: %(return_code)s.\n"
+                "Stdout: %(stdout)r\n"
+                "Stderr: %(stderr)r") % {
+                    'node': node_uuid,
+                    'command': ' '.join(args),
+                    'return_code': locals['returncode'],
+                    'stdout': stdout,
+                    'stderr': stderr}
             LOG.warning(locals['errstr'])
             raise loopingcall.LoopingCallDone()
 

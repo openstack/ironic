@@ -145,8 +145,28 @@ class ConsoleUtilsTestCase(db_base.DbTestCase):
         console_utils._stop_console(self.info['uuid'])
 
         mock_pid.assert_called_once_with(self.info['uuid'])
-        mock_kill.assert_called_once_with(mock_pid.return_value,
-                                          signal.SIGTERM)
+
+        # a check if process still exist (signal 0) in a loop
+        mock_kill.assert_any_call(mock_pid.return_value, signal.SIG_DFL)
+        # and that it receives the SIGTERM
+        mock_kill.assert_any_call(mock_pid.return_value, signal.SIGTERM)
+        mock_unlink.assert_called_once_with(pid_file)
+
+    @mock.patch.object(ironic_utils, 'unlink_without_raise', autospec=True)
+    @mock.patch.object(os, 'kill', autospec=True)
+    @mock.patch.object(psutil, 'pid_exists', autospec=True, return_value=True)
+    @mock.patch.object(console_utils, '_get_console_pid', autospec=True)
+    def test__stop_console_forced_kill(self, mock_pid, mock_psutil, mock_kill,
+                                       mock_unlink):
+        pid_file = console_utils._get_console_pid_file(self.info['uuid'])
+        mock_pid.return_value = 12345
+
+        console_utils._stop_console(self.info['uuid'])
+
+        mock_pid.assert_called_once_with(self.info['uuid'])
+
+        # Make sure console process receives hard SIGKILL
+        mock_kill.assert_any_call(mock_pid.return_value, signal.SIGKILL)
         mock_unlink.assert_called_once_with(pid_file)
 
     @mock.patch.object(ironic_utils, 'unlink_without_raise', autospec=True)
@@ -322,7 +342,7 @@ class ConsoleUtilsTestCase(db_base.DbTestCase):
         mock_popen.assert_called_once_with(mock.ANY,
                                            stdout=subprocess.PIPE,
                                            stderr=subprocess.PIPE)
-        mock_popen.return_value.poll.assert_called_once_with()
+        mock_popen.return_value.poll.assert_called_with()
 
     @mock.patch.object(console_utils, 'open',
                        mock.mock_open(read_data='12345\n'))
@@ -350,11 +370,11 @@ class ConsoleUtilsTestCase(db_base.DbTestCase):
 
         mock_stop.assert_called_once_with(self.info['uuid'])
         mock_dir_exists.assert_called_once_with()
-        mock_pid_exists.assert_called_once_with(12345)
+        mock_pid_exists.assert_called_with(12345)
         mock_popen.assert_called_once_with(mock.ANY,
                                            stdout=subprocess.PIPE,
                                            stderr=subprocess.PIPE)
-        mock_popen.return_value.poll.assert_called_once_with()
+        mock_popen.return_value.poll.assert_called_with()
 
     @mock.patch.object(subprocess, 'Popen', autospec=True)
     @mock.patch.object(console_utils, '_ensure_console_pid_dir_exists',

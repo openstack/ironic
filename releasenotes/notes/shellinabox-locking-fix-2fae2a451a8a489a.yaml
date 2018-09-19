@@ -1,0 +1,8 @@
+---
+fixes:
+  - |
+    Fixes a locking issue where ``ipmitool-shellinabox`` console
+    interface users may encounter a situation where the bare metal node is
+    locked until the conductor is restarted.
+    See story `1587313 <https://storyboard.openstack.org/#!/story/1587313>`_
+    for additional information.
