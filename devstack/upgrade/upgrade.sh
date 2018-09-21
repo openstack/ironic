@@ -93,18 +93,16 @@ ensure_stopped=''
 # According to Ironic upgrade procedure, we shouldn't have upgraded (new) ironic-api and not upgraded (old)
 # ironic-conductor. By setting redirect of API requests from primary node to subnode during upgrade
 # allow to satisfy ironic upgrade requirements.
-# FIXME: We need a wsgi alternative to this ASAP
-if [[ "$HOST_TOPOLOGY_ROLE" == 'primary-disabled' ]]; then
+if [[ "$HOST_TOPOLOGY_ROLE" == 'primary' ]]; then
     disable_service ir-api
     ensure_stopped+='ironic-api'
-    ironic_apache_conf=$(apache_site_config_for ironic-api-redirect)
-    sudo cp $IRONIC_DEVSTACK_FILES_DIR/apache-ironic-api-redirect.template $ironic_apache_conf
+    ironic_wsgi_conf=$(apache_site_config_for ironic-api-wsgi)
+    sudo cp $IRONIC_DEVSTACK_FILES_DIR/apache-ironic-api-redirect.template $ironic_wsgi_conf
     sudo sed -e "
-        s|%IRONIC_SERVICE_PORT%|$IRONIC_SERVICE_PORT|g;
         s|%IRONIC_SERVICE_PROTOCOL%|$IRONIC_SERVICE_PROTOCOL|g;
         s|%IRONIC_SERVICE_HOST%|$IRONIC_PROVISION_SUBNET_SUBNODE_IP|g;
-    " -i $ironic_apache_conf
-    enable_apache_site ironic-api-redirect
+    " -i $ironic_wsgi_conf
+    enable_apache_site ipxe-ironic
 else
     ensure_started+='ironic-api '
 fi

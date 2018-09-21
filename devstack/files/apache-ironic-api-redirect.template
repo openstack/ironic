@@ -14,8 +14,5 @@
 # Ironic API through mod_wsgi.  This version assumes you are
 # running devstack to configure the software.
 
-Listen %IRONIC_SERVICE_PORT%
 
-<VirtualHost *:%IRONIC_SERVICE_PORT%>
-    Redirect 307 / %IRONIC_SERVICE_PROTOCOL%://%IRONIC_SERVICE_HOST%:%IRONIC_SERVICE_PORT%/
-</VirtualHost>
+Redirect 307 /baremetal %IRONIC_SERVICE_PROTOCOL%://%IRONIC_SERVICE_HOST%/baremetal
