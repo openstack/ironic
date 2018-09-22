@@ -7,7 +7,6 @@
       - periodic-stable-jobs
       - check-requirements
       - release-notes-jobs-python3
-      - install-guide-jobs
     check:
       jobs:
         - ironic-dsvm-standalone
