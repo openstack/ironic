@@ -6,7 +6,6 @@
       - periodic-stable-jobs
       - check-requirements
       - release-notes-jobs
-      - install-guide-jobs
     check:
       jobs:
         - ironic-tempest-dsvm-ipa-partition-bios-agent_ipmitool-tinyipa
