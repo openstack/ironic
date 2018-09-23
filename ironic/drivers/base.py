@@ -1039,8 +1039,9 @@ class BIOSInterface(BaseInterface):
         def wrapper(func):
             @six.wraps(func)
             def wrapped(task, *args, **kwargs):
-                func(task, *args, **kwargs)
+                result = func(task, *args, **kwargs)
                 instance.cache_bios_settings(task)
+                return result
             return wrapped
 
         for n, method in inspect.getmembers(instance, inspect.ismethod):
