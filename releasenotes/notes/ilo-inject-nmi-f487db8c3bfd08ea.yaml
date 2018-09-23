@@ -1,0 +1,6 @@
+---
+features:
+  - |
+    Adds support for the injection of Non-Masking Interrupts (NMI) to
+    ``ilo`` management interface. This is supported on HPE ProLiant
+    Gen9 and Gen10 servers.
