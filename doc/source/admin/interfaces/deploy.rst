@@ -35,7 +35,7 @@ With ``direct`` deploy interface (and also ``oneview-direct``, specific to the
 ``oneview`` hardware type), the deploy ramdisk fetches the image from an
 HTTP location. It can be an object storage (swift or RadosGW) temporary URL or
 a user-provided HTTP URL. The deploy ramdisk then copies the image to the
-target disk.  See :ref:`direct deploy diagram <direct-deploy-example>` for
+target disk. See :ref:`direct deploy diagram <direct-deploy-example>` for
 a detailed explanation of how this deploy interface works.
 
 You can specify this deploy interface when creating or updating a node::
@@ -47,6 +47,38 @@ You can specify this deploy interface when creating or updating a node::
     For historical reasons the ``direct`` deploy interface is sometimes called
     ``agent``. This is because before the Kilo release **ironic-python-agent**
     used to only support this deploy interface.
+
+Deploy with custom HTTP servers
+-------------------------------
+
+The ``direct`` deploy interface can also be configured to use with custom HTTP
+servers set up at ironic conductor nodes, images will be cached locally and
+made accessible by the HTTP server.
+
+To use this deploy interface with a custom HTTP server, set
+``image_download_source`` to ``http`` in the ``[agent]`` section.
+
+.. code-block:: ini
+
+   [agent]
+   ...
+   image_download_source = http
+   ...
+
+You need to set up a workable HTTP server at each conductor node which with
+``direct`` deploy interface enabled, and check http related options in the
+ironic configuration file to match the HTTP server configurations.
+
+.. code-block:: ini
+
+   [deploy]
+   http_url = http://example.com
+   http_root = /httpboot
+
+Each HTTP servers should be configured to follow symlinks for images
+accessible from HTTP service. Please refer to configuration option
+``FollowSymLinks`` if you are using Apache HTTP server, or
+``disable_symlinks`` if Nginx HTTP server is in use.
 
 .. _ansible-deploy:
 
