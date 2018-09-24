@@ -85,7 +85,7 @@ def check_image_size(task):
 
 
 @METRICS.timer('get_deploy_info')
-def get_deploy_info(node, address, iqn, port=None, lun='1'):
+def get_deploy_info(node, address, iqn, port=None, lun='1', conv_flags=None):
     """Returns the information required for doing iSCSI deploy in a dictionary.
 
     :param node: ironic node object
@@ -93,6 +93,8 @@ def get_deploy_info(node, address, iqn, port=None, lun='1'):
     :param iqn: iSCSI iqn for the target disk
     :param port: iSCSI port, defaults to one specified in the configuration
     :param lun: iSCSI lun, defaults to '1'
+    :param conv_flags: flag that will modify the behaviour of the image copy
+        to disk.
     :raises: MissingParameterValue, if some required parameters were not
         passed.
     :raises: InvalidParameterValue, if any of the parameters have invalid
@@ -133,6 +135,9 @@ def get_deploy_info(node, address, iqn, port=None, lun='1'):
     params['configdrive'] = i_info.get('configdrive')
     if is_whole_disk_image:
         return params
+
+    if conv_flags:
+        params['conv_flags'] = conv_flags
 
     # ephemeral_format is nullable
     params['ephemeral_format'] = i_info.get('ephemeral_format')
@@ -264,6 +269,7 @@ def do_agent_iscsi_deploy(task, agent_client):
 
     iqn = 'iqn.2008-10.org.openstack:%s' % node.uuid
     portal_port = CONF.iscsi.portal_port
+    conv_flags = CONF.iscsi.conv_flags
     result = agent_client.start_iscsi_target(
         node, iqn,
         portal_port,
@@ -278,7 +284,8 @@ def do_agent_iscsi_deploy(task, agent_client):
     address = parse.urlparse(node.driver_internal_info['agent_url'])
     address = address.hostname
 
-    uuid_dict_returned = continue_deploy(task, iqn=iqn, address=address)
+    uuid_dict_returned = continue_deploy(task, iqn=iqn, address=address,
+                                         conv_flags=conv_flags)
     root_uuid_or_disk_id = uuid_dict_returned.get(
         'root uuid', uuid_dict_returned.get('disk identifier'))
 

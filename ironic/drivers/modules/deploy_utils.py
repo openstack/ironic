@@ -410,7 +410,8 @@ def deploy_partition_image(
 
 
 def deploy_disk_image(address, port, iqn, lun,
-                      image_path, node_uuid, configdrive=None):
+                      image_path, node_uuid, configdrive=None,
+                      conv_flags=None):
     """All-in-one function to deploy a whole disk image to a node.
 
     :param address: The iSCSI IP address.
@@ -421,12 +422,14 @@ def deploy_disk_image(address, port, iqn, lun,
     :param node_uuid: node's uuid.
     :param configdrive: Optional. Base64 encoded Gzipped configdrive content
                         or configdrive HTTP URL.
+    :param conv_flags: Optional. Add a flag that will modify the behaviour of
+                       the image copy to disk.
     :returns: a dictionary containing the key 'disk identifier' to identify
         the disk which was used for deployment.
     """
     with _iscsi_setup_and_handle_errors(address, port, iqn,
                                         lun) as dev:
-        disk_utils.populate_image(image_path, dev)
+        disk_utils.populate_image(image_path, dev, conv_flags=conv_flags)
 
         if configdrive:
             disk_utils.create_config_drive_partition(node_uuid, dev,
