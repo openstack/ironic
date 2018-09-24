@@ -47,8 +47,3 @@
         - ironic-tempest-dsvm-ipa-wholedisk-bios-agent_ipmitool-tinyipa
         - ironic-tempest-dsvm-ipa-wholedisk-bios-agent_ipmitool-tinyipa-indirect
         - ironic-tempest-dsvm-ipa-partition-bios-agent_ipmitool-tinyipa-indirect
-    experimental:
-      jobs:
-        - ironic-dsvm-functional
-        - ironic-tempest-dsvm-parallel
-        - ironic-tempest-dsvm-pxe_ipa-full
