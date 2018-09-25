@@ -124,7 +124,6 @@ opts = [
                       'True.')),
     cfg.IntOpt('inspect_wait_timeout',
                default=1800,
-               deprecated_name='inspect_timeout',
                help=_('Timeout (seconds) for waiting for node inspection. '
                       '0 - unlimited.')),
     cfg.BoolOpt('automated_clean',

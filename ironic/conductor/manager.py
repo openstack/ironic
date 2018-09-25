@@ -3826,8 +3826,7 @@ def _do_inspect_hardware(task):
     :param: task: a TaskManager instance with an exclusive lock
                   on its node.
     :raises: HardwareInspectionFailure if driver doesn't
-             return the state as states.MANAGEABLE, states.INSPECTWAIT or
-             states.INSPECTING.
+             return the state as states.MANAGEABLE, states.INSPECTWAIT.
 
     """
     node = task.node
@@ -3854,17 +3853,8 @@ def _do_inspect_hardware(task):
         task.process_event('done')
         LOG.info('Successfully inspected node %(node)s',
                  {'node': node.uuid})
-    # TODO(kaifeng): remove INSPECTING support during S* cycle.
-    elif new_state in (states.INSPECTING, states.INSPECTWAIT):
+    elif new_state == states.INSPECTWAIT:
         task.process_event('wait')
-        if new_state == states.INSPECTING:
-            inspect_intf_name = task.driver.inspect.__class__.__name__
-            LOG.warning('Received INSPECTING state from %(intf)s. Returning '
-                        'INSPECTING from InspectInterface.inspect_hardware '
-                        'is deprecated, and will cause node be moved to '
-                        'INSPECTFAIL state after deprecation period. Please '
-                        'return INSPECTWAIT instead if the inspection process '
-                        'is asynchronous.', {'intf': inspect_intf_name})
         LOG.info('Successfully started introspection on node %(node)s',
                  {'node': node.uuid})
     else:

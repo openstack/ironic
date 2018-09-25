@@ -1,0 +1,9 @@
+---
+upgrade:
+  - The deprecated configuration option ``[conductor]inspect_timeout`` was
+    removed, please use ``[conductor]inspect_wait_timeout`` instead.
+other:
+  - The support for returning ``INSPECTING`` state from
+    ``InspectInterface.inspect_hardware`` was removed. For asynchronous
+    inspection, please return ``INSPECTWAIT`` instead of ``INSPECTING``,
+    otherwise the node will be moved to ``inspect failed`` state.

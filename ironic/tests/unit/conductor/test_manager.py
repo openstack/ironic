@@ -7014,11 +7014,13 @@ class NodeInspectHardware(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
                                           provision_state=states.INSPECTING)
         task = task_manager.TaskManager(self.context, node.uuid)
         mock_inspect.return_value = states.INSPECTING
-        manager._do_inspect_hardware(task)
+        self.assertRaises(exception.HardwareInspectionFailure,
+                          manager._do_inspect_hardware, task)
+
         node.refresh()
-        self.assertEqual(states.INSPECTWAIT, node.provision_state)
+        self.assertIn('driver returned unexpected state', node.last_error)
+        self.assertEqual(states.INSPECTFAIL, node.provision_state)
         self.assertEqual(states.MANAGEABLE, node.target_provision_state)
-        self.assertIsNone(node.last_error)
         mock_inspect.assert_called_once_with(mock.ANY)
 
     @mock.patch('ironic.drivers.modules.fake.FakeInspect.inspect_hardware')
