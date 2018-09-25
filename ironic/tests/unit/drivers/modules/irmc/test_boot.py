@@ -726,8 +726,8 @@ class IRMCDeployPrivateMethodsTestCase(test_common.BaseIRMCTest):
                                        'admin',
                                        'admin0')
             irmc_client.assert_has_calls(
-                [mock.call(cd_set_params, async=False),
-                 mock.call(irmc_boot.scci.MOUNT_CD, async=False)])
+                [mock.call(cd_set_params, do_async=False),
+                 mock.call(irmc_boot.scci.MOUNT_CD, do_async=False)])
 
     @mock.patch.object(irmc_common, 'get_irmc_client', spec_set=True,
                        autospec=True)
@@ -805,8 +805,8 @@ class IRMCDeployPrivateMethodsTestCase(test_common.BaseIRMCTest):
                                        'admin',
                                        'admin0')
             irmc_client.assert_has_calls(
-                [mock.call(fd_set_params, async=False),
-                 mock.call(irmc_boot.scci.MOUNT_FD, async=False)])
+                [mock.call(fd_set_params, do_async=False),
+                 mock.call(irmc_boot.scci.MOUNT_FD, do_async=False)])
 
     @mock.patch.object(irmc_common, 'get_irmc_client', spec_set=True,
                        autospec=True)

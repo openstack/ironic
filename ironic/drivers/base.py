@@ -646,7 +646,7 @@ VendorMetadata = collections.namedtuple('VendorMetadata', ['method',
                                                            'metadata'])
 
 
-def _passthru(http_methods, method=None, async=None, async_call=None,
+def _passthru(http_methods, method=None, async_call=True,
               driver_passthru=False, description=None,
               attach=False, require_exclusive_lock=True):
     """A decorator for registering a function as a passthru function.
@@ -662,7 +662,6 @@ def _passthru(http_methods, method=None, async=None, async_call=None,
     :param http_methods: A list of supported HTTP methods by the vendor
                          function.
     :param method: an arbitrary string describing the action to be taken.
-    :param async: Deprecated, please use async_call instead.
     :param async_call: Boolean value. If True invoke the passthru function
                   asynchronously; if False, synchronously. If a passthru
                   function touches the BMC we strongly recommend it to
@@ -682,26 +681,6 @@ def _passthru(http_methods, method=None, async=None, async_call=None,
                                    for a synchronous passthru method. If False,
                                    don't lock the node. Defaults to True.
     """
-    # TODO(rloo): In Stein cycle, remove support for 'async' parameter.
-    #             The default value for 'async_call' should then be changed
-    #             to True.
-    if async_call is None:
-        if async is not None:
-            LOG.warning(
-                'The "async" parameter is deprecated, please use "async_call" '
-                'instead. The "async" parameter will be removed in the Stein '
-                'cycle.'
-            )
-            async_call = async
-        else:
-            async_call = True
-    else:
-        if async is not None:
-            raise TypeError(
-                "'async_call' and 'async' parameters cannot be used together. "
-                "Use 'async_call' instead of 'async' since 'async' is "
-                "deprecated and will be removed in the Stein cycle."
-            )
 
     def handle_passthru(func):
         api_method = method
@@ -737,17 +716,17 @@ def _passthru(http_methods, method=None, async=None, async_call=None,
     return handle_passthru
 
 
-def passthru(http_methods, method=None, async=None, description=None,
-             attach=False, require_exclusive_lock=True, async_call=None):
-    return _passthru(http_methods, method, async, async_call,
+def passthru(http_methods, method=None, async_call=True, description=None,
+             attach=False, require_exclusive_lock=True):
+    return _passthru(http_methods, method, async_call,
                      driver_passthru=False,
                      description=description, attach=attach,
                      require_exclusive_lock=require_exclusive_lock)
 
 
-def driver_passthru(http_methods, method=None, async=None, description=None,
-                    attach=False, async_call=None):
-    return _passthru(http_methods, method, async, async_call,
+def driver_passthru(http_methods, method=None, async_call=True,
+                    description=None, attach=False):
+    return _passthru(http_methods, method, async_call,
                      driver_passthru=True, description=description,
                      attach=attach)
 

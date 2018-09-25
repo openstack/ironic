@@ -100,16 +100,6 @@ class PassthruDecoratorTestCase(base.TestCase):
         self.assertNotEqual(inst1.driver_routes['driver_noexception']['func'],
                             inst2.driver_routes['driver_noexception']['func'])
 
-    @mock.patch.object(driver_base.LOG, 'warning')
-    def test_old_async_warning(self, mock_log_warning):
-        driver_base.passthru(['POST'], async=True)
-        mock_log_warning.assert_called_once()
-
-    @mock.patch.object(driver_base.LOG, 'warning')
-    def test_new_async_call_without_warning(self, mock_log_warning):
-        driver_base.passthru(['POST'], async_call=True)
-        mock_log_warning.assert_not_called()
-
 
 class CleanStepDecoratorTestCase(base.TestCase):
 

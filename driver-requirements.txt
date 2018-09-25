@@ -8,7 +8,7 @@ proliantutils>=2.6.0
 pysnmp>=4.3.0,<5.0.0
 python-ironic-inspector-client>=1.5.0
 python-oneviewclient<3.0.0,>=2.5.2
-python-scciclient>=0.7.2
+python-scciclient>=0.8.0
 python-ilorest-library>=2.1.0
 hpOneView>=4.4.0
 UcsSdk==0.8.2.2
