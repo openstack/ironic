@@ -15,20 +15,32 @@
 #    under the License.
 
 import os
+import tempfile
 
+from ironic_lib import utils as ironic_utils
 import mock
 from oslo_config import cfg
+from oslo_utils import fileutils
 from oslo_utils import uuidutils
 import six
 
 from ironic.common import exception
+from ironic.common.glance_service import base_image_service
 from ironic.common import pxe_utils
+from ironic.common import states
 from ironic.common import utils
 from ironic.conductor import task_manager
+from ironic.drivers.modules import deploy_utils
+from ironic.drivers.modules import ipxe
+from ironic.drivers.modules import pxe
 from ironic.tests.unit.db import base as db_base
+from ironic.tests.unit.db import utils as db_utils
 from ironic.tests.unit.objects import utils as object_utils
 
 CONF = cfg.CONF
+INST_INFO_DICT = db_utils.get_test_pxe_instance_info()
+DRV_INFO_DICT = db_utils.get_test_pxe_driver_info()
+DRV_INTERNAL_INFO_DICT = db_utils.get_test_pxe_driver_internal_info()
 
 
 # Prevent /httpboot validation on creating the node
@@ -966,3 +978,712 @@ class TestPXEUtils(db_base.DbTestCase):
         test_file_path = '/tftpboot-path/pxelinux.cfg/test'
         relpath = pxe_utils.get_path_relative_to_tftp_root(test_file_path)
         self.assertEqual(relpath, 'pxelinux.cfg/test')
+
+
+@mock.patch.object(ipxe.iPXEBoot, '__init__', lambda self: None)
+@mock.patch.object(pxe.PXEBoot, '__init__', lambda self: None)
+class PXEInterfacesTestCase(db_base.DbTestCase):
+
+    def setUp(self):
+        super(PXEInterfacesTestCase, self).setUp()
+        n = {
+            'driver': 'fake-hardware',
+            'boot_interface': 'pxe',
+            'instance_info': INST_INFO_DICT,
+            'driver_info': DRV_INFO_DICT,
+            'driver_internal_info': DRV_INTERNAL_INFO_DICT,
+        }
+        self.config_temp_dir('http_root', group='deploy')
+        self.node = object_utils.create_test_node(self.context, **n)
+
+    def _test_parse_driver_info_missing_kernel(self, mode='deploy'):
+        del self.node.driver_info['%s_kernel' % mode]
+        if mode == 'rescue':
+            self.node.provision_state = states.RESCUING
+        self.assertRaises(exception.MissingParameterValue,
+                          pxe_utils.parse_driver_info, self.node, mode=mode)
+
+    def test_parse_driver_info_missing_deploy_kernel(self):
+        self._test_parse_driver_info_missing_kernel()
+
+    def test_parse_driver_info_missing_rescue_kernel(self):
+        self._test_parse_driver_info_missing_kernel(mode='rescue')
+
+    def _test_parse_driver_info_missing_ramdisk(self, mode='deploy'):
+        del self.node.driver_info['%s_ramdisk' % mode]
+        if mode == 'rescue':
+            self.node.provision_state = states.RESCUING
+        self.assertRaises(exception.MissingParameterValue,
+                          pxe_utils.parse_driver_info, self.node, mode=mode)
+
+    def test_parse_driver_info_missing_deploy_ramdisk(self):
+        self._test_parse_driver_info_missing_ramdisk()
+
+    def test_parse_driver_info_missing_rescue_ramdisk(self):
+        self._test_parse_driver_info_missing_ramdisk(mode='rescue')
+
+    def _test_parse_driver_info(self, mode='deploy'):
+        exp_info = {'%s_ramdisk' % mode: 'glance://%s_ramdisk_uuid' % mode,
+                    '%s_kernel' % mode: 'glance://%s_kernel_uuid' % mode}
+        image_info = pxe_utils.parse_driver_info(self.node, mode=mode)
+        self.assertEqual(exp_info, image_info)
+
+    def test_parse_driver_info_deploy(self):
+        self._test_parse_driver_info()
+
+    def test_parse_driver_info_rescue(self):
+        self._test_parse_driver_info(mode='rescue')
+
+    def test__get_deploy_image_info(self):
+        expected_info = {'deploy_ramdisk':
+                         (DRV_INFO_DICT['deploy_ramdisk'],
+                          os.path.join(CONF.pxe.tftp_root,
+                                       self.node.uuid,
+                                       'deploy_ramdisk')),
+                         'deploy_kernel':
+                         (DRV_INFO_DICT['deploy_kernel'],
+                          os.path.join(CONF.pxe.tftp_root,
+                                       self.node.uuid,
+                                       'deploy_kernel'))}
+        image_info = pxe_utils.get_image_info(self.node)
+        self.assertEqual(expected_info, image_info)
+
+    def test__get_deploy_image_info_missing_deploy_kernel(self):
+        del self.node.driver_info['deploy_kernel']
+        self.assertRaises(exception.MissingParameterValue,
+                          pxe_utils.get_image_info, self.node)
+
+    def test__get_deploy_image_info_deploy_ramdisk(self):
+        del self.node.driver_info['deploy_ramdisk']
+        self.assertRaises(exception.MissingParameterValue,
+                          pxe_utils.get_image_info, self.node)
+
+    @mock.patch.object(base_image_service.BaseImageService, '_show',
+                       autospec=True)
+    def _test_get_instance_image_info(self, show_mock):
+        properties = {'properties': {u'kernel_id': u'instance_kernel_uuid',
+                      u'ramdisk_id': u'instance_ramdisk_uuid'}}
+
+        expected_info = {'ramdisk':
+                         ('instance_ramdisk_uuid',
+                          os.path.join(CONF.pxe.tftp_root,
+                                       self.node.uuid,
+                                       'ramdisk')),
+                         'kernel':
+                         ('instance_kernel_uuid',
+                          os.path.join(CONF.pxe.tftp_root,
+                                       self.node.uuid,
+                                       'kernel'))}
+        show_mock.return_value = properties
+        self.context.auth_token = 'fake'
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            image_info = pxe_utils.get_instance_image_info(task)
+            show_mock.assert_called_once_with(mock.ANY, 'glance://image_uuid',
+                                              method='get')
+            self.assertEqual(expected_info, image_info)
+
+            # test with saved info
+            show_mock.reset_mock()
+            image_info = pxe_utils.get_instance_image_info(task)
+            self.assertEqual(expected_info, image_info)
+            self.assertFalse(show_mock.called)
+            self.assertEqual('instance_kernel_uuid',
+                             task.node.instance_info['kernel'])
+            self.assertEqual('instance_ramdisk_uuid',
+                             task.node.instance_info['ramdisk'])
+
+    def test_get_instance_image_info(self):
+        # Tests when 'is_whole_disk_image' exists in driver_internal_info
+        self._test_get_instance_image_info()
+
+    def test_get_instance_image_info_without_is_whole_disk_image(self):
+        # Tests when 'is_whole_disk_image' doesn't exists in
+        # driver_internal_info
+        del self.node.driver_internal_info['is_whole_disk_image']
+        self.node.save()
+        self._test_get_instance_image_info()
+
+    @mock.patch('ironic.drivers.modules.deploy_utils.get_boot_option',
+                return_value='local')
+    def test_get_instance_image_info_localboot(self, boot_opt_mock):
+        self.node.driver_internal_info['is_whole_disk_image'] = False
+        self.node.save()
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            image_info = pxe_utils.get_instance_image_info(task)
+            self.assertEqual({}, image_info)
+            boot_opt_mock.assert_called_once_with(task.node)
+
+    @mock.patch.object(base_image_service.BaseImageService, '_show',
+                       autospec=True)
+    def test_get_instance_image_info_whole_disk_image(self, show_mock):
+        properties = {'properties': None}
+        show_mock.return_value = properties
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            task.node.driver_internal_info['is_whole_disk_image'] = True
+            image_info = pxe_utils.get_instance_image_info(task)
+        self.assertEqual({}, image_info)
+
+    @mock.patch('ironic.common.utils.render_template', autospec=True)
+    def _test_build_pxe_config_options_pxe(self, render_mock,
+                                           whle_dsk_img=False,
+                                           debug=False, mode='deploy'):
+        self.config(debug=debug)
+        self.config(pxe_append_params='test_param', group='pxe')
+        # NOTE: right '/' should be removed from url string
+        self.config(api_url='http://192.168.122.184:6385', group='conductor')
+
+        driver_internal_info = self.node.driver_internal_info
+        driver_internal_info['is_whole_disk_image'] = whle_dsk_img
+        self.node.driver_internal_info = driver_internal_info
+        self.node.save()
+
+        tftp_server = CONF.pxe.tftp_server
+
+        kernel_label = '%s_kernel' % mode
+        ramdisk_label = '%s_ramdisk' % mode
+
+        pxe_kernel = os.path.join(self.node.uuid, kernel_label)
+        pxe_ramdisk = os.path.join(self.node.uuid, ramdisk_label)
+        kernel = os.path.join(self.node.uuid, 'kernel')
+        ramdisk = os.path.join(self.node.uuid, 'ramdisk')
+        root_dir = CONF.pxe.tftp_root
+
+        image_info = {
+            kernel_label: (kernel_label,
+                           os.path.join(root_dir,
+                                        self.node.uuid,
+                                        kernel_label)),
+            ramdisk_label: (ramdisk_label,
+                            os.path.join(root_dir,
+                                         self.node.uuid,
+                                         ramdisk_label))
+        }
+
+        if (whle_dsk_img
+            or deploy_utils.get_boot_option(self.node) == 'local'):
+                ramdisk = 'no_ramdisk'
+                kernel = 'no_kernel'
+        else:
+            image_info.update({
+                'kernel': ('kernel_id',
+                           os.path.join(root_dir,
+                                        self.node.uuid,
+                                        'kernel')),
+                'ramdisk': ('ramdisk_id',
+                            os.path.join(root_dir,
+                                         self.node.uuid,
+                                         'ramdisk'))
+            })
+
+        expected_pxe_params = 'test_param'
+        if debug:
+            expected_pxe_params += ' ipa-debug=1'
+
+        expected_options = {
+            'deployment_ari_path': pxe_ramdisk,
+            'pxe_append_params': expected_pxe_params,
+            'deployment_aki_path': pxe_kernel,
+            'tftp_server': tftp_server,
+            'ipxe_timeout': 0,
+            'ari_path': ramdisk,
+            'aki_path': kernel,
+        }
+
+        if mode == 'rescue':
+            self.node.provision_state = states.RESCUING
+            self.node.save()
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            options = pxe_utils.build_pxe_config_options(task, image_info)
+        self.assertEqual(expected_options, options)
+
+    def test_build_pxe_config_options_pxe(self):
+        self._test_build_pxe_config_options_pxe(whle_dsk_img=True)
+
+    def test_build_pxe_config_options_pxe_ipa_debug(self):
+        self._test_build_pxe_config_options_pxe(debug=True)
+
+    def test_build_pxe_config_options_pxe_rescue(self):
+        del self.node.driver_internal_info['is_whole_disk_image']
+        self._test_build_pxe_config_options_pxe(mode='rescue')
+
+    def test_build_pxe_config_options_ipa_debug_rescue(self):
+        del self.node.driver_internal_info['is_whole_disk_image']
+        self._test_build_pxe_config_options_pxe(debug=True, mode='rescue')
+
+    def test_build_pxe_config_options_pxe_local_boot(self):
+        del self.node.driver_internal_info['is_whole_disk_image']
+        i_info = self.node.instance_info
+        i_info.update({'capabilities': {'boot_option': 'local'}})
+        self.node.instance_info = i_info
+        self.node.save()
+        self._test_build_pxe_config_options_pxe(whle_dsk_img=False)
+
+    def test_build_pxe_config_options_pxe_without_is_whole_disk_image(self):
+        del self.node.driver_internal_info['is_whole_disk_image']
+        self.node.save()
+        self._test_build_pxe_config_options_pxe(whle_dsk_img=False)
+
+    def test_build_pxe_config_options_pxe_no_kernel_no_ramdisk(self):
+        del self.node.driver_internal_info['is_whole_disk_image']
+        self.node.save()
+        pxe_params = 'my-pxe-append-params ipa-debug=0'
+        self.config(group='pxe', tftp_server='my-tftp-server')
+        self.config(group='pxe', pxe_append_params=pxe_params)
+        self.config(group='pxe', tftp_root='/tftp-path/')
+        image_info = {
+            'deploy_kernel': ('deploy_kernel',
+                              os.path.join(CONF.pxe.tftp_root,
+                                           'path-to-deploy_kernel')),
+            'deploy_ramdisk': ('deploy_ramdisk',
+                               os.path.join(CONF.pxe.tftp_root,
+                                            'path-to-deploy_ramdisk'))}
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            options = pxe_utils.build_pxe_config_options(task, image_info)
+
+        expected_options = {
+            'deployment_aki_path': 'path-to-deploy_kernel',
+            'deployment_ari_path': 'path-to-deploy_ramdisk',
+            'pxe_append_params': pxe_params,
+            'tftp_server': 'my-tftp-server',
+            'aki_path': 'no_kernel',
+            'ari_path': 'no_ramdisk',
+            'ipxe_timeout': 0}
+        self.assertEqual(expected_options, options)
+
+    @mock.patch('ironic.common.image_service.GlanceImageService',
+                autospec=True)
+    @mock.patch('ironic.common.utils.render_template', autospec=True)
+    def _test_build_pxe_config_options_ipxe(self, render_mock, glance_mock,
+                                            whle_dsk_img=False,
+                                            ipxe_timeout=0,
+                                            ipxe_use_swift=False,
+                                            debug=False,
+                                            boot_from_volume=False,
+                                            mode='deploy'):
+        self.config(debug=debug)
+        self.config(pxe_append_params='test_param', group='pxe')
+        # NOTE: right '/' should be removed from url string
+        self.config(api_url='http://192.168.122.184:6385', group='conductor')
+        self.config(ipxe_timeout=ipxe_timeout, group='pxe')
+        root_dir = CONF.deploy.http_root
+
+        driver_internal_info = self.node.driver_internal_info
+        driver_internal_info['is_whole_disk_image'] = whle_dsk_img
+        self.node.driver_internal_info = driver_internal_info
+        self.node.save()
+
+        tftp_server = CONF.pxe.tftp_server
+
+        http_url = 'http://192.1.2.3:1234'
+        self.config(ipxe_enabled=True, group='pxe')
+        self.config(http_url=http_url, group='deploy')
+
+        kernel_label = '%s_kernel' % mode
+        ramdisk_label = '%s_ramdisk' % mode
+
+        if ipxe_use_swift:
+            self.config(ipxe_use_swift=True, group='pxe')
+            glance = mock.Mock()
+            glance_mock.return_value = glance
+            glance.swift_temp_url.side_effect = [
+                pxe_kernel, pxe_ramdisk] = [
+                'swift_kernel', 'swift_ramdisk']
+            image_info = {
+                kernel_label: (uuidutils.generate_uuid(),
+                               os.path.join(root_dir,
+                                            self.node.uuid,
+                                            kernel_label)),
+                ramdisk_label: (uuidutils.generate_uuid(),
+                                os.path.join(root_dir,
+                                             self.node.uuid,
+                                             ramdisk_label))
+            }
+        else:
+            pxe_kernel = os.path.join(http_url, self.node.uuid,
+                                      kernel_label)
+            pxe_ramdisk = os.path.join(http_url, self.node.uuid,
+                                       ramdisk_label)
+            image_info = {
+                kernel_label: (kernel_label,
+                               os.path.join(root_dir,
+                                            self.node.uuid,
+                                            kernel_label)),
+                ramdisk_label: (ramdisk_label,
+                                os.path.join(root_dir,
+                                             self.node.uuid,
+                                             ramdisk_label))
+            }
+
+        kernel = os.path.join(http_url, self.node.uuid, 'kernel')
+        ramdisk = os.path.join(http_url, self.node.uuid, 'ramdisk')
+        if (whle_dsk_img
+            or deploy_utils.get_boot_option(self.node) == 'local'):
+                ramdisk = 'no_ramdisk'
+                kernel = 'no_kernel'
+        else:
+            image_info.update({
+                'kernel': ('kernel_id',
+                           os.path.join(root_dir,
+                                        self.node.uuid,
+                                        'kernel')),
+                'ramdisk': ('ramdisk_id',
+                            os.path.join(root_dir,
+                                         self.node.uuid,
+                                         'ramdisk'))
+            })
+
+        ipxe_timeout_in_ms = ipxe_timeout * 1000
+
+        expected_pxe_params = 'test_param'
+        if debug:
+            expected_pxe_params += ' ipa-debug=1'
+
+        expected_options = {
+            'deployment_ari_path': pxe_ramdisk,
+            'pxe_append_params': expected_pxe_params,
+            'deployment_aki_path': pxe_kernel,
+            'tftp_server': tftp_server,
+            'ipxe_timeout': ipxe_timeout_in_ms,
+            'ari_path': ramdisk,
+            'aki_path': kernel,
+            'initrd_filename': ramdisk_label,
+        }
+
+        if mode == 'rescue':
+            self.node.provision_state = states.RESCUING
+            self.node.save()
+
+        if boot_from_volume:
+            expected_options.update({
+                'boot_from_volume': True,
+                'iscsi_boot_url': 'iscsi:fake_host::3260:0:fake_iqn',
+                'iscsi_initiator_iqn': 'fake_iqn_initiator',
+                'iscsi_volumes': [{'url': 'iscsi:fake_host::3260:1:fake_iqn',
+                                   'username': 'fake_username_1',
+                                   'password': 'fake_password_1'
+                                   }],
+                'username': 'fake_username',
+                'password': 'fake_password'
+            })
+            expected_options.pop('deployment_aki_path')
+            expected_options.pop('deployment_ari_path')
+            expected_options.pop('initrd_filename')
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            options = pxe_utils.build_pxe_config_options(task,
+                                                         image_info,
+                                                         ipxe_enabled=True)
+        self.assertEqual(expected_options, options)
+
+    def test_build_pxe_config_options_ipxe(self):
+        self._test_build_pxe_config_options_ipxe(whle_dsk_img=True)
+
+    def test_build_pxe_config_options_ipxe_ipa_debug(self):
+        self._test_build_pxe_config_options_ipxe(debug=True)
+
+    def test_build_pxe_config_options_ipxe_local_boot(self):
+        del self.node.driver_internal_info['is_whole_disk_image']
+        i_info = self.node.instance_info
+        i_info.update({'capabilities': {'boot_option': 'local'}})
+        self.node.instance_info = i_info
+        self.node.save()
+        self._test_build_pxe_config_options_ipxe(whle_dsk_img=False)
+
+    def test_build_pxe_config_options_ipxe_swift_wdi(self):
+        self._test_build_pxe_config_options_ipxe(whle_dsk_img=True,
+                                                 ipxe_use_swift=True)
+
+    def test_build_pxe_config_options_ipxe_swift_partition(self):
+        self._test_build_pxe_config_options_ipxe(whle_dsk_img=False,
+                                                 ipxe_use_swift=True)
+
+    def test_build_pxe_config_options_ipxe_and_ipxe_timeout(self):
+        self._test_build_pxe_config_options_ipxe(whle_dsk_img=True,
+                                                 ipxe_timeout=120)
+
+    def test_build_pxe_config_options_ipxe_and_iscsi_boot(self):
+        vol_id = uuidutils.generate_uuid()
+        vol_id2 = uuidutils.generate_uuid()
+        object_utils.create_test_volume_connector(
+            self.context,
+            uuid=uuidutils.generate_uuid(),
+            type='iqn',
+            node_id=self.node.id,
+            connector_id='fake_iqn_initiator')
+        object_utils.create_test_volume_target(
+            self.context, node_id=self.node.id, volume_type='iscsi',
+            boot_index=0, volume_id='1234', uuid=vol_id,
+            properties={'target_lun': 0,
+                        'target_portal': 'fake_host:3260',
+                        'target_iqn': 'fake_iqn',
+                        'auth_username': 'fake_username',
+                        'auth_password': 'fake_password'})
+        object_utils.create_test_volume_target(
+            self.context, node_id=self.node.id, volume_type='iscsi',
+            boot_index=1, volume_id='1235', uuid=vol_id2,
+            properties={'target_lun': 1,
+                        'target_portal': 'fake_host:3260',
+                        'target_iqn': 'fake_iqn',
+                        'auth_username': 'fake_username_1',
+                        'auth_password': 'fake_password_1'})
+        self.node.driver_internal_info.update({'boot_from_volume': vol_id})
+        self._test_build_pxe_config_options_ipxe(boot_from_volume=True)
+
+    def test_build_pxe_config_options_ipxe_and_iscsi_boot_from_lists(self):
+        vol_id = uuidutils.generate_uuid()
+        vol_id2 = uuidutils.generate_uuid()
+        object_utils.create_test_volume_connector(
+            self.context,
+            uuid=uuidutils.generate_uuid(),
+            type='iqn',
+            node_id=self.node.id,
+            connector_id='fake_iqn_initiator')
+        object_utils.create_test_volume_target(
+            self.context, node_id=self.node.id, volume_type='iscsi',
+            boot_index=0, volume_id='1234', uuid=vol_id,
+            properties={'target_luns': [0, 2],
+                        'target_portals': ['fake_host:3260',
+                                           'faker_host:3261'],
+                        'target_iqns': ['fake_iqn', 'faker_iqn'],
+                        'auth_username': 'fake_username',
+                        'auth_password': 'fake_password'})
+        object_utils.create_test_volume_target(
+            self.context, node_id=self.node.id, volume_type='iscsi',
+            boot_index=1, volume_id='1235', uuid=vol_id2,
+            properties={'target_lun': [1, 3],
+                        'target_portal': ['fake_host:3260', 'faker_host:3261'],
+                        'target_iqn': ['fake_iqn', 'faker_iqn'],
+                        'auth_username': 'fake_username_1',
+                        'auth_password': 'fake_password_1'})
+        self.node.driver_internal_info.update({'boot_from_volume': vol_id})
+        self._test_build_pxe_config_options_ipxe(boot_from_volume=True)
+
+    def test_get_volume_pxe_options(self):
+        vol_id = uuidutils.generate_uuid()
+        vol_id2 = uuidutils.generate_uuid()
+        object_utils.create_test_volume_connector(
+            self.context,
+            uuid=uuidutils.generate_uuid(),
+            type='iqn',
+            node_id=self.node.id,
+            connector_id='fake_iqn_initiator')
+        object_utils.create_test_volume_target(
+            self.context, node_id=self.node.id, volume_type='iscsi',
+            boot_index=0, volume_id='1234', uuid=vol_id,
+            properties={'target_lun': [0, 1, 3],
+                        'target_portal': 'fake_host:3260',
+                        'target_iqns': 'fake_iqn',
+                        'auth_username': 'fake_username',
+                        'auth_password': 'fake_password'})
+        object_utils.create_test_volume_target(
+            self.context, node_id=self.node.id, volume_type='iscsi',
+            boot_index=1, volume_id='1235', uuid=vol_id2,
+            properties={'target_lun': 1,
+                        'target_portal': 'fake_host:3260',
+                        'target_iqn': 'fake_iqn',
+                        'auth_username': 'fake_username_1',
+                        'auth_password': 'fake_password_1'})
+        self.node.driver_internal_info.update({'boot_from_volume': vol_id})
+        driver_internal_info = self.node.driver_internal_info
+        driver_internal_info['boot_from_volume'] = vol_id
+        self.node.driver_internal_info = driver_internal_info
+        self.node.save()
+
+        expected = {'boot_from_volume': True,
+                    'username': 'fake_username', 'password': 'fake_password',
+                    'iscsi_boot_url': 'iscsi:fake_host::3260:0:fake_iqn',
+                    'iscsi_initiator_iqn': 'fake_iqn_initiator',
+                    'iscsi_volumes': [{
+                        'url': 'iscsi:fake_host::3260:1:fake_iqn',
+                        'username': 'fake_username_1',
+                        'password': 'fake_password_1'
+                    }]
+                    }
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            options = pxe_utils.get_volume_pxe_options(task)
+        self.assertEqual(expected, options)
+
+    def test_get_volume_pxe_options_unsupported_volume_type(self):
+        vol_id = uuidutils.generate_uuid()
+        object_utils.create_test_volume_target(
+            self.context, node_id=self.node.id, volume_type='fake_type',
+            boot_index=0, volume_id='1234', uuid=vol_id,
+            properties={'foo': 'bar'})
+
+        driver_internal_info = self.node.driver_internal_info
+        driver_internal_info['boot_from_volume'] = vol_id
+        self.node.driver_internal_info = driver_internal_info
+        self.node.save()
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            options = pxe_utils.get_volume_pxe_options(task)
+        self.assertEqual({}, options)
+
+    def test_get_volume_pxe_options_unsupported_additional_volume_type(self):
+        vol_id = uuidutils.generate_uuid()
+        vol_id2 = uuidutils.generate_uuid()
+        object_utils.create_test_volume_target(
+            self.context, node_id=self.node.id, volume_type='iscsi',
+            boot_index=0, volume_id='1234', uuid=vol_id,
+            properties={'target_lun': 0,
+                        'target_portal': 'fake_host:3260',
+                        'target_iqn': 'fake_iqn',
+                        'auth_username': 'fake_username',
+                        'auth_password': 'fake_password'})
+        object_utils.create_test_volume_target(
+            self.context, node_id=self.node.id, volume_type='fake_type',
+            boot_index=1, volume_id='1234', uuid=vol_id2,
+            properties={'foo': 'bar'})
+
+        driver_internal_info = self.node.driver_internal_info
+        driver_internal_info['boot_from_volume'] = vol_id
+        self.node.driver_internal_info = driver_internal_info
+        self.node.save()
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            options = pxe_utils.get_volume_pxe_options(task)
+        self.assertEqual([], options['iscsi_volumes'])
+
+    def test_build_pxe_config_options_ipxe_rescue(self):
+        self._test_build_pxe_config_options_ipxe(mode='rescue')
+
+    def test_build_pxe_config_options_ipxe_rescue_swift(self):
+        self._test_build_pxe_config_options_ipxe(mode='rescue',
+                                                 ipxe_use_swift=True)
+
+    def test_build_pxe_config_options_ipxe_rescue_timeout(self):
+        self._test_build_pxe_config_options_ipxe(mode='rescue',
+                                                 ipxe_timeout=120)
+
+    @mock.patch.object(deploy_utils, 'fetch_images', autospec=True)
+    def test__cache_tftp_images_master_path(self, mock_fetch_image):
+        temp_dir = tempfile.mkdtemp()
+        self.config(tftp_root=temp_dir, group='pxe')
+        self.config(tftp_master_path=os.path.join(temp_dir,
+                                                  'tftp_master_path'),
+                    group='pxe')
+        image_path = os.path.join(temp_dir, self.node.uuid,
+                                  'deploy_kernel')
+        image_info = {'deploy_kernel': ('deploy_kernel', image_path)}
+        fileutils.ensure_tree(CONF.pxe.tftp_master_path)
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            pxe_utils.cache_ramdisk_kernel(task, image_info)
+
+        mock_fetch_image.assert_called_once_with(self.context,
+                                                 mock.ANY,
+                                                 [('deploy_kernel',
+                                                   image_path)],
+                                                 True)
+
+    @mock.patch.object(pxe_utils, 'TFTPImageCache', lambda: None)
+    @mock.patch.object(fileutils, 'ensure_tree', autospec=True)
+    @mock.patch.object(deploy_utils, 'fetch_images', autospec=True)
+    def test_cache_ramdisk_kernel(self, mock_fetch_image, mock_ensure_tree):
+        self.config(ipxe_enabled=False, group='pxe')
+        fake_pxe_info = {'foo': 'bar'}
+        expected_path = os.path.join(CONF.pxe.tftp_root, self.node.uuid)
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            pxe_utils.cache_ramdisk_kernel(task, fake_pxe_info)
+        mock_ensure_tree.assert_called_with(expected_path)
+        mock_fetch_image.assert_called_once_with(
+            self.context, mock.ANY, list(fake_pxe_info.values()), True)
+
+    @mock.patch.object(pxe_utils, 'TFTPImageCache', lambda: None)
+    @mock.patch.object(fileutils, 'ensure_tree', autospec=True)
+    @mock.patch.object(deploy_utils, 'fetch_images', autospec=True)
+    def test_cache_ramdisk_kernel_ipxe(self, mock_fetch_image,
+                                       mock_ensure_tree):
+        self.config(ipxe_enabled=True, group='pxe')
+        fake_pxe_info = {'foo': 'bar'}
+        expected_path = os.path.join(CONF.deploy.http_root,
+                                     self.node.uuid)
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+                pxe_utils.cache_ramdisk_kernel(task, fake_pxe_info)
+        mock_ensure_tree.assert_called_with(expected_path)
+        mock_fetch_image.assert_called_once_with(self.context, mock.ANY,
+                                                 list(fake_pxe_info.values()),
+                                                 True)
+
+    @mock.patch.object(pxe_utils.LOG, 'error', autospec=True)
+    def test_validate_boot_parameters_for_trusted_boot_one(self, mock_log):
+        properties = {'capabilities': 'boot_mode:uefi'}
+        instance_info = {"boot_option": "netboot"}
+        self.node.properties = properties
+        self.node.instance_info['capabilities'] = instance_info
+        self.node.driver_internal_info['is_whole_disk_image'] = False
+        self.assertRaises(exception.InvalidParameterValue,
+                          pxe.validate_boot_parameters_for_trusted_boot,
+                          self.node)
+        self.assertTrue(mock_log.called)
+
+    @mock.patch.object(pxe_utils.LOG, 'error', autospec=True)
+    def test_validate_boot_parameters_for_trusted_boot_two(self, mock_log):
+        properties = {'capabilities': 'boot_mode:bios'}
+        instance_info = {"boot_option": "local"}
+        self.node.properties = properties
+        self.node.instance_info['capabilities'] = instance_info
+        self.node.driver_internal_info['is_whole_disk_image'] = False
+        self.assertRaises(exception.InvalidParameterValue,
+                          pxe.validate_boot_parameters_for_trusted_boot,
+                          self.node)
+        self.assertTrue(mock_log.called)
+
+    @mock.patch.object(pxe_utils.LOG, 'error', autospec=True)
+    def test_validate_boot_parameters_for_trusted_boot_three(self, mock_log):
+        properties = {'capabilities': 'boot_mode:bios'}
+        instance_info = {"boot_option": "netboot"}
+        self.node.properties = properties
+        self.node.instance_info['capabilities'] = instance_info
+        self.node.driver_internal_info['is_whole_disk_image'] = True
+        self.assertRaises(exception.InvalidParameterValue,
+                          pxe.validate_boot_parameters_for_trusted_boot,
+                          self.node)
+        self.assertTrue(mock_log.called)
+
+    @mock.patch.object(pxe_utils.LOG, 'error', autospec=True)
+    def test_validate_boot_parameters_for_trusted_boot_pass(self, mock_log):
+        properties = {'capabilities': 'boot_mode:bios'}
+        instance_info = {"boot_option": "netboot"}
+        self.node.properties = properties
+        self.node.instance_info['capabilities'] = instance_info
+        self.node.driver_internal_info['is_whole_disk_image'] = False
+        pxe.validate_boot_parameters_for_trusted_boot(self.node)
+        self.assertFalse(mock_log.called)
+
+
+@mock.patch.object(ironic_utils, 'unlink_without_raise', autospec=True)
+@mock.patch.object(pxe_utils, 'clean_up_pxe_config', autospec=True)
+@mock.patch.object(pxe_utils, 'TFTPImageCache', autospec=True)
+class CleanUpPxeEnvTestCase(db_base.DbTestCase):
+    def setUp(self):
+        super(CleanUpPxeEnvTestCase, self).setUp()
+        instance_info = INST_INFO_DICT
+        instance_info['deploy_key'] = 'fake-56789'
+        self.node = object_utils.create_test_node(
+            self.context, boot_interface='pxe',
+            instance_info=instance_info,
+            driver_info=DRV_INFO_DICT,
+            driver_internal_info=DRV_INTERNAL_INFO_DICT,
+        )
+
+    def test__clean_up_pxe_env(self, mock_cache, mock_pxe_clean,
+                               mock_unlink):
+        image_info = {'label': ['', 'deploy_kernel']}
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            pxe_utils.clean_up_pxe_env(task, image_info)
+            mock_pxe_clean.assert_called_once_with(task)
+            mock_unlink.assert_any_call('deploy_kernel')
+        mock_cache.return_value.clean_up.assert_called_once_with()

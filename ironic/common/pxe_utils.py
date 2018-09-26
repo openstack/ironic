@@ -33,6 +33,7 @@ from ironic.common import utils
 from ironic.conf import CONF
 from ironic.drivers.modules import boot_mode_utils
 from ironic.drivers.modules import deploy_utils
+from ironic.drivers.modules import image_cache
 from ironic import objects
 
 LOG = logging.getLogger(__name__)
@@ -857,3 +858,48 @@ def prepare_instance_pxe_config(task, image_info,
         boot_mode_utils.get_boot_mode_for_deploy(node), False,
         iscsi_boot=iscsi_boot, ramdisk_boot=ramdisk_boot,
         ipxe_enabled=ipxe_enabled)
+
+
+@image_cache.cleanup(priority=25)
+class TFTPImageCache(image_cache.ImageCache):
+    def __init__(self):
+        super(TFTPImageCache, self).__init__(
+            CONF.pxe.tftp_master_path,
+            # MiB -> B
+            cache_size=CONF.pxe.image_cache_size * 1024 * 1024,
+            # min -> sec
+            cache_ttl=CONF.pxe.image_cache_ttl * 60)
+
+
+def cache_ramdisk_kernel(task, pxe_info):
+    """Fetch the necessary kernels and ramdisks for the instance."""
+    ctx = task.context
+    node = task.node
+    if is_ipxe_enabled(task):
+        path = os.path.join(get_ipxe_root_dir(), node.uuid)
+    else:
+        path = os.path.join(get_root_dir(), node.uuid)
+    fileutils.ensure_tree(path)
+    LOG.debug("Fetching necessary kernel and ramdisk for node %s",
+              node.uuid)
+    deploy_utils.fetch_images(ctx, TFTPImageCache(), list(pxe_info.values()),
+                              CONF.force_raw_images)
+
+
+def clean_up_pxe_env(task, images_info):
+    """Cleanup PXE environment of all the images in images_info.
+
+    Cleans up the PXE environment for the mentioned images in
+    images_info.
+
+    :param task: a TaskManager object
+    :param images_info: A dictionary of images whose keys are the image names
+        to be cleaned up (kernel, ramdisk, etc) and values are a tuple of
+        identifier and absolute path.
+    """
+    for label in images_info:
+        path = images_info[label][1]
+        ironic_utils.unlink_without_raise(path)
+
+    clean_up_pxe_config(task)
+    TFTPImageCache().clean_up()
