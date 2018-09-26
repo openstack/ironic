@@ -1,0 +1,8 @@
+---
+fixes:
+  - |
+    Fixes ``redfish`` hardware type to reuse HTTP session tokens when
+    talking to BMC using session authentication. Prior to this fix ``redfish``
+    hardware type never tried to reuse session token given out by BMC during
+    previous connection what may sometimes lead to session pool exhaustion
+    with some BMC implementations.

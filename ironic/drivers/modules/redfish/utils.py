@@ -13,6 +13,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import collections
 import os
 
 from oslo_log import log
@@ -149,6 +150,52 @@ def parse_driver_info(node):
             'node_uuid': node.uuid}
 
 
+class SessionCache(object):
+    """Cache of HTTP sessions credentials"""
+    MAX_SESSIONS = 1000
+
+    sessions = collections.OrderedDict()
+
+    def __init__(self, driver_info):
+        self._driver_info = driver_info
+        self._session_key = tuple(
+            self._driver_info.get(key)
+            for key in ('address', 'username', 'verify_ca')
+        )
+
+    def __enter__(self):
+        try:
+            return self.sessions[self._session_key]
+
+        except KeyError:
+            conn = sushy.Sushy(
+                self._driver_info['address'],
+                username=self._driver_info['username'],
+                password=self._driver_info['password'],
+                verify=self._driver_info['verify_ca']
+            )
+
+            self._expire_oldest_session()
+
+            self.sessions[self._session_key] = conn
+
+            return conn
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        # NOTE(etingof): perhaps this session token is no good
+        if isinstance(exc_val, sushy.exceptions.ConnectionError):
+            self.sessions.pop(self._session_key, None)
+
+    def _expire_oldest_session(self):
+        """Expire oldest session"""
+        if len(self.sessions) >= self.MAX_SESSIONS:
+            session_keys = list(self.sessions)
+            session_key = session_keys[0]
+            # NOTE(etingof): GC should cause sushy to HTTP DELETE session
+            # at BMC. Trouble is that as of this commit sushy does not do that.
+            self.sessions.pop(session_key, None)
+
+
 def get_system(node):
     """Get a Redfish System that represents a node.
 
@@ -167,13 +214,9 @@ def get_system(node):
         wait_fixed=CONF.redfish.connection_retry_interval * 1000)
     def _get_system():
         try:
-            # TODO(lucasagomes): We should look into a mechanism to
-            # cache the connections (and maybe even system's instances)
-            # to avoid unnecessary requests to the Redfish controller
-            conn = sushy.Sushy(address, username=driver_info['username'],
-                               password=driver_info['password'],
-                               verify=driver_info['verify_ca'])
-            return conn.get_system(system_id)
+            with SessionCache(driver_info) as conn:
+                return conn.get_system(system_id)
+
         except sushy.exceptions.ResourceNotFoundError as e:
             LOG.error('The Redfish System "%(system)s" was not found for '
                       'node %(node)s. Error %(error)s',
