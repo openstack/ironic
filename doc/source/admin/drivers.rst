@@ -44,12 +44,12 @@ Any hardware interfaces can be specified on enrollment as well::
 
 For the remaining interfaces the default value is assigned as described in
 :ref:`hardware_interfaces_defaults`. Both the hardware type and the hardware
-interfaces can be changed later.
+interfaces can be changed later via the node update API.
 
-Changing hardware interfaces
+Changing Hardware Interfaces
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-A hardware interfaces can be changed by the following command::
+Hardware interfaces can be changed by the following command::
 
     openstack baremetal node set <NODE> \
         --deploy-interface direct \
@@ -58,7 +58,7 @@ A hardware interfaces can be changed by the following command::
 The modified interfaces must be enabled and compatible with the current node's
 hardware type.
 
-Changing hardware type
+Changing Hardware Type
 ~~~~~~~~~~~~~~~~~~~~~~
 
 Changing the node's hardware type can pose a problem. When the ``driver``
@@ -90,7 +90,8 @@ not compatible with them. There are three ways to deal with this situation:
         --reset-management-interface \
         --reset-power-interface
 
-   .. note:: This feature is available starting with the Rocky release.
+   .. note:: This feature is available starting with ironic 11.1.0 (Rocky
+             series, API version 1.45).
 
 #. Request resetting all interfaces to their new defaults::
 
@@ -101,7 +102,8 @@ not compatible with them. There are three ways to deal with this situation:
     openstack baremetal node set test --driver ipmi --reset-interfaces \
         --deploy-interface direct
 
-   .. note:: This feature is available starting with the Rocky release.
+   .. note:: This feature is available starting with ironic 11.1.0 (Rocky
+             series, API version 1.45).
 
 Unsupported drivers
 -------------------
