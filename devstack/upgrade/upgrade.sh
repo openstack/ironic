@@ -36,10 +36,6 @@ set -o errexit
 # Upgrade Ironic
 # ============
 
-# Workaroud to remove the use of ipxe-qemu from xenial-updates/queens/main
-# https://storyboard.openstack.org/#!/story/2003808
-sudo apt-get -y --allow-downgrades install ipxe-qemu=1.0.0+git-20150424.a25a16d-1ubuntu1.2
-
 # Duplicate some setup bits from target DevStack
 source $TARGET_DEVSTACK_DIR/stackrc
 source $TARGET_DEVSTACK_DIR/lib/tls
