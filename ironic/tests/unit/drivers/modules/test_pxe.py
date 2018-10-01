@@ -675,7 +675,7 @@ class PXEPrivateMethodsTestCase(db_base.DbTestCase):
                                                  list(fake_pxe_info.values()),
                                                  True)
 
-    @mock.patch.object(pxe.LOG, 'error', autospec=True)
+    @mock.patch.object(pxe_utils.LOG, 'error', autospec=True)
     def test_validate_boot_parameters_for_trusted_boot_one(self, mock_log):
         properties = {'capabilities': 'boot_mode:uefi'}
         instance_info = {"boot_option": "netboot"}
@@ -687,7 +687,7 @@ class PXEPrivateMethodsTestCase(db_base.DbTestCase):
                           self.node)
         self.assertTrue(mock_log.called)
 
-    @mock.patch.object(pxe.LOG, 'error', autospec=True)
+    @mock.patch.object(pxe_utils.LOG, 'error', autospec=True)
     def test_validate_boot_parameters_for_trusted_boot_two(self, mock_log):
         properties = {'capabilities': 'boot_mode:bios'}
         instance_info = {"boot_option": "local"}
@@ -699,7 +699,7 @@ class PXEPrivateMethodsTestCase(db_base.DbTestCase):
                           self.node)
         self.assertTrue(mock_log.called)
 
-    @mock.patch.object(pxe.LOG, 'error', autospec=True)
+    @mock.patch.object(pxe_utils.LOG, 'error', autospec=True)
     def test_validate_boot_parameters_for_trusted_boot_three(self, mock_log):
         properties = {'capabilities': 'boot_mode:bios'}
         instance_info = {"boot_option": "netboot"}
@@ -711,7 +711,7 @@ class PXEPrivateMethodsTestCase(db_base.DbTestCase):
                           self.node)
         self.assertTrue(mock_log.called)
 
-    @mock.patch.object(pxe.LOG, 'error', autospec=True)
+    @mock.patch.object(pxe_utils.LOG, 'error', autospec=True)
     def test_validate_boot_parameters_for_trusted_boot_pass(self, mock_log):
         properties = {'capabilities': 'boot_mode:bios'}
         instance_info = {"boot_option": "netboot"}

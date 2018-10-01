@@ -28,9 +28,7 @@ from ironic.common import dhcp_factory
 from ironic.common import exception
 from ironic.common.glance_service import service_utils
 from ironic.common.i18n import _
-from ironic.common import image_service as service
-from ironic.common import images
-from ironic.common import pxe_utils
+from ironic.common import pxe_utils as pxe_utils
 from ironic.common import states
 from ironic.conductor import task_manager
 from ironic.conductor import utils as manager_utils
@@ -41,7 +39,6 @@ from ironic.drivers.modules import boot_mode_utils
 from ironic.drivers.modules import deploy_utils
 from ironic.drivers.modules import image_cache
 from ironic.drivers import utils as driver_utils
-from ironic import objects
 LOG = logging.getLogger(__name__)
 
 METRICS = metrics_utils.get_metrics_logger(__name__)
@@ -68,320 +65,28 @@ RESCUE_PROPERTIES = {
 COMMON_PROPERTIES = REQUIRED_PROPERTIES.copy()
 COMMON_PROPERTIES.update(OPTIONAL_PROPERTIES)
 
+# TODO(TheJulia): The lines below are for compatability purposes,
+# to enable a phased migration of related code over a series of
+# patches instead of attempting to refactor large portions of the
+# boot interface code in a single patch. These private method
+# mappings should be removed as soon as reasonably possible.
 
-def _parse_driver_info(node, mode='deploy'):
-    """Gets the driver specific Node deployment info.
+_parse_driver_info = pxe_utils.parse_driver_info
+_get_instance_image_info = pxe_utils.parse_driver_info
+_get_instance_image_info = pxe_utils.get_instance_image_info
+_get_image_info = pxe_utils.get_image_info
+_build_deploy_pxe_options = pxe_utils.build_instance_pxe_options
+_build_instance_pxe_options = pxe_utils.build_instance_pxe_options
+_build_extra_pxe_options = pxe_utils.build_extra_pxe_options
+_build_pxe_config_options = pxe_utils.build_pxe_config_options
+_build_service_pxe_config = pxe_utils.build_service_pxe_config
+_get_volume_pxe_options = pxe_utils.get_volume_pxe_options
+_prepare_instance_pxe_config = pxe_utils.prepare_instance_pxe_config
 
-    This method validates whether the 'driver_info' property of the
-    supplied node contains the required information for this driver to
-    deploy images to, or rescue, the node.
-
-    :param node: a single Node.
-    :param mode: Label indicating a deploy or rescue operation being
-                 carried out on the node. Supported values are
-                 'deploy' and 'rescue'. Defaults to 'deploy', indicating
-                 deploy operation is being carried out.
-    :returns: A dict with the driver_info values.
-    :raises: MissingParameterValue
-    """
-    info = node.driver_info
-
-    params_to_check = pxe_utils.KERNEL_RAMDISK_LABELS[mode]
-
-    d_info = {k: info.get(k) for k in params_to_check}
-    error_msg = _("Cannot validate PXE bootloader. Some parameters were"
-                  " missing in node's driver_info")
-    deploy_utils.check_for_missing_params(d_info, error_msg)
-    return d_info
-
-
-def _get_instance_image_info(node, ctx):
-    """Generate the paths for TFTP files for instance related images.
-
-    This method generates the paths for instance kernel and
-    instance ramdisk. This method also updates the node, so caller should
-    already have a non-shared lock on the node.
-
-    :param node: a node object
-    :param ctx: context
-    :returns: a dictionary whose keys are the names of the images (kernel,
-        ramdisk) and values are the absolute paths of them. If it's a whole
-        disk image or node is configured for localboot,
-        it returns an empty dictionary.
-    """
-    image_info = {}
-    # NOTE(pas-ha) do not report image kernel and ramdisk for
-    # local boot or whole disk images so that they are not cached
-    if (node.driver_internal_info.get('is_whole_disk_image')
-        or deploy_utils.get_boot_option(node) == 'local'):
-            return image_info
-
-    root_dir = pxe_utils.get_root_dir()
-    i_info = node.instance_info
-    labels = ('kernel', 'ramdisk')
-    d_info = deploy_utils.get_image_instance_info(node)
-    if not (i_info.get('kernel') and i_info.get('ramdisk')):
-        glance_service = service.GlanceImageService(
-            version=CONF.glance.glance_api_version, context=ctx)
-        iproperties = glance_service.show(d_info['image_source'])['properties']
-        for label in labels:
-            i_info[label] = str(iproperties[label + '_id'])
-        node.instance_info = i_info
-        node.save()
-
-    for label in labels:
-        image_info[label] = (
-            i_info[label],
-            os.path.join(root_dir, node.uuid, label)
-        )
-
-    return image_info
-
-
-def _get_image_info(node, mode='deploy'):
-    """Generate the paths for TFTP files for deploy or rescue images.
-
-    This method generates the paths for the deploy (or rescue) kernel and
-    deploy (or rescue) ramdisk.
-
-    :param node: a node object
-    :param mode: Label indicating a deploy or rescue operation being
-        carried out on the node. Supported values are 'deploy' and 'rescue'.
-        Defaults to 'deploy', indicating deploy operation is being carried out.
-    :returns: a dictionary whose keys are the names of the images
-        (deploy_kernel, deploy_ramdisk, or rescue_kernel, rescue_ramdisk) and
-        values are the absolute paths of them.
-    :raises: MissingParameterValue, if deploy_kernel/deploy_ramdisk or
-        rescue_kernel/rescue_ramdisk is missing in node's driver_info.
-    """
-    d_info = _parse_driver_info(node, mode=mode)
-
-    return pxe_utils.get_kernel_ramdisk_info(
-        node.uuid, d_info, mode=mode)
-
-
-def _build_deploy_pxe_options(task, pxe_info, mode='deploy'):
-    pxe_opts = {}
-    node = task.node
-
-    kernel_label = '%s_kernel' % mode
-    ramdisk_label = '%s_ramdisk' % mode
-
-    for label, option in ((kernel_label, 'deployment_aki_path'),
-                          (ramdisk_label, 'deployment_ari_path')):
-        if CONF.pxe.ipxe_enabled:
-            image_href = pxe_info[label][0]
-            if (CONF.pxe.ipxe_use_swift
-                and service_utils.is_glance_image(image_href)):
-                    pxe_opts[option] = images.get_temp_url_for_glance_image(
-                        task.context, image_href)
-            else:
-                pxe_opts[option] = '/'.join([CONF.deploy.http_url, node.uuid,
-                                            label])
-        else:
-            pxe_opts[option] = pxe_utils.get_path_relative_to_tftp_root(
-                pxe_info[label][1])
-    if CONF.pxe.ipxe_enabled:
-        pxe_opts['initrd_filename'] = ramdisk_label
-    return pxe_opts
-
-
-def _build_instance_pxe_options(task, pxe_info):
-    pxe_opts = {}
-    node = task.node
-
-    for label, option in (('kernel', 'aki_path'),
-                          ('ramdisk', 'ari_path')):
-        if label in pxe_info:
-            if CONF.pxe.ipxe_enabled:
-                # NOTE(pas-ha) do not use Swift TempURLs for kernel and
-                # ramdisk of user image when boot_option is not local,
-                # as this breaks instance reboot later when temp urls
-                # have timed out.
-                pxe_opts[option] = '/'.join(
-                    [CONF.deploy.http_url, node.uuid, label])
-            else:
-                # It is possible that we don't have kernel/ramdisk or even
-                # image_source to determine if it's a whole disk image or not.
-                # For example, when transitioning to 'available' state
-                # for first time from 'manage' state.
-                pxe_opts[option] = pxe_utils.get_path_relative_to_tftp_root(
-                    pxe_info[label][1])
-
-    # These are dummy values to satisfy elilo.
-    # image and initrd fields in elilo config cannot be blank.
-    pxe_opts.setdefault('aki_path', 'no_kernel')
-    pxe_opts.setdefault('ari_path', 'no_ramdisk')
-
-    i_info = task.node.instance_info
-    try:
-        pxe_opts['ramdisk_opts'] = i_info['ramdisk_kernel_arguments']
-    except KeyError:
-        pass
-
-    return pxe_opts
-
-
-def _build_extra_pxe_options():
-    # Enable debug in IPA according to CONF.debug if it was not
-    # specified yet
-    pxe_append_params = CONF.pxe.pxe_append_params
-    if CONF.debug and 'ipa-debug' not in pxe_append_params:
-        pxe_append_params += ' ipa-debug=1'
-
-    return {'pxe_append_params': pxe_append_params,
-            'tftp_server': CONF.pxe.tftp_server,
-            'ipxe_timeout': CONF.pxe.ipxe_timeout * 1000}
-
-
-def _build_pxe_config_options(task, pxe_info, service=False):
-    """Build the PXE config options for a node
-
-    This method builds the PXE boot options for a node,
-    given all the required parameters.
-
-    The options should then be passed to pxe_utils.create_pxe_config to
-    create the actual config files.
-
-    :param task: A TaskManager object
-    :param pxe_info: a dict of values to set on the configuration file
-    :param service: if True, build "service mode" pxe config for netboot-ed
-        user image and skip adding deployment image kernel and ramdisk info
-        to PXE options.
-    :returns: A dictionary of pxe options to be used in the pxe bootfile
-        template.
-    """
-    node = task.node
-    mode = deploy_utils.rescue_or_deploy_mode(node)
-    if service:
-        pxe_options = {}
-    elif (node.driver_internal_info.get('boot_from_volume')
-            and CONF.pxe.ipxe_enabled):
-        pxe_options = _get_volume_pxe_options(task)
-    else:
-        pxe_options = _build_deploy_pxe_options(task, pxe_info, mode=mode)
-
-    # NOTE(pas-ha) we still must always add user image kernel and ramdisk
-    # info as later during switching PXE config to service mode the
-    # template will not be regenerated anew, but instead edited as-is.
-    # This can be changed later if/when switching PXE config will also use
-    # proper templating instead of editing existing files on disk.
-    pxe_options.update(_build_instance_pxe_options(task, pxe_info))
-
-    pxe_options.update(_build_extra_pxe_options())
-
-    return pxe_options
-
-
-def _build_service_pxe_config(task, instance_image_info,
-                              root_uuid_or_disk_id,
-                              ramdisk_boot=False):
-    node = task.node
-    pxe_config_path = pxe_utils.get_pxe_config_file_path(node.uuid)
-    # NOTE(pas-ha) if it is takeover of ACTIVE node or node performing
-    # unrescue operation, first ensure that basic PXE configs and links
-    # are in place before switching pxe config
-    if (node.provision_state in [states.ACTIVE, states.UNRESCUING]
-            and not os.path.isfile(pxe_config_path)):
-        pxe_options = _build_pxe_config_options(task, instance_image_info,
-                                                service=True)
-        pxe_config_template = deploy_utils.get_pxe_config_template(node)
-        pxe_utils.create_pxe_config(task, pxe_options, pxe_config_template)
-    iwdi = node.driver_internal_info.get('is_whole_disk_image')
-    deploy_utils.switch_pxe_config(
-        pxe_config_path, root_uuid_or_disk_id,
-        boot_mode_utils.get_boot_mode_for_deploy(node),
-        iwdi, deploy_utils.is_trusted_boot_requested(node),
-        deploy_utils.is_iscsi_boot(task), ramdisk_boot)
-
-
-def _get_volume_pxe_options(task):
-    """Identify volume information for iPXE template generation."""
-    def __return_item_or_first_if_list(item):
-        if isinstance(item, list):
-            return item[0]
-        else:
-            return item
-
-    def __get_property(properties, key):
-        prop = __return_item_or_first_if_list(properties.get(key, ''))
-        if prop is not '':
-            return prop
-        return __return_item_or_first_if_list(properties.get(key + 's', ''))
-
-    def __generate_iscsi_url(properties):
-        """Returns iscsi url."""
-        portal = __get_property(properties, 'target_portal')
-        iqn = __get_property(properties, 'target_iqn')
-        lun = __get_property(properties, 'target_lun')
-
-        if ':' in portal:
-            host, port = portal.split(':')
-        else:
-            host = portal
-            port = ''
-        return ("iscsi:%(host)s::%(port)s:%(lun)s:%(iqn)s" %
-                {'host': host, 'port': port, 'lun': lun, 'iqn': iqn})
-
-    pxe_options = {}
-    node = task.node
-    boot_volume = node.driver_internal_info.get('boot_from_volume')
-    volume = objects.VolumeTarget.get_by_uuid(task.context,
-                                              boot_volume)
-    properties = volume.properties
-    if 'iscsi' in volume['volume_type']:
-        if 'auth_username' in properties:
-            pxe_options['username'] = properties['auth_username']
-        if 'auth_password' in properties:
-            pxe_options['password'] = properties['auth_password']
-        iscsi_initiator_iqn = None
-        for vc in task.volume_connectors:
-            if vc.type == 'iqn':
-                iscsi_initiator_iqn = vc.connector_id
-
-        pxe_options.update(
-            {'iscsi_boot_url': __generate_iscsi_url(volume.properties),
-             'iscsi_initiator_iqn': iscsi_initiator_iqn})
-        # NOTE(TheJulia): This may be the route to multi-path, define
-        # volumes via sanhook in the ipxe template and let the OS sort it out.
-        extra_targets = []
-
-        for target in task.volume_targets:
-            if target.boot_index != 0 and 'iscsi' in target.volume_type:
-                iscsi_url = __generate_iscsi_url(target.properties)
-                username = target.properties['auth_username']
-                password = target.properties['auth_password']
-                extra_targets.append({'url': iscsi_url,
-                                      'username': username,
-                                      'password': password})
-        pxe_options.update({'iscsi_volumes': extra_targets,
-                            'boot_from_volume': True})
-    # TODO(TheJulia): FibreChannel boot, i.e. wwpn in volume_type
-    # for FCoE, should go here.
-    return pxe_options
-
-
-def validate_boot_parameters_for_trusted_boot(node):
-    """Check if boot parameters are valid for trusted boot."""
-    boot_mode = boot_mode_utils.get_boot_mode_for_deploy(node)
-    boot_option = deploy_utils.get_boot_option(node)
-    is_whole_disk_image = node.driver_internal_info.get('is_whole_disk_image')
-    # 'is_whole_disk_image' is not supported by trusted boot, because there is
-    # no Kernel/Ramdisk to measure at all.
-    if (boot_mode != 'bios'
-        or is_whole_disk_image
-        or boot_option != 'netboot'):
-        msg = (_("Trusted boot is only supported in BIOS boot mode with "
-                 "netboot and without whole_disk_image, but Node "
-                 "%(node_uuid)s was configured with boot_mode: %(boot_mode)s, "
-                 "boot_option: %(boot_option)s, is_whole_disk_image: "
-                 "%(is_whole_disk_image)s: at least one of them is wrong, and "
-                 "this can be caused by enable secure boot.") %
-               {'node_uuid': node.uuid, 'boot_mode': boot_mode,
-                'boot_option': boot_option,
-                'is_whole_disk_image': is_whole_disk_image})
-        LOG.error(msg)
-        raise exception.InvalidParameterValue(msg)
+# NOTE(TheJulia): This was previously a public method to the code being
+# moved. This mapping should be removed in the T* cycle.
+validate_boot_parameters_for_trusted_boot = pxe_utils.validate_boot_parameters_for_trusted_boot  # noqa
+# NOTE(TheJulia): End section of mappings for migrated common pxe code.
 
 
 @image_cache.cleanup(priority=25)
