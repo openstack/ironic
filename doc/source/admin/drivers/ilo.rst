@@ -47,6 +47,7 @@ The hardware type ``ilo`` supports following HPE server features:
 * `Activating iLO Advanced license as manual clean step`_
 * `Firmware based UEFI iSCSI boot from volume support`_
 * `Certificate based validation in iLO`_
+* `Rescue mode support`_
 
 Hardware interfaces
 ^^^^^^^^^^^^^^^^^^^
@@ -163,6 +164,17 @@ The ``ilo`` hardware type supports following hardware interfaces:
        Please refer to :doc:`/admin/boot-from-volume` for configuring
        ``cinder`` as a storage interface.
 
+* rescue
+    Supports ``agent`` and ``no-rescue``. The default is ``no-rescue``.
+    They can be enabled by using the ``[DEFAULT]enabled_rescue_interfaces``
+    option in ``ironic.conf`` as given below:
+
+    .. code-block:: ini
+
+        [DEFAULT]
+        enabled_hardware_types = ilo
+        enabled_rescue_interfaces = agent,no-rescue
+
 ``ilo`` hardware type supports all standard ``deploy`` and ``network``
 interface implementations, see :ref:`enable-hardware-interfaces` for details.
 
@@ -171,14 +183,16 @@ The following command can be used to enroll a ProLiant node with
 
 .. code-block:: console
 
-    openstack baremetal node create --os-baremetal-api-version=1.31 \
+    openstack baremetal node create --os-baremetal-api-version=1.38 \
         --driver ilo \
         --deploy-interface direct \
         --raid-interface agent \
+        --rescue-interface agent \
         --driver-info ilo_address=<ilo-ip-address> \
         --driver-info ilo_username=<ilo-username> \
         --driver-info ilo_password=<ilo-password> \
-        --driver-info ilo_deploy_iso=<glance-uuid-of-deploy-iso>
+        --driver-info ilo_deploy_iso=<glance-uuid-of-deploy-iso> \
+        --driver-info ilo_rescue_iso=<glance-uuid-of-rescue-iso>
 
 Please refer to :doc:`/install/enabling-drivers` for detailed
 explanation of hardware type.
@@ -208,12 +222,20 @@ Node configuration
   - ``instance info/ilo_boot_iso`` property to be either boot iso
     Glance UUID or a HTTP(S) URL. This is optional property and is used when
     ``boot_option`` is set to ``netboot``.
+  - ``ilo_rescue_iso``: The glance UUID of the rescue ISO image. This is optional
+    property and is used when ``rescue`` interface is set to ``agent``.
 
 * The following properties are also required in node object’s
   ``driver_info`` if ``ilo-pxe`` boot interface is used:
 
   - ``deploy_kernel``: The glance UUID or a HTTP(S) URL of the deployment kernel.
   - ``deploy_ramdisk``: The glance UUID or a HTTP(S) URL of the deployment ramdisk.
+  - ``rescue_kernel``: The glance UUID or a HTTP(S) URL of the rescue kernel.
+    This is optional property and is used when ``rescue`` interface is set to
+    ``agent``.
+  - ``rescue_ramdisk``: The glance UUID or a HTTP(S) URL of the rescue ramdisk.
+    This is optional property and is used when ``rescue`` interface is set to
+    ``agent``.
 
 * The  following parameters are mandatory in ``driver_info``
   if ``ilo-inspect`` inspect inteface is used and SNMPv3 inspection
@@ -389,6 +411,7 @@ Enable driver
     enabled_raid_interfaces = agent
     enabled_management_interfaces = ilo
     enabled_inspect_interfaces = ilo
+    enabled_rescue_interfaces = agent
 
 5. Restart the ironic conductor service::
 
@@ -1680,6 +1703,14 @@ generating Certificate Signing Request (CSR). Use the same value as
 `ilo_address` while enrolling node to Bare Metal service to avoid SSL
 certificate validation errors related to hostname mismatch.
 
+Rescue mode support
+^^^^^^^^^^^^^^^^^^^
+The hardware type ``ilo`` supports rescue functionality. Rescue operation can
+be used to boot nodes into a rescue ramdisk so that the ``rescue`` user can
+access the node.
+
+Please refer to :doc:`/admin/rescue` for detailed explanation of rescue
+feature.
 
 .. _`ssacli documentation`: https://support.hpe.com/hpsc/doc/public/display?docId=c03909334
 .. _`proliant-tools`: https://docs.openstack.org/diskimage-builder/latest/elements/proliant-tools/README.html
