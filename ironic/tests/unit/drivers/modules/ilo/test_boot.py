@@ -683,6 +683,88 @@ class IloVirtualMediaBootTestCase(test_common.BaseIloTest):
             mock_val_instance_image_info.assert_called_once_with(task)
             mock_val_driver_info.assert_called_once_with(task)
 
+    @mock.patch.object(ilo_boot, '_validate_driver_info',
+                       spec_set=True, autospec=True)
+    @mock.patch.object(image_service.HttpImageService, 'validate_href',
+                       spec_set=True, autospec=True)
+    @mock.patch.object(service_utils, 'is_glance_image', spec_set=True,
+                       autospec=True)
+    def test_validate_ramdisk_boot_option_glance(self, is_glance_image_mock,
+                                                 validate_href_mock,
+                                                 val_driver_info_mock):
+        instance_info = self.node.instance_info
+        boot_iso = '6b2f0c0c-79e8-4db6-842e-43c9764204af'
+        instance_info['ilo_boot_iso'] = boot_iso
+        instance_info['capabilities'] = '{"boot_option": "ramdisk"}'
+        self.node.instance_info = instance_info
+        self.node.save()
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            is_glance_image_mock.return_value = True
+            task.driver.boot.validate(task)
+            is_glance_image_mock.assert_called_once_with(boot_iso)
+            self.assertFalse(validate_href_mock.called)
+            self.assertFalse(val_driver_info_mock.called)
+
+    @mock.patch.object(ilo_boot, '_validate_driver_info',
+                       spec_set=True, autospec=True)
+    @mock.patch.object(image_service.HttpImageService, 'validate_href',
+                       spec_set=True, autospec=True)
+    @mock.patch.object(service_utils, 'is_glance_image', spec_set=True,
+                       autospec=True)
+    def test_validate_ramdisk_boot_option_webserver(self, is_glance_image_mock,
+                                                    validate_href_mock,
+                                                    val_driver_info_mock):
+        instance_info = self.node.instance_info
+        boot_iso = 'http://myserver/boot.iso'
+        instance_info['ilo_boot_iso'] = boot_iso
+        instance_info['capabilities'] = '{"boot_option": "ramdisk"}'
+        self.node.instance_info = instance_info
+        self.node.save()
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            is_glance_image_mock.return_value = False
+            task.driver.boot.validate(task)
+            is_glance_image_mock.assert_called_once_with(boot_iso)
+            validate_href_mock.assert_called_once_with(mock.ANY, boot_iso)
+            self.assertFalse(val_driver_info_mock.called)
+
+    @mock.patch.object(ilo_boot.LOG, 'error', spec_set=True, autospec=True)
+    @mock.patch.object(ilo_boot, '_validate_driver_info',
+                       spec_set=True, autospec=True)
+    @mock.patch.object(image_service.HttpImageService, 'validate_href',
+                       spec_set=True, autospec=True)
+    @mock.patch.object(service_utils, 'is_glance_image', spec_set=True,
+                       autospec=True)
+    def test_validate_ramdisk_boot_option_webserver_exc(self,
+                                                        is_glance_image_mock,
+                                                        validate_href_mock,
+                                                        val_driver_info_mock,
+                                                        log_mock):
+        instance_info = self.node.instance_info
+        validate_href_mock.side_effect = exception.ImageRefValidationFailed(
+            image_href='http://myserver/boot.iso', reason='fail')
+        boot_iso = 'http://myserver/boot.iso'
+        instance_info['ilo_boot_iso'] = boot_iso
+        instance_info['capabilities'] = '{"boot_option": "ramdisk"}'
+        self.node.instance_info = instance_info
+        self.node.save()
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+
+            is_glance_image_mock.return_value = False
+            self.assertRaisesRegex(exception.ImageRefValidationFailed,
+                                   "Validation of image href "
+                                   "http://myserver/boot.iso failed",
+                                   task.driver.boot.validate, task)
+            is_glance_image_mock.assert_called_once_with(boot_iso)
+            validate_href_mock.assert_called_once_with(mock.ANY, boot_iso)
+            self.assertFalse(val_driver_info_mock.called)
+            self.assertIn("Virtual media deploy with 'ramdisk' boot_option "
+                          "accepts only Glance images or HTTP(S) URLs as "
+                          "instance_info['ilo_boot_iso'].",
+                          log_mock.call_args[0][0])
+
     @mock.patch.object(noop_storage.NoopStorage, 'should_write_image',
                        autospec=True)
     @mock.patch.object(ilo_boot, '_validate_driver_info',
@@ -1085,6 +1167,45 @@ class IloVirtualMediaBootTestCase(test_common.BaseIloTest):
             cleanup_vmedia_boot_mock.assert_called_once_with(task)
             self.assertIsNone(task.node.driver_internal_info.get(
                               'ilo_uefi_iscsi_boot'))
+
+    @mock.patch.object(ilo_common, 'cleanup_vmedia_boot', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(deploy_utils, 'is_iscsi_boot',
+                       spec_set=True, autospec=True)
+    @mock.patch.object(ilo_common, 'setup_vmedia_for_boot',
+                       spec_set=True, autospec=True)
+    @mock.patch.object(ilo_boot, '_get_boot_iso',
+                       spec_set=True, autospec=True)
+    @mock.patch.object(manager_utils, 'node_set_boot_device', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(ilo_common, 'update_boot_mode', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(ilo_common, 'update_secure_boot_mode', spec_set=True,
+                       autospec=True)
+    def test_prepare_instance_boot_ramdisk(self, update_secure_boot_mode_mock,
+                                           update_boot_mode_mock,
+                                           set_boot_device_mock,
+                                           get_boot_iso_mock,
+                                           setup_vmedia_mock,
+                                           is_iscsi_boot_mock,
+                                           cleanup_vmedia_boot_mock):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            instance_info = task.node.instance_info
+            instance_info['capabilities'] = '{"boot_option": "ramdisk"}'
+            task.node.instance_info = instance_info
+            task.node.save()
+            is_iscsi_boot_mock.return_value = False
+            url = 'http://myserver/boot.iso'
+            get_boot_iso_mock.return_value = url
+            task.driver.boot.prepare_instance(task)
+            cleanup_vmedia_boot_mock.assert_called_once_with(task)
+            get_boot_iso_mock.assert_called_once_with(task, None)
+            setup_vmedia_mock.assert_called_once_with(task, url)
+            set_boot_device_mock.assert_called_once_with(
+                task, boot_devices.CDROM, persistent=True)
+            update_boot_mode_mock.assert_called_once_with(task)
+            update_secure_boot_mode_mock.assert_called_once_with(task, True)
 
     def test_validate_rescue(self):
         driver_info = self.node.driver_info

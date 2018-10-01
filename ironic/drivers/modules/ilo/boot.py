@@ -187,7 +187,13 @@ def _get_boot_iso(task, root_uuid):
     deploy_iso_uuid = deploy_info['ilo_deploy_iso']
     boot_mode = boot_mode_utils.get_boot_mode_for_deploy(task.node)
     boot_iso_object_name = _get_boot_iso_object_name(task.node)
-    kernel_params = CONF.pxe.pxe_append_params
+    kernel_params = ""
+    if deploy_utils.get_boot_option(task.node) == "ramdisk":
+        i_info = task.node.instance_info
+        kernel_params = "root=/dev/ram0 text "
+        kernel_params += i_info.get("ramdisk_kernel_arguments", "")
+    else:
+        kernel_params = CONF.pxe.pxe_append_params
     with tempfile.NamedTemporaryFile(dir=CONF.tempdir) as fileobj:
         boot_iso_tmp_file = fileobj.name
         images.create_boot_iso(task.context, boot_iso_tmp_file,
@@ -396,7 +402,7 @@ def disable_secure_boot_if_supported(task):
 
 class IloVirtualMediaBoot(base.BootInterface):
 
-    capabilities = ['iscsi_volume_boot']
+    capabilities = ['iscsi_volume_boot', 'ramdisk_boot']
 
     def get_properties(self):
         # TODO(stendulker): COMMON_PROPERTIES should also include rescue
@@ -414,6 +420,22 @@ class IloVirtualMediaBoot(base.BootInterface):
             missing in the Glance image or 'kernel' and 'ramdisk' not provided
             in instance_info for non-Glance image.
         """
+        node = task.node
+        boot_option = deploy_utils.get_boot_option(node)
+        boot_iso = node.instance_info.get('ilo_boot_iso')
+        if (boot_option == "ramdisk" and boot_iso):
+            if not service_utils.is_glance_image(boot_iso):
+                try:
+                    image_service.HttpImageService().validate_href(boot_iso)
+                except exception.ImageRefValidationFailed:
+                    with excutils.save_and_reraise_exception():
+                        LOG.error("Virtual media deploy with 'ramdisk' "
+                                  "boot_option accepts only Glance images or "
+                                  "HTTP(S) URLs as "
+                                  "instance_info['ilo_boot_iso']. Either %s "
+                                  "is not a valid HTTP(S) URL or is not "
+                                  "reachable.", boot_iso)
+            return
 
         _validate_driver_info(task)
 
@@ -501,10 +523,10 @@ class IloVirtualMediaBoot(base.BootInterface):
         :raises: InstanceDeployFailure, if its try to boot iSCSI volume in
                  'BIOS' boot mode.
         """
-
         ilo_common.cleanup_vmedia_boot(task)
 
         boot_mode = boot_mode_utils.get_boot_mode_for_deploy(task.node)
+        boot_option = deploy_utils.get_boot_option(task.node)
 
         if deploy_utils.is_iscsi_boot(task):
             # It will set iSCSI info onto iLO
@@ -520,6 +542,12 @@ class IloVirtualMediaBoot(base.BootInterface):
             else:
                 msg = 'Virtual media can not boot volume in BIOS boot mode.'
                 raise exception.InstanceDeployFailure(msg)
+        elif boot_option == "ramdisk":
+            boot_iso = _get_boot_iso(task, None)
+            ilo_common.setup_vmedia_for_boot(task, boot_iso)
+            manager_utils.node_set_boot_device(task,
+                                               boot_devices.CDROM,
+                                               persistent=True)
         else:
             # Boot from disk every time if the image deployed is
             # a whole disk image.

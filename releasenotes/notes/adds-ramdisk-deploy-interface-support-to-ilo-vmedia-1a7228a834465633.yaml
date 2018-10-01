@@ -1,0 +1,6 @@
+---
+features:
+  - |
+    Adds support for booting a ramdisk using virtual media to
+    ``ilo-virtual-media`` boot interface when an ironic node is configured
+    with ``ramdisk`` deploy interface.
