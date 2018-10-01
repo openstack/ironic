@@ -23,7 +23,6 @@ from swiftclient import utils as swift_utils
 
 from ironic.common import exception as exc
 from ironic.common.glance_service import base_image_service
-from ironic.common.glance_service import service
 from ironic.common.glance_service import service_utils
 from ironic.common.i18n import _
 from ironic.common import keystone
@@ -34,8 +33,7 @@ TempUrlCacheElement = collections.namedtuple('TempUrlCacheElement',
                                              ['url', 'url_expires_at'])
 
 
-class GlanceImageService(base_image_service.BaseImageService,
-                         service.ImageService):
+class GlanceImageService(base_image_service.BaseImageService):
 
     # A dictionary containing cached temp URLs in namedtuples
     # in format:

@@ -40,6 +40,7 @@ from ironic.drivers.modules.irmc import boot as irmc_boot
 from ironic.drivers.modules.irmc import common as irmc_common
 from ironic.drivers.modules.irmc import management as irmc_management
 from ironic.drivers.modules import pxe
+from ironic.tests import base
 from ironic.tests.unit.db import utils as db_utils
 from ironic.tests.unit.drivers.modules.irmc import test_common
 from ironic.tests.unit.drivers.modules import test_pxe
@@ -117,7 +118,7 @@ class IRMCDeployPrivateMethodsTestCase(test_common.BaseIRMCTest):
             '/remote_image_share_root/deploy.iso')
         self.assertEqual(driver_info_expected, driver_info_actual)
 
-    @mock.patch.object(service_utils, 'is_image_href_ordinary_file_name',
+    @mock.patch.object(irmc_boot, '_is_image_href_ordinary_file_name',
                        spec_set=True, autospec=True)
     def test__parse_driver_info_not_in_share(
             self, is_image_href_ordinary_file_name_mock):
@@ -427,7 +428,7 @@ class IRMCDeployPrivateMethodsTestCase(test_common.BaseIRMCTest):
                        autospec=True)
     @mock.patch.object(irmc_boot, '_parse_deploy_info', spec_set=True,
                        autospec=True)
-    @mock.patch.object(service_utils, 'is_image_href_ordinary_file_name',
+    @mock.patch.object(irmc_boot, '_is_image_href_ordinary_file_name',
                        spec_set=True, autospec=True)
     def test__prepare_boot_iso_fetch_ok(self,
                                         is_image_href_ordinary_file_name_mock,
@@ -1893,3 +1894,20 @@ class IRMCPXEBootBasicTestCase(test_pxe.PXEBootTestCase):
             properties = task.driver.get_properties()
             for p in pxe.COMMON_PROPERTIES:
                 self.assertIn(p, properties)
+
+
+class IsImageHrefOrdinaryFileNameTestCase(base.TestCase):
+
+    def test_is_image_href_ordinary_file_name_true(self):
+        image = u"\u0111eploy.iso"
+        result = irmc_boot._is_image_href_ordinary_file_name(image)
+        self.assertTrue(result)
+
+    def test_is_image_href_ordinary_file_name_false(self):
+        for image in ('733d1c44-a2ea-414b-aca7-69decf20d810',
+                      u'glance://\u0111eploy_iso',
+                      u'http://\u0111eploy_iso',
+                      u'https://\u0111eploy_iso',
+                      u'file://\u0111eploy_iso',):
+            result = irmc_boot._is_image_href_ordinary_file_name(image)
+            self.assertFalse(result)

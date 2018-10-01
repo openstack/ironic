@@ -21,7 +21,6 @@ import os
 import shutil
 
 from oslo_log import log
-from oslo_utils import importutils
 from oslo_utils import uuidutils
 import requests
 import sendfile
@@ -30,25 +29,16 @@ from six.moves import http_client
 import six.moves.urllib.parse as urlparse
 
 from ironic.common import exception
+from ironic.common.glance_service.v2 import image_service
 from ironic.common.i18n import _
 from ironic.common import utils
-from ironic.conf import CONF
 
 IMAGE_CHUNK_SIZE = 1024 * 1024  # 1mb
 LOG = log.getLogger(__name__)
 
 
-# TODO(pas-ha) in Queens change default to '2',
-# but keep the versioned import in place (less work for possible Glance v3)
-def GlanceImageService(client=None, version=None, context=None):
-    module_str = 'ironic.common.glance_service'
-    if version is None:
-        version = CONF.glance.glance_api_version
-
-    module = importutils.import_versioned_module(module_str, version,
-                                                 'image_service')
-    service_class = getattr(module, 'GlanceImageService')
-    return service_class(client, version, context)
+# TODO(dtantsur): temporary re-import, refactor the code and remove it.
+GlanceImageService = image_service.GlanceImageService
 
 
 @six.add_metaclass(abc.ABCMeta)
@@ -255,14 +245,12 @@ protocol_mapping = {
 }
 
 
-def get_image_service(image_href, client=None, version=None, context=None):
+def get_image_service(image_href, client=None, context=None):
     """Get image service instance to download the image.
 
     :param image_href: String containing href to get image service for.
     :param client: Glance client to be used for download, used only if
         image_href is Glance href.
-    :param version: Version of Glance API to use, used only if image_href is
-        Glance href.
     :param context: request context, used only if image_href is Glance href.
     :raises: exception.ImageRefValidationFailed if no image service can
         handle specified href.
@@ -287,5 +275,5 @@ def get_image_service(image_href, client=None, version=None, context=None):
                          ) % scheme)
 
     if cls == GlanceImageService:
-        return cls(client, version, context)
+        return cls(client, context)
     return cls()

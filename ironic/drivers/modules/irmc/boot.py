@@ -24,11 +24,13 @@ from ironic_lib import metrics_utils
 from ironic_lib import utils as ironic_utils
 from oslo_log import log as logging
 from oslo_utils import importutils
+import six.moves.urllib.parse as urlparse
 
 from ironic.common import boot_devices
 from ironic.common import exception
 from ironic.common.glance_service import service_utils
 from ironic.common.i18n import _
+from ironic.common import image_service
 from ironic.common import images
 from ironic.common import states
 from ironic.conductor import utils as manager_utils
@@ -84,6 +86,21 @@ COMMON_PROPERTIES = REQUIRED_PROPERTIES.copy()
 COMMON_PROPERTIES.update(OPTIONAL_PROPERTIES)
 
 
+def _is_image_href_ordinary_file_name(image_href):
+    """Check if image_href is a ordinary file name.
+
+    This method judges if image_href is an ordinary file name or not,
+    which is a file supposed to be stored in share file system.
+    The ordinary file name is neither glance image href
+    nor image service href.
+
+    :returns: True if image_href is ordinary file name, False otherwise.
+    """
+    return not (service_utils.is_glance_image(image_href)
+                or urlparse.urlparse(image_href).scheme.lower() in
+                image_service.protocol_mapping)
+
+
 def _parse_config_option():
     """Parse config file options.
 
@@ -134,7 +151,7 @@ def _parse_driver_info(node, mode='deploy'):
                    "parameters were missing in node's driver_info") % mode)
     deploy_utils.check_for_missing_params(deploy_info, error_msg)
 
-    if service_utils.is_image_href_ordinary_file_name(image_iso):
+    if _is_image_href_ordinary_file_name(image_iso):
         image_iso_file = os.path.join(CONF.irmc.remote_image_share_root,
                                       image_iso)
         if not os.path.isfile(image_iso_file):
@@ -166,7 +183,7 @@ def _parse_instance_info(node):
     if i_info.get('irmc_boot_iso'):
         deploy_info['irmc_boot_iso'] = i_info['irmc_boot_iso']
 
-        if service_utils.is_image_href_ordinary_file_name(
+        if _is_image_href_ordinary_file_name(
                 deploy_info['irmc_boot_iso']):
             boot_iso = os.path.join(CONF.irmc.remote_image_share_root,
                                     deploy_info['irmc_boot_iso'])
@@ -227,7 +244,7 @@ def _setup_vmedia(task, mode, ramdisk_options):
     else:
         iso = task.node.driver_info['irmc_deploy_iso']
 
-    if service_utils.is_image_href_ordinary_file_name(iso):
+    if _is_image_href_ordinary_file_name(iso):
         iso_file = iso
     else:
         iso_file = _get_iso_name(task.node, label=mode)
@@ -266,7 +283,7 @@ def _prepare_boot_iso(task, root_uuid):
     # fetch boot iso
     if deploy_info.get('irmc_boot_iso'):
         boot_iso_href = deploy_info['irmc_boot_iso']
-        if service_utils.is_image_href_ordinary_file_name(boot_iso_href):
+        if _is_image_href_ordinary_file_name(boot_iso_href):
             driver_internal_info['irmc_boot_iso'] = boot_iso_href
         else:
             boot_iso_filename = _get_iso_name(task.node, label='boot')

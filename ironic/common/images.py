@@ -406,8 +406,7 @@ def get_temp_url_for_glance_image(context, image_uuid):
     :param image_uuid: the UUID of the image in glance
     :returns: the tmp url for the glance image.
     """
-    # Glance API version 2 is required for getting direct_url of the image.
-    glance_service = service.GlanceImageService(version=2, context=context)
+    glance_service = service.GlanceImageService(context=context)
     image_properties = glance_service.show(image_uuid)
     LOG.debug('Got image info: %(info)s for image %(image_uuid)s.',
               {'info': image_properties, 'image_uuid': image_uuid})
