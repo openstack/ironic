@@ -1,0 +1,9 @@
+- hosts: all
+  name: Create /etc/neutron for the devstack base job
+  tasks:
+    - name: Creates directory
+      file:
+        path: /etc/neutron
+        state: directory
+        mode: 0777
+      become: yes

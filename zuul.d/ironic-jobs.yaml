@@ -266,3 +266,37 @@
       devstack_localrc:
         IRONIC_AGENT_IMAGE_DOWNLOAD_SOURCE: http
         IRONIC_TEMPEST_WHOLE_DISK_IMAGE: False
+
+- job:
+    name: ironic-tempest-dsvm-functional-python2
+    description: ironic-tempest-dsvm-functional-python2
+    parent: ironic-base
+    timeout: 5400
+    pre-run: playbooks/ci-workarounds/etc-neutron.yaml
+    vars:
+      tempest_test_regex: ironic_tempest_plugin.tests.api
+      devstack_localrc:
+        IRONIC_BAREMETAL_BASIC_OPS: False
+        IRONIC_DEFAULT_DEPLOY_INTERFACE: ""
+        IRONIC_DEFAULT_NETWORK_INTERFACE: noop
+        IRONIC_TEMPEST_WHOLE_DISK_IMAGE: True
+        IRONIC_VM_EPHEMERAL_DISK: 0
+      devstack_services:
+        g-api: False
+        g-reg: False
+        n-api: False
+        n-api-meta: False
+        n-cauth: False
+        n-cond: False
+        n-cpu: False
+        n-novnc: False
+        n-obj: False
+        n-sch: False
+        nova: False
+        placement-api: False
+        neutron-api: False
+        neutron-agent: False
+        neutron-dhcp: False
+        neutron-l3: False
+        neutron-metadata-agent: False
+        neutron-metering: False
