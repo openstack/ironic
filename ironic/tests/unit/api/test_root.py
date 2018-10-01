@@ -13,6 +13,8 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+from six.moves import http_client
+
 from ironic.api.controllers.v1 import versions
 from ironic.tests.unit.api import base
 
@@ -34,6 +36,18 @@ class TestRoot(base.BaseApiTest):
         self.assertEqual(versions.min_version_string(),
                          version1['min_version'])
         self.assertEqual(versions.max_version_string(), version1['version'])
+
+    def test_no_html_errors(self):
+        response = self.get_json('/foo', expect_errors=True)
+        self.assertEqual(http_client.NOT_FOUND, response.status_int)
+        self.assertIn('Not Found', response.json['error_message'])
+        self.assertNotIn('<html', response.json['error_message'])
+
+    def test_no_html_errors2(self):
+        response = self.delete('/v1', expect_errors=True)
+        self.assertEqual(http_client.METHOD_NOT_ALLOWED, response.status_int)
+        self.assertIn('Not Allowed', response.json['error_message'])
+        self.assertNotIn('<html', response.json['error_message'])
 
 
 class TestV1Root(base.BaseApiTest):

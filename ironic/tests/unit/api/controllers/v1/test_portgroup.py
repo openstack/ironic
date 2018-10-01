@@ -400,8 +400,7 @@ class TestListPortgroups(test_api_base.BaseApiTest):
                                  expect_errors=True,
                                  headers={api_base.Version.string: '1.23'})
         self.assertEqual(http_client.NOT_FOUND, response.status_int)
-        self.assertIn('The resource could not be found.',
-                      response.json['error_message'])
+        self.assertIn('Not Found', response.json['error_message'])
 
     def test_ports_subresource_portgroup_not_found(self):
         non_existent_uuid = 'eeeeeeee-cccc-aaaa-bbbb-cccccccccccc'
