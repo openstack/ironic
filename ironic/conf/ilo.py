@@ -64,6 +64,10 @@ opts = [
                       'password.')),
     cfg.IntOpt('power_retry',
                default=6,
+               deprecated_for_removal=True,
+               deprecated_reason=_('This configuration option is replaced '
+                                   'by [conductor] soft_power_off_timeout, '
+                                   'please use that instead.'),
                help=_('Number of times a power operation needs to be '
                       'retried')),
     cfg.IntOpt('power_wait',

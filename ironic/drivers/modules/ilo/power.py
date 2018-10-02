@@ -94,45 +94,112 @@ def _get_power_state(node):
         return states.ERROR
 
 
-def _wait_for_state_change(node, target_state):
-    """Wait for the power state change to get reflected."""
+def _wait_for_state_change(node, target_state,
+                           is_final_state=True, timeout=None):
+    """Wait for the power state change to get reflected.
+
+    :param node: The node.
+    :param target_state: target power state of the node.
+    :param is_final_state: True, if the given target state is the final
+        expected power state of the node. Default is True.
+    :param timeout: timeout (in seconds) positive integer (> 0) for any
+      power state. ``None`` indicates default timeout.
+    :returns: time consumed to achieve the power state change.
+    :raises: IloOperationError on an error from IloClient library.
+    :raises: PowerStateFailure if power state failed to change within timeout.
+    """
     state = [None]
     retries = [0]
+    force_legacy_behavior = False
+    interval = CONF.ilo.power_wait
+    if timeout:
+        max_retry = int(timeout / interval)
+    elif CONF.ilo.power_retry:
+        # Do not use post state to track power state as its too small
+        # timeout value to track post state when server is powered on.
+        # The total timeout value would be 12 secs with default values
+        # of configs ilo.power_retry and ilo.power_wait.
+        # Use older ways of get_power_state() to track the power state
+        # changes, instead.
+        force_legacy_behavior = True
+        max_retry = CONF.ilo.power_retry
+    else:
+        # Since we are going to track server post state, we are not using
+        # CONF.conductor.power_state_change_timeout as its default value
+        # is too short for bare metal to reach 'finished post' state
+        # during 'power on' operation. It could lead to deploy failures
+        # with default ironic configuration.
+        # Use conductor.soft_power_off_timeout, instead.
+        max_retry = int(CONF.conductor.soft_power_off_timeout / interval)
+
+    state_to_check = target_state
+    use_post_state = False
+    if not force_legacy_behavior and _can_get_server_post_state(node):
+        use_post_state = True
+        if (target_state in [states.POWER_OFF, states.SOFT_POWER_OFF] or
+            target_state == states.SOFT_REBOOT and not is_final_state):
+            state_to_check = ilo_common.POST_POWEROFF_STATE
+        else:
+            state_to_check = ilo_common.POST_FINISHEDPOST_STATE
 
     def _wait(state):
-
-        state[0] = _get_power_state(node)
+        if use_post_state:
+            state[0] = ilo_common.get_server_post_state(node)
+        else:
+            state[0] = _get_power_state(node)
 
         # NOTE(rameshg87): For reboot operations, initially the state
         # will be same as the final state. So defer the check for one retry.
-        if retries[0] != 0 and state[0] == target_state:
+        if retries[0] != 0 and state[0] == state_to_check:
             raise loopingcall.LoopingCallDone()
 
-        if retries[0] > CONF.ilo.power_retry:
+        if retries[0] > max_retry:
             state[0] = states.ERROR
             raise loopingcall.LoopingCallDone()
 
+        LOG.debug("%(tim)s secs elapsed while waiting for power state "
+                  "of '%(target_state)s', current state of server %(node)s "
+                  "is '%(cur_state)s'.",
+                  {'tim': int(retries[0] * interval),
+                   'target_state': state_to_check,
+                   'node': node.uuid,
+                   'cur_state': state[0]})
         retries[0] += 1
 
     # Start a timer and wait for the operation to complete.
     timer = loopingcall.FixedIntervalLoopingCall(_wait, state)
-    timer.start(interval=CONF.ilo.power_wait).wait()
+    timer.start(interval=interval).wait()
+    if state[0] == state_to_check:
+        return int(retries[0] * interval)
+    else:
+        timeout = int(max_retry * interval)
+        LOG.error("iLO failed to change state to %(tstate)s "
+                  "within %(timeout)s sec for node %(node)s",
+                  {'tstate': target_state, 'node': node.uuid,
+                   'timeout': int(max_retry * interval)})
+        raise exception.PowerStateFailure(pstate=target_state)
 
-    return state[0]
 
-
-def _set_power_state(task, target_state):
+def _set_power_state(task, target_state, timeout=None):
     """Turns the server power on/off or do a reboot.
 
     :param task: a TaskManager instance containing the node to act on.
     :param target_state: target state of the node.
+    :param timeout: timeout (in seconds) positive integer (> 0) for any
+      power state. ``None`` indicates default timeout.
     :raises: InvalidParameterValue if an invalid power state was specified.
     :raises: IloOperationError on an error from IloClient library.
     :raises: PowerStateFailure if the power couldn't be set to target_state.
     """
-
     node = task.node
     ilo_object = ilo_common.get_ilo_object(node)
+
+    # Check if its soft power operation
+    soft_power_op = target_state in [states.SOFT_POWER_OFF, states.SOFT_REBOOT]
+
+    if target_state == states.SOFT_REBOOT:
+        if _get_power_state(node) == states.POWER_OFF:
+            target_state = states.POWER_ON
 
     # Trigger the operation based on the target state.
     try:
@@ -145,6 +212,8 @@ def _set_power_state(task, target_state):
             _attach_boot_iso_if_needed(task)
             ilo_object.reset_server()
             target_state = states.POWER_ON
+        elif target_state in (states.SOFT_POWER_OFF, states.SOFT_REBOOT):
+            ilo_object.press_pwr_btn()
         else:
             msg = _("_set_power_state called with invalid power state "
                     "'%s'") % target_state
@@ -159,15 +228,58 @@ def _set_power_state(task, target_state):
         raise exception.IloOperationError(operation=operation,
                                           error=ilo_exception)
 
-    # Wait till the state change gets reflected.
-    state = _wait_for_state_change(node, target_state)
+    # Wait till the soft power state change gets reflected.
+    time_consumed = 0
+    if soft_power_op:
+        # For soft power-off, bare metal reaches final state with one
+        # power operation. In case of soft reboot it takes two; soft
+        # power-off followed by power-on. Also, for soft reboot we
+        # need to ensure timeout does not expire during power-off
+        # and power-on operation.
+        is_final_state = target_state in (states.SOFT_POWER_OFF,
+                                          states.POWER_ON)
+        time_consumed = _wait_for_state_change(
+            node, target_state, is_final_state=is_final_state, timeout=timeout)
+        if target_state == states.SOFT_REBOOT:
+            _attach_boot_iso_if_needed(task)
+            try:
+                ilo_object.set_host_power('ON')
+            except ilo_error.IloError as ilo_exception:
+                operation = (_('Powering on failed after soft power off for '
+                               'node %s') % node.uuid)
+                raise exception.IloOperationError(operation=operation,
+                                                  error=ilo_exception)
+            # Re-calculate timeout available for power-on operation
+            rem_timeout = timeout - time_consumed
+            time_consumed += _wait_for_state_change(
+                node, states.SOFT_REBOOT, is_final_state=True,
+                timeout=rem_timeout)
+    else:
+        time_consumed = _wait_for_state_change(
+            node, target_state, is_final_state=True, timeout=timeout)
+    LOG.info("The node %(node_id)s operation of '%(state)s' "
+             "is completed in %(time_consumed)s seconds.",
+             {'node_id': node.uuid, 'state': target_state,
+              'time_consumed': time_consumed})
 
-    if state != target_state:
-        timeout = (CONF.ilo.power_wait) * (CONF.ilo.power_retry)
-        LOG.error("iLO failed to change state to %(tstate)s "
-                  "within %(timeout)s sec",
-                  {'tstate': target_state, 'timeout': timeout})
-        raise exception.PowerStateFailure(pstate=target_state)
+
+def _can_get_server_post_state(node):
+    """Checks if POST state can be retrieved.
+
+    Returns True if the POST state of the server can be retrieved.
+    It cannot be retrieved for older ProLiant models.
+    :param node: The node.
+    :returns: True if POST state can be retrieved, else Flase.
+    :raises: IloOperationError on an error from IloClient library.
+    """
+    try:
+        ilo_common.get_server_post_state(node)
+        return True
+    except exception.IloOperationNotSupported as exc:
+        LOG.debug("Node %(node)s does not support retrieval of "
+                  "boot post state. Reason: %(reason)s",
+                  {'node': node.uuid, 'reason': exc})
+        return False
 
 
 class IloPower(base.PowerInterface):
@@ -211,14 +323,7 @@ class IloPower(base.PowerInterface):
         :raises: IloOperationError on an error from IloClient library.
         :raises: PowerStateFailure if the power couldn't be set to power_state.
         """
-        # TODO(rloo): Support timeouts!
-        if timeout is not None:
-            LOG.warning("The 'ilo' Power Interface's 'set_power_state' method "
-                        "doesn't support the 'timeout' parameter. Ignoring "
-                        "timeout=%(timeout)s",
-                        {'timeout': timeout})
-
-        _set_power_state(task, power_state)
+        _set_power_state(task, power_state, timeout=timeout)
 
     @METRICS.timer('IloPower.reboot')
     @task_manager.require_exclusive_lock
@@ -231,16 +336,21 @@ class IloPower(base.PowerInterface):
             POWER_ON.
         :raises: IloOperationError on an error from IloClient library.
         """
-        # TODO(rloo): Support timeouts!
-        if timeout is not None:
-            LOG.warning("The 'ilo' Power Interface's 'reboot' method "
-                        "doesn't support the 'timeout' parameter. Ignoring "
-                        "timeout=%(timeout)s",
-                        {'timeout': timeout})
-
         node = task.node
         current_pstate = _get_power_state(node)
         if current_pstate == states.POWER_ON:
-            _set_power_state(task, states.REBOOT)
+            _set_power_state(task, states.REBOOT, timeout=timeout)
         elif current_pstate == states.POWER_OFF:
-            _set_power_state(task, states.POWER_ON)
+            _set_power_state(task, states.POWER_ON, timeout=timeout)
+
+    @METRICS.timer('IloPower.get_supported_power_states')
+    def get_supported_power_states(self, task):
+        """Get a list of the supported power states.
+
+        :param task: A TaskManager instance containing the node to act on.
+            currently not used.
+        :returns: A list with the supported power states defined
+                  in :mod:`ironic.common.states`.
+        """
+        return [states.POWER_OFF, states.POWER_ON, states.REBOOT,
+                states.SOFT_POWER_OFF, states.SOFT_REBOOT]

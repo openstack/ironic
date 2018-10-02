@@ -128,6 +128,199 @@ class IloPowerInternalMethodsTestCase(test_common.BaseIloTest):
         ilo_mock_object.get_host_power_status.assert_called_with()
         ilo_mock_object.set_host_power.assert_called_once_with('ON')
 
+    @mock.patch.object(ilo_power.LOG, 'info')
+    @mock.patch.object(ilo_power, '_attach_boot_iso_if_needed',
+                       spec_set=True, autospec=True)
+    @mock.patch.object(ilo_common, 'get_server_post_state', spec_set=True,
+                       autospec=True)
+    def test__set_power_state_soft_reboot_ok(
+            self, get_post_mock, attach_boot_iso_mock,
+            log_mock, get_ilo_object_mock):
+        CONF.set_override('power_wait', 1, 'ilo')
+        ilo_mock_object = get_ilo_object_mock.return_value
+        ilo_mock_object.get_host_power_status.return_value = 'ON'
+        get_post_mock.side_effect = (
+            ['FinishedPost', 'FinishedPost', 'PowerOff', 'PowerOff', 'InPost',
+             'FinishedPost'])
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            ilo_power._set_power_state(task, states.SOFT_REBOOT, timeout=3)
+            get_post_mock.assert_called_with(task.node)
+            ilo_mock_object.press_pwr_btn.assert_called_once_with()
+            attach_boot_iso_mock.assert_called_once_with(task)
+            ilo_mock_object.set_host_power.assert_called_once_with('ON')
+            log_mock.assert_called_once_with(
+                "The node %(node_id)s operation of '%(state)s' "
+                "is completed in %(time_consumed)s seconds.",
+                {'state': 'soft rebooting', 'node_id': task.node.uuid,
+                 'time_consumed': 2})
+
+    @mock.patch.object(ilo_power.LOG, 'info')
+    @mock.patch.object(ilo_power, '_attach_boot_iso_if_needed',
+                       spec_set=True, autospec=True)
+    @mock.patch.object(ilo_common, 'get_server_post_state', spec_set=True,
+                       autospec=True)
+    def test__set_power_state_soft_reboot_ok_initial_power_off(
+            self, get_post_mock, attach_boot_iso_mock,
+            log_mock, get_ilo_object_mock):
+        CONF.set_override('power_wait', 1, 'ilo')
+        ilo_mock_object = get_ilo_object_mock.return_value
+        ilo_mock_object.get_host_power_status.return_value = 'OFF'
+        get_post_mock.side_effect = ['FinishedPost', 'PowerOff',
+                                     'FinishedPost']
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            ilo_power._set_power_state(task, states.SOFT_REBOOT, timeout=3)
+            get_post_mock.assert_called_with(task.node)
+            attach_boot_iso_mock.assert_called_once_with(task)
+            ilo_mock_object.set_host_power.assert_called_once_with('ON')
+            log_mock.assert_called_once_with(
+                "The node %(node_id)s operation of '%(state)s' "
+                "is completed in %(time_consumed)s seconds.",
+                {'state': 'power on', 'node_id': task.node.uuid,
+                 'time_consumed': 1})
+
+    @mock.patch.object(ilo_power.LOG, 'info')
+    @mock.patch.object(ilo_power, '_attach_boot_iso_if_needed',
+                       spec_set=True, autospec=True)
+    @mock.patch.object(ilo_common, 'get_server_post_state', spec_set=True,
+                       autospec=True)
+    def test__set_power_state_soft_reboot_fail_to_off(
+            self, get_post_mock, attach_boot_iso_mock,
+            log_mock, get_ilo_object_mock):
+        CONF.set_override('power_wait', 1, 'ilo')
+        exc = ilo_error.IloError('error')
+        ilo_mock_object = get_ilo_object_mock.return_value
+        ilo_mock_object.get_host_power_status.return_value = 'ON'
+        ilo_mock_object.press_pwr_btn.side_effect = exc
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            self.assertRaises(exception.IloOperationError,
+                              ilo_power._set_power_state,
+                              task, states.SOFT_REBOOT, timeout=3)
+            ilo_mock_object.press_pwr_btn.assert_called_once_with()
+            self.assertFalse(get_post_mock.called)
+            self.assertFalse(attach_boot_iso_mock.called)
+            self.assertFalse(log_mock.called)
+
+    @mock.patch.object(ilo_power.LOG, 'info')
+    @mock.patch.object(ilo_power, '_attach_boot_iso_if_needed',
+                       spec_set=True, autospec=True)
+    @mock.patch.object(ilo_common, 'get_server_post_state', spec_set=True,
+                       autospec=True)
+    def test__set_power_state_soft_reboot_fail_to_on(
+            self, get_post_mock, attach_boot_iso_mock,
+            log_mock, get_ilo_object_mock):
+        CONF.set_override('power_wait', 1, 'ilo')
+        exc = ilo_error.IloError('error')
+        ilo_mock_object = get_ilo_object_mock.return_value
+        ilo_mock_object.get_host_power_status.return_value = 'ON'
+        get_post_mock.side_effect = (
+            ['FinishedPost', 'PowerOff', 'PowerOff', 'InPost',
+             'InPost', 'InPost', 'InPost', 'InPost'])
+        ilo_mock_object.press_pwr_btn.side_effect = [None, exc]
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            self.assertRaises(exception.PowerStateFailure,
+                              ilo_power._set_power_state,
+                              task, states.SOFT_REBOOT, timeout=3)
+            get_post_mock.assert_called_with(task.node)
+            ilo_mock_object.press_pwr_btn.assert_called_once_with()
+            ilo_mock_object.set_host_power.assert_called_once_with('ON')
+            attach_boot_iso_mock.assert_called_once_with(task)
+            self.assertFalse(log_mock.called)
+
+    @mock.patch.object(ilo_power.LOG, 'info')
+    @mock.patch.object(ilo_power, '_attach_boot_iso_if_needed',
+                       spec_set=True, autospec=True)
+    @mock.patch.object(ilo_common, 'get_server_post_state', spec_set=True,
+                       autospec=True)
+    def test__set_power_state_soft_reboot_timeout(
+            self, get_post_mock, attach_boot_iso_mock,
+            log_mock, get_ilo_object_mock):
+        CONF.set_override('power_wait', 1, 'ilo')
+        ilo_mock_object = get_ilo_object_mock.return_value
+        ilo_mock_object.get_host_power_status.return_value = 'ON'
+        get_post_mock.side_effect = ['FinishedPost', 'FinishedPost',
+                                     'PowerOff', 'InPost', 'InPost', 'InPost'
+                                     'InPost', 'InPost']
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            self.assertRaises(exception.PowerStateFailure,
+                              ilo_power._set_power_state,
+                              task, states.SOFT_REBOOT, timeout=2)
+            get_post_mock.assert_called_with(task.node)
+            ilo_mock_object.press_pwr_btn.assert_called_once_with()
+            ilo_mock_object.set_host_power.assert_called_once_with('ON')
+            attach_boot_iso_mock.assert_called_once_with(task)
+            self.assertFalse(log_mock.called)
+
+    @mock.patch.object(ilo_power.LOG, 'info')
+    @mock.patch.object(ilo_common, 'get_server_post_state', spec_set=True,
+                       autospec=True)
+    def test__set_power_state_soft_power_off_ok(
+            self, get_post_mock, log_mock, get_ilo_object_mock):
+        CONF.set_override('power_wait', 1, 'ilo')
+        ilo_mock_object = get_ilo_object_mock.return_value
+        get_post_mock.side_effect = ['FinishedPost', 'FinishedPost', 'PowerOff'
+                                     'PowerOff', 'PowerOff']
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            ilo_power._set_power_state(task, states.SOFT_POWER_OFF, timeout=3)
+            get_post_mock.assert_called_with(task.node)
+            ilo_mock_object.press_pwr_btn.assert_called_once_with()
+            log_mock.assert_called_once_with(
+                "The node %(node_id)s operation of '%(state)s' "
+                "is completed in %(time_consumed)s seconds.",
+                {'state': 'soft power off', 'node_id': task.node.uuid,
+                 'time_consumed': 2})
+
+    @mock.patch.object(ilo_power.LOG, 'info')
+    @mock.patch.object(ilo_common, 'get_server_post_state', spec_set=True,
+                       autospec=True)
+    def test__set_power_state_soft_power_off_fail(
+            self, get_post_mock, log_mock, get_ilo_object_mock):
+        CONF.set_override('power_wait', 1, 'ilo')
+        exc = ilo_error.IloError('error')
+        ilo_mock_object = get_ilo_object_mock.return_value
+        ilo_mock_object.get_host_power_status.return_value = 'ON'
+        ilo_mock_object.press_pwr_btn.side_effect = exc
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            self.assertRaises(exception.IloOperationError,
+                              ilo_power._set_power_state,
+                              task, states.SOFT_POWER_OFF, timeout=2)
+            ilo_mock_object.press_pwr_btn.assert_called_once_with()
+            self.assertFalse(get_post_mock.called)
+            self.assertFalse(log_mock.called)
+
+    @mock.patch.object(ilo_power.LOG, 'info')
+    @mock.patch.object(ilo_common, 'get_server_post_state', spec_set=True,
+                       autospec=True)
+    def test__set_power_state_soft_power_off_timeout(
+            self, get_post_mock, log_mock, get_ilo_object_mock):
+        CONF.set_override('power_wait', 1, 'ilo')
+        ilo_mock_object = get_ilo_object_mock.return_value
+        ilo_mock_object.get_host_power_status.return_value = 'ON'
+        get_post_mock.side_effect = ['FinishedPost', 'InPost', 'InPost',
+                                     'InPost', 'InPost']
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            self.assertRaises(exception.PowerStateFailure,
+                              ilo_power._set_power_state,
+                              task, states.SOFT_POWER_OFF, timeout=2)
+            get_post_mock.assert_called_with(task.node)
+            ilo_mock_object.press_pwr_btn.assert_called_with()
+            self.assertFalse(log_mock.called)
+
     @mock.patch.object(manager_utils, 'node_set_boot_device', spec_set=True,
                        autospec=True)
     @mock.patch.object(ilo_common, 'setup_vmedia_for_boot', spec_set=True,
@@ -197,55 +390,50 @@ class IloPowerTestCase(test_common.BaseIloTest):
                              task.driver.power.get_power_state(task))
             mock_get_power.assert_called_once_with(task.node)
 
-    @mock.patch.object(ilo_power.LOG, 'warning')
     @mock.patch.object(ilo_power, '_set_power_state', spec_set=True,
                        autospec=True)
-    def test_set_power_state(self, mock_set_power, mock_log):
-        mock_set_power.return_value = states.POWER_ON
-        with task_manager.acquire(self.context, self.node.uuid,
-                                  shared=False) as task:
-            task.driver.power.set_power_state(task, states.POWER_ON)
-        mock_set_power.assert_called_once_with(task, states.POWER_ON)
-        self.assertFalse(mock_log.called)
-
-    @mock.patch.object(ilo_power.LOG, 'warning')
-    @mock.patch.object(ilo_power, '_set_power_state', spec_set=True,
-                       autospec=True)
-    def test_set_power_state_timeout(self, mock_set_power, mock_log):
+    def _test_set_power_state(self, mock_set_power, timeout=None):
         mock_set_power.return_value = states.POWER_ON
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
             task.driver.power.set_power_state(task, states.POWER_ON,
-                                              timeout=13)
-        mock_set_power.assert_called_once_with(task, states.POWER_ON)
-        self.assertTrue(mock_log.called)
+                                              timeout=timeout)
+            mock_set_power.assert_called_once_with(task, states.POWER_ON,
+                                                   timeout=timeout)
 
-    @mock.patch.object(ilo_power.LOG, 'warning')
+    def test_set_power_state_no_timeout(self):
+        self._test_set_power_state(timeout=None)
+
+    def test_set_power_state_timeout(self):
+        self._test_set_power_state(timeout=13)
+
     @mock.patch.object(ilo_power, '_set_power_state', spec_set=True,
                        autospec=True)
     @mock.patch.object(ilo_power, '_get_power_state', spec_set=True,
                        autospec=True)
-    def test_reboot(self, mock_get_power, mock_set_power, mock_log):
+    def _test_reboot(
+            self, mock_get_power, mock_set_power,
+            timeout=None):
+        mock_get_power.return_value = states.POWER_ON
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
-            mock_get_power.return_value = states.POWER_ON
-            mock_set_power.return_value = states.POWER_ON
-            task.driver.power.reboot(task)
+            task.driver.power.reboot(task, timeout=timeout)
             mock_get_power.assert_called_once_with(task.node)
-            mock_set_power.assert_called_once_with(task, states.REBOOT)
-            self.assertFalse(mock_log.called)
+            mock_set_power.assert_called_once_with(
+                task, states.REBOOT, timeout=timeout)
 
-    @mock.patch.object(ilo_power.LOG, 'warning')
-    @mock.patch.object(ilo_power, '_set_power_state', spec_set=True,
-                       autospec=True)
-    @mock.patch.object(ilo_power, '_get_power_state', spec_set=True,
-                       autospec=True)
-    def test_reboot_timeout(self, mock_get_power, mock_set_power, mock_log):
+    def test_reboot_no_timeout(self):
+        self._test_reboot(timeout=None)
+
+    def test_reboot_with_timeout(self):
+        self._test_reboot(timeout=100)
+
+    def test_get_supported_power_states(self):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
-            mock_get_power.return_value = states.POWER_ON
-            mock_set_power.return_value = states.POWER_ON
-            task.driver.power.reboot(task, timeout=123)
-            mock_get_power.assert_called_once_with(task.node)
-            mock_set_power.assert_called_once_with(task, states.REBOOT)
-            self.assertTrue(mock_log.called)
+            expected = [states.POWER_OFF, states.POWER_ON, states.REBOOT,
+                        states.SOFT_POWER_OFF, states.SOFT_REBOOT]
+            self.assertEqual(
+                sorted(expected),
+                sorted(task.driver.power.
+                       get_supported_power_states(task)))

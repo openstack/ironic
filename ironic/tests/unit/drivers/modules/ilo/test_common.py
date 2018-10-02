@@ -1071,3 +1071,45 @@ class IloCommonMethodsTestCase(BaseIloTest):
                           ilo_common.verify_image_checksum,
                           file_like_object,
                           invalid_hash)
+
+    @mock.patch.object(ilo_common, 'get_ilo_object', spec_set=True,
+                       autospec=True)
+    def test_get_server_post_state(self,
+                                   get_ilo_object_mock):
+        ilo_object_mock = get_ilo_object_mock.return_value
+        post_state = 'FinishedPost'
+        ilo_object_mock.get_host_post_state.return_value = post_state
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            ret = ilo_common.get_server_post_state(task.node)
+            ilo_object_mock.get_host_post_state.assert_called_once_with()
+            self.assertEqual(post_state, ret)
+
+    @mock.patch.object(ilo_common, 'get_ilo_object', spec_set=True,
+                       autospec=True)
+    def test_get_server_post_state_fail(self,
+                                        get_ilo_object_mock):
+        ilo_mock_object = get_ilo_object_mock.return_value
+        exc = ilo_error.IloError('error')
+        ilo_mock_object.get_host_post_state.side_effect = exc
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            self.assertRaises(exception.IloOperationError,
+                              ilo_common.get_server_post_state, task.node)
+        ilo_mock_object.get_host_post_state.assert_called_once_with()
+
+    @mock.patch.object(ilo_common, 'get_ilo_object', spec_set=True,
+                       autospec=True)
+    def test_get_server_post_state_not_supported(self,
+                                                 ilo_object_mock):
+        ilo_mock_object = ilo_object_mock.return_value
+        exc = ilo_error.IloCommandNotSupportedError('error')
+        ilo_mock_object.get_host_post_state.side_effect = exc
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            self.assertRaises(exception.IloOperationNotSupported,
+                              ilo_common.get_server_post_state,
+                              task.node)
+        ilo_mock_object.get_host_post_state.assert_called_once_with()

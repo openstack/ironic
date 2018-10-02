@@ -97,6 +97,27 @@ BOOT_MODE_GENERIC_TO_ILO = {'bios': 'legacy', 'uefi': 'uefi'}
 BOOT_MODE_ILO_TO_GENERIC = dict(
     (v, k) for (k, v) in BOOT_MODE_GENERIC_TO_ILO.items())
 
+POST_NULL_STATE = 'Null'
+""" Node is in Null post state."""
+
+POST_UNKNOWN_STATE = "Unknown"
+""" Node is in Unknown post state."""
+
+POST_RESET_STATE = "Reset"
+""" Node is in Reset post state."""
+
+POST_POWEROFF_STATE = "PowerOff"
+""" Node is in PowerOff post state."""
+
+POST_INPOST_STATE = "InPost"
+""" Node is in InPost post state."""
+
+POST_INPOSTDISCOVERY_STATE = "InPostDiscoveryComplete"
+""" Node is in InPostDiscoveryComplete post state."""
+
+POST_FINISHEDPOST_STATE = "FinishedPost"
+""" Node is in FinishedPost post state."""
+
 
 def copy_image_to_web_server(source_file_path, destination):
     """Copies the given image to the http web server.
@@ -792,3 +813,26 @@ def verify_image_checksum(image_location, expected_checksum):
         LOG.error(msg)
         raise exception.ImageRefValidationFailed(image_href=image_location,
                                                  reason=msg)
+
+
+def get_server_post_state(node):
+    """Get the current state of system POST.
+
+    :param node: an ironic node object.
+    :returns: POST state of the server. The valida states are:-
+        null, Unknown, Reset, PowerOff, InPost, InPostDiscoveryComplete
+        and FinishedPost.
+    :raises: IloOperationError on an error from IloClient library.
+    :raises: IloOperationNotSupported if retrieving post state is not
+        supported on the server.
+    """
+    ilo_object = get_ilo_object(node)
+    operation = _("Get server post state for node %s.") % node.uuid
+    try:
+        return ilo_object.get_host_post_state()
+    except ilo_error.IloCommandNotSupportedError as ilo_exception:
+        raise exception.IloOperationNotSupported(operation=operation,
+                                                 error=ilo_exception)
+    except ilo_error.IloError as ilo_exception:
+        raise exception.IloOperationError(operation=operation,
+                                          error=ilo_exception)
