@@ -48,6 +48,7 @@ The hardware type ``ilo`` supports following HPE server features:
 * `Firmware based UEFI iSCSI boot from volume support`_
 * `Certificate based validation in iLO`_
 * `Rescue mode support`_
+* `Inject NMI support`_
 
 Hardware interfaces
 ^^^^^^^^^^^^^^^^^^^
@@ -1711,6 +1712,25 @@ access the node.
 
 Please refer to :doc:`/admin/rescue` for detailed explanation of rescue
 feature.
+
+Inject NMI support
+^^^^^^^^^^^^^^^^^^
+The management interface ``ilo`` supports injection of non-maskable
+interrupt (NMI) to a bare metal. Following command can be used to inject
+NMI on a server:
+
+.. code-block:: console
+
+    openstack baremetal node inject nmi <node>
+
+Following command can be used to inject NMI via Compute service:
+
+.. code-block:: console
+
+    openstack server dump create <server>
+
+.. note::
+   This feature is supported on HPE ProLiant Gen9 servers and beyond.
 
 .. _`ssacli documentation`: https://support.hpe.com/hpsc/doc/public/display?docId=c03909334
 .. _`proliant-tools`: https://docs.openstack.org/diskimage-builder/latest/elements/proliant-tools/README.html
