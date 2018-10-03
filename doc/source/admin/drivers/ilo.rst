@@ -49,6 +49,7 @@ The hardware type ``ilo`` supports following HPE server features:
 * `Certificate based validation in iLO`_
 * `Rescue mode support`_
 * `Inject NMI support`_
+* `Soft power operation support`_
 
 Hardware interfaces
 ^^^^^^^^^^^^^^^^^^^
@@ -1731,6 +1732,29 @@ Following command can be used to inject NMI via Compute service:
 
 .. note::
    This feature is supported on HPE ProLiant Gen9 servers and beyond.
+
+Soft power operation support
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+The power interface ``ilo`` supports soft power off and soft reboot
+operations on a bare metal. Following commands can be used to perform
+soft power operations on a server:
+
+.. code-block:: console
+
+    openstack baremetal node reboot --soft \
+        [--power-timeout <power-timeout>] <node>
+
+    openstack baremetal node power off --soft \
+        [--power-timeout <power-timeout>] <node>
+
+.. note::
+   The configuration ``[conductor]soft_power_off_timeout`` is used as a
+   default timeout value when no timeout is provided while invoking
+   hard or soft power operations.
+
+.. note::
+   Server POST state is used to track the power status of HPE ProLiant Gen9
+   servers and beyond.
 
 .. _`ssacli documentation`: https://support.hpe.com/hpsc/doc/public/display?docId=c03909334
 .. _`proliant-tools`: https://docs.openstack.org/diskimage-builder/latest/elements/proliant-tools/README.html
