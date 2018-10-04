@@ -126,12 +126,6 @@ class ConductorAPI(object):
         :raises: NoValidHost
 
         """
-        self.ring_manager.reset()
-
-        # There are no conductors, temporary failure - 503 Service Unavailable
-        if not self.ring_manager.ring:
-            raise exception.TemporaryFailure()
-
         try:
             ring = self.ring_manager[node.driver]
             dest = ring.get_nodes(node.uuid.encode('utf-8'),
@@ -154,9 +148,13 @@ class ConductorAPI(object):
         :raises: DriverNotFound
 
         """
-        self.ring_manager.reset()
+        try:
+            ring = self.ring_manager[driver_name]
+        except exception.TemporaryFailure:
+            # NOTE(dtantsur): even if no conductors are registered, it makes
+            # sense to report 404 on any driver request.
+            raise exception.DriverNotFound(_("No conductors registered."))
 
-        ring = self.ring_manager[driver_name]
         host = random.choice(list(ring.nodes))
         return self.topic + "." + host
 

@@ -59,25 +59,34 @@ class HashRingManagerTestCase(db_base.DbTestCase):
                           self.ring_manager.__getitem__,
                           'driver3')
 
-    def test_hash_ring_manager_no_refresh(self):
-        # If a new conductor is registered after the ring manager is
-        # initialized, it won't be seen. Long term this is probably
-        # undesirable, but today is the intended behavior.
-        self.assertRaises(exception.DriverNotFound,
+    def test_hash_ring_manager_automatic_retry(self):
+        self.assertRaises(exception.TemporaryFailure,
                           self.ring_manager.__getitem__,
                           'driver1')
         self.register_conductors()
-        self.assertRaises(exception.DriverNotFound,
-                          self.ring_manager.__getitem__,
-                          'driver1')
+        self.assertIsNotNone(self.ring_manager['driver1'])
 
-    def test_hash_ring_manager_refresh(self):
+    def test_hash_ring_manager_reset_interval(self):
         CONF.set_override('hash_ring_reset_interval', 30)
-        # Initialize the ring manager to make _hash_rings not None, then
-        # hash ring will refresh only when time interval exceeded.
-        self.assertRaises(exception.DriverNotFound,
-                          self.ring_manager.__getitem__,
-                          'driver1')
-        self.register_conductors()
+        # Just to simplify calculations
+        CONF.set_override('hash_partition_exponent', 0)
+        self.dbapi.register_conductor({
+            'hostname': 'host1',
+            'drivers': ['driver1', 'driver2'],
+        })
+
+        ring = self.ring_manager['driver1']
+        self.assertEqual(1, len(ring))
+
+        self.dbapi.register_conductor({
+            'hostname': 'host2',
+            'drivers': ['driver1'],
+        })
+        ring = self.ring_manager['driver1']
+        # The new conductor is not known yet. Automatic retry does not kick in,
+        # since there is an active conductor for the requested driver.
+        self.assertEqual(1, len(ring))
+
         self.ring_manager.updated_at = time.time() - 31
-        self.ring_manager.__getitem__('driver1')
+        ring = self.ring_manager['driver1']
+        self.assertEqual(2, len(ring))

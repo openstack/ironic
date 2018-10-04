@@ -16,12 +16,16 @@
 import threading
 import time
 
+from oslo_log import log
 from tooz import hashring
 
 from ironic.common import exception
 from ironic.common.i18n import _
 from ironic.conf import CONF
 from ironic.db import api as dbapi
+
+
+LOG = log.getLogger(__name__)
 
 
 class HashRingManager(object):
@@ -36,15 +40,20 @@ class HashRingManager(object):
     def ring(self):
         interval = CONF.hash_ring_reset_interval
         limit = time.time() - interval
-        # Hot path, no lock
-        if self.__class__._hash_rings is not None and self.updated_at >= limit:
-            return self.__class__._hash_rings
+        # Hot path, no lock. Using a local variable to avoid races with code
+        # changing the class variable.
+        hash_rings = self.__class__._hash_rings
+        if hash_rings is not None and self.updated_at >= limit:
+            return hash_rings
 
         with self._lock:
             if self.__class__._hash_rings is None or self.updated_at < limit:
+                LOG.debug('Rebuilding cached hash rings')
                 rings = self._load_hash_rings()
                 self.__class__._hash_rings = rings
                 self.updated_at = time.time()
+                LOG.debug('Finished rebuilding hash rings, available drivers '
+                          'are %s', ', '.join(rings))
             return self.__class__._hash_rings
 
     def _load_hash_rings(self):
@@ -60,9 +69,27 @@ class HashRingManager(object):
     @classmethod
     def reset(cls):
         with cls._lock:
+            LOG.debug('Resetting cached hash rings')
             cls._hash_rings = None
 
     def __getitem__(self, driver_name):
+        try:
+            return self._get_ring(driver_name)
+        except (exception.DriverNotFound, exception.TemporaryFailure):
+            # NOTE(dtantsur): we assume that this case is more often caused by
+            # conductors coming and leaving, so we try to rebuild the rings.
+            LOG.debug('No conductor found for driver %(driver)s, trying '
+                      'to rebuild the hash rings',
+                      {'driver': driver_name})
+
+        self.__class__.reset()
+        return self._get_ring(driver_name)
+
+    def _get_ring(self, driver_name):
+        # There are no conductors, temporary failure - 503 Service Unavailable
+        if not self.ring:
+            raise exception.TemporaryFailure()
+
         try:
             return self.ring[driver_name]
         except KeyError:
