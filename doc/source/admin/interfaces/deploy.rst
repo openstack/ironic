@@ -124,15 +124,16 @@ it, see :doc:`Ansible deploy interface <../drivers/ansible>`.
 
    ../drivers/ansible
 
+.. _ramdisk-deploy:
+
 Ramdisk deploy
 ==============
 
 The ramdisk interface is intended to provide a mechanism to "deploy" an
 instance where the item to be deployed is in reality a ramdisk.
-Most commonly this is peformed when an instance is booted via PXE or iPXE,
-with the only local storage contents being those in memory. Initially this
-is only supported by the ``pxe`` boot interface, but other boot interfaces
-could support this funtionality in the future.
+Most commonly this is peformed when an instance is booted via PXE, iPXE or
+Virtual Media, with the only local storage contents being those in memory.
+It is suported by ``pxe`` and ``ilo-virtual-media`` boot interfaces.
 
 As with most non-default interfaces, it must be enabled and set for a node
 to be utilized:
@@ -171,7 +172,3 @@ or desired. As such, this interface does come with several caveats:
 * As with all deployment interfaces, automatic cleaning of the node will
   still occur with the contents of any local storage being wiped between
   deployments.
-
-.. warning::
-   As of the Rocky release of the BareMetal service, only the ``pxe`` boot
-   interface is supported.

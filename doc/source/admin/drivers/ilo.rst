@@ -221,7 +221,13 @@ Node configuration
   - ``ilo_deploy_iso``: The glance UUID of the deploy ramdisk ISO image.
   - ``instance info/ilo_boot_iso`` property to be either boot iso
     Glance UUID or a HTTP(S) URL. This is optional property and is used when
-    ``boot_option`` is set to ``netboot``.
+    ``boot_option`` is set to ``netboot`` or ``ramdisk``.
+
+    .. note::
+       When ``boot_option`` is set to ``ramdisk``, the ironic node must be
+       configured to use ``ramdisk`` deploy interface. See :ref:`ramdisk-deploy`
+       for details.
+
   - ``ilo_rescue_iso``: The glance UUID of the rescue ISO image. This is optional
     property and is used when ``rescue`` interface is set to ``agent``.
 
