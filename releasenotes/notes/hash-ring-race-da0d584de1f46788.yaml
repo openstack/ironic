@@ -1,0 +1,13 @@
+---
+fixes:
+  - |
+    Fixes a race condition in the hash ring implementation that could cause
+    an internal server error on any request. See `story 2003966
+    <https://storyboard.openstack.org/#!/story/2003966>`_ for details.
+upgrade:
+  - |
+    The ``hash_ring_reset_interval`` configuration option was changed from 180
+    to 15 seconds. Previously, this option was essentially ignored on the API
+    side, becase the hash ring was reset on each API access. The lower value
+    minimizes the probability of a request routed to a wrong conductor when the
+    ring needs rebalancing.

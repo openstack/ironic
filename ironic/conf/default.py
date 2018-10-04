@@ -192,8 +192,10 @@ hash_opts = [
                       'and potentially allow the Ironic cluster to recover '
                       'more quickly if a conductor instance is terminated.')),
     cfg.IntOpt('hash_ring_reset_interval',
-               default=180,
-               help=_('Interval (in seconds) between hash ring resets.')),
+               default=15,
+               help=_('Time (in seconds) after which the hash ring is '
+                      'considered outdated and is refreshed on the next '
+                      'access.')),
 ]
 
 image_opts = [
