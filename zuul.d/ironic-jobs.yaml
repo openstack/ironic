@@ -300,3 +300,13 @@
         neutron-l3: False
         neutron-metadata-agent: False
         neutron-metering: False
+
+- job:
+    name: ironic-tempest-dsvm-functional-python3
+    description: ironic-tempest-dsvm-functional-python3
+    parent: ironic-tempest-dsvm-functional-python2
+    vars:
+      devstack_localrc:
+        IRONIC_TEMPEST_WHOLE_DISK_IMAGE: False
+        IRONIC_VM_EPHEMERAL_DISK: 1
+        USE_PYTHON3: True

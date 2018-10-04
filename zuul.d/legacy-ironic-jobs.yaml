@@ -108,8 +108,3 @@
       - openstack/placement
     nodeset: legacy-ubuntu-xenial-2-node
 
-- job:
-    name: ironic-tempest-dsvm-functional-python3
-    parent: legacy-ironic-dsvm-base
-    run: playbooks/legacy/tempest-dsvm-ironic-functional-python3/run.yaml
-    timeout: 5400
