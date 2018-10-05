@@ -1,0 +1,8 @@
+---
+fixes:
+  - |
+    Fixes a bug that a node's ``console_enabled`` is reset to ``False`` at
+    undeploying the node, which requires an operator to set it to ``True``
+    before deploying again. By this fix, while the console is stopped at
+    tearing down, ``console_enabled`` remains ``True``. When the node is
+    deployed again, the console is started automatically.

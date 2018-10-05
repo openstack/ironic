@@ -943,7 +943,23 @@ class ConductorManager(base_manager.BaseConductorManager):
             # do it in this thread since we're already out of the main
             # conductor thread.
             if node.console_enabled:
-                self._set_console_mode(task, False)
+                notify_utils.emit_console_notification(
+                    task, 'console_stop', fields.NotificationStatus.START)
+                try:
+                    # Keep console_enabled=True for next deployment
+                    task.driver.console.stop_console(task)
+                except Exception as err:
+                    with excutils.save_and_reraise_exception():
+                        LOG.error('Failed to stop console while tearing down '
+                                  'the node %(node)s: %(err)s.',
+                                  {'node': node.uuid, 'err': err})
+                        notify_utils.emit_console_notification(
+                            task, 'console_stop',
+                            fields.NotificationStatus.ERROR)
+                else:
+                    notify_utils.emit_console_notification(
+                        task, 'console_stop', fields.NotificationStatus.END)
+
             task.driver.deploy.clean_up(task)
             task.driver.deploy.tear_down(task)
         except Exception as e:
@@ -3574,6 +3590,7 @@ def _old_rest_of_do_node_deploy(task, conductor_id, no_deploy_steps):
     # NOTE(deva): Some drivers may return states.DEPLOYWAIT
     #             eg. if they are waiting for a callback
     if new_state == states.DEPLOYDONE:
+        _start_console_in_deploy(task)
         task.process_event('done')
         LOG.info('Successfully deployed node %(node)s with '
                  'instance %(instance)s.',
@@ -3679,10 +3696,43 @@ def _do_next_deploy_step(task, step_index, conductor_id):
     node.driver_internal_info = driver_internal_info
     node.save()
 
+    _start_console_in_deploy(task)
+
     task.process_event('done')
     LOG.info('Successfully deployed node %(node)s with '
              'instance %(instance)s.',
              {'node': node.uuid, 'instance': node.instance_uuid})
+
+
+def _start_console_in_deploy(task):
+    """Start console at the end of deployment.
+
+    Console is stopped at tearing down not to be exposed to an instance user.
+    Then, restart at deployment.
+
+    :param task: a TaskManager instance with an exclusive lock
+    """
+
+    if not task.node.console_enabled:
+        return
+
+    notify_utils.emit_console_notification(
+        task, 'console_restore', fields.NotificationStatus.START)
+    try:
+        task.driver.console.start_console(task)
+    except Exception as err:
+        msg = (_('Failed to start console while deploying the '
+                 'node %(node)s: %(err)s.') % {'node': task.node.uuid,
+                                               'err': err})
+        LOG.error(msg)
+        task.node.last_error = msg
+        task.node.console_enabled = False
+        task.node.save()
+        notify_utils.emit_console_notification(
+            task, 'console_restore', fields.NotificationStatus.ERROR)
+    else:
+        notify_utils.emit_console_notification(
+            task, 'console_restore', fields.NotificationStatus.END)
 
 
 @task_manager.require_exclusive_lock
