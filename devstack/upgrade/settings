@@ -33,9 +33,3 @@ export CELLSV2_SETUP="singleconductor"
 # https://storyboard.openstack.org/#!/story/2003808
 # pxe booting with virtio broken in xenial-updates/queens/main
 export LIBVIRT_NIC_DRIVER=e1000
-
-# TODO(derekh): investigate if this is actually needed
-devstack_localrc base """
-[[post-config|\$KEYSTONE_CONF]]
-[token]
-expiration=10800"""
