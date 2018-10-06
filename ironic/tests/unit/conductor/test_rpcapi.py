@@ -130,14 +130,16 @@ class RPCAPITestCase(db_base.DbTestCase):
 
     def test_get_topic_for_driver_unknown_driver(self):
         CONF.set_override('host', 'fake-host')
-        self.dbapi.register_conductor({
+        c = self.dbapi.register_conductor({
             'hostname': 'fake-host',
             'drivers': [],
         })
+        self.dbapi.register_conductor_hardware_interfaces(
+            c.id, 'fake-driver', 'deploy', ['iscsi', 'direct'], 'iscsi')
         rpcapi = conductor_rpcapi.ConductorAPI(topic='fake-topic')
         self.assertRaises(exception.DriverNotFound,
                           rpcapi.get_topic_for_driver,
-                          'fake-driver')
+                          'fake-driver-2')
 
     def test_get_topic_for_driver_doesnt_cache(self):
         CONF.set_override('host', 'fake-host')
