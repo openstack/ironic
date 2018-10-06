@@ -1759,8 +1759,6 @@ class ConductorManager(base_manager.BaseConductorManager):
         # FIXME(rloo): If the value is < 0, it will be enabled. That doesn't
         #              seem right.
         callback_timeout = CONF.conductor.deploy_callback_timeout
-        if not callback_timeout:
-            return
 
         filters = {'reserved': False,
                    'provision_state': states.DEPLOYWAIT,
@@ -1977,8 +1975,6 @@ class ConductorManager(base_manager.BaseConductorManager):
         # FIXME(rloo): If the value is < 0, it will be enabled. That doesn't
         #              seem right.
         callback_timeout = CONF.conductor.clean_callback_timeout
-        if not callback_timeout:
-            return
 
         filters = {'reserved': False,
                    'provision_state': states.CLEANWAIT,
@@ -2767,10 +2763,6 @@ class ConductorManager(base_manager.BaseConductorManager):
     def _send_sensor_data(self, context):
         """Periodically sends sensor data to Ceilometer."""
 
-        # do nothing if send_sensor_data option is False
-        if not CONF.conductor.send_sensor_data:
-            return
-
         filters = {'associated': True}
         nodes = queue.Queue()
         for node_info in self.iter_nodes(fields=['instance_uuid'],
@@ -2989,8 +2981,6 @@ class ConductorManager(base_manager.BaseConductorManager):
         # FIXME(rloo): If the value is < 0, it will be enabled. That doesn't
         #              seem right.
         callback_timeout = CONF.conductor.inspect_wait_timeout
-        if not callback_timeout:
-            return
 
         filters = {'reserved': False,
                    'provision_state': states.INSPECTWAIT,

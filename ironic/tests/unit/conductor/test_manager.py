@@ -5236,19 +5236,6 @@ class SensorsTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         self.assertEqual(number_of_workers,
                          mock_spawn.call_count)
 
-    @mock.patch.object(manager.ConductorManager, '_mapped_to_this_conductor')
-    @mock.patch.object(dbapi.IMPL, 'get_nodeinfo_list')
-    def test___send_sensor_data_disabled(self, get_nodeinfo_list_mock,
-                                         _mapped_to_this_conductor_mock):
-        self._start_service()
-        get_nodeinfo_list_mock.reset_mock()
-        with mock.patch.object(manager.ConductorManager,
-                               '_spawn_worker') as _spawn_mock:
-            self.service._send_sensor_data(self.context)
-            self.assertFalse(get_nodeinfo_list_mock.called)
-            self.assertFalse(_mapped_to_this_conductor_mock.called)
-            self.assertFalse(_spawn_mock.called)
-
 
 @mgr_utils.mock_record_keepalive
 class BootDeviceTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
@@ -6474,16 +6461,6 @@ class ManagerCheckDeployTimeoutsTestCase(mgr_utils.CommonMixIn,
             columns=self.columns, filters=self.filters,
             sort_key='provision_updated_at', sort_dir='asc')
 
-    def test_disabled(self, get_nodeinfo_mock, mapped_mock,
-                      acquire_mock):
-        self.config(deploy_callback_timeout=0, group='conductor')
-
-        self.service._check_deploy_timeouts(self.context)
-
-        self.assertFalse(get_nodeinfo_mock.called)
-        self.assertFalse(mapped_mock.called)
-        self.assertFalse(acquire_mock.called)
-
     def test_not_mapped(self, get_nodeinfo_mock, mapped_mock, acquire_mock):
         get_nodeinfo_mock.return_value = self._get_nodeinfo_list_response()
         mapped_mock.return_value = False
@@ -7197,16 +7174,6 @@ class ManagerCheckInspectWaitTimeoutsTestCase(mgr_utils.CommonMixIn,
         get_nodeinfo_mock.assert_called_once_with(
             sort_dir='asc', columns=self.columns, filters=self.filters,
             sort_key='inspection_started_at')
-
-    def test__check_inspect_timeouts_disabled(self, get_nodeinfo_mock,
-                                              mapped_mock, acquire_mock):
-        self.config(inspect_wait_timeout=0, group='conductor')
-
-        self.service._check_inspect_wait_timeouts(self.context)
-
-        self.assertFalse(get_nodeinfo_mock.called)
-        self.assertFalse(mapped_mock.called)
-        self.assertFalse(acquire_mock.called)
 
     def test__check_inspect_timeouts_not_mapped(self, get_nodeinfo_mock,
                                                 mapped_mock, acquire_mock):
