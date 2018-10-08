@@ -33,32 +33,13 @@ from ironic.drivers import base
 from ironic.drivers.modules import agent
 from ironic.drivers.modules import boot_mode_utils
 from ironic.drivers.modules import deploy_utils
+from ironic.drivers.modules import pxe_base
 from ironic.drivers import utils as driver_utils
 LOG = logging.getLogger(__name__)
 
 METRICS = metrics_utils.get_metrics_logger(__name__)
 
-REQUIRED_PROPERTIES = {
-    'deploy_kernel': _("UUID (from Glance) of the deployment kernel. "
-                       "Required."),
-    'deploy_ramdisk': _("UUID (from Glance) of the ramdisk that is "
-                        "mounted at boot time. Required."),
-}
-OPTIONAL_PROPERTIES = {
-    'force_persistent_boot_device': _("True to enable persistent behavior "
-                                      "when the boot device is set during "
-                                      "deploy and cleaning operations. "
-                                      "Defaults to False. Optional."),
-}
-RESCUE_PROPERTIES = {
-    'rescue_kernel': _('UUID (from Glance) of the rescue kernel. This value '
-                       'is required for rescue mode.'),
-    'rescue_ramdisk': _('UUID (from Glance) of the rescue ramdisk with agent '
-                        'that is used at node rescue time. This value is '
-                        'required for rescue mode.'),
-}
-COMMON_PROPERTIES = REQUIRED_PROPERTIES.copy()
-COMMON_PROPERTIES.update(OPTIONAL_PROPERTIES)
+COMMON_PROPERTIES = pxe_base.COMMON_PROPERTIES
 
 # NOTE(TheJulia): This was previously a public method to the code being
 # moved. This mapping should be removed in the T* cycle.
@@ -67,8 +48,11 @@ TFTPImageCache = pxe_utils.TFTPImageCache
 # NOTE(TheJulia): End section of mappings for migrated common pxe code.
 
 
-class PXEBoot(base.BootInterface):
+class PXEBoot(pxe_base.PXEBaseMixin, base.BootInterface):
 
+    # TODO(TheJulia): iscsi_volume_boot should be removed from
+    # the list below once ipxe support is removed from the PXE
+    # interface.
     capabilities = ['iscsi_volume_boot', 'ramdisk_boot', 'ipxe_boot',
                     'pxe_boot']
 
@@ -77,16 +61,6 @@ class PXEBoot(base.BootInterface):
         # this can be removed.
         if CONF.pxe.ipxe_enabled:
             pxe_utils.create_ipxe_boot_script()
-
-    def get_properties(self):
-        """Return the properties of the interface.
-
-        :returns: dictionary of <property name>:<property description> entries.
-        """
-        # TODO(stendulker): COMMON_PROPERTIES should also include rescue
-        # related properties (RESCUE_PROPERTIES). We can add them in Rocky,
-        # when classic drivers get removed.
-        return COMMON_PROPERTIES
 
     @METRICS.timer('PXEBoot.validate')
     def validate(self, task):
@@ -211,33 +185,6 @@ class PXEBoot(base.BootInterface):
         if pxe_info:
             pxe_utils.cache_ramdisk_kernel(task, pxe_info)
 
-    @METRICS.timer('PXEBoot.clean_up_ramdisk')
-    def clean_up_ramdisk(self, task):
-        """Cleans up the boot of ironic ramdisk.
-
-        This method cleans up the PXE environment that was setup for booting
-        the deploy or rescue ramdisk. It unlinks the deploy/rescue
-        kernel/ramdisk in the node's directory in tftproot and removes it's PXE
-        config.
-
-        :param task: a task from TaskManager.
-        :param mode: Label indicating a deploy or rescue operation
-            was carried out on the node. Supported values are 'deploy' and
-            'rescue'. Defaults to 'deploy', indicating deploy operation was
-            carried out.
-        :returns: None
-        """
-        node = task.node
-        mode = deploy_utils.rescue_or_deploy_mode(node)
-        try:
-            images_info = pxe_utils.get_image_info(node, mode=mode)
-        except exception.MissingParameterValue as e:
-            LOG.warning('Could not get %(mode)s image info '
-                        'to clean up images for node %(node)s: %(err)s',
-                        {'mode': mode, 'node': node.uuid, 'err': e})
-        else:
-            pxe_utils.clean_up_pxe_env(task, images_info)
-
     @METRICS.timer('PXEBoot.prepare_instance')
     def prepare_instance(self, task):
         """Prepares the boot of instance.
@@ -342,16 +289,6 @@ class PXEBoot(base.BootInterface):
                         {'node': node.uuid, 'err': e})
         else:
             pxe_utils.clean_up_pxe_env(task, images_info)
-
-    @METRICS.timer('PXEBoot.validate_rescue')
-    def validate_rescue(self, task):
-        """Validate that the node has required properties for rescue.
-
-        :param task: a TaskManager instance with the node being checked
-        :raises: MissingParameterValue if node is missing one or more required
-            parameters
-        """
-        pxe_utils.parse_driver_info(task.node, mode='rescue')
 
 
 class PXERamdiskDeploy(agent.AgentDeploy):
