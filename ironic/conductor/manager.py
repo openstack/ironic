@@ -1200,7 +1200,7 @@ class ConductorManager(base_manager.BaseConductorManager):
         LOG.debug('Starting %(type)s cleaning for node %(node)s',
                   {'type': clean_type, 'node': node.uuid})
 
-        if not manual_clean and not CONF.conductor.automated_clean:
+        if not manual_clean and utils.skip_automated_cleaning(node):
             # Skip cleaning, move to AVAILABLE.
             node.clean_step = None
             node.save()

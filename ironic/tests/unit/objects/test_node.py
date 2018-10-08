@@ -706,6 +706,69 @@ class TestConvertToVersion(db_base.DbTestCase):
         self.assertEqual('', node.conductor_group)
         self.assertEqual({'conductor_group': ''}, node.obj_get_changes())
 
+    def test_automated_clean_supported_missing(self):
+        # automated_clean_interface not set, should be set to default.
+        node = obj_utils.get_test_node(self.ctxt, **self.fake_node)
+        delattr(node, 'automated_clean')
+        node.obj_reset_changes()
+
+        node._convert_to_version("1.28")
+
+        self.assertIsNone(node.automated_clean)
+        self.assertEqual({'automated_clean': None},
+                         node.obj_get_changes())
+
+    def test_automated_clean_supported_set(self):
+        # automated_clean set, no change required.
+        node = obj_utils.get_test_node(self.ctxt, **self.fake_node)
+
+        node.automated_clean = True
+        node.obj_reset_changes()
+        node._convert_to_version("1.28")
+        self.assertEqual(True, node.automated_clean)
+        self.assertEqual({}, node.obj_get_changes())
+
+    def test_automated_clean_unsupported_missing(self):
+        # automated_clean not set, no change required.
+        node = obj_utils.get_test_node(self.ctxt, **self.fake_node)
+
+        delattr(node, 'automated_clean')
+        node.obj_reset_changes()
+        node._convert_to_version("1.27")
+        self.assertNotIn('automated_clean', node)
+        self.assertEqual({}, node.obj_get_changes())
+
+    def test_automated_clean_unsupported_set_remove(self):
+        # automated_clean set, should be removed.
+        node = obj_utils.get_test_node(self.ctxt, **self.fake_node)
+
+        node.automated_clean = True
+        node.obj_reset_changes()
+        node._convert_to_version("1.27")
+        self.assertNotIn('automated_clean', node)
+        self.assertEqual({}, node.obj_get_changes())
+
+    def test_automated_clean_unsupported_set_no_remove_non_default(self):
+        # automated_clean set, should be set to default.
+        node = obj_utils.get_test_node(self.ctxt, **self.fake_node)
+
+        node.automated_clean = True
+        node.obj_reset_changes()
+        node._convert_to_version("1.27", False)
+        self.assertIsNone(node.automated_clean)
+        self.assertEqual({'automated_clean': None},
+                         node.obj_get_changes())
+
+    def test_automated_clean_unsupported_set_no_remove_default(self):
+        # automated_clean set, no change required.
+        node = obj_utils.get_test_node(self.ctxt, **self.fake_node)
+
+        node.automated_clean = None
+        node.obj_reset_changes()
+        node._convert_to_version("1.27", False)
+        self.assertIsNone(node.automated_clean)
+        self.assertEqual({}, node.obj_get_changes())
+
 
 class TestNodePayloads(db_base.DbTestCase):
 

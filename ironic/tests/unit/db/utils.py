@@ -214,6 +214,7 @@ def get_test_node(**kw):
         'tags': kw.get('tags', []),
         'resource_class': kw.get('resource_class'),
         'traits': kw.get('traits', []),
+        'automated_clean': kw.get('automated_clean', None),
     }
 
     for iface in drivers_base.ALL_INTERFACES:

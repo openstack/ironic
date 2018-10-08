@@ -990,3 +990,11 @@ def notify_conductor_resume_clean(task):
 def notify_conductor_resume_deploy(task):
     _notify_conductor_resume_operation(task, 'deploying',
                                        'continue_node_deploy')
+
+
+def skip_automated_cleaning(node):
+    """Checks if node cleaning needs to be skipped for an specific node.
+
+    :param node: the node to consider
+    """
+    return not CONF.conductor.automated_clean and not node.automated_clean

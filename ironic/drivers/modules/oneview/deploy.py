@@ -22,6 +22,7 @@ import six
 
 from ironic.common import exception
 from ironic.common import states
+from ironic.conductor import utils
 from ironic.conf import CONF
 from ironic.drivers.modules import agent
 from ironic.drivers.modules import iscsi_deploy
@@ -243,7 +244,10 @@ class OneViewIscsiDeploy(iscsi_deploy.ISCSIDeploy, OneViewPeriodicTasks):
 
     @METRICS.timer('OneViewIscsiDeploy.tear_down')
     def tear_down(self, task):
-        if not CONF.conductor.automated_clean:
+        # teardown if automated clean is disabled on the node
+        # or if general automated clean is not enabled generally
+        # and not on the node as well
+        if utils.skip_automated_cleaning(task.node):
             deploy_utils.tear_down(task)
         return super(OneViewIscsiDeploy, self).tear_down(task)
 
@@ -287,7 +291,9 @@ class OneViewAgentDeploy(agent.AgentDeploy, OneViewPeriodicTasks):
 
     @METRICS.timer('OneViewAgentDeploy.tear_down')
     def tear_down(self, task):
-        if not CONF.conductor.automated_clean:
+        # if node specifically has cleanup disabled, or general cleanup
+        # is disabled and node has not it enabled
+        if utils.skip_automated_cleaning(task.node):
             deploy_utils.tear_down(task)
         return super(OneViewAgentDeploy, self).tear_down(task)
 
