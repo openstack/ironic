@@ -1,0 +1,9 @@
+---
+features:
+  - Adds a configuration option ``[deploy]disk_erasure_concurrency`` to
+    define the target pool size used by Ironic Python Agent ramdisk to
+    erase disk devices. The number of threads created by IPA to erase
+    disk devices is the minimum value of target pool size and the number of
+    disks to be erased. This feature can greatly reduce the operation time
+    for baremetals with multiple disks. For the backwards compatibility,
+    the default value is 1.

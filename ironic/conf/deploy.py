@@ -66,6 +66,13 @@ opts = [
                        'node will be put in ``clean failed`` state. '
                        'If True, shred will be invoked and cleaning will '
                        'continue.')),
+    cfg.IntOpt('disk_erasure_concurrency',
+               default=1,
+               min=1,
+               help=_('Defines the target pool size used by Ironic Python '
+                      'Agent ramdisk to erase disk devices. The number of '
+                      'threads created to erase disks will not exceed this '
+                      'value or the number of disks to be erased.')),
     cfg.BoolOpt('power_off_after_deploy_failure',
                 default=True,
                 help=_('Whether to power off a node after deploy failure. '
