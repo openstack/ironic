@@ -14,6 +14,7 @@
 #    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 #    License for the specific language governing permissions and limitations
 #    under the License.
+import platform
 
 import mock
 import six
@@ -114,6 +115,7 @@ class MyRoot(wsme.WSRoot):
 
 class TestJsonPatchType(base.TestCase):
 
+    @mock.patch.object(platform, '_syscmd_uname', lambda *x: '')
     def setUp(self):
         super(TestJsonPatchType, self).setUp()
         self.app = webtest.TestApp(MyRoot(['restjson']).wsgiapp())
