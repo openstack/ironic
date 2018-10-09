@@ -1,0 +1,10 @@
+---
+features:
+  - |
+    Allows enabling automated cleaning per node if it is disabled globally.
+    A new ``automated_clean`` field has been created on the node object,
+    allowing to control the individual automated cleaning of nodes.
+    When automated cleaning is disabled at global level, but enabled at node
+    level, the automated cleaning will be performed only on those nodes.
+
+    The new field is accessible starting with the API version 1.47.

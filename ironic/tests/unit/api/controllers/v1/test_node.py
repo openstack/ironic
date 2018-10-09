@@ -124,6 +124,7 @@ class TestListNodes(test_api_base.BaseApiTest):
         self.assertNotIn('bios_interface', data['nodes'][0])
         self.assertNotIn('deploy_step', data['nodes'][0])
         self.assertNotIn('conductor_group', data['nodes'][0])
+        self.assertNotIn('automated_clean', data['nodes'][0])
 
     def test_get_one(self):
         node = obj_utils.create_test_node(self.context,
@@ -162,6 +163,7 @@ class TestListNodes(test_api_base.BaseApiTest):
         self.assertIn('bios_interface', data)
         self.assertIn('deploy_step', data)
         self.assertIn('conductor_group', data)
+        self.assertIn('automated_clean', data)
 
     def test_get_one_with_json(self):
         # Test backward compatibility with guess_content_type_from_ext
@@ -261,6 +263,28 @@ class TestListNodes(test_api_base.BaseApiTest):
     def test_node_conductor_group_hidden_in_lower_version(self):
         self._test_node_field_hidden_in_lower_version('conductor_group',
                                                       '1.45', '1.46')
+
+    def test_node_automated_clean_hidden_in_lower_version(self):
+        self._test_node_field_hidden_in_lower_version('automated_clean',
+                                                      '1.46', '1.47')
+
+    def test_node_automated_clean_null_field(self):
+        node = obj_utils.create_test_node(self.context, automated_clean=None)
+        data = self.get_json('/nodes/%s' % node.uuid,
+                             headers={api_base.Version.string: '1.47'})
+        self.assertIsNone(data['automated_clean'])
+
+    def test_node_automated_clean_true_field(self):
+        node = obj_utils.create_test_node(self.context, automated_clean=True)
+        data = self.get_json('/nodes/%s' % node.uuid,
+                             headers={api_base.Version.string: '1.47'})
+        self.assertEqual(data['automated_clean'], True)
+
+    def test_node_automated_clean_false_field(self):
+        node = obj_utils.create_test_node(self.context, automated_clean=False)
+        data = self.get_json('/nodes/%s' % node.uuid,
+                             headers={api_base.Version.string: '1.47'})
+        self.assertEqual(data['automated_clean'], False)
 
     def test_get_one_custom_fields(self):
         node = obj_utils.create_test_node(self.context,
@@ -418,6 +442,14 @@ class TestListNodes(test_api_base.BaseApiTest):
             headers={api_base.Version.string: '1.46'})
         self.assertIn('conductor_group', response)
 
+    def test_get_automated_clean_fields(self):
+        node = obj_utils.create_test_node(self.context,
+                                          automated_clean=True)
+        fields = 'automated_clean'
+        response = self.get_json('/nodes/%s?fields=%s' % (node.uuid, fields),
+                                 headers={api_base.Version.string: '1.47'})
+        self.assertIn('automated_clean', response)
+
     def test_detail(self):
         node = obj_utils.create_test_node(self.context,
                                           chassis_id=self.chassis.id)
@@ -448,6 +480,7 @@ class TestListNodes(test_api_base.BaseApiTest):
         self.assertIn('storage_interface', data['nodes'][0])
         self.assertIn('traits', data['nodes'][0])
         self.assertIn('conductor_group', data['nodes'][0])
+        self.assertIn('automated_clean', data['nodes'][0])
         # never expose the chassis_id
         self.assertNotIn('chassis_id', data['nodes'][0])
 
@@ -477,6 +510,7 @@ class TestListNodes(test_api_base.BaseApiTest):
         self.assertIn('network_interface', data['nodes'][0])
         self.assertIn('resource_class', data['nodes'][0])
         self.assertIn('conductor_group', data['nodes'][0])
+        self.assertIn('automated_clean', data['nodes'][0])
         for field in api_utils.V31_FIELDS:
             self.assertIn(field, data['nodes'][0])
         # never expose the chassis_id
@@ -2558,6 +2592,33 @@ class TestPatch(test_api_base.BaseApiTest):
         self.assertEqual('application/json', response.content_type)
         self.assertEqual(http_client.NOT_ACCEPTABLE, response.status_code)
 
+    def test_update_automated_clean(self):
+        node = obj_utils.create_test_node(self.context,
+                                          uuid=uuidutils.generate_uuid())
+        self.mock_update_node.return_value = node
+        headers = {api_base.Version.string: '1.47'}
+        response = self.patch_json('/nodes/%s' % node.uuid,
+                                   [{'path': '/automated_clean',
+                                     'value': True,
+                                     'op': 'replace'}],
+                                   headers=headers)
+        self.assertEqual('application/json', response.content_type)
+        self.assertEqual(http_client.OK, response.status_code)
+
+    def test_update_automated_clean_old_api(self):
+        node = obj_utils.create_test_node(self.context,
+                                          uuid=uuidutils.generate_uuid())
+        self.mock_update_node.return_value = node
+        headers = {api_base.Version.string: '1.46'}
+        response = self.patch_json('/nodes/%s' % node.uuid,
+                                   [{'path': '/automated_clean',
+                                     'value': True,
+                                     'op': 'replace'}],
+                                   headers=headers,
+                                   expect_errors=True)
+        self.assertEqual('application/json', response.content_type)
+        self.assertEqual(http_client.NOT_ACCEPTABLE, response.status_code)
+
 
 def _create_node_locally(node):
     driver_factory.check_and_update_node_interfaces(node)
@@ -3136,6 +3197,26 @@ class TestPost(test_api_base.BaseApiTest):
                                            str(api_v1.max_version())})
         self.assertEqual('application/json', response.content_type)
         self.assertEqual(http_client.BAD_REQUEST, response.status_int)
+
+    def test_create_node_automated_clean(self):
+        ndict = test_api_utils.post_get_test_node(
+            automated_clean=True)
+        response = self.post_json('/nodes', ndict,
+                                  headers={api_base.Version.string:
+                                           str(api_v1.max_version())})
+        self.assertEqual(http_client.CREATED, response.status_int)
+        result = self.get_json('/nodes/%s' % ndict['uuid'],
+                               headers={api_base.Version.string:
+                                        str(api_v1.max_version())})
+        self.assertEqual(True, result['automated_clean'])
+
+    def test_create_node_automated_clean_old_api_version(self):
+        headers = {api_base.Version.string: '1.32'}
+        ndict = test_api_utils.post_get_test_node(automated_clean=True)
+        response = self.post_json('/nodes', ndict, headers=headers,
+                                  expect_errors=True)
+        self.assertEqual('application/json', response.content_type)
+        self.assertEqual(http_client.NOT_ACCEPTABLE, response.status_int)
 
 
 class TestDelete(test_api_base.BaseApiTest):
