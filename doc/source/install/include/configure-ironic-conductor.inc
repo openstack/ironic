@@ -53,6 +53,7 @@ Configuring ironic-conductor service
    * ``[neutron]`` - to access the OpenStack Networking service
    * ``[glance]`` - to access the OpenStack Image service
    * ``[swift]`` - to access the OpenStack Object Storage service
+   * ``[cinder]`` - to access the OpenStack Block Storage service
    * ``[inspector]`` - to access the OpenStack Bare Metal Introspection
      service
    * ``[service_catalog]`` - a special section holding credentials
