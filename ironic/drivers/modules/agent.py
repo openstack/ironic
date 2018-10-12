@@ -814,6 +814,15 @@ class AgentRescue(base.RescueInterface):
         :returns: Returns states.RESCUEWAIT
         """
         manager_utils.node_power_action(task, states.POWER_OFF)
+        # NOTE(TheJulia): Revealing that the power is off at any time can
+        # cause external power sync to decide that the node must be off.
+        # This may result in a post-rescued instance being turned off
+        # unexpectedly after rescue has started.
+        # TODO(TheJulia): Once we have power/state callbacks to nova,
+        # the reset of the power_state can be removed.
+        task.node.power_state = states.POWER_ON
+        task.node.save()
+
         task.driver.boot.clean_up_instance(task)
         task.driver.network.unconfigure_tenant_networks(task)
         task.driver.network.add_rescuing_network(task)
@@ -840,6 +849,16 @@ class AgentRescue(base.RescueInterface):
         :returns: Returns states.ACTIVE
         """
         manager_utils.node_power_action(task, states.POWER_OFF)
+
+        # NOTE(TheJulia): Revealing that the power is off at any time can
+        # cause external power sync to decide that the node must be off.
+        # This may result in a post-rescued insance being turned off
+        # unexpectedly after unrescue.
+        # TODO(TheJulia): Once we have power/state callbacks to nova,
+        # the reset of the power_state can be removed.
+        task.node.power_state = states.POWER_ON
+        task.node.save()
+
         self.clean_up(task)
         task.driver.network.configure_tenant_networks(task)
         task.driver.boot.prepare_instance(task)

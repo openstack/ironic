@@ -1660,6 +1660,40 @@ class AgentRescueTestCase(db_base.DbTestCase):
             mock_prepare_instance.assert_called_once_with(mock.ANY, task)
             self.assertEqual(states.ACTIVE, result)
 
+    @mock.patch.object(fake.FakeBoot, 'clean_up_instance', autospec=True)
+    @mock.patch.object(manager_utils, 'node_power_action', autospec=True)
+    def test_agent_rescue_power_on(self, mock_node_power_action,
+                                   mock_clean_up_instance):
+        self.node.power_state = states.POWER_ON
+        mock_clean_up_instance.side_effect = exception.IronicException()
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            self.assertRaises(exception.IronicException,
+                              task.driver.rescue.rescue, task)
+            mock_node_power_action.assert_called_once_with(task,
+                                                           states.POWER_OFF)
+            task.node.refresh()
+            # Ensure that our stored power state while the lock is still
+            # being held, shows as POWER_ON to an external reader, such
+            # as the API.
+            self.assertEqual(states.POWER_ON, task.node.power_state)
+
+    @mock.patch.object(fake.FakeBoot, 'clean_up_ramdisk', autospec=True)
+    @mock.patch.object(manager_utils, 'node_power_action', autospec=True)
+    def test_agent_unrescue_power_on(self, mock_node_power_action,
+                                     mock_clean_ramdisk):
+        self.node.power_state = states.POWER_ON
+        mock_clean_ramdisk.side_effect = exception.IronicException()
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            self.assertRaises(exception.IronicException,
+                              task.driver.rescue.unrescue, task)
+            mock_node_power_action.assert_called_once_with(task,
+                                                           states.POWER_OFF)
+            task.node.refresh()
+            # Ensure that our stored power state while the lock is still
+            # being held, shows as POWER_ON to an external reader, such
+            # as the API.
+            self.assertEqual(states.POWER_ON, task.node.power_state)
+
     @mock.patch.object(flat_network.FlatNetwork, 'validate_rescue',
                        autospec=True)
     @mock.patch.object(fake.FakeBoot, 'validate', autospec=True)
