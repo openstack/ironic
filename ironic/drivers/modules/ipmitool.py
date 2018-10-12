@@ -30,6 +30,7 @@ DRIVER.
 """
 
 import contextlib
+import functools
 import os
 import re
 import subprocess
@@ -378,12 +379,41 @@ def _parse_driver_info(node):
     }
 
 
-def _exec_ipmitool(driver_info, command, check_exit_code=None):
+def _exec_ipmitool_wait(timeout, driver_info, popen_obj):
+    wait_interval = min(timeout, 0.5)
+
+    while timeout >= 0:
+        if not popen_obj.poll():
+            return
+
+        time.sleep(wait_interval)
+        timeout -= wait_interval
+
+    LOG.warning('Killing timed out IPMI process "%(cmd)s" for node %(node)s.',
+                {'node': driver_info['uuid'], 'cmd': popen_obj.cmd})
+
+    popen_obj.terminate()
+    time.sleep(0.5)
+    if popen_obj.poll():
+        popen_obj.kill()
+
+    time.sleep(1)
+
+    if popen_obj.poll():
+        LOG.warning('Could not kill IPMI process "%(cmd)s" for node %(node)s.',
+                    {'node': driver_info['uuid'], 'cmd': popen_obj.cmd})
+
+
+def _exec_ipmitool(driver_info, command, check_exit_code=None,
+                   kill_on_timeout=False):
     """Execute the ipmitool command.
 
     :param driver_info: the ipmitool parameters for accessing a node.
     :param command: the ipmitool command to be executed.
     :param check_exit_code: Single bool, int, or list of allowed exit codes.
+    :param kill_on_timeout: if `True`, kill unresponsive ipmitool on
+        `min_command_interval` timeout. Default is `False`. Makes no
+        effect on Windows.
     :returns: (stdout, stderr) from executing the command.
     :raises: PasswordFileFailedToCreate from creating or writing to the
              temporary file.
@@ -426,6 +456,21 @@ def _exec_ipmitool(driver_info, command, check_exit_code=None):
         args.append('-N')
         args.append(str(CONF.ipmi.min_command_interval))
 
+    extra_args = {}
+
+    if kill_on_timeout:
+        # NOTE(etingof): We can't trust ipmitool to terminate in time.
+        # Therefore we have to kill it if it is running for longer than
+        # we asked it to.
+        # For that purpose we inject the time-capped `popen.wait` call
+        # before the uncapped `popen.communicate` is called internally.
+        # That gives us a chance to kill misbehaving `ipmitool` child.
+        extra_args['on_execute'] = functools.partial(
+            _exec_ipmitool_wait, timeout, driver_info)
+
+    if check_exit_code is not None:
+        extra_args['check_exit_code'] = check_exit_code
+
     end_time = (time.time() + timeout)
 
     while True:
@@ -439,9 +484,6 @@ def _exec_ipmitool(driver_info, command, check_exit_code=None):
         # Resetting the list that will be utilized so the password arguments
         # from any previous execution are preserved.
         cmd_args = args[:]
-        extra_args = {}
-        if check_exit_code is not None:
-            extra_args['check_exit_code'] = check_exit_code
         # 'ipmitool' command will prompt password if there is no '-f'
         # option, we set it to '\0' to write a password file to support
         # empty password
@@ -567,7 +609,8 @@ def _power_status(driver_info):
     """
     cmd = "power status"
     try:
-        out_err = _exec_ipmitool(driver_info, cmd)
+        out_err = _exec_ipmitool(
+            driver_info, cmd, kill_on_timeout=CONF.ipmi.kill_on_timeout)
     except (exception.PasswordFileFailedToCreate,
             processutils.ProcessExecutionError) as e:
         LOG.warning("IPMI power status failed for node %(node_id)s with "
@@ -1066,7 +1109,8 @@ class IPMIManagement(base.ManagementInterface):
         # extended sensor informations
         cmd = "sdr -v"
         try:
-            out, err = _exec_ipmitool(driver_info, cmd)
+            out, err = _exec_ipmitool(
+                driver_info, cmd, kill_on_timeout=CONF.ipmi.kill_on_timeout)
         except (exception.PasswordFileFailedToCreate,
                 processutils.ProcessExecutionError) as e:
             raise exception.FailedToGetSensorData(node=task.node.uuid,
