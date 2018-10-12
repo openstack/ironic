@@ -1,0 +1,6 @@
+---
+features:
+  - |
+    Allows streaming raw partition images to the ramdisk when using the
+    ``direct`` deploy interface. Requires **ironic-python-agent** from
+    the Stein release series.

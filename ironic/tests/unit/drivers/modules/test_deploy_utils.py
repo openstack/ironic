@@ -1753,7 +1753,7 @@ class AgentMethodsTestCase(db_base.DbTestCase):
         internal_info = self.node.driver_internal_info
         internal_info['is_whole_disk_image'] = False
         self.node.driver_internal_info = internal_info
-        self.assertFalse(
+        self.assertTrue(
             utils.direct_deploy_should_convert_raw_image(self.node))
 
 

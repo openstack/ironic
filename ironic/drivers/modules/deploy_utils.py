@@ -1098,8 +1098,7 @@ def direct_deploy_should_convert_raw_image(node):
     :returns: Boolean, whether the direct deploy interface should convert
         image to raw.
     """
-    iwdi = node.driver_internal_info.get('is_whole_disk_image')
-    return CONF.force_raw_images and CONF.agent.stream_raw_images and iwdi
+    return CONF.force_raw_images and CONF.agent.stream_raw_images
 
 
 @image_cache.cleanup(priority=50)
