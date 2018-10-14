@@ -938,7 +938,7 @@ class IPMIManagement(base.ManagementInterface):
         # uefi mode, this will work with newer and older versions of the
         # ipmitool utility. Also see:
         # https://bugs.launchpad.net/ironic/+bug/1611306
-        boot_mode = boot_mode_utils.get_boot_mode_for_deploy(task.node)
+        boot_mode = boot_mode_utils.get_boot_mode(task.node)
         if persistent and boot_mode == 'uefi':
             raw_cmd = ('0x00 0x08 0x05 0xe0 %s 0x00 0x00 0x00' %
                        BOOT_DEVICE_HEXA_MAP[device])

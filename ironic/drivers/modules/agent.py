@@ -237,11 +237,8 @@ class AgentDeployMixin(agent_base_vendor.AgentDeployMixin):
             for label in PARTITION_IMAGE_LABELS:
                 image_info[label] = node.instance_info.get(label)
             boot_option = deploy_utils.get_boot_option(node)
-            boot_mode = boot_mode_utils.get_boot_mode_for_deploy(node)
-            if boot_mode:
-                image_info['deploy_boot_mode'] = boot_mode
-            else:
-                image_info['deploy_boot_mode'] = 'bios'
+            image_info['deploy_boot_mode'] = (
+                boot_mode_utils.get_boot_mode(node))
             image_info['boot_option'] = boot_option
             disk_label = deploy_utils.get_disk_label(node)
             if disk_label is not None:
@@ -336,7 +333,7 @@ class AgentDeployMixin(agent_base_vendor.AgentDeployMixin):
 
         efi_sys_uuid = None
         if not iwdi:
-            if boot_mode_utils.get_boot_mode_for_deploy(node) == 'uefi':
+            if boot_mode_utils.get_boot_mode(node) == 'uefi':
                 efi_sys_uuid = (self._get_uuid_from_result(task,
                                 'efi_system_partition_uuid'))
 

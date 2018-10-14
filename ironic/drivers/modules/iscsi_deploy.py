@@ -117,7 +117,7 @@ def get_deploy_info(node, address, iqn, port=None, lun='1', conv_flags=None):
                        'ephemeral_mb': i_info['ephemeral_mb'],
                        'preserve_ephemeral': i_info['preserve_ephemeral'],
                        'boot_option': deploy_utils.get_boot_option(node),
-                       'boot_mode': _get_boot_mode(node),
+                       'boot_mode': boot_mode_utils.get_boot_mode(node),
                        'cpu_arch': node.properties.get('cpu_arch')})
 
         # Append disk label if specified
@@ -297,18 +297,6 @@ def do_agent_iscsi_deploy(task, agent_client):
     node.save()
 
     return uuid_dict_returned
-
-
-def _get_boot_mode(node):
-    """Gets the boot mode.
-
-    :param node: A single Node.
-    :returns: A string representing the boot mode type. Defaults to 'bios'.
-    """
-    boot_mode = boot_mode_utils.get_boot_mode_for_deploy(node)
-    if boot_mode:
-        return boot_mode
-    return "bios"
 
 
 @METRICS.timer('validate')

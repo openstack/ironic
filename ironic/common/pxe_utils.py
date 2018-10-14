@@ -279,7 +279,7 @@ def create_pxe_config(task, pxe_options, template=None, ipxe_enabled=False):
     pxe_config_file_path = get_pxe_config_file_path(
         task.node.uuid,
         ipxe_enabled=ipxe_enabled)
-    is_uefi_boot_mode = (boot_mode_utils.get_boot_mode_for_deploy(task.node)
+    is_uefi_boot_mode = (boot_mode_utils.get_boot_mode(task.node)
                          == 'uefi')
 
     # grub bootloader panics with '{}' around any of its tags in its
@@ -351,8 +351,7 @@ def clean_up_pxe_config(task, ipxe_enabled=False):
     """
     LOG.debug("Cleaning up PXE config for node %s", task.node.uuid)
 
-    is_uefi_boot_mode = (boot_mode_utils.get_boot_mode_for_deploy(task.node)
-                         == 'uefi')
+    is_uefi_boot_mode = (boot_mode_utils.get_boot_mode(task.node) == 'uefi')
 
     if is_uefi_boot_mode and not ipxe_enabled:
         api = dhcp_factory.DHCPFactory().provider
@@ -777,7 +776,7 @@ def build_service_pxe_config(task, instance_image_info,
     iwdi = node.driver_internal_info.get('is_whole_disk_image')
     deploy_utils.switch_pxe_config(
         pxe_config_path, root_uuid_or_disk_id,
-        boot_mode_utils.get_boot_mode_for_deploy(node),
+        boot_mode_utils.get_boot_mode(node),
         iwdi, deploy_utils.is_trusted_boot_requested(node),
         deploy_utils.is_iscsi_boot(task), ramdisk_boot,
         ipxe_enabled=ipxe_enabled)
@@ -852,7 +851,7 @@ def get_volume_pxe_options(task):
 
 def validate_boot_parameters_for_trusted_boot(node):
     """Check if boot parameters are valid for trusted boot."""
-    boot_mode = boot_mode_utils.get_boot_mode_for_deploy(node)
+    boot_mode = boot_mode_utils.get_boot_mode(node)
     boot_option = deploy_utils.get_boot_option(node)
     is_whole_disk_image = node.driver_internal_info.get('is_whole_disk_image')
     # 'is_whole_disk_image' is not supported by trusted boot, because there is
@@ -906,7 +905,7 @@ def prepare_instance_pxe_config(task, image_info,
             ipxe_enabled=ipxe_enabled)
     deploy_utils.switch_pxe_config(
         pxe_config_path, None,
-        boot_mode_utils.get_boot_mode_for_deploy(node), False,
+        boot_mode_utils.get_boot_mode(node), False,
         iscsi_boot=iscsi_boot, ramdisk_boot=ramdisk_boot,
         ipxe_enabled=ipxe_enabled)
 
