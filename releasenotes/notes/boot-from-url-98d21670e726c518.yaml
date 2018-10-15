@@ -1,0 +1,9 @@
+---
+fixes:
+  - |
+    Fixes a misunderstanding in how DHCPv6 booting of machines operates
+    in that only a URL to the boot loader is expected in that case, as opposed
+    to traditional TFTP parameters. Now a URL is sent to the client in the form
+    of ``tftp://<tftp_address>/<tftp_path>/<boot_file>``. See
+    `story 1744620 <https://storyboard.openstack.org/#!/story/1744620>`_
+    for more information.

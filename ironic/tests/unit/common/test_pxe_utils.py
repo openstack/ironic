@@ -719,22 +719,33 @@ class TestPXEUtils(db_base.DbTestCase):
         self.config(tftp_server='192.0.2.1', group='pxe')
         self.config(pxe_bootfile_name='fake-bootfile', group='pxe')
         self.config(tftp_root='/tftp-path/', group='pxe')
-        expected_info = [{'opt_name': '67',
-                          'opt_value': 'fake-bootfile',
-                          'ip_version': ip_version},
-                         {'opt_name': '210',
-                          'opt_value': '/tftp-path/',
-                          'ip_version': ip_version},
-                         {'opt_name': '66',
-                          'opt_value': '192.0.2.1',
-                          'ip_version': ip_version},
-                         {'opt_name': '150',
-                          'opt_value': '192.0.2.1',
-                          'ip_version': ip_version},
-                         {'opt_name': 'server-ip-address',
-                          'opt_value': '192.0.2.1',
-                          'ip_version': ip_version}
-                         ]
+
+        if ip_version == 6:
+            # NOTE(TheJulia): DHCPv6 RFCs seem to indicate that the prior
+            # options are not imported, although they may be supported
+            # by vendors. The apparent proper option is to return a
+            # URL in the field https://tools.ietf.org/html/rfc5970#section-3
+            expected_info = [{'opt_name': '59',
+                              'opt_value': 'tftp://192.0.2.1/tftp-path'
+                                           '/fake-bootfile',
+                              'ip_version': ip_version}]
+        elif ip_version == 4:
+            expected_info = [{'opt_name': '67',
+                              'opt_value': 'fake-bootfile',
+                              'ip_version': ip_version},
+                             {'opt_name': '210',
+                              'opt_value': '/tftp-path/',
+                              'ip_version': ip_version},
+                             {'opt_name': '66',
+                              'opt_value': '192.0.2.1',
+                              'ip_version': ip_version},
+                             {'opt_name': '150',
+                              'opt_value': '192.0.2.1',
+                              'ip_version': ip_version},
+                             {'opt_name': 'server-ip-address',
+                              'opt_value': '192.0.2.1',
+                              'ip_version': ip_version}
+                             ]
         with task_manager.acquire(self.context, self.node.uuid) as task:
             self.assertEqual(expected_info,
                              pxe_utils.dhcp_options_for_instance(task))
@@ -817,7 +828,8 @@ class TestPXEUtils(db_base.DbTestCase):
                           'ip_version': 4}]
 
         self.assertItemsEqual(expected_info,
-                              pxe_utils.dhcp_options_for_instance(task))
+                              pxe_utils.dhcp_options_for_instance(
+                                  task, ipxe_enabled=True))
 
         self.config(dhcp_provider='neutron', group='dhcp')
         expected_boot_script_url = 'http://192.0.3.2:1234/boot.ipxe'
@@ -838,7 +850,8 @@ class TestPXEUtils(db_base.DbTestCase):
                           'ip_version': 4}]
 
         self.assertItemsEqual(expected_info,
-                              pxe_utils.dhcp_options_for_instance(task))
+                              pxe_utils.dhcp_options_for_instance(
+                                  task, ipxe_enabled=True))
 
     def test_dhcp_options_for_instance_ipxe_bios(self):
         boot_file = 'fake-bootfile-bios'

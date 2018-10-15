@@ -43,9 +43,15 @@ PXE_CFG_DIR_NAME = CONF.pxe.pxe_config_subdir
 DHCP_CLIENT_ID = '61'  # rfc2132
 DHCP_TFTP_SERVER_NAME = '66'  # rfc2132
 DHCP_BOOTFILE_NAME = '67'  # rfc2132
+DHCPV6_BOOTFILE_NAME = '59'  # rfc5870
+# NOTE(TheJulia): adding note for the bootfile parameter
+# field as defined by RFC 5870. No practical examples seem
+# available. Neither grub2 or ipxe seem to leverage this.
+# DHCPV6_BOOTFILE_PARAMS = '60'  # rfc5870
 DHCP_TFTP_SERVER_ADDRESS = '150'  # rfc5859
 DHCP_IPXE_ENCAP_OPTS = '175'  # Tentatively Assigned
 DHCP_TFTP_PATH_PREFIX = '210'  # rfc5071
+
 DEPLOY_KERNEL_RAMDISK_LABELS = ['deploy_kernel', 'deploy_ramdisk']
 RESCUE_KERNEL_RAMDISK_LABELS = ['rescue_kernel', 'rescue_ramdisk']
 KERNEL_RAMDISK_LABELS = {'deploy': DEPLOY_KERNEL_RAMDISK_LABELS,
@@ -391,16 +397,58 @@ def clean_up_pxe_config(task):
                                                 task.node.uuid))
 
 
-def dhcp_options_for_instance(task):
+def _dhcp_option_file_or_url(task, urlboot=False):
+    """Returns the appropriate file or URL.
+
+    :param task: A TaskManager object.
+    :param url_boot: Boolean value default False to indicate if a
+                     URL should be returned to the file as opposed
+                     to a file.
+    """
+    boot_file = deploy_utils.get_pxe_boot_file(task.node)
+    # NOTE(TheJulia): There are additional cases as we add new
+    # features, so the logic below is in the form of if/elif/elif
+    if not urlboot:
+        return boot_file
+    elif urlboot:
+        path_prefix = get_tftp_path_prefix()
+        if path_prefix == '':
+            path_prefix = '/'
+        return ("tftp://" + CONF.pxe.tftp_server
+                + path_prefix + boot_file)
+
+
+def dhcp_options_for_instance(task, ipxe_enabled=False, url_boot=False):
     """Retrieves the DHCP PXE boot options.
 
     :param task: A TaskManager instance.
+    :param ipxe_enabled: Default false boolean that siganls if iPXE
+                         formatting should be returned by the method
+                         for DHCP server configuration.
+    :param url_boot: Default false boolean to inform the method if
+                     a URL should be returned to boot the node.
+                     If [pxe]ip_version is set to `6`, then this option
+                     has no effect as url_boot form is required by DHCPv6
+                     standards.
+    :returns: Dictionary to be sent to the networking service describing
+              the DHCP options to be set.
     """
     dhcp_opts = []
+    ip_version = int(CONF.pxe.ip_version)
+    if ip_version == 4:
+        boot_file_param = DHCP_BOOTFILE_NAME
+    else:
+        # NOTE(TheJulia): Booting with v6 means it is always
+        # a URL reply.
+        boot_file_param = DHCPV6_BOOTFILE_NAME
+        url_boot = True
+    # NOTE(TheJulia): The ip_version value config from the PXE config is
+    # guarded in the configuration, so there is no real sense in having
+    # anything else here in the event the value is something aside from
+    # 4 or 6, as there are no other possible values.
+    boot_file = _dhcp_option_file_or_url(task, url_boot)
 
-    boot_file = deploy_utils.get_pxe_boot_file(task.node)
-
-    if is_ipxe_enabled(task):
+    if ipxe_enabled:
         script_name = os.path.basename(CONF.pxe.ipxe_boot_script)
         ipxe_script_url = '/'.join([CONF.deploy.http_url, script_name])
         dhcp_provider_name = CONF.dhcp.dhcp_provider
@@ -409,7 +457,7 @@ def dhcp_options_for_instance(task):
         if dhcp_provider_name == 'neutron':
             # Neutron use dnsmasq as default DHCP agent, add extra config
             # to neutron "dhcp-match=set:ipxe,175" and use below option
-            dhcp_opts.append({'opt_name': "tag:!ipxe,%s" % DHCP_BOOTFILE_NAME,
+            dhcp_opts.append({'opt_name': "tag:!ipxe,%s" % boot_file_param,
                               'opt_value': boot_file})
             dhcp_opts.append({'opt_name': "tag:ipxe,%s" % DHCP_BOOTFILE_NAME,
                               'opt_value': ipxe_script_url})
@@ -417,25 +465,27 @@ def dhcp_options_for_instance(task):
             # !175 == non-iPXE.
             # http://ipxe.org/howto/dhcpd#ipxe-specific_options
             dhcp_opts.append({'opt_name': "!%s,%s" % (DHCP_IPXE_ENCAP_OPTS,
-                              DHCP_BOOTFILE_NAME),
+                              boot_file_param),
                               'opt_value': boot_file})
-            dhcp_opts.append({'opt_name': DHCP_BOOTFILE_NAME,
+            dhcp_opts.append({'opt_name': boot_file_param,
                               'opt_value': ipxe_script_url})
     else:
-        dhcp_opts.append({'opt_name': DHCP_BOOTFILE_NAME,
+        dhcp_opts.append({'opt_name': boot_file_param,
                           'opt_value': boot_file})
         # 210 == tftp server path-prefix or tftp root, will be used to find
         # pxelinux.cfg directory. The pxelinux.0 loader infers this information
         # from it's own path, but Petitboot needs it to be specified by this
         # option since it doesn't use pxelinux.0 loader.
-        dhcp_opts.append({'opt_name': DHCP_TFTP_PATH_PREFIX,
-                          'opt_value': get_tftp_path_prefix()})
+        if not url_boot:
+            dhcp_opts.append(
+                {'opt_name': DHCP_TFTP_PATH_PREFIX,
+                 'opt_value': get_tftp_path_prefix()})
 
-    dhcp_opts.append({'opt_name': DHCP_TFTP_SERVER_NAME,
-                      'opt_value': CONF.pxe.tftp_server})
-    dhcp_opts.append({'opt_name': DHCP_TFTP_SERVER_ADDRESS,
-                      'opt_value': CONF.pxe.tftp_server})
-
+    if not url_boot:
+        dhcp_opts.append({'opt_name': DHCP_TFTP_SERVER_NAME,
+                          'opt_value': CONF.pxe.tftp_server})
+        dhcp_opts.append({'opt_name': DHCP_TFTP_SERVER_ADDRESS,
+                          'opt_value': CONF.pxe.tftp_server})
     # NOTE(vsaienko) set this option specially for dnsmasq case as it always
     # sets `siaddr` field which is treated by pxe clients as TFTP server
     # see page 9 https://tools.ietf.org/html/rfc2131.
@@ -449,12 +499,13 @@ def dhcp_options_for_instance(task):
     # unknown options but potentially it may blow up with others.
     # Related bug was opened on Neutron side:
     # https://bugs.launchpad.net/neutron/+bug/1723354
-    dhcp_opts.append({'opt_name': 'server-ip-address',
-                      'opt_value': CONF.pxe.tftp_server})
+    if not url_boot:
+        dhcp_opts.append({'opt_name': 'server-ip-address',
+                          'opt_value': CONF.pxe.tftp_server})
 
     # Append the IP version for all the configuration options
     for opt in dhcp_opts:
-        opt.update({'ip_version': int(CONF.pxe.ip_version)})
+        opt.update({'ip_version': ip_version})
 
     return dhcp_opts
 
@@ -593,10 +644,10 @@ def get_image_info(node, mode='deploy'):
 def build_deploy_pxe_options(task, pxe_info, mode='deploy'):
     pxe_opts = {}
     node = task.node
-
+    # TODO(TheJulia): In the future this should become an argument
+    ipxe_enabled = is_ipxe_enabled(task)
     kernel_label = '%s_kernel' % mode
     ramdisk_label = '%s_ramdisk' % mode
-    ipxe_enabled = is_ipxe_enabled(task)
     for label, option in ((kernel_label, 'deployment_aki_path'),
                           (ramdisk_label, 'deployment_ari_path')):
         if ipxe_enabled:
@@ -839,7 +890,7 @@ def prepare_instance_pxe_config(task, image_info,
     """
 
     node = task.node
-    dhcp_opts = dhcp_options_for_instance(task)
+    dhcp_opts = dhcp_options_for_instance(task, ipxe_enabled)
     provider = dhcp_factory.DHCPFactory()
     provider.update_dhcp(task, dhcp_opts)
     pxe_config_path = get_pxe_config_file_path(

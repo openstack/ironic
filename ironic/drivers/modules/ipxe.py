@@ -142,7 +142,8 @@ class iPXEBoot(pxe_base.PXEBaseMixin, base.BootInterface):
         # or was deleted.
         pxe_utils.create_ipxe_boot_script()
 
-        dhcp_opts = pxe_utils.dhcp_options_for_instance(task)
+        dhcp_opts = pxe_utils.dhcp_options_for_instance(
+            task, ipxe_enabled=True)
         provider = dhcp_factory.DHCPFactory()
         provider.update_dhcp(task, dhcp_opts)
 
@@ -219,7 +220,8 @@ class iPXEBoot(pxe_base.PXEBaseMixin, base.BootInterface):
                 pxe_utils.cache_ramdisk_kernel(task, instance_image_info)
 
             # If it's going to PXE boot we need to update the DHCP server
-            dhcp_opts = pxe_utils.dhcp_options_for_instance(task)
+            dhcp_opts = pxe_utils.dhcp_options_for_instance(task,
+                                                            ipxe_enabled=True)
             provider = dhcp_factory.DHCPFactory()
             provider.update_dhcp(task, dhcp_opts)
 
