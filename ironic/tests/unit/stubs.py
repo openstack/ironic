@@ -57,7 +57,8 @@ class FakeImage(dict):
                             'container_format', 'checksum', 'id',
                             'name', 'deleted', 'status',
                             'min_disk', 'min_ram', 'tags', 'visibility',
-                            'protected', 'file', 'schema']
+                            'protected', 'file', 'schema', 'os_hash_algo',
+                            'os_hash_value']
         raw = dict.fromkeys(IMAGE_ATTRIBUTES)
         raw.update(metadata)
         # raw['created_at'] = NOW_GLANCE_FORMAT

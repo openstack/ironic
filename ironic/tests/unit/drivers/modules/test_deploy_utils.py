@@ -2247,6 +2247,7 @@ class TestBuildInstanceInfoForDeploy(db_base.DbTestCase):
         self.node.save()
 
         image_info = {'checksum': 'aa', 'disk_format': 'qcow2',
+                      'os_hash_algo': 'sha512', 'os_hash_value': 'fake-sha512',
                       'container_format': 'bare', 'properties': {}}
         glance_mock.return_value.show = mock.MagicMock(spec_set=[],
                                                        return_value=image_info)
@@ -2287,6 +2288,7 @@ class TestBuildInstanceInfoForDeploy(db_base.DbTestCase):
         self.node.save()
 
         image_info = {'checksum': 'aa', 'disk_format': 'qcow2',
+                      'os_hash_algo': 'sha512', 'os_hash_value': 'fake-sha512',
                       'container_format': 'bare',
                       'properties': {'kernel_id': 'kernel',
                                      'ramdisk_id': 'ramdisk'}}
@@ -2310,6 +2312,8 @@ class TestBuildInstanceInfoForDeploy(db_base.DbTestCase):
                            'image_properties': {'kernel_id': 'kernel',
                                                 'ramdisk_id': 'ramdisk'},
                            'image_checksum': 'aa',
+                           'image_os_hash_algo': 'sha512',
+                           'image_os_hash_value': 'fake-sha512',
                            'image_container_format': 'bare',
                            'image_disk_format': 'qcow2'}
         with task_manager.acquire(
@@ -2434,9 +2438,9 @@ class TestBuildInstanceInfoForHttpProvisioning(db_base.DbTestCase):
         self.node.instance_info = i_info
         self.node.save()
 
-        self.md5sum_mock = self.useFixture(fixtures.MockPatchObject(
+        self.checksum_mock = self.useFixture(fixtures.MockPatchObject(
             fileutils, 'compute_file_checksum')).mock
-        self.md5sum_mock.return_value = 'fake md5'
+        self.checksum_mock.return_value = 'fake-checksum'
         self.cache_image_mock = self.useFixture(fixtures.MockPatchObject(
             utils, 'cache_instance_image', autospec=True)).mock
         self.cache_image_mock.return_value = (
@@ -2454,79 +2458,87 @@ class TestBuildInstanceInfoForHttpProvisioning(db_base.DbTestCase):
         self.expected_url = '/'.join([cfg.CONF.deploy.http_url,
                                      cfg.CONF.deploy.http_image_subdir,
                                      self.node.uuid])
+        self.image_info = {'checksum': 'aa', 'disk_format': 'qcow2',
+                           'os_hash_algo': 'sha512',
+                           'os_hash_value': 'fake-sha512',
+                           'container_format': 'bare', 'properties': {}}
 
     @mock.patch.object(image_service.HttpImageService, 'validate_href',
                        autospec=True)
     @mock.patch.object(image_service, 'GlanceImageService', autospec=True)
-    def test_build_instance_info_no_force_raw(self, glance_mock,
-                                              validate_mock):
+    def _test_build_instance_info(self, glance_mock, validate_mock,
+                                  image_info={}, expect_raw=False):
+        glance_mock.return_value.show = mock.MagicMock(spec_set=[],
+                                                       return_value=image_info)
+        with task_manager.acquire(
+                self.context, self.node.uuid, shared=False) as task:
+            instance_info = utils.build_instance_info_for_deploy(task)
+
+            glance_mock.assert_called_once_with(context=task.context)
+            glance_mock.return_value.show.assert_called_once_with(
+                self.node.instance_info['image_source'])
+            self.cache_image_mock.assert_called_once_with(task.context,
+                                                          task.node,
+                                                          force_raw=expect_raw)
+            symlink_dir = utils._get_http_image_symlink_dir_path()
+            symlink_file = utils._get_http_image_symlink_file_path(
+                self.node.uuid)
+            image_path = utils._get_image_file_path(self.node.uuid)
+            self.ensure_tree_mock.assert_called_once_with(symlink_dir)
+            self.create_link_mock.assert_called_once_with(image_path,
+                                                          symlink_file)
+            validate_mock.assert_called_once_with(mock.ANY, self.expected_url,
+                                                  secret=True)
+            return image_path, instance_info
+
+    def test_build_instance_info_no_force_raw(self):
         cfg.CONF.set_override('force_raw_images', False)
+        _, instance_info = self._test_build_instance_info(
+            image_info=self.image_info, expect_raw=False)
 
-        image_info = {'checksum': 'aa', 'disk_format': 'qcow2',
-                      'container_format': 'bare', 'properties': {}}
-        glance_mock.return_value.show = mock.MagicMock(spec_set=[],
-                                                       return_value=image_info)
+        self.assertEqual(instance_info['image_checksum'], 'aa')
+        self.assertEqual(instance_info['image_disk_format'], 'qcow2')
+        self.assertEqual(instance_info['image_os_hash_algo'], 'sha512')
+        self.assertEqual(instance_info['image_os_hash_value'],
+                         'fake-sha512')
+        self.checksum_mock.assert_not_called()
 
-        with task_manager.acquire(
-                self.context, self.node.uuid, shared=False) as task:
-
-            instance_info = utils.build_instance_info_for_deploy(task)
-
-            glance_mock.assert_called_once_with(context=task.context)
-            glance_mock.return_value.show.assert_called_once_with(
-                self.node.instance_info['image_source'])
-            self.cache_image_mock.assert_called_once_with(task.context,
-                                                          task.node,
-                                                          force_raw=False)
-            symlink_dir = utils._get_http_image_symlink_dir_path()
-            symlink_file = utils._get_http_image_symlink_file_path(
-                self.node.uuid)
-            image_path = utils._get_image_file_path(self.node.uuid)
-            self.ensure_tree_mock.assert_called_once_with(symlink_dir)
-            self.create_link_mock.assert_called_once_with(image_path,
-                                                          symlink_file)
-            self.assertEqual(instance_info['image_checksum'], 'aa')
-            self.assertEqual(instance_info['image_disk_format'], 'qcow2')
-            self.md5sum_mock.assert_not_called()
-            validate_mock.assert_called_once_with(mock.ANY, self.expected_url,
-                                                  secret=True)
-
-    @mock.patch.object(image_service.HttpImageService, 'validate_href',
-                       autospec=True)
-    @mock.patch.object(image_service, 'GlanceImageService', autospec=True)
-    def test_build_instance_info_force_raw(self, glance_mock,
-                                           validate_mock):
+    def test_build_instance_info_force_raw(self):
         cfg.CONF.set_override('force_raw_images', True)
+        image_path, instance_info = self._test_build_instance_info(
+            image_info=self.image_info, expect_raw=True)
 
-        image_info = {'checksum': 'aa', 'disk_format': 'qcow2',
-                      'container_format': 'bare', 'properties': {}}
-        glance_mock.return_value.show = mock.MagicMock(spec_set=[],
-                                                       return_value=image_info)
+        self.assertEqual(instance_info['image_checksum'], 'fake-checksum')
+        self.assertEqual(instance_info['image_disk_format'], 'raw')
+        calls = [mock.call(image_path, algorithm='md5'),
+                 mock.call(image_path, algorithm='sha512')]
+        self.checksum_mock.assert_has_calls(calls)
 
-        with task_manager.acquire(
-                self.context, self.node.uuid, shared=False) as task:
+    def test_build_instance_info_force_raw_new_fields_none(self):
+        cfg.CONF.set_override('force_raw_images', True)
+        self.image_info['os_hash_algo'] = None
+        self.image_info['os_hash_value'] = None
+        image_path, instance_info = self._test_build_instance_info(
+            image_info=self.image_info, expect_raw=True)
 
-            instance_info = utils.build_instance_info_for_deploy(task)
+        self.assertEqual(instance_info['image_checksum'], 'fake-checksum')
+        self.assertEqual(instance_info['image_disk_format'], 'raw')
+        self.assertNotIn('image_os_hash_algo', instance_info.keys())
+        self.assertNotIn('image_os_hash_value', instance_info.keys())
+        self.checksum_mock.assert_called_once_with(image_path, algorithm='md5')
 
-            glance_mock.assert_called_once_with(context=task.context)
-            glance_mock.return_value.show.assert_called_once_with(
-                self.node.instance_info['image_source'])
-            self.cache_image_mock.assert_called_once_with(task.context,
-                                                          task.node,
-                                                          force_raw=True)
-            symlink_dir = utils._get_http_image_symlink_dir_path()
-            symlink_file = utils._get_http_image_symlink_file_path(
-                self.node.uuid)
-            image_path = utils._get_image_file_path(self.node.uuid)
-            self.ensure_tree_mock.assert_called_once_with(symlink_dir)
-            self.create_link_mock.assert_called_once_with(image_path,
-                                                          symlink_file)
-            self.assertEqual(instance_info['image_checksum'], 'fake md5')
-            self.assertEqual(instance_info['image_disk_format'], 'raw')
-            self.md5sum_mock.assert_called_once_with(image_path,
-                                                     algorithm='md5')
-            validate_mock.assert_called_once_with(mock.ANY, self.expected_url,
-                                                  secret=True)
+    def test_build_instance_info_force_raw_new_fields_is_md5(self):
+        cfg.CONF.set_override('force_raw_images', True)
+        self.image_info['os_hash_algo'] = 'md5'
+        self.image_info['os_hash_value'] = 'fake-md5'
+        image_path, instance_info = self._test_build_instance_info(
+            image_info=self.image_info, expect_raw=True)
+
+        self.assertEqual(instance_info['image_checksum'], 'fake-checksum')
+        self.assertEqual(instance_info['image_disk_format'], 'raw')
+        self.assertNotIn('image_os_hash_algo', instance_info.keys())
+        self.assertNotIn('image_os_hash_value', instance_info.keys())
+        self.checksum_mock.assert_called_once_with(image_path, algorithm='md5')
 
 
 class TestStorageInterfaceUtils(db_base.DbTestCase):

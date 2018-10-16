@@ -1,0 +1,7 @@
+---
+features:
+  - In accordance with the `multihash support
+    <https://specs.openstack.org/openstack/glance-specs/specs/rocky/approved/glance/multihash.html>`_
+    provided by glance, ironic now supports using the new ``os_hash_algo``
+    and ``os_hash_value`` fields to computes and validates image checksum
+    when deploying instance images by the ``direct`` deploy interface.
