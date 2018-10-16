@@ -23,10 +23,8 @@ from oslo_serialization import jsonutils
 from oslo_utils import timeutils
 from oslo_utils import uuidutils
 import six
-import six.moves.urllib.parse as urlparse
 
 from ironic.common import exception
-from ironic.common import image_service
 from ironic.conf import CONF
 
 
@@ -36,31 +34,24 @@ _GLANCE_API_SERVER = None
 """ iterator that cycles (indefinitely) over glance API servers. """
 
 
+_IMAGE_ATTRIBUTES = ['size', 'disk_format', 'owner',
+                     'container_format', 'checksum', 'id',
+                     'name', 'created_at', 'updated_at',
+                     'deleted_at', 'deleted', 'status',
+                     'min_disk', 'min_ram', 'tags', 'visibility',
+                     'protected', 'file', 'schema']
+
+
 def _extract_attributes(image):
-    # TODO(pas-ha) in Queens unify these once GlanceV1 is no longer supported
-    IMAGE_ATTRIBUTES = ['size', 'disk_format', 'owner',
-                        'container_format', 'checksum', 'id',
-                        'name', 'created_at', 'updated_at',
-                        'deleted_at', 'deleted', 'status',
-                        'min_disk', 'min_ram', 'is_public']
-
-    IMAGE_ATTRIBUTES_V2 = ['tags', 'visibility', 'protected',
-                           'file', 'schema']
-
     output = {}
-    for attr in IMAGE_ATTRIBUTES:
+    for attr in _IMAGE_ATTRIBUTES:
         output[attr] = getattr(image, attr, None)
 
-    output['properties'] = getattr(image, 'properties', {})
+    output['properties'] = {}
+    output['schema'] = image.schema
 
-    if hasattr(image, 'schema') and 'v2' in image['schema']:
-        IMAGE_ATTRIBUTES = IMAGE_ATTRIBUTES + IMAGE_ATTRIBUTES_V2
-        for attr in IMAGE_ATTRIBUTES_V2:
-            output[attr] = getattr(image, attr, None)
-        output['schema'] = image['schema']
-
-        for image_property in set(image) - set(IMAGE_ATTRIBUTES):
-            output['properties'][image_property] = image[image_property]
+    for image_property in set(image) - set(_IMAGE_ATTRIBUTES):
+        output['properties'][image_property] = image[image_property]
 
     return output
 
@@ -154,23 +145,11 @@ def is_image_available(context, image):
     if hasattr(context, 'auth_token') and context.auth_token:
         return True
 
-    if ((getattr(image, 'is_public', None)
-            or getattr(image, 'visibility', None) == 'public')
-            or context.is_admin):
+    if getattr(image, 'visibility', None) == 'public' or context.is_admin:
         return True
-    properties = image.properties
-    if context.project_id and ('owner_id' in properties):
-        return str(properties['owner_id']) == str(context.project_id)
 
-    if context.project_id and ('project_id' in properties):
-        return str(properties['project_id']) == str(context.project_id)
-
-    try:
-        user_id = properties['user_id']
-    except KeyError:
-        return False
-
-    return str(user_id) == str(context.user_id)
+    return (context.project_id and
+            getattr(image, 'owner', None) == context.project_id)
 
 
 def is_image_active(image):
@@ -187,18 +166,3 @@ def is_glance_image(image_href):
         return False
     return (image_href.startswith('glance://')
             or uuidutils.is_uuid_like(image_href))
-
-
-def is_image_href_ordinary_file_name(image_href):
-    """Check if image_href is a ordinary file name.
-
-    This method judges if image_href is an ordinary file name or not,
-    which is a file supposed to be stored in share file system.
-    The ordinary file name is neither glance image href
-    nor image service href.
-
-    :returns: True if image_href is ordinary file name, False otherwise.
-    """
-    return not (is_glance_image(image_href)
-                or urlparse.urlparse(image_href).scheme.lower() in
-                image_service.protocol_mapping)

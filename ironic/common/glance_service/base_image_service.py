@@ -110,7 +110,7 @@ def check_image_service(func):
         if self.context.auth_token:
             user_auth = keystone.get_service_auth(self.context, self.endpoint,
                                                   service_auth)
-        self.client = client.Client(self.version, session=session,
+        self.client = client.Client(2, session=session,
                                     auth=user_auth or service_auth,
                                     endpoint_override=self.endpoint,
                                     global_request_id=self.context.global_id)
@@ -121,9 +121,8 @@ def check_image_service(func):
 
 class BaseImageService(object):
 
-    def __init__(self, client=None, version=1, context=None):
+    def __init__(self, client=None, context=None):
         self.client = client
-        self.version = version
         self.context = context
         self.endpoint = None
 
@@ -134,7 +133,6 @@ class BaseImageService(object):
         retry the request according to CONF.glance_num_retries.
 
         :param context: The request context, for access checks.
-        :param version: The requested API version.v
         :param method: The method requested to be called.
         :param args: A list of positional arguments for the method called
         :param kwargs: A dict of keyword arguments for the method called
@@ -208,9 +206,7 @@ class BaseImageService(object):
         """
         image_id = service_utils.parse_image_id(image_href)
 
-        if (self.version == 2
-                and 'file' in CONF.glance.allowed_direct_url_schemes):
-
+        if 'file' in CONF.glance.allowed_direct_url_schemes:
             location = self._get_location(image_id)
             url = urlparse.urlparse(location)
             if url.scheme == "file":
@@ -222,10 +218,7 @@ class BaseImageService(object):
         image_chunks = self.call(method, image_id)
         # NOTE(dtantsur): when using Glance V2, image_chunks is a wrapper
         # around real data, so we have to check the wrapped data for None.
-        # Glance V1 returns HTTP 404 in this case, so no need to fix it.
-        # TODO(dtantsur): remove the hasattr check when we no longer support
-        # Glance V1.
-        if hasattr(image_chunks, 'wrapped') and image_chunks.wrapped is None:
+        if image_chunks.wrapped is None:
             raise exception.ImageDownloadFailed(
                 image_href=image_href, reason=_('image contains no data.'))
 

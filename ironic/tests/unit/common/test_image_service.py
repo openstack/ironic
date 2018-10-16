@@ -24,7 +24,6 @@ import six.moves.builtins as __builtin__
 from six.moves import http_client
 
 from ironic.common import exception
-from ironic.common.glance_service.v1 import image_service as glance_v1_service
 from ironic.common.glance_service.v2 import image_service as glance_v2_service
 from ironic.common import image_service
 from ironic.tests import base
@@ -271,16 +270,7 @@ class ServiceGetterTestCase(base.TestCase):
     def test_get_glance_image_service(self, glance_service_mock):
         image_href = uuidutils.generate_uuid()
         image_service.get_image_service(image_href, context=self.context)
-        glance_service_mock.assert_called_once_with(mock.ANY, None, 2,
-                                                    self.context)
-
-    @mock.patch.object(glance_v1_service.GlanceImageService, '__init__',
-                       return_value=None, autospec=True)
-    def test_get_glance_image_service_default_v1(self, glance_service_mock):
-        self.config(glance_api_version=1, group='glance')
-        image_href = uuidutils.generate_uuid()
-        image_service.get_image_service(image_href, context=self.context)
-        glance_service_mock.assert_called_once_with(mock.ANY, None, 1,
+        glance_service_mock.assert_called_once_with(mock.ANY, None,
                                                     self.context)
 
     @mock.patch.object(glance_v2_service.GlanceImageService, '__init__',
@@ -288,7 +278,7 @@ class ServiceGetterTestCase(base.TestCase):
     def test_get_glance_image_service_url(self, glance_service_mock):
         image_href = 'glance://%s' % uuidutils.generate_uuid()
         image_service.get_image_service(image_href, context=self.context)
-        glance_service_mock.assert_called_once_with(mock.ANY, None, 2,
+        glance_service_mock.assert_called_once_with(mock.ANY, None,
                                                     self.context)
 
     @mock.patch.object(image_service.HttpImageService, '__init__',

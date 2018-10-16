@@ -2257,8 +2257,7 @@ class TestBuildInstanceInfoForDeploy(db_base.DbTestCase):
 
             utils.build_instance_info_for_deploy(task)
 
-            glance_mock.assert_called_once_with(version=2,
-                                                context=task.context)
+            glance_mock.assert_called_once_with(context=task.context)
             glance_mock.return_value.show.assert_called_once_with(
                 self.node.instance_info['image_source'])
             glance_mock.return_value.swift_temp_url.assert_called_once_with(
@@ -2318,8 +2317,7 @@ class TestBuildInstanceInfoForDeploy(db_base.DbTestCase):
 
             info = utils.build_instance_info_for_deploy(task)
 
-            glance_mock.assert_called_once_with(version=2,
-                                                context=task.context)
+            glance_mock.assert_called_once_with(context=task.context)
             glance_mock.return_value.show.assert_called_once_with(
                 self.node.instance_info['image_source'])
             glance_mock.return_value.swift_temp_url.assert_called_once_with(
@@ -2474,8 +2472,7 @@ class TestBuildInstanceInfoForHttpProvisioning(db_base.DbTestCase):
 
             instance_info = utils.build_instance_info_for_deploy(task)
 
-            glance_mock.assert_called_once_with(version=2,
-                                                context=task.context)
+            glance_mock.assert_called_once_with(context=task.context)
             glance_mock.return_value.show.assert_called_once_with(
                 self.node.instance_info['image_source'])
             self.cache_image_mock.assert_called_once_with(task.context,
@@ -2511,8 +2508,7 @@ class TestBuildInstanceInfoForHttpProvisioning(db_base.DbTestCase):
 
             instance_info = utils.build_instance_info_for_deploy(task)
 
-            glance_mock.assert_called_once_with(version=2,
-                                                context=task.context)
+            glance_mock.assert_called_once_with(context=task.context)
             glance_mock.return_value.show.assert_called_once_with(
                 self.node.instance_info['image_source'])
             self.cache_image_mock.assert_called_once_with(task.context,

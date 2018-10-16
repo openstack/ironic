@@ -1,0 +1,8 @@
+---
+upgrade:
+  - |
+    Support for using the Image API v1 was removed. It was removed from Glance
+    in the Rocky release.
+  - |
+    The deprecated option ``[glance]glance_api_version`` was removed. Only v2
+    is now used.

@@ -51,27 +51,27 @@ class StubGlanceClient(object):
         return _GlanceWrapper(self.fake_wrapped)
 
 
-class FakeImage(object):
+class FakeImage(dict):
     def __init__(self, metadata):
         IMAGE_ATTRIBUTES = ['size', 'disk_format', 'owner',
                             'container_format', 'checksum', 'id',
-                            'name',
-                            'deleted', 'status',
-                            'min_disk', 'min_ram', 'is_public']
+                            'name', 'deleted', 'status',
+                            'min_disk', 'min_ram', 'tags', 'visibility',
+                            'protected', 'file', 'schema']
         raw = dict.fromkeys(IMAGE_ATTRIBUTES)
         raw.update(metadata)
         # raw['created_at'] = NOW_GLANCE_FORMAT
         # raw['updated_at'] = NOW_GLANCE_FORMAT
-        self.__dict__['raw'] = raw
+        super(FakeImage, self).__init__(raw)
 
     def __getattr__(self, key):
         try:
-            return self.__dict__['raw'][key]
+            return self[key]
         except KeyError:
             raise AttributeError(key)
 
     def __setattr__(self, key, value):
-        try:
-            self.__dict__['raw'][key] = value
-        except KeyError:
+        if key in self:
+            self[key] = value
+        else:
             raise AttributeError(key)

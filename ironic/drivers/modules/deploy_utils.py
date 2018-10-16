@@ -1196,8 +1196,7 @@ def build_instance_info_for_deploy(task):
     image_source = instance_info['image_source']
 
     if service_utils.is_glance_image(image_source):
-        glance = image_service.GlanceImageService(version=2,
-                                                  context=task.context)
+        glance = image_service.GlanceImageService(context=task.context)
         image_info = glance.show(image_source)
         LOG.debug('Got image info: %(info)s for node %(node)s.',
                   {'info': image_info, 'node': node.uuid})

@@ -143,12 +143,6 @@ opts = [
                help=_('Optional path to a CA certificate bundle to be used to '
                       'validate the SSL certificate served by glance. It is '
                       'used when glance_api_insecure is set to False.')),
-    cfg.IntOpt('glance_api_version',
-               help=_('Glance API version (1 or 2) to use.'),
-               min=1, max=2, default=2,
-               deprecated_for_removal=True,
-               deprecated_reason=_('Ironic will only support using Glance API '
-                                   'version 2 in the Queens release.')),
 ]
 
 
