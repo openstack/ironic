@@ -1,0 +1,6 @@
+---
+other:
+  - |
+    Removes Vagrant files and the information in documentation since
+    the files were too outdated. This would lead to errors if developers
+    tried to set up an environment with Vagrant.

@@ -207,29 +207,9 @@ Step 1: Create a Python virtualenv
     export OS_TOKEN=fake-token
     export OS_URL=http://localhost:6385/
 
-Next, install and configure system dependencies. Two different approaches are
-described below; you should only do one of these.
+Next, install and configure system dependencies.
 
-Step 2a: System Dependencies In A Virtual Machine
--------------------------------------------------
-
-This option requires `virtualbox <https://www.virtualbox.org>`_,
-`vagrant <https://www.vagrantup.com>`_, and
-`ansible <https://www.ansible.com>`_. You may install these using your
-favorite package manager, or by downloading from the provided links.
-
-#. Let vagrant do the work::
-
-    vagrant up
-
-This will create a VM available to your local system at `192.168.99.11`,
-will install all the necessary service dependencies,
-and configure some default users. It will also generate
-`./etc/ironic/ironic.conf.local` preconfigured for local dev work.
-We recommend you compare and familiarize yourself with the settings in
-`./etc/ironic/ironic.conf.sample` so you can adjust it to meet your own needs.
-
-Step 2b: Install System Dependencies Locally
+Step 2: Install System Dependencies Locally
 --------------------------------------------
 
 This option will install RabbitMQ and MySQL on your local system. This may not
