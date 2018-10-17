@@ -89,6 +89,9 @@ supplied when the Node is created, or the resource may be updated later.
 .. versionadded:: 1.44
   Introduced the ``deploy_step`` field.
 
+.. versionadded:: 1.46
+  Introduced the ``conductor_group`` field.
+
 Normal response codes: 201
 
 Error codes: 400,403,406
@@ -99,6 +102,7 @@ Request
 .. rest_parameters:: parameters.yaml
 
    - boot_interface: req_boot_interface
+   - conductor_group: req_conductor_group
    - console_interface: req_console_interface
    - deploy_interface: req_deploy_interface
    - driver_info: req_driver_info
@@ -135,7 +139,7 @@ and any defaults added for non-specified fields. Most fields default to "null"
 or "".
 
 The list and example below are representative of the response as of API
-microversion 1.44.
+microversion 1.46.
 
 .. rest_parameters:: parameters.yaml
 
@@ -181,6 +185,7 @@ microversion 1.44.
     - traits: n_traits
     - vendor_interface: vendor_interface
     - volume: n_volume
+    - conductor_group: conductor_group
 
 **Example JSON representation of a Node:**
 
@@ -221,7 +226,12 @@ provision state, and maintenance setting for each Node.
 
 .. versionadded:: 1.43
   Added the ``detail`` boolean request parameter. When specified ``True`` this
-  causes the response to include complete details about each node.
+  causes the response to include complete details about each node, as shown
+  in the "List Nodes Detailed" section below.
+
+.. versionadded:: 1.46
+  Introduced the ``conductor_group`` request parameter, to allow filtering the
+  list of returned nodes by conductor group.
 
 Normal response codes: 200
 
@@ -238,6 +248,7 @@ Request
    - provision_state: r_provision_state
    - driver: r_driver
    - resource_class: r_resource_class
+   - conductor_group: r_conductor_group
    - fault: r_fault
    - fields: fields
    - limit: limit
@@ -288,6 +299,9 @@ Nova instance, eg. with a request to ``v1/nodes/detail?instance_uuid={NOVA INSTA
 .. versionadded:: 1.42
   Introduced the ``fault`` field.
 
+.. versionadded:: 1.46
+  Introduced the ``conductor_group`` field.
+
 Normal response codes: 200
 
 Error codes: 400,403,406
@@ -304,6 +318,7 @@ Request
    - provision_state: r_provision_state
    - driver: r_driver
    - resource_class: r_resource_class
+   - conductor_group: r_conductor_group
    - limit: limit
    - marker: marker
    - sort_dir: sort_dir
@@ -356,6 +371,7 @@ Response
     - traits: n_traits
     - vendor_interface: vendor_interface
     - volume: n_volume
+    - conductor_group: conductor_group
 
 **Example detailed list of Nodes:**
 
@@ -380,6 +396,9 @@ only the specified set.
 
 .. versionadded:: 1.42
   Introduced the ``fault`` field.
+
+.. versionadded:: 1.46
+  Introduced the ``conductor_group`` field.
 
 Normal response codes: 200
 
@@ -440,6 +459,7 @@ Response
     - traits: n_traits
     - vendor_interface: vendor_interface
     - volume: n_volume
+    - conductor_group: conductor_group
 
 **Example JSON representation of a Node:**
 
@@ -525,6 +545,7 @@ Response
     - traits: n_traits
     - vendor_interface: vendor_interface
     - volume: n_volume
+    - conductor_group: conductor_group
 
 **Example JSON representation of a Node:**
 
