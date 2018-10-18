@@ -358,6 +358,42 @@ def check_allow_specify_fields(fields):
         raise exception.NotAcceptable()
 
 
+VERSIONED_FIELDS = {
+    'driver_internal_info': versions.MINOR_3_DRIVER_INTERNAL_INFO,
+    'name': versions.MINOR_5_NODE_NAME,
+    'inspection_finished_at': versions.MINOR_6_INSPECT_STATE,
+    'inspection_started_at': versions.MINOR_6_INSPECT_STATE,
+    'clean_step': versions.MINOR_7_NODE_CLEAN,
+    'raid_config': versions.MINOR_12_RAID_CONFIG,
+    'target_raid_config': versions.MINOR_12_RAID_CONFIG,
+    'network_interface': versions.MINOR_20_NETWORK_INTERFACE,
+    'resource_class': versions.MINOR_21_RESOURCE_CLASS,
+    'storage_interface': versions.MINOR_33_STORAGE_INTERFACE,
+    'traits': versions.MINOR_37_NODE_TRAITS,
+    'rescue_interface': versions.MINOR_38_RESCUE_INTERFACE,
+    'bios_interface': versions.MINOR_40_BIOS_INTERFACE,
+    'fault': versions.MINOR_42_FAULT,
+    'deploy_step': versions.MINOR_44_NODE_DEPLOY_STEP,
+    'conductor_group': versions.MINOR_46_NODE_CONDUCTOR_GROUP,
+    'automated_clean': versions.MINOR_47_NODE_AUTOMATED_CLEAN,
+}
+
+for field in V31_FIELDS:
+    VERSIONED_FIELDS[field] = versions.MINOR_31_DYNAMIC_INTERFACES
+
+
+def allow_field(field):
+    """Check if a field is allowed in the current version."""
+    return pecan.request.version.minor >= VERSIONED_FIELDS[field]
+
+
+def disallowed_fields():
+    """Generator of fields not allowed in the current request."""
+    for field in VERSIONED_FIELDS:
+        if not allow_field(field):
+            yield field
+
+
 def check_allowed_fields(fields):
     """Check if fetching a particular field is allowed.
 
@@ -366,25 +402,9 @@ def check_allowed_fields(fields):
     """
     if fields is None:
         return
-    if 'bios_interface' in fields and not allow_bios_interface():
-        raise exception.NotAcceptable()
-    if 'network_interface' in fields and not allow_network_interface():
-        raise exception.NotAcceptable()
-    if 'resource_class' in fields and not allow_resource_class():
-        raise exception.NotAcceptable()
-    if not allow_dynamic_interfaces():
-        if set(V31_FIELDS).intersection(set(fields)):
+    for field in disallowed_fields():
+        if field in fields:
             raise exception.NotAcceptable()
-    if 'storage_interface' in fields and not allow_storage_interface():
-        raise exception.NotAcceptable()
-    if 'traits' in fields and not allow_traits():
-        raise exception.NotAcceptable()
-    if 'rescue_interface' in fields and not allow_rescue_interface():
-        raise exception.NotAcceptable()
-    if 'conductor_group' in fields and not allow_conductor_group():
-        raise exception.NotAcceptable()
-    if 'automated_clean' in fields and not allow_automated_clean():
-        raise exception.NotAcceptable()
 
 
 def check_allowed_portgroup_fields(fields):
@@ -585,24 +605,6 @@ def allow_port_advanced_net_fields():
             >= versions.MINOR_19_PORT_ADVANCED_NET_FIELDS)
 
 
-def allow_network_interface():
-    """Check if we should support network_interface node field.
-
-    Version 1.20 of the API added support for network interfaces.
-    """
-    return (pecan.request.version.minor
-            >= versions.MINOR_20_NETWORK_INTERFACE)
-
-
-def allow_resource_class():
-    """Check if we should support resource_class node field.
-
-    Version 1.21 of the API added support for resource_class.
-    """
-    return (pecan.request.version.minor
-            >= versions.MINOR_21_RESOURCE_CLASS)
-
-
 def allow_ramdisk_endpoints():
     """Check if heartbeat and lookup endpoints are allowed.
 
@@ -689,7 +691,7 @@ def allow_volume():
 
 
 def allow_storage_interface():
-    """Check if we should support storage_interface node field.
+    """Check if we should support storage_interface node and driver fields.
 
     Version 1.33 of the API added support for storage interfaces.
     """
@@ -738,7 +740,7 @@ def allow_rescue_interface():
 
 
 def allow_bios_interface():
-    """Check if we should support bios interface.
+    """Check if we should support bios interface and endpoints.
 
     Version 1.40 of the API added support for bios interface.
     """
@@ -887,24 +889,6 @@ def allow_reset_interfaces():
     """Check if passing a reset_interfaces query string is allowed."""
     return (pecan.request.version.minor >=
             versions.MINOR_45_RESET_INTERFACES)
-
-
-def allow_conductor_group():
-    """Check if passing a conductor_group for a node is allowed.
-
-    Version 1.46 exposes this field.
-    """
-    return (pecan.request.version.minor >=
-            versions.MINOR_46_NODE_CONDUCTOR_GROUP)
-
-
-def allow_automated_clean():
-    """Check if passing automated_clean for a node is allowed.
-
-    Version 1.47 exposes this field.
-    """
-    return (pecan.request.version.minor >=
-            versions.MINOR_47_NODE_AUTOMATED_CLEAN)
 
 
 def get_request_return_fields(fields, detail, default_fields):

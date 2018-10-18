@@ -405,20 +405,6 @@ class TestApiUtils(base.TestCase):
         self.assertFalse(utils.allow_port_advanced_net_fields())
 
     @mock.patch.object(pecan, 'request', spec_set=['version'])
-    def test_allow_network_interface(self, mock_request):
-        mock_request.version.minor = 20
-        self.assertTrue(utils.allow_network_interface())
-        mock_request.version.minor = 19
-        self.assertFalse(utils.allow_network_interface())
-
-    @mock.patch.object(pecan, 'request', spec_set=['version'])
-    def test_allow_resource_class(self, mock_request):
-        mock_request.version.minor = 21
-        self.assertTrue(utils.allow_resource_class())
-        mock_request.version.minor = 20
-        self.assertFalse(utils.allow_resource_class())
-
-    @mock.patch.object(pecan, 'request', spec_set=['version'])
     def test_allow_ramdisk_endpoints(self, mock_request):
         mock_request.version.minor = 22
         self.assertTrue(utils.allow_ramdisk_endpoints())
@@ -536,13 +522,6 @@ class TestApiUtils(base.TestCase):
         self.assertTrue(utils.allow_inspect_abort())
         mock_request.version.minor = 40
         self.assertFalse(utils.allow_inspect_abort())
-
-    @mock.patch.object(pecan, 'request', spec_set=['version'])
-    def test_allow_conductor_group(self, mock_request):
-        mock_request.version.minor = 46
-        self.assertTrue(utils.allow_conductor_group())
-        mock_request.version.minor = 45
-        self.assertFalse(utils.allow_conductor_group())
 
 
 class TestNodeIdent(base.TestCase):
