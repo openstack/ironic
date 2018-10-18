@@ -85,6 +85,7 @@ BASE_VERSION = 1
 # v1.45: reset_interfaces parameter to node's PATCH
 # v1.46: Add conductor_group to the node object.
 # v1.47: Add automated_clean to the node object.
+# v1.48: Add protected to the node object.
 
 MINOR_0_JUNO = 0
 MINOR_1_INITIAL_VERSION = 1
@@ -134,6 +135,7 @@ MINOR_44_NODE_DEPLOY_STEP = 44
 MINOR_45_RESET_INTERFACES = 45
 MINOR_46_NODE_CONDUCTOR_GROUP = 46
 MINOR_47_NODE_AUTOMATED_CLEAN = 47
+MINOR_48_NODE_PROTECTED = 48
 
 # When adding another version, update:
 # - MINOR_MAX_VERSION
@@ -141,7 +143,7 @@ MINOR_47_NODE_AUTOMATED_CLEAN = 47
 #   explanation of what changed in the new version
 # - common/release_mappings.py, RELEASE_MAPPING['master']['api']
 
-MINOR_MAX_VERSION = MINOR_47_NODE_AUTOMATED_CLEAN
+MINOR_MAX_VERSION = MINOR_48_NODE_PROTECTED
 
 # String representations of the minor and maximum versions
 _MIN_VERSION_STRING = '{}.{}'.format(BASE_VERSION, MINOR_1_INITIAL_VERSION)

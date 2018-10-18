@@ -1,0 +1,7 @@
+---
+features:
+  - |
+    It is now possible to protect a provisioned node from being undeployed,
+    rebuilt or deleted by setting the new ``protected`` field to ``True``.
+    The new ``protected_reason`` field can be used to document the reason
+    the node was made protected.

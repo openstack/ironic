@@ -987,6 +987,18 @@ properties:
   in: body
   required: true
   type: array
+protected:
+  description: |
+    Whether the node is protected from undeploying, rebuilding and deletion.
+  in: body
+  required: false
+  type: boolean
+protected_reason:
+  description: |
+    The reason the node is marked as protected.
+  in: body
+  required: false
+  type: string
 provision_state:
   description: |
     The current provisioning state of this Node.

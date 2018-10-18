@@ -135,6 +135,24 @@ class ConductorManager(base_manager.BaseConductorManager):
         node_obj.create()
         return node_obj
 
+    def _check_update_protected(self, node_obj, delta):
+        if 'protected' in delta:
+            if not node_obj.protected:
+                node_obj.protected_reason = None
+            elif node_obj.provision_state not in (states.ACTIVE,
+                                                  states.RESCUE):
+                raise exception.InvalidState(
+                    "Node %(node)s can only be made protected in provision "
+                    "states 'active' or 'rescue', the current state is "
+                    "'%(state)s'" %
+                    {'node': node_obj.uuid, 'state': node_obj.provision_state})
+
+        if ('protected_reason' in delta and node_obj.protected_reason and not
+                node_obj.protected):
+            raise exception.InvalidParameterValue(
+                "The protected_reason field can only be set when "
+                "protected is True")
+
     @METRICS.timer('ConductorManager.update_node')
     # No need to add these since they are subclasses of InvalidParameterValue:
     #     InterfaceNotFoundInEntrypoint
@@ -169,6 +187,8 @@ class ConductorManager(base_manager.BaseConductorManager):
         if 'maintenance' in delta and not node_obj.maintenance:
             node_obj.maintenance_reason = None
             node_obj.fault = None
+
+        self._check_update_protected(node_obj, delta)
 
         # TODO(dtantsur): reconsider allowing changing some (but not all)
         # interfaces for active nodes in the future.
@@ -736,7 +756,8 @@ class ConductorManager(base_manager.BaseConductorManager):
                                    exception.NodeLocked,
                                    exception.NodeInMaintenance,
                                    exception.InstanceDeployFailure,
-                                   exception.InvalidStateRequested)
+                                   exception.InvalidStateRequested,
+                                   exception.NodeProtected)
     def do_node_deploy(self, context, node_id, rebuild=False,
                        configdrive=None):
         """RPC method to initiate deployment to a node.
@@ -758,7 +779,7 @@ class ConductorManager(base_manager.BaseConductorManager):
                  async task.
         :raises: InvalidStateRequested when the requested state is not a valid
                  target from the current state.
-
+        :raises: NodeProtected if the node is protected.
         """
         LOG.debug("RPC do_node_deploy called for node %s.", node_id)
 
@@ -774,6 +795,9 @@ class ConductorManager(base_manager.BaseConductorManager):
                                                   node=node.uuid)
 
             if rebuild:
+                if node.protected:
+                    raise exception.NodeProtected(node=node.uuid)
+
                 event = 'rebuild'
 
                 # Note(gilliard) Clear these to force the driver to
@@ -881,7 +905,8 @@ class ConductorManager(base_manager.BaseConductorManager):
     @messaging.expected_exceptions(exception.NoFreeConductorWorker,
                                    exception.NodeLocked,
                                    exception.InstanceDeployFailure,
-                                   exception.InvalidStateRequested)
+                                   exception.InvalidStateRequested,
+                                   exception.NodeProtected)
     def do_node_tear_down(self, context, node_id):
         """RPC method to tear down an existing node deployment.
 
@@ -895,12 +920,15 @@ class ConductorManager(base_manager.BaseConductorManager):
                  async task
         :raises: InvalidStateRequested when the requested state is not a valid
                  target from the current state.
-
+        :raises: NodeProtected if the node is protected.
         """
         LOG.debug("RPC do_node_tear_down called for node %s.", node_id)
 
         with task_manager.acquire(context, node_id, shared=False,
                                   purpose='node tear down') as task:
+            if task.node.protected:
+                raise exception.NodeProtected(node=task.node.uuid)
+
             try:
                 # NOTE(ghe): Valid power driver values are needed to perform
                 # a tear-down. Deploy info is useful to purge the cache but not
@@ -2129,7 +2157,8 @@ class ConductorManager(base_manager.BaseConductorManager):
     @METRICS.timer('ConductorManager.destroy_node')
     @messaging.expected_exceptions(exception.NodeLocked,
                                    exception.NodeAssociated,
-                                   exception.InvalidState)
+                                   exception.InvalidState,
+                                   exception.NodeProtected)
     def destroy_node(self, context, node_id):
         """Delete a node.
 
@@ -2140,7 +2169,7 @@ class ConductorManager(base_manager.BaseConductorManager):
             associated with it.
         :raises: InvalidState if the node is in the wrong provision
             state to perform deletion.
-
+        :raises: NodeProtected if the node is protected.
         """
         # NOTE(dtantsur): we allow deleting a node in maintenance mode even if
         # we would disallow it otherwise. That's done for recovering hopelessly
@@ -2151,6 +2180,9 @@ class ConductorManager(base_manager.BaseConductorManager):
             if not node.maintenance and node.instance_uuid is not None:
                 raise exception.NodeAssociated(node=node.uuid,
                                                instance=node.instance_uuid)
+
+            if task.node.protected:
+                raise exception.NodeProtected(node=node.uuid)
 
             # NOTE(lucasagomes): For the *FAIL states we users should
             # move it to a safe state prior to deletion. This is because we

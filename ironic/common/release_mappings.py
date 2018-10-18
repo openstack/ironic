@@ -131,10 +131,10 @@ RELEASE_MAPPING = {
         }
     },
     'master': {
-        'api': '1.47',
+        'api': '1.48',
         'rpc': '1.47',
         'objects': {
-            'Node': ['1.28'],
+            'Node': ['1.29', '1.28'],
             'Conductor': ['1.3'],
             'Chassis': ['1.3'],
             'Port': ['1.8'],

@@ -65,7 +65,8 @@ class Node(base.IronicObject, object_base.VersionedObjectDictCompat):
     # Version 1.26: Add deploy_step field
     # Version 1.27: Add conductor_group field
     # Version 1.28: Add automated_clean field
-    VERSION = '1.28'
+    # Version 1.29: Add protected and protected_reason fields
+    VERSION = '1.29'
 
     dbapi = db_api.get_instance()
 
@@ -132,6 +133,9 @@ class Node(base.IronicObject, object_base.VersionedObjectDictCompat):
 
         'extra': object_fields.FlexibleDictField(nullable=True),
         'automated_clean': objects.fields.BooleanField(nullable=True),
+        'protected': objects.fields.BooleanField(),
+        'protected_reason': object_fields.StringField(nullable=True),
+
         'bios_interface': object_fields.StringField(nullable=True),
         'boot_interface': object_fields.StringField(nullable=True),
         'console_interface': object_fields.StringField(nullable=True),
@@ -575,6 +579,8 @@ class Node(base.IronicObject, object_base.VersionedObjectDictCompat):
             this, it should be removed.
         Version 1.28: automated_clean was added. For versions prior to this, it
             should be set to None (or removed).
+        Version 1.29: protected was added. For versions prior to this, it
+            should be set to False (or removed).
 
         :param target_version: the desired version of the object
         :param remove_unavailable_fields: True to remove fields that are
@@ -586,10 +592,15 @@ class Node(base.IronicObject, object_base.VersionedObjectDictCompat):
 
         # Convert the different fields depending on version
         fields = [('rescue_interface', 22), ('traits', 23),
-                  ('bios_interface', 24), ('automated_clean', 28)]
+                  ('bios_interface', 24), ('automated_clean', 28),
+                  ('protected_reason', 29)]
         for name, minor in fields:
             self._adjust_field_to_version(name, None, target_version,
                                           1, minor, remove_unavailable_fields)
+
+        # NOTE(dtantsur): the default is False for protected
+        self._adjust_field_to_version('protected', False, target_version,
+                                      1, 29, remove_unavailable_fields)
 
         self._convert_fault_field(target_version, remove_unavailable_fields)
         self._convert_deploy_step_field(target_version,
@@ -639,6 +650,8 @@ class NodePayload(notification.NotificationPayloadBase):
         'vendor_interface': ('node', 'vendor_interface'),
         'power_state': ('node', 'power_state'),
         'properties': ('node', 'properties'),
+        'protected': ('node', 'protected'),
+        'protected_reason': ('node', 'protected_reason'),
         'provision_state': ('node', 'provision_state'),
         'provision_updated_at': ('node', 'provision_updated_at'),
         'resource_class': ('node', 'resource_class'),
@@ -660,7 +673,8 @@ class NodePayload(notification.NotificationPayloadBase):
     # Version 1.8: Add bios interface field exposed via API.
     # Version 1.9: Add deploy_step field exposed via API.
     # Version 1.10: Add conductor_group field exposed via API.
-    VERSION = '1.10'
+    # Version 1.11: Add protected and protected_reason fields exposed via API.
+    VERSION = '1.11'
     fields = {
         'clean_step': object_fields.FlexibleDictField(nullable=True),
         'conductor_group': object_fields.StringField(nullable=True),
@@ -691,6 +705,8 @@ class NodePayload(notification.NotificationPayloadBase):
         'name': object_fields.StringField(nullable=True),
         'power_state': object_fields.StringField(nullable=True),
         'properties': object_fields.FlexibleDictField(nullable=True),
+        'protected': object_fields.BooleanField(nullable=True),
+        'protected_reason': object_fields.StringField(nullable=True),
         'provision_state': object_fields.StringField(nullable=True),
         'provision_updated_at': object_fields.DateTimeField(nullable=True),
         'resource_class': object_fields.StringField(nullable=True),
@@ -737,7 +753,8 @@ class NodeSetPowerStatePayload(NodePayload):
     # Version 1.8: Parent NodePayload version 1.8
     # Version 1.9: Parent NodePayload version 1.9
     # Version 1.10: Parent NodePayload version 1.10
-    VERSION = '1.10'
+    # Version 1.11: Parent NodePayload version 1.11
+    VERSION = '1.11'
 
     fields = {
         # "to_power" indicates the future target_power_state of the node. A
@@ -788,7 +805,8 @@ class NodeCorrectedPowerStatePayload(NodePayload):
     # Version 1.8: Parent NodePayload version 1.8
     # Version 1.9: Parent NodePayload version 1.9
     # Version 1.10: Parent NodePayload version 1.10
-    VERSION = '1.10'
+    # Version 1.11: Parent NodePayload version 1.11
+    VERSION = '1.11'
 
     fields = {
         'from_power': object_fields.StringField(nullable=True)
@@ -823,7 +841,8 @@ class NodeSetProvisionStatePayload(NodePayload):
     # Version 1.8: Parent NodePayload version 1.8
     # Version 1.9: Parent NodePayload version 1.9
     # Version 1.10: Parent NodePayload version 1.10
-    VERSION = '1.10'
+    # Version 1.11: Parent NodePayload version 1.11
+    VERSION = '1.11'
 
     SCHEMA = dict(NodePayload.SCHEMA,
                   **{'instance_info': ('node', 'instance_info')})
@@ -865,7 +884,8 @@ class NodeCRUDPayload(NodePayload):
     # Version 1.6: Parent NodePayload version 1.8
     # Version 1.7: Parent NodePayload version 1.9
     # Version 1.8: Parent NodePayload version 1.10
-    VERSION = '1.8'
+    # Version 1.9: Parent NodePayload version 1.11
+    VERSION = '1.9'
 
     SCHEMA = dict(NodePayload.SCHEMA,
                   **{'instance_info': ('node', 'instance_info'),

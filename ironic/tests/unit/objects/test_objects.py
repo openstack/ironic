@@ -677,7 +677,7 @@ class TestObject(_LocalTest, _TestObject):
 # version bump. It is an MD5 hash of the object fields and remotable methods.
 # The fingerprint values should only be changed if there is a version bump.
 expected_object_fingerprints = {
-    'Node': '1.28-d4aba1f583774326903f7366fbaae752',
+    'Node': '1.29-7af860bb4017751104558139c52a1327',
     'MyObj': '1.5-9459d30d6954bffc7a9afd347a807ca6',
     'Chassis': '1.3-d656e039fd8ae9f34efc232ab3980905',
     'Port': '1.8-898a47921f4a1f53fcdddd4eeb179e0b',
@@ -685,21 +685,21 @@ expected_object_fingerprints = {
     'Conductor': '1.3-d3f53e853b4d58cae5bfbd9a8341af4a',
     'EventType': '1.1-aa2ba1afd38553e3880c267404e8d370',
     'NotificationPublisher': '1.0-51a09397d6c0687771fb5be9a999605d',
-    'NodePayload': '1.10-618d4ebd121671f463836b7c4ec45114',
+    'NodePayload': '1.11-f323602c2e9c3edbf2a5567eca087ff5',
     'NodeSetPowerStateNotification': '1.0-59acc533c11d306f149846f922739c15',
-    'NodeSetPowerStatePayload': '1.10-74b186077c80e13060de5e2dac9baed5',
+    'NodeSetPowerStatePayload': '1.11-b61e66ef9d100a2cc564d16b12810855',
     'NodeCorrectedPowerStateNotification':
         '1.0-59acc533c11d306f149846f922739c15',
-    'NodeCorrectedPowerStatePayload': '1.10-f85fc83dceda2d7ed356368cda0f008f',
+    'NodeCorrectedPowerStatePayload': '1.11-e6e32a38ca655509802ac3c6d8bc17f6',
     'NodeSetProvisionStateNotification':
         '1.0-59acc533c11d306f149846f922739c15',
-    'NodeSetProvisionStatePayload': '1.10-80e9581b0663dd47362f0b7ab19e4674',
+    'NodeSetProvisionStatePayload': '1.11-d13cb3472eea163de5b0723a08e95d2c',
     'VolumeConnector': '1.0-3e0252c0ab6e6b9d158d09238a577d97',
     'VolumeTarget': '1.0-0b10d663d8dae675900b2c7548f76f5e',
     'ChassisCRUDNotification': '1.0-59acc533c11d306f149846f922739c15',
     'ChassisCRUDPayload': '1.0-dce63895d8186279a7dd577cffccb202',
     'NodeCRUDNotification': '1.0-59acc533c11d306f149846f922739c15',
-    'NodeCRUDPayload': '1.8-8086c2706c8f89db8294ab7511b9337b',
+    'NodeCRUDPayload': '1.9-c5e57432274371f7fe32f269519033cf',
     'PortCRUDNotification': '1.0-59acc533c11d306f149846f922739c15',
     'PortCRUDPayload': '1.2-233d259df442eb15cc584fae1fe81504',
     'NodeMaintenanceNotification': '1.0-59acc533c11d306f149846f922739c15',

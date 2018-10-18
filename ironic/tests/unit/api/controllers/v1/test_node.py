@@ -125,6 +125,8 @@ class TestListNodes(test_api_base.BaseApiTest):
         self.assertNotIn('deploy_step', data['nodes'][0])
         self.assertNotIn('conductor_group', data['nodes'][0])
         self.assertNotIn('automated_clean', data['nodes'][0])
+        self.assertNotIn('protected', data['nodes'][0])
+        self.assertNotIn('protected_reason', data['nodes'][0])
 
     def test_get_one(self):
         node = obj_utils.create_test_node(self.context,
@@ -164,6 +166,8 @@ class TestListNodes(test_api_base.BaseApiTest):
         self.assertIn('deploy_step', data)
         self.assertIn('conductor_group', data)
         self.assertIn('automated_clean', data)
+        self.assertIn('protected', data)
+        self.assertIn('protected_reason', data)
 
     def test_get_one_with_json(self):
         # Test backward compatibility with guess_content_type_from_ext
@@ -285,6 +289,33 @@ class TestListNodes(test_api_base.BaseApiTest):
         data = self.get_json('/nodes/%s' % node.uuid,
                              headers={api_base.Version.string: '1.47'})
         self.assertEqual(data['automated_clean'], False)
+
+    def test_node_protected_hidden_in_lower_version(self):
+        self._test_node_field_hidden_in_lower_version('protected',
+                                                      '1.47', '1.48')
+
+    def test_node_protected_reason_hidden_in_lower_version(self):
+        self._test_node_field_hidden_in_lower_version('protected_reason',
+                                                      '1.47', '1.48')
+
+    def test_node_protected(self):
+        for value in (True, False):
+            node = obj_utils.create_test_node(self.context, protected=value,
+                                              provision_state='active',
+                                              uuid=uuidutils.generate_uuid())
+            data = self.get_json('/nodes/%s' % node.uuid,
+                                 headers={api_base.Version.string: '1.48'})
+            self.assertIs(data['protected'], value)
+            self.assertIsNone(data['protected_reason'])
+
+    def test_node_protected_with_reason(self):
+        node = obj_utils.create_test_node(self.context, protected=True,
+                                          provision_state='active',
+                                          protected_reason='reason!')
+        data = self.get_json('/nodes/%s' % node.uuid,
+                             headers={api_base.Version.string: '1.48'})
+        self.assertTrue(data['protected'])
+        self.assertEqual('reason!', data['protected_reason'])
 
     def test_get_one_custom_fields(self):
         node = obj_utils.create_test_node(self.context,
@@ -450,6 +481,14 @@ class TestListNodes(test_api_base.BaseApiTest):
                                  headers={api_base.Version.string: '1.47'})
         self.assertIn('automated_clean', response)
 
+    def test_get_protected_fields(self):
+        node = obj_utils.create_test_node(self.context,
+                                          protected=True)
+        response = self.get_json('/nodes/%s?fields=%s' %
+                                 (node.uuid, 'protected'),
+                                 headers={api_base.Version.string: '1.48'})
+        self.assertIn('protected', response)
+
     def test_detail(self):
         node = obj_utils.create_test_node(self.context,
                                           chassis_id=self.chassis.id)
@@ -481,6 +520,8 @@ class TestListNodes(test_api_base.BaseApiTest):
         self.assertIn('traits', data['nodes'][0])
         self.assertIn('conductor_group', data['nodes'][0])
         self.assertIn('automated_clean', data['nodes'][0])
+        self.assertIn('protected', data['nodes'][0])
+        self.assertIn('protected_reason', data['nodes'][0])
         # never expose the chassis_id
         self.assertNotIn('chassis_id', data['nodes'][0])
 
@@ -511,6 +552,8 @@ class TestListNodes(test_api_base.BaseApiTest):
         self.assertIn('resource_class', data['nodes'][0])
         self.assertIn('conductor_group', data['nodes'][0])
         self.assertIn('automated_clean', data['nodes'][0])
+        self.assertIn('protected', data['nodes'][0])
+        self.assertIn('protected_reason', data['nodes'][0])
         for field in api_utils.V31_FIELDS:
             self.assertIn(field, data['nodes'][0])
         # never expose the chassis_id
@@ -2636,6 +2679,66 @@ class TestPatch(test_api_base.BaseApiTest):
         self.assertEqual('application/json', response.content_type)
         self.assertEqual(http_client.NOT_ACCEPTABLE, response.status_code)
 
+    def test_update_protected(self):
+        node = obj_utils.create_test_node(self.context,
+                                          uuid=uuidutils.generate_uuid(),
+                                          provision_state='active')
+        self.mock_update_node.return_value = node
+        headers = {api_base.Version.string: '1.48'}
+        response = self.patch_json('/nodes/%s' % node.uuid,
+                                   [{'path': '/protected',
+                                     'value': True,
+                                     'op': 'replace'}],
+                                   headers=headers)
+        self.assertEqual('application/json', response.content_type)
+        self.assertEqual(http_client.OK, response.status_code)
+
+    def test_update_protected_with_reason(self):
+        node = obj_utils.create_test_node(self.context,
+                                          uuid=uuidutils.generate_uuid(),
+                                          provision_state='active')
+        self.mock_update_node.return_value = node
+        headers = {api_base.Version.string: '1.48'}
+        response = self.patch_json('/nodes/%s' % node.uuid,
+                                   [{'path': '/protected',
+                                     'value': True,
+                                     'op': 'replace'},
+                                    {'path': '/protected_reason',
+                                     'value': 'reason!',
+                                     'op': 'replace'}],
+                                   headers=headers)
+        self.assertEqual('application/json', response.content_type)
+        self.assertEqual(http_client.OK, response.status_code)
+
+    def test_update_protected_reason(self):
+        node = obj_utils.create_test_node(self.context,
+                                          uuid=uuidutils.generate_uuid(),
+                                          provision_state='active',
+                                          protected=True)
+        self.mock_update_node.return_value = node
+        headers = {api_base.Version.string: '1.48'}
+        response = self.patch_json('/nodes/%s' % node.uuid,
+                                   [{'path': '/protected_reason',
+                                     'value': 'reason!',
+                                     'op': 'replace'}],
+                                   headers=headers)
+        self.assertEqual('application/json', response.content_type)
+        self.assertEqual(http_client.OK, response.status_code)
+
+    def test_update_protected_old_api(self):
+        node = obj_utils.create_test_node(self.context,
+                                          uuid=uuidutils.generate_uuid())
+        self.mock_update_node.return_value = node
+        headers = {api_base.Version.string: '1.47'}
+        response = self.patch_json('/nodes/%s' % node.uuid,
+                                   [{'path': '/protected',
+                                     'value': True,
+                                     'op': 'replace'}],
+                                   headers=headers,
+                                   expect_errors=True)
+        self.assertEqual('application/json', response.content_type)
+        self.assertEqual(http_client.NOT_ACCEPTABLE, response.status_code)
+
 
 def _create_node_locally(node):
     driver_factory.check_and_update_node_interfaces(node)
@@ -3234,6 +3337,14 @@ class TestPost(test_api_base.BaseApiTest):
                                   expect_errors=True)
         self.assertEqual('application/json', response.content_type)
         self.assertEqual(http_client.NOT_ACCEPTABLE, response.status_int)
+
+    def test_create_node_protected_not_allowed(self):
+        headers = {api_base.Version.string: '1.48'}
+        ndict = test_api_utils.post_get_test_node(protected=True)
+        response = self.post_json('/nodes', ndict, headers=headers,
+                                  expect_errors=True)
+        self.assertEqual('application/json', response.content_type)
+        self.assertEqual(http_client.BAD_REQUEST, response.status_int)
 
 
 class TestDelete(test_api_base.BaseApiTest):

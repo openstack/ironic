@@ -765,6 +765,27 @@ class MigrationCheckersMixin(object):
         col_names = [column.name for column in nodes.c]
         self.assertIn('automated_clean', col_names)
 
+    def _pre_upgrade_93706939026c(self, engine):
+        data = {
+            'node_uuid': uuidutils.generate_uuid(),
+        }
+
+        nodes = db_utils.get_table(engine, 'nodes')
+        nodes.insert().execute({'uuid': data['node_uuid']})
+
+        return data
+
+    def _check_93706939026c(self, engine, data):
+        nodes = db_utils.get_table(engine, 'nodes')
+        col_names = [column.name for column in nodes.c]
+        self.assertIn('protected', col_names)
+        self.assertIn('protected_reason', col_names)
+
+        node = nodes.select(
+            nodes.c.uuid == data['node_uuid']).execute().first()
+        self.assertFalse(node['protected'])
+        self.assertIsNone(node['protected_reason'])
+
     def test_upgrade_and_version(self):
         with patch_with_engine(self.engine):
             self.migration_api.upgrade('head')

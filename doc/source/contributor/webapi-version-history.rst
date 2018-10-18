@@ -2,6 +2,13 @@
 REST API Version History
 ========================
 
+1.48 (Stein, master)
+--------------------
+
+Added ``protected`` field to the node object to allow protecting deployed nodes
+from undeploying, rebuilding or deletion. Also added ``protected_reason``
+to specify the reason of making the node protected.
+
 1.47 (Stein, master)
 --------------------
 

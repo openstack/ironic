@@ -376,6 +376,8 @@ VERSIONED_FIELDS = {
     'deploy_step': versions.MINOR_44_NODE_DEPLOY_STEP,
     'conductor_group': versions.MINOR_46_NODE_CONDUCTOR_GROUP,
     'automated_clean': versions.MINOR_47_NODE_AUTOMATED_CLEAN,
+    'protected': versions.MINOR_48_NODE_PROTECTED,
+    'protected_reason': versions.MINOR_48_NODE_PROTECTED,
 }
 
 for field in V31_FIELDS:

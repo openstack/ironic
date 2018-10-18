@@ -1066,6 +1066,12 @@ class Node(base.APIBase):
     automated_clean = types.boolean
     """Indicates whether the node will perform automated clean or not."""
 
+    protected = types.boolean
+    """Indicates whether the node is protected from undeploying/rebuilding."""
+
+    protected_reason = wsme.wsattr(wtypes.text)
+    """Indicates reason for protecting the node."""
+
     # NOTE(deva): "conductor_affinity" shouldn't be presented on the
     #             API because it's an internal value. Don't add it here.
 
@@ -1253,7 +1259,8 @@ class Node(base.APIBase):
                      raid_interface=None, vendor_interface=None,
                      storage_interface=None, traits=[], rescue_interface=None,
                      bios_interface=None, conductor_group="",
-                     automated_clean=None)
+                     automated_clean=None, protected=False,
+                     protected_reason=None)
         # NOTE(matty_dubs): The chassis_uuid getter() is based on the
         # _chassis_uuid variable:
         sample._chassis_uuid = 'edcad704-b2da-41d5-96d9-afd580ecfa12'
@@ -1911,6 +1918,12 @@ class NodesController(rest.RestController):
         if node.traits is not wtypes.Unset:
             msg = _("Cannot specify node traits on node creation. Traits must "
                     "be set via the node traits API.")
+            raise exception.Invalid(msg)
+
+        if (node.protected is not wtypes.Unset or
+                node.protected_reason is not wtypes.Unset):
+            msg = _("Cannot specify protected or protected_reason on node "
+                    "creation. These fields can only be set for active nodes")
             raise exception.Invalid(msg)
 
         # NOTE(deva): get_topic_for checks if node.driver is in the hash ring
