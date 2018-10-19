@@ -163,7 +163,8 @@ class PXEBoot(pxe_base.PXEBaseMixin, base.BootInterface):
             pxe_info.update(pxe_utils.get_instance_image_info(task))
             boot_mode_utils.sync_boot_mode(task)
 
-        pxe_options = pxe_utils.build_pxe_config_options(task, pxe_info)
+        pxe_options = pxe_utils.build_pxe_config_options(
+            task, pxe_info, ipxe_enabled=ipxe_enabled)
         pxe_options.update(ramdisk_params)
 
         pxe_config_template = deploy_utils.get_pxe_config_template(node)
@@ -184,7 +185,8 @@ class PXEBoot(pxe_base.PXEBaseMixin, base.BootInterface):
             pxe_info.pop(ramdisk_label, None)
 
         if pxe_info:
-            pxe_utils.cache_ramdisk_kernel(task, pxe_info)
+            pxe_utils.cache_ramdisk_kernel(task, pxe_info,
+                                           ipxe_enabled=CONF.pxe.ipxe_enabled)
 
     @METRICS.timer('PXEBoot.prepare_instance')
     def prepare_instance(self, task):
@@ -207,7 +209,8 @@ class PXEBoot(pxe_base.PXEBaseMixin, base.BootInterface):
         instance_image_info = {}
         if boot_option == "ramdisk":
             instance_image_info = pxe_utils.get_instance_image_info(task)
-            pxe_utils.cache_ramdisk_kernel(task, instance_image_info)
+            pxe_utils.cache_ramdisk_kernel(task, instance_image_info,
+                                           ipxe_enabled=CONF.pxe.ipxe_enabled)
 
         if deploy_utils.is_iscsi_boot(task) or boot_option == "ramdisk":
             pxe_utils.prepare_instance_pxe_config(
@@ -222,7 +225,9 @@ class PXEBoot(pxe_base.PXEBaseMixin, base.BootInterface):
                 # Make sure that the instance kernel/ramdisk is cached.
                 # This is for the takeover scenario for active nodes.
                 instance_image_info = pxe_utils.get_instance_image_info(task)
-                pxe_utils.cache_ramdisk_kernel(task, instance_image_info)
+                pxe_utils.cache_ramdisk_kernel(
+                    task, instance_image_info,
+                    ipxe_enabled=CONF.pxe.ipxe_enabled)
 
             # If it's going to PXE boot we need to update the DHCP server
             dhcp_opts = pxe_utils.dhcp_options_for_instance(
@@ -249,7 +254,8 @@ class PXEBoot(pxe_base.PXEBaseMixin, base.BootInterface):
                                 "from deployment mode to service (boot) mode "
                                 "for node %(node)s. Booting the instance "
                                 "from disk.", {"node": task.node.uuid})
-                    pxe_utils.clean_up_pxe_config(task)
+                    pxe_utils.clean_up_pxe_config(
+                        task, ipxe_enabled=CONF.pxe.ipxe_enabled)
                     boot_device = boot_devices.DISK
             else:
                 pxe_utils.build_service_pxe_config(task, instance_image_info,
@@ -261,7 +267,8 @@ class PXEBoot(pxe_base.PXEBaseMixin, base.BootInterface):
             # PXE config files. They still need to be generated as part
             # of the prepare() because the deployment does PXE boot the
             # deploy ramdisk
-            pxe_utils.clean_up_pxe_config(task)
+            pxe_utils.clean_up_pxe_config(
+                task, ipxe_enabled=CONF.pxe.ipxe_enabled)
             boot_device = boot_devices.DISK
 
         # NOTE(pas-ha) do not re-set boot device on ACTIVE nodes

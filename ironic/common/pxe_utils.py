@@ -343,7 +343,7 @@ def create_ipxe_boot_script():
         utils.write_to_file(bootfile_path, boot_script)
 
 
-def clean_up_pxe_config(task):
+def clean_up_pxe_config(task, ipxe_enabled=False):
     """Clean up the TFTP environment for the task's node.
 
     :param task: A TaskManager instance.
@@ -353,7 +353,6 @@ def clean_up_pxe_config(task):
 
     is_uefi_boot_mode = (boot_mode_utils.get_boot_mode_for_deploy(task.node)
                          == 'uefi')
-    ipxe_enabled = is_ipxe_enabled(task)
 
     if is_uefi_boot_mode and not ipxe_enabled:
         api = dhcp_factory.DHCPFactory().provider
@@ -641,11 +640,10 @@ def get_image_info(node, mode='deploy'):
         node.uuid, d_info, mode=mode)
 
 
-def build_deploy_pxe_options(task, pxe_info, mode='deploy'):
+def build_deploy_pxe_options(task, pxe_info, mode='deploy',
+                             ipxe_enabled=False):
     pxe_opts = {}
     node = task.node
-    # TODO(TheJulia): In the future this should become an argument
-    ipxe_enabled = is_ipxe_enabled(task)
     kernel_label = '%s_kernel' % mode
     ramdisk_label = '%s_ramdisk' % mode
     for label, option in ((kernel_label, 'deployment_aki_path'),
@@ -667,14 +665,14 @@ def build_deploy_pxe_options(task, pxe_info, mode='deploy'):
     return pxe_opts
 
 
-def build_instance_pxe_options(task, pxe_info):
+def build_instance_pxe_options(task, pxe_info, ipxe_enabled=False):
     pxe_opts = {}
     node = task.node
 
     for label, option in (('kernel', 'aki_path'),
                           ('ramdisk', 'ari_path')):
         if label in pxe_info:
-            if is_ipxe_enabled(task):
+            if ipxe_enabled:
                 # NOTE(pas-ha) do not use Swift TempURLs for kernel and
                 # ramdisk of user image when boot_option is not local,
                 # as this breaks instance reboot later when temp urls
@@ -743,14 +741,16 @@ def build_pxe_config_options(task, pxe_info, service=False,
             and ipxe_enabled):
         pxe_options = get_volume_pxe_options(task)
     else:
-        pxe_options = build_deploy_pxe_options(task, pxe_info, mode=mode)
+        pxe_options = build_deploy_pxe_options(task, pxe_info, mode=mode,
+                                               ipxe_enabled=ipxe_enabled)
 
     # NOTE(pas-ha) we still must always add user image kernel and ramdisk
     # info as later during switching PXE config to service mode the
     # template will not be regenerated anew, but instead edited as-is.
     # This can be changed later if/when switching PXE config will also use
     # proper templating instead of editing existing files on disk.
-    pxe_options.update(build_instance_pxe_options(task, pxe_info))
+    pxe_options.update(build_instance_pxe_options(task, pxe_info,
+                                                  ipxe_enabled=ipxe_enabled))
 
     pxe_options.update(build_extra_pxe_options())
 
@@ -922,11 +922,11 @@ class TFTPImageCache(image_cache.ImageCache):
             cache_ttl=CONF.pxe.image_cache_ttl * 60)
 
 
-def cache_ramdisk_kernel(task, pxe_info):
+def cache_ramdisk_kernel(task, pxe_info, ipxe_enabled=False):
     """Fetch the necessary kernels and ramdisks for the instance."""
     ctx = task.context
     node = task.node
-    if is_ipxe_enabled(task):
+    if ipxe_enabled:
         path = os.path.join(get_ipxe_root_dir(), node.uuid)
     else:
         path = os.path.join(get_root_dir(), node.uuid)
@@ -937,7 +937,7 @@ def cache_ramdisk_kernel(task, pxe_info):
                               CONF.force_raw_images)
 
 
-def clean_up_pxe_env(task, images_info):
+def clean_up_pxe_env(task, images_info, ipxe_enabled=False):
     """Cleanup PXE environment of all the images in images_info.
 
     Cleans up the PXE environment for the mentioned images in
@@ -952,5 +952,5 @@ def clean_up_pxe_env(task, images_info):
         path = images_info[label][1]
         ironic_utils.unlink_without_raise(path)
 
-    clean_up_pxe_config(task)
+    clean_up_pxe_config(task, ipxe_enabled=ipxe_enabled)
     TFTPImageCache().clean_up()
