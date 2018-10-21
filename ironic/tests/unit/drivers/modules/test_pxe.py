@@ -38,6 +38,7 @@ from ironic.conductor import utils as manager_utils
 from ironic.drivers import base as drivers_base
 from ironic.drivers.modules import agent_base_vendor
 from ironic.drivers.modules import deploy_utils
+from ironic.drivers.modules import ipxe
 from ironic.drivers.modules import pxe
 from ironic.drivers.modules.storage import noop as noop_storage
 from ironic.tests.unit.db import base as db_base
@@ -51,6 +52,9 @@ DRV_INFO_DICT = db_utils.get_test_pxe_driver_info()
 DRV_INTERNAL_INFO_DICT = db_utils.get_test_pxe_driver_internal_info()
 
 
+# NOTE(TheJulia): This will need to be split until pxe interface code is
+# refactored and cleaned up.
+@mock.patch.object(ipxe.iPXEBoot, '__init__', lambda self: None)
 @mock.patch.object(pxe.PXEBoot, '__init__', lambda self: None)
 class PXEPrivateMethodsTestCase(db_base.DbTestCase):
 
@@ -146,20 +150,22 @@ class PXEPrivateMethodsTestCase(db_base.DbTestCase):
                                        'kernel'))}
         show_mock.return_value = properties
         self.context.auth_token = 'fake'
-        image_info = pxe._get_instance_image_info(self.node, self.context)
-        show_mock.assert_called_once_with(mock.ANY, 'glance://image_uuid',
-                                          method='get')
-        self.assertEqual(expected_info, image_info)
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            image_info = pxe._get_instance_image_info(task)
+            show_mock.assert_called_once_with(mock.ANY, 'glance://image_uuid',
+                                              method='get')
+            self.assertEqual(expected_info, image_info)
 
-        # test with saved info
-        show_mock.reset_mock()
-        image_info = pxe._get_instance_image_info(self.node, self.context)
-        self.assertEqual(expected_info, image_info)
-        self.assertFalse(show_mock.called)
-        self.assertEqual('instance_kernel_uuid',
-                         self.node.instance_info['kernel'])
-        self.assertEqual('instance_ramdisk_uuid',
-                         self.node.instance_info['ramdisk'])
+            # test with saved info
+            show_mock.reset_mock()
+            image_info = pxe._get_instance_image_info(task)
+            self.assertEqual(expected_info, image_info)
+            self.assertFalse(show_mock.called)
+            self.assertEqual('instance_kernel_uuid',
+                             task.node.instance_info['kernel'])
+            self.assertEqual('instance_ramdisk_uuid',
+                             task.node.instance_info['ramdisk'])
 
     def test__get_instance_image_info(self):
         # Tests when 'is_whole_disk_image' exists in driver_internal_info
@@ -177,17 +183,21 @@ class PXEPrivateMethodsTestCase(db_base.DbTestCase):
     def test__get_instance_image_info_localboot(self, boot_opt_mock):
         self.node.driver_internal_info['is_whole_disk_image'] = False
         self.node.save()
-        image_info = pxe._get_instance_image_info(self.node, self.context)
-        self.assertEqual({}, image_info)
-        boot_opt_mock.assert_called_once_with(self.node)
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            image_info = pxe._get_instance_image_info(task)
+            self.assertEqual({}, image_info)
+            boot_opt_mock.assert_called_once_with(task.node)
 
     @mock.patch.object(base_image_service.BaseImageService, '_show',
                        autospec=True)
     def test__get_instance_image_info_whole_disk_image(self, show_mock):
         properties = {'properties': None}
         show_mock.return_value = properties
-        self.node.driver_internal_info['is_whole_disk_image'] = True
-        image_info = pxe._get_instance_image_info(self.node, self.context)
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            task.node.driver_internal_info['is_whole_disk_image'] = True
+            image_info = pxe._get_instance_image_info(task)
         self.assertEqual({}, image_info)
 
     @mock.patch('ironic.common.utils.render_template', autospec=True)
@@ -442,7 +452,8 @@ class PXEPrivateMethodsTestCase(db_base.DbTestCase):
 
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
-            options = pxe._build_pxe_config_options(task, image_info)
+            options = pxe._build_pxe_config_options(
+                task, image_info, ipxe_enabled=True)
         self.assertEqual(expected_options, options)
 
     def test__build_pxe_config_options_ipxe(self):
@@ -637,10 +648,11 @@ class PXEPrivateMethodsTestCase(db_base.DbTestCase):
                                   'deploy_kernel')
         image_info = {'deploy_kernel': ('deploy_kernel', image_path)}
         fileutils.ensure_tree(CONF.pxe.tftp_master_path)
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            pxe._cache_ramdisk_kernel(task, image_info)
 
-        pxe._cache_ramdisk_kernel(None, self.node, image_info)
-
-        mock_fetch_image.assert_called_once_with(None,
+        mock_fetch_image.assert_called_once_with(self.context,
                                                  mock.ANY,
                                                  [('deploy_kernel',
                                                    image_path)],
@@ -653,8 +665,9 @@ class PXEPrivateMethodsTestCase(db_base.DbTestCase):
         self.config(ipxe_enabled=False, group='pxe')
         fake_pxe_info = {'foo': 'bar'}
         expected_path = os.path.join(CONF.pxe.tftp_root, self.node.uuid)
-
-        pxe._cache_ramdisk_kernel(self.context, self.node, fake_pxe_info)
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            pxe._cache_ramdisk_kernel(task, fake_pxe_info)
         mock_ensure_tree.assert_called_with(expected_path)
         mock_fetch_image.assert_called_once_with(
             self.context, mock.ANY, list(fake_pxe_info.values()), True)
@@ -668,8 +681,9 @@ class PXEPrivateMethodsTestCase(db_base.DbTestCase):
         fake_pxe_info = {'foo': 'bar'}
         expected_path = os.path.join(CONF.deploy.http_root,
                                      self.node.uuid)
-
-        pxe._cache_ramdisk_kernel(self.context, self.node, fake_pxe_info)
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+                pxe._cache_ramdisk_kernel(task, fake_pxe_info)
         mock_ensure_tree.assert_called_with(expected_path)
         mock_fetch_image.assert_called_once_with(self.context, mock.ANY,
                                                  list(fake_pxe_info.values()),
@@ -748,6 +762,9 @@ class CleanUpPxeEnvTestCase(db_base.DbTestCase):
         mock_cache.return_value.clean_up.assert_called_once_with()
 
 
+# NOTE(TheJulia): cover the ipxe interface's init as well until
+# the testing is separated apart.
+@mock.patch.object(ipxe.iPXEBoot, '__init__', lambda self: None)
 @mock.patch.object(pxe.PXEBoot, '__init__', lambda self: None)
 class PXEBootTestCase(db_base.DbTestCase):
 
@@ -765,7 +782,8 @@ class PXEBootTestCase(db_base.DbTestCase):
         instance_info = INST_INFO_DICT
         instance_info['deploy_key'] = 'fake-56789'
 
-        self.config(enabled_boot_interfaces=[self.boot_interface, 'fake'])
+        self.config(enabled_boot_interfaces=[self.boot_interface,
+                                             'ipxe', 'fake'])
         self.node = obj_utils.create_test_node(
             self.context,
             driver=self.driver,
@@ -963,31 +981,31 @@ class PXEBootTestCase(db_base.DbTestCase):
                     self.assertFalse(mock_cache_r_k.called)
                 else:
                     mock_cache_r_k.assert_called_once_with(
-                        self.context, task.node,
+                        task,
                         {'kernel': 'b'})
-                mock_instance_img_info.assert_called_once_with(task.node,
-                                                               self.context)
+                mock_instance_img_info.assert_called_once_with(task)
             elif not cleaning and mode == 'deploy':
                 mock_cache_r_k.assert_called_once_with(
-                    self.context, task.node,
+                    task,
                     {'deploy_kernel': 'a', 'deploy_ramdisk': 'r',
                      'kernel': 'b'})
-                mock_instance_img_info.assert_called_once_with(task.node,
-                                                               self.context)
+                mock_instance_img_info.assert_called_once_with(task)
             elif mode == 'deploy':
                     mock_cache_r_k.assert_called_once_with(
-                        self.context, task.node,
+                        task,
                         {'deploy_kernel': 'a', 'deploy_ramdisk': 'r'})
             elif mode == 'rescue':
                     mock_cache_r_k.assert_called_once_with(
-                        self.context, task.node,
+                        task,
                         {'rescue_kernel': 'a', 'rescue_ramdisk': 'r'})
             if uefi:
                 mock_pxe_config.assert_called_once_with(
-                    task, {'foo': 'bar'}, CONF.pxe.uefi_pxe_config_template)
+                    task, {'foo': 'bar'}, CONF.pxe.uefi_pxe_config_template,
+                    ipxe_enabled=CONF.pxe.ipxe_enabled)
             else:
                 mock_pxe_config.assert_called_once_with(
-                    task, {'foo': 'bar'}, CONF.pxe.pxe_config_template)
+                    task, {'foo': 'bar'}, CONF.pxe.pxe_config_template,
+                    ipxe_enabled=CONF.pxe.ipxe_enabled)
 
     def test_prepare_ramdisk(self):
         self.node.provision_state = states.DEPLOYING
@@ -1248,13 +1266,12 @@ class PXEBootTestCase(db_base.DbTestCase):
             task.driver.boot.prepare_instance(task)
 
             get_image_info_mock.assert_called_once_with(
-                task.node, task.context)
-            cache_mock.assert_called_once_with(
-                task.context, task.node, image_info)
+                task)
+            cache_mock.assert_called_once_with(task, image_info)
             provider_mock.update_dhcp.assert_called_once_with(task, dhcp_opts)
             switch_pxe_config_mock.assert_called_once_with(
                 pxe_config_path, "30212642-09d3-467f-8e09-21685826ab50",
-                'bios', False, False, False, False)
+                'bios', False, False, False, False, ipxe_enabled=False)
             set_boot_device_mock.assert_called_once_with(task,
                                                          boot_devices.PXE,
                                                          persistent=True)
@@ -1289,15 +1306,16 @@ class PXEBootTestCase(db_base.DbTestCase):
             task.driver.boot.prepare_instance(task)
 
             get_image_info_mock.assert_called_once_with(
-                task.node, task.context)
+                task)
             cache_mock.assert_called_once_with(
-                task.context, task.node, image_info)
+                task, image_info)
             provider_mock.update_dhcp.assert_called_once_with(task, dhcp_opts)
             create_pxe_config_mock.assert_called_once_with(
-                task, mock.ANY, CONF.pxe.pxe_config_template)
+                task, mock.ANY, CONF.pxe.pxe_config_template,
+                ipxe_enabled=False)
             switch_pxe_config_mock.assert_called_once_with(
                 pxe_config_path, "30212642-09d3-467f-8e09-21685826ab50",
-                'bios', False, False, False, False)
+                'bios', False, False, False, False, ipxe_enabled=False)
             self.assertFalse(set_boot_device_mock.called)
 
     @mock.patch.object(manager_utils, 'node_set_boot_device', autospec=True)
@@ -1321,10 +1339,8 @@ class PXEBootTestCase(db_base.DbTestCase):
 
             task.driver.boot.prepare_instance(task)
 
-            get_image_info_mock.assert_called_once_with(
-                task.node, task.context)
-            cache_mock.assert_called_once_with(
-                task.context, task.node, image_info)
+            get_image_info_mock.assert_called_once_with(task)
+            cache_mock.assert_called_once_with(task, image_info)
             provider_mock.update_dhcp.assert_called_once_with(task, dhcp_opts)
             self.assertFalse(switch_pxe_config_mock.called)
             self.assertFalse(set_boot_device_mock.called)
@@ -1347,10 +1363,9 @@ class PXEBootTestCase(db_base.DbTestCase):
             task.node.properties['capabilities'] = 'boot_mode:bios'
             task.node.driver_internal_info['is_whole_disk_image'] = True
             task.driver.boot.prepare_instance(task)
-            get_image_info_mock.assert_called_once_with(
-                task.node, task.context)
+            get_image_info_mock.assert_called_once_with(task)
             cache_mock.assert_called_once_with(
-                task.context, task.node, {})
+                task, {})
             provider_mock.update_dhcp.assert_called_once_with(task, dhcp_opts)
             self.assertTrue(log_mock.called)
             clean_up_pxe_mock.assert_called_once_with(task)
@@ -1397,10 +1412,11 @@ class PXEBootTestCase(db_base.DbTestCase):
             self.assertFalse(cache_mock.called)
             provider_mock.update_dhcp.assert_called_once_with(task, dhcp_opts)
             create_pxe_config_mock.assert_called_once_with(
-                task, mock.ANY, CONF.pxe.pxe_config_template)
+                task, mock.ANY, CONF.pxe.pxe_config_template,
+                ipxe_enabled=True)
             switch_pxe_config_mock.assert_called_once_with(
                 pxe_config_path, None, boot_modes.LEGACY_BIOS, False,
-                iscsi_boot=True, ramdisk_boot=False)
+                ipxe_enabled=True, ramdisk_boot=False, iscsi_boot=True)
             set_boot_device_mock.assert_called_once_with(task,
                                                          boot_devices.PXE,
                                                          persistent=True)
@@ -1481,19 +1497,19 @@ class PXEBootTestCase(db_base.DbTestCase):
                 task.node.uuid)
             task.driver.boot.prepare_instance(task)
 
-            get_image_info_mock.assert_called_once_with(
-                task.node, task.context)
-            cache_mock.assert_called_once_with(
-                task.context, task.node, image_info)
+            get_image_info_mock.assert_called_once_with(task)
+            cache_mock.assert_called_once_with(task, image_info)
             provider_mock.update_dhcp.assert_called_once_with(task, dhcp_opts)
             if config_file_exits:
                 self.assertFalse(create_pxe_config_mock.called)
             else:
                 create_pxe_config_mock.assert_called_once_with(
-                    task, mock.ANY, CONF.pxe.pxe_config_template)
+                    task, mock.ANY, CONF.pxe.pxe_config_template,
+                    ipxe_enabled=False)
             switch_pxe_config_mock.assert_called_once_with(
                 pxe_config_path, None,
-                'bios', False, iscsi_boot=False, ramdisk_boot=True)
+                'bios', False, ipxe_enabled=False, iscsi_boot=False,
+                ramdisk_boot=True)
             set_boot_device_mock.assert_called_once_with(task,
                                                          boot_devices.PXE,
                                                          persistent=True)
@@ -1516,8 +1532,7 @@ class PXEBootTestCase(db_base.DbTestCase):
             get_image_info_mock.return_value = image_info
             task.driver.boot.clean_up_instance(task)
             clean_up_pxe_env_mock.assert_called_once_with(task, image_info)
-            get_image_info_mock.assert_called_once_with(
-                task.node, task.context)
+            get_image_info_mock.assert_called_once_with(task)
 
 
 class PXERamdiskDeployTestCase(db_base.DbTestCase):
@@ -1576,14 +1591,14 @@ class PXERamdiskDeployTestCase(db_base.DbTestCase):
             task.driver.deploy.prepare(task)
             task.driver.deploy.deploy(task)
 
-            get_image_info_mock.assert_called_once_with(
-                task.node, task.context)
+            get_image_info_mock.assert_called_once_with(task)
             cache_mock.assert_called_once_with(
-                task.context, task.node, image_info)
+                task, image_info)
             provider_mock.update_dhcp.assert_called_once_with(task, dhcp_opts)
             switch_pxe_config_mock.assert_called_once_with(
                 pxe_config_path, None,
-                'bios', False, iscsi_boot=False, ramdisk_boot=True)
+                'bios', False, ipxe_enabled=False, iscsi_boot=False,
+                ramdisk_boot=True)
             set_boot_device_mock.assert_called_once_with(task,
                                                          boot_devices.PXE,
                                                          persistent=True)
@@ -1604,10 +1619,8 @@ class PXERamdiskDeployTestCase(db_base.DbTestCase):
         self.node.save()
         with task_manager.acquire(self.context, self.node.uuid) as task:
             self.assertIsNone(task.driver.deploy.deploy(task))
-            mock_image_info.assert_called_once_with(
-                task.node, task.context)
-            mock_cache.assert_called_once_with(
-                task.context, task.node, image_info)
+            mock_image_info.assert_called_once_with(task)
+            mock_cache.assert_called_once_with(task, image_info)
             self.assertFalse(mock_warning.called)
         i_info['configdrive'] = 'meow'
         self.node.instance_info = i_info

@@ -228,6 +228,15 @@
         cinder: True
 
 - job:
+    name: ironic-tempest-dsvm-ipxe-bfv
+    description: ironic-tempest-dsvm-ipxe-bfv
+    parent: ironic-tempest-dsvm-bfv
+    vars:
+      devstack_localrc:
+        IRONIC_ENABLED_BOOT_INTERFACES: ipxe,pxe,fake
+        IRONIC_DEFAULT_BOOT_INTERFACE: ipxe
+
+- job:
     name: ironic-tempest-dsvm-ironic-inspector
     description: ironic-tempest-dsvm-ironic-inspector
     parent: ironic-base

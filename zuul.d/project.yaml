@@ -16,7 +16,6 @@
         - ironic-tempest-dsvm-functional-python3
         - ironic-grenade-dsvm
         - ironic-grenade-dsvm-multinode-multitenant
-        - ironic-tempest-dsvm-bfv
         - ironic-tempest-dsvm-ipa-partition-pxe_ipmitool-tinyipa-python3
         - ironic-tempest-dsvm-ipa-partition-redfish-tinyipa
         - ironic-tempest-dsvm-ipa-partition-uefi-pxe_ipmitool-tinyipa
@@ -24,7 +23,14 @@
         - ironic-tempest-dsvm-ipa-wholedisk-bios-agent_ipmitool-tinyipa
         - ironic-tempest-dsvm-ipa-wholedisk-bios-agent_ipmitool-tinyipa-indirect
         - ironic-tempest-dsvm-ipa-partition-bios-agent_ipmitool-tinyipa-indirect
+        - ironic-tempest-dsvm-ipxe-bfv
         # Non-voting jobs
+        # NOTE(TheJulia): BFV default job moves to use the ipxe interface,
+        # this non-voting job is just a safety net as we continue to do
+        # refactoring/cleanup and can be removed later in the stein
+        # cycle or after.
+        - ironic-tempest-dsvm-bfv:
+            voting: false
         - ironic-tempest-dsvm-ipa-wholedisk-bios-pxe_snmp-tinyipa:
             voting: false
         - ironic-tempest-dsvm-ironic-inspector:
@@ -39,7 +45,6 @@
         - ironic-tempest-dsvm-functional-python3
         - ironic-grenade-dsvm
         - ironic-grenade-dsvm-multinode-multitenant
-        - ironic-tempest-dsvm-bfv
         - ironic-tempest-dsvm-ipa-partition-pxe_ipmitool-tinyipa-python3
         - ironic-tempest-dsvm-ipa-partition-redfish-tinyipa
         - ironic-tempest-dsvm-ipa-partition-uefi-pxe_ipmitool-tinyipa
@@ -47,3 +52,4 @@
         - ironic-tempest-dsvm-ipa-wholedisk-bios-agent_ipmitool-tinyipa
         - ironic-tempest-dsvm-ipa-wholedisk-bios-agent_ipmitool-tinyipa-indirect
         - ironic-tempest-dsvm-ipa-partition-bios-agent_ipmitool-tinyipa-indirect
+        - ironic-tempest-dsvm-ipxe-bfv

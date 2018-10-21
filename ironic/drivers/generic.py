@@ -21,6 +21,7 @@ from ironic.drivers.modules import agent
 from ironic.drivers.modules.ansible import deploy as ansible_deploy
 from ironic.drivers.modules import fake
 from ironic.drivers.modules import inspector
+from ironic.drivers.modules import ipxe
 from ironic.drivers.modules import iscsi_deploy
 from ironic.drivers.modules.network import flat as flat_net
 from ironic.drivers.modules.network import neutron
@@ -41,7 +42,7 @@ class GenericHardware(hardware_type.AbstractHardwareType):
     @property
     def supported_boot_interfaces(self):
         """List of supported boot interfaces."""
-        return [pxe.PXEBoot]
+        return [ipxe.iPXEBoot, pxe.PXEBoot]
 
     @property
     def supported_deploy_interfaces(self):

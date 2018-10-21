@@ -287,7 +287,7 @@ def _replace_root_uuid(path, root_uuid):
 
 def _replace_boot_line(path, boot_mode, is_whole_disk_image,
                        trusted_boot=False, iscsi_boot=False,
-                       ramdisk_boot=False):
+                       ramdisk_boot=False, ipxe_enabled=False):
     if is_whole_disk_image:
         boot_disk_type = 'boot_whole_disk'
     elif trusted_boot:
@@ -299,11 +299,11 @@ def _replace_boot_line(path, boot_mode, is_whole_disk_image,
     else:
         boot_disk_type = 'boot_partition'
 
-    if boot_mode == 'uefi' and not CONF.pxe.ipxe_enabled:
+    if boot_mode == 'uefi' and not ipxe_enabled:
         pattern = '^((set )?default)=.*$'
         boot_line = '\\1=%s' % boot_disk_type
     else:
-        pxe_cmd = 'goto' if CONF.pxe.ipxe_enabled else 'default'
+        pxe_cmd = 'goto' if ipxe_enabled else 'default'
         pattern = '^%s .*$' % pxe_cmd
         boot_line = '%s %s' % (pxe_cmd, boot_disk_type)
 
@@ -315,9 +315,11 @@ def _replace_disk_identifier(path, disk_identifier):
     _replace_lines_in_file(path, pattern, disk_identifier)
 
 
+# NOTE(TheJulia): This should likely be migrated to pxe_utils.
 def switch_pxe_config(path, root_uuid_or_disk_id, boot_mode,
                       is_whole_disk_image, trusted_boot=False,
-                      iscsi_boot=False, ramdisk_boot=False):
+                      iscsi_boot=False, ramdisk_boot=False,
+                      ipxe_enabled=False):
     """Switch a pxe config from deployment mode to service mode.
 
     :param path: path to the pxe config file in tftpboot.
@@ -330,6 +332,8 @@ def switch_pxe_config(path, root_uuid_or_disk_id, boot_mode,
         have one or neither, but not both.
     :param iscsi_boot: if boot is from an iSCSI volume or not.
     :param ramdisk_boot: if the boot is to be to a ramdisk configuration.
+    :param ipxe_enabled: A default False boolean value to tell the method
+                         if the caller is using iPXE.
     """
     if not ramdisk_boot:
         if not is_whole_disk_image:
@@ -338,7 +342,7 @@ def switch_pxe_config(path, root_uuid_or_disk_id, boot_mode,
             _replace_disk_identifier(path, root_uuid_or_disk_id)
 
     _replace_boot_line(path, boot_mode, is_whole_disk_image, trusted_boot,
-                       iscsi_boot, ramdisk_boot)
+                       iscsi_boot, ramdisk_boot, ipxe_enabled)
 
 
 def get_dev(address, port, iqn, lun):
