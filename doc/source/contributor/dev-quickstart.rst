@@ -212,7 +212,7 @@ Next, install and configure system dependencies.
 Step 2: Install System Dependencies Locally
 --------------------------------------------
 
-This option will install RabbitMQ and MySQL on your local system. This may not
+This step will install RabbitMQ and MySQL on your local system. This may not
 be desirable in some situations (eg, you're developing from a laptop and do not
 want to run a MySQL server on it all the time).
 
@@ -680,16 +680,16 @@ First, navigate to Tempest directory::
   cd /opt/stack/tempest
 
 To run all tests from the `Ironic plugin
-<https://git.openstack.org/cgit/openstack/ironic/tree/ironic_tempest_plugin?h=master>`_,
+<https://git.openstack.org/cgit/openstack/ironic-tempest-plugin/tree/?h=master>`_,
 execute the following command::
 
-  tox -e all-plugin -- ironic
+  tox -e all -- ironic
 
 To limit the amount of tests that you would like to run, you can use
 a regex. For instance, to limit the run to a single test file, the
 following command can be used::
 
-  tox -e all-plugin -- ironic_tempest_plugin.tests.scenario.test_baremetal_basic_ops
+  tox -e all -- ironic_tempest_plugin.tests.scenario.test_baremetal_basic_ops
 
 
 Debugging Tempest tests
