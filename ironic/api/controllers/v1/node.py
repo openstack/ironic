@@ -119,73 +119,44 @@ def get_nodes_controller_reserved_names():
     return _NODES_CONTROLLER_RESERVED_WORDS
 
 
-def _hide_fields_in_newer_versions_part_one(obj):
-    if pecan.request.version.minor < versions.MINOR_3_DRIVER_INTERNAL_INFO:
-        obj.driver_internal_info = wsme.Unset
-
-    if not api_utils.allow_node_logical_names():
-        obj.name = wsme.Unset
-
-    # if requested version is < 1.6, hide inspection_*_at fields
-    if pecan.request.version.minor < versions.MINOR_6_INSPECT_STATE:
-        obj.inspection_finished_at = wsme.Unset
-        obj.inspection_started_at = wsme.Unset
-
-    if pecan.request.version.minor < versions.MINOR_7_NODE_CLEAN:
-        obj.clean_step = wsme.Unset
-
-    if pecan.request.version.minor < versions.MINOR_12_RAID_CONFIG:
-        obj.raid_config = wsme.Unset
-        obj.target_raid_config = wsme.Unset
-
-    if pecan.request.version.minor < versions.MINOR_20_NETWORK_INTERFACE:
-        obj.network_interface = wsme.Unset
-
-    if pecan.request.version.minor < versions.MINOR_42_FAULT:
-        obj.fault = wsme.Unset
-
-    if pecan.request.version.minor < versions.MINOR_44_NODE_DEPLOY_STEP:
-        obj.deploy_step = wsme.Unset
-
-
-def _hide_fields_in_newer_versions_part_two(obj):
-    if not api_utils.allow_resource_class():
-        obj.resource_class = wsme.Unset
-
-    if not api_utils.allow_dynamic_interfaces():
-        for field in api_utils.V31_FIELDS:
-            setattr(obj, field, wsme.Unset)
-
-    if not api_utils.allow_storage_interface():
-        obj.storage_interface = wsme.Unset
-
-    if not api_utils.allow_traits():
-        obj.traits = wsme.Unset
-
-    if not api_utils.allow_rescue_interface():
-        obj.rescue_interface = wsme.Unset
-
-    if not api_utils.allow_bios_interface():
-        obj.bios_interface = wsme.Unset
-
-    if not api_utils.allow_conductor_group():
-        obj.conductor_group = wsme.Unset
-
-    if not api_utils.allow_automated_clean():
-        obj.automated_clean = wsme.Unset
-
-
 def hide_fields_in_newer_versions(obj):
     """This method hides fields that were added in newer API versions.
 
     Certain node fields were introduced at certain API versions.
     These fields are only made available when the request's API version
     matches or exceeds the versions when these fields were introduced.
-
-    This is broken into two methods for cyclomatic complexity's sake.
     """
-    _hide_fields_in_newer_versions_part_one(obj)
-    _hide_fields_in_newer_versions_part_two(obj)
+    for field in api_utils.disallowed_fields():
+        setattr(obj, field, wsme.Unset)
+
+
+def reject_fields_in_newer_versions(obj):
+    """When creating an object, reject fields that appear in newer versions."""
+    for field in api_utils.disallowed_fields():
+        if field == 'conductor_group':
+            # NOTE(jroll) this is special-cased to "" and not Unset,
+            # because it is used in hash ring calculations
+            empty_value = ''
+        elif field == 'name' and obj.name is None:
+            # NOTE(dtantsur): for some reason we allow specifying name=None
+            # explicitly even in old API versions..
+            continue
+        else:
+            empty_value = wtypes.Unset
+
+        if getattr(obj, field, empty_value) != empty_value:
+            LOG.debug('Field %(field)s is not acceptable in version %(ver)s',
+                      {'field': field, 'ver': pecan.request.version})
+            raise exception.NotAcceptable()
+
+
+def reject_patch_in_newer_versions(patch):
+    for field in api_utils.disallowed_fields():
+        value = api_utils.get_patch_values(patch, '/%s' % field)
+        if value:
+            LOG.debug('Field %(field)s is not acceptable in version %(ver)s',
+                      {'field': field, 'ver': pecan.request.version})
+            raise exception.NotAcceptable()
 
 
 def update_state_in_older_versions(obj):
@@ -1904,46 +1875,12 @@ class NodesController(rest.RestController):
         if self.from_chassis:
             raise exception.OperationNotPermitted()
 
-        if (not api_utils.allow_resource_class()
-                and node.resource_class is not wtypes.Unset):
-            raise exception.NotAcceptable()
-
-        n_interface = node.network_interface
-        if (not api_utils.allow_network_interface()
-                and n_interface is not wtypes.Unset):
-            raise exception.NotAcceptable()
-
-        if not api_utils.allow_dynamic_interfaces():
-            for field in api_utils.V31_FIELDS:
-                if getattr(node, field) is not wsme.Unset:
-                    raise exception.NotAcceptable()
-
-        if (not api_utils.allow_storage_interface()
-                and node.storage_interface is not wtypes.Unset):
-            raise exception.NotAcceptable()
-
-        if (not api_utils.allow_bios_interface() and
-                node.bios_interface is not wtypes.Unset):
-            raise exception.NotAcceptable()
+        reject_fields_in_newer_versions(node)
 
         if node.traits is not wtypes.Unset:
             msg = _("Cannot specify node traits on node creation. Traits must "
                     "be set via the node traits API.")
             raise exception.Invalid(msg)
-
-        if (not api_utils.allow_rescue_interface()
-                and node.rescue_interface is not wtypes.Unset):
-            raise exception.NotAcceptable()
-
-        # NOTE(jroll) this is special-cased to "" and not Unset,
-        # because it is used in hash ring calculations
-        if (not api_utils.allow_conductor_group()
-                and node.conductor_group != ""):
-            raise exception.NotAcceptable()
-
-        if (not api_utils.allow_automated_clean()
-                and node.automated_clean is not wtypes.Unset):
-            raise exception.NotAcceptable()
 
         # NOTE(deva): get_topic_for checks if node.driver is in the hash ring
         #             and raises NoValidHost if it is not.
@@ -1983,27 +1920,11 @@ class NodesController(rest.RestController):
                                      chassis_uuid=api_node.chassis_uuid)
         return api_node
 
-    # NOTE (yolanda): isolate validation to avoid patch too complex pep error
     def _validate_patch(self, patch, reset_interfaces):
         if self.from_chassis:
             raise exception.OperationNotPermitted()
 
-        resource_class = api_utils.get_patch_values(patch, '/resource_class')
-        if resource_class and not api_utils.allow_resource_class():
-            raise exception.NotAcceptable()
-
-        n_interfaces = api_utils.get_patch_values(patch, '/network_interface')
-        if n_interfaces and not api_utils.allow_network_interface():
-            raise exception.NotAcceptable()
-
-        if not api_utils.allow_dynamic_interfaces():
-            for field in api_utils.V31_FIELDS:
-                if api_utils.get_patch_values(patch, '/%s' % field):
-                    raise exception.NotAcceptable()
-
-        s_interface = api_utils.get_patch_values(patch, '/storage_interface')
-        if s_interface and not api_utils.allow_storage_interface():
-            raise exception.NotAcceptable()
+        reject_patch_in_newer_versions(patch)
 
         traits = api_utils.get_patch_values(patch, '/traits')
         if traits:
@@ -2011,27 +1932,11 @@ class NodesController(rest.RestController):
                     "should be updated via the node traits API.")
             raise exception.Invalid(msg)
 
-        r_interface = api_utils.get_patch_values(patch, '/rescue_interface')
-        if r_interface and not api_utils.allow_rescue_interface():
-            raise exception.NotAcceptable()
-
-        b_interface = api_utils.get_patch_values(patch, '/bios_interface')
-        if b_interface and not api_utils.allow_bios_interface():
-            raise exception.NotAcceptable()
-
         driver = api_utils.get_patch_values(patch, '/driver')
         if reset_interfaces and not driver:
             msg = _("The reset_interfaces parameter can only be used when "
                     "changing the node's driver.")
             raise exception.Invalid(msg)
-
-        conductor_group = api_utils.get_patch_values(patch, '/conductor_group')
-        if conductor_group and not api_utils.allow_conductor_group():
-            raise exception.NotAcceptable()
-
-        automated_clean = api_utils.get_patch_values(patch, '/automated_clean')
-        if automated_clean and not api_utils.allow_automated_clean():
-            raise exception.NotAcceptable()
 
     @METRICS.timer('NodesController.patch')
     @wsme.validate(types.uuid, types.boolean, [NodePatchType])

@@ -23,9 +23,9 @@ from ironic.api.controllers.v1 import chassis as chassis_controller
 from ironic.api.controllers.v1 import node as node_controller
 from ironic.api.controllers.v1 import port as port_controller
 from ironic.api.controllers.v1 import portgroup as portgroup_controller
+from ironic.api.controllers.v1 import utils as api_utils
 from ironic.api.controllers.v1 import volume_connector as vc_controller
 from ironic.api.controllers.v1 import volume_target as vt_controller
-from ironic.drivers import base as drivers_base
 from ironic.tests.unit.db import utils as db_utils
 
 ADMIN_TOKEN = '4562138218392831'
@@ -104,16 +104,9 @@ def node_post_data(**kw):
     # NOTE(jroll): pop out fields that were introduced in later API versions,
     # unless explicitly requested. Otherwise, these will cause tests using
     # older API versions to fail.
-    for iface in drivers_base.ALL_INTERFACES:
-        name = '%s_interface' % iface
-        if name not in kw:
-            node.pop(name)
-    if 'resource_class' not in kw:
-        node.pop('resource_class')
-    if 'fault' not in kw:
-        node.pop('fault')
-    if 'automated_clean' not in kw:
-        node.pop('automated_clean')
+    for field in api_utils.VERSIONED_FIELDS:
+        if field not in kw:
+            node.pop(field, None)
 
     internal = node_controller.NodePatchType.internal_attrs()
     return remove_internal(node, internal)
