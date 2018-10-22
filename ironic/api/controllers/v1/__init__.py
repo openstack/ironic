@@ -34,6 +34,7 @@ from ironic.api.controllers.v1 import ramdisk
 from ironic.api.controllers.v1 import utils
 from ironic.api.controllers.v1 import versions
 from ironic.api.controllers.v1 import volume
+from ironic.api.controllers import version
 from ironic.api import expose
 from ironic.common.i18n import _
 
@@ -98,6 +99,9 @@ class V1(base.APIBase):
 
     heartbeat = [link.Link]
     """Links to the heartbeat resource"""
+
+    version = version.Version
+    """Version discovery information."""
 
     @staticmethod
     def convert():
@@ -174,6 +178,7 @@ class V1(base.APIBase):
                                                 'heartbeat', '',
                                                 bookmark=True)
                             ]
+        v1.version = version.default_version()
         return v1
 
 
