@@ -23,6 +23,11 @@ opts = [
                 default=3260,
                 help=_('The port number on which the iSCSI portal listens '
                        'for incoming connections.')),
+    cfg.StrOpt('conv_flags',
+               help=_('Flags that need to be sent to the dd command, '
+                      'to control the conversion of the original file '
+                      'when copying to the host. It can contain several '
+                      'options separated by commas.'))
 ]
 
 

@@ -1,0 +1,7 @@
+---
+features:
+  - |
+    Adds a new configuration option ``[iscsi]conv_flags``, that specifies the
+    conversion options to pass to the ``dd`` utility when copying an image.
+    For example, passing ``sparse`` may result in less network traffic for
+    large whole disk images.

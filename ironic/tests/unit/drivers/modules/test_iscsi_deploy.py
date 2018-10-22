@@ -179,7 +179,7 @@ class IscsiDeployMethodsTestCase(db_base.DbTestCase):
     def test_continue_deploy_fail(
             self, deploy_mock, power_mock, mock_image_cache, mock_disk_layout,
             mock_collect_logs):
-        kwargs = {'address': '123456', 'iqn': 'aaa-bbb'}
+        kwargs = {'address': '123456', 'iqn': 'aaa-bbb', 'conv_flags': None}
         deploy_mock.side_effect = exception.InstanceDeployFailure(
             "test deploy error")
         self.node.provision_state = states.DEPLOYWAIT
@@ -462,7 +462,7 @@ class IscsiDeployMethodsTestCase(db_base.DbTestCase):
             agent_client_mock.start_iscsi_target.assert_called_once_with(
                 task.node, expected_iqn, 3260, wipe_disk_metadata=True)
             continue_deploy_mock.assert_called_once_with(
-                task, iqn=expected_iqn, address='1.2.3.4')
+                task, iqn=expected_iqn, address='1.2.3.4', conv_flags=None)
             self.assertEqual(
                 'some-root-uuid',
                 task.node.driver_internal_info['root_uuid_or_disk_id'])
