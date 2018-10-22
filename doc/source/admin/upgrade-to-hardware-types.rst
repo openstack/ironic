@@ -22,11 +22,9 @@ agent_ilo             ilo                  ilo-virtual-media    direct          
 agent_ipmitool        ipmi                 pxe                  direct          inspector  ipmitool   ipmitool
 agent_ipmitool_socat  ipmi                 pxe                  direct          inspector  ipmitool   ipmitool
 agent_irmc            irmc                 irmc-virtual-media   direct          irmc       irmc       irmc
-agent_pxe_oneview     oneview              pxe                  oneview-direct  oneview    oneview    oneview
 agent_ucs             cisco-ucs-managed    pxe                  direct          inspector  ucsm       ucsm
 iscsi_ilo             ilo                  ilo-virtual-media    iscsi           ilo        ilo        ilo
 iscsi_irmc            irmc                 irmc-virtual-media   iscsi           irmc       irmc       irmc
-iscsi_pxe_oneview     oneview              pxe                  oneview-iscsi   oneview    oneview    oneview
 pxe_agent_cimc        cisco-ucs-standalone pxe                  direct          inspector  cimc       cimc
 pxe_drac              idrac                pxe                  iscsi           idrac      idrac      idrac
 pxe_drac_inspector    idrac                pxe                  iscsi           inspector  idrac      idrac

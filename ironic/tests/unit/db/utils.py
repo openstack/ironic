@@ -423,24 +423,6 @@ def get_test_cimc_info():
     }
 
 
-def get_test_oneview_properties():
-    return {
-        "cpu_arch": "x86_64",
-        "cpus": "8",
-        "local_gb": "10",
-        "memory_mb": "4096",
-        "capabilities": ("server_hardware_type_uri:fake_sht_uri,"
-                         "enclosure_group_uri:fake_eg_uri,"
-                         "server_profile_template_uri:fake_spt_uri"),
-    }
-
-
-def get_test_oneview_driver_info():
-    return {
-        'server_hardware_uri': 'fake_sh_uri',
-    }
-
-
 def get_test_redfish_info():
     return {
         "redfish_address": "https://example.com",

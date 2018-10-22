@@ -113,9 +113,6 @@ IRONIC_HW_ARCH=${IRONIC_HW_ARCH:-x86_64}
 # cisco-ucs-managed:
 #   <BMC address> <MAC address> <BMC username> <BMC password> <UCS service profile>
 #
-# oneview:
-#   <Server Hardware URI> <Server Hardware Type URI> <Enclosure Group URI> <Server Profile Template URI> <MAC of primary connection> <Applied Server Profile URI>
-#
 # idrac:
 #   <BMC address> <MAC address> <BMC username> <BMC password>
 #
@@ -288,7 +285,7 @@ fi
 # are ``ipmi``, ``snmp`` and ``redfish``.
 #
 # Additional valid choices if IRONIC_IS_HARDWARE == true are:
-# ``cisco-ucs-managed``, ``cisco-ucs-standalone``, ``oneview``, ``idrac``,
+# ``cisco-ucs-managed``, ``cisco-ucs-standalone``, ``idrac``,
 # and ``irmc``.
 IRONIC_DEPLOY_DRIVER=${IRONIC_DEPLOY_DRIVER:-ipmi}
 
@@ -624,11 +621,6 @@ function is_deployed_by_cimc {
 
 function is_deployed_by_ucs {
     [[ "${IRONIC_DEPLOY_DRIVER}" == cisco-ucs-managed ]] && return 0
-    return 1
-}
-
-function is_deployed_by_oneview {
-    [[ "${IRONIC_DEPLOY_DRIVER}" == oneview ]] && return 0
     return 1
 }
 
@@ -1936,32 +1928,6 @@ function enroll_nodes {
                     --driver-info ucs_password=$bmc_passwd \
                     --driver-info ucs_username=$bmc_username \
                     --driver-info ucs_service_profile=$ucs_service_profile"
-            elif is_deployed_by_oneview; then
-                local server_hardware_uri
-                server_hardware_uri=$(echo $hardware_info |awk  '{print $1}')
-                local server_hardware_type_uri
-                server_hardware_type_uri=$(echo $hardware_info |awk '{print $2}')
-                local enclosure_group_uri
-                enclosure_group_uri=$(echo $hardware_info |awk '{print $3}')
-                local server_profile_template_uri
-                server_profile_template_uri=$(echo $hardware_info |awk '{print $4}')
-                mac_address=$(echo $hardware_info |awk '{print $5}')
-                local applied_server_profile_uri
-                applied_server_profile_uri=$(echo $hardware_info |awk '{print $6}')
-
-                node_options+=" --driver-info server_hardware_uri=$server_hardware_uri"
-                if [[ -n "$applied_server_profile_uri" ]]; then
-                    node_options+=" --driver-info applied_server_profile_uri=$applied_server_profile_uri"
-                fi
-
-                if [[ "$node_capabilities" ]]; then
-                    node_capabilities+=","
-                else
-                    node_capabilities+=" --property capabilities="
-                fi
-                node_capabilities+="server_hardware_type_uri:$server_hardware_type_uri,"
-                node_capabilities+="enclosure_group_uri:$enclosure_group_uri,"
-                node_capabilities+="server_profile_template_uri:$server_profile_template_uri"
             elif is_deployed_by_ilo; then
                 node_options+=" --driver-info ilo_address=$bmc_address \
                     --driver-info ilo_password=$bmc_passwd \
