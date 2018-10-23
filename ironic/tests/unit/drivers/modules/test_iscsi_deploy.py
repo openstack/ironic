@@ -1003,8 +1003,8 @@ class CleanUpFullFlowTestCase(db_base.DbTestCase):
 
     @mock.patch('ironic.common.dhcp_factory.DHCPFactory._set_dhcp_provider')
     @mock.patch('ironic.common.dhcp_factory.DHCPFactory.clean_dhcp')
-    @mock.patch.object(pxe, '_get_instance_image_info', autospec=True)
-    @mock.patch.object(pxe, '_get_image_info', autospec=True)
+    @mock.patch.object(pxe_utils, 'get_instance_image_info', autospec=True)
+    @mock.patch.object(pxe_utils, 'get_image_info', autospec=True)
     def test_clean_up_with_master(self, mock_get_deploy_image_info,
                                   mock_get_instance_image_info,
                                   clean_dhcp_mock, set_dhcp_provider_mock):

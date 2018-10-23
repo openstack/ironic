@@ -36,7 +36,6 @@ from ironic.drivers import base as drivers_base
 from ironic.drivers.modules import agent_base_vendor
 from ironic.drivers.modules import deploy_utils
 from ironic.drivers.modules import ipxe
-from ironic.drivers.modules import pxe
 from ironic.drivers.modules.storage import noop as noop_storage
 from ironic.tests.unit.db import base as db_base
 from ironic.tests.unit.db import utils as db_utils
@@ -217,10 +216,10 @@ class iPXEBootTestCase(db_base.DbTestCase):
     @mock.patch.object(manager_utils, 'node_get_boot_mode', autospec=True)
     @mock.patch.object(manager_utils, 'node_set_boot_device', autospec=True)
     @mock.patch.object(dhcp_factory, 'DHCPFactory')
-    @mock.patch.object(pxe, '_get_instance_image_info', autospec=True)
-    @mock.patch.object(pxe, '_get_image_info', autospec=True)
-    @mock.patch.object(pxe, '_cache_ramdisk_kernel', autospec=True)
-    @mock.patch.object(pxe, '_build_pxe_config_options', autospec=True)
+    @mock.patch.object(pxe_utils, 'get_instance_image_info', autospec=True)
+    @mock.patch.object(pxe_utils, 'get_image_info', autospec=True)
+    @mock.patch.object(pxe_utils, 'cache_ramdisk_kernel', autospec=True)
+    @mock.patch.object(pxe_utils, 'build_pxe_config_options', autospec=True)
     @mock.patch.object(pxe_utils, 'create_pxe_config', autospec=True)
     def _test_prepare_ramdisk(self, mock_pxe_config,
                               mock_build_pxe, mock_cache_r_k,
@@ -500,8 +499,8 @@ class iPXEBootTestCase(db_base.DbTestCase):
         self._test_prepare_ramdisk(uefi=True, node_boot_mode=boot_modes.UEFI)
         self.assertEqual(set_boot_mode_mock.call_count, 0)
 
-    @mock.patch.object(pxe, '_clean_up_pxe_env', autospec=True)
-    @mock.patch.object(pxe, '_get_image_info', autospec=True)
+    @mock.patch.object(pxe_utils, 'clean_up_pxe_env', autospec=True)
+    @mock.patch.object(pxe_utils, 'get_image_info', autospec=True)
     def _test_clean_up_ramdisk(self, get_image_info_mock,
                                clean_up_pxe_env_mock, mode='deploy'):
         with task_manager.acquire(self.context, self.node.uuid) as task:
@@ -527,8 +526,8 @@ class iPXEBootTestCase(db_base.DbTestCase):
     @mock.patch.object(manager_utils, 'node_set_boot_device', autospec=True)
     @mock.patch.object(deploy_utils, 'switch_pxe_config', autospec=True)
     @mock.patch.object(dhcp_factory, 'DHCPFactory', autospec=True)
-    @mock.patch.object(pxe, '_cache_ramdisk_kernel', autospec=True)
-    @mock.patch.object(pxe, '_get_instance_image_info', autospec=True)
+    @mock.patch.object(pxe_utils, 'cache_ramdisk_kernel', autospec=True)
+    @mock.patch.object(pxe_utils, 'get_instance_image_info', autospec=True)
     def test_prepare_instance_netboot(
             self, get_image_info_mock, cache_mock,
             dhcp_factory_mock, switch_pxe_config_mock,
@@ -565,8 +564,8 @@ class iPXEBootTestCase(db_base.DbTestCase):
     @mock.patch.object(manager_utils, 'node_set_boot_device', autospec=True)
     @mock.patch.object(deploy_utils, 'switch_pxe_config', autospec=True)
     @mock.patch.object(dhcp_factory, 'DHCPFactory', autospec=True)
-    @mock.patch.object(pxe, '_cache_ramdisk_kernel', autospec=True)
-    @mock.patch.object(pxe, '_get_instance_image_info', autospec=True)
+    @mock.patch.object(pxe_utils, 'cache_ramdisk_kernel', autospec=True)
+    @mock.patch.object(pxe_utils, 'get_instance_image_info', autospec=True)
     def test_prepare_instance_netboot_active(
             self, get_image_info_mock, cache_mock,
             dhcp_factory_mock, switch_pxe_config_mock,
@@ -604,8 +603,8 @@ class iPXEBootTestCase(db_base.DbTestCase):
     @mock.patch.object(manager_utils, 'node_set_boot_device', autospec=True)
     @mock.patch.object(deploy_utils, 'switch_pxe_config', autospec=True)
     @mock.patch.object(dhcp_factory, 'DHCPFactory')
-    @mock.patch.object(pxe, '_cache_ramdisk_kernel', autospec=True)
-    @mock.patch.object(pxe, '_get_instance_image_info', autospec=True)
+    @mock.patch.object(pxe_utils, 'cache_ramdisk_kernel', autospec=True)
+    @mock.patch.object(pxe_utils, 'get_instance_image_info', autospec=True)
     def test_prepare_instance_netboot_missing_root_uuid(
             self, get_image_info_mock, cache_mock,
             dhcp_factory_mock, switch_pxe_config_mock,
@@ -635,8 +634,8 @@ class iPXEBootTestCase(db_base.DbTestCase):
     @mock.patch.object(pxe_utils, 'clean_up_pxe_config', autospec=True)
     @mock.patch.object(manager_utils, 'node_set_boot_device', autospec=True)
     @mock.patch.object(dhcp_factory, 'DHCPFactory')
-    @mock.patch.object(pxe, '_cache_ramdisk_kernel', autospec=True)
-    @mock.patch.object(pxe, '_get_instance_image_info', autospec=True)
+    @mock.patch.object(pxe_utils, 'cache_ramdisk_kernel', autospec=True)
+    @mock.patch.object(pxe_utils, 'get_instance_image_info', autospec=True)
     def test_prepare_instance_whole_disk_image_missing_root_uuid(
             self, get_image_info_mock, cache_mock,
             dhcp_factory_mock, set_boot_device_mock,
@@ -666,8 +665,8 @@ class iPXEBootTestCase(db_base.DbTestCase):
     @mock.patch.object(manager_utils, 'node_set_boot_device', autospec=True)
     @mock.patch.object(deploy_utils, 'switch_pxe_config', autospec=True)
     @mock.patch.object(dhcp_factory, 'DHCPFactory', autospec=True)
-    @mock.patch.object(pxe, '_cache_ramdisk_kernel', autospec=True)
-    @mock.patch.object(pxe, '_get_instance_image_info', autospec=True)
+    @mock.patch.object(pxe_utils, 'cache_ramdisk_kernel', autospec=True)
+    @mock.patch.object(pxe_utils, 'get_instance_image_info', autospec=True)
     def test_prepare_instance_netboot_iscsi(
             self, get_image_info_mock, cache_mock,
             dhcp_factory_mock, switch_pxe_config_mock,
@@ -755,8 +754,8 @@ class iPXEBootTestCase(db_base.DbTestCase):
             clean_up_pxe_config_mock.assert_called_once_with(task)
             self.assertFalse(set_boot_device_mock.called)
 
-    @mock.patch.object(pxe, '_clean_up_pxe_env', autospec=True)
-    @mock.patch.object(pxe, '_get_instance_image_info', autospec=True)
+    @mock.patch.object(pxe_utils, 'clean_up_pxe_env', autospec=True)
+    @mock.patch.object(pxe_utils, 'get_instance_image_info', autospec=True)
     def test_clean_up_instance(self, get_image_info_mock,
                                clean_up_pxe_env_mock):
         with task_manager.acquire(self.context, self.node.uuid) as task:

@@ -24,7 +24,7 @@ from ironic.common import dhcp_factory
 from ironic.common import exception
 from ironic.common.glance_service import service_utils
 from ironic.common.i18n import _
-from ironic.common import pxe_utils as common_pxe_utils
+from ironic.common import pxe_utils as pxe_utils
 from ironic.common import states
 from ironic.conductor import utils as manager_utils
 from ironic.conf import CONF
@@ -70,7 +70,7 @@ class iPXEBoot(base.BootInterface):
     capabilities = ['iscsi_volume_boot', 'ramdisk_boot', 'ipxe_boot']
 
     def __init__(self):
-        common_pxe_utils.create_ipxe_boot_script()
+        pxe_utils.create_ipxe_boot_script()
 
     def get_properties(self):
         """Return the properties of the interface.
@@ -126,7 +126,7 @@ class iPXEBoot(base.BootInterface):
                         {'node': node.uuid})
             pxe.validate_boot_parameters_for_trusted_boot(node)
 
-        pxe._parse_driver_info(node)
+        pxe_utils.parse_driver_info(node)
         # NOTE(TheJulia): If we're not writing an image, we can skip
         # the remainder of this method.
         if (not task.driver.storage.should_write_image(task)):
@@ -174,29 +174,29 @@ class iPXEBoot(base.BootInterface):
         # call the boot script create method here to assert its
         # existence and handle the unlikely case that it wasn't created
         # or was deleted.
-        common_pxe_utils.create_ipxe_boot_script()
+        pxe_utils.create_ipxe_boot_script()
 
-        dhcp_opts = common_pxe_utils.dhcp_options_for_instance(task)
+        dhcp_opts = pxe_utils.dhcp_options_for_instance(task)
         provider = dhcp_factory.DHCPFactory()
         provider.update_dhcp(task, dhcp_opts)
 
-        pxe_info = pxe._get_image_info(node, mode=mode)
+        pxe_info = pxe_utils.get_image_info(node, mode=mode)
 
         # NODE: Try to validate and fetch instance images only
         # if we are in DEPLOYING state.
         if node.provision_state == states.DEPLOYING:
             pxe_info.update(
-                pxe._get_instance_image_info(task, ipxe_enabled=True))
+                pxe_utils.get_instance_image_info(task, ipxe_enabled=True))
             boot_mode_utils.sync_boot_mode(task)
 
-        pxe_options = pxe._build_pxe_config_options(task, pxe_info)
+        pxe_options = pxe_utils.build_pxe_config_options(task, pxe_info)
         pxe_options.update(ramdisk_params)
 
         pxe_config_template = deploy_utils.get_pxe_config_template(node)
 
-        common_pxe_utils.create_pxe_config(task, pxe_options,
-                                           pxe_config_template,
-                                           ipxe_enabled=True)
+        pxe_utils.create_pxe_config(task, pxe_options,
+                                    pxe_config_template,
+                                    ipxe_enabled=True)
         persistent = strutils.bool_from_string(
             node.driver_info.get('force_persistent_boot_device',
                                  False))
@@ -210,7 +210,7 @@ class iPXEBoot(base.BootInterface):
             pxe_info.pop(ramdisk_label, None)
 
         if pxe_info:
-            pxe._cache_ramdisk_kernel(task, pxe_info)
+            pxe_utils.cache_ramdisk_kernel(task, pxe_info)
 
     @METRICS.timer('iPXEBoot.clean_up_ramdisk')
     def clean_up_ramdisk(self, task):
@@ -231,13 +231,13 @@ class iPXEBoot(base.BootInterface):
         node = task.node
         mode = deploy_utils.rescue_or_deploy_mode(node)
         try:
-            images_info = pxe._get_image_info(node, mode=mode)
+            images_info = pxe_utils.get_image_info(node, mode=mode)
         except exception.MissingParameterValue as e:
             LOG.warning('Could not get %(mode)s image info '
                         'to clean up images for node %(node)s: %(err)s',
                         {'mode': mode, 'node': node.uuid, 'err': e})
         else:
-            pxe._clean_up_pxe_env(task, images_info)
+            pxe_utils.clean_up_pxe_env(task, images_info)
 
     @METRICS.timer('iPXEBoot.prepare_instance')
     def prepare_instance(self, task):
@@ -259,12 +259,12 @@ class iPXEBoot(base.BootInterface):
         instance_image_info = {}
 
         if boot_option == "ramdisk":
-            instance_image_info = pxe._get_instance_image_info(
+            instance_image_info = pxe_utils.get_instance_image_info(
                 task, ipxe_enabled=True)
-            pxe._cache_ramdisk_kernel(task, instance_image_info)
+            pxe_utils.cache_ramdisk_kernel(task, instance_image_info)
 
         if deploy_utils.is_iscsi_boot(task) or boot_option == "ramdisk":
-            pxe._prepare_instance_pxe_config(
+            pxe_utils.prepare_instance_pxe_config(
                 task, instance_image_info,
                 iscsi_boot=deploy_utils.is_iscsi_boot(task),
                 ramdisk_boot=(boot_option == "ramdisk"),
@@ -275,12 +275,12 @@ class iPXEBoot(base.BootInterface):
             if task.driver.storage.should_write_image(task):
                 # Make sure that the instance kernel/ramdisk is cached.
                 # This is for the takeover scenario for active nodes.
-                instance_image_info = pxe._get_instance_image_info(
+                instance_image_info = pxe_utils.get_instance_image_info(
                     task, ipxe_enabled=True)
-                pxe._cache_ramdisk_kernel(task, instance_image_info)
+                pxe_utils.cache_ramdisk_kernel(task, instance_image_info)
 
             # If it's going to PXE boot we need to update the DHCP server
-            dhcp_opts = common_pxe_utils.dhcp_options_for_instance(task)
+            dhcp_opts = pxe_utils.dhcp_options_for_instance(task)
             provider = dhcp_factory.DHCPFactory()
             provider.update_dhcp(task, dhcp_opts)
 
@@ -303,19 +303,19 @@ class iPXEBoot(base.BootInterface):
                                 "from deployment mode to service (boot) mode "
                                 "for node %(node)s. Booting the instance "
                                 "from disk.", {"node": task.node.uuid})
-                    common_pxe_utils.clean_up_pxe_config(task)
+                    pxe_utils.clean_up_pxe_config(task)
                     boot_device = boot_devices.DISK
             else:
-                pxe._build_service_pxe_config(task, instance_image_info,
-                                              root_uuid_or_disk_id,
-                                              ipxe_enabled=True)
+                pxe_utils.build_service_pxe_config(task, instance_image_info,
+                                                   root_uuid_or_disk_id,
+                                                   ipxe_enabled=True)
                 boot_device = boot_devices.PXE
         else:
             # If it's going to boot from the local disk, we don't need
             # PXE config files. They still need to be generated as part
             # of the prepare() because the deployment does PXE boot the
             # deploy ramdisk
-            common_pxe_utils.clean_up_pxe_config(task)
+            pxe_utils.clean_up_pxe_config(task)
             boot_device = boot_devices.DISK
 
         # NOTE(pas-ha) do not re-set boot device on ACTIVE nodes
@@ -338,14 +338,14 @@ class iPXEBoot(base.BootInterface):
         node = task.node
 
         try:
-            images_info = pxe._get_instance_image_info(task,
-                                                       ipxe_enabled=True)
+            images_info = pxe_utils.get_instance_image_info(task,
+                                                            ipxe_enabled=True)
         except exception.MissingParameterValue as e:
             LOG.warning('Could not get instance image info '
                         'to clean up images for node %(node)s: %(err)s',
                         {'node': node.uuid, 'err': e})
         else:
-            pxe._clean_up_pxe_env(task, images_info)
+            pxe_utils.clean_up_pxe_env(task, images_info)
 
     @METRICS.timer('iPXEBoot.validate_rescue')
     def validate_rescue(self, task):
@@ -355,4 +355,4 @@ class iPXEBoot(base.BootInterface):
         :raises: MissingParameterValue if node is missing one or more required
             parameters
         """
-        pxe._parse_driver_info(task.node, mode='rescue')
+        pxe_utils.parse_driver_info(task.node, mode='rescue')
