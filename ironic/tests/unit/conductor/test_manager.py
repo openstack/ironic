@@ -6816,7 +6816,8 @@ class ManagerTestProperties(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
                     'ipmi_target_address', 'ipmi_local_address',
                     'deploy_kernel', 'deploy_ramdisk',
                     'force_persistent_boot_device', 'ipmi_protocol_version',
-                    'ipmi_force_boot_device', 'deploy_forces_oob_reboot']
+                    'ipmi_force_boot_device', 'deploy_forces_oob_reboot',
+                    'rescue_kernel', 'rescue_ramdisk']
         self._check_driver_properties("ipmi", expected)
 
     def test_driver_properties_snmp(self):
@@ -6824,6 +6825,7 @@ class ManagerTestProperties(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
                     enabled_power_interfaces=['snmp'])
         expected = ['deploy_kernel', 'deploy_ramdisk',
                     'force_persistent_boot_device',
+                    'rescue_kernel', 'rescue_ramdisk',
                     'snmp_driver', 'snmp_address', 'snmp_port', 'snmp_version',
                     'snmp_community',
                     'snmp_community_read', 'snmp_community_write',
@@ -6873,7 +6875,8 @@ class ManagerTestHardwareTypeProperties(mgr_utils.ServiceSetUpMixin,
 
     def test_hardware_type_properties_manual_management(self):
         expected = ['deploy_kernel', 'deploy_ramdisk',
-                    'force_persistent_boot_device', 'deploy_forces_oob_reboot']
+                    'force_persistent_boot_device', 'deploy_forces_oob_reboot',
+                    'rescue_kernel', 'rescue_ramdisk']
         self._check_hardware_type_properties('manual-management', expected)
 
 
