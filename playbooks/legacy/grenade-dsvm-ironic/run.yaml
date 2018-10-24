@@ -30,9 +30,7 @@
     - shell:
         cmd: |
           cat << 'EOF' >> ironic-extra-vars
-            # Grenade needs to clone the placement repo on the Stein side since
-            # the repo did not exist in Rocky.
-            export PROJECTS="openstack-dev/grenade openstack/placement $PROJECTS"
+            export PROJECTS="openstack-dev/grenade $PROJECTS"
             export DEVSTACK_GATE_GRENADE=pullup
             export DEVSTACK_GATE_OS_TEST_TIMEOUT=2400
             export DEVSTACK_GATE_TEMPEST_BAREMETAL_BUILD_TIMEOUT=1200
