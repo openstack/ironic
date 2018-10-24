@@ -2164,6 +2164,24 @@ class DoNodeDeployTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         self.assertEqual(self.service.conductor.id,
                          task.node.conductor_affinity)
 
+    @mock.patch('ironic.conductor.manager._start_console_in_deploy',
+                autospec=True)
+    @mock.patch('ironic.drivers.modules.fake.FakeDeploy.deploy', autospec=True)
+    def test__old_rest_of_do_node_deploy_console(self, mock_deploy,
+                                                 mock_console):
+        self._start_service()
+        node = obj_utils.create_test_node(self.context, driver='fake-hardware')
+        task = task_manager.TaskManager(self.context, node.uuid)
+        task.process_event('deploy')
+        mock_deploy.return_value = states.DEPLOYDONE
+
+        manager._old_rest_of_do_node_deploy(task, self.service.conductor.id,
+                                            True)
+        mock_deploy.assert_called_once_with(mock.ANY, task)
+        mock_console.assert_called_once_with(task)
+        self.assertEqual(self.service.conductor.id,
+                         task.node.conductor_affinity)
+
 
 @mgr_utils.mock_record_keepalive
 class DoNextDeployStepTestCase(mgr_utils.ServiceSetUpMixin,
@@ -2243,9 +2261,14 @@ class DoNextDeployStepTestCase(mgr_utils.ServiceSetUpMixin,
         mock_execute.assert_called_once_with(mock.ANY, task,
                                              self.deploy_steps[1])
 
+    @mock.patch('ironic.drivers.modules.fake.FakeConsole.start_console',
+                autospec=True)
     @mock.patch('ironic.drivers.modules.fake.FakeDeploy.execute_deploy_step',
                 autospec=True)
-    def test__do_next_deploy_step_last_step_done(self, mock_execute):
+    def _test__do_next_deploy_step_last_step_done(self, mock_execute,
+                                                  mock_console,
+                                                  console_enabled=False,
+                                                  console_error=False):
         # Resume where last_step is the last deploy step that was executed
         driver_internal_info = {'deploy_step_index': 1,
                                 'deploy_steps': self.deploy_steps}
@@ -2255,8 +2278,11 @@ class DoNextDeployStepTestCase(mgr_utils.ServiceSetUpMixin,
             provision_state=states.DEPLOYWAIT,
             target_provision_state=states.ACTIVE,
             driver_internal_info=driver_internal_info,
-            deploy_step=self.deploy_steps[1])
+            deploy_step=self.deploy_steps[1],
+            console_enabled=console_enabled)
         mock_execute.return_value = None
+        if console_error:
+            mock_console.side_effect = exception.ConsoleError()
 
         task = task_manager.TaskManager(self.context, node.uuid)
         task.process_event('resume')
@@ -2270,6 +2296,20 @@ class DoNextDeployStepTestCase(mgr_utils.ServiceSetUpMixin,
         self.assertNotIn('deploy_step_index', node.driver_internal_info)
         self.assertIsNone(node.driver_internal_info['deploy_steps'])
         self.assertFalse(mock_execute.called)
+        if console_enabled:
+            mock_console.assert_called_once_with(mock.ANY, task)
+        else:
+            self.assertFalse(mock_console.called)
+
+    def test__do_next_deploy_step_last_step_done(self):
+        self._test__do_next_deploy_step_last_step_done()
+
+    def test__do_next_deploy_step_last_step_done_with_console(self):
+        self._test__do_next_deploy_step_last_step_done(console_enabled=True)
+
+    def test__do_next_deploy_step_last_step_done_with_console_error(self):
+        self._test__do_next_deploy_step_last_step_done(console_enabled=True,
+                                                       console_error=True)
 
     @mock.patch('ironic.drivers.modules.fake.FakeDeploy.execute_deploy_step',
                 autospec=True)
@@ -2565,7 +2605,7 @@ class DoNodeTearDownTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         self.assertEqual({}, node.instance_info)
         mock_tear_down.assert_called_once_with(task)
 
-    @mock.patch('ironic.conductor.manager.ConductorManager._set_console_mode')
+    @mock.patch('ironic.drivers.modules.fake.FakeConsole.stop_console')
     def test_do_node_tear_down_console_raises_error(self, mock_console):
         # test when _set_console_mode raises exception
         node = obj_utils.create_test_node(
@@ -2588,11 +2628,11 @@ class DoNodeTearDownTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         self.assertIsNotNone(node.last_error)
         # Assert instance_info was erased
         self.assertEqual({}, node.instance_info)
-        mock_console.assert_called_once_with(task, False)
+        mock_console.assert_called_once_with(task)
 
     # TODO(TheJulia): Since we're functionally bound to neutron support
     # by default, the fake drivers still invoke neutron.
-    @mock.patch('ironic.conductor.manager.ConductorManager._set_console_mode')
+    @mock.patch('ironic.drivers.modules.fake.FakeConsole.stop_console')
     @mock.patch('ironic.common.neutron.unbind_neutron_port')
     @mock.patch('ironic.conductor.manager.ConductorManager._do_node_clean')
     @mock.patch('ironic.drivers.modules.fake.FakeDeploy.tear_down')
@@ -2635,9 +2675,9 @@ class DoNodeTearDownTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         self.assertEqual({}, port.internal_info)
         mock_unbind.assert_called_once_with('foo', context=mock.ANY)
         if enabled_console:
-            mock_console.assert_called_once_with(task, False)
+            mock_console.assert_called_once_with(task)
         else:
-            mock_console.assert_not_called()
+            self.assertFalse(mock_console.called)
 
     def test__do_node_tear_down_ok_without_console(self):
         self._test__do_node_tear_down_ok(enabled_console=False)
