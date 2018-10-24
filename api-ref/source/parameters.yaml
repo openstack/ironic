@@ -197,6 +197,14 @@ r_associated:
   in: query
   required: false
   type: boolean
+r_conductor_group:
+  description: |
+    Filter the list of returned nodes, and only return those with the
+    specified ``conductor_group``. Case-insensitive string up to 255
+    characters, containing ``a-z``, ``0-9``, ``_``, ``-``, and ``.``.
+  in: query
+  required: false
+  type: string
 r_driver:
   description: |
     Filter the list of returned nodes, and only return those with the specified
@@ -407,6 +415,13 @@ clean_steps:
   in: body
   required: false
   type: array
+conductor_group:
+  description: |
+    The conductor group for a node. Case-insensitive string up to 255
+    characters, containing ``a-z``, ``0-9``, ``_``, ``-``, and ``.``.
+  in: body
+  required: false
+  type: string
 configdrive:
   description: |
     A gzip'ed and base-64 encoded config drive, to be written to a partition
@@ -1029,6 +1044,13 @@ req_chassis:
   in: body
   required: true
   type: array
+req_conductor_group:
+  description: |
+    The conductor group for a node. Case-insensitive string up to 255
+    characters, containing ``a-z``, ``0-9``, ``_``, ``-``, and ``.``.
+  in: body
+  required: false
+  type: string
 req_console_enabled:
   description: |
     Indicates whether console access is enabled or disabled on this node.
