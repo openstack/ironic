@@ -57,18 +57,6 @@ PROLIANTUTILS_SPEC = (
     'utils',
 )
 
-# pywsman
-PYWSMAN_SPEC = (
-    'Client',
-    'ClientOptions',
-    'EndPointReference',
-    'FLAG_ENUMERATION_OPTIMIZATION',
-    'Filter',
-    'XmlDoc',
-    'wsman_transport_set_verify_host',
-    'wsman_transport_set_verify_peer',
-)
-
 # pywsnmp
 PYWSNMP_SPEC = (
     'hlapi',

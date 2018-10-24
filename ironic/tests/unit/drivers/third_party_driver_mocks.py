@@ -25,7 +25,6 @@ Current list of mocked libraries:
 - proliantutils
 - pysnmp
 - scciclient
-- pywsman
 - python-dracclient
 """
 
