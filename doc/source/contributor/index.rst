@@ -65,6 +65,7 @@ the developer community about any implementation using this functionality.
   Writing "vendor_passthru" methods <vendor-passthru>
   Creating new BIOS interfaces <bios_develop>
   Third party continuous integration testing <third-party-ci>
+  Writing Deploy or Clean Steps <deploy-steps>
 
 Testing Network Integration
 ---------------------------

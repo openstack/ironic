@@ -33,6 +33,11 @@ is a higher priority. If the same priority is used by deploy steps on different
 interfaces, the following resolution order is used: Power, Management, Deploy,
 BIOS, and RAID interfaces.
 
+Writing a Deploy Step
+---------------------
+
+Please refer to :doc:`/contributor/deploy-steps`.
+
 FAQ
 ===
 
