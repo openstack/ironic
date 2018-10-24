@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    Fixes an issue with the ``irmc`` hardware type failing to create a boot
+    image via the ``irmc-virtual-media`` boot interface.
+    See `story 2003338 <https://storyboard.openstack.org/#!/story/2003338>`_
+    for more information.
