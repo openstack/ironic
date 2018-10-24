@@ -48,15 +48,6 @@ SUPPORTED_BOOT_DEVICES = [
 
 class XClarityManagement(base.ManagementInterface):
 
-    # NOTE(TheJulia): Marking as unsupported as 3rd Party CI for this
-    # interface was not established before Rocky cycle feature freeze.
-    # Lenovo is continuing to work on establishing their Third Party CI,
-    # and upon establishment and verification of Thid Party CI, this
-    # unsupported flag shall be removed.
-    # TODO(TheJulia): If Third Party CI is not online prior to the
-    # Stein Feature Freeze, this interface should be removed.
-    supported = False
-
     def get_properties(self):
         return common.COMMON_PROPERTIES
 
