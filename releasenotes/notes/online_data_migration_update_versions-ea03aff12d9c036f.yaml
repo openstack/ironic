@@ -1,0 +1,13 @@
+---
+critical:
+  - The ``ironic-dbsync online_data_migrations`` command was not updating
+    the objects to their latest versions, which could prevent upgrades from
+    working (i.e. when running the next release's ``ironic-dbsync upgrade``).
+    Objects are updated to their latest versions now when running that
+    command. See `story 2004174
+    <https://storyboard.openstack.org/#!/story/2004174>`_ for more information.
+upgrade:
+  - If you are doing a minor version upgrade, please re-run the
+    ``ironic-dbsync online_data_migrations`` command to properly update
+    the versions of the Objects in the database. Otherwise, the next major
+    upgrade may fail.
