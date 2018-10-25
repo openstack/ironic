@@ -141,8 +141,8 @@ class PXEBoot(pxe_base.PXEBaseMixin, base.BootInterface):
         """
         node = task.node
         mode = deploy_utils.rescue_or_deploy_mode(node)
-
-        if CONF.pxe.ipxe_enabled:
+        ipxe_enabled = CONF.pxe.ipxe_enabled
+        if ipxe_enabled:
             # NOTE(mjturek): At this point, the ipxe boot script should
             # already exist as it is created at startup time. However, we
             # call the boot script create method here to assert its
@@ -150,7 +150,8 @@ class PXEBoot(pxe_base.PXEBaseMixin, base.BootInterface):
             # or was deleted.
             pxe_utils.create_ipxe_boot_script()
 
-        dhcp_opts = pxe_utils.dhcp_options_for_instance(task)
+        dhcp_opts = pxe_utils.dhcp_options_for_instance(
+            task, ipxe_enabled=ipxe_enabled)
         provider = dhcp_factory.DHCPFactory()
         provider.update_dhcp(task, dhcp_opts)
 
@@ -224,7 +225,8 @@ class PXEBoot(pxe_base.PXEBaseMixin, base.BootInterface):
                 pxe_utils.cache_ramdisk_kernel(task, instance_image_info)
 
             # If it's going to PXE boot we need to update the DHCP server
-            dhcp_opts = pxe_utils.dhcp_options_for_instance(task)
+            dhcp_opts = pxe_utils.dhcp_options_for_instance(
+                task, ipxe_enabled)
             provider = dhcp_factory.DHCPFactory()
             provider.update_dhcp(task, dhcp_opts)
 
