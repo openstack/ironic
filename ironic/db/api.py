@@ -944,6 +944,21 @@ class Connection(object):
         # TODO(dtantsur) Delete this in Rocky cycle.
 
     @abc.abstractmethod
+    def update_to_latest_versions(self, context, max_count):
+        """Updates objects to their latest known versions.
+
+        This scans all the tables and for objects that are not in their latest
+        version, updates them to that version.
+
+        :param context: the admin context
+        :param max_count: The maximum number of objects to migrate. Must be
+                          >= 0. If zero, all the objects will be migrated.
+        :returns: A 2-tuple, 1. the total number of objects that need to be
+                  migrated (at the beginning of this call) and 2. the number
+                  of migrated objects.
+        """
+
+    @abc.abstractmethod
     def set_node_traits(self, node_id, traits, version):
         """Replace all of the node traits with specified list of traits.
 

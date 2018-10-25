@@ -45,6 +45,9 @@ dbapi = db_api.get_instance()
 # number migrated. If the function determines that no migrations are needed,
 # it returns (0, 0).
 #
+# The last migration step should always remain the last one -- it migrates
+# all objects to their latest known versions.
+#
 # Example of a function docstring:
 #
 #        def sample_data_migration(context, max_count):
@@ -67,6 +70,8 @@ ONLINE_MIGRATIONS = (
     (dbapi, 'backfill_version_column'),
     # TODO(dtantsur): remove when classic drivers are removed (Rocky?)
     (dbapi, 'migrate_to_hardware_types'),
+    # NOTE(rloo): Don't remove this; it should always be last
+    (dbapi, 'update_to_latest_versions'),
 )
 
 

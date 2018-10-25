@@ -1378,6 +1378,86 @@ class Connection(api.Connection):
 
         return total_to_migrate, total_migrated
 
+    @oslo_db_api.retry_on_deadlock
+    def update_to_latest_versions(self, context, max_count):
+        """Updates objects to their latest known versions.
+
+        This scans all the tables and for objects that are not in their latest
+        version, updates them to that version.
+
+        :param context: the admin context
+        :param max_count: The maximum number of objects to migrate. Must be
+                          >= 0. If zero, all the objects will be migrated.
+        :returns: A 2-tuple, 1. the total number of objects that need to be
+                  migrated (at the beginning of this call) and 2. the number
+                  of migrated objects.
+        """
+        # NOTE(rloo): 'master' has the most recent (latest) versions.
+        mapping = release_mappings.RELEASE_MAPPING['master']['objects']
+        total_to_migrate = 0
+        total_migrated = 0
+
+        sql_models = [model for model in models.Base.__subclasses__()
+                      if model.__name__ in mapping]
+        for model in sql_models:
+            version = mapping[model.__name__][0]
+            query = model_query(model).filter(model.version != version)
+            total_to_migrate += query.count()
+
+        if not total_to_migrate:
+            return total_to_migrate, 0
+
+        # NOTE(xek): Each of these operations happen in different transactions.
+        # This is to ensure a minimal load on the database, but at the same
+        # time it can cause an inconsistency in the amount of total and
+        # migrated objects returned (total could be > migrated). This is
+        # because some objects may have already migrated or been deleted from
+        # the database between the time the total was computed (above) to the
+        # time we do the updating (below).
+        #
+        # By the time this script is run, only the new release version is
+        # running, so the impact of this error will be minimal - e.g. the
+        # operator will run this script more than once to ensure that all
+        # data have been migrated.
+
+        # If max_count is zero, we want to migrate all the objects.
+        max_to_migrate = max_count or total_to_migrate
+
+        for model in sql_models:
+            version = mapping[model.__name__][0]
+            num_migrated = 0
+            with _session_for_write():
+                query = model_query(model).filter(model.version != version)
+                # NOTE(rloo) Caution here; after doing query.count(), it is
+                #            possible that the value is different in the
+                #            next invocation of the query.
+                if max_to_migrate < query.count():
+                    # Only want to update max_to_migrate objects; cannot use
+                    # sql's limit(), so we generate a new query with
+                    # max_to_migrate objects.
+                    ids = []
+                    for obj in query.slice(0, max_to_migrate):
+                        ids.append(obj['id'])
+                    num_migrated = (
+                        model_query(model).
+                        filter(sql.and_(model.id.in_(ids),
+                                        model.version != version)).
+                        update({model.version: version},
+                               synchronize_session=False))
+                else:
+                    num_migrated = (
+                        model_query(model).
+                        filter(model.version != version).
+                        update({model.version: version},
+                               synchronize_session=False))
+
+            total_migrated += num_migrated
+            max_to_migrate -= num_migrated
+            if max_to_migrate <= 0:
+                break
+
+        return total_to_migrate, total_migrated
+
     @staticmethod
     def _verify_max_traits_per_node(node_id, num_traits):
         """Verify that an operation would not exceed the per-node trait limit.
