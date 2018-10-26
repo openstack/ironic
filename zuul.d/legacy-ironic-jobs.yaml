@@ -82,10 +82,6 @@
       - openstack/pyghmi
       - openstack/python-ironicclient
       - openstack/virtualbmc
-      # openstack/placement is not part of legacy-dsvm-base because that is
-      # branchless and openstack/placement only has a master branch (it is
-      # new as of Stein)
-      - openstack/placement
 
 - job:
     name: ironic-grenade-dsvm-multinode-multitenant
@@ -102,9 +98,5 @@
       - openstack/pyghmi
       - openstack/python-ironicclient
       - openstack/virtualbmc
-      # openstack/placement is not part of legacy-dsvm-base because that is
-      # branchless and openstack/placement only has a master branch (it is
-      # new as of Stein)
-      - openstack/placement
     nodeset: legacy-ubuntu-xenial-2-node
 
