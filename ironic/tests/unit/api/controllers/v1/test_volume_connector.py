@@ -273,6 +273,25 @@ class TestListVolumeConnectors(test_api_base.BaseApiTest):
         next_marker = data['connectors'][-1]['uuid']
         self.assertIn(next_marker, data['next'])
 
+    def test_get_collection_pagination_no_uuid(self):
+        fields = 'connector_id'
+        limit = 2
+        connectors = []
+        for id_ in range(3):
+            volume_connector = obj_utils.create_test_volume_connector(
+                self.context,
+                node_id=self.node.id,
+                connector_id='test-connector_id-%s' % id_,
+                uuid=uuidutils.generate_uuid())
+            connectors.append(volume_connector)
+
+        data = self.get_json(
+            '/volume/connectors?fields=%s&limit=%s' % (fields, limit),
+            headers=self.headers)
+
+        self.assertEqual(limit, len(data['connectors']))
+        self.assertIn('marker=%s' % connectors[limit - 1].uuid, data['next'])
+
     def test_collection_links_detail(self):
         connectors = []
         for id_ in range(5):

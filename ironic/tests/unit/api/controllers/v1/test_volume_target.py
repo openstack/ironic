@@ -258,6 +258,23 @@ class TestListVolumeTargets(test_api_base.BaseApiTest):
         self.assertIn(next_marker, data['next'])
         self.assertIn('volume/targets', data['next'])
 
+    def test_get_collection_pagination_no_uuid(self):
+        fields = 'boot_index'
+        limit = 2
+        targets = []
+        for id_ in range(3):
+            target = obj_utils.create_test_volume_target(
+                self.context, node_id=self.node.id,
+                uuid=uuidutils.generate_uuid(), boot_index=id_)
+            targets.append(target)
+
+        data = self.get_json(
+            '/volume/targets?fields=%s&limit=%s' % (fields, limit),
+            headers=self.headers)
+
+        self.assertEqual(limit, len(data['targets']))
+        self.assertIn('marker=%s' % targets[limit - 1].uuid, data['next'])
+
     def test_collection_links_detail(self):
         targets = []
         for id_ in range(5):
