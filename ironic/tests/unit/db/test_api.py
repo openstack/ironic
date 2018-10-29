@@ -17,6 +17,7 @@ from oslo_db.sqlalchemy import utils as db_utils
 from oslo_utils import uuidutils
 from testtools import matchers
 
+from ironic.common import context
 from ironic.common import exception
 from ironic.common import release_mappings
 from ironic.db import api as db_api
@@ -115,3 +116,118 @@ class GetNotVersionsTestCase(base.DbTestCase):
         utils.create_test_node(uuid=uuidutils.generate_uuid(), version='1.4')
         self.assertRaises(exception.IronicException,
                           self.dbapi.get_not_versions, 'NotExist', ['1.6'])
+
+
+class UpdateToLatestVersionsTestCase(base.DbTestCase):
+
+    def setUp(self):
+        super(UpdateToLatestVersionsTestCase, self).setUp()
+        self.context = context.get_admin_context()
+        self.dbapi = db_api.get_instance()
+
+        obj_versions = release_mappings.get_object_versions(
+            objects=['Node', 'Chassis'])
+        master_objs = release_mappings.RELEASE_MAPPING['master']['objects']
+        self.node_ver = master_objs['Node'][0]
+        self.chassis_ver = master_objs['Chassis'][0]
+        self.node_old_ver = self._get_old_object_version(
+            self.node_ver, obj_versions['Node'])
+        self.chassis_old_ver = self._get_old_object_version(
+            self.chassis_ver, obj_versions['Chassis'])
+        self.node_version_same = self.node_old_ver == self.node_ver
+        self.chassis_version_same = self.chassis_old_ver == self.chassis_ver
+        # number of objects with different versions
+        self.num_diff_objs = 2
+        if self.node_version_same:
+            self.num_diff_objs -= 1
+        if self.chassis_version_same:
+            self.num_diff_objs -= 1
+
+    def _get_old_object_version(self, latest_version, versions):
+        """Return a version that is older (not same) as latest version.
+
+        If there aren't any older versions, return the latest version.
+        """
+        for v in versions:
+            if v != latest_version:
+                return v
+        return latest_version
+
+    def test_empty_db(self):
+        self.assertEqual(
+            (0, 0), self.dbapi.update_to_latest_versions(self.context, 10))
+
+    def test_version_exists(self):
+        # Node will be in latest version
+        utils.create_test_node()
+        self.assertEqual(
+            (0, 0), self.dbapi.update_to_latest_versions(self.context, 10))
+
+    def test_one_node(self):
+        node = utils.create_test_node(version=self.node_old_ver)
+        expected = (0, 0) if self.node_version_same else (1, 1)
+        self.assertEqual(
+            expected, self.dbapi.update_to_latest_versions(self.context, 10))
+        res = self.dbapi.get_node_by_uuid(node.uuid)
+        self.assertEqual(self.node_ver, res.version)
+
+    def test_max_count_zero(self):
+        orig_node = utils.create_test_node(version=self.node_old_ver)
+        orig_chassis = utils.create_test_chassis(version=self.chassis_old_ver)
+        self.assertEqual((self.num_diff_objs, self.num_diff_objs),
+                         self.dbapi.update_to_latest_versions(self.context, 0))
+        node = self.dbapi.get_node_by_uuid(orig_node.uuid)
+        self.assertEqual(self.node_ver, node.version)
+        chassis = self.dbapi.get_chassis_by_uuid(orig_chassis.uuid)
+        self.assertEqual(self.chassis_ver, chassis.version)
+
+    def test_old_version_max_count_1(self):
+        orig_node = utils.create_test_node(version=self.node_old_ver)
+        orig_chassis = utils.create_test_chassis(version=self.chassis_old_ver)
+        num_modified = 1 if self.num_diff_objs else 0
+        self.assertEqual((self.num_diff_objs, num_modified),
+                         self.dbapi.update_to_latest_versions(self.context, 1))
+        node = self.dbapi.get_node_by_uuid(orig_node.uuid)
+        chassis = self.dbapi.get_chassis_by_uuid(orig_chassis.uuid)
+        self.assertTrue(node.version == self.node_old_ver or
+                        chassis.version == self.chassis_old_ver)
+        self.assertTrue(node.version == self.node_ver or
+                        chassis.version == self.chassis_ver)
+
+    def _create_nodes(self, num_nodes):
+        version = self.node_old_ver
+        nodes = []
+        for i in range(0, num_nodes):
+            node = utils.create_test_node(version=version,
+                                          uuid=uuidutils.generate_uuid())
+            nodes.append(node.uuid)
+        for uuid in nodes:
+            node = self.dbapi.get_node_by_uuid(uuid)
+            self.assertEqual(version, node.version)
+        return nodes
+
+    def test_old_version_max_count_2_some_nodes(self):
+        if self.node_version_same:
+            # can't test if we don't have diff versions of the node
+            return
+
+        nodes = self._create_nodes(5)
+        self.assertEqual(
+            (5, 2), self.dbapi.update_to_latest_versions(self.context, 2))
+        self.assertEqual(
+            (3, 3), self.dbapi.update_to_latest_versions(self.context, 10))
+        for uuid in nodes:
+            node = self.dbapi.get_node_by_uuid(uuid)
+            self.assertEqual(self.node_ver, node.version)
+
+    def test_old_version_max_count_same_nodes(self):
+        if self.node_version_same:
+            # can't test if we don't have diff versions of the node
+            return
+
+        nodes = self._create_nodes(5)
+        self.assertEqual(
+            (5, 5), self.dbapi.update_to_latest_versions(self.context, 5))
+        for uuid in nodes:
+            node = self.dbapi.get_node_by_uuid(uuid)
+            self.assertEqual(self.node_ver, node.version)
