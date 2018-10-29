@@ -510,7 +510,16 @@ if [[ "$IRONIC_BOOT_MODE" == "uefi" ]]; then
         die $LINENO "Boot mode UEFI only works in Ubuntu or Fedora for now."
     fi
 
+    if is_ubuntu && [[ -z $IRONIC_GRUB2_FILE ]]; then
+        IRONIC_GRUB2_SHIM_FILE=/usr/lib/shim/shimx64.efi
+        IRONIC_GRUB2_FILE=/usr/lib/grub/x86_64-efi-signed/grubx64.efi.signed
+    fi
+
     if [[ "$IRONIC_IPXE_ENABLED" == "False" ]]; then
+        # NOTE(TheJulia): While we no longer directly copy the
+        # IRONIC_GRUB2_FILE, we still check the exisstence as
+        # without the bootloader package we would be unable to build
+        # the netboot core image.
         if [[ -z $IRONIC_GRUB2_SHIM_FILE ]] || [[ -z $IRONIC_GRUB2_FILE ]] || [[ ! -f $IRONIC_GRUB2_SHIM_FILE ]] || [[ ! -f $IRONIC_GRUB2_FILE ]]; then
             die $LINENO "Grub2 Bootloader and Shim file missing."
         fi
@@ -976,8 +985,8 @@ function install_ironic {
             sudo dpkg -i "$temp_deb"
             rm -f "$temp_deb"
 
-            sudo rm /usr/share/qemu/pxe-virtio.rom
-            sudo ln -s /usr/lib/ipxe/qemu/efi-virtio.rom /usr/share/qemu/pxe-virtio.rom
+            # sudo rm /usr/share/qemu/pxe-virtio.rom
+            # sudo ln -s /usr/lib/ipxe/qemu/efi-virtio.rom /usr/share/qemu/pxe-virtio.rom
         elif is_fedora; then
             sudo rm /usr/share/qemu/pxe-virtio.rom
             sudo ln -s /usr/share/ipxe.efi/1af41000.rom /usr/share/qemu/pxe-virtio.rom
@@ -1100,16 +1109,17 @@ function configure_ironic_dirs {
     fi
 
     if [[ "$IRONIC_BOOT_MODE" == "uefi" ]]; then
-        local uefi_ipxe_boot_file
+        local uefi_boot_file
         local uefi_loader
         local uefi_nvram
 
-        uefi_ipxe_boot_file=$(get_uefi_ipxe_boot_file)
-        if [ ! -f $uefi_ipxe_boot_file ]; then
-            die $LINENO "iPXE UEFI boot file $uefi_pxe_bootfile_name not found."
+
+        uefi_boot_file=$(get_uefi_ipxe_boot_file)
+        if [ ! -f $uefi_boot_file ]; then
+            die $LINENO "UEFI boot file $uefi_boot_file not found."
         fi
 
-        cp $uefi_ipxe_boot_file $IRONIC_TFTPBOOT_DIR
+        cp $uefi_boot_file $IRONIC_TFTPBOOT_DIR
 
         # Copy the OVMF images to libvirt's path
         uefi_loader=$(get_uefi_loader)
@@ -1792,6 +1802,8 @@ SUBSHELL
 
         vbmc_port=$((vbmc_port+1))
         pdu_outlet=$((pdu_outlet+1))
+        # It is sometimes useful to dump out the VM configuration to validate it.
+        # sudo virsh dumpxml $vm_name
     done
 
     if [[ -z "${IRONIC_PROVISION_NETWORK_NAME}" ]]; then
@@ -1812,7 +1824,10 @@ SUBSHELL
         fi
         sudo ip route replace $replace_range via $r_net_gateway
     fi
-
+    # Here is a good place to restart tcpdump to begin capturing packets.
+    # See: https://docs.openstack.org/devstack/latest/debugging.html
+    # stop_tcpdump
+    # start_tcpdump
 }
 
 function wait_for_nova_resources {
@@ -2337,20 +2352,28 @@ function configure_tftpd {
         echo "re ^([^/]) $IRONIC_TFTPBOOT_DIR/\1" >>$IRONIC_TFTPBOOT_DIR/map-file
 
         sudo cp $IRONIC_GRUB2_SHIM_FILE $IRONIC_TFTPBOOT_DIR/bootx64.efi
-        sudo cp $IRONIC_GRUB2_FILE $IRONIC_TFTPBOOT_DIR/grubx64.efi
+
         if is_fedora; then
+            grub_subdir="EFI/fedora"
             grub_dir=$IRONIC_TFTPBOOT_DIR/EFI/fedora
         elif is_ubuntu; then
-            grub_dir=$IRONIC_TFTPBOOT_DIR/grub
+            grub_subdir="boot/grub"
+            grub_dir=$IRONIC_TFTPBOOT_DIR/boot/grub
         fi
         mkdir -p $grub_dir
+        # Grub looks for numerous files when the grubnetx.efi binary is used :\
+        # specifically .lst files which define module lists which we can't seem
+        # to find on disk. That being said, the grub-mknetdir utility generates
+        # these files for us.
+        grub-mknetdir --net-directory="$IRONIC_TFTPBOOT_DIR" --subdir="$grub_subdir"
+        sudo cp $IRONIC_TFTPBOOT_DIR/$grub_subdir/x86_64-efi/core.efi $IRONIC_TFTPBOOT_DIR/grubx64.efi
         cat << EOF > $grub_dir/grub.cfg
 set default=master
-set timeout=5
+set timeout=1
 set hidden_timeout_quiet=false
 
 menuentry "master"  {
-configfile $IRONIC_TFTPBOOT_DIR/\$net_default_ip.conf
+configfile $IRONIC_TFTPBOOT_DIR/\$net_default_mac.conf
 }
 EOF
         chmod 644 $grub_dir/grub.cfg

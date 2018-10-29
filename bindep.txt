@@ -22,6 +22,9 @@ pxelinux [platform:ubuntu-xenial platform:debian-jessie default]
 syslinux [platform:rpm platform:ubuntu-trusty platform:debian-wheezy default]
 syslinux-common [platform:ubuntu-xenial platform:debian-jessie default]
 socat [default]
+# Grub2 files for boot loadingusing PXE/GRUB2
+shim [platform:dpkg default]
+grub-efi-amd64-signed [platform:dpkg default]
 
 # these are needed to create and access VMs when testing with virtual hardware
 libvirt-bin [platform:dpkg devstack]

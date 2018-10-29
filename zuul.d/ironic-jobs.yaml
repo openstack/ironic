@@ -479,3 +479,17 @@
         IRONIC_INSPECTOR_POWER_OFF: False
         IRONIC_DEPLOY_FAST_TRACK: True
         IRONIC_DEPLOY_FAST_TRACK_CLEANING: True
+
+- job:
+    name: ironic-tempest-ipa-partition-uefi-pxe-grub2
+    description: Ironic tempest scenario test utilizing PXE, UEFI, and Grub2
+    parent: ironic-base
+    vars:
+      devstack_localrc:
+        USE_PYTHON3: True
+        IRONIC_ENABLED_HARDWARE_TYPES: ipmi
+        IRONIC_ENABLED_BOOT_INTERFACES: pxe
+        IRONIC_VM_SPECS_RAM: 512
+        IRONIC_IPXE_ENABLED: False
+        IRONIC_BOOT_MODE: uefi
+        IRONIC_AUTOMATED_CLEAN_ENABLED: False
