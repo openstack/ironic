@@ -67,7 +67,7 @@ class DracInspectionTestCase(db_base.DbTestCase):
                  'speed': 2400,
                  'model': 'Intel(R) Xeon(R) CPU E5-2620 v3 @ 2.40GHz',
                  'state': 'ok',
-                 'ht_enabled': True,
+                 'ht_enabled': False,
                  'turbo_enabled': True,
                  'vt_enabled': True,
                  'arch64': True}]
@@ -162,7 +162,7 @@ class DracInspectionTestCase(db_base.DbTestCase):
         expected_node_properties = {
             'memory_mb': 32768,
             'local_gb': 1116,
-            'cpus': 2,
+            'cpus': 18,
             'cpu_arch': 'x86_64'}
         mock_client = mock.Mock()
         mock_get_drac_client.return_value = mock_client
@@ -206,7 +206,7 @@ class DracInspectionTestCase(db_base.DbTestCase):
         expected_node_properties = {
             'memory_mb': 32768,
             'local_gb': 279,
-            'cpus': 2,
+            'cpus': 18,
             'cpu_arch': 'x86_64'}
         mock_client = mock.Mock()
         mock_get_drac_client.return_value = mock_client
@@ -252,7 +252,7 @@ class DracInspectionTestCase(db_base.DbTestCase):
         expected_node_properties = {
             'memory_mb': 32768,
             'local_gb': 1116,
-            'cpus': 2,
+            'cpus': 18,
             'cpu_arch': 'x86_64'}
         mock_client = mock.Mock()
         mock_get_drac_client.return_value = mock_client
@@ -361,3 +361,19 @@ class DracInspectionTestCase(db_base.DbTestCase):
                 mock_client, self.nics, self.node)
 
             self.assertEqual(expected_pxe_nic, pxe_dev_nics)
+
+    def test__calculate_cpus(self):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            cpu = task.driver.inspect._calculate_cpus(
+                self.cpus[0])
+
+            self.assertEqual(12, cpu)
+
+    def test__calculate_cpus_without_ht_enabled(self):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            cpu = task.driver.inspect._calculate_cpus(
+                self.cpus[1])
+
+            self.assertEqual(6, cpu)

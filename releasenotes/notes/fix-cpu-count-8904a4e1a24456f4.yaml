@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    Fixes a bug where the number of CPU sockets was being returned by the
+    ``idrac`` hardware type during introspection, instead of the number of
+    virtual CPUs. See bug `2004155
+    <https://storyboard.openstack.org/#!/story/2004155>`_ for details.
