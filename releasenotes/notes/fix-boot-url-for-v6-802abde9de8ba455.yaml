@@ -1,0 +1,8 @@
+---
+fixes:
+  - |
+    Fixes the URL generation with TFTP URLs does not account for IPv6 addresses
+    needing to be wrapped in '[]' in order to be parsed.
+  - |
+    Fixes DHCP option parameter generation to correctly return the proper
+    values for IPv6 based booting when iPXE is in use.
