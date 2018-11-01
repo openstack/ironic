@@ -958,7 +958,7 @@ class TestPXEUtils(db_base.DbTestCase):
 
         with task_manager.acquire(self.context, self.node.uuid) as task:
             task.node.properties = properties
-            pxe_utils.clean_up_pxe_config(task)
+            pxe_utils.clean_up_pxe_config(task, ipxe_enabled=True)
 
             ensure_calls = [
                 mock.call("/httpboot/pxelinux.cfg/%s"
@@ -1697,6 +1697,6 @@ class CleanUpPxeEnvTestCase(db_base.DbTestCase):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
             pxe_utils.clean_up_pxe_env(task, image_info)
-            mock_pxe_clean.assert_called_once_with(task)
+            mock_pxe_clean.assert_called_once_with(task, ipxe_enabled=False)
             mock_unlink.assert_any_call('deploy_kernel')
         mock_cache.return_value.clean_up.assert_called_once_with()

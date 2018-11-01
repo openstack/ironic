@@ -272,21 +272,26 @@ class iPXEBootTestCase(db_base.DbTestCase):
                     self.assertFalse(mock_cache_r_k.called)
                 else:
                     mock_cache_r_k.assert_called_once_with(
-                        task, {'kernel': 'b'})
+                        task, {'kernel': 'b'},
+                        ipxe_enabled=True)
                 mock_instance_img_info.assert_called_once_with(
                     task, ipxe_enabled=True)
             elif not cleaning and mode == 'deploy':
                 mock_cache_r_k.assert_called_once_with(
-                    task, {'deploy_kernel': 'a', 'deploy_ramdisk': 'r',
-                           'kernel': 'b'})
+                    task,
+                    {'deploy_kernel': 'a', 'deploy_ramdisk': 'r',
+                     'kernel': 'b'},
+                    ipxe_enabled=True)
                 mock_instance_img_info.assert_called_once_with(
                     task, ipxe_enabled=True)
             elif mode == 'deploy':
                     mock_cache_r_k.assert_called_once_with(
-                        task, {'deploy_kernel': 'a', 'deploy_ramdisk': 'r'})
+                        task, {'deploy_kernel': 'a', 'deploy_ramdisk': 'r'},
+                        ipxe_enabled=True)
             elif mode == 'rescue':
                     mock_cache_r_k.assert_called_once_with(
-                        task, {'rescue_kernel': 'a', 'rescue_ramdisk': 'r'})
+                        task, {'rescue_kernel': 'a', 'rescue_ramdisk': 'r'},
+                        ipxe_enabled=True)
             if uefi:
                 mock_pxe_config.assert_called_once_with(
                     task, {'foo': 'bar'}, CONF.pxe.uefi_pxe_config_template,
@@ -552,7 +557,8 @@ class iPXEBootTestCase(db_base.DbTestCase):
 
             get_image_info_mock.assert_called_once_with(
                 task, ipxe_enabled=True)
-            cache_mock.assert_called_once_with(task, image_info)
+            cache_mock.assert_called_once_with(task, image_info,
+                                               ipxe_enabled=True)
             provider_mock.update_dhcp.assert_called_once_with(task, dhcp_opts)
             switch_pxe_config_mock.assert_called_once_with(
                 pxe_config_path, "30212642-09d3-467f-8e09-21685826ab50",
@@ -593,7 +599,8 @@ class iPXEBootTestCase(db_base.DbTestCase):
 
             get_image_info_mock.assert_called_once_with(
                 task, ipxe_enabled=True)
-            cache_mock.assert_called_once_with(task, image_info)
+            cache_mock.assert_called_once_with(task, image_info,
+                                               ipxe_enabled=True)
             provider_mock.update_dhcp.assert_called_once_with(task, dhcp_opts)
             create_pxe_config_mock.assert_called_once_with(
                 task, mock.ANY, CONF.pxe.pxe_config_template,
@@ -627,7 +634,8 @@ class iPXEBootTestCase(db_base.DbTestCase):
 
             get_image_info_mock.assert_called_once_with(
                 task, ipxe_enabled=True)
-            cache_mock.assert_called_once_with(task, image_info)
+            cache_mock.assert_called_once_with(task, image_info,
+                                               ipxe_enabled=True)
             provider_mock.update_dhcp.assert_called_once_with(task, dhcp_opts)
             self.assertFalse(switch_pxe_config_mock.called)
             self.assertFalse(set_boot_device_mock.called)
@@ -655,10 +663,10 @@ class iPXEBootTestCase(db_base.DbTestCase):
             task.driver.boot.prepare_instance(task)
             get_image_info_mock.assert_called_once_with(
                 task, ipxe_enabled=True)
-            cache_mock.assert_called_once_with(task, {})
+            cache_mock.assert_called_once_with(task, {}, ipxe_enabled=True)
             provider_mock.update_dhcp.assert_called_once_with(task, dhcp_opts)
             self.assertTrue(log_mock.called)
-            clean_up_pxe_mock.assert_called_once_with(task)
+            clean_up_pxe_mock.assert_called_once_with(task, ipxe_enabled=True)
             set_boot_device_mock.assert_called_once_with(
                 task, boot_devices.DISK, persistent=True)
 
@@ -722,7 +730,8 @@ class iPXEBootTestCase(db_base.DbTestCase):
             task.node.instance_info = instance_info
             task.node.save()
             task.driver.boot.prepare_instance(task)
-            clean_up_pxe_config_mock.assert_called_once_with(task)
+            clean_up_pxe_config_mock.assert_called_once_with(
+                task, ipxe_enabled=True)
             set_boot_device_mock.assert_called_once_with(task,
                                                          boot_devices.DISK,
                                                          persistent=True)
@@ -737,7 +746,8 @@ class iPXEBootTestCase(db_base.DbTestCase):
             task.node.instance_info = instance_info
             task.node.save()
             task.driver.boot.prepare_instance(task)
-            clean_up_pxe_config_mock.assert_called_once_with(task)
+            clean_up_pxe_config_mock.assert_called_once_with(
+                task, ipxe_enabled=True)
             driver_info = task.node.driver_info
             driver_info['force_persistent _boot_device'] = True
             task.node.driver_info = driver_info
@@ -757,7 +767,8 @@ class iPXEBootTestCase(db_base.DbTestCase):
             task.node.instance_info = instance_info
             task.node.save()
             task.driver.boot.prepare_instance(task)
-            clean_up_pxe_config_mock.assert_called_once_with(task)
+            clean_up_pxe_config_mock.assert_called_once_with(
+                task, ipxe_enabled=True)
             self.assertFalse(set_boot_device_mock.called)
 
     @mock.patch.object(pxe_utils, 'clean_up_pxe_env', autospec=True)
