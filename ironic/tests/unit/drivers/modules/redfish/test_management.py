@@ -31,10 +31,6 @@ sushy = importutils.try_import('sushy')
 INFO_DICT = db_utils.get_test_redfish_info()
 
 
-class MockedSushyError(Exception):
-    pass
-
-
 class RedfishManagementTestCase(db_base.DbTestCase):
 
     def setUp(self):
@@ -122,12 +118,13 @@ class RedfishManagementTestCase(db_base.DbTestCase):
                 fake_system.set_system_boot_source.reset_mock()
                 mock_get_system.reset_mock()
 
-    @mock.patch('ironic.drivers.modules.redfish.management.sushy')
+    @mock.patch.object(sushy, 'Sushy', autospec=True)
     @mock.patch.object(redfish_utils, 'get_system', autospec=True)
     def test_set_boot_device_fail(self, mock_get_system, mock_sushy):
         fake_system = mock.Mock()
-        mock_sushy.exceptions.SushyError = MockedSushyError
-        fake_system.set_system_boot_source.side_effect = MockedSushyError
+        fake_system.set_system_boot_source.side_effect = (
+            sushy.exceptions.SushyError()
+        )
         mock_get_system.return_value = fake_system
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
@@ -185,12 +182,12 @@ class RedfishManagementTestCase(db_base.DbTestCase):
                 fake_system.set_system_boot_source.reset_mock()
                 mock_get_system.reset_mock()
 
-    @mock.patch('ironic.drivers.modules.redfish.management.sushy')
+    @mock.patch.object(sushy, 'Sushy', autospec=True)
     @mock.patch.object(redfish_utils, 'get_system', autospec=True)
     def test_set_boot_mode_fail(self, mock_get_system, mock_sushy):
         fake_system = mock.Mock()
-        mock_sushy.exceptions.SushyError = MockedSushyError
-        fake_system.set_system_boot_source.side_effect = MockedSushyError
+        fake_system.set_system_boot_source.side_effect = (
+            sushy.exceptions.SushyError)
         mock_get_system.return_value = fake_system
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
@@ -232,12 +229,12 @@ class RedfishManagementTestCase(db_base.DbTestCase):
             fake_system.reset_system.assert_called_once_with(sushy.RESET_NMI)
             mock_get_system.assert_called_once_with(task.node)
 
-    @mock.patch('ironic.drivers.modules.redfish.management.sushy')
+    @mock.patch.object(sushy, 'Sushy', autospec=True)
     @mock.patch.object(redfish_utils, 'get_system', autospec=True)
     def test_inject_nmi_fail(self, mock_get_system, mock_sushy):
         fake_system = mock.Mock()
-        mock_sushy.exceptions.SushyError = MockedSushyError
-        fake_system.reset_system.side_effect = MockedSushyError
+        fake_system.reset_system.side_effect = (
+            sushy.exceptions.SushyError)
         mock_get_system.return_value = fake_system
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
@@ -245,5 +242,5 @@ class RedfishManagementTestCase(db_base.DbTestCase):
                 exception.RedfishError, 'Redfish inject NMI',
                 task.driver.management.inject_nmi, task)
             fake_system.reset_system.assert_called_once_with(
-                mock_sushy.RESET_NMI)
+                sushy.RESET_NMI)
             mock_get_system.assert_called_once_with(task.node)

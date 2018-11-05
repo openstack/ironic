@@ -219,7 +219,7 @@ if not imcsdk:
 sushy = importutils.try_import('sushy')
 if not sushy:
     sushy = mock.MagicMock(
-        spec_set=mock_specs.SUSHY_CONSTANTS_SPEC,
+        spec_set=mock_specs.SUSHY_SPEC,
         BOOT_SOURCE_TARGET_PXE='Pxe',
         BOOT_SOURCE_TARGET_HDD='Hdd',
         BOOT_SOURCE_TARGET_CD='Cd',
@@ -241,6 +241,16 @@ if not sushy:
     )
 
     sys.modules['sushy'] = sushy
+    sys.modules['sushy.exceptions'] = sushy.exceptions
+    sushy.exceptions.SushyError = (
+        type('SushyError', (MockKwargsException,), {}))
+    sushy.exceptions.ConnectionError = (
+        type('ConnectionError', (MockKwargsException,), {}))
+    sushy.exceptions.ResourceNotFoundError = (
+        type('ResourceNotFoundError', (MockKwargsException,), {}))
+    sushy.auth = mock.MagicMock(spec_set=mock_specs.SUSHY_AUTH_SPEC)
+    sys.modules['sushy.auth'] = sushy.auth
+
     if 'ironic.drivers.modules.redfish' in sys.modules:
         six.moves.reload_module(
             sys.modules['ironic.drivers.modules.redfish'])

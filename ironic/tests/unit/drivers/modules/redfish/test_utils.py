@@ -31,14 +31,6 @@ sushy = importutils.try_import('sushy')
 INFO_DICT = db_utils.get_test_redfish_info()
 
 
-class MockedConnectionError(Exception):
-    pass
-
-
-class MockedResourceNotFoundError(Exception):
-    pass
-
-
 class RedfishUtilsTestCase(db_base.DbTestCase):
 
     def setUp(self):
@@ -146,27 +138,24 @@ class RedfishUtilsTestCase(db_base.DbTestCase):
                                    'The value should be a Boolean',
                                    redfish_utils.parse_driver_info, self.node)
 
-    @mock.patch('ironic.drivers.modules.redfish.utils.sushy')
+    @mock.patch.object(sushy, 'Sushy', autospec=True)
     @mock.patch('ironic.drivers.modules.redfish.utils.'
                 'SessionCache.sessions', {})
     def test_get_system(self, mock_sushy):
-        mock_sushy.exceptions.ConnectionError = MockedConnectionError
-        fake_conn = mock_sushy.Sushy.return_value
+        fake_conn = mock_sushy.return_value
         fake_system = fake_conn.get_system.return_value
         response = redfish_utils.get_system(self.node)
         self.assertEqual(fake_system, response)
         fake_conn.get_system.assert_called_once_with(
             '/redfish/v1/Systems/FAKESYSTEM')
 
-    @mock.patch('ironic.drivers.modules.redfish.utils.sushy')
+    @mock.patch.object(sushy, 'Sushy', autospec=True)
     @mock.patch('ironic.drivers.modules.redfish.utils.'
                 'SessionCache.sessions', {})
     def test_get_system_resource_not_found(self, mock_sushy):
-        mock_sushy.exceptions.ConnectionError = MockedConnectionError
-        fake_conn = mock_sushy.Sushy.return_value
-        mock_sushy.exceptions.ResourceNotFoundError = (
-            MockedResourceNotFoundError)
-        fake_conn.get_system.side_effect = MockedResourceNotFoundError()
+        fake_conn = mock_sushy.return_value
+        fake_conn.get_system.side_effect = (
+            sushy.exceptions.ResourceNotFoundError())
 
         self.assertRaises(exception.RedfishError,
                           redfish_utils.get_system, self.node)
@@ -174,7 +163,7 @@ class RedfishUtilsTestCase(db_base.DbTestCase):
             '/redfish/v1/Systems/FAKESYSTEM')
 
     @mock.patch('time.sleep', autospec=True)
-    @mock.patch('ironic.drivers.modules.redfish.utils.sushy')
+    @mock.patch.object(sushy, 'Sushy', autospec=True)
     @mock.patch('ironic.drivers.modules.redfish.utils.'
                 'SessionCache.sessions', {})
     def test_get_system_resource_connection_error_retry(self, mock_sushy,
@@ -182,11 +171,8 @@ class RedfishUtilsTestCase(db_base.DbTestCase):
         # Redfish specific configurations
         self.config(connection_attempts=3, group='redfish')
 
-        fake_conn = mock_sushy.Sushy.return_value
-        mock_sushy.exceptions.ResourceNotFoundError = (
-            MockedResourceNotFoundError)
-        mock_sushy.exceptions.ConnectionError = MockedConnectionError
-        fake_conn.get_system.side_effect = MockedConnectionError()
+        fake_conn = mock_sushy.return_value
+        fake_conn.get_system.side_effect = sushy.exceptions.ConnectionError()
 
         self.assertRaises(exception.RedfishConnectionError,
                           redfish_utils.get_system, self.node)
@@ -200,56 +186,50 @@ class RedfishUtilsTestCase(db_base.DbTestCase):
         mock_sleep.assert_called_with(
             redfish_utils.CONF.redfish.connection_retry_interval)
 
-    @mock.patch('ironic.drivers.modules.redfish.utils.sushy')
+    @mock.patch.object(sushy, 'Sushy', autospec=True)
     @mock.patch('ironic.drivers.modules.redfish.utils.'
                 'SessionCache.sessions', {})
     def test_auth_auto(self, mock_sushy):
-        mock_sushy.exceptions.ConnectionError = MockedConnectionError
         redfish_utils.get_system(self.node)
-        mock_sushy.Sushy.assert_called_with(
+        mock_sushy.assert_called_with(
             self.parsed_driver_info['address'],
             username=self.parsed_driver_info['username'],
             password=self.parsed_driver_info['password'],
             verify=True)
 
-    @mock.patch('ironic.drivers.modules.redfish.utils.sushy')
+    @mock.patch.object(sushy, 'Sushy', autospec=True)
     @mock.patch('ironic.drivers.modules.redfish.utils.'
                 'SessionCache.sessions', {})
     def test_ensure_session_reuse(self, mock_sushy):
-        mock_sushy.exceptions.ConnectionError = MockedConnectionError
         redfish_utils.get_system(self.node)
         redfish_utils.get_system(self.node)
-        self.assertEqual(1, mock_sushy.Sushy.call_count)
+        self.assertEqual(1, mock_sushy.call_count)
 
-    @mock.patch('ironic.drivers.modules.redfish.utils.sushy')
+    @mock.patch.object(sushy, 'Sushy', autospec=True)
     def test_ensure_new_session_address(self, mock_sushy):
-        mock_sushy.exceptions.ConnectionError = MockedConnectionError
         self.node.driver_info['redfish_address'] = 'http://bmc.foo'
         redfish_utils.get_system(self.node)
         self.node.driver_info['redfish_address'] = 'http://bmc.bar'
         redfish_utils.get_system(self.node)
-        self.assertEqual(2, mock_sushy.Sushy.call_count)
+        self.assertEqual(2, mock_sushy.call_count)
 
-    @mock.patch('ironic.drivers.modules.redfish.utils.sushy')
+    @mock.patch.object(sushy, 'Sushy', autospec=True)
     def test_ensure_new_session_username(self, mock_sushy):
-        mock_sushy.exceptions.ConnectionError = MockedConnectionError
         self.node.driver_info['redfish_username'] = 'foo'
         redfish_utils.get_system(self.node)
         self.node.driver_info['redfish_username'] = 'bar'
         redfish_utils.get_system(self.node)
-        self.assertEqual(2, mock_sushy.Sushy.call_count)
+        self.assertEqual(2, mock_sushy.call_count)
 
-    @mock.patch('ironic.drivers.modules.redfish.utils.sushy')
+    @mock.patch.object(sushy, 'Sushy', autospec=True)
     @mock.patch('ironic.drivers.modules.redfish.utils.'
                 'SessionCache.MAX_SESSIONS', 10)
     @mock.patch('ironic.drivers.modules.redfish.utils.SessionCache.sessions',
                 collections.OrderedDict())
     def test_expire_old_sessions(self, mock_sushy):
-        mock_sushy.exceptions.ConnectionError = MockedConnectionError
-
         for num in range(20):
             self.node.driver_info['redfish_username'] = 'foo-%d' % num
             redfish_utils.get_system(self.node)
 
-        self.assertEqual(mock_sushy.Sushy.call_count, 20)
+        self.assertEqual(mock_sushy.call_count, 20)
         self.assertEqual(len(redfish_utils.SessionCache.sessions), 10)
