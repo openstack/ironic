@@ -36,7 +36,7 @@ opts = [
                default='/var/lib/ironic/master_images',
                help=_('On the ironic-conductor node, directory where master '
                       'instance images are stored on disk. '
-                      'Setting to <None> disables image caching.')),
+                      'Setting to the empty string disables image caching.')),
     cfg.IntOpt('image_cache_size',
                default=20480,
                help=_('Maximum size (in MiB) of cache for master images, '
