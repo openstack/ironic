@@ -216,6 +216,8 @@
       devstack_localrc:
         IRONIC_ENABLED_STORAGE_INTERFACES: cinder,noop
         IRONIC_STORAGE_INTERFACE: cinder
+        IRONIC_ENABLED_BOOT_INTERFACES: ipxe,pxe,fake
+        IRONIC_DEFAULT_BOOT_INTERFACE: ipxe
         IRONIC_DEFAULT_DEPLOY_INTERFACE: direct
         IRONIC_TEMPEST_WHOLE_DISK_IMAGE: True
         IRONIC_VM_EPHEMERAL_DISK: 0
@@ -226,15 +228,6 @@
         c-sch: True
         c-vol: True
         cinder: True
-
-- job:
-    name: ironic-tempest-dsvm-ipxe-bfv
-    description: ironic-tempest-dsvm-ipxe-bfv
-    parent: ironic-tempest-dsvm-bfv
-    vars:
-      devstack_localrc:
-        IRONIC_ENABLED_BOOT_INTERFACES: ipxe,pxe,fake
-        IRONIC_DEFAULT_BOOT_INTERFACE: ipxe
 
 - job:
     name: ironic-tempest-dsvm-ironic-inspector
