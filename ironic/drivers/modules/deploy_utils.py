@@ -1113,8 +1113,9 @@ def direct_deploy_should_convert_raw_image(node):
 class InstanceImageCache(image_cache.ImageCache):
 
     def __init__(self):
+        master_path = CONF.pxe.instance_master_path or None
         super(self.__class__, self).__init__(
-            CONF.pxe.instance_master_path,
+            master_path,
             # MiB -> B
             cache_size=CONF.pxe.image_cache_size * 1024 * 1024,
             # min -> sec
