@@ -1009,3 +1009,29 @@ class CleanUpFullFlowTestCase(db_base.DbTestCase):
                      + self.files):
             self.assertFalse(os.path.exists(path),
                              '%s is not expected to exist' % path)
+
+
+class InstanceImageCacheTestCase(db_base.DbTestCase):
+    @mock.patch.object(fileutils, 'ensure_tree')
+    def test_with_master_path(self, mock_ensure_tree):
+        self.config(instance_master_path='/fake/path', group='pxe')
+        self.config(image_cache_size=500, group='pxe')
+        self.config(image_cache_ttl=30, group='pxe')
+
+        cache = iscsi_deploy.InstanceImageCache()
+
+        mock_ensure_tree.assert_called_once_with('/fake/path')
+        self.assertEqual(500 * 1024 * 1024, cache._cache_size)
+        self.assertEqual(30 * 60, cache._cache_ttl)
+
+    @mock.patch.object(fileutils, 'ensure_tree')
+    def test_without_master_path(self, mock_ensure_tree):
+        self.config(instance_master_path='', group='pxe')
+        self.config(image_cache_size=500, group='pxe')
+        self.config(image_cache_ttl=30, group='pxe')
+
+        cache = iscsi_deploy.InstanceImageCache()
+
+        mock_ensure_tree.assert_not_called()
+        self.assertEqual(500 * 1024 * 1024, cache._cache_size)
+        self.assertEqual(30 * 60, cache._cache_ttl)
