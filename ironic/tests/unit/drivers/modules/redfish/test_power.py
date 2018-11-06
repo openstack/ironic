@@ -30,10 +30,6 @@ sushy = importutils.try_import('sushy')
 INFO_DICT = db_utils.get_test_redfish_info()
 
 
-class MockedSushyError(Exception):
-    pass
-
-
 @mock.patch('eventlet.greenthread.sleep', lambda _t: None)
 class RedfishPowerTestCase(db_base.DbTestCase):
 
@@ -149,12 +145,12 @@ class RedfishPowerTestCase(db_base.DbTestCase):
                 # Reset mocks
                 mock_get_system.reset_mock()
 
-    @mock.patch('ironic.drivers.modules.redfish.power.sushy')
+    @mock.patch.object(sushy, 'Sushy', autospec=True)
     @mock.patch.object(redfish_utils, 'get_system', autospec=True)
     def test_set_power_state_fail(self, mock_get_system, mock_sushy):
         fake_system = mock_get_system.return_value
-        mock_sushy.exceptions.SushyError = MockedSushyError
-        fake_system.reset_system.side_effect = MockedSushyError()
+        fake_system.reset_system.side_effect = (
+            sushy.exceptions.SushyError())
 
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
@@ -209,12 +205,12 @@ class RedfishPowerTestCase(db_base.DbTestCase):
             fake_system.reset_system.assert_called_once_with(sushy.RESET_ON)
             mock_get_system.assert_called_with(task.node)
 
-    @mock.patch('ironic.drivers.modules.redfish.power.sushy')
+    @mock.patch.object(sushy, 'Sushy', autospec=True)
     @mock.patch.object(redfish_utils, 'get_system', autospec=True)
     def test_reboot_fail(self, mock_get_system, mock_sushy):
         fake_system = mock_get_system.return_value
-        mock_sushy.exceptions.SushyError = MockedSushyError
-        fake_system.reset_system.side_effect = MockedSushyError()
+        fake_system.reset_system.side_effect = (
+            sushy.exceptions.SushyError())
 
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:

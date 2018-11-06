@@ -115,7 +115,10 @@ REDFISH_SPEC = (
     'redfish',
 )
 
-SUSHY_CONSTANTS_SPEC = (
+SUSHY_SPEC = (
+    'auth',
+    'exceptions',
+    'Sushy',
     'BOOT_SOURCE_TARGET_PXE',
     'BOOT_SOURCE_TARGET_HDD',
     'BOOT_SOURCE_TARGET_CD',
@@ -134,6 +137,12 @@ SUSHY_CONSTANTS_SPEC = (
     'BOOT_SOURCE_ENABLED_ONCE',
     'BOOT_SOURCE_MODE_BIOS',
     'BOOT_SOURCE_MODE_UEFI',
+)
+
+SUSHY_AUTH_SPEC = (
+    'BasicAuth',
+    'SessionAuth',
+    'SessionOrBasicAuth',
 )
 
 XCLARITY_SPEC = (
