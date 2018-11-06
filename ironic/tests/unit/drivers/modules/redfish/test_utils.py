@@ -19,6 +19,7 @@ import os
 
 import mock
 from oslo_utils import importutils
+import requests
 
 from ironic.common import exception
 from ironic.drivers.modules.redfish import utils as redfish_utils
@@ -155,7 +156,9 @@ class RedfishUtilsTestCase(db_base.DbTestCase):
     def test_get_system_resource_not_found(self, mock_sushy):
         fake_conn = mock_sushy.return_value
         fake_conn.get_system.side_effect = (
-            sushy.exceptions.ResourceNotFoundError())
+            sushy.exceptions.ResourceNotFoundError('GET',
+                                                   '/',
+                                                   requests.Response()))
 
         self.assertRaises(exception.RedfishError,
                           redfish_utils.get_system, self.node)
