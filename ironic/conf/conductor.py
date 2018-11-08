@@ -47,11 +47,12 @@ opts = [
     cfg.IntOpt('sync_power_state_interval',
                default=60,
                help=_('Interval between syncing the node power state to the '
-                      'database, in seconds.')),
+                      'database, in seconds. Set to 0 to disable syncing.')),
     cfg.IntOpt('check_provision_state_interval',
                default=60,
+               min=0,
                help=_('Interval between checks of provision timeouts, '
-                      'in seconds.')),
+                      'in seconds. Set to 0 to disable checks.')),
     cfg.IntOpt('check_rescue_state_interval',
                default=60,
                min=1,
@@ -90,6 +91,7 @@ opts = [
                        'notification bus')),
     cfg.IntOpt('send_sensor_data_interval',
                default=600,
+               min=1,
                help=_('Seconds between conductor sending sensor data message '
                       'to ceilometer via the notification bus.')),
     cfg.IntOpt('send_sensor_data_workers',
@@ -115,8 +117,8 @@ opts = [
                       'local state as nodes are moved around the cluster. '
                       'This option controls how often, in seconds, each '
                       'conductor will check for nodes that it should '
-                      '"take over". Set it to a negative value to disable '
-                      'the check entirely.')),
+                      '"take over". Set it to 0 (or a negative value) to '
+                      'disable the check entirely.')),
     cfg.StrOpt('configdrive_swift_container',
                default='ironic_configdrive_container',
                help=_('Name of the Swift container to store config drive '

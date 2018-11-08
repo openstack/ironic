@@ -18,6 +18,7 @@ from ironic.common.i18n import _
 opts = [
     cfg.IntOpt('query_raid_config_job_status_interval',
                default=120,
+               min=1,
                help=_('Interval (in seconds) between periodic RAID job status '
                       'checks to determine whether the asynchronous RAID '
                       'configuration was successfully finished or not.'))

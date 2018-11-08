@@ -37,7 +37,8 @@ METRICS = metrics_utils.get_metrics_logger(__name__)
 class OneViewPeriodicTasks(object):
 
     @periodics.periodic(spacing=CONF.oneview.periodic_check_interval,
-                        enabled=CONF.oneview.enable_periodic_tasks)
+                        enabled=CONF.oneview.enable_periodic_tasks
+                        and CONF.oneview.periodic_check_interval > 0)
     def _periodic_check_nodes_taken_by_oneview(self, manager, context):
         """Checks if nodes in Ironic were taken by OneView users.
 
@@ -94,7 +95,8 @@ class OneViewPeriodicTasks(object):
                 manager.do_provisioning_action(context, node.uuid, 'manage')
 
     @periodics.periodic(spacing=CONF.oneview.periodic_check_interval,
-                        enabled=CONF.oneview.enable_periodic_tasks)
+                        enabled=CONF.oneview.enable_periodic_tasks
+                        and CONF.oneview.periodic_check_interval > 0)
     def _periodic_check_nodes_freed_by_oneview(self, manager, context):
         """Checks if nodes taken by OneView users were freed.
 
