@@ -211,6 +211,18 @@ class TestImageCacheFetch(base.TestCase):
         with open(self.dest_path) as fp:
             self.assertEqual("TEST", fp.read())
 
+    @mock.patch.object(image_cache, '_fetch', autospec=True)
+    @mock.patch.object(image_cache, 'LOG', autospec=True)
+    @mock.patch.object(os, 'link', autospec=True)
+    def test__download_image_linkfail(self, mock_link, mock_log, mock_fetch):
+        mock_link.side_effect = [None, OSError]
+        self.assertRaises(exception.ImageDownloadFailed,
+                          self.cache._download_image,
+                          self.uuid, self.master_path, self.dest_path)
+        self.assertTrue(mock_fetch.called)
+        self.assertEqual(2, mock_link.call_count)
+        self.assertTrue(mock_log.error.called)
+
 
 @mock.patch.object(os, 'unlink', autospec=True)
 class TestUpdateImages(base.TestCase):
