@@ -196,6 +196,7 @@
     vars:
       devstack_localrc:
         IRONIC_BOOT_MODE: uefi
+        IRONIC_VM_SPECS_RAM: 512
 
 - job:
     name: ironic-tempest-dsvm-ipa-partition-pxe_ipmitool-tinyipa-python3
