@@ -379,6 +379,7 @@ VERSIONED_FIELDS = {
     'protected': versions.MINOR_48_NODE_PROTECTED,
     'protected_reason': versions.MINOR_48_NODE_PROTECTED,
     'conductor': versions.MINOR_49_CONDUCTORS,
+    'owner': versions.MINOR_50_NODE_OWNER,
 }
 
 for field in V31_FIELDS:
@@ -542,6 +543,20 @@ def check_allow_filter_by_conductor_group(conductor_group):
             "should be %(base)s.%(opr)s") %
             {'base': versions.BASE_VERSION,
              'opr': versions.MINOR_46_NODE_CONDUCTOR_GROUP})
+
+
+def check_allow_filter_by_owner(owner):
+    """Check if filtering nodes by owner is allowed.
+
+    Version 1.50 of the API allows filtering nodes by owner.
+    """
+    if (owner is not None and pecan.request.version.minor
+            < versions.MINOR_50_NODE_OWNER):
+        raise exception.NotAcceptable(_(
+            "Request not acceptable. The minimal required API version "
+            "should be %(base)s.%(opr)s") %
+            {'base': versions.BASE_VERSION,
+             'opr': versions.MINOR_50_NODE_OWNER})
 
 
 def initial_node_provision_state():
@@ -930,7 +945,7 @@ def get_request_return_fields(fields, detail, default_fields):
 def allow_expose_conductors():
     """Check if accessing conductor endpoints is allowed.
 
-    Version 1.48 of the API exposed conductor endpoints and conductor field
+    Version 1.49 of the API exposed conductor endpoints and conductor field
     for the node.
     """
     return pecan.request.version.minor >= versions.MINOR_49_CONDUCTORS
@@ -939,7 +954,7 @@ def allow_expose_conductors():
 def check_allow_filter_by_conductor(conductor):
     """Check if filtering nodes by conductor is allowed.
 
-    Version 1.48 of the API allows filtering nodes by conductor.
+    Version 1.49 of the API allows filtering nodes by conductor.
     """
     if conductor is not None and not allow_expose_conductors():
         raise exception.NotAcceptable(_(

@@ -132,6 +132,7 @@ class TestListNodes(test_api_base.BaseApiTest):
         self.assertNotIn('automated_clean', data['nodes'][0])
         self.assertNotIn('protected', data['nodes'][0])
         self.assertNotIn('protected_reason', data['nodes'][0])
+        self.assertNotIn('owner', data['nodes'][0])
 
     def test_get_one(self):
         node = obj_utils.create_test_node(self.context,
@@ -173,6 +174,7 @@ class TestListNodes(test_api_base.BaseApiTest):
         self.assertIn('automated_clean', data)
         self.assertIn('protected', data)
         self.assertIn('protected_reason', data)
+        self.assertIn('owner', data)
 
     def test_get_one_with_json(self):
         # Test backward compatibility with guess_content_type_from_ext
@@ -325,6 +327,23 @@ class TestListNodes(test_api_base.BaseApiTest):
                              headers={api_base.Version.string: '1.48'})
         self.assertTrue(data['protected'])
         self.assertEqual('reason!', data['protected_reason'])
+
+    def test_node_owner_hidden_in_lower_version(self):
+        self._test_node_field_hidden_in_lower_version('owner',
+                                                      '1.49', '1.50')
+
+    def test_node_owner_null_field(self):
+        node = obj_utils.create_test_node(self.context, owner=None)
+        data = self.get_json('/nodes/%s' % node.uuid,
+                             headers={api_base.Version.string: '1.50'})
+        self.assertIsNone(data['owner'])
+
+    def test_node_owner_present(self):
+        node = obj_utils.create_test_node(self.context,
+                                          owner="akindofmagic")
+        data = self.get_json('/nodes/%s' % node.uuid,
+                             headers={api_base.Version.string: '1.50'})
+        self.assertEqual(data['owner'], "akindofmagic")
 
     def test_get_one_custom_fields(self):
         node = obj_utils.create_test_node(self.context,
@@ -517,6 +536,13 @@ class TestListNodes(test_api_base.BaseApiTest):
             headers={api_base.Version.string: '1.49'})
         self.assertIn('conductor', response)
 
+    def test_get_owner_fields(self):
+        node = obj_utils.create_test_node(self.context, owner='fred')
+        fields = 'owner'
+        response = self.get_json('/nodes/%s?fields=%s' % (node.uuid, fields),
+                                 headers={api_base.Version.string: '1.50'})
+        self.assertIn('owner', response)
+
     def test_detail(self):
         node = obj_utils.create_test_node(self.context,
                                           chassis_id=self.chassis.id)
@@ -550,6 +576,7 @@ class TestListNodes(test_api_base.BaseApiTest):
         self.assertIn('automated_clean', data['nodes'][0])
         self.assertIn('protected', data['nodes'][0])
         self.assertIn('protected_reason', data['nodes'][0])
+        self.assertIn('owner', data['nodes'][0])
         # never expose the chassis_id
         self.assertNotIn('chassis_id', data['nodes'][0])
 
@@ -582,6 +609,7 @@ class TestListNodes(test_api_base.BaseApiTest):
         self.assertIn('automated_clean', data['nodes'][0])
         self.assertIn('protected', data['nodes'][0])
         self.assertIn('protected_reason', data['nodes'][0])
+        self.assertIn('owner', data['nodes'][0])
         for field in api_utils.V31_FIELDS:
             self.assertIn(field, data['nodes'][0])
         # never expose the chassis_id
@@ -1575,7 +1603,7 @@ class TestListNodes(test_api_base.BaseApiTest):
 
     def test_get_nodes_by_conductor_not_allowed(self):
         response = self.get_json('/nodes?conductor=rocky.rocks',
-                                 headers={api_base.Version.string: "1.47"},
+                                 headers={api_base.Version.string: "1.48"},
                                  expect_errors=True)
         self.assertEqual('application/json', response.content_type)
         self.assertEqual(http_client.NOT_ACCEPTABLE, response.status_code)
@@ -1607,6 +1635,36 @@ class TestListNodes(test_api_base.BaseApiTest):
         self.assertEqual(1, len(uuids))
         self.assertNotIn(node1.uuid, uuids)
         self.assertIn(node2.uuid, uuids)
+
+    def test_get_nodes_by_owner(self):
+        node1 = obj_utils.create_test_node(self.context,
+                                           uuid=uuidutils.generate_uuid(),
+                                           owner='fred')
+        node2 = obj_utils.create_test_node(self.context,
+                                           uuid=uuidutils.generate_uuid(),
+                                           owner='bob')
+
+        for base_url in ('/nodes', '/nodes/detail'):
+            data = self.get_json(base_url + '?owner=fred',
+                                 headers={api_base.Version.string: "1.50"})
+            uuids = [n['uuid'] for n in data['nodes']]
+            self.assertIn(node1.uuid, uuids)
+            self.assertNotIn(node2.uuid, uuids)
+            data = self.get_json(base_url + '?owner=bob',
+                                 headers={api_base.Version.string: "1.50"})
+            uuids = [n['uuid'] for n in data['nodes']]
+            self.assertIn(node2.uuid, uuids)
+            self.assertNotIn(node1.uuid, uuids)
+
+    def test_get_nodes_by_owner_not_allowed(self):
+        for url in ('/nodes?owner=fred',
+                    '/nodes/detail?owner=fred'):
+            response = self.get_json(
+                url, headers={api_base.Version.string: "1.48"},
+                expect_errors=True)
+            self.assertEqual('application/json', response.content_type)
+            self.assertEqual(http_client.NOT_ACCEPTABLE, response.status_code)
+            self.assertTrue(response.json['error_message'])
 
     def test_get_console_information(self):
         node = obj_utils.create_test_node(self.context)
@@ -2783,6 +2841,19 @@ class TestPatch(test_api_base.BaseApiTest):
         response = self.patch_json('/nodes/%s' % node.uuid,
                                    [{'path': '/protected_reason',
                                      'value': 'reason!',
+                                    'op': 'replace'}],
+                                   headers=headers)
+        self.assertEqual('application/json', response.content_type)
+        self.assertEqual(http_client.OK, response.status_code)
+
+    def test_update_owner(self):
+        node = obj_utils.create_test_node(self.context,
+                                          uuid=uuidutils.generate_uuid())
+        self.mock_update_node.return_value = node
+        headers = {api_base.Version.string: '1.50'}
+        response = self.patch_json('/nodes/%s' % node.uuid,
+                                   [{'path': '/owner',
+                                     'value': 'meow',
                                      'op': 'replace'}],
                                    headers=headers)
         self.assertEqual('application/json', response.content_type)
@@ -2814,6 +2885,20 @@ class TestPatch(test_api_base.BaseApiTest):
         self.assertEqual('application/json', response.content_type)
         self.assertEqual(http_client.BAD_REQUEST, response.status_code)
         self.assertTrue(response.json['error_message'])
+
+    def test_update_owner_old_api(self):
+        node = obj_utils.create_test_node(self.context,
+                                          uuid=uuidutils.generate_uuid())
+        self.mock_update_node.return_value = node
+        headers = {api_base.Version.string: '1.47'}
+        response = self.patch_json('/nodes/%s' % node.uuid,
+                                   [{'path': '/owner',
+                                     'value': 'meow',
+                                     'op': 'replace'}],
+                                   headers=headers,
+                                   expect_errors=True)
+        self.assertEqual('application/json', response.content_type)
+        self.assertEqual(http_client.NOT_ACCEPTABLE, response.status_code)
 
 
 def _create_node_locally(node):
@@ -3421,6 +3506,25 @@ class TestPost(test_api_base.BaseApiTest):
                                   expect_errors=True)
         self.assertEqual('application/json', response.content_type)
         self.assertEqual(http_client.BAD_REQUEST, response.status_int)
+
+    def test_create_node_owner(self):
+        ndict = test_api_utils.post_get_test_node(owner='cowsay')
+        response = self.post_json('/nodes', ndict,
+                                  headers={api_base.Version.string:
+                                           str(api_v1.max_version())})
+        self.assertEqual(http_client.CREATED, response.status_int)
+        result = self.get_json('/nodes/%s' % ndict['uuid'],
+                               headers={api_base.Version.string:
+                                        str(api_v1.max_version())})
+        self.assertEqual('cowsay', result['owner'])
+
+    def test_create_node_owner_old_api_version(self):
+        headers = {api_base.Version.string: '1.32'}
+        ndict = test_api_utils.post_get_test_node(owner='bob')
+        response = self.post_json('/nodes', ndict, headers=headers,
+                                  expect_errors=True)
+        self.assertEqual('application/json', response.content_type)
+        self.assertEqual(http_client.NOT_ACCEPTABLE, response.status_int)
 
 
 class TestDelete(test_api_base.BaseApiTest):

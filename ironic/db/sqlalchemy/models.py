@@ -179,7 +179,7 @@ class Node(Base):
     protected = Column(Boolean, nullable=False, default=False,
                        server_default=false())
     protected_reason = Column(Text, nullable=True)
-
+    owner = Column(String(255), nullable=True)
     bios_interface = Column(String(255), nullable=True)
     boot_interface = Column(String(255), nullable=True)
     console_interface = Column(String(255), nullable=True)

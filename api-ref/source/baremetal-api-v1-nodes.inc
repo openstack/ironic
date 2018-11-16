@@ -92,6 +92,9 @@ supplied when the Node is created, or the resource may be updated later.
 .. versionadded:: 1.46
   Introduced the ``conductor_group`` field.
 
+.. versionadded: 1.50
+  Introduced the ``owner`` field.
+
 Normal response codes: 201
 
 Error codes: 400,403,406
@@ -120,6 +123,7 @@ Request
    - storage_interface: req_storage_interface
    - uuid: req_uuid
    - vendor_interface: req_vendor_interface
+   - owner: owner
 
 **Example Node creation request with a dynamic driver:**
 
@@ -188,6 +192,7 @@ microversion 1.48.
     - conductor_group: conductor_group
     - protected: protected
     - protected_reason: protected_reason
+    - owner: owner
 
 **Example JSON representation of a Node:**
 
@@ -235,6 +240,9 @@ provision state, and maintenance setting for each Node.
   Introduced the ``conductor_group`` request parameter, to allow filtering the
   list of returned nodes by conductor group.
 
+.. versionadded: 1.50
+  Introduced the ``owner`` field.
+
 Normal response codes: 200
 
 Error codes: 400,403,406
@@ -258,6 +266,7 @@ Request
    - sort_dir: sort_dir
    - sort_key: sort_key
    - detail: detail
+   - owner: owner
 
 Response
 --------
@@ -307,6 +316,9 @@ Nova instance, eg. with a request to ``v1/nodes/detail?instance_uuid={NOVA INSTA
 .. versionadded:: 1.48
   Introduced the ``protected`` and ``protected_reason`` fields.
 
+.. versionadded: 1.50
+  Introduced the ``owner`` field.
+
 Normal response codes: 200
 
 Error codes: 400,403,406
@@ -324,6 +336,7 @@ Request
    - driver: r_driver
    - resource_class: r_resource_class
    - conductor_group: r_conductor_group
+   - owner: owner
    - limit: limit
    - marker: marker
    - sort_dir: sort_dir
