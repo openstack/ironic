@@ -30,6 +30,7 @@ import six
 
 from ironic.common import exception
 from ironic.common.glance_service import service_utils
+from ironic.common.i18n import _
 from ironic.common import image_service
 from ironic.common import images
 from ironic.common import utils
@@ -153,6 +154,9 @@ class ImageCache(object):
         :param ctx: context
         :param force_raw: boolean value, whether to convert the image to raw
                           format
+        :raise ImageDownloadFailed: when the image cache and the image HTTP or
+                                    TFTP location are on different file system,
+                                    causing hard link to fail.
         """
         # TODO(ghe): timeout and retry for downloads
         # TODO(ghe): logging when image cannot be created
@@ -165,6 +169,13 @@ class ImageCache(object):
             # will have link count >1 at any moment, so won't be cleaned up
             os.link(tmp_path, master_path)
             os.link(master_path, dest_path)
+        except OSError as exc:
+            msg = (_("Could not link image %(img_href)s from %(src_path)s "
+                     "to %(dst_path)s, error: %(exc)s") %
+                   {'img_href': href, 'src_path': master_path,
+                    'dst_path': dest_path, 'exc': exc})
+            LOG.error(msg)
+            raise exception.ImageDownloadFailed(msg)
         finally:
             utils.rmtree_without_raise(tmp_dir)
 
