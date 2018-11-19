@@ -23,6 +23,7 @@ from ironic.drivers.modules import fake
 from ironic.drivers.modules import inspector
 from ironic.drivers.modules import iscsi_deploy
 from ironic.drivers.modules import noop
+from ironic.drivers.modules import noop_mgmt
 from ironic.drivers.modules import pxe
 from ironic.tests.unit.db import base as db_base
 from ironic.tests.unit.objects import utils as obj_utils
@@ -34,14 +35,15 @@ class ManualManagementHardwareTestCase(db_base.DbTestCase):
         super(ManualManagementHardwareTestCase, self).setUp()
         self.config(enabled_hardware_types=['manual-management'],
                     enabled_power_interfaces=['fake'],
-                    enabled_management_interfaces=['fake'])
+                    enabled_management_interfaces=['noop', 'fake'])
         self.config(enabled=True, group='inspector')
 
     def test_default_interfaces(self):
         node = obj_utils.create_test_node(self.context,
                                           driver='manual-management')
         with task_manager.acquire(self.context, node.id) as task:
-            self.assertIsInstance(task.driver.management, fake.FakeManagement)
+            self.assertIsInstance(task.driver.management,
+                                  noop_mgmt.NoopManagement)
             self.assertIsInstance(task.driver.power, fake.FakePower)
             self.assertIsInstance(task.driver.boot, pxe.PXEBoot)
             self.assertIsInstance(task.driver.deploy, iscsi_deploy.ISCSIDeploy)
@@ -53,6 +55,7 @@ class ManualManagementHardwareTestCase(db_base.DbTestCase):
                     enabled_raid_interfaces=['agent'])
         node = obj_utils.create_test_node(self.context,
                                           driver='manual-management',
+                                          management_interface='fake',
                                           deploy_interface='direct',
                                           raid_interface='agent')
         with task_manager.acquire(self.context, node.id) as task:
