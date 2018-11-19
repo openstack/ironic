@@ -217,8 +217,9 @@ def start_shellinabox_console(node_uuid, port, console_cmd):
                 raise loopingcall.LoopingCallDone()
 
         if (time.time() > expiration):
-            locals['errstr'] = _("Timeout while waiting for console subprocess"
-                                 "to start for node %s.") % node_uuid
+            locals['errstr'] = (_("Timeout while waiting for console "
+                                  "subprocess to start for node %s.") %
+                                node_uuid)
             LOG.warning(locals['errstr'])
             raise loopingcall.LoopingCallDone()
 
