@@ -219,6 +219,13 @@ class AgentDeployMixin(agent_base_vendor.AgentDeployMixin):
             'stream_raw_images': CONF.agent.stream_raw_images,
         }
 
+        if (node.instance_info.get('image_os_hash_algo') and
+                node.instance_info.get('image_os_hash_value')):
+            image_info['os_hash_algo'] = node.instance_info[
+                'image_os_hash_algo']
+            image_info['os_hash_value'] = node.instance_info[
+                'image_os_hash_value']
+
         proxies = {}
         for scheme in ('http', 'https'):
             proxy_param = 'image_%s_proxy' % scheme

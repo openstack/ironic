@@ -1159,6 +1159,22 @@ def destroy_images(node_uuid):
     InstanceImageCache().clean_up()
 
 
+@METRICS.timer('compute_image_checksum')
+def compute_image_checksum(image_path, algorithm='md5'):
+    """Compute checksum by given image path and algorithm."""
+    time_start = time.time()
+    LOG.debug('Start computing %(algo)s checksum for image %(image)s.',
+              {'algo': algorithm, 'image': image_path})
+    checksum = fileutils.compute_file_checksum(image_path,
+                                               algorithm=algorithm)
+    time_elapsed = time.time() - time_start
+    LOG.debug('Computed %(algo)s checksum for image %(image)s in '
+              '%(delta).2f seconds, checksum value: %(checksum)s.',
+              {'algo': algorithm, 'image': image_path, 'delta': time_elapsed,
+               'checksum': checksum})
+    return checksum
+
+
 def remove_http_instance_symlink(node_uuid):
     symlink_path = _get_http_image_symlink_file_path(node_uuid)
     il_utils.unlink_without_raise(symlink_path)
@@ -1213,27 +1229,35 @@ def build_instance_info_for_deploy(task):
             instance_info['image_url'] = swift_temp_url
             instance_info['image_checksum'] = image_info['checksum']
             instance_info['image_disk_format'] = image_info['disk_format']
+            instance_info['image_os_hash_algo'] = image_info['os_hash_algo']
+            instance_info['image_os_hash_value'] = image_info['os_hash_value']
         else:
             # Ironic cache and serve images from httpboot server
             force_raw = direct_deploy_should_convert_raw_image(node)
             _, image_path = cache_instance_image(task.context, node,
                                                  force_raw=force_raw)
             if force_raw:
-                time_start = time.time()
-                LOG.debug('Start calculating checksum for image %(image)s.',
-                          {'image': image_path})
-                checksum = fileutils.compute_file_checksum(image_path,
-                                                           algorithm='md5')
-                time_elapsed = time.time() - time_start
-                LOG.debug('Recalculated checksum for image %(image)s in '
-                          '%(delta).2f seconds, new checksum %(checksum)s ',
-                          {'image': image_path, 'delta': time_elapsed,
-                           'checksum': checksum})
-                instance_info['image_checksum'] = checksum
                 instance_info['image_disk_format'] = 'raw'
+
+                LOG.debug('Recalculating checksum for image %(image)s due to '
+                          'image conversion.', {'image': image_path})
+                md5checksum = compute_image_checksum(image_path, 'md5')
+                instance_info['image_checksum'] = md5checksum
+                # Populate instance_info with os_hash_algo, os_hash_value
+                # if they exists and not md5
+                os_hash_algo = image_info['os_hash_algo']
+                if os_hash_algo and os_hash_algo != 'md5':
+                    hash_value = compute_image_checksum(image_path,
+                                                        os_hash_algo)
+                    instance_info['image_os_hash_algo'] = os_hash_algo
+                    instance_info['image_os_hash_value'] = hash_value
             else:
                 instance_info['image_checksum'] = image_info['checksum']
                 instance_info['image_disk_format'] = image_info['disk_format']
+                instance_info['image_os_hash_algo'] = image_info[
+                    'os_hash_algo']
+                instance_info['image_os_hash_value'] = image_info[
+                    'os_hash_value']
 
             # Create symlink and update image url
             symlink_dir = _get_http_image_symlink_dir_path()

@@ -146,6 +146,8 @@ class TestGlanceImageService(base.TestCase):
             'tags': None,
             'updated_at': None,
             'visibility': None,
+            'os_hash_algo': None,
+            'os_hash_value': None,
         }
         with mock.patch.object(self.service, 'call', return_value=image,
                                autospec=True):
