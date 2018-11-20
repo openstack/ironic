@@ -27,7 +27,16 @@ opts = [
                min=1,
                default=4,
                help=_('Number of seconds to wait between attempts to '
-                      'connect to Redfish'))
+                      'connect to Redfish')),
+    cfg.IntOpt('connection_cache_size',
+               min=0,
+               default=1000,
+               help=_('Maximum Redfish client connection cache size. '
+                      'Redfish driver would strive to reuse authenticated '
+                      'BMC connections (obtained through Redfish Session '
+                      'Service). This option caps the maximum number of '
+                      'connections to maintain. The value of `0` disables '
+                      'client connection caching completely.'))
 ]
 
 

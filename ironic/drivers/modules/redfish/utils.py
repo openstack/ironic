@@ -152,9 +152,7 @@ def parse_driver_info(node):
 
 class SessionCache(object):
     """Cache of HTTP sessions credentials"""
-    MAX_SESSIONS = 1000
-
-    sessions = collections.OrderedDict()
+    _sessions = collections.OrderedDict()
 
     def __init__(self, driver_info):
         self._driver_info = driver_info
@@ -165,7 +163,7 @@ class SessionCache(object):
 
     def __enter__(self):
         try:
-            return self.sessions[self._session_key]
+            return self.__class__._sessions[self._session_key]
 
         except KeyError:
             conn = sushy.Sushy(
@@ -175,25 +173,29 @@ class SessionCache(object):
                 verify=self._driver_info['verify_ca']
             )
 
-            self._expire_oldest_session()
+            if CONF.redfish.connection_cache_size:
+                self.__class__._sessions[self._session_key] = conn
 
-            self.sessions[self._session_key] = conn
+                if (len(self.__class__._sessions) >
+                        CONF.redfish.connection_cache_size):
+                    self._expire_oldest_session()
 
             return conn
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         # NOTE(etingof): perhaps this session token is no good
         if isinstance(exc_val, sushy.exceptions.ConnectionError):
-            self.sessions.pop(self._session_key, None)
+            self.__class__._sessions.pop(self._session_key, None)
 
-    def _expire_oldest_session(self):
+    @classmethod
+    def _expire_oldest_session(cls):
         """Expire oldest session"""
-        if len(self.sessions) >= self.MAX_SESSIONS:
-            session_keys = list(self.sessions)
-            session_key = session_keys[0]
-            # NOTE(etingof): GC should cause sushy to HTTP DELETE session
-            # at BMC. Trouble is that as of this commit sushy does not do that.
-            self.sessions.pop(session_key, None)
+        session_keys = list(cls._sessions)
+        session_key = next(iter(session_keys))
+        # NOTE(etingof): GC should cause sushy to HTTP DELETE session
+        # at BMC. Trouble is that contemporary sushy (1.6.0) does
+        # does not do that.
+        cls._sessions.pop(session_key, None)
 
 
 def get_system(node):
