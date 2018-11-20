@@ -974,7 +974,7 @@ def _parse_driver_info_snmpv3_crypto(node, info):
             'priv_key' not in snmp_info):
         raise exception.MissingParameterValue(_(
             "SNMPPowerDriver: missing SNMPv3 privacy key while "
-            "`driver_info/snmp_priv_protocol` is present. Please"
+            "`driver_info/snmp_priv_protocol` is present. Please "
             "add `driver_info/snmp_priv_key` to node %(node)s "
             "configuration.") % {'node': node.uuid})
 
