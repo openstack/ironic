@@ -21,6 +21,7 @@ from oslo_log import log as logging
 from oslo_utils import excutils
 from oslo_utils import fileutils
 from oslo_utils import importutils
+from oslo_utils import netutils
 
 from ironic.common import dhcp_factory
 from ironic.common import exception
@@ -410,11 +411,12 @@ def _dhcp_option_file_or_url(task, urlboot=False):
     if not urlboot:
         return boot_file
     elif urlboot:
-        path_prefix = get_tftp_path_prefix()
-        if path_prefix == '':
-            path_prefix = '/'
-        return ("tftp://" + CONF.pxe.tftp_server
-                + path_prefix + boot_file)
+        if netutils.is_valid_ipv6(CONF.pxe.tftp_server):
+            host = "[%s]" % CONF.pxe.tftp_server
+        else:
+            host = CONF.pxe.tftp_server
+        return "tftp://{host}/{boot_file}".format(host=host,
+                                                  boot_file=boot_file)
 
 
 def dhcp_options_for_instance(task, ipxe_enabled=False, url_boot=False):
@@ -434,12 +436,17 @@ def dhcp_options_for_instance(task, ipxe_enabled=False, url_boot=False):
     """
     dhcp_opts = []
     ip_version = int(CONF.pxe.ip_version)
+    dhcp_provider_name = CONF.dhcp.dhcp_provider
     if ip_version == 4:
         boot_file_param = DHCP_BOOTFILE_NAME
     else:
         # NOTE(TheJulia): Booting with v6 means it is always
         # a URL reply.
-        boot_file_param = DHCPV6_BOOTFILE_NAME
+        if dhcp_provider_name == 'neutron':
+            # dnsmasq requires ipv6 options be explicitly flagged. :(
+            boot_file_param = "option6:{}".format(DHCPV6_BOOTFILE_NAME)
+        else:
+            boot_file_param = DHCPV6_BOOTFILE_NAME
         url_boot = True
     # NOTE(TheJulia): The ip_version value config from the PXE config is
     # guarded in the configuration, so there is no real sense in having
@@ -449,8 +456,11 @@ def dhcp_options_for_instance(task, ipxe_enabled=False, url_boot=False):
 
     if ipxe_enabled:
         script_name = os.path.basename(CONF.pxe.ipxe_boot_script)
+        # TODO(TheJulia): We should make this smarter to handle unwrapped v6
+        # addresses, since the format is http://[ff80::1]:80/boot.ipxe.
+        # As opposed to requiring configuraiton, we can eventually make this
+        # dynamic, and would need to do similar then.
         ipxe_script_url = '/'.join([CONF.deploy.http_url, script_name])
-        dhcp_provider_name = CONF.dhcp.dhcp_provider
         # if the request comes from dumb firmware send them the iPXE
         # boot image.
         if dhcp_provider_name == 'neutron':
@@ -458,7 +468,7 @@ def dhcp_options_for_instance(task, ipxe_enabled=False, url_boot=False):
             # to neutron "dhcp-match=set:ipxe,175" and use below option
             dhcp_opts.append({'opt_name': "tag:!ipxe,%s" % boot_file_param,
                               'opt_value': boot_file})
-            dhcp_opts.append({'opt_name': "tag:ipxe,%s" % DHCP_BOOTFILE_NAME,
+            dhcp_opts.append({'opt_name': "tag:ipxe,%s" % boot_file_param,
                               'opt_value': ipxe_script_url})
         else:
             # !175 == non-iPXE.
