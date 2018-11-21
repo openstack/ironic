@@ -44,7 +44,6 @@ from ironic.drivers.modules import image_cache
 from ironic.drivers.modules import pxe
 from ironic.drivers.modules.storage import cinder
 from ironic.drivers import utils as driver_utils
-from ironic import objects
 from ironic.tests import base as tests_base
 from ironic.tests.unit.db import base as db_base
 from ironic.tests.unit.db import utils as db_utils
@@ -1307,38 +1306,6 @@ class OtherFunctionTestCase(db_base.DbTestCase):
         self.config(api_url=None, group='conductor')
         self.assertRaises(exception.InvalidParameterValue,
                           utils.get_ironic_api_url)
-
-    @mock.patch.object(utils.LOG, 'info', spec_set=True, autospec=True)
-    @mock.patch.object(objects, 'Port', spec_set=True, autospec=True)
-    def test_create_ports_if_not_exist(self, port_mock, log_mock):
-        macs = {'Port 1': 'aa:aa:aa:aa:aa:aa', 'Port 2': 'bb:bb:bb:bb:bb:bb'}
-        node_id = self.node.id
-        port_dict1 = {'address': 'aa:aa:aa:aa:aa:aa', 'node_id': node_id}
-        port_dict2 = {'address': 'bb:bb:bb:bb:bb:bb', 'node_id': node_id}
-        port_obj1, port_obj2 = mock.MagicMock(), mock.MagicMock()
-        port_mock.side_effect = [port_obj1, port_obj2]
-        with task_manager.acquire(self.context, self.node.uuid,
-                                  shared=False) as task:
-            utils.create_ports_if_not_exist(task, macs)
-            self.assertTrue(log_mock.called)
-            expected_calls = [mock.call(task.context, **port_dict1),
-                              mock.call(task.context, **port_dict2)]
-            port_mock.assert_has_calls(expected_calls, any_order=True)
-            port_obj1.create.assert_called_once_with()
-            port_obj2.create.assert_called_once_with()
-
-    @mock.patch.object(utils.LOG, 'warning',
-                       spec_set=True, autospec=True)
-    @mock.patch.object(objects.Port, 'create', spec_set=True, autospec=True)
-    def test_create_ports_if_not_exist_mac_exception(self,
-                                                     create_mock,
-                                                     log_mock):
-        create_mock.side_effect = exception.MACAlreadyExists('f')
-        macs = {'Port 1': 'aa:aa:aa:aa:aa:aa', 'Port 2': 'bb:bb:bb:bb:bb:bb'}
-        with task_manager.acquire(self.context, self.node.uuid,
-                                  shared=False) as task:
-            utils.create_ports_if_not_exist(task, macs)
-        self.assertEqual(2, log_mock.call_count)
 
 
 class GetSingleNicTestCase(db_base.DbTestCase):

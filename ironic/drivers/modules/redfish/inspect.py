@@ -21,7 +21,7 @@ from ironic.common import exception
 from ironic.common.i18n import _
 from ironic.common import states
 from ironic.drivers import base
-from ironic.drivers.modules import deploy_utils
+from ironic.drivers.modules import inspect_utils
 from ironic.drivers.modules.redfish import utils as redfish_utils
 
 LOG = log.getLogger(__name__)
@@ -108,10 +108,9 @@ class RedfishInspect(base.InspectInterface):
                     inspected_properties['cpu_arch'] = CPU_ARCH_MAP[arch]
 
                 except KeyError:
-                    LOG.warning(
-                        _("Unknown CPU arch %(arch)s discovered "
-                          "for Node %(node)s"), {'node': task.node.uuid,
-                                                 'arch': arch})
+                    LOG.warning("Unknown CPU arch %(arch)s discovered "
+                                "for node %(node)s", {'node': task.node.uuid,
+                                                      'arch': arch})
 
         simple_storage_size = 0
 
@@ -125,10 +124,10 @@ class RedfishInspect(base.InspectInterface):
 
                 simple_storage_size = simple_storage_size[0]
 
-        except sushy.SushyError:
-            LOG.info(
-                _("No simple storage information discovered "
-                  "for Node %(node)s"), {'node': task.node.uuid})
+        except sushy.SushyError as ex:
+            LOG.debug("No simple storage information discovered "
+                      "for node %(node)s: %(err)s", {'node': task.node.uuid,
+                                                     'err': ex})
 
         storage_size = 0
 
@@ -141,23 +140,31 @@ class RedfishInspect(base.InspectInterface):
 
                 storage_size = storage_size[0]
 
-        except sushy.SushyError:
-            LOG.info(_("No storage volume information discovered "
-                       "for Node %(node)s"), {'node': task.node.uuid})
+        except sushy.SushyError as ex:
+            LOG.debug("No storage volume information discovered "
+                      "for node %(node)s: %(err)s", {'node': task.node.uuid,
+                                                     'err': ex})
 
-        local_gb = max(simple_storage_size, storage_size)
+        # NOTE(etingof): pick the smallest disk larger than 4G among available
+        if simple_storage_size and storage_size:
+            local_gb = min(simple_storage_size, storage_size)
+
+        else:
+            local_gb = max(simple_storage_size, storage_size)
 
         # Note(deray): Convert the received size to GiB and reduce the
         # value by 1 GB as consumers like Ironic requires the ``local_gb``
         # to be returned 1 less than actual size.
         local_gb = max(0, int(local_gb / units.Gi - 1))
 
+        # TODO(etingof): should we respect root device hints here?
+
         if local_gb:
             inspected_properties['local_gb'] = str(local_gb)
 
         else:
-            LOG.warning(_("Could not provide a valid storage size configured "
-                          "for Node %(node)s"), {'node': task.node.uuid})
+            LOG.warning("Could not provide a valid storage size configured "
+                        "for node %(node)s", {'node': task.node.uuid})
 
         valid_keys = self.ESSENTIAL_PROPERTIES
         missing_keys = valid_keys - set(inspected_properties)
@@ -171,22 +178,19 @@ class RedfishInspect(base.InspectInterface):
         task.node.properties = inspected_properties
         task.node.save()
 
-        LOG.debug(_("Node properties for %(node)s are updated as "
-                    "%(properties)s"),
-                  {'properties': inspected_properties,
-                   'node': task.node.uuid})
+        LOG.debug("Node properties for %(node)s are updated as "
+                  "%(properties)s", {'properties': inspected_properties,
+                                     'node': task.node.uuid})
 
         if (system.ethernet_interfaces and
                 system.ethernet_interfaces.eth_summary):
             macs = system.ethernet_interfaces.eth_summary
 
             # Create ports for the nics detected.
-            deploy_utils.create_ports_if_not_exist(task, macs)
+            inspect_utils.create_ports_if_not_exist(task, macs)
 
         else:
-            LOG.info(_("No NIC information discovered "
-                       "for Node %(node)s"), {'node': task.node.uuid})
-
-        LOG.info(_("Node %(node)s inspected."), {'node': task.node.uuid})
+            LOG.warning("No NIC information discovered "
+                        "for node %(node)s", {'node': task.node.uuid})
 
         return states.MANAGEABLE

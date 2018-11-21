@@ -19,7 +19,7 @@ from oslo_utils import units
 
 from ironic.common import exception
 from ironic.conductor import task_manager
-from ironic.drivers.modules import deploy_utils
+from ironic.drivers.modules import inspect_utils
 from ironic.drivers.modules.redfish import utils as redfish_utils
 from ironic.tests.unit.db import base as db_base
 from ironic.tests.unit.db import utils as db_utils
@@ -79,13 +79,13 @@ class RedfishInspectTestCase(db_base.DbTestCase):
             mock_parse_driver_info.assert_called_once_with(task.node)
 
     @mock.patch.object(redfish_utils, 'get_system', autospec=True)
-    @mock.patch.object(deploy_utils, 'create_ports_if_not_exist',
+    @mock.patch.object(inspect_utils, 'create_ports_if_not_exist',
                        autospec=True)
     def test_inspect_hardware_ok(self, mock_create_ports_if_not_exist,
                                  mock_get_system):
         expected_properties = {
             'cpu_arch': 'mips', 'cpus': '8',
-            'local_gb': '4', 'memory_mb': '2048'
+            'local_gb': '3', 'memory_mb': '2048'
         }
 
         system = self.init_system_mock(mock_get_system.return_value)
@@ -118,7 +118,7 @@ class RedfishInspectTestCase(db_base.DbTestCase):
                                   shared=True) as task:
             expected_properties = {
                 'cpu_arch': 'x86_64', 'cpus': '8',
-                'local_gb': '4', 'memory_mb': '2048'
+                'local_gb': '3', 'memory_mb': '2048'
             }
             task.driver.inspect.inspect_hardware(task)
             self.assertEqual(expected_properties, task.node.properties)
@@ -170,13 +170,13 @@ class RedfishInspectTestCase(db_base.DbTestCase):
                                   shared=True) as task:
             expected_properties = {
                 'cpu_arch': 'mips', 'cpus': '8',
-                'local_gb': '4', 'memory_mb': '4096'
+                'local_gb': '3', 'memory_mb': '4096'
             }
             task.driver.inspect.inspect_hardware(task)
             self.assertEqual(expected_properties, task.node.properties)
 
     @mock.patch.object(redfish_utils, 'get_system', autospec=True)
-    @mock.patch.object(deploy_utils, 'create_ports_if_not_exist',
+    @mock.patch.object(inspect_utils, 'create_ports_if_not_exist',
                        autospec=True)
     def test_inspect_hardware_ignore_missing_nics(
             self, mock_create_ports_if_not_exist, mock_get_system):
