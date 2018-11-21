@@ -199,6 +199,8 @@ if not sushy:
         STATE_ENABLED='enabled',
         STATE_DISABLED='disabled',
         STATE_ABSENT='absent',
+        VIRTUAL_MEDIA_CD='cd',
+        VIRTUAL_MEDIA_FLOPPY='floppy',
     )
 
     sys.modules['sushy'] = sushy

@@ -37,6 +37,7 @@ class RedfishManagementTestCase(db_base.DbTestCase):
         super(RedfishManagementTestCase, self).setUp()
         self.config(enabled_hardware_types=['redfish'],
                     enabled_power_interfaces=['redfish'],
+                    enabled_boot_interfaces=['redfish-virtual-media'],
                     enabled_management_interfaces=['redfish'],
                     enabled_inspect_interfaces=['redfish'],
                     enabled_bios_interfaces=['redfish'])

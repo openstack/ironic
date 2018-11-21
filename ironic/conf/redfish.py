@@ -43,7 +43,18 @@ opts = [
                         ('auto', _('Try HTTP session authentication first, '
                                    'fall back to basic HTTP authentication'))],
                default='auto',
-               help=_('Redfish HTTP client authentication method.'))
+               help=_('Redfish HTTP client authentication method.')),
+    cfg.StrOpt('swift_container',
+               default='ironic_redfish_container',
+               help=_('The Swift container to store Redfish driver data.')),
+    cfg.IntOpt('swift_object_expiry_timeout',
+               default=900,
+               help=_('Amount of time in seconds for Swift objects to '
+                      'auto-expire.')),
+    cfg.StrOpt('kernel_append_params',
+               default='nofb nomodeset vga=normal',
+               help=_('Additional kernel parameters for baremetal '
+                      'Virtual Media boot.')),
 ]
 
 

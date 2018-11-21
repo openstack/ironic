@@ -16,7 +16,7 @@
 from ironic.conductor import task_manager
 from ironic.drivers.modules import iscsi_deploy
 from ironic.drivers.modules import noop
-from ironic.drivers.modules import pxe
+from ironic.drivers.modules.redfish import boot as redfish_boot
 from ironic.drivers.modules.redfish import inspect as redfish_inspect
 from ironic.drivers.modules.redfish import management as redfish_mgmt
 from ironic.drivers.modules.redfish import power as redfish_power
@@ -30,6 +30,7 @@ class RedfishHardwareTestCase(db_base.DbTestCase):
         super(RedfishHardwareTestCase, self).setUp()
         self.config(enabled_hardware_types=['redfish'],
                     enabled_power_interfaces=['redfish'],
+                    enabled_boot_interfaces=['redfish-virtual-media'],
                     enabled_management_interfaces=['redfish'],
                     enabled_inspect_interfaces=['redfish'],
                     enabled_bios_interfaces=['redfish'])
@@ -43,7 +44,8 @@ class RedfishHardwareTestCase(db_base.DbTestCase):
                                   redfish_mgmt.RedfishManagement)
             self.assertIsInstance(task.driver.power,
                                   redfish_power.RedfishPower)
-            self.assertIsInstance(task.driver.boot, pxe.PXEBoot)
+            self.assertIsInstance(task.driver.boot,
+                                  redfish_boot.RedfishVirtualMediaBoot)
             self.assertIsInstance(task.driver.deploy, iscsi_deploy.ISCSIDeploy)
             self.assertIsInstance(task.driver.console, noop.NoConsole)
             self.assertIsInstance(task.driver.raid, noop.NoRAID)
