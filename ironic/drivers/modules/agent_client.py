@@ -16,6 +16,7 @@ from ironic_lib import metrics_utils
 from oslo_log import log
 from oslo_serialization import jsonutils
 import requests
+import retrying
 from six.moves import http_client
 
 from ironic.common import exception
@@ -53,6 +54,10 @@ class AgentClient(object):
         })
 
     @METRICS.timer('AgentClient._command')
+    @retrying.retry(
+        retry_on_exception=(
+            lambda e: isinstance(e, exception.AgentConnectionFailed)),
+        stop_max_attempt_number=CONF.agent.max_command_attempts)
     def _command(self, node, method, params, wait=False):
         url = self._get_command_url(node)
         body = self._get_command_body(method, params)
@@ -63,11 +68,12 @@ class AgentClient(object):
                   {'node': node.uuid, 'method': method})
 
         try:
-            response = self.session.post(url, params=request_params, data=body)
-        except requests.ConnectionError as e:
-            msg = (_('Failed to invoke agent command %(method)s for node '
-                     '%(node)s. Error: %(error)s') %
-                   {'method': method, 'node': node.uuid, 'error': e})
+            response = self.session.post(url, params=request_params, data=body,
+                                         timeout=CONF.agent.command_timeout)
+        except (requests.ConnectionError, requests.Timeout) as e:
+            msg = (_('Failed to connect to the agent running on node %(node)s '
+                     'for invoking command %(method)s. Error: %(error)s') %
+                   {'node': node.uuid, 'method': method, 'error': e})
             LOG.error(msg)
             raise exception.AgentConnectionFailed(reason=msg)
         except requests.RequestException as e:
