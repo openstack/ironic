@@ -123,11 +123,11 @@ class ConductorAPI(object):
         # NOTE(deva): this is going to be buggy
         self.ring_manager = hash_ring.HashRingManager(use_groups=use_groups)
 
-    def get_topic_for(self, node):
-        """Get the RPC topic for the conductor service the node is mapped to.
+    def get_conductor_for(self, node):
+        """Get the conductor which the node is mapped to.
 
         :param node: a node object.
-        :returns: an RPC topic string.
+        :returns: the conductor hostname.
         :raises: NoValidHost
 
         """
@@ -136,12 +136,23 @@ class ConductorAPI(object):
                                               node.conductor_group)
             dest = ring.get_nodes(node.uuid.encode('utf-8'),
                                   replicas=CONF.hash_distribution_replicas)
-            return '%s.%s' % (self.topic, dest.pop())
+            return dest.pop()
         except exception.DriverNotFound:
             reason = (_('No conductor service registered which supports '
                         'driver %(driver)s for conductor group "%(group)s".') %
                       {'driver': node.driver, 'group': node.conductor_group})
             raise exception.NoValidHost(reason=reason)
+
+    def get_topic_for(self, node):
+        """Get the RPC topic for the conductor service the node is mapped to.
+
+        :param node: a node object.
+        :returns: an RPC topic string.
+        :raises: NoValidHost
+
+        """
+        hostname = self.get_conductor_for(node)
+        return '%s.%s' % (self.topic, hostname)
 
     def get_topic_for_driver(self, driver_name):
         """Get RPC topic name for a conductor supporting the given driver.

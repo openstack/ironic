@@ -42,20 +42,42 @@ class Conductor(base.IronicObject, object_base.VersionedObjectDictCompat):
         'conductor_group': object_fields.StringField(),
     }
 
+    @classmethod
+    def list(cls, context, limit=None, marker=None, sort_key=None,
+             sort_dir=None):
+        """Return a list of Conductor objects.
+
+        :param cls: the :class:`Conductor`
+        :param context: Security context.
+        :param limit: maximum number of resources to return in a single result.
+        :param marker: pagination marker for large data sets.
+        :param sort_key: column to sort results by.
+        :param sort_dir: direction to sort. "asc" or "desc".
+        :returns: a list of :class:`Conductor` object.
+        """
+        db_conductors = cls.dbapi.get_conductor_list(limit=limit,
+                                                     marker=marker,
+                                                     sort_key=sort_key,
+                                                     sort_dir=sort_dir)
+        return cls._from_db_object_list(context, db_conductors)
+
     # NOTE(xek): We don't want to enable RPC on this call just yet. Remotable
     # methods can be used in the future to replace current explicit RPC calls.
     # Implications of calling new remote procedures should be thought through.
     # @object_base.remotable_classmethod
     @classmethod
-    def get_by_hostname(cls, context, hostname):
+    def get_by_hostname(cls, context, hostname, online=True):
         """Get a Conductor record by its hostname.
 
         :param cls: the :class:`Conductor`
         :param context: Security context
         :param hostname: the hostname on which a Conductor is running
+        :param online: Specify the expected ``online`` field value for the
+                       conductor to be retrieved. The ``online`` field is
+                       ignored if this value is set to None.
         :returns: a :class:`Conductor` object.
         """
-        db_obj = cls.dbapi.get_conductor(hostname)
+        db_obj = cls.dbapi.get_conductor(hostname, online=online)
         conductor = cls._from_db_object(context, cls(), db_obj)
         return conductor
 

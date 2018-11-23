@@ -158,6 +158,16 @@ class RPCAPITestCase(db_base.DbTestCase):
         self.assertEqual('fake-topic.fake-host',
                          rpcapi.get_topic_for_driver('fake-driver'))
 
+    def test_get_conductor_for(self):
+        CONF.set_override('host', 'fake-host')
+        c = self.dbapi.register_conductor({'hostname': 'fake-host',
+                                           'drivers': []})
+        self.dbapi.register_conductor_hardware_interfaces(
+            c.id, 'fake-driver', 'deploy', ['iscsi', 'direct'], 'iscsi')
+        rpcapi = conductor_rpcapi.ConductorAPI()
+        self.assertEqual(rpcapi.get_conductor_for(self.fake_node_obj),
+                         'fake-host')
+
     def _test_can_send_create_port(self, can_send):
         rpcapi = conductor_rpcapi.ConductorAPI(topic='fake-topic')
         with mock.patch.object(rpcapi.client,
