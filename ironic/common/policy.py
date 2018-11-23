@@ -395,6 +395,15 @@ volume_policies = [
           'method': 'PATCH'}]),
 ]
 
+conductor_policies = [
+    policy.DocumentedRuleDefault(
+        'baremetal:conductor:get',
+        'rule:is_admin or rule:is_observer',
+        'Retrieve Conductor records',
+        [{'path': '/conductors', 'method': 'GET'},
+         {'path': '/conductors/{hostname}', 'method': 'GET'}]),
+]
+
 
 def list_policies():
     policies = itertools.chain(
@@ -406,7 +415,8 @@ def list_policies():
         driver_policies,
         vendor_passthru_policies,
         utility_policies,
-        volume_policies
+        volume_policies,
+        conductor_policies
     )
     return policies
 

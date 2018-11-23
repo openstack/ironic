@@ -16,6 +16,7 @@ Tests for the API /nodes/ methods.
 import datetime
 import json
 
+import fixtures
 import mock
 from oslo_config import cfg
 from oslo_utils import timeutils
@@ -63,6 +64,10 @@ class TestListNodes(test_api_base.BaseApiTest):
         self.mock_gtf = p.start()
         self.mock_gtf.return_value = 'test-topic'
         self.addCleanup(p.stop)
+        self.mock_get_conductor_for = self.useFixture(
+            fixtures.MockPatchObject(rpcapi.ConductorAPI, 'get_conductor_for',
+                                     autospec=True)).mock
+        self.mock_get_conductor_for.return_value = 'fake.conductor'
 
     def _create_association_test_nodes(self):
         # create some unassociated nodes
@@ -298,6 +303,10 @@ class TestListNodes(test_api_base.BaseApiTest):
         self._test_node_field_hidden_in_lower_version('protected_reason',
                                                       '1.47', '1.48')
 
+    def test_node_conductor_hidden_in_lower_version(self):
+        self._test_node_field_hidden_in_lower_version('conductor',
+                                                      '1.48', '1.49')
+
     def test_node_protected(self):
         for value in (True, False):
             node = obj_utils.create_test_node(self.context, protected=value,
@@ -488,6 +497,25 @@ class TestListNodes(test_api_base.BaseApiTest):
                                  (node.uuid, 'protected'),
                                  headers={api_base.Version.string: '1.48'})
         self.assertIn('protected', response)
+
+    def test_get_conductor_field_invalid_api_version(self):
+        node = obj_utils.create_test_node(self.context,
+                                          chassis_id=self.chassis.id)
+        fields = 'conductor'
+        response = self.get_json(
+            '/nodes/%s?fields=%s' % (node.uuid, fields),
+            headers={api_base.Version.string: '1.48'},
+            expect_errors=True)
+        self.assertEqual(http_client.NOT_ACCEPTABLE, response.status_int)
+
+    def test_get_conductor_field(self):
+        node = obj_utils.create_test_node(self.context,
+                                          chassis_id=self.chassis.id)
+        fields = 'conductor'
+        response = self.get_json(
+            '/nodes/%s?fields=%s' % (node.uuid, fields),
+            headers={api_base.Version.string: '1.49'})
+        self.assertIn('conductor', response)
 
     def test_detail(self):
         node = obj_utils.create_test_node(self.context,
@@ -1544,6 +1572,41 @@ class TestListNodes(test_api_base.BaseApiTest):
             self.assertEqual('application/json', response.content_type)
             self.assertEqual(http_client.NOT_ACCEPTABLE, response.status_code)
             self.assertTrue(response.json['error_message'])
+
+    def test_get_nodes_by_conductor_not_allowed(self):
+        response = self.get_json('/nodes?conductor=rocky.rocks',
+                                 headers={api_base.Version.string: "1.47"},
+                                 expect_errors=True)
+        self.assertEqual('application/json', response.content_type)
+        self.assertEqual(http_client.NOT_ACCEPTABLE, response.status_code)
+        self.assertTrue(response.json['error_message'])
+
+    def test_get_nodes_by_conductor(self):
+        node1 = obj_utils.create_test_node(self.context,
+                                           uuid=uuidutils.generate_uuid())
+        node2 = obj_utils.create_test_node(self.context,
+                                           uuid=uuidutils.generate_uuid())
+
+        response = self.get_json('/nodes?conductor=rocky.rocks',
+                                 headers={api_base.Version.string: "1.49"})
+        uuids = [n['uuid'] for n in response['nodes']]
+        self.assertFalse(uuids)
+
+        response = self.get_json('/nodes?conductor=fake.conductor',
+                                 headers={api_base.Version.string: "1.49"})
+        uuids = [n['uuid'] for n in response['nodes']]
+        self.assertEqual(2, len(uuids))
+        self.assertIn(node1.uuid, uuids)
+        self.assertIn(node2.uuid, uuids)
+
+        self.mock_get_conductor_for.side_effect = ['rocky.rocks',
+                                                   'fake.conductor']
+        response = self.get_json('/nodes?conductor=fake.conductor',
+                                 headers={api_base.Version.string: "1.49"})
+        uuids = [n['uuid'] for n in response['nodes']]
+        self.assertEqual(1, len(uuids))
+        self.assertNotIn(node1.uuid, uuids)
+        self.assertIn(node2.uuid, uuids)
 
     def test_get_console_information(self):
         node = obj_utils.create_test_node(self.context)
@@ -2738,6 +2801,19 @@ class TestPatch(test_api_base.BaseApiTest):
                                    expect_errors=True)
         self.assertEqual('application/json', response.content_type)
         self.assertEqual(http_client.NOT_ACCEPTABLE, response.status_code)
+
+    def test_patch_conductor_forbidden(self):
+        node = obj_utils.create_test_node(self.context,
+                                          uuid=uuidutils.generate_uuid())
+        response = self.patch_json('/nodes/%s' % node.uuid,
+                                   [{'path': '/conductor',
+                                     'op': 'replace',
+                                     'value': 'why care'}],
+                                   headers={api_base.Version.string: "1.49"},
+                                   expect_errors=True)
+        self.assertEqual('application/json', response.content_type)
+        self.assertEqual(http_client.BAD_REQUEST, response.status_code)
+        self.assertTrue(response.json['error_message'])
 
 
 def _create_node_locally(node):
