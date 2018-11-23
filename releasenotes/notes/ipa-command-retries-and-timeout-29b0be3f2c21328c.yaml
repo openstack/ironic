@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    Adds ``command_timeout`` and ``max_command_attempts`` configuration options
+    to IPA, so when connection errors occur the command will be executed again.
