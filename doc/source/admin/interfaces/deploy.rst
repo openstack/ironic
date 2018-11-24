@@ -129,7 +129,7 @@ Ramdisk deploy
 
 The ramdisk interface is intended to provide a mechanism to "deploy" an
 instance where the item to be deployed is in reality a ramdisk.
-Most commonly this is peformed when an instance is booted via PXE, iPXE or
+Most commonly this is performed when an instance is booted via PXE, iPXE or
 Virtual Media, with the only local storage contents being those in memory.
 It is suported by ``pxe`` and ``ilo-virtual-media`` boot interfaces.
 
