@@ -1,0 +1,12 @@
+---
+features:
+  - |
+    Allows the user to supply EFI system partition image to ironic, for
+    building UEFI-bootable ISO images, in form of a local file or UUID
+    or URI reference. The new ``[conductor]esp_image`` option can be used
+    to configure ironic to use local file.
+other:
+  - |
+    Makes ironic building UEFI-only bootable ISO image (when being asked to
+    build a UEFI-bootable image) rather than building a hybrid
+    BIOS/UEFI-bootable ISO.

@@ -314,8 +314,10 @@ def _prepare_boot_iso(task, root_uuid):
 
         images.create_boot_iso(task.context, boot_iso_fullpathname,
                                kernel_href, ramdisk_href,
-                               deploy_iso_href, root_uuid,
-                               kernel_params, boot_mode)
+                               deploy_iso_href=deploy_iso_href,
+                               root_uuid=root_uuid,
+                               kernel_params=kernel_params,
+                               boot_mode=boot_mode)
 
         driver_internal_info['irmc_boot_iso'] = boot_iso_filename
 

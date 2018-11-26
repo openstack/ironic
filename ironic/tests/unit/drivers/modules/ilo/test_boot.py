@@ -204,14 +204,12 @@ class IloBootPrivateMethodsTestCase(test_common.BaseIloTest):
                 task.context, 'image-uuid',
                 ['boot_iso', 'kernel_id', 'ramdisk_id'])
             boot_object_name_mock.assert_called_once_with(task.node)
-            create_boot_iso_mock.assert_called_once_with(task.context,
-                                                         'tmpfile',
-                                                         'kernel_uuid',
-                                                         'ramdisk_uuid',
-                                                         'deploy_iso_uuid',
-                                                         'root-uuid',
-                                                         'kernel-params',
-                                                         'uefi')
+            create_boot_iso_mock.assert_called_once_with(
+                task.context, 'tmpfile', 'kernel_uuid', 'ramdisk_uuid',
+                deploy_iso_href='deploy_iso_uuid',
+                root_uuid='root-uuid',
+                kernel_params='kernel-params',
+                boot_mode='uefi')
             swift_obj_mock.create_object.assert_called_once_with('ilo-cont',
                                                                  'abcdef',
                                                                  'tmpfile')
@@ -273,14 +271,12 @@ class IloBootPrivateMethodsTestCase(test_common.BaseIloTest):
                 task.context, 'image-uuid',
                 ['boot_iso', 'kernel_id', 'ramdisk_id'])
             boot_object_name_mock.assert_called_once_with(task.node)
-            create_boot_iso_mock.assert_called_once_with(task.context,
-                                                         'tmpfile',
-                                                         kernel_href,
-                                                         ramdisk_href,
-                                                         'deploy_iso_uuid',
-                                                         'root-uuid',
-                                                         'kernel-params',
-                                                         'uefi')
+            create_boot_iso_mock.assert_called_once_with(
+                task.context, 'tmpfile', kernel_href, ramdisk_href,
+                deploy_iso_href='deploy_iso_uuid',
+                root_uuid='root-uuid',
+                kernel_params='kernel-params',
+                boot_mode='uefi')
             boot_iso_expected = 'http://10.10.1.30/httpboot/new_boot_iso'
             self.assertEqual(boot_iso_expected, boot_iso_actual)
             copy_file_mock.assert_called_once_with(fileobj_mock.name,
@@ -336,14 +332,12 @@ class IloBootPrivateMethodsTestCase(test_common.BaseIloTest):
                 task.context, 'image-uuid',
                 ['boot_iso', 'kernel_id', 'ramdisk_id'])
             boot_object_name_mock.assert_called_once_with(task.node)
-            create_boot_iso_mock.assert_called_once_with(task.context,
-                                                         'tmpfile',
-                                                         kernel_href,
-                                                         ramdisk_href,
-                                                         'deploy_iso_uuid',
-                                                         'root-uuid',
-                                                         'kernel-params',
-                                                         'uefi')
+            create_boot_iso_mock.assert_called_once_with(
+                task.context, 'tmpfile', kernel_href, ramdisk_href,
+                deploy_iso_href='deploy_iso_uuid',
+                root_uuid='root-uuid',
+                kernel_params='kernel-params',
+                boot_mode='uefi')
             boot_iso_expected = 'http://10.10.1.30/httpboot/abcdef'
             self.assertEqual(boot_iso_expected, boot_iso_actual)
             copy_file_mock.assert_called_once_with(fileobj_mock.name,

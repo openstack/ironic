@@ -222,27 +222,33 @@ def create_isolinux_image_for_bios(output_file, kernel, ramdisk,
             raise exception.ImageCreationFailed(image_type='iso', error=e)
 
 
-def create_isolinux_image_for_uefi(output_file, deploy_iso, kernel, ramdisk,
+def create_isolinux_image_for_uefi(output_file, kernel, ramdisk,
+                                   deploy_iso=None, esp_image=None,
                                    kernel_params=None):
     """Creates an isolinux image on the specified file.
 
-    Copies the provided kernel, ramdisk, efiboot.img to a directory, creates
-    the path for grub config file, generates the isolinux configuration file
-    using the kernel parameters provided, generates the grub configuration
-    file using kernel parameters and then generates a bootable ISO image
-    for uefi.
+    Copies the provided kernel, ramdisk and EFI system partition image to
+    a directory, generates the grub configuration file using kernel parameters
+    and then generates a bootable ISO image for UEFI.
 
     :param output_file: the path to the file where the iso image needs to be
         created.
-    :param deploy_iso: deploy iso used to initiate the deploy.
     :param kernel: the kernel to use.
     :param ramdisk: the ramdisk to use.
+    :param deploy_iso: deploy ISO image to extract EFI system partition image
+        from. If not specified, the `esp_image` option is required.
+    :param esp_image: FAT12/16/32-formatted EFI system partition image
+        containing the EFI boot loader (e.g. GRUB2) for each hardware
+        architecture to boot. This image will be embedded into the ISO image.
+        If not specified, the `deploy_iso` option is required.
     :param kernel_params: a list of strings(each element being a string like
         'K=V' or 'K' or combination of them like 'K1=V1,K2,...') to be added
         as the kernel cmdline.
     :raises: ImageCreationFailed, if image creation failed while copying files
         or while running command to generate iso.
     """
+    EFIBOOT_LOCATION = 'boot/grub/efiboot.img'
+
     grub_options = {'linux': '/vmlinuz', 'initrd': '/initrd'}
 
     with utils.tempdir() as tmpdir:
@@ -251,26 +257,48 @@ def create_isolinux_image_for_uefi(output_file, deploy_iso, kernel, ramdisk,
             ramdisk: 'initrd',
         }
 
-        # Open the deploy iso used to initiate deploy and copy the
-        # efiboot.img i.e. boot loader to the current temporary
-        # directory.
         with utils.tempdir() as mountdir:
-            uefi_path_info, e_img_rel_path, grub_rel_path = (
-                _mount_deploy_iso(deploy_iso, mountdir))
+            # Open the deploy iso used to initiate deploy and copy the
+            # efiboot.img i.e. boot loader to the current temporary
+            # directory.
+            if deploy_iso:
+                uefi_path_info, e_img_rel_path, grub_rel_path = (
+                    _mount_deploy_iso(deploy_iso, mountdir))
 
-            # if either of these variables are not initialized then the
-            # uefi efiboot.img cannot be created.
+                grub_cfg = os.path.join(tmpdir, grub_rel_path)
+
+            # Use ELF boot loader provided
+            elif esp_image:
+                e_img_rel_path = EFIBOOT_LOCATION
+                grub_rel_path = CONF.grub_config_path.strip()
+                while grub_rel_path.startswith(os.sep):
+                    grub_rel_path = grub_rel_path[1:]
+                grub_cfg = os.path.join(tmpdir, grub_rel_path)
+
+                uefi_path_info = {
+                    esp_image: e_img_rel_path,
+                    grub_cfg: grub_rel_path
+                }
+
+            else:
+                raise exception.ImageCreationFailed(
+                    image_type='iso',
+                    error='Neither `deploy_iso` nor `esp_image` configured')
+
             files_info.update(uefi_path_info)
+
             try:
                 _create_root_fs(tmpdir, files_info)
+
             except (OSError, IOError) as e:
                 LOG.exception("Creating the filesystem root failed.")
                 raise exception.ImageCreationFailed(image_type='iso', error=e)
+
             finally:
-                _umount_without_raise(mountdir)
+                if deploy_iso:
+                    _umount_without_raise(mountdir)
 
         # Generate and copy grub config file.
-        grub_cfg = os.path.join(tmpdir, grub_rel_path)
         grub_conf = _generate_cfg(kernel_params,
                                   CONF.grub_config_template, grub_options)
         utils.write_to_file(grub_cfg, grub_conf)
@@ -401,8 +429,8 @@ def get_temp_url_for_glance_image(context, image_uuid):
 
 
 def create_boot_iso(context, output_filename, kernel_href,
-                    ramdisk_href, deploy_iso_href, root_uuid=None,
-                    kernel_params=None, boot_mode=None):
+                    ramdisk_href, deploy_iso_href=None, esp_image_href=None,
+                    root_uuid=None, kernel_params=None, boot_mode=None):
     """Creates a bootable ISO image for a node.
 
     Given the hrefs for kernel, ramdisk, root partition's UUID and
@@ -414,8 +442,15 @@ def create_boot_iso(context, output_filename, kernel_href,
     :param output_filename: the absolute path of the output ISO file
     :param kernel_href: URL or glance uuid of the kernel to use
     :param ramdisk_href: URL or glance uuid of the ramdisk to use
-    :param deploy_iso_href: URL or glance uuid of the deploy iso used
-    :param root_uuid: uuid of the root filesystem (optional)
+    :param deploy_iso_href: URL or glance UUID of the deploy ISO image
+        to extract EFI system partition image. If not specified,
+        the `esp_image_href` option must be present if UEFI-bootable
+        ISO is desired.
+    :param esp_image_href: URL or glance UUID of FAT12/16/32-formatted EFI
+        system partition image containing the EFI boot loader (e.g. GRUB2)
+        for each hardware architecture to boot. This image will be embedded
+        into the ISO image. If not specified, the `deploy_iso_href` option
+        is only required for building UEFI-bootable ISO.
     :param kernel_params: a string containing whitespace separated values
         kernel cmdline arguments of the form K=V or K (optional).
     :boot_mode: the boot mode in which the deploy is to happen.
@@ -424,6 +459,7 @@ def create_boot_iso(context, output_filename, kernel_href,
     with utils.tempdir() as tmpdir:
         kernel_path = os.path.join(tmpdir, kernel_href.split('/')[-1])
         ramdisk_path = os.path.join(tmpdir, ramdisk_href.split('/')[-1])
+
         fetch(context, kernel_href, kernel_path)
         fetch(context, ramdisk_href, ramdisk_path)
 
@@ -434,13 +470,28 @@ def create_boot_iso(context, output_filename, kernel_href,
             params.append(kernel_params)
 
         if boot_mode == 'uefi':
-            deploy_iso = os.path.join(tmpdir, deploy_iso_href.split('/')[-1])
-            fetch(context, deploy_iso_href, deploy_iso)
+
+            deploy_iso_path = esp_image_path = None
+
+            if deploy_iso_href:
+                deploy_iso_path = os.path.join(
+                    tmpdir, deploy_iso_href.split('/')[-1])
+                fetch(context, deploy_iso_href, deploy_iso_path)
+
+            elif esp_image_href:
+                esp_image_path = os.path.join(
+                    tmpdir, esp_image_href.split('/')[-1])
+                fetch(context, esp_image_href, esp_image_path)
+
+            elif CONF.esp_image:
+                esp_image_path = CONF.esp_image
+
             create_isolinux_image_for_uefi(output_filename,
-                                           deploy_iso,
                                            kernel_path,
                                            ramdisk_path,
-                                           params)
+                                           deploy_iso=deploy_iso_path,
+                                           esp_image=esp_image_path,
+                                           kernel_params=params)
         else:
             create_isolinux_image_for_bios(output_filename,
                                            kernel_path,
