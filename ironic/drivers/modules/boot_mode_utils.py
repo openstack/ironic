@@ -15,6 +15,7 @@
 
 from oslo_log import log as logging
 
+from ironic.common import boot_modes
 from ironic.common import exception
 from ironic.common.i18n import _
 from ironic.common import utils as common_utils
@@ -23,6 +24,8 @@ from ironic.conf import CONF
 from ironic.drivers import utils as driver_utils
 
 LOG = logging.getLogger(__name__)
+
+warn_about_default_boot_mode = False
 
 
 def _set_boot_mode_on_bm(task, ironic_boot_mode, fail_if_unsupported=False):
@@ -266,3 +269,29 @@ def get_boot_mode_for_deploy(node):
               {'boot_mode': boot_mode, 'node': node.uuid})
 
     return boot_mode
+
+
+def get_boot_mode(node):
+    """Returns the boot mode.
+
+    :param node: an ironic node object.
+    :returns: 'bios' or 'uefi'
+    :raises: InvalidParameterValue, if the node boot mode disagrees with
+        the boot mode set to node properties/capabilities
+    """
+    boot_mode = get_boot_mode_for_deploy(node)
+    if boot_mode:
+        return boot_mode
+    # TODO(hshiina): The default boot mode will be changed to UEFI.
+    global warn_about_default_boot_mode
+    if not warn_about_default_boot_mode:
+        warn_about_default_boot_mode = True
+        LOG.warning('Boot mode is not configured for node %(node_uuid)s '
+                    'explicitly. The default boot mode is "%(bios)s", but, '
+                    'the default will be changed to "%(uefi)s" in the future. '
+                    'It is recommended to set the boot option into '
+                    'properties/capabilities/boot_mode for all nodes.',
+                    {'node_uuid': node.uuid,
+                     'bios': boot_modes.LEGACY_BIOS,
+                     'uefi': boot_modes.UEFI})
+    return boot_modes.LEGACY_BIOS

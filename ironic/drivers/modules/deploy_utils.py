@@ -691,7 +691,7 @@ def try_set_boot_device(task, device, persistent=True):
                                            persistent=persistent)
     except exception.IPMIFailure:
         with excutils.save_and_reraise_exception() as ctxt:
-            if get_boot_mode_for_deploy(task.node) == 'uefi':
+            if boot_mode_utils.get_boot_mode(task.node) == 'uefi':
                 ctxt.reraise = False
                 LOG.warning("ipmitool is unable to set boot device while "
                             "the node %s is in UEFI boot mode. Please set "
@@ -723,7 +723,7 @@ def get_pxe_boot_file(node):
     cpu_arch = node.properties.get('cpu_arch')
     boot_file = CONF.pxe.pxe_bootfile_name_by_arch.get(cpu_arch)
     if boot_file is None:
-        if get_boot_mode_for_deploy(node) == 'uefi':
+        if boot_mode_utils.get_boot_mode(node) == 'uefi':
             boot_file = CONF.pxe.uefi_pxe_bootfile_name
         else:
             boot_file = CONF.pxe.pxe_bootfile_name
@@ -744,7 +744,7 @@ def get_pxe_config_template(node):
     cpu_arch = node.properties.get('cpu_arch')
     config_template = CONF.pxe.pxe_config_template_by_arch.get(cpu_arch)
     if config_template is None:
-        if get_boot_mode_for_deploy(node) == 'uefi':
+        if boot_mode_utils.get_boot_mode(node) == 'uefi':
             config_template = CONF.pxe.uefi_pxe_config_template
         else:
             config_template = CONF.pxe.pxe_config_template

@@ -185,7 +185,7 @@ def _get_boot_iso(task, root_uuid):
     # Option 3 - Create boot_iso from kernel/ramdisk, upload to Swift
     # or web server and provide its name.
     deploy_iso_uuid = deploy_info['ilo_deploy_iso']
-    boot_mode = boot_mode_utils.get_boot_mode_for_deploy(task.node)
+    boot_mode = boot_mode_utils.get_boot_mode(task.node)
     boot_iso_object_name = _get_boot_iso_object_name(task.node)
     kernel_params = ""
     if deploy_utils.get_boot_option(task.node) == "ramdisk":
@@ -525,7 +525,7 @@ class IloVirtualMediaBoot(base.BootInterface):
         """
         ilo_common.cleanup_vmedia_boot(task)
 
-        boot_mode = boot_mode_utils.get_boot_mode_for_deploy(task.node)
+        boot_mode = boot_mode_utils.get_boot_mode(task.node)
         boot_option = deploy_utils.get_boot_option(task.node)
 
         if deploy_utils.is_iscsi_boot(task):
@@ -700,7 +700,7 @@ class IloPXEBoot(pxe.PXEBoot):
         # Need to enable secure boot, if being requested
         ilo_common.update_secure_boot_mode(task, True)
 
-        boot_mode = boot_mode_utils.get_boot_mode_for_deploy(task.node)
+        boot_mode = boot_mode_utils.get_boot_mode(task.node)
 
         if deploy_utils.is_iscsi_boot(task) and boot_mode == 'uefi':
             # Need to set 'ilo_uefi_iscsi_boot' param for clean up

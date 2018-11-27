@@ -92,10 +92,13 @@ opts = [
                help=_('Default boot mode to use when no boot mode is '
                       'requested in node\'s driver_info, capabilities or '
                       'in the `instance_info` configuration. Currently the '
-                      'default boot mode is "%(bios)s". This option only '
-                      'has effect when management interface supports boot '
-                      'mode management') % {
-                          'bios': boot_modes.LEGACY_BIOS}),
+                      'default boot mode is "%(bios)s", but it will be '
+                      'changed to "%(uefi)s in the future. It is recommended '
+                      'to set an explicit value for this option. This option '
+                      'only has effect when management interface supports '
+                      'boot mode management') % {
+                          'bios': boot_modes.LEGACY_BIOS,
+                          'uefi': boot_modes.UEFI}),
     cfg.BoolOpt('configdrive_use_object_store',
                 default=False,
                 deprecated_group='conductor',

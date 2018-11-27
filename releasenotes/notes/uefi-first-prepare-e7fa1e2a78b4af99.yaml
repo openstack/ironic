@@ -1,0 +1,10 @@
+---
+upgrade:
+  - |
+    A future release will change the default value of
+    ``[deploy]/default_boot_mode`` from "bios" to "uefi". It is recommended to
+    set an explicit value for this option. For hardware types which don't
+    support setting boot mode, a future release will assume boot mode is set
+    to UEFI if no boot mode is set to node's capabilities. It is also
+    recommended to set ``boot_mode`` into ``properties/capabilities``
+    of a node.
