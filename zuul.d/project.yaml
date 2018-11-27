@@ -29,6 +29,8 @@
             voting: false
         - ironic-tempest-dsvm-ironic-inspector:
             voting: false
+        - bifrost-integration-tinyipa-ubuntu-xenial:
+            voting: false
         - ironic-tempest-dsvm-pxe_ipmitool-postgres:
             voting: false
     gate:
