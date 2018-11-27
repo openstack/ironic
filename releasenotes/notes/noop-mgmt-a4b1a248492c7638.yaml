@@ -1,0 +1,11 @@
+---
+deprecations:
+  - |
+    Using the ``fake`` management interface with the ``manual-management``
+    hardware type is deprecated, please use ``noop`` instead. Existing nodes
+    will have to be updated after the upgrade.
+fixes:
+  - |
+    The ``manual-management`` hardware type now defaults to the ``noop``
+    management interface. Unlike the ``fake`` management interface, it does
+    not fail on attempt to set the boot device to the local disk.

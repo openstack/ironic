@@ -27,6 +27,7 @@ from ironic.drivers.modules.network import flat as flat_net
 from ironic.drivers.modules.network import neutron
 from ironic.drivers.modules.network import noop as noop_net
 from ironic.drivers.modules import noop
+from ironic.drivers.modules import noop_mgmt
 from ironic.drivers.modules import pxe
 from ironic.drivers.modules.storage import cinder
 from ironic.drivers.modules.storage import external as external_storage
@@ -96,7 +97,7 @@ class ManualManagementHardware(GenericHardware):
     @property
     def supported_management_interfaces(self):
         """List of supported management interfaces."""
-        return [fake.FakeManagement]
+        return [noop_mgmt.NoopManagement, fake.FakeManagement]
 
     @property
     def supported_power_interfaces(self):
