@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    Properly reports an error when the image cache and the image HTTP or TFTP
+    location are on different file system, causing hard link to fail.
