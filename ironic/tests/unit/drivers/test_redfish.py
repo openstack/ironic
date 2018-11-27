@@ -17,6 +17,7 @@ from ironic.conductor import task_manager
 from ironic.drivers.modules import iscsi_deploy
 from ironic.drivers.modules import noop
 from ironic.drivers.modules import pxe
+from ironic.drivers.modules.redfish import inspect as redfish_inspect
 from ironic.drivers.modules.redfish import management as redfish_mgmt
 from ironic.drivers.modules.redfish import power as redfish_power
 from ironic.tests.unit.db import base as db_base
@@ -29,11 +30,14 @@ class RedfishHardwareTestCase(db_base.DbTestCase):
         super(RedfishHardwareTestCase, self).setUp()
         self.config(enabled_hardware_types=['redfish'],
                     enabled_power_interfaces=['redfish'],
-                    enabled_management_interfaces=['redfish'])
+                    enabled_management_interfaces=['redfish'],
+                    enabled_inspect_interfaces=['redfish'])
 
     def test_default_interfaces(self):
         node = obj_utils.create_test_node(self.context, driver='redfish')
         with task_manager.acquire(self.context, node.id) as task:
+            self.assertIsInstance(task.driver.inspect,
+                                  redfish_inspect.RedfishInspect)
             self.assertIsInstance(task.driver.management,
                                   redfish_mgmt.RedfishManagement)
             self.assertIsInstance(task.driver.power,

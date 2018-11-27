@@ -218,7 +218,12 @@ if not sushy:
         BOOT_SOURCE_ENABLED_CONTINUOUS='continuous',
         BOOT_SOURCE_ENABLED_ONCE='once',
         BOOT_SOURCE_MODE_BIOS='bios',
-        BOOT_SOURCE_MODE_UEFI='uefi'
+        BOOT_SOURCE_MODE_UEFI='uefi',
+        PROCESSOR_ARCH_x86='x86 or x86-64',
+        PROCESSOR_ARCH_IA_64='Intel Itanium',
+        PROCESSOR_ARCH_ARM='ARM',
+        PROCESSOR_ARCH_MIPS='MIPS',
+        PROCESSOR_ARCH_OEM='OEM-defined',
     )
 
     sys.modules['sushy'] = sushy

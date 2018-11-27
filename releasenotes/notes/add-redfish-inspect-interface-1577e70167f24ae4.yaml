@@ -1,0 +1,7 @@
+---
+features:
+  - |
+    Adds out-of-band inspection support to ``redfish`` hardware type'.
+    Successful inspection populates mandatory properties: "cpus",
+    "local_gb", "cpu_arch", "memory_mb" and creates ironic ports
+    for inspected nodes.

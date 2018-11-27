@@ -14,6 +14,9 @@
 #    under the License.
 
 from ironic.drivers import generic
+from ironic.drivers.modules import inspector
+from ironic.drivers.modules import noop
+from ironic.drivers.modules.redfish import inspect as redfish_inspect
 from ironic.drivers.modules.redfish import management as redfish_mgmt
 from ironic.drivers.modules.redfish import power as redfish_power
 
@@ -30,3 +33,9 @@ class RedfishHardware(generic.GenericHardware):
     def supported_power_interfaces(self):
         """List of supported power interfaces."""
         return [redfish_power.RedfishPower]
+
+    @property
+    def supported_inspect_interfaces(self):
+        """List of supported power interfaces."""
+        return [redfish_inspect.RedfishInspect, inspector.Inspector,
+                noop.NoInspect]

@@ -22,8 +22,8 @@ from ironic.common import states
 from ironic.common import utils
 from ironic.conductor import utils as conductor_utils
 from ironic.drivers import base
+from ironic.drivers.modules import deploy_utils
 from ironic.drivers.modules.ilo import common as ilo_common
-from ironic import objects
 
 ilo_error = importutils.try_import('proliantutils.exception')
 
@@ -46,32 +46,6 @@ CAPABILITIES_KEYS = {'secure_boot', 'rom_firmware_version',
                      'logical_raid_level_50', 'logical_raid_level_60',
                      'cpu_vt', 'hardware_supports_raid', 'has_nvme_ssd',
                      'nvdimm_n', 'logical_nvdimm_n', 'persistent_memory'}
-
-
-def _create_ports_if_not_exist(task, macs):
-    """Create ironic ports for the mac addresses.
-
-    Creates ironic ports for the mac addresses returned with inspection
-    or as requested by operator.
-
-    :param task: a TaskManager instance.
-    :param macs: A dictionary of port numbers to mac addresses
-                 returned by node inspection.
-
-    """
-    node = task.node
-    for mac in macs.values():
-        port_dict = {'address': mac, 'node_id': node.id}
-        port = objects.Port(task.context, **port_dict)
-
-        try:
-            port.create()
-            LOG.info("Port created for MAC address %(address)s for node "
-                     "%(node)s", {'address': mac, 'node': node.uuid})
-        except exception.MACAlreadyExists:
-            LOG.warning("Port already exists for MAC address %(address)s "
-                        "for node %(node)s",
-                        {'address': mac, 'node': node.uuid})
 
 
 def _get_essential_properties(node, ilo_object):
@@ -270,7 +244,7 @@ class IloInspect(base.InspectInterface):
         task.node.save()
 
         # Create ports for the nics detected.
-        _create_ports_if_not_exist(task, result['macs'])
+        deploy_utils.create_ports_if_not_exist(task, result['macs'])
 
         LOG.debug("Node properties for %(node)s are updated as "
                   "%(properties)s",

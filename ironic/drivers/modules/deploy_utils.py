@@ -579,6 +579,34 @@ def get_single_nic_with_vif_port_id(task):
             return port.address
 
 
+def create_ports_if_not_exist(task, macs):
+    """Create ironic ports for the mac addresses.
+
+    Creates ironic ports for the mac addresses returned with inspection
+    or as requested by operator.
+
+    :param task: a TaskManager instance.
+    :param macs: A dictionary of port numbers to mac addresses
+                 returned by node inspection.
+
+    """
+    node = task.node
+    for port_num, mac in macs.items():
+        port_dict = {'address': mac, 'node_id': node.id}
+        port = objects.Port(task.context, **port_dict)
+
+        try:
+            port.create()
+            LOG.info(_("Port %(port_num)s created for MAC address %(address)s "
+                       "for node %(node)s"),
+                     {'address': mac, 'node': node.uuid, 'port_num': port_num})
+        except exception.MACAlreadyExists:
+            LOG.warning(_("Port %(port_num)s already exists for MAC address"
+                          "%(address)s for node %(node)s"),
+                        {'address': mac, 'node': node.uuid,
+                         'port_num': port_num})
+
+
 def agent_get_clean_steps(task, interface=None, override_priorities=None):
     """Get the list of cached clean steps from the agent.
 
