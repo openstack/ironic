@@ -1164,7 +1164,7 @@ class ErrorHandlersTestCase(tests_base.TestCase):
             msg="Timeout reached while cleaning the node. Please "
                 "check if the ramdisk responsible for the cleaning is "
                 "running on the node. Failed on step {}.",
-            set_fail_state=True)
+            set_fail_state=False)
 
     def test_cleanup_cleanwait_timeout(self):
         self.node.provision_state = states.CLEANFAIL
@@ -1181,16 +1181,18 @@ class ErrorHandlersTestCase(tests_base.TestCase):
         conductor_utils.cleanup_cleanwait_timeout(self.task)
         self.assertEqual({}, self.node.clean_step)
         self.assertNotIn('clean_step_index', self.node.driver_internal_info)
-        self.task.process_event.assert_called_once_with('fail',
-                                                        target_state=None)
+        self.assertFalse(self.task.process_event.called)
         self.assertTrue(self.node.maintenance)
         self.assertEqual(clean_error, self.node.maintenance_reason)
 
-    def test_cleaning_error_handler(self):
-        self.node.provision_state = states.CLEANING
+    def _test_cleaning_error_handler(self, prov_state=states.CLEANING):
+        self.node.provision_state = prov_state
         target = 'baz'
         self.node.target_provision_state = target
-        self.node.driver_internal_info = {}
+        self.node.clean_step = {'key': 'val'}
+        self.node.driver_internal_info = {
+            'cleaning_reboot': True,
+            'clean_step_index': 0}
         msg = 'error bar'
         conductor_utils.cleaning_error_handler(self.task, msg)
         self.node.save.assert_called_once_with()
@@ -1201,8 +1203,20 @@ class ErrorHandlersTestCase(tests_base.TestCase):
         self.assertEqual(msg, self.node.maintenance_reason)
         driver = self.task.driver.deploy
         driver.tear_down_cleaning.assert_called_once_with(self.task)
-        self.task.process_event.assert_called_once_with('fail',
-                                                        target_state=None)
+        if prov_state == states.CLEANFAIL:
+            self.assertFalse(self.task.process_event.called)
+        else:
+            self.task.process_event.assert_called_once_with('fail',
+                                                            target_state=None)
+
+    def test_cleaning_error_handler(self):
+        self._test_cleaning_error_handler()
+
+    def test_cleaning_error_handler_cleanwait(self):
+        self._test_cleaning_error_handler(prov_state=states.CLEANWAIT)
+
+    def test_cleaning_error_handler_cleanfail(self):
+        self._test_cleaning_error_handler(prov_state=states.CLEANFAIL)
 
     def test_cleaning_error_handler_manual(self):
         target = states.MANAGEABLE

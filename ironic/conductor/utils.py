@@ -338,8 +338,10 @@ def cleanup_cleanwait_timeout(task):
                     "check if the ramdisk responsible for the cleaning is "
                     "running on the node. Failed on step %(step)s.") %
                   {'step': task.node.clean_step})
-    cleaning_error_handler(task, msg=last_error,
-                           set_fail_state=True)
+    # NOTE(rloo): this is called from the periodic task for cleanwait timeouts,
+    # via the task manager's process_event(). The node has already been moved
+    # to CLEANFAIL, so the error handler doesn't need to set the fail state.
+    cleaning_error_handler(task, msg=last_error, set_fail_state=False)
 
 
 def cleaning_error_handler(task, msg, tear_down_cleaning=True,
@@ -375,7 +377,7 @@ def cleaning_error_handler(task, msg, tear_down_cleaning=True,
     node.maintenance_reason = msg
     node.save()
 
-    if set_fail_state:
+    if set_fail_state and node.provision_state != states.CLEANFAIL:
         target_state = states.MANAGEABLE if manual_clean else None
         task.process_event('fail', target_state=target_state)
 
