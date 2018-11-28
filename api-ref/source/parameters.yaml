@@ -1204,7 +1204,7 @@ req_raid_interface:
   type: string
 req_rescue_interface:
   description: |
-    The interface used for node rescue, e.g. “no-rescue”.
+    The interface used for node rescue, e.g. "no-rescue".
   in: body
   required: false
   type: string
