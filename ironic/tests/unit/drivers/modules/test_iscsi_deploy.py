@@ -418,6 +418,15 @@ class IscsiDeployMethodsTestCase(db_base.DbTestCase):
         ret_val = self._test_get_deploy_info(extra_instance_info=capabilities)
         self.assertEqual('local', ret_val['boot_option'])
 
+    def test_get_deploy_info_cpu_arch(self):
+        ret_val = self._test_get_deploy_info()
+        self.assertEqual('x86_64', ret_val['cpu_arch'])
+
+    def test_get_deploy_info_cpu_arch_none(self):
+        self.node.properties['cpu_arch'] = None
+        ret_val = self._test_get_deploy_info()
+        self.assertNotIn('cpu_arch', ret_val)
+
     def test_get_deploy_info_disk_label(self):
         capabilities = {'capabilities': {'disk_label': 'msdos'}}
         ret_val = self._test_get_deploy_info(extra_instance_info=capabilities)

@@ -179,8 +179,11 @@ def get_deploy_info(node, address, iqn, port=None, lun='1'):
                        'ephemeral_mb': i_info['ephemeral_mb'],
                        'preserve_ephemeral': i_info['preserve_ephemeral'],
                        'boot_option': deploy_utils.get_boot_option(node),
-                       'boot_mode': _get_boot_mode(node),
-                       'cpu_arch': node.properties.get('cpu_arch')})
+                       'boot_mode': _get_boot_mode(node)})
+
+        cpu_arch = node.properties.get('cpu_arch')
+        if cpu_arch is not None:
+            params['cpu_arch'] = cpu_arch
 
         # Append disk label if specified
         disk_label = deploy_utils.get_disk_label(node)
