@@ -93,7 +93,7 @@ Feature Submission Process
    <https://storyboard.openstack.org/#!/project/943>`_.
    There are two fields that must be filled: 'Title' and
    'Description'. 'Tasks' can be added and are associated with a project.
-   If you can’t describe it in a sentence or two, it may mean that you are
+   If you can't describe it in a sentence or two, it may mean that you are
    either trying to capture more than one RFE at once, or that you are having
    a hard time defining what you are trying to solve at all. This may also be
    a sign that your feature may require a specification document.

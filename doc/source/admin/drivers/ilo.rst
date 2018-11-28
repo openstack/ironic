@@ -203,7 +203,7 @@ Node configuration
 ^^^^^^^^^^^^^^^^^^
 
 * Each node is configured for ``ilo`` hardware type by setting the following
-  ironic node object’s properties in ``driver_info``:
+  ironic node object's properties in ``driver_info``:
 
   - ``ilo_address``: IP address or hostname of the iLO.
   - ``ilo_username``: Username for the iLO with administrator privileges.
@@ -217,7 +217,7 @@ Node configuration
     port on the ironic conductor node may be used. This is required only when
     ``ilo-console`` interface is used.
 
-* The following properties are also required in node object’s
+* The following properties are also required in node object's
   ``driver_info`` if ``ilo-virtual-media`` boot interface is used:
 
   - ``ilo_deploy_iso``: The glance UUID of the deploy ramdisk ISO image.
@@ -233,7 +233,7 @@ Node configuration
   - ``ilo_rescue_iso``: The glance UUID of the rescue ISO image. This is optional
     property and is used when ``rescue`` interface is set to ``agent``.
 
-* The following properties are also required in node object’s
+* The following properties are also required in node object's
   ``driver_info`` if ``ilo-pxe`` boot interface is used:
 
   - ``deploy_kernel``: The glance UUID or a HTTP(S) URL of the deployment kernel.

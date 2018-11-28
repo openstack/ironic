@@ -112,7 +112,7 @@ Node configuration
 ^^^^^^^^^^^^^^^^^^
 
 * Each node is configured for ``irmc`` hardware type by setting the following
-  ironic node object’s properties:
+  ironic node object's properties:
 
   - ``driver_info/irmc_address`` property to be ``IP address`` or
     ``hostname`` of the iRMC.
@@ -172,7 +172,7 @@ Node configuration
     Optional.
 
 * Each node can be further configured by setting the following ironic
-  node object’s properties which override the parameter values in
+  node object's properties which override the parameter values in
   ``[irmc]`` section of ``/etc/ironic/ironic.conf``:
 
   - ``driver_info/irmc_port`` property overrides ``port``.
