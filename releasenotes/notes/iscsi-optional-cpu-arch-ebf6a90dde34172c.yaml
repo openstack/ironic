@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Fixes an issue where iSCSI based deployments fail if the ``cpu_arch``
+    property is not specified on a node.
+
