@@ -491,6 +491,65 @@ class UpdateNodeTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         self.assertIsNone(res['maintenance_reason'])
         self.assertIsNone(res['fault'])
 
+    def test_update_node_protected_set(self):
+        for state in ('active', 'rescue'):
+            node = obj_utils.create_test_node(self.context,
+                                              uuid=uuidutils.generate_uuid(),
+                                              provision_state=state)
+
+            node.protected = True
+            res = self.service.update_node(self.context, node)
+            self.assertTrue(res['protected'])
+            self.assertIsNone(res['protected_reason'])
+
+    def test_update_node_protected_unset(self):
+        # NOTE(dtantsur): we allow unsetting protected in any state to make
+        # sure a node cannot get stuck in it.
+        for state in ('active', 'rescue', 'rescue failed'):
+            node = obj_utils.create_test_node(self.context,
+                                              uuid=uuidutils.generate_uuid(),
+                                              provision_state=state,
+                                              protected=True,
+                                              protected_reason='reason')
+
+            # check that ManagerService.update_node actually updates the node
+            node.protected = False
+            res = self.service.update_node(self.context, node)
+            self.assertFalse(res['protected'])
+            self.assertIsNone(res['protected_reason'])
+
+    def test_update_node_protected_invalid_state(self):
+        node = obj_utils.create_test_node(self.context,
+                                          provision_state='available')
+
+        node.protected = True
+        exc = self.assertRaises(messaging.rpc.ExpectedException,
+                                self.service.update_node,
+                                self.context,
+                                node)
+        # Compare true exception hidden by @messaging.expected_exceptions
+        self.assertEqual(exception.InvalidState, exc.exc_info[0])
+
+        res = objects.Node.get_by_uuid(self.context, node['uuid'])
+        self.assertFalse(res['protected'])
+        self.assertIsNone(res['protected_reason'])
+
+    def test_update_node_protected_reason_without_protected(self):
+        node = obj_utils.create_test_node(self.context,
+                                          provision_state='active')
+
+        node.protected_reason = 'reason!'
+        exc = self.assertRaises(messaging.rpc.ExpectedException,
+                                self.service.update_node,
+                                self.context,
+                                node)
+        # Compare true exception hidden by @messaging.expected_exceptions
+        self.assertEqual(exception.InvalidParameterValue, exc.exc_info[0])
+
+        res = objects.Node.get_by_uuid(self.context, node['uuid'])
+        self.assertFalse(res['protected'])
+        self.assertIsNone(res['protected_reason'])
+
     def test_update_node_already_locked(self):
         node = obj_utils.create_test_node(self.context, driver='fake-hardware',
                                           extra={'test': 'one'})
@@ -1546,6 +1605,23 @@ class ServiceDoNodeDeployTestCase(mgr_utils.ServiceSetUpMixin,
         mock_iwdi.assert_called_once_with(self.context, node.instance_info)
         self.assertNotIn('is_whole_disk_image', node.driver_internal_info)
 
+    def test_do_node_deploy_rebuild_protected(self, mock_iwdi):
+        mock_iwdi.return_value = False
+        self._start_service()
+        node = obj_utils.create_test_node(self.context, driver='fake-hardware',
+                                          provision_state=states.ACTIVE,
+                                          protected=True)
+        exc = self.assertRaises(messaging.rpc.ExpectedException,
+                                self.service.do_node_deploy,
+                                self.context, node['uuid'], rebuild=True)
+        # Compare true exception hidden by @messaging.expected_exceptions
+        self.assertEqual(exception.NodeProtected, exc.exc_info[0])
+        # Last_error should be None.
+        self.assertIsNone(node.last_error)
+        # Verify reservation has been cleared.
+        self.assertIsNone(node.reservation)
+        self.assertFalse(mock_iwdi.called)
+
     def test_do_node_deploy_worker_pool_full(self, mock_iwdi):
         mock_iwdi.return_value = False
         prv_state = states.AVAILABLE
@@ -2566,6 +2642,18 @@ class DoNodeTearDownTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
                                 self.context, node['uuid'])
         # Compare true exception hidden by @messaging.expected_exceptions
         self.assertEqual(exception.InvalidStateRequested, exc.exc_info[0])
+
+    def test_do_node_tear_down_protected(self):
+        self._start_service()
+        # test node.provision_state is incorrect for tear_down
+        node = obj_utils.create_test_node(self.context, driver='fake-hardware',
+                                          provision_state=states.ACTIVE,
+                                          protected=True)
+        exc = self.assertRaises(messaging.rpc.ExpectedException,
+                                self.service.do_node_tear_down,
+                                self.context, node['uuid'])
+        # Compare true exception hidden by @messaging.expected_exceptions
+        self.assertEqual(exception.NodeProtected, exc.exc_info[0])
 
     @mock.patch('ironic.drivers.modules.fake.FakePower.validate')
     def test_do_node_tear_down_validate_fail(self, mock_validate):
@@ -4862,6 +4950,24 @@ class DestroyNodeTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
                                 self.context, node.uuid)
         # Compare true exception hidden by @messaging.expected_exceptions
         self.assertEqual(exception.InvalidState, exc.exc_info[0])
+        # Verify reservation was released.
+        node.refresh()
+        self.assertIsNone(node.reservation)
+
+    def test_destroy_node_protected(self):
+        self._start_service()
+        node = obj_utils.create_test_node(self.context,
+                                          provision_state=states.ACTIVE,
+                                          protected=True,
+                                          # Even in maintenance the protected
+                                          # nodes are not deleted
+                                          maintenance=True)
+
+        exc = self.assertRaises(messaging.rpc.ExpectedException,
+                                self.service.destroy_node,
+                                self.context, node.uuid)
+        # Compare true exception hidden by @messaging.expected_exceptions
+        self.assertEqual(exception.NodeProtected, exc.exc_info[0])
         # Verify reservation was released.
         node.refresh()
         self.assertIsNone(node.reservation)

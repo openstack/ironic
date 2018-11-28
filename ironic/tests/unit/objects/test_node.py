@@ -769,6 +769,66 @@ class TestConvertToVersion(db_base.DbTestCase):
         self.assertIsNone(node.automated_clean)
         self.assertEqual({}, node.obj_get_changes())
 
+    def test_protected_supported_missing(self):
+        # protected_interface not set, should be set to default.
+        node = obj_utils.get_test_node(self.ctxt, **self.fake_node)
+        delattr(node, 'protected')
+        delattr(node, 'protected_reason')
+        node.obj_reset_changes()
+
+        node._convert_to_version("1.29")
+
+        self.assertFalse(node.protected)
+        self.assertIsNone(node.protected_reason)
+        self.assertEqual({'protected': False, 'protected_reason': None},
+                         node.obj_get_changes())
+
+    def test_protected_supported_set(self):
+        # protected set, no change required.
+        node = obj_utils.get_test_node(self.ctxt, **self.fake_node)
+
+        node.protected = True
+        node.protected_reason = 'foo'
+        node.obj_reset_changes()
+        node._convert_to_version("1.29")
+        self.assertTrue(node.protected)
+        self.assertEqual('foo', node.protected_reason)
+        self.assertEqual({}, node.obj_get_changes())
+
+    def test_protected_unsupported_missing(self):
+        # protected not set, no change required.
+        node = obj_utils.get_test_node(self.ctxt, **self.fake_node)
+
+        delattr(node, 'protected')
+        delattr(node, 'protected_reason')
+        node.obj_reset_changes()
+        node._convert_to_version("1.28")
+        self.assertNotIn('protected', node)
+        self.assertNotIn('protected_reason', node)
+        self.assertEqual({}, node.obj_get_changes())
+
+    def test_protected_unsupported_set_remove(self):
+        node = obj_utils.get_test_node(self.ctxt, **self.fake_node)
+
+        node.protected = True
+        node.protected_reason = 'foo'
+        node.obj_reset_changes()
+        node._convert_to_version("1.28")
+        self.assertNotIn('protected', node)
+        self.assertNotIn('protected_reason', node)
+        self.assertEqual({}, node.obj_get_changes())
+
+    def test_protected_unsupported_set_no_remove_non_default(self):
+        node = obj_utils.get_test_node(self.ctxt, **self.fake_node)
+
+        node.protected = True
+        node.protected_reason = 'foo'
+        node.obj_reset_changes()
+        node._convert_to_version("1.28", False)
+        self.assertIsNone(node.automated_clean)
+        self.assertEqual({'protected': False, 'protected_reason': None},
+                         node.obj_get_changes())
+
 
 class TestNodePayloads(db_base.DbTestCase):
 

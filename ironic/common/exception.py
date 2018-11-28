@@ -786,3 +786,8 @@ class DatabaseVersionTooOld(IronicException):
 
 class AgentConnectionFailed(IronicException):
     _msg_fmt = _("Connection to agent failed: %(reason)s")
+
+
+class NodeProtected(HTTPForbidden):
+    _msg_fmt = _("Node %(node)s is protected and cannot be undeployed, "
+                 "rebuilt or deleted")

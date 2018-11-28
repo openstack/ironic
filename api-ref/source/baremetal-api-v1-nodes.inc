@@ -139,7 +139,7 @@ and any defaults added for non-specified fields. Most fields default to "null"
 or "".
 
 The list and example below are representative of the response as of API
-microversion 1.46.
+microversion 1.48.
 
 .. rest_parameters:: parameters.yaml
 
@@ -186,6 +186,8 @@ microversion 1.46.
     - vendor_interface: vendor_interface
     - volume: n_volume
     - conductor_group: conductor_group
+    - protected: protected
+    - protected_reason: protected_reason
 
 **Example JSON representation of a Node:**
 
@@ -302,6 +304,9 @@ Nova instance, eg. with a request to ``v1/nodes/detail?instance_uuid={NOVA INSTA
 .. versionadded:: 1.46
   Introduced the ``conductor_group`` field.
 
+.. versionadded:: 1.48
+  Introduced the ``protected`` and ``protected_reason`` fields.
+
 Normal response codes: 200
 
 Error codes: 400,403,406
@@ -372,6 +377,8 @@ Response
     - vendor_interface: vendor_interface
     - volume: n_volume
     - conductor_group: conductor_group
+    - protected: protected
+    - protected_reason: protected_reason
 
 **Example detailed list of Nodes:**
 
@@ -399,6 +406,9 @@ only the specified set.
 
 .. versionadded:: 1.46
   Introduced the ``conductor_group`` field.
+
+.. versionadded:: 1.48
+  Introduced the ``protected`` and ``protected_reason`` fields.
 
 Normal response codes: 200
 
@@ -460,6 +470,8 @@ Response
     - vendor_interface: vendor_interface
     - volume: n_volume
     - conductor_group: conductor_group
+    - protected: protected
+    - protected_reason: protected_reason
 
 **Example JSON representation of a Node:**
 
@@ -546,6 +558,8 @@ Response
     - vendor_interface: vendor_interface
     - volume: n_volume
     - conductor_group: conductor_group
+    - protected: protected
+    - protected_reason: protected_reason
 
 **Example JSON representation of a Node:**
 

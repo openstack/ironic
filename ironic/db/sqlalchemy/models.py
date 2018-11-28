@@ -24,7 +24,7 @@ from oslo_db import options as db_options
 from oslo_db.sqlalchemy import models
 from oslo_db.sqlalchemy import types as db_types
 import six.moves.urllib.parse as urlparse
-from sqlalchemy import Boolean, Column, DateTime, Index
+from sqlalchemy import Boolean, Column, DateTime, false, Index
 from sqlalchemy import ForeignKey, Integer
 from sqlalchemy import schema, String, Text
 from sqlalchemy.ext.declarative import declarative_base
@@ -176,6 +176,9 @@ class Node(Base):
     inspection_started_at = Column(DateTime, nullable=True)
     extra = Column(db_types.JsonEncodedDict)
     automated_clean = Column(Boolean, nullable=True)
+    protected = Column(Boolean, nullable=False, default=False,
+                       server_default=false())
+    protected_reason = Column(Text, nullable=True)
 
     bios_interface = Column(String(255), nullable=True)
     boot_interface = Column(String(255), nullable=True)
