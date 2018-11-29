@@ -313,3 +313,148 @@
         IRONIC_TEMPEST_WHOLE_DISK_IMAGE: False
         IRONIC_VM_EPHEMERAL_DISK: 1
         USE_PYTHON3: True
+
+- job:
+    name: ironic-tempest-dsvm-ipa-wholedisk-direct-tinyipa-multinode
+    description: ironic-tempest-dsvm-ipa-wholedisk-direct-tinyipa-multinode
+    parent: tempest-multinode-full
+    pre-run: playbooks/ci-workarounds/set-stack-key.yaml
+    timeout: 10800
+    required-projects:
+      - openstack/ironic
+      - openstack/ironic-python-agent
+      - openstack/ironic-tempest-plugin
+      - openstack/pyghmi
+      - openstack/virtualbmc
+      - openstack/networking-generic-switch
+    irrelevant-files:
+      - ^.*\.rst$
+      - ^api-ref/.*$
+      - ^doc/.*$
+      - ^driver-requirements.txt$
+      - ^install-guide/.*$
+      - ^ironic/locale/.*$
+      - ^ironic/tests/.*$
+      - ^releasenotes/.*$
+      - ^setup.cfg$
+      - ^tools/.*$
+      - ^tox.ini$
+    vars:
+      tox_envlist: all
+      tempest_concurrency: 4
+      tempest_test_regex: "(ironic_tempest_plugin.tests.scenario|test_schedule_to_all_nodes)"
+      devstack_localrc:
+        BUILD_TIMEOUT: 1200
+        DEFAULT_INSTANCE_TYPE: baremetal
+        ENABLE_TENANT_TUNNELS: False
+        ENABLE_TENANT_VLANS: True
+        FORCE_CONFIG_DRIVE: True
+        GENERIC_SWITCH_KEY_FILE: /opt/stack/.ssh/id_rsa
+        HOST_TOPOLOGY: multinode
+        HOST_TOPOLOGY_ROLE: primary
+        INSTALL_TEMPEST: False # Don't install a tempest package globaly
+        IRONIC_AUTOMATED_CLEAN_ENABLED: False
+        HOST_TOPOLOGY_SUBNODES: "{{ hostvars['compute1']['nodepool']['public_ipv4'] }}"
+        IRONIC_BAREMETAL_BASIC_OPS: True
+        IRONIC_BUILD_DEPLOY_RAMDISK: False
+        IRONIC_CALLBACK_TIMEOUT: 600
+        IRONIC_DEFAULT_DEPLOY_INTERFACE: direct
+        IRONIC_DEPLOY_DRIVER: ipmi
+        IRONIC_ENABLED_NETWORK_INTERFACES: flat,neutron
+        IRONIC_INSPECTOR_BUILD_RAMDISK: False
+        IRONIC_NETWORK_INTERFACE: neutron
+        IRONIC_PROVISION_NETWORK_NAME: ironic-provision
+        IRONIC_PROVISION_SUBNET_GATEWAY: 10.0.5.1
+        IRONIC_PROVISION_SUBNET_PREFIX: 10.0.5.0/24
+        IRONIC_RAMDISK_TYPE: tinyipa
+        IRONIC_TEMPEST_BUILD_TIMEOUT: 600
+        IRONIC_TEMPEST_WHOLE_DISK_IMAGE: True
+        IRONIC_USE_LINK_LOCAL: True
+        IRONIC_VM_COUNT: 7
+        IRONIC_VM_EPHEMERAL_DISK: 0
+        IRONIC_VM_LOG_DIR: '{{ devstack_base_dir }}/ironic-bm-logs'
+        IRONIC_VM_SPECS_RAM: 384
+        OS_TEST_TIMEOUT: 2400
+        OVERRIDE_PUBLIC_BRIDGE_MTU: 1400
+        OVS_PHYSICAL_BRIDGE: brbm
+        PHYSICAL_NETWORK: mynetwork
+        Q_AGENT: openvswitch
+        Q_ML2_TENANT_NETWORK_TYPE: vlan
+        Q_PLUGIN: ml2
+        Q_USE_PROVIDERNET_FOR_PUBLIC: False
+        SWIFT_ENABLE_TEMPURLS: True
+        SWIFT_TEMPURL_KEY: secretkey
+        TEMPEST_PLUGINS: "'{{ ansible_user_dir }}/src/git.openstack.org/openstack/ironic-tempest-plugin'"
+        TENANT_VLAN_RANGE: 100:150
+        VIRT_DRIVER: ironic
+      devstack_plugins:
+        ironic: git://git.openstack.org/openstack/ironic
+        networking-generic-switch: git://git.openstack.org/openstack/networking-generic-switch
+      zuul_copy_output:
+        '{{ devstack_base_dir }}/ironic-bm-logs': 'logs'
+      devstack_services:
+        c-api: False
+        c-bak: False
+        c-sch: False
+        c-vol: False
+        cinder: False
+
+        s-account: True
+        s-container: True
+        s-object: True
+        s-proxy: True
+
+        dstat: True
+        g-api: True
+        g-reg: True
+        key: True
+        mysql: True
+        n-api: True
+        n-api-meta: True
+        n-cauth: True
+        n-cond: True
+        n-cpu: True
+        n-novnc: True
+        n-obj: True
+        n-sch: True
+        placement-api: True
+        q-agt: True
+        q-dhcp: True
+        q-l3: True
+        q-meta: True
+        q-metering: True
+        q-svc: True
+        rabbit: True
+    group-vars:
+      subnode:
+        devstack_localrc:
+          ENABLE_TENANT_TUNNELS: False
+          ENABLE_TENANT_VLANS: True
+          HOST_TOPOLOGY: multinode
+          HOST_TOPOLOGY_ROLE: subnode
+          IRONIC_AUTOMATED_CLEAN_ENABLED: False
+          IRONIC_BAREMETAL_BASIC_OPS: True
+          IRONIC_DEPLOY_DRIVER: ipmi
+          IRONIC_ENABLED_NETWORK_INTERFACES: flat,neutron
+          IRONIC_NETWORK_INTERFACE: neutron
+          IRONIC_PROVISION_NETWORK_NAME: ironic-provision
+          IRONIC_RAMDISK_TYPE: tinyipa
+          IRONIC_USE_LINK_LOCAL: True
+          IRONIC_VM_COUNT: 7
+          IRONIC_VM_EPHEMERAL_DISK: 0
+          IRONIC_VM_LOG_DIR: '{{ devstack_base_dir }}/ironic-bm-logs'
+          IRONIC_VM_NETWORK_BRIDGE: sub1brbm
+          IRONIC_VM_SPECS_RAM: 384
+          OVS_PHYSICAL_BRIDGE: sub1brbm
+          PHYSICAL_NETWORK: mynetwork
+          Q_ML2_TENANT_NETWORK_TYPE: vlan
+          VIRT_DRIVER: ironic
+        devstack_services:
+          c-api: False
+          c-bak: False
+          c-sch: False
+          c-vol: False
+          cinder: False
+
+          q-agt: True
+          n-cpu: True

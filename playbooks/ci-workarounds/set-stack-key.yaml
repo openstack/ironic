@@ -1,0 +1,13 @@
+- hosts: all
+  name: Copy ssh keys from too ~stack
+  tasks:
+    - shell:
+        cmd: |
+          set -e
+          set -x
+
+          sudo mkdir -p ~stack/.ssh
+          sudo cp ~root/.ssh/id_rsa.pub ~root/.ssh/id_rsa ~stack/.ssh
+          sudo chmod 700 ~stack/.ssh
+          sudo chown -R stack ~stack
+        executable: /bin/bash
