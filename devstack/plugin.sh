@@ -39,6 +39,11 @@ if is_service_enabled ir-api ir-cond; then
                 create_ironic_accounts
             fi
 
+            if [[ "$IRONIC_BAREMETAL_BASIC_OPS" == "True" && "$IRONIC_IS_HARDWARE" == "False" ]]; then
+                echo_summary "Precreating bridge: $IRONIC_VM_NETWORK_BRIDGE"
+                sudo ovs-vsctl -- --may-exist add-br $IRONIC_VM_NETWORK_BRIDGE
+            fi
+
         elif [[ "$2" == "extra" ]]; then
         # stack/extra - Called near the end after layer 1 and 2 services have
         # been started.
