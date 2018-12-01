@@ -102,6 +102,14 @@ opts = [
                       'ironic\'s own http server. This option takes effect '
                       'only when instance image is provided from the Image '
                       'service.')),
+    cfg.IntOpt('command_timeout',
+               default=60,
+               help=_('Timeout (in seconds) for IPA commands')),
+    cfg.IntOpt('max_command_attempts',
+               default=3,
+               help=_('This is the maximum number of attempts that will be '
+                      'done for IPA commands that fails due to network '
+                      'problems')),
 ]
 
 
