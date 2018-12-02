@@ -728,7 +728,7 @@ class TestPXEUtils(db_base.DbTestCase):
             # options are not imported, although they may be supported
             # by vendors. The apparent proper option is to return a
             # URL in the field https://tools.ietf.org/html/rfc5970#section-3
-            expected_info = [{'opt_name': 'option6:59',
+            expected_info = [{'opt_name': '59',
                               'opt_value': 'tftp://[ff80::1]/fake-bootfile',
                               'ip_version': ip_version}]
         elif ip_version == 4:
@@ -857,10 +857,10 @@ class TestPXEUtils(db_base.DbTestCase):
         self.config(dhcp_provider='neutron', group='dhcp')
         if ip_version == 6:
             # Boot URL variable set from prior test of isc parameters.
-            expected_info = [{'opt_name': 'tag:!ipxe,option6:59',
+            expected_info = [{'opt_name': 'tag:!ipxe,59',
                               'opt_value': 'tftp://[ff80::1]/fake-bootfile',
                               'ip_version': ip_version},
-                             {'opt_name': 'tag:ipxe,option6:59',
+                             {'opt_name': 'tag:ipxe,59',
                               'opt_value': expected_boot_script_url,
                               'ip_version': ip_version}]
         elif ip_version == 4:
