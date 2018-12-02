@@ -53,12 +53,7 @@ class FlatNetwork(common.NeutronVIFPortIDMixin,
         """
         self.get_cleaning_network_uuid(task)
 
-    def add_provisioning_network(self, task):
-        """Add the provisioning network to a node.
-
-        :param task: A TaskManager instance.
-        :raises: NetworkError when failed to set binding:host_id
-        """
+    def _bind_flat_ports(self, task):
         LOG.debug("Binding flat network ports")
         client = neutron.get_client(context=task.context)
         for port_like_obj in task.ports + task.portgroups:
@@ -71,7 +66,8 @@ class FlatNetwork(common.NeutronVIFPortIDMixin,
             body = {
                 'port': {
                     'binding:host_id': task.node.uuid,
-                    'binding:vnic_type': neutron.VNIC_BAREMETAL
+                    'binding:vnic_type': neutron.VNIC_BAREMETAL,
+                    'mac_address': port_like_obj.address
                 }
             }
             try:
@@ -83,26 +79,52 @@ class FlatNetwork(common.NeutronVIFPortIDMixin,
                 LOG.exception(msg)
                 raise exception.NetworkError(msg)
 
+    def _unbind_flat_ports(self, task):
+        node = task.node
+        LOG.info('Unbinding instance ports from node %s', node.uuid)
+
+        ports = [p for p in task.ports if not p.portgroup_id]
+        portgroups = task.portgroups
+        for port_like_obj in ports + portgroups:
+            vif_port_id = (
+                port_like_obj.internal_info.get(common.TENANT_VIF_KEY) or
+                port_like_obj.extra.get('vif_port_id'))
+            if not vif_port_id:
+                continue
+            neutron.unbind_neutron_port(vif_port_id, context=task.context)
+
+    def add_provisioning_network(self, task):
+        """Add the provisioning network to a node.
+
+        :param task: A TaskManager instance.
+        :raises: NetworkError when failed to set binding:host_id
+        """
+        self._bind_flat_ports(task)
+
     def remove_provisioning_network(self, task):
         """Remove the provisioning network from a node.
 
         :param task: A TaskManager instance.
         """
-        pass
+        self._unbind_flat_ports(task)
 
     def configure_tenant_networks(self, task):
         """Configure tenant networks for a node.
 
         :param task: A TaskManager instance.
         """
-        pass
+        self._bind_flat_ports(task)
 
     def unconfigure_tenant_networks(self, task):
         """Unconfigure tenant networks for a node.
 
+        Unbind the port here/now to avoid the possibility of the ironic port
+        being bound to the tenant and cleaning networks at the same time.
+
         :param task: A TaskManager instance.
+        :raises: NetworkError
         """
-        pass
+        self._unbind_flat_ports(task)
 
     def add_cleaning_network(self, task):
         """Add the cleaning network to a node.
@@ -141,3 +163,28 @@ class FlatNetwork(common.NeutronVIFPortIDMixin,
                 del internal_info['cleaning_vif_port_id']
                 port.internal_info = internal_info
                 port.save()
+
+    def add_rescuing_network(self, task):
+        """Add the rescuing network to a node.
+
+        Flat network does not use the rescuing network.
+        Bind the port again since unconfigure_tenant_network() unbound it.
+
+        :param task: A TaskManager instance.
+        :returns: a dictionary in the form {port.uuid: neutron_port['id']}
+        :raises: NetworkError, InvalidParameterValue
+        """
+        LOG.info('Bind ports for rescuing node %s', task.node.uuid)
+        self._bind_flat_ports(task)
+
+    def remove_rescuing_network(self, task):
+        """Remove the rescuing network from a node.
+
+        Flat network does not use the rescuing network.
+        Unbind the port again since add_rescuing_network() bound it.
+
+        :param task: A TaskManager instance.
+        :raises: NetworkError
+        """
+        LOG.info('Unbind ports for rescuing node %s', task.node.uuid)
+        self._unbind_flat_ports(task)
