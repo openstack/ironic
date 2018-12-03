@@ -104,6 +104,18 @@ class DbConductorTestCase(base.DbTestCase):
         c2 = self.dbapi.get_conductor(c1.hostname)
         self.assertEqual(c1.id, c2.id)
 
+    def test_get_inactive_conductor_ignore_online(self):
+        c1 = self._create_test_cdr()
+        self.dbapi.unregister_conductor(c1.hostname)
+        c2 = self.dbapi.get_conductor(c1.hostname, online=None)
+        self.assertEqual(c1.id, c2.id)
+
+    def test_get_inactive_conductor_with_online_true(self):
+        c1 = self._create_test_cdr()
+        self.dbapi.unregister_conductor(c1.hostname)
+        self.assertRaises(exception.ConductorNotFound,
+                          self.dbapi.get_conductor, c1.hostname)
+
     def test_get_conductor_not_found(self):
         self._create_test_cdr()
         self.assertRaises(

@@ -792,11 +792,17 @@ class Connection(api.Connection):
                         'online': True})
         return ref
 
-    def get_conductor(self, hostname):
+    def get_conductor_list(self, limit=None, marker=None,
+                           sort_key=None, sort_dir=None):
+        return _paginate_query(models.Conductor, limit, marker,
+                               sort_key, sort_dir)
+
+    def get_conductor(self, hostname, online=True):
         try:
-            return (model_query(models.Conductor)
-                    .filter_by(hostname=hostname, online=True)
-                    .one())
+            query = model_query(models.Conductor).filter_by(hostname=hostname)
+            if online is not None:
+                query = query.filter_by(online=online)
+            return query.one()
         except NoResultFound:
             raise exception.ConductorNotFound(conductor=hostname)
 

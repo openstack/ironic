@@ -41,7 +41,20 @@ class TestConductorObject(db_base.DbTestCase):
                                autospec=True) as mock_get_cdr:
             mock_get_cdr.return_value = self.fake_conductor
             objects.Conductor.get_by_hostname(self.context, host)
-            mock_get_cdr.assert_called_once_with(host)
+            mock_get_cdr.assert_called_once_with(host, online=True)
+
+    def test_list(self):
+        conductor1 = db_utils.get_test_conductor(hostname='cond1')
+        conductor2 = db_utils.get_test_conductor(hostname='cond2')
+        with mock.patch.object(self.dbapi, 'get_conductor_list',
+                               autospec=True) as mock_cond_list:
+            mock_cond_list.return_value = [conductor1, conductor2]
+            conductors = objects.Conductor.list(self.context)
+            self.assertEqual(2, len(conductors))
+            self.assertIsInstance(conductors[0], objects.Conductor)
+            self.assertIsInstance(conductors[1], objects.Conductor)
+            self.assertEqual(conductors[0].hostname, 'cond1')
+            self.assertEqual(conductors[1].hostname, 'cond2')
 
     def test_save(self):
         host = self.fake_conductor['hostname']
@@ -52,7 +65,7 @@ class TestConductorObject(db_base.DbTestCase):
             c.hostname = 'another-hostname'
             self.assertRaises(NotImplementedError,
                               c.save, self.context)
-            mock_get_cdr.assert_called_once_with(host)
+            mock_get_cdr.assert_called_once_with(host, online=True)
 
     def test_touch(self):
         host = self.fake_conductor['hostname']
@@ -63,7 +76,7 @@ class TestConductorObject(db_base.DbTestCase):
                 mock_get_cdr.return_value = self.fake_conductor
                 c = objects.Conductor.get_by_hostname(self.context, host)
                 c.touch(self.context)
-                mock_get_cdr.assert_called_once_with(host)
+                mock_get_cdr.assert_called_once_with(host, online=True)
                 mock_touch_cdr.assert_called_once_with(host)
 
     def test_refresh(self):
@@ -72,7 +85,8 @@ class TestConductorObject(db_base.DbTestCase):
         t1 = t0 + datetime.timedelta(seconds=10)
         returns = [dict(self.fake_conductor, updated_at=t0),
                    dict(self.fake_conductor, updated_at=t1)]
-        expected = [mock.call(host), mock.call(host)]
+        expected = [mock.call(host, online=True),
+                    mock.call(host, online=True)]
         with mock.patch.object(self.dbapi, 'get_conductor',
                                side_effect=returns,
                                autospec=True) as mock_get_cdr:

@@ -493,12 +493,29 @@ class Connection(object):
         """
 
     @abc.abstractmethod
-    def get_conductor(self, hostname):
+    def get_conductor_list(self, limit=None, marker=None,
+                           sort_key=None, sort_dir=None):
+        """Return a list of conductors.
+
+        :param limit: Maximum number of conductors to return.
+        :param marker: the last item of the previous page; we return the next
+                       result set.
+        :param sort_key: Attribute by which results should be sorted.
+        :param sort_dir: direction in which results should be sorted.
+                         (asc, desc)
+        """
+
+    @abc.abstractmethod
+    def get_conductor(self, hostname, online=True):
         """Retrieve a conductor's service record from the database.
 
         :param hostname: The hostname of the conductor service.
+        :param online: Specify the filter value on the `online` field when
+                       querying conductors. The ``online`` field is ignored if
+                       this value is set to None.
         :returns: A conductor.
-        :raises: ConductorNotFound
+        :raises: ConductorNotFound if the conductor with given hostname does
+                 not exist or doesn't meet the specified online expectation.
         """
 
     @abc.abstractmethod
