@@ -1,0 +1,3 @@
+---
+features:
+  - Adds ``bios`` interface to the ``redfish`` hardware type.
