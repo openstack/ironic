@@ -10,8 +10,6 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import random
-
 from keystoneauth1 import loading as kaloading
 import mock
 from neutronclient.common import exceptions as neutron_client_exc
@@ -750,18 +748,14 @@ class TestUpdatePortAddress(base.TestCase):
 
 
 @mock.patch.object(neutron, 'get_client', autospec=True)
-@mock.patch.object(neutron, '_get_random_mac', autospec=True)
 class TestUnbindPort(base.TestCase):
 
     def setUp(self):
         super(TestUnbindPort, self).setUp()
         self.context = context.RequestContext()
 
-    def test_unbind_neutron_port_client_passed(self, mock_random_mac,
-                                               mock_client):
+    def test_unbind_neutron_port_client_passed(self, mock_client):
         port_id = 'fake-port-id'
-        address = 'fe:54:00:77:07:d9'
-        mock_random_mac.return_value = address
         body_unbind = {
             'port': {
                 'binding:host_id': '',
@@ -770,7 +764,7 @@ class TestUnbindPort(base.TestCase):
         }
         body_reset_mac = {
             'port': {
-                'mac_address': address
+                'mac_address': None
             }
         }
         update_calls = [
@@ -784,8 +778,7 @@ class TestUnbindPort(base.TestCase):
         mock_client.return_value.update_port.assert_has_calls(update_calls)
 
     @mock.patch.object(neutron, 'LOG', autospec=True)
-    def test_unbind_neutron_port_failure(self, mock_log, mock_random_mac,
-                                         mock_client):
+    def test_unbind_neutron_port_failure(self, mock_log, mock_client):
         mock_client.return_value.update_port.side_effect = (
             neutron_client_exc.NeutronClientException())
         body = {
@@ -802,10 +795,8 @@ class TestUnbindPort(base.TestCase):
                                                                      body)
         mock_log.exception.assert_called_once()
 
-    def test_unbind_neutron_port(self, mock_random_mac, mock_client):
+    def test_unbind_neutron_port(self, mock_client):
         port_id = 'fake-port-id'
-        address = 'fe:54:00:77:07:d9'
-        mock_random_mac.return_value = address
         body_unbind = {
             'port': {
                 'binding:host_id': '',
@@ -814,7 +805,7 @@ class TestUnbindPort(base.TestCase):
         }
         body_reset_mac = {
             'port': {
-                'mac_address': address
+                'mac_address': None
             }
         }
         update_calls = [
@@ -826,8 +817,7 @@ class TestUnbindPort(base.TestCase):
         mock_client.return_value.update_port.assert_has_calls(update_calls)
 
     @mock.patch.object(neutron, 'LOG', autospec=True)
-    def test_unbind_neutron_port_not_found(self, mock_log, mock_random_mac,
-                                           mock_client):
+    def test_unbind_neutron_port_not_found(self, mock_log, mock_client):
         port_id = 'fake-port-id'
         mock_client.return_value.update_port.side_effect = (
             neutron_client_exc.PortNotFoundClient())
@@ -1068,18 +1058,3 @@ class TestGetPhysnetsByPortUUID(base.TestCase):
                                         fields=self.PORT_FIELDS)
         mock_gn.assert_called_once_with(self.client, network_uuid,
                                         fields=self.NETWORK_FIELDS)
-
-
-class TestGetRandomMac(base.TestCase):
-
-    @mock.patch.object(random, 'getrandbits', return_value=0xa2)
-    def test_first_4_octets_unchanged(self, mock_rnd):
-        mac = neutron._get_random_mac(['aa', 'bb', '00', 'dd', 'ee', 'ff'])
-        self.assertEqual('aa:bb:00:dd:a2:a2', mac)
-        mock_rnd.assert_called_with(8)
-
-    @mock.patch.object(random, 'getrandbits', return_value=0xa2)
-    def test_first_4th_octet_generated(self, mock_rnd):
-        mac = neutron._get_random_mac(['aa', 'bb', 'cc', '00', 'ee', 'ff'])
-        self.assertEqual('aa:bb:cc:a2:a2:a2', mac)
-        mock_rnd.assert_called_with(8)
