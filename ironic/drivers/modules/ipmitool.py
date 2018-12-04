@@ -97,7 +97,12 @@ OPTIONAL_PROPERTIES = {
                                 "is turned on, eg. because the BMC is not "
                                 "capable of remembering the selected boot "
                                 "device across power cycles; default value "
-                                "is False. Optional.")
+                                "is False. Optional."),
+    'ipmi_disable_timeout': _('By default ironic will send a raw IPMI '
+                              'command to disable the 60 second timeout '
+                              'for booting.  Setting this option to '
+                              'False will NOT send that command; default '
+                              'value is True. Optional.'),
 }
 COMMON_PROPERTIES = REQUIRED_PROPERTIES.copy()
 COMMON_PROPERTIES.update(OPTIONAL_PROPERTIES)
@@ -912,13 +917,24 @@ class IPMIManagement(base.ManagementInterface):
             raise exception.InvalidParameterValue(_(
                 "Invalid boot device %s specified.") % device)
 
-        # note(JayF): IPMI spec indicates unless you send these raw bytes the
-        # boot device setting times out after 60s. Since it's possible it
-        # could be >60s before a node is rebooted, we should always send them.
-        # This mimics pyghmi's current behavior, and the "option=timeout"
-        # setting on newer ipmitool binaries.
-        timeout_disable = "0x00 0x08 0x03 0x08"
-        send_raw(task, timeout_disable)
+        # NOTE(tonyb): Some BMCs do not implement Option 0x03, such as OpenBMC
+        # and will error when we try to set this.  Resulting in an abort.  If
+        # the BMC doesn't support this timeout there isn't a need to disable
+        # it.  Let's use a driver option to signify that
+        idt = task.node.driver_info.get('ipmi_disable_timeout', True)
+        if strutils.bool_from_string(idt):
+            # note(JayF): IPMI spec indicates unless you send these raw bytes
+            # the boot device setting times out after 60s. Since it's possible
+            # it could be >60s before a node is rebooted, we should always send
+            # them.  This mimics pyghmi's current behavior, and the
+            # "option=timeout" setting on newer ipmitool binaries.
+            timeout_disable = "0x00 0x08 0x03 0x08"
+            send_raw(task, timeout_disable)
+        else:
+            LOG.info('For node %(node_uuid)s, '
+                     'driver_info[\'ipmi_disable_timeout\'] is set to False, '
+                     'so not sending ipmi boot-timeout-disable',
+                     {'node_uuid', task.node.uuid})
 
         if task.node.driver_info.get('ipmi_force_boot_device', False):
             driver_utils.force_persistent_boot(task,

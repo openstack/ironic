@@ -7,6 +7,7 @@
   "image_no_proxy": "A comma-separated list of host names, IP addresses and domain names (with optional :port) that will be excluded from proxying. To denote a domain name, use a dot to prefix the domain name. This value will be ignored if ``image_http_proxy`` and ``image_https_proxy`` are not specified. Optional.",
   "ipmi_address": "IP address or hostname of the node. Required.",
   "ipmi_bridging": "bridging_type; default is \"no\". One of \"single\", \"dual\", \"no\". Optional.",
+  "ipmi_disable_timeout": "By default ironic will send a raw IPMI command to disable the 60 second timeout for booting.  Setting this option to False will NOT send that command; default value is True. Optional.",
   "ipmi_force_boot_device": "Whether Ironic should specify the boot device to the BMC each time the server is turned on, eg. because the BMC is not capable of remembering the selected boot device across power cycles; default value is False. Optional.",
   "ipmi_local_address": "local IPMB address for bridged requests. Used only if ipmi_bridging is set to \"single\" or \"dual\". Optional.",
   "ipmi_password": "password. Optional.",
