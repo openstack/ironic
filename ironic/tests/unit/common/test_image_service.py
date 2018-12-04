@@ -198,7 +198,7 @@ class FileImageServiceTestCase(base.TestCase):
         remove_mock.assert_called_once_with('file')
         link_mock.assert_called_once_with(self.href_path, 'file')
 
-    @mock.patch.object(sendfile, 'sendfile', autospec=True)
+    @mock.patch.object(sendfile, 'sendfile', return_value=42, autospec=True)
     @mock.patch.object(os.path, 'getsize', return_value=42, autospec=True)
     @mock.patch.object(__builtin__, 'open', autospec=True)
     @mock.patch.object(os, 'access', return_value=False, autospec=True)
@@ -220,6 +220,38 @@ class FileImageServiceTestCase(base.TestCase):
         copy_mock.assert_called_once_with(file_mock.fileno(),
                                           input_mock.__enter__().fileno(),
                                           0, 42)
+
+    @mock.patch.object(sendfile, 'sendfile', autospec=True)
+    @mock.patch.object(os.path, 'getsize', return_value=42, autospec=True)
+    @mock.patch.object(__builtin__, 'open', autospec=True)
+    @mock.patch.object(os, 'access', return_value=False, autospec=True)
+    @mock.patch.object(os, 'stat', autospec=True)
+    @mock.patch.object(image_service.FileImageService, 'validate_href',
+                       autospec=True)
+    def test_download_copy_segmented(self, _validate_mock, stat_mock,
+                                     access_mock, open_mock, size_mock,
+                                     copy_mock):
+        # Fake a 3G + 1k image
+        chunk_size = image_service.SENDFILE_CHUNK_SIZE
+        fake_image_size = chunk_size * 3 + 1024
+        fake_chunk_seq = [chunk_size, chunk_size, chunk_size, 1024]
+        _validate_mock.return_value = self.href_path
+        stat_mock.return_value.st_dev = 'dev1'
+        file_mock = mock.MagicMock(spec=file)
+        file_mock.name = 'file'
+        input_mock = mock.MagicMock(spec=file)
+        open_mock.return_value = input_mock
+        size_mock.return_value = fake_image_size
+        copy_mock.side_effect = fake_chunk_seq
+        self.service.download(self.href, file_mock)
+        _validate_mock.assert_called_once_with(mock.ANY, self.href)
+        self.assertEqual(2, stat_mock.call_count)
+        access_mock.assert_called_once_with(self.href_path, os.R_OK | os.W_OK)
+        copy_calls = [mock.call(file_mock.fileno(),
+                                input_mock.__enter__().fileno(),
+                                chunk_size * i,
+                                fake_chunk_seq[i]) for i in range(4)]
+        copy_mock.assert_has_calls(copy_calls)
         size_mock.assert_called_once_with(self.href_path)
 
     @mock.patch.object(os, 'remove', side_effect=OSError, autospec=True)

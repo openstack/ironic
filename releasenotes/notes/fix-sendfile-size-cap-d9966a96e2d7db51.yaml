@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Fixes an issue when the image source is a local file, the image will be
+    truncated to 2G and fails deployment due to image corruption.
+
