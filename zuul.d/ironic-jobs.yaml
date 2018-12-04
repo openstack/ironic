@@ -187,6 +187,7 @@
         IRONIC_DEPLOY_DRIVER: snmp
         IRONIC_TEMPEST_WHOLE_DISK_IMAGE: True
         IRONIC_VM_EPHEMERAL_DISK: 0
+        IRONIC_AUTOMATED_CLEAN_ENABLED: False
 
 - job:
     name: ironic-tempest-dsvm-ipa-partition-uefi-pxe_ipmitool-tinyipa
@@ -197,6 +198,7 @@
       devstack_localrc:
         IRONIC_BOOT_MODE: uefi
         IRONIC_VM_SPECS_RAM: 512
+        IRONIC_AUTOMATED_CLEAN_ENABLED: False
 
 - job:
     name: ironic-tempest-dsvm-ipa-partition-pxe_ipmitool-tinyipa-python3
@@ -223,6 +225,7 @@
         IRONIC_TEMPEST_WHOLE_DISK_IMAGE: True
         IRONIC_VM_EPHEMERAL_DISK: 0
         IRONIC_VM_COUNT: 3
+        IRONIC_AUTOMATED_CLEAN_ENABLED: False
       devstack_services:
         c-api: True
         c-bak: True
@@ -243,6 +246,7 @@
         IRONIC_INSPECTOR_MANAGE_FIREWALL: True
         IRONIC_TEMPEST_WHOLE_DISK_IMAGE: True
         IRONIC_VM_EPHEMERAL_DISK: 0
+        IRONIC_AUTOMATED_CLEAN_ENABLED: False
       devstack_plugins:
         ironic-inspector: git://git.openstack.org/openstack/ironic-inspector
       devstack_services:
@@ -259,6 +263,7 @@
     vars:
       devstack_localrc:
         IRONIC_AGENT_IMAGE_DOWNLOAD_SOURCE: http
+        IRONIC_AUTOMATED_CLEAN_ENABLED: False
 
 - job:
     name: ironic-tempest-dsvm-ipa-partition-bios-agent_ipmitool-tinyipa-indirect
@@ -269,6 +274,7 @@
       devstack_localrc:
         IRONIC_AGENT_IMAGE_DOWNLOAD_SOURCE: http
         IRONIC_TEMPEST_WHOLE_DISK_IMAGE: False
+        IRONIC_AUTOMATED_CLEAN_ENABLED: False
 
 - job:
     name: ironic-tempest-dsvm-functional-python2
