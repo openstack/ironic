@@ -22,8 +22,8 @@ from ironic.common import states
 from ironic.common import utils
 from ironic.conductor import utils as conductor_utils
 from ironic.drivers import base
-from ironic.drivers.modules import deploy_utils
 from ironic.drivers.modules.ilo import common as ilo_common
+from ironic.drivers.modules import inspect_utils
 
 ilo_error = importutils.try_import('proliantutils.exception')
 
@@ -244,7 +244,7 @@ class IloInspect(base.InspectInterface):
         task.node.save()
 
         # Create ports for the nics detected.
-        deploy_utils.create_ports_if_not_exist(task, result['macs'])
+        inspect_utils.create_ports_if_not_exist(task, result['macs'])
 
         LOG.debug("Node properties for %(node)s are updated as "
                   "%(properties)s",

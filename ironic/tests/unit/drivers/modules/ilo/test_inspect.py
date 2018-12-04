@@ -23,10 +23,10 @@ from ironic.common import states
 from ironic.common import utils
 from ironic.conductor import task_manager
 from ironic.conductor import utils as conductor_utils
-from ironic.drivers.modules import deploy_utils
 from ironic.drivers.modules.ilo import common as ilo_common
 from ironic.drivers.modules.ilo import inspect as ilo_inspect
 from ironic.drivers.modules.ilo import power as ilo_power
+from ironic.drivers.modules import inspect_utils
 from ironic.tests.unit.drivers.modules.ilo import test_common
 
 
@@ -51,7 +51,7 @@ class IloInspectTestCase(test_common.BaseIloTest):
 
     @mock.patch.object(ilo_inspect, '_get_capabilities', spec_set=True,
                        autospec=True)
-    @mock.patch.object(deploy_utils, 'create_ports_if_not_exist',
+    @mock.patch.object(inspect_utils, 'create_ports_if_not_exist',
                        spec_set=True, autospec=True)
     @mock.patch.object(ilo_inspect, '_get_essential_properties', spec_set=True,
                        autospec=True)
@@ -88,7 +88,7 @@ class IloInspectTestCase(test_common.BaseIloTest):
                        spec_set=True, autospec=True)
     @mock.patch.object(ilo_inspect, '_get_capabilities', spec_set=True,
                        autospec=True)
-    @mock.patch.object(deploy_utils, 'create_ports_if_not_exist',
+    @mock.patch.object(inspect_utils, 'create_ports_if_not_exist',
                        spec_set=True, autospec=True)
     @mock.patch.object(ilo_inspect, '_get_essential_properties', spec_set=True,
                        autospec=True)
@@ -131,7 +131,7 @@ class IloInspectTestCase(test_common.BaseIloTest):
 
     @mock.patch.object(ilo_inspect, '_get_capabilities', spec_set=True,
                        autospec=True)
-    @mock.patch.object(deploy_utils, 'create_ports_if_not_exist',
+    @mock.patch.object(inspect_utils, 'create_ports_if_not_exist',
                        spec_set=True, autospec=True)
     @mock.patch.object(ilo_inspect, '_get_essential_properties', spec_set=True,
                        autospec=True)
@@ -170,7 +170,7 @@ class IloInspectTestCase(test_common.BaseIloTest):
 
     @mock.patch.object(ilo_inspect, '_get_capabilities', spec_set=True,
                        autospec=True)
-    @mock.patch.object(deploy_utils, 'create_ports_if_not_exist',
+    @mock.patch.object(inspect_utils, 'create_ports_if_not_exist',
                        spec_set=True, autospec=True)
     @mock.patch.object(ilo_inspect, '_get_essential_properties', spec_set=True,
                        autospec=True)
@@ -209,7 +209,7 @@ class IloInspectTestCase(test_common.BaseIloTest):
 
     @mock.patch.object(ilo_inspect, '_get_capabilities', spec_set=True,
                        autospec=True)
-    @mock.patch.object(deploy_utils, 'create_ports_if_not_exist',
+    @mock.patch.object(inspect_utils, 'create_ports_if_not_exist',
                        spec_set=True, autospec=True)
     @mock.patch.object(ilo_inspect, '_get_essential_properties', spec_set=True,
                        autospec=True)
