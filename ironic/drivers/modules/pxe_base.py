@@ -18,7 +18,7 @@ from oslo_log import log as logging
 
 from ironic.common import exception
 from ironic.common.i18n import _
-from ironic.common import pxe_utils as pxe_utils
+from ironic.common import pxe_utils
 from ironic.drivers.modules import deploy_utils
 LOG = logging.getLogger(__name__)
 

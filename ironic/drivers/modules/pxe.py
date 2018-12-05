@@ -24,7 +24,7 @@ from ironic.common import dhcp_factory
 from ironic.common import exception
 from ironic.common.glance_service import service_utils
 from ironic.common.i18n import _
-from ironic.common import pxe_utils as pxe_utils
+from ironic.common import pxe_utils
 from ironic.common import states
 from ironic.conductor import task_manager
 from ironic.conductor import utils as manager_utils
