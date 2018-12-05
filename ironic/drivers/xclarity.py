@@ -24,15 +24,6 @@ from ironic.drivers.modules.xclarity import power
 class XClarityHardware(generic.GenericHardware):
     """XClarity hardware type. """
 
-    # NOTE(TheJulia): Marking as unsupported as 3rd Party CI for this
-    # hardware type was not established before Rocky cycle feature freeze.
-    # Lenovo is continuing to work on establishing their Third Party CI,
-    # and upon establishment and verification of Thid Party CI, this
-    # unsupported flag shall be removed.
-    # TODO(TheJulia): If Third Party CI is not online prior to the
-    # Stein Feature Freeze, this hardware type should be removed.
-    supported = False
-
     @property
     def supported_management_interfaces(self):
         """List of supported management interfaces."""

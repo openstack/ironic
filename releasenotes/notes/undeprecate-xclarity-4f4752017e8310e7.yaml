@@ -1,0 +1,10 @@
+---
+deprecations:
+  - |
+    The ``xclarity`` hardware type, which was previously deprecated, is no
+    longer deprecated. Lenovo has instituted third-party CI which is a
+    requirement for a driver to remain in-tree.
+other:
+  - |
+    The ``xclarity`` hardware type is no longer deprecated as Lenovo
+    has implemented third-party CI to enable testing.
