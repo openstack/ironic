@@ -35,6 +35,12 @@ opts = [
                       'sent to a server. There is a risk with some hardware '
                       'that setting this too low may cause the BMC to crash. '
                       'Recommended setting is 5 seconds.')),
+    cfg.BoolOpt('kill_on_timeout',
+                default=True,
+                help=_('Kill `ipmitool` process invoked by ironic to read '
+                       'node power state if `ipmitool` process does not exit '
+                       'after `command_retry_timeout` timeout expires. '
+                       'Recommended setting is True')),
 ]
 
 

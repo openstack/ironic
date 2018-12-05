@@ -996,6 +996,14 @@ class IPMIToolPrivateMethodTestCase(Base):
         mock_support.assert_called_once_with('timing')
         mock_exec.assert_called_once_with(*args)
 
+    def test__exec_ipmitool_wait(self):
+        mock_popen = mock.MagicMock()
+        mock_popen.poll.side_effect = [1, 1, 1, 1, 1]
+        ipmi._exec_ipmitool_wait(1, {'uuid': ''}, mock_popen)
+
+        self.assertTrue(mock_popen.terminate.called)
+        self.assertTrue(mock_popen.kill.called)
+
     @mock.patch.object(ipmi, '_is_option_supported', autospec=True)
     @mock.patch.object(ipmi, '_make_password_file', _make_password_file_stub)
     @mock.patch.object(utils, 'execute', autospec=True)
@@ -1267,7 +1275,8 @@ class IPMIToolPrivateMethodTestCase(Base):
 
         state = ipmi._power_status(self.info)
 
-        mock_exec.assert_called_once_with(self.info, "power status")
+        mock_exec.assert_called_once_with(self.info, "power status",
+                                          kill_on_timeout=True)
         self.assertEqual(states.POWER_ON, state)
 
     @mock.patch.object(ipmi, '_exec_ipmitool', autospec=True)
@@ -1276,7 +1285,8 @@ class IPMIToolPrivateMethodTestCase(Base):
 
         state = ipmi._power_status(self.info)
 
-        mock_exec.assert_called_once_with(self.info, "power status")
+        mock_exec.assert_called_once_with(self.info, "power status",
+                                          kill_on_timeout=True)
         self.assertEqual(states.POWER_OFF, state)
 
     @mock.patch.object(ipmi, '_exec_ipmitool', autospec=True)
@@ -1285,7 +1295,8 @@ class IPMIToolPrivateMethodTestCase(Base):
 
         state = ipmi._power_status(self.info)
 
-        mock_exec.assert_called_once_with(self.info, "power status")
+        mock_exec.assert_called_once_with(self.info, "power status",
+                                          kill_on_timeout=True)
         self.assertEqual(states.ERROR, state)
 
     @mock.patch.object(ipmi, '_exec_ipmitool', autospec=True)
@@ -1294,14 +1305,15 @@ class IPMIToolPrivateMethodTestCase(Base):
         self.assertRaises(exception.IPMIFailure,
                           ipmi._power_status,
                           self.info)
-        mock_exec.assert_called_once_with(self.info, "power status")
+        mock_exec.assert_called_once_with(self.info, "power status",
+                                          kill_on_timeout=True)
 
     @mock.patch.object(ipmi, '_exec_ipmitool', autospec=True)
     @mock.patch('eventlet.greenthread.sleep', autospec=True)
     def test__power_on_max_retries(self, sleep_mock, mock_exec):
         self.config(command_retry_timeout=2, group='ipmi')
 
-        def side_effect(driver_info, command):
+        def side_effect(driver_info, command, **kwargs):
             resp_dict = {"power status": ["Chassis Power is off\n", None],
                          "power on": [None, None]}
             return resp_dict.get(command, ["Bad\n", None])
@@ -1309,8 +1321,8 @@ class IPMIToolPrivateMethodTestCase(Base):
         mock_exec.side_effect = side_effect
 
         expected = [mock.call(self.info, "power on"),
-                    mock.call(self.info, "power status"),
-                    mock.call(self.info, "power status")]
+                    mock.call(self.info, "power status", kill_on_timeout=True),
+                    mock.call(self.info, "power status", kill_on_timeout=True)]
 
         with task_manager.acquire(self.context, self.node.uuid) as task:
             self.assertRaises(exception.PowerStateFailure,
@@ -1322,7 +1334,7 @@ class IPMIToolPrivateMethodTestCase(Base):
     @mock.patch('eventlet.greenthread.sleep', autospec=True)
     def test__soft_power_off(self, sleep_mock, mock_exec):
 
-        def side_effect(driver_info, command):
+        def side_effect(driver_info, command, **kwargs):
             resp_dict = {"power status": ["Chassis Power is off\n", None],
                          "power soft": [None, None]}
             return resp_dict.get(command, ["Bad\n", None])
@@ -1330,7 +1342,7 @@ class IPMIToolPrivateMethodTestCase(Base):
         mock_exec.side_effect = side_effect
 
         expected = [mock.call(self.info, "power soft"),
-                    mock.call(self.info, "power status")]
+                    mock.call(self.info, "power status", kill_on_timeout=True)]
 
         with task_manager.acquire(self.context, self.node.uuid) as task:
             state = ipmi._soft_power_off(task, self.info)
@@ -1342,7 +1354,7 @@ class IPMIToolPrivateMethodTestCase(Base):
     @mock.patch('eventlet.greenthread.sleep', autospec=True)
     def test__soft_power_off_max_retries(self, sleep_mock, mock_exec):
 
-        def side_effect(driver_info, command):
+        def side_effect(driver_info, command, **kwargs):
             resp_dict = {"power status": ["Chassis Power is on\n", None],
                          "power soft": [None, None]}
             return resp_dict.get(command, ["Bad\n", None])
@@ -1350,8 +1362,8 @@ class IPMIToolPrivateMethodTestCase(Base):
         mock_exec.side_effect = side_effect
 
         expected = [mock.call(self.info, "power soft"),
-                    mock.call(self.info, "power status"),
-                    mock.call(self.info, "power status")]
+                    mock.call(self.info, "power status", kill_on_timeout=True),
+                    mock.call(self.info, "power status", kill_on_timeout=True)]
 
         with task_manager.acquire(self.context, self.node.uuid) as task:
             self.assertRaises(exception.PowerStateFailure,
@@ -1402,9 +1414,9 @@ class IPMIToolDriverTestCase(Base):
         returns = iter([["Chassis Power is off\n", None],
                         ["Chassis Power is on\n", None],
                         ["\n", None]])
-        expected = [mock.call(self.info, "power status"),
-                    mock.call(self.info, "power status"),
-                    mock.call(self.info, "power status")]
+        expected = [mock.call(self.info, "power status", kill_on_timeout=True),
+                    mock.call(self.info, "power status", kill_on_timeout=True),
+                    mock.call(self.info, "power status", kill_on_timeout=True)]
         mock_exec.side_effect = returns
 
         with task_manager.acquire(self.context, self.node.uuid) as task:
@@ -1426,7 +1438,8 @@ class IPMIToolDriverTestCase(Base):
             self.assertRaises(exception.IPMIFailure,
                               self.power.get_power_state,
                               task)
-        mock_exec.assert_called_once_with(self.info, "power status")
+        mock_exec.assert_called_once_with(self.info, "power status",
+                                          kill_on_timeout=True)
 
     @mock.patch.object(ipmi, '_power_on', autospec=True)
     @mock.patch.object(ipmi, '_power_off', autospec=True)
