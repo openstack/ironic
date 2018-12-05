@@ -56,6 +56,12 @@ driver_ident:
   in: path
   required: true
   type: string
+hostname_ident:
+  description: |
+    The hostname of the conductor.
+  in: path
+  required: true
+  type: string
 node_id:
   description: |
     The UUID of the node.
@@ -151,6 +157,19 @@ fields:
   in: query
   required: false
   type: array
+fields_for_conductor:
+  description: |
+    One or more fields to be returned in the response.
+
+    For example, the following request returns only the ``hostname``
+    and ``alive`` fields for each conductor:
+
+    ::
+
+       GET /v1/conductors?fields=hostname,alive
+  in: query
+  required: false
+  type: array
 limit:
   description: |
     Requests a page size of items. Returns a number of items up to a limit
@@ -197,6 +216,13 @@ r_associated:
   in: query
   required: false
   type: boolean
+r_conductor:
+  description: |
+    Filter the list of returned nodes, and only return those with the
+    specified ``conductor``.
+  in: query
+  required: false
+  type: string
 r_conductor_group:
   description: |
     Filter the list of returned nodes, and only return those with the
@@ -364,6 +390,13 @@ agent_node:
   type: JSON
 
 # variables in the API body
+alive:
+  description: |
+    The conductor status indicates whether a conductor is considered alive
+    or not.
+  in: body
+  required: true
+  type: boolean
 bios_setting_name:
   description: |
     The name of a Bios setting for a Node, eg. "virtualization".
@@ -422,12 +455,18 @@ clean_steps:
   in: body
   required: false
   type: array
+conductor:
+  description: |
+    The conductor currently servicing a node. This field is read-only.
+  in: body
+  required: false
+  type: string
 conductor_group:
   description: |
     The conductor group for a node. Case-insensitive string up to 255
     characters, containing ``a-z``, ``0-9``, ``_``, ``-``, and ``.``.
   in: body
-  required: false
+  required: true
   type: string
 configdrive:
   description: |
@@ -672,6 +711,12 @@ fault:
   in: body
   required: false
   type: string
+hostname:
+  description: |
+    The hostname of this conductor.
+  in: body
+  required: true
+  type: array
 hosts:
   description: |
     A list of active hosts that support this driver.

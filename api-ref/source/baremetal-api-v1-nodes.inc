@@ -196,6 +196,7 @@ microversion 1.48.
     - conductor_group: conductor_group
     - protected: protected
     - protected_reason: protected_reason
+    - conductor: conductor
     - owner: owner
     - description: n_description
 
@@ -245,6 +246,10 @@ provision state, and maintenance setting for each Node.
   Introduced the ``conductor_group`` request parameter, to allow filtering the
   list of returned nodes by conductor group.
 
+.. versionadded:: 1.49
+  Introduced the ``conductor`` request parameter, to allow filtering the
+  list of returned nodes by conductor.
+
 .. versionadded:: 1.50
   Introduced the ``owner`` field.
 
@@ -267,6 +272,7 @@ Request
    - driver: r_driver
    - resource_class: r_resource_class
    - conductor_group: r_conductor_group
+   - conductor: r_conductor
    - fault: r_fault
    - owner: owner
    - description_contains: r_description_contains
@@ -325,6 +331,9 @@ Nova instance, eg. with a request to ``v1/nodes/detail?instance_uuid={NOVA INSTA
 .. versionadded:: 1.48
   Introduced the ``protected`` and ``protected_reason`` fields.
 
+.. versionadded:: 1.49
+  Introduced the ``conductor`` request parameter and ``conductor`` field.
+
 .. versionadded:: 1.50
   Introduced the ``owner`` field.
 
@@ -348,6 +357,7 @@ Request
    - driver: r_driver
    - resource_class: r_resource_class
    - conductor_group: r_conductor_group
+   - conductor: r_conductor
    - owner: owner
    - description_contains: r_description_contains
    - limit: limit
@@ -407,6 +417,7 @@ Response
     - protected_reason: protected_reason
     - owner: owner
     - description: n_description
+    - conductor: conductor
 
 **Example detailed list of Nodes:**
 
@@ -437,6 +448,9 @@ only the specified set.
 
 .. versionadded:: 1.48
   Introduced the ``protected`` and ``protected_reason`` fields.
+
+.. versionadded:: 1.49
+  Introduced the ``conductor`` field
 
 .. versionadded:: 1.50
   Introduced the ``owner`` field.
@@ -508,6 +522,7 @@ Response
     - protected_reason: protected_reason
     - owner: owner
     - description: n_description
+    - conductor: conductor
 
 **Example JSON representation of a Node:**
 
@@ -601,6 +616,7 @@ Response
     - protected_reason: protected_reason
     - owner: owner
     - description: n_description
+    - conductor: conductor
 
 **Example JSON representation of a Node:**
 

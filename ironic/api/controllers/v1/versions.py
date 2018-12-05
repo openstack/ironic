@@ -86,7 +86,7 @@ BASE_VERSION = 1
 # v1.46: Add conductor_group to the node object.
 # v1.47: Add automated_clean to the node object.
 # v1.48: Add protected to the node object.
-# v1.49: Exposes current conductor on the node object.
+# v1.49: Add conductor to the node object and /v1/conductors.
 # v1.50: Add owner to the node object.
 # v1.51: Add description to the node object.
 # v1.52: Add allocation API.

@@ -24,4 +24,5 @@
 .. include:: baremetal-api-v1-chassis.inc
 .. include:: baremetal-api-v1-misc.inc
 .. include:: baremetal-api-v1-nodes-bios.inc
+.. include:: baremetal-api-v1-conductors.inc
 

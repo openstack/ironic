@@ -2,6 +2,7 @@
   "boot_interface": null,
   "chassis_uuid": null,
   "clean_step": {},
+  "conductor": "compute1.localdomain",
   "conductor_group": "group-1",
   "console_enabled": false,
   "console_interface": null,
