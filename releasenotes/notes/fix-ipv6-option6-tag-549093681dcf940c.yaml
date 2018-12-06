@@ -1,0 +1,16 @@
+---
+issues:
+  - |
+    Support for IPv6 and iPXE is restricted and is unlikely to work in default
+    scenarios and configurations without external intervention. This is due to
+    the way DHCPv6 and dnsmasq operate. At present this issue is being tracked
+    in story `2005402 <https://storyboard.openstack.org/#!/story/2004502>`_.
+fixes:
+  - |
+    Fixes an issue introduced during the Stein development cycle in an attempt
+    to fix IPv6 support where the networking service was also prepending the
+    DHCP option indicator to the number. A fix has been been submitted to the
+    Networking service to address this issue, and the prepending code has been
+    removed from ironic. See story
+    `2004501 <https://storyboard.openstack.org/#!/story/2004501>`_ for more
+    information.

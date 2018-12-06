@@ -441,11 +441,7 @@ def dhcp_options_for_instance(task, ipxe_enabled=False, url_boot=False):
     else:
         # NOTE(TheJulia): Booting with v6 means it is always
         # a URL reply.
-        if dhcp_provider_name == 'neutron':
-            # dnsmasq requires ipv6 options be explicitly flagged. :(
-            boot_file_param = "option6:{}".format(DHCPV6_BOOTFILE_NAME)
-        else:
-            boot_file_param = DHCPV6_BOOTFILE_NAME
+        boot_file_param = DHCPV6_BOOTFILE_NAME
         url_boot = True
     # NOTE(TheJulia): The ip_version value config from the PXE config is
     # guarded in the configuration, so there is no real sense in having
@@ -454,6 +450,12 @@ def dhcp_options_for_instance(task, ipxe_enabled=False, url_boot=False):
     boot_file = _dhcp_option_file_or_url(task, url_boot)
 
     if ipxe_enabled:
+        # TODO(TheJulia): DHCPv6 through dnsmasq + ipxe matching simply
+        # does not work as the dhcp client is tracked via a different
+        # identity mechanism in the exchange. This means if we really
+        # want ipv6 + ipxe, we should be prepared to build a custom
+        # iso with ipxe inside. Likely this is more secure and better
+        # aligns with some of the mega-scale ironic operators.
         script_name = os.path.basename(CONF.pxe.ipxe_boot_script)
         # TODO(TheJulia): We should make this smarter to handle unwrapped v6
         # addresses, since the format is http://[ff80::1]:80/boot.ipxe.
