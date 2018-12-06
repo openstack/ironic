@@ -29,6 +29,10 @@ class Collection(base.APIBase):
     def collection(self):
         return getattr(self, self._type)
 
+    @classmethod
+    def get_key_field(cls):
+        return 'uuid'
+
     def has_next(self, limit):
         """Return whether collection has more items."""
         return len(self.collection) and len(self.collection) == limit
@@ -42,7 +46,7 @@ class Collection(base.APIBase):
         q_args = ''.join(['%s=%s&' % (key, kwargs[key]) for key in kwargs])
         next_args = '?%(args)slimit=%(limit)d&marker=%(marker)s' % {
             'args': q_args, 'limit': limit,
-            'marker': self.collection[-1].uuid}
+            'marker': getattr(self.collection[-1], self.get_key_field())}
 
         return link.Link.make_link('next', pecan.request.public_url,
                                    resource_url, next_args).href

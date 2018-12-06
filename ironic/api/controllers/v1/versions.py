@@ -136,6 +136,7 @@ MINOR_45_RESET_INTERFACES = 45
 MINOR_46_NODE_CONDUCTOR_GROUP = 46
 MINOR_47_NODE_AUTOMATED_CLEAN = 47
 MINOR_48_NODE_PROTECTED = 48
+MINOR_49_CONDUCTORS = 49
 
 # When adding another version, update:
 # - MINOR_MAX_VERSION
@@ -143,7 +144,7 @@ MINOR_48_NODE_PROTECTED = 48
 #   explanation of what changed in the new version
 # - common/release_mappings.py, RELEASE_MAPPING['master']['api']
 
-MINOR_MAX_VERSION = MINOR_48_NODE_PROTECTED
+MINOR_MAX_VERSION = MINOR_49_CONDUCTORS
 
 # String representations of the minor and maximum versions
 _MIN_VERSION_STRING = '{}.{}'.format(BASE_VERSION, MINOR_1_INITIAL_VERSION)

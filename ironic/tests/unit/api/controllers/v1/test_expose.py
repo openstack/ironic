@@ -76,3 +76,6 @@ class TestExposedAPIMethodsCheckPolicy(test_base.TestCase):
 
     def test_ramdisk_api_policy(self):
         self._test('ironic.api.controllers.v1.ramdisk')
+
+    def test_conductor_api_policy(self):
+        self._test('ironic.api.controllers.v1.conductor')

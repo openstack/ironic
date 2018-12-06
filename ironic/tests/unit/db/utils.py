@@ -217,6 +217,7 @@ def get_test_node(**kw):
         'automated_clean': kw.get('automated_clean', None),
         'protected': kw.get('protected', False),
         'protected_reason': kw.get('protected_reason', None),
+        'conductor': kw.get('conductor'),
     }
 
     for iface in drivers_base.ALL_INTERFACES:

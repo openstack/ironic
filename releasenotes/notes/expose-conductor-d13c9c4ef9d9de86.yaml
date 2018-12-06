@@ -1,0 +1,18 @@
+---
+features:
+  - |
+    Adds support to retrieve the information of conductors known
+    by ironic:
+
+    * a new endpoint ``GET /v1/conductors`` for listing conductor resources.
+    * a new endpoint ``GET /v1/conductors/{hostname}`` for showing a
+      conductor resource.
+
+    Adds a read-only ``conductor`` field to the Node, which represents the
+    conductor currently servicing a node, and can be retrieved from following
+    node endpoints:
+
+    * ``GET /v1/nodes?detail=true`` or ``GET /v1/nodes/detail``
+    * ``GET /v1/nodes/<node_ident>``
+    * ``POST /v1/nodes``
+    * ``PATCH /v1/nodes/<node_ident>``

@@ -2,6 +2,12 @@
 REST API Version History
 ========================
 
+1.49 (Stein, master)
+--------------------
+
+Added new endpoints for retrieving conductors information, and added a
+``conductor`` field to node object.
+
 1.48 (Stein, master)
 --------------------
 

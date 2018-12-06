@@ -255,6 +255,16 @@ def create_test_bios_setting(ctxt, **kw):
     return bios_setting
 
 
+def create_test_conductor(ctxt, **kw):
+    """Register and return a test conductor object."""
+    args = db_utils.get_test_conductor(**kw)
+    conductor = objects.Conductor.register(ctxt, args['hostname'],
+                                           args['drivers'],
+                                           args['conductor_group'],
+                                           update_existing=True)
+    return conductor
+
+
 def get_payloads_with_schemas(from_module):
     """Get the Payload classes with SCHEMAs defined.
 

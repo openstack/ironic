@@ -26,6 +26,7 @@ from wsme import types as wtypes
 from ironic.api.controllers import base
 from ironic.api.controllers import link
 from ironic.api.controllers.v1 import chassis
+from ironic.api.controllers.v1 import conductor
 from ironic.api.controllers.v1 import driver
 from ironic.api.controllers.v1 import node
 from ironic.api.controllers.v1 import port
@@ -99,6 +100,9 @@ class V1(base.APIBase):
 
     heartbeat = [link.Link]
     """Links to the heartbeat resource"""
+
+    conductors = [link.Link]
+    """Links to the conductors resource"""
 
     version = version.Version
     """Version discovery information."""
@@ -178,6 +182,15 @@ class V1(base.APIBase):
                                                 'heartbeat', '',
                                                 bookmark=True)
                             ]
+        if utils.allow_expose_conductors():
+            v1.conductors = [link.Link.make_link('self',
+                                                 pecan.request.public_url,
+                                                 'conductors', ''),
+                             link.Link.make_link('bookmark',
+                                                 pecan.request.public_url,
+                                                 'conductors', '',
+                                                 bookmark=True)
+                             ]
         v1.version = version.default_version()
         return v1
 
@@ -193,6 +206,7 @@ class Controller(rest.RestController):
     volume = volume.VolumeController()
     lookup = ramdisk.LookupController()
     heartbeat = ramdisk.HeartbeatController()
+    conductors = conductor.ConductorsController()
 
     @expose.expose(V1)
     def get(self):

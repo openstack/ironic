@@ -15,6 +15,7 @@
 Tests for the API /lookup/ methods.
 """
 
+import fixtures
 import mock
 from oslo_config import cfg
 from oslo_utils import uuidutils
@@ -43,6 +44,10 @@ class TestLookup(test_api_base.BaseApiTest):
                                                 uuid=uuidutils.generate_uuid(),
                                                 provision_state='available')
         CONF.set_override('agent_backend', 'statsd', 'metrics')
+        self.mock_get_conductor_for = self.useFixture(
+            fixtures.MockPatchObject(rpcapi.ConductorAPI, 'get_conductor_for',
+                                     autospec=True)).mock
+        self.mock_get_conductor_for.return_value = 'fake.conductor'
 
     def _check_config(self, data):
         expected_metrics = {
