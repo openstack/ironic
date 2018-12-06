@@ -32,7 +32,7 @@
           cat << 'EOF' >> ironic-extra-vars
             export PROJECTS="openstack-dev/grenade $PROJECTS"
             export DEVSTACK_GATE_GRENADE=pullup
-            export DEVSTACK_GATE_OS_TEST_TIMEOUT=2400
+            export DEVSTACK_GATE_OS_TEST_TIMEOUT=2600
             export DEVSTACK_GATE_TEMPEST_BAREMETAL_BUILD_TIMEOUT=1200
             export DEVSTACK_LOCAL_CONFIG+=$'\n'"IRONIC_BUILD_DEPLOY_RAMDISK=False"
             export DEVSTACK_GATE_TLSPROXY=0
@@ -88,6 +88,12 @@
 
           export DEVSTACK_GATE_IRONIC_BUILD_RAMDISK=0
           export DEVSTACK_LOCAL_CONFIG+=$'\n'"IRONIC_INSPECTOR_BUILD_RAMDISK=False"
+
+          # NOTE(TheJulia): Keep the runtime down by disabling cleaning
+          # the nodes and focus on the server related tests as opposed
+          # to network scenario testing
+          export DEVSTACK_LOCAL_CONFIG+=$'\n'"IRONIC_AUTOMATED_CLEAN_ENABLED=False"
+          export DEVSTACK_GATE_TEMPEST_REGEX=test_server_basic_ops
 
           export DEVSTACK_LOCAL_CONFIG+=$'\n'"IRONIC_VM_COUNT=7"
 
