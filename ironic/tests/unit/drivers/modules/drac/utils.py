@@ -31,6 +31,13 @@ class BaseDracTest(db_base.DbTestCase):
                     enabled_raid_interfaces=['idrac', 'fake', 'no-raid'])
 
 
+class DictToObj(object):
+    """Returns a dictionary into a class"""
+    def __init__(self, dictionary):
+        for key in dictionary:
+            setattr(self, key, dictionary[key])
+
+
 def dict_to_namedtuple(name='GenericNamedTuple', values=None):
     """Converts a dict to a collections.namedtuple"""
 
@@ -38,3 +45,13 @@ def dict_to_namedtuple(name='GenericNamedTuple', values=None):
         values = {}
 
     return collections.namedtuple(name, list(values))(**values)
+
+
+def dict_of_object(data):
+    """Create a dictionary object"""
+
+    for k, v in data.items():
+        if isinstance(v, dict):
+            dict_obj = DictToObj(v)
+            data[k] = dict_obj
+    return data
