@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Fixes an issue where the master instance image cache could not be disabled.
+    The configuration option ``[pxe]/instance_master_path`` may now be set to
+    the empty string to disable the cache.
