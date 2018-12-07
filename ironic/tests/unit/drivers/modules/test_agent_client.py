@@ -16,6 +16,7 @@ import json
 
 import mock
 import requests
+import retrying
 import six
 from six.moves import http_client
 
@@ -152,68 +153,6 @@ class TestAgentClient(base.TestCase):
                          'command %(method)s. Error: %(error)s' %
                          {'method': method, 'node': self.node.uuid,
                           'error': error}, str(e))
-
-    def test__command_fail_all_attempts(self):
-        error = 'Connection Timeout'
-        method = 'standby.run_image'
-        image_info = {'image_id': 'test_image'}
-        params = {'image_info': image_info}
-        self.client.session.post.side_effect = [requests.Timeout(error),
-                                                requests.Timeout(error),
-                                                requests.Timeout(error),
-                                                requests.Timeout(error)]
-        self.client._get_command_url(self.node)
-        self.client._get_command_body(method, params)
-
-        e = self.assertRaises(exception.AgentConnectionFailed,
-                              self.client._command,
-                              self.node, method, params)
-        self.assertEqual('Connection to agent failed: Failed to connect to '
-                         'the agent running on node %(node)s for invoking '
-                         'command %(method)s. Error: %(error)s' %
-                         {'method': method, 'node': self.node.uuid,
-                          'error': error}, str(e))
-        self.assertEqual(3, self.client.session.post.call_count)
-
-    def test__command_succeed_after_two_timeouts(self):
-        error = 'Connection Timeout'
-        response_data = {'status': 'ok'}
-        response_text = json.dumps(response_data)
-        method = 'standby.run_image'
-        image_info = {'image_id': 'test_image'}
-        params = {'image_info': image_info}
-        self.client.session.post.side_effect = [requests.Timeout(error),
-                                                requests.Timeout(error),
-                                                MockResponse(response_text)]
-
-        response = self.client._command(self.node, method, params)
-        self.assertEqual(3, self.client.session.post.call_count)
-        self.assertEqual(response, response_data)
-        self.client.session.post.assert_called_with(
-            self.client._get_command_url(self.node),
-            data=self.client._get_command_body(method, params),
-            params={'wait': 'false'},
-            timeout=60)
-
-    def test__command_succeed_after_one_timeout(self):
-        error = 'Connection Timeout'
-        response_data = {'status': 'ok'}
-        response_text = json.dumps(response_data)
-        method = 'standby.run_image'
-        image_info = {'image_id': 'test_image'}
-        params = {'image_info': image_info}
-        self.client.session.post.side_effect = [requests.Timeout(error),
-                                                MockResponse(response_text),
-                                                requests.Timeout(error)]
-
-        response = self.client._command(self.node, method, params)
-        self.assertEqual(2, self.client.session.post.call_count)
-        self.assertEqual(response, response_data)
-        self.client.session.post.assert_called_with(
-            self.client._get_command_url(self.node),
-            data=self.client._get_command_body(method, params),
-            params={'wait': 'false'},
-            timeout=60)
 
     def test__command_error_code(self):
         response_text = '{"faultstring": "you dun goofd"}'
@@ -397,3 +336,79 @@ class TestAgentClient(base.TestCase):
                           self.client.finalize_rescue,
                           self.node)
         self.assertFalse(self.client._command.called)
+
+
+class TestAgentClientAttempts(base.TestCase):
+    def setUp(self):
+        super(TestAgentClientAttempts, self).setUp()
+        self.client = agent_client.AgentClient()
+        self.client.session = mock.MagicMock(autospec=requests.Session)
+        self.node = MockNode()
+
+    @mock.patch.object(retrying.time, 'sleep', autospec=True)
+    def test__command_fail_all_attempts(self, mock_sleep):
+        mock_sleep.return_value = None
+        error = 'Connection Timeout'
+        method = 'standby.run_image'
+        image_info = {'image_id': 'test_image'}
+        params = {'image_info': image_info}
+        self.client.session.post.side_effect = [requests.Timeout(error),
+                                                requests.Timeout(error),
+                                                requests.Timeout(error),
+                                                requests.Timeout(error)]
+        self.client._get_command_url(self.node)
+        self.client._get_command_body(method, params)
+
+        e = self.assertRaises(exception.AgentConnectionFailed,
+                              self.client._command,
+                              self.node, method, params)
+        self.assertEqual('Connection to agent failed: Failed to connect to '
+                         'the agent running on node %(node)s for invoking '
+                         'command %(method)s. Error: %(error)s' %
+                         {'method': method, 'node': self.node.uuid,
+                          'error': error}, str(e))
+        self.assertEqual(3, self.client.session.post.call_count)
+
+    @mock.patch.object(retrying.time, 'sleep', autospec=True)
+    def test__command_succeed_after_two_timeouts(self, mock_sleep):
+        mock_sleep.return_value = None
+        error = 'Connection Timeout'
+        response_data = {'status': 'ok'}
+        response_text = json.dumps(response_data)
+        method = 'standby.run_image'
+        image_info = {'image_id': 'test_image'}
+        params = {'image_info': image_info}
+        self.client.session.post.side_effect = [requests.Timeout(error),
+                                                requests.Timeout(error),
+                                                MockResponse(response_text)]
+
+        response = self.client._command(self.node, method, params)
+        self.assertEqual(3, self.client.session.post.call_count)
+        self.assertEqual(response, response_data)
+        self.client.session.post.assert_called_with(
+            self.client._get_command_url(self.node),
+            data=self.client._get_command_body(method, params),
+            params={'wait': 'false'},
+            timeout=60)
+
+    @mock.patch.object(retrying.time, 'sleep', autospec=True)
+    def test__command_succeed_after_one_timeout(self, mock_sleep):
+        mock_sleep.return_value = None
+        error = 'Connection Timeout'
+        response_data = {'status': 'ok'}
+        response_text = json.dumps(response_data)
+        method = 'standby.run_image'
+        image_info = {'image_id': 'test_image'}
+        params = {'image_info': image_info}
+        self.client.session.post.side_effect = [requests.Timeout(error),
+                                                MockResponse(response_text),
+                                                requests.Timeout(error)]
+
+        response = self.client._command(self.node, method, params)
+        self.assertEqual(2, self.client.session.post.call_count)
+        self.assertEqual(response, response_data)
+        self.client.session.post.assert_called_with(
+            self.client._get_command_url(self.node),
+            data=self.client._get_command_body(method, params),
+            params={'wait': 'false'},
+            timeout=60)

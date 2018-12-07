@@ -104,12 +104,12 @@ opts = [
                       'service.')),
     cfg.IntOpt('command_timeout',
                default=60,
-               help=_('Timeout (in seconds) for IPA commands')),
+               help=_('Timeout (in seconds) for IPA commands.')),
     cfg.IntOpt('max_command_attempts',
                default=3,
                help=_('This is the maximum number of attempts that will be '
                       'done for IPA commands that fails due to network '
-                      'problems')),
+                      'problems.')),
 ]
 
 
