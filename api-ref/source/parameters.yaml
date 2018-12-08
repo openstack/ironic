@@ -1292,8 +1292,8 @@ reservation:
 resource_class:
   description: |
     A string which can be used by external schedulers to identify this Node as
-    a unit of a specific type of resource. This will be used by the openstack
-    Placement Engine in a future release.
+    a unit of a specific type of resource. For more details, see:
+    https://docs.openstack.org/ironic/latest/install/configure-nova-flavors.html
   in: body
   required: true
   type: string
