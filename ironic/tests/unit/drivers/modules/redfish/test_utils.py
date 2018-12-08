@@ -51,6 +51,7 @@ class RedfishUtilsTestCase(db_base.DbTestCase):
             'username': 'username',
             'password': 'password',
             'verify_ca': True,
+            'auth_type': 'auto',
             'node_uuid': self.node.uuid
         }
 
@@ -140,6 +141,20 @@ class RedfishUtilsTestCase(db_base.DbTestCase):
                                    'The value should be a Boolean',
                                    redfish_utils.parse_driver_info, self.node)
 
+    def test_parse_driver_info_valid_auth_type(self):
+        for value in 'basic', 'session', 'auto':
+            self.node.driver_info['redfish_auth_type'] = value
+            response = redfish_utils.parse_driver_info(self.node)
+            self.parsed_driver_info['auth_type'] = value
+            self.assertEqual(self.parsed_driver_info, response)
+
+    def test_parse_driver_info_invalid_auth_type(self):
+        for value in 'BasiC', 'SESSION', 'Auto':
+            self.node.driver_info['redfish_auth_type'] = value
+            self.assertRaisesRegex(exception.InvalidParameterValue,
+                                   'The value should be one of ',
+                                   redfish_utils.parse_driver_info, self.node)
+
     @mock.patch.object(sushy, 'Sushy', autospec=True)
     @mock.patch('ironic.drivers.modules.redfish.utils.'
                 'SessionCache._sessions', {})
@@ -193,17 +208,6 @@ class RedfishUtilsTestCase(db_base.DbTestCase):
     @mock.patch.object(sushy, 'Sushy', autospec=True)
     @mock.patch('ironic.drivers.modules.redfish.utils.'
                 'SessionCache._sessions', {})
-    def test_auth_auto(self, mock_sushy):
-        redfish_utils.get_system(self.node)
-        mock_sushy.assert_called_with(
-            self.parsed_driver_info['address'],
-            username=self.parsed_driver_info['username'],
-            password=self.parsed_driver_info['password'],
-            verify=True)
-
-    @mock.patch.object(sushy, 'Sushy', autospec=True)
-    @mock.patch('ironic.drivers.modules.redfish.utils.'
-                'SessionCache._sessions', {})
     def test_ensure_session_reuse(self, mock_sushy):
         redfish_utils.get_system(self.node)
         redfish_utils.get_system(self.node)
@@ -226,8 +230,21 @@ class RedfishUtilsTestCase(db_base.DbTestCase):
         self.assertEqual(2, mock_sushy.call_count)
 
     @mock.patch.object(sushy, 'Sushy', autospec=True)
+    @mock.patch('ironic.drivers.modules.redfish.utils.'
+                'SessionCache.AUTH_CLASSES', autospec=True)
     @mock.patch('ironic.drivers.modules.redfish.utils.SessionCache._sessions',
                 collections.OrderedDict())
+    def test_ensure_basic_session_caching(self, mock_auth, mock_sushy):
+        self.node.driver_info['redfish_auth_type'] = 'basic'
+        mock_session_or_basic_auth = mock_auth['auto']
+        redfish_utils.get_system(self.node)
+        mock_sushy.assert_called_with(
+            mock.ANY, verify=mock.ANY,
+            auth=mock_session_or_basic_auth.return_value,
+        )
+        self.assertEqual(len(redfish_utils.SessionCache._sessions), 1)
+
+    @mock.patch.object(sushy, 'Sushy', autospec=True)
     def test_expire_old_sessions(self, mock_sushy):
         cfg.CONF.set_override('connection_cache_size', 10, 'redfish')
         for num in range(20):
@@ -238,8 +255,8 @@ class RedfishUtilsTestCase(db_base.DbTestCase):
         self.assertEqual(len(redfish_utils.SessionCache._sessions), 10)
 
     @mock.patch.object(sushy, 'Sushy', autospec=True)
-    @mock.patch('ironic.drivers.modules.redfish.utils.SessionCache._sessions',
-                collections.OrderedDict())
+    @mock.patch('ironic.drivers.modules.redfish.utils.'
+                'SessionCache._sessions', {})
     def test_disabled_sessions_cache(self, mock_sushy):
         cfg.CONF.set_override('connection_cache_size', 0, 'redfish')
         for num in range(2):
@@ -248,3 +265,56 @@ class RedfishUtilsTestCase(db_base.DbTestCase):
 
         self.assertEqual(mock_sushy.call_count, 2)
         self.assertEqual(len(redfish_utils.SessionCache._sessions), 0)
+
+    @mock.patch.object(sushy, 'Sushy', autospec=True)
+    @mock.patch('ironic.drivers.modules.redfish.utils.'
+                'SessionCache.AUTH_CLASSES', autospec=True)
+    @mock.patch('ironic.drivers.modules.redfish.utils.'
+                'SessionCache._sessions', {})
+    def test_auth_auto(self, mock_auth, mock_sushy):
+        redfish_utils.get_system(self.node)
+        mock_session_or_basic_auth = mock_auth['auto']
+        mock_session_or_basic_auth.assert_called_with(
+            username=self.parsed_driver_info['username'],
+            password=self.parsed_driver_info['password']
+        )
+        mock_sushy.assert_called_with(
+            self.parsed_driver_info['address'],
+            auth=mock_session_or_basic_auth.return_value,
+            verify=True)
+
+    @mock.patch.object(sushy, 'Sushy', autospec=True)
+    @mock.patch('ironic.drivers.modules.redfish.utils.'
+                'SessionCache.AUTH_CLASSES', autospec=True)
+    @mock.patch('ironic.drivers.modules.redfish.utils.'
+                'SessionCache._sessions', {})
+    def test_auth_session(self, mock_auth, mock_sushy):
+        self.node.driver_info['redfish_auth_type'] = 'session'
+        mock_session_auth = mock_auth['session']
+        redfish_utils.get_system(self.node)
+        mock_session_auth.assert_called_with(
+            username=self.parsed_driver_info['username'],
+            password=self.parsed_driver_info['password']
+        )
+        mock_sushy.assert_called_with(
+            mock.ANY, verify=mock.ANY,
+            auth=mock_session_auth.return_value
+        )
+
+    @mock.patch.object(sushy, 'Sushy', autospec=True)
+    @mock.patch('ironic.drivers.modules.redfish.utils.'
+                'SessionCache.AUTH_CLASSES', autospec=True)
+    @mock.patch('ironic.drivers.modules.redfish.utils.'
+                'SessionCache._sessions', {})
+    def test_auth_basic(self, mock_auth, mock_sushy):
+        self.node.driver_info['redfish_auth_type'] = 'basic'
+        mock_basic_auth = mock_auth['basic']
+        redfish_utils.get_system(self.node)
+        mock_basic_auth.assert_called_with(
+            username=self.parsed_driver_info['username'],
+            password=self.parsed_driver_info['password']
+        )
+        sushy.Sushy.assert_called_with(
+            mock.ANY, verify=mock.ANY,
+            auth=mock_basic_auth.return_value
+        )

@@ -1,0 +1,10 @@
+---
+features:
+  - |
+    Adds the ``[redfish]auth_type`` ironic configuration option for the
+    ``redfish`` hardware type that is used to choose one of the following
+    authentication methods:: ``basic``, ``session`` and ``auto``.
+    The ``auto`` setting first tries ``session`` method and falls back to
+    ``basic`` if session authentication is not supported by the Redfish BMC.
+    The default is ``auto``. This configuration option can be overridden
+    on a per-node basis by the ``driver_info/redfish_auth_type`` option.

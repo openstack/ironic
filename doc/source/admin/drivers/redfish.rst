@@ -77,6 +77,14 @@ field:
                          driver will use for verification. To disable
                          verifying TLS_, set this to False. This is optional.
 
+- ``redfish_auth_type``: Redfish HTTP client authentication method. Can be
+                         "basic", "session" or "auto".
+                         The "auto" mode first tries "session" and falls back
+                         to "basic" if session authentication is not supported
+                         by the Redfish BMC. Default is set in ironic config
+                         as ``[redfish]auth_type``.
+
+
 The ``openstack baremetal node create`` command can be used to enroll
 a node with the ``redfish`` driver. For example:
 
