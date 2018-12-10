@@ -9,6 +9,6 @@ prelude: |
     user experience enhancements.
 
     Some of these include the BIOS configuration framework, power fault
-    recovery, additonal error handling, refactoring, removal of classic
+    recovery, additional error handling, refactoring, removal of classic
     drivers, and many bug fixes.
 
