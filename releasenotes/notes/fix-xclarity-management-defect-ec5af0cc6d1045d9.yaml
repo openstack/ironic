@@ -1,0 +1,8 @@
+---
+fixes:
+  - |
+    Fixes an issue where ``xclarity`` management interface fails to get
+    boot order. Now the driver correctly gets boot device and this has
+    been verified in the 3rd party CI. See story
+    `2004576 <https://storyboard.openstack.org/#!/story/2004576>`_ for
+    details.

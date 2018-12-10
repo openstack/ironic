@@ -62,7 +62,7 @@ class XClarityPower(base.PowerInterface):
         server_hardware_id = common.get_server_hardware_id(node)
         try:
             power_state = client.get_node_power_status(server_hardware_id)
-        except xclarity_client_exceptions.XClarityException as xclarity_exc:
+        except xclarity_client_exceptions.XClarityError as xclarity_exc:
             LOG.error(
                 ("Error getting power state for node %(node)s. Error: "
                  "%(error)s"),

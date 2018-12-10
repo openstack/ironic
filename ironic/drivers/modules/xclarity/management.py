@@ -38,6 +38,9 @@ BOOT_DEVICE_MAPPING_TO_XCLARITY = {
     boot_devices.BIOS: 'Boot To F1'
 }
 
+BOOT_DEVICE_MAPPING_FROM_XCLARITY = {
+    v: k for k, v in BOOT_DEVICE_MAPPING_TO_XCLARITY.items()}
+
 SUPPORTED_BOOT_DEVICES = [
     boot_devices.PXE,
     boot_devices.DISK,
@@ -78,10 +81,11 @@ class XClarityManagement(base.ManagementInterface):
         """It validates if the boot device is supported by XClarity.
 
         :param task: a task from TaskManager.
-        :param boot_device: the boot device, one of [PXE, DISK, CDROM, BIOS]
+        :param boot_device: the boot device in XClarity format, one of
+            ['PXE Network', 'Hard Disk 0', 'CD/DVD Rom', 'Boot To F1']
         :raises: InvalidParameterValue if the boot device is not supported.
         """
-        if boot_device not in SUPPORTED_BOOT_DEVICES:
+        if boot_device not in BOOT_DEVICE_MAPPING_FROM_XCLARITY:
             raise exception.InvalidParameterValue(
                 _("Unsupported boot device %(device)s for node: %(node)s ")
                 % {"device": boot_device, "node": task.node.uuid}
@@ -95,6 +99,7 @@ class XClarityManagement(base.ManagementInterface):
         :returns: a dictionary containing:
             :boot_device: the boot device, one of [PXE, DISK, CDROM, BIOS]
             :persistent: Whether the boot device will persist or not
+            It returns None if boot device is unknown.
         :raises: InvalidParameterValue if the boot device is unknown
         :raises: XClarityError if the communication with XClarity fails
         """
@@ -117,22 +122,38 @@ class XClarityManagement(base.ManagementInterface):
         primary = None
         boot_order = boot_info['bootOrder']['bootOrderList']
         for item in boot_order:
-            current = item.get('currentBootOrderDevices', None)
-            boot_type = item.get('bootType', None)
+            current = item.get('currentBootOrderDevices')
+            if current is None:
+                LOG.warning(
+                    'Current boot order is None from XClarity for '
+                    'node %(node)s. Please check the hardware and '
+                    'XClarity connection', {'node': node.uuid, })
+                return {'boot_device': None, 'persistent': None}
+            else:
+                primary = current[0]
+            boot_type = item.get('bootType')
             if boot_type == "SingleUse":
                 persistent = False
-                primary = current[0]
                 if primary != 'None':
-                    boot_device = {'boot_device': primary,
-                                   'persistent': persistent}
-                    self._validate_whether_supported_boot_device(primary)
+                    self._validate_supported_boot_device(task, primary)
+                    boot_device = {
+                        'boot_device':
+                            BOOT_DEVICE_MAPPING_FROM_XCLARITY.get(primary),
+                        'persistent': persistent
+                    }
                     return boot_device
             elif boot_type == "Permanent":
                 persistent = True
-                boot_device = {'boot_device': current[0],
-                               'persistent': persistent}
-                self._validate_supported_boot_device(task, primary)
-                return boot_device
+                if primary != 'None':
+                    self._validate_supported_boot_device(task, primary)
+                    boot_device = {
+                        'boot_device':
+                            BOOT_DEVICE_MAPPING_FROM_XCLARITY.get(primary),
+                        'persistent': persistent
+                    }
+                    return boot_device
+                else:
+                    return {'boot_device': None, 'persistent': None}
 
     @METRICS.timer('XClarityManagement.set_boot_device')
     @task_manager.require_exclusive_lock
@@ -149,12 +170,13 @@ class XClarityManagement(base.ManagementInterface):
                  specified.
         :raises: XClarityError if the communication with XClarity fails
         """
-        self._validate_supported_boot_device(task=task, boot_device=device)
+        node = task.node
+        xc_device = self._translate_ironic_to_xclarity(device)
 
-        server_hardware_id = task.node.driver_info.get('server_hardware_id')
+        server_hardware_id = common.get_server_hardware_id(node)
         LOG.debug("Setting boot device to %(device)s for node %(node)s",
-                  {"device": device, "node": task.node.uuid})
-        self._set_boot_device(task, server_hardware_id, device,
+                  {"device": device, "node": node.uuid})
+        self._set_boot_device(task, server_hardware_id, xc_device,
                               singleuse=not persistent)
 
     @METRICS.timer('XClarityManagement.get_sensors_data')
@@ -189,36 +211,34 @@ class XClarityManagement(base.ManagementInterface):
         client = common.get_xclarity_client(node)
         boot_info = client.get_node_all_boot_info(
             server_hardware_id)
-        xclarity_boot_device = self._translate_ironic_to_xclarity(
-            new_primary_boot_device)
         current = []
         LOG.debug(
             ("Setting boot device to %(device)s for XClarity "
              "node %(node)s"),
-            {'device': xclarity_boot_device, 'node': node.uuid}
+            {'device': new_primary_boot_device, 'node': node.uuid}
         )
         for item in boot_info['bootOrder']['bootOrderList']:
             if singleuse and item['bootType'] == 'SingleUse':
-                item['currentBootOrderDevices'][0] = xclarity_boot_device
+                item['currentBootOrderDevices'][0] = new_primary_boot_device
             elif not singleuse and item['bootType'] == 'Permanent':
                 current = item['currentBootOrderDevices']
-                if xclarity_boot_device == current[0]:
+                if new_primary_boot_device == current[0]:
                     return
-                if xclarity_boot_device in current:
-                    current.remove(xclarity_boot_device)
-                current.insert(0, xclarity_boot_device)
+                if new_primary_boot_device in current:
+                    current.remove(new_primary_boot_device)
+                current.insert(0, new_primary_boot_device)
                 item['currentBootOrderDevices'] = current
 
         try:
             client.set_node_boot_info(server_hardware_id,
                                       boot_info,
-                                      xclarity_boot_device,
+                                      new_primary_boot_device,
                                       singleuse)
         except xclarity_client_exceptions.XClarityError as xclarity_exc:
             LOG.error(
                 ('Error setting boot device %(boot_device)s for the XClarity '
                  'node %(node)s. Error: %(error)s'),
-                {'boot_device': xclarity_boot_device, 'node': node.uuid,
+                {'boot_device': new_primary_boot_device, 'node': node.uuid,
                  'error': xclarity_exc}
             )
             raise exception.XClarityError(error=xclarity_exc)

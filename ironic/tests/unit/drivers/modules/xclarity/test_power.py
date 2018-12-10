@@ -72,7 +72,9 @@ class XClarityPowerDriverTestCase(db_base.DbTestCase):
             result = power.XClarityPower.get_power_state(task)
         self.assertEqual(STATE_POWER_ON, result)
 
-    def test_get_power_state_fail(self, mock_xc_client):
+    @mock.patch.object(common, 'translate_xclarity_power_state',
+                       spec_set=True, autospec=True)
+    def test_get_power_state_fail(self, mock_translate_state, mock_xc_client):
         with task_manager.acquire(self.context, self.node.uuid) as task:
             xclarity_client_exceptions.XClarityError = Exception
             sys.modules['xclarity_client.exceptions'] = (
@@ -85,6 +87,7 @@ class XClarityPowerDriverTestCase(db_base.DbTestCase):
             self.assertRaises(exception.XClarityError,
                               task.driver.power.get_power_state,
                               task)
+            self.assertFalse(mock_translate_state.called)
 
     @mock.patch.object(power.LOG, 'warning')
     @mock.patch.object(power.XClarityPower, 'get_power_state',

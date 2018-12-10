@@ -118,3 +118,40 @@ class XClarityManagementDriverTestCase(db_base.DbTestCase):
                 exception.XClarityError,
                 task.driver.management.get_boot_device,
                 task)
+
+    def test_get_boot_device_current_none(self, mock_xc_client):
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            reference = {'boot_device': None, 'persistent': None}
+            mock_xc_client.return_value.get_node_all_boot_info.return_value = \
+                {
+                    'bootOrder': {
+                        'bootOrderList': [{
+                            'fakeBootOrderDevices': []
+                        }]
+                    }
+                }
+            expected_boot_device = task.driver.management.get_boot_device(
+                task=task)
+            self.assertEqual(reference, expected_boot_device)
+
+    def test_get_boot_device_primary_none(self, mock_xc_client):
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            reference = {'boot_device': None, 'persistent': None}
+            mock_xc_client.return_value.get_node_all_boot_info.return_value = \
+                {
+                    'bootOrder': {
+                        'bootOrderList': [
+                            {
+                                'bootType': 'SingleUse',
+                                'CurrentBootOrderDevices': []
+                            },
+                            {
+                                'bootType': 'Permanent',
+                                'CurrentBootOrderDevices': []
+                            },
+                        ]
+                    }
+                }
+            expected_boot_device = task.driver.management.get_boot_device(
+                task=task)
+            self.assertEqual(reference, expected_boot_device)
