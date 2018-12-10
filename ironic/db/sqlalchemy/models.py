@@ -180,6 +180,9 @@ class Node(Base):
                        server_default=false())
     protected_reason = Column(Text, nullable=True)
     owner = Column(String(255), nullable=True)
+    allocation_id = Column(Integer, ForeignKey('allocations.id'),
+                           nullable=True)
+
     bios_interface = Column(String(255), nullable=True)
     boot_interface = Column(String(255), nullable=True)
     console_interface = Column(String(255), nullable=True)
@@ -320,6 +323,29 @@ class BIOSSetting(Base):
                      primary_key=True, nullable=False)
     name = Column(String(255), primary_key=True, nullable=False)
     value = Column(Text, nullable=True)
+
+
+class Allocation(Base):
+    """Represents an allocation of a node for deployment."""
+
+    __tablename__ = 'allocations'
+    __table_args__ = (
+        schema.UniqueConstraint('name', name='uniq_allocations0name'),
+        schema.UniqueConstraint('uuid', name='uniq_allocations0uuid'),
+        table_args())
+    id = Column(Integer, primary_key=True)
+    uuid = Column(String(36), nullable=False)
+    name = Column(String(255), nullable=True)
+    node_id = Column(Integer, ForeignKey('nodes.id'), nullable=True)
+    state = Column(String(15), nullable=False)
+    last_error = Column(Text, nullable=True)
+    resource_class = Column(String(80), nullable=True)
+    traits = Column(db_types.JsonEncodedList)
+    candidate_nodes = Column(db_types.JsonEncodedList)
+    extra = Column(db_types.JsonEncodedDict)
+    # The last conductor to handle this allocation (internal field).
+    conductor_affinity = Column(Integer, ForeignKey('conductors.id'),
+                                nullable=True)
 
 
 def get_class(model_name):

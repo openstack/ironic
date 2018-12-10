@@ -67,7 +67,8 @@ class Node(base.IronicObject, object_base.VersionedObjectDictCompat):
     # Version 1.28: Add automated_clean field
     # Version 1.29: Add protected and protected_reason fields
     # Version 1.30: Add owner field
-    VERSION = '1.30'
+    # Version 1.31: Add allocation_id field
+    VERSION = '1.31'
 
     dbapi = db_api.get_instance()
 
@@ -136,6 +137,7 @@ class Node(base.IronicObject, object_base.VersionedObjectDictCompat):
         'automated_clean': objects.fields.BooleanField(nullable=True),
         'protected': objects.fields.BooleanField(),
         'protected_reason': object_fields.StringField(nullable=True),
+        'allocation_id': object_fields.IntegerField(nullable=True),
 
         'bios_interface': object_fields.StringField(nullable=True),
         'boot_interface': object_fields.StringField(nullable=True),
@@ -585,6 +587,8 @@ class Node(base.IronicObject, object_base.VersionedObjectDictCompat):
             should be set to False (or removed).
         Version 1.30: owner was added. For versions prior to this, it should be
             set to None or removed.
+        Version 1.31: allocation_id was added. For versions prior to this, it
+            should be set to None (or removed).
 
         :param target_version: the desired version of the object
         :param remove_unavailable_fields: True to remove fields that are
@@ -597,7 +601,8 @@ class Node(base.IronicObject, object_base.VersionedObjectDictCompat):
         # Convert the different fields depending on version
         fields = [('rescue_interface', 22), ('traits', 23),
                   ('bios_interface', 24), ('automated_clean', 28),
-                  ('protected_reason', 29), ('owner', 30)]
+                  ('protected_reason', 29), ('owner', 30),
+                  ('allocation_id', 31)]
         for name, minor in fields:
             self._adjust_field_to_version(name, None, target_version,
                                           1, minor, remove_unavailable_fields)

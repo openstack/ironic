@@ -791,3 +791,15 @@ class AgentConnectionFailed(IronicException):
 class NodeProtected(HTTPForbidden):
     _msg_fmt = _("Node %(node)s is protected and cannot be undeployed, "
                  "rebuilt or deleted")
+
+
+class AllocationNotFound(NotFound):
+    _msg_fmt = _("Allocation %(allocation)s could not be found.")
+
+
+class AllocationDuplicateName(Conflict):
+    _msg_fmt = _("An allocation with name %(name)s already exists.")
+
+
+class AllocationAlreadyExists(Conflict):
+    _msg_fmt = _("An allocation with UUID %(uuid)s already exists.")

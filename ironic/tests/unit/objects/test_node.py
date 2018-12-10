@@ -888,6 +888,67 @@ class TestConvertToVersion(db_base.DbTestCase):
         self.assertIsNone(node.owner)
         self.assertEqual({}, node.obj_get_changes())
 
+    def test_allocation_id_supported_missing(self):
+        # allocation_id_interface not set, should be set to default.
+        node = obj_utils.get_test_node(self.ctxt, **self.fake_node)
+        delattr(node, 'allocation_id')
+        node.obj_reset_changes()
+        node._convert_to_version("1.31")
+        self.assertIsNone(node.allocation_id)
+        self.assertEqual({'allocation_id': None},
+                         node.obj_get_changes())
+
+    def test_allocation_id_supported_set(self):
+        # allocation_id set, no change required.
+        node = obj_utils.get_test_node(self.ctxt, **self.fake_node)
+
+        node.allocation_id = 42
+        node.obj_reset_changes()
+        node._convert_to_version("1.31")
+        self.assertEqual(42, node.allocation_id)
+        self.assertEqual({}, node.obj_get_changes())
+
+    def test_allocation_id_unsupported_missing(self):
+        # allocation_id not set, no change required.
+        node = obj_utils.get_test_node(self.ctxt, **self.fake_node)
+
+        delattr(node, 'allocation_id')
+        node.obj_reset_changes()
+        node._convert_to_version("1.30")
+        self.assertNotIn('allocation_id', node)
+        self.assertEqual({}, node.obj_get_changes())
+
+    def test_allocation_id_unsupported_set_remove(self):
+        # allocation_id set, should be removed.
+        node = obj_utils.get_test_node(self.ctxt, **self.fake_node)
+
+        node.allocation_id = 42
+        node.obj_reset_changes()
+        node._convert_to_version("1.30")
+        self.assertNotIn('allocation_id', node)
+        self.assertEqual({}, node.obj_get_changes())
+
+    def test_allocation_id_unsupported_set_no_remove_non_default(self):
+        # allocation_id set, should be set to default.
+        node = obj_utils.get_test_node(self.ctxt, **self.fake_node)
+
+        node.allocation_id = 42
+        node.obj_reset_changes()
+        node._convert_to_version("1.30", False)
+        self.assertIsNone(node.allocation_id)
+        self.assertEqual({'allocation_id': None},
+                         node.obj_get_changes())
+
+    def test_allocation_id_unsupported_set_no_remove_default(self):
+        # allocation_id set, no change required.
+        node = obj_utils.get_test_node(self.ctxt, **self.fake_node)
+
+        node.allocation_id = None
+        node.obj_reset_changes()
+        node._convert_to_version("1.30", False)
+        self.assertIsNone(node.allocation_id)
+        self.assertEqual({}, node.obj_get_changes())
+
 
 class TestNodePayloads(db_base.DbTestCase):
 

@@ -16,10 +16,12 @@
 
 
 from oslo_utils import timeutils
+from oslo_utils import uuidutils
 
 from ironic.common import states
 from ironic.db import api as db_api
 from ironic.drivers import base as drivers_base
+from ironic.objects import allocation
 from ironic.objects import bios
 from ironic.objects import chassis
 from ironic.objects import conductor
@@ -219,6 +221,7 @@ def get_test_node(**kw):
         'protected_reason': kw.get('protected_reason', None),
         'conductor': kw.get('conductor'),
         'owner': kw.get('owner', None),
+        'allocation_id': kw.get('allocation_id'),
     }
 
     for iface in drivers_base.ALL_INTERFACES:
@@ -588,3 +591,30 @@ def get_test_bios_setting_setting_list():
         {'name': 'hyperthread', 'value': 'enabled'},
         {'name': 'numlock', 'value': 'off'}
     ]
+
+
+def get_test_allocation(**kw):
+    return {
+        'candidate_nodes': kw.get('candidate_nodes', []),
+        'conductor_affinity': kw.get('conductor_affinity'),
+        'created_at': kw.get('created_at'),
+        'extra': kw.get('extra', {}),
+        'id': kw.get('id', 42),
+        'last_error': kw.get('last_error'),
+        'name': kw.get('name'),
+        'node_id': kw.get('node_id'),
+        'resource_class': kw.get('resource_class', 'baremetal'),
+        'state': kw.get('state', 'allocating'),
+        'traits': kw.get('traits', []),
+        'updated_at': kw.get('updated_at'),
+        'uuid': kw.get('uuid', uuidutils.generate_uuid()),
+        'version': kw.get('version', allocation.Allocation.VERSION),
+    }
+
+
+def create_test_allocation(**kw):
+    allocation = get_test_allocation(**kw)
+    if 'id' not in kw:
+        del allocation['id']
+    dbapi = db_api.get_instance()
+    return dbapi.create_allocation(allocation)

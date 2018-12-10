@@ -791,6 +791,57 @@ class MigrationCheckersMixin(object):
         col_names = [column.name for column in nodes.c]
         self.assertIn('owner', col_names)
 
+    def _pre_upgrade_dd67b91a1981(self, engine):
+        data = {
+            'node_uuid': uuidutils.generate_uuid(),
+        }
+
+        nodes = db_utils.get_table(engine, 'nodes')
+        nodes.insert().execute({'uuid': data['node_uuid']})
+
+        return data
+
+    def _check_dd67b91a1981(self, engine, data):
+        nodes = db_utils.get_table(engine, 'nodes')
+        col_names = [column.name for column in nodes.c]
+        self.assertIn('allocation_id', col_names)
+
+        node = nodes.select(
+            nodes.c.uuid == data['node_uuid']).execute().first()
+        self.assertIsNone(node['allocation_id'])
+
+        allocations = db_utils.get_table(engine, 'allocations')
+        col_names = [column.name for column in allocations.c]
+        expected_names = ['id', 'uuid', 'node_id', 'created_at', 'updated_at',
+                          'name', 'version', 'state', 'last_error',
+                          'resource_class', 'traits', 'candidate_nodes',
+                          'extra', 'conductor_affinity']
+        self.assertEqual(sorted(expected_names), sorted(col_names))
+        self.assertIsInstance(allocations.c.created_at.type,
+                              sqlalchemy.types.DateTime)
+        self.assertIsInstance(allocations.c.updated_at.type,
+                              sqlalchemy.types.DateTime)
+        self.assertIsInstance(allocations.c.id.type,
+                              sqlalchemy.types.Integer)
+        self.assertIsInstance(allocations.c.uuid.type,
+                              sqlalchemy.types.String)
+        self.assertIsInstance(allocations.c.node_id.type,
+                              sqlalchemy.types.Integer)
+        self.assertIsInstance(allocations.c.state.type,
+                              sqlalchemy.types.String)
+        self.assertIsInstance(allocations.c.last_error.type,
+                              sqlalchemy.types.TEXT)
+        self.assertIsInstance(allocations.c.resource_class.type,
+                              sqlalchemy.types.String)
+        self.assertIsInstance(allocations.c.traits.type,
+                              sqlalchemy.types.TEXT)
+        self.assertIsInstance(allocations.c.candidate_nodes.type,
+                              sqlalchemy.types.TEXT)
+        self.assertIsInstance(allocations.c.extra.type,
+                              sqlalchemy.types.TEXT)
+        self.assertIsInstance(allocations.c.conductor_affinity.type,
+                              sqlalchemy.types.Integer)
+
     def test_upgrade_and_version(self):
         with patch_with_engine(self.engine):
             self.migration_api.upgrade('head')

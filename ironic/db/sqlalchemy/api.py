@@ -224,7 +224,8 @@ class Connection(api.Connection):
                              'chassis_uuid', 'associated', 'reserved',
                              'reserved_by_any_of', 'provisioned_before',
                              'inspection_started_before', 'fault',
-                             'conductor_group', 'owner'}
+                             'conductor_group', 'owner',
+                             'uuid_in', 'with_power_state'}
         unsupported_filters = set(filters).difference(supported_filters)
         if unsupported_filters:
             msg = _("SqlAlchemy API does not support "
@@ -263,7 +264,36 @@ class Connection(api.Connection):
                      - (datetime.timedelta(
                          seconds=filters['inspection_started_before'])))
             query = query.filter(models.Node.inspection_started_at < limit)
+        if 'uuid_in' in filters:
+            query = query.filter(models.Node.uuid.in_(filters['uuid_in']))
+        if 'with_power_state' in filters:
+            if filters['with_power_state']:
+                query = query.filter(models.Node.power_state != sql.null())
+            else:
+                query = query.filter(models.Node.power_state == sql.null())
 
+        return query
+
+    def _add_allocations_filters(self, query, filters):
+        if filters is None:
+            filters = dict()
+        supported_filters = {'state', 'resource_class', 'node_uuid'}
+        unsupported_filters = set(filters).difference(supported_filters)
+        if unsupported_filters:
+            msg = _("SqlAlchemy API does not support "
+                    "filtering by %s") % ', '.join(unsupported_filters)
+            raise ValueError(msg)
+
+        try:
+            node_uuid = filters.pop('node_uuid')
+        except KeyError:
+            pass
+        else:
+            node_obj = self.get_node_by_uuid(node_uuid)
+            filters['node_id'] = node_obj.id
+
+        if filters:
+            query = query.filter_by(**filters)
         return query
 
     def get_nodeinfo_list(self, columns=None, filters=None, limit=None,
@@ -451,6 +481,11 @@ class Connection(api.Connection):
             bios_settings_query = model_query(
                 models.BIOSSetting).filter_by(node_id=node_id)
             bios_settings_query.delete()
+
+            # delete all allocations for this node
+            allocation_query = model_query(
+                models.Allocation).filter_by(node_id=node_id)
+            allocation_query.delete()
 
             query.delete()
 
@@ -1482,3 +1517,173 @@ class Connection(api.Connection):
                   .filter_by(node_id=node_id)
                   .all())
         return result
+
+    def get_allocation_by_id(self, allocation_id):
+        """Return an allocation representation.
+
+        :param allocation_id: The id of an allocation.
+        :returns: An allocation.
+        :raises: AllocationNotFound
+        """
+        query = model_query(models.Allocation).filter_by(id=allocation_id)
+        try:
+            return query.one()
+        except NoResultFound:
+            raise exception.AllocationNotFound(allocation=allocation_id)
+
+    def get_allocation_by_uuid(self, allocation_uuid):
+        """Return an allocation representation.
+
+        :param allocation_uuid: The uuid of an allocation.
+        :returns: An allocation.
+        :raises: AllocationNotFound
+        """
+        query = model_query(models.Allocation).filter_by(uuid=allocation_uuid)
+        try:
+            return query.one()
+        except NoResultFound:
+            raise exception.AllocationNotFound(allocation=allocation_uuid)
+
+    def get_allocation_by_name(self, name):
+        """Return an allocation representation.
+
+        :param name: The logical name of an allocation.
+        :returns: An allocation.
+        :raises: AllocationNotFound
+        """
+        query = model_query(models.Allocation).filter_by(name=name)
+        try:
+            return query.one()
+        except NoResultFound:
+            raise exception.AllocationNotFound(allocation=name)
+
+    def get_allocation_list(self, filters=None, limit=None, marker=None,
+                            sort_key=None, sort_dir=None):
+        """Return a list of allocations.
+
+        :param filters: Filters to apply. Defaults to None.
+
+                        :node_uuid: uuid of node
+                        :state: allocation state
+                        :resource_class: requested resource class
+        :param limit: Maximum number of allocations to return.
+        :param marker: The last item of the previous page; we return the next
+                       result set.
+        :param sort_key: Attribute by which results should be sorted.
+        :param sort_dir: Direction in which results should be sorted.
+                         (asc, desc)
+        :returns: A list of allocations.
+        """
+        query = self._add_allocations_filters(model_query(models.Allocation),
+                                              filters)
+        return _paginate_query(models.Allocation, limit, marker,
+                               sort_key, sort_dir, query)
+
+    @oslo_db_api.retry_on_deadlock
+    def create_allocation(self, values):
+        """Create a new allocation.
+
+        :param values: Dict of values to create an allocation with
+        :returns: An allocation
+        :raises: AllocationDuplicateName
+        :raises: AllocationAlreadyExists
+        """
+        if not values.get('uuid'):
+            values['uuid'] = uuidutils.generate_uuid()
+
+        allocation = models.Allocation()
+        allocation.update(values)
+        with _session_for_write() as session:
+            try:
+                session.add(allocation)
+                session.flush()
+            except db_exc.DBDuplicateEntry as exc:
+                if 'name' in exc.columns:
+                    raise exception.AllocationDuplicateName(
+                        name=values['name'])
+                else:
+                    raise exception.AllocationAlreadyExists(
+                        uuid=values['uuid'])
+            return allocation
+
+    @oslo_db_api.retry_on_deadlock
+    def update_allocation(self, allocation_id, values, update_node=True):
+        """Update properties of an allocation.
+
+        :param allocation_id: Allocation ID
+        :param values: Dict of values to update.
+        :param update_node: If True and node_id is updated, update the node
+            with instance_uuid and traits from the allocation
+        :returns: An allocation.
+        :raises: AllocationNotFound
+        :raises: AllocationDuplicateName
+        :raises: InstanceAssociated
+        :raises: NodeAssociated
+        """
+        if 'uuid' in values:
+            msg = _("Cannot overwrite UUID for an existing allocation.")
+            raise exception.InvalidParameterValue(err=msg)
+
+        # These values are used in exception handling. They should always be
+        # initialized, but set them to None just in case.
+        instance_uuid = node_uuid = None
+
+        with _session_for_write() as session:
+            try:
+                query = model_query(models.Allocation, session=session)
+                query = add_identity_filter(query, allocation_id)
+                ref = query.one()
+                ref.update(values)
+                instance_uuid = ref.uuid
+
+                if 'node_id' in values and update_node:
+                    node = model_query(models.Node, session=session).filter_by(
+                        id=ref.node_id).with_lockmode('update').one()
+                    node_uuid = node.uuid
+                    if node.instance_uuid and node.instance_uuid != ref.uuid:
+                        raise exception.NodeAssociated(
+                            node=node.uuid, instance=node.instance_uuid)
+                    iinfo = node.instance_info.copy()
+                    iinfo['traits'] = ref.traits or []
+                    node.update({'allocation_id': ref.id,
+                                 'instance_uuid': instance_uuid,
+                                 'instance_info': iinfo})
+                session.flush()
+            except NoResultFound:
+                raise exception.AllocationNotFound(allocation=allocation_id)
+            except db_exc.DBDuplicateEntry as exc:
+                if 'name' in exc.columns:
+                    raise exception.AllocationDuplicateName(
+                        name=values['name'])
+                elif 'instance_uuid' in exc.columns:
+                    # Case when the referenced node is associated with an
+                    # instance already.
+                    raise exception.InstanceAssociated(
+                        instance_uuid=instance_uuid, node=node_uuid)
+                else:
+                    raise
+            return ref
+
+    @oslo_db_api.retry_on_deadlock
+    def destroy_allocation(self, allocation_id):
+        """Destroy an allocation.
+
+        :param allocation_id: Allocation ID or UUID
+        :raises: AllocationNotFound
+        """
+        with _session_for_write() as session:
+            query = model_query(models.Allocation)
+            query = add_identity_filter(query, allocation_id)
+
+            try:
+                ref = query.one()
+            except NoResultFound:
+                raise exception.AllocationNotFound(allocation=allocation_id)
+
+            allocation_id = ref['id']
+
+            node_query = model_query(models.Node, session=session).filter_by(
+                allocation_id=allocation_id)
+            node_query.update({'allocation_id': None, 'instance_uuid': None})
+
+            query.delete()

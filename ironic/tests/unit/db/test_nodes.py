@@ -302,7 +302,8 @@ class DbNodeTestCase(base.DbTestCase):
             maintenance=True,
             fault='boom',
             resource_class='foo',
-            conductor_group='group1')
+            conductor_group='group1',
+            power_state='power on')
 
         res = self.dbapi.get_node_list(filters={'chassis_uuid': ch1['uuid']})
         self.assertEqual([node1.id], [r.id for r in res])
@@ -353,6 +354,18 @@ class DbNodeTestCase(base.DbTestCase):
         self.assertEqual([node1.id], [r.id for r in res])
 
         res = self.dbapi.get_node_list(filters={'uuid': node1.uuid})
+        self.assertEqual([node1.id], [r.id for r in res])
+
+        uuids = [uuidutils.generate_uuid(),
+                 node1.uuid,
+                 uuidutils.generate_uuid()]
+        res = self.dbapi.get_node_list(filters={'uuid_in': uuids})
+        self.assertEqual([node1.id], [r.id for r in res])
+
+        res = self.dbapi.get_node_list(filters={'with_power_state': True})
+        self.assertEqual([node2.id], [r.id for r in res])
+
+        res = self.dbapi.get_node_list(filters={'with_power_state': False})
         self.assertEqual([node1.id], [r.id for r in res])
 
         # ensure unknown filters explode
@@ -518,6 +531,15 @@ class DbNodeTestCase(base.DbTestCase):
         self.dbapi.destroy_node(node.uuid)
         self.assertRaises(exception.NodeNotFound,
                           self.dbapi.node_trait_exists, node.id, trait.trait)
+
+    def test_allocations_get_destroyed_after_destroying_a_node_by_uuid(self):
+        node = utils.create_test_node()
+
+        allocation = utils.create_test_allocation(node_id=node.id)
+
+        self.dbapi.destroy_node(node.uuid)
+        self.assertRaises(exception.AllocationNotFound,
+                          self.dbapi.get_allocation_by_id, allocation.id)
 
     def test_update_node(self):
         node = utils.create_test_node()

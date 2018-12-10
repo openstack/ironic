@@ -1079,3 +1079,82 @@ class Connection(object):
         :returns: A list of BIOSSetting objects.
         :raises: NodeNotFound if the node is not found.
         """
+
+    @abc.abstractmethod
+    def get_allocation_by_id(self, allocation_id):
+        """Return an allocation representation.
+
+        :param allocation_id: The id of an allocation.
+        :returns: An allocation.
+        :raises: AllocationNotFound
+        """
+
+    @abc.abstractmethod
+    def get_allocation_by_uuid(self, allocation_uuid):
+        """Return an allocation representation.
+
+        :param allocation_uuid: The uuid of an allocation.
+        :returns: An allocation.
+        :raises: AllocationNotFound
+        """
+
+    @abc.abstractmethod
+    def get_allocation_by_name(self, name):
+        """Return an allocation representation.
+
+        :param name: The logical name of an allocation.
+        :returns: An allocation.
+        :raises: AllocationNotFound
+        """
+
+    @abc.abstractmethod
+    def get_allocation_list(self, filters=None, limit=None, marker=None,
+                            sort_key=None, sort_dir=None):
+        """Return a list of allocations.
+
+        :param filters: Filters to apply. Defaults to None.
+
+                        :node_uuid: uuid of node
+                        :state: allocation state
+                        :resource_class: requested resource class
+        :param limit: Maximum number of allocations to return.
+        :param marker: The last item of the previous page; we return the next
+                       result set.
+        :param sort_key: Attribute by which results should be sorted.
+        :param sort_dir: Direction in which results should be sorted.
+                         (asc, desc)
+        :returns: A list of allocations.
+        """
+
+    @abc.abstractmethod
+    def create_allocation(self, values):
+        """Create a new allocation.
+
+        :param values: Dict of values to create an allocation with
+        :returns: An allocation
+        :raises: AllocationDuplicateName
+        :raises: AllocationAlreadyExists
+        """
+
+    @abc.abstractmethod
+    def update_allocation(self, allocation_id, values, update_node=True):
+        """Update properties of an allocation.
+
+        :param allocation_id: Allocation ID
+        :param values: Dict of values to update.
+        :param update_node: If True and node_id is updated, update the node
+            with instance_uuid and traits from the allocation
+        :returns: An allocation.
+        :raises: AllocationNotFound
+        :raises: AllocationDuplicateName
+        :raises: InstanceAssociated
+        :raises: NodeAssociated
+        """
+
+    @abc.abstractmethod
+    def destroy_allocation(self, allocation_id):
+        """Destroy an allocation.
+
+        :param allocation_id: Allocation ID
+        :raises: AllocationNotFound
+        """

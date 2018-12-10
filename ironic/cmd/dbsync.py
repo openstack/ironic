@@ -81,6 +81,8 @@ ONLINE_MIGRATIONS = (
 # These are the models added in supported releases. We skip the version check
 # for them since the tables do not exist when it happens.
 NEW_MODELS = [
+    # TODO(dtantsur): remove in Train
+    'Allocation',
 ]
 
 
