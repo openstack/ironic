@@ -372,7 +372,9 @@ following needs to be considered:
 - Any change of fields or change in signature of remotable methods needs a bump
   of the object version. The object versions are also maintained in
   ``ironic/common/release_mappings.py``.
-- New objects must be added to ``ironic/common/release_mappings.py``.
+- New objects must be added to ``ironic/common/release_mappings.py``. Also for
+  the first releases they should be excluded from the version check by adding
+  their class names to the ``NEW_MODELS`` list in ``ironic/cmd/dbsync.py``.
 - The arguments of remotable methods (methods which are remoted to the
   conductor via RPC) can only be added as optional. They cannot be removed or
   changed in an incompatible way (to the previous release).
@@ -500,3 +502,6 @@ This check is done by comparing the objects' ``version`` field in the database
 with the expected (or supported) versions of these objects. The supported
 versions are the versions specified in
 ``ironic.common.release_mappings.RELEASE_MAPPING``.
+The newly created tables cannot pass this check and thus have to be excluded by
+adding their object class names (e.g. ``Node``) to
+``ironic.cmd.dbsync.NEW_MODELS``.

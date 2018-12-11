@@ -78,10 +78,15 @@ ONLINE_MIGRATIONS = (
     (dbapi, 'update_to_latest_versions'),
 )
 
+# These are the models added in supported releases. We skip the version check
+# for them since the tables do not exist when it happens.
+NEW_MODELS = [
+]
+
 
 class DBCommand(object):
 
-    def _check_versions(self):
+    def _check_versions(self, ignore_missing_tables=False):
         """Check the versions of objects.
 
         Check that the object versions are compatible with this release
@@ -94,8 +99,13 @@ class DBCommand(object):
             # no tables, nothing to check
             return
 
+        if ignore_missing_tables:
+            ignore_models = NEW_MODELS
+        else:
+            ignore_models = ()
+
         try:
-            if not dbapi.check_versions():
+            if not dbapi.check_versions(ignore_models=ignore_models):
                 sys.stderr.write(
                     _('The database is not compatible with this '
                       'release of ironic (%s). Please run '
@@ -119,7 +129,7 @@ class DBCommand(object):
             sys.exit(2)
 
     def upgrade(self):
-        self._check_versions()
+        self._check_versions(ignore_missing_tables=True)
         migration.upgrade(CONF.command.revision)
 
     def revision(self):
