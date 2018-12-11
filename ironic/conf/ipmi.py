@@ -41,6 +41,14 @@ opts = [
                        'node power state if `ipmitool` process does not exit '
                        'after `command_retry_timeout` timeout expires. '
                        'Recommended setting is True')),
+    cfg.BoolOpt('disable_boot_timeout',
+                default=True,
+                help=_('Default timeout behavior whether ironic sends a raw '
+                       'IPMI command to disable the 60 second timeout for '
+                       'booting. Setting this option to False will NOT send '
+                       'that command, the default value is True. It may be '
+                       'overridden by per-node \'ipmi_disable_boot_timeout\' '
+                       'option in node\'s \'driver_info\' field.')),
 ]
 
 
