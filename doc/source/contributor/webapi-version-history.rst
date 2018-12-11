@@ -2,6 +2,14 @@
 REST API Version History
 ========================
 
+1.50 (Stein, master)
+--------------------
+
+Added ``owner`` field to the node object to enable operators to store
+information in relation to the owner of a node. The field is up to 255
+characters and MAY be used in a later point in time to allow designation
+and deligation of permissions.
+
 1.49 (Stein, master)
 --------------------
 

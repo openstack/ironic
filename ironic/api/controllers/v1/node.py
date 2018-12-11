@@ -1075,6 +1075,9 @@ class Node(base.APIBase):
     conductor = wsme.wsattr(wtypes.text, readonly=True)
     """Represent the conductor currently serving the node"""
 
+    owner = wsme.wsattr(wtypes.text)
+    """Field for storage of physical node owner"""
+
     # NOTE(deva): "conductor_affinity" shouldn't be presented on the
     #             API because it's an internal value. Don't add it here.
 
@@ -1277,7 +1280,7 @@ class Node(base.APIBase):
                      storage_interface=None, traits=[], rescue_interface=None,
                      bios_interface=None, conductor_group="",
                      automated_clean=None, protected=False,
-                     protected_reason=None)
+                     protected_reason=None, owner=None)
         # NOTE(matty_dubs): The chassis_uuid getter() is based on the
         # _chassis_uuid variable:
         sample._chassis_uuid = 'edcad704-b2da-41d5-96d9-afd580ecfa12'
@@ -1589,35 +1592,12 @@ class NodesController(rest.RestController):
                 filtered_nodes.append(n)
         return filtered_nodes
 
-    def _create_node_filters(self, chassis_uuid=None, associated=None,
-                             maintenance=None, provision_state=None,
-                             driver=None, resource_class=None, fault=None,
-                             conductor_group=None):
-        filters = {}
-        if chassis_uuid:
-            filters['chassis_uuid'] = chassis_uuid
-        if associated is not None:
-            filters['associated'] = associated
-        if maintenance is not None:
-            filters['maintenance'] = maintenance
-        if provision_state:
-            filters['provision_state'] = provision_state
-        if driver:
-            filters['driver'] = driver
-        if resource_class is not None:
-            filters['resource_class'] = resource_class
-        if fault is not None:
-            filters['fault'] = fault
-        if conductor_group is not None:
-            filters['conductor_group'] = conductor_group
-        return filters
-
     def _get_nodes_collection(self, chassis_uuid, instance_uuid, associated,
                               maintenance, provision_state, marker, limit,
                               sort_key, sort_dir, driver=None,
                               resource_class=None, resource_url=None,
                               fields=None, fault=None, conductor_group=None,
-                              detail=None, conductor=None):
+                              detail=None, conductor=None, owner=None):
         if self.from_chassis and not chassis_uuid:
             raise exception.MissingParameterValue(
                 _("Chassis id not specified."))
@@ -1650,10 +1630,22 @@ class NodesController(rest.RestController):
             # be generated, which we don't want.
             limit = 0
         else:
-            filters = self._create_node_filters(chassis_uuid, associated,
-                                                maintenance, provision_state,
-                                                driver, resource_class, fault,
-                                                conductor_group)
+            possible_filters = {
+                'maintenance': maintenance,
+                'chassis_uuid': chassis_uuid,
+                'associated': associated,
+                'provision_state': provision_state,
+                'driver': driver,
+                'resource_class': resource_class,
+                'fault': fault,
+                'conductor_group': conductor_group,
+                'owner': owner,
+            }
+            filters = {}
+            for key, value in possible_filters.items():
+                if value is not None:
+                    filters[key] = value
+
             nodes = objects.Node.list(pecan.request.context, limit, marker_obj,
                                       sort_key=sort_key, sort_dir=sort_dir,
                                       filters=filters)
@@ -1764,12 +1756,14 @@ class NodesController(rest.RestController):
     @expose.expose(NodeCollection, types.uuid, types.uuid, types.boolean,
                    types.boolean, wtypes.text, types.uuid, int, wtypes.text,
                    wtypes.text, wtypes.text, types.listtype, wtypes.text,
-                   wtypes.text, wtypes.text, types.boolean, wtypes.text)
+                   wtypes.text, wtypes.text, types.boolean, wtypes.text,
+                   wtypes.text)
     def get_all(self, chassis_uuid=None, instance_uuid=None, associated=None,
                 maintenance=None, provision_state=None, marker=None,
                 limit=None, sort_key='id', sort_dir='asc', driver=None,
                 fields=None, resource_class=None, fault=None,
-                conductor_group=None, detail=None, conductor=None):
+                conductor_group=None, detail=None, conductor=None,
+                owner=None):
         """Retrieve a list of nodes.
 
         :param chassis_uuid: Optional UUID of a chassis, to get only nodes for
@@ -1799,6 +1793,8 @@ class NodesController(rest.RestController):
                                 that conductor_group.
         :param conductor: Optional string value to get only nodes managed by
                           that conductor.
+        :param owner: Optional string value that set the owner whose nodes
+                      are to be retrurned.
         :param fields: Optional, a list with a specified set of fields
                        of the resource to be returned.
         :param fault: Optional string value to get only nodes with that fault.
@@ -1815,6 +1811,7 @@ class NodesController(rest.RestController):
         api_utils.check_allow_filter_by_fault(fault)
         api_utils.check_allow_filter_by_conductor_group(conductor_group)
         api_utils.check_allow_filter_by_conductor(conductor)
+        api_utils.check_allow_filter_by_owner(owner)
 
         fields = api_utils.get_request_return_fields(fields, detail,
                                                      _DEFAULT_RETURN_FIELDS)
@@ -1828,18 +1825,19 @@ class NodesController(rest.RestController):
                                           fields=fields, fault=fault,
                                           conductor_group=conductor_group,
                                           detail=detail,
-                                          conductor=conductor)
+                                          conductor=conductor,
+                                          owner=owner)
 
     @METRICS.timer('NodesController.detail')
     @expose.expose(NodeCollection, types.uuid, types.uuid, types.boolean,
                    types.boolean, wtypes.text, types.uuid, int, wtypes.text,
                    wtypes.text, wtypes.text, wtypes.text, wtypes.text,
-                   wtypes.text, wtypes.text)
+                   wtypes.text, wtypes.text, wtypes.text)
     def detail(self, chassis_uuid=None, instance_uuid=None, associated=None,
                maintenance=None, provision_state=None, marker=None,
                limit=None, sort_key='id', sort_dir='asc', driver=None,
                resource_class=None, fault=None, conductor_group=None,
-               conductor=None):
+               conductor=None, owner=None):
         """Retrieve a list of nodes with detail.
 
         :param chassis_uuid: Optional UUID of a chassis, to get only nodes for
@@ -1868,6 +1866,8 @@ class NodesController(rest.RestController):
         :param fault: Optional string value to get only nodes with that fault.
         :param conductor_group: Optional string value to get only nodes with
                                 that conductor_group.
+        :param owner: Optional string value that set the owner whose nodes
+                      are to be retrurned.
         """
         cdict = pecan.request.context.to_policy_values()
         policy.authorize('baremetal:node:get', cdict, cdict)
@@ -1877,6 +1877,7 @@ class NodesController(rest.RestController):
         api_utils.check_allow_specify_resource_class(resource_class)
         api_utils.check_allow_filter_by_fault(fault)
         api_utils.check_allow_filter_by_conductor_group(conductor_group)
+        api_utils.check_allow_filter_by_owner(owner)
         api_utils.check_allowed_fields([sort_key])
         # /detail should only work against collections
         parent = pecan.request.path.split('/')[:-1][-1]
@@ -1895,7 +1896,8 @@ class NodesController(rest.RestController):
                                           resource_url=resource_url,
                                           fault=fault,
                                           conductor_group=conductor_group,
-                                          conductor=conductor)
+                                          conductor=conductor,
+                                          owner=owner)
 
     @METRICS.timer('NodesController.validate')
     @expose.expose(wtypes.text, types.uuid_or_name, types.uuid)

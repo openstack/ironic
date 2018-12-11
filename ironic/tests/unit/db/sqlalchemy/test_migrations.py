@@ -786,6 +786,11 @@ class MigrationCheckersMixin(object):
         self.assertFalse(node['protected'])
         self.assertIsNone(node['protected_reason'])
 
+    def _check_f190f9d00a11(self, engine, data):
+        nodes = db_utils.get_table(engine, 'nodes')
+        col_names = [column.name for column in nodes.c]
+        self.assertIn('owner', col_names)
+
     def test_upgrade_and_version(self):
         with patch_with_engine(self.engine):
             self.migration_api.upgrade('head')

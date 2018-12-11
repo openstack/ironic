@@ -1,0 +1,7 @@
+---
+features:
+  - |
+    Adds API version 1.50 which allows for the storage of an ``owner`` field
+    on node objects. This is intended for either storage of human parsable
+    information or the storage of a tenant UUID which could be leveraged
+    in a future version of the Bare Metal as a Service API.

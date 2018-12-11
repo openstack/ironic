@@ -66,7 +66,8 @@ class Node(base.IronicObject, object_base.VersionedObjectDictCompat):
     # Version 1.27: Add conductor_group field
     # Version 1.28: Add automated_clean field
     # Version 1.29: Add protected and protected_reason fields
-    VERSION = '1.29'
+    # Version 1.30: Add owner field
+    VERSION = '1.30'
 
     dbapi = db_api.get_instance()
 
@@ -149,6 +150,7 @@ class Node(base.IronicObject, object_base.VersionedObjectDictCompat):
         'storage_interface': object_fields.StringField(nullable=True),
         'vendor_interface': object_fields.StringField(nullable=True),
         'traits': object_fields.ObjectField('TraitList', nullable=True),
+        'owner': object_fields.StringField(nullable=True),
     }
 
     def as_dict(self, secure=False):
@@ -581,6 +583,8 @@ class Node(base.IronicObject, object_base.VersionedObjectDictCompat):
             should be set to None (or removed).
         Version 1.29: protected was added. For versions prior to this, it
             should be set to False (or removed).
+        Version 1.30: owner was added. For versions prior to this, it should be
+            set to None or removed.
 
         :param target_version: the desired version of the object
         :param remove_unavailable_fields: True to remove fields that are
@@ -593,7 +597,7 @@ class Node(base.IronicObject, object_base.VersionedObjectDictCompat):
         # Convert the different fields depending on version
         fields = [('rescue_interface', 22), ('traits', 23),
                   ('bios_interface', 24), ('automated_clean', 28),
-                  ('protected_reason', 29)]
+                  ('protected_reason', 29), ('owner', 30)]
         for name, minor in fields:
             self._adjust_field_to_version(name, None, target_version,
                                           1, minor, remove_unavailable_fields)
@@ -648,6 +652,7 @@ class NodePayload(notification.NotificationPayloadBase):
         'rescue_interface': ('node', 'rescue_interface'),
         'storage_interface': ('node', 'storage_interface'),
         'vendor_interface': ('node', 'vendor_interface'),
+        'owner': ('node', 'owner'),
         'power_state': ('node', 'power_state'),
         'properties': ('node', 'properties'),
         'protected': ('node', 'protected'),
@@ -674,7 +679,8 @@ class NodePayload(notification.NotificationPayloadBase):
     # Version 1.9: Add deploy_step field exposed via API.
     # Version 1.10: Add conductor_group field exposed via API.
     # Version 1.11: Add protected and protected_reason fields exposed via API.
-    VERSION = '1.11'
+    # Version 1.12: Add node owner field.
+    VERSION = '1.12'
     fields = {
         'clean_step': object_fields.FlexibleDictField(nullable=True),
         'conductor_group': object_fields.StringField(nullable=True),
@@ -703,6 +709,7 @@ class NodePayload(notification.NotificationPayloadBase):
         'storage_interface': object_fields.StringField(nullable=True),
         'vendor_interface': object_fields.StringField(nullable=True),
         'name': object_fields.StringField(nullable=True),
+        'owner': object_fields.StringField(nullable=True),
         'power_state': object_fields.StringField(nullable=True),
         'properties': object_fields.FlexibleDictField(nullable=True),
         'protected': object_fields.BooleanField(nullable=True),
@@ -754,7 +761,8 @@ class NodeSetPowerStatePayload(NodePayload):
     # Version 1.9: Parent NodePayload version 1.9
     # Version 1.10: Parent NodePayload version 1.10
     # Version 1.11: Parent NodePayload version 1.11
-    VERSION = '1.11'
+    # Version 1.12: Parent NodePayload version 1.12
+    VERSION = '1.12'
 
     fields = {
         # "to_power" indicates the future target_power_state of the node. A
@@ -806,7 +814,8 @@ class NodeCorrectedPowerStatePayload(NodePayload):
     # Version 1.9: Parent NodePayload version 1.9
     # Version 1.10: Parent NodePayload version 1.10
     # Version 1.11: Parent NodePayload version 1.11
-    VERSION = '1.11'
+    # Version 1.12: Parent NodePayload version 1.12
+    VERSION = '1.12'
 
     fields = {
         'from_power': object_fields.StringField(nullable=True)
@@ -842,7 +851,8 @@ class NodeSetProvisionStatePayload(NodePayload):
     # Version 1.9: Parent NodePayload version 1.9
     # Version 1.10: Parent NodePayload version 1.10
     # Version 1.11: Parent NodePayload version 1.11
-    VERSION = '1.11'
+    # Version 1.12: Parent NodePayload version 1.12
+    VERSION = '1.12'
 
     SCHEMA = dict(NodePayload.SCHEMA,
                   **{'instance_info': ('node', 'instance_info')})
@@ -885,7 +895,8 @@ class NodeCRUDPayload(NodePayload):
     # Version 1.7: Parent NodePayload version 1.9
     # Version 1.8: Parent NodePayload version 1.10
     # Version 1.9: Parent NodePayload version 1.11
-    VERSION = '1.9'
+    # Version 1.10: Parent NodePayload version 1.12
+    VERSION = '1.10'
 
     SCHEMA = dict(NodePayload.SCHEMA,
                   **{'instance_info': ('node', 'instance_info'),

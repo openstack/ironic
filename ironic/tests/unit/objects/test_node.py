@@ -775,9 +775,7 @@ class TestConvertToVersion(db_base.DbTestCase):
         delattr(node, 'protected')
         delattr(node, 'protected_reason')
         node.obj_reset_changes()
-
         node._convert_to_version("1.29")
-
         self.assertFalse(node.protected)
         self.assertIsNone(node.protected_reason)
         self.assertEqual({'protected': False, 'protected_reason': None},
@@ -828,6 +826,67 @@ class TestConvertToVersion(db_base.DbTestCase):
         self.assertIsNone(node.automated_clean)
         self.assertEqual({'protected': False, 'protected_reason': None},
                          node.obj_get_changes())
+
+    def test_owner_supported_missing(self):
+        # owner_interface not set, should be set to default.
+        node = obj_utils.get_test_node(self.ctxt, **self.fake_node)
+        delattr(node, 'owner')
+        node.obj_reset_changes()
+        node._convert_to_version("1.30")
+        self.assertIsNone(node.owner)
+        self.assertEqual({'owner': None},
+                         node.obj_get_changes())
+
+    def test_owner_supported_set(self):
+        # owner set, no change required.
+        node = obj_utils.get_test_node(self.ctxt, **self.fake_node)
+
+        node.owner = "Sure, there is an owner"
+        node.obj_reset_changes()
+        node._convert_to_version("1.30")
+        self.assertEqual("Sure, there is an owner", node.owner)
+        self.assertEqual({}, node.obj_get_changes())
+
+    def test_owner_unsupported_missing(self):
+        # owner not set, no change required.
+        node = obj_utils.get_test_node(self.ctxt, **self.fake_node)
+
+        delattr(node, 'owner')
+        node.obj_reset_changes()
+        node._convert_to_version("1.29")
+        self.assertNotIn('owner', node)
+        self.assertEqual({}, node.obj_get_changes())
+
+    def test_owner_unsupported_set_remove(self):
+        # owner set, should be removed.
+        node = obj_utils.get_test_node(self.ctxt, **self.fake_node)
+
+        node.owner = "magic"
+        node.obj_reset_changes()
+        node._convert_to_version("1.29")
+        self.assertNotIn('owner', node)
+        self.assertEqual({}, node.obj_get_changes())
+
+    def test_owner_unsupported_set_no_remove_non_default(self):
+        # owner set, should be set to default.
+        node = obj_utils.get_test_node(self.ctxt, **self.fake_node)
+
+        node.owner = "magic"
+        node.obj_reset_changes()
+        node._convert_to_version("1.29", False)
+        self.assertIsNone(node.owner)
+        self.assertEqual({'owner': None},
+                         node.obj_get_changes())
+
+    def test_owner_unsupported_set_no_remove_default(self):
+        # owner set, no change required.
+        node = obj_utils.get_test_node(self.ctxt, **self.fake_node)
+
+        node.owner = None
+        node.obj_reset_changes()
+        node._convert_to_version("1.29", False)
+        self.assertIsNone(node.owner)
+        self.assertEqual({}, node.obj_get_changes())
 
 
 class TestNodePayloads(db_base.DbTestCase):
@@ -886,6 +945,7 @@ class TestNodePayloads(db_base.DbTestCase):
         self.assertEqual(self.node.traits.get_trait_names(), payload.traits)
         self.assertEqual(self.node.updated_at, payload.updated_at)
         self.assertEqual(self.node.uuid, payload.uuid)
+        self.assertEqual(self.node.owner, payload.owner)
 
     def test_node_payload(self):
         payload = objects.NodePayload(self.node)
