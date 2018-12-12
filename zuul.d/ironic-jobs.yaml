@@ -2,7 +2,7 @@
     name: ironic-base
     description: Base job for devstack/tempest based ironic jobs.
     parent: devstack-tempest
-    nodeset: openstack-single-node-xenial
+    nodeset: openstack-single-node-bionic
     timeout: 10800
     required-projects:
       - openstack/ironic
@@ -144,6 +144,7 @@
     name: ironic-tempest-dsvm-ipa-partition-redfish-tinyipa
     description: ironic-tempest-dsvm-ipa-partition-redfish-tinyipa
     parent: ironic-base
+    nodeset: openstack-single-node-xenial
     timeout: 5400
     vars:
       devstack_localrc:
@@ -194,6 +195,7 @@
     name: ironic-tempest-dsvm-ipa-partition-uefi-pxe_ipmitool-tinyipa
     description: ironic-tempest-dsvm-ipa-partition-uefi-pxe_ipmitool-tinyipa
     parent: ironic-base
+    nodeset: openstack-single-node-xenial
     timeout: 5400
     vars:
       devstack_localrc:
@@ -205,6 +207,7 @@
     name: ironic-tempest-dsvm-ipa-partition-pxe_ipmitool-tinyipa-python3
     description: ironic-tempest-dsvm-ipa-partition-pxe_ipmitool-tinyipa-python3
     parent: ironic-base
+    nodeset: openstack-single-node-xenial
     timeout: 5400
     vars:
       devstack_localrc:
@@ -214,6 +217,7 @@
     name: ironic-tempest-dsvm-bfv
     description: ironic-tempest-dsvm-bfv
     parent: ironic-base
+    nodeset: openstack-single-node-xenial
     timeout: 9600
     vars:
       tempest_test_regex: baremetal_boot_from_volume
@@ -325,7 +329,6 @@
     name: ironic-tempest-dsvm-ipa-wholedisk-direct-tinyipa-multinode
     description: ironic-tempest-dsvm-ipa-wholedisk-direct-tinyipa-multinode
     parent: tempest-multinode-full
-    nodeset: openstack-two-node-xenial
     pre-run: playbooks/ci-workarounds/set-stack-key.yaml
     timeout: 10800
     required-projects:
