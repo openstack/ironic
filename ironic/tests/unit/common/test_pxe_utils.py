@@ -1740,3 +1740,29 @@ class CleanUpPxeEnvTestCase(db_base.DbTestCase):
             mock_pxe_clean.assert_called_once_with(task, ipxe_enabled=False)
             mock_unlink.assert_any_call('deploy_kernel')
         mock_cache.return_value.clean_up.assert_called_once_with()
+
+
+class TFTPImageCacheTestCase(db_base.DbTestCase):
+    @mock.patch.object(fileutils, 'ensure_tree')
+    def test_with_master_path(self, mock_ensure_tree):
+        self.config(tftp_master_path='/fake/path', group='pxe')
+        self.config(image_cache_size=500, group='pxe')
+        self.config(image_cache_ttl=30, group='pxe')
+
+        cache = pxe_utils.TFTPImageCache()
+
+        mock_ensure_tree.assert_called_once_with('/fake/path')
+        self.assertEqual(500 * 1024 * 1024, cache._cache_size)
+        self.assertEqual(30 * 60, cache._cache_ttl)
+
+    @mock.patch.object(fileutils, 'ensure_tree')
+    def test_without_master_path(self, mock_ensure_tree):
+        self.config(tftp_master_path='', group='pxe')
+        self.config(image_cache_size=500, group='pxe')
+        self.config(image_cache_ttl=30, group='pxe')
+
+        cache = pxe_utils.TFTPImageCache()
+
+        mock_ensure_tree.assert_not_called()
+        self.assertEqual(500 * 1024 * 1024, cache._cache_size)
+        self.assertEqual(30 * 60, cache._cache_ttl)

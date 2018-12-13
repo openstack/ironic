@@ -76,7 +76,7 @@ opts = [
                default='/tftpboot/master_images',
                help=_('On ironic-conductor node, directory where master TFTP '
                       'images are stored on disk. '
-                      'Setting to <None> disables image caching.')),
+                      'Setting to the empty string disables image caching.')),
     cfg.IntOpt('dir_permission',
                help=_("The permission that will be applied to the TFTP "
                       "folders upon creation. This should be set to the "

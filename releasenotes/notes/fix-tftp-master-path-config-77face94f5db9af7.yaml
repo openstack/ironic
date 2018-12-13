@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    Fixes an issue where the master TFTP image cache could not be disbled.
+    The configuration option ``[pxe]/tftp_master_path`` may now be set to
+    the empty string to disable the cache. For more information, see
+    story `2004608 <https://storyboard.openstack.org/#!/story/2004608>`_.
