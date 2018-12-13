@@ -765,6 +765,9 @@ function install_ironic {
     if is_drac_enabled; then
         pip_install python-dracclient
     fi
+
+    # Disable metadata_csum from ext4 as cirros can't mount partitions with it
+    [ -f /etc/mke2fs.conf ] && sudo sed -i -e 's/,metadata_csum//g' /etc/mke2fs.conf
 }
 
 # install_ironicclient() - Collect sources and prepare
