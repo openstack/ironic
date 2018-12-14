@@ -131,7 +131,7 @@ the preferred process is:
 .. _Ironic wiki: https://wiki.openstack.org/wiki/Ironic
 .. _weekly Ironic meeting: https://wiki.openstack.org/wiki/Meetings/Ironic
 .. _IRC: https://wiki.openstack.org/wiki/Ironic#IRC
-.. _mailing list: http://lists.openstack.org/cgi-bin/mailman/listinfo/openstack-dev
+.. _mailing list: http://lists.openstack.org/cgi-bin/mailman/listinfo/openstack-discuss
 .. _process for making decisions: http://lists.openstack.org/pipermail/openstack-dev/2016-May/095460.html
 
 ...add support for GMRs to new executables and extending the GMR?
