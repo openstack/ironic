@@ -1616,6 +1616,9 @@ function create_bridge_and_vms {
 
     if [[ -n "$LIBVIRT_NIC_DRIVER" ]]; then
         vm_opts+=" -D $LIBVIRT_NIC_DRIVER"
+    elif [[ "$IRONIC_BOOT_MODE" == "uefi" || "$IRONIC_STORAGE_INTERFACE" == "cinder" ]]; then
+        # Note(derekh) Both UEFI and BVF for the moment don't work with the e1000 net driver
+        vm_opts+=" -D virtio"
     fi
 
     local bridge_mac
@@ -1629,7 +1632,7 @@ function create_bridge_and_vms {
         sudo -E su -p $STACK_USER -c "PATH=$PATH $IRONIC_SCRIPTS_DIR/create-node.sh -n $vm_name \
             -c $IRONIC_VM_SPECS_CPU -m $IRONIC_VM_SPECS_RAM -d $IRONIC_VM_SPECS_DISK \
             -a $IRONIC_VM_SPECS_CPU_ARCH -b $IRONIC_VM_NETWORK_BRIDGE $vm_opts -p $vbmc_port -o $pdu_outlet \
-            -i $IRONIC_VM_INTERFACE_COUNT -f $IRONIC_VM_SPECS_DISK_FORMAT  -M $PUBLIC_BRIDGE_MTU $log_arg" >> $IRONIC_VM_MACS_CSV_FILE
+            -i $IRONIC_VM_INTERFACE_COUNT -f $IRONIC_VM_SPECS_DISK_FORMAT -M $PUBLIC_BRIDGE_MTU $log_arg" >> $IRONIC_VM_MACS_CSV_FILE
         echo " ${bridge_mac} $IRONIC_VM_NETWORK_BRIDGE" >> $IRONIC_VM_MACS_CSV_FILE
 
         vbmc_port=$((vbmc_port+1))

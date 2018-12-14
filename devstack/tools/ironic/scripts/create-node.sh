@@ -44,7 +44,7 @@ if [ -z "$UEFI_LOADER" ] && [ ! -z "$UEFI_NVRAM" ]; then
     exit 1
 fi
 
-LIBVIRT_NIC_DRIVER=${NIC_DRIVER:-"virtio"}
+LIBVIRT_NIC_DRIVER=${NIC_DRIVER:-"e1000"}
 LIBVIRT_STORAGE_POOL=${LIBVIRT_STORAGE_POOL:-"default"}
 LIBVIRT_CONNECT_URI=${LIBVIRT_CONNECT_URI:-"qemu:///system"}
 
