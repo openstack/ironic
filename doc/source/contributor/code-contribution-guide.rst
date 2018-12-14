@@ -62,7 +62,7 @@ Bug tracker
     https://storyboard.openstack.org/#!/project/943
 
 Mailing list (prefix Subject line with ``[ironic]``)
-    http://lists.openstack.org/cgi-bin/mailman/listinfo/openstack-dev
+    http://lists.openstack.org/cgi-bin/mailman/listinfo/openstack-discuss
 
 Wiki
     https://wiki.openstack.org/Ironic
