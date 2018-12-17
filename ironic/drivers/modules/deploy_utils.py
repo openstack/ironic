@@ -735,19 +735,22 @@ def get_pxe_config_template(node):
     """Return the PXE config template file name requested for deploy.
 
     This method returns PXE config template file to be used for deploy.
-    Architecture specific template file is searched first. BIOS/UEFI
-    template file is used if no valid architecture specific file found.
+    First specific pxe template is searched in the node. After that
+    architecture specific template file is searched. BIOS/UEFI template file
+    is used if no valid architecture specific file found.
 
     :param node: A single Node.
     :returns: The PXE config template file name.
     """
-    cpu_arch = node.properties.get('cpu_arch')
-    config_template = CONF.pxe.pxe_config_template_by_arch.get(cpu_arch)
+    config_template = node.driver_info.get("pxe_template", None)
     if config_template is None:
-        if boot_mode_utils.get_boot_mode(node) == 'uefi':
-            config_template = CONF.pxe.uefi_pxe_config_template
-        else:
-            config_template = CONF.pxe.pxe_config_template
+        cpu_arch = node.properties.get('cpu_arch')
+        config_template = CONF.pxe.pxe_config_template_by_arch.get(cpu_arch)
+        if config_template is None:
+            if boot_mode_utils.get_boot_mode(node) == 'uefi':
+                config_template = CONF.pxe.uefi_pxe_config_template
+            else:
+                config_template = CONF.pxe.pxe_config_template
 
     return config_template
 

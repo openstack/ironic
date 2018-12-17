@@ -1113,6 +1113,14 @@ class GetPxeBootConfigTestCase(db_base.DbTestCase):
         result = utils.get_pxe_config_template(self.node)
         self.assertEqual('bios-template', result)
 
+    def test_get_pxe_config_template_per_node(self):
+        node = obj_utils.create_test_node(
+            self.context, driver='fake-hardware',
+            driver_info={"pxe_template": "fake-template"},
+        )
+        result = utils.get_pxe_config_template(node)
+        self.assertEqual('fake-template', result)
+
 
 @mock.patch('time.sleep', lambda sec: None)
 class OtherFunctionTestCase(db_base.DbTestCase):

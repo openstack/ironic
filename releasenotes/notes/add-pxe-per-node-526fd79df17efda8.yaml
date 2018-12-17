@@ -1,0 +1,8 @@
+---
+features:
+  - |
+    Add a new field pxe_template that can be set at driver-info level. This
+    will specify a path for a custom pxe boot template. If present, this
+    template will be read and will have priority in front of the per-arch and
+    general pxe templates.
+
