@@ -350,6 +350,45 @@ class Allocation(Base):
                                 nullable=True)
 
 
+class DeployTemplate(Base):
+    """Represents a deployment template."""
+
+    __tablename__ = 'deploy_templates'
+    __table_args__ = (
+        schema.UniqueConstraint('uuid', name='uniq_deploytemplates0uuid'),
+        schema.UniqueConstraint('name', name='uniq_deploytemplates0name'),
+        table_args())
+    id = Column(Integer, primary_key=True)
+    uuid = Column(String(36))
+    name = Column(String(255), nullable=False)
+
+
+class DeployTemplateStep(Base):
+    """Represents a deployment step in a deployment template."""
+
+    __tablename__ = 'deploy_template_steps'
+    __table_args__ = (
+        Index('deploy_template_id', 'deploy_template_id'),
+        Index('deploy_template_steps_interface_idx', 'interface'),
+        Index('deploy_template_steps_step_idx', 'step'),
+        table_args())
+    id = Column(Integer, primary_key=True)
+    deploy_template_id = Column(Integer, ForeignKey('deploy_templates.id'),
+                                nullable=False)
+    interface = Column(String(255), nullable=False)
+    step = Column(String(255), nullable=False)
+    args = Column(db_types.JsonEncodedDict, nullable=False)
+    priority = Column(Integer, nullable=False)
+    deploy_template = orm.relationship(
+        "DeployTemplate",
+        backref='steps',
+        primaryjoin=(
+            'and_(DeployTemplateStep.deploy_template_id == '
+            'DeployTemplate.id)'),
+        foreign_keys=deploy_template_id
+    )
+
+
 def get_class(model_name):
     """Returns the model class with the specified name.
 

@@ -106,6 +106,10 @@ class FlexibleDictField(object_fields.AutoTypedField):
         super(FlexibleDictField, self)._null(obj, attr)
 
 
+class ListOfFlexibleDictsField(object_fields.AutoTypedField):
+    AUTO_TYPE = object_fields.List(FlexibleDict())
+
+
 class EnumField(object_fields.EnumField):
     pass
 

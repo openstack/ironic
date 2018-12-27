@@ -85,6 +85,14 @@ def _get_node_query_with_all():
             .options(joinedload('traits')))
 
 
+def _get_deploy_template_query_with_steps():
+    """Return a query object for the DeployTemplate joined with steps.
+
+    :returns: a query object.
+    """
+    return model_query(models.DeployTemplate).options(joinedload('steps'))
+
+
 def model_query(model, *args, **kwargs):
     """Query helper for simpler session usage.
 
@@ -216,6 +224,42 @@ def _filter_active_conductors(query, interval=None):
     query = (query.filter(models.Conductor.online.is_(True))
              .filter(models.Conductor.updated_at >= limit))
     return query
+
+
+def _zip_matching(a, b, key):
+    """Zip two unsorted lists, yielding matching items or None.
+
+    Each zipped item is a tuple taking one of three forms:
+
+    (a[i], b[j]) if a[i] and b[j] are equal.
+    (a[i], None) if a[i] is less than b[j] or b is empty.
+    (None, b[j]) if a[i] is greater than b[j] or a is empty.
+
+    Note that the returned list may be longer than either of the two
+    lists.
+
+    Adapted from https://stackoverflow.com/a/11426702.
+
+    :param a: the first list.
+    :param b: the second list.
+    :param key: a function that generates a key used to compare items.
+    """
+    a = collections.deque(sorted(a, key=key))
+    b = collections.deque(sorted(b, key=key))
+    while a and b:
+        k_a = key(a[0])
+        k_b = key(b[0])
+        if k_a == k_b:
+            yield a.popleft(), b.popleft()
+        elif k_a < k_b:
+            yield a.popleft(), None
+        else:
+            yield None, b.popleft()
+    # Consume any remaining items in each deque.
+    for i in a:
+        yield i, None
+    for i in b:
+        yield None, i
 
 
 @profiler.trace_cls("db_api")
@@ -1710,3 +1754,155 @@ class Connection(api.Connection):
             node_query.update({'allocation_id': None, 'instance_uuid': None})
 
             query.delete()
+
+    @staticmethod
+    def _get_deploy_template_steps(steps, deploy_template_id=None):
+        results = []
+        for values in steps:
+            step = models.DeployTemplateStep()
+            step.update(values)
+            if deploy_template_id:
+                step['deploy_template_id'] = deploy_template_id
+            results.append(step)
+        return results
+
+    @oslo_db_api.retry_on_deadlock
+    def create_deploy_template(self, values, version):
+        steps = values.get('steps', [])
+        values['steps'] = self._get_deploy_template_steps(steps)
+
+        template = models.DeployTemplate()
+        template.update(values)
+        with _session_for_write() as session:
+            try:
+                session.add(template)
+                session.flush()
+            except db_exc.DBDuplicateEntry as e:
+                if 'name' in e.columns:
+                    raise exception.DeployTemplateDuplicateName(
+                        name=values['name'])
+                raise exception.DeployTemplateAlreadyExists(
+                    uuid=values['uuid'])
+        return template
+
+    def _update_deploy_template_steps(self, session, template_id, steps):
+        """Update the steps for a deploy template.
+
+        :param session: DB session object.
+        :param template_id: deploy template ID.
+        :param steps: list of steps that should exist for the deploy template.
+        """
+
+        def _step_key(step):
+            """Compare two deploy template steps."""
+            return step.interface, step.step, step.args, step.priority
+
+        # List all existing steps for the template.
+        query = (model_query(models.DeployTemplateStep)
+                 .filter_by(deploy_template_id=template_id))
+        current_steps = query.all()
+
+        # List the new steps for the template.
+        new_steps = self._get_deploy_template_steps(steps, template_id)
+
+        # The following is an efficient way to ensure that the steps in the
+        # database match those that have been requested. We compare the current
+        # and requested steps in a single pass using the _zip_matching
+        # function.
+        steps_to_create = []
+        step_ids_to_delete = []
+        for current_step, new_step in _zip_matching(current_steps, new_steps,
+                                                    _step_key):
+            if current_step is None:
+                # No matching current step found for this new step - create.
+                steps_to_create.append(new_step)
+            elif new_step is None:
+                # No matching new step found for this current step - delete.
+                step_ids_to_delete.append(current_step.id)
+            # else: steps match, no work required.
+
+        # Delete and create steps in bulk as necessary.
+        if step_ids_to_delete:
+            ((model_query(models.DeployTemplateStep)
+              .filter(models.DeployTemplateStep.id.in_(step_ids_to_delete)))
+             .delete(synchronize_session=False))
+        if steps_to_create:
+            session.bulk_save_objects(steps_to_create)
+
+    @oslo_db_api.retry_on_deadlock
+    def update_deploy_template(self, template_id, values):
+        if 'uuid' in values:
+            msg = _("Cannot overwrite UUID for an existing deploy template.")
+            raise exception.InvalidParameterValue(err=msg)
+
+        try:
+            with _session_for_write() as session:
+                # NOTE(mgoddard): Don't issue a joined query for the update as
+                # this does not work with PostgreSQL.
+                query = model_query(models.DeployTemplate)
+                query = add_identity_filter(query, template_id)
+                try:
+                    ref = query.with_lockmode('update').one()
+                except NoResultFound:
+                    raise exception.DeployTemplateNotFound(
+                        template=template_id)
+
+                # First, update non-step columns.
+                steps = None
+                if 'steps' in values:
+                    steps = values.pop('steps')
+
+                ref.update(values)
+
+                # If necessary, update steps.
+                if steps is not None:
+                    self._update_deploy_template_steps(session, ref.id, steps)
+
+                # Return the updated template joined with all relevant fields.
+                query = _get_deploy_template_query_with_steps()
+                query = add_identity_filter(query, template_id)
+                return query.one()
+        except db_exc.DBDuplicateEntry as e:
+            if 'name' in e.columns:
+                raise exception.DeployTemplateDuplicateName(
+                    name=values['name'])
+            raise
+
+    @oslo_db_api.retry_on_deadlock
+    def destroy_deploy_template(self, template_id):
+        with _session_for_write():
+            model_query(models.DeployTemplateStep).filter_by(
+                deploy_template_id=template_id).delete()
+            count = model_query(models.DeployTemplate).filter_by(
+                id=template_id).delete()
+            if count == 0:
+                raise exception.DeployTemplateNotFound(template=template_id)
+
+    def _get_deploy_template(self, field, value):
+        """Helper method for retrieving a deploy template."""
+        query = (_get_deploy_template_query_with_steps()
+                 .filter_by(**{field: value}))
+        try:
+            return query.one()
+        except NoResultFound:
+            raise exception.DeployTemplateNotFound(template=value)
+
+    def get_deploy_template_by_id(self, template_id):
+        return self._get_deploy_template('id', template_id)
+
+    def get_deploy_template_by_uuid(self, template_uuid):
+        return self._get_deploy_template('uuid', template_uuid)
+
+    def get_deploy_template_by_name(self, template_name):
+        return self._get_deploy_template('name', template_name)
+
+    def get_deploy_template_list(self, limit=None, marker=None,
+                                 sort_key=None, sort_dir=None):
+        query = _get_deploy_template_query_with_steps()
+        return _paginate_query(models.DeployTemplate, limit, marker,
+                               sort_key, sort_dir, query)
+
+    def get_deploy_template_list_by_names(self, names):
+        query = (_get_deploy_template_query_with_steps()
+                 .filter(models.DeployTemplate.name.in_(names)))
+        return query.all()

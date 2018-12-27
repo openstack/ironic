@@ -83,6 +83,9 @@ ONLINE_MIGRATIONS = (
 NEW_MODELS = [
     # TODO(dtantsur): remove in Train
     'Allocation',
+    # TODO(mgoddard): remove in Train
+    'DeployTemplate',
+    'DeployTemplateStep',
 ]
 
 

@@ -858,6 +858,102 @@ class MigrationCheckersMixin(object):
         self.assertIsInstance(nodes_tbl.c.description.type,
                               sqlalchemy.types.TEXT)
 
+    def _check_2aac7e0872f6(self, engine, data):
+        # Deploy templates.
+        deploy_templates = db_utils.get_table(engine, 'deploy_templates')
+        col_names = [column.name for column in deploy_templates.c]
+        expected = ['created_at', 'updated_at', 'version',
+                    'id', 'uuid', 'name']
+        self.assertEqual(sorted(expected), sorted(col_names))
+        self.assertIsInstance(deploy_templates.c.created_at.type,
+                              sqlalchemy.types.DateTime)
+        self.assertIsInstance(deploy_templates.c.updated_at.type,
+                              sqlalchemy.types.DateTime)
+        self.assertIsInstance(deploy_templates.c.version.type,
+                              sqlalchemy.types.String)
+        self.assertIsInstance(deploy_templates.c.id.type,
+                              sqlalchemy.types.Integer)
+        self.assertIsInstance(deploy_templates.c.uuid.type,
+                              sqlalchemy.types.String)
+        self.assertIsInstance(deploy_templates.c.name.type,
+                              sqlalchemy.types.String)
+
+        # Insert a deploy template.
+        uuid = uuidutils.generate_uuid()
+        name = 'CUSTOM_DT1'
+        template = {'name': name, 'uuid': uuid}
+        deploy_templates.insert().execute(template)
+        # Query by UUID.
+        result = deploy_templates.select(
+            deploy_templates.c.uuid == uuid).execute().first()
+        template_id = result['id']
+        self.assertEqual(name, result['name'])
+        # Query by name.
+        result = deploy_templates.select(
+            deploy_templates.c.name == name).execute().first()
+        self.assertEqual(template_id, result['id'])
+        # Query by ID.
+        result = deploy_templates.select(
+            deploy_templates.c.id == template_id).execute().first()
+        self.assertEqual(uuid, result['uuid'])
+        self.assertEqual(name, result['name'])
+        # UUID is unique.
+        template = {'name': 'CUSTOM_DT2', 'uuid': uuid}
+        self.assertRaises(db_exc.DBDuplicateEntry,
+                          deploy_templates.insert().execute, template)
+        # Name is unique.
+        template = {'name': name, 'uuid': uuidutils.generate_uuid()}
+        self.assertRaises(db_exc.DBDuplicateEntry,
+                          deploy_templates.insert().execute, template)
+
+        # Deploy template steps.
+        deploy_template_steps = db_utils.get_table(engine,
+                                                   'deploy_template_steps')
+        col_names = [column.name for column in deploy_template_steps.c]
+        expected = ['created_at', 'updated_at', 'version',
+                    'id', 'deploy_template_id', 'interface', 'step', 'args',
+                    'priority']
+        self.assertEqual(sorted(expected), sorted(col_names))
+
+        self.assertIsInstance(deploy_template_steps.c.created_at.type,
+                              sqlalchemy.types.DateTime)
+        self.assertIsInstance(deploy_template_steps.c.updated_at.type,
+                              sqlalchemy.types.DateTime)
+        self.assertIsInstance(deploy_template_steps.c.version.type,
+                              sqlalchemy.types.String)
+        self.assertIsInstance(deploy_template_steps.c.id.type,
+                              sqlalchemy.types.Integer)
+        self.assertIsInstance(deploy_template_steps.c.deploy_template_id.type,
+                              sqlalchemy.types.Integer)
+        self.assertIsInstance(deploy_template_steps.c.interface.type,
+                              sqlalchemy.types.String)
+        self.assertIsInstance(deploy_template_steps.c.step.type,
+                              sqlalchemy.types.String)
+        self.assertIsInstance(deploy_template_steps.c.args.type,
+                              sqlalchemy.types.Text)
+        self.assertIsInstance(deploy_template_steps.c.priority.type,
+                              sqlalchemy.types.Integer)
+
+        # Insert a deploy template step.
+        interface = 'raid'
+        step_name = 'create_configuration'
+        args = '{"logical_disks": []}'
+        priority = 10
+        step = {'deploy_template_id': template_id, 'interface': interface,
+                'step': step_name, 'args': args, 'priority': priority}
+        deploy_template_steps.insert().execute(step)
+        # Query by deploy template ID.
+        result = deploy_template_steps.select(
+            deploy_template_steps.c.deploy_template_id ==
+            template_id).execute().first()
+        self.assertEqual(template_id, result['deploy_template_id'])
+        self.assertEqual(interface, result['interface'])
+        self.assertEqual(step_name, result['step'])
+        self.assertEqual(args, result['args'])
+        self.assertEqual(priority, result['priority'])
+        # Insert another step for the same template.
+        deploy_template_steps.insert().execute(step)
+
     def test_upgrade_and_version(self):
         with patch_with_engine(self.engine):
             self.migration_api.upgrade('head')
