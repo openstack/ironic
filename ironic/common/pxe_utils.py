@@ -459,7 +459,7 @@ def dhcp_options_for_instance(task, ipxe_enabled=False, url_boot=False):
         script_name = os.path.basename(CONF.pxe.ipxe_boot_script)
         # TODO(TheJulia): We should make this smarter to handle unwrapped v6
         # addresses, since the format is http://[ff80::1]:80/boot.ipxe.
-        # As opposed to requiring configuraiton, we can eventually make this
+        # As opposed to requiring configuration, we can eventually make this
         # dynamic, and would need to do similar then.
         ipxe_script_url = '/'.join([CONF.deploy.http_url, script_name])
         # if the request comes from dumb firmware send them the iPXE
