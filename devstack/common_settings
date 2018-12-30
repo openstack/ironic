@@ -4,7 +4,7 @@ if [[ -f $TOP_DIR/../../old/devstack/.localrc.auto ]]; then
     source <(cat $TOP_DIR/../../old/devstack/.localrc.auto | grep -v 'enable_plugin')
 fi
 
-CIRROS_VERSION=0.3.5
+CIRROS_VERSION=0.4.0
 
 # Whether configure the nodes to boot in Legacy BIOS or UEFI mode. Accepted
 # values are: "bios" or "uefi", defaults to "bios".

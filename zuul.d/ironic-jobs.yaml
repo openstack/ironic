@@ -215,7 +215,6 @@
     name: ironic-tempest-dsvm-bfv
     description: ironic-tempest-dsvm-bfv
     parent: ironic-base
-    nodeset: openstack-single-node-xenial
     timeout: 9600
     vars:
       tempest_test_regex: baremetal_boot_from_volume
