@@ -1,0 +1,8 @@
+---
+fixes:
+  - |
+    Fixes an issue has been corrected where hosts executing ``iPXE`` to boot
+    would error indicating that no configuration was found for networks where
+    IPv6 is in use. This has been remedied through a minor addition to the
+    Networking service in the Stein development cycle. For more information
+    please see `story 2004502 <https://storyboard.openstack.org/#!/story/2004502>`_.
