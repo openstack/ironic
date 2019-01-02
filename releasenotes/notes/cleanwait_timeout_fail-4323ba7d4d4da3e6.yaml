@@ -1,0 +1,8 @@
+---
+fixes:
+  - |
+    Fixes an issue with a baremetal node that times out during cleaning.
+    The ironic-conductor was attempting to change the node's provision state
+    to 'clean failed' twice, resulting in the node's ``last_error`` being set
+    incorrectly. This no longer happens. For more information, see
+    `story 2004299 <https://storyboard.openstack.org/#!/story/2004299>`_.
