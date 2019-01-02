@@ -902,13 +902,14 @@ class Connection(object):
         """
 
     @abc.abstractmethod
-    def check_versions(self):
+    def check_versions(self, ignore_models=()):
         """Checks the whole database for incompatible objects.
 
         This scans all the tables in search of objects that are not supported;
         i.e., those that are not specified in
         `ironic.common.release_mappings.RELEASE_MAPPING`.
 
+        :param ignore_models: List of model names to skip.
         :returns: A Boolean. True if all the objects have supported versions;
                   False otherwise.
         """

@@ -127,6 +127,8 @@ We need to submit patches for changes on master to:
     are used to migrate from an old release to this latest release; they
     shouldn't be needed after that.)
 
+  * remove any model class names from ``ironic.cmd.dbsync.NEW_MODELS``.
+
 As **ironic-tempest-plugin** is branchless, we need to submit a patch adding
 stable jobs to its master branch. `Example for Queens
 <https://review.openstack.org/#/c/543555/>`_.

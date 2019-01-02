@@ -1198,7 +1198,7 @@ class Connection(api.Connection):
                     model.version.notin_(versions)))
         return query.all()
 
-    def check_versions(self):
+    def check_versions(self, ignore_models=()):
         """Checks the whole database for incompatible objects.
 
         This scans all the tables in search of objects that are not supported;
@@ -1206,38 +1206,45 @@ class Connection(api.Connection):
         `ironic.common.release_mappings.RELEASE_MAPPING`. This includes objects
         that have null 'version' values.
 
+        :param ignore_models: List of model names to skip.
         :returns: A Boolean. True if all the objects have supported versions;
                   False otherwise.
         """
         object_versions = release_mappings.get_object_versions()
         for model in models.Base.__subclasses__():
-            if model.__name__ in object_versions:
-                supported_versions = object_versions[model.__name__]
-                if not supported_versions:
-                    continue
+            if model.__name__ not in object_versions:
+                continue
 
-                # NOTE(mgagne): Additional safety check to detect old database
-                # version which does not have the 'version' columns available.
-                # This usually means a skip version upgrade is attempted
-                # from a version earlier than Pike which added
-                # those columns required for the next check.
-                engine = enginefacade.reader.get_engine()
-                if not db_utils.column_exists(engine,
-                                              model.__tablename__,
-                                              model.version.name):
-                    raise exception.DatabaseVersionTooOld()
+            if model.__name__ in ignore_models:
+                continue
 
-                # NOTE(rloo): we use model.version, not model, because we
-                #             know that the object has a 'version' column
-                #             but we don't know whether the entire object is
-                #             compatible with its (old) DB representation.
-                # NOTE(rloo): .notin_ does not handle null:
-                # http://docs.sqlalchemy.org/en/latest/core/sqlelement.html#sqlalchemy.sql.operators.ColumnOperators.notin_
-                query = model_query(model.version).filter(
-                    sql.or_(model.version == sql.null(),
-                            model.version.notin_(supported_versions)))
-                if query.count():
-                    return False
+            supported_versions = object_versions[model.__name__]
+            if not supported_versions:
+                continue
+
+            # NOTE(mgagne): Additional safety check to detect old database
+            # version which does not have the 'version' columns available.
+            # This usually means a skip version upgrade is attempted
+            # from a version earlier than Pike which added
+            # those columns required for the next check.
+            engine = enginefacade.reader.get_engine()
+            if not db_utils.column_exists(engine,
+                                          model.__tablename__,
+                                          model.version.name):
+                raise exception.DatabaseVersionTooOld()
+
+            # NOTE(rloo): we use model.version, not model, because we
+            #             know that the object has a 'version' column
+            #             but we don't know whether the entire object is
+            #             compatible with its (old) DB representation.
+            # NOTE(rloo): .notin_ does not handle null:
+            # http://docs.sqlalchemy.org/en/latest/core/sqlelement.html#sqlalchemy.sql.operators.ColumnOperators.notin_
+            query = model_query(model.version).filter(
+                sql.or_(model.version == sql.null(),
+                        model.version.notin_(supported_versions)))
+            if query.count():
+                return False
+
         return True
 
     @oslo_db_api.retry_on_deadlock

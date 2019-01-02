@@ -41,15 +41,23 @@ class OnlineMigrationTestCase(db_base.DbTestCase):
                                autospec=True) as mock_check_versions:
             mock_check_versions.return_value = True
             self.db_cmds._check_versions()
-            mock_check_versions.assert_called_once_with()
+            mock_check_versions.assert_called_once_with(ignore_models=())
 
     def test__check_versions_bad(self):
         with mock.patch.object(self.dbapi, 'check_versions',
                                autospec=True) as mock_check_versions:
             mock_check_versions.return_value = False
             exit = self.assertRaises(SystemExit, self.db_cmds._check_versions)
-            mock_check_versions.assert_called_once_with()
+            mock_check_versions.assert_called_once_with(ignore_models=())
             self.assertEqual(2, exit.code)
+
+    def test__check_versions_ignore_models(self):
+        with mock.patch.object(self.dbapi, 'check_versions',
+                               autospec=True) as mock_check_versions:
+            mock_check_versions.return_value = True
+            self.db_cmds._check_versions(True)
+            mock_check_versions.assert_called_once_with(
+                ignore_models=dbsync.NEW_MODELS)
 
     @mock.patch.object(dbsync, 'ONLINE_MIGRATIONS', autospec=True)
     def test__run_migration_functions(self, mock_migrations):

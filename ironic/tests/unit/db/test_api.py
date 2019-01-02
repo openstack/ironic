@@ -56,6 +56,12 @@ class UpgradingTestCase(base.DbTestCase):
         self.assertIsNone(node.version)
         self.assertFalse(self.dbapi.check_versions())
 
+    def test_check_versions_ignore_node(self):
+        node = utils.create_test_node(version=None)
+        node = self.dbapi.get_node_by_id(node.id)
+        self.assertIsNone(node.version)
+        self.assertTrue(self.dbapi.check_versions(ignore_models=['Node']))
+
     def test_check_versions_node_old(self):
         node = utils.create_test_node(version='1.0')
         node = self.dbapi.get_node_by_id(node.id)
