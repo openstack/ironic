@@ -115,6 +115,8 @@ class RedfishInspect(base.InspectInterface):
         simple_storage_size = 0
 
         try:
+            LOG.debug("Attempting to discover system simple storage size for "
+                      "node %(node)s", {'node': task.node.uuid})
             if (system.simple_storage and
                     system.simple_storage.disks_sizes_bytes):
                 simple_storage_size = [
@@ -132,6 +134,8 @@ class RedfishInspect(base.InspectInterface):
         storage_size = 0
 
         try:
+            LOG.debug("Attempting to discover system storage volume size for "
+                      "node %(node)s", {'node': task.node.uuid})
             if system.storage and system.storage.volumes_sizes_bytes:
                 storage_size = [
                     size for size in system.storage.volumes_sizes_bytes
@@ -142,6 +146,23 @@ class RedfishInspect(base.InspectInterface):
 
         except sushy.exceptions.SushyError as ex:
             LOG.debug("No storage volume information discovered "
+                      "for node %(node)s: %(err)s", {'node': task.node.uuid,
+                                                     'err': ex})
+
+        try:
+            if not storage_size:
+                LOG.debug("Attempting to discover system storage drive size "
+                          "for node %(node)s", {'node': task.node.uuid})
+                if system.storage and system.storage.drives_sizes_bytes:
+                    storage_size = [
+                        size for size in system.storage.drives_sizes_bytes
+                        if size >= 4 * units.Gi
+                    ] or [0]
+
+                    storage_size = storage_size[0]
+
+        except sushy.exceptions.SushyError as ex:
+            LOG.debug("No storage drive information discovered "
                       "for node %(node)s: %(err)s", {'node': task.node.uuid,
                                                      'err': ex})
 
@@ -161,10 +182,11 @@ class RedfishInspect(base.InspectInterface):
 
         if local_gb:
             inspected_properties['local_gb'] = str(local_gb)
-
         else:
             LOG.warning("Could not provide a valid storage size configured "
-                        "for node %(node)s", {'node': task.node.uuid})
+                        "for node %(node)s. Assuming this is a disk-less node",
+                        {'node': task.node.uuid})
+            inspected_properties['local_gb'] = '0'
 
         valid_keys = self.ESSENTIAL_PROPERTIES
         missing_keys = valid_keys - set(inspected_properties)

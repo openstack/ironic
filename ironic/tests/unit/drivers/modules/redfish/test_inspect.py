@@ -124,18 +124,6 @@ class RedfishInspectTestCase(db_base.DbTestCase):
             self.assertEqual(expected_properties, task.node.properties)
 
     @mock.patch.object(redfish_utils, 'get_system', autospec=True)
-    def test_inspect_hardware_fail_missing_local_gb(self, mock_get_system):
-        system_mock = self.init_system_mock(mock_get_system.return_value)
-        system_mock.simple_storage.disks_sizes_bytes = None
-        system_mock.storage.volumes_sizes_bytes = None
-
-        with task_manager.acquire(self.context, self.node.uuid,
-                                  shared=True) as task:
-            task.node.properties.pop('local_gb')
-            self.assertRaises(exception.HardwareInspectionFailure,
-                              task.driver.inspect.inspect_hardware, task)
-
-    @mock.patch.object(redfish_utils, 'get_system', autospec=True)
     def test_inspect_hardware_ignore_missing_local_gb(self, mock_get_system):
         system_mock = self.init_system_mock(mock_get_system.return_value)
         system_mock.simple_storage.disks_sizes_bytes = None
@@ -145,7 +133,7 @@ class RedfishInspectTestCase(db_base.DbTestCase):
                                   shared=True) as task:
             expected_properties = {
                 'cpu_arch': 'mips', 'cpus': '8',
-                'local_gb': '10', 'memory_mb': '2048'
+                'local_gb': '0', 'memory_mb': '2048'
             }
             task.driver.inspect.inspect_hardware(task)
             self.assertEqual(expected_properties, task.node.properties)
