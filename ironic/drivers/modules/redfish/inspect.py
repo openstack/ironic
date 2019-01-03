@@ -124,7 +124,7 @@ class RedfishInspect(base.InspectInterface):
 
                 simple_storage_size = simple_storage_size[0]
 
-        except sushy.SushyError as ex:
+        except sushy.exceptions.SushyError as ex:
             LOG.debug("No simple storage information discovered "
                       "for node %(node)s: %(err)s", {'node': task.node.uuid,
                                                      'err': ex})
@@ -140,7 +140,7 @@ class RedfishInspect(base.InspectInterface):
 
                 storage_size = storage_size[0]
 
-        except sushy.SushyError as ex:
+        except sushy.exceptions.SushyError as ex:
             LOG.debug("No storage volume information discovered "
                       "for node %(node)s: %(err)s", {'node': task.node.uuid,
                                                      'err': ex})
