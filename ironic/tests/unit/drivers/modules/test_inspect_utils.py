@@ -15,6 +15,7 @@
 
 
 import mock
+from oslo_utils import importutils
 
 from ironic.common import exception
 from ironic.conductor import task_manager
@@ -22,6 +23,8 @@ from ironic.drivers.modules import inspect_utils as utils
 from ironic import objects
 from ironic.tests.unit.db import base as db_base
 from ironic.tests.unit.objects import utils as obj_utils
+
+sushy = importutils.try_import('sushy')
 
 
 @mock.patch('time.sleep', lambda sec: None)
@@ -63,3 +66,22 @@ class InspectFunctionTestCase(db_base.DbTestCase):
                                   shared=False) as task:
             utils.create_ports_if_not_exist(task, macs)
         self.assertEqual(2, log_mock.call_count)
+
+    @mock.patch.object(utils.LOG, 'info', spec_set=True, autospec=True)
+    @mock.patch.object(objects, 'Port', spec_set=True, autospec=True)
+    def test_create_ports_if_not_exist_attempts_port_creation_blindly(
+            self, port_mock, log_info_mock):
+        macs = {'aa:bb:cc:dd:ee:ff': sushy.STATE_ENABLED,
+                'aa:bb:aa:aa:aa:aa': sushy.STATE_DISABLED}
+        node_id = self.node.id
+        port_dict1 = {'address': 'aa:bb:cc:dd:ee:ff', 'node_id': node_id}
+        port_dict2 = {'address': 'aa:bb:aa:aa:aa:aa', 'node_id': node_id}
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            utils.create_ports_if_not_exist(
+                task, macs, get_mac_address=lambda x: x[0])
+            self.assertTrue(log_info_mock.called)
+            expected_calls = [mock.call(task.context, **port_dict1),
+                              mock.call(task.context, **port_dict2)]
+            port_mock.assert_has_calls(expected_calls, any_order=True)
+            self.assertEqual(2, port_mock.return_value.create.call_count)

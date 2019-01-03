@@ -224,6 +224,9 @@ if not sushy:
         PROCESSOR_ARCH_ARM='ARM',
         PROCESSOR_ARCH_MIPS='MIPS',
         PROCESSOR_ARCH_OEM='OEM-defined',
+        STATE_ENABLED='enabled',
+        STATE_DISABLED='disabled',
+        STATE_ABSENT='absent',
     )
 
     sys.modules['sushy'] = sushy
