@@ -125,13 +125,17 @@ class AllocationsTestCase(base.DbTestCase):
     def test_destroy_allocation_with_node(self):
         self.dbapi.update_node(self.node.id,
                                {'allocation_id': self.allocation.id,
-                                'instance_uuid': uuidutils.generate_uuid()})
+                                'instance_uuid': uuidutils.generate_uuid(),
+                                'instance_info': {'traits': ['foo']}})
         self.dbapi.destroy_allocation(self.allocation.id)
         self.assertRaises(exception.AllocationNotFound,
                           self.dbapi.get_allocation_by_id, self.allocation.id)
         node = self.dbapi.get_node_by_id(self.node.id)
         self.assertIsNone(node.allocation_id)
         self.assertIsNone(node.instance_uuid)
+        # NOTE(dtantsur): currently we do not clean up instance_info contents
+        # on deallocation. It may be changed in the future.
+        self.assertEqual(node.instance_info, {'traits': ['foo']})
 
     def test_destroy_allocation_that_does_not_exist(self):
         self.assertRaises(exception.AllocationNotFound,

@@ -182,6 +182,15 @@ def add_node_filter_by_chassis(query, value):
         return query.filter(models.Chassis.uuid == value)
 
 
+def add_allocation_filter_by_node(query, value):
+    if strutils.is_int_like(value):
+        return query.filter_by(node_id=value)
+    else:
+        query = query.join(models.Node,
+                           models.Allocation.node_id == models.Node.id)
+        return query.filter(models.Node.uuid == value)
+
+
 def _paginate_query(model, limit=None, marker=None, sort_key=None,
                     sort_dir=None, query=None):
     if not query:
@@ -289,8 +298,7 @@ class Connection(api.Connection):
         except KeyError:
             pass
         else:
-            node_obj = self.get_node_by_uuid(node_uuid)
-            filters['node_id'] = node_obj.id
+            query = add_allocation_filter_by_node(query, node_uuid)
 
         if filters:
             query = query.filter_by(**filters)
@@ -1656,8 +1664,8 @@ class Connection(api.Connection):
                     raise exception.AllocationDuplicateName(
                         name=values['name'])
                 elif 'instance_uuid' in exc.columns:
-                    # Case when the referenced node is associated with an
-                    # instance already.
+                    # Case when the allocation UUID is already used on some
+                    # node as instance_uuid.
                     raise exception.InstanceAssociated(
                         instance_uuid=instance_uuid, node=node_uuid)
                 else:
