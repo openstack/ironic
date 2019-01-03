@@ -1602,6 +1602,8 @@ class Connection(api.Connection):
         """
         if not values.get('uuid'):
             values['uuid'] = uuidutils.generate_uuid()
+        if not values.get('state'):
+            values['state'] = states.ALLOCATING
 
         allocation = models.Allocation()
         allocation.update(values)

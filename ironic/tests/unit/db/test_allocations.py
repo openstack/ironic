@@ -15,6 +15,7 @@
 from oslo_utils import uuidutils
 
 from ironic.common import exception
+from ironic.db import api as db_api
 from ironic.tests.unit.db import base
 from ironic.tests.unit.db import utils as db_utils
 
@@ -25,6 +26,12 @@ class AllocationsTestCase(base.DbTestCase):
         super(AllocationsTestCase, self).setUp()
         self.node = db_utils.create_test_node()
         self.allocation = db_utils.create_test_allocation(name='host1')
+
+    def test_create(self):
+        dbapi = db_api.get_instance()
+        allocation = dbapi.create_allocation({'resource_class': 'bm'})
+        self.assertIsNotNone(allocation.uuid)
+        self.assertEqual('allocating', allocation.state)
 
     def _create_test_allocation_range(self, count, **kw):
         """Create the specified number of test allocation entries in DB

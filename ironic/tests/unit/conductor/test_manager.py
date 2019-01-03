@@ -811,6 +811,74 @@ class UpdateNodeTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         self.assertEqual(new_hardware, node.driver)
         self.assertEqual(new_interface, node.boot_interface)
 
+    def test_update_node_deleting_allocation(self):
+        node = obj_utils.create_test_node(self.context)
+        alloc = obj_utils.create_test_allocation(self.context)
+        # Establish cross-linking between the node and the allocation
+        alloc.node_id = node.id
+        alloc.save()
+        node.refresh()
+        self.assertEqual(alloc.id, node.allocation_id)
+        self.assertEqual(alloc.uuid, node.instance_uuid)
+
+        node.instance_uuid = None
+        res = self.service.update_node(self.context, node)
+        self.assertRaises(exception.AllocationNotFound,
+                          objects.Allocation.get_by_id,
+                          self.context, alloc.id)
+        self.assertIsNone(res['instance_uuid'])
+        self.assertIsNone(res['allocation_id'])
+
+        node.refresh()
+        self.assertIsNone(node.instance_uuid)
+        self.assertIsNone(node.allocation_id)
+
+    def test_update_node_deleting_allocation_forbidden(self):
+        node = obj_utils.create_test_node(self.context,
+                                          provision_state='active',
+                                          maintenance=False)
+        alloc = obj_utils.create_test_allocation(self.context)
+        # Establish cross-linking between the node and the allocation
+        alloc.node_id = node.id
+        alloc.save()
+        node.refresh()
+        self.assertEqual(alloc.id, node.allocation_id)
+        self.assertEqual(alloc.uuid, node.instance_uuid)
+
+        node.instance_uuid = None
+        exc = self.assertRaises(messaging.rpc.ExpectedException,
+                                self.service.update_node,
+                                self.context, node)
+        self.assertEqual(exception.InvalidState, exc.exc_info[0])
+
+        node.refresh()
+        self.assertEqual(alloc.id, node.allocation_id)
+        self.assertEqual(alloc.uuid, node.instance_uuid)
+
+    def test_update_node_deleting_allocation_in_maintenance(self):
+        node = obj_utils.create_test_node(self.context,
+                                          provision_state='active',
+                                          maintenance=True)
+        alloc = obj_utils.create_test_allocation(self.context)
+        # Establish cross-linking between the node and the allocation
+        alloc.node_id = node.id
+        alloc.save()
+        node.refresh()
+        self.assertEqual(alloc.id, node.allocation_id)
+        self.assertEqual(alloc.uuid, node.instance_uuid)
+
+        node.instance_uuid = None
+        res = self.service.update_node(self.context, node)
+        self.assertRaises(exception.AllocationNotFound,
+                          objects.Allocation.get_by_id,
+                          self.context, alloc.id)
+        self.assertIsNone(res['instance_uuid'])
+        self.assertIsNone(res['allocation_id'])
+
+        node.refresh()
+        self.assertIsNone(node.instance_uuid)
+        self.assertIsNone(node.allocation_id)
+
 
 @mgr_utils.mock_record_keepalive
 class VendorPassthruTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
@@ -2736,13 +2804,15 @@ class DoNodeTearDownTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
     @mock.patch('ironic.drivers.modules.fake.FakeDeploy.tear_down')
     def _test__do_node_tear_down_ok(self, mock_tear_down, mock_clean,
                                     mock_unbind, mock_console,
-                                    enabled_console=False):
+                                    enabled_console=False,
+                                    with_allocation=False):
         # test when driver.deploy.tear_down succeeds
         node = obj_utils.create_test_node(
             self.context, driver='fake-hardware',
             provision_state=states.DELETING,
             target_provision_state=states.AVAILABLE,
-            instance_uuid=uuidutils.generate_uuid(),
+            instance_uuid=(uuidutils.generate_uuid()
+                           if not with_allocation else None),
             instance_info={'foo': 'bar'},
             console_enabled=enabled_console,
             driver_internal_info={'is_whole_disk_image': False,
@@ -2752,6 +2822,12 @@ class DoNodeTearDownTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         port = obj_utils.create_test_port(
             self.context, node_id=node.id,
             internal_info={'tenant_vif_port_id': 'foo'})
+        if with_allocation:
+            alloc = obj_utils.create_test_allocation(self.context)
+            # Establish cross-linking between the node and the allocation
+            alloc.node_id = node.id
+            alloc.save()
+            node.refresh()
 
         task = task_manager.TaskManager(self.context, node.uuid)
         self._start_service()
@@ -2763,6 +2839,7 @@ class DoNodeTearDownTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         self.assertEqual(states.AVAILABLE, node.target_provision_state)
         self.assertIsNone(node.last_error)
         self.assertIsNone(node.instance_uuid)
+        self.assertIsNone(node.allocation_id)
         self.assertEqual({}, node.instance_info)
         self.assertNotIn('instance', node.driver_internal_info)
         self.assertNotIn('clean_steps', node.driver_internal_info)
@@ -2776,12 +2853,19 @@ class DoNodeTearDownTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
             mock_console.assert_called_once_with(task)
         else:
             self.assertFalse(mock_console.called)
+        if with_allocation:
+            self.assertRaises(exception.AllocationNotFound,
+                              objects.Allocation.get_by_id,
+                              self.context, alloc.id)
 
     def test__do_node_tear_down_ok_without_console(self):
         self._test__do_node_tear_down_ok(enabled_console=False)
 
     def test__do_node_tear_down_ok_with_console(self):
         self._test__do_node_tear_down_ok(enabled_console=True)
+
+    def test__do_node_tear_down_with_allocation(self):
+        self._test__do_node_tear_down_ok(with_allocation=True)
 
     @mock.patch('ironic.drivers.modules.fake.FakeRescue.clean_up')
     @mock.patch('ironic.conductor.manager.ConductorManager._do_node_clean')
@@ -4949,6 +5033,25 @@ class DestroyNodeTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         # Verify reservation was released.
         node.refresh()
         self.assertIsNone(node.reservation)
+
+    def test_destroy_node_with_allocation(self):
+        # Nodes with allocations can be deleted in maintenance
+        node = obj_utils.create_test_node(self.context,
+                                          provision_state=states.ACTIVE,
+                                          maintenance=True)
+        alloc = obj_utils.create_test_allocation(self.context)
+        # Establish cross-linking between the node and the allocation
+        alloc.node_id = node.id
+        alloc.save()
+        node.refresh()
+
+        self.service.destroy_node(self.context, node.uuid)
+        self.assertRaises(exception.NodeNotFound,
+                          self.dbapi.get_node_by_uuid,
+                          node.uuid)
+        self.assertRaises(exception.AllocationNotFound,
+                          self.dbapi.get_allocation_by_id,
+                          alloc.id)
 
     def test_destroy_node_invalid_provision_state(self):
         self._start_service()

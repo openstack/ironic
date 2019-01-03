@@ -66,6 +66,7 @@ from ironic.common import network
 from ironic.common import release_mappings as versions
 from ironic.common import states
 from ironic.common import swift
+from ironic.conductor import allocations
 from ironic.conductor import base_manager
 from ironic.conductor import notification_utils as notify_utils
 from ironic.conductor import task_manager
@@ -100,7 +101,7 @@ class ConductorManager(base_manager.BaseConductorManager):
     # NOTE(rloo): This must be in sync with rpcapi.ConductorAPI's.
     # NOTE(pas-ha): This also must be in sync with
     #               ironic.common.release_mappings.RELEASE_MAPPING['master']
-    RPC_API_VERSION = '1.47'
+    RPC_API_VERSION = '1.48'
 
     target = messaging.Target(version=RPC_API_VERSION)
 
@@ -243,6 +244,25 @@ class ConductorManager(base_manager.BaseConductorManager):
                     action % {'node': node_obj.uuid,
                               'allowed': ', '.join(allowed_update_states),
                               'field': 'resource_class'})
+
+            if ('instance_uuid' in delta and task.node.allocation_id
+                    and not node_obj.instance_uuid):
+                if (not task.node.maintenance and task.node.provision_state
+                        not in allowed_update_states):
+                    action = _("Node %(node)s with an allocation can not have "
+                               "instance_uuid removed unless it is in one of "
+                               "allowed (%(allowed)s) states or in "
+                               "maintenance mode.")
+                    raise exception.InvalidState(
+                        action % {'node': node_obj.uuid,
+                                  'allowed': ', '.join(allowed_update_states)})
+
+                try:
+                    allocation = objects.Allocation.get_by_id(
+                        context, task.node.allocation_id)
+                    allocation.destroy()
+                except exception.AllocationNotFound:
+                    pass
 
             node_obj.save()
 
@@ -1023,6 +1043,13 @@ class ConductorManager(base_manager.BaseConductorManager):
             node.driver_internal_info = driver_internal_info
             network.remove_vifs_from_node(task)
             node.save()
+            if node.allocation_id:
+                allocation = objects.Allocation.get_by_id(task.context,
+                                                          node.allocation_id)
+                allocation.destroy()
+                # The destroy() call above removes allocation_id and
+                # instance_uuid, refresh the node to get these changes.
+                node.refresh()
 
         # Begin cleaning
         task.process_event('clean')
@@ -3409,6 +3436,54 @@ class ConductorManager(base_manager.BaseConductorManager):
                 for trait in traits:
                     objects.Trait.destroy(context, node_id=node_id,
                                           trait=trait)
+
+    @METRICS.timer('ConductorManager.create_allocation')
+    @messaging.expected_exceptions(exception.InvalidParameterValue)
+    def create_allocation(self, context, allocation):
+        """Create an allocation in database.
+
+        :param context: an admin context
+        :param allocation: a created (but not saved to the database)
+                           allocation object.
+        :returns: created allocation object.
+        :raises: InvalidParameterValue if some fields fail validation.
+        """
+        LOG.debug("RPC create_allocation called for allocation %s.",
+                  allocation.uuid)
+        allocation.conductor_affinity = self.conductor.id
+        allocation.create()
+
+        # Spawn an asynchronous worker to process the allocation. Copy it to
+        # avoid data races.
+        self._spawn_worker(allocations.do_allocate,
+                           context, allocation.obj_clone())
+
+        # Return the unfinished allocation
+        return allocation
+
+    @METRICS.timer('ConductorManager.destroy_allocation')
+    @messaging.expected_exceptions(exception.InvalidState)
+    def destroy_allocation(self, context, allocation):
+        """Delete an allocation.
+
+        :param context: request context.
+        :param allocation: allocation object.
+        :raises: InvalidState if the associated node is in the wrong provision
+            state to perform deallocation.
+        """
+        if allocation.node_id:
+            with task_manager.acquire(context, allocation.node_id,
+                                      purpose='allocation deletion',
+                                      shared=False) as task:
+                allocations.verify_node_for_deallocation(task.node, allocation)
+                # NOTE(dtantsur): remove the allocation while still holding
+                # the node lock to avoid races.
+                allocation.destroy()
+        else:
+            allocation.destroy()
+
+        LOG.info('Successfully deleted allocation %(uuid)s',
+                 allocation.uuid)
 
 
 @METRICS.timer('get_vendor_passthru_metadata')
