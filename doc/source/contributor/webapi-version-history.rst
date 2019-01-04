@@ -2,6 +2,20 @@
 REST API Version History
 ========================
 
+1.55 (Stein, master)
+--------------------
+
+Added the following new endpoints for deploy templates:
+
+* ``GET /v1/deploy_templates`` to list all deploy templates.
+* ``GET /v1/deploy_templates/<deploy template identifier>`` to retrieve details
+  of a deploy template.
+* ``POST /v1/deploy_templates`` to create a deploy template.
+* ``PATCH /v1/deploy_templates/<deploy template identifier>`` to update a
+  deploy template.
+* ``DELETE /v1/deploy_templates/<deploy template identifier>`` to delete a
+  deploy template.
+
 1.54 (Stein, master)
 --------------------
 

@@ -31,6 +31,7 @@ from ironic.api.controllers.v1 import versions
 from ironic.common import exception
 from ironic.common import faults
 from ironic.common.i18n import _
+from ironic.common import policy
 from ironic.common import states
 from ironic.common import utils
 from ironic import objects
@@ -41,7 +42,8 @@ CONF = cfg.CONF
 
 JSONPATCH_EXCEPTIONS = (jsonpatch.JsonPatchException,
                         jsonpatch.JsonPointerException,
-                        KeyError)
+                        KeyError,
+                        IndexError)
 
 
 # Minimum API version to use for certain verbs
@@ -92,12 +94,16 @@ def validate_sort_dir(sort_dir):
     return sort_dir
 
 
-def validate_trait(trait):
+def validate_trait(trait, error_prefix='Invalid trait'):
     error = wsme.exc.ClientSideError(
-        _('Invalid trait. A valid trait must be no longer than 255 '
+        _('%(error_prefix)s. A valid trait must be no longer than 255 '
           'characters. Standard traits are defined in the os_traits library. '
           'A custom trait must start with the prefix CUSTOM_ and use '
-          'the following characters: A-Z, 0-9 and _'))
+          'the following characters: A-Z, 0-9 and _') %
+        {'error_prefix': error_prefix})
+    if not isinstance(trait, six.string_types):
+        raise error
+
     if len(trait) > 255 or len(trait) < 1:
         raise error
 
@@ -297,6 +303,45 @@ def get_rpc_allocation_with_suffix(allocation_ident):
     """
     return _get_with_suffix(get_rpc_allocation, allocation_ident,
                             exception.AllocationNotFound)
+
+
+def get_rpc_deploy_template(template_ident):
+    """Get the RPC deploy template from the UUID or logical name.
+
+    :param template_ident: the UUID or logical name of a deploy template.
+
+    :returns: The RPC deploy template.
+    :raises: InvalidUuidOrName if the name or uuid provided is not valid.
+    :raises: DeployTemplateNotFound if the deploy template is not found.
+    """
+    # Check to see if the template_ident is a valid UUID.  If it is, treat it
+    # as a UUID.
+    if uuidutils.is_uuid_like(template_ident):
+        return objects.DeployTemplate.get_by_uuid(pecan.request.context,
+                                                  template_ident)
+
+    # We can refer to templates by their name
+    if utils.is_valid_logical_name(template_ident):
+        return objects.DeployTemplate.get_by_name(pecan.request.context,
+                                                  template_ident)
+    raise exception.InvalidUuidOrName(name=template_ident)
+
+
+def get_rpc_deploy_template_with_suffix(template_ident):
+    """Get the RPC deploy template from the UUID or logical name.
+
+    If HAS_JSON_SUFFIX flag is set in the pecan environment, try also looking
+    for template_ident with '.json' suffix. Otherwise identical
+    to get_rpc_deploy_template.
+
+    :param template_ident: the UUID or logical name of a deploy template.
+
+    :returns: The RPC deploy template.
+    :raises: InvalidUuidOrName if the name or uuid provided is not valid.
+    :raises: DeployTemplateNotFound if the deploy template is not found.
+    """
+    return _get_with_suffix(get_rpc_deploy_template, template_ident,
+                            exception.DeployTemplateNotFound)
 
 
 def is_valid_node_name(name):
@@ -1031,3 +1076,21 @@ def allow_expose_events():
     Version 1.54 of the API added the events endpoint.
     """
     return pecan.request.version.minor >= versions.MINOR_54_EVENTS
+
+
+def allow_deploy_templates():
+    """Check if accessing deploy template endpoints is allowed.
+
+    Version 1.55 of the API exposed deploy template endpoints.
+    """
+    return pecan.request.version.minor >= versions.MINOR_55_DEPLOY_TEMPLATES
+
+
+def check_policy(policy_name):
+    """Check if the specified policy is authorised for this request.
+
+    :policy_name: Name of the policy to check.
+    :raises: HTTPForbidden if the policy forbids access.
+    """
+    cdict = pecan.request.context.to_policy_values()
+    policy.authorize(policy_name, cdict, cdict)

@@ -26,6 +26,7 @@ import wsme
 from ironic.api.controllers.v1 import node as api_node
 from ironic.api.controllers.v1 import utils
 from ironic.common import exception
+from ironic.common import policy
 from ironic.common import states
 from ironic import objects
 from ironic.tests import base
@@ -80,6 +81,10 @@ class TestApiUtils(base.TestCase):
         utils.validate_trait(large)
         self.assertRaises(wsme.exc.ClientSideError,
                           utils.validate_trait, large + "1")
+        # Check custom error prefix.
+        self.assertRaisesRegex(wsme.exc.ClientSideError,
+                               "spongebob",
+                               utils.validate_trait, "invalid", "spongebob")
 
     def test_get_patch_values_no_path(self):
         patch = [{'path': '/name', 'op': 'update', 'value': 'node-0'}]
@@ -530,6 +535,13 @@ class TestApiUtils(base.TestCase):
         mock_request.version.minor = 52
         self.assertFalse(utils.allow_port_is_smartnic())
 
+    @mock.patch.object(pecan, 'request', spec_set=['version'])
+    def test_allow_deploy_templates(self, mock_request):
+        mock_request.version.minor = 55
+        self.assertTrue(utils.allow_deploy_templates())
+        mock_request.version.minor = 54
+        self.assertFalse(utils.allow_deploy_templates())
+
 
 class TestNodeIdent(base.TestCase):
 
@@ -716,6 +728,20 @@ class TestVendorPassthru(base.TestCase):
         self.assertEqual(sorted(expected),
                          sorted(utils.get_controller_reserved_names(
                                 api_node.NodesController)))
+
+    @mock.patch.object(pecan, 'request', spec_set=["context"])
+    @mock.patch.object(policy, 'authorize', spec=True)
+    def test_check_policy(self, mock_authorize, mock_pr):
+        utils.check_policy('fake-policy')
+        cdict = pecan.request.context.to_policy_values()
+        mock_authorize.assert_called_once_with('fake-policy', cdict, cdict)
+
+    @mock.patch.object(pecan, 'request', spec_set=["context"])
+    @mock.patch.object(policy, 'authorize', spec=True)
+    def test_check_policy_forbidden(self, mock_authorize, mock_pr):
+        mock_authorize.side_effect = exception.HTTPForbidden(resource='fake')
+        self.assertRaises(exception.HTTPForbidden,
+                          utils.check_policy, 'fake-policy')
 
 
 class TestPortgroupIdent(base.TestCase):

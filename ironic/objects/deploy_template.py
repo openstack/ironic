@@ -15,6 +15,7 @@ from oslo_versionedobjects import base as object_base
 from ironic.db import api as db_api
 from ironic.objects import base
 from ironic.objects import fields as object_fields
+from ironic.objects import notification
 
 
 @base.IronicObjectRegistry.register
@@ -239,3 +240,42 @@ class DeployTemplate(base.IronicObject, object_base.VersionedObjectDictCompat):
         current = self.get_by_uuid(self._context, uuid=self.uuid)
         self.obj_refresh(current)
         self.obj_reset_changes()
+
+
+@base.IronicObjectRegistry.register
+class DeployTemplateCRUDNotification(notification.NotificationBase):
+    """Notification emitted on deploy template API operations."""
+    # Version 1.0: Initial version
+    VERSION = '1.0'
+
+    fields = {
+        'payload': object_fields.ObjectField('DeployTemplateCRUDPayload')
+    }
+
+
+@base.IronicObjectRegistry.register
+class DeployTemplateCRUDPayload(notification.NotificationPayloadBase):
+    # Version 1.0: Initial version
+    VERSION = '1.0'
+
+    SCHEMA = {
+        'created_at': ('deploy_template', 'created_at'),
+        'extra': ('deploy_template', 'extra'),
+        'name': ('deploy_template', 'name'),
+        'steps': ('deploy_template', 'steps'),
+        'updated_at': ('deploy_template', 'updated_at'),
+        'uuid': ('deploy_template', 'uuid')
+    }
+
+    fields = {
+        'created_at': object_fields.DateTimeField(nullable=True),
+        'extra': object_fields.FlexibleDictField(nullable=True),
+        'name': object_fields.StringField(nullable=False),
+        'steps': object_fields.ListOfFlexibleDictsField(nullable=False),
+        'updated_at': object_fields.DateTimeField(nullable=True),
+        'uuid': object_fields.UUIDField()
+    }
+
+    def __init__(self, deploy_template, **kwargs):
+        super(DeployTemplateCRUDPayload, self).__init__(**kwargs)
+        self.populate_schema(deploy_template=deploy_template)

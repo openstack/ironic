@@ -20,9 +20,11 @@ import hashlib
 import json
 
 from ironic.api.controllers.v1 import chassis as chassis_controller
+from ironic.api.controllers.v1 import deploy_template as dt_controller
 from ironic.api.controllers.v1 import node as node_controller
 from ironic.api.controllers.v1 import port as port_controller
 from ironic.api.controllers.v1 import portgroup as portgroup_controller
+from ironic.api.controllers.v1 import types
 from ironic.api.controllers.v1 import utils as api_utils
 from ironic.api.controllers.v1 import volume_connector as vc_controller
 from ironic.api.controllers.v1 import volume_target as vt_controller
@@ -200,3 +202,24 @@ def allocation_post_data(**kw):
 def fake_event_validator(v):
     """A fake event validator"""
     return v
+
+
+def deploy_template_post_data(**kw):
+    """Return a DeployTemplate object without internal attributes."""
+    template = db_utils.get_test_deploy_template(**kw)
+    # These values are not part of the API object
+    template.pop('version')
+    # Remove internal attributes from each step.
+    step_internal = types.JsonPatchType.internal_attrs()
+    step_internal.append('deploy_template_id')
+    template['steps'] = [remove_internal(step, step_internal)
+                         for step in template['steps']]
+    # Remove internal attributes from the template.
+    dt_patch = dt_controller.DeployTemplatePatchType
+    internal = dt_patch.internal_attrs()
+    return remove_internal(template, internal)
+
+
+def post_get_test_deploy_template(**kw):
+    """Return a DeployTemplate object with appropriate attributes."""
+    return deploy_template_post_data(**kw)

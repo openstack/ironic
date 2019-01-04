@@ -28,6 +28,7 @@ from ironic.api.controllers import link
 from ironic.api.controllers.v1 import allocation
 from ironic.api.controllers.v1 import chassis
 from ironic.api.controllers.v1 import conductor
+from ironic.api.controllers.v1 import deploy_template
 from ironic.api.controllers.v1 import driver
 from ironic.api.controllers.v1 import event
 from ironic.api.controllers.v1 import node
@@ -108,6 +109,9 @@ class V1(base.APIBase):
 
     allocations = [link.Link]
     """Links to the allocations resource"""
+
+    deploy_templates = [link.Link]
+    """Links to the deploy_templates resource"""
 
     version = version.Version
     """Version discovery information."""
@@ -216,6 +220,16 @@ class V1(base.APIBase):
                                              'events', '',
                                              bookmark=True)
                          ]
+        if utils.allow_deploy_templates():
+            v1.deploy_templates = [
+                link.Link.make_link('self',
+                                    pecan.request.public_url,
+                                    'deploy_templates', ''),
+                link.Link.make_link('bookmark',
+                                    pecan.request.public_url,
+                                    'deploy_templates', '',
+                                    bookmark=True)
+            ]
         v1.version = version.default_version()
         return v1
 
@@ -234,6 +248,7 @@ class Controller(rest.RestController):
     conductors = conductor.ConductorsController()
     allocations = allocation.AllocationsController()
     events = event.EventsController()
+    deploy_templates = deploy_template.DeployTemplatesController()
 
     @expose.expose(V1)
     def get(self):

@@ -22,20 +22,34 @@ from wsme import types as wtypes
 from ironic.common.i18n import _
 
 
-class APIBase(wtypes.Base):
+class AsDictMixin(object):
+    """Mixin class adding an as_dict() method."""
+
+    def as_dict(self):
+        """Render this object as a dict of its fields."""
+        def _attr_as_pod(attr):
+            """Return an attribute as a Plain Old Data (POD) type."""
+            if isinstance(attr, list):
+                return [_attr_as_pod(item) for item in attr]
+            # Recursively evaluate objects that support as_dict().
+            try:
+                return attr.as_dict()
+            except AttributeError:
+                return attr
+
+        return dict((k, _attr_as_pod(getattr(self, k)))
+                    for k in self.fields
+                    if hasattr(self, k)
+                    and getattr(self, k) != wsme.Unset)
+
+
+class APIBase(wtypes.Base, AsDictMixin):
 
     created_at = wsme.wsattr(datetime.datetime, readonly=True)
     """The time in UTC at which the object is created"""
 
     updated_at = wsme.wsattr(datetime.datetime, readonly=True)
     """The time in UTC at which the object is updated"""
-
-    def as_dict(self):
-        """Render this object as a dict of its fields."""
-        return dict((k, getattr(self, k))
-                    for k in self.fields
-                    if hasattr(self, k)
-                    and getattr(self, k) != wsme.Unset)
 
     def unset_fields_except(self, except_list=None):
         """Unset fields so they don't appear in the message body.

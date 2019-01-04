@@ -434,6 +434,34 @@ event_policies = [
 ]
 
 
+deploy_template_policies = [
+    policy.DocumentedRuleDefault(
+        'baremetal:deploy_template:get',
+        'rule:is_admin or rule:is_observer',
+        'Retrieve Deploy Template records',
+        [{'path': '/deploy_templates', 'method': 'GET'},
+         {'path': '/deploy_templates/{deploy_template_ident}',
+          'method': 'GET'}]),
+    policy.DocumentedRuleDefault(
+        'baremetal:deploy_template:create',
+        'rule:is_admin',
+        'Create Deploy Template records',
+        [{'path': '/deploy_templates', 'method': 'POST'}]),
+    policy.DocumentedRuleDefault(
+        'baremetal:deploy_template:delete',
+        'rule:is_admin',
+        'Delete Deploy Template records',
+        [{'path': '/deploy_templates/{deploy_template_ident}',
+          'method': 'DELETE'}]),
+    policy.DocumentedRuleDefault(
+        'baremetal:deploy_template:update',
+        'rule:is_admin',
+        'Update Deploy Template records',
+        [{'path': '/deploy_templates/{deploy_template_ident}',
+          'method': 'PATCH'}]),
+]
+
+
 def list_policies():
     policies = itertools.chain(
         default_policies,
@@ -447,7 +475,8 @@ def list_policies():
         volume_policies,
         conductor_policies,
         allocation_policies,
-        event_policies
+        event_policies,
+        deploy_template_policies,
     )
     return policies
 

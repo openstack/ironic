@@ -819,3 +819,7 @@ class DeployTemplateAlreadyExists(Conflict):
 
 class DeployTemplateNotFound(NotFound):
     _msg_fmt = _("Deploy template %(template)s could not be found.")
+
+
+class InvalidDeployTemplate(Invalid):
+    _msg_fmt = _("Deploy template invalid: %(err)s.")

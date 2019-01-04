@@ -148,6 +148,7 @@ MINOR_51_NODE_DESCRIPTION = 51
 MINOR_52_ALLOCATION = 52
 MINOR_53_PORT_SMARTNIC = 53
 MINOR_54_EVENTS = 54
+MINOR_55_DEPLOY_TEMPLATES = 55
 
 # When adding another version, update:
 # - MINOR_MAX_VERSION
@@ -155,7 +156,7 @@ MINOR_54_EVENTS = 54
 #   explanation of what changed in the new version
 # - common/release_mappings.py, RELEASE_MAPPING['master']['api']
 
-MINOR_MAX_VERSION = MINOR_54_EVENTS
+MINOR_MAX_VERSION = MINOR_55_DEPLOY_TEMPLATES
 
 # String representations of the minor and maximum versions
 _MIN_VERSION_STRING = '{}.{}'.format(BASE_VERSION, MINOR_1_INITIAL_VERSION)

@@ -23,6 +23,7 @@ from ironic.common import exception
 from ironic.common.i18n import _
 from ironic.objects import allocation as allocation_objects
 from ironic.objects import chassis as chassis_objects
+from ironic.objects import deploy_template as deploy_template_objects
 from ironic.objects import fields
 from ironic.objects import node as node_objects
 from ironic.objects import notification
@@ -40,6 +41,8 @@ CRUD_NOTIFY_OBJ = {
                    allocation_objects.AllocationCRUDPayload),
     'chassis': (chassis_objects.ChassisCRUDNotification,
                 chassis_objects.ChassisCRUDPayload),
+    'deploytemplate': (deploy_template_objects.DeployTemplateCRUDNotification,
+                       deploy_template_objects.DeployTemplateCRUDPayload),
     'node': (node_objects.NodeCRUDNotification,
              node_objects.NodeCRUDPayload),
     'port': (port_objects.PortCRUDNotification,
