@@ -128,6 +128,12 @@ into the introspection ramdisk.
    Redfish specification. Not all Redfish-compliant BMCs might serve the
    required information, in which case bare metal node inspection will fail.
 
+.. note::
+
+   The ``local_gb`` property cannot always be discovered, for example, when a
+   node does not have local storage or the Redfish implementation does not
+   support the required schema. In this case the property will be set to 0.
+
 .. _Redfish: http://redfish.dmtf.org/
 .. _Sushy: https://git.openstack.org/cgit/openstack/sushy
 .. _TLS: https://en.wikipedia.org/wiki/Transport_Layer_Security
