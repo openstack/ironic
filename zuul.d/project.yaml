@@ -11,41 +11,41 @@
       - release-notes-jobs-python3
     check:
       jobs:
-        - ironic-dsvm-standalone
-        - ironic-tempest-dsvm-functional-python2
-        - ironic-tempest-dsvm-functional-python3
+        - ironic-standalone
+        - ironic-tempest-functional-python2
+        - ironic-tempest-functional-python3
         - ironic-grenade-dsvm
         - ironic-grenade-dsvm-multinode-multitenant
-        - ironic-tempest-dsvm-ipa-partition-pxe_ipmitool-tinyipa-python3
-        - ironic-tempest-dsvm-ipa-partition-redfish-tinyipa
-        - ironic-tempest-dsvm-ipa-partition-uefi-pxe_ipmitool-tinyipa
-        - ironic-tempest-dsvm-ipa-wholedisk-direct-tinyipa-multinode
-        - ironic-tempest-dsvm-ipa-wholedisk-bios-agent_ipmitool-tinyipa
-        - ironic-tempest-dsvm-ipa-wholedisk-bios-agent_ipmitool-tinyipa-indirect
-        - ironic-tempest-dsvm-ipa-partition-bios-agent_ipmitool-tinyipa-indirect
-        - ironic-tempest-dsvm-bfv
+        - ironic-tempest-ipa-partition-pxe_ipmitool-tinyipa-python3
+        - ironic-tempest-ipa-partition-redfish-tinyipa
+        - ironic-tempest-ipa-partition-uefi-pxe_ipmitool-tinyipa
+        - ironic-tempest-ipa-wholedisk-direct-tinyipa-multinode
+        - ironic-tempest-ipa-wholedisk-bios-agent_ipmitool-tinyipa
+        - ironic-tempest-ipa-wholedisk-bios-agent_ipmitool-tinyipa-indirect
+        - ironic-tempest-ipa-partition-bios-agent_ipmitool-tinyipa-indirect
+        - ironic-tempest-bfv
         # Non-voting jobs
-        - ironic-tempest-dsvm-ipa-wholedisk-bios-pxe_snmp-tinyipa:
+        - ironic-tempest-ipa-wholedisk-bios-pxe_snmp-tinyipa:
             voting: false
-        - ironic-tempest-dsvm-ironic-inspector:
+        - ironic-inspector-tempest:
             voting: false
         - bifrost-integration-tinyipa-ubuntu-xenial:
             voting: false
-        - ironic-tempest-dsvm-pxe_ipmitool-postgres:
+        - ironic-tempest-pxe_ipmitool-postgres:
             voting: false
     gate:
       queue: ironic
       jobs:
-        - ironic-dsvm-standalone
-        - ironic-tempest-dsvm-functional-python2
-        - ironic-tempest-dsvm-functional-python3
+        - ironic-standalone
+        - ironic-tempest-functional-python2
+        - ironic-tempest-functional-python3
         - ironic-grenade-dsvm
         - ironic-grenade-dsvm-multinode-multitenant
-        - ironic-tempest-dsvm-ipa-partition-pxe_ipmitool-tinyipa-python3
-        - ironic-tempest-dsvm-ipa-partition-redfish-tinyipa
-        - ironic-tempest-dsvm-ipa-partition-uefi-pxe_ipmitool-tinyipa
-        - ironic-tempest-dsvm-ipa-wholedisk-direct-tinyipa-multinode
-        - ironic-tempest-dsvm-ipa-wholedisk-bios-agent_ipmitool-tinyipa
-        - ironic-tempest-dsvm-ipa-wholedisk-bios-agent_ipmitool-tinyipa-indirect
-        - ironic-tempest-dsvm-ipa-partition-bios-agent_ipmitool-tinyipa-indirect
-        - ironic-tempest-dsvm-bfv
+        - ironic-tempest-ipa-partition-pxe_ipmitool-tinyipa-python3
+        - ironic-tempest-ipa-partition-redfish-tinyipa
+        - ironic-tempest-ipa-partition-uefi-pxe_ipmitool-tinyipa
+        - ironic-tempest-ipa-wholedisk-direct-tinyipa-multinode
+        - ironic-tempest-ipa-wholedisk-bios-agent_ipmitool-tinyipa
+        - ironic-tempest-ipa-wholedisk-bios-agent_ipmitool-tinyipa-indirect
+        - ironic-tempest-ipa-partition-bios-agent_ipmitool-tinyipa-indirect
+        - ironic-tempest-bfv
