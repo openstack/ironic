@@ -465,15 +465,35 @@ def dhcp_options_for_instance(task, ipxe_enabled=False, url_boot=False):
         # if the request comes from dumb firmware send them the iPXE
         # boot image.
         if dhcp_provider_name == 'neutron':
-            # Neutron use dnsmasq as default DHCP agent, add extra config
-            # to neutron "dhcp-match=set:ipxe,175" and use below option
+            # Neutron use dnsmasq as default DHCP agent. Neutron carries the
+            # configuration to relate to the tags below. The ipxe6 tag was
+            # added in the Stein cycle which identifies the iPXE User-Class
+            # directly and is only sent in DHCPv6.
+
+            # NOTE(TheJulia): Lets send both, let neutron tag/sort it out as
+            # an ip_version field is also transmitted. Plus, given the
+            # semi-obscure nature of this, being more verbose and letting
+            # the DHCP server do the best thing possible is likely the best
+            # course of action.
             dhcp_opts.append({'opt_name': "tag:!ipxe,%s" % boot_file_param,
                               'opt_value': boot_file})
+            dhcp_opts.append({'opt_name': "tag:!ipxe6,%s" % boot_file_param,
+                              'opt_value': boot_file})
             dhcp_opts.append({'opt_name': "tag:ipxe,%s" % boot_file_param,
+                              'opt_value': ipxe_script_url})
+            dhcp_opts.append({'opt_name': "tag:ipxe6,%s" % boot_file_param,
                               'opt_value': ipxe_script_url})
         else:
             # !175 == non-iPXE.
             # http://ipxe.org/howto/dhcpd#ipxe-specific_options
+            if ip_version == 6:
+                LOG.warning('IPv6 is enabled and the DHCP driver appears set '
+                            'to a plugin aside from "neutron". Node %(name)s '
+                            'may not receive proper DHCPv6 provided '
+                            'boot parameters.'.format(name=task.node.uuid))
+            # NOTE(TheJulia): This was added for ISC DHCPd support, however it
+            # appears that isc support was never added to neutron and is likely
+            # a down stream driver.
             dhcp_opts.append({'opt_name': "!%s,%s" % (DHCP_IPXE_ENCAP_OPTS,
                               boot_file_param),
                               'opt_value': boot_file})
