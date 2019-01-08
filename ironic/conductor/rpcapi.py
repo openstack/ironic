@@ -29,6 +29,7 @@ from ironic.common import release_mappings as versions
 from ironic.common import rpc
 from ironic.conductor import manager
 from ironic.conf import CONF
+from ironic.db import api as dbapi
 from ironic.objects import base as objects_base
 
 
@@ -152,6 +153,16 @@ class ConductorAPI(object):
 
         """
         hostname = self.get_conductor_for(node)
+        return '%s.%s' % (self.topic, hostname)
+
+    def get_random_topic(self):
+        """Get an RPC topic for a random conductor service."""
+        conductors = dbapi.get_instance().get_online_conductors()
+        try:
+            hostname = random.choice(conductors)
+        except IndexError:
+            # There are no conductors - return 503 Service Unavailable
+            raise exception.TemporaryFailure()
         return '%s.%s' % (self.topic, hostname)
 
     def get_topic_for_driver(self, driver_name):
