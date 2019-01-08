@@ -25,6 +25,7 @@ from wsme import types as wtypes
 
 from ironic.api.controllers import base
 from ironic.api.controllers import link
+from ironic.api.controllers.v1 import allocation
 from ironic.api.controllers.v1 import chassis
 from ironic.api.controllers.v1 import conductor
 from ironic.api.controllers.v1 import driver
@@ -103,6 +104,9 @@ class V1(base.APIBase):
 
     conductors = [link.Link]
     """Links to the conductors resource"""
+
+    allocations = [link.Link]
+    """Links to the allocations resource"""
 
     version = version.Version
     """Version discovery information."""
@@ -191,6 +195,15 @@ class V1(base.APIBase):
                                                  'conductors', '',
                                                  bookmark=True)
                              ]
+        if utils.allow_allocations():
+            v1.allocations = [link.Link.make_link('self',
+                                                  pecan.request.public_url,
+                                                  'allocations', ''),
+                              link.Link.make_link('bookmark',
+                                                  pecan.request.public_url,
+                                                  'allocations', '',
+                                                  bookmark=True)
+                              ]
         v1.version = version.default_version()
         return v1
 
@@ -207,6 +220,7 @@ class Controller(rest.RestController):
     lookup = ramdisk.LookupController()
     heartbeat = ramdisk.HeartbeatController()
     conductors = conductor.ConductorsController()
+    allocations = allocation.AllocationsController()
 
     @expose.expose(V1)
     def get(self):

@@ -260,6 +260,45 @@ def get_rpc_portgroup_with_suffix(portgroup_ident):
                             exception.PortgroupNotFound)
 
 
+def get_rpc_allocation(allocation_ident):
+    """Get the RPC allocation from the allocation UUID or logical name.
+
+    :param allocation_ident: the UUID or logical name of an allocation.
+
+    :returns: The RPC allocation.
+    :raises: InvalidUuidOrName if the name or uuid provided is not valid.
+    :raises: AllocationNotFound if the allocation is not found.
+    """
+    # Check to see if the allocation_ident is a valid UUID.  If it is, treat it
+    # as a UUID.
+    if uuidutils.is_uuid_like(allocation_ident):
+        return objects.Allocation.get_by_uuid(pecan.request.context,
+                                              allocation_ident)
+
+    # We can refer to allocations by their name
+    if utils.is_valid_logical_name(allocation_ident):
+        return objects.Allocation.get_by_name(pecan.request.context,
+                                              allocation_ident)
+    raise exception.InvalidUuidOrName(name=allocation_ident)
+
+
+def get_rpc_allocation_with_suffix(allocation_ident):
+    """Get the RPC allocation from the allocation UUID or logical name.
+
+    If HAS_JSON_SUFFIX flag is set in the pecan environment, try also looking
+    for allocation_ident with '.json' suffix. Otherwise identical
+    to get_rpc_allocation.
+
+    :param allocation_ident: the UUID or logical name of an allocation.
+
+    :returns: The RPC allocation.
+    :raises: InvalidUuidOrName if the name or uuid provided is not valid.
+    :raises: AllocationNotFound if the allocation is not found.
+    """
+    return _get_with_suffix(get_rpc_allocation, allocation_ident,
+                            exception.AllocationNotFound)
+
+
 def is_valid_node_name(name):
     """Determine if the provided name is a valid node name.
 
@@ -381,6 +420,7 @@ VERSIONED_FIELDS = {
     'conductor': versions.MINOR_49_CONDUCTORS,
     'owner': versions.MINOR_50_NODE_OWNER,
     'description': versions.MINOR_51_NODE_DESCRIPTION,
+    'allocation_uuid': versions.MINOR_52_ALLOCATION,
 }
 
 for field in V31_FIELDS:
@@ -963,3 +1003,12 @@ def check_allow_filter_by_conductor(conductor):
             "should be %(base)s.%(opr)s") %
             {'base': versions.BASE_VERSION,
              'opr': versions.MINOR_49_CONDUCTORS})
+
+
+def allow_allocations():
+    """Check if accessing allocation endpoints is allowed.
+
+    Version 1.52 of the API exposed allocation endpoints and allocation_uuid
+    field for the node.
+    """
+    return pecan.request.version.minor >= versions.MINOR_52_ALLOCATION

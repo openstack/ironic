@@ -28,6 +28,7 @@ from wsme import types as wtypes
 
 from ironic.api.controllers import base
 from ironic.api.controllers import link
+from ironic.api.controllers.v1 import allocation
 from ironic.api.controllers.v1 import bios
 from ironic.api.controllers.v1 import collection
 from ironic.api.controllers.v1 import notification_utils as notify
@@ -1083,6 +1084,9 @@ class Node(base.APIBase):
     description = wsme.wsattr(wtypes.text)
     """Field for node description"""
 
+    allocation_uuid = wsme.wsattr(types.uuid, readonly=True)
+    """The UUID of the allocation this node belongs"""
+
     # NOTE(deva): "conductor_affinity" shouldn't be presented on the
     #             API because it's an internal value. Don't add it here.
 
@@ -1174,8 +1178,21 @@ class Node(base.APIBase):
                           '%(node)s.', {'node': rpc_node.uuid})
                 node.conductor = None
 
+        if (api_utils.allow_allocations()
+                and (fields is None or 'allocation_uuid' in fields)):
+            node.allocation_uuid = None
+            if rpc_node.allocation_id:
+                try:
+                    allocation = objects.Allocation.get_by_id(
+                        pecan.request.context,
+                        rpc_node.allocation_id)
+                    node.allocation_uuid = allocation.uuid
+                except exception.AllocationNotFound:
+                    pass
+
         if fields is not None:
-            api_utils.check_for_invalid_fields(fields, node.as_dict())
+            api_utils.check_for_invalid_fields(
+                fields, set(node.as_dict()) | {'allocation_uuid'})
 
         show_states_links = (
             api_utils.allow_links_node_states_and_driver_properties())
@@ -1285,7 +1302,8 @@ class Node(base.APIBase):
                      storage_interface=None, traits=[], rescue_interface=None,
                      bios_interface=None, conductor_group="",
                      automated_clean=None, protected=False,
-                     protected_reason=None, owner=None)
+                     protected_reason=None, owner=None,
+                     allocation_uuid='982ddb5b-bce5-4d23-8fb8-7f710f648cd5')
         # NOTE(matty_dubs): The chassis_uuid getter() is based on the
         # _chassis_uuid variable:
         sample._chassis_uuid = 'edcad704-b2da-41d5-96d9-afd580ecfa12'
@@ -1311,7 +1329,7 @@ class NodePatchType(types.JsonPatchType):
                            '/inspection_started_at', '/clean_step',
                            '/deploy_step',
                            '/raid_config', '/target_raid_config',
-                           '/fault', '/conductor']
+                           '/fault', '/conductor', '/allocation_uuid']
 
 
 class NodeCollection(collection.Collection):
@@ -1563,6 +1581,7 @@ class NodesController(rest.RestController):
         'volume': volume.VolumeController,
         'traits': NodeTraitsController,
         'bios': bios.NodeBiosController,
+        'allocation': allocation.NodeAllocationController,
     }
 
     @pecan.expose()
@@ -1578,7 +1597,9 @@ class NodesController(rest.RestController):
             or (remainder[0] == 'vifs'
                 and not api_utils.allow_vifs_subcontroller())
             or (remainder[0] == 'bios' and
-                not api_utils.allow_bios_interface())):
+                not api_utils.allow_bios_interface())
+            or (remainder[0] == 'allocation'
+                and not api_utils.allow_allocations())):
             pecan.abort(http_client.NOT_FOUND)
         if remainder[0] == 'traits' and not api_utils.allow_traits():
             # NOTE(mgoddard): Returning here will ensure we exhibit the
@@ -2005,6 +2026,10 @@ class NodesController(rest.RestController):
                 len(node.description) > _NODE_DESCRIPTION_MAX_LENGTH):
             msg = _("Cannot create node with description exceeds %s "
                     "characters") % _NODE_DESCRIPTION_MAX_LENGTH
+            raise exception.Invalid(msg)
+
+        if node.allocation_uuid is not wtypes.Unset:
+            msg = _("Allocation UUID cannot be specified, use allocations API")
             raise exception.Invalid(msg)
 
         # NOTE(deva): get_topic_for checks if node.driver is in the hash ring

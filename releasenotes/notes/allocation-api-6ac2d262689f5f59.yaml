@@ -1,0 +1,10 @@
+---
+features:
+  - |
+    Introduces allocation API. This API allows finding and reserving a node
+    by its resource class, traits and optional list of candidate nodes.
+    Introduces new API endpoints:
+
+    * ``GET/POST /v1/allocations``
+    * ``GET/DELETE /v1/allocations/<ID or name>``
+    * ``GET/DELETE /v1/nodes/<ID or name>/allocation``

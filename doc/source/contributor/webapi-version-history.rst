@@ -2,6 +2,23 @@
 REST API Version History
 ========================
 
+1.52 (Stein, master)
+--------------------
+
+Added allocation API, allowing reserving a node for deployment based on
+resource class and traits. The new endpoints are:
+
+* ``POST /v1/allocations`` to request an allocation.
+* ``GET /v1/allocations`` to list all allocations.
+* ``GET /v1/allocations/<ID or name>`` to retrieve the allocation details.
+* ``GET /v1/nodes/<ID or name>/allocation`` to retrieve an allocation
+  associated with the node.
+* ``DELETE /v1/allocations/<ID or name`` to remove the allocation.
+* ``DELETE /v1/nodes/<ID or name/allocation`` to remove an allocation
+  associated with the node.
+
+Also added a new field ``allocation_uuid`` to the node resource.
+
 1.51 (Stein, master)
 --------------------
 

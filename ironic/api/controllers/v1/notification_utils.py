@@ -21,6 +21,7 @@ from wsme import types as wtypes
 
 from ironic.common import exception
 from ironic.common.i18n import _
+from ironic.objects import allocation as allocation_objects
 from ironic.objects import chassis as chassis_objects
 from ironic.objects import fields
 from ironic.objects import node as node_objects
@@ -35,6 +36,8 @@ CONF = cfg.CONF
 
 
 CRUD_NOTIFY_OBJ = {
+    'allocation': (allocation_objects.AllocationCRUDNotification,
+                   allocation_objects.AllocationCRUDPayload),
     'chassis': (chassis_objects.ChassisCRUDNotification,
                 chassis_objects.ChassisCRUDPayload),
     'node': (node_objects.NodeCRUDNotification,
