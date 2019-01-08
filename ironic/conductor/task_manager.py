@@ -149,20 +149,16 @@ def require_exclusive_lock(f):
     return wrapper
 
 
-def acquire(context, node_id, shared=False, purpose='unspecified action'):
+def acquire(context, *args, **kwargs):
     """Shortcut for acquiring a lock on a Node.
 
     :param context: Request context.
-    :param node_id: ID or UUID of node to lock.
-    :param shared: Boolean indicating whether to take a shared or exclusive
-                   lock. Default: False.
-    :param purpose: human-readable purpose to put to debug logs.
     :returns: An instance of :class:`TaskManager`.
 
     """
     # NOTE(lintan): This is a workaround to set the context of periodic tasks.
     context.ensure_thread_contain_context()
-    return TaskManager(context, node_id, shared=shared, purpose=purpose)
+    return TaskManager(context, *args, **kwargs)
 
 
 class TaskManager(object):
@@ -174,7 +170,7 @@ class TaskManager(object):
     """
 
     def __init__(self, context, node_id, shared=False,
-                 purpose='unspecified action'):
+                 purpose='unspecified action', retry=True):
         """Create a new TaskManager.
 
         Acquire a lock on a node. The lock can be either shared or
@@ -187,6 +183,7 @@ class TaskManager(object):
         :param shared: Boolean indicating whether to take a shared or exclusive
                        lock. Default: False.
         :param purpose: human-readable purpose to put to debug logs.
+        :param retry: whether to retry locking if it fails. Default: True.
         :raises: DriverNotFound
         :raises: InterfaceNotFoundInEntrypoint
         :raises: NodeNotFound
@@ -201,6 +198,7 @@ class TaskManager(object):
         self._node = None
         self.node_id = node_id
         self.shared = shared
+        self._retry = retry
 
         self.fsm = states.machine.copy()
         self._purpose = purpose
@@ -251,12 +249,17 @@ class TaskManager(object):
     def _lock(self):
         self._debug_timer.restart()
 
+        if self._retry:
+            attempts = CONF.conductor.node_locked_retry_attempts
+        else:
+            attempts = 1
+
         # NodeLocked exceptions can be annoying. Let's try to alleviate
         # some of that pain by retrying our lock attempts. The retrying
         # module expects a wait_fixed value in milliseconds.
         @retrying.retry(
             retry_on_exception=lambda e: isinstance(e, exception.NodeLocked),
-            stop_max_attempt_number=CONF.conductor.node_locked_retry_attempts,
+            stop_max_attempt_number=attempts,
             wait_fixed=CONF.conductor.node_locked_retry_interval * 1000)
         def reserve_node():
             self.node = objects.Node.reserve(self.context, CONF.host,
