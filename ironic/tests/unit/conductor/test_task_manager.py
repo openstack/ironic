@@ -79,6 +79,24 @@ class TaskManagerTestCase(db_base.DbTestCase):
         release_mock.assert_called_once_with(self.context, self.host,
                                              self.node.id)
 
+    def test_no_driver(self, get_voltgt_mock, get_volconn_mock,
+                       get_portgroups_mock, get_ports_mock,
+                       build_driver_mock, reserve_mock, release_mock,
+                       node_get_mock):
+        reserve_mock.return_value = self.node
+        with task_manager.TaskManager(self.context, 'fake-node-id',
+                                      load_driver=False) as task:
+            self.assertEqual(self.context, task.context)
+            self.assertEqual(self.node, task.node)
+            self.assertEqual(get_ports_mock.return_value, task.ports)
+            self.assertEqual(get_portgroups_mock.return_value, task.portgroups)
+            self.assertEqual(get_volconn_mock.return_value,
+                             task.volume_connectors)
+            self.assertEqual(get_voltgt_mock.return_value, task.volume_targets)
+            self.assertIsNone(task.driver)
+            self.assertFalse(task.shared)
+        self.assertFalse(build_driver_mock.called)
+
     def test_excl_nested_acquire(
             self, get_voltgt_mock, get_volconn_mock, get_portgroups_mock,
             get_ports_mock, build_driver_mock,

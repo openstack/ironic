@@ -149,7 +149,8 @@ def require_exclusive_lock(f):
     return wrapper
 
 
-def acquire(context, node_id, shared=False, purpose='unspecified action'):
+def acquire(context, node_id, shared=False, purpose='unspecified action',
+            **kwargs):
     """Shortcut for acquiring a lock on a Node.
 
     :param context: Request context.
@@ -162,7 +163,8 @@ def acquire(context, node_id, shared=False, purpose='unspecified action'):
     """
     # NOTE(lintan): This is a workaround to set the context of periodic tasks.
     context.ensure_thread_contain_context()
-    return TaskManager(context, node_id, shared=shared, purpose=purpose)
+    return TaskManager(context, node_id, shared=shared, purpose=purpose,
+                       **kwargs)
 
 
 class TaskManager(object):
@@ -174,7 +176,8 @@ class TaskManager(object):
     """
 
     def __init__(self, context, node_id, shared=False,
-                 purpose='unspecified action'):
+                 purpose='unspecified action',
+                 load_driver=True):
         """Create a new TaskManager.
 
         Acquire a lock on a node. The lock can be either shared or
@@ -187,6 +190,9 @@ class TaskManager(object):
         :param shared: Boolean indicating whether to take a shared or exclusive
                        lock. Default: False.
         :param purpose: human-readable purpose to put to debug logs.
+        :param load_driver: whether to load the ``driver`` object. Set this to
+                            False if loading the driver is undesired or
+                            impossible.
         :raises: DriverNotFound
         :raises: InterfaceNotFoundInEntrypoint
         :raises: NodeNotFound
@@ -231,7 +237,10 @@ class TaskManager(object):
                 context, self.node.id)
             self.volume_targets = objects.VolumeTarget.list_by_node_id(
                 context, self.node.id)
-            self.driver = driver_factory.build_driver_for_task(self)
+            if load_driver:
+                self.driver = driver_factory.build_driver_for_task(self)
+            else:
+                self.driver = None
 
         except Exception:
             with excutils.save_and_reraise_exception():
