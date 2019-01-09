@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    A bug has been fixed in the node update code that could cause the nodes
+    to become not updatable if their driver is no longer available.

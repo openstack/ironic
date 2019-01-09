@@ -170,7 +170,8 @@ class TaskManager(object):
     """
 
     def __init__(self, context, node_id, shared=False,
-                 purpose='unspecified action', retry=True):
+                 purpose='unspecified action', retry=True,
+                 load_driver=True):
         """Create a new TaskManager.
 
         Acquire a lock on a node. The lock can be either shared or
@@ -184,6 +185,9 @@ class TaskManager(object):
                        lock. Default: False.
         :param purpose: human-readable purpose to put to debug logs.
         :param retry: whether to retry locking if it fails. Default: True.
+        :param load_driver: whether to load the ``driver`` object. Set this to
+                            False if loading the driver is undesired or
+                            impossible.
         :raises: DriverNotFound
         :raises: InterfaceNotFoundInEntrypoint
         :raises: NodeNotFound
@@ -229,7 +233,10 @@ class TaskManager(object):
                 context, self.node.id)
             self.volume_targets = objects.VolumeTarget.list_by_node_id(
                 context, self.node.id)
-            self.driver = driver_factory.build_driver_for_task(self)
+            if load_driver:
+                self.driver = driver_factory.build_driver_for_task(self)
+            else:
+                self.driver = None
 
         except Exception:
             with excutils.save_and_reraise_exception():
