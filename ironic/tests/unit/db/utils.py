@@ -269,6 +269,7 @@ def get_test_port(**kw):
         'pxe_enabled': kw.get('pxe_enabled', True),
         'internal_info': kw.get('internal_info', {"bar": "buzz"}),
         'physical_network': kw.get('physical_network'),
+        'is_smartnic': kw.get('is_smartnic', False),
     }
 
 

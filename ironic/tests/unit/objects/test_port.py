@@ -165,6 +165,20 @@ class TestPortObject(db_base.DbTestCase, obj_utils.SchemasTestMixIn):
     def test_payload_schemas(self):
         self._check_payload_schemas(objects.port, objects.Port.fields)
 
+    @mock.patch.object(obj_base.IronicObject, 'supports_version',
+                       spec_set=types.FunctionType)
+    def test_supports_is_smartnic_supported(self, mock_sv):
+        mock_sv.return_value = True
+        self.assertTrue(objects.Port.supports_is_smartnic())
+        mock_sv.assert_called_once_with((1, 9))
+
+    @mock.patch.object(obj_base.IronicObject, 'supports_version',
+                       spec_set=types.FunctionType)
+    def test_supports_is_smartnic_unsupported(self, mock_sv):
+        mock_sv.return_value = False
+        self.assertFalse(objects.Port.supports_is_smartnic())
+        mock_sv.assert_called_once_with((1, 9))
+
 
 class TestConvertToVersion(db_base.DbTestCase):
 
@@ -255,6 +269,72 @@ class TestConvertToVersion(db_base.DbTestCase):
         # no change
         self.assertEqual(vif2, port.internal_info['tenant_vif_port_id'])
 
+    def test_is_smartnic_unsupported(self):
+        port = objects.Port(self.context, **self.fake_port)
+        port._convert_to_version("1.8")
+        self.assertNotIn('is_smartnic', port)
+
+    def test_is_smartnic_supported(self):
+        port = objects.Port(self.context, **self.fake_port)
+        port._convert_to_version("1.9")
+        self.assertIn('is_smartnic', port)
+
+    def test_is_smartnic_supported_missing(self):
+        # is_smartnic is not set, should be set to default.
+        port = objects.Port(self.context, **self.fake_port)
+        delattr(port, 'is_smartnic')
+        port.obj_reset_changes()
+        port._convert_to_version("1.9")
+        self.assertFalse(port.is_smartnic)
+        self.assertIn('is_smartnic', port.obj_get_changes())
+        self.assertFalse(port.obj_get_changes()['is_smartnic'])
+
+    def test_is_smartnic_supported_set(self):
+        # is_smartnic is set, no change required.
+        port = objects.Port(self.context, **self.fake_port)
+        port.is_smartnic = True
+        port.obj_reset_changes()
+        port._convert_to_version("1.9")
+        self.assertTrue(port.is_smartnic)
+        self.assertNotIn('is_smartnic', port.obj_get_changes())
+
+    def test_is_smartnic_unsupported_missing(self):
+        # is_smartnic is not set, no change required.
+        port = objects.Port(self.context, **self.fake_port)
+        delattr(port, 'is_smartnic')
+        port.obj_reset_changes()
+        port._convert_to_version("1.8")
+        self.assertNotIn('is_smartnic', port)
+        self.assertNotIn('is_smartnic', port.obj_get_changes())
+
+    def test_is_smartnic_unsupported_set_remove(self):
+        # is_smartnic is set, should be removed.
+        port = objects.Port(self.context, **self.fake_port)
+        port.is_smartnic = False
+        port.obj_reset_changes()
+        port._convert_to_version("1.8")
+        self.assertNotIn('is_smartnic', port)
+        self.assertNotIn('is_smartnic', port.obj_get_changes())
+
+    def test_is_smartnic_unsupported_set_no_remove_non_default(self):
+        # is_smartnic is set, should be set to default.
+        port = objects.Port(self.context, **self.fake_port)
+        port.is_smartnic = True
+        port.obj_reset_changes()
+        port._convert_to_version("1.8", False)
+        self.assertFalse(port.is_smartnic)
+        self.assertIn('is_smartnic', port.obj_get_changes())
+        self.assertFalse(port.obj_get_changes()['is_smartnic'])
+
+    def test_is_smartnic_unsupported_set_no_remove_default(self):
+        # is_smartnic is set, no change required.
+        port = objects.Port(self.context, **self.fake_port)
+        port.is_smartnic = False
+        port.obj_reset_changes()
+        port._convert_to_version("1.8", False)
+        self.assertFalse(port.is_smartnic)
+        self.assertNotIn('is_smartnic', port.obj_get_changes())
+
 
 class TestMigrateVifPortId(db_base.DbTestCase):
 
@@ -278,9 +358,10 @@ class TestMigrateVifPortId(db_base.DbTestCase):
             total, done = objects.port.migrate_vif_port_id(self.context, 0)
             self.assertEqual(3, total)
             self.assertEqual(3, done)
-            mock_get_not_versions.assert_called_once_with('Port', ['1.8'])
+            mock_get_not_versions.assert_called_once_with('Port', ['1.8',
+                                                                   '1.9'])
             calls = 3 * [
-                mock.call(mock.ANY, '1.8', remove_unavailable_fields=False),
+                mock.call(mock.ANY, '1.9', remove_unavailable_fields=False),
             ]
             self.assertEqual(calls, mock_convert.call_args_list)
 
@@ -292,8 +373,9 @@ class TestMigrateVifPortId(db_base.DbTestCase):
             total, done = objects.port.migrate_vif_port_id(self.context, 1)
             self.assertEqual(3, total)
             self.assertEqual(1, done)
-            mock_get_not_versions.assert_called_once_with('Port', ['1.8'])
+            mock_get_not_versions.assert_called_once_with('Port', ['1.8',
+                                                                   '1.9'])
             calls = [
-                mock.call(mock.ANY, '1.8', remove_unavailable_fields=False),
+                mock.call(mock.ANY, '1.9', remove_unavailable_fields=False),
             ]
             self.assertEqual(calls, mock_convert.call_args_list)
