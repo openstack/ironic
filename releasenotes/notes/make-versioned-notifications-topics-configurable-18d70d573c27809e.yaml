@@ -1,0 +1,6 @@
+---
+features:
+  - |
+    Adds a ``[DEFAULT]/versioned_notifications_topics`` configuration option.
+    This enables operators to configure the topics used for versioned
+    notifications.

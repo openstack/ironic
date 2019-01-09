@@ -60,6 +60,11 @@ field of the payload. Consumers are guaranteed that microversion bumps will add
 new fields, while macroversion bumps are backwards-incompatible and may have
 fields removed.
 
+Versioned notifications are emitted by default to the
+`ironic_versioned_notifications` topic. This can be changed and it is
+configurable in the ironic.conf with the `versioned_notifications_topics`
+config option.
+
 Available notifications
 =======================
 .. TODO(mariojv) Add some form of tabular formatting below

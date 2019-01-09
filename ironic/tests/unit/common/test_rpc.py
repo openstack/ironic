@@ -48,9 +48,24 @@ class TestUtils(base.TestCase):
                                 mock_get_notification, mock_json_serializer,
                                 mock_notifier)
 
-    def _test_init_globals(self, notifications_enabled, mock_get_rpc_transport,
-                           mock_get_notification, mock_json_serializer,
-                           mock_notifier):
+    @mock.patch.object(messaging, 'Notifier', autospec=True)
+    @mock.patch.object(messaging, 'JsonPayloadSerializer', autospec=True)
+    @mock.patch.object(messaging, 'get_notification_transport', autospec=True)
+    @mock.patch.object(messaging, 'get_rpc_transport', autospec=True)
+    def test_init_globals_with_custom_topics(self, mock_get_rpc_transport,
+                                             mock_get_notification,
+                                             mock_json_serializer,
+                                             mock_notifier):
+        self._test_init_globals(
+            False, mock_get_rpc_transport, mock_get_notification,
+            mock_json_serializer, mock_notifier,
+            versioned_notifications_topics=['custom_topic1', 'custom_topic2'])
+
+    def _test_init_globals(
+            self, notifications_enabled, mock_get_rpc_transport,
+            mock_get_notification, mock_json_serializer, mock_notifier,
+            versioned_notifications_topics=['ironic_versioned_notifications']):
+
         rpc.TRANSPORT = None
         rpc.NOTIFICATION_TRANSPORT = None
         rpc.SENSORS_NOTIFIER = None
@@ -89,7 +104,7 @@ class TestUtils(base.TestCase):
                 mock.call(
                     rpc.NOTIFICATION_TRANSPORT,
                     serializer=mock_request_serializer.return_value,
-                    topics=['ironic_versioned_notifications'])
+                    topics=versioned_notifications_topics)
             ]
 
         mock_notifier.assert_has_calls(notifier_calls)

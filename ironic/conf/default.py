@@ -238,10 +238,11 @@ netconf_opts = [
                       '"127.0.0.1".')),
 ]
 
-# NOTE(mariojv) By default, accessing this option when it's unset will return
-# None, indicating no notifications will be sent. oslo.config returns None by
-# default for options without set defaults that aren't required.
 notification_opts = [
+    # NOTE(mariojv) By default, accessing this option when it's unset will
+    # return None, indicating no notifications will be sent. oslo.config
+    # returns None by default for options without set defaults that aren't
+    # required.
     cfg.StrOpt('notification_level',
                choices=[('debug', _('"debug" level')),
                         ('info', _('"info" level')),
@@ -250,7 +251,22 @@ notification_opts = [
                         ('critical', _('"critical" level'))],
                help=_('Specifies the minimum level for which to send '
                       'notifications. If not set, no notifications will '
-                      'be sent. The default is for this option to be unset.'))
+                      'be sent. The default is for this option to be unset.')),
+    cfg.ListOpt(
+        'versioned_notifications_topics',
+        default=['ironic_versioned_notifications'],
+        help=_("""
+Specifies the topics for the versioned notifications issued by Ironic.
+
+The default value is fine for most deployments and rarely needs to be changed.
+However, if you have a third-party service that consumes versioned
+notifications, it might be worth getting a topic for that service.
+Ironic will send a message containing a versioned notification payload to each
+topic queue in this list.
+
+The list of versioned notifications is visible in
+https://docs.openstack.org/ironic/latest/admin/notifications.html
+""")),
 ]
 
 path_opts = [

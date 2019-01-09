@@ -13,16 +13,14 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-from oslo_config import cfg
 import oslo_messaging as messaging
 from oslo_messaging.rpc import dispatcher
 from osprofiler import profiler
 
 from ironic.common import context as ironic_context
 from ironic.common import exception
+from ironic.conf import CONF
 
-
-CONF = cfg.CONF
 
 TRANSPORT = None
 NOTIFICATION_TRANSPORT = None
@@ -53,10 +51,10 @@ def init(conf):
                                                 serializer=serializer,
                                                 driver='noop')
     else:
-        VERSIONED_NOTIFIER = messaging.Notifier(NOTIFICATION_TRANSPORT,
-                                                serializer=serializer,
-                                                topics=['ironic_versioned_'
-                                                        'notifications'])
+        VERSIONED_NOTIFIER = messaging.Notifier(
+            NOTIFICATION_TRANSPORT,
+            serializer=serializer,
+            topics=CONF.versioned_notifications_topics)
 
 
 def cleanup():
