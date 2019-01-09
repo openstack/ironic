@@ -572,6 +572,16 @@ class UpdateNodeTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         node.refresh()
         self.assertEqual(existing_driver, node.driver)
 
+    def test_update_node_from_invalid_driver(self):
+        existing_driver = 'fake-hardware'
+        wrong_driver = 'wrong-driver'
+        node = obj_utils.create_test_node(self.context, driver=wrong_driver)
+        node.driver = existing_driver
+        result = self.service.update_node(self.context, node)
+        self.assertEqual(existing_driver, result.driver)
+        node.refresh()
+        self.assertEqual(existing_driver, node.driver)
+
     UpdateInterfaces = namedtuple('UpdateInterfaces', ('old', 'new'))
     IFACE_UPDATE_DICT = {
         'boot_interface': UpdateInterfaces(None, 'fake'),

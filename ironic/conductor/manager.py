@@ -189,7 +189,12 @@ class ConductorManager(base_manager.BaseConductorManager):
 
         driver_factory.check_and_update_node_interfaces(node_obj)
 
+        # NOTE(dtantsur): if we're updating the driver from an invalid value,
+        # loading the old driver may be impossible. Since we only need to
+        # update the node record in the database, skip loading the driver
+        # completely.
         with task_manager.acquire(context, node_id, shared=False,
+                                  load_driver=False,
                                   purpose='node update') as task:
             # Prevent instance_uuid overwriting
             if ('instance_uuid' in delta and node_obj.instance_uuid and
