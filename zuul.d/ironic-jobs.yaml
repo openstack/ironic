@@ -99,7 +99,7 @@
         rabbit: True
 
 - job:
-    name: ironic-dsvm-standalone
+    name: ironic-standalone
     description: Test ironic standalone
     parent: ironic-base
     irrelevant-files:
@@ -141,8 +141,8 @@
         s-proxy: True
 
 - job:
-    name: ironic-tempest-dsvm-ipa-partition-redfish-tinyipa
-    description: ironic-tempest-dsvm-ipa-partition-redfish-tinyipa
+    name: ironic-tempest-ipa-partition-redfish-tinyipa
+    description: ironic-tempest-ipa-partition-redfish-tinyipa
     parent: ironic-base
     timeout: 5400
     vars:
@@ -151,8 +151,8 @@
         IRONIC_ENABLED_HARDWARE_TYPES: redfish
 
 - job:
-    name: ironic-tempest-dsvm-pxe_ipmitool-postgres
-    description: ironic-tempest-dsvm-pxe_ipmitool-postgres
+    name: ironic-tempest-pxe_ipmitool-postgres
+    description: ironic-tempest-pxe_ipmitool-postgres
     parent: ironic-base
     vars:
       devstack_localrc:
@@ -162,8 +162,8 @@
         postgresql: True
 
 - job:
-    name: ironic-tempest-dsvm-ipa-wholedisk-bios-agent_ipmitool-tinyipa
-    description: ironic-tempest-dsvm-ipa-wholedisk-bios-agent_ipmitool-tinyipa
+    name: ironic-tempest-ipa-wholedisk-bios-agent_ipmitool-tinyipa
+    description: ironic-tempest-ipa-wholedisk-bios-agent_ipmitool-tinyipa
     parent: ironic-base
     timeout: 5400
     vars:
@@ -178,8 +178,8 @@
         s-proxy: True
 
 - job:
-    name: ironic-tempest-dsvm-ipa-wholedisk-bios-pxe_snmp-tinyipa
-    description: ironic-tempest-dsvm-ipa-wholedisk-bios-pxe_snmp-tinyipa
+    name: ironic-tempest-ipa-wholedisk-bios-pxe_snmp-tinyipa
+    description: ironic-tempest-ipa-wholedisk-bios-pxe_snmp-tinyipa
     parent: ironic-base
     timeout: 5400
     vars:
@@ -191,8 +191,8 @@
         IRONIC_AUTOMATED_CLEAN_ENABLED: False
 
 - job:
-    name: ironic-tempest-dsvm-ipa-partition-uefi-pxe_ipmitool-tinyipa
-    description: ironic-tempest-dsvm-ipa-partition-uefi-pxe_ipmitool-tinyipa
+    name: ironic-tempest-ipa-partition-uefi-pxe_ipmitool-tinyipa
+    description: ironic-tempest-ipa-partition-uefi-pxe_ipmitool-tinyipa
     parent: ironic-base
     nodeset: openstack-single-node-xenial
     timeout: 5400
@@ -203,8 +203,8 @@
         IRONIC_AUTOMATED_CLEAN_ENABLED: False
 
 - job:
-    name: ironic-tempest-dsvm-ipa-partition-pxe_ipmitool-tinyipa-python3
-    description: ironic-tempest-dsvm-ipa-partition-pxe_ipmitool-tinyipa-python3
+    name: ironic-tempest-ipa-partition-pxe_ipmitool-tinyipa-python3
+    description: ironic-tempest-ipa-partition-pxe_ipmitool-tinyipa-python3
     parent: ironic-base
     timeout: 5400
     vars:
@@ -212,8 +212,8 @@
         USE_PYTHON3: True
 
 - job:
-    name: ironic-tempest-dsvm-bfv
-    description: ironic-tempest-dsvm-bfv
+    name: ironic-tempest-bfv
+    description: ironic-tempest-bfv
     parent: ironic-base
     timeout: 9600
     vars:
@@ -236,8 +236,8 @@
         cinder: True
 
 - job:
-    name: ironic-tempest-dsvm-ironic-inspector
-    description: ironic-tempest-dsvm-ironic-inspector
+    name: ironic-inspector-tempest
+    description: ironic-inspector-tempest
     parent: ironic-base
     required-projects:
       - openstack/ironic-inspector
@@ -258,9 +258,9 @@
         s-proxy: True
 
 - job:
-    name: ironic-tempest-dsvm-ipa-wholedisk-bios-agent_ipmitool-tinyipa-indirect
-    description: ironic-tempest-dsvm-ipa-wholedisk-bios-agent_ipmitool-tinyipa-indirect
-    parent: ironic-tempest-dsvm-ipa-wholedisk-bios-agent_ipmitool-tinyipa
+    name: ironic-tempest-ipa-wholedisk-bios-agent_ipmitool-tinyipa-indirect
+    description: ironic-tempest-ipa-wholedisk-bios-agent_ipmitool-tinyipa-indirect
+    parent: ironic-tempest-ipa-wholedisk-bios-agent_ipmitool-tinyipa
     timeout: 5400
     vars:
       devstack_localrc:
@@ -268,9 +268,9 @@
         IRONIC_AUTOMATED_CLEAN_ENABLED: False
 
 - job:
-    name: ironic-tempest-dsvm-ipa-partition-bios-agent_ipmitool-tinyipa-indirect
-    description: ironic-tempest-dsvm-ipa-partition-bios-agent_ipmitool-tinyipa-indirect
-    parent: ironic-tempest-dsvm-ipa-wholedisk-bios-agent_ipmitool-tinyipa
+    name: ironic-tempest-ipa-partition-bios-agent_ipmitool-tinyipa-indirect
+    description: ironic-tempest-ipa-partition-bios-agent_ipmitool-tinyipa-indirect
+    parent: ironic-tempest-ipa-wholedisk-bios-agent_ipmitool-tinyipa
     timeout: 5400
     vars:
       devstack_localrc:
@@ -279,8 +279,8 @@
         IRONIC_AUTOMATED_CLEAN_ENABLED: False
 
 - job:
-    name: ironic-tempest-dsvm-functional-python2
-    description: ironic-tempest-dsvm-functional-python2
+    name: ironic-tempest-functional-python2
+    description: ironic-tempest-functional-python2
     parent: ironic-base
     timeout: 5400
     pre-run: playbooks/ci-workarounds/etc-neutron.yaml
@@ -313,9 +313,9 @@
         neutron-metering: False
 
 - job:
-    name: ironic-tempest-dsvm-functional-python3
-    description: ironic-tempest-dsvm-functional-python3
-    parent: ironic-tempest-dsvm-functional-python2
+    name: ironic-tempest-functional-python3
+    description: ironic-tempest-functional-python3
+    parent: ironic-tempest-functional-python2
     vars:
       devstack_localrc:
         IRONIC_TEMPEST_WHOLE_DISK_IMAGE: False
@@ -323,8 +323,8 @@
         USE_PYTHON3: True
 
 - job:
-    name: ironic-tempest-dsvm-ipa-wholedisk-direct-tinyipa-multinode
-    description: ironic-tempest-dsvm-ipa-wholedisk-direct-tinyipa-multinode
+    name: ironic-tempest-ipa-wholedisk-direct-tinyipa-multinode
+    description: ironic-tempest-ipa-wholedisk-direct-tinyipa-multinode
     parent: tempest-multinode-full
     pre-run: playbooks/ci-workarounds/set-stack-key.yaml
     timeout: 10800
@@ -468,3 +468,36 @@
 
           q-agt: True
           n-cpu: True
+
+# TODO(iurygregory) Duplicate jobs to avoid break the gate in other projects
+# like: ironic-tempest-plugin, ironic-inspector, nova, neutron, devstack
+- job:
+    name: ironic-dsvm-standalone
+    description: ironic-dsvm-standalone
+    parent: ironic-standalone
+
+- job:
+    name: ironic-tempest-dsvm-ipa-wholedisk-bios-agent_ipmitool-tinyipa
+    description: ironic-tempest-dsvm-ipa-wholedisk-bios-agent_ipmitool-tinyipa
+    parent: ironic-tempest-ipa-wholedisk-bios-agent_ipmitool-tinyipa
+
+- job:
+    name: ironic-tempest-dsvm-bfv
+    description: ironic-tempest-dsvm-bfv
+    parent: ironic-tempest-bfv
+
+- job:
+    name: ironic-tempest-dsvm-ironic-inspector
+    description: ironic-tempest-dsvm-ironic-inspector
+    parent: ironic-inspector-tempest
+
+- job:
+    name: ironic-tempest-dsvm-functional-python3
+    description: ironic-tempest-dsvm-functional-python3
+    parent: ironic-tempest-functional-python3
+
+- job:
+    name: ironic-tempest-dsvm-ipa-wholedisk-direct-tinyipa-multinode
+    description: ironic-tempest-ipa-wholedisk-direct-tinyipa-multinode
+    parent: ironic-tempest-ipa-wholedisk-direct-tinyipa-multinode
+    pre-run: playbooks/ci-workarounds/set-stack-key.yaml
