@@ -58,8 +58,9 @@ class RedfishInspectTestCase(db_base.DbTestCase):
         system_mock.storage.volumes_sizes_bytes = (
             2 * units.Gi, units.Gi * 4, units.Gi * 6)
 
-        system_mock.ethernet_interfaces.eth_summary = {
-            '1': '00:11:22:33:44:55', '2': '66:77:88:99:AA:BB'
+        system_mock.ethernet_interfaces.summary = {
+            '00:11:22:33:44:55': sushy.STATE_ENABLED,
+            '66:77:88:99:AA:BB': sushy.STATE_DISABLED,
         }
 
         return system_mock
@@ -88,13 +89,12 @@ class RedfishInspectTestCase(db_base.DbTestCase):
             'local_gb': '3', 'memory_mb': '2048'
         }
 
-        system = self.init_system_mock(mock_get_system.return_value)
+        self.init_system_mock(mock_get_system.return_value)
 
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
             task.driver.inspect.inspect_hardware(task)
-            mock_create_ports_if_not_exist.assert_called_once_with(
-                task, system.ethernet_interfaces.eth_summary)
+            self.assertEqual(1, mock_create_ports_if_not_exist.call_count)
             mock_get_system.assert_called_once_with(task.node)
             self.assertEqual(expected_properties, task.node.properties)
 
@@ -169,7 +169,7 @@ class RedfishInspectTestCase(db_base.DbTestCase):
     def test_inspect_hardware_ignore_missing_nics(
             self, mock_create_ports_if_not_exist, mock_get_system):
         system_mock = self.init_system_mock(mock_get_system.return_value)
-        system_mock.ethernet_interfaces.eth_summary = None
+        system_mock.ethernet_interfaces.summary = None
 
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:

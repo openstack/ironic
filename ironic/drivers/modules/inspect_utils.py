@@ -21,31 +21,32 @@ from ironic import objects
 LOG = logging.getLogger(__name__)
 
 
-def create_ports_if_not_exist(task, macs):
-    """Create ironic ports for the mac addresses.
+def create_ports_if_not_exist(
+        task, macs, get_mac_address=lambda x: x[1]):
+    """Create ironic ports from MAC addresses data dict.
 
-    Creates ironic ports for the mac addresses returned with inspection
-    or as requested by operator.
+    Creates ironic ports from MAC addresses data returned with inspection or
+    as requested by operator. Helper argument to detect the MAC address
+    ``get_mac_address`` defaults to 'value' part of MAC address dict key-value
+    pair.
 
     :param task: A TaskManager instance.
-    :param macs: A dictionary of port numbers to mac addresses
-                 returned by node inspection.
-
+    :param macs: A dictionary of MAC addresses returned by node inspection.
+    :param get_mac_address: a function to get the MAC address from mac item.
+        A mac item is the dict key-value pair of the previous ``macs``
+        argument.
     """
     node = task.node
-    for port_num, mac in macs.items():
-        # TODO(etingof): detect --pxe-enabled flag
+    for k_v_pair in macs.items():
+        mac = get_mac_address(k_v_pair)
         port_dict = {'address': mac, 'node_id': node.id}
         port = objects.Port(task.context, **port_dict)
 
         try:
             port.create()
-            LOG.info("Port %(port_num)s created for MAC address %(address)s "
-                     "for node %(node)s", {'address': mac, 'node': node.uuid,
-                                           'port_num': port_num})
+            LOG.info("Port created for MAC address %(address)s for node "
+                     "%(node)s", {'address': mac, 'node': node.uuid})
         except exception.MACAlreadyExists:
-            LOG.warning("Port %(port_num)s already exists for "
-                        "MAC address %(address)s for node "
-                        "%(node)s", {'address': mac,
-                                     'node': node.uuid,
-                                     'port_num': port_num})
+            LOG.warning("Port already exists for MAC address %(address)s "
+                        "for node %(node)s",
+                        {'address': mac, 'node': node.uuid})

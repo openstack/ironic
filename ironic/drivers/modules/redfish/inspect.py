@@ -205,12 +205,21 @@ class RedfishInspect(base.InspectInterface):
                                      'node': task.node.uuid})
 
         if (system.ethernet_interfaces and
-                system.ethernet_interfaces.eth_summary):
-            macs = system.ethernet_interfaces.eth_summary
+                system.ethernet_interfaces.summary):
+            macs = system.ethernet_interfaces.summary
 
-            # Create ports for the nics detected.
-            inspect_utils.create_ports_if_not_exist(task, macs)
-
+            # Create ports for the discovered NICs being in 'enabled' state
+            enabled_macs = {nic_mac: nic_state
+                            for nic_mac, nic_state in macs.items()
+                            if nic_state == sushy.STATE_ENABLED}
+            if enabled_macs:
+                inspect_utils.create_ports_if_not_exist(
+                    task, enabled_macs, get_mac_address=lambda x: x[0])
+            else:
+                LOG.info("Not attempted to create any port as no NICs being "
+                         "discovered in 'enabled' state for node %(node)s: "
+                         "%(mac_data)s", {'mac_data': macs,
+                                          'node': task.node.uuid})
         else:
             LOG.warning("No NIC information discovered "
                         "for node %(node)s", {'node': task.node.uuid})
