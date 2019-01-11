@@ -56,6 +56,8 @@ if not proliantutils:
     sys.modules['proliantutils.utils'] = proliantutils.utils
     proliantutils.utils.process_firmware_image = mock.MagicMock()
     proliantutils.exception.IloError = type('IloError', (Exception,), {})
+    proliantutils.exception.IloLogicalDriveNotFoundError = (
+        type('IloLogicalDriveNotFoundError', (Exception,), {}))
     command_exception = type('IloCommandNotSupportedError', (Exception,), {})
     proliantutils.exception.IloCommandNotSupportedError = command_exception
     proliantutils.exception.IloCommandNotSupportedInBiosError = type(

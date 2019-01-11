@@ -19,6 +19,7 @@ Test class for iLO Drivers
 from ironic.conductor import task_manager
 from ironic.drivers import ilo
 from ironic.drivers.modules import agent
+from ironic.drivers.modules.ilo import raid
 from ironic.drivers.modules import inspector
 from ironic.drivers.modules import iscsi_deploy
 from ironic.drivers.modules import noop
@@ -165,3 +166,47 @@ class IloHardwareTestCase(db_base.DbTestCase):
                                   agent.AgentDeploy)
             self.assertIsInstance(task.driver.raid,
                                   agent.AgentRAID)
+
+
+class Ilo5HardwareTestCase(db_base.DbTestCase):
+
+    def setUp(self):
+        super(Ilo5HardwareTestCase, self).setUp()
+        self.config(enabled_hardware_types=['ilo5'],
+                    enabled_boot_interfaces=['ilo-virtual-media', 'ilo-pxe'],
+                    enabled_console_interfaces=['ilo'],
+                    enabled_deploy_interfaces=['iscsi', 'direct'],
+                    enabled_inspect_interfaces=['ilo'],
+                    enabled_management_interfaces=['ilo'],
+                    enabled_power_interfaces=['ilo'],
+                    enabled_raid_interfaces=['ilo5'],
+                    enabled_rescue_interfaces=['no-rescue', 'agent'],
+                    enabled_vendor_interfaces=['ilo', 'no-vendor'])
+
+    def test_default_interfaces(self):
+        node = obj_utils.create_test_node(self.context, driver='ilo5')
+        with task_manager.acquire(self.context, node.id) as task:
+            self.assertIsInstance(task.driver.raid, raid.Ilo5RAID)
+
+    def test_override_with_no_raid(self):
+        self.config(enabled_raid_interfaces=['no-raid', 'ilo5'])
+        node = obj_utils.create_test_node(self.context, driver='ilo5',
+                                          raid_interface='no-raid')
+        with task_manager.acquire(self.context, node.id) as task:
+            self.assertIsInstance(task.driver.raid, noop.NoRAID)
+            self.assertIsInstance(task.driver.boot,
+                                  ilo.boot.IloVirtualMediaBoot)
+            self.assertIsInstance(task.driver.console,
+                                  ilo.console.IloConsoleInterface)
+            self.assertIsInstance(task.driver.deploy,
+                                  iscsi_deploy.ISCSIDeploy)
+            self.assertIsInstance(task.driver.inspect,
+                                  ilo.inspect.IloInspect)
+            self.assertIsInstance(task.driver.management,
+                                  ilo.management.IloManagement)
+            self.assertIsInstance(task.driver.power,
+                                  ilo.power.IloPower)
+            self.assertIsInstance(task.driver.rescue,
+                                  noop.NoRescue)
+            self.assertIsInstance(task.driver.vendor,
+                                  ilo.vendor.VendorPassthru)

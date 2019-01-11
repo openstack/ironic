@@ -1406,12 +1406,15 @@ class AgentRAIDTestCase(db_base.DbTestCase):
         self.assertEqual(0, ret[0]['priority'])
         self.assertEqual(0, ret[1]['priority'])
 
+    @mock.patch.object(raid, 'filter_target_raid_config')
     @mock.patch.object(deploy_utils, 'agent_execute_clean_step',
                        autospec=True)
-    def test_create_configuration(self, execute_mock):
+    def test_create_configuration(self, execute_mock,
+                                  filter_target_raid_config_mock):
         with task_manager.acquire(self.context, self.node.uuid) as task:
             execute_mock.return_value = states.CLEANWAIT
-
+            filter_target_raid_config_mock.return_value = (
+                self.target_raid_config)
             return_value = task.driver.raid.create_configuration(task)
 
             self.assertEqual(states.CLEANWAIT, return_value)
@@ -1420,65 +1423,76 @@ class AgentRAIDTestCase(db_base.DbTestCase):
                 task.node.driver_internal_info['target_raid_config'])
             execute_mock.assert_called_once_with(task, self.clean_step)
 
+    @mock.patch.object(raid, 'filter_target_raid_config')
     @mock.patch.object(deploy_utils, 'agent_execute_clean_step',
                        autospec=True)
-    def test_create_configuration_skip_root(self, execute_mock):
+    def test_create_configuration_skip_root(self, execute_mock,
+                                            filter_target_raid_config_mock):
         with task_manager.acquire(self.context, self.node.uuid) as task:
             execute_mock.return_value = states.CLEANWAIT
-
-            return_value = task.driver.raid.create_configuration(
-                task, create_root_volume=False)
-
-            self.assertEqual(states.CLEANWAIT, return_value)
-            execute_mock.assert_called_once_with(task, self.clean_step)
             exp_target_raid_config = {
                 "logical_disks": [
                     {'size_gb': 200, 'raid_level': 5}
                 ]}
+            filter_target_raid_config_mock.return_value = (
+                exp_target_raid_config)
+            return_value = task.driver.raid.create_configuration(
+                task, create_root_volume=False)
+            self.assertEqual(states.CLEANWAIT, return_value)
+            execute_mock.assert_called_once_with(task, self.clean_step)
             self.assertEqual(
                 exp_target_raid_config,
                 task.node.driver_internal_info['target_raid_config'])
 
+    @mock.patch.object(raid, 'filter_target_raid_config')
     @mock.patch.object(deploy_utils, 'agent_execute_clean_step',
                        autospec=True)
-    def test_create_configuration_skip_nonroot(self, execute_mock):
+    def test_create_configuration_skip_nonroot(self, execute_mock,
+                                               filter_target_raid_config_mock):
         with task_manager.acquire(self.context, self.node.uuid) as task:
             execute_mock.return_value = states.CLEANWAIT
-
-            return_value = task.driver.raid.create_configuration(
-                task, create_nonroot_volumes=False)
-
-            self.assertEqual(states.CLEANWAIT, return_value)
-            execute_mock.assert_called_once_with(task, self.clean_step)
             exp_target_raid_config = {
                 "logical_disks": [
                     {'size_gb': 200, 'raid_level': 0, 'is_root_volume': True},
                 ]}
+            filter_target_raid_config_mock.return_value = (
+                exp_target_raid_config)
+            return_value = task.driver.raid.create_configuration(
+                task, create_nonroot_volumes=False)
+            self.assertEqual(states.CLEANWAIT, return_value)
+            execute_mock.assert_called_once_with(task, self.clean_step)
             self.assertEqual(
                 exp_target_raid_config,
                 task.node.driver_internal_info['target_raid_config'])
 
+    @mock.patch.object(raid, 'filter_target_raid_config')
     @mock.patch.object(deploy_utils, 'agent_execute_clean_step',
                        autospec=True)
     def test_create_configuration_no_target_raid_config_after_skipping(
-            self, execute_mock):
+            self, execute_mock, filter_target_raid_config_mock):
         with task_manager.acquire(self.context, self.node.uuid) as task:
+            msg = "Node %s has no target RAID configuration" % self.node.uuid
+            filter_target_raid_config_mock.side_effect = (
+                exception.MissingParameterValue(msg))
             self.assertRaises(
                 exception.MissingParameterValue,
                 task.driver.raid.create_configuration,
                 task, create_root_volume=False,
                 create_nonroot_volumes=False)
-
             self.assertFalse(execute_mock.called)
 
+    @mock.patch.object(raid, 'filter_target_raid_config')
     @mock.patch.object(deploy_utils, 'agent_execute_clean_step',
                        autospec=True)
     def test_create_configuration_empty_target_raid_config(
-            self, execute_mock):
+            self, execute_mock, filter_target_raid_config_mock):
         execute_mock.return_value = states.CLEANING
         self.node.target_raid_config = {}
         self.node.save()
         with task_manager.acquire(self.context, self.node.uuid) as task:
+            msg = "Node %s has no target RAID configuration" % self.node.uuid
+            filter_target_raid_config_mock.side_effect = (
+                exception.MissingParameterValue(msg))
             self.assertRaises(exception.MissingParameterValue,
                               task.driver.raid.create_configuration,
                               task)

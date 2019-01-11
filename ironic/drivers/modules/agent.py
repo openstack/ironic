@@ -698,32 +698,10 @@ class AgentRAID(base.RAIDInterface):
                    'create_nonroot_volumes': create_nonroot_volumes,
                    'target_raid_config': node.target_raid_config})
 
-        if not node.target_raid_config:
-            raise exception.MissingParameterValue(
-                _("Node %s has no target RAID configuration.") % node.uuid)
-
-        target_raid_config = node.target_raid_config.copy()
-
-        error_msg_list = []
-        if not create_root_volume:
-            target_raid_config['logical_disks'] = [
-                x for x in target_raid_config['logical_disks']
-                if not x.get('is_root_volume')]
-            error_msg_list.append(_("skipping root volume"))
-
-        if not create_nonroot_volumes:
-            error_msg_list.append(_("skipping non-root volumes"))
-
-            target_raid_config['logical_disks'] = [
-                x for x in target_raid_config['logical_disks']
-                if x.get('is_root_volume')]
-
-        if not target_raid_config['logical_disks']:
-            error_msg = _(' and ').join(error_msg_list)
-            raise exception.MissingParameterValue(
-                _("Node %(node)s has empty target RAID configuration "
-                  "after %(msg)s.") % {'node': node.uuid, 'msg': error_msg})
-
+        target_raid_config = raid.filter_target_raid_config(
+            node,
+            create_root_volume=create_root_volume,
+            create_nonroot_volumes=create_nonroot_volumes)
         # Rewrite it back to the node object, but no need to save it as
         # we need to just send this to the agent ramdisk.
         node.driver_internal_info['target_raid_config'] = target_raid_config

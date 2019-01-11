@@ -126,3 +126,51 @@ def update_raid_info(node, raid_config):
         node.properties = properties
 
     node.save()
+
+
+def filter_target_raid_config(
+        node, create_root_volume=True, create_nonroot_volumes=True):
+    """Filter the target raid config based on root volume creation
+
+    This method can be used by any raid interface which wants to filter
+    out target raid config based on condition whether the root volume
+    will be created or not.
+
+    :param node: a node object
+    :param create_root_volume: A boolean default value True governing
+        if the root volume is returned else root volumes will be filtered
+        out.
+    :param create_nonroot_volumes: A boolean default value True governing
+        if the non root volume is returned else non-root volumes will be
+        filtered out.
+    :raises: MissingParameterValue, if node.target_raid_config is missing
+        or was found to be empty after skipping root volume and/or non-root
+        volumes.
+    :returns: It will return filtered target_raid_config
+    """
+    if not node.target_raid_config:
+        raise exception.MissingParameterValue(
+            _("Node %s has no target RAID configuration.") % node.uuid)
+
+    target_raid_config = node.target_raid_config.copy()
+
+    error_msg_list = []
+    if not create_root_volume:
+        target_raid_config['logical_disks'] = [
+            x for x in target_raid_config['logical_disks']
+            if not x.get('is_root_volume')]
+        error_msg_list.append(_("skipping root volume"))
+
+    if not create_nonroot_volumes:
+        target_raid_config['logical_disks'] = [
+            x for x in target_raid_config['logical_disks']
+            if x.get('is_root_volume')]
+        error_msg_list.append(_("skipping non-root volumes"))
+
+    if not target_raid_config['logical_disks']:
+        error_msg = _(' and ').join(error_msg_list)
+        raise exception.MissingParameterValue(
+            _("Node %(node)s has empty target RAID configuration "
+              "after %(msg)s.") % {'node': node.uuid, 'msg': error_msg})
+
+    return target_raid_config
