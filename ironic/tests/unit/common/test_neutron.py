@@ -586,15 +586,57 @@ class TestNeutronNetworkActions(db_base.DbTestCase):
         self.assertTrue(res)
         self.assertFalse(log_mock.warning.called)
 
+    @mock.patch.object(neutron, 'LOG', autospec=True)
+    def test_validate_port_info_neutron_with_smartnic_and_link_info(
+            self, log_mock):
+        self.node.network_interface = 'neutron'
+        self.node.save()
+        llc = {'hostname': 'host1', 'port_id': 'rep0-0'}
+        port = object_utils.create_test_port(
+            self.context, node_id=self.node.id, uuid=uuidutils.generate_uuid(),
+            address='52:54:00:cf:2d:33', local_link_connection=llc,
+            is_smartnic=True)
+        res = neutron.validate_port_info(self.node, port)
+        self.assertTrue(res)
+        self.assertFalse(log_mock.error.called)
+
+    @mock.patch.object(neutron, 'LOG', autospec=True)
+    def test_validate_port_info_neutron_with_no_smartnic_and_link_info(
+            self, log_mock):
+        self.node.network_interface = 'neutron'
+        self.node.save()
+        llc = {'hostname': 'host1', 'port_id': 'rep0-0'}
+        port = object_utils.create_test_port(
+            self.context, node_id=self.node.id, uuid=uuidutils.generate_uuid(),
+            address='52:54:00:cf:2d:33', local_link_connection=llc,
+            is_smartnic=False)
+        res = neutron.validate_port_info(self.node, port)
+        self.assertFalse(res)
+        self.assertTrue(log_mock.error.called)
+
+    @mock.patch.object(neutron, 'LOG', autospec=True)
+    def test_validate_port_info_neutron_with_smartnic_and_no_link_info(
+            self, log_mock):
+        self.node.network_interface = 'neutron'
+        self.node.save()
+        llc = {'switch_id': 'switch', 'port_id': 'rep0-0'}
+        port = object_utils.create_test_port(
+            self.context, node_id=self.node.id, uuid=uuidutils.generate_uuid(),
+            address='52:54:00:cf:2d:33', local_link_connection=llc,
+            is_smartnic=True)
+        res = neutron.validate_port_info(self.node, port)
+        self.assertFalse(res)
+        self.assertTrue(log_mock.error.called)
+
     def test_validate_agent_up(self):
         self.client_mock.list_agents.return_value = {
             'agents': [{'alive': True}]}
-        self.assertTrue(neutron.validate_agent(self.client_mock))
+        self.assertTrue(neutron._validate_agent(self.client_mock))
 
     def test_validate_agent_down(self):
         self.client_mock.list_agents.return_value = {
             'agents': [{'alive': False}]}
-        self.assertFalse(neutron.validate_agent(self.client_mock))
+        self.assertFalse(neutron._validate_agent(self.client_mock))
 
     def test_is_smartnic_port_true(self):
         port = self.ports[0]
@@ -605,19 +647,42 @@ class TestNeutronNetworkActions(db_base.DbTestCase):
         port = self.ports[0]
         self.assertFalse(neutron.is_smartnic_port(port))
 
-    @mock.patch.object(neutron, 'validate_agent')
+    @mock.patch.object(neutron, '_validate_agent')
     @mock.patch.object(time, 'sleep')
-    def test_wait_for_host_agent_up(self, sleep_mock, validate_agent_mock):
+    def test_wait_for_host_agent_up_target_state_up(
+            self, sleep_mock, validate_agent_mock):
         validate_agent_mock.return_value = True
-        neutron.wait_for_host_agent(self.client_mock, 'hostname')
+        self.assertTrue(neutron.wait_for_host_agent(
+            self.client_mock, 'hostname'))
         sleep_mock.assert_not_called()
 
-    @mock.patch.object(neutron, 'validate_agent')
+    @mock.patch.object(neutron, '_validate_agent')
     @mock.patch.object(time, 'sleep')
-    def test_wait_for_host_agent_down(self, sleep_mock, validate_agent_mock):
-        validate_agent_mock.side_effect = [False, True]
-        neutron.wait_for_host_agent(self.client_mock, 'hostname')
-        sleep_mock.assert_called_once()
+    def test_wait_for_host_agent_down_target_state_up(
+            self, sleep_mock, validate_agent_mock):
+        validate_agent_mock.return_value = False
+        self.assertRaises(exception.NetworkError,
+                          neutron.wait_for_host_agent,
+                          self.client_mock, 'hostname')
+
+    @mock.patch.object(neutron, '_validate_agent')
+    @mock.patch.object(time, 'sleep')
+    def test_wait_for_host_agent_up_target_state_down(
+            self, sleep_mock, validate_agent_mock):
+        validate_agent_mock.return_value = True
+        self.assertRaises(exception.NetworkError,
+                          neutron.wait_for_host_agent,
+                          self.client_mock, 'hostname', target_state='down')
+
+    @mock.patch.object(neutron, '_validate_agent')
+    @mock.patch.object(time, 'sleep')
+    def test_wait_for_host_agent_down_target_state_down(
+            self, sleep_mock, validate_agent_mock):
+        validate_agent_mock.return_value = False
+        self.assertTrue(
+            neutron.wait_for_host_agent(self.client_mock, 'hostname',
+                                        target_state='down'))
+        sleep_mock.assert_not_called()
 
     @mock.patch.object(neutron, '_get_port_by_uuid')
     @mock.patch.object(time, 'sleep')

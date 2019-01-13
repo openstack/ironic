@@ -16,6 +16,7 @@ from oslo_log import log
 from oslo_utils import uuidutils
 import retrying
 
+from ironic.api.controllers.v1 import types
 from ironic.common import context as ironic_context
 from ironic.common import exception
 from ironic.common.i18n import _
@@ -259,9 +260,10 @@ def add_ports_to_network(task, network_uuid, security_groups=None):
         binding_profile = {'local_link_information':
                            [portmap[ironic_port.uuid]]}
         body['port']['binding:profile'] = binding_profile
-        link_info = binding_profile['local_link_information'][0]
+
         is_smart_nic = is_smartnic_port(ironic_port)
         if is_smart_nic:
+            link_info = binding_profile['local_link_information'][0]
             LOG.debug('Setting hostname as host_id in case of Smart NIC, '
                       'port %(port_id)s, hostname %(hostname)s',
                       {'port_id': ironic_port.uuid,
@@ -504,11 +506,21 @@ def validate_port_info(node, port):
                     "in the nodes %(node)s port %(port)s",
                     {'node': node.uuid, 'port': port.uuid})
         return False
+    if (port.is_smartnic and not types.locallinkconnectiontype
+            .validate_for_smart_nic(port.local_link_connection)):
+        LOG.error("Smart NIC port must have port_id and hostname in "
+                  "local_link_connection, port: %s", port['id'])
+        return False
+    if (not port.is_smartnic and types.locallinkconnectiontype
+            .validate_for_smart_nic(port.local_link_connection)):
+        LOG.error("Only Smart NIC ports can have port_id and hostname "
+                  "in local_link_connection, port: %s", port['id'])
+        return False
 
     return True
 
 
-def validate_agent(client, **kwargs):
+def _validate_agent(client, **kwargs):
     """Check that the given neutron agent is alive
 
     :param client: Neutron client
@@ -670,7 +682,7 @@ def wait_for_host_agent(client, host_id, target_state='up'):
     LOG.debug('Validating host %(host_id)s agent is %(status)s',
               {'host_id': host_id,
                'status': target_state})
-    is_alive = validate_agent(client, host=host_id)
+    is_alive = _validate_agent(client, host=host_id)
     LOG.debug('Agent on host %(host_id)s is %(status)s',
               {'host_id': host_id,
                'status': 'up' if is_alive else 'down'})

@@ -46,6 +46,9 @@ By default, this query will return the uuid and address for each Port.
   Added the ``detail`` boolean request parameter. When specified ``True`` this
   causes the response to include complete details about each port.
 
+.. versionadded:: 1.53
+  Added the ``is_smartnic`` field.
+
 Normal response code: 200
 
 Request
@@ -100,6 +103,9 @@ This method requires a Node UUID and the physical hardware address for the Port
 .. versionadded:: 1.34
   Added the ``physical_network`` request and response fields.
 
+.. versionadded:: 1.53
+  Added the ``is_smartnic`` request and response fields.
+
 Normal response code: 201
 
 Request
@@ -114,6 +120,7 @@ Request
     - pxe_enabled: req_pxe_enabled
     - physical_network: req_physical_network
     - extra: req_extra
+    - is_smartnic: req_is_smartnic
 
 **Example Port creation request:**
 
@@ -137,6 +144,7 @@ Response
     - created_at: created_at
     - updated_at: updated_at
     - links: links
+    - is_smartnic: is_smartnic
 
 **Example Port creation response:**
 
@@ -164,6 +172,9 @@ Return a list of bare metal Ports, with detailed information.
 
 .. versionadded:: 1.34
   Added the ``physical_network`` response field.
+
+.. versionadded:: 1.53
+  Added the ``is_smartnic`` response fields.
 
 Normal response code: 200
 
@@ -199,6 +210,7 @@ Response
     - created_at: created_at
     - updated_at: updated_at
     - links: links
+    - is_smartnic: is_smartnic
 
 **Example detailed Port list response:**
 
@@ -227,6 +239,9 @@ Show details for the given Port.
 .. versionadded:: 1.34
   Added the ``physical_network`` response field.
 
+.. versionadded:: 1.53
+  Added the ``is_smartnic`` response fields.
+
 Normal response code: 200
 
 Request
@@ -254,6 +269,7 @@ Response
     - created_at: created_at
     - updated_at: updated_at
     - links: links
+    - is_smartnic: is_smartnic
 
 **Example Port details:**
 
@@ -276,6 +292,9 @@ Update a Port.
 
 .. versionadded:: 1.34
   Added the ``physical_network`` field.
+
+.. versionadded:: 1.53
+  Added the ``is_smartnic`` fields.
 
 Normal response code: 200
 
@@ -311,6 +330,7 @@ Response
     - created_at: created_at
     - updated_at: updated_at
     - links: links
+    - is_smartnic: is_smartnic
 
 **Example Port update response:**
 

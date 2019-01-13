@@ -351,6 +351,18 @@ class TestListPorts(test_api_base.BaseApiTest):
             headers={api_base.Version.string: "1.34"})
         self.assertNotIn('physical_network', data)
 
+    def test_hide_fields_in_newer_versions_is_smartnic(self):
+        port = obj_utils.create_test_port(self.context, node_id=self.node.id,
+                                          is_smartnic=True)
+        data = self.get_json(
+            '/ports/%s' % port.uuid,
+            headers={api_base.Version.string: "1.52"})
+        self.assertNotIn('is_smartnic', data)
+
+        data = self.get_json('/ports/%s' % port.uuid,
+                             headers={api_base.Version.string: "1.53"})
+        self.assertTrue(data['is_smartnic'])
+
     def test_get_collection_custom_fields(self):
         fields = 'uuid,extra'
         for i in range(3):
@@ -436,6 +448,24 @@ class TestListPorts(test_api_base.BaseApiTest):
             expect_errors=True)
         self.assertEqual(http_client.NOT_ACCEPTABLE, response.status_int)
 
+    def test_get_custom_fields_is_smartnic(self):
+        port = obj_utils.create_test_port(self.context, node_id=self.node.id,
+                                          is_smartnic=True)
+        fields = 'uuid,is_smartnic'
+        response = self.get_json(
+            '/ports/%s?fields=%s' % (port.uuid, fields),
+            headers={api_base.Version.string: "1.52"},
+            expect_errors=True)
+        self.assertEqual(http_client.NOT_ACCEPTABLE, response.status_int)
+
+        response = self.get_json(
+            '/ports/%s?fields=%s' % (port.uuid, fields),
+            headers={api_base.Version.string: "1.53"})
+
+        # 'links' field is always retrieved in the response
+        # regardless of which fields are specified.
+        self.assertItemsEqual(['uuid', 'is_smartnic', 'links'], response)
+
     def test_detail(self):
         llc = {'switch_info': 'switch', 'switch_id': 'aa:bb:cc:dd:ee:ff',
                'port_id': 'Gig0/1'}
@@ -445,7 +475,8 @@ class TestListPorts(test_api_base.BaseApiTest):
                                           portgroup_id=portgroup.id,
                                           pxe_enabled=False,
                                           local_link_connection=llc,
-                                          physical_network='physnet1')
+                                          physical_network='physnet1',
+                                          is_smartnic=True)
         data = self.get_json(
             '/ports/detail',
             headers={api_base.Version.string: str(api_v1.max_version())}
@@ -458,6 +489,7 @@ class TestListPorts(test_api_base.BaseApiTest):
         self.assertIn('local_link_connection', data['ports'][0])
         self.assertIn('portgroup_uuid', data['ports'][0])
         self.assertIn('physical_network', data['ports'][0])
+        self.assertIn('is_smartnic', data['ports'][0])
         # never expose the node_id and portgroup_id
         self.assertNotIn('node_id', data['ports'][0])
         self.assertNotIn('portgroup_id', data['ports'][0])
@@ -1680,6 +1712,7 @@ class TestPost(test_api_base.BaseApiTest):
         pdict.pop('pxe_enabled')
         pdict.pop('extra')
         pdict.pop('physical_network')
+        pdict.pop('is_smartnic')
         headers = {api_base.Version.string: str(api_v1.min_version())}
         response = self.post_json('/ports', pdict, headers=headers)
         self.assertEqual('application/json', response.content_type)
@@ -2071,6 +2104,7 @@ class TestPost(test_api_base.BaseApiTest):
         pdict = post_get_test_port(pxe_enabled=False,
                                    extra={'vif_port_id': 'foo'})
         pdict.pop('physical_network')
+        pdict.pop('is_smartnic')
         response = self.post_json('/ports', pdict, headers=headers)
         self.assertEqual('application/json', response.content_type)
         self.assertEqual(http_client.CREATED, response.status_int)
@@ -2225,6 +2259,64 @@ class TestPost(test_api_base.BaseApiTest):
         self.assertEqual('application/json', response.content_type)
         self.assertEqual(http_client.BAD_REQUEST, response.status_int)
         self.assertIn('maximum character', response.json['error_message'])
+        self.assertFalse(mock_create.called)
+
+    def test_create_port_with_is_smartnic(self, mock_create):
+        llc = {'hostname': 'host1', 'port_id': 'rep0-0'}
+        pdict = post_get_test_port(is_smartnic=True, node_uuid=self.node.uuid,
+                                   local_link_connection=llc)
+        response = self.post_json('/ports', pdict, headers=self.headers)
+        self.assertEqual('application/json', response.content_type)
+        self.assertEqual(http_client.CREATED, response.status_int)
+        mock_create.assert_called_once_with(mock.ANY, mock.ANY, mock.ANY,
+                                            'test-topic')
+        self.assertTrue(response.json['is_smartnic'])
+        port = objects.Port.get(self.context, pdict['uuid'])
+        self.assertTrue(port.is_smartnic)
+
+    def test_create_port_with_is_smartnic_default_value(self, mock_create):
+        pdict = post_get_test_port(node_uuid=self.node.uuid)
+        response = self.post_json('/ports', pdict, headers=self.headers)
+        self.assertEqual('application/json', response.content_type)
+        self.assertEqual(http_client.CREATED, response.status_int)
+        mock_create.assert_called_once_with(mock.ANY, mock.ANY, mock.ANY,
+                                            'test-topic')
+        self.assertFalse(response.json['is_smartnic'])
+        port = objects.Port.get(self.context, pdict['uuid'])
+        self.assertFalse(port.is_smartnic)
+
+    def test_create_port_with_is_smartnic_old_api_version(self, mock_create):
+        pdict = post_get_test_port(is_smartnic=True, node_uuid=self.node.uuid)
+        headers = {api_base.Version.string: '1.52'}
+        response = self.post_json('/ports', pdict,
+                                  headers=headers,
+                                  expect_errors=True)
+        self.assertEqual('application/json', response.content_type)
+        self.assertEqual(http_client.NOT_ACCEPTABLE, response.status_int)
+        self.assertFalse(mock_create.called)
+
+    def test_create_port_with_is_smartnic_missing_hostname(self, mock_create):
+        llc = {'switch_info': 'switch',
+               'switch_id': 'aa:bb:cc:dd:ee:ff',
+               'port_id': 'Gig0/1'}
+        pdict = post_get_test_port(is_smartnic=True,
+                                   node_uuid=self.node.uuid,
+                                   local_link_connection=llc)
+        response = self.post_json('/ports', pdict,
+                                  headers=self.headers, expect_errors=True)
+        self.assertEqual(http_client.BAD_REQUEST, response.status_int)
+        self.assertFalse(mock_create.called)
+
+    def test_create_port_with_is_smartnic_missing_port_id(self, mock_create):
+        llc = {'switch_info': 'switch',
+               'switch_id': 'aa:bb:cc:dd:ee:ff',
+               'hostname': 'host'}
+        pdict = post_get_test_port(is_smartnic=True,
+                                   node_uuid=self.node.uuid,
+                                   local_link_connection=llc)
+        response = self.post_json('/ports', pdict,
+                                  headers=self.headers, expect_errors=True)
+        self.assertEqual(http_client.BAD_REQUEST, response.status_int)
         self.assertFalse(mock_create.called)
 
 

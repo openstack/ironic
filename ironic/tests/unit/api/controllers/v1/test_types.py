@@ -323,14 +323,14 @@ class TestLocalLinkConnectionType(base.TestCase):
         self.assertRaisesRegex(exception.Invalid, 'are invalid keys',
                                v.validate, value)
 
-    def test_local_link_connection_type_missing_mandatory_key(self):
+    def test_local_link_connection_type_missing_local_link_mandatory_key(self):
         v = types.locallinkconnectiontype
         value = {'switch_id': '0a:1b:2c:3d:4e:5f',
                  'switch_info': 'value3'}
         self.assertRaisesRegex(exception.Invalid, 'Missing mandatory',
                                v.validate, value)
 
-    def test_local_link_connection_type_without_optional_key(self):
+    def test_local_link_connection_type_local_link_keys_mandatory(self):
         v = types.locallinkconnectiontype
         value = {'switch_id': '0a:1b:2c:3d:4e:5f',
                  'port_id': 'value2'}
@@ -340,6 +340,34 @@ class TestLocalLinkConnectionType(base.TestCase):
         v = types.locallinkconnectiontype
         value = {}
         self.assertItemsEqual(value, v.validate(value))
+
+    def test_local_link_connection_type_smart_nic_keys_mandatory(self):
+        v = types.locallinkconnectiontype
+        value = {'port_id': 'rep0-0',
+                 'hostname': 'hostname'}
+        self.assertTrue(v.validate_for_smart_nic(value))
+        self.assertTrue(v.validate(value))
+
+    def test_local_link_connection_type_smart_nic_keys_with_optional(self):
+        v = types.locallinkconnectiontype
+        value = {'port_id': 'rep0-0',
+                 'hostname': 'hostname',
+                 'switch_id': '0a:1b:2c:3d:4e:5f',
+                 'switch_info': 'sw_info'}
+        self.assertTrue(v.validate_for_smart_nic(value))
+        self.assertTrue(v.validate(value))
+
+    def test_local_link_connection_type_smart_nic_keys_hostname_missing(self):
+        v = types.locallinkconnectiontype
+        value = {'port_id': 'rep0-0'}
+        self.assertFalse(v.validate_for_smart_nic(value))
+        self.assertRaises(exception.Invalid, v.validate, value)
+
+    def test_local_link_connection_type_smart_nic_keys_port_id_missing(self):
+        v = types.locallinkconnectiontype
+        value = {'hostname': 'hostname'}
+        self.assertFalse(v.validate_for_smart_nic(value))
+        self.assertRaises(exception.Invalid, v.validate, value)
 
 
 @mock.patch("pecan.request", mock.Mock(version=mock.Mock(minor=10)))

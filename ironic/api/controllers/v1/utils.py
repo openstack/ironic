@@ -1012,3 +1012,13 @@ def allow_allocations():
     field for the node.
     """
     return pecan.request.version.minor >= versions.MINOR_52_ALLOCATION
+
+
+def allow_port_is_smartnic():
+    """Check if port is_smartnic field is allowed.
+
+    Version 1.53 of the API added is_smartnic field to the port object.
+    """
+    return ((pecan.request.version.minor
+             >= versions.MINOR_53_PORT_SMARTNIC)
+            and objects.Port.supports_is_smartnic())

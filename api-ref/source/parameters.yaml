@@ -727,6 +727,12 @@ internal_info:
   in: body
   required: true
   type: JSON
+is_smartnic:
+  description: |
+    Indicates whether the Port is a Smart NIC port.
+  in: body
+  required: false
+  type: boolean
 last_error:
   description: |
     Any error from the most recent (last) transaction that started but failed to finish.
@@ -1133,6 +1139,12 @@ req_inspect_interface:
   in: body
   required: false
   type: string
+req_is_smartnic:
+  description: |
+    Indicates whether the Port is a Smart NIC port.
+  in: body
+  required: false
+  type: boolean
 req_local_link_connection:
   description: |
     The Port binding profile. If specified, must contain ``switch_id`` (only

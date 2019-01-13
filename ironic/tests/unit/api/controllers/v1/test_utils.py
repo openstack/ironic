@@ -523,6 +523,13 @@ class TestApiUtils(base.TestCase):
         mock_request.version.minor = 40
         self.assertFalse(utils.allow_inspect_abort())
 
+    @mock.patch.object(pecan, 'request', spec_set=['version'])
+    def test_allow_port_is_smartnic(self, mock_request):
+        mock_request.version.minor = 53
+        self.assertTrue(utils.allow_port_is_smartnic())
+        mock_request.version.minor = 52
+        self.assertFalse(utils.allow_port_is_smartnic())
+
 
 class TestNodeIdent(base.TestCase):
 

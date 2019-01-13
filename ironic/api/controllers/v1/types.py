@@ -18,6 +18,7 @@
 import inspect
 import json
 
+from oslo_log import log
 from oslo_utils import strutils
 from oslo_utils import uuidutils
 import six
@@ -28,6 +29,9 @@ from ironic.api.controllers.v1 import utils as v1_utils
 from ironic.common import exception
 from ironic.common.i18n import _
 from ironic.common import utils
+
+
+LOG = log.getLogger(__name__)
 
 
 class MacAddressType(wtypes.UserType):
@@ -266,9 +270,12 @@ class LocalLinkConnectionType(wtypes.UserType):
     basetype = wtypes.DictType
     name = 'locallinkconnection'
 
-    mandatory_fields = {'switch_id',
-                        'port_id'}
-    valid_fields = mandatory_fields.union({'switch_info'})
+    local_link_mandatory_fields = {'port_id', 'switch_id'}
+    smart_nic_mandatory_fields = {'port_id', 'hostname'}
+    mandatory_fields_list = [local_link_mandatory_fields,
+                             smart_nic_mandatory_fields]
+    optional_field = {'switch_info'}
+    valid_fields = set.union(optional_field, *mandatory_fields_list)
 
     @staticmethod
     def validate(value):
@@ -276,7 +283,7 @@ class LocalLinkConnectionType(wtypes.UserType):
 
         :param value: A dictionary of values to validate, switch_id is a MAC
             address or an OpenFlow based datapath_id, switch_info is an
-            optional field.
+            optional field. Required Smart NIC fields are port_id and hostname.
 
         For example::
 
@@ -284,6 +291,13 @@ class LocalLinkConnectionType(wtypes.UserType):
             'switch_id': mac_or_datapath_id(),
             'port_id': 'Ethernet3/1',
             'switch_info': 'switch1'
+         }
+
+        Or for Smart NIC::
+
+         {
+            'port_id': 'rep0-0',
+            'hostname': 'host1-bf'
          }
 
         :returns: A dictionary.
@@ -304,10 +318,20 @@ class LocalLinkConnectionType(wtypes.UserType):
         if invalid:
             raise exception.Invalid(_('%s are invalid keys') % (invalid))
 
-        # Check all mandatory fields are present
-        missing = LocalLinkConnectionType.mandatory_fields - keys
-        if missing:
-            msg = _('Missing mandatory keys: %s') % missing
+        # Check any mandatory fields sets are present
+        for mandatory_set in LocalLinkConnectionType.mandatory_fields_list:
+            if mandatory_set <= keys:
+                break
+        else:
+            msg = _('Missing mandatory keys. Required keys are '
+                    '%(required_fields)s. Or in case of Smart NIC '
+                    '%(smart_nic_required_fields)s. '
+                    'Submitted keys are %(keys)s .') % {
+                'required_fields':
+                    LocalLinkConnectionType.local_link_mandatory_fields,
+                'smart_nic_required_fields':
+                    LocalLinkConnectionType.smart_nic_mandatory_fields,
+                'keys': keys}
             raise exception.Invalid(msg)
 
         # Check switch_id is either a valid mac address or
@@ -321,6 +345,9 @@ class LocalLinkConnectionType(wtypes.UserType):
                     value['switch_id'])
             except exception.InvalidDatapathID:
                 raise exception.InvalidSwitchID(switch_id=value['switch_id'])
+        except KeyError:
+            # In Smart NIC case 'switch_id' is optional.
+            pass
 
         return value
 
@@ -329,6 +356,21 @@ class LocalLinkConnectionType(wtypes.UserType):
         if value is None:
             return None
         return LocalLinkConnectionType.validate(value)
+
+    @staticmethod
+    def validate_for_smart_nic(value):
+        """Validates Smart NIC field are present 'port_id' and 'hostname'
+
+        :param value: local link information of type Dictionary.
+        :return: True if both fields 'port_id' and 'hostname' are present
+            in 'value', False otherwise.
+        """
+        wtypes.DictType(wtypes.text, wtypes.text).validate(value)
+        keys = set(value)
+
+        if LocalLinkConnectionType.smart_nic_mandatory_fields <= keys:
+            return True
+        return False
 
 
 locallinkconnectiontype = LocalLinkConnectionType()
