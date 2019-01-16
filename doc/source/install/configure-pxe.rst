@@ -1,11 +1,11 @@
 Configuring PXE and iPXE
 ========================
 
-PXE setup
----------
+TFTP server setup
+-----------------
 
-If you will be using PXE, it needs to be set up on the Bare Metal service
-node(s) where ``ironic-conductor`` is running.
+In order to deploy instances via PXE, a TFTP server needs to be
+set up on the Bare Metal service nodes which run the ``ironic-conductor``.
 
 #. Make sure the tftp root directory exist and can be written to by the
    user the ``ironic-conductor`` is running as. For example::
@@ -13,27 +13,23 @@ node(s) where ``ironic-conductor`` is running.
     sudo mkdir -p /tftpboot
     sudo chown -R ironic /tftpboot
 
-#. Install tftp server and the syslinux package with the PXE boot images:
+#. Install tftp server:
 
-   Ubuntu (Up to and including 14.04)::
+   Ubuntu::
 
-       sudo apt-get install xinetd tftpd-hpa syslinux-common syslinux
-
-   Ubuntu (14.10 and after)::
-
-       sudo apt-get install xinetd tftpd-hpa syslinux-common pxelinux
+       sudo apt-get install xinetd tftpd-hpa
 
    RHEL7/CentOS7::
 
-       sudo yum install tftp-server syslinux-tftpboot xinetd
+       sudo yum install tftp-server xinetd
 
    Fedora::
 
-       sudo dnf install tftp-server syslinux-tftpboot xinetd
+       sudo dnf install tftp-server xinetd
 
    SUSE::
 
-       sudo zypper install tftp syslinux xinetd
+       sudo zypper install tftp xinetd
 
 #. Using xinetd to provide a tftp server setup to serve ``/tftpboot``.
    Create or edit ``/etc/xinetd.d/tftp`` as below::
@@ -63,55 +59,16 @@ node(s) where ``ironic-conductor`` is running.
 
        sudo systemctl restart xinetd
 
-.. note::
+   .. note::
 
-  In certain environments the network's MTU may cause TFTP UDP packets to get
-  fragmented. Certain PXE firmwares struggle to reconstruct the fragmented
-  packets which can cause significant slow down or even prevent the server from
-  PXE booting. In order to avoid this, TFTPd provides an option to limit the
-  packet size so that it they do not get fragmented. To set this additional
-  option in the server_args above::
+    In certain environments the network's MTU may cause TFTP UDP packets to get
+    fragmented. Certain PXE firmwares struggle to reconstruct the fragmented
+    packets which can cause significant slow down or even prevent the server
+    from PXE booting. In order to avoid this, TFTPd provides an option to limit
+    the packet size so that it they do not get fragmented. To set this
+    additional option in the server_args above::
 
-    --blocksize <MAX MTU minus 32>
-
-#. Copy the PXE image to ``/tftpboot``. The PXE image might be found at [1]_:
-
-   Ubuntu (Up to and including 14.04)::
-
-       sudo cp /usr/lib/syslinux/pxelinux.0 /tftpboot
-
-   Ubuntu (14.10 and after)::
-
-       sudo cp /usr/lib/PXELINUX/pxelinux.0 /tftpboot
-
-   RHEL7/CentOS7/SUSE::
-
-       sudo cp /usr/share/syslinux/pxelinux.0 /tftpboot
-
-#. If whole disk images need to be deployed via PXE-netboot, copy the
-   chain.c32 image to ``/tftpboot`` to support it:
-
-   Ubuntu (Up to and including 14.04)::
-
-       sudo cp /usr/lib/syslinux/chain.c32 /tftpboot
-
-   Ubuntu (14.10 and after)::
-
-       sudo cp /usr/lib/syslinux/modules/bios/chain.c32 /tftpboot
-
-   Fedora::
-
-       sudo cp /boot/extlinux/chain.c32 /tftpboot
-
-   RHEL7/CentOS7/SUSE::
-
-       sudo cp /usr/share/syslinux/chain.c32 /tftpboot/
-
-#. If the version of syslinux is **greater than** 4 we also need to make sure
-   that we copy the library modules into the ``/tftpboot`` directory [2]_
-   [1]_. For example, for Ubuntu run::
-
-       sudo cp /usr/lib/syslinux/modules/*/ldlinux.* /tftpboot
+      --blocksize <MAX MTU minus 32>
 
 #. Create a map file in the tftp boot directory (``/tftpboot``)::
 
@@ -120,22 +77,17 @@ node(s) where ``ironic-conductor`` is running.
     echo 're ^(^/) /tftpboot/\1' >> /tftpboot/map-file
     echo 're ^([^/]) /tftpboot/\1' >> /tftpboot/map-file
 
-.. [1] On **Fedora/RHEL** the ``syslinux-tftpboot`` package already install
-       the library modules and PXE image at ``/tftpboot``. If the TFTP server
-       is configured to listen to a different directory you should copy the
-       contents of ``/tftpboot`` to the configured directory
-.. [2] http://www.syslinux.org/wiki/index.php/Library_modules
 
+UEFI PXE - Grub setup
+---------------------
 
-PXE UEFI setup
---------------
-
-If you want to deploy on a UEFI supported bare metal, perform these additional
-steps on the ironic conductor node to configure the PXE UEFI environment.
+In order to deploy instances with PXE on bare metal nodes which support
+UEFI, perform these additional steps on the ironic conductor node to configure
+the PXE UEFI environment.
 
 #. Install Grub2 and shim packages:
 
-   Ubuntu (14.04LTS and later)::
+   Ubuntu (16.04LTS and later)::
 
        sudo apt-get install grub-efi-amd64-signed shim-signed
 
@@ -153,7 +105,7 @@ steps on the ironic conductor node to configure the PXE UEFI environment.
 
 #. Copy grub and shim boot loader images to ``/tftpboot`` directory:
 
-   Ubuntu (14.04LTS and later)::
+   Ubuntu (16.04LTS and later)::
 
        sudo cp /usr/lib/shim/shim.efi.signed /tftpboot/bootx64.efi
        sudo cp /usr/lib/grub/x86_64-efi-signed/grubnetx64.efi.signed /tftpboot/grubx64.efi
@@ -205,10 +157,8 @@ steps on the ironic conductor node to configure the PXE UEFI environment.
 
     sudo chmod 644 $GRUB_DIR/grub.cfg
 
-#. Update the bare metal node with ``boot_mode`` capability in node's properties
-   field::
-
-    openstack baremetal node set <node-uuid> --property capabilities='boot_mode:uefi'
+#. Update the bare metal node with ``boot_mode:uefi`` capability in
+   node's properties field. See :ref:`boot_mode_support` for details.
 
 #. Make sure that bare metal node is configured to boot in UEFI boot mode and
    boot device is set to network/pxe.
@@ -219,8 +169,73 @@ steps on the ironic conductor node to configure the PXE UEFI environment.
     for them. Please check :doc:`../admin/drivers` for information on whether
     your driver requires manual UEFI configuration.
 
-.. note::
-  For more information on configuring boot modes, see :ref:`boot_mode_support`.
+
+Legacy BIOS - Syslinux setup
+----------------------------
+
+In order to deploy instances with PXE on bare metal using Legacy BIOS boot
+mode, perform these additional steps on the ironic conductor node.
+
+#. Install the syslinux package with the PXE boot images:
+
+   Ubuntu (16.04LTS and later)::
+
+       sudo apt-get install syslinux-common pxelinux
+
+   RHEL7/CentOS7::
+
+       sudo yum install syslinux-tftpboot
+
+   Fedora::
+
+       sudo dnf install syslinux-tftpboot
+
+   SUSE::
+
+       sudo zypper install syslinux
+
+#. Copy the PXE image to ``/tftpboot``. The PXE image might be found at [1]_:
+
+   Ubuntu (16.04LTS and later)::
+
+       sudo cp /usr/lib/PXELINUX/pxelinux.0 /tftpboot
+
+   RHEL7/CentOS7/SUSE::
+
+       sudo cp /usr/share/syslinux/pxelinux.0 /tftpboot
+
+#. If whole disk images need to be deployed via PXE-netboot, copy the
+   chain.c32 image to ``/tftpboot`` to support it:
+
+   Ubuntu (16.04LTS and later)::
+
+       sudo cp /usr/lib/syslinux/modules/bios/chain.c32 /tftpboot
+
+   Fedora::
+
+       sudo cp /boot/extlinux/chain.c32 /tftpboot
+
+   RHEL7/CentOS7/SUSE::
+
+       sudo cp /usr/share/syslinux/chain.c32 /tftpboot/
+
+#. If the version of syslinux is **greater than** 4 we also need to make sure
+   that we copy the library modules into the ``/tftpboot`` directory [2]_
+   [1]_. For example, for Ubuntu run::
+
+       sudo cp /usr/lib/syslinux/modules/*/ldlinux.* /tftpboot
+
+#. Update the bare metal node with ``boot_mode:bios`` capability in
+   node's properties field. See :ref:`boot_mode_support` for details.
+
+#. Make sure that bare metal node is configured to boot in Legacy BIOS boot mode
+   and boot device is set to network/pxe.
+
+.. [1] On **Fedora/RHEL** the ``syslinux-tftpboot`` package already installs
+       the library modules and PXE image at ``/tftpboot``. If the TFTP server
+       is configured to listen to a different directory you should copy the
+       contents of ``/tftpboot`` to the configured directory
+.. [2] http://www.syslinux.org/wiki/index.php/Library_modules
 
 
 iPXE setup
