@@ -24,7 +24,9 @@ opts = [
                default=100, min=3,
                help=_('The size of the workers greenthread pool. '
                       'Note that 2 threads will be reserved by the conductor '
-                      'itself for handling heart beats and periodic tasks.')),
+                      'itself for handling heart beats and periodic tasks. '
+                      'On top of that, `sync_power_state_workers` will take '
+                      'up to 7 green threads with the default value of 8.')),
     cfg.IntOpt('heartbeat_interval',
                default=10,
                help=_('Seconds between conductor heart beats.')),
@@ -74,6 +76,11 @@ opts = [
                       'number of times Ironic should try syncing the '
                       'hardware node power state with the node power state '
                       'in DB')),
+    cfg.IntOpt('sync_power_state_workers',
+               default=8, min=1,
+               help=_('The maximum number of workers that can be started '
+                      'simultaneously to sync nodes power state from the '
+                      'periodic task.')),
     cfg.IntOpt('periodic_max_workers',
                default=8,
                help=_('Maximum number of worker threads that can be started '

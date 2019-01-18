@@ -1636,10 +1636,40 @@ class ConductorManager(base_manager.BaseConductorManager):
     @periodics.periodic(spacing=CONF.conductor.sync_power_state_interval,
                         enabled=CONF.conductor.sync_power_state_interval > 0)
     def _sync_power_states(self, context):
-        """Periodic task to sync power states for the nodes.
+        """Periodic task to sync power states for the nodes."""
+        filters = {'maintenance': False}
+        nodes = queue.Queue()
+        for node_info in self.iter_nodes(fields=['id'], filters=filters):
+            nodes.put(node_info)
 
-        Attempt to grab a lock and sync only if the following
-        conditions are met:
+        number_of_threads = min(CONF.conductor.sync_power_state_workers,
+                                CONF.conductor.periodic_max_workers,
+                                nodes.qsize())
+        futures = []
+
+        for thread_number in range(max(0, number_of_threads - 1)):
+            try:
+                futures.append(
+                    self._spawn_worker(self._sync_power_state_nodes_task,
+                                       context, nodes))
+            except exception.NoFreeConductorWorker:
+                LOG.warning("There are no more conductor workers for "
+                            "power sync task. %(workers)d workers have "
+                            "been already spawned.",
+                            {'workers': thread_number})
+                break
+
+        try:
+            self._sync_power_state_nodes_task(context, nodes)
+
+        finally:
+            waiters.wait_for_all(futures)
+
+    def _sync_power_state_nodes_task(self, context, nodes):
+        """Invokes power state sync on nodes from synchronized queue.
+
+        Attempt to grab a lock and sync only if the following conditions
+        are met:
 
         1) Node is mapped to this conductor.
         2) Node is not in maintenance mode.
@@ -1665,9 +1695,13 @@ class ConductorManager(base_manager.BaseConductorManager):
         # (through to its DB API call) so that we can eliminate our call
         # and first set of checks below.
 
-        filters = {'maintenance': False}
-        node_iter = self.iter_nodes(fields=['id'], filters=filters)
-        for (node_uuid, driver, conductor_group, node_id) in node_iter:
+        while not self._shutdown:
+            try:
+                (node_uuid, driver, conductor_group,
+                 node_id) = nodes.get_nowait()
+            except queue.Empty:
+                break
+
             try:
                 # NOTE(dtantsur): start with a shared lock, upgrade if needed
                 with task_manager.acquire(context, node_uuid,
