@@ -64,11 +64,11 @@ class Allocation(base.IronicObject, object_base.VersionedObjectDictCompat):
     # @object_base.remotable_classmethod
     @classmethod
     def get(cls, context, allocation_ident):
-        """Find a allocation based on its id, uuid, name or address.
+        """Find an allocation by its ID, UUID or name.
 
-        :param allocation_ident: The id, uuid, name or address of a allocation.
+        :param allocation_ident: The ID, UUID or name of an allocation.
         :param context: Security context
-        :returns: A :class:`Allocation` object.
+        :returns: An :class:`Allocation` object.
         :raises: InvalidIdentity
 
         """
@@ -87,12 +87,12 @@ class Allocation(base.IronicObject, object_base.VersionedObjectDictCompat):
     # @object_base.remotable_classmethod
     @classmethod
     def get_by_id(cls, context, allocation_id):
-        """Find a allocation by its integer ID and return a Allocation object.
+        """Find an allocation by its integer ID.
 
         :param cls: the :class:`Allocation`
         :param context: Security context
-        :param allocation_id: The ID of a allocation.
-        :returns: A :class:`Allocation` object.
+        :param allocation_id: The ID of an allocation.
+        :returns: An :class:`Allocation` object.
         :raises: AllocationNotFound
 
         """
@@ -106,12 +106,12 @@ class Allocation(base.IronicObject, object_base.VersionedObjectDictCompat):
     # @object_base.remotable_classmethod
     @classmethod
     def get_by_uuid(cls, context, uuid):
-        """Find a allocation by UUID and return a :class:`Allocation` object.
+        """Find an allocation by its UUID.
 
         :param cls: the :class:`Allocation`
         :param context: Security context
-        :param uuid: The UUID of a allocation.
-        :returns: A :class:`Allocation` object.
+        :param uuid: The UUID of an allocation.
+        :returns: An :class:`Allocation` object.
         :raises: AllocationNotFound
 
         """
@@ -125,12 +125,12 @@ class Allocation(base.IronicObject, object_base.VersionedObjectDictCompat):
     # @object_base.remotable_classmethod
     @classmethod
     def get_by_name(cls, context, name):
-        """Find allocation based on name and return a :class:`Allocation` object.
+        """Find an allocation based by its name.
 
         :param cls: the :class:`Allocation`
         :param context: Security context
-        :param name: The name of a allocation.
-        :returns: A :class:`Allocation` object.
+        :param name: The name of an allocation.
+        :returns: An :class:`Allocation` object.
         :raises: AllocationNotFound
 
         """
@@ -234,7 +234,7 @@ class Allocation(base.IronicObject, object_base.VersionedObjectDictCompat):
     def refresh(self, context=None):
         """Loads updates for this Allocation.
 
-        Loads a allocation with the same uuid from the database and
+        Loads an allocation with the same uuid from the database and
         checks for updated attributes. Updates are applied from
         the loaded allocation column by column, if there are any updates.
 
@@ -254,7 +254,7 @@ class Allocation(base.IronicObject, object_base.VersionedObjectDictCompat):
 
 @base.IronicObjectRegistry.register
 class AllocationCRUDNotification(notification.NotificationBase):
-    """Notification when ironic creates, updates or deletes a allocation."""
+    """Notification when ironic creates, updates or deletes an allocation."""
     # Version 1.0: Initial version
     VERSION = '1.0'
 
