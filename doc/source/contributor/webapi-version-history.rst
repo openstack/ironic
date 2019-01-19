@@ -2,6 +2,14 @@
 REST API Version History
 ========================
 
+1.54 (Stein, master)
+--------------------
+
+Added new endpoints for external ``events``:
+
+* POST /v1/events for creating events. (This endpoint is only intended for
+  internal consumption.)
+
 1.53 (Stein, master)
 --------------------
 

@@ -404,3 +404,83 @@ class VifType(JsonType):
 
 
 viftype = VifType()
+
+
+class EventType(wtypes.UserType):
+    """A simple Event type."""
+
+    basetype = wtypes.DictType
+    name = 'event'
+
+    def _validate_network_port_event(value):
+        """Validate network port event fields.
+
+        :param value: A event dict
+        :returns: value
+        :raises: Invalid if network port event not in proper format
+        """
+
+        validators = {
+            'port_id': UuidType.validate,
+            'mac_address': MacAddressType.validate,
+            'status': wtypes.text,
+            'device_id': UuidType.validate,
+            'binding:host_id': UuidType.validate,
+            'binding:vnic_type': wtypes.text
+        }
+
+        keys = set(value)
+        net_keys = set(validators)
+        net_mandatory_fields = {'port_id', 'mac_address', 'status'}
+
+        # Check all keys are valid for network port event
+        invalid = keys.difference(EventType.mandatory_fields.union(net_keys))
+        if invalid:
+            raise exception.Invalid(_('%s are invalid keys') % (invalid))
+
+        # Check all mandatory fields for network port event is present
+        missing = net_mandatory_fields.difference(keys)
+        if missing:
+            raise exception.Invalid(_('Missing mandatory keys: %s')
+                                    % ', '.join(missing))
+
+        # Check all values are of expected type
+        for key in net_keys:
+            if value.get(key):
+                validators[key](value[key])
+
+        return value
+
+    mandatory_fields = {'event'}
+    event_validators = {
+        'network.bind_port': _validate_network_port_event,
+        'network.unbind_port': _validate_network_port_event,
+        'network.delete_port': _validate_network_port_event,
+    }
+
+    @staticmethod
+    def validate(value):
+        """Validate the input
+
+        :param value: A event dict
+        :returns: value
+        :raises: Invalid if event not in proper format
+        """
+
+        wtypes.DictType(wtypes.text, wtypes.text).validate(value)
+        keys = set(value)
+
+        # Check all mandatory fields are present
+        missing = EventType.mandatory_fields.difference(keys)
+        if missing:
+            raise exception.Invalid(_('Missing mandatory keys: %s') % missing)
+
+        # Check event is a supported event
+        if value['event'] not in EventType.event_validators:
+            raise exception.Invalid(_('%s is not a valid event.')
+                                    % value['event'])
+
+        return EventType.event_validators[value['event']](value)
+
+
+eventtype = EventType()
