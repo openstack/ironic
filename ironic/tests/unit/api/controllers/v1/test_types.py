@@ -404,16 +404,16 @@ class TestEventType(base.TestCase):
 
     @mock.patch.object(types.EventType, 'event_validators',
                        {'valid.event': fake_event_validator})
+    @mock.patch.object(types.EventType, 'valid_events', set(['valid.event']))
     def test_simple_event_type(self):
         value = {'event': 'valid.event'}
         self.assertItemsEqual(value, self.v.validate(value))
 
-    @mock.patch.object(types.EventType, 'event_validators',
-                       {'valid.event': fake_event_validator})
+    @mock.patch.object(types.EventType, 'valid_events', set(['valid.event']))
     def test_invalid_event_type(self):
         value = {'event': 'invalid.event'}
-        self.assertRaisesRegex(exception.Invalid, 'invalid.event is not a '
-                                                  'valid event.',
+        self.assertRaisesRegex(exception.Invalid,
+                               'invalid.event is not one of valid events:',
                                self.v.validate, value)
 
     def test_event_missing_madatory_field(self):
@@ -441,7 +441,9 @@ class TestEventType(base.TestCase):
                  'binding:host_id': '22222222-aaaa-bbbb-cccc-555555555555',
                  'binding:vnic_type': 'baremetal'
                  }
-        self.assertRaises(exception.InvalidMAC, self.v.validate, value)
+        self.assertRaisesRegex(exception.Invalid,
+                               'Event validation failure for mac_address.',
+                               self.v.validate, value)
 
     def test_missing_mandatory_fields_network_port_event(self):
         value = {'event': 'network.bind_port',

@@ -436,7 +436,8 @@ class EventType(wtypes.UserType):
         # Check all keys are valid for network port event
         invalid = keys.difference(EventType.mandatory_fields.union(net_keys))
         if invalid:
-            raise exception.Invalid(_('%s are invalid keys') % (invalid))
+            raise exception.Invalid(_('%s are invalid keys') %
+                                    ', '.join(invalid))
 
         # Check all mandatory fields for network port event is present
         missing = net_mandatory_fields.difference(keys)
@@ -446,8 +447,13 @@ class EventType(wtypes.UserType):
 
         # Check all values are of expected type
         for key in net_keys:
-            if value.get(key):
-                validators[key](value[key])
+            if key in value:
+                try:
+                    validators[key](value[key])
+                except Exception as e:
+                    msg = (_('Event validation failure for %(key)s. '
+                             '%(message)s') % {'key': key, 'message': e})
+                    raise exception.Invalid(msg)
 
         return value
 
@@ -457,6 +463,7 @@ class EventType(wtypes.UserType):
         'network.unbind_port': _validate_network_port_event,
         'network.delete_port': _validate_network_port_event,
     }
+    valid_events = set(event_validators)
 
     @staticmethod
     def validate(value):
@@ -473,12 +480,15 @@ class EventType(wtypes.UserType):
         # Check all mandatory fields are present
         missing = EventType.mandatory_fields.difference(keys)
         if missing:
-            raise exception.Invalid(_('Missing mandatory keys: %s') % missing)
+            raise exception.Invalid(_('Missing mandatory keys: %s') %
+                                    ', '.join(missing))
 
         # Check event is a supported event
-        if value['event'] not in EventType.event_validators:
-            raise exception.Invalid(_('%s is not a valid event.')
-                                    % value['event'])
+        if value['event'] not in EventType.valid_events:
+            raise exception.Invalid(
+                _('%(event)s is not one of valid events: %(valid_events)s.') %
+                {'event': value['event'],
+                 'valid_events': ', '.join(EventType.valid_events)})
 
         return EventType.event_validators[value['event']](value)
 

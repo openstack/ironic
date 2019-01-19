@@ -42,6 +42,7 @@ class TestPost(test_api_base.BaseApiTest):
 
     @mock.patch.object(types.EventType, 'event_validators',
                        {'valid.event': fake_event_validator})
+    @mock.patch.object(types.EventType, 'valid_events', {'valid.event'})
     def test_events(self):
         events_dict = {'events': [{'event': 'valid.event'}]}
         response = self.post_json('/events', events_dict, headers=self.headers)
@@ -51,6 +52,8 @@ class TestPost(test_api_base.BaseApiTest):
                        {'valid.event1': fake_event_validator,
                         'valid.event2': fake_event_validator,
                         'valid.event3': fake_event_validator})
+    @mock.patch.object(types.EventType, 'valid_events',
+                       {'valid.event1', 'valid.event2', 'valid.event3'})
     def test_multiple_events(self):
         events_dict = {'events': [{'event': 'valid.event1'},
                                   {'event': 'valid.event2'},
@@ -166,6 +169,7 @@ class TestPost(test_api_base.BaseApiTest):
 
     @mock.patch.object(types.EventType, 'event_validators',
                        {'valid.event': fake_event_validator})
+    @mock.patch.object(types.EventType, 'valid_events', {'valid.event'})
     def test_events_unsupported_api_version(self):
         headers = {api_base.Version.string: '1.50'}
         events_dict = {'events': [{'event': 'valid.event'}]}

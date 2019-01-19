@@ -51,4 +51,4 @@ class EventsController(pecan.rest.RestController):
         cdict = pecan.request.context.to_policy_values()
         policy.authorize('baremetal:events:post', cdict, cdict)
         for e in evts.events:
-            LOG.debug("Recieved external event: %s", e)
+            LOG.debug("Received external event: %s", e)
