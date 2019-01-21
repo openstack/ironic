@@ -853,6 +853,7 @@ class ConductorManager(base_manager.BaseConductorManager):
                 task.driver.power.validate(task)
                 task.driver.deploy.validate(task)
                 utils.validate_instance_info_traits(task.node)
+                utils.validate_deploy_templates(task)
             except exception.InvalidParameterValue as e:
                 raise exception.InstanceDeployFailure(
                     _("Failed to validate deploy or power info for node "
@@ -2204,6 +2205,7 @@ class ConductorManager(base_manager.BaseConductorManager):
                     iface.validate(task)
                     if iface_name == 'deploy':
                         utils.validate_instance_info_traits(task.node)
+                        utils.validate_deploy_templates(task)
                     result = True
                 except (exception.InvalidParameterValue,
                         exception.UnsupportedDriverExtension) as e:

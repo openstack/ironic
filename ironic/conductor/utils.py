@@ -11,6 +11,8 @@
 #    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 #    License for the specific language governing permissions and limitations
 #    under the License.
+
+import collections
 import time
 
 from oslo_config import cfg
@@ -27,6 +29,7 @@ from ironic.common import network
 from ironic.common import states
 from ironic.conductor import notification_utils as notify_utils
 from ironic.conductor import task_manager
+from ironic.objects import deploy_template
 from ironic.objects import fields
 
 LOG = log.getLogger(__name__)
@@ -643,6 +646,18 @@ def _deploy_step_key(step):
             DEPLOYING_INTERFACE_PRIORITY[step.get('interface')])
 
 
+def _sorted_steps(steps, sort_step_key):
+    """Return a sorted list of steps.
+
+    :param sort_step_key: If set, this is a method (key) used to sort the steps
+        from highest priority to lowest priority. For steps having the same
+        priority, they are sorted from highest interface priority to lowest.
+    :returns: A list of sorted step dictionaries.
+    """
+    # Sort the steps from higher priority to lower priority
+    return sorted(steps, key=sort_step_key, reverse=True)
+
+
 def _get_steps(task, interfaces, get_method, enabled=False,
                sort_step_key=None):
     """Get steps for task.node.
@@ -672,8 +687,7 @@ def _get_steps(task, interfaces, get_method, enabled=False,
                                if not enabled or x['priority'] > 0]
             steps.extend(interface_steps)
     if sort_step_key:
-        # Sort the steps from higher priority to lower priority
-        steps = sorted(steps, key=sort_step_key, reverse=True)
+        steps = _sorted_steps(steps, sort_step_key)
     return steps
 
 
@@ -751,6 +765,74 @@ def set_node_cleaning_steps(task):
     node.save()
 
 
+def _get_deployment_templates(task):
+    """Get deployment templates for task.node.
+
+    Return deployment templates where the name of the deployment template
+    matches one of the node's instance traits (the subset of the node's traits
+    requested by the user via a flavor or image).
+
+    :param task: A TaskManager object
+    :returns: a list of DeployTemplate objects.
+    """
+    node = task.node
+    if not node.instance_info.get('traits'):
+        return []
+    instance_traits = node.instance_info['traits']
+    return deploy_template.DeployTemplate.list_by_names(task.context,
+                                                        instance_traits)
+
+
+def _get_steps_from_deployment_templates(task):
+    """Get deployment template steps for task.node.
+
+    Deployment template steps are those steps defined in deployment templates
+    where the name of the deployment template matches one of the node's
+    instance traits (the subset of the node's traits requested by the user via
+    a flavor or image). There may be many such matching templates, each with a
+    list of steps to execute.
+
+    :param task: A TaskManager object
+    :returns: A list of deploy step dictionaries
+    """
+    templates = _get_deployment_templates(task)
+    steps = []
+    step_fields = ('interface', 'step', 'args', 'priority')
+    for template in templates:
+        steps.extend([{key: step[key] for key in step_fields}
+                      for step in template.steps])
+    return steps
+
+
+def _get_all_deployment_steps(task):
+    """Get deployment steps for task.node.
+
+    Deployment steps from matching deployment templates are combined with those
+    from driver interfaces and all enabled steps returned in priority order.
+
+    :param task: A TaskManager object
+    :raises: InstanceDeployFailure if there was a problem getting the
+        deploy steps.
+    :returns: A list of deploy step dictionaries
+    """
+    # Gather deploy steps from deploy templates.
+    user_steps = _get_steps_from_deployment_templates(task)
+
+    # Gather enabled deploy steps from drivers.
+    driver_steps = _get_deployment_steps(task, enabled=True, sort=False)
+
+    # Remove driver steps that have been disabled or overridden by user steps.
+    user_step_keys = {(s['interface'], s['step']) for s in user_steps}
+    steps = [s for s in driver_steps
+             if (s['interface'], s['step']) not in user_step_keys]
+
+    # Add enabled user steps.
+    enabled_user_steps = [s for s in user_steps if s['priority'] > 0]
+    steps.extend(enabled_user_steps)
+
+    return _sorted_steps(steps, _deploy_step_key)
+
+
 def set_node_deployment_steps(task):
     """Set up the node with deployment step information for deploying.
 
@@ -761,12 +843,210 @@ def set_node_deployment_steps(task):
     """
     node = task.node
     driver_internal_info = node.driver_internal_info
-    driver_internal_info['deploy_steps'] = _get_deployment_steps(
-        task, enabled=True)
+    driver_internal_info['deploy_steps'] = _get_all_deployment_steps(task)
     node.deploy_step = {}
     driver_internal_info['deploy_step_index'] = None
     node.driver_internal_info = driver_internal_info
     node.save()
+
+
+def _validate_deploy_steps_unique(user_steps):
+    """Validate that deploy steps from deploy templates are unique.
+
+    :param user_steps: a list of user steps. A user step is a dictionary
+        with required keys 'interface', 'step', 'args', and 'priority'::
+
+              { 'interface': <driver_interface>,
+                'step': <name_of_step>,
+                'args': {<arg1>: <value1>, ..., <argn>: <valuen>} }
+
+            For example::
+
+              { 'interface': deploy',
+                'step': 'upgrade_firmware',
+                'args': {'force': True} }
+    :return: a list of validation error strings for the steps.
+    """
+    # Check for duplicate steps. Each interface/step combination can be
+    # specified at most once.
+    errors = []
+    counter = collections.Counter((step['interface'], step['step'])
+                                  for step in user_steps)
+    for (interface, step), count in counter.items():
+        if count > 1:
+            err = (_('duplicate deploy steps for %(interface)s.%(step)s. '
+                     'Deploy steps from all deploy templates matching a '
+                     'node\'s instance traits cannot have the same interface '
+                     'and step') %
+                   {'interface': interface, 'step': step})
+            errors.append(err)
+    return errors
+
+
+def _validate_user_step(task, user_step, driver_step, step_type):
+    """Validate a user-specified step.
+
+    :param task: A TaskManager object
+    :param user_step: a user step dictionary with required keys 'interface'
+        and 'step', and optional keys 'args' and 'priority'::
+
+              { 'interface': <driver_interface>,
+                'step': <name_of_step>,
+                'args': {<arg1>: <value1>, ..., <argn>: <valuen>},
+                'priority': <optional_priority> }
+
+            For example::
+
+              { 'interface': deploy',
+                'step': 'upgrade_firmware',
+                'args': {'force': True} }
+    :param driver_step: a driver step dictionary::
+              { 'interface': <driver_interface>,
+                'step': <name_of_step>,
+                'priority': <integer>
+                'abortable': Optional for clean steps, absent for deploy steps.
+                             <Boolean>.
+                'argsinfo': Optional. A dictionary of
+                            {<arg_name>:<arg_info_dict>} entries.
+                            <arg_info_dict> is a dictionary with
+                            { 'description': <description>,
+                              'required': <Boolean> }
+              }
+            For example::
+
+              { 'interface': deploy',
+                'step': 'upgrade_firmware',
+                'priority': 10,
+                'abortable': True,
+                'argsinfo': {
+                    'force': { 'description': 'Whether to force the upgrade',
+                               'required': False } } }
+    :param step_type: either 'clean' or 'deploy'.
+    :return: a list of validation error strings for the step.
+    """
+    errors = []
+    # Check that the user-specified arguments are valid
+    argsinfo = driver_step.get('argsinfo') or {}
+    user_args = user_step.get('args') or {}
+    invalid = set(user_args) - set(argsinfo)
+    if invalid:
+        error = (_('%(type)s step %(step)s has these invalid arguments: '
+                   '%(invalid)s') %
+                 {'type': step_type, 'step': user_step,
+                  'invalid': ', '.join(invalid)})
+        errors.append(error)
+
+    if step_type == 'clean' or user_step['priority'] > 0:
+        # Check that all required arguments were specified by the user
+        missing = []
+        for (arg_name, arg_info) in argsinfo.items():
+            if arg_info.get('required', False) and arg_name not in user_args:
+                msg = arg_name
+                if arg_info.get('description'):
+                    msg += ' (%(desc)s)' % {'desc': arg_info['description']}
+                missing.append(msg)
+        if missing:
+            error = (_('%(type)s step %(step)s is missing these required '
+                       'keyword arguments: %(miss)s') %
+                     {'type': step_type, 'step': user_step,
+                      'miss': ', '.join(missing)})
+            errors.append(error)
+
+    if step_type == 'clean':
+        # Copy fields that should not be provided by a user
+        user_step['abortable'] = driver_step.get('abortable', False)
+        user_step['priority'] = driver_step.get('priority', 0)
+    elif user_step['priority'] > 0:
+        # 'core' deploy steps can only be disabled.
+        is_core = (driver_step['interface'] == 'deploy' and
+                   driver_step['step'] == 'deploy')
+        if is_core:
+            error = (_('deploy step %(step)s is a core step and '
+                       'cannot be overridden by user steps. It may be '
+                       'disabled by setting the priority to 0')
+                     % {'step': user_step})
+            errors.append(error)
+
+    return errors
+
+
+def _validate_user_steps(task, user_steps, driver_steps, step_type):
+    """Validate the user-specified steps.
+
+    :param task: A TaskManager object
+    :param user_steps: a list of user steps. A user step is a dictionary
+        with required keys 'interface' and 'step', and optional keys 'args'
+        and 'priority'::
+
+              { 'interface': <driver_interface>,
+                'step': <name_of_step>,
+                'args': {<arg1>: <value1>, ..., <argn>: <valuen>},
+                'priority': <optional_priority> }
+
+            For example::
+
+              { 'interface': deploy',
+                'step': 'upgrade_firmware',
+                'args': {'force': True} }
+    :param driver_steps: a list of driver steps::
+              { 'interface': <driver_interface>,
+                'step': <name_of_step>,
+                'priority': <integer>
+                'abortable': Optional for clean steps, absent for deploy steps.
+                             <Boolean>.
+                'argsinfo': Optional. A dictionary of
+                            {<arg_name>:<arg_info_dict>} entries.
+                            <arg_info_dict> is a dictionary with
+                            { 'description': <description>,
+                              'required': <Boolean> }
+              }
+            For example::
+
+              { 'interface': deploy',
+                'step': 'upgrade_firmware',
+                'priority': 10,
+                'abortable': True,
+                'argsinfo': {
+                    'force': { 'description': 'Whether to force the upgrade',
+                               'required': False } } }
+    :param step_type: either 'clean' or 'deploy'.
+    :raises: InvalidParameterValue if validation of steps fails.
+    :raises: NodeCleaningFailure or InstanceDeployFailure if
+        there was a problem getting the steps from the driver.
+    :return: validated steps updated with information from the driver
+    """
+
+    def step_id(step):
+        return '.'.join([step['step'], step['interface']])
+
+    errors = []
+
+    # Convert driver steps to a dict.
+    driver_steps = {step_id(s): s for s in driver_steps}
+
+    for user_step in user_steps:
+        # Check if this user_specified step isn't supported by the driver
+        try:
+            driver_step = driver_steps[step_id(user_step)]
+        except KeyError:
+            error = (_('node does not support this %(type)s step: %(step)s')
+                     % {'type': step_type, 'step': user_step})
+            errors.append(error)
+            continue
+
+        step_errors = _validate_user_step(task, user_step, driver_step,
+                                          step_type)
+        errors.extend(step_errors)
+
+    if step_type == 'deploy':
+        # Deploy steps should be unique across all combined templates.
+        dup_errors = _validate_deploy_steps_unique(user_steps)
+        errors.extend(dup_errors)
+
+    if errors:
+        raise exception.InvalidParameterValue('; '.join(errors))
+
+    return user_steps[:]
 
 
 def _validate_user_clean_steps(task, user_steps):
@@ -782,7 +1062,7 @@ def _validate_user_clean_steps(task, user_steps):
 
             For example::
 
-              { 'interface': deploy',
+              { 'interface': 'deploy',
                 'step': 'upgrade_firmware',
                 'args': {'force': True} }
     :raises: InvalidParameterValue if validation of clean steps fails.
@@ -790,69 +1070,35 @@ def _validate_user_clean_steps(task, user_steps):
         clean steps from the driver.
     :return: validated clean steps update with information from the driver
     """
+    driver_steps = _get_cleaning_steps(task, enabled=False, sort=False)
+    return _validate_user_steps(task, user_steps, driver_steps, 'clean')
 
-    def step_id(step):
-        return '.'.join([step['step'], step['interface']])
 
-    errors = []
+def _validate_user_deploy_steps(task, user_steps):
+    """Validate the user-specified deploy steps.
 
-    # The clean steps from the driver. A clean step dictionary is of the form:
-    #   { 'interface': <driver_interface>,
-    #      'step': <name_of_clean_step>,
-    #      'priority': <integer>
-    #      'abortable': Optional. <Boolean>.
-    #      'argsinfo': Optional. A dictionary of {<arg_name>:<arg_info_dict>}
-    #                  entries. <arg_info_dict> is a dictionary with
-    #                  { 'description': <description>,
-    #                    'required': <Boolean> }
-    #   }
-    driver_steps = {}
-    for s in _get_cleaning_steps(task, enabled=False, sort=False):
-        driver_steps[step_id(s)] = s
+    :param task: A TaskManager object
+    :param user_steps: a list of deploy steps. A deploy step is a dictionary
+        with required keys 'interface', 'step', 'args', and 'priority'::
 
-    result = []
-    for user_step in user_steps:
-        # Check if this user_specified clean step isn't supported by the driver
-        try:
-            driver_step = driver_steps[step_id(user_step)]
-        except KeyError:
-            error = (_('node does not support this clean step: %(step)s')
-                     % {'step': user_step})
-            errors.append(error)
-            continue
+              { 'interface': <driver_interface>,
+                'step': <name_of_deploy_step>,
+                'args': {<arg1>: <value1>, ..., <argn>: <valuen>},
+                'priority': <priority_of_deploy_step> }
 
-        # Check that the user-specified arguments are valid
-        argsinfo = driver_step.get('argsinfo') or {}
-        user_args = user_step.get('args') or {}
-        invalid = set(user_args) - set(argsinfo)
-        if invalid:
-            error = _('clean step %(step)s has these invalid arguments: '
-                      '%(invalid)s') % {'step': user_step,
-                                        'invalid': ', '.join(invalid)}
-            errors.append(error)
+            For example::
 
-        # Check that all required arguments were specified by the user
-        missing = []
-        for (arg_name, arg_info) in argsinfo.items():
-            if arg_info.get('required', False) and arg_name not in user_args:
-                msg = arg_name
-                if arg_info.get('description'):
-                    msg += ' (%(desc)s)' % {'desc': arg_info['description']}
-                missing.append(msg)
-        if missing:
-            error = _('clean step %(step)s is missing these required keyword '
-                      'arguments: %(miss)s') % {'step': user_step,
-                                                'miss': ', '.join(missing)}
-            errors.append(error)
-
-        # Copy fields that should not be provided by a user
-        user_step['abortable'] = driver_step.get('abortable', False)
-        user_step['priority'] = driver_step.get('priority', 0)
-        result.append(user_step)
-
-    if errors:
-        raise exception.InvalidParameterValue('; '.join(errors))
-    return result
+              { 'interface': 'bios',
+                'step': 'apply_configuration',
+                'args': { 'settings': [ { 'foo': 'bar' } ] },
+                'priority': 150 }
+    :raises: InvalidParameterValue if validation of deploy steps fails.
+    :raises: InstanceDeployFailure if there was a problem getting the deploy
+        steps from the driver.
+    :return: validated deploy steps update with information from the driver
+    """
+    driver_steps = _get_deployment_steps(task, enabled=False, sort=False)
+    return _validate_user_steps(task, user_steps, driver_steps, 'deploy')
 
 
 @task_manager.require_exclusive_lock
@@ -1056,3 +1302,17 @@ def restore_power_state_if_needed(task, power_state_to_restore):
         # enough time to apply network changes.
         time.sleep(CONF.agent.neutron_agent_poll_interval * 2)
         node_power_action(task, power_state_to_restore)
+
+
+def validate_deploy_templates(task):
+    """Validate the deploy templates for a node.
+
+    :param task: A TaskManager object
+    :raises: InvalidParameterValue if the instance has traits that map to
+        deploy steps that are unsupported by the node's driver interfaces.
+    :raises: InstanceDeployFailure if there was a problem getting the deploy
+        steps from the driver.
+    """
+    # Gather deploy steps from matching deploy templates, validate them.
+    user_steps = _get_steps_from_deployment_templates(task)
+    _validate_user_deploy_steps(task, user_steps)

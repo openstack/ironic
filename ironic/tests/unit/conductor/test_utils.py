@@ -980,9 +980,16 @@ class NodeDeployStepsTestCase(db_base.DbTestCase):
             'step': 'deploy_end', 'priority': 20, 'interface': 'deploy'}
         self.power_disable = {
             'step': 'power_disable', 'priority': 0, 'interface': 'power'}
+        self.deploy_core = {
+            'step': 'deploy', 'priority': 100, 'interface': 'deploy'}
         # enabled steps
         self.deploy_steps = [self.deploy_start, self.power_one,
                              self.deploy_middle, self.deploy_end]
+        # Deploy step with argsinfo.
+        self.deploy_raid = {
+            'step': 'build_raid', 'priority': 0, 'interface': 'deploy',
+            'argsinfo': {'arg1': {'description': 'desc1', 'required': True},
+                         'arg2': {'description': 'desc2'}}}
         self.node = obj_utils.create_test_node(
             self.context, driver='fake-hardware')
 
@@ -1058,7 +1065,148 @@ class NodeDeployStepsTestCase(db_base.DbTestCase):
             mock_power_steps.assert_called_once_with(mock.ANY, task)
             mock_deploy_steps.assert_called_once_with(mock.ANY, task)
 
-    @mock.patch.object(conductor_utils, '_get_deployment_steps',
+    @mock.patch.object(objects.DeployTemplate, 'list_by_names')
+    def test__get_deployment_templates_no_traits(self, mock_list):
+        with task_manager.acquire(
+                self.context, self.node.uuid, shared=False) as task:
+            templates = conductor_utils._get_deployment_templates(task)
+            self.assertEqual([], templates)
+            self.assertFalse(mock_list.called)
+
+    @mock.patch.object(objects.DeployTemplate, 'list_by_names')
+    def test__get_deployment_templates(self, mock_list):
+        traits = ['CUSTOM_DT1', 'CUSTOM_DT2']
+        node = obj_utils.create_test_node(
+            self.context, uuid=uuidutils.generate_uuid(),
+            driver='fake-hardware', instance_info={'traits': traits})
+        template1 = obj_utils.get_test_deploy_template(self.context)
+        template2 = obj_utils.get_test_deploy_template(
+            self.context, name='CUSTOM_DT2', uuid=uuidutils.generate_uuid(),
+            steps=[{'interface': 'bios', 'step': 'apply_configuration',
+                    'args': {}, 'priority': 1}])
+        mock_list.return_value = [template1, template2]
+        expected = [template1, template2]
+        with task_manager.acquire(
+                self.context, node.uuid, shared=False) as task:
+            templates = conductor_utils._get_deployment_templates(task)
+            self.assertEqual(expected, templates)
+            mock_list.assert_called_once_with(task.context, traits)
+
+    @mock.patch.object(conductor_utils, '_get_deployment_templates',
+                       autospec=True)
+    def test__get_steps_from_deployment_templates(self, mock_templates):
+        template1 = obj_utils.get_test_deploy_template(self.context)
+        template2 = obj_utils.get_test_deploy_template(
+            self.context, name='CUSTOM_DT2', uuid=uuidutils.generate_uuid(),
+            steps=[{'interface': 'bios', 'step': 'apply_configuration',
+                    'args': {}, 'priority': 1}])
+        mock_templates.return_value = [template1, template2]
+        step1 = template1.steps[0]
+        step2 = template2.steps[0]
+        expected = [
+            {
+                'interface': step1['interface'],
+                'step': step1['step'],
+                'args': step1['args'],
+                'priority': step1['priority'],
+            },
+            {
+                'interface': step2['interface'],
+                'step': step2['step'],
+                'args': step2['args'],
+                'priority': step2['priority'],
+            }
+        ]
+        with task_manager.acquire(
+                self.context, self.node.uuid, shared=False) as task:
+            steps = conductor_utils._get_steps_from_deployment_templates(task)
+            self.assertEqual(expected, steps)
+            mock_templates.assert_called_once_with(task)
+
+    @mock.patch.object(conductor_utils, '_get_steps_from_deployment_templates',
+                       autospec=True)
+    @mock.patch.object(conductor_utils, '_get_deployment_steps', autospec=True)
+    def _test__get_all_deployment_steps(self, user_steps, driver_steps,
+                                        expected_steps, mock_gds, mock_gsfdt):
+        mock_gsfdt.return_value = user_steps
+        mock_gds.return_value = driver_steps
+
+        with task_manager.acquire(
+                self.context, self.node.uuid, shared=False) as task:
+            steps = conductor_utils._get_all_deployment_steps(task)
+            self.assertEqual(expected_steps, steps)
+            mock_gsfdt.assert_called_once_with(task)
+            mock_gds.assert_called_once_with(task, enabled=True, sort=False)
+
+    def test__get_all_deployment_steps_no_steps(self):
+        # Nothing in -> nothing out.
+        user_steps = []
+        driver_steps = []
+        expected_steps = []
+        self._test__get_all_deployment_steps(user_steps, driver_steps,
+                                             expected_steps)
+
+    def test__get_all_deployment_steps_no_user_steps(self):
+        # Only driver steps in -> only driver steps out.
+        user_steps = []
+        driver_steps = self.deploy_steps
+        expected_steps = self.deploy_steps
+        self._test__get_all_deployment_steps(user_steps, driver_steps,
+                                             expected_steps)
+
+    def test__get_all_deployment_steps_no_driver_steps(self):
+        # Only user steps in -> only user steps out.
+        user_steps = self.deploy_steps
+        driver_steps = []
+        expected_steps = self.deploy_steps
+        self._test__get_all_deployment_steps(user_steps, driver_steps,
+                                             expected_steps)
+
+    def test__get_all_deployment_steps_user_and_driver_steps(self):
+        # Driver and user steps in -> driver and user steps out.
+        user_steps = self.deploy_steps[:2]
+        driver_steps = self.deploy_steps[2:]
+        expected_steps = self.deploy_steps
+        self._test__get_all_deployment_steps(user_steps, driver_steps,
+                                             expected_steps)
+
+    def test__get_all_deployment_steps_disable_core_steps(self):
+        # User steps can disable core driver steps.
+        user_steps = [self.deploy_core.copy()]
+        user_steps[0].update({'priority': 0})
+        driver_steps = [self.deploy_core]
+        expected_steps = []
+        self._test__get_all_deployment_steps(user_steps, driver_steps,
+                                             expected_steps)
+
+    def test__get_all_deployment_steps_override_driver_steps(self):
+        # User steps override non-core driver steps.
+        user_steps = [step.copy() for step in self.deploy_steps[:2]]
+        user_steps[0].update({'priority': 200})
+        user_steps[1].update({'priority': 100})
+        driver_steps = self.deploy_steps
+        expected_steps = user_steps + self.deploy_steps[2:]
+        self._test__get_all_deployment_steps(user_steps, driver_steps,
+                                             expected_steps)
+
+    def test__get_all_deployment_steps_duplicate_user_steps(self):
+        # Duplicate user steps override non-core driver steps.
+
+        # NOTE(mgoddard): This case is currently prevented by the API and
+        # conductor - the interface/step must be unique across all enabled
+        # steps. This test ensures that we can support this case, in case we
+        # choose to allow it in future.
+        user_steps = [self.deploy_start.copy(), self.deploy_start.copy()]
+        user_steps[0].update({'priority': 200})
+        user_steps[1].update({'priority': 100})
+        driver_steps = self.deploy_steps
+        # Each user invocation of the deploy_start step should be included, but
+        # not the default deploy_start from the driver.
+        expected_steps = user_steps + self.deploy_steps[1:]
+        self._test__get_all_deployment_steps(user_steps, driver_steps,
+                                             expected_steps)
+
+    @mock.patch.object(conductor_utils, '_get_all_deployment_steps',
                        autospec=True)
     def test_set_node_deployment_steps(self, mock_steps):
         mock_steps.return_value = self.deploy_steps
@@ -1072,7 +1220,147 @@ class NodeDeployStepsTestCase(db_base.DbTestCase):
             self.assertEqual({}, self.node.deploy_step)
             self.assertIsNone(
                 self.node.driver_internal_info['deploy_step_index'])
-            mock_steps.assert_called_once_with(task, enabled=True)
+            mock_steps.assert_called_once_with(task)
+
+    @mock.patch.object(conductor_utils, '_get_deployment_steps', autospec=True)
+    def test__validate_user_deploy_steps(self, mock_steps):
+        mock_steps.return_value = self.deploy_steps
+
+        user_steps = [{'step': 'deploy_start', 'interface': 'deploy',
+                       'priority': 100},
+                      {'step': 'power_one', 'interface': 'power',
+                       'priority': 200}]
+
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            result = conductor_utils._validate_user_deploy_steps(task,
+                                                                 user_steps)
+            mock_steps.assert_called_once_with(task, enabled=False, sort=False)
+
+        self.assertEqual(user_steps, result)
+
+    @mock.patch.object(conductor_utils, '_get_deployment_steps', autospec=True)
+    def test__validate_user_deploy_steps_no_steps(self, mock_steps):
+        mock_steps.return_value = self.deploy_steps
+
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            conductor_utils._validate_user_deploy_steps(task, [])
+            mock_steps.assert_called_once_with(task, enabled=False, sort=False)
+
+    @mock.patch.object(conductor_utils, '_get_deployment_steps', autospec=True)
+    def test__validate_user_deploy_steps_get_steps_exception(self, mock_steps):
+        mock_steps.side_effect = exception.InstanceDeployFailure('bad')
+
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            self.assertRaises(exception.InstanceDeployFailure,
+                              conductor_utils._validate_user_deploy_steps,
+                              task, [])
+            mock_steps.assert_called_once_with(task, enabled=False, sort=False)
+
+    @mock.patch.object(conductor_utils, '_get_deployment_steps', autospec=True)
+    def test__validate_user_deploy_steps_not_supported(self, mock_steps):
+        mock_steps.return_value = self.deploy_steps
+        user_steps = [{'step': 'power_one', 'interface': 'power',
+                       'priority': 200},
+                      {'step': 'bad_step', 'interface': 'deploy',
+                       'priority': 100}]
+
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            self.assertRaisesRegex(exception.InvalidParameterValue,
+                                   "does not support.*bad_step",
+                                   conductor_utils._validate_user_deploy_steps,
+                                   task, user_steps)
+            mock_steps.assert_called_once_with(task, enabled=False, sort=False)
+
+    @mock.patch.object(conductor_utils, '_get_deployment_steps', autospec=True)
+    def test__validate_user_deploy_steps_invalid_arg(self, mock_steps):
+        mock_steps.return_value = self.deploy_steps
+        user_steps = [{'step': 'power_one', 'interface': 'power',
+                       'args': {'arg1': 'val1', 'arg2': 'val2'},
+                       'priority': 200}]
+
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            self.assertRaisesRegex(exception.InvalidParameterValue,
+                                   "power_one.*invalid.*arg1",
+                                   conductor_utils._validate_user_deploy_steps,
+                                   task, user_steps)
+            mock_steps.assert_called_once_with(task, enabled=False, sort=False)
+
+    @mock.patch.object(conductor_utils, '_get_deployment_steps', autospec=True)
+    def test__validate_user_deploy_steps_missing_required_arg(self,
+                                                              mock_steps):
+        mock_steps.return_value = [self.power_one, self.deploy_raid]
+        user_steps = [{'step': 'power_one', 'interface': 'power',
+                       'priority': 200},
+                      {'step': 'build_raid', 'interface': 'deploy',
+                       'priority': 100}]
+
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            self.assertRaisesRegex(exception.InvalidParameterValue,
+                                   "build_raid.*missing.*arg1",
+                                   conductor_utils._validate_user_deploy_steps,
+                                   task, user_steps)
+            mock_steps.assert_called_once_with(task, enabled=False, sort=False)
+
+    @mock.patch.object(conductor_utils, '_get_deployment_steps', autospec=True)
+    def test__validate_user_deploy_steps_disable_non_core(self, mock_steps):
+        # Required arguments don't apply to disabled steps.
+        mock_steps.return_value = [self.power_one, self.deploy_raid]
+        user_steps = [{'step': 'power_one', 'interface': 'power',
+                       'priority': 200},
+                      {'step': 'build_raid', 'interface': 'deploy',
+                       'priority': 0}]
+
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            result = conductor_utils._validate_user_deploy_steps(task,
+                                                                 user_steps)
+            mock_steps.assert_called_once_with(task, enabled=False, sort=False)
+
+        self.assertEqual(user_steps, result)
+
+    @mock.patch.object(conductor_utils, '_get_deployment_steps', autospec=True)
+    def test__validate_user_deploy_steps_disable_core(self, mock_steps):
+        mock_steps.return_value = [self.power_one, self.deploy_core]
+        user_steps = [{'step': 'power_one', 'interface': 'power',
+                       'priority': 200},
+                      {'step': 'deploy', 'interface': 'deploy', 'priority': 0}]
+
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            result = conductor_utils._validate_user_deploy_steps(task,
+                                                                 user_steps)
+            mock_steps.assert_called_once_with(task, enabled=False, sort=False)
+
+        self.assertEqual(user_steps, result)
+
+    @mock.patch.object(conductor_utils, '_get_deployment_steps', autospec=True)
+    def test__validate_user_deploy_steps_override_core(self, mock_steps):
+        mock_steps.return_value = [self.power_one, self.deploy_core]
+        user_steps = [{'step': 'power_one', 'interface': 'power',
+                       'priority': 200},
+                      {'step': 'deploy', 'interface': 'deploy',
+                       'priority': 200}]
+
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            self.assertRaisesRegex(exception.InvalidParameterValue,
+                                   "deploy.*is a core step",
+                                   conductor_utils._validate_user_deploy_steps,
+                                   task, user_steps)
+            mock_steps.assert_called_once_with(task, enabled=False, sort=False)
+
+    @mock.patch.object(conductor_utils, '_get_deployment_steps', autospec=True)
+    def test__validate_user_deploy_steps_duplicates(self, mock_steps):
+        mock_steps.return_value = [self.power_one, self.deploy_core]
+        user_steps = [{'step': 'power_one', 'interface': 'power',
+                       'priority': 200},
+                      {'step': 'power_one', 'interface': 'power',
+                       'priority': 100}]
+
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            self.assertRaisesRegex(exception.InvalidParameterValue,
+                                   "duplicate deploy steps for "
+                                   "power.power_one",
+                                   conductor_utils._validate_user_deploy_steps,
+                                   task, user_steps)
+            mock_steps.assert_called_once_with(task, enabled=False, sort=False)
 
 
 class NodeCleaningStepsTestCase(db_base.DbTestCase):
@@ -2141,14 +2429,14 @@ class ValidateInstanceInfoTraitsTestCase(tests_base.TestCase):
         self.node.instance_info['traits'] = []
         conductor_utils.validate_instance_info_traits(self.node)
 
-    def test_parse_instance_info_traits_invalid_type(self):
+    def test_validate_instance_info_traits_invalid_type(self):
         self.node.instance_info['traits'] = 'not-a-list'
         self.assertRaisesRegex(exception.InvalidParameterValue,
                                'Error parsing traits from Node',
                                conductor_utils.validate_instance_info_traits,
                                self.node)
 
-    def test_parse_instance_info_traits_invalid_trait_type(self):
+    def test_validate_instance_info_traits_invalid_trait_type(self):
         self.node.instance_info['traits'] = ['trait1', {}]
         self.assertRaisesRegex(exception.InvalidParameterValue,
                                'Error parsing traits from Node',
@@ -2165,3 +2453,39 @@ class ValidateInstanceInfoTraitsTestCase(tests_base.TestCase):
                                'Cannot specify instance traits that are not',
                                conductor_utils.validate_instance_info_traits,
                                self.node)
+
+
+@mock.patch.object(conductor_utils, '_get_steps_from_deployment_templates',
+                   autospec=True)
+@mock.patch.object(conductor_utils, '_validate_user_deploy_steps',
+                   autospec=True)
+class ValidateDeployTemplatesTestCase(db_base.DbTestCase):
+
+    def setUp(self):
+        super(ValidateDeployTemplatesTestCase, self).setUp()
+        self.node = obj_utils.create_test_node(self.context,
+                                               driver='fake-hardware')
+
+    def test_validate_deploy_templates(self, mock_validate, mock_get):
+        steps = [db_utils.get_test_deploy_template_step()]
+        mock_get.return_value = steps
+        with task_manager.acquire(
+                self.context, self.node.uuid, shared=False) as task:
+            conductor_utils.validate_deploy_templates(task)
+            mock_validate.assert_called_once_with(task, steps)
+
+    def test_validate_deploy_templates_invalid_parameter_value(
+            self, mock_validate, mock_get):
+        mock_validate.side_effect = exception.InvalidParameterValue('fake')
+        with task_manager.acquire(
+                self.context, self.node.uuid, shared=False) as task:
+            self.assertRaises(exception.InvalidParameterValue,
+                              conductor_utils.validate_deploy_templates, task)
+
+    def test_validate_deploy_templates_instance_deploy_failure(
+            self, mock_validate, mock_get):
+        mock_validate.side_effect = exception.InstanceDeployFailure('foo')
+        with task_manager.acquire(
+                self.context, self.node.uuid, shared=False) as task:
+            self.assertRaises(exception.InstanceDeployFailure,
+                              conductor_utils.validate_deploy_templates, task)
