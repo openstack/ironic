@@ -385,12 +385,13 @@
         IRONIC_VM_SPECS_RAM: 384
         OS_TEST_TIMEOUT: 2400
         OVERRIDE_PUBLIC_BRIDGE_MTU: 1400
+        OVS_BRIDGE_MAPPINGS: 'mynetwork:brbm,public:br-infra'
         OVS_PHYSICAL_BRIDGE: brbm
         PHYSICAL_NETWORK: mynetwork
+        PUBLIC_BRIDGE: br-infra
         Q_AGENT: openvswitch
         Q_ML2_TENANT_NETWORK_TYPE: vlan
         Q_PLUGIN: ml2
-        Q_USE_PROVIDERNET_FOR_PUBLIC: False
         SWIFT_ENABLE_TEMPURLS: True
         SWIFT_TEMPURL_KEY: secretkey
         TEMPEST_PLUGINS: "'{{ ansible_user_dir }}/src/git.openstack.org/openstack/ironic-tempest-plugin'"
@@ -455,6 +456,7 @@
           IRONIC_VM_LOG_DIR: '{{ devstack_base_dir }}/ironic-bm-logs'
           IRONIC_VM_NETWORK_BRIDGE: sub1brbm
           IRONIC_VM_SPECS_RAM: 384
+          OVS_BRIDGE_MAPPINGS: 'mynetwork:sub1brbm,public:br-infra'
           OVS_PHYSICAL_BRIDGE: sub1brbm
           PHYSICAL_NETWORK: mynetwork
           Q_ML2_TENANT_NETWORK_TYPE: vlan
