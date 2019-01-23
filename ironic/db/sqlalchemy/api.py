@@ -924,10 +924,14 @@ class Connection(api.Connection):
     def get_offline_conductors(self):
         interval = CONF.conductor.heartbeat_timeout
         limit = timeutils.utcnow() - datetime.timedelta(seconds=interval)
-        result = (model_query(models.Conductor).filter_by()
-                  .filter(models.Conductor.updated_at < limit)
-                  .all())
-        return [row['hostname'] for row in result]
+        result = (model_query(models.Conductor.hostname)
+                  .filter(models.Conductor.updated_at < limit))
+        return [row[0] for row in result]
+
+    def get_online_conductors(self):
+        query = model_query(models.Conductor.hostname)
+        query = _filter_active_conductors(query)
+        return [row[0] for row in query]
 
     def list_conductor_hardware_interfaces(self, conductor_id):
         query = (model_query(models.ConductorHardwareInterfaces)

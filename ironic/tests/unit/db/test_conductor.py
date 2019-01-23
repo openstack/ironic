@@ -336,6 +336,23 @@ class DbConductorTestCase(base.DbTestCase):
         self.assertEqual([c.hostname], self.dbapi.get_offline_conductors())
 
     @mock.patch.object(timeutils, 'utcnow', autospec=True)
+    def test_get_online_conductors(self, mock_utcnow):
+        self.config(heartbeat_timeout=60, group='conductor')
+        time_ = datetime.datetime(2000, 1, 1, 0, 0)
+
+        mock_utcnow.return_value = time_
+        c = self._create_test_cdr()
+
+        # Only 30 seconds passed since last heartbeat, it's still
+        # considered alive
+        mock_utcnow.return_value = time_ + datetime.timedelta(seconds=30)
+        self.assertEqual([c.hostname], self.dbapi.get_online_conductors())
+
+        # 61 seconds passed since last heartbeat, it's dead
+        mock_utcnow.return_value = time_ + datetime.timedelta(seconds=61)
+        self.assertEqual([], self.dbapi.get_online_conductors())
+
+    @mock.patch.object(timeutils, 'utcnow', autospec=True)
     def test_list_hardware_type_interfaces(self, mock_utcnow):
         self.config(heartbeat_timeout=60, group='conductor')
         time_ = datetime.datetime(2000, 1, 1, 0, 0)

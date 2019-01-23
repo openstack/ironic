@@ -556,6 +556,13 @@ class Connection(object):
         """
 
     @abc.abstractmethod
+    def get_online_conductors(self):
+        """Get a list conductor hostnames that are online and active.
+
+        :returns: A list of conductor hostnames.
+        """
+
+    @abc.abstractmethod
     def list_conductor_hardware_interfaces(self, conductor_id):
         """List all registered hardware interfaces for a conductor.
 
