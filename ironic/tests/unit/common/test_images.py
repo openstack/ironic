@@ -496,19 +496,14 @@ class FsImageTestCase(base.TestCase):
         files_info = {
             'path/to/kernel': 'vmlinuz',
             'path/to/ramdisk': 'initrd',
-            CONF.isolinux_bin: 'isolinux/isolinux.bin',
             'path/to/grub': 'relpath/to/grub.cfg',
             'sourceabspath/to/efiboot.img': 'path/to/efiboot.img'
         }
-        cfg = "cfg"
-        cfg_file = 'tmpdir/isolinux/isolinux.cfg'
         grubcfg = "grubcfg"
         grub_file = 'tmpdir/relpath/to/grub.cfg'
-        gen_cfg_mock.side_effect = cfg, grubcfg
+        gen_cfg_mock.side_effect = (grubcfg,)
 
         params = ['a=b', 'c']
-        isolinux_options = {'kernel': '/vmlinuz',
-                            'ramdisk': '/initrd'}
         grub_options = {'linux': '/vmlinuz',
                         'initrd': '/initrd'}
 
@@ -531,18 +526,12 @@ class FsImageTestCase(base.TestCase):
                                               kernel_params=params)
         mount_mock.assert_called_once_with('path/to/deploy_iso', 'mountdir')
         create_root_fs_mock.assert_called_once_with('tmpdir', files_info)
-        gen_cfg_mock.assert_any_call(params, CONF.isolinux_config_template,
-                                     isolinux_options)
-        write_to_file_mock.assert_any_call(cfg_file, cfg)
         gen_cfg_mock.assert_any_call(params, CONF.grub_config_template,
                                      grub_options)
         write_to_file_mock.assert_any_call(grub_file, grubcfg)
         execute_mock.assert_called_once_with(
-            'mkisofs', '-r', '-V', "VMEDIA_BOOT_ISO", '-cache-inodes', '-J',
-            '-l', '-no-emul-boot', '-boot-load-size', '4', '-boot-info-table',
-            '-b', 'isolinux/isolinux.bin', '-eltorito-alt-boot',
-            '-e', 'path/to/efiboot.img', '-no-emul-boot',
-            '-o', 'tgt_file', 'tmpdir')
+            'mkisofs', '-r', '-V', 'VMEDIA_BOOT_ISO', '-l', '-e',
+            'path/to/efiboot.img', '-no-emul-boot', '-o', 'tgt_file', 'tmpdir')
         umount_mock.assert_called_once_with('mountdir')
 
     @mock.patch.object(images, '_create_root_fs', autospec=True)

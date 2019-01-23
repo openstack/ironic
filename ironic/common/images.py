@@ -243,17 +243,12 @@ def create_isolinux_image_for_uefi(output_file, deploy_iso, kernel, ramdisk,
     :raises: ImageCreationFailed, if image creation failed while copying files
         or while running command to generate iso.
     """
-    ISOLINUX_BIN = 'isolinux/isolinux.bin'
-    ISOLINUX_CFG = 'isolinux/isolinux.cfg'
-
-    isolinux_options = {'kernel': '/vmlinuz', 'ramdisk': '/initrd'}
     grub_options = {'linux': '/vmlinuz', 'initrd': '/initrd'}
 
     with utils.tempdir() as tmpdir:
         files_info = {
             kernel: 'vmlinuz',
             ramdisk: 'initrd',
-            CONF.isolinux_bin: ISOLINUX_BIN,
         }
 
         # Open the deploy iso used to initiate deploy and copy the
@@ -274,12 +269,6 @@ def create_isolinux_image_for_uefi(output_file, deploy_iso, kernel, ramdisk,
             finally:
                 _umount_without_raise(mountdir)
 
-        cfg = _generate_cfg(kernel_params,
-                            CONF.isolinux_config_template, isolinux_options)
-
-        isolinux_cfg = os.path.join(tmpdir, ISOLINUX_CFG)
-        utils.write_to_file(isolinux_cfg, cfg)
-
         # Generate and copy grub config file.
         grub_cfg = os.path.join(tmpdir, grub_rel_path)
         grub_conf = _generate_cfg(kernel_params,
@@ -288,12 +277,10 @@ def create_isolinux_image_for_uefi(output_file, deploy_iso, kernel, ramdisk,
 
         # Create the boot_iso.
         try:
-            utils.execute('mkisofs', '-r', '-V', "VMEDIA_BOOT_ISO",
-                          '-cache-inodes', '-J', '-l', '-no-emul-boot',
-                          '-boot-load-size', '4', '-boot-info-table',
-                          '-b', ISOLINUX_BIN, '-eltorito-alt-boot',
+            utils.execute('mkisofs', '-r', '-V', "VMEDIA_BOOT_ISO", '-l',
                           '-e', e_img_rel_path, '-no-emul-boot',
                           '-o', output_file, tmpdir)
+
         except processutils.ProcessExecutionError as e:
             LOG.exception("Creating ISO image failed.")
             raise exception.ImageCreationFailed(image_type='iso', error=e)

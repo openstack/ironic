@@ -1,0 +1,7 @@
+---
+other:
+  - |
+    The Bare Metal service now builds UEFI-only bootable ISO image (when being asked to
+    build a UEFI-bootable image) rather than building a hybrid
+    BIOS/UEFI-bootable ISO.
+
