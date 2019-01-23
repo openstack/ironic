@@ -78,9 +78,9 @@ opts = [
                       'in DB')),
     cfg.IntOpt('sync_power_state_workers',
                default=8, min=1,
-               help=_('The maximum number of workers that can be started '
-                      'simultaneously to sync nodes power state from the '
-                      'periodic task.')),
+               help=_('The maximum number of worker threads that can be '
+                      'started simultaneously to sync nodes power states from '
+                      'the periodic task.')),
     cfg.IntOpt('periodic_max_workers',
                default=8,
                help=_('Maximum number of worker threads that can be started '

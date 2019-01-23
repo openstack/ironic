@@ -1,9 +1,8 @@
 ---
 features:
   - |
-    Parallelizes periodic power sync calls by running up to
-    ``sync_power_state_workers`` simultenously. The default is to run
-    up to ``8`` workers.
-    This change should let larger-scale setups to run power syncs more
-    frequently and make the whole power sync procedure more resilient to slow
-    or dead BMCs.
+    Parallelizes periodic power sync calls by running up to ironic
+    configuration ``[conductor]/sync_power_state_workers`` simultaneously.
+    The default is to run up to ``8`` workers. This change should let
+    larger-scale setups running power syncs more frequently and make the whole
+    power sync procedure more resilient to slow or dead BMCs.
