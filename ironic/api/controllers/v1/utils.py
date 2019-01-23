@@ -380,6 +380,7 @@ VERSIONED_FIELDS = {
     'protected_reason': versions.MINOR_48_NODE_PROTECTED,
     'conductor': versions.MINOR_49_CONDUCTORS,
     'owner': versions.MINOR_50_NODE_OWNER,
+    'description': versions.MINOR_51_NODE_DESCRIPTION,
 }
 
 for field in V31_FIELDS:

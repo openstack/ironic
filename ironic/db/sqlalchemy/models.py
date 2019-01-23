@@ -182,6 +182,7 @@ class Node(Base):
     owner = Column(String(255), nullable=True)
     allocation_id = Column(Integer, ForeignKey('allocations.id'),
                            nullable=True)
+    description = Column(Text, nullable=True)
 
     bios_interface = Column(String(255), nullable=True)
     boot_interface = Column(String(255), nullable=True)
