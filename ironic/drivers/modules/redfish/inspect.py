@@ -216,10 +216,10 @@ class RedfishInspect(base.InspectInterface):
                 inspect_utils.create_ports_if_not_exist(
                     task, enabled_macs, get_mac_address=lambda x: x[0])
             else:
-                LOG.info("Not attempted to create any port as no NICs being "
-                         "discovered in 'enabled' state for node %(node)s: "
-                         "%(mac_data)s", {'mac_data': macs,
-                                          'node': task.node.uuid})
+                LOG.warning("Not attempting to create any port as no NICs "
+                            "were discovered in 'enabled' state for node "
+                            "%(node)s: %(mac_data)s",
+                            {'mac_data': macs, 'node': task.node.uuid})
         else:
             LOG.warning("No NIC information discovered "
                         "for node %(node)s", {'node': task.node.uuid})
