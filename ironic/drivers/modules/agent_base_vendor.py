@@ -735,7 +735,12 @@ class AgentDeployMixin(HeartbeatMixin):
                 log_and_raise_deployment_error(task, msg)
 
         try:
-            deploy_utils.try_set_boot_device(task, boot_devices.DISK)
+            persistent = True
+            if node.driver_info.get('force_persistent_boot_device',
+                                    'Default') == 'Never':
+                persistent = False
+            deploy_utils.try_set_boot_device(task, boot_devices.DISK,
+                                             persistent=persistent)
         except Exception as e:
             msg = (_("Failed to change the boot device to %(boot_dev)s "
                      "when deploying node %(node)s. Error: %(error)s") %

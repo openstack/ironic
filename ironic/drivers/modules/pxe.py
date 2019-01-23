@@ -172,9 +172,15 @@ class PXEBoot(pxe_base.PXEBaseMixin, base.BootInterface):
         pxe_utils.create_pxe_config(task, pxe_options,
                                     pxe_config_template,
                                     ipxe_enabled=CONF.pxe.ipxe_enabled)
-        persistent = strutils.bool_from_string(
-            node.driver_info.get('force_persistent_boot_device',
-                                 False))
+
+        persistent = False
+        value = node.driver_info.get('force_persistent_boot_device',
+                                     'Default')
+        if value in {'Always', 'Default', 'Never'}:
+            if value == 'Always':
+                persistent = True
+        else:
+            persistent = strutils.bool_from_string(value, False)
         manager_utils.node_set_boot_device(task, boot_devices.PXE,
                                            persistent=persistent)
 
@@ -274,8 +280,12 @@ class PXEBoot(pxe_base.PXEBaseMixin, base.BootInterface):
         # NOTE(pas-ha) do not re-set boot device on ACTIVE nodes
         # during takeover
         if boot_device and task.node.provision_state != states.ACTIVE:
+            persistent = True
+            if node.driver_info.get('force_persistent_boot_device',
+                                    'Default') == 'Never':
+                persistent = False
             manager_utils.node_set_boot_device(task, boot_device,
-                                               persistent=True)
+                                               persistent=persistent)
 
     @METRICS.timer('PXEBoot.clean_up_instance')
     def clean_up_instance(self, task):

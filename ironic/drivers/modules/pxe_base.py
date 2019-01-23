@@ -31,10 +31,16 @@ REQUIRED_PROPERTIES = {
                         "mounted at boot time. Required."),
 }
 OPTIONAL_PROPERTIES = {
-    'force_persistent_boot_device': _("True to enable persistent behavior "
-                                      "when the boot device is set during "
-                                      "deploy and cleaning operations. "
-                                      "Defaults to False. Optional."),
+    'force_persistent_boot_device': _("Controls the persistency of boot order "
+                                      "changes. 'Always' will make all "
+                                      "changes persistent, 'Default' will "
+                                      "make all but the final one upon "
+                                      "instance deployment non-persistent, "
+                                      "and 'Never' will make no persistent "
+                                      "changes at all. The old values 'True' "
+                                      "and 'False' are still supported but "
+                                      "deprecated in favor of the new ones."
+                                      "Defaults to 'Default'. Optional."),
 }
 RESCUE_PROPERTIES = {
     'rescue_kernel': _('UUID (from Glance) of the rescue kernel. This value '

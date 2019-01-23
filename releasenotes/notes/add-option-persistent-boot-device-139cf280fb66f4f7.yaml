@@ -1,0 +1,17 @@
+---
+features:
+  - |
+    Adds capability to control the persistency of boot order changes during
+    instance deployment via (i)PXE on a per-node level. The option
+    'force_persistent_boot_device' in the node's driver info for the (i)PXE
+    drivers is extended to allow the values 'Default' (make all changes
+    but the last one upon deployment non-persistent), 'Always' (make all
+    changes persistent), and 'Never' (make all boot order changes
+    non-persistent).
+deprecations:
+  - |
+    The values 'True'/'False' for the option 'force_persistent_boot_device'
+    in the node's driver info for the (i)PXE drivers are deprecated and
+    support for them may be removed in a future release. The former default
+    value 'False' is replaced by the new value 'Default', the value 'True'
+    is replaced by 'Always'.
