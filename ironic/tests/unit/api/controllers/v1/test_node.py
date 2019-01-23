@@ -1636,6 +1636,30 @@ class TestListNodes(test_api_base.BaseApiTest):
         self.assertNotIn(node1.uuid, uuids)
         self.assertIn(node2.uuid, uuids)
 
+    def test_get_nodes_by_conductor_no_valid_host(self):
+        obj_utils.create_test_node(self.context,
+                                   uuid=uuidutils.generate_uuid())
+
+        self.mock_get_conductor_for.side_effect = exception.NoValidHost(
+            reason='hey a conductor just goes vacation')
+        response = self.get_json('/nodes?conductor=like.shadows',
+                                 headers={api_base.Version.string: "1.49"})
+        self.assertEqual([], response['nodes'])
+
+        self.mock_get_conductor_for.side_effect = exception.TemporaryFailure(
+            reason='this must be conductor strike')
+        response = self.get_json('/nodes?conductor=like.shadows',
+                                 headers={api_base.Version.string: "1.49"})
+        self.assertEqual([], response['nodes'])
+
+        self.mock_get_conductor_for.side_effect = exception.IronicException(
+            'Some unexpected thing happened')
+        response = self.get_json('/nodes?conductor=fake.conductor',
+                                 headers={api_base.Version.string: "1.49"},
+                                 expect_errors=True)
+        self.assertIn('Some unexpected thing happened',
+                      response.json['error_message'])
+
     def test_get_nodes_by_owner(self):
         node1 = obj_utils.create_test_node(self.context,
                                            uuid=uuidutils.generate_uuid(),

@@ -1587,9 +1587,15 @@ class NodesController(rest.RestController):
     def _filter_by_conductor(self, nodes, conductor):
         filtered_nodes = []
         for n in nodes:
-            host = pecan.request.rpcapi.get_conductor_for(n)
-            if host == conductor:
-                filtered_nodes.append(n)
+            try:
+                host = pecan.request.rpcapi.get_conductor_for(n)
+                if host == conductor:
+                    filtered_nodes.append(n)
+            except (exception.NoValidHost, exception.TemporaryFailure):
+                # NOTE(kaifeng) Node gets orphaned in case some conductor
+                # offline or all conductors are offline.
+                pass
+
         return filtered_nodes
 
     def _get_nodes_collection(self, chassis_uuid, instance_uuid, associated,

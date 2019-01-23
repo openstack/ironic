@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Fixes an issue that node list with conductor fails if any of the nodes
+    has an invalid hardware type, which may happen when some conductor is
+    out of service.
