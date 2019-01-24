@@ -205,6 +205,13 @@ r_conductor_group:
   in: query
   required: false
   type: string
+r_description_contains:
+  description: |
+    Filter the list of returned nodes, and only return those containing
+    substring specified by ``description_contains``.
+  in: query
+  requred: false
+  type: string
 r_driver:
   description: |
     Filter the list of returned nodes, and only return those with the specified
@@ -763,6 +770,12 @@ maintenance_reason:
 management_interface:
   description: |
     Interface for out-of-band node management, e.g. "ipmitool".
+  in: body
+  required: true
+  type: string
+n_description:
+  description: |
+    Informational text about this node.
   in: body
   required: true
   type: string
