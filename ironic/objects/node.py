@@ -497,18 +497,6 @@ class Node(base.IronicObject, object_base.VersionedObjectDictCompat):
         node = cls._from_db_object(context, cls(), db_node)
         return node
 
-    def _convert_fault_field(self, target_version,
-                             remove_unavailable_fields=True):
-        fault_is_set = self.obj_attr_is_set('fault')
-        if target_version >= (1, 25):
-            if not fault_is_set:
-                self.fault = None
-        elif fault_is_set:
-            if remove_unavailable_fields:
-                delattr(self, 'fault')
-            elif self.fault is not None:
-                self.fault = None
-
     def _convert_deploy_step_field(self, target_version,
                                    remove_unavailable_fields=True):
         # NOTE(rloo): Typically we set the value to None. However,
@@ -600,9 +588,9 @@ class Node(base.IronicObject, object_base.VersionedObjectDictCompat):
 
         # Convert the different fields depending on version
         fields = [('rescue_interface', 22), ('traits', 23),
-                  ('bios_interface', 24), ('automated_clean', 28),
-                  ('protected_reason', 29), ('owner', 30),
-                  ('allocation_id', 31)]
+                  ('bios_interface', 24), ('fault', 25),
+                  ('automated_clean', 28), ('protected_reason', 29),
+                  ('owner', 30), ('allocation_id', 31)]
         for name, minor in fields:
             self._adjust_field_to_version(name, None, target_version,
                                           1, minor, remove_unavailable_fields)
@@ -611,7 +599,6 @@ class Node(base.IronicObject, object_base.VersionedObjectDictCompat):
         self._adjust_field_to_version('protected', False, target_version,
                                       1, 29, remove_unavailable_fields)
 
-        self._convert_fault_field(target_version, remove_unavailable_fields)
         self._convert_deploy_step_field(target_version,
                                         remove_unavailable_fields)
         self._convert_conductor_group_field(target_version,
