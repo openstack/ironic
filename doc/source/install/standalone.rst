@@ -30,6 +30,14 @@ You should make the following changes to ``/etc/ironic/ironic.conf``:
       Networking since it will do all the dynamically changing configurations
       for you.
 
+#. If you want to disable using a messaging broker between conductor and API
+   processes, switch to JSON RPC instead:
+
+   .. code-block:: ini
+
+      [DEFAULT]
+      rpc_transport = json-rpc
+
 If you don't use Image service, it's possible to provide images to Bare Metal
 service via a URL.
 

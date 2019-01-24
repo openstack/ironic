@@ -315,6 +315,12 @@ service_opts = [
                       'When doing a rolling upgrade from version N to version '
                       'N+1, set (to pin) this to N. To unpin (default), leave '
                       'it unset and the latest versions will be used.')),
+    cfg.StrOpt('rpc_transport',
+               default='oslo',
+               choices=[('oslo', _('use oslo.messaging transport')),
+                        ('json-rpc', _('use JSON RPC transport'))],
+               help=_('Which RPC transport implementation to use between '
+                      'conductor and API services')),
 ]
 
 utils_opts = [

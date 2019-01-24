@@ -16,16 +16,19 @@
 
 import signal
 
+from oslo_config import cfg
 from oslo_log import log
 import oslo_messaging as messaging
 from oslo_service import service
 from oslo_utils import importutils
 
 from ironic.common import context
+from ironic.common.json_rpc import server as json_rpc
 from ironic.common import rpc
 from ironic.objects import base as objects_base
 
 LOG = log.getLogger(__name__)
+CONF = cfg.CONF
 
 
 class RPCService(service.Service):
@@ -44,10 +47,14 @@ class RPCService(service.Service):
         super(RPCService, self).start()
         admin_context = context.get_admin_context()
 
-        target = messaging.Target(topic=self.topic, server=self.host)
-        endpoints = [self.manager]
         serializer = objects_base.IronicObjectSerializer(is_server=True)
-        self.rpcserver = rpc.get_server(target, endpoints, serializer)
+        if CONF.rpc_transport == 'json-rpc':
+            self.rpcserver = json_rpc.WSGIService(self.manager,
+                                                  serializer)
+        else:
+            target = messaging.Target(topic=self.topic, server=self.host)
+            endpoints = [self.manager]
+            self.rpcserver = rpc.get_server(target, endpoints, serializer)
         self.rpcserver.start()
 
         self.handle_signal()
