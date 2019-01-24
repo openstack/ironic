@@ -986,7 +986,8 @@ class IPMIManagement(base.ManagementInterface):
                      'to False, so not sending ipmi boot-timeout-disable',
                      {'node_uuid', task.node.uuid})
 
-        if task.node.driver_info.get('ipmi_force_boot_device', False):
+        ifbd = task.node.driver_info.get('ipmi_force_boot_device', False)
+        if strutils.bool_from_string(ifbd):
             driver_utils.force_persistent_boot(task,
                                                device,
                                                persistent)
@@ -1052,8 +1053,9 @@ class IPMIManagement(base.ManagementInterface):
         """
         driver_info = task.node.driver_info
         driver_internal_info = task.node.driver_internal_info
+        ifbd = driver_info.get('ipmi_force_boot_device', False)
 
-        if (driver_info.get('ipmi_force_boot_device', False)
+        if (strutils.bool_from_string(ifbd)
                 and driver_internal_info.get('persistent_boot_device')
                 and driver_internal_info.get('is_next_boot_persistent', True)):
             return {

@@ -1922,15 +1922,34 @@ class IPMIToolDriverTestCase(Base):
                       mock.call(self.info, "chassis bootdev pxe")]
         mock_exec.assert_has_calls(mock_calls)
 
+    @mock.patch.object(driver_utils, 'force_persistent_boot', autospec=True)
+    @mock.patch.object(ipmi, '_exec_ipmitool', autospec=True)
+    def test_management_interface_no_force_set_boot_device(self,
+                                                           mock_exec,
+                                                           mock_force_boot):
+        mock_exec.return_value = [None, None]
+
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            driver_info = task.node.driver_info
+            driver_info['ipmi_force_boot_device'] = 'False'
+            task.node.driver_info = driver_info
+            self.info['force_boot_device'] = 'False'
+            self.management.set_boot_device(task, boot_devices.PXE)
+
+        mock_calls = [mock.call(self.info, "raw 0x00 0x08 0x03 0x08"),
+                      mock.call(self.info, "chassis bootdev pxe")]
+        mock_exec.assert_has_calls(mock_calls)
+        self.assertFalse(mock_force_boot.called)
+
     @mock.patch.object(ipmi, '_exec_ipmitool', autospec=True)
     def test_management_interface_force_set_boot_device_ok(self, mock_exec):
         mock_exec.return_value = [None, None]
 
         with task_manager.acquire(self.context, self.node.uuid) as task:
             driver_info = task.node.driver_info
-            driver_info['ipmi_force_boot_device'] = True
+            driver_info['ipmi_force_boot_device'] = 'True'
             task.node.driver_info = driver_info
-            self.info['force_boot_device'] = True
+            self.info['force_boot_device'] = 'True'
             self.management.set_boot_device(task, boot_devices.PXE)
             task.node.refresh()
             self.assertIs(
@@ -1948,9 +1967,9 @@ class IPMIToolDriverTestCase(Base):
 
         with task_manager.acquire(self.context, self.node.uuid) as task:
             driver_info = task.node.driver_info
-            driver_info['ipmi_force_boot_device'] = True
+            driver_info['ipmi_force_boot_device'] = 'True'
             task.node.driver_info = driver_info
-            self.info['force_boot_device'] = True
+            self.info['force_boot_device'] = 'True'
             self.management.set_boot_device(task, boot_devices.PXE, True)
             self.assertEqual(
                 boot_devices.PXE,
@@ -2117,7 +2136,7 @@ class IPMIToolDriverTestCase(Base):
 
     def test_get_force_boot_device_persistent(self):
         with task_manager.acquire(self.context, self.node.uuid) as task:
-            task.node.driver_info['ipmi_force_boot_device'] = True
+            task.node.driver_info['ipmi_force_boot_device'] = 'True'
             task.node.driver_internal_info['persistent_boot_device'] = 'pxe'
             bootdev = self.management.get_boot_device(task)
             self.assertEqual('pxe', bootdev['boot_device'])

@@ -18,6 +18,7 @@ import tempfile
 from oslo_config import cfg
 from oslo_log import log as logging
 from oslo_serialization import base64
+from oslo_utils import strutils
 from oslo_utils import timeutils
 import six
 
@@ -192,8 +193,8 @@ def ensure_next_boot_device(task, driver_info):
     :param task: Node object.
     :param driver_info: Node driver_info.
     """
-
-    if driver_info.get('force_boot_device', False):
+    ifbd = driver_info.get('force_boot_device', False)
+    if strutils.bool_from_string(ifbd):
         driver_internal_info = task.node.driver_internal_info
         if driver_internal_info.get('is_next_boot_persistent') is False:
             driver_internal_info.pop('is_next_boot_persistent', None)
