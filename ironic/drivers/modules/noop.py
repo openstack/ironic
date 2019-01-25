@@ -15,7 +15,7 @@
 """
 Dummy interface implementations for use as defaults with optional interfaces.
 
-Note that unlike fake implementatios, these do not pass validation and raise
+Note that unlike fake implementations, these do not pass validation and raise
 exceptions for user-accessible actions.
 """
 
