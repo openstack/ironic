@@ -41,6 +41,9 @@ opts = [
                       'http:// or https://.')),
     cfg.IntOpt('heartbeat_timeout',
                default=60,
+               # We're using timedelta which can overflow if somebody sets this
+               # too high, so limit to a sane value of 10 years.
+               max=315576000,
                help=_('Maximum time (in seconds) since the last check-in '
                       'of a conductor. A conductor is considered inactive '
                       'when this time has been exceeded.')),
