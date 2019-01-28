@@ -310,10 +310,10 @@ def attach_volumes(task, volume_list, connector):
             # database record to indicate that the attachment has
             # been completed, which moves the volume to the
             # 'attached' state. This action also sets a mountpoint
-            # for the volume, if known. In our use case, there is
-            # no way for us to know what the mountpoint is inside of
-            # the operating system, thus we send None.
-            client.volumes.attach(volume_id, instance_uuid, None)
+            # for the volume, as cinder requires a mointpoint to
+            # attach the volume, thus we send 'mount_volume'.
+            client.volumes.attach(volume_id, instance_uuid,
+                                  'ironic_mountpoint')
 
         except cinder_exceptions.ClientException as e:
             msg = (_('Failed to inform cinder that the attachment for volume '
