@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    Fixes a bug where cinder block storage service volumes volume fail to attach expecting a 
+    mountpoint to be a valid string. See `story 2004864
+    <https://storyboard.openstack.org/#!/story/2004864>`_ for additional
+    information.
