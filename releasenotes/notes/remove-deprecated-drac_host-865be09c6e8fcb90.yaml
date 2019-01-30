@@ -1,0 +1,5 @@
+---
+upgrade:
+  - Removes deprecated ``driver_info["drac_host"]`` property for
+    ``idrac`` hardware type that was marked for removal in Pike.
+    Please use ``driver_info["drac_address"]`` instead.

@@ -1945,7 +1945,7 @@ function enroll_nodes {
                     node_options+=" --driver-info ilo_deploy_iso=$IRONIC_DEPLOY_ISO_ID"
                 fi
             elif is_deployed_by_drac; then
-                node_options+=" --driver-info drac_host=$bmc_address \
+                node_options+=" --driver-info drac_address=$bmc_address \
                     --driver-info drac_password=$bmc_passwd \
                     --driver-info drac_username=$bmc_username"
             elif is_deployed_by_redfish; then

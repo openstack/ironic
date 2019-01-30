@@ -40,31 +40,6 @@ class DracCommonMethodsTestCase(test_utils.BaseDracTest):
         self.assertEqual(INFO_DICT['drac_username'], info['drac_username'])
         self.assertEqual(INFO_DICT['drac_password'], info['drac_password'])
 
-    @mock.patch.object(drac_common.LOG, 'warning')
-    def test_parse_driver_info_drac_host(self, mock_log):
-        driver_info = db_utils.get_test_drac_info()
-        driver_info['drac_host'] = '4.5.6.7'
-        driver_info.pop('drac_address')
-        node = obj_utils.create_test_node(self.context,
-                                          driver='idrac',
-                                          driver_info=driver_info)
-        info = drac_common.parse_driver_info(node)
-        self.assertEqual('4.5.6.7', info['drac_address'])
-        self.assertNotIn('drac_host', info)
-        self.assertTrue(mock_log.called)
-
-    @mock.patch.object(drac_common.LOG, 'warning')
-    def test_parse_driver_info_drac_host_and_drac_address(self, mock_log):
-        driver_info = db_utils.get_test_drac_info()
-        driver_info['drac_host'] = '4.5.6.7'
-        node = obj_utils.create_test_node(self.context,
-                                          driver='idrac',
-                                          driver_info=driver_info)
-        info = drac_common.parse_driver_info(node)
-        self.assertEqual('4.5.6.7', driver_info['drac_host'])
-        self.assertEqual(driver_info['drac_address'], info['drac_address'])
-        self.assertTrue(mock_log.called)
-
     def test_parse_driver_info_missing_host(self):
         node = obj_utils.create_test_node(self.context,
                                           driver='idrac',
