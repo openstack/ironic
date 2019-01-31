@@ -97,13 +97,14 @@ class ConductorAPI(object):
     |    1.45 - Added continue_node_deploy
     |    1.46 - Added reset_interfaces to update_node
     |    1.47 - Added support for conductor groups
+    |    1.48 - Added allocation API
 
     """
 
     # NOTE(rloo): This must be in sync with manager.ConductorManager's.
     # NOTE(pas-ha): This also must be in sync with
     #               ironic.common.release_mappings.RELEASE_MAPPING['master']
-    RPC_API_VERSION = '1.47'
+    RPC_API_VERSION = '1.48'
 
     def __init__(self, topic=None):
         super(ConductorAPI, self).__init__()
@@ -1105,3 +1106,25 @@ class ConductorAPI(object):
         cctxt = self.client.prepare(topic=topic or self.topic, version='1.44')
         return cctxt.call(context, 'remove_node_traits', node_id=node_id,
                           traits=traits)
+
+    def create_allocation(self, context, allocation, topic=None):
+        """Create an allocation.
+
+        :param context: request context.
+        :param allocation: an allocation object.
+        :param topic: RPC topic. Defaults to self.topic.
+        """
+        cctxt = self.client.prepare(topic=topic or self.topic, version='1.48')
+        return cctxt.call(context, 'create_allocation', allocation=allocation)
+
+    def destroy_allocation(self, context, allocation, topic=None):
+        """Delete an allocation.
+
+        :param context: request context.
+        :param allocation: an allocation object.
+        :param topic: RPC topic. Defaults to self.topic.
+        :raises: InvalidState if the associated node is in the wrong provision
+            state to perform deallocation.
+        """
+        cctxt = self.client.prepare(topic=topic or self.topic, version='1.48')
+        return cctxt.call(context, 'destroy_allocation', allocation=allocation)

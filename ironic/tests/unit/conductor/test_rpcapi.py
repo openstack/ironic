@@ -598,3 +598,15 @@ class RPCAPITestCase(db_base.DbTestCase):
                           node_id='fake-node',
                           traits=None,
                           version='1.44')
+
+    def test_create_allocation(self):
+        self._test_rpcapi('create_allocation',
+                          'call',
+                          allocation='fake-allocation',
+                          version='1.48')
+
+    def test_destroy_allocation(self):
+        self._test_rpcapi('destroy_allocation',
+                          'call',
+                          allocation='fake-allocation',
+                          version='1.48')

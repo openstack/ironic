@@ -262,6 +262,14 @@ SOFT_REBOOT = 'soft rebooting'
 SOFT_POWER_OFF = 'soft power off'
 """ Node is in the process of soft power off. """
 
+###################
+# Allocation states
+###################
+
+ALLOCATING = 'allocating'
+
+# States ERROR and ACTIVE are reused.
+
 
 #####################
 # State machine model

@@ -265,6 +265,37 @@ def create_test_conductor(ctxt, **kw):
     return conductor
 
 
+def get_test_allocation(ctxt, **kw):
+    """Return an Allocation object with appropriate attributes.
+
+    NOTE: The object leaves the attributes marked as changed, such
+    that a create() could be used to commit it to the DB.
+    """
+    kw['object_type'] = 'allocation'
+    get_db_allocation_checked = check_keyword_arguments(
+        db_utils.get_test_allocation)
+    db_allocation = get_db_allocation_checked(**kw)
+
+    # Let DB generate ID if it isn't specified explicitly
+    if 'id' not in kw:
+        del db_allocation['id']
+    allocation = objects.Allocation(ctxt)
+    for key in db_allocation:
+        setattr(allocation, key, db_allocation[key])
+    return allocation
+
+
+def create_test_allocation(ctxt, **kw):
+    """Create and return a test allocation object.
+
+    Create an allocation in the DB and return an Allocation object with
+    appropriate attributes.
+    """
+    allocation = get_test_allocation(ctxt, **kw)
+    allocation.create()
+    return allocation
+
+
 def get_payloads_with_schemas(from_module):
     """Get the Payload classes with SCHEMAs defined.
 

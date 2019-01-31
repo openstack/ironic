@@ -803,3 +803,7 @@ class AllocationDuplicateName(Conflict):
 
 class AllocationAlreadyExists(Conflict):
     _msg_fmt = _("An allocation with UUID %(uuid)s already exists.")
+
+
+class AllocationFailed(IronicException):
+    _msg_fmt = _("Failed to process allocation %(uuid)s: %(error)s.")
