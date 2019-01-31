@@ -233,7 +233,8 @@ class iPXEBootTestCase(db_base.DbTestCase):
                               ipxe_use_swift=False,
                               whole_disk_image=False,
                               mode='deploy',
-                              node_boot_mode=None):
+                              node_boot_mode=None,
+                              persistent=False):
         mock_build_pxe.return_value = {}
         kernel_label = '%s_kernel' % mode
         ramdisk_label = '%s_ramdisk' % mode
@@ -266,7 +267,7 @@ class iPXEBootTestCase(db_base.DbTestCase):
                 get_boot_mode_mock.assert_called_once_with(task)
             set_boot_device_mock.assert_called_once_with(task,
                                                          boot_devices.PXE,
-                                                         persistent=False)
+                                                         persistent=persistent)
             if ipxe_use_swift:
                 if whole_disk_image:
                     self.assertFalse(mock_cache_r_k.called)
@@ -303,6 +304,22 @@ class iPXEBootTestCase(db_base.DbTestCase):
 
     def test_prepare_ramdisk(self):
         self.node.provision_state = states.DEPLOYING
+        self.node.save()
+        self._test_prepare_ramdisk()
+
+    def test_prepare_ramdisk_force_persistent_boot_device_enabled(self):
+        self.node.provision_state = states.DEPLOYING
+        driver_info = self.node.driver_info
+        driver_info['force_persistent_boot_device'] = True
+        self.node.driver_info = driver_info
+        self.node.save()
+        self._test_prepare_ramdisk(persistent=True)
+
+    def test_prepare_ramdisk_force_persistent_boot_device_disabled(self):
+        self.node.provision_state = states.DEPLOYING
+        driver_info = self.node.driver_info
+        driver_info['force_persistent_boot_device'] = False
+        self.node.driver_info = driver_info
         self.node.save()
         self._test_prepare_ramdisk()
 
@@ -732,25 +749,6 @@ class iPXEBootTestCase(db_base.DbTestCase):
             task.driver.boot.prepare_instance(task)
             clean_up_pxe_config_mock.assert_called_once_with(
                 task, ipxe_enabled=True)
-            set_boot_device_mock.assert_called_once_with(task,
-                                                         boot_devices.DISK,
-                                                         persistent=True)
-
-    @mock.patch.object(manager_utils, 'node_set_boot_device', autospec=True)
-    @mock.patch.object(pxe_utils, 'clean_up_pxe_config', autospec=True)
-    def test_is_force_persistent_boot_device_enabled(
-            self, clean_up_pxe_config_mock, set_boot_device_mock):
-        with task_manager.acquire(self.context, self.node.uuid) as task:
-            instance_info = task.node.instance_info
-            instance_info['capabilities'] = {'boot_option': 'local'}
-            task.node.instance_info = instance_info
-            task.node.save()
-            task.driver.boot.prepare_instance(task)
-            clean_up_pxe_config_mock.assert_called_once_with(
-                task, ipxe_enabled=True)
-            driver_info = task.node.driver_info
-            driver_info['force_persistent _boot_device'] = True
-            task.node.driver_info = driver_info
             set_boot_device_mock.assert_called_once_with(task,
                                                          boot_devices.DISK,
                                                          persistent=True)
