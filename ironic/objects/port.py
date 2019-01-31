@@ -41,7 +41,7 @@ def migrate_vif_port_id(context, max_count):
     # NOTE(rloo): if we introduce newer port versions in the same cycle,
     # we could add those versions along with 1.8. This is only so we don't
     # duplicate work; it isn't necessary.
-    db_ports = Port.dbapi.get_not_versions('Port', ['1.8'])
+    db_ports = Port.dbapi.get_not_versions('Port', ['1.8', '1.9'])
     total = len(db_ports)
     max_count = max_count or total
     done = 0
@@ -71,7 +71,8 @@ class Port(base.IronicObject, object_base.VersionedObjectDictCompat):
     # Version 1.8: Migrate/copy extra['vif_port_id'] to
     #              internal_info['tenant_vif_port_id'] (not an explicit db
     #              change)
-    VERSION = '1.8'
+    # Version 1.9: Add support for Smart NIC port
+    VERSION = '1.9'
 
     dbapi = dbapi.get_instance()
 
@@ -87,6 +88,8 @@ class Port(base.IronicObject, object_base.VersionedObjectDictCompat):
         'pxe_enabled': object_fields.BooleanField(),
         'internal_info': object_fields.FlexibleDictField(nullable=True),
         'physical_network': object_fields.StringField(nullable=True),
+        'is_smartnic': object_fields.BooleanField(nullable=True,
+                                                  default=False),
     }
 
     def _convert_to_version(self, target_version,
@@ -105,6 +108,9 @@ class Port(base.IronicObject, object_base.VersionedObjectDictCompat):
             internal_info['tenant_vif_port_id'] is not specified, copy the
             .extra value to internal_info. There is nothing to do here when
             downgrading to an older version.
+
+        Version 1.9: remove is_smartnic field for unsupported versions if
+            remove_unavailable_fields is True.
 
         :param target_version: the desired version of the object
         :param remove_unavailable_fields: True to remove fields that are
@@ -139,6 +145,24 @@ class Port(base.IronicObject, object_base.VersionedObjectDictCompat):
             elif self.physical_network is not None:
                 # DB: set unavailable fields to their default.
                 self.physical_network = None
+
+        # Convert is_smartnic field.
+        is_smartnic_set = self.obj_attr_is_set('is_smartnic')
+        if target_version >= (1, 9):
+            # Target version supports is_smartnic. Set it to its default
+            # value if it is not set.
+            if not is_smartnic_set:
+                self.is_smartnic = False
+
+        # handle is_smartnic field in older version
+        elif is_smartnic_set:
+            # Target version does not support is_smartnic, and it is set.
+            if remove_unavailable_fields:
+                # (De)serialising: remove unavailable fields.
+                delattr(self, 'is_smartnic')
+            elif self.is_smartnic is not False:
+                # DB: set unavailable fields to their default.
+                self.is_smartnic = False
 
     # NOTE(xek): We don't want to enable RPC on this call just yet. Remotable
     # methods can be used in the future to replace current explicit RPC calls.
@@ -393,6 +417,15 @@ class Port(base.IronicObject, object_base.VersionedObjectDictCompat):
         """
         return cls.supports_version((1, 7))
 
+    @classmethod
+    def supports_is_smartnic(cls):
+        """Return whether is_smartnic field is supported.
+
+        :returns: Whether is_smartnic field is supported
+        :raises: ovo_exception.IncompatibleObjectVersion
+        """
+        return cls.supports_version((1, 9))
+
 
 @base.IronicObjectRegistry.register
 class PortCRUDNotification(notification.NotificationBase):
@@ -410,7 +443,8 @@ class PortCRUDPayload(notification.NotificationPayloadBase):
     # Version 1.0: Initial version
     # Version 1.1: Add "portgroup_uuid" field
     # Version 1.2: Add "physical_network" field
-    VERSION = '1.2'
+    # Version 1.3: Add "is_smartnic" field
+    VERSION = '1.3'
 
     SCHEMA = {
         'address': ('port', 'address'),
@@ -420,7 +454,8 @@ class PortCRUDPayload(notification.NotificationPayloadBase):
         'physical_network': ('port', 'physical_network'),
         'created_at': ('port', 'created_at'),
         'updated_at': ('port', 'updated_at'),
-        'uuid': ('port', 'uuid')
+        'uuid': ('port', 'uuid'),
+        'is_smartnic': ('port', 'is_smartnic'),
     }
 
     fields = {
@@ -434,7 +469,9 @@ class PortCRUDPayload(notification.NotificationPayloadBase):
         'physical_network': object_fields.StringField(nullable=True),
         'created_at': object_fields.DateTimeField(nullable=True),
         'updated_at': object_fields.DateTimeField(nullable=True),
-        'uuid': object_fields.UUIDField()
+        'uuid': object_fields.UUIDField(),
+        'is_smartnic': object_fields.BooleanField(nullable=True,
+                                                  default=False),
     }
 
     def __init__(self, port, node_uuid, portgroup_uuid):

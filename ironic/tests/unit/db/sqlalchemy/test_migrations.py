@@ -842,6 +842,15 @@ class MigrationCheckersMixin(object):
         self.assertIsInstance(allocations.c.conductor_affinity.type,
                               sqlalchemy.types.Integer)
 
+    def _check_9cbeefa3763f(self, engine, data):
+        ports = db_utils.get_table(engine, 'ports')
+        col_names = [column.name for column in ports.c]
+        self.assertIn('is_smartnic', col_names)
+        # in some backends bool type is integer
+        self.assertIsInstance(ports.c.is_smartnic.type,
+                              (sqlalchemy.types.Boolean,
+                               sqlalchemy.types.Integer))
+
     def test_upgrade_and_version(self):
         with patch_with_engine(self.engine):
             self.migration_api.upgrade('head')

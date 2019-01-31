@@ -215,6 +215,7 @@ class Port(Base):
     pxe_enabled = Column(Boolean, default=True)
     internal_info = Column(db_types.JsonEncodedDict)
     physical_network = Column(String(64), nullable=True)
+    is_smartnic = Column(Boolean, nullable=True, default=False)
 
 
 class Portgroup(Base):

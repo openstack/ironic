@@ -119,6 +119,9 @@ def port_post_data(**kw):
     port.pop('version')
     port.pop('node_id')
     port.pop('portgroup_id')
+
+    # TODO(hamdyk): remove when port API can handle this attribute
+    port.pop('is_smartnic')
     internal = port_controller.PortPatchType.internal_attrs()
     return remove_internal(port, internal)
 
