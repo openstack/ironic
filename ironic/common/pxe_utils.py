@@ -649,7 +649,7 @@ def get_instance_image_info(task, ipxe_enabled=False):
     return image_info
 
 
-def get_image_info(node, mode='deploy'):
+def get_image_info(node, mode='deploy', ipxe_enabled=False):
     """Generate the paths for TFTP files for deploy or rescue images.
 
     This method generates the paths for the deploy (or rescue) kernel and
@@ -659,6 +659,8 @@ def get_image_info(node, mode='deploy'):
     :param mode: Label indicating a deploy or rescue operation being
         carried out on the node. Supported values are 'deploy' and 'rescue'.
         Defaults to 'deploy', indicating deploy operation is being carried out.
+    :param ipxe_enabled: A default False boolean value to tell the method
+                         if the caller is using iPXE.
     :returns: a dictionary whose keys are the names of the images
         (deploy_kernel, deploy_ramdisk, or rescue_kernel, rescue_ramdisk) and
         values are the absolute paths of them.
@@ -668,7 +670,7 @@ def get_image_info(node, mode='deploy'):
     d_info = parse_driver_info(node, mode=mode)
 
     return get_kernel_ramdisk_info(
-        node.uuid, d_info, mode=mode)
+        node.uuid, d_info, mode=mode, ipxe_enabled=ipxe_enabled)
 
 
 def build_deploy_pxe_options(task, pxe_info, mode='deploy',

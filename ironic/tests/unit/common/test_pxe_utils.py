@@ -1114,6 +1114,20 @@ class PXEInterfacesTestCase(db_base.DbTestCase):
         image_info = pxe_utils.get_image_info(self.node)
         self.assertEqual(expected_info, image_info)
 
+    def test__get_deploy_image_info_ipxe(self):
+        expected_info = {'deploy_ramdisk':
+                         (DRV_INFO_DICT['deploy_ramdisk'],
+                          os.path.join(CONF.deploy.http_root,
+                                       self.node.uuid,
+                                       'deploy_ramdisk')),
+                         'deploy_kernel':
+                         (DRV_INFO_DICT['deploy_kernel'],
+                          os.path.join(CONF.deploy.http_root,
+                                       self.node.uuid,
+                                       'deploy_kernel'))}
+        image_info = pxe_utils.get_image_info(self.node, ipxe_enabled=True)
+        self.assertEqual(expected_info, image_info)
+
     def test__get_deploy_image_info_missing_deploy_kernel(self):
         del self.node.driver_info['deploy_kernel']
         self.assertRaises(exception.MissingParameterValue,
