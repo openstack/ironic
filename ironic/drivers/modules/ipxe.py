@@ -147,7 +147,8 @@ class iPXEBoot(pxe_base.PXEBaseMixin, base.BootInterface):
         provider = dhcp_factory.DHCPFactory()
         provider.update_dhcp(task, dhcp_opts)
 
-        pxe_info = pxe_utils.get_image_info(node, mode=mode)
+        pxe_info = pxe_utils.get_image_info(node, mode=mode,
+                                            ipxe_enabled=True)
 
         # NODE: Try to validate and fetch instance images only
         # if we are in DEPLOYING state.

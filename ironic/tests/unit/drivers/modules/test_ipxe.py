@@ -260,7 +260,8 @@ class iPXEBootTestCase(db_base.DbTestCase):
             dhcp_opts = pxe_utils.dhcp_options_for_instance(
                 task, ipxe_enabled=True)
             task.driver.boot.prepare_ramdisk(task, {'foo': 'bar'})
-            mock_deploy_img_info.assert_called_once_with(task.node, mode=mode)
+            mock_deploy_img_info.assert_called_once_with(task.node, mode=mode,
+                                                         ipxe_enabled=True)
             provider_mock.update_dhcp.assert_called_once_with(task, dhcp_opts)
             if self.node.provision_state == states.DEPLOYING:
                 get_boot_mode_mock.assert_called_once_with(task)
