@@ -22,6 +22,7 @@ from collections import namedtuple
 import datetime
 
 import eventlet
+from futurist import waiters
 import mock
 from oslo_config import cfg
 from oslo_db import exception as db_exception
@@ -6416,6 +6417,10 @@ class ManagerDoSyncPowerStateTestCase(db_base.DbTestCase):
         self.task.upgrade_lock.assert_called_once_with()
 
 
+@mock.patch.object(waiters, 'wait_for_all',
+                   new=mock.MagicMock(return_value=(0, 0)))
+@mock.patch.object(manager.ConductorManager, '_spawn_worker',
+                   new=lambda self, fun, *args: fun(*args))
 @mock.patch.object(manager, 'do_sync_power_state')
 @mock.patch.object(task_manager, 'acquire')
 @mock.patch.object(manager.ConductorManager, '_mapped_to_this_conductor')
@@ -7138,6 +7143,72 @@ class ManagerTestHardwareTypeProperties(mgr_utils.ServiceSetUpMixin,
                     'force_persistent_boot_device', 'deploy_forces_oob_reboot',
                     'rescue_kernel', 'rescue_ramdisk']
         self._check_hardware_type_properties('manual-management', expected)
+
+
+@mock.patch.object(waiters, 'wait_for_all')
+@mock.patch.object(manager.ConductorManager, '_spawn_worker')
+@mock.patch.object(manager.ConductorManager, '_sync_power_state_nodes_task')
+class ParallelPowerSyncTestCase(mgr_utils.CommonMixIn):
+
+    def setUp(self):
+        super(ParallelPowerSyncTestCase, self).setUp()
+        self.service = manager.ConductorManager('hostname', 'test-topic')
+
+    def test__sync_power_states_9_nodes_8_workers(
+            self, sync_mock, spawn_mock, waiter_mock):
+
+        CONF.set_override('sync_power_state_workers', 8, group='conductor')
+
+        with mock.patch.object(self.service, 'iter_nodes',
+                               new=mock.MagicMock(return_value=[None] * 9)):
+
+            self.service._sync_power_states(self.context)
+
+            self.assertEqual(7, spawn_mock.call_count)
+            self.assertEqual(1, sync_mock.call_count)
+            self.assertEqual(1, waiter_mock.call_count)
+
+    def test__sync_power_states_6_nodes_8_workers(
+            self, sync_mock, spawn_mock, waiter_mock):
+
+        CONF.set_override('sync_power_state_workers', 8, group='conductor')
+
+        with mock.patch.object(self.service, 'iter_nodes',
+                               new=mock.MagicMock(return_value=[None] * 6)):
+
+            self.service._sync_power_states(self.context)
+
+            self.assertEqual(5, spawn_mock.call_count)
+            self.assertEqual(1, sync_mock.call_count)
+            self.assertEqual(1, waiter_mock.call_count)
+
+    def test__sync_power_states_1_nodes_8_workers(
+            self, sync_mock, spawn_mock, waiter_mock):
+
+        CONF.set_override('sync_power_state_workers', 8, group='conductor')
+
+        with mock.patch.object(self.service, 'iter_nodes',
+                               new=mock.MagicMock(return_value=[None])):
+
+            self.service._sync_power_states(self.context)
+
+            self.assertEqual(0, spawn_mock.call_count)
+            self.assertEqual(1, sync_mock.call_count)
+            self.assertEqual(1, waiter_mock.call_count)
+
+    def test__sync_power_states_9_nodes_1_worker(
+            self, sync_mock, spawn_mock, waiter_mock):
+
+        CONF.set_override('sync_power_state_workers', 1, group='conductor')
+
+        with mock.patch.object(self.service, 'iter_nodes',
+                               new=mock.MagicMock(return_value=[None] * 9)):
+
+            self.service._sync_power_states(self.context)
+
+            self.assertEqual(0, spawn_mock.call_count)
+            self.assertEqual(9, sync_mock.call_count)
+            self.assertEqual(1, waiter_mock.call_count)
 
 
 @mock.patch.object(task_manager, 'acquire')
