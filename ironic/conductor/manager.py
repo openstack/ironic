@@ -1669,12 +1669,12 @@ class ConductorManager(base_manager.BaseConductorManager):
         for node_info in self.iter_nodes(fields=['id'], filters=filters):
             nodes.put(node_info)
 
-        number_of_threads = min(CONF.conductor.sync_power_state_workers,
+        number_of_workers = min(CONF.conductor.sync_power_state_workers,
                                 CONF.conductor.periodic_max_workers,
                                 nodes.qsize())
         futures = []
 
-        for thread_number in range(max(0, number_of_threads - 1)):
+        for worker_number in range(max(0, number_of_workers - 1)):
             try:
                 futures.append(
                     self._spawn_worker(self._sync_power_state_nodes_task,
@@ -1683,7 +1683,7 @@ class ConductorManager(base_manager.BaseConductorManager):
                 LOG.warning("There are no more conductor workers for "
                             "power sync task. %(workers)d workers have "
                             "been already spawned.",
-                            {'workers': thread_number})
+                            {'workers': worker_number})
                 break
 
         try:
