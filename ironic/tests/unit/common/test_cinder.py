@@ -195,6 +195,7 @@ class TestCinderActions(db_base.DbTestCase):
         self.node = object_utils.create_test_node(
             self.context,
             instance_uuid=uuidutils.generate_uuid())
+        self.mount_point = 'ironic_mountpoint'
 
     @mock.patch.object(cinderclient.volumes.VolumeManager, 'attach',
                        autospec=True)
@@ -239,7 +240,8 @@ class TestCinderActions(db_base.DbTestCase):
         mock_reserve.assert_called_once_with(mock.ANY, volume_id)
         mock_init.assert_called_once_with(mock.ANY, volume_id, connector)
         mock_attach.assert_called_once_with(mock.ANY, volume_id,
-                                            self.node.instance_uuid, None)
+                                            self.node.instance_uuid,
+                                            self.mount_point)
         mock_set_meta.assert_called_once_with(mock.ANY, volume_id,
                                               {'bar': 'baz'})
         mock_get.assert_called_once_with(mock.ANY, volume_id)
@@ -271,7 +273,6 @@ class TestCinderActions(db_base.DbTestCase):
                  'ironic_volume_uuid': '000-001'}}]
 
         volumes = [volume_id, 'already_attached']
-
         connector = {'foo': 'bar'}
         mock_create_meta.return_value = {'bar': 'baz'}
         mock_get.side_effect = [
@@ -294,7 +295,8 @@ class TestCinderActions(db_base.DbTestCase):
         mock_reserve.assert_called_once_with(mock.ANY, volume_id)
         mock_init.assert_called_once_with(mock.ANY, volume_id, connector)
         mock_attach.assert_called_once_with(mock.ANY, volume_id,
-                                            self.node.instance_uuid, None)
+                                            self.node.instance_uuid,
+                                            self.mount_point)
         mock_set_meta.assert_called_once_with(mock.ANY, volume_id,
                                               {'bar': 'baz'})
 
@@ -355,7 +357,7 @@ class TestCinderActions(db_base.DbTestCase):
             mock.ANY, '111111111-0000-0000-0000-000000000003', connector)
         mock_attach.assert_called_once_with(
             mock.ANY, '111111111-0000-0000-0000-000000000003',
-            self.node.instance_uuid, None)
+            self.node.instance_uuid, self.mount_point)
         mock_set_meta.assert_called_once_with(
             mock.ANY, '111111111-0000-0000-0000-000000000003', {'bar': 'baz'})
 
@@ -446,7 +448,8 @@ class TestCinderActions(db_base.DbTestCase):
         mock_reserve.assert_called_once_with(mock.ANY, volume_id)
         mock_init.assert_called_once_with(mock.ANY, volume_id, connector)
         mock_attach.assert_called_once_with(mock.ANY, volume_id,
-                                            self.node.instance_uuid, None)
+                                            self.node.instance_uuid,
+                                            self.mount_point)
         mock_get.assert_called_once_with(mock.ANY, volume_id)
         mock_is_attached.assert_called_once_with(mock.ANY,
                                                  mock_get.return_value)
@@ -496,7 +499,8 @@ class TestCinderActions(db_base.DbTestCase):
         mock_reserve.assert_called_once_with(mock.ANY, volume_id)
         mock_init.assert_called_once_with(mock.ANY, volume_id, connector)
         mock_attach.assert_called_once_with(mock.ANY, volume_id,
-                                            self.node.instance_uuid, None)
+                                            self.node.instance_uuid,
+                                            self.mount_point)
         mock_set_meta.assert_called_once_with(mock.ANY, volume_id,
                                               {'bar': 'baz'})
         mock_get.assert_called_once_with(mock.ANY, volume_id)
