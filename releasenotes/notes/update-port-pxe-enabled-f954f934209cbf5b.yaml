@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    Fixes a bug where ironic port is not updated in node introspection as per
+    PXE enabled setting for ``idrac`` hardware type.
+    See bug `2004340
+    <https://storyboard.openstack.org/#!/story/2004340>`_ for details.
