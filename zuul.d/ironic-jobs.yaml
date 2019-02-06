@@ -503,3 +503,11 @@
     description: ironic-tempest-ipa-wholedisk-direct-tinyipa-multinode
     parent: ironic-tempest-ipa-wholedisk-direct-tinyipa-multinode
     pre-run: playbooks/ci-workarounds/set-stack-key.yaml
+
+- job:
+    name: ironic-tox-unit-with-driver-libs
+    parent: tox
+    description: |
+      Run unit tests with driver dependencies installed.
+    vars:
+      tox_envlist: unit-with-driver-libs
