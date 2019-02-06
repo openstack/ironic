@@ -68,12 +68,15 @@ class IloBiosTestCase(test_common.BaseIloTest):
             called_method["name"].assert_called_once_with(
                 *called_method["args"])
 
+    @mock.patch.object(ilo_bios.IloBIOS, 'cache_bios_settings',
+                       autospec=True)
     @mock.patch.object(ilo_bios.IloBIOS, '_execute_post_boot_bios_step',
                        autospec=True)
     @mock.patch.object(ilo_bios.IloBIOS, '_execute_pre_boot_bios_step',
                        autospec=True)
     def test_apply_configuration_pre_boot(self, exe_pre_boot_mock,
-                                          exe_post_boot_mock):
+                                          exe_post_boot_mock,
+                                          cache_settings_mock):
         settings = [
             {
                 "name": "SET_A", "value": "VAL_A",
@@ -101,13 +104,17 @@ class IloBiosTestCase(test_common.BaseIloTest):
             exe_pre_boot_mock.assert_called_once_with(
                 task.driver.bios, task, 'apply_configuration', actual_settings)
             self.assertFalse(exe_post_boot_mock.called)
+            cache_settings_mock.assert_called_once_with(task.driver.bios, task)
 
+    @mock.patch.object(ilo_bios.IloBIOS, 'cache_bios_settings',
+                       autospec=True)
     @mock.patch.object(ilo_bios.IloBIOS, '_execute_post_boot_bios_step',
                        autospec=True)
     @mock.patch.object(ilo_bios.IloBIOS, '_execute_pre_boot_bios_step',
                        autospec=True)
     def test_apply_configuration_post_boot(self, exe_pre_boot_mock,
-                                           exe_post_boot_mock):
+                                           exe_post_boot_mock,
+                                           cache_settings_mock):
         settings = [
             {
                 "name": "SET_A", "value": "VAL_A",
@@ -133,6 +140,7 @@ class IloBiosTestCase(test_common.BaseIloTest):
             exe_post_boot_mock.assert_called_once_with(
                 task.driver.bios, task, 'apply_configuration')
             self.assertFalse(exe_pre_boot_mock.called)
+            cache_settings_mock.assert_called_once_with(task.driver.bios, task)
 
     @mock.patch.object(ilo_boot.IloVirtualMediaBoot, 'prepare_ramdisk',
                        spec_set=True, autospec=True)

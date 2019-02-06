@@ -539,9 +539,11 @@ class MyBIOSInterface(driver_base.BIOSInterface):
     def validate(self, task):
         pass
 
+    @driver_base.cache_bios_settings
     def apply_configuration(self, task, settings):
         return "return_value_apply_configuration"
 
+    @driver_base.cache_bios_settings
     def factory_reset(self, task):
         return "return_value_factory_reset"
 

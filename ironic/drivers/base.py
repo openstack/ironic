@@ -1004,31 +1004,21 @@ class InspectInterface(BaseInterface):
             driver=task.node.driver, extension='abort')
 
 
+def cache_bios_settings(func):
+    """A decorator to cache bios settings after running the function.
+
+    :param func: Function or method to wrap.
+    """
+    @six.wraps(func)
+    def wrapped(self, task, *args, **kwargs):
+        result = func(self, task, *args, **kwargs)
+        self.cache_bios_settings(task)
+        return result
+    return wrapped
+
+
 class BIOSInterface(BaseInterface):
     interface_type = 'bios'
-
-    def __new__(cls, *args, **kwargs):
-        # Wrap the apply_configuration and factory_reset into a decorator
-        # which call cache_bios_settings() to update the node's BIOS setting
-        # table after apply_configuration and factory_reset have finished.
-
-        super_new = super(BIOSInterface, cls).__new__
-        instance = super_new(cls, *args, **kwargs)
-
-        def wrapper(func):
-            @six.wraps(func)
-            def wrapped(task, *args, **kwargs):
-                result = func(task, *args, **kwargs)
-                instance.cache_bios_settings(task)
-                return result
-            return wrapped
-
-        for n, method in inspect.getmembers(instance, inspect.ismethod):
-            if n == "apply_configuration":
-                instance.apply_configuration = wrapper(method)
-            elif n == "factory_reset":
-                instance.factory_reset = wrapper(method)
-        return instance
 
     @abc.abstractmethod
     def apply_configuration(self, task, settings):
