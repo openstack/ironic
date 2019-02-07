@@ -23,10 +23,12 @@ support in Ironic please check this `Gen10 wiki section`_.
 Hardware type
 =============
 
-ProLiant hardware is primarily supported by the ``ilo`` hardware type. This
+ProLiant hardware is primarily supported by the ``ilo`` hardware type. ``ilo5``
+hardware type is only supported on ProLiant Gen10 and later systems. Both
 hardware can be used with reference hardware type ``ipmi`` (see
 :doc:`ipmitool`) and ``redfish`` (see :doc:`redfish`). For information on how
-to enable the ``ilo`` hardware type, see :ref:`enable-hardware-types`.
+to enable the ``ilo`` and ``ilo5`` hardware type, see
+:ref:`enable-hardware-types`.
 
 .. note::
    Only HPE ProLiant Gen10 servers supports hardware type ``redfish``.
@@ -50,6 +52,11 @@ The hardware type ``ilo`` supports following HPE server features:
 * `Rescue mode support`_
 * `Inject NMI support`_
 * `Soft power operation support`_
+
+Apart from above features hardware type ``ilo5`` also supports following
+features:
+
+* `Out of Band RAID Support`_
 
 Hardware interfaces
 ^^^^^^^^^^^^^^^^^^^
@@ -177,8 +184,25 @@ The ``ilo`` hardware type supports following hardware interfaces:
         enabled_hardware_types = ilo
         enabled_rescue_interfaces = agent,no-rescue
 
-``ilo`` hardware type supports all standard ``deploy`` and ``network``
-interface implementations, see :ref:`enable-hardware-interfaces` for details.
+
+The ``ilo5`` hardware type supports all the ``ilo`` interfaces described above,
+except for ``raid`` interface. The details of ``raid`` interface is as under:
+
+* raid
+    Supports ``ilo5`` and ``no-raid``. The default is ``ilo5``.
+    They can be enabled by using the ``[DEFAULT]enabled_raid_interfaces``
+    option in ``ironic.conf`` as given below:
+
+    .. code-block:: ini
+
+        [DEFAULT]
+        enabled_hardware_types = ilo5
+        enabled_raid_interfaces = ilo5,no-raid
+
+
+The ``ilo`` and ``ilo5`` hardware type support all standard ``deploy`` and
+``network`` interface implementations, see :ref:`enable-hardware-interfaces`
+for details.
 
 The following command can be used to enroll a ProLiant node with
 ``ilo`` hardware type:
@@ -196,14 +220,30 @@ The following command can be used to enroll a ProLiant node with
         --driver-info ilo_deploy_iso=<glance-uuid-of-deploy-iso> \
         --driver-info ilo_rescue_iso=<glance-uuid-of-rescue-iso>
 
+The following command can be used to enroll a ProLiant node with
+``ilo5`` hardware type:
+
+.. code-block:: console
+
+    openstack baremetal node create \
+        --driver ilo5 \
+        --deploy-interface direct \
+        --raid-interface ilo5 \
+        --rescue-interface agent \
+        --driver-info ilo_address=<ilo-ip-address> \
+        --driver-info ilo_username=<ilo-username> \
+        --driver-info ilo_password=<ilo-password> \
+        --driver-info ilo_deploy_iso=<glance-uuid-of-deploy-iso> \
+        --driver-info ilo_rescue_iso=<glance-uuid-of-rescue-iso>
+
 Please refer to :doc:`/install/enabling-drivers` for detailed
 explanation of hardware type.
 
 Node configuration
 ^^^^^^^^^^^^^^^^^^
 
-* Each node is configured for ``ilo`` hardware type by setting the following
-  ironic node object's properties in ``driver_info``:
+* Each node is configured for ``ilo`` and ``ilo5`` hardware type by setting
+  the following ironic node object's properties in ``driver_info``:
 
   - ``ilo_address``: IP address or hostname of the iLO.
   - ``ilo_username``: Username for the iLO with administrator privileges.
@@ -276,9 +316,9 @@ Prerequisites
   which contains a set of modules for managing HPE ProLiant hardware.
 
   Install ``proliantutils`` module on the ironic conductor node. Minimum
-  version required is 2.5.0::
+  version required is 2.7.0::
 
-   $ pip install "proliantutils>=2.5.0"
+   $ pip install "proliantutils>=2.7.0"
 
 * ``ipmitool`` command must be present on the service node(s) where
   ``ironic-conductor`` is running. On most distros, this is provided as part
@@ -1761,6 +1801,38 @@ soft power operations on a server:
 .. note::
    Server POST state is used to track the power status of HPE ProLiant Gen9
    servers and beyond.
+
+Out of Band RAID Support
+^^^^^^^^^^^^^^^^^^^^^^^^
+With Gen10 HPE Proliant servers and later the ``ilo5`` hardware type supports
+firmware based RAID configuration as a clean step. This feature requires the
+node to be configured to ``ilo5`` hardware type and its raid interface to be
+``ilo5``. See :ref:`raid` for more information.
+
+After a successful RAID configuration, the Bare Metal service will update the
+node with the following information:
+
+* Node ``properties/local_gb`` is set to the size of root volume.
+* Node ``properties/root_device`` is filled with ``wwn`` details of root
+  volume. It is used by iLO driver as root device hint during provisioning.
+
+Later the value of raid level of root volume can be added in
+``baremetal-with-RAID10`` (RAID10 for raid level 10) resource class.
+And consequently flavor needs to be updated to request the resource class
+to create the server using selected node::
+
+    openstack baremetal node set test_node --resource-class \
+    baremetal-with-RAID10
+
+    openstack flavor set --property \
+    resources:CUSTOM_BAREMETAL_WITH_RAID10=1 test-flavor
+
+    openstack server create --flavor test-flavor --image test-image instance-1
+
+
+.. note::
+   Supported raid levels for ``ilo5`` hardware type are: 0, 1, 5, 6, 10, 50, 60
+
 
 .. _`ssacli documentation`: https://support.hpe.com/hpsc/doc/public/display?docId=c03909334
 .. _`proliant-tools`: https://docs.openstack.org/diskimage-builder/latest/elements/proliant-tools/README.html
