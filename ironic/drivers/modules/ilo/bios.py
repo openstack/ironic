@@ -154,6 +154,7 @@ class IloBIOS(base.BIOSInterface):
             'required': True
         }
     })
+    @base.cache_bios_settings
     def apply_configuration(self, task, settings):
         """Applies the provided configuration on the node.
 
@@ -177,6 +178,7 @@ class IloBIOS(base.BIOSInterface):
 
     @METRICS.timer('IloBIOS.factory_reset')
     @base.clean_step(priority=0, abortable=False)
+    @base.cache_bios_settings
     def factory_reset(self, task):
         """Reset the BIOS settings to factory configuration.
 

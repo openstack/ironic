@@ -79,6 +79,7 @@ class RedfishBIOS(base.BIOSInterface):
                 task.context, node_id, delete_names)
 
     @base.clean_step(priority=0)
+    @base.cache_bios_settings
     def factory_reset(self, task):
         """Reset the BIOS settings of the node to the factory default.
 
@@ -110,6 +111,7 @@ class RedfishBIOS(base.BIOSInterface):
             'required': True
         }
     })
+    @base.cache_bios_settings
     def apply_configuration(self, task, settings):
         """Apply the BIOS settings to the node.
 

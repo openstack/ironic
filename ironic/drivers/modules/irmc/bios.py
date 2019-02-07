@@ -61,6 +61,7 @@ class IRMCBIOS(base.BIOSInterface):
             'required': True
         }
     })
+    @base.cache_bios_settings
     def apply_configuration(self, task, settings):
         """Applies BIOS configuration on the given node.
 
@@ -98,6 +99,7 @@ class IRMCBIOS(base.BIOSInterface):
                 operation='Apply BIOS configuration', error=e)
 
     @METRICS.timer('IRMCBIOS.factory_reset')
+    @base.cache_bios_settings
     def factory_reset(self, task):
         """Reset BIOS configuration to factory default on the given node.
 
