@@ -88,6 +88,7 @@ BASE_VERSION = 1
 # v1.48: Add protected to the node object.
 # v1.49: Exposes current conductor on the node object.
 # v1.50: Add owner to the node object.
+# v1.51: Add description to the node object.
 
 MINOR_0_JUNO = 0
 MINOR_1_INITIAL_VERSION = 1
@@ -140,6 +141,7 @@ MINOR_47_NODE_AUTOMATED_CLEAN = 47
 MINOR_48_NODE_PROTECTED = 48
 MINOR_49_CONDUCTORS = 49
 MINOR_50_NODE_OWNER = 50
+MINOR_51_NODE_DESCRIPTION = 51
 
 # When adding another version, update:
 # - MINOR_MAX_VERSION
@@ -147,7 +149,7 @@ MINOR_50_NODE_OWNER = 50
 #   explanation of what changed in the new version
 # - common/release_mappings.py, RELEASE_MAPPING['master']['api']
 
-MINOR_MAX_VERSION = MINOR_50_NODE_OWNER
+MINOR_MAX_VERSION = MINOR_51_NODE_DESCRIPTION
 
 # String representations of the minor and maximum versions
 _MIN_VERSION_STRING = '{}.{}'.format(BASE_VERSION, MINOR_1_INITIAL_VERSION)

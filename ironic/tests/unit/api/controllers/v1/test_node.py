@@ -345,6 +345,12 @@ class TestListNodes(test_api_base.BaseApiTest):
                              headers={api_base.Version.string: '1.50'})
         self.assertEqual(data['owner'], "akindofmagic")
 
+    def test_node_description_null_field(self):
+        node = obj_utils.create_test_node(self.context, description=None)
+        data = self.get_json('/nodes/%s' % node.uuid,
+                             headers={api_base.Version.string: '1.51'})
+        self.assertIsNone(data['description'])
+
     def test_get_one_custom_fields(self):
         node = obj_utils.create_test_node(self.context,
                                           chassis_id=self.chassis.id)
@@ -542,6 +548,14 @@ class TestListNodes(test_api_base.BaseApiTest):
         response = self.get_json('/nodes/%s?fields=%s' % (node.uuid, fields),
                                  headers={api_base.Version.string: '1.50'})
         self.assertIn('owner', response)
+
+    def test_get_description_field(self):
+        node = obj_utils.create_test_node(self.context,
+                                          description='useful piece')
+        fields = 'description'
+        response = self.get_json('/nodes/%s?fields=%s' % (node.uuid, fields),
+                                 headers={api_base.Version.string: '1.51'})
+        self.assertIn('description', response)
 
     def test_detail(self):
         node = obj_utils.create_test_node(self.context,
@@ -789,6 +803,17 @@ class TestListNodes(test_api_base.BaseApiTest):
         new_data = self.get_json(
             '/nodes/detail', headers={api_base.Version.string: '1.37'})
         self.assertEqual(['CUSTOM_1'], new_data['nodes'][0]["traits"])
+
+    def test_hide_fields_in_newer_versions_description(self):
+        node = obj_utils.create_test_node(self.context,
+                                          description="useful piece")
+        data = self.get_json('/nodes/%s' % node.uuid,
+                             headers={api_base.Version.string: "1.50"})
+        self.assertNotIn('description', data)
+
+        data = self.get_json('/nodes/%s' % node.uuid,
+                             headers={api_base.Version.string: "1.51"})
+        self.assertEqual('useful piece', data['description'])
 
     def test_many(self):
         nodes = []
@@ -1689,6 +1714,25 @@ class TestListNodes(test_api_base.BaseApiTest):
             self.assertEqual('application/json', response.content_type)
             self.assertEqual(http_client.NOT_ACCEPTABLE, response.status_code)
             self.assertTrue(response.json['error_message'])
+
+    def test_get_nodes_by_description(self):
+        node1 = obj_utils.create_test_node(self.context,
+                                           uuid=uuidutils.generate_uuid(),
+                                           description='some cats here')
+        node2 = obj_utils.create_test_node(self.context,
+                                           uuid=uuidutils.generate_uuid(),
+                                           description='some dogs there')
+        data = self.get_json('/nodes?description_contains=cat',
+                             headers={api_base.Version.string: '1.51'})
+        uuids = [n['uuid'] for n in data['nodes']]
+        self.assertIn(node1.uuid, uuids)
+        self.assertNotIn(node2.uuid, uuids)
+
+        data = self.get_json('/nodes?description_contains=dog',
+                             headers={api_base.Version.string: '1.51'})
+        uuids = [n['uuid'] for n in data['nodes']]
+        self.assertIn(node2.uuid, uuids)
+        self.assertNotIn(node1.uuid, uuids)
 
     def test_get_console_information(self):
         node = obj_utils.create_test_node(self.context)
@@ -2924,6 +2968,34 @@ class TestPatch(test_api_base.BaseApiTest):
         self.assertEqual('application/json', response.content_type)
         self.assertEqual(http_client.NOT_ACCEPTABLE, response.status_code)
 
+    def test_update_description(self):
+        node = obj_utils.create_test_node(self.context,
+                                          uuid=uuidutils.generate_uuid())
+        self.mock_update_node.return_value = node
+        headers = {api_base.Version.string: '1.51'}
+        response = self.patch_json('/nodes/%s' % node.uuid,
+                                   [{'path': '/description',
+                                     'value': 'meow',
+                                     'op': 'replace'}],
+                                   headers=headers)
+        self.assertEqual('application/json', response.content_type)
+        self.assertEqual(http_client.OK, response.status_code)
+
+    def test_update_description_oversize(self):
+        node = obj_utils.create_test_node(self.context,
+                                          uuid=uuidutils.generate_uuid())
+        desc = '12345678' * 512 + 'last weed'
+        self.mock_update_node.return_value = node
+        headers = {api_base.Version.string: '1.51'}
+        response = self.patch_json('/nodes/%s' % node.uuid,
+                                   [{'path': '/description',
+                                     'value': desc,
+                                     'op': 'replace'}],
+                                   headers=headers,
+                                   expect_errors=True)
+        self.assertEqual('application/json', response.content_type)
+        self.assertEqual(http_client.BAD_REQUEST, response.status_code)
+
 
 def _create_node_locally(node):
     driver_factory.check_and_update_node_interfaces(node)
@@ -3549,6 +3621,27 @@ class TestPost(test_api_base.BaseApiTest):
                                   expect_errors=True)
         self.assertEqual('application/json', response.content_type)
         self.assertEqual(http_client.NOT_ACCEPTABLE, response.status_int)
+
+    def test_create_node_description(self):
+        node = test_api_utils.post_get_test_node(description='useful stuff')
+        response = self.post_json('/nodes', node,
+                                  headers={api_base.Version.string:
+                                           str(api_v1.max_version())})
+        self.assertEqual(http_client.CREATED, response.status_int)
+        result = self.get_json('/nodes/%s' % node['uuid'],
+                               headers={api_base.Version.string:
+                                        str(api_v1.max_version())})
+        self.assertEqual('useful stuff', result['description'])
+
+    def test_create_node_description_oversize(self):
+        desc = '12345678' * 512 + 'last weed'
+        node = test_api_utils.post_get_test_node(description=desc)
+        response = self.post_json('/nodes', node,
+                                  headers={api_base.Version.string:
+                                           str(api_v1.max_version())},
+                                  expect_errors=True)
+        self.assertEqual('application/json', response.content_type)
+        self.assertEqual(http_client.BAD_REQUEST, response.status_int)
 
 
 class TestDelete(test_api_base.BaseApiTest):

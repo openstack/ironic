@@ -110,6 +110,8 @@ ALLOWED_TARGET_POWER_STATES = (ir_states.POWER_ON,
                                ir_states.SOFT_REBOOT,
                                ir_states.SOFT_POWER_OFF)
 
+_NODE_DESCRIPTION_MAX_LENGTH = 4096
+
 
 def get_nodes_controller_reserved_names():
     global _NODES_CONTROLLER_RESERVED_WORDS
@@ -1078,6 +1080,9 @@ class Node(base.APIBase):
     owner = wsme.wsattr(wtypes.text)
     """Field for storage of physical node owner"""
 
+    description = wsme.wsattr(wtypes.text)
+    """Field for node description"""
+
     # NOTE(deva): "conductor_affinity" shouldn't be presented on the
     #             API because it's an internal value. Don't add it here.
 
@@ -1603,7 +1608,8 @@ class NodesController(rest.RestController):
                               sort_key, sort_dir, driver=None,
                               resource_class=None, resource_url=None,
                               fields=None, fault=None, conductor_group=None,
-                              detail=None, conductor=None, owner=None):
+                              detail=None, conductor=None, owner=None,
+                              description_contains=None):
         if self.from_chassis and not chassis_uuid:
             raise exception.MissingParameterValue(
                 _("Chassis id not specified."))
@@ -1646,6 +1652,7 @@ class NodesController(rest.RestController):
                 'fault': fault,
                 'conductor_group': conductor_group,
                 'owner': owner,
+                'description_contains': description_contains,
             }
             filters = {}
             for key, value in possible_filters.items():
@@ -1763,13 +1770,13 @@ class NodesController(rest.RestController):
                    types.boolean, wtypes.text, types.uuid, int, wtypes.text,
                    wtypes.text, wtypes.text, types.listtype, wtypes.text,
                    wtypes.text, wtypes.text, types.boolean, wtypes.text,
-                   wtypes.text)
+                   wtypes.text, wtypes.text)
     def get_all(self, chassis_uuid=None, instance_uuid=None, associated=None,
                 maintenance=None, provision_state=None, marker=None,
                 limit=None, sort_key='id', sort_dir='asc', driver=None,
                 fields=None, resource_class=None, fault=None,
                 conductor_group=None, detail=None, conductor=None,
-                owner=None):
+                owner=None, description_contains=None):
         """Retrieve a list of nodes.
 
         :param chassis_uuid: Optional UUID of a chassis, to get only nodes for
@@ -1804,6 +1811,9 @@ class NodesController(rest.RestController):
         :param fields: Optional, a list with a specified set of fields
                        of the resource to be returned.
         :param fault: Optional string value to get only nodes with that fault.
+        :param description_contains: Optional string value to get only nodes
+                                     with description field contains matching
+                                     value.
         """
         cdict = pecan.request.context.to_policy_values()
         policy.authorize('baremetal:node:get', cdict, cdict)
@@ -1822,6 +1832,7 @@ class NodesController(rest.RestController):
         fields = api_utils.get_request_return_fields(fields, detail,
                                                      _DEFAULT_RETURN_FIELDS)
 
+        extra_args = {'description_contains': description_contains}
         return self._get_nodes_collection(chassis_uuid, instance_uuid,
                                           associated, maintenance,
                                           provision_state, marker,
@@ -1832,18 +1843,19 @@ class NodesController(rest.RestController):
                                           conductor_group=conductor_group,
                                           detail=detail,
                                           conductor=conductor,
-                                          owner=owner)
+                                          owner=owner,
+                                          **extra_args)
 
     @METRICS.timer('NodesController.detail')
     @expose.expose(NodeCollection, types.uuid, types.uuid, types.boolean,
                    types.boolean, wtypes.text, types.uuid, int, wtypes.text,
                    wtypes.text, wtypes.text, wtypes.text, wtypes.text,
-                   wtypes.text, wtypes.text, wtypes.text)
+                   wtypes.text, wtypes.text, wtypes.text, wtypes.text)
     def detail(self, chassis_uuid=None, instance_uuid=None, associated=None,
                maintenance=None, provision_state=None, marker=None,
                limit=None, sort_key='id', sort_dir='asc', driver=None,
                resource_class=None, fault=None, conductor_group=None,
-               conductor=None, owner=None):
+               conductor=None, owner=None, description_contains=None):
         """Retrieve a list of nodes with detail.
 
         :param chassis_uuid: Optional UUID of a chassis, to get only nodes for
@@ -1874,6 +1886,9 @@ class NodesController(rest.RestController):
                                 that conductor_group.
         :param owner: Optional string value that set the owner whose nodes
                       are to be retrurned.
+        :param description_contains: Optional string value to get only nodes
+                                     with description field contains matching
+                                     value.
         """
         cdict = pecan.request.context.to_policy_values()
         policy.authorize('baremetal:node:get', cdict, cdict)
@@ -1893,6 +1908,7 @@ class NodesController(rest.RestController):
         api_utils.check_allow_filter_by_conductor(conductor)
 
         resource_url = '/'.join(['nodes', 'detail'])
+        extra_args = {'description_contains': description_contains}
         return self._get_nodes_collection(chassis_uuid, instance_uuid,
                                           associated, maintenance,
                                           provision_state, marker,
@@ -1903,7 +1919,8 @@ class NodesController(rest.RestController):
                                           fault=fault,
                                           conductor_group=conductor_group,
                                           conductor=conductor,
-                                          owner=owner)
+                                          owner=owner,
+                                          **extra_args)
 
     @METRICS.timer('NodesController.validate')
     @expose.expose(wtypes.text, types.uuid_or_name, types.uuid)
@@ -1984,6 +2001,12 @@ class NodesController(rest.RestController):
                     "creation. These fields can only be set for active nodes")
             raise exception.Invalid(msg)
 
+        if (node.description is not wtypes.Unset and
+                len(node.description) > _NODE_DESCRIPTION_MAX_LENGTH):
+            msg = _("Cannot create node with description exceeds %s "
+                    "characters") % _NODE_DESCRIPTION_MAX_LENGTH
+            raise exception.Invalid(msg)
+
         # NOTE(deva): get_topic_for checks if node.driver is in the hash ring
         #             and raises NoValidHost if it is not.
         #             We need to ensure that node has a UUID before it can
@@ -2038,6 +2061,12 @@ class NodesController(rest.RestController):
         if reset_interfaces and not driver:
             msg = _("The reset_interfaces parameter can only be used when "
                     "changing the node's driver.")
+            raise exception.Invalid(msg)
+
+        description = api_utils.get_patch_values(patch, '/description')
+        if description and len(description[0]) > _NODE_DESCRIPTION_MAX_LENGTH:
+            msg = _("Cannot create node with description exceeds %s "
+                    "characters") % _NODE_DESCRIPTION_MAX_LENGTH
             raise exception.Invalid(msg)
 
     @METRICS.timer('NodesController.patch')

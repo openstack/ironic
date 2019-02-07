@@ -2,6 +2,12 @@
 REST API Version History
 ========================
 
+1.51 (Stein, master)
+--------------------
+
+Added ``description`` field to the node object to enable operators to store
+any information relates to the node. The field is up to 4096 characters.
+
 1.50 (Stein, master)
 --------------------
 

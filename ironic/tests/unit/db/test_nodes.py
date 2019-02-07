@@ -273,6 +273,19 @@ class DbNodeTestCase(base.DbTestCase):
                                                     states.INSPECTING})
         self.assertEqual([node2.id], [r[0] for r in res])
 
+    def test_get_nodeinfo_list_description(self):
+        node1 = utils.create_test_node(uuid=uuidutils.generate_uuid(),
+                                       description='Hello')
+        node2 = utils.create_test_node(uuid=uuidutils.generate_uuid(),
+                                       description='World!')
+        res = self.dbapi.get_nodeinfo_list(
+            filters={'description_contains': 'Hello'})
+        self.assertEqual([node1.id], [r[0] for r in res])
+
+        res = self.dbapi.get_nodeinfo_list(filters={'description_contains':
+                                                    'World!'})
+        self.assertEqual([node2.id], [r[0] for r in res])
+
     def test_get_node_list(self):
         uuids = []
         for i in range(1, 6):
@@ -381,6 +394,19 @@ class DbNodeTestCase(base.DbTestCase):
                                'bad_filter',
                                self.dbapi.get_node_list,
                                filters=filters)
+
+    def test_get_node_list_description(self):
+        node1 = utils.create_test_node(uuid=uuidutils.generate_uuid(),
+                                       description='Hello')
+        node2 = utils.create_test_node(uuid=uuidutils.generate_uuid(),
+                                       description='World!')
+        res = self.dbapi.get_node_list(filters={
+            'description_contains': 'Hello'})
+        self.assertEqual([node1.id], [r.id for r in res])
+
+        res = self.dbapi.get_node_list(filters={
+            'description_contains': 'World!'})
+        self.assertEqual([node2.id], [r.id for r in res])
 
     def test_get_node_list_chassis_not_found(self):
         self.assertRaises(exception.ChassisNotFound,

@@ -225,7 +225,7 @@ class Connection(api.Connection):
     def __init__(self):
         pass
 
-    def _add_nodes_filters(self, query, filters):
+    def _validate_nodes_filters(self, filters):
         if filters is None:
             filters = dict()
         supported_filters = {'console_enabled', 'maintenance', 'driver',
@@ -233,13 +233,17 @@ class Connection(api.Connection):
                              'chassis_uuid', 'associated', 'reserved',
                              'reserved_by_any_of', 'provisioned_before',
                              'inspection_started_before', 'fault',
-                             'conductor_group', 'owner',
-                             'uuid_in', 'with_power_state'}
+                             'conductor_group', 'owner', 'uuid_in',
+                             'with_power_state', 'description_contains'}
         unsupported_filters = set(filters).difference(supported_filters)
         if unsupported_filters:
             msg = _("SqlAlchemy API does not support "
                     "filtering by %s") % ', '.join(unsupported_filters)
             raise ValueError(msg)
+        return filters
+
+    def _add_nodes_filters(self, query, filters):
+        filters = self._validate_nodes_filters(filters)
         for field in ['console_enabled', 'maintenance', 'driver',
                       'resource_class', 'provision_state', 'uuid', 'id',
                       'fault', 'conductor_group', 'owner']:
@@ -280,6 +284,11 @@ class Connection(api.Connection):
                 query = query.filter(models.Node.power_state != sql.null())
             else:
                 query = query.filter(models.Node.power_state == sql.null())
+        if 'description_contains' in filters:
+            keyword = filters['description_contains']
+            if keyword is not None:
+                query = query.filter(
+                    models.Node.description.like(r'%{}%'.format(keyword)))
 
         return query
 

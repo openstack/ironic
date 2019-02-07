@@ -949,6 +949,68 @@ class TestConvertToVersion(db_base.DbTestCase):
         self.assertIsNone(node.allocation_id)
         self.assertEqual({}, node.obj_get_changes())
 
+    def test_description_supported_missing(self):
+        # description not set, should be set to default.
+        node = obj_utils.get_test_node(self.ctxt, **self.fake_node)
+        delattr(node, 'description')
+        node.obj_reset_changes()
+        node._convert_to_version("1.32")
+        self.assertIsNone(node.description)
+        self.assertEqual({'description': None},
+                         node.obj_get_changes())
+
+    def test_description_supported_set(self):
+        # description set, no change required.
+        node = obj_utils.get_test_node(self.ctxt, **self.fake_node)
+
+        node.description = "Useful information relates to this node"
+        node.obj_reset_changes()
+        node._convert_to_version("1.32")
+        self.assertEqual("Useful information relates to this node",
+                         node.description)
+        self.assertEqual({}, node.obj_get_changes())
+
+    def test_description_unsupported_missing(self):
+        # description not set, no change required.
+        node = obj_utils.get_test_node(self.ctxt, **self.fake_node)
+
+        delattr(node, 'description')
+        node.obj_reset_changes()
+        node._convert_to_version("1.31")
+        self.assertNotIn('description', node)
+        self.assertEqual({}, node.obj_get_changes())
+
+    def test_description_unsupported_set_remove(self):
+        # description set, should be removed.
+        node = obj_utils.get_test_node(self.ctxt, **self.fake_node)
+
+        node.description = "Useful piece"
+        node.obj_reset_changes()
+        node._convert_to_version("1.31")
+        self.assertNotIn('description', node)
+        self.assertEqual({}, node.obj_get_changes())
+
+    def test_description_unsupported_set_no_remove_non_default(self):
+        # description set, should be set to default.
+        node = obj_utils.get_test_node(self.ctxt, **self.fake_node)
+
+        node.description = "Useful piece"
+        node.obj_reset_changes()
+        node._convert_to_version("1.31", False)
+        self.assertIsNone(node.description)
+        self.assertEqual({'description': None},
+                         node.obj_get_changes())
+
+    def test_description_unsupported_set_no_remove_default(self):
+        # description set, no change required.
+        node = obj_utils.get_test_node(self.ctxt, **self.fake_node)
+
+        node.description = None
+        node.obj_reset_changes()
+        node._convert_to_version("1.31", False)
+        self.assertIsNone(node.description)
+        self.assertEqual({}, node.obj_get_changes())
+
 
 class TestNodePayloads(db_base.DbTestCase):
 
