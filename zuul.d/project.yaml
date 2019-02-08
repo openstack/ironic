@@ -11,6 +11,7 @@
       - release-notes-jobs-python3
     check:
       jobs:
+        - ironic-tox-unit-with-driver-libs
         - ironic-standalone
         - ironic-tempest-functional-python2
         - ironic-tempest-functional-python3
@@ -36,6 +37,7 @@
     gate:
       queue: ironic
       jobs:
+        - ironic-tox-unit-with-driver-libs
         - ironic-standalone
         - ironic-tempest-functional-python2
         - ironic-tempest-functional-python3
