@@ -13,8 +13,8 @@ resource class and traits. The new endpoints are:
 * ``GET /v1/allocations/<ID or name>`` to retrieve the allocation details.
 * ``GET /v1/nodes/<ID or name>/allocation`` to retrieve an allocation
   associated with the node.
-* ``DELETE /v1/allocations/<ID or name`` to remove the allocation.
-* ``DELETE /v1/nodes/<ID or name/allocation`` to remove an allocation
+* ``DELETE /v1/allocations/<ID or name>`` to remove the allocation.
+* ``DELETE /v1/nodes/<ID or name>/allocation`` to remove an allocation
   associated with the node.
 
 Also added a new field ``allocation_uuid`` to the node resource.
