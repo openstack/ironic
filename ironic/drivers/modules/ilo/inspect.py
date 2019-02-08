@@ -233,7 +233,9 @@ class IloInspect(base.InspectInterface):
         # hardwares, the method inspect_hardware() doesn't raise an error
         # for these capabilities.
         capabilities = _get_capabilities(task.node, ilo_object)
+        model = None
         if capabilities:
+            model = capabilities.get('server_model')
             valid_cap = _create_supported_capabilities_dict(capabilities)
             capabilities = utils.get_updated_capabilities(
                 task.node.properties.get('capabilities'), valid_cap)
@@ -241,6 +243,21 @@ class IloInspect(base.InspectInterface):
                 node_properties['capabilities'] = capabilities
                 task.node.properties = node_properties
 
+        # RIBCL(Gen8) protocol cannot determine if a NIC
+        # is physically connected with cable or not when the server
+        # is not provisioned. However it is possible to determine
+        # the same using RIS(Gen9) and Redfish(Gen10) protocols.
+        # Hence proliantutils return ALL MACs for Gen8 while returns
+        # only active MACs for Gen9 and Gen10. A warning is been added
+        # for the user so that he knows that he needs to remove the
+        # ironic ports created for inactive ports for Gen8.
+        if model is not None and 'Gen8' in model:
+            LOG.warning('iLO cannot determine if the NICs are physically '
+                        'connected or not for ProLiant Gen8 servers. '
+                        'Hence returns all the MACs present on the server. '
+                        'Please remove the ironic ports created for inactive '
+                        'NICs manually for the node %(node)',
+                        {"node": task.node.uuid})
         task.node.save()
 
         # Create ports for the nics detected.
