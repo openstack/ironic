@@ -92,8 +92,11 @@ supplied when the Node is created, or the resource may be updated later.
 .. versionadded:: 1.46
   Introduced the ``conductor_group`` field.
 
-.. versionadded: 1.50
+.. versionadded:: 1.50
   Introduced the ``owner`` field.
+
+.. versionadded:: 1.51
+  Introduced the ``description`` field.
 
 Normal response codes: 201
 
@@ -124,6 +127,7 @@ Request
    - uuid: req_uuid
    - vendor_interface: req_vendor_interface
    - owner: owner
+   - description: n_description
 
 **Example Node creation request with a dynamic driver:**
 
@@ -193,6 +197,7 @@ microversion 1.48.
     - protected: protected
     - protected_reason: protected_reason
     - owner: owner
+    - description: n_description
 
 **Example JSON representation of a Node:**
 
@@ -240,8 +245,11 @@ provision state, and maintenance setting for each Node.
   Introduced the ``conductor_group`` request parameter, to allow filtering the
   list of returned nodes by conductor group.
 
-.. versionadded: 1.50
+.. versionadded:: 1.50
   Introduced the ``owner`` field.
+
+.. versionadded:: 1.51
+  Introduced the ``description`` field.
 
 Normal response codes: 200
 
@@ -260,13 +268,14 @@ Request
    - resource_class: r_resource_class
    - conductor_group: r_conductor_group
    - fault: r_fault
+   - owner: owner
+   - description_contains: r_description_contains
    - fields: fields
    - limit: limit
    - marker: marker
    - sort_dir: sort_dir
    - sort_key: sort_key
    - detail: detail
-   - owner: owner
 
 Response
 --------
@@ -316,8 +325,11 @@ Nova instance, eg. with a request to ``v1/nodes/detail?instance_uuid={NOVA INSTA
 .. versionadded:: 1.48
   Introduced the ``protected`` and ``protected_reason`` fields.
 
-.. versionadded: 1.50
+.. versionadded:: 1.50
   Introduced the ``owner`` field.
+
+.. versionadded:: 1.51
+  Introduced the ``description`` field.
 
 Normal response codes: 200
 
@@ -337,6 +349,7 @@ Request
    - resource_class: r_resource_class
    - conductor_group: r_conductor_group
    - owner: owner
+   - description_contains: r_description_contains
    - limit: limit
    - marker: marker
    - sort_dir: sort_dir
@@ -392,6 +405,8 @@ Response
     - conductor_group: conductor_group
     - protected: protected
     - protected_reason: protected_reason
+    - owner: owner
+    - description: n_description
 
 **Example detailed list of Nodes:**
 
@@ -422,6 +437,12 @@ only the specified set.
 
 .. versionadded:: 1.48
   Introduced the ``protected`` and ``protected_reason`` fields.
+
+.. versionadded:: 1.50
+  Introduced the ``owner`` field.
+
+.. versionadded:: 1.51
+  Introduced the ``description`` field.
 
 Normal response codes: 200
 
@@ -485,6 +506,8 @@ Response
     - conductor_group: conductor_group
     - protected: protected
     - protected_reason: protected_reason
+    - owner: owner
+    - description: n_description
 
 **Example JSON representation of a Node:**
 
@@ -504,6 +527,9 @@ managed through sub-resources.
 
 .. versionadded:: 1.25
   Introduced the ability to unset a node's chassis UUID.
+
+.. versionadded:: 1.51
+  Introduced the ability to set/unset a node's description.
 
 Normal response codes: 200
 
@@ -573,6 +599,8 @@ Response
     - conductor_group: conductor_group
     - protected: protected
     - protected_reason: protected_reason
+    - owner: owner
+    - description: n_description
 
 **Example JSON representation of a Node:**
 
