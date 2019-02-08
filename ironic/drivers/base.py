@@ -1334,6 +1334,14 @@ class NetworkInterface(BaseInterface):
         """
         pass
 
+    def need_power_on(self, task):
+        """Check if ironic node must be powered on before applying network changes
+
+        :param task: A TaskManager instance.
+        :returns: Boolean.
+        """
+        return False
+
 
 @six.add_metaclass(abc.ABCMeta)
 class StorageInterface(BaseInterface):

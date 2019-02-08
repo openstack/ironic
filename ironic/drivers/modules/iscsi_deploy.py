@@ -420,8 +420,12 @@ class ISCSIDeploy(AgentDeployMixin, base.DeployInterface):
             # This is not being done now as it is expected to be
             # refactored in the near future.
             manager_utils.node_power_action(task, states.POWER_OFF)
+            power_state_to_restore = (
+                manager_utils.power_on_node_if_needed(task))
             task.driver.network.remove_provisioning_network(task)
             task.driver.network.configure_tenant_networks(task)
+            manager_utils.restore_power_state_if_needed(
+                task, power_state_to_restore)
             task.driver.boot.prepare_instance(task)
             manager_utils.node_power_action(task, states.POWER_ON)
 
@@ -447,10 +451,13 @@ class ISCSIDeploy(AgentDeployMixin, base.DeployInterface):
         manager_utils.node_power_action(task, states.POWER_OFF)
         task.driver.storage.detach_volumes(task)
         deploy_utils.tear_down_storage_configuration(task)
+        power_state_to_restore = manager_utils.power_on_node_if_needed(task)
         task.driver.network.unconfigure_tenant_networks(task)
         # NOTE(mgoddard): If the deployment was unsuccessful the node may have
         # ports on the provisioning network which were not deleted.
         task.driver.network.remove_provisioning_network(task)
+        manager_utils.restore_power_state_if_needed(
+            task, power_state_to_restore)
         return states.DELETED
 
     @METRICS.timer('ISCSIDeploy.prepare')
@@ -485,8 +492,12 @@ class ISCSIDeploy(AgentDeployMixin, base.DeployInterface):
                 # NOTE(vdrok): in case of rebuild, we have tenant network
                 # already configured, unbind tenant ports if present
                 if task.driver.storage.should_write_image(task):
+                    power_state_to_restore = (
+                        manager_utils.power_on_node_if_needed(task))
                     task.driver.network.unconfigure_tenant_networks(task)
                     task.driver.network.add_provisioning_network(task)
+                    manager_utils.restore_power_state_if_needed(
+                        task, power_state_to_restore)
                 task.driver.storage.attach_volumes(task)
                 if not task.driver.storage.should_write_image(task):
                     # We have nothing else to do as this is handled in the

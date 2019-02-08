@@ -1070,6 +1070,44 @@ class PXERamdiskDeployTestCase(db_base.DbTestCase):
             task.driver.deploy.validate(task)
             mock_validate.assert_called_once_with(mock.ANY, task)
 
+    @mock.patch.object(manager_utils, 'restore_power_state_if_needed',
+                       autospec=True)
+    @mock.patch.object(manager_utils, 'power_on_node_if_needed',
+                       autospec=True)
+    @mock.patch.object(pxe.LOG, 'warning', autospec=True)
+    @mock.patch.object(deploy_utils, 'switch_pxe_config', autospec=True)
+    @mock.patch.object(dhcp_factory, 'DHCPFactory', autospec=True)
+    @mock.patch.object(pxe_utils, 'cache_ramdisk_kernel', autospec=True)
+    @mock.patch.object(pxe_utils, 'get_instance_image_info', autospec=True)
+    def test_deploy_with_smartnic_port(
+            self, mock_image_info, mock_cache,
+            mock_dhcp_factory, mock_switch_config, mock_warning,
+            power_on_node_if_needed_mock, restore_power_state_mock):
+        image_info = {'kernel': ('', '/path/to/kernel'),
+                      'ramdisk': ('', '/path/to/ramdisk')}
+        mock_image_info.return_value = image_info
+        i_info = self.node.instance_info
+        i_info.update({'capabilities': {'boot_option': 'ramdisk'}})
+        self.node.instance_info = i_info
+        self.node.save()
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            power_on_node_if_needed_mock.return_value = states.POWER_OFF
+            self.assertIsNone(task.driver.deploy.deploy(task))
+            mock_image_info.assert_called_once_with(task)
+            mock_cache.assert_called_once_with(
+                task, image_info, ipxe_enabled=CONF.pxe.ipxe_enabled)
+            self.assertFalse(mock_warning.called)
+            power_on_node_if_needed_mock.assert_called_once_with(task)
+            restore_power_state_mock.assert_called_once_with(
+                task, states.POWER_OFF)
+        i_info['configdrive'] = 'meow'
+        self.node.instance_info = i_info
+        self.node.save()
+        mock_warning.reset_mock()
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            self.assertIsNone(task.driver.deploy.deploy(task))
+            self.assertTrue(mock_warning.called)
+
 
 class PXEValidateRescueTestCase(db_base.DbTestCase):
 

@@ -11,6 +11,7 @@
 #    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 #    License for the specific language governing permissions and limitations
 #    under the License.
+import time
 
 from oslo_config import cfg
 from oslo_log import log
@@ -18,6 +19,7 @@ from oslo_service import loopingcall
 from oslo_utils import excutils
 import six
 
+from ironic.common import boot_devices
 from ironic.common import exception
 from ironic.common import faults
 from ironic.common.i18n import _
@@ -1000,3 +1002,55 @@ def skip_automated_cleaning(node):
     :param node: the node to consider
     """
     return not CONF.conductor.automated_clean and not node.automated_clean
+
+
+def power_on_node_if_needed(task):
+    """Powers on node if it is powered off and has a Smart NIC port
+
+    :param task: A TaskManager object
+    :returns: the previous power state or None if no changes were made
+    """
+    if not task.driver.network.need_power_on(task):
+        return
+
+    previous_power_state = task.driver.power.get_power_state(task)
+    if previous_power_state == states.POWER_OFF:
+        node_set_boot_device(
+            task, boot_devices.BIOS, persistent=False)
+        node_power_action(task, states.POWER_ON)
+
+        # local import is necessary to avoid circular import
+        from ironic.common import neutron
+
+        host_id = None
+        for port in task.ports:
+            if neutron.is_smartnic_port(port):
+                link_info = port.local_link_connection
+                host_id = link_info['hostname']
+                break
+
+        if host_id:
+            LOG.debug('Waiting for host %(host)s agent to be down',
+                      {'host': host_id})
+
+            client = neutron.get_client(context=task.context)
+            neutron.wait_for_host_agent(
+                client, host_id, target_state='down')
+        return previous_power_state
+
+
+def restore_power_state_if_needed(task, power_state_to_restore):
+    """Change the node's power state if power_state_to_restore is not empty
+
+    :param task: A TaskManager object
+    :param power_state_to_restore: power state
+    """
+    if power_state_to_restore:
+
+        # Sleep is required here in order to give neutron agent
+        # a chance to apply the changes before powering off.
+        # Using twice the polling interval of the agent
+        # "CONF.AGENT.polling_interval" would give the agent
+        # enough time to apply network changes.
+        time.sleep(CONF.agent.neutron_agent_poll_interval * 2)
+        node_power_action(task, power_state_to_restore)

@@ -430,6 +430,26 @@ class TestCommonFunctions(db_base.DbTestCase):
                 common.plug_port_to_tenant_network,
                 task, self.port)
 
+    @mock.patch.object(neutron_common, 'wait_for_host_agent', autospec=True)
+    @mock.patch.object(neutron_common, 'wait_for_port_status', autospec=True)
+    @mock.patch.object(neutron_common, 'get_client', autospec=True)
+    def test_plug_port_to_tenant_network_smartnic_port(
+            self, mock_gc, wait_port_mock, wait_agent_mock):
+        nclient = mock.MagicMock()
+        mock_gc.return_value = nclient
+        local_link_connection = self.port.local_link_connection
+        local_link_connection['hostname'] = 'hostname'
+        self.port.local_link_connection = local_link_connection
+        self.port.internal_info = {common.TENANT_VIF_KEY: self.vif_id}
+        self.port.is_smartnic = True
+        self.port.save()
+        with task_manager.acquire(self.context, self.node.id) as task:
+            common.plug_port_to_tenant_network(task, self.port)
+            wait_agent_mock.assert_called_once_with(
+                nclient, 'hostname')
+            wait_port_mock.assert_called_once_with(
+                nclient, self.vif_id, 'ACTIVE')
+
 
 class TestVifPortIDMixin(db_base.DbTestCase):
 

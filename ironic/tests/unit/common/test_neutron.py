@@ -10,6 +10,8 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import time
+
 from keystoneauth1 import loading as kaloading
 import mock
 from neutronclient.common import exceptions as neutron_client_exc
@@ -185,6 +187,8 @@ class TestNeutronNetworkActions(db_base.DbTestCase):
                              'mac_address': '52:54:00:cf:2d:32'}
         self.network_uuid = uuidutils.generate_uuid()
         self.client_mock = mock.Mock()
+        self.client_mock.list_agents.return_value = {
+            'agents': [{'alive': True}]}
         patcher = mock.patch('ironic.common.neutron.get_client',
                              return_value=self.client_mock, autospec=True)
         patcher.start()
@@ -581,6 +585,120 @@ class TestNeutronNetworkActions(db_base.DbTestCase):
         res = neutron.validate_port_info(self.node, port)
         self.assertTrue(res)
         self.assertFalse(log_mock.warning.called)
+
+    def test_validate_agent_up(self):
+        self.client_mock.list_agents.return_value = {
+            'agents': [{'alive': True}]}
+        self.assertTrue(neutron.validate_agent(self.client_mock))
+
+    def test_validate_agent_down(self):
+        self.client_mock.list_agents.return_value = {
+            'agents': [{'alive': False}]}
+        self.assertFalse(neutron.validate_agent(self.client_mock))
+
+    def test_is_smartnic_port_true(self):
+        port = self.ports[0]
+        port.is_smartnic = True
+        self.assertTrue(neutron.is_smartnic_port(port))
+
+    def test_is_smartnic_port_false(self):
+        port = self.ports[0]
+        self.assertFalse(neutron.is_smartnic_port(port))
+
+    @mock.patch.object(neutron, 'validate_agent')
+    @mock.patch.object(time, 'sleep')
+    def test_wait_for_host_agent_up(self, sleep_mock, validate_agent_mock):
+        validate_agent_mock.return_value = True
+        neutron.wait_for_host_agent(self.client_mock, 'hostname')
+        sleep_mock.assert_not_called()
+
+    @mock.patch.object(neutron, 'validate_agent')
+    @mock.patch.object(time, 'sleep')
+    def test_wait_for_host_agent_down(self, sleep_mock, validate_agent_mock):
+        validate_agent_mock.side_effect = [False, True]
+        neutron.wait_for_host_agent(self.client_mock, 'hostname')
+        sleep_mock.assert_called_once()
+
+    @mock.patch.object(neutron, '_get_port_by_uuid')
+    @mock.patch.object(time, 'sleep')
+    def test_wait_for_port_status_up(self, sleep_mock, get_port_mock):
+        get_port_mock.return_value = {'status': 'ACTIVE'}
+        neutron.wait_for_port_status(self.client_mock, 'port_id', 'ACTIVE')
+        sleep_mock.assert_not_called()
+
+    @mock.patch.object(neutron, '_get_port_by_uuid')
+    @mock.patch.object(time, 'sleep')
+    def test_wait_for_port_status_down(self, sleep_mock, get_port_mock):
+        get_port_mock.side_effect = [{'status': 'DOWN'}, {'status': 'ACTIVE'}]
+        neutron.wait_for_port_status(self.client_mock, 'port_id', 'ACTIVE')
+        sleep_mock.assert_called_once()
+
+    @mock.patch.object(neutron, 'wait_for_host_agent', autospec=True)
+    @mock.patch.object(neutron, 'wait_for_port_status', autospec=True)
+    def test_add_smartnic_port_to_network(
+            self, wait_port_mock, wait_agent_mock):
+        # Ports will be created only if pxe_enabled is True
+        self.node.network_interface = 'neutron'
+        self.node.save()
+        object_utils.create_test_port(
+            self.context, node_id=self.node.id,
+            uuid=uuidutils.generate_uuid(),
+            address='52:54:00:cf:2d:22',
+            pxe_enabled=False
+        )
+        port = self.ports[0]
+
+        local_link_connection = port.local_link_connection
+        local_link_connection['hostname'] = 'hostname'
+        port.local_link_connection = local_link_connection
+        port.is_smartnic = True
+        port.save()
+
+        expected_body = {
+            'port': {
+                'network_id': self.network_uuid,
+                'admin_state_up': True,
+                'binding:vnic_type': 'smart-nic',
+                'device_owner': 'baremetal:none',
+                'binding:host_id': port.local_link_connection['hostname'],
+                'device_id': self.node.uuid,
+                'mac_address': port.address,
+                'binding:profile': {
+                    'local_link_information': [port.local_link_connection]
+                }
+            }
+        }
+
+        # Ensure we can create ports
+        self.client_mock.create_port.return_value = {
+            'port': self.neutron_port}
+        expected = {port.uuid: self.neutron_port['id']}
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            ports = neutron.add_ports_to_network(task, self.network_uuid)
+            self.assertEqual(expected, ports)
+            self.client_mock.create_port.assert_called_once_with(
+                expected_body)
+            wait_agent_mock.assert_called_once_with(
+                self.client_mock, 'hostname')
+            wait_port_mock.assert_called_once_with(
+                self.client_mock, self.neutron_port['id'], 'ACTIVE')
+
+    @mock.patch.object(neutron, 'is_smartnic_port', autospec=True)
+    @mock.patch.object(neutron, 'wait_for_host_agent', autospec=True)
+    def test_remove_neutron_smartnic_ports(
+            self, wait_agent_mock, is_smartnic_mock):
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            is_smartnic_mock.return_value = True
+            self.neutron_port['binding:host_id'] = 'hostname'
+            self.client_mock.list_ports.return_value = {
+                'ports': [self.neutron_port]}
+            neutron.remove_neutron_ports(task, {'param': 'value'})
+        self.client_mock.list_ports.assert_called_once_with(
+            **{'param': 'value'})
+        self.client_mock.delete_port.assert_called_once_with(
+            self.neutron_port['id'])
+        is_smartnic_mock.assert_called_once_with(self.neutron_port)
+        wait_agent_mock.assert_called_once_with(self.client_mock, 'hostname')
 
 
 @mock.patch.object(neutron, 'get_client', autospec=True)

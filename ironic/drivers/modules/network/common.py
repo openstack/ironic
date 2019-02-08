@@ -266,11 +266,26 @@ def plug_port_to_tenant_network(task, port_like_obj, client=None):
     if client_id_opt:
         body['port']['extra_dhcp_opts'] = [client_id_opt]
 
+    is_smart_nic = neutron.is_smartnic_port(port_like_obj)
+    if is_smart_nic:
+        link_info = local_link_info[0]
+        LOG.debug('Setting hostname as host_id in case of Smart NIC, '
+                  'port %(port_id)s, hostname %(hostname)s',
+                  {'port_id': vif_id,
+                   'hostname': link_info['hostname']})
+        body['port']['binding:host_id'] = link_info['hostname']
+        body['port']['binding:vnic_type'] = neutron.VNIC_SMARTNIC
+
     if not client:
         client = neutron.get_client(context=task.context)
 
+    if is_smart_nic:
+        neutron.wait_for_host_agent(client, body['port']['binding:host_id'])
+
     try:
         client.update_port(vif_id, body)
+        if is_smart_nic:
+            neutron.wait_for_port_status(client, vif_id, 'ACTIVE')
     except neutron_exceptions.ConnectionFailed as e:
         msg = (_('Could not add public network VIF %(vif)s '
                  'to node %(node)s, possible network issue. %(exc)s') %

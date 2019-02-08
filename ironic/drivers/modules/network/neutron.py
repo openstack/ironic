@@ -258,4 +258,22 @@ class NeutronNetwork(common.NeutronVIFPortIDMixin,
                 or port_like_obj.extra.get('vif_port_id'))
             if not vif_port_id:
                 continue
+
+            is_smart_nic = neutron.is_smartnic_port(port_like_obj)
+            if is_smart_nic:
+                client = neutron.get_client(context=task.context)
+                link_info = port_like_obj.local_link_connection
+                neutron.wait_for_host_agent(client, link_info['hostname'])
+
             neutron.unbind_neutron_port(vif_port_id, context=task.context)
+
+    def need_power_on(self, task):
+        """Check if the node has any Smart NIC ports
+
+        :param task: A TaskManager instance.
+        :return: A boolean to indicate Smart NIC port presence
+        """
+        for port in task.ports:
+            if neutron.is_smartnic_port(port):
+                return True
+        return False

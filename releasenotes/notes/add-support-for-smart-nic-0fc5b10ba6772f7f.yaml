@@ -1,0 +1,10 @@
+---
+prelude: >
+    Add support for Smart NICs in baremetal servers.
+features:
+  - |
+    Enable use of Smart NICs by extending ironic to implement generic
+    networking services for baremetal servers.
+
+    Extending the ramdisk, direct, iscsi and ansible deployment Interfaces
+    to support the Smart NIC use-cases.

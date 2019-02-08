@@ -1001,6 +1001,8 @@ class TestAgentDeploy(db_base.DbTestCase):
             self.assertEqual(states.ACTIVE,
                              task.node.target_provision_state)
 
+    @mock.patch.object(manager_utils, 'power_on_node_if_needed',
+                       autospec=True)
     @mock.patch.object(deploy_utils, 'remove_http_instance_symlink',
                        autospec=True)
     @mock.patch.object(agent.LOG, 'warning', spec_set=True, autospec=True)
@@ -1018,7 +1020,8 @@ class TestAgentDeploy(db_base.DbTestCase):
     def test_reboot_to_instance(self, check_deploy_mock,
                                 prepare_instance_mock, power_off_mock,
                                 get_power_state_mock, node_power_action_mock,
-                                uuid_mock, log_mock, remove_symlink_mock):
+                                uuid_mock, log_mock, remove_symlink_mock,
+                                power_on_node_if_needed_mock):
         self.config(manage_agent_boot=True, group='agent')
         self.config(image_download_source='http', group='agent')
         check_deploy_mock.return_value = None
@@ -1029,6 +1032,7 @@ class TestAgentDeploy(db_base.DbTestCase):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
             get_power_state_mock.return_value = states.POWER_OFF
+            power_on_node_if_needed_mock.return_value = None
             task.node.driver_internal_info['is_whole_disk_image'] = True
             task.driver.deploy.reboot_to_instance(task)
             check_deploy_mock.assert_called_once_with(mock.ANY, task.node)
@@ -1048,6 +1052,8 @@ class TestAgentDeploy(db_base.DbTestCase):
             self.assertEqual(states.NOSTATE, task.node.target_provision_state)
             self.assertTrue(remove_symlink_mock.called)
 
+    @mock.patch.object(manager_utils, 'power_on_node_if_needed',
+                       autospec=True)
     @mock.patch.object(agent.LOG, 'warning', spec_set=True, autospec=True)
     @mock.patch.object(manager_utils, 'node_set_boot_device', autospec=True)
     @mock.patch.object(agent.AgentDeployMixin, '_get_uuid_from_result',
@@ -1061,13 +1067,10 @@ class TestAgentDeploy(db_base.DbTestCase):
                        autospec=True)
     @mock.patch('ironic.drivers.modules.agent.AgentDeployMixin'
                 '.check_deploy_success', autospec=True)
-    def test_reboot_to_instance_no_manage_agent_boot(self, check_deploy_mock,
-                                                     prepare_instance_mock,
-                                                     power_off_mock,
-                                                     get_power_state_mock,
-                                                     node_power_action_mock,
-                                                     uuid_mock, bootdev_mock,
-                                                     log_mock):
+    def test_reboot_to_instance_no_manage_agent_boot(
+            self, check_deploy_mock, prepare_instance_mock, power_off_mock,
+            get_power_state_mock, node_power_action_mock, uuid_mock,
+            bootdev_mock, log_mock, power_on_node_if_needed_mock):
         self.config(manage_agent_boot=False, group='agent')
         check_deploy_mock.return_value = None
         uuid_mock.return_value = None
@@ -1076,6 +1079,7 @@ class TestAgentDeploy(db_base.DbTestCase):
         self.node.save()
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
+            power_on_node_if_needed_mock.return_value = None
             get_power_state_mock.return_value = states.POWER_OFF
             task.node.driver_internal_info['is_whole_disk_image'] = True
             task.driver.deploy.reboot_to_instance(task)
@@ -1093,6 +1097,8 @@ class TestAgentDeploy(db_base.DbTestCase):
             self.assertEqual(states.ACTIVE, task.node.provision_state)
             self.assertEqual(states.NOSTATE, task.node.target_provision_state)
 
+    @mock.patch.object(manager_utils, 'power_on_node_if_needed',
+                       autospec=True)
     @mock.patch.object(agent.LOG, 'warning', spec_set=True, autospec=True)
     @mock.patch.object(boot_mode_utils, 'get_boot_mode_for_deploy',
                        autospec=True)
@@ -1113,7 +1119,8 @@ class TestAgentDeploy(db_base.DbTestCase):
                                                 get_power_state_mock,
                                                 node_power_action_mock,
                                                 uuid_mock, boot_mode_mock,
-                                                log_mock):
+                                                log_mock,
+                                                power_on_node_if_needed_mock):
         check_deploy_mock.return_value = None
         uuid_mock.return_value = 'root_uuid'
         self.node.provision_state = states.DEPLOYWAIT
@@ -1122,6 +1129,7 @@ class TestAgentDeploy(db_base.DbTestCase):
         boot_mode_mock.return_value = 'bios'
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
+            power_on_node_if_needed_mock.return_value = None
             get_power_state_mock.return_value = states.POWER_OFF
             driver_internal_info = task.node.driver_internal_info
             driver_internal_info['is_whole_disk_image'] = False
@@ -1146,6 +1154,8 @@ class TestAgentDeploy(db_base.DbTestCase):
             self.assertEqual(states.ACTIVE, task.node.provision_state)
             self.assertEqual(states.NOSTATE, task.node.target_provision_state)
 
+    @mock.patch.object(manager_utils, 'power_on_node_if_needed',
+                       autospec=True)
     @mock.patch.object(agent.LOG, 'warning', spec_set=True, autospec=True)
     @mock.patch.object(boot_mode_utils, 'get_boot_mode_for_deploy',
                        autospec=True)
@@ -1163,7 +1173,8 @@ class TestAgentDeploy(db_base.DbTestCase):
     def test_reboot_to_instance_partition_localboot_ppc64(
             self, check_deploy_mock, prepare_instance_mock,
             power_off_mock, get_power_state_mock,
-            node_power_action_mock, uuid_mock, boot_mode_mock, log_mock):
+            node_power_action_mock, uuid_mock, boot_mode_mock, log_mock,
+            power_on_node_if_needed_mock):
         check_deploy_mock.return_value = None
         uuid_mock.side_effect = ['root_uuid', 'prep_boot_part_uuid']
         self.node.provision_state = states.DEPLOYWAIT
@@ -1172,6 +1183,7 @@ class TestAgentDeploy(db_base.DbTestCase):
 
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
+            power_on_node_if_needed_mock.return_value = None
             get_power_state_mock.return_value = states.POWER_OFF
             driver_internal_info = task.node.driver_internal_info
             driver_internal_info['is_whole_disk_image'] = False
@@ -1238,6 +1250,8 @@ class TestAgentDeploy(db_base.DbTestCase):
             self.assertEqual(states.DEPLOYFAIL, task.node.provision_state)
             self.assertEqual(states.ACTIVE, task.node.target_provision_state)
 
+    @mock.patch.object(manager_utils, 'power_on_node_if_needed',
+                       autospec=True)
     @mock.patch.object(agent.LOG, 'warning', spec_set=True, autospec=True)
     @mock.patch.object(boot_mode_utils, 'get_boot_mode_for_deploy',
                        autospec=True)
@@ -1258,7 +1272,8 @@ class TestAgentDeploy(db_base.DbTestCase):
                                           get_power_state_mock,
                                           node_power_action_mock,
                                           uuid_mock, boot_mode_mock,
-                                          log_mock):
+                                          log_mock,
+                                          power_on_node_if_needed_mock):
         check_deploy_mock.return_value = None
         uuid_mock.side_effect = ['root_uuid', 'efi_uuid']
         self.node.provision_state = states.DEPLOYWAIT
@@ -1267,6 +1282,7 @@ class TestAgentDeploy(db_base.DbTestCase):
 
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
+            power_on_node_if_needed_mock.return_value = None
             get_power_state_mock.return_value = states.POWER_OFF
             driver_internal_info = task.node.driver_internal_info
             driver_internal_info['is_whole_disk_image'] = False
@@ -1366,6 +1382,125 @@ class TestAgentDeploy(db_base.DbTestCase):
             mock_get_cmd.return_value = [{'command_name': 'prepare_image',
                                           'command_status': 'RUNNING'}]
             self.assertFalse(task.driver.deploy.deploy_is_done(task))
+
+    @mock.patch.object(manager_utils, 'restore_power_state_if_needed',
+                       autospec=True)
+    @mock.patch.object(manager_utils, 'power_on_node_if_needed',
+                       autospec=True)
+    @mock.patch.object(noop_storage.NoopStorage, 'attach_volumes',
+                       autospec=True)
+    @mock.patch.object(deploy_utils, 'populate_storage_driver_internal_info')
+    @mock.patch.object(pxe.PXEBoot, 'prepare_ramdisk')
+    @mock.patch.object(deploy_utils, 'build_agent_options')
+    @mock.patch.object(deploy_utils, 'build_instance_info_for_deploy')
+    @mock.patch.object(flat_network.FlatNetwork,
+                       'add_provisioning_network',
+                       spec_set=True, autospec=True)
+    @mock.patch.object(flat_network.FlatNetwork,
+                       'unconfigure_tenant_networks',
+                       spec_set=True, autospec=True)
+    @mock.patch.object(flat_network.FlatNetwork, 'validate',
+                       spec_set=True, autospec=True)
+    def test_prepare_with_smartnic_port(
+            self, validate_net_mock,
+            unconfigure_tenant_net_mock, add_provisioning_net_mock,
+            build_instance_info_mock, build_options_mock,
+            pxe_prepare_ramdisk_mock, storage_driver_info_mock,
+            storage_attach_volumes_mock, power_on_node_if_needed_mock,
+            restore_power_state_mock):
+        node = self.node
+        node.network_interface = 'flat'
+        node.save()
+        add_provisioning_net_mock.return_value = None
+        with task_manager.acquire(
+                self.context, self.node['uuid'], shared=False) as task:
+            task.node.provision_state = states.DEPLOYING
+            build_instance_info_mock.return_value = {'foo': 'bar'}
+            build_options_mock.return_value = {'a': 'b'}
+            power_on_node_if_needed_mock.return_value = states.POWER_OFF
+            self.driver.prepare(task)
+            storage_driver_info_mock.assert_called_once_with(task)
+            validate_net_mock.assert_called_once_with(mock.ANY, task)
+            add_provisioning_net_mock.assert_called_once_with(mock.ANY, task)
+            unconfigure_tenant_net_mock.assert_called_once_with(mock.ANY, task)
+            storage_attach_volumes_mock.assert_called_once_with(
+                task.driver.storage, task)
+            build_instance_info_mock.assert_called_once_with(task)
+            build_options_mock.assert_called_once_with(task.node)
+            pxe_prepare_ramdisk_mock.assert_called_once_with(
+                task, {'a': 'b'})
+            power_on_node_if_needed_mock.assert_called_once_with(task)
+            restore_power_state_mock.assert_called_once_with(
+                task, states.POWER_OFF)
+        self.node.refresh()
+        self.assertEqual('bar', self.node.instance_info['foo'])
+
+    @mock.patch.object(manager_utils, 'restore_power_state_if_needed',
+                       autospec=True)
+    @mock.patch.object(manager_utils, 'power_on_node_if_needed',
+                       autospec=True)
+    @mock.patch.object(noop_storage.NoopStorage, 'detach_volumes',
+                       autospec=True)
+    @mock.patch.object(flat_network.FlatNetwork,
+                       'remove_provisioning_network',
+                       spec_set=True, autospec=True)
+    @mock.patch.object(flat_network.FlatNetwork,
+                       'unconfigure_tenant_networks',
+                       spec_set=True, autospec=True)
+    @mock.patch('ironic.conductor.utils.node_power_action', autospec=True)
+    def test_tear_down_with_smartnic_port(
+            self, power_mock, unconfigure_tenant_nets_mock,
+            remove_provisioning_net_mock, storage_detach_volumes_mock,
+            power_on_node_if_needed_mock, restore_power_state_mock):
+        object_utils.create_test_volume_target(
+            self.context, node_id=self.node.id)
+        node = self.node
+        node.network_interface = 'flat'
+        node.save()
+        with task_manager.acquire(
+                self.context, self.node['uuid'], shared=False) as task:
+            power_on_node_if_needed_mock.return_value = states.POWER_OFF
+            driver_return = self.driver.tear_down(task)
+            power_mock.assert_called_once_with(task, states.POWER_OFF)
+            self.assertEqual(driver_return, states.DELETED)
+            unconfigure_tenant_nets_mock.assert_called_once_with(mock.ANY,
+                                                                 task)
+            remove_provisioning_net_mock.assert_called_once_with(mock.ANY,
+                                                                 task)
+            storage_detach_volumes_mock.assert_called_once_with(
+                task.driver.storage, task)
+            power_on_node_if_needed_mock.assert_called_once_with(task)
+            restore_power_state_mock.assert_called_once_with(
+                task, states.POWER_OFF)
+        # Verify no volumes exist for new task instances.
+        with task_manager.acquire(
+                self.context, self.node['uuid'], shared=False) as task:
+            self.assertEqual(0, len(task.volume_targets))
+
+    @mock.patch.object(manager_utils, 'restore_power_state_if_needed',
+                       autospec=True)
+    @mock.patch.object(manager_utils, 'power_on_node_if_needed',
+                       autospec=True)
+    @mock.patch.object(pxe.PXEBoot, 'prepare_instance', autospec=True)
+    @mock.patch.object(noop_storage.NoopStorage, 'should_write_image',
+                       autospec=True)
+    def test_deploy_storage_should_write_image_false_with_smartnic_port(
+            self, mock_write, mock_pxe_instance,
+            power_on_node_if_needed_mock, restore_power_state_mock):
+        mock_write.return_value = False
+        self.node.provision_state = states.DEPLOYING
+        self.node.deploy_step = {
+            'step': 'deploy', 'priority': 50, 'interface': 'deploy'}
+        self.node.save()
+        with task_manager.acquire(
+                self.context, self.node['uuid'], shared=False) as task:
+            power_on_node_if_needed_mock.return_value = states.POWER_OFF
+            driver_return = self.driver.deploy(task)
+            self.assertIsNone(driver_return)
+            self.assertTrue(mock_pxe_instance.called)
+            power_on_node_if_needed_mock.assert_called_once_with(task)
+            restore_power_state_mock.assert_called_once_with(
+                task, states.POWER_OFF)
 
 
 class AgentRAIDTestCase(db_base.DbTestCase):
@@ -1807,3 +1942,74 @@ class AgentRescueTestCase(db_base.DbTestCase):
             self.assertNotIn('rescue_password', task.node.instance_info)
             self.assertFalse(mock_clean_ramdisk.called)
             mock_remove_rescue_net.assert_called_once_with(mock.ANY, task)
+
+    @mock.patch.object(manager_utils, 'restore_power_state_if_needed',
+                       autospec=True)
+    @mock.patch.object(manager_utils, 'power_on_node_if_needed',
+                       autospec=True)
+    @mock.patch.object(flat_network.FlatNetwork, 'add_rescuing_network',
+                       spec_set=True, autospec=True)
+    @mock.patch.object(flat_network.FlatNetwork, 'unconfigure_tenant_networks',
+                       spec_set=True, autospec=True)
+    @mock.patch.object(fake.FakeBoot, 'prepare_ramdisk', autospec=True)
+    @mock.patch.object(fake.FakeBoot, 'clean_up_instance', autospec=True)
+    @mock.patch.object(deploy_utils, 'build_agent_options', autospec=True)
+    @mock.patch.object(manager_utils, 'node_power_action', autospec=True)
+    def test_agent_rescue_with_smartnic_port(
+            self, mock_node_power_action, mock_build_agent_opts,
+            mock_clean_up_instance, mock_prepare_ramdisk,
+            mock_unconf_tenant_net, mock_add_rescue_net,
+            power_on_node_if_needed_mock, restore_power_state_mock):
+        self.config(manage_agent_boot=True, group='agent')
+        mock_build_agent_opts.return_value = {'ipa-api-url': 'fake-api'}
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            power_on_node_if_needed_mock.return_value = states.POWER_OFF
+            result = task.driver.rescue.rescue(task)
+            mock_node_power_action.assert_has_calls(
+                [mock.call(task, states.POWER_OFF),
+                 mock.call(task, states.POWER_ON)])
+            mock_clean_up_instance.assert_called_once_with(mock.ANY, task)
+            mock_unconf_tenant_net.assert_called_once_with(mock.ANY, task)
+            mock_add_rescue_net.assert_called_once_with(mock.ANY, task)
+            mock_build_agent_opts.assert_called_once_with(task.node)
+            mock_prepare_ramdisk.assert_called_once_with(
+                mock.ANY, task, {'ipa-api-url': 'fake-api'})
+            self.assertEqual(states.RESCUEWAIT, result)
+            power_on_node_if_needed_mock.assert_called_once_with(task)
+            restore_power_state_mock.assert_called_once_with(
+                task, states.POWER_OFF)
+
+    @mock.patch.object(manager_utils, 'restore_power_state_if_needed',
+                       autospec=True)
+    @mock.patch.object(manager_utils, 'power_on_node_if_needed',
+                       autospec=True)
+    @mock.patch.object(flat_network.FlatNetwork, 'remove_rescuing_network',
+                       spec_set=True, autospec=True)
+    @mock.patch.object(flat_network.FlatNetwork, 'configure_tenant_networks',
+                       spec_set=True, autospec=True)
+    @mock.patch.object(fake.FakeBoot, 'prepare_instance', autospec=True)
+    @mock.patch.object(fake.FakeBoot, 'clean_up_ramdisk', autospec=True)
+    @mock.patch.object(manager_utils, 'node_power_action', autospec=True)
+    def test_agent_unrescue_with_smartnic_port(
+            self, mock_node_power_action, mock_clean_ramdisk,
+            mock_prepare_instance, mock_conf_tenant_net,
+            mock_remove_rescue_net, power_on_node_if_needed_mock,
+            restore_power_state_mock):
+        self.config(manage_agent_boot=True, group='agent')
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            power_on_node_if_needed_mock.return_value = states.POWER_OFF
+            result = task.driver.rescue.unrescue(task)
+            mock_node_power_action.assert_has_calls(
+                [mock.call(task, states.POWER_OFF),
+                 mock.call(task, states.POWER_ON)])
+            mock_clean_ramdisk.assert_called_once_with(
+                mock.ANY, task)
+            mock_remove_rescue_net.assert_called_once_with(mock.ANY, task)
+            mock_conf_tenant_net.assert_called_once_with(mock.ANY, task)
+            mock_prepare_instance.assert_called_once_with(mock.ANY, task)
+            self.assertEqual(states.ACTIVE, result)
+            self.assertEqual(2, power_on_node_if_needed_mock.call_count)
+            self.assertEqual(2, power_on_node_if_needed_mock.call_count)
+            restore_power_state_mock.assert_has_calls(
+                [mock.call(task, states.POWER_OFF),
+                 mock.call(task, states.POWER_OFF)])
