@@ -175,6 +175,8 @@ class TestListNodes(test_api_base.BaseApiTest):
         self.assertIn('protected', data)
         self.assertIn('protected_reason', data)
         self.assertIn('owner', data)
+        self.assertNotIn('allocation_id', data)
+        self.assertIn('allocation_uuid', data)
 
     def test_get_one_with_json(self):
         # Test backward compatibility with guess_content_type_from_ext
@@ -557,6 +559,15 @@ class TestListNodes(test_api_base.BaseApiTest):
                                  headers={api_base.Version.string: '1.51'})
         self.assertIn('description', response)
 
+    def test_get_with_allocation(self):
+        allocation = obj_utils.create_test_allocation(self.context)
+        node = obj_utils.create_test_node(self.context,
+                                          allocation_id=allocation.id)
+        fields = 'allocation_uuid'
+        response = self.get_json('/nodes/%s?fields=%s' % (node.uuid, fields),
+                                 headers={api_base.Version.string: '1.52'})
+        self.assertEqual(allocation.uuid, response['allocation_uuid'])
+
     def test_detail(self):
         node = obj_utils.create_test_node(self.context,
                                           chassis_id=self.chassis.id)
@@ -593,6 +604,8 @@ class TestListNodes(test_api_base.BaseApiTest):
         self.assertIn('owner', data['nodes'][0])
         # never expose the chassis_id
         self.assertNotIn('chassis_id', data['nodes'][0])
+        self.assertNotIn('allocation_id', data['nodes'][0])
+        self.assertIn('allocation_uuid', data['nodes'][0])
 
     def test_detail_using_query(self):
         node = obj_utils.create_test_node(self.context,
@@ -2814,6 +2827,19 @@ class TestPatch(test_api_base.BaseApiTest):
         self.assertEqual(http_client.BAD_REQUEST, response.status_code)
         self.assertTrue(response.json['error_message'])
 
+    def test_patch_allocation_uuid_forbidden(self):
+        node = obj_utils.create_test_node(self.context,
+                                          uuid=uuidutils.generate_uuid())
+        response = self.patch_json('/nodes/%s' % node.uuid,
+                                   [{'path': '/allocation_uuid',
+                                     'op': 'replace',
+                                     'value': uuidutils.generate_uuid()}],
+                                   headers={api_base.Version.string: "1.52"},
+                                   expect_errors=True)
+        self.assertEqual('application/json', response.content_type)
+        self.assertEqual(http_client.BAD_REQUEST, response.status_code)
+        self.assertTrue(response.json['error_message'])
+
     def test_update_conductor_group(self):
         node = obj_utils.create_test_node(self.context,
                                           uuid=uuidutils.generate_uuid())
@@ -2995,6 +3021,20 @@ class TestPatch(test_api_base.BaseApiTest):
                                    expect_errors=True)
         self.assertEqual('application/json', response.content_type)
         self.assertEqual(http_client.BAD_REQUEST, response.status_code)
+
+    def test_patch_allocation_forbidden(self):
+        node = obj_utils.create_test_node(self.context,
+                                          uuid=uuidutils.generate_uuid())
+        response = self.patch_json('/nodes/%s' % node.uuid,
+                                   [{'path': '/allocation_uuid',
+                                     'op': 'replace',
+                                     'value': uuidutils.generate_uuid()}],
+                                   headers={api_base.Version.string:
+                                            str(api_v1.max_version())},
+                                   expect_errors=True)
+        self.assertEqual('application/json', response.content_type)
+        self.assertEqual(http_client.BAD_REQUEST, response.status_code)
+        self.assertTrue(response.json['error_message'])
 
 
 def _create_node_locally(node):

@@ -404,6 +404,27 @@ conductor_policies = [
          {'path': '/conductors/{hostname}', 'method': 'GET'}]),
 ]
 
+allocation_policies = [
+    policy.DocumentedRuleDefault(
+        'baremetal:allocation:get',
+        'rule:is_admin or rule:is_observer',
+        'Retrieve Allocation records',
+        [{'path': '/allocations', 'method': 'GET'},
+         {'path': '/allocations/{allocation_id}', 'method': 'GET'},
+         {'path': '/nodes/{node_ident}/allocation', 'method': 'GET'}]),
+    policy.DocumentedRuleDefault(
+        'baremetal:allocation:create',
+        'rule:is_admin',
+        'Create Allocation records',
+        [{'path': '/allocations', 'method': 'POST'}]),
+    policy.DocumentedRuleDefault(
+        'baremetal:allocation:delete',
+        'rule:is_admin',
+        'Delete Allocation records',
+        [{'path': '/allocations/{allocation_id}', 'method': 'DELETE'},
+         {'path': '/nodes/{node_ident}/allocation', 'method': 'DELETE'}]),
+]
+
 
 def list_policies():
     policies = itertools.chain(
@@ -416,7 +437,8 @@ def list_policies():
         vendor_passthru_policies,
         utility_policies,
         volume_policies,
-        conductor_policies
+        conductor_policies,
+        allocation_policies,
     )
     return policies
 

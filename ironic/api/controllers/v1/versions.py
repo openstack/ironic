@@ -89,6 +89,7 @@ BASE_VERSION = 1
 # v1.49: Exposes current conductor on the node object.
 # v1.50: Add owner to the node object.
 # v1.51: Add description to the node object.
+# v1.52: Add allocation API.
 
 MINOR_0_JUNO = 0
 MINOR_1_INITIAL_VERSION = 1
@@ -142,6 +143,7 @@ MINOR_48_NODE_PROTECTED = 48
 MINOR_49_CONDUCTORS = 49
 MINOR_50_NODE_OWNER = 50
 MINOR_51_NODE_DESCRIPTION = 51
+MINOR_52_ALLOCATION = 52
 
 # When adding another version, update:
 # - MINOR_MAX_VERSION
@@ -149,7 +151,7 @@ MINOR_51_NODE_DESCRIPTION = 51
 #   explanation of what changed in the new version
 # - common/release_mappings.py, RELEASE_MAPPING['master']['api']
 
-MINOR_MAX_VERSION = MINOR_51_NODE_DESCRIPTION
+MINOR_MAX_VERSION = MINOR_52_ALLOCATION
 
 # String representations of the minor and maximum versions
 _MIN_VERSION_STRING = '{}.{}'.format(BASE_VERSION, MINOR_1_INITIAL_VERSION)

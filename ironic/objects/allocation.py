@@ -295,6 +295,6 @@ class AllocationCRUDPayload(notification.NotificationPayloadBase):
         'updated_at': object_fields.DateTimeField(nullable=True),
     }
 
-    def __init__(self, allocation, node_uuid):
+    def __init__(self, allocation, node_uuid=None):
         super(AllocationCRUDPayload, self).__init__(node_uuid=node_uuid)
         self.populate_schema(allocation=allocation)
