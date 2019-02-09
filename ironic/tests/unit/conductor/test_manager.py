@@ -7148,7 +7148,7 @@ class ManagerTestHardwareTypeProperties(mgr_utils.ServiceSetUpMixin,
 @mock.patch.object(waiters, 'wait_for_all')
 @mock.patch.object(manager.ConductorManager, '_spawn_worker')
 @mock.patch.object(manager.ConductorManager, '_sync_power_state_nodes_task')
-class ParallelPowerSyncTestCase(mgr_utils.CommonMixIn):
+class ParallelPowerSyncTestCase(mgr_utils.CommonMixIn, db_base.DbTestCase):
 
     def setUp(self):
         super(ParallelPowerSyncTestCase, self).setUp()
@@ -7207,7 +7207,7 @@ class ParallelPowerSyncTestCase(mgr_utils.CommonMixIn):
             self.service._sync_power_states(self.context)
 
             self.assertEqual(0, spawn_mock.call_count)
-            self.assertEqual(9, sync_mock.call_count)
+            self.assertEqual(1, sync_mock.call_count)
             self.assertEqual(1, waiter_mock.call_count)
 
 
