@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Fixes an issue where setting the ``conductor_group`` for a node was not
+    entirely case-sensitive, in that this could fail if case-sensitivity did
+    not match between the conductor configuration and the API request.
