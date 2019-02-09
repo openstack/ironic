@@ -113,6 +113,27 @@ opts = [
                       'images for the direct deploy interface, when local '
                       'HTTP service is incorporated to provide instance image '
                       'instead of swift tempurls.')),
+    cfg.BoolOpt('fast_track',
+                default=False,
+                help=_('Whether to allow deployment agents to perform lookup, '
+                       'heartbeat operations during initial states of a '
+                       'machine lifecycle and by-pass the normal setup '
+                       'procedures for a ramdisk. This feature also enables '
+                       'power operations which are part of deployment '
+                       'processes to be bypassed if the ramdisk has performed '
+                       'a heartbeat operation using the fast_track_timeout '
+                       'setting.')),
+    cfg.IntOpt('fast_track_timeout',
+               default=300,
+               min=0,
+               max=300,
+               help=_('Seconds for which the last heartbeat event is to be '
+                      'considered valid for the purpose of a fast '
+                      'track sequence. This setting should generally be '
+                      'less than the number of seconds for "Power-On Self '
+                      'Test" and typical ramdisk start-up. This value should '
+                      'not exceed the [api]ramdisk_heartbeat_timeout '
+                      'setting.')),
 ]
 
 

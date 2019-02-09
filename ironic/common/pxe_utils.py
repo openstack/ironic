@@ -799,7 +799,12 @@ def build_service_pxe_config(task, instance_image_info,
     # NOTE(pas-ha) if it is takeover of ACTIVE node or node performing
     # unrescue operation, first ensure that basic PXE configs and links
     # are in place before switching pxe config
-    if (node.provision_state in [states.ACTIVE, states.UNRESCUING]
+    # NOTE(TheJulia): Also consider deploying a valid state to go ahead
+    # and check things before continuing, as otherwise deployments can
+    # fail if the agent was booted outside the direct actions of the
+    # boot interface.
+    if (node.provision_state in [states.ACTIVE, states.UNRESCUING,
+                                 states.DEPLOYING]
             and not os.path.isfile(pxe_config_path)):
         pxe_options = build_pxe_config_options(task, instance_image_info,
                                                service=True,
@@ -808,6 +813,7 @@ def build_service_pxe_config(task, instance_image_info,
         create_pxe_config(task, pxe_options, pxe_config_template,
                           ipxe_enabled=ipxe_enabled)
     iwdi = node.driver_internal_info.get('is_whole_disk_image')
+
     deploy_utils.switch_pxe_config(
         pxe_config_path, root_uuid_or_disk_id,
         boot_mode_utils.get_boot_mode(node),

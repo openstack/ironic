@@ -66,6 +66,19 @@ VENDOR_PROPERTIES = {
         'older deploy ramdisks. Defaults to False. Optional.')
 }
 
+__HEARTBEAT_RECORD_ONLY = (states.ENROLL, states.MANAGEABLE,
+                           states.AVAILABLE)
+_HEARTBEAT_RECORD_ONLY = frozenset(__HEARTBEAT_RECORD_ONLY)
+
+_HEARTBEAT_ALLOWED = (states.DEPLOYWAIT, states.CLEANWAIT, states.RESCUEWAIT)
+HEARTBEAT_ALLOWED = frozenset(_HEARTBEAT_ALLOWED)
+
+_FASTTRACK_HEARTBEAT_ALLOWED = (states.DEPLOYWAIT, states.CLEANWAIT,
+                                states.RESCUEWAIT, states.ENROLL,
+                                states.MANAGEABLE, states.AVAILABLE,
+                                states.DEPLOYING)
+FASTTRACK_HEARTBEAT_ALLOWED = frozenset(_FASTTRACK_HEARTBEAT_ALLOWED)
+
 
 def _get_client():
     client = agent_client.AgentClient()
@@ -260,7 +273,9 @@ class HeartbeatMixin(object):
     @property
     def heartbeat_allowed_states(self):
         """Define node states where heartbeating is allowed"""
-        return (states.DEPLOYWAIT, states.CLEANWAIT, states.RESCUEWAIT)
+        if CONF.deploy.fast_track:
+            return FASTTRACK_HEARTBEAT_ALLOWED
+        return HEARTBEAT_ALLOWED
 
     @METRICS.timer('HeartbeatMixin.heartbeat')
     def heartbeat(self, task, callback_url, agent_version):
@@ -271,7 +286,8 @@ class HeartbeatMixin(object):
         :param agent_version: The version of the agent that is heartbeating
         """
         # NOTE(pas-ha) immediately skip the rest if nothing to do
-        if task.node.provision_state not in self.heartbeat_allowed_states:
+        if (task.node.provision_state not in self.heartbeat_allowed_states
+            and not manager_utils.fast_track_able(task)):
             LOG.debug('Heartbeat from node %(node)s in unsupported '
                       'provision state %(state)s, not taking any action.',
                       {'node': task.node.uuid,
@@ -288,12 +304,24 @@ class HeartbeatMixin(object):
 
         node = task.node
         LOG.debug('Heartbeat from node %s', node.uuid)
-
         driver_internal_info = node.driver_internal_info
         driver_internal_info['agent_url'] = callback_url
         driver_internal_info['agent_version'] = agent_version
+        # Record the last heartbeat event time in UTC, so we can make
+        # decisions about it later. Can be decoded to datetime object with:
+        # datetime.datetime.strptime(var, "%Y-%m-%d %H:%M:%S.%f")
+        driver_internal_info['agent_last_heartbeat'] = str(
+            timeutils.utcnow().isoformat())
         node.driver_internal_info = driver_internal_info
         node.save()
+
+        if node.provision_state in _HEARTBEAT_RECORD_ONLY:
+            # We shouldn't take any additional action. The agent will
+            # silently continue to heartbeat to ironic until user initiated
+            # state change occurs causing it to match a state below.
+            LOG.debug('Heartbeat from %(node)s recorded to identify the '
+                      'node as on-line.', {'node': task.node.uuid})
+            return
 
         # Async call backs don't set error state on their own
         # TODO(jimrollenhagen) improve error messages here

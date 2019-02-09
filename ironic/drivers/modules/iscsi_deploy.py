@@ -408,13 +408,24 @@ class ISCSIDeploy(AgentDeployMixin, base.DeployInterface):
         :returns: deploy state DEPLOYWAIT.
         """
         node = task.node
-        if task.driver.storage.should_write_image(task):
+        if manager_utils.is_fast_track(task):
+            LOG.debug('Performing a fast track deployment for %(node)s.',
+                      {'node': task.node.uuid})
+            deploy_utils.cache_instance_image(task.context, node)
+            check_image_size(task)
+            # Update the database for the API and the task tracking resumes
+            # the state machine state going from DEPLOYWAIT -> DEPLOYING
+            task.process_event('wait')
+            self.continue_deploy(task)
+        elif task.driver.storage.should_write_image(task):
+            # Standard deploy process
             deploy_utils.cache_instance_image(task.context, node)
             check_image_size(task)
             manager_utils.node_power_action(task, states.REBOOT)
-
             return states.DEPLOYWAIT
         else:
+            # Boot to an Storage Volume
+
             # TODO(TheJulia): At some point, we should de-dupe this code
             # as it is nearly identical to the agent deploy interface.
             # This is not being done now as it is expected to be
@@ -486,23 +497,38 @@ class ISCSIDeploy(AgentDeployMixin, base.DeployInterface):
             task.driver.boot.prepare_instance(task)
         else:
             if node.provision_state == states.DEPLOYING:
-                # Adding the node to provisioning network so that the dhcp
-                # options get added for the provisioning port.
-                manager_utils.node_power_action(task, states.POWER_OFF)
+                fast_track_deploy = manager_utils.is_fast_track(task)
+                if fast_track_deploy:
+                    # The agent has already recently checked in and we are
+                    # configured to take that as an indicator that we can
+                    # skip ahead.
+                    LOG.debug('The agent for node %(node)s has recently '
+                              'checked in, and the node power will remain '
+                              'unmodified.',
+                              {'node': task.node.uuid})
+                else:
+                    # Adding the node to provisioning network so that the dhcp
+                    # options get added for the provisioning port.
+                    manager_utils.node_power_action(task, states.POWER_OFF)
                 # NOTE(vdrok): in case of rebuild, we have tenant network
                 # already configured, unbind tenant ports if present
                 if task.driver.storage.should_write_image(task):
-                    power_state_to_restore = (
-                        manager_utils.power_on_node_if_needed(task))
+                    if not fast_track_deploy:
+                        power_state_to_restore = (
+                            manager_utils.power_on_node_if_needed(task))
                     task.driver.network.unconfigure_tenant_networks(task)
                     task.driver.network.add_provisioning_network(task)
-                    manager_utils.restore_power_state_if_needed(
-                        task, power_state_to_restore)
+                    if not fast_track_deploy:
+                        manager_utils.restore_power_state_if_needed(
+                            task, power_state_to_restore)
                 task.driver.storage.attach_volumes(task)
-                if not task.driver.storage.should_write_image(task):
+                if (not task.driver.storage.should_write_image(task)
+                    or fast_track_deploy):
                     # We have nothing else to do as this is handled in the
                     # backend storage system, and we can return to the caller
                     # as we do not need to boot the agent to deploy.
+                    # Alternatively, we are in a fast track deployment
+                    # and have nothing else to do.
                     return
 
             deploy_opts = deploy_utils.build_agent_options(node)

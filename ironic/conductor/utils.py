@@ -13,6 +13,7 @@
 #    under the License.
 
 import collections
+import datetime
 import time
 
 from openstack.baremetal import configdrive as os_configdrive
@@ -21,6 +22,7 @@ from oslo_log import log
 from oslo_serialization import jsonutils
 from oslo_service import loopingcall
 from oslo_utils import excutils
+from oslo_utils import timeutils
 import six
 
 from ironic.common import boot_devices
@@ -1408,3 +1410,63 @@ def build_configdrive(node, configdrive):
     LOG.debug('Building a configdrive for node %s', node.uuid)
     return os_configdrive.build(meta_data, user_data=user_data,
                                 network_data=configdrive.get('network_data'))
+
+
+def fast_track_able(task):
+    """Checks if the operation can be a streamlined deployment sequence.
+
+    This is mainly focused on ensuring that we are able to quickly sequence
+    through operations if we already have a ramdisk heartbeating through
+    external means.
+
+    :param task: Taskmanager object
+    :returns: True if [deploy]fast_track is set to True, no iSCSI boot
+              configuration is present, and no last_error is present for
+              the node indicating that there was a recent failure.
+    """
+    return (CONF.deploy.fast_track
+            # TODO(TheJulia): Network model aside, we should be able to
+            # fast-track through initial sequence to complete deployment.
+            # This needs to be validated.
+            # TODO(TheJulia): Do we need a secondary guard? To prevent
+            # driving through this we could query the API endpoint of
+            # the agent with a short timeout such as 10 seconds, which
+            # would help verify if the node is online.
+            # TODO(TheJulia): Should we check the provisioning/deployment
+            # networks match config wise? Do we care? #decisionsdecisions
+            and task.driver.storage.should_write_image(task)
+            and task.node.last_error is None)
+
+
+def is_fast_track(task):
+    """Checks a fast track is available.
+
+    This method first ensures that the node and conductor configuration
+    is valid to perform a fast track sequence meaning that we already
+    have a ramdisk running through another means like discovery.
+    If not valid, False is returned.
+
+    The method then checks for the last agent heartbeat, and if it occured
+    within the timeout set by [deploy]fast_track_timeout and the power
+    state for the machine is POWER_ON, then fast track is permitted.
+
+    :param node: A node object.
+    :returns: True if the last heartbeat that was recorded was within
+              the [deploy]fast_track_timeout setting.
+    """
+    if not fast_track_able(task):
+        return False
+    # use native datetime objects for conversion and compare
+    # slightly odd because py2 compatability :(
+    last = datetime.datetime.strptime(
+        task.node.driver_internal_info.get(
+            'agent_last_heartbeat',
+            '1970-01-01T00:00:00.000000'),
+        "%Y-%m-%dT%H:%M:%S.%f")
+    # If we found nothing, we assume that the time is essentially epoch.
+    time_delta = datetime.timedelta(seconds=CONF.deploy.fast_track_timeout)
+    last_valid = timeutils.utcnow() - time_delta
+    # Checking the power state, because if we find the machine off due to
+    # any action, we can't actually fast track the node. :(
+    return (last_valid <= last
+            and task.driver.power.get_power_state(task) == states.POWER_ON)

@@ -449,6 +449,8 @@ IRONIC_DEPLOY_LOGS_STORAGE_BACKEND=${IRONIC_DEPLOY_LOGS_STORAGE_BACKEND:-local}
 # The path to the directory where Ironic should put the logs when IRONIC_DEPLOY_LOGS_STORAGE_BACKEND is set to "local"
 IRONIC_DEPLOY_LOGS_LOCAL_PATH=${IRONIC_DEPLOY_LOGS_LOCAL_PATH:-$IRONIC_VM_LOG_DIR/deploy_logs}
 
+# Fast track option
+IRONIC_DEPLOY_FAST_TRACK=${IRONIC_DEPLOY_FAST_TRACK:-False}
 
 # Define baremetal min_microversion in tempest config. Default value None is picked from tempest.
 TEMPEST_BAREMETAL_MIN_MICROVERSION=${TEMPEST_BAREMETAL_MIN_MICROVERSION:-}
@@ -1114,6 +1116,9 @@ function configure_ironic {
     # Configure JSON RPC backend
     iniset $IRONIC_CONF_FILE DEFAULT rpc_transport $IRONIC_RPC_TRANSPORT
     iniset $IRONIC_CONF_FILE json_rpc port $IRONIC_JSON_RPC_PORT
+
+    # Set fast track options
+    iniset $IRONIC_CONF_FILE deploy fast_track $IRONIC_DEPLOY_FAST_TRACK
 
     # Configure Ironic conductor, if it was enabled.
     if is_service_enabled ir-cond; then
@@ -2553,6 +2558,8 @@ function ironic_configure_tempest {
 
     # Enabled features
     iniset $TEMPEST_CONFIG baremetal_feature_enabled ipxe_enabled $IRONIC_IPXE_ENABLED
+    iniset $TEMPEST_CONFIG baremetal_feature_enabled fast_track_discovery $IRONIC_DEPLOY_FAST_TRACK
+
 }
 
 function get_ironic_node_prefix {

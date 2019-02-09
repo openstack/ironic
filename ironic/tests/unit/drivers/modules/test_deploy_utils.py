@@ -1699,6 +1699,7 @@ class AgentMethodsTestCase(db_base.DbTestCase):
             self.assertEqual(8, task.node.driver_internal_info[
                 'disk_erasure_concurrency'])
 
+    @mock.patch('ironic.conductor.utils.is_fast_track', autospec=True)
     @mock.patch.object(pxe.PXEBoot, 'prepare_ramdisk', autospec=True)
     @mock.patch('ironic.conductor.utils.node_power_action', autospec=True)
     @mock.patch.object(utils, 'build_agent_options', autospec=True)
@@ -1707,15 +1708,19 @@ class AgentMethodsTestCase(db_base.DbTestCase):
     def _test_prepare_inband_cleaning(
             self, add_cleaning_network_mock,
             build_options_mock, power_mock, prepare_ramdisk_mock,
-            manage_boot=True):
+            is_fast_track_mock, manage_boot=True, fast_track=False):
         build_options_mock.return_value = {'a': 'b'}
+        is_fast_track_mock.return_value = fast_track
         with task_manager.acquire(
                 self.context, self.node.uuid, shared=False) as task:
             self.assertEqual(
                 states.CLEANWAIT,
                 utils.prepare_inband_cleaning(task, manage_boot=manage_boot))
             add_cleaning_network_mock.assert_called_once_with(task)
-            power_mock.assert_called_once_with(task, states.REBOOT)
+            if not fast_track:
+                power_mock.assert_called_once_with(task, states.REBOOT)
+            else:
+                self.assertFalse(power_mock.called)
             self.assertEqual(1, task.node.driver_internal_info[
                              'agent_erase_devices_iterations'])
             self.assertIs(True, task.node.driver_internal_info[
@@ -1734,17 +1739,26 @@ class AgentMethodsTestCase(db_base.DbTestCase):
     def test_prepare_inband_cleaning_manage_boot_false(self):
         self._test_prepare_inband_cleaning(manage_boot=False)
 
+    def test_prepare_inband_cleaning_fast_track(self):
+        self._test_prepare_inband_cleaning(fast_track=True)
+
+    @mock.patch('ironic.conductor.utils.is_fast_track', autospec=True)
     @mock.patch.object(pxe.PXEBoot, 'clean_up_ramdisk', autospec=True)
     @mock.patch('ironic.drivers.modules.network.flat.FlatNetwork.'
                 'remove_cleaning_network')
     @mock.patch('ironic.conductor.utils.node_power_action', autospec=True)
     def _test_tear_down_inband_cleaning(
             self, power_mock, remove_cleaning_network_mock,
-            clean_up_ramdisk_mock, manage_boot=True):
+            clean_up_ramdisk_mock, is_fast_track_mock,
+            manage_boot=True, fast_track=False):
+        is_fast_track_mock.return_value = fast_track
         with task_manager.acquire(
                 self.context, self.node.uuid, shared=False) as task:
             utils.tear_down_inband_cleaning(task, manage_boot=manage_boot)
-            power_mock.assert_called_once_with(task, states.POWER_OFF)
+            if not fast_track:
+                power_mock.assert_called_once_with(task, states.POWER_OFF)
+            else:
+                self.assertFalse(power_mock.called)
             remove_cleaning_network_mock.assert_called_once_with(task)
             if manage_boot:
                 clean_up_ramdisk_mock.assert_called_once_with(
@@ -1757,6 +1771,9 @@ class AgentMethodsTestCase(db_base.DbTestCase):
 
     def test_tear_down_inband_cleaning_manage_boot_false(self):
         self._test_tear_down_inband_cleaning(manage_boot=False)
+
+    def test_tear_down_inband_cleaning_fast_track(self):
+        self._test_tear_down_inband_cleaning(fast_track=True)
 
     def test_build_agent_options_conf(self):
         self.config(api_url='https://api-url', group='conductor')

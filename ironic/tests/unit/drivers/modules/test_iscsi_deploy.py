@@ -734,6 +734,53 @@ class ISCSIDeployTestCase(db_base.DbTestCase):
                 task.driver.storage, task)
             self.assertEqual(2, storage_should_write_mock.call_count)
 
+    @mock.patch('ironic.conductor.utils.is_fast_track', autospec=True)
+    @mock.patch.object(noop_storage.NoopStorage, 'attach_volumes',
+                       autospec=True)
+    @mock.patch.object(deploy_utils, 'populate_storage_driver_internal_info')
+    @mock.patch.object(pxe.PXEBoot, 'prepare_ramdisk')
+    @mock.patch.object(deploy_utils, 'build_agent_options')
+    @mock.patch.object(deploy_utils, 'build_instance_info_for_deploy')
+    @mock.patch.object(flat_network.FlatNetwork, 'add_provisioning_network',
+                       spec_set=True, autospec=True)
+    @mock.patch.object(flat_network.FlatNetwork,
+                       'unconfigure_tenant_networks',
+                       spec_set=True, autospec=True)
+    @mock.patch.object(flat_network.FlatNetwork, 'validate',
+                       spec_set=True, autospec=True)
+    def test_prepare_fast_track(
+            self, validate_net_mock,
+            unconfigure_tenant_net_mock, add_provisioning_net_mock,
+            build_instance_info_mock, build_options_mock,
+            pxe_prepare_ramdisk_mock, storage_driver_info_mock,
+            storage_attach_volumes_mock, is_fast_track_mock):
+        # TODO(TheJulia): We should revisit this test. Smartnic
+        # support didn't wire in tightly on testing for power in
+        # these tests, and largely fast_track impacts power operations.
+        node = self.node
+        node.network_interface = 'flat'
+        node.save()
+        is_fast_track_mock.return_value = True
+        with task_manager.acquire(
+                self.context, self.node['uuid'], shared=False) as task:
+            task.node.provision_state = states.DEPLOYING
+            build_options_mock.return_value = {'a': 'b'}
+            task.driver.deploy.prepare(task)
+            storage_driver_info_mock.assert_called_once_with(task)
+            # NOTE: Validate is the primary difference between agent/iscsi
+            self.assertFalse(validate_net_mock.called)
+            add_provisioning_net_mock.assert_called_once_with(mock.ANY, task)
+            unconfigure_tenant_net_mock.assert_called_once_with(mock.ANY, task)
+            self.assertTrue(storage_attach_volumes_mock.called)
+            self.assertFalse(build_instance_info_mock.called)
+            # TODO(TheJulia): We should likely consider executing the
+            # next two methods at some point in order to facilitate
+            # continuity. While not explicitly required for this feature
+            # to work, reboots as part of deployment would need the ramdisk
+            # present and ready.
+            self.assertFalse(build_options_mock.called)
+            self.assertFalse(pxe_prepare_ramdisk_mock.called)
+
     @mock.patch.object(manager_utils, 'node_power_action', autospec=True)
     @mock.patch.object(iscsi_deploy, 'check_image_size', autospec=True)
     @mock.patch.object(deploy_utils, 'cache_instance_image', autospec=True)
@@ -786,6 +833,36 @@ class ISCSIDeployTestCase(db_base.DbTestCase):
             mock_prepare_instance.assert_called_once_with(mock.ANY, task)
             self.assertEqual(2, mock_node_power_action.call_count)
             self.assertEqual(states.DEPLOYING, task.node.provision_state)
+
+    @mock.patch.object(iscsi_deploy, 'check_image_size', autospec=True)
+    @mock.patch.object(deploy_utils, 'cache_instance_image', autospec=True)
+    @mock.patch.object(iscsi_deploy.ISCSIDeploy, 'continue_deploy',
+                       autospec=True)
+    @mock.patch('ironic.conductor.utils.is_fast_track', autospec=True)
+    @mock.patch.object(pxe.PXEBoot, 'prepare_instance', autospec=True)
+    @mock.patch('ironic.conductor.utils.node_power_action', autospec=True)
+    def test_deploy_fast_track(self, power_mock, mock_pxe_instance,
+                               mock_is_fast_track, continue_deploy_mock,
+                               cache_image_mock, check_image_size_mock):
+        mock_is_fast_track.return_value = True
+        self.node.target_provision_state = states.ACTIVE
+        self.node.provision_state = states.DEPLOYING
+        i_info = self.node.driver_internal_info
+        i_info['agent_url'] = 'http://1.2.3.4:1234'
+        self.node.driver_internal_info = i_info
+        self.node.save()
+        with task_manager.acquire(
+                self.context, self.node['uuid'], shared=False) as task:
+            task.driver.deploy.deploy(task)
+            self.assertFalse(power_mock.called)
+            self.assertFalse(mock_pxe_instance.called)
+            task.node.refresh()
+            self.assertEqual(states.DEPLOYWAIT, task.node.provision_state)
+            self.assertEqual(states.ACTIVE,
+                             task.node.target_provision_state)
+            cache_image_mock.assert_called_with(mock.ANY, task.node)
+            check_image_size_mock.assert_called_with(task)
+            continue_deploy_mock.assert_called_with(mock.ANY, task)
 
     @mock.patch.object(noop_storage.NoopStorage, 'detach_volumes',
                        autospec=True)

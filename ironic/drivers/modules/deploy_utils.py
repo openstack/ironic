@@ -899,10 +899,22 @@ def prepare_inband_cleaning(task, manage_boot=True):
     :raises: InvalidParameterValue if cleaning network UUID config option has
              an invalid value.
     """
-    power_state_to_restore = manager_utils.power_on_node_if_needed(task)
+    fast_track = manager_utils.is_fast_track(task)
+    if not fast_track:
+        power_state_to_restore = manager_utils.power_on_node_if_needed(task)
+
+    # WARNING(TheJulia): When fast track is available, trying to plug the
+    # cleaning network is problematic and in practice this may fail if
+    # cleaning/provisioning/discovery all take place on different
+    # networks when..
+    # Translation: Here be a realistically unavoidable footgun
+    # fast track support.
+    # TODO(TheJulia): Lets improve this somehow such that the agent host
+    # gracefully handles these sorts of changes.
     task.driver.network.add_cleaning_network(task)
-    manager_utils.restore_power_state_if_needed(
-        task, power_state_to_restore)
+    if not fast_track:
+        manager_utils.restore_power_state_if_needed(
+            task, power_state_to_restore)
 
     # Append required config parameters to node's driver_internal_info
     # to pass to IPA.
@@ -912,7 +924,8 @@ def prepare_inband_cleaning(task, manage_boot=True):
         ramdisk_opts = build_agent_options(task.node)
         task.driver.boot.prepare_ramdisk(task, ramdisk_opts)
 
-    manager_utils.node_power_action(task, states.REBOOT)
+    if not fast_track:
+        manager_utils.node_power_action(task, states.REBOOT)
 
     # Tell the conductor we are waiting for the agent to boot.
     return states.CLEANWAIT
@@ -936,14 +949,18 @@ def tear_down_inband_cleaning(task, manage_boot=True):
     :raises: NetworkError, NodeCleaningFailure if the cleaning ports cannot be
         removed.
     """
-    manager_utils.node_power_action(task, states.POWER_OFF)
+    fast_track = manager_utils.is_fast_track(task)
+    if not fast_track:
+        manager_utils.node_power_action(task, states.POWER_OFF)
+
     if manage_boot:
         task.driver.boot.clean_up_ramdisk(task)
 
     power_state_to_restore = manager_utils.power_on_node_if_needed(task)
     task.driver.network.remove_cleaning_network(task)
-    manager_utils.restore_power_state_if_needed(
-        task, power_state_to_restore)
+    if not fast_track:
+        manager_utils.restore_power_state_if_needed(
+            task, power_state_to_restore)
 
 
 def get_image_instance_info(node):

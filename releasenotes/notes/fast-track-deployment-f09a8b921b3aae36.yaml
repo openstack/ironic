@@ -1,0 +1,16 @@
+---
+features:
+  - |
+    Adds a new feature called `fast-track` which allows an operator to
+    optionally configure the Bare Metal API Service and the Bare Metal
+    conductor service to permit lookup and heartbeat for nodes that are
+    in the process of being enrolled and created.
+
+    These nodes can be left online, from a process such as discovery.
+    If ironic-python-agent has communicated with the Bare Metal Service
+    API endpoint with-in the last `300` seconds, then setup steps that
+    are normally involved with preparing to launch a ramdisk on the node,
+    are skipped along with power operations to enable a baremetal node to
+    undergo discovery through to deployment with a single power cycle.
+    Fast track functionality may be enabled through the ``[deploy]fast_track``
+    option.

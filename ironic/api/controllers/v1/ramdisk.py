@@ -37,10 +37,6 @@ LOG = log.getLogger(__name__)
 
 _LOOKUP_RETURN_FIELDS = ('uuid', 'properties', 'instance_info',
                          'driver_internal_info')
-_LOOKUP_ALLOWED_STATES = {states.DEPLOYING, states.DEPLOYWAIT,
-                          states.CLEANING, states.CLEANWAIT,
-                          states.INSPECTING,
-                          states.RESCUING, states.RESCUEWAIT}
 
 
 def config():
@@ -82,6 +78,12 @@ class LookupResult(base.APIBase):
 
 class LookupController(rest.RestController):
     """Controller handling node lookup for a deploy ramdisk."""
+
+    @property
+    def lookup_allowed_states(self):
+        if CONF.deploy.fast_track:
+            return states.FASTTRACK_LOOKUP_ALLOWED_STATES
+        return states.LOOKUP_ALLOWED_STATES
 
     @expose.expose(LookupResult, types.listtype, types.uuid)
     def get_all(self, addresses=None, node_uuid=None):
@@ -144,7 +146,7 @@ class LookupController(rest.RestController):
             raise exception.NotFound()
 
         if (CONF.api.restrict_lookup
-                and node.provision_state not in _LOOKUP_ALLOWED_STATES):
+                and node.provision_state not in self.lookup_allowed_states):
             raise exception.NotFound()
 
         return LookupResult.convert_with_links(node)

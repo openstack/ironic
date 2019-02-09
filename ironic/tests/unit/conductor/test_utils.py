@@ -13,6 +13,7 @@ import time
 
 import mock
 from oslo_config import cfg
+from oslo_utils import timeutils
 from oslo_utils import uuidutils
 
 from ironic.common import boot_devices
@@ -2537,3 +2538,53 @@ class ValidateDeployTemplatesTestCase(db_base.DbTestCase):
             self.assertRaises(exception.InvalidParameterValue,
                               conductor_utils.validate_deploy_templates, task)
             mock_validated.assert_called_once_with(task)
+
+
+@mock.patch.object(fake.FakePower, 'get_power_state', autospec=True)
+class FastTrackTestCase(db_base.DbTestCase):
+
+    def setUp(self):
+        super(FastTrackTestCase, self).setUp()
+        self.node = obj_utils.create_test_node(
+            self.context, driver='fake-hardware',
+            uuid=uuidutils.generate_uuid(),
+            driver_internal_info={
+                'agent_last_heartbeat': str(timeutils.utcnow().isoformat())})
+        self.config(fast_track=True, group='deploy')
+
+    def test_is_fast_track(self, mock_get_power):
+        mock_get_power.return_value = states.POWER_ON
+        with task_manager.acquire(
+                self.context, self.node.uuid, shared=False) as task:
+            self.assertTrue(conductor_utils.is_fast_track(task))
+
+    def test_is_fast_track_config_false(self, mock_get_power):
+        self.config(fast_track=False, group='deploy')
+        mock_get_power.return_value = states.POWER_ON
+        with task_manager.acquire(
+                self.context, self.node.uuid, shared=False) as task:
+            self.assertFalse(conductor_utils.is_fast_track(task))
+
+    def test_is_fast_track_power_off_false(self, mock_get_power):
+        mock_get_power.return_value = states.POWER_OFF
+        with task_manager.acquire(
+                self.context, self.node.uuid, shared=False) as task:
+            self.assertFalse(conductor_utils.is_fast_track(task))
+
+    def test_is_fast_track_no_heartbeat(self, mock_get_power):
+        mock_get_power.return_value = states.POWER_ON
+        i_info = self.node.driver_internal_info
+        i_info.pop('agent_last_heartbeat')
+        self.node.driver_internal_info = i_info
+        self.node.save()
+        with task_manager.acquire(
+                self.context, self.node.uuid, shared=False) as task:
+            self.assertFalse(conductor_utils.is_fast_track(task))
+
+    def test_is_fast_track_error_blocks(self, mock_get_power):
+        mock_get_power.return_value = states.POWER_ON
+        self.node.last_error = "bad things happened"
+        self.node.save()
+        with task_manager.acquire(
+                self.context, self.node.uuid, shared=False) as task:
+            self.assertFalse(conductor_utils.is_fast_track(task))

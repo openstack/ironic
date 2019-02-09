@@ -455,7 +455,14 @@ class AgentDeploy(AgentDeployMixin, base.DeployInterface):
         :param task: a TaskManager instance.
         :returns: status of the deploy. One of ironic.common.states.
         """
-        if task.driver.storage.should_write_image(task):
+        if manager_utils.is_fast_track(task):
+            LOG.debug('Performing a fast track deployment for %(node)s.',
+                      {'node': task.node.uuid})
+            # Update the database for the API and the task tracking resumes
+            # the state machine state going from DEPLOYWAIT -> DEPLOYING
+            task.process_event('wait')
+            self.continue_deploy(task)
+        elif task.driver.storage.should_write_image(task):
             manager_utils.node_power_action(task, states.REBOOT)
             return states.DEPLOYWAIT
         else:
@@ -521,6 +528,12 @@ class AgentDeploy(AgentDeployMixin, base.DeployInterface):
         :raises: exception.InvalidParameterValue if network validation fails.
         :raises: any boot interface's prepare_ramdisk exceptions.
         """
+
+        def _update_instance_info():
+            node.instance_info = (
+                deploy_utils.build_instance_info_for_deploy(task))
+            node.save()
+
         node = task.node
         deploy_utils.populate_storage_driver_internal_info(task)
         if node.provision_state == states.DEPLOYING:
@@ -547,25 +560,44 @@ class AgentDeploy(AgentDeployMixin, base.DeployInterface):
                         task.driver.network.validate(task)
                     else:
                         ctx.reraise = True
-
-            # Adding the node to provisioning network so that the dhcp
-            # options get added for the provisioning port.
-            manager_utils.node_power_action(task, states.POWER_OFF)
+            # Determine if this is a fast track sequence
+            fast_track_deploy = manager_utils.is_fast_track(task)
+            if fast_track_deploy:
+                # The agent has already recently checked in and we are
+                # configured to take that as an indicator that we can
+                # skip ahead.
+                LOG.debug('The agent for node %(node)s has recently checked '
+                          'in, and the node power will remain unmodified.',
+                          {'node': task.node.uuid})
+            else:
+                # Powering off node to setup networking for port and
+                # ensure that the state is reset if it is inadvertently
+                # on for any unknown reason.
+                manager_utils.node_power_action(task, states.POWER_OFF)
             if task.driver.storage.should_write_image(task):
                 # NOTE(vdrok): in case of rebuild, we have tenant network
                 # already configured, unbind tenant ports if present
-                power_state_to_restore = (
-                    manager_utils.power_on_node_if_needed(task))
+                if not fast_track_deploy:
+                    power_state_to_restore = (
+                        manager_utils.power_on_node_if_needed(task))
+
                 task.driver.network.unconfigure_tenant_networks(task)
                 task.driver.network.add_provisioning_network(task)
-                manager_utils.restore_power_state_if_needed(
-                    task, power_state_to_restore)
+                if not fast_track_deploy:
+                    manager_utils.restore_power_state_if_needed(
+                        task, power_state_to_restore)
+                else:
+                    # Fast track sequence in progress
+                    _update_instance_info()
             # Signal to storage driver to attach volumes
             task.driver.storage.attach_volumes(task)
-            if not task.driver.storage.should_write_image(task):
+            if (not task.driver.storage.should_write_image(task)
+                or fast_track_deploy):
                 # We have nothing else to do as this is handled in the
                 # backend storage system, and we can return to the caller
                 # as we do not need to boot the agent to deploy.
+                # Alternatively, we could be in a fast track deployment
+                # and again, we should have nothing to do here.
                 return
         if node.provision_state in (states.ACTIVE, states.UNRESCUING):
             # Call is due to conductor takeover
@@ -573,9 +605,7 @@ class AgentDeploy(AgentDeployMixin, base.DeployInterface):
         elif node.provision_state != states.ADOPTING:
             if node.provision_state not in (states.RESCUING, states.RESCUEWAIT,
                                             states.RESCUE, states.RESCUEFAIL):
-                node.instance_info = (
-                    deploy_utils.build_instance_info_for_deploy(task))
-                node.save()
+                _update_instance_info()
             if CONF.agent.manage_agent_boot:
                 deploy_opts = deploy_utils.build_agent_options(node)
                 task.driver.boot.prepare_ramdisk(task, deploy_opts)

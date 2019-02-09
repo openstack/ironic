@@ -24,6 +24,7 @@ from six.moves import http_client
 from ironic.api.controllers import base as api_base
 from ironic.api.controllers import v1 as api_v1
 from ironic.api.controllers.v1 import ramdisk
+from ironic.common import states
 from ironic.conductor import rpcapi
 from ironic.tests.unit.api import base as test_api_base
 from ironic.tests.unit.objects import utils as obj_utils
@@ -159,6 +160,17 @@ class TestLookup(test_api_base.BaseApiTest):
         self.assertEqual(set(ramdisk._LOOKUP_RETURN_FIELDS) | {'links'},
                          set(data['node']))
         self._check_config(data)
+
+    def test_fast_deploy_lookup(self):
+        CONF.set_override('fast_track', True, 'deploy')
+        for provision_state in [states.ENROLL, states.MANAGEABLE,
+                                states.AVAILABLE]:
+            self.node.provision_state = provision_state
+            data = self.get_json(
+                '/lookup?addresses=%s&node_uuid=%s' %
+                (','.join(self.addresses), self.node.uuid),
+                headers={api_base.Version.string: str(api_v1.max_version())})
+            self.assertEqual(self.node.uuid, data['node']['uuid'])
 
 
 @mock.patch.object(rpcapi.ConductorAPI, 'get_topic_for',
