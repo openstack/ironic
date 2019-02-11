@@ -117,6 +117,12 @@ class Allocation(base.APIBase):
         if fields is not None:
             api_utils.check_for_invalid_fields(fields, allocation.fields)
 
+        # Make the default values consistent between POST and GET API
+        if allocation.candidate_nodes is None:
+            allocation.candidate_nodes = []
+        if allocation.traits is None:
+            allocation.traits = []
+
         allocation = cls._convert_with_links(allocation,
                                              pecan.request.host_url)
 

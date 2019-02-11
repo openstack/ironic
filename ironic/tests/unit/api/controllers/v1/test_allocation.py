@@ -403,11 +403,15 @@ class TestPost(test_api_base.BaseApiTest):
         self.assertEqual(adict['uuid'], response.json['uuid'])
         self.assertEqual('allocating', response.json['state'])
         self.assertIsNone(response.json['node_uuid'])
+        self.assertEqual([], response.json['candidate_nodes'])
+        self.assertEqual([], response.json['traits'])
         result = self.get_json('/allocations/%s' % adict['uuid'],
                                headers=self.headers)
         self.assertEqual(adict['uuid'], result['uuid'])
         self.assertFalse(result['updated_at'])
         self.assertIsNone(result['node_uuid'])
+        self.assertEqual([], result['candidate_nodes'])
+        self.assertEqual([], result['traits'])
         return_created_at = timeutils.parse_isotime(
             result['created_at']).replace(tzinfo=None)
         self.assertEqual(test_time, return_created_at)
