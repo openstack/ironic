@@ -1,0 +1,21 @@
+---
+features:
+  - |
+    Adds an ``is_smartnic`` field to the port object in REST API version
+    1.53.
+
+    ``is_smartnic`` field indicates if this port is a Smart NIC port,
+    False by default. This field may be set by operator to use baremetal
+    nodes with Smart NICs as ironic nodes.
+
+    The REST API endpoints related to ports provide support for the
+    ``is_smartnic`` field.  The `ironic developer documentation
+    <https://docs.openstack.org/ironic/latest/admin/multitenancy.html>`_
+    provides information on how to configure and use Smart NIC ports.
+upgrade:
+  - |
+    Adds an ``is_smartnic`` field to the port object in REST API version
+    1.53.
+
+    Upgrading to this release will set ``is_smartnic`` to False for all
+    ports.

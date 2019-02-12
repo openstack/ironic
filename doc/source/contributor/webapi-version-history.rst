@@ -2,6 +2,13 @@
 REST API Version History
 ========================
 
+1.53 (Stein, master)
+--------------------
+
+Added ``is_smartnic`` field to the port object to enable Smart NIC port
+creation in addition to local link connection attributes ``port_id`` and
+``hostname``.
+
 1.52 (Stein, master)
 --------------------
 

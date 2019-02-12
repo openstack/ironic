@@ -25,6 +25,9 @@ Response to include only the specified fields, rather than the default set.
 .. versionadded:: 1.34
   Added the ``physical_network`` field.
 
+.. versionadded:: 1.53
+  Added the ``is_smartnic`` response fields.
+
 Normal response code: 200
 
 Error codes: 400,401,403,404
@@ -66,6 +69,9 @@ Return a detailed list of bare metal Ports associated with ``portgroup_ident``.
 .. versionadded:: 1.34
   Added the ``physical_network`` field.
 
+.. versionadded:: 1.53
+  Added the ``is_smartnic`` response fields.
+
 Normal response code: 200
 
 Error codes: 400,401,403,404
@@ -99,6 +105,7 @@ Response
     - created_at: created_at
     - updated_at: updated_at
     - links: links
+    - is_smartnic: is_smartnic
 
 **Example details of a Portgroup's Ports:**
 

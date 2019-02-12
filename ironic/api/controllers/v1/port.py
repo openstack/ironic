@@ -59,6 +59,9 @@ def hide_fields_in_newer_versions(obj):
     # if requested version is < 1.34, hide physical_network field.
     if not api_utils.allow_port_physical_network():
         obj.physical_network = wsme.Unset
+    # if requested version is < 1.53, hide is_smartnic field.
+    if not api_utils.allow_port_is_smartnic():
+        obj.is_smartnic = wsme.Unset
 
 
 class Port(base.APIBase):
@@ -156,6 +159,9 @@ class Port(base.APIBase):
     links = wsme.wsattr([link.Link], readonly=True)
     """A list containing a self link and associated port links"""
 
+    is_smartnic = types.boolean
+    """Indicates whether this port is a Smart NIC port."""
+
     def __init__(self, **kwargs):
         self.fields = []
         fields = list(objects.Port.fields)
@@ -245,7 +251,8 @@ class Port(base.APIBase):
                      local_link_connection={
                          'switch_info': 'host', 'port_id': 'Gig0/1',
                          'switch_id': 'aa:bb:cc:dd:ee:ff'},
-                     physical_network='physnet1')
+                     physical_network='physnet1',
+                     is_smartnic=False)
         # NOTE(lucasagomes): node_uuid getter() method look at the
         # _node_uuid variable
         sample._node_uuid = '7ae81bb3-dec3-4289-8d6c-da80bd8001ae'
@@ -425,6 +432,9 @@ class PortsController(rest.RestController):
         if ('physical_network' in fields
                 and not api_utils.allow_port_physical_network()):
             raise exception.NotAcceptable()
+        if ('is_smartnic' in fields
+                and not api_utils.allow_port_is_smartnic()):
+            raise exception.NotAcceptable()
 
     @METRICS.timer('PortsController.get_all')
     @expose.expose(PortCollection, types.uuid_or_name, types.uuid,
@@ -577,6 +587,12 @@ class PortsController(rest.RestController):
         pdict = port.as_dict()
         self._check_allowed_port_fields(pdict)
 
+        if (port.is_smartnic and not types.locallinkconnectiontype
+                .validate_for_smart_nic(port.local_link_connection)):
+            raise exception.Invalid(
+                "Smart NIC port must have port_id "
+                "and hostname in local_link_connection")
+
         create_remotely = pecan.request.rpcapi.can_send_create_port()
         if (not create_remotely and pdict.get('portgroup_uuid')):
             # NOTE(mgoddard): In RPC API v1.41, port creation was moved to the
@@ -652,7 +668,8 @@ class PortsController(rest.RestController):
 
         fields_to_check = set()
         for field in (self.advanced_net_fields
-                      + ['portgroup_uuid', 'physical_network']):
+                      + ['portgroup_uuid', 'physical_network',
+                         'is_smartnic']):
             field_path = '/%s' % field
             if (api_utils.get_patch_values(patch, field_path)
                     or api_utils.is_path_removed(patch, field_path)):

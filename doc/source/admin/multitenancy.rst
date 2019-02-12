@@ -58,16 +58,22 @@ network.
      - Required. Identifies a switch and can be a MAC address or an
        OpenFlow-based ``datapath_id``.
    * - ``port_id``
-     - Required. Port ID on the switch, for example, Gig0/1.
+     - Required. Port ID on the switch/Smart NIC, for example, Gig0/1, rep0-0.
    * - ``switch_info``
      - Optional. Used to distinguish different switch models or other
        vendor-specific identifier. Some ML2 plugins may require this
        field.
-
+   * - ``hostname``
+     - Required in case of a Smart NIC port.
+       Hostname of Smart NIC device.
 .. note::
       This isn't applicable to Infiniband ports because the network topology
       is discoverable by the Infiniband Subnet Manager.
       If specified, local_link_connection information will be ignored.
+      If port is Smart NIC port then:
+
+        1. ``port_id`` is the representor port name on the Smart NIC.
+        2. ``switch_id`` is not mandatory.
 
 .. _multitenancy-physnets:
 
@@ -113,8 +119,11 @@ Configuring nodes
    * Physical network support for ironic ports was added in API version 1.34,
      and is supported by python-ironicclient version 1.15.0 or higher.
 
+   * Smart NIC support for ironic ports was added in API version 1.53,
+     and is supported by python-ironicclient version 2.7.0 or higher.
+
    The following examples assume you are using python-ironicclient version
-   1.15.0 or higher.
+   2.7.0 or higher.
 
    Export the following variable::
 
@@ -165,6 +174,17 @@ Configuring nodes
          --extra client-id=$CLIENT_ID \
          --physical-network physnet1
 
+#. Create a Smart NIC port as follows::
+
+     openstack baremetal port create $HW_MAC_ADDRESS --node $NODE_UUID \
+         --local-link-connection hostname=$HOSTNAME \
+         --local-link-connection port_id=$REP_NAME \
+         --pxe-enabled true \
+         --physical-network physnet1 \
+         --is-smartnic true
+
+    A Smart NIC port requires ``hostname`` which is the hostname of the Smart NIC,
+    and ``port_id`` which is the representor port name within the Smart NIC.
 
 #. Check the port configuration::
 

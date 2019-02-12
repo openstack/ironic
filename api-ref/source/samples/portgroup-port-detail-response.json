@@ -5,6 +5,7 @@
       "created_at": "2016-08-18T22:28:48.643434+11:11",
       "extra": {},
       "internal_info": {},
+      "is_smartnic": true,
       "links": [
         {
           "href": "http://127.0.0.1:6385/v1/ports/d2b30520-907d-46c8-bfee-c5586e6fb3a1",

@@ -32,6 +32,9 @@ Return a list of bare metal Ports associated with ``node_ident``.
 .. versionadded:: 1.34
   Added the ``physical_network`` field.
 
+.. versionadded:: 1.53
+  Added the ``is_smartnic`` response fields.
+
 Normal response code: 200
 
 Error codes: TBD
@@ -79,6 +82,9 @@ Return a detailed list of bare metal Ports associated with ``node_ident``.
 .. versionadded:: 1.34
   Added the ``physical_network`` field.
 
+.. versionadded:: 1.53
+  Added the ``is_smartnic`` response fields.
+
 Normal response code: 200
 
 Error codes: TBD
@@ -112,6 +118,7 @@ Response
     - created_at: created_at
     - updated_at: updated_at
     - links: links
+    - is_smartnic: is_smartnic
 
 **Example details of a Node's Ports:**
 
