@@ -1417,6 +1417,10 @@ function init_ironic {
         $IRONIC_BIN_DIR/ironic-dbsync --config-file=$IRONIC_CONF_FILE
     fi
     create_ironic_cache_dir
+
+    # NOTE(rloo): We're not upgrading but want to make sure this command works,
+    # even though we're not parsing the output of this command.
+    $IRONIC_BIN_DIR/ironic-status upgrade check
 }
 
 # _ironic_bm_vm_names() - Generates list of names for baremetal VMs.

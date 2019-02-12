@@ -88,14 +88,14 @@ NEW_MODELS = [
 
 class DBCommand(object):
 
-    def _check_versions(self, ignore_missing_tables=False):
+    def check_obj_versions(self, ignore_missing_tables=False):
         """Check the versions of objects.
 
         Check that the object versions are compatible with this release
         of ironic. It does this by comparing the objects' .version field
         in the database, with the expected versions of these objects.
 
-        If it isn't compatible, we exit the program, returning 2.
+        Returns None if compatible; a string describing the issue otherwise.
         """
         if migration.version() is None:
             # no tables, nothing to check
@@ -106,28 +106,35 @@ class DBCommand(object):
         else:
             ignore_models = ()
 
+        msg = None
         try:
             if not dbapi.check_versions(ignore_models=ignore_models):
-                sys.stderr.write(
-                    _('The database is not compatible with this '
-                      'release of ironic (%s). Please run '
-                      '"ironic-dbsync online_data_migrations" using '
-                      'the previous release.\n')
-                    % version.version_info.release_string())
-                # NOTE(rloo): We return 1 in online_data_migrations() to
-                # indicate that there are more objects to migrate,
-                # so don't use 1 here.
-                sys.exit(2)
+                msg = (_('The database is not compatible with this '
+                         'release of ironic (%s). Please run '
+                         '"ironic-dbsync online_data_migrations" using '
+                         'the previous release.\n')
+                       % version.version_info.release_string())
         except exception.DatabaseVersionTooOld:
-            sys.stderr.write(
-                _('The database version is not compatible with this '
-                  'release of ironic (%s). This can happen if you are '
-                  'attempting to upgrade from a version older than '
-                  'the previous release (skip versions upgrade). '
-                  'This is an unsupported upgrade method. '
-                  'Please run "ironic-dbsync upgrade" using the previous '
-                  'releases for a fast-forward upgrade.\n')
-                % version.version_info.release_string())
+            msg = (_('The database version is not compatible with this '
+                     'release of ironic (%s). This can happen if you are '
+                     'attempting to upgrade from a version older than '
+                     'the previous release (skip versions upgrade). '
+                     'This is an unsupported upgrade method. '
+                     'Please run "ironic-dbsync upgrade" using the previous '
+                     'releases for a fast-forward upgrade.\n')
+                   % version.version_info.release_string())
+
+        return msg
+
+    def _check_versions(self, ignore_missing_tables=False):
+        msg = self.check_obj_versions(
+            ignore_missing_tables=ignore_missing_tables)
+        if not msg:
+            return
+        else:
+            sys.stderr.write(msg)
+            # NOTE(rloo): We return 1 in online_data_migrations() to indicate
+            # that there are more objects to migrate, so don't use 1 here.
             sys.exit(2)
 
     def upgrade(self):

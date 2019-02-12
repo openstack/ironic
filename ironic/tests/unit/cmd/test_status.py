@@ -12,8 +12,10 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import mock
 from oslo_upgradecheck.upgradecheck import Code
 
+from ironic.cmd import dbsync
 from ironic.cmd import status
 from ironic.tests.unit.db import base as db_base
 
@@ -24,7 +26,14 @@ class TestUpgradeChecks(db_base.DbTestCase):
         super(TestUpgradeChecks, self).setUp()
         self.cmd = status.Checks()
 
-    def test__check_placeholder(self):
-        check_result = self.cmd._check_placeholder()
-        self.assertEqual(
-            Code.SUCCESS, check_result.code)
+    def test__check_obj_versions(self):
+        check_result = self.cmd._check_obj_versions()
+        self.assertEqual(Code.SUCCESS, check_result.code)
+
+    @mock.patch.object(dbsync.DBCommand, 'check_obj_versions', autospec=True)
+    def test__check_obj_versions_bad(self, mock_check):
+        msg = 'This is bad'
+        mock_check.return_value = msg
+        check_result = self.cmd._check_obj_versions()
+        self.assertEqual(Code.FAILURE, check_result.code)
+        self.assertEqual(msg, check_result.details)

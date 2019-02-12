@@ -17,6 +17,7 @@ import sys
 from oslo_config import cfg
 from oslo_upgradecheck import upgradecheck
 
+from ironic.cmd import dbsync
 from ironic.common.i18n import _
 
 
@@ -28,21 +29,31 @@ class Checks(upgradecheck.UpgradeCommands):
     and added to _upgrade_checks tuple.
     """
 
-    def _check_placeholder(self):
-        # This is just a placeholder for upgrade checks, it should be
-        # removed when the actual checks are added
-        return upgradecheck.Result(upgradecheck.Code.SUCCESS)
+    def _check_obj_versions(self):
+        """Check that the DB versions of objects are compatible.
 
-    # The format of the check functions is to return an
-    # oslo_upgradecheck.upgradecheck.Result
-    # object with the appropriate
-    # oslo_upgradecheck.upgradecheck.Code and details set.
-    # If the check hits warnings or failures then those should be stored
+        Checks that the object versions are compatible with this
+        release of ironic. It does this by comparing the objects'
+        .version field in the database, with the expected versions
+        of these objects.
+        """
+        msg = dbsync.DBCommand().check_obj_versions(ignore_missing_tables=True)
+
+        if not msg:
+            return upgradecheck.Result(upgradecheck.Code.SUCCESS)
+        else:
+            return upgradecheck.Result(upgradecheck.Code.FAILURE, details=msg)
+
+    # A tuple of check tuples of (<name of check>, <check function>).
+    # The name of the check will be used in the output of this command.
+    # The check function takes no arguments and returns an
+    # oslo_upgradecheck.upgradecheck.Result object with the appropriate
+    # oslo_upgradecheck.upgradecheck.Code and details set. If the
+    # check function hits warnings or failures then those should be stored
     # in the returned Result's "details" attribute. The
     # summary will be rolled up at the end of the check() method.
     _upgrade_checks = (
-        # In the future there should be some real checks added here
-        (_('Placeholder'), _check_placeholder),
+        (_('Object versions'), _check_obj_versions),
     )
 
 

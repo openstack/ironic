@@ -75,4 +75,5 @@ Upgrade
 
   **12.0.0 (Stein)**
 
-  * Placeholder to be filled in with checks as they are added in Stein.
+  * Adds a check for compatibility of the object versions with the release
+    of ironic.

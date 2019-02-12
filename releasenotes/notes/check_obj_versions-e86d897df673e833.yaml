@@ -1,0 +1,5 @@
+---
+upgrade:
+  - |
+    Adds a check to the ``ironic-status upgrade check`` command, to check for
+    compatibility of the object versions with the release of ironic.
