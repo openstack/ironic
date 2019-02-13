@@ -9,7 +9,7 @@ features:
     nodes with Smart NICs as ironic nodes.
 
     The REST API endpoints related to ports provide support for the
-    ``is_smartnic`` field.  The `ironic developer documentation
+    ``is_smartnic`` field.  The `ironic admin documentation
     <https://docs.openstack.org/ironic/latest/admin/multitenancy.html>`_
     provides information on how to configure and use Smart NIC ports.
 upgrade:

@@ -181,7 +181,7 @@ Configuring nodes
          --local-link-connection port_id=$REP_NAME \
          --pxe-enabled true \
          --physical-network physnet1 \
-         --is-smartnic true
+         --is-smartnic
 
     A Smart NIC port requires ``hostname`` which is the hostname of the Smart NIC,
     and ``port_id`` which is the representor port name within the Smart NIC.
