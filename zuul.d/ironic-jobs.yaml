@@ -51,9 +51,6 @@
 
         Q_AGENT: openvswitch
         Q_ML2_TENANT_NETWORK_TYPE: vxlan
-
-        SWIFT_ENABLE_TEMPURLS: True
-        SWIFT_TEMPURL_KEY: secretkey
       devstack_plugins:
         ironic: git://git.openstack.org/openstack/ironic
       zuul_copy_output:
@@ -69,34 +66,6 @@
         s-container: False
         s-object: False
         s-proxy: False
-
-        dstat: True
-        g-api: True
-        g-reg: True
-        key: True
-        mysql: True
-        n-api: True
-        n-api-meta: True
-        n-cauth: True
-        n-cond: True
-        n-cpu: True
-        n-novnc: True
-        n-obj: True
-        n-sch: True
-        placement-api: True
-        q-agt: False
-        q-dhcp: False
-        q-l3: False
-        q-meta: False
-        q-metering: False
-        q-svc: False
-        neutron-api: True
-        neutron-agent: True
-        neutron-dhcp: True
-        neutron-l3: True
-        neutron-metadata-agent: True
-        neutron-metering: True
-        rabbit: True
 
 - job:
     name: ironic-standalone
@@ -124,6 +93,8 @@
         IRONIC_DEFAULT_DEPLOY_INTERFACE: direct
         IRONIC_ENABLED_DEPLOY_INTERFACES: "iscsi,direct,ansible"
         IRONIC_VM_COUNT: 6
+        SWIFT_ENABLE_TEMPURLS: True
+        SWIFT_TEMPURL_KEY: secretkey
       devstack_services:
         n-api: False
         n-api-meta: False
@@ -171,6 +142,8 @@
         IRONIC_DEFAULT_DEPLOY_INTERFACE: direct
         IRONIC_TEMPEST_WHOLE_DISK_IMAGE: True
         IRONIC_VM_EPHEMERAL_DISK: 0
+        SWIFT_ENABLE_TEMPURLS: True
+        SWIFT_TEMPURL_KEY: secretkey
       devstack_services:
         s-account: True
         s-container: True
@@ -228,6 +201,8 @@
         IRONIC_VM_EPHEMERAL_DISK: 0
         IRONIC_VM_COUNT: 3
         IRONIC_AUTOMATED_CLEAN_ENABLED: False
+        SWIFT_ENABLE_TEMPURLS: True
+        SWIFT_TEMPURL_KEY: secretkey
       devstack_services:
         c-api: True
         c-bak: True
@@ -249,6 +224,8 @@
         IRONIC_TEMPEST_WHOLE_DISK_IMAGE: True
         IRONIC_VM_EPHEMERAL_DISK: 0
         IRONIC_AUTOMATED_CLEAN_ENABLED: False
+        SWIFT_ENABLE_TEMPURLS: True
+        SWIFT_TEMPURL_KEY: secretkey
       devstack_plugins:
         ironic-inspector: git://git.openstack.org/openstack/ironic-inspector
       devstack_services:
@@ -305,12 +282,12 @@
         n-sch: False
         nova: False
         placement-api: False
-        neutron-api: False
-        neutron-agent: False
-        neutron-dhcp: False
-        neutron-l3: False
-        neutron-metadata-agent: False
-        neutron-metering: False
+        q-agt: False
+        q-dhcp: False
+        q-l3: False
+        q-meta: False
+        q-metering: False
+        q-svc: False
 
 - job:
     name: ironic-tempest-functional-python3
@@ -470,39 +447,6 @@
 
           q-agt: True
           n-cpu: True
-
-# TODO(iurygregory) Duplicate jobs to avoid break the gate in other projects
-# like: ironic-tempest-plugin, ironic-inspector, nova, neutron, devstack
-- job:
-    name: ironic-dsvm-standalone
-    description: ironic-dsvm-standalone
-    parent: ironic-standalone
-
-- job:
-    name: ironic-tempest-dsvm-ipa-wholedisk-bios-agent_ipmitool-tinyipa
-    description: ironic-tempest-dsvm-ipa-wholedisk-bios-agent_ipmitool-tinyipa
-    parent: ironic-tempest-ipa-wholedisk-bios-agent_ipmitool-tinyipa
-
-- job:
-    name: ironic-tempest-dsvm-bfv
-    description: ironic-tempest-dsvm-bfv
-    parent: ironic-tempest-bfv
-
-- job:
-    name: ironic-tempest-dsvm-ironic-inspector
-    description: ironic-tempest-dsvm-ironic-inspector
-    parent: ironic-inspector-tempest
-
-- job:
-    name: ironic-tempest-dsvm-functional-python3
-    description: ironic-tempest-dsvm-functional-python3
-    parent: ironic-tempest-functional-python3
-
-- job:
-    name: ironic-tempest-dsvm-ipa-wholedisk-direct-tinyipa-multinode
-    description: ironic-tempest-ipa-wholedisk-direct-tinyipa-multinode
-    parent: ironic-tempest-ipa-wholedisk-direct-tinyipa-multinode
-    pre-run: playbooks/ci-workarounds/set-stack-key.yaml
 
 - job:
     name: ironic-tox-unit-with-driver-libs
