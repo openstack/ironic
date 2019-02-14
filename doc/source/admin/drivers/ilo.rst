@@ -52,6 +52,7 @@ The hardware type ``ilo`` supports following HPE server features:
 * `Rescue mode support`_
 * `Inject NMI support`_
 * `Soft power operation support`_
+* `BIOS configuration support`_
 
 Apart from above features hardware type ``ilo5`` also supports following
 features:
@@ -1569,13 +1570,19 @@ use iscsi boot at the same time with a bios volume will result in an error.
 
 BIOS configuration support
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
-The ``ilo`` hardware type supports ``ilo`` BIOS interface. The support includes
-providing manual clean steps *apply_configuration* and *factory_reset* to
-manage supported BIOS settings on the node. See :ref:`bios` for more details
-and examples.
+The ``ilo`` and ``ilo5`` hardware types support ``ilo`` BIOS interface.
+The support includes providing manual clean steps *apply_configuration* and
+*factory_reset* to manage supported BIOS settings on the node.
+See :ref:`bios` for more details and examples.
 
 .. note::
-   The change in the settings will take into effect after next power cycle.
+   Prior to the Stein release the user is required to reboot the node manually
+   in order for the settings to take into effect. Starting with the Stein
+   release, iLO drivers reboot the node after running clean steps related to
+   the BIOS configuration. The BIOS settings are cached and the clean step is
+   marked as success only if all the requested settings are applied without
+   any failure. If application of any of the settings fails, the clean step is
+   marked as failed and the settings are not cached.
 
 Configuration
 ~~~~~~~~~~~~~
