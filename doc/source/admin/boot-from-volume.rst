@@ -25,6 +25,9 @@ Currently booting from a volume requires:
   utilize PXE boot mechanisms when iPXE is enabled.
 - iPXE is an explicit requirement, as it provides the mechanism that attaches
   and initiates booting from an iSCSI volume.
+- Metadata services need to be configured and available for the instance images
+  to obtain configuration such as keys. Configuration drives are not supported
+  due to minimum disk extension sizes.
 
 Conductor Configuration
 =======================
