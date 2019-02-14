@@ -7160,7 +7160,7 @@ class ParallelPowerSyncTestCase(mgr_utils.CommonMixIn, db_base.DbTestCase):
         CONF.set_override('sync_power_state_workers', 8, group='conductor')
 
         with mock.patch.object(self.service, 'iter_nodes',
-                               new=mock.MagicMock(return_value=[None] * 9)):
+                               new=mock.MagicMock(return_value=[[0]] * 9)):
 
             self.service._sync_power_states(self.context)
 
@@ -7174,7 +7174,7 @@ class ParallelPowerSyncTestCase(mgr_utils.CommonMixIn, db_base.DbTestCase):
         CONF.set_override('sync_power_state_workers', 8, group='conductor')
 
         with mock.patch.object(self.service, 'iter_nodes',
-                               new=mock.MagicMock(return_value=[None] * 6)):
+                               new=mock.MagicMock(return_value=[[0]] * 6)):
 
             self.service._sync_power_states(self.context)
 
@@ -7188,7 +7188,7 @@ class ParallelPowerSyncTestCase(mgr_utils.CommonMixIn, db_base.DbTestCase):
         CONF.set_override('sync_power_state_workers', 8, group='conductor')
 
         with mock.patch.object(self.service, 'iter_nodes',
-                               new=mock.MagicMock(return_value=[None])):
+                               new=mock.MagicMock(return_value=[[0]])):
 
             self.service._sync_power_states(self.context)
 
@@ -7202,13 +7202,33 @@ class ParallelPowerSyncTestCase(mgr_utils.CommonMixIn, db_base.DbTestCase):
         CONF.set_override('sync_power_state_workers', 1, group='conductor')
 
         with mock.patch.object(self.service, 'iter_nodes',
-                               new=mock.MagicMock(return_value=[None] * 9)):
+                               new=mock.MagicMock(return_value=[[0]] * 9)):
 
             self.service._sync_power_states(self.context)
 
             self.assertEqual(0, spawn_mock.call_count)
             self.assertEqual(1, sync_mock.call_count)
             self.assertEqual(1, waiter_mock.call_count)
+
+    @mock.patch.object(queue, 'Queue', autospec=True)
+    def test__sync_power_states_node_prioritization(
+            self, queue_mock, sync_mock, spawn_mock, waiter_mock):
+
+        CONF.set_override('sync_power_state_workers', 1, group='conductor')
+
+        with mock.patch.object(
+            self.service, 'iter_nodes',
+            new=mock.MagicMock(return_value=[[0], [1], [2]])
+        ), mock.patch.dict(
+                self.service.power_state_sync_count,
+                {0: 1, 1: 0, 2: 2}, clear=True):
+
+            queue_mock.return_value.qsize.return_value = 0
+
+            self.service._sync_power_states(self.context)
+
+            expected_calls = [mock.call([2]), mock.call([0]), mock.call([1])]
+            queue_mock.return_value.put.assert_has_calls(expected_calls)
 
 
 @mock.patch.object(task_manager, 'acquire')

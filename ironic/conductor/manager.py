@@ -1665,20 +1665,28 @@ class ConductorManager(base_manager.BaseConductorManager):
     def _sync_power_states(self, context):
         """Periodic task to sync power states for the nodes."""
         filters = {'maintenance': False}
-        nodes = queue.Queue()
-        for node_info in self.iter_nodes(fields=['id'], filters=filters):
-            nodes.put(node_info)
+
+        # NOTE(etingof): prioritize non-responding nodes to fail them fast
+        nodes = sorted(
+            self.iter_nodes(fields=['id'], filters=filters),
+            key=lambda n: -self.power_state_sync_count.get(n[0], 0)
+        )
+
+        nodes_queue = queue.Queue()
+
+        for node_info in nodes:
+            nodes_queue.put(node_info)
 
         number_of_workers = min(CONF.conductor.sync_power_state_workers,
                                 CONF.conductor.periodic_max_workers,
-                                nodes.qsize())
+                                nodes_queue.qsize())
         futures = []
 
         for worker_number in range(max(0, number_of_workers - 1)):
             try:
                 futures.append(
                     self._spawn_worker(self._sync_power_state_nodes_task,
-                                       context, nodes))
+                                       context, nodes_queue))
             except exception.NoFreeConductorWorker:
                 LOG.warning("There are no more conductor workers for "
                             "power sync task. %(workers)d workers have "
@@ -1687,7 +1695,7 @@ class ConductorManager(base_manager.BaseConductorManager):
                 break
 
         try:
-            self._sync_power_state_nodes_task(context, nodes)
+            self._sync_power_state_nodes_task(context, nodes_queue)
 
         finally:
             waiters.wait_for_all(futures)
