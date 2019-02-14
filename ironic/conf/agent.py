@@ -119,9 +119,9 @@ opts = [
     cfg.IntOpt('neutron_agent_max_attempts',
                default=100,
                help=_('Max number of attempts to validate a Neutron agent '
-                      'status alive before raising network error for a '
+                      'status before raising network error for a '
                       'dead agent.')),
-    cfg.IntOpt('neutron_agent_wait_time_seconds',
+    cfg.IntOpt('neutron_agent_status_retry_interval',
                default=10,
                help=_('Wait time in seconds between attempts for validating '
                       'Neutron agent status.')),

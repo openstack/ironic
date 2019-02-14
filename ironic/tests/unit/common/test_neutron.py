@@ -698,6 +698,24 @@ class TestNeutronNetworkActions(db_base.DbTestCase):
         neutron.wait_for_port_status(self.client_mock, 'port_id', 'ACTIVE')
         sleep_mock.assert_called_once()
 
+    @mock.patch.object(neutron, '_get_port_by_uuid')
+    @mock.patch.object(time, 'sleep')
+    def test_wait_for_port_status_active_max_retry(self, sleep_mock,
+                                                   get_port_mock):
+        get_port_mock.return_value = {'status': 'DOWN'}
+        self.assertRaises(exception.NetworkError,
+                          neutron.wait_for_port_status,
+                          self.client_mock, 'port_id', 'ACTIVE')
+
+    @mock.patch.object(neutron, '_get_port_by_uuid')
+    @mock.patch.object(time, 'sleep')
+    def test_wait_for_port_status_down_max_retry(self, sleep_mock,
+                                                 get_port_mock):
+        get_port_mock.return_value = {'status': 'ACTIVE'}
+        self.assertRaises(exception.NetworkError,
+                          neutron.wait_for_port_status,
+                          self.client_mock, 'port_id', 'DOWN')
+
     @mock.patch.object(neutron, 'wait_for_host_agent', autospec=True)
     @mock.patch.object(neutron, 'wait_for_port_status', autospec=True)
     def test_add_smartnic_port_to_network(

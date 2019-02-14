@@ -659,7 +659,7 @@ def get_physnets_by_port_uuid(client, port_uuid):
 @retrying.retry(
     stop_max_attempt_number=CONF.agent.neutron_agent_max_attempts,
     retry_on_exception=lambda e: isinstance(e, exception.NetworkError),
-    wait_fixed=CONF.agent.neutron_agent_wait_time_seconds * 1000
+    wait_fixed=CONF.agent.neutron_agent_status_retry_interval * 1000
 )
 def wait_for_host_agent(client, host_id, target_state='up'):
     """Wait for neutron agent to become target state
@@ -670,6 +670,7 @@ def wait_for_host_agent(client, host_id, target_state='up'):
         down: wait for down status
     :returns: boolean indicates the agent state matches
         param value target_state_up.
+    :raises: exception.Invalid if 'target_state' is not valid.
     :raises: exception.NetworkError if host status didn't match the required
         status after max retry attempts.
     """
@@ -697,7 +698,7 @@ def wait_for_host_agent(client, host_id, target_state='up'):
 @retrying.retry(
     stop_max_attempt_number=CONF.agent.neutron_agent_max_attempts,
     retry_on_exception=lambda e: isinstance(e, exception.NetworkError),
-    wait_fixed=CONF.agent.neutron_agent_wait_time_seconds * 1000
+    wait_fixed=CONF.agent.neutron_agent_status_retry_interval * 1000
 )
 def wait_for_port_status(client, port_id, status):
     """Wait for port status to be the desired status
@@ -707,6 +708,7 @@ def wait_for_port_status(client, port_id, status):
     :param status: Port's target status, can be ACTIVE, DOWN ... etc.
     :returns: boolean indicates that the port status matches the
         required value passed by param status.
+    :raises: InvalidParameterValue if the port does not exist.
     :raises: exception.NetworkError if port status didn't match
         the required status after max retry attempts.
     """

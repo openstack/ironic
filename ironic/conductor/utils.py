@@ -1009,6 +1009,8 @@ def power_on_node_if_needed(task):
 
     :param task: A TaskManager object
     :returns: the previous power state or None if no changes were made
+    :raises: exception.NetworkError if agent status didn't match the required
+        status after max retry attempts.
     """
     if not task.driver.network.need_power_on(task):
         return
@@ -1040,7 +1042,7 @@ def power_on_node_if_needed(task):
 
 
 def restore_power_state_if_needed(task, power_state_to_restore):
-    """Change the node's power state if power_state_to_restore is not empty
+    """Change the node's power state if power_state_to_restore is not None
 
     :param task: A TaskManager object
     :param power_state_to_restore: power state
