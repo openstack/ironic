@@ -40,6 +40,10 @@ IRONIC_TO_CIMC_BOOT_DEVICE = {
 
 class CIMCManagement(base.ManagementInterface):
 
+    # NOTE(TheJulia): Deprecated due to a lack of operating third party
+    # CI, which stopped reporting during the Stein development cycle.
+    supported = False
+
     def get_properties(self):
         """Return the properties of the interface.
 

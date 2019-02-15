@@ -24,6 +24,10 @@ from ironic.drivers.modules.ucs import power as ucs_power
 class CiscoUCSStandalone(ipmi.IPMIHardware):
     """Cisco UCS in standalone mode"""
 
+    # NOTE(TheJulia): Deprecated due to a lack of operating third party
+    # CI, which stopped reporting during the Stein development cycle.
+    supported = False
+
     @property
     def supported_management_interfaces(self):
         """List of supported management interfaces."""
@@ -39,6 +43,10 @@ class CiscoUCSStandalone(ipmi.IPMIHardware):
 
 class CiscoUCSManaged(CiscoUCSStandalone):
     """Cisco UCS under UCSM management"""
+
+    # NOTE(TheJulia): Deprecated due to a lack of operating third party
+    # CI, which stopped reporting during the Stein development cycle.
+    supported = False
 
     @property
     def supported_management_interfaces(self):
