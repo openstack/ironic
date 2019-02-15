@@ -467,13 +467,15 @@ class ConsoleUtilsTestCase(db_base.DbTestCase):
     def test_start_socat_console_check_arg_bind_addr_default_ipv4(self):
         self.config(my_ip='10.0.0.1')
         args = self._test_start_socat_console_check_arg()
-        self.assertIn('TCP4-LISTEN:%s,bind=10.0.0.1,reuseaddr' %
+        self.assertIn('TCP4-LISTEN:%s,bind=10.0.0.1,reuseaddr,fork,'
+                      'max-children=1' %
                       self.info['port'], args)
 
     def test_start_socat_console_check_arg_bind_addr_ipv4(self):
         self.config(socat_address='10.0.0.1', group='console')
         args = self._test_start_socat_console_check_arg()
-        self.assertIn('TCP4-LISTEN:%s,bind=10.0.0.1,reuseaddr' %
+        self.assertIn('TCP4-LISTEN:%s,bind=10.0.0.1,reuseaddr,fork,'
+                      'max-children=1' %
                       self.info['port'], args)
 
     @mock.patch.object(os.path, 'exists', autospec=True)

@@ -1,0 +1,9 @@
+---
+fixes:
+  - Ironic does not monitor the socat proxy started for serial console
+    access. The socat process would exit on client disconnect, which
+    would (a) leave a zombie socat process in the process table and (b)
+    disable any subsequent serial console connections. Fixed the issue by
+    updating Ironic to call socat with the ``fork,max-children=1`` options,
+    which makes socat persist and accept multiple connections (but only one
+    at a time).  See https://storyboard.openstack.org/#!/story/2005024.
