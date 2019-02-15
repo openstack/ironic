@@ -498,8 +498,9 @@ class IRMCDeployPrivateMethodsTestCase(test_common.BaseIRMCTest):
                 '/remote_image_share_root/'
                 "boot-%s.iso" % self.node.uuid,
                 'kernel_uuid', 'ramdisk_uuid',
-                '02f9d414-2ce0-4cf5-b48f-dbc1bf678f55',
-                'root-uuid', 'kernel-params', 'uefi')
+                deploy_iso_href='02f9d414-2ce0-4cf5-b48f-dbc1bf678f55',
+                root_uuid='root-uuid', kernel_params='kernel-params',
+                boot_mode='uefi')
             task.node.refresh()
             self.assertEqual("boot-%s.iso" % self.node.uuid,
                              task.node.driver_internal_info['irmc_boot_iso'])

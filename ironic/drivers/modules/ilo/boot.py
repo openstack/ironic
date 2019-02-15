@@ -198,8 +198,10 @@ def _get_boot_iso(task, root_uuid):
         boot_iso_tmp_file = fileobj.name
         images.create_boot_iso(task.context, boot_iso_tmp_file,
                                kernel_href, ramdisk_href,
-                               deploy_iso_uuid, root_uuid,
-                               kernel_params, boot_mode)
+                               deploy_iso_href=deploy_iso_uuid,
+                               root_uuid=root_uuid,
+                               kernel_params=kernel_params,
+                               boot_mode=boot_mode)
 
         if CONF.ilo.use_web_server_for_images:
             boot_iso_url = (

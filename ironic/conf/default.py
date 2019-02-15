@@ -210,6 +210,10 @@ image_opts = [
                default=os.path.join('$pybasedir',
                                     'common/isolinux_config.template'),
                help=_('Template file for isolinux configuration file.')),
+    cfg.StrOpt('grub_config_path',
+               default='/boot/grub/grub.cfg',
+               help=_('GRUB2 configuration file location on the UEFI ISO '
+                      'images produced by ironic.')),
     cfg.StrOpt('grub_config_template',
                default=os.path.join('$pybasedir',
                                     'common/grub_conf.template'),
@@ -220,6 +224,17 @@ image_opts = [
                       'looked for in '
                       '"/usr/lib/syslinux/modules/bios/ldlinux.c32" and '
                       '"/usr/share/syslinux/ldlinux.c32".')),
+    cfg.StrOpt('esp_image',
+               help=_('Path to EFI System Partition image file. This file is '
+                      'recommended for creating UEFI bootable ISO images '
+                      'efficiently. ESP image should contain a '
+                      'FAT12/16/32-formatted file system holding EFI boot '
+                      'loaders (e.g. GRUB2) for each hardware architecture '
+                      'ironic needs to boot. If not configured, ironic '
+                      'will attempt to fetch ESP image from some remote '
+                      'store (if configured) or extract ESP image from '
+                      'UEFI-bootable deploy ISO image.')),
+
 ]
 
 img_cache_opts = [
