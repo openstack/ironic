@@ -322,6 +322,10 @@ IRONIC_IPXE_USE_SWIFT=$(trueorfalse False IRONIC_IPXE_USE_SWIFT)
 IRONIC_HTTP_DIR=${IRONIC_HTTP_DIR:-$IRONIC_DATA_DIR/httpboot}
 IRONIC_HTTP_PORT=${IRONIC_HTTP_PORT:-3928}
 
+# Allow using JSON RPC instead of oslo.messaging
+IRONIC_RPC_TRANSPORT=${IRONIC_RPC_TRANSPORT:-oslo}
+IRONIC_JSON_RPC_PORT=${IRONIC_JSON_RPC_PORT:-8089}
+
 # Whether DevStack will be setup for bare metal or VMs
 IRONIC_IS_HARDWARE=$(trueorfalse False IRONIC_IS_HARDWARE)
 
@@ -1107,6 +1111,9 @@ function configure_ironic {
     iniset $IRONIC_CONF_FILE agent deploy_logs_local_path $IRONIC_DEPLOY_LOGS_LOCAL_PATH
     # Set image_download_source for direct interface
     iniset $IRONIC_CONF_FILE agent image_download_source $IRONIC_AGENT_IMAGE_DOWNLOAD_SOURCE
+    # Configure JSON RPC backend
+    iniset $IRONIC_CONF_FILE DEFAULT rpc_transport $IRONIC_RPC_TRANSPORT
+    iniset $IRONIC_CONF_FILE json_rpc port $IRONIC_JSON_RPC_PORT
 
     # Configure Ironic conductor, if it was enabled.
     if is_service_enabled ir-cond; then
@@ -1171,7 +1178,9 @@ function configure_ironic_api {
     iniset $IRONIC_CONF_FILE DEFAULT auth_strategy $IRONIC_AUTH_STRATEGY
     configure_auth_token_middleware $IRONIC_CONF_FILE ironic $IRONIC_AUTH_CACHE_DIR/api
 
-    iniset_rpc_backend ironic $IRONIC_CONF_FILE
+    if is_service_enabled rabbit; then
+        iniset_rpc_backend ironic $IRONIC_CONF_FILE
+    fi
 
     iniset $IRONIC_CONF_FILE conductor automated_clean $IRONIC_AUTOMATED_CLEAN_ENABLED
 
@@ -1212,7 +1221,7 @@ function configure_ironic_conductor {
 
     # NOTE(pas-ha) service_catalog section is used to discover
     # ironic API endpoint from keystone catalog
-    local client_sections="neutron swift glance inspector cinder service_catalog"
+    local client_sections="neutron swift glance inspector cinder service_catalog json_rpc"
     for conf_section in $client_sections; do
         configure_client_for $conf_section
     done

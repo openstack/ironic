@@ -1,0 +1,8 @@
+---
+features:
+  - |
+    Adds the ability to use JSON RPC for communication between API and
+    conductor services. To use it set the new ``rpc_transport`` configuration
+    options to ``json-rpc`` and configure the credentials and the ``host_ip``
+    in the ``json_rpc`` section. Hostnames of all conductors must be
+    resolvable for this implementation to work.

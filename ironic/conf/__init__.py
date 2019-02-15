@@ -35,6 +35,7 @@ from ironic.conf import inspector
 from ironic.conf import ipmi
 from ironic.conf import irmc
 from ironic.conf import iscsi
+from ironic.conf import json_rpc
 from ironic.conf import metrics
 from ironic.conf import metrics_statsd
 from ironic.conf import neutron
@@ -67,6 +68,7 @@ inspector.register_opts(CONF)
 ipmi.register_opts(CONF)
 irmc.register_opts(CONF)
 iscsi.register_opts(CONF)
+json_rpc.register_opts(CONF)
 metrics.register_opts(CONF)
 metrics_statsd.register_opts(CONF)
 neutron.register_opts(CONF)

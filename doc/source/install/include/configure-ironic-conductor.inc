@@ -42,6 +42,56 @@ Configuring ironic-conductor service
       # configuration. (string value)
       transport_url = rabbit://RPC_USER:RPC_PASSWORD@RPC_HOST:RPC_PORT/
 
+   Alternatively, you can use JSON RPC for interactions between
+   ironic-conductor and ironic-api. Enable it in the configuration and provide
+   the keystone credentials to use for authenticating incoming requests (can
+   be the same as for the API):
+
+   .. code-block:: ini
+
+      [DEFAULT]
+
+      rpc_transport = json-rpc
+
+      [keystone_authtoken]
+
+      # Authentication type to load (string value)
+      auth_type=password
+
+      # Complete public Identity API endpoint (string value)
+      www_authenticate_uri=http://PUBLIC_IDENTITY_IP:5000
+
+      # Complete admin Identity API endpoint. (string value)
+      auth_url=http://PRIVATE_IDENTITY_IP:5000
+
+      # Service username. (string value)
+      username=ironic
+
+      # Service account password. (string value)
+      password=IRONIC_PASSWORD
+
+      # Service tenant name. (string value)
+      project_name=service
+
+      # Domain name containing project (string value)
+      project_domain_name=Default
+
+      # User's domain name (string value)
+      user_domain_name=Default
+
+   You can optionally change the host and the port the JSON RPC service will
+   bind to, for example:
+
+   .. code-block:: ini
+
+      [json_rpc]
+      host_ip = 192.168.0.10
+      port = 9999
+
+   .. warning::
+      Hostnames of ironic-conductor machines must be resolvable by ironic-api
+      services when JSON RPC is used.
+
 #. Configure credentials for accessing other OpenStack services.
 
    In order to communicate with other OpenStack services, the Bare Metal

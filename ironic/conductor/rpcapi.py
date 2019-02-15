@@ -25,6 +25,7 @@ import oslo_messaging as messaging
 from ironic.common import exception
 from ironic.common import hash_ring
 from ironic.common.i18n import _
+from ironic.common.json_rpc import client as json_rpc
 from ironic.common import release_mappings as versions
 from ironic.common import rpc
 from ironic.conductor import manager
@@ -112,14 +113,19 @@ class ConductorAPI(object):
         if self.topic is None:
             self.topic = manager.MANAGER_TOPIC
 
-        target = messaging.Target(topic=self.topic,
-                                  version='1.0')
         serializer = objects_base.IronicObjectSerializer()
         release_ver = versions.RELEASE_MAPPING.get(CONF.pin_release_version)
         version_cap = (release_ver['rpc'] if release_ver
                        else self.RPC_API_VERSION)
-        self.client = rpc.get_client(target, version_cap=version_cap,
-                                     serializer=serializer)
+
+        if CONF.rpc_transport == 'json-rpc':
+            self.client = json_rpc.Client(serializer=serializer,
+                                          version_cap=version_cap)
+            self.topic = ''
+        else:
+            target = messaging.Target(topic=self.topic, version='1.0')
+            self.client = rpc.get_client(target, version_cap=version_cap,
+                                         serializer=serializer)
 
         use_groups = self.client.can_send_version('1.47')
         # NOTE(deva): this is going to be buggy

@@ -92,6 +92,7 @@
         IRONIC_AUTOMATED_CLEAN_ENABLED: False
         IRONIC_DEFAULT_DEPLOY_INTERFACE: direct
         IRONIC_ENABLED_DEPLOY_INTERFACES: "iscsi,direct,ansible"
+        IRONIC_RPC_TRANSPORT: json-rpc
         IRONIC_VM_COUNT: 6
         SWIFT_ENABLE_TEMPURLS: True
         SWIFT_TEMPURL_KEY: secretkey
@@ -269,7 +270,9 @@
         IRONIC_DEFAULT_NETWORK_INTERFACE: noop
         IRONIC_TEMPEST_WHOLE_DISK_IMAGE: True
         IRONIC_VM_EPHEMERAL_DISK: 0
+        IRONIC_RPC_TRANSPORT: json-rpc
       devstack_services:
+        rabbit: False
         g-api: False
         g-reg: False
         n-api: False
