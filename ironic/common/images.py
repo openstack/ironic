@@ -261,18 +261,16 @@ def create_isolinux_image_for_uefi(output_file, kernel, ramdisk,
             # Open the deploy iso used to initiate deploy and copy the
             # efiboot.img i.e. boot loader to the current temporary
             # directory.
-            if deploy_iso:
+            if deploy_iso and not esp_image:
                 uefi_path_info, e_img_rel_path, grub_rel_path = (
                     _mount_deploy_iso(deploy_iso, mountdir))
 
                 grub_cfg = os.path.join(tmpdir, grub_rel_path)
 
             # Use ELF boot loader provided
-            elif esp_image:
+            elif esp_image and not deploy_iso:
                 e_img_rel_path = EFIBOOT_LOCATION
-                grub_rel_path = CONF.grub_config_path.strip()
-                while grub_rel_path.startswith(os.sep):
-                    grub_rel_path = grub_rel_path[1:]
+                grub_rel_path = CONF.grub_config_path.lstrip(' ' + os.sep)
                 grub_cfg = os.path.join(tmpdir, grub_rel_path)
 
                 uefi_path_info = {
@@ -281,9 +279,10 @@ def create_isolinux_image_for_uefi(output_file, kernel, ramdisk,
                 }
 
             else:
+                msg = _('Neither deploy ISO nor ESP image configured or '
+                        'both of them configured')
                 raise exception.ImageCreationFailed(
-                    image_type='iso',
-                    error='Neither `deploy_iso` nor `esp_image` configured')
+                    image_type='iso', error=msg)
 
             files_info.update(uefi_path_info)
 

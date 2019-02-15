@@ -230,11 +230,12 @@ image_opts = [
                       'efficiently. ESP image should contain a '
                       'FAT12/16/32-formatted file system holding EFI boot '
                       'loaders (e.g. GRUB2) for each hardware architecture '
-                      'ironic needs to boot. If not configured, ironic '
-                      'will attempt to fetch ESP image from some remote '
-                      'store (if configured) or extract ESP image from '
-                      'UEFI-bootable deploy ISO image.')),
-
+                      'ironic needs to boot. This option is only used when '
+                      'neither ESP nor ISO deploy image is configured to '
+                      'the node being deployed in which case ironic will '
+                      'attempt to fetch ESP image from the configured '
+                      'location or extract ESP image from UEFI-bootable '
+                      'deploy ISO image.')),
 ]
 
 img_cache_opts = [
