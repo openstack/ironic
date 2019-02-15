@@ -29,6 +29,7 @@ from ironic.api.controllers.v1 import allocation
 from ironic.api.controllers.v1 import chassis
 from ironic.api.controllers.v1 import conductor
 from ironic.api.controllers.v1 import driver
+from ironic.api.controllers.v1 import event
 from ironic.api.controllers.v1 import node
 from ironic.api.controllers.v1 import port
 from ironic.api.controllers.v1 import portgroup
@@ -110,6 +111,9 @@ class V1(base.APIBase):
 
     version = version.Version
     """Version discovery information."""
+
+    events = [link.Link]
+    """Links to the events resource"""
 
     @staticmethod
     def convert():
@@ -204,6 +208,14 @@ class V1(base.APIBase):
                                                   'allocations', '',
                                                   bookmark=True)
                               ]
+        if utils.allow_expose_events():
+            v1.events = [link.Link.make_link('self', pecan.request.public_url,
+                                             'events', ''),
+                         link.Link.make_link('bookmark',
+                                             pecan.request.public_url,
+                                             'events', '',
+                                             bookmark=True)
+                         ]
         v1.version = version.default_version()
         return v1
 
@@ -221,6 +233,7 @@ class Controller(rest.RestController):
     heartbeat = ramdisk.HeartbeatController()
     conductors = conductor.ConductorsController()
     allocations = allocation.AllocationsController()
+    events = event.EventsController()
 
     @expose.expose(V1)
     def get(self):

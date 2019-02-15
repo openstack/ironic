@@ -27,6 +27,7 @@ from ironic.api.controllers.v1 import types
 from ironic.common import exception
 from ironic.common import utils
 from ironic.tests import base
+from ironic.tests.unit.api.utils import fake_event_validator
 
 
 class TestMacAddressType(base.TestCase):
@@ -393,3 +394,60 @@ class TestVifType(base.TestCase):
         v = types.viftype
         self.assertRaises(exception.InvalidUuidOrName,
                           v.frombasetype, {'id': 5678})
+
+
+class TestEventType(base.TestCase):
+
+    def setUp(self):
+        super(TestEventType, self).setUp()
+        self.v = types.eventtype
+
+    @mock.patch.object(types.EventType, 'event_validators',
+                       {'valid.event': fake_event_validator})
+    def test_simple_event_type(self):
+        value = {'event': 'valid.event'}
+        self.assertItemsEqual(value, self.v.validate(value))
+
+    @mock.patch.object(types.EventType, 'event_validators',
+                       {'valid.event': fake_event_validator})
+    def test_invalid_event_type(self):
+        value = {'event': 'invalid.event'}
+        self.assertRaisesRegex(exception.Invalid, 'invalid.event is not a '
+                                                  'valid event.',
+                               self.v.validate, value)
+
+    def test_event_missing_madatory_field(self):
+        value = {'invalid': 'invalid'}
+        self.assertRaisesRegex(exception.Invalid, 'Missing mandatory keys:',
+                               self.v.validate, value)
+
+    def test_network_port_event(self):
+        value = {'event': 'network.bind_port',
+                 'port_id': '11111111-aaaa-bbbb-cccc-555555555555',
+                 'mac_address': 'de:ad:ca:fe:ba:be',
+                 'status': 'ACTIVE',
+                 'device_id': '22222222-aaaa-bbbb-cccc-555555555555',
+                 'binding:host_id': '22222222-aaaa-bbbb-cccc-555555555555',
+                 'binding:vnic_type': 'baremetal'
+                 }
+        self.assertItemsEqual(value, self.v.validate(value))
+
+    def test_invalid_mac_network_port_event(self):
+        value = {'event': 'network.bind_port',
+                 'port_id': '11111111-aaaa-bbbb-cccc-555555555555',
+                 'mac_address': 'INVALID_MAC_ADDRESS',
+                 'status': 'ACTIVE',
+                 'device_id': '22222222-aaaa-bbbb-cccc-555555555555',
+                 'binding:host_id': '22222222-aaaa-bbbb-cccc-555555555555',
+                 'binding:vnic_type': 'baremetal'
+                 }
+        self.assertRaises(exception.InvalidMAC, self.v.validate, value)
+
+    def test_missing_mandatory_fields_network_port_event(self):
+        value = {'event': 'network.bind_port',
+                 'device_id': '22222222-aaaa-bbbb-cccc-555555555555',
+                 'binding:host_id': '22222222-aaaa-bbbb-cccc-555555555555',
+                 'binding:vnic_type': 'baremetal'
+                 }
+        self.assertRaisesRegex(exception.Invalid, 'Missing mandatory keys:',
+                               self.v.validate, value)

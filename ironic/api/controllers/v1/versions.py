@@ -91,6 +91,7 @@ BASE_VERSION = 1
 # v1.51: Add description to the node object.
 # v1.52: Add allocation API.
 # v1.53: Add support for Smart NIC port
+# v1.54: Add events support.
 
 MINOR_0_JUNO = 0
 MINOR_1_INITIAL_VERSION = 1
@@ -146,6 +147,7 @@ MINOR_50_NODE_OWNER = 50
 MINOR_51_NODE_DESCRIPTION = 51
 MINOR_52_ALLOCATION = 52
 MINOR_53_PORT_SMARTNIC = 53
+MINOR_54_EVENTS = 54
 
 # When adding another version, update:
 # - MINOR_MAX_VERSION
@@ -153,7 +155,7 @@ MINOR_53_PORT_SMARTNIC = 53
 #   explanation of what changed in the new version
 # - common/release_mappings.py, RELEASE_MAPPING['master']['api']
 
-MINOR_MAX_VERSION = MINOR_53_PORT_SMARTNIC
+MINOR_MAX_VERSION = MINOR_54_EVENTS
 
 # String representations of the minor and maximum versions
 _MIN_VERSION_STRING = '{}.{}'.format(BASE_VERSION, MINOR_1_INITIAL_VERSION)

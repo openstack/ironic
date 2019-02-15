@@ -425,6 +425,14 @@ allocation_policies = [
          {'path': '/nodes/{node_ident}/allocation', 'method': 'DELETE'}]),
 ]
 
+event_policies = [
+    policy.DocumentedRuleDefault(
+        'baremetal:events:post',
+        'rule:is_admin',
+        'Post events',
+        [{'path': '/events', 'method': 'POST'}])
+]
+
 
 def list_policies():
     policies = itertools.chain(
@@ -439,6 +447,7 @@ def list_policies():
         volume_policies,
         conductor_policies,
         allocation_policies,
+        event_policies
     )
     return policies
 

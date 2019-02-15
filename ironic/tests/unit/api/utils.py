@@ -195,3 +195,8 @@ def allocation_post_data(**kw):
     allocation = db_utils.get_test_allocation(**kw)
     return {key: value for key, value in allocation.items()
             if key in _ALLOCATION_POST_FIELDS}
+
+
+def fake_event_validator(v):
+    """A fake event validator"""
+    return v

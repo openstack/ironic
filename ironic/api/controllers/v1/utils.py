@@ -421,6 +421,7 @@ VERSIONED_FIELDS = {
     'owner': versions.MINOR_50_NODE_OWNER,
     'description': versions.MINOR_51_NODE_DESCRIPTION,
     'allocation_uuid': versions.MINOR_52_ALLOCATION,
+    'events': versions.MINOR_54_EVENTS,
 }
 
 for field in V31_FIELDS:
@@ -1022,3 +1023,11 @@ def allow_port_is_smartnic():
     return ((pecan.request.version.minor
              >= versions.MINOR_53_PORT_SMARTNIC)
             and objects.Port.supports_is_smartnic())
+
+
+def allow_expose_events():
+    """Check if accessing events endpoint is allowed.
+
+    Version 1.54 of the API added the events endpoint.
+    """
+    return pecan.request.version.minor >= versions.MINOR_54_EVENTS
