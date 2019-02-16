@@ -305,9 +305,11 @@ def start_socat_console(node_uuid, port, console_cmd):
 
     console_host = CONF.console.socat_address
     if netutils.is_valid_ipv6(console_host):
-        arg = 'TCP6-LISTEN:%(port)s,bind=[%(host)s],reuseaddr'
+        arg = ('TCP6-LISTEN:%(port)s,bind=[%(host)s],reuseaddr,fork,'
+               'max-children=1')
     else:
-        arg = 'TCP4-LISTEN:%(port)s,bind=%(host)s,reuseaddr'
+        arg = ('TCP4-LISTEN:%(port)s,bind=%(host)s,reuseaddr,fork,'
+               'max-children=1')
     args.append(arg % {'host': console_host,
                        'port': port})
 
