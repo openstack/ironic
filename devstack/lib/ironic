@@ -2438,6 +2438,8 @@ function cleanup_baremetal_basic_ops {
         done
     done
 
+    sudo killall vbmc || true
+
     sudo ovs-vsctl --if-exists del-br $IRONIC_VM_NETWORK_BRIDGE
 
     sudo rm -rf /etc/xinetd.d/tftp /etc/init/tftpd-hpa.override
