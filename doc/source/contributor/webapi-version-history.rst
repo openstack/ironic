@@ -38,7 +38,7 @@ Also added a new field ``allocation_uuid`` to the node resource.
 --------------------
 
 Added ``description`` field to the node object to enable operators to store
-any information relates to the node. The field is up to 4096 characters.
+any information relates to the node. The field is limited to 4096 characters.
 
 1.50 (Stein, master)
 --------------------

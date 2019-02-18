@@ -2029,7 +2029,7 @@ class NodesController(rest.RestController):
 
         if (node.description is not wtypes.Unset and
                 len(node.description) > _NODE_DESCRIPTION_MAX_LENGTH):
-            msg = _("Cannot create node with description exceeds %s "
+            msg = _("Cannot create node with description exceeding %s "
                     "characters") % _NODE_DESCRIPTION_MAX_LENGTH
             raise exception.Invalid(msg)
 
@@ -2095,7 +2095,7 @@ class NodesController(rest.RestController):
 
         description = api_utils.get_patch_values(patch, '/description')
         if description and len(description[0]) > _NODE_DESCRIPTION_MAX_LENGTH:
-            msg = _("Cannot create node with description exceeds %s "
+            msg = _("Cannot update node with description exceeding %s "
                     "characters") % _NODE_DESCRIPTION_MAX_LENGTH
             raise exception.Invalid(msg)
 
