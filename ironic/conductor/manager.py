@@ -3524,8 +3524,7 @@ class ConductorManager(base_manager.BaseConductorManager):
         else:
             allocation.destroy()
 
-        LOG.info('Successfully deleted allocation %(uuid)s',
-                 allocation.uuid)
+        LOG.info('Successfully deleted allocation %s', allocation.uuid)
 
 
 @METRICS.timer('get_vendor_passthru_metadata')
