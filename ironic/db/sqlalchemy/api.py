@@ -993,10 +993,11 @@ class Connection(api.Connection):
             d2c[key].add(cdr_row['hostname'])
         return d2c
 
-    def get_offline_conductors(self):
+    def get_offline_conductors(self, field='hostname'):
+        field = getattr(models.Conductor, field)
         interval = CONF.conductor.heartbeat_timeout
         limit = timeutils.utcnow() - datetime.timedelta(seconds=interval)
-        result = (model_query(models.Conductor.hostname)
+        result = (model_query(field)
                   .filter(models.Conductor.updated_at < limit))
         return [row[0] for row in result]
 
@@ -1749,6 +1750,39 @@ class Connection(api.Connection):
                 else:
                     raise
             return ref
+
+    @oslo_db_api.retry_on_deadlock
+    def take_over_allocation(self, allocation_id, old_conductor_id,
+                             new_conductor_id):
+        """Do a take over for an allocation.
+
+        The allocation is only updated if the old conductor matches the
+        provided value, thus guarding against races.
+
+        :param allocation_id: Allocation ID
+        :param old_conductor_id: The conductor ID we expect to be the current
+            ``conductor_affinity`` of the allocation.
+        :param new_conductor_id: The conductor ID of the new
+            ``conductor_affinity``.
+        :returns: True if the take over was successful, False otherwise.
+        :raises: AllocationNotFound
+        """
+        with _session_for_write() as session:
+            try:
+                query = model_query(models.Allocation, session=session)
+                query = add_identity_filter(query, allocation_id)
+                # NOTE(dtantsur): the FOR UPDATE clause locks the allocation
+                ref = query.with_for_update().one()
+                if ref.conductor_affinity != old_conductor_id:
+                    # Race detected, bailing out
+                    return False
+
+                ref.update({'conductor_affinity': new_conductor_id})
+                session.flush()
+            except NoResultFound:
+                raise exception.AllocationNotFound(allocation=allocation_id)
+            else:
+                return True
 
     @oslo_db_api.retry_on_deadlock
     def destroy_allocation(self, allocation_id):

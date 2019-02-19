@@ -63,6 +63,11 @@ opts = [
                min=1,
                help=_('Interval (seconds) between checks of rescue '
                       'timeouts.')),
+    cfg.IntOpt('check_allocations_interval',
+               default=60,
+               min=0,
+               help=_('Interval between checks of orphaned allocations, '
+                      'in seconds. Set to 0 to disable checks.')),
     cfg.IntOpt('deploy_callback_timeout',
                default=1800,
                help=_('Timeout (seconds) to wait for a callback from '
