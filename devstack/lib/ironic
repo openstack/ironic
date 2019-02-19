@@ -336,6 +336,7 @@ IRONIC_IS_HARDWARE=$(trueorfalse False IRONIC_IS_HARDWARE)
 IRONIC_VBMC_PORT_RANGE_START=${IRONIC_VBMC_PORT_RANGE_START:-6230}
 IRONIC_VBMC_CONFIG_FILE=${IRONIC_VBMC_CONFIG_FILE:-$HOME/.vbmc/virtualbmc.conf}
 IRONIC_VBMC_LOGFILE=${IRONIC_VBMC_LOGFILE:-$IRONIC_VM_LOG_DIR/virtualbmc.log}
+IRONIC_VBMC_SYSTEMD_SERVICE=devstack@virtualbmc.service
 
 # Virtual PDU configs
 IRONIC_VPDU_CONFIG_FILE=${IRONIC_VPDU_CONFIG_FILE:-$HOME/.vpdu/virtualpdu.conf}
@@ -723,6 +724,25 @@ function setup_syslinux_modules {
     fi
 }
 
+function start_virtualbmc {
+    $SYSTEMCTL start $IRONIC_VBMC_SYSTEMD_SERVICE
+}
+
+function stop_virtualbmc {
+    $SYSTEMCTL stop $IRONIC_VBMC_SYSTEMD_SERVICE
+}
+
+function cleanup_virtualbmc {
+    stop_virtualbmc
+
+    $SYSTEMCTL disable $IRONIC_VBMC_SYSTEMD_SERVICE
+
+    local unitfile="$SYSTEMD_DIR/$IRONIC_VBMC_SYSTEMD_SERVICE"
+    sudo rm -f $unitfile
+
+    $SYSTEMCTL daemon-reload
+}
+
 function setup_virtualbmc {
     # Install pyghmi from source, if requested, otherwise it will be
     # downloaded as part of the virtualbmc installation
@@ -747,8 +767,18 @@ function setup_virtualbmc {
 
     iniset $IRONIC_VBMC_CONFIG_FILE log debug True
     iniset $IRONIC_VBMC_CONFIG_FILE log logfile $IRONIC_VBMC_LOGFILE
-}
 
+    local cmd
+
+    cmd=$(which vbmcd)
+    cmd+=" --foreground"
+
+    write_user_unit_file $IRONIC_VBMC_SYSTEMD_SERVICE "$cmd" "" "root"
+
+    $SYSTEMCTL enable $IRONIC_VBMC_SYSTEMD_SERVICE
+
+    start_virtualbmc
+}
 
 function setup_virtualpdu {
     if use_library_from_git "virtualpdu"; then
@@ -2450,7 +2480,7 @@ function cleanup_baremetal_basic_ops {
         done
     done
 
-    sudo killall vbmc || true
+    cleanup_virtualbmc
 
     sudo ovs-vsctl --if-exists del-br $IRONIC_VM_NETWORK_BRIDGE
 
