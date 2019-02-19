@@ -131,8 +131,8 @@ if ! virsh list --all | grep -q $NAME; then
 
     # Createa Virtual BMC for the node if IPMI is used
     if [[ $(type -P vbmc) != "" ]]; then
-        vbmc add $NAME --port $VBMC_PORT
-        vbmc start $NAME
+        sudo vbmc add $NAME --port $VBMC_PORT
+        sudo vbmc start $NAME
     fi
 fi
 

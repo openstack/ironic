@@ -23,7 +23,7 @@ virsh list --inactive | grep -q $NAME && virsh undefine $NAME --nvram
 
 # Delete the Virtual BMC
 if [[ $(type -P vbmc) != "" ]]; then
-    vbmc list | grep -a $NAME && vbmc delete $NAME
+    sudo vbmc list | grep -a $NAME && sudo vbmc delete $NAME
 fi
 
 if virsh pool-list | grep -q $LIBVIRT_STORAGE_POOL ; then
