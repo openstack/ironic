@@ -2013,3 +2013,23 @@ class AgentRescueTestCase(db_base.DbTestCase):
             restore_power_state_mock.assert_has_calls(
                 [mock.call(task, states.POWER_OFF),
                  mock.call(task, states.POWER_OFF)])
+
+    @mock.patch.object(manager_utils, 'restore_power_state_if_needed',
+                       autospec=True)
+    @mock.patch.object(manager_utils, 'power_on_node_if_needed',
+                       autospec=True)
+    @mock.patch.object(flat_network.FlatNetwork, 'remove_rescuing_network',
+                       spec_set=True, autospec=True)
+    @mock.patch.object(fake.FakeBoot, 'clean_up_ramdisk', autospec=True)
+    def test_agent_rescue_clean_up_smartnic(
+            self, mock_clean_ramdisk, mock_remove_rescue_net,
+            power_on_node_if_needed_mock, restore_power_state_mock):
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            power_on_node_if_needed_mock.return_value = states.POWER_OFF
+            task.driver.rescue.clean_up(task)
+            self.assertNotIn('rescue_password', task.node.instance_info)
+            mock_clean_ramdisk.assert_called_once_with(
+                mock.ANY, task)
+            mock_remove_rescue_net.assert_called_once_with(mock.ANY, task)
+            restore_power_state_mock.assert_called_once_with(
+                task, states.POWER_OFF)

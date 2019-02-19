@@ -19,6 +19,7 @@ from ironic.common import boot_devices
 from ironic.common import boot_modes
 from ironic.common import exception
 from ironic.common import network
+from ironic.common import neutron
 from ironic.common import states
 from ironic.conductor import rpcapi
 from ironic.conductor import task_manager
@@ -2070,6 +2071,37 @@ class MiscTestCase(db_base.DbTestCase):
             self.assertIsNone(power_state)
             self.assertEqual(0, boot_device_mock.call_count)
             self.assertEqual(0, power_action_mock.call_count)
+
+    @mock.patch.object(neutron, 'get_client', autospec=True)
+    @mock.patch.object(neutron, 'wait_for_host_agent', autospec=True)
+    @mock.patch.object(time, 'sleep', autospec=True)
+    @mock.patch.object(fake.FakePower, 'get_power_state', autospec=True)
+    @mock.patch.object(drivers_base.NetworkInterface, 'need_power_on')
+    @mock.patch.object(conductor_utils, 'node_set_boot_device',
+                       autospec=True)
+    @mock.patch.object(conductor_utils, 'node_power_action',
+                       autospec=True)
+    def test_power_on_node_if_needed_with_smart_nic_port(
+            self, power_action_mock, boot_device_mock,
+            need_power_on_mock, get_power_state_mock, time_mock,
+            wait_agent_mock, get_client_mock):
+        llc = {'port_id': 'rep0-0', 'hostname': 'host1'}
+        port = obj_utils.get_test_port(self.context, node_id=self.node.id,
+                                       is_smartnic=True,
+                                       local_link_connection=llc)
+        with task_manager.acquire(
+                self.context, self.node.uuid, shared=False) as task:
+            task.ports = [port]
+            need_power_on_mock.return_value = True
+            get_power_state_mock.return_value = states.POWER_OFF
+            power_state = conductor_utils.power_on_node_if_needed(task)
+            self.assertEqual(power_state, states.POWER_OFF)
+            boot_device_mock.assert_called_once_with(
+                task, boot_devices.BIOS, persistent=False)
+            power_action_mock.assert_called_once_with(task, states.POWER_ON)
+            get_client_mock.assert_called_once_with(context=self.context)
+            wait_agent_mock.assert_called_once_with(mock.ANY, 'host1',
+                                                    target_state='down')
 
     @mock.patch.object(time, 'sleep', autospec=True)
     @mock.patch.object(conductor_utils, 'node_power_action',
