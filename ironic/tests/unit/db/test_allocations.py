@@ -33,7 +33,7 @@ class AllocationsTestCase(base.DbTestCase):
         self.assertIsNotNone(allocation.uuid)
         self.assertEqual('allocating', allocation.state)
 
-    def _create_test_allocation_range(self, count, **kw):
+    def _create_test_allocation_range(self, count, start_idx=0, **kw):
         """Create the specified number of test allocation entries in DB
 
         It uses create_test_allocation method. And returns List of Allocation
@@ -46,7 +46,7 @@ class AllocationsTestCase(base.DbTestCase):
         return [db_utils.create_test_allocation(uuid=uuidutils.generate_uuid(),
                                                 name='allocation' + str(i),
                                                 **kw).uuid
-                for i in range(count)]
+                for i in range(start_idx, count + start_idx)]
 
     def test_get_allocation_by_id(self):
         res = self.dbapi.get_allocation_by_id(self.allocation.id)
@@ -116,6 +116,21 @@ class AllocationsTestCase(base.DbTestCase):
         res = self.dbapi.get_allocation_list(
             filters={'resource_class': 'very-large'})
         self.assertEqual([self.allocation.uuid], [r.uuid for r in res])
+
+    def test_get_allocation_list_filter_by_conductor_affinity(self):
+        db_utils.create_test_conductor(id=1, hostname='host1')
+        db_utils.create_test_conductor(id=2, hostname='host2')
+        in_host1 = self._create_test_allocation_range(2, conductor_affinity=1)
+        in_host2 = self._create_test_allocation_range(2, conductor_affinity=2,
+                                                      start_idx=2)
+
+        res = self.dbapi.get_allocation_list(
+            filters={'conductor_affinity': 1})
+        self.assertEqual(set(in_host1), {r.uuid for r in res})
+
+        res = self.dbapi.get_allocation_list(
+            filters={'conductor_affinity': 'host2'})
+        self.assertEqual(set(in_host2), {r.uuid for r in res})
 
     def test_get_allocation_list_invalid_fields(self):
         self.assertRaises(exception.InvalidParameterValue,

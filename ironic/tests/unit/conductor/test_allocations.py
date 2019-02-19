@@ -37,6 +37,10 @@ class AllocationTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         allocation = obj_utils.get_test_allocation(self.context,
                                                    extra={'test': 'one'})
         self._start_service()
+
+        mock_spawn.assert_any_call(self.service,
+                                   self.service._resume_allocations,
+                                   mock.ANY)
         mock_spawn.reset_mock()
 
         res = self.service.create_allocation(self.context, allocation)
@@ -136,6 +140,33 @@ class AllocationTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         node = objects.Node.get_by_uuid(self.context, node['uuid'])
         self.assertIsNone(node['instance_uuid'])
         self.assertIsNone(node['allocation_id'])
+
+    @mock.patch.object(allocations, 'do_allocate', autospec=True)
+    def test_resume_allocations(self, mock_allocate):
+        another_conductor = obj_utils.create_test_conductor(
+            self.context, id=42, hostname='another-host')
+
+        self._start_service()
+
+        obj_utils.create_test_allocation(
+            self.context,
+            state='active',
+            conductor_affinity=self.service.conductor.id)
+        obj_utils.create_test_allocation(
+            self.context,
+            state='allocating',
+            conductor_affinity=another_conductor.id)
+        allocation = obj_utils.create_test_allocation(
+            self.context,
+            state='allocating',
+            conductor_affinity=self.service.conductor.id)
+
+        self.service._resume_allocations(self.context)
+
+        mock_allocate.assert_called_once_with(self.context, mock.ANY)
+        actual = mock_allocate.call_args[0][1]
+        self.assertEqual(allocation.uuid, actual.uuid)
+        self.assertIsInstance(allocation, objects.Allocation)
 
 
 @mock.patch('time.sleep', lambda _: None)

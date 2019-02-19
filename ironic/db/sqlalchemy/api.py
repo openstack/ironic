@@ -199,6 +199,17 @@ def add_allocation_filter_by_node(query, value):
         return query.filter(models.Node.uuid == value)
 
 
+def add_allocation_filter_by_conductor(query, value):
+    if strutils.is_int_like(value):
+        return query.filter_by(conductor_affinity=value)
+    else:
+        # Assume hostname and join with the conductor table
+        query = query.join(
+            models.Conductor,
+            models.Allocation.conductor_affinity == models.Conductor.id)
+        return query.filter(models.Conductor.hostname == value)
+
+
 def _paginate_query(model, limit=None, marker=None, sort_key=None,
                     sort_dir=None, query=None):
     if not query:
@@ -339,7 +350,8 @@ class Connection(api.Connection):
     def _add_allocations_filters(self, query, filters):
         if filters is None:
             filters = dict()
-        supported_filters = {'state', 'resource_class', 'node_uuid'}
+        supported_filters = {'state', 'resource_class', 'node_uuid',
+                             'conductor_affinity'}
         unsupported_filters = set(filters).difference(supported_filters)
         if unsupported_filters:
             msg = _("SqlAlchemy API does not support "
@@ -352,6 +364,13 @@ class Connection(api.Connection):
             pass
         else:
             query = add_allocation_filter_by_node(query, node_uuid)
+
+        try:
+            conductor = filters.pop('conductor_affinity')
+        except KeyError:
+            pass
+        else:
+            query = add_allocation_filter_by_conductor(query, conductor)
 
         if filters:
             query = query.filter_by(**filters)

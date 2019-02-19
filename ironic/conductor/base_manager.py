@@ -33,6 +33,7 @@ from ironic.common.i18n import _
 from ironic.common import release_mappings as versions
 from ironic.common import rpc
 from ironic.common import states
+from ironic.conductor import allocations
 from ironic.conductor import notification_utils as notify_utils
 from ironic.conductor import task_manager
 from ironic.conf import CONF
@@ -203,6 +204,13 @@ class BaseConductorManager(object):
             with excutils.save_and_reraise_exception():
                 LOG.critical('Failed to start keepalive')
                 self.del_host()
+
+        # Resume allocations that started before the restart.
+        try:
+            self._spawn_worker(self._resume_allocations,
+                               ironic_context.get_admin_context())
+        except exception.NoFreeConductorWorker:
+            LOG.warning('Failed to start worker for resuming allocations.')
 
         self._started = True
 
@@ -550,3 +558,11 @@ class BaseConductorManager(object):
             finally:
                 # Yield on every iteration
                 eventlet.sleep(0)
+
+    def _resume_allocations(self, context):
+        """Resume unfinished allocations on restart."""
+        filters = {'state': states.ALLOCATING,
+                   'conductor_affinity': self.conductor.id}
+        for allocation in objects.Allocation.list(context, filters=filters):
+            LOG.debug('Resuming unfinished allocation %s', allocation.uuid)
+            allocations.do_allocate(context, allocation)
