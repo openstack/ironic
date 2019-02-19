@@ -296,6 +296,41 @@ def create_test_allocation(ctxt, **kw):
     return allocation
 
 
+def get_test_deploy_template(ctxt, **kw):
+    """Return a DeployTemplate object with appropriate attributes.
+
+    NOTE: The object leaves the attributes marked as changed, such
+    that a create() could be used to commit it to the DB.
+    """
+    db_template = db_utils.get_test_deploy_template(**kw)
+    # Let DB generate ID if it isn't specified explicitly
+    if 'id' not in kw:
+        del db_template['id']
+    if 'steps' not in kw:
+        for step in db_template['steps']:
+            del step['id']
+            del step['deploy_template_id']
+    else:
+        for kw_step, template_step in zip(kw['steps'], db_template['steps']):
+            if 'id' not in kw_step and 'id' in template_step:
+                del template_step['id']
+    template = objects.DeployTemplate(ctxt)
+    for key in db_template:
+        setattr(template, key, db_template[key])
+    return template
+
+
+def create_test_deploy_template(ctxt, **kw):
+    """Create and return a test deploy template object.
+
+    NOTE: The object leaves the attributes marked as changed, such
+    that a create() could be used to commit it to the DB.
+    """
+    template = get_test_deploy_template(ctxt, **kw)
+    template.create()
+    return template
+
+
 def get_payloads_with_schemas(from_module):
     """Get the Payload classes with SCHEMAs defined.
 

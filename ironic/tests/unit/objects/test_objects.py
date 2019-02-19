@@ -717,6 +717,7 @@ expected_object_fingerprints = {
     'Allocation': '1.0-25ebf609743cd3f332a4f80fcb818102',
     'AllocationCRUDNotification': '1.0-59acc533c11d306f149846f922739c15',
     'AllocationCRUDPayload': '1.0-a82389d019f37cfe54b50049f73911b3',
+    'DeployTemplate': '1.0-c20a91a34a5518e13b2a1bf5072eb119',
 }
 
 

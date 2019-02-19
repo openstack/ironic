@@ -25,6 +25,7 @@ from ironic.objects import allocation
 from ironic.objects import bios
 from ironic.objects import chassis
 from ironic.objects import conductor
+from ironic.objects import deploy_template
 from ironic.objects import node
 from ironic.objects import port
 from ironic.objects import portgroup
@@ -620,3 +621,51 @@ def create_test_allocation(**kw):
         del allocation['id']
     dbapi = db_api.get_instance()
     return dbapi.create_allocation(allocation)
+
+
+def get_test_deploy_template(**kw):
+    return {
+        'version': kw.get('version', deploy_template.DeployTemplate.VERSION),
+        'created_at': kw.get('created_at'),
+        'updated_at': kw.get('updated_at'),
+        'id': kw.get('id', 234),
+        'name': kw.get('name', u'CUSTOM_DT1'),
+        'uuid': kw.get('uuid', 'aa75a317-2929-47d4-b676-fd9bff578bf1'),
+        'steps': kw.get('steps', [get_test_deploy_template_step(
+            deploy_template_id=kw.get('id', 234))]),
+    }
+
+
+def get_test_deploy_template_step(**kw):
+    return {
+        'created_at': kw.get('created_at'),
+        'updated_at': kw.get('updated_at'),
+        'id': kw.get('id', 345),
+        'deploy_template_id': kw.get('deploy_template_id', 234),
+        'interface': kw.get('interface', 'raid'),
+        'step': kw.get('step', 'create_configuration'),
+        'args': kw.get('args', {'logical_disks': []}),
+        'priority': kw.get('priority', 10),
+    }
+
+
+def create_test_deploy_template(**kw):
+    """Create a deployment template in the DB and return DeployTemplate model.
+
+    :param kw: kwargs with overriding values for the deploy template.
+    :returns: Test DeployTemplate DB object.
+    """
+    template = get_test_deploy_template(**kw)
+    dbapi = db_api.get_instance()
+    # Let DB generate an ID if one isn't specified explicitly.
+    if 'id' not in kw:
+        del template['id']
+    if 'steps' not in kw:
+        for step in template['steps']:
+            del step['id']
+            del step['deploy_template_id']
+    else:
+        for kw_step, template_step in zip(kw['steps'], template['steps']):
+            if 'id' not in kw_step:
+                del template_step['id']
+    return dbapi.create_deploy_template(template, template['version'])

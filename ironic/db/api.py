@@ -1165,3 +1165,99 @@ class Connection(object):
         :param allocation_id: Allocation ID
         :raises: AllocationNotFound
         """
+
+    @abc.abstractmethod
+    def create_deploy_template(self, values, version):
+        """Create a deployment template.
+
+        :param values: A dict describing the deployment template. For example:
+
+                     ::
+
+                      {
+                       'uuid': uuidutils.generate_uuid(),
+                       'name': 'CUSTOM_DT1',
+                      }
+        :param version: the version of the object.DeployTemplate.
+        :raises: DeployTemplateDuplicateName if a deploy template with the same
+            name exists.
+        :raises: DeployTemplateAlreadyExists if a deploy template with the same
+            UUID exists.
+        :returns: A deploy template.
+        """
+
+    @abc.abstractmethod
+    def update_deploy_template(self, template_id, values):
+        """Update a deployment template.
+
+        :param template_id: ID of the deployment template to update.
+        :param values: A dict describing the deployment template. For example:
+
+                     ::
+
+                      {
+                       'uuid': uuidutils.generate_uuid(),
+                       'name': 'CUSTOM_DT1',
+                      }
+        :raises: DeployTemplateDuplicateName if a deploy template with the same
+            name exists.
+        :raises: DeployTemplateNotFound if the deploy template does not exist.
+        :returns: A deploy template.
+        """
+
+    @abc.abstractmethod
+    def destroy_deploy_template(self, template_id):
+        """Destroy a deployment template.
+
+        :param template_id: ID of the deployment template to destroy.
+        :raises: DeployTemplateNotFound if the deploy template does not exist.
+        """
+
+    @abc.abstractmethod
+    def get_deploy_template_by_id(self, template_id):
+        """Retrieve a deployment template by ID.
+
+        :param template_id: ID of the deployment template to retrieve.
+        :raises: DeployTemplateNotFound if the deploy template does not exist.
+        :returns: A deploy template.
+        """
+
+    @abc.abstractmethod
+    def get_deploy_template_by_uuid(self, template_uuid):
+        """Retrieve a deployment template by UUID.
+
+        :param template_uuid: UUID of the deployment template to retrieve.
+        :raises: DeployTemplateNotFound if the deploy template does not exist.
+        :returns: A deploy template.
+        """
+
+    @abc.abstractmethod
+    def get_deploy_template_by_name(self, template_name):
+        """Retrieve a deployment template by name.
+
+        :param template_name: name of the deployment template to retrieve.
+        :raises: DeployTemplateNotFound if the deploy template does not exist.
+        :returns: A deploy template.
+        """
+
+    @abc.abstractmethod
+    def get_deploy_template_list(self, limit=None, marker=None,
+                                 sort_key=None, sort_dir=None):
+        """Retrieve a list of deployment templates.
+
+        :param limit: Maximum number of deploy templates to return.
+        :param marker: The last item of the previous page; we return the next
+                       result set.
+        :param sort_key: Attribute by which results should be sorted.
+        :param sort_dir: Direction in which results should be sorted.
+                         (asc, desc)
+        :returns: A list of deploy templates.
+        """
+
+    @abc.abstractmethod
+    def get_deploy_template_list_by_names(self, names):
+        """Return a list of deployment templates with one of a list of names.
+
+        :param names: List of names to filter by.
+        :returns: A list of deploy templates.
+        """

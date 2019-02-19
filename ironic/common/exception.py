@@ -807,3 +807,15 @@ class AllocationAlreadyExists(Conflict):
 
 class AllocationFailed(IronicException):
     _msg_fmt = _("Failed to process allocation %(uuid)s: %(error)s.")
+
+
+class DeployTemplateDuplicateName(Conflict):
+    _msg_fmt = _("A deploy template with name %(name)s already exists.")
+
+
+class DeployTemplateAlreadyExists(Conflict):
+    _msg_fmt = _("A deploy template with UUID %(uuid)s already exists.")
+
+
+class DeployTemplateNotFound(NotFound):
+    _msg_fmt = _("Deploy template %(template)s could not be found.")
