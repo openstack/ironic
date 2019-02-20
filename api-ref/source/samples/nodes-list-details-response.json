@@ -1,6 +1,7 @@
 {
   "nodes": [
     {
+      "allocation_uuid": "5344a3e2-978a-444e-990a-cbf47c62ef88",
       "boot_interface": null,
       "chassis_uuid": null,
       "clean_step": {},
@@ -25,7 +26,7 @@
       "inspection_finished_at": null,
       "inspection_started_at": null,
       "instance_info": {},
-      "instance_uuid": null,
+      "instance_uuid": "5344a3e2-978a-444e-990a-cbf47c62ef88",
       "last_error": null,
       "links": [
         {
@@ -105,6 +106,7 @@
       ]
     },
     {
+      "allocation_uuid": null,
       "boot_interface": "pxe",
       "chassis_uuid": null,
       "clean_step": {},

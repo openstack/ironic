@@ -5,5 +5,6 @@
         "ipmi_username": "ADMIN",
         "ipmi_password": "password"
     },
-    "power_interface": "ipmitool"
+    "power_interface": "ipmitool",
+    "resource_class": "bm-large"
 }

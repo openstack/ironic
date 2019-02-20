@@ -1,0 +1,6 @@
+{
+    "name": "allocation-2",
+    "resource_class": "bm-large",
+    "traits": ["CUSTOM_GOLD"]
+}
+

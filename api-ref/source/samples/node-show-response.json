@@ -1,4 +1,5 @@
 {
+  "allocation_uuid": null,
   "boot_interface": null,
   "chassis_uuid": null,
   "clean_step": {},
@@ -72,7 +73,7 @@
   "raid_interface": null,
   "rescue_interface": null,
   "reservation": null,
-  "resource_class": null,
+  "resource_class": "bm-large",
   "states": [
     {
       "href": "http://127.0.0.1:6385/v1/nodes/6d85703a-565d-469a-96ce-30b6de53079d/states",

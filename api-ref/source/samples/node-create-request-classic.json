@@ -4,5 +4,6 @@
     "driver_info": {
         "ipmi_username": "ADMIN",
         "ipmi_password": "password"
-    }
+    },
+    "resource_class": "bm-large"
 }

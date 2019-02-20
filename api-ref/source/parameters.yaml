@@ -38,6 +38,12 @@ x-openstack-ironic-api-version:
   type: string
 
 # variables in path
+allocation_ident:
+  description: |
+    The UUID or name of the allocation.
+  in: path
+  required: true
+  type: string
 bios_setting:
   description: |
     The name of the Bios setting.
@@ -208,7 +214,20 @@ r_addresses:
   required: false
   type: array
 
-# variables in the node query string
+# variables in the query string
+r_allocation_node:
+  description: |
+    Filter the list of allocations by the node UUID or name.
+  in: query
+  required: false
+  type: string
+r_allocation_state:
+  description: |
+    Filter the list of allocations by the allocation state, one of ``active``,
+    ``allocating`` or ``error``.
+  in: query
+  required: false
+  type: string
 r_associated:
   description: |
     Filter the list of returned nodes and only return those which are, or are
@@ -372,7 +391,6 @@ sort_key:
   type: string
 
 
-
 # variable returned from /lookup
 agent_config:
   description: |
@@ -397,6 +415,57 @@ alive:
   in: body
   required: true
   type: boolean
+allocation_last_error:
+  description: |
+    The error message for the allocation if it is in the ``error`` state,
+    ``null`` otherwise.
+  in: body
+  required: true
+  type: string
+allocation_name:
+  description: |
+    The unique name of the allocation.
+  in: body
+  required: true
+  type: string
+allocation_node:
+  description: |
+    The UUID of the node assigned to the allocation. Will be ``null`` if a node
+    is not yet assigned.
+  in: body
+  required: true
+  type: string
+allocation_resource_class:
+  description: |
+    The resource class requested for the allocation.
+  in: body
+  required: true
+  type: string
+allocation_state:
+  description: |
+    The current state of the allocation. One of:
+
+    * ``allocating`` - allocation is in progress.
+    * ``active`` - allocation is finished and ``node_uuid`` is assigned.
+    * ``error`` - allocation has failed, see ``last_error`` for details.
+  in: body
+  required: true
+  type: string
+allocation_traits:
+  description: |
+    The list of the traits requested for the allocation.
+  in: body
+  required: true
+  type: array
+allocation_uuid:
+  description: |
+    The UUID of the allocation associated with the node. If not ``null``, will
+    be the same as ``instance_uuid`` (the opposite is not always true).
+    Unlike ``instance_uuid``, this field is read-only. Please use the
+    Allocation API to remove allocations.
+  in: body
+  required: true
+  type: string
 bios_setting_name:
   description: |
     The name of a Bios setting for a Node, eg. "virtualization".
@@ -428,6 +497,12 @@ boot_interface:
   in: body
   required: true
   type: string
+candidate_nodes:
+  description: |
+    A list of UUIDs of the nodes that are candidates for this allocation.
+  in: body
+  required: true
+  type: array
 chassis:
   description: |
     A ``chassis`` object.
@@ -1108,6 +1183,24 @@ reason:
   in: body
   required: false
   type: string
+req_allocation_name:
+  description: |
+    The unique name of the Allocation.
+  in: body
+  required: false
+  type: string
+req_allocation_resource_class:
+  description: |
+    The requested resource class for the allocation.
+  in: body
+  required: true
+  type: string
+req_allocation_traits:
+  description: |
+    The list of requested traits for the allocation.
+  in: body
+  required: false
+  type: array
 req_boot_device:
   description: |
     The boot device for a Node, eg. "pxe" or "disk".
@@ -1120,6 +1213,13 @@ req_boot_interface:
   in: body
   required: false
   type: string
+req_candidate_nodes:
+  description: |
+    The list of nodes that should be considered for this allocation. If not
+    provided, all available nodes will be considered.
+  in: body
+  required: false
+  type: array
 req_chassis:
   description: |
     A ``chassis`` object.

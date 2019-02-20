@@ -98,6 +98,9 @@ supplied when the Node is created, or the resource may be updated later.
 .. versionadded:: 1.51
   Introduced the ``description`` field.
 
+.. versionadded:: 1.52
+  Introduced the ``allocation_uuid`` field.
+
 Normal response codes: 201
 
 Error codes: 400,403,406
@@ -199,6 +202,7 @@ microversion 1.48.
     - conductor: conductor
     - owner: owner
     - description: n_description
+    - allocation_uuid: allocation_uuid
 
 **Example JSON representation of a Node:**
 
@@ -340,6 +344,9 @@ Nova instance, eg. with a request to ``v1/nodes/detail?instance_uuid={NOVA INSTA
 .. versionadded:: 1.51
   Introduced the ``description`` field.
 
+.. versionadded:: 1.52
+  Introduced the ``allocation_uuid`` field.
+
 Normal response codes: 200
 
 Error codes: 400,403,406
@@ -418,6 +425,7 @@ Response
     - owner: owner
     - description: n_description
     - conductor: conductor
+    - allocation_uuid: allocation_uuid
 
 **Example detailed list of Nodes:**
 
@@ -457,6 +465,9 @@ only the specified set.
 
 .. versionadded:: 1.51
   Introduced the ``description`` field.
+
+.. versionadded:: 1.52
+  Introduced the ``allocation_uuid`` field.
 
 Normal response codes: 200
 
@@ -523,6 +534,7 @@ Response
     - owner: owner
     - description: n_description
     - conductor: conductor
+    - allocation_uuid: allocation_uuid
 
 **Example JSON representation of a Node:**
 
@@ -617,6 +629,7 @@ Response
     - owner: owner
     - description: n_description
     - conductor: conductor
+    - allocation_uuid: allocation_uuid
 
 **Example JSON representation of a Node:**
 
