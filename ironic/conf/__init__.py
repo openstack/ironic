@@ -30,6 +30,7 @@ from ironic.conf import dhcp
 from ironic.conf import drac
 from ironic.conf import glance
 from ironic.conf import healthcheck
+from ironic.conf import ibmc
 from ironic.conf import ilo
 from ironic.conf import inspector
 from ironic.conf import ipmi
@@ -63,6 +64,7 @@ drac.register_opts(CONF)
 dhcp.register_opts(CONF)
 glance.register_opts(CONF)
 healthcheck.register_opts(CONF)
+ibmc.register_opts(CONF)
 ilo.register_opts(CONF)
 inspector.register_opts(CONF)
 ipmi.register_opts(CONF)

@@ -18,6 +18,7 @@ Hardware Types
   :maxdepth: 1
 
   drivers/cimc
+  drivers/ibmc
   drivers/idrac
   drivers/ilo
   drivers/ipmitool

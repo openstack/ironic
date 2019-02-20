@@ -1,0 +1,10 @@
+---
+features:
+  - |
+    Adds a new hardware type ``ibmc`` for HUAWEI 2288H V5, CH121 V5 series
+    servers. This hardware type supports PXE based boot using HUAWEI iBMC
+    RESTful APIs. The following driver interfaces are supported:
+
+    * management: ``ibmc``
+    * power: ``ibmc``
+    * vendor: ``ibmc``

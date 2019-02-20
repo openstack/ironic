@@ -26,6 +26,7 @@ Current list of mocked libraries:
 - pysnmp
 - scciclient
 - python-dracclient
+- python-ibmcclient
 """
 
 import sys
@@ -263,3 +264,45 @@ if not xclarity_client:
     xclarity_client.exceptions.XClarityException = type('XClarityException',
                                                         (Exception,), {})
     sys.modules['xclarity_client.models'] = xclarity_client.models
+
+
+# python-ibmcclient mocks for HUAWEI rack server driver
+ibmc_client = importutils.try_import('ibmc_client')
+if not ibmc_client:
+    ibmc_client = mock.MagicMock(spec_set=mock_specs.IBMCCLIENT_SPEC)
+    sys.modules['ibmc_client'] = ibmc_client
+
+    # Mock iBMC client exceptions
+    exceptions = mock.MagicMock()
+    exceptions.ConnectionError = (
+        type('ConnectionError', (MockKwargsException,), {}))
+    exceptions.IBMCClientError = (
+        type('IBMCClientError', (MockKwargsException,), {}))
+    sys.modules['ibmc_client.exceptions'] = exceptions
+
+    # Mock iIBMC client constants
+    constants = mock.MagicMock(
+        SYSTEM_POWER_STATE_ON='On',
+        SYSTEM_POWER_STATE_OFF='Off',
+        BOOT_SOURCE_TARGET_NONE='None',
+        BOOT_SOURCE_TARGET_PXE='Pxe',
+        BOOT_SOURCE_TARGET_FLOPPY='Floppy',
+        BOOT_SOURCE_TARGET_CD='Cd',
+        BOOT_SOURCE_TARGET_HDD='Hdd',
+        BOOT_SOURCE_TARGET_BIOS_SETUP='BiosSetup',
+        BOOT_SOURCE_MODE_BIOS='Legacy',
+        BOOT_SOURCE_MODE_UEFI='UEFI',
+        BOOT_SOURCE_ENABLED_ONCE='Once',
+        BOOT_SOURCE_ENABLED_CONTINUOUS='Continuous',
+        BOOT_SOURCE_ENABLED_DISABLED='Disabled',
+        RESET_NMI='Nmi',
+        RESET_ON='On',
+        RESET_FORCE_OFF='ForceOff',
+        RESET_GRACEFUL_SHUTDOWN='GracefulShutdown',
+        RESET_FORCE_RESTART='ForceRestart',
+        RESET_FORCE_POWER_CYCLE='ForcePowerCycle')
+    sys.modules['ibmc_client.constants'] = constants
+
+    if 'ironic.drivers.modules.ibmc' in sys.modules:
+        six.moves.reload_module(
+            sys.modules['ironic.drivers.modules.ibmc'])

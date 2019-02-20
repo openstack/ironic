@@ -170,3 +170,10 @@ XCLARITY_STATES_SPEC = (
     'STATE_POWER_OFF',
     'STATE_POWER_ON',
 )
+
+# python-ibmcclient
+IBMCCLIENT_SPEC = (
+    'connect',
+    'exceptions',
+    'constants',
+)
