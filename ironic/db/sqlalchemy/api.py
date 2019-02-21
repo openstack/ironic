@@ -1786,7 +1786,7 @@ class Connection(api.Connection):
         return results
 
     @oslo_db_api.retry_on_deadlock
-    def create_deploy_template(self, values, version):
+    def create_deploy_template(self, values):
         steps = values.get('steps', [])
         values['steps'] = self._get_deploy_template_steps(steps)
 
@@ -1817,9 +1817,8 @@ class Connection(api.Connection):
             return step.interface, step.step, step.args, step.priority
 
         # List all existing steps for the template.
-        query = (model_query(models.DeployTemplateStep)
-                 .filter_by(deploy_template_id=template_id))
-        current_steps = query.all()
+        current_steps = (model_query(models.DeployTemplateStep)
+                         .filter_by(deploy_template_id=template_id))
 
         # List the new steps for the template.
         new_steps = self._get_deploy_template_steps(steps, template_id)
@@ -1867,10 +1866,7 @@ class Connection(api.Connection):
                         template=template_id)
 
                 # First, update non-step columns.
-                steps = None
-                if 'steps' in values:
-                    steps = values.pop('steps')
-
+                steps = values.pop('steps', None)
                 ref.update(values)
 
                 # If necessary, update steps.
