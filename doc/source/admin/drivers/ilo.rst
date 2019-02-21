@@ -826,6 +826,12 @@ Inspection can also discover the following extra capabilities for iLO driver:
        `iLO4 <https://support.hpe.com/hpsc/doc/public/display?docId=c03334051>`_
        and `iLO5 <https://support.hpe.com/hpsc/doc/public/display?docId=a00018324en_us>`_
        management engine.
+     * The proliantutils returns only active NICs for Gen9 and Gen10 ProLiant
+       HPE servers from release 2.7.1. The user would need to delete the ironic
+       ports corresponding to inactive NICs for Gen8 servers as proliantutils
+       returns all the discovered (active and otherwise) NICs for Gen8 servers
+       and ironic ports are created for all of them. Inspection logs a warning
+       if the node under inspection is Gen8.
 
 The operator can specify these capabilities in nova flavor for node to be selected
 for scheduling::
