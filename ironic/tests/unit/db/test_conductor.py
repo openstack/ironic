@@ -334,6 +334,7 @@ class DbConductorTestCase(base.DbTestCase):
         # 61 seconds passed since last heartbeat, it's dead
         mock_utcnow.return_value = time_ + datetime.timedelta(seconds=61)
         self.assertEqual([c.hostname], self.dbapi.get_offline_conductors())
+        self.assertEqual([c.id], self.dbapi.get_offline_conductors(field='id'))
 
     @mock.patch.object(timeutils, 'utcnow', autospec=True)
     def test_get_online_conductors(self, mock_utcnow):

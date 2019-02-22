@@ -3526,6 +3526,37 @@ class ConductorManager(base_manager.BaseConductorManager):
 
         LOG.info('Successfully deleted allocation %s', allocation.uuid)
 
+    @METRICS.timer('ConductorManager._check_orphan_allocations')
+    @periodics.periodic(
+        spacing=CONF.conductor.check_allocations_interval,
+        enabled=CONF.conductor.check_allocations_interval > 0)
+    def _check_orphan_allocations(self, context):
+        """Periodically checks the status of allocations that were taken over.
+
+        Periodically checks the allocations assigned to a conductor that
+        went offline, tries to take them over and finish.
+
+        :param context: request context.
+        """
+        offline_conductors = self.dbapi.get_offline_conductors(field='id')
+        for conductor_id in offline_conductors:
+            filters = {'state': states.ALLOCATING,
+                       'conductor_affinity': conductor_id}
+            for allocation in objects.Allocation.list(context,
+                                                      filters=filters):
+                try:
+                    if not self.dbapi.take_over_allocation(allocation.id,
+                                                           conductor_id,
+                                                           self.conductor.id):
+                        # Another conductor has taken over, skipping
+                        continue
+
+                    LOG.debug('Taking over allocation %s', allocation.uuid)
+                    allocations.do_allocate(context, allocation)
+                except Exception:
+                    LOG.exception('Unexpected exception when taking over '
+                                  'allocation %s', allocation.uuid)
+
 
 @METRICS.timer('get_vendor_passthru_metadata')
 def get_vendor_passthru_metadata(route_dict):

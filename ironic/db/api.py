@@ -549,10 +549,11 @@ class Connection(object):
         """
 
     @abc.abstractmethod
-    def get_offline_conductors(self):
-        """Get a list conductor hostnames that are offline (dead).
+    def get_offline_conductors(self, field='hostname'):
+        """Get a list conductors that are offline (dead).
 
-        :returns: A list of conductor hostnames.
+        :param field: A field to return, hostname by default.
+        :returns: A list of requested fields of offline conductors.
         """
 
     @abc.abstractmethod
@@ -1156,6 +1157,23 @@ class Connection(object):
         :raises: AllocationDuplicateName
         :raises: InstanceAssociated
         :raises: NodeAssociated
+        """
+
+    @abc.abstractmethod
+    def take_over_allocation(self, allocation_id, old_conductor_id,
+                             new_conductor_id):
+        """Do a take over for an allocation.
+
+        The allocation is only updated if the old conductor matches the
+        provided value, thus guarding against races.
+
+        :param allocation_id: Allocation ID
+        :param old_conductor_id: The conductor ID we expect to be the current
+            ``conductor_affinity`` of the allocation.
+        :param new_conductor_id: The conductor ID of the new
+            ``conductor_affinity``.
+        :returns: True if the take over was successful, False otherwise.
+        :raises: AllocationNotFound
         """
 
     @abc.abstractmethod

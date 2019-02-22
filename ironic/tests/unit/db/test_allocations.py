@@ -244,6 +244,31 @@ class AllocationsTestCase(base.DbTestCase):
         self.assertIsNone(node.instance_uuid)
         self.assertNotIn('traits', node.instance_info)
 
+    def test_take_over_success(self):
+        for i in range(2):
+            db_utils.create_test_conductor(id=i, hostname='host-%d' % i)
+        allocation = db_utils.create_test_allocation(conductor_affinity=0)
+
+        self.assertTrue(self.dbapi.take_over_allocation(
+            allocation.id, old_conductor_id=0, new_conductor_id=1))
+        allocation = self.dbapi.get_allocation_by_id(allocation.id)
+        self.assertEqual(1, allocation.conductor_affinity)
+
+    def test_take_over_conflict(self):
+        for i in range(3):
+            db_utils.create_test_conductor(id=i, hostname='host-%d' % i)
+        allocation = db_utils.create_test_allocation(conductor_affinity=2)
+
+        self.assertFalse(self.dbapi.take_over_allocation(
+            allocation.id, old_conductor_id=0, new_conductor_id=1))
+        allocation = self.dbapi.get_allocation_by_id(allocation.id)
+        # The affinity was not changed
+        self.assertEqual(2, allocation.conductor_affinity)
+
+    def test_take_over_allocation_not_found(self):
+        self.assertRaises(exception.AllocationNotFound,
+                          self.dbapi.take_over_allocation, 999, 0, 1)
+
     def test_create_allocation_duplicated_name(self):
         self.assertRaises(exception.AllocationDuplicateName,
                           db_utils.create_test_allocation,

@@ -168,6 +168,37 @@ class AllocationTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         self.assertEqual(allocation.uuid, actual.uuid)
         self.assertIsInstance(allocation, objects.Allocation)
 
+    @mock.patch.object(allocations, 'do_allocate', autospec=True)
+    def test_check_orphaned_allocations(self, mock_allocate):
+        alive_conductor = obj_utils.create_test_conductor(
+            self.context, id=42, hostname='alive')
+        dead_conductor = obj_utils.create_test_conductor(
+            self.context, id=43, hostname='dead')
+
+        obj_utils.create_test_allocation(
+            self.context,
+            state='allocating',
+            conductor_affinity=alive_conductor.id)
+        allocation = obj_utils.create_test_allocation(
+            self.context,
+            state='allocating',
+            conductor_affinity=dead_conductor.id)
+
+        self._start_service()
+        with mock.patch.object(self.dbapi, 'get_offline_conductors',
+                               autospec=True) as mock_conds:
+            mock_conds.return_value = [dead_conductor.id]
+            self.service._check_orphan_allocations(self.context)
+
+        mock_allocate.assert_called_once_with(self.context, mock.ANY)
+        actual = mock_allocate.call_args[0][1]
+        self.assertEqual(allocation.uuid, actual.uuid)
+        self.assertIsInstance(allocation, objects.Allocation)
+
+        allocation = self.dbapi.get_allocation_by_id(allocation.id)
+        self.assertEqual(self.service.conductor.id,
+                         allocation.conductor_affinity)
+
 
 @mock.patch('time.sleep', lambda _: None)
 class DoAllocateTestCase(db_base.DbTestCase):
