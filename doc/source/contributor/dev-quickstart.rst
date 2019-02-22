@@ -98,7 +98,7 @@ Running Unit and Style Tests
 
 All unit tests should be run using tox. To run Ironic's entire test suite::
 
-    # to run the py27, py35 unit tests, and the style tests
+    # to run the py27, py3 unit tests, and the style tests
     tox
 
 To run a specific test or tests, use the "-e" option followed by the tox target
