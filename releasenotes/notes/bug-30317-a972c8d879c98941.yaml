@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    Fixes deployment with the ``ansible`` deploy interface and instance images with GPT partition
+    table.
