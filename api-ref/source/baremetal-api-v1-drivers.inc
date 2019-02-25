@@ -80,6 +80,7 @@ drivers supported by this Ironic service.
 
 .. rest_parameters:: parameters.yaml
 
+   - default_bios_interface: default_bios_interface
    - default_boot_interface: default_boot_interface
    - default_console_interface: default_console_interface
    - default_deploy_interface: default_deploy_interface
@@ -91,6 +92,7 @@ drivers supported by this Ironic service.
    - default_rescue_interface: default_rescue_interface
    - default_storage_interface: default_storage_interface
    - default_vendor_interface: default_vendor_interface
+   - enabled_bios_interfaces: enabled_bios_interfaces
    - enabled_boot_interfaces: enabled_boot_interfaces
    - enabled_console_interfaces: enabled_console_interfaces
    - enabled_deploy_interfaces: enabled_deploy_interfaces
@@ -140,6 +142,7 @@ Response Parameters
    - name: driver_name
    - hosts: hosts
    - type: response_driver_type
+   - default_bios_interface: default_bios_interface
    - default_boot_interface: default_boot_interface
    - default_console_interface: default_console_interface
    - default_deploy_interface: default_deploy_interface
@@ -151,6 +154,7 @@ Response Parameters
    - default_rescue_interface: default_rescue_interface
    - default_storage_interface: default_storage_interface
    - default_vendor_interface: default_vendor_interface
+   - enabled_bios_interfaces: enabled_bios_interfaces
    - enabled_boot_interfaces: enabled_boot_interfaces
    - enabled_console_interfaces: enabled_console_interfaces
    - enabled_deploy_interfaces: enabled_deploy_interfaces

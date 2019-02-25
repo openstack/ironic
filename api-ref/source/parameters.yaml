@@ -502,6 +502,13 @@ d_bios_setting:
   in: body
   required: true
   type: dictionary
+default_bios_interface:
+  description: |
+    The default bios interface used for a node with a dynamic driver, if no
+    bios interface is specified for the node.
+  in: body
+  required: true
+  type: string
 default_boot_interface:
   description: |
     The default boot interface used for a node with a dynamic driver, if no
@@ -628,6 +635,12 @@ drivers:
   in: body
   required: true
   type: array
+enabled_bios_interfaces:
+  description: |
+    The enabled bios interfaces for this driver.
+  in: body
+  required: true
+  type: list
 enabled_boot_interfaces:
   description: |
     The enabled boot interfaces for this driver.

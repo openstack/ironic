@@ -1,6 +1,7 @@
 {
   "drivers": [
     {
+      "default_bios_interface": null,
       "default_boot_interface": null,
       "default_console_interface": null,
       "default_deploy_interface": null,
@@ -12,6 +13,7 @@
       "default_rescue_interface": null,
       "default_storage_interface": null,
       "default_vendor_interface": null,
+      "enabled_bios_interfaces": null,
       "enabled_boot_interfaces": null,
       "enabled_console_interfaces": null,
       "enabled_deploy_interfaces": null,
@@ -50,6 +52,7 @@
       "type": "classic"
     },
     {
+      "default_bios_interface": null,
       "default_boot_interface": null,
       "default_console_interface": null,
       "default_deploy_interface": null,
@@ -61,6 +64,7 @@
       "default_rescue_interface": null,
       "default_storage_interface": null,
       "default_vendor_interface": null,
+      "enabled_bios_interfaces": null,
       "enabled_boot_interfaces": null,
       "enabled_console_interfaces": null,
       "enabled_deploy_interfaces": null,
@@ -99,6 +103,7 @@
       "type": "classic"
     },
     {
+      "default_bios_interface": "no-bios",
       "default_boot_interface": "pxe",
       "default_console_interface": "no-console",
       "default_deploy_interface": "iscsi",
@@ -110,6 +115,9 @@
       "default_rescue_interface": "no-rescue",
       "default_storage_interface": "noop",
       "default_vendor_interface": "no-vendor",
+      "enabled_bios_interfaces": [
+        "no-bios"
+      ],
       "enabled_boot_interfaces": [
         "pxe"
       ],
