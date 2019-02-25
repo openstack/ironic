@@ -2465,6 +2465,9 @@ function ironic_configure_tempest {
     if [[ -n "$TEMPEST_BAREMETAL_MAX_MICROVERSION" ]]; then
         iniset $TEMPEST_CONFIG baremetal max_microversion $TEMPEST_BAREMETAL_MAX_MICROVERSION
     fi
+    if [[ -n "$IRONIC_VM_COUNT" ]]; then
+        iniset $TEMPEST_CONFIG baremetal available_nodes $IRONIC_VM_COUNT
+    fi
     if [[ -n "$IRONIC_PING_TIMEOUT" ]]; then
         iniset $TEMPEST_CONFIG validation ping_timeout $IRONIC_PING_TIMEOUT
     fi
