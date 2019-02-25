@@ -545,12 +545,20 @@ conductor_group:
   type: string
 configdrive:
   description: |
-    A gzip'ed and base-64 encoded config drive, to be written to a partition
-    on the Node's boot disk. This parameter is only accepted when setting the
-    state to "active" or "rebuild".
+    A config drive to be written to a partition on the Node's boot disk. Can be
+    a full gzip'ed and base-64 encoded image or a JSON object with the keys:
+
+    * ``meta_data`` (optional) - JSON object with the standard meta data.
+      Ironic will provide the defaults for the ``uuid`` and ``name`` fields.
+    * ``network_data`` (optional) - JSON object with networking configuration.
+    * ``user_data`` (optional) - user data. May be a string (which will be
+      UTF-8 encoded); a JSON object, or a JSON array.
+
+    This parameter is only accepted when setting the state to "active" or
+    "rebuild".
   in: body
   required: false
-  type: string or gzip+b64 blob
+  type: string or object
 console_enabled:
   description: |
     Indicates whether console access is enabled or disabled on this node.

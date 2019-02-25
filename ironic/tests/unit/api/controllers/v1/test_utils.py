@@ -501,18 +501,48 @@ class TestApiUtils(base.TestCase):
     def test_check_allow_configdrive_fails(self, mock_request):
         mock_request.version.minor = 35
         self.assertRaises(wsme.exc.ClientSideError,
-                          utils.check_allow_configdrive, states.DELETED)
+                          utils.check_allow_configdrive, states.DELETED,
+                          "abcd")
+        self.assertRaises(wsme.exc.ClientSideError,
+                          utils.check_allow_configdrive, states.ACTIVE,
+                          {'meta_data': {}})
         mock_request.version.minor = 34
         self.assertRaises(wsme.exc.ClientSideError,
-                          utils.check_allow_configdrive, states.REBUILD)
+                          utils.check_allow_configdrive, states.REBUILD,
+                          "abcd")
 
     @mock.patch.object(pecan, 'request', spec_set=['version'])
     def test_check_allow_configdrive(self, mock_request):
         mock_request.version.minor = 35
-        utils.check_allow_configdrive(states.ACTIVE)
-        utils.check_allow_configdrive(states.REBUILD)
+        utils.check_allow_configdrive(states.ACTIVE, "abcd")
+        utils.check_allow_configdrive(states.REBUILD, "abcd")
         mock_request.version.minor = 34
-        utils.check_allow_configdrive(states.ACTIVE)
+        utils.check_allow_configdrive(states.ACTIVE, "abcd")
+
+    @mock.patch.object(pecan, 'request', spec_set=['version'])
+    def test_check_allow_configdrive_as_dict(self, mock_request):
+        mock_request.version.minor = 56
+        utils.check_allow_configdrive(states.ACTIVE, {'meta_data': {}})
+        utils.check_allow_configdrive(states.ACTIVE, {'meta_data': {},
+                                                      'network_data': {},
+                                                      'user_data': {}})
+        utils.check_allow_configdrive(states.ACTIVE, {'user_data': 'foo'})
+        utils.check_allow_configdrive(states.ACTIVE, {'user_data': ['foo']})
+
+    @mock.patch.object(pecan, 'request', spec_set=['version'])
+    def test_check_allow_configdrive_as_dict_invalid(self, mock_request):
+        mock_request.version.minor = 56
+        self.assertRaises(wsme.exc.ClientSideError,
+                          utils.check_allow_configdrive, states.REBUILD,
+                          {'foo': 'bar'})
+        for key in ['meta_data', 'network_data']:
+            self.assertRaises(wsme.exc.ClientSideError,
+                              utils.check_allow_configdrive, states.REBUILD,
+                              {key: 'a string'})
+        for key in ['meta_data', 'network_data', 'user_data']:
+            self.assertRaises(wsme.exc.ClientSideError,
+                              utils.check_allow_configdrive, states.REBUILD,
+                              {key: 42})
 
     @mock.patch.object(pecan, 'request', spec_set=['version'])
     def test_allow_rescue_interface(self, mock_request):

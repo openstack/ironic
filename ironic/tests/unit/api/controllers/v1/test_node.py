@@ -4121,6 +4121,42 @@ class TestPut(test_api_base.BaseApiTest):
         self.assertEqual(urlparse.urlparse(ret.location).path,
                          expected_location)
 
+    def test_provision_with_deploy_configdrive_as_dict(self):
+        ret = self.put_json('/nodes/%s/states/provision' % self.node.uuid,
+                            {'target': states.ACTIVE,
+                             'configdrive': {'user_data': 'foo'}},
+                            headers={api_base.Version.string: '1.56'})
+        self.assertEqual(http_client.ACCEPTED, ret.status_code)
+        self.assertEqual(b'', ret.body)
+        self.mock_dnd.assert_called_once_with(context=mock.ANY,
+                                              node_id=self.node.uuid,
+                                              rebuild=False,
+                                              configdrive={'user_data': 'foo'},
+                                              topic='test-topic')
+
+    def test_provision_with_deploy_configdrive_as_dict_all_fields(self):
+        fake_cd = {'user_data': {'serialize': 'me'},
+                   'meta_data': {'hostname': 'example.com'},
+                   'network_data': {'links': []}}
+        ret = self.put_json('/nodes/%s/states/provision' % self.node.uuid,
+                            {'target': states.ACTIVE,
+                             'configdrive': fake_cd},
+                            headers={api_base.Version.string: '1.56'})
+        self.assertEqual(http_client.ACCEPTED, ret.status_code)
+        self.assertEqual(b'', ret.body)
+        self.mock_dnd.assert_called_once_with(context=mock.ANY,
+                                              node_id=self.node.uuid,
+                                              rebuild=False,
+                                              configdrive=fake_cd,
+                                              topic='test-topic')
+
+    def test_provision_with_deploy_configdrive_as_dict_unsupported(self):
+        ret = self.put_json('/nodes/%s/states/provision' % self.node.uuid,
+                            {'target': states.ACTIVE,
+                             'configdrive': {'user_data': 'foo'}},
+                            expect_errors=True)
+        self.assertEqual(http_client.BAD_REQUEST, ret.status_code)
+
     def test_provision_with_rebuild(self):
         node = self.node
         node.provision_state = states.ACTIVE

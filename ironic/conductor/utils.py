@@ -15,8 +15,10 @@
 import collections
 import time
 
+from openstack.baremetal import configdrive as os_configdrive
 from oslo_config import cfg
 from oslo_log import log
+from oslo_serialization import jsonutils
 from oslo_service import loopingcall
 from oslo_utils import excutils
 import six
@@ -1316,3 +1318,30 @@ def validate_deploy_templates(task):
     # Gather deploy steps from matching deploy templates, validate them.
     user_steps = _get_steps_from_deployment_templates(task)
     _validate_user_deploy_steps(task, user_steps)
+
+
+def build_configdrive(node, configdrive):
+    """Build a configdrive from provided meta_data, network_data and user_data.
+
+    If uuid or name are not provided in the meta_data, they're defauled to the
+    node's uuid and name accordingly.
+
+    :param node: an Ironic node object.
+    :param configdrive: A configdrive as a dict with keys ``meta_data``,
+        ``network_data`` and ``user_data`` (all optional).
+    :returns: A gzipped and base64 encoded configdrive as a string.
+    """
+    meta_data = configdrive.setdefault('meta_data', {})
+    meta_data.setdefault('uuid', node.uuid)
+    if node.name:
+        meta_data.setdefault('name', node.name)
+
+    user_data = configdrive.get('user_data')
+    if isinstance(user_data, (dict, list)):
+        user_data = jsonutils.dump_as_bytes(user_data)
+    elif user_data:
+        user_data = user_data.encode('utf-8')
+
+    LOG.debug('Building a configdrive for node %s', node.uuid)
+    return os_configdrive.build(meta_data, user_data=user_data,
+                                network_data=configdrive.get('network_data'))

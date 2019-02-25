@@ -92,6 +92,8 @@ BASE_VERSION = 1
 # v1.52: Add allocation API.
 # v1.53: Add support for Smart NIC port
 # v1.54: Add events support.
+# v1.55: Add deploy templates API.
+# v1.56: Add support for building configdrives.
 
 MINOR_0_JUNO = 0
 MINOR_1_INITIAL_VERSION = 1
@@ -149,6 +151,7 @@ MINOR_52_ALLOCATION = 52
 MINOR_53_PORT_SMARTNIC = 53
 MINOR_54_EVENTS = 54
 MINOR_55_DEPLOY_TEMPLATES = 55
+MINOR_56_BUILD_CONFIGDRIVE = 56
 
 # When adding another version, update:
 # - MINOR_MAX_VERSION
@@ -156,7 +159,7 @@ MINOR_55_DEPLOY_TEMPLATES = 55
 #   explanation of what changed in the new version
 # - common/release_mappings.py, RELEASE_MAPPING['master']['api']
 
-MINOR_MAX_VERSION = MINOR_55_DEPLOY_TEMPLATES
+MINOR_MAX_VERSION = MINOR_56_BUILD_CONFIGDRIVE
 
 # String representations of the minor and maximum versions
 _MIN_VERSION_STRING = '{}.{}'.format(BASE_VERSION, MINOR_1_INITIAL_VERSION)

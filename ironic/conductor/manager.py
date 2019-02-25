@@ -3623,6 +3623,8 @@ def do_node_deploy(task, conductor_id=None, configdrive=None):
 
     try:
         if configdrive:
+            if isinstance(configdrive, dict):
+                configdrive = utils.build_configdrive(node, configdrive)
             _store_configdrive(node, configdrive)
     except (exception.SwiftOperationError, exception.ConfigInvalid) as e:
         with excutils.save_and_reraise_exception():
