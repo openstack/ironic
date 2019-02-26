@@ -26,13 +26,13 @@ A Node is suitable for an Allocation if all of the following holds:
 
 * ``provision_state`` is ``available``
 * ``power_state`` is not ``null``
-* ``maintenance`` is false
+* ``maintenance`` is ``false``
 * ``instance_uuid`` is ``null``
 * ``resource_class`` matches requested one
-* ``traits`` list contains the requested ones
+* ``traits`` list contains all of the requested ones
 
 The allocation process is asynchronous. The new Allocation is returned in
-the ``allocating`` state, and the process continues in background. If it
+the ``allocating`` state, and the process continues in the background. If it
 succeeds, the ``node_uuid`` field is populated with the Node's UUID, and the
 Node's ``instance_uuid`` field is set to the Allocation's UUID.
 

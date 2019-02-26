@@ -61,7 +61,7 @@ Delete Allocation by Node
 
 .. rest_method::  DELETE /v1/nodes/{node_ident}/allocation
 
-Deletes the allocation of this node.
+Deletes the allocation of this node and resets its ``instance_uuid``.
 
 The deletion will fail if the allocation the node is ``active`` and not in
 the ``maintenance`` mode.

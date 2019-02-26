@@ -1215,8 +1215,8 @@ req_boot_interface:
   type: string
 req_candidate_nodes:
   description: |
-    The list of nodes that should be considered for this allocation. If not
-    provided, all available nodes will be considered.
+    The list of nodes (names or UUIDs) that should be considered for this
+    allocation. If not provided, all available nodes will be considered.
   in: body
   required: false
   type: array
