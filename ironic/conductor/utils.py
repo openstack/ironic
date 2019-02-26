@@ -168,7 +168,7 @@ def node_wait_for_power_state(task, new_state, timeout=None):
         timer = loopingcall.BackOffLoopingCall(_wait)
         return timer.start(initial_delay=1, timeout=retry_timeout).wait()
     except loopingcall.LoopingCallTimeOut:
-        LOG.error('Timed out after %(retry_timeout)s secs waiting for power '
+        LOG.error('Timed out after %(retry_timeout)s secs waiting for '
                   '%(state)s on node %(node_id)s.',
                   {'retry_timeout': retry_timeout,
                    'state': new_state, 'node_id': task.node.uuid})
