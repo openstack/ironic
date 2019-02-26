@@ -27,6 +27,7 @@ DOC_PROVISION_UPDATED_AT="2016-08-18T22:28:49.946416+00:00"
 DOC_CREATED_AT="2016-08-18T22:28:48.643434+11:11"
 DOC_UPDATED_AT="2016-08-18T22:28:49.653974+00:00"
 DOC_IRONIC_CONDUCTOR_HOSTNAME="897ab1dad809"
+DOC_ALLOCATION_UUID="3bf138ba-6d71-44e7-b6a1-ca9cac17103e"
 
 function GET {
     # GET $RESOURCE
@@ -167,12 +168,36 @@ GET v1/nodes > nodes-list-response.json
 GET v1/nodes/detail > nodes-list-details-response.json
 GET v1/nodes/$NID > node-show-response.json
 
-# Put the Node in maintenance mode, then continue doing everything else
-PUT v1/nodes/$NID/maintenance node-maintenance-request.json
-
 # Node traits
 PUT v1/nodes/$NID/traits node-set-traits-request.json
 GET v1/nodes/$NID/traits > node-traits-list-response.json
+
+############
+# ALLOCATIONS
+
+POST v1/allocations allocation-create-request.json > allocation-create-response.json
+AID=$(cat allocation-create-response.json | grep '"uuid"' | sed 's/.*"\([0-9a-f\-]*\)",*/\1/')
+if [ "$AID" == "" ]; then
+    exit 1
+else
+    echo "Allocation created. UUID: $AID"
+fi
+
+# Create a failed allocation for listing
+POST v1/allocations allocation-create-request-2.json
+
+# Poor man's wait_for_allocation
+sleep 1
+
+GET v1/allocations > allocations-list-response.json
+GET v1/allocations/$AID > allocation-show-response.json
+GET v1/nodes/$NID/allocation > node-allocation-show-response.json
+
+############
+# NODES - MAINTENANCE
+
+# Do this after allocation API to be able to create successful allocations
+PUT v1/nodes/$NID/maintenance node-maintenance-request.json
 
 ############
 # PORTGROUPS
@@ -312,6 +337,7 @@ sed -i "s/$PID/$DOC_PORT_UUID/" *.json
 sed -i "s/$PGID/$DOC_PORTGROUP_UUID/" *.json
 sed -i "s/$VCID/$DOC_VOL_CONNECTOR_UUID/" *.json
 sed -i "s/$VTID/$DOC_VOL_TARGET_UUID/" *.json
+sed -i "s/$AID/$DOC_ALLOCATION_UUID/" *.json
 sed -i "s/$(hostname)/$DOC_IRONIC_CONDUCTOR_HOSTNAME/" *.json
 sed -i "s/created_at\": \".*\"/created_at\": \"$DOC_CREATED_AT\"/" *.json
 sed -i "s/updated_at\": \".*\"/updated_at\": \"$DOC_UPDATED_AT\"/" *.json
