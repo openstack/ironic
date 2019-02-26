@@ -36,6 +36,7 @@ class DbDeployTemplateTestCase(base.DbTestCase):
         self.assertEqual('create_configuration', step.step)
         self.assertEqual({'logical_disks': []}, step.args)
         self.assertEqual(10, step.priority)
+        self.assertEqual({}, self.template.extra)
 
     def test_create_no_steps(self):
         uuid = uuidutils.generate_uuid()
@@ -103,6 +104,11 @@ class DbDeployTemplateTestCase(base.DbTestCase):
         values = {'steps': []}
         template = self.dbapi.update_deploy_template(self.template.id, values)
         self.assertEqual([], template.steps)
+
+    def test_update_extra(self):
+        values = {'extra': {'foo': 'bar'}}
+        template = self.dbapi.update_deploy_template(self.template.id, values)
+        self.assertEqual({'foo': 'bar'}, template.extra)
 
     def test_update_duplicate_name(self):
         uuid = uuidutils.generate_uuid()

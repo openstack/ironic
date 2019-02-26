@@ -633,6 +633,7 @@ def get_test_deploy_template(**kw):
         'uuid': kw.get('uuid', 'aa75a317-2929-47d4-b676-fd9bff578bf1'),
         'steps': kw.get('steps', [get_test_deploy_template_step(
             deploy_template_id=kw.get('id', 234))]),
+        'extra': kw.get('extra', {}),
     }
 
 

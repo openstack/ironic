@@ -42,6 +42,7 @@ class TestDeployTemplateObject(db_base.DbTestCase, obj_utils.SchemasTestMixIn):
 
         self.assertEqual(self.fake_template['name'], template.name)
         self.assertEqual(self.fake_template['steps'], template.steps)
+        self.assertEqual(self.fake_template['extra'], template.extra)
 
     @mock.patch.object(dbapi.IMPL, 'update_deploy_template', autospec=True)
     def test_save(self, mock_update):
@@ -81,6 +82,7 @@ class TestDeployTemplateObject(db_base.DbTestCase, obj_utils.SchemasTestMixIn):
         self.assertEqual(self.fake_template['name'], template.name)
         self.assertEqual(self.fake_template['uuid'], template.uuid)
         self.assertEqual(self.fake_template['steps'], template.steps)
+        self.assertEqual(self.fake_template['extra'], template.extra)
 
     @mock.patch.object(dbapi.IMPL, 'get_deploy_template_by_uuid',
                        autospec=True)
@@ -94,6 +96,7 @@ class TestDeployTemplateObject(db_base.DbTestCase, obj_utils.SchemasTestMixIn):
         self.assertEqual(self.fake_template['name'], template.name)
         self.assertEqual(self.fake_template['uuid'], template.uuid)
         self.assertEqual(self.fake_template['steps'], template.steps)
+        self.assertEqual(self.fake_template['extra'], template.extra)
 
     @mock.patch.object(dbapi.IMPL, 'get_deploy_template_by_name',
                        autospec=True)
@@ -107,6 +110,7 @@ class TestDeployTemplateObject(db_base.DbTestCase, obj_utils.SchemasTestMixIn):
         self.assertEqual(self.fake_template['name'], template.name)
         self.assertEqual(self.fake_template['uuid'], template.uuid)
         self.assertEqual(self.fake_template['steps'], template.steps)
+        self.assertEqual(self.fake_template['extra'], template.extra)
 
     @mock.patch.object(dbapi.IMPL, 'get_deploy_template_list', autospec=True)
     def test_list(self, mock_list):
@@ -120,6 +124,7 @@ class TestDeployTemplateObject(db_base.DbTestCase, obj_utils.SchemasTestMixIn):
         self.assertEqual(self.fake_template['name'], templates[0].name)
         self.assertEqual(self.fake_template['uuid'], templates[0].uuid)
         self.assertEqual(self.fake_template['steps'], templates[0].steps)
+        self.assertEqual(self.fake_template['extra'], templates[0].extra)
 
     @mock.patch.object(dbapi.IMPL, 'get_deploy_template_list_by_names',
                        autospec=True)
@@ -134,6 +139,7 @@ class TestDeployTemplateObject(db_base.DbTestCase, obj_utils.SchemasTestMixIn):
         self.assertEqual(self.fake_template['name'], templates[0].name)
         self.assertEqual(self.fake_template['uuid'], templates[0].uuid)
         self.assertEqual(self.fake_template['steps'], templates[0].steps)
+        self.assertEqual(self.fake_template['extra'], templates[0].extra)
 
     @mock.patch.object(dbapi.IMPL, 'get_deploy_template_by_uuid',
                        autospec=True)
