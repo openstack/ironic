@@ -31,7 +31,7 @@ class StreamingDownloader(object):
         else:
             self.hasher = None
         self.chunksize = chunksize
-        resp = requests.get(url, stream=True, verify=verify, certs=certs)
+        resp = requests.get(url, stream=True, verify=verify, cert=certs)
         if resp.status_code != 200:
             raise Exception('Invalid response code: %s' % resp.status_code)
 

@@ -1,0 +1,4 @@
+---
+fixes:
+    - Fixes an issue with the ansible deployment interface where raw images
+      could not be streamed correctly to the host.
