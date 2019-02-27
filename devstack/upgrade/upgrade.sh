@@ -71,6 +71,11 @@ stack_install_service ironic
 # calls upgrade-ironic for specific release
 upgrade_project ironic $RUN_DIR $BASE_DEVSTACK_BRANCH $TARGET_DEVSTACK_BRANCH
 
+# NOTE(rloo): make sure it is OK to do an upgrade. Except that we aren't
+# parsing/checking the output of this command because the output could change
+# based on the checks it makes.
+$IRONIC_BIN_DIR/ironic-status upgrade check
+
 $IRONIC_BIN_DIR/ironic-dbsync --config-file=$IRONIC_CONF_FILE
 
 # NOTE(vsaienko) pin_release only on multinode job, for cold upgrade (single node)

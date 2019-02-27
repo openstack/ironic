@@ -36,28 +36,38 @@ class OnlineMigrationTestCase(db_base.DbTestCase):
         self.context = context.get_admin_context()
         self.db_cmds = dbsync.DBCommand()
 
-    def test__check_versions(self):
+    def test_check_obj_versions(self):
         with mock.patch.object(self.dbapi, 'check_versions',
                                autospec=True) as mock_check_versions:
             mock_check_versions.return_value = True
-            self.db_cmds._check_versions()
+            msg = self.db_cmds.check_obj_versions()
+            self.assertIsNone(msg)
             mock_check_versions.assert_called_once_with(ignore_models=())
 
-    def test__check_versions_bad(self):
+    def test_check_obj_versions_bad(self):
         with mock.patch.object(self.dbapi, 'check_versions',
                                autospec=True) as mock_check_versions:
             mock_check_versions.return_value = False
-            exit = self.assertRaises(SystemExit, self.db_cmds._check_versions)
+            msg = self.db_cmds.check_obj_versions()
+            self.assertIsNotNone(msg)
             mock_check_versions.assert_called_once_with(ignore_models=())
-            self.assertEqual(2, exit.code)
 
-    def test__check_versions_ignore_models(self):
+    def test_check_obj_versions_ignore_models(self):
         with mock.patch.object(self.dbapi, 'check_versions',
                                autospec=True) as mock_check_versions:
             mock_check_versions.return_value = True
-            self.db_cmds._check_versions(True)
+            msg = self.db_cmds.check_obj_versions(ignore_missing_tables=True)
+            self.assertIsNone(msg)
             mock_check_versions.assert_called_once_with(
                 ignore_models=dbsync.NEW_MODELS)
+
+    @mock.patch.object(dbsync.DBCommand, 'check_obj_versions', autospec=True)
+    def test_check_versions_bad(self, mock_check_versions):
+        mock_check_versions.return_value = 'This is bad'
+        exit = self.assertRaises(SystemExit, self.db_cmds._check_versions)
+        mock_check_versions.assert_called_once_with(
+            mock.ANY, ignore_missing_tables=False)
+        self.assertEqual(2, exit.code)
 
     @mock.patch.object(dbsync, 'ONLINE_MIGRATIONS', autospec=True)
     def test__run_migration_functions(self, mock_migrations):
