@@ -20,7 +20,8 @@ from ironic.objects import fields as object_fields
 @base.IronicObjectRegistry.register
 class DeployTemplate(base.IronicObject, object_base.VersionedObjectDictCompat):
     # Version 1.0: Initial version
-    VERSION = '1.0'
+    # Version 1.1: Added 'extra' field
+    VERSION = '1.1'
 
     dbapi = db_api.get_instance()
 
@@ -29,6 +30,7 @@ class DeployTemplate(base.IronicObject, object_base.VersionedObjectDictCompat):
         'uuid': object_fields.UUIDField(nullable=False),
         'name': object_fields.StringField(nullable=False),
         'steps': object_fields.ListOfFlexibleDictsField(nullable=False),
+        'extra': object_fields.FlexibleDictField(nullable=True),
     }
 
     # NOTE(mgoddard): We don't want to enable RPC on this call just yet.

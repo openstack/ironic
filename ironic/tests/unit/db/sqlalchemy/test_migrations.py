@@ -954,6 +954,16 @@ class MigrationCheckersMixin(object):
         # Insert another step for the same template.
         deploy_template_steps.insert().execute(step)
 
+    def _check_1e15e7122cc9(self, engine, data):
+        # Deploy template 'extra' field.
+        deploy_templates = db_utils.get_table(engine, 'deploy_templates')
+        col_names = [column.name for column in deploy_templates.c]
+        expected = ['created_at', 'updated_at', 'version',
+                    'id', 'uuid', 'name', 'extra']
+        self.assertEqual(sorted(expected), sorted(col_names))
+        self.assertIsInstance(deploy_templates.c.extra.type,
+                              sqlalchemy.types.TEXT)
+
     def test_upgrade_and_version(self):
         with patch_with_engine(self.engine):
             self.migration_api.upgrade('head')
