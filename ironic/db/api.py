@@ -1185,7 +1185,7 @@ class Connection(object):
         """
 
     @abc.abstractmethod
-    def create_deploy_template(self, values, version):
+    def create_deploy_template(self, values):
         """Create a deployment template.
 
         :param values: A dict describing the deployment template. For example:
@@ -1196,7 +1196,6 @@ class Connection(object):
                        'uuid': uuidutils.generate_uuid(),
                        'name': 'CUSTOM_DT1',
                       }
-        :param version: the version of the object.DeployTemplate.
         :raises: DeployTemplateDuplicateName if a deploy template with the same
             name exists.
         :raises: DeployTemplateAlreadyExists if a deploy template with the same

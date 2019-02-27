@@ -37,7 +37,6 @@ class TestDeployTemplateObject(db_base.DbTestCase, obj_utils.SchemasTestMixIn):
         template.create()
 
         args, _kwargs = mock_create.call_args
-        self.assertEqual(objects.DeployTemplate.VERSION, args[0]['version'])
         self.assertEqual(1, mock_create.call_count)
 
         self.assertEqual(self.fake_template['name'], template.name)

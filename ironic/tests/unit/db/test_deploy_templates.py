@@ -61,7 +61,7 @@ class DbDeployTemplateTestCase(base.DbTestCase):
         del template['steps'][0]['interface']
         self.assertRaises(db_exc.DBError,
                           self.dbapi.create_deploy_template,
-                          template, None)
+                          template)
 
     def test_update_name(self):
         values = {'name': 'CUSTOM_DT2'}
@@ -147,8 +147,9 @@ class DbDeployTemplateTestCase(base.DbTestCase):
     def test_get_deploy_template_by_uuid(self):
         res = self.dbapi.get_deploy_template_by_uuid(self.template.uuid)
         self.assertEqual(self.template.id, res.id)
+        invalid_uuid = uuidutils.generate_uuid()
         self.assertRaises(exception.DeployTemplateNotFound,
-                          self.dbapi.get_deploy_template_by_uuid, -1)
+                          self.dbapi.get_deploy_template_by_uuid, invalid_uuid)
 
     def test_get_deploy_template_by_name(self):
         res = self.dbapi.get_deploy_template_by_name(self.template.name)

@@ -624,13 +624,14 @@ def create_test_allocation(**kw):
 
 
 def get_test_deploy_template(**kw):
+    default_uuid = uuidutils.generate_uuid()
     return {
         'version': kw.get('version', deploy_template.DeployTemplate.VERSION),
         'created_at': kw.get('created_at'),
         'updated_at': kw.get('updated_at'),
         'id': kw.get('id', 234),
         'name': kw.get('name', u'CUSTOM_DT1'),
-        'uuid': kw.get('uuid', 'aa75a317-2929-47d4-b676-fd9bff578bf1'),
+        'uuid': kw.get('uuid', default_uuid),
         'steps': kw.get('steps', [get_test_deploy_template_step(
             deploy_template_id=kw.get('id', 234))]),
     }
@@ -668,4 +669,4 @@ def create_test_deploy_template(**kw):
         for kw_step, template_step in zip(kw['steps'], template['steps']):
             if 'id' not in kw_step:
                 del template_step['id']
-    return dbapi.create_deploy_template(template, template['version'])
+    return dbapi.create_deploy_template(template)

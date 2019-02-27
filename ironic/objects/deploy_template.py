@@ -51,8 +51,7 @@ class DeployTemplate(base.IronicObject, object_base.VersionedObjectDictCompat):
             UUID exists.
         """
         values = self.do_version_changes_for_db()
-        db_template = self.dbapi.create_deploy_template(
-            values, values['version'])
+        db_template = self.dbapi.create_deploy_template(values)
         self._from_db_object(self._context, self, db_template)
 
     # NOTE(mgoddard): We don't want to enable RPC on this call just yet.
