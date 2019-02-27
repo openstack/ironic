@@ -159,7 +159,8 @@ class DracInspectionTestCase(test_utils.BaseDracTest):
             'memory_mb': 32768,
             'local_gb': 1116,
             'cpus': 18,
-            'cpu_arch': 'x86_64'}
+            'cpu_arch': 'x86_64',
+            'capabilities': 'boot_mode:uefi'}
         mock_client = mock.Mock()
         mock_get_drac_client.return_value = mock_client
         mock_client.list_memory.return_value = self.memory
@@ -188,6 +189,7 @@ class DracInspectionTestCase(test_utils.BaseDracTest):
         mock_client.list_cpus.return_value = self.cpus
         mock_client.list_virtual_disks.side_effect = (
             drac_exceptions.BaseClientException('boom'))
+        mock_client.list_bios_settings.return_value = self.bios_boot_settings
 
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
@@ -203,7 +205,8 @@ class DracInspectionTestCase(test_utils.BaseDracTest):
             'memory_mb': 32768,
             'local_gb': 279,
             'cpus': 18,
-            'cpu_arch': 'x86_64'}
+            'cpu_arch': 'x86_64',
+            'capabilities': 'boot_mode:uefi'}
         mock_client = mock.Mock()
         mock_get_drac_client.return_value = mock_client
         mock_client.list_memory.return_value = self.memory
@@ -234,6 +237,7 @@ class DracInspectionTestCase(test_utils.BaseDracTest):
         mock_client.list_virtual_disks.return_value = []
         mock_client.list_physical_disks.return_value = self.physical_disks
         mock_client.list_nics.return_value = self.nics
+        mock_client.list_bios_settings.return_value = self.uefi_boot_settings
 
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
@@ -249,7 +253,8 @@ class DracInspectionTestCase(test_utils.BaseDracTest):
             'memory_mb': 32768,
             'local_gb': 1116,
             'cpus': 18,
-            'cpu_arch': 'x86_64'}
+            'cpu_arch': 'x86_64',
+            'capabilities': 'boot_mode:uefi'}
         mock_client = mock.Mock()
         mock_get_drac_client.return_value = mock_client
         mock_client.list_memory.return_value = self.memory

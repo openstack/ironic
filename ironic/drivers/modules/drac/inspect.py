@@ -23,6 +23,7 @@ from oslo_utils import units
 from ironic.common import exception
 from ironic.common.i18n import _
 from ironic.common import states
+from ironic.common import utils
 from ironic.drivers import base
 from ironic.drivers.modules.drac import common as drac_common
 from ironic import objects
@@ -83,6 +84,14 @@ class DracInspect(base.InspectInterface):
                 properties['cpus'] = sum(
                     [self._calculate_cpus(cpu) for cpu in cpus])
                 properties['cpu_arch'] = 'x86_64' if cpus[0].arch64 else 'x86'
+
+            bios_settings = client.list_bios_settings()
+            current_capabilities = node.properties.get('capabilities', '')
+            new_capabilities = {
+                'boot_mode': bios_settings["BootMode"].current_value.lower()}
+            capabilties = utils.get_updated_capabilities(current_capabilities,
+                                                         new_capabilities)
+            properties['capabilities'] = capabilties
 
             virtual_disks = client.list_virtual_disks()
             root_disk = self._guess_root_disk(virtual_disks)
