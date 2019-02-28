@@ -245,15 +245,17 @@ class IloInspect(base.InspectInterface):
 
         # RIBCL(Gen8) protocol cannot determine if a NIC
         # is physically connected with cable or not when the server
-        # is not provisioned. However it is possible to determine
-        # the same using RIS(Gen9) and Redfish(Gen10) protocols.
-        # Hence proliantutils return ALL MACs for Gen8 while returns
-        # only active MACs for Gen9 and Gen10. A warning is been added
+        # is not provisioned. RIS(Gen9) can detect the same for few NIC
+        # adapters but not for all. However it is possible to determine
+        # the same using Redfish(Gen10) protocol. Hence proliantutils
+        # returns ALL MACs for Gen8 and Gen9 while it returns
+        # only active MACs for Gen10. A warning is being added
         # for the user so that he knows that he needs to remove the
-        # ironic ports created for inactive ports for Gen8.
-        if model is not None and 'Gen8' in model:
+        # ironic ports created for inactive ports for Gen8 and Gen9.
+        servers = ['Gen8', 'Gen9']
+        if model is not None and any(serv in model for serv in servers):
             LOG.warning('iLO cannot determine if the NICs are physically '
-                        'connected or not for ProLiant Gen8 servers. '
+                        'connected or not for ProLiant Gen8 and Gen9 servers. '
                         'Hence returns all the MACs present on the server. '
                         'Please remove the ironic ports created for inactive '
                         'NICs manually for the node %(node)',
