@@ -44,6 +44,10 @@ UCS_TO_IRONIC_BOOT_DEVICE = {
 
 class UcsManagement(base.ManagementInterface):
 
+    # NOTE(TheJulia): Deprecated due to a lack of operating third party
+    # CI, which stopped reporting during the Stein development cycle.
+    supported = False
+
     def get_properties(self):
         return ucs_helper.COMMON_PROPERTIES
 

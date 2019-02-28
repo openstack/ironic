@@ -81,6 +81,10 @@ def _wait_for_state_change(target_state, task):
 
 class Power(base.PowerInterface):
 
+    # NOTE(TheJulia): Deprecated due to a lack of operating third party
+    # CI, which stopped reporting during the Stein development cycle.
+    supported = False
+
     def get_properties(self):
         """Return the properties of the interface.
 

@@ -1,0 +1,11 @@
+---
+deprecations:
+  - |
+    The Cisco ``cisco-ucs-managed`` and ``cisco-ucs-standalone`` drivers have
+    been deprecated due to a lack of reporting third-party CI and vendor
+    maintenance of the driver code. In the present state of these drivers,
+    they would have been removed as part of the eventual removal of support
+    for Python2. These drivers should be anticipated to be removed prior to
+    the final Train release of the Bare Metal service. More information
+    can be found
+    `here <http://lists.openstack.org/pipermail/openstack-discuss/2019-February/002460.html>`_.

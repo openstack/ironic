@@ -74,6 +74,9 @@ class Power(base.PowerInterface):
     This PowerInterface class provides a mechanism for controlling the
     power state of servers managed by Cisco UCS Manager.
     """
+    # NOTE(TheJulia): Deprecated due to a lack of operating third party
+    # CI, which stopped reporting during the Stein development cycle.
+    supported = False
 
     def get_properties(self):
         """Returns common properties of the driver."""
