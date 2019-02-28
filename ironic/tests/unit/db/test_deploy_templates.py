@@ -100,6 +100,15 @@ class DbDeployTemplateTestCase(base.DbTestCase):
         self.assertEqual({}, step1.args)
         self.assertEqual(50, step1.priority)
 
+    def test_update_steps_replace_args(self):
+        step = self.template.steps[0]
+        step['args'] = {'foo': 'bar'}
+        values = {'steps': [step]}
+        template = self.dbapi.update_deploy_template(self.template.id, values)
+        self.assertEqual(1, len(template.steps))
+        step = template.steps[0]
+        self.assertEqual({'foo': 'bar'}, step.args)
+
     def test_update_steps_remove_all(self):
         values = {'steps': []}
         template = self.dbapi.update_deploy_template(self.template.id, values)
