@@ -116,7 +116,8 @@ class DeployTemplate(base.APIBase):
 
         # The name must also be a valid trait.
         api_utils.validate_trait(
-            value.name, _("Deploy template name must be a valid trait"))
+            value.name,
+            error_prefix=_("Deploy template name must be a valid trait"))
 
         # There must be at least one step.
         if not value.steps:
@@ -393,12 +394,9 @@ class DeployTemplatesController(rest.RestController):
         rpc_template = api_utils.get_rpc_deploy_template_with_suffix(
             template_ident)
 
-        try:
-            template_dict = rpc_template.as_dict()
-            template = DeployTemplate(
-                **api_utils.apply_jsonpatch(template_dict, patch))
-        except api_utils.JSONPATCH_EXCEPTIONS as e:
-            raise exception.PatchError(patch=patch, reason=e)
+        template_dict = rpc_template.as_dict()
+        template = DeployTemplate(
+            **api_utils.apply_jsonpatch(template_dict, patch))
         template.validate(template)
         self._update_changed_fields(template, rpc_template)
 

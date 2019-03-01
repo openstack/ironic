@@ -42,10 +42,10 @@ from ironic import objects
 CONF = cfg.CONF
 
 
-JSONPATCH_EXCEPTIONS = (jsonpatch.JsonPatchException,
-                        jsonpatch.JsonPointerException,
-                        KeyError,
-                        IndexError)
+_JSONPATCH_EXCEPTIONS = (jsonpatch.JsonPatchException,
+                         jsonpatch.JsonPointerException,
+                         KeyError,
+                         IndexError)
 
 
 # Minimum API version to use for certain verbs
@@ -96,7 +96,7 @@ def validate_sort_dir(sort_dir):
     return sort_dir
 
 
-def validate_trait(trait, error_prefix='Invalid trait'):
+def validate_trait(trait, error_prefix=_('Invalid trait')):
     error = wsme.exc.ClientSideError(
         _('%(error_prefix)s. A valid trait must be no longer than 255 '
           'characters. Standard traits are defined in the os_traits library. '
@@ -117,13 +117,32 @@ def validate_trait(trait, error_prefix='Invalid trait'):
 
 
 def apply_jsonpatch(doc, patch):
+    """Apply a JSON patch, one operation at a time.
+
+    If the patch fails to apply, this allows us to determine which operation
+    failed, making the error message a little less cryptic.
+
+    :param doc: The JSON document to patch.
+    :param patch: The JSON patch to apply.
+    :returns: The result of the patch operation.
+    :raises: PatchError if the patch fails to apply.
+    :raises: wsme.exc.ClientSideError if the patch adds a new root attribute.
+    """
+    # Prevent removal of root attributes.
     for p in patch:
         if p['op'] == 'add' and p['path'].count('/') == 1:
             if p['path'].lstrip('/') not in doc:
                 msg = _('Adding a new attribute (%s) to the root of '
                         'the resource is not allowed')
                 raise wsme.exc.ClientSideError(msg % p['path'])
-    return jsonpatch.apply_patch(doc, jsonpatch.JsonPatch(patch))
+
+    # Apply operations one at a time, to improve error reporting.
+    for patch_op in patch:
+        try:
+            doc = jsonpatch.apply_patch(doc, jsonpatch.JsonPatch([patch_op]))
+        except _JSONPATCH_EXCEPTIONS as e:
+            raise exception.PatchError(patch=patch_op, reason=e)
+    return doc
 
 
 def get_patch_values(patch, path):

@@ -545,17 +545,14 @@ class PortgroupsController(pecan.rest.RestController):
                 raise wsme.exc.ClientSideError(
                     error_msg, status_code=http_client.BAD_REQUEST)
 
-        try:
-            portgroup_dict = rpc_portgroup.as_dict()
-            # NOTE:
-            # 1) Remove node_id because it's an internal value and
-            #    not present in the API object
-            # 2) Add node_uuid
-            portgroup_dict['node_uuid'] = portgroup_dict.pop('node_id', None)
-            portgroup = Portgroup(**api_utils.apply_jsonpatch(portgroup_dict,
-                                                              patch))
-        except api_utils.JSONPATCH_EXCEPTIONS as e:
-            raise exception.PatchError(patch=patch, reason=e)
+        portgroup_dict = rpc_portgroup.as_dict()
+        # NOTE:
+        # 1) Remove node_id because it's an internal value and
+        #    not present in the API object
+        # 2) Add node_uuid
+        portgroup_dict['node_uuid'] = portgroup_dict.pop('node_id', None)
+        portgroup = Portgroup(**api_utils.apply_jsonpatch(portgroup_dict,
+                                                          patch))
 
         api_utils.handle_patch_port_like_extra_vif(rpc_portgroup, portgroup,
                                                    patch)

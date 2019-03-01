@@ -1078,7 +1078,7 @@ class NodeDeployStepsTestCase(db_base.DbTestCase):
         traits = ['CUSTOM_DT1', 'CUSTOM_DT2']
         node = obj_utils.create_test_node(
             self.context, uuid=uuidutils.generate_uuid(),
-            driver='fake-hardware', instance_info={'traits': traits})
+            instance_info={'traits': traits})
         template1 = obj_utils.get_test_deploy_template(self.context)
         template2 = obj_utils.get_test_deploy_template(
             self.context, name='CUSTOM_DT2', uuid=uuidutils.generate_uuid(),
@@ -1092,15 +1092,12 @@ class NodeDeployStepsTestCase(db_base.DbTestCase):
             self.assertEqual(expected, templates)
             mock_list.assert_called_once_with(task.context, traits)
 
-    @mock.patch.object(conductor_utils, '_get_deployment_templates',
-                       autospec=True)
-    def test__get_steps_from_deployment_templates(self, mock_templates):
+    def test__get_steps_from_deployment_templates(self):
         template1 = obj_utils.get_test_deploy_template(self.context)
         template2 = obj_utils.get_test_deploy_template(
             self.context, name='CUSTOM_DT2', uuid=uuidutils.generate_uuid(),
             steps=[{'interface': 'bios', 'step': 'apply_configuration',
                     'args': {}, 'priority': 1}])
-        mock_templates.return_value = [template1, template2]
         step1 = template1.steps[0]
         step2 = template2.steps[0]
         expected = [
@@ -1119,24 +1116,25 @@ class NodeDeployStepsTestCase(db_base.DbTestCase):
         ]
         with task_manager.acquire(
                 self.context, self.node.uuid, shared=False) as task:
-            steps = conductor_utils._get_steps_from_deployment_templates(task)
+            steps = conductor_utils._get_steps_from_deployment_templates(
+                task, [template1, template2])
             self.assertEqual(expected, steps)
-            mock_templates.assert_called_once_with(task)
 
-    @mock.patch.object(conductor_utils, '_get_steps_from_deployment_templates',
+    @mock.patch.object(conductor_utils, '_get_validated_steps_from_templates',
                        autospec=True)
     @mock.patch.object(conductor_utils, '_get_deployment_steps', autospec=True)
     def _test__get_all_deployment_steps(self, user_steps, driver_steps,
-                                        expected_steps, mock_gds, mock_gsfdt):
-        mock_gsfdt.return_value = user_steps
-        mock_gds.return_value = driver_steps
+                                        expected_steps, mock_steps,
+                                        mock_validated):
+        mock_validated.return_value = user_steps
+        mock_steps.return_value = driver_steps
 
         with task_manager.acquire(
                 self.context, self.node.uuid, shared=False) as task:
             steps = conductor_utils._get_all_deployment_steps(task)
             self.assertEqual(expected_steps, steps)
-            mock_gsfdt.assert_called_once_with(task)
-            mock_gds.assert_called_once_with(task, enabled=True, sort=False)
+            mock_validated.assert_called_once_with(task)
+            mock_steps.assert_called_once_with(task, enabled=True, sort=False)
 
     def test__get_all_deployment_steps_no_steps(self):
         # Nothing in -> nothing out.
@@ -1205,6 +1203,19 @@ class NodeDeployStepsTestCase(db_base.DbTestCase):
         expected_steps = user_steps + self.deploy_steps[1:]
         self._test__get_all_deployment_steps(user_steps, driver_steps,
                                              expected_steps)
+
+    @mock.patch.object(conductor_utils, '_get_validated_steps_from_templates',
+                       autospec=True)
+    @mock.patch.object(conductor_utils, '_get_deployment_steps', autospec=True)
+    def test__get_all_deployment_steps_error(self, mock_steps, mock_validated):
+        mock_validated.side_effect = exception.InvalidParameterValue('foo')
+
+        with task_manager.acquire(
+                self.context, self.node.uuid, shared=False) as task:
+            self.assertRaises(exception.InvalidParameterValue,
+                              conductor_utils._get_all_deployment_steps, task)
+            mock_validated.assert_called_once_with(task)
+            self.assertFalse(mock_steps.called)
 
     @mock.patch.object(conductor_utils, '_get_all_deployment_steps',
                        autospec=True)
@@ -1280,7 +1291,7 @@ class NodeDeployStepsTestCase(db_base.DbTestCase):
 
         with task_manager.acquire(self.context, self.node.uuid) as task:
             self.assertRaisesRegex(exception.InvalidParameterValue,
-                                   "power_one.*invalid.*arg1",
+                                   "power_one.*unexpected.*arg1",
                                    conductor_utils._validate_user_deploy_steps,
                                    task, user_steps)
             mock_steps.assert_called_once_with(task, enabled=False, sort=False)
@@ -1356,7 +1367,7 @@ class NodeDeployStepsTestCase(db_base.DbTestCase):
 
         with task_manager.acquire(self.context, self.node.uuid) as task:
             self.assertRaisesRegex(exception.InvalidParameterValue,
-                                   "duplicate deploy steps for "
+                                   "Duplicate deploy steps for "
                                    "power.power_one",
                                    conductor_utils._validate_user_deploy_steps,
                                    task, user_steps)
@@ -1560,7 +1571,7 @@ class NodeCleaningStepsTestCase(db_base.DbTestCase):
 
         with task_manager.acquire(self.context, node.uuid) as task:
             self.assertRaisesRegex(exception.InvalidParameterValue,
-                                   "update_firmware.*invalid.*arg1",
+                                   "update_firmware.*unexpected.*arg1",
                                    conductor_utils._validate_user_clean_steps,
                                    task, user_steps)
             mock_steps.assert_called_once_with(task, enabled=False, sort=False)
@@ -2455,9 +2466,55 @@ class ValidateInstanceInfoTraitsTestCase(tests_base.TestCase):
                                self.node)
 
 
+@mock.patch.object(conductor_utils, '_get_deployment_templates',
+                   autospec=True)
 @mock.patch.object(conductor_utils, '_get_steps_from_deployment_templates',
                    autospec=True)
 @mock.patch.object(conductor_utils, '_validate_user_deploy_steps',
+                   autospec=True)
+class GetValidatedStepsFromTemplatesTestCase(db_base.DbTestCase):
+
+    def setUp(self):
+        super(GetValidatedStepsFromTemplatesTestCase, self).setUp()
+        self.node = obj_utils.create_test_node(self.context,
+                                               driver='fake-hardware')
+        self.template = obj_utils.get_test_deploy_template(self.context)
+
+    def test_ok(self, mock_validate, mock_steps, mock_templates):
+        mock_templates.return_value = [self.template]
+        steps = [db_utils.get_test_deploy_template_step()]
+        mock_steps.return_value = steps
+        mock_validate.return_value = steps
+        with task_manager.acquire(
+                self.context, self.node.uuid, shared=False) as task:
+            result = conductor_utils._get_validated_steps_from_templates(task)
+            self.assertEqual(steps, result)
+            mock_templates.assert_called_once_with(task)
+            mock_steps.assert_called_once_with(task, [self.template])
+            mock_validate.assert_called_once_with(task, steps, mock.ANY)
+
+    def test_invalid_parameter_value(self, mock_validate, mock_steps,
+                                     mock_templates):
+        mock_templates.return_value = [self.template]
+        mock_validate.side_effect = exception.InvalidParameterValue('fake')
+        with task_manager.acquire(
+                self.context, self.node.uuid, shared=False) as task:
+            self.assertRaises(
+                exception.InvalidParameterValue,
+                conductor_utils._get_validated_steps_from_templates, task)
+
+    def test_instance_deploy_failure(self, mock_validate, mock_steps,
+                                     mock_templates):
+        mock_templates.return_value = [self.template]
+        mock_validate.side_effect = exception.InstanceDeployFailure('foo')
+        with task_manager.acquire(
+                self.context, self.node.uuid, shared=False) as task:
+            self.assertRaises(
+                exception.InstanceDeployFailure,
+                conductor_utils._get_validated_steps_from_templates, task)
+
+
+@mock.patch.object(conductor_utils, '_get_validated_steps_from_templates',
                    autospec=True)
 class ValidateDeployTemplatesTestCase(db_base.DbTestCase):
 
@@ -2466,26 +2523,17 @@ class ValidateDeployTemplatesTestCase(db_base.DbTestCase):
         self.node = obj_utils.create_test_node(self.context,
                                                driver='fake-hardware')
 
-    def test_validate_deploy_templates(self, mock_validate, mock_get):
-        steps = [db_utils.get_test_deploy_template_step()]
-        mock_get.return_value = steps
+    def test_ok(self, mock_validated):
         with task_manager.acquire(
                 self.context, self.node.uuid, shared=False) as task:
-            conductor_utils.validate_deploy_templates(task)
-            mock_validate.assert_called_once_with(task, steps)
+            result = conductor_utils.validate_deploy_templates(task)
+            self.assertIsNone(result)
+            mock_validated.assert_called_once_with(task)
 
-    def test_validate_deploy_templates_invalid_parameter_value(
-            self, mock_validate, mock_get):
-        mock_validate.side_effect = exception.InvalidParameterValue('fake')
+    def test_error(self, mock_validated):
         with task_manager.acquire(
                 self.context, self.node.uuid, shared=False) as task:
+            mock_validated.side_effect = exception.InvalidParameterValue('foo')
             self.assertRaises(exception.InvalidParameterValue,
                               conductor_utils.validate_deploy_templates, task)
-
-    def test_validate_deploy_templates_instance_deploy_failure(
-            self, mock_validate, mock_get):
-        mock_validate.side_effect = exception.InstanceDeployFailure('foo')
-        with task_manager.acquire(
-                self.context, self.node.uuid, shared=False) as task:
-            self.assertRaises(exception.InstanceDeployFailure,
-                              conductor_utils.validate_deploy_templates, task)
+            mock_validated.assert_called_once_with(task)

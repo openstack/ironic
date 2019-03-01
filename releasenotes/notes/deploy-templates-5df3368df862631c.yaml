@@ -5,8 +5,8 @@ features:
     the node deployment process, each specifying a list of deploy steps to
     execute with configurable priority and arguments.
 
-    Introduces the following new API endpoints, available from Bare Metal REST
-    API version 1.55:
+    Introduces the following new API endpoints, available from Bare Metal API
+    version 1.55:
 
     * ``GET /v1/deploy_templates``
     * ``GET /v1/deploy_templates/<deploy template identifier>``

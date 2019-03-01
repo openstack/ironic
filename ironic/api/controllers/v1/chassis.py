@@ -325,12 +325,8 @@ class ChassisController(rest.RestController):
         policy.authorize('baremetal:chassis:update', cdict, cdict)
 
         rpc_chassis = objects.Chassis.get_by_uuid(context, chassis_uuid)
-        try:
-            chassis = Chassis(
-                **api_utils.apply_jsonpatch(rpc_chassis.as_dict(), patch))
-
-        except api_utils.JSONPATCH_EXCEPTIONS as e:
-            raise exception.PatchError(patch=patch, reason=e)
+        chassis = Chassis(
+            **api_utils.apply_jsonpatch(rpc_chassis.as_dict(), patch))
 
         # Update only the fields that have changed
         for field in objects.Chassis.fields:
