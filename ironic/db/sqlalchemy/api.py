@@ -16,6 +16,7 @@
 
 import collections
 import datetime
+import json
 import threading
 
 from oslo_db import api as oslo_db_api
@@ -1848,7 +1849,11 @@ class Connection(api.Connection):
 
         def _step_key(step):
             """Compare two deploy template steps."""
-            return step.interface, step.step, step.args, step.priority
+            # NOTE(mgoddard): In python 3, dicts are not orderable so cannot be
+            # used as a sort key. Serialise the step arguments to a JSON string
+            # for comparison. Taken from https://stackoverflow.com/a/22003440.
+            sortable_args = json.dumps(step.args, sort_keys=True)
+            return step.interface, step.step, sortable_args, step.priority
 
         # List all existing steps for the template.
         current_steps = (model_query(models.DeployTemplateStep)
