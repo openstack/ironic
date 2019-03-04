@@ -1955,9 +1955,10 @@ class ValidateImagePropertiesTestCase(db_base.DbTestCase):
             driver_internal_info=DRV_INTERNAL_INFO_DICT,
         )
         inst_info = utils.get_image_instance_info(node)
-        self.assertRaises(exception.InvalidParameterValue,
-                          utils.validate_image_properties, self.context,
-                          inst_info, ['kernel', 'ramdisk'])
+        self.assertRaisesRegex(exception.InvalidParameterValue,
+                               'HTTPError',
+                               utils.validate_image_properties, self.context,
+                               inst_info, ['kernel', 'ramdisk'])
 
 
 class ValidateParametersTestCase(db_base.DbTestCase):

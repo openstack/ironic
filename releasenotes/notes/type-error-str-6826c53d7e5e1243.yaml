@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    Returns the correct error message on providing an invalid reference to
+    ``image_source``. Previously an internal error was raised.
