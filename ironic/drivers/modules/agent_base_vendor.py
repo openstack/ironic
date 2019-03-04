@@ -723,8 +723,24 @@ class AgentDeployMixin(HeartbeatMixin):
         """
         node = task.node
         LOG.debug('Configuring local boot for node %s', node.uuid)
-        if not node.driver_internal_info.get(
-                'is_whole_disk_image') and root_uuid:
+
+        # If the target RAID configuration is set to 'software' for the
+        # 'controller', we need to trigger the installation of grub on
+        # the holder disks of the desired Software RAID.
+        internal_info = node.driver_internal_info
+        raid_config = node.target_raid_config
+        logical_disks = raid_config.get('logical_disks', [])
+        software_raid = False
+        for logical_disk in logical_disks:
+            if logical_disk['controller'] == 'software':
+                LOG.debug('Node %s has a Software RAID configuration',
+                          node.uuid)
+                software_raid = True
+                root_uuid = internal_info.get('root_uuid_or_disk_id')
+                break
+
+        whole_disk_image = internal_info.get('is_whole_disk_image')
+        if software_raid or (root_uuid and not whole_disk_image):
             LOG.debug('Installing the bootloader for node %(node)s on '
                       'partition %(part)s, EFI system partition %(efi)s',
                       {'node': node.uuid, 'part': root_uuid,
