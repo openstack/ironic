@@ -816,7 +816,7 @@ def validate_image_properties(ctx, deploy_info, properties):
         raise exception.InvalidParameterValue(_(
             "Image %s can not be found.") % image_href)
     except exception.ImageRefValidationFailed as e:
-        raise exception.InvalidParameterValue(e)
+        raise exception.InvalidParameterValue(err=e)
 
     missing_props = []
     for prop in properties:
