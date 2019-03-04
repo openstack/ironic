@@ -32,13 +32,18 @@ class TestException(exception.IronicException):
 
 
 class TestIronicException(base.TestCase):
-    def test___init__(self):
+    def test___str__encoding(self):
         expected = b'\xc3\xa9\xe0\xaf\xb2\xe0\xbe\x84'
         if six.PY3:
             expected = expected.decode('utf-8')
         message = six.unichr(233) + six.unichr(0x0bf2) + six.unichr(3972)
         exc = exception.IronicException(message)
         self.assertEqual(expected, exc.__str__())
+
+    def test___str__non_string(self):
+        exc = exception.IronicException(42)
+        self.assertEqual("42", exc.__str__())
+        self.assertEqual(u"42", exc.__unicode__())
 
     @mock.patch.object(exception.LOG, 'error', autospec=True)
     def test___init___invalid_kwarg(self, log_mock):
