@@ -853,3 +853,38 @@ class DbNodeTestCase(base.DbTestCase):
                                'Multiple nodes',
                                self.dbapi.get_node_by_port_addresses,
                                addresses)
+
+    def test_check_node_list(self):
+        node1 = utils.create_test_node(uuid=uuidutils.generate_uuid())
+        node2 = utils.create_test_node(uuid=uuidutils.generate_uuid(),
+                                       name='node_2')
+        node3 = utils.create_test_node(uuid=uuidutils.generate_uuid(),
+                                       name='node_3')
+
+        mapping = self.dbapi.check_node_list([node1.uuid, node2.name,
+                                              node3.uuid])
+        self.assertEqual({node1.uuid: node1.uuid,
+                          node2.name: node2.uuid,
+                          node3.uuid: node3.uuid},
+                         mapping)
+
+    def test_check_node_list_non_existing(self):
+        node1 = utils.create_test_node(uuid=uuidutils.generate_uuid())
+        node2 = utils.create_test_node(uuid=uuidutils.generate_uuid(),
+                                       name='node_2')
+        uuid = uuidutils.generate_uuid()
+
+        exc = self.assertRaises(exception.NodeNotFound,
+                                self.dbapi.check_node_list,
+                                [node1.uuid, uuid, 'could-be-a-name',
+                                 node2.name])
+        self.assertIn(uuid, str(exc))
+        self.assertIn('could-be-a-name', str(exc))
+
+    def test_check_node_list_impossible(self):
+        node1 = utils.create_test_node(uuid=uuidutils.generate_uuid())
+
+        exc = self.assertRaises(exception.NodeNotFound,
+                                self.dbapi.check_node_list,
+                                [node1.uuid, 'this/cannot/be/a/name'])
+        self.assertIn('this/cannot/be/a/name', str(exc))
