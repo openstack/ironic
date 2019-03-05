@@ -1,0 +1,12 @@
+---
+features:
+  - Adds option 'allow_deleting_available_nodes' to control whether nodes in
+    state 'available' should be deletable (which is and stays the default).
+    Setting this option to False will remove 'available' from the list of
+    states in which nodes can be deleted from ironic. It hence provides
+    protection against accidental removal of nodes which are ready for
+    allocation (and is meant as a safeguard for the operational effort to
+    bring nodes into this state). For backwards compatibility reasons, the
+    default value for this option is True. The other states in which nodes
+    can be deleted from ironic ('manageable', 'enroll', and 'adoptfail')
+    remain unchanged.

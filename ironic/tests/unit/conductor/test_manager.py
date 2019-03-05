@@ -5090,6 +5090,22 @@ class DestroyNodeTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         node.refresh()
         self.assertIsNone(node.reservation)
 
+    def test_destroy_node_protected_provision_state_available(self):
+        CONF.set_override('allow_deleting_available_nodes',
+                          False, group='conductor')
+        self._start_service()
+        node = obj_utils.create_test_node(self.context,
+                                          provision_state=states.AVAILABLE)
+
+        exc = self.assertRaises(messaging.rpc.ExpectedException,
+                                self.service.destroy_node,
+                                self.context, node.uuid)
+        # Compare true exception hidden by @messaging.expected_exceptions
+        self.assertEqual(exception.InvalidState, exc.exc_info[0])
+        # Verify reservation was released.
+        node.refresh()
+        self.assertIsNone(node.reservation)
+
     def test_destroy_node_protected(self):
         self._start_service()
         node = obj_utils.create_test_node(self.context,

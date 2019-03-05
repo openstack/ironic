@@ -199,6 +199,10 @@ opts = [
                       '255 characters and is case insensitive. This '
                       'conductor will only manage nodes with a matching '
                       '"conductor_group" field set on the node.')),
+    cfg.BoolOpt('allow_deleting_available_nodes',
+                default=True,
+                help=_('Allow deleting nodes which are in state '
+                       '\'available\'. Defaults to True.')),
 ]
 
 
