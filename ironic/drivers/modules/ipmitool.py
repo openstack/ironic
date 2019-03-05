@@ -404,6 +404,43 @@ def _exec_ipmitool_wait(timeout, driver_info, popen_obj):
                     {'node': driver_info['uuid'], 'cmd': popen_obj.cmd})
 
 
+def _get_ipmitool_args(driver_info, pw_file=None):
+    ipmi_version = ('lanplus'
+                    if driver_info['protocol_version'] == '2.0'
+                    else 'lan')
+
+    args = ['ipmitool',
+            '-I', ipmi_version,
+            '-H', driver_info['address'],
+            '-L', driver_info['priv_level']
+            ]
+
+    if driver_info['dest_port']:
+        args.append('-p')
+        args.append(driver_info['dest_port'])
+
+    if driver_info['username']:
+        args.append('-U')
+        args.append(driver_info['username'])
+
+    for name, option in BRIDGING_OPTIONS:
+        if driver_info[name] is not None:
+            args.append(option)
+            args.append(driver_info[name])
+
+    if pw_file:
+        args.append('-f')
+        args.append(pw_file)
+
+    if CONF.debug:
+        args.append('-v')
+
+    # ensure all arguments are strings
+    args = [str(arg) for arg in args]
+
+    return args
+
+
 def _exec_ipmitool(driver_info, command, check_exit_code=None,
                    kill_on_timeout=False):
     """Execute the ipmitool command.
@@ -420,29 +457,7 @@ def _exec_ipmitool(driver_info, command, check_exit_code=None,
     :raises: processutils.ProcessExecutionError from executing the command.
 
     """
-    ipmi_version = ('lanplus'
-                    if driver_info['protocol_version'] == '2.0'
-                    else 'lan')
-    args = ['ipmitool',
-            '-I',
-            ipmi_version,
-            '-H',
-            driver_info['address'],
-            '-L', driver_info['priv_level']
-            ]
-
-    if driver_info['dest_port']:
-        args.append('-p')
-        args.append(driver_info['dest_port'])
-
-    if driver_info['username']:
-        args.append('-U')
-        args.append(driver_info['username'])
-
-    for name, option in BRIDGING_OPTIONS:
-        if driver_info[name] is not None:
-            args.append(option)
-            args.append(driver_info[name])
+    args = _get_ipmitool_args(driver_info)
 
     timeout = CONF.ipmi.command_retry_timeout
 
@@ -1277,13 +1292,7 @@ class IPMIConsole(base.ConsoleInterface):
         :param pw_file: password file to be used in ipmitool command
         :returns: returns a command string for ipmitool
         """
-        user = driver_info.get('username')
-        user = ' -U {}'.format(user) if user else ''
-        return ("ipmitool -H %(address)s -I lanplus"
-                "%(user)s -f %(pwfile)s"
-                % {'address': driver_info['address'],
-                   'user': user,
-                   'pwfile': pw_file})
+        return ' '.join(_get_ipmitool_args(driver_info, pw_file=pw_file))
 
     def _start_console(self, driver_info, start_method):
         """Start a remote console for the node.
@@ -1301,15 +1310,8 @@ class IPMIConsole(base.ConsoleInterface):
         pw_file = console_utils.make_persistent_password_file(
             path, driver_info['password'] or '\0')
         ipmi_cmd = self._get_ipmi_cmd(driver_info, pw_file)
+        ipmi_cmd += ' sol activate'
 
-        for name, option in BRIDGING_OPTIONS:
-            if driver_info[name] is not None:
-                ipmi_cmd = " ".join([ipmi_cmd,
-                                     option, driver_info[name]])
-
-        if CONF.debug:
-            ipmi_cmd += " -v"
-        ipmi_cmd += " sol activate"
         try:
             start_method(driver_info['uuid'], driver_info['port'], ipmi_cmd)
         except (exception.ConsoleError, exception.ConsoleSubprocessFailed):

@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    Fixes the IPMI console implementation to respect all supported IPMI
+    ``driver_info`` and configuration options, particularly ``ipmi_port``.
