@@ -183,17 +183,17 @@ class IloInspectTestCase(test_common.BaseIloTest):
                        autospec=True)
     @mock.patch.object(ilo_common, 'get_ilo_object', spec_set=True,
                        autospec=True)
-    def test_inspect_ok_gen9(self, get_ilo_object_mock,
-                             power_mock,
-                             get_essential_mock,
-                             create_port_mock,
-                             get_capabilities_mock,
-                             log_mock):
+    def test_inspect_ok_gen10(self, get_ilo_object_mock,
+                              power_mock,
+                              get_essential_mock,
+                              create_port_mock,
+                              get_capabilities_mock,
+                              log_mock):
         ilo_object_mock = get_ilo_object_mock.return_value
         properties = {'memory_mb': '512', 'local_gb': 10,
                       'cpus': '1', 'cpu_arch': 'x86_64'}
         macs = {'NIC.LOM.1.1': 'aa:aa:aa:aa:aa:aa'}
-        capabilities = {'server_model': 'Gen9'}
+        capabilities = {'server_model': 'Gen10'}
         result = {'properties': properties, 'macs': macs}
         get_essential_mock.return_value = result
         get_capabilities_mock.return_value = capabilities
@@ -202,7 +202,7 @@ class IloInspectTestCase(test_common.BaseIloTest):
                                   shared=False) as task:
             expected_properties = {'memory_mb': '512', 'local_gb': 10,
                                    'cpus': '1', 'cpu_arch': 'x86_64',
-                                   'capabilities': 'server_model:Gen9'}
+                                   'capabilities': 'server_model:Gen10'}
             task.driver.inspect.inspect_hardware(task)
             self.assertEqual(expected_properties, task.node.properties)
             power_mock.assert_called_once_with(mock.ANY, task)
