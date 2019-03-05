@@ -779,6 +779,20 @@ class IPMIToolPrivateMethodTestCase(Base):
         self.assertRaises(exception.InvalidParameterValue,
                           ipmi._parse_driver_info, node)
 
+    def test__parse_driver_info_ipmi_hex_kg_key(self):
+        info = dict(INFO_DICT)
+        info['ipmi_hex_kg_key'] = 'A115023E08E23F7F8DC4BB443A1A75F160763A43'
+        node = obj_utils.get_test_node(self.context, driver_info=info)
+        ret = ipmi._parse_driver_info(node)
+        self.assertEqual(info['ipmi_hex_kg_key'], ret['hex_kg_key'])
+
+    def test__parse_driver_info_ipmi_hex_kg_key_odd_chars(self):
+        info = dict(INFO_DICT)
+        info['ipmi_hex_kg_key'] = 'A115023E08E23F7F8DC4BB443A1A75F160763A4'
+        node = obj_utils.get_test_node(self.context, driver_info=info)
+        self.assertRaises(exception.InvalidParameterValue,
+                          ipmi._parse_driver_info, node)
+
     def test__parse_driver_info_ipmi_port_valid(self):
         info = dict(INFO_DICT)
         info['ipmi_port'] = '623'

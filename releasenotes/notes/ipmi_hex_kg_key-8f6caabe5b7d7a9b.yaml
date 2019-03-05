@@ -1,0 +1,7 @@
+---
+features:
+  - |
+    New property ``ipmi_hex_kg_key`` for the ipmi based interfaces.
+    The property enables user to set the Kg key for IPMIv2 authentication in
+    hexadecimal format. This value is provided to ``ipmitool`` as
+    the -y argument.
