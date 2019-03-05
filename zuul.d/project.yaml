@@ -30,6 +30,8 @@
             voting: false
         - ironic-inspector-tempest:
             voting: false
+        - ironic-inspector-tempest-discovery-fast-track:
+            voting: false
         - bifrost-integration-tinyipa-ubuntu-xenial:
             voting: false
         - ironic-tempest-pxe_ipmitool-postgres:
