@@ -17,12 +17,15 @@ from oslo_log import log
 from oslo_utils import importutils
 from oslo_utils import units
 
+from ironic.common import boot_modes
 from ironic.common import exception
 from ironic.common.i18n import _
 from ironic.common import states
+from ironic.common import utils
 from ironic.drivers import base
 from ironic.drivers.modules import inspect_utils
 from ironic.drivers.modules.redfish import utils as redfish_utils
+from ironic.drivers import utils as drivers_utils
 
 LOG = log.getLogger(__name__)
 
@@ -35,6 +38,11 @@ if sushy:
         sushy.PROCESSOR_ARCH_ARM: 'arm',
         sushy.PROCESSOR_ARCH_MIPS: 'mips',
         sushy.PROCESSOR_ARCH_OEM: 'oem'
+    }
+
+    BOOT_MODE_MAP = {
+        sushy.BOOT_SOURCE_MODE_UEFI: boot_modes.UEFI,
+        sushy.BOOT_SOURCE_MODE_BIOS: boot_modes.LEGACY_BIOS
     }
 
 
@@ -187,6 +195,14 @@ class RedfishInspect(base.InspectInterface):
                         "for node %(node)s. Assuming this is a disk-less node",
                         {'node': task.node.uuid})
             inspected_properties['local_gb'] = '0'
+
+        if system.boot.mode:
+            if not drivers_utils.get_node_capability(task.node, 'boot_mode'):
+                capabilities = utils.get_updated_capabilities(
+                    inspected_properties.get('capabilities', ''),
+                    {'boot_mode': BOOT_MODE_MAP[system.boot.mode]})
+
+                inspected_properties['capabilities'] = capabilities
 
         valid_keys = self.ESSENTIAL_PROPERTIES
         missing_keys = valid_keys - set(inspected_properties)
