@@ -126,6 +126,9 @@ def _run_playbook(node, name, extra_vars, key, tags=None, notags=None):
     playbook = os.path.join(root, name)
     inventory = os.path.join(root, 'inventory')
     ironic_vars = {'ironic': extra_vars}
+    if CONF.ansible.default_python_interpreter:
+        ironic_vars['ansible_python_interpreter'] = (
+            CONF.ansible.default_python_interpreter)
     args = [CONF.ansible.ansible_playbook_script, playbook,
             '-i', inventory,
             '-e', json.dumps(ironic_vars),

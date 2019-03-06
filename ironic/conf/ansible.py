@@ -134,6 +134,10 @@ opts = [
                       "It may be overridden by per-node "
                       "'ansible_clean_steps_config' option in node's "
                       "'driver_info' field.")),
+    cfg.StrOpt('default_python_interpreter',
+               help=_("Absolute path to the python interpreter on the "
+                      "managed machines. By default, ansible uses "
+                      "/usr/bin/python")),
 ]
 
 

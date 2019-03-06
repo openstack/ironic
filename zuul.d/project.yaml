@@ -11,10 +11,7 @@
     check:
       jobs:
         - ironic-tox-unit-with-driver-libs
-        # making ironic-standalone non voting until we can run ansible
-        # with python3 interpreter on remote machines
-        - ironic-standalone:
-            voting: false
+        - ironic-standalone
         - ironic-tempest-functional-python2
         - ironic-tempest-functional-python3
         - ironic-grenade-dsvm
@@ -40,9 +37,7 @@
       queue: ironic
       jobs:
         - ironic-tox-unit-with-driver-libs
-        # removing ironic-standalone from gate until we can run ansible
-        # with python3 interpreter on remote machines
-        # - ironic-standalone
+        - ironic-standalone
         - ironic-tempest-functional-python2
         - ironic-tempest-functional-python3
         - ironic-grenade-dsvm
