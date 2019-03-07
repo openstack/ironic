@@ -128,10 +128,12 @@ class IronicException(Exception):
 
     def __str__(self):
         """Encode to utf-8 then wsme api can consume it as well."""
-        if not six.PY3:
-            return six.text_type(self.args[0]).encode('utf-8')
-
-        return self.args[0]
+        value = self.__unicode__()
+        if six.PY3:
+            # On Python 3 unicode is the same as str
+            return value
+        else:
+            return value.encode('utf-8')
 
     def __unicode__(self):
         """Return a unicode representation of the exception message."""
