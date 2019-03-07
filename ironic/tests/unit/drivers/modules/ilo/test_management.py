@@ -22,15 +22,20 @@ from ironic.common import boot_devices
 from ironic.common import exception
 from ironic.common import states
 from ironic.conductor import task_manager
+from ironic.conductor import utils as manager_utils
 from ironic.drivers.modules import deploy_utils
 from ironic.drivers.modules.ilo import common as ilo_common
 from ironic.drivers.modules.ilo import management as ilo_management
 from ironic.drivers.modules import ipmitool
 from ironic.drivers import utils as driver_utils
+from ironic.tests.unit.db import base as db_base
+from ironic.tests.unit.db import utils as db_utils
 from ironic.tests.unit.drivers.modules.ilo import test_common
 from ironic.tests.unit.objects import utils as obj_utils
 
 ilo_error = importutils.try_import('proliantutils.exception')
+
+INFO_DICT = db_utils.get_test_ilo_info()
 
 
 class IloManagementTestCase(test_common.BaseIloTest):
@@ -897,3 +902,219 @@ class IloManagementTestCase(test_common.BaseIloTest):
             self.assertRaises(exception.IloOperationNotSupported,
                               task.driver.management.inject_nmi,
                               task)
+
+
+class Ilo5ManagementTestCase(db_base.DbTestCase):
+
+    def setUp(self):
+        super(Ilo5ManagementTestCase, self).setUp()
+        self.driver = mock.Mock(management=ilo_management.Ilo5Management())
+        self.clean_step = {'step': 'erase_devices',
+                           'interface': 'management'}
+        n = {
+            'driver': 'ilo5',
+            'driver_info': INFO_DICT,
+            'clean_step': self.clean_step,
+        }
+        self.config(enabled_hardware_types=['ilo5'],
+                    enabled_boot_interfaces=['ilo-virtual-media'],
+                    enabled_console_interfaces=['ilo'],
+                    enabled_deploy_interfaces=['iscsi'],
+                    enabled_inspect_interfaces=['ilo'],
+                    enabled_management_interfaces=['ilo5'],
+                    enabled_power_interfaces=['ilo'],
+                    enabled_raid_interfaces=['ilo5'])
+        self.node = obj_utils.create_test_node(self.context, **n)
+
+    @mock.patch.object(deploy_utils, 'build_agent_options',
+                       autospec=True)
+    @mock.patch.object(ilo_common, 'get_ilo_object', autospec=True)
+    @mock.patch.object(manager_utils, 'node_power_action', autospec=True)
+    def test_erase_devices_hdd(self, mock_power, ilo_mock, build_agent_mock):
+        ilo_mock_object = ilo_mock.return_value
+        ilo_mock_object.get_available_disk_types.return_value = ['HDD']
+        build_agent_mock.return_value = []
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            result = task.driver.management.erase_devices(task)
+            self.assertTrue(
+                task.node.driver_internal_info.get(
+                    'ilo_disk_erase_hdd_check'))
+            self.assertTrue(
+                task.node.driver_internal_info.get(
+                    'cleaning_reboot'))
+            self.assertFalse(
+                task.node.driver_internal_info.get(
+                    'skip_current_clean_step'))
+            ilo_mock_object.do_disk_erase.assert_called_once_with(
+                'HDD', 'overwrite')
+            self.assertEqual(states.CLEANWAIT, result)
+            mock_power.assert_called_once_with(task, states.REBOOT)
+
+    @mock.patch.object(deploy_utils, 'build_agent_options',
+                       autospec=True)
+    @mock.patch.object(ilo_common, 'get_ilo_object', autospec=True)
+    @mock.patch.object(manager_utils, 'node_power_action', autospec=True)
+    def test_erase_devices_ssd(self, mock_power, ilo_mock, build_agent_mock):
+        ilo_mock_object = ilo_mock.return_value
+        ilo_mock_object.get_available_disk_types.return_value = ['SSD']
+        build_agent_mock.return_value = []
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            result = task.driver.management.erase_devices(task)
+            self.assertTrue(
+                task.node.driver_internal_info.get(
+                    'ilo_disk_erase_ssd_check'))
+            self.assertTrue(
+                task.node.driver_internal_info.get(
+                    'ilo_disk_erase_hdd_check'))
+            self.assertTrue(
+                task.node.driver_internal_info.get(
+                    'cleaning_reboot'))
+            self.assertFalse(
+                task.node.driver_internal_info.get(
+                    'skip_current_clean_step'))
+            ilo_mock_object.do_disk_erase.assert_called_once_with(
+                'SSD', 'block')
+            self.assertEqual(states.CLEANWAIT, result)
+            mock_power.assert_called_once_with(task, states.REBOOT)
+
+    @mock.patch.object(deploy_utils, 'build_agent_options',
+                       autospec=True)
+    @mock.patch.object(ilo_common, 'get_ilo_object', autospec=True)
+    @mock.patch.object(manager_utils, 'node_power_action', autospec=True)
+    def test_erase_devices_ssd_when_hdd_done(self, mock_power, ilo_mock,
+                                             build_agent_mock):
+        build_agent_mock.return_value = []
+        ilo_mock_object = ilo_mock.return_value
+        ilo_mock_object.get_available_disk_types.return_value = ['HDD', 'SSD']
+        self.node.driver_internal_info = {'ilo_disk_erase_hdd_check': True}
+        self.node.save()
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            result = task.driver.management.erase_devices(task)
+            self.assertTrue(
+                task.node.driver_internal_info.get(
+                    'ilo_disk_erase_hdd_check'))
+            self.assertTrue(
+                task.node.driver_internal_info.get(
+                    'ilo_disk_erase_ssd_check'))
+            self.assertTrue(
+                task.node.driver_internal_info.get(
+                    'cleaning_reboot'))
+            self.assertFalse(
+                task.node.driver_internal_info.get(
+                    'skip_current_clean_step'))
+            ilo_mock_object.do_disk_erase.assert_called_once_with(
+                'SSD', 'block')
+            self.assertEqual(states.CLEANWAIT, result)
+            mock_power.assert_called_once_with(task, states.REBOOT)
+
+    @mock.patch.object(ilo_management.LOG, 'info')
+    @mock.patch.object(ilo_management.Ilo5Management,
+                       '_wait_for_disk_erase_status', autospec=True)
+    @mock.patch.object(ilo_common, 'get_ilo_object', autospec=True)
+    def test_erase_devices_completed(self, ilo_mock, disk_status_mock,
+                                     log_mock):
+        ilo_mock_object = ilo_mock.return_value
+        ilo_mock_object.get_available_disk_types.return_value = ['HDD', 'SSD']
+        disk_status_mock.return_value = True
+        self.node.driver_internal_info = {'ilo_disk_erase_hdd_check': True,
+                                          'ilo_disk_erase_ssd_check': True}
+        self.node.save()
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            task.driver.management.erase_devices(task)
+            self.assertFalse(
+                task.node.driver_internal_info.get(
+                    'ilo_disk_erase_hdd_check'))
+            self.assertFalse(
+                task.node.driver_internal_info.get(
+                    'ilo_disk_erase_hdd_check'))
+            self.assertTrue(log_mock.called)
+
+    @mock.patch.object(deploy_utils, 'build_agent_options',
+                       autospec=True)
+    @mock.patch.object(ilo_common, 'get_ilo_object', autospec=True)
+    @mock.patch.object(manager_utils, 'node_power_action', autospec=True)
+    def test_erase_devices_hdd_with_erase_pattern_zero(
+            self, mock_power, ilo_mock, build_agent_mock):
+        ilo_mock_object = ilo_mock.return_value
+        ilo_mock_object.get_available_disk_types.return_value = ['HDD']
+        build_agent_mock.return_value = []
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            result = task.driver.management.erase_devices(
+                task, erase_pattern={'hdd': 'zero', 'ssd': 'zero'})
+            self.assertTrue(
+                task.node.driver_internal_info.get(
+                    'ilo_disk_erase_hdd_check'))
+            self.assertTrue(
+                task.node.driver_internal_info.get(
+                    'cleaning_reboot'))
+            self.assertFalse(
+                task.node.driver_internal_info.get(
+                    'skip_current_clean_step'))
+            ilo_mock_object.do_disk_erase.assert_called_once_with(
+                'HDD', 'zero')
+            self.assertEqual(states.CLEANWAIT, result)
+            mock_power.assert_called_once_with(task, states.REBOOT)
+
+    @mock.patch.object(ilo_management.LOG, 'info')
+    @mock.patch.object(ilo_common, 'get_ilo_object', autospec=True)
+    def test_erase_devices_when_no_drive_available(
+            self, ilo_mock, log_mock):
+        ilo_mock_object = ilo_mock.return_value
+        ilo_mock_object.get_available_disk_types.return_value = []
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            task.driver.management.erase_devices(task)
+            self.assertTrue(log_mock.called)
+
+    def test_erase_devices_hdd_with_invalid_format_erase_pattern(
+            self):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            self.assertRaises(exception.InvalidParameterValue,
+                              task.driver.management.erase_devices,
+                              task, erase_pattern=123)
+
+    def test_erase_devices_hdd_with_invalid_device_type_erase_pattern(
+            self):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            self.assertRaises(exception.InvalidParameterValue,
+                              task.driver.management.erase_devices,
+                              task, erase_pattern={'xyz': 'block'})
+
+    def test_erase_devices_hdd_with_invalid_erase_pattern(
+            self):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            self.assertRaises(exception.InvalidParameterValue,
+                              task.driver.management.erase_devices,
+                              task, erase_pattern={'ssd': 'xyz'})
+
+    @mock.patch.object(ilo_common, 'get_ilo_object', autospec=True)
+    @mock.patch.object(ilo_management.Ilo5Management, '_set_clean_failed')
+    def test_erase_devices_hdd_ilo_error(self, set_clean_failed_mock,
+                                         ilo_mock):
+        ilo_mock_object = ilo_mock.return_value
+        ilo_mock_object.get_available_disk_types.return_value = ['HDD']
+        exc = ilo_error.IloError('error')
+        ilo_mock_object.do_disk_erase.side_effect = exc
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            task.driver.management.erase_devices(task)
+            ilo_mock_object.do_disk_erase.assert_called_once_with(
+                'HDD', 'overwrite')
+            self.assertNotIn('ilo_disk_erase_hdd_check',
+                             task.node.driver_internal_info)
+            self.assertNotIn('ilo_disk_erase_ssd_check',
+                             task.node.driver_internal_info)
+            self.assertNotIn('cleaning_reboot',
+                             task.node.driver_internal_info)
+            self.assertNotIn('skip_current_clean_step',
+                             task.node.driver_internal_info)
+            set_clean_failed_mock.assert_called_once_with(
+                task, exc)

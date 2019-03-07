@@ -19,6 +19,7 @@ Test class for iLO Drivers
 from ironic.conductor import task_manager
 from ironic.drivers import ilo
 from ironic.drivers.modules import agent
+from ironic.drivers.modules.ilo import management
 from ironic.drivers.modules.ilo import raid
 from ironic.drivers.modules import inspector
 from ironic.drivers.modules import iscsi_deploy
@@ -177,7 +178,7 @@ class Ilo5HardwareTestCase(db_base.DbTestCase):
                     enabled_console_interfaces=['ilo'],
                     enabled_deploy_interfaces=['iscsi', 'direct'],
                     enabled_inspect_interfaces=['ilo'],
-                    enabled_management_interfaces=['ilo'],
+                    enabled_management_interfaces=['ilo5'],
                     enabled_power_interfaces=['ilo'],
                     enabled_raid_interfaces=['ilo5'],
                     enabled_rescue_interfaces=['no-rescue', 'agent'],
@@ -187,6 +188,8 @@ class Ilo5HardwareTestCase(db_base.DbTestCase):
         node = obj_utils.create_test_node(self.context, driver='ilo5')
         with task_manager.acquire(self.context, node.id) as task:
             self.assertIsInstance(task.driver.raid, raid.Ilo5RAID)
+            self.assertIsInstance(task.driver.management,
+                                  management.Ilo5Management)
 
     def test_override_with_no_raid(self):
         self.config(enabled_raid_interfaces=['no-raid', 'ilo5'])

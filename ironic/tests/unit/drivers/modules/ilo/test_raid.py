@@ -57,7 +57,7 @@ class Ilo5RAIDTestCase(db_base.DbTestCase):
                     enabled_console_interfaces=['ilo'],
                     enabled_deploy_interfaces=['iscsi'],
                     enabled_inspect_interfaces=['ilo'],
-                    enabled_management_interfaces=['ilo'],
+                    enabled_management_interfaces=['ilo5'],
                     enabled_power_interfaces=['ilo'],
                     enabled_raid_interfaces=['ilo5'])
         self.node = obj_utils.create_test_node(self.context, **n)

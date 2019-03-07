@@ -66,6 +66,13 @@ opts = [
                default=2,
                help=_('Amount of time in seconds to wait in between power '
                       'operations')),
+    cfg.IntOpt('oob_erase_devices_job_status_interval',
+               min=10,
+               default=300,
+               help=_('Interval (in seconds) between periodic erase-devices '
+                      'status checks to determine whether the asynchronous '
+                      'out-of-band erase-devices was successfully finished or '
+                      'not.')),
     cfg.StrOpt('ca_file',
                help=_('CA certificate file to validate iLO.')),
     cfg.StrOpt('default_boot_mode',

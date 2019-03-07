@@ -82,3 +82,8 @@ class Ilo5Hardware(IloHardware):
     def supported_raid_interfaces(self):
         """List of supported raid interfaces."""
         return [raid.Ilo5RAID, noop.NoRAID]
+
+    @property
+    def supported_management_interfaces(self):
+        """List of supported management interfaces."""
+        return [management.Ilo5Management]
