@@ -125,6 +125,14 @@ Steps to start a deployment are pretty similar to those when using Compute:
    * ``image_checksum`` - MD5 checksum of the image specified by
      ``image_source``, only required for :ref:`direct-deploy`.
 
+     Starting with the Stein release of ironic-python-agent can also be a URL
+     to a checksums file, e.g. one generated with:
+
+     .. code-block:: shell
+
+        cd /path/to/http/root
+        md5sum *.img > checksums
+
    * ``kernel``, ``ramdisk`` - HTTP(s) or file URLs of the kernel and
      initramfs of the target OS, only required for partition images.
 
