@@ -17,6 +17,8 @@ import inspect
 import re
 
 import jsonpatch
+import jsonschema
+from jsonschema import exceptions as json_schema_exc
 import os_traits
 from oslo_config import cfg
 from oslo_utils import uuidutils
@@ -586,7 +588,30 @@ def check_allow_driver_detail(detail):
              'opr': versions.MINOR_30_DYNAMIC_DRIVERS})
 
 
-def check_allow_configdrive(target):
+_CONFIG_DRIVE_SCHEMA = {
+    'anyOf': [
+        {
+            'type': 'object',
+            'properties': {
+                'meta_data': {'type': 'object'},
+                'network_data': {'type': 'object'},
+                'user_data': {
+                    'type': ['object', 'array', 'string', 'null']
+                }
+            },
+            'additionalProperties': False
+        },
+        {
+            'type': ['string', 'null']
+        }
+    ]
+}
+
+
+def check_allow_configdrive(target, configdrive=None):
+    if not configdrive:
+        return
+
     allowed_targets = [states.ACTIVE]
     if allow_node_rebuild_with_configdrive():
         allowed_targets.append(states.REBUILD)
@@ -594,6 +619,21 @@ def check_allow_configdrive(target):
     if target not in allowed_targets:
         msg = (_('Adding a config drive is only supported when setting '
                  'provision state to %s') % ', '.join(allowed_targets))
+        raise wsme.exc.ClientSideError(
+            msg, status_code=http_client.BAD_REQUEST)
+
+    try:
+        jsonschema.validate(configdrive, _CONFIG_DRIVE_SCHEMA)
+    except json_schema_exc.ValidationError as e:
+        msg = _('Invalid configdrive format: %s') % e
+        raise wsme.exc.ClientSideError(
+            msg, status_code=http_client.BAD_REQUEST)
+
+    if isinstance(configdrive, dict) and not allow_build_configdrive():
+        msg = _('Providing a JSON object for configdrive is only supported'
+                ' starting with API version %(base)s.%(opr)s') % {
+                    'base': versions.BASE_VERSION,
+                    'opr': versions.MINOR_56_BUILD_CONFIGDRIVE}
         raise wsme.exc.ClientSideError(
             msg, status_code=http_client.BAD_REQUEST)
 
@@ -1094,3 +1134,11 @@ def check_policy(policy_name):
     """
     cdict = pecan.request.context.to_policy_values()
     policy.authorize(policy_name, cdict, cdict)
+
+
+def allow_build_configdrive():
+    """Check if building configdrive is allowed.
+
+    Version 1.56 of the API added support for building configdrive.
+    """
+    return pecan.request.version.minor >= versions.MINOR_56_BUILD_CONFIGDRIVE

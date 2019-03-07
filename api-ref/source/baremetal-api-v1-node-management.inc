@@ -352,6 +352,10 @@ detailed documentation of the Ironic State Machine is available
   A node can be rescued or unrescued by setting the node's provision target state to
   ``rescue`` or ``unrescue`` respectively.
 
+.. versionadded:: 1.56
+   A ``configdrive`` can be a JSON object with ``meta_data``, ``network_data``
+   and ``user_data``.
+
 Normal response code: 202
 
 Error codes:

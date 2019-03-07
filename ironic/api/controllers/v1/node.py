@@ -600,7 +600,7 @@ class NodeStatesController(rest.RestController):
 
     @METRICS.timer('NodeStatesController.provision')
     @expose.expose(None, types.uuid_or_name, wtypes.text,
-                   wtypes.text, types.jsontype, wtypes.text,
+                   types.jsontype, types.jsontype, wtypes.text,
                    status_code=http_client.ACCEPTED)
     def provision(self, node_ident, target, configdrive=None,
                   clean_steps=None, rescue_password=None):
@@ -616,8 +616,8 @@ class NodeStatesController(rest.RestController):
         :param node_ident: UUID or logical name of a node.
         :param target: The desired provision state of the node or verb.
         :param configdrive: Optional. A gzipped and base64 encoded
-            configdrive. Only valid when setting provision state
-            to "active" or "rebuild".
+            configdrive or a dict to build a configdrive from. Only valid when
+            setting provision state to "active" or "rebuild".
         :param clean_steps: An ordered list of cleaning steps that will be
             performed on the node. A cleaning step is a dictionary with
             required keys 'interface' and 'step', and optional key 'args'. If
@@ -681,8 +681,7 @@ class NodeStatesController(rest.RestController):
                 action=target, node=rpc_node.uuid,
                 state=rpc_node.provision_state)
 
-        if configdrive:
-            api_utils.check_allow_configdrive(target)
+        api_utils.check_allow_configdrive(target, configdrive)
 
         if clean_steps and target != ir_states.VERBS['clean']:
             msg = (_('"clean_steps" is only valid when setting target '

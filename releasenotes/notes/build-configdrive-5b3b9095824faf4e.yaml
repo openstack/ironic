@@ -1,0 +1,9 @@
+---
+features:
+  - |
+    Adds support for building config drives. Starting with API version 1.56,
+    the ``configdrive`` parameter of ``/v1/nodes/<node>/states/provision`` can
+    be a JSON object with optional keys ``meta_data`` (JSON object),
+    ``network_data`` (JSON object) and ``user_data`` (JSON object, array or
+    string). See `story 2005083
+    <https://storyboard.openstack.org/#!/story/2005083>`_ for more details.
