@@ -23,7 +23,6 @@ open-iscsi
 openssh-client
 pxelinux # dist:jessie,xenial
 python-libguestfs
-python-libvirt
 qemu
 qemu-kvm
 qemu-utils
