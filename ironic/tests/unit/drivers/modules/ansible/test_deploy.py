@@ -20,6 +20,7 @@ import six
 from ironic.common import exception
 from ironic.common import states
 from ironic.common import utils as com_utils
+from ironic.conductor import steps
 from ironic.conductor import task_manager
 from ironic.conductor import utils
 from ironic.drivers.modules.ansible import deploy as ansible_deploy
@@ -734,7 +735,7 @@ class TestAnsibleDeploy(AnsibleDeployTestCaseBase):
             self.assertFalse(log_mock.info.called)
 
     @mock.patch.object(ansible_deploy, '_run_playbook', autospec=True)
-    @mock.patch.object(utils, 'set_node_cleaning_steps', autospec=True)
+    @mock.patch.object(steps, 'set_node_cleaning_steps', autospec=True)
     @mock.patch.object(utils, 'node_power_action', autospec=True)
     @mock.patch('ironic.drivers.modules.deploy_utils.build_agent_options',
                 return_value={'op1': 'test1'}, autospec=True)
@@ -764,7 +765,7 @@ class TestAnsibleDeploy(AnsibleDeployTestCaseBase):
             self.assertFalse(run_playbook_mock.called)
             self.assertEqual(states.CLEANWAIT, state)
 
-    @mock.patch.object(utils, 'set_node_cleaning_steps', autospec=True)
+    @mock.patch.object(steps, 'set_node_cleaning_steps', autospec=True)
     def test_prepare_cleaning_callback_no_steps(self,
                                                 set_node_cleaning_steps):
         with task_manager.acquire(self.context, self.node.uuid) as task:
@@ -1047,7 +1048,7 @@ class TestAnsibleDeploy(AnsibleDeployTestCaseBase):
     @mock.patch.object(utils, 'restore_power_state_if_needed', autospec=True)
     @mock.patch.object(utils, 'power_on_node_if_needed', autospec=True)
     @mock.patch.object(ansible_deploy, '_run_playbook', autospec=True)
-    @mock.patch.object(utils, 'set_node_cleaning_steps', autospec=True)
+    @mock.patch.object(steps, 'set_node_cleaning_steps', autospec=True)
     @mock.patch.object(utils, 'node_power_action', autospec=True)
     @mock.patch.object(deploy_utils, 'build_agent_options', autospec=True)
     @mock.patch.object(pxe.PXEBoot, 'prepare_ramdisk')

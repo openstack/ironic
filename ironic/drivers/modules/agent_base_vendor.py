@@ -28,6 +28,7 @@ from ironic.common import boot_devices
 from ironic.common import exception
 from ironic.common.i18n import _
 from ironic.common import states
+from ironic.conductor import steps as conductor_steps
 from ironic.conductor import utils as manager_utils
 from ironic.conf import CONF
 from ironic.drivers.modules import agent_client
@@ -352,7 +353,7 @@ class HeartbeatMixin(object):
                     # First, cache the clean steps
                     self.refresh_clean_steps(task)
                     # Then set/verify node clean steps and start cleaning
-                    manager_utils.set_node_cleaning_steps(task)
+                    conductor_steps.set_node_cleaning_steps(task)
                     # The exceptions from RPC are not possible as we using cast
                     # here
                     manager_utils.notify_conductor_resume_clean(task)
@@ -553,7 +554,7 @@ class AgentDeployMixin(HeartbeatMixin):
                          'clean version mismatch. Resetting clean steps '
                          'and rebooting the node.', node.uuid)
                 try:
-                    manager_utils.set_node_cleaning_steps(task)
+                    conductor_steps.set_node_cleaning_steps(task)
                 except exception.NodeCleaningFailure:
                     msg = (_('Could not restart automated cleaning on node '
                              '%(node)s: %(err)s.') %

@@ -36,6 +36,7 @@ from ironic.common.i18n import _
 from ironic.common import images
 from ironic.common import states
 from ironic.common import utils
+from ironic.conductor import steps as conductor_steps
 from ironic.conductor import task_manager
 from ironic.conductor import utils as manager_utils
 from ironic.conf import CONF
@@ -547,7 +548,7 @@ class AnsibleDeploy(agent_base.HeartbeatMixin, base.DeployInterface):
         :returns: None or states.CLEANWAIT for async prepare.
         """
         node = task.node
-        manager_utils.set_node_cleaning_steps(task)
+        conductor_steps.set_node_cleaning_steps(task)
         if not node.driver_internal_info['clean_steps']:
             # no clean steps configured, nothing to do.
             return

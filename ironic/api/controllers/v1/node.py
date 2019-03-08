@@ -43,7 +43,7 @@ from ironic.common import exception
 from ironic.common.i18n import _
 from ironic.common import policy
 from ironic.common import states as ir_states
-from ironic.conductor import utils as conductor_utils
+from ironic.conductor import steps as conductor_steps
 import ironic.conf
 from ironic import objects
 
@@ -63,7 +63,7 @@ _CLEAN_STEPS_SCHEMA = {
         "properties": {
             "interface": {
                 "description": "driver interface",
-                "enum": list(conductor_utils.CLEANING_INTERFACE_PRIORITY)
+                "enum": list(conductor_steps.CLEANING_INTERFACE_PRIORITY)
                 # interface value must be one of the valid interfaces
             },
             "step": {

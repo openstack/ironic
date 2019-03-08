@@ -69,6 +69,7 @@ from ironic.common import swift
 from ironic.conductor import allocations
 from ironic.conductor import base_manager
 from ironic.conductor import notification_utils as notify_utils
+from ironic.conductor import steps as conductor_steps
 from ironic.conductor import task_manager
 from ironic.conductor import utils
 from ironic.conf import CONF
@@ -853,7 +854,7 @@ class ConductorManager(base_manager.BaseConductorManager):
                 task.driver.power.validate(task)
                 task.driver.deploy.validate(task)
                 utils.validate_instance_info_traits(task.node)
-                utils.validate_deploy_templates(task)
+                conductor_steps.validate_deploy_templates(task)
             except exception.InvalidParameterValue as e:
                 raise exception.InstanceDeployFailure(
                     _("Failed to validate deploy or power info for node "
@@ -1338,7 +1339,7 @@ class ConductorManager(base_manager.BaseConductorManager):
             return
 
         try:
-            utils.set_node_cleaning_steps(task)
+            conductor_steps.set_node_cleaning_steps(task)
         except (exception.InvalidParameterValue,
                 exception.NodeCleaningFailure) as e:
             msg = (_('Cannot clean node %(node)s. Error: %(msg)s')
@@ -2205,7 +2206,7 @@ class ConductorManager(base_manager.BaseConductorManager):
                     iface.validate(task)
                     if iface_name == 'deploy':
                         utils.validate_instance_info_traits(task.node)
-                        utils.validate_deploy_templates(task)
+                        conductor_steps.validate_deploy_templates(task)
                     result = True
                 except (exception.InvalidParameterValue,
                         exception.UnsupportedDriverExtension) as e:
@@ -3692,7 +3693,7 @@ def do_node_deploy(task, conductor_id=None, configdrive=None):
     try:
         # This gets the deploy steps (if any) and puts them in the node's
         # driver_internal_info['deploy_steps'].
-        utils.set_node_deployment_steps(task)
+        conductor_steps.set_node_deployment_steps(task)
     except exception.InstanceDeployFailure as e:
         with excutils.save_and_reraise_exception():
             utils.deploying_error_handler(

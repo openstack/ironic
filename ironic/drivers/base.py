@@ -1438,7 +1438,7 @@ def clean_step(priority, abortable=False, argsinfo=None):
     For automated cleaning, only steps with priorities greater than 0 are
     used. These steps are ordered by priority from highest value to lowest
     value. For steps with the same priority, they are ordered by driver
-    interface priority (see conductor.manager.CLEANING_INTERFACE_PRIORITY).
+    interface priority (see conductor.steps.CLEANING_INTERFACE_PRIORITY).
     execute_clean_step() will be called on each step.
 
     For manual cleaning, the clean steps will be executed in a similar fashion
@@ -1514,7 +1514,7 @@ def deploy_step(priority, argsinfo=None):
     Only steps with priorities greater than 0 are used.
     These steps are ordered by priority from highest value to lowest
     value. For steps with the same priority, they are ordered by driver
-    interface priority (see conductor.manager.DEPLOYING_INTERFACE_PRIORITY).
+    interface priority (see conductor.steps.DEPLOYING_INTERFACE_PRIORITY).
     execute_deploy_step() will be called on each step.
 
     Decorated deploy steps must take as the only positional argument, a
