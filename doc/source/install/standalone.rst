@@ -117,10 +117,12 @@ Steps to start a deployment are pretty similar to those when using Compute:
      while :ref:`iscsi-deploy` also accepts links to local files (prefixed
      with ``file://``).
 
-   * ``root_gb`` - size of the root partition, mandatory.
+   * ``root_gb`` - size of the root partition, required for partition images.
 
-     .. TODO(dtantsur): root_gb should not be mandatory for whole disk images,
-                        but it seems to be.
+     .. note::
+        Older versions of the Bare Metal service used to require a positive
+        integer for ``root_gb`` even for whole-disk images. You may want to set
+        it for compatibility.
 
    * ``image_checksum`` - MD5 checksum of the image specified by
      ``image_source``, only required for :ref:`direct-deploy`.

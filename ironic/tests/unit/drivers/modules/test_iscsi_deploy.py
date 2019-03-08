@@ -129,6 +129,18 @@ class IscsiDeployMethodsTestCase(db_base.DbTestCase):
             self.assertFalse(get_image_mb_mock.called)
 
     @mock.patch.object(disk_utils, 'get_image_mb', autospec=True)
+    def test_check_image_size_whole_disk_image_no_root(self,
+                                                       get_image_mb_mock):
+        get_image_mb_mock.return_value = 1025
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            del task.node.instance_info['root_gb']
+            task.node.driver_internal_info['is_whole_disk_image'] = True
+            # No error for whole disk images
+            iscsi_deploy.check_image_size(task)
+            self.assertFalse(get_image_mb_mock.called)
+
+    @mock.patch.object(disk_utils, 'get_image_mb', autospec=True)
     def test_check_image_size_fails(self, get_image_mb_mock):
         get_image_mb_mock.return_value = 1025
         with task_manager.acquire(self.context, self.node.uuid,
@@ -444,6 +456,18 @@ class IscsiDeployMethodsTestCase(db_base.DbTestCase):
     def test_get_deploy_info_whole_disk_image(self):
         instance_info = self.node.instance_info
         instance_info['configdrive'] = 'My configdrive'
+        self.node.instance_info = instance_info
+        self.node.driver_internal_info['is_whole_disk_image'] = True
+        kwargs = {'address': '1.1.1.1', 'iqn': 'target-iqn'}
+        ret_val = iscsi_deploy.get_deploy_info(self.node, **kwargs)
+        self.assertEqual('1.1.1.1', ret_val['address'])
+        self.assertEqual('target-iqn', ret_val['iqn'])
+        self.assertEqual('My configdrive', ret_val['configdrive'])
+
+    def test_get_deploy_info_whole_disk_image_no_root(self):
+        instance_info = self.node.instance_info
+        instance_info['configdrive'] = 'My configdrive'
+        del instance_info['root_gb']
         self.node.instance_info = instance_info
         self.node.driver_internal_info['is_whole_disk_image'] = True
         kwargs = {'address': '1.1.1.1', 'iqn': 'target-iqn'}
