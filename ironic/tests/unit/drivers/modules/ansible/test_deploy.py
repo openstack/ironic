@@ -10,6 +10,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import json
+
 from ironic_lib import utils as irlib_utils
 import mock
 from oslo_concurrency import processutils
@@ -161,6 +163,33 @@ class TestAnsibleMethods(AnsibleDeployTestCaseBase):
             'ansible-playbook', '/path/to/playbooks/deploy', '-i',
             '/path/to/playbooks/inventory', '-e', '{"ironic": {"foo": "bar"}}',
             '--private-key=/path/to/key', '-vvvv')
+
+    @mock.patch.object(com_utils, 'execute', return_value=('out', 'err'),
+                       autospec=True)
+    def test__run_playbook_ansible_interpreter_python3(self, execute_mock):
+        self.config(group='ansible', playbooks_path='/path/to/playbooks')
+        self.config(group='ansible', config_file_path='/path/to/config')
+        self.config(group='ansible', verbosity=3)
+        self.config(group='ansible',
+                    default_python_interpreter='/usr/bin/python3')
+        self.config(group='ansible', ansible_extra_args='--timeout=100')
+        extra_vars = {'foo': 'bar'}
+
+        ansible_deploy._run_playbook(self.node, 'deploy',
+                                     extra_vars, '/path/to/key',
+                                     tags=['spam'], notags=['ham'])
+
+        execute_mock.assert_called_once_with(
+            'env', 'ANSIBLE_CONFIG=/path/to/config',
+            'ansible-playbook', '/path/to/playbooks/deploy', '-i',
+            '/path/to/playbooks/inventory', '-e',
+            mock.ANY, '--tags=spam', '--skip-tags=ham',
+            '--private-key=/path/to/key', '-vvv', '--timeout=100')
+
+        all_vars = execute_mock.call_args[0][7]
+        self.assertEqual({"ansible_python_interpreter": "/usr/bin/python3",
+                          "ironic": {"foo": "bar"}},
+                         json.loads(all_vars))
 
     @mock.patch.object(com_utils, 'execute',
                        side_effect=processutils.ProcessExecutionError(

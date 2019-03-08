@@ -1279,6 +1279,9 @@ function configure_ironic_conductor {
                 # we definitely know the default username to use for TinyIPA image
                 IRONIC_ANSIBLE_SSH_USER='tc'
             fi
+            # (rpittau) most recent tinyipa uses python3 natively so we need to change
+            # the default ansible python interpreter.
+            iniset $IRONIC_CONF_FILE ansible default_python_interpreter /usr/bin/python3
         fi
         iniset $IRONIC_CONF_FILE ansible default_key_file $IRONIC_ANSIBLE_SSH_KEY
         if [[ -n $IRONIC_ANSIBLE_SSH_USER ]]; then
