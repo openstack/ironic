@@ -11,6 +11,7 @@
     check:
       jobs:
         - ironic-tox-unit-with-driver-libs
+        - ironic-tox-unit-with-driver-libs-python3
         - ironic-standalone
         - ironic-tempest-functional-python2
         - ironic-tempest-functional-python3
@@ -37,6 +38,7 @@
       queue: ironic
       jobs:
         - ironic-tox-unit-with-driver-libs
+        - ironic-tox-unit-with-driver-libs-python3
         - ironic-standalone
         - ironic-tempest-functional-python2
         - ironic-tempest-functional-python3
