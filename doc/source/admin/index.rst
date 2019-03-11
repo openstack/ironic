@@ -11,7 +11,7 @@ the services.
    Drivers, Hardware Types and Hardware Interfaces <drivers>
    Ironic Python Agent <drivers/ipa>
    Node Hardware Inspection <inspection>
-   Deploy steps <deploy-steps>
+   Node Deployment <node-deployment>
    Node Cleaning <cleaning>
    Node Adoption <adoption>
    RAID Configuration <raid>
@@ -31,6 +31,11 @@ the services.
    Security <security>
    Windows Images <building-windows-images>
    Troubleshooting FAQ <troubleshooting>
+
+.. toctree::
+  :hidden:
+
+  deploy-steps
 
 Dashboard Integration
 ---------------------
