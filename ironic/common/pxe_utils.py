@@ -422,7 +422,7 @@ def dhcp_options_for_instance(task, ipxe_enabled=False, url_boot=False):
     """Retrieves the DHCP PXE boot options.
 
     :param task: A TaskManager instance.
-    :param ipxe_enabled: Default false boolean that siganls if iPXE
+    :param ipxe_enabled: Default false boolean that signals if iPXE
                          formatting should be returned by the method
                          for DHCP server configuration.
     :param url_boot: Default false boolean to inform the method if

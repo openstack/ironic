@@ -127,10 +127,6 @@ class PXEBoot(pxe_base.PXEBaseMixin, base.BootInterface):
         :param ramdisk_params: the parameters to be passed to the ramdisk.
             pxe driver passes these parameters as kernel command-line
             arguments.
-        :param mode: Label indicating a deploy or rescue operation
-            being carried out on the node. Supported values are
-            'deploy' and 'rescue'. Defaults to 'deploy', indicating
-            deploy operation is being carried out.
         :returns: None
         :raises: MissingParameterValue, if some information is missing in
             node's driver_info or instance_info.
@@ -140,6 +136,11 @@ class PXEBoot(pxe_base.PXEBaseMixin, base.BootInterface):
             operation failed on the node.
         """
         node = task.node
+
+        # Label indicating a deploy or rescue operation being carried out on
+        # the node, 'deploy' or 'rescue'. Unless the node is in a rescue like
+        # state, the mode is set to 'deploy', indicating deploy operation is
+        # being carried out.
         mode = deploy_utils.rescue_or_deploy_mode(node)
         ipxe_enabled = CONF.pxe.ipxe_enabled
         if ipxe_enabled:
