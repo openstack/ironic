@@ -806,7 +806,10 @@ class TestAnsibleDeploy(AnsibleDeployTestCaseBase):
         prepare_vars_mock.return_value = _vars
         driver_internal_info = self.node.driver_internal_info
         driver_internal_info['is_whole_disk_image'] = True
+        instance_info = self.node.instance_info
+        del instance_info['root_mb']
         self.node.driver_internal_info = driver_internal_info
+        self.node.instance_info = instance_info
         self.node.extra = {'ham': 'spam'}
         self.node.save()
 

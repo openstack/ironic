@@ -2268,17 +2268,26 @@ class InstanceInfoTestCase(db_base.DbTestCase):
         )
         instance_info = utils.parse_instance_info(node)
         self.assertIsNotNone(instance_info['image_source'])
-        self.assertIsNotNone(instance_info['root_mb'])
-        self.assertEqual(0, instance_info['swap_mb'])
-        self.assertEqual(0, instance_info['ephemeral_mb'])
+        self.assertNotIn('root_mb', instance_info)
+        self.assertNotIn('ephemeral_mb', instance_info)
+        self.assertNotIn('swap_mb', instance_info)
         self.assertIsNone(instance_info['configdrive'])
 
     def test_parse_instance_info_whole_disk_image_missing_root(self):
+        driver_internal_info = dict(DRV_INTERNAL_INFO_DICT)
+        driver_internal_info['is_whole_disk_image'] = True
         info = dict(INST_INFO_DICT)
         del info['root_gb']
-        node = obj_utils.create_test_node(self.context, instance_info=info)
-        self.assertRaises(exception.InvalidParameterValue,
-                          utils.parse_instance_info, node)
+        node = obj_utils.create_test_node(
+            self.context, instance_info=info,
+            driver_internal_info=driver_internal_info
+        )
+
+        instance_info = utils.parse_instance_info(node)
+        self.assertIsNotNone(instance_info['image_source'])
+        self.assertNotIn('root_mb', instance_info)
+        self.assertNotIn('ephemeral_mb', instance_info)
+        self.assertNotIn('swap_mb', instance_info)
 
 
 class TestBuildInstanceInfoForDeploy(db_base.DbTestCase):

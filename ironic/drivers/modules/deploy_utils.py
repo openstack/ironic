@@ -978,6 +978,10 @@ def get_image_instance_info(node):
     return info
 
 
+_ERR_MSG_INVALID_DEPLOY = _("Cannot validate parameter for driver deploy. "
+                            "Invalid parameter %(param)s. Reason: %(reason)s")
+
+
 def parse_instance_info(node):
     """Gets the instance specific Node deployment info.
 
@@ -1003,56 +1007,63 @@ def parse_instance_info(node):
                     i_info['image_source'])):
             i_info['kernel'] = info.get('kernel')
             i_info['ramdisk'] = info.get('ramdisk')
-    i_info['root_gb'] = info.get('root_gb')
+        i_info['root_gb'] = info.get('root_gb')
 
     error_msg = _("Cannot validate driver deploy. Some parameters were missing"
                   " in node's instance_info")
     check_for_missing_params(i_info, error_msg)
 
-    # NOTE(vdrok): We're casting disk layout parameters to int only after
-    # ensuring that it is possible
-    i_info['swap_mb'] = info.get('swap_mb', 0)
-    i_info['ephemeral_gb'] = info.get('ephemeral_gb', 0)
-    err_msg_invalid = _("Cannot validate parameter for driver deploy. "
-                        "Invalid parameter %(param)s. Reason: %(reason)s")
-    for param in DISK_LAYOUT_PARAMS:
-        try:
-            int(i_info[param])
-        except ValueError:
-            reason = _("%s is not an integer value.") % i_info[param]
-            raise exception.InvalidParameterValue(err_msg_invalid %
-                                                  {'param': param,
-                                                   'reason': reason})
-
-    i_info['root_mb'] = 1024 * int(i_info['root_gb'])
-    i_info['swap_mb'] = int(i_info['swap_mb'])
-    i_info['ephemeral_mb'] = 1024 * int(i_info['ephemeral_gb'])
-
-    if iwdi:
-        if i_info['swap_mb'] > 0 or i_info['ephemeral_mb'] > 0:
-            err_msg_invalid = _("Cannot deploy whole disk image with "
-                                "swap or ephemeral size set")
-            raise exception.InvalidParameterValue(err_msg_invalid)
-    i_info['ephemeral_format'] = info.get('ephemeral_format')
-    i_info['configdrive'] = info.get('configdrive')
-
-    if i_info['ephemeral_gb'] and not i_info['ephemeral_format']:
-        i_info['ephemeral_format'] = CONF.pxe.default_ephemeral_format
-
+    # This is used in many places, so keep it even for whole-disk images.
+    # There is also a potential use case of creating an ephemeral partition via
+    # cloud-init and telling ironic to avoid metadata wipe via setting
+    # preserve_ephemeral (not saying it will work, but it seems possible).
     preserve_ephemeral = info.get('preserve_ephemeral', False)
     try:
         i_info['preserve_ephemeral'] = (
             strutils.bool_from_string(preserve_ephemeral, strict=True))
     except ValueError as e:
         raise exception.InvalidParameterValue(
-            err_msg_invalid % {'param': 'preserve_ephemeral', 'reason': e})
+            _ERR_MSG_INVALID_DEPLOY % {'param': 'preserve_ephemeral',
+                                       'reason': e})
+
+    if iwdi:
+        if i_info.get('swap_mb') or i_info.get('ephemeral_mb'):
+            err_msg_invalid = _("Cannot deploy whole disk image with "
+                                "swap or ephemeral size set")
+            raise exception.InvalidParameterValue(err_msg_invalid)
+    else:
+        _validate_layout_properties(node, info, i_info)
+
+    i_info['configdrive'] = info.get('configdrive')
+
+    return i_info
+
+
+def _validate_layout_properties(node, info, i_info):
+    i_info['swap_mb'] = info.get('swap_mb', 0)
+    i_info['ephemeral_gb'] = info.get('ephemeral_gb', 0)
+    # NOTE(vdrok): We're casting disk layout parameters to int only after
+    # ensuring that it is possible
+    for param in DISK_LAYOUT_PARAMS:
+        try:
+            int(i_info[param])
+        except ValueError:
+            reason = _("%s is not an integer value.") % i_info[param]
+            raise exception.InvalidParameterValue(_ERR_MSG_INVALID_DEPLOY %
+                                                  {'param': param,
+                                                   'reason': reason})
+
+    i_info['root_mb'] = 1024 * int(i_info['root_gb'])
+    i_info['swap_mb'] = int(i_info['swap_mb'])
+    i_info['ephemeral_mb'] = 1024 * int(i_info['ephemeral_gb'])
+    i_info['ephemeral_format'] = info.get('ephemeral_format')
+    if i_info['ephemeral_gb'] and not i_info['ephemeral_format']:
+        i_info['ephemeral_format'] = CONF.pxe.default_ephemeral_format
 
     # NOTE(Zhenguo): If rebuilding with preserve_ephemeral option, check
     # that the disk layout is unchanged.
     if i_info['preserve_ephemeral']:
         _check_disk_layout_unchanged(node, i_info)
-
-    return i_info
 
 
 def _check_disk_layout_unchanged(node, i_info):

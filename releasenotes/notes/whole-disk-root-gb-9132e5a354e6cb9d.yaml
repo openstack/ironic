@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    The ``instance_info[root_gb]`` property is no longer required for
+    whole-disk images. It has always been ignored for them, but the validation
+    code still expected it to be present.
