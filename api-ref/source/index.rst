@@ -25,6 +25,7 @@
 .. include:: baremetal-api-v1-conductors.inc
 .. include:: baremetal-api-v1-allocation.inc
 .. include:: baremetal-api-v1-node-allocation.inc
+.. include:: baremetal-api-v1-deploy-templates.inc
 .. NOTE(dtantsur): keep chassis close to the end since it's semi-deprecated
 .. include:: baremetal-api-v1-chassis.inc
 .. NOTE(dtantsur): keep misc last, since it covers internal API

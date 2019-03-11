@@ -56,6 +56,12 @@ chassis_ident:
   in: path
   required: true
   type: string
+deploy_template_ident:
+  description: |
+    The UUID or name of the deploy template.
+  in: path
+  required: true
+  type: string
 driver_ident:
   description: |
     The name of the driver.
@@ -681,6 +687,27 @@ deploy_step:
   in: body
   required: false
   type: string
+deploy_template_name:
+  description: |
+    The unique name of the deploy template.
+  in: body
+  required: true
+  type: string
+deploy_template_steps:
+  description: |
+    The deploy steps of the deploy template. Must be a list containing at least
+    one deploy step.
+
+    A deploy step is a dictionary with required keys ``interface``, ``step``,
+    ``args``, and ``priority``.  The value for ``interface`` is the name of the
+    driver interface.  The value for ``step`` is the name of the deploy step
+    method on the driver interface. The value for ``args`` is a dictionary of
+    arguments that are passed to the deploy step method. The value for
+    ``priority`` is a non-negative integer priority for the step. A value of
+    ``0`` for ``priority`` will disable that step.
+  in: body
+  required: true
+  type: array
 description:
   description: |
     Descriptive text about the Ironic service.

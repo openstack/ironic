@@ -11,7 +11,7 @@ fi
 OS_AUTH_TOKEN=$(openstack token issue | grep ' id ' | awk '{print $4}')
 IRONIC_URL="http://127.0.0.1:6385"
 
-IRONIC_API_VERSION="1.53"
+IRONIC_API_VERSION="1.55"
 
 export OS_AUTH_TOKEN IRONIC_URL
 
@@ -28,6 +28,7 @@ DOC_CREATED_AT="2016-08-18T22:28:48.643434+11:11"
 DOC_UPDATED_AT="2016-08-18T22:28:49.653974+00:00"
 DOC_IRONIC_CONDUCTOR_HOSTNAME="897ab1dad809"
 DOC_ALLOCATION_UUID="3bf138ba-6d71-44e7-b6a1-ca9cac17103e"
+DOC_DEPLOY_TEMPLATE_UUID="bbb45f41-d4bc-4307-8d1d-32f95ce1e920"
 
 function GET {
     # GET $RESOURCE
@@ -326,6 +327,21 @@ GET v1/nodes/$NID/volume/connectors?detail=True > node-volume-connector-detail-r
 GET v1/nodes/$NID/volume/targets > node-volume-target-list-response.json
 GET v1/nodes/$NID/volume/targets?detail=True > node-volume-target-detail-response.json
 
+##################
+# DEPLOY TEMPLATES
+
+POST v1/deploy_templates deploy-template-create-request.json > deploy-template-create-response.json
+DTID=$(cat deploy-template-create-response.json | grep '"uuid"' | sed 's/.*"\([0-9a-f\-]*\)",*/\1/')
+if [ "$DTID" == "" ]; then
+    exit 1
+else
+    echo "Deploy template created. UUID: $DTID"
+fi
+
+GET v1/deploy_templates > deploy-template-list-response.json
+GET v1/deploy_templates?detail=True > deploy-template-detail-response.json
+GET v1/deploy_templates/$DTID > deploy-template-show-response.json
+PATCH v1/deploy_templates/$DTID deploy-template-update-request.json > deploy-template-update-response.json
 
 #####################
 # Replace automatically generated UUIDs by already used in documentation
@@ -338,6 +354,7 @@ sed -i "s/$PGID/$DOC_PORTGROUP_UUID/" *.json
 sed -i "s/$VCID/$DOC_VOL_CONNECTOR_UUID/" *.json
 sed -i "s/$VTID/$DOC_VOL_TARGET_UUID/" *.json
 sed -i "s/$AID/$DOC_ALLOCATION_UUID/" *.json
+sed -i "s/$DTID/$DOC_DEPLOY_TEMPLATE_UUID/" *.json
 sed -i "s/$(hostname)/$DOC_IRONIC_CONDUCTOR_HOSTNAME/" *.json
 sed -i "s/created_at\": \".*\"/created_at\": \"$DOC_CREATED_AT\"/" *.json
 sed -i "s/updated_at\": \".*\"/updated_at\": \"$DOC_UPDATED_AT\"/" *.json
