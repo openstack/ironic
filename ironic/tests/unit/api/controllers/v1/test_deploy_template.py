@@ -417,6 +417,16 @@ class TestPatch(BaseDeployTemplatesAPITest):
         self.assertEqual(http_client.NOT_FOUND, response.status_int)
         self.assertFalse(mock_save.called)
 
+    def test_update_by_name_old_api_version(self, mock_save):
+        name = 'CUSTOM_DT2'
+        response = self.patch_json('/deploy_templates/%s' % self.template.name,
+                                   [{'path': '/name',
+                                     'value': name,
+                                     'op': 'add'}],
+                                   expect_errors=True)
+        self.assertEqual(http_client.NOT_FOUND, response.status_int)
+        self.assertFalse(mock_save.called)
+
     def test_update_not_found(self, mock_save):
         name = 'CUSTOM_DT2'
         uuid = uuidutils.generate_uuid()
@@ -934,6 +944,13 @@ class TestDelete(BaseDeployTemplatesAPITest):
         response = self.delete('/deploy_templates/%s' % self.template.uuid,
                                expect_errors=True,
                                headers=self.invalid_version_headers)
+        self.assertEqual(http_client.NOT_FOUND, response.status_int)
+
+    def test_delete_old_api_version(self, mock_dpt):
+        # Names like CUSTOM_1 were not valid in API 1.1, but the check should
+        # go after the microversion check.
+        response = self.delete('/deploy_templates/%s' % self.template.name,
+                               expect_errors=True)
         self.assertEqual(http_client.NOT_FOUND, response.status_int)
 
     def test_delete_by_name_non_existent(self, mock_dpt):

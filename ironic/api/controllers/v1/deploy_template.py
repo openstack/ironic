@@ -20,6 +20,7 @@ from oslo_utils import uuidutils
 import pecan
 from pecan import rest
 from six.moves import http_client
+from webob import exc as webob_exc
 import wsme
 from wsme import types as wtypes
 
@@ -44,11 +45,6 @@ _DEFAULT_RETURN_FIELDS = ('uuid', 'name')
 
 _DEPLOY_INTERFACE_TYPE = wtypes.Enum(
     wtypes.text, *conductor_utils.DEPLOYING_INTERFACE_PRIORITY)
-
-
-def _check_api_version():
-    if not api_utils.allow_deploy_templates():
-        raise exception.NotFound()
 
 
 class DeployStepType(wtypes.Base, base.AsDictMixin):
@@ -260,6 +256,13 @@ class DeployTemplatesController(rest.RestController):
 
     invalid_sort_key_list = ['extra', 'steps']
 
+    @pecan.expose()
+    def _route(self, args, request=None):
+        if not api_utils.allow_deploy_templates():
+            raise webob_exc.HTTPNotFound(_(
+                "The API version does not allow deploy templates"))
+        return super(DeployTemplatesController, self)._route(args, request)
+
     def _update_changed_fields(self, template, rpc_template):
         """Update rpc_template based on changed fields in a template."""
         for field in objects.DeployTemplate.fields:
@@ -295,7 +298,6 @@ class DeployTemplatesController(rest.RestController):
         :param detail: Optional, boolean to indicate whether retrieve a list
                        of deploy templates with detail.
         """
-        _check_api_version()
         api_utils.check_policy('baremetal:deploy_template:get')
 
         api_utils.check_allowed_fields(fields)
@@ -338,7 +340,6 @@ class DeployTemplatesController(rest.RestController):
         :param fields: Optional, a list with a specified set of fields
             of the resource to be returned.
         """
-        _check_api_version()
         api_utils.check_policy('baremetal:deploy_template:get')
 
         api_utils.check_allowed_fields(fields)
@@ -356,7 +357,6 @@ class DeployTemplatesController(rest.RestController):
 
         :param template: a deploy template within the request body.
         """
-        _check_api_version()
         api_utils.check_policy('baremetal:deploy_template:create')
 
         context = pecan.request.context
@@ -387,7 +387,6 @@ class DeployTemplatesController(rest.RestController):
         :param template_ident: UUID or logical name of a deploy template.
         :param patch: a json PATCH document to apply to this deploy template.
         """
-        _check_api_version()
         api_utils.check_policy('baremetal:deploy_template:update')
 
         context = pecan.request.context
@@ -434,7 +433,6 @@ class DeployTemplatesController(rest.RestController):
 
         :param template_ident: UUID or logical name of a deploy template.
         """
-        _check_api_version()
         api_utils.check_policy('baremetal:deploy_template:delete')
 
         context = pecan.request.context

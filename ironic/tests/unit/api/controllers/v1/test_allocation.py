@@ -152,6 +152,14 @@ class TestListAllocations(test_api_base.BaseApiTest):
             expect_errors=True)
         self.assertEqual(http_client.NOT_FOUND, response.status_int)
 
+    def test_get_one_invalid_api_version_without_check(self):
+        # Invalid name, but the check happens after the microversion check.
+        response = self.get_json(
+            '/allocations/ba!na!na!',
+            headers={api_base.Version.string: str(api_v1.min_version())},
+            expect_errors=True)
+        self.assertEqual(http_client.NOT_FOUND, response.status_int)
+
     def test_many(self):
         allocations = []
         for id_ in range(5):
@@ -325,6 +333,14 @@ class TestListAllocations(test_api_base.BaseApiTest):
         self.assertEqual(allocation.uuid, data['uuid'])
         self.assertEqual({}, data["extra"])
         self.assertEqual(self.node.uuid, data["node_uuid"])
+
+    def test_get_by_node_resource_invalid_api_version(self):
+        obj_utils.create_test_allocation(self.context, node_id=self.node.id)
+        response = self.get_json(
+            '/nodes/%s/allocation' % self.node.uuid,
+            headers={api_base.Version.string: str(api_v1.min_version())},
+            expect_errors=True)
+        self.assertEqual(http_client.NOT_FOUND, response.status_int)
 
     def test_get_by_node_resource_with_fields(self):
         obj_utils.create_test_allocation(self.context, node_id=self.node.id)
@@ -657,6 +673,14 @@ class TestDelete(test_api_base.BaseApiTest):
                                headers={api_base.Version.string: '1.14'})
         self.assertEqual(http_client.NOT_FOUND, response.status_int)
 
+    def test_delete_allocation_invalid_api_version_without_check(self,
+                                                                 mock_destroy):
+        # Invalid name, but the check happens after the microversion check.
+        response = self.delete('/allocations/ba!na!na1',
+                               expect_errors=True,
+                               headers={api_base.Version.string: '1.14'})
+        self.assertEqual(http_client.NOT_FOUND, response.status_int)
+
     def test_delete_allocation_by_name(self, mock_destroy):
         self.delete('/allocations/%s' % self.allocation.name,
                     headers=self.headers)
@@ -699,3 +723,12 @@ class TestDelete(test_api_base.BaseApiTest):
         res = self.delete('/nodes/%s/allocation' % uuidutils.generate_uuid(),
                           expect_errors=True, headers=self.headers)
         self.assertEqual(http_client.NOT_FOUND, res.status_code)
+
+    def test_delete_allocation_by_node_invalid_api_version(self, mock_destroy):
+        obj_utils.create_test_allocation(self.context, node_id=self.node.id)
+        response = self.delete(
+            '/nodes/%s/allocation' % self.node.uuid,
+            headers={api_base.Version.string: str(api_v1.min_version())},
+            expect_errors=True)
+        self.assertEqual(http_client.NOT_FOUND, response.status_int)
+        self.assertFalse(mock_destroy.called)

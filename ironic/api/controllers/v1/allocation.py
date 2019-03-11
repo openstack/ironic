@@ -16,6 +16,7 @@ from ironic_lib import metrics_utils
 from oslo_utils import uuidutils
 import pecan
 from six.moves import http_client
+from webob import exc as webob_exc
 import wsme
 from wsme import types as wtypes
 
@@ -200,6 +201,13 @@ class AllocationsController(pecan.rest.RestController):
 
     invalid_sort_key_list = ['extra', 'candidate_nodes', 'traits']
 
+    @pecan.expose()
+    def _route(self, args, request=None):
+        if not api_utils.allow_allocations():
+            raise webob_exc.HTTPNotFound(_(
+                "The API version does not allow allocations"))
+        return super(AllocationsController, self)._route(args, request)
+
     def _get_allocations_collection(self, node_ident=None, resource_class=None,
                                     state=None, marker=None, limit=None,
                                     sort_key='id', sort_dir='asc',
@@ -282,9 +290,6 @@ class AllocationsController(pecan.rest.RestController):
         :param fields: Optional, a list with a specified set of fields
                        of the resource to be returned.
         """
-        if not api_utils.allow_allocations():
-            raise exception.NotFound()
-
         cdict = pecan.request.context.to_policy_values()
         policy.authorize('baremetal:allocation:get', cdict, cdict)
 
@@ -302,9 +307,6 @@ class AllocationsController(pecan.rest.RestController):
         :param fields: Optional, a list with a specified set of fields
                        of the resource to be returned.
         """
-        if not api_utils.allow_allocations():
-            raise exception.NotFound()
-
         cdict = pecan.request.context.to_policy_values()
         policy.authorize('baremetal:allocation:get', cdict, cdict)
 
@@ -320,9 +322,6 @@ class AllocationsController(pecan.rest.RestController):
 
         :param allocation: an allocation within the request body.
         """
-        if not api_utils.allow_allocations():
-            raise exception.NotFound()
-
         context = pecan.request.context
         cdict = context.to_policy_values()
         policy.authorize('baremetal:allocation:create', cdict, cdict)
@@ -383,9 +382,6 @@ class AllocationsController(pecan.rest.RestController):
 
         :param allocation_ident: UUID or logical name of an allocation.
         """
-        if not api_utils.allow_allocations():
-            raise exception.NotFound()
-
         context = pecan.request.context
         cdict = context.to_policy_values()
         policy.authorize('baremetal:allocation:delete', cdict, cdict)
@@ -414,6 +410,13 @@ class NodeAllocationController(pecan.rest.RestController):
 
     invalid_sort_key_list = ['extra', 'candidate_nodes', 'traits']
 
+    @pecan.expose()
+    def _route(self, args, request=None):
+        if not api_utils.allow_allocations():
+            raise webob_exc.HTTPNotFound(_(
+                "The API version does not allow allocations"))
+        return super(NodeAllocationController, self)._route(args, request)
+
     def __init__(self, node_ident):
         super(NodeAllocationController, self).__init__()
         self.parent_node_ident = node_ident
@@ -422,9 +425,6 @@ class NodeAllocationController(pecan.rest.RestController):
     @METRICS.timer('NodeAllocationController.get_all')
     @expose.expose(Allocation, types.listtype)
     def get_all(self, fields=None):
-        if not api_utils.allow_allocations():
-            raise exception.NotFound()
-
         cdict = pecan.request.context.to_policy_values()
         policy.authorize('baremetal:allocation:get', cdict, cdict)
 
@@ -440,9 +440,6 @@ class NodeAllocationController(pecan.rest.RestController):
     @METRICS.timer('NodeAllocationController.delete')
     @expose.expose(None, status_code=http_client.NO_CONTENT)
     def delete(self):
-        if not api_utils.allow_allocations():
-            raise exception.NotFound()
-
         context = pecan.request.context
         cdict = context.to_policy_values()
         policy.authorize('baremetal:allocation:delete', cdict, cdict)
