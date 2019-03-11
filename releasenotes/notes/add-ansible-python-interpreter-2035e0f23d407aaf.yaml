@@ -11,3 +11,5 @@ features:
     ``/usr/bin/python3``.
     The same interpreter will be used in all operations that use the
     ansible deploy interface.
+    It is also possible to override the value set in the configuration for a
+    node by passing ``ansible_python_interpreter`` in its ``driver_info``.

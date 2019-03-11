@@ -231,6 +231,13 @@ ansible_clean_steps_config
     Default is taken from ``[ansible]/default_clean_steps_config`` option of the
     ironic configuration file (defaults to ``clean_steps.yaml``).
 
+ansible_python_interpreter
+    Absolute path to the python interpreter on the managed machine.
+    Default is taken from ``[ansible]/default_python_interpreter`` option of
+    the ironic configuration file.
+    Ansible uses ``/usr/bin/python`` by default.
+
+
 
 Customizing the deployment logic
 ================================
