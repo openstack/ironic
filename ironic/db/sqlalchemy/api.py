@@ -39,6 +39,7 @@ from ironic.common.i18n import _
 from ironic.common import profiler
 from ironic.common import release_mappings
 from ironic.common import states
+from ironic.common import utils
 from ironic.conf import CONF
 from ironic.db import api
 from ironic.db.sqlalchemy import models
@@ -397,6 +398,39 @@ class Connection(api.Connection):
         query = self._add_nodes_filters(query, filters)
         return _paginate_query(models.Node, limit, marker,
                                sort_key, sort_dir, query)
+
+    def check_node_list(self, idents):
+        mapping = {}
+        if idents:
+            idents = set(idents)
+        else:
+            return mapping
+
+        uuids = {i for i in idents if uuidutils.is_uuid_like(i)}
+        names = {i for i in idents if not uuidutils.is_uuid_like(i)
+                 and utils.is_valid_logical_name(i)}
+        missing = idents - set(uuids) - set(names)
+        if missing:
+            # Such nodes cannot exist, bailing out early
+            raise exception.NodeNotFound(
+                _("Nodes cannot be found: %s") % ', '.join(missing))
+
+        query = model_query(models.Node.uuid, models.Node.name).filter(
+            sql.or_(models.Node.uuid.in_(uuids),
+                    models.Node.name.in_(names))
+        )
+        for row in query:
+            if row[0] in idents:
+                mapping[row[0]] = row[0]
+            if row[1] and row[1] in idents:
+                mapping[row[1]] = row[0]
+
+        missing = idents - set(mapping)
+        if missing:
+            raise exception.NodeNotFound(
+                _("Nodes cannot be found: %s") % ', '.join(missing))
+
+        return mapping
 
     @oslo_db_api.retry_on_deadlock
     def reserve_node(self, tag, node_id):

@@ -566,6 +566,15 @@ class TestPost(test_api_base.BaseApiTest):
         self.assertEqual(http_client.BAD_REQUEST, response.status_int)
         self.assertTrue(response.json['error_message'])
 
+    def test_create_allocation_candidate_node_invalid(self):
+        adict = apiutils.allocation_post_data(
+            candidate_nodes=['this/is/not a/node/name'])
+        response = self.post_json('/allocations', adict, expect_errors=True,
+                                  headers=self.headers)
+        self.assertEqual('application/json', response.content_type)
+        self.assertEqual(http_client.BAD_REQUEST, response.status_int)
+        self.assertTrue(response.json['error_message'])
+
     def test_create_allocation_name_ok(self):
         name = 'foo'
         adict = apiutils.allocation_post_data(name=name)

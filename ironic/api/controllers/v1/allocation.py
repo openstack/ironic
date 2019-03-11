@@ -343,16 +343,16 @@ class AllocationsController(pecan.rest.RestController):
 
         if allocation.candidate_nodes:
             # Convert nodes from names to UUIDs and check their validity
-            converted = []
-            for node in allocation.candidate_nodes:
-                try:
-                    node = api_utils.get_rpc_node(node)
-                except exception.NodeNotFound as exc:
-                    exc.code = http_client.BAD_REQUEST
-                    raise
-                else:
-                    converted.append(node.uuid)
-            allocation.candidate_nodes = converted
+            try:
+                converted = pecan.request.dbapi.check_node_list(
+                    allocation.candidate_nodes)
+            except exception.NodeNotFound as exc:
+                exc.code = http_client.BAD_REQUEST
+                raise
+            else:
+                # Make sure we keep the ordering of candidate nodes.
+                allocation.candidate_nodes = [
+                    converted[ident] for ident in allocation.candidate_nodes]
 
         all_dict = allocation.as_dict()
 

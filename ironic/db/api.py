@@ -98,6 +98,20 @@ class Connection(object):
         """
 
     @abc.abstractmethod
+    def check_node_list(self, idents):
+        """Check a list of node identities and map it to UUIDs.
+
+        This call takes a list of node names and/or UUIDs and tries to convert
+        them to UUIDs. It fails early if any identities cannot possible be used
+        as names or UUIDs.
+
+        :param idents: List of identities.
+        :returns: A mapping from requests identities to node UUIDs.
+        :raises: NodeNotFound if some identities were not found or cannot be
+            valid names or UUIDs.
+        """
+
+    @abc.abstractmethod
     def reserve_node(self, tag, node_id):
         """Reserve a node.
 
