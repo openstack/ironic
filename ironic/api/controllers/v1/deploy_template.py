@@ -259,8 +259,11 @@ class DeployTemplatesController(rest.RestController):
     @pecan.expose()
     def _route(self, args, request=None):
         if not api_utils.allow_deploy_templates():
-            raise webob_exc.HTTPNotFound(_(
-                "The API version does not allow deploy templates"))
+            msg = _("The API version does not allow deploy templates")
+            if pecan.request.method == "GET":
+                raise webob_exc.HTTPNotFound(msg)
+            else:
+                raise webob_exc.HTTPMethodNotAllowed(msg)
         return super(DeployTemplatesController, self)._route(args, request)
 
     def _update_changed_fields(self, template, rpc_template):

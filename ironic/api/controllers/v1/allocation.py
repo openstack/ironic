@@ -204,8 +204,11 @@ class AllocationsController(pecan.rest.RestController):
     @pecan.expose()
     def _route(self, args, request=None):
         if not api_utils.allow_allocations():
-            raise webob_exc.HTTPNotFound(_(
-                "The API version does not allow allocations"))
+            msg = _("The API version does not allow allocations")
+            if pecan.request.method == "GET":
+                raise webob_exc.HTTPNotFound(msg)
+            else:
+                raise webob_exc.HTTPMethodNotAllowed(msg)
         return super(AllocationsController, self)._route(args, request)
 
     def _get_allocations_collection(self, node_ident=None, resource_class=None,
