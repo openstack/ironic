@@ -344,6 +344,111 @@ class CleanStepTestCase(base.TestCase):
         method_args_mock.assert_called_once_with(task_mock, **args)
 
 
+class DeployStepDecoratorTestCase(base.TestCase):
+
+    def setUp(self):
+        super(DeployStepDecoratorTestCase, self).setUp()
+        method_mock = mock.MagicMock()
+        del method_mock._is_deploy_step
+        del method_mock._deploy_step_priority
+        del method_mock._deploy_step_argsinfo
+        self.method = method_mock
+
+    def test_deploy_step_priority_only(self):
+        d = driver_base.deploy_step(priority=10)
+        d(self.method)
+        self.assertTrue(self.method._is_deploy_step)
+        self.assertEqual(10, self.method._deploy_step_priority)
+        self.assertIsNone(self.method._deploy_step_argsinfo)
+
+    def test_deploy_step_all_args(self):
+        argsinfo = {'arg1': {'description': 'desc1',
+                             'required': True}}
+        d = driver_base.deploy_step(priority=0, argsinfo=argsinfo)
+        d(self.method)
+        self.assertTrue(self.method._is_deploy_step)
+        self.assertEqual(0, self.method._deploy_step_priority)
+        self.assertEqual(argsinfo, self.method._deploy_step_argsinfo)
+
+    def test_deploy_step_bad_priority(self):
+        d = driver_base.deploy_step(priority='hi')
+        self.assertRaisesRegex(exception.InvalidParameterValue, 'priority',
+                               d, self.method)
+        self.assertTrue(self.method._is_deploy_step)
+        self.assertFalse(hasattr(self.method, '_deploy_step_priority'))
+        self.assertFalse(hasattr(self.method, '_deploy_step_argsinfo'))
+
+    @mock.patch.object(driver_base, '_validate_argsinfo', spec_set=True,
+                       autospec=True)
+    def test_deploy_step_bad_argsinfo(self, mock_valid):
+        mock_valid.side_effect = exception.InvalidParameterValue('bad')
+        d = driver_base.deploy_step(priority=0, argsinfo=100)
+        self.assertRaises(exception.InvalidParameterValue, d, self.method)
+        self.assertTrue(self.method._is_deploy_step)
+        self.assertEqual(0, self.method._deploy_step_priority)
+        self.assertFalse(hasattr(self.method, '_deploy_step_argsinfo'))
+
+
+class DeployAndCleanStepDecoratorTestCase(base.TestCase):
+
+    def setUp(self):
+        super(DeployAndCleanStepDecoratorTestCase, self).setUp()
+        method_mock = mock.MagicMock()
+        del method_mock._is_deploy_step
+        del method_mock._deploy_step_priority
+        del method_mock._deploy_step_argsinfo
+        del method_mock._is_clean_step
+        del method_mock._clean_step_priority
+        del method_mock._clean_step_abortable
+        del method_mock._clean_step_argsinfo
+        self.method = method_mock
+
+    def test_deploy_and_clean_step_priority_only(self):
+        dd = driver_base.deploy_step(priority=10)
+        dc = driver_base.clean_step(priority=11)
+        dd(dc(self.method))
+        self.assertTrue(self.method._is_deploy_step)
+        self.assertEqual(10, self.method._deploy_step_priority)
+        self.assertIsNone(self.method._deploy_step_argsinfo)
+        self.assertTrue(self.method._is_clean_step)
+        self.assertEqual(11, self.method._clean_step_priority)
+        self.assertFalse(self.method._clean_step_abortable)
+        self.assertIsNone(self.method._clean_step_argsinfo)
+
+    def test_deploy_and_clean_step_all_args(self):
+        dargsinfo = {'arg1': {'description': 'desc1',
+                              'required': True}}
+        cargsinfo = {'arg2': {'description': 'desc2',
+                              'required': False}}
+        dd = driver_base.deploy_step(priority=0, argsinfo=dargsinfo)
+        dc = driver_base.clean_step(priority=0, argsinfo=cargsinfo)
+        dd(dc(self.method))
+        self.assertTrue(self.method._is_deploy_step)
+        self.assertEqual(0, self.method._deploy_step_priority)
+        self.assertEqual(dargsinfo, self.method._deploy_step_argsinfo)
+        self.assertTrue(self.method._is_clean_step)
+        self.assertEqual(0, self.method._clean_step_priority)
+        self.assertFalse(self.method._clean_step_abortable)
+        self.assertEqual(cargsinfo, self.method._clean_step_argsinfo)
+
+    def test_clean_and_deploy_step_all_args(self):
+        # Opposite ordering, should make no difference.
+        dargsinfo = {'arg1': {'description': 'desc1',
+                              'required': True}}
+        cargsinfo = {'arg2': {'description': 'desc2',
+                              'required': False}}
+        dd = driver_base.deploy_step(priority=0, argsinfo=dargsinfo)
+        dc = driver_base.clean_step(priority=0, argsinfo=cargsinfo)
+        dc(dd(self.method))
+        self.assertTrue(self.method._is_deploy_step)
+        self.assertEqual(0, self.method._deploy_step_priority)
+        self.assertEqual(dargsinfo, self.method._deploy_step_argsinfo)
+        self.assertTrue(self.method._is_clean_step)
+        self.assertEqual(0, self.method._clean_step_priority)
+        self.assertFalse(self.method._clean_step_abortable)
+        self.assertEqual(cargsinfo, self.method._clean_step_argsinfo)
+
+
 class DeployStepTestCase(base.TestCase):
     def test_get_and_execute_deploy_steps(self):
         # Create a fake Driver class, create some deploy steps, make sure
@@ -467,7 +572,9 @@ class DeployStepTestCase(base.TestCase):
 
 class MyRAIDInterface(driver_base.RAIDInterface):
 
-    def create_configuration(self, task):
+    def create_configuration(self, task,
+                             create_root_volume=True,
+                             create_nonroot_volumes=True):
         pass
 
     def delete_configuration(self, task):

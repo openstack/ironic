@@ -213,7 +213,7 @@ class BaseInterface(object):
                         'argsinfo': method._clean_step_argsinfo,
                         'interface': instance.interface_type}
                 instance.clean_steps.append(step)
-            elif getattr(method, '_is_deploy_step', False):
+            if getattr(method, '_is_deploy_step', False):
                 # Create a DeployStep to represent this method
                 step = {'step': method.__name__,
                         'priority': method._deploy_step_priority,
