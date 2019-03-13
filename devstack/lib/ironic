@@ -520,7 +520,7 @@ fi
 
 # TODO(pas-ha) find a way to (cross-)sign the custom CA bundle used by tls-proxy
 # with default iPXE cert - for reference see http://ipxe.org/crypto
-if [ $IRONIC_IPXE_USE_SWIFT == 'True' && is_service_enabled tls-proxy ]; then
+if is_service_enabled tls-proxy && [[ "$IRONIC_IPXE_USE_SWIFT" == "True" ]]; then
     die $LINENO "Ironic in DevStack does not yet support booting iPXE from HTTPS URLs"
 fi
 
