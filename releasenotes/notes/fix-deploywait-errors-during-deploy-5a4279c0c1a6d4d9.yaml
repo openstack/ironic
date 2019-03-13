@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Fixes spurious deployment warnings being logged by the
+    ``ironic-conductor`` service indicating that the heartbeats from the
+    deployment ramdisk could not be processed in ``DEPLOYWAIT`` state.

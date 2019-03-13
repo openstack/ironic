@@ -250,6 +250,24 @@ class HeartbeatMixin(object):
         :returns: True if the deployment is completed. False otherwise
         """
 
+    def in_core_deploy_step(self, task):
+        """Check if we are in the deploy.deploy deploy step.
+
+        Assumes that we are in the DEPLOYWAIT state.
+
+        :param task: a TaskManager instance
+        :returns: True if the current deploy step is deploy.deploy.
+        """
+        # TODO(mgoddard): Remove this 'if' in the Train release, after the
+        # deprecation period for supporting drivers with no deploy steps.
+        if not task.node.driver_internal_info.get('deploy_steps'):
+            return True
+
+        step = task.node.deploy_step
+        return (step
+                and step['interface'] == 'deploy'
+                and step['step'] == 'deploy')
+
     def reboot_to_instance(self, task):
         """Method invoked after the deployment is completed.
 
@@ -333,17 +351,22 @@ class HeartbeatMixin(object):
                 LOG.debug('Heartbeat from node %(node)s in maintenance mode; '
                           'not taking any action.', {'node': node.uuid})
                 return
-            elif (node.provision_state == states.DEPLOYWAIT
-                  and not self.deploy_has_started(task)):
-                msg = _('Node failed to deploy.')
-                self.continue_deploy(task)
-            elif (node.provision_state == states.DEPLOYWAIT
-                  and self.deploy_is_done(task)):
-                msg = _('Node failed to move to active state.')
-                self.reboot_to_instance(task)
-            elif (node.provision_state == states.DEPLOYWAIT
-                  and self.deploy_has_started(task)):
-                node.touch_provisioning()
+            # NOTE(mgoddard): Only handle heartbeats during DEPLOYWAIT if we
+            # are currently in the core deploy.deploy step. Other deploy steps
+            # may cause the agent to boot, but we should not trigger deployment
+            # at that point.
+            elif node.provision_state == states.DEPLOYWAIT:
+                if self.in_core_deploy_step(task):
+                    if not self.deploy_has_started(task):
+                        msg = _('Node failed to deploy.')
+                        self.continue_deploy(task)
+                    elif self.deploy_is_done(task):
+                        msg = _('Node failed to move to active state.')
+                        self.reboot_to_instance(task)
+                    else:
+                        node.touch_provisioning()
+                else:
+                    node.touch_provisioning()
             elif node.provision_state == states.CLEANWAIT:
                 node.touch_provisioning()
                 if not node.clean_step:
