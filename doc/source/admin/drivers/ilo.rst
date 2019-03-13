@@ -53,6 +53,7 @@ The hardware type ``ilo`` supports following HPE server features:
 * `Inject NMI support`_
 * `Soft power operation support`_
 * `BIOS configuration support`_
+* `IPv6 support`_
 
 Apart from above features hardware type ``ilo5`` also supports following
 features:
@@ -317,9 +318,9 @@ Prerequisites
   which contains a set of modules for managing HPE ProLiant hardware.
 
   Install ``proliantutils`` module on the ironic conductor node. Minimum
-  version required is 2.7.0::
+  version required is 2.8.0::
 
-   $ pip install "proliantutils>=2.7.0"
+   $ pip install "proliantutils>=2.8.0"
 
 * ``ipmitool`` command must be present on the service node(s) where
   ``ironic-conductor`` is running. On most distros, this is provided as part
@@ -1846,6 +1847,24 @@ to create the server using selected node::
 .. note::
    Supported raid levels for ``ilo5`` hardware type are: 0, 1, 5, 6, 10, 50, 60
 
+IPv6 support
+^^^^^^^^^^^^
+With the IPv6 support in ``proliantutils>=2.8.0``, nodes can be enrolled
+into the baremetal service using the iLO IPv6 addresses.
+
+.. code-block:: console
+
+    openstack baremetal node create --driver ilo  --deploy-interface direct \
+        --driver-info ilo_address=2001:0db8:85a3:0000:0000:8a2e:0370:7334 \
+        --driver-info ilo_username=test-user \
+        --driver-info ilo_password=test-password \
+        --driver-info ilo_deploy_iso=test-iso \
+        --driver-info ilo_rescue_iso=test-iso
+
+
+.. note::
+   No configuration changes (in e.g. ironic.conf) are required in order to
+   support IPv6.
 
 .. _`ssacli documentation`: https://support.hpe.com/hpsc/doc/public/display?docId=c03909334
 .. _`proliant-tools`: https://docs.openstack.org/diskimage-builder/latest/elements/proliant-tools/README.html
