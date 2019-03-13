@@ -822,6 +822,7 @@ class IPMIToolPrivateMethodTestCase(Base):
             '-H', self.info['address'],
             '-L', self.info['priv_level'],
             '-U', self.info['username'],
+            '-v',
             '-f', awesome_password_filename,
             'A', 'B', 'C',
         ]
@@ -847,6 +848,7 @@ class IPMIToolPrivateMethodTestCase(Base):
             '-H', self.info['address'],
             '-L', self.info['priv_level'],
             '-U', self.info['username'],
+            '-v',
             '-f', awesome_password_filename,
             'A', 'B', 'C',
         ], [
@@ -855,6 +857,7 @@ class IPMIToolPrivateMethodTestCase(Base):
             '-H', self.info['address'],
             '-L', self.info['priv_level'],
             '-U', self.info['username'],
+            '-v',
             '-f', awesome_password_filename,
             'D', 'E', 'F',
         ]]
@@ -884,6 +887,7 @@ class IPMIToolPrivateMethodTestCase(Base):
             '-H', self.info['address'],
             '-L', self.info['priv_level'],
             '-U', self.info['username'],
+            '-v',
             '-f', awesome_password_filename,
             'A', 'B', 'C',
         ], [
@@ -892,6 +896,7 @@ class IPMIToolPrivateMethodTestCase(Base):
             '-H', self.info['address'],
             '-L', self.info['priv_level'],
             '-U', self.info['username'],
+            '-v',
             '-f', awesome_password_filename,
             'D', 'E', 'F',
         ]]
@@ -923,6 +928,7 @@ class IPMIToolPrivateMethodTestCase(Base):
             '-H', self.info['address'],
             '-L', self.info['priv_level'],
             '-U', self.info['username'],
+            '-v',
             '-f', awesome_password_filename,
             'A', 'B', 'C',
         ], [
@@ -931,6 +937,7 @@ class IPMIToolPrivateMethodTestCase(Base):
             '-H', '127.127.127.127',
             '-L', self.info['priv_level'],
             '-U', self.info['username'],
+            '-v',
             '-f', awesome_password_filename,
             'D', 'E', 'F',
         ]]
@@ -959,6 +966,7 @@ class IPMIToolPrivateMethodTestCase(Base):
             '-H', self.info['address'],
             '-L', self.info['priv_level'],
             '-U', self.info['username'],
+            '-v',
             '-f', awesome_password_filename,
             'A', 'B', 'C',
         ]
@@ -982,6 +990,7 @@ class IPMIToolPrivateMethodTestCase(Base):
             '-H', self.info['address'],
             '-L', self.info['priv_level'],
             '-U', self.info['username'],
+            '-v',
             '-R', '12',
             '-N', '5',
             '-f', awesome_password_filename,
@@ -1017,6 +1026,7 @@ class IPMIToolPrivateMethodTestCase(Base):
             '-I', 'lanplus',
             '-H', self.info['address'],
             '-L', self.info['priv_level'],
+            '-v',
             '-f', awesome_password_filename,
             'A', 'B', 'C',
         ]
@@ -1040,6 +1050,7 @@ class IPMIToolPrivateMethodTestCase(Base):
             '-I', 'lanplus',
             '-H', self.info['address'],
             '-L', self.info['priv_level'],
+            '-v',
             '-f', awesome_password_filename,
             'A', 'B', 'C',
         ]
@@ -1066,6 +1077,7 @@ class IPMIToolPrivateMethodTestCase(Base):
             '-H', self.info['address'],
             '-L', self.info['priv_level'],
             '-U', self.info['username'],
+            '-v',
             '-f', awesome_password_filename,
             'A', 'B', 'C',
         ]
@@ -1093,6 +1105,7 @@ class IPMIToolPrivateMethodTestCase(Base):
             '-H', self.info['address'],
             '-L', self.info['priv_level'],
             '-U', self.info['username'],
+            '-v',
             '-f', awesome_password_filename,
             'A', 'B', 'C',
         ]
@@ -1127,6 +1140,7 @@ class IPMIToolPrivateMethodTestCase(Base):
             '-T', info['transit_address'],
             '-b', info['target_channel'],
             '-t', info['target_address'],
+            '-v',
             '-f', awesome_password_filename,
             'A', 'B', 'C',
         ]
@@ -1164,6 +1178,7 @@ class IPMIToolPrivateMethodTestCase(Base):
             '-m', info['local_address'],
             '-b', info['target_channel'],
             '-t', info['target_address'],
+            '-v',
             '-f', awesome_password_filename,
             'A', 'B', 'C',
         ]
@@ -1187,6 +1202,7 @@ class IPMIToolPrivateMethodTestCase(Base):
             '-H', self.info['address'],
             '-L', self.info['priv_level'],
             '-U', self.info['username'],
+            '-v',
             '-f', awesome_password_filename,
             'A', 'B', 'C',
         ]
@@ -1213,6 +1229,7 @@ class IPMIToolPrivateMethodTestCase(Base):
             '-H', self.info['address'],
             '-L', self.info['priv_level'],
             '-U', self.info['username'],
+            '-v',
             '-f', awesome_password_filename,
             'A', 'B', 'C',
         ]
@@ -1236,6 +1253,7 @@ class IPMIToolPrivateMethodTestCase(Base):
             '-L', self.info['priv_level'],
             '-p', '1623',
             '-U', self.info['username'],
+            '-v',
             '-f', awesome_password_filename,
             'A', 'B', 'C',
         ]
@@ -1260,6 +1278,7 @@ class IPMIToolPrivateMethodTestCase(Base):
             '-H', self.info['address'],
             '-L', self.info['priv_level'],
             '-U', self.info['username'],
+            '-v',
             '-f', awesome_password_filename,
             'A', 'B', 'C',
         ]
@@ -2461,8 +2480,8 @@ class IPMIToolShellinaboxTestCase(db_base.DbTestCase):
             driver_info = ipmi._parse_driver_info(task.node)
             ipmi_cmd = self.console._get_ipmi_cmd(driver_info, 'pw_file')
             expected_ipmi_cmd = ("/:%(uid)s:%(gid)s:HOME:ipmitool "
-                                 "-H %(address)s -I lanplus -U %(user)s "
-                                 "-f pw_file" %
+                                 "-I lanplus -H %(address)s -L ADMINISTRATOR "
+                                 "-U %(user)s -f pw_file -v" %
                                  {'uid': os.getuid(), 'gid': os.getgid(),
                                   'address': driver_info['address'],
                                   'user': driver_info['username']})
@@ -2475,8 +2494,8 @@ class IPMIToolShellinaboxTestCase(db_base.DbTestCase):
             driver_info['username'] = None
             ipmi_cmd = self.console._get_ipmi_cmd(driver_info, 'pw_file')
             expected_ipmi_cmd = ("/:%(uid)s:%(gid)s:HOME:ipmitool "
-                                 "-H %(address)s -I lanplus "
-                                 "-f pw_file" %
+                                 "-I lanplus -H %(address)s -L ADMINISTRATOR "
+                                 "-f pw_file -v" %
                                  {'uid': os.getuid(), 'gid': os.getgid(),
                                   'address': driver_info['address']})
         self.assertEqual(expected_ipmi_cmd, ipmi_cmd)
@@ -2608,8 +2627,9 @@ class IPMIToolSocatDriverTestCase(IPMIToolShellinaboxTestCase):
                                   self.node.uuid) as task:
             driver_info = ipmi._parse_driver_info(task.node)
             ipmi_cmd = self.console._get_ipmi_cmd(driver_info, 'pw_file')
-            expected_ipmi_cmd = ("ipmitool -H %(address)s -I lanplus "
-                                 "-U %(user)s -f pw_file" %
+            expected_ipmi_cmd = ("ipmitool -I lanplus -H %(address)s "
+                                 "-L ADMINISTRATOR -U %(user)s "
+                                 "-f pw_file -v" %
                                  {'address': driver_info['address'],
                                   'user': driver_info['username']})
         self.assertEqual(expected_ipmi_cmd, ipmi_cmd)
@@ -2620,8 +2640,9 @@ class IPMIToolSocatDriverTestCase(IPMIToolShellinaboxTestCase):
             driver_info = ipmi._parse_driver_info(task.node)
             driver_info['username'] = None
             ipmi_cmd = self.console._get_ipmi_cmd(driver_info, 'pw_file')
-            expected_ipmi_cmd = ("ipmitool -H %(address)s -I lanplus "
-                                 "-f pw_file" %
+            expected_ipmi_cmd = ("ipmitool -I lanplus -H %(address)s "
+                                 "-L ADMINISTRATOR "
+                                 "-f pw_file -v" %
                                  {'address': driver_info['address']})
         self.assertEqual(expected_ipmi_cmd, ipmi_cmd)
 
