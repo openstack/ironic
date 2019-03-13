@@ -9,4 +9,4 @@ features:
     bring nodes into this state). For backwards compatibility reasons, the
     default value for this option is True. The other states in which nodes
     can be deleted from ironic ('manageable', 'enroll', and 'adoptfail')
-    remain unchanged.
+    remain unchanged. This option can be changed without service restart.
