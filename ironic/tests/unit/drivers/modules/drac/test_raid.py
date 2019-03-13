@@ -45,9 +45,11 @@ class DracQueryRaidConfigurationTestCase(test_utils.BaseDracTest):
             'description': 'Integrated RAID Controller 1',
             'manufacturer': 'DELL',
             'model': 'PERC H710 Mini',
-            'firmware_version': '21.3.0-0009'}
-        self.raid_controller = test_utils.dict_to_namedtuple(
-            values=raid_controller_dict)
+            'primary_status': 'ok',
+            'firmware_version': '21.3.0-0009',
+            'bus': '1'}
+        self.raid_controller = test_utils.make_raid_controller(
+            raid_controller_dict)
 
         virtual_disk_dict = {
             'id': 'Disk.Virtual.0:RAID.Integrated.1-1',
@@ -56,13 +58,13 @@ class DracQueryRaidConfigurationTestCase(test_utils.BaseDracTest):
             'controller': 'RAID.Integrated.1-1',
             'raid_level': '1',
             'size_mb': 571776,
-            'state': 'ok',
-            'raid_state': 'online',
+            'status': 'ok',
+            'raid_status': 'online',
             'span_depth': 1,
             'span_length': 2,
-            'pending_operations': None}
-        self.virtual_disk = test_utils.dict_to_namedtuple(
-            values=virtual_disk_dict)
+            'pending_operations': None,
+            'physical_disks': []}
+        self.virtual_disk = test_utils.make_virtual_disk(virtual_disk_dict)
 
         physical_disk_dict = {
             'id': 'Disk.Bay.1:Enclosure.Internal.0-1:RAID.Integrated.1-1',
@@ -77,10 +79,11 @@ class DracQueryRaidConfigurationTestCase(test_utils.BaseDracTest):
             'free_size_mb': 571776,
             'serial_number': 'S0M3EY2Z',
             'firmware_version': 'LS0A',
-            'state': 'ok',
-            'raid_state': 'ready'}
-        self.physical_disk = test_utils.dict_to_namedtuple(
-            values=physical_disk_dict)
+            'status': 'ok',
+            'raid_status': 'ready',
+            'sas_address': '500056B37789ABE3',
+            'device_protocol': None}
+        self.physical_disk = test_utils.make_physical_disk(physical_disk_dict)
 
     def test_list_raid_controllers(self, mock_get_drac_client):
         mock_client = mock.Mock()
@@ -287,8 +290,10 @@ class DracCreateRaidConfigurationHelpersTestCase(test_utils.BaseDracTest):
             'free_size_mb': 571776,
             'serial_number': 'S0M3EY2Z',
             'firmware_version': 'LS0A',
-            'state': 'ok',
-            'raid_state': 'ready'}
+            'status': 'ok',
+            'raid_status': 'ready',
+            'sas_address': '500056B37789ABE3',
+            'device_protocol': None}
 
         self.physical_disks = []
         for i in range(8):
@@ -330,8 +335,7 @@ class DracCreateRaidConfigurationHelpersTestCase(test_utils.BaseDracTest):
         physical_disks = []
 
         for disk in self.physical_disks:
-            physical_disks.append(
-                test_utils.dict_to_namedtuple(values=disk))
+            physical_disks.append(test_utils.make_physical_disk(disk))
 
         return physical_disks
 
@@ -539,8 +543,10 @@ class DracRaidInterfaceTestCase(test_utils.BaseDracTest):
             'free_size_mb': 571776,
             'serial_number': 'S0M3EY2Z',
             'firmware_version': 'LS0A',
-            'state': 'ok',
-            'raid_state': 'ready'}
+            'status': 'ok',
+            'raid_status': 'ready',
+            'sas_address': '500056B37789ABE3',
+            'device_protocol': None}
 
         self.physical_disks = []
         for i in range(8):
@@ -582,8 +588,7 @@ class DracRaidInterfaceTestCase(test_utils.BaseDracTest):
         physical_disks = []
 
         for disk in self.physical_disks:
-            physical_disks.append(
-                test_utils.dict_to_namedtuple(values=disk))
+            physical_disks.append(test_utils.make_physical_disk(disk))
 
         return physical_disks
 
@@ -1300,13 +1305,14 @@ class DracRaidInterfaceTestCase(test_utils.BaseDracTest):
             'controller': 'RAID.Integrated.1-1',
             'raid_level': '1',
             'size_mb': 571776,
-            'state': 'ok',
-            'raid_state': 'online',
+            'status': 'ok',
+            'raid_status': 'online',
             'span_depth': 1,
             'span_length': 2,
-            'pending_operations': None}
+            'pending_operations': None,
+            'physical_disks': []}
         mock_list_virtual_disks.return_value = [
-            test_utils.dict_to_namedtuple(values=virtual_disk_dict)]
+            test_utils.make_virtual_disk(virtual_disk_dict)]
         mock_commit_config.return_value = '42'
 
         with task_manager.acquire(self.context, self.node.uuid,
@@ -1359,13 +1365,14 @@ class DracRaidInterfaceTestCase(test_utils.BaseDracTest):
             'controller': 'RAID.Integrated.1-1',
             'raid_level': '1',
             'size_mb': 571776,
-            'state': 'ok',
-            'raid_state': 'online',
+            'status': 'ok',
+            'raid_status': 'online',
             'span_depth': 1,
             'span_length': 2,
-            'pending_operations': None}
+            'pending_operations': None,
+            'physical_disks': []}
         mock_list_virtual_disks.return_value = [
-            test_utils.dict_to_namedtuple(values=virtual_disk_dict)]
+            test_utils.make_virtual_disk(virtual_disk_dict)]
         expected_logical_disk = {'id': 'Disk.Virtual.0:RAID.Integrated.1-1',
                                  'size_gb': 558,
                                  'raid_level': '1',

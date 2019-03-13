@@ -43,9 +43,9 @@ class DracJobTestCase(test_utils.BaseDracTest):
             'start_time': '00000101000000',
             'until_time': 'TIME_NA',
             'message': 'Job in progress',
-            'state': 'Running',
+            'status': 'Running',
             'percent_complete': 34}
-        self.job = test_utils.dict_to_namedtuple(values=self.job_dict)
+        self.job = test_utils.make_job(self.job_dict)
 
     def test_get_job(self, mock_get_drac_client):
         mock_client = mock.Mock()
@@ -127,9 +127,9 @@ class DracVendorPassthruJobTestCase(test_utils.BaseDracTest):
             'start_time': '00000101000000',
             'until_time': 'TIME_NA',
             'message': 'Job in progress',
-            'state': 'Running',
+            'status': 'Running',
             'percent_complete': 34}
-        self.job = test_utils.dict_to_namedtuple(values=self.job_dict)
+        self.job = test_utils.make_job(self.job_dict)
 
     def test_list_unfinished_jobs(self, mock_get_drac_client):
         mock_client = mock.Mock()

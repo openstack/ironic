@@ -42,7 +42,7 @@ class DracPeriodicTaskTestCase(db_base.DbTestCase):
             'start_time': '00000101000000',
             'until_time': 'TIME_NA',
             'message': 'Job in progress',
-            'state': 'Running',
+            'status': 'Running',
             'percent_complete': 34}
         self.virtual_disk = {
             'id': 'Disk.Virtual.0:RAID.Integrated.1-1',
@@ -51,8 +51,8 @@ class DracPeriodicTaskTestCase(db_base.DbTestCase):
             'controller': 'RAID.Integrated.1-1',
             'raid_level': '1',
             'size_mb': 571776,
-            'state': 'ok',
-            'raid_state': 'online',
+            'status': 'ok',
+            'raid_status': 'online',
             'span_depth': 1,
             'span_length': 2,
             'pending_operations': None
@@ -153,7 +153,7 @@ class DracPeriodicTaskTestCase(db_base.DbTestCase):
         # mock task
         task = mock.Mock(node=self.node, context=self.context)
         # mock dracclient.get_job
-        self.job['state'] = 'Completed'
+        self.job['status'] = 'Completed'
         mock_client = mock.Mock()
         mock_get_drac_client.return_value = mock_client
         mock_client.get_job.return_value = test_utils.dict_to_namedtuple(
@@ -183,7 +183,7 @@ class DracPeriodicTaskTestCase(db_base.DbTestCase):
         # mock task
         task = mock.Mock(node=self.node, context=self.context)
         # mock dracclient.get_job
-        self.job['state'] = 'Failed'
+        self.job['status'] = 'Failed'
         self.job['message'] = 'boom'
         mock_client = mock.Mock()
         mock_get_drac_client.return_value = mock_client
@@ -222,7 +222,7 @@ class DracPeriodicTaskTestCase(db_base.DbTestCase):
         # mock task
         task = mock.Mock(node=self.node, context=self.context)
         # mock dracclient.get_job
-        self.job['state'] = 'Completed'
+        self.job['status'] = 'Completed'
         mock_client = mock.Mock()
         mock_get_drac_client.return_value = mock_client
         mock_client.get_job.return_value = test_utils.dict_to_namedtuple(
@@ -261,7 +261,7 @@ class DracPeriodicTaskTestCase(db_base.DbTestCase):
         # mock task
         task = mock.Mock(node=self.node, context=self.context)
         # mock dracclient.get_job
-        self.job['state'] = 'Completed'
+        self.job['status'] = 'Completed'
         mock_client = mock.Mock()
         mock_get_drac_client.return_value = mock_client
         mock_client.get_job.return_value = test_utils.dict_to_namedtuple(
@@ -302,9 +302,9 @@ class DracPeriodicTaskTestCase(db_base.DbTestCase):
         # mock task
         task = mock.Mock(node=self.node, context=self.context)
         # mock dracclient.get_job
-        self.job['state'] = 'Completed'
+        self.job['status'] = 'Completed'
         failed_job = self.job.copy()
-        failed_job['state'] = 'Failed'
+        failed_job['status'] = 'Failed'
         failed_job['message'] = 'boom'
         mock_client = mock.Mock()
         mock_get_drac_client.return_value = mock_client

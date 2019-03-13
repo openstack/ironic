@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    Fixes an issue in the ``idrac`` RAID interface seen when creating RAID
+    configurations using ``python-dracclient`` version ``2.0.0`` or higher.

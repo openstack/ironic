@@ -13,11 +13,16 @@
 
 import collections
 
+from oslo_utils import importutils
+
 from ironic.tests.unit.db import base as db_base
 from ironic.tests.unit.db import utils as db_utils
 
 
 INFO_DICT = db_utils.get_test_drac_info()
+
+dracclient_job = importutils.try_import('dracclient.resources.job')
+dracclient_raid = importutils.try_import('dracclient.resources.raid')
 
 
 class BaseDracTest(db_base.DbTestCase):
@@ -55,3 +60,31 @@ def dict_of_object(data):
             dict_obj = DictToObj(v)
             data[k] = dict_obj
     return data
+
+
+def make_job(job_dict):
+    if dracclient_job:
+        return dracclient_job.Job(**job_dict)
+    else:
+        return dict_to_namedtuple(values=job_dict)
+
+
+def make_raid_controller(raid_controller_dict):
+    if dracclient_raid:
+        return dracclient_raid.RAIDController(**raid_controller_dict)
+    else:
+        return dict_to_namedtuple(values=raid_controller_dict)
+
+
+def make_virtual_disk(virtual_disk_dict):
+    if dracclient_raid:
+        return dracclient_raid.VirtualDisk(**virtual_disk_dict)
+    else:
+        return dict_to_namedtuple(values=virtual_disk_dict)
+
+
+def make_physical_disk(physical_disk_dict):
+    if dracclient_raid:
+        return dracclient_raid.PhysicalDisk(**physical_disk_dict)
+    else:
+        return dict_to_namedtuple(values=physical_disk_dict)
