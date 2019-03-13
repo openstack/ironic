@@ -201,6 +201,7 @@ opts = [
                       '"conductor_group" field set on the node.')),
     cfg.BoolOpt('allow_deleting_available_nodes',
                 default=True,
+                mutable=True,
                 help=_('Allow deleting nodes which are in state '
                        '\'available\'. Defaults to True.')),
 ]
