@@ -55,6 +55,14 @@ command, for example::
 
     openstack baremetal node deploy $node_identifier --config-drive /dir/configdrive_files
 
+Starting with the Stein release and `ironicclient` 2.7.0, you can request
+building a configdrive on the server side by providing a JSON with keys
+``meta_data``, ``user_data`` and ``network_data`` (all optional), e.g.:
+
+.. code-block:: bash
+
+    openstack baremetal node deploy $node_identifier \
+        --config-drive '{"meta_data": {"hostname": "server1.cluster"}}'
 
 Configuration drive storage in an object store
 ----------------------------------------------
