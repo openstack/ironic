@@ -1,0 +1,5 @@
+---
+deprecations:
+  - |
+    The "hash_distribution_replicas" configuration option is now deprecated.
+    If specified in the config file, a warning is logged.

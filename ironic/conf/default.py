@@ -190,7 +190,8 @@ hash_opts = [
                       'Setting this to more than one will cause additional '
                       'conductor services to prepare deployment environments '
                       'and potentially allow the Ironic cluster to recover '
-                      'more quickly if a conductor instance is terminated.')),
+                      'more quickly if a conductor instance is terminated.'),
+               deprecated_for_removal=True),
     cfg.IntOpt('hash_ring_reset_interval',
                default=15,
                help=_('Time (in seconds) after which the hash ring is '
