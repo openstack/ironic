@@ -183,8 +183,8 @@ Configuring nodes
          --physical-network physnet1 \
          --is-smartnic
 
-    A Smart NIC port requires ``hostname`` which is the hostname of the Smart NIC,
-    and ``port_id`` which is the representor port name within the Smart NIC.
+   A Smart NIC port requires ``hostname`` which is the hostname of the Smart NIC,
+   and ``port_id`` which is the representor port name within the Smart NIC.
 
 #. Check the port configuration::
 
