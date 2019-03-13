@@ -258,7 +258,7 @@ class IloInspect(base.InspectInterface):
                         'connected or not for ProLiant Gen8 and Gen9 servers. '
                         'Hence returns all the MACs present on the server. '
                         'Please remove the ironic ports created for inactive '
-                        'NICs manually for the node %(node)',
+                        'NICs manually for the node %(node)s',
                         {"node": task.node.uuid})
         task.node.save()
 
