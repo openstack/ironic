@@ -414,7 +414,7 @@ class TestPatch(BaseDeployTemplatesAPITest):
                                      'op': 'add'}],
                                    headers=headers,
                                    expect_errors=True)
-        self.assertEqual(http_client.NOT_FOUND, response.status_int)
+        self.assertEqual(http_client.METHOD_NOT_ALLOWED, response.status_int)
         self.assertFalse(mock_save.called)
 
     def test_update_by_name_old_api_version(self, mock_save):
@@ -424,7 +424,7 @@ class TestPatch(BaseDeployTemplatesAPITest):
                                      'value': name,
                                      'op': 'add'}],
                                    expect_errors=True)
-        self.assertEqual(http_client.NOT_FOUND, response.status_int)
+        self.assertEqual(http_client.METHOD_NOT_ALLOWED, response.status_int)
         self.assertFalse(mock_save.called)
 
     def test_update_not_found(self, mock_save):
@@ -715,7 +715,7 @@ class TestPost(BaseDeployTemplatesAPITest):
         response = self.post_json(
             '/deploy_templates', tdict, headers=self.invalid_version_headers,
             expect_errors=True)
-        self.assertEqual(http_client.NOT_FOUND, response.status_int)
+        self.assertEqual(http_client.METHOD_NOT_ALLOWED, response.status_int)
 
     def test_create_doesnt_contain_id(self):
         with mock.patch.object(
@@ -944,14 +944,14 @@ class TestDelete(BaseDeployTemplatesAPITest):
         response = self.delete('/deploy_templates/%s' % self.template.uuid,
                                expect_errors=True,
                                headers=self.invalid_version_headers)
-        self.assertEqual(http_client.NOT_FOUND, response.status_int)
+        self.assertEqual(http_client.METHOD_NOT_ALLOWED, response.status_int)
 
     def test_delete_old_api_version(self, mock_dpt):
         # Names like CUSTOM_1 were not valid in API 1.1, but the check should
         # go after the microversion check.
         response = self.delete('/deploy_templates/%s' % self.template.name,
                                expect_errors=True)
-        self.assertEqual(http_client.NOT_FOUND, response.status_int)
+        self.assertEqual(http_client.METHOD_NOT_ALLOWED, response.status_int)
 
     def test_delete_by_name_non_existent(self, mock_dpt):
         res = self.delete('/deploy_templates/%s' % 'blah', expect_errors=True,

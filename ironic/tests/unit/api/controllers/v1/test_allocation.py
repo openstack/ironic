@@ -450,7 +450,7 @@ class TestPost(test_api_base.BaseApiTest):
         response = self.post_json(
             '/allocations', adict, headers={api_base.Version.string: '1.50'},
             expect_errors=True)
-        self.assertEqual(http_client.NOT_FOUND, response.status_int)
+        self.assertEqual(http_client.METHOD_NOT_ALLOWED, response.status_int)
 
     def test_create_allocation_doesnt_contain_id(self):
         with mock.patch.object(self.dbapi, 'create_allocation',
@@ -680,7 +680,7 @@ class TestDelete(test_api_base.BaseApiTest):
         response = self.delete('/allocations/%s' % self.allocation.uuid,
                                expect_errors=True,
                                headers={api_base.Version.string: '1.14'})
-        self.assertEqual(http_client.NOT_FOUND, response.status_int)
+        self.assertEqual(http_client.METHOD_NOT_ALLOWED, response.status_int)
 
     def test_delete_allocation_invalid_api_version_without_check(self,
                                                                  mock_destroy):
@@ -688,7 +688,7 @@ class TestDelete(test_api_base.BaseApiTest):
         response = self.delete('/allocations/ba!na!na1',
                                expect_errors=True,
                                headers={api_base.Version.string: '1.14'})
-        self.assertEqual(http_client.NOT_FOUND, response.status_int)
+        self.assertEqual(http_client.METHOD_NOT_ALLOWED, response.status_int)
 
     def test_delete_allocation_by_name(self, mock_destroy):
         self.delete('/allocations/%s' % self.allocation.name,
