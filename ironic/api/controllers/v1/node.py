@@ -2149,16 +2149,14 @@ class NodesController(rest.RestController):
                          % node_ident)
             error_msg += "'%(name)s'"
             self._check_names_acceptable(names, error_msg)
-        try:
-            node_dict = rpc_node.as_dict()
-            # NOTE(lucasagomes):
-            # 1) Remove chassis_id because it's an internal value and
-            #    not present in the API object
-            # 2) Add chassis_uuid
-            node_dict['chassis_uuid'] = node_dict.pop('chassis_id', None)
-            node = Node(**api_utils.apply_jsonpatch(node_dict, patch))
-        except api_utils.JSONPATCH_EXCEPTIONS as e:
-            raise exception.PatchError(patch=patch, reason=e)
+
+        node_dict = rpc_node.as_dict()
+        # NOTE(lucasagomes):
+        # 1) Remove chassis_id because it's an internal value and
+        #    not present in the API object
+        # 2) Add chassis_uuid
+        node_dict['chassis_uuid'] = node_dict.pop('chassis_id', None)
+        node = Node(**api_utils.apply_jsonpatch(node_dict, patch))
         self._update_changed_fields(node, rpc_node)
         # NOTE(deva): we calculate the rpc topic here in case node.driver
         #             has changed, so that update is sent to the

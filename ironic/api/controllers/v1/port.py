@@ -677,21 +677,18 @@ class PortsController(rest.RestController):
         self._check_allowed_port_fields(fields_to_check)
 
         rpc_port = objects.Port.get_by_uuid(context, port_uuid)
-        try:
-            port_dict = rpc_port.as_dict()
-            # NOTE(lucasagomes):
-            # 1) Remove node_id because it's an internal value and
-            #    not present in the API object
-            # 2) Add node_uuid
-            port_dict['node_uuid'] = port_dict.pop('node_id', None)
-            # NOTE(vsaienko):
-            # 1) Remove portgroup_id because it's an internal value and
-            #    not present in the API object
-            # 2) Add portgroup_uuid
-            port_dict['portgroup_uuid'] = port_dict.pop('portgroup_id', None)
-            port = Port(**api_utils.apply_jsonpatch(port_dict, patch))
-        except api_utils.JSONPATCH_EXCEPTIONS as e:
-            raise exception.PatchError(patch=patch, reason=e)
+        port_dict = rpc_port.as_dict()
+        # NOTE(lucasagomes):
+        # 1) Remove node_id because it's an internal value and
+        #    not present in the API object
+        # 2) Add node_uuid
+        port_dict['node_uuid'] = port_dict.pop('node_id', None)
+        # NOTE(vsaienko):
+        # 1) Remove portgroup_id because it's an internal value and
+        #    not present in the API object
+        # 2) Add portgroup_uuid
+        port_dict['portgroup_uuid'] = port_dict.pop('portgroup_id', None)
+        port = Port(**api_utils.apply_jsonpatch(port_dict, patch))
 
         api_utils.handle_patch_port_like_extra_vif(rpc_port, port, patch)
 

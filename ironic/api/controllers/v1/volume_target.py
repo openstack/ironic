@@ -432,17 +432,14 @@ class VolumeTargetsController(rest.RestController):
                 raise exception.InvalidUUID(message=message)
 
         rpc_target = objects.VolumeTarget.get_by_uuid(context, target_uuid)
-        try:
-            target_dict = rpc_target.as_dict()
-            # NOTE(smoriya):
-            # 1) Remove node_id because it's an internal value and
-            #    not present in the API object
-            # 2) Add node_uuid
-            target_dict['node_uuid'] = target_dict.pop('node_id', None)
-            target = VolumeTarget(
-                **api_utils.apply_jsonpatch(target_dict, patch))
-        except api_utils.JSONPATCH_EXCEPTIONS as e:
-            raise exception.PatchError(patch=patch, reason=e)
+        target_dict = rpc_target.as_dict()
+        # NOTE(smoriya):
+        # 1) Remove node_id because it's an internal value and
+        #    not present in the API object
+        # 2) Add node_uuid
+        target_dict['node_uuid'] = target_dict.pop('node_id', None)
+        target = VolumeTarget(
+            **api_utils.apply_jsonpatch(target_dict, patch))
 
         # Update only the fields that have changed.
         for field in objects.VolumeTarget.fields:

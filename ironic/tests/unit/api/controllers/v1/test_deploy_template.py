@@ -175,19 +175,16 @@ class TestListDeployTemplates(BaseDeployTemplatesAPITest):
 
     def test_detail_query_false(self):
         obj_utils.create_test_deploy_template(self.context)
-        data1 = self.get_json(
-            '/deploy_templates',
-            headers={api_base.Version.string: str(api_v1.max_version())})
+        data1 = self.get_json('/deploy_templates', headers=self.headers)
         data2 = self.get_json(
-            '/deploy_templates?detail=False',
-            headers={api_base.Version.string: str(api_v1.max_version())})
+            '/deploy_templates?detail=False', headers=self.headers)
         self.assertEqual(data1['deploy_templates'], data2['deploy_templates'])
 
     def test_detail_using_query_false_and_fields(self):
         obj_utils.create_test_deploy_template(self.context)
         data = self.get_json(
             '/deploy_templates?detail=False&fields=steps',
-            headers={api_base.Version.string: str(api_v1.max_version())})
+            headers=self.headers)
         self.assertIn('steps', data['deploy_templates'][0])
         self.assertNotIn('uuid', data['deploy_templates'][0])
         self.assertNotIn('extra', data['deploy_templates'][0])
@@ -195,8 +192,7 @@ class TestListDeployTemplates(BaseDeployTemplatesAPITest):
     def test_detail_using_query_and_fields(self):
         obj_utils.create_test_deploy_template(self.context)
         response = self.get_json(
-            '/deploy_templates?detail=True&fields=name',
-            headers={api_base.Version.string: str(api_v1.max_version())},
+            '/deploy_templates?detail=True&fields=name', headers=self.headers,
             expect_errors=True)
         self.assertEqual(http_client.BAD_REQUEST, response.status_int)
 
@@ -397,7 +393,14 @@ class TestPatch(BaseDeployTemplatesAPITest):
     def test_update_name_standard_trait(self, mock_save):
         name = 'HW_CPU_X86_VMX'
         patch = [{'path': '/name', 'value': name, 'op': 'replace'}]
-        self._test_update_ok(mock_save, patch)
+        response = self._test_update_ok(mock_save, patch)
+        self.assertEqual(name, response.json['name'])
+
+    def test_update_name_custom_trait(self, mock_save):
+        name = 'CUSTOM_DT2'
+        patch = [{'path': '/name', 'value': name, 'op': 'replace'}]
+        response = self._test_update_ok(mock_save, patch)
+        self.assertEqual(name, response.json['name'])
 
     def test_update_invalid_name(self, mock_save):
         self._test_update_bad_request(
@@ -440,12 +443,6 @@ class TestPatch(BaseDeployTemplatesAPITest):
         self.assertEqual(http_client.NOT_FOUND, response.status_int)
         self.assertTrue(response.json['error_message'])
         self.assertFalse(mock_save.called)
-
-    def test_replace_singular(self, mock_save):
-        name = 'CUSTOM_DT2'
-        patch = [{'path': '/name', 'value': name, 'op': 'replace'}]
-        response = self._test_update_ok(mock_save, patch)
-        self.assertEqual(name, response.json['name'])
 
     @mock.patch.object(notification_utils, '_emit_api_notification',
                        autospec=True)
@@ -582,7 +579,7 @@ class TestPatch(BaseDeployTemplatesAPITest):
         patch = []
         for i, step in enumerate(steps):
             patch.append({'path': '/steps/%s' % i,
-                          'value': steps[i],
+                          'value': step,
                           'op': 'replace'})
         response = self.patch_json('/deploy_templates/%s' % template.uuid,
                                    patch, headers=self.headers)
