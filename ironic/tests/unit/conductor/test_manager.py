@@ -5592,8 +5592,9 @@ class SensorsTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         expected_result = {}
         self.assertEqual(expected_result, actual_result)
 
+    @mock.patch.object(messaging.Notifier, 'info', autospec=True)
     @mock.patch.object(task_manager, 'acquire')
-    def test_send_sensor_task(self, acquire_mock):
+    def test_send_sensor_task(self, acquire_mock, notifier_mock):
         nodes = queue.Queue()
         for i in range(5):
             nodes.put_nowait(('fake_uuid-%d' % i, 'fake-hardware', '', None))
@@ -5602,6 +5603,8 @@ class SensorsTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
 
         task = acquire_mock.return_value.__enter__.return_value
         task.node.maintenance = False
+        task.node.driver = 'fake'
+        task.node.name = 'fake_node'
         get_sensors_data_mock = task.driver.management.get_sensors_data
         validate_mock = task.driver.management.validate
         get_sensors_data_mock.return_value = 'fake-sensor-data'
@@ -5609,6 +5612,21 @@ class SensorsTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         self.assertEqual(5, acquire_mock.call_count)
         self.assertEqual(5, validate_mock.call_count)
         self.assertEqual(5, get_sensors_data_mock.call_count)
+        self.assertEqual(5, notifier_mock.call_count)
+        if six.PY2:
+            # bail out if python2 as matching fails to match the
+            # data structure becasue it requires the order to be consistent
+            # but the mock also records the call dictionary contents in
+            # random order changing with every invocation. :\
+            return
+        n_call = mock.call(mock.ANY, mock.ANY, 'hardware.fake.metrics',
+                           {'event_type': 'hardware.fake.metrics.update',
+                            'node_name': 'fake_node', 'timestamp': mock.ANY,
+                            'message_id': mock.ANY,
+                            'payload': 'fake-sensor-data',
+                            'node_uuid': mock.ANY, 'instance_uuid': None})
+        notifier_mock.assert_has_calls([n_call, n_call, n_call,
+                                        n_call, n_call])
 
     @mock.patch.object(task_manager, 'acquire')
     def test_send_sensor_task_shutdown(self, acquire_mock):

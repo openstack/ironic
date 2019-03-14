@@ -1,0 +1,13 @@
+---
+features:
+  - |
+    Notification events for metrics data now contains a ``node_name``
+    field to assist operators with relating metrics data being transmitted
+    by the conductor service.
+fixes:
+  - |
+    Notification event types now include the hardware type name string as
+    opposed to a static string of "ipmi". This allows event processors and
+    operators to understand what the actual notification event data source
+    is as opposed to having to rely upon fingerprints of the data to make
+    such determinations.
