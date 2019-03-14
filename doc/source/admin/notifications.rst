@@ -118,6 +118,53 @@ Example of chassis CRUD notification::
     "publisher_id":"ironic-api.hostname02"
    }
 
+List of CRUD notifications for deploy template:
+
+* ``baremetal.deploy_template.create.start``
+* ``baremetal.deploy_template.create.end``
+* ``baremetal.deploy_template.create.error``
+* ``baremetal.deploy_template.update.start``
+* ``baremetal.deploy_template.update.end``
+* ``baremetal.deploy_template.update.error``
+* ``baremetal.deploy_template.delete.start``
+* ``baremetal.deploy_template.delete.end``
+* ``baremetal.deploy_template.delete.error``
+
+Example of deploy template CRUD notification::
+
+   {
+    "priority": "info",
+    "payload":{
+        "ironic_object.namespace":"ironic",
+        "ironic_object.name":"DeployTemplateCRUDPayload",
+        "ironic_object.version":"1.0",
+        "ironic_object.data":{
+            "created_at": "2019-02-10T10:13:03+00:00",
+            "extra": {},
+            "name": "CUSTOM_HYPERTHREADING_ON",
+            "steps": [
+                {
+                    "interface": "bios",
+                    "step": "apply_configuration",
+                    "args": {
+                        "settings": [
+                            {
+                                "name": "LogicalProc",
+                                "value": "Enabled"
+                            }
+                        ]
+                    },
+                    "priority": 150
+                }
+            ],
+            "updated_at": "2019-02-27T21:11:03+00:00",
+            "uuid": "1910f669-ce8b-43c2-b1d8-cf3d65be815e"
+        }
+    },
+    "event_type":"baremetal.deploy_template.update.end",
+    "publisher_id":"ironic-api.hostname02"
+   }
+
 List of CRUD notifications for node:
 
 * ``baremetal.node.create.start``
