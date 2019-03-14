@@ -681,7 +681,7 @@ class IRMCDeployPrivateMethodsTestCase(test_common.BaseIRMCTest):
             _get_iso_name_mock.assert_has_calls(
                 [mock.call(task.node, label='deploy'),
                  mock.call(task.node, label='rescue')])
-            self.assertTrue(_remove_share_file_mock.call_count, 3)
+            self.assertEqual(3, _remove_share_file_mock.call_count)
             _remove_share_file_mock.assert_has_calls(
                 [mock.call(_get_floppy_image_name_mock(task.node)),
                  mock.call(_get_iso_name_mock(task.node, label='deploy')),

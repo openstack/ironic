@@ -348,7 +348,7 @@ class IRMCInspectTestCase(test_common.BaseIRMCTest):
 
             _inspect_hardware_mock.assert_called_once_with(task.node,
                                                            existing_traits)
-            self.assertTrue(port_mock.call_count, 2)
+            self.assertEqual(2, port_mock.call_count)
             task.node.refresh()
             self.assertEqual(inspected_props, task.node.properties)
             self.assertEqual(states.MANAGEABLE, result)
