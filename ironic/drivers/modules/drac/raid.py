@@ -841,9 +841,9 @@ class DracRAID(base.RAIDInterface):
         for config_job_id in raid_config_job_ids:
             config_job = drac_job.get_job(node, job_id=config_job_id)
 
-            if config_job.state == 'Completed':
+            if config_job.status == 'Completed':
                 finished_job_ids.append(config_job_id)
-            elif config_job.state == 'Failed':
+            elif config_job.status == 'Failed':
                 finished_job_ids.append(config_job_id)
                 self._set_raid_config_job_failure(node)
 
