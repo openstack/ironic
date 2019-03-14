@@ -1,0 +1,18 @@
+{
+  "deploy_templates": [
+    {
+      "links": [
+        {
+          "href": "http://10.60.253.180:6385/v1/deploy_templates/bbb45f41-d4bc-4307-8d1d-32f95ce1e920",
+          "rel": "self"
+        },
+        {
+          "href": "http://10.60.253.180:6385/deploy_templates/bbb45f41-d4bc-4307-8d1d-32f95ce1e920",
+          "rel": "bookmark"
+        }
+      ],
+      "name": "CUSTOM_HYPERTHREADING_ON",
+      "uuid": "bbb45f41-d4bc-4307-8d1d-32f95ce1e920"
+    }
+  ]
+}
