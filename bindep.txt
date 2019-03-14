@@ -47,6 +47,7 @@ python3-devel [platform:rpm test]
 build-essential [platform:dpkg test]
 libssl-dev [platform:dpkg test]
 # these are needed by infra for python-* jobs
+libpq-dev [platform:dpkg test]
 postgresql
 postgresql-client [platform:dpkg]
 # postgresql-devel [platform:rpm]
