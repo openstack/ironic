@@ -73,6 +73,8 @@ OPTIONAL_PROPERTIES = {
     'ansible_clean_steps_config': _('Name of the file inside the '
                                     '"ansible_playbooks_path" folder with '
                                     'cleaning steps configuration. Optional.'),
+    'ansible_python_interpreter': _('Absolute path to the python interpreter '
+                                    'on the managed machines. Optional.'),
 }
 
 COMMON_PROPERTIES = OPTIONAL_PROPERTIES
@@ -101,6 +103,11 @@ def _parse_ansible_driver_info(node, action='deploy'):
     return os.path.basename(playbook), user, key
 
 
+def _get_python_interpreter(node):
+    return node.driver_info.get('ansible_python_interpreter',
+                                CONF.ansible.default_python_interpreter)
+
+
 def _get_configdrive_path(basename):
     return os.path.join(CONF.tempdir, basename + '.cndrive')
 
@@ -126,9 +133,9 @@ def _run_playbook(node, name, extra_vars, key, tags=None, notags=None):
     playbook = os.path.join(root, name)
     inventory = os.path.join(root, 'inventory')
     ironic_vars = {'ironic': extra_vars}
-    if CONF.ansible.default_python_interpreter:
-        ironic_vars['ansible_python_interpreter'] = (
-            CONF.ansible.default_python_interpreter)
+    python_interpreter = _get_python_interpreter(node)
+    if python_interpreter:
+        ironic_vars['ansible_python_interpreter'] = python_interpreter
     args = [CONF.ansible.ansible_playbook_script, playbook,
             '-i', inventory,
             '-e', json.dumps(ironic_vars),

@@ -191,6 +191,35 @@ class TestAnsibleMethods(AnsibleDeployTestCaseBase):
                           "ironic": {"foo": "bar"}},
                          json.loads(all_vars))
 
+    @mock.patch.object(com_utils, 'execute', return_value=('out', 'err'),
+                       autospec=True)
+    def test__run_playbook_ansible_interpreter_override(self, execute_mock):
+        self.config(group='ansible', playbooks_path='/path/to/playbooks')
+        self.config(group='ansible', config_file_path='/path/to/config')
+        self.config(group='ansible', verbosity=3)
+        self.config(group='ansible',
+                    default_python_interpreter='/usr/bin/python3')
+        self.config(group='ansible', ansible_extra_args='--timeout=100')
+        self.node.driver_info['ansible_python_interpreter'] = (
+            '/usr/bin/python4')
+        extra_vars = {'foo': 'bar'}
+
+        ansible_deploy._run_playbook(self.node, 'deploy',
+                                     extra_vars, '/path/to/key',
+                                     tags=['spam'], notags=['ham'])
+
+        execute_mock.assert_called_once_with(
+            'env', 'ANSIBLE_CONFIG=/path/to/config',
+            'ansible-playbook', '/path/to/playbooks/deploy', '-i',
+            '/path/to/playbooks/inventory', '-e',
+            mock.ANY, '--tags=spam', '--skip-tags=ham',
+            '--private-key=/path/to/key', '-vvv', '--timeout=100')
+
+        all_vars = execute_mock.call_args[0][7]
+        self.assertEqual({"ansible_python_interpreter": "/usr/bin/python4",
+                          "ironic": {"foo": "bar"}},
+                         json.loads(all_vars))
+
     @mock.patch.object(com_utils, 'execute',
                        side_effect=processutils.ProcessExecutionError(
                            description='VIKINGS!'),
@@ -285,6 +314,16 @@ class TestAnsibleMethods(AnsibleDeployTestCaseBase):
         with task_manager.acquire(self.context, self.node.uuid) as task:
             self.assertEqual(2, ansible_deploy._calculate_memory_req(task))
             image_mock.assert_called_once_with(task.context, 'fake-image')
+
+    def test__get_python_interpreter(self):
+        self.config(group='ansible',
+                    default_python_interpreter='/usr/bin/python3')
+        self.node.driver_info['ansible_python_interpreter'] = (
+            '/usr/bin/python4')
+
+        python_interpreter = ansible_deploy._get_python_interpreter(self.node)
+
+        self.assertEqual('/usr/bin/python4', python_interpreter)
 
     def test__get_configdrive_path(self):
         self.config(tempdir='/path/to/tmpdir')
