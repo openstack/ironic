@@ -825,3 +825,11 @@ class DeployTemplateNotFound(NotFound):
 
 class InvalidDeployTemplate(Invalid):
     _msg_fmt = _("Deploy template invalid: %(err)s.")
+
+
+class IBMCError(DriverOperationError):
+    _msg_fmt = _("IBMC exception occurred on node %(node)s. Error: %(error)s")
+
+
+class IBMCConnectionError(IBMCError):
+    _msg_fmt = _("IBMC connection failed for node %(node)s: %(error)s")

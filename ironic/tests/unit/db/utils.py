@@ -671,3 +671,12 @@ def create_test_deploy_template(**kw):
             if 'id' not in kw_step:
                 del template_step['id']
     return dbapi.create_deploy_template(template)
+
+
+def get_test_ibmc_info():
+    return {
+        "ibmc_address": "https://example.com",
+        "ibmc_username": "username",
+        "ibmc_password": "password",
+        "verify_ca": False,
+    }
