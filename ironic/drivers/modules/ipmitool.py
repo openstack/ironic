@@ -72,6 +72,9 @@ REQUIRED_PROPERTIES = {
 }
 OPTIONAL_PROPERTIES = {
     'ipmi_password': _("password. Optional."),
+    'ipmi_hex_kg_key': _('Kg key for IPMIv2 authentication. '
+                         'The key is expected in hexadecimal format. '
+                         'Optional.'),
     'ipmi_port': _("remote IPMI RMCP port. Optional."),
     'ipmi_priv_level': _("privilege level; default is ADMINISTRATOR. One of "
                          "%s. Optional.") % ', '.join(VALID_PRIV_LEVELS),
@@ -282,6 +285,7 @@ def _parse_driver_info(node):
     address = info.get('ipmi_address')
     username = info.get('ipmi_username')
     password = six.text_type(info.get('ipmi_password', ''))
+    hex_kg_key = info.get('ipmi_hex_kg_key')
     dest_port = info.get('ipmi_port')
     port = info.get('ipmi_terminal_port')
     priv_level = info.get('ipmi_priv_level', 'ADMINISTRATOR')
@@ -361,11 +365,16 @@ def _parse_driver_info(node):
             " can be one of %(valid_levels)s") %
             {'priv_level': priv_level, 'valid_levels': valid_priv_lvls})
 
+    if hex_kg_key and len(hex_kg_key) % 2 != 0:
+        raise exception.InvalidParameterValue(_(
+            "Number of ipmi_hex_kg_key characters is not even"))
+
     return {
         'address': address,
         'dest_port': dest_port,
         'username': username,
         'password': password,
+        'hex_kg_key': hex_kg_key,
         'port': port,
         'uuid': node.uuid,
         'priv_level': priv_level,
@@ -422,6 +431,10 @@ def _get_ipmitool_args(driver_info, pw_file=None):
     if driver_info['username']:
         args.append('-U')
         args.append(driver_info['username'])
+
+    if driver_info['hex_kg_key']:
+        args.append('-y')
+        args.append(driver_info['hex_kg_key'])
 
     for name, option in BRIDGING_OPTIONS:
         if driver_info[name] is not None:
