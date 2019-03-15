@@ -43,13 +43,20 @@ class DictToObj(object):
             setattr(self, key, dictionary[key])
 
 
-def dict_to_namedtuple(name='GenericNamedTuple', values=None):
+def dict_to_namedtuple(name='GenericNamedTuple', values=None,
+                       tuple_class=None):
     """Converts a dict to a collections.namedtuple"""
 
     if values is None:
         values = {}
 
-    return collections.namedtuple(name, list(values))(**values)
+    if tuple_class is None:
+        tuple_class = collections.namedtuple(name, list(values))
+    else:
+        # Support different versions of the driver as fields change.
+        values = {field: values.get(field) for field in tuple_class._fields}
+
+    return tuple_class(**values)
 
 
 def dict_of_object(data):
@@ -63,28 +70,24 @@ def dict_of_object(data):
 
 
 def make_job(job_dict):
-    if dracclient_job:
-        return dracclient_job.Job(**job_dict)
-    else:
-        return dict_to_namedtuple(values=job_dict)
+    tuple_class = dracclient_job.Job if dracclient_job else None
+    return dict_to_namedtuple(values=job_dict,
+                              tuple_class=tuple_class)
 
 
 def make_raid_controller(raid_controller_dict):
-    if dracclient_raid:
-        return dracclient_raid.RAIDController(**raid_controller_dict)
-    else:
-        return dict_to_namedtuple(values=raid_controller_dict)
+    tuple_class = dracclient_raid.RAIDController if dracclient_raid else None
+    return dict_to_namedtuple(values=raid_controller_dict,
+                              tuple_class=tuple_class)
 
 
 def make_virtual_disk(virtual_disk_dict):
-    if dracclient_raid:
-        return dracclient_raid.VirtualDisk(**virtual_disk_dict)
-    else:
-        return dict_to_namedtuple(values=virtual_disk_dict)
+    tuple_class = dracclient_raid.VirtualDisk if dracclient_raid else None
+    return dict_to_namedtuple(values=virtual_disk_dict,
+                              tuple_class=tuple_class)
 
 
 def make_physical_disk(physical_disk_dict):
-    if dracclient_raid:
-        return dracclient_raid.PhysicalDisk(**physical_disk_dict)
-    else:
-        return dict_to_namedtuple(values=physical_disk_dict)
+    tuple_class = dracclient_raid.PhysicalDisk if dracclient_raid else None
+    return dict_to_namedtuple(values=physical_disk_dict,
+                              tuple_class=tuple_class)
