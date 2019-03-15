@@ -2832,8 +2832,7 @@ class ConductorManager(base_manager.BaseConductorManager):
             message = {'message_id': uuidutils.generate_uuid(),
                        'instance_uuid': instance_uuid,
                        'node_uuid': node_uuid,
-                       'timestamp': datetime.datetime.utcnow(),
-                       'event_type': 'hardware.ipmi.metrics.update'}
+                       'timestamp': datetime.datetime.utcnow()}
 
             try:
                 lock_purpose = 'getting sensors data'
@@ -2846,6 +2845,16 @@ class ConductorManager(base_manager.BaseConductorManager):
                                   '%s as it is in maintenance mode',
                                   task.node.uuid)
                         continue
+                    # Add the node name, as the name would be hand for other
+                    # notifier plugins
+                    message['node_name'] = task.node.name
+                    # We should convey the proper hardware type,
+                    # which previously was hard coded to ipmi, but other
+                    # drivers were transmitting other values under the
+                    # guise of ipmi.
+                    ev_type = 'hardware.{driver}.metrics'.format(
+                        driver=task.node.driver)
+                    message['event_type'] = ev_type + '.update'
 
                     task.driver.management.validate(task)
                     sensors_data = task.driver.management.get_sensors_data(
@@ -2879,7 +2888,7 @@ class ConductorManager(base_manager.BaseConductorManager):
                     self._filter_out_unsupported_types(sensors_data))
                 if message['payload']:
                     self.sensors_notifier.info(
-                        context, "hardware.ipmi.metrics", message)
+                        context, ev_type, message)
             finally:
                 # Yield on every iteration
                 eventlet.sleep(0)
