@@ -33,7 +33,7 @@ from ironic.api.controllers.v1 import utils as api_utils
 from ironic.api import expose
 from ironic.common import exception
 from ironic.common.i18n import _
-from ironic.conductor import utils as conductor_utils
+from ironic.conductor import steps as conductor_steps
 import ironic.conf
 from ironic import objects
 
@@ -44,7 +44,7 @@ METRICS = metrics_utils.get_metrics_logger(__name__)
 _DEFAULT_RETURN_FIELDS = ('uuid', 'name')
 
 _DEPLOY_INTERFACE_TYPE = wtypes.Enum(
-    wtypes.text, *conductor_utils.DEPLOYING_INTERFACE_PRIORITY)
+    wtypes.text, *conductor_steps.DEPLOYING_INTERFACE_PRIORITY)
 
 
 class DeployStepType(wtypes.Base, base.AsDictMixin):

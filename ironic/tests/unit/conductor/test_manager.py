@@ -41,6 +41,7 @@ from ironic.common import states
 from ironic.common import swift
 from ironic.conductor import manager
 from ironic.conductor import notification_utils
+from ironic.conductor import steps as conductor_steps
 from ironic.conductor import task_manager
 from ironic.conductor import utils as conductor_utils
 from ironic.db import api as dbapi
@@ -1325,7 +1326,7 @@ class ServiceDoNodeDeployTestCase(mgr_utils.ServiceSetUpMixin,
                                                  mock_iwdi):
         self._test_do_node_deploy_validate_fail(mock_validate, mock_iwdi)
 
-    @mock.patch.object(conductor_utils, 'validate_deploy_templates')
+    @mock.patch.object(conductor_steps, 'validate_deploy_templates')
     def test_do_node_deploy_validate_template_fail(self, mock_validate,
                                                    mock_iwdi):
         self._test_do_node_deploy_validate_fail(mock_validate, mock_iwdi)
@@ -2238,7 +2239,7 @@ class DoNodeDeployTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
     @mock.patch.object(manager, '_do_next_deploy_step', autospec=True)
     @mock.patch.object(manager, '_old_rest_of_do_node_deploy',
                        autospec=True)
-    @mock.patch.object(conductor_utils, 'set_node_deployment_steps',
+    @mock.patch.object(conductor_steps, 'set_node_deployment_steps',
                        autospec=True)
     def test_do_node_deploy_deprecated(self, mock_set_steps, mock_old_way,
                                        mock_deploy_step):
@@ -2259,7 +2260,7 @@ class DoNodeDeployTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
     @mock.patch.object(manager, '_do_next_deploy_step', autospec=True)
     @mock.patch.object(manager, '_old_rest_of_do_node_deploy',
                        autospec=True)
-    @mock.patch.object(conductor_utils, 'set_node_deployment_steps',
+    @mock.patch.object(conductor_steps, 'set_node_deployment_steps',
                        autospec=True)
     def test_do_node_deploy_steps(self, mock_set_steps, mock_old_way,
                                   mock_deploy_step):
@@ -2288,7 +2289,7 @@ class DoNodeDeployTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
     @mock.patch.object(manager, '_do_next_deploy_step', autospec=True)
     @mock.patch.object(manager, '_old_rest_of_do_node_deploy',
                        autospec=True)
-    @mock.patch.object(conductor_utils, 'set_node_deployment_steps',
+    @mock.patch.object(conductor_steps, 'set_node_deployment_steps',
                        autospec=True)
     def test_do_node_deploy_steps_old_rpc(self, mock_set_steps, mock_old_way,
                                           mock_deploy_step):
@@ -3499,7 +3500,7 @@ class DoNodeCleanTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         self.__do_node_clean_validate_fail(mock_validate, clean_steps=[])
 
     @mock.patch.object(manager, 'LOG', autospec=True)
-    @mock.patch.object(conductor_utils, 'set_node_cleaning_steps',
+    @mock.patch.object(conductor_steps, 'set_node_cleaning_steps',
                        autospec=True)
     @mock.patch('ironic.conductor.manager.ConductorManager.'
                 '_do_next_clean_step', autospec=True)
@@ -3756,7 +3757,7 @@ class DoNodeCleanTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         self.__do_node_clean_prepare_clean_wait(clean_steps=[self.deploy_raid])
 
     @mock.patch.object(n_flat.FlatNetwork, 'validate', autospec=True)
-    @mock.patch.object(conductor_utils, 'set_node_cleaning_steps',
+    @mock.patch.object(conductor_steps, 'set_node_cleaning_steps',
                        autospec=True)
     def __do_node_clean_steps_fail(self, mock_steps, mock_validate,
                                    clean_steps=None, invalid_exc=True):
@@ -3788,7 +3789,7 @@ class DoNodeCleanTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
             self.__do_node_clean_steps_fail(clean_steps=[self.deploy_raid],
                                             invalid_exc=invalid)
 
-    @mock.patch.object(conductor_utils, 'set_node_cleaning_steps',
+    @mock.patch.object(conductor_steps, 'set_node_cleaning_steps',
                        autospec=True)
     @mock.patch('ironic.conductor.manager.ConductorManager.'
                 '_do_next_clean_step', autospec=True)
@@ -4852,7 +4853,7 @@ class MiscTestCase(mgr_utils.ServiceSetUpMixin, mgr_utils.CommonMixIn,
         node = obj_utils.create_test_node(self.context, driver='fake-hardware',
                                           network_interface='noop')
         with mock.patch(
-            'ironic.conductor.utils.validate_deploy_templates'
+            'ironic.conductor.steps.validate_deploy_templates'
         ) as mock_validate:
             reason = 'fake reason'
             mock_validate.side_effect = exception.InvalidParameterValue(reason)
