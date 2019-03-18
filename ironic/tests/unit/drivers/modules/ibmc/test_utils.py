@@ -70,7 +70,7 @@ class IBMCUtilsTestCase(base.IBMCTestCase):
                                    'Invalid iBMC address',
                                    utils.parse_driver_info, self.node)
 
-    @mock.patch.object(os.path, 'isdir', autospec=True)
+    @mock.patch.object(os.path, 'exists', autospec=True)
     def test_parse_driver_info_path_verify_ca(self,
                                               mock_isdir):
         mock_isdir.return_value = True
@@ -82,7 +82,7 @@ class IBMCUtilsTestCase(base.IBMCTestCase):
         self.assertEqual(self.parsed_driver_info, response)
         mock_isdir.assert_called_once_with(fake_path)
 
-    @mock.patch.object(os.path, 'isfile', autospec=True)
+    @mock.patch.object(os.path, 'exists', autospec=True)
     def test_parse_driver_info_valid_capath(self, mock_isfile):
         mock_isfile.return_value = True
         fake_path = '/path/to/a/valid/CA.pem'
