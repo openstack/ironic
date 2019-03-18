@@ -1,0 +1,32 @@
+---
+prelude: |
+    The Bare Metal as a Service team joyfully announces our OpenStack Stein
+    release of ironic 12.1.0. While no steins nor speakers were harmed during
+    the development of this release, we might have suffered some hearing
+    damage after we learned that we could increase the volume well
+    past eleven!
+
+    Notable items include:
+
+    * Increased parallelism of power synchronization to improve overall
+      conductor efficiency.
+    * API fields to support node ``description`` and ``owner`` values.
+    * HPE iLO ``ilo5`` and Huawei ``ibmc`` hardware types.
+    * Allocations API interface to enable operators to find and select
+      bare metal nodes for deployment.
+    * JSON-RPC can now be used for ``ironic-api`` to ``ironic-conductor``
+      communication as opposed to using an AMQP messaging provider.
+    * Support for customizable PXE templates and streamlined deployment
+      sequences.
+    * Initial support for the definition of "deployment templates" to
+      enable operators to define and match customized deployment sequences.
+    * Initial work for supporting SmartNIC configuration is included,
+      however the Networking Service changes required are not anticipated
+      until sometime during the Train development cycle.
+    * And numerous bug fixes, including ones for IPv6 and IPMI.
+
+    This release includes the changes in ironic's ``12.0.0`` release which
+    was also released during the Stein development cycle and includes a number
+    of improvements for Bare Metal infrastructure operators. More about our
+    earlier stein release can be found in our
+    `release notes <https://docs.openstack.org/releasenotes/ironic/stein.html#relnotes-12-0-0>`_.

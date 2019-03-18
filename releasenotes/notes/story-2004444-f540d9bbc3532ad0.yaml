@@ -1,8 +1,6 @@
 ---
 fixes:
   - |
-    For the IPMI hardware type setting the driver option
-    ``node['driver_info']['ipmi_force_boot_device']`` has been made more
-    flexible to avoid situations where
-    ``openstack baremetal node set --driver-info ipmi_force_boot_device=False node-0``
-    leaves the option enabled.
+    Fixes an issue with the ``ipmi`` hardware type where
+    ``node['driver_info']['ipmi_force_boot_device']`` could be interpreted
+    as ``True`` when set to values such as "False".
