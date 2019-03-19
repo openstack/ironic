@@ -449,7 +449,7 @@ class Connection(api.Connection):
                                                host=node['reservation'])
                 return node
             except NoResultFound:
-                raise exception.NodeNotFound(node_id)
+                raise exception.NodeNotFound(node=node_id)
 
     @oslo_db_api.retry_on_deadlock
     def release_node(self, tag, node_id):
@@ -468,7 +468,7 @@ class Connection(api.Connection):
                         raise exception.NodeLocked(node=node.uuid,
                                                    host=node['reservation'])
             except NoResultFound:
-                raise exception.NodeNotFound(node_id)
+                raise exception.NodeNotFound(node=node_id)
 
     @oslo_db_api.retry_on_deadlock
     def create_node(self, values):
@@ -1090,7 +1090,7 @@ class Connection(api.Connection):
             query = add_identity_filter(query, node_id)
             count = query.update({'provision_updated_at': timeutils.utcnow()})
             if count == 0:
-                raise exception.NodeNotFound(node_id)
+                raise exception.NodeNotFound(node=node_id)
 
     def _check_node_exists(self, node_id):
         if not model_query(models.Node).filter_by(id=node_id).scalar():

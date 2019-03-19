@@ -144,7 +144,7 @@ def get_server_hardware_id(node):
         msg = (_("Error validating node driver info, "
                  "server uuid: %s missing xclarity_hardware_id") %
                node.uuid)
-        raise exception.MissingParameterValue(error=msg)
+        raise exception.MissingParameterValue(err=msg)
     return xclarity_hardware_id
 
 
