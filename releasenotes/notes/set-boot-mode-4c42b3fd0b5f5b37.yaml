@@ -1,0 +1,5 @@
+---
+features:
+  - |
+    Set boot_mode in node properties during OOB Introspection
+    for ``idrac`` hardware type.
