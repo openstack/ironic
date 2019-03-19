@@ -36,6 +36,7 @@ from ironic.conductor import utils as manager_utils
 from ironic.drivers import base as drivers_base
 from ironic.drivers.modules import agent_base_vendor
 from ironic.drivers.modules import deploy_utils
+from ironic.drivers.modules import fake
 from ironic.drivers.modules import ipxe
 from ironic.drivers.modules import pxe
 from ironic.drivers.modules.storage import noop as noop_storage
@@ -1050,18 +1051,24 @@ class PXERamdiskDeployTestCase(db_base.DbTestCase):
             task.driver.deploy.validate(task)
         self.assertTrue(mock_validate_img.called)
 
+    @mock.patch.object(fake.FakeBoot, 'validate', autospec=True)
     @mock.patch.object(deploy_utils, 'validate_image_properties',
                        autospec=True)
-    def test_validate_interface_mismatch(self, mock_validate_image):
+    def test_validate_interface_mismatch(self, mock_validate_image,
+                                         mock_boot_validate):
         node = self.node
         node.boot_interface = 'fake'
         node.save()
         self.config(enabled_boot_interfaces=['fake'],
                     default_boot_interface='fake')
         with task_manager.acquire(self.context, node.uuid) as task:
-            self.assertRaisesRegex(exception.InvalidParameterValue,
-                                   'must have the `ramdisk_boot` capability',
-                                   task.driver.deploy.validate, task)
+            error = self.assertRaises(exception.InvalidParameterValue,
+                                      task.driver.deploy.validate, task)
+            error_message = ('Invalid configuration: The boot interface must '
+                             'have the `ramdisk_boot` capability. You are '
+                             'using an incompatible boot interface.')
+            self.assertEqual(error_message, str(error))
+            self.assertFalse(mock_boot_validate.called)
             self.assertFalse(mock_validate_image.called)
 
     @mock.patch.object(pxe.PXEBoot, 'validate', autospec=True)

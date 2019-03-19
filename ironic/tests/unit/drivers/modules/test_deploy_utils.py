@@ -1972,10 +1972,13 @@ class ValidateImagePropertiesTestCase(db_base.DbTestCase):
             driver_internal_info=DRV_INTERNAL_INFO_DICT,
         )
         inst_info = utils.get_image_instance_info(node)
-        self.assertRaisesRegex(exception.InvalidParameterValue,
-                               'HTTPError',
-                               utils.validate_image_properties, self.context,
-                               inst_info, ['kernel', 'ramdisk'])
+        expected_error = ('Validation of image href http://ubuntu '
+                          'failed, reason: HTTPError')
+        error = self.assertRaises(exception.InvalidParameterValue,
+                                  utils.validate_image_properties,
+                                  self.context,
+                                  inst_info, ['kernel', 'ramdisk'])
+        self.assertEqual(expected_error, str(error))
 
 
 class ValidateParametersTestCase(db_base.DbTestCase):

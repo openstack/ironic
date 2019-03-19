@@ -494,7 +494,8 @@ def check_for_missing_params(info_dict, error_msg, param_prefix=''):
     if missing_info:
         exc_msg = _("%(error_msg)s. Missing are: %(missing_info)s")
         raise exception.MissingParameterValue(
-            exc_msg % {'error_msg': error_msg, 'missing_info': missing_info})
+            exc_msg % {'error_msg': error_msg,
+                       'missing_info': missing_info})
 
 
 def fetch_images(ctx, cache, images_info, force_raw=True):
