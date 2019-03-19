@@ -813,14 +813,7 @@ function _generate_pdu_ports {
 }
 
 function start_redfish_emulator {
-    # TODO(lucasagomes): Use Apache WSGI instead of gunicorn
-    if is_ubuntu; then
-        install_package gunicorn
-    else
-        pip_install_gr "gunicorn"
-    fi
-
-    sudo gunicorn sushy_tools.emulator.main:app --bind "${HOST_IP}:${IRONIC_REDFISH_EMULATOR_PORT}" \
+    sudo $gunicorn sushy_tools.emulator.main:app --bind "${HOST_IP}:${IRONIC_REDFISH_EMULATOR_PORT}" \
         --pid "$IRONIC_REDFISH_EMULATOR_PID_FILE" --daemon
 }
 
@@ -839,6 +832,20 @@ function setup_redfish {
     fi
 
     if [[ "$IRONIC_IS_HARDWARE" == "False" ]]; then
+
+        # TODO(lucasagomes): Use Apache WSGI instead of gunicorn
+        gunicorn=gunicorn
+
+        if python3_enabled; then
+            gunicorn=${gunicorn}3
+        fi
+
+        if is_ubuntu; then
+            install_package $gunicorn
+        else
+            pip_install_gr "gunicorn"
+        fi
+
         if use_library_from_git "sushy-tools"; then
             git_clone_by_name "sushy-tools"
             setup_dev_lib "sushy-tools"
