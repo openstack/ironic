@@ -78,11 +78,11 @@ def parse_driver_info(node):
     # Validate the iBMC address
     address = driver_info['ibmc_address']
     parsed = netutils.urlsplit(address)
-    if parsed.scheme == '':
+    if not parsed.scheme:
         address = 'https://%s' % address
         parsed = netutils.urlsplit(address)
 
-    if parsed.netloc == '':
+    if not parsed.netloc:
         raise exception.InvalidParameterValue(
             _('Invalid iBMC address %(address)s set in '
               'driver_info/ibmc_address on node %(node)s') %
@@ -91,9 +91,7 @@ def parse_driver_info(node):
     # Check if verify_ca is a Boolean or a file/directory in the file-system
     verify_ca = driver_info.get('ibmc_verify_ca', True)
     if isinstance(verify_ca, six.string_types):
-        if os.path.isdir(verify_ca) or os.path.isfile(verify_ca):
-            pass
-        else:
+        if not os.path.exists(verify_ca):
             try:
                 verify_ca = strutils.bool_from_string(verify_ca, strict=True)
             except ValueError:
@@ -103,10 +101,7 @@ def parse_driver_info(node):
                       'The value should be a Boolean or the path '
                       'to a file/directory, not "%(value)s"'
                       ) % {'value': verify_ca, 'node': node.uuid})
-    elif isinstance(verify_ca, bool):
-        # If it's a boolean it's grand, we don't need to do anything
-        pass
-    else:
+    elif not isinstance(verify_ca, bool):
         raise exception.InvalidParameterValue(
             _('Invalid value type set in driver_info/ibmc_verify_ca '
               'on node %(node)s. The value should be a Boolean or the path '
