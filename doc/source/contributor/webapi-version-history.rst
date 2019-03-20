@@ -2,7 +2,16 @@
 REST API Version History
 ========================
 
-1.55 (Stein, master)
+1.56 (Stein, 12.1.0)
+--------------------
+
+Added the ability for the ``configdrive`` parameter submitted with
+the deployment of a node, to include a ``meta_data``, ``network_data``
+and ``user_data`` dictionary fields. Ironic will now use the supplied
+data to create a configuration drive for the user. Prior uses of the
+``configdrive`` field are unaffected.
+
+1.55 (Stein, 12.1.0)
 --------------------
 
 Added the following new endpoints for deploy templates:
@@ -16,7 +25,7 @@ Added the following new endpoints for deploy templates:
 * ``DELETE /v1/deploy_templates/<deploy template identifier>`` to delete a
   deploy template.
 
-1.54 (Stein, master)
+1.54 (Stein, 12.1.0)
 --------------------
 
 Added new endpoints for external ``events``:
@@ -24,14 +33,14 @@ Added new endpoints for external ``events``:
 * POST /v1/events for creating events. (This endpoint is only intended for
   internal consumption.)
 
-1.53 (Stein, master)
+1.53 (Stein, 12.1.0)
 --------------------
 
 Added ``is_smartnic`` field to the port object to enable Smart NIC port
 creation in addition to local link connection attributes ``port_id`` and
 ``hostname``.
 
-1.52 (Stein, master)
+1.52 (Stein, 12.1.0)
 --------------------
 
 Added allocation API, allowing reserving a node for deployment based on
@@ -48,13 +57,13 @@ resource class and traits. The new endpoints are:
 
 Also added a new field ``allocation_uuid`` to the node resource.
 
-1.51 (Stein, master)
+1.51 (Stein, 12.1.0)
 --------------------
 
 Added ``description`` field to the node object to enable operators to store
 any information relates to the node. The field is limited to 4096 characters.
 
-1.50 (Stein, master)
+1.50 (Stein, 12.1.0)
 --------------------
 
 Added ``owner`` field to the node object to enable operators to store
@@ -62,20 +71,20 @@ information in relation to the owner of a node. The field is up to 255
 characters and MAY be used in a later point in time to allow designation
 and deligation of permissions.
 
-1.49 (Stein, master)
+1.49 (Stein, 12.0.0)
 --------------------
 
 Added new endpoints for retrieving conductors information, and added a
 ``conductor`` field to node object.
 
-1.48 (Stein, master)
+1.48 (Stein, 12.0.0)
 --------------------
 
 Added ``protected`` field to the node object to allow protecting deployed nodes
 from undeploying, rebuilding or deletion. Also added ``protected_reason``
 to specify the reason of making the node protected.
 
-1.47 (Stein, master)
+1.47 (Stein, 12.0.0)
 --------------------
 
 Added ``automated_clean`` field to the node object, enabling cleaning per node.
