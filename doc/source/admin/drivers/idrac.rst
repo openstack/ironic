@@ -17,7 +17,7 @@ Enabling
 The ``idrac`` hardware type requires the ``python-dracclient`` library to be
 installed, for example::
 
-    sudo pip install 'python-dracclient>=1.3.0'
+    sudo pip install 'python-dracclient>=1.5.0'
 
 To enable the ``idrac`` hardware type, add the following to your
 ``/etc/ironic/ironic.conf``:
