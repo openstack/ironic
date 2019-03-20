@@ -1,0 +1,13 @@
+---
+issues:
+  - |
+    As good security practice[0], in Ubuntu Bionic the ``nf_conntrack_helper``
+    is disabled.
+    This causes an issue when using the ``pxe`` boot interface with the PXE
+    environment that breaks some of the Ironic CI tests, since Ironic needs
+    conntrack for TFTP traffic.
+    It's still possible to use Ironic with PXE on Ubuntu Xenial, and it's also
+    possible to use Ironic with PXE on Ubuntu Bionic using a workaround based
+    on custom firewall rules as shown in [0].
+
+    [0] https://home.regit.org/netfilter-en/secure-use-of-helpers/
