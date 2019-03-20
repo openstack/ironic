@@ -18,18 +18,18 @@ ipxe
 gnupg
 libguestfs0
 libguestfs-tools
-libvirt-bin # dist:xenial NOPRIME
+libvirt-bin # dist:xenial,bionic NOPRIME
 open-iscsi
 openssh-client
-pxelinux # dist:jessie,xenial
+pxelinux # dist:xenial,bionic
 python-libguestfs
 qemu
 qemu-kvm
 qemu-utils
 sgabios
 shellinabox
-syslinux # dist:wheezy,trusty
-syslinux-common # dist:jessie,xenial
+syslinux # dist:xenial,bionic
+syslinux-common # dist:xenial,bionic
 tftpd-hpa
 xinetd
 squashfs-tools
