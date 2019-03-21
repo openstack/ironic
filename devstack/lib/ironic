@@ -2172,6 +2172,13 @@ function configure_iptables {
     if [[ "${IRONIC_STORAGE_INTERFACE}" == "cinder" ]]; then
         sudo iptables -I INPUT -d $HOST_IP -p tcp --dport $ISCSI_SERVICE_PORT -s $FLOATING_RANGE -j ACCEPT || true
     fi
+
+    # (rpittau) workaround to allow TFTP traffic on ubuntu bionic with conntrack helper disabled
+    local qrouter
+    qrouter=$(sudo ip netns list | grep qrouter | awk '{print $1;}')
+    if [[ ! -z "$qrouter" ]]; then
+        sudo ip netns exec $qrouter /sbin/iptables -A PREROUTING -t raw -p udp --dport 69 -j CT --helper tftp
+    fi
 }
 
 function configure_tftpd {
