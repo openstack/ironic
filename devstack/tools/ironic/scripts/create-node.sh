@@ -129,10 +129,10 @@ if ! virsh list --all | grep -q $NAME; then
         --disk-format $DISK_FORMAT $VM_LOGGING --engine $ENGINE $UEFI_OPTS $vm_opts \
         --interface-count $INTERFACE_COUNT $MAC_ADDRESS >&2
 
-    # Createa Virtual BMC for the node if IPMI is used
+    # Create Virtual BMC for the node if IPMI is used
     if [[ $(type -P vbmc) != "" ]]; then
-        sudo vbmc add $NAME --port $VBMC_PORT
-        sudo vbmc start $NAME
+        vbmc add $NAME --port $VBMC_PORT
+        vbmc start $NAME
     fi
 fi
 
