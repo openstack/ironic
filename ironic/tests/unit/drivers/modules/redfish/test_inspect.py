@@ -49,6 +49,8 @@ class RedfishInspectTestCase(db_base.DbTestCase):
 
         system_mock.reset()
 
+        system_mock.boot.mode = 'uefi'
+
         system_mock.memory_summary.size_gib = 2
 
         system_mock.processors.summary = '8', 'MIPS'
@@ -85,6 +87,7 @@ class RedfishInspectTestCase(db_base.DbTestCase):
     def test_inspect_hardware_ok(self, mock_create_ports_if_not_exist,
                                  mock_get_system):
         expected_properties = {
+            'capabilities': 'boot_mode:uefi',
             'cpu_arch': 'mips', 'cpus': '8',
             'local_gb': '3', 'memory_mb': '2048'
         }
@@ -102,6 +105,7 @@ class RedfishInspectTestCase(db_base.DbTestCase):
     def test_inspect_hardware_fail_missing_cpu(self, mock_get_system):
         system_mock = self.init_system_mock(mock_get_system.return_value)
         system_mock.processors.summary = None, None
+        system_mock.boot.mode = 'uefi'
 
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
@@ -113,10 +117,12 @@ class RedfishInspectTestCase(db_base.DbTestCase):
     def test_inspect_hardware_ignore_missing_cpu(self, mock_get_system):
         system_mock = self.init_system_mock(mock_get_system.return_value)
         system_mock.processors.summary = None, None
+        system_mock.boot.mode = 'uefi'
 
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
             expected_properties = {
+                'capabilities': 'boot_mode:uefi',
                 'cpu_arch': 'x86_64', 'cpus': '8',
                 'local_gb': '3', 'memory_mb': '2048'
             }
@@ -128,10 +134,12 @@ class RedfishInspectTestCase(db_base.DbTestCase):
         system_mock = self.init_system_mock(mock_get_system.return_value)
         system_mock.simple_storage.disks_sizes_bytes = None
         system_mock.storage.volumes_sizes_bytes = None
+        system_mock.boot.mode = 'uefi'
 
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
             expected_properties = {
+                'capabilities': 'boot_mode:uefi',
                 'cpu_arch': 'mips', 'cpus': '8',
                 'local_gb': '0', 'memory_mb': '2048'
             }
@@ -142,6 +150,7 @@ class RedfishInspectTestCase(db_base.DbTestCase):
     def test_inspect_hardware_fail_missing_memory_mb(self, mock_get_system):
         system_mock = self.init_system_mock(mock_get_system.return_value)
         system_mock.memory_summary.size_gib = None
+        system_mock.boot.mode = 'uefi'
 
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
@@ -153,10 +162,12 @@ class RedfishInspectTestCase(db_base.DbTestCase):
     def test_inspect_hardware_ignore_missing_memory_mb(self, mock_get_system):
         system_mock = self.init_system_mock(mock_get_system.return_value)
         system_mock.memory_summary.size_gib = None
+        system_mock.boot.mode = 'uefi'
 
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
             expected_properties = {
+                'capabilities': 'boot_mode:uefi',
                 'cpu_arch': 'mips', 'cpus': '8',
                 'local_gb': '3', 'memory_mb': '4096'
             }
@@ -170,8 +181,41 @@ class RedfishInspectTestCase(db_base.DbTestCase):
             self, mock_create_ports_if_not_exist, mock_get_system):
         system_mock = self.init_system_mock(mock_get_system.return_value)
         system_mock.ethernet_interfaces.summary = None
+        system_mock.boot.mode = 'uefi'
 
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
             task.driver.inspect.inspect_hardware(task)
             self.assertFalse(mock_create_ports_if_not_exist.called)
+
+    @mock.patch.object(redfish_utils, 'get_system', autospec=True)
+    def test_inspect_hardware_preserve_boot_mode(self, mock_get_system):
+        system_mock = self.init_system_mock(mock_get_system.return_value)
+        system_mock.boot.mode = 'uefi'
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            task.node.properties = {
+                'capabilities': 'boot_mode:bios'
+            }
+            expected_properties = {
+                'capabilities': 'boot_mode:bios',
+                'cpu_arch': 'mips', 'cpus': '8',
+                'local_gb': '3', 'memory_mb': '2048'
+            }
+            task.driver.inspect.inspect_hardware(task)
+            self.assertEqual(expected_properties, task.node.properties)
+
+    @mock.patch.object(redfish_utils, 'get_system', autospec=True)
+    def test_inspect_hardware_ignore_missing_boot_mode(self, mock_get_system):
+        system_mock = self.init_system_mock(mock_get_system.return_value)
+        system_mock.boot.mode = None
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            expected_properties = {
+                'cpu_arch': 'mips', 'cpus': '8',
+                'local_gb': '3', 'memory_mb': '2048'
+            }
+            task.driver.inspect.inspect_hardware(task)
+            self.assertEqual(expected_properties, task.node.properties)

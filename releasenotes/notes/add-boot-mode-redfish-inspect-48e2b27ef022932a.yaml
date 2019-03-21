@@ -1,0 +1,6 @@
+---
+features:
+  - |
+    Adds currently used boot mode into node ``properties/capabilities`` upon
+    ``redfish`` inspect interface run. The idea behind this change is to align
+    with the in-band ``inspector`` behavior.
