@@ -550,7 +550,7 @@ class AgentDeploy(AgentDeployMixin, base.DeployInterface):
                 # option is local.
                 with excutils.save_and_reraise_exception(reraise=False) as ctx:
                     instance_info = node.instance_info
-                    capabilities = instance_info.get('capabilities', {})
+                    capabilities = utils.parse_instance_info_capabilities(node)
                     if 'boot_option' not in capabilities:
                         capabilities['boot_option'] = 'local'
                         instance_info['capabilities'] = capabilities
