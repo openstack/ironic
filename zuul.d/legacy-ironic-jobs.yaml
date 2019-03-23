@@ -91,5 +91,4 @@
       - openstack/pyghmi
       - openstack/python-ironicclient
       - openstack/virtualbmc
-    nodeset: legacy-ubuntu-xenial-2-node
 
