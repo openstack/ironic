@@ -20,7 +20,7 @@ description for DevStack is at :ref:`deploy_devstack`.
 
     [[local|localrc]]
 
-    enable_plugin ironic git://git.openstack.org/openstack/ironic
+    enable_plugin ironic https://git.openstack.org/openstack/ironic
 
     IRONIC_STORAGE_INTERFACE=cinder
 

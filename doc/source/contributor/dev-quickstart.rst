@@ -451,7 +451,7 @@ and uses the ``agent_ipmitool`` driver by default::
     SWIFT_TEMPURL_KEY=password
 
     # Enable Ironic plugin
-    enable_plugin ironic git://git.openstack.org/openstack/ironic
+    enable_plugin ironic https://git.openstack.org/openstack/ironic
 
     # Enable Neutron which is required by Ironic and disable nova-network.
     disable_service n-net
@@ -549,7 +549,7 @@ and uses the ``agent_ipmitool`` driver by default::
 .. note::
     To check out an in-progress patch for testing, you can add a Git ref to the ``enable_plugin`` line. For instance::
 
-      enable_plugin ironic git://git.openstack.org/openstack/ironic refs/changes/46/295946/15
+      enable_plugin ironic https://git.openstack.org/openstack/ironic refs/changes/46/295946/15
 
     For a patch in review, you can find the ref to use by clicking the
     "Download" button in Gerrit. You can also specify a different git repo, or

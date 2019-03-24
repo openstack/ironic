@@ -18,7 +18,7 @@
               dest: devstack-gate
           EOF
           /usr/zuul-env/bin/zuul-cloner -m clonemap.yaml --cache-dir /opt/git \
-              git://git.openstack.org \
+              https://git.openstack.org \
               openstack-infra/devstack-gate
         executable: /bin/bash
         chdir: '{{ ansible_user_dir }}/workspace'
@@ -74,7 +74,7 @@
           # networking-generic-switch requires sudo to execute ovs-vsctl commands
           export DEVSTACK_GATE_REMOVE_STACK_SUDO=0
           export PROJECTS="openstack/networking-generic-switch $PROJECTS"
-          export DEVSTACK_LOCAL_CONFIG+=$'\n'"enable_plugin networking-generic-switch git://git.openstack.org/openstack/networking-generic-switch"
+          export DEVSTACK_LOCAL_CONFIG+=$'\n'"enable_plugin networking-generic-switch https://git.openstack.org/openstack/networking-generic-switch"
           export DEVSTACK_LOCAL_CONFIG+=$'\n'"IRONIC_USE_LINK_LOCAL=True"
           export DEVSTACK_LOCAL_CONFIG+=$'\n'"OVS_PHYSICAL_BRIDGE=brbm"
           export DEVSTACK_LOCAL_CONFIG+=$'\n'"PHYSICAL_NETWORK=mynetwork"
@@ -197,7 +197,7 @@
           # Pull in the EARLY variables injected by the optional builders
           source ironic-vars-early
 
-          export DEVSTACK_LOCAL_CONFIG+=$'\n'"enable_plugin ironic git://git.openstack.org/openstack/ironic"
+          export DEVSTACK_LOCAL_CONFIG+=$'\n'"enable_plugin ironic https://git.openstack.org/openstack/ironic"
 
           # Ensure the ironic-EXTRA-vars file exists
           touch ironic-extra-vars
