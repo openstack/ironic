@@ -8,7 +8,7 @@
           set -x
           cat << 'EOF' >>"/tmp/dg-local.conf"
           [[local|localrc]]
-          enable_plugin ironic git://git.openstack.org/openstack/ironic
+          enable_plugin ironic https://git.openstack.org/openstack/ironic
 
           EOF
         executable: /bin/bash
