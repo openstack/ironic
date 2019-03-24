@@ -464,7 +464,7 @@ hardware type by default::
     SWIFT_TEMPURL_KEY=password
 
     # Enable Ironic plugin
-    enable_plugin ironic git://git.openstack.org/openstack/ironic
+    enable_plugin ironic https://git.openstack.org/openstack/ironic
 
     # Disable nova novnc service, ironic does not support it anyway.
     disable_service n-novnc
@@ -560,7 +560,7 @@ hardware type by default::
 .. note::
     To check out an in-progress patch for testing, you can add a Git ref to the ``enable_plugin`` line. For instance::
 
-      enable_plugin ironic git://git.openstack.org/openstack/ironic refs/changes/46/295946/15
+      enable_plugin ironic https://git.openstack.org/openstack/ironic refs/changes/46/295946/15
 
     For a patch in review, you can find the ref to use by clicking the
     "Download" button in Gerrit. You can also specify a different git repo, or
