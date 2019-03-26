@@ -895,12 +895,17 @@ function install_ironic {
         # one. The EFI ROM should work on with both boot modes, Legacy
         # BIOS and UEFI.
         if is_ubuntu; then
-            # FIXME(lucasagomes): Enable the multiverse repository by
-            # default in the image running the gate tests. Also move the
-            # installation of the ovmf package to files/debs/ironic
-            sudo add-apt-repository "deb http://archive.ubuntu.com/ubuntu $(lsb_release -sc) multiverse"
-            sudo apt-get update
-            install_package ovmf
+            # (rpittau) in bionic the UEFI in the ovmf 0~20180205.c0d9813c-2
+            # package is broken: EFI v2.70 by EDK II
+            # As a workaround, here we download and install the old working
+            # version from the multiverse repository: EFI v2.60 by EDK II
+            # Bug reference:
+            # https://bugs.launchpad.net/ubuntu/+source/edk2/+bug/1821729
+            local temp_deb
+            temp_deb="$(mktemp)"
+            wget http://archive.ubuntu.com/ubuntu/pool/multiverse/e/edk2/ovmf_0~20160408.ffea0a2c-2_all.deb -O "$temp_deb"
+            sudo dpkg -i "$temp_deb"
+            rm -f "$temp_deb"
 
             sudo rm /usr/share/qemu/pxe-virtio.rom
             sudo ln -s /usr/lib/ipxe/qemu/efi-virtio.rom /usr/share/qemu/pxe-virtio.rom

@@ -165,7 +165,6 @@
     name: ironic-tempest-ipa-partition-uefi-pxe_ipmitool-tinyipa
     description: ironic-tempest-ipa-partition-uefi-pxe_ipmitool-tinyipa
     parent: ironic-base
-    nodeset: openstack-single-node-xenial
     timeout: 5400
     vars:
       devstack_localrc:
