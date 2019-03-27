@@ -3498,7 +3498,10 @@ class ConductorManager(base_manager.BaseConductorManager):
                                           trait=trait)
 
     @METRICS.timer('ConductorManager.create_allocation')
-    @messaging.expected_exceptions(exception.InvalidParameterValue)
+    @messaging.expected_exceptions(exception.InvalidParameterValue,
+                                   exception.NodeAssociated,
+                                   exception.InstanceAssociated,
+                                   exception.NodeNotFound)
     def create_allocation(self, context, allocation):
         """Create an allocation in database.
 
@@ -3507,18 +3510,37 @@ class ConductorManager(base_manager.BaseConductorManager):
                            allocation object.
         :returns: created allocation object.
         :raises: InvalidParameterValue if some fields fail validation.
+        :raises: NodeAssociated if allocation backfill is requested for a node
+            that is associated with another instance.
+        :raises: InstanceAssociated if allocation backfill is requested, but
+            the allocation UUID is already used as instance_uuid on another
+            node.
+        :raises: NodeNotFound if allocation backfill is requested for a node
+            that cannot be found.
         """
         LOG.debug("RPC create_allocation called for allocation %s.",
                   allocation.uuid)
         allocation.conductor_affinity = self.conductor.id
+        # Allocation backfilling is handled separately, remove node_id for now.
+        # Cannot use plain getattr here since oslo.versionedobjects raise
+        # NotImplementedError instead of AttributeError (because life is pain).
+        if 'node_id' in allocation and allocation.node_id:
+            node_id = allocation.node_id
+            allocation.node_id = None
+        else:
+            node_id = None
         allocation.create()
 
-        # Spawn an asynchronous worker to process the allocation. Copy it to
-        # avoid data races.
-        self._spawn_worker(allocations.do_allocate,
-                           context, allocation.obj_clone())
+        if node_id:
+            # This is a fast operation and should be done synchronously
+            allocations.backfill_allocation(context, allocation, node_id)
+        else:
+            # Spawn an asynchronous worker to process the allocation. Copy it
+            # to avoid data races.
+            self._spawn_worker(allocations.do_allocate,
+                               context, allocation.obj_clone())
 
-        # Return the unfinished allocation
+        # Return the current status of the allocation
         return allocation
 
     @METRICS.timer('ConductorManager.destroy_allocation')

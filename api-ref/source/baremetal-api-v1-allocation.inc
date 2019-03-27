@@ -36,8 +36,16 @@ the ``allocating`` state, and the process continues in the background. If it
 succeeds, the ``node_uuid`` field is populated with the Node's UUID, and the
 Node's ``instance_uuid`` field is set to the Allocation's UUID.
 
+If you want to backfill an allocation for an already deployed node, you can
+pass the UUID or name of this node to ``node``. In this case the allocation
+is created immediately, bypassing the normal allocation process. Other
+parameters must be missing or match the provided node.
+
 .. versionadded:: 1.52
     Allocation API was introduced.
+
+.. versionadded:: 1.58
+    Added support for backfilling allocations.
 
 Normal response codes: 201
 
@@ -54,6 +62,7 @@ Request
    - traits: req_allocation_traits
    - uuid: req_uuid
    - extra: req_extra
+   - node: req_allocation_node
 
 Request Example
 ---------------

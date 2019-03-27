@@ -189,12 +189,16 @@ def post_get_test_portgroup(**kw):
 
 
 _ALLOCATION_POST_FIELDS = {'resource_class', 'uuid', 'traits',
-                           'candidate_nodes', 'name', 'extra'}
+                           'candidate_nodes', 'name', 'extra',
+                           'node'}
 
 
-def allocation_post_data(**kw):
+def allocation_post_data(node=None, **kw):
     """Return an Allocation object without internal attributes."""
     allocation = db_utils.get_test_allocation(**kw)
+    if node:
+        # This is not a database field, so it has to be handled explicitly
+        allocation['node'] = node
     return {key: value for key, value in allocation.items()
             if key in _ALLOCATION_POST_FIELDS}
 

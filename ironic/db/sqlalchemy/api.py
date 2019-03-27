@@ -1758,7 +1758,7 @@ class Connection(api.Connection):
                 ref.update(values)
                 instance_uuid = ref.uuid
 
-                if 'node_id' in values and update_node:
+                if values.get('node_id') and update_node:
                     node = model_query(models.Node, session=session).filter_by(
                         id=ref.node_id).with_lockmode('update').one()
                     node_uuid = node.uuid
