@@ -49,7 +49,7 @@ The following command will enroll a bare metal node with the ``idrac``
 hardware type::
 
     openstack baremetal node create --driver idrac \
-        --driver-info drac_address=http://drac.host \
+        --driver-info drac_address=drac.host \
         --driver-info drac_username=user \
         --driver-info drac_password=pa$$w0rd
 
