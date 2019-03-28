@@ -347,6 +347,7 @@ IRONIC_VPDU_SNMPDRIVER=${IRONIC_VPDU_SNMPDRIVER:-apc_rackpdu}
 # Redfish configs
 IRONIC_REDFISH_EMULATOR_PORT=${IRONIC_REDFISH_EMULATOR_PORT:-9132}
 IRONIC_REDFISH_EMULATOR_SYSTEMD_SERVICE="devstack@redfish-emulator.service"
+IRONIC_REDFISH_EMULATOR_CONFIG=${IRONIC_REDFISH_EMULATOR_CONFIG:-$HOME/.redfish/emulator.conf}
 
 # To explicitly enable configuration of Glance with Swift
 # (which is required by some vendor drivers), set this
@@ -821,6 +822,8 @@ function stop_redfish_emulator {
 function cleanup_redfish_emulator {
     stop_redfish_emulator
 
+    rm -f $IRONIC_REDFISH_EMULATOR_CONFIG
+
     $SYSTEMCTL disable $IRONIC_REDFISH_EMULATOR_SYSTEMD_SERVICE
 
     local unitfile="$SYSTEMD_DIR/$IRONIC_REDFISH_EMULATOR_SYSTEMD_SERVICE"
@@ -830,6 +833,22 @@ function cleanup_redfish_emulator {
 }
 
 function setup_redfish_emulator {
+
+    if [[ ! -d $(dirname $IRONIC_REDFISH_EMULATOR_CONFIG) ]]; then
+        mkdir -p $(dirname $IRONIC_REDFISH_EMULATOR_CONFIG)
+    fi
+
+    cat - <<EOF > $IRONIC_REDFISH_EMULATOR_CONFIG
+SUSHY_EMULATOR_BOOT_LOADER_MAP = {
+    'Uefi': {
+        'x86_64': '$UEFI_LOADER_PATH'
+    },
+    'Legacy': {
+        'x86_64': None
+    }
+}
+EOF
+
     # TODO(lucasagomes): Use Apache WSGI instead of gunicorn
     gunicorn=gunicorn
 
@@ -856,6 +875,7 @@ function setup_redfish_emulator {
     cmd+=" sushy_tools.emulator.main:app"
     cmd+=" --bind ${HOST_IP}:${IRONIC_REDFISH_EMULATOR_PORT}"
     cmd+=" --env FLASK_DEBUG=1"
+    cmd+=" --env SUSHY_EMULATOR_CONFIG=${IRONIC_REDFISH_EMULATOR_CONFIG}"
 
     write_user_unit_file $IRONIC_REDFISH_EMULATOR_SYSTEMD_SERVICE "$cmd" "" "root"
 
