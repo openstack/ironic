@@ -343,6 +343,7 @@ IRONIC_VPDU_PORT_RANGE_START=${IRONIC_VPDU_PORT_RANGE_START:-1}
 IRONIC_VPDU_LISTEN_PORT=${IRONIC_VPDU_LISTEN_PORT:-1161}
 IRONIC_VPDU_COMMUNITY=${IRONIC_VPDU_COMMUNITY:-private}
 IRONIC_VPDU_SNMPDRIVER=${IRONIC_VPDU_SNMPDRIVER:-apc_rackpdu}
+IRONIC_VPDU_SYSTEMD_SERVICE=devstack@virtualpdu.service
 
 # Redfish configs
 IRONIC_REDFISH_EMULATOR_PORT=${IRONIC_REDFISH_EMULATOR_PORT:-9132}
@@ -772,11 +773,28 @@ function setup_virtualbmc {
     cmd=$(which vbmcd)
     cmd+=" --foreground"
 
-    write_user_unit_file $IRONIC_VBMC_SYSTEMD_SERVICE "$cmd" "" "root"
+    write_user_unit_file $IRONIC_VBMC_SYSTEMD_SERVICE "$cmd" "" "stack"
 
     $SYSTEMCTL enable $IRONIC_VBMC_SYSTEMD_SERVICE
+}
 
-    start_virtualbmc
+function start_virtualpdu {
+    $SYSTEMCTL start $IRONIC_VPDU_SYSTEMD_SERVICE
+}
+
+function stop_virtualpdu {
+    $SYSTEMCTL stop $IRONIC_VPDU_SYSTEMD_SERVICE
+}
+
+function cleanup_virtualpdu {
+    stop_virtualpdu
+
+    $SYSTEMCTL disable $IRONIC_VPDU_SYSTEMD_SERVICE
+
+    local unitfile="$SYSTEMD_DIR/$IRONIC_VPDU_SYSTEMD_SERVICE"
+    sudo rm -f $unitfile
+
+    $SYSTEMCTL daemon-reload
 }
 
 function setup_virtualpdu {
@@ -797,7 +815,14 @@ function setup_virtualpdu {
     iniset $IRONIC_VPDU_CONFIG_FILE PDU ports $(_generate_pdu_ports)
     iniset $IRONIC_VPDU_CONFIG_FILE PDU outlet_default_state "OFF"
 
-    enable_service ir-vpdu
+    local cmd
+
+    cmd=$(which virtualpdu)
+    cmd+=" $IRONIC_VPDU_CONFIG_FILE"
+
+    write_user_unit_file $IRONIC_VPDU_SYSTEMD_SERVICE "$cmd" "" "stack"
+
+    $SYSTEMCTL enable $IRONIC_VPDU_SYSTEMD_SERVICE
 }
 
 # _generate_pdu_ports() - Generates list of port:node_name.
@@ -811,16 +836,16 @@ function _generate_pdu_ports {
     echo ${port_config[*]} | tr ' ' ','
 }
 
-function start_redfish_emulator {
+function start_redfish {
     $SYSTEMCTL start $IRONIC_REDFISH_EMULATOR_SYSTEMD_SERVICE
 }
 
-function stop_redfish_emulator {
+function stop_redfish {
     $SYSTEMCTL stop $IRONIC_REDFISH_EMULATOR_SYSTEMD_SERVICE
 }
 
-function cleanup_redfish_emulator {
-    stop_redfish_emulator
+function cleanup_redfish {
+    stop_redfish
 
     rm -f $IRONIC_REDFISH_EMULATOR_CONFIG
 
@@ -832,7 +857,7 @@ function cleanup_redfish_emulator {
     $SYSTEMCTL daemon-reload
 }
 
-function setup_redfish_emulator {
+function setup_redfish {
 
     if [[ ! -d $(dirname $IRONIC_REDFISH_EMULATOR_CONFIG) ]]; then
         mkdir -p $(dirname $IRONIC_REDFISH_EMULATOR_CONFIG)
@@ -877,23 +902,17 @@ EOF
     cmd+=" --env FLASK_DEBUG=1"
     cmd+=" --env SUSHY_EMULATOR_CONFIG=${IRONIC_REDFISH_EMULATOR_CONFIG}"
 
-    write_user_unit_file $IRONIC_REDFISH_EMULATOR_SYSTEMD_SERVICE "$cmd" "" "root"
+    write_user_unit_file $IRONIC_REDFISH_EMULATOR_SYSTEMD_SERVICE "$cmd" "" "stack"
 
     $SYSTEMCTL enable $IRONIC_REDFISH_EMULATOR_SYSTEMD_SERVICE
-
-    start_redfish_emulator
 }
 
-function setup_redfish {
+function setup_sushy {
     if use_library_from_git "sushy"; then
         git_clone_by_name "sushy"
         setup_dev_lib "sushy"
     else
         pip_install_gr "sushy"
-    fi
-
-    if [[ "$IRONIC_IS_HARDWARE" == "False" ]]; then
-        setup_redfish_emulator
     fi
 }
 
@@ -958,16 +977,22 @@ function install_ironic {
         restart_libvirt
     fi
 
-    if is_deployed_by_ipmi && [[ "$IRONIC_IS_HARDWARE" == "False" ]]; then
-        setup_virtualbmc
-    fi
-
-    if is_deployed_by_snmp && [[ "$IRONIC_IS_HARDWARE" == "False" ]]; then
-        setup_virtualpdu
-    fi
-
     if is_deployed_by_redfish; then
-        setup_redfish
+        setup_sushy
+    fi
+
+    if [[ "$IRONIC_IS_HARDWARE" == "False" ]]; then
+        if is_deployed_by_ipmi; then
+            setup_virtualbmc
+        fi
+
+        if is_deployed_by_snmp; then
+            setup_virtualpdu
+        fi
+
+        if is_deployed_by_redfish; then
+            setup_redfish
+        fi
     fi
 
     if is_drac_enabled; then
@@ -1033,10 +1058,9 @@ function cleanup_ironic {
         _cleanup_ironic_apache_additions
     fi
 
-    # It's noop if no emulator is running
-    stop_redfish_emulator
-
-    cleanup_redfish_emulator
+    cleanup_virtualbmc
+    cleanup_virtualpdu
+    cleanup_redfish
 
     # Remove the hook to disable log rotate
     sudo rm -rf $IRONIC_LIBVIRT_HOOKS_PATH/qemu
@@ -1257,7 +1281,20 @@ cgroup_device_acl = [
 EOF
             restart_libvirt
         fi
+    fi
 
+    if [[ "$IRONIC_IS_HARDWARE" == "False" ]]; then
+        if is_deployed_by_ipmi; then
+            start_virtualbmc
+        fi
+
+        if is_deployed_by_snmp; then
+            start_virtualpdu
+        fi
+
+        if is_deployed_by_redfish; then
+            start_redfish
+        fi
     fi
 }
 
@@ -1550,10 +1587,6 @@ function start_ironic {
     if [[ "$IRONIC_IPXE_ENABLED" == "True" ]] ; then
         restart_apache_server
     fi
-
-    if is_service_enabled ir-vpdu; then
-        start_virtualpdu
-    fi
 }
 
 # start_ironic_api() - Used by start_ironic().
@@ -1593,12 +1626,6 @@ function start_ironic_conductor {
     run_process ir-cond "$IRONIC_BIN_DIR/ironic-conductor --config-file=$IRONIC_CONF_FILE"
     # TODO(romcheg): Find a way to check whether the conductor has started.
 }
-
-# Starts VirtualPDU
-function start_virtualpdu {
-    run_process ir-vpdu "$(which virtualpdu) $IRONIC_VPDU_CONFIG_FILE" libvirt
-}
-
 
 # stop_ironic() - Stop running processes
 function stop_ironic {
@@ -1730,14 +1757,14 @@ function create_bridge_and_vms {
     bridge_mac=$(ip link show dev $IRONIC_VM_NETWORK_BRIDGE | grep -Eo "ether [A-Za-z0-9:]+"|sed "s/ether\ //")
 
     for vm_name in $(_ironic_bm_vm_names); do
-        # The su appears to be important here for picking up the stack user's
-        # new libvirt group abilities that allow it to speak to virsh.
-        # We pass through PATH explicitly as sudo has a tendency to sanitize it
-        # from the env even with -E.
-        sudo -E su -p $STACK_USER -c "PATH=$PATH $IRONIC_SCRIPTS_DIR/create-node.sh -n $vm_name \
-            -c $IRONIC_VM_SPECS_CPU -m $IRONIC_VM_SPECS_RAM -d $IRONIC_VM_SPECS_DISK \
-            -a $IRONIC_VM_SPECS_CPU_ARCH -b $IRONIC_VM_NETWORK_BRIDGE $vm_opts -p $vbmc_port -o $pdu_outlet \
-            -i $IRONIC_VM_INTERFACE_COUNT -f $IRONIC_VM_SPECS_DISK_FORMAT -M $PUBLIC_BRIDGE_MTU $log_arg" >> $IRONIC_VM_MACS_CSV_FILE
+        # pick up the $LIBVIRT_GROUP we have possibly joint
+        newgrp $LIBVIRT_GROUP <<SUBSHELL
+            $IRONIC_SCRIPTS_DIR/create-node.sh -n $vm_name \
+                -c $IRONIC_VM_SPECS_CPU -m $IRONIC_VM_SPECS_RAM -d $IRONIC_VM_SPECS_DISK \
+                -a $IRONIC_VM_SPECS_CPU_ARCH -b $IRONIC_VM_NETWORK_BRIDGE $vm_opts -p $vbmc_port -o $pdu_outlet \
+                -i $IRONIC_VM_INTERFACE_COUNT -f $IRONIC_VM_SPECS_DISK_FORMAT -M $PUBLIC_BRIDGE_MTU $log_arg >> $IRONIC_VM_MACS_CSV_FILE
+SUBSHELL
+
         echo " ${bridge_mac} $IRONIC_VM_NETWORK_BRIDGE" >> $IRONIC_VM_MACS_CSV_FILE
 
         vbmc_port=$((vbmc_port+1))
@@ -2529,19 +2556,16 @@ function cleanup_baremetal_basic_ops {
 
     local vm_name
     for vm_name in $(_ironic_bm_vm_names); do
-        # The su appears to be important here for picking up the stack user's
-        # new libvirt group abilities that allow it to speak to virsh.
-        # We pass through PATH explicitly as sudo has a tendency to sanitize it
-        # from the env even with -E.
-        sudo -E su -p $STACK_USER -c "PATH=$PATH $IRONIC_SCRIPTS_DIR/cleanup-node.sh $vm_name"
+        # pick up the $LIBVIRT_GROUP we have possibly joint
+        newgrp $LIBVIRT_GROUP <<SUBSHELL
+            $IRONIC_SCRIPTS_DIR/cleanup-node.sh $vm_name
+SUBSHELL
 
         # Cleanup node bridge/interfaces
         for i in $(seq 1 $IRONIC_VM_INTERFACE_COUNT); do
             sudo ip link del dev tap-${vm_name}i${i}
         done
     done
-
-    cleanup_virtualbmc
 
     sudo ovs-vsctl --if-exists del-br $IRONIC_VM_NETWORK_BRIDGE
 
