@@ -1765,6 +1765,11 @@ function create_bridge_and_vms {
                 -i $IRONIC_VM_INTERFACE_COUNT -f $IRONIC_VM_SPECS_DISK_FORMAT -M $PUBLIC_BRIDGE_MTU $log_arg >> $IRONIC_VM_MACS_CSV_FILE
 SUBSHELL
 
+        if is_deployed_by_ipmi; then
+            vbmc --no-daemon add $vm_name --port $vbmc_port
+            vbmc --no-daemon start $vm_name
+        fi
+
         echo " ${bridge_mac} $IRONIC_VM_NETWORK_BRIDGE" >> $IRONIC_VM_MACS_CSV_FILE
 
         vbmc_port=$((vbmc_port+1))
@@ -2556,6 +2561,11 @@ function cleanup_baremetal_basic_ops {
 
     local vm_name
     for vm_name in $(_ironic_bm_vm_names); do
+        # Delete the Virtual BMCs
+        if is_deployed_by_ipmi; then
+            vbmc --no-daemon list | grep -a $NAME && vbmc --no-daemon delete $NAME || /bin/true
+        fi
+
         # pick up the $LIBVIRT_GROUP we have possibly joint
         newgrp $LIBVIRT_GROUP <<SUBSHELL
             $IRONIC_SCRIPTS_DIR/cleanup-node.sh $vm_name

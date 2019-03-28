@@ -128,12 +128,6 @@ if ! virsh list --all | grep -q $NAME; then
         --arch $ARCH --cpus $CPU --memory $MEM --libvirt-nic-driver $LIBVIRT_NIC_DRIVER \
         --disk-format $DISK_FORMAT $VM_LOGGING --engine $ENGINE $UEFI_OPTS $vm_opts \
         --interface-count $INTERFACE_COUNT $MAC_ADDRESS >&2
-
-    # Create Virtual BMC for the node if IPMI is used
-    if [[ $(type -P vbmc) != "" ]]; then
-        vbmc add $NAME --port $VBMC_PORT
-        vbmc start $NAME
-    fi
 fi
 
 # echo mac in format mac1,ovs-node-0i1;mac2,ovs-node-0i2;...;macN,ovs-node0iN
