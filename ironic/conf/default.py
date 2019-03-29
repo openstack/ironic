@@ -151,6 +151,7 @@ driver_opts = [
                 default=['cinder', 'noop'],
                 help=_ENABLED_IFACE_HELP.format('storage')),
     cfg.StrOpt('default_storage_interface',
+               default='noop',
                help=_DEFAULT_IFACE_HELP.format('storage')),
     cfg.ListOpt('enabled_vendor_interfaces',
                 default=['ipmitool', 'no-vendor'],
