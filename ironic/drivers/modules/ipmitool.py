@@ -587,6 +587,9 @@ def _process_sensor(sensor_data):
     for field in sensor_data_fields:
         if not field:
             continue
+        if field.startswith('<<'):
+            # This is debug data, and can be safely ignored for this.
+            continue
         kv_value = field.split(':')
         if len(kv_value) != 2:
             continue

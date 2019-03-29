@@ -1,0 +1,10 @@
+---
+fixes:
+  - |
+    Fixes an issue where the sensor data parsing method for the ``ipmitool``
+    interface lacked the ability to handle the automatically included
+    `ipmitool` debugging information when the ``debug`` option is set to
+    ``True`` in the ironic.conf file. As such, extra debugging information
+    supplied by the underlying ``ipmitool`` command is disregarded.
+    More information can be found in
+    `story 2005331 <https://storyboard.openstack.org/#!/story/2005332>`_.
