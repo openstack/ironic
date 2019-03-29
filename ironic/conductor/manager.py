@@ -2888,9 +2888,12 @@ class ConductorManager(base_manager.BaseConductorManager):
     @periodics.periodic(spacing=CONF.conductor.send_sensor_data_interval,
                         enabled=CONF.conductor.send_sensor_data)
     def _send_sensor_data(self, context):
-        """Periodically sends sensor data to Ceilometer."""
+        """Periodically collects and transmits sensor data notifications."""
 
-        filters = {'associated': True}
+        filters = {}
+        if not CONF.conductor.send_sensor_data_for_undeployed_nodes:
+            filters['provision_state'] = states.ACTIVE
+
         nodes = queue.Queue()
         for node_info in self.iter_nodes(fields=['instance_uuid'],
                                          filters=filters):

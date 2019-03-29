@@ -125,6 +125,16 @@ opts = [
                 help=_('List of comma separated meter types which need to be'
                        ' sent to Ceilometer. The default value, "ALL", is a '
                        'special value meaning send all the sensor data.')),
+    cfg.BoolOpt('send_sensor_data_for_undeployed_nodes',
+                default=False,
+                help=_('The default for sensor data collection is to only '
+                       'collect data for machines that are deployed, however '
+                       'operators may desire to know if there are failures '
+                       'in hardware that is not presently in use. '
+                       'When set to true, the conductor will collect sensor '
+                       'information from all nodes when sensor data '
+                       'collection is enabled via the send_sensor_data '
+                       'setting.')),
     cfg.IntOpt('sync_local_state_interval',
                default=180,
                help=_('When conductors join or leave the cluster, existing '

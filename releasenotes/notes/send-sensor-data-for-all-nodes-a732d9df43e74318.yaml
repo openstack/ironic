@@ -1,0 +1,19 @@
+---
+features:
+  - |
+    Adds a ``[conductor]send_sensor_data_for_undeployed_nodes`` option to
+    enable ironic to collect and transmit sensor data for all nodes
+    for which sensor data collection is available. By default, this option
+    is not enabled which aligns with the prior behavior of sensor data
+    collection and transmission where such data was only collected
+    if an ``instance_uuid`` was present to signify that the node has been or
+    is being deployed. With this change set to ``True``, operators may be able
+    to identify hardware in a faulty state through the sensor data and take
+    action before an instance workload is deployed.
+fixes:
+  - |
+    Fixes an issue where nodes in the process of deployment may have metrics
+    data collected and transmitted during the deployment process which
+    may erroneously generate alarms depending on the operator's monitoring
+    configuration. This was due to a database filter relying upon the
+    indicator of an ``instance_uuid`` as opposed to the state of a node.
