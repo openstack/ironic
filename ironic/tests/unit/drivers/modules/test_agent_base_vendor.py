@@ -80,6 +80,97 @@ class HeartbeatMixinTest(AgentDeployMixinBaseTest):
         super(HeartbeatMixinTest, self).setUp()
         self.deploy = agent_base_vendor.HeartbeatMixin()
 
+    @mock.patch.object(agent_base_vendor.HeartbeatMixin,
+                       'in_core_deploy_step', autospec=True)
+    @mock.patch.object(agent_base_vendor.HeartbeatMixin,
+                       'deploy_has_started', autospec=True)
+    @mock.patch.object(agent_base_vendor.HeartbeatMixin, 'continue_deploy',
+                       autospec=True)
+    @mock.patch.object(agent_base_vendor.HeartbeatMixin,
+                       'reboot_to_instance', autospec=True)
+    def test_heartbeat_continue_deploy(self, rti_mock, cd_mock,
+                                       deploy_started_mock,
+                                       in_deploy_mock):
+        in_deploy_mock.return_value = True
+        deploy_started_mock.return_value = False
+        self.node.provision_state = states.DEPLOYWAIT
+        self.node.save()
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            self.deploy.heartbeat(task, 'url', '3.2.0')
+            self.assertFalse(task.shared)
+            self.assertEqual(
+                'url', task.node.driver_internal_info['agent_url'])
+            self.assertEqual(
+                '3.2.0',
+                task.node.driver_internal_info['agent_version'])
+            cd_mock.assert_called_once_with(self.deploy, task)
+            self.assertFalse(rti_mock.called)
+
+    @mock.patch.object(agent_base_vendor.HeartbeatMixin,
+                       'in_core_deploy_step', autospec=True)
+    @mock.patch.object(agent_base_vendor.HeartbeatMixin,
+                       'deploy_has_started', autospec=True)
+    @mock.patch.object(agent_base_vendor.HeartbeatMixin,
+                       'deploy_is_done', autospec=True)
+    @mock.patch.object(agent_base_vendor.HeartbeatMixin, 'continue_deploy',
+                       autospec=True)
+    @mock.patch.object(agent_base_vendor.HeartbeatMixin,
+                       'reboot_to_instance', autospec=True)
+    def test_heartbeat_reboot_to_instance(self, rti_mock, cd_mock,
+                                          deploy_is_done_mock,
+                                          deploy_started_mock,
+                                          in_deploy_mock):
+        in_deploy_mock.return_value = True
+        deploy_started_mock.return_value = True
+        deploy_is_done_mock.return_value = True
+        self.node.provision_state = states.DEPLOYWAIT
+        self.node.save()
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            self.deploy.heartbeat(task, 'url', '3.2.0')
+            self.assertFalse(task.shared)
+            self.assertEqual(
+                'url', task.node.driver_internal_info['agent_url'])
+            self.assertEqual(
+                '3.2.0',
+                task.node.driver_internal_info['agent_version'])
+            self.assertFalse(cd_mock.called)
+            rti_mock.assert_called_once_with(self.deploy, task)
+
+    @mock.patch.object(agent_base_vendor.HeartbeatMixin,
+                       'in_core_deploy_step', autospec=True)
+    @mock.patch.object(agent_base_vendor.HeartbeatMixin,
+                       'deploy_has_started', autospec=True)
+    @mock.patch.object(agent_base_vendor.HeartbeatMixin,
+                       'deploy_is_done', autospec=True)
+    @mock.patch.object(agent_base_vendor.HeartbeatMixin, 'continue_deploy',
+                       autospec=True)
+    @mock.patch.object(agent_base_vendor.HeartbeatMixin,
+                       'reboot_to_instance', autospec=True)
+    def test_heartbeat_not_in_core_deploy_step(self, rti_mock, cd_mock,
+                                               deploy_is_done_mock,
+                                               deploy_started_mock,
+                                               in_deploy_mock):
+        # Check that heartbeats do not trigger deployment actions when not in
+        # the deploy.deploy step.
+        in_deploy_mock.return_value = False
+        self.node.provision_state = states.DEPLOYWAIT
+        self.node.save()
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            self.deploy.heartbeat(task, 'url', '3.2.0')
+            self.assertFalse(task.shared)
+            self.assertEqual(
+                'url', task.node.driver_internal_info['agent_url'])
+            self.assertEqual(
+                '3.2.0',
+                task.node.driver_internal_info['agent_version'])
+            self.assertFalse(deploy_started_mock.called)
+            self.assertFalse(deploy_is_done_mock.called)
+            self.assertFalse(cd_mock.called)
+            self.assertFalse(rti_mock.called)
+
     @mock.patch.object(agent_base_vendor.HeartbeatMixin, 'continue_deploy',
                        autospec=True)
     @mock.patch.object(agent_base_vendor.HeartbeatMixin,
@@ -158,13 +249,17 @@ class HeartbeatMixinTest(AgentDeployMixinBaseTest):
             self.assertEqual(0, cd_mock.call_count)
 
     @mock.patch.object(agent_base_vendor.HeartbeatMixin,
+                       'in_core_deploy_step', autospec=True)
+    @mock.patch.object(agent_base_vendor.HeartbeatMixin,
                        'deploy_has_started', autospec=True)
     @mock.patch.object(deploy_utils, 'set_failed_state', autospec=True)
     @mock.patch.object(agent_base_vendor.HeartbeatMixin, 'deploy_is_done',
                        autospec=True)
     @mock.patch.object(agent_base_vendor.LOG, 'exception', autospec=True)
     def test_heartbeat_deploy_done_fails(self, log_mock, done_mock,
-                                         failed_mock, deploy_started_mock):
+                                         failed_mock, deploy_started_mock,
+                                         in_deploy_mock):
+        in_deploy_mock.return_value = True
         deploy_started_mock.return_value = True
         done_mock.side_effect = Exception('LlamaException')
         with task_manager.acquire(
@@ -180,6 +275,8 @@ class HeartbeatMixinTest(AgentDeployMixinBaseTest):
                 {'node': task.node.uuid})
 
     @mock.patch.object(agent_base_vendor.HeartbeatMixin,
+                       'in_core_deploy_step', autospec=True)
+    @mock.patch.object(agent_base_vendor.HeartbeatMixin,
                        'deploy_has_started', autospec=True)
     @mock.patch.object(deploy_utils, 'set_failed_state', autospec=True)
     @mock.patch.object(agent_base_vendor.HeartbeatMixin, 'deploy_is_done',
@@ -187,7 +284,9 @@ class HeartbeatMixinTest(AgentDeployMixinBaseTest):
     @mock.patch.object(agent_base_vendor.LOG, 'exception', autospec=True)
     def test_heartbeat_deploy_done_raises_with_event(self, log_mock, done_mock,
                                                      failed_mock,
-                                                     deploy_started_mock):
+                                                     deploy_started_mock,
+                                                     in_deploy_mock):
+        in_deploy_mock.return_value = True
         deploy_started_mock.return_value = True
         with task_manager.acquire(
                 self.context, self.node['uuid'], shared=False) as task:
@@ -341,12 +440,16 @@ class HeartbeatMixinTest(AgentDeployMixinBaseTest):
             task, 'Asynchronous exception: Node failed to perform '
             'rescue operation. Exception: some failure for node')
 
+    @mock.patch.object(agent_base_vendor.HeartbeatMixin,
+                       'in_core_deploy_step', autospec=True)
     @mock.patch.object(objects.node.Node, 'touch_provisioning', autospec=True)
     @mock.patch.object(agent_base_vendor.HeartbeatMixin,
                        'deploy_has_started', autospec=True)
     def test_heartbeat_touch_provisioning_and_url_save(self,
                                                        mock_deploy_started,
-                                                       mock_touch):
+                                                       mock_touch,
+                                                       mock_in_deploy):
+        mock_in_deploy.return_value = True
         mock_deploy_started.return_value = True
 
         self.node.provision_state = states.DEPLOYWAIT
@@ -380,6 +483,35 @@ class HeartbeatMixinTest(AgentDeployMixinBaseTest):
                 self.assertIsNotNone(
                     task.node.driver_internal_info['agent_last_heartbeat'])
                 self.assertEqual(provision_state, task.node.provision_state)
+
+    def test_in_core_deploy_step(self):
+        self.node.deploy_step = {
+            'interface': 'deploy', 'step': 'deploy', 'priority': 100}
+        info = self.node.driver_internal_info
+        info['deploy_steps'] = [self.node.deploy_step]
+        self.node.driver_internal_info = info
+        self.node.save()
+        with task_manager.acquire(
+                self.context, self.node.uuid, shared=False) as task:
+            self.assertTrue(self.deploy.in_core_deploy_step(task))
+
+    def test_in_core_deploy_step_no_steps_list(self):
+        # Need to handle drivers without deploy step support, remove in the
+        # Train release.
+        with task_manager.acquire(
+                self.context, self.node.uuid, shared=False) as task:
+            self.assertTrue(self.deploy.in_core_deploy_step(task))
+
+    def test_in_core_deploy_step_in_other_step(self):
+        self.node.deploy_step = {
+            'interface': 'deploy', 'step': 'other-step', 'priority': 100}
+        info = self.node.driver_internal_info
+        info['deploy_steps'] = [self.node.deploy_step]
+        self.node.driver_internal_info = info
+        self.node.save()
+        with task_manager.acquire(
+                self.context, self.node.uuid, shared=False) as task:
+            self.assertFalse(self.deploy.in_core_deploy_step(task))
 
 
 class AgentRescueTests(AgentDeployMixinBaseTest):
