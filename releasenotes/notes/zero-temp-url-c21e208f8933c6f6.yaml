@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    No longer tries to create a temporary URL with zero lifetime if the
+    ``deploy_callback_timeout`` option is set to zero. The default of 1800
+    seconds is used in that case. Use the new
+    ``configdrive_swift_temp_url_duration`` option to override.

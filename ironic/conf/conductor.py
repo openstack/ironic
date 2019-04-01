@@ -139,6 +139,13 @@ opts = [
                help=_('Name of the Swift container to store config drive '
                       'data. Used when configdrive_use_object_store is '
                       'True.')),
+    cfg.IntOpt('configdrive_swift_temp_url_duration',
+               min=60,
+               help=_('The timeout (in seconds) after which a configdrive '
+                      'temporary URL becomes invalid. Defaults to '
+                      'deploy_callback_timeout if it is set, otherwise to '
+                      '1800 seconds. Used when '
+                      'configdrive_use_object_store is True.')),
     cfg.IntOpt('inspect_wait_timeout',
                default=1800,
                help=_('Timeout (seconds) for waiting for node inspection. '
