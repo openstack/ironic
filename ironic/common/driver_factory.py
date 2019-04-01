@@ -131,15 +131,9 @@ def default_interface(hw_type, interface_type,
     :raises: NoValidDefaultForInterface if no default interface can be found.
     """
     factory = _INTERFACE_LOADERS[interface_type]
-    # Explicit interface defaults
-    additional_defaults = {
-        'storage': 'noop'
-    }
 
     # The fallback default from the configuration
     impl_name = getattr(CONF, 'default_%s_interface' % interface_type)
-    if impl_name is None:
-        impl_name = additional_defaults.get(interface_type)
 
     if impl_name is not None:
         # Check that the default is correct for this type

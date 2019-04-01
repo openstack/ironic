@@ -131,6 +131,8 @@ class TestCase(oslo_test_base.BaseTestCase):
         self.config(enabled_hardware_types=['fake-hardware',
                                             'manual-management'])
         for iface in drivers_base.ALL_INTERFACES:
+            default = None
+
             # Restore some reasonable defaults
             if iface == 'network':
                 values = ['flat', 'noop', 'neutron']
@@ -142,12 +144,13 @@ class TestCase(oslo_test_base.BaseTestCase):
             elif iface == 'boot':
                 values.append('pxe')
             elif iface == 'storage':
+                default = 'noop'
                 values.append('noop')
             elif iface not in {'network', 'power', 'management'}:
                 values.append('no-%s' % iface)
 
             self.config(**{'enabled_%s_interfaces' % iface: values,
-                           'default_%s_interface' % iface: None})
+                           'default_%s_interface' % iface: default})
         self.set_defaults(host='fake-mini',
                           debug=True)
         self.set_defaults(connection="sqlite://",
