@@ -7544,6 +7544,61 @@ class StoreConfigDriveTestCase(db_base.DbTestCase):
         self.node.refresh()
         self.assertEqual(expected_instance_info, self.node.instance_info)
 
+    def test_store_configdrive_swift_no_deploy_timeout(self, mock_swift):
+        container_name = 'foo_container'
+        expected_obj_name = 'configdrive-%s' % self.node.uuid
+        expected_obj_header = {'X-Delete-After': '1200'}
+        expected_instance_info = {'configdrive': 'http://1.2.3.4'}
+
+        # set configs and mocks
+        CONF.set_override('configdrive_use_object_store', True,
+                          group='deploy')
+        CONF.set_override('configdrive_swift_container', container_name,
+                          group='conductor')
+        CONF.set_override('configdrive_swift_temp_url_duration', 1200,
+                          group='conductor')
+        CONF.set_override('deploy_callback_timeout', 0,
+                          group='conductor')
+        mock_swift.return_value.get_temp_url.return_value = 'http://1.2.3.4'
+
+        manager._store_configdrive(self.node, b'foo')
+
+        mock_swift.assert_called_once_with()
+        mock_swift.return_value.create_object.assert_called_once_with(
+            container_name, expected_obj_name, mock.ANY,
+            object_headers=expected_obj_header)
+        mock_swift.return_value.get_temp_url.assert_called_once_with(
+            container_name, expected_obj_name, 1200)
+        self.node.refresh()
+        self.assertEqual(expected_instance_info, self.node.instance_info)
+
+    def test_store_configdrive_swift_no_deploy_timeout_fallback(self,
+                                                                mock_swift):
+        container_name = 'foo_container'
+        expected_obj_name = 'configdrive-%s' % self.node.uuid
+        expected_obj_header = {'X-Delete-After': '1800'}
+        expected_instance_info = {'configdrive': 'http://1.2.3.4'}
+
+        # set configs and mocks
+        CONF.set_override('configdrive_use_object_store', True,
+                          group='deploy')
+        CONF.set_override('configdrive_swift_container', container_name,
+                          group='conductor')
+        CONF.set_override('deploy_callback_timeout', 0,
+                          group='conductor')
+        mock_swift.return_value.get_temp_url.return_value = 'http://1.2.3.4'
+
+        manager._store_configdrive(self.node, b'foo')
+
+        mock_swift.assert_called_once_with()
+        mock_swift.return_value.create_object.assert_called_once_with(
+            container_name, expected_obj_name, mock.ANY,
+            object_headers=expected_obj_header)
+        mock_swift.return_value.get_temp_url.assert_called_once_with(
+            container_name, expected_obj_name, 1800)
+        self.node.refresh()
+        self.assertEqual(expected_instance_info, self.node.instance_info)
+
 
 @mgr_utils.mock_record_keepalive
 class NodeInspectHardware(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
