@@ -307,7 +307,7 @@ class HeartbeatMixin(object):
         # NOTE(pas-ha) immediately skip the rest if nothing to do
         if (task.node.provision_state not in self.heartbeat_allowed_states
             and not manager_utils.fast_track_able(task)):
-            LOG.debug('Heartbeat from node %(node)s in unsupported '
+            LOG.error('Heartbeat from node %(node)s in unsupported '
                       'provision state %(state)s, not taking any action.',
                       {'node': task.node.uuid,
                        'state': task.node.provision_state})
