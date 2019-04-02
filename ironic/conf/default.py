@@ -157,10 +157,13 @@ exc_log_opts = [
                 help=_('Used if there is a formatting error when generating '
                        'an exception message (a programming error). If True, '
                        'raise an exception; if False, use the unformatted '
-                       'message.')),
+                       'message.'),
+                deprecated_for_removal=True,
+                deprecated_reason=_('Same option in the ironic_lib section '
+                                    'should be used instead.')),
     cfg.IntOpt('log_in_db_max_size', default=4096,
                help=_('Max number of characters of any node '
-                      'last_error/maintenance_reason pushed to database.'))
+                      'last_error/maintenance_reason pushed to database.')),
 ]
 
 hash_opts = [

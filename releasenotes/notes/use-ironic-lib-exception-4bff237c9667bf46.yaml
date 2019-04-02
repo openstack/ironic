@@ -1,0 +1,9 @@
+---
+deprecations:
+  - The configuration option ``[DEFAULT]/fatal_exception_format_errors`` is now
+    deprecated.
+    Please use the configuration option
+    ``[ironic_lib]/fatal_exception_format_errors`` instead.
+other:
+  - Use the module exception from ironic-lib.
+    Update ironic-lib minimum version required to 2.17.1.
