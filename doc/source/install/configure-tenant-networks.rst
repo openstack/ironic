@@ -76,11 +76,11 @@ provisioning will happen in a multi-tenant environment (which means using the
       tenant.
 
    .. note::
-      Spawning a bare metal instance onto the provisioning network is
-      impossible, the deployment will fail. The node should be deployed onto a
-      different network than the provisioning network. When you boot a bare
-      metal instance from the Compute service, you should choose a different
-      network in the Networking service for your instance.
+      When using the ``flat`` network interface, bare metal instances are
+      normally spawned onto the "provisioning" network. This is not supported
+      with the ``neutron`` interface and the deployment will fail. Please
+      ensure a different network is chosen in the Networking service when
+      a bare metal instance is booted from the Compute service.
 
    .. note::
       The "provisioning" and "cleaning" networks may be the same network or
