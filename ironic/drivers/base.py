@@ -1000,6 +1000,89 @@ class ManagementInterface(BaseInterface):
         raise exception.UnsupportedDriverExtension(
             driver=task.node.driver, extension='inject_nmi')
 
+    def get_supported_indicators(self, task, component=None):
+        """Get a map of the supported indicators (e.g. LEDs).
+
+        :param task: A task from TaskManager.
+        :param component: If not `None`, return indicator information
+            for just this component, otherwise return indicators for
+            all existing components.
+        :returns: A dictionary of hardware components
+            (:mod:`ironic.common.components`) as keys with values
+            being dictionaries having indicator IDs as keys and indicator
+            properties as values.
+
+            ::
+
+                {
+                    'chassis': {
+                        'enclosure-0': {
+                            "readonly": true,
+                            "states": [
+                                "off",
+                                "on"
+                            ]
+                        }
+                    },
+                    'system':
+                        'blade-A': {
+                            "readonly": true,
+                            "states": [
+                                "pff",
+                                "on"
+                            ]
+                        }
+                    },
+                    'drive':
+                        'ssd0': {
+                            "readonly": true,
+                            "states": [
+                                "off",
+                                "on"
+                            ]
+                        }
+                    }
+                }
+
+        """
+        raise exception.UnsupportedDriverExtension(
+            driver=task.node.driver, extension='get_supported_indicators')
+
+    def set_indicator_state(self, task, component, indicator, state):
+        """Set indicator on the hardware component to the desired state.
+
+        :param task: A task from TaskManager.
+        :param component: The hardware component, one of
+            :mod:`ironic.common.components`.
+        :param indicator: Indicator ID (as reported by
+            `get_supported_indicators`).
+        :state: Desired state of the indicator, one of
+            :mod:`ironic.common.indicator_states`.
+        :raises: InvalidParameterValue if an invalid component, indicator
+            or state is specified.
+        :raises: MissingParameterValue if a required parameter is missing
+        """
+        raise exception.UnsupportedDriverExtension(
+            driver=task.node.driver, extension='set_indicator_state')
+
+    def get_indicator_state(self, task, component, indicator):
+        """Get current state of the indicator of the hardware component.
+
+        :param task: A task from TaskManager.
+        :param component: The hardware component, one of
+            :mod:`ironic.common.components`.
+        :param indicator: Indicator ID (as reported by
+            `get_supported_indicators`).
+        :raises: InvalidParameterValue if an invalid component or indicator
+            is specified.
+        :raises: MissingParameterValue if a required parameter is missing
+        :returns: Current state of the indicator, one of
+            :mod:`ironic.common.indicator_states`.
+
+        """
+        raise exception.UnsupportedDriverExtension(
+            driver=task.node.driver, extension='get_indicator_state')
+
 
 class InspectInterface(BaseInterface):
     """Interface for inspection-related actions."""

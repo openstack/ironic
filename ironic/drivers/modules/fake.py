@@ -27,8 +27,10 @@ on separate vendor_passthru methods.
 from oslo_log import log
 
 from ironic.common import boot_devices
+from ironic.common import components
 from ironic.common import exception
 from ironic.common.i18n import _
+from ironic.common import indicator_states
 from ironic.common import states
 from ironic.drivers import base
 from ironic import objects
@@ -218,6 +220,44 @@ class FakeManagement(base.ManagementInterface):
 
     def get_sensors_data(self, task):
         return {}
+
+    def get_supported_indicators(self, task, component=None):
+        indicators = {
+            components.CHASSIS: {
+                'led-0': {
+                    "readonly": True,
+                    "states": [
+                        indicator_states.OFF,
+                        indicator_states.ON
+                    ]
+                }
+            },
+            components.SYSTEM: {
+                'led': {
+                    "readonly": False,
+                    "states": [
+                        indicator_states.BLINKING,
+                        indicator_states.OFF,
+                        indicator_states.ON
+                    ]
+                }
+            }
+        }
+
+        return {c: indicators[c] for c in indicators
+                if not component or component == c}
+
+    def get_indicator_state(self, task, component, indicator):
+        indicators = self.get_supported_indicators(task)
+        if component not in indicators:
+            raise exception.InvalidParameterValue(_(
+                "Invalid component %s specified.") % component)
+
+        if indicator not in indicators[component]:
+            raise exception.InvalidParameterValue(_(
+                "Invalid indicator %s specified.") % indicator)
+
+        return indicator_states.ON
 
 
 class FakeInspect(base.InspectInterface):
