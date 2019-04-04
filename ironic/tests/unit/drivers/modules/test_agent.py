@@ -432,6 +432,56 @@ class TestAgentDeploy(db_base.DbTestCase):
                        spec_set=True, autospec=True)
     @mock.patch.object(neutron_network.NeutronNetwork, 'validate',
                        spec_set=True, autospec=True)
+    def test_prepare_with_neutron_net_capabilities_as_string(
+            self, validate_net_mock,
+            unconfigure_tenant_net_mock, add_provisioning_net_mock,
+            validate_href_mock, build_options_mock,
+            pxe_prepare_ramdisk_mock, storage_driver_info_mock,
+            storage_attach_volumes_mock):
+        node = self.node
+        node.network_interface = 'neutron'
+        instance_info = node.instance_info
+        instance_info['capabilities'] = '{"lion": "roar"}'
+        node.instance_info = instance_info
+        node.save()
+        validate_net_mock.side_effect = [
+            exception.InvalidParameterValue('invalid'), None]
+        with task_manager.acquire(
+                self.context, self.node['uuid'], shared=False) as task:
+            task.node.provision_state = states.DEPLOYING
+            build_options_mock.return_value = {'a': 'b'}
+            self.driver.prepare(task)
+            storage_driver_info_mock.assert_called_once_with(task)
+            self.assertEqual(2, validate_net_mock.call_count)
+            add_provisioning_net_mock.assert_called_once_with(mock.ANY, task)
+            unconfigure_tenant_net_mock.assert_called_once_with(mock.ANY, task)
+            storage_attach_volumes_mock.assert_called_once_with(
+                task.driver.storage, task)
+            validate_href_mock.assert_called_once_with(mock.ANY, 'fake-image',
+                                                       secret=False)
+            build_options_mock.assert_called_once_with(task.node)
+            pxe_prepare_ramdisk_mock.assert_called_once_with(
+                task, {'a': 'b'})
+        self.node.refresh()
+        capabilities = self.node.instance_info['capabilities']
+        self.assertEqual('local', capabilities['boot_option'])
+        self.assertEqual('roar', capabilities['lion'])
+
+    @mock.patch.object(noop_storage.NoopStorage, 'attach_volumes',
+                       autospec=True)
+    @mock.patch.object(deploy_utils, 'populate_storage_driver_internal_info')
+    @mock.patch.object(pxe.PXEBoot, 'prepare_ramdisk')
+    @mock.patch.object(deploy_utils, 'build_agent_options')
+    @mock.patch.object(image_service.HttpImageService, 'validate_href',
+                       autospec=True)
+    @mock.patch.object(neutron_network.NeutronNetwork,
+                       'add_provisioning_network',
+                       spec_set=True, autospec=True)
+    @mock.patch.object(neutron_network.NeutronNetwork,
+                       'unconfigure_tenant_networks',
+                       spec_set=True, autospec=True)
+    @mock.patch.object(neutron_network.NeutronNetwork, 'validate',
+                       spec_set=True, autospec=True)
     def test_prepare_with_neutron_net_exc_no_capabilities(
             self, validate_net_mock,
             unconfigure_tenant_net_mock, add_provisioning_net_mock,
