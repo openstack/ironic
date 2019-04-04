@@ -87,7 +87,8 @@ def get_client(token=None, context=None):
                             auth=user_auth or service_auth,
                             endpoint_override=endpoint,
                             retries=CONF.neutron.retries,
-                            global_request_id=context.global_id)
+                            global_request_id=context.global_id,
+                            timeout=CONF.neutron.request_timeout)
 
 
 def unbind_neutron_port(port_id, client=None, context=None):
