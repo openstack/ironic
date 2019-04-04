@@ -174,47 +174,56 @@ class IBMCPowerTestCase(base.IBMCTestCase):
             connect_ibmc.assert_called_with(**self.ibmc)
             conn.system.reset.assert_called_once_with(constants.RESET_ON)
 
+    def test_get_supported_power_states(self):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            supported_power_states = (
+                task.driver.power.get_supported_power_states(task))
+            self.assertEqual(sorted(list(mappings.SET_POWER_STATE_MAP)),
+                             sorted(supported_power_states))
+
+
+@mock.patch('eventlet.greenthread.sleep', lambda _t: None)
+class IBMCPowerRebootTestCase(base.IBMCTestCase):
+
     @mock.patch.object(ibmc_client, 'connect', autospec=True)
     def test_reboot(self, connect_ibmc):
         conn = self.mock_ibmc_conn(connect_ibmc)
-        with task_manager.acquire(self.context, self.node.uuid,
-                                  shared=False) as task:
-            self.config(power_state_change_timeout=2, group='conductor')
-            expected_values = [
-                (constants.SYSTEM_POWER_STATE_OFF, constants.RESET_ON),
-                (constants.SYSTEM_POWER_STATE_ON,
-                 constants.RESET_FORCE_RESTART)
+        expected_values = [
+            (constants.SYSTEM_POWER_STATE_OFF, constants.RESET_ON),
+            (constants.SYSTEM_POWER_STATE_ON,
+             constants.RESET_FORCE_RESTART)
+        ]
+
+        # for (expect_state, reset_type) in state_mapping.items():
+        for current, reset_type in expected_values:
+            mock_system_get_results = [
+                # Initial state
+                mock.Mock(power_state=current),
+                # Transient state - powering off
+                mock.Mock(power_state=constants.SYSTEM_POWER_STATE_OFF),
+                # Final state - down powering off
+                mock.Mock(power_state=constants.SYSTEM_POWER_STATE_ON)
             ]
-
-            # for (expect_state, reset_type) in state_mapping.items():
-            for current, reset_type in expected_values:
-                mock_system_get_results = [
-                    # Initial state
-                    mock.Mock(power_state=current),
-                    # Transient state - powering off
-                    mock.Mock(power_state=constants.SYSTEM_POWER_STATE_OFF),
-                    # Final state - down powering off
-                    mock.Mock(power_state=constants.SYSTEM_POWER_STATE_ON)
-                ]
-                conn.system.get.side_effect = mock_system_get_results
-
+            conn.system.get.side_effect = mock_system_get_results
+            with task_manager.acquire(self.context, self.node.uuid,
+                                      shared=False) as task:
                 task.driver.power.reboot(task)
 
-                # Asserts
-                connect_ibmc.assert_called_with(**self.ibmc)
-                conn.system.reset.assert_called_once_with(reset_type)
+            # Asserts
+            connect_ibmc.assert_called_with(**self.ibmc)
+            conn.system.reset.assert_called_once_with(reset_type)
 
-                # Reset Mocks
-                connect_ibmc.reset_mock()
-                conn.system.get.reset_mock()
-                conn.system.reset.reset_mock()
+            # Reset Mocks
+            connect_ibmc.reset_mock()
+            conn.system.get.reset_mock()
+            conn.system.reset.reset_mock()
 
     @mock.patch.object(ibmc_client, 'connect', autospec=True)
     def test_reboot_not_reached(self, connect_ibmc):
         conn = self.mock_ibmc_conn(connect_ibmc)
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
-            self.config(power_state_change_timeout=2, group='conductor')
 
             # Mocks
             conn.system.get.return_value = mock.Mock(
@@ -274,11 +283,3 @@ class IBMCPowerTestCase(base.IBMCTestCase):
             connect_ibmc.assert_called_with(**self.ibmc)
             conn.system.reset.assert_called_once_with(
                 constants.RESET_ON)
-
-    def test_get_supported_power_states(self):
-        with task_manager.acquire(self.context, self.node.uuid,
-                                  shared=True) as task:
-            supported_power_states = (
-                task.driver.power.get_supported_power_states(task))
-            self.assertEqual(sorted(list(mappings.SET_POWER_STATE_MAP)),
-                             sorted(supported_power_states))
