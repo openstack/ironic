@@ -11,7 +11,8 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 """
-iBMC Driver for managing HUAWEI Huawei 2288H V5, CH121 V5 series servers.
+iBMC Driver for managing HUAWEI V5 series rack servers such as 2288H V5,
+CH121 V5.
 """
 
 from ironic.drivers import generic

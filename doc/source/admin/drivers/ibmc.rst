@@ -5,9 +5,9 @@ iBMC driver
 Overview
 ========
 
-The ``ibmc`` driver is targeted for Huawei rack server 2288H V5, CH121 V5.
-The iBMC hardware type enables the user to take advantage of features of
-`Huawei iBMC`_ to control Huawei server.
+The ``ibmc`` driver is targeted for Huawei V5 series rack server such as
+2288H V5, CH121 V5. The iBMC hardware type enables the user to take advantage
+of features of `Huawei iBMC`_ to control Huawei server.
 
 Prerequisites
 =============
