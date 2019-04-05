@@ -108,6 +108,15 @@ opts = [
                        '"neutron" network interface and not used for the '
                        '"flat" or "noop" network interfaces. If not '
                        'specified, the default security group is used.')),
+    cfg.IntOpt('request_timeout',
+               default=45,
+               help=_('Timeout for request processing when interacting '
+                      'with Neutron. This value should be increased if '
+                      'neutron port action timeouts are observed as neutron '
+                      'performs pre-commit validation prior returning to '
+                      'the API client which can take longer than normal '
+                      'client/server interactions.')),
+
 ]
 
 

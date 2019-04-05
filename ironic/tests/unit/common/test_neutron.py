@@ -66,7 +66,8 @@ class TestNeutronClient(base.TestCase):
                                             session=mock.sentinel.session,
                                             auth=auth, retries=2,
                                             endpoint_override=url,
-                                            global_request_id='global')
+                                            global_request_id='global',
+                                            timeout=45)
 
     @mock.patch('ironic.common.context.RequestContext', autospec=True)
     def test_get_neutron_client_with_token(self, mock_ctxt, mock_client_init,
@@ -84,7 +85,8 @@ class TestNeutronClient(base.TestCase):
             auth=mock.sentinel.sauth,
             retries=2,
             endpoint_override='neutron_url',
-            global_request_id=ctxt.global_id)
+            global_request_id=ctxt.global_id,
+            timeout=45)
 
         # testing handling of default url_timeout
         mock_session.assert_called_once_with('neutron', timeout=10)
