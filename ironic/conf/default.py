@@ -167,6 +167,9 @@ exc_log_opts = [
                        'an exception message (a programming error). If True, '
                        'raise an exception; if False, use the unformatted '
                        'message.')),
+    cfg.IntOpt('log_in_db_max_size', default=4096,
+               help=_('Max number of characters of any node '
+                      'last_error/maintenance_reason pushed to database.'))
 ]
 
 hash_opts = [

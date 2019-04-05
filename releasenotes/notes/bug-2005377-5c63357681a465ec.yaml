@@ -1,0 +1,6 @@
+---
+fixes:
+  - Fixes node last_error and maintenance_reason overflow with too long error
+    messages, preventing the object from being correctly committed to database.
+    The maximum message length can be customized through a new configuration
+    parameter, ``[DEFAULT]/log_in_db_max_size`` (default, 4096 characters).
