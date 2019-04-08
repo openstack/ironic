@@ -1475,7 +1475,7 @@ class AgentDeployMixinTest(AgentDeployMixinBaseTest):
     @mock.patch.object(agent_client.AgentClient, 'get_commands_status',
                        autospec=True)
     def test_continue_cleaning_fail(self, status_mock, error_mock):
-        # Test the a failure puts the node in CLEANFAIL
+        # Test that a failure puts the node in CLEANFAIL
         status_mock.return_value = [{
             'command_status': 'FAILED',
             'command_name': 'execute_clean_step',
