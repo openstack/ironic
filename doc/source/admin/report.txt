@@ -285,7 +285,6 @@ default:
   force_raw_images = True
   graceful_shutdown_timeout = 60
   grub_config_template = /opt/stack/ironic/ironic/common/grub_conf.template
-  hash_distribution_replicas = 1
   hash_partition_exponent = 5
   hash_ring_reset_interval = 180
   host = ubuntu

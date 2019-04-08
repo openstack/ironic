@@ -184,15 +184,6 @@ hash_opts = [
                       'smooth in most cases. The default is suitable for up '
                       'to a few hundred conductors. Configuring for too many '
                       'partitions has a negative impact on CPU usage.')),
-    cfg.IntOpt('hash_distribution_replicas',
-               default=1,
-               help=_('[Experimental Feature] '
-                      'Number of hosts to map onto each hash partition. '
-                      'Setting this to more than one will cause additional '
-                      'conductor services to prepare deployment environments '
-                      'and potentially allow the Ironic cluster to recover '
-                      'more quickly if a conductor instance is terminated.'),
-               deprecated_for_removal=True),
     cfg.IntOpt('hash_ring_reset_interval',
                default=15,
                help=_('Time (in seconds) after which the hash ring is '
