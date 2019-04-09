@@ -28,7 +28,6 @@ qemu-kvm
 qemu-utils
 sgabios
 shellinabox
-syslinux # dist:xenial,bionic
 syslinux-common # dist:xenial,bionic
 tftpd-hpa
 xinetd

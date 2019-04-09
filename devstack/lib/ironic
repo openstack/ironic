@@ -1014,8 +1014,12 @@ function configure_ironic_dirs {
     fi
 
     # Copy PXE binary
-    cp $IRONIC_PXE_BOOT_IMAGE $IRONIC_TFTPBOOT_DIR
-    setup_syslinux_modules
+    # NOTE(mjturek): The PXE binary is x86_64 specific. So it should only be copied when
+    #                deploying to an x86_64 node.
+    if [[ $IRONIC_HW_ARCH == "x86_64" ]]; then
+        cp $IRONIC_PXE_BOOT_IMAGE $IRONIC_TFTPBOOT_DIR
+        setup_syslinux_modules
+    fi
 
     if [[ "$IRONIC_BOOT_MODE" == "uefi" ]]; then
         local uefi_ipxe_boot_file
