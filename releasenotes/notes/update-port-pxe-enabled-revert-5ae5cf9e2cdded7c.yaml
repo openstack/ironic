@@ -1,0 +1,11 @@
+---
+fixes:
+  - |
+    Reverts the fix to the ``idrac`` hardware type creating port objects
+    during inspection with ``pxe_enabled`` fields not set to reflect the
+    configuration of the physical ports. It is inconsistent with the stable
+    branch policy [1]. It requires ``python-dracclient`` version 1.5.0 and
+    greater; however, ``driver-requirements.txt`` specifies version 1.3.0 and
+    greater can be used on this branch.
+
+    [1] https://docs.openstack.org/project-team-guide/stable-branches.html
