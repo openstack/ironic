@@ -2619,7 +2619,7 @@ function get_ironic_node_prefix {
 
 function setup_vxlan_network {
     sudo ovs-vsctl add-port $IRONIC_VM_NETWORK_BRIDGE phy-brbm-infra
-    sudo ovs-vsctl add-port br-infra phy-infra-brbm
+    sudo ovs-vsctl add-port $PUBLIC_BRIDGE phy-infra-brbm
     sudo ovs-vsctl set interface phy-brbm-infra type=patch
     sudo ovs-vsctl set interface phy-infra-brbm type=patch
     sudo ovs-vsctl set interface phy-infra-brbm options:peer=phy-brbm-infra
