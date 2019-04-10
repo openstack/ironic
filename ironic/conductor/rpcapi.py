@@ -101,13 +101,15 @@ class ConductorAPI(object):
     |    1.48 - Added allocation API
     |    1.49 - Added get_node_with_token and agent_token argument to
                 heartbeat
+    |    1.50 - Added set_indicator_state, get_indicator_state and
+    |           get_supported_indicators.
 
     """
 
     # NOTE(rloo): This must be in sync with manager.ConductorManager's.
     # NOTE(pas-ha): This also must be in sync with
     #               ironic.common.release_mappings.RELEASE_MAPPING['master']
-    RPC_API_VERSION = '1.49'
+    RPC_API_VERSION = '1.50'
 
     def __init__(self, topic=None):
         super(ConductorAPI, self).__init__()
@@ -712,6 +714,89 @@ class ConductorAPI(object):
         cctxt = self.client.prepare(topic=topic or self.topic, version='1.17')
         return cctxt.call(context, 'get_supported_boot_devices',
                           node_id=node_id)
+
+    def set_indicator_state(self, context, node_id, component,
+                            indicator, state, topic=None):
+        """Set node hardware components indicator to the desired state.
+
+        :param context: request context.
+        :param node_id: node id or uuid.
+        :param component: The hardware component, one of
+            :mod:`ironic.common.components`.
+        :param indicator: Indicator IDs, as
+            reported by `get_supported_indicators`)
+        :param state: Indicator state, one of
+            mod:`ironic.common.indicator_states`.
+        :param topic: RPC topic. Defaults to self.topic.
+        :raises: NodeLocked if node is locked by another conductor.
+        :raises: UnsupportedDriverExtension if the node's driver doesn't
+                 support management.
+        :raises: InvalidParameterValue when the wrong driver info is
+                 specified or an invalid boot device is specified.
+        :raises: MissingParameterValue if missing supplied info.
+
+        """
+        cctxt = self.client.prepare(topic=topic or self.topic, version='1.50')
+        return cctxt.call(context, 'set_indicator_state', node_id=node_id,
+                          component=component, indicator=indicator,
+                          state=state)
+
+    def get_indicator_state(self, context, node_id, component, indicator,
+                            topic=None):
+        """Get node hardware component indicator state.
+
+        :param context: request context.
+        :param node_id: node id or uuid.
+        :param component: The hardware component, one of
+            :mod:`ironic.common.components`.
+        :param indicator: Indicator IDs, as
+            reported by `get_supported_indicators`)
+        :param topic: RPC topic. Defaults to self.topic.
+        :raises: NodeLocked if node is locked by another conductor.
+        :raises: UnsupportedDriverExtension if the node's driver doesn't
+                 support management.
+        :raises: InvalidParameterValue when the wrong driver info is
+                 specified.
+        :raises: MissingParameterValue if missing supplied info.
+        :returns: Indicator state, one of
+            mod:`ironic.common.indicator_states`.
+
+        """
+        cctxt = self.client.prepare(topic=topic or self.topic, version='1.50')
+        return cctxt.call(context, 'get_indicator_state', node_id=node_id,
+                          component=component, indicator=indicator)
+
+    def get_supported_indicators(self, context, node_id,
+                                 component=None, topic=None):
+        """Get node hardware components and their indicators.
+
+        :param context: request context.
+        :param node_id: node id or uuid.
+        :param component: The hardware component, one of
+            :mod:`ironic.common.components`.
+        :param topic: RPC topic. Defaults to self.topic.
+        :raises: NodeLocked if node is locked by another conductor.
+        :raises: UnsupportedDriverExtension if the node's driver doesn't
+                 support management.
+        :raises: InvalidParameterValue when the wrong driver info is
+                 specified.
+        :raises: MissingParameterValue if missing supplied info.
+        :returns: A dictionary of hardware components
+            (:mod:`ironic.common.components`) as keys with indicator IDs
+            as values.
+
+                ::
+
+                    {
+                        'chassis': ['enclosure-0'],
+                        'system': ['blade-A']
+                        'drive': ['ssd0']
+                    }
+
+        """
+        cctxt = self.client.prepare(topic=topic or self.topic, version='1.50')
+        return cctxt.call(context, 'get_supported_indicators', node_id=node_id,
+                          component=component)
 
     def inspect_hardware(self, context, node_id, topic=None):
         """Signals the conductor service to perform hardware introspection.

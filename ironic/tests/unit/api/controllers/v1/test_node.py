@@ -33,8 +33,10 @@ from ironic.api.controllers.v1 import notification_utils
 from ironic.api.controllers.v1 import utils as api_utils
 from ironic.api.controllers.v1 import versions
 from ironic.common import boot_devices
+from ironic.common import components
 from ironic.common import driver_factory
 from ironic.common import exception
+from ironic.common import indicator_states
 from ironic.common import policy
 from ironic.common import states
 from ironic.conductor import rpcapi
@@ -2112,6 +2114,152 @@ class TestListNodes(test_api_base.BaseApiTest):
 
         self.assertEqual("******", data["driver_info"]["ssh_password"])
         self.assertEqual("******", data["driver_info"]["ssh_key_contents"])
+
+    @mock.patch.object(rpcapi.ConductorAPI, 'get_indicator_state')
+    def test_get_indicator_state(self, mock_gis):
+        node = obj_utils.create_test_node(self.context)
+        expected_data = {
+            'state': indicator_states.ON
+        }
+        mock_gis.return_value = indicator_states.ON
+        component = components.SYSTEM
+        indicator_id = 'led'
+        indicator_name = indicator_id + '@' + component
+        data = self.get_json(
+            '/nodes/%s/management/indicators'
+            '/%s' % (node.uuid, indicator_name))
+        self.assertEqual(expected_data, data)
+        mock_gis.assert_called_once_with(
+            mock.ANY, node.uuid, component, indicator_id,
+            topic='test-topic')
+
+    @mock.patch.object(rpcapi.ConductorAPI, 'get_indicator_state')
+    def test_get_indicator_state_versioning(self, mock_gis):
+        node = obj_utils.create_test_node(self.context, name='spam')
+        expected_data = {
+            'state': indicator_states.ON
+        }
+        mock_gis.return_value = indicator_states.ON
+        component = components.SYSTEM
+        indicator_id = 'led'
+        indicator_name = indicator_id + '@' + component
+        data = self.get_json(
+            '/nodes/%s/management/indicators'
+            '/%s' % (node.uuid, indicator_name),
+            headers={api_base.Version.string: "1.63"})
+        self.assertEqual(expected_data, data)
+        mock_gis.assert_called_once_with(
+            mock.ANY, node.uuid, component, indicator_id,
+            topic='test-topic')
+
+    @mock.patch.object(rpcapi.ConductorAPI, 'get_indicator_state')
+    def test_get_indicator_state_iface_not_supported(self, mock_gis):
+        node = obj_utils.create_test_node(self.context)
+        mock_gis.side_effect = exception.UnsupportedDriverExtension(
+            extension='management', driver='test-driver')
+        component = components.SYSTEM
+        indicator_id = 'led'
+        indicator_name = indicator_id + '@' + component
+        ret = self.get_json(
+            '/nodes/%s/management/indicators'
+            '/%s' % (node.uuid, indicator_name),
+            expect_errors=True)
+        self.assertEqual(http_client.BAD_REQUEST, ret.status_code)
+        self.assertTrue(ret.json['error_message'])
+        mock_gis.assert_called_once_with(
+            mock.ANY, node.uuid, component, indicator_id,
+            topic='test-topic')
+
+    @mock.patch.object(rpcapi.ConductorAPI, 'get_supported_indicators')
+    def test_get_supported_indicators(self, mock_gsi):
+        mock_gsi.return_value = {
+            components.CHASSIS: {
+                'led': {
+                    'readonly': True,
+                    'states': [
+                        'OFF',
+                        'ON'
+                    ]
+                }
+            }
+        }
+        node = obj_utils.create_test_node(self.context)
+
+        expected_data = {
+            'indicators': [
+                {'component': 'chassis',
+                 'name': 'led@chassis',
+                 'readonly': True,
+                 'states': ['OFF', 'ON'],
+                 'links': [
+                     {'href': 'http://localhost/v1/nodes/1be26c0b-03f2-4d2e'
+                              '-ae87-c02d7f33c123/management/indicators/'
+                              'led@chassis',
+                      'rel': 'self'},
+                     {'href': 'http://localhost/nodes/1be26c0b-03f2-4d2e-ae'
+                              '87-c02d7f33c123/management/indicators/'
+                              'led@chassis',
+                      'rel': 'bookmark'}]}
+            ]
+        }
+
+        data = self.get_json('/nodes/%s/management/indicators'
+                             % node.uuid)
+        self.assertEqual(expected_data, data)
+        mock_gsi.assert_called_once_with(
+            mock.ANY, node.uuid, topic='test-topic')
+
+    @mock.patch.object(rpcapi.ConductorAPI, 'get_supported_indicators')
+    def test_get_supported_indicators_versioning(self, mock_gsi):
+        mock_gsi.return_value = {
+            components.CHASSIS: {
+                'led': {
+                    'readonly': True,
+                    'states': [
+                        'OFF',
+                        'ON'
+                    ]
+                }
+            }
+        }
+        node = obj_utils.create_test_node(self.context)
+
+        expected_data = {
+            'indicators': [
+                {'component': 'chassis',
+                 'name': 'led@chassis',
+                 'readonly': True,
+                 'states': ['OFF', 'ON'],
+                 'links': [
+                     {'href': 'http://localhost/v1/nodes/1be26c0b-03f2-4d2e'
+                              '-ae87-c02d7f33c123/management/indicators/'
+                              'led@chassis',
+                      'rel': 'self'},
+                     {'href': 'http://localhost/nodes/1be26c0b-03f2-4d2e-ae'
+                              '87-c02d7f33c123/management/indicators/'
+                              'led@chassis',
+                      'rel': 'bookmark'}]}
+            ]
+        }
+
+        data = self.get_json('/nodes/%s/management/indicators'
+                             % node.uuid,
+                             headers={api_base.Version.string: "1.63"})
+        self.assertEqual(expected_data, data)
+        mock_gsi.assert_called_once_with(
+            mock.ANY, node.uuid, topic='test-topic')
+
+    @mock.patch.object(rpcapi.ConductorAPI, 'get_supported_indicators')
+    def test_get_supported_indicators_iface_not_supported(self, mock_gsi):
+        node = obj_utils.create_test_node(self.context)
+        mock_gsi.side_effect = exception.UnsupportedDriverExtension(
+            extension='management', driver='test-driver')
+        ret = self.get_json('/nodes/%s/management/indicators' %
+                            node.uuid, expect_errors=True)
+        self.assertEqual(http_client.BAD_REQUEST, ret.status_code)
+        self.assertTrue(ret.json['error_message'])
+        mock_gsi.assert_called_once_with(
+            mock.ANY, node.uuid, topic='test-topic')
 
 
 class TestPatch(test_api_base.BaseApiTest):
@@ -4657,7 +4805,7 @@ class TestPut(test_api_base.BaseApiTest):
         ret = self.put_json('/nodes/%s/states/provision' % self.node.uuid,
                             {'target': states.ACTIVE,
                              'configdrive': fake_cd},
-                            headers={api_base.Version.string: '1.59'})
+                            headers={api_base.Version.string: '1.60'})
         self.assertEqual(http_client.ACCEPTED, ret.status_code)
         self.assertEqual(b'', ret.body)
         self.mock_dnd.assert_called_once_with(context=mock.ANY,
@@ -5534,6 +5682,85 @@ class TestPut(test_api_base.BaseApiTest):
                             {'target': states.VERBS['abort']},
                             headers={api_base.Version.string: "1.41"})
         self.assertEqual(http_client.ACCEPTED, ret.status_code)
+
+    @mock.patch.object(rpcapi.ConductorAPI, 'set_indicator_state')
+    def test_set_indicator_state(self, mock_sis):
+        component = components.SYSTEM
+        indicator_id = 'led'
+        indicator_name = indicator_id + '@' + component
+        state = indicator_states.ON
+        ret = self.put_json(
+            '/nodes/%s/management/indicators'
+            '/%s' % (self.node.uuid, indicator_name),
+            {'state': state})
+        self.assertEqual(http_client.NO_CONTENT, ret.status_code)
+        self.assertEqual(b'', ret.body)
+        mock_sis.assert_called_once_with(
+            mock.ANY, self.node.uuid, component, indicator_id, state,
+            topic='test-topic')
+
+    @mock.patch.object(rpcapi.ConductorAPI, 'set_indicator_state')
+    def test_set_indicator_state_versioning(self, mock_sis):
+        component = components.SYSTEM
+        indicator_id = 'led'
+        indicator_name = indicator_id + '@' + component
+        state = indicator_states.ON
+        ret = self.put_json(
+            '/nodes/%s/management/indicators'
+            '/%s' % (self.node.uuid, indicator_name),
+            {'state': state}, headers={api_base.Version.string: "1.63"})
+
+        self.assertEqual(http_client.NO_CONTENT, ret.status_code)
+        self.assertEqual(b'', ret.body)
+        mock_sis.assert_called_once_with(
+            mock.ANY, self.node.uuid, component, indicator_id, state,
+            topic='test-topic')
+
+    @mock.patch.object(rpcapi.ConductorAPI, 'set_indicator_state')
+    def test_set_indicator_state_not_supported(self, mock_sis):
+        mock_sis.side_effect = exception.UnsupportedDriverExtension(
+            extension='management', driver='test-driver')
+        component = components.SYSTEM
+        indicator_id = 'led'
+        indicator_name = indicator_id + '@' + component
+        state = indicator_states.ON
+        ret = self.put_json(
+            '/nodes/%s/management/indicators'
+            '/%s' % (self.node.uuid, indicator_name),
+            {'state': state}, expect_errors=True)
+        self.assertEqual(http_client.BAD_REQUEST, ret.status_code)
+        self.assertTrue(ret.json['error_message'])
+        mock_sis.assert_called_once_with(
+            mock.ANY, self.node.uuid, component, indicator_id, state,
+            topic='test-topic')
+
+    @mock.patch.object(rpcapi.ConductorAPI, 'set_indicator_state')
+    def test_set_indicator_state_qs(self, mock_sis):
+        component = components.SYSTEM
+        indicator_id = 'led'
+        indicator_name = indicator_id + '@' + component
+        state = indicator_states.ON
+        ret = self.put_json(
+            '/nodes/%s/management/indicators/%s?'
+            'state=%s' % (self.node.uuid, indicator_name, state), {})
+        self.assertEqual(http_client.NO_CONTENT, ret.status_code)
+        self.assertEqual(b'', ret.body)
+        mock_sis.assert_called_once_with(
+            mock.ANY, self.node.uuid, component, indicator_id, state,
+            topic='test-topic')
+
+    @mock.patch.object(rpcapi.ConductorAPI, 'set_indicator_state')
+    def test_set_indicator_state_invalid_value(self, mock_sis):
+        mock_sis.side_effect = exception.InvalidParameterValue('error')
+        component = components.SYSTEM
+        indicator_id = 'led'
+        indicator_name = indicator_id + '@' + component
+        ret = self.put_json(
+            '/nodes/%s/management/indicators/%s?'
+            'state=glow' % (self.node.uuid, indicator_name), {},
+            expect_errors=True)
+        self.assertEqual('application/json', ret.content_type)
+        self.assertEqual(http_client.BAD_REQUEST, ret.status_code)
 
 
 class TestCheckCleanSteps(base.TestCase):

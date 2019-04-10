@@ -1,0 +1,6 @@
+---
+features:
+  - |
+    Adds REST API endpoints for indicator management. Three new endpoints, for
+    listing, reading and setting the indicators, reside under the
+    ``/v1/nodes/<node_ident>/management/indicators`` location.

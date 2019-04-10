@@ -266,6 +266,184 @@ class BootDeviceController(rest.RestController):
         return {'supported_boot_devices': boot_devices}
 
 
+class IndicatorAtComponent(object):
+
+    def __init__(self, **kwargs):
+        name = kwargs.get('name')
+        component = kwargs.get('component')
+        unique_name = kwargs.get('unique_name')
+
+        if name and component:
+            self.unique_name = name + '@' + component
+            self.name = name
+            self.component = component
+
+        elif unique_name:
+            try:
+                index = unique_name.index('@')
+
+            except ValueError:
+                raise exception.InvalidParameterValue(
+                    _('Malformed indicator name "%s"') % unique_name)
+
+            self.component = unique_name[index + 1:]
+            self.name = unique_name[:index]
+            self.unique_name = unique_name
+
+        else:
+            raise exception.MissingParameterValue(
+                _('Missing indicator name "%s"'))
+
+
+class IndicatorState(base.APIBase):
+    """API representation of indicator state."""
+
+    state = wsme.wsattr(wtypes.text)
+
+    def __init__(self, **kwargs):
+        self.state = kwargs.get('state')
+
+
+class Indicator(base.APIBase):
+    """API representation of an indicator."""
+
+    name = wsme.wsattr(wtypes.text)
+
+    component = wsme.wsattr(wtypes.text)
+
+    readonly = types.BooleanType()
+
+    states = wtypes.ArrayType(str)
+
+    links = wsme.wsattr([link.Link], readonly=True)
+
+    def __init__(self, **kwargs):
+        self.name = kwargs.get('name')
+        self.component = kwargs.get('component')
+        self.readonly = kwargs.get('readonly', True)
+        self.states = kwargs.get('states', [])
+
+    @staticmethod
+    def _convert_with_links(node_uuid, indicator, url):
+        """Add links to the indicator."""
+        indicator.links = [
+            link.Link.make_link(
+                'self', url, 'nodes',
+                '%s/management/indicators/%s' % (
+                    node_uuid, indicator.name)),
+            link.Link.make_link(
+                'bookmark', url, 'nodes',
+                '%s/management/indicators/%s' % (
+                    node_uuid, indicator.name),
+                bookmark=True)]
+        return indicator
+
+    @classmethod
+    def convert_with_links(cls, node_uuid, rpc_component, rpc_name,
+                           **rpc_fields):
+        """Add links to the indicator."""
+        indicator = Indicator(
+            component=rpc_component, name=rpc_name, **rpc_fields)
+        return cls._convert_with_links(
+            node_uuid, indicator, pecan.request.host_url)
+
+
+class IndicatorsCollection(wtypes.Base):
+    """API representation of the indicators for a node."""
+
+    indicators = [Indicator]
+    """Node indicators list"""
+
+    @staticmethod
+    def collection_from_dict(node_ident, indicators):
+        col = IndicatorsCollection()
+
+        indicator_list = []
+        for component, names in indicators.items():
+            for name, fields in names.items():
+                indicator_at_component = IndicatorAtComponent(
+                    component=component, name=name)
+                indicator = Indicator.convert_with_links(
+                    node_ident, component, indicator_at_component.unique_name,
+                    **fields)
+                indicator_list.append(indicator)
+        col.indicators = indicator_list
+        return col
+
+
+class IndicatorController(rest.RestController):
+
+    @METRICS.timer('IndicatorController.put')
+    @expose.expose(None, types.uuid_or_name, wtypes.text, wtypes.text,
+                   status_code=http_client.NO_CONTENT)
+    def put(self, node_ident, indicator, state):
+        """Set node hardware component indicator to the desired state.
+
+        :param node_ident: the UUID or logical name of a node.
+        :param indicator: Indicator ID (as reported by
+            `get_supported_indicators`).
+        :param state: Indicator state, one of
+            mod:`ironic.common.indicator_states`.
+
+        """
+        cdict = pecan.request.context.to_policy_values()
+        policy.authorize('baremetal:node:set_indicator_state', cdict, cdict)
+
+        rpc_node = api_utils.get_rpc_node(node_ident)
+        topic = pecan.request.rpcapi.get_topic_for(rpc_node)
+        indicator_at_component = IndicatorAtComponent(unique_name=indicator)
+        pecan.request.rpcapi.set_indicator_state(
+            pecan.request.context, rpc_node.uuid,
+            indicator_at_component.component, indicator_at_component.name,
+            state, topic=topic)
+
+    @METRICS.timer('IndicatorController.get_one')
+    @expose.expose(IndicatorState, types.uuid_or_name, wtypes.text)
+    def get_one(self, node_ident, indicator):
+        """Get node hardware component indicator and its state.
+
+        :param node_ident: the UUID or logical name of a node.
+        :param indicator: Indicator ID (as reported by
+            `get_supported_indicators`).
+        :returns: a dict with the "state" key and one of
+            mod:`ironic.common.indicator_states` as a value.
+        """
+        cdict = pecan.request.context.to_policy_values()
+        policy.authorize('baremetal:node:get_indicator_state', cdict, cdict)
+
+        rpc_node = api_utils.get_rpc_node(node_ident)
+        topic = pecan.request.rpcapi.get_topic_for(rpc_node)
+        indicator_at_component = IndicatorAtComponent(unique_name=indicator)
+        state = pecan.request.rpcapi.get_indicator_state(
+            pecan.request.context, rpc_node.uuid,
+            indicator_at_component.component, indicator_at_component.name,
+            topic=topic)
+        return IndicatorState(state=state)
+
+    @METRICS.timer('IndicatorController.get_all')
+    @expose.expose(IndicatorsCollection, types.uuid_or_name, wtypes.text,
+                   ignore_extra_args=True)
+    def get_all(self, node_ident):
+        """Get node hardware components and their indicators.
+
+        :param node_ident: the UUID or logical name of a node.
+        :returns: A json object of hardware components
+            (:mod:`ironic.common.components`) as keys with indicator IDs
+            (from `get_supported_indicators`) as values.
+
+        """
+        cdict = pecan.request.context.to_policy_values()
+        policy.authorize('baremetal:node:get_indicator_state', cdict, cdict)
+
+        rpc_node = api_utils.get_rpc_node(node_ident)
+        topic = pecan.request.rpcapi.get_topic_for(rpc_node)
+        indicators = pecan.request.rpcapi.get_supported_indicators(
+            pecan.request.context, rpc_node.uuid, topic=topic)
+
+        return IndicatorsCollection.collection_from_dict(
+            node_ident, indicators)
+
+
 class InjectNmiController(rest.RestController):
 
     @METRICS.timer('InjectNmiController.put')
@@ -307,6 +485,9 @@ class NodeManagementController(rest.RestController):
 
     inject_nmi = InjectNmiController()
     """Expose inject_nmi as a sub-element of management"""
+
+    indicators = IndicatorController()
+    """Expose indicators as a sub-element of management"""
 
 
 class ConsoleInfo(base.Base):

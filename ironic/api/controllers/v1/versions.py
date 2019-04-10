@@ -23,8 +23,8 @@ CONF = cfg.CONF
 BASE_VERSION = 1
 
 # Here goes a short log of changes in every version.
-# Refer to doc/source/dev/webapi-version-history.rst for a detailed explanation
-# of what each version contains.
+# Refer to doc/source/contributor/webapi-version-history.rst for a detailed
+# explanation of what each version contains.
 #
 # v1.0: corresponds to Juno API, not supported since Kilo
 # v1.1: API at the point in time when versioning support was added,
@@ -100,6 +100,7 @@ BASE_VERSION = 1
 # v1.60: Add owner to the allocation object.
 # v1.61: Add retired and retired_reason to the node object.
 # v1.62: Add agent_token support for agent communication.
+# v1.63: Add support for indicators
 
 MINOR_0_JUNO = 0
 MINOR_1_INITIAL_VERSION = 1
@@ -164,6 +165,7 @@ MINOR_59_CONFIGDRIVE_VENDOR_DATA = 59
 MINOR_60_ALLOCATION_OWNER = 60
 MINOR_61_NODE_RETIRED = 61
 MINOR_62_AGENT_TOKEN = 62
+MINOR_63_INDICATORS = 63
 
 # When adding another version, update:
 # - MINOR_MAX_VERSION
@@ -171,7 +173,7 @@ MINOR_62_AGENT_TOKEN = 62
 #   explanation of what changed in the new version
 # - common/release_mappings.py, RELEASE_MAPPING['master']['api']
 
-MINOR_MAX_VERSION = MINOR_62_AGENT_TOKEN
+MINOR_MAX_VERSION = MINOR_63_INDICATORS
 
 # String representations of the minor and maximum versions
 _MIN_VERSION_STRING = '{}.{}'.format(BASE_VERSION, MINOR_1_INITIAL_VERSION)

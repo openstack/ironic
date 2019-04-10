@@ -33,9 +33,11 @@ from oslo_versionedobjects import base as ovo_base
 from oslo_versionedobjects import fields
 
 from ironic.common import boot_devices
+from ironic.common import components
 from ironic.common import driver_factory
 from ironic.common import exception
 from ironic.common import images
+from ironic.common import indicator_states
 from ironic.common import nova
 from ironic.common import states
 from ironic.conductor import cleaning
@@ -4066,6 +4068,56 @@ class BootDeviceTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         bootdevs = self.service.get_supported_boot_devices(self.context,
                                                            node.uuid)
         self.assertEqual([boot_devices.PXE], bootdevs)
+
+
+@mgr_utils.mock_record_keepalive
+class IndicatorsTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
+
+    @mock.patch.object(fake.FakeManagement, 'set_indicator_state',
+                       autospec=True)
+    @mock.patch.object(fake.FakeManagement, 'validate', autospec=True)
+    def test_set_indicator_state(self, mock_val, mock_sbd):
+        node = obj_utils.create_test_node(self.context, driver='fake-hardware')
+        self.service.set_indicator_state(
+            self.context, node.uuid, components.CHASSIS,
+            'led', indicator_states.ON)
+        mock_val.assert_called_once_with(mock.ANY, mock.ANY)
+        mock_sbd.assert_called_once_with(
+            mock.ANY, mock.ANY, components.CHASSIS, 'led', indicator_states.ON)
+
+    def test_get_indicator_state(self):
+        node = obj_utils.create_test_node(self.context, driver='fake-hardware')
+        state = self.service.get_indicator_state(
+            self.context, node.uuid, components.CHASSIS, 'led-0')
+        expected = indicator_states.ON
+        self.assertEqual(expected, state)
+
+    def test_get_supported_indicators(self):
+        node = obj_utils.create_test_node(self.context, driver='fake-hardware')
+        indicators = self.service.get_supported_indicators(
+            self.context, node.uuid)
+        expected = {
+            'chassis': {
+                'led-0': {
+                    'readonly': True,
+                    'states': [
+                        indicator_states.OFF,
+                        indicator_states.ON
+                    ]
+                }
+            },
+            'system': {
+                'led': {
+                    'readonly': False,
+                    'states': [
+                        indicator_states.BLINKING,
+                        indicator_states.OFF,
+                        indicator_states.ON
+                    ]
+                }
+            }
+        }
+        self.assertEqual(expected, indicators)
 
 
 @mgr_utils.mock_record_keepalive

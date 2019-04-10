@@ -2,6 +2,20 @@
 REST API Version History
 ========================
 
+1.63 (Ussuri, master)
+---------------------
+
+Added the following new endpoints for indicator management:
+
+* ``GET /v1/nodes/<node_ident>/management/indicators`` to list all
+  available indicators names for each of the hardware component.
+  Currently known components are: ``chassis``, ``system``, ``disk``, ``power``
+  and ``nic``.
+* ``GET /v1/nodes/<node_ident>/management/indicators/<component>/<indicator_ident>``
+  to retrieve all indicators and their states for the hardware component.
+* ``PUT /v1/nodes/<node_ident>/management/indicators/<component>/<indicator_ident>``
+  change state of the desired indicators of the component.
+
 1.62 (Ussuri, master)
 ---------------------
 
