@@ -32,6 +32,11 @@ IPMITool driver
 DRAC driver
 -----------
 
+.. toctree::
+  :maxdepth: 1
+
+  drivers/idrac
+
 DRAC with PXE deploy
 ^^^^^^^^^^^^^^^^^^^^
 
