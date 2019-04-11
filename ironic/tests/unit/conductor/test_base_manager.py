@@ -18,6 +18,7 @@ import uuid
 import eventlet
 import futurist
 from futurist import periodics
+from ironic_lib import mdns
 import mock
 from oslo_config import cfg
 from oslo_db import exception as db_exception
@@ -32,6 +33,7 @@ from ironic.conductor import notification_utils
 from ironic.conductor import task_manager
 from ironic.drivers import fake_hardware
 from ironic.drivers import generic
+from ironic.drivers.modules import deploy_utils
 from ironic.drivers.modules import fake
 from ironic import objects
 from ironic.objects import fields
@@ -246,6 +248,40 @@ class StartStopTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         self.assertFalse(self.service._shutdown)
         self.service.del_host()
         self.assertTrue(self.service._shutdown)
+
+    @mock.patch.object(deploy_utils, 'get_ironic_api_url', autospec=True)
+    @mock.patch.object(mdns, 'Zeroconf', autospec=True)
+    def test_start_with_mdns(self, mock_zc, mock_api_url):
+        CONF.set_override('debug', False)
+        CONF.set_override('enable_mdns', True, 'conductor')
+        self._start_service()
+        res = objects.Conductor.get_by_hostname(self.context, self.hostname)
+        self.assertEqual(self.hostname, res['hostname'])
+        mock_zc.return_value.register_service.assert_called_once_with(
+            'baremetal',
+            mock_api_url.return_value,
+            params={})
+
+    @mock.patch.object(deploy_utils, 'get_ironic_api_url', autospec=True)
+    @mock.patch.object(mdns, 'Zeroconf', autospec=True)
+    def test_start_with_mdns_and_debug(self, mock_zc, mock_api_url):
+        CONF.set_override('debug', True)
+        CONF.set_override('enable_mdns', True, 'conductor')
+        self._start_service()
+        res = objects.Conductor.get_by_hostname(self.context, self.hostname)
+        self.assertEqual(self.hostname, res['hostname'])
+        mock_zc.return_value.register_service.assert_called_once_with(
+            'baremetal',
+            mock_api_url.return_value,
+            params={'ipa_debug': True})
+
+    def test_del_host_with_mdns(self):
+        mock_zc = mock.Mock(spec=mdns.Zeroconf)
+        self.service._zeroconf = mock_zc
+        self._start_service()
+        self.service.del_host()
+        mock_zc.close.assert_called_once_with()
+        self.assertIsNone(self.service._zeroconf)
 
 
 class CheckInterfacesTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
