@@ -51,6 +51,13 @@
 
     - shell:
         cmd: |
+
+          # Precreate brbm so that it is created before neutron services are started, as they fail if it
+          # is not present
+          DEBIAN_FRONTEND=noninteractive sudo -E apt-get --option Dpkg::Options::=--force-confold --assume-yes install openvswitch-switch
+          sudo systemctl restart openvswitch-switch
+          sudo ovs-vsctl -- --may-exist add-br brbm
+
           cat << 'EOF' >> ironic-extra-vars
             export PROJECTS="openstack-dev/grenade $PROJECTS"
             export DEVSTACK_GATE_GRENADE=pullup
@@ -70,13 +77,14 @@
             export PROJECTS="openstack/networking-generic-switch $PROJECTS"
             export DEVSTACK_LOCAL_CONFIG+=$'\n'"enable_plugin networking-generic-switch https://git.openstack.org/openstack/networking-generic-switch"
             export DEVSTACK_LOCAL_CONFIG+=$'\n'"IRONIC_USE_LINK_LOCAL=True"
+            export DEVSTACK_LOCAL_CONFIG+=$'\n'"OVS_BRIDGE_MAPPINGS=mynetwork:brbm,public:br_ironic_vxlan"
             export DEVSTACK_LOCAL_CONFIG+=$'\n'"OVS_PHYSICAL_BRIDGE=brbm"
             export DEVSTACK_LOCAL_CONFIG+=$'\n'"PHYSICAL_NETWORK=mynetwork"
             export DEVSTACK_LOCAL_CONFIG+=$'\n'"IRONIC_PROVISION_NETWORK_NAME=ironic-provision"
             export DEVSTACK_LOCAL_CONFIG+=$'\n'"IRONIC_PROVISION_SUBNET_PREFIX=10.0.5.0/24"
             export DEVSTACK_LOCAL_CONFIG+=$'\n'"IRONIC_PROVISION_SUBNET_GATEWAY=10.0.5.1"
             export DEVSTACK_LOCAL_CONFIG+=$'\n'"Q_PLUGIN=ml2"
-            export DEVSTACK_LOCAL_CONFIG+=$'\n'"Q_USE_PROVIDERNET_FOR_PUBLIC=False"
+            export DEVSTACK_LOCAL_CONFIG+=$'\n'"PUBLIC_BRIDGE=br_ironic_vxlan"
             export DEVSTACK_LOCAL_CONFIG+=$'\n'"ENABLE_TENANT_VLANS=True"
             export DEVSTACK_LOCAL_CONFIG+=$'\n'"Q_ML2_TENANT_NETWORK_TYPE=vlan"
             export DEVSTACK_LOCAL_CONFIG+=$'\n'"TENANT_VLAN_RANGE=100:150"
