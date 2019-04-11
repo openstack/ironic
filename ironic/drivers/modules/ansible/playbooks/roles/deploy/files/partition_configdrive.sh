@@ -54,8 +54,9 @@ partprobe $DEVICE || true
 # Check for preexisting partition for configdrive
 EXISTING_PARTITION=`/sbin/blkid -l -o device $DEVICE -t LABEL=config-2`
 if [ -z $EXISTING_PARTITION ]; then
-    # Check if it is GPT partition and needs to be re-sized
-    if [ `partprobe $DEVICE print 2>&1 | grep "fix the GPT to use all of the space"` ]; then
+    # Check if it is GPT partition. Relocate the end table header to the end of
+    # disk (does not hurt if not needed anyway). Create the configdrive part
+    if parted -s $DEVICE print 2>&1 | grep -iq 'gpt'; then
         log "Fixing GPT to use all of the space on device $DEVICE"
         sgdisk -e $DEVICE || fail "move backup GPT data structures to the end of ${DEVICE}"
 
