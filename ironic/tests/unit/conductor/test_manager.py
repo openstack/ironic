@@ -5720,6 +5720,10 @@ class SensorsTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         self.assertEqual(number_of_workers,
                          mock_spawn.call_count)
 
+    # TODO(TheJulia): At some point, we should add a test to validate that
+    # that a modified filter to return all nodes actually works, although
+    # the way the sensor tests are written, the list is all mocked.
+
 
 @mgr_utils.mock_record_keepalive
 class BootDeviceTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
