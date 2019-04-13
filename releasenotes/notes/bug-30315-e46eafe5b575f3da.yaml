@@ -1,0 +1,8 @@
+---
+fixes:
+  - |
+      Fixes an issue regarding the ``ansible deployment interface`` cleaning
+      workflow.
+      Handling the error in the driver and returning nothing caused the manager
+      to consider the step done and go to the next one instead of interrupting
+      the cleaning workflow.
