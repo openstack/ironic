@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    Fixes an issue for validating checksum when trying to calculate
+    the actual checksum and failing with UnicodeDecode Error.
+    The fix uses the oslo_utils library for calculating the actual
+    checksum.

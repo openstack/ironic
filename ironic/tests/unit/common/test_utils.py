@@ -15,7 +15,6 @@
 
 import datetime
 import errno
-import hashlib
 import os
 import os.path
 import shutil
@@ -26,7 +25,6 @@ import mock
 from oslo_concurrency import processutils
 from oslo_config import cfg
 from oslo_utils import netutils
-import six
 
 from ironic.common import exception
 from ironic.common import utils
@@ -117,66 +115,19 @@ class GenericUtilsTestCase(base.TestCase):
                           utils._get_hash_object,
                           'hickory-dickory-dock')
 
-    def test_hash_file_for_md5(self):
-        # | GIVEN |
-        data = b'Mary had a little lamb, its fleece as white as snow'
-        file_like_object = six.BytesIO(data)
-        expected = hashlib.md5(data).hexdigest()
-        # | WHEN |
-        actual = utils.hash_file(file_like_object)  # using default, 'md5'
-        # | THEN |
-        self.assertEqual(expected, actual)
-
-    def test_hash_file_for_md5_not_binary(self):
-        # | GIVEN |
-        data = u'Mary had a little lamb, its fleece as white as sno\u0449'
-        file_like_object = six.StringIO(data)
-        expected = hashlib.md5(data.encode('utf-8')).hexdigest()
-        # | WHEN |
-        actual = utils.hash_file(file_like_object)  # using default, 'md5'
-        # | THEN |
-        self.assertEqual(expected, actual)
-
-    def test_hash_file_for_sha1(self):
-        # | GIVEN |
-        data = b'Mary had a little lamb, its fleece as white as snow'
-        file_like_object = six.BytesIO(data)
-        expected = hashlib.sha1(data).hexdigest()
-        # | WHEN |
-        actual = utils.hash_file(file_like_object, 'sha1')
-        # | THEN |
-        self.assertEqual(expected, actual)
-
-    def test_hash_file_for_sha512(self):
-        # | GIVEN |
-        data = b'Mary had a little lamb, its fleece as white as snow'
-        file_like_object = six.BytesIO(data)
-        expected = hashlib.sha512(data).hexdigest()
-        # | WHEN |
-        actual = utils.hash_file(file_like_object, 'sha512')
-        # | THEN |
-        self.assertEqual(expected, actual)
-
-    def test_hash_file_throws_for_invalid_or_unsupported_hash(self):
-        # | GIVEN |
-        data = b'Mary had a little lamb, its fleece as white as snow'
-        file_like_object = six.BytesIO(data)
-        # | WHEN | & | THEN |
-        self.assertRaises(exception.InvalidParameterValue, utils.hash_file,
-                          file_like_object, 'hickory-dickory-dock')
-
     def test_file_has_content_equal(self):
         data = b'Mary had a little lamb, its fleece as white as snow'
         ref = data
-        with mock.patch('ironic.common.utils.open',
+        with mock.patch('oslo_utils.fileutils.open',
                         mock.mock_open(read_data=data)) as mopen:
             self.assertTrue(utils.file_has_content('foo', ref))
             mopen.assert_called_once_with('foo', 'rb')
 
     def test_file_has_content_equal_not_binary(self):
-        data = u'Mary had a little lamb, its fleece as white as sno\u0449'
+        data = ('Mary had a little lamb, its fleece as white as '
+                'sno\u0449').encode('utf-8')
         ref = data
-        with mock.patch('ironic.common.utils.open',
+        with mock.patch('oslo_utils.fileutils.open',
                         mock.mock_open(read_data=data)) as mopen:
             self.assertTrue(utils.file_has_content('foo', ref))
             mopen.assert_called_once_with('foo', 'rb')
@@ -184,7 +135,7 @@ class GenericUtilsTestCase(base.TestCase):
     def test_file_has_content_differ(self):
         data = b'Mary had a little lamb, its fleece as white as snow'
         ref = data + b'!'
-        with mock.patch('ironic.common.utils.open',
+        with mock.patch('oslo_utils.fileutils.open',
                         mock.mock_open(read_data=data)) as mopen:
             self.assertFalse(utils.file_has_content('foo', ref))
             mopen.assert_called_once_with('foo', 'rb')
