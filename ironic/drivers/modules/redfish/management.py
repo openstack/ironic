@@ -20,8 +20,10 @@ from oslo_utils import importutils
 
 from ironic.common import boot_devices
 from ironic.common import boot_modes
+from ironic.common import components
 from ironic.common import exception
 from ironic.common.i18n import _
+from ironic.common import indicator_states
 from ironic.conductor import task_manager
 from ironic.drivers import base
 from ironic.drivers.modules.redfish import utils as redfish_utils
@@ -54,6 +56,16 @@ if sushy:
 
     BOOT_DEVICE_PERSISTENT_MAP_REV = {v: k for k, v in
                                       BOOT_DEVICE_PERSISTENT_MAP.items()}
+
+    INDICATOR_MAP = {
+        sushy.INDICATOR_LED_LIT: indicator_states.ON,
+        sushy.INDICATOR_LED_OFF: indicator_states.OFF,
+        sushy.INDICATOR_LED_BLINKING: indicator_states.BLINKING,
+        sushy.INDICATOR_LED_UNKNOWN: indicator_states.UNKNOWN
+    }
+
+    INDICATOR_MAP_REV = {
+        v: k for k, v in INDICATOR_MAP.items()}
 
 
 class RedfishManagement(base.ManagementInterface):
@@ -393,3 +405,200 @@ class RedfishManagement(base.ManagementInterface):
                                                   'error': e})
             LOG.error(error_msg)
             raise exception.RedfishError(error=error_msg)
+
+    def get_supported_indicators(self, task, component=None):
+        """Get a map of the supported indicators (e.g. LEDs).
+
+        :param task: A task from TaskManager.
+        :param component: If not `None`, return indicator information
+            for just this component, otherwise return indicators for
+            all existing components.
+        :returns: A dictionary of hardware components
+            (:mod:`ironic.common.components`) as keys with values
+            being dictionaries having indicator IDs as keys and indicator
+            properties as values.
+
+            ::
+
+             {
+                 'chassis': {
+                     'enclosure-0': {
+                         "readonly": true,
+                         "states": [
+                             "OFF",
+                             "ON"
+                         ]
+                     }
+                 },
+                 'system':
+                     'blade-A': {
+                         "readonly": true,
+                         "states": [
+                             "OFF",
+                             "ON"
+                         ]
+                     }
+                 },
+                 'drive':
+                     'ssd0': {
+                         "readonly": true,
+                         "states": [
+                             "OFF",
+                             "ON"
+                         ]
+                     }
+                 }
+             }
+        """
+        properties = {
+            "readonly": False,
+            "states": [
+                indicator_states.BLINKING,
+                indicator_states.OFF,
+                indicator_states.ON
+            ]
+        }
+
+        indicators = {}
+
+        system = redfish_utils.get_system(task.node)
+
+        try:
+            if component in (None, components.CHASSIS) and system.chassis:
+                indicators[components.CHASSIS] = {
+                    chassis.uuid: properties for chassis in system.chassis
+                    if chassis.indicator_led
+                }
+
+        except sushy.exceptions.SushyError as e:
+            LOG.debug('Chassis indicator not available for node %(node)s: '
+                      '%(error)s', {'node': task.node.uuid, 'error': e})
+
+        try:
+            if component in (None, components.SYSTEM) and system.indicator_led:
+                indicators[components.SYSTEM] = {
+                    system.uuid: properties
+                }
+
+        except sushy.exceptions.SushyError as e:
+            LOG.debug('System indicator not available for node %(node)s: '
+                      '%(error)s', {'node': task.node.uuid, 'error': e})
+
+        try:
+            if (component in (None, components.DISK) and
+                    system.simple_storage and system.simple_storage.drives):
+                indicators[components.DISK] = {
+                    drive.uuid: properties
+                    for drive in system.simple_storage.drives
+                    if drive.indicator_led
+                }
+
+        except sushy.exceptions.SushyError as e:
+            LOG.debug('Drive indicator not available for node %(node)s: '
+                      '%(error)s', {'node': task.node.uuid, 'error': e})
+
+        return indicators
+
+    def set_indicator_state(self, task, component, indicator, state):
+        """Set indicator on the hardware component to the desired state.
+
+        :param task: A task from TaskManager.
+        :param component: The hardware component, one of
+            :mod:`ironic.common.components`.
+        :param indicator: Indicator ID (as reported by
+            `get_supported_indicators`).
+        :param state: Desired state of the indicator, one of
+            :mod:`ironic.common.indicator_states`.
+        :raises: InvalidParameterValue if an invalid component, indicator
+                 or state is specified.
+        :raises: MissingParameterValue if a required parameter is missing
+        :raises: RedfishError on an error from the Sushy library
+        """
+        system = redfish_utils.get_system(task.node)
+
+        try:
+            if (component == components.SYSTEM
+                    and indicator == system.uuid):
+                system.set_indicator_led(INDICATOR_MAP_REV[state])
+                return
+
+            elif (component == components.CHASSIS
+                    and system.chassis):
+                for chassis in system.chassis:
+                    if chassis.uuid == indicator:
+                        chassis.set_indicator_led(
+                            INDICATOR_MAP_REV[state])
+                        return
+
+            elif (component == components.DISK and
+                  system.simple_storage and system.simple_storage.drives):
+                for drive in system.simple_storage.drives:
+                    if drive.uuid == indicator:
+                        drive.set_indicator_led(
+                            INDICATOR_MAP_REV[state])
+                        return
+
+        except sushy.exceptions.SushyError as e:
+            error_msg = (_('Redfish set %(component)s indicator %(indicator)s '
+                           'state %(state)s failed for node %(node)s. Error: '
+                           '%(error)s') % {'component': component,
+                                           'indicator': indicator,
+                                           'state': state,
+                                           'node': task.node.uuid,
+                                           'error': e})
+            LOG.error(error_msg)
+            raise exception.RedfishError(error=error_msg)
+
+        raise exception.MissingParameterValue(_(
+            "Unknown indicator %(indicator)s for component %(component)s of "
+            "node %(uuid)s") % {'indicator': indicator,
+                                'component': component,
+                                'uuid': task.node.uuid})
+
+    def get_indicator_state(self, task, component, indicator):
+        """Get current state of the indicator of the hardware component.
+
+        :param task: A task from TaskManager.
+        :param component: The hardware component, one of
+            :mod:`ironic.common.components`.
+        :param indicator: Indicator ID (as reported by
+            `get_supported_indicators`).
+        :raises: MissingParameterValue if a required parameter is missing
+        :raises: RedfishError on an error from the Sushy library
+        :returns: Current state of the indicator, one of
+            :mod:`ironic.common.indicator_states`.
+        """
+        system = redfish_utils.get_system(task.node)
+
+        try:
+            if (component == components.SYSTEM
+                    and indicator == system.uuid):
+                return INDICATOR_MAP[system.indicator_led]
+
+            if (component == components.CHASSIS
+                    and system.chassis):
+                for chassis in system.chassis:
+                    if chassis.uuid == indicator:
+                        return INDICATOR_MAP[chassis.indicator_led]
+
+            if (component == components.DISK and
+                    system.simple_storage and system.simple_storage.drives):
+                for drive in system.simple_storage.drives:
+                    if drive.uuid == indicator:
+                        return INDICATOR_MAP[drive.indicator_led]
+
+        except sushy.exceptions.SushyError as e:
+            error_msg = (_('Redfish get %(component)s indicator %(indicator)s '
+                           'state failed for node %(node)s. Error: '
+                           '%(error)s') % {'component': component,
+                                           'indicator': indicator,
+                                           'node': task.node.uuid,
+                                           'error': e})
+            LOG.error(error_msg)
+            raise exception.RedfishError(error=error_msg)
+
+        raise exception.MissingParameterValue(_(
+            "Unknown indicator %(indicator)s for component %(component)s of "
+            "node %(uuid)s") % {'indicator': indicator,
+                                'component': component,
+                                'uuid': task.node.uuid})

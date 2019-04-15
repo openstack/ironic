@@ -18,7 +18,9 @@ from oslo_utils import importutils
 
 from ironic.common import boot_devices
 from ironic.common import boot_modes
+from ironic.common import components
 from ironic.common import exception
+from ironic.common import indicator_states
 from ironic.conductor import task_manager
 from ironic.drivers.modules.redfish import management as redfish_mgmt
 from ironic.drivers.modules.redfish import utils as redfish_utils
@@ -43,6 +45,10 @@ class RedfishManagementTestCase(db_base.DbTestCase):
                     enabled_bios_interfaces=['redfish'])
         self.node = obj_utils.create_test_node(
             self.context, driver='redfish', driver_info=INFO_DICT)
+
+        self.system_uuid = 'ZZZ--XXX-YYY'
+        self.chassis_uuid = 'XXX-YYY-ZZZ'
+        self.drive_uuid = 'ZZZ-YYY-XXX'
 
     @mock.patch.object(redfish_mgmt, 'sushy', None)
     def test_loading_error(self):
@@ -437,3 +443,112 @@ class RedfishManagementTestCase(db_base.DbTestCase):
             fake_system.reset_system.assert_called_once_with(
                 sushy.RESET_NMI)
             mock_get_system.assert_called_once_with(task.node)
+
+    @mock.patch.object(redfish_utils, 'get_system', autospec=True)
+    def test_get_supported_indicators(self, mock_get_system):
+        fake_chassis = mock.Mock(
+            uuid=self.chassis_uuid,
+            indicator_led=sushy.INDICATOR_LED_LIT)
+        fake_drive = mock.Mock(
+            uuid=self.drive_uuid,
+            indicator_led=sushy.INDICATOR_LED_LIT)
+        fake_system = mock.Mock(
+            uuid=self.system_uuid,
+            chassis=[fake_chassis],
+            simple_storage=mock.MagicMock(drives=[fake_drive]),
+            indicator_led=sushy.INDICATOR_LED_LIT)
+
+        mock_get_system.return_value = fake_system
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+
+            supported_indicators = (
+                task.driver.management.get_supported_indicators(task))
+
+            expected = {
+                components.CHASSIS: {
+                    'XXX-YYY-ZZZ': {
+                        "readonly": False,
+                        "states": [
+                            indicator_states.BLINKING,
+                            indicator_states.OFF,
+                            indicator_states.ON
+                        ]
+                    }
+                },
+                components.SYSTEM: {
+                    'ZZZ--XXX-YYY': {
+                        "readonly": False,
+                        "states": [
+                            indicator_states.BLINKING,
+                            indicator_states.OFF,
+                            indicator_states.ON
+                        ]
+                    }
+                },
+                components.DISK: {
+                    'ZZZ-YYY-XXX': {
+                        "readonly": False,
+                        "states": [
+                            indicator_states.BLINKING,
+                            indicator_states.OFF,
+                            indicator_states.ON
+                        ]
+                    }
+                }
+            }
+
+            self.assertEqual(expected, supported_indicators)
+
+    @mock.patch.object(redfish_utils, 'get_system', autospec=True)
+    def test_set_indicator_state(self, mock_get_system):
+        fake_chassis = mock.Mock(
+            uuid=self.chassis_uuid,
+            indicator_led=sushy.INDICATOR_LED_LIT)
+        fake_drive = mock.Mock(
+            uuid=self.drive_uuid,
+            indicator_led=sushy.INDICATOR_LED_LIT)
+        fake_system = mock.Mock(
+            uuid=self.system_uuid,
+            chassis=[fake_chassis],
+            simple_storage=mock.MagicMock(drives=[fake_drive]),
+            indicator_led=sushy.INDICATOR_LED_LIT)
+
+        mock_get_system.return_value = fake_system
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            task.driver.management.set_indicator_state(
+                task, components.SYSTEM, self.system_uuid, indicator_states.ON)
+
+            fake_system.set_indicator_led.assert_called_once_with(
+                sushy.INDICATOR_LED_LIT)
+
+            mock_get_system.assert_called_once_with(task.node)
+
+    @mock.patch.object(redfish_utils, 'get_system', autospec=True)
+    def test_get_indicator_state(self, mock_get_system):
+        fake_chassis = mock.Mock(
+            uuid=self.chassis_uuid,
+            indicator_led=sushy.INDICATOR_LED_LIT)
+        fake_drive = mock.Mock(
+            uuid=self.drive_uuid,
+            indicator_led=sushy.INDICATOR_LED_LIT)
+        fake_system = mock.Mock(
+            uuid=self.system_uuid,
+            chassis=[fake_chassis],
+            simple_storage=mock.MagicMock(drives=[fake_drive]),
+            indicator_led=sushy.INDICATOR_LED_LIT)
+
+        mock_get_system.return_value = fake_system
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+
+            state = task.driver.management.get_indicator_state(
+                task, components.SYSTEM, self.system_uuid)
+
+            mock_get_system.assert_called_once_with(task.node)
+
+            self.assertEqual(indicator_states.ON, state)
