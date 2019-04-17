@@ -386,9 +386,179 @@ class TestPatch(test_api_base.BaseApiTest):
                                      'value': 'bar',
                                      'op': 'add'}],
                                    expect_errors=True,
-                                   headers=self.headers)
+                                   headers={api_base.Version.string: '1.56'})
         self.assertEqual('application/json', response.content_type)
         self.assertEqual(http_client.METHOD_NOT_ALLOWED, response.status_int)
+
+    def test_update_not_found(self):
+        uuid = uuidutils.generate_uuid()
+        response = self.patch_json('/allocations/%s' % uuid,
+                                   [{'path': '/name', 'value': 'b',
+                                     'op': 'replace'}],
+                                   expect_errors=True,
+                                   headers=self.headers)
+        self.assertEqual(http_client.NOT_FOUND, response.status_int)
+        self.assertEqual('application/json', response.content_type)
+        self.assertTrue(response.json['error_message'])
+
+    def test_add(self):
+        response = self.patch_json('/allocations/%s' % self.allocation.uuid,
+                                   [{'path': '/extra/foo', 'value': 'bar',
+                                     'op': 'add'}], headers=self.headers)
+        self.assertEqual('application/json', response.content_type)
+        self.assertEqual(http_client.OK, response.status_int)
+
+    def test_add_non_existent(self):
+        response = self.patch_json('/allocations/%s' % self.allocation.uuid,
+                                   [{'path': '/foo', 'value': 'bar',
+                                     'op': 'add'}],
+                                   expect_errors=True,
+                                   headers=self.headers)
+        self.assertEqual('application/json', response.content_type)
+        self.assertEqual(http_client.BAD_REQUEST, response.status_int)
+        self.assertTrue(response.json['error_message'])
+
+    def test_add_multi(self):
+        response = self.patch_json('/allocations/%s' % self.allocation.uuid,
+                                   [{'path': '/extra/foo1', 'value': 'bar1',
+                                     'op': 'add'},
+                                    {'path': '/extra/foo2', 'value': 'bar2',
+                                     'op': 'add'}], headers=self.headers)
+        self.assertEqual('application/json', response.content_type)
+        self.assertEqual(http_client.OK, response.status_code)
+        result = self.get_json('/allocations/%s' % self.allocation.uuid,
+                               headers=self.headers)
+        expected = {"foo1": "bar1", "foo2": "bar2"}
+        self.assertEqual(expected, result['extra'])
+
+    def test_replace_invalid_name(self):
+        response = self.patch_json('/allocations/%s' % self.allocation.uuid,
+                                   [{'path': '/name', 'value': '[test]',
+                                     'op': 'replace'}],
+                                   expect_errors=True,
+                                   headers=self.headers)
+        self.assertEqual('application/json', response.content_type)
+        self.assertEqual(http_client.BAD_REQUEST, response.status_int)
+        self.assertTrue(response.json['error_message'])
+
+    @mock.patch.object(notification_utils, '_emit_api_notification')
+    @mock.patch.object(timeutils, 'utcnow')
+    def test_replace_singular(self, mock_utcnow, mock_notify):
+        test_time = datetime.datetime(2000, 1, 1, 0, 0)
+
+        mock_utcnow.return_value = test_time
+        response = self.patch_json('/allocations/%s' % self.allocation.uuid,
+                                   [{'path': '/name',
+                                     'value': 'test', 'op': 'replace'}],
+                                   headers=self.headers)
+        self.assertEqual('application/json', response.content_type)
+        self.assertEqual(http_client.OK, response.status_code)
+        result = self.get_json('/allocations/%s' % self.allocation.uuid,
+                               headers=self.headers)
+        self.assertEqual('test', result['name'])
+        return_updated_at = timeutils.parse_isotime(
+            result['updated_at']).replace(tzinfo=None)
+        self.assertEqual(test_time, return_updated_at)
+        mock_notify.assert_has_calls([mock.call(mock.ANY, mock.ANY, 'update',
+                                      obj_fields.NotificationLevel.INFO,
+                                      obj_fields.NotificationStatus.START),
+                                      mock.call(mock.ANY, mock.ANY, 'update',
+                                      obj_fields.NotificationLevel.INFO,
+                                      obj_fields.NotificationStatus.END)])
+
+    @mock.patch.object(notification_utils, '_emit_api_notification')
+    @mock.patch.object(objects.Allocation, 'save')
+    def test_update_error(self, mock_save, mock_notify):
+        mock_save.side_effect = Exception()
+        allocation = obj_utils.create_test_allocation(self.context)
+        self.patch_json('/allocations/%s' % allocation.uuid, [{'path': '/name',
+                        'value': 'new', 'op': 'replace'}],
+                        expect_errors=True, headers=self.headers)
+        mock_notify.assert_has_calls([mock.call(mock.ANY, mock.ANY, 'update',
+                                      obj_fields.NotificationLevel.INFO,
+                                      obj_fields.NotificationStatus.START),
+                                      mock.call(mock.ANY, mock.ANY, 'update',
+                                      obj_fields.NotificationLevel.ERROR,
+                                      obj_fields.NotificationStatus.ERROR)])
+
+    def test_replace_multi(self):
+        extra = {"foo1": "bar1", "foo2": "bar2", "foo3": "bar3"}
+        allocation = obj_utils.create_test_allocation(
+            self.context, extra=extra, uuid=uuidutils.generate_uuid())
+        new_value = 'new value'
+        response = self.patch_json('/allocations/%s' % allocation.uuid,
+                                   [{'path': '/extra/foo2',
+                                     'value': new_value, 'op': 'replace'}],
+                                   headers=self.headers)
+        self.assertEqual('application/json', response.content_type)
+        self.assertEqual(http_client.OK, response.status_code)
+        result = self.get_json('/allocations/%s' % allocation.uuid,
+                               headers=self.headers)
+
+        extra["foo2"] = new_value
+        self.assertEqual(extra, result['extra'])
+
+    def test_remove_uuid(self):
+        response = self.patch_json('/allocations/%s' % self.allocation.uuid,
+                                   [{'path': '/uuid', 'op': 'remove'}],
+                                   expect_errors=True,
+                                   headers=self.headers)
+        self.assertEqual(http_client.BAD_REQUEST, response.status_int)
+        self.assertEqual('application/json', response.content_type)
+        self.assertTrue(response.json['error_message'])
+
+    def test_remove_singular(self):
+        allocation = obj_utils.create_test_allocation(
+            self.context, extra={'a': 'b'}, uuid=uuidutils.generate_uuid())
+        response = self.patch_json('/allocations/%s' % allocation.uuid,
+                                   [{'path': '/extra/a', 'op': 'remove'}],
+                                   headers=self.headers)
+        self.assertEqual('application/json', response.content_type)
+        self.assertEqual(http_client.OK, response.status_code)
+        result = self.get_json('/allocations/%s' % allocation.uuid,
+                               headers=self.headers)
+        self.assertEqual(result['extra'], {})
+
+        # Assert nothing else was changed
+        self.assertEqual(allocation.uuid, result['uuid'])
+
+    def test_remove_multi(self):
+        extra = {"foo1": "bar1", "foo2": "bar2", "foo3": "bar3"}
+        allocation = obj_utils.create_test_allocation(
+            self.context, extra=extra, uuid=uuidutils.generate_uuid())
+
+        # Removing one item from the collection
+        response = self.patch_json('/allocations/%s' % allocation.uuid,
+                                   [{'path': '/extra/foo2', 'op': 'remove'}],
+                                   headers=self.headers)
+        self.assertEqual('application/json', response.content_type)
+        self.assertEqual(http_client.OK, response.status_code)
+        result = self.get_json('/allocations/%s' % allocation.uuid,
+                               headers=self.headers)
+        extra.pop("foo2")
+        self.assertEqual(extra, result['extra'])
+
+        # Removing the collection
+        response = self.patch_json('/allocations/%s' % allocation.uuid,
+                                   [{'path': '/extra', 'op': 'remove'}],
+                                   headers=self.headers)
+        self.assertEqual('application/json', response.content_type)
+        self.assertEqual(http_client.OK, response.status_code)
+        result = self.get_json('/allocations/%s' % allocation.uuid,
+                               headers=self.headers)
+        self.assertEqual({}, result['extra'])
+
+        # Assert nothing else was changed
+        self.assertEqual(allocation.uuid, result['uuid'])
+
+    def test_remove_non_existent_property_fail(self):
+        response = self.patch_json(
+            '/allocations/%s' % self.allocation.uuid,
+            [{'path': '/extra/non-existent', 'op': 'remove'}],
+            expect_errors=True, headers=self.headers)
+        self.assertEqual('application/json', response.content_type)
+        self.assertEqual(http_client.BAD_REQUEST, response.status_code)
+        self.assertTrue(response.json['error_message'])
 
 
 def _create_locally(_api, _ctx, allocation, _topic):
