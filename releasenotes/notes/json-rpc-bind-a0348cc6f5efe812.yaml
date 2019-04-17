@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    The internal JSON RPC server now binds to ``::`` by default, allowing it to
+    work correctly with IPv6.
