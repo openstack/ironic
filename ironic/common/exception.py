@@ -561,23 +561,9 @@ class DirectoryNotWritable(IronicException):
     _msg_fmt = _("Directory %(dir)s is not writable.")
 
 
-class UcsOperationError(DriverOperationError):
-    _msg_fmt = _("Cisco UCS client: operation %(operation)s failed for node"
-                 " %(node)s. Reason: %(error)s")
-
-
-class UcsConnectionError(IronicException):
-    _msg_fmt = _("Cisco UCS client: connection failed for node "
-                 "%(node)s. Reason: %(error)s")
-
-
 class ImageUploadFailed(IronicException):
     _msg_fmt = _("Failed to upload %(image_name)s image to web server "
                  "%(web_server)s, reason: %(reason)s")
-
-
-class CIMCException(DriverOperationError):
-    _msg_fmt = _("Cisco IMC exception occurred for node %(node)s: %(error)s")
 
 
 class NodeTagNotFound(IronicException):

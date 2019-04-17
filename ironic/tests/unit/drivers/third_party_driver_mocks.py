@@ -174,32 +174,6 @@ class MockKwargsException(Exception):
         self.kwargs = kwargs
 
 
-ucssdk = importutils.try_import('UcsSdk')
-if not ucssdk:
-    ucssdk = mock.MagicMock()
-    sys.modules['UcsSdk'] = ucssdk
-    sys.modules['UcsSdk.utils'] = ucssdk.utils
-    sys.modules['UcsSdk.utils.power'] = ucssdk.utils.power
-    sys.modules['UcsSdk.utils.management'] = ucssdk.utils.management
-    sys.modules['UcsSdk.utils.exception'] = ucssdk.utils.exception
-    ucssdk.utils.exception.UcsOperationError = (
-        type('UcsOperationError', (MockKwargsException,), {}))
-    ucssdk.utils.exception.UcsConnectionError = (
-        type('UcsConnectionError', (MockKwargsException,), {}))
-    if 'ironic.drivers.modules.ucs' in sys.modules:
-        six.moves.reload_module(
-            sys.modules['ironic.drivers.modules.ucs'])
-
-imcsdk = importutils.try_import('ImcSdk')
-if not imcsdk:
-    imcsdk = mock.MagicMock()
-    imcsdk.ImcException = Exception
-    sys.modules['ImcSdk'] = imcsdk
-    if 'ironic.drivers.modules.cimc' in sys.modules:
-        six.moves.reload_module(
-            sys.modules['ironic.drivers.modules.cimc'])
-
-
 sushy = importutils.try_import('sushy')
 if not sushy:
     sushy = mock.MagicMock(
