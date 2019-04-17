@@ -3609,7 +3609,10 @@ def _store_configdrive(node, configdrive):
     if CONF.deploy.configdrive_use_object_store:
         # NOTE(lucasagomes): No reason to use a different timeout than
         # the one used for deploying the node
-        timeout = CONF.conductor.deploy_callback_timeout
+        timeout = (CONF.conductor.configdrive_swift_temp_url_duration
+                   or CONF.conductor.deploy_callback_timeout
+                   # The documented default in ironic.conf.conductor
+                   or 1800)
         container = CONF.conductor.configdrive_swift_container
         object_name = _get_configdrive_obj_name(node)
 
