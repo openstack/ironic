@@ -127,6 +127,11 @@ Steps to start a deployment are pretty similar to those when using Compute:
    * ``image_checksum`` - MD5 checksum of the image specified by
      ``image_source``, only required for :ref:`direct-deploy`.
 
+     .. note::
+        Additional checksum support exists via the ``image_os_hash_algo`` and
+        ``image_os_hash_value`` fields. They may be used instead of the
+        ``image_checksum`` field.
+
      Starting with the Stein release of ironic-python-agent can also be a URL
      to a checksums file, e.g. one generated with:
 
