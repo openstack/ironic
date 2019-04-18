@@ -90,6 +90,8 @@ def _allocation_failed(allocation, reason):
         allocation.state = states.ERROR
         allocation.last_error = str(reason)
         allocation.save()
+    except exception.AllocationNotFound as exc:
+        LOG.debug('Not saving a failed allocation: %s', exc)
     except Exception:
         LOG.exception('Could not save the failed allocation %s',
                       allocation.uuid)
