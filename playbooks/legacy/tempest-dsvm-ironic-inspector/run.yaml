@@ -13,12 +13,12 @@
           set -x
           cat > clonemap.yaml << EOF
           clonemap:
-            - name: openstack-infra/devstack-gate
+            - name: openstack/devstack-gate
               dest: devstack-gate
           EOF
           /usr/zuul-env/bin/zuul-cloner -m clonemap.yaml --cache-dir /opt/git \
-              https://git.openstack.org \
-              openstack-infra/devstack-gate
+              https://opendev.org \
+              openstack/devstack-gate
         executable: /bin/bash
         chdir: '{{ ansible_user_dir }}/workspace'
       environment: '{{ zuul | zuul_legacy_vars }}'
@@ -65,7 +65,7 @@
           export PROJECTS="openstack/python-ironic-inspector-client $PROJECTS"
           export DEVSTACK_GATE_IRONIC_INSPECTOR=1
 
-          export DEVSTACK_LOCAL_CONFIG+=$'\n'"enable_plugin ironic-inspector https://git.openstack.org/openstack/ironic-inspector"
+          export DEVSTACK_LOCAL_CONFIG+=$'\n'"enable_plugin ironic-inspector https://opendev.org/openstack/ironic-inspector"
 
           # use tempest plugin
           export DEVSTACK_LOCAL_CONFIG+=$'\n'"TEMPEST_PLUGINS+=' /opt/stack/new/ironic-tempest-plugin'"
@@ -110,7 +110,7 @@
           export PROJECTS="openstack/ironic-python-agent $PROJECTS"
           export PROJECTS="openstack/ironic-tempest-plugin $PROJECTS"
           export PROJECTS="openstack/python-ironicclient $PROJECTS"
-          export PROJECTS="openstack/pyghmi $PROJECTS"
+          export PROJECTS="x/pyghmi $PROJECTS"
           export PROJECTS="openstack/virtualbmc $PROJECTS"
           export PYTHONUNBUFFERED=true
           export DEVSTACK_GATE_TEMPEST=1
@@ -167,7 +167,7 @@
           # Pull in the EARLY variables injected by the optional builders
           source ironic-vars-early
 
-          export DEVSTACK_LOCAL_CONFIG+=$'\n'"enable_plugin ironic https://git.openstack.org/openstack/ironic"
+          export DEVSTACK_LOCAL_CONFIG+=$'\n'"enable_plugin ironic https://opendev.org/openstack/ironic"
 
           # Ensure the ironic-EXTRA-vars file exists
           touch ironic-extra-vars

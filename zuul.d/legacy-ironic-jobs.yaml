@@ -16,12 +16,12 @@
     # NOTE: When adding to 'required-projects' also need to add a corresponding
     # "export PROJECTS=..." line in all the playbooks/legacy/*/run.yaml files
     required-projects:
-      - openstack-infra/devstack-gate
+      - openstack/devstack-gate
       - openstack/ironic
       - openstack/ironic-lib
       - openstack/ironic-python-agent
       - openstack/ironic-tempest-plugin
-      - openstack/pyghmi
+      - x/pyghmi
       - openstack/python-ironicclient
       - openstack/tempest
       - openstack/virtualbmc
@@ -44,12 +44,12 @@
     # NOTE: When adding to 'required-projects' also need to add a corresponding
     # "export PROJECTS=..." line in all the playbooks/legacy/*/run.yaml files
     required-projects:
-      - openstack-infra/devstack-gate
+      - openstack/devstack-gate
       - openstack/ironic
       - openstack/ironic-lib
       - openstack/ironic-python-agent
       - openstack/ironic-tempest-plugin
-      - openstack/pyghmi
+      - x/pyghmi
       - openstack/python-ironicclient
       - openstack/tempest
       - openstack/virtualbmc
@@ -98,12 +98,12 @@
     post-run: playbooks/legacy/tempest-dsvm-ironic-inspector/post.yaml
     timeout: 10800
     required-projects:
-      - openstack-infra/devstack-gate
+      - openstack/devstack-gate
       - openstack/ironic
       - openstack/ironic-inspector
       - openstack/ironic-lib
       - openstack/ironic-python-agent
-      - openstack/pyghmi
+      - x/pyghmi
       - openstack/python-ironic-inspector-client
       - openstack/python-ironicclient
       - openstack/tempest
@@ -137,11 +137,11 @@
     post-run: playbooks/legacy/tempest-dsvm-ironic-multitenant-network/post.yaml
     timeout: 10800
     required-projects:
-      - openstack-infra/devstack-gate
+      - openstack/devstack-gate
       - openstack/ironic
       - openstack/ironic-lib
       - openstack/ironic-python-agent
-      - openstack/pyghmi
+      - x/pyghmi
       - openstack/python-ironicclient
       - openstack/tempest
       - openstack/virtualbmc
