@@ -20,7 +20,7 @@
       - openstack/ironic-lib
       - openstack/ironic-python-agent
       - openstack/ironic-tempest-plugin
-      - openstack/pyghmi
+      - x/pyghmi
       - openstack/python-ironicclient
       - openstack/virtualbmc
     post-run: playbooks/legacy/ironic-dsvm-base/post.yaml
@@ -48,7 +48,7 @@
       - openstack/ironic-python-agent
       - openstack/ironic-tempest-plugin
       - openstack/networking-generic-switch
-      - openstack/pyghmi
+      - x/pyghmi
       - openstack/python-ironicclient
       - openstack/virtualbmc
     post-run: playbooks/legacy/ironic-dsvm-base-multinode/post.yaml
@@ -108,7 +108,7 @@
     run: playbooks/legacy/ironic-dsvm-standalone/run.yaml
     timeout: 10800
     required-projects:
-      - openstack-infra/devstack-gate
+      - openstack/devstack-gate
       - openstack/ironic
       - openstack/ironic-lib
       - openstack/ironic-python-agent
@@ -120,12 +120,12 @@
     run: playbooks/legacy/tempest-dsvm-ironic-inspector/run.yaml
     timeout: 10800
     required-projects:
-      - openstack-infra/devstack-gate
+      - openstack/devstack-gate
       - openstack/ironic
       - openstack/ironic-inspector
       - openstack/ironic-lib
       - openstack/ironic-python-agent
-      - openstack/pyghmi
+      - x/pyghmi
       - openstack/python-ironic-inspector-client
       - openstack/python-ironicclient
       - openstack/tempest
@@ -137,12 +137,12 @@
     run: playbooks/legacy/grenade-dsvm-ironic/run.yaml
     timeout: 10800
     required-projects:
-      - openstack-dev/grenade
-      - openstack-infra/devstack-gate
+      - openstack/grenade
+      - openstack/devstack-gate
       - openstack/ironic
       - openstack/ironic-lib
       - openstack/ironic-python-agent
-      - openstack/pyghmi
+      - x/pyghmi
       - openstack/python-ironicclient
       - openstack/virtualbmc
 
@@ -152,13 +152,13 @@
     run: playbooks/legacy/grenade-dsvm-ironic-multinode-multitenant/run.yaml
     timeout: 10800
     required-projects:
-      - openstack-dev/grenade
-      - openstack-infra/devstack-gate
+      - openstack/grenade
+      - openstack/devstack-gate
       - openstack/ironic
       - openstack/ironic-lib
       - openstack/ironic-python-agent
       - openstack/networking-generic-switch
-      - openstack/pyghmi
+      - x/pyghmi
       - openstack/python-ironicclient
       - openstack/virtualbmc
     nodeset: legacy-ubuntu-xenial-2-node
@@ -169,7 +169,7 @@
     run: playbooks/legacy/ironic-dsvm-functional/run.yaml
     timeout: 4800
     required-projects:
-      - openstack-infra/devstack-gate
+      - openstack/devstack-gate
       - openstack/ironic
       - openstack/ironic-python-agent
 
@@ -179,8 +179,8 @@
     run: playbooks/legacy/tempest-dsvm-ironic-parallel/run.yaml
     timeout: 10800
     required-projects:
-      - openstack-infra/devstack-gate
-      - openstack/ara
+      - openstack/devstack-gate
+      - recordsansible/ara
       - openstack/ironic
       - openstack/ironic-lib
       - openstack/ironic-python-agent
