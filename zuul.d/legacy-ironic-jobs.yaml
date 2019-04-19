@@ -20,7 +20,7 @@
       - openstack/ironic-lib
       - openstack/ironic-python-agent
       - openstack/ironic-tempest-plugin
-      - openstack/pyghmi
+      - x/pyghmi
       - openstack/python-ironicclient
       - openstack/virtualbmc
     pre-run: playbooks/legacy/ironic-dsvm-base/pre.yaml
@@ -52,7 +52,7 @@
       - openstack/ironic-python-agent
       - openstack/ironic-tempest-plugin
       - openstack/networking-generic-switch
-      - openstack/pyghmi
+      - x/pyghmi
       - openstack/python-ironicclient
       - openstack/virtualbmc
     pre-run: playbooks/legacy/ironic-dsvm-base-multinode/pre.yaml
@@ -67,12 +67,12 @@
     run: playbooks/legacy/grenade-dsvm-ironic/run.yaml
     timeout: 10800
     required-projects:
-      - openstack-dev/grenade
-      - openstack-infra/devstack-gate
+      - openstack/grenade
+      - openstack/devstack-gate
       - openstack/ironic
       - openstack/ironic-lib
       - openstack/ironic-python-agent
-      - openstack/pyghmi
+      - x/pyghmi
       - openstack/python-ironicclient
       - openstack/virtualbmc
 
@@ -82,13 +82,13 @@
     run: playbooks/legacy/grenade-dsvm-ironic-multinode-multitenant/run.yaml
     timeout: 10800
     required-projects:
-      - openstack-dev/grenade
-      - openstack-infra/devstack-gate
+      - openstack/grenade
+      - openstack/devstack-gate
       - openstack/ironic
       - openstack/ironic-lib
       - openstack/ironic-python-agent
       - openstack/networking-generic-switch
-      - openstack/pyghmi
+      - x/pyghmi
       - openstack/python-ironicclient
       - openstack/virtualbmc
 
