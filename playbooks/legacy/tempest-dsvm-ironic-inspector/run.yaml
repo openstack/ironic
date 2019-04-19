@@ -14,7 +14,7 @@
             export PROJECTS="openstack/python-ironic-inspector-client $PROJECTS"
             export DEVSTACK_GATE_IRONIC_INSPECTOR=1
 
-            export DEVSTACK_LOCAL_CONFIG+=$'\n'"enable_plugin ironic-inspector https://git.openstack.org/openstack/ironic-inspector"
+            export DEVSTACK_LOCAL_CONFIG+=$'\n'"enable_plugin ironic-inspector https://opendev.org/openstack/ironic-inspector"
 
             # Make IPXE configuration consistent between Mitaka and Master
             export DEVSTACK_LOCAL_CONFIG+=$'\n'"IRONIC_INSPECTOR_MANAGE_FIREWALL=True"
@@ -35,7 +35,7 @@
           export PROJECTS="openstack/ironic-python-agent $PROJECTS"
           export PROJECTS="openstack/ironic-tempest-plugin $PROJECTS"
           export PROJECTS="openstack/python-ironicclient $PROJECTS"
-          export PROJECTS="openstack/pyghmi $PROJECTS"
+          export PROJECTS="x/pyghmi $PROJECTS"
           export PROJECTS="openstack/virtualbmc $PROJECTS"
           export PYTHONUNBUFFERED=true
           export DEVSTACK_GATE_TEMPEST=1
@@ -71,7 +71,7 @@
           # Pull in the EARLY variables injected by the optional builders
           source ironic-vars-early
 
-          export DEVSTACK_LOCAL_CONFIG+=$'\n'"enable_plugin ironic https://git.openstack.org/openstack/ironic"
+          export DEVSTACK_LOCAL_CONFIG+=$'\n'"enable_plugin ironic https://opendev.org/openstack/ironic"
 
           # Ensure the ironic-EXTRA-vars file exists
           touch ironic-extra-vars

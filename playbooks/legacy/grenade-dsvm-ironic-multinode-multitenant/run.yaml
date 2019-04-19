@@ -43,7 +43,7 @@
         cmd: |
           cat << 'EOF' >> ironic-vars-early
             # Set this early so that we do not have to be as careful with builder ordering in jobs.
-          export GRENADE_PLUGINRC="enable_grenade_plugin ironic https://git.openstack.org/openstack/ironic"
+          export GRENADE_PLUGINRC="enable_grenade_plugin ironic https://opendev.org/openstack/ironic"
 
           EOF
         chdir: '{{ ansible_user_dir }}/workspace'
@@ -59,7 +59,7 @@
           sudo ovs-vsctl -- --may-exist add-br brbm
 
           cat << 'EOF' >> ironic-extra-vars
-            export PROJECTS="openstack-dev/grenade $PROJECTS"
+            export PROJECTS="openstack/grenade $PROJECTS"
             export DEVSTACK_GATE_GRENADE=pullup
             export DEVSTACK_GATE_OS_TEST_TIMEOUT=2400
             export DEVSTACK_GATE_TEMPEST_BAREMETAL_BUILD_TIMEOUT=1200
@@ -67,7 +67,7 @@
             export DEVSTACK_GATE_TLSPROXY=0
             export BUILD_TIMEOUT
 
-            export GRENADE_PLUGINRC+=$'\n'"enable_grenade_plugin networking-generic-switch https://git.openstack.org/openstack/networking-generic-switch"
+            export GRENADE_PLUGINRC+=$'\n'"enable_grenade_plugin networking-generic-switch https://opendev.org/openstack/networking-generic-switch"
 
             export DEVSTACK_GATE_TOPOLOGY="multinode"
 
@@ -75,7 +75,7 @@
             # networking-generic-switch requires sudo to execute ovs-vsctl commands
             export DEVSTACK_GATE_REMOVE_STACK_SUDO=0
             export PROJECTS="openstack/networking-generic-switch $PROJECTS"
-            export DEVSTACK_LOCAL_CONFIG+=$'\n'"enable_plugin networking-generic-switch https://git.openstack.org/openstack/networking-generic-switch"
+            export DEVSTACK_LOCAL_CONFIG+=$'\n'"enable_plugin networking-generic-switch https://opendev.org/openstack/networking-generic-switch"
             export DEVSTACK_LOCAL_CONFIG+=$'\n'"IRONIC_USE_LINK_LOCAL=True"
             export DEVSTACK_LOCAL_CONFIG+=$'\n'"OVS_BRIDGE_MAPPINGS=mynetwork:brbm,public:br_ironic_vxlan"
             export DEVSTACK_LOCAL_CONFIG+=$'\n'"OVS_PHYSICAL_BRIDGE=brbm"
@@ -118,7 +118,7 @@
           export PROJECTS="openstack/ironic-python-agent $PROJECTS"
           export PROJECTS="openstack/ironic-tempest-plugin $PROJECTS"
           export PROJECTS="openstack/python-ironicclient $PROJECTS"
-          export PROJECTS="openstack/pyghmi $PROJECTS"
+          export PROJECTS="x/pyghmi $PROJECTS"
           export PROJECTS="openstack/virtualbmc $PROJECTS"
           export PYTHONUNBUFFERED=true
           export DEVSTACK_GATE_TEMPEST=1
@@ -155,7 +155,7 @@
           # Pull in the EARLY variables injected by the optional builders
           source ironic-vars-early
 
-          export DEVSTACK_LOCAL_CONFIG+=$'\n'"enable_plugin ironic https://git.openstack.org/openstack/ironic"
+          export DEVSTACK_LOCAL_CONFIG+=$'\n'"enable_plugin ironic https://opendev.org/openstack/ironic"
 
           # Ensure the ironic-EXTRA-vars file exists
           touch ironic-extra-vars
