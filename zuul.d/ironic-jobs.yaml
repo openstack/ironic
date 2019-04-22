@@ -306,7 +306,7 @@
     name: ironic-tempest-ipa-wholedisk-direct-tinyipa-multinode
     description: ironic-tempest-ipa-wholedisk-direct-tinyipa-multinode
     parent: tempest-multinode-full
-    pre-run: playbooks/ci-workarounds/set-stack-key.yaml
+    pre-run: playbooks/ci-workarounds/pre.yaml
     timeout: 10800
     required-projects:
       - openstack/ironic
@@ -327,6 +327,8 @@
       - ^setup.cfg$
       - ^tools/.*$
       - ^tox.ini$
+    roles:
+      - zuul: opendev.org/zuul/zuul-jobs
     vars:
       tox_envlist: all
       tempest_concurrency: 4
