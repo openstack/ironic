@@ -291,5 +291,5 @@ existing nodes.
    support the provided default implementation, its users will have to always
    provide an explicit value for this interface when creating a node.
 
-.. _setup.cfg: https://git.openstack.org/cgit/openstack/ironic/tree/setup.cfg
+.. _setup.cfg: https://opendev.org/openstack/ironic/src/branch/master/setup.cfg
 .. _ironic-inspector: https://docs.openstack.org/ironic-inspector/latest/

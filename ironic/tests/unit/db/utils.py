@@ -481,7 +481,7 @@ def create_test_portgroup(**kw):
 def get_test_node_tag(**kw):
     return {
         # TODO(rloo): Replace None below with the object NodeTag VERSION,
-        #             after this lands: https://review.openstack.org/#/c/233357
+        #             after this lands: https://review.opendev.org/#/c/233357
         'version': kw.get('version', None),
         "tag": kw.get("tag", "tag1"),
         "node_id": kw.get("node_id", "123"),

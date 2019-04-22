@@ -134,7 +134,7 @@ will use the latest versions of API, RPC and IronicObjects. Its possible values
 are releases, named (e.g. ``ocata``) or sem-versioned (e.g. ``7.0``).
 
 Internally, in `common/release_mappings.py
-<https://git.openstack.org/cgit/openstack/ironic/tree/ironic/common/release_mappings.py>`_,
+<https://opendev.org/openstack/ironic/src/branch/master/ironic/common/release_mappings.py>`_,
 ironic maintains a mapping that indicates the API, RPC and
 IronicObject versions associated with each release. This mapping is
 maintained manually.
@@ -158,7 +158,7 @@ Handling RPC versions
 ---------------------
 
 `ConductorAPI.__init__()
-<https://git.openstack.org/cgit/openstack/ironic/tree/ironic/conductor/rpcapi.py?id=338fdb94fc3b031e8d91bc7131cb4cadf05d7b92#n111>`_
+<https://opendev.org/openstack/ironic/src/commit/338fdb94fc3b031e8d91bc7131cb4cadf05d7b92/ironic/conductor/rpcapi.py#L111>`_
 sets the ``version_cap`` variable to the desired (latest or pinned) RPC API
 version and passes it to the ``RPCClient`` as an initialization parameter. This
 variable is then used to determine the maximum requested message version that
@@ -381,12 +381,12 @@ following needs to be considered:
 - Field types cannot be changed. Instead, create a new field and deprecate
   the old one.
 - There is a `unit test
-  <https://git.openstack.org/cgit/openstack/ironic/tree/ironic/tests/unit/objects/test_objects.py?id=e9318c75748c87a318b4ff35d9385b4d09e79da6#n721>`_
+  <https://opendev.org/openstack/ironic/src/commit/e9318c75748c87a318b4ff35d9385b4d09e79da6/ironic/tests/unit/objects/test_objects.py#L721>`_
   that generates the hash of an object using its fields and the
   signatures of its remotable methods. Objects that have a version bump need
   to be updated in the
   `expected_object_fingerprints
-  <https://git.openstack.org/cgit/openstack/ironic/tree/ironic/tests/unit/objects/test_objects.py?id=e9318c75748c87a318b4ff35d9385b4d09e79da6#n682>`_
+  <https://opendev.org/openstack/ironic/src/commit/e9318c75748c87a318b4ff35d9385b4d09e79da6/ironic/tests/unit/objects/test_objects.py#L682>`_
   dictionary; otherwise this test will fail. A failed test can also indicate to
   the developer that their change(s) to an object require a version bump.
 - When new version objects communicate with old version objects and when

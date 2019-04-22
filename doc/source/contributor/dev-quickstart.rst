@@ -90,7 +90,7 @@ If you haven't already, Ironic source code should be pulled directly from git::
 
     # from your home or source directory
     cd ~
-    git clone https://git.openstack.org/openstack/ironic
+    git clone https://opendev.org/openstack/ironic
     cd ironic
 
 Running Unit and Style Tests
@@ -177,7 +177,7 @@ Step 1: Create a Python virtualenv
 #. If you haven't already downloaded the source code, do that first::
 
     cd ~
-    git clone https://git.openstack.org/openstack/ironic
+    git clone https://opendev.org/openstack/ironic
     cd ironic
 
 #. Create the Python virtualenv::
@@ -438,13 +438,13 @@ up to date and has the latest packages installed before beginning this process.
 Devstack will no longer create the user 'stack' with the desired
 permissions, but does provide a script to perform the task::
 
-    git clone https://git.openstack.org/openstack-dev/devstack.git devstack
+    git clone https://opendev.org/openstack/devstack.git devstack
     sudo ./devstack/tools/create-stack-user.sh
 
 Switch to the stack user and clone DevStack::
 
     sudo su - stack
-    git clone https://git.openstack.org/openstack-dev/devstack.git devstack
+    git clone https://opendev.org/openstack/devstack.git devstack
 
 Create devstack/local.conf with minimal settings required to enable Ironic.
 An example local.conf that enables both ``direct`` and ``iscsi``
@@ -464,7 +464,7 @@ hardware type by default::
     SWIFT_TEMPURL_KEY=password
 
     # Enable Ironic plugin
-    enable_plugin ironic https://git.openstack.org/openstack/ironic
+    enable_plugin ironic https://opendev.org/openstack/ironic
 
     # Disable nova novnc service, ironic does not support it anyway.
     disable_service n-novnc
@@ -534,12 +534,12 @@ hardware type by default::
     Git protocol requires access to port 9418, which is not a standard port that
     corporate firewalls always allow. If you are behind a firewall or on a proxy that
     blocks Git protocol, modify the ``enable_plugin`` line to use ``https://`` instead
-    of ``git://`` and add ``GIT_BASE=https://git.openstack.org`` to the credentials::
+    of ``git://`` and add ``GIT_BASE=https://opendev.org`` to the credentials::
 
-      GIT_BASE=https://git.openstack.org
+      GIT_BASE=https://opendev.org
 
       # Enable Ironic plugin
-      enable_plugin ironic https://git.openstack.org/openstack/ironic
+      enable_plugin ironic https://opendev.org/openstack/ironic
 
 .. note::
     When the ``ipmi`` hardware type is used and IRONIC_IS_HARDWARE variable is
@@ -560,7 +560,7 @@ hardware type by default::
 .. note::
     To check out an in-progress patch for testing, you can add a Git ref to the ``enable_plugin`` line. For instance::
 
-      enable_plugin ironic https://git.openstack.org/openstack/ironic refs/changes/46/295946/15
+      enable_plugin ironic https://opendev.org/openstack/ironic refs/changes/46/295946/15
 
     For a patch in review, you can find the ref to use by clicking the
     "Download" button in Gerrit. You can also specify a different git repo, or
@@ -680,7 +680,7 @@ First, navigate to Tempest directory::
   cd /opt/stack/tempest
 
 To run all tests from the `Ironic plugin
-<https://git.openstack.org/cgit/openstack/ironic-tempest-plugin/tree/?h=master>`_,
+<https://opendev.org/openstack/ironic-tempest-plugin/src/branch/master/>`_,
 execute the following command::
 
   tox -e all -- ironic

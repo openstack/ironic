@@ -66,7 +66,7 @@ class FakeMemcache(object):
 
     # NOTE(lucasagomes): keystonemiddleware >= 2.0.0 the token cache
     # keys are sha256 hashes of the token key. This was introduced in
-    # https://review.openstack.org/#/c/186971
+    # https://review.opendev.org/#/c/186971
     _cache = {
         'tokens/%s' % ADMIN_TOKEN: ADMIN_BODY,
         'tokens/%s' % ADMIN_TOKEN_HASH: ADMIN_BODY,

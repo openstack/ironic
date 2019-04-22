@@ -47,7 +47,7 @@ from ironic.common.i18n import _
 # NOTE(rloo): We need a list, not just the latest version, for the DB queries
 # that filter for objects that are not in particular versions; for more info,
 # see comments after L1128 of
-# https://review.openstack.org/#/c/408556/52/ironic/db/sqlalchemy/api.py.
+# https://review.opendev.org/#/c/408556/52/ironic/db/sqlalchemy/api.py.
 #
 # There should always be a 'master' entry that reflects the objects in the
 # master branch.

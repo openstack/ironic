@@ -123,4 +123,4 @@ achieved either with VirtualBMC_ or using libvirt drivers from
 ironic-staging-drivers_.
 
 .. _ironic-staging-drivers: http://ironic-staging-drivers.readthedocs.io
-.. _VirtualBMC: https://git.openstack.org/cgit/openstack/virtualbmc
+.. _VirtualBMC: https://opendev.org/openstack/virtualbmc

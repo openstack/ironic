@@ -209,7 +209,7 @@ switches you have in your environment.
 In order for Networking service ports to correctly operate with the Bare Metal
 service ``flat`` network interface the ``baremetal`` ML2 mechanism driver from
 `networking-baremetal
-<https://git.openstack.org/cgit/openstack/networking-baremetal>`_ needs to be
+<https://opendev.org/openstack/networking-baremetal>`_ needs to be
 loaded into the Networking service configuration. This driver understands that
 the switch should be already configured by the admin, and will mark the
 networking service ports as successfully bound as nothing else needs to be
@@ -248,10 +248,10 @@ Cisco Nexus 9000 series
 FUJITSU CFX2000
   ``networking-fujitsu`` ML2 driver supports this switch. The documentation
   is available `here
-  <https://git.openstack.org/cgit/openstack/networking-fujitsu/tree/doc/source/ml2_cfab.rst>`_.
+  <https://opendev.org/x/networking-fujitsu/src/branch/master/doc/source/ml2_cfab.rst>`_.
 
 Networking Generic Switch
   This is an ML2 mechanism driver built for testing against virtual bare metal
   environments and some switches that are not covered by hardware specific ML2
   mechanism drivers. More information is available in the project's `README
-  <https://git.openstack.org/cgit/openstack/networking-generic-switch/tree/README.rst>`_.
+  <https://opendev.org/openstack/networking-generic-switch/src/branch/master/README.rst>`_.

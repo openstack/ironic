@@ -21,7 +21,7 @@ fi
 IRONIC_IMAGE_NAME=${DEFAULT_IMAGE_NAME:-$IRONIC_DEFAULT_IMAGE_NAME}
 
 # Add link to download queue, ignore if already exist.
-# TODO(vsaienko) Move to devstack https://review.openstack.org/420656
+# TODO(vsaienko) Move to devstack https://review.opendev.org/420656
 function add_image_link {
     local i_link="$1"
     if ! [[ "$IMAGE_URLS"  =~ "$i_link" ]]; then

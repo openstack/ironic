@@ -27,7 +27,7 @@ CoreOS tools
 
 #. Clone the ironic-python-agent_ project::
 
-    git clone https://git.openstack.org/openstack/ironic-python-agent
+    git clone https://opendev.org/openstack/ironic-python-agent
 
 #. Install the requirements:
 
