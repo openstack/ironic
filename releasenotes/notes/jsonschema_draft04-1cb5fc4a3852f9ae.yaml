@@ -1,0 +1,9 @@
+---
+fixes:
+  - This fix binds the jsonschema to use draft-04 for raid
+    schema. The jsonschema 3.0.1 supports draft-03, draft-04,
+    draft-06 and draft-07 and by default the validate function
+    uses latest draft validator. Draft-04 is the latest draft
+    in the jsonschema 2.6. Hence binding the schema to draft-04
+    validator makes it compliant for both jsonschema 2.6 and
+    jsonschema 3.0.1.
