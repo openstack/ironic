@@ -23,6 +23,7 @@ from testtools import matchers
 from ironic.common import context
 from ironic.common import exception
 from ironic import objects
+from ironic.objects import node as node_objects
 from ironic.tests.unit.db import base as db_base
 from ironic.tests.unit.db import utils as db_utils
 from ironic.tests.unit.objects import utils as obj_utils
@@ -166,6 +167,64 @@ class TestNodeObject(db_base.DbTestCase, obj_utils.SchemasTestMixIn):
                            'driver': 'fake-driver',
                            'driver_internal_info': {},
                            'version': objects.Node.VERSION})
+                self.assertEqual(self.context, n._context)
+                res_updated_at = (n.updated_at).replace(tzinfo=None)
+                self.assertEqual(test_time, res_updated_at)
+                self.assertEqual({}, n.driver_internal_info)
+
+    @mock.patch.object(node_objects, 'LOG', autospec=True)
+    def test_save_truncated(self, log_mock):
+        uuid = self.fake_node['uuid']
+        test_time = datetime.datetime(2000, 1, 1, 0, 0)
+        with mock.patch.object(self.dbapi, 'get_node_by_uuid',
+                               autospec=True) as mock_get_node:
+            mock_get_node.return_value = self.fake_node
+            with mock.patch.object(self.dbapi, 'update_node',
+                                   autospec=True) as mock_update_node:
+                mock_update_node.return_value = db_utils.get_test_node(
+                    properties={'fake': 'property'}, driver='fake-driver',
+                    driver_internal_info={}, updated_at=test_time)
+                n = objects.Node.get(self.context, uuid)
+                self.assertEqual({'private_state': 'secret value'},
+                                 n.driver_internal_info)
+                n.properties = {'fake': 'property'}
+                n.driver = 'fake-driver'
+                last_error = 'BOOM' * 2000
+                maintenance_reason = last_error
+                n.last_error = last_error
+                n.maintenance_reason = maintenance_reason
+
+                n.save()
+
+                self.assertEqual([
+                    mock.call.info(
+                        'Truncating too long %s to %s characters for node %s',
+                        'last_error',
+                        node_objects.CONF.log_in_db_max_size,
+                        uuid),
+                    mock.call.info(
+                        'Truncating too long %s to %s characters for node %s',
+                        'maintenance_reason',
+                        node_objects.CONF.log_in_db_max_size,
+                        uuid)],
+                    log_mock.mock_calls)
+
+                mock_get_node.assert_called_once_with(uuid)
+                mock_update_node.assert_called_once_with(
+                    uuid,
+                    {
+                        'properties': {'fake': 'property'},
+                        'driver': 'fake-driver',
+                        'driver_internal_info': {},
+                        'version': objects.Node.VERSION,
+                        'maintenance_reason':
+                            maintenance_reason[
+                                0:node_objects.CONF.log_in_db_max_size],
+                        'last_error':
+                            last_error[
+                            0:node_objects.CONF.log_in_db_max_size]
+                    }
+                )
                 self.assertEqual(self.context, n._context)
                 res_updated_at = (n.updated_at).replace(tzinfo=None)
                 self.assertEqual(test_time, res_updated_at)

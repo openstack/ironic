@@ -12,11 +12,13 @@
 #    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 #    License for the specific language governing permissions and limitations
 #    under the License.
-
+from oslo_config import cfg
+from oslo_log import log
 from oslo_utils import strutils
 from oslo_utils import uuidutils
 from oslo_utils import versionutils
 from oslo_versionedobjects import base as object_base
+import six
 
 from ironic.common import exception
 from ironic.common.i18n import _
@@ -28,6 +30,9 @@ from ironic.objects import fields as object_fields
 from ironic.objects import notification
 
 REQUIRED_INT_PROPERTIES = ['local_gb', 'cpus', 'memory_mb']
+
+CONF = cfg.CONF
+LOG = log.getLogger(__name__)
 
 
 @base.IronicObjectRegistry.register
@@ -416,6 +421,16 @@ class Node(base.IronicObject, object_base.VersionedObjectDictCompat):
                         object, e.g.: Node(context)
         :raises: InvalidParameterValue if some property values are invalid.
         """
+
+        for attr_name in ('last_error', 'maintenance_reason'):
+            attr_value = getattr(self, attr_name, '')
+            if (attr_value and isinstance(attr_value, six.string_types) and
+                    len(attr_value) > CONF.log_in_db_max_size):
+                LOG.info('Truncating too long %s to %s characters for node %s',
+                         attr_name, CONF.log_in_db_max_size, self.uuid)
+                setattr(self, attr_name,
+                        attr_value[0:CONF.log_in_db_max_size])
+
         updates = self.do_version_changes_for_db()
         self._validate_property_values(updates.get('properties'))
         if 'driver' in updates and 'driver_internal_info' not in updates:
