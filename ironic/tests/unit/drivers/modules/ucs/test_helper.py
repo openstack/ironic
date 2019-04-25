@@ -135,7 +135,7 @@ class UcsCommonMethodsTestcase(BaseUcsTest):
         mock_helper.logout.return_value = None
         mock_working_function = mock.Mock()
         mock_working_function.__name__ = "Working"
-        mock_working_function.return_valure = "Success"
+        mock_working_function.return_value = "Success"
         mock_ucs_helper.generate_ucsm_handle.return_value = (True, mock.Mock())
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
