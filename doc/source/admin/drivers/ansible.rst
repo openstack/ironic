@@ -461,5 +461,5 @@ You can use these modules in your playbooks as well.
 
 .. _Ansible: https://docs.ansible.com/ansible/latest/index.html
 .. _Ironic Python Agent: https://docs.openstack.org/ironic-python-agent/latest/
-.. _ironic-staging-drivers: https://git.openstack.org/cgit/openstack/ironic-staging-drivers/tree/imagebuild?h=stable/pike
-.. _ironic-python-agent-builder: https://git.openstack.org/cgit/openstack/ironic-python-agent-builder
+.. _ironic-staging-drivers: https://opendev.org/x/ironic-staging-drivers/src/branch/stable/pike/imagebuild
+.. _ironic-python-agent-builder: https://opendev.org/openstack/ironic-python-agent-builder

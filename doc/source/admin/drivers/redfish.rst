@@ -135,5 +135,5 @@ into the introspection ramdisk.
    support the required schema. In this case the property will be set to 0.
 
 .. _Redfish: http://redfish.dmtf.org/
-.. _Sushy: https://git.openstack.org/cgit/openstack/sushy
+.. _Sushy: https://opendev.org/openstack/sushy
 .. _TLS: https://en.wikipedia.org/wiki/Transport_Layer_Security

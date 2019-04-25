@@ -392,7 +392,7 @@ The discoverd to inspector upgrade procedure is as follows:
 
 * Update the **ironic-inspector** configuration file to stop using deprecated
   configuration options, as marked by the comments in the `example.conf
-  <https://git.openstack.org/cgit/openstack/ironic-inspector/tree/example.conf>`_.
+  <https://docs.openstack.org/ironic-inspector/latest/install/index.html#configuration>`_.
   It is recommended you move the configuration file to
   ``/etc/ironic-inspector/inspector.conf``.
 

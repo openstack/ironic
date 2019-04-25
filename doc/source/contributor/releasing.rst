@@ -90,7 +90,7 @@ We need to submit patches for changes in the stable branch to:
 
 * update the ironic devstack plugin to point at the branched tarball for IPA.
   An example of this patch is
-  `here <https://review.openstack.org/#/c/374863/>`_.
+  `here <https://review.opendev.org/#/c/374863/>`_.
 * update links in the documentation (``ironic/doc/source/``) to point to the
   branched versions of any openstack projects' (that branch) documents.
   As of Pike release, the only outlier is
@@ -98,20 +98,20 @@ We need to submit patches for changes in the stable branch to:
 * set appropriate defaults for ``TEMPEST_BAREMETAL_MIN_MICROVERSION`` and
   ``TEMPEST_BAREMETAL_MAX_MICROVERSION`` in ``devstack/lib/ironic`` to make sure
   that unsupported API tempest tests are skipped on stable branches. E.g.
-  `patch 495319 <https://review.openstack.org/495319>`_.
+  `patch 495319 <https://review.opendev.org/495319>`_.
 
 We need to submit patches for changes on master to:
 
 * create an empty commit with a ``Sem-Ver`` tag to bump the generated minor
   version. See `example
-  <https://git.openstack.org/cgit/openstack/ironic/commit/?id=4b28af4645c2f3b6d7864671e15904ed8f40414d>`_
+  <https://opendev.org/openstack/ironic/commit/4b28af4645c2f3b6d7864671e15904ed8f40414d>`_
   and `pbr documentation
   <https://docs.openstack.org/pbr/latest/user/features.html#version>`_ for details.
 
 * to support rolling upgrades, since the release was a named release, we
   need to make these changes. Note that we need to wait until *after* the
   switch in grenade is made to test the latest release (N) with master
-  (e.g. `for stable/queens <https://review.openstack.org/#/c/543615>`_).
+  (e.g. `for stable/queens <https://review.opendev.org/#/c/543615>`_).
   Doing these changes sooner -- after the ironic release and before the switch
   when grenade is testing the prior release (N-1) with master, will cause
   the tests to fail. (You may want to ask/remind infra/qa team, as to
@@ -131,7 +131,7 @@ We need to submit patches for changes on master to:
 
 As **ironic-tempest-plugin** is branchless, we need to submit a patch adding
 stable jobs to its master branch. `Example for Queens
-<https://review.openstack.org/#/c/543555/>`_.
+<https://review.opendev.org/#/c/543555/>`_.
 
 For all releases
 ----------------

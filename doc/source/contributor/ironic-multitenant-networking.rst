@@ -25,10 +25,10 @@ configured in Neutron.
     [[local|localrc]]
 
     # Configure ironic from ironic devstack plugin.
-    enable_plugin ironic https://git.openstack.org/openstack/ironic
+    enable_plugin ironic https://opendev.org/openstack/ironic
 
     # Install networking-generic-switch Neutron ML2 driver that interacts with OVS
-    enable_plugin networking-generic-switch https://git.openstack.org/openstack/networking-generic-switch
+    enable_plugin networking-generic-switch https://opendev.org/openstack/networking-generic-switch
 
     # Add link local info when registering Ironic node
     IRONIC_USE_LINK_LOCAL=True

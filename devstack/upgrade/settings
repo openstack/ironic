@@ -3,7 +3,7 @@
 # That means that in the project openstack-infra/project-config we will need to
 # update the Ironic grenade job(s) in jenkins/jobs/devstack-gate.yaml with
 # this:
-#     export GRENADE_PLUGINRC="enable_grenade_plugin ironic https://git.openstack.org/openstack/ironic"
+#     export GRENADE_PLUGINRC="enable_grenade_plugin ironic https://opendev.org/openstack/ironic"
 # If openstack-infra/project-config is not updated then the Grenade tests will
 # never get run for Ironic
 

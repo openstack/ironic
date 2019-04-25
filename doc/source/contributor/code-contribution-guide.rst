@@ -68,10 +68,10 @@ Wiki
     https://wiki.openstack.org/Ironic
 
 Code Hosting
-    https://git.openstack.org/cgit/openstack/ironic
+    https://opendev.org/openstack/ironic
 
 Code Review
-    https://review.openstack.org/#/q/status:open+project:openstack/ironic,n,z
+    https://review.opendev.org/#/q/status:open+project:openstack/ironic,n,z
 
 Adding New Features
 ===================
@@ -80,7 +80,7 @@ Ironic tracks new features using RFEs (Requests for Feature Enhancements)
 instead of blueprints. These are stories with 'rfe' tag, and they should
 be submitted before a spec or code is proposed.
 
-When a member of the `ironic-core team <https://review.openstack.org/#/admin/groups/165,members>`_
+When a member of the `ironic-core team <https://review.opendev.org/#/admin/groups/165,members>`_
 decides that the proposal is worth implementing, a spec (if needed) and code
 should be submitted, referencing the RFE task or story ID number. Contributors
 are welcome to submit a spec and/or code before the RFE is approved, however
@@ -263,8 +263,8 @@ Ironic Specs Process
 ====================
 
 Specifications must follow the template which can be found at
-`specs/template.rst <https://git.openstack.org/cgit/openstack/ironic-specs/tree/
-specs/template.rst>`_, which is quite self-documenting. Specifications are
+`specs/template.rst <https://opendev.org/openstack/ironic-specs/src/branch/
+master/specs/template.rst>`_, which is quite self-documenting. Specifications are
 proposed by adding them to the `specs/approved` directory, adding a soft link
 to it from the `specs/not-implemented` directory, and posting it for
 review to Gerrit. For more information, please see the `README <https://git.
@@ -272,7 +272,7 @@ openstack.org/cgit/openstack/ironic-specs/tree/README.rst>`_.
 
 The same `Gerrit process
 <https://docs.openstack.org/infra/manual/developers.html>`_ as with source code,
-using the repository `ironic-specs <https://git.openstack.org/cgit/openstack/
+using the repository `ironic-specs <https://opendev.org/openstack/
 ironic-specs/>`_, is used to add new specifications.
 
 All approved specifications are available at:
@@ -286,7 +286,7 @@ You are welcome to submit patches associated with an RFE, but they will have
 a -2 ("do not merge") until the specification has been approved. This is to
 ensure that the patches don't get accidentally merged beforehand. You will
 still be able to get reviewer feedback and push new patch sets, even with a -2.
-The `list of core reviewers <https://review.openstack.org/#/admin/groups/352,
+The `list of core reviewers <https://review.opendev.org/#/admin/groups/352,
 members>`_ for the specifications is small but mighty. (This is not
 necessarily the same list of core reviewers for code patches.)
 
