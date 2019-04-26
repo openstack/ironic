@@ -2,17 +2,17 @@
 Node Deployment
 ===============
 
+.. contents::
+  :depth: 2
+
+.. _node-deployment-deploy-steps:
+
 Overview
 ========
 
 Node deployment is performed by the Bare Metal service to prepare a node for
 use by a workload.  The exact work flow used depends on a number of factors,
 including the hardware type and interfaces assigned to a node.
-
-.. contents::
-  :depth: 2
-
-.. _node-deployment-deploy-steps:
 
 Deploy Steps
 ============
@@ -221,18 +221,19 @@ Example of use with the Compute service
 
 .. note:: The deploy steps used in this example are for example purposes only.
 
-In the following example, we have a node with the following node traits:
+In the following example, we first add the trait ``CUSTOM_HYPERTHREADING_ON``
+to the node represented by ``$node_ident``:
 
-.. code-block:: json
+.. code-block:: console
 
-   [
-       "CUSTOM_HYPERTHREADING_ON"
-   ]
+   openstack baremetal node add trait $node_ident CUSTOM_HYPERTHREADING_ON
 
-We also have a flavor, ``bm-hyperthreading-on``, in the Compute service with
-the following property::
+We also update the flavor ``bm-hyperthreading-on`` in the Compute
+service with the following property:
 
-    trait:CUSTOM_HYPERTHREADING_ON:required
+.. code-block:: console
+
+    openstack flavor set --property trait:CUSTOM_HYPERTHREADING_ON=required bm-hyperthreading-on
 
 Creating a Compute instance with this flavor will ensure that the instance is
 scheduled only to Bare Metal nodes with the ``CUSTOM_HYPERTHREADING_ON`` trait.
@@ -266,22 +267,22 @@ deploy steps of deploy template ``CUSTOM_HYPERTHREADING_ON`` will be executed
 during the deployment of the scheduled node, causing Hyperthreading to be
 enabled in the node's BIOS configuration.
 
-To make this example more dynamic, consider adding a second trait to the node:
+To make this example more dynamic, let's add a second trait
+``CUSTOM_HYPERTHREADING_OFF`` to the node:
 
-.. code-block:: json
+.. code-block:: console
 
-   [
-       "CUSTOM_HYPERTHREADING_ON",
-       "CUSTOM_HYPERTHREADING_OFF"
-   ]
+   openstack baremetal node add trait $node_ident CUSTOM_HYPERTHREADING_OFF
 
-We could also create a second flavor, ``bm-hyperthreading-off``, with the
-following property::
+We could also update a second flavor, ``bm-hyperthreading-off``, with the
+following property:
 
-    trait:CUSTOM_HYPERTHREADING_OFF:required
+.. code-block:: console
+
+    openstack flavor set --property trait:CUSTOM_HYPERTHREADING_OFF=required bm-hyperthreading-off
 
 Finally, we create a deploy template with the name
-``CUSTOM_HYPERTHREADING_OFF`` and a different set of deploy steps:
+``CUSTOM_HYPERTHREADING_OFF`` and a deploy step that disables Hyperthreading:
 
 .. code-block:: json
 
