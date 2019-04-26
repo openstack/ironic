@@ -713,11 +713,10 @@ class TestAnsibleDeploy(AnsibleDeployTestCaseBase):
     @mock.patch.object(ansible_deploy, '_parse_ansible_driver_info',
                        return_value=('test_pl', 'test_u', 'test_k'),
                        autospec=True)
-    @mock.patch.object(utils, 'cleaning_error_handler', autospec=True)
     @mock.patch.object(ansible_deploy, '_run_playbook', autospec=True)
     @mock.patch.object(ansible_deploy, 'LOG', autospec=True)
     def test_execute_clean_step_no_success_log(
-            self, log_mock, run_mock, utils_mock, parse_driver_info_mock):
+            self, log_mock, run_mock, parse_driver_info_mock):
 
         run_mock.side_effect = exception.InstanceDeployFailure('Boom')
         step = {'priority': 10, 'interface': 'deploy',
@@ -727,11 +726,9 @@ class TestAnsibleDeploy(AnsibleDeployTestCaseBase):
         self.node.driver_internal_info = di_info
         self.node.save()
         with task_manager.acquire(self.context, self.node.uuid) as task:
-            self.driver.execute_clean_step(task, step)
-            log_mock.error.assert_called_once_with(
-                mock.ANY, {'node': task.node['uuid'],
-                           'step': 'erase_devices'})
-            utils_mock.assert_called_once_with(task, 'Boom')
+            self.assertRaises(exception.InstanceDeployFailure,
+                              self.driver.execute_clean_step,
+                              task, step)
             self.assertFalse(log_mock.info.called)
 
     @mock.patch.object(ansible_deploy, '_run_playbook', autospec=True)

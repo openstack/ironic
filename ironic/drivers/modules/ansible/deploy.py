@@ -526,17 +526,10 @@ class AnsibleDeploy(agent_base.HeartbeatMixin, base.DeployInterface):
         LOG.debug('Starting cleaning step %(step)s on node %(node)s',
                   {'node': node.uuid, 'step': stepname})
         step_tags = step['args'].get('tags', [])
-        try:
-            _run_playbook(node, playbook, extra_vars, key, tags=step_tags)
-        except exception.InstanceDeployFailure as e:
-            LOG.error("Ansible failed cleaning step %(step)s "
-                      "on node %(node)s.",
-                      {'node': node.uuid, 'step': stepname})
-            manager_utils.cleaning_error_handler(task, six.text_type(e))
-        else:
-            LOG.info('Ansible completed cleaning step %(step)s '
-                     'on node %(node)s.',
-                     {'node': node.uuid, 'step': stepname})
+        _run_playbook(node, playbook, extra_vars, key, tags=step_tags)
+        LOG.info('Ansible completed cleaning step %(step)s '
+                 'on node %(node)s.',
+                 {'node': node.uuid, 'step': stepname})
 
     @METRICS.timer('AnsibleDeploy.prepare_cleaning')
     def prepare_cleaning(self, task):
