@@ -23,7 +23,7 @@ opts = [
                help=_('Authentication strategy used by JSON RPC. Defaults to '
                       'the global auth_strategy setting.')),
     cfg.HostAddressOpt('host_ip',
-                       default='0.0.0.0',
+                       default='::',
                        help=_('The IP address or hostname on which JSON RPC '
                               'will listen.')),
     cfg.PortOpt('port',
