@@ -37,7 +37,7 @@ set +o pipefail
 GITDIR["python-ironicclient"]=$DEST/python-ironicclient
 GITDIR["ironic-lib"]=$DEST/ironic-lib
 
-GITREPO["pyghmi"]=${PYGHMI_REPO:-${GIT_BASE}/openstack/pyghmi.git}
+GITREPO["pyghmi"]=${PYGHMI_REPO:-${GIT_BASE}/x/pyghmi}
 GITBRANCH["pyghmi"]=${PYGHMI_BRANCH:-master}
 GITDIR["pyghmi"]=$DEST/pyghmi
 
