@@ -202,20 +202,25 @@ def delete_virtual_disk(node, virtual_disk):
         raise exception.DracOperationError(error=exc)
 
 
-def commit_config(node, raid_controller, reboot=False):
+def commit_config(node, raid_controller, reboot=False, realtime=False):
     """Apply all pending changes on a RAID controller.
 
     :param node: an ironic node object.
     :param raid_controller: id of the RAID controller.
     :param reboot: indicates whether a reboot job should be automatically
                    created with the config job. (optional, defaults to False)
+    :param realtime: indicates RAID controller supports realtime.
+                     (optional, defaults to False)
     :returns: id of the created job
     :raises: DracOperationError on an error from python-dracclient.
     """
     client = drac_common.get_drac_client(node)
 
     try:
-        return client.commit_pending_raid_changes(raid_controller, reboot)
+        return client.commit_pending_raid_changes(
+            raid_controller=raid_controller,
+            reboot=reboot,
+            realtime=realtime)
     except drac_exceptions.BaseClientException as exc:
         LOG.error('DRAC driver failed to commit pending RAID config for'
                   ' controller %(raid_controller_fqdd)s on node '
@@ -642,15 +647,25 @@ def _commit_to_controllers(node, controllers):
     if 'raid_config_job_ids' not in driver_internal_info:
         driver_internal_info['raid_config_job_ids'] = []
 
-    controllers = list(controllers)
+    all_realtime = True
     for controller in controllers:
-        # Do a reboot only for the last controller
+        raid_controller = controller['raid_controller']
+
+        # Commit the configuration
+        # The logic below will reboot the node if there is at least one
+        # controller without real time support. In that case the reboot
+        # is triggered when the configuration is committed to the last
+        # controller.
+        realtime = controller['is_reboot_required'] == 'optional'
+        all_realtime = all_realtime and realtime
         if controller == controllers[-1]:
-            job_id = commit_config(node, raid_controller=controller,
-                                   reboot=True)
+            job_id = commit_config(node, raid_controller=raid_controller,
+                                   reboot=not all_realtime,
+                                   realtime=realtime)
         else:
-            job_id = commit_config(node, raid_controller=controller,
-                                   reboot=False)
+            job_id = commit_config(node, raid_controller=raid_controller,
+                                   reboot=False,
+                                   realtime=realtime)
 
         LOG.info('Change has been committed to RAID controller '
                  '%(controller)s on node %(node)s. '
@@ -735,10 +750,10 @@ class DracRAID(base.RAIDInterface):
         logical_disks_to_create = _filter_logical_disks(
             logical_disks, create_root_volume, create_nonroot_volumes)
 
-        controllers = set()
+        controllers = list()
         for logical_disk in logical_disks_to_create:
-            controllers.add(logical_disk['controller'])
-            create_virtual_disk(
+            controller = dict()
+            controller_cap = create_virtual_disk(
                 node,
                 raid_controller=logical_disk['controller'],
                 physical_disks=logical_disk['physical_disks'],
@@ -747,8 +762,12 @@ class DracRAID(base.RAIDInterface):
                 disk_name=logical_disk.get('name'),
                 span_length=logical_disk.get('span_length'),
                 span_depth=logical_disk.get('span_depth'))
+            controller['raid_controller'] = logical_disk['controller']
+            controller['is_reboot_required'] = controller_cap[
+                'is_reboot_required']
+            controllers.append(controller)
 
-        return _commit_to_controllers(node, list(controllers))
+        return _commit_to_controllers(node, controllers)
 
     @METRICS.timer('DracRAID.delete_configuration')
     @base.clean_step(priority=0)
@@ -762,12 +781,16 @@ class DracRAID(base.RAIDInterface):
         """
         node = task.node
 
-        controllers = set()
+        controllers = list()
         for disk in list_virtual_disks(node):
-            controllers.add(disk.controller)
-            delete_virtual_disk(node, disk.id)
+            controller = dict()
+            controller_cap = delete_virtual_disk(node, disk.id)
+            controller['raid_controller'] = disk.controller
+            controller['is_reboot_required'] = controller_cap[
+                'is_reboot_required']
+            controllers.append(controller)
 
-        return _commit_to_controllers(node, list(controllers))
+        return _commit_to_controllers(node, controllers)
 
     @METRICS.timer('DracRAID.get_logical_disks')
     def get_logical_disks(self, task):
