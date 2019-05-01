@@ -427,9 +427,7 @@ class BaseConductorManager(object):
         except exception.DriverNotFound:
             return False
 
-        return self.host in ring.get_nodes(
-            node_uuid.encode('utf-8'),
-            replicas=CONF.hash_distribution_replicas)
+        return self.host in ring.get_nodes(node_uuid.encode('utf-8'))
 
     def _fail_if_in_state(self, context, filters, provision_state,
                           sort_key, callback_method=None,

@@ -142,8 +142,7 @@ class ConductorAPI(object):
         try:
             ring = self.ring_manager.get_ring(node.driver,
                                               node.conductor_group)
-            dest = ring.get_nodes(node.uuid.encode('utf-8'),
-                                  replicas=CONF.hash_distribution_replicas)
+            dest = ring.get_nodes(node.uuid.encode('utf-8'))
             return dest.pop()
         except exception.DriverNotFound:
             reason = (_('No conductor service registered which supports '
