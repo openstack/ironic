@@ -2663,6 +2663,7 @@ function ironic_configure_tempest {
     iniset $TEMPEST_CONFIG baremetal enabled_hardware_types $IRONIC_ENABLED_HARDWARE_TYPES
     iniset $TEMPEST_CONFIG baremetal enabled_bios_interfaces $IRONIC_ENABLED_BIOS_INTERFACES
     iniset $TEMPEST_CONFIG baremetal enabled_deploy_interfaces $IRONIC_ENABLED_DEPLOY_INTERFACES
+    iniset $TEMPEST_CONFIG baremetal enabled_boot_interfaces $IRONIC_ENABLED_BOOT_INTERFACES
     iniset $TEMPEST_CONFIG baremetal enabled_rescue_interfaces $IRONIC_ENABLED_RESCUE_INTERFACES
     iniset $TEMPEST_CONFIG baremetal default_rescue_interface $IRONIC_DEFAULT_RESCUE_INTERFACE
     # Driver for API tests
