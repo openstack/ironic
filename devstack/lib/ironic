@@ -773,7 +773,7 @@ function setup_virtualbmc {
     cmd=$(which vbmcd)
     cmd+=" --foreground"
 
-    write_user_unit_file $IRONIC_VBMC_SYSTEMD_SERVICE "$cmd" "" "stack"
+    write_user_unit_file $IRONIC_VBMC_SYSTEMD_SERVICE "$cmd" "" "$STACK_USER"
 
     $SYSTEMCTL enable $IRONIC_VBMC_SYSTEMD_SERVICE
 }
