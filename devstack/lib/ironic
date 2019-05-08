@@ -820,7 +820,7 @@ function setup_virtualpdu {
     cmd=$(which virtualpdu)
     cmd+=" $IRONIC_VPDU_CONFIG_FILE"
 
-    write_user_unit_file $IRONIC_VPDU_SYSTEMD_SERVICE "$cmd" "" "stack"
+    write_user_unit_file $IRONIC_VPDU_SYSTEMD_SERVICE "$cmd" "" "$STACK_USER"
 
     $SYSTEMCTL enable $IRONIC_VPDU_SYSTEMD_SERVICE
 }
@@ -902,7 +902,7 @@ EOF
     cmd+=" --env FLASK_DEBUG=1"
     cmd+=" --env SUSHY_EMULATOR_CONFIG=${IRONIC_REDFISH_EMULATOR_CONFIG}"
 
-    write_user_unit_file $IRONIC_REDFISH_EMULATOR_SYSTEMD_SERVICE "$cmd" "" "stack"
+    write_user_unit_file $IRONIC_REDFISH_EMULATOR_SYSTEMD_SERVICE "$cmd" "" "$STACK_USER"
 
     $SYSTEMCTL enable $IRONIC_REDFISH_EMULATOR_SYSTEMD_SERVICE
 }
