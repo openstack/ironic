@@ -532,3 +532,29 @@ class DracManagementTestCase(test_utils.BaseDracTest):
                                   shared=False) as task:
             self.assertRaises(NotImplementedError,
                               task.driver.management.get_sensors_data, task)
+
+    def test_reset_idrac(self, mock_get_drac_client):
+        mock_client = mock.Mock()
+        mock_get_drac_client.return_value = mock_client
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            return_value = task.driver.management.reset_idrac(task)
+            mock_client.reset_idrac.assert_called_once_with(
+                force=True, wait=True)
+
+            self.assertIsNone(return_value)
+
+    def test_known_good_state(self, mock_get_drac_client):
+        mock_client = mock.Mock()
+        mock_get_drac_client.return_value = mock_client
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            return_value = task.driver.management.known_good_state(task)
+            mock_client.reset_idrac.assert_called_once_with(
+                force=True, wait=True)
+            mock_client.delete_jobs.assert_called_once_with(
+                job_ids=['JID_CLEARALL_FORCE'])
+
+            self.assertIsNone(return_value)

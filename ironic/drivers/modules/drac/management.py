@@ -73,6 +73,9 @@ _DRAC_BOOT_MODES = ['Bios', 'Uefi']
 # BootMode constant
 _NON_PERSISTENT_BOOT_MODE = 'OneTime'
 
+# Clear job id's constant
+_CLEAR_JOB_IDS = 'JID_CLEARALL_FORCE'
+
 
 def _get_boot_device(node, drac_boot_devices=None):
     client = drac_common.get_drac_client(node)
@@ -357,3 +360,32 @@ class DracManagement(base.ManagementInterface):
                   sensor type, which can be processed by Ceilometer.
         """
         raise NotImplementedError()
+
+    @METRICS.timer('DracManagement.reset_idrac')
+    @base.clean_step(priority=0)
+    def reset_idrac(self, task):
+        """Reset the iDRAC.
+
+        :param task: a TaskManager instance containing the node to act on.
+        :returns: None if it is completed.
+        :raises: DracOperationError on an error from python-dracclient.
+        """
+        node = task.node
+
+        client = drac_common.get_drac_client(node)
+        client.reset_idrac(force=True, wait=True)
+
+    @METRICS.timer('DracManagement.known_good_state')
+    @base.clean_step(priority=0)
+    def known_good_state(self, task):
+        """Reset the iDRAC, Clear the job queue.
+
+        :param task: a TaskManager instance containing the node to act on.
+        :returns: None if it is completed.
+        :raises: DracOperationError on an error from python-dracclient.
+        """
+        node = task.node
+
+        client = drac_common.get_drac_client(node)
+        client.reset_idrac(force=True, wait=True)
+        client.delete_jobs(job_ids=[_CLEAR_JOB_IDS])
