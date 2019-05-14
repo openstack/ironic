@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    Fixes binary files upload to Swift. Prior to this fix, binary file
+    upload to Swift might fail at unicode characters interpretation.

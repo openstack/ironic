@@ -97,7 +97,7 @@ class SwiftAPI(object):
             operation = _("put container")
             raise exception.SwiftOperationError(operation=operation, error=e)
 
-        with open(filename, "r") as fileobj:
+        with open(filename, "rb") as fileobj:
 
             try:
                 obj_uuid = self.connection.put_object(container,
