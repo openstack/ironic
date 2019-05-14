@@ -45,8 +45,8 @@ class IloPowerInternalMethodsTestCase(test_common.BaseIloTest):
         self.node = obj_utils.create_test_node(
             self.context, driver='ilo', driver_info=INFO_DICT,
             instance_uuid=uuidutils.generate_uuid())
-        CONF.set_override('power_retry', 2, 'ilo')
-        CONF.set_override('power_wait', 0, 'ilo')
+        CONF.set_override('power_wait', 1, 'ilo')
+        CONF.set_override('soft_power_off_timeout', 1, 'conductor')
 
     def test__get_power_state(self, get_ilo_object_mock):
         ilo_mock_object = get_ilo_object_mock.return_value
@@ -93,19 +93,29 @@ class IloPowerInternalMethodsTestCase(test_common.BaseIloTest):
                               states.REBOOT)
         ilo_mock_object.reset_server.assert_called_once_with()
 
-    def test__set_power_state_reboot_ok(self, get_ilo_object_mock):
+    @mock.patch.object(ilo_common, 'get_server_post_state', spec_set=True,
+                       autospec=True)
+    def test__set_power_state_reboot_ok(self, get_post_mock,
+                                        get_ilo_object_mock):
         ilo_mock_object = get_ilo_object_mock.return_value
-        ilo_mock_object.get_host_power_status.side_effect = ['ON', 'OFF', 'ON']
+        get_post_mock.side_effect = (['FinishedPost', 'PowerOff',
+                                      'FinishedPost'])
 
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
             ilo_power._set_power_state(task, states.REBOOT)
+            get_post_mock.assert_called_with(task.node)
 
         ilo_mock_object.reset_server.assert_called_once_with()
 
-    def test__set_power_state_off_fail(self, get_ilo_object_mock):
+    @mock.patch.object(ilo_common, 'get_server_post_state', spec_set=True,
+                       autospec=True)
+    def test__set_power_state_off_fail(self, get_post_mock,
+                                       get_ilo_object_mock):
         ilo_mock_object = get_ilo_object_mock.return_value
-        ilo_mock_object.get_host_power_status.return_value = 'ON'
+        get_post_mock.side_effect = (['FinishedPost', 'FinishedPost',
+                                      'FinishedPost', 'FinishedPost',
+                                      'FinishedPost'])
 
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
@@ -114,18 +124,20 @@ class IloPowerInternalMethodsTestCase(test_common.BaseIloTest):
                               task,
                               states.POWER_OFF)
 
-        ilo_mock_object.get_host_power_status.assert_called_with()
+            get_post_mock.assert_called_with(task.node)
         ilo_mock_object.hold_pwr_btn.assert_called_once_with()
 
-    def test__set_power_state_on_ok(self, get_ilo_object_mock):
+    @mock.patch.object(ilo_common, 'get_server_post_state', spec_set=True,
+                       autospec=True)
+    def test__set_power_state_on_ok(self, get_post_mock, get_ilo_object_mock):
         ilo_mock_object = get_ilo_object_mock.return_value
-        ilo_mock_object.get_host_power_status.side_effect = ['OFF', 'ON']
+        get_post_mock.side_effect = ['PowerOff', 'PowerOff', 'FinishedPost']
 
         target_state = states.POWER_ON
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
             ilo_power._set_power_state(task, target_state)
-        ilo_mock_object.get_host_power_status.assert_called_with()
+            get_post_mock.assert_called_with(task.node)
         ilo_mock_object.set_host_power.assert_called_once_with('ON')
 
     @mock.patch.object(ilo_power.LOG, 'info')

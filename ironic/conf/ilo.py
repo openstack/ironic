@@ -62,14 +62,6 @@ opts = [
                       'step requires "ilo_change_password" parameter to be '
                       'updated in nodes\'s driver_info with the new '
                       'password.')),
-    cfg.IntOpt('power_retry',
-               default=6,
-               deprecated_for_removal=True,
-               deprecated_reason=_('This configuration option is replaced '
-                                   'by [conductor] soft_power_off_timeout, '
-                                   'please use that instead.'),
-               help=_('Number of times a power operation needs to be '
-                      'retried')),
     cfg.IntOpt('power_wait',
                default=2,
                help=_('Amount of time in seconds to wait in between power '

@@ -1,0 +1,5 @@
+---
+upgrade:
+  - |
+    Removes deprecated option ``[ilo]/power_retry``. Please use
+    ``[conductor]/soft_power_off_timeout`` instead.
