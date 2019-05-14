@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    Fixes GRUB configuration file generation procedure when building
+    bootable ISO images that include user EFI boot loader image.
+    Prior to this fix, no bootable ISO image could be generated unless
+    EFI boot loader is extracted from deploy ISO image.

@@ -549,7 +549,6 @@ class FsImageTestCase(base.TestCase):
             'path/to/kernel': 'vmlinuz',
             'path/to/ramdisk': 'initrd',
             'sourceabspath/to/efiboot.img': 'boot/grub/efiboot.img',
-            'tmpdir/boot/grub/grub.cfg': 'boot/grub/grub.cfg'
         }
 
         grubcfg = "grubcfg"

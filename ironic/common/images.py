@@ -274,8 +274,7 @@ def create_isolinux_image_for_uefi(output_file, kernel, ramdisk,
                 grub_cfg = os.path.join(tmpdir, grub_rel_path)
 
                 uefi_path_info = {
-                    esp_image: e_img_rel_path,
-                    grub_cfg: grub_rel_path
+                    esp_image: e_img_rel_path
                 }
 
             else:
