@@ -75,9 +75,14 @@ class DracVendorPassthru(base.VendorInterface):
                                  "Required argument : a dictionary of "
                                  "{'AttributeName': 'NewValue'}. Returns "
                                  "a dictionary containing the "
-                                 "'commit_required' key with a Boolean value "
-                                 "indicating whether commit_bios_config() "
-                                 "needs to be called to make the changes."))
+                                 "'is_commit_required' key with a Boolean "
+                                 "value indicating whether "
+                                 "commit_bios_config() needs to be called "
+                                 "to make the changes, and the "
+                                 "'is_reboot_required' key with a value of "
+                                 "'true' or 'false'.  This key is used to "
+                                 "indicate to the commit_bios_config() call "
+                                 "if a reboot should be performed."))
     @task_manager.require_exclusive_lock
     def set_bios_config(self, task, **kwargs):
         """Change BIOS settings.
@@ -87,9 +92,12 @@ class DracVendorPassthru(base.VendorInterface):
         :param task: a TaskManager instance containing the node to act on.
         :param kwargs: a dictionary of {'AttributeName': 'NewValue'}
         :raises: DracOperationError on an error from python-dracclient.
-        :returns: A dictionary containing the ``commit_required`` key with a
+        :returns: A dictionary containing the ``is_commit_required`` key with a
                   Boolean value indicating whether commit_bios_config() needs
-                  to be called to make the changes.
+                  to be called to make the changes, and the
+                  ``is_reboot_required`` key with a value of 'true' or 'false'.
+                  This key is used to indicate to the commit_bios_config() call
+                  if a reboot should be performed.
         """
         return drac_bios.set_config(task, **kwargs)
 
