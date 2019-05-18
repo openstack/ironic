@@ -316,9 +316,9 @@ class PXERamdiskDeploy(agent.AgentDeploy):
     def validate(self, task):
         if 'ramdisk_boot' not in task.driver.boot.capabilities:
             raise exception.InvalidParameterValue(
-                err=('Invalid configuration: The boot interface '
-                     'must have the `ramdisk_boot` capability. '
-                     'You are using an incompatible boot interface.'))
+                message=_('Invalid configuration: The boot interface '
+                          'must have the `ramdisk_boot` capability. '
+                          'You are using an incompatible boot interface.'))
         task.driver.boot.validate(task)
 
         # Validate node capabilities
