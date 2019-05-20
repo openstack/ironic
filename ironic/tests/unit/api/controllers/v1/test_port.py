@@ -711,15 +711,17 @@ class TestListPorts(test_api_base.BaseApiTest):
         self.assertEqual('application/json', response.content_type)
         self.assertEqual(http_client.FORBIDDEN, response.status_int)
 
-    @mock.patch.object(api_port.PortsController, '_get_ports_collection')
+    @mock.patch.object(api_port.PortsController, '_get_ports_collection',
+                       autospec=True)
     def test_detail_with_incorrect_api_usage(self, mock_gpc):
+        mock_gpc.return_value = api_port.PortCollection.convert_with_links(
+            [], 0)
         # GET /v1/ports/detail specifying node and node_uuid.  In this case
         # we expect the node_uuid interface to be used.
         self.get_json('/ports/detail?node=%s&node_uuid=%s' %
                       ('test-node', self.node.uuid))
-        mock_gpc.assert_called_once_with(self.node.uuid, mock.ANY, mock.ANY,
-                                         mock.ANY, mock.ANY, mock.ANY,
-                                         mock.ANY, mock.ANY)
+        self.assertEqual(1, mock_gpc.call_count)
+        self.assertEqual(self.node.uuid, mock_gpc.call_args[0][1])
 
     def test_portgroups_subresource_node_not_found(self):
         non_existent_uuid = 'eeeeeeee-cccc-aaaa-bbbb-cccccccccccc'
