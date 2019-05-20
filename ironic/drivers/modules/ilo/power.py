@@ -110,19 +110,9 @@ def _wait_for_state_change(node, target_state,
     """
     state = [None]
     retries = [0]
-    force_legacy_behavior = False
     interval = CONF.ilo.power_wait
     if timeout:
         max_retry = int(timeout / interval)
-    elif CONF.ilo.power_retry:
-        # Do not use post state to track power state as its too small
-        # timeout value to track post state when server is powered on.
-        # The total timeout value would be 12 secs with default values
-        # of configs ilo.power_retry and ilo.power_wait.
-        # Use older ways of get_power_state() to track the power state
-        # changes, instead.
-        force_legacy_behavior = True
-        max_retry = CONF.ilo.power_retry
     else:
         # Since we are going to track server post state, we are not using
         # CONF.conductor.power_state_change_timeout as its default value
@@ -134,7 +124,7 @@ def _wait_for_state_change(node, target_state,
 
     state_to_check = target_state
     use_post_state = False
-    if not force_legacy_behavior and _can_get_server_post_state(node):
+    if _can_get_server_post_state(node):
         use_post_state = True
         if (target_state in [states.POWER_OFF, states.SOFT_POWER_OFF] or
             target_state == states.SOFT_REBOOT and not is_final_state):
