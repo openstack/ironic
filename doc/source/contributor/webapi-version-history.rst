@@ -2,6 +2,14 @@
 REST API Version History
 ========================
 
+1.57 (master)
+-------------
+
+Added the following new endpoint for allocation:
+
+* ``PATCH /v1/allocations/<allocation_ident>`` that allows updating ``name``
+  and ``extra`` fields for an existing allocation.
+
 1.56 (Stein, 12.1.0)
 --------------------
 

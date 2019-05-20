@@ -423,6 +423,11 @@ allocation_policies = [
         'Delete Allocation records',
         [{'path': '/allocations/{allocation_id}', 'method': 'DELETE'},
          {'path': '/nodes/{node_ident}/allocation', 'method': 'DELETE'}]),
+    policy.DocumentedRuleDefault(
+        'baremetal:allocation:update',
+        'rule:is_admin',
+        'Change name and extra fields of an allocation',
+        [{'path': '/allocations/{allocation_id}', 'method': 'PATCH'}]),
 ]
 
 event_policies = [

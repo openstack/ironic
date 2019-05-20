@@ -196,6 +196,11 @@ class AllocationCollection(collection.Collection):
         return sample
 
 
+class AllocationPatchType(types.JsonPatchType):
+
+    _api_base = Allocation
+
+
 class AllocationsController(pecan.rest.RestController):
     """REST controller for allocations."""
 
@@ -376,6 +381,61 @@ class AllocationsController(pecan.rest.RestController):
         pecan.response.location = link.build_url('allocations',
                                                  new_allocation.uuid)
         return Allocation.convert_with_links(new_allocation)
+
+    def _validate_patch(self, patch):
+        allowed_fields = ['name', 'extra']
+        for p in patch:
+            path = p['path'].split('/')[1]
+            if path not in allowed_fields:
+                msg = _("Cannot update %s in an allocation. Only 'name' and "
+                        "'extra' are allowed to be updated.")
+                raise exception.Invalid(msg % p['path'])
+
+    @METRICS.timer('AllocationsController.patch')
+    @wsme.validate(types.uuid, [AllocationPatchType])
+    @expose.expose(Allocation, types.uuid_or_name, body=[AllocationPatchType])
+    def patch(self, allocation_ident, patch):
+        """Update an existing allocation.
+
+        :param allocation_ident: UUID or logical name of an allocation.
+        :param patch: a json PATCH document to apply to this allocation.
+        """
+        if not api_utils.allow_allocation_update():
+            raise webob_exc.HTTPMethodNotAllowed(_(
+                "The API version does not allow updating allocations"))
+        context = pecan.request.context
+        cdict = context.to_policy_values()
+        policy.authorize('baremetal:allocation:update', cdict, cdict)
+        self._validate_patch(patch)
+        names = api_utils.get_patch_values(patch, '/name')
+        for name in names:
+            if len(name) and not api_utils.is_valid_logical_name(name):
+                msg = _("Cannot update allocation with invalid name "
+                        "'%(name)s'") % {'name': name}
+                raise exception.Invalid(msg)
+        rpc_allocation = api_utils.get_rpc_allocation_with_suffix(
+            allocation_ident)
+        allocation_dict = rpc_allocation.as_dict()
+        allocation = Allocation(**api_utils.apply_jsonpatch(allocation_dict,
+                                                            patch))
+        # Update only the fields that have changed
+        for field in objects.Allocation.fields:
+            try:
+                patch_val = getattr(allocation, field)
+            except AttributeError:
+                # Ignore fields that aren't exposed in the API
+                continue
+            if patch_val == wtypes.Unset:
+                patch_val = None
+            if rpc_allocation[field] != patch_val:
+                rpc_allocation[field] = patch_val
+
+        notify.emit_start_notification(context, rpc_allocation, 'update')
+        with notify.handle_error_notification(context,
+                                              rpc_allocation, 'update'):
+            rpc_allocation.save()
+        notify.emit_end_notification(context, rpc_allocation, 'update')
+        return Allocation.convert_with_links(rpc_allocation)
 
     @METRICS.timer('AllocationsController.delete')
     @expose.expose(None, types.uuid_or_name,

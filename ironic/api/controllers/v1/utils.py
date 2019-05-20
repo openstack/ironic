@@ -1161,3 +1161,11 @@ def allow_build_configdrive():
     Version 1.56 of the API added support for building configdrive.
     """
     return pecan.request.version.minor >= versions.MINOR_56_BUILD_CONFIGDRIVE
+
+
+def allow_allocation_update():
+    """Check if updating an existing allocation is allowed or not.
+
+    Version 1.57 of the API added support for updating an allocation.
+    """
+    return pecan.request.version.minor >= versions.MINOR_57_ALLOCATION_UPDATE
