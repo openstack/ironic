@@ -1560,20 +1560,24 @@ class TestListNodes(test_api_base.BaseApiTest):
         self.assertTrue(ret.json['error_message'])
         mock_gsbd.assert_called_once_with(mock.ANY, node.uuid, 'test-topic')
 
-    @mock.patch.object(rpcapi.ConductorAPI, 'validate_driver_interfaces')
+    @mock.patch.object(rpcapi.ConductorAPI, 'validate_driver_interfaces',
+                       autospec=True, return_value={})
     def test_validate_by_uuid_using_deprecated_interface(self, mock_vdi):
         # Note(mrda): The 'node_uuid' interface is deprecated in favour
         # of the 'node' interface
         node = obj_utils.create_test_node(self.context)
         self.get_json('/nodes/validate?node_uuid=%s' % node.uuid)
-        mock_vdi.assert_called_once_with(mock.ANY, node.uuid, 'test-topic')
+        mock_vdi.assert_called_once_with(mock.ANY, mock.ANY,
+                                         node.uuid, 'test-topic')
 
-    @mock.patch.object(rpcapi.ConductorAPI, 'validate_driver_interfaces')
+    @mock.patch.object(rpcapi.ConductorAPI, 'validate_driver_interfaces',
+                       autospec=True, return_value={})
     def test_validate_by_uuid(self, mock_vdi):
         node = obj_utils.create_test_node(self.context)
         self.get_json('/nodes/validate?node=%s' % node.uuid,
                       headers={api_base.Version.string: "1.5"})
-        mock_vdi.assert_called_once_with(mock.ANY, node.uuid, 'test-topic')
+        mock_vdi.assert_called_once_with(mock.ANY, mock.ANY,
+                                         node.uuid, 'test-topic')
 
     @mock.patch.object(rpcapi.ConductorAPI, 'validate_driver_interfaces')
     def test_validate_by_name_unsupported(self, mock_vdi):
@@ -1583,14 +1587,16 @@ class TestListNodes(test_api_base.BaseApiTest):
         self.assertEqual(http_client.NOT_ACCEPTABLE, ret.status_code)
         self.assertFalse(mock_vdi.called)
 
-    @mock.patch.object(rpcapi.ConductorAPI, 'validate_driver_interfaces')
+    @mock.patch.object(rpcapi.ConductorAPI, 'validate_driver_interfaces',
+                       autospec=True, return_value={})
     def test_validate_by_name(self, mock_vdi):
         node = obj_utils.create_test_node(self.context, name='spam')
         self.get_json('/nodes/validate?node=%s' % node.name,
                       headers={api_base.Version.string: "1.5"})
         # note that this should be node.uuid here as we get that from the
         # rpc_node lookup and pass that downwards
-        mock_vdi.assert_called_once_with(mock.ANY, node.uuid, 'test-topic')
+        mock_vdi.assert_called_once_with(mock.ANY, mock.ANY,
+                                         node.uuid, 'test-topic')
 
     def test_ssh_creds_masked(self):
         driver_info = {"ssh_password": "password", "ssh_key_contents": "key"}
