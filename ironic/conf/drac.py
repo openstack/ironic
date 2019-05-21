@@ -21,7 +21,14 @@ opts = [
                min=1,
                help=_('Interval (in seconds) between periodic RAID job status '
                       'checks to determine whether the asynchronous RAID '
-                      'configuration was successfully finished or not.'))
+                      'configuration was successfully finished or not.')),
+    cfg.IntOpt('boot_device_job_status_timeout',
+               default=30,
+               min=1,
+               help=_('Maximum amount of time (in seconds) to wait for '
+                      'the boot device configuration job to transition '
+                      'to the correct state to allow a reboot or power '
+                      'on to complete.'))
 ]
 
 

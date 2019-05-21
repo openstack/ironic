@@ -20,6 +20,8 @@
 DRAC management interface
 """
 
+import time
+
 from ironic_lib import metrics_utils
 from oslo_log import log as logging
 from oslo_utils import importutils
@@ -28,9 +30,11 @@ from ironic.common import boot_devices
 from ironic.common import exception
 from ironic.common.i18n import _
 from ironic.conductor import task_manager
+from ironic.conf import CONF
 from ironic.drivers import base
 from ironic.drivers.modules.drac import common as drac_common
 from ironic.drivers.modules.drac import job as drac_job
+
 
 drac_exceptions = importutils.try_import('dracclient.exceptions')
 
@@ -246,7 +250,28 @@ def set_boot_device(node, device, persistent=False):
                       "'%(device)s' for node %(node_id)s.") %
                     {'device': device, 'node_id': node.uuid})
 
-        client.commit_pending_bios_changes()
+        job_id = client.commit_pending_bios_changes()
+        job_entry = client.get_job(job_id)
+
+        timeout = CONF.drac.boot_device_job_status_timeout
+        end_time = time.time() + timeout
+
+        LOG.debug('Waiting for BIOS configuration job %{job_id}s '
+                  'to be scheduled for node %{node}s',
+                  {'job_id': job_id,
+                   'node': node.uuid})
+
+        while job_entry.status != "Scheduled":
+            if time.time() >= end_time:
+                raise exception.DracOperationError(
+                    error=_(
+                        'Timed out waiting BIOS configuration for job '
+                        '%(job)s to reach Scheduled state.  Job is still '
+                        'in %(status)s state.') %
+                    {'job': job_id, 'status': job_entry.status})
+            time.sleep(3)
+            job_entry = client.get_job(job_id)
+
     except drac_exceptions.BaseClientException as exc:
         LOG.error('DRAC driver failed to change boot device order for '
                   'node %(node_uuid)s. Reason: %(error)s.',

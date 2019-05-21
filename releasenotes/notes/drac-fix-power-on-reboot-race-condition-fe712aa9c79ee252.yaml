@@ -1,0 +1,16 @@
+---
+features:
+  - |
+    Adds a new configuration option ``boot_device_job_status_timeout`` that
+    specifies the Maximum amount of time (in seconds) to wait for the boot
+    device configuration job to transition to the scheduled state to allow a
+    reboot or power on action to complete.
+fixes:
+  - |
+    Fixes an issue where a configuration job does not transition to the
+    correct state and start execution during a power on or reboot operation. If
+    the boot device is being changed, the system might complete its POST before
+    the job is ready, leaving the job in the queue, and the system will boot
+    from the wrong device.
+    See bug `2004909 <https://storyboard.openstack.org/#!/story/2004909>`_ for
+    details.
