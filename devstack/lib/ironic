@@ -334,11 +334,12 @@ IRONIC_IS_HARDWARE=$(trueorfalse False IRONIC_IS_HARDWARE)
 # $IRONIC_VM_COUNT=3 the ports 6230, 6231 and 6232 will be used for the
 # Virtual BMCs, one for each VM.
 IRONIC_VBMC_PORT_RANGE_START=${IRONIC_VBMC_PORT_RANGE_START:-6230}
-IRONIC_VBMC_CONFIG_FILE=${IRONIC_VBMC_CONFIG_FILE:-$HOME/.vbmc/virtualbmc.conf}
+IRONIC_VBMC_CONFIG_FILE=${IRONIC_VBMC_CONFIG_FILE:-$IRONIC_CONF_DIR/virtualbmc/virtualbmc.conf}
+IRONIC_VBMC_LOGFILE=${IRONIC_VBMC_LOGFILE:-$IRONIC_VM_LOG_DIR/virtualbmc.log}
 IRONIC_VBMC_SYSTEMD_SERVICE=devstack@virtualbmc.service
 
 # Virtual PDU configs
-IRONIC_VPDU_CONFIG_FILE=${IRONIC_VPDU_CONFIG_FILE:-$HOME/.vpdu/virtualpdu.conf}
+IRONIC_VPDU_CONFIG_FILE=${IRONIC_VPDU_CONFIG_FILE:-$IRONIC_CONF_DIR/virtualpdu/virtualpdu.conf}
 IRONIC_VPDU_PORT_RANGE_START=${IRONIC_VPDU_PORT_RANGE_START:-1}
 IRONIC_VPDU_LISTEN_PORT=${IRONIC_VPDU_LISTEN_PORT:-1161}
 IRONIC_VPDU_COMMUNITY=${IRONIC_VPDU_COMMUNITY:-private}
@@ -348,7 +349,7 @@ IRONIC_VPDU_SYSTEMD_SERVICE=devstack@virtualpdu.service
 # Redfish configs
 IRONIC_REDFISH_EMULATOR_PORT=${IRONIC_REDFISH_EMULATOR_PORT:-9132}
 IRONIC_REDFISH_EMULATOR_SYSTEMD_SERVICE="devstack@redfish-emulator.service"
-IRONIC_REDFISH_EMULATOR_CONFIG=${IRONIC_REDFISH_EMULATOR_CONFIG:-$HOME/.redfish/emulator.conf}
+IRONIC_REDFISH_EMULATOR_CONFIG=${IRONIC_REDFISH_EMULATOR_CONFIG:-$IRONIC_CONF_DIR/redfish/emulator.conf}
 
 # To explicitly enable configuration of Glance with Swift
 # (which is required by some vendor drivers), set this
@@ -726,17 +727,17 @@ function setup_syslinux_modules {
 }
 
 function start_virtualbmc {
-    $SYSTEMCTL start $IRONIC_VBMC_SYSTEMD_SERVICE
+    start_service $IRONIC_VBMC_SYSTEMD_SERVICE
 }
 
 function stop_virtualbmc {
-    $SYSTEMCTL stop $IRONIC_VBMC_SYSTEMD_SERVICE
+    stop_service $IRONIC_VBMC_SYSTEMD_SERVICE
 }
 
 function cleanup_virtualbmc {
     stop_virtualbmc
 
-    $SYSTEMCTL disable $IRONIC_VBMC_SYSTEMD_SERVICE
+    disable_service $IRONIC_VBMC_SYSTEMD_SERVICE
 
     local unitfile="$SYSTEMD_DIR/$IRONIC_VBMC_SYSTEMD_SERVICE"
     sudo rm -f $unitfile
@@ -744,7 +745,7 @@ function cleanup_virtualbmc {
     $SYSTEMCTL daemon-reload
 }
 
-function setup_virtualbmc {
+function install_virtualbmc {
     # Install pyghmi from source, if requested, otherwise it will be
     # downloaded as part of the virtualbmc installation
     if use_library_from_git "pyghmi"; then
@@ -762,12 +763,6 @@ function setup_virtualbmc {
         USE_PYTHON3=False pip_install_gr "virtualbmc"
     fi
 
-    if [[ ! -d $(dirname $IRONIC_VBMC_CONFIG_FILE) ]]; then
-        mkdir -p $(dirname $IRONIC_VBMC_CONFIG_FILE)
-    fi
-
-    iniset $IRONIC_VBMC_CONFIG_FILE log debug True
-
     local cmd
 
     cmd=$(which vbmcd)
@@ -775,21 +770,33 @@ function setup_virtualbmc {
 
     write_user_unit_file $IRONIC_VBMC_SYSTEMD_SERVICE "$cmd" "" "$STACK_USER"
 
-    $SYSTEMCTL enable $IRONIC_VBMC_SYSTEMD_SERVICE
+    local unitfile="$SYSTEMD_DIR/$IRONIC_VBMC_SYSTEMD_SERVICE"
+
+    iniset -sudo $unitfile "Service" "Environment" "VIRTUALBMC_CONFIG=$IRONIC_VBMC_CONFIG_FILE"
+
+    enable_service $IRONIC_VBMC_SYSTEMD_SERVICE
+}
+
+function configure_virtualbmc {
+    if [[ ! -d $(dirname $IRONIC_VBMC_CONFIG_FILE) ]]; then
+        mkdir -p $(dirname $IRONIC_VBMC_CONFIG_FILE)
+    fi
+
+    iniset -sudo $IRONIC_VBMC_CONFIG_FILE log debug True
 }
 
 function start_virtualpdu {
-    $SYSTEMCTL start $IRONIC_VPDU_SYSTEMD_SERVICE
+    start_service $IRONIC_VPDU_SYSTEMD_SERVICE
 }
 
 function stop_virtualpdu {
-    $SYSTEMCTL stop $IRONIC_VPDU_SYSTEMD_SERVICE
+    stop_service $IRONIC_VPDU_SYSTEMD_SERVICE
 }
 
 function cleanup_virtualpdu {
     stop_virtualpdu
 
-    $SYSTEMCTL disable $IRONIC_VPDU_SYSTEMD_SERVICE
+    disable_service $IRONIC_VPDU_SYSTEMD_SERVICE
 
     local unitfile="$SYSTEMD_DIR/$IRONIC_VPDU_SYSTEMD_SERVICE"
     sudo rm -f $unitfile
@@ -797,23 +804,13 @@ function cleanup_virtualpdu {
     $SYSTEMCTL daemon-reload
 }
 
-function setup_virtualpdu {
+function install_virtualpdu {
     if use_library_from_git "virtualpdu"; then
         git_clone_by_name "virtualpdu"
         setup_dev_lib "virtualpdu"
     else
         pip_install "virtualpdu"
     fi
-
-    mkdir -p $(dirname $IRONIC_VPDU_CONFIG_FILE)
-
-    iniset $IRONIC_VPDU_CONFIG_FILE global debug True
-    iniset $IRONIC_VPDU_CONFIG_FILE global libvirt_uri "qemu:///system"
-    iniset $IRONIC_VPDU_CONFIG_FILE PDU listen_address ${HOST_IP}
-    iniset $IRONIC_VPDU_CONFIG_FILE PDU listen_port ${IRONIC_VPDU_LISTEN_PORT}
-    iniset $IRONIC_VPDU_CONFIG_FILE PDU community ${IRONIC_VPDU_COMMUNITY}
-    iniset $IRONIC_VPDU_CONFIG_FILE PDU ports $(_generate_pdu_ports)
-    iniset $IRONIC_VPDU_CONFIG_FILE PDU outlet_default_state "OFF"
 
     local cmd
 
@@ -822,7 +819,19 @@ function setup_virtualpdu {
 
     write_user_unit_file $IRONIC_VPDU_SYSTEMD_SERVICE "$cmd" "" "$STACK_USER"
 
-    $SYSTEMCTL enable $IRONIC_VPDU_SYSTEMD_SERVICE
+    enable_service $IRONIC_VPDU_SYSTEMD_SERVICE
+}
+
+function configure_virtualpdu {
+    mkdir -p $(dirname $IRONIC_VPDU_CONFIG_FILE)
+
+    iniset -sudo $IRONIC_VPDU_CONFIG_FILE global debug True
+    iniset -sudo $IRONIC_VPDU_CONFIG_FILE global libvirt_uri "qemu:///system"
+    iniset -sudo $IRONIC_VPDU_CONFIG_FILE PDU listen_address ${HOST_IP}
+    iniset -sudo $IRONIC_VPDU_CONFIG_FILE PDU listen_port ${IRONIC_VPDU_LISTEN_PORT}
+    iniset -sudo $IRONIC_VPDU_CONFIG_FILE PDU community ${IRONIC_VPDU_COMMUNITY}
+    iniset -sudo $IRONIC_VPDU_CONFIG_FILE PDU ports $(_generate_pdu_ports)
+    iniset -sudo $IRONIC_VPDU_CONFIG_FILE PDU outlet_default_state "OFF"
 }
 
 # _generate_pdu_ports() - Generates list of port:node_name.
@@ -837,11 +846,11 @@ function _generate_pdu_ports {
 }
 
 function start_redfish {
-    $SYSTEMCTL start $IRONIC_REDFISH_EMULATOR_SYSTEMD_SERVICE
+    start_service $IRONIC_REDFISH_EMULATOR_SYSTEMD_SERVICE
 }
 
 function stop_redfish {
-    $SYSTEMCTL stop $IRONIC_REDFISH_EMULATOR_SYSTEMD_SERVICE
+    start_service stop $IRONIC_REDFISH_EMULATOR_SYSTEMD_SERVICE
 }
 
 function cleanup_redfish {
@@ -849,7 +858,7 @@ function cleanup_redfish {
 
     rm -f $IRONIC_REDFISH_EMULATOR_CONFIG
 
-    $SYSTEMCTL disable $IRONIC_REDFISH_EMULATOR_SYSTEMD_SERVICE
+    disable_service $IRONIC_REDFISH_EMULATOR_SYSTEMD_SERVICE
 
     local unitfile="$SYSTEMD_DIR/$IRONIC_REDFISH_EMULATOR_SYSTEMD_SERVICE"
     sudo rm -f $unitfile
@@ -857,23 +866,7 @@ function cleanup_redfish {
     $SYSTEMCTL daemon-reload
 }
 
-function setup_redfish {
-
-    if [[ ! -d $(dirname $IRONIC_REDFISH_EMULATOR_CONFIG) ]]; then
-        mkdir -p $(dirname $IRONIC_REDFISH_EMULATOR_CONFIG)
-    fi
-
-    cat - <<EOF > $IRONIC_REDFISH_EMULATOR_CONFIG
-SUSHY_EMULATOR_BOOT_LOADER_MAP = {
-    'Uefi': {
-        'x86_64': '$UEFI_LOADER_PATH'
-    },
-    'Legacy': {
-        'x86_64': None
-    }
-}
-EOF
-
+function install_redfish {
     # TODO(lucasagomes): Use Apache WSGI instead of gunicorn
     gunicorn=gunicorn
 
@@ -904,7 +897,24 @@ EOF
 
     write_user_unit_file $IRONIC_REDFISH_EMULATOR_SYSTEMD_SERVICE "$cmd" "" "$STACK_USER"
 
-    $SYSTEMCTL enable $IRONIC_REDFISH_EMULATOR_SYSTEMD_SERVICE
+    enable_service $IRONIC_REDFISH_EMULATOR_SYSTEMD_SERVICE
+}
+
+function configure_redfish {
+    if [[ ! -d $(dirname $IRONIC_REDFISH_EMULATOR_CONFIG) ]]; then
+        mkdir -p $(dirname $IRONIC_REDFISH_EMULATOR_CONFIG)
+    fi
+
+    cat - <<EOF > $IRONIC_REDFISH_EMULATOR_CONFIG
+SUSHY_EMULATOR_BOOT_LOADER_MAP = {
+    'Uefi': {
+        'x86_64': '$UEFI_LOADER_PATH'
+    },
+    'Legacy': {
+        'x86_64': None
+    }
+}
+EOF
 }
 
 function setup_sushy {
@@ -983,15 +993,15 @@ function install_ironic {
 
     if [[ "$IRONIC_IS_HARDWARE" == "False" ]]; then
         if is_deployed_by_ipmi; then
-            setup_virtualbmc
+            install_virtualbmc
         fi
 
         if is_deployed_by_snmp; then
-            setup_virtualpdu
+            install_virtualpdu
         fi
 
         if is_deployed_by_redfish; then
-            setup_redfish
+            install_redfish
         fi
     fi
 
@@ -1289,14 +1299,17 @@ EOF
 
     if [[ "$IRONIC_IS_HARDWARE" == "False" ]]; then
         if is_deployed_by_ipmi; then
+            configure_virtualbmc
             start_virtualbmc
         fi
 
         if is_deployed_by_snmp; then
+            configure_virtualpdu
             start_virtualpdu
         fi
 
         if is_deployed_by_redfish; then
+            configure_redfish
             start_redfish
         fi
     fi
