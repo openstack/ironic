@@ -409,7 +409,7 @@ class AllocationsController(pecan.rest.RestController):
         self._validate_patch(patch)
         names = api_utils.get_patch_values(patch, '/name')
         for name in names:
-            if len(name) and not api_utils.is_valid_logical_name(name):
+            if name and not api_utils.is_valid_logical_name(name):
                 msg = _("Cannot update allocation with invalid name "
                         "'%(name)s'") % {'name': name}
                 raise exception.Invalid(msg)

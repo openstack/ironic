@@ -466,6 +466,17 @@ class TestPatch(test_api_base.BaseApiTest):
                                       obj_fields.NotificationLevel.INFO,
                                       obj_fields.NotificationStatus.END)])
 
+    def test_replace_name_with_none(self):
+        response = self.patch_json('/allocations/%s' % self.allocation.uuid,
+                                   [{'path': '/name',
+                                     'value': None, 'op': 'replace'}],
+                                   headers=self.headers)
+        self.assertEqual('application/json', response.content_type)
+        self.assertEqual(http_client.OK, response.status_code)
+        result = self.get_json('/allocations/%s' % self.allocation.uuid,
+                               headers=self.headers)
+        self.assertIsNone(result['name'])
+
     @mock.patch.object(notification_utils, '_emit_api_notification')
     @mock.patch.object(objects.Allocation, 'save')
     def test_update_error(self, mock_save, mock_notify):
