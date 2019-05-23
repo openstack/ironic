@@ -274,4 +274,4 @@ configuration, you may consider some settings below.
     memcache_servers = memcache01:11211,memcache02:11211,memcache03:11211
 
 .. _`socat`: http://www.dest-unreach.org/socat
-.. _`Serial Console`: https://docs.openstack.org/nova/latest/admin/remote-console-access.html#serial-console
+.. _`Serial Console`: https://docs.openstack.org/nova/latest/admin/remote-console-access.html#serial
