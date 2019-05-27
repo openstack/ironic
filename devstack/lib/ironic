@@ -1157,6 +1157,11 @@ function configure_ironic {
     # Set fast track options
     iniset $IRONIC_CONF_FILE deploy fast_track $IRONIC_DEPLOY_FAST_TRACK
 
+    # No need to check if RabbitMQ is enabled, this call does it in a smart way
+    if [[ "$IRONIC_RPC_TRANSPORT" == "oslo" ]]; then
+        iniset_rpc_backend ironic $IRONIC_CONF_FILE
+    fi
+
     # Configure Ironic conductor, if it was enabled.
     if is_service_enabled ir-cond; then
         configure_ironic_conductor
@@ -1220,12 +1225,6 @@ function configure_ironic_api {
     iniset $IRONIC_CONF_FILE DEFAULT auth_strategy $IRONIC_AUTH_STRATEGY
     configure_auth_token_middleware $IRONIC_CONF_FILE ironic $IRONIC_AUTH_CACHE_DIR/api
 
-    if is_service_enabled rabbit; then
-        iniset_rpc_backend ironic $IRONIC_CONF_FILE
-    fi
-
-    iniset $IRONIC_CONF_FILE conductor automated_clean $IRONIC_AUTOMATED_CLEAN_ENABLED
-
     if [[ "$IRONIC_USE_WSGI" == "True" ]]; then
         iniset $IRONIC_CONF_FILE api public_endpoint $IRONIC_SERVICE_PROTOCOL://$IRONIC_HOSTPORT
     elif is_service_enabled tls-proxy; then
@@ -1272,6 +1271,8 @@ function configure_ironic_conductor {
 
     # set up drivers / hardware types
     iniset $IRONIC_CONF_FILE DEFAULT enabled_hardware_types $IRONIC_ENABLED_HARDWARE_TYPES
+
+    iniset $IRONIC_CONF_FILE conductor automated_clean $IRONIC_AUTOMATED_CLEAN_ENABLED
 
     # configure enabled and default interfaces
     local iface
