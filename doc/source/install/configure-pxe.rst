@@ -1,6 +1,45 @@
 Configuring PXE and iPXE
 ========================
 
+DHCP server setup
+-----------------
+
+A DHCP server is required by PXE/iPXE client. You need to follow steps below.
+
+#. Set the ``[dhcp]/dhcp_provider`` to ``neutron`` in the Bare Metal Service's
+   configuration file (``/etc/ironic/ironic.conf``):
+
+   .. note::
+    Refer :doc:`/install/configure-tenant-networks` for details. The
+    ``dhcp_provider`` configuration is already set by the configuration
+    defaults, and when you create subnet, DHCP is also enabled if you do not add
+    any dhcp options at "openstack subnet create" command.
+
+#. Enable DHCP in the subnet of PXE network.
+
+#. Set the ip address range in the subnet for DHCP.
+
+   .. note::
+    Refer :doc:`/install/configure-networking` for details about the two
+    precedent steps.
+
+#. Connect the openstack DHCP agent to the external network through the OVS
+   bridges and the interface ``eth2``.
+
+   .. note::
+    Refer :doc:`/install/configure-networking` for details. You do not require
+    this part if br-int, br-eth2 and eth2 are already connected.
+
+
+#. Configure the host ip at ``br-eth2``. If it locates at ``eth2``, do below::
+
+    ip addr del 192.168.2.10/24 dev eth2
+    ip addr add 192.168.2.10/24 dev br-eth2
+
+   .. note::
+    Replace eth2 with the interface on the network node which you are using to
+    connect to the Bare Metal service.
+
 TFTP server setup
 -----------------
 
