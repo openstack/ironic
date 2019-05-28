@@ -16,10 +16,7 @@
         - ironic-tempest-functional-python2
         - ironic-tempest-functional-python3
         - ironic-grenade-dsvm
-        # NOTE(TheJulia): Temporarily mark grenade mutinode as
-        # non-voting until we're able to fix it.
-        - ironic-grenade-dsvm-multinode-multitenant:
-            voting: false
+        - ironic-grenade-dsvm-multinode-multitenant
         - ironic-tempest-ipa-partition-pxe_ipmitool-tinyipa-python3
         - ironic-tempest-ipa-partition-redfish-tinyipa
         - ironic-tempest-ipa-partition-uefi-pxe_ipmitool-tinyipa
@@ -48,7 +45,7 @@
         - ironic-tempest-functional-python2
         - ironic-tempest-functional-python3
         - ironic-grenade-dsvm
-        # - ironic-grenade-dsvm-multinode-multitenant
+        - ironic-grenade-dsvm-multinode-multitenant
         - ironic-tempest-ipa-partition-pxe_ipmitool-tinyipa-python3
         - ironic-tempest-ipa-partition-redfish-tinyipa
         - ironic-tempest-ipa-partition-uefi-pxe_ipmitool-tinyipa
