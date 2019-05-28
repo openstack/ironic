@@ -19,6 +19,7 @@ import eventlet
 import futurist
 from futurist import periodics
 from futurist import rejection
+from ironic_lib import mdns
 from oslo_db import exception as db_exception
 from oslo_log import log
 from oslo_utils import excutils
@@ -39,6 +40,7 @@ from ironic.conductor import task_manager
 from ironic.conf import CONF
 from ironic.db import api as dbapi
 from ironic.drivers import base as driver_base
+from ironic.drivers.modules import deploy_utils
 from ironic import objects
 from ironic.objects import fields as obj_fields
 
@@ -78,6 +80,7 @@ class BaseConductorManager(object):
         self.sensors_notifier = rpc.get_sensors_notifier()
         self._started = False
         self._shutdown = None
+        self._zeroconf = None
 
     def init_host(self, admin_context=None):
         """Initialize the conductor host.
@@ -212,6 +215,9 @@ class BaseConductorManager(object):
         except exception.NoFreeConductorWorker:
             LOG.warning('Failed to start worker for resuming allocations.')
 
+        if CONF.conductor.enable_mdns:
+            self._publish_endpoint()
+
         self._started = True
 
     def _use_groups(self):
@@ -316,6 +322,11 @@ class BaseConductorManager(object):
         self._periodic_tasks.stop()
         self._periodic_tasks.wait()
         self._executor.shutdown(wait=True)
+
+        if self._zeroconf is not None:
+            self._zeroconf.close()
+            self._zeroconf = None
+
         self._started = False
 
     def _register_and_validate_hardware_interfaces(self, hardware_types):
@@ -564,3 +575,12 @@ class BaseConductorManager(object):
         for allocation in objects.Allocation.list(context, filters=filters):
             LOG.debug('Resuming unfinished allocation %s', allocation.uuid)
             allocations.do_allocate(context, allocation)
+
+    def _publish_endpoint(self):
+        params = {}
+        if CONF.debug:
+            params['ipa_debug'] = True
+        self._zeroconf = mdns.Zeroconf()
+        self._zeroconf.register_service('baremetal',
+                                        deploy_utils.get_ironic_api_url(),
+                                        params=params)

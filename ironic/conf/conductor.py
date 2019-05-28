@@ -221,6 +221,9 @@ opts = [
                 mutable=True,
                 help=_('Allow deleting nodes which are in state '
                        '\'available\'. Defaults to True.')),
+    cfg.BoolOpt('enable_mdns', default=False,
+                help=_('Whether to enable publishing the ironic-inspector API '
+                       'endpoint via multicast DNS.')),
 ]
 
 
