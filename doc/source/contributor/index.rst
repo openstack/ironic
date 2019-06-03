@@ -17,6 +17,7 @@ project.
   Specifications <https://specs.openstack.org/openstack/ironic-specs/>
   Frequently Asked Questions <faq>
   Contributor Vision <vision>
+  OpenStack Vision <vision-reflection>
 
 The following pages describe the architecture of the Bare Metal service
 and may be helpful to anyone working on or with the service, but are written
