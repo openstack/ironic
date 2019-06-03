@@ -1330,7 +1330,7 @@ class ConductorManager(base_manager.BaseConductorManager):
             # Prepare is asynchronous, the deploy driver will need to
             # set node.driver_internal_info['clean_steps'] and
             # node.clean_step and then make an RPC call to
-            # continue_node_cleaning to start cleaning.
+            # continue_node_clean to start cleaning.
 
             # For manual cleaning, the target provision state is MANAGEABLE,
             # whereas for automated cleaning, it is AVAILABLE (the default).
