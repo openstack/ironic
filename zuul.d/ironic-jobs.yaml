@@ -493,3 +493,25 @@
         IRONIC_IPXE_ENABLED: False
         IRONIC_BOOT_MODE: uefi
         IRONIC_AUTOMATED_CLEAN_ENABLED: False
+
+- job:
+    # Security testing for known issues
+    name: ironic-tox-bandit
+    parent: openstack-tox
+    timeout: 2400
+    vars:
+      tox_envlist: bandit
+    required-projects:
+      - openstack/ironic
+    irrelevant-files:
+      - ^.*\.rst$
+      - ^api-ref/.*$
+      - ^doc/.*$
+      - ^driver-requirements.txt$
+      - ^install-guide/.*$
+      - ^ironic/locale/.*$
+      - ^ironic/tests/.*$
+      - ^releasenotes/.*$
+      - ^setup.cfg$
+      - ^tools/.*$
+      - ^tox.ini$
