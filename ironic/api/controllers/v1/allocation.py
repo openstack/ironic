@@ -53,6 +53,9 @@ class Allocation(base.APIBase):
     node_uuid = wsme.wsattr(types.uuid, readonly=True)
     """The UUID of the node this allocation belongs to"""
 
+    node = wsme.wsattr(wtypes.text)
+    """The node to backfill the allocation for (POST only)"""
+
     name = wsme.wsattr(wtypes.text)
     """The logical name for this allocation"""
 
@@ -65,8 +68,7 @@ class Allocation(base.APIBase):
     last_error = wsme.wsattr(wtypes.text, readonly=True)
     """Last error that happened to this allocation"""
 
-    resource_class = wsme.wsattr(wtypes.StringType(max_length=80),
-                                 mandatory=True)
+    resource_class = wsme.wsattr(wtypes.StringType(max_length=80))
     """Requested resource class for this allocation"""
 
     # NOTE(dtantsur): candidate_nodes is a list of UUIDs on the database level,
@@ -93,6 +95,8 @@ class Allocation(base.APIBase):
     @staticmethod
     def _convert_with_links(allocation, url):
         """Add links to the allocation."""
+        # This field is only used in POST, never return it.
+        allocation.node = wsme.Unset
         allocation.links = [
             link.Link.make_link('self', url, 'allocations', allocation.uuid),
             link.Link.make_link('bookmark', url, 'allocations',
@@ -334,10 +338,6 @@ class AllocationsController(pecan.rest.RestController):
         cdict = context.to_policy_values()
         policy.authorize('baremetal:allocation:create', cdict, cdict)
 
-        if allocation.node_uuid is not wtypes.Unset:
-            msg = _("Cannot set node_uuid when creating an allocation")
-            raise exception.Invalid(msg)
-
         if (allocation.name
                 and not api_utils.is_valid_logical_name(allocation.name)):
             msg = _("Cannot create allocation with invalid name "
@@ -347,6 +347,27 @@ class AllocationsController(pecan.rest.RestController):
         if allocation.traits:
             for trait in allocation.traits:
                 api_utils.validate_trait(trait)
+
+        node = None
+        if allocation.node is not wtypes.Unset:
+            if api_utils.allow_allocation_backfill():
+                try:
+                    node = api_utils.get_rpc_node(allocation.node)
+                except exception.NodeNotFound as exc:
+                    exc.code = http_client.BAD_REQUEST
+                    raise
+            else:
+                msg = _("Cannot set node when creating an allocation "
+                        "in this API version")
+                raise exception.Invalid(msg)
+
+        if not allocation.resource_class:
+            if node:
+                allocation.resource_class = node.resource_class
+            else:
+                msg = _("The resource_class field is mandatory when not "
+                        "backfilling")
+                raise exception.Invalid(msg)
 
         if allocation.candidate_nodes:
             # Convert nodes from names to UUIDs and check their validity
@@ -365,10 +386,19 @@ class AllocationsController(pecan.rest.RestController):
 
         # NOTE(yuriyz): UUID is mandatory for notifications payload
         if not all_dict.get('uuid'):
-            all_dict['uuid'] = uuidutils.generate_uuid()
+            if node and node.instance_uuid:
+                # When backfilling without UUID requested, assume that the
+                # target instance_uuid is the desired UUID
+                all_dict['uuid'] = node.instance_uuid
+            else:
+                all_dict['uuid'] = uuidutils.generate_uuid()
 
         new_allocation = objects.Allocation(context, **all_dict)
-        topic = pecan.request.rpcapi.get_random_topic()
+        if node:
+            new_allocation.node_id = node.id
+            topic = pecan.request.rpcapi.get_topic_for(node)
+        else:
+            topic = pecan.request.rpcapi.get_random_topic()
 
         notify.emit_start_notification(context, new_allocation, 'create')
         with notify.handle_error_notification(context, new_allocation,

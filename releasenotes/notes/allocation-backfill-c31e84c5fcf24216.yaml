@@ -1,0 +1,5 @@
+---
+features:
+  - |
+    API version 1.58 allows backfilling allocations for existing deployed nodes
+    by providing ``node`` to ``POST /v1/allocations``.

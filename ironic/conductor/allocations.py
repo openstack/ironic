@@ -17,6 +17,7 @@ import random
 from ironic_lib import metrics_utils
 from oslo_config import cfg
 from oslo_log import log
+from oslo_utils import excutils
 import retrying
 
 from ironic.common import exception
@@ -85,6 +86,7 @@ def verify_node_for_deallocation(node, allocation):
 def _allocation_failed(allocation, reason):
     """Failure handler for the allocation."""
     try:
+        allocation.node_id = None
         allocation.state = states.ERROR
         allocation.last_error = str(reason)
         allocation.save()
@@ -231,3 +233,87 @@ def _allocate_node(context, allocation, nodes):
         error = _('all nodes were filtered out during reservation')
 
     raise exception.AllocationFailed(uuid=allocation.uuid, error=error)
+
+
+def backfill_allocation(context, allocation, node_id):
+    """Assign the previously allocated node to the node allocation.
+
+    This is not the actual allocation process, but merely backfilling of
+    allocation_uuid for a previously allocated node.
+
+    :param context: an admin context
+    :param allocation: an allocation object associated with the node
+    :param node_id: An ID of the node.
+    :raises: AllocationFailed if the node does not match the allocation
+    :raises: NodeAssociated if the node is already associated with another
+        instance or allocation.
+    :raises: InstanceAssociated if the allocation's UUID is already used
+        on another node as instance_uuid.
+    :raises: NodeNotFound if the node with the provided ID cannot be found.
+    """
+    try:
+        _do_backfill_allocation(context, allocation, node_id)
+    except (exception.AllocationFailed,
+            exception.InstanceAssociated,
+            exception.NodeAssociated,
+            exception.NodeNotFound) as exc:
+        with excutils.save_and_reraise_exception():
+            LOG.error(str(exc))
+            _allocation_failed(allocation, exc)
+    except Exception as exc:
+        with excutils.save_and_reraise_exception():
+            LOG.exception("Unexpected exception during backfilling of "
+                          "allocation %s", allocation.uuid)
+            reason = _("Unexpected exception during allocation: %s") % exc
+            _allocation_failed(allocation, reason)
+
+
+def _do_backfill_allocation(context, allocation, node_id):
+    with task_manager.acquire(context, node_id,
+                              purpose='allocation backfilling') as task:
+        node = task.node
+
+        errors = []
+
+        # NOTE(dtantsur): this feature is not designed to bypass the allocation
+        # mechanism, but to backfill allocations for active nodes, hence this
+        # check.
+        if node.provision_state != states.ACTIVE:
+            errors.append(_('Node must be in the "active" state, but the '
+                            'current state is "%s"') % node.provision_state)
+
+        # NOTE(dtantsur): double-check that the node is still suitable.
+        if (allocation.resource_class
+                and node.resource_class != allocation.resource_class):
+            errors.append(_('Resource class %(curr)s does not match '
+                            'the requested resource class %(rsc)s')
+                          % {'curr': node.resource_class,
+                             'rsc': allocation.resource_class})
+        if (allocation.traits
+                and not _traits_match(set(allocation.traits), node)):
+            errors.append(_('List of traits %(curr)s does not match '
+                            'the requested traits %(traits)s')
+                          % {'curr': node.traits,
+                             'traits': allocation.traits})
+        if (allocation.candidate_nodes
+                and node.uuid not in allocation.candidate_nodes):
+            errors.append(_('Candidate nodes must be empty or contain the '
+                            'target node, but got %s')
+                          % allocation.candidate_nodes)
+
+        if errors:
+            error = _('Cannot backfill an allocation for node %(node)s: '
+                      '%(errors)s') % {'node': node.uuid,
+                                       'errors': '; '.join(errors)}
+            raise exception.AllocationFailed(uuid=allocation.uuid, error=error)
+
+        allocation.node_id = task.node.id
+        allocation.state = states.ACTIVE
+        # NOTE(dtantsur): the node.instance_uuid and allocation_id are
+        # updated inside of the save() call within the same
+        # transaction to avoid races. NodeAssociated can be raised if
+        # another process allocates this node first.
+        allocation.save()
+        LOG.info('Node %(node)s has been successfully reserved for '
+                 'allocation %(uuid)s',
+                 {'node': node.uuid, 'uuid': allocation.uuid})

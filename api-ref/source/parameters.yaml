@@ -443,7 +443,9 @@ allocation_node:
   type: string
 allocation_resource_class:
   description: |
-    The resource class requested for the allocation.
+    The resource class requested for the allocation. Can be ``null`` if
+    the allocation was created via backfilling and the target node did not
+    have the resource class set.
   in: body
   required: true
   type: string
@@ -1237,9 +1239,21 @@ req_allocation_name:
   in: body
   required: false
   type: string
+req_allocation_node:
+  description: |
+    The node UUID or name to create the allocation against, bypassing
+    the normal allocation process.
+
+    .. warning:: This field must not be used to request a normal allocation
+                 with one candidate node, use ``candidate_nodes`` instead.
+  in: body
+  required: false
+  type: string
 req_allocation_resource_class:
   description: |
-    The requested resource class for the allocation.
+    The requested resource class for the allocation. Can only be missing when
+    backfilling an allocation (will be set to the node's ``resource_class``
+    in such case).
   in: body
   required: true
   type: string

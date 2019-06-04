@@ -2,8 +2,14 @@
 REST API Version History
 ========================
 
-1.57 (master)
--------------
+1.58 (Train, master)
+--------------------
+
+Added the ability to backfill allocations for already deployed nodes by
+creating an allocation with ``node`` set.
+
+1.57 (Train, master)
+--------------------
 
 Added the following new endpoint for allocation:
 

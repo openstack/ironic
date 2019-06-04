@@ -1169,3 +1169,11 @@ def allow_allocation_update():
     Version 1.57 of the API added support for updating an allocation.
     """
     return pecan.request.version.minor >= versions.MINOR_57_ALLOCATION_UPDATE
+
+
+def allow_allocation_backfill():
+    """Check if backfilling allocations is allowed.
+
+    Version 1.58 of the API added support for backfilling allocations.
+    """
+    return pecan.request.version.minor >= versions.MINOR_58_ALLOCATION_BACKFILL

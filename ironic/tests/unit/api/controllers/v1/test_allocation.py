@@ -572,7 +572,11 @@ class TestPatch(test_api_base.BaseApiTest):
         self.assertTrue(response.json['error_message'])
 
 
-def _create_locally(_api, _ctx, allocation, _topic):
+def _create_locally(_api, _ctx, allocation, topic):
+    if 'node_id' in allocation and allocation.node_id:
+        assert topic == 'node-topic', topic
+    else:
+        assert topic == 'some-topic', topic
     allocation.create()
     return allocation
 
@@ -587,6 +591,10 @@ class TestPost(test_api_base.BaseApiTest):
             fixtures.MockPatchObject(rpcapi.ConductorAPI, 'get_random_topic')
         ).mock
         self.mock_get_topic.return_value = 'some-topic'
+        self.mock_get_topic_for_node = self.useFixture(
+            fixtures.MockPatchObject(rpcapi.ConductorAPI, 'get_topic_for')
+        ).mock
+        self.mock_get_topic_for_node.return_value = 'node-topic'
 
     @mock.patch.object(notification_utils, '_emit_api_notification')
     @mock.patch.object(timeutils, 'utcnow', autospec=True)
@@ -602,6 +610,7 @@ class TestPost(test_api_base.BaseApiTest):
         self.assertIsNone(response.json['node_uuid'])
         self.assertEqual([], response.json['candidate_nodes'])
         self.assertEqual([], response.json['traits'])
+        self.assertNotIn('node', response.json)
         result = self.get_json('/allocations/%s' % adict['uuid'],
                                headers=self.headers)
         self.assertEqual(adict['uuid'], result['uuid'])
@@ -609,6 +618,7 @@ class TestPost(test_api_base.BaseApiTest):
         self.assertIsNone(result['node_uuid'])
         self.assertEqual([], result['candidate_nodes'])
         self.assertEqual([], result['traits'])
+        self.assertNotIn('node', result)
         return_created_at = timeutils.parse_isotime(
             result['created_at']).replace(tzinfo=None)
         self.assertEqual(test_time, return_created_at)
@@ -711,7 +721,7 @@ class TestPost(test_api_base.BaseApiTest):
                                   headers=self.headers)
         self.assertEqual(http_client.BAD_REQUEST, response.status_int)
         self.assertEqual('application/json', response.content_type)
-        self.assertTrue(response.json['error_message'])
+        self.assertIn('resource_class', response.json['error_message'])
 
     def test_create_allocation_resource_class_too_long(self):
         adict = apiutils.allocation_post_data()
@@ -796,11 +806,83 @@ class TestPost(test_api_base.BaseApiTest):
         self.assertEqual('application/json', response.content_type)
         self.assertEqual(http_client.METHOD_NOT_ALLOWED, response.status_int)
 
-    def test_create_with_node_uuid_not_allowed(self):
+    def test_create_node_uuid_not_allowed(self):
+        node = obj_utils.create_test_node(self.context)
         adict = apiutils.allocation_post_data()
-        adict['node_uuid'] = uuidutils.generate_uuid()
+        adict['node_uuid'] = node.uuid
         response = self.post_json('/allocations', adict, expect_errors=True,
                                   headers=self.headers)
+        self.assertEqual(http_client.BAD_REQUEST, response.status_int)
+        self.assertEqual('application/json', response.content_type)
+        self.assertTrue(response.json['error_message'])
+
+    def test_backfill(self):
+        node = obj_utils.create_test_node(self.context)
+        adict = apiutils.allocation_post_data(node=node.uuid)
+        response = self.post_json('/allocations', adict,
+                                  headers=self.headers)
+        self.assertEqual(http_client.CREATED, response.status_int)
+        self.assertNotIn('node', response.json)
+        result = self.get_json('/allocations/%s' % adict['uuid'],
+                               headers=self.headers)
+        self.assertEqual(adict['uuid'], result['uuid'])
+        self.assertEqual(node.uuid, result['node_uuid'])
+        self.assertNotIn('node', result)
+
+    def test_backfill_with_name(self):
+        node = obj_utils.create_test_node(self.context, name='backfill-me')
+        adict = apiutils.allocation_post_data(node=node.name)
+        response = self.post_json('/allocations', adict,
+                                  headers=self.headers)
+        self.assertEqual(http_client.CREATED, response.status_int)
+        self.assertNotIn('node', response.json)
+        result = self.get_json('/allocations/%s' % adict['uuid'],
+                               headers=self.headers)
+        self.assertEqual(adict['uuid'], result['uuid'])
+        self.assertEqual(node.uuid, result['node_uuid'])
+        self.assertNotIn('node', result)
+
+    def test_backfill_without_resource_class(self):
+        node = obj_utils.create_test_node(self.context,
+                                          resource_class='bm-super')
+        adict = {'node': node.uuid}
+        response = self.post_json('/allocations', adict,
+                                  headers=self.headers)
+        self.assertEqual(http_client.CREATED, response.status_int)
+        result = self.get_json('/allocations/%s' % response.json['uuid'],
+                               headers=self.headers)
+        self.assertEqual(node.uuid, result['node_uuid'])
+        self.assertEqual('bm-super', result['resource_class'])
+
+    def test_backfill_copy_instance_uuid(self):
+        uuid = uuidutils.generate_uuid()
+        node = obj_utils.create_test_node(self.context,
+                                          instance_uuid=uuid,
+                                          resource_class='bm-super')
+        adict = {'node': node.uuid}
+        response = self.post_json('/allocations', adict,
+                                  headers=self.headers)
+        self.assertEqual(http_client.CREATED, response.status_int)
+        result = self.get_json('/allocations/%s' % response.json['uuid'],
+                               headers=self.headers)
+        self.assertEqual(uuid, result['uuid'])
+        self.assertEqual(node.uuid, result['node_uuid'])
+        self.assertEqual('bm-super', result['resource_class'])
+
+    def test_backfill_node_not_found(self):
+        adict = apiutils.allocation_post_data(node=uuidutils.generate_uuid())
+        response = self.post_json('/allocations', adict, expect_errors=True,
+                                  headers=self.headers)
+        self.assertEqual(http_client.BAD_REQUEST, response.status_int)
+        self.assertEqual('application/json', response.content_type)
+        self.assertTrue(response.json['error_message'])
+
+    def test_backfill_not_allowed(self):
+        node = obj_utils.create_test_node(self.context)
+        headers = {api_base.Version.string: '1.57'}
+        adict = apiutils.allocation_post_data(node=node.uuid)
+        response = self.post_json('/allocations', adict, expect_errors=True,
+                                  headers=headers)
         self.assertEqual(http_client.BAD_REQUEST, response.status_int)
         self.assertEqual('application/json', response.content_type)
         self.assertTrue(response.json['error_message'])

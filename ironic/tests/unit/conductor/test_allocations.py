@@ -59,6 +59,30 @@ class AllocationTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
                                            allocations.do_allocate,
                                            self.context, mock.ANY)
 
+    @mock.patch.object(manager.ConductorManager, '_spawn_worker', mock.Mock())
+    @mock.patch.object(allocations, 'backfill_allocation', autospec=True)
+    def test_create_allocation_with_node_id(self, mock_backfill):
+        node = obj_utils.create_test_node(self.context)
+        allocation = obj_utils.get_test_allocation(self.context,
+                                                   node_id=node.id)
+
+        self._start_service()
+        res = self.service.create_allocation(self.context, allocation)
+        mock_backfill.assert_called_once_with(self.context,
+                                              allocation,
+                                              node.id)
+
+        self.assertEqual('allocating', res['state'])
+        self.assertIsNotNone(res['uuid'])
+        self.assertEqual(self.service.conductor.id, res['conductor_affinity'])
+        # create_allocation purges node_id, and since we stub out
+        # backfill_allocation, it does not get populated.
+        self.assertIsNone(res['node_id'])
+        res = objects.Allocation.get_by_uuid(self.context, allocation['uuid'])
+        self.assertEqual('allocating', res['state'])
+        self.assertIsNotNone(res['uuid'])
+        self.assertEqual(self.service.conductor.id, res['conductor_affinity'])
+
     def test_destroy_allocation_without_node(self):
         allocation = obj_utils.create_test_allocation(self.context)
         self.service.destroy_allocation(self.context, allocation)
@@ -422,3 +446,241 @@ class DoAllocateTestCase(db_base.DbTestCase):
 
         # All nodes are filtered out on the database level.
         self.assertFalse(mock_acquire.called)
+
+
+class BackfillAllocationTestCase(db_base.DbTestCase):
+    def test_with_associated_node(self):
+        uuid = uuidutils.generate_uuid()
+        node = obj_utils.create_test_node(self.context,
+                                          instance_uuid=uuid,
+                                          resource_class='x-large',
+                                          provision_state='active')
+        allocation = obj_utils.create_test_allocation(self.context,
+                                                      uuid=uuid,
+                                                      resource_class='x-large')
+
+        allocations.backfill_allocation(self.context, allocation, node.id)
+
+        allocation = objects.Allocation.get_by_uuid(self.context,
+                                                    allocation['uuid'])
+        self.assertIsNone(allocation['last_error'])
+        self.assertEqual('active', allocation['state'])
+
+        node = objects.Node.get_by_uuid(self.context, node['uuid'])
+        self.assertEqual(allocation['uuid'], node['instance_uuid'])
+        self.assertEqual(allocation['id'], node['allocation_id'])
+
+    def test_with_unassociated_node(self):
+        node = obj_utils.create_test_node(self.context,
+                                          instance_uuid=None,
+                                          resource_class='x-large',
+                                          provision_state='active')
+        allocation = obj_utils.create_test_allocation(self.context,
+                                                      resource_class='x-large')
+
+        allocations.backfill_allocation(self.context, allocation, node.id)
+
+        allocation = objects.Allocation.get_by_uuid(self.context,
+                                                    allocation['uuid'])
+        self.assertIsNone(allocation['last_error'])
+        self.assertEqual('active', allocation['state'])
+
+        node = objects.Node.get_by_uuid(self.context, node['uuid'])
+        self.assertEqual(allocation['uuid'], node['instance_uuid'])
+        self.assertEqual(allocation['id'], node['allocation_id'])
+
+    def test_with_candidate_nodes(self):
+        node = obj_utils.create_test_node(self.context,
+                                          instance_uuid=None,
+                                          resource_class='x-large',
+                                          provision_state='active')
+        allocation = obj_utils.create_test_allocation(
+            self.context, candidate_nodes=[node.uuid],
+            resource_class='x-large')
+
+        allocations.backfill_allocation(self.context, allocation, node.id)
+
+        allocation = objects.Allocation.get_by_uuid(self.context,
+                                                    allocation['uuid'])
+        self.assertIsNone(allocation['last_error'])
+        self.assertEqual('active', allocation['state'])
+
+        node = objects.Node.get_by_uuid(self.context, node['uuid'])
+        self.assertEqual(allocation['uuid'], node['instance_uuid'])
+        self.assertEqual(allocation['id'], node['allocation_id'])
+
+    def test_without_resource_class(self):
+        uuid = uuidutils.generate_uuid()
+        node = obj_utils.create_test_node(self.context,
+                                          instance_uuid=uuid,
+                                          resource_class='x-large',
+                                          provision_state='active')
+        allocation = obj_utils.create_test_allocation(self.context,
+                                                      uuid=uuid,
+                                                      resource_class=None)
+
+        allocations.backfill_allocation(self.context, allocation, node.id)
+
+        allocation = objects.Allocation.get_by_uuid(self.context,
+                                                    allocation['uuid'])
+        self.assertIsNone(allocation['last_error'])
+        self.assertEqual('active', allocation['state'])
+
+        node = objects.Node.get_by_uuid(self.context, node['uuid'])
+        self.assertEqual(allocation['uuid'], node['instance_uuid'])
+        self.assertEqual(allocation['id'], node['allocation_id'])
+
+    def test_node_associated_with_another_instance(self):
+        other_uuid = uuidutils.generate_uuid()
+        node = obj_utils.create_test_node(self.context,
+                                          instance_uuid=other_uuid,
+                                          resource_class='x-large',
+                                          provision_state='active')
+        allocation = obj_utils.create_test_allocation(self.context,
+                                                      resource_class='x-large')
+
+        self.assertRaises(exception.NodeAssociated,
+                          allocations.backfill_allocation,
+                          self.context, allocation, node.id)
+
+        allocation = objects.Allocation.get_by_uuid(self.context,
+                                                    allocation['uuid'])
+        self.assertEqual('error', allocation['state'])
+        self.assertIn('associated', allocation['last_error'])
+        self.assertIsNone(allocation['node_id'])
+
+        node = objects.Node.get_by_uuid(self.context, node['uuid'])
+        self.assertEqual(other_uuid, node['instance_uuid'])
+        self.assertIsNone(node['allocation_id'])
+
+    def test_non_existing_node(self):
+        allocation = obj_utils.create_test_allocation(self.context,
+                                                      resource_class='x-large')
+
+        self.assertRaises(exception.NodeNotFound,
+                          allocations.backfill_allocation,
+                          self.context, allocation, 42)
+
+        allocation = objects.Allocation.get_by_uuid(self.context,
+                                                    allocation['uuid'])
+        self.assertEqual('error', allocation['state'])
+        self.assertIn('Node 42 could not be found', allocation['last_error'])
+        self.assertIsNone(allocation['node_id'])
+
+    def test_uuid_associated_with_another_instance(self):
+        uuid = uuidutils.generate_uuid()
+        obj_utils.create_test_node(self.context,
+                                   uuid=uuidutils.generate_uuid(),
+                                   instance_uuid=uuid,
+                                   resource_class='x-large',
+                                   provision_state='active')
+        node = obj_utils.create_test_node(self.context,
+                                          uuid=uuidutils.generate_uuid(),
+                                          resource_class='x-large',
+                                          provision_state='active')
+        allocation = obj_utils.create_test_allocation(self.context,
+                                                      uuid=uuid,
+                                                      resource_class='x-large')
+
+        self.assertRaises(exception.InstanceAssociated,
+                          allocations.backfill_allocation,
+                          self.context, allocation, node.id)
+
+        allocation = objects.Allocation.get_by_uuid(self.context,
+                                                    allocation['uuid'])
+        self.assertEqual('error', allocation['state'])
+        self.assertIn('associated', allocation['last_error'])
+        self.assertIsNone(allocation['node_id'])
+
+        node = objects.Node.get_by_uuid(self.context, node['uuid'])
+        self.assertIsNone(node['instance_uuid'])
+        self.assertIsNone(node['allocation_id'])
+
+    def test_resource_class_mismatch(self):
+        node = obj_utils.create_test_node(self.context,
+                                          resource_class='x-small',
+                                          provision_state='active')
+        allocation = obj_utils.create_test_allocation(self.context,
+                                                      resource_class='x-large')
+
+        self.assertRaises(exception.AllocationFailed,
+                          allocations.backfill_allocation,
+                          self.context, allocation, node.id)
+
+        allocation = objects.Allocation.get_by_uuid(self.context,
+                                                    allocation['uuid'])
+        self.assertEqual('error', allocation['state'])
+        self.assertIn('resource class', allocation['last_error'])
+        self.assertIsNone(allocation['node_id'])
+
+        node = objects.Node.get_by_uuid(self.context, node['uuid'])
+        self.assertIsNone(node['instance_uuid'])
+        self.assertIsNone(node['allocation_id'])
+
+    def test_traits_mismatch(self):
+        node = obj_utils.create_test_node(self.context,
+                                          resource_class='x-large',
+                                          provision_state='active')
+        db_utils.create_test_node_traits(['tr1', 'tr2'], node_id=node.id)
+        allocation = obj_utils.create_test_allocation(self.context,
+                                                      resource_class='x-large',
+                                                      traits=['tr1', 'tr3'])
+
+        self.assertRaises(exception.AllocationFailed,
+                          allocations.backfill_allocation,
+                          self.context, allocation, node.id)
+
+        allocation = objects.Allocation.get_by_uuid(self.context,
+                                                    allocation['uuid'])
+        self.assertEqual('error', allocation['state'])
+        self.assertIn('traits', allocation['last_error'])
+        self.assertIsNone(allocation['node_id'])
+
+        node = objects.Node.get_by_uuid(self.context, node['uuid'])
+        self.assertIsNone(node['instance_uuid'])
+        self.assertIsNone(node['allocation_id'])
+
+    def test_state_not_active(self):
+        node = obj_utils.create_test_node(self.context,
+                                          resource_class='x-large',
+                                          provision_state='available')
+        allocation = obj_utils.create_test_allocation(self.context,
+                                                      resource_class='x-large')
+
+        self.assertRaises(exception.AllocationFailed,
+                          allocations.backfill_allocation,
+                          self.context, allocation, node.id)
+
+        allocation = objects.Allocation.get_by_uuid(self.context,
+                                                    allocation['uuid'])
+        self.assertEqual('error', allocation['state'])
+        self.assertIn('must be in the "active" state',
+                      allocation['last_error'])
+        self.assertIsNone(allocation['node_id'])
+
+        node = objects.Node.get_by_uuid(self.context, node['uuid'])
+        self.assertIsNone(node['instance_uuid'])
+        self.assertIsNone(node['allocation_id'])
+
+    def test_candidate_nodes_mismatch(self):
+        node = obj_utils.create_test_node(self.context,
+                                          resource_class='x-large',
+                                          provision_state='active')
+        allocation = obj_utils.create_test_allocation(
+            self.context,
+            candidate_nodes=[uuidutils.generate_uuid()],
+            resource_class='x-large')
+
+        self.assertRaises(exception.AllocationFailed,
+                          allocations.backfill_allocation,
+                          self.context, allocation, node.id)
+
+        allocation = objects.Allocation.get_by_uuid(self.context,
+                                                    allocation['uuid'])
+        self.assertEqual('error', allocation['state'])
+        self.assertIn('Candidate nodes', allocation['last_error'])
+        self.assertIsNone(allocation['node_id'])
+
+        node = objects.Node.get_by_uuid(self.context, node['uuid'])
+        self.assertIsNone(node['instance_uuid'])
+        self.assertIsNone(node['allocation_id'])
