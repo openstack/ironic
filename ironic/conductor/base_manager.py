@@ -117,11 +117,6 @@ class BaseConductorManager(object):
             use_groups=self._use_groups())
         """Consistent hash ring which maps drivers to conductors."""
 
-        # TODO(dtantsur): remove in Stein
-        if CONF.enabled_drivers:
-            raise RuntimeError("The enabled_drivers configuration option "
-                               "no longer has any effect and must be empty")
-
         _check_enabled_interfaces()
 
         # NOTE(deva): these calls may raise DriverLoadError or DriverNotFound

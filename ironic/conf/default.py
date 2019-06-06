@@ -77,15 +77,6 @@ api_opts = [
 ]
 
 driver_opts = [
-    cfg.ListOpt('enabled_drivers',
-                default=[],
-                help=_('This option is left for a start up check only. '
-                       'Any non-empty value will prevent the conductor '
-                       'from starting.'),
-                deprecated_for_removal=True,
-                deprecated_reason=_('Hardware types should be used instead '
-                                    'of classic drivers. They are enabled '
-                                    'via the enabled_hardware_types option.')),
     cfg.ListOpt('enabled_hardware_types',
                 default=['ipmi'],
                 help=_('Specify the list of hardware types to load during '
