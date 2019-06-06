@@ -183,6 +183,62 @@ Response Example
 .. literalinclude:: samples/allocation-show-response.json
    :language: javascript
 
+Update Allocation
+=================
+
+.. rest_method::  PATCH /v1/allocations/{allocation_id}
+
+Updates an allocation. Allows updating only name and extra fields.
+
+.. versionadded:: 1.57
+    Allocation update API was introduced.
+
+Normal response codes: 200
+
+Error response codes: 400, 401, 403, 404, 409, 503
+
+Request
+-------
+
+The BODY of the PATCH request must be a JSON PATCH document, adhering to
+`RFC 6902 <https://tools.ietf.org/html/rfc6902>`_.
+
+.. rest_parameters:: parameters.yaml
+
+   - allocation_id: allocation_ident
+   - name: req_allocation_name
+   - extra: req_extra
+
+Request Example
+---------------
+
+.. literalinclude:: samples/allocation-update-request.json
+   :language: javascript
+
+Response Parameters
+-------------------
+
+.. rest_parameters:: parameters.yaml
+
+   - uuid: uuid
+   - candidate_nodes: candidate_nodes
+   - last_error: allocation_last_error
+   - name: allocation_name
+   - node_uuid: allocation_node
+   - resource_class: allocation_resource_class
+   - state: allocation_state
+   - traits: allocation_traits
+   - extra: extra
+   - created_at: created_at
+   - updated_at: updated_at
+   - links: links
+
+Response Example
+----------------
+
+.. literalinclude:: samples/allocation-update-response.json
+   :language: javascript
+
 Delete Allocation
 =================
 
