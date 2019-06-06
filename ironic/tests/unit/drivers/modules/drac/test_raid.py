@@ -621,7 +621,6 @@ class DracRaidInterfaceTestCase(test_utils.BaseDracTest):
         mock_commit_config.return_value = '42'
         mock_client.create_virtual_disk.return_value = {
             'is_reboot_required': 'optional',
-            'commit_required': False,
             'is_commit_required': True}
 
         with task_manager.acquire(self.context, self.node.uuid,
@@ -659,7 +658,6 @@ class DracRaidInterfaceTestCase(test_utils.BaseDracTest):
         mock_list_physical_disks.return_value = physical_disks
         mock_client.create_virtual_disk.return_value = {
             'is_reboot_required': 'optional',
-            'commit_required': False,
             'is_commit_required': True}
 
         with task_manager.acquire(self.context, self.node.uuid,
@@ -705,7 +703,6 @@ class DracRaidInterfaceTestCase(test_utils.BaseDracTest):
         mock_commit_config.return_value = '42'
         mock_client.create_virtual_disk.return_value = {
             'is_reboot_required': 'optional',
-            'commit_required': False,
             'is_commit_required': True}
 
         with task_manager.acquire(self.context, self.node.uuid,
@@ -762,7 +759,6 @@ class DracRaidInterfaceTestCase(test_utils.BaseDracTest):
         mock_commit_config.return_value = '42'
         mock_client.create_virtual_disk.return_value = {
             'is_reboot_required': 'optional',
-            'commit_required': False,
             'is_commit_required': True}
 
         with task_manager.acquire(self.context, self.node.uuid,
@@ -809,15 +805,12 @@ class DracRaidInterfaceTestCase(test_utils.BaseDracTest):
 
         mock_client.create_virtual_disk.side_effect = [{
             'is_reboot_required': 'True',
-            'commit_required': True,
             'is_commit_required': True
         }, {
             'is_reboot_required': 'optional',
-            'commit_required': False,
             'is_commit_required': True
         }, {
             'is_reboot_required': 'optional',
-            'commit_required': False,
             'is_commit_required': True
         }]
 
@@ -886,7 +879,6 @@ class DracRaidInterfaceTestCase(test_utils.BaseDracTest):
         mock_commit_config.side_effect = ['42', '12', '13']
         mock_client.create_virtual_disk.return_value = {
             'is_reboot_required': 'optional',
-            'commit_required': False,
             'is_commit_required': True
         }
 
@@ -951,7 +943,6 @@ class DracRaidInterfaceTestCase(test_utils.BaseDracTest):
 
         mock_client.create_virtual_disk.return_value = {
             'is_reboot_required': 'optional',
-            'commit_required': False,
             'is_commit_required': True
         }
 
@@ -1017,7 +1008,6 @@ class DracRaidInterfaceTestCase(test_utils.BaseDracTest):
         mock_commit_config.side_effect = ['42', '12', '13']
         mock_client.create_virtual_disk.return_value = {
             'is_reboot_required': 'optional',
-            'commit_required': False,
             'is_commit_required': True
         }
 
@@ -1111,7 +1101,6 @@ class DracRaidInterfaceTestCase(test_utils.BaseDracTest):
         mock_commit_config.side_effect = ['42', '12']
         mock_client.create_virtual_disk.return_value = {
             'is_reboot_required': 'optional',
-            'commit_required': False,
             'is_commit_required': True
         }
 
@@ -1170,7 +1159,6 @@ class DracRaidInterfaceTestCase(test_utils.BaseDracTest):
         mock_commit_config.return_value = '42'
         mock_client.create_virtual_disk.return_value = {
             'is_reboot_required': 'optional',
-            'commit_required': False,
             'is_commit_required': True}
 
         with task_manager.acquire(self.context, self.node.uuid,
@@ -1212,7 +1200,6 @@ class DracRaidInterfaceTestCase(test_utils.BaseDracTest):
         mock_commit_config.return_value = '42'
         mock_client.create_virtual_disk.return_value = {
             'is_reboot_required': 'optional',
-            'commit_required': False,
             'is_commit_required': True
         }
 
@@ -1282,7 +1269,6 @@ class DracRaidInterfaceTestCase(test_utils.BaseDracTest):
         mock_commit_config.return_value = '42'
         mock_client.create_virtual_disk.return_value = {
             'is_reboot_required': 'optional',
-            'commit_required': False,
             'is_commit_required': True}
 
         with task_manager.acquire(self.context, self.node.uuid,
@@ -1324,7 +1310,6 @@ class DracRaidInterfaceTestCase(test_utils.BaseDracTest):
         mock_commit_config.return_value = '42'
         mock_create_virtual_disk.return_value = {
             'is_reboot_required': 'optional',
-            'commit_required': False,
             'is_commit_required': True}
 
         with task_manager.acquire(self.context, self.node.uuid,
@@ -1368,7 +1353,6 @@ class DracRaidInterfaceTestCase(test_utils.BaseDracTest):
         mock_commit_config.return_value = '42'
         mock_create_virtual_disk.return_value = {
             'is_reboot_required': 'optional',
-            'commit_required': False,
             'is_commit_required': True}
 
         with task_manager.acquire(self.context, self.node.uuid,
@@ -1412,7 +1396,6 @@ class DracRaidInterfaceTestCase(test_utils.BaseDracTest):
         mock_commit_config.return_value = '42'
         mock_delete_virtual_disk.return_value = {
             'is_reboot_required': 'optional',
-            'commit_required': False,
             'is_commit_required': True}
 
         with task_manager.acquire(self.context, self.node.uuid,
@@ -1447,7 +1430,6 @@ class DracRaidInterfaceTestCase(test_utils.BaseDracTest):
         mock_list_virtual_disks.return_value = []
         mock_delete_virtual_disk.return_value = {
             'is_reboot_required': 'optional',
-            'commit_required': False,
             'is_commit_required': True}
 
         with task_manager.acquire(self.context, self.node.uuid,

@@ -109,9 +109,12 @@ def set_config(task, **kwargs):
     :param task: a TaskManager instance containing the node to act on.
     :param kwargs: a dictionary of {'AttributeName': 'NewValue'}
     :raises: DracOperationError on an error from python-dracclient.
-    :returns: A dictionary containing the commit_required key with a boolean
-              value indicating whether commit_bios_config() needs to be called
-              to make the changes.
+    :returns: A dictionary containing the 'is_commit_required' key with a
+              boolean value indicating whether commit_config() needs to be
+              called to make the changes, and the 'is_reboot_required' key
+              which has a value of 'true' or 'false'.  This key is used to
+              indicate to the commit_config() call if a reboot should be
+              performed.
     """
     node = task.node
     drac_job.validate_job_queue(node)
