@@ -4,7 +4,9 @@
   <vcpu>{{ cpus }}</vcpu>
   <os>
     <type arch='{{ arch }}' machine='pc-1.0'>hvm</type>
+    {% if bootdev == 'network' and not uefi_loader %}
     <boot dev='{{ bootdev }}'/>
+    {% endif %}
     {% if uefi_loader %}
         <loader readonly='yes' type='pflash'>{{ uefi_loader }}</loader>
         {% if uefi_nvram %}
@@ -52,6 +54,9 @@
       <source dev='{{ "tap-" + name + "i" + n|string }}'/>
       <model type='{{ nicdriver }}'/>
       <address type='pci' domain='0x0000' bus='0x01' slot='{{ "0x0" + n|string }}' function='0x0'/>
+      {% if uefi_loader and bootdev == 'network' %}
+      <boot order='{{ n|string }}'/>
+      {% endif %}
     </interface>
     {% endfor %}
     <input type='mouse' bus='ps2'/>
