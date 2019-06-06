@@ -1,0 +1,7 @@
+---
+upgrade:
+  - |
+    The configuration option ``[DEFAULT]enabled_drivers`` is removed. The
+    option was deprecated in Rocky, and setting this option has raised an
+    exception preventing conductor from starting since then.
+    ``[DEFAULT]enabled_hardware_types`` should be used instead.
