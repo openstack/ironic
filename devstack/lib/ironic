@@ -517,7 +517,7 @@ if [[ "$IRONIC_BOOT_MODE" == "uefi" ]]; then
 
     if [[ "$IRONIC_IPXE_ENABLED" == "False" ]]; then
         # NOTE(TheJulia): While we no longer directly copy the
-        # IRONIC_GRUB2_FILE, we still check the exisstence as
+        # IRONIC_GRUB2_FILE, we still check the existence as
         # without the bootloader package we would be unable to build
         # the netboot core image.
         if [[ -z $IRONIC_GRUB2_SHIM_FILE ]] || [[ -z $IRONIC_GRUB2_FILE ]] || [[ ! -f $IRONIC_GRUB2_SHIM_FILE ]] || [[ ! -f $IRONIC_GRUB2_FILE ]]; then
@@ -985,6 +985,12 @@ function install_ironic {
             sudo dpkg -i "$temp_deb"
             rm -f "$temp_deb"
 
+            # NOTE(TheJulia): This no longer seems required as the ovmf images
+            # DO correctly network boot. The effect of this is making the
+            # default boot loader iPXE, which is not always desired nor
+            # realistic for hardware in the field.
+            # If it is after Train, we should likely just delete the lines
+            # below and consider the same for Fedora.
             # sudo rm /usr/share/qemu/pxe-virtio.rom
             # sudo ln -s /usr/lib/ipxe/qemu/efi-virtio.rom /usr/share/qemu/pxe-virtio.rom
         elif is_fedora; then
@@ -1112,7 +1118,6 @@ function configure_ironic_dirs {
         local uefi_boot_file
         local uefi_loader
         local uefi_nvram
-
 
         uefi_boot_file=$(get_uefi_ipxe_boot_file)
         if [ ! -f $uefi_boot_file ]; then
@@ -1803,7 +1808,7 @@ SUBSHELL
         vbmc_port=$((vbmc_port+1))
         pdu_outlet=$((pdu_outlet+1))
         # It is sometimes useful to dump out the VM configuration to validate it.
-        # sudo virsh dumpxml $vm_name
+        sudo virsh dumpxml $vm_name
     done
 
     if [[ -z "${IRONIC_PROVISION_NETWORK_NAME}" ]]; then
@@ -2355,18 +2360,17 @@ function configure_tftpd {
 
         if is_fedora; then
             grub_subdir="EFI/fedora"
-            grub_dir=$IRONIC_TFTPBOOT_DIR/EFI/fedora
         elif is_ubuntu; then
             grub_subdir="boot/grub"
-            grub_dir=$IRONIC_TFTPBOOT_DIR/boot/grub
         fi
+        grub_dir=$IRONIC_TFTPBOOT_DIR/$grub_subdir
         mkdir -p $grub_dir
         # Grub looks for numerous files when the grubnetx.efi binary is used :\
         # specifically .lst files which define module lists which we can't seem
         # to find on disk. That being said, the grub-mknetdir utility generates
         # these files for us.
         grub-mknetdir --net-directory="$IRONIC_TFTPBOOT_DIR" --subdir="$grub_subdir"
-        sudo cp $IRONIC_TFTPBOOT_DIR/$grub_subdir/x86_64-efi/core.efi $IRONIC_TFTPBOOT_DIR/grubx64.efi
+        sudo cp $grub_dir/x86_64-efi/core.efi $IRONIC_TFTPBOOT_DIR/grubx64.efi
         cat << EOF > $grub_dir/grub.cfg
 set default=master
 set timeout=1
