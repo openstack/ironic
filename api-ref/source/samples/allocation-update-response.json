@@ -1,0 +1,26 @@
+{
+  "node_uuid": null,
+  "uuid": "241db410-7b04-4b1c-87ae-4e336435db08",
+  "links": [
+    {
+      "href": "http://10.66.169.122/v1/allocations/241db410-7b04-4b1c-87ae-4e336435db08",
+      "rel": "self"
+    },
+    {
+      "href": "http://10.66.169.122/allocations/241db410-7b04-4b1c-87ae-4e336435db08",
+      "rel": "bookmark"
+    }
+  ],
+  "extra":
+    {
+      "foo": "bar"
+    },
+  "last_error": null,
+  "created_at": "2019-06-04T07:46:25+00:00",
+  "resource_class": "CUSTOM_GOLD",
+  "updated_at": "2019-06-06T03:28:19.496960+00:00",
+  "traits": [],
+  "state": "error",
+  "candidate_nodes": [],
+  "name": "test_allocation"
+}
