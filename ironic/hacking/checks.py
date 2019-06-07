@@ -23,7 +23,7 @@ UNDERSCORE_IMPORT_FILES = []
 string_translation = re.compile(r"[^_]*_\(\s*('|\")")
 translated_log = re.compile(
     r"(.)*LOG\.(audit|error|info|warn|warning|critical|exception)"
-    "\(\s*_\(\s*('|\")")
+    r"\(\s*_\(\s*('|\")")
 underscore_import_check = re.compile(r"(.)*import _(.)*")
 # We need this for cases where they have created their own _ function.
 custom_underscore_check = re.compile(r"(.)*_\s*=\s*(.)*")
