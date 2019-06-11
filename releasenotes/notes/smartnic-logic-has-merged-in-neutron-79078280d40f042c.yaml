@@ -1,0 +1,7 @@
+---
+features:
+  - |
+    The Smart-Nic functionality that was added to the Bare Metal Service
+    during the Stein cycle can now be used with a Train version of the
+    Networking Service (neutron) as Smart-Nic support merged into
+    that project during the Train development cycle.
