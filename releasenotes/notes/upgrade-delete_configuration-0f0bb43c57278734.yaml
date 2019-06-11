@@ -1,0 +1,5 @@
+---
+features:
+  - |
+    Foreign drives and global and dedicated hot spares will be freed
+    up during the RAID ``delete_configuration`` cleaning step.
