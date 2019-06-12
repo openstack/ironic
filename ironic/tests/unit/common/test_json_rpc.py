@@ -199,7 +199,7 @@ class TestService(test_base.TestCase):
                         'message': 'some error',
                         'code': 500,
                         'data': {
-                            'class': 'ironic.common.exception.IronicException'
+                            'class': 'ironic_lib.exception.IronicException'
                         }
                     })
 
