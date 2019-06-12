@@ -29,6 +29,7 @@ from ironic.common import exception
 from ironic.common import faults
 from ironic.common.i18n import _
 from ironic.common import network
+from ironic.common import nova
 from ironic.common import states
 from ironic.conductor import notification_utils as notify_utils
 from ironic.conductor import task_manager
@@ -304,6 +305,9 @@ def node_power_action(task, new_state, timeout=None):
         node['power_state'] = target_state
         node['target_power_state'] = states.NOSTATE
         node.save()
+        if node.instance_uuid:
+            nova.power_update(
+                task.context, node.instance_uuid, target_state)
         notify_utils.emit_power_set_notification(
             task, fields.NotificationLevel.INFO, fields.NotificationStatus.END,
             new_state)

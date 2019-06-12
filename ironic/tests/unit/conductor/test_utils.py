@@ -21,6 +21,7 @@ from ironic.common import boot_modes
 from ironic.common import exception
 from ironic.common import network
 from ironic.common import neutron
+from ironic.common import nova
 from ironic.common import states
 from ironic.conductor import rpcapi
 from ironic.conductor import task_manager
@@ -176,7 +177,9 @@ class NodePowerActionTestCase(db_base.DbTestCase):
 
     @mock.patch('ironic.objects.node.NodeSetPowerStateNotification')
     @mock.patch.object(fake.FakePower, 'get_power_state', autospec=True)
-    def test_node_power_action_power_on_notify(self, get_power_mock,
+    @mock.patch.object(nova, 'power_update', autospec=True)
+    def test_node_power_action_power_on_notify(self, mock_power_update,
+                                               get_power_mock,
                                                mock_notif):
         """Test node_power_action to power on node and send notification."""
         self.config(notification_level='info')
@@ -186,6 +189,7 @@ class NodePowerActionTestCase(db_base.DbTestCase):
         node = obj_utils.create_test_node(self.context,
                                           uuid=uuidutils.generate_uuid(),
                                           driver='fake-hardware',
+                                          instance_uuid=uuidutils.uuid,
                                           power_state=states.POWER_OFF)
         task = task_manager.TaskManager(self.context, node.uuid)
 
@@ -214,6 +218,8 @@ class NodePowerActionTestCase(db_base.DbTestCase):
                                      'ironic-conductor', CONF.host,
                                      'baremetal.node.power_set.end',
                                      obj_fields.NotificationLevel.INFO)
+        mock_power_update.assert_called_once_with(
+            task.context, node.instance_uuid, states.POWER_ON)
 
     @mock.patch.object(fake.FakePower, 'get_power_state', autospec=True)
     def test_node_power_action_power_off(self, get_power_mock):

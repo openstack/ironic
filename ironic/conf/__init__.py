@@ -39,6 +39,7 @@ from ironic.conf import json_rpc
 from ironic.conf import metrics
 from ironic.conf import metrics_statsd
 from ironic.conf import neutron
+from ironic.conf import nova
 from ironic.conf import pxe
 from ironic.conf import redfish
 from ironic.conf import service_catalog
@@ -72,6 +73,7 @@ json_rpc.register_opts(CONF)
 metrics.register_opts(CONF)
 metrics_statsd.register_opts(CONF)
 neutron.register_opts(CONF)
+nova.register_opts(CONF)
 pxe.register_opts(CONF)
 redfish.register_opts(CONF)
 service_catalog.register_opts(CONF)
