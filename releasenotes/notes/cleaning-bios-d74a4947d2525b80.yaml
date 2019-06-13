@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    Fixes traceback on cleaning of nodes with the ``redfish`` hardware type
+    if their BMC does not support BIOS settings.
