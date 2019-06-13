@@ -237,9 +237,11 @@ if not sushy:
     sushy.exceptions.SushyError = (
         type('SushyError', (MockKwargsException,), {}))
     sushy.exceptions.ConnectionError = (
-        type('ConnectionError', (MockKwargsException,), {}))
+        type('ConnectionError', (sushy.exceptions.SushyError,), {}))
     sushy.exceptions.ResourceNotFoundError = (
-        type('ResourceNotFoundError', (MockKwargsException,), {}))
+        type('ResourceNotFoundError', (sushy.exceptions.SushyError,), {}))
+    sushy.exceptions.MissingAttributeError = (
+        type('MissingAttributeError', (sushy.exceptions.SushyError,), {}))
     sushy.auth = mock.MagicMock(spec_set=mock_specs.SUSHY_AUTH_SPEC)
     sys.modules['sushy.auth'] = sushy.auth
 
