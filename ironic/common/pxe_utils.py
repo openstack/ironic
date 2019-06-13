@@ -470,19 +470,22 @@ def dhcp_options_for_instance(task, ipxe_enabled=False, url_boot=False):
             # added in the Stein cycle which identifies the iPXE User-Class
             # directly and is only sent in DHCPv6.
 
-            # NOTE(TheJulia): Lets send both, let neutron tag/sort it out as
-            # an ip_version field is also transmitted. Plus, given the
-            # semi-obscure nature of this, being more verbose and letting
-            # the DHCP server do the best thing possible is likely the best
-            # course of action.
-            dhcp_opts.append({'opt_name': "tag:!ipxe,%s" % boot_file_param,
-                              'opt_value': boot_file})
-            dhcp_opts.append({'opt_name': "tag:!ipxe6,%s" % boot_file_param,
-                              'opt_value': boot_file})
-            dhcp_opts.append({'opt_name': "tag:ipxe,%s" % boot_file_param,
-                              'opt_value': ipxe_script_url})
-            dhcp_opts.append({'opt_name': "tag:ipxe6,%s" % boot_file_param,
-                              'opt_value': ipxe_script_url})
+            if ip_version != 6:
+                dhcp_opts.append(
+                    {'opt_name': "tag:!ipxe,%s" % boot_file_param,
+                     'opt_value': boot_file}
+                )
+                dhcp_opts.append(
+                    {'opt_name': "tag:ipxe,%s" % boot_file_param,
+                     'opt_value': ipxe_script_url}
+                )
+            else:
+                dhcp_opts.append(
+                    {'opt_name': "tag:!ipxe6,%s" % boot_file_param,
+                     'opt_value': boot_file})
+                dhcp_opts.append(
+                    {'opt_name': "tag:ipxe6,%s" % boot_file_param,
+                     'opt_value': ipxe_script_url})
         else:
             # !175 == non-iPXE.
             # http://ipxe.org/howto/dhcpd#ipxe-specific_options
