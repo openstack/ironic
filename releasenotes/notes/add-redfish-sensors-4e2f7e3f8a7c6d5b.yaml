@@ -1,0 +1,5 @@
+---
+features:
+  - |
+    Adds sensor data collector to ``redfish`` management interface.
+    Temperature, power, cooling and drive health metrics are collected.

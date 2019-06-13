@@ -16,7 +16,7 @@ python-xclarityclient>=0.1.6
 ImcSdk>=0.7.2
 
 # The Redfish hardware type uses the Sushy library
-sushy>=1.6.0
+sushy>=1.9.0
 
 # Ansible-deploy interface
 ansible>=2.4
