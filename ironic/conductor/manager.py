@@ -3115,7 +3115,7 @@ class ConductorManager(base_manager.BaseConductorManager):
     def _check_inspect_wait_timeouts(self, context):
         """Periodically checks inspect_wait_timeout and fails upon reaching it.
 
-        :param: context: request context
+        :param context: request context
 
         """
         # FIXME(rloo): If the value is < 0, it will be enabled. That doesn't
@@ -4112,8 +4112,8 @@ def do_sync_power_state(task, count):
 def _do_inspect_hardware(task):
     """Initiates inspection.
 
-    :param: task: a TaskManager instance with an exclusive lock
-                  on its node.
+    :param task: a TaskManager instance with an exclusive lock
+                 on its node.
     :raises: HardwareInspectionFailure if driver doesn't
              return the state as states.MANAGEABLE, states.INSPECTWAIT.
 

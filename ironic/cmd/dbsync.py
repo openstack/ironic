@@ -169,10 +169,10 @@ class DBCommand(object):
         specified max_count. A migration of an object will typically migrate
         one row of data inside the database.
 
-        :param: context: an admin context
-        :param: max_count: the maximum number of objects (rows) to migrate;
+        :param context: an admin context
+        :param max_count: the maximum number of objects (rows) to migrate;
             a value >= 1.
-        :param: options: migration options - dict mapping migration name
+        :param options: migration options - dict mapping migration name
             to a dictionary of options for this migration.
         :raises: Exception from the migration function
         :returns: Boolean value indicating whether migrations are done. Returns
@@ -226,10 +226,10 @@ class DBCommand(object):
         migrations are done. Otherwise, this will run (some of) the functions
         until max_count objects have been migrated.
 
-        :param: max_count: the maximum number of individual object migrations
+        :param max_count: the maximum number of individual object migrations
             or modified rows, a value >= 1. If None, migrations are run in a
             loop in batches of 50, until completion.
-        :param: options: options to pass to migrations. List of values in the
+        :param options: options to pass to migrations. List of values in the
             form of <migration name>.<option>=<value>
         :raises: SystemExit. With exit code of:
             0: when all migrations are complete.

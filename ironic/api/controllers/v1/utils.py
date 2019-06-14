@@ -370,7 +370,7 @@ def is_valid_node_name(name):
 
     Check to see that the provided node name is valid, and isn't a UUID.
 
-    :param: name: the node name to check.
+    :param name: the node name to check.
     :returns: True if the name is valid, False otherwise.
     """
     return is_valid_logical_name(name) and not uuidutils.is_uuid_like(name)

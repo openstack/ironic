@@ -446,29 +446,29 @@ class BaseConductorManager(object):
         in whatever provisioning activity it was currently doing.
         That failure is processed here.
 
-        :param: context: request context
-        :param: filters: criteria (as a dictionary) to get the desired
-                         list of nodes that satisfy the filter constraints.
-                         For example, if filters['provisioned_before'] = 60,
-                         this would process nodes whose provision_updated_at
-                         field value was 60 or more seconds before 'now'.
-        :param: provision_state: provision_state that the node is in,
-                                 for the provisioning activity to have failed,
-                                 either one string or a set.
-        :param: sort_key: the nodes are sorted based on this key.
-        :param: callback_method: the callback method to be invoked in a
-                                 spawned thread, for a failed node. This
-                                 method must take a :class:`TaskManager` as
-                                 the first (and only required) parameter.
-        :param: err_handler: for a failed node, the error handler to invoke
-                             if an error occurs trying to spawn an thread
-                             to do the callback_method.
-        :param: last_error: the error message to be updated in node.last_error
-        :param: keep_target_state: if True, a failed node will keep the same
-                                   target provision state it had before the
-                                   failure. Otherwise, the node's target
-                                   provision state will be determined by the
-                                   fsm.
+        :param context: request context
+        :param filters: criteria (as a dictionary) to get the desired
+                        list of nodes that satisfy the filter constraints.
+                        For example, if filters['provisioned_before'] = 60,
+                        this would process nodes whose provision_updated_at
+                        field value was 60 or more seconds before 'now'.
+        :param provision_state: provision_state that the node is in,
+                                for the provisioning activity to have failed,
+                                either one string or a set.
+        :param sort_key: the nodes are sorted based on this key.
+        :param callback_method: the callback method to be invoked in a
+                                spawned thread, for a failed node. This
+                                method must take a :class:`TaskManager` as
+                                the first (and only required) parameter.
+        :param err_handler: for a failed node, the error handler to invoke
+                            if an error occurs trying to spawn an thread
+                            to do the callback_method.
+        :param last_error: the error message to be updated in node.last_error
+        :param keep_target_state: if True, a failed node will keep the same
+                                  target provision state it had before the
+                                  failure. Otherwise, the node's target
+                                  provision state will be determined by the
+                                  fsm.
 
         """
         if isinstance(provision_state, six.string_types):
@@ -512,7 +512,7 @@ class BaseConductorManager(object):
     def _start_consoles(self, context):
         """Start consoles if set enabled.
 
-        :param: context: request context
+        :param context: request context
         """
         filters = {'console_enabled': True}
 
