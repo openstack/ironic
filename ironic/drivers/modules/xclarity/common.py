@@ -134,7 +134,7 @@ def get_server_hardware_id(node):
 
     Validates whether node configutation is consistent with XClarity and
     returns the XClarity Hardware ID for a specific node.
-    :param: node: node object to get information from
+    :param node: node object to get information from
     :returns: the XClarity Hardware ID for a specific node
     :raises: MissingParameterValue if unable to validate XClarity Hardware ID
 
@@ -151,7 +151,7 @@ def get_server_hardware_id(node):
 def translate_xclarity_power_state(power_state):
     """Translates XClarity's power state strings to be consistent with Ironic.
 
-    :param: power_state: power state string to be translated
+    :param power_state: power state string to be translated
     :returns: the translated power state
     """
     power_states_map = {
@@ -165,7 +165,7 @@ def translate_xclarity_power_state(power_state):
 def translate_xclarity_power_action(power_action):
     """Translates ironic's power action strings to XClarity's format.
 
-    :param: power_action: power action string to be translated
+    :param power_action: power action string to be translated
     :returns: the power action translated
     """
 

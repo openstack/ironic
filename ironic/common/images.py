@@ -530,8 +530,8 @@ def is_whole_disk_image(ctx, instance_info):
 def _mount_deploy_iso(deploy_iso, mountdir):
     """This function opens up the deploy iso used for deploy.
 
-    :param: deploy_iso: path to the deploy iso where its
-                        contents are fetched to.
+    :param deploy_iso: path to the deploy iso where its
+                       contents are fetched to.
     :raises: ImageCreationFailed if mount fails.
     :returns: a tuple consisting of - 1. a dictionary containing
                                          the values as required
