@@ -76,9 +76,8 @@ def get_client(token=None, context=None):
     else:
         if CONF.neutron.url and not CONF.neutron.endpoint_override:
             adapter_params['endpoint_override'] = CONF.neutron.url
-    adapter = keystone.get_adapter('neutron', session=session,
-                                   auth=service_auth, **adapter_params)
-    endpoint = adapter.get_endpoint()
+    endpoint = keystone.get_endpoint('neutron', session=session,
+                                     auth=service_auth, **adapter_params)
 
     user_auth = None
     if CONF.neutron.auth_type != 'none' and context.auth_token:

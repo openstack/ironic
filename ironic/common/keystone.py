@@ -103,6 +103,25 @@ def get_adapter(group, **adapter_kwargs):
                                                     **adapter_kwargs)
 
 
+def get_endpoint(group, **adapter_kwargs):
+    """Get an endpoint from an adapter.
+
+    The adapter_kwargs will be passed directly to keystoneauth1 Adapter
+    and will override the values loaded from config.
+    Consult keystoneauth1 docs for available adapter options.
+
+    :param group: name of the config section to load adapter options from
+    :raises: CatalogNotFound if the endpoint is not found
+    """
+    result = get_adapter(group, **adapter_kwargs).get_endpoint()
+    if not result:
+        service_type = adapter_kwargs.get('service_type', 'baremetal')
+        endpoint_type = adapter_kwargs.get('endpoint_type', 'internal')
+        raise exception.CatalogNotFound(
+            service_type=service_type, endpoint_type=endpoint_type)
+    return result
+
+
 def get_service_auth(context, endpoint, service_auth):
     """Create auth plugin wrapping both user and service auth.
 

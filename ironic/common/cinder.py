@@ -55,11 +55,10 @@ def get_client(context):
     if CONF.cinder.url and not CONF.cinder.endpoint_override:
         adapter_opts['endpoint_override'] = CONF.cinder.url
 
-    adapter = keystone.get_adapter('cinder', session=session,
-                                   auth=service_auth, **adapter_opts)
     # TODO(pas-ha) use versioned endpoint data to select required
     # cinder api version
-    cinder_url = adapter.get_endpoint()
+    cinder_url = keystone.get_endpoint('cinder', session=session,
+                                       auth=service_auth, **adapter_opts)
     # TODO(pas-ha) investigate possibility of passing a user context here,
     # similar to what neutron/glance-related code does
     # NOTE(pas-ha) cinderclient has both 'connect_retries' (passed to

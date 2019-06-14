@@ -108,9 +108,8 @@ def get_ironic_api_url():
     # NOTE(pas-ha) if both set, the new options win
     if CONF.conductor.api_url and not CONF.service_catalog.endpoint_override:
         adapter_opts['endpoint_override'] = CONF.conductor.api_url
-    adapter = keystone.get_adapter('service_catalog', **adapter_opts)
     try:
-        ironic_api = adapter.get_endpoint()
+        ironic_api = keystone.get_endpoint('service_catalog', **adapter_opts)
     except (exception.KeystoneFailure,
             exception.CatalogNotFound,
             exception.KeystoneUnauthorized) as e:

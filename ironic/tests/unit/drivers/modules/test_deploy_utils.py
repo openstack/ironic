@@ -1315,6 +1315,17 @@ class OtherFunctionTestCase(db_base.DbTestCase):
         self.assertRaises(exception.InvalidParameterValue,
                           utils.get_ironic_api_url)
 
+    @mock.patch('ironic.common.keystone.get_auth')
+    @mock.patch.object(utils, '_get_ironic_session')
+    @mock.patch('ironic.common.keystone.get_adapter')
+    def test_get_ironic_api_url_none(self, mock_ka, mock_ks, mock_auth):
+        mock_sess = mock.Mock()
+        mock_ks.return_value = mock_sess
+        mock_ka.return_value.get_endpoint.return_value = None
+        self.config(api_url=None, group='conductor')
+        self.assertRaises(exception.InvalidParameterValue,
+                          utils.get_ironic_api_url)
+
 
 class GetSingleNicTestCase(db_base.DbTestCase):
 
