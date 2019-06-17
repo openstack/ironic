@@ -60,7 +60,13 @@ GITDIR["sushy-tools"]=$DEST/sushy-tools
 IRONIC_DIR=$DEST/ironic
 IRONIC_DEVSTACK_DIR=$IRONIC_DIR/devstack
 IRONIC_DEVSTACK_FILES_DIR=$IRONIC_DEVSTACK_DIR/files
+# TODO(dtantsur): delete these three when we migrate image building to
+# ironic-python-agent-builder completely
+IRONIC_PYTHON_AGENT_REPO=${IRONIC_PYTHON_AGENT_REPO:-${GIT_BASE}/openstack/ironic-python-agent.git}
+IRONIC_PYTHON_AGENT_BRANCH=${IRONIC_PYTHON_AGENT_BRANCH:-$TARGET_BRANCH}
 IRONIC_PYTHON_AGENT_DIR=$DEST/ironic-python-agent
+IRONIC_PYTHON_AGENT_BUILDER_REPO=${IRONIC_PYTHON_AGENT_BUILDER_REPO:-${GIT_BASE}/openstack/ironic-python-agent-builder.git}
+IRONIC_PYTHON_AGENT_BUILDER_BRANCH=${IRONIC_PYTHON_AGENT_BUILDER_BRANCH:-$TARGET_BRANCH}
 IRONIC_PYTHON_AGENT_BUILDER_DIR=$DEST/ironic-python-agent-builder
 IRONIC_DATA_DIR=$DATA_DIR/ironic
 IRONIC_STATE_PATH=/var/lib/ironic
