@@ -61,6 +61,7 @@ IRONIC_DIR=$DEST/ironic
 IRONIC_DEVSTACK_DIR=$IRONIC_DIR/devstack
 IRONIC_DEVSTACK_FILES_DIR=$IRONIC_DEVSTACK_DIR/files
 IRONIC_PYTHON_AGENT_DIR=$DEST/ironic-python-agent
+IRONIC_PYTHON_AGENT_BUILDER_DIR=$DEST/ironic-python-agent-builder
 IRONIC_DATA_DIR=$DATA_DIR/ironic
 IRONIC_STATE_PATH=/var/lib/ironic
 IRONIC_AUTH_CACHE_DIR=${IRONIC_AUTH_CACHE_DIR:-/var/cache/ironic}
@@ -2432,8 +2433,8 @@ function build_tinyipa_ramdisk {
     local kernel_path=$1
     local ramdisk_path=$2
     local iso_path=$3
-    git_clone $IRONIC_PYTHON_AGENT_REPO $IRONIC_PYTHON_AGENT_DIR $IRONIC_PYTHON_AGENT_BRANCH
-    cd $IRONIC_PYTHON_AGENT_DIR/imagebuild/tinyipa
+    git_clone $IRONIC_PYTHON_AGENT_BUILDER_REPO $IRONIC_PYTHON_AGENT_BUILDER_DIR $IRONIC_PYTHON_AGENT_BUILDER_BRANCH
+    cd $IRONIC_PYTHON_AGENT_BUILDER_DIR/tinyipa
     export BUILD_AND_INSTALL_TINYIPA=true
     if is_ansible_deploy_enabled; then
         export AUTHORIZE_SSH=true
@@ -2452,7 +2453,7 @@ function build_tinyipa_ramdisk {
 
 function rebuild_tinyipa_for_ansible {
     local ansible_tinyipa_ramdisk_name
-    pushd $IRONIC_PYTHON_AGENT_DIR/imagebuild/tinyipa
+    pushd $IRONIC_PYTHON_AGENT_BUILDER_DIR/tinyipa
     export TINYIPA_RAMDISK_FILE=$IRONIC_DEPLOY_RAMDISK
     export SSH_PUBLIC_KEY=$IRONIC_ANSIBLE_SSH_KEY.pub
     make addssh
