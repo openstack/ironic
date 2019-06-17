@@ -17,7 +17,9 @@
 import datetime
 import os
 import re
+import subprocess
 import sys
+
 
 # This script is run as a libvirt hook.
 # More information here: https://libvirt.org/hooks.html
@@ -41,6 +43,18 @@ def main():
 
     guest_name = sys.argv[1]
     action = sys.argv[2]
+
+    if action == "started":
+        interfaces = str(
+            subprocess.check_output(
+                ['ip', 'link', 'show', 'type', 'macvtap']
+            )).split("\n")
+        for iface_line in interfaces:
+            if 'macvtap' in iface_line:
+                iface_string = iface_line.split('@')
+                ifaces = iface_string[0].split(' ')
+                subprocess.call(['ip', 'link', 'set', 'dev', ifaces[1],
+                                 'multicast', 'on', 'allmulticast', 'on'])
 
     if action != "release":
         return
