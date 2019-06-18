@@ -14,15 +14,21 @@
 #    under the License.
 
 import collections
+import os
 import re
+import sys
 import time
 
+from glanceclient import client
+from glanceclient import exc as glance_exc
+from oslo_log import log
 from oslo_utils import uuidutils
+import sendfile
+import six
 from six.moves.urllib import parse as urlparse
 from swiftclient import utils as swift_utils
 
-from ironic.common import exception as exc
-from ironic.common.glance_service import base_image_service
+from ironic.common import exception
 from ironic.common.glance_service import service_utils
 from ironic.common.i18n import _
 from ironic.common import keystone
@@ -33,7 +39,62 @@ TempUrlCacheElement = collections.namedtuple('TempUrlCacheElement',
                                              ['url', 'url_expires_at'])
 
 
-class GlanceImageService(base_image_service.BaseImageService):
+LOG = log.getLogger(__name__)
+_GLANCE_SESSION = None
+
+
+def _translate_image_exception(image_id, exc_value):
+    if isinstance(exc_value, (glance_exc.Forbidden,
+                              glance_exc.Unauthorized)):
+        return exception.ImageNotAuthorized(image_id=image_id)
+    if isinstance(exc_value, glance_exc.NotFound):
+        return exception.ImageNotFound(image_id=image_id)
+    if isinstance(exc_value, glance_exc.BadRequest):
+        return exception.Invalid(exc_value)
+    return exc_value
+
+
+def check_image_service(func):
+    """Creates a glance client if doesn't exists and calls the function."""
+    @six.wraps(func)
+    def wrapper(self, *args, **kwargs):
+        """Wrapper around methods calls.
+
+        :param image_href: href that describes the location of an image
+        """
+
+        if self.client:
+            return func(self, *args, **kwargs)
+
+        global _GLANCE_SESSION
+        if not _GLANCE_SESSION:
+            _GLANCE_SESSION = keystone.get_session('glance')
+
+        # NOTE(pas-ha) glanceclient uses Adapter-based SessionClient,
+        # so we can pass session and auth separately, makes things easier
+        service_auth = keystone.get_auth('glance')
+
+        adapter = keystone.get_adapter('glance', session=_GLANCE_SESSION,
+                                       auth=service_auth)
+        self.endpoint = adapter.get_endpoint()
+
+        user_auth = None
+        # NOTE(pas-ha) our ContextHook removes context.auth_token in noauth
+        # case, so when ironic is in noauth but glance is not, we will not
+        # enter the next if-block and use auth from [glance] config section
+        if self.context.auth_token:
+            user_auth = keystone.get_service_auth(self.context, self.endpoint,
+                                                  service_auth)
+        self.client = client.Client(2, session=_GLANCE_SESSION,
+                                    auth=user_auth or service_auth,
+                                    endpoint_override=self.endpoint,
+                                    global_request_id=self.context.global_id)
+        return func(self, *args, **kwargs)
+
+    return wrapper
+
+
+class GlanceImageService(object):
 
     # A dictionary containing cached temp URLs in namedtuples
     # in format:
@@ -45,11 +106,112 @@ class GlanceImageService(base_image_service.BaseImageService):
     # }
     _cache = {}
 
-    def show(self, image_id):
-        return self._show(image_id, method='get')
+    def __init__(self, client=None, context=None):
+        self.client = client
+        self.context = context
+        self.endpoint = None
 
-    def download(self, image_id, data=None):
-        return self._download(image_id, method='data', data=data)
+    def call(self, method, *args, **kwargs):
+        """Call a glance client method.
+
+        If we get a connection error,
+        retry the request according to CONF.num_retries.
+
+        :param context: The request context, for access checks.
+        :param method: The method requested to be called.
+        :param args: A list of positional arguments for the method called
+        :param kwargs: A dict of keyword arguments for the method called
+
+        :raises: GlanceConnectionFailed
+        """
+        retry_excs = (glance_exc.ServiceUnavailable,
+                      glance_exc.InvalidEndpoint,
+                      glance_exc.CommunicationError)
+        image_excs = (glance_exc.Forbidden,
+                      glance_exc.Unauthorized,
+                      glance_exc.NotFound,
+                      glance_exc.BadRequest)
+        num_attempts = 1 + CONF.glance.num_retries
+
+        # TODO(pas-ha) use retrying lib here
+        for attempt in range(1, num_attempts + 1):
+            try:
+                return getattr(self.client.images, method)(*args, **kwargs)
+            except retry_excs as e:
+                error_msg = ("Error contacting glance endpoint "
+                             "%(endpoint)s for '%(method)s', attempt "
+                             "%(attempt)s of %(num_attempts)s failed.")
+                LOG.exception(error_msg, {'endpoint': self.endpoint,
+                                          'num_attempts': num_attempts,
+                                          'attempt': attempt,
+                                          'method': method})
+                if attempt == num_attempts:
+                    raise exception.GlanceConnectionFailed(
+                        endpoint=self.endpoint, reason=e)
+                time.sleep(1)
+            except image_excs:
+                exc_type, exc_value, exc_trace = sys.exc_info()
+                new_exc = _translate_image_exception(
+                    args[0], exc_value)
+                six.reraise(type(new_exc), new_exc, exc_trace)
+
+    @check_image_service
+    def show(self, image_href):
+        """Returns a dict with image data for the given opaque image id.
+
+        :param image_href: The opaque image identifier.
+        :returns: A dict containing image metadata.
+
+        :raises: ImageNotFound
+        :raises: ImageUnacceptable if the image status is not active
+        """
+        LOG.debug("Getting image metadata from glance. Image: %s",
+                  image_href)
+        image_id = service_utils.parse_image_id(image_href)
+
+        image = self.call('get', image_id)
+
+        if not service_utils.is_image_active(image):
+            raise exception.ImageUnacceptable(
+                image_id=image_id,
+                reason=_("The image is required to be in an active state."))
+
+        if not service_utils.is_image_available(self.context, image):
+            raise exception.ImageNotFound(image_id=image_id)
+
+        base_image_meta = service_utils.translate_from_glance(image)
+        return base_image_meta
+
+    @check_image_service
+    def download(self, image_href, data=None):
+        """Calls out to Glance for data and writes data.
+
+        :param image_href: The opaque image identifier.
+        :param data: (Optional) File object to write data to.
+        """
+        image_id = service_utils.parse_image_id(image_href)
+
+        if 'file' in CONF.glance.allowed_direct_url_schemes:
+            location = self._get_location(image_id)
+            url = urlparse.urlparse(location)
+            if url.scheme == "file":
+                with open(url.path, "r") as f:
+                    filesize = os.path.getsize(f.name)
+                    sendfile.sendfile(data.fileno(), f.fileno(), 0, filesize)
+                return
+
+        image_chunks = self.call('data', image_id)
+        # NOTE(dtantsur): when using Glance V2, image_chunks is a wrapper
+        # around real data, so we have to check the wrapped data for None.
+        if image_chunks.wrapped is None:
+            raise exception.ImageDownloadFailed(
+                image_href=image_href, reason=_('image contains no data.'))
+
+        if data is None:
+            return image_chunks
+        else:
+            for chunk in image_chunks:
+                data.write(chunk)
 
     def _generate_temp_url(self, path, seconds, key, method, endpoint,
                            image_id):
@@ -119,7 +281,7 @@ class GlanceImageService(base_image_service.BaseImageService):
 
         if ('id' not in image_info or not
                 uuidutils.is_uuid_like(image_info['id'])):
-            raise exc.ImageUnacceptable(_(
+            raise exception.ImageUnacceptable(_(
                 'The given image info does not have a valid image id: %s')
                 % image_info)
 
@@ -138,7 +300,7 @@ class GlanceImageService(base_image_service.BaseImageService):
             endpoint_url = adapter.get_endpoint()
 
         if not endpoint_url:
-            raise exc.MissingParameterValue(_(
+            raise exception.MissingParameterValue(_(
                 'Swift temporary URLs require a Swift endpoint URL, but it '
                 'was not found in the service catalog. '
                 'You must provide "swift_endpoint_url" as a config option.'))
@@ -159,7 +321,7 @@ class GlanceImageService(base_image_service.BaseImageService):
             key = swift_api.connection.head_account().get(key_header)
 
         if not key:
-            raise exc.MissingParameterValue(_(
+            raise exception.MissingParameterValue(_(
                 'Swift temporary URLs require a shared secret to be '
                 'created. You must provide "swift_temp_url_key" as a '
                 'config option or pre-generate the key on the project '
@@ -183,7 +345,7 @@ class GlanceImageService(base_image_service.BaseImageService):
         """Validate the required settings for a temporary URL."""
         if (CONF.glance.swift_temp_url_duration
                 < CONF.glance.swift_temp_url_expected_download_start_delay):
-            raise exc.InvalidParameterValue(_(
+            raise exception.InvalidParameterValue(_(
                 '"swift_temp_url_duration" must be greater than or equal to '
                 '"[glance]swift_temp_url_expected_download_start_delay" '
                 'option, otherwise the Swift temporary URL may expire before '
@@ -191,7 +353,7 @@ class GlanceImageService(base_image_service.BaseImageService):
         seed_num_chars = CONF.glance.swift_store_multiple_containers_seed
         if (seed_num_chars is None or seed_num_chars < 0
                 or seed_num_chars > 32):
-            raise exc.InvalidParameterValue(_(
+            raise exception.InvalidParameterValue(_(
                 "An integer value between 0 and 32 is required for"
                 " swift_store_multiple_containers_seed."))
 
@@ -238,7 +400,7 @@ class GlanceImageService(base_image_service.BaseImageService):
         image_meta = self.call('get', image_id)
 
         if not service_utils.is_image_available(self.context, image_meta):
-            raise exc.ImageNotFound(image_id=image_id)
+            raise exception.ImageNotFound(image_id=image_id)
 
         return getattr(image_meta, 'direct_url', None)
 

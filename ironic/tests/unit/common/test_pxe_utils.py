@@ -25,7 +25,7 @@ from oslo_utils import uuidutils
 import six
 
 from ironic.common import exception
-from ironic.common.glance_service import base_image_service
+from ironic.common.glance_service import image_service
 from ironic.common import pxe_utils
 from ironic.common import states
 from ironic.common import utils
@@ -1126,8 +1126,7 @@ class PXEInterfacesTestCase(db_base.DbTestCase):
         self.assertRaises(exception.MissingParameterValue,
                           pxe_utils.get_image_info, self.node)
 
-    @mock.patch.object(base_image_service.BaseImageService, '_show',
-                       autospec=True)
+    @mock.patch.object(image_service.GlanceImageService, 'show', autospec=True)
     def _test_get_instance_image_info(self, show_mock):
         properties = {'properties': {u'kernel_id': u'instance_kernel_uuid',
                       u'ramdisk_id': u'instance_ramdisk_uuid'}}
@@ -1147,8 +1146,7 @@ class PXEInterfacesTestCase(db_base.DbTestCase):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
             image_info = pxe_utils.get_instance_image_info(task)
-            show_mock.assert_called_once_with(mock.ANY, 'glance://image_uuid',
-                                              method='get')
+            show_mock.assert_called_once_with(mock.ANY, 'glance://image_uuid')
             self.assertEqual(expected_info, image_info)
 
             # test with saved info
@@ -1183,8 +1181,7 @@ class PXEInterfacesTestCase(db_base.DbTestCase):
             self.assertEqual({}, image_info)
             boot_opt_mock.assert_called_once_with(task.node)
 
-    @mock.patch.object(base_image_service.BaseImageService, '_show',
-                       autospec=True)
+    @mock.patch.object(image_service.GlanceImageService, 'show', autospec=True)
     def test_get_instance_image_info_whole_disk_image(self, show_mock):
         properties = {'properties': None}
         show_mock.return_value = properties

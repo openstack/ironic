@@ -23,7 +23,7 @@ import six.moves.builtins as __builtin__
 from six.moves import http_client
 
 from ironic.common import exception
-from ironic.common.glance_service.v2 import image_service as glance_v2_service
+from ironic.common.glance_service import image_service as glance_v2_service
 from ironic.common import image_service
 from ironic.tests import base
 

@@ -27,9 +27,8 @@ import testtools
 
 from ironic.common import context
 from ironic.common import exception
-from ironic.common.glance_service import base_image_service
+from ironic.common.glance_service import image_service
 from ironic.common.glance_service import service_utils
-from ironic.common.glance_service.v2 import image_service as glance_v2
 from ironic.common import image_service as service
 from ironic.tests import base
 from ironic.tests.unit import stubs
@@ -245,9 +244,9 @@ class TestGlanceImageService(base.TestCase):
 
         self.config(allowed_direct_url_schemes=['file'], group='glance')
 
-        # patching open in base_image_service module namespace
+        # patching open in image_service module namespace
         # to make call-spec assertions
-        with mock.patch('ironic.common.glance_service.base_image_service.open',
+        with mock.patch('ironic.common.glance_service.image_service.open',
                         new=mock.mock_open(), create=True) as mock_ironic_open:
             with open('/whatever/target', 'w') as mock_target_fd:
                 stub_service.download(image_id, mock_target_fd)
@@ -356,7 +355,7 @@ class CheckImageServiceTestCase(base.TestCase):
                     region_name='SomeRegion',
                     interface='internal',
                     group='glance')
-        base_image_service._GLANCE_SESSION = None
+        image_service._GLANCE_SESSION = None
 
     def test_check_image_service_client_already_set(self, mock_gclient,
                                                     mock_sess, mock_adapter,
@@ -366,7 +365,7 @@ class CheckImageServiceTestCase(base.TestCase):
 
         self.service.client = True
 
-        wrapped_func = base_image_service.check_image_service(func)
+        wrapped_func = image_service.check_image_service(func)
         self.assertTrue(wrapped_func(self.service))
         self.assertEqual(0, mock_gclient.call_count)
         self.assertEqual(0, mock_sess.call_count)
@@ -393,7 +392,7 @@ class CheckImageServiceTestCase(base.TestCase):
         uuid = uuidutils.generate_uuid()
         params = {'image_href': uuid}
 
-        wrapped_func = base_image_service.check_image_service(func)
+        wrapped_func = image_service.check_image_service(func)
         self.assertEqual(((), params), wrapped_func(self.service, **params))
         self._assert_client_call(mock_gclient, 'glance_url')
         mock_auth.assert_called_once_with('glance')
@@ -417,7 +416,7 @@ class CheckImageServiceTestCase(base.TestCase):
         uuid = uuidutils.generate_uuid()
         params = {'image_href': uuid}
 
-        wrapped_func = base_image_service.check_image_service(func)
+        wrapped_func = image_service.check_image_service(func)
         self.assertEqual(((), params), wrapped_func(self.service, **params))
         self._assert_client_call(mock_gclient, 'glance_url', user=True)
         mock_sess.assert_called_once_with('glance')
@@ -441,9 +440,9 @@ class CheckImageServiceTestCase(base.TestCase):
         uuid = uuidutils.generate_uuid()
         params = {'image_href': uuid}
 
-        wrapped_func = base_image_service.check_image_service(func)
+        wrapped_func = image_service.check_image_service(func)
         self.assertEqual(((), params), wrapped_func(self.service, **params))
-        self.assertEqual('none', base_image_service.CONF.glance.auth_type)
+        self.assertEqual('none', image_service.CONF.glance.auth_type)
         self._assert_client_call(mock_gclient, 'foo')
         mock_sess.assert_called_once_with('glance')
         mock_adapter.assert_called_once_with('glance',
@@ -785,8 +784,8 @@ class TestSwiftTempUrlCache(base.TestCase):
             {'uuid': fake_image['id'], 'exp_time': exp_time}
         )
         self.glance_service._cache[fake_image['id']] = (
-            glance_v2.TempUrlCacheElement(url=temp_url,
-                                          url_expires_at=exp_time)
+            image_service.TempUrlCacheElement(url=temp_url,
+                                              url_expires_at=exp_time)
         )
 
         cleanup_mock = mock.Mock()
@@ -813,7 +812,7 @@ class TestSwiftTempUrlCache(base.TestCase):
         )
         query = '?temp_url_sig=hmacsig&temp_url_expires=%s'
         self.glance_service._cache[fake_image['id']] = (
-            glance_v2.TempUrlCacheElement(
+            image_service.TempUrlCacheElement(
                 url=(CONF.glance.swift_endpoint_url + path
                      + query % old_exp_time),
                 url_expires_at=old_exp_time)
@@ -842,21 +841,21 @@ class TestSwiftTempUrlCache(base.TestCase):
 
     def test_remove_expired_items_from_cache(self):
         expired_items = {
-            uuidutils.generate_uuid(): glance_v2.TempUrlCacheElement(
+            uuidutils.generate_uuid(): image_service.TempUrlCacheElement(
                 'fake-url-1',
                 int(time.time()) - 10
             ),
-            uuidutils.generate_uuid(): glance_v2.TempUrlCacheElement(
+            uuidutils.generate_uuid(): image_service.TempUrlCacheElement(
                 'fake-url-2',
                 int(time.time()) + 90  # Agent won't be able to start in time
             )
         }
         valid_items = {
-            uuidutils.generate_uuid(): glance_v2.TempUrlCacheElement(
+            uuidutils.generate_uuid(): image_service.TempUrlCacheElement(
                 'fake-url-3',
                 int(time.time()) + 1000
             ),
-            uuidutils.generate_uuid(): glance_v2.TempUrlCacheElement(
+            uuidutils.generate_uuid(): image_service.TempUrlCacheElement(
                 'fake-url-4',
                 int(time.time()) + 2000
             )

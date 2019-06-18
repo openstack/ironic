@@ -27,7 +27,7 @@ from ironic.common import boot_devices
 from ironic.common import boot_modes
 from ironic.common import dhcp_factory
 from ironic.common import exception
-from ironic.common.glance_service import base_image_service
+from ironic.common.glance_service import image_service
 from ironic.common import pxe_utils
 from ironic.common import states
 from ironic.common import utils as common_utils
@@ -93,8 +93,7 @@ class PXEBootTestCase(db_base.DbTestCase):
                                   shared=True) as task:
             self.assertEqual(expected, task.driver.get_properties())
 
-    @mock.patch.object(base_image_service.BaseImageService, '_show',
-                       autospec=True)
+    @mock.patch.object(image_service.GlanceImageService, 'show', autospec=True)
     def test_validate_good(self, mock_glance):
         mock_glance.return_value = {'properties': {'kernel_id': 'fake-kernel',
                                                    'ramdisk_id': 'fake-initr'}}
@@ -102,16 +101,14 @@ class PXEBootTestCase(db_base.DbTestCase):
                                   shared=True) as task:
             task.driver.boot.validate(task)
 
-    @mock.patch.object(base_image_service.BaseImageService, '_show',
-                       autospec=True)
+    @mock.patch.object(image_service.GlanceImageService, 'show', autospec=True)
     def test_validate_good_whole_disk_image(self, mock_glance):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
             task.node.driver_internal_info['is_whole_disk_image'] = True
             task.driver.boot.validate(task)
 
-    @mock.patch.object(base_image_service.BaseImageService, '_show',
-                       autospec=True)
+    @mock.patch.object(image_service.GlanceImageService, 'show', autospec=True)
     @mock.patch.object(noop_storage.NoopStorage, 'should_write_image',
                        autospec=True)
     def test_validate_skip_check_write_image_false(self, mock_write,
@@ -180,8 +177,7 @@ class PXEBootTestCase(db_base.DbTestCase):
             self.assertRaises(exception.InvalidParameterValue,
                               task.driver.boot.validate, task)
 
-    @mock.patch.object(base_image_service.BaseImageService, '_show',
-                       autospec=True)
+    @mock.patch.object(image_service.GlanceImageService, 'show', autospec=True)
     def test_validate_fail_no_image_kernel_ramdisk_props(self, mock_glance):
         mock_glance.return_value = {'properties': {}}
         with task_manager.acquire(self.context, self.node.uuid,
@@ -190,8 +186,7 @@ class PXEBootTestCase(db_base.DbTestCase):
                               task.driver.boot.validate,
                               task)
 
-    @mock.patch.object(base_image_service.BaseImageService, '_show',
-                       autospec=True)
+    @mock.patch.object(image_service.GlanceImageService, 'show', autospec=True)
     def test_validate_fail_glance_image_doesnt_exists(self, mock_glance):
         mock_glance.side_effect = exception.ImageNotFound('not found')
         with task_manager.acquire(self.context, self.node.uuid,
@@ -199,8 +194,7 @@ class PXEBootTestCase(db_base.DbTestCase):
             self.assertRaises(exception.InvalidParameterValue,
                               task.driver.boot.validate, task)
 
-    @mock.patch.object(base_image_service.BaseImageService, '_show',
-                       autospec=True)
+    @mock.patch.object(image_service.GlanceImageService, 'show', autospec=True)
     def test_validate_fail_glance_conn_problem(self, mock_glance):
         exceptions = (exception.GlanceConnectionFailed('connection fail'),
                       exception.ImageNotAuthorized('not authorized'),
