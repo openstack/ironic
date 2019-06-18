@@ -632,7 +632,7 @@ class Connection(api.Connection):
             query = model_query(models.Node)
             query = add_identity_filter(query, node_id)
             try:
-                ref = query.with_lockmode('update').one()
+                ref = query.with_for_update().one()
             except NoResultFound:
                 raise exception.NodeNotFound(node=node_id)
 
@@ -1760,7 +1760,7 @@ class Connection(api.Connection):
 
                 if values.get('node_id') and update_node:
                     node = model_query(models.Node, session=session).filter_by(
-                        id=ref.node_id).with_lockmode('update').one()
+                        id=ref.node_id).with_for_update().one()
                     node_uuid = node.uuid
                     if node.instance_uuid and node.instance_uuid != ref.uuid:
                         raise exception.NodeAssociated(
@@ -1933,7 +1933,7 @@ class Connection(api.Connection):
                 query = model_query(models.DeployTemplate)
                 query = add_identity_filter(query, template_id)
                 try:
-                    ref = query.with_lockmode('update').one()
+                    ref = query.with_for_update().one()
                 except NoResultFound:
                     raise exception.DeployTemplateNotFound(
                         template=template_id)
