@@ -1,0 +1,11 @@
+---
+upgrade:
+  - |
+    The deprecated options ``glance_api_servers``, ``glance_api_insecure``,
+    ``glance_cafile`` and ``auth_strategy`` from the ``[glance]`` section have
+    been remove. Please use the corresponding keystoneauth options instead.
+deprecations:
+  - |
+    The configuration option ``[glance]glance_num_retries`` has been renamed
+    to ``[glance]num_retries``. The old name will be removed in a future
+    release.
