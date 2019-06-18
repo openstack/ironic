@@ -2043,23 +2043,21 @@ class ConductorManager(base_manager.BaseConductorManager):
         :raises: NodeLocked if node is locked by another conductor.
         :raises: NodeNotFound if the node associated with the port does not
                  exist.
+        :raises: InvalidState if a vif is still attached to the port.
 
         """
         LOG.debug('RPC destroy_port called for port %(port)s',
                   {'port': port.uuid})
         with task_manager.acquire(context, port.node_id,
                                   purpose='port deletion') as task:
-            node = task.node
-            vif = task.driver.network.get_current_vif(task, port)
-            if ((node.provision_state == states.ACTIVE or node.instance_uuid)
-                    and not node.maintenance and vif):
-                msg = _("Cannot delete the port %(port)s as node "
-                        "%(node)s is active or has "
-                        "instance UUID assigned or port is bound "
-                        "to vif %(vif)s")
-                raise exception.InvalidState(msg % {'node': node.uuid,
-                                                    'port': port.uuid,
-                                                    'vif': vif})
+            vif, vif_use = utils.get_attached_vif(port)
+            if vif:
+                msg = _("Cannot delete the port %(port)s as it is bound "
+                        "to VIF %(vif)s for %(use)s use.")
+                raise exception.InvalidState(
+                    msg % {'port': port.uuid,
+                           'vif': vif,
+                           'use': vif_use})
             port.destroy()
             LOG.info('Successfully deleted port %(port)s. '
                      'The node associated with the port was %(node)s',

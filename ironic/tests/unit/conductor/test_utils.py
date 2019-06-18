@@ -2051,3 +2051,42 @@ class AgentTokenUtilsTestCase(tests_base.TestCase):
             conductor_utils.is_agent_token_supported('6.2.1'))
         self.assertFalse(
             conductor_utils.is_agent_token_supported('6.0.0'))
+
+
+class GetAttachedVifTestCase(db_base.DbTestCase):
+
+    def setUp(self):
+        super(GetAttachedVifTestCase, self).setUp()
+        self.node = obj_utils.create_test_node(self.context,
+                                               driver='fake-hardware')
+        self.port = obj_utils.get_test_port(self.context,
+                                            node_id=self.node.id)
+
+    def test_get_attached_vif_none(self):
+        vif, use = conductor_utils.get_attached_vif(self.port)
+        self.assertIsNone(vif)
+        self.assertIsNone(use)
+
+    def test_get_attached_vif_tenant(self):
+        self.port.internal_info = {'tenant_vif_port_id': '1'}
+        vif, use = conductor_utils.get_attached_vif(self.port)
+        self.assertEqual('1', vif)
+        self.assertEqual('tenant', use)
+
+    def test_get_attached_vif_provisioning(self):
+        self.port.internal_info = {'provisioning_vif_port_id': '1'}
+        vif, use = conductor_utils.get_attached_vif(self.port)
+        self.assertEqual('1', vif)
+        self.assertEqual('provisioning', use)
+
+    def test_get_attached_vif_cleaning(self):
+        self.port.internal_info = {'cleaning_vif_port_id': '1'}
+        vif, use = conductor_utils.get_attached_vif(self.port)
+        self.assertEqual('1', vif)
+        self.assertEqual('cleaning', use)
+
+    def test_get_attached_vif_rescuing(self):
+        self.port.internal_info = {'rescuing_vif_port_id': '1'}
+        vif, use = conductor_utils.get_attached_vif(self.port)
+        self.assertEqual('1', vif)
+        self.assertEqual('rescuing', use)

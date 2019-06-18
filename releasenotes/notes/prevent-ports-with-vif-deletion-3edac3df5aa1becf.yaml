@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    Fixes logic that is applied to port deletions to also consider the
+    presence of a VIF attachment record, which should be removed before
+    attempting to delete the node. Failure to do so can result in
+    erroneous records in the Networking Service.
