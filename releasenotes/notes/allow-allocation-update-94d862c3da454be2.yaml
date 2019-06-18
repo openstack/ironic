@@ -1,5 +1,5 @@
 ---
 features:
   - |
-    Adds REST API endpoint for updating an existing allocation. Only ``name``
-    and ``extra`` fields are allowed to be updated.
+    API version 1.57 adds a REST API endpoint for updating an existing
+    allocation. Only ``name`` and ``extra`` fields are allowed to be updated.

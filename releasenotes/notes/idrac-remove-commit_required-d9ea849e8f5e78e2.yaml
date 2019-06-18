@@ -1,7 +1,7 @@
 ---
 upgrade:
   - |
-    ``commit_required`` is no longer present in the dictionary returned by
+    Removes ``commit_required`` from the dictionary returned by
     the ``set_bios_config`` vendor passthru call in the ``idrac`` hardware
     type.  ``commit_required`` was split into two keys: ``is_commit_required``
     and ``is_reboot_required``, which indicate the actions necessary to
