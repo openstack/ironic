@@ -1,0 +1,8 @@
+---
+features:
+  - |
+    Adds ``reset_idrac`` and ``known_good_state`` cleaning steps to hardware
+    type ``idrac``.
+    ``reset_idrac`` actually resets the iDRAC; ``known_good_state`` also
+    resets the iDRAC and clears the Lifecycle Controller job queue to make
+    sure the iDRAC is in good state.
