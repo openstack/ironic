@@ -7,7 +7,7 @@ features:
     is not enabled which aligns with the prior behavior of sensor data
     collection and transmission where such data was only collected
     if an ``instance_uuid`` was present to signify that the node has been or
-    is being deployed. With this change set to ``True``, operators may be able
+    is being deployed. With this option set to ``True``, operators may be able
     to identify hardware in a faulty state through the sensor data and take
     action before an instance workload is deployed.
 fixes:

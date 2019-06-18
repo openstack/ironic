@@ -9,4 +9,5 @@ features:
 
 upgrade:
   - |
-    This change requires python-dracclient version 3.0.0 and later.
+    Updates the minimum required version of ``python-dracclient`` to ``3.0.0``
+    when using the ``idrac`` hardware type.

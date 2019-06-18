@@ -1,6 +1,6 @@
 ---
 features:
   - |
-    A new option ``enable_mdns`` allows to enable publishing the baremetal
+    Adds a new option ``enable_mdns`` which enables publishing the baremetal
     API endpoint via mDNS as specified in the `API SIG guideline
     <http://specs.openstack.org/openstack/api-sig/guidelines/dns-sd.html>`_.

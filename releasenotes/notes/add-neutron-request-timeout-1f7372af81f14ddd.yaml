@@ -1,8 +1,7 @@
 ---
 fixes:
   - |
-    Fixes an issue that can occur in CI and in physical deployments where the
-    Networking Service performs a pre-flight operation which can exceed
-    the prior default for ``30`` seconds. The new default is ``45`` seconds,
-    and operators can tune the setting via the ``[neutron]request_timeout``
-    setting.
+    Fixes an issue where the Networking Service performs a pre-flight operation
+    which can exceed the prior default for ``30`` seconds. The new default is
+    ``45`` seconds, and operators can tune the setting via the
+    ``[neutron]request_timeout`` setting.
