@@ -29,7 +29,7 @@ from six.moves import http_client
 import six.moves.urllib.parse as urlparse
 
 from ironic.common import exception
-from ironic.common.glance_service.v2 import image_service
+from ironic.common.glance_service import image_service
 from ironic.common.i18n import _
 from ironic.common import utils
 
