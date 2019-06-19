@@ -107,42 +107,12 @@ opts = [
                       'value between 1 and 32, a single-tenant store will use '
                       'multiple containers to store images, and this value '
                       'will determine how many containers are created.')),
-    cfg.ListOpt('glance_api_servers',
-                deprecated_for_removal=True,
-                deprecated_reason=_("Use [glance]/endpoint_override option "
-                                    "to set the full load-balanced glance API "
-                                    "URL instead."),
-                help=_('A list of the glance api servers available to ironic. '
-                       'Prefix with https:// for SSL-based glance API '
-                       'servers. Format is [hostname|IP]:port.')),
-    cfg.BoolOpt('glance_api_insecure',
-                default=False,
-                deprecated_for_removal=True,
-                deprecated_reason=_("Use [glance]/insecure option instead."),
-                help=_('Allow to perform insecure SSL (https) requests to '
-                       'glance.')),
-    cfg.IntOpt('glance_num_retries',
+    cfg.IntOpt('num_retries',
+               # TODO(dtantsur): remove in U
+               deprecated_name='glance_num_retries',
                default=0,
                help=_('Number of retries when downloading an image from '
                       'glance.')),
-    cfg.StrOpt('auth_strategy',
-               default='keystone',
-               choices=[('keystone', _('use the Identity service for '
-                                       'authentication')),
-                        ('noauth', _('no authentication'))],
-               deprecated_for_removal=True,
-               deprecated_reason=_("To configure glance in noauth mode, "
-                                   "set [glance]/auth_type=none and "
-                                   "[glance]/endpoint_override="
-                                   "<GLANCE_API_ADDRESS> instead."),
-               help=_('Authentication strategy to use when connecting to '
-                      'glance.')),
-    cfg.StrOpt('glance_cafile',
-               deprecated_for_removal=True,
-               deprecated_reason=_("Use [glance]/cafile option instead."),
-               help=_('Optional path to a CA certificate bundle to be used to '
-                      'validate the SSL certificate served by glance. It is '
-                      'used when glance_api_insecure is set to False.')),
 ]
 
 

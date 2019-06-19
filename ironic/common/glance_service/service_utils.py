@@ -15,23 +15,13 @@
 #    under the License.
 
 import copy
-import itertools
-import random
 
-from oslo_log import log
 from oslo_serialization import jsonutils
 from oslo_utils import timeutils
 from oslo_utils import uuidutils
 import six
 
 from ironic.common import exception
-from ironic.conf import CONF
-
-
-LOG = log.getLogger(__name__)
-
-_GLANCE_API_SERVER = None
-""" iterator that cycles (indefinitely) over glance API servers. """
 
 
 _IMAGE_ATTRIBUTES = ['size', 'disk_format', 'owner',
@@ -103,29 +93,6 @@ def parse_image_id(image_href):
     else:
         raise exception.InvalidImageRef(image_href=image_href)
     return image_id
-
-
-# TODO(pas-ha) remove in Rocky
-def get_glance_api_server(image_href):
-    """Construct a glance API url from config options
-
-    Returns a random server from the CONF.glance.glance_api_servers list
-    of servers.
-
-    :param image_href: href of an image
-    :returns: glance API URL
-
-    :raises InvalidImageRef: when input image href is invalid
-    """
-    image_href = six.text_type(image_href)
-    if not is_glance_image(image_href):
-        raise exception.InvalidImageRef(image_href=image_href)
-    global _GLANCE_API_SERVER
-    if not _GLANCE_API_SERVER:
-        _GLANCE_API_SERVER = itertools.cycle(
-            random.sample(CONF.glance.glance_api_servers,
-                          len(CONF.glance.glance_api_servers)))
-    return six.next(_GLANCE_API_SERVER)
 
 
 def translate_from_glance(image):

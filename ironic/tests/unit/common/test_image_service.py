@@ -15,7 +15,6 @@ import os
 import shutil
 
 import mock
-from oslo_config import cfg
 from oslo_utils import uuidutils
 import requests
 import sendfile
@@ -341,7 +340,3 @@ class ServiceGetterTestCase(base.TestCase):
         for image_ref in invalid_refs:
             self.assertRaises(exception.ImageRefValidationFailed,
                               image_service.get_image_service, image_ref)
-
-    def test_out_range_auth_strategy(self):
-        self.assertRaises(ValueError, cfg.CONF.set_override,
-                          'auth_strategy', 'fake', 'glance')

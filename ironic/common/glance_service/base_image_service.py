@@ -38,13 +38,6 @@ LOG = log.getLogger(__name__)
 _GLANCE_SESSION = None
 
 
-def _get_glance_session(**session_kwargs):
-    global _GLANCE_SESSION
-    if not _GLANCE_SESSION:
-        _GLANCE_SESSION = keystone.get_session('glance', **session_kwargs)
-    return _GLANCE_SESSION
-
-
 def _translate_image_exception(image_id, exc_value):
     if isinstance(exc_value, (glance_exc.Forbidden,
                               glance_exc.Unauthorized)):
@@ -56,10 +49,6 @@ def _translate_image_exception(image_id, exc_value):
     return exc_value
 
 
-# NOTE(pas-ha) while looking very ugly currently, this will be simplified
-# in Rocky after all deprecated [glance] options are removed and
-# keystone catalog is always used with 'keystone' auth strategy
-# together with session always loaded from config options
 def check_image_service(func):
     """Creates a glance client if doesn't exists and calls the function."""
     @six.wraps(func)
@@ -72,35 +61,16 @@ def check_image_service(func):
         if self.client:
             return func(self, *args, **kwargs)
 
-        # TODO(pas-ha) remove in Rocky
-        session_params = {}
-        if CONF.glance.glance_api_insecure and not CONF.glance.insecure:
-            session_params['insecure'] = CONF.glance.glance_api_insecure
-        if CONF.glance.glance_cafile and not CONF.glance.cafile:
-            session_params['cacert'] = CONF.glance.glance_cafile
+        global _GLANCE_SESSION
+        if not _GLANCE_SESSION:
+            _GLANCE_SESSION = keystone.get_session('glance')
+
         # NOTE(pas-ha) glanceclient uses Adapter-based SessionClient,
         # so we can pass session and auth separately, makes things easier
-        session = _get_glance_session(**session_params)
-
-        # TODO(pas-ha) remove in Rocky
-        # NOTE(pas-ha) new option must win if configured
-        if (CONF.glance.glance_api_servers
-                and not CONF.glance.endpoint_override):
-            # NOTE(pas-ha) all the 2 methods have image_href as the first
-            #              positional arg, but check in kwargs too
-            image_href = args[0] if args else kwargs.get('image_href')
-            url = service_utils.get_glance_api_server(image_href)
-            CONF.set_override('endpoint_override', url, group='glance')
-
-        # TODO(pas-ha) remove in Rocky
-        if CONF.glance.auth_strategy == 'noauth':
-            CONF.set_override('auth_type', 'none', group='glance')
-
         service_auth = keystone.get_auth('glance')
 
-        adapter_params = {}
-        adapter = keystone.get_adapter('glance', session=session,
-                                       auth=service_auth, **adapter_params)
+        adapter = keystone.get_adapter('glance', session=_GLANCE_SESSION,
+                                       auth=service_auth)
         self.endpoint = adapter.get_endpoint()
 
         user_auth = None
@@ -110,7 +80,7 @@ def check_image_service(func):
         if self.context.auth_token:
             user_auth = keystone.get_service_auth(self.context, self.endpoint,
                                                   service_auth)
-        self.client = client.Client(2, session=session,
+        self.client = client.Client(2, session=_GLANCE_SESSION,
                                     auth=user_auth or service_auth,
                                     endpoint_override=self.endpoint,
                                     global_request_id=self.context.global_id)
@@ -130,7 +100,7 @@ class BaseImageService(object):
         """Call a glance client method.
 
         If we get a connection error,
-        retry the request according to CONF.glance_num_retries.
+        retry the request according to CONF.num_retries.
 
         :param context: The request context, for access checks.
         :param method: The method requested to be called.
@@ -146,7 +116,7 @@ class BaseImageService(object):
                       glance_exc.Unauthorized,
                       glance_exc.NotFound,
                       glance_exc.BadRequest)
-        num_attempts = 1 + CONF.glance.glance_num_retries
+        num_attempts = 1 + CONF.glance.num_retries
 
         # TODO(pas-ha) use retrying lib here
         for attempt in range(1, num_attempts + 1):
