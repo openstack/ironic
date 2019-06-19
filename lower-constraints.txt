@@ -5,6 +5,7 @@ appdirs==1.4.3
 asn1crypto==0.24.0
 automaton==1.9.0
 Babel==2.3.4
+bandit==1.1.0
 bashate==0.5.1
 beautifulsoup4==4.6.0
 blockdiag==1.5.3
