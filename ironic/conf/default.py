@@ -336,7 +336,7 @@ utils_opts = [
                       'running commands as root.')),
     cfg.StrOpt('tempdir',
                default=tempfile.gettempdir(),
-               sample_default='/tmp',
+               sample_default=tempfile.gettempdir(),
                help=_('Temporary working directory, default is Python temp '
                       'dir.')),
 ]

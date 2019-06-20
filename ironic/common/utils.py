@@ -474,7 +474,7 @@ def render_template(template, params, is_file=True):
     else:
         tmpl_name = 'template'
         loader = jinja2.DictLoader({tmpl_name: template})
-    env = jinja2.Environment(loader=loader)
+    env = jinja2.Environment(loader=loader, autoescape=True)
     tmpl = env.get_template(tmpl_name)
     return tmpl.render(params, enumerate=enumerate)
 
