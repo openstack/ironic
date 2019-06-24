@@ -140,7 +140,7 @@ The RAID properties can be split into 4 different types:
 
    - ``controller`` - The name of the controller as read by the RAID interface.
      In order to trigger the setup of a Software RAID via the Ironic Python
-     Agent, the value of this property needs to be set to "software".
+     Agent, the value of this property needs to be set to ``software``.
    - ``physical_disks`` - A list of physical disks to use as read by the
      RAID interface.
 
@@ -320,8 +320,8 @@ Workflow
 
       openstack baremetal node show <node-uuid-or-name>
 
-Current Limitations of Software RAID
-====================================
+Limitations of Software RAID
+============================
 
 There are certain limitations to be aware of when setting up a Software RAID via the
 Ironic Python Agent:
