@@ -30,10 +30,15 @@ command ``openstack baremetal node validate <node-uuid>``.
 Build agent ramdisk which supports RAID configuration
 =====================================================
 
-For doing in-band RAID configuration, Ironic needs an agent ramdisk bundled
-with a hardware manager which supports RAID configuration for your hardware.
-For example, the :ref:`DIB_raid_support` should be used for HPE
+For doing in-band hardware RAID configuration, Ironic needs an agent ramdisk
+bundled with a hardware manager which supports RAID configuration for your
+hardware. For example, the :ref:`DIB_raid_support` should be used for HPE
 Proliant Servers.
+
+.. note::
+    For in-band software RAID, the agent ramdisk does not need to be bundled
+    with a hardware manager as the generic hardware manager in the Ironic
+    Python Agent already provides (basic) support for software RAID.
 
 RAID configuration JSON format
 ==============================
@@ -134,6 +139,8 @@ The RAID properties can be split into 4 different types:
    The values for these properties are hardware dependent.
 
    - ``controller`` - The name of the controller as read by the RAID interface.
+     In order to trigger the setup of a Software RAID via the Ironic Python
+     Agent, the value of this property needs to be set to "software".
    - ``physical_disks`` - A list of physical disks to use as read by the
      RAID interface.
 
@@ -143,6 +150,11 @@ The RAID properties can be split into 4 different types:
     each other.  If they are not consistent, then the RAID configuration
     will fail (because the appropriate backing physical disks could
     not be found).
+
+.. note::
+    For software RAID as provided by the generic hardware manager that ships
+    with the Ironic Python Agent, only the mandatory properties (plus the
+    required ``controller`` property) are currently supported.
 
 Examples for ``target_raid_config``
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -224,6 +236,22 @@ HDD::
       ]
   }
 
+*Example 5*. Software RAID with two RAID devices::
+
+  {
+   "logical_disks": [
+                     {
+                      "size_gb": 100,
+                      "raid_level": "1",
+                      "controller": "software"
+                     },
+                     {
+                      "size_gb": "MAX",
+                      "raid_level": "0",
+                      "controller": "software"
+                     }
+                    ]
+  }
 
 Current RAID configuration
 --------------------------
@@ -243,7 +271,8 @@ Workflow
 ========
 
 * Operator configures the bare metal node with a hardware type that has
-  a ``RAIDInterface`` other than ``no-raid``.
+  a ``RAIDInterface`` other than ``no-raid``. For instance, for Software RAID,
+  this would be ``agent``.
 
 * For in-band RAID configuration, operator builds an agent ramdisk which
   supports RAID configuration by bundling the hardware manager with the
@@ -254,11 +283,11 @@ Workflow
   `Target RAID configuration`_. The target RAID configuration is set on
   the Ironic node::
 
-      openstack baremetal --os-baremetal-api-version 1.15 node set <node-uuid-or-name> \
+      openstack baremetal node set <node-uuid-or-name> \
          --target-raid-config <JSON file containing target RAID configuration>
 
     The CLI command can accept the input from standard input also:
-       openstack baremetal --os-baremetal-api-version 1.15 node set <node-uuid-or-name> \
+       openstack baremetal node set <node-uuid-or-name> \
           --target-raid-config -
 
 * Create a JSON file with the RAID clean steps for manual cleaning. Add other
@@ -283,13 +312,33 @@ Workflow
 * Bring the node to ``manageable`` state and do a ``clean`` action to start
   cleaning on the node::
 
-      openstack baremetal --os-baremetal-api-version 1.15 node clean <node-uuid-or-name> \
+      openstack baremetal node clean <node-uuid-or-name> \
          --clean-steps <JSON file containing clean steps created above>
 
-* After manual cleaning is complete, the current RAID configuration can be
-  viewed using::
+* After manual cleaning is complete, the current RAID configuration is
+  reported in the ``raid_config`` field when running::
 
-      openstack baremetal --os-baremetal-api-version 1.15 node show <node-uuid-or-name>
+      openstack baremetal node show <node-uuid-or-name>
+
+Current Limitations of Software RAID
+====================================
+
+There are certain limitations to be aware of when setting up a Software RAID via the
+Ironic Python Agent:
+
+* There is no way to select the disks which are used to set up the software RAID,
+  so the Ironic Python Agent will use all available disks. This seems appropriate
+  for servers with 2 or 4 disks, but needs to be considered when disk arrays are
+  attached.
+
+* The number of created Software RAID devices must be 1 or 2. If there is only one
+  Software RAID device, it has to be a RAID-1. If there are two, the first one has
+  to be a RAID-1, while the RAID level for the second one can 0, 1, or 1+0. As the
+  first RAID device will be the deployment device, enforcing a RAID-1 reduces the
+  risk of ending up with a non-booting node in case of a disk failure.
+
+* There is no support for partition images, only whole-disk images are supported with
+  Software RAID.
 
 Using RAID in nova flavor for scheduling
 ========================================
