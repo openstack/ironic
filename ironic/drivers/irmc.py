@@ -20,6 +20,7 @@ from ironic.drivers import generic
 from ironic.drivers.modules import agent
 from ironic.drivers.modules import inspector
 from ironic.drivers.modules import ipmitool
+from ironic.drivers.modules import ipxe
 from ironic.drivers.modules.irmc import bios
 from ironic.drivers.modules.irmc import boot
 from ironic.drivers.modules.irmc import inspect
@@ -48,7 +49,7 @@ class IRMCHardware(generic.GenericHardware):
         # NOTE: Support for pxe boot is deprecated, and will be
         # removed from the list in the future.
         return [boot.IRMCVirtualMediaBoot, boot.IRMCPXEBoot,
-                pxe.PXEBoot]
+                ipxe.iPXEBoot, pxe.PXEBoot]
 
     @property
     def supported_console_interfaces(self):
