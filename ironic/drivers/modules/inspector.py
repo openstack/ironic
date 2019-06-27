@@ -56,9 +56,8 @@ def _get_client(context):
     adapter_params = {}
     if CONF.inspector.service_url and not CONF.inspector.endpoint_override:
         adapter_params['endpoint_override'] = CONF.inspector.service_url
-    adapter = keystone.get_adapter('inspector', session=session,
-                                   **adapter_params)
-    inspector_url = adapter.get_endpoint()
+    inspector_url = keystone.get_endpoint('inspector', session=session,
+                                          **adapter_params)
     # TODO(pas-ha) investigate possibility of passing user context here,
     # similar to what neutron/glance-related code does
     # NOTE(pas-ha) ironic-inspector-client has no Adaper-based

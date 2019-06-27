@@ -63,8 +63,8 @@ class SwiftAPI(object):
         # TODO(pas-ha) pass the context here and use token from context
         # with service auth
         params['session'] = session = get_swift_session()
-        adapter = keystone.get_adapter('swift', session=session)
-        params['os_options'] = {'object_storage_url': adapter.get_endpoint()}
+        endpoint = keystone.get_endpoint('swift', session=session)
+        params['os_options'] = {'object_storage_url': endpoint}
         # deconstruct back session-related options
         params['timeout'] = session.timeout
         if session.verify is False:

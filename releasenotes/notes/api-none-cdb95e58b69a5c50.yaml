@@ -1,0 +1,8 @@
+---
+fixes:
+  - |
+    Fixes a confusing ``AttributeError`` if an adapter returns ``None`` for
+    the bare metal API.
+  - |
+    Prevents the adapter configuration options from getting ignored if
+    a matching endpoint cannot be found. An error is now raised.

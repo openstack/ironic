@@ -74,9 +74,9 @@ def check_image_service(func):
         # so we can pass session and auth separately, makes things easier
         service_auth = keystone.get_auth('glance')
 
-        adapter = keystone.get_adapter('glance', session=_GLANCE_SESSION,
-                                       auth=service_auth)
-        self.endpoint = adapter.get_endpoint()
+        self.endpoint = keystone.get_endpoint('glance',
+                                              session=_GLANCE_SESSION,
+                                              auth=service_auth)
 
         user_auth = None
         # NOTE(pas-ha) our ContextHook removes context.auth_token in noauth
@@ -296,14 +296,14 @@ class GlanceImageService(object):
         endpoint_url = CONF.glance.swift_endpoint_url
         if not endpoint_url:
             swift_session = swift.get_swift_session()
-            adapter = keystone.get_adapter('swift', session=swift_session)
-            endpoint_url = adapter.get_endpoint()
-
-        if not endpoint_url:
-            raise exception.MissingParameterValue(_(
-                'Swift temporary URLs require a Swift endpoint URL, but it '
-                'was not found in the service catalog. '
-                'You must provide "swift_endpoint_url" as a config option.'))
+            try:
+                endpoint_url = keystone.get_endpoint('swift',
+                                                     session=swift_session)
+            except exception.CatalogNotFound:
+                raise exception.MissingParameterValue(_(
+                    'Swift temporary URLs require a Swift endpoint URL, '
+                    'but it was not found in the service catalog. You must '
+                    'provide "swift_endpoint_url" as a config option.'))
 
         # Strip /v1/AUTH_%(tenant_id)s, if present
         endpoint_url = re.sub('/v1/AUTH_[^/]+/?$', '', endpoint_url)
