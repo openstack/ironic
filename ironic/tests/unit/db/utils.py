@@ -416,23 +416,6 @@ def create_test_conductor(**kw):
     return dbapi.register_conductor(conductor)
 
 
-def get_test_ucs_info():
-    return {
-        "ucs_username": "admin",
-        "ucs_password": "password",
-        "ucs_service_profile": "org-root/ls-devstack",
-        "ucs_address": "ucs-b",
-    }
-
-
-def get_test_cimc_info():
-    return {
-        "cimc_username": "admin",
-        "cimc_password": "password",
-        "cimc_address": "1.2.3.4",
-    }
-
-
 def get_test_redfish_info():
     return {
         "redfish_address": "https://example.com",
