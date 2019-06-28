@@ -36,5 +36,3 @@ libvirt-dev
 socat
 ipxe-qemu
 jq
-shim
-grub-efi-amd64-signed

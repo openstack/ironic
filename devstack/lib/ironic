@@ -507,6 +507,12 @@ IRONIC_UEFI_FILES_DIR=${IRONIC_UEFI_FILES_DIR:-/var/lib/libvirt/images}
 UEFI_LOADER_PATH=$IRONIC_UEFI_FILES_DIR/OVMF_CODE.fd
 UEFI_NVRAM_PATH=$IRONIC_UEFI_FILES_DIR/OVMF_VARS.fd
 
+# Handle architecture specific package installs
+if [[ $IRONIC_HW_ARCH == "x86_64" ]]; then
+    install_package shim
+    install_package grub-efi-amd64-signed
+fi
+
 # Sanity checks
 if [[ "$IRONIC_BOOT_MODE" == "uefi" ]]; then
     if [[ "$IRONIC_IPXE_ENABLED" == "False" ]] && [[ "$IRONIC_UEFI_BOOT_LOADER" != "grub2" ]]; then
