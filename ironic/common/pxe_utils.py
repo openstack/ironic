@@ -120,12 +120,10 @@ def _link_mac_pxe_configs(task, ipxe_enabled=False):
         create_link(_get_pxe_grub_mac_path(port.address))
 
 
-def _link_ip_address_pxe_configs(task, hex_form, ipxe_enabled=False):
+def _link_ip_address_pxe_configs(task, ipxe_enabled=False):
     """Link each IP address with the PXE configuration file.
 
     :param task: A TaskManager instance.
-    :param hex_form: Boolean value indicating if the conf file name should be
-                     hexadecimal equivalent of supplied ipv4 address.
     :param ipxe_enabled: Default false boolean to indicate if ipxe
                          is in use by the caller.
     :raises: FailedToGetIPAddressOnPort
@@ -143,8 +141,7 @@ def _link_ip_address_pxe_configs(task, hex_form, ipxe_enabled=False):
             "Failed to get IP address for any port on node %s.") %
             task.node.uuid)
     for port_ip_address in ip_addrs:
-        ip_address_path = _get_pxe_ip_address_path(port_ip_address,
-                                                   hex_form)
+        ip_address_path = _get_pxe_ip_address_path(port_ip_address)
         ironic_utils.unlink_without_raise(ip_address_path)
         relative_source_path = os.path.relpath(
             pxe_config_file_path, os.path.dirname(ip_address_path))
@@ -181,22 +178,13 @@ def _get_pxe_mac_path(mac, delimiter='-', client_id=None,
                         mac_file_name)
 
 
-def _get_pxe_ip_address_path(ip_address, hex_form):
+def _get_pxe_ip_address_path(ip_address):
     """Convert an ipv4 address into a PXE config file name.
 
     :param ip_address: A valid IPv4 address string in the format 'n.n.n.n'.
-    :param hex_form: Boolean value indicating if the conf file name should be
-                     hexadecimal equivalent of supplied ipv4 address.
     :returns: the path to the config file.
 
     """
-    # NOTE(TheJulia): Remove elilo support after the deprecation
-    # period, in the Queens release.
-    # elilo bootloader needs hex based config file name.
-    if hex_form:
-        ip = ip_address.split('.')
-        ip_address = '{0:02X}{1:02X}{2:02X}{3:02X}'.format(*map(int, ip))
-
     # grub2 bootloader needs ip based config file name.
     return os.path.join(
         CONF.pxe.tftp_root, ip_address + ".conf"
@@ -259,8 +247,6 @@ def create_pxe_config(task, pxe_options, template=None, ipxe_enabled=False):
     the configuration file will be created under the PXE configuration
     directory, so regardless of which port boots first they'll get the
     same PXE configuration.
-    If elilo is the bootloader in use, then its configuration file will
-    be created based on hex form of DHCP IP address.
     If grub2 bootloader is in use, then its configuration will be created
     based on DHCP IP address in the form nn.nn.nn.nn.
 
@@ -282,20 +268,14 @@ def create_pxe_config(task, pxe_options, template=None, ipxe_enabled=False):
         ipxe_enabled=ipxe_enabled)
     is_uefi_boot_mode = (boot_mode_utils.get_boot_mode(task.node)
                          == 'uefi')
+    uefi_with_grub = is_uefi_boot_mode and not ipxe_enabled
 
     # grub bootloader panics with '{}' around any of its tags in its
     # config file. To overcome that 'ROOT' and 'DISK_IDENTIFIER' are enclosed
     # with '(' and ')' in uefi boot mode.
-    # These changes do not have any impact on elilo bootloader.
-    hex_form = True
-    if is_uefi_boot_mode and utils.is_regex_string_in_file(template,
-                                                           '^menuentry'):
-        hex_form = False
+    if uefi_with_grub:
         pxe_config_root_tag = '(( ROOT ))'
         pxe_config_disk_ident = '(( DISK_IDENTIFIER ))'
-        LOG.warning("The requested config appears to support elilo. "
-                    "Support for elilo has been deprecated and will be "
-                    "removed in the Queens release of OpenStack.")
     else:
         # TODO(stendulker): We should use '(' ')' as the delimiters for all our
         # config files so that we do not need special handling for each of the
@@ -312,14 +292,13 @@ def create_pxe_config(task, pxe_options, template=None, ipxe_enabled=False):
 
     # Always write the mac addresses
     _link_mac_pxe_configs(task, ipxe_enabled=ipxe_enabled)
-    if is_uefi_boot_mode and not ipxe_enabled:
+    if uefi_with_grub:
         try:
-            _link_ip_address_pxe_configs(task, hex_form, ipxe_enabled)
+            _link_ip_address_pxe_configs(task, ipxe_enabled)
         # NOTE(TheJulia): The IP address support will fail if the
         # dhcp_provider interface is set to none. This will result
         # in the MAC addresses and DHCP files being written, and
-        # we can remove IP address creation for the grub use
-        # case, considering that will ease removal of elilo support.
+        # we can remove IP address creation for the grub use.
         except exception.FailedToGetIPaddressesOnPort as e:
             if CONF.dhcp.dhcp_provider != 'none':
                 with excutils.save_and_reraise_exception():
@@ -363,21 +342,13 @@ def clean_up_pxe_config(task, ipxe_enabled=False):
         for port_ip_address in ip_addresses:
             try:
                 # Get xx.xx.xx.xx based grub config file
-                ip_address_path = _get_pxe_ip_address_path(port_ip_address,
-                                                           False)
-                # NOTE(TheJulia): Remove elilo support after the deprecation
-                # period, in the Queens release.
-                # Get 0AOAOAOA based elilo config file
-                hex_ip_path = _get_pxe_ip_address_path(port_ip_address,
-                                                       True)
+                ip_address_path = _get_pxe_ip_address_path(port_ip_address)
             except exception.InvalidIPv4Address:
                 continue
             except exception.FailedToGetIPAddressOnPort:
                 continue
             # Cleaning up config files created for grub2.
             ironic_utils.unlink_without_raise(ip_address_path)
-            # Cleaning up config files created for elilo.
-            ironic_utils.unlink_without_raise(hex_ip_path)
 
     for port in task.ports:
         client_id = port.extra.get('client-id')
@@ -723,8 +694,6 @@ def build_instance_pxe_options(task, pxe_info, ipxe_enabled=False):
                 pxe_opts[option] = get_path_relative_to_tftp_root(
                     pxe_info[label][1])
 
-    # These are dummy values to satisfy elilo.
-    # image and initrd fields in elilo config cannot be blank.
     pxe_opts.setdefault('aki_path', 'no_kernel')
     pxe_opts.setdefault('ari_path', 'no_ramdisk')
 

@@ -219,28 +219,6 @@ class TestPXEUtils(db_base.DbTestCase):
             expected_template = f.read().rstrip()
         self.assertEqual(six.text_type(expected_template), rendered_template)
 
-    # NOTE(TheJulia): Remove elilo support after the deprecation period,
-    # in the Queens release.
-    def test_default_elilo_config(self):
-        pxe_opts = self.pxe_options
-        pxe_opts['boot_mode'] = 'uefi'
-        self.config(
-            uefi_pxe_config_template=('ironic/drivers/modules/'
-                                      'elilo_efi_pxe_config.template'),
-            group='pxe'
-        )
-        rendered_template = utils.render_template(
-            CONF.pxe.uefi_pxe_config_template,
-            {'pxe_options': pxe_opts,
-             'ROOT': '{{ ROOT }}',
-             'DISK_IDENTIFIER': '{{ DISK_IDENTIFIER }}'})
-
-        templ_file = 'ironic/tests/unit/drivers/elilo_efi_pxe_config.template'
-        with open(templ_file) as f:
-            expected_template = f.read().rstrip()
-
-        self.assertEqual(six.text_type(expected_template), rendered_template)
-
     def test_default_grub_config(self):
         pxe_opts = self.pxe_options
         pxe_opts['boot_mode'] = 'uefi'
@@ -467,44 +445,6 @@ class TestPXEUtils(db_base.DbTestCase):
         write_mock.assert_called_with(pxe_cfg_file_path,
                                       render_mock.return_value)
 
-    # NOTE(TheJulia): Remove elilo support after the deprecation period,
-    # in the Queens release.
-    @mock.patch.object(os, 'chmod', autospec=True)
-    @mock.patch('ironic.common.pxe_utils._link_ip_address_pxe_configs',
-                autospec=True)
-    @mock.patch('ironic.common.utils.write_to_file', autospec=True)
-    @mock.patch('ironic.common.utils.render_template', autospec=True)
-    @mock.patch('oslo_utils.fileutils.ensure_tree', autospec=True)
-    def test_create_pxe_config_uefi_elilo(self, ensure_tree_mock, render_mock,
-                                          write_mock, link_ip_configs_mock,
-                                          chmod_mock):
-        self.config(
-            uefi_pxe_config_template=('ironic/drivers/modules/'
-                                      'elilo_efi_pxe_config.template'),
-            group='pxe'
-        )
-        with task_manager.acquire(self.context, self.node.uuid) as task:
-            task.node.properties['capabilities'] = 'boot_mode:uefi'
-            pxe_utils.create_pxe_config(task, self.pxe_options,
-                                        CONF.pxe.uefi_pxe_config_template)
-
-            ensure_calls = [
-                mock.call(os.path.join(CONF.pxe.tftp_root, self.node.uuid)),
-                mock.call(os.path.join(CONF.pxe.tftp_root, 'pxelinux.cfg')),
-            ]
-            ensure_tree_mock.assert_has_calls(ensure_calls)
-            chmod_mock.assert_not_called()
-            render_mock.assert_called_with(
-                CONF.pxe.uefi_pxe_config_template,
-                {'pxe_options': self.pxe_options,
-                 'ROOT': '{{ ROOT }}',
-                 'DISK_IDENTIFIER': '{{ DISK_IDENTIFIER }}'})
-            link_ip_configs_mock.assert_called_once_with(task, True, False)
-
-        pxe_cfg_file_path = pxe_utils.get_pxe_config_file_path(self.node.uuid)
-        write_mock.assert_called_with(pxe_cfg_file_path,
-                                      render_mock.return_value)
-
     @mock.patch.object(os, 'chmod', autospec=True)
     @mock.patch('ironic.common.pxe_utils._link_ip_address_pxe_configs',
                 autospec=True)
@@ -531,7 +471,7 @@ class TestPXEUtils(db_base.DbTestCase):
                 {'pxe_options': self.pxe_options,
                  'ROOT': '(( ROOT ))',
                  'DISK_IDENTIFIER': '(( DISK_IDENTIFIER ))'})
-            link_ip_configs_mock.assert_called_once_with(task, False, False)
+            link_ip_configs_mock.assert_called_once_with(task, False)
 
         pxe_cfg_file_path = pxe_utils.get_pxe_config_file_path(self.node.uuid)
         write_mock.assert_called_with(pxe_cfg_file_path,
@@ -572,7 +512,7 @@ class TestPXEUtils(db_base.DbTestCase):
                  'DISK_IDENTIFIER': '(( DISK_IDENTIFIER ))'})
             link_mac_pxe_configs_mock.assert_called_once_with(
                 task, ipxe_enabled=False)
-            link_ip_configs_mock.assert_called_once_with(task, False, False)
+            link_ip_configs_mock.assert_called_once_with(task, False)
 
         pxe_cfg_file_path = pxe_utils.get_pxe_config_file_path(self.node.uuid)
         write_mock.assert_called_with(pxe_cfg_file_path,
@@ -694,7 +634,7 @@ class TestPXEUtils(db_base.DbTestCase):
     def test__get_pxe_ip_address_path(self):
         ipaddress = '10.10.0.1'
         self.assertEqual('/tftpboot/10.10.0.1.conf',
-                         pxe_utils._get_pxe_ip_address_path(ipaddress, False))
+                         pxe_utils._get_pxe_ip_address_path(ipaddress))
 
     def test_get_root_dir(self):
         expected_dir = '/tftproot'
@@ -927,7 +867,8 @@ class TestPXEUtils(db_base.DbTestCase):
 
             unlink_calls = [
                 mock.call('/tftpboot/10.10.0.1.conf'),
-                mock.call('/tftpboot/0A0A0001.conf')
+                mock.call('/tftpboot/pxelinux.cfg/01-aa-aa-aa-aa-aa-aa'),
+                mock.call('/tftpboot/' + address + '.conf')
             ]
             unlink_mock.assert_has_calls(unlink_calls)
             rmtree_mock.assert_called_once_with(
@@ -953,9 +894,9 @@ class TestPXEUtils(db_base.DbTestCase):
 
             unlink_calls = [
                 mock.call('/tftpboot/10.10.0.1.conf'),
-                mock.call('/tftpboot/0A0A0001.conf'),
                 mock.call('/tftpboot/pxelinux.cfg/01-%s' %
-                          address.replace(':', '-'))
+                          address.replace(':', '-')),
+                mock.call('/tftpboot/' + address + '.conf')
             ]
 
             unlink_mock.assert_has_calls(unlink_calls)
@@ -982,7 +923,8 @@ class TestPXEUtils(db_base.DbTestCase):
 
             unlink_calls = [
                 mock.call('/tftpboot/10.10.0.1.conf'),
-                mock.call('/tftpboot/0A0A0001.conf')
+                mock.call('/tftpboot/pxelinux.cfg/01-aa-aa-aa-aa-aa-aa'),
+                mock.call('/tftpboot/' + address + ".conf")
             ]
             unlink_mock.assert_has_calls(unlink_calls)
             rmtree_mock.assert_called_once_with(
@@ -1313,12 +1255,12 @@ class PXEInterfacesTestCase(db_base.DbTestCase):
             options = pxe_utils.build_pxe_config_options(task, image_info)
 
         expected_options = {
+            'aki_path': 'no_kernel',
+            'ari_path': 'no_ramdisk',
             'deployment_aki_path': 'path-to-deploy_kernel',
             'deployment_ari_path': 'path-to-deploy_ramdisk',
             'pxe_append_params': pxe_params,
             'tftp_server': 'my-tftp-server',
-            'aki_path': 'no_kernel',
-            'ari_path': 'no_ramdisk',
             'ipxe_timeout': 0}
         self.assertEqual(expected_options, options)
 

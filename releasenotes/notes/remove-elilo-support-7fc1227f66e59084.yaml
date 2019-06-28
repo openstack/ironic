@@ -1,0 +1,6 @@
+---
+upgrade:
+  - |
+    Support for `elilo` has been removed as support was deprecated
+    and `elilo` has been dropped by most Linux distributions. Users
+    should migrate to another PXE loader.
