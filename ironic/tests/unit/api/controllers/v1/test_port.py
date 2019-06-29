@@ -1104,7 +1104,7 @@ class TestPatch(test_api_base.BaseApiTest):
                                      'op': 'add'}],
                                    headers=headers)
         self.assertEqual('application/json', response.content_type)
-        self.assertTrue(pg1.id, mock_upd.call_args[0][2].portgroup_id)
+        self.assertEqual(pg1.id, mock_upd.call_args[0][2].portgroup_id)
 
     def test_replace_portgroup_uuid_old_api(self, mock_upd):
         pg = obj_utils.create_test_portgroup(self.context,
