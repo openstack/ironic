@@ -90,6 +90,12 @@ if not dracclient:
         POWER_OFF=mock.sentinel.POWER_OFF,
         POWER_ON=mock.sentinel.POWER_ON,
         REBOOT=mock.sentinel.REBOOT)
+    dracclient.constants.RebootRequired = mock.MagicMock(
+        spec_set=mock_specs.DRACCLIENT_CONSTANTS_REBOOT_REQUIRED_MOD_SPEC,
+        true=mock.sentinel.true,
+        optional=mock.sentinel.optional,
+        false=mock.sentinel.false)
+
     sys.modules['dracclient'] = dracclient
     sys.modules['dracclient.client'] = dracclient.client
     sys.modules['dracclient.constants'] = dracclient.constants

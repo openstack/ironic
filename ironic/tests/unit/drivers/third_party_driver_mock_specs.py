@@ -30,7 +30,14 @@ DRACCLIENT_CLIENT_MOD_SPEC = (
 DRACCLIENT_CONSTANTS_MOD_SPEC = (
     'POWER_OFF',
     'POWER_ON',
-    'REBOOT'
+    'REBOOT',
+    'RebootRequired'
+)
+
+DRACCLIENT_CONSTANTS_REBOOT_REQUIRED_MOD_SPEC = (
+    'true',
+    'optional',
+    'false'
 )
 
 # ironic_inspector

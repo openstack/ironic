@@ -15,12 +15,14 @@
 Test class for DRAC RAID interface
 """
 
+from dracclient import constants
 from dracclient import exceptions as drac_exceptions
 import mock
 
 from ironic.common import exception
 from ironic.common import states
 from ironic.conductor import task_manager
+from ironic.conductor import utils as conductor_utils
 from ironic.drivers.modules.drac import common as drac_common
 from ironic.drivers.modules.drac import job as drac_job
 from ironic.drivers.modules.drac import raid as drac_raid
@@ -221,6 +223,62 @@ class DracManageVirtualDisksTestCase(test_utils.BaseDracTest):
         self.assertRaises(
             exception.DracOperationError, drac_raid.delete_virtual_disk,
             self.node, 'disk1')
+
+    @mock.patch.object(drac_job, 'validate_job_queue', spec_set=True,
+                       autospec=True)
+    def test__reset_raid_config(self, mock_validate_job_queue,
+                                mock_get_drac_client):
+        mock_client = mock.Mock()
+        mock_get_drac_client.return_value = mock_client
+
+        drac_raid._reset_raid_config(
+            self.node, 'controller')
+
+        mock_validate_job_queue.assert_called_once_with(self.node)
+        mock_client.reset_raid_config.assert_called_once_with(
+            'controller')
+
+    @mock.patch.object(drac_job, 'validate_job_queue', spec_set=True,
+                       autospec=True)
+    def test__reset_raid_config_fail(self, mock_validate_job_queue,
+                                     mock_get_drac_client):
+        mock_client = mock.Mock()
+        mock_get_drac_client.return_value = mock_client
+
+        exc = drac_exceptions.BaseClientException('boom')
+        mock_client.reset_raid_config.side_effect = exc
+
+        self.assertRaises(
+            exception.DracOperationError, drac_raid._reset_raid_config,
+            self.node, 'RAID.Integrated.1-1')
+
+    @mock.patch.object(drac_job, 'validate_job_queue', spec_set=True,
+                       autospec=True)
+    def test_clear_foreign_config(self, mock_validate_job_queue,
+                                  mock_get_drac_client):
+        mock_client = mock.Mock()
+        mock_get_drac_client.return_value = mock_client
+
+        drac_raid.clear_foreign_config(
+            self.node, 'RAID.Integrated.1-1')
+
+        mock_validate_job_queue.assert_called_once_with(self.node)
+        mock_client.clear_foreign_config.assert_called_once_with(
+            'RAID.Integrated.1-1')
+
+    @mock.patch.object(drac_job, 'validate_job_queue', spec_set=True,
+                       autospec=True)
+    def test_clear_foreign_config_fail(self, mock_validate_job_queue,
+                                       mock_get_drac_client):
+        mock_client = mock.Mock()
+        mock_get_drac_client.return_value = mock_client
+
+        exc = drac_exceptions.BaseClientException('boom')
+        mock_client.clear_foreign_config.side_effect = exc
+
+        self.assertRaises(
+            exception.DracOperationError, drac_raid.clear_foreign_config,
+            self.node, 'RAID.Integrated.1-1')
 
     def test_commit_config(self, mock_get_drac_client):
         mock_client = mock.Mock()
@@ -620,7 +678,7 @@ class DracRaidInterfaceTestCase(test_utils.BaseDracTest):
         mock_list_physical_disks.return_value = physical_disks
         mock_commit_config.return_value = '42'
         mock_client.create_virtual_disk.return_value = {
-            'is_reboot_required': 'optional',
+            'is_reboot_required': constants.RebootRequired.optional,
             'is_commit_required': True}
 
         with task_manager.acquire(self.context, self.node.uuid,
@@ -657,7 +715,7 @@ class DracRaidInterfaceTestCase(test_utils.BaseDracTest):
         physical_disks = self._generate_physical_disks()
         mock_list_physical_disks.return_value = physical_disks
         mock_client.create_virtual_disk.return_value = {
-            'is_reboot_required': 'optional',
+            'is_reboot_required': constants.RebootRequired.optional,
             'is_commit_required': True}
 
         with task_manager.acquire(self.context, self.node.uuid,
@@ -699,10 +757,9 @@ class DracRaidInterfaceTestCase(test_utils.BaseDracTest):
 
         physical_disks = self._generate_physical_disks()
         mock_list_physical_disks.return_value = physical_disks
-
         mock_commit_config.return_value = '42'
         mock_client.create_virtual_disk.return_value = {
-            'is_reboot_required': 'optional',
+            'is_reboot_required': constants.RebootRequired.optional,
             'is_commit_required': True}
 
         with task_manager.acquire(self.context, self.node.uuid,
@@ -758,7 +815,7 @@ class DracRaidInterfaceTestCase(test_utils.BaseDracTest):
 
         mock_commit_config.return_value = '42'
         mock_client.create_virtual_disk.return_value = {
-            'is_reboot_required': 'optional',
+            'is_reboot_required': constants.RebootRequired.optional,
             'is_commit_required': True}
 
         with task_manager.acquire(self.context, self.node.uuid,
@@ -802,15 +859,14 @@ class DracRaidInterfaceTestCase(test_utils.BaseDracTest):
         mock_list_physical_disks.return_value = physical_disks
 
         mock_commit_config.side_effect = ['42', '12', '13']
-
         mock_client.create_virtual_disk.side_effect = [{
-            'is_reboot_required': 'True',
+            'is_reboot_required': constants.RebootRequired.true,
             'is_commit_required': True
         }, {
-            'is_reboot_required': 'optional',
+            'is_reboot_required': constants.RebootRequired.optional,
             'is_commit_required': True
         }, {
-            'is_reboot_required': 'optional',
+            'is_reboot_required': constants.RebootRequired.optional,
             'is_commit_required': True
         }]
 
@@ -878,7 +934,7 @@ class DracRaidInterfaceTestCase(test_utils.BaseDracTest):
 
         mock_commit_config.side_effect = ['42', '12', '13']
         mock_client.create_virtual_disk.return_value = {
-            'is_reboot_required': 'optional',
+            'is_reboot_required': constants.RebootRequired.optional,
             'is_commit_required': True
         }
 
@@ -940,9 +996,8 @@ class DracRaidInterfaceTestCase(test_utils.BaseDracTest):
         physical_disks = self._generate_physical_disks()
         mock_list_physical_disks.return_value = physical_disks
         mock_commit_config.side_effect = ['42', '12']
-
         mock_client.create_virtual_disk.return_value = {
-            'is_reboot_required': 'optional',
+            'is_reboot_required': constants.RebootRequired.optional,
             'is_commit_required': True
         }
 
@@ -1007,7 +1062,7 @@ class DracRaidInterfaceTestCase(test_utils.BaseDracTest):
 
         mock_commit_config.side_effect = ['42', '12', '13']
         mock_client.create_virtual_disk.return_value = {
-            'is_reboot_required': 'optional',
+            'is_reboot_required': constants.RebootRequired.optional,
             'is_commit_required': True
         }
 
@@ -1100,7 +1155,7 @@ class DracRaidInterfaceTestCase(test_utils.BaseDracTest):
 
         mock_commit_config.side_effect = ['42', '12']
         mock_client.create_virtual_disk.return_value = {
-            'is_reboot_required': 'optional',
+            'is_reboot_required': constants.RebootRequired.optional,
             'is_commit_required': True
         }
 
@@ -1158,7 +1213,7 @@ class DracRaidInterfaceTestCase(test_utils.BaseDracTest):
 
         mock_commit_config.return_value = '42'
         mock_client.create_virtual_disk.return_value = {
-            'is_reboot_required': 'optional',
+            'is_reboot_required': constants.RebootRequired.optional,
             'is_commit_required': True}
 
         with task_manager.acquire(self.context, self.node.uuid,
@@ -1177,7 +1232,8 @@ class DracRaidInterfaceTestCase(test_utils.BaseDracTest):
                        autospec=True)
     def test_create_configuration_with_max_size_and_share_physical_disks(
             self, mock_commit_config, mock_validate_job_queue,
-            mock_list_physical_disks, mock_get_drac_client):
+            mock_list_physical_disks,
+            mock_get_drac_client):
         mock_client = mock.Mock()
         mock_get_drac_client.return_value = mock_client
 
@@ -1199,7 +1255,7 @@ class DracRaidInterfaceTestCase(test_utils.BaseDracTest):
 
         mock_commit_config.return_value = '42'
         mock_client.create_virtual_disk.return_value = {
-            'is_reboot_required': 'optional',
+            'is_reboot_required': constants.RebootRequired.optional,
             'is_commit_required': True
         }
 
@@ -1268,7 +1324,7 @@ class DracRaidInterfaceTestCase(test_utils.BaseDracTest):
 
         mock_commit_config.return_value = '42'
         mock_client.create_virtual_disk.return_value = {
-            'is_reboot_required': 'optional',
+            'is_reboot_required': constants.RebootRequired.optional,
             'is_commit_required': True}
 
         with task_manager.acquire(self.context, self.node.uuid,
@@ -1309,7 +1365,7 @@ class DracRaidInterfaceTestCase(test_utils.BaseDracTest):
 
         mock_commit_config.return_value = '42'
         mock_create_virtual_disk.return_value = {
-            'is_reboot_required': 'optional',
+            'is_reboot_required': constants.RebootRequired.optional,
             'is_commit_required': True}
 
         with task_manager.acquire(self.context, self.node.uuid,
@@ -1352,7 +1408,7 @@ class DracRaidInterfaceTestCase(test_utils.BaseDracTest):
 
         mock_commit_config.return_value = '42'
         mock_create_virtual_disk.return_value = {
-            'is_reboot_required': 'optional',
+            'is_reboot_required': constants.RebootRequired.optional,
             'is_commit_required': True}
 
         with task_manager.acquire(self.context, self.node.uuid,
@@ -1364,38 +1420,35 @@ class DracRaidInterfaceTestCase(test_utils.BaseDracTest):
 
     @mock.patch.object(drac_common, 'get_drac_client', spec_set=True,
                        autospec=True)
-    @mock.patch.object(drac_raid, 'list_virtual_disks', autospec=True)
+    @mock.patch.object(drac_raid, 'list_raid_controllers', autospec=True)
     @mock.patch.object(drac_job, 'validate_job_queue', spec_set=True,
                        autospec=True)
     @mock.patch.object(drac_raid, 'commit_config', spec_set=True,
                        autospec=True)
-    @mock.patch.object(drac_raid, 'delete_virtual_disk', spec_set=True,
+    @mock.patch.object(drac_raid, '_reset_raid_config', spec_set=True,
                        autospec=True)
-    def test_delete_configuration(self, mock_delete_virtual_disk,
+    def test_delete_configuration(self, mock__reset_raid_config,
                                   mock_commit_config,
                                   mock_validate_job_queue,
-                                  mock_list_virtual_disks,
+                                  mock_list_raid_controllers,
                                   mock_get_drac_client):
         mock_client = mock.Mock()
         mock_get_drac_client.return_value = mock_client
-        virtual_disk_dict = {
-            'id': 'Disk.Virtual.0:RAID.Integrated.1-1',
-            'name': 'disk 0',
-            'description': 'Virtual Disk 0 on Integrated RAID Controller 1',
-            'controller': 'RAID.Integrated.1-1',
-            'raid_level': '1',
-            'size_mb': 571776,
-            'status': 'ok',
-            'raid_status': 'online',
-            'span_depth': 1,
-            'span_length': 2,
-            'pending_operations': None,
-            'physical_disks': []}
-        mock_list_virtual_disks.return_value = [
-            test_utils.make_virtual_disk(virtual_disk_dict)]
+        raid_controller_dict = {
+            'id': 'RAID.Integrated.1-1',
+            'description': 'Integrated RAID Controller 1',
+            'manufacturer': 'DELL',
+            'model': 'PERC H710 Mini',
+            'primary_status': 'ok',
+            'firmware_version': '21.3.0-0009',
+            'bus': '1',
+            'supports_realtime': True}
+
+        mock_list_raid_controllers.return_value = [
+            test_utils.make_raid_controller(raid_controller_dict)]
         mock_commit_config.return_value = '42'
-        mock_delete_virtual_disk.return_value = {
-            'is_reboot_required': 'optional',
+        mock__reset_raid_config.return_value = {
+            'is_reboot_required': constants.RebootRequired.optional,
             'is_commit_required': True}
 
         with task_manager.acquire(self.context, self.node.uuid,
@@ -1413,30 +1466,24 @@ class DracRaidInterfaceTestCase(test_utils.BaseDracTest):
 
     @mock.patch.object(drac_common, 'get_drac_client', spec_set=True,
                        autospec=True)
-    @mock.patch.object(drac_raid, 'list_virtual_disks', autospec=True)
+    @mock.patch.object(drac_raid, 'list_raid_controllers', autospec=True)
     @mock.patch.object(drac_job, 'validate_job_queue', spec_set=True,
                        autospec=True)
     @mock.patch.object(drac_raid, 'commit_config', spec_set=True,
                        autospec=True)
-    @mock.patch.object(drac_raid, 'delete_virtual_disk', spec_set=True,
-                       autospec=True)
-    def test_delete_configuration_no_change(self, mock_delete_virtual_disk,
-                                            mock_commit_config,
+    def test_delete_configuration_no_change(self, mock_commit_config,
                                             mock_validate_job_queue,
-                                            mock_list_virtual_disks,
+                                            mock_list_raid_controllers,
                                             mock_get_drac_client):
         mock_client = mock.Mock()
         mock_get_drac_client.return_value = mock_client
-        mock_list_virtual_disks.return_value = []
-        mock_delete_virtual_disk.return_value = {
-            'is_reboot_required': 'optional',
-            'is_commit_required': True}
+        mock_list_raid_controllers.return_value = []
 
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
             return_value = task.driver.raid.delete_configuration(task)
 
-            self.assertEqual(0, mock_client.delete_virtual_disk.call_count)
+            self.assertEqual(0, mock_client._reset_raid_config.call_count)
             self.assertEqual(0, mock_commit_config.call_count)
 
         self.assertIsNone(return_value)
@@ -1473,3 +1520,61 @@ class DracRaidInterfaceTestCase(test_utils.BaseDracTest):
 
         self.assertEqual({'logical_disks': [expected_logical_disk]},
                          props)
+
+    @mock.patch.object(drac_common, 'get_drac_client', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(conductor_utils, '_notify_conductor_resume_operation',
+                       autospec=True)
+    @mock.patch.object(drac_raid, 'clear_foreign_config', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(drac_raid, 'list_virtual_disks', autospec=True)
+    @mock.patch.object(drac_job, 'validate_job_queue', spec_set=True,
+                       autospec=True)
+    def test__execute_cleaning_foreign_drives(self,
+                                              mock_validate_job_queue,
+                                              mock_list_virtual_disks,
+                                              mock_clear_foreign_config,
+                                              mock_resume,
+                                              mock_get_drac_client):
+        mock_client = mock.Mock()
+        mock_get_drac_client.return_value = mock_client
+        virtual_disk_dict = {
+            'id': 'Disk.Virtual.0:RAID.Integrated.1-1',
+            'name': 'disk 0',
+            'description': 'Virtual Disk 0 on Integrated RAID Controller 1',
+            'controller': 'RAID.Integrated.1-1',
+            'raid_level': '1',
+            'size_mb': 571776,
+            'status': 'ok',
+            'raid_status': 'online',
+            'span_depth': 1,
+            'span_length': 2,
+            'pending_operations': None,
+            'physical_disks': []}
+        mock_list_virtual_disks.return_value = [
+            test_utils.make_virtual_disk(virtual_disk_dict)]
+
+        raid_config_params = ['RAID.Integrated.1-1']
+        raid_config_substep = ['completed']
+        driver_internal_info = self.node.driver_internal_info
+        driver_internal_info['raid_config_parameters'] = raid_config_params
+        driver_internal_info['raid_config_substep'] = raid_config_substep
+        self.node.driver_internal_info = driver_internal_info
+        self.node.save()
+        mock_clear_foreign_config.return_value = {
+            'is_reboot_required': constants.RebootRequired.false,
+            'is_commit_required': False
+        }
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            return_value = task.driver.raid._execute_cleaning_foreign_drives(
+                task, self.node)
+            mock_resume.assert_called_once_with(
+                task, 'cleaning', 'continue_node_clean')
+
+        self.assertIsNone(return_value)
+        self.assertNotIn('raid_config_parameters',
+                         self.node.driver_internal_info)
+        self.assertNotIn('raid_config_substep',
+                         self.node.driver_internal_info)
