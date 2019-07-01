@@ -13,6 +13,8 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import collections
+
 from oslo_log import log
 from oslo_utils import importutils
 
@@ -222,14 +224,155 @@ class RedfishManagement(base.ManagementInterface):
 
         return BOOT_MODE_MAP.get(system.boot.get('mode'))
 
+    @staticmethod
+    def _sensor2dict(resource, *fields):
+        return {field: getattr(resource, field)
+                for field in fields
+                if hasattr(resource, field)}
+
+    @classmethod
+    def _get_sensors_fan(cls, chassis):
+        """Get fan sensors reading.
+
+        :param chassis: Redfish `chassis` object
+        :returns: returns a dict of sensor data.
+        """
+        sensors = {}
+
+        for fan in chassis.thermal.fans.get_members():
+            sensor = cls._sensor2dict(
+                fan, 'identity', 'max_reading_range',
+                'min_reading_range', 'reading', 'reading_units',
+                'serial_number', 'physical_context')
+            sensor.update(cls._sensor2dict(fan.status, 'state', 'health'))
+            unique_name = '%s@%s' % (fan.identity, chassis.identity)
+            sensors[unique_name] = sensor
+
+        return sensors
+
+    @classmethod
+    def _get_sensors_temperatures(cls, chassis):
+        """Get temperature sensors reading.
+
+        :param chassis: Redfish `chassis` object
+        :returns: returns a dict of sensor data.
+        """
+        sensors = {}
+
+        for temps in chassis.thermal.temperatures.get_members():
+            sensor = cls._sensor2dict(
+                temps, 'identity', 'max_reading_range_temp',
+                'min_reading_range_temp', 'reading_celsius',
+                'physical_context', 'sensor_number')
+            sensor.update(cls._sensor2dict(temps.status, 'state', 'health'))
+            unique_name = '%s@%s' % (temps.identity, chassis.identity)
+            sensors[unique_name] = sensor
+
+        return sensors
+
+    @classmethod
+    def _get_sensors_power(cls, chassis):
+        """Get power supply sensors reading.
+
+        :param chassis: Redfish `chassis` object
+        :returns: returns a dict of sensor data.
+        """
+        sensors = {}
+
+        for power in chassis.power.power_supplies:
+            sensor = cls._sensor2dict(
+                power, 'power_capacity_watts',
+                'line_input_voltage', 'last_power_output_watts',
+                'serial_number')
+            sensor.update(cls._sensor2dict(power.status, 'state', 'health'))
+            sensor.update(cls._sensor2dict(
+                power.input_ranges, 'minimum_voltage',
+                'maximum_voltage', 'minimum_frequency_hz',
+                'maximum_frequency_hz', 'output_wattage'))
+            unique_name = '%s:%s@%s' % (
+                power.member_id, chassis.power.identity,
+                chassis.identity)
+            sensors[unique_name] = sensor
+
+        return sensors
+
+    @classmethod
+    def _get_sensors_drive(cls, system):
+        """Get storage drive sensors reading.
+
+        :param chassis: Redfish `system` object
+        :returns: returns a dict of sensor data.
+        """
+        sensors = {}
+
+        for storage in system.simple_storage.get_members():
+            for drive in storage.devices:
+                sensor = cls._sensor2dict(
+                    drive, 'identity', 'model', 'capacity_bytes',
+                    'failure_predicted')
+                sensor.update(
+                    cls._sensor2dict(drive.status, 'state', 'health'))
+                unique_name = '%s:%s@%s' % (
+                    drive.identity, system.simple_storage.identity,
+                    system.identity)
+                sensors[unique_name] = sensor
+
+        return sensors
+
     def get_sensors_data(self, task):
         """Get sensors data.
 
-        Not implemented for this driver.
-
-        :raises: NotImplementedError
+        :param task: a TaskManager instance.
+        :raises: FailedToGetSensorData when getting the sensor data fails.
+        :raises: FailedToParseSensorData when parsing sensor data fails.
+        :raises: InvalidParameterValue if required parameters
+                 are missing.
+        :raises: MissingParameterValue if a required parameter is missing.
+        :returns: returns a dict of sensor data grouped by sensor type.
         """
-        raise NotImplementedError()
+        node = task.node
+
+        sensors = collections.defaultdict(dict)
+
+        system = redfish_utils.get_system(node)
+
+        for chassis in system.chassis:
+            try:
+                sensors['Fan'].update(self._get_sensors_fan(chassis))
+
+            except sushy.exceptions.SushyError as exc:
+                LOG.debug("Failed reading fan information for node "
+                          "%(node)s: %(error)s", {'node': node.uuid,
+                                                  'error': exc})
+
+            try:
+                sensors['Temperature'].update(
+                    self._get_sensors_temperatures(chassis))
+
+            except sushy.exceptions.SushyError as exc:
+                LOG.debug("Failed reading temperature information for node "
+                          "%(node)s: %(error)s", {'node': node.uuid,
+                                                  'error': exc})
+
+            try:
+                sensors['Power'].update(self._get_sensors_power(chassis))
+
+            except sushy.exceptions.SushyError as exc:
+                LOG.debug("Failed reading power information for node "
+                          "%(node)s: %(error)s", {'node': node.uuid,
+                                                  'error': exc})
+
+        try:
+            sensors['Drive'].update(self._get_sensors_drive(system))
+
+        except sushy.exceptions.SushyError as exc:
+            LOG.debug("Failed reading drive information for node "
+                      "%(node)s: %(error)s", {'node': node.uuid,
+                                              'error': exc})
+
+        LOG.debug("Gathered sensor data: %(sensors)s", {'sensors': sensors})
+
+        return sensors
 
     @task_manager.require_exclusive_lock
     def inject_nmi(self, task):

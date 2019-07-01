@@ -215,11 +215,203 @@ class RedfishManagementTestCase(db_base.DbTestCase):
             expected = boot_modes.LEGACY_BIOS
             self.assertEqual(expected, response)
 
-    def test_get_sensors_data(self):
+    def test__get_sensors_fan(self):
+        attributes = {
+            "identity": "XXX-YYY-ZZZ",
+            "name": "CPU Fan",
+            "status": {
+                "state": "enabled",
+                "health": "OK"
+            },
+            "reading": 6000,
+            "reading_units": "RPM",
+            "lower_threshold_fatal": 2000,
+            "min_reading_range": 0,
+            "max_reading_range": 10000,
+            "serial_number": "SN010203040506",
+            "physical_context": "CPU"
+        }
+
+        mock_chassis = mock.MagicMock(identity='ZZZ-YYY-XXX')
+
+        mock_fans = mock_chassis.thermal.fans
+        mock_fan = mock.MagicMock(**attributes)
+        mock_fan.name = attributes['name']
+        mock_fan.status = mock.MagicMock(**attributes['status'])
+        mock_fans.get_members.return_value = [mock_fan]
+
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
-            self.assertRaises(NotImplementedError,
-                              task.driver.management.get_sensors_data, task)
+            sensors = task.driver.management._get_sensors_fan(mock_chassis)
+
+        expected = {
+            'XXX-YYY-ZZZ@ZZZ-YYY-XXX': {
+                'identity': 'XXX-YYY-ZZZ',
+                'max_reading_range': 10000,
+                'min_reading_range': 0,
+                'physical_context': 'CPU',
+                'reading': 6000,
+                'reading_units': 'RPM',
+                'serial_number': 'SN010203040506',
+                'health': 'OK',
+                'state': 'enabled'
+            }
+        }
+
+        self.assertEqual(expected, sensors)
+
+    def test__get_sensors_temperatures(self):
+        attributes = {
+            "identity": "XXX-YYY-ZZZ",
+            "name": "CPU Temp",
+            "status": {
+                "state": "enabled",
+                "health": "OK"
+            },
+            "reading_celsius": 62,
+            "upper_threshold_non_critical": 75,
+            "upper_threshold_critical": 90,
+            "upperThresholdFatal": 95,
+            "min_reading_range_temp": 0,
+            "max_reading_range_temp": 120,
+            "physical_context": "CPU",
+            "sensor_number": 1
+        }
+
+        mock_chassis = mock.MagicMock(identity='ZZZ-YYY-XXX')
+        mock_temperatures = mock_chassis.thermal.temperatures
+        mock_temperature = mock.MagicMock(**attributes)
+        mock_temperature.name = attributes['name']
+        mock_temperature.status = mock.MagicMock(**attributes['status'])
+        mock_temperatures.get_members.return_value = [mock_temperature]
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            sensors = task.driver.management._get_sensors_temperatures(
+                mock_chassis)
+
+        expected = {
+            'XXX-YYY-ZZZ@ZZZ-YYY-XXX': {
+                'identity': 'XXX-YYY-ZZZ',
+                'max_reading_range_temp': 120,
+                'min_reading_range_temp': 0,
+                'physical_context': 'CPU',
+                'reading_celsius': 62,
+                'sensor_number': 1,
+                'health': 'OK',
+                'state': 'enabled'
+            }
+        }
+
+        self.assertEqual(expected, sensors)
+
+    def test__get_sensors_power(self):
+        attributes = {
+            'member_id': 0,
+            'name': 'Power Supply 0',
+            'power_capacity_watts': 1450,
+            'last_power_output_watts': 650,
+            'line_input_voltage': 220,
+            'input_ranges': {
+                'minimum_voltage': 185,
+                'maximum_voltage': 250,
+                'minimum_frequency_hz': 47,
+                'maximum_frequency_hz': 63,
+                'output_wattage': 1450
+            },
+            'serial_number': 'SN010203040506',
+            "status": {
+                "state": "enabled",
+                "health": "OK"
+            }
+        }
+
+        mock_chassis = mock.MagicMock(identity='ZZZ-YYY-XXX')
+        mock_power = mock_chassis.power
+        mock_power.identity = 'Power'
+        mock_psu = mock.MagicMock(**attributes)
+        mock_psu.name = attributes['name']
+        mock_psu.status = mock.MagicMock(**attributes['status'])
+        mock_psu.input_ranges = mock.MagicMock(**attributes['input_ranges'])
+        mock_power.power_supplies = [mock_psu]
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            sensors = task.driver.management._get_sensors_power(mock_chassis)
+
+        expected = {
+            '0:Power@ZZZ-YYY-XXX': {
+                'health': 'OK',
+                'last_power_output_watts': 650,
+                'line_input_voltage': 220,
+                'maximum_frequency_hz': 63,
+                'maximum_voltage': 250,
+                'minimum_frequency_hz': 47,
+                'minimum_voltage': 185,
+                'output_wattage': 1450,
+                'power_capacity_watts': 1450,
+                'serial_number': 'SN010203040506',
+                'state': 'enabled'
+            }
+        }
+
+        self.assertEqual(expected, sensors)
+
+    def test__get_sensors_data_drive(self):
+        attributes = {
+            'identity': '32ADF365C6C1B7BD',
+            'model': 'IBM 350A',
+            'capacity_bytes': 3750000000,
+            'failure_predicted': True,
+            'serial_number': 'SN010203040506',
+            'status': {
+                'health': 'OK',
+                'state': 'enabled'
+            }
+        }
+
+        mock_system = mock.MagicMock(identity='ZZZ-YYY-XXX')
+        mock_drive = mock.MagicMock(**attributes)
+        mock_drive.status = mock.MagicMock(**attributes['status'])
+        mock_storage = mock.MagicMock()
+        mock_storage.devices = [mock_drive]
+        mock_system.simple_storage.identity = 'XXX-YYY-ZZZ'
+        mock_system.simple_storage.get_members.return_value = [mock_storage]
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            sensors = task.driver.management._get_sensors_drive(mock_system)
+
+        expected = {
+            '32ADF365C6C1B7BD:XXX-YYY-ZZZ@ZZZ-YYY-XXX': {
+                'capacity_bytes': 3750000000,
+                'failure_predicted': True,
+                'health': 'OK',
+                'identity': '32ADF365C6C1B7BD',
+                'model': 'IBM 350A',
+                'state': 'enabled'
+            }
+        }
+
+        self.assertEqual(expected, sensors)
+
+    @mock.patch.object(redfish_utils, 'get_system', autospec=True)
+    def test_get_sensors_data(self, mock_system):
+        mock_chassis = mock.MagicMock()
+        mock_system.return_value.chassis = [mock_chassis]
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            sensors = task.driver.management.get_sensors_data(task)
+
+        expected = {
+            'Fan': {},
+            'Temperature': {},
+            'Power': {},
+            'Drive': {}
+        }
+
+        self.assertEqual(expected, sensors)
 
     @mock.patch.object(redfish_utils, 'get_system', autospec=True)
     def test_inject_nmi(self, mock_get_system):
