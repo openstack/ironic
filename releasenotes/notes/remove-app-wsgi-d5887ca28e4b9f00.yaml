@@ -1,0 +1,5 @@
+---
+upgrade:
+  - remove deprecated ``ironic/api/app.wsgi`` script.
+    The automatically generated ``ironic-api-wsgi`` script should be used
+    instead.

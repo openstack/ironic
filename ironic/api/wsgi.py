@@ -25,17 +25,12 @@ CONF = cfg.CONF
 LOG = log.getLogger(__name__)
 
 
-def initialize_wsgi_app(show_deprecated=False):
+def initialize_wsgi_app():
     i18n.install('ironic')
 
     service.prepare_service(sys.argv)
 
     LOG.debug("Configuration:")
     CONF.log_opt_values(LOG, log.DEBUG)
-
-    if show_deprecated:
-        LOG.warning("Using ironic/api/app.wsgi is deprecated and it will "
-                    "be removed in Rocky release. Please use automatically "
-                    "generated ironic-api-wsgi instead.")
 
     return app.VersionSelectorApplication()
