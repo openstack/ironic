@@ -1307,10 +1307,13 @@ class ConductorManager(base_manager.BaseConductorManager):
 
         # Do caching of bios settings if supported by driver,
         # this will be called for both manual and automated cleaning.
-        # TODO(zshi) remove this check when classic drivers are removed
         try:
             task.driver.bios.cache_bios_settings(task)
-        except Exception as e:
+        except exception.UnsupportedDriverExtension:
+            LOG.warning('BIOS settings are not supported for node %s, '
+                        'skipping', task.node.uuid)
+        # TODO(zshi) remove this check when classic drivers are removed
+        except Exception:
             msg = (_('Caching of bios settings failed on node %(node)s. '
                      'Continuing with node cleaning.')
                    % {'node': node.uuid})

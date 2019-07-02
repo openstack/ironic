@@ -3513,8 +3513,11 @@ class DoNodeCleanTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
     def _test__do_node_clean_cache_bios(self, mock_bios, mock_validate,
                                         mock_prep, mock_next_step, mock_steps,
                                         mock_log, clean_steps=None,
+                                        enable_unsupported=False,
                                         enable_exception=False):
-        if enable_exception:
+        if enable_unsupported:
+            mock_bios.side_effect = exception.UnsupportedDriverExtension
+        elif enable_exception:
             mock_bios.side_effect = exception.IronicException('test')
         mock_prep.return_value = states.NOSTATE
         tgt_prov_state = states.MANAGEABLE if clean_steps else states.AVAILABLE
@@ -3552,6 +3555,13 @@ class DoNodeCleanTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
 
     def test__do_node_clean_automated_cache_bios_exception(self):
         self._test__do_node_clean_cache_bios(enable_exception=True)
+
+    def test__do_node_clean_manual_cache_bios_unsupported(self):
+        self._test__do_node_clean_cache_bios(clean_steps=[self.deploy_raid],
+                                             enable_unsupported=True)
+
+    def test__do_node_clean_automated_cache_bios_unsupported(self):
+        self._test__do_node_clean_cache_bios(enable_unsupported=True)
 
     @mock.patch('ironic.drivers.modules.fake.FakePower.validate',
                 autospec=True)

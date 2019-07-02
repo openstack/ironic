@@ -31,8 +31,13 @@ sushy = importutils.try_import('sushy')
 INFO_DICT = db_utils.get_test_redfish_info()
 
 
-class MockedSushyError(Exception):
-    pass
+class NoBiosSystem(object):
+    identity = '/redfish/v1/Systems/1234'
+
+    @property
+    def bios(self):
+        raise sushy.exceptions.MissingAttributeError(attribute='Bios',
+                                                     resource=self)
 
 
 @mock.patch('eventlet.greenthread.sleep', lambda _t: None)
@@ -97,6 +102,31 @@ class RedfishBiosTestCase(db_base.DbTestCase):
 
     @mock.patch.object(redfish_utils, 'get_system', autospec=True)
     @mock.patch.object(objects, 'BIOSSettingList', autospec=True)
+    def test_cache_bios_settings_no_bios(self, mock_setting_list,
+                                         mock_get_system):
+        create_list = []
+        update_list = []
+        delete_list = []
+        nochange_list = [{'name': 'EmbeddedSata', 'value': 'Raid'},
+                         {'name': 'NicBoot1', 'value': 'NetworkBoot'}]
+        mock_setting_list.sync_node_setting.return_value = (
+            create_list, update_list, delete_list, nochange_list
+        )
+        mock_get_system.return_value = NoBiosSystem()
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            self.assertRaisesRegex(exception.UnsupportedDriverExtension,
+                                   'BIOS settings are not supported',
+                                   task.driver.bios.cache_bios_settings, task)
+            mock_get_system.assert_called_once_with(task.node)
+            mock_setting_list.sync_node_setting.assert_not_called()
+            mock_setting_list.create.assert_not_called()
+            mock_setting_list.save.assert_not_called()
+            mock_setting_list.delete.assert_not_called()
+
+    @mock.patch.object(redfish_utils, 'get_system', autospec=True)
+    @mock.patch.object(objects, 'BIOSSettingList', autospec=True)
     def test_cache_bios_settings(self, mock_setting_list, mock_get_system):
         create_list = [{'name': 'DebugMode', 'value': 'enabled'}]
         update_list = [{'name': 'BootMode', 'value': 'Uefi'},
@@ -139,14 +169,21 @@ class RedfishBiosTestCase(db_base.DbTestCase):
             bios = mock_get_system(task.node).bios
             bios.reset_bios.assert_called_once()
 
-    @mock.patch('ironic.drivers.modules.redfish.bios.sushy')
     @mock.patch.object(redfish_utils, 'get_system', autospec=True)
-    def test_factory_reset_fail(self, mock_get_system, mock_sushy):
-        mock_sushy.exceptions.SushyError = MockedSushyError
+    def test_factory_reset_fail(self, mock_get_system):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
             bios = mock_get_system(task.node).bios
-            bios.reset_bios.side_effect = MockedSushyError
+            bios.reset_bios.side_effect = sushy.exceptions.SushyError
+            self.assertRaisesRegex(
+                exception.RedfishError, 'BIOS factory reset failed',
+                task.driver.bios.factory_reset, task)
+
+    @mock.patch.object(redfish_utils, 'get_system', autospec=True)
+    def test_factory_reset_not_supported(self, mock_get_system):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            mock_get_system.return_value = NoBiosSystem()
             self.assertRaisesRegex(
                 exception.RedfishError, 'BIOS factory reset failed',
                 task.driver.bios.factory_reset, task)
@@ -184,6 +221,19 @@ class RedfishBiosTestCase(db_base.DbTestCase):
                 .assert_called_once_with(task)
 
     @mock.patch.object(redfish_utils, 'get_system', autospec=True)
+    def test_apply_configuration_not_supported(self, mock_get_system):
+        settings = [{'name': 'ProcTurboMode', 'value': 'Disabled'},
+                    {'name': 'NicBoot1', 'value': 'NetworkBoot'}]
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            mock_get_system.return_value = NoBiosSystem()
+            self.assertRaisesRegex(exception.RedfishError,
+                                   'BIOS settings are not supported',
+                                   task.driver.bios.apply_configuration,
+                                   task, settings)
+            mock_get_system.assert_called_once_with(task.node)
+
+    @mock.patch.object(redfish_utils, 'get_system', autospec=True)
     def test_check_bios_attrs(self, mock_get_system):
         settings = [{'name': 'ProcTurboMode', 'value': 'Disabled'},
                     {'name': 'NicBoot1', 'value': 'NetworkBoot'}]
@@ -200,16 +250,14 @@ class RedfishBiosTestCase(db_base.DbTestCase):
             task.driver.bios._check_bios_attrs \
                 .assert_called_once_with(task, attributes, requested_attrs)
 
-    @mock.patch('ironic.drivers.modules.redfish.bios.sushy')
     @mock.patch.object(redfish_utils, 'get_system', autospec=True)
-    def test_apply_configuration_fail(self, mock_get_system, mock_sushy):
+    def test_apply_configuration_fail(self, mock_get_system):
         settings = [{'name': 'ProcTurboMode', 'value': 'Disabled'},
                     {'name': 'NicBoot1', 'value': 'NetworkBoot'}]
-        mock_sushy.exceptions.SushyError = MockedSushyError
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
             bios = mock_get_system(task.node).bios
-            bios.set_attributes.side_effect = MockedSushyError
+            bios.set_attributes.side_effect = sushy.exceptions.SushyError
             self.assertRaisesRegex(
                 exception.RedfishError, 'BIOS apply configuration failed',
                 task.driver.bios.apply_configuration, task, settings)

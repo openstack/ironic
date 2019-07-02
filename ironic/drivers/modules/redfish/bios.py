@@ -50,11 +50,20 @@ class RedfishBIOS(base.BIOSInterface):
         :param task: a TaskManager instance containing the node to act on.
         :raises: RedfishConnectionError when it fails to connect to Redfish
         :raises: RedfishError on an error from the Sushy library
+        :raises: UnsupportedDriverExtension if the system does not support BIOS
+            settings
         """
 
         node_id = task.node.id
         system = redfish_utils.get_system(task.node)
-        attributes = system.bios.attributes
+        try:
+            attributes = system.bios.attributes
+        except sushy.exceptions.MissingAttributeError:
+            error_msg = _('Cannot fetch BIOS attributes for node %s, '
+                          'BIOS settings are not supported.') % task.node.uuid
+            LOG.error(error_msg)
+            raise exception.UnsupportedDriverExtension(error_msg)
+
         settings = []
         # Convert Redfish BIOS attributes to Ironic BIOS settings
         if attributes:
@@ -88,11 +97,10 @@ class RedfishBIOS(base.BIOSInterface):
         :raises: RedfishError on an error from the Sushy library
         """
         system = redfish_utils.get_system(task.node)
-        bios = system.bios
         LOG.debug('Factory reset BIOS settings for node %(node_uuid)s',
                   {'node_uuid': task.node.uuid})
         try:
-            bios.reset_bios()
+            system.bios.reset_bios()
         except sushy.exceptions.SushyError as e:
             error_msg = (_('Redfish BIOS factory reset failed for node '
                            '%(node)s. Error: %(error)s') %
@@ -122,7 +130,15 @@ class RedfishBIOS(base.BIOSInterface):
         """
 
         system = redfish_utils.get_system(task.node)
-        bios = system.bios
+        try:
+            bios = system.bios
+        except sushy.exceptions.MissingAttributeError:
+            error_msg = (_('Redfish BIOS factory reset failed for node '
+                           '%s, because BIOS settings are not supported.') %
+                         task.node.uuid)
+            LOG.error(error_msg)
+            raise exception.RedfishError(error=error_msg)
+
         # Convert Ironic BIOS settings to Redfish BIOS attributes
         attributes = {s['name']: s['value'] for s in settings}
 
