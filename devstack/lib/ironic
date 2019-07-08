@@ -975,7 +975,7 @@ function install_ironic {
         install_apache_wsgi
     fi
 
-    if [[ "$IRONIC_BOOT_MODE" == "uefi" ]]; then
+    if [[ "$IRONIC_BOOT_MODE" == "uefi" && "$IRONIC_IS_HARDWARE" == "False" ]]; then
 
         # Append the nvram configuration to libvirt if it's not present already
         if ! sudo grep -q "^nvram" /etc/libvirt/qemu.conf; then
