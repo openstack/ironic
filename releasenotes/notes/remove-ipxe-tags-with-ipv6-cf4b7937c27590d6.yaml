@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Fixes the duplication of the "ipxe" tag when using IPv6, which leads to
+    the dhcp server possibly returning an incorrect response to the DHCPv6
+    client.
