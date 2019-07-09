@@ -375,22 +375,25 @@ class TestAnsibleMethods(AnsibleDeployTestCaseBase):
                 self.assertIn(six.text_type(key), six.text_type(exc))
                 self.assertIn(six.text_type(value), six.text_type(exc))
 
-    @mock.patch.object(ansible_deploy, '_calculate_memory_req', autospec=True,
-                       return_value=2000)
-    def test__prepare_variables(self, mem_req_mock):
+    def test__prepare_variables(self):
+        i_info = self.node.instance_info
+        i_info['image_mem_req'] = 3000
+        i_info['image_whatever'] = 'hello'
+        self.node.instance_info = i_info
+        self.node.save()
+
         expected = {"image": {"url": "http://image",
                               "validate_certs": "yes",
                               "source": "fake-image",
-                              "mem_req": 2000,
+                              "mem_req": 3000,
                               "disk_format": "qcow2",
-                              "checksum": "md5:checksum"}}
+                              "checksum": "md5:checksum",
+                              "whatever": "hello"}}
         with task_manager.acquire(self.context, self.node.uuid) as task:
             self.assertEqual(expected,
                              ansible_deploy._prepare_variables(task))
 
-    @mock.patch.object(ansible_deploy, '_calculate_memory_req', autospec=True,
-                       return_value=2000)
-    def test__prepare_variables_root_device_hints(self, mem_req_mock):
+    def test__prepare_variables_root_device_hints(self):
         props = self.node.properties
         props['root_device'] = {"wwn": "fake-wwn"}
         self.node.properties = props
@@ -398,7 +401,6 @@ class TestAnsibleMethods(AnsibleDeployTestCaseBase):
         expected = {"image": {"url": "http://image",
                               "validate_certs": "yes",
                               "source": "fake-image",
-                              "mem_req": 2000,
                               "disk_format": "qcow2",
                               "checksum": "md5:checksum"},
                     "root_device_hints": {"wwn": "fake-wwn"}}
@@ -406,9 +408,7 @@ class TestAnsibleMethods(AnsibleDeployTestCaseBase):
             self.assertEqual(expected,
                              ansible_deploy._prepare_variables(task))
 
-    @mock.patch.object(ansible_deploy, '_calculate_memory_req', autospec=True,
-                       return_value=2000)
-    def test__prepare_variables_noglance(self, mem_req_mock):
+    def test__prepare_variables_insecure_activated(self):
         self.config(image_store_insecure=True, group='ansible')
         i_info = self.node.instance_info
         i_info['image_checksum'] = 'sha256:checksum'
@@ -417,16 +417,13 @@ class TestAnsibleMethods(AnsibleDeployTestCaseBase):
         expected = {"image": {"url": "http://image",
                               "validate_certs": "no",
                               "source": "fake-image",
-                              "mem_req": 2000,
                               "disk_format": "qcow2",
                               "checksum": "sha256:checksum"}}
         with task_manager.acquire(self.context, self.node.uuid) as task:
             self.assertEqual(expected,
                              ansible_deploy._prepare_variables(task))
 
-    @mock.patch.object(ansible_deploy, '_calculate_memory_req', autospec=True,
-                       return_value=2000)
-    def test__prepare_variables_configdrive_url(self, mem_req_mock):
+    def test__prepare_variables_configdrive_url(self):
         i_info = self.node.instance_info
         i_info['configdrive'] = 'http://configdrive_url'
         self.node.instance_info = i_info
@@ -434,7 +431,6 @@ class TestAnsibleMethods(AnsibleDeployTestCaseBase):
         expected = {"image": {"url": "http://image",
                               "validate_certs": "yes",
                               "source": "fake-image",
-                              "mem_req": 2000,
                               "disk_format": "qcow2",
                               "checksum": "md5:checksum"},
                     'configdrive': {'type': 'url',
@@ -443,9 +439,7 @@ class TestAnsibleMethods(AnsibleDeployTestCaseBase):
             self.assertEqual(expected,
                              ansible_deploy._prepare_variables(task))
 
-    @mock.patch.object(ansible_deploy, '_calculate_memory_req', autospec=True,
-                       return_value=2000)
-    def test__prepare_variables_configdrive_file(self, mem_req_mock):
+    def test__prepare_variables_configdrive_file(self):
         i_info = self.node.instance_info
         i_info['configdrive'] = 'fake-content'
         self.node.instance_info = i_info
@@ -456,7 +450,6 @@ class TestAnsibleMethods(AnsibleDeployTestCaseBase):
         expected = {"image": {"url": "http://image",
                               "validate_certs": "yes",
                               "source": "fake-image",
-                              "mem_req": 2000,
                               "disk_format": "qcow2",
                               "checksum": "md5:checksum"},
                     'configdrive': {'type': 'file',
@@ -587,13 +580,18 @@ class TestAnsibleDeploy(AnsibleDeployTestCaseBase):
                 task.driver.boot, task)
             get_boot_mock.assert_called_once_with(task.node)
 
+    @mock.patch.object(ansible_deploy, '_calculate_memory_req', autospec=True,
+                       return_value=2000)
     @mock.patch.object(utils, 'node_power_action', autospec=True)
-    def test_deploy(self, power_mock):
+    def test_deploy(self, power_mock, mem_req_mock):
         with task_manager.acquire(
                 self.context, self.node['uuid'], shared=False) as task:
             driver_return = self.driver.deploy(task)
             self.assertEqual(driver_return, states.DEPLOYWAIT)
             power_mock.assert_called_once_with(task, states.REBOOT)
+            mem_req_mock.assert_called_once_with(task)
+            i_info = task.node.instance_info
+            self.assertEqual(i_info['image_mem_req'], 2000)
 
     @mock.patch.object(utils, 'node_power_action', autospec=True)
     def test_tear_down(self, power_mock):

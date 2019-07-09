@@ -277,7 +277,6 @@ def _prepare_variables(task):
     for i_key, i_value in i_info.items():
         if i_key.startswith('image_'):
             image[i_key[6:]] = i_value
-    image['mem_req'] = _calculate_memory_req(task)
 
     checksum = image.get('checksum')
     if checksum:
@@ -443,8 +442,23 @@ class AnsibleDeploy(agent_base.HeartbeatMixin, base.DeployInterface):
     @task_manager.require_exclusive_lock
     def deploy(self, task):
         """Perform a deployment to a node."""
+        self._required_image_info(task)
         manager_utils.node_power_action(task, states.REBOOT)
         return states.DEPLOYWAIT
+
+    @staticmethod
+    def _required_image_info(task):
+        """Gather and save needed image info while the context is good.
+
+        Gather image info that will be needed later, during the
+        continue_deploy execution, where the context won't be the same
+        anymore, since coming from the server's heartbeat.
+        """
+        node = task.node
+        i_info = node.instance_info
+        i_info['image_mem_req'] = _calculate_memory_req(task)
+        node.instance_info = i_info
+        node.save()
 
     @METRICS.timer('AnsibleDeploy.tear_down')
     @task_manager.require_exclusive_lock
