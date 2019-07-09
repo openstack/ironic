@@ -19,7 +19,7 @@ keystoneauth1==3.11.0
 keystonemiddleware==4.17.0
 mock==3.0.0
 openstackdocstheme==1.20.0
-openstacksdk==0.25.0
+openstacksdk==0.31.2
 os-api-ref==1.4.0
 os-traits==0.4.0
 oslo.concurrency==3.26.0

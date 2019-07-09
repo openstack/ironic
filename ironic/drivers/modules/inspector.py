@@ -17,8 +17,8 @@ Modules required to work with ironic_inspector:
 
 import eventlet
 from futurist import periodics
+import openstack
 from oslo_log import log as logging
-from oslo_utils import importutils
 
 from ironic.common import exception
 from ironic.common.i18n import _
@@ -31,52 +31,39 @@ from ironic.drivers import base
 
 LOG = logging.getLogger(__name__)
 
-client = importutils.try_import('ironic_inspector_client')
-
-
-INSPECTOR_API_VERSION = (1, 3)
-
 _INSPECTOR_SESSION = None
 
 
 def _get_inspector_session(**kwargs):
     global _INSPECTOR_SESSION
     if not _INSPECTOR_SESSION:
-        _INSPECTOR_SESSION = keystone.get_session('inspector', **kwargs)
+        if CONF.auth_strategy == 'noauth':
+            # NOTE(dtantsur): using set_default instead of set_override because
+            # the native keystoneauth option must have priority.
+            CONF.set_default('auth_type', 'none', group='inspector')
+        service_auth = keystone.get_auth('inspector')
+        _INSPECTOR_SESSION = keystone.get_session('inspector',
+                                                  auth=service_auth,
+                                                  **kwargs)
     return _INSPECTOR_SESSION
 
 
 def _get_client(context):
     """Helper to get inspector client instance."""
-    # NOTE(pas-ha) remove in Rocky
-    if CONF.auth_strategy != 'keystone':
-        CONF.set_override('auth_type', 'none', group='inspector')
-    service_auth = keystone.get_auth('inspector')
-    session = _get_inspector_session(auth=service_auth)
-    adapter_params = {}
-    if CONF.inspector.service_url and not CONF.inspector.endpoint_override:
-        adapter_params['endpoint_override'] = CONF.inspector.service_url
-    inspector_url = keystone.get_endpoint('inspector', session=session,
-                                          **adapter_params)
+    session = _get_inspector_session()
+    # NOTE(dtantsur): openstacksdk expects config option groups to match
+    # service name, but we use just "inspector".
+    conf = dict(CONF)
+    conf['ironic-inspector'] = conf.pop('inspector')
     # TODO(pas-ha) investigate possibility of passing user context here,
     # similar to what neutron/glance-related code does
-    # NOTE(pas-ha) ironic-inspector-client has no Adaper-based
-    # SessionClient, so we'll resolve inspector API form adapter loaded
-    # form config options
-    # TODO(pas-ha) rewrite when inspectorclient is based on ksa Adapter,
-    #              also add global_request_id to the call
-    return client.ClientV1(api_version=INSPECTOR_API_VERSION,
-                           session=session,
-                           inspector_url=inspector_url)
+    return openstack.connection.Connection(
+        session=session,
+        oslo_conf=conf).baremetal_introspection
 
 
 class Inspector(base.InspectInterface):
     """In-band inspection via ironic-inspector project."""
-
-    def __init__(self):
-        if not client:
-            raise exception.DriverLoadError(
-                _('python-ironic-inspector-client Python module not found'))
 
     def get_properties(self):
         """Return the properties of the interface.
@@ -122,7 +109,7 @@ class Inspector(base.InspectInterface):
         node_uuid = task.node.uuid
         LOG.debug('Aborting inspection for node %(uuid)s using '
                   'ironic-inspector', {'uuid': node_uuid})
-        _get_client(task.context).abort(node_uuid)
+        _get_client(task.context).abort_introspection(node_uuid)
 
     @periodics.periodic(spacing=CONF.inspector.status_check_period)
     def _periodic_check_result(self, manager, context):
@@ -144,7 +131,7 @@ class Inspector(base.InspectInterface):
 def _start_inspection(node_uuid, context):
     """Call to inspector to start inspection."""
     try:
-        _get_client(context).introspect(node_uuid)
+        _get_client(context).start_introspection(node_uuid)
     except Exception as exc:
         LOG.exception('Exception during contacting ironic-inspector '
                       'for inspection of node %(node)s: %(err)s',
@@ -173,7 +160,7 @@ def _check_status(task):
               task.node.uuid)
 
     try:
-        status = _get_client(task.context).get_status(node.uuid)
+        status = _get_client(task.context).get_introspection(node.uuid)
     except Exception:
         # NOTE(dtantsur): get_status should not normally raise
         # let's assume it's a transient failure and retry later
@@ -182,9 +169,7 @@ def _check_status(task):
                       node.uuid)
         return
 
-    error = status.get('error')
-    finished = status.get('finished')
-    if not error and not finished:
+    if not status.error and not status.is_finished:
         return
 
     # If the inspection has finished or failed, we need to update the node, so
@@ -192,12 +177,12 @@ def _check_status(task):
     task.upgrade_lock()
     node = task.node
 
-    if error:
+    if status.error:
         LOG.error('Inspection failed for node %(uuid)s with error: %(err)s',
-                  {'uuid': node.uuid, 'err': error})
+                  {'uuid': node.uuid, 'err': status.error})
         node.last_error = (_('ironic-inspector inspection failed: %s')
-                           % error)
+                           % status.error)
         task.process_event('fail')
-    elif finished:
+    elif status.is_finished:
         LOG.info('Inspection finished successfully for node %s', node.uuid)
         task.process_event('done')

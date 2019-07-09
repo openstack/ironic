@@ -18,17 +18,6 @@ from ironic.common.i18n import _
 from ironic.conf import auth
 
 opts = [
-    cfg.BoolOpt('enabled', default=False,
-                help=_('This option has no affect since the classic drivers '
-                       'removal.'),
-                deprecated_for_removal=True),
-    cfg.StrOpt('service_url',
-               deprecated_for_removal=True,
-               deprecated_reason=_("Use [inspector]/endpoint_override option "
-                                   "instead to set a specific "
-                                   "ironic-inspector API URL to connect to."),
-               help=_('ironic-inspector HTTP endpoint. If this is not set, '
-                      'the service catalog will be used.')),
     cfg.IntOpt('status_check_period', default=60,
                help=_('period (in seconds) to check status of nodes '
                       'on inspection')),

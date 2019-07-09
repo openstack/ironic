@@ -1,0 +1,8 @@
+---
+upgrade:
+  - |
+    The deprecated configuration options ``enabled`` and ``service_url`` from
+    the ``inspector`` section have been removed.
+  - |
+    The python-ironic-inspector-client package is no longer required for the
+    ``inspector`` inspect interface (openstacksdk is used instead).
