@@ -20,6 +20,7 @@ Hardware Types
   drivers/ibmc
   drivers/idrac
   drivers/ilo
+  drivers/intel-ipmi
   drivers/ipmitool
   drivers/irmc
   drivers/redfish
