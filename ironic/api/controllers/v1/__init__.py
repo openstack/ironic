@@ -23,6 +23,7 @@ from pecan import rest
 from webob import exc
 from wsme import types as wtypes
 
+from ironic import api
 from ironic.api.controllers import base
 from ironic.api.controllers import link
 from ironic.api.controllers.v1 import allocation
@@ -123,7 +124,7 @@ class V1(base.APIBase):
     def convert():
         v1 = V1()
         v1.id = "v1"
-        v1.links = [link.Link.make_link('self', pecan.request.public_url,
+        v1.links = [link.Link.make_link('self', api.request.public_url,
                                         'v1', '', bookmark=True),
                     link.Link.make_link('describedby',
                                         'https://docs.openstack.org',
@@ -133,100 +134,100 @@ class V1(base.APIBase):
                     ]
         v1.media_types = [MediaType('application/json',
                           'application/vnd.openstack.ironic.v1+json')]
-        v1.chassis = [link.Link.make_link('self', pecan.request.public_url,
+        v1.chassis = [link.Link.make_link('self', api.request.public_url,
                                           'chassis', ''),
                       link.Link.make_link('bookmark',
-                                          pecan.request.public_url,
+                                          api.request.public_url,
                                           'chassis', '',
                                           bookmark=True)
                       ]
-        v1.nodes = [link.Link.make_link('self', pecan.request.public_url,
+        v1.nodes = [link.Link.make_link('self', api.request.public_url,
                                         'nodes', ''),
                     link.Link.make_link('bookmark',
-                                        pecan.request.public_url,
+                                        api.request.public_url,
                                         'nodes', '',
                                         bookmark=True)
                     ]
-        v1.ports = [link.Link.make_link('self', pecan.request.public_url,
+        v1.ports = [link.Link.make_link('self', api.request.public_url,
                                         'ports', ''),
                     link.Link.make_link('bookmark',
-                                        pecan.request.public_url,
+                                        api.request.public_url,
                                         'ports', '',
                                         bookmark=True)
                     ]
         if utils.allow_portgroups():
             v1.portgroups = [
-                link.Link.make_link('self', pecan.request.public_url,
+                link.Link.make_link('self', api.request.public_url,
                                     'portgroups', ''),
-                link.Link.make_link('bookmark', pecan.request.public_url,
+                link.Link.make_link('bookmark', api.request.public_url,
                                     'portgroups', '', bookmark=True)
             ]
-        v1.drivers = [link.Link.make_link('self', pecan.request.public_url,
+        v1.drivers = [link.Link.make_link('self', api.request.public_url,
                                           'drivers', ''),
                       link.Link.make_link('bookmark',
-                                          pecan.request.public_url,
+                                          api.request.public_url,
                                           'drivers', '',
                                           bookmark=True)
                       ]
         if utils.allow_volume():
             v1.volume = [
                 link.Link.make_link('self',
-                                    pecan.request.public_url,
+                                    api.request.public_url,
                                     'volume', ''),
                 link.Link.make_link('bookmark',
-                                    pecan.request.public_url,
+                                    api.request.public_url,
                                     'volume', '',
                                     bookmark=True)
             ]
         if utils.allow_ramdisk_endpoints():
-            v1.lookup = [link.Link.make_link('self', pecan.request.public_url,
+            v1.lookup = [link.Link.make_link('self', api.request.public_url,
                                              'lookup', ''),
                          link.Link.make_link('bookmark',
-                                             pecan.request.public_url,
+                                             api.request.public_url,
                                              'lookup', '',
                                              bookmark=True)
                          ]
             v1.heartbeat = [link.Link.make_link('self',
-                                                pecan.request.public_url,
+                                                api.request.public_url,
                                                 'heartbeat', ''),
                             link.Link.make_link('bookmark',
-                                                pecan.request.public_url,
+                                                api.request.public_url,
                                                 'heartbeat', '',
                                                 bookmark=True)
                             ]
         if utils.allow_expose_conductors():
             v1.conductors = [link.Link.make_link('self',
-                                                 pecan.request.public_url,
+                                                 api.request.public_url,
                                                  'conductors', ''),
                              link.Link.make_link('bookmark',
-                                                 pecan.request.public_url,
+                                                 api.request.public_url,
                                                  'conductors', '',
                                                  bookmark=True)
                              ]
         if utils.allow_allocations():
             v1.allocations = [link.Link.make_link('self',
-                                                  pecan.request.public_url,
+                                                  api.request.public_url,
                                                   'allocations', ''),
                               link.Link.make_link('bookmark',
-                                                  pecan.request.public_url,
+                                                  api.request.public_url,
                                                   'allocations', '',
                                                   bookmark=True)
                               ]
         if utils.allow_expose_events():
-            v1.events = [link.Link.make_link('self', pecan.request.public_url,
+            v1.events = [link.Link.make_link('self', api.request.public_url,
                                              'events', ''),
                          link.Link.make_link('bookmark',
-                                             pecan.request.public_url,
+                                             api.request.public_url,
                                              'events', '',
                                              bookmark=True)
                          ]
         if utils.allow_deploy_templates():
             v1.deploy_templates = [
                 link.Link.make_link('self',
-                                    pecan.request.public_url,
+                                    api.request.public_url,
                                     'deploy_templates', ''),
                 link.Link.make_link('bookmark',
-                                    pecan.request.public_url,
+                                    api.request.public_url,
                                     'deploy_templates', '',
                                     bookmark=True)
             ]
@@ -281,19 +282,19 @@ class Controller(rest.RestController):
 
     @pecan.expose()
     def _route(self, args, request=None):
-        v = base.Version(pecan.request.headers, versions.min_version_string(),
+        v = base.Version(api.request.headers, versions.min_version_string(),
                          versions.max_version_string())
 
         # Always set the min and max headers
-        pecan.response.headers[base.Version.min_string] = (
+        api.response.headers[base.Version.min_string] = (
             versions.min_version_string())
-        pecan.response.headers[base.Version.max_string] = (
+        api.response.headers[base.Version.max_string] = (
             versions.max_version_string())
 
         # assert that requested version is supported
-        self._check_version(v, pecan.response.headers)
-        pecan.response.headers[base.Version.string] = str(v)
-        pecan.request.version = v
+        self._check_version(v, api.response.headers)
+        api.response.headers[base.Version.string] = str(v)
+        api.request.version = v
 
         return super(Controller, self)._route(args, request)
 

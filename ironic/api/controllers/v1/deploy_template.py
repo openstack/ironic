@@ -24,6 +24,7 @@ from webob import exc as webob_exc
 import wsme
 from wsme import types as wtypes
 
+from ironic import api
 from ironic.api.controllers import base
 from ironic.api.controllers import link
 from ironic.api.controllers.v1 import collection
@@ -165,7 +166,7 @@ class DeployTemplate(base.APIBase):
             api_utils.check_for_invalid_fields(fields, template.as_dict())
 
         template = cls._convert_with_links(template,
-                                           pecan.request.public_url,
+                                           api.request.public_url,
                                            fields=fields)
         if sanitize:
             template.sanitize(fields)
@@ -261,7 +262,7 @@ class DeployTemplatesController(rest.RestController):
     def _route(self, args, request=None):
         if not api_utils.allow_deploy_templates():
             msg = _("The API version does not allow deploy templates")
-            if pecan.request.method == "GET":
+            if api.request.method == "GET":
                 raise webob_exc.HTTPNotFound(msg)
             else:
                 raise webob_exc.HTTPMethodNotAllowed(msg)
@@ -321,10 +322,10 @@ class DeployTemplatesController(rest.RestController):
         marker_obj = None
         if marker:
             marker_obj = objects.DeployTemplate.get_by_uuid(
-                pecan.request.context, marker)
+                api.request.context, marker)
 
         templates = objects.DeployTemplate.list(
-            pecan.request.context, limit=limit, marker=marker_obj,
+            api.request.context, limit=limit, marker=marker_obj,
             sort_key=sort_key, sort_dir=sort_dir)
 
         parameters = {'sort_key': sort_key, 'sort_dir': sort_dir}
@@ -363,7 +364,7 @@ class DeployTemplatesController(rest.RestController):
         """
         api_utils.check_policy('baremetal:deploy_template:create')
 
-        context = pecan.request.context
+        context = api.request.context
         tdict = template.as_dict()
         # NOTE(mgoddard): UUID is mandatory for notifications payload
         if not tdict.get('uuid'):
@@ -375,8 +376,8 @@ class DeployTemplatesController(rest.RestController):
         with notify.handle_error_notification(context, new_template, 'create'):
             new_template.create()
         # Set the HTTP Location Header
-        pecan.response.location = link.build_url('deploy_templates',
-                                                 new_template.uuid)
+        api.response.location = link.build_url('deploy_templates',
+                                               new_template.uuid)
         api_template = DeployTemplate.convert_with_links(new_template)
         notify.emit_end_notification(context, new_template, 'create')
         return api_template
@@ -393,7 +394,7 @@ class DeployTemplatesController(rest.RestController):
         """
         api_utils.check_policy('baremetal:deploy_template:update')
 
-        context = pecan.request.context
+        context = api.request.context
         rpc_template = api_utils.get_rpc_deploy_template_with_suffix(
             template_ident)
 
@@ -436,7 +437,7 @@ class DeployTemplatesController(rest.RestController):
         """
         api_utils.check_policy('baremetal:deploy_template:delete')
 
-        context = pecan.request.context
+        context = api.request.context
         rpc_template = api_utils.get_rpc_deploy_template_with_suffix(
             template_ident)
         notify.emit_start_notification(context, rpc_template, 'delete')

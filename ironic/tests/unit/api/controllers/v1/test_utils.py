@@ -18,11 +18,11 @@ import mock
 import os_traits
 from oslo_config import cfg
 from oslo_utils import uuidutils
-import pecan
 from six.moves import http_client
 from webob import static
 import wsme
 
+from ironic import api
 from ironic.api.controllers.v1 import node as api_node
 from ironic.api.controllers.v1 import utils
 from ironic.common import exception
@@ -197,24 +197,24 @@ class TestApiUtils(base.TestCase):
                           utils.check_for_invalid_fields,
                           requested, supported)
 
-    @mock.patch.object(pecan, 'request', spec_set=['version'])
+
+@mock.patch.object(api, 'request', spec_set=['version'])
+class TestCheckAllowFields(base.TestCase):
+
     def test_check_allow_specify_fields(self, mock_request):
         mock_request.version.minor = 8
         self.assertIsNone(utils.check_allow_specify_fields(['foo']))
 
-    @mock.patch.object(pecan, 'request', spec_set=['version'])
     def test_check_allow_specify_fields_fail(self, mock_request):
         mock_request.version.minor = 7
         self.assertRaises(exception.NotAcceptable,
                           utils.check_allow_specify_fields, ['foo'])
 
-    @mock.patch.object(pecan, 'request', spec_set=['version'])
     def test_check_allowed_fields_network_interface(self, mock_request):
         mock_request.version.minor = 20
         self.assertIsNone(
             utils.check_allowed_fields(['network_interface']))
 
-    @mock.patch.object(pecan, 'request', spec_set=['version'])
     def test_check_allowed_fields_network_interface_fail(self, mock_request):
         mock_request.version.minor = 19
         self.assertRaises(
@@ -222,13 +222,11 @@ class TestApiUtils(base.TestCase):
             utils.check_allowed_fields,
             ['network_interface'])
 
-    @mock.patch.object(pecan, 'request', spec_set=['version'])
     def test_check_allowed_fields_resource_class(self, mock_request):
         mock_request.version.minor = 21
         self.assertIsNone(
             utils.check_allowed_fields(['resource_class']))
 
-    @mock.patch.object(pecan, 'request', spec_set=['version'])
     def test_check_allowed_fields_resource_class_fail(self, mock_request):
         mock_request.version.minor = 20
         self.assertRaises(
@@ -236,7 +234,6 @@ class TestApiUtils(base.TestCase):
             utils.check_allowed_fields,
             ['resource_class'])
 
-    @mock.patch.object(pecan, 'request', spec_set=['version'])
     def test_check_allowed_fields_rescue_interface_fail(self, mock_request):
         mock_request.version.minor = 31
         self.assertRaises(
@@ -244,7 +241,6 @@ class TestApiUtils(base.TestCase):
             utils.check_allowed_fields,
             ['rescue_interface'])
 
-    @mock.patch.object(pecan, 'request', spec_set=['version'])
     def test_check_allowed_portgroup_fields_mode_properties(self,
                                                             mock_request):
         mock_request.version.minor = 26
@@ -253,7 +249,6 @@ class TestApiUtils(base.TestCase):
         self.assertIsNone(
             utils.check_allowed_portgroup_fields(['properties']))
 
-    @mock.patch.object(pecan, 'request', spec_set=['version'])
     def test_check_allowed_portgroup_fields_mode_properties_fail(self,
                                                                  mock_request):
         mock_request.version.minor = 25
@@ -266,243 +261,202 @@ class TestApiUtils(base.TestCase):
             utils.check_allowed_portgroup_fields,
             ['properties'])
 
-    @mock.patch.object(pecan, 'request', spec_set=['version'])
     def test_check_allow_specify_driver(self, mock_request):
         mock_request.version.minor = 16
         self.assertIsNone(utils.check_allow_specify_driver(['fake']))
 
-    @mock.patch.object(pecan, 'request', spec_set=['version'])
     def test_check_allow_specify_driver_fail(self, mock_request):
         mock_request.version.minor = 15
         self.assertRaises(exception.NotAcceptable,
                           utils.check_allow_specify_driver, ['fake'])
 
-    @mock.patch.object(pecan, 'request', spec_set=['version'])
     def test_check_allow_specify_resource_class(self, mock_request):
         mock_request.version.minor = 21
         self.assertIsNone(utils.check_allow_specify_resource_class(['foo']))
 
-    @mock.patch.object(pecan, 'request', spec_set=['version'])
     def test_check_allow_specify_resource_class_fail(self, mock_request):
         mock_request.version.minor = 20
         self.assertRaises(exception.NotAcceptable,
                           utils.check_allow_specify_resource_class, ['foo'])
 
-    @mock.patch.object(pecan, 'request', spec_set=['version'])
     def test_check_allow_filter_driver_type(self, mock_request):
         mock_request.version.minor = 30
         self.assertIsNone(utils.check_allow_filter_driver_type('classic'))
 
-    @mock.patch.object(pecan, 'request', spec_set=['version'])
     def test_check_allow_filter_driver_type_none(self, mock_request):
         mock_request.version.minor = 29
         self.assertIsNone(utils.check_allow_filter_driver_type(None))
 
-    @mock.patch.object(pecan, 'request', spec_set=['version'])
     def test_check_allow_filter_driver_type_fail(self, mock_request):
         mock_request.version.minor = 29
         self.assertRaises(exception.NotAcceptable,
                           utils.check_allow_filter_driver_type, 'classic')
 
-    @mock.patch.object(pecan, 'request', spec_set=['version'])
     def test_check_allow_filter_by_conductor_group(self, mock_request):
         mock_request.version.minor = 46
         self.assertIsNone(utils.check_allow_filter_by_conductor_group('foo'))
 
-    @mock.patch.object(pecan, 'request', spec_set=['version'])
     def test_check_allow_filter_by_conductor_group_none(self, mock_request):
         mock_request.version.minor = 46
         self.assertIsNone(utils.check_allow_filter_by_conductor_group(None))
 
-    @mock.patch.object(pecan, 'request', spec_set=['version'])
     def test_check_allow_filter_by_conductor_group_fail(self, mock_request):
         mock_request.version.minor = 45
         self.assertRaises(exception.NotAcceptable,
                           utils.check_allow_filter_by_conductor_group, 'foo')
 
-    @mock.patch.object(pecan, 'request', spec_set=['version'])
     def test_check_allow_driver_detail(self, mock_request):
         mock_request.version.minor = 30
         self.assertIsNone(utils.check_allow_driver_detail(True))
 
-    @mock.patch.object(pecan, 'request', spec_set=['version'])
     def test_check_allow_driver_detail_false(self, mock_request):
         mock_request.version.minor = 30
         self.assertIsNone(utils.check_allow_driver_detail(False))
 
-    @mock.patch.object(pecan, 'request', spec_set=['version'])
     def test_check_allow_driver_detail_none(self, mock_request):
         mock_request.version.minor = 29
         self.assertIsNone(utils.check_allow_driver_detail(None))
 
-    @mock.patch.object(pecan, 'request', spec_set=['version'])
     def test_check_allow_driver_detail_fail(self, mock_request):
         mock_request.version.minor = 29
         self.assertRaises(exception.NotAcceptable,
                           utils.check_allow_driver_detail, True)
 
-    @mock.patch.object(pecan, 'request', spec_set=['version'])
     def test_check_allow_manage_verbs(self, mock_request):
         mock_request.version.minor = 4
         utils.check_allow_management_verbs('manage')
 
-    @mock.patch.object(pecan, 'request', spec_set=['version'])
     def test_check_allow_manage_verbs_fail(self, mock_request):
         mock_request.version.minor = 3
         self.assertRaises(exception.NotAcceptable,
                           utils.check_allow_management_verbs, 'manage')
 
-    @mock.patch.object(pecan, 'request', spec_set=['version'])
     def test_check_allow_provide_verbs(self, mock_request):
         mock_request.version.minor = 4
         utils.check_allow_management_verbs('provide')
 
-    @mock.patch.object(pecan, 'request', spec_set=['version'])
     def test_check_allow_provide_verbs_fail(self, mock_request):
         mock_request.version.minor = 3
         self.assertRaises(exception.NotAcceptable,
                           utils.check_allow_management_verbs, 'provide')
 
-    @mock.patch.object(pecan, 'request', spec_set=['version'])
     def test_check_allow_inspect_verbs(self, mock_request):
         mock_request.version.minor = 6
         utils.check_allow_management_verbs('inspect')
 
-    @mock.patch.object(pecan, 'request', spec_set=['version'])
     def test_check_allow_inspect_verbs_fail(self, mock_request):
         mock_request.version.minor = 5
         self.assertRaises(exception.NotAcceptable,
                           utils.check_allow_management_verbs, 'inspect')
 
-    @mock.patch.object(pecan, 'request', spec_set=['version'])
     def test_check_allow_abort_verbs(self, mock_request):
         mock_request.version.minor = 13
         utils.check_allow_management_verbs('abort')
 
-    @mock.patch.object(pecan, 'request', spec_set=['version'])
     def test_check_allow_abort_verbs_fail(self, mock_request):
         mock_request.version.minor = 12
         self.assertRaises(exception.NotAcceptable,
                           utils.check_allow_management_verbs, 'abort')
 
-    @mock.patch.object(pecan, 'request', spec_set=['version'])
     def test_check_allow_clean_verbs(self, mock_request):
         mock_request.version.minor = 15
         utils.check_allow_management_verbs('clean')
 
-    @mock.patch.object(pecan, 'request', spec_set=['version'])
     def test_check_allow_clean_verbs_fail(self, mock_request):
         mock_request.version.minor = 14
         self.assertRaises(exception.NotAcceptable,
                           utils.check_allow_management_verbs, 'clean')
 
-    @mock.patch.object(pecan, 'request', spec_set=['version'])
     def test_check_allow_unknown_verbs(self, mock_request):
         utils.check_allow_management_verbs('rebuild')
 
-    @mock.patch.object(pecan, 'request', spec_set=['version'])
     def test_allow_inject_nmi(self, mock_request):
         mock_request.version.minor = 29
         self.assertTrue(utils.allow_inject_nmi())
         mock_request.version.minor = 28
         self.assertFalse(utils.allow_inject_nmi())
 
-    @mock.patch.object(pecan, 'request', spec_set=['version'])
     def test_allow_links_node_states_and_driver_properties(self, mock_request):
         mock_request.version.minor = 14
         self.assertTrue(utils.allow_links_node_states_and_driver_properties())
         mock_request.version.minor = 10
         self.assertFalse(utils.allow_links_node_states_and_driver_properties())
 
-    @mock.patch.object(pecan, 'request', spec_set=['version'])
     def test_check_allow_adopt_verbs_fail(self, mock_request):
         mock_request.version.minor = 16
         self.assertRaises(exception.NotAcceptable,
                           utils.check_allow_management_verbs, 'adopt')
 
-    @mock.patch.object(pecan, 'request', spec_set=['version'])
     def test_check_allow_adopt_verbs(self, mock_request):
         mock_request.version.minor = 17
         utils.check_allow_management_verbs('adopt')
 
-    @mock.patch.object(pecan, 'request', spec_set=['version'])
     def test_allow_port_internal_info(self, mock_request):
         mock_request.version.minor = 18
         self.assertTrue(utils.allow_port_internal_info())
         mock_request.version.minor = 17
         self.assertFalse(utils.allow_port_internal_info())
 
-    @mock.patch.object(pecan, 'request', spec_set=['version'])
     def test_allow_port_advanced_net_fields(self, mock_request):
         mock_request.version.minor = 19
         self.assertTrue(utils.allow_port_advanced_net_fields())
         mock_request.version.minor = 18
         self.assertFalse(utils.allow_port_advanced_net_fields())
 
-    @mock.patch.object(pecan, 'request', spec_set=['version'])
     def test_allow_ramdisk_endpoints(self, mock_request):
         mock_request.version.minor = 22
         self.assertTrue(utils.allow_ramdisk_endpoints())
         mock_request.version.minor = 21
         self.assertFalse(utils.allow_ramdisk_endpoints())
 
-    @mock.patch.object(pecan, 'request', spec_set=['version'])
     def test_allow_portgroups(self, mock_request):
         mock_request.version.minor = 23
         self.assertTrue(utils.allow_portgroups())
         mock_request.version.minor = 22
         self.assertFalse(utils.allow_portgroups())
 
-    @mock.patch.object(pecan, 'request', spec_set=['version'])
     def test_allow_portgroups_subcontrollers(self, mock_request):
         mock_request.version.minor = 24
         self.assertTrue(utils.allow_portgroups_subcontrollers())
         mock_request.version.minor = 23
         self.assertFalse(utils.allow_portgroups_subcontrollers())
 
-    @mock.patch.object(pecan, 'request', spec_set=['version'])
     def test_allow_remove_chassis_uuid(self, mock_request):
         mock_request.version.minor = 25
         self.assertTrue(utils.allow_remove_chassis_uuid())
         mock_request.version.minor = 24
         self.assertFalse(utils.allow_remove_chassis_uuid())
 
-    @mock.patch.object(pecan, 'request', spec_set=['version'])
     def test_allow_portgroup_mode_properties(self, mock_request):
         mock_request.version.minor = 26
         self.assertTrue(utils.allow_portgroup_mode_properties())
         mock_request.version.minor = 25
         self.assertFalse(utils.allow_portgroup_mode_properties())
 
-    @mock.patch.object(pecan, 'request', spec_set=['version'])
     def test_allow_dynamic_drivers(self, mock_request):
         mock_request.version.minor = 30
         self.assertTrue(utils.allow_dynamic_drivers())
         mock_request.version.minor = 29
         self.assertFalse(utils.allow_dynamic_drivers())
 
-    @mock.patch.object(pecan, 'request', spec_set=['version'])
     def test_allow_volume(self, mock_request):
         mock_request.version.minor = 32
         self.assertTrue(utils.allow_volume())
         mock_request.version.minor = 31
         self.assertFalse(utils.allow_volume())
 
-    @mock.patch.object(pecan, 'request', spec_set=['version'])
     def test_allow_storage_interface(self, mock_request):
         mock_request.version.minor = 33
         self.assertTrue(utils.allow_storage_interface())
         mock_request.version.minor = 32
         self.assertFalse(utils.allow_storage_interface())
 
-    @mock.patch.object(pecan, 'request', spec_set=['version'])
     def test_allow_traits(self, mock_request):
         mock_request.version.minor = 37
         self.assertTrue(utils.allow_traits())
         mock_request.version.minor = 36
         self.assertFalse(utils.allow_traits())
 
-    @mock.patch.object(pecan, 'request', spec_set=['version'])
     @mock.patch.object(objects.Port, 'supports_physical_network')
     def test_allow_port_physical_network_no_pin(self, mock_spn, mock_request):
         mock_spn.return_value = True
@@ -511,7 +465,6 @@ class TestApiUtils(base.TestCase):
         mock_request.version.minor = 33
         self.assertFalse(utils.allow_port_physical_network())
 
-    @mock.patch.object(pecan, 'request', spec_set=['version'])
     @mock.patch.object(objects.Port, 'supports_physical_network')
     def test_allow_port_physical_network_pin(self, mock_spn, mock_request):
         mock_spn.return_value = False
@@ -520,14 +473,12 @@ class TestApiUtils(base.TestCase):
         mock_request.version.minor = 33
         self.assertFalse(utils.allow_port_physical_network())
 
-    @mock.patch.object(pecan, 'request', spec_set=['version'])
     def test_allow_node_rebuild_with_configdrive(self, mock_request):
         mock_request.version.minor = 35
         self.assertTrue(utils.allow_node_rebuild_with_configdrive())
         mock_request.version.minor = 34
         self.assertFalse(utils.allow_node_rebuild_with_configdrive())
 
-    @mock.patch.object(pecan, 'request', spec_set=['version'])
     def test_check_allow_configdrive_fails(self, mock_request):
         mock_request.version.minor = 35
         self.assertRaises(wsme.exc.ClientSideError,
@@ -541,7 +492,6 @@ class TestApiUtils(base.TestCase):
                           utils.check_allow_configdrive, states.REBUILD,
                           "abcd")
 
-    @mock.patch.object(pecan, 'request', spec_set=['version'])
     def test_check_allow_configdrive(self, mock_request):
         mock_request.version.minor = 35
         utils.check_allow_configdrive(states.ACTIVE, "abcd")
@@ -549,7 +499,6 @@ class TestApiUtils(base.TestCase):
         mock_request.version.minor = 34
         utils.check_allow_configdrive(states.ACTIVE, "abcd")
 
-    @mock.patch.object(pecan, 'request', spec_set=['version'])
     def test_check_allow_configdrive_as_dict(self, mock_request):
         mock_request.version.minor = 56
         utils.check_allow_configdrive(states.ACTIVE, {'meta_data': {}})
@@ -559,7 +508,6 @@ class TestApiUtils(base.TestCase):
         utils.check_allow_configdrive(states.ACTIVE, {'user_data': 'foo'})
         utils.check_allow_configdrive(states.ACTIVE, {'user_data': ['foo']})
 
-    @mock.patch.object(pecan, 'request', spec_set=['version'])
     def test_check_allow_configdrive_as_dict_invalid(self, mock_request):
         mock_request.version.minor = 56
         self.assertRaises(wsme.exc.ClientSideError,
@@ -574,28 +522,24 @@ class TestApiUtils(base.TestCase):
                               utils.check_allow_configdrive, states.REBUILD,
                               {key: 42})
 
-    @mock.patch.object(pecan, 'request', spec_set=['version'])
     def test_allow_rescue_interface(self, mock_request):
         mock_request.version.minor = 38
         self.assertTrue(utils.allow_rescue_interface())
         mock_request.version.minor = 37
         self.assertFalse(utils.allow_rescue_interface())
 
-    @mock.patch.object(pecan, 'request', spec_set=['version'])
     def test_allow_inspect_abort(self, mock_request):
         mock_request.version.minor = 41
         self.assertTrue(utils.allow_inspect_abort())
         mock_request.version.minor = 40
         self.assertFalse(utils.allow_inspect_abort())
 
-    @mock.patch.object(pecan, 'request', spec_set=['version'])
     def test_allow_port_is_smartnic(self, mock_request):
         mock_request.version.minor = 53
         self.assertTrue(utils.allow_port_is_smartnic())
         mock_request.version.minor = 52
         self.assertFalse(utils.allow_port_is_smartnic())
 
-    @mock.patch.object(pecan, 'request', spec_set=['version'])
     def test_allow_deploy_templates(self, mock_request):
         mock_request.version.minor = 55
         self.assertTrue(utils.allow_deploy_templates())
@@ -603,6 +547,7 @@ class TestApiUtils(base.TestCase):
         self.assertFalse(utils.allow_deploy_templates())
 
 
+@mock.patch.object(api, 'request')
 class TestNodeIdent(base.TestCase):
 
     def setUp(self):
@@ -612,24 +557,20 @@ class TestNodeIdent(base.TestCase):
         self.invalid_name = 'Mr Plow'
         self.node = test_api_utils.post_get_test_node()
 
-    @mock.patch.object(pecan, 'request')
     def test_allow_node_logical_names_pre_name(self, mock_pecan_req):
         mock_pecan_req.version.minor = 1
         self.assertFalse(utils.allow_node_logical_names())
 
-    @mock.patch.object(pecan, 'request')
     def test_allow_node_logical_names_post_name(self, mock_pecan_req):
         mock_pecan_req.version.minor = 5
         self.assertTrue(utils.allow_node_logical_names())
 
-    @mock.patch("pecan.request")
     def test_is_valid_node_name(self, mock_pecan_req):
         mock_pecan_req.version.minor = 10
         self.assertTrue(utils.is_valid_node_name(self.valid_name))
         self.assertFalse(utils.is_valid_node_name(self.invalid_name))
         self.assertFalse(utils.is_valid_node_name(self.valid_uuid))
 
-    @mock.patch.object(pecan, 'request')
     @mock.patch.object(utils, 'allow_node_logical_names')
     @mock.patch.object(objects.Node, 'get_by_uuid')
     @mock.patch.object(objects.Node, 'get_by_name')
@@ -642,7 +583,6 @@ class TestNodeIdent(base.TestCase):
         self.assertEqual(1, mock_gbu.call_count)
         self.assertEqual(0, mock_gbn.call_count)
 
-    @mock.patch.object(pecan, 'request')
     @mock.patch.object(utils, 'allow_node_logical_names')
     @mock.patch.object(objects.Node, 'get_by_uuid')
     @mock.patch.object(objects.Node, 'get_by_name')
@@ -656,7 +596,6 @@ class TestNodeIdent(base.TestCase):
         self.assertEqual(0, mock_gbu.call_count)
         self.assertEqual(1, mock_gbn.call_count)
 
-    @mock.patch.object(pecan, 'request')
     @mock.patch.object(utils, 'allow_node_logical_names')
     @mock.patch.object(objects.Node, 'get_by_uuid')
     @mock.patch.object(objects.Node, 'get_by_name')
@@ -668,7 +607,6 @@ class TestNodeIdent(base.TestCase):
                           utils.get_rpc_node,
                           self.invalid_name)
 
-    @mock.patch.object(pecan, 'request')
     @mock.patch.object(utils, 'allow_node_logical_names')
     @mock.patch.object(objects.Node, 'get_by_uuid')
     @mock.patch.object(objects.Node, 'get_by_name')
@@ -682,7 +620,6 @@ class TestNodeIdent(base.TestCase):
         self.assertEqual(1, mock_gbu.call_count)
         self.assertEqual(0, mock_gbn.call_count)
 
-    @mock.patch.object(pecan, 'request')
     @mock.patch.object(utils, 'allow_node_logical_names')
     @mock.patch.object(objects.Node, 'get_by_uuid')
     @mock.patch.object(objects.Node, 'get_by_name')
@@ -703,7 +640,7 @@ class TestVendorPassthru(base.TestCase):
                           utils.vendor_passthru, 'fake-ident',
                           None, 'fake-topic', data='fake-data')
 
-    @mock.patch.object(pecan, 'request',
+    @mock.patch.object(api, 'request',
                        spec_set=['method', 'context', 'rpcapi'])
     def _vendor_passthru(self, mock_request, async_call=True,
                          driver_passthru=False):
@@ -747,8 +684,8 @@ class TestVendorPassthru(base.TestCase):
     def test_driver_vendor_passthru_sync(self):
         self._vendor_passthru(async_call=False, driver_passthru=True)
 
-    @mock.patch.object(pecan, 'response', spec_set=['app_iter'])
-    @mock.patch.object(pecan, 'request',
+    @mock.patch.object(api, 'response', spec_set=['app_iter'])
+    @mock.patch.object(api, 'request',
                        spec_set=['method', 'context', 'rpcapi'])
     def _test_vendor_passthru_attach(self, return_value, expct_return_value,
                                      mock_request, mock_response):
@@ -789,14 +726,14 @@ class TestVendorPassthru(base.TestCase):
                          sorted(utils.get_controller_reserved_names(
                                 api_node.NodesController)))
 
-    @mock.patch.object(pecan, 'request', spec_set=["context"])
+    @mock.patch.object(api, 'request', spec_set=["context"])
     @mock.patch.object(policy, 'authorize', spec=True)
     def test_check_policy(self, mock_authorize, mock_pr):
         utils.check_policy('fake-policy')
-        cdict = pecan.request.context.to_policy_values()
+        cdict = api.request.context.to_policy_values()
         mock_authorize.assert_called_once_with('fake-policy', cdict, cdict)
 
-    @mock.patch.object(pecan, 'request', spec_set=["context"])
+    @mock.patch.object(api, 'request', spec_set=["context"])
     @mock.patch.object(policy, 'authorize', spec=True)
     def test_check_policy_forbidden(self, mock_authorize, mock_pr):
         mock_authorize.side_effect = exception.HTTPForbidden(resource='fake')
@@ -812,7 +749,7 @@ class TestPortgroupIdent(base.TestCase):
         self.invalid_name = 'My Portgroup'
         self.portgroup = test_api_utils.post_get_test_portgroup()
 
-    @mock.patch.object(pecan, 'request', spec_set=["context"])
+    @mock.patch.object(api, 'request', spec_set=["context"])
     @mock.patch.object(objects.Portgroup, 'get_by_name')
     def test_get_rpc_portgroup_name(self, mock_gbn, mock_pr):
         mock_gbn.return_value = self.portgroup
@@ -820,7 +757,7 @@ class TestPortgroupIdent(base.TestCase):
             self.valid_name))
         mock_gbn.assert_called_once_with(mock_pr.context, self.valid_name)
 
-    @mock.patch.object(pecan, 'request', spec_set=["context"])
+    @mock.patch.object(api, 'request', spec_set=["context"])
     @mock.patch.object(objects.Portgroup, 'get_by_uuid')
     def test_get_rpc_portgroup_uuid(self, mock_gbu, mock_pr):
         self.portgroup['uuid'] = self.valid_uuid

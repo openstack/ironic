@@ -14,12 +14,12 @@
 #    under the License.
 
 from ironic_lib import metrics_utils
-import pecan
 from pecan import rest
 from six.moves import http_client
 import wsme
 from wsme import types as wtypes
 
+from ironic import api
 from ironic.api.controllers import base
 from ironic.api.controllers import link
 from ironic.api.controllers.v1 import types
@@ -147,20 +147,20 @@ class Driver(base.APIBase):
         driver.hosts = hosts
         driver.links = [
             link.Link.make_link('self',
-                                pecan.request.public_url,
+                                api.request.public_url,
                                 'drivers', name),
             link.Link.make_link('bookmark',
-                                pecan.request.public_url,
+                                api.request.public_url,
                                 'drivers', name,
                                 bookmark=True)
         ]
         if api_utils.allow_links_node_states_and_driver_properties():
             driver.properties = [
                 link.Link.make_link('self',
-                                    pecan.request.public_url,
+                                    api.request.public_url,
                                     'drivers', name + "/properties"),
                 link.Link.make_link('bookmark',
-                                    pecan.request.public_url,
+                                    api.request.public_url,
                                     'drivers', name + "/properties",
                                     bookmark=True)
             ]
@@ -172,7 +172,7 @@ class Driver(base.APIBase):
             if detail:
                 if interface_info is None:
                     # TODO(jroll) objectify this
-                    interface_info = (pecan.request.dbapi
+                    interface_info = (api.request.dbapi
                                       .list_hardware_type_interfaces([name]))
                 for iface_type in driver_base.ALL_INTERFACES:
                     default = None
@@ -233,7 +233,7 @@ class DriverList(base.APIBase):
         # This is checked in Driver.convert_with_links(), however also
         # checking here can save us a DB query.
         if api_utils.allow_dynamic_drivers() and detail:
-            iface_info = pecan.request.dbapi.list_hardware_type_interfaces(
+            iface_info = api.request.dbapi.list_hardware_type_interfaces(
                 list(hardware_types))
         else:
             iface_info = []
@@ -278,13 +278,13 @@ class DriverPassthruController(rest.RestController):
         :raises: DriverNotFound if the driver name is invalid or the
                  driver cannot be loaded.
         """
-        cdict = pecan.request.context.to_policy_values()
+        cdict = api.request.context.to_policy_values()
         policy.authorize('baremetal:driver:vendor_passthru', cdict, cdict)
 
         if driver_name not in _VENDOR_METHODS:
-            topic = pecan.request.rpcapi.get_topic_for_driver(driver_name)
-            ret = pecan.request.rpcapi.get_driver_vendor_passthru_methods(
-                pecan.request.context, driver_name, topic=topic)
+            topic = api.request.rpcapi.get_topic_for_driver(driver_name)
+            ret = api.request.rpcapi.get_driver_vendor_passthru_methods(
+                api.request.context, driver_name, topic=topic)
             _VENDOR_METHODS[driver_name] = ret
 
         return _VENDOR_METHODS[driver_name]
@@ -300,10 +300,10 @@ class DriverPassthruController(rest.RestController):
                        implementation.
         :param data: body of data to supply to the specified method.
         """
-        cdict = pecan.request.context.to_policy_values()
+        cdict = api.request.context.to_policy_values()
         policy.authorize('baremetal:driver:vendor_passthru', cdict, cdict)
 
-        topic = pecan.request.rpcapi.get_topic_for_driver(driver_name)
+        topic = api.request.rpcapi.get_topic_for_driver(driver_name)
         return api_utils.vendor_passthru(driver_name, method, topic, data=data,
                                          driver_passthru=True)
 
@@ -329,7 +329,7 @@ class DriverRaidController(rest.RestController):
         :raises: DriverNotFound, if driver is not loaded on any of the
             conductors.
         """
-        cdict = pecan.request.context.to_policy_values()
+        cdict = api.request.context.to_policy_values()
         policy.authorize('baremetal:driver:get_raid_logical_disk_properties',
                          cdict, cdict)
 
@@ -337,10 +337,10 @@ class DriverRaidController(rest.RestController):
             raise exception.NotAcceptable()
 
         if driver_name not in _RAID_PROPERTIES:
-            topic = pecan.request.rpcapi.get_topic_for_driver(driver_name)
+            topic = api.request.rpcapi.get_topic_for_driver(driver_name)
             try:
-                info = pecan.request.rpcapi.get_raid_logical_disk_properties(
-                    pecan.request.context, driver_name, topic=topic)
+                info = api.request.rpcapi.get_raid_logical_disk_properties(
+                    api.request.context, driver_name, topic=topic)
             except exception.UnsupportedDriverExtension as e:
                 # Change error code as 404 seems appropriate because RAID is a
                 # standard interface and all drivers might not have it.
@@ -371,7 +371,7 @@ class DriversController(rest.RestController):
         #              will break from a single-line doc string.
         #              This is a result of a bug in sphinxcontrib-pecanwsme
         # https://github.com/dreamhost/sphinxcontrib-pecanwsme/issues/8
-        cdict = pecan.request.context.to_policy_values()
+        cdict = api.request.context.to_policy_values()
         policy.authorize('baremetal:driver:get', cdict, cdict)
 
         api_utils.check_allow_driver_detail(detail)
@@ -382,7 +382,7 @@ class DriversController(rest.RestController):
                 'if specified.'))
 
         if type is None or type == 'dynamic':
-            hw_type_dict = pecan.request.dbapi.get_active_hardware_type_dict()
+            hw_type_dict = api.request.dbapi.get_active_hardware_type_dict()
         else:
             # NOTE(dtantsur): we don't support classic drivers starting with
             # the Rocky release.
@@ -397,10 +397,10 @@ class DriversController(rest.RestController):
         # retrieving a list of drivers using the current sqlalchemy schema, but
         # this path must be exposed for Pecan to route any paths we might
         # choose to expose below it.
-        cdict = pecan.request.context.to_policy_values()
+        cdict = api.request.context.to_policy_values()
         policy.authorize('baremetal:driver:get', cdict, cdict)
 
-        hw_type_dict = pecan.request.dbapi.get_active_hardware_type_dict()
+        hw_type_dict = api.request.dbapi.get_active_hardware_type_dict()
         for name, hosts in hw_type_dict.items():
             if name == driver_name:
                 return Driver.convert_with_links(name, list(hosts),
@@ -419,13 +419,13 @@ class DriversController(rest.RestController):
         :raises: DriverNotFound (HTTP 404) if the driver name is invalid or
                  the driver cannot be loaded.
         """
-        cdict = pecan.request.context.to_policy_values()
+        cdict = api.request.context.to_policy_values()
         policy.authorize('baremetal:driver:get_properties', cdict, cdict)
 
         if driver_name not in _DRIVER_PROPERTIES:
-            topic = pecan.request.rpcapi.get_topic_for_driver(driver_name)
-            properties = pecan.request.rpcapi.get_driver_properties(
-                pecan.request.context, driver_name, topic=topic)
+            topic = api.request.rpcapi.get_topic_for_driver(driver_name)
+            properties = api.request.rpcapi.get_driver_properties(
+                api.request.context, driver_name, topic=topic)
             _DRIVER_PROPERTIES[driver_name] = properties
 
         return _DRIVER_PROPERTIES[driver_name]

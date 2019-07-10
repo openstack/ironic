@@ -16,13 +16,13 @@ import datetime
 
 from ironic_lib import metrics_utils
 from oslo_utils import uuidutils
-import pecan
 from pecan import rest
 import six
 from six.moves import http_client
 import wsme
 from wsme import types as wtypes
 
+from ironic import api
 from ironic.api.controllers import base
 from ironic.api.controllers import link
 from ironic.api.controllers.v1 import collection
@@ -62,7 +62,7 @@ class VolumeConnector(base.APIBase):
             self._node_uuid = wtypes.Unset
         elif value and self._node_uuid != value:
             try:
-                node = objects.Node.get(pecan.request.context, value)
+                node = objects.Node.get(api.request.context, value)
                 self._node_uuid = node.uuid
                 # NOTE(smoriya): Create the node_id attribute on-the-fly
                 #                to satisfy the api -> rpc object conversion.
@@ -137,7 +137,7 @@ class VolumeConnector(base.APIBase):
             api_utils.check_for_invalid_fields(fields, connector.as_dict())
 
         connector = cls._convert_with_links(connector,
-                                            pecan.request.public_url)
+                                            api.request.public_url)
 
         if not sanitize:
             return connector
@@ -232,7 +232,7 @@ class VolumeConnectorsController(rest.RestController):
         marker_obj = None
         if marker:
             marker_obj = objects.VolumeConnector.get_by_uuid(
-                pecan.request.context, marker)
+                api.request.context, marker)
 
         if sort_key in self.invalid_sort_key_list:
             raise exception.InvalidParameterValue(
@@ -248,10 +248,10 @@ class VolumeConnectorsController(rest.RestController):
             #                 as we move to the object interface.
             node = api_utils.get_rpc_node(node_ident)
             connectors = objects.VolumeConnector.list_by_node_id(
-                pecan.request.context, node.id, limit, marker_obj,
+                api.request.context, node.id, limit, marker_obj,
                 sort_key=sort_key, sort_dir=sort_dir)
         else:
-            connectors = objects.VolumeConnector.list(pecan.request.context,
+            connectors = objects.VolumeConnector.list(api.request.context,
                                                       limit,
                                                       marker_obj,
                                                       sort_key=sort_key,
@@ -291,7 +291,7 @@ class VolumeConnectorsController(rest.RestController):
         :raises: InvalidParameterValue if sort key is invalid for sorting.
         :raises: InvalidParameterValue if both fields and detail are specified.
         """
-        cdict = pecan.request.context.to_policy_values()
+        cdict = api.request.context.to_policy_values()
         policy.authorize('baremetal:volume:get', cdict, cdict)
 
         if fields is None and not detail:
@@ -322,14 +322,14 @@ class VolumeConnectorsController(rest.RestController):
         :raises: VolumeConnectorNotFound if no volume connector exists with
                  the specified UUID.
         """
-        cdict = pecan.request.context.to_policy_values()
+        cdict = api.request.context.to_policy_values()
         policy.authorize('baremetal:volume:get', cdict, cdict)
 
         if self.parent_node_ident:
             raise exception.OperationNotPermitted()
 
         rpc_connector = objects.VolumeConnector.get_by_uuid(
-            pecan.request.context, connector_uuid)
+            api.request.context, connector_uuid)
         return VolumeConnector.convert_with_links(rpc_connector, fields=fields)
 
     @METRICS.timer('VolumeConnectorsController.post')
@@ -349,7 +349,7 @@ class VolumeConnectorsController(rest.RestController):
         :raises: VolumeConnectorAlreadyExists if a volume connector with the
                  same UUID already exists
         """
-        context = pecan.request.context
+        context = api.request.context
         cdict = context.to_policy_values()
         policy.authorize('baremetal:volume:create', cdict, cdict)
 
@@ -372,8 +372,8 @@ class VolumeConnectorsController(rest.RestController):
         notify.emit_end_notification(context, new_connector, 'create',
                                      node_uuid=connector.node_uuid)
         # Set the HTTP Location Header
-        pecan.response.location = link.build_url('volume/connectors',
-                                                 new_connector.uuid)
+        api.response.location = link.build_url('volume/connectors',
+                                               new_connector.uuid)
         return VolumeConnector.convert_with_links(new_connector)
 
     @METRICS.timer('VolumeConnectorsController.patch')
@@ -405,7 +405,7 @@ class VolumeConnectorsController(rest.RestController):
         :raises: InvalidStateRequested If a node associated with the
                  volume connector is not powered off.
         """
-        context = pecan.request.context
+        context = api.request.context
         cdict = context.to_policy_values()
         policy.authorize('baremetal:volume:update', cdict, cdict)
 
@@ -448,8 +448,8 @@ class VolumeConnectorsController(rest.RestController):
                                        node_uuid=rpc_node.uuid)
         with notify.handle_error_notification(context, rpc_connector, 'update',
                                               node_uuid=rpc_node.uuid):
-            topic = pecan.request.rpcapi.get_topic_for(rpc_node)
-            new_connector = pecan.request.rpcapi.update_volume_connector(
+            topic = api.request.rpcapi.get_topic_for(rpc_node)
+            new_connector = api.request.rpcapi.update_volume_connector(
                 context, rpc_connector, topic)
 
         api_connector = VolumeConnector.convert_with_links(new_connector)
@@ -474,7 +474,7 @@ class VolumeConnectorsController(rest.RestController):
         :raises: InvalidStateRequested If a node associated with the
                  volume connector is not powered off.
         """
-        context = pecan.request.context
+        context = api.request.context
         cdict = context.to_policy_values()
         policy.authorize('baremetal:volume:delete', cdict, cdict)
 
@@ -489,8 +489,8 @@ class VolumeConnectorsController(rest.RestController):
         with notify.handle_error_notification(context, rpc_connector,
                                               'delete',
                                               node_uuid=rpc_node.uuid):
-            topic = pecan.request.rpcapi.get_topic_for(rpc_node)
-            pecan.request.rpcapi.destroy_volume_connector(context,
-                                                          rpc_connector, topic)
+            topic = api.request.rpcapi.get_topic_for(rpc_node)
+            api.request.rpcapi.destroy_volume_connector(context,
+                                                        rpc_connector, topic)
         notify.emit_end_notification(context, rpc_connector, 'delete',
                                      node_uuid=rpc_node.uuid)

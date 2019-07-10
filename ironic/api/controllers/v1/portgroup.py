@@ -19,6 +19,7 @@ from six.moves import http_client
 import wsme
 from wsme import types as wtypes
 
+from ironic import api
 from ironic.api.controllers import base
 from ironic.api.controllers import link
 from ironic.api.controllers.v1 import collection
@@ -57,7 +58,7 @@ class Portgroup(base.APIBase):
                 self._node_uuid = wtypes.Unset
                 return
             try:
-                node = objects.Node.get(pecan.request.context, value)
+                node = objects.Node.get(api.request.context, value)
                 self._node_uuid = node.uuid
                 # NOTE: Create the node_id attribute on-the-fly
                 #       to satisfy the api -> rpc object
@@ -158,7 +159,7 @@ class Portgroup(base.APIBase):
         if fields is not None:
             api_utils.check_for_invalid_fields(fields, portgroup.as_dict())
 
-        portgroup = cls._convert_with_links(portgroup, pecan.request.host_url,
+        portgroup = cls._convert_with_links(portgroup, api.request.host_url,
                                             fields=fields)
 
         if not sanitize:
@@ -303,7 +304,7 @@ class PortgroupsController(pecan.rest.RestController):
 
         marker_obj = None
         if marker:
-            marker_obj = objects.Portgroup.get_by_uuid(pecan.request.context,
+            marker_obj = objects.Portgroup.get_by_uuid(api.request.context,
                                                        marker)
 
         if sort_key in self.invalid_sort_key_list:
@@ -320,12 +321,12 @@ class PortgroupsController(pecan.rest.RestController):
             #        as we move to the object interface.
             node = api_utils.get_rpc_node(node_ident)
             portgroups = objects.Portgroup.list_by_node_id(
-                pecan.request.context, node.id, limit,
+                api.request.context, node.id, limit,
                 marker_obj, sort_key=sort_key, sort_dir=sort_dir)
         elif address:
             portgroups = self._get_portgroups_by_address(address)
         else:
-            portgroups = objects.Portgroup.list(pecan.request.context, limit,
+            portgroups = objects.Portgroup.list(api.request.context, limit,
                                                 marker_obj, sort_key=sort_key,
                                                 sort_dir=sort_dir)
         parameters = {}
@@ -349,7 +350,7 @@ class PortgroupsController(pecan.rest.RestController):
 
         """
         try:
-            portgroup = objects.Portgroup.get_by_address(pecan.request.context,
+            portgroup = objects.Portgroup.get_by_address(api.request.context,
                                                          address)
             return [portgroup]
         except exception.PortgroupNotFound:
@@ -381,7 +382,7 @@ class PortgroupsController(pecan.rest.RestController):
         if not api_utils.allow_portgroups():
             raise exception.NotFound()
 
-        cdict = pecan.request.context.to_policy_values()
+        cdict = api.request.context.to_policy_values()
         policy.authorize('baremetal:portgroup:get', cdict, cdict)
 
         api_utils.check_allowed_portgroup_fields(fields)
@@ -418,12 +419,12 @@ class PortgroupsController(pecan.rest.RestController):
         if not api_utils.allow_portgroups():
             raise exception.NotFound()
 
-        cdict = pecan.request.context.to_policy_values()
+        cdict = api.request.context.to_policy_values()
         policy.authorize('baremetal:portgroup:get', cdict, cdict)
         api_utils.check_allowed_portgroup_fields([sort_key])
 
         # NOTE: /detail should only work against collections
-        parent = pecan.request.path.split('/')[:-1][-1]
+        parent = api.request.path.split('/')[:-1][-1]
         if parent != "portgroups":
             raise exception.HTTPNotFound()
 
@@ -444,7 +445,7 @@ class PortgroupsController(pecan.rest.RestController):
         if not api_utils.allow_portgroups():
             raise exception.NotFound()
 
-        cdict = pecan.request.context.to_policy_values()
+        cdict = api.request.context.to_policy_values()
         policy.authorize('baremetal:portgroup:get', cdict, cdict)
 
         if self.parent_node_ident:
@@ -466,7 +467,7 @@ class PortgroupsController(pecan.rest.RestController):
         if not api_utils.allow_portgroups():
             raise exception.NotFound()
 
-        context = pecan.request.context
+        context = api.request.context
         cdict = context.to_policy_values()
         policy.authorize('baremetal:portgroup:create', cdict, cdict)
 
@@ -504,8 +505,8 @@ class PortgroupsController(pecan.rest.RestController):
                                      node_uuid=portgroup.node_uuid)
 
         # Set the HTTP Location Header
-        pecan.response.location = link.build_url('portgroups',
-                                                 new_portgroup.uuid)
+        api.response.location = link.build_url('portgroups',
+                                               new_portgroup.uuid)
         return Portgroup.convert_with_links(new_portgroup)
 
     @METRICS.timer('PortgroupsController.patch')
@@ -520,7 +521,7 @@ class PortgroupsController(pecan.rest.RestController):
         if not api_utils.allow_portgroups():
             raise exception.NotFound()
 
-        context = pecan.request.context
+        context = api.request.context
         cdict = context.to_policy_values()
         policy.authorize('baremetal:portgroup:update', cdict, cdict)
 
@@ -583,8 +584,8 @@ class PortgroupsController(pecan.rest.RestController):
                                        node_uuid=rpc_node.uuid)
         with notify.handle_error_notification(context, rpc_portgroup, 'update',
                                               node_uuid=rpc_node.uuid):
-            topic = pecan.request.rpcapi.get_topic_for(rpc_node)
-            new_portgroup = pecan.request.rpcapi.update_portgroup(
+            topic = api.request.rpcapi.get_topic_for(rpc_node)
+            new_portgroup = api.request.rpcapi.update_portgroup(
                 context, rpc_portgroup, topic)
 
         api_portgroup = Portgroup.convert_with_links(new_portgroup)
@@ -604,7 +605,7 @@ class PortgroupsController(pecan.rest.RestController):
         if not api_utils.allow_portgroups():
             raise exception.NotFound()
 
-        context = pecan.request.context
+        context = api.request.context
         cdict = context.to_policy_values()
         policy.authorize('baremetal:portgroup:delete', cdict, cdict)
 
@@ -613,15 +614,15 @@ class PortgroupsController(pecan.rest.RestController):
 
         rpc_portgroup = api_utils.get_rpc_portgroup_with_suffix(
             portgroup_ident)
-        rpc_node = objects.Node.get_by_id(pecan.request.context,
+        rpc_node = objects.Node.get_by_id(api.request.context,
                                           rpc_portgroup.node_id)
 
         notify.emit_start_notification(context, rpc_portgroup, 'delete',
                                        node_uuid=rpc_node.uuid)
         with notify.handle_error_notification(context, rpc_portgroup, 'delete',
                                               node_uuid=rpc_node.uuid):
-            topic = pecan.request.rpcapi.get_topic_for(rpc_node)
-            pecan.request.rpcapi.destroy_portgroup(context, rpc_portgroup,
-                                                   topic)
+            topic = api.request.rpcapi.get_topic_for(rpc_node)
+            api.request.rpcapi.destroy_portgroup(context, rpc_portgroup,
+                                                 topic)
         notify.emit_end_notification(context, rpc_portgroup, 'delete',
                                      node_uuid=rpc_node.uuid)

@@ -17,12 +17,12 @@ import datetime
 
 from ironic_lib import metrics_utils
 from oslo_utils import uuidutils
-import pecan
 from pecan import rest
 from six.moves import http_client
 import wsme
 from wsme import types as wtypes
 
+from ironic import api
 from ironic.api.controllers import base
 from ironic.api.controllers import link
 from ironic.api.controllers.v1 import collection
@@ -104,7 +104,7 @@ class Chassis(base.APIBase):
         if fields is not None:
             api_utils.check_for_invalid_fields(fields, chassis.as_dict())
 
-        chassis = cls._convert_with_links(chassis, pecan.request.public_url,
+        chassis = cls._convert_with_links(chassis, api.request.public_url,
                                           fields)
 
         if not sanitize:
@@ -194,7 +194,7 @@ class ChassisController(rest.RestController):
         sort_dir = api_utils.validate_sort_dir(sort_dir)
         marker_obj = None
         if marker:
-            marker_obj = objects.Chassis.get_by_uuid(pecan.request.context,
+            marker_obj = objects.Chassis.get_by_uuid(api.request.context,
                                                      marker)
 
         if sort_key in self.invalid_sort_key_list:
@@ -202,7 +202,7 @@ class ChassisController(rest.RestController):
                 _("The sort_key value %(key)s is an invalid field for sorting")
                 % {'key': sort_key})
 
-        chassis = objects.Chassis.list(pecan.request.context, limit,
+        chassis = objects.Chassis.list(api.request.context, limit,
                                        marker_obj, sort_key=sort_key,
                                        sort_dir=sort_dir)
         parameters = {}
@@ -233,7 +233,7 @@ class ChassisController(rest.RestController):
         :param fields: Optional, a list with a specified set of fields
             of the resource to be returned.
         """
-        cdict = pecan.request.context.to_policy_values()
+        cdict = api.request.context.to_policy_values()
         policy.authorize('baremetal:chassis:get', cdict, cdict)
 
         api_utils.check_allow_specify_fields(fields)
@@ -258,11 +258,11 @@ class ChassisController(rest.RestController):
         :param sort_key: column to sort results by. Default: id.
         :param sort_dir: direction to sort. "asc" or "desc". Default: asc.
         """
-        cdict = pecan.request.context.to_policy_values()
+        cdict = api.request.context.to_policy_values()
         policy.authorize('baremetal:chassis:get', cdict, cdict)
 
         # /detail should only work against collections
-        parent = pecan.request.path.split('/')[:-1][-1]
+        parent = api.request.path.split('/')[:-1][-1]
         if parent != "chassis":
             raise exception.HTTPNotFound()
 
@@ -279,11 +279,11 @@ class ChassisController(rest.RestController):
         :param fields: Optional, a list with a specified set of fields
             of the resource to be returned.
         """
-        cdict = pecan.request.context.to_policy_values()
+        cdict = api.request.context.to_policy_values()
         policy.authorize('baremetal:chassis:get', cdict, cdict)
 
         api_utils.check_allow_specify_fields(fields)
-        rpc_chassis = objects.Chassis.get_by_uuid(pecan.request.context,
+        rpc_chassis = objects.Chassis.get_by_uuid(api.request.context,
                                                   chassis_uuid)
         return Chassis.convert_with_links(rpc_chassis, fields=fields)
 
@@ -294,7 +294,7 @@ class ChassisController(rest.RestController):
 
         :param chassis: a chassis within the request body.
         """
-        context = pecan.request.context
+        context = api.request.context
         cdict = context.to_policy_values()
         policy.authorize('baremetal:chassis:create', cdict, cdict)
 
@@ -308,7 +308,7 @@ class ChassisController(rest.RestController):
             new_chassis.create()
         notify.emit_end_notification(context, new_chassis, 'create')
         # Set the HTTP Location Header
-        pecan.response.location = link.build_url('chassis', new_chassis.uuid)
+        api.response.location = link.build_url('chassis', new_chassis.uuid)
         return Chassis.convert_with_links(new_chassis)
 
     @METRICS.timer('ChassisController.patch')
@@ -320,7 +320,7 @@ class ChassisController(rest.RestController):
         :param chassis_uuid: UUID of a chassis.
         :param patch: a json PATCH document to apply to this chassis.
         """
-        context = pecan.request.context
+        context = api.request.context
         cdict = context.to_policy_values()
         policy.authorize('baremetal:chassis:update', cdict, cdict)
 
@@ -353,7 +353,7 @@ class ChassisController(rest.RestController):
 
         :param chassis_uuid: UUID of a chassis.
         """
-        context = pecan.request.context
+        context = api.request.context
         cdict = context.to_policy_values()
         policy.authorize('baremetal:chassis:delete', cdict, cdict)
 

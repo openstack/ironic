@@ -14,11 +14,11 @@
 #    under the License.
 
 from ironic_lib import metrics_utils
-import pecan
 from pecan import rest
 import wsme
 from wsme import types as wtypes
 
+from ironic import api
 from ironic.api.controllers import base
 from ironic.api.controllers import link
 from ironic.api.controllers.v1 import types
@@ -64,7 +64,7 @@ class BIOSSetting(base.APIBase):
     def convert_with_links(cls, rpc_bios, node_uuid):
         """Add links to the bios setting."""
         bios = BIOSSetting(**rpc_bios.as_dict())
-        return cls._convert_with_links(bios, node_uuid, pecan.request.host_url)
+        return cls._convert_with_links(bios, node_uuid, api.request.host_url)
 
 
 class BIOSSettingsCollection(wtypes.Base):
@@ -96,12 +96,12 @@ class NodeBiosController(rest.RestController):
     @expose.expose(BIOSSettingsCollection)
     def get_all(self):
         """List node bios settings."""
-        cdict = pecan.request.context.to_policy_values()
+        cdict = api.request.context.to_policy_values()
         policy.authorize('baremetal:node:bios:get', cdict, cdict)
 
         node = api_utils.get_rpc_node(self.node_ident)
         settings = objects.BIOSSettingList.get_by_node_id(
-            pecan.request.context, node.id)
+            api.request.context, node.id)
         return BIOSSettingsCollection.collection_from_list(self.node_ident,
                                                            settings)
 
@@ -112,12 +112,12 @@ class NodeBiosController(rest.RestController):
 
         :param setting_name: Logical name of the setting to retrieve.
         """
-        cdict = pecan.request.context.to_policy_values()
+        cdict = api.request.context.to_policy_values()
         policy.authorize('baremetal:node:bios:get', cdict, cdict)
 
         node = api_utils.get_rpc_node(self.node_ident)
         try:
-            setting = objects.BIOSSetting.get(pecan.request.context, node.id,
+            setting = objects.BIOSSetting.get(api.request.context, node.id,
                                               setting_name)
         except exception.BIOSSettingNotFound:
             raise exception.BIOSSettingNotFound(node=node.uuid,

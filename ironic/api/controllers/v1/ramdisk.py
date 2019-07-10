@@ -14,11 +14,11 @@
 
 from oslo_config import cfg
 from oslo_log import log
-import pecan
 from pecan import rest
 from six.moves import http_client
 from wsme import types as wtypes
 
+from ironic import api
 from ironic.api.controllers import base
 from ironic.api.controllers.v1 import node as node_ctl
 from ironic.api.controllers.v1 import types
@@ -104,7 +104,7 @@ class LookupController(rest.RestController):
         if not api_utils.allow_ramdisk_endpoints():
             raise exception.NotFound()
 
-        cdict = pecan.request.context.to_policy_values()
+        cdict = api.request.context.to_policy_values()
         policy.authorize('baremetal:driver:ipa_lookup', cdict, cdict)
 
         # Validate the list of MAC addresses
@@ -135,10 +135,10 @@ class LookupController(rest.RestController):
         try:
             if node_uuid:
                 node = objects.Node.get_by_uuid(
-                    pecan.request.context, node_uuid)
+                    api.request.context, node_uuid)
             else:
                 node = objects.Node.get_by_port_addresses(
-                    pecan.request.context, valid_addresses)
+                    api.request.context, valid_addresses)
         except exception.NotFound:
             # NOTE(dtantsur): we are reraising the same exception to make sure
             # we don't disclose the difference between nodes that are not found
@@ -180,17 +180,17 @@ class HeartbeatController(rest.RestController):
             raise exception.InvalidParameterValue(
                 _('Field "agent_version" not recognised'))
 
-        cdict = pecan.request.context.to_policy_values()
+        cdict = api.request.context.to_policy_values()
         policy.authorize('baremetal:node:ipa_heartbeat', cdict, cdict)
 
         rpc_node = api_utils.get_rpc_node_with_suffix(node_ident)
 
         try:
-            topic = pecan.request.rpcapi.get_topic_for(rpc_node)
+            topic = api.request.rpcapi.get_topic_for(rpc_node)
         except exception.NoValidHost as e:
             e.code = http_client.BAD_REQUEST
             raise
 
-        pecan.request.rpcapi.heartbeat(
-            pecan.request.context, rpc_node.uuid, callback_url,
+        api.request.rpcapi.heartbeat(
+            api.request.context, rpc_node.uuid, callback_url,
             agent_version, topic=topic)
