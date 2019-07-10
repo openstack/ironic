@@ -510,7 +510,11 @@ UEFI_NVRAM_PATH=$IRONIC_UEFI_FILES_DIR/OVMF_VARS.fd
 # Handle architecture specific package installs
 if [[ $IRONIC_HW_ARCH == "x86_64" ]]; then
     install_package shim
-    install_package grub-efi-amd64-signed
+    if is_ubuntu; then
+        install_package grub-efi-amd64-signed
+    elif is_fedora; then
+        install_package grub2-efi
+    fi
 fi
 
 # Sanity checks
