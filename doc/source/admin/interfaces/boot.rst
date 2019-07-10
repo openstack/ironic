@@ -62,8 +62,3 @@ with persistent boot for that node.
 .. _PXE: https://en.wikipedia.org/wiki/Preboot_Execution_Environment
 .. _iPXE: https://en.wikipedia.org/wiki/IPXE
 .. _management controller: https://en.wikipedia.org/wiki/Out-of-band_management
-
-.. toctree::
-   :hidden:
-
-   ../drivers/pxe

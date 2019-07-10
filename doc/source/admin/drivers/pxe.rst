@@ -1,1 +1,0 @@
-See :ref:`pxe-boot`.
