@@ -18,17 +18,15 @@ Intel SST-PP supports three configuration levels:
 * 2 - Intel SST-PP Config 2
 
 The following table shows the list of active cores and their base frequency at
-different SST-PP config levels::
+different SST-PP config levels:
 
- +-------------+---------+-------------------+
- |   Config    |  Cores  |  Base Freq (GHz)  |
- +=============+=========+===================+
- | Base        | 24      | 2.4               |
- +-------------+---------+-------------------+
- | Config 1    | 20      | 2.5               |
- +-------------+---------+-------------------+
- | Config 2    | 16      | 2.7               |
- +-------------+---------+-------------------+
+ ============== ========= ===================
+    Config       Cores      Base Freq (GHz)
+ ============== ========= ===================
+     Base         24             2.4
+   Config 1       20             2.5
+   Config 2       16             2.7
+ ============== ========= ===================
 
 This configuration is managed by the management interface ``intel-ipmitool``
 for IntelIPMI hardware.
@@ -95,7 +93,7 @@ A node with Intel SST-PP can be configured to use it via
 
 * ``intel_speedselect_config``:
   Hexadecimal code of Intel SST-PP configuration. Accepted values are
-  ['0x00', '0x01', '0x02']. These values correspond to
+  '0x00', '0x01', '0x02'. These values correspond to
   `Intel SST-PP Config Base`, `Intel SST-PP Config 1`,
   `Intel SST-PP Config 2` respectively. The input value must be a string.
 
