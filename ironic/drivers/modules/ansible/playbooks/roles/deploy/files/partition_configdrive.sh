@@ -60,23 +60,15 @@ if [ -z $EXISTING_PARTITION ]; then
         log "Fixing GPT to use all of the space on device $DEVICE"
         sgdisk -e $DEVICE || fail "move backup GPT data structures to the end of ${DEVICE}"
 
-        # Need to create new partition for config drive
-        # Not all images have partion numbers in a sequential numbers. There are holes.
-        # These holes get filled up when a new partition is created.
-        TEMP_DIR="$(mktemp -d)"
-        EXISTING_PARTITION_LIST=$TEMP_DIR/existing_partitions
-        UPDATED_PARTITION_LIST=$TEMP_DIR/updated_partitions
-
-        gdisk -l $DEVICE | grep -A$MAX_DISK_PARTITIONS "Number  Start" | grep -v "Number  Start" > $EXISTING_PARTITION_LIST
-
-        # Create small partition at the end of the device
+        # Create small partition at the end of the device and label it to make
+        # identification below easier.
         log "Adding configdrive partition to $DEVICE"
-        sgdisk -n 0:-64MB:0 $DEVICE || fail "creating configdrive on ${DEVICE}"
-
-        gdisk -l $DEVICE | grep -A$MAX_DISK_PARTITIONS "Number  Start" | grep -v "Number  Start" > $UPDATED_PARTITION_LIST
-
-        CONFIG_PARTITION_ID=`diff $EXISTING_PARTITION_LIST $UPDATED_PARTITION_LIST | tail -n1 |awk '{print $2}'`
-        ISO_PARTITION="${DEVICE}${CONFIG_PARTITION_ID}"
+        # Get a one shot partlabel, with a pseudo-random 5 chars chunk to avoid
+        # any conflict with any other pre-existing partlabel
+        PARTLABEL=config-$(< /dev/urandom tr -dc a-z0-9 | head -c 5)
+        sgdisk -n 0:-64MB:0 -c 0:$PARTLABEL $DEVICE || fail "creating configdrive on ${DEVICE}"
+        partprobe
+        ISO_PARTITION=/dev/disk/by-partlabel/$PARTLABEL
     else
         log "Working on MBR only device $DEVICE"
 

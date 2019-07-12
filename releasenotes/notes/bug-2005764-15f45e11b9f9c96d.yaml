@@ -1,0 +1,8 @@
+---
+fixes:
+  - |
+    Fixes a deployment issue encountered during deployment, more precisely
+    during the configdrive partition creation step. On some specific devices
+    like NVMe drives, the created configdrive partition could not be correctly
+    identified (required to dump data onto it afterward).
+    https://storyboard.openstack.org/#!/story/2005764
