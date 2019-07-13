@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Fixes an issue where clean steps of ``redfish`` BIOS interface do not
+    boot up the IPA ramdisk after cleaning reboot. See `story 2006217
+    <https://storyboard.openstack.org/#!/story/2006217>`__ for details.

@@ -19,6 +19,8 @@ from ironic.common import exception
 from ironic.common import states
 from ironic.conductor import task_manager
 from ironic.conductor import utils as manager_utils
+from ironic.drivers.modules import deploy_utils
+from ironic.drivers.modules import pxe as pxe_boot
 from ironic.drivers.modules.redfish import bios as redfish_bios
 from ironic.drivers.modules.redfish import utils as redfish_utils
 from ironic import objects
@@ -158,9 +160,14 @@ class RedfishBiosTestCase(db_base.DbTestCase):
             mock_setting_list.delete.assert_called_once_with(
                 task.context, task.node.id, delete_names)
 
+    @mock.patch.object(pxe_boot.PXEBoot, 'prepare_ramdisk',
+                       spec_set=True, autospec=True)
+    @mock.patch.object(deploy_utils, 'build_agent_options', autospec=True)
     @mock.patch.object(redfish_utils, 'get_system', autospec=True)
     @mock.patch.object(manager_utils, 'node_power_action', autospec=True)
-    def test_factory_reset(self, mock_power_action, mock_get_system):
+    def test_factory_reset_step1(self, mock_power_action, mock_get_system,
+                                 mock_build_agent_options, mock_prepare):
+        mock_build_agent_options.return_value = {'a': 'b'}
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
             task.driver.bios.factory_reset(task)
@@ -168,6 +175,26 @@ class RedfishBiosTestCase(db_base.DbTestCase):
             mock_power_action.assert_called_once_with(task, states.REBOOT)
             bios = mock_get_system(task.node).bios
             bios.reset_bios.assert_called_once()
+            mock_build_agent_options.assert_called_once_with(task.node)
+            mock_prepare.assert_called_once_with(mock.ANY, task, {'a': 'b'})
+            info = task.node.driver_internal_info
+            self.assertTrue(
+                all(x in info for x in (
+                    'post_factory_reset_reboot_requested', 'cleaning_reboot',
+                    'skip_current_clean_step')))
+
+    @mock.patch.object(redfish_utils, 'get_system', autospec=True)
+    def test_factory_reset_step2(self, mock_get_system):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            driver_internal_info = task.node.driver_internal_info
+            driver_internal_info['post_factory_reset_reboot_requested'] = True
+            task.node.driver_internal_info = driver_internal_info
+            task.node.save()
+            task.driver.bios.factory_reset(task)
+            mock_get_system.assert_called_with(task.node)
+            info = task.node.driver_internal_info
+            self.assertNotIn('post_factory_reset_reboot_requested', info)
 
     @mock.patch.object(redfish_utils, 'get_system', autospec=True)
     def test_factory_reset_fail(self, mock_get_system):
@@ -188,13 +215,19 @@ class RedfishBiosTestCase(db_base.DbTestCase):
                 exception.RedfishError, 'BIOS factory reset failed',
                 task.driver.bios.factory_reset, task)
 
+    @mock.patch.object(pxe_boot.PXEBoot, 'prepare_ramdisk',
+                       spec_set=True, autospec=True)
+    @mock.patch.object(deploy_utils, 'build_agent_options', autospec=True)
     @mock.patch.object(redfish_utils, 'get_system', autospec=True)
     @mock.patch.object(manager_utils, 'node_power_action', autospec=True)
     def test_apply_configuration_step1(self, mock_power_action,
-                                       mock_get_system):
+                                       mock_get_system,
+                                       mock_build_agent_options,
+                                       mock_prepare):
         settings = [{'name': 'ProcTurboMode', 'value': 'Disabled'},
                     {'name': 'NicBoot1', 'value': 'NetworkBoot'}]
         attributes = {s['name']: s['value'] for s in settings}
+        mock_build_agent_options.return_value = {'a': 'b'}
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
             task.driver.bios.apply_configuration(task, settings)
@@ -202,6 +235,13 @@ class RedfishBiosTestCase(db_base.DbTestCase):
             mock_power_action.assert_called_once_with(task, states.REBOOT)
             bios = mock_get_system(task.node).bios
             bios.set_attributes.assert_called_once_with(attributes)
+            mock_build_agent_options.assert_called_once_with(task.node)
+            mock_prepare.assert_called_once_with(mock.ANY, task, {'a': 'b'})
+            info = task.node.driver_internal_info
+            self.assertTrue(
+                all(x in info for x in (
+                    'post_config_reboot_requested', 'cleaning_reboot',
+                    'skip_current_clean_step')))
 
     @mock.patch.object(redfish_utils, 'get_system', autospec=True)
     def test_apply_configuration_step2(self, mock_get_system):
@@ -210,15 +250,16 @@ class RedfishBiosTestCase(db_base.DbTestCase):
         requested_attrs = {'ProcTurboMode': 'Enabled'}
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
-            task.node.driver_internal_info[
-                'post_config_reboot_requested'] = True
-            task.node.driver_internal_info[
-                'requested_bios_attrs'] = requested_attrs
-            task.driver.bios._clear_reboot_requested = mock.MagicMock()
+            driver_internal_info = task.node.driver_internal_info
+            driver_internal_info['post_config_reboot_requested'] = True
+            driver_internal_info['requested_bios_attrs'] = requested_attrs
+            task.node.driver_internal_info = driver_internal_info
+            task.node.save()
             task.driver.bios.apply_configuration(task, settings)
             mock_get_system.assert_called_with(task.node)
-            task.driver.bios._clear_reboot_requested\
-                .assert_called_once_with(task)
+            info = task.node.driver_internal_info
+            self.assertNotIn('post_config_reboot_requested', info)
+            self.assertNotIn('requested_bios_attrs', info)
 
     @mock.patch.object(redfish_utils, 'get_system', autospec=True)
     def test_apply_configuration_not_supported(self, mock_get_system):
