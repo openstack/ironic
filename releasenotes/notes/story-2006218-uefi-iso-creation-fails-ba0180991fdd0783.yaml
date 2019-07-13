@@ -1,0 +1,9 @@
+---
+fixes:
+  - |
+    Fixes an issue in ISO creation for UEFI boot mode when efiboot.img
+    file is provided and the directory of location of grub.cfg file
+    set using config ``[DEFAULT]/grub_config_path`` is not same as
+    that of efiboot.img file. See `story 2006218
+    <https://storyboard.openstack.org/#!/story/2006218>`__ for details.
+
