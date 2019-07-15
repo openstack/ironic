@@ -21,6 +21,7 @@ from ironic.drivers import irmc
 from ironic.drivers.modules import agent
 from ironic.drivers.modules import inspector
 from ironic.drivers.modules import ipmitool
+from ironic.drivers.modules import ipxe
 from ironic.drivers.modules.irmc import bios as irmc_bios
 from ironic.drivers.modules.irmc import raid
 from ironic.drivers.modules import iscsi_deploy
@@ -35,8 +36,9 @@ class IRMCHardwareTestCase(db_base.DbTestCase):
         irmc.boot.check_share_fs_mounted_patcher.start()
         self.addCleanup(irmc.boot.check_share_fs_mounted_patcher.stop)
         super(IRMCHardwareTestCase, self).setUp()
+        self.config_temp_dir('http_root', group='deploy')
         self.config(enabled_hardware_types=['irmc'],
-                    enabled_boot_interfaces=['irmc-virtual-media'],
+                    enabled_boot_interfaces=['irmc-virtual-media', 'ipxe'],
                     enabled_console_interfaces=['ipmitool-socat'],
                     enabled_deploy_interfaces=['iscsi', 'direct'],
                     enabled_inspect_interfaces=['irmc'],
@@ -185,3 +187,10 @@ class IRMCHardwareTestCase(db_base.DbTestCase):
                                   noop.NoBIOS)
             self.assertIsInstance(task.driver.rescue,
                                   agent.AgentRescue)
+
+    def test_override_with_boot_configuration(self):
+        node = obj_utils.create_test_node(
+            self.context, driver='irmc',
+            boot_interface='ipxe')
+        with task_manager.acquire(self.context, node.id) as task:
+            self.assertIsInstance(task.driver.boot, ipxe.iPXEBoot)
