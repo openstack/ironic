@@ -472,6 +472,9 @@ class IloManagement(base.ManagementInterface):
             url = firmware_processor.get_swift_url(urlparse.urlparse(url))
             node.clean_step['args']['url'] = url
 
+        # Insert SPP ISO into virtual media CDROM
+        ilo_common.attach_vmedia(node, 'CDROM', url)
+
         step = node.clean_step
         return deploy_utils.agent_execute_clean_step(task, step)
 

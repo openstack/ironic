@@ -539,9 +539,12 @@ class IloManagementTestCase(test_common.BaseIloTest):
             remove_mock.assert_has_calls([mock.call(fw_loc_obj_1),
                                           mock.call(fw_loc_obj_2)])
 
+    @mock.patch.object(ilo_common, 'attach_vmedia', spec_set=True,
+                       autospec=True)
     @mock.patch.object(deploy_utils, 'agent_execute_clean_step',
                        autospec=True)
-    def test_update_firmware_sum_mode_with_component(self, execute_mock):
+    def test_update_firmware_sum_mode_with_component(
+            self, execute_mock, attach_vmedia_mock):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
             execute_mock.return_value = states.CLEANWAIT
@@ -558,15 +561,19 @@ class IloManagementTestCase(test_common.BaseIloTest):
             return_value = task.driver.management.update_firmware_sum(
                 task, **firmware_update_args)
             # | THEN |
+            attach_vmedia_mock.assert_any_call(
+                task.node, 'CDROM', 'http://any_url')
             self.assertEqual(states.CLEANWAIT, return_value)
             execute_mock.assert_called_once_with(task, clean_step)
 
+    @mock.patch.object(ilo_common, 'attach_vmedia', spec_set=True,
+                       autospec=True)
     @mock.patch.object(ilo_management.firmware_processor,
                        'get_swift_url', autospec=True)
     @mock.patch.object(deploy_utils, 'agent_execute_clean_step',
                        autospec=True)
-    def test_update_firmware_sum_mode_swift_url(self, execute_mock,
-                                                swift_url_mock):
+    def test_update_firmware_sum_mode_swift_url(
+            self, execute_mock, swift_url_mock, attach_vmedia_mock):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
             swift_url_mock.return_value = "http://path-to-file"
@@ -584,13 +591,18 @@ class IloManagementTestCase(test_common.BaseIloTest):
             return_value = task.driver.management.update_firmware_sum(
                 task, **firmware_update_args)
             # | THEN |
+            attach_vmedia_mock.assert_any_call(
+                task.node, 'CDROM', 'http://path-to-file')
             self.assertEqual(states.CLEANWAIT, return_value)
             self.assertEqual(task.node.clean_step['args']['url'],
                              "http://path-to-file")
 
+    @mock.patch.object(ilo_common, 'attach_vmedia', spec_set=True,
+                       autospec=True)
     @mock.patch.object(deploy_utils, 'agent_execute_clean_step',
                        autospec=True)
-    def test_update_firmware_sum_mode_without_component(self, execute_mock):
+    def test_update_firmware_sum_mode_without_component(
+            self, execute_mock, attach_vmedia_mock):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
             execute_mock.return_value = states.CLEANWAIT
@@ -606,6 +618,8 @@ class IloManagementTestCase(test_common.BaseIloTest):
             return_value = task.driver.management.update_firmware_sum(
                 task, **firmware_update_args)
             # | THEN |
+            attach_vmedia_mock.assert_any_call(
+                task.node, 'CDROM', 'any_valid_url')
             self.assertEqual(states.CLEANWAIT, return_value)
             execute_mock.assert_called_once_with(task, clean_step)
 
