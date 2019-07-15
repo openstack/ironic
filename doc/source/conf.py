@@ -56,7 +56,6 @@ apidoc_separate_modules = True
 repository_name = 'openstack/ironic'
 bug_project = '943'
 bug_tag = ''
-html_last_updated_fmt = '%Y-%m-%d %H:%M'
 
 wsme_protocols = ['restjson']
 
@@ -74,7 +73,6 @@ source_suffix = '.rst'
 master_doc = 'index'
 
 # General information about the project.
-project = u'Ironic'
 copyright = u'OpenStack Foundation'
 
 config_generator_config_file = '../../tools/config/ironic-config-generator.conf'
@@ -82,17 +80,6 @@ sample_config_basename = '_static/ironic'
 
 policy_generator_config_file = '../../tools/policy/ironic-policy-generator.conf'
 sample_policy_basename = '_static/ironic'
-
-# The version info for the project you're documenting, acts as replacement for
-# |version| and |release|, also used in various other places throughout the
-# built documents.
-#
-# The short X.Y version.
-from ironic import version as ironic_version
-# The full version, including alpha/beta/rc tags.
-release = ironic_version.version_info.release_string()
-# The short X.Y version.
-version = ironic_version.version_info.version_string()
 
 # A list of ignored prefixes for module index sorting.
 modindex_common_prefix = ['ironic.']
@@ -128,7 +115,7 @@ else:
     html_theme = 'default'
 
 # Output file base name for HTML help builder.
-htmlhelp_basename = '%sdoc' % project
+htmlhelp_basename = 'Ironicdoc'
 
 
 # Grouping the document tree into LaTeX files. List of tuples
@@ -137,8 +124,8 @@ htmlhelp_basename = '%sdoc' % project
 latex_documents = [
     (
         'index',
-        '%s.tex' % project,
-        u'%s Documentation' % project,
+        'Ironic.tex',
+        u'Ironic Documentation',
         u'OpenStack Foundation',
         'manual'
     ),
