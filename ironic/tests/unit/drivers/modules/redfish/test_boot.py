@@ -175,6 +175,30 @@ class RedfishVirtualMediaBootTestCase(db_base.DbTestCase):
                               task.driver.boot._parse_deploy_info,
                               task.node)
 
+    def test__append_filename_param_without_qs(self):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            res = task.driver.boot._append_filename_param(
+                'http://a.b/c', 'b.img')
+            expected = 'http://a.b/c?filename=b.img'
+            self.assertEqual(expected, res)
+
+    def test__append_filename_param_with_qs(self):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            res = task.driver.boot._append_filename_param(
+                'http://a.b/c?d=e&f=g', 'b.img')
+            expected = 'http://a.b/c?d=e&f=g&filename=b.img'
+            self.assertEqual(expected, res)
+
+    def test__append_filename_param_with_filename(self):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            res = task.driver.boot._append_filename_param(
+                'http://a.b/c?filename=bootme.img', 'b.img')
+            expected = 'http://a.b/c?filename=bootme.img'
+            self.assertEqual(expected, res)
+
     @mock.patch.object(redfish_boot, 'swift', autospec=True)
     def test__cleanup_floppy_image(self, mock_swift):
         with task_manager.acquire(self.context, self.node.uuid,
@@ -193,13 +217,17 @@ class RedfishVirtualMediaBootTestCase(db_base.DbTestCase):
     def test__prepare_floppy_image(self, mock_create_vfat_image, mock_swift):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
-            task.driver.boot._prepare_floppy_image(task)
+            mock_swift_api = mock_swift.SwiftAPI.return_value
+            mock_swift_api.get_temp_url.return_value = 'https://a.b/c.f?e=f'
+
+            url = task.driver.boot._prepare_floppy_image(task)
+
+            self.assertIn('filename=bootme.img', url)
+
+            mock_swift.SwiftAPI.assert_called_once_with()
 
             mock_create_vfat_image.assert_called_once_with(
                 mock.ANY, parameters=mock.ANY)
-
-            mock_swift.SwiftAPI.assert_called_once_with()
-            mock_swift_api = mock_swift.SwiftAPI.return_value
 
             mock_swift_api.create_object.assert_called_once_with(
                 mock.ANY, mock.ANY, mock.ANY, mock.ANY)
@@ -234,7 +262,7 @@ class RedfishVirtualMediaBootTestCase(db_base.DbTestCase):
                 task, 'http://kernel/img', 'http://ramdisk/img',
                 'http://bootloader/img', root_uuid=task.node.uuid)
 
-            self.assertTrue(url)
+            self.assertIn('filename=bootme.iso', url)
 
             mock_create_boot_iso.assert_called_once_with(
                 mock.ANY, mock.ANY, 'http://kernel/img', 'http://ramdisk/img',
@@ -263,7 +291,7 @@ class RedfishVirtualMediaBootTestCase(db_base.DbTestCase):
                 task, 'http://kernel/img', 'http://ramdisk/img',
                 bootloader_href=None, root_uuid=task.node.uuid)
 
-            self.assertTrue(url)
+            self.assertIn('filename=bootme.iso', url)
 
             mock_create_boot_iso.assert_called_once_with(
                 mock.ANY, mock.ANY, 'http://kernel/img', 'http://ramdisk/img',

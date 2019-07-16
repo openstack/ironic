@@ -16,6 +16,7 @@ import tempfile
 
 from oslo_log import log
 from oslo_utils import importutils
+from six.moves.urllib import parse as urlparse
 
 from ironic.common import boot_devices
 from ironic.common import exception
@@ -219,6 +220,36 @@ class RedfishVirtualMediaBoot(base.BootInterface):
                          'error': e})
 
     @staticmethod
+    def _append_filename_param(url, filename):
+        """Append 'filename=<file>' parameter to given URL.
+
+        Some BMCs seem to validate boot image URL requiring the URL to end
+        with something resembling ISO image file name.
+
+        This function tries to add, hopefully, meaningless 'filename'
+        parameter to URL's query string in hope to make the entire boot image
+        URL looking more convincing to the BMC.
+
+        However, `url` with fragments might not get cured by this hack.
+
+        :param url: a URL to work on
+        :param filename: name of the file to append to the URL
+        :returns: original URL with 'filename' parameter appended
+        """
+        parsed_url = urlparse.urlparse(url)
+        parsed_qs = urlparse.parse_qsl(parsed_url.query)
+
+        has_filename = [x for x in parsed_qs if x[0].lower() == 'filename']
+        if has_filename:
+            return url
+
+        parsed_qs.append(('filename', filename))
+        parsed_url = list(parsed_url)
+        parsed_url[4] = urlparse.urlencode(parsed_qs)
+
+        return urlparse.urlunparse(parsed_url)
+
+    @staticmethod
     def _get_floppy_image_name(node):
         """Returns the floppy image name for a given node.
 
@@ -278,6 +309,8 @@ class RedfishVirtualMediaBoot(base.BootInterface):
                                     object_headers=object_headers)
 
         image_url = swift_api.get_temp_url(container, object_name, timeout)
+
+        image_url = cls._append_filename_param(image_url, 'bootme.img')
 
         LOG.debug("Created floppy image %(name)s in Swift for node %(node)s, "
                   "exposed as temporary URL "
@@ -387,6 +420,9 @@ class RedfishVirtualMediaBoot(base.BootInterface):
 
             boot_iso_url = swift_api.get_temp_url(
                 container, iso_object_name, timeout)
+
+            boot_iso_url = cls._append_filename_param(
+                boot_iso_url, 'bootme.iso')
 
         LOG.debug("Created ISO %(name)s in Swift for node %(node)s, exposed "
                   "as temporary URL %(url)s", {'node': task.node.uuid,
