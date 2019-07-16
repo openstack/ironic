@@ -234,11 +234,10 @@ class RedfishManagementTestCase(db_base.DbTestCase):
 
         mock_chassis = mock.MagicMock(identity='ZZZ-YYY-XXX')
 
-        mock_fans = mock_chassis.thermal.fans
         mock_fan = mock.MagicMock(**attributes)
         mock_fan.name = attributes['name']
         mock_fan.status = mock.MagicMock(**attributes['status'])
-        mock_fans.get_members.return_value = [mock_fan]
+        mock_chassis.thermal.fans = [mock_fan]
 
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
@@ -279,11 +278,11 @@ class RedfishManagementTestCase(db_base.DbTestCase):
         }
 
         mock_chassis = mock.MagicMock(identity='ZZZ-YYY-XXX')
-        mock_temperatures = mock_chassis.thermal.temperatures
+
         mock_temperature = mock.MagicMock(**attributes)
         mock_temperature.name = attributes['name']
         mock_temperature.status = mock.MagicMock(**attributes['status'])
-        mock_temperatures.get_members.return_value = [mock_temperature]
+        mock_chassis.thermal.temperatures = [mock_temperature]
 
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
@@ -307,7 +306,7 @@ class RedfishManagementTestCase(db_base.DbTestCase):
 
     def test__get_sensors_power(self):
         attributes = {
-            'member_id': 0,
+            'identity': 0,
             'name': 'Power Supply 0',
             'power_capacity_watts': 1450,
             'last_power_output_watts': 650,
