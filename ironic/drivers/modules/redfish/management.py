@@ -239,7 +239,7 @@ class RedfishManagement(base.ManagementInterface):
         """
         sensors = {}
 
-        for fan in chassis.thermal.fans.get_members():
+        for fan in chassis.thermal.fans:
             sensor = cls._sensor2dict(
                 fan, 'identity', 'max_reading_range',
                 'min_reading_range', 'reading', 'reading_units',
@@ -259,7 +259,7 @@ class RedfishManagement(base.ManagementInterface):
         """
         sensors = {}
 
-        for temps in chassis.thermal.temperatures.get_members():
+        for temps in chassis.thermal.temperatures:
             sensor = cls._sensor2dict(
                 temps, 'identity', 'max_reading_range_temp',
                 'min_reading_range_temp', 'reading_celsius',
@@ -290,7 +290,7 @@ class RedfishManagement(base.ManagementInterface):
                 'maximum_voltage', 'minimum_frequency_hz',
                 'maximum_frequency_hz', 'output_wattage'))
             unique_name = '%s:%s@%s' % (
-                power.member_id, chassis.power.identity,
+                power.identity, chassis.power.identity,
                 chassis.identity)
             sensors[unique_name] = sensor
 
