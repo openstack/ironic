@@ -872,7 +872,7 @@ def is_fast_track(task):
     within the timeout set by [deploy]fast_track_timeout and the power
     state for the machine is POWER_ON, then fast track is permitted.
 
-    :param node: A node object.
+    :param task: Taskmanager object
     :returns: True if the last heartbeat that was recorded was within
               the [deploy]fast_track_timeout setting.
     """
