@@ -1,0 +1,11 @@
+---
+fixes:
+  - |
+    Fixes a bug where ironic would shut a node down upon cleaning failure.
+    Now, the node stays powered on (as documented and intended).
+upgrade:
+  - |
+    When a failure occurs during cleaning, nodes will no longer be shut down. The
+    behaviour was changed to prevent harm and allow for an admin intervention
+    when sensitive operations, such as firmware upgrades, are performed and fail
+    during cleaning.

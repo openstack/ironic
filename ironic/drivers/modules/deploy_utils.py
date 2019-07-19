@@ -32,6 +32,7 @@ from oslo_utils import strutils
 import six
 
 from ironic.common import exception
+from ironic.common import faults
 from ironic.common.glance_service import service_utils
 from ironic.common.i18n import _
 from ironic.common import image_service
@@ -935,10 +936,11 @@ def tear_down_inband_cleaning(task, manage_boot=True):
     """Tears down the environment setup for in-band cleaning.
 
     This method does the following:
-    1. Powers off the bare metal node.
-    2. If 'manage_boot' parameter is set to true, it also
-    calls the 'clean_up_ramdisk' method of boot interface to clean up
-    the environment that was set for booting agent ramdisk.
+    1. Powers off the bare metal node (unless the node is fast
+    tracked or there was a cleaning failure).
+    2. If 'manage_boot' parameter is set to true, it also calls
+    the 'clean_up_ramdisk' method of boot interface to clean
+    up the environment that was set for booting agent ramdisk.
     3. Deletes the cleaning ports which were setup as part
     of cleaning.
 
@@ -950,7 +952,11 @@ def tear_down_inband_cleaning(task, manage_boot=True):
         removed.
     """
     fast_track = manager_utils.is_fast_track(task)
-    if not fast_track:
+
+    node = task.node
+    cleaning_failure = (node.fault == faults.CLEAN_FAILURE)
+
+    if not (fast_track or cleaning_failure):
         manager_utils.node_power_action(task, states.POWER_OFF)
 
     if manage_boot:
@@ -958,7 +964,7 @@ def tear_down_inband_cleaning(task, manage_boot=True):
 
     power_state_to_restore = manager_utils.power_on_node_if_needed(task)
     task.driver.network.remove_cleaning_network(task)
-    if not fast_track:
+    if not (fast_track or cleaning_failure):
         manager_utils.restore_power_state_if_needed(
             task, power_state_to_restore)
 

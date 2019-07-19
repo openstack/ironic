@@ -31,6 +31,7 @@ from testtools import matchers
 
 from ironic.common import boot_devices
 from ironic.common import exception
+from ironic.common import faults
 from ironic.common import image_service
 from ironic.common import states
 from ironic.common import utils as common_utils
@@ -1750,12 +1751,14 @@ class AgentMethodsTestCase(db_base.DbTestCase):
     def _test_tear_down_inband_cleaning(
             self, power_mock, remove_cleaning_network_mock,
             clean_up_ramdisk_mock, is_fast_track_mock,
-            manage_boot=True, fast_track=False):
+            manage_boot=True, fast_track=False, cleaning_error=False):
         is_fast_track_mock.return_value = fast_track
         with task_manager.acquire(
                 self.context, self.node.uuid, shared=False) as task:
+            if cleaning_error:
+                task.node.fault = faults.CLEAN_FAILURE
             utils.tear_down_inband_cleaning(task, manage_boot=manage_boot)
-            if not fast_track:
+            if not (fast_track or cleaning_error):
                 power_mock.assert_called_once_with(task, states.POWER_OFF)
             else:
                 self.assertFalse(power_mock.called)
@@ -1774,6 +1777,9 @@ class AgentMethodsTestCase(db_base.DbTestCase):
 
     def test_tear_down_inband_cleaning_fast_track(self):
         self._test_tear_down_inband_cleaning(fast_track=True)
+
+    def test_tear_down_inband_cleaning_cleaning_error(self):
+        self._test_tear_down_inband_cleaning(cleaning_error=True)
 
     def test_build_agent_options_conf(self):
         self.config(api_url='https://api-url', group='conductor')
