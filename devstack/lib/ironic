@@ -1131,7 +1131,7 @@ function configure_ironic_dirs {
         setup_syslinux_modules
     fi
 
-    if [[ "$IRONIC_BOOT_MODE" == "uefi" && "$IRONIC_IS_HARDWARE" == "False" ]]; then
+    if [[ "$IRONIC_BOOT_MODE" == "uefi" ]]; then
         local uefi_boot_file
         local uefi_loader
         local uefi_nvram
