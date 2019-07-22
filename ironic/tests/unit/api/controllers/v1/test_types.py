@@ -54,36 +54,33 @@ class TestUuidType(base.TestCase):
                           types.UuidType.validate, 'invalid-uuid')
 
 
+@mock.patch("ironic.api.request")
 class TestNameType(base.TestCase):
 
-    @mock.patch("pecan.request")
     def test_valid_name(self, mock_pecan_req):
         mock_pecan_req.version.minor = 10
         test_name = 'hal-9000'
         self.assertEqual(test_name, types.NameType.validate(test_name))
 
-    @mock.patch("pecan.request")
     def test_invalid_name(self, mock_pecan_req):
         mock_pecan_req.version.minor = 10
         self.assertRaises(exception.InvalidName,
                           types.NameType.validate, '-this is not valid-')
 
 
+@mock.patch("ironic.api.request")
 class TestUuidOrNameType(base.TestCase):
 
-    @mock.patch("pecan.request")
     def test_valid_uuid(self, mock_pecan_req):
         mock_pecan_req.version.minor = 10
         test_uuid = '1a1a1a1a-2b2b-3c3c-4d4d-5e5e5e5e5e5e'
         self.assertTrue(types.UuidOrNameType.validate(test_uuid))
 
-    @mock.patch("pecan.request")
     def test_valid_name(self, mock_pecan_req):
         mock_pecan_req.version.minor = 10
         test_name = 'dc16-database5'
         self.assertTrue(types.UuidOrNameType.validate(test_name))
 
-    @mock.patch("pecan.request")
     def test_invalid_uuid_or_name(self, mock_pecan_req):
         mock_pecan_req.version.minor = 10
         self.assertRaises(exception.InvalidUuidOrName,
@@ -371,7 +368,7 @@ class TestLocalLinkConnectionType(base.TestCase):
         self.assertRaises(exception.Invalid, v.validate, value)
 
 
-@mock.patch("pecan.request", mock.Mock(version=mock.Mock(minor=10)))
+@mock.patch("ironic.api.request", mock.Mock(version=mock.Mock(minor=10)))
 class TestVifType(base.TestCase):
 
     def test_vif_type(self):

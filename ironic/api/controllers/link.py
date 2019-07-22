@@ -13,15 +13,15 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import pecan
 from wsme import types as wtypes
 
+from ironic import api
 from ironic.api.controllers import base
 
 
 def build_url(resource, resource_args, bookmark=False, base_url=None):
     if base_url is None:
-        base_url = pecan.request.public_url
+        base_url = api.request.public_url
 
     template = '%(url)s/%(res)s' if bookmark else '%(url)s/v1/%(res)s'
     # FIXME(lucasagomes): I'm getting a 404 when doing a GET on

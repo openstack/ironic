@@ -17,6 +17,7 @@ from pecan import rest
 from six.moves import http_client
 import wsme
 
+from ironic import api
 from ironic.api.controllers import base
 from ironic.api.controllers import link
 from ironic.api.controllers.v1 import utils as api_utils
@@ -45,7 +46,7 @@ class Volume(base.APIBase):
 
     @staticmethod
     def convert(node_ident=None):
-        url = pecan.request.public_url
+        url = api.request.public_url
         volume = Volume()
         if node_ident:
             resource = 'nodes'
@@ -89,7 +90,7 @@ class VolumeController(rest.RestController):
         if not api_utils.allow_volume():
             raise exception.NotFound()
 
-        cdict = pecan.request.context.to_policy_values()
+        cdict = api.request.context.to_policy_values()
         policy.authorize('baremetal:volume:get', cdict, cdict)
 
         return Volume.convert(self.parent_node_ident)

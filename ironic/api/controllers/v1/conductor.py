@@ -15,11 +15,11 @@ import datetime
 from ironic_lib import metrics_utils
 from oslo_log import log
 from oslo_utils import timeutils
-import pecan
 from pecan import rest
 import wsme
 from wsme import types as wtypes
 
+from ironic import api
 from ironic.api.controllers import base
 from ironic.api.controllers import link
 from ironic.api.controllers.v1 import collection
@@ -90,7 +90,7 @@ class Conductor(base.APIBase):
             api_utils.check_for_invalid_fields(fields, conductor.as_dict())
 
         conductor = cls._convert_with_links(conductor,
-                                            pecan.request.public_url,
+                                            api.request.public_url,
                                             fields=fields)
         conductor.sanitize(fields)
         return conductor
@@ -175,9 +175,9 @@ class ConductorsController(rest.RestController):
         marker_obj = None
         if marker:
             marker_obj = objects.Conductor.get_by_hostname(
-                pecan.request.context, marker, online=None)
+                api.request.context, marker, online=None)
 
-        conductors = objects.Conductor.list(pecan.request.context, limit=limit,
+        conductors = objects.Conductor.list(api.request.context, limit=limit,
                                             marker=marker_obj,
                                             sort_key=sort_key,
                                             sort_dir=sort_dir)
@@ -211,7 +211,7 @@ class ConductorsController(rest.RestController):
         :param detail: Optional, boolean to indicate whether retrieve a list
                        of conductors with detail.
         """
-        cdict = pecan.request.context.to_policy_values()
+        cdict = api.request.context.to_policy_values()
         policy.authorize('baremetal:conductor:get', cdict, cdict)
 
         if not api_utils.allow_expose_conductors():
@@ -237,7 +237,7 @@ class ConductorsController(rest.RestController):
         :param fields: Optional, a list with a specified set of fields
             of the resource to be returned.
         """
-        cdict = pecan.request.context.to_policy_values()
+        cdict = api.request.context.to_policy_values()
         policy.authorize('baremetal:conductor:get', cdict, cdict)
 
         if not api_utils.allow_expose_conductors():
@@ -246,6 +246,6 @@ class ConductorsController(rest.RestController):
         api_utils.check_allow_specify_fields(fields)
         api_utils.check_allowed_fields(fields)
 
-        conductor = objects.Conductor.get_by_hostname(pecan.request.context,
+        conductor = objects.Conductor.get_by_hostname(api.request.context,
                                                       hostname, online=None)
         return Conductor.convert_with_links(conductor, fields=fields)

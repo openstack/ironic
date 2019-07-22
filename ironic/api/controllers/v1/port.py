@@ -18,12 +18,12 @@ import datetime
 from ironic_lib import metrics_utils
 from oslo_log import log
 from oslo_utils import uuidutils
-import pecan
 from pecan import rest
 from six.moves import http_client
 import wsme
 from wsme import types as wtypes
 
+from ironic import api
 from ironic.api.controllers import base
 from ironic.api.controllers import link
 from ironic.api.controllers.v1 import collection
@@ -83,7 +83,7 @@ class Port(base.APIBase):
                 # FIXME(comstud): One should only allow UUID here, but
                 # there seems to be a bug in that tests are passing an
                 # ID. See bug #1301046 for more details.
-                node = objects.Node.get(pecan.request.context, value)
+                node = objects.Node.get(api.request.context, value)
                 self._node_uuid = node.uuid
                 # NOTE(lucasagomes): Create the node_id attribute on-the-fly
                 #                    to satisfy the api -> rpc object
@@ -106,7 +106,7 @@ class Port(base.APIBase):
                 self._portgroup_uuid = wtypes.Unset
                 return
             try:
-                portgroup = objects.Portgroup.get(pecan.request.context, value)
+                portgroup = objects.Portgroup.get(api.request.context, value)
                 if portgroup.node_id != self.node_id:
                     raise exception.BadRequest(_('Port can not be added to a '
                                                  'portgroup belonging to a '
@@ -198,7 +198,7 @@ class Port(base.APIBase):
 
         port._validate_fields(fields)
 
-        url = pecan.request.public_url
+        url = api.request.public_url
 
         port.links = [link.Link.make_link('self', url,
                                           'ports', port.uuid),
@@ -345,7 +345,7 @@ class PortsController(rest.RestController):
 
         marker_obj = None
         if marker:
-            marker_obj = objects.Port.get_by_uuid(pecan.request.context,
+            marker_obj = objects.Port.get_by_uuid(api.request.context,
                                                   marker)
 
         if sort_key in self.invalid_sort_key_list:
@@ -365,7 +365,7 @@ class PortsController(rest.RestController):
             #                 for that column. This will get cleaned up
             #                 as we move to the object interface.
             portgroup = api_utils.get_rpc_portgroup(portgroup_ident)
-            ports = objects.Port.list_by_portgroup_id(pecan.request.context,
+            ports = objects.Port.list_by_portgroup_id(api.request.context,
                                                       portgroup.id, limit,
                                                       marker_obj,
                                                       sort_key=sort_key,
@@ -376,14 +376,14 @@ class PortsController(rest.RestController):
             #                 for that column. This will get cleaned up
             #                 as we move to the object interface.
             node = api_utils.get_rpc_node(node_ident)
-            ports = objects.Port.list_by_node_id(pecan.request.context,
+            ports = objects.Port.list_by_node_id(api.request.context,
                                                  node.id, limit, marker_obj,
                                                  sort_key=sort_key,
                                                  sort_dir=sort_dir)
         elif address:
             ports = self._get_ports_by_address(address)
         else:
-            ports = objects.Port.list(pecan.request.context, limit,
+            ports = objects.Port.list(api.request.context, limit,
                                       marker_obj, sort_key=sort_key,
                                       sort_dir=sort_dir)
         parameters = {}
@@ -407,7 +407,7 @@ class PortsController(rest.RestController):
 
         """
         try:
-            port = objects.Port.get_by_address(pecan.request.context, address)
+            port = objects.Port.get_by_address(api.request.context, address)
             return [port]
         except exception.PortNotFound:
             return []
@@ -468,7 +468,7 @@ class PortsController(rest.RestController):
                                    for that portgroup.
         :raises: NotAcceptable, HTTPNotFound
         """
-        cdict = pecan.request.context.to_policy_values()
+        cdict = api.request.context.to_policy_values()
         policy.authorize('baremetal:port:get', cdict, cdict)
 
         api_utils.check_allow_specify_fields(fields)
@@ -522,7 +522,7 @@ class PortsController(rest.RestController):
         :param sort_dir: direction to sort. "asc" or "desc". Default: asc.
         :raises: NotAcceptable, HTTPNotFound
         """
-        cdict = pecan.request.context.to_policy_values()
+        cdict = api.request.context.to_policy_values()
         policy.authorize('baremetal:port:get', cdict, cdict)
 
         self._check_allowed_port_fields([sort_key])
@@ -538,7 +538,7 @@ class PortsController(rest.RestController):
                 raise exception.NotAcceptable()
 
         # NOTE(lucasagomes): /detail should only work against collections
-        parent = pecan.request.path.split('/')[:-1][-1]
+        parent = api.request.path.split('/')[:-1][-1]
         if parent != "ports":
             raise exception.HTTPNotFound()
 
@@ -557,7 +557,7 @@ class PortsController(rest.RestController):
             of the resource to be returned.
         :raises: NotAcceptable, HTTPNotFound
         """
-        cdict = pecan.request.context.to_policy_values()
+        cdict = api.request.context.to_policy_values()
         policy.authorize('baremetal:port:get', cdict, cdict)
 
         if self.parent_node_ident or self.parent_portgroup_ident:
@@ -566,7 +566,7 @@ class PortsController(rest.RestController):
         api_utils.check_allow_specify_fields(fields)
         self._check_allowed_port_fields(fields)
 
-        rpc_port = objects.Port.get_by_uuid(pecan.request.context, port_uuid)
+        rpc_port = objects.Port.get_by_uuid(api.request.context, port_uuid)
         return Port.convert_with_links(rpc_port, fields=fields)
 
     @METRICS.timer('PortsController.post')
@@ -577,7 +577,7 @@ class PortsController(rest.RestController):
         :param port: a port within the request body.
         :raises: NotAcceptable, HTTPNotFound, Conflict
         """
-        context = pecan.request.context
+        context = api.request.context
         cdict = context.to_policy_values()
         policy.authorize('baremetal:port:create', cdict, cdict)
 
@@ -593,7 +593,7 @@ class PortsController(rest.RestController):
                 "Smart NIC port must have port_id "
                 "and hostname in local_link_connection")
 
-        create_remotely = pecan.request.rpcapi.can_send_create_port()
+        create_remotely = api.request.rpcapi.can_send_create_port()
         if (not create_remotely and pdict.get('portgroup_uuid')):
             # NOTE(mgoddard): In RPC API v1.41, port creation was moved to the
             # conductor service to facilitate validation of the physical
@@ -637,16 +637,16 @@ class PortsController(rest.RestController):
             # the RPCAPI will reject the create_port method, so we need to
             # create the port locally.
             if create_remotely:
-                topic = pecan.request.rpcapi.get_topic_for(rpc_node)
-                new_port = pecan.request.rpcapi.create_port(context, rpc_port,
-                                                            topic)
+                topic = api.request.rpcapi.get_topic_for(rpc_node)
+                new_port = api.request.rpcapi.create_port(context, rpc_port,
+                                                          topic)
             else:
                 rpc_port.create()
                 new_port = rpc_port
         notify.emit_end_notification(context, new_port, 'create',
                                      **notify_extra)
         # Set the HTTP Location Header
-        pecan.response.location = link.build_url('ports', new_port.uuid)
+        api.response.location = link.build_url('ports', new_port.uuid)
         return Port.convert_with_links(new_port)
 
     @METRICS.timer('PortsController.patch')
@@ -659,7 +659,7 @@ class PortsController(rest.RestController):
         :param patch: a json PATCH document to apply to this port.
         :raises: NotAcceptable, HTTPNotFound
         """
-        context = pecan.request.context
+        context = api.request.context
         cdict = context.to_policy_values()
         policy.authorize('baremetal:port:update', cdict, cdict)
 
@@ -723,9 +723,9 @@ class PortsController(rest.RestController):
                                        **notify_extra)
         with notify.handle_error_notification(context, rpc_port, 'update',
                                               **notify_extra):
-            topic = pecan.request.rpcapi.get_topic_for(rpc_node)
-            new_port = pecan.request.rpcapi.update_port(context, rpc_port,
-                                                        topic)
+            topic = api.request.rpcapi.get_topic_for(rpc_node)
+            new_port = api.request.rpcapi.update_port(context, rpc_port,
+                                                      topic)
 
         api_port = Port.convert_with_links(new_port)
         notify.emit_end_notification(context, new_port, 'update',
@@ -741,7 +741,7 @@ class PortsController(rest.RestController):
         :param port_uuid: UUID of a port.
         :raises: OperationNotPermitted, HTTPNotFound
         """
-        context = pecan.request.context
+        context = api.request.context
         cdict = context.to_policy_values()
         policy.authorize('baremetal:port:delete', cdict, cdict)
 
@@ -763,7 +763,7 @@ class PortsController(rest.RestController):
                                        **notify_extra)
         with notify.handle_error_notification(context, rpc_port, 'delete',
                                               **notify_extra):
-            topic = pecan.request.rpcapi.get_topic_for(rpc_node)
-            pecan.request.rpcapi.destroy_port(context, rpc_port, topic)
+            topic = api.request.rpcapi.get_topic_for(rpc_node)
+            api.request.rpcapi.destroy_port(context, rpc_port, topic)
         notify.emit_end_notification(context, rpc_port, 'delete',
                                      **notify_extra)

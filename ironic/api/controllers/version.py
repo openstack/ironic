@@ -10,9 +10,9 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-import pecan
 from wsme import types as wtypes
 
+from ironic import api
 from ironic.api.controllers import base
 from ironic.api.controllers import link
 
@@ -49,7 +49,7 @@ class Version(base.APIBase):
 
     def __init__(self, id, min_version, version, status='CURRENT'):
         self.id = id
-        self.links = [link.Link.make_link('self', pecan.request.public_url,
+        self.links = [link.Link.make_link('self', api.request.public_url,
                                           self.id, '', bookmark=True)]
         self.status = status
         self.version = version

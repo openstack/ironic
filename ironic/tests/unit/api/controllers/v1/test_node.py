@@ -2330,7 +2330,7 @@ class TestPatch(test_api_base.BaseApiTest):
         self.assertEqual(http_client.NOT_ACCEPTABLE, response.status_code)
         self.assertTrue(response.json['error_message'])
 
-    @mock.patch('pecan.request')
+    @mock.patch('ironic.api.request')
     def test__update_changed_fields_lowers_conductor_group(self,
                                                            mock_pecan_req):
         mock_pecan_req.version.minor = versions.MINOR_MAX_VERSION
@@ -2343,7 +2343,7 @@ class TestPatch(test_api_base.BaseApiTest):
         controller._update_changed_fields(node_obj, self.node)
         self.assertEqual('new-group', self.node.conductor_group)
 
-    @mock.patch("pecan.request")
+    @mock.patch("ironic.api.request")
     def test__update_changed_fields_remove_chassis_uuid(self, mock_pecan_req):
         mock_pecan_req.version.minor = versions.MINOR_MAX_VERSION
         controller = api_node.NodesController()

@@ -15,6 +15,7 @@ from oslo_log import log
 import pecan
 from six.moves import http_client
 
+from ironic import api
 from ironic.api.controllers.v1 import collection
 from ironic.api.controllers.v1 import types
 from ironic.api.controllers.v1 import utils as api_utils
@@ -48,7 +49,7 @@ class EventsController(pecan.rest.RestController):
     def post(self, evts):
         if not api_utils.allow_expose_events():
             raise exception.NotFound()
-        cdict = pecan.request.context.to_policy_values()
+        cdict = api.request.context.to_policy_values()
         policy.authorize('baremetal:events:post', cdict, cdict)
         for e in evts.events:
             LOG.debug("Received external event: %s", e)

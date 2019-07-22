@@ -13,9 +13,9 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import pecan
 from wsme import types as wtypes
 
+from ironic import api
 from ironic.api.controllers import base
 from ironic.api.controllers import link
 
@@ -48,5 +48,5 @@ class Collection(base.APIBase):
             'args': q_args, 'limit': limit,
             'marker': getattr(self.collection[-1], self.get_key_field())}
 
-        return link.Link.make_link('next', pecan.request.public_url,
+        return link.Link.make_link('next', api.request.public_url,
                                    resource_url, next_args).href

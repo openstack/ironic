@@ -22,13 +22,13 @@ from jsonschema import exceptions as json_schema_exc
 import os_traits
 from oslo_config import cfg
 from oslo_utils import uuidutils
-import pecan
 from pecan import rest
 import six
 from six.moves import http_client
 from webob import static
 import wsme
 
+from ironic import api
 from ironic.api.controllers.v1 import versions
 from ironic.common import exception
 from ironic.common import faults
@@ -192,7 +192,7 @@ def is_path_updated(patch, path):
 
 def allow_node_logical_names():
     # v1.5 added logical name aliases
-    return pecan.request.version.minor >= versions.MINOR_5_NODE_NAME
+    return api.request.version.minor >= versions.MINOR_5_NODE_NAME
 
 
 def _get_with_suffix(get_func, ident, exc_class):
@@ -200,7 +200,7 @@ def _get_with_suffix(get_func, ident, exc_class):
     try:
         return get_func(ident)
     except exc_class:
-        if not pecan.request.environ['HAS_JSON_SUFFIX']:
+        if not api.request.environ['HAS_JSON_SUFFIX']:
             raise
 
         # NOTE(dtantsur): strip .json prefix to maintain compatibility
@@ -221,12 +221,12 @@ def get_rpc_node(node_ident):
     # Check to see if the node_ident is a valid UUID.  If it is, treat it
     # as a UUID.
     if uuidutils.is_uuid_like(node_ident):
-        return objects.Node.get_by_uuid(pecan.request.context, node_ident)
+        return objects.Node.get_by_uuid(api.request.context, node_ident)
 
     # We can refer to nodes by their name, if the client supports it
     if allow_node_logical_names():
         if is_valid_logical_name(node_ident):
-            return objects.Node.get_by_name(pecan.request.context, node_ident)
+            return objects.Node.get_by_name(api.request.context, node_ident)
         raise exception.InvalidUuidOrName(name=node_ident)
 
     # Ensure we raise the same exception as we did for the Juno release
@@ -260,12 +260,12 @@ def get_rpc_portgroup(portgroup_ident):
     # Check to see if the portgroup_ident is a valid UUID.  If it is, treat it
     # as a UUID.
     if uuidutils.is_uuid_like(portgroup_ident):
-        return objects.Portgroup.get_by_uuid(pecan.request.context,
+        return objects.Portgroup.get_by_uuid(api.request.context,
                                              portgroup_ident)
 
     # We can refer to portgroups by their name
     if utils.is_valid_logical_name(portgroup_ident):
-        return objects.Portgroup.get_by_name(pecan.request.context,
+        return objects.Portgroup.get_by_name(api.request.context,
                                              portgroup_ident)
     raise exception.InvalidUuidOrName(name=portgroup_ident)
 
@@ -299,12 +299,12 @@ def get_rpc_allocation(allocation_ident):
     # Check to see if the allocation_ident is a valid UUID.  If it is, treat it
     # as a UUID.
     if uuidutils.is_uuid_like(allocation_ident):
-        return objects.Allocation.get_by_uuid(pecan.request.context,
+        return objects.Allocation.get_by_uuid(api.request.context,
                                               allocation_ident)
 
     # We can refer to allocations by their name
     if utils.is_valid_logical_name(allocation_ident):
-        return objects.Allocation.get_by_name(pecan.request.context,
+        return objects.Allocation.get_by_name(api.request.context,
                                               allocation_ident)
     raise exception.InvalidUuidOrName(name=allocation_ident)
 
@@ -338,12 +338,12 @@ def get_rpc_deploy_template(template_ident):
     # Check to see if the template_ident is a valid UUID.  If it is, treat it
     # as a UUID.
     if uuidutils.is_uuid_like(template_ident):
-        return objects.DeployTemplate.get_by_uuid(pecan.request.context,
+        return objects.DeployTemplate.get_by_uuid(api.request.context,
                                                   template_ident)
 
     # We can refer to templates by their name
     if utils.is_valid_logical_name(template_ident):
-        return objects.DeployTemplate.get_by_name(pecan.request.context,
+        return objects.DeployTemplate.get_by_name(api.request.context,
                                                   template_ident)
     raise exception.InvalidUuidOrName(name=template_ident)
 
@@ -378,7 +378,7 @@ def is_valid_node_name(name):
 
 def is_valid_logical_name(name):
     """Determine if the provided name is a valid hostname."""
-    if pecan.request.version.minor < versions.MINOR_10_UNRESTRICTED_NODE_NAME:
+    if api.request.version.minor < versions.MINOR_10_UNRESTRICTED_NODE_NAME:
         return utils.is_hostname_safe(name)
     else:
         return utils.is_valid_logical_name(name)
@@ -409,12 +409,12 @@ def vendor_passthru(ident, method, topic, data=None, driver_passthru=False):
     if data is None:
         data = {}
 
-    http_method = pecan.request.method.upper()
-    params = (pecan.request.context, ident, method, http_method, data, topic)
+    http_method = api.request.method.upper()
+    params = (api.request.context, ident, method, http_method, data, topic)
     if driver_passthru:
-        response = pecan.request.rpcapi.driver_vendor_passthru(*params)
+        response = api.request.rpcapi.driver_vendor_passthru(*params)
     else:
-        response = pecan.request.rpcapi.vendor_passthru(*params)
+        response = api.request.rpcapi.vendor_passthru(*params)
 
     status_code = http_client.ACCEPTED if response['async'] else http_client.OK
     return_value = response['return']
@@ -426,7 +426,7 @@ def vendor_passthru(ident, method, topic, data=None, driver_passthru=False):
             # If unicode, convert to bytes
             return_value = return_value.encode('utf-8')
         file_ = wsme.types.File(content=return_value)
-        pecan.response.app_iter = static.FileIter(file_.file)
+        api.response.app_iter = static.FileIter(file_.file)
         # Since we've attached the return value to the response
         # object the response body should now be empty.
         return_value = None
@@ -458,7 +458,7 @@ def check_allow_specify_fields(fields):
     attributes, this method checks if the required version is being
     requested.
     """
-    if (fields is not None and pecan.request.version.minor
+    if (fields is not None and api.request.version.minor
             < versions.MINOR_8_FETCHING_SUBSET_OF_FIELDS):
         raise exception.NotAcceptable()
 
@@ -496,7 +496,7 @@ for field in V31_FIELDS:
 
 def allow_field(field):
     """Check if a field is allowed in the current version."""
-    return pecan.request.version.minor >= VERSIONED_FIELDS[field]
+    return api.request.version.minor >= VERSIONED_FIELDS[field]
 
 
 def disallowed_fields():
@@ -534,7 +534,7 @@ def check_allowed_portgroup_fields(fields):
 
 def check_allow_management_verbs(verb):
     min_version = MIN_VERB_VERSIONS.get(verb)
-    if min_version is not None and pecan.request.version.minor < min_version:
+    if min_version is not None and api.request.version.minor < min_version:
         raise exception.NotAcceptable()
 
 
@@ -544,7 +544,7 @@ def check_for_invalid_state_and_allow_filter(provision_state):
     Version 1.9 of the API allows filter nodes by provision state.
     """
     if provision_state is not None:
-        if (pecan.request.version.minor
+        if (api.request.version.minor
                 < versions.MINOR_9_PROVISION_STATE_FILTER):
             raise exception.NotAcceptable()
         valid_states = states.machine.states
@@ -558,7 +558,7 @@ def check_allow_specify_driver(driver):
 
     Version 1.16 of the API allows filter nodes by driver.
     """
-    if (driver is not None and pecan.request.version.minor
+    if (driver is not None and api.request.version.minor
             < versions.MINOR_16_DRIVER_FILTER):
         raise exception.NotAcceptable(_(
             "Request not acceptable. The minimal required API version "
@@ -572,7 +572,7 @@ def check_allow_specify_resource_class(resource_class):
 
     Version 1.21 of the API allows filtering nodes by resource_class.
     """
-    if (resource_class is not None and pecan.request.version.minor
+    if (resource_class is not None and api.request.version.minor
             < versions.MINOR_21_RESOURCE_CLASS):
         raise exception.NotAcceptable(_(
             "Request not acceptable. The minimal required API version "
@@ -662,7 +662,7 @@ def check_allow_filter_by_fault(fault):
 
     Version 1.42 of the API allows filtering nodes by fault.
     """
-    if (fault is not None and pecan.request.version.minor
+    if (fault is not None and api.request.version.minor
             < versions.MINOR_42_FAULT):
         raise exception.NotAcceptable(_(
             "Request not acceptable. The minimal required API version "
@@ -682,7 +682,7 @@ def check_allow_filter_by_conductor_group(conductor_group):
 
     Version 1.46 of the API allows filtering nodes by conductor_group.
     """
-    if (conductor_group is not None and pecan.request.version.minor
+    if (conductor_group is not None and api.request.version.minor
             < versions.MINOR_46_NODE_CONDUCTOR_GROUP):
         raise exception.NotAcceptable(_(
             "Request not acceptable. The minimal required API version "
@@ -696,7 +696,7 @@ def check_allow_filter_by_owner(owner):
 
     Version 1.50 of the API allows filtering nodes by owner.
     """
-    if (owner is not None and pecan.request.version.minor
+    if (owner is not None and api.request.version.minor
             < versions.MINOR_50_NODE_OWNER):
         raise exception.NotAcceptable(_(
             "Request not acceptable. The minimal required API version "
@@ -712,7 +712,7 @@ def initial_node_provision_state():
     Starting with API 1.11 it is ENROLL.
     """
     return (states.AVAILABLE
-            if pecan.request.version.minor < versions.MINOR_11_ENROLL_STATE
+            if api.request.version.minor < versions.MINOR_11_ENROLL_STATE
             else states.ENROLL)
 
 
@@ -721,7 +721,7 @@ def allow_raid_config():
 
     Version 1.12 of the API allows RAID configuration for the node.
     """
-    return pecan.request.version.minor >= versions.MINOR_12_RAID_CONFIG
+    return api.request.version.minor >= versions.MINOR_12_RAID_CONFIG
 
 
 def allow_soft_power_off():
@@ -730,7 +730,7 @@ def allow_soft_power_off():
     Version 1.27 of the API allows Soft Power Off, including Soft Reboot, for
     the node.
     """
-    return pecan.request.version.minor >= versions.MINOR_27_SOFT_POWER_OFF
+    return api.request.version.minor >= versions.MINOR_27_SOFT_POWER_OFF
 
 
 def allow_inject_nmi():
@@ -738,7 +738,7 @@ def allow_inject_nmi():
 
     Version 1.29 of the API allows Inject NMI for the node.
     """
-    return pecan.request.version.minor >= versions.MINOR_29_INJECT_NMI
+    return api.request.version.minor >= versions.MINOR_29_INJECT_NMI
 
 
 def allow_links_node_states_and_driver_properties():
@@ -747,7 +747,7 @@ def allow_links_node_states_and_driver_properties():
     Version 1.14 of the API allows the display of links to node states
     and driver properties.
     """
-    return (pecan.request.version.minor
+    return (api.request.version.minor
             >= versions.MINOR_14_LINKS_NODESTATES_DRIVERPROPERTIES)
 
 
@@ -756,7 +756,7 @@ def allow_port_internal_info():
 
     Version 1.18 of the API exposes internal_info readonly field for the port.
     """
-    return (pecan.request.version.minor
+    return (api.request.version.minor
             >= versions.MINOR_18_PORT_INTERNAL_INFO)
 
 
@@ -765,7 +765,7 @@ def allow_port_advanced_net_fields():
 
     Version 1.19 of the API added support for these new fields in port object.
     """
-    return (pecan.request.version.minor
+    return (api.request.version.minor
             >= versions.MINOR_19_PORT_ADVANCED_NET_FIELDS)
 
 
@@ -774,7 +774,7 @@ def allow_ramdisk_endpoints():
 
     Version 1.22 of the API introduced them.
     """
-    return pecan.request.version.minor >= versions.MINOR_22_LOOKUP_HEARTBEAT
+    return api.request.version.minor >= versions.MINOR_22_LOOKUP_HEARTBEAT
 
 
 def allow_portgroups():
@@ -782,7 +782,7 @@ def allow_portgroups():
 
     Version 1.23 of the API added support for PortGroups.
     """
-    return (pecan.request.version.minor
+    return (api.request.version.minor
             >= versions.MINOR_23_PORTGROUPS)
 
 
@@ -792,7 +792,7 @@ def allow_portgroups_subcontrollers():
     Version 1.24 of the API added support for Portgroups as
     subcontrollers
     """
-    return (pecan.request.version.minor
+    return (api.request.version.minor
             >= versions.MINOR_24_PORTGROUPS_SUBCONTROLLERS)
 
 
@@ -802,7 +802,7 @@ def allow_remove_chassis_uuid():
     Version 1.25 of the API added support for chassis_uuid
     removal
     """
-    return (pecan.request.version.minor
+    return (api.request.version.minor
             >= versions.MINOR_25_UNSET_CHASSIS_UUID)
 
 
@@ -812,7 +812,7 @@ def allow_portgroup_mode_properties():
     Version 1.26 of the API added mode and properties fields to portgroup
     object.
     """
-    return (pecan.request.version.minor
+    return (api.request.version.minor
             >= versions.MINOR_26_PORTGROUP_MODE_PROPERTIES)
 
 
@@ -822,7 +822,7 @@ def allow_vifs_subcontroller():
     Version 1.28 of the API added support for VIFs to be
     attached to Nodes.
     """
-    return (pecan.request.version.minor
+    return (api.request.version.minor
             >= versions.MINOR_28_VIFS_SUBCONTROLLER)
 
 
@@ -832,7 +832,7 @@ def allow_dynamic_drivers():
     Version 1.30 of the API added support for all of the driver
     composition related calls in the /v1/drivers API.
     """
-    return (pecan.request.version.minor
+    return (api.request.version.minor
             >= versions.MINOR_30_DYNAMIC_DRIVERS)
 
 
@@ -842,7 +842,7 @@ def allow_dynamic_interfaces():
     Version 1.31 of the API added support for viewing and setting the fields
     in ``V31_FIELDS`` on the node object.
     """
-    return (pecan.request.version.minor
+    return (api.request.version.minor
             >= versions.MINOR_31_DYNAMIC_INTERFACES)
 
 
@@ -851,7 +851,7 @@ def allow_volume():
 
     Version 1.32 of the API added support for volume connectors and targets
     """
-    return pecan.request.version.minor >= versions.MINOR_32_VOLUME
+    return api.request.version.minor >= versions.MINOR_32_VOLUME
 
 
 def allow_storage_interface():
@@ -859,7 +859,7 @@ def allow_storage_interface():
 
     Version 1.33 of the API added support for storage interfaces.
     """
-    return (pecan.request.version.minor
+    return (api.request.version.minor
             >= versions.MINOR_33_STORAGE_INTERFACE)
 
 
@@ -871,7 +871,7 @@ def allow_port_physical_network():
     supports the physical_network field as this may not be the case during a
     rolling upgrade.
     """
-    return ((pecan.request.version.minor
+    return ((api.request.version.minor
              >= versions.MINOR_34_PORT_PHYSICAL_NETWORK)
             and objects.Port.supports_physical_network())
 
@@ -881,7 +881,7 @@ def allow_node_rebuild_with_configdrive():
 
     Version 1.35 of the API added support for node rebuild with configdrive.
     """
-    return (pecan.request.version.minor
+    return (api.request.version.minor
             >= versions.MINOR_35_REBUILD_CONFIG_DRIVE)
 
 
@@ -891,7 +891,7 @@ def allow_agent_version_in_heartbeat():
     Version 1.36 of the API added the ability for agents to pass their version
     information to Ironic on heartbeat.
     """
-    return (pecan.request.version.minor
+    return (api.request.version.minor
             >= versions.MINOR_36_AGENT_VERSION_HEARTBEAT)
 
 
@@ -900,7 +900,7 @@ def allow_rescue_interface():
 
     Version 1.38 of the API added support for rescue and unrescue.
     """
-    return pecan.request.version.minor >= versions.MINOR_38_RESCUE_INTERFACE
+    return api.request.version.minor >= versions.MINOR_38_RESCUE_INTERFACE
 
 
 def allow_bios_interface():
@@ -908,7 +908,7 @@ def allow_bios_interface():
 
     Version 1.40 of the API added support for bios interface.
     """
-    return pecan.request.version.minor >= versions.MINOR_40_BIOS_INTERFACE
+    return api.request.version.minor >= versions.MINOR_40_BIOS_INTERFACE
 
 
 def get_controller_reserved_names(cls):
@@ -936,7 +936,7 @@ def allow_traits():
 
     Version 1.37 of the API allows traits for the node.
     """
-    return pecan.request.version.minor >= versions.MINOR_37_NODE_TRAITS
+    return api.request.version.minor >= versions.MINOR_37_NODE_TRAITS
 
 
 def allow_inspect_wait_state():
@@ -945,7 +945,7 @@ def allow_inspect_wait_state():
     Version 1.39 of the API adds 'inspect wait' state to substitute
     'inspecting' state during asynchronous hardware inspection.
     """
-    return pecan.request.version.minor >= versions.MINOR_39_INSPECT_WAIT
+    return api.request.version.minor >= versions.MINOR_39_INSPECT_WAIT
 
 
 def allow_inspect_abort():
@@ -953,7 +953,7 @@ def allow_inspect_abort():
 
     Version 1.41 of the API added support for inspection abort
     """
-    return pecan.request.version.minor >= versions.MINOR_41_INSPECTION_ABORT
+    return api.request.version.minor >= versions.MINOR_41_INSPECTION_ABORT
 
 
 def handle_post_port_like_extra_vif(p_dict):
@@ -1045,13 +1045,13 @@ def allow_detail_query():
     Version 1.43 allows a user to pass the detail query string to
     list the resource with all the fields.
     """
-    return (pecan.request.version.minor >=
+    return (api.request.version.minor >=
             versions.MINOR_43_ENABLE_DETAIL_QUERY)
 
 
 def allow_reset_interfaces():
     """Check if passing a reset_interfaces query string is allowed."""
-    return (pecan.request.version.minor >=
+    return (api.request.version.minor >=
             versions.MINOR_45_RESET_INTERFACES)
 
 
@@ -1094,7 +1094,7 @@ def allow_expose_conductors():
     Version 1.49 of the API exposed conductor endpoints and conductor field
     for the node.
     """
-    return pecan.request.version.minor >= versions.MINOR_49_CONDUCTORS
+    return api.request.version.minor >= versions.MINOR_49_CONDUCTORS
 
 
 def check_allow_filter_by_conductor(conductor):
@@ -1116,7 +1116,7 @@ def allow_allocations():
     Version 1.52 of the API exposed allocation endpoints and allocation_uuid
     field for the node.
     """
-    return pecan.request.version.minor >= versions.MINOR_52_ALLOCATION
+    return api.request.version.minor >= versions.MINOR_52_ALLOCATION
 
 
 def allow_port_is_smartnic():
@@ -1124,7 +1124,7 @@ def allow_port_is_smartnic():
 
     Version 1.53 of the API added is_smartnic field to the port object.
     """
-    return ((pecan.request.version.minor
+    return ((api.request.version.minor
              >= versions.MINOR_53_PORT_SMARTNIC)
             and objects.Port.supports_is_smartnic())
 
@@ -1134,7 +1134,7 @@ def allow_expose_events():
 
     Version 1.54 of the API added the events endpoint.
     """
-    return pecan.request.version.minor >= versions.MINOR_54_EVENTS
+    return api.request.version.minor >= versions.MINOR_54_EVENTS
 
 
 def allow_deploy_templates():
@@ -1142,7 +1142,7 @@ def allow_deploy_templates():
 
     Version 1.55 of the API exposed deploy template endpoints.
     """
-    return pecan.request.version.minor >= versions.MINOR_55_DEPLOY_TEMPLATES
+    return api.request.version.minor >= versions.MINOR_55_DEPLOY_TEMPLATES
 
 
 def check_policy(policy_name):
@@ -1151,7 +1151,7 @@ def check_policy(policy_name):
     :policy_name: Name of the policy to check.
     :raises: HTTPForbidden if the policy forbids access.
     """
-    cdict = pecan.request.context.to_policy_values()
+    cdict = api.request.context.to_policy_values()
     policy.authorize(policy_name, cdict, cdict)
 
 
@@ -1160,7 +1160,7 @@ def allow_build_configdrive():
 
     Version 1.56 of the API added support for building configdrive.
     """
-    return pecan.request.version.minor >= versions.MINOR_56_BUILD_CONFIGDRIVE
+    return api.request.version.minor >= versions.MINOR_56_BUILD_CONFIGDRIVE
 
 
 def allow_allocation_update():
@@ -1168,7 +1168,7 @@ def allow_allocation_update():
 
     Version 1.57 of the API added support for updating an allocation.
     """
-    return pecan.request.version.minor >= versions.MINOR_57_ALLOCATION_UPDATE
+    return api.request.version.minor >= versions.MINOR_57_ALLOCATION_UPDATE
 
 
 def allow_allocation_backfill():
@@ -1176,4 +1176,4 @@ def allow_allocation_backfill():
 
     Version 1.58 of the API added support for backfilling allocations.
     """
-    return pecan.request.version.minor >= versions.MINOR_58_ALLOCATION_BACKFILL
+    return api.request.version.minor >= versions.MINOR_58_ALLOCATION_BACKFILL

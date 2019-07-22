@@ -26,6 +26,7 @@ from six.moves import http_client
 import wsme
 from wsme import types as wtypes
 
+from ironic import api
 from ironic.api.controllers import base
 from ironic.api.controllers import link
 from ironic.api.controllers.v1 import allocation
@@ -149,7 +150,7 @@ def reject_fields_in_newer_versions(obj):
 
         if getattr(obj, field, empty_value) != empty_value:
             LOG.debug('Field %(field)s is not acceptable in version %(ver)s',
-                      {'field': field, 'ver': pecan.request.version})
+                      {'field': field, 'ver': api.request.version})
             raise exception.NotAcceptable()
 
 
@@ -158,7 +159,7 @@ def reject_patch_in_newer_versions(patch):
         value = api_utils.get_patch_values(patch, '/%s' % field)
         if value:
             LOG.debug('Field %(field)s is not acceptable in version %(ver)s',
-                      {'field': field, 'ver': pecan.request.version})
+                      {'field': field, 'ver': api.request.version})
             raise exception.NotAcceptable()
 
 
@@ -169,7 +170,7 @@ def update_state_in_older_versions(obj):
                 to be updated by this method.
     """
     # if requested version is < 1.2, convert AVAILABLE to the old NOSTATE
-    if (pecan.request.version.minor < versions.MINOR_2_AVAILABLE_STATE
+    if (api.request.version.minor < versions.MINOR_2_AVAILABLE_STATE
             and obj.provision_state == ir_states.AVAILABLE):
         obj.provision_state = ir_states.NOSTATE
     # if requested version < 1.39, convert INSPECTWAIT to INSPECTING
@@ -196,13 +197,13 @@ class BootDeviceController(rest.RestController):
 
         """
         rpc_node = api_utils.get_rpc_node(node_ident)
-        topic = pecan.request.rpcapi.get_topic_for(rpc_node)
+        topic = api.request.rpcapi.get_topic_for(rpc_node)
         if supported:
-            return pecan.request.rpcapi.get_supported_boot_devices(
-                pecan.request.context, rpc_node.uuid, topic)
+            return api.request.rpcapi.get_supported_boot_devices(
+                api.request.context, rpc_node.uuid, topic)
         else:
-            return pecan.request.rpcapi.get_boot_device(pecan.request.context,
-                                                        rpc_node.uuid, topic)
+            return api.request.rpcapi.get_boot_device(api.request.context,
+                                                      rpc_node.uuid, topic)
 
     @METRICS.timer('BootDeviceController.put')
     @expose.expose(None, types.uuid_or_name, wtypes.text, types.boolean,
@@ -220,16 +221,16 @@ class BootDeviceController(rest.RestController):
                            Default: False.
 
         """
-        cdict = pecan.request.context.to_policy_values()
+        cdict = api.request.context.to_policy_values()
         policy.authorize('baremetal:node:set_boot_device', cdict, cdict)
 
         rpc_node = api_utils.get_rpc_node(node_ident)
-        topic = pecan.request.rpcapi.get_topic_for(rpc_node)
-        pecan.request.rpcapi.set_boot_device(pecan.request.context,
-                                             rpc_node.uuid,
-                                             boot_device,
-                                             persistent=persistent,
-                                             topic=topic)
+        topic = api.request.rpcapi.get_topic_for(rpc_node)
+        api.request.rpcapi.set_boot_device(api.request.context,
+                                           rpc_node.uuid,
+                                           boot_device,
+                                           persistent=persistent,
+                                           topic=topic)
 
     @METRICS.timer('BootDeviceController.get')
     @expose.expose(wtypes.text, types.uuid_or_name)
@@ -245,7 +246,7 @@ class BootDeviceController(rest.RestController):
                 future boots or not, None if it is unknown.
 
         """
-        cdict = pecan.request.context.to_policy_values()
+        cdict = api.request.context.to_policy_values()
         policy.authorize('baremetal:node:get_boot_device', cdict, cdict)
 
         return self._get_boot_device(node_ident)
@@ -260,7 +261,7 @@ class BootDeviceController(rest.RestController):
                   devices.
 
         """
-        cdict = pecan.request.context.to_policy_values()
+        cdict = api.request.context.to_policy_values()
         policy.authorize('baremetal:node:get_boot_device', cdict, cdict)
 
         boot_devices = self._get_boot_device(node_ident, supported=True)
@@ -292,14 +293,14 @@ class InjectNmiController(rest.RestController):
         if not api_utils.allow_inject_nmi():
             raise exception.NotFound()
 
-        cdict = pecan.request.context.to_policy_values()
+        cdict = api.request.context.to_policy_values()
         policy.authorize('baremetal:node:inject_nmi', cdict, cdict)
 
         rpc_node = api_utils.get_rpc_node(node_ident)
-        topic = pecan.request.rpcapi.get_topic_for(rpc_node)
-        pecan.request.rpcapi.inject_nmi(pecan.request.context,
-                                        rpc_node.uuid,
-                                        topic=topic)
+        topic = api.request.rpcapi.get_topic_for(rpc_node)
+        api.request.rpcapi.inject_nmi(api.request.context,
+                                      rpc_node.uuid,
+                                      topic=topic)
 
 
 class NodeManagementController(rest.RestController):
@@ -336,14 +337,14 @@ class NodeConsoleController(rest.RestController):
 
         :param node_ident: UUID or logical name of a node.
         """
-        cdict = pecan.request.context.to_policy_values()
+        cdict = api.request.context.to_policy_values()
         policy.authorize('baremetal:node:get_console', cdict, cdict)
 
         rpc_node = api_utils.get_rpc_node(node_ident)
-        topic = pecan.request.rpcapi.get_topic_for(rpc_node)
+        topic = api.request.rpcapi.get_topic_for(rpc_node)
         try:
-            console = pecan.request.rpcapi.get_console_information(
-                pecan.request.context, rpc_node.uuid, topic)
+            console = api.request.rpcapi.get_console_information(
+                api.request.context, rpc_node.uuid, topic)
             console_state = True
         except exception.NodeConsoleNotEnabled:
             console = None
@@ -361,16 +362,16 @@ class NodeConsoleController(rest.RestController):
         :param enabled: Boolean value; whether to enable or disable the
                 console.
         """
-        cdict = pecan.request.context.to_policy_values()
+        cdict = api.request.context.to_policy_values()
         policy.authorize('baremetal:node:set_console_state', cdict, cdict)
 
         rpc_node = api_utils.get_rpc_node(node_ident)
-        topic = pecan.request.rpcapi.get_topic_for(rpc_node)
-        pecan.request.rpcapi.set_console_mode(pecan.request.context,
-                                              rpc_node.uuid, enabled, topic)
+        topic = api.request.rpcapi.get_topic_for(rpc_node)
+        api.request.rpcapi.set_console_mode(api.request.context,
+                                            rpc_node.uuid, enabled, topic)
         # Set the HTTP Location Header
         url_args = '/'.join([node_ident, 'states', 'console'])
-        pecan.response.location = link.build_url('nodes', url_args)
+        api.response.location = link.build_url('nodes', url_args)
 
 
 class NodeStates(base.APIBase):
@@ -452,7 +453,7 @@ class NodeStatesController(rest.RestController):
 
         :param node_ident: the UUID or logical_name of a node.
         """
-        cdict = pecan.request.context.to_policy_values()
+        cdict = api.request.context.to_policy_values()
         policy.authorize('baremetal:node:get_states', cdict, cdict)
 
         # NOTE(lucasagomes): All these state values come from the
@@ -476,16 +477,16 @@ class NodeStatesController(rest.RestController):
         :raises: NotAcceptable, if requested version of the API is less than
             1.12.
         """
-        cdict = pecan.request.context.to_policy_values()
+        cdict = api.request.context.to_policy_values()
         policy.authorize('baremetal:node:set_raid_state', cdict, cdict)
 
         if not api_utils.allow_raid_config():
             raise exception.NotAcceptable()
         rpc_node = api_utils.get_rpc_node(node_ident)
-        topic = pecan.request.rpcapi.get_topic_for(rpc_node)
+        topic = api.request.rpcapi.get_topic_for(rpc_node)
         try:
-            pecan.request.rpcapi.set_target_raid_config(
-                pecan.request.context, rpc_node.uuid,
+            api.request.rpcapi.set_target_raid_config(
+                api.request.context, rpc_node.uuid,
                 target_raid_config, topic=topic)
         except exception.UnsupportedDriverExtension as e:
             # Change error code as 404 seems appropriate because RAID is a
@@ -513,13 +514,13 @@ class NodeStatesController(rest.RestController):
         :raises: Invalid (HTTP 400) if timeout value is less than 1.
 
         """
-        cdict = pecan.request.context.to_policy_values()
+        cdict = api.request.context.to_policy_values()
         policy.authorize('baremetal:node:set_power_state', cdict, cdict)
 
         # TODO(lucasagomes): Test if it's able to transition to the
         #                    target state from the current one
         rpc_node = api_utils.get_rpc_node(node_ident)
-        topic = pecan.request.rpcapi.get_topic_for(rpc_node)
+        topic = api.request.rpcapi.get_topic_for(rpc_node)
 
         if ((target in [ir_states.SOFT_REBOOT, ir_states.SOFT_POWER_OFF]
              or timeout) and not api_utils.allow_soft_power_off()):
@@ -542,30 +543,30 @@ class NodeStatesController(rest.RestController):
                 action=target, node=node_ident,
                 state=rpc_node.provision_state)
 
-        pecan.request.rpcapi.change_node_power_state(pecan.request.context,
-                                                     rpc_node.uuid, target,
-                                                     timeout=timeout,
-                                                     topic=topic)
+        api.request.rpcapi.change_node_power_state(api.request.context,
+                                                   rpc_node.uuid, target,
+                                                   timeout=timeout,
+                                                   topic=topic)
         # Set the HTTP Location Header
         url_args = '/'.join([node_ident, 'states'])
-        pecan.response.location = link.build_url('nodes', url_args)
+        api.response.location = link.build_url('nodes', url_args)
 
     def _do_provision_action(self, rpc_node, target, configdrive=None,
                              clean_steps=None, rescue_password=None):
-        topic = pecan.request.rpcapi.get_topic_for(rpc_node)
+        topic = api.request.rpcapi.get_topic_for(rpc_node)
         # Note that there is a race condition. The node state(s) could change
         # by the time the RPC call is made and the TaskManager manager gets a
         # lock.
         if target in (ir_states.ACTIVE, ir_states.REBUILD):
             rebuild = (target == ir_states.REBUILD)
-            pecan.request.rpcapi.do_node_deploy(context=pecan.request.context,
-                                                node_id=rpc_node.uuid,
-                                                rebuild=rebuild,
-                                                configdrive=configdrive,
-                                                topic=topic)
+            api.request.rpcapi.do_node_deploy(context=api.request.context,
+                                              node_id=rpc_node.uuid,
+                                              rebuild=rebuild,
+                                              configdrive=configdrive,
+                                              topic=topic)
         elif (target == ir_states.VERBS['unrescue']):
-            pecan.request.rpcapi.do_node_unrescue(
-                pecan.request.context, rpc_node.uuid, topic)
+            api.request.rpcapi.do_node_unrescue(
+                api.request.context, rpc_node.uuid, topic)
         elif (target == ir_states.VERBS['rescue']):
             if not (rescue_password and rescue_password.strip()):
                 msg = (_('A non-empty "rescue_password" is required when '
@@ -573,14 +574,14 @@ class NodeStatesController(rest.RestController):
                        ir_states.VERBS['rescue'])
                 raise wsme.exc.ClientSideError(
                     msg, status_code=http_client.BAD_REQUEST)
-            pecan.request.rpcapi.do_node_rescue(
-                pecan.request.context, rpc_node.uuid, rescue_password, topic)
+            api.request.rpcapi.do_node_rescue(
+                api.request.context, rpc_node.uuid, rescue_password, topic)
         elif target == ir_states.DELETED:
-            pecan.request.rpcapi.do_node_tear_down(
-                pecan.request.context, rpc_node.uuid, topic)
+            api.request.rpcapi.do_node_tear_down(
+                api.request.context, rpc_node.uuid, topic)
         elif target == ir_states.VERBS['inspect']:
-            pecan.request.rpcapi.inspect_hardware(
-                pecan.request.context, rpc_node.uuid, topic=topic)
+            api.request.rpcapi.inspect_hardware(
+                api.request.context, rpc_node.uuid, topic=topic)
         elif target == ir_states.VERBS['clean']:
             if not clean_steps:
                 msg = (_('"clean_steps" is required when setting target '
@@ -588,11 +589,11 @@ class NodeStatesController(rest.RestController):
                 raise wsme.exc.ClientSideError(
                     msg, status_code=http_client.BAD_REQUEST)
             _check_clean_steps(clean_steps)
-            pecan.request.rpcapi.do_node_clean(
-                pecan.request.context, rpc_node.uuid, clean_steps, topic)
+            api.request.rpcapi.do_node_clean(
+                api.request.context, rpc_node.uuid, clean_steps, topic)
         elif target in PROVISION_ACTION_STATES:
-            pecan.request.rpcapi.do_provisioning_action(
-                pecan.request.context, rpc_node.uuid, target, topic)
+            api.request.rpcapi.do_provisioning_action(
+                api.request.context, rpc_node.uuid, target, topic)
         else:
             msg = (_('The requested action "%(action)s" could not be '
                      'understood.') % {'action': target})
@@ -652,7 +653,7 @@ class NodeStatesController(rest.RestController):
         :raises: NotAcceptable (HTTP 406) if the API version specified does
                  not allow the requested state transition.
         """
-        cdict = pecan.request.context.to_policy_values()
+        cdict = api.request.context.to_policy_values()
         policy.authorize('baremetal:node:set_provision_state', cdict, cdict)
 
         api_utils.check_allow_management_verbs(target)
@@ -706,7 +707,7 @@ class NodeStatesController(rest.RestController):
 
         # Set the HTTP Location Header
         url_args = '/'.join([node_ident, 'states'])
-        pecan.response.location = link.build_url('nodes', url_args)
+        api.response.location = link.build_url('nodes', url_args)
 
 
 def _check_clean_steps(clean_steps):
@@ -747,7 +748,7 @@ def _get_chassis_uuid(node):
     """
     if not node.chassis_id:
         return
-    chassis = objects.Chassis.get_by_id(pecan.request.context, node.chassis_id)
+    chassis = objects.Chassis.get_by_id(api.request.context, node.chassis_id)
     return chassis.uuid
 
 
@@ -776,10 +777,10 @@ class NodeTraitsController(rest.RestController):
     @expose.expose(Traits)
     def get_all(self):
         """List node traits."""
-        cdict = pecan.request.context.to_policy_values()
+        cdict = api.request.context.to_policy_values()
         policy.authorize('baremetal:node:traits:list', cdict, cdict)
         node = api_utils.get_rpc_node(self.node_ident)
-        traits = objects.TraitList.get_by_node_id(pecan.request.context,
+        traits = objects.TraitList.get_by_node_id(api.request.context,
                                                   node.id)
         return Traits(traits=traits.get_trait_names())
 
@@ -795,7 +796,7 @@ class NodeTraitsController(rest.RestController):
             Mutually exclusive with 'trait'. If not None, replaces the node's
             traits with this list.
         """
-        context = pecan.request.context
+        context = api.request.context
         cdict = context.to_policy_values()
         policy.authorize('baremetal:node:traits:set', cdict, cdict)
         node = api_utils.get_rpc_node(self.node_ident)
@@ -809,7 +810,7 @@ class NodeTraitsController(rest.RestController):
             raise exception.Invalid(msg)
 
         if trait:
-            if pecan.request.body and pecan.request.json_body:
+            if api.request.body and api.request.json_body:
                 # Ensure PUT nodes/uuid1/traits/trait1 with a non-empty body
                 # fails.
                 msg = _("No body should be provided when adding a trait")
@@ -832,8 +833,8 @@ class NodeTraitsController(rest.RestController):
                                        chassis_uuid=chassis_uuid)
         with notify.handle_error_notification(context, node, 'update',
                                               chassis_uuid=chassis_uuid):
-            topic = pecan.request.rpcapi.get_topic_for(node)
-            pecan.request.rpcapi.add_node_traits(
+            topic = api.request.rpcapi.get_topic_for(node)
+            api.request.rpcapi.add_node_traits(
                 context, node.id, traits, replace=replace, topic=topic)
         notify.emit_end_notification(context, node, 'update',
                                      chassis_uuid=chassis_uuid)
@@ -841,7 +842,7 @@ class NodeTraitsController(rest.RestController):
         if not replace:
             # For single traits, set the HTTP Location Header.
             url_args = '/'.join((self.node_ident, 'traits', trait))
-            pecan.response.location = link.build_url('nodes', url_args)
+            api.response.location = link.build_url('nodes', url_args)
 
     @METRICS.timer('NodeTraitsController.delete')
     @expose.expose(None, wtypes.text,
@@ -852,7 +853,7 @@ class NodeTraitsController(rest.RestController):
         :param trait: String value; trait to remove from a node, or None. If
                       None, all traits are removed.
         """
-        context = pecan.request.context
+        context = api.request.context
         cdict = context.to_policy_values()
         policy.authorize('baremetal:node:traits:delete', cdict, cdict)
         node = api_utils.get_rpc_node(self.node_ident)
@@ -872,9 +873,9 @@ class NodeTraitsController(rest.RestController):
                                        chassis_uuid=chassis_uuid)
         with notify.handle_error_notification(context, node, 'update',
                                               chassis_uuid=chassis_uuid):
-            topic = pecan.request.rpcapi.get_topic_for(node)
+            topic = api.request.rpcapi.get_topic_for(node)
             try:
-                pecan.request.rpcapi.remove_node_traits(
+                api.request.rpcapi.remove_node_traits(
                     context, node.id, traits, topic=topic)
             except exception.NodeTraitNotFound:
                 # NOTE(hshiina): Internal node ID should not be exposed.
@@ -901,7 +902,7 @@ class Node(base.APIBase):
             self._chassis_uuid = value
         elif self._chassis_uuid != value:
             try:
-                chassis = objects.Chassis.get(pecan.request.context, value)
+                chassis = objects.Chassis.get(api.request.context, value)
                 self._chassis_uuid = chassis.uuid
                 # NOTE(lucasagomes): Create the chassis_id attribute on-the-fly
                 #                    to satisfy the api -> rpc object
@@ -1170,7 +1171,7 @@ class Node(base.APIBase):
             # NOTE(kaifeng) It is possible a node gets orphaned in certain
             # circumstances, set conductor to None in such case.
             try:
-                host = pecan.request.rpcapi.get_conductor_for(rpc_node)
+                host = api.request.rpcapi.get_conductor_for(rpc_node)
                 node.conductor = host
             except (exception.NoValidHost, exception.TemporaryFailure):
                 LOG.debug('Currently there is no conductor servicing node '
@@ -1183,7 +1184,7 @@ class Node(base.APIBase):
             if rpc_node.allocation_id:
                 try:
                     allocation = objects.Allocation.get_by_id(
-                        pecan.request.context,
+                        api.request.context,
                         rpc_node.allocation_id)
                     node.allocation_uuid = allocation.uuid
                 except exception.AllocationNotFound:
@@ -1198,7 +1199,7 @@ class Node(base.APIBase):
         show_portgroups = api_utils.allow_portgroups_subcontrollers()
         show_volume = api_utils.allow_volume()
 
-        node = cls._convert_with_links(node, pecan.request.public_url,
+        node = cls._convert_with_links(node, api.request.public_url,
                                        fields=fields,
                                        show_states_links=show_states_links,
                                        show_portgroups=show_portgroups,
@@ -1219,7 +1220,7 @@ class Node(base.APIBase):
             list of fields to preserve, or ``None`` to preserve them all
         :type fields: list of str
         """
-        cdict = pecan.request.context.to_policy_values()
+        cdict = api.request.context.to_policy_values()
         # NOTE(deva): the 'show_password' policy setting name exists for legacy
         #             purposes and can not be changed. Changing it will cause
         #             upgrade problems for any operators who have customized
@@ -1383,16 +1384,16 @@ class NodeVendorPassthruController(rest.RestController):
                   entries.
         :raises: NodeNotFound if the node is not found.
         """
-        cdict = pecan.request.context.to_policy_values()
+        cdict = api.request.context.to_policy_values()
         policy.authorize('baremetal:node:vendor_passthru', cdict, cdict)
 
         # Raise an exception if node is not found
         rpc_node = api_utils.get_rpc_node(node_ident)
 
         if rpc_node.driver not in _VENDOR_METHODS:
-            topic = pecan.request.rpcapi.get_topic_for(rpc_node)
-            ret = pecan.request.rpcapi.get_node_vendor_passthru_methods(
-                pecan.request.context, rpc_node.uuid, topic=topic)
+            topic = api.request.rpcapi.get_topic_for(rpc_node)
+            ret = api.request.rpcapi.get_node_vendor_passthru_methods(
+                api.request.context, rpc_node.uuid, topic=topic)
             _VENDOR_METHODS[rpc_node.driver] = ret
 
         return _VENDOR_METHODS[rpc_node.driver]
@@ -1407,12 +1408,12 @@ class NodeVendorPassthruController(rest.RestController):
         :param method: name of the method in vendor driver.
         :param data: body of data to supply to the specified method.
         """
-        cdict = pecan.request.context.to_policy_values()
+        cdict = api.request.context.to_policy_values()
         policy.authorize('baremetal:node:vendor_passthru', cdict, cdict)
 
         # Raise an exception if node is not found
         rpc_node = api_utils.get_rpc_node(node_ident)
-        topic = pecan.request.rpcapi.get_topic_for(rpc_node)
+        topic = api.request.rpcapi.get_topic_for(rpc_node)
         return api_utils.vendor_passthru(rpc_node.uuid, method, topic,
                                          data=data)
 
@@ -1420,7 +1421,7 @@ class NodeVendorPassthruController(rest.RestController):
 class NodeMaintenanceController(rest.RestController):
 
     def _set_maintenance(self, node_ident, maintenance_mode, reason=None):
-        context = pecan.request.context
+        context = api.request.context
         rpc_node = api_utils.get_rpc_node(node_ident)
         rpc_node.maintenance = maintenance_mode
         rpc_node.maintenance_reason = reason
@@ -1428,13 +1429,13 @@ class NodeMaintenanceController(rest.RestController):
         with notify.handle_error_notification(context, rpc_node,
                                               'maintenance_set'):
             try:
-                topic = pecan.request.rpcapi.get_topic_for(rpc_node)
+                topic = api.request.rpcapi.get_topic_for(rpc_node)
             except exception.NoValidHost as e:
                 e.code = http_client.BAD_REQUEST
                 raise
 
-            new_node = pecan.request.rpcapi.update_node(context, rpc_node,
-                                                        topic=topic)
+            new_node = api.request.rpcapi.update_node(context, rpc_node,
+                                                      topic=topic)
         notify.emit_end_notification(context, new_node, 'maintenance_set')
 
     @METRICS.timer('NodeMaintenanceController.put')
@@ -1447,7 +1448,7 @@ class NodeMaintenanceController(rest.RestController):
         :param reason: Optional, the reason why it's in maintenance.
 
         """
-        cdict = pecan.request.context.to_policy_values()
+        cdict = api.request.context.to_policy_values()
         policy.authorize('baremetal:node:set_maintenance', cdict, cdict)
 
         self._set_maintenance(node_ident, True, reason=reason)
@@ -1460,7 +1461,7 @@ class NodeMaintenanceController(rest.RestController):
         :param node_ident: the UUID or logical name of a node.
 
         """
-        cdict = pecan.request.context.to_policy_values()
+        cdict = api.request.context.to_policy_values()
         policy.authorize('baremetal:node:clear_maintenance', cdict, cdict)
 
         self._set_maintenance(node_ident, False)
@@ -1489,7 +1490,7 @@ class NodeVIFController(rest.RestController):
     def _get_node_and_topic(self):
         rpc_node = api_utils.get_rpc_node(self.node_ident)
         try:
-            return rpc_node, pecan.request.rpcapi.get_topic_for(rpc_node)
+            return rpc_node, api.request.rpcapi.get_topic_for(rpc_node)
         except exception.NoValidHost as e:
             e.code = http_client.BAD_REQUEST
             raise
@@ -1498,11 +1499,11 @@ class NodeVIFController(rest.RestController):
     @expose.expose(VifCollection)
     def get_all(self):
         """Get a list of attached VIFs"""
-        cdict = pecan.request.context.to_policy_values()
+        cdict = api.request.context.to_policy_values()
         policy.authorize('baremetal:node:vif:list', cdict, cdict)
         rpc_node, topic = self._get_node_and_topic()
-        vifs = pecan.request.rpcapi.vif_list(pecan.request.context,
-                                             rpc_node.uuid, topic=topic)
+        vifs = api.request.rpcapi.vif_list(api.request.context,
+                                           rpc_node.uuid, topic=topic)
         return VifCollection.collection_from_list(vifs)
 
     @METRICS.timer('NodeVIFController.post')
@@ -1515,11 +1516,11 @@ class NodeVIFController(rest.RestController):
             It must have an 'id' key, whose value is a unique identifier
             for that VIF.
         """
-        cdict = pecan.request.context.to_policy_values()
+        cdict = api.request.context.to_policy_values()
         policy.authorize('baremetal:node:vif:attach', cdict, cdict)
         rpc_node, topic = self._get_node_and_topic()
-        pecan.request.rpcapi.vif_attach(pecan.request.context, rpc_node.uuid,
-                                        vif_info=vif, topic=topic)
+        api.request.rpcapi.vif_attach(api.request.context, rpc_node.uuid,
+                                      vif_info=vif, topic=topic)
 
     @METRICS.timer('NodeVIFController.delete')
     @expose.expose(None, types.uuid_or_name,
@@ -1529,11 +1530,11 @@ class NodeVIFController(rest.RestController):
 
         :param vif_id: The ID of a VIF to detach
         """
-        cdict = pecan.request.context.to_policy_values()
+        cdict = api.request.context.to_policy_values()
         policy.authorize('baremetal:node:vif:detach', cdict, cdict)
         rpc_node, topic = self._get_node_and_topic()
-        pecan.request.rpcapi.vif_detach(pecan.request.context, rpc_node.uuid,
-                                        vif_id=vif_id, topic=topic)
+        api.request.rpcapi.vif_detach(api.request.context, rpc_node.uuid,
+                                      vif_id=vif_id, topic=topic)
 
 
 class NodesController(rest.RestController):
@@ -1613,7 +1614,7 @@ class NodesController(rest.RestController):
         filtered_nodes = []
         for n in nodes:
             try:
-                host = pecan.request.rpcapi.get_conductor_for(n)
+                host = api.request.rpcapi.get_conductor_for(n)
                 if host == conductor:
                     filtered_nodes.append(n)
             except (exception.NoValidHost, exception.TemporaryFailure):
@@ -1644,7 +1645,7 @@ class NodesController(rest.RestController):
 
         marker_obj = None
         if marker:
-            marker_obj = objects.Node.get_by_uuid(pecan.request.context,
+            marker_obj = objects.Node.get_by_uuid(api.request.context,
                                                   marker)
 
         # The query parameters for the 'next' URL
@@ -1679,7 +1680,7 @@ class NodesController(rest.RestController):
                 if value is not None:
                     filters[key] = value
 
-            nodes = objects.Node.list(pecan.request.context, limit, marker_obj,
+            nodes = objects.Node.list(api.request.context, limit, marker_obj,
                                       sort_key=sort_key, sort_dir=sort_dir,
                                       filters=filters)
 
@@ -1707,7 +1708,7 @@ class NodesController(rest.RestController):
         It returns a list with the node, or an empty list if no node is found.
         """
         try:
-            node = objects.Node.get_by_instance_uuid(pecan.request.context,
+            node = objects.Node.get_by_instance_uuid(api.request.context,
                                                      instance_uuid)
             return [node]
         except exception.InstanceNotFound:
@@ -1840,7 +1841,7 @@ class NodesController(rest.RestController):
                                      with description field contains matching
                                      value.
         """
-        cdict = pecan.request.context.to_policy_values()
+        cdict = api.request.context.to_policy_values()
         policy.authorize('baremetal:node:get', cdict, cdict)
 
         api_utils.check_allow_specify_fields(fields)
@@ -1915,7 +1916,7 @@ class NodesController(rest.RestController):
                                      with description field contains matching
                                      value.
         """
-        cdict = pecan.request.context.to_policy_values()
+        cdict = api.request.context.to_policy_values()
         policy.authorize('baremetal:node:get', cdict, cdict)
 
         api_utils.check_for_invalid_state_and_allow_filter(provision_state)
@@ -1926,7 +1927,7 @@ class NodesController(rest.RestController):
         api_utils.check_allow_filter_by_owner(owner)
         api_utils.check_allowed_fields([sort_key])
         # /detail should only work against collections
-        parent = pecan.request.path.split('/')[:-1][-1]
+        parent = api.request.path.split('/')[:-1][-1]
         if parent != "nodes":
             raise exception.HTTPNotFound()
 
@@ -1958,7 +1959,7 @@ class NodesController(rest.RestController):
         :param node: UUID or name of a node.
         :param node_uuid: UUID of a node.
         """
-        cdict = pecan.request.context.to_policy_values()
+        cdict = api.request.context.to_policy_values()
         policy.authorize('baremetal:node:validate', cdict, cdict)
 
         if node is not None:
@@ -1970,9 +1971,9 @@ class NodesController(rest.RestController):
 
         rpc_node = api_utils.get_rpc_node(node_uuid or node)
 
-        topic = pecan.request.rpcapi.get_topic_for(rpc_node)
-        return pecan.request.rpcapi.validate_driver_interfaces(
-            pecan.request.context, rpc_node.uuid, topic)
+        topic = api.request.rpcapi.get_topic_for(rpc_node)
+        return api.request.rpcapi.validate_driver_interfaces(
+            api.request.context, rpc_node.uuid, topic)
 
     @METRICS.timer('NodesController.get_one')
     @expose.expose(Node, types.uuid_or_name, types.listtype)
@@ -1983,7 +1984,7 @@ class NodesController(rest.RestController):
         :param fields: Optional, a list with a specified set of fields
             of the resource to be returned.
         """
-        cdict = pecan.request.context.to_policy_values()
+        cdict = api.request.context.to_policy_values()
         policy.authorize('baremetal:node:get', cdict, cdict)
 
         if self.from_chassis:
@@ -2002,7 +2003,7 @@ class NodesController(rest.RestController):
 
         :param node: a node within the request body.
         """
-        context = pecan.request.context
+        context = api.request.context
         cdict = context.to_policy_values()
         policy.authorize('baremetal:node:create', cdict, cdict)
 
@@ -2044,7 +2045,7 @@ class NodesController(rest.RestController):
             node.uuid = uuidutils.generate_uuid()
 
         try:
-            topic = pecan.request.rpcapi.get_topic_for(node)
+            topic = api.request.rpcapi.get_topic_for(node)
         except exception.NoValidHost as e:
             # NOTE(deva): convert from 404 to 400 because client can see
             #             list of available drivers and shouldn't request
@@ -2065,10 +2066,10 @@ class NodesController(rest.RestController):
                                        chassis_uuid=node.chassis_uuid)
         with notify.handle_error_notification(context, new_node, 'create',
                                               chassis_uuid=node.chassis_uuid):
-            new_node = pecan.request.rpcapi.create_node(context,
-                                                        new_node, topic)
+            new_node = api.request.rpcapi.create_node(context,
+                                                      new_node, topic)
         # Set the HTTP Location Header
-        pecan.response.location = link.build_url('nodes', new_node.uuid)
+        api.response.location = link.build_url('nodes', new_node.uuid)
         api_node = Node.convert_with_links(new_node)
         notify.emit_end_notification(context, new_node, 'create',
                                      chassis_uuid=api_node.chassis_uuid)
@@ -2110,7 +2111,7 @@ class NodesController(rest.RestController):
             defaults. Only valid when updating the driver field.
         :param patch: a json PATCH document to apply to this node.
         """
-        context = pecan.request.context
+        context = api.request.context
         cdict = context.to_policy_values()
         policy.authorize('baremetal:node:update', cdict, cdict)
 
@@ -2163,7 +2164,7 @@ class NodesController(rest.RestController):
         #             new conductor, not the old one which may fail to
         #             load the new driver.
         try:
-            topic = pecan.request.rpcapi.get_topic_for(rpc_node)
+            topic = api.request.rpcapi.get_topic_for(rpc_node)
         except exception.NoValidHost as e:
             # NOTE(deva): convert from 404 to 400 because client can see
             #             list of available drivers and shouldn't request
@@ -2176,9 +2177,9 @@ class NodesController(rest.RestController):
                                        chassis_uuid=node.chassis_uuid)
         with notify.handle_error_notification(context, rpc_node, 'update',
                                               chassis_uuid=node.chassis_uuid):
-            new_node = pecan.request.rpcapi.update_node(context,
-                                                        rpc_node, topic,
-                                                        reset_interfaces)
+            new_node = api.request.rpcapi.update_node(context,
+                                                      rpc_node, topic,
+                                                      reset_interfaces)
 
         api_node = Node.convert_with_links(new_node)
         notify.emit_end_notification(context, new_node, 'update',
@@ -2194,7 +2195,7 @@ class NodesController(rest.RestController):
 
         :param node_ident: UUID or logical name of a node.
         """
-        context = pecan.request.context
+        context = api.request.context
         cdict = context.to_policy_values()
         policy.authorize('baremetal:node:delete', cdict, cdict)
 
@@ -2208,11 +2209,11 @@ class NodesController(rest.RestController):
         with notify.handle_error_notification(context, rpc_node, 'delete',
                                               chassis_uuid=chassis_uuid):
             try:
-                topic = pecan.request.rpcapi.get_topic_for(rpc_node)
+                topic = api.request.rpcapi.get_topic_for(rpc_node)
             except exception.NoValidHost as e:
                 e.code = http_client.BAD_REQUEST
                 raise
 
-            pecan.request.rpcapi.destroy_node(context, rpc_node.uuid, topic)
+            api.request.rpcapi.destroy_node(context, rpc_node.uuid, topic)
         notify.emit_end_notification(context, rpc_node, 'delete',
                                      chassis_uuid=chassis_uuid)

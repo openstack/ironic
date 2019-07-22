@@ -16,13 +16,13 @@ import datetime
 
 from ironic_lib import metrics_utils
 from oslo_utils import uuidutils
-import pecan
 from pecan import rest
 import six
 from six.moves import http_client
 import wsme
 from wsme import types as wtypes
 
+from ironic import api
 from ironic.api.controllers import base
 from ironic.api.controllers import link
 from ironic.api.controllers.v1 import collection
@@ -63,7 +63,7 @@ class VolumeTarget(base.APIBase):
             self._node_uuid = wtypes.Unset
         elif value and self._node_uuid != value:
             try:
-                node = objects.Node.get(pecan.request.context, value)
+                node = objects.Node.get(api.request.context, value)
                 self._node_uuid = node.uuid
                 # NOTE(smoriya): Create the node_id attribute on-the-fly
                 #                to satisfy the api -> rpc object conversion.
@@ -143,7 +143,7 @@ class VolumeTarget(base.APIBase):
         if fields is not None:
             api_utils.check_for_invalid_fields(fields, target.as_dict())
 
-        target = cls._convert_with_links(target, pecan.request.public_url)
+        target = cls._convert_with_links(target, api.request.public_url)
 
         if not sanitize:
             return target
@@ -247,7 +247,7 @@ class VolumeTargetsController(rest.RestController):
         marker_obj = None
         if marker:
             marker_obj = objects.VolumeTarget.get_by_uuid(
-                pecan.request.context, marker)
+                api.request.context, marker)
 
         if sort_key in self.invalid_sort_key_list:
             raise exception.InvalidParameterValue(
@@ -263,10 +263,10 @@ class VolumeTargetsController(rest.RestController):
             #                 as we move to the object interface.
             node = api_utils.get_rpc_node(node_ident)
             targets = objects.VolumeTarget.list_by_node_id(
-                pecan.request.context, node.id, limit, marker_obj,
+                api.request.context, node.id, limit, marker_obj,
                 sort_key=sort_key, sort_dir=sort_dir)
         else:
-            targets = objects.VolumeTarget.list(pecan.request.context,
+            targets = objects.VolumeTarget.list(api.request.context,
                                                 limit, marker_obj,
                                                 sort_key=sort_key,
                                                 sort_dir=sort_dir)
@@ -305,7 +305,7 @@ class VolumeTargetsController(rest.RestController):
         :raises: InvalidParameterValue if sort key is invalid for sorting.
         :raises: InvalidParameterValue if both fields and detail are specified.
         """
-        cdict = pecan.request.context.to_policy_values()
+        cdict = api.request.context.to_policy_values()
         policy.authorize('baremetal:volume:get', cdict, cdict)
 
         if fields is None and not detail:
@@ -337,14 +337,14 @@ class VolumeTargetsController(rest.RestController):
                  node.
         :raises: VolumeTargetNotFound if no volume target with this UUID exists
         """
-        cdict = pecan.request.context.to_policy_values()
+        cdict = api.request.context.to_policy_values()
         policy.authorize('baremetal:volume:get', cdict, cdict)
 
         if self.parent_node_ident:
             raise exception.OperationNotPermitted()
 
         rpc_target = objects.VolumeTarget.get_by_uuid(
-            pecan.request.context, target_uuid)
+            api.request.context, target_uuid)
         return VolumeTarget.convert_with_links(rpc_target, fields=fields)
 
     @METRICS.timer('VolumeTargetsController.post')
@@ -364,7 +364,7 @@ class VolumeTargetsController(rest.RestController):
         :raises: VolumeTargetAlreadyExists if a volume target with the same
                  UUID exists
         """
-        context = pecan.request.context
+        context = api.request.context
         cdict = context.to_policy_values()
         policy.authorize('baremetal:volume:create', cdict, cdict)
 
@@ -386,8 +386,8 @@ class VolumeTargetsController(rest.RestController):
         notify.emit_end_notification(context, new_target, 'create',
                                      node_uuid=target.node_uuid)
         # Set the HTTP Location Header
-        pecan.response.location = link.build_url('volume/targets',
-                                                 new_target.uuid)
+        api.response.location = link.build_url('volume/targets',
+                                               new_target.uuid)
         return VolumeTarget.convert_with_links(new_target)
 
     @METRICS.timer('VolumeTargetsController.patch')
@@ -417,7 +417,7 @@ class VolumeTargetsController(rest.RestController):
         :raises: InvalidStateRequested If a node associated with the
                  volume target is not powered off.
         """
-        context = pecan.request.context
+        context = api.request.context
         cdict = context.to_policy_values()
         policy.authorize('baremetal:volume:update', cdict, cdict)
 
@@ -458,8 +458,8 @@ class VolumeTargetsController(rest.RestController):
                                        node_uuid=rpc_node.uuid)
         with notify.handle_error_notification(context, rpc_target, 'update',
                                               node_uuid=rpc_node.uuid):
-            topic = pecan.request.rpcapi.get_topic_for(rpc_node)
-            new_target = pecan.request.rpcapi.update_volume_target(
+            topic = api.request.rpcapi.get_topic_for(rpc_node)
+            new_target = api.request.rpcapi.update_volume_target(
                 context, rpc_target, topic)
 
         api_target = VolumeTarget.convert_with_links(new_target)
@@ -483,7 +483,7 @@ class VolumeTargetsController(rest.RestController):
         :raises: InvalidStateRequested If a node associated with the
                  volume target is not powered off.
         """
-        context = pecan.request.context
+        context = api.request.context
         cdict = context.to_policy_values()
         policy.authorize('baremetal:volume:delete', cdict, cdict)
 
@@ -496,8 +496,8 @@ class VolumeTargetsController(rest.RestController):
                                        node_uuid=rpc_node.uuid)
         with notify.handle_error_notification(context, rpc_target, 'delete',
                                               node_uuid=rpc_node.uuid):
-            topic = pecan.request.rpcapi.get_topic_for(rpc_node)
-            pecan.request.rpcapi.destroy_volume_target(context,
-                                                       rpc_target, topic)
+            topic = api.request.rpcapi.get_topic_for(rpc_node)
+            api.request.rpcapi.destroy_volume_target(context,
+                                                     rpc_target, topic)
         notify.emit_end_notification(context, rpc_target, 'delete',
                                      node_uuid=rpc_node.uuid)

@@ -20,6 +20,7 @@ from webob import exc as webob_exc
 import wsme
 from wsme import types as wtypes
 
+from ironic import api
 from ironic.api.controllers import base
 from ironic.api.controllers import link
 from ironic.api.controllers.v1 import collection
@@ -112,7 +113,7 @@ class Allocation(base.APIBase):
         if rpc_allocation.node_id:
             try:
                 allocation.node_uuid = objects.Node.get_by_id(
-                    pecan.request.context,
+                    api.request.context,
                     rpc_allocation.node_id).uuid
             except exception.NodeNotFound:
                 allocation.node_uuid = None
@@ -129,7 +130,7 @@ class Allocation(base.APIBase):
             allocation.traits = []
 
         allocation = cls._convert_with_links(allocation,
-                                             pecan.request.host_url)
+                                             api.request.host_url)
 
         if not sanitize:
             return allocation
@@ -214,7 +215,7 @@ class AllocationsController(pecan.rest.RestController):
     def _route(self, args, request=None):
         if not api_utils.allow_allocations():
             msg = _("The API version does not allow allocations")
-            if pecan.request.method == "GET":
+            if api.request.method == "GET":
                 raise webob_exc.HTTPNotFound(msg)
             else:
                 raise webob_exc.HTTPMethodNotAllowed(msg)
@@ -245,7 +246,7 @@ class AllocationsController(pecan.rest.RestController):
 
         marker_obj = None
         if marker:
-            marker_obj = objects.Allocation.get_by_uuid(pecan.request.context,
+            marker_obj = objects.Allocation.get_by_uuid(api.request.context,
                                                         marker)
 
         if node_ident:
@@ -268,7 +269,7 @@ class AllocationsController(pecan.rest.RestController):
             if value is not None:
                 filters[key] = value
 
-        allocations = objects.Allocation.list(pecan.request.context,
+        allocations = objects.Allocation.list(api.request.context,
                                               limit=limit,
                                               marker=marker_obj,
                                               sort_key=sort_key,
@@ -302,7 +303,7 @@ class AllocationsController(pecan.rest.RestController):
         :param fields: Optional, a list with a specified set of fields
                        of the resource to be returned.
         """
-        cdict = pecan.request.context.to_policy_values()
+        cdict = api.request.context.to_policy_values()
         policy.authorize('baremetal:allocation:get', cdict, cdict)
 
         return self._get_allocations_collection(node, resource_class, state,
@@ -319,7 +320,7 @@ class AllocationsController(pecan.rest.RestController):
         :param fields: Optional, a list with a specified set of fields
                        of the resource to be returned.
         """
-        cdict = pecan.request.context.to_policy_values()
+        cdict = api.request.context.to_policy_values()
         policy.authorize('baremetal:allocation:get', cdict, cdict)
 
         rpc_allocation = api_utils.get_rpc_allocation_with_suffix(
@@ -334,7 +335,7 @@ class AllocationsController(pecan.rest.RestController):
 
         :param allocation: an allocation within the request body.
         """
-        context = pecan.request.context
+        context = api.request.context
         cdict = context.to_policy_values()
         policy.authorize('baremetal:allocation:create', cdict, cdict)
 
@@ -372,7 +373,7 @@ class AllocationsController(pecan.rest.RestController):
         if allocation.candidate_nodes:
             # Convert nodes from names to UUIDs and check their validity
             try:
-                converted = pecan.request.dbapi.check_node_list(
+                converted = api.request.dbapi.check_node_list(
                     allocation.candidate_nodes)
             except exception.NodeNotFound as exc:
                 exc.code = http_client.BAD_REQUEST
@@ -396,20 +397,20 @@ class AllocationsController(pecan.rest.RestController):
         new_allocation = objects.Allocation(context, **all_dict)
         if node:
             new_allocation.node_id = node.id
-            topic = pecan.request.rpcapi.get_topic_for(node)
+            topic = api.request.rpcapi.get_topic_for(node)
         else:
-            topic = pecan.request.rpcapi.get_random_topic()
+            topic = api.request.rpcapi.get_random_topic()
 
         notify.emit_start_notification(context, new_allocation, 'create')
         with notify.handle_error_notification(context, new_allocation,
                                               'create'):
-            new_allocation = pecan.request.rpcapi.create_allocation(
+            new_allocation = api.request.rpcapi.create_allocation(
                 context, new_allocation, topic)
         notify.emit_end_notification(context, new_allocation, 'create')
 
         # Set the HTTP Location Header
-        pecan.response.location = link.build_url('allocations',
-                                                 new_allocation.uuid)
+        api.response.location = link.build_url('allocations',
+                                               new_allocation.uuid)
         return Allocation.convert_with_links(new_allocation)
 
     def _validate_patch(self, patch):
@@ -433,7 +434,7 @@ class AllocationsController(pecan.rest.RestController):
         if not api_utils.allow_allocation_update():
             raise webob_exc.HTTPMethodNotAllowed(_(
                 "The API version does not allow updating allocations"))
-        context = pecan.request.context
+        context = api.request.context
         cdict = context.to_policy_values()
         policy.authorize('baremetal:allocation:update', cdict, cdict)
         self._validate_patch(patch)
@@ -475,14 +476,14 @@ class AllocationsController(pecan.rest.RestController):
 
         :param allocation_ident: UUID or logical name of an allocation.
         """
-        context = pecan.request.context
+        context = api.request.context
         cdict = context.to_policy_values()
         policy.authorize('baremetal:allocation:delete', cdict, cdict)
 
         rpc_allocation = api_utils.get_rpc_allocation_with_suffix(
             allocation_ident)
         if rpc_allocation.node_id:
-            node_uuid = objects.Node.get_by_id(pecan.request.context,
+            node_uuid = objects.Node.get_by_id(api.request.context,
                                                rpc_allocation.node_id).uuid
         else:
             node_uuid = None
@@ -491,9 +492,9 @@ class AllocationsController(pecan.rest.RestController):
                                        node_uuid=node_uuid)
         with notify.handle_error_notification(context, rpc_allocation,
                                               'delete', node_uuid=node_uuid):
-            topic = pecan.request.rpcapi.get_random_topic()
-            pecan.request.rpcapi.destroy_allocation(context, rpc_allocation,
-                                                    topic)
+            topic = api.request.rpcapi.get_random_topic()
+            api.request.rpcapi.destroy_allocation(context, rpc_allocation,
+                                                  topic)
         notify.emit_end_notification(context, rpc_allocation, 'delete',
                                      node_uuid=node_uuid)
 
@@ -518,7 +519,7 @@ class NodeAllocationController(pecan.rest.RestController):
     @METRICS.timer('NodeAllocationController.get_all')
     @expose.expose(Allocation, types.listtype)
     def get_all(self, fields=None):
-        cdict = pecan.request.context.to_policy_values()
+        cdict = api.request.context.to_policy_values()
         policy.authorize('baremetal:allocation:get', cdict, cdict)
 
         result = self.inner._get_allocations_collection(self.parent_node_ident,
@@ -533,13 +534,13 @@ class NodeAllocationController(pecan.rest.RestController):
     @METRICS.timer('NodeAllocationController.delete')
     @expose.expose(None, status_code=http_client.NO_CONTENT)
     def delete(self):
-        context = pecan.request.context
+        context = api.request.context
         cdict = context.to_policy_values()
         policy.authorize('baremetal:allocation:delete', cdict, cdict)
 
         rpc_node = api_utils.get_rpc_node_with_suffix(self.parent_node_ident)
         allocations = objects.Allocation.list(
-            pecan.request.context,
+            api.request.context,
             filters={'node_uuid': rpc_node.uuid})
 
         try:
@@ -554,8 +555,8 @@ class NodeAllocationController(pecan.rest.RestController):
         with notify.handle_error_notification(context, rpc_allocation,
                                               'delete',
                                               node_uuid=rpc_node.uuid):
-            topic = pecan.request.rpcapi.get_random_topic()
-            pecan.request.rpcapi.destroy_allocation(context, rpc_allocation,
-                                                    topic)
+            topic = api.request.rpcapi.get_random_topic()
+            api.request.rpcapi.destroy_allocation(context, rpc_allocation,
+                                                  topic)
         notify.emit_end_notification(context, rpc_allocation, 'delete',
                                      node_uuid=rpc_node.uuid)

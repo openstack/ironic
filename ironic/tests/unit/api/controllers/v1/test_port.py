@@ -78,7 +78,7 @@ def _rpcapi_update_port(self, context, port, topic):
 
 class TestPortObject(base.TestCase):
 
-    @mock.patch("pecan.request")
+    @mock.patch("ironic.api.request")
     def test_port_init(self, mock_pecan_req):
         mock_pecan_req.version.minor = 1
         port_dict = apiutils.port_post_data(node_id=None,
