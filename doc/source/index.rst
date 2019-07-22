@@ -74,7 +74,7 @@ guide as well as more detailed reference documentation.
   :maxdepth: 1
 
   API Concept Guide <contributor/webapi>
-  API Reference (latest) <https://developer.openstack.org/api-ref/baremetal/>
+  API Reference (latest) <https://docs.openstack.org/api-ref/baremetal/>
   API Version History <contributor/webapi-version-history>
 
 Command References

@@ -174,7 +174,7 @@ API endpoints for RAM disk use
 ------------------------------
 
 There are `two (unauthorized) endpoints
-<https://developer.openstack.org/api-ref/baremetal/#utility>`_ in the
+<https://docs.openstack.org/api-ref/baremetal/#utility>`_ in the
 Bare Metal API that are intended for use by the ironic-python-agent RAM disk.
 They are not intended for public use.
 

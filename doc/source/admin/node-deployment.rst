@@ -178,7 +178,7 @@ single step:
    }
 
 Further information on this API is available `here
-<https://developer.openstack.org/api-ref/baremetal/index.html?expanded=create-deploy-template-detail#create-deploy-template>`__.
+<https://docs.openstack.org/api-ref/baremetal/index.html?expanded=create-deploy-template-detail#create-deploy-template>`__.
 
 Creating a deploy template via "openstack baremetal" client
 -----------------------------------------------------------

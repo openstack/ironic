@@ -12,7 +12,7 @@ API.  The desired RAID configuration is applied on the bare metal during manual
 cleaning.
 
 The examples described here use the OpenStackClient CLI; please see the
-`REST API reference <https://developer.openstack.org/api-ref/baremetal/>`_
+`REST API reference <https://docs.openstack.org/api-ref/baremetal/>`_
 for their corresponding REST API requests.
 
 Prerequisites
