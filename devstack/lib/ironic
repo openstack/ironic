@@ -1146,8 +1146,6 @@ function configure_ironic_dirs {
 
     if [[ "$IRONIC_BOOT_MODE" == "uefi" ]]; then
         local uefi_boot_file
-        local uefi_loader
-        local uefi_nvram
 
         uefi_boot_file=$(get_uefi_ipxe_boot_file)
         if [ ! -f $uefi_boot_file ]; then
@@ -1156,11 +1154,16 @@ function configure_ironic_dirs {
 
         cp $uefi_boot_file $IRONIC_TFTPBOOT_DIR
 
-        # Copy the OVMF images to libvirt's path
-        uefi_loader=$(get_uefi_loader)
-        uefi_nvram=$(get_uefi_nvram)
-        sudo cp $uefi_loader $UEFI_LOADER_PATH
-        sudo cp $uefi_nvram $UEFI_NVRAM_PATH
+        if [[ "$IRONIC_IS_HARDWARE" == "False" ]]; then
+            local uefi_loader
+            local uefi_nvram
+
+            # Copy the OVMF images to libvirt's path
+            uefi_loader=$(get_uefi_loader)
+            uefi_nvram=$(get_uefi_nvram)
+            sudo cp $uefi_loader $UEFI_LOADER_PATH
+            sudo cp $uefi_nvram $UEFI_NVRAM_PATH
+        fi
     fi
 
     # Create the logs directory when saving the deploy logs to the filesystem
