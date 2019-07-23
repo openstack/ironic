@@ -2747,7 +2747,11 @@ function ironic_configure_tempest {
     # Enabled features
     iniset $TEMPEST_CONFIG baremetal_feature_enabled ipxe_enabled $IRONIC_IPXE_ENABLED
     iniset $TEMPEST_CONFIG baremetal_feature_enabled fast_track_discovery $IRONIC_DEPLOY_FAST_TRACK
-
+    if [[ "$IRONIC_IS_HARDWARE" == "False" ]]; then
+        # Adoption requires reading or guessing the BMC credentials, so let's
+        # not enable it for real hardware, at least for now.
+        iniset $TEMPEST_CONFIG baremetal_feature_enabled adoption True
+    fi
 }
 
 function get_ironic_node_prefix {
