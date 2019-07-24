@@ -1,0 +1,5 @@
+---
+fixes:
+    |
+      Fixes an issue with using serial number as root device hints
+      with the ``ansible`` deploy interface.
