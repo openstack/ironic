@@ -29,6 +29,8 @@ class BaseDracTest(db_base.DbTestCase):
     def setUp(self):
         super(BaseDracTest, self).setUp()
         self.config(enabled_hardware_types=['idrac', 'fake-hardware'],
+                    enabled_boot_interfaces=[
+                        'idrac-redfish-virtual-media', 'fake'],
                     enabled_power_interfaces=['idrac-wsman', 'fake'],
                     enabled_management_interfaces=['idrac-wsman', 'fake'],
                     enabled_inspect_interfaces=[

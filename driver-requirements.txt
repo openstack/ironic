@@ -18,3 +18,6 @@ ansible>=2.4
 
 # HUAWEI iBMC hardware type uses the python-ibmcclient library
 python-ibmcclient>=0.1.0
+
+# Dell EMC iDRAC sushy OEM extension
+sushy-oem-idrac<=0.1.0

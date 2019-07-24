@@ -1,0 +1,21 @@
+---
+features:
+  - |
+    Adds ``idrac`` hardware type support of a virtual media boot
+    interface implementation that utilizes the Redfish out-of-band (OOB)
+    management protocol and is compatible with the integrated Dell
+    Remote Access Controller (iDRAC) baseboard management controller
+    (BMC). It is named ``idrac-redfish-virtual-media``.
+
+    The ``idrac`` hardware type declares support for that new interface
+    implementation, in addition to all boot interface implementations it
+    has been supporting. The highest priority boot interfaces remain the
+    same. It now supports the following boot interface implementations,
+    listed in priority order from highest to lowest: ``ipxe``, ``pxe``,
+    and ``idrac-redfish-virtual-media``.
+
+    To use the new boot interface, install the ``sushy-oem-idrac``
+    Python package.
+
+    For more information, see `story 2006570
+    <https://storyboard.openstack.org/#!/story/2006570>`_.
