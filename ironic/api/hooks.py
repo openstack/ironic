@@ -175,5 +175,8 @@ class PublicUrlHook(hooks.PecanHook):
     """
 
     def before(self, state):
-        state.request.public_url = (cfg.CONF.api.public_endpoint
-                                    or state.request.host_url)
+        if cfg.CONF.oslo_middleware.enable_proxy_headers_parsing:
+            state.request.public_url = state.request.application_url
+        else:
+            state.request.public_url = (cfg.CONF.api.public_endpoint
+                                        or state.request.host_url)
