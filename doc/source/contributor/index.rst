@@ -99,3 +99,17 @@ Full Ironic Server Python API Reference
   :maxdepth: 1
 
   api/modules
+
+Understanding the Ironic's CI
+-----------------------------
+
+It's important to understand the role of each job in the CI, how to add new jobs
+and how to debug failures that may arise. To facilitate that, we have created
+the documentation below.
+
+.. toctree::
+  :maxdepth: 1
+
+  Job roles in the CI <jobs-description>
+  How to add a new job? <adding-new-job>
+  How to debug failures in CI jobs <debug-ci-failures>
