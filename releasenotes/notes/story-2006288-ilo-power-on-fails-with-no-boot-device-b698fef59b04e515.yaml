@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    Fixes an issue in powering-on of server in ``ilo`` hardware type. Server
+    was failing to return success for power-on operation if no bootable
+    device was found. See `story 2006288
+    <https://storyboard.openstack.org/#!/story/2006288>`__ for details.
