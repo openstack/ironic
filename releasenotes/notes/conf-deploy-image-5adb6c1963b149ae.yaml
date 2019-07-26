@@ -1,0 +1,6 @@
+---
+features:
+  - |
+    The deploy and/or rescue kernel and ramdisk can now be configured via
+    the new configuration options ``deploy_kernel``, ``deploy_ramdisk``,
+    ``rescue_kernel`` and ``rescue_ramdisk`` respectively.

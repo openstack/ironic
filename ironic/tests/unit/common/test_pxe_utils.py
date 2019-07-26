@@ -1030,6 +1030,33 @@ class PXEInterfacesTestCase(db_base.DbTestCase):
     def test_parse_driver_info_rescue(self):
         self._test_parse_driver_info(mode='rescue')
 
+    def _test_parse_driver_info_from_conf(self, mode='deploy'):
+        del self.node.driver_info['%s_kernel' % mode]
+        del self.node.driver_info['%s_ramdisk' % mode]
+        exp_info = {'%s_ramdisk' % mode: 'glance://%s_ramdisk_uuid' % mode,
+                    '%s_kernel' % mode: 'glance://%s_kernel_uuid' % mode}
+        self.config(group='conductor', **exp_info)
+        image_info = pxe_utils.parse_driver_info(self.node, mode=mode)
+        self.assertEqual(exp_info, image_info)
+
+    def test_parse_driver_info_from_conf_deploy(self):
+        self._test_parse_driver_info_from_conf()
+
+    def test_parse_driver_info_from_conf_rescue(self):
+        self._test_parse_driver_info_from_conf(mode='rescue')
+
+    def test_parse_driver_info_mixed_source_deploy(self):
+        self.config(deploy_kernel='file:///image',
+                    deploy_ramdisk='file:///image',
+                    group='conductor')
+        self._test_parse_driver_info_missing_ramdisk()
+
+    def test_parse_driver_info_mixed_source_rescue(self):
+        self.config(rescue_kernel='file:///image',
+                    rescue_ramdisk='file:///image',
+                    group='conductor')
+        self._test_parse_driver_info_missing_ramdisk(mode='rescue')
+
     def test__get_deploy_image_info(self):
         expected_info = {'deploy_ramdisk':
                          (DRV_INFO_DICT['deploy_ramdisk'],

@@ -65,9 +65,10 @@ if is_service_enabled ir-api ir-cond; then
             fi
 
             # Start the ironic API and ironic taskmgr components
+            prepare_baremetal_basic_ops
             echo_summary "Starting Ironic"
             start_ironic
-            prepare_baremetal_basic_ops
+            enroll_nodes
 
         elif [[ "$2" == "test-config" ]]; then
         # stack/test-config - Called at the end of devstack used to configure tempest

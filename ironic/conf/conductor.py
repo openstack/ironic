@@ -224,6 +224,22 @@ opts = [
     cfg.BoolOpt('enable_mdns', default=False,
                 help=_('Whether to enable publishing the baremetal API '
                        'endpoint via multicast DNS.')),
+    cfg.StrOpt('deploy_kernel',
+               mutable=True,
+               help=_('Glance ID, http:// or file:// URL of the kernel of '
+                      'the default deploy image.')),
+    cfg.StrOpt('deploy_ramdisk',
+               mutable=True,
+               help=_('Glance ID, http:// or file:// URL of the initramfs of '
+                      'the default deploy image.')),
+    cfg.StrOpt('rescue_kernel',
+               mutable=True,
+               help=_('Glance ID, http:// or file:// URL of the kernel of '
+                      'the default rescue image.')),
+    cfg.StrOpt('rescue_ramdisk',
+               mutable=True,
+               help=_('Glance ID, http:// or file:// URL of the initramfs of '
+                      'the default rescue image.')),
 ]
 
 

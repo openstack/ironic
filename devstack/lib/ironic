@@ -1999,12 +1999,6 @@ function enroll_nodes {
 
     local interface_info
 
-    common_node_options="\
-        --driver-info deploy_kernel=$IRONIC_DEPLOY_KERNEL_ID \
-        --driver-info deploy_ramdisk=$IRONIC_DEPLOY_RAMDISK_ID \
-        --driver-info rescue_kernel=$IRONIC_DEPLOY_KERNEL_ID \
-        --driver-info rescue_ramdisk=$IRONIC_DEPLOY_RAMDISK_ID"
-
     if [[ "$IRONIC_IS_HARDWARE" == "False" ]]; then
         local ironic_node_cpu=$IRONIC_VM_SPECS_CPU
         local ironic_node_ram=$IRONIC_VM_SPECS_RAM
@@ -2031,7 +2025,6 @@ function enroll_nodes {
                 --driver-info redfish_username=admin \
                 --driver-info redfish_password=password"
         fi
-        node_options+=" $common_node_options"
 
     else
         local ironic_node_cpu=$IRONIC_HW_NODE_CPU
@@ -2112,7 +2105,7 @@ function enroll_nodes {
             bmc_username=$(echo $hardware_info |awk '{print $3}')
             local bmc_passwd
             bmc_passwd=$(echo $hardware_info |awk '{print $4}')
-            local node_options="$common_node_options"
+            local node_options=""
 
             if is_deployed_by_ipmi; then
                 node_options+=" --driver-info ipmi_address=$bmc_address \
@@ -2591,6 +2584,11 @@ function upload_baremetal_ironic_deploy {
         IRONIC_DEPLOY_KERNEL_ID=$(openstack image show $ironic_deploy_kernel_name -f value -c id)
         IRONIC_DEPLOY_RAMDISK_ID=$(openstack image show $ironic_deploy_ramdisk_name -f value -c id)
     fi
+
+    iniset $IRONIC_CONF_FILE conductor deploy_kernel $IRONIC_DEPLOY_KERNEL_ID
+    iniset $IRONIC_CONF_FILE conductor deploy_ramdisk $IRONIC_DEPLOY_RAMDISK_ID
+    iniset $IRONIC_CONF_FILE conductor rescue_kernel $IRONIC_DEPLOY_KERNEL_ID
+    iniset $IRONIC_CONF_FILE conductor rescue_ramdisk $IRONIC_DEPLOY_RAMDISK_ID
 }
 
 function prepare_baremetal_basic_ops {
@@ -2611,7 +2609,6 @@ function prepare_baremetal_basic_ops {
     upload_baremetal_ironic_deploy
     configure_tftpd
     configure_iptables
-    enroll_nodes
 }
 
 function cleanup_baremetal_basic_ops {
