@@ -31,8 +31,8 @@ class TestDHCPFactory(base.TestCase):
 
     def setUp(self):
         super(TestDHCPFactory, self).setUp()
-        self.config(url='test-url',
-                    url_timeout=30,
+        self.config(endpoint_override='test-url',
+                    timeout=30,
                     group='neutron')
         dhcp_factory.DHCPFactory._dhcp_provider = None
         self.addCleanup(setattr, dhcp_factory.DHCPFactory,

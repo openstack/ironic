@@ -1,0 +1,6 @@
+---
+upgrade:
+  - |
+    The deprecated options ``url``, ``url_timeout`` and ``auth_strategy`` from
+    the ``[neutron]`` section have been removed. Use ``endpoint_override``,
+    ``timeout`` and ``auth_type`` respectively.
