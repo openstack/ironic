@@ -22,6 +22,7 @@ from ironic.common import states
 from ironic.conductor import task_manager
 from ironic.conductor import utils as manager_utils
 from ironic.drivers import base
+from ironic.drivers.modules import deploy_utils
 from ironic.drivers.modules.redfish import utils as redfish_utils
 from ironic import objects
 
@@ -97,19 +98,39 @@ class RedfishBIOS(base.BIOSInterface):
         :raises: RedfishError on an error from the Sushy library
         """
         system = redfish_utils.get_system(task.node)
-        LOG.debug('Factory reset BIOS settings for node %(node_uuid)s',
-                  {'node_uuid': task.node.uuid})
         try:
-            system.bios.reset_bios()
-        except sushy.exceptions.SushyError as e:
+            bios = system.bios
+        except sushy.exceptions.MissingAttributeError:
             error_msg = (_('Redfish BIOS factory reset failed for node '
-                           '%(node)s. Error: %(error)s') %
-                         {'node': task.node.uuid, 'error': e})
+                           '%s, because BIOS settings are not supported.') %
+                         task.node.uuid)
             LOG.error(error_msg)
             raise exception.RedfishError(error=error_msg)
 
-        self.post_reset(task)
-        self._set_cleaning_reboot(task)
+        node = task.node
+        info = node.driver_internal_info
+        reboot_requested = info.get('post_factory_reset_reboot_requested')
+        if not reboot_requested:
+            LOG.debug('Factory reset BIOS configuration for node %(node)s',
+                      {'node': node.uuid})
+            try:
+                bios.reset_bios()
+            except sushy.exceptions.SushyError as e:
+                error_msg = (_('Redfish BIOS factory reset failed for node '
+                               '%(node)s. Error: %(error)s') %
+                             {'node': node.uuid, 'error': e})
+                LOG.error(error_msg)
+                raise exception.RedfishError(error=error_msg)
+
+            self.post_reset(task)
+            self._set_cleaning_reboot(task)
+            return states.CLEANWAIT
+        else:
+            current_attrs = bios.attributes
+            LOG.debug('Post factory reset, BIOS configuration for node '
+                      '%(node_uuid)s: %(attrs)r',
+                      {'node_uuid': node.uuid, 'attrs': current_attrs})
+            self._clear_reboot_requested(task)
 
     @base.clean_step(priority=0, argsinfo={
         'settings': {
@@ -182,6 +203,8 @@ class RedfishBIOS(base.BIOSInterface):
 
         :param task: a TaskManager instance containing the node to act on.
         """
+        deploy_opts = deploy_utils.build_agent_options(task.node)
+        task.driver.boot.prepare_ramdisk(task, deploy_opts)
         self._reboot(task)
 
     def post_configuration(self, task, settings):
@@ -195,6 +218,8 @@ class RedfishBIOS(base.BIOSInterface):
         :param task: a TaskManager instance containing the node to act on.
         :param settings: a list of BIOS settings to be updated.
         """
+        deploy_opts = deploy_utils.build_agent_options(task.node)
+        task.driver.boot.prepare_ramdisk(task, deploy_opts)
         self._reboot(task)
 
     def get_properties(self):
@@ -252,7 +277,9 @@ class RedfishBIOS(base.BIOSInterface):
         :param task: a TaskManager instance containing the node to act on.
         """
         info = task.node.driver_internal_info
+        info['post_factory_reset_reboot_requested'] = True
         info['cleaning_reboot'] = True
+        info['skip_current_clean_step'] = False
         task.node.driver_internal_info = info
         task.node.save()
 
@@ -276,10 +303,9 @@ class RedfishBIOS(base.BIOSInterface):
         :param task: a TaskManager instance containing the node to act on.
         """
         info = task.node.driver_internal_info
-        if 'post_config_reboot_requested' in info:
-            del info['post_config_reboot_requested']
-        if 'requested_bios_attrs' in info:
-            del info['requested_bios_attrs']
+        info.pop('post_config_reboot_requested', None)
+        info.pop('post_factory_reset_reboot_requested', None)
+        info.pop('requested_bios_attrs', None)
         task.node.driver_internal_info = info
         task.node.save()
 
