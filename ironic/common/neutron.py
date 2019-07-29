@@ -48,8 +48,7 @@ def _get_neutron_session():
     if not _NEUTRON_SESSION:
         _NEUTRON_SESSION = keystone.get_session(
             'neutron',
-            # TODO(pas-ha) remove in Rocky
-            timeout=CONF.neutron.timeout or CONF.neutron.url_timeout)
+            timeout=CONF.neutron.timeout)
     return _NEUTRON_SESSION
 
 
@@ -63,21 +62,8 @@ def get_client(token=None, context=None):
     session = _get_neutron_session()
     service_auth = keystone.get_auth('neutron')
 
-    # TODO(pas-ha) remove in Rocky, always simply load from config
-    # 'noauth' then would correspond to 'auth_type=none' and
-    # 'endpoint_override'
-    adapter_params = {}
-    if (CONF.neutron.auth_strategy == 'noauth'
-            and CONF.neutron.auth_type is None):
-        CONF.set_override('auth_type', 'none', group='neutron')
-        if not CONF.neutron.endpoint_override:
-            adapter_params['endpoint_override'] = (CONF.neutron.url
-                                                   or DEFAULT_NEUTRON_URL)
-    else:
-        if CONF.neutron.url and not CONF.neutron.endpoint_override:
-            adapter_params['endpoint_override'] = CONF.neutron.url
     endpoint = keystone.get_endpoint('neutron', session=session,
-                                     auth=service_auth, **adapter_params)
+                                     auth=service_auth)
 
     user_auth = None
     if CONF.neutron.auth_type != 'none' and context.auth_token:

@@ -16,7 +16,6 @@ from keystoneauth1 import loading as kaloading
 import mock
 from neutronclient.common import exceptions as neutron_client_exc
 from neutronclient.v2_0 import client
-from oslo_config import cfg
 from oslo_utils import uuidutils
 
 from ironic.common import context
@@ -125,30 +124,10 @@ class TestNeutronClient(base.TestCase):
                                              auth=mock.sentinel.auth)
         self.assertEqual(0, mock_sauth.call_count)
 
-    def test_get_neutron_client_with_deprecated_opts(self, mock_client_init,
-                                                     mock_session,
-                                                     mock_adapter, mock_auth,
-                                                     mock_sauth):
-        self.config(url='neutron_url',
-                    url_timeout=10,
-                    timeout=None,
-                    service_type=None,
-                    group='neutron')
-        mock_adapter.return_value = adapter = mock.Mock()
-        adapter.get_endpoint.return_value = 'neutron_url'
-        self._call_and_assert_client(mock_client_init, 'neutron_url')
-        mock_session.assert_called_once_with('neutron', timeout=10)
-        mock_adapter.assert_called_once_with('neutron',
-                                             session=mock.sentinel.session,
-                                             auth=mock.sentinel.auth,
-                                             endpoint_override='neutron_url')
-
     def test_get_neutron_client_noauth(self, mock_client_init, mock_session,
                                        mock_adapter, mock_auth, mock_sauth):
-        self.config(auth_strategy='noauth',
-                    endpoint_override='neutron_url',
-                    url_timeout=None,
-                    auth_type=None,
+        self.config(endpoint_override='neutron_url',
+                    auth_type='none',
                     timeout=10,
                     group='neutron')
         mock_adapter.return_value = adapter = mock.Mock()
@@ -163,11 +142,6 @@ class TestNeutronClient(base.TestCase):
                                              auth=mock.sentinel.auth)
         mock_auth.assert_called_once_with('neutron')
         self.assertEqual(0, mock_sauth.call_count)
-
-    def test_out_range_auth_strategy(self, mock_client_init, mock_session,
-                                     mock_adapter, mock_auth, mock_eauth):
-        self.assertRaises(ValueError, cfg.CONF.set_override,
-                          'auth_strategy', 'fake', 'neutron')
 
 
 class TestNeutronNetworkActions(db_base.DbTestCase):

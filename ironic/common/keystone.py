@@ -115,7 +115,9 @@ def get_endpoint(group, **adapter_kwargs):
     """
     result = get_adapter(group, **adapter_kwargs).get_endpoint()
     if not result:
-        service_type = adapter_kwargs.get('service_type', 'baremetal')
+        service_type = adapter_kwargs.get(
+            'service_type',
+            getattr(getattr(CONF, group), 'service_type', group))
         endpoint_type = adapter_kwargs.get('endpoint_type', 'internal')
         raise exception.CatalogNotFound(
             service_type=service_type, endpoint_type=endpoint_type)

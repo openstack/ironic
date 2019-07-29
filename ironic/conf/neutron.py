@@ -20,25 +20,6 @@ from ironic.common.i18n import _
 from ironic.conf import auth
 
 opts = [
-    cfg.StrOpt('url',
-               deprecated_for_removal=True,
-               deprecated_reason=_("Use [neutron]/endpoint_override option "
-                                   "instead. It has no default value and must "
-                                   "be set explicitly if required to connect "
-                                   "to specific neutron URL, for example "
-                                   "in stand alone mode when "
-                                   "[neutron]/auth_type is 'none'."),
-               help=_("URL for connecting to neutron. "
-                      "Default value translates to 'http://$my_ip:9696' "
-                      "when auth_strategy is 'noauth', "
-                      "and to discovery from Keystone catalog "
-                      "when auth_strategy is 'keystone'.")),
-    cfg.IntOpt('url_timeout',
-               default=30,
-               deprecated_for_removal=True,
-               deprecated_reason=_("Set the desired value explicitly using "
-                                   "the [neutron]/timeout option instead."),
-               help=_('Timeout value for connecting to neutron in seconds.')),
     cfg.IntOpt('port_setup_delay',
                default=0,
                min=0,
@@ -47,20 +28,6 @@ opts = [
     cfg.IntOpt('retries',
                default=3,
                help=_('Client retries in the case of a failed request.')),
-    cfg.StrOpt('auth_strategy',
-               default='keystone',
-               choices=[('keystone', _('use the Identity service for '
-                                       'authentication')),
-                        ('noauth', _('no authentication'))],
-               deprecated_for_removal=True,
-               deprecated_reason=_("To configure neutron for noauth mode, "
-                                   "set [neutron]/auth_type = none and "
-                                   "[neutron]/endpoint_override="
-                                   "<NEUTRON_API_URL> instead"),
-               help=_('Authentication strategy to use when connecting to '
-                      'neutron. Running neutron in noauth mode (related to '
-                      'but not affected by this setting) is insecure and '
-                      'should only be used for testing.')),
     cfg.StrOpt('cleaning_network',
                help=_('Neutron network UUID or name for the ramdisk to be '
                       'booted into for cleaning nodes. Required for "neutron" '
