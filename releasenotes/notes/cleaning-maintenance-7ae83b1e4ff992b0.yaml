@@ -1,0 +1,10 @@
+---
+fixes:
+  - |
+    Currently ironic allows entering deployment or cleaning for nodes in
+    maintenance mode. However, heartbeats do not cause any actions for such
+    nodes, thus deployment or cleaning never finish if the nodes are not moved
+    out of maintenance. A new configuration option
+    ``[conductor]allow_provisioning_in_maintenance`` (defaulting to ``True``)
+    is added to configure this behavior. If it is set to ``False``, deployment
+    and cleaning will be prevented from nodes in maintenance mode.

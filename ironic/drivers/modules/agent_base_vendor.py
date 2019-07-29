@@ -296,6 +296,31 @@ class HeartbeatMixin(object):
             return FASTTRACK_HEARTBEAT_ALLOWED
         return HEARTBEAT_ALLOWED
 
+    def _heartbeat_in_maintenance(self, task):
+        node = task.node
+        if (node.provision_state in (states.CLEANING, states.CLEANWAIT)
+                and not CONF.conductor.allow_provisioning_in_maintenance):
+            LOG.error('Aborting cleaning for node %s, as it is in maintenance '
+                      'mode', node.uuid)
+            last_error = _('Cleaning aborted as node is in maintenance mode')
+            manager_utils.cleaning_error_handler(task, last_error)
+        elif (node.provision_state in (states.DEPLOYING, states.DEPLOYWAIT)
+              and not CONF.conductor.allow_provisioning_in_maintenance):
+            LOG.error('Aborting deployment for node %s, as it is in '
+                      'maintenance mode', node.uuid)
+            last_error = _('Deploy aborted as node is in maintenance mode')
+            deploy_utils.set_failed_state(task, last_error, collect_logs=False)
+        elif (node.provision_state in (states.RESCUING, states.RESCUEWAIT)
+              and not CONF.conductor.allow_provisioning_in_maintenance):
+            LOG.error('Aborting rescuing for node %s, as it is in '
+                      'maintenance mode', node.uuid)
+            last_error = _('Rescue aborted as node is in maintenance mode')
+            manager_utils.rescuing_error_handler(task, last_error)
+        else:
+            LOG.warning('Heartbeat from node %(node)s in '
+                        'maintenance mode; not taking any action.',
+                        {'node': node.uuid})
+
     @METRICS.timer('HeartbeatMixin.heartbeat')
     def heartbeat(self, task, callback_url, agent_version):
         """Process a heartbeat.
@@ -342,20 +367,18 @@ class HeartbeatMixin(object):
                       'node as on-line.', {'node': task.node.uuid})
             return
 
+        if node.maintenance:
+            return self._heartbeat_in_maintenance(task)
+
         # Async call backs don't set error state on their own
         # TODO(jimrollenhagen) improve error messages here
         msg = _('Failed checking if deploy is done.')
         try:
-            if node.maintenance:
-                # this shouldn't happen often, but skip the rest if it does.
-                LOG.debug('Heartbeat from node %(node)s in maintenance mode; '
-                          'not taking any action.', {'node': node.uuid})
-                return
             # NOTE(mgoddard): Only handle heartbeats during DEPLOYWAIT if we
             # are currently in the core deploy.deploy step. Other deploy steps
             # may cause the agent to boot, but we should not trigger deployment
             # at that point.
-            elif node.provision_state == states.DEPLOYWAIT:
+            if node.provision_state == states.DEPLOYWAIT:
                 if self.in_core_deploy_step(task):
                     if not self.deploy_has_started(task):
                         msg = _('Node failed to deploy.')

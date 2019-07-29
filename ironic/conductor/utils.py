@@ -412,7 +412,9 @@ def cleaning_error_handler(task, msg, tear_down_cleaning=True,
     # for automated cleaning, it is AVAILABLE.
     manual_clean = node.target_provision_state == states.MANAGEABLE
     node.last_error = msg
-    node.maintenance_reason = msg
+    # NOTE(dtantsur): avoid overwriting existing maintenance_reason
+    if not node.maintenance_reason:
+        node.maintenance_reason = msg
     node.save()
 
     if set_fail_state and node.provision_state != states.CLEANFAIL:
