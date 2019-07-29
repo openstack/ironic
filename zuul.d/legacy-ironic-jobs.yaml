@@ -20,7 +20,6 @@
       - openstack/ironic-lib
       - openstack/ironic-python-agent
       - openstack/ironic-tempest-plugin
-      - x/pyghmi
       - openstack/python-ironicclient
       - openstack/virtualbmc
     pre-run: playbooks/legacy/ironic-dsvm-base/pre.yaml
@@ -52,7 +51,6 @@
       - openstack/ironic-python-agent
       - openstack/ironic-tempest-plugin
       - openstack/networking-generic-switch
-      - x/pyghmi
       - openstack/python-ironicclient
       - openstack/virtualbmc
     pre-run: playbooks/legacy/ironic-dsvm-base-multinode/pre.yaml
@@ -82,7 +80,6 @@
       - openstack/ironic-inspector
       - openstack/ironic-lib
       - openstack/ironic-python-agent
-      - x/pyghmi
       - openstack/python-ironic-inspector-client
       - openstack/python-ironicclient
       - openstack/tempest
@@ -102,7 +99,6 @@
       - openstack/ironic
       - openstack/ironic-lib
       - openstack/ironic-python-agent
-      - x/pyghmi
       - openstack/python-ironicclient
       - openstack/virtualbmc
 
@@ -118,7 +114,6 @@
       - openstack/ironic-lib
       - openstack/ironic-python-agent
       - openstack/networking-generic-switch
-      - x/pyghmi
       - openstack/python-ironicclient
       - openstack/virtualbmc
     nodeset: legacy-ubuntu-xenial-2-node
