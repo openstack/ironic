@@ -257,6 +257,10 @@ class DracManagementInternalMethodsTestCase(test_utils.BaseDracTest):
         mock_client = mock.Mock()
         mock_get_drac_client.return_value = mock_client
         mock_client.list_boot_devices.return_value = self.boot_devices['IPL']
+        mock_job = mock.Mock()
+        mock_job.status = "Scheduled"
+        mock_client.get_job.return_value = mock_job
+
         boot_device = {'boot_device': ironic.common.boot_devices.DISK,
                        'persistent': True}
         mock__get_boot_device.return_value = boot_device
@@ -315,6 +319,10 @@ class DracManagementInternalMethodsTestCase(test_utils.BaseDracTest):
         mock_client = mock.Mock()
         mock_get_drac_client.return_value = mock_client
         mock_client.list_boot_devices.return_value = self.boot_devices['UEFI']
+
+        mock_job = mock.Mock()
+        mock_job.status = "Scheduled"
+        mock_client.get_job.return_value = mock_job
         boot_device = {'boot_device': ironic.common.boot_devices.PXE,
                        'persistent': False}
         mock__get_boot_device.return_value = boot_device
@@ -444,6 +452,40 @@ class DracManagementInternalMethodsTestCase(test_utils.BaseDracTest):
         self.assertEqual(0, mock_client.change_boot_device_order.call_count)
         self.assertEqual(0, mock_client.set_bios_settings.call_count)
         self.assertEqual(0, mock_client.commit_pending_bios_changes.call_count)
+
+    @mock.patch('time.time')
+    @mock.patch('time.sleep')
+    @mock.patch.object(drac_mgmt, '_get_next_persistent_boot_mode',
+                       spec_set=True, autospec=True)
+    @mock.patch.object(drac_mgmt, '_get_boot_device', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(drac_job, 'validate_job_queue', spec_set=True,
+                       autospec=True)
+    def test_set_boot_device_job_not_scheduled(
+            self,
+            mock_validate_job_queue,
+            mock__get_boot_device,
+            mock__get_next_persistent_boot_mode,
+            mock_sleep,
+            mock_time,
+            mock_get_drac_client):
+        mock_client = mock.Mock()
+        mock_get_drac_client.return_value = mock_client
+        mock_client.list_boot_devices.return_value = self.boot_devices['IPL']
+        mock_job = mock.Mock()
+        mock_job.status = "New"
+        mock_client.get_job.return_value = mock_job
+        mock_time.side_effect = [10, 50]
+
+        boot_device = {'boot_device': ironic.common.boot_devices.DISK,
+                       'persistent': True}
+        mock__get_boot_device.return_value = boot_device
+        mock__get_next_persistent_boot_mode.return_value = 'IPL'
+
+        self.assertRaises(exception.DracOperationError,
+                          drac_mgmt.set_boot_device, self.node,
+                          ironic.common.boot_devices.PXE,
+                          persistent=True)
 
 
 @mock.patch.object(drac_common, 'get_drac_client', spec_set=True,
