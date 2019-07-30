@@ -172,21 +172,24 @@ def _verify_security_groups(security_groups, client):
         return
     try:
         neutron_sec_groups = (
-            client.list_security_groups().get('security_groups', []))
+            client.list_security_groups(id=security_groups, fields='id').get(
+                'security_groups', []))
     except neutron_exceptions.NeutronClientException as e:
         msg = (_("Could not retrieve security groups from neutron: %(exc)s") %
                {'exc': e})
         LOG.exception(msg)
         raise exception.NetworkError(msg)
 
-    existing_sec_groups = [sec_group['id'] for sec_group in neutron_sec_groups]
-    missing_sec_groups = set(security_groups) - set(existing_sec_groups)
-    if missing_sec_groups:
-        msg = (_('Could not find these security groups (specified via ironic '
-                 'config) in neutron: %(ir-sg)s')
-               % {'ir-sg': list(missing_sec_groups)})
-        LOG.error(msg)
-        raise exception.NetworkError(msg)
+    if set(security_groups).issubset(x['id'] for x in neutron_sec_groups):
+        return
+
+    missing_sec_groups = set(security_groups).difference(
+        x['id'] for x in neutron_sec_groups)
+    msg = (_('Could not find these security groups (specified via ironic '
+             'config) in neutron: %(ir-sg)s')
+           % {'ir-sg': list(missing_sec_groups)})
+    LOG.error(msg)
+    raise exception.NetworkError(msg)
 
 
 def add_ports_to_network(task, network_uuid, security_groups=None):
