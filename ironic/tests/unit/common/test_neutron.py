@@ -10,6 +10,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import copy
 import time
 
 from keystoneauth1 import loading as kaloading
@@ -171,16 +172,19 @@ class TestNeutronNetworkActions(db_base.DbTestCase):
         self.addCleanup(patcher.stop)
 
     def _test_add_ports_to_network(self, is_client_id,
-                                   security_groups=None):
+                                   security_groups=None,
+                                   add_all_ports=False):
         # Ports will be created only if pxe_enabled is True
         self.node.network_interface = 'neutron'
         self.node.save()
-        object_utils.create_test_port(
+        port2 = object_utils.create_test_port(
             self.context, node_id=self.node.id,
             uuid=uuidutils.generate_uuid(),
-            address='52:54:00:cf:2d:22',
+            address='54:00:00:cf:2d:22',
             pxe_enabled=False
         )
+        if add_all_ports:
+            self.config(add_all_ports=True, group="neutron")
         port = self.ports[0]
         if is_client_id:
             extra = port.extra
@@ -207,20 +211,45 @@ class TestNeutronNetworkActions(db_base.DbTestCase):
         if is_client_id:
             expected_body['port']['extra_dhcp_opts'] = (
                 [{'opt_name': '61', 'opt_value': self._CLIENT_ID}])
-        # Ensure we can create ports
-        self.client_mock.create_port.return_value = {
-            'port': self.neutron_port}
-        expected = {port.uuid: self.neutron_port['id']}
+
+        if add_all_ports:
+            expected_body2 = copy.deepcopy(expected_body)
+            expected_body2['port']['mac_address'] = port2.address
+            expected_body2['fixed_ips'] = []
+            neutron_port2 = {'id': '132f871f-eaec-4fed-9475-0d54465e0f01',
+                             'mac_address': port2.address}
+            self.client_mock.create_port.side_effect = [
+                {'port': self.neutron_port},
+                {'port': neutron_port2}
+            ]
+            expected = {port.uuid: self.neutron_port['id'],
+                        port2.uuid: neutron_port2['id']}
+
+        else:
+            self.client_mock.create_port.return_value = {
+                'port': self.neutron_port}
+            expected = {port.uuid: self.neutron_port['id']}
+
         with task_manager.acquire(self.context, self.node.uuid) as task:
             ports = neutron.add_ports_to_network(
                 task, self.network_uuid, security_groups=security_groups)
             self.assertEqual(expected, ports)
-            self.client_mock.create_port.assert_called_once_with(
-                expected_body)
+            if add_all_ports:
+                calls = [mock.call(expected_body),
+                         mock.call(expected_body2)]
+                self.client_mock.create_port.assert_has_calls(calls)
+            else:
+                self.client_mock.create_port.assert_called_once_with(
+                    expected_body)
 
     def test_add_ports_to_network(self):
         self._test_add_ports_to_network(is_client_id=False,
                                         security_groups=None)
+
+    def test_add_ports_to_network_all_ports(self):
+        self._test_add_ports_to_network(is_client_id=False,
+                                        security_groups=None,
+                                        add_all_ports=True)
 
     @mock.patch.object(neutron, '_verify_security_groups', autospec=True)
     def test_add_ports_to_network_with_sg(self, verify_mock):
@@ -412,6 +441,25 @@ class TestNeutronNetworkActions(db_base.DbTestCase):
                 {'network_id': self.network_uuid,
                  'mac_address': [self.ports[0].address]}
             )
+
+    @mock.patch.object(neutron, 'remove_neutron_ports', autospec=True)
+    def test_remove_ports_from_network_not_all_pxe_enabled_all_ports(
+            self, remove_mock):
+        self.config(add_all_ports=True, group="neutron")
+        object_utils.create_test_port(
+            self.context, node_id=self.node.id,
+            uuid=uuidutils.generate_uuid(),
+            address='52:54:55:cf:2d:32',
+            pxe_enabled=False
+        )
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            neutron.remove_ports_from_network(task, self.network_uuid)
+            calls = [
+                mock.call(task, {'network_id': self.network_uuid,
+                                 'mac_address': [task.ports[0].address,
+                                                 task.ports[1].address]}),
+            ]
+            remove_mock.assert_has_calls(calls)
 
     def test_remove_neutron_ports(self):
         with task_manager.acquire(self.context, self.node.uuid) as task:

@@ -10,6 +10,8 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+import copy
+
 from neutronclient.common import exceptions as neutron_exceptions
 from neutronclient.v2_0 import client as clientv20
 from oslo_log import log
@@ -203,6 +205,7 @@ def add_ports_to_network(task, network_uuid, security_groups=None):
     """
     client = get_client(context=task.context)
     node = task.node
+    add_all_ports = CONF.neutron.add_all_ports
 
     # If Security Groups are specified, verify that they exist
     _verify_security_groups(security_groups, client)
@@ -211,6 +214,7 @@ def add_ports_to_network(task, network_uuid, security_groups=None):
               '%(network_uuid)s using %(net_iface)s network interface.',
               {'net_iface': task.driver.network.__class__.__name__,
                'node': node.uuid, 'network_uuid': network_uuid})
+
     body = {
         'port': {
             'network_id': network_uuid,
@@ -231,21 +235,33 @@ def add_ports_to_network(task, network_uuid, security_groups=None):
     ports = {}
     failures = []
     portmap = get_node_portmap(task)
-    pxe_enabled_ports = [p for p in task.ports if p.pxe_enabled]
 
+    if not add_all_ports:
+        pxe_enabled_ports = [p for p in task.ports if p.pxe_enabled]
+    else:
+        pxe_enabled_ports = task.ports
     if not pxe_enabled_ports:
         raise exception.NetworkError(_(
             "No available PXE-enabled port on node %s.") % node.uuid)
 
     for ironic_port in pxe_enabled_ports:
+        # Start with a clean state for each port
+        port_body = copy.deepcopy(body)
         # Skip ports that are missing required information for deploy.
         if not validate_port_info(node, ironic_port):
             failures.append(ironic_port.uuid)
             continue
-        body['port']['mac_address'] = ironic_port.address
+        port_body['port']['mac_address'] = ironic_port.address
         binding_profile = {'local_link_information':
                            [portmap[ironic_port.uuid]]}
-        body['port']['binding:profile'] = binding_profile
+        port_body['port']['binding:profile'] = binding_profile
+
+        if add_all_ports and not ironic_port.pxe_enabled:
+            LOG.debug("Adding port %(port)s to network %(net) for "
+                      "provisioning without an IP allocation.",
+                      {'port': ironic_port.uuid,
+                       'net': network_uuid})
+            port_body['fixed_ips'] = []
 
         is_smart_nic = is_smartnic_port(ironic_port)
         if is_smart_nic:
@@ -254,21 +270,22 @@ def add_ports_to_network(task, network_uuid, security_groups=None):
                       'port %(port_id)s, hostname %(hostname)s',
                       {'port_id': ironic_port.uuid,
                        'hostname': link_info['hostname']})
-            body['port']['binding:host_id'] = link_info['hostname']
+            port_body['port']['binding:host_id'] = link_info['hostname']
 
             # TODO(hamdyk): use portbindings.VNIC_SMARTNIC from neutron-lib
-            body['port']['binding:vnic_type'] = VNIC_SMARTNIC
+            port_body['port']['binding:vnic_type'] = VNIC_SMARTNIC
         client_id = ironic_port.extra.get('client-id')
         if client_id:
             client_id_opt = {'opt_name': DHCP_CLIENT_ID,
                              'opt_value': client_id}
-            extra_dhcp_opts = body['port'].get('extra_dhcp_opts', [])
+            extra_dhcp_opts = port_body['port'].get('extra_dhcp_opts', [])
             extra_dhcp_opts.append(client_id_opt)
-            body['port']['extra_dhcp_opts'] = extra_dhcp_opts
+            port_body['port']['extra_dhcp_opts'] = extra_dhcp_opts
         try:
             if is_smart_nic:
-                wait_for_host_agent(client, body['port']['binding:host_id'])
-            port = client.create_port(body)
+                wait_for_host_agent(client,
+                                    port_body['port']['binding:host_id'])
+            port = client.create_port(port_body)
             if is_smart_nic:
                 wait_for_port_status(client, port['port']['id'], 'ACTIVE')
         except neutron_exceptions.NeutronClientException as e:
@@ -307,7 +324,11 @@ def remove_ports_from_network(task, network_uuid):
     :param network_uuid: UUID of a neutron network ports will be deleted from.
     :raises: NetworkError
     """
-    macs = [p.address for p in task.ports if p.pxe_enabled]
+    add_all_ports = CONF.neutron.add_all_ports
+    if not add_all_ports:
+        macs = [p.address for p in task.ports if p.pxe_enabled]
+    else:
+        macs = [p.address for p in task.ports]
     if macs:
         params = {
             'network_id': network_uuid,

@@ -1,0 +1,19 @@
+---
+fixes:
+  - |
+    Provides an opt-in fix to change the default port attachment behavior
+    for deployment and cleaning operations through a new configuration option,
+    ``[neutron]add_all_ports``. This option causes ironic to transmits all
+    port information to neutron as opposed to only a single physical network
+    port. This enables operators to successfully operate static Port Group
+    configurations with Neutron ML2 drivers, where previously configuration
+    of networking would fail.
+
+    When these ports are configured with ``pxe_enabled`` set to ``False``,
+    neutron will be requested not to assign an IP address to the port. This
+    is to prevent additional issues that may occur depending on physical
+    switch configuration with static Port Group configurations.
+  - |
+    Fixes an issue during provisioning network attachment where
+    neutron ports were being created with the same data structure
+    being re-used.

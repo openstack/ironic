@@ -83,7 +83,13 @@ opts = [
                       'performs pre-commit validation prior returning to '
                       'the API client which can take longer than normal '
                       'client/server interactions.')),
-
+    cfg.BoolOpt('add_all_ports',
+                default=False,
+                help=_('Option to enable transmission of all ports '
+                       'to neutron when creating ports for provisioning, '
+                       'cleaning, or rescue. This is done without IP '
+                       'addresses assigned to the port, and may be useful '
+                       'in some bonded network configurations.')),
 ]
 
 
