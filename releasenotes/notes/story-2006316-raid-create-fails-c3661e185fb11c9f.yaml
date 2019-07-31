@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    Fixes an issue in creation of RAID if none of the 'logical_disks'
+    in 'target_raid_config' have 'controller' parameter.
+    See `story 2006316
+    <https://storyboard.openstack.org/#!/story/2006316>`__ for details.

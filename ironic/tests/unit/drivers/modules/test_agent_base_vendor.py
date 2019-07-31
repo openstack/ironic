@@ -1066,6 +1066,32 @@ class AgentDeployMixinTest(AgentDeployMixinBaseTest):
     @mock.patch.object(deploy_utils, 'try_set_boot_device', autospec=True)
     @mock.patch.object(agent_client.AgentClient, 'install_bootloader',
                        autospec=True)
+    def test_configure_local_boot_on_non_software_raid(
+            self, install_bootloader_mock, try_set_boot_device_mock):
+        with task_manager.acquire(self.context, self.node['uuid'],
+                                  shared=False) as task:
+            task.node.driver_internal_info['is_whole_disk_image'] = False
+            task.node.target_raid_config = {
+                "logical_disks": [
+                    {
+                        "size_gb": 100,
+                        "raid_level": "1",
+                    },
+                    {
+                        "size_gb": 'MAX',
+                        "raid_level": "0",
+                    }
+                ]
+            }
+
+            self.deploy.configure_local_boot(task)
+            self.assertFalse(install_bootloader_mock.called)
+            try_set_boot_device_mock.assert_called_once_with(
+                task, boot_devices.DISK, persistent=True)
+
+    @mock.patch.object(deploy_utils, 'try_set_boot_device', autospec=True)
+    @mock.patch.object(agent_client.AgentClient, 'install_bootloader',
+                       autospec=True)
     def test_configure_local_boot_enforce_persistent_boot_device_default(
             self, install_bootloader_mock, try_set_boot_device_mock):
         with task_manager.acquire(self.context, self.node['uuid'],
