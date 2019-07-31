@@ -30,19 +30,21 @@
   <on_crash>restart</on_crash>
   <devices>
     <emulator>{{ emulator }}</emulator>
+    {% for (imagefile, letter) in images %}
     <disk type='file' device='disk'>
       <driver name='qemu' type='{{ disk_format }}' cache='writeback'/>
       <source file='{{ imagefile }}'/>
       <!-- NOTE(lucasagomes): The virtio disk controller apparently does
            not work with UEFI, so let's use IDE. -->
       {% if uefi_loader %}
-          <target dev='vda' bus='ide'/>
-          <address type='drive' controller='0' bus='0' target='0' unit='0'/>
+          <target dev='vd{{ letter }}' bus='ide'/>
+          <address type='drive' controller='0' bus='0' target='0' unit='{{ loop.index }}'/>
       {% else %}
-          <target dev='vda' bus='virtio'/>
-          <address type='pci' domain='0x0000' bus='0x00' slot='0x06' function='0x0'/>
+          <target dev='vd{{ letter }}' bus='virtio'/>
+          <address type='pci' domain='0x0000' bus='0x00' slot='0x0{{ letter }}' function='0x0'/>
       {% endif %}
     </disk>
+    {% endfor %}
     <controller type='ide' index='0'>
       <address type='pci' domain='0x0000' bus='0x00' slot='0x01' function='0x1'/>
     </controller>

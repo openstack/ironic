@@ -15,6 +15,8 @@
 
 import argparse
 import os.path
+import string
+import sys
 
 import jinja2
 import libvirt
@@ -57,7 +59,7 @@ def main():
         description="Configure a kvm virtual machine for the seed image.")
     parser.add_argument('--name', default='seed',
                         help='the name to give the machine in libvirt.')
-    parser.add_argument('--image',
+    parser.add_argument('--image', action='append', default=[],
                         help='Use a custom image file (must be qcow2).')
     parser.add_argument('--engine', default='qemu',
                         help='The virtualization engine to use')
@@ -92,9 +94,14 @@ def main():
     env = jinja2.Environment(loader=jinja2.FileSystemLoader(templatedir))
     template = env.get_template('vm.xml')
 
+    images = list(zip(args.image, string.ascii_lowercase))
+    if not images or len(images) > 6:
+        # 6 is an artificial limitation because of the way we generate PCI IDs
+        sys.exit("Up to 6 images are required")
+
     params = {
         'name': args.name,
-        'imagefile': args.image,
+        'images': images,
         'engine': args.engine,
         'arch': args.arch,
         'memory': args.memory,

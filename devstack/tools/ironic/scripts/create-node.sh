@@ -12,7 +12,7 @@ export PS4='+ ${BASH_SOURCE:-}:${FUNCNAME[0]:-}:L${LINENO:-}:   '
 # Keep track of the DevStack directory
 TOP_DIR=$(cd $(dirname "$0")/.. && pwd)
 
-while getopts "n:c:i:m:M:d:a:b:e:E:p:o:f:l:L:N:A:D:" arg; do
+while getopts "n:c:i:m:M:d:a:b:e:E:p:o:f:l:L:N:A:D:v:" arg; do
     case $arg in
         n) NAME=$OPTARG;;
         c) CPU=$OPTARG;;
@@ -34,6 +34,7 @@ while getopts "n:c:i:m:M:d:a:b:e:E:p:o:f:l:L:N:A:D:" arg; do
         N) UEFI_NVRAM=$OPTARG;;
         A) MAC_ADDRESS=$OPTARG;;
         D) NIC_DRIVER=$OPTARG;;
+        v) VOLUME_COUNT=$OPTARG;;
     esac
 done
 
@@ -76,7 +77,6 @@ if [ -n "$LOGDIR" ] ; then
 else
     VM_LOGGING=""
 fi
-VOL_NAME="${NAME}.${DISK_FORMAT}"
 
 UEFI_OPTS=""
 if [ ! -z "$UEFI_LOADER" ]; then
@@ -111,20 +111,31 @@ if [ -n "$MAC_ADDRESS" ] ; then
     MAC_ADDRESS="--mac $MAC_ADDRESS"
 fi
 
+VOLUME_COUNT=${VOLUME_COUNT:-1}
+
 if ! virsh list --all | grep -q $NAME; then
-    virsh vol-list --pool $LIBVIRT_STORAGE_POOL | grep -q $VOL_NAME &&
-        virsh vol-delete $VOL_NAME --pool $LIBVIRT_STORAGE_POOL >&2
-    virsh vol-create-as $LIBVIRT_STORAGE_POOL ${VOL_NAME} ${DISK}G --format $DISK_FORMAT $PREALLOC >&2
-    volume_path=$(virsh vol-path --pool $LIBVIRT_STORAGE_POOL $VOL_NAME)
-    # Pre-touch the VM to set +C, as it can only be set on empty files.
-    sudo touch "$volume_path"
-    sudo chattr +C "$volume_path" || true
     vm_opts=""
+    for int in $(seq 1 $VOLUME_COUNT); do
+        if [[ "$int" == "1" ]]; then
+            # Compatibility with old naming
+            vol_name="$NAME.$DISK_FORMAT"
+        else
+            vol_name="$NAME-$int.$DISK_FORMAT"
+        fi
+        virsh vol-list --pool $LIBVIRT_STORAGE_POOL | grep -q $vol_name &&
+            virsh vol-delete $vol_name --pool $LIBVIRT_STORAGE_POOL >&2
+        virsh vol-create-as $LIBVIRT_STORAGE_POOL ${vol_name} ${DISK}G --format $DISK_FORMAT $PREALLOC >&2
+        volume_path=$(virsh vol-path --pool $LIBVIRT_STORAGE_POOL $vol_name)
+        # Pre-touch the VM to set +C, as it can only be set on empty files.
+        sudo touch "$volume_path"
+        sudo chattr +C "$volume_path" || true
+        vm_opts+="--image $volume_path "
+    done
     if [[ -n "$EMULATOR" ]]; then
         vm_opts+="--emulator $EMULATOR "
     fi
     $PYTHON $TOP_DIR/scripts/configure-vm.py \
-        --bootdev network --name $NAME --image "$volume_path" \
+        --bootdev network --name $NAME \
         --arch $ARCH --cpus $CPU --memory $MEM --libvirt-nic-driver $LIBVIRT_NIC_DRIVER \
         --disk-format $DISK_FORMAT $VM_LOGGING --engine $ENGINE $UEFI_OPTS $vm_opts \
         --interface-count $INTERFACE_COUNT $MAC_ADDRESS >&2
