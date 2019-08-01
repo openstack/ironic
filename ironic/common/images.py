@@ -273,8 +273,13 @@ def create_isolinux_image_for_uefi(output_file, kernel, ramdisk,
                 grub_rel_path = CONF.grub_config_path.lstrip(' ' + os.sep)
                 grub_cfg = os.path.join(tmpdir, grub_rel_path)
 
+                # Create an empty grub config file by copying /dev/null.
+                # This is to avoid write failures when actual write of
+                # config file happens. Write failures are caused if grub
+                # config path does not exist on root file system.
                 uefi_path_info = {
-                    esp_image: e_img_rel_path
+                    esp_image: e_img_rel_path,
+                    '/dev/null': grub_rel_path
                 }
 
             else:

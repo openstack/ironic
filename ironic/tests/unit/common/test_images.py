@@ -536,23 +536,25 @@ class FsImageTestCase(base.TestCase):
             'path/to/efiboot.img', '-no-emul-boot', '-o', 'tgt_file', 'tmpdir')
         umount_mock.assert_called_once_with('mountdir')
 
-    @mock.patch.object(images, '_create_root_fs', autospec=True)
     @mock.patch.object(utils, 'write_to_file', autospec=True)
+    @mock.patch.object(images, '_create_root_fs', autospec=True)
     @mock.patch.object(utils, 'execute', autospec=True)
     @mock.patch.object(utils, 'tempdir', autospec=True)
     @mock.patch.object(images, '_generate_cfg', autospec=True)
     def test_create_isolinux_image_for_uefi_with_esp_image(
             self, gen_cfg_mock, tempdir_mock, execute_mock,
-            write_to_file_mock, create_root_fs_mock):
+            create_root_fs_mock, write_to_file_mock):
 
         files_info = {
             'path/to/kernel': 'vmlinuz',
             'path/to/ramdisk': 'initrd',
             'sourceabspath/to/efiboot.img': 'boot/grub/efiboot.img',
+            '/dev/null': 'EFI/MYBOOT/grub.cfg',
         }
 
+        grub_cfg_file = '/EFI/MYBOOT/grub.cfg'
+        CONF.set_override('grub_config_path', grub_cfg_file)
         grubcfg = "grubcfg"
-        grub_file = 'tmpdir/boot/grub/grub.cfg'
         gen_cfg_mock.side_effect = (grubcfg,)
 
         params = ['a=b', 'c']
@@ -564,6 +566,7 @@ class FsImageTestCase(base.TestCase):
         mock_file_handle1 = mock.MagicMock(spec=file)
         mock_file_handle1.__enter__.return_value = 'mountdir'
         tempdir_mock.side_effect = mock_file_handle, mock_file_handle1
+        mountdir_grub_cfg_path = 'tmpdir' + grub_cfg_file
 
         images.create_isolinux_image_for_uefi(
             'tgt_file', 'path/to/kernel', 'path/to/ramdisk',
@@ -572,7 +575,7 @@ class FsImageTestCase(base.TestCase):
         create_root_fs_mock.assert_called_once_with('tmpdir', files_info)
         gen_cfg_mock.assert_any_call(params, CONF.grub_config_template,
                                      grub_options)
-        write_to_file_mock.assert_any_call(grub_file, grubcfg)
+        write_to_file_mock.assert_any_call(mountdir_grub_cfg_path, grubcfg)
         execute_mock.assert_called_once_with(
             'mkisofs', '-r', '-V', 'VMEDIA_BOOT_ISO', '-l', '-e',
             'boot/grub/efiboot.img', '-no-emul-boot', '-o', 'tgt_file',
