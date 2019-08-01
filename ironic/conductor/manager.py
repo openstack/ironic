@@ -875,8 +875,9 @@ class ConductorManager(base_manager.BaseConductorManager):
                     action=event, node=task.node.uuid,
                     state=task.node.provision_state)
 
-    def _get_node_next_deploy_steps(self, task):
-        return self._get_node_next_steps(task, 'deploy')
+    def _get_node_next_deploy_steps(self, task, skip_current_step=True):
+        return self._get_node_next_steps(task, 'deploy',
+                                         skip_current_step=skip_current_step)
 
     @METRICS.timer('ConductorManager.continue_node_deploy')
     def continue_node_deploy(self, context, node_id):
@@ -914,7 +915,17 @@ class ConductorManager(base_manager.BaseConductorManager):
                      'state': node.provision_state,
                      'deploy_state': ', '.join(expected_states)})
 
-            next_step_index = self._get_node_next_deploy_steps(task)
+            info = node.driver_internal_info
+            try:
+                skip_current_step = info.pop('skip_current_deploy_step')
+            except KeyError:
+                skip_current_step = True
+            else:
+                node.driver_internal_info = info
+                node.save()
+
+            next_step_index = self._get_node_next_deploy_steps(
+                task, skip_current_step=skip_current_step)
 
             # TODO(rloo): When deprecation period is over and node is in
             # states.DEPLOYWAIT only, delete the 'if' and always 'resume'.
@@ -3861,6 +3872,16 @@ def _do_next_deploy_step(task, step_index, conductor_id):
         try:
             result = interface.execute_deploy_step(task, step)
         except exception.IronicException as e:
+            if isinstance(e, exception.AgentConnectionFailed):
+                if task.node.driver_internal_info.get('deployment_reboot'):
+                    LOG.info('Agent is not yet running on node %(node)s after '
+                             'deployment reboot, waiting for agent to come up '
+                             'to run next deploy step %(step)s.',
+                             {'node': node.uuid, 'step': step})
+                    driver_internal_info['skip_current_deploy_step'] = False
+                    node.driver_internal_info = driver_internal_info
+                    task.process_event('wait')
+                    return
             log_msg = ('Node %(node)s failed deploy step %(step)s. Error: '
                        '%(err)s' %
                        {'node': node.uuid, 'step': node.deploy_step, 'err': e})
@@ -3885,7 +3906,7 @@ def _do_next_deploy_step(task, step_index, conductor_id):
             node.save()
 
         # Check if the step is done or not. The step should return
-        # states.CLEANWAIT if the step is still being executed, or
+        # states.DEPLOYWAIT if the step is still being executed, or
         # None if the step is done.
         # NOTE(deva): Some drivers may return states.DEPLOYWAIT
         #             eg. if they are waiting for a callback
@@ -3915,6 +3936,7 @@ def _do_next_deploy_step(task, step_index, conductor_id):
     driver_internal_info = node.driver_internal_info
     driver_internal_info['deploy_steps'] = None
     driver_internal_info.pop('deploy_step_index', None)
+    driver_internal_info.pop('deployment_reboot', None)
     node.driver_internal_info = driver_internal_info
     node.save()
 

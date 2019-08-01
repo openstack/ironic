@@ -1845,6 +1845,109 @@ class ContinueNodeDeployTestCase(mgr_utils.ServiceSetUpMixin,
                                       mock.ANY, 1, mock.ANY)
         self.assertFalse(mock_event.called)
 
+    @mock.patch('ironic.conductor.manager.ConductorManager._spawn_worker',
+                autospec=True)
+    def _continue_node_deploy_skip_step(self, mock_spawn, skip=True):
+        # test that skipping current step mechanism works
+        driver_info = {'deploy_steps': self.deploy_steps,
+                       'deploy_step_index': 0}
+        if not skip:
+            driver_info['skip_current_deploy_step'] = skip
+        node = obj_utils.create_test_node(
+            self.context, driver='fake-hardware',
+            provision_state=states.DEPLOYWAIT,
+            target_provision_state=states.MANAGEABLE,
+            driver_internal_info=driver_info, deploy_step=self.deploy_steps[0])
+        self._start_service()
+        self.service.continue_node_deploy(self.context, node.uuid)
+        self._stop_service()
+        node.refresh()
+        if skip:
+            expected_step_index = 1
+        else:
+            self.assertNotIn(
+                'skip_current_deploy_step', node.driver_internal_info)
+            expected_step_index = 0
+        mock_spawn.assert_called_with(mock.ANY, manager._do_next_deploy_step,
+                                      mock.ANY, expected_step_index, mock.ANY)
+
+    def test_continue_node_deploy_skip_step(self):
+        self._continue_node_deploy_skip_step()
+
+    def test_continue_node_deploy_no_skip_step(self):
+        self._continue_node_deploy_skip_step(skip=False)
+
+    @mock.patch('ironic.drivers.modules.fake.FakeDeploy.execute_deploy_step',
+                autospec=True)
+    def test_do_next_deploy_step_oob_reboot(self, mock_execute):
+        # When a deploy step fails, go to DEPLOYWAIT
+        tgt_prov_state = states.ACTIVE
+
+        self._start_service()
+        node = obj_utils.create_test_node(
+            self.context, driver='fake-hardware',
+            provision_state=states.DEPLOYING,
+            target_provision_state=tgt_prov_state,
+            last_error=None,
+            driver_internal_info={'deploy_steps': self.deploy_steps,
+                                  'deploy_step_index': None,
+                                  'deployment_reboot': True},
+            clean_step={})
+        mock_execute.side_effect = exception.AgentConnectionFailed(
+            reason='failed')
+
+        with task_manager.acquire(
+                self.context, node.uuid, shared=False) as task:
+            manager._do_next_deploy_step(task, 0, mock.ANY)
+
+        self._stop_service()
+        node.refresh()
+
+        # Make sure we go to CLEANWAIT
+        self.assertEqual(states.DEPLOYWAIT, node.provision_state)
+        self.assertEqual(tgt_prov_state, node.target_provision_state)
+        self.assertEqual(self.deploy_steps[0], node.deploy_step)
+        self.assertEqual(0, node.driver_internal_info['deploy_step_index'])
+        self.assertFalse(node.driver_internal_info['skip_current_deploy_step'])
+        mock_execute.assert_called_once_with(
+            mock.ANY, mock.ANY, self.deploy_steps[0])
+
+    @mock.patch('ironic.drivers.modules.fake.FakeDeploy.execute_deploy_step',
+                autospec=True)
+    def test_do_next_clean_step_oob_reboot_fail(self,
+                                                mock_execute):
+        # When a deploy step fails with no reboot requested go to DEPLOYFAIL
+        tgt_prov_state = states.ACTIVE
+
+        self._start_service()
+        node = obj_utils.create_test_node(
+            self.context, driver='fake-hardware',
+            provision_state=states.DEPLOYING,
+            target_provision_state=tgt_prov_state,
+            last_error=None,
+            driver_internal_info={'deploy_steps': self.deploy_steps,
+                                  'deploy_step_index': None},
+            deploy_step={})
+        mock_execute.side_effect = exception.AgentConnectionFailed(
+            reason='failed')
+
+        with task_manager.acquire(
+                self.context, node.uuid, shared=False) as task:
+            manager._do_next_deploy_step(task, 0, mock.ANY)
+
+        self._stop_service()
+        node.refresh()
+
+        # Make sure we go to DEPLOYFAIL, clear deploy_steps
+        self.assertEqual(states.DEPLOYFAIL, node.provision_state)
+        self.assertEqual(tgt_prov_state, node.target_provision_state)
+        self.assertEqual({}, node.deploy_step)
+        self.assertNotIn('deploy_step_index', node.driver_internal_info)
+        self.assertNotIn('skip_current_deploy_step', node.driver_internal_info)
+        self.assertIsNotNone(node.last_error)
+        mock_execute.assert_called_once_with(
+            mock.ANY, mock.ANY, self.deploy_steps[0])
+
 
 @mgr_utils.mock_record_keepalive
 class DoNodeDeployTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
@@ -2641,7 +2744,7 @@ class DoNextDeployStepTestCase(mgr_utils.ServiceSetUpMixin,
         mock_execute.assert_called_once_with(mock.ANY, mock.ANY,
                                              self.deploy_steps[0])
 
-    def test__get_node_next_deploy_steps(self):
+    def _test__get_node_next_deploy_steps(self, skip=True):
         driver_internal_info = {'deploy_steps': self.deploy_steps,
                                 'deploy_step_index': 0}
         node = obj_utils.create_test_node(
@@ -2653,8 +2756,16 @@ class DoNextDeployStepTestCase(mgr_utils.ServiceSetUpMixin,
             deploy_step=self.deploy_steps[0])
 
         with task_manager.acquire(self.context, node.uuid) as task:
-            step_index = self.service._get_node_next_deploy_steps(task)
-            self.assertEqual(1, step_index)
+            step_index = self.service._get_node_next_deploy_steps(
+                task, skip_current_step=skip)
+            expected_index = 1 if skip else 0
+            self.assertEqual(expected_index, step_index)
+
+    def test__get_node_next_deploy_steps(self):
+        self._test__get_node_next_deploy_steps()
+
+    def test__get_node_next_deploy_steps_no_skip(self):
+        self._test__get_node_next_deploy_steps(skip=False)
 
     def test__get_node_next_deploy_steps_unset_deploy_step(self):
         driver_internal_info = {'deploy_steps': self.deploy_steps,
