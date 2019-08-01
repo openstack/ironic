@@ -43,7 +43,7 @@ DEVICE="$1"
 
 # We need to run partx -u to ensure all partitions are visible so the
 # following blkid command returns partitions just imaged to the device
-partx -u $DEVICE  || fail "running partx -u $DEVICE"
+partx -u $DEVICE  || true
 
 # todo(jayf): partx -u doesn't work in all cases, but partprobe fails in
 # devstack. We run both commands now as a temporary workaround for bug 1433812
@@ -67,8 +67,26 @@ if [ -z $EXISTING_PARTITION ]; then
         # any conflict with any other pre-existing partlabel
         PARTLABEL=config-$(< /dev/urandom tr -dc a-z0-9 | head -c 5)
         sgdisk -n 0:-64MB:0 -c 0:$PARTLABEL $DEVICE || fail "creating configdrive on ${DEVICE}"
-        partprobe
+
         ISO_PARTITION=/dev/disk/by-partlabel/$PARTLABEL
+        if ! [ -b $ISO_PARTITION ]; then
+            # In some cases like md arrays (or any other logical device)
+            # /dev/disk/by-partlabel/$PARTLABEL file is not created.
+            # In such case, we fallback to this method. Note: this method could
+            # be the only one used, if only we could assert it is 100% working.
+
+            partprobe || true
+
+            # The call below is not useless: for some unexplained reason, not
+            # calling blkid here causes the next subshell blkid calls to
+            # sometimes output outdated info... (sleeps, retries, partprobe or
+            # partx calls don't change the outcome...).
+            # If anyone knows why, please feel free to replace the workaround
+            # below with the proper fix.
+            blkid >/dev/null 2>&1
+
+            ISO_PARTITION=$(blkid -l -o device -t PARTLABEL=$PARTLABEL)
+        fi
     else
         log "Working on MBR only device $DEVICE"
 
