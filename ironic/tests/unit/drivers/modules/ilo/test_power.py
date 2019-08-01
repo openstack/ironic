@@ -99,7 +99,7 @@ class IloPowerInternalMethodsTestCase(test_common.BaseIloTest):
                                         get_ilo_object_mock):
         ilo_mock_object = get_ilo_object_mock.return_value
         get_post_mock.side_effect = (['FinishedPost', 'PowerOff',
-                                      'FinishedPost'])
+                                      'InPost'])
 
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
@@ -131,7 +131,7 @@ class IloPowerInternalMethodsTestCase(test_common.BaseIloTest):
                        autospec=True)
     def test__set_power_state_on_ok(self, get_post_mock, get_ilo_object_mock):
         ilo_mock_object = get_ilo_object_mock.return_value
-        get_post_mock.side_effect = ['PowerOff', 'PowerOff', 'FinishedPost']
+        get_post_mock.side_effect = ['PowerOff', 'PowerOff', 'InPost']
 
         target_state = states.POWER_ON
         with task_manager.acquire(self.context, self.node.uuid,
