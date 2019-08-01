@@ -127,6 +127,8 @@ class Ilo5RAID(base.RAIDInterface):
             create_nonroot_volumes=create_nonroot_volumes)
         driver_internal_info = node.driver_internal_info
         driver_internal_info['target_raid_config'] = target_raid_config
+        node.driver_internal_info = driver_internal_info
+        node.save()
         LOG.debug("Calling OOB RAID create_configuration for node %(node)s "
                   "with the following target RAID configuration: %(target)s",
                   {'node': node.uuid, 'target': target_raid_config})
@@ -149,17 +151,13 @@ class Ilo5RAID(base.RAIDInterface):
                               {'uuid': node.uuid})
                     self._pop_driver_internal_values(
                         task, 'ilo_raid_create_in_progress',
-                        'cleaning_reboot', 'skip_current_clean_step')
-                    node.driver_internal_info = driver_internal_info
-                    node.save()
+                        'skip_current_clean_step')
                 else:
                     # Raid configuration failed
                     msg = "Unable to create raid"
                     self._pop_driver_internal_values(
                         task, 'ilo_raid_create_in_progress',
-                        'cleaning_reboot', 'skip_current_clean_step')
-                    node.driver_internal_info = driver_internal_info
-                    node.save()
+                        'skip_current_clean_step')
                     raise exception.NodeCleaningFailure(
                         "Clean step create_configuration failed "
                         "on node %(node)s with error: %(err)s" %
@@ -169,10 +167,7 @@ class Ilo5RAID(base.RAIDInterface):
                          % node.uuid)
             self._pop_driver_internal_values(task,
                                              'ilo_raid_create_in_progress',
-                                             'cleaning_reboot',
                                              'skip_current_clean_step')
-            node.driver_internal_info = driver_internal_info
-            node.save()
             self._set_clean_failed(task, operation, ilo_exception)
 
     @METRICS.timer('Ilo5RAID.delete_configuration')
@@ -204,18 +199,14 @@ class Ilo5RAID(base.RAIDInterface):
                               {'uuid': node.uuid})
                     self._pop_driver_internal_values(
                         task, 'ilo_raid_delete_in_progress',
-                        'cleaning_reboot', 'skip_current_clean_step')
-                    node.driver_internal_info = driver_internal_info
-                    node.save()
+                        'skip_current_clean_step')
                 else:
                     # Raid configuration failed
                     msg = ("Unable to delete this logical disks: %s" %
                            raid_conf['logical_disks'])
                     self._pop_driver_internal_values(
                         task, 'ilo_raid_delete_in_progress',
-                        'cleaning_reboot', 'skip_current_clean_step')
-                    node.driver_internal_info = driver_internal_info
-                    node.save()
+                        'skip_current_clean_step')
                     raise exception.NodeCleaningFailure(
                         "Clean step delete_configuration failed "
                         "on node %(node)s with error: %(err)s" %
@@ -228,8 +219,5 @@ class Ilo5RAID(base.RAIDInterface):
                          % node.uuid)
             self._pop_driver_internal_values(task,
                                              'ilo_raid_delete_in_progress',
-                                             'cleaning_reboot',
                                              'skip_current_clean_step')
-            node.driver_internal_info = driver_internal_info
-            node.save()
             self._set_clean_failed(task, operation, ilo_exception)
