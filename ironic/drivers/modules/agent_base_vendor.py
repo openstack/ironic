@@ -366,6 +366,9 @@ class HeartbeatMixin(object):
                     else:
                         node.touch_provisioning()
                 else:
+                    # The exceptions from RPC are not possible as we using cast
+                    # here
+                    manager_utils.notify_conductor_resume_deploy(task)
                     node.touch_provisioning()
             elif node.provision_state == states.CLEANWAIT:
                 node.touch_provisioning()

@@ -421,7 +421,16 @@ class ISCSIDeploy(AgentDeployMixin, base.DeployInterface):
             # Standard deploy process
             deploy_utils.cache_instance_image(task.context, node)
             check_image_size(task)
-            manager_utils.node_power_action(task, states.REBOOT)
+            # Check if the driver has already performed a reboot in a previous
+            # deploy step.
+            if not task.node.driver_internal_info.get('deployment_reboot',
+                                                      False):
+                manager_utils.node_power_action(task, states.REBOOT)
+            info = task.node.driver_internal_info
+            info.pop('deployment_reboot', None)
+            task.node.driver_internal_info = info
+            task.node.save()
+
             return states.DEPLOYWAIT
         else:
             # Boot to an Storage Volume

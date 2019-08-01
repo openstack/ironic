@@ -795,6 +795,27 @@ class ISCSIDeployTestCase(db_base.DbTestCase):
             mock_check_image_size.assert_called_once_with(task)
             mock_node_power_action.assert_called_once_with(task, states.REBOOT)
 
+    @mock.patch.object(manager_utils, 'node_power_action', autospec=True)
+    @mock.patch.object(iscsi_deploy, 'check_image_size', autospec=True)
+    @mock.patch.object(deploy_utils, 'cache_instance_image', autospec=True)
+    def test_deploy_with_deployment_reboot(self, mock_cache_instance_image,
+                                           mock_check_image_size,
+                                           mock_node_power_action):
+        driver_internal_info = self.node.driver_internal_info
+        driver_internal_info['deployment_reboot'] = True
+        self.node.driver_internal_info = driver_internal_info
+        self.node.save()
+        with task_manager.acquire(self.context,
+                                  self.node.uuid, shared=False) as task:
+            state = task.driver.deploy.deploy(task)
+            self.assertEqual(state, states.DEPLOYWAIT)
+            mock_cache_instance_image.assert_called_once_with(
+                self.context, task.node)
+            mock_check_image_size.assert_called_once_with(task)
+            self.assertFalse(mock_node_power_action.called)
+            self.assertNotIn(
+                'deployment_reboot', task.node.driver_internal_info)
+
     @mock.patch.object(noop_storage.NoopStorage, 'should_write_image',
                        autospec=True)
     @mock.patch.object(flat_network.FlatNetwork,

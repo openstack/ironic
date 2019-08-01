@@ -138,6 +138,8 @@ class HeartbeatMixinTest(AgentDeployMixinBaseTest):
             self.assertFalse(cd_mock.called)
             rti_mock.assert_called_once_with(self.deploy, task)
 
+    @mock.patch.object(manager_utils,
+                       'notify_conductor_resume_deploy', autospec=True)
     @mock.patch.object(agent_base_vendor.HeartbeatMixin,
                        'in_core_deploy_step', autospec=True)
     @mock.patch.object(agent_base_vendor.HeartbeatMixin,
@@ -151,7 +153,8 @@ class HeartbeatMixinTest(AgentDeployMixinBaseTest):
     def test_heartbeat_not_in_core_deploy_step(self, rti_mock, cd_mock,
                                                deploy_is_done_mock,
                                                deploy_started_mock,
-                                               in_deploy_mock):
+                                               in_deploy_mock,
+                                               in_resume_deploy_mock):
         # Check that heartbeats do not trigger deployment actions when not in
         # the deploy.deploy step.
         in_deploy_mock.return_value = False
@@ -170,6 +173,7 @@ class HeartbeatMixinTest(AgentDeployMixinBaseTest):
             self.assertFalse(deploy_is_done_mock.called)
             self.assertFalse(cd_mock.called)
             self.assertFalse(rti_mock.called)
+            self.assertTrue(in_resume_deploy_mock.called)
 
     @mock.patch.object(agent_base_vendor.HeartbeatMixin, 'continue_deploy',
                        autospec=True)

@@ -917,6 +917,7 @@ class DeployingErrorHandlerTestCase(tests_base.TestCase):
         self.assertEqual(self.errmsg, self.node.last_error)
         self.assertEqual({}, self.node.deploy_step)
         self.assertNotIn('deploy_step_index', self.node.driver_internal_info)
+        self.assertNotIn('deployment_reboot', self.node.driver_internal_info)
         self.task.process_event.assert_called_once_with('fail')
 
     def _test_deploying_error_handler_cleanup(self, exc, expected_str):

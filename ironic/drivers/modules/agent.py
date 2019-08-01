@@ -463,7 +463,14 @@ class AgentDeploy(AgentDeployMixin, base.DeployInterface):
             task.process_event('wait')
             self.continue_deploy(task)
         elif task.driver.storage.should_write_image(task):
-            manager_utils.node_power_action(task, states.REBOOT)
+            # Check if the driver has already performed a reboot in a previous
+            # deploy step.
+            if not task.node.driver_internal_info.get('deployment_reboot'):
+                manager_utils.node_power_action(task, states.REBOOT)
+            info = task.node.driver_internal_info
+            info.pop('deployment_reboot', None)
+            task.node.driver_internal_info = info
+            task.node.save()
             return states.DEPLOYWAIT
         else:
             # TODO(TheJulia): At some point, we should de-dupe this code

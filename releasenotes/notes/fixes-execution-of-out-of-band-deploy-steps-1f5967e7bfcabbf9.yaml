@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Fixes an issue wherein asynchronous out-of-band deploy steps in
+    deployment template fails to execute. See `story 2006342
+    <https://storyboard.openstack.org/#!/story/2006342>`__ for details.
