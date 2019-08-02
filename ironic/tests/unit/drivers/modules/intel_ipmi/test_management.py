@@ -64,11 +64,11 @@ class IntelIPMIManagementTestCase(base.IntelIPMITestCase):
         send_raw_mock.side_effect = exception.IPMIFailure('err')
         config = {"intel_speedselect_config": "0x02", "socket_count": 1}
         with task_manager.acquire(self.context, self.node.uuid) as task:
-            e = self.assertRaises(
+            self.assertRaisesRegex(
                 exception.IPMIFailure,
+                "Failed to set Intel SST-PP configuration",
                 task.driver.management.configure_intel_speedselect,
                 task, **config)
-            self.assertIn("Failed to set Intel SST-PP configuration", str(e))
 
     def test_configure_intel_speedselect_invalid_input(self):
         config = {"intel_speedselect_config": "0", "socket_count": 1}
@@ -77,10 +77,11 @@ class IntelIPMIManagementTestCase(base.IntelIPMITestCase):
                 exception.InvalidParameterValue,
                 task.driver.management.configure_intel_speedselect,
                 task, **config)
-
-        config = {"intel_speedselect_config": "0x00", "socket_count": -1}
-        with task_manager.acquire(self.context, self.node.uuid) as task:
-            self.assertRaises(
-                exception.InvalidParameterValue,
-                task.driver.management.configure_intel_speedselect,
-                task, **config)
+        for value in (-1, None):
+            config = {"intel_speedselect_config": "0x00",
+                      "socket_count": value}
+            with task_manager.acquire(self.context, self.node.uuid) as task:
+                self.assertRaises(
+                    exception.InvalidParameterValue,
+                    task.driver.management.configure_intel_speedselect,
+                    task, **config)

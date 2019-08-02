@@ -42,7 +42,7 @@ class IntelIPMIManagement(ipmitool.IPMIManagement):
             socket_count = int(sockets)
             if socket_count <= 0:
                 raise ValueError
-        except ValueError:
+        except (ValueError, TypeError):
             raise exception.InvalidParameterValue(_(
                 "Invalid number of socket %(socket)s value specified. "
                 "Expected a positive integer.") % {"socket": sockets})
@@ -51,8 +51,8 @@ class IntelIPMIManagement(ipmitool.IPMIManagement):
         'intel_speedselect_config': {
             'description': (
                 "Hexadecimal code of Intel SST-PP configuration provided. "
-                "Input value should be string. Accepted values are "
-                "['0x00', '0x01', '0x02']. "
+                "Input value should be string. Accepted values are %s."
+                % ', '.join(INTEL_SST_PP_CONFIG_HEXA_CODES)
             ),
             'required': True
         },
@@ -70,17 +70,15 @@ class IntelIPMIManagement(ipmitool.IPMIManagement):
                   "for node %(node)s with socket count %(socket)s",
                   {"config": config, "node": task.node.uuid,
                    "socket": socket_count})
-        self._configure_intel_speed_select(task, config, socket_count)
-
-    def _configure_intel_speed_select(self, task, config, socket_count):
         iss_conf = "0x2c 0x41 0x04 0x00 0x0%s %s"
         for socket in range(socket_count):
             hexa_code = iss_conf % (socket, config)
             try:
                 ipmitool.send_raw(task, hexa_code)
             except exception.IPMIFailure as e:
-                msg = ("Failed to set Intel SST-PP configuration level "
-                       "%(cfg)s on socket number %(skt)s due to reason "
-                       "%(exc)s." % {"cfg": config, "skt": socket, "exc": e})
-                LOG.exception(msg)
+                msg = (_("Failed to set Intel SST-PP configuration level "
+                         "%(cfg)s on socket number %(skt)s due to "
+                         "reason %(exc)s.") % {"cfg": config,
+                                               "skt": socket, "exc": e})
+                LOG.error(msg)
                 raise exception.IPMIFailure(message=msg)
