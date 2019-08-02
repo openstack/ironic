@@ -784,7 +784,7 @@ class AgentDeployMixin(HeartbeatMixin):
         logical_disks = raid_config.get('logical_disks', [])
         software_raid = False
         for logical_disk in logical_disks:
-            if logical_disk['controller'] == 'software':
+            if logical_disk.get('controller') == 'software':
                 LOG.debug('Node %s has a Software RAID configuration',
                           node.uuid)
                 software_raid = True
