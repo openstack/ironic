@@ -19,13 +19,16 @@ Prerequisites
 =============
 The bare metal node needs to use a hardware type that supports RAID
 configuration. RAID interfaces may implement RAID configuration either in-band
-or out-of-band.
+or out-of-band. Software RAID is supported on all hardware, although with some
+caveats - see `Software RAID`_ for details.
 
-In-band RAID configuration is done using the Ironic Python Agent
-ramdisk. For in-band RAID configuration using agent ramdisk, a hardware
-manager which supports RAID should be bundled with the ramdisk.
+In-band RAID configuration (including software RAID) is done using the
+Ironic Python Agent ramdisk. For in-band hardware RAID configuration,
+a hardware manager which supports RAID should be bundled with the ramdisk.
+
 Whether a node supports RAID configuration could be found using the CLI
-command ``openstack baremetal node validate <node-uuid>``.
+command ``openstack baremetal node validate <node-uuid>``. In-band RAID is
+usually implemented by the ``agent`` RAID interface.
 
 Build agent ramdisk which supports RAID configuration
 =====================================================
@@ -151,10 +154,7 @@ The RAID properties can be split into 4 different types:
     will fail (because the appropriate backing physical disks could
     not be found).
 
-.. note::
-    For software RAID as provided by the generic hardware manager that ships
-    with the Ironic Python Agent, only the mandatory properties (plus the
-    required ``controller`` property) are currently supported.
+.. _raid-config-examples:
 
 Examples for ``target_raid_config``
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -320,25 +320,46 @@ Workflow
 
       openstack baremetal node show <node-uuid-or-name>
 
-Limitations of Software RAID
-============================
+Software RAID
+=============
 
-There are certain limitations to be aware of when setting up a Software RAID via the
-Ironic Python Agent:
+Building Linux software RAID in-band (via the Ironic Python Agent ramdisk)
+is supported starting with the Train release. It is requested by using the
+``agent`` RAID interface and RAID configuration with all controllers set
+to ``software``. You can find a software RAID configuration example in
+:ref:`raid-config-examples`.
 
-* There is no way to select the disks which are used to set up the software RAID,
-  so the Ironic Python Agent will use all available disks. This seems appropriate
-  for servers with 2 or 4 disks, but needs to be considered when disk arrays are
-  attached.
+There are certain limitations to be aware of:
 
-* The number of created Software RAID devices must be 1 or 2. If there is only one
-  Software RAID device, it has to be a RAID-1. If there are two, the first one has
-  to be a RAID-1, while the RAID level for the second one can 0, 1, or 1+0. As the
-  first RAID device will be the deployment device, enforcing a RAID-1 reduces the
-  risk of ending up with a non-booting node in case of a disk failure.
+* Only the mandatory properties (plus the required ``controller`` property)
+  from `Target RAID configuration`_ are currently supported.
 
-* There is no support for partition images, only whole-disk images are supported with
-  Software RAID.
+* There is no way to select the disks which are used to set up the software
+  RAID, so the Ironic Python Agent will use all available disks. This seems
+  appropriate for servers with 2 or 4 disks, but needs to be considered when
+  disk arrays are attached.
+
+* The number of created Software RAID devices must be 1 or 2. If there is only
+  one Software RAID device, it has to be a RAID-1. If there are two, the first
+  one has to be a RAID-1, while the RAID level for the second one can
+  0, 1, or 1+0. As the first RAID device will be the deployment device,
+  enforcing a RAID-1 reduces the risk of ending up with a non-booting node
+  in case of a disk failure.
+
+* Building RAID will fail if the target disks are already partitioned. Wipe the
+  disks using e.g. the ``erase_device_metadata`` clean step before building
+  RAID.
+
+* If local boot is going to be used, the final instance image must have the
+  ``mdadm`` utility installed and needs to be able to detect software RAID
+  devices at boot time (which is usually done by having the RAID drivers
+  embedded in the image's initrd).
+
+* Regular cleaning will not remove RAID configuration (similarly to hardware
+  RAID). To destroy RAID run the ``delete_configuration`` manual clean step.
+
+* There is no support for partition images, only whole-disk images are
+  supported with Software RAID. See :doc:`/install/configure-glance-images`.
 
 Using RAID in nova flavor for scheduling
 ========================================
