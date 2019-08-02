@@ -1,0 +1,6 @@
+---
+features:
+  - |
+    Adds support for deploy steps to ``raid`` interface of ``ilo5``
+    hardware type. The methods ``apply_configuration`` and
+    ``delete_configuration`` can be used as deploy steps.
