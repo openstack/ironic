@@ -111,6 +111,25 @@ class DracJobTestCase(test_utils.BaseDracTest):
         self.assertRaises(exception.DracOperationError,
                           drac_job.validate_job_queue, self.node)
 
+    def test_validate_job_queue_name_prefix(self, mock_get_drac_client):
+        mock_client = mock.Mock()
+        mock_get_drac_client.return_value = mock_client
+        mock_client.list_jobs.return_value = [self.job]
+
+        drac_job.validate_job_queue(self.node, name_prefix='Fake')
+
+        mock_client.list_jobs.assert_called_once_with(only_unfinished=True)
+
+    def test_validate_job_queue_name_prefix_invalid(self,
+                                                    mock_get_drac_client):
+        mock_client = mock.Mock()
+        mock_get_drac_client.return_value = mock_client
+        mock_client.list_jobs.return_value = [self.job]
+
+        self.assertRaises(exception.DracOperationError,
+                          drac_job.validate_job_queue, self.node,
+                          name_prefix='ConfigBIOS')
+
 
 @mock.patch.object(drac_common, 'get_drac_client', spec_set=True,
                    autospec=True)

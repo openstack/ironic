@@ -27,20 +27,26 @@ drac_exceptions = importutils.try_import('dracclient.exceptions')
 LOG = logging.getLogger(__name__)
 
 
-def validate_job_queue(node):
+def validate_job_queue(node, name_prefix=None):
     """Validates the job queue on the node.
 
     It raises an exception if an unfinished configuration job exists.
 
     :param node: an ironic node object.
+    :param name_prefix: A name prefix for jobs to validate.
     :raises: DracOperationError on an error from python-dracclient.
     """
 
     unfinished_jobs = list_unfinished_jobs(node)
-    if unfinished_jobs:
-        msg = _('Unfinished config jobs found: %(jobs)r. Make sure they are '
-                'completed before retrying.') % {'jobs': unfinished_jobs}
-        raise exception.DracOperationError(error=msg)
+    if name_prefix is not None:
+        # Filter out jobs that don't match the name prefix.
+        unfinished_jobs = [job for job in unfinished_jobs
+                           if job.name.startswith(name_prefix)]
+    if not unfinished_jobs:
+        return
+    msg = _('Unfinished config jobs found: %(jobs)r. Make sure they are '
+            'completed before retrying.') % {'jobs': unfinished_jobs}
+    raise exception.DracOperationError(error=msg)
 
 
 def get_job(node, job_id):
