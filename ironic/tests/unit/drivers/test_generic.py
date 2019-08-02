@@ -36,7 +36,6 @@ class ManualManagementHardwareTestCase(db_base.DbTestCase):
         self.config(enabled_hardware_types=['manual-management'],
                     enabled_power_interfaces=['fake'],
                     enabled_management_interfaces=['noop', 'fake'])
-        self.config(enabled=True, group='inspector')
 
     def test_default_interfaces(self):
         node = obj_utils.create_test_node(self.context,

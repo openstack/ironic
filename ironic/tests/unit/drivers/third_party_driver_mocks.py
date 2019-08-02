@@ -163,17 +163,6 @@ irmc_boot.check_share_fs_mounted_patcher = mock.patch(
 irmc_boot.check_share_fs_mounted_patcher.return_value = None
 
 
-ironic_inspector_client = importutils.try_import('ironic_inspector_client')
-if not ironic_inspector_client:
-    ironic_inspector_client = mock.MagicMock(
-        spec_set=mock_specs.IRONIC_INSPECTOR_CLIENT_SPEC)
-    ironic_inspector_client.ClientV1 = mock_specs.InspectorClientV1Specs
-    sys.modules['ironic_inspector_client'] = ironic_inspector_client
-    if 'ironic.drivers.modules.inspector' in sys.modules:
-        six.moves.reload_module(
-            sys.modules['ironic.drivers.modules.inspector'])
-
-
 class MockKwargsException(Exception):
     def __init__(self, *args, **kwargs):
         super(MockKwargsException, self).__init__(*args)

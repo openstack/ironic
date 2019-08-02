@@ -11,8 +11,8 @@
 # under the License.
 
 import eventlet
-import ironic_inspector_client as client
 import mock
+import openstack
 
 from ironic.common import context
 from ironic.common import states
@@ -22,67 +22,41 @@ from ironic.tests.unit.db import base as db_base
 from ironic.tests.unit.objects import utils as obj_utils
 
 
-@mock.patch('ironic.common.keystone.get_adapter', autospec=True)
-@mock.patch('ironic.common.keystone.get_service_auth', autospec=True,
-            return_value=mock.sentinel.sauth)
 @mock.patch('ironic.common.keystone.get_auth', autospec=True,
             return_value=mock.sentinel.auth)
 @mock.patch('ironic.common.keystone.get_session', autospec=True,
             return_value=mock.sentinel.session)
-@mock.patch.object(client.ClientV1, '__init__', return_value=None)
+@mock.patch.object(openstack.connection, 'Connection', autospec=True)
 class GetClientTestCase(db_base.DbTestCase):
 
     def setUp(self):
         super(GetClientTestCase, self).setUp()
         # NOTE(pas-ha) force-reset  global inspector session object
         inspector._INSPECTOR_SESSION = None
-        self.api_version = (1, 3)
         self.context = context.RequestContext(global_request_id='global')
 
-    def test__get_client(self, mock_init, mock_session, mock_auth,
-                         mock_sauth, mock_adapter):
-        mock_adapter.return_value.get_endpoint.return_value = 'inspector_url'
+    def test__get_client(self, mock_conn, mock_session, mock_auth):
         inspector._get_client(self.context)
-        mock_init.assert_called_once_with(
+        mock_conn.assert_called_once_with(
             session=mock.sentinel.session,
-            api_version=self.api_version,
-            inspector_url='inspector_url')
-        self.assertEqual(0, mock_sauth.call_count)
+            oslo_conf=mock.ANY)
+        self.assertEqual(1, mock_auth.call_count)
         self.assertEqual(1, mock_session.call_count)
 
-    def test__get_client_standalone(self, mock_init, mock_session, mock_auth,
-                                    mock_sauth, mock_adapter):
+    def test__get_client_standalone(self, mock_conn, mock_session, mock_auth):
         self.config(auth_strategy='noauth')
-        mock_adapter.return_value.get_endpoint.return_value = 'inspector_url'
         inspector._get_client(self.context)
         self.assertEqual('none', inspector.CONF.inspector.auth_type)
-        mock_init.assert_called_once_with(
+        mock_conn.assert_called_once_with(
             session=mock.sentinel.session,
-            api_version=self.api_version,
-            inspector_url='inspector_url')
-        self.assertEqual(0, mock_sauth.call_count)
-        self.assertEqual(1, mock_session.call_count)
-
-    def test__get_client_url(self, mock_init, mock_session, mock_auth,
-                             mock_sauth, mock_adapter):
-        self.config(service_url='meow', group='inspector')
-        mock_adapter.return_value.get_endpoint.return_value = 'meow'
-        inspector._get_client(self.context)
-        mock_init.assert_called_once_with(
-            session=mock.sentinel.session,
-            api_version=self.api_version,
-            inspector_url='meow')
-        mock_adapter.assert_called_once_with('inspector',
-                                             session=mock.sentinel.session,
-                                             endpoint_override='meow')
-        self.assertEqual(0, mock_sauth.call_count)
+            oslo_conf=mock.ANY)
+        self.assertEqual(1, mock_auth.call_count)
         self.assertEqual(1, mock_session.call_count)
 
 
 class BaseTestCase(db_base.DbTestCase):
     def setUp(self):
         super(BaseTestCase, self).setUp()
-        self.config(enabled=True, group='inspector')
         self.node = obj_utils.get_test_node(self.context,
                                             inspect_interface='inspector')
         self.iface = inspector.Inspector()
@@ -91,7 +65,6 @@ class BaseTestCase(db_base.DbTestCase):
         self.task.shared = False
         self.task.node = self.node
         self.task.driver = mock.Mock(spec=['inspect'], inspect=self.iface)
-        self.api_version = (1, 0)
 
 
 class CommonFunctionsTestCase(BaseTestCase):
@@ -107,14 +80,14 @@ class CommonFunctionsTestCase(BaseTestCase):
 @mock.patch('ironic.drivers.modules.inspector._get_client', autospec=True)
 class InspectHardwareTestCase(BaseTestCase):
     def test_ok(self, mock_client):
-        mock_introspect = mock_client.return_value.introspect
+        mock_introspect = mock_client.return_value.start_introspection
         self.assertEqual(states.INSPECTWAIT,
                          self.iface.inspect_hardware(self.task))
         mock_introspect.assert_called_once_with(self.node.uuid)
 
     @mock.patch.object(task_manager, 'acquire', autospec=True)
     def test_error(self, mock_acquire, mock_client):
-        mock_introspect = mock_client.return_value.introspect
+        mock_introspect = mock_client.return_value.start_introspection
         mock_introspect.side_effect = RuntimeError('boom')
         self.iface.inspect_hardware(self.task)
         mock_introspect.assert_called_once_with(self.node.uuid)
@@ -130,47 +103,53 @@ class CheckStatusTestCase(BaseTestCase):
         self.node.provision_state = states.INSPECTWAIT
 
     def test_not_inspecting(self, mock_client):
-        mock_get = mock_client.return_value.get_status
+        mock_get = mock_client.return_value.get_introspection
         self.node.provision_state = states.MANAGEABLE
         inspector._check_status(self.task)
         self.assertFalse(mock_get.called)
 
     def test_not_check_inspecting(self, mock_client):
-        mock_get = mock_client.return_value.get_status
+        mock_get = mock_client.return_value.get_introspection
         self.node.provision_state = states.INSPECTING
         inspector._check_status(self.task)
         self.assertFalse(mock_get.called)
 
     def test_not_inspector(self, mock_client):
-        mock_get = mock_client.return_value.get_status
+        mock_get = mock_client.return_value.get_introspection
         self.task.driver.inspect = object()
         inspector._check_status(self.task)
         self.assertFalse(mock_get.called)
 
     def test_not_finished(self, mock_client):
-        mock_get = mock_client.return_value.get_status
-        mock_get.return_value = {}
+        mock_get = mock_client.return_value.get_introspection
+        mock_get.return_value = mock.Mock(is_finished=False,
+                                          error=None,
+                                          spec=['is_finished', 'error'])
         inspector._check_status(self.task)
         mock_get.assert_called_once_with(self.node.uuid)
         self.assertFalse(self.task.process_event.called)
 
     def test_exception_ignored(self, mock_client):
-        mock_get = mock_client.return_value.get_status
+        mock_get = mock_client.return_value.get_introspection
         mock_get.side_effect = RuntimeError('boom')
         inspector._check_status(self.task)
         mock_get.assert_called_once_with(self.node.uuid)
         self.assertFalse(self.task.process_event.called)
 
     def test_status_ok(self, mock_client):
-        mock_get = mock_client.return_value.get_status
-        mock_get.return_value = {'finished': True}
+        mock_get = mock_client.return_value.get_introspection
+        mock_get.return_value = mock.Mock(is_finished=True,
+                                          error=None,
+                                          spec=['is_finished', 'error'])
         inspector._check_status(self.task)
         mock_get.assert_called_once_with(self.node.uuid)
         self.task.process_event.assert_called_once_with('done')
 
     def test_status_error(self, mock_client):
-        mock_get = mock_client.return_value.get_status
-        mock_get.return_value = {'error': 'boom'}
+        mock_get = mock_client.return_value.get_introspection
+        mock_get.return_value = mock.Mock(is_finished=True,
+                                          error='boom',
+                                          spec=['is_finished', 'error'])
         inspector._check_status(self.task)
         mock_get.assert_called_once_with(self.node.uuid)
         self.task.process_event.assert_called_once_with('fail')
@@ -180,12 +159,12 @@ class CheckStatusTestCase(BaseTestCase):
 @mock.patch('ironic.drivers.modules.inspector._get_client', autospec=True)
 class InspectHardwareAbortTestCase(BaseTestCase):
     def test_abort_ok(self, mock_client):
-        mock_abort = mock_client.return_value.abort
+        mock_abort = mock_client.return_value.abort_introspection
         self.iface.abort(self.task)
         mock_abort.assert_called_once_with(self.node.uuid)
 
     def test_abort_error(self, mock_client):
-        mock_abort = mock_client.return_value.abort
+        mock_abort = mock_client.return_value.abort_introspection
         mock_abort.side_effect = RuntimeError('boom')
         self.assertRaises(RuntimeError, self.iface.abort, self.task)
         mock_abort.assert_called_once_with(self.node.uuid)

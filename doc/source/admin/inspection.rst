@@ -86,9 +86,6 @@ enabled to use it:
     [DEFAULT]
     enabled_inspect_interfaces = inspector,no-inspect
 
-You must additionally install python-ironic-inspector-client_ to use
-this functionality.
-
 If the ironic-inspector service is not registered in the service catalog, set
 the following option:
 
@@ -106,5 +103,4 @@ configuration file must be set::
     keep_ports = present
 
 .. _ironic-inspector: https://pypi.org/project/ironic-inspector
-.. _python-ironic-inspector-client: https://pypi.org/project/python-ironic-inspector-client
 .. _python-ironicclient: https://pypi.org/project/python-ironicclient
