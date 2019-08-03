@@ -1,6 +1,6 @@
 - name: get devices wwn facts
   facts_wwn:
-    devices: "{{ ansible_devices.keys() }}"
+    devices: "{{ ansible_devices.keys() | list }}"
 
 - name: calculate root hint
   root_hints:
