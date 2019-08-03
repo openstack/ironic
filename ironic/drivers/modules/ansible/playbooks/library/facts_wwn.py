@@ -41,7 +41,10 @@ def get_devices_wwn(devices, module):
 
         dev_dict[device] = {}
         for key, udev_key in COLLECT_INFO:
-            dev_dict[device][key] = udev.get('ID_%s' % udev_key)
+            candidate = udev.get('ID_%s' % udev_key)
+            if candidate:
+                candidate = candidate.lower()
+            dev_dict[device][key] = candidate
 
     return {"ansible_facts": {"devices_wwn": dev_dict}}
 
