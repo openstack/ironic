@@ -345,8 +345,10 @@ class TestAnsibleMethods(AnsibleDeployTestCaseBase):
             ansible_deploy._prepare_extra_vars(host_list, ansible_vars))
 
     def test__parse_root_device_hints(self):
-        hints = {"wwn": "fake wwn", "size": "12345", "rotational": True}
-        expected = {"wwn": "fake wwn", "size": 12345, "rotational": True}
+        hints = {"wwn": "fake wwn", "size": "12345", "rotational": True,
+                 "serial": "HELLO"}
+        expected = {"wwn": "fake wwn", "size": 12345, "rotational": True,
+                    "serial": "hello"}
         props = self.node.properties
         props['root_device'] = hints
         self.node.properties = props
