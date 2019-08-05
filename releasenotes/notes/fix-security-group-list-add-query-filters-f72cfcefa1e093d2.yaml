@@ -1,0 +1,9 @@
+---
+fixes:
+  - |
+    Fixes an issue where baremetal node deployment would fail on clouds
+    with a high number of security groups. Listing the security groups
+    took too long. Instead of listing all security groups, a query filter
+    was added to list only the security groups to be used for the network.
+    (See bug `2006256 <https://storyboard.openstack.org/#!/story/2006256>`_.)
+
