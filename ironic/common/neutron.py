@@ -260,7 +260,7 @@ def add_ports_to_network(task, network_uuid, security_groups=None):
         port_body['port']['binding:profile'] = binding_profile
 
         if add_all_ports and not ironic_port.pxe_enabled:
-            LOG.debug("Adding port %(port)s to network %(net) for "
+            LOG.debug("Adding port %(port)s to network %(net)s for "
                       "provisioning without an IP allocation.",
                       {'port': ironic_port.uuid,
                        'net': network_uuid})
