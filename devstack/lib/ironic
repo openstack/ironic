@@ -1359,9 +1359,9 @@ function configure_ironic_api {
     configure_auth_token_middleware $IRONIC_CONF_FILE ironic $IRONIC_AUTH_CACHE_DIR/api
 
     if [[ "$IRONIC_USE_WSGI" == "True" ]]; then
-        iniset $IRONIC_CONF_FILE api public_endpoint $IRONIC_SERVICE_PROTOCOL://$IRONIC_HOSTPORT
+        iniset $IRONIC_CONF_FILE oslo_middleware enable_proxy_headers_parsing True
     elif is_service_enabled tls-proxy; then
-        iniset $IRONIC_CONF_FILE api public_endpoint $IRONIC_SERVICE_PROTOCOL://$IRONIC_HOSTPORT
+        iniset $IRONIC_CONF_FILE oslo_middleware enable_proxy_headers_parsing True
         iniset $IRONIC_CONF_FILE api port $IRONIC_SERVICE_PORT_INT
     else
         iniset $IRONIC_CONF_FILE api port $IRONIC_SERVICE_PORT

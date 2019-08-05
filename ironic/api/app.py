@@ -19,6 +19,7 @@ import keystonemiddleware.audit as audit_middleware
 from oslo_config import cfg
 import oslo_middleware.cors as cors_middleware
 from oslo_middleware import healthcheck
+from oslo_middleware import http_proxy_to_wsgi
 import osprofiler.web as osprofiler_web
 import pecan
 
@@ -103,6 +104,10 @@ def setup_app(pecan_config=None, extra_hooks=None):
 
     if CONF.profiler.enabled:
         app = osprofiler_web.WsgiMiddleware(app)
+
+    # NOTE(pas-ha) this registers oslo_middleware.enable_proxy_headers_parsing
+    # option, when disabled (default) this is noop middleware
+    app = http_proxy_to_wsgi.HTTPProxyToWSGI(app, CONF)
 
     # add in the healthcheck middleware if enabled
     # NOTE(jroll) this is after the auth token middleware as we don't want auth

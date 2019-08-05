@@ -1,0 +1,13 @@
+---
+features:
+  - |
+    Ironic API service now supports HTTP proxy headers parsing
+    with the help of oslo.middleware package, enabled via new option
+    ``[oslo_middleware]/enable_proxy_headers_parsing`` (``False`` by default).
+
+    This enables more complex setups of Ironic API service, for example when
+    the same service instance serves both internal and public API endpoints
+    via separate proxies.
+
+    When proxy headers parsing is enabled, the value of
+    ``[api]/public_endpoint`` option is ignored.

@@ -36,7 +36,10 @@ opts = [
                       " If None the links will be built using the request's "
                       "host URL. If the API is operating behind a proxy, you "
                       "will want to change this to represent the proxy's URL. "
-                      "Defaults to None.")),
+                      "Defaults to None. "
+                      "Ignored when proxy headers parsing is enabled via "
+                      "[oslo_middleware]enable_proxy_headers_parsing option.")
+               ),
     cfg.IntOpt('api_workers',
                help=_('Number of workers for OpenStack Ironic API service. '
                       'The default is equal to the number of CPUs available '
@@ -48,8 +51,10 @@ opts = [
                        "requests via HTTPS instead of HTTP. If there is a "
                        "front-end service performing HTTPS offloading from "
                        "the service, this option should be False; note, you "
-                       "will want to change public API endpoint to represent "
-                       "SSL termination URL with 'public_endpoint' option.")),
+                       "will want to enable proxy headers parsing with "
+                       "[oslo_middleware]enable_proxy_headers_parsing "
+                       "option or configure [api]public_endpoint option "
+                       "to set URLs in responses to the SSL terminated one.")),
     cfg.BoolOpt('restrict_lookup',
                 default=True,
                 help=_('Whether to restrict the lookup API to only nodes '
