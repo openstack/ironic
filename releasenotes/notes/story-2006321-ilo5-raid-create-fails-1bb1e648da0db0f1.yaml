@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Fixes an issue in creation of RAID for ``ilo5`` RAID interface
+    wherein second time RAID creation fails. See `story 2006321
+    <https://storyboard.openstack.org/#!/story/2006321>`__ for details.
