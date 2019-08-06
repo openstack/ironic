@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    Fixed a bug when executing ``create_configuration`` cleaning step for disks
+    of PERC H740P controller, first disks get created and then controller
+    doesn't allow to create next couple disks because controller is getting
+    busy.

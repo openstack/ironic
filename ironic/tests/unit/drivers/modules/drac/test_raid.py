@@ -968,7 +968,7 @@ class DracRaidInterfaceTestCase(test_utils.BaseDracTest):
                 reboot=False, realtime=True)
 
         self.node.refresh()
-        self.assertEqual(['42', '12', '13'],
+        self.assertEqual(['42'],
                          self.node.driver_internal_info['raid_config_job_ids'])
 
     @mock.patch.object(drac_common, 'get_drac_client', spec_set=True,
@@ -1027,7 +1027,7 @@ class DracRaidInterfaceTestCase(test_utils.BaseDracTest):
                 reboot=False, realtime=True)
 
         self.node.refresh()
-        self.assertEqual(['42', '12'],
+        self.assertEqual(['42'],
                          self.node.driver_internal_info['raid_config_job_ids'])
 
     @mock.patch.object(drac_common, 'get_drac_client', spec_set=True,
@@ -1097,7 +1097,7 @@ class DracRaidInterfaceTestCase(test_utils.BaseDracTest):
                 realtime=True)
 
         self.node.refresh()
-        self.assertEqual(['42', '12', '13'],
+        self.assertEqual(['42'],
                          self.node.driver_internal_info['raid_config_job_ids'])
 
     @mock.patch.object(drac_common, 'get_drac_client', spec_set=True,
@@ -1184,7 +1184,7 @@ class DracRaidInterfaceTestCase(test_utils.BaseDracTest):
                 realtime=True)
 
         self.node.refresh()
-        self.assertEqual(['42', '12'],
+        self.assertEqual(['42'],
                          self.node.driver_internal_info['raid_config_job_ids'])
 
     @mock.patch.object(drac_common, 'get_drac_client', spec_set=True,
@@ -1285,7 +1285,7 @@ class DracRaidInterfaceTestCase(test_utils.BaseDracTest):
                 realtime=True)
 
         self.node.refresh()
-        self.assertEqual(['42', '42'],
+        self.assertEqual(['42'],
                          self.node.driver_internal_info['raid_config_job_ids'])
 
     @mock.patch.object(drac_common, 'get_drac_client', spec_set=True,

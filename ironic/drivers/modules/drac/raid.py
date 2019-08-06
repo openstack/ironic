@@ -885,7 +885,8 @@ class DracRAID(base.RAIDInterface):
             controller['raid_controller'] = logical_disk['controller']
             controller['is_reboot_required'] = controller_cap[
                 'is_reboot_required']
-            controllers.append(controller)
+            if controller not in controllers:
+                controllers.append(controller)
 
         return _commit_to_controllers(node, controllers)
 
