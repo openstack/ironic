@@ -8,7 +8,6 @@
       - openstack/ironic
       - openstack/ironic-python-agent
       - openstack/ironic-tempest-plugin
-      - x/pyghmi
       - openstack/virtualbmc
     irrelevant-files:
       - ^.*\.rst$
@@ -312,7 +311,6 @@
       - openstack/ironic
       - openstack/ironic-python-agent
       - openstack/ironic-tempest-plugin
-      - x/pyghmi
       - openstack/virtualbmc
       - openstack/networking-generic-switch
     irrelevant-files:
