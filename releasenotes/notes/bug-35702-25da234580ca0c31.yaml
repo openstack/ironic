@@ -1,0 +1,7 @@
+---
+fixes:
+      - |
+          Fixes an issue regarding the ``ansible`` deploy interface. Node
+          deployment was broken for any image that was not public because
+          the original request context was not available anymore at the time
+          some image information was fetched.
