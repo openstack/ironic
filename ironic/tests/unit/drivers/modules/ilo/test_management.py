@@ -40,6 +40,16 @@ INFO_DICT = db_utils.get_test_ilo_info()
 
 class IloManagementTestCase(test_common.BaseIloTest):
 
+    def setUp(self):
+        super(IloManagementTestCase, self).setUp()
+        port_1 = obj_utils.create_test_port(
+            self.context, node_id=self.node.id,
+            address='11:22:33:44:55:66', uuid=uuidutils.generate_uuid())
+        port_2 = obj_utils.create_test_port(
+            self.context, node_id=self.node.id,
+            address='11:22:33:44:55:67', uuid=uuidutils.generate_uuid())
+        self.ports = [port_1, port_2]
+
     def test_get_properties(self):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
@@ -743,7 +753,8 @@ class IloManagementTestCase(test_common.BaseIloTest):
             ilo_object_mock.set_iscsi_info.assert_called_once_with(
                 'fake_iqn', 0, 'fake_host', '3260',
                 auth_method='CHAP', username='fake_username',
-                password='fake_password')
+                password='fake_password',
+                macs=['11:22:33:44:55:66', '11:22:33:44:55:67'])
 
     @mock.patch.object(ilo_common, 'get_ilo_object', spec_set=True,
                        autospec=True)
@@ -765,7 +776,8 @@ class IloManagementTestCase(test_common.BaseIloTest):
             task.driver.management.set_iscsi_boot_target(task)
             ilo_object_mock.set_iscsi_info.assert_called_once_with(
                 'fake_iqn', 0, 'fake_host', '3260', auth_method=None,
-                password=None, username=None)
+                password=None, username=None,
+                macs=['11:22:33:44:55:66', '11:22:33:44:55:67'])
 
     @mock.patch.object(ilo_common, 'get_ilo_object', spec_set=True,
                        autospec=True)
@@ -843,7 +855,8 @@ class IloManagementTestCase(test_common.BaseIloTest):
             ilo_object_mock = get_ilo_object_mock.return_value
 
             task.driver.management.clear_iscsi_boot_target(task)
-            ilo_object_mock.unset_iscsi_info.assert_called_once()
+            ilo_object_mock.unset_iscsi_info.assert_called_once_with(
+                macs=['11:22:33:44:55:66', '11:22:33:44:55:67'])
 
     @mock.patch.object(ilo_common, 'get_ilo_object', spec_set=True,
                        autospec=True)

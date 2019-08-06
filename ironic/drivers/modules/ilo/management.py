@@ -535,6 +535,7 @@ class IloManagement(base.ManagementInterface):
         """
         # Getting target info
         node = task.node
+        macs = [port['address'] for port in task.ports]
         boot_volume = node.driver_internal_info.get('boot_from_volume')
         volume = volume_target.VolumeTarget.get_by_uuid(task.context,
                                                         boot_volume)
@@ -556,7 +557,7 @@ class IloManagement(base.ManagementInterface):
             auth_method = 'CHAP' if username else None
             ilo_object.set_iscsi_info(
                 iqn, lun, host, port, auth_method=auth_method,
-                username=username, password=password)
+                username=username, password=password, macs=macs)
         except ilo_error.IloCommandNotSupportedInBiosError as ilo_exception:
             operation = (_("Setting of target IQN %(target_iqn)s for node "
                            "%(node)s")
@@ -580,7 +581,8 @@ class IloManagement(base.ManagementInterface):
         """
         ilo_object = ilo_common.get_ilo_object(task.node)
         try:
-            ilo_object.unset_iscsi_info()
+            macs = [port['address'] for port in task.ports]
+            ilo_object.unset_iscsi_info(macs=macs)
         except ilo_error.IloCommandNotSupportedInBiosError as ilo_exception:
             operation = (_("Unsetting of iSCSI target for node %(node)s")
                          % {'node': task.node.uuid})
