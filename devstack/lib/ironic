@@ -2746,6 +2746,10 @@ function ironic_configure_tempest {
         iniset $TEMPEST_CONFIG baremetal unrescue_timeout $IRONIC_TEMPEST_BUILD_TIMEOUT
     fi
 
+    if [[ $IRONIC_VM_VOLUME_COUNT -gt 1 ]]; then
+        iniset $TEMPEST_CONFIG baremetal_feature_enabled software_raid True
+    fi
+
     # Enabled features
     iniset $TEMPEST_CONFIG baremetal_feature_enabled ipxe_enabled $IRONIC_IPXE_ENABLED
     iniset $TEMPEST_CONFIG baremetal_feature_enabled fast_track_discovery $IRONIC_DEPLOY_FAST_TRACK
