@@ -1,5 +1,5 @@
 - hosts: all
-  name: Copy ssh keys from too ~stack
+  name: Pre-setup tasks
   tasks:
     - shell:
         cmd: |
@@ -11,3 +11,5 @@
           sudo chmod 700 ~stack/.ssh
           sudo chown -R stack ~stack
         executable: /bin/bash
+  roles:
+    - multi-node-bridge
