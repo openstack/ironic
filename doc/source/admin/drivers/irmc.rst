@@ -576,4 +576,4 @@ for more details.
 RAID configuration feature supports FUJITSU PRIMERGY servers with
 RAID-Ctrl-SAS-6G-1GB(D3116C) controller and above.
 For detail supported controller with OOB-RAID configuration, please see
-`the whitepaper for iRMC RAID configuration <https://sp.ts.fujitsu.com/dmsp/Publications/public/wp-SVS-ooB-RAID-HDD-en.pdf>`_.
+`the whitepaper for iRMC RAID configuration <http://manuals.ts.fujitsu.com/file/12073/wp-svs-oob-raid-hdd-en.pdf>`_.
