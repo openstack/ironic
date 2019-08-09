@@ -20,6 +20,13 @@ The web console can be configured in Bare Metal service in the following way:
   is not present in base repositories, user must enable EPEL repository, you can find
   more from `FedoraProject page`_.
 
+  .. note::
+
+     shellinabox is no longer maintained by the authorized author.
+     `This <https://github.com/shellinabox/shellinabox>`_ is a fork of the
+     project on GitHub that aims to continue with maintenance of the
+     shellinabox project.
+
   Installation example:
 
   Ubuntu::
@@ -153,7 +160,7 @@ The web console can be configured in Bare Metal service in the following way:
   ``false``, ``console_info`` is ``None``, web console is disabled. If you want to launch web
   console, see the ``Configure node web console`` part.
 
-.. _`shellinabox page`: https://code.google.com/p/shellinabox/
+.. _`shellinabox page`: https://code.google.com/archive/p/shellinabox/
 .. _`openssl page`: https://www.openssl.org/
 .. _`FedoraProject page`: https://fedoraproject.org/wiki/Infrastructure/Mirroring
 
