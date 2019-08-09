@@ -600,9 +600,9 @@ Ensure the public key of the signed image is loaded into bare metal to deploy
 signed images.
 For HPE ProLiant Gen9 servers, one can enroll public key using iLO System
 Utilities UI. Please refer to section ``Accessing Secure Boot options`` in
-`HP UEFI System Utilities User Guide <http://www.hp.com/ctg/Manual/c04398276.pdf>`_.
+`HP UEFI System Utilities User Guide <https://h20628.www2.hp.com/km-ext/kmcsdirect/emr_na-c03886429-5.pdf>`_.
 One can also refer to white paper on `Secure Boot for Linux on HP ProLiant
-servers <http://h20195.www2.hp.com/V2/getpdf.aspx/4AA5-4496ENW.pdf>`_ for
+servers <https://h50146.www5.hpe.com/products/software/oe/linux/mainstream/support/whitepaper/pdfs/2018_rev2_4AA5-4496ENW.pdf>`_ for
 additional details.
 
 For more up-to-date information, refer
