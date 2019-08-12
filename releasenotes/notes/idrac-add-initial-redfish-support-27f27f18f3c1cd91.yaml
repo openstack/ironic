@@ -1,0 +1,44 @@
+---
+features:
+  - |
+    Adds initial ``idrac`` hardware type support of interface
+    implementations that utilize the Redfish out-of-band (OOB)
+    management protocol and are compatible with the integrated Dell
+    Remote Access Controller (iDRAC) baseboard management controller
+    (BMC), presently those of the management and power hardware
+    interfaces. They are named ``idrac-redfish``.
+
+    Introduces a new name for the ``idrac`` interface implementations,
+    ``idrac-wsman``, and deprecates ``idrac``. They both use the Web
+    Services Management (WS-Man) OOB management protocol.
+
+    The ``idrac`` hardware type declares support for those new interface
+    implementations, in addition to all interface implementations it has
+    been supporting. The priority order of supported interfaces remains
+    the same. Interface implementations which rely on WS-Man continue to
+    have the highest priority, and the new ``idrac-wsman`` is listed
+    before the deprecated ``idrac``. It now supports the following
+    interface implementations, which are listed in priority order from
+    highest to lowest:
+
+    * bios: ``no-bios``
+    * boot: ``ipxe``, ``pxe``
+    * console: ``no-console``
+    * deploy: ``iscsi``, ``direct``, ``ansible``, ``ramdisk``
+    * inspect: ``idrac-wsman``, ``idrac``, ``inspector``, ``no-inspect``
+    * management: ``idrac-wsman``, ``idrac``, ``idrac-redfish``
+    * network: ``flat``, ``neutron``, ``noop``
+    * power:  ``idrac-wsman``, ``idrac``, ``idrac-redfish``
+    * raid: ``idrac-wsman``, ``idrac``, ``no-raid``
+    * rescue: ``no-rescue``, ``agent``
+    * storage: ``noop``, ``cinder``, ``external``
+    * vendor: ``idrac-wsman``, ``idrac``, ``no-vendor``
+
+    For more information, see `story 2004592
+    <https://storyboard.openstack.org/#!/story/2004592>`_.
+deprecations:
+  - |
+    The ``idrac`` interface implementation name is deprecated in favor
+    of a new name, ``idrac-wsman``, and may be removed in a future
+    release. A deprecation warning will be logged for every loaded
+    ``idrac`` interface implementation. Use ``idrac-wsman`` instead.

@@ -35,7 +35,7 @@ LOG = logging.getLogger(__name__)
 METRICS = metrics_utils.get_metrics_logger(__name__)
 
 
-class DracInspect(base.InspectInterface):
+class DracWSManInspect(base.InspectInterface):
 
     def get_properties(self):
         """Return the properties of the interface.
@@ -221,3 +221,20 @@ class DracInspect(base.InspectInterface):
                     pxe_dev_nics.append(nic.id)
 
         return pxe_dev_nics
+
+
+class DracInspect(DracWSManInspect):
+    """Class alias of class DracWSManInspect.
+
+    This class provides ongoing support of the deprecated 'idrac'
+    inspect interface implementation entrypoint.
+
+    All bug fixes and new features should be implemented in its base
+    class, DracWSManInspect. That makes them available to both the
+    deprecated 'idrac' and new 'idrac-wsman' entrypoints. Such changes
+    should not be made to this class.
+    """
+
+    def __init__(self):
+        LOG.warning("Inspect interface 'idrac' is deprecated and may be "
+                    "removed in a future release. Use 'idrac-wsman' instead.")
