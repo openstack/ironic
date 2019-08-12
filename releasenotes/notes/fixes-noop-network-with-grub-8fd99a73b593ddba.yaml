@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Fixes an issue where users attempting to leverage non-iPXE UEFI booting
+    would experience failures when their ``dhcp_provider`` was set to
+    ``none``.

@@ -83,7 +83,6 @@ class BaseDHCP(object):
         :raises: FailedToUpdateDHCPOptOnPort
         """
 
-    @abc.abstractmethod
     def get_ip_addresses(self, task):
         """Get IP addresses for all ports/portgroups in `task`.
 
@@ -91,6 +90,7 @@ class BaseDHCP(object):
         :returns: List of IP addresses associated with
             task's ports and portgroups.
         """
+        return []
 
     def clean_dhcp_opts(self, task):
         """Clean up the DHCP BOOT options for all ports in `task`.

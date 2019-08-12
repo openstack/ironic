@@ -137,9 +137,18 @@ def _link_ip_address_pxe_configs(task, ipxe_enabled=False):
     api = dhcp_factory.DHCPFactory().provider
     ip_addrs = api.get_ip_addresses(task)
     if not ip_addrs:
-        raise exception.FailedToGetIPAddressOnPort(_(
-            "Failed to get IP address for any port on node %s.") %
-            task.node.uuid)
+
+        if ip_addrs == []:
+            LOG.warning("No IP addresses assigned for node %(node)s.",
+                        {'node': task.node.uuid})
+        else:
+            LOG.warning(
+                "DHCP address management is not available for node "
+                "%(node)s. Operators without Neutron can ignore this "
+                "warning.",
+                {'node': task.node.uuid})
+        # Just in case, reset to empty list if we got nothing.
+        ip_addrs = []
     for port_ip_address in ip_addrs:
         ip_address_path = _get_pxe_ip_address_path(port_ip_address)
         ironic_utils.unlink_without_raise(ip_address_path)
