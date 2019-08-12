@@ -322,6 +322,23 @@ class TestAgentDeploy(db_base.DbTestCase):
             self.assertFalse(mock_pxe_instance.called)
 
     @mock.patch.object(pxe.PXEBoot, 'prepare_instance', autospec=True)
+    @mock.patch('ironic.conductor.utils.node_power_action', autospec=True)
+    def test_deploy_with_deployment_reboot(self, power_mock,
+                                           mock_pxe_instance):
+        driver_internal_info = self.node.driver_internal_info
+        driver_internal_info['deployment_reboot'] = True
+        self.node.driver_internal_info = driver_internal_info
+        self.node.save()
+        with task_manager.acquire(
+                self.context, self.node['uuid'], shared=False) as task:
+            driver_return = self.driver.deploy(task)
+            self.assertEqual(driver_return, states.DEPLOYWAIT)
+            self.assertFalse(power_mock.called)
+            self.assertFalse(mock_pxe_instance.called)
+            self.assertNotIn(
+                'deployment_reboot', task.node.driver_internal_info)
+
+    @mock.patch.object(pxe.PXEBoot, 'prepare_instance', autospec=True)
     @mock.patch.object(noop_storage.NoopStorage, 'should_write_image',
                        autospec=True)
     def test_deploy_storage_should_write_image_false(self, mock_write,
