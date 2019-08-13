@@ -56,6 +56,19 @@
       zuul_copy_output:
         '{{ devstack_base_dir }}/ironic-bm-logs': 'logs'
       devstack_services:
+        q-agt: false
+        q-dhcp: false
+        q-l3: false
+        q-meta: false
+        q-metering: false
+        q-svc: false
+        neutron-api: true
+        neutron-agent: true
+        neutron-dhcp: true
+        neutron-l3: true
+        neutron-metadata-agent: true
+        neutron-metering: true
+
         c-api: False
         c-bak: False
         c-sch: False
@@ -290,6 +303,12 @@
         q-meta: False
         q-metering: False
         q-svc: False
+        neutron-api: False
+        neutron-agent: False
+        neutron-dhcp: False
+        neutron-l3: False
+        neutron-metadata-agent: False
+        neutron-metering: False
 
 - job:
     name: ironic-tempest-functional-python3
