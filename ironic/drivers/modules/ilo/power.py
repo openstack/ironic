@@ -94,12 +94,13 @@ def _get_power_state(node):
         return states.ERROR
 
 
-def _wait_for_state_change(node, target_state,
+def _wait_for_state_change(node, target_state, requested_state,
                            is_final_state=True, timeout=None):
     """Wait for the power state change to get reflected.
 
     :param node: The node.
-    :param target_state: target power state of the node.
+    :param target_state: calculated target power state of the node.
+    :param requested_state: actual requested power state of the node.
     :param is_final_state: True, if the given target state is the final
         expected power state of the node. Default is True.
     :param timeout: timeout (in seconds) positive integer (> 0) for any
@@ -140,7 +141,14 @@ def _wait_for_state_change(node, target_state,
             target_state == states.SOFT_REBOOT and not is_final_state):
             state_to_check = ilo_common.POST_POWEROFF_STATE
         else:
-            state_to_check = ilo_common.POST_FINISHEDPOST_STATE
+            # It may not be able to finish POST if no bootable device is
+            # found. Track (POST_FINISHEDPOST_STATE) only for soft reboot.
+            # For other power-on cases track for beginning of POST operation
+            # (POST_INPOST_STATE) to return.
+            state_to_check = (
+                ilo_common.POST_FINISHEDPOST_STATE if
+                requested_state == states.SOFT_REBOOT else
+                ilo_common.POST_INPOST_STATE)
 
     def _wait(state):
         if use_post_state:
@@ -197,6 +205,7 @@ def _set_power_state(task, target_state, timeout=None):
     # Check if its soft power operation
     soft_power_op = target_state in [states.SOFT_POWER_OFF, states.SOFT_REBOOT]
 
+    requested_state = target_state
     if target_state == states.SOFT_REBOOT:
         if _get_power_state(node) == states.POWER_OFF:
             target_state = states.POWER_ON
@@ -239,7 +248,8 @@ def _set_power_state(task, target_state, timeout=None):
         is_final_state = target_state in (states.SOFT_POWER_OFF,
                                           states.POWER_ON)
         time_consumed = _wait_for_state_change(
-            node, target_state, is_final_state=is_final_state, timeout=timeout)
+            node, target_state, requested_state,
+            is_final_state=is_final_state, timeout=timeout)
         if target_state == states.SOFT_REBOOT:
             _attach_boot_iso_if_needed(task)
             try:
@@ -252,11 +262,12 @@ def _set_power_state(task, target_state, timeout=None):
             # Re-calculate timeout available for power-on operation
             rem_timeout = timeout - time_consumed
             time_consumed += _wait_for_state_change(
-                node, states.SOFT_REBOOT, is_final_state=True,
+                node, states.SOFT_REBOOT, requested_state, is_final_state=True,
                 timeout=rem_timeout)
     else:
         time_consumed = _wait_for_state_change(
-            node, target_state, is_final_state=True, timeout=timeout)
+            node, target_state, requested_state, is_final_state=True,
+            timeout=timeout)
     LOG.info("The node %(node_id)s operation of '%(state)s' "
              "is completed in %(time_consumed)s seconds.",
              {'node_id': node.uuid, 'state': target_state,
