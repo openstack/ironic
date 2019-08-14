@@ -29,3 +29,6 @@ upgrade:
   - |
     In order to support power state change call backs to nova, the ``[nova]``
     section must be configured in the baremetal service configuration.
+    As the functionality to process the event is new to nova's Train release,
+    this should only be set to ``True`` in ironic, once *ALL* ``nova-compute``
+    instances have been upgraded to the Train release of nova.
