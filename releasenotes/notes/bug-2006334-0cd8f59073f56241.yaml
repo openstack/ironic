@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+      Fixes an issue regarding the ``ansible`` deploy interface, where the
+      configdrive partition could not be correctly built if the node root
+      device was set to some logical device (like an md array, /dev/md0).
+      https://storyboard.openstack.org/#!/story/2006334
