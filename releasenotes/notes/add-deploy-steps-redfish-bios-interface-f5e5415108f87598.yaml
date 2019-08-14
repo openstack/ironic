@@ -1,0 +1,6 @@
+---
+features:
+  - |
+    Adds support for deploy steps to ``bios`` interface of ``redfish``
+    hardware type. The methods ``factory_reset`` and ``apply_configuration``
+    can be used as deploy steps.

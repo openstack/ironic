@@ -165,36 +165,146 @@ class RedfishBiosTestCase(db_base.DbTestCase):
     @mock.patch.object(deploy_utils, 'build_agent_options', autospec=True)
     @mock.patch.object(redfish_utils, 'get_system', autospec=True)
     @mock.patch.object(manager_utils, 'node_power_action', autospec=True)
-    def test_factory_reset_step1(self, mock_power_action, mock_get_system,
-                                 mock_build_agent_options, mock_prepare):
+    def _test_step_pre_reboot(self, mock_power_action, mock_get_system,
+                              mock_build_agent_options, mock_prepare):
+        if self.node.clean_step:
+            step_data = self.node.clean_step
+            check_fields = ['cleaning_reboot', 'skip_current_clean_step']
+            expected_ret = states.CLEANWAIT
+        else:
+            step_data = self.node.deploy_step
+            check_fields = ['deployment_reboot', 'skip_current_deploy_step']
+            expected_ret = states.DEPLOYWAIT
+        data = step_data['argsinfo'].get('settings', None)
+        step = step_data['step']
+        if step == 'factory_reset':
+            check_fields.append('post_factory_reset_reboot_requested')
+        elif step == 'apply_configuration':
+            check_fields.append('post_config_reboot_requested')
+            attributes = {s['name']: s['value'] for s in data}
         mock_build_agent_options.return_value = {'a': 'b'}
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
-            task.driver.bios.factory_reset(task)
+            if step == 'factory_reset':
+                ret = task.driver.bios.factory_reset(task)
+            if step == 'apply_configuration':
+                ret = task.driver.bios.apply_configuration(task, data)
             mock_get_system.assert_called_with(task.node)
             mock_power_action.assert_called_once_with(task, states.REBOOT)
             bios = mock_get_system(task.node).bios
-            bios.reset_bios.assert_called_once()
+            if step == 'factory_reset':
+                bios.reset_bios.assert_called_once()
+            if step == 'apply_configuration':
+                bios.set_attributes.assert_called_once_with(attributes)
             mock_build_agent_options.assert_called_once_with(task.node)
             mock_prepare.assert_called_once_with(mock.ANY, task, {'a': 'b'})
             info = task.node.driver_internal_info
-            self.assertTrue(
-                all(x in info for x in (
-                    'post_factory_reset_reboot_requested', 'cleaning_reboot',
-                    'skip_current_clean_step')))
+            self.assertTrue(all(x in info for x in check_fields))
+            self.assertEqual(expected_ret, ret)
+
+    def test_factory_reset_step_pre_reboot_cleaning(self):
+        self.node.clean_step = {'priority': 100, 'interface': 'bios',
+                                'step': 'factory_reset', 'argsinfo': {}}
+        self.node.save()
+        self._test_step_pre_reboot()
+
+    def test_factory_reset_step_pre_reboot_deploying(self):
+        self.node.deploy_step = {'priority': 100, 'interface': 'bios',
+                                 'step': 'factory_reset', 'argsinfo': {}}
+        self.node.save()
+        self._test_step_pre_reboot()
+
+    def test_apply_conf_step_pre_reboot_cleaning(self):
+        data = [{'name': 'ProcTurboMode', 'value': 'Disabled'},
+                {'name': 'NicBoot1', 'value': 'NetworkBoot'}]
+        self.node.clean_step = {'priority': 100, 'interface': 'bios',
+                                'step': 'apply_configuration',
+                                'argsinfo': {'settings': data}}
+        self.node.save()
+        self._test_step_pre_reboot()
+
+    def test_apply_conf_step_pre_reboot_deploying(self):
+        data = [{'name': 'ProcTurboMode', 'value': 'Disabled'},
+                {'name': 'NicBoot1', 'value': 'NetworkBoot'}]
+        self.node.deploy_step = {'priority': 100, 'interface': 'bios',
+                                 'step': 'apply_configuration',
+                                 'argsinfo': {'settings': data}}
+        self.node.save()
+        self._test_step_pre_reboot()
 
     @mock.patch.object(redfish_utils, 'get_system', autospec=True)
-    def test_factory_reset_step2(self, mock_get_system):
+    def _test_step_post_reboot(self, mock_get_system):
+        if self.node.deploy_step:
+            step_data = self.node.deploy_step
+        else:
+            step_data = self.node.clean_step
+        data = step_data['argsinfo'].get('settings', None)
+        step = step_data['step']
+        if step == 'factory_reset':
+            check_fields = ['post_factory_reset_reboot_requested']
+        if step == 'apply_configuration':
+            check_fields = ['post_config_reboot_requested',
+                            'requested_bios_attrs']
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
-            driver_internal_info = task.node.driver_internal_info
-            driver_internal_info['post_factory_reset_reboot_requested'] = True
-            task.node.driver_internal_info = driver_internal_info
-            task.node.save()
-            task.driver.bios.factory_reset(task)
+            if step == 'factory_reset':
+                task.driver.bios.factory_reset(task)
+            if step == 'apply_configuration':
+                task.driver.bios.apply_configuration(task, data)
             mock_get_system.assert_called_with(task.node)
             info = task.node.driver_internal_info
-            self.assertNotIn('post_factory_reset_reboot_requested', info)
+            for field in check_fields:
+                self.assertNotIn(field, info)
+
+    def test_factory_reset_post_reboot_cleaning(self):
+        self.node.clean_step = {'priority': 100, 'interface': 'bios',
+                                'step': 'factory_reset', 'argsinfo': {}}
+        node = self.node
+        driver_internal_info = node.driver_internal_info
+        driver_internal_info['post_factory_reset_reboot_requested'] = True
+        node.driver_internal_info = driver_internal_info
+        node.save()
+        self._test_step_post_reboot()
+
+    def test_factory_reset_post_reboot_deploying(self):
+        self.node.deploy_step = {'priority': 100, 'interface': 'bios',
+                                 'step': 'factory_reset', 'argsinfo': {}}
+        node = self.node
+        driver_internal_info = node.driver_internal_info
+        driver_internal_info['post_factory_reset_reboot_requested'] = True
+        node.driver_internal_info = driver_internal_info
+        node.save()
+        self._test_step_post_reboot()
+
+    def test_apply_conf_post_reboot_cleaning(self):
+        data = [{'name': 'ProcTurboMode', 'value': 'Disabled'},
+                {'name': 'NicBoot1', 'value': 'NetworkBoot'}]
+        self.node.clean_step = {'priority': 100, 'interface': 'bios',
+                                'step': 'apply_configuration',
+                                'argsinfo': {'settings': data}}
+        requested_attrs = {'ProcTurboMode': 'Enabled'}
+        node = self.node
+        driver_internal_info = node.driver_internal_info
+        driver_internal_info['post_config_reboot_requested'] = True
+        driver_internal_info['requested_bios_attrs'] = requested_attrs
+        self.node.driver_internal_info = driver_internal_info
+        self.node.save()
+        self._test_step_post_reboot()
+
+    def test_apply_conf_post_reboot_deploying(self):
+        data = [{'name': 'ProcTurboMode', 'value': 'Disabled'},
+                {'name': 'NicBoot1', 'value': 'NetworkBoot'}]
+        self.node.deploy_step = {'priority': 100, 'interface': 'bios',
+                                 'step': 'apply_configuration',
+                                 'argsinfo': {'settings': data}}
+        requested_attrs = {'ProcTurboMode': 'Enabled'}
+        node = self.node
+        driver_internal_info = node.driver_internal_info
+        driver_internal_info['post_config_reboot_requested'] = True
+        driver_internal_info['requested_bios_attrs'] = requested_attrs
+        self.node.driver_internal_info = driver_internal_info
+        self.node.save()
+        self._test_step_post_reboot()
 
     @mock.patch.object(redfish_utils, 'get_system', autospec=True)
     def test_factory_reset_fail(self, mock_get_system):
@@ -214,52 +324,6 @@ class RedfishBiosTestCase(db_base.DbTestCase):
             self.assertRaisesRegex(
                 exception.RedfishError, 'BIOS factory reset failed',
                 task.driver.bios.factory_reset, task)
-
-    @mock.patch.object(pxe_boot.PXEBoot, 'prepare_ramdisk',
-                       spec_set=True, autospec=True)
-    @mock.patch.object(deploy_utils, 'build_agent_options', autospec=True)
-    @mock.patch.object(redfish_utils, 'get_system', autospec=True)
-    @mock.patch.object(manager_utils, 'node_power_action', autospec=True)
-    def test_apply_configuration_step1(self, mock_power_action,
-                                       mock_get_system,
-                                       mock_build_agent_options,
-                                       mock_prepare):
-        settings = [{'name': 'ProcTurboMode', 'value': 'Disabled'},
-                    {'name': 'NicBoot1', 'value': 'NetworkBoot'}]
-        attributes = {s['name']: s['value'] for s in settings}
-        mock_build_agent_options.return_value = {'a': 'b'}
-        with task_manager.acquire(self.context, self.node.uuid,
-                                  shared=False) as task:
-            task.driver.bios.apply_configuration(task, settings)
-            mock_get_system.assert_called_with(task.node)
-            mock_power_action.assert_called_once_with(task, states.REBOOT)
-            bios = mock_get_system(task.node).bios
-            bios.set_attributes.assert_called_once_with(attributes)
-            mock_build_agent_options.assert_called_once_with(task.node)
-            mock_prepare.assert_called_once_with(mock.ANY, task, {'a': 'b'})
-            info = task.node.driver_internal_info
-            self.assertTrue(
-                all(x in info for x in (
-                    'post_config_reboot_requested', 'cleaning_reboot',
-                    'skip_current_clean_step')))
-
-    @mock.patch.object(redfish_utils, 'get_system', autospec=True)
-    def test_apply_configuration_step2(self, mock_get_system):
-        settings = [{'name': 'ProcTurboMode', 'value': 'Disabled'},
-                    {'name': 'NicBoot1', 'value': 'NetworkBoot'}]
-        requested_attrs = {'ProcTurboMode': 'Enabled'}
-        with task_manager.acquire(self.context, self.node.uuid,
-                                  shared=False) as task:
-            driver_internal_info = task.node.driver_internal_info
-            driver_internal_info['post_config_reboot_requested'] = True
-            driver_internal_info['requested_bios_attrs'] = requested_attrs
-            task.node.driver_internal_info = driver_internal_info
-            task.node.save()
-            task.driver.bios.apply_configuration(task, settings)
-            mock_get_system.assert_called_with(task.node)
-            info = task.node.driver_internal_info
-            self.assertNotIn('post_config_reboot_requested', info)
-            self.assertNotIn('requested_bios_attrs', info)
 
     @mock.patch.object(redfish_utils, 'get_system', autospec=True)
     def test_apply_configuration_not_supported(self, mock_get_system):

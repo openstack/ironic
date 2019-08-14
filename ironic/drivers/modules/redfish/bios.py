@@ -35,6 +35,15 @@ sushy = importutils.try_import('sushy')
 
 class RedfishBIOS(base.BIOSInterface):
 
+    _APPLY_CONFIGURATION_ARGSINFO = {
+        'settings': {
+            'description': (
+                'A list of BIOS settings to be applied'
+            ),
+            'required': True
+        }
+    }
+
     def __init__(self):
         super(RedfishBIOS, self).__init__()
         if sushy is None:
@@ -89,6 +98,7 @@ class RedfishBIOS(base.BIOSInterface):
                 task.context, node_id, delete_names)
 
     @base.clean_step(priority=0)
+    @base.deploy_step(priority=0)
     @base.cache_bios_settings
     def factory_reset(self, task):
         """Reset the BIOS settings of the node to the factory default.
@@ -123,8 +133,9 @@ class RedfishBIOS(base.BIOSInterface):
                 raise exception.RedfishError(error=error_msg)
 
             self.post_reset(task)
-            self._set_cleaning_reboot(task)
-            return states.CLEANWAIT
+            self._set_reboot(task)
+            return (states.CLEANWAIT if
+                    task.node.clean_step else states.DEPLOYWAIT)
         else:
             current_attrs = bios.attributes
             LOG.debug('Post factory reset, BIOS configuration for node '
@@ -132,14 +143,8 @@ class RedfishBIOS(base.BIOSInterface):
                       {'node_uuid': node.uuid, 'attrs': current_attrs})
             self._clear_reboot_requested(task)
 
-    @base.clean_step(priority=0, argsinfo={
-        'settings': {
-            'description': (
-                'A list of BIOS settings to be applied'
-            ),
-            'required': True
-        }
-    })
+    @base.clean_step(priority=0, argsinfo=_APPLY_CONFIGURATION_ARGSINFO)
+    @base.deploy_step(priority=0, argsinfo=_APPLY_CONFIGURATION_ARGSINFO)
     @base.cache_bios_settings
     def apply_configuration(self, task, settings):
         """Apply the BIOS settings to the node.
@@ -182,7 +187,8 @@ class RedfishBIOS(base.BIOSInterface):
 
             self.post_configuration(task, settings)
             self._set_reboot_requested(task, attributes)
-            return states.CLEANWAIT
+            return (states.CLEANWAIT if
+                    task.node.clean_step else states.DEPLOYWAIT)
         else:
             # Step 2: Verify requested BIOS settings applied
             requested_attrs = info.get('requested_bios_attrs')
@@ -255,7 +261,7 @@ class RedfishBIOS(base.BIOSInterface):
             LOG.debug('BIOS settings %(attrs)s for node %(node_uuid)s '
                       'not updated.', {'attrs': attrs_not_updated,
                                        'node_uuid': task.node.uuid})
-            self._set_clean_failed(task, attrs_not_updated)
+            self._set_step_failed(task, attrs_not_updated)
         else:
             LOG.debug('Verification of BIOS settings for node %(node_uuid)s '
                       'successful.', {'node_uuid': task.node.uuid})
@@ -271,15 +277,18 @@ class RedfishBIOS(base.BIOSInterface):
         """
         manager_utils.node_power_action(task, states.REBOOT)
 
-    def _set_cleaning_reboot(self, task):
-        """Set driver_internal_info flags for cleaning reboot.
+    def _set_reboot(self, task):
+        """Set driver_internal_info flags for deployment or cleaning reboot.
 
         :param task: a TaskManager instance containing the node to act on.
         """
         info = task.node.driver_internal_info
         info['post_factory_reset_reboot_requested'] = True
-        info['cleaning_reboot'] = True
-        info['skip_current_clean_step'] = False
+        cleaning = ['cleaning_reboot', 'skip_current_clean_step']
+        deployment = ['deployment_reboot', 'skip_current_deploy_step']
+        field_name = cleaning if task.node.clean_step else deployment
+        info[field_name[0]] = True
+        info[field_name[1]] = False
         task.node.driver_internal_info = info
         task.node.save()
 
@@ -291,9 +300,12 @@ class RedfishBIOS(base.BIOSInterface):
         """
         info = task.node.driver_internal_info
         info['post_config_reboot_requested'] = True
-        info['cleaning_reboot'] = True
         info['requested_bios_attrs'] = attributes
-        info['skip_current_clean_step'] = False
+        cleaning = ['cleaning_reboot', 'skip_current_clean_step']
+        deployment = ['deployment_reboot', 'skip_current_deploy_step']
+        field_name = cleaning if task.node.clean_step else deployment
+        info[field_name[0]] = True
+        info[field_name[1]] = False
         task.node.driver_internal_info = info
         task.node.save()
 
@@ -309,8 +321,8 @@ class RedfishBIOS(base.BIOSInterface):
         task.node.driver_internal_info = info
         task.node.save()
 
-    def _set_clean_failed(self, task, attrs_not_updated):
-        """Fail the cleaning step and log the error.
+    def _set_step_failed(self, task, attrs_not_updated):
+        """Fail the cleaning or deployment step and log the error.
 
         :param task: a TaskManager instance containing the node to act on.
         :param attrs_not_updated: the BIOS attributes that were not updated.
@@ -323,5 +335,6 @@ class RedfishBIOS(base.BIOSInterface):
                       {'attrs': attrs_not_updated})
         LOG.error(error_msg)
         task.node.last_error = last_error
-        if task.node.provision_state in [states.CLEANING, states.CLEANWAIT]:
+        if task.node.provision_state in [states.CLEANING, states.CLEANWAIT,
+                                         states.DEPLOYING, states.DEPLOYWAIT]:
             task.process_event('fail')
