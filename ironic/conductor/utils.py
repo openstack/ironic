@@ -385,6 +385,8 @@ def cleaning_error_handler(task, msg, tear_down_cleaning=True,
                            set_fail_state=True):
     """Put a failed node in CLEANFAIL and maintenance."""
     node = task.node
+    node.fault = faults.CLEAN_FAILURE
+    node.maintenance = True
 
     if tear_down_cleaning:
         try:
@@ -410,9 +412,7 @@ def cleaning_error_handler(task, msg, tear_down_cleaning=True,
     # for automated cleaning, it is AVAILABLE.
     manual_clean = node.target_provision_state == states.MANAGEABLE
     node.last_error = msg
-    node.maintenance = True
     node.maintenance_reason = msg
-    node.fault = faults.CLEAN_FAILURE
     node.save()
 
     if set_fail_state and node.provision_state != states.CLEANFAIL:
