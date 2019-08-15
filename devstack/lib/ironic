@@ -713,6 +713,11 @@ function is_ansible_deploy_enabled {
     return 1
 }
 
+function is_redfish_enabled {
+    [[ -z "${IRONIC_ENABLED_HARDWARE_TYPES%%*redfish*}" ]] && return 0
+    return 1
+}
+
 function is_ansible_with_tinyipa {
     # NOTE(pas-ha) we support rebuilding the ramdisk to include (generated) SSH keys
     # as needed for ansible deploy interface only for TinyIPA ramdisks for now
@@ -1032,7 +1037,7 @@ function install_ironic {
         restart_libvirt
     fi
 
-    if is_deployed_by_redfish; then
+    if is_redfish_enabled || is_deployed_by_redfish; then
         setup_sushy
     fi
 
