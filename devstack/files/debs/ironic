@@ -21,6 +21,8 @@ libguestfs-tools
 libvirt-bin # dist:xenial,bionic NOPRIME
 open-iscsi
 openssh-client
+# TODO (etingof) pinning to older version in devstack/lib/ironic
+#ovmf
 pxelinux # dist:xenial,bionic
 python-libguestfs
 qemu

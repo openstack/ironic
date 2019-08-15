@@ -1,0 +1,10 @@
+---
+features:
+  - |
+    Adds virtual media boot interface to ``redfish`` hardware type supporting
+    virtual media boot. The ``redfish-virtual-media`` boot interface operates
+    on the same kernel/ramdisk as, for example, PXE boot interface does, however
+    ``redfish-virtual-media`` boot interface can additionally require EFI
+    system partition image (ESP) when performing UEFI boot. New configuration
+    option ``bootloader`` or ``[driver_info]/bootloader`` property can be used
+    to convey ESP location to ironic.

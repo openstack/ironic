@@ -40,6 +40,7 @@ class RedfishUtilsTestCase(db_base.DbTestCase):
         # Default configurations
         self.config(enabled_hardware_types=['redfish'],
                     enabled_power_interfaces=['redfish'],
+                    enabled_boot_interfaces=['redfish-virtual-media'],
                     enabled_management_interfaces=['redfish'])
         # Redfish specific configurations
         self.config(connection_attempts=1, group='redfish')

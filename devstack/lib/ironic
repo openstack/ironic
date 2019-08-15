@@ -246,6 +246,10 @@ IRONIC_DEPLOY_RAMDISK=${IRONIC_DEPLOY_RAMDISK:-$TOP_DIR/files/ir-deploy-$IRONIC_
 IRONIC_DEPLOY_KERNEL=${IRONIC_DEPLOY_KERNEL:-$TOP_DIR/files/ir-deploy-$IRONIC_DEPLOY_DRIVER.kernel}
 IRONIC_DEPLOY_ISO=${IRONIC_DEPLOY_ISO:-$TOP_DIR/files/ir-deploy-$IRONIC_DEPLOY_DRIVER.iso}
 
+# If present, this file is used to deploy/boot nodes over virtual media
+# (The value must be an absolute path)
+IRONIC_EFIBOOT=${IRONIC_EFIBOOT:-$TOP_DIR/files/ir-deploy-$IRONIC_DEPLOY_DRIVER.efiboot}
+
 # NOTE(jroll) this needs to be updated when stable branches are cut
 IPA_DOWNLOAD_BRANCH=${IPA_DOWNLOAD_BRANCH:-master}
 IPA_DOWNLOAD_BRANCH=$(echo $IPA_DOWNLOAD_BRANCH | tr / -)
@@ -526,6 +530,14 @@ if [[ "$IRONIC_BOOT_MODE" == "uefi" ]]; then
 
     if ! is_fedora && ! is_ubuntu; then
         die $LINENO "Boot mode UEFI only works in Ubuntu or Fedora for now."
+    fi
+
+    if is_arch "x86_64"; then
+        if is_ubuntu; then
+            install_package grub-efi
+        elif is_fedora; then
+            install_package grub2 grub2-efi
+        fi
     fi
 
     if is_ubuntu && [[ -z $IRONIC_GRUB2_FILE ]]; then
@@ -2519,6 +2531,63 @@ function build_ipa_dib_ramdisk {
     rm -rf $tempdir
 }
 
+# download EFI boot loader image and upload it to glance
+# this function sets ``IRONIC_EFIBOOT_ID``
+function upload_baremetal_ironic_efiboot {
+    declare -g IRONIC_EFIBOOT_ID
+
+    local efiboot_name
+    efiboot_name=$(basename $IRONIC_EFIBOOT)
+
+    echo_summary "Building and uploading EFI boot image for ironic"
+
+    if [ ! -e "$IRONIC_EFIBOOT" ]; then
+
+        local efiboot_path
+        efiboot_path=$(mktemp -d --tmpdir=${DEST})/$efiboot_name
+
+        local efiboot_mount
+        efiboot_mount=$(mktemp -d --tmpdir=${DEST})
+
+        dd if=/dev/zero \
+            of=$efiboot_path \
+            bs=4096 count=1024
+
+        mkfs.fat -s 4 -r 512 -S 4096 $efiboot_path
+
+        sudo mount $efiboot_path $efiboot_mount
+
+        sudo mkdir -p $efiboot_mount/efi/boot
+
+        sudo grub-mkimage \
+            -C xz \
+            -O x86_64-efi \
+            -p /boot/grub \
+            -o $efiboot_mount/efi/boot/bootx64.efi \
+            boot linux linuxefi search normal configfile \
+            part_gpt btrfs ext2 fat iso9660 loopback \
+            test keystatus gfxmenu regexp probe \
+            efi_gop efi_uga all_video gfxterm font \
+            echo read ls cat png jpeg halt reboot
+
+        sudo umount $efiboot_mount
+
+        # load efiboot into glance
+        IRONIC_EFIBOOT_ID=$(openstack \
+            image create \
+            $efiboot_name \
+            --public --disk-format=raw \
+            --container-format=bare \
+            -f value -c id \
+            < $efiboot_path)
+        die_if_not_set $LINENO IRONIC_EFIBOOT_ID "Failed to load EFI bootloader image into glance"
+
+        mv $efiboot_path $IRONIC_EFIBOOT
+
+        iniset $IRONIC_CONF_FILE conductor bootloader $IRONIC_EFIBOOT_ID
+    fi
+}
+
 # build deploy kernel+ramdisk, then upload them to glance
 # this function sets ``IRONIC_DEPLOY_KERNEL_ID``, ``IRONIC_DEPLOY_RAMDISK_ID``
 function upload_baremetal_ironic_deploy {
@@ -2611,6 +2680,11 @@ function prepare_baremetal_basic_ops {
     fi
 
     upload_baremetal_ironic_deploy
+
+    if [[ "$IRONIC_BOOT_MODE" == "uefi" && is_deployed_by_redfish ]]; then
+        upload_baremetal_ironic_efiboot
+    fi
+
     configure_tftpd
     configure_iptables
 }

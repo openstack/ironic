@@ -240,6 +240,13 @@ opts = [
                mutable=True,
                help=_('Glance ID, http:// or file:// URL of the initramfs of '
                       'the default rescue image.')),
+    cfg.StrOpt('bootloader',
+               mutable=True,
+               help=_('Glance ID, http:// or file:// URL of the EFI system '
+                      'partition image containing EFI boot loader. This image '
+                      'will be used by ironic when building UEFI-bootable ISO '
+                      'out of kernel and ramdisk. Required for UEFI boot from '
+                      'partition images.')),
 ]
 
 

@@ -15,8 +15,11 @@
 
 from ironic.drivers import generic
 from ironic.drivers.modules import inspector
+from ironic.drivers.modules import ipxe
 from ironic.drivers.modules import noop
+from ironic.drivers.modules import pxe
 from ironic.drivers.modules.redfish import bios as redfish_bios
+from ironic.drivers.modules.redfish import boot as redfish_boot
 from ironic.drivers.modules.redfish import inspect as redfish_inspect
 from ironic.drivers.modules.redfish import management as redfish_mgmt
 from ironic.drivers.modules.redfish import power as redfish_power
@@ -45,3 +48,9 @@ class RedfishHardware(generic.GenericHardware):
         """List of supported power interfaces."""
         return [redfish_inspect.RedfishInspect, inspector.Inspector,
                 noop.NoInspect]
+
+    @property
+    def supported_boot_interfaces(self):
+        """List of supported boot interfaces."""
+        return [redfish_boot.RedfishVirtualMediaBoot,
+                ipxe.iPXEBoot, pxe.PXEBoot]

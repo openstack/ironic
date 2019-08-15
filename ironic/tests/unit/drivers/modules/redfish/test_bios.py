@@ -20,8 +20,8 @@ from ironic.common import states
 from ironic.conductor import task_manager
 from ironic.conductor import utils as manager_utils
 from ironic.drivers.modules import deploy_utils
-from ironic.drivers.modules import pxe as pxe_boot
 from ironic.drivers.modules.redfish import bios as redfish_bios
+from ironic.drivers.modules.redfish import boot as redfish_boot
 from ironic.drivers.modules.redfish import utils as redfish_utils
 from ironic import objects
 from ironic.tests.unit.db import base as db_base
@@ -50,6 +50,7 @@ class RedfishBiosTestCase(db_base.DbTestCase):
         self.config(enabled_bios_interfaces=['redfish'],
                     enabled_hardware_types=['redfish'],
                     enabled_power_interfaces=['redfish'],
+                    enabled_boot_interfaces=['redfish-virtual-media'],
                     enabled_management_interfaces=['redfish'])
         self.node = obj_utils.create_test_node(
             self.context, driver='redfish', driver_info=INFO_DICT)
@@ -160,7 +161,7 @@ class RedfishBiosTestCase(db_base.DbTestCase):
             mock_setting_list.delete.assert_called_once_with(
                 task.context, task.node.id, delete_names)
 
-    @mock.patch.object(pxe_boot.PXEBoot, 'prepare_ramdisk',
+    @mock.patch.object(redfish_boot.RedfishVirtualMediaBoot, 'prepare_ramdisk',
                        spec_set=True, autospec=True)
     @mock.patch.object(deploy_utils, 'build_agent_options', autospec=True)
     @mock.patch.object(redfish_utils, 'get_system', autospec=True)
