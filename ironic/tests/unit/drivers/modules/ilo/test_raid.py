@@ -127,7 +127,10 @@ class Ilo5RAIDTestCase(db_base.DbTestCase):
                        u'volume_name': u'0006EB7BPDVTF0BRH5L0EAEDDA'}]
                      }
         ilo_mock_object = ilo_mock.return_value
-        self.node.driver_internal_info = {'ilo_raid_create_in_progress': True}
+        driver_internal_info = self.node.driver_internal_info
+        driver_internal_info['ilo_raid_create_in_progress'] = True
+        driver_internal_info['skip_current_clean_step'] = False
+        self.node.driver_internal_info = driver_internal_info
         self.node.save()
         with task_manager.acquire(self.context, self.node.uuid) as task:
             filter_target_raid_config_mock.return_value = (
@@ -137,8 +140,6 @@ class Ilo5RAIDTestCase(db_base.DbTestCase):
             update_raid_mock.assert_called_once_with(task.node, raid_conf)
             self.assertNotIn('ilo_raid_create_in_progress',
                              task.node.driver_internal_info)
-            self.assertNotIn('cleaning_reboot',
-                             task.node.driver_internal_info)
             self.assertNotIn('skip_current_clean_step',
                              task.node.driver_internal_info)
 
@@ -147,7 +148,10 @@ class Ilo5RAIDTestCase(db_base.DbTestCase):
     def test_create_configuration_with_read_raid_failed(
             self, ilo_mock, filter_target_raid_config_mock):
         raid_conf = {u'logical_disks': []}
-        self.node.driver_internal_info = {'ilo_raid_create_in_progress': True}
+        driver_internal_info = self.node.driver_internal_info
+        driver_internal_info['ilo_raid_create_in_progress'] = True
+        driver_internal_info['skip_current_clean_step'] = False
+        self.node.driver_internal_info = driver_internal_info
         self.node.save()
         ilo_mock_object = ilo_mock.return_value
         with task_manager.acquire(self.context, self.node.uuid) as task:
@@ -157,8 +161,6 @@ class Ilo5RAIDTestCase(db_base.DbTestCase):
             self.assertRaises(exception.NodeCleaningFailure,
                               task.driver.raid.create_configuration, task)
             self.assertNotIn('ilo_raid_create_in_progress',
-                             task.node.driver_internal_info)
-            self.assertNotIn('cleaning_reboot',
                              task.node.driver_internal_info)
             self.assertNotIn('skip_current_clean_step',
                              task.node.driver_internal_info)
@@ -287,7 +289,10 @@ class Ilo5RAIDTestCase(db_base.DbTestCase):
     @mock.patch.object(ilo_common, 'get_ilo_object', autospec=True)
     def test_delete_configuration_with_read_raid(self, ilo_mock):
         raid_conf = {u'logical_disks': []}
-        self.node.driver_internal_info = {'ilo_raid_delete_in_progress': True}
+        driver_internal_info = self.node.driver_internal_info
+        driver_internal_info['ilo_raid_delete_in_progress'] = True
+        driver_internal_info['skip_current_clean_step'] = False
+        self.node.driver_internal_info = driver_internal_info
         self.node.save()
         ilo_mock_object = ilo_mock.return_value
         with task_manager.acquire(self.context, self.node.uuid) as task:
@@ -295,8 +300,6 @@ class Ilo5RAIDTestCase(db_base.DbTestCase):
             task.driver.raid.delete_configuration(task)
             self.assertEqual(self.node.raid_config, {})
             self.assertNotIn('ilo_raid_delete_in_progress',
-                             task.node.driver_internal_info)
-            self.assertNotIn('cleaning_reboot',
                              task.node.driver_internal_info)
             self.assertNotIn('skip_current_clean_step',
                              task.node.driver_internal_info)
@@ -306,7 +309,10 @@ class Ilo5RAIDTestCase(db_base.DbTestCase):
         raid_conf = {u'logical_disks': [{'size_gb': 200,
                                          'raid_level': 0,
                                          'is_root_volume': True}]}
-        self.node.driver_internal_info = {'ilo_raid_delete_in_progress': True}
+        driver_internal_info = self.node.driver_internal_info
+        driver_internal_info['ilo_raid_delete_in_progress'] = True
+        driver_internal_info['skip_current_clean_step'] = False
+        self.node.driver_internal_info = driver_internal_info
         self.node.save()
         ilo_mock_object = ilo_mock.return_value
         with task_manager.acquire(self.context, self.node.uuid) as task:
@@ -314,8 +320,6 @@ class Ilo5RAIDTestCase(db_base.DbTestCase):
             self.assertRaises(exception.NodeCleaningFailure,
                               task.driver.raid.delete_configuration, task)
             self.assertNotIn('ilo_raid_delete_in_progress',
-                             task.node.driver_internal_info)
-            self.assertNotIn('cleaning_reboot',
                              task.node.driver_internal_info)
             self.assertNotIn('skip_current_clean_step',
                              task.node.driver_internal_info)
