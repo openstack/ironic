@@ -432,7 +432,7 @@ class RedfishVirtualMediaBootTestCase(db_base.DbTestCase):
                 task, expected_params, 'deploy')
 
             mock_manager_utils.node_set_boot_device.assert_called_once_with(
-                task, boot_devices.CDROM)
+                task, boot_devices.CDROM, False)
 
             mock_boot_mode_utils.sync_boot_mode.assert_called_once_with(task)
 
@@ -501,7 +501,7 @@ class RedfishVirtualMediaBootTestCase(db_base.DbTestCase):
                 task, expected_params, 'deploy')
 
             mock_manager_utils.node_set_boot_device.assert_called_once_with(
-                task, boot_devices.CDROM)
+                task, boot_devices.CDROM, False)
 
             mock_boot_mode_utils.sync_boot_mode.assert_called_once_with(task)
 

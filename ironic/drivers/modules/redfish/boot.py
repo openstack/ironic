@@ -613,7 +613,7 @@ class RedfishVirtualMediaBoot(base.BootInterface):
 
         boot_mode_utils.sync_boot_mode(task)
 
-        manager_utils.node_set_boot_device(task, boot_devices.CDROM)
+        self._set_boot_device(task, boot_devices.CDROM)
 
         LOG.debug("Node %(node)s is set to one time boot from "
                   "%(device)s", {'node': task.node.uuid,
@@ -672,7 +672,7 @@ class RedfishVirtualMediaBoot(base.BootInterface):
         self.clean_up_instance(task)
         iwdi = node.driver_internal_info.get('is_whole_disk_image')
         if boot_option == "local" or iwdi:
-            manager_utils.node_set_boot_device(
+            self._set_boot_device(
                 task, boot_devices.DISK, persistent=True)
 
             LOG.debug("Node %(node)s is set to permanently boot from local "
@@ -690,7 +690,7 @@ class RedfishVirtualMediaBoot(base.BootInterface):
                     "The UUID of the root partition could not be found for "
                     "node %s. Booting instance from disk anyway.", node.uuid)
 
-                manager_utils.node_set_boot_device(
+                self._set_boot_device(
                     task, boot_devices.DISK, persistent=True)
 
                 return
@@ -704,7 +704,7 @@ class RedfishVirtualMediaBoot(base.BootInterface):
 
         boot_mode_utils.sync_boot_mode(task)
 
-        manager_utils.node_set_boot_device(
+        self._set_boot_device(
             task, boot_devices.CDROM, persistent=True)
 
         LOG.debug("Node %(node)s is set to permanently boot from "
@@ -816,3 +816,20 @@ class RedfishVirtualMediaBoot(base.BootInterface):
             for v_media in manager.virtual_media.get_members():
                 if boot_device in v_media.media_types:
                     return True
+
+    @classmethod
+    def _set_boot_device(cls, task, device, persistent=False):
+        """Set the boot device for a node.
+
+        This is a hook to allow other boot interfaces, inheriting from standard
+        `redfish` boot interface, implement their own weird ways of setting
+        boot device.
+
+        :param task: a TaskManager instance.
+        :param device: Boot device. Values are vendor-specific.
+        :param persistent: Whether to set next-boot, or make the change
+            permanent. Default: False.
+        :raises: InvalidParameterValue if the validation of the
+            ManagementInterface fails.
+        """
+        manager_utils.node_set_boot_device(task, device, persistent)
