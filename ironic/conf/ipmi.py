@@ -49,6 +49,10 @@ opts = [
                        'that command, the default value is True. It may be '
                        'overridden by per-node \'ipmi_disable_boot_timeout\' '
                        'option in node\'s \'driver_info\' field.')),
+    cfg.MultiStrOpt('additional_retryable_ipmi_errors',
+                    default=[],
+                    help=_('Additional errors ipmitool may encounter, '
+                           'specific to the environment it is run in.')),
 ]
 
 

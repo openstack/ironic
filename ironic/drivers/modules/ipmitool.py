@@ -524,8 +524,11 @@ def _exec_ipmitool(driver_info, command, check_exit_code=None,
                 return out, err
             except processutils.ProcessExecutionError as e:
                 with excutils.save_and_reraise_exception() as ctxt:
-                    err_list = [x for x in IPMITOOL_RETRYABLE_FAILURES
-                                if x in six.text_type(e)]
+                    err_list = [
+                        x for x in (
+                            IPMITOOL_RETRYABLE_FAILURES +
+                            CONF.ipmi.additional_retryable_ipmi_errors)
+                        if x in six.text_type(e)]
                     if ((time.time() > end_time)
                         or (num_tries == 0)
                         or not err_list):

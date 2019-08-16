@@ -402,6 +402,7 @@ class IPMIToolPrivateMethodTestCaseMeta(type):
                     self, mock_exec, mock_support):
                 ipmi.LAST_CMD_TIME = {}
                 mock_support.return_value = False
+                additional_msg = "RAKP 2 HMAC is invalid"
 
                 # Return a retryable error, then an error that cannot
                 # be retried thus resulting in a single retry
@@ -409,6 +410,9 @@ class IPMIToolPrivateMethodTestCaseMeta(type):
                 mock_exec.side_effect = [
                     processutils.ProcessExecutionError(
                         stderr=message
+                    ),
+                    processutils.ProcessExecutionError(
+                        stderr="Some more info: %s" % additional_msg
                     ),
                     processutils.ProcessExecutionError(
                         stderr="Unknown"
@@ -420,12 +424,14 @@ class IPMIToolPrivateMethodTestCaseMeta(type):
                 # to 3 times.
                 self.config(min_command_interval=1, group='ipmi')
                 self.config(command_retry_timeout=3, group='ipmi')
+                self.config(additional_retryable_ipmi_errors=[additional_msg],
+                            group='ipmi')
 
                 self.assertRaises(processutils.ProcessExecutionError,
                                   ipmi._exec_ipmitool,
                                   self.info, 'A B C')
                 mock_support.assert_called_once_with('timing')
-                self.assertEqual(2, mock_exec.call_count)
+                self.assertEqual(3, mock_exec.call_count)
 
             return (exec_ipmitool_exception_retry,
                     exec_ipmitool_exception_retries_exceeded,
