@@ -259,8 +259,8 @@ def set_boot_device(node, device, persistent=False):
         timeout = CONF.drac.boot_device_job_status_timeout
         end_time = time.time() + timeout
 
-        LOG.debug('Waiting for BIOS configuration job %{job_id}s '
-                  'to be scheduled for node %{node}s',
+        LOG.debug('Waiting for BIOS configuration job %(job_id)s '
+                  'to be scheduled for node %(node)s',
                   {'job_id': job_id,
                    'node': node.uuid})
 
