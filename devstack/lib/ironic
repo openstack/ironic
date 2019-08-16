@@ -640,7 +640,7 @@ function get_uefi_nvram {
 
 function restart_libvirt {
     local libvirt_service_name="libvirtd"
-    if is_ubuntu && [ ! -f /etc/init.d/libvirtd ]; then
+    if is_ubuntu && ! type libvirtd; then
         libvirt_service_name="libvirt-bin"
     fi
     restart_service $libvirt_service_name
