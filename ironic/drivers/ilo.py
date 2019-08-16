@@ -38,7 +38,7 @@ class IloHardware(generic.GenericHardware):
     @property
     def supported_boot_interfaces(self):
         """List of supported boot interfaces."""
-        return [boot.IloVirtualMediaBoot, boot.IloPXEBoot]
+        return [boot.IloVirtualMediaBoot, boot.IloPXEBoot, boot.IloiPXEBoot]
 
     @property
     def supported_bios_interfaces(self):

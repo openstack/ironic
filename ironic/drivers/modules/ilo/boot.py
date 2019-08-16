@@ -38,6 +38,7 @@ from ironic.drivers import base
 from ironic.drivers.modules import boot_mode_utils
 from ironic.drivers.modules import deploy_utils
 from ironic.drivers.modules.ilo import common as ilo_common
+from ironic.drivers.modules import ipxe
 from ironic.drivers.modules import pxe
 
 LOG = logging.getLogger(__name__)
@@ -749,3 +750,101 @@ class IloPXEBoot(pxe.PXEBoot):
             # Volume boot in BIOS boot mode is handled using
             # PXE boot interface
             super(IloPXEBoot, self).clean_up_instance(task)
+
+
+class IloiPXEBoot(ipxe.iPXEBoot):
+
+    @METRICS.timer('IloiPXEBoot.prepare_ramdisk')
+    def prepare_ramdisk(self, task, ramdisk_params):
+        """Prepares the boot of Ironic ramdisk using PXE.
+
+        This method prepares the boot of the deploy or rescue ramdisk after
+        reading relevant information from the node's driver_info and
+        instance_info.
+
+        :param task: a task from TaskManager.
+        :param ramdisk_params: the parameters to be passed to the ramdisk.
+        :returns: None
+        :raises: MissingParameterValue, if some information is missing in
+            node's driver_info or instance_info.
+        :raises: InvalidParameterValue, if some information provided is
+            invalid.
+        :raises: IronicException, if some power or set boot boot device
+            operation failed on the node.
+        :raises: IloOperationError, if some operation on iLO failed.
+        """
+
+        if task.node.provision_state in (states.DEPLOYING, states.RESCUING,
+                                         states.CLEANING):
+            prepare_node_for_deploy(task)
+
+        super(IloiPXEBoot, self).prepare_ramdisk(task, ramdisk_params)
+
+    @METRICS.timer('IloiPXEBoot.prepare_instance')
+    def prepare_instance(self, task):
+        """Prepares the boot of instance.
+
+        This method prepares the boot of the instance after reading
+        relevant information from the node's instance_info. In case of netboot,
+        it updates the dhcp entries and switches the PXE config. In case of
+        localboot, it cleans up the PXE config.
+        In case of 'boot from volume', it updates the iSCSI info onto iLO and
+        sets the node to boot from 'UefiTarget' boot device.
+
+        :param task: a task from TaskManager.
+        :returns: None
+        :raises: IloOperationError, if some operation on iLO failed.
+        """
+
+        # Set boot mode
+        ilo_common.update_boot_mode(task)
+        # Need to enable secure boot, if being requested
+        ilo_common.update_secure_boot_mode(task, True)
+
+        boot_mode = boot_mode_utils.get_boot_mode(task.node)
+
+        if deploy_utils.is_iscsi_boot(task) and boot_mode == 'uefi':
+            # Need to set 'ilo_uefi_iscsi_boot' param for clean up
+            driver_internal_info = task.node.driver_internal_info
+            driver_internal_info['ilo_uefi_iscsi_boot'] = True
+            task.node.driver_internal_info = driver_internal_info
+            task.node.save()
+            # It will set iSCSI info onto iLO
+            task.driver.management.set_iscsi_boot_target(task)
+            manager_utils.node_set_boot_device(task, boot_devices.ISCSIBOOT,
+                                               persistent=True)
+        else:
+            # Volume boot in BIOS boot mode is handled using
+            # PXE boot interface
+            super(IloiPXEBoot, self).prepare_instance(task)
+
+    @METRICS.timer('IloiPXEBoot.clean_up_instance')
+    def clean_up_instance(self, task):
+        """Cleans up the boot of instance.
+
+        This method cleans up the PXE environment that was setup for booting
+        the instance. It unlinks the instance kernel/ramdisk in the node's
+        directory in tftproot and removes it's PXE config.
+        In case of UEFI iSCSI booting, it cleans up iSCSI target information
+        from the node.
+
+        :param task: a task from TaskManager.
+        :returns: None
+        :raises: IloOperationError, if some operation on iLO failed.
+        """
+        manager_utils.node_power_action(task, states.POWER_OFF)
+        disable_secure_boot_if_supported(task)
+        driver_internal_info = task.node.driver_internal_info
+
+        if (deploy_utils.is_iscsi_boot(task)
+            and task.node.driver_internal_info.get('ilo_uefi_iscsi_boot')):
+            # It will clear iSCSI info from iLO in case of booting from
+            # volume in UEFI boot mode
+            task.driver.management.clear_iscsi_boot_target(task)
+            driver_internal_info.pop('ilo_uefi_iscsi_boot', None)
+            task.node.driver_internal_info = driver_internal_info
+            task.node.save()
+        else:
+            # Volume boot in BIOS boot mode is handled using
+            # PXE boot interface
+            super(IloiPXEBoot, self).clean_up_instance(task)
