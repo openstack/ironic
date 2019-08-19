@@ -38,6 +38,41 @@ LOG = logging.getLogger(__name__)
 RAID_CONFIG_SCHEMA = os.path.join(os.path.dirname(__file__),
                                   'raid_config_schema.json')
 
+RAID_APPLY_CONFIGURATION_ARGSINFO = {
+    "raid_config": {
+        "description": "The RAID configuration to apply.",
+        "required": True,
+    },
+    "create_root_volume": {
+        "description": (
+            "Setting this to 'False' indicates not to create root "
+            "volume that is specified in 'raid_config'. Default "
+            "value is 'True'."
+        ),
+        "required": False,
+    },
+    "create_nonroot_volumes": {
+        "description": (
+            "Setting this to 'False' indicates not to create "
+            "non-root volumes (all except the root volume) in "
+            "'raid_config'. Default value is 'True'."
+        ),
+        "required": False,
+    },
+    "delete_existing": {
+        "description": (
+            "Setting this to 'True' indicates to delete existing RAID "
+            "configuration prior to creating the new configuration. "
+            "Default value is 'True'."
+        ),
+        "required": False,
+    }
+}
+"""
+This may be used as the deploy_step argsinfo argument for RAID interfaces
+implementing an apply_configuration deploy step.
+"""
+
 
 class BareDriver(object):
     """A bare driver object which will have interfaces attached later.
@@ -1120,10 +1155,47 @@ class RAIDInterface(BaseInterface):
         """
         raid.validate_configuration(raid_config, self.raid_schema)
 
+    # NOTE(mgoddard): This is not marked as a deploy step, because it requires
+    # the create_configuration method to support use during deployment, which
+    # might not be true for all implementations. Subclasses wishing to expose
+    # an apply_configuration deploy step should implement this method with a
+    # deploy_step decorator. The RAID_APPLY_CONFIGURATION_ARGSINFO variable may
+    # be used for the deploy_step argsinfo argument. The create_configuration
+    # method must also accept a delete_existing argument.
+    def apply_configuration(self, task, raid_config, create_root_volume=True,
+                            create_nonroot_volumes=True,
+                            delete_existing=True):
+        """Applies RAID configuration on the given node.
+
+        :param task: A TaskManager instance.
+        :param raid_config: The RAID configuration to apply.
+        :param create_root_volume: Setting this to False indicates
+            not to create root volume that is specified in raid_config.
+            Default value is True.
+        :param create_nonroot_volumes: Setting this to False indicates
+            not to create non-root volumes (all except the root volume) in
+            raid_config.  Default value is True.
+        :param delete_existing: Setting this to True indicates to delete RAID
+            configuration prior to creating the new configuration.
+        :raises: InvalidParameterValue, if the RAID configuration is invalid.
+        :returns: states.DEPLOYWAIT if RAID configuration is in progress
+            asynchronously or None if it is complete.
+        """
+        self.validate_raid_config(task, raid_config)
+        node = task.node
+        node.target_raid_config = raid_config
+        node.save()
+        return self.create_configuration(
+            task,
+            create_root_volume=create_root_volume,
+            create_nonroot_volumes=create_nonroot_volumes,
+            delete_existing=delete_existing)
+
     @abc.abstractmethod
     def create_configuration(self, task,
                              create_root_volume=True,
-                             create_nonroot_volumes=True):
+                             create_nonroot_volumes=True,
+                             delete_existing=True):
         """Creates RAID configuration on the given node.
 
         This method creates a RAID configuration on the given node.
@@ -1143,8 +1215,11 @@ class RAIDInterface(BaseInterface):
         :param create_nonroot_volumes: Setting this to False indicates
             not to create non-root volumes (all except the root volume) in the
             node's target_raid_config.  Default value is True.
-        :returns: states.CLEANWAIT if RAID configuration is in progress
-            asynchronously or None if it is complete.
+        :param delete_existing: Setting this to True indicates to delete RAID
+            configuration prior to creating the new configuration.
+        :returns: states.CLEANWAIT (cleaning) or states.DEPLOYWAIT (deployment)
+            if RAID configuration is in progress asynchronously, or None if it
+            is complete.
         """
 
     @abc.abstractmethod
@@ -1156,8 +1231,9 @@ class RAIDInterface(BaseInterface):
         cleared by the implementation.
 
         :param task: A TaskManager instance.
-        :returns: states.CLEANWAIT if deletion is in progress
-            asynchronously or None if it is complete.
+        :returns: states.CLEANWAIT (cleaning) or states.DEPLOYWAIT (deployment)
+            if deletion is in progress asynchronously, or None if it is
+            complete.
         """
 
     def get_logical_disk_properties(self):

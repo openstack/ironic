@@ -19,6 +19,7 @@ import mock
 
 from ironic.common import exception
 from ironic.common import raid
+from ironic.common import states
 from ironic.drivers import base as driver_base
 from ironic.drivers.modules import fake
 from ironic.tests import base
@@ -574,7 +575,8 @@ class MyRAIDInterface(driver_base.RAIDInterface):
 
     def create_configuration(self, task,
                              create_root_volume=True,
-                             create_nonroot_volumes=True):
+                             create_nonroot_volumes=True,
+                             delete_existing=True):
         pass
 
     def delete_configuration(self, task):
@@ -625,6 +627,68 @@ class RAIDInterfaceTestCase(base.TestCase):
         raid_interface = MyRAIDInterface()
         raid_interface.get_logical_disk_properties()
         get_properties_mock.assert_called_once_with(raid_schema)
+
+    @mock.patch.object(MyRAIDInterface, 'create_configuration', autospec=True)
+    @mock.patch.object(MyRAIDInterface, 'validate_raid_config',
+                       autospec=True)
+    def test_apply_configuration(self, mock_validate, mock_create):
+        raid_interface = MyRAIDInterface()
+        node_mock = mock.MagicMock(target_raid_config=None)
+        task_mock = mock.MagicMock(node=node_mock)
+        mock_create.return_value = states.DEPLOYWAIT
+        raid_config = 'some_raid_config'
+
+        result = raid_interface.apply_configuration(task_mock, raid_config)
+
+        self.assertEqual(states.DEPLOYWAIT, result)
+        mock_validate.assert_called_once_with(raid_interface, task_mock,
+                                              raid_config)
+        mock_create.assert_called_once_with(raid_interface, task_mock,
+                                            create_root_volume=True,
+                                            create_nonroot_volumes=True,
+                                            delete_existing=True)
+        self.assertEqual(raid_config, node_mock.target_raid_config)
+
+    @mock.patch.object(MyRAIDInterface, 'create_configuration', autospec=True)
+    @mock.patch.object(MyRAIDInterface, 'validate_raid_config',
+                       autospec=True)
+    def test_apply_configuration_delete_existing(self, mock_validate,
+                                                 mock_create):
+        raid_interface = MyRAIDInterface()
+        node_mock = mock.MagicMock(target_raid_config=None)
+        task_mock = mock.MagicMock(node=node_mock)
+        mock_create.return_value = states.DEPLOYWAIT
+        raid_config = 'some_raid_config'
+
+        result = raid_interface.apply_configuration(task_mock, raid_config,
+                                                    delete_existing=True)
+
+        self.assertEqual(states.DEPLOYWAIT, result)
+        mock_validate.assert_called_once_with(raid_interface, task_mock,
+                                              raid_config)
+        mock_create.assert_called_once_with(raid_interface, task_mock,
+                                            create_root_volume=True,
+                                            create_nonroot_volumes=True,
+                                            delete_existing=True)
+        self.assertEqual(raid_config, node_mock.target_raid_config)
+
+    @mock.patch.object(MyRAIDInterface, 'create_configuration', autospec=True)
+    @mock.patch.object(MyRAIDInterface, 'validate_raid_config',
+                       autospec=True)
+    def test_apply_configuration_invalid(self, mock_validate, mock_create):
+        raid_interface = MyRAIDInterface()
+        node_mock = mock.MagicMock(target_raid_config=None)
+        task_mock = mock.MagicMock(node=node_mock)
+        mock_validate.side_effect = exception.InvalidParameterValue('bad')
+        raid_config = 'some_raid_config'
+
+        self.assertRaises(exception.InvalidParameterValue,
+                          raid_interface.apply_configuration, task_mock,
+                          raid_config)
+        mock_validate.assert_called_once_with(raid_interface, task_mock,
+                                              raid_config)
+        self.assertFalse(mock_create.called)
+        self.assertIsNone(node_mock.target_raid_config)
 
 
 class TestDeployInterface(base.TestCase):
