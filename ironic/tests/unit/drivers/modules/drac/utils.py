@@ -12,12 +12,25 @@
 #    under the License.
 
 import collections
+import os
 
 from ironic.tests.unit.db import base as db_base
 from ironic.tests.unit.db import utils as db_utils
 
 
 INFO_DICT = db_utils.get_test_drac_info()
+
+DCIM_NICEnumeration = ('http://schemas.dell.com/wbem/wscim/1/cim-schema/2/'
+                       'DCIM_NICEnumeration')  # noqa
+
+FAKE_ENDPOINT = {
+    'host': '1.2.3.4',
+    'port': '443',
+    'path': '/wsman',
+    'protocol': 'https',
+    'username': 'admin',
+    'password': 's3cr3t'
+}
 
 
 class BaseDracTest(db_base.DbTestCase):
@@ -31,6 +44,13 @@ class BaseDracTest(db_base.DbTestCase):
                     enabled_raid_interfaces=['idrac', 'fake', 'no-raid'])
 
 
+class DictToObj(object):
+    """Returns a dictionary into a class"""
+    def __init__(self, dictionary):
+        for key in dictionary:
+            setattr(self, key, dictionary[key])
+
+
 def dict_to_namedtuple(name='GenericNamedTuple', values=None):
     """Converts a dict to a collections.namedtuple"""
 
@@ -38,3 +58,30 @@ def dict_to_namedtuple(name='GenericNamedTuple', values=None):
         values = {}
 
     return collections.namedtuple(name, list(values))(**values)
+
+
+def dict_of_object(data):
+    """Create a dictionary object"""
+
+    for k, v in data.items():
+        if isinstance(v, dict):
+            dict_obj = DictToObj(v)
+            data[k] = dict_obj
+    return data
+
+
+def load_wsman_xml(name):
+    """Helper function to load a WSMan XML response from a file."""
+
+    with open(os.path.join(os.path.dirname(__file__), 'wsman_mocks',
+                           '%s.xml' % name), 'r') as f:
+        xml_body = f.read()
+
+    return xml_body
+
+
+NICEnumerations = {
+    DCIM_NICEnumeration: {
+        'ok': load_wsman_xml('nic_enumeration-enum-ok'),
+    }
+}

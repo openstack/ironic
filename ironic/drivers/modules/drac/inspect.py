@@ -28,6 +28,11 @@ from ironic.drivers.modules.drac import common as drac_common
 from ironic import objects
 
 drac_exceptions = importutils.try_import('dracclient.exceptions')
+drac_utils = importutils.try_import('dracclient.utils')
+
+DCIM_NICEnumeration = ('http://schemas.dell.com/wbem/wscim/1/cim-schema/2/'
+                       'DCIM_NICEnumeration')  # noqa
+NS_WSMAN = 'http://schemas.dmtf.org/wbem/wsman/1/wsman.xsd'
 
 LOG = logging.getLogger(__name__)
 
@@ -119,10 +124,16 @@ class DracInspect(base.InspectInterface):
                       {'node_uuid': node.uuid, 'error': exc})
             raise exception.HardwareInspectionFailure(error=exc)
 
+        pxe_dev_nics = self._get_pxe_dev_nics(client, nics, node)
+        if not pxe_dev_nics:
+            LOG.warning('No PXE enabled NIC was found for node '
+                        '%(node_uuid)s.', {'node_uuid': node.uuid})
+
         for nic in nics:
             try:
                 port = objects.Port(task.context, address=nic.mac,
-                                    node_id=node.id)
+                                    node_id=node.id,
+                                    pxe_enabled=(nic.id in pxe_dev_nics))
                 port.create()
                 LOG.info('Port created with MAC address %(mac)s '
                          'for node %(node_uuid)s during inspection',
@@ -161,3 +172,79 @@ class DracInspect(base.InspectInterface):
             return cpu.cores * 2
         else:
             return cpu.cores
+
+    def _get_pxe_dev_nics(self, client, nics, node):
+        """Get a list of pxe device interfaces.
+
+        :param client: Dracclient to list the bios settings and nics
+        :param nics: list of nics
+        :param node: Baremetal Node object
+
+        :returns: list of pxe device interfaces.
+        """
+        pxe_dev_nics = []
+        nic_cap = {}
+        pxe_params = ["PxeDev1EnDis", "PxeDev2EnDis",
+                      "PxeDev3EnDis", "PxeDev4EnDis"]
+        pxe_nics = ["PxeDev1Interface", "PxeDev2Interface",
+                    "PxeDev3Interface", "PxeDev4Interface"]
+
+        try:
+            bios_settings = client.list_bios_settings()
+        except drac_exceptions.BaseClientException as exc:
+            LOG.error('DRAC driver failed to list bios settings '
+                      'for %(node_uuid)s. Reason: %(error)s.',
+                      {'node_uuid': node.uuid, 'error': exc})
+            raise exception.HardwareInspectionFailure(error=exc)
+
+        if bios_settings["BootMode"].current_value == "Uefi":
+            for param, nic in zip(pxe_params, pxe_nics):
+                if param in bios_settings and bios_settings[
+                        param].current_value == "Enabled":
+                    pxe_dev_nics.append(
+                        bios_settings[nic].current_value)
+        elif bios_settings["BootMode"].current_value == "Bios":
+            for nic in nics:
+                try:
+                    nic_cap = self._list_nic_settings(client, nic.id)
+                except drac_exceptions.BaseClientException as exc:
+                    LOG.error('DRAC driver failed to list nic settings '
+                              'for %(node_uuid)s. Reason: %(error)s.',
+                              {'node_uuid': node.uuid, 'error': exc})
+                    raise exception.HardwareInspectionFailure(error=exc)
+
+                if ("LegacyBootProto" in nic_cap and nic_cap[
+                        'LegacyBootProto'] == "PXE"):
+                    pxe_dev_nics.append(nic.id)
+
+        return pxe_dev_nics
+
+    def _list_nic_settings(self, client, nic_id):
+        """Get nic attributes.
+
+        :param client: Dracclient instance
+        :param nic_id: an FQDD of NIC
+
+        :returns: a dict of FQDD, LegacyBootProto.
+        """
+        result = {}
+        doc = client.client.enumerate(DCIM_NICEnumeration)
+        items = doc.find('.//{%s}Items' % NS_WSMAN)
+
+        for item in items:
+            if nic_id == drac_utils.get_wsman_resource_attr(
+                    item, DCIM_NICEnumeration, 'FQDD'):
+                name = drac_utils.get_wsman_resource_attr(item,
+                                                          DCIM_NICEnumeration,
+                                                          'AttributeName')
+                current_value = drac_utils.get_wsman_resource_attr(
+                    item,
+                    DCIM_NICEnumeration,
+                    'CurrentValue',
+                    nullable=True)
+
+                if name == 'LegacyBootProto':
+                    result[name] = current_value
+                    result['FQDD'] = nic_id
+
+        return result

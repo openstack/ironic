@@ -15,6 +15,8 @@
 Test class for DRAC inspection interface
 """
 
+from xml.etree import ElementTree
+
 from dracclient import exceptions as drac_exceptions
 import mock
 
@@ -26,6 +28,7 @@ from ironic.drivers.modules.drac import inspect as drac_inspect
 from ironic import objects
 from ironic.tests.unit.drivers.modules.drac import utils as test_utils
 from ironic.tests.unit.objects import utils as obj_utils
+
 
 INFO_DICT = test_utils.INFO_DICT
 
@@ -121,6 +124,20 @@ class DracInspectionTestCase(test_utils.BaseDracTest):
              'speed': '1000 Mbps',
              'duplex': 'full duplex',
              'media_type': 'Base T'}]
+
+        bios_boot_settings = {'BootMode': {'current_value': 'Bios'}}
+        uefi_boot_settings = {'BootMode': {'current_value': 'Uefi'},
+                              'PxeDev1EnDis': {'current_value': 'Enabled'},
+                              'PxeDev2EnDis': {'current_value': 'Disabled'},
+                              'PxeDev3EnDis': {'current_value': 'Disabled'},
+                              'PxeDev4EnDis': {'current_value': 'Disabled'},
+                              'PxeDev1Interface': {
+                                  'current_value': 'NIC.Embedded.1-1-1'},
+                              'PxeDev2Interface': None,
+                              'PxeDev3Interface': None,
+                              'PxeDev4Interface': None}
+        self.nic_settings = {'LegacyBootProto': 'PXE',
+                             'FQDD': 'NIC.Embedded.1-1-1'}
         self.memory = [test_utils.dict_to_namedtuple(values=m) for m in memory]
         self.cpus = [test_utils.dict_to_namedtuple(values=c) for c in cpus]
         self.virtual_disks = [test_utils.dict_to_namedtuple(values=vd)
@@ -128,27 +145,36 @@ class DracInspectionTestCase(test_utils.BaseDracTest):
         self.physical_disks = [test_utils.dict_to_namedtuple(values=pd)
                                for pd in physical_disks]
         self.nics = [test_utils.dict_to_namedtuple(values=n) for n in nics]
+        self.bios_boot_settings = test_utils.dict_of_object(bios_boot_settings)
+        self.uefi_boot_settings = test_utils.dict_of_object(uefi_boot_settings)
 
     def test_get_properties(self):
         expected = drac_common.COMMON_PROPERTIES
         driver = drac_inspect.DracInspect()
         self.assertEqual(expected, driver.get_properties())
 
+    @mock.patch.object(drac_inspect.DracInspect, '_list_nic_settings',
+                       spec_set=True, autospec=True)
     @mock.patch.object(drac_common, 'get_drac_client', spec_set=True,
                        autospec=True)
     @mock.patch.object(objects.Port, 'create', spec_set=True, autospec=True)
-    def test_inspect_hardware(self, mock_port_create, mock_get_drac_client):
+    def test_inspect_hardware(self,
+                              mock_port_create,
+                              mock_get_drac_client,
+                              mock__list_nic_settings):
         expected_node_properties = {
             'memory_mb': 32768,
             'local_gb': 1116,
             'cpus': 18,
             'cpu_arch': 'x86_64'}
         mock_client = mock.Mock()
+        mock__list_nic_settings.return_value = self.nic_settings
         mock_get_drac_client.return_value = mock_client
         mock_client.list_memory.return_value = self.memory
         mock_client.list_cpus.return_value = self.cpus
         mock_client.list_virtual_disks.return_value = self.virtual_disks
         mock_client.list_nics.return_value = self.nics
+        mock_client.list_bios_settings.return_value = self.bios_boot_settings
 
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
@@ -176,11 +202,14 @@ class DracInspectionTestCase(test_utils.BaseDracTest):
             self.assertRaises(exception.HardwareInspectionFailure,
                               task.driver.inspect.inspect_hardware, task)
 
+    @mock.patch.object(drac_inspect.DracInspect, '_list_nic_settings',
+                       spec_set=True, autospec=True)
     @mock.patch.object(drac_common, 'get_drac_client', spec_set=True,
                        autospec=True)
     @mock.patch.object(objects.Port, 'create', spec_set=True, autospec=True)
     def test_inspect_hardware_no_virtual_disk(self, mock_port_create,
-                                              mock_get_drac_client):
+                                              mock_get_drac_client,
+                                              mock__list_nic_settings):
         expected_node_properties = {
             'memory_mb': 32768,
             'local_gb': 279,
@@ -188,11 +217,13 @@ class DracInspectionTestCase(test_utils.BaseDracTest):
             'cpu_arch': 'x86_64'}
         mock_client = mock.Mock()
         mock_get_drac_client.return_value = mock_client
+        mock__list_nic_settings.return_value = self.nic_settings
         mock_client.list_memory.return_value = self.memory
         mock_client.list_cpus.return_value = self.cpus
         mock_client.list_virtual_disks.return_value = []
         mock_client.list_physical_disks.return_value = self.physical_disks
         mock_client.list_nics.return_value = self.nics
+        mock_client.list_bios_settings.return_value = self.bios_boot_settings
 
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
@@ -221,11 +252,14 @@ class DracInspectionTestCase(test_utils.BaseDracTest):
             self.assertRaises(exception.HardwareInspectionFailure,
                               task.driver.inspect.inspect_hardware, task)
 
+    @mock.patch.object(drac_inspect.DracInspect, '_list_nic_settings',
+                       spec_set=True, autospec=True)
     @mock.patch.object(drac_common, 'get_drac_client', spec_set=True,
                        autospec=True)
     @mock.patch.object(objects.Port, 'create', spec_set=True, autospec=True)
     def test_inspect_hardware_with_existing_ports(self, mock_port_create,
-                                                  mock_get_drac_client):
+                                                  mock_get_drac_client,
+                                                  mock__list_nic_settings):
         expected_node_properties = {
             'memory_mb': 32768,
             'local_gb': 1116,
@@ -233,10 +267,12 @@ class DracInspectionTestCase(test_utils.BaseDracTest):
             'cpu_arch': 'x86_64'}
         mock_client = mock.Mock()
         mock_get_drac_client.return_value = mock_client
+        mock__list_nic_settings.return_value = self.nic_settings
         mock_client.list_memory.return_value = self.memory
         mock_client.list_cpus.return_value = self.cpus
         mock_client.list_virtual_disks.return_value = self.virtual_disks
         mock_client.list_nics.return_value = self.nics
+        mock_client.list_bios_settings.return_value = self.bios_boot_settings
         mock_port_create.side_effect = exception.MACAlreadyExists("boom")
 
         with task_manager.acquire(self.context, self.node.uuid,
@@ -271,3 +307,117 @@ class DracInspectionTestCase(test_utils.BaseDracTest):
                 self.cpus[1])
 
             self.assertEqual(6, cpu)
+
+    @mock.patch.object(drac_common, 'get_drac_client', spec_set=True,
+                       autospec=True)
+    def test__get_pxe_dev_nics_with_UEFI_boot_mode(self, mock_get_drac_client):
+        expected_pxe_nic = self.uefi_boot_settings[
+            'PxeDev1Interface'].current_value
+        mock_client = mock.Mock()
+        mock_get_drac_client.return_value = mock_client
+        mock_client.list_bios_settings.return_value = self.uefi_boot_settings
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            pxe_dev_nics = task.driver.inspect._get_pxe_dev_nics(
+                mock_client, self.nics, self.node)
+
+            self.assertEqual(expected_pxe_nic, pxe_dev_nics[0])
+
+    @mock.patch.object(drac_inspect.DracInspect, '_list_nic_settings',
+                       spec_set=True, autospec=True)
+    @mock.patch.object(drac_common, 'get_drac_client', spec_set=True,
+                       autospec=True)
+    def test__get_pxe_dev_nics_with_BIOS_boot_mode(self,
+                                                   mock_get_drac_client,
+                                                   mock__list_nic_settings):
+        expected_pxe_nic = self.nic_settings['FQDD']
+        mock_client = mock.Mock()
+        mock_get_drac_client.return_value = mock_client
+        mock__list_nic_settings.return_value = self.nic_settings
+        mock_client.list_bios_settings.return_value = self.bios_boot_settings
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            pxe_dev_nics = task.driver.inspect._get_pxe_dev_nics(
+                mock_client, self.nics, self.node)
+
+            self.assertEqual(expected_pxe_nic, pxe_dev_nics[0])
+
+    @mock.patch.object(drac_inspect.DracInspect, '_list_nic_settings',
+                       spec_set=True, autospec=True)
+    @mock.patch.object(drac_common, 'get_drac_client', spec_set=True,
+                       autospec=True)
+    def test__get_pxe_dev_nics_list_boot_setting_failure(
+            self, mock_get_drac_client, mock__list_nic_settings):
+        mock_client = mock.Mock()
+        mock_get_drac_client.return_value = mock_client
+        mock_client.list_bios_settings.side_effect = (
+            drac_exceptions.BaseClientException('foo'))
+        mock__list_nic_settings.return_value = self.nic_settings
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            self.assertRaises(exception.HardwareInspectionFailure,
+                              task.driver.inspect._get_pxe_dev_nics,
+                              mock_client,
+                              self.nics,
+                              self.node)
+
+    @mock.patch.object(drac_inspect.DracInspect, '_list_nic_settings',
+                       spec_set=True, autospec=True)
+    @mock.patch.object(drac_common, 'get_drac_client', spec_set=True,
+                       autospec=True)
+    def test__get_pxe_dev_nics_list_nic_setting_failure(
+            self, mock_get_drac_client, mock__list_nic_settings):
+        mock_client = mock.Mock()
+        mock_get_drac_client.return_value = mock_client
+        mock_client.list_bios_settings.return_value = self.bios_boot_settings
+        mock__list_nic_settings.side_effect = (
+            drac_exceptions.BaseClientException('bar'))
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            self.assertRaises(exception.HardwareInspectionFailure,
+                              task.driver.inspect._get_pxe_dev_nics,
+                              mock_client,
+                              self.nics,
+                              self.node)
+
+    @mock.patch.object(drac_inspect.DracInspect, '_list_nic_settings',
+                       spec_set=True, autospec=True)
+    @mock.patch.object(drac_common, 'get_drac_client', spec_set=True,
+                       autospec=True)
+    def test__get_pxe_dev_nics_with_empty_list(self,
+                                               mock_get_drac_client,
+                                               mock__list_nic_settings):
+        expected_pxe_nic = []
+        nic_setting = []
+        mock_client = mock.Mock()
+        mock_get_drac_client.return_value = mock_client
+        mock__list_nic_settings.return_value = nic_setting
+        mock_client.list_bios_settings.return_value = self.bios_boot_settings
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            pxe_dev_nics = task.driver.inspect._get_pxe_dev_nics(
+                mock_client, self.nics, self.node)
+
+            self.assertEqual(expected_pxe_nic, pxe_dev_nics)
+
+    @mock.patch.object(drac_inspect.DracInspect, '_list_nic_settings',
+                       spec_set=True, autospec=True)
+    @mock.patch.object(drac_common, 'get_drac_client', spec_set=True,
+                       autospec=True)
+    def test__list_nic_settings(self,
+                                mock_get_drac_client,
+                                mock__list_nic_settings):
+        pxe_nic = self.nic_settings['FQDD']
+        nic_setting = {}
+        mock_client = mock.Mock()
+        mock_get_drac_client.return_value = mock_client
+        mock__list_nic_settings.return_value = self.nic_settings
+        mock_client.invoke.return_value = ElementTree.fromstring(
+            test_utils.NICEnumerations[drac_inspect.DCIM_NICEnumeration]['ok'])
+        with task_manager.acquire(self.context,
+                                  self.node.uuid,
+                                  shared=True) as task:
+            nic_setting = task.driver.inspect._list_nic_settings(mock_client,
+                                                                 pxe_nic)
+            self.assertEqual(self.nic_settings, nic_setting)

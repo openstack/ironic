@@ -1,0 +1,767 @@
+<s:Envelope xmlns:s="http://www.w3.org/2003/05/soap-envelope"
+	xmlns:wsa="http://schemas.xmlsoap.org/ws/2004/08/addressing"
+	xmlns:wsen="http://schemas.xmlsoap.org/ws/2004/09/enumeration"
+	xmlns:wsman="http://schemas.dmtf.org/wbem/wsman/1/wsman.xsd"
+	xmlns:n1="http://schemas.dell.com/wbem/wscim/1/cim-schema/2/DCIM_NICEnumeration"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+	<s:Header>
+		<wsa:To>http://schemas.xmlsoap.org/ws/2004/08/addressing/role/anonymous
+		</wsa:To>
+		<wsa:Action>http://schemas.xmlsoap.org/ws/2004/09/enumeration/EnumerateResponse
+		</wsa:Action>
+		<wsa:RelatesTo>uuid:608d7722-0302-4feb-8080-4652e0e0ab48
+		</wsa:RelatesTo>
+		<wsa:MessageID>uuid:07820ac0-71f0-11f0-a4a1-a53ffbd9bed4
+		</wsa:MessageID>
+	</s:Header>
+	<s:Body>
+		<wsen:EnumerateResponse>
+			<wsman:Items>
+				<n1:DCIM_NICEnumeration>
+					<n1:AttributeDisplayName>Link Status</n1:AttributeDisplayName>
+					<n1:AttributeName>LinkStatus</n1:AttributeName>
+					<n1:CurrentValue>Connected</n1:CurrentValue>
+					<n1:Dependency xsi:nil="true" />
+					<n1:FQDD>NIC.Integrated.1-3-1</n1:FQDD>
+					<n1:GroupDisplayName>Main Configuration Page</n1:GroupDisplayName>
+					<n1:GroupID>VndrConfigPage</n1:GroupID>
+					<n1:InstanceID>NIC.Integrated.1-3-1:LinkStatus</n1:InstanceID>
+					<n1:IsReadOnly>true</n1:IsReadOnly>
+					<n1:PendingValue xsi:nil="true" />
+					<n1:PossibleValues>Disconnected</n1:PossibleValues>
+					<n1:PossibleValues>Connected</n1:PossibleValues>
+					<n1:PossibleValuesDescription>Disconnected
+					</n1:PossibleValuesDescription>
+					<n1:PossibleValuesDescription>Connected
+					</n1:PossibleValuesDescription>
+				</n1:DCIM_NICEnumeration>
+				<n1:DCIM_NICEnumeration>
+					<n1:AttributeDisplayName>TCP/IP Parameters via DHCP
+					</n1:AttributeDisplayName>
+					<n1:AttributeName>TcpIpViaDHCP</n1:AttributeName>
+					<n1:CurrentValue>Enabled</n1:CurrentValue>
+					<n1:Dependency><![CDATA[<Dep><AttrLev Op="OR"><ROIf Name="IpVer">IPv6</ROIf><ROIf Name="iSCSIBootSupport">Unavailable</ROIf></AttrLev></Dep>]]></n1:Dependency>
+					<n1:FQDD>NIC.Integrated.1-3-1</n1:FQDD>
+					<n1:GroupDisplayName>iSCSI General Parameters</n1:GroupDisplayName>
+					<n1:GroupID>IscsiGenParams</n1:GroupID>
+					<n1:InstanceID>NIC.Integrated.1-3-1:TcpIpViaDHCP</n1:InstanceID>
+					<n1:IsReadOnly>false</n1:IsReadOnly>
+					<n1:PendingValue xsi:nil="true" />
+					<n1:PossibleValues>Disabled</n1:PossibleValues>
+					<n1:PossibleValues>Enabled</n1:PossibleValues>
+					<n1:PossibleValuesDescription>Disabled
+					</n1:PossibleValuesDescription>
+					<n1:PossibleValuesDescription>Enabled
+					</n1:PossibleValuesDescription>
+				</n1:DCIM_NICEnumeration>
+				<n1:DCIM_NICEnumeration>
+					<n1:AttributeDisplayName>IP Autoconfiguration
+					</n1:AttributeDisplayName>
+					<n1:AttributeName>IpAutoConfig</n1:AttributeName>
+					<n1:CurrentValue>Enabled</n1:CurrentValue>
+					<n1:Dependency><![CDATA[<Dep><AttrLev Op="OR"><ROIf Name="IpVer">IPv4</ROIf><ROIf Name="iSCSIBootSupport">Unavailable</ROIf></AttrLev></Dep>]]></n1:Dependency>
+					<n1:FQDD>NIC.Integrated.1-3-1</n1:FQDD>
+					<n1:GroupDisplayName>iSCSI General Parameters</n1:GroupDisplayName>
+					<n1:GroupID>IscsiGenParams</n1:GroupID>
+					<n1:InstanceID>NIC.Integrated.1-3-1:IpAutoConfig</n1:InstanceID>
+					<n1:IsReadOnly>true</n1:IsReadOnly>
+					<n1:PendingValue xsi:nil="true" />
+					<n1:PossibleValues>Disabled</n1:PossibleValues>
+					<n1:PossibleValues>Enabled</n1:PossibleValues>
+					<n1:PossibleValuesDescription>Disabled
+					</n1:PossibleValuesDescription>
+					<n1:PossibleValuesDescription>Enabled
+					</n1:PossibleValuesDescription>
+				</n1:DCIM_NICEnumeration>
+				<n1:DCIM_NICEnumeration>
+					<n1:AttributeDisplayName>iSCSI Parameters via DHCP
+					</n1:AttributeDisplayName>
+					<n1:AttributeName>IscsiViaDHCP</n1:AttributeName>
+					<n1:CurrentValue>Enabled</n1:CurrentValue>
+					<n1:Dependency><![CDATA[<Dep><AttrLev Op="OR"><ROIf Name="iSCSIBootSupport">Unavailable</ROIf></AttrLev></Dep>]]></n1:Dependency>
+					<n1:FQDD>NIC.Integrated.1-3-1</n1:FQDD>
+					<n1:GroupDisplayName>iSCSI General Parameters</n1:GroupDisplayName>
+					<n1:GroupID>IscsiGenParams</n1:GroupID>
+					<n1:InstanceID>NIC.Integrated.1-3-1:IscsiViaDHCP</n1:InstanceID>
+					<n1:IsReadOnly>false</n1:IsReadOnly>
+					<n1:PendingValue xsi:nil="true" />
+					<n1:PossibleValues>Disabled</n1:PossibleValues>
+					<n1:PossibleValues>Enabled</n1:PossibleValues>
+					<n1:PossibleValuesDescription>Disabled
+					</n1:PossibleValuesDescription>
+					<n1:PossibleValuesDescription>Enabled
+					</n1:PossibleValuesDescription>
+				</n1:DCIM_NICEnumeration>
+				<n1:DCIM_NICEnumeration>
+					<n1:AttributeDisplayName>CHAP Authentication
+					</n1:AttributeDisplayName>
+					<n1:AttributeName>ChapAuthEnable</n1:AttributeName>
+					<n1:CurrentValue>Disabled</n1:CurrentValue>
+					<n1:Dependency><![CDATA[<Dep><AttrLev Op="OR"><ROIf Name="iSCSIBootSupport">Unavailable</ROIf></AttrLev></Dep>]]></n1:Dependency>
+					<n1:FQDD>NIC.Integrated.1-3-1</n1:FQDD>
+					<n1:GroupDisplayName>iSCSI General Parameters</n1:GroupDisplayName>
+					<n1:GroupID>IscsiGenParams</n1:GroupID>
+					<n1:InstanceID>NIC.Integrated.1-3-1:ChapAuthEnable</n1:InstanceID>
+					<n1:IsReadOnly>false</n1:IsReadOnly>
+					<n1:PendingValue xsi:nil="true" />
+					<n1:PossibleValues>Disabled</n1:PossibleValues>
+					<n1:PossibleValues>Enabled</n1:PossibleValues>
+					<n1:PossibleValuesDescription>Disabled
+					</n1:PossibleValuesDescription>
+					<n1:PossibleValuesDescription>Enabled
+					</n1:PossibleValuesDescription>
+				</n1:DCIM_NICEnumeration>
+				<n1:DCIM_NICEnumeration>
+					<n1:AttributeDisplayName>Boot to iSCSI Target
+					</n1:AttributeDisplayName>
+					<n1:AttributeName>IscsiTgtBoot</n1:AttributeName>
+					<n1:CurrentValue>Enabled</n1:CurrentValue>
+					<n1:Dependency><![CDATA[<Dep><AttrLev Op="OR"><ROIf Name="iSCSIBootSupport">Unavailable</ROIf></AttrLev></Dep>]]></n1:Dependency>
+					<n1:FQDD>NIC.Integrated.1-3-1</n1:FQDD>
+					<n1:GroupDisplayName>iSCSI General Parameters</n1:GroupDisplayName>
+					<n1:GroupID>IscsiGenParams</n1:GroupID>
+					<n1:InstanceID>NIC.Integrated.1-3-1:IscsiTgtBoot</n1:InstanceID>
+					<n1:IsReadOnly>false</n1:IsReadOnly>
+					<n1:PendingValue xsi:nil="true" />
+					<n1:PossibleValues>Disabled</n1:PossibleValues>
+					<n1:PossibleValues>Enabled</n1:PossibleValues>
+					<n1:PossibleValues>OneTimeDisabled</n1:PossibleValues>
+					<n1:PossibleValuesDescription>Disabled
+					</n1:PossibleValuesDescription>
+					<n1:PossibleValuesDescription>Enabled
+					</n1:PossibleValuesDescription>
+					<n1:PossibleValuesDescription>One Time Disabled
+					</n1:PossibleValuesDescription>
+				</n1:DCIM_NICEnumeration>
+				<n1:DCIM_NICEnumeration>
+					<n1:AttributeDisplayName>Use TCP Timestamp
+					</n1:AttributeDisplayName>
+					<n1:AttributeName>TcpTimestmp</n1:AttributeName>
+					<n1:CurrentValue>Disabled</n1:CurrentValue>
+					<n1:Dependency><![CDATA[<Dep><AttrLev Op="OR"><ROIf Name="iSCSIBootSupport">Unavailable</ROIf></AttrLev></Dep>]]></n1:Dependency>
+					<n1:FQDD>NIC.Integrated.1-3-1</n1:FQDD>
+					<n1:GroupDisplayName>iSCSI General Parameters</n1:GroupDisplayName>
+					<n1:GroupID>IscsiGenParams</n1:GroupID>
+					<n1:InstanceID>NIC.Integrated.1-3-1:TcpTimestmp</n1:InstanceID>
+					<n1:IsReadOnly>false</n1:IsReadOnly>
+					<n1:PendingValue xsi:nil="true" />
+					<n1:PossibleValues>Disabled</n1:PossibleValues>
+					<n1:PossibleValues>Enabled</n1:PossibleValues>
+					<n1:PossibleValuesDescription>Disabled
+					</n1:PossibleValuesDescription>
+					<n1:PossibleValuesDescription>Enabled
+					</n1:PossibleValuesDescription>
+				</n1:DCIM_NICEnumeration>
+				<n1:DCIM_NICEnumeration>
+					<n1:AttributeDisplayName>Target as First HDD
+					</n1:AttributeDisplayName>
+					<n1:AttributeName>FirstHddTarget</n1:AttributeName>
+					<n1:CurrentValue>Disabled</n1:CurrentValue>
+					<n1:Dependency><![CDATA[<Dep><AttrLev Op="OR"><ROIf Name="iSCSIBootSupport">Unavailable</ROIf></AttrLev></Dep>]]></n1:Dependency>
+					<n1:FQDD>NIC.Integrated.1-3-1</n1:FQDD>
+					<n1:GroupDisplayName>iSCSI General Parameters</n1:GroupDisplayName>
+					<n1:GroupID>IscsiGenParams</n1:GroupID>
+					<n1:InstanceID>NIC.Integrated.1-3-1:FirstHddTarget</n1:InstanceID>
+					<n1:IsReadOnly>false</n1:IsReadOnly>
+					<n1:PendingValue xsi:nil="true" />
+					<n1:PossibleValues>Disabled</n1:PossibleValues>
+					<n1:PossibleValues>Enabled</n1:PossibleValues>
+					<n1:PossibleValuesDescription>Disabled
+					</n1:PossibleValuesDescription>
+					<n1:PossibleValuesDescription>Enabled
+					</n1:PossibleValuesDescription>
+				</n1:DCIM_NICEnumeration>
+				<n1:DCIM_NICEnumeration>
+					<n1:AttributeDisplayName>IP Version</n1:AttributeDisplayName>
+					<n1:AttributeName>IpVer</n1:AttributeName>
+					<n1:CurrentValue>IPv4</n1:CurrentValue>
+					<n1:Dependency><![CDATA[<Dep><AttrLev Op="OR"><ROIf Name="iSCSIBootSupport">Unavailable</ROIf></AttrLev></Dep>]]></n1:Dependency>
+					<n1:FQDD>NIC.Integrated.1-3-1</n1:FQDD>
+					<n1:GroupDisplayName>iSCSI General Parameters</n1:GroupDisplayName>
+					<n1:GroupID>IscsiGenParams</n1:GroupID>
+					<n1:InstanceID>NIC.Integrated.1-3-1:IpVer</n1:InstanceID>
+					<n1:IsReadOnly>false</n1:IsReadOnly>
+					<n1:PendingValue xsi:nil="true" />
+					<n1:PossibleValues>IPv4</n1:PossibleValues>
+					<n1:PossibleValues>IPv6</n1:PossibleValues>
+					<n1:PossibleValuesDescription>IPv4</n1:PossibleValuesDescription>
+					<n1:PossibleValuesDescription>IPv6</n1:PossibleValuesDescription>
+				</n1:DCIM_NICEnumeration>
+				<n1:DCIM_NICEnumeration>
+					<n1:AttributeDisplayName>Connect</n1:AttributeDisplayName>
+					<n1:AttributeName>ConnectFirstTgt</n1:AttributeName>
+					<n1:CurrentValue>Disabled</n1:CurrentValue>
+					<n1:Dependency><![CDATA[<Dep><AttrLev Op="OR"><ROIf Name="iSCSIBootSupport">Unavailable</ROIf></AttrLev></Dep>]]></n1:Dependency>
+					<n1:FQDD>NIC.Integrated.1-3-1</n1:FQDD>
+					<n1:GroupDisplayName>iSCSI First Target Parameters
+					</n1:GroupDisplayName>
+					<n1:GroupID>IscsiFirstTgtParams</n1:GroupID>
+					<n1:InstanceID>NIC.Integrated.1-3-1:ConnectFirstTgt</n1:InstanceID>
+					<n1:IsReadOnly>false</n1:IsReadOnly>
+					<n1:PendingValue xsi:nil="true" />
+					<n1:PossibleValues>Disabled</n1:PossibleValues>
+					<n1:PossibleValues>Enabled</n1:PossibleValues>
+					<n1:PossibleValuesDescription>Disabled
+					</n1:PossibleValuesDescription>
+					<n1:PossibleValuesDescription>Enabled
+					</n1:PossibleValuesDescription>
+				</n1:DCIM_NICEnumeration>
+				<n1:DCIM_NICEnumeration>
+					<n1:AttributeDisplayName>Connect</n1:AttributeDisplayName>
+					<n1:AttributeName>ConnectSecondTgt</n1:AttributeName>
+					<n1:CurrentValue>Disabled</n1:CurrentValue>
+					<n1:Dependency><![CDATA[<Dep><AttrLev Op="OR"><ROIf Name="iSCSIBootSupport">Unavailable</ROIf></AttrLev></Dep>]]></n1:Dependency>
+					<n1:FQDD>NIC.Integrated.1-3-1</n1:FQDD>
+					<n1:GroupDisplayName>iSCSI Second Target Parameters
+					</n1:GroupDisplayName>
+					<n1:GroupID>IscsiSecondTgtParams</n1:GroupID>
+					<n1:InstanceID>NIC.Integrated.1-3-1:ConnectSecondTgt
+					</n1:InstanceID>
+					<n1:IsReadOnly>false</n1:IsReadOnly>
+					<n1:PendingValue xsi:nil="true" />
+					<n1:PossibleValues>Disabled</n1:PossibleValues>
+					<n1:PossibleValues>Enabled</n1:PossibleValues>
+					<n1:PossibleValuesDescription>Disabled
+					</n1:PossibleValuesDescription>
+					<n1:PossibleValuesDescription>Enabled
+					</n1:PossibleValuesDescription>
+				</n1:DCIM_NICEnumeration>
+				<n1:DCIM_NICEnumeration>
+					<n1:AttributeDisplayName>Legacy Boot Protocol
+					</n1:AttributeDisplayName>
+					<n1:AttributeName>LegacyBootProto</n1:AttributeName>
+					<n1:CurrentValue>PXE</n1:CurrentValue>
+					<n1:Dependency xsi:nil="true" />
+					<n1:FQDD>NIC.Integrated.1-3-1</n1:FQDD>
+					<n1:GroupDisplayName>MBA Configuration Menu</n1:GroupDisplayName>
+					<n1:GroupID>NICConfig</n1:GroupID>
+					<n1:InstanceID>NIC.Integrated.1-3-1:LegacyBootProto</n1:InstanceID>
+					<n1:IsReadOnly>false</n1:IsReadOnly>
+					<n1:PendingValue>NONE</n1:PendingValue>
+					<n1:PossibleValues>PXE</n1:PossibleValues>
+					<n1:PossibleValues>iSCSI</n1:PossibleValues>
+					<n1:PossibleValues>NONE</n1:PossibleValues>
+					<n1:PossibleValuesDescription>PXE</n1:PossibleValuesDescription>
+					<n1:PossibleValuesDescription>iSCSI</n1:PossibleValuesDescription>
+					<n1:PossibleValuesDescription>NONE</n1:PossibleValuesDescription>
+				</n1:DCIM_NICEnumeration>
+				<n1:DCIM_NICEnumeration>
+					<n1:AttributeDisplayName>Boot Strap Type</n1:AttributeDisplayName>
+					<n1:AttributeName>BootStrapType</n1:AttributeName>
+					<n1:CurrentValue>AutoDetect</n1:CurrentValue>
+					<n1:Dependency xsi:nil="true" />
+					<n1:FQDD>NIC.Integrated.1-3-1</n1:FQDD>
+					<n1:GroupDisplayName>MBA Configuration Menu</n1:GroupDisplayName>
+					<n1:GroupID>NICConfig</n1:GroupID>
+					<n1:InstanceID>NIC.Integrated.1-3-1:BootStrapType</n1:InstanceID>
+					<n1:IsReadOnly>false</n1:IsReadOnly>
+					<n1:PendingValue xsi:nil="true" />
+					<n1:PossibleValues>AutoDetect</n1:PossibleValues>
+					<n1:PossibleValues>BBS</n1:PossibleValues>
+					<n1:PossibleValues>Int18h</n1:PossibleValues>
+					<n1:PossibleValues>Int19h</n1:PossibleValues>
+					<n1:PossibleValuesDescription>Auto Detect
+					</n1:PossibleValuesDescription>
+					<n1:PossibleValuesDescription>BBS</n1:PossibleValuesDescription>
+					<n1:PossibleValuesDescription>Int 18h
+					</n1:PossibleValuesDescription>
+					<n1:PossibleValuesDescription>Int 19h
+					</n1:PossibleValuesDescription>
+				</n1:DCIM_NICEnumeration>
+				<n1:DCIM_NICEnumeration>
+					<n1:AttributeDisplayName>Hide Setup Prompt
+					</n1:AttributeDisplayName>
+					<n1:AttributeName>HideSetupPrompt</n1:AttributeName>
+					<n1:CurrentValue>Disabled</n1:CurrentValue>
+					<n1:Dependency xsi:nil="true" />
+					<n1:FQDD>NIC.Integrated.1-3-1</n1:FQDD>
+					<n1:GroupDisplayName>MBA Configuration Menu</n1:GroupDisplayName>
+					<n1:GroupID>NICConfig</n1:GroupID>
+					<n1:InstanceID>NIC.Integrated.1-3-1:HideSetupPrompt</n1:InstanceID>
+					<n1:IsReadOnly>false</n1:IsReadOnly>
+					<n1:PendingValue xsi:nil="true" />
+					<n1:PossibleValues>Disabled</n1:PossibleValues>
+					<n1:PossibleValues>Enabled</n1:PossibleValues>
+					<n1:PossibleValuesDescription>Disabled
+					</n1:PossibleValuesDescription>
+					<n1:PossibleValuesDescription>Enabled
+					</n1:PossibleValuesDescription>
+				</n1:DCIM_NICEnumeration>
+				<n1:DCIM_NICEnumeration>
+					<n1:AttributeDisplayName>Link Speed</n1:AttributeDisplayName>
+					<n1:AttributeName>LnkSpeed</n1:AttributeName>
+					<n1:CurrentValue>AutoNeg</n1:CurrentValue>
+					<n1:Dependency xsi:nil="true" />
+					<n1:FQDD>NIC.Integrated.1-3-1</n1:FQDD>
+					<n1:GroupDisplayName>MBA Configuration Menu</n1:GroupDisplayName>
+					<n1:GroupID>NICConfig</n1:GroupID>
+					<n1:InstanceID>NIC.Integrated.1-3-1:LnkSpeed</n1:InstanceID>
+					<n1:IsReadOnly>false</n1:IsReadOnly>
+					<n1:PendingValue xsi:nil="true" />
+					<n1:PossibleValues>AutoNeg</n1:PossibleValues>
+					<n1:PossibleValues>10MbpsHalf</n1:PossibleValues>
+					<n1:PossibleValues>10MbpsFull</n1:PossibleValues>
+					<n1:PossibleValues>100MbpsHalf</n1:PossibleValues>
+					<n1:PossibleValues>100MbpsFull</n1:PossibleValues>
+					<n1:PossibleValuesDescription>AutoNeg
+					</n1:PossibleValuesDescription>
+					<n1:PossibleValuesDescription>10Mbps Half
+					</n1:PossibleValuesDescription>
+					<n1:PossibleValuesDescription>10Mbps Full
+					</n1:PossibleValuesDescription>
+					<n1:PossibleValuesDescription>100Mbps Half
+					</n1:PossibleValuesDescription>
+					<n1:PossibleValuesDescription>100Mbps Full
+					</n1:PossibleValuesDescription>
+				</n1:DCIM_NICEnumeration>
+				<n1:DCIM_NICEnumeration>
+					<n1:AttributeDisplayName>Pre-boot Wake On LAN
+					</n1:AttributeDisplayName>
+					<n1:AttributeName>WakeOnLan</n1:AttributeName>
+					<n1:CurrentValue>Disabled</n1:CurrentValue>
+					<n1:Dependency xsi:nil="true" />
+					<n1:FQDD>NIC.Integrated.1-3-1</n1:FQDD>
+					<n1:GroupDisplayName>MBA Configuration Menu</n1:GroupDisplayName>
+					<n1:GroupID>NICConfig</n1:GroupID>
+					<n1:InstanceID>NIC.Integrated.1-3-1:WakeOnLan</n1:InstanceID>
+					<n1:IsReadOnly>false</n1:IsReadOnly>
+					<n1:PendingValue xsi:nil="true" />
+					<n1:PossibleValues>Disabled</n1:PossibleValues>
+					<n1:PossibleValues>Enabled</n1:PossibleValues>
+					<n1:PossibleValuesDescription>Disabled
+					</n1:PossibleValuesDescription>
+					<n1:PossibleValuesDescription>Enabled
+					</n1:PossibleValuesDescription>
+				</n1:DCIM_NICEnumeration>
+				<n1:DCIM_NICEnumeration>
+					<n1:AttributeDisplayName>VLAN Mode</n1:AttributeDisplayName>
+					<n1:AttributeName>VLanMode</n1:AttributeName>
+					<n1:CurrentValue>Disabled</n1:CurrentValue>
+					<n1:Dependency xsi:nil="true" />
+					<n1:FQDD>NIC.Integrated.1-3-1</n1:FQDD>
+					<n1:GroupDisplayName>MBA Configuration Menu</n1:GroupDisplayName>
+					<n1:GroupID>NICConfig</n1:GroupID>
+					<n1:InstanceID>NIC.Integrated.1-3-1:VLanMode</n1:InstanceID>
+					<n1:IsReadOnly>false</n1:IsReadOnly>
+					<n1:PendingValue xsi:nil="true" />
+					<n1:PossibleValues>Disabled</n1:PossibleValues>
+					<n1:PossibleValues>Enabled</n1:PossibleValues>
+					<n1:PossibleValuesDescription>Disabled
+					</n1:PossibleValuesDescription>
+					<n1:PossibleValuesDescription>Enabled
+					</n1:PossibleValuesDescription>
+				</n1:DCIM_NICEnumeration>
+				<n1:DCIM_NICEnumeration>
+					<n1:AttributeDisplayName>Use Independent Target Portal
+					</n1:AttributeDisplayName>
+					<n1:AttributeName>UseIndTgtPortal</n1:AttributeName>
+					<n1:CurrentValue>Disabled</n1:CurrentValue>
+					<n1:Dependency><![CDATA[<Dep><AttrLev Op="OR"><ROIf Name="iSCSIBootSupport">Unavailable</ROIf></AttrLev></Dep>]]></n1:Dependency>
+					<n1:FQDD>NIC.Integrated.1-3-1</n1:FQDD>
+					<n1:GroupDisplayName>Secondary Device</n1:GroupDisplayName>
+					<n1:GroupID>SecondaryDevice</n1:GroupID>
+					<n1:InstanceID>NIC.Integrated.1-3-1:UseIndTgtPortal</n1:InstanceID>
+					<n1:IsReadOnly>false</n1:IsReadOnly>
+					<n1:PendingValue xsi:nil="true" />
+					<n1:PossibleValues>Disabled</n1:PossibleValues>
+					<n1:PossibleValues>Enabled</n1:PossibleValues>
+					<n1:PossibleValuesDescription>Disabled
+					</n1:PossibleValuesDescription>
+					<n1:PossibleValuesDescription>Enabled
+					</n1:PossibleValuesDescription>
+				</n1:DCIM_NICEnumeration>
+				<n1:DCIM_NICEnumeration>
+					<n1:AttributeDisplayName>Use Independent Target Name
+					</n1:AttributeDisplayName>
+					<n1:AttributeName>UseIndTgtName</n1:AttributeName>
+					<n1:CurrentValue>Disabled</n1:CurrentValue>
+					<n1:Dependency><![CDATA[<Dep><AttrLev Op="OR"><ROIf Name="iSCSIBootSupport">Unavailable</ROIf></AttrLev></Dep>]]></n1:Dependency>
+					<n1:FQDD>NIC.Integrated.1-3-1</n1:FQDD>
+					<n1:GroupDisplayName>Secondary Device</n1:GroupDisplayName>
+					<n1:GroupID>SecondaryDevice</n1:GroupID>
+					<n1:InstanceID>NIC.Integrated.1-3-1:UseIndTgtName</n1:InstanceID>
+					<n1:IsReadOnly>false</n1:IsReadOnly>
+					<n1:PendingValue xsi:nil="true" />
+					<n1:PossibleValues>Disabled</n1:PossibleValues>
+					<n1:PossibleValues>Enabled</n1:PossibleValues>
+					<n1:PossibleValuesDescription>Disabled
+					</n1:PossibleValuesDescription>
+					<n1:PossibleValuesDescription>Enabled
+					</n1:PossibleValuesDescription>
+				</n1:DCIM_NICEnumeration>
+				<n1:DCIM_NICEnumeration>
+					<n1:AttributeDisplayName>Link Status</n1:AttributeDisplayName>
+					<n1:AttributeName>LinkStatus</n1:AttributeName>
+					<n1:CurrentValue>Disconnected</n1:CurrentValue>
+					<n1:Dependency xsi:nil="true" />
+					<n1:FQDD>NIC.Integrated.1-4-1</n1:FQDD>
+					<n1:GroupDisplayName>Main Configuration Page</n1:GroupDisplayName>
+					<n1:GroupID>VndrConfigPage</n1:GroupID>
+					<n1:InstanceID>NIC.Integrated.1-4-1:LinkStatus</n1:InstanceID>
+					<n1:IsReadOnly>true</n1:IsReadOnly>
+					<n1:PendingValue xsi:nil="true" />
+					<n1:PossibleValues>Disconnected</n1:PossibleValues>
+					<n1:PossibleValues>Connected</n1:PossibleValues>
+					<n1:PossibleValuesDescription>Disconnected
+					</n1:PossibleValuesDescription>
+					<n1:PossibleValuesDescription>Connected
+					</n1:PossibleValuesDescription>
+				</n1:DCIM_NICEnumeration>
+				<n1:DCIM_NICEnumeration>
+					<n1:AttributeDisplayName>TCP/IP Parameters via DHCP
+					</n1:AttributeDisplayName>
+					<n1:AttributeName>TcpIpViaDHCP</n1:AttributeName>
+					<n1:CurrentValue>Enabled</n1:CurrentValue>
+					<n1:Dependency><![CDATA[<Dep><AttrLev Op="OR"><ROIf Name="IpVer">IPv6</ROIf><ROIf Name="iSCSIBootSupport">Unavailable</ROIf></AttrLev></Dep>]]></n1:Dependency>
+					<n1:FQDD>NIC.Integrated.1-4-1</n1:FQDD>
+					<n1:GroupDisplayName>iSCSI General Parameters</n1:GroupDisplayName>
+					<n1:GroupID>IscsiGenParams</n1:GroupID>
+					<n1:InstanceID>NIC.Integrated.1-4-1:TcpIpViaDHCP</n1:InstanceID>
+					<n1:IsReadOnly>false</n1:IsReadOnly>
+					<n1:PendingValue xsi:nil="true" />
+					<n1:PossibleValues>Disabled</n1:PossibleValues>
+					<n1:PossibleValues>Enabled</n1:PossibleValues>
+					<n1:PossibleValuesDescription>Disabled
+					</n1:PossibleValuesDescription>
+					<n1:PossibleValuesDescription>Enabled
+					</n1:PossibleValuesDescription>
+				</n1:DCIM_NICEnumeration>
+				<n1:DCIM_NICEnumeration>
+					<n1:AttributeDisplayName>IP Autoconfiguration
+					</n1:AttributeDisplayName>
+					<n1:AttributeName>IpAutoConfig</n1:AttributeName>
+					<n1:CurrentValue>Enabled</n1:CurrentValue>
+					<n1:Dependency><![CDATA[<Dep><AttrLev Op="OR"><ROIf Name="IpVer">IPv4</ROIf><ROIf Name="iSCSIBootSupport">Unavailable</ROIf></AttrLev></Dep>]]></n1:Dependency>
+					<n1:FQDD>NIC.Integrated.1-4-1</n1:FQDD>
+					<n1:GroupDisplayName>iSCSI General Parameters</n1:GroupDisplayName>
+					<n1:GroupID>IscsiGenParams</n1:GroupID>
+					<n1:InstanceID>NIC.Integrated.1-4-1:IpAutoConfig</n1:InstanceID>
+					<n1:IsReadOnly>true</n1:IsReadOnly>
+					<n1:PendingValue xsi:nil="true" />
+					<n1:PossibleValues>Disabled</n1:PossibleValues>
+					<n1:PossibleValues>Enabled</n1:PossibleValues>
+					<n1:PossibleValuesDescription>Disabled
+					</n1:PossibleValuesDescription>
+					<n1:PossibleValuesDescription>Enabled
+					</n1:PossibleValuesDescription>
+				</n1:DCIM_NICEnumeration>
+				<n1:DCIM_NICEnumeration>
+					<n1:AttributeDisplayName>iSCSI Parameters via DHCP
+					</n1:AttributeDisplayName>
+					<n1:AttributeName>IscsiViaDHCP</n1:AttributeName>
+					<n1:CurrentValue>Enabled</n1:CurrentValue>
+					<n1:Dependency><![CDATA[<Dep><AttrLev Op="OR"><ROIf Name="iSCSIBootSupport">Unavailable</ROIf></AttrLev></Dep>]]></n1:Dependency>
+					<n1:FQDD>NIC.Integrated.1-4-1</n1:FQDD>
+					<n1:GroupDisplayName>iSCSI General Parameters</n1:GroupDisplayName>
+					<n1:GroupID>IscsiGenParams</n1:GroupID>
+					<n1:InstanceID>NIC.Integrated.1-4-1:IscsiViaDHCP</n1:InstanceID>
+					<n1:IsReadOnly>false</n1:IsReadOnly>
+					<n1:PendingValue xsi:nil="true" />
+					<n1:PossibleValues>Disabled</n1:PossibleValues>
+					<n1:PossibleValues>Enabled</n1:PossibleValues>
+					<n1:PossibleValuesDescription>Disabled
+					</n1:PossibleValuesDescription>
+					<n1:PossibleValuesDescription>Enabled
+					</n1:PossibleValuesDescription>
+				</n1:DCIM_NICEnumeration>
+				<n1:DCIM_NICEnumeration>
+					<n1:AttributeDisplayName>CHAP Authentication
+					</n1:AttributeDisplayName>
+					<n1:AttributeName>ChapAuthEnable</n1:AttributeName>
+					<n1:CurrentValue>Disabled</n1:CurrentValue>
+					<n1:Dependency><![CDATA[<Dep><AttrLev Op="OR"><ROIf Name="iSCSIBootSupport">Unavailable</ROIf></AttrLev></Dep>]]></n1:Dependency>
+					<n1:FQDD>NIC.Integrated.1-4-1</n1:FQDD>
+					<n1:GroupDisplayName>iSCSI General Parameters</n1:GroupDisplayName>
+					<n1:GroupID>IscsiGenParams</n1:GroupID>
+					<n1:InstanceID>NIC.Integrated.1-4-1:ChapAuthEnable</n1:InstanceID>
+					<n1:IsReadOnly>false</n1:IsReadOnly>
+					<n1:PendingValue xsi:nil="true" />
+					<n1:PossibleValues>Disabled</n1:PossibleValues>
+					<n1:PossibleValues>Enabled</n1:PossibleValues>
+					<n1:PossibleValuesDescription>Disabled
+					</n1:PossibleValuesDescription>
+					<n1:PossibleValuesDescription>Enabled
+					</n1:PossibleValuesDescription>
+				</n1:DCIM_NICEnumeration>
+				<n1:DCIM_NICEnumeration>
+					<n1:AttributeDisplayName>Boot to iSCSI Target
+					</n1:AttributeDisplayName>
+					<n1:AttributeName>IscsiTgtBoot</n1:AttributeName>
+					<n1:CurrentValue>Enabled</n1:CurrentValue>
+					<n1:Dependency><![CDATA[<Dep><AttrLev Op="OR"><ROIf Name="iSCSIBootSupport">Unavailable</ROIf></AttrLev></Dep>]]></n1:Dependency>
+					<n1:FQDD>NIC.Integrated.1-4-1</n1:FQDD>
+					<n1:GroupDisplayName>iSCSI General Parameters</n1:GroupDisplayName>
+					<n1:GroupID>IscsiGenParams</n1:GroupID>
+					<n1:InstanceID>NIC.Integrated.1-4-1:IscsiTgtBoot</n1:InstanceID>
+					<n1:IsReadOnly>false</n1:IsReadOnly>
+					<n1:PendingValue xsi:nil="true" />
+					<n1:PossibleValues>Disabled</n1:PossibleValues>
+					<n1:PossibleValues>Enabled</n1:PossibleValues>
+					<n1:PossibleValues>OneTimeDisabled</n1:PossibleValues>
+					<n1:PossibleValuesDescription>Disabled
+					</n1:PossibleValuesDescription>
+					<n1:PossibleValuesDescription>Enabled
+					</n1:PossibleValuesDescription>
+					<n1:PossibleValuesDescription>One Time Disabled
+					</n1:PossibleValuesDescription>
+				</n1:DCIM_NICEnumeration>
+				<n1:DCIM_NICEnumeration>
+					<n1:AttributeDisplayName>Use TCP Timestamp
+					</n1:AttributeDisplayName>
+					<n1:AttributeName>TcpTimestmp</n1:AttributeName>
+					<n1:CurrentValue>Disabled</n1:CurrentValue>
+					<n1:Dependency><![CDATA[<Dep><AttrLev Op="OR"><ROIf Name="iSCSIBootSupport">Unavailable</ROIf></AttrLev></Dep>]]></n1:Dependency>
+					<n1:FQDD>NIC.Integrated.1-4-1</n1:FQDD>
+					<n1:GroupDisplayName>iSCSI General Parameters</n1:GroupDisplayName>
+					<n1:GroupID>IscsiGenParams</n1:GroupID>
+					<n1:InstanceID>NIC.Integrated.1-4-1:TcpTimestmp</n1:InstanceID>
+					<n1:IsReadOnly>false</n1:IsReadOnly>
+					<n1:PendingValue xsi:nil="true" />
+					<n1:PossibleValues>Disabled</n1:PossibleValues>
+					<n1:PossibleValues>Enabled</n1:PossibleValues>
+					<n1:PossibleValuesDescription>Disabled
+					</n1:PossibleValuesDescription>
+					<n1:PossibleValuesDescription>Enabled
+					</n1:PossibleValuesDescription>
+				</n1:DCIM_NICEnumeration>
+				<n1:DCIM_NICEnumeration>
+					<n1:AttributeDisplayName>Target as First HDD
+					</n1:AttributeDisplayName>
+					<n1:AttributeName>FirstHddTarget</n1:AttributeName>
+					<n1:CurrentValue>Disabled</n1:CurrentValue>
+					<n1:Dependency><![CDATA[<Dep><AttrLev Op="OR"><ROIf Name="iSCSIBootSupport">Unavailable</ROIf></AttrLev></Dep>]]></n1:Dependency>
+					<n1:FQDD>NIC.Integrated.1-4-1</n1:FQDD>
+					<n1:GroupDisplayName>iSCSI General Parameters</n1:GroupDisplayName>
+					<n1:GroupID>IscsiGenParams</n1:GroupID>
+					<n1:InstanceID>NIC.Integrated.1-4-1:FirstHddTarget</n1:InstanceID>
+					<n1:IsReadOnly>false</n1:IsReadOnly>
+					<n1:PendingValue xsi:nil="true" />
+					<n1:PossibleValues>Disabled</n1:PossibleValues>
+					<n1:PossibleValues>Enabled</n1:PossibleValues>
+					<n1:PossibleValuesDescription>Disabled
+					</n1:PossibleValuesDescription>
+					<n1:PossibleValuesDescription>Enabled
+					</n1:PossibleValuesDescription>
+				</n1:DCIM_NICEnumeration>
+				<n1:DCIM_NICEnumeration>
+					<n1:AttributeDisplayName>IP Version</n1:AttributeDisplayName>
+					<n1:AttributeName>IpVer</n1:AttributeName>
+					<n1:CurrentValue>IPv4</n1:CurrentValue>
+					<n1:Dependency><![CDATA[<Dep><AttrLev Op="OR"><ROIf Name="iSCSIBootSupport">Unavailable</ROIf></AttrLev></Dep>]]></n1:Dependency>
+					<n1:FQDD>NIC.Integrated.1-4-1</n1:FQDD>
+					<n1:GroupDisplayName>iSCSI General Parameters</n1:GroupDisplayName>
+					<n1:GroupID>IscsiGenParams</n1:GroupID>
+					<n1:InstanceID>NIC.Integrated.1-4-1:IpVer</n1:InstanceID>
+					<n1:IsReadOnly>false</n1:IsReadOnly>
+					<n1:PendingValue xsi:nil="true" />
+					<n1:PossibleValues>IPv4</n1:PossibleValues>
+					<n1:PossibleValues>IPv6</n1:PossibleValues>
+					<n1:PossibleValuesDescription>IPv4</n1:PossibleValuesDescription>
+					<n1:PossibleValuesDescription>IPv6</n1:PossibleValuesDescription>
+				</n1:DCIM_NICEnumeration>
+				<n1:DCIM_NICEnumeration>
+					<n1:AttributeDisplayName>Connect</n1:AttributeDisplayName>
+					<n1:AttributeName>ConnectFirstTgt</n1:AttributeName>
+					<n1:CurrentValue>Disabled</n1:CurrentValue>
+					<n1:Dependency><![CDATA[<Dep><AttrLev Op="OR"><ROIf Name="iSCSIBootSupport">Unavailable</ROIf></AttrLev></Dep>]]></n1:Dependency>
+					<n1:FQDD>NIC.Integrated.1-4-1</n1:FQDD>
+					<n1:GroupDisplayName>iSCSI First Target Parameters
+					</n1:GroupDisplayName>
+					<n1:GroupID>IscsiFirstTgtParams</n1:GroupID>
+					<n1:InstanceID>NIC.Integrated.1-4-1:ConnectFirstTgt</n1:InstanceID>
+					<n1:IsReadOnly>false</n1:IsReadOnly>
+					<n1:PendingValue xsi:nil="true" />
+					<n1:PossibleValues>Disabled</n1:PossibleValues>
+					<n1:PossibleValues>Enabled</n1:PossibleValues>
+					<n1:PossibleValuesDescription>Disabled
+					</n1:PossibleValuesDescription>
+					<n1:PossibleValuesDescription>Enabled
+					</n1:PossibleValuesDescription>
+				</n1:DCIM_NICEnumeration>
+				<n1:DCIM_NICEnumeration>
+					<n1:AttributeDisplayName>Connect</n1:AttributeDisplayName>
+					<n1:AttributeName>ConnectSecondTgt</n1:AttributeName>
+					<n1:CurrentValue>Disabled</n1:CurrentValue>
+					<n1:Dependency><![CDATA[<Dep><AttrLev Op="OR"><ROIf Name="iSCSIBootSupport">Unavailable</ROIf></AttrLev></Dep>]]></n1:Dependency>
+					<n1:FQDD>NIC.Integrated.1-4-1</n1:FQDD>
+					<n1:GroupDisplayName>iSCSI Second Target Parameters
+					</n1:GroupDisplayName>
+					<n1:GroupID>IscsiSecondTgtParams</n1:GroupID>
+					<n1:InstanceID>NIC.Integrated.1-4-1:ConnectSecondTgt
+					</n1:InstanceID>
+					<n1:IsReadOnly>false</n1:IsReadOnly>
+					<n1:PendingValue xsi:nil="true" />
+					<n1:PossibleValues>Disabled</n1:PossibleValues>
+					<n1:PossibleValues>Enabled</n1:PossibleValues>
+					<n1:PossibleValuesDescription>Disabled
+					</n1:PossibleValuesDescription>
+					<n1:PossibleValuesDescription>Enabled
+					</n1:PossibleValuesDescription>
+				</n1:DCIM_NICEnumeration>
+				<n1:DCIM_NICEnumeration>
+					<n1:AttributeDisplayName>Legacy Boot Protocol
+					</n1:AttributeDisplayName>
+					<n1:AttributeName>LegacyBootProto</n1:AttributeName>
+					<n1:CurrentValue>NONE</n1:CurrentValue>
+					<n1:Dependency xsi:nil="true" />
+					<n1:FQDD>NIC.Integrated.1-4-1</n1:FQDD>
+					<n1:GroupDisplayName>MBA Configuration Menu</n1:GroupDisplayName>
+					<n1:GroupID>NICConfig</n1:GroupID>
+					<n1:InstanceID>NIC.Integrated.1-4-1:LegacyBootProto</n1:InstanceID>
+					<n1:IsReadOnly>false</n1:IsReadOnly>
+					<n1:PendingValue xsi:nil="true" />
+					<n1:PossibleValues>PXE</n1:PossibleValues>
+					<n1:PossibleValues>iSCSI</n1:PossibleValues>
+					<n1:PossibleValues>NONE</n1:PossibleValues>
+					<n1:PossibleValuesDescription>PXE</n1:PossibleValuesDescription>
+					<n1:PossibleValuesDescription>iSCSI</n1:PossibleValuesDescription>
+					<n1:PossibleValuesDescription>NONE</n1:PossibleValuesDescription>
+				</n1:DCIM_NICEnumeration>
+				<n1:DCIM_NICEnumeration>
+					<n1:AttributeDisplayName>Boot Strap Type</n1:AttributeDisplayName>
+					<n1:AttributeName>BootStrapType</n1:AttributeName>
+					<n1:CurrentValue>AutoDetect</n1:CurrentValue>
+					<n1:Dependency xsi:nil="true" />
+					<n1:FQDD>NIC.Integrated.1-4-1</n1:FQDD>
+					<n1:GroupDisplayName>MBA Configuration Menu</n1:GroupDisplayName>
+					<n1:GroupID>NICConfig</n1:GroupID>
+					<n1:InstanceID>NIC.Integrated.1-4-1:BootStrapType</n1:InstanceID>
+					<n1:IsReadOnly>false</n1:IsReadOnly>
+					<n1:PendingValue xsi:nil="true" />
+					<n1:PossibleValues>AutoDetect</n1:PossibleValues>
+					<n1:PossibleValues>BBS</n1:PossibleValues>
+					<n1:PossibleValues>Int18h</n1:PossibleValues>
+					<n1:PossibleValues>Int19h</n1:PossibleValues>
+					<n1:PossibleValuesDescription>Auto Detect
+					</n1:PossibleValuesDescription>
+					<n1:PossibleValuesDescription>BBS</n1:PossibleValuesDescription>
+					<n1:PossibleValuesDescription>Int 18h
+					</n1:PossibleValuesDescription>
+					<n1:PossibleValuesDescription>Int 19h
+					</n1:PossibleValuesDescription>
+				</n1:DCIM_NICEnumeration>
+				<n1:DCIM_NICEnumeration>
+					<n1:AttributeDisplayName>Hide Setup Prompt
+					</n1:AttributeDisplayName>
+					<n1:AttributeName>HideSetupPrompt</n1:AttributeName>
+					<n1:CurrentValue>Disabled</n1:CurrentValue>
+					<n1:Dependency xsi:nil="true" />
+					<n1:FQDD>NIC.Integrated.1-4-1</n1:FQDD>
+					<n1:GroupDisplayName>MBA Configuration Menu</n1:GroupDisplayName>
+					<n1:GroupID>NICConfig</n1:GroupID>
+					<n1:InstanceID>NIC.Integrated.1-4-1:HideSetupPrompt</n1:InstanceID>
+					<n1:IsReadOnly>false</n1:IsReadOnly>
+					<n1:PendingValue xsi:nil="true" />
+					<n1:PossibleValues>Disabled</n1:PossibleValues>
+					<n1:PossibleValues>Enabled</n1:PossibleValues>
+					<n1:PossibleValuesDescription>Disabled
+					</n1:PossibleValuesDescription>
+					<n1:PossibleValuesDescription>Enabled
+					</n1:PossibleValuesDescription>
+				</n1:DCIM_NICEnumeration>
+				<n1:DCIM_NICEnumeration>
+					<n1:AttributeDisplayName>Link Speed</n1:AttributeDisplayName>
+					<n1:AttributeName>LnkSpeed</n1:AttributeName>
+					<n1:CurrentValue>AutoNeg</n1:CurrentValue>
+					<n1:Dependency xsi:nil="true" />
+					<n1:FQDD>NIC.Integrated.1-4-1</n1:FQDD>
+					<n1:GroupDisplayName>MBA Configuration Menu</n1:GroupDisplayName>
+					<n1:GroupID>NICConfig</n1:GroupID>
+					<n1:InstanceID>NIC.Integrated.1-4-1:LnkSpeed</n1:InstanceID>
+					<n1:IsReadOnly>false</n1:IsReadOnly>
+					<n1:PendingValue xsi:nil="true" />
+					<n1:PossibleValues>AutoNeg</n1:PossibleValues>
+					<n1:PossibleValues>10MbpsHalf</n1:PossibleValues>
+					<n1:PossibleValues>10MbpsFull</n1:PossibleValues>
+					<n1:PossibleValues>100MbpsHalf</n1:PossibleValues>
+					<n1:PossibleValues>100MbpsFull</n1:PossibleValues>
+					<n1:PossibleValuesDescription>AutoNeg
+					</n1:PossibleValuesDescription>
+					<n1:PossibleValuesDescription>10Mbps Half
+					</n1:PossibleValuesDescription>
+					<n1:PossibleValuesDescription>10Mbps Full
+					</n1:PossibleValuesDescription>
+					<n1:PossibleValuesDescription>100Mbps Half
+					</n1:PossibleValuesDescription>
+					<n1:PossibleValuesDescription>100Mbps Full
+					</n1:PossibleValuesDescription>
+				</n1:DCIM_NICEnumeration>
+				<n1:DCIM_NICEnumeration>
+					<n1:AttributeDisplayName>Pre-boot Wake On LAN
+					</n1:AttributeDisplayName>
+					<n1:AttributeName>WakeOnLan</n1:AttributeName>
+					<n1:CurrentValue>Disabled</n1:CurrentValue>
+					<n1:Dependency xsi:nil="true" />
+					<n1:FQDD>NIC.Integrated.1-4-1</n1:FQDD>
+					<n1:GroupDisplayName>MBA Configuration Menu</n1:GroupDisplayName>
+					<n1:GroupID>NICConfig</n1:GroupID>
+					<n1:InstanceID>NIC.Integrated.1-4-1:WakeOnLan</n1:InstanceID>
+					<n1:IsReadOnly>false</n1:IsReadOnly>
+					<n1:PendingValue xsi:nil="true" />
+					<n1:PossibleValues>Disabled</n1:PossibleValues>
+					<n1:PossibleValues>Enabled</n1:PossibleValues>
+					<n1:PossibleValuesDescription>Disabled
+					</n1:PossibleValuesDescription>
+					<n1:PossibleValuesDescription>Enabled
+					</n1:PossibleValuesDescription>
+				</n1:DCIM_NICEnumeration>
+				<n1:DCIM_NICEnumeration>
+					<n1:AttributeDisplayName>VLAN Mode</n1:AttributeDisplayName>
+					<n1:AttributeName>VLanMode</n1:AttributeName>
+					<n1:CurrentValue>Disabled</n1:CurrentValue>
+					<n1:Dependency xsi:nil="true" />
+					<n1:FQDD>NIC.Integrated.1-4-1</n1:FQDD>
+					<n1:GroupDisplayName>MBA Configuration Menu</n1:GroupDisplayName>
+					<n1:GroupID>NICConfig</n1:GroupID>
+					<n1:InstanceID>NIC.Integrated.1-4-1:VLanMode</n1:InstanceID>
+					<n1:IsReadOnly>false</n1:IsReadOnly>
+					<n1:PendingValue xsi:nil="true" />
+					<n1:PossibleValues>Disabled</n1:PossibleValues>
+					<n1:PossibleValues>Enabled</n1:PossibleValues>
+					<n1:PossibleValuesDescription>Disabled
+					</n1:PossibleValuesDescription>
+					<n1:PossibleValuesDescription>Enabled
+					</n1:PossibleValuesDescription>
+				</n1:DCIM_NICEnumeration>
+				<n1:DCIM_NICEnumeration>
+					<n1:AttributeDisplayName>Use Independent Target Portal
+					</n1:AttributeDisplayName>
+					<n1:AttributeName>UseIndTgtPortal</n1:AttributeName>
+					<n1:CurrentValue>Disabled</n1:CurrentValue>
+					<n1:Dependency><![CDATA[<Dep><AttrLev Op="OR"><ROIf Name="iSCSIBootSupport">Unavailable</ROIf></AttrLev></Dep>]]></n1:Dependency>
+					<n1:FQDD>NIC.Integrated.1-4-1</n1:FQDD>
+					<n1:GroupDisplayName>Secondary Device</n1:GroupDisplayName>
+					<n1:GroupID>SecondaryDevice</n1:GroupID>
+					<n1:InstanceID>NIC.Integrated.1-4-1:UseIndTgtPortal</n1:InstanceID>
+					<n1:IsReadOnly>false</n1:IsReadOnly>
+					<n1:PendingValue xsi:nil="true" />
+					<n1:PossibleValues>Disabled</n1:PossibleValues>
+					<n1:PossibleValues>Enabled</n1:PossibleValues>
+					<n1:PossibleValuesDescription>Disabled
+					</n1:PossibleValuesDescription>
+					<n1:PossibleValuesDescription>Enabled
+					</n1:PossibleValuesDescription>
+				</n1:DCIM_NICEnumeration>
+				<n1:DCIM_NICEnumeration>
+					<n1:AttributeDisplayName>Use Independent Target Name
+					</n1:AttributeDisplayName>
+					<n1:AttributeName>UseIndTgtName</n1:AttributeName>
+					<n1:CurrentValue>Disabled</n1:CurrentValue>
+					<n1:Dependency><![CDATA[<Dep><AttrLev Op="OR"><ROIf Name="iSCSIBootSupport">Unavailable</ROIf></AttrLev></Dep>]]></n1:Dependency>
+					<n1:FQDD>NIC.Integrated.1-4-1</n1:FQDD>
+					<n1:GroupDisplayName>Secondary Device</n1:GroupDisplayName>
+					<n1:GroupID>SecondaryDevice</n1:GroupID>
+					<n1:InstanceID>NIC.Integrated.1-4-1:UseIndTgtName</n1:InstanceID>
+					<n1:IsReadOnly>false</n1:IsReadOnly>
+					<n1:PendingValue xsi:nil="true" />
+					<n1:PossibleValues>Disabled</n1:PossibleValues>
+					<n1:PossibleValues>Enabled</n1:PossibleValues>
+					<n1:PossibleValuesDescription>Disabled
+					</n1:PossibleValuesDescription>
+					<n1:PossibleValuesDescription>Enabled
+					</n1:PossibleValuesDescription>
+				</n1:DCIM_NICEnumeration>
+			</wsman:Items>
+		</wsen:EnumerateResponse>
+	</s:Body>
+</s:Envelope>
