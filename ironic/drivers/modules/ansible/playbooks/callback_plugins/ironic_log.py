@@ -11,13 +11,13 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-import ConfigParser
 import os
 
 from oslo_config import cfg
 from oslo_log import log as logging
 from oslo_utils import strutils
 import pbr.version
+from six.moves import configparser
 
 
 CONF = cfg.CONF
@@ -28,7 +28,7 @@ VERSION = pbr.version.VersionInfo(DOMAIN).release_string()
 # find and parse callback config file
 def parse_callback_config():
     basename = os.path.splitext(__file__)[0]
-    config = ConfigParser.ConfigParser()
+    config = configparser.ConfigParser()
     callback_config = {'ironic_config': None,
                        'ironic_log_file': None,
                        'use_journal': True,
