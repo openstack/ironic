@@ -428,8 +428,10 @@ class AnsibleDeploy(agent_base.HeartbeatMixin, base.DeployInterface):
                   {'node': node.uuid, 'ip': node_address})
         variables = _prepare_variables(task)
         if not node.driver_internal_info.get('is_whole_disk_image'):
-            variables.update(_parse_partitioning_info(task.node))
-        playbook, user, key = _parse_ansible_driver_info(task.node)
+            variables.update(_parse_partitioning_info(node))
+        if node.target_raid_config:
+            variables.update({'raid_config': node.target_raid_config})
+        playbook, user, key = _parse_ansible_driver_info(node)
         node_list = [(node.uuid, node_address, user, node.extra)]
         extra_vars = _prepare_extra_vars(node_list, variables=variables)
 
@@ -535,11 +537,18 @@ class AnsibleDeploy(agent_base.HeartbeatMixin, base.DeployInterface):
         node_address = _get_node_ip(task)
 
         node_list = [(node.uuid, node_address, user, node.extra)]
-        extra_vars = _prepare_extra_vars(node_list)
+
+        if node.target_raid_config:
+            variables = {'raid_config': node.target_raid_config}
+            extra_vars = _prepare_extra_vars(node_list, variables=variables)
+        else:
+            extra_vars = _prepare_extra_vars(node_list)
 
         LOG.debug('Starting cleaning step %(step)s on node %(node)s',
                   {'node': node.uuid, 'step': stepname})
         step_tags = step['args'].get('tags', [])
+        LOG.debug("Detected tags from cleaning step: %(tags)s",
+                  {'tags': step_tags})
         _run_playbook(node, playbook, extra_vars, key, tags=step_tags)
         LOG.info('Ansible completed cleaning step %(step)s '
                  'on node %(node)s.',

@@ -362,6 +362,7 @@ Those values are then accessible in your plays as well
        preserve_ephemeral: "<bool>"
        ephemeral_format: "<FILESYSTEM TO CREATE ON EPHEMERAL PARTITION>"
        partitions: "<LIST OF PARTITIONS IN FORMAT EXPECTED BY PARTED MODULE>"
+     raid_config: "<COPY OF NODE's TARGET_RAID_CONFIG FIELD>"
 
 
 ``ironic.nodes``
@@ -433,6 +434,10 @@ Those values are then accessible in your plays as well
 ``ironic.partition_info.preserve_ephemeral``
     Optional. Taken from the ``instance_info``, it specifies if the ephemeral
     partition must be preserved or rebuilt. Defaults to ``no``.
+
+``ironic.raid_config``
+    Taken from the ``target_raid_config`` if not empty, it specifies the RAID
+    configuration to apply.
 
 As usual for Ansible playbooks, you also have access to standard
 Ansible facts discovered by ``setup`` module.
