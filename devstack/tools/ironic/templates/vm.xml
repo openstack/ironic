@@ -32,7 +32,7 @@
     <emulator>{{ emulator }}</emulator>
     {% for (imagefile, letter) in images %}
     <disk type='file' device='disk'>
-      <driver name='qemu' type='{{ disk_format }}' cache='writeback'/>
+      <driver name='qemu' type='{{ disk_format }}' cache='unsafe'/>
       <source file='{{ imagefile }}'/>
       <!-- NOTE(lucasagomes): The virtio disk controller apparently does
            not work with UEFI, so let's use IDE. -->
