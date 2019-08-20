@@ -36,6 +36,7 @@ from ironic.drivers.modules import deploy_utils
 from ironic.drivers.modules.ilo import boot as ilo_boot
 from ironic.drivers.modules.ilo import common as ilo_common
 from ironic.drivers.modules.ilo import management as ilo_management
+from ironic.drivers.modules import ipxe
 from ironic.drivers.modules import pxe
 from ironic.drivers.modules.storage import noop as noop_storage
 from ironic.drivers import utils as driver_utils
@@ -1346,6 +1347,189 @@ class IloPXEBootTestCase(test_common.BaseIloTest):
     @mock.patch.object(ilo_common, 'update_boot_mode', spec_set=True,
                        autospec=True)
     @mock.patch.object(pxe.PXEBoot, 'prepare_instance', spec_set=True,
+                       autospec=True)
+    def test_prepare_instance_bios(self, pxe_prepare_instance_mock,
+                                   update_boot_mode_mock,
+                                   update_secure_boot_mode_mock,
+                                   get_boot_mode_mock,
+                                   is_iscsi_boot_mock):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            task.driver.boot.prepare_instance(task)
+            is_iscsi_boot_mock.return_value = False
+            get_boot_mode_mock.return_value = 'bios'
+            update_boot_mode_mock.assert_called_once_with(task)
+            update_secure_boot_mode_mock.assert_called_once_with(task, True)
+            pxe_prepare_instance_mock.assert_called_once_with(mock.ANY, task)
+            self.assertIsNone(task.node.driver_internal_info.get(
+                              'ilo_uefi_iscsi_boot'))
+
+    @mock.patch.object(deploy_utils, 'is_iscsi_boot',
+                       spec_set=True, autospec=True)
+    @mock.patch.object(boot_mode_utils, 'get_boot_mode_for_deploy',
+                       spec_set=True, autospec=True)
+    @mock.patch.object(ilo_management.IloManagement, 'set_iscsi_boot_target',
+                       spec_set=True, autospec=True)
+    @mock.patch.object(manager_utils, 'node_set_boot_device', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(ilo_common, 'update_boot_mode', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(ilo_common, 'update_secure_boot_mode', spec_set=True,
+                       autospec=True)
+    def test_prepare_instance_boot_from_volume(
+            self, update_secure_boot_mode_mock,
+            update_boot_mode_mock, set_boot_device_mock,
+            set_iscsi_boot_target_mock, get_boot_mode_mock,
+            is_iscsi_boot_mock):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            is_iscsi_boot_mock.return_value = True
+            get_boot_mode_mock.return_value = 'uefi'
+            task.driver.boot.prepare_instance(task)
+            set_iscsi_boot_target_mock.assert_called_once_with(mock.ANY, task)
+            set_boot_device_mock.assert_called_once_with(
+                task, boot_devices.ISCSIBOOT, persistent=True)
+            update_boot_mode_mock.assert_called_once_with(task)
+            update_secure_boot_mode_mock.assert_called_once_with(task, True)
+            self.assertTrue(task.node.driver_internal_info.get(
+                            'ilo_uefi_iscsi_boot'))
+
+
+@mock.patch.object(ipxe.iPXEBoot, '__init__', lambda self: None)
+class IloiPXEBootTestCase(test_common.BaseIloTest):
+
+    boot_interface = 'ilo-ipxe'
+
+    def setUp(self):
+        super(IloiPXEBootTestCase, self).setUp()
+        self.config(enabled_boot_interfaces=['ilo-ipxe'])
+
+    @mock.patch.object(ilo_boot, 'prepare_node_for_deploy', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(ipxe.iPXEBoot, 'prepare_ramdisk', spec_set=True,
+                       autospec=True)
+    def _test_prepare_ramdisk_needs_node_prep(self, pxe_prepare_ramdisk_mock,
+                                              prepare_node_mock, prov_state):
+        self.node.provision_state = prov_state
+        self.node.save()
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            self.assertIsNone(
+                task.driver.boot.prepare_ramdisk(task, None))
+
+            prepare_node_mock.assert_called_once_with(task)
+            pxe_prepare_ramdisk_mock.assert_called_once_with(
+                mock.ANY, task, None)
+
+    def test_prepare_ramdisk_in_deploying(self):
+        self._test_prepare_ramdisk_needs_node_prep(prov_state=states.DEPLOYING)
+
+    def test_prepare_ramdisk_in_rescuing(self):
+        self._test_prepare_ramdisk_needs_node_prep(prov_state=states.RESCUING)
+
+    def test_prepare_ramdisk_in_cleaning(self):
+        self._test_prepare_ramdisk_needs_node_prep(prov_state=states.CLEANING)
+
+    @mock.patch.object(deploy_utils, 'is_iscsi_boot',
+                       spec_set=True, autospec=True)
+    @mock.patch.object(ilo_common, 'update_secure_boot_mode', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(manager_utils, 'node_power_action', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(ipxe.iPXEBoot, 'clean_up_instance', spec_set=True,
+                       autospec=True)
+    def test_clean_up_instance(self, pxe_cleanup_mock, node_power_mock,
+                               update_secure_boot_mode_mock,
+                               is_iscsi_boot_mock):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            task.driver.boot.clean_up_instance(task)
+            is_iscsi_boot_mock.return_value = False
+            node_power_mock.assert_called_once_with(task, states.POWER_OFF)
+            update_secure_boot_mode_mock.assert_called_once_with(task, False)
+            pxe_cleanup_mock.assert_called_once_with(mock.ANY, task)
+
+    @mock.patch.object(deploy_utils, 'is_iscsi_boot',
+                       spec_set=True, autospec=True)
+    @mock.patch.object(ilo_common, 'update_secure_boot_mode', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(manager_utils, 'node_power_action', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(ipxe.iPXEBoot, 'clean_up_instance', spec_set=True,
+                       autospec=True)
+    def test_clean_up_instance_boot_from_volume_bios(
+            self, pxe_cleanup_mock, node_power_mock,
+            update_secure_boot_mode_mock, is_iscsi_boot_mock):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            task.driver.boot.clean_up_instance(task)
+            is_iscsi_boot_mock.return_value = True
+            node_power_mock.assert_called_once_with(task, states.POWER_OFF)
+            update_secure_boot_mode_mock.assert_called_once_with(task, False)
+            pxe_cleanup_mock.assert_called_once_with(mock.ANY, task)
+
+    @mock.patch.object(deploy_utils, 'is_iscsi_boot',
+                       spec_set=True, autospec=True)
+    @mock.patch.object(ilo_management.IloManagement, 'clear_iscsi_boot_target',
+                       spec_set=True, autospec=True)
+    @mock.patch.object(ilo_common, 'update_secure_boot_mode', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(manager_utils, 'node_power_action', spec_set=True,
+                       autospec=True)
+    def test_clean_up_instance_boot_from_volume(self, node_power_mock,
+                                                update_secure_boot_mode_mock,
+                                                clear_iscsi_boot_target_mock,
+                                                is_iscsi_boot_mock):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            driver_internal_info = task.node.driver_internal_info
+            driver_internal_info['ilo_uefi_iscsi_boot'] = True
+            task.node.driver_internal_info = driver_internal_info
+            task.node.save()
+            is_iscsi_boot_mock.return_value = True
+            task.driver.boot.clean_up_instance(task)
+            clear_iscsi_boot_target_mock.assert_called_once_with(mock.ANY,
+                                                                 task)
+            node_power_mock.assert_called_once_with(task, states.POWER_OFF)
+            update_secure_boot_mode_mock.assert_called_once_with(task, False)
+            self.assertIsNone(task.node.driver_internal_info.get(
+                              'ilo_uefi_iscsi_boot'))
+
+    @mock.patch.object(deploy_utils, 'is_iscsi_boot',
+                       spec_set=True, autospec=True)
+    @mock.patch.object(boot_mode_utils, 'get_boot_mode_for_deploy',
+                       spec_set=True, autospec=True)
+    @mock.patch.object(ilo_common, 'update_secure_boot_mode', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(ilo_common, 'update_boot_mode', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(ipxe.iPXEBoot, 'prepare_instance', spec_set=True,
+                       autospec=True)
+    def test_prepare_instance(self, pxe_prepare_instance_mock,
+                              update_boot_mode_mock,
+                              update_secure_boot_mode_mock,
+                              get_boot_mode_mock,
+                              is_iscsi_boot_mock):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            task.driver.boot.prepare_instance(task)
+            is_iscsi_boot_mock.return_value = False
+            get_boot_mode_mock.return_value = 'uefi'
+            update_boot_mode_mock.assert_called_once_with(task)
+            update_secure_boot_mode_mock.assert_called_once_with(task, True)
+            pxe_prepare_instance_mock.assert_called_once_with(mock.ANY, task)
+            self.assertIsNone(task.node.driver_internal_info.get(
+                              'ilo_uefi_iscsi_boot'))
+
+    @mock.patch.object(deploy_utils, 'is_iscsi_boot',
+                       spec_set=True, autospec=True)
+    @mock.patch.object(boot_mode_utils, 'get_boot_mode_for_deploy',
+                       spec_set=True, autospec=True)
+    @mock.patch.object(ilo_common, 'update_secure_boot_mode', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(ilo_common, 'update_boot_mode', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(ipxe.iPXEBoot, 'prepare_instance', spec_set=True,
                        autospec=True)
     def test_prepare_instance_bios(self, pxe_prepare_instance_mock,
                                    update_boot_mode_mock,

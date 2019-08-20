@@ -1,0 +1,19 @@
+---
+features:
+  - |
+    Adds an ``ilo-ipxe`` boot interface to ``ilo`` hardware type which
+    allows for instance level iPXE enablement as opposed to
+    conductor-wide enablement of iPXE.
+    To perform iPXE boot with ``ilo-ipxe`` boot interface:
+
+    * Add ``ilo-ipxe`` to ``enabled_boot_interfaces`` in ``ironic.conf``
+    * Set up TFTP & HTTP server using `Ironic document on iPXE boot
+      configuration
+      <https://docs.openstack.org/ironic/latest/install/configure-pxe.html>`_
+    * Create/Set baremetal node with ``--boot-interface ilo-ipxe``
+fixes:
+  - |
+    From Stein release, ``[pxe]ipxe_enabled`` option has been deprecated.
+    The ``ilo`` hardware type supports iPXE boot through
+    ``[pxe]ipxe_enabled`` option. To cope with this incompatibility,
+    ``ilo`` hardware type has added new ``ilo-ipxe`` boot interface.
