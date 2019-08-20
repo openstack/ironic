@@ -198,6 +198,10 @@ def add_ports_to_network(task, network_uuid, security_groups=None):
     Create neutron ports for each pxe_enabled port on task.node to boot
     the ramdisk.
 
+    If the config option 'neutron.add_all_ports' is set, neutron ports
+    for non-pxe-enabled ports are also created -- these neutron ports
+    will not have any assigned IP addresses.
+
     :param task: a TaskManager instance.
     :param network_uuid: UUID of a neutron network where ports will be
         created.
@@ -240,14 +244,16 @@ def add_ports_to_network(task, network_uuid, security_groups=None):
     portmap = get_node_portmap(task)
 
     if not add_all_ports:
-        pxe_enabled_ports = [p for p in task.ports if p.pxe_enabled]
+        ports_to_create = [p for p in task.ports if p.pxe_enabled]
     else:
-        pxe_enabled_ports = task.ports
-    if not pxe_enabled_ports:
+        ports_to_create = task.ports
+    if not ports_to_create:
+        pxe_enabled = 'PXE-enabled ' if not add_all_ports else ''
         raise exception.NetworkError(_(
-            "No available PXE-enabled port on node %s.") % node.uuid)
+            "No available %(enabled)sports on node %(node)s.") %
+            {'enabled': pxe_enabled, 'node': node.uuid})
 
-    for ironic_port in pxe_enabled_ports:
+    for ironic_port in ports_to_create:
         # Start with a clean state for each port
         port_body = copy.deepcopy(body)
         # Skip ports that are missing required information for deploy.
@@ -259,7 +265,7 @@ def add_ports_to_network(task, network_uuid, security_groups=None):
                            [portmap[ironic_port.uuid]]}
         port_body['port']['binding:profile'] = binding_profile
 
-        if add_all_ports and not ironic_port.pxe_enabled:
+        if not ironic_port.pxe_enabled:
             LOG.debug("Adding port %(port)s to network %(net)s for "
                       "provisioning without an IP allocation.",
                       {'port': ironic_port.uuid,
@@ -302,11 +308,11 @@ def add_ports_to_network(task, network_uuid, security_groups=None):
             ports[ironic_port.uuid] = port['port']['id']
 
     if failures:
-        if len(failures) == len(pxe_enabled_ports):
+        if len(failures) == len(ports_to_create):
             rollback_ports(task, network_uuid)
             raise exception.NetworkError(_(
-                "Failed to create neutron ports for any PXE enabled port "
-                "on node %s.") % node.uuid)
+                "Failed to create neutron ports for node's %(node)s ports "
+                "%(ports)s.") % {'node': node.uuid, 'ports': ports_to_create})
         else:
             LOG.warning("Some errors were encountered when updating "
                         "vif_port_id for node %(node)s on "
