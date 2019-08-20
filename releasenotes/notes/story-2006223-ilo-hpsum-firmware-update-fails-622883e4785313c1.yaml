@@ -1,0 +1,8 @@
+---
+fixes:
+  - |
+    Fixes an issue in updating firmware using ``update_firmware_sum`` clean
+    step from management interface of ``ilo`` hardware type with an error
+    stating that unable to connect to iLO address due to authentication
+    failure. See `story 2006223
+    <https://storyboard.openstack.org/#!/story/2006223>`__ for details.
