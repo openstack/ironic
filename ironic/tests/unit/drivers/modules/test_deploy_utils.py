@@ -2854,3 +2854,70 @@ class InstanceImageCacheTestCase(db_base.DbTestCase):
         mock_ensure_tree.assert_not_called()
         self.assertEqual(500 * 1024 * 1024, cache._cache_size)
         self.assertEqual(30 * 60, cache._cache_ttl)
+
+
+class AsyncStepTestCase(db_base.DbTestCase):
+
+    def setUp(self):
+        super(AsyncStepTestCase, self).setUp()
+        self.node = obj_utils.create_test_node(self.context,
+                                               driver="fake-hardware")
+
+    def _test_get_async_step_return_state(self):
+        result = utils.get_async_step_return_state(self.node)
+        if self.node.clean_step:
+            self.assertEqual(states.CLEANWAIT, result)
+        else:
+            self.assertEqual(states.DEPLOYWAIT, result)
+
+    def test_get_async_step_return_state_cleaning(self):
+        self.node.clean_step = {'step': 'create_configuration',
+                                'interface': 'raid'}
+        self.node.save()
+        self._test_get_async_step_return_state()
+
+    def test_get_async_step_return_state_deploying(self):
+        self.node.deploy_step = {'step': 'create_configuration',
+                                 'interface': 'raid'}
+        self.node.save()
+        self._test_get_async_step_return_state()
+
+    def test_set_async_step_flags_cleaning_set_both(self):
+        self.node.clean_step = {'step': 'create_configuration',
+                                'interface': 'raid'}
+        self.node.driver_internal_info = {}
+        expected = {'cleaning_reboot': True,
+                    'skip_current_clean_step': True}
+        self.node.save()
+        utils.set_async_step_flags(self.node, reboot=True,
+                                   skip_current_step=True)
+        self.assertEqual(expected, self.node.driver_internal_info)
+
+    def test_set_async_step_flags_cleaning_set_one(self):
+        self.node.clean_step = {'step': 'create_configuration',
+                                'interface': 'raid'}
+        self.node.driver_internal_info = {}
+        self.node.save()
+        utils.set_async_step_flags(self.node, reboot=True)
+        self.assertEqual({'cleaning_reboot': True},
+                         self.node.driver_internal_info)
+
+    def test_set_async_step_flags_deploying_set_both(self):
+        self.node.deploy_step = {'step': 'create_configuration',
+                                 'interface': 'raid'}
+        self.node.driver_internal_info = {}
+        expected = {'deployment_reboot': True,
+                    'skip_current_deploy_step': True}
+        self.node.save()
+        utils.set_async_step_flags(self.node, reboot=True,
+                                   skip_current_step=True)
+        self.assertEqual(expected, self.node.driver_internal_info)
+
+    def test_set_async_step_flags_deploying_set_one(self):
+        self.node.deploy_step = {'step': 'create_configuration',
+                                 'interface': 'raid'}
+        self.node.driver_internal_info = {}
+        self.node.save()
+        utils.set_async_step_flags(self.node, reboot=True)
+        self.assertEqual({'deployment_reboot': True},
+                         self.node.driver_internal_info)
