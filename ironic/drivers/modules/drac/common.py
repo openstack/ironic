@@ -118,7 +118,7 @@ def parse_driver_info(node):
 
 
 def get_drac_client(node):
-    """Returns a DRACClient object from python-dracclient library.
+    """Return a DRACClient object from python-dracclient library.
 
     :param node: an ironic node object.
     :returns: a DRACClient object.
