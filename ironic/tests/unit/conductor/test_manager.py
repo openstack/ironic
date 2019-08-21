@@ -8150,9 +8150,10 @@ class DestroyPortTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         node = obj_utils.create_test_node(self.context, driver='fake-hardware',
                                           instance_uuid=instance_uuid,
                                           provision_state='active')
-        port = obj_utils.create_test_port(self.context,
-                                          node_id=node.id,
-                                          extra={'vif_port_id': 'fake-id'})
+        port = obj_utils.create_test_port(
+            self.context,
+            node_id=node.id,
+            internal_info={'tenant_vif_port_id': 'foo'})
         exc = self.assertRaises(messaging.rpc.ExpectedException,
                                 self.service.destroy_port,
                                 self.context, port)
@@ -8172,17 +8173,43 @@ class DestroyPortTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
                           self.dbapi.get_port_by_uuid,
                           port.uuid)
 
-    def test_destroy_port_with_instance_not_in_active(self):
+    def test_destroy_port_with_instance_not_in_active_port_unbound(self):
         instance_uuid = uuidutils.generate_uuid()
         node = obj_utils.create_test_node(self.context, driver='fake-hardware',
                                           instance_uuid=instance_uuid,
                                           provision_state='deploy failed')
         port = obj_utils.create_test_port(self.context,
                                           node_id=node.id)
+        self.service.destroy_port(self.context, port)
+        self.assertRaises(exception.PortNotFound,
+                          self.dbapi.get_port_by_uuid,
+                          port.uuid)
+
+    def test_destroy_port_with_instance_not_in_active_port_bound(self):
+        instance_uuid = uuidutils.generate_uuid()
+        node = obj_utils.create_test_node(self.context, driver='fake-hardware',
+                                          instance_uuid=instance_uuid,
+                                          provision_state='deploy failed')
+        port = obj_utils.create_test_port(
+            self.context,
+            node_id=node.id,
+            internal_info={'tenant_vif_port_id': 'foo'})
         exc = self.assertRaises(messaging.rpc.ExpectedException,
                                 self.service.destroy_port,
                                 self.context, port)
         self.assertEqual(exception.InvalidState, exc.exc_info[0])
+
+    def test_destroy_port_node_active_port_unbound(self):
+        instance_uuid = uuidutils.generate_uuid()
+        node = obj_utils.create_test_node(self.context, driver='fake-hardware',
+                                          instance_uuid=instance_uuid,
+                                          provision_state='active')
+        port = obj_utils.create_test_port(self.context,
+                                          node_id=node.id)
+        self.service.destroy_port(self.context, port)
+        self.assertRaises(exception.PortNotFound,
+                          self.dbapi.get_port_by_uuid,
+                          port.uuid)
 
 
 @mgr_utils.mock_record_keepalive
