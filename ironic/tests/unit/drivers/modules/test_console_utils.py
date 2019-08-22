@@ -331,11 +331,10 @@ class ConsoleUtilsTestCase(db_base.DbTestCase):
         mock_popen.return_value.poll.return_value = 1
         mock_popen.return_value.communicate.return_value = ('output', 'error')
 
-        self.assertRaises(exception.ConsoleSubprocessFailed,
-                          console_utils.start_shellinabox_console,
-                          self.info['uuid'],
-                          self.info['port'],
-                          'ls&')
+        self.assertRaisesRegex(
+            exception.ConsoleSubprocessFailed, "Stdout: 'output'",
+            console_utils.start_shellinabox_console, self.info['uuid'],
+            self.info['port'], 'ls&')
 
         mock_stop.assert_called_once_with(self.info['uuid'])
         mock_dir_exists.assert_called_once_with()
@@ -343,6 +342,29 @@ class ConsoleUtilsTestCase(db_base.DbTestCase):
                                            stdout=subprocess.PIPE,
                                            stderr=subprocess.PIPE)
         mock_popen.return_value.poll.assert_called_with()
+
+    @mock.patch.object(subprocess, 'Popen', autospec=True)
+    @mock.patch.object(console_utils, '_ensure_console_pid_dir_exists',
+                       autospec=True)
+    @mock.patch.object(console_utils, '_stop_console', autospec=True)
+    def test_start_shellinabox_console_timeout(
+            self, mock_stop, mock_dir_exists, mock_popen):
+        self.config(subprocess_timeout=0, group='console')
+        self.config(subprocess_checking_interval=0, group='console')
+        mock_popen.return_value.poll.return_value = None
+
+        self.assertRaisesRegex(
+            exception.ConsoleSubprocessFailed, 'Timeout or error',
+            console_utils.start_shellinabox_console, self.info['uuid'],
+            self.info['port'], 'ls&')
+
+        mock_stop.assert_called_once_with(self.info['uuid'])
+        mock_dir_exists.assert_called_once_with()
+        mock_popen.assert_called_once_with(mock.ANY,
+                                           stdout=subprocess.PIPE,
+                                           stderr=subprocess.PIPE)
+        mock_popen.return_value.poll.assert_called_with()
+        self.assertEqual(0, mock_popen.return_value.communicate.call_count)
 
     @mock.patch.object(console_utils, 'open',
                        mock.mock_open(read_data='12345\n'))
