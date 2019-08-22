@@ -209,6 +209,12 @@ def start_shellinabox_console(node_uuid, port, console_cmd):
         LOG.warning(error)
         raise exception.ConsoleSubprocessFailed(error=error)
 
+    error_message = _(
+        "Timeout or error while waiting for console subprocess to start for "
+        "node: %(node)s.\nCommand: %(command)s.\n") % {
+            'node': node_uuid,
+            'command': ' '.join(args)}
+
     def _wait(node_uuid, popen_obj):
         locals['returncode'] = popen_obj.poll()
 
@@ -216,24 +222,22 @@ def start_shellinabox_console(node_uuid, port, console_cmd):
         # if it is, then the shellinaboxd is invoked successfully as a daemon.
         # otherwise check the error.
         if (locals['returncode'] == 0 and os.path.exists(pid_file)
-            and psutil.pid_exists(_get_console_pid(node_uuid))):
+                and psutil.pid_exists(_get_console_pid(node_uuid))):
             raise loopingcall.LoopingCallDone()
 
-        if (time.time() > expiration or locals['returncode'] is not None):
+        if locals['returncode'] is not None:
             (stdout, stderr) = popen_obj.communicate()
-            locals['errstr'] = _(
-                "Timeout or error while waiting for console "
-                "subprocess to start for node: %(node)s.\n"
-                "Command: %(command)s.\n"
+            locals['errstr'] = error_message + _(
                 "Exit code: %(return_code)s.\n"
                 "Stdout: %(stdout)r\n"
                 "Stderr: %(stderr)r") % {
-                    'node': node_uuid,
-                    'command': ' '.join(args),
                     'return_code': locals['returncode'],
                     'stdout': stdout,
                     'stderr': stderr}
-            LOG.warning(locals['errstr'])
+            raise loopingcall.LoopingCallDone()
+
+        if time.time() > expiration:
+            locals['errstr'] = error_message
             raise loopingcall.LoopingCallDone()
 
     locals = {'returncode': None, 'errstr': ''}
@@ -242,6 +246,7 @@ def start_shellinabox_console(node_uuid, port, console_cmd):
     timer.start(interval=CONF.console.subprocess_checking_interval).wait()
 
     if locals['errstr']:
+        LOG.warning(locals['errstr'])
         raise exception.ConsoleSubprocessFailed(error=locals['errstr'])
 
 
