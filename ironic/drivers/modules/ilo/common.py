@@ -17,7 +17,6 @@ Common functionalities shared between different iLO modules.
 """
 
 import os
-import shutil
 import tempfile
 from urllib import parse as urlparse
 
@@ -134,17 +133,12 @@ def copy_image_to_web_server(source_file_path, destination):
     :returns: image url after the source image is uploaded.
 
     """
+    LOG.warning(
+        'This method is obsolete and will be removed in next release. '
+        'Please use deploy_utils.copy_image_to_web_server() instead.')
 
-    image_url = urlparse.urljoin(CONF.deploy.http_url, destination)
-    image_path = os.path.join(CONF.deploy.http_root, destination)
-    try:
-        shutil.copyfile(source_file_path, image_path)
-    except IOError as exc:
-        raise exception.ImageUploadFailed(image_name=destination,
-                                          web_server=CONF.deploy.http_url,
-                                          reason=exc)
-    os.chmod(image_path, 0o644)
-    return image_url
+    return deploy_utils.copy_image_to_web_server(source_file_path,
+                                                 destination)
 
 
 def remove_image_from_web_server(object_name):
@@ -420,8 +414,8 @@ def _prepare_floppy_image(task, params):
         images.create_vfat_image(vfat_image_tmpfile, parameters=params)
         object_name = _get_floppy_image_name(task.node)
         if CONF.ilo.use_web_server_for_images:
-            image_url = copy_image_to_web_server(vfat_image_tmpfile,
-                                                 object_name)
+            image_url = deploy_utils.copy_image_to_web_server(
+                vfat_image_tmpfile, object_name)
         else:
             image_url = copy_image_to_swift(vfat_image_tmpfile, object_name)
 
