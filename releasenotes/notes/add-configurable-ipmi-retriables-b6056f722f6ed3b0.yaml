@@ -1,0 +1,7 @@
+---
+other:
+  - |
+    This release allows to configure retryable ipmitool exceptions via
+    ``[ipmi]additional_retryable_ipmi_errors`` so that, depending on the
+    environment, operators could allow retrying ipmitool commands containing
+    specified substrings.
