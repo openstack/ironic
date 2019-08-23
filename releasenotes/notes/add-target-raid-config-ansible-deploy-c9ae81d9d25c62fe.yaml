@@ -1,0 +1,8 @@
+---
+features:
+  - |
+    Add ``target_raid_config`` data to ``ironic`` variable under
+    ``raid_config`` top-level key which will expose the RAID configuration
+    to the ``ansible`` driver.
+    See `story 2006417
+    <https://storyboard.openstack.org/#!/story/2006417>`__ for details.
