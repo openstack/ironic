@@ -3,7 +3,7 @@ fixes:
   - |
     Provides an opt-in fix to change the default port attachment behavior
     for deployment and cleaning operations through a new configuration option,
-    ``[neutron]add_all_ports``. This option causes ironic to transmits all
+    ``[neutron]add_all_ports``. This option causes ironic to transmit all
     port information to neutron as opposed to only a single physical network
     port. This enables operators to successfully operate static Port Group
     configurations with Neutron ML2 drivers, where previously configuration
