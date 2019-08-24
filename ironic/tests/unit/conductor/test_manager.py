@@ -37,6 +37,7 @@ from ironic.common import boot_devices
 from ironic.common import driver_factory
 from ironic.common import exception
 from ironic.common import images
+from ironic.common import nova
 from ironic.common import states
 from ironic.common import swift
 from ironic.conductor import manager
@@ -6371,7 +6372,7 @@ class ManagerDoSyncPowerStateTestCase(db_base.DbTestCase):
         self.power = self.driver.power
         self.node = obj_utils.create_test_node(
             self.context, driver='fake-hardware', maintenance=False,
-            provision_state=states.AVAILABLE)
+            provision_state=states.AVAILABLE, instance_uuid=uuidutils.uuid)
         self.task = mock.Mock(spec_set=['context', 'driver', 'node',
                                         'upgrade_lock', 'shared'])
         self.task.context = self.context
@@ -6407,7 +6408,8 @@ class ManagerDoSyncPowerStateTestCase(db_base.DbTestCase):
         self.assertFalse(node_power_action.called)
         self.assertFalse(self.task.upgrade_lock.called)
 
-    def test_state_not_set(self, node_power_action):
+    @mock.patch.object(nova, 'power_update', autospec=True)
+    def test_state_not_set(self, mock_power_update, node_power_action):
         self._do_sync_power_state(None, states.POWER_ON)
 
         self.power.validate.assert_called_once_with(self.task)
@@ -6415,6 +6417,8 @@ class ManagerDoSyncPowerStateTestCase(db_base.DbTestCase):
         self.assertFalse(node_power_action.called)
         self.assertEqual(states.POWER_ON, self.node.power_state)
         self.task.upgrade_lock.assert_called_once_with()
+        mock_power_update.assert_called_once_with(
+            self.task.context, self.node.instance_uuid, states.POWER_ON)
 
     def test_validate_fail(self, node_power_action):
         self._do_sync_power_state(None, states.POWER_ON,
@@ -6445,7 +6449,8 @@ class ManagerDoSyncPowerStateTestCase(db_base.DbTestCase):
         self.assertEqual(1,
                          self.service.power_state_sync_count[self.node.uuid])
 
-    def test_state_changed_no_sync(self, node_power_action):
+    @mock.patch.object(nova, 'power_update', autospec=True)
+    def test_state_changed_no_sync(self, mock_power_update, node_power_action):
         self._do_sync_power_state(states.POWER_ON, states.POWER_OFF)
 
         self.assertFalse(self.power.validate.called)
@@ -6453,9 +6458,13 @@ class ManagerDoSyncPowerStateTestCase(db_base.DbTestCase):
         self.assertFalse(node_power_action.called)
         self.assertEqual(states.POWER_OFF, self.node.power_state)
         self.task.upgrade_lock.assert_called_once_with()
+        mock_power_update.assert_called_once_with(
+            self.task.context, self.node.instance_uuid, states.POWER_OFF)
 
     @mock.patch('ironic.objects.node.NodeCorrectedPowerStateNotification')
-    def test_state_changed_no_sync_notify(self, mock_notif, node_power_action):
+    @mock.patch.object(nova, 'power_update', autospec=True)
+    def test_state_changed_no_sync_notify(self, mock_power_update, mock_notif,
+                                          node_power_action):
         # Required for exception handling
         mock_notif.__name__ = 'NodeCorrectedPowerStateNotification'
 
@@ -6481,6 +6490,8 @@ class ManagerDoSyncPowerStateTestCase(db_base.DbTestCase):
             notif_args, 'ironic-conductor', CONF.host,
             'baremetal.node.power_state_corrected.success',
             obj_fields.NotificationLevel.INFO)
+        mock_power_update.assert_called_once_with(
+            self.task.context, self.node.instance_uuid, states.POWER_OFF)
 
     def test_state_changed_sync(self, node_power_action):
         self.config(force_power_state_during_sync=True, group='conductor')
@@ -6508,7 +6519,8 @@ class ManagerDoSyncPowerStateTestCase(db_base.DbTestCase):
         self.assertEqual(1,
                          self.service.power_state_sync_count[self.node.uuid])
 
-    def test_max_retries_exceeded(self, node_power_action):
+    @mock.patch.object(nova, 'power_update', autospec=True)
+    def test_max_retries_exceeded(self, mock_power_update, node_power_action):
         self.config(force_power_state_during_sync=True, group='conductor')
         self.config(power_state_sync_max_retries=1, group='conductor')
 
@@ -6526,8 +6538,11 @@ class ManagerDoSyncPowerStateTestCase(db_base.DbTestCase):
         self.assertTrue(self.node.maintenance)
         self.assertIsNotNone(self.node.maintenance_reason)
         self.assertEqual('power failure', self.node.fault)
+        mock_power_update.assert_called_once_with(
+            self.task.context, self.node.instance_uuid, states.POWER_OFF)
 
-    def test_max_retries_exceeded2(self, node_power_action):
+    @mock.patch.object(nova, 'power_update', autospec=True)
+    def test_max_retries_exceeded2(self, mock_power_update, node_power_action):
         self.config(force_power_state_during_sync=True, group='conductor')
         self.config(power_state_sync_max_retries=2, group='conductor')
 
@@ -6546,9 +6561,13 @@ class ManagerDoSyncPowerStateTestCase(db_base.DbTestCase):
                          self.service.power_state_sync_count[self.node.uuid])
         self.assertTrue(self.node.maintenance)
         self.assertEqual('power failure', self.node.fault)
+        mock_power_update.assert_called_once_with(
+            self.task.context, self.node.instance_uuid, states.POWER_OFF)
 
     @mock.patch('ironic.objects.node.NodeCorrectedPowerStateNotification')
-    def test_max_retries_exceeded_notify(self, mock_notif, node_power_action):
+    @mock.patch.object(nova, 'power_update', autospec=True)
+    def test_max_retries_exceeded_notify(self, mock_power_update,
+                                         mock_notif, node_power_action):
         self.config(force_power_state_during_sync=True, group='conductor')
         self.config(power_state_sync_max_retries=1, group='conductor')
         # Required for exception handling
@@ -6570,6 +6589,8 @@ class ManagerDoSyncPowerStateTestCase(db_base.DbTestCase):
             notif_args, 'ironic-conductor', CONF.host,
             'baremetal.node.power_state_corrected.success',
             obj_fields.NotificationLevel.INFO)
+        mock_power_update.assert_called_once_with(
+            self.task.context, self.node.instance_uuid, states.POWER_OFF)
 
     def test_retry_then_success(self, node_power_action):
         self.config(force_power_state_during_sync=True, group='conductor')
@@ -6993,8 +7014,10 @@ class ManagerPowerRecoveryTestCase(mgr_utils.CommonMixIn,
 
     @mock.patch.object(notification_utils,
                        'emit_power_state_corrected_notification')
-    def test_node_recovery_success(self, notify_mock, get_nodeinfo_mock,
-                                   mapped_mock, acquire_mock):
+    @mock.patch.object(nova, 'power_update', autospec=True)
+    def test_node_recovery_success(self, mock_power_update, notify_mock,
+                                   get_nodeinfo_mock, mapped_mock,
+                                   acquire_mock):
         self.node.power_state = states.POWER_ON
         get_nodeinfo_mock.return_value = self._get_nodeinfo_list_response()
         mapped_mock.return_value = True
@@ -7019,6 +7042,8 @@ class ManagerPowerRecoveryTestCase(mgr_utils.CommonMixIn,
         self.assertIsNone(self.node.maintenance_reason)
         self.assertEqual(states.POWER_OFF, self.node.power_state)
         notify_mock.assert_called_once_with(self.task, states.POWER_ON)
+        mock_power_update.assert_called_once_with(
+            self.task.context, self.node.instance_uuid, states.POWER_OFF)
 
     def test_node_recovery_failed(self, get_nodeinfo_mock,
                                   mapped_mock, acquire_mock):

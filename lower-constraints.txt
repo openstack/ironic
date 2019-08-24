@@ -4,6 +4,7 @@ Babel==2.3.4
 bandit==1.1.0
 bashate==0.5.1
 coverage==4.0
+ddt==1.0.1
 doc8==0.6.0
 eventlet==0.18.2
 fixtures==3.0.0
@@ -15,7 +16,7 @@ iso8601==0.1.11
 Jinja2==2.10
 jsonpatch==1.16
 jsonschema==2.6.0
-keystoneauth1==3.11.0
+keystoneauth1==3.15.0
 keystonemiddleware==4.17.0
 mock==3.0.0
 openstackdocstheme==1.20.0

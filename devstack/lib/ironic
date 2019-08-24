@@ -1333,6 +1333,9 @@ function configure_ironic {
     fi
     # NOTE(vsaienko) Add stack to libvirt group when installing without nova.
     if ! is_service_enabled nova; then
+        # Disable power state change callbacks to nova.
+        iniset $IRONIC_CONF_FILE nova send_power_notifications false
+
         add_user_to_group $STACK_USER $LIBVIRT_GROUP
 
         # This is the basic set of devices allowed / required by all virtual machines.
@@ -1412,7 +1415,7 @@ function configure_ironic_conductor {
 
     # NOTE(pas-ha) service_catalog section is used to discover
     # ironic API endpoint from keystone catalog
-    local client_sections="neutron swift glance inspector cinder service_catalog json_rpc"
+    local client_sections="neutron swift glance inspector cinder service_catalog json_rpc nova"
     for conf_section in $client_sections; do
         configure_client_for $conf_section
     done

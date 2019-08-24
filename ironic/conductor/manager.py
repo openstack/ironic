@@ -63,6 +63,7 @@ from ironic.common.glance_service import service_utils as glance_utils
 from ironic.common.i18n import _
 from ironic.common import images
 from ironic.common import network
+from ironic.common import nova
 from ironic.common import release_mappings as versions
 from ironic.common import states
 from ironic.common import swift
@@ -1832,6 +1833,9 @@ class ConductorManager(base_manager.BaseConductorManager):
                      "with actual power state '%(state)s'.",
                      {'node': node.uuid, 'state': actual_power_state})
             if old_power_state != actual_power_state:
+                if node.instance_uuid:
+                    nova.power_update(
+                        task.context, node.instance_uuid, node.power_state)
                 notify_utils.emit_power_state_corrected_notification(
                     task, old_power_state)
 
@@ -4017,6 +4021,9 @@ def handle_sync_power_state_max_retries_exceeded(task, actual_power_state,
     node.fault = faults.POWER_FAILURE
     node.save()
     if old_power_state != actual_power_state:
+        if node.instance_uuid:
+            nova.power_update(
+                task.context, node.instance_uuid, node.power_state)
         notify_utils.emit_power_state_corrected_notification(
             task, old_power_state)
     LOG.error(msg)
@@ -4096,6 +4103,9 @@ def do_sync_power_state(task, count):
                  {'node': node.uuid, 'state': power_state})
         node.power_state = power_state
         node.save()
+        if node.instance_uuid:
+            nova.power_update(
+                task.context, node.instance_uuid, node.power_state)
         notify_utils.emit_power_state_corrected_notification(
             task, None)
         return 0
@@ -4130,6 +4140,9 @@ def do_sync_power_state(task, count):
                      'state': node.power_state})
         node.power_state = power_state
         node.save()
+        if node.instance_uuid:
+            nova.power_update(
+                task.context, node.instance_uuid, node.power_state)
         notify_utils.emit_power_state_corrected_notification(
             task, old_power_state)
 

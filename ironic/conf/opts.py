@@ -55,6 +55,7 @@ _opts = [
     ('metrics', ironic.conf.metrics.opts),
     ('metrics_statsd', ironic.conf.metrics_statsd.opts),
     ('neutron', ironic.conf.neutron.list_opts()),
+    ('nova', ironic.conf.nova.list_opts()),
     ('pxe', ironic.conf.pxe.opts),
     ('service_catalog', ironic.conf.service_catalog.list_opts()),
     ('snmp', ironic.conf.snmp.opts),

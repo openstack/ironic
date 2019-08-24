@@ -1,0 +1,31 @@
+---
+features:
+  - |
+    Adds power state change callbacks of an instance to the Compute service by
+    performing API notifications. This is configurable through the
+    ``nova.send_power_notifications`` config option. Whenever there is a change
+    in the power state of a physical instance (for example a "power on" or
+    "power off" API command is issued or during the periodic power state
+    synchronization between nova and ironic) the Baremetal service will create
+    and send a ``power-update`` external event to the Compute service which will
+    cause the power state of the instance to be updated in its database. It
+    also adds the possibility of bringing up/down a physical instance through
+    the Baremetal service API even if it was put down/up through the Compute
+    service API.
+fixes:
+  - |
+    By immediately conveying all the power state changes (note that the
+    Baremetal service only sends requests to the Compute service if the target
+    power state is either "power on" or "power off") of an instance through
+    external events to the Compute service, the Baremetal service becomes the
+    source of truth thus preventing the Compute service from forcing wrong
+    power states on the instance during the periodic power state
+    synchronization between nova and ironic. An exception would be if a race
+    condition were to occur due to the nova-ironic power sync task happening
+    a nano-second before the power state change event is received from the
+    Baremetal service in which case the nova instance state will be forced
+    on the baremetal node.
+upgrade:
+  - |
+    In order to support power state change call backs to nova, the ``[nova]``
+    section must be configured in the baremetal service configuration.
