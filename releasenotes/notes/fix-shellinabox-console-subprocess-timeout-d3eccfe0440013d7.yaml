@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    Fixed the `issue <https://storyboard.openstack.org/#!/story/2006429>`_
+    with node being locked for longer than ``[console]subprocess_timeout``
+    seconds when shellinabox process fails to start before the specifed timeout
+    elapses.
