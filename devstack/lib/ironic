@@ -1890,8 +1890,8 @@ function wait_for_nova_resources {
 
     local i
     local count
-    echo_summary "Waiting 2 minutes for Nova resource tracker to pick up $expected_count nodes"
-    for i in $(seq 1 120); do
+    echo_summary "Waiting up to 3 minutes for placement to pick up $expected_count nodes"
+    for i in $(seq 1 12); do
         # Fetch provider UUIDs from Placement
         local providers
         providers=$(curl -sH "X-Auth-Token: $token" $endpoint/resource_providers \
@@ -1932,7 +1932,7 @@ function wait_for_nova_resources {
         if is_service_enabled n-api; then
             $TOP_DIR/tools/discover_hosts.sh
         fi
-        sleep 1
+        sleep 15
     done
     die $LINENO "Timed out waiting for Nova to track $expected_count nodes"
 }
