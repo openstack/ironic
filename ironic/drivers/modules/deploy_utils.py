@@ -867,8 +867,29 @@ def get_boot_option(node):
     :returns: A string representing the boot option type. Defaults to
         'netboot'.
     """
+
+    # NOTE(TheJulia): Software raid always implies local deployment
+    if is_software_raid(node):
+        return 'local'
     capabilities = utils.parse_instance_info_capabilities(node)
     return capabilities.get('boot_option', get_default_boot_option()).lower()
+
+
+def is_software_raid(node):
+    """Determine if software raid is in use for the deployment.
+
+    :param node: A single Node.
+    :returns: A boolean value of True when software raid is in use,
+              otherwise False
+    """
+    target_raid_config = node.target_raid_config
+    logical_disks = target_raid_config.get('logical_disks', [])
+    software_raid = False
+    for logical_disk in logical_disks:
+        if logical_disk.get('controller') == 'software':
+            software_raid = True
+            break
+    return software_raid
 
 
 def build_agent_options(node):
