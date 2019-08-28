@@ -17,6 +17,7 @@ iLO Management Interface
 
 from ironic_lib import metrics_utils
 from oslo_log import log as logging
+from oslo_service import loopingcall
 from oslo_utils import excutils
 from oslo_utils import importutils
 import six
@@ -25,7 +26,9 @@ import six.moves.urllib.parse as urlparse
 from ironic.common import boot_devices
 from ironic.common import exception
 from ironic.common.i18n import _
+from ironic.common import states
 from ironic.conductor import task_manager
+from ironic.conductor import utils as manager_utils
 from ironic.conf import CONF
 from ironic.drivers import base
 from ironic.drivers.modules import agent_base_vendor
@@ -614,3 +617,163 @@ class IloManagement(base.ManagementInterface):
         except ilo_error.IloError as ilo_exception:
             raise exception.IloOperationError(operation=operation,
                                               error=ilo_exception)
+
+
+class Ilo5Management(IloManagement):
+
+    def _set_driver_internal_value(self, task, value, *keys):
+        driver_internal_info = task.node.driver_internal_info
+        for key in keys:
+            driver_internal_info[key] = value
+        task.node.driver_internal_info = driver_internal_info
+        task.node.save()
+
+    def _pop_driver_internal_values(self, task, *keys):
+        driver_internal_info = task.node.driver_internal_info
+        for key in keys:
+            driver_internal_info.pop(key, None)
+        task.node.driver_internal_info = driver_internal_info
+        task.node.save()
+
+    def _set_clean_failed(self, task, msg):
+        LOG.error("Out-of-band sanitize disk erase job failed for node "
+                  "%(node)s. Message: '%(message)s'.",
+                  {'node': task.node.uuid, 'message': msg})
+        task.node.last_error = msg
+        task.process_event('fail')
+
+    def _wait_for_disk_erase_status(self, node):
+        """Wait for out-of-band sanitize disk erase to be completed."""
+        interval = CONF.ilo.oob_erase_devices_job_status_interval
+        ilo_object = ilo_common.get_ilo_object(node)
+        time_elps = [0]
+
+        # This will loop indefinitely till disk erase is complete
+        def _wait():
+            if ilo_object.has_disk_erase_completed():
+                raise loopingcall.LoopingCallDone()
+
+            time_elps[0] += interval
+            LOG.debug("%(tim)s secs elapsed while waiting for out-of-band "
+                      "sanitize disk erase to complete for node %(node)s.",
+                      {'tim': time_elps[0], 'node': node.uuid})
+
+        # Start a timer and wait for the operation to complete.
+        timer = loopingcall.FixedIntervalLoopingCall(_wait)
+        timer.start(interval=interval).wait()
+        return True
+
+    def _validate_erase_pattern(self, erase_pattern, node):
+        invalid = False
+        if isinstance(erase_pattern, dict):
+            for device_type, pattern in erase_pattern.items():
+                if device_type == 'hdd' and pattern in (
+                        'overwrite', 'crypto', 'zero'):
+                        continue
+                elif device_type == 'ssd' and pattern in (
+                        'block', 'crypto', 'zero'):
+                        continue
+                else:
+                    invalid = True
+                    break
+        else:
+            invalid = True
+
+        if invalid:
+            msg = (_("Erase pattern '%(value)s' is invalid. Clean step "
+                     "'erase_devices' is not executed for %(node)s. Supported "
+                     "patterns are, for "
+                     "'hdd': ('overwrite', 'crypto', 'zero') and for "
+                     "'ssd': ('block', 'crypto', 'zero'). "
+                     "Ex. {'hdd': 'overwrite', 'ssd': 'block'}")
+                   % {'value': erase_pattern, 'node': node.uuid})
+            LOG.error(msg)
+            raise exception.InvalidParameterValue(msg)
+
+    @METRICS.timer('Ilo5Management.erase_devices')
+    @base.clean_step(priority=0, abortable=False, argsinfo={
+        'erase_pattern': {
+            'description': (
+                'Dictionary of disk type and corresponding erase pattern '
+                'to be used to perform specific out-of-band sanitize disk '
+                'erase. Supported values are, '
+                'for "hdd": ("overwrite", "crypto", "zero"), '
+                'for "ssd": ("block", "crypto", "zero"). Default pattern is: '
+                '{"hdd": "overwrite", "ssd": "block"}.'
+            ),
+            'required': False
+        }
+    })
+    def erase_devices(self, task, **kwargs):
+        """Erase all the drives on the node.
+
+        This method performs out-of-band sanitize disk erase on all the
+        supported physical drives in the node. This erase cannot be performed
+        on logical drives.
+
+        :param task: a TaskManager instance.
+        :raises: InvalidParameterValue, if any of the arguments are invalid.
+        :raises: IloError on an error from iLO.
+        """
+        erase_pattern = kwargs.get('erase_pattern',
+                                   {'hdd': 'overwrite', 'ssd': 'block'})
+        node = task.node
+        self._validate_erase_pattern(erase_pattern, node)
+        driver_internal_info = node.driver_internal_info
+        LOG.debug("Calling out-of-band sanitize disk erase for node %(node)s",
+                  {'node': node.uuid})
+        try:
+            ilo_object = ilo_common.get_ilo_object(node)
+            disk_types = ilo_object.get_available_disk_types()
+            LOG.info("Disk type detected are: %(disk_types)s. Sanitize disk "
+                     "erase are now exercised for one after another disk type "
+                     "for node %(node)s.",
+                     {'disk_types': disk_types, 'node': node.uuid})
+
+            if disk_types:
+                # First disk-erase will execute for HDD's and after reboot only
+                # try for SSD, since both share same redfish api and would be
+                # overwritten.
+                if not driver_internal_info.get(
+                        'ilo_disk_erase_hdd_check') and ('HDD' in disk_types):
+                    ilo_object.do_disk_erase('HDD', erase_pattern.get('hdd'))
+                    self._set_driver_internal_value(
+                        task, True, 'cleaning_reboot',
+                        'ilo_disk_erase_hdd_check')
+                    self._set_driver_internal_value(
+                        task, False, 'skip_current_clean_step')
+                    deploy_opts = deploy_utils.build_agent_options(task.node)
+                    task.driver.boot.prepare_ramdisk(task, deploy_opts)
+                    manager_utils.node_power_action(task, states.REBOOT)
+                    return states.CLEANWAIT
+
+                if not driver_internal_info.get(
+                        'ilo_disk_erase_ssd_check') and ('SSD' in disk_types):
+                    ilo_object.do_disk_erase('SSD', erase_pattern.get('ssd'))
+                    self._set_driver_internal_value(
+                        task, True, 'ilo_disk_erase_hdd_check',
+                        'ilo_disk_erase_ssd_check', 'cleaning_reboot')
+                    self._set_driver_internal_value(
+                        task, False, 'skip_current_clean_step')
+                    deploy_opts = deploy_utils.build_agent_options(task.node)
+                    task.driver.boot.prepare_ramdisk(task, deploy_opts)
+                    manager_utils.node_power_action(task, states.REBOOT)
+                    return states.CLEANWAIT
+
+                # It will wait until disk erase will complete
+                if self._wait_for_disk_erase_status(task.node):
+                    LOG.info("For node %(uuid)s erase_devices clean "
+                             "step is done.", {'uuid': task.node.uuid})
+                    self._pop_driver_internal_values(
+                        task, 'ilo_disk_erase_hdd_check',
+                        'ilo_disk_erase_ssd_check')
+            else:
+                LOG.info("No drive found to perform out-of-band sanitize "
+                         "disk erase for node %(node)s", {'node': node.uuid})
+        except ilo_error.IloError as ilo_exception:
+            self._pop_driver_internal_values(task,
+                                             'ilo_disk_erase_hdd_check',
+                                             'ilo_disk_erase_ssd_check',
+                                             'cleaning_reboot',
+                                             'skip_current_clean_step')
+            self._set_clean_failed(task, ilo_exception)

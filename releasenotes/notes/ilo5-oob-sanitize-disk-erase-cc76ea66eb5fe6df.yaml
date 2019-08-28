@@ -1,0 +1,12 @@
+---
+features:
+  - Adds functionality to perform out-of-band sanitize disk-erase operation for
+    iLO5 based HPE Proliant servers. Management interface ``ilo5`` has been
+    added to ``ilo5`` hardware type. A clean step ``erase_devices`` has been
+    added to management interface ``ilo5`` to support this operation.
+upgrade:
+  - The ``do_disk_erase``, ``has_disk_erase_completed`` and
+    ``get_available_disk_types`` interfaces of 'proliantutils' library has been
+    enhanced to support out-of-band sanitize disk-erase operation for ``ilo5``
+    hardware type. To leverage this feature, the 'proliantutils' library needs
+    to be upgraded to version '2.9.0'.
