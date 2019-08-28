@@ -134,8 +134,7 @@ class RedfishBIOS(base.BIOSInterface):
 
             self.post_reset(task)
             self._set_reboot(task)
-            return (states.CLEANWAIT if
-                    task.node.clean_step else states.DEPLOYWAIT)
+            return deploy_utils.get_async_step_return_state(task.node)
         else:
             current_attrs = bios.attributes
             LOG.debug('Post factory reset, BIOS configuration for node '
@@ -187,8 +186,7 @@ class RedfishBIOS(base.BIOSInterface):
 
             self.post_configuration(task, settings)
             self._set_reboot_requested(task, attributes)
-            return (states.CLEANWAIT if
-                    task.node.clean_step else states.DEPLOYWAIT)
+            return deploy_utils.get_async_step_return_state(task.node)
         else:
             # Step 2: Verify requested BIOS settings applied
             requested_attrs = info.get('requested_bios_attrs')
@@ -284,13 +282,10 @@ class RedfishBIOS(base.BIOSInterface):
         """
         info = task.node.driver_internal_info
         info['post_factory_reset_reboot_requested'] = True
-        cleaning = ['cleaning_reboot', 'skip_current_clean_step']
-        deployment = ['deployment_reboot', 'skip_current_deploy_step']
-        field_name = cleaning if task.node.clean_step else deployment
-        info[field_name[0]] = True
-        info[field_name[1]] = False
         task.node.driver_internal_info = info
         task.node.save()
+        deploy_utils.set_async_step_flags(task.node, reboot=True,
+                                          skip_current_step=False)
 
     def _set_reboot_requested(self, task, attributes):
         """Set driver_internal_info flags for reboot requested.
@@ -301,13 +296,10 @@ class RedfishBIOS(base.BIOSInterface):
         info = task.node.driver_internal_info
         info['post_config_reboot_requested'] = True
         info['requested_bios_attrs'] = attributes
-        cleaning = ['cleaning_reboot', 'skip_current_clean_step']
-        deployment = ['deployment_reboot', 'skip_current_deploy_step']
-        field_name = cleaning if task.node.clean_step else deployment
-        info[field_name[0]] = True
-        info[field_name[1]] = False
         task.node.driver_internal_info = info
         task.node.save()
+        deploy_utils.set_async_step_flags(task.node, reboot=True,
+                                          skip_current_step=False)
 
     def _clear_reboot_requested(self, task):
         """Clear driver_internal_info flags after reboot completed.

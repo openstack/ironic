@@ -1456,3 +1456,41 @@ get_boot_mode_for_deploy = boot_mode_utils.get_boot_mode_for_deploy
 parse_instance_info_capabilities = (
     utils.parse_instance_info_capabilities
 )
+
+
+def get_async_step_return_state(node):
+    """Returns state based on operation (cleaning/deployment) being invoked
+
+    :param node: an ironic node object.
+    :returns: states.CLEANWAIT if cleaning operation in progress
+              or states.DEPLOYWAIT if deploy operation in progress.
+    """
+    return states.CLEANWAIT if node.clean_step else states.DEPLOYWAIT
+
+
+def set_async_step_flags(node, reboot=None, skip_current_step=None):
+    """Sets appropriate reboot flags in driver_internal_info based on operation
+
+    :param node: an ironic node object.
+    :param reboot: Boolean value to set for node's driver_internal_info flag
+        cleaning_reboot or deployment_reboot based on cleaning or deployment
+        operation in progress. If it is None, corresponding reboot flag is
+        not set in node's driver_internal_info.
+    :param skip_current_step: Boolean value to set for node's
+        driver_internal_info flag skip_current_clean_step or
+        skip_current_deploy_step based on cleaning or deployment operation
+        in progress. If it is None, corresponding skip step flag is not set
+        in node's driver_internal_info.
+    """
+    info = node.driver_internal_info
+    cleaning = {'reboot': 'cleaning_reboot',
+                'skip': 'skip_current_clean_step'}
+    deployment = {'reboot': 'deployment_reboot',
+                  'skip': 'skip_current_deploy_step'}
+    fields = cleaning if node.clean_step else deployment
+    if reboot is not None:
+        info[fields['reboot']] = reboot
+    if skip_current_step is not None:
+        info[fields['skip']] = skip_current_step
+    node.driver_internal_info = info
+    node.save()
