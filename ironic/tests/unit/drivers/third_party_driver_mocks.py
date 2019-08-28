@@ -95,6 +95,10 @@ if not dracclient:
         true=mock.sentinel.true,
         optional=mock.sentinel.optional,
         false=mock.sentinel.false)
+    dracclient.constants.RaidStatus = mock.MagicMock(
+        spec_set=mock_specs.DRACCLIENT_CONSTANTS_RAID_STATUS_MOD_SPEC,
+        jbod=mock.sentinel.jbod,
+        raid=mock.sentinel.raid)
 
     sys.modules['dracclient'] = dracclient
     sys.modules['dracclient.client'] = dracclient.client

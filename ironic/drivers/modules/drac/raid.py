@@ -15,6 +15,7 @@
 DRAC RAID specific methods
 """
 
+from collections import defaultdict
 import math
 
 from futurist import periodics
@@ -309,6 +310,43 @@ def clear_foreign_config(node, raid_controller):
         raise exception.DracOperationError(error=exc)
 
 
+def change_physical_disk_state(node, mode=None,
+                               controllers_to_physical_disk_ids=None):
+    """Convert disks RAID status
+
+    This method converts the requested physical disks from
+    RAID to JBOD or vice versa.  It does this by only converting the
+    disks that are not already in the correct state.
+
+    :param node: an ironic node object.
+    :param mode: the mode to change the disks either to RAID or JBOD.
+    :param controllers_to_physical_disk_ids: Dictionary of controllers and
+           corresponding disk ids to convert to the requested mode.
+    :return: a dictionary containing:
+             - conversion_results, a dictionary that maps controller ids
+             to the conversion results for that controller.
+             The conversion results are a dict that contains:
+             - The is_commit_required key with the value always set to
+             True indicating that a config job must be created to
+             complete disk conversion.
+             - The is_reboot_required key with a RebootRequired
+             enumerated value indicating whether the server must be
+             rebooted to complete disk conversion.
+    :raises: DRACOperationError on an error from python-dracclient.
+    """
+    try:
+        drac_job.validate_job_queue(node)
+        client = drac_common.get_drac_client(node)
+        return client.change_physical_disk_state(
+            mode, controllers_to_physical_disk_ids)
+    except drac_exceptions.BaseClientException as exc:
+        LOG.error('DRAC driver failed to change physical drives '
+                  'to %(mode)s mode for node %(node_uuid)s. '
+                  'Reason: %(error)s.',
+                  {'mode': mode, 'node_uuid': node.uuid, 'error': exc})
+        raise exception.DracOperationError(error=exc)
+
+
 def commit_config(node, raid_controller, reboot=False, realtime=False):
     """Apply all pending changes on a RAID controller.
 
@@ -336,6 +374,33 @@ def commit_config(node, raid_controller, reboot=False, realtime=False):
                    'node_uuid': node.uuid,
                    'error': exc})
         raise exception.DracOperationError(error=exc)
+
+
+def _change_physical_disk_mode(node, mode=None,
+                               controllers_to_physical_disk_ids=None):
+    """Physical drives conversion from RAID to JBOD or vice-versa.
+
+    :param node: an ironic node object.
+    :param mode: the mode to change the disks either to RAID or JBOD.
+    :param controllers_to_physical_disk_ids: Dictionary of controllers and
+           corresponding disk ids to convert to the requested mode.
+    :returns: states.CLEANWAIT if deletion is in progress asynchronously
+              or None if it is completed.
+    """
+    change_disk_state = change_physical_disk_state(
+        node, mode, controllers_to_physical_disk_ids)
+
+    controllers = list()
+    conversion_results = change_disk_state['conversion_results']
+    for controller_id, result in conversion_results.items():
+        controller = {'raid_controller': controller_id,
+                      'is_reboot_required': result['is_reboot_required'],
+                      'is_commit_required': result['is_commit_required']}
+        controllers.append(controller)
+
+    return _commit_to_controllers(
+        node,
+        controllers, substep='completed')
 
 
 def abandon_config(node, raid_controller):
@@ -833,18 +898,18 @@ def _commit_to_controllers(node, controllers, substep="completed"):
     else:
         for controller in controllers:
             mix_controller = controller['raid_controller']
-            reboot = True if controller == controllers[-1] else False
+            reboot = (controller == controllers[-1])
             job_details = _create_config_job(
                 node, controller=mix_controller,
                 reboot=reboot, realtime=False,
                 raid_config_job_ids=raid_config_job_ids,
                 raid_config_parameters=raid_config_parameters)
 
-    driver_internal_info['raid_config_job_ids'] = job_details[
-        'raid_config_job_ids']
+    driver_internal_info['raid_config_job_ids'].extend(job_details[
+        'raid_config_job_ids'])
 
-    driver_internal_info['raid_config_parameters'] = job_details[
-        'raid_config_parameters']
+    driver_internal_info['raid_config_parameters'].extend(job_details[
+        'raid_config_parameters'])
 
     node.driver_internal_info = driver_internal_info
 
@@ -940,6 +1005,7 @@ class DracWSManRAID(base.RAIDInterface):
         node = task.node
 
         logical_disks = node.target_raid_config['logical_disks']
+
         for disk in logical_disks:
             if disk['size_gb'] == 'MAX' and 'physical_disks' not in disk:
                 raise exception.InvalidParameterValue(
@@ -969,6 +1035,36 @@ class DracWSManRAID(base.RAIDInterface):
         logical_disks_to_create = _filter_logical_disks(
             logical_disks, create_root_volume, create_nonroot_volumes)
 
+        controllers_to_physical_disk_ids = defaultdict(list)
+        for logical_disk in logical_disks_to_create:
+            # Not applicable to JBOD logical disks.
+            if logical_disk['raid_level'] == 'JBOD':
+                continue
+
+            for physical_disk_name in logical_disk['physical_disks']:
+                controllers_to_physical_disk_ids[
+                    logical_disk['controller']].append(
+                    physical_disk_name)
+
+        if logical_disks_to_create:
+            LOG.debug(
+                "Converting physical disks configured to back RAID "
+                "logical disks to RAID mode for node %(node_uuid)s ",
+                {"node_uuid": node.uuid})
+            raid = drac_constants.RaidStatus.raid
+            _change_physical_disk_mode(
+                node, raid, controllers_to_physical_disk_ids)
+
+            LOG.debug("Waiting for physical disk conversion to complete "
+                      "for node %(node_uuid)s. ", {"node_uuid": node.uuid})
+            drac_job.wait_for_job_completion(node)
+
+            LOG.info(
+                "Completed converting physical disks configured to back RAID "
+                "logical disks to RAID mode for node %(node_uuid)s",
+                {'node_uuid': node.uuid})
+
+        controllers = list()
         for logical_disk in logical_disks_to_create:
             controller = dict()
             controller_cap = create_virtual_disk(

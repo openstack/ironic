@@ -1,0 +1,5 @@
+---
+features:
+  - |
+    Hardware type ``idrac`` converts physical drives from
+    ``JBOD`` to ``RAID`` mode before building RAID on them.
