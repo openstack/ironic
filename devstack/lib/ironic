@@ -2619,9 +2619,17 @@ function upload_baremetal_ironic_deploy {
                     die $LINENO "Deploy kernel+ramdisk or iso files don't exist and cannot be built in OFFLINE mode"
                 fi
             else
-                # download the agent image tarball
-                wget "$IRONIC_AGENT_KERNEL_URL" -O $IRONIC_DEPLOY_KERNEL
-                wget "$IRONIC_AGENT_RAMDISK_URL" -O $IRONIC_DEPLOY_RAMDISK
+                # Grab the agent image tarball, either from a local file or remote URL
+                if [[ "$IRONIC_AGENT_KERNEL_URL" =~ "file://" ]]; then
+                    cp ${IRONIC_AGENT_KERNEL_URL:7} $IRONIC_DEPLOY_KERNEL
+                else
+                    wget "$IRONIC_AGENT_KERNEL_URL" -O $IRONIC_DEPLOY_KERNEL
+                fi
+                if [[ "$IRONIC_AGENT_RAMDISK_URL" =~ "file://" ]]; then
+                    cp ${IRONIC_AGENT_RAMDISK_URL:7} $IRONIC_DEPLOY_RAMDISK
+                else
+                    wget "$IRONIC_AGENT_RAMDISK_URL" -O $IRONIC_DEPLOY_RAMDISK
+                fi
                 if is_ansible_with_tinyipa; then
                     # NOTE(pas-ha) if using ansible-deploy and tinyipa,
                     # this will rebuild ramdisk and override $IRONIC_DEPLOY_RAMDISK
