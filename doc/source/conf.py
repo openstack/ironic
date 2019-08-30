@@ -11,6 +11,9 @@
 #  License for the specific language governing permissions and limitations
 #  under the License.
 
+import os
+import sys
+
 import eventlet
 
 # NOTE(dims): monkey patch subprocess to prevent failures in latest eventlet
@@ -21,6 +24,11 @@ except TypeError:
     pass
 
 # -- General configuration ----------------------------------------------------
+
+# If extensions (or modules to document with autodoc) are in another directory,
+# add these directories to sys.path here. If the directory is relative to the
+# documentation root, use os.path.abspath to make it absolute, like shown here.
+sys.path.insert(0, os.path.join(os.path.abspath('.'), '_exts'))
 
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom ones.
@@ -34,6 +42,7 @@ extensions = ['sphinx.ext.viewcode',
               'oslo_config.sphinxconfiggen',
               'oslo_policy.sphinxext',
               'oslo_policy.sphinxpolicygen',
+              'automated_steps',
               ]
 
 try:
