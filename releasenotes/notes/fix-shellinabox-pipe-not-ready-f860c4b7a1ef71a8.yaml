@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    Fixes a possible
+    `console lockup issue <https://storyboard.openstack.org/#!/story/2006514>`_
+    in case of PID file not being yet created while daemon start has call
+    already returned success return code.
