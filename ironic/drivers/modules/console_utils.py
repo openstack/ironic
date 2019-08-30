@@ -20,6 +20,7 @@ Ironic console utilities.
 """
 
 import errno
+import fcntl
 import os
 import signal
 import subprocess
@@ -159,6 +160,41 @@ def get_shellinabox_console_url(port):
                                                'port': port}
 
 
+class _PopenNonblockingPipe(object):
+    def __init__(self, source):
+        self._source = source
+        self._output = b''
+        self._wait = False
+        self._finished = False
+        self._set_async()
+
+    def _set_async(self):
+        flags = fcntl.fcntl(self._source, fcntl.F_GETFL)
+        fcntl.fcntl(self._source, fcntl.F_SETFL, flags | os.O_NONBLOCK)
+
+    def read(self, num_bytes=4096):
+        if self._finished:
+            return
+        try:
+            if self._wait:
+                time.sleep(1)
+                self._wait = False
+            data = os.read(self._source.fileno(), num_bytes)
+            self._output += data
+            if len(data) < num_bytes:
+                self._wait = True
+        except OSError:
+            self._finished = True
+
+    @property
+    def output(self):
+        return self._output
+
+    @property
+    def finished(self):
+        return self._finished
+
+
 def start_shellinabox_console(node_uuid, port, console_cmd):
     """Open the serial console for a node.
 
@@ -215,6 +251,9 @@ def start_shellinabox_console(node_uuid, port, console_cmd):
             'node': node_uuid,
             'command': ' '.join(args)}
 
+    stdout_pipe, stderr_pipe = (
+        _PopenNonblockingPipe(obj.stdout), _PopenNonblockingPipe(obj.stderr))
+
     def _wait(node_uuid, popen_obj):
         locals['returncode'] = popen_obj.poll()
 
@@ -226,14 +265,16 @@ def start_shellinabox_console(node_uuid, port, console_cmd):
             raise loopingcall.LoopingCallDone()
 
         if locals['returncode'] is not None:
-            (stdout, stderr) = popen_obj.communicate()
+            watched = (stdout_pipe, stderr_pipe)
+            while time.time() < expiration and not all(
+                    (i.finished for i in watched)):
+                for pipe in watched:
+                    pipe.read()
             locals['errstr'] = error_message + _(
-                "Exit code: %(return_code)s.\n"
-                "Stdout: %(stdout)r\n"
+                "Exit code: %(return_code)s.\nStdout: %(stdout)r\n"
                 "Stderr: %(stderr)r") % {
                     'return_code': locals['returncode'],
-                    'stdout': stdout,
-                    'stderr': stderr}
+                    'stdout': stdout_pipe.output, 'stderr': stderr_pipe.output}
             raise loopingcall.LoopingCallDone()
 
         if time.time() > expiration:
