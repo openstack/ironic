@@ -540,8 +540,9 @@ class TestPXEUtils(db_base.DbTestCase):
         # TODO(TheJulia): We should... like... fix the template to
         # enable mac address usage.....
         grub_tmplte = "ironic/drivers/modules/pxe_grub_config.template"
-        link_ip_configs_mock.side_efect = exception.FailedToGetIPAddressOnPort(
-            port_id='blah')
+        self.config(dhcp_provider='none', group='dhcp')
+        link_ip_configs_mock.side_effect = \
+            exception.FailedToGetIPAddressOnPort(port_id='blah')
         with task_manager.acquire(self.context, self.node.uuid) as task:
             task.node.properties['capabilities'] = 'boot_mode:uefi'
             pxe_utils.create_pxe_config(task, self.pxe_options,
