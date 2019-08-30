@@ -645,6 +645,15 @@ class PhysicalWorkTestCase(tests_base.TestCase):
                           utils.verify_iscsi_connection, iqn)
         self.assertEqual(3, mock_exec.call_count)
 
+    @mock.patch.object(common_utils, 'execute', autospec=True)
+    def test_verify_iscsi_connection_override_attempts(self, mock_exec):
+        utils.CONF.set_override('verify_attempts', 2, group='iscsi')
+        iqn = 'iqn.xyz'
+        mock_exec.return_value = ['iqn.abc', '']
+        self.assertRaises(exception.InstanceDeployFailure,
+                          utils.verify_iscsi_connection, iqn)
+        self.assertEqual(2, mock_exec.call_count)
+
     @mock.patch.object(os.path, 'exists', autospec=True)
     def test_check_file_system_for_iscsi_device_raises(self, mock_os):
         iqn = 'iqn.xyz'

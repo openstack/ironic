@@ -27,7 +27,15 @@ opts = [
                help=_('Flags that need to be sent to the dd command, '
                       'to control the conversion of the original file '
                       'when copying to the host. It can contain several '
-                      'options separated by commas.'))
+                      'options separated by commas.')),
+    # TODO(dtantsur): update in Ussuri when the deprecated option is removed
+    # from ironic-lib.
+    cfg.IntOpt('verify_attempts',
+               min=1,
+               help=_('Maximum attempts to verify an iSCSI connection is '
+                      'active, sleeping 1 second between attempts. Defaults '
+                      'to the deprecated [disk_utils]iscsi_verify_attempts '
+                      'option, after its removal will default to 3.')),
 ]
 
 

@@ -88,6 +88,15 @@ def _get_ironic_session():
     return _IRONIC_SESSION
 
 
+# TODO(dtantsur): just use CONF.iscsi.verify_attempts when
+# iscsi_verify_attempts is removed from ironic-lib.
+def _iscsi_verify_attempts():
+    # Be prepared for eventual removal, hardcode the default of 3
+    return (getattr(CONF.disk_utils, 'iscsi_verify_attempts', 3)
+            if CONF.iscsi.verify_attempts is None
+            else CONF.iscsi.verify_attempts)
+
+
 def _wrap_ipv6(ip):
     if netutils.is_valid_ipv6(ip):
         return "[%s]" % ip
@@ -185,7 +194,7 @@ def check_file_system_for_iscsi_device(portal_address,
     check_dir = "/dev/disk/by-path/ip-%s:%s-iscsi-%s-lun-1" % (portal_address,
                                                                portal_port,
                                                                target_iqn)
-    total_checks = CONF.disk_utils.iscsi_verify_attempts
+    total_checks = _iscsi_verify_attempts()
     for attempt in range(total_checks):
         if os.path.exists(check_dir):
             break
@@ -209,7 +218,8 @@ def verify_iscsi_connection(target_iqn):
     """Verify iscsi connection."""
     LOG.debug("Checking for iSCSI target to become active.")
 
-    for attempt in range(CONF.disk_utils.iscsi_verify_attempts):
+    total_checks = _iscsi_verify_attempts()
+    for attempt in range(total_checks):
         out, _err = utils.execute('iscsiadm',
                                   '-m', 'node',
                                   '-S',
@@ -220,11 +230,10 @@ def verify_iscsi_connection(target_iqn):
         time.sleep(1)
         LOG.debug("iSCSI connection not active. Rechecking. Attempt "
                   "%(attempt)d out of %(total)d",
-                  {"attempt": attempt + 1,
-                   "total": CONF.disk_utils.iscsi_verify_attempts})
+                  {"attempt": attempt + 1, "total": total_checks})
     else:
         msg = _("iSCSI connection did not become active after attempting to "
-                "verify %d times.") % CONF.disk_utils.iscsi_verify_attempts
+                "verify %d times.") % total_checks
         LOG.error(msg)
         raise exception.InstanceDeployFailure(msg)
 
