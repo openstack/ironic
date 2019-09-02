@@ -36,6 +36,13 @@ ilo_error = importutils.try_import('proliantutils.exception')
 
 class IloBIOS(base.BIOSInterface):
 
+    _APPLY_CONFIGURATION_ARGSINFO = {
+        'settings': {
+            'description': 'Dictionary with current BIOS configuration.',
+            'required': True
+        }
+    }
+
     def get_properties(self):
         return ilo_common.REQUIRED_PROPERTIES
 
@@ -56,21 +63,25 @@ class IloBIOS(base.BIOSInterface):
     def _execute_pre_boot_bios_step(self, task, step, data=None):
         """Perform operations required prior to the reboot.
 
-        Depending on the clean step, it executes the operations required
-        and moves the node to CLEANWAIT state prior to reboot.
+        Depending on the step, it executes the operations required
+        and moves the node to CLEANWAIT or DEPLOYWAIT state prior to reboot
+        based on the operation being performed.
         :param task: a task from TaskManager.
         :param step: name of the clean step to be performed
         :param data: if the clean step is apply_configuration it holds
                      the settings data.
-        :raises: NodeCleaningFailure if it fails any conditions expected
+        :raises: NodeCleaningFailure, on failure to execute of clean step.
+        :raises: InstanceDeployFailure, on failure to execute of deploy step.
         """
         node = task.node
 
         if step not in ('apply_configuration', 'factory_reset'):
-            errmsg = _('Could not find the step %(step)s for the '
-                       'node %(node)s.')
-            raise exception.NodeCleaningFailure(
-                errmsg % {'step': step, 'node': node.uuid})
+            errmsg = (_('Could not find the step %(step)s for the '
+                        'node %(node)s.')
+                      % {'step': step, 'node': node.uuid})
+            if node.clean_step:
+                raise exception.NodeCleaningFailure(errmsg)
+            raise exception.InstanceDeployFailure(reason=errmsg)
 
         try:
             ilo_object = ilo_common.get_ilo_object(node)
@@ -80,20 +91,20 @@ class IloBIOS(base.BIOSInterface):
                 exception.InvalidParameterValue,
                 ilo_error.IloError,
                 ilo_error.IloCommandNotSupportedError) as ir_exception:
-            errmsg = _('Clean step %(step)s failed '
-                       'on the node %(node)s with error: %(err)s')
-            raise exception.NodeCleaningFailure(
-                errmsg % {'step': step, 'node': node.uuid,
-                          'err': ir_exception})
+            errmsg = (_('Step %(step)s failed '
+                        'on the node %(node)s with error: %(err)s')
+                      % {'step': step, 'node': node.uuid, 'err': ir_exception})
+            if node.clean_step:
+                raise exception.NodeCleaningFailure(errmsg)
+            raise exception.InstanceDeployFailure(reason=errmsg)
 
         deploy_opts = deploy_utils.build_agent_options(node)
         task.driver.boot.prepare_ramdisk(task, deploy_opts)
         manager_utils.node_power_action(task, states.REBOOT)
 
+        deploy_utils.set_async_step_flags(node, reboot=True,
+                                          skip_current_step=False)
         driver_internal_info = node.driver_internal_info
-        driver_internal_info['cleaning_reboot'] = True
-        driver_internal_info['skip_current_clean_step'] = False
-
         if step == 'apply_configuration':
             driver_internal_info['apply_bios'] = True
         else:
@@ -101,7 +112,7 @@ class IloBIOS(base.BIOSInterface):
 
         node.driver_internal_info = driver_internal_info
         node.save()
-        return states.CLEANWAIT
+        return deploy_utils.get_async_step_return_state(node)
 
     def _execute_post_boot_bios_step(self, task, step):
         """Perform operations required after the reboot.
@@ -110,7 +121,8 @@ class IloBIOS(base.BIOSInterface):
         with the clean step post reboot.
         :param task: a task from TaskManager.
         :param step: name of the clean step to be performed
-        :raises: NodeCleaningFailure if it fails any conditions expected
+        :raises: NodeCleaningFailure, on failure to execute of clean step.
+        :raises: InstanceDeployFailure, on failure to execute of deploy step.
         """
         node = task.node
 
@@ -121,10 +133,12 @@ class IloBIOS(base.BIOSInterface):
         task.node.save()
 
         if step not in ('apply_configuration', 'factory_reset'):
-            errmsg = _('Could not find the step %(step)s for the '
-                       'node %(node)s.')
-            raise exception.NodeCleaningFailure(
-                errmsg % {'step': step, 'node': node.uuid})
+            errmsg = (_('Could not find the step %(step)s for the '
+                        'node %(node)s.')
+                      % {'step': step, 'node': node.uuid})
+            if node.clean_step:
+                raise exception.NodeCleaningFailure(errmsg)
+            raise exception.InstanceDeployFailure(reason=errmsg)
 
         try:
             ilo_object = ilo_common.get_ilo_object(node)
@@ -133,35 +147,34 @@ class IloBIOS(base.BIOSInterface):
                 exception.InvalidParameterValue,
                 ilo_error.IloError,
                 ilo_error.IloCommandNotSupportedError) as ir_exception:
-
-            errmsg = _('Clean step %(step)s failed '
-                       'on the node %(node)s with error: %(err)s')
-            raise exception.NodeCleaningFailure(
-                errmsg % {'step': step, 'node': node.uuid,
-                          'err': ir_exception})
+            errmsg = (_('Step %(step)s failed '
+                        'on the node %(node)s with error: %(err)s')
+                      % {'step': step, 'node': node.uuid, 'err': ir_exception})
+            if node.clean_step:
+                raise exception.NodeCleaningFailure(errmsg)
+            raise exception.InstanceDeployFailure(reason=errmsg)
 
         if status.get('status') == 'failed':
-            errmsg = _('Clean step %(step)s failed '
-                       'on the node %(node)s with error: %(err)s')
-            raise exception.NodeCleaningFailure(
-                errmsg % {'step': step, 'node': node.uuid,
-                          'err': status.get('results')})
+            errmsg = (_('Step %(step)s failed '
+                        'on the node %(node)s with error: %(err)s')
+                      % {'step': step, 'node': node.uuid,
+                         'err': status.get('results')})
+            if node.clean_step:
+                raise exception.NodeCleaningFailure(errmsg)
+            raise exception.InstanceDeployFailure(reason=errmsg)
 
     @METRICS.timer('IloBIOS.apply_configuration')
-    @base.clean_step(priority=0, abortable=False, argsinfo={
-        'settings': {
-            'description': "Dictionary with current BIOS configuration.",
-            'required': True
-        }
-    })
+    @base.deploy_step(priority=0, argsinfo=_APPLY_CONFIGURATION_ARGSINFO)
+    @base.clean_step(priority=0, abortable=False,
+                     argsinfo=_APPLY_CONFIGURATION_ARGSINFO)
     @base.cache_bios_settings
     def apply_configuration(self, task, settings):
         """Applies the provided configuration on the node.
 
         :param task: a TaskManager instance.
         :param settings: Settings intended to be applied on the node.
-        :raises: NodeCleaningFailure when applying the configuration on
-                 the node fails.
+        :raises: NodeCleaningFailure, on failure to execute of clean step.
+        :raises: InstanceDeployFailure, on failure to execute of deploy step.
 
         """
         node = task.node
@@ -177,14 +190,15 @@ class IloBIOS(base.BIOSInterface):
                 task, 'apply_configuration')
 
     @METRICS.timer('IloBIOS.factory_reset')
+    @base.deploy_step(priority=0)
     @base.clean_step(priority=0, abortable=False)
     @base.cache_bios_settings
     def factory_reset(self, task):
         """Reset the BIOS settings to factory configuration.
 
         :param task: a TaskManager instance.
-        :raises: NodeCleaningFailure when IloError or any other exception
-                 is caught.
+        :raises: NodeCleaningFailure, on failure to execute of clean step.
+        :raises: InstanceDeployFailure, on failure to execute of deploy step.
 
         """
         node = task.node
@@ -200,15 +214,13 @@ class IloBIOS(base.BIOSInterface):
         """Store the BIOS settings in the database.
 
         :param task: a TaskManager instance.
-        :raises: NodeCleaningFailure when IloError or any other exception
-                 is caught.
+        :raises: NodeCleaningFailure, on failure to execute of clean step.
+        :raises: InstanceDeployFailure, on failure to execute of deploy step.
 
         """
         node = task.node
         nodeid = node.id
 
-        errmsg = _("Caching BIOS settings failed "
-                   "on node %(node)s with error: %(err)s")
         try:
             ilo_object = ilo_common.get_ilo_object(node)
             bios_settings = ilo_object.get_current_bios_settings()
@@ -217,8 +229,12 @@ class IloBIOS(base.BIOSInterface):
                 exception.InvalidParameterValue,
                 ilo_error.IloError,
                 ilo_error.IloCommandNotSupportedError) as ir_exception:
-            raise exception.NodeCleaningFailure(
-                errmsg % {'node': node.uuid, 'err': ir_exception})
+            errmsg = (_("Caching BIOS settings failed "
+                        "on node %(node)s with error: %(err)s")
+                      % {'node': node.uuid, 'err': ir_exception})
+            if node.clean_step:
+                raise exception.NodeCleaningFailure(errmsg)
+            raise exception.InstanceDeployFailure(reason=errmsg)
 
         fmt_bios_settings = []
 

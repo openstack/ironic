@@ -55,13 +55,19 @@ class IloBiosTestCase(test_common.BaseIloTest):
     def _test_ilo_error(self, exc_cls,
                         test_methods_not_called,
                         test_methods_called,
-                        method_details, exception_mock):
+                        method_details, exception_mock,
+                        operation='cleaning'):
         exception_mock.side_effect = exc_cls('error')
         method = method_details.get("name")
         args = method_details.get("args")
-        self.assertRaises(exception.NodeCleaningFailure,
-                          method,
-                          *args)
+        if self.node.clean_step:
+            self.assertRaises(exception.NodeCleaningFailure,
+                              method,
+                              *args)
+        else:
+            self.assertRaises(exception.InstanceDeployFailure,
+                              method,
+                              *args)
         for test_method in test_methods_not_called:
             test_method.assert_not_called()
         for called_method in test_methods_called:
@@ -168,8 +174,8 @@ class IloBiosTestCase(test_common.BaseIloTest):
             driver_info = task.node.driver_internal_info
             self.assertTrue(
                 all(x in driver_info for x in (
-                    'apply_bios', 'cleaning_reboot',
-                    'skip_current_clean_step')))
+                    'apply_bios', 'deployment_reboot',
+                    'skip_current_deploy_step')))
             ilo_object_mock.set_bios_settings.assert_called_once_with(data)
             self.assertFalse(ilo_object_mock.reset_bios_to_default.called)
             build_agent_mock.assert_called_once_with(task.node)
@@ -184,111 +190,222 @@ class IloBiosTestCase(test_common.BaseIloTest):
                        autospec=True)
     @mock.patch.object(ilo_common, 'get_ilo_object', spec_set=True,
                        autospec=True)
-    def test__execute_pre_boot_bios_step_factory_reset(
-            self, get_ilo_object_mock, build_agent_mock,
+    def _test__execute_pre_boot_bios_step(
+            self, get_ilo_mock, build_agent_mock,
             node_power_mock, prepare_mock):
+        if self.node.clean_step:
+            step_data = self.node.clean_step
+            check_fields = ['cleaning_reboot', 'skip_current_clean_step']
+        else:
+            step_data = self.node.deploy_step
+            check_fields = ['deployment_reboot', 'skip_current_deploy_step']
+
+        data = step_data['argsinfo'].get('settings', None)
+        step = step_data['step']
+        if step == 'factory_reset':
+            check_fields.append('reset_bios')
+        elif step == 'apply_configuration':
+            check_fields.append('apply_bios')
 
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
-            ilo_object_mock = get_ilo_object_mock.return_value
-            data = {
-                "SET_A": "VAL_A",
-                "SET_B": "VAL_B",
-                "SET_C": "VAL_C",
-                "SET_D": "VAL_D"
-            }
-            step = 'factory_reset'
+            ilo_mock = get_ilo_mock.return_value
             task.driver.bios._execute_pre_boot_bios_step(task, step, data)
-            driver_info = task.node.driver_internal_info
+            drv_internal_info = task.node.driver_internal_info
             self.assertTrue(
-                all(x in driver_info for x in (
-                    'reset_bios', 'cleaning_reboot',
-                    'skip_current_clean_step')))
-            ilo_object_mock.reset_bios_to_default.assert_called_once_with()
-            self.assertFalse(ilo_object_mock.set_bios_settings.called)
+                all(x in drv_internal_info for x in check_fields))
+
+            if step == 'factory_reset':
+                ilo_mock.reset_bios_to_default.assert_called_once_with()
+
+            elif step == 'apply_configuration':
+                ilo_mock.set_bios_settings.assert_called_once_with(data)
+
             build_agent_mock.assert_called_once_with(task.node)
             self.assertTrue(prepare_mock.called)
             self.assertTrue(node_power_mock.called)
 
-    @mock.patch.object(ilo_common, 'get_ilo_object', spec_set=True,
-                       autospec=True)
-    def test__execute_pre_boot_bios_step_invalid(
-            self, get_ilo_object_mock):
-
-        with task_manager.acquire(self.context, self.node.uuid,
-                                  shared=True) as task:
-            data = {
-                "SET_A": "VAL_A",
+    def test__execute_pre_boot_bios_step_apply_conf_cleaning(self):
+        data = {"SET_A": "VAL_A",
                 "SET_B": "VAL_B",
                 "SET_C": "VAL_C",
-                "SET_D": "VAL_D"
-            }
-            step = 'invalid_step'
-            self.assertRaises(exception.NodeCleaningFailure,
-                              task.driver.bios._execute_pre_boot_bios_step,
-                              task, step, data)
+                "SET_D": "VAL_D"}
+        self.node.clean_step = {'priority': 100, 'interface': 'bios',
+                                'step': 'apply_configuration',
+                                'argsinfo': {'settings': data}}
+        self.node.save()
+        self._test__execute_pre_boot_bios_step()
 
-    @mock.patch.object(ilo_common, 'get_ilo_object', spec_set=True,
-                       autospec=True)
-    def test__execute_pre_boot_bios_step_iloobj_failed(
-            self, get_ilo_object_mock):
-
-        with task_manager.acquire(self.context, self.node.uuid,
-                                  shared=True) as task:
-            data = {
-                "SET_A": "VAL_A",
+    def test__execute_pre_boot_bios_step_apply_conf_deploying(self):
+        data = {"SET_A": "VAL_A",
                 "SET_B": "VAL_B",
                 "SET_C": "VAL_C",
-                "SET_D": "VAL_D"
-            }
-            get_ilo_object_mock.side_effect = exception.MissingParameterValue(
-                'err')
-            step = 'apply_configuration'
-            self.assertRaises(exception.NodeCleaningFailure,
-                              task.driver.bios._execute_pre_boot_bios_step,
-                              task, step, data)
+                "SET_D": "VAL_D"}
+        self.node.deploy_step = {'priority': 100, 'interface': 'bios',
+                                 'step': 'apply_configuration',
+                                 'argsinfo': {'settings': data}}
+        self.node.save()
+        self._test__execute_pre_boot_bios_step()
+
+    def test__execute_pre_boot_bios_step_factory_reset_cleaning(self):
+        self.node.clean_step = {'priority': 100, 'interface': 'bios',
+                                'step': 'factory_reset', 'argsinfo': {}}
+        self.node.save()
+        self._test__execute_pre_boot_bios_step()
+
+    def test__execute_pre_boot_bios_step_factory_reset_deploying(self):
+        self.node.deploy_step = {'priority': 100, 'interface': 'bios',
+                                 'step': 'factory_reset', 'argsinfo': {}}
+        self.node.save()
+        self._test__execute_pre_boot_bios_step()
 
     @mock.patch.object(ilo_common, 'get_ilo_object', spec_set=True,
                        autospec=True)
-    def test__execute_pre_boot_bios_step_set_bios_failed(
+    def _test__execute_pre_boot_bios_step_invalid(
             self, get_ilo_object_mock):
+        if self.node.clean_step:
+            step_data = self.node.clean_step
+            exept = exception.NodeCleaningFailure
+        else:
+            step_data = self.node.deploy_step
+            exept = exception.InstanceDeployFailure
 
+        data = step_data['argsinfo'].get('settings', None)
+        step = step_data['step']
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
-            data = {
-                "SET_A": "VAL_A",
-                "SET_B": "VAL_B",
-                "SET_C": "VAL_C",
-                "SET_D": "VAL_D"
-            }
             ilo_object_mock = get_ilo_object_mock.return_value
             ilo_object_mock.set_bios_settings.side_effect = ilo_error.IloError(
                 'err')
-            step = 'apply_configuration'
-            self.assertRaises(exception.NodeCleaningFailure,
+            if task.node.clean_step:
+                exept = exception.NodeCleaningFailure
+            else:
+                exept = exception.InstanceDeployFailure
+            self.assertRaises(exept,
                               task.driver.bios._execute_pre_boot_bios_step,
                               task, step, data)
+
+    def test__execute_pre_boot_bios_step_invalid_cleaning(self):
+        data = {"SET_A": "VAL_A",
+                "SET_B": "VAL_B",
+                "SET_C": "VAL_C",
+                "SET_D": "VAL_D"}
+        self.node.clean_step = {'priority': 100, 'interface': 'bios',
+                                'step': 'invalid_step',
+                                'argsinfo': {'settings': data}}
+        self.node.save()
+        self._test__execute_pre_boot_bios_step_invalid()
+
+    def test__execute_pre_boot_bios_step_invalid_deploying(self):
+        data = {"SET_A": "VAL_A",
+                "SET_B": "VAL_B",
+                "SET_C": "VAL_C",
+                "SET_D": "VAL_D"}
+        self.node.deploy_step = {'priority': 100, 'interface': 'bios',
+                                 'step': 'invalid_step',
+                                 'argsinfo': {'settings': data}}
+        self.node.save()
+        self._test__execute_pre_boot_bios_step_invalid()
+
+    @mock.patch.object(ilo_common, 'get_ilo_object', autospec=True)
+    def _test__execute_pre_boot_bios_step_ilo_fail(self, get_ilo_mock):
+        if self.node.clean_step:
+            step_data = self.node.clean_step
+            exept = exception.NodeCleaningFailure
+        else:
+            step_data = self.node.deploy_step
+            exept = exception.InstanceDeployFailure
+
+        data = step_data['argsinfo'].get('settings', None)
+        step = step_data['step']
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            get_ilo_mock.side_effect = exception.MissingParameterValue('err')
+            self.assertRaises(exept,
+                              task.driver.bios._execute_pre_boot_bios_step,
+                              task, step, data)
+
+    def test__execute_pre_boot_bios_step_iloobj_failed_cleaning(self):
+        data = {"SET_A": "VAL_A",
+                "SET_B": "VAL_B",
+                "SET_C": "VAL_C",
+                "SET_D": "VAL_D"}
+        self.node.clean_step = {'priority': 100, 'interface': 'bios',
+                                'step': 'apply_configuration',
+                                'argsinfo': {'settings': data}}
+        self.node.save()
+        self._test__execute_pre_boot_bios_step_ilo_fail()
+
+    def test__execute_pre_boot_bios_step_iloobj_failed_deploying(self):
+        data = {"SET_A": "VAL_A",
+                "SET_B": "VAL_B",
+                "SET_C": "VAL_C",
+                "SET_D": "VAL_D"}
+        self.node.deploy_step = {'priority': 100, 'interface': 'bios',
+                                 'step': 'apply_configuration',
+                                 'argsinfo': {'settings': data}}
+        self.node.save()
+        self._test__execute_pre_boot_bios_step_ilo_fail()
 
     @mock.patch.object(ilo_common, 'get_ilo_object', spec_set=True,
                        autospec=True)
-    def test__execute_pre_boot_bios_step_reset_bios_failed(
+    def _test__execute_pre_boot_bios_step_set_bios_failed(
             self, get_ilo_object_mock):
+        if self.node.clean_step:
+            step_data = self.node.clean_step
+            exept = exception.NodeCleaningFailure
+        else:
+            step_data = self.node.deploy_step
+            exept = exception.InstanceDeployFailure
 
+        data = step_data['argsinfo'].get('settings', None)
+        step = step_data['step']
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
-            data = {
-                "SET_A": "VAL_A",
-                "SET_B": "VAL_B",
-                "SET_C": "VAL_C",
-                "SET_D": "VAL_D"
-            }
             ilo_object_mock = get_ilo_object_mock.return_value
-            ilo_object_mock.reset_bios_to_default.side_effect = (
-                ilo_error.IloError('err'))
-            step = 'factory_reset'
-            self.assertRaises(exception.NodeCleaningFailure,
+            ilo_object_mock.set_bios_settings.side_effect = ilo_error.IloError(
+                'err')
+            if task.node.clean_step:
+                exept = exception.NodeCleaningFailure
+            else:
+                exept = exception.InstanceDeployFailure
+            self.assertRaises(exept,
                               task.driver.bios._execute_pre_boot_bios_step,
                               task, step, data)
+
+    def test__execute_pre_boot_bios_step_set_bios_failed_cleaning(self):
+        data = {"SET_A": "VAL_A",
+                "SET_B": "VAL_B",
+                "SET_C": "VAL_C",
+                "SET_D": "VAL_D"}
+        self.node.clean_step = {'priority': 100, 'interface': 'bios',
+                                'step': 'apply_configuration',
+                                'argsinfo': {'settings': data}}
+        self.node.save()
+        self._test__execute_post_boot_bios_get_settings_failed()
+
+    def test__execute_pre_boot_bios_step_set_bios_failed_deploying(self):
+        data = {"SET_A": "VAL_A",
+                "SET_B": "VAL_B",
+                "SET_C": "VAL_C",
+                "SET_D": "VAL_D"}
+        self.node.deploy_step = {'priority': 100, 'interface': 'bios',
+                                 'step': 'apply_configuration',
+                                 'argsinfo': {'settings': data}}
+        self.node.save()
+        self._test__execute_post_boot_bios_get_settings_failed()
+
+    def test__execute_pre_boot_bios_step_reset_bios_failed_cleaning(self):
+        self.node.clean_step = {'priority': 100, 'interface': 'bios',
+                                'step': 'factory_reset', 'argsinfo': {}}
+        self.node.save()
+        self._test__execute_post_boot_bios_get_settings_failed()
+
+    def test__execute_pre_boot_bios_step_reset_bios_failed_deploying(self):
+        self.node.deploy_step = {'priority': 100, 'interface': 'bios',
+                                 'step': 'factory_reset', 'argsinfo': {}}
+        self.node.save()
+        self._test__execute_post_boot_bios_get_settings_failed()
 
     @mock.patch.object(ilo_common, 'get_ilo_object', spec_set=True,
                        autospec=True)
@@ -328,7 +445,7 @@ class IloBiosTestCase(test_common.BaseIloTest):
 
     @mock.patch.object(ilo_common, 'get_ilo_object', spec_set=True,
                        autospec=True)
-    def test__execute_post_boot_bios_step_invalid(
+    def _test__execute_post_boot_bios_step_invalid(
             self, get_ilo_object_mock):
 
         with task_manager.acquire(self.context, self.node.uuid,
@@ -338,35 +455,73 @@ class IloBiosTestCase(test_common.BaseIloTest):
             task.node.driver_internal_info = driver_info
             task.node.save()
             step = 'invalid_step'
-            self.assertRaises(exception.NodeCleaningFailure,
+            if self.node.clean_step:
+                exept = exception.NodeCleaningFailure
+            else:
+                exept = exception.InstanceDeployFailure
+            self.assertRaises(exept,
                               task.driver.bios._execute_post_boot_bios_step,
                               task, step)
             self.assertTrue(
                 'apply_bios' not in task.node.driver_internal_info)
 
+    def test__execute_post_boot_bios_step_invalid_cleaning(self):
+        self.node.clean_step = {'priority': 100, 'interface': 'bios',
+                                'step': u'apply_configuration',
+                                'argsinfo': {'settings': {'a': 1, 'b': 2}}}
+        self.node.save()
+        self._test__execute_post_boot_bios_step_invalid()
+
+    def test__execute_post_boot_bios_step_invalid_deploy(self):
+        self.node.deploy_step = {'priority': 100, 'interface': 'bios',
+                                 'step': u'apply_configuration',
+                                 'argsinfo': {'settings': {'a': 1, 'b': 2}}}
+        self.node.save()
+        self._test__execute_post_boot_bios_step_invalid()
+
     @mock.patch.object(ilo_common, 'get_ilo_object', spec_set=True,
                        autospec=True)
-    def test__execute_post_boot_bios_step_iloobj_failed(
+    def _test__execute_post_boot_bios_step_iloobj_failed(
             self, get_ilo_object_mock):
 
+        if self.node.clean_step:
+            step = self.node.clean_step['step']
+            exept = exception.NodeCleaningFailure
+        if self.node.deploy_step:
+            step = self.node.deploy_step['step']
+            exept = exception.InstanceDeployFailure
+        driver_internal_info = self.node.driver_internal_info
+        driver_internal_info['apply_bios'] = True
+        self.node.driver_internal_info = driver_internal_info
+        self.node.save()
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
-            driver_info = task.node.driver_internal_info
-            driver_info.update({'apply_bios': True})
-            task.node.driver_internal_info = driver_info
-            task.node.save()
             get_ilo_object_mock.side_effect = exception.MissingParameterValue(
                 'err')
             step = 'apply_configuration'
-            self.assertRaises(exception.NodeCleaningFailure,
+            self.assertRaises(exept,
                               task.driver.bios._execute_post_boot_bios_step,
                               task, step)
             self.assertTrue(
                 'apply_bios' not in task.node.driver_internal_info)
 
+    def test__execute_post_boot_bios_step_iloobj_failed_cleaning(self):
+        self.node.clean_step = {'priority': 100, 'interface': 'bios',
+                                'step': u'apply_configuration',
+                                'argsinfo': {'settings': {'a': 1, 'b': 2}}}
+        self.node.save()
+        self._test__execute_post_boot_bios_step_iloobj_failed()
+
+    def test__execute_post_boot_bios_step_iloobj_failed_deploy(self):
+        self.node.deploy_step = {'priority': 100, 'interface': 'bios',
+                                 'step': u'apply_configuration',
+                                 'argsinfo': {'settings': {'a': 1, 'b': 2}}}
+        self.node.save()
+        self._test__execute_post_boot_bios_step_iloobj_failed()
+
     @mock.patch.object(ilo_common, 'get_ilo_object', spec_set=True,
                        autospec=True)
-    def test__execute_post_boot_bios_get_settings_error(
+    def _test__execute_post_boot_bios_get_settings_error(
             self, get_ilo_object_mock):
 
         with task_manager.acquire(self.context, self.node.uuid,
@@ -390,9 +545,25 @@ class IloBiosTestCase(test_common.BaseIloTest):
             self.assertTrue(
                 'apply_bios' not in task.node.driver_internal_info)
 
+    def test__execute_post_boot_bios_get_settings_error_cleaning(
+            self):
+        self.node.clean_step = {'priority': 100, 'interface': 'bios',
+                                'step': u'apply_configuration',
+                                'argsinfo': {'settings': {'a': 1, 'b': 2}}}
+        self.node.save()
+        self._test__execute_post_boot_bios_get_settings_error()
+
+    def test__execute_post_boot_bios_get_settings_error_deploying(
+            self):
+        self.node.deploy_step = {'priority': 100, 'interface': 'bios',
+                                 'step': 'apply_configuration',
+                                 'argsinfo': {'settings': {'a': 1, 'b': 2}}}
+        self.node.save()
+        self._test__execute_post_boot_bios_get_settings_error()
+
     @mock.patch.object(ilo_common, 'get_ilo_object', spec_set=True,
                        autospec=True)
-    def test__execute_post_boot_bios_get_settings_failed(
+    def _test__execute_post_boot_bios_get_settings_failed(
             self, get_ilo_object_mock):
 
         with task_manager.acquire(self.context, self.node.uuid,
@@ -405,11 +576,29 @@ class IloBiosTestCase(test_common.BaseIloTest):
             ilo_object_mock.get_bios_settings_result.return_value = (
                 {'status': 'failed', 'message': 'Some data'})
             step = 'factory_reset'
-            self.assertRaises(exception.NodeCleaningFailure,
+            if task.node.clean_step:
+                exept = exception.NodeCleaningFailure
+            else:
+                exept = exception.InstanceDeployFailure
+            self.assertRaises(exept,
                               task.driver.bios._execute_post_boot_bios_step,
                               task, step)
             self.assertTrue(
                 'reset_bios' not in task.node.driver_internal_info)
+
+    def test__execute_post_boot_bios_get_settings_failed_cleaning(
+            self):
+        self.node.clean_step = {'priority': 100, 'interface': 'bios',
+                                'step': 'factory_reset', 'argsinfo': {}}
+        self.node.save()
+        self._test__execute_post_boot_bios_get_settings_failed()
+
+    def test__execute_post_boot_bios_get_settings_failed_deploying(
+            self):
+        self.node.depoy_step = {'priority': 100, 'interface': 'bios',
+                                'step': 'factory_reset', 'argsinfo': {}}
+        self.node.save()
+        self._test__execute_post_boot_bios_get_settings_failed()
 
     @mock.patch.object(objects.BIOSSettingList, 'create')
     @mock.patch.object(objects.BIOSSettingList, 'save')
