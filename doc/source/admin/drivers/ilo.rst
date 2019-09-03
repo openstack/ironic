@@ -77,20 +77,20 @@ The ``ilo`` hardware type supports following hardware interfaces:
         enabled_bios_interfaces = ilo,no-bios
 
 * boot
-    Supports ``ilo-virtual-media`` and ``ilo-pxe``. The default is
-    ``ilo-virtual-media``. The ``ilo-virtual-media`` interface provides
-    security enhanced PXE-less deployment by using iLO virtual media to boot
-    up the bare metal node. The ``ilo-pxe`` interface uses PXE/iSCSI for
-    deployment(just like :ref:`pxe-boot`). This interface doesn't require
-    iLO Advanced license. They can be enabled by using the
-    ``[DEFAULT]enabled_boot_interfaces`` option in ``ironic.conf`` as given
-    below:
+    Supports ``ilo-virtual-media``, ``ilo-pxe`` and ``ilo-ipxe``. The
+    default is ``ilo-virtual-media``. The ``ilo-virtual-media`` interface
+    provides security enhanced PXE-less deployment by using iLO virtual
+    media to boot up the bare metal node. The ``ilo-pxe`` and ``ilo-ipxe``
+    interfaces use PXE and iPXE respectively for deployment(just like
+    :ref:`pxe-boot`). These interfaces do not require iLO Advanced license.
+    They can be enabled by using the ``[DEFAULT]enabled_boot_interfaces``
+    option in ``ironic.conf`` as given below:
 
     .. code-block:: ini
 
         [DEFAULT]
         enabled_hardware_types = ilo
-        enabled_boot_interfaces = ilo-virtual-media,ilo-pxe
+        enabled_boot_interfaces = ilo-virtual-media,ilo-pxe,ilo-ipxe
 
 * console
     Supports ``ilo`` and ``no-console``. The default is ``ilo``.
@@ -171,9 +171,9 @@ The ``ilo`` hardware type supports following hardware interfaces:
 
     .. note::
        The storage interface ``cinder`` is supported only when corresponding
-       boot interface of the ``ilo`` hardware type based node is ``ilo-pxe``.
-       Please refer to :doc:`/admin/boot-from-volume` for configuring
-       ``cinder`` as a storage interface.
+       boot interface of the ``ilo`` hardware type based node is ``ilo-pxe``
+       or ``ilo-ipxe``. Please refer to :doc:`/admin/boot-from-volume` for
+       configuring ``cinder`` as a storage interface.
 
 * rescue
     Supports ``agent`` and ``no-rescue``. The default is ``no-rescue``.
@@ -276,7 +276,7 @@ Node configuration
     property and is used when ``rescue`` interface is set to ``agent``.
 
 * The following properties are also required in node object's
-  ``driver_info`` if ``ilo-pxe`` boot interface is used:
+  ``driver_info`` if ``ilo-pxe`` or ``ilo-ipxe`` boot interface is used:
 
   - ``deploy_kernel``: The glance UUID or a HTTP(S) URL of the deployment kernel.
   - ``deploy_ramdisk``: The glance UUID or a HTTP(S) URL of the deployment ramdisk.
@@ -455,7 +455,7 @@ Enable driver
     [DEFAULT]
     enabled_hardware_types = ilo
     enabled_bios_interfaces = ilo
-    enabled_boot_interfaces = ilo-virtual-media,ilo-pxe
+    enabled_boot_interfaces = ilo-virtual-media,ilo-pxe,ilo-ipxe
     enabled_power_interfaces = ilo
     enabled_console_interfaces = ilo
     enabled_raid_interfaces = agent
@@ -1565,9 +1565,10 @@ forwarding state so it wouldn't take much time setting the iSCSI target as
 persistent device.
 
 The driver does not support this functionality when in ``bios`` boot mode. In
-case the node is configured with ``ilo-pxe`` boot interface and the boot mode
-configured on the bare metal is ``bios``, the iscsi boot from volume is performed
-using ``ipxe``. See :doc:`/admin/boot-from-volume` for more details.
+case the node is configured with ``ilo-pxe`` or ``ilo-ipxe`` as boot interface
+and the boot mode configured on the bare metal is ``bios``, the iscsi boot
+from volume is performed using iPXE. See :doc:`/admin/boot-from-volume`
+for more details.
 
 To use this feature, configure the boot mode of the bare metal to ``uefi`` and
 configure the corresponding ironic node using the steps given in :doc:`/admin/boot-from-volume`.
