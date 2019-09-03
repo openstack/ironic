@@ -1,0 +1,10 @@
+---
+deprecations:
+  - |
+    The ironic-lib configuration option ``[disk_utils]iscsi_verify_attempts``
+    has been deprecated in favor of:
+
+    * ``[iscsi]verify_attempts`` to specify the number of attempts to
+      establish an iSCSI connection.
+    * ``[disk_utils]partition_detection_attempts`` to specify the number of
+      attempts to find a newly created partition.
