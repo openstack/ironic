@@ -72,7 +72,10 @@ opts = [
                help=_('Interval (in seconds) between periodic erase-devices '
                       'status checks to determine whether the asynchronous '
                       'out-of-band erase-devices was successfully finished or '
-                      'not.')),
+                      'not. On an average, a 300GB HDD with default pattern '
+                      '"overwrite" would take approximately 9 hours and '
+                      '300GB SSD with default pattern "block" would take '
+                      'approx. 30 seconds to complete sanitize disk erase.')),
     cfg.StrOpt('ca_file',
                help=_('CA certificate file to validate iLO.')),
     cfg.StrOpt('default_boot_mode',
