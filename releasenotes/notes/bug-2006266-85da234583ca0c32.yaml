@@ -1,6 +1,5 @@
 ---
 fixes:
   - |
-      An issue regarding the ``ansible`` deploy interface. The discovery
-      playbook used to gather wwn and serials was broken for python3 due to the
-      dict().keys() object not being a list in python3.
+    Fixes an issue in the discovery playbook for the ``ansible`` deploy
+    interface that prevented gathering WWN and serial numbers under Python 3.

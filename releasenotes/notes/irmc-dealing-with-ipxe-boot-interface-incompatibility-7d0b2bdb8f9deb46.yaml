@@ -1,17 +1,10 @@
 ---
 upgrade:
   - |
-    iRMC hardware type deals with iPXE boot interface incompatibility.
-    To iPXE boot with ``ipxe`` boot interface, *(1)* add ``ipxe`` to
-    ``enabled_boot_interfaces`` in ``ironic.conf``, *(2)* set up tftp &
-    http server following `Ironic document on iPXE boot configuration
-    <https://docs.openstack.org/ironic/latest/install/configure-pxe.html>`,
-    then *(3)* create/set baremetal node with ``--boot-interface ipxe``.
+    Users of the ``irmc`` hardware type with iPXE should switch to the ``ipxe``
+    boot interface from the deprecated ``[pxe]ipxe_enabled`` option.
 fixes:
   - |
-    iRMC hardware type deals with iPXE boot interface incompatibility.
-    From Stein, ``[pxe]ipxe_enabled`` option has been deprecated and will be
-    removed in preference to ``ipxe`` boot interface in Train cycle. Till then,
-    iRMC hardware type supports iPXE boot through ``[pxe]ipxe_enabled`` option.
-    To cope with this incompatibility, iRMC hardware type supports ``ipxe``
-    boot interface.
+    Adds the missing ``ipxe`` boot interface to the ``irmc`` hardware type.
+    It is supposed to be used instead of the deprecated ``[pxe]ipxe_enabled``
+    configuration option.

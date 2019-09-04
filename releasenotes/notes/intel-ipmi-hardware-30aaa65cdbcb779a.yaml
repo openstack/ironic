@@ -1,9 +1,10 @@
 ---
 features:
   - |
-    Adds support for the Intel IPMI Hardware with hardware type
-    ``intel-ipmitool``. This hardware type is same as ``ipmi`` hardware type
-    with additional support of `Intel Speed Select Performance Profile
-    Technology <https://www.intel.com/content/www/us/en/architecture-and-technology/speed-select-technology-article.html>`.
-    It uses management interface ``intel-ipmitool``. It supports setting
+    Adds support for the Intel IPMI Hardware with a new hardware type
+    ``intel-ipmitool``. This hardware type is the same as the ``ipmi`` hardware
+    type with additional support of `Intel Speed Select Performance Profile
+    Technology
+    <https://www.intel.com/content/www/us/en/architecture-and-technology/speed-select-technology-article.html>`_.
+    It uses the ``intel-ipmitool`` management interface, which supports setting
     the desired configuration level for Intel SST-PP.

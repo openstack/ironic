@@ -1,5 +1,5 @@
 ---
 fixes:
   - |
-    Allows deleting unbound ports on an active node. See
-    https://storyboard.openstack.org/#!/story/2006385 for details.
+    Allows deleting unbound ports on an active node. See `story 2006385
+    <https://storyboard.openstack.org/#!/story/2006385>`_ for details.

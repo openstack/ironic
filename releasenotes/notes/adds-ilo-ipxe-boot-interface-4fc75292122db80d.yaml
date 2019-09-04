@@ -11,9 +11,3 @@ features:
       configuration
       <https://docs.openstack.org/ironic/latest/install/configure-pxe.html>`_
     * Create/Set baremetal node with ``--boot-interface ilo-ipxe``
-fixes:
-  - |
-    From Stein release, ``[pxe]ipxe_enabled`` option has been deprecated.
-    The ``ilo`` hardware type supports iPXE boot through
-    ``[pxe]ipxe_enabled`` option. To cope with this incompatibility,
-    ``ilo`` hardware type has added new ``ilo-ipxe`` boot interface.
