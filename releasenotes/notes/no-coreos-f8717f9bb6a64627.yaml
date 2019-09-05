@@ -1,0 +1,7 @@
+---
+upgrade:
+  - |
+    The explicit support for CoreOS ironic-python-agent images have been
+    removed. If you use a ramdisk based on CoreOS, you may want to re-add
+    ``coreos.configdrive=0`` to your PXE templates, see `story 1433812
+    <https://storyboard.openstack.org/#!/story/1433812>`_ for the background.

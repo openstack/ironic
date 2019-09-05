@@ -7,7 +7,7 @@ goto deploy
 
 :deploy
 imgfree
-kernel {% if pxe_options.ipxe_timeout > 0 %}--timeout {{ pxe_options.ipxe_timeout }} {% endif %}{{ pxe_options.deployment_aki_path }} selinux=0 troubleshoot=0 text {{ pxe_options.pxe_append_params|default("", true) }} BOOTIF=${mac} ipa-api-url={{ pxe_options['ipa-api-url'] }} initrd={{ pxe_options.initrd_filename|default("deploy_ramdisk", true) }} coreos.configdrive=0 || goto retry
+kernel {% if pxe_options.ipxe_timeout > 0 %}--timeout {{ pxe_options.ipxe_timeout }} {% endif %}{{ pxe_options.deployment_aki_path }} selinux=0 troubleshoot=0 text {{ pxe_options.pxe_append_params|default("", true) }} BOOTIF=${mac} ipa-api-url={{ pxe_options['ipa-api-url'] }} initrd={{ pxe_options.initrd_filename|default("deploy_ramdisk", true) }} || goto retry
 
 initrd {% if pxe_options.ipxe_timeout > 0 %}--timeout {{ pxe_options.ipxe_timeout }} {% endif %}{{ pxe_options.deployment_ari_path }} || goto retry
 boot

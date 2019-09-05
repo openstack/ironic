@@ -232,12 +232,12 @@ IRONIC_DEFAULT_TRAITS=${IRONIC_DEFAULT_TRAITS-CUSTOM_GOLD}
 IRONIC_BUILD_DEPLOY_RAMDISK=$(trueorfalse True IRONIC_BUILD_DEPLOY_RAMDISK)
 
 # Ironic IPA ramdisk type, supported types are:
-IRONIC_SUPPORTED_RAMDISK_TYPES_RE="^(coreos|tinyipa|dib)$"
+IRONIC_SUPPORTED_RAMDISK_TYPES_RE="^(tinyipa|dib)$"
 IRONIC_RAMDISK_TYPE=${IRONIC_RAMDISK_TYPE:-tinyipa}
 
 # Confirm we have a supported ramdisk type or fail early.
 if [[ ! "$IRONIC_RAMDISK_TYPE" =~ $IRONIC_SUPPORTED_RAMDISK_TYPES_RE ]]; then
-    die $LINENO "Unrecognized IRONIC_RAMDISK_TYPE: $IRONIC_RAMDISK_TYPE. Expected 'coreos', 'tinyipa' or 'dib'"
+    die $LINENO "Unrecognized IRONIC_RAMDISK_TYPE: $IRONIC_RAMDISK_TYPE. Expected 'tinyipa' or 'dib'"
 fi
 
 # If present, these files are used as deploy ramdisk/kernel.
@@ -261,10 +261,6 @@ if [[ "$IRONIC_BUILD_DEPLOY_RAMDISK" == "False" && \
         ! (-e "$IRONIC_DEPLOY_RAMDISK" && -e "$IRONIC_DEPLOY_KERNEL") && \
         (-z "$IRONIC_AGENT_KERNEL_URL" || -z "$IRONIC_AGENT_RAMDISK_URL") ]]; then
     case $IRONIC_RAMDISK_TYPE in
-        coreos)
-            IRONIC_AGENT_KERNEL_URL=${IRONIC_AGENT_KERNEL_URL:-https://tarballs.openstack.org/ironic-python-agent/coreos/files/coreos_production_pxe-${IPA_DOWNLOAD_BRANCH}.vmlinuz}
-            IRONIC_AGENT_RAMDISK_URL=${IRONIC_AGENT_RAMDISK_URL:-https://tarballs.openstack.org/ironic-python-agent/coreos/files/coreos_production_pxe_image-oem-${IPA_DOWNLOAD_BRANCH}.cpio.gz}
-        ;;
         tinyipa)
             IRONIC_AGENT_KERNEL_URL=${IRONIC_AGENT_KERNEL_URL:-https://tarballs.openstack.org/ironic-python-agent/tinyipa/files/tinyipa-${IPA_DOWNLOAD_BRANCH}.vmlinuz}
             IRONIC_AGENT_RAMDISK_URL=${IRONIC_AGENT_RAMDISK_URL:-https://tarballs.openstack.org/ironic-python-agent/tinyipa/files/tinyipa-${IPA_DOWNLOAD_BRANCH}.gz}
@@ -2428,9 +2424,6 @@ function build_ipa_ramdisk {
     local ramdisk_path=$2
     local iso_path=$3
     case $IRONIC_RAMDISK_TYPE in
-        'coreos')
-            build_ipa_coreos_ramdisk $kernel_path $ramdisk_path $iso_path
-            ;;
         'tinyipa')
             build_tinyipa_ramdisk $kernel_path $ramdisk_path $iso_path
             ;;
@@ -2438,28 +2431,9 @@ function build_ipa_ramdisk {
             build_ipa_dib_ramdisk $kernel_path $ramdisk_path $iso_path
             ;;
         *)
-            die $LINENO "Unrecognised IRONIC_RAMDISK_TYPE: $IRONIC_RAMDISK_TYPE. Expected either of 'dib', 'coreos', or 'tinyipa'."
+            die $LINENO "Unrecognised IRONIC_RAMDISK_TYPE: $IRONIC_RAMDISK_TYPE. Expected either of 'dib' or 'tinyipa'."
             ;;
     esac
-}
-
-function build_ipa_coreos_ramdisk {
-    echo "Building coreos ironic-python-agent deploy ramdisk"
-    local kernel_path=$1
-    local ramdisk_path=$2
-    local iso_path=$3
-    # on fedora services do not start by default
-    restart_service docker
-    git_clone $IRONIC_PYTHON_AGENT_REPO $IRONIC_PYTHON_AGENT_DIR $IRONIC_PYTHON_AGENT_BRANCH
-    cd $IRONIC_PYTHON_AGENT_DIR
-    imagebuild/coreos/build_coreos_image.sh
-    cp imagebuild/coreos/UPLOAD/coreos_production_pxe_image-oem.cpio.gz $ramdisk_path
-    cp imagebuild/coreos/UPLOAD/coreos_production_pxe.vmlinuz $kernel_path
-    if is_deploy_iso_required; then
-        imagebuild/coreos/iso-image-create -k $kernel_path -i $ramdisk_path -o $iso_path
-    fi
-    sudo rm -rf UPLOAD
-    cd -
 }
 
 function build_tinyipa_ramdisk {
