@@ -1,0 +1,9 @@
+---
+prelude: >
+    "Choooooo! Choooooo!" The Train is now departing the station.
+
+    The OpenStack Bare Metal as a service team is proud to announce the
+    release of Ironic 13.0.0. This release brings the long desired feature
+    of software RAID configuration, Redfish virtual media boot support, sensor data
+    improvements, and numerous bug fixes. We hope you enjoy your ride on
+    the OpenStack Ironic Train.
