@@ -60,15 +60,15 @@ them to the Image service:
 
      .. code-block:: console
 
-        $ glance image-create --name my-kernel --visibility public \
-          --disk-format aki --container-format aki < my-image.vmlinuz
+        $ openstack image create my-kernel --public \
+          --disk-format aki --container-format aki --file my-image.vmlinuz
 
      Store the image uuid obtained from the above step as ``MY_VMLINUZ_UUID``.
 
      .. code-block:: console
 
-        $ glance image-create --name my-image.initrd --visibility public \
-          --disk-format ari --container-format ari < my-image.initrd
+        $ openstack image create my-image.initrd --public \
+          --disk-format ari --container-format ari --file my-image.initrd
 
      Store the image UUID obtained from the above step as ``MY_INITRD_UUID``.
 
@@ -79,19 +79,19 @@ them to the Image service:
 
      .. code-block:: console
 
-        $ glance image-create --name my-image --visibility public \
+        $ openstack image create my-image --public \
           --disk-format qcow2 --container-format bare --property \
           kernel_id=$MY_VMLINUZ_UUID --property \
-          ramdisk_id=$MY_INITRD_UUID < my-image.qcow2
+          ramdisk_id=$MY_INITRD_UUID --file my-image.qcow2
 
    .. note:: To deploy a whole disk image, a kernel_id and a ramdisk_id
              shouldn't be associated with the image. For example,
 
              .. code-block:: console
 
-                $ glance image-create --name my-whole-disk-image --visibility public \
-                  --disk-format qcow2 \
-                  --container-format bare < my-whole-disk-image.qcow2
+                $ openstack image create my-whole-disk-image --public \
+                  --disk-format qcow2 --container-format bare \
+                  --file my-whole-disk-image.qcow2
 
 #. Build or download the deploy images
 
@@ -114,14 +114,16 @@ them to the Image service:
 
    .. code-block:: console
 
-      $ glance image-create --name deploy-vmlinuz --visibility public \
-        --disk-format aki --container-format aki < coreos_production_pxe.vmlinuz
+      $ openstack image create deploy-vmlinuz --public \
+        --disk-format aki --container-format aki \
+        --file coreos_production_pxe.vmlinuz
 
    Store the image UUID obtained from the above step as ``DEPLOY_VMLINUZ_UUID``.
 
    .. code-block:: console
 
-      $ glance image-create --name deploy-initrd --visibility public \
-        --disk-format ari --container-format ari < coreos_production_pxe_image-oem.cpio.gz
+      $ openstack image create deploy-initrd --public \
+        --disk-format ari --container-format ari \
+        --file coreos_production_pxe_image-oem.cpio.gz
 
    Store the image UUID obtained from the above step as ``DEPLOY_INITRD_UUID``.
