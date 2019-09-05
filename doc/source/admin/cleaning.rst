@@ -73,6 +73,8 @@ cleaning steps.
 
 See `How do I change the priority of a cleaning step?`_ for more information.
 
+.. show-steps::
+   :phase: cleaning
 
 .. _manual_cleaning:
 
