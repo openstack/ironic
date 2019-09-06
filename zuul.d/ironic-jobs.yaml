@@ -46,6 +46,9 @@
         IRONIC_VM_EPHEMERAL_DISK: 1
         IRONIC_VM_LOG_DIR: '{{ devstack_base_dir }}/ironic-bm-logs'
         IRONIC_VM_SPECS_RAM: 384
+        # NOTE(dtantsur): in some jobs we end up with 12 disks total, so reduce
+        # each of them. For don't need all 10 GiB for CirrOS anyway.
+        IRONIC_VM_SPECS_DISK: 4
         IRONIC_DEFAULT_DEPLOY_INTERFACE: iscsi
         IRONIC_DEFAULT_RESCUE_INTERFACE: agent
 
@@ -350,6 +353,7 @@
       tox_envlist: all
       tempest_concurrency: 4
       tempest_test_regex: "(ironic_tempest_plugin.tests.scenario|test_schedule_to_all_nodes)"
+      tempest_test_timeout: 2400
       devstack_localrc:
         BUILD_TIMEOUT: 1200
         DEFAULT_INSTANCE_TYPE: baremetal
@@ -382,7 +386,7 @@
         IRONIC_VM_EPHEMERAL_DISK: 0
         IRONIC_VM_LOG_DIR: '{{ devstack_base_dir }}/ironic-bm-logs'
         IRONIC_VM_SPECS_RAM: 384
-        OS_TEST_TIMEOUT: 2400
+        IRONIC_VM_SPECS_DISK: 4
         OVERRIDE_PUBLIC_BRIDGE_MTU: 1400
         OVS_BRIDGE_MAPPINGS: 'mynetwork:brbm,public:br-infra'
         OVS_PHYSICAL_BRIDGE: brbm
