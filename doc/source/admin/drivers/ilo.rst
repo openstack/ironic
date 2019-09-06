@@ -59,6 +59,7 @@ Apart from above features hardware type ``ilo5`` also supports following
 features:
 
 * `Out of Band RAID Support`_
+* `Out of Band Sanitize Disk Erase Support`_
 
 Hardware interfaces
 ^^^^^^^^^^^^^^^^^^^
@@ -1865,6 +1866,26 @@ into the baremetal service using the iLO IPv6 addresses.
 .. note::
    No configuration changes (in e.g. ironic.conf) are required in order to
    support IPv6.
+
+Out of Band Sanitize Disk Erase Support
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+With Gen10 HPE Proliant servers and later the ``ilo5`` hardware type supports
+firmware based sanitize disk erase as a clean step. This feature requires the
+node to be configured to ``ilo5`` hardware type and its management interface
+to be ``ilo5``.
+
+The possible erase pattern its supports are:
+
+* For HDD - 'overwrite', 'zero', 'crypto'
+* For SSD - 'block', 'zero', 'crypto'
+
+The default erase pattern are, for HDD, 'overwrite' and for SSD, 'block'.
+
+
+.. note::
+   In average 300GB HDD with default pattern "overwrite" would take approx.
+   9 hours and 300GB SSD with default pattern "block" would take approx. 30
+   seconds to complete the erase.
 
 .. _`ssacli documentation`: https://support.hpe.com/hpsc/doc/public/display?docId=c03909334
 .. _`proliant-tools`: https://docs.openstack.org/diskimage-builder/latest/elements/proliant-tools/README.html
