@@ -242,10 +242,12 @@ class ConductorManager(base_manager.BaseConductorManager):
             if ('resource_class' in delta and task.node.resource_class
                     and task.node.provision_state
                     not in allowed_update_states):
+                action = _("Node %(node)s can not have resource_class "
+                           "updated unless it is in one of allowed "
+                           "(%(allowed)s) states.")
                 raise exception.InvalidState(
                     action % {'node': node_obj.uuid,
-                              'allowed': ', '.join(allowed_update_states),
-                              'field': 'resource_class'})
+                              'allowed': ', '.join(allowed_update_states)})
 
             if ('instance_uuid' in delta and task.node.allocation_id
                     and not node_obj.instance_uuid):
