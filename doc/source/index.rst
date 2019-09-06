@@ -100,8 +100,10 @@ Release Notes
 
 `Release Notes <https://docs.openstack.org/releasenotes/ironic/>`_
 
-Indices and tables
-==================
+.. only:: html
 
-* :ref:`genindex`
-* :ref:`search`
+   Indices and tables
+   ==================
+
+   * :ref:`genindex`
+   * :ref:`search`

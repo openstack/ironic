@@ -11,6 +11,15 @@ situation.
   :maxdepth: 1
 
   Configuration Options <config>
-  Sample Config File <sample-config>
   Policies <policy>
-  Sample Policy File <sample-policy>
+
+.. only:: html
+
+   Sample files
+   ------------
+
+   .. toctree::
+      :maxdepth: 1
+
+      Sample Config File <sample-config>
+      Sample Policy File <sample-policy>
