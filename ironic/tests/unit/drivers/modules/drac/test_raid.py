@@ -362,8 +362,7 @@ class DracManageVirtualDisksTestCase(test_utils.BaseDracTest):
                                          substep=substep)
 
         self.assertEqual(0, mock_commit_config.call_count)
-        self.assertEqual([],
-                         self.node.driver_internal_info['raid_config_job_ids'])
+        self.assertNotIn('raid_config_job_ids', self.node.driver_internal_info)
         self.assertEqual(substep,
                          self.node.driver_internal_info['raid_config_substep'])
 
@@ -1701,6 +1700,71 @@ class DracRaidInterfaceTestCase(test_utils.BaseDracTest):
         self.node.clean_step = None
         self.node.save()
         self._test_delete_configuration(states.DEPLOYWAIT)
+
+    @mock.patch.object(drac_common, 'get_drac_client', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(drac_raid, 'list_raid_controllers', autospec=True)
+    @mock.patch.object(drac_job, 'validate_job_queue', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(drac_raid, 'commit_config', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(drac_raid, '_reset_raid_config', spec_set=True,
+                       autospec=True)
+    def test_delete_configuration_with_non_realtime_controller(
+            self, mock__reset_raid_config, mock_commit_config,
+            mock_validate_job_queue, mock_list_raid_controllers,
+            mock_get_drac_client):
+        mock_client = mock.Mock()
+        mock_get_drac_client.return_value = mock_client
+        expected_raid_config_params = ['AHCI.Slot.3-1', 'RAID.Integrated.1-1']
+        mix_controllers = [{'id': 'AHCI.Slot.3-1',
+                            'description': 'AHCI controller in slot 3',
+                            'manufacturer': 'DELL',
+                            'model': 'BOSS-S1',
+                            'primary_status': 'unknown',
+                            'firmware_version': '2.5.13.3016',
+                            'bus': '5E',
+                            'supports_realtime': False},
+                           {'id': 'RAID.Integrated.1-1',
+                            'description': 'Integrated RAID Controller 1',
+                            'manufacturer': 'DELL',
+                            'model': 'PERC H740 Mini',
+                            'primary_status': 'unknown',
+                            'firmware_version': '50.5.0-1750',
+                            'bus': '3C',
+                            'supports_realtime': True}]
+
+        mock_list_raid_controllers.return_value = [
+            test_utils.make_raid_controller(controller) for
+            controller in mix_controllers]
+
+        mock_commit_config.side_effect = ['42', '12']
+        mock__reset_raid_config.side_effect = [{
+            'is_reboot_required': constants.RebootRequired.optional,
+            'is_commit_required': True
+        }, {
+            'is_reboot_required': constants.RebootRequired.true,
+            'is_commit_required': True
+        }]
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            return_value = task.driver.raid.delete_configuration(task)
+
+            mock_commit_config.assert_has_calls(
+                [mock.call(mock.ANY, raid_controller='AHCI.Slot.3-1',
+                           reboot=False, realtime=False),
+                 mock.call(mock.ANY, raid_controller='RAID.Integrated.1-1',
+                           reboot=True, realtime=False)],
+                any_order=True)
+
+        self.assertEqual(states.CLEANWAIT, return_value)
+        self.node.refresh()
+        self.assertEqual(expected_raid_config_params,
+                         self.node.driver_internal_info[
+                             'raid_config_parameters'])
+        self.assertEqual(['42', '12'],
+                         self.node.driver_internal_info['raid_config_job_ids'])
 
     @mock.patch.object(drac_common, 'get_drac_client', spec_set=True,
                        autospec=True)

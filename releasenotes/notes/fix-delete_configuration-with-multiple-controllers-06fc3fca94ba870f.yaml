@@ -1,0 +1,9 @@
+fixes:
+  - |
+    Fixes a bug in the ``idrac`` hardware type where a race condition
+    can occur on a host that has a mix of controllers where some support
+    realtime mode and some do not. The approach is to use only realtime
+    mode if all controllers support realtime. This removes the race
+    condition.
+    See bug `2006502 https://storyboard.openstack.org/#!/story/2006502`
+    for details
