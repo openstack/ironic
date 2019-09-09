@@ -232,6 +232,7 @@ CUSTOM_SCHEMA_RAID_CONFIG = '''
 
 CUSTOM_RAID_SCHEMA = '''
 {
+    "$schema": "http://json-schema.org/draft-04/schema#",
     "type": "object",
     "properties": {
         "logical_disks": {
