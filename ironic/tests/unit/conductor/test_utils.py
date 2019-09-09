@@ -915,6 +915,11 @@ class DeployingErrorHandlerTestCase(tests_base.TestCase):
                           self.task)
 
     def test_deploying_error_handler(self):
+        info = self.node.driver_internal_info
+        info['deploy_step_index'] = 2
+        info['deployment_reboot'] = True
+        info['deployment_polling'] = True
+        info['skip_current_deploy_step'] = True
         conductor_utils.deploying_error_handler(self.task, self.logmsg,
                                                 self.errmsg)
 
@@ -924,6 +929,9 @@ class DeployingErrorHandlerTestCase(tests_base.TestCase):
         self.assertEqual({}, self.node.deploy_step)
         self.assertNotIn('deploy_step_index', self.node.driver_internal_info)
         self.assertNotIn('deployment_reboot', self.node.driver_internal_info)
+        self.assertNotIn('deployment_polling', self.node.driver_internal_info)
+        self.assertNotIn('skip_current_deploy_step',
+                         self.node.driver_internal_info)
         self.task.process_event.assert_called_once_with('fail')
 
     def _test_deploying_error_handler_cleanup(self, exc, expected_str):
@@ -1049,12 +1057,18 @@ class ErrorHandlersTestCase(tests_base.TestCase):
         self.node.clean_step = {'key': 'val'}
         self.node.driver_internal_info = {
             'cleaning_reboot': True,
+            'cleaning_polling': True,
+            'skip_current_clean_step': True,
             'clean_step_index': 0}
         msg = 'error bar'
         conductor_utils.cleaning_error_handler(self.task, msg)
         self.node.save.assert_called_once_with()
         self.assertEqual({}, self.node.clean_step)
         self.assertNotIn('clean_step_index', self.node.driver_internal_info)
+        self.assertNotIn('cleaning_reboot', self.node.driver_internal_info)
+        self.assertNotIn('cleaning_polling', self.node.driver_internal_info)
+        self.assertNotIn('skip_current_clean_step',
+                         self.node.driver_internal_info)
         self.assertEqual(msg, self.node.last_error)
         self.assertTrue(self.node.maintenance)
         self.assertEqual(msg, self.node.maintenance_reason)

@@ -1,0 +1,8 @@
+---
+fixes:
+  - |
+    Fixes an issue with asynchronous deploy steps that poll for completion
+    where the step could fail to execute.  The ``deployment_polling`` and
+    ``cleaning_polling`` flags may be used by driver implementations to signal
+    that the driver is polling for completion.  See `story 2003817
+    <https://storyboard.openstack.org/#!/story/2003817>`__ for details.
