@@ -15,6 +15,8 @@ Modules required to work with ironic_inspector:
     https://pypi.org/project/ironic-inspector
 """
 
+import shlex
+
 import eventlet
 from futurist import periodics
 import openstack
@@ -24,7 +26,9 @@ from ironic.common import exception
 from ironic.common.i18n import _
 from ironic.common import keystone
 from ironic.common import states
+from ironic.common import utils
 from ironic.conductor import task_manager
+from ironic.conductor import utils as cond_utils
 from ironic.conf import CONF
 from ironic.drivers import base
 
@@ -32,6 +36,8 @@ from ironic.drivers import base
 LOG = logging.getLogger(__name__)
 
 _INSPECTOR_SESSION = None
+# Internal field to mark whether ironic or inspector manages boot for the node
+_IRONIC_MANAGES_BOOT = 'inspector_manage_boot'
 
 
 def _get_inspector_session(**kwargs):
@@ -62,6 +68,124 @@ def _get_client(context):
         oslo_conf=conf).baremetal_introspection
 
 
+def _get_callback_endpoint(client):
+    root = CONF.inspector.callback_endpoint_override or client.get_endpoint()
+    if root == 'mdns':
+        return root
+    root = root.rstrip('/')
+    # NOTE(dtantsur): the IPA side is quite picky about the exact format.
+    if root.endswith('/v1'):
+        return '%s/continue' % root
+    else:
+        return '%s/v1/continue' % root
+
+
+def _tear_down_managed_boot(task):
+    errors = []
+
+    ironic_manages_boot = utils.pop_node_nested_field(
+        task.node, 'driver_internal_info', _IRONIC_MANAGES_BOOT)
+    if not ironic_manages_boot:
+        return errors
+
+    try:
+        task.driver.boot.clean_up_ramdisk(task)
+    except Exception as exc:
+        errors.append(_('unable to clean up ramdisk boot: %s') % exc)
+        LOG.exception('Unable to clean up ramdisk boot for node %s',
+                      task.node.uuid)
+    try:
+        task.driver.network.remove_inspection_network(task)
+    except Exception as exc:
+        errors.append(_('unable to remove inspection ports: %s') % exc)
+        LOG.exception('Unable to remove inspection network for node %s',
+                      task.node.uuid)
+
+    if CONF.inspector.power_off:
+        try:
+            cond_utils.node_power_action(task, states.POWER_OFF)
+        except Exception as exc:
+            errors.append(_('unable to power off the node: %s') % exc)
+            LOG.exception('Unable to power off node %s', task.node.uuid)
+
+    return errors
+
+
+def _inspection_error_handler(task, error, raise_exc=False, clean_up=True):
+    if clean_up:
+        _tear_down_managed_boot(task)
+
+    task.node.last_error = error
+    if raise_exc:
+        task.node.save()
+        raise exception.HardwareInspectionFailure(error=error)
+    else:
+        task.process_event('fail')
+
+
+def _ironic_manages_boot(task, raise_exc=False):
+    """Whether ironic should manage boot for this node."""
+    try:
+        task.driver.boot.validate_inspection(task)
+    except exception.UnsupportedDriverExtension as e:
+        LOG.debug('The boot interface %(iface)s of the node %(node)s does '
+                  'not support managed boot for in-band inspection or '
+                  'the required options are not populated: %(exc)s',
+                  {'node': task.node.uuid,
+                   'iface': task.node.boot_interface,
+                   'exc': e})
+        if raise_exc:
+            raise
+        return False
+
+    try:
+        task.driver.network.validate_inspection(task)
+    except exception.UnsupportedDriverExtension as e:
+        LOG.debug('The network interface %(iface)s of the node %(node)s does '
+                  'not support managed boot for in-band inspection or '
+                  'the required options are not populated: %(exc)s',
+                  {'node': task.node.uuid,
+                   'iface': task.node.network_interface,
+                   'exc': e})
+        if raise_exc:
+            raise
+        return False
+
+    return True
+
+
+def _parse_kernel_params():
+    """Parse kernel params from the configuration."""
+    result = {}
+    for s in shlex.split(CONF.inspector.extra_kernel_params):
+        try:
+            key, value = s.split('=', 1)
+        except ValueError:
+            raise exception.InvalidParameterValue(
+                _('Invalid key-value pair in extra_kernel_params: %s') % s)
+        result[key] = value
+    return result
+
+
+def _start_managed_inspection(task):
+    """Start inspection managed by ironic."""
+    try:
+        client = _get_client(task.context)
+        endpoint = _get_callback_endpoint(client)
+        params = dict(_parse_kernel_params(),
+                      **{'ipa-inspection-callback-url': endpoint})
+
+        task.driver.network.add_inspection_network(task)
+        task.driver.boot.prepare_ramdisk(task, ramdisk_params=params)
+        client.start_introspection(task.node.uuid, manage_boot=False)
+        cond_utils.node_power_action(task, states.REBOOT)
+    except Exception as exc:
+        LOG.exception('Unable to start managed inspection for node %(uuid)s: '
+                      '%(err)s', {'uuid': task.node.uuid, 'err': exc})
+        error = _('unable to start inspection: %s') % exc
+        _inspection_error_handler(task, error, raise_exc=True)
+
+
 class Inspector(base.InspectInterface):
     """In-band inspection via ironic-inspector project."""
 
@@ -78,10 +202,11 @@ class Inspector(base.InspectInterface):
         If invalid, raises an exception; otherwise returns None.
 
         :param task: a task from TaskManager.
+        :raises: UnsupportedDriverExtension
         """
-        # NOTE(deva): this is not callable if inspector is disabled
-        #             so don't raise an exception -- just pass.
-        pass
+        _parse_kernel_params()
+        if CONF.inspector.require_managed_boot:
+            _ironic_manages_boot(task, raise_exc=True)
 
     def inspect_hardware(self, task):
         """Inspect hardware to obtain the hardware properties.
@@ -91,14 +216,29 @@ class Inspector(base.InspectInterface):
 
         :param task: a task from TaskManager.
         :returns: states.INSPECTWAIT
+        :raises: HardwareInspectionFailure on failure
         """
-        LOG.debug('Starting inspection for node %(uuid)s using '
-                  'ironic-inspector', {'uuid': task.node.uuid})
+        ironic_manages_boot = _ironic_manages_boot(
+            task, raise_exc=CONF.inspector.require_managed_boot)
 
-        # NOTE(dtantsur): we're spawning a short-living green thread so that
-        # we can release a lock as soon as possible and allow ironic-inspector
-        # to operate on a node.
-        eventlet.spawn_n(_start_inspection, task.node.uuid, task.context)
+        utils.set_node_nested_field(task.node, 'driver_internal_info',
+                                    _IRONIC_MANAGES_BOOT,
+                                    ironic_manages_boot)
+        task.node.save()
+
+        LOG.debug('Starting inspection for node %(uuid)s using '
+                  'ironic-inspector, booting is managed by %(project)s',
+                  {'uuid': task.node.uuid,
+                   'project': 'ironic' if ironic_manages_boot
+                   else 'ironic-inspector'})
+
+        if ironic_manages_boot:
+            _start_managed_inspection(task)
+        else:
+            # NOTE(dtantsur): spawning a short-living green thread so that
+            # we can release a lock as soon as possible and allow
+            # ironic-inspector to operate on the node.
+            eventlet.spawn_n(_start_inspection, task.node.uuid, task.context)
         return states.INSPECTWAIT
 
     def abort(self, task):
@@ -133,16 +273,16 @@ def _start_inspection(node_uuid, context):
     try:
         _get_client(context).start_introspection(node_uuid)
     except Exception as exc:
-        LOG.exception('Exception during contacting ironic-inspector '
-                      'for inspection of node %(node)s: %(err)s',
-                      {'node': node_uuid, 'err': exc})
+        LOG.error('Error contacting ironic-inspector for inspection of node '
+                  '%(node)s: %(cls)s: %(err)s',
+                  {'node': node_uuid, 'cls': type(exc).__name__, 'err': exc})
         # NOTE(dtantsur): if acquire fails our last option is to rely on
         # timeout
         lock_purpose = 'recording hardware inspection error'
         with task_manager.acquire(context, node_uuid,
                                   purpose=lock_purpose) as task:
-            task.node.last_error = _('Failed to start inspection: %s') % exc
-            task.process_event('fail')
+            error = _('Failed to start inspection: %s') % exc
+            _inspection_error_handler(task, error)
     else:
         LOG.info('Node %s was sent to inspection to ironic-inspector',
                  node_uuid)
@@ -180,9 +320,21 @@ def _check_status(task):
     if status.error:
         LOG.error('Inspection failed for node %(uuid)s with error: %(err)s',
                   {'uuid': node.uuid, 'err': status.error})
-        node.last_error = (_('ironic-inspector inspection failed: %s')
-                           % status.error)
-        task.process_event('fail')
+        error = _('ironic-inspector inspection failed: %s') % status.error
+        _inspection_error_handler(task, error)
     elif status.is_finished:
-        LOG.info('Inspection finished successfully for node %s', node.uuid)
+        _clean_up(task)
+
+
+def _clean_up(task):
+    errors = _tear_down_managed_boot(task)
+    if errors:
+        errors = ', '.join(errors)
+        LOG.error('Inspection clean up failed for node %(uuid)s: %(err)s',
+                  {'uuid': task.node.uuid, 'err': errors})
+        msg = _('Inspection clean up failed: %s') % errors
+        _inspection_error_handler(task, msg, raise_exc=False, clean_up=False)
+    else:
+        LOG.info('Inspection finished successfully for node %s',
+                 task.node.uuid)
         task.process_event('done')

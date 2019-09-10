@@ -1,0 +1,19 @@
+---
+features:
+  - |
+    It's now possible to force booting for in-band inspection to be managed
+    by ironic by setting the new ``[inspector]require_managed_boot`` option
+    to ``True``. In-band inspection will fail if the node's driver does not
+    support managing boot for it.
+other:
+  - |
+    Boot and network interface implementations can now manage boot for in-band
+    inspection by implementing the new methods:
+
+    * ``BootInterface.validate_inspection``
+    * ``NetworkInterface.validate_inspection``
+    * ``NetworkInterface.add_inspection_network``
+    * ``NetworkInterface.remove_inspection_network``
+
+    Previously only ironic-inspector itself could manage boot for it. This
+    change opens a way for non-PXE implementations of in-band inspection.

@@ -119,3 +119,10 @@ class NoopNetwork(base.NetworkInterface):
         :param task: A TaskManager instance.
         """
         pass
+
+    def validate_inspection(self, task):
+        """Validate that the node has required properties for inspection.
+
+        :param task: A TaskManager instance with the node being checked
+        """
+        pass
