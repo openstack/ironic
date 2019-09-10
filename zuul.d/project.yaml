@@ -33,8 +33,6 @@
             voting: false
         - ironic-inspector-tempest:
             voting: false
-        - ironic-inspector-tempest-discovery-fast-track:
-            voting: false
         - bifrost-integration-tinyipa-ubuntu-xenial:
             voting: false
         - metalsmith-integration-glance-localboot-centos7:
@@ -60,3 +58,7 @@
         - ironic-tempest-ipa-partition-bios-agent_ipmitool-tinyipa-indirect
         - ironic-tempest-bfv
         - ironic-tempest-ipa-partition-uefi-pxe-grub2
+    experimental:
+      jobs:
+        - ironic-inspector-tempest-discovery-fast-track:
+            voting: false
