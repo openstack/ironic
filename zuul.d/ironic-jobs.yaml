@@ -110,6 +110,10 @@
         IRONIC_RPC_TRANSPORT: json-rpc
         IRONIC_VM_COUNT: 6
         IRONIC_VM_VOLUME_COUNT: 2
+        # We're using a lot of disk space in this job. Some testing nodes have
+        # a small root partition, so use /opt which is mounted from a bigger
+        # ephemeral partition on such nodes
+        LIBVIRT_STORAGE_POOL_PATH: /opt/libvirt/images
         SWIFT_ENABLE_TEMPURLS: True
         SWIFT_TEMPURL_KEY: secretkey
       devstack_services:
@@ -400,6 +404,10 @@
         TEMPEST_PLUGINS: "{{ ansible_user_dir }}/src/opendev.org/openstack/ironic-tempest-plugin"
         TENANT_VLAN_RANGE: 100:150
         VIRT_DRIVER: ironic
+        # We're using a lot of disk space in this job. Some testing nodes have
+        # a small root partition, so use /opt which is mounted from a bigger
+        # ephemeral partition on such nodes
+        LIBVIRT_STORAGE_POOL_PATH: /opt/libvirt/images
       devstack_plugins:
         ironic: https://opendev.org/openstack/ironic
         networking-generic-switch: https://opendev.org/openstack/networking-generic-switch

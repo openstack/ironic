@@ -12,7 +12,7 @@ export PS4='+ ${BASH_SOURCE:-}:${FUNCNAME[0]:-}:L${LINENO:-}:   '
 # Keep track of the DevStack directory
 TOP_DIR=$(cd $(dirname "$0")/.. && pwd)
 
-while getopts "n:c:i:m:M:d:a:b:e:E:p:o:f:l:L:N:A:D:v:" arg; do
+while getopts "n:c:i:m:M:d:a:b:e:E:p:o:f:l:L:N:A:D:v:P:" arg; do
     case $arg in
         n) NAME=$OPTARG;;
         c) CPU=$OPTARG;;
@@ -35,6 +35,7 @@ while getopts "n:c:i:m:M:d:a:b:e:E:p:o:f:l:L:N:A:D:v:" arg; do
         A) MAC_ADDRESS=$OPTARG;;
         D) NIC_DRIVER=$OPTARG;;
         v) VOLUME_COUNT=$OPTARG;;
+        P) STORAGE_POOL=$OPTARG;;
     esac
 done
 
@@ -46,22 +47,10 @@ if [ -z "$UEFI_LOADER" ] && [ ! -z "$UEFI_NVRAM" ]; then
 fi
 
 LIBVIRT_NIC_DRIVER=${NIC_DRIVER:-"e1000"}
-LIBVIRT_STORAGE_POOL=${LIBVIRT_STORAGE_POOL:-"default"}
+LIBVIRT_STORAGE_POOL=${STORAGE_POOL:-"default"}
 LIBVIRT_CONNECT_URI=${LIBVIRT_CONNECT_URI:-"qemu:///system"}
 
 export VIRSH_DEFAULT_CONNECT_URI=$LIBVIRT_CONNECT_URI
-
-if ! virsh pool-list --all | grep -q $LIBVIRT_STORAGE_POOL; then
-    virsh pool-define-as --name $LIBVIRT_STORAGE_POOL dir --target /var/lib/libvirt/images >&2
-    virsh pool-autostart $LIBVIRT_STORAGE_POOL >&2
-    virsh pool-start $LIBVIRT_STORAGE_POOL >&2
-fi
-
-pool_state=$(virsh pool-info $LIBVIRT_STORAGE_POOL | grep State | awk '{ print $2 }')
-if [ "$pool_state" != "running" ] ; then
-    [ ! -d /var/lib/libvirt/images ] && sudo mkdir /var/lib/libvirt/images
-    virsh pool-start $LIBVIRT_STORAGE_POOL >&2
-fi
 
 if [ -n "$LOGDIR" ] ; then
     mkdir -p "$LOGDIR"
