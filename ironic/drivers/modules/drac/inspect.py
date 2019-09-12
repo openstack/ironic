@@ -26,6 +26,7 @@ from ironic.common import states
 from ironic.common import utils
 from ironic.drivers import base
 from ironic.drivers.modules.drac import common as drac_common
+from ironic.drivers.modules.redfish import inspect as redfish_inspect
 from ironic import objects
 
 drac_exceptions = importutils.try_import('dracclient.exceptions')
@@ -33,6 +34,17 @@ drac_exceptions = importutils.try_import('dracclient.exceptions')
 LOG = logging.getLogger(__name__)
 
 METRICS = metrics_utils.get_metrics_logger(__name__)
+
+
+class DracRedfishInspect(redfish_inspect.RedfishInspect):
+    """iDRAC Redfish interface for inspection-related actions.
+
+    Presently, this class entirely defers to its base class, a generic,
+    vendor-independent Redfish interface. Future resolution of Dell EMC-
+    specific incompatibilities and introduction of vendor value added
+    should be implemented by this class.
+    """
+    pass
 
 
 class DracWSManInspect(base.InspectInterface):

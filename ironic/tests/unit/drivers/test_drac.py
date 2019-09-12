@@ -31,11 +31,12 @@ class IDRACHardwareTestCase(db_base.DbTestCase):
         super(IDRACHardwareTestCase, self).setUp()
         self.config(enabled_hardware_types=['idrac'],
                     enabled_management_interfaces=[
-                        'idrac', 'idrac-wsman', 'idrac-redfish'],
+                        'idrac', 'idrac-redfish', 'idrac-wsman'],
                     enabled_power_interfaces=[
-                        'idrac', 'idrac-wsman', 'idrac-redfish'],
+                        'idrac', 'idrac-redfish', 'idrac-wsman'],
                     enabled_inspect_interfaces=[
-                        'idrac', 'idrac-wsman', 'inspector', 'no-inspect'],
+                        'idrac', 'idrac-redfish', 'idrac-wsman', 'inspector',
+                        'no-inspect'],
                     enabled_network_interfaces=['flat', 'neutron', 'noop'],
                     enabled_raid_interfaces=[
                         'idrac', 'idrac-wsman', 'no-raid'],
@@ -140,3 +141,11 @@ class IDRACHardwareTestCase(db_base.DbTestCase):
                 task.driver,
                 management=drac.management.DracRedfishManagement,
                 power=drac.power.DracRedfishPower)
+
+    def test_override_with_redfish_inspect(self):
+        node = obj_utils.create_test_node(self.context, driver='idrac',
+                                          inspect_interface='idrac-redfish')
+        with task_manager.acquire(self.context, node.id) as task:
+            self._validate_interfaces(
+                task.driver,
+                inspect=drac.inspect.DracRedfishInspect)
