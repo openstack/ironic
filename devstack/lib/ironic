@@ -114,12 +114,6 @@ IRONIC_HW_ARCH=${IRONIC_HW_ARCH:-x86_64}
 # ipmi:
 #   <BMC address> <MAC address> <BMC username> <BMC password>
 #
-# cisco-ucs-standalone:
-#   <BMC address> <MAC address> <BMC username> <BMC password>
-#
-# cisco-ucs-managed:
-#   <BMC address> <MAC address> <BMC username> <BMC password> <UCS service profile>
-#
 # idrac:
 #   <BMC address> <MAC address> <BMC username> <BMC password>
 #
@@ -298,8 +292,7 @@ fi
 # are ``ipmi``, ``snmp`` and ``redfish``.
 #
 # Additional valid choices if IRONIC_IS_HARDWARE == true are:
-# ``cisco-ucs-managed``, ``cisco-ucs-standalone``, ``idrac``,
-# and ``irmc``.
+# ``idrac`` and ``irmc``.
 IRONIC_DEPLOY_DRIVER=${IRONIC_DEPLOY_DRIVER:-ipmi}
 
 # If the requested driver is not yet enable, enable it, if it is not it will fail anyway
@@ -660,16 +653,6 @@ function is_deployed_by_agent {
 
 function is_deployed_by_ipmi {
     [[ "$IRONIC_DEPLOY_DRIVER" == ipmi ]] && return 0
-    return 1
-}
-
-function is_deployed_by_cimc {
-    [[ "${IRONIC_DEPLOY_DRIVER}" == cisco-ucs-standalone ]] && return 0
-    return 1
-}
-
-function is_deployed_by_ucs {
-    [[ "${IRONIC_DEPLOY_DRIVER}" == cisco-ucs-managed ]] && return 0
     return 1
 }
 
@@ -2132,17 +2115,6 @@ function enroll_nodes {
                 node_options+=" --driver-info ipmi_address=$bmc_address \
                     --driver-info ipmi_password=$bmc_passwd \
                     --driver-info ipmi_username=$bmc_username"
-            elif is_deployed_by_cimc; then
-                node_options+=" --driver-info cimc_address=$bmc_address \
-                    --driver-info cimc_password=$bmc_passwd \
-                    --driver-info cimc_username=$bmc_username"
-            elif is_deployed_by_ucs; then
-                local ucs_service_profile
-                ucs_service_profile=$(echo $hardware_info |awk '{print $5}')
-                node_options+=" --driver-info ucs_address=$bmc_address \
-                    --driver-info ucs_password=$bmc_passwd \
-                    --driver-info ucs_username=$bmc_username \
-                    --driver-info ucs_service_profile=$ucs_service_profile"
             elif is_deployed_by_ilo; then
                 node_options+=" --driver-info ilo_address=$bmc_address \
                     --driver-info ilo_password=$bmc_passwd \

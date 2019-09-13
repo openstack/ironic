@@ -125,14 +125,6 @@ audit_middleware_notifications:
   topics = None
   transport_url = ***
 
-cimc:
-  action_interval = 10
-  max_retry = 6
-
-cisco_ucs:
-  action_interval = 5
-  max_retry = 6
-
 conductor:
   api_url = http://10.223.197.220:6385
   automated_clean = True
