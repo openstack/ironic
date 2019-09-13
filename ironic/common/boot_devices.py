@@ -46,3 +46,6 @@ WANBOOT = 'wanboot'
 
 ISCSIBOOT = 'iscsiboot'
 "Boot from iSCSI volume"
+
+FLOPPY = 'floppy'
+"Boot from a floppy drive"

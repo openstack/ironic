@@ -862,7 +862,8 @@ class RedfishVirtualMediaBoot(base.BootInterface):
         boot device.
 
         :param task: a TaskManager instance.
-        :param device: Boot device. Values are vendor-specific.
+        :param device: the boot device, one of
+                       :mod:`ironic.common.boot_devices`.
         :param persistent: Whether to set next-boot, or make the change
             permanent. Default: False.
         :raises: InvalidParameterValue if the validation of the
