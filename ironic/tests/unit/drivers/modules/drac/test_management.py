@@ -248,15 +248,17 @@ class DracManagementInternalMethodsTestCase(test_utils.BaseDracTest):
                        spec_set=True, autospec=True)
     @mock.patch.object(drac_mgmt, '_get_boot_device', spec_set=True,
                        autospec=True)
-    @mock.patch.object(drac_job, 'validate_job_queue', spec_set=True,
+    @mock.patch.object(drac_job, 'list_unfinished_jobs', spec_set=True,
                        autospec=True)
-    def test_set_boot_device(self, mock_validate_job_queue,
+    def test_set_boot_device(self, mock_list_unfinished_jobs,
                              mock__get_boot_device,
                              mock__get_next_persistent_boot_mode,
                              mock_get_drac_client):
         mock_client = mock.Mock()
         mock_get_drac_client.return_value = mock_client
         mock_client.list_boot_devices.return_value = self.boot_devices['IPL']
+        mock_list_unfinished_jobs.return_value = []
+
         mock_job = mock.Mock()
         mock_job.status = "Scheduled"
         mock_client.get_job.return_value = mock_job
@@ -269,7 +271,7 @@ class DracManagementInternalMethodsTestCase(test_utils.BaseDracTest):
         boot_device = drac_mgmt.set_boot_device(
             self.node, ironic.common.boot_devices.PXE, persistent=False)
 
-        mock_validate_job_queue.assert_called_once_with(self.node)
+        mock_list_unfinished_jobs.assert_called_once_with(self.node)
         mock_client.change_boot_device_order.assert_called_once_with(
             'OneTime', 'BIOS.Setup.1-1#BootSeq#NIC.Embedded.1-1-1')
         self.assertEqual(0, mock_client.set_bios_settings.call_count)
@@ -279,10 +281,10 @@ class DracManagementInternalMethodsTestCase(test_utils.BaseDracTest):
                        spec_set=True, autospec=True)
     @mock.patch.object(drac_mgmt, '_get_boot_device', spec_set=True,
                        autospec=True)
-    @mock.patch.object(drac_job, 'validate_job_queue', spec_set=True,
+    @mock.patch.object(drac_job, 'list_unfinished_jobs', spec_set=True,
                        autospec=True)
     def test_set_boot_device_called_with_no_change(
-            self, mock_validate_job_queue, mock__get_boot_device,
+            self, mock_list_unfinished_jobs, mock__get_boot_device,
             mock__get_next_persistent_boot_mode, mock_get_drac_client):
         mock_client = mock.Mock()
         mock_get_drac_client.return_value = mock_client
@@ -291,11 +293,12 @@ class DracManagementInternalMethodsTestCase(test_utils.BaseDracTest):
                        'persistent': True}
         mock__get_boot_device.return_value = boot_device
         mock__get_next_persistent_boot_mode.return_value = 'IPL'
+        mock_list_unfinished_jobs.return_value = []
 
         boot_device = drac_mgmt.set_boot_device(
             self.node, ironic.common.boot_devices.PXE, persistent=True)
 
-        mock_validate_job_queue.assert_called_once_with(self.node)
+        mock_list_unfinished_jobs.assert_called_once_with(self.node)
         self.assertEqual(0, mock_client.change_boot_device_order.call_count)
         self.assertEqual(0, mock_client.set_bios_settings.call_count)
         self.assertEqual(0, mock_client.commit_pending_bios_changes.call_count)
@@ -308,17 +311,18 @@ class DracManagementInternalMethodsTestCase(test_utils.BaseDracTest):
                        spec_set=True, autospec=True)
     @mock.patch.object(drac_mgmt, '_get_boot_device', spec_set=True,
                        autospec=True)
-    @mock.patch.object(drac_job, 'validate_job_queue', spec_set=True,
+    @mock.patch.object(drac_job, 'list_unfinished_jobs', spec_set=True,
                        autospec=True)
     def test_set_boot_device_called_with_no_drac_boot_device(
-            self, mock_validate_job_queue, mock__get_boot_device,
-            mock__get_next_persistent_boot_mode,
+            self, mock_list_unfinished_jobs,
+            mock__get_boot_device, mock__get_next_persistent_boot_mode,
             mock__is_boot_order_flexibly_programmable,
             mock__flexibly_program_boot_order,
             mock_get_drac_client):
         mock_client = mock.Mock()
         mock_get_drac_client.return_value = mock_client
         mock_client.list_boot_devices.return_value = self.boot_devices['UEFI']
+        mock_list_unfinished_jobs.return_value = []
 
         mock_job = mock.Mock()
         mock_job.status = "Scheduled"
@@ -354,7 +358,7 @@ class DracManagementInternalMethodsTestCase(test_utils.BaseDracTest):
         drac_mgmt.set_boot_device(self.node, ironic.common.boot_devices.DISK,
                                   persistent=True)
 
-        mock_validate_job_queue.assert_called_once_with(self.node)
+        mock_list_unfinished_jobs.assert_called_once_with(self.node)
         self.assertEqual(0, mock_client.change_boot_device_order.call_count)
         mock_client.set_bios_settings.assert_called_once_with(
             flexibly_program_settings)
@@ -366,15 +370,16 @@ class DracManagementInternalMethodsTestCase(test_utils.BaseDracTest):
                        spec_set=True, autospec=True)
     @mock.patch.object(drac_mgmt, '_get_boot_device', spec_set=True,
                        autospec=True)
-    @mock.patch.object(drac_job, 'validate_job_queue', spec_set=True,
+    @mock.patch.object(drac_job, 'list_unfinished_jobs', spec_set=True,
                        autospec=True)
     def test_set_boot_device_called_with_not_flexibly_programmable(
-            self, mock_validate_job_queue, mock__get_boot_device,
-            mock__get_next_persistent_boot_mode,
+            self, mock_list_unfinished_jobs,
+            mock__get_boot_device, mock__get_next_persistent_boot_mode,
             mock__is_boot_order_flexibly_programmable,
             mock_get_drac_client):
         mock_client = mock.Mock()
         mock_get_drac_client.return_value = mock_client
+        mock_list_unfinished_jobs.return_value = []
         mock_client.list_boot_devices.return_value = self.boot_devices['UEFI']
         boot_device = {'boot_device': ironic.common.boot_devices.PXE,
                        'persistent': False}
@@ -386,7 +391,7 @@ class DracManagementInternalMethodsTestCase(test_utils.BaseDracTest):
                           drac_mgmt.set_boot_device, self.node,
                           ironic.common.boot_devices.CDROM, persistent=False)
 
-        mock_validate_job_queue.assert_called_once_with(self.node)
+        mock_list_unfinished_jobs.assert_called_once_with(self.node)
         self.assertEqual(0, mock_client.change_boot_device_order.call_count)
         self.assertEqual(0, mock_client.set_bios_settings.call_count)
         self.assertEqual(0, mock_client.commit_pending_bios_changes.call_count)
@@ -397,15 +402,16 @@ class DracManagementInternalMethodsTestCase(test_utils.BaseDracTest):
                        spec_set=True, autospec=True)
     @mock.patch.object(drac_mgmt, '_get_boot_device', spec_set=True,
                        autospec=True)
-    @mock.patch.object(drac_job, 'validate_job_queue', spec_set=True,
+    @mock.patch.object(drac_job, 'list_unfinished_jobs', spec_set=True,
                        autospec=True)
     def test_set_boot_device_called_with_unknown_boot_mode(
-            self, mock_validate_job_queue, mock__get_boot_device,
+            self, mock_list_unfinished_jobs, mock__get_boot_device,
             mock__get_next_persistent_boot_mode,
             mock__is_boot_order_flexibly_programmable,
             mock_get_drac_client):
         mock_client = mock.Mock()
         mock_get_drac_client.return_value = mock_client
+
         mock_client.list_boot_devices.return_value = self.boot_devices['UEFI']
         boot_device = {'boot_device': ironic.common.boot_devices.PXE,
                        'persistent': False}
@@ -426,29 +432,11 @@ class DracManagementInternalMethodsTestCase(test_utils.BaseDracTest):
                 values=s) for s in settings}
         mock_client.list_bios_settings.return_value = bios_settings
         mock__is_boot_order_flexibly_programmable.return_value = True
-
+        mock_list_unfinished_jobs.return_value = []
         self.assertRaises(exception.DracOperationError,
                           drac_mgmt.set_boot_device, self.node,
                           ironic.common.boot_devices.DISK, persistent=True)
-
-        mock_validate_job_queue.assert_called_once_with(self.node)
-        self.assertEqual(0, mock_client.change_boot_device_order.call_count)
-        self.assertEqual(0, mock_client.set_bios_settings.call_count)
-        self.assertEqual(0, mock_client.commit_pending_bios_changes.call_count)
-
-    @mock.patch.object(drac_job, 'validate_job_queue', spec_set=True,
-                       autospec=True)
-    def test_set_boot_device_with_invalid_job_queue(
-            self, mock_validate_job_queue, mock_get_drac_client):
-        mock_client = mock.Mock()
-        mock_get_drac_client.return_value = mock_client
-        mock_validate_job_queue.side_effect = exception.DracOperationError(
-            'boom')
-
-        self.assertRaises(exception.DracOperationError,
-                          drac_mgmt.set_boot_device, self.node,
-                          ironic.common.boot_devices.PXE, persistent=True)
-
+        mock_list_unfinished_jobs.assert_called_once_with(self.node)
         self.assertEqual(0, mock_client.change_boot_device_order.call_count)
         self.assertEqual(0, mock_client.set_bios_settings.call_count)
         self.assertEqual(0, mock_client.commit_pending_bios_changes.call_count)
@@ -459,11 +447,11 @@ class DracManagementInternalMethodsTestCase(test_utils.BaseDracTest):
                        spec_set=True, autospec=True)
     @mock.patch.object(drac_mgmt, '_get_boot_device', spec_set=True,
                        autospec=True)
-    @mock.patch.object(drac_job, 'validate_job_queue', spec_set=True,
+    @mock.patch.object(drac_job, 'list_unfinished_jobs', spec_set=True,
                        autospec=True)
     def test_set_boot_device_job_not_scheduled(
             self,
-            mock_validate_job_queue,
+            mock_list_unfinished_jobs,
             mock__get_boot_device,
             mock__get_next_persistent_boot_mode,
             mock_sleep,
@@ -471,6 +459,7 @@ class DracManagementInternalMethodsTestCase(test_utils.BaseDracTest):
             mock_get_drac_client):
         mock_client = mock.Mock()
         mock_get_drac_client.return_value = mock_client
+        mock_list_unfinished_jobs.return_value = []
         mock_client.list_boot_devices.return_value = self.boot_devices['IPL']
         mock_job = mock.Mock()
         mock_job.status = "New"
@@ -486,6 +475,107 @@ class DracManagementInternalMethodsTestCase(test_utils.BaseDracTest):
                           drac_mgmt.set_boot_device, self.node,
                           ironic.common.boot_devices.PXE,
                           persistent=True)
+        mock_list_unfinished_jobs.assert_called_once_with(self.node)
+
+    @mock.patch.object(drac_job, 'list_unfinished_jobs', spec_set=True,
+                       autospec=True)
+    def test_set_boot_device_with_list_unfinished_jobs_fail(
+            self, mock_list_unfinished_jobs, mock_get_drac_client):
+        mock_client = mock.Mock()
+        mock_get_drac_client.return_value = mock_client
+
+        mock_list_unfinished_jobs.side_effect = exception.DracOperationError(
+            'boom')
+
+        self.assertRaises(exception.DracOperationError,
+                          drac_mgmt.set_boot_device, self.node,
+                          ironic.common.boot_devices.PXE, persistent=True)
+
+        self.assertEqual(0, mock_client.change_boot_device_order.call_count)
+        self.assertEqual(0, mock_client.set_bios_settings.call_count)
+        self.assertEqual(0, mock_client.commit_pending_bios_changes.call_count)
+
+    @mock.patch.object(drac_job, 'list_unfinished_jobs', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(drac_mgmt, '_get_boot_device', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(drac_mgmt, '_get_next_persistent_boot_mode',
+                       spec_set=True, autospec=True)
+    def test_set_boot_device_with_list_unfinished_jobs(
+            self, mock__get_next_persistent_boot_mode, mock__get_boot_device,
+            mock_list_unfinished_jobs, mock_get_drac_client):
+        mock_client = mock.Mock()
+        mock_get_drac_client.return_value = mock_client
+
+        bios_job_dict = {
+            'id': 'JID_602553293345',
+            'name': 'ConfigBIOS:BIOS.Setup.1-1',
+            'start_time': 'TIME_NOW',
+            'until_time': 'TIME_NA',
+            'message': 'Task successfully scheduled.',
+            'status': 'Scheduled',
+            'percent_complete': 0}
+        bios_job = test_utils.make_job(bios_job_dict)
+
+        mock_list_unfinished_jobs.return_value = [bios_job]
+        mock_client.list_boot_devices.return_value = self.boot_devices['IPL']
+        boot_device = {'boot_device': ironic.common.boot_devices.DISK,
+                       'persistent': True}
+
+        mock__get_boot_device.return_value = boot_device
+        mock__get_next_persistent_boot_mode.return_value = 'IPL'
+
+        drac_mgmt.set_boot_device(self.node, ironic.common.boot_devices.DISK,
+                                  persistent=True)
+        mock_list_unfinished_jobs.assert_called_once_with(self.node)
+        mock_client.delete_jobs.assert_called_once_with(
+            job_ids=['JID_602553293345'])
+
+    @mock.patch.object(drac_job, 'list_unfinished_jobs', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(drac_mgmt, '_get_boot_device', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(drac_mgmt, '_get_next_persistent_boot_mode',
+                       spec_set=True, autospec=True)
+    def test_set_boot_device_with_multiple_unfinished_jobs(
+            self, mock__get_next_persistent_boot_mode, mock__get_boot_device,
+            mock_list_unfinished_jobs, mock_get_drac_client):
+        mock_client = mock.Mock()
+        mock_get_drac_client.return_value = mock_client
+
+        job_dict = {
+            'id': 'JID_602553293345',
+            'name': 'Config:RAID:RAID.Integrated.1-1',
+            'start_time': 'TIME_NOW',
+            'until_time': 'TIME_NA',
+            'message': 'Task successfully scheduled.',
+            'status': 'Scheduled',
+            'percent_complete': 0}
+        job = test_utils.make_job(job_dict)
+
+        bios_job_dict = {
+            'id': 'JID_602553293346',
+            'name': 'ConfigBIOS:BIOS.Setup.1-1',
+            'start_time': 'TIME_NOW',
+            'until_time': 'TIME_NA',
+            'message': 'Task successfully scheduled.',
+            'status': 'Scheduled',
+            'percent_complete': 0}
+        bios_job = test_utils.make_job(bios_job_dict)
+
+        mock_list_unfinished_jobs.return_value = [job, bios_job]
+        mock_client.list_boot_devices.return_value = self.boot_devices['IPL']
+        boot_device = {'boot_device': ironic.common.boot_devices.DISK,
+                       'persistent': True}
+
+        mock__get_boot_device.return_value = boot_device
+        mock__get_next_persistent_boot_mode.return_value = 'IPL'
+
+        drac_mgmt.set_boot_device(self.node, ironic.common.boot_devices.DISK,
+                                  persistent=True)
+        mock_list_unfinished_jobs.assert_called_once_with(self.node)
+        mock_client.delete_jobs.assert_called_once_with(
+            job_ids=['JID_602553293346'])
 
 
 @mock.patch.object(drac_common, 'get_drac_client', spec_set=True,
@@ -596,6 +686,18 @@ class DracManagementTestCase(test_utils.BaseDracTest):
             return_value = task.driver.management.known_good_state(task)
             mock_client.reset_idrac.assert_called_once_with(
                 force=True, wait=True)
+            mock_client.delete_jobs.assert_called_once_with(
+                job_ids=['JID_CLEARALL_FORCE'])
+
+            self.assertIsNone(return_value)
+
+    def test_clear_job_queue(self, mock_get_drac_client):
+        mock_client = mock.Mock()
+        mock_get_drac_client.return_value = mock_client
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            return_value = task.driver.management.clear_job_queue(task)
             mock_client.delete_jobs.assert_called_once_with(
                 job_ids=['JID_CLEARALL_FORCE'])
 

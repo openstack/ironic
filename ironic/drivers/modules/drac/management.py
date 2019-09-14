@@ -80,6 +80,9 @@ _NON_PERSISTENT_BOOT_MODE = 'OneTime'
 # Clear job id's constant
 _CLEAR_JOB_IDS = 'JID_CLEARALL_FORCE'
 
+# BIOS pending job constant
+_BIOS_JOB_NAME = 'BIOS.Setup.1-1'
+
 
 def _get_boot_device(node, drac_boot_devices=None):
     client = drac_common.get_drac_client(node)
@@ -187,9 +190,18 @@ def set_boot_device(node, device, persistent=False):
     :raises: DracOperationError on an error from python-dracclient.
     """
 
-    drac_job.validate_job_queue(node)
-
     client = drac_common.get_drac_client(node)
+
+    # If pending BIOS job found in job queue, we need to clear that job
+    # before executing cleaning step of management interface.
+    # Otherwise, pending BIOS config job can cause creating new config jobs
+    # to fail.
+    unfinished_jobs = drac_job.list_unfinished_jobs(node)
+    if unfinished_jobs:
+        unfinished_bios_jobs = [job.id for job in unfinished_jobs if
+                                _BIOS_JOB_NAME in job.name]
+        if unfinished_bios_jobs:
+            client.delete_jobs(job_ids=unfinished_bios_jobs)
 
     try:
         drac_boot_devices = client.list_boot_devices()
@@ -414,3 +426,23 @@ class DracManagement(base.ManagementInterface):
         client = drac_common.get_drac_client(node)
         client.reset_idrac(force=True, wait=True)
         client.delete_jobs(job_ids=[_CLEAR_JOB_IDS])
+
+    @METRICS.timer('DracManagement.clear_job_queue')
+    @base.clean_step(priority=0)
+    def clear_job_queue(self, task):
+        """Clear the job queue.
+
+        :param task: a TaskManager instance containing the node to act on.
+        :returns: None if it is completed.
+        :raises: DracOperationError on an error from python-dracclient.
+        """
+        try:
+            node = task.node
+
+            client = drac_common.get_drac_client(node)
+            client.delete_jobs(job_ids=[_CLEAR_JOB_IDS])
+        except drac_exceptions.BaseClientException as exc:
+            LOG.error('DRAC driver failed to clear the job queue for node '
+                      '%(node_uuid)s. Reason: %(error)s.',
+                      {'node_uuid': node.uuid, 'error': exc})
+            raise exception.DracOperationError(error=exc)
