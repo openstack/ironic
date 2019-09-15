@@ -308,7 +308,7 @@ def create_pxe_config(task, pxe_options, template=None, ipxe_enabled=False):
         # dhcp_provider interface is set to none. This will result
         # in the MAC addresses and DHCP files being written, and
         # we can remove IP address creation for the grub use.
-        except exception.FailedToGetIPaddressesOnPort as e:
+        except exception.FailedToGetIPAddressOnPort as e:
             if CONF.dhcp.dhcp_provider != 'none':
                 with excutils.save_and_reraise_exception():
                     LOG.error('Unable to create boot config, IP address '
