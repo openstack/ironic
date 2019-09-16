@@ -788,6 +788,10 @@ def _commit_to_controllers(node, controllers, substep="completed"):
     if 'raid_config_job_ids' not in driver_internal_info:
         driver_internal_info['raid_config_job_ids'] = []
 
+    # remove controller which does not require configuration job
+    controllers = [controller for controller in controllers
+                   if controller['is_commit_required']]
+
     all_realtime = True
     optional = drac_constants.RebootRequired.optional
     for controller in controllers:
@@ -798,7 +802,6 @@ def _commit_to_controllers(node, controllers, substep="completed"):
         # controller without real time support. In that case the reboot
         # is triggered when the configuration is committed to the last
         # controller.
-
         realtime = controller['is_reboot_required'] == optional
         all_realtime = all_realtime and realtime
         if controller == controllers[-1]:
@@ -960,6 +963,8 @@ class DracWSManRAID(base.RAIDInterface):
             controller['raid_controller'] = logical_disk['controller']
             controller['is_reboot_required'] = controller_cap[
                 'is_reboot_required']
+            controller['is_commit_required'] = controller_cap[
+                'is_commit_required']
             if controller not in controllers:
                 controllers.append(controller)
 
@@ -1176,6 +1181,8 @@ class DracWSManRAID(base.RAIDInterface):
                 controller["raid_controller"] = cntrl.id
                 controller["is_reboot_required"] = controller_cap[
                     "is_reboot_required"]
+                controller["is_commit_required"] = controller_cap[
+                    "is_commit_required"]
                 controllers.append(controller)
         return controllers
 

@@ -323,6 +323,50 @@ class DracManageVirtualDisksTestCase(test_utils.BaseDracTest):
             exception.DracOperationError, drac_raid.commit_config, self.node,
             'controller1')
 
+    @mock.patch.object(drac_raid, 'commit_config', spec_set=True,
+                       autospec=True)
+    def test__commit_to_controllers_with_config_job(self, mock_commit_config,
+                                                    mock_get_drac_client):
+        controllers = [{'is_reboot_required': 'true',
+                        'is_commit_required': True,
+                        'raid_controller': 'AHCI.Slot.3-1'}]
+        substep = "delete_foreign_config"
+
+        mock_client = mock.Mock()
+        mock_get_drac_client.return_value = mock_client
+        mock_commit_config.return_value = "42"
+        drac_raid._commit_to_controllers(self.node,
+                                         controllers=controllers,
+                                         substep=substep)
+
+        self.assertEqual(1, mock_commit_config.call_count)
+        self.assertEqual(['42'],
+                         self.node.driver_internal_info['raid_config_job_ids'])
+        self.assertEqual(substep,
+                         self.node.driver_internal_info['raid_config_substep'])
+
+    @mock.patch.object(drac_raid, 'commit_config', spec_set=True,
+                       autospec=True)
+    def test__commit_to_controllers_without_config_job(
+            self, mock_commit_config, mock_get_drac_client):
+        controllers = [{'is_reboot_required': 'true',
+                        'is_commit_required': False,
+                        'raid_controller': 'AHCI.Slot.3-1'}]
+        substep = "delete_foreign_config"
+
+        mock_client = mock.Mock()
+        mock_get_drac_client.return_value = mock_client
+        mock_commit_config.return_value = None
+        drac_raid._commit_to_controllers(self.node,
+                                         controllers=controllers,
+                                         substep=substep)
+
+        self.assertEqual(0, mock_commit_config.call_count)
+        self.assertEqual([],
+                         self.node.driver_internal_info['raid_config_job_ids'])
+        self.assertEqual(substep,
+                         self.node.driver_internal_info['raid_config_substep'])
+
     def test_abandon_config(self, mock_get_drac_client):
         mock_client = mock.Mock()
         mock_get_drac_client.return_value = mock_client
