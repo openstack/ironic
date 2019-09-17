@@ -67,11 +67,14 @@ VENDOR_PROPERTIES = {
         'older deploy ramdisks. Defaults to False. Optional.')
 }
 
-__HEARTBEAT_RECORD_ONLY = (states.ENROLL, states.MANAGEABLE,
-                           states.AVAILABLE)
+__HEARTBEAT_RECORD_ONLY = (states.ENROLL, states.MANAGEABLE, states.AVAILABLE,
+                           states.CLEANING, states.DEPLOYING, states.RESCUING)
 _HEARTBEAT_RECORD_ONLY = frozenset(__HEARTBEAT_RECORD_ONLY)
 
-_HEARTBEAT_ALLOWED = (states.DEPLOYWAIT, states.CLEANWAIT, states.RESCUEWAIT)
+_HEARTBEAT_ALLOWED = (states.DEPLOYWAIT, states.CLEANWAIT, states.RESCUEWAIT,
+                      # These are allowed but don't cause any actions since
+                      # they're also in HEARTBEAT_RECORD_ONLY.
+                      states.DEPLOYING, states.CLEANING, states.RESCUING)
 HEARTBEAT_ALLOWED = frozenset(_HEARTBEAT_ALLOWED)
 
 _FASTTRACK_HEARTBEAT_ALLOWED = (states.DEPLOYWAIT, states.CLEANWAIT,
