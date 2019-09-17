@@ -13,6 +13,8 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import os
+
 import mock
 from oslo_utils import importutils
 
@@ -200,34 +202,18 @@ class RedfishVirtualMediaBootTestCase(db_base.DbTestCase):
             self.assertEqual(expected, res)
 
     @mock.patch.object(redfish_boot, 'swift', autospec=True)
-    def test__cleanup_floppy_image(self, mock_swift):
-        with task_manager.acquire(self.context, self.node.uuid,
-                                  shared=True) as task:
-            task.driver.boot._cleanup_floppy_image(task)
-
-            mock_swift.SwiftAPI.assert_called_once_with()
-            mock_swift_api = mock_swift.SwiftAPI.return_value
-
-            mock_swift_api.delete_object.assert_called_once_with(
-                'ironic_redfish_container', 'image-%s' % task.node.uuid
-            )
-
-    @mock.patch.object(redfish_boot, 'swift', autospec=True)
-    @mock.patch.object(images, 'create_vfat_image', autospec=True)
-    def test__prepare_floppy_image(self, mock_create_vfat_image, mock_swift):
+    def test__publish_image_swift(self, mock_swift):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
             mock_swift_api = mock_swift.SwiftAPI.return_value
             mock_swift_api.get_temp_url.return_value = 'https://a.b/c.f?e=f'
 
-            url = task.driver.boot._prepare_floppy_image(task)
+            url = task.driver.boot._publish_image('file.iso', 'boot.iso')
 
-            self.assertIn('filename=bootme.img', url)
+            self.assertEqual(
+                'https://a.b/c.f?e=f&filename=file.iso', url)
 
             mock_swift.SwiftAPI.assert_called_once_with()
-
-            mock_create_vfat_image.assert_called_once_with(
-                mock.ANY, parameters=mock.ANY)
 
             mock_swift_api.create_object.assert_called_once_with(
                 mock.ANY, mock.ANY, mock.ANY, mock.ANY)
@@ -236,33 +222,143 @@ class RedfishVirtualMediaBootTestCase(db_base.DbTestCase):
                 mock.ANY, mock.ANY, mock.ANY)
 
     @mock.patch.object(redfish_boot, 'swift', autospec=True)
-    def test__cleanup_iso_image(self, mock_swift):
+    def test__unpublish_image_swift(self, mock_swift):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
-            task.driver.boot._cleanup_iso_image(task)
+            object_name = 'image-%s' % task.node.uuid
+
+            task.driver.boot._unpublish_image(object_name)
 
             mock_swift.SwiftAPI.assert_called_once_with()
             mock_swift_api = mock_swift.SwiftAPI.return_value
 
             mock_swift_api.delete_object.assert_called_once_with(
-                'ironic_redfish_container', 'boot-%s' % task.node.uuid
-            )
+                'ironic_redfish_container', object_name)
 
-    @mock.patch.object(redfish_boot, 'swift', autospec=True)
+    @mock.patch.object(redfish_boot, 'shutil', autospec=True)
+    @mock.patch.object(os, 'link', autospec=True)
+    @mock.patch.object(os, 'mkdir', autospec=True)
+    def test__publish_image_local_link(
+            self, mock_mkdir, mock_link, mock_shutil):
+        self.config(use_swift=False, group='redfish')
+        self.config(http_url='http://localhost', group='deploy')
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+
+            url = task.driver.boot._publish_image('file.iso', 'boot.iso')
+
+            self.assertEqual(
+                'http://localhost/redfish?filename=file.iso', url)
+
+            mock_mkdir.assert_called_once_with('/httpboot/redfish', 0x755)
+            mock_link.assert_called_once_with(
+                'file.iso', '/httpboot/redfish/boot.iso')
+
+    @mock.patch.object(redfish_boot, 'shutil', autospec=True)
+    @mock.patch.object(os, 'link', autospec=True)
+    @mock.patch.object(os, 'mkdir', autospec=True)
+    def test__publish_image_local_copy(
+            self, mock_mkdir, mock_link, mock_shutil):
+        self.config(use_swift=False, group='redfish')
+        self.config(http_url='http://localhost', group='deploy')
+
+        mock_link.side_effect = OSError()
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+
+            url = task.driver.boot._publish_image('file.iso', 'boot.iso')
+
+            self.assertEqual(
+                'http://localhost/redfish?filename=file.iso', url)
+
+            mock_mkdir.assert_called_once_with('/httpboot/redfish', 0x755)
+
+            mock_shutil.copyfile.assert_called_once_with(
+                'file.iso', '/httpboot/redfish/boot.iso')
+
+    @mock.patch.object(redfish_boot, 'ironic_utils', autospec=True)
+    def test__unpublish_image_local(self, mock_ironic_utils):
+        self.config(use_swift=False, group='redfish')
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            object_name = 'image-%s' % task.node.uuid
+
+            expected_file = '/httpboot/redfish/' + object_name
+
+            task.driver.boot._unpublish_image(object_name)
+
+            mock_ironic_utils.unlink_without_raise.assert_called_once_with(
+                expected_file)
+
+    @mock.patch.object(redfish_boot.RedfishVirtualMediaBoot,
+                       '_unpublish_image', autospec=True)
+    def test__cleanup_floppy_image(self, mock_unpublish):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            task.driver.boot._cleanup_floppy_image(task)
+
+            object_name = 'image-%s' % task.node.uuid
+
+            mock_unpublish.assert_called_once_with(object_name)
+
+    @mock.patch.object(redfish_boot.RedfishVirtualMediaBoot,
+                       '_publish_image', autospec=True)
+    @mock.patch.object(images, 'create_vfat_image', autospec=True)
+    def test__prepare_floppy_image(
+            self, mock_create_vfat_image, mock__publish_image):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            expected_url = 'https://a.b/c.f?e=f'
+
+            mock__publish_image.return_value = expected_url
+
+            url = task.driver.boot._prepare_floppy_image(task)
+
+            object_name = 'image-%s' % task.node.uuid
+
+            mock__publish_image.assert_called_once_with(
+                mock.ANY, object_name)
+
+            mock_create_vfat_image.assert_called_once_with(
+                mock.ANY, parameters=mock.ANY)
+
+            self.assertEqual(expected_url, url)
+
+    @mock.patch.object(redfish_boot.RedfishVirtualMediaBoot,
+                       '_unpublish_image', autospec=True)
+    def test__cleanup_iso_image(self, mock_unpublish):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            task.driver.boot._cleanup_iso_image(task)
+
+            object_name = 'boot-%s' % task.node.uuid
+
+            mock_unpublish.assert_called_once_with(object_name)
+
+    @mock.patch.object(redfish_boot.RedfishVirtualMediaBoot,
+                       '_publish_image', autospec=True)
     @mock.patch.object(images, 'create_boot_iso', autospec=True)
-    def test__prepare_iso_image_uefi(self, mock_create_boot_iso, mock_swift):
+    def test__prepare_iso_image_uefi(
+            self, mock_create_boot_iso, mock__publish_image):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
             task.node.instance_info.update(deploy_boot_mode='uefi')
 
-            mock_swift_api = mock_swift.SwiftAPI.return_value
-            mock_swift_api.get_temp_url.return_value = 'https://a.b/c.f?e=f'
+            expected_url = 'https://a.b/c.f?e=f'
+
+            mock__publish_image.return_value = expected_url
 
             url = task.driver.boot._prepare_iso_image(
                 task, 'http://kernel/img', 'http://ramdisk/img',
                 'http://bootloader/img', root_uuid=task.node.uuid)
 
-            self.assertIn('filename=bootme.iso', url)
+            object_name = 'boot-%s' % task.node.uuid
+
+            mock__publish_image.assert_called_once_with(
+                mock.ANY, object_name)
 
             mock_create_boot_iso.assert_called_once_with(
                 mock.ANY, mock.ANY, 'http://kernel/img', 'http://ramdisk/img',
@@ -270,28 +366,28 @@ class RedfishVirtualMediaBootTestCase(db_base.DbTestCase):
                 kernel_params='nofb nomodeset vga=normal',
                 root_uuid='1be26c0b-03f2-4d2e-ae87-c02d7f33c123')
 
-            mock_swift.SwiftAPI.assert_called_once_with()
+            self.assertEqual(expected_url, url)
 
-            mock_swift_api.create_object.assert_called_once_with(
-                mock.ANY, mock.ANY, mock.ANY, mock.ANY)
-
-            mock_swift_api.get_temp_url.assert_called_once_with(
-                mock.ANY, mock.ANY, mock.ANY)
-
-    @mock.patch.object(redfish_boot, 'swift', autospec=True)
+    @mock.patch.object(redfish_boot.RedfishVirtualMediaBoot,
+                       '_publish_image', autospec=True)
     @mock.patch.object(images, 'create_boot_iso', autospec=True)
-    def test__prepare_iso_image_bios(self, mock_create_boot_iso, mock_swift):
+    def test__prepare_iso_image_bios(
+            self, mock_create_boot_iso, mock__publish_image):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
 
-            mock_swift_api = mock_swift.SwiftAPI.return_value
-            mock_swift_api.get_temp_url.return_value = 'https://a.b/c.f?e=f'
+            expected_url = 'https://a.b/c.f?e=f'
+
+            mock__publish_image.return_value = expected_url
 
             url = task.driver.boot._prepare_iso_image(
                 task, 'http://kernel/img', 'http://ramdisk/img',
                 bootloader_href=None, root_uuid=task.node.uuid)
 
-            self.assertIn('filename=bootme.iso', url)
+            object_name = 'boot-%s' % task.node.uuid
+
+            mock__publish_image.assert_called_once_with(
+                mock.ANY, object_name)
 
             mock_create_boot_iso.assert_called_once_with(
                 mock.ANY, mock.ANY, 'http://kernel/img', 'http://ramdisk/img',
@@ -299,13 +395,7 @@ class RedfishVirtualMediaBootTestCase(db_base.DbTestCase):
                 kernel_params='nofb nomodeset vga=normal',
                 root_uuid='1be26c0b-03f2-4d2e-ae87-c02d7f33c123')
 
-            mock_swift.SwiftAPI.assert_called_once_with()
-
-            mock_swift_api.create_object.assert_called_once_with(
-                mock.ANY, mock.ANY, mock.ANY, mock.ANY)
-
-            mock_swift_api.get_temp_url.assert_called_once_with(
-                mock.ANY, mock.ANY, mock.ANY)
+            self.assertEqual(expected_url, url)
 
     @mock.patch.object(redfish_boot.RedfishVirtualMediaBoot,
                        '_prepare_iso_image', autospec=True)

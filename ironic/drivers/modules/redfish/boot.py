@@ -12,8 +12,12 @@
 #    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 #    License for the specific language governing permissions and limitations
 #    under the License.
+
+import os
+import shutil
 import tempfile
 
+from ironic_lib import utils as ironic_utils
 from oslo_log import log
 from oslo_utils import importutils
 from six.moves.urllib import parse as urlparse
@@ -102,6 +106,8 @@ class RedfishVirtualMediaBoot(base.BootInterface):
     and `ramdisk_id` properties in the Glance image metadata found in
     `[instance_info]image_source` node property.
     """
+
+    IMAGE_SUBDIR = 'redfish'
 
     capabilities = ['iscsi_volume_boot', 'ramdisk_boot']
 
@@ -201,25 +207,6 @@ class RedfishVirtualMediaBoot(base.BootInterface):
         return deploy_info
 
     @staticmethod
-    def _delete_from_swift(task, container, object_name):
-        LOG.debug("Cleaning up image %(name)s from Swift container "
-                  "%(container)s for node "
-                  "%(node)s", {'node': task.node.uuid,
-                               'name': object_name,
-                               'container': container})
-
-        swift_api = swift.SwiftAPI()
-
-        try:
-            swift_api.delete_object(container, object_name)
-
-        except exception.SwiftOperationError as e:
-            LOG.warning("Failed to clean up image %(image)s for node "
-                        "%(node)s. Error: %(error)s.",
-                        {'node': task.node.uuid, 'image': object_name,
-                         'error': e})
-
-    @staticmethod
     def _append_filename_param(url, filename):
         """Append 'filename=<file>' parameter to given URL.
 
@@ -249,6 +236,94 @@ class RedfishVirtualMediaBoot(base.BootInterface):
 
         return urlparse.urlunparse(parsed_url)
 
+    @classmethod
+    def _publish_image(cls, image_file, object_name):
+        """Make image file downloadable.
+
+        Depending on ironic settings, pushes given file into Swift or copies
+        it over to local HTTP server's document root and returns publicly
+        accessible URL leading to the given file.
+
+        :param image_file: path to file to publish
+        :param object_name: name of the published file
+        :return: a URL to download published file
+        """
+
+        if CONF.redfish.use_swift:
+            container = CONF.redfish.swift_container
+            timeout = CONF.redfish.swift_object_expiry_timeout
+
+            object_headers = {'X-Delete-After': str(timeout)}
+
+            swift_api = swift.SwiftAPI()
+
+            swift_api.create_object(container, object_name, image_file,
+                                    object_headers=object_headers)
+
+            image_url = swift_api.get_temp_url(container, object_name, timeout)
+
+        else:
+            public_dir = os.path.join(CONF.deploy.http_root, cls.IMAGE_SUBDIR)
+
+            if not os.path.exists(public_dir):
+                os.mkdir(public_dir, 0x755)
+
+            published_file = os.path.join(public_dir, object_name)
+
+            try:
+                os.link(image_file, published_file)
+
+            except OSError as exc:
+                LOG.debug(
+                    "Could not hardlink image file %(image)s to public "
+                    "location %(public)s (will copy it over): "
+                    "%(error)s", {'image': image_file,
+                                  'public': published_file,
+                                  'error': exc})
+
+                shutil.copyfile(image_file, published_file)
+
+            image_url = urlparse.urljoin(
+                CONF.deploy.http_url, cls.IMAGE_SUBDIR, object_name)
+
+        image_url = cls._append_filename_param(
+            image_url, os.path.basename(image_file))
+
+        return image_url
+
+    @classmethod
+    def _unpublish_image(cls, object_name):
+        """Withdraw the image previously made downloadable.
+
+        Depending on ironic settings, removes previously published file
+        from where it has been published - Swift or local HTTP server's
+        document root.
+
+        :param object_name: name of the published file (optional)
+        """
+        if CONF.redfish.use_swift:
+            container = CONF.redfish.swift_container
+
+            swift_api = swift.SwiftAPI()
+
+            LOG.debug("Cleaning up image %(name)s from Swift container "
+                      "%(container)s", {'name': object_name,
+                                        'container': container})
+
+            try:
+                swift_api.delete_object(container, object_name)
+
+            except exception.SwiftOperationError as exc:
+                LOG.warning("Failed to clean up image %(image)s. Error: "
+                            "%(error)s.", {'image': object_name,
+                                           'error': exc})
+
+        else:
+            published_file = os.path.join(
+                CONF.deploy.http_root, cls.IMAGE_SUBDIR, object_name)
+
+            ironic_utils.unlink_without_raise(published_file)
+
     @staticmethod
     def _get_floppy_image_name(node):
         """Returns the floppy image name for a given node.
@@ -265,8 +340,7 @@ class RedfishVirtualMediaBoot(base.BootInterface):
         """
         floppy_object_name = cls._get_floppy_image_name(task.node)
 
-        cls._delete_from_swift(
-            task, CONF.redfish.swift_container, floppy_object_name)
+        cls._unpublish_image(floppy_object_name)
 
     @classmethod
     def _prepare_floppy_image(cls, task, params=None):
@@ -290,12 +364,6 @@ class RedfishVirtualMediaBoot(base.BootInterface):
         """
         object_name = cls._get_floppy_image_name(task.node)
 
-        container = CONF.redfish.swift_container
-        timeout = CONF.redfish.swift_object_expiry_timeout
-
-        object_headers = {'X-Delete-After': str(timeout)}
-        swift_api = swift.SwiftAPI()
-
         LOG.debug("Trying to create floppy image for node "
                   "%(node)s", {'node': task.node.uuid})
 
@@ -305,12 +373,7 @@ class RedfishVirtualMediaBoot(base.BootInterface):
             vfat_image_tmpfile = vfat_image_tmpfile_obj.name
             images.create_vfat_image(vfat_image_tmpfile, parameters=params)
 
-            swift_api.create_object(container, object_name, vfat_image_tmpfile,
-                                    object_headers=object_headers)
-
-        image_url = swift_api.get_temp_url(container, object_name, timeout)
-
-        image_url = cls._append_filename_param(image_url, 'bootme.img')
+            image_url = cls._publish_image(vfat_image_tmpfile, object_name)
 
         LOG.debug("Created floppy image %(name)s in Swift for node %(node)s, "
                   "exposed as temporary URL "
@@ -336,8 +399,7 @@ class RedfishVirtualMediaBoot(base.BootInterface):
         """
         iso_object_name = cls._get_iso_image_name(task.node)
 
-        cls._delete_from_swift(
-            task, CONF.redfish.swift_container, iso_object_name)
+        cls._unpublish_image(iso_object_name)
 
     @classmethod
     def _prepare_iso_image(cls, task, kernel_href, ramdisk_href,
@@ -406,30 +468,14 @@ class RedfishVirtualMediaBoot(base.BootInterface):
 
             iso_object_name = cls._get_iso_image_name(task.node)
 
-            container = CONF.redfish.swift_container
-
-            timeout = CONF.redfish.swift_object_expiry_timeout
-
-            object_headers = {'X-Delete-After': str(timeout)}
-
-            swift_api = swift.SwiftAPI()
-
-            swift_api.create_object(container, iso_object_name,
-                                    boot_iso_tmp_file,
-                                    object_headers=object_headers)
-
-            boot_iso_url = swift_api.get_temp_url(
-                container, iso_object_name, timeout)
-
-            boot_iso_url = cls._append_filename_param(
-                boot_iso_url, 'bootme.iso')
+            image_url = cls._publish_image(boot_iso_tmp_file, iso_object_name)
 
         LOG.debug("Created ISO %(name)s in Swift for node %(node)s, exposed "
                   "as temporary URL %(url)s", {'node': task.node.uuid,
                                                'name': iso_object_name,
-                                               'url': boot_iso_url})
+                                               'url': image_url})
 
-        return boot_iso_url
+        return image_url
 
     @classmethod
     def _prepare_deploy_iso(cls, task, params, mode):
