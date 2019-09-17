@@ -1,0 +1,15 @@
+---
+upgrade:
+  - |
+    The Cisco ``cisco-ucs-managed`` and ``cisco-ucs-standalone`` hardware types
+    and ``cimc`` and ``ucsm`` hardware interfaces were deprecated in Stein.
+    They have been removed in Train.
+
+    After upgrading, if any of these hardware types or interfaces are specified
+    in ironic's configuration options, the ironic-conductor service will fail
+    to start. Any existing ironic nodes with these hardware types or interfaces
+    will become inoperational via ironic after the upgrade. If these
+    hardware types or interfaces are being used, the affected nodes should be
+    changed to use other hardware types or interfaces; or install these hardware
+    types (and interfaces) from elsewhere separately. For more information, see
+    `story 2005033 <https://storyboard.openstack.org/#!/story/2005033>`_.
