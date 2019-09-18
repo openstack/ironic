@@ -1,4 +1,4 @@
-# Copyright (c) 2017 Dell Inc. or its subsidiaries.
+# Copyright (c) 2017-2019 Dell Inc. or its subsidiaries.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -30,13 +30,17 @@ class IDRACHardwareTestCase(db_base.DbTestCase):
     def setUp(self):
         super(IDRACHardwareTestCase, self).setUp()
         self.config(enabled_hardware_types=['idrac'],
-                    enabled_management_interfaces=['idrac'],
-                    enabled_power_interfaces=['idrac'],
+                    enabled_management_interfaces=[
+                        'idrac', 'idrac-wsman', 'idrac-redfish'],
+                    enabled_power_interfaces=[
+                        'idrac', 'idrac-wsman', 'idrac-redfish'],
                     enabled_inspect_interfaces=[
-                        'idrac', 'inspector', 'no-inspect'],
+                        'idrac', 'idrac-wsman', 'inspector', 'no-inspect'],
                     enabled_network_interfaces=['flat', 'neutron', 'noop'],
-                    enabled_raid_interfaces=['idrac', 'no-raid'],
-                    enabled_vendor_interfaces=['idrac', 'no-vendor'])
+                    enabled_raid_interfaces=[
+                        'idrac', 'idrac-wsman', 'no-raid'],
+                    enabled_vendor_interfaces=[
+                        'idrac', 'idrac-wsman', 'no-vendor'])
 
     def _validate_interfaces(self, driver, **kwargs):
         self.assertIsInstance(
@@ -47,10 +51,10 @@ class IDRACHardwareTestCase(db_base.DbTestCase):
             kwargs.get('deploy', iscsi_deploy.ISCSIDeploy))
         self.assertIsInstance(
             driver.management,
-            kwargs.get('management', drac.management.DracManagement))
+            kwargs.get('management', drac.management.DracWSManManagement))
         self.assertIsInstance(
             driver.power,
-            kwargs.get('power', drac.power.DracPower))
+            kwargs.get('power', drac.power.DracWSManPower))
 
         self.assertIsInstance(
             driver.console,
@@ -58,7 +62,7 @@ class IDRACHardwareTestCase(db_base.DbTestCase):
 
         self.assertIsInstance(
             driver.inspect,
-            kwargs.get('inspect', drac.inspect.DracInspect))
+            kwargs.get('inspect', drac.inspect.DracWSManInspect))
 
         self.assertIsInstance(
             driver.network,
@@ -66,7 +70,7 @@ class IDRACHardwareTestCase(db_base.DbTestCase):
 
         self.assertIsInstance(
             driver.raid,
-            kwargs.get('raid', drac.raid.DracRAID))
+            kwargs.get('raid', drac.raid.DracWSManRAID))
 
         self.assertIsInstance(
             driver.storage,
@@ -74,7 +78,7 @@ class IDRACHardwareTestCase(db_base.DbTestCase):
 
         self.assertIsInstance(
             driver.vendor,
-            kwargs.get('vendor', drac.vendor_passthru.DracVendorPassthru))
+            kwargs.get('vendor', drac.vendor_passthru.DracWSManVendorPassthru))
 
     def test_default_interfaces(self):
         node = obj_utils.create_test_node(self.context, driver='idrac')
@@ -110,3 +114,29 @@ class IDRACHardwareTestCase(db_base.DbTestCase):
         with task_manager.acquire(self.context, node.id) as task:
             self._validate_interfaces(task.driver,
                                       vendor=noop.NoVendor)
+
+    def test_override_with_idrac(self):
+        node = obj_utils.create_test_node(self.context, driver='idrac',
+                                          management_interface='idrac',
+                                          power_interface='idrac',
+                                          inspect_interface='idrac',
+                                          raid_interface='idrac',
+                                          vendor_interface='idrac')
+        with task_manager.acquire(self.context, node.id) as task:
+            self._validate_interfaces(
+                task.driver,
+                management=drac.management.DracManagement,
+                power=drac.power.DracPower,
+                inspect=drac.inspect.DracInspect,
+                raid=drac.raid.DracRAID,
+                vendor=drac.vendor_passthru.DracVendorPassthru)
+
+    def test_override_with_redfish_management_and_power(self):
+        node = obj_utils.create_test_node(self.context, driver='idrac',
+                                          management_interface='idrac-redfish',
+                                          power_interface='idrac-redfish')
+        with task_manager.acquire(self.context, node.id) as task:
+            self._validate_interfaces(
+                task.driver,
+                management=drac.management.DracRedfishManagement,
+                power=drac.power.DracRedfishPower)

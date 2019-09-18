@@ -29,11 +29,13 @@ class BaseDracTest(db_base.DbTestCase):
     def setUp(self):
         super(BaseDracTest, self).setUp()
         self.config(enabled_hardware_types=['idrac', 'fake-hardware'],
-                    enabled_power_interfaces=['idrac', 'fake'],
-                    enabled_management_interfaces=['idrac', 'fake'],
-                    enabled_inspect_interfaces=['idrac', 'fake', 'no-inspect'],
-                    enabled_vendor_interfaces=['idrac', 'fake', 'no-vendor'],
-                    enabled_raid_interfaces=['idrac', 'fake', 'no-raid'])
+                    enabled_power_interfaces=['idrac-wsman', 'fake'],
+                    enabled_management_interfaces=['idrac-wsman', 'fake'],
+                    enabled_inspect_interfaces=[
+                        'idrac-wsman', 'fake', 'no-inspect'],
+                    enabled_vendor_interfaces=[
+                        'idrac-wsman', 'fake', 'no-vendor'],
+                    enabled_raid_interfaces=['idrac-wsman', 'fake', 'no-raid'])
 
 
 class DictToObj(object):

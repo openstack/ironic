@@ -801,7 +801,7 @@ def _commit_to_controllers(node, controllers, substep="completed"):
     return states.CLEANWAIT
 
 
-class DracRAID(base.RAIDInterface):
+class DracWSManRAID(base.RAIDInterface):
 
     def get_properties(self):
         """Return the properties of the interface."""
@@ -1093,3 +1093,20 @@ class DracRAID(base.RAIDInterface):
         task.node.driver_internal_info = driver_internal_info
         task.node.save()
         manager_utils.notify_conductor_resume_clean(task)
+
+
+class DracRAID(DracWSManRAID):
+    """Class alias of class DracWSManRAID.
+
+    This class provides ongoing support of the deprecated 'idrac' RAID
+    interface implementation entrypoint.
+
+    All bug fixes and new features should be implemented in its base
+    class, DracWSManRAID. That makes them available to both the
+    deprecated 'idrac' and new 'idrac-wsman' entrypoints. Such changes
+    should not be made to this class.
+    """
+
+    def __init__(self):
+        LOG.warning("RAID interface 'idrac' is deprecated and may be removed "
+                    "in a future release. Use 'idrac-wsman' instead.")

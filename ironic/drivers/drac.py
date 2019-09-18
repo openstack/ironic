@@ -38,12 +38,13 @@ class IDRACHardware(generic.GenericHardware):
     @property
     def supported_management_interfaces(self):
         """List of supported management interfaces."""
-        return [management.DracManagement]
+        return [management.DracWSManManagement, management.DracManagement,
+                management.DracRedfishManagement]
 
     @property
     def supported_power_interfaces(self):
         """List of supported power interfaces."""
-        return [power.DracPower]
+        return [power.DracWSManPower, power.DracPower, power.DracRedfishPower]
 
     # Optional hardware interfaces
 
@@ -53,14 +54,16 @@ class IDRACHardware(generic.GenericHardware):
         # Inspector support should have a higher priority than NoInspect
         # if it is enabled by an operator (implying that the service is
         # installed).
-        return [drac_inspect.DracInspect, inspector.Inspector, noop.NoInspect]
+        return [drac_inspect.DracWSManInspect, drac_inspect.DracInspect,
+                inspector.Inspector, noop.NoInspect]
 
     @property
     def supported_raid_interfaces(self):
         """List of supported raid interfaces."""
-        return [raid.DracRAID, noop.NoRAID]
+        return [raid.DracWSManRAID, raid.DracRAID, noop.NoRAID]
 
     @property
     def supported_vendor_interfaces(self):
         """List of supported vendor interfaces."""
-        return [vendor_passthru.DracVendorPassthru, noop.NoVendor]
+        return [vendor_passthru.DracWSManVendorPassthru,
+                vendor_passthru.DracVendorPassthru, noop.NoVendor]

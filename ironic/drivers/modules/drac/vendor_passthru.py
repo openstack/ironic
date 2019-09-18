@@ -16,6 +16,7 @@ DRAC vendor-passthru interface
 """
 
 from ironic_lib import metrics_utils
+from oslo_log import log as logging
 
 from ironic.common.i18n import _
 from ironic.conductor import task_manager
@@ -24,10 +25,12 @@ from ironic.drivers.modules.drac import bios as drac_bios
 from ironic.drivers.modules.drac import common as drac_common
 from ironic.drivers.modules.drac import job as drac_job
 
+LOG = logging.getLogger(__name__)
+
 METRICS = metrics_utils.get_metrics_logger(__name__)
 
 
-class DracVendorPassthru(base.VendorInterface):
+class DracWSManVendorPassthru(base.VendorInterface):
     """Interface for DRAC specific methods."""
 
     def get_properties(self):
@@ -168,3 +171,21 @@ class DracVendorPassthru(base.VendorInterface):
         jobs = drac_job.list_unfinished_jobs(task.node)
         # FIXME(mgould) Do this without calling private methods.
         return {'unfinished_jobs': [job._asdict() for job in jobs]}
+
+
+class DracVendorPassthru(DracWSManVendorPassthru):
+    """Class alias of class DracWSManVendorPassthru.
+
+    This class provides ongoing support of the deprecated 'idrac' vendor
+    passthru interface implementation entrypoint.
+
+    All bug fixes and new features should be implemented in its base
+    class, DracWSManVendorPassthru. That makes them available to both
+    the deprecated 'idrac' and new 'idrac-wsman' entrypoints. Such
+    changes should not be made to this class.
+    """
+
+    def __init__(self):
+        LOG.warning("Vendor passthru interface 'idrac' is deprecated and may "
+                    "be removed in a future release. Use 'idrac-wsman' "
+                    "instead.")

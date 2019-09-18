@@ -25,6 +25,7 @@ from ironic.conductor import task_manager
 from ironic.drivers import base
 from ironic.drivers.modules.drac import common as drac_common
 from ironic.drivers.modules.drac import management as drac_management
+from ironic.drivers.modules.redfish import power as redfish_power
 
 drac_constants = importutils.try_import('dracclient.constants')
 drac_exceptions = importutils.try_import('dracclient.exceptions')
@@ -114,7 +115,18 @@ def _set_power_state(node, power_state):
         raise exception.DracOperationError(error=exc)
 
 
-class DracPower(base.PowerInterface):
+class DracRedfishPower(redfish_power.RedfishPower):
+    """iDRAC Redfish interface for power-related actions.
+
+    Presently, this class entirely defers to its base class, a generic,
+    vendor-independent Redfish interface. Future resolution of Dell EMC-
+    specific incompatibilities and introduction of vendor value added
+    should be implemented by this class.
+    """
+    pass
+
+
+class DracWSManPower(base.PowerInterface):
     """Interface for power-related actions."""
 
     def get_properties(self):
@@ -194,3 +206,20 @@ class DracPower(base.PowerInterface):
             target_power_state = states.POWER_ON
 
         _set_power_state(task.node, target_power_state)
+
+
+class DracPower(DracWSManPower):
+    """Class alias of class DracWSManPower.
+
+    This class provides ongoing support of the deprecated 'idrac' power
+    interface implementation entrypoint.
+
+    All bug fixes and new features should be implemented in its base
+    class, DracWSManPower. That makes them available to both the
+    deprecated 'idrac' and new 'idrac-wsman' entrypoints. Such changes
+    should not be made to this class.
+    """
+
+    def __init__(self):
+        LOG.warning("Power interface 'idrac' is deprecated and may be removed "
+                    "in a future release. Use 'idrac-wsman' instead.")
