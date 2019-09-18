@@ -1,0 +1,18 @@
+---
+features:
+  - |
+    Adds ``idrac`` hardware type support of an inspect interface
+    implementation that utilizes the Redfish out-of-band (OOB)
+    management protocol and is compatible with the integrated Dell
+    Remote Access Controller (iDRAC) baseboard management controller
+    (BMC). It is named ``idrac-redfish``.
+
+    The ``idrac`` hardware type declares support for that new interface
+    implementation, in addition to all inspect interface implementations
+    it has been supporting. The highest priority inspect interfaces
+    remain the same, those which rely on the Web Services Management
+    (WS-Man) OOB management protocol. The new 'idrac-redfish'
+    immediately follows those. It now supports the following inspect
+    interface implementations, listed in priority order from highest to
+    lowest: ``idrac-wsman``, ``idrac``, ``idrac-redfish``,
+    ``inspector``, and ``no-inspect``.

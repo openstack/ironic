@@ -55,7 +55,8 @@ class IDRACHardware(generic.GenericHardware):
         # if it is enabled by an operator (implying that the service is
         # installed).
         return [drac_inspect.DracWSManInspect, drac_inspect.DracInspect,
-                inspector.Inspector, noop.NoInspect]
+                drac_inspect.DracRedfishInspect, inspector.Inspector,
+                noop.NoInspect]
 
     @property
     def supported_raid_interfaces(self):
