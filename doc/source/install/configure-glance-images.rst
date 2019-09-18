@@ -101,22 +101,15 @@ them to the Image service:
    There are several methods to build or download deploy images, please read
    the :ref:`deploy-ramdisk` section.
 
-   The recommended method is to use CoreOS to build deploy images, you will get
-   one kernel disk ``coreos_production_pxe.vmlinuz`` and one ram disk
-   ``coreos_production_pxe_image-oem.cpio.gz``.
-
-   .. note:: If you want to customize your deploy images, please read `Image Builders <https://docs.openstack.org/ironic-python-agent/latest/install/index.html#image-builders>`_.
-
 #. Add the deploy images to the Image service
 
-   Add the *coreos_production_pxe.vmlinuz* and *coreos_production_pxe_image-oem.cpio.gz*
-   images to the Image service:
+   Add the deployment kernel and ramdisk images to the Image service:
 
    .. code-block:: console
 
       $ openstack image create deploy-vmlinuz --public \
         --disk-format aki --container-format aki \
-        --file coreos_production_pxe.vmlinuz
+        --file ironic-python-agent.vmlinuz
 
    Store the image UUID obtained from the above step as ``DEPLOY_VMLINUZ_UUID``.
 
@@ -124,6 +117,6 @@ them to the Image service:
 
       $ openstack image create deploy-initrd --public \
         --disk-format ari --container-format ari \
-        --file coreos_production_pxe_image-oem.cpio.gz
+        --file ironic-python-agent.initramfs
 
    Store the image UUID obtained from the above step as ``DEPLOY_INITRD_UUID``.

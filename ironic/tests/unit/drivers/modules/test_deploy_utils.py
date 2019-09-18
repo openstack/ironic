@@ -1805,7 +1805,6 @@ class AgentMethodsTestCase(db_base.DbTestCase):
         self.config(api_url='https://api-url', group='conductor')
         options = utils.build_agent_options(self.node)
         self.assertEqual('https://api-url', options['ipa-api-url'])
-        self.assertEqual(0, options['coreos.configdrive'])
 
     @mock.patch.object(utils, '_get_ironic_session')
     def test_build_agent_options_keystone(self, session_mock):
@@ -1815,7 +1814,6 @@ class AgentMethodsTestCase(db_base.DbTestCase):
         session_mock.return_value = sess
         options = utils.build_agent_options(self.node)
         self.assertEqual('https://api-url', options['ipa-api-url'])
-        self.assertEqual(0, options['coreos.configdrive'])
 
     def test_direct_deploy_should_convert_raw_image_true(self):
         cfg.CONF.set_override('force_raw_images', True)

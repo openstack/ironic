@@ -181,9 +181,6 @@ directory back::
 .. note:: You don't need to modify the kernel (e.g.
           ``tinyipa-master.vmlinuz``), only the ramdisk part.
 
-.. note:: For CoreOS-based ramdisk you also need to unpack and pack back the
-          squashfs archive inside the unpacked ramdisk.
-
 API Errors
 ==========
 

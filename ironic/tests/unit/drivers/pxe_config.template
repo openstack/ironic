@@ -2,7 +2,7 @@ default deploy
 
 label deploy
 kernel /tftpboot/1be26c0b-03f2-4d2e-ae87-c02d7f33c123/deploy_kernel
-append initrd=/tftpboot/1be26c0b-03f2-4d2e-ae87-c02d7f33c123/deploy_ramdisk selinux=0 troubleshoot=0 text test_param ipa-api-url=http://192.168.122.184:6385 coreos.configdrive=0
+append initrd=/tftpboot/1be26c0b-03f2-4d2e-ae87-c02d7f33c123/deploy_ramdisk selinux=0 troubleshoot=0 text test_param ipa-api-url=http://192.168.122.184:6385
 ipappend 2
 
 

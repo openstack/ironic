@@ -31,8 +31,6 @@ operation. This will differ somewhat between different deploy environments,
 but an example of how to do this is outlined below:
 
 #. Create and configure ramdisk that supports rescue operation.
-   The ramdisk types that supports rescue operation is ironic-python-agent
-   with CoreOS/tinyIPA and DIB based ramdisk.
    Please see :doc:`/install/deploy-ramdisk` for detailed instructions to
    build a ramdisk.
 
