@@ -30,7 +30,7 @@
         DEFAULT_INSTANCE_TYPE: baremetal
         FORCE_CONFIG_DRIVE: True
         INSTALL_TEMPEST: False # Don't install a tempest package globaly
-        OVERRIDE_PUBLIC_BRIDGE_MTU: 1400
+        OVERRIDE_PUBLIC_BRIDGE_MTU: 1350
         TEMPEST_PLUGINS: "{{ ansible_user_dir }}/src/opendev.org/openstack/ironic-tempest-plugin"
         VIRT_DRIVER: ironic
         BUILD_TIMEOUT: 720
@@ -387,7 +387,7 @@
         IRONIC_VM_LOG_DIR: '{{ devstack_base_dir }}/ironic-bm-logs'
         IRONIC_VM_SPECS_RAM: 384
         IRONIC_VM_SPECS_DISK: 4
-        OVERRIDE_PUBLIC_BRIDGE_MTU: 1400
+        OVERRIDE_PUBLIC_BRIDGE_MTU: 1350
         OVS_BRIDGE_MAPPINGS: 'mynetwork:brbm,public:br-infra'
         OVS_PHYSICAL_BRIDGE: brbm
         PHYSICAL_NETWORK: mynetwork
