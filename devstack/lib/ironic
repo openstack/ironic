@@ -1076,6 +1076,7 @@ function _config_ironic_apache_ipxe {
     sudo sed -e "
         s|%PUBLICPORT%|$IRONIC_HTTP_PORT|g;
         s|%HTTPROOT%|$IRONIC_HTTP_DIR|g;
+        s|%APACHELOGDIR%|$APACHE_LOG_DIR|g;
     " -i $ipxe_apache_conf
     enable_apache_site ipxe-ironic
 }
