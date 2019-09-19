@@ -1,0 +1,10 @@
+---
+fixes:
+  - |
+    Fixes a bug in the ``idrac`` hardware type where executing
+    the ``clear_job_queue`` clean step, pending non-BIOS config jobs
+    (E.g. create/delete virtual disk) were not being deleted before
+    job execution.
+
+    See bug `2006580 https://storyboard.openstack.org/#!/story/2006580`
+    for details
