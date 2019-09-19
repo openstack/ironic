@@ -21,6 +21,7 @@ import tempfile
 import mock
 from oslo_config import cfg
 from oslo_serialization import jsonutils as json
+from oslo_utils import timeutils
 from oslo_utils import uuidutils
 
 from ironic.common import boot_devices
@@ -1162,3 +1163,98 @@ class PXEValidateRescueTestCase(db_base.DbTestCase):
             self.assertRaisesRegex(exception.MissingParameterValue,
                                    'Missing.*rescue_kernel',
                                    task.driver.boot.validate_rescue, task)
+
+
+@mock.patch.object(ipxe.iPXEBoot, '__init__', lambda self: None)
+@mock.patch.object(pxe.PXEBoot, '__init__', lambda self: None)
+@mock.patch.object(manager_utils, 'node_set_boot_device', autospec=True)
+@mock.patch.object(manager_utils, 'node_power_action', autospec=True)
+class PXEBootRetryTestCase(db_base.DbTestCase):
+
+    boot_interface = 'pxe'
+
+    def setUp(self):
+        super(PXEBootRetryTestCase, self).setUp()
+        self.config(enabled_boot_interfaces=['pxe', 'ipxe', 'fake'])
+        self.config(boot_retry_timeout=300, group='pxe')
+        self.node = obj_utils.create_test_node(
+            self.context,
+            driver='fake-hardware',
+            boot_interface=self.boot_interface,
+            provision_state=states.DEPLOYWAIT)
+
+    @mock.patch.object(pxe.PXEBoot, '_check_boot_status', autospec=True)
+    def test_check_boot_timeouts(self, mock_check_status, mock_power,
+                                 mock_boot_dev):
+        def _side_effect(iface, task):
+            self.assertEqual(self.node.uuid, task.node.uuid)
+
+        mock_check_status.side_effect = _side_effect
+        manager = mock.Mock(spec=['iter_nodes'])
+        manager.iter_nodes.return_value = [
+            (uuidutils.generate_uuid(), 'fake-hardware', ''),
+            (self.node.uuid, self.node.driver, self.node.conductor_group)
+        ]
+        iface = pxe.PXEBoot()
+        iface._check_boot_timeouts(manager, self.context)
+        mock_check_status.assert_called_once_with(iface, mock.ANY)
+
+    def test_check_boot_status_another_boot_interface(self, mock_power,
+                                                      mock_boot_dev):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            task.driver.boot = fake.FakeBoot()
+            pxe.PXEBoot()._check_boot_status(task)
+            self.assertTrue(task.shared)
+        self.assertFalse(mock_power.called)
+        self.assertFalse(mock_boot_dev.called)
+
+    def test_check_boot_status_recent_power_change(self, mock_power,
+                                                   mock_boot_dev):
+        for field in ('agent_last_heartbeat', 'last_power_state_change'):
+            with task_manager.acquire(self.context, self.node.uuid,
+                                      shared=True) as task:
+                task.node.driver_internal_info = {
+                    field: str(timeutils.utcnow().isoformat())
+                }
+                task.driver.boot._check_boot_status(task)
+                self.assertTrue(task.shared)
+            self.assertFalse(mock_power.called)
+            self.assertFalse(mock_boot_dev.called)
+
+    def test_check_boot_status_maintenance(self, mock_power, mock_boot_dev):
+        self.node.maintenance = True
+        self.node.save()
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            task.driver.boot._check_boot_status(task)
+            self.assertFalse(task.shared)
+        self.assertFalse(mock_power.called)
+        self.assertFalse(mock_boot_dev.called)
+
+    def test_check_boot_status_wrong_state(self, mock_power, mock_boot_dev):
+        self.node.provision_state = states.DEPLOYING
+        self.node.save()
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            task.driver.boot._check_boot_status(task)
+            self.assertFalse(task.shared)
+        self.assertFalse(mock_power.called)
+        self.assertFalse(mock_boot_dev.called)
+
+    def test_check_boot_status_retry(self, mock_power, mock_boot_dev):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            task.driver.boot._check_boot_status(task)
+            self.assertFalse(task.shared)
+            mock_power.assert_has_calls([
+                mock.call(task, states.POWER_OFF),
+                mock.call(task, states.POWER_ON)
+            ])
+            mock_boot_dev.assert_called_once_with(task, 'pxe',
+                                                  persistent=False)
+
+
+class iPXEBootRetryTestCase(PXEBootRetryTestCase):
+
+    boot_interface = 'ipxe'

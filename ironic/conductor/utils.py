@@ -272,6 +272,10 @@ def node_power_action(task, new_state, timeout=None):
     if node['target_power_state'] != target_state:
         node['target_power_state'] = target_state
         node['last_error'] = None
+        driver_internal_info = node.driver_internal_info
+        driver_internal_info['last_power_state_change'] = str(
+            timeutils.utcnow().isoformat())
+        node.driver_internal_info = driver_internal_info
         node.save()
 
     # take power action
@@ -866,6 +870,22 @@ def fast_track_able(task):
             and task.node.last_error is None)
 
 
+def value_within_timeout(value, timeout):
+    """Checks if the time is within the previous timeout seconds from now.
+
+    :param value: a string representing date and time or None.
+    :param timeout: timeout in seconds.
+    """
+    # use native datetime objects for conversion and compare
+    # slightly odd because py2 compatability :(
+    last = datetime.datetime.strptime(value or '1970-01-01T00:00:00.000000',
+                                      "%Y-%m-%dT%H:%M:%S.%f")
+    # If we found nothing, we assume that the time is essentially epoch.
+    time_delta = datetime.timedelta(seconds=timeout)
+    last_valid = timeutils.utcnow() - time_delta
+    return last_valid <= last
+
+
 def is_fast_track(task):
     """Checks a fast track is available.
 
@@ -882,19 +902,8 @@ def is_fast_track(task):
     :returns: True if the last heartbeat that was recorded was within
               the [deploy]fast_track_timeout setting.
     """
-    if not fast_track_able(task):
-        return False
-    # use native datetime objects for conversion and compare
-    # slightly odd because py2 compatability :(
-    last = datetime.datetime.strptime(
-        task.node.driver_internal_info.get(
-            'agent_last_heartbeat',
-            '1970-01-01T00:00:00.000000'),
-        "%Y-%m-%dT%H:%M:%S.%f")
-    # If we found nothing, we assume that the time is essentially epoch.
-    time_delta = datetime.timedelta(seconds=CONF.deploy.fast_track_timeout)
-    last_valid = timeutils.utcnow() - time_delta
-    # Checking the power state, because if we find the machine off due to
-    # any action, we can't actually fast track the node. :(
-    return (last_valid <= last
+    return (fast_track_able(task)
+            and value_within_timeout(
+                task.node.driver_internal_info.get('agent_last_heartbeat'),
+                CONF.deploy.fast_track_timeout)
             and task.driver.power.get_power_state(task) == states.POWER_ON)

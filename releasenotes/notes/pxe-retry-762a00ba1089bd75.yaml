@@ -1,0 +1,10 @@
+---
+features:
+  - |
+    Allows retrying PXE/iPXE boot during deployment, cleaning and rescuing.
+    This feature is disabled by default and can be enabled by setting
+    ``[pxe]boot_retry_timeout`` to the timeout (in seconds) after which
+    the boot should be retried.
+
+    The new option ``[pxe]boot_retry_check_interval`` defines how often to
+    check the nodes for timeout and defaults to 90 seconds.
