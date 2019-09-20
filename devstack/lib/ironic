@@ -1676,7 +1676,23 @@ function start_ironic_api {
 # Starts Ironic conductor.
 function start_ironic_conductor {
     run_process ir-cond "$IRONIC_BIN_DIR/ironic-conductor --config-file=$IRONIC_CONF_FILE"
-    # TODO(romcheg): Find a way to check whether the conductor has started.
+
+    # Wait up to 30 seconds for ironic-conductor to start and register itself
+    local attempt
+    local max_attempts=7
+    for attempt in $(seq 1 $max_attempts); do
+        if openstack baremetal driver list | grep -q $IRONIC_DEPLOY_DRIVER; then
+            break
+        fi
+
+        if [ $attempt -eq $max_attempts ]; then
+            die $LINENO "Driver $IRONIC_DEPLOY_DRIVER did not appear in the driver list"
+        fi
+
+        echo "Still waiting for ironic-conductor to start, current state:"
+        openstack baremetal driver list
+        sleep 5
+    done
 }
 
 # stop_ironic() - Stop running processes
