@@ -360,6 +360,9 @@ IRONIC_CONFIGURE_GLANCE_WITH_SWIFT=$(trueorfalse False IRONIC_CONFIGURE_GLANCE_W
 # The path to the libvirt hooks directory, used if IRONIC_VM_LOG_ROTATE is True
 IRONIC_LIBVIRT_HOOKS_PATH=${IRONIC_LIBVIRT_HOOKS_PATH:-/etc/libvirt/hooks/}
 
+LIBVIRT_STORAGE_POOL=${LIBVIRT_STORAGE_POOL:-"default"}
+LIBVIRT_STORAGE_POOL_PATH=${LIBVIRT_STORAGE_POOL_PATH:-/var/lib/libvirt/images}
+
 # The authentication strategy used by ironic-api. Valid values are:
 # keystone and noauth.
 IRONIC_AUTH_STRATEGY=${IRONIC_AUTH_STRATEGY:-keystone}
@@ -1769,6 +1772,22 @@ an ANSI escape sequence.
 EOF
 }
 
+function initialize_libvirt_storage_pool {
+    [ -d $LIBVIRT_STORAGE_POOL_PATH ] || sudo mkdir -p $LIBVIRT_STORAGE_POOL_PATH
+
+    if ! sudo virsh pool-list --all | grep -q $LIBVIRT_STORAGE_POOL; then
+        sudo virsh pool-define-as --name $LIBVIRT_STORAGE_POOL dir \
+            --target $LIBVIRT_STORAGE_POOL_PATH >&2
+        sudo virsh pool-autostart $LIBVIRT_STORAGE_POOL >&2
+        sudo virsh pool-start $LIBVIRT_STORAGE_POOL >&2
+    fi
+
+    pool_state=$(sudo virsh pool-info $LIBVIRT_STORAGE_POOL | grep State | awk '{ print $2 }')
+    if [ "$pool_state" != "running" ] ; then
+        sudo virsh pool-start $LIBVIRT_STORAGE_POOL >&2
+    fi
+}
+
 function create_bridge_and_vms {
     # Call libvirt setup scripts in a new shell to ensure any new group membership
     sudo su $STACK_USER -c "$IRONIC_SCRIPTS_DIR/setup-network.sh $IRONIC_VM_NETWORK_BRIDGE $PUBLIC_BRIDGE_MTU"
@@ -1802,6 +1821,8 @@ function create_bridge_and_vms {
         vm_opts+=" -D virtio"
     fi
 
+    initialize_libvirt_storage_pool
+
     local bridge_mac
     bridge_mac=$(ip link show dev $IRONIC_VM_NETWORK_BRIDGE | grep -Eo "ether [A-Za-z0-9:]+"|sed "s/ether\ //")
 
@@ -1812,7 +1833,7 @@ function create_bridge_and_vms {
                 -c $IRONIC_VM_SPECS_CPU -m $IRONIC_VM_SPECS_RAM -d $IRONIC_VM_SPECS_DISK \
                 -a $IRONIC_VM_SPECS_CPU_ARCH -b $IRONIC_VM_NETWORK_BRIDGE $vm_opts -p $vbmc_port -o $pdu_outlet \
                 -i $IRONIC_VM_INTERFACE_COUNT -f $IRONIC_VM_SPECS_DISK_FORMAT -M $PUBLIC_BRIDGE_MTU $log_arg \
-                -v $IRONIC_VM_VOLUME_COUNT >> $IRONIC_VM_MACS_CSV_FILE
+                -v $IRONIC_VM_VOLUME_COUNT -P $LIBVIRT_STORAGE_POOL >> $IRONIC_VM_MACS_CSV_FILE
 SUBSHELL
 
         if is_deployed_by_ipmi; then
