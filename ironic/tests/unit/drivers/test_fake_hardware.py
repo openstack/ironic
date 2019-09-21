@@ -20,7 +20,9 @@
 
 from ironic.common import boot_devices
 from ironic.common import boot_modes
+from ironic.common import components
 from ironic.common import exception
+from ironic.common import indicator_states
 from ironic.common import states
 from ironic.conductor import task_manager
 from ironic.drivers import base as driver_base
@@ -118,6 +120,45 @@ class FakeHardwareTestCase(db_base.DbTestCase):
             self.driver.management.set_boot_mode,
             self.task, boot_modes.LEGACY_BIOS
         )
+
+    def test_management_interface_get_supported_indicators(self):
+        expected = {
+            components.CHASSIS: {
+                'led-0': {
+                    "readonly": True,
+                    "states": [
+                        indicator_states.OFF,
+                        indicator_states.ON
+                    ]
+                }
+            },
+            components.SYSTEM: {
+                'led': {
+                    "readonly": False,
+                    "states": [
+                        indicator_states.BLINKING,
+                        indicator_states.OFF,
+                        indicator_states.ON
+                    ]
+                }
+            }
+        }
+
+        self.assertEqual(
+            expected,
+            self.driver.management.get_supported_indicators(self.task))
+
+    def test_management_interface_get_indicator_state(self):
+        expected = indicator_states.ON
+        self.assertEqual(
+            expected, self.driver.management.get_indicator_state(
+                self.task, components.CHASSIS, 'led-0'))
+
+    def test_management_interface_set_indicator_state_good(self):
+        self.assertRaises(
+            exception.UnsupportedDriverExtension,
+            self.driver.management.set_indicator_state,
+            self.task, components.CHASSIS, 'led-0', indicator_states.ON)
 
     def test_inspect_interface(self):
         self.assertEqual({}, self.driver.inspect.get_properties())

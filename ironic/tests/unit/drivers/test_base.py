@@ -17,7 +17,9 @@ import json
 
 import mock
 
+from ironic.common import components
 from ironic.common import exception
+from ironic.common import indicator_states
 from ironic.common import raid
 from ironic.common import states
 from ironic.drivers import base as driver_base
@@ -782,6 +784,53 @@ class TestManagementInterface(base.TestCase):
 
         self.assertRaises(exception.UnsupportedDriverExtension,
                           management.get_boot_mode, task_mock)
+
+    def test_get_supported_indicators_default_impl(self):
+        management = fake.FakeManagement()
+        task_mock = mock.MagicMock(spec_set=['node'])
+
+        expected = {
+            components.CHASSIS: {
+                'led-0': {
+                    "readonly": True,
+                    "states": [
+                        indicator_states.OFF,
+                        indicator_states.ON
+                    ]
+                }
+            },
+            components.SYSTEM: {
+                'led': {
+                    "readonly": False,
+                    "states": [
+                        indicator_states.BLINKING,
+                        indicator_states.OFF,
+                        indicator_states.ON
+                    ]
+                }
+            }
+        }
+
+        self.assertEqual(
+            expected, management.get_supported_indicators(task_mock))
+
+    def test_set_indicator_state_default_impl(self):
+        management = fake.FakeManagement()
+        task_mock = mock.MagicMock(spec_set=['node'])
+
+        self.assertRaises(exception.UnsupportedDriverExtension,
+                          management.set_indicator_state, task_mock,
+                          components.CHASSIS, 'led-0', indicator_states.ON)
+
+    def test_get_indicator_state_default_impl(self):
+        management = fake.FakeManagement()
+        task_mock = mock.MagicMock(spec_set=['node'])
+
+        expected = indicator_states.ON
+
+        self.assertEqual(
+            expected, management.get_indicator_state(
+                task_mock, components.CHASSIS, 'led-0'))
 
 
 class TestBareDriver(base.TestCase):
