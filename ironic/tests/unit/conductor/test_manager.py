@@ -20,6 +20,7 @@
 
 from collections import namedtuple
 import datetime
+import re
 
 import eventlet
 from futurist import waiters
@@ -754,11 +755,13 @@ class UpdateNodeTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
     def _test_update_node_change_resource_class(self, state,
                                                 resource_class=None,
                                                 new_resource_class='new',
-                                                expect_error=False):
+                                                expect_error=False,
+                                                maintenance=False):
         node = obj_utils.create_test_node(self.context, driver='fake-hardware',
                                           uuid=uuidutils.generate_uuid(),
                                           provision_state=state,
-                                          resource_class=resource_class)
+                                          resource_class=resource_class,
+                                          maintenance=maintenance)
         self.addCleanup(node.destroy)
 
         node.resource_class = new_resource_class
@@ -769,6 +772,12 @@ class UpdateNodeTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
                                     node)
             # Compare true exception hidden by @messaging.expected_exceptions
             self.assertEqual(exception.InvalidState, exc.exc_info[0])
+
+            expected_msg_regex = \
+                (r'^Node {} can not have resource_class updated unless it is '
+                 r'in one of allowed \(.*\) states.$').format(
+                    re.escape(node.uuid))
+            self.assertRegex(str(exc.exc_info[1]), expected_msg_regex)
 
             # verify change did not happen
             res = objects.Node.get_by_uuid(self.context, node['uuid'])
@@ -798,6 +807,9 @@ class UpdateNodeTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         self._test_update_node_change_resource_class(
             states.ACTIVE, resource_class='old', new_resource_class=None,
             expect_error=True)
+        self._test_update_node_change_resource_class(
+            states.ACTIVE, resource_class='old', new_resource_class=None,
+            expect_error=True, maintenance=True)
 
     def test_update_node_hardware_type(self):
         existing_hardware = 'fake-hardware'
