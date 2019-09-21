@@ -16,11 +16,14 @@
         - ironic-tempest-functional-python2
         - ironic-tempest-functional-python3
         - ironic-grenade-dsvm
-        - ironic-grenade-dsvm-multinode-multitenant
+        # Temporary disable voting because of end of cycle CI instability.
+        - ironic-grenade-dsvm-multinode-multitenant:
+            voting: false
         - ironic-tempest-ipa-partition-pxe_ipmitool-tinyipa-python3
         - ironic-tempest-ipa-partition-redfish-tinyipa
         - ironic-tempest-ipa-partition-uefi-pxe_ipmitool-tinyipa
-        - ironic-tempest-ipa-wholedisk-direct-tinyipa-multinode
+        - ironic-tempest-ipa-wholedisk-direct-tinyipa-multinode:
+            voting: false
         - ironic-tempest-ipa-wholedisk-bios-agent_ipmitool-tinyipa
         - ironic-tempest-ipa-wholedisk-bios-agent_ipmitool-tinyipa-indirect
         - ironic-tempest-ipa-partition-bios-agent_ipmitool-tinyipa-indirect
@@ -48,11 +51,13 @@
         - ironic-tempest-functional-python2
         - ironic-tempest-functional-python3
         - ironic-grenade-dsvm
-        - ironic-grenade-dsvm-multinode-multitenant
+        # removing from voting due to end of cycle gate instability.
+        # - ironic-grenade-dsvm-multinode-multitenant
         - ironic-tempest-ipa-partition-pxe_ipmitool-tinyipa-python3
         - ironic-tempest-ipa-partition-redfish-tinyipa
         - ironic-tempest-ipa-partition-uefi-pxe_ipmitool-tinyipa
-        - ironic-tempest-ipa-wholedisk-direct-tinyipa-multinode
+        # removing from voting due to end of cycle gate instability.
+        # - ironic-tempest-ipa-wholedisk-direct-tinyipa-multinode
         - ironic-tempest-ipa-wholedisk-bios-agent_ipmitool-tinyipa
         - ironic-tempest-ipa-wholedisk-bios-agent_ipmitool-tinyipa-indirect
         - ironic-tempest-ipa-partition-bios-agent_ipmitool-tinyipa-indirect
