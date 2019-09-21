@@ -3163,6 +3163,31 @@ class DoProvisioningActionTestCase(mgr_utils.ServiceSetUpMixin,
 
     @mock.patch('ironic.conductor.manager.ConductorManager._spawn_worker',
                 autospec=True)
+    def test_do_provision_action_provide_in_maintenance(self, mock_spawn):
+        CONF.set_override('allow_provisioning_in_maintenance', False,
+                          group='conductor')
+        # test when a node is cleaned going from manageable to available
+        node = obj_utils.create_test_node(
+            self.context, driver='fake-hardware',
+            provision_state=states.MANAGEABLE,
+            target_provision_state=None,
+            maintenance=True)
+
+        self._start_service()
+        mock_spawn.reset_mock()
+        exc = self.assertRaises(messaging.rpc.ExpectedException,
+                                self.service.do_provisioning_action,
+                                self.context, node.uuid, 'provide')
+        # Compare true exception hidden by @messaging.expected_exceptions
+        self.assertEqual(exception.NodeInMaintenance, exc.exc_info[0])
+        node.refresh()
+        self.assertEqual(states.MANAGEABLE, node.provision_state)
+        self.assertIsNone(node.target_provision_state)
+        self.assertIsNone(node.last_error)
+        self.assertFalse(mock_spawn.called)
+
+    @mock.patch('ironic.conductor.manager.ConductorManager._spawn_worker',
+                autospec=True)
     def test_do_provision_action_manage(self, mock_spawn):
         # test when a node is verified going from enroll to manageable
         node = obj_utils.create_test_node(
@@ -3821,6 +3846,31 @@ class DoNodeCleanTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         # Assert that the node was cleaned
         self.assertTrue(mock_validate.called)
         self.assertIn('clean_steps', node.driver_internal_info)
+
+    @mock.patch('ironic.drivers.modules.fake.FakeDeploy.tear_down_cleaning',
+                autospec=True)
+    @mock.patch('ironic.drivers.modules.fake.FakeDeploy.prepare_cleaning',
+                autospec=True)
+    def test__do_node_clean_maintenance(self, mock_prep, mock_tear_down):
+        CONF.set_override('allow_provisioning_in_maintenance', False,
+                          group='conductor')
+        node = obj_utils.create_test_node(
+            self.context, driver='fake-hardware',
+            provision_state=states.CLEANING,
+            target_provision_state=states.AVAILABLE,
+            maintenance=True,
+            maintenance_reason='Original reason')
+        with task_manager.acquire(
+                self.context, node.uuid, shared=False) as task:
+            self.service._do_node_clean(task)
+            node.refresh()
+            self.assertEqual(states.CLEANFAIL, node.provision_state)
+            self.assertEqual(states.AVAILABLE, node.target_provision_state)
+            self.assertIn('is not allowed', node.last_error)
+            self.assertTrue(node.maintenance)
+            self.assertEqual('Original reason', node.maintenance_reason)
+        self.assertFalse(mock_prep.called)
+        self.assertFalse(mock_tear_down.called)
 
     @mock.patch('ironic.drivers.modules.network.flat.FlatNetwork.validate',
                 autospec=True)

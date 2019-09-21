@@ -200,6 +200,44 @@ class HeartbeatMixinTest(AgentDeployMixinBaseTest):
                 self.assertEqual(
                     '3.2.0',
                     task.node.driver_internal_info['agent_version'])
+                self.assertEqual(state, task.node.provision_state)
+                self.assertIsNone(task.node.last_error)
+            self.assertEqual(0, ncrc_mock.call_count)
+            self.assertEqual(0, rti_mock.call_count)
+            self.assertEqual(0, cd_mock.call_count)
+
+    @mock.patch.object(agent_base_vendor.HeartbeatMixin, 'continue_deploy',
+                       autospec=True)
+    @mock.patch.object(agent_base_vendor.HeartbeatMixin,
+                       'reboot_to_instance', autospec=True)
+    @mock.patch.object(manager_utils, 'notify_conductor_resume_clean',
+                       autospec=True)
+    def test_heartbeat_in_maintenance_abort(self, ncrc_mock, rti_mock,
+                                            cd_mock):
+        CONF.set_override('allow_provisioning_in_maintenance', False,
+                          group='conductor')
+        for state, expected in [(states.DEPLOYWAIT, states.DEPLOYFAIL),
+                                (states.CLEANWAIT, states.CLEANFAIL),
+                                (states.RESCUEWAIT, states.RESCUEFAIL)]:
+            for m in (ncrc_mock, rti_mock, cd_mock):
+                m.reset_mock()
+            self.node.provision_state = state
+            self.node.maintenance = True
+            self.node.save()
+            agent_url = 'url-%s' % state
+            with task_manager.acquire(self.context, self.node.uuid,
+                                      shared=True) as task:
+                self.deploy.heartbeat(task, agent_url, '3.2.0')
+                self.assertFalse(task.shared)
+                self.assertEqual(
+                    agent_url,
+                    task.node.driver_internal_info['agent_url'])
+                self.assertEqual(
+                    '3.2.0',
+                    task.node.driver_internal_info['agent_version'])
+            self.node.refresh()
+            self.assertEqual(expected, self.node.provision_state)
+            self.assertIn('aborted', self.node.last_error)
             self.assertEqual(0, ncrc_mock.call_count)
             self.assertEqual(0, rti_mock.call_count)
             self.assertEqual(0, cd_mock.call_count)
@@ -239,6 +277,29 @@ class HeartbeatMixinTest(AgentDeployMixinBaseTest):
                        autospec=True)
     def test_heartbeat_noops_in_wrong_state(self, ncrc_mock, rti_mock,
                                             cd_mock):
+        allowed = {states.DEPLOYWAIT, states.CLEANWAIT}
+        for state in set(states.machine.states) - allowed:
+            for m in (ncrc_mock, rti_mock, cd_mock):
+                m.reset_mock()
+            with task_manager.acquire(self.context, self.node.uuid,
+                                      shared=True) as task:
+                self.node.provision_state = state
+                self.deploy.heartbeat(task, 'url', '1.0.0')
+                self.assertTrue(task.shared)
+            self.assertEqual(0, ncrc_mock.call_count)
+            self.assertEqual(0, rti_mock.call_count)
+            self.assertEqual(0, cd_mock.call_count)
+
+    @mock.patch.object(agent_base_vendor.HeartbeatMixin, 'continue_deploy',
+                       autospec=True)
+    @mock.patch.object(agent_base_vendor.HeartbeatMixin,
+                       'reboot_to_instance', autospec=True)
+    @mock.patch.object(manager_utils, 'notify_conductor_resume_clean',
+                       autospec=True)
+    def test_heartbeat_noops_in_wrong_state2(self, ncrc_mock, rti_mock,
+                                             cd_mock):
+        CONF.set_override('allow_provisioning_in_maintenance', False,
+                          group='conductor')
         allowed = {states.DEPLOYWAIT, states.CLEANWAIT}
         for state in set(states.machine.states) - allowed:
             for m in (ncrc_mock, rti_mock, cd_mock):

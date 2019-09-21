@@ -178,6 +178,18 @@ opts = [
                        'longer. In an environment where all tenants are '
                        'trusted (eg, because there is only one tenant), '
                        'this option could be safely disabled.')),
+    cfg.BoolOpt('allow_provisioning_in_maintenance',
+                default=True,
+                mutable=True,
+                help=_('Whether to allow nodes to enter or undergo deploy or '
+                       'cleaning when in maintenance mode. If this option is '
+                       'set to False, and a node enters maintenance during '
+                       'deploy or cleaning, the process will be aborted '
+                       'after the next heartbeat. Automated cleaning or '
+                       'making a node available will also fail. If True '
+                       '(the default), the process will begin and will pause '
+                       'after the node starts heartbeating. Moving it from '
+                       'maintenance will make the process continue.')),
     cfg.IntOpt('clean_callback_timeout',
                default=1800,
                help=_('Timeout (seconds) to wait for a callback from the '

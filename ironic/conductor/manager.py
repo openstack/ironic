@@ -1300,6 +1300,14 @@ class ConductorManager(base_manager.BaseConductorManager):
                      'successfully moved to AVAILABLE state.', node.uuid)
             return
 
+        # NOTE(dtantsur): this is only reachable during automated cleaning,
+        # for manual cleaning we verify maintenance mode earlier on.
+        if (not CONF.conductor.allow_provisioning_in_maintenance
+                and node.maintenance):
+            msg = _('Cleaning a node in maintenance mode is not allowed')
+            return utils.cleaning_error_handler(task, msg,
+                                                tear_down_cleaning=False)
+
         try:
             # NOTE(ghe): Valid power and network values are needed to perform
             # a cleaning.
@@ -1543,7 +1551,8 @@ class ConductorManager(base_manager.BaseConductorManager):
                                    exception.NodeLocked,
                                    exception.InvalidParameterValue,
                                    exception.InvalidStateRequested,
-                                   exception.UnsupportedDriverExtension)
+                                   exception.UnsupportedDriverExtension,
+                                   exception.NodeInMaintenance)
     def do_provisioning_action(self, context, node_id, action):
         """RPC method to initiate certain provisioning state transitions.
 
@@ -1556,7 +1565,7 @@ class ConductorManager(base_manager.BaseConductorManager):
         :raises: InvalidParameterValue
         :raises: InvalidStateRequested
         :raises: NoFreeConductorWorker
-
+        :raises: NodeInMaintenance
         """
         with task_manager.acquire(context, node_id, shared=False,
                                   purpose='provision action %s'
@@ -1564,6 +1573,11 @@ class ConductorManager(base_manager.BaseConductorManager):
             node = task.node
             if (action == states.VERBS['provide']
                     and node.provision_state == states.MANAGEABLE):
+                # NOTE(dtantsur): do this early to avoid entering cleaning.
+                if (not CONF.conductor.allow_provisioning_in_maintenance
+                        and node.maintenance):
+                    raise exception.NodeInMaintenance(op=_('providing'),
+                                                      node=node.uuid)
                 task.process_event(
                     'provide',
                     callback=self._spawn_worker,

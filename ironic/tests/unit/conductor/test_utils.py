@@ -986,9 +986,9 @@ class ErrorHandlersTestCase(tests_base.TestCase):
         # strict typing of the node power state fields and would fail if passed
         # a Mock object in constructors. A task context is also required for
         # notifications.
-        power_attrs = {'power_state': states.POWER_OFF,
-                       'target_power_state': states.POWER_ON}
-        self.node.configure_mock(**power_attrs)
+        self.node.configure_mock(power_state=states.POWER_OFF,
+                                 target_power_state=states.POWER_ON,
+                                 maintenance=False, maintenance_reason=None)
         self.task.context = self.context
 
     @mock.patch.object(conductor_utils, 'LOG')
@@ -1116,7 +1116,6 @@ class ErrorHandlersTestCase(tests_base.TestCase):
         self.assertEqual('clean failure', self.node.fault)
 
     def test_abort_on_conductor_take_over_cleaning(self):
-        self.node.maintenance = False
         self.node.provision_state = states.CLEANFAIL
         conductor_utils.abort_on_conductor_take_over(self.task)
         self.assertTrue(self.node.maintenance)
@@ -1128,7 +1127,6 @@ class ErrorHandlersTestCase(tests_base.TestCase):
         self.node.save.assert_called_once_with()
 
     def test_abort_on_conductor_take_over_deploying(self):
-        self.node.maintenance = False
         self.node.provision_state = states.DEPLOYFAIL
         conductor_utils.abort_on_conductor_take_over(self.task)
         self.assertFalse(self.node.maintenance)
