@@ -45,7 +45,7 @@ When used without the Compute service, the operator needs to create a configurat
 and provide the file or HTTP URL to the Bare Metal service.
 
 For the format of the configuration drive, Bare Metal service expects a
-``gzipped`` and ``base64`` encoded ISO 9660 [*]_ file with a ``config-2``
+``gzipped`` and ``base64`` encoded ISO 9660 [#]_ file with a ``config-2``
 label. The `openstack baremetal client
 <https://docs.openstack.org/python-ironicclient/latest/cli/osc_plugin_cli.html>`_
 can generate a configuration drive in the `expected format`_. Just pass a
@@ -134,7 +134,7 @@ the configuration drive and mount it, for example::
     mount $CONFIG_DEV /mnt/config
 
 
-.. [*] A configuration drive could also be a data block with a VFAT filesystem
+.. [#] A configuration drive could also be a data block with a VFAT filesystem
        on it instead of ISO 9660. But it's unlikely that it would be needed
        since ISO 9660 is widely supported across operating systems.
 

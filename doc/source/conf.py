@@ -38,6 +38,7 @@ extensions = ['sphinx.ext.viewcode',
               'sphinxcontrib.pecanwsme.rest',
               'sphinxcontrib.seqdiag',
               'sphinxcontrib.apidoc',
+              'sphinxcontrib.rsvgconverter',
               'oslo_config.sphinxext',
               'oslo_config.sphinxconfiggen',
               'oslo_policy.sphinxext',
@@ -63,8 +64,7 @@ apidoc_excluded_paths = [
 apidoc_separate_modules = True
 
 repository_name = 'openstack/ironic'
-bug_project = '943'
-bug_tag = ''
+use_storyboard = True
 
 wsme_protocols = ['restjson']
 
@@ -126,6 +126,7 @@ else:
 # Output file base name for HTML help builder.
 htmlhelp_basename = 'Ironicdoc'
 
+latex_use_xindy = False
 
 # Grouping the document tree into LaTeX files. List of tuples
 # (source start file, target name, title, author, documentclass
@@ -133,12 +134,15 @@ htmlhelp_basename = 'Ironicdoc'
 latex_documents = [
     (
         'index',
-        'Ironic.tex',
+        'doc-ironic.tex',
         u'Ironic Documentation',
         u'OpenStack Foundation',
         'manual'
     ),
 ]
+
+# Allow deeper levels of nesting for \begin...\end stanzas
+latex_elements = {'maxlistdepth': 10}
 
 # -- Options for seqdiag ------------------------------------------------------
 

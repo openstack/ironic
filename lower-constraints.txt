@@ -63,6 +63,7 @@ Sphinx==1.6.2
 sphinxcontrib-httpdomain==1.6.1
 sphinxcontrib-pecanwsme==0.10.0
 sphinxcontrib-seqdiag==0.8.4
+sphinxcontrib-svg2pdfconverter==0.1.0
 sphinxcontrib-websupport==1.0.1
 SQLAlchemy==1.0.10
 sqlalchemy-migrate==0.11.0

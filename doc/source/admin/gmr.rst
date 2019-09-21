@@ -48,11 +48,12 @@ Configuration
   Lists all the configuration options currently accessible via the CONF object
   for the current process.
 
+.. only:: html
 
-Sample GMR Report
------------------
+   Sample GMR Report
+   -----------------
 
-Below is a sample GMR report generated for ``ironic-api`` service:
+   Below is a sample GMR report generated for ``ironic-api`` service:
 
-.. include:: report.txt
-     :literal:
+   .. include:: report.txt
+        :literal:
