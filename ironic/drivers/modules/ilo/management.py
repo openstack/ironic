@@ -57,40 +57,114 @@ BOOT_DEVICE_ILO_TO_GENERIC = {
 MANAGEMENT_PROPERTIES = ilo_common.REQUIRED_PROPERTIES.copy()
 MANAGEMENT_PROPERTIES.update(ilo_common.CLEAN_PROPERTIES)
 
+_ACTIVATE_ILO_LICENSE_ARGSINFO = {
+    'ilo_license_key': {
+        'description': (
+            'The HPE iLO Advanced license key to activate enterprise '
+            'features.'
+        ),
+        'required': True
+    }
+}
 
-def _execute_ilo_clean_step(node, step, *args, **kwargs):
-    """Executes a particular clean step.
+_RESET_ILO_CREDENTIALS_ARGSINFO = {
+    'ilo_password': {
+        'description': (
+            'Password string for iLO user with administrative privileges '
+            'being set in the driver_info property "ilo_username".'
+        ),
+        'required': True
+    }
+}
+
+_FIRMWARE_UPDATE_ARGSINFO = {
+    'firmware_update_mode': {
+        'description': (
+            "This argument indicates the mode (or mechanism) of firmware "
+            "update procedure. Supported value is 'ilo'."
+        ),
+        'required': True
+    },
+    'firmware_images': {
+        'description': (
+            "This argument represents the ordered list of JSON "
+            "dictionaries of firmware images. Each firmware image "
+            "dictionary consists of three mandatory fields, namely 'url', "
+            "'checksum' and 'component'. These fields represent firmware "
+            "image location URL, md5 checksum of image file and firmware "
+            "component type respectively. The supported firmware URL "
+            "schemes are 'file', 'http', 'https' and 'swift'. The "
+            "supported values for firmware component are 'ilo', 'cpld', "
+            "'power_pic', 'bios' and 'chassis'. The firmware images will "
+            "be applied (in the order given) one by one on the baremetal "
+            "server. For more information, see "
+            "https://docs.openstack.org/ironic/latest/admin/drivers/ilo.html#initiating-firmware-update-as-manual-clean-step"  # noqa
+        ),
+        'required': True
+    }
+}
+
+_FIRMWARE_UPDATE_SUM_ARGSINFO = {
+    'url': {
+        'description': (
+            "The image location for SPP (Service Pack for Proliant) ISO."
+        ),
+        'required': True
+    },
+    'checksum': {
+        'description': (
+            "The md5 checksum of the SPP image file."
+        ),
+        'required': True
+    },
+    'components': {
+        'description': (
+            "The list of firmware component filenames. If not specified, "
+            "SUM updates all the firmware components."
+        ),
+        'required': False
+    }
+}
+
+
+def _execute_ilo_step(node, step, *args, **kwargs):
+    """Executes a particular deploy or clean step.
 
     :param node: an Ironic node object.
-    :param step: a clean step to be executed.
-    :param args: The args to be passed to the clean step.
-    :param kwargs: The kwargs to be passed to the clean step.
-    :raises: NodeCleaningFailure, on failure to execute step.
+    :param step: a step to be executed.
+    :param args: The args to be passed to the step.
+    :param kwargs: The kwargs to be passed to the step.
+    :raises: NodeCleaningFailure, on failure to execute the clean step.
+    :raises: InstanceDeployFailure, on failure to execute the deploy step.
     """
     ilo_object = ilo_common.get_ilo_object(node)
 
     try:
-        clean_step = getattr(ilo_object, step)
+        step_method = getattr(ilo_object, step)
     except AttributeError:
-        # The specified clean step is not present in the proliantutils
+        # The specified clean/deploy step is not present in the proliantutils
         # package. Raise exception to update the proliantutils package
         # to newer version.
-        raise exception.NodeCleaningFailure(
-            _("Clean step '%s' not found. 'proliantutils' package needs to be "
-              "updated.") % step)
+        msg = (_("Step '%s' not found. 'proliantutils' package needs to be "
+                 "updated.") % step)
+        if node.clean_step:
+            raise exception.NodeCleaningFailure(msg)
+        raise exception.InstanceDeployFailure(msg)
     try:
-        clean_step(*args, **kwargs)
+        step_method(*args, **kwargs)
     except ilo_error.IloCommandNotSupportedError:
-        # This clean step is not supported on Gen8 and below servers.
-        # Log the failure and continue with cleaning.
-        LOG.warning("'%(step)s' clean step is not supported on node "
-                    "%(uuid)s. Skipping the clean step.",
+        # This step is not supported on Gen8 and below servers.
+        # Log the failure and continue with cleaning or deployment.
+        LOG.warning("'%(step)s' step is not supported on node "
+                    "%(uuid)s. Skipping the step.",
                     {'step': step, 'uuid': node.uuid})
     except ilo_error.IloError as ilo_exception:
-        raise exception.NodeCleaningFailure(_(
-            "Clean step %(step)s failed "
-            "on node %(node)s with error: %(err)s") %
-            {'node': node.uuid, 'step': step, 'err': ilo_exception})
+        msg = (_("Step %(step)s failed on node %(node)s with "
+                 "error: %(err)s") %
+               {'node': node.uuid, 'step': step, 'err': ilo_exception})
+        if node.clean_step:
+            raise exception.NodeCleaningFailure(msg)
+        raise exception.InstanceDeployFailure(msg)
 
 
 def _should_collect_logs(command):
@@ -232,39 +306,54 @@ class IloManagement(base.ManagementInterface):
         return ipmi_management.get_sensors_data(task)
 
     @METRICS.timer('IloManagement.reset_ilo')
+    @base.deploy_step(priority=0)
     @base.clean_step(priority=CONF.ilo.clean_priority_reset_ilo)
     def reset_ilo(self, task):
         """Resets the iLO.
 
         :param task: a task from TaskManager.
-        :raises: NodeCleaningFailure, on failure to execute step.
+        :raises: NodeCleaningFailure, on failure to execute of clean step.
+        :raises: InstanceDeployFailure, on failure to execute of deploy step.
         """
-        return _execute_ilo_clean_step(task.node, 'reset_ilo')
+        node = task.node
+        _execute_ilo_step(node, 'reset_ilo')
+
+        # Reset iLO ejects virtual media
+        # Re-create the environment for agent boot, if required
+        task.driver.boot.clean_up_ramdisk(task)
+        deploy_opts = deploy_utils.build_agent_options(node)
+        task.driver.boot.prepare_ramdisk(task, deploy_opts)
 
     @METRICS.timer('IloManagement.reset_ilo_credential')
+    @base.deploy_step(priority=0, argsinfo=_RESET_ILO_CREDENTIALS_ARGSINFO)
     @base.clean_step(priority=CONF.ilo.clean_priority_reset_ilo_credential)
-    def reset_ilo_credential(self, task):
+    def reset_ilo_credential(self, task, change_password=None):
         """Resets the iLO password.
 
         :param task: a task from TaskManager.
-        :raises: NodeCleaningFailure, on failure to execute step.
+        :param change_password: Value for password to update on iLO.
+        :raises: NodeCleaningFailure, on failure to execute of clean step.
+        :raises: InstanceDeployFailure, on failure to execute of deploy step.
         """
         info = task.node.driver_info
-        password = info.pop('ilo_change_password', None)
+        password = change_password
+        if not password:
+            password = info.pop('ilo_change_password', None)
 
         if not password:
             LOG.info("Missing 'ilo_change_password' parameter in "
-                     "driver_info. Clean step 'reset_ilo_credential' is "
+                     "driver_info. Step 'reset_ilo_credential' is "
                      "not performed on node %s.", task.node.uuid)
             return
 
-        _execute_ilo_clean_step(task.node, 'reset_ilo_credential', password)
+        _execute_ilo_step(task.node, 'reset_ilo_credential', password)
 
         info['ilo_password'] = password
         task.node.driver_info = info
         task.node.save()
 
     @METRICS.timer('IloManagement.reset_bios_to_default')
+    @base.deploy_step(priority=0)
     @base.clean_step(priority=CONF.ilo.clean_priority_reset_bios_to_default)
     def reset_bios_to_default(self, task):
         """Resets the BIOS settings to default values.
@@ -273,11 +362,13 @@ class IloManagement(base.ManagementInterface):
         only on HP Proliant Gen9 and above servers.
 
         :param task: a task from TaskManager.
-        :raises: NodeCleaningFailure, on failure to execute step.
+        :raises: NodeCleaningFailure, on failure to execute of clean step.
+        :raises: InstanceDeployFailure, on failure to execute of deploy step.
         """
-        return _execute_ilo_clean_step(task.node, 'reset_bios_to_default')
+        return _execute_ilo_step(task.node, 'reset_bios_to_default')
 
     @METRICS.timer('IloManagement.reset_secure_boot_keys_to_default')
+    @base.deploy_step(priority=0)
     @base.clean_step(priority=CONF.ilo.
                      clean_priority_reset_secure_boot_keys_to_default)
     def reset_secure_boot_keys_to_default(self, task):
@@ -287,11 +378,13 @@ class IloManagement(base.ManagementInterface):
         operation is supported only on HP Proliant Gen9 and above servers.
 
         :param task: a task from TaskManager.
-        :raises: NodeCleaningFailure, on failure to execute step.
+        :raises: NodeCleaningFailure, on failure to execute of clean step.
+        :raises: InstanceDeployFailure, on failure to execute of deploy step.
         """
-        return _execute_ilo_clean_step(task.node, 'reset_secure_boot_keys')
+        return _execute_ilo_step(task.node, 'reset_secure_boot_keys')
 
     @METRICS.timer('IloManagement.clear_secure_boot_keys')
+    @base.deploy_step(priority=0)
     @base.clean_step(priority=CONF.ilo.clean_priority_clear_secure_boot_keys)
     def clear_secure_boot_keys(self, task):
         """Clear all secure boot keys.
@@ -300,9 +393,10 @@ class IloManagement(base.ManagementInterface):
         on HP Proliant Gen9 and above servers.
 
         :param task: a task from TaskManager.
-        :raises: NodeCleaningFailure, on failure to execute step.
+        :raises: NodeCleaningFailure, on failure to execute of clean step.
+        :raises: InstanceDeployFailure, on failure to execute of deploy step.
         """
-        return _execute_ilo_clean_step(task.node, 'clear_secure_boot_keys')
+        return _execute_ilo_step(task.node, 'clear_secure_boot_keys')
 
     @METRICS.timer('IloManagement.activate_license')
     @base.clean_step(priority=0, abortable=False, argsinfo={
@@ -319,7 +413,7 @@ class IloManagement(base.ManagementInterface):
 
         :param task: a TaskManager object.
         :raises: InvalidParameterValue, if any of the arguments are invalid.
-        :raises: NodeCleaningFailure, on failure to execute clean step.
+        :raises: NodeCleaningFailure, on failure to execute of clean step.
         """
         ilo_license_key = kwargs.get('ilo_license_key')
         node = task.node
@@ -334,36 +428,13 @@ class IloManagement(base.ManagementInterface):
 
         LOG.debug("Activating iLO license for node %(node)s ...",
                   {'node': node.uuid})
-        _execute_ilo_clean_step(node, 'activate_license', ilo_license_key)
+        _execute_ilo_step(node, 'activate_license', ilo_license_key)
         LOG.info("iLO license activated for node %s.", node.uuid)
 
     @METRICS.timer('IloManagement.update_firmware')
-    @base.clean_step(priority=0, abortable=False, argsinfo={
-        'firmware_update_mode': {
-            'description': (
-                "This argument indicates the mode (or mechanism) of firmware "
-                "update procedure. Supported value is 'ilo'."
-            ),
-            'required': True
-        },
-        'firmware_images': {
-            'description': (
-                "This argument represents the ordered list of JSON "
-                "dictionaries of firmware images. Each firmware image "
-                "dictionary consists of three mandatory fields, namely 'url', "
-                "'checksum' and 'component'. These fields represent firmware "
-                "image location URL, md5 checksum of image file and firmware "
-                "component type respectively. The supported firmware URL "
-                "schemes are 'file', 'http', 'https' and 'swift'. The "
-                "supported values for firmware component are 'ilo', 'cpld', "
-                "'power_pic', 'bios' and 'chassis'. The firmware images will "
-                "be applied (in the order given) one by one on the baremetal "
-                "server. For more information, see "
-                "https://docs.openstack.org/ironic/latest/admin/drivers/ilo.html#initiating-firmware-update-as-manual-clean-step"  # noqa
-            ),
-            'required': True
-        }
-    })
+    @base.deploy_step(priority=0, argsinfo=_FIRMWARE_UPDATE_ARGSINFO)
+    @base.clean_step(priority=0, abortable=False,
+                     argsinfo=_FIRMWARE_UPDATE_ARGSINFO)
     @firmware_processor.verify_firmware_update_args
     def update_firmware(self, task, **kwargs):
         """Updates the firmware.
@@ -371,7 +442,8 @@ class IloManagement(base.ManagementInterface):
         :param task: a TaskManager object.
         :raises: InvalidParameterValue if update firmware mode is not 'ilo'.
                  Even applicable for invalid input cases.
-        :raises: NodeCleaningFailure, on failure to execute step.
+        :raises: NodeCleaningFailure, on failure to execute of clean step.
+        :raises: InstanceDeployFailure, on failure to execute of deploy step.
         """
         node = task.node
         fw_location_objs_n_components = []
@@ -409,7 +481,10 @@ class IloManagement(base.ManagementInterface):
                       "on node: %(node)s ... failed",
                       {'firmware_image': firmware_image_info,
                        'node': node.uuid})
-            raise exception.NodeCleaningFailure(node=node.uuid, reason=ilo_exc)
+            if node.clean_step:
+                raise exception.NodeCleaningFailure(node=node.uuid,
+                                                    reason=ilo_exc)
+            raise exception.InstanceDeployFailure(reason=ilo_exc)
 
         # Updating of firmware images happen here.
         try:
@@ -419,13 +494,14 @@ class IloManagement(base.ManagementInterface):
                           "node: %(node)s ... in progress",
                           {'firmware_file': fw_location, 'node': node.uuid})
 
-                _execute_ilo_clean_step(
+                _execute_ilo_step(
                     node, 'update_firmware', fw_location, component)
 
                 LOG.debug("Firmware update for %(firmware_file)s on "
                           "node: %(node)s ... done",
                           {'firmware_file': fw_location, 'node': node.uuid})
-        except exception.NodeCleaningFailure:
+        except (exception.NodeCleaningFailure,
+                exception.InstanceDeployFailure):
             with excutils.save_and_reraise_exception():
                 LOG.error("Firmware update for %(firmware_file)s on "
                           "node: %(node)s failed.",
@@ -434,35 +510,23 @@ class IloManagement(base.ManagementInterface):
             for fw_loc_obj_n_comp_tup in fw_location_objs_n_components:
                 fw_loc_obj_n_comp_tup[0].remove()
 
+        # Firmware might have ejected the virtual media, if it was used.
+        # Re-create the environment for agent boot, if required
+        task.driver.boot.clean_up_ramdisk(task)
+        deploy_opts = deploy_utils.build_agent_options(node)
+        task.driver.boot.prepare_ramdisk(task, deploy_opts)
+
         LOG.info("All Firmware update operations completed successfully "
                  "for node: %s.", node.uuid)
 
     @METRICS.timer('IloManagement.update_firmware_sum')
-    @base.clean_step(priority=0, abortable=False, argsinfo={
-        'url': {
-            'description': (
-                "The image location for SPP (Service Pack for Proliant) ISO."
-            ),
-            'required': True
-        },
-        'checksum': {
-            'description': (
-                "The md5 checksum of the SPP image file."
-            ),
-            'required': True
-        },
-        'components': {
-            'description': (
-                "The list of firmware component filenames. If not specified, "
-                "SUM updates all the firmware components."
-            ),
-            'required': False}
-    })
+    @base.clean_step(priority=0, abortable=False,
+                     argsinfo=_FIRMWARE_UPDATE_SUM_ARGSINFO)
     def update_firmware_sum(self, task, **kwargs):
         """Updates the firmware using Smart Update Manager (SUM).
 
         :param task: a TaskManager object.
-        :raises: NodeCleaningFailure, on failure to execute step.
+        :raises: NodeCleaningFailure, on failure to execute of clean step.
         """
         node = task.node
         # The arguments are validated and sent to the ProliantHardwareManager
