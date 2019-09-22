@@ -44,13 +44,22 @@ opts = [
                                    'fall back to basic HTTP authentication'))],
                default='auto',
                help=_('Redfish HTTP client authentication method.')),
+    cfg.BoolOpt('use_swift',
+                default=True,
+                help=_('Upload generated ISO images for virtual media boot to '
+                       'Swift, then pass temporary URL to BMC for booting the '
+                       'node. If set to false, images are are placed on the '
+                       'ironic-conductor node and served over its '
+                       'local HTTP server.')),
     cfg.StrOpt('swift_container',
                default='ironic_redfish_container',
-               help=_('The Swift container to store Redfish driver data.')),
+               help=_('The Swift container to store Redfish driver data. '
+                      'Applies only when `use_swift` is enabled.')),
     cfg.IntOpt('swift_object_expiry_timeout',
                default=900,
                help=_('Amount of time in seconds for Swift objects to '
-                      'auto-expire.')),
+                      'auto-expire. Applies only when `use_swift` is '
+                      'enabled.')),
     cfg.StrOpt('kernel_append_params',
                default='nofb nomodeset vga=normal',
                help=_('Additional kernel parameters for baremetal '
