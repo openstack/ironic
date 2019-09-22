@@ -9,4 +9,8 @@ source $DEST/ironic/devstack/common_settings
 local_mtu=$(ip link show | sed -ne 's/.*mtu \([0-9]\+\).*/\1/p' | sort -n | head -1)
 # 50 bytes is overhead for vxlan (which is greater than GRE
 # allowing us to use either overlay option with this MTU.
-PUBLIC_BRIDGE_MTU=$((local_mtu - 50))
+# However, if traffic is flowing over IPv6 tunnels, then
+# The overhead is essentially another 100 bytes. In order to
+# handle both cases, lets go ahead and drop the maximum by
+# 100 bytes.
+PUBLIC_BRIDGE_MTU=${OVERRIDE_PUBLIC_BRIDGE_MTU:-$((local_mtu - 100))}
