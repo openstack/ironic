@@ -88,8 +88,18 @@ IRONIC_USE_MOD_WSGI=$(trueorfalse $ENABLE_HTTPD_MOD_WSGI_SERVICES IRONIC_USE_MOD
 # Defaults to the (now confusingly named) IRONIC_USE_MOD_WSGI for backward compat
 IRONIC_USE_WSGI=$(trueorfalse $IRONIC_USE_MOD_WSGI IRONIC_USE_WSGI)
 
+# Whether DevStack will be setup for bare metal or VMs
+IRONIC_IS_HARDWARE=$(trueorfalse False IRONIC_IS_HARDWARE)
+
 # Deploy callback timeout can be changed from its default (1800), if required.
 IRONIC_CALLBACK_TIMEOUT=${IRONIC_CALLBACK_TIMEOUT:-}
+
+# Timeout before retrying PXE boot. Set low to help the CI.
+if [[ "$IRONIC_IS_HARDWARE" == False ]]; then
+    IRONIC_PXE_BOOT_RETRY_TIMEOUT=${IRONIC_PXE_BOOT_RETRY_TIMEOUT:-600}
+else
+    IRONIC_PXE_BOOT_RETRY_TIMEOUT=${IRONIC_PXE_BOOT_RETRY_TIMEOUT:-}
+fi
 
 # Ping timeout after the node becomes active
 IRONIC_PING_TIMEOUT=${IRONIC_PING_TIMEOUT:-}
@@ -326,9 +336,6 @@ IRONIC_HTTP_PORT=${IRONIC_HTTP_PORT:-3928}
 # Allow using JSON RPC instead of oslo.messaging
 IRONIC_RPC_TRANSPORT=${IRONIC_RPC_TRANSPORT:-oslo}
 IRONIC_JSON_RPC_PORT=${IRONIC_JSON_RPC_PORT:-8089}
-
-# Whether DevStack will be setup for bare metal or VMs
-IRONIC_IS_HARDWARE=$(trueorfalse False IRONIC_IS_HARDWARE)
 
 # The first port in the range to bind the Virtual BMCs. The number of
 # ports that will be used depends on $IRONIC_VM_COUNT variable, e.g if
@@ -1479,6 +1486,9 @@ function configure_ironic_conductor {
     iniset $IRONIC_CONF_FILE pxe tftp_server $IRONIC_TFTPSERVER_IP
     iniset $IRONIC_CONF_FILE pxe tftp_root $IRONIC_TFTPBOOT_DIR
     iniset $IRONIC_CONF_FILE pxe tftp_master_path $IRONIC_TFTPBOOT_DIR/master_images
+    if [[ -n "$IRONIC_PXE_BOOT_RETRY_TIMEOUT" ]]; then
+        iniset $IRONIC_CONF_FILE pxe boot_retry_timeout $IRONIC_PXE_BOOT_RETRY_TIMEOUT
+    fi
     if [[ "$IRONIC_TERMINAL_SSL" == "True" ]]; then
         # Make sure the cert directory exist
         sudo mkdir -p $IRONIC_TERMINAL_CERT_DIR

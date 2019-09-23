@@ -279,20 +279,28 @@ def _zip_matching(a, b, key):
 class Connection(api.Connection):
     """SqlAlchemy connection."""
 
+    _NODE_QUERY_FIELDS = {'console_enabled', 'maintenance', 'driver',
+                          'resource_class', 'provision_state', 'uuid', 'id',
+                          'fault', 'conductor_group', 'owner'}
+    _NODE_IN_QUERY_FIELDS = {'%s_in' % field: field
+                             for field in ('uuid', 'provision_state')}
+    _NODE_NON_NULL_FILTERS = {'associated': 'instance_uuid',
+                              'reserved': 'reservation',
+                              'with_power_state': 'power_state'}
+    _NODE_FILTERS = ({'chassis_uuid', 'reserved_by_any_of',
+                      'provisioned_before', 'inspection_started_before',
+                      'description_contains'}
+                     | _NODE_QUERY_FIELDS
+                     | set(_NODE_IN_QUERY_FIELDS)
+                     | set(_NODE_NON_NULL_FILTERS))
+
     def __init__(self):
         pass
 
     def _validate_nodes_filters(self, filters):
         if filters is None:
             filters = dict()
-        supported_filters = {'console_enabled', 'maintenance', 'driver',
-                             'resource_class', 'provision_state', 'uuid', 'id',
-                             'chassis_uuid', 'associated', 'reserved',
-                             'reserved_by_any_of', 'provisioned_before',
-                             'inspection_started_before', 'fault',
-                             'conductor_group', 'owner', 'uuid_in',
-                             'with_power_state', 'description_contains'}
-        unsupported_filters = set(filters).difference(supported_filters)
+        unsupported_filters = set(filters).difference(self._NODE_FILTERS)
         if unsupported_filters:
             msg = _("SqlAlchemy API does not support "
                     "filtering by %s") % ', '.join(unsupported_filters)
@@ -301,26 +309,26 @@ class Connection(api.Connection):
 
     def _add_nodes_filters(self, query, filters):
         filters = self._validate_nodes_filters(filters)
-        for field in ['console_enabled', 'maintenance', 'driver',
-                      'resource_class', 'provision_state', 'uuid', 'id',
-                      'fault', 'conductor_group', 'owner']:
+        for field in self._NODE_QUERY_FIELDS:
             if field in filters:
                 query = query.filter_by(**{field: filters[field]})
+        for key, field in self._NODE_IN_QUERY_FIELDS.items():
+            if key in filters:
+                query = query.filter(
+                    getattr(models.Node, field).in_(filters[key]))
+        for key, field in self._NODE_NON_NULL_FILTERS.items():
+            if key in filters:
+                column = getattr(models.Node, field)
+                if filters[key]:
+                    query = query.filter(column != sql.null())
+                else:
+                    query = query.filter(column == sql.null())
+
         if 'chassis_uuid' in filters:
             # get_chassis_by_uuid() to raise an exception if the chassis
             # is not found
             chassis_obj = self.get_chassis_by_uuid(filters['chassis_uuid'])
             query = query.filter_by(chassis_id=chassis_obj.id)
-        if 'associated' in filters:
-            if filters['associated']:
-                query = query.filter(models.Node.instance_uuid != sql.null())
-            else:
-                query = query.filter(models.Node.instance_uuid == sql.null())
-        if 'reserved' in filters:
-            if filters['reserved']:
-                query = query.filter(models.Node.reservation != sql.null())
-            else:
-                query = query.filter(models.Node.reservation == sql.null())
         if 'reserved_by_any_of' in filters:
             query = query.filter(models.Node.reservation.in_(
                 filters['reserved_by_any_of']))
@@ -334,13 +342,6 @@ class Connection(api.Connection):
                      - (datetime.timedelta(
                          seconds=filters['inspection_started_before'])))
             query = query.filter(models.Node.inspection_started_at < limit)
-        if 'uuid_in' in filters:
-            query = query.filter(models.Node.uuid.in_(filters['uuid_in']))
-        if 'with_power_state' in filters:
-            if filters['with_power_state']:
-                query = query.filter(models.Node.power_state != sql.null())
-            else:
-                query = query.filter(models.Node.power_state == sql.null())
         if 'description_contains' in filters:
             keyword = filters['description_contains']
             if keyword is not None:

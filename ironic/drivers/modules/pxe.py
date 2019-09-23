@@ -17,7 +17,6 @@ PXE Boot Interface
 
 from ironic_lib import metrics_utils
 from oslo_log import log as logging
-from oslo_utils import strutils
 
 from ironic.common import boot_devices
 from ironic.common import dhcp_factory
@@ -174,14 +173,7 @@ class PXEBoot(pxe_base.PXEBaseMixin, base.BootInterface):
                                     pxe_config_template,
                                     ipxe_enabled=CONF.pxe.ipxe_enabled)
 
-        persistent = False
-        value = node.driver_info.get('force_persistent_boot_device',
-                                     'Default')
-        if value in {'Always', 'Default', 'Never'}:
-            if value == 'Always':
-                persistent = True
-        else:
-            persistent = strutils.bool_from_string(value, False)
+        persistent = self._persistent_ramdisk_boot(node)
         manager_utils.node_set_boot_device(task, boot_devices.PXE,
                                            persistent=persistent)
 

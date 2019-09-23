@@ -126,6 +126,16 @@ opts = [
                default=0,
                help=_('Timeout value (in seconds) for downloading an image '
                       'via iPXE. Defaults to 0 (no timeout)')),
+    cfg.IntOpt('boot_retry_timeout',
+               min=60,
+               help=_('Timeout (in seconds) after which PXE boot should be '
+                      'retried. Must be less than [conductor]'
+                      'deploy_callback_timeout. Disabled by default.')),
+    cfg.IntOpt('boot_retry_check_interval',
+               default=90, min=1,
+               help=_('Interval (in seconds) between periodic checks on PXE '
+                      'boot retry. Has no effect if boot_retry_timeout '
+                      'is not set.')),
     cfg.StrOpt('ip_version',
                default='4',
                choices=[('4', _('IPv4')),

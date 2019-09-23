@@ -231,7 +231,8 @@ class DbNodeTestCase(base.DbTestCase):
 
         # node with provision_updated timeout
         node1 = utils.create_test_node(uuid=uuidutils.generate_uuid(),
-                                       provision_updated_at=past)
+                                       provision_updated_at=past,
+                                       provision_state=states.DEPLOYING)
         # node with None in provision_updated_at
         node2 = utils.create_test_node(uuid=uuidutils.generate_uuid(),
                                        provision_state=states.DEPLOYWAIT)
@@ -246,6 +247,10 @@ class DbNodeTestCase(base.DbTestCase):
         res = self.dbapi.get_nodeinfo_list(filters={'provision_state':
                                                     states.DEPLOYWAIT})
         self.assertEqual([node2.id], [r[0] for r in res])
+
+        res = self.dbapi.get_nodeinfo_list(
+            filters={'provision_state_in': [states.ACTIVE, states.DEPLOYING]})
+        self.assertEqual([node1.id], [r[0] for r in res])
 
     @mock.patch.object(timeutils, 'utcnow', autospec=True)
     def test_get_nodeinfo_list_inspection(self, mock_utcnow):
