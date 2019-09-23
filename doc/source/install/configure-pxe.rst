@@ -490,3 +490,29 @@ nodes will be deployed by 'grubaa64.efi', and ppc64 nodes by 'bootppc64'::
     # configuration per node architecture. For example:
     # aarch64:/opt/share/grubaa64_pxe_config.template (dict value)
     pxe_config_template_by_arch=aarch64:pxe_grubaa64_config.template,ppc64:pxe_ppc64_config.template
+
+PXE timeouts tuning
+-------------------
+
+Because of its reliance on UDP-based protocols (DHCP and TFTP), PXE is
+particularly vulnerable to random failures during the booting stage. If the
+deployment ramdisk never calls back to the bare metal conductor, the build will
+be aborted, and the node will be moved to the ``deploy failed`` state, after
+the deploy callback timeout. This timeout can be changed via the
+:oslo.config:option:`conductor.deploy_callback_timeout` configuration option.
+
+Starting with the Train release, the Bare Metal service can retry PXE boot if
+it takes too long. The timeout is defined via
+:oslo.config:option:`pxe.boot_retry_timeout` and must be smaller than the
+``deploy_callback_timeout``, otherwise it will have no effect.
+
+For example, the following configuration sets the overall timeout to 60
+minutes, allowing two retries after 20 minutes:
+
+.. code-block:: ini
+
+    [conductor]
+    deploy_callback_timeout = 3600
+
+    [pxe]
+    boot_retry_timeout = 1200
