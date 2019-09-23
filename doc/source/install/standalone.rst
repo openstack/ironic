@@ -63,12 +63,12 @@ Steps to start a deployment are pretty similar to those when using Compute:
 #. To use the `openstack baremetal CLI
    <https://docs.openstack.org/python-ironicclient/latest/cli/osc_plugin_cli.html>`_,
    set up these environment variables. Since no authentication strategy is
-   being used, the value can be any string for OS_TOKEN. OS_URL is
+   being used, the value none must be set for OS_AUTH_TYPE. OS_ENDPOINT is
    the URL of the ironic-api process.
    For example::
 
-    export OS_TOKEN=fake-token
-    export OS_URL=http://localhost:6385/
+    export OS_AUTH_TYPE=none
+    export OS_ENDPOINT=http://localhost:6385/
 
 #. Create a node in Bare Metal service. At minimum, you must specify the driver
    name (for example, ``ipmi``). You can also specify all the required
