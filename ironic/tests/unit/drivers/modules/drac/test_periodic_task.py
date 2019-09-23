@@ -139,9 +139,8 @@ class DracPeriodicTaskTestCase(db_base.DbTestCase):
                        autospec=True)
     @mock.patch.object(drac_raid.DracRAID, 'get_logical_disks',
                        spec_set=True, autospec=True)
-    @mock.patch.object(manager_utils, 'notify_conductor_resume_clean')
-    def test__check_node_raid_jobs_with_completed_job(
-            self, mock_notify_conductor_resume_clean,
+    def _test__check_node_raid_jobs_with_completed_job(
+            self, mock_notify_conductor_resume,
             mock_get_logical_disks, mock_get_drac_client):
         expected_logical_disk = {'size_gb': 558,
                                  'raid_level': '1',
@@ -171,14 +170,29 @@ class DracPeriodicTaskTestCase(db_base.DbTestCase):
                          self.node.driver_internal_info['raid_config_job_ids'])
         self.assertEqual([expected_logical_disk],
                          self.node.raid_config['logical_disks'])
-        mock_notify_conductor_resume_clean.assert_called_once_with(task)
+        mock_notify_conductor_resume.assert_called_once_with(task)
+
+    @mock.patch.object(manager_utils, 'notify_conductor_resume_clean')
+    def test__check_node_raid_jobs_with_completed_job_in_clean(
+            self, mock_notify_conductor_resume):
+        self.node.clean_step = {'foo': 'bar'}
+        self.node.save()
+        self._test__check_node_raid_jobs_with_completed_job(
+            mock_notify_conductor_resume)
+
+    @mock.patch.object(manager_utils, 'notify_conductor_resume_deploy')
+    def test__check_node_raid_jobs_with_completed_job_in_deploy(
+            self, mock_notify_conductor_resume):
+        self._test__check_node_raid_jobs_with_completed_job(
+            mock_notify_conductor_resume)
 
     @mock.patch.object(drac_common, 'get_drac_client', spec_set=True,
                        autospec=True)
     def test__check_node_raid_jobs_with_failed_job(self, mock_get_drac_client):
-        # mock node.driver_internal_info
+        # mock node.driver_internal_info and node.clean_step
         driver_internal_info = {'raid_config_job_ids': ['42']}
         self.node.driver_internal_info = driver_internal_info
+        self.node.clean_step = {'foo': 'bar'}
         self.node.save()
         # mock task
         task = mock.Mock(node=self.node, context=self.context)
@@ -207,9 +221,8 @@ class DracPeriodicTaskTestCase(db_base.DbTestCase):
                        autospec=True)
     @mock.patch.object(drac_raid.DracRAID, 'get_logical_disks',
                        spec_set=True, autospec=True)
-    @mock.patch.object(manager_utils, 'notify_conductor_resume_clean')
-    def test__check_node_raid_jobs_with_completed_job_already_failed(
-            self, mock_notify_conductor_resume_clean,
+    def _test__check_node_raid_jobs_with_completed_job_already_failed(
+            self, mock_notify_conductor_resume,
             mock_get_logical_disks, mock_get_drac_client):
         expected_logical_disk = {'size_gb': 558,
                                  'raid_level': '1',
@@ -242,14 +255,28 @@ class DracPeriodicTaskTestCase(db_base.DbTestCase):
                          self.node.driver_internal_info)
         self.assertNotIn('logical_disks', self.node.raid_config)
         task.process_event.assert_called_once_with('fail')
+        self.assertFalse(mock_notify_conductor_resume.called)
+
+    @mock.patch.object(manager_utils, 'notify_conductor_resume_clean')
+    def test__check_node_raid_jobs_with_completed_job_already_failed_in_clean(
+            self, mock_notify_conductor_resume):
+        self.node.clean_step = {'foo': 'bar'}
+        self.node.save()
+        self._test__check_node_raid_jobs_with_completed_job_already_failed(
+            mock_notify_conductor_resume)
+
+    @mock.patch.object(manager_utils, 'notify_conductor_resume_deploy')
+    def test__check_node_raid_jobs_with_completed_job_already_failed_in_deploy(
+            self, mock_notify_conductor_resume):
+        self._test__check_node_raid_jobs_with_completed_job_already_failed(
+            mock_notify_conductor_resume)
 
     @mock.patch.object(drac_common, 'get_drac_client', spec_set=True,
                        autospec=True)
     @mock.patch.object(drac_raid.DracRAID, 'get_logical_disks',
                        spec_set=True, autospec=True)
-    @mock.patch.object(manager_utils, 'notify_conductor_resume_clean')
-    def test__check_node_raid_jobs_with_multiple_jobs_completed(
-            self, mock_notify_conductor_resume_clean,
+    def _test__check_node_raid_jobs_with_multiple_jobs_completed(
+            self, mock_notify_conductor_resume,
             mock_get_logical_disks, mock_get_drac_client):
         expected_logical_disk = {'size_gb': 558,
                                  'raid_level': '1',
@@ -282,15 +309,28 @@ class DracPeriodicTaskTestCase(db_base.DbTestCase):
                          self.node.driver_internal_info)
         self.assertEqual([expected_logical_disk],
                          self.node.raid_config['logical_disks'])
-        mock_notify_conductor_resume_clean.assert_called_once_with(task)
+        mock_notify_conductor_resume.assert_called_once_with(task)
+
+    @mock.patch.object(manager_utils, 'notify_conductor_resume_clean')
+    def test__check_node_raid_jobs_with_multiple_jobs_completed_in_clean(
+            self, mock_notify_conductor_resume):
+        self.node.clean_step = {'foo': 'bar'}
+        self.node.save()
+        self._test__check_node_raid_jobs_with_multiple_jobs_completed(
+            mock_notify_conductor_resume)
+
+    @mock.patch.object(manager_utils, 'notify_conductor_resume_deploy')
+    def test__check_node_raid_jobs_with_multiple_jobs_completed_in_deploy(
+            self, mock_notify_conductor_resume):
+        self._test__check_node_raid_jobs_with_multiple_jobs_completed(
+            mock_notify_conductor_resume)
 
     @mock.patch.object(drac_common, 'get_drac_client', spec_set=True,
                        autospec=True)
     @mock.patch.object(drac_raid.DracRAID, 'get_logical_disks',
                        spec_set=True, autospec=True)
-    @mock.patch.object(manager_utils, 'notify_conductor_resume_clean')
-    def test__check_node_raid_jobs_with_multiple_jobs_failed(
-            self, mock_notify_conductor_resume_clean,
+    def _test__check_node_raid_jobs_with_multiple_jobs_failed(
+            self, mock_notify_conductor_resume,
             mock_get_logical_disks, mock_get_drac_client):
         expected_logical_disk = {'size_gb': 558,
                                  'raid_level': '1',
@@ -327,3 +367,18 @@ class DracPeriodicTaskTestCase(db_base.DbTestCase):
                          self.node.driver_internal_info)
         self.assertNotIn('logical_disks', self.node.raid_config)
         task.process_event.assert_called_once_with('fail')
+        self.assertFalse(mock_notify_conductor_resume.called)
+
+    @mock.patch.object(manager_utils, 'notify_conductor_resume_clean')
+    def test__check_node_raid_jobs_with_multiple_jobs_failed_in_clean(
+            self, mock_notify_conductor_resume):
+        self.node.clean_step = {'foo': 'bar'}
+        self.node.save()
+        self._test__check_node_raid_jobs_with_multiple_jobs_failed(
+            mock_notify_conductor_resume)
+
+    @mock.patch.object(manager_utils, 'notify_conductor_resume_deploy')
+    def test__check_node_raid_jobs_with_multiple_jobs_failed_in_deploy(
+            self, mock_notify_conductor_resume):
+        self._test__check_node_raid_jobs_with_multiple_jobs_failed(
+            mock_notify_conductor_resume)

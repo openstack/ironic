@@ -1,0 +1,10 @@
+---
+features:
+  - |
+    Adds support for deploy steps to ``raid`` interface of ``idrac``
+    hardware type. The methods ``apply_configuration`` and
+    ``delete_configuration`` can be used as deploy steps.
+  - |
+    Adds a new ``delete_existing`` argument to the ``create_configuration``
+    clean step on the ``idrac`` ``raid`` interface which can be used to
+    delete existing virtual disks. The default for this argument is ``False``.
