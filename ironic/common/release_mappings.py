@@ -179,6 +179,23 @@ RELEASE_MAPPING = {
             'VolumeTarget': ['1.0'],
         }
     },
+    '13.0': {
+        'api': '1.58',
+        'rpc': '1.48',
+        'objects': {
+            'Allocation': ['1.0'],
+            'Node': ['1.32'],
+            'Conductor': ['1.3'],
+            'Chassis': ['1.3'],
+            'DeployTemplate': ['1.1'],
+            'Port': ['1.9'],
+            'Portgroup': ['1.4'],
+            'Trait': ['1.0'],
+            'TraitList': ['1.0'],
+            'VolumeConnector': ['1.0'],
+            'VolumeTarget': ['1.0'],
+        }
+    },
     'master': {
         'api': '1.58',
         'rpc': '1.48',
@@ -211,9 +228,9 @@ RELEASE_MAPPING = {
 #
 #            There should be at most two named mappings here.
 
-# NOTE(TheJulia): remove Rocky prior to the Train release.
-RELEASE_MAPPING['rocky'] = RELEASE_MAPPING['11.1']
+# NOTE(mgoddard): remove Stein prior to the Ussuri release.
 RELEASE_MAPPING['stein'] = RELEASE_MAPPING['12.1']
+RELEASE_MAPPING['train'] = RELEASE_MAPPING['13.0']
 
 # List of available versions with named versions first; 'master' is excluded.
 RELEASE_VERSIONS = sorted(set(RELEASE_MAPPING) - {'master'}, reverse=True)
