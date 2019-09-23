@@ -5,9 +5,9 @@ features:
     virtual media boot. The ``redfish-virtual-media`` boot interface operates
     on the same kernel/ramdisk as, for example, PXE boot interface does, however
     ``redfish-virtual-media`` boot interface can additionally require EFI
-    system partition image (ESP) when performing UEFI boot. New configuration
-    option ``bootloader`` or ``[driver_info]/bootloader`` property can be used
-    to convey ESP location to ironic. Bootable ISO images can be served to
-    BMC either from Swift or from a HTTP server running on ironic conductor
-    machine. This is controlled by the ``[redfish]use_swift`` ironic
-    configuration option.
+    system partition image (ESP) when performing UEFI boot. Either the
+    ``[conductor]bootloader`` configuration option or the
+    ``[driver_info]/bootloader`` node attribute can be used to convey ESP
+    location to ironic. Bootable ISO images can be served to BMCs either from
+    Swift or from an HTTP server running on an ironic conductor machine. This
+    is controlled by the ``[redfish]use_swift`` ironic configuration option.

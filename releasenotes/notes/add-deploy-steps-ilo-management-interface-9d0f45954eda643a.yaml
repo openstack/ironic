@@ -1,8 +1,8 @@
 ---
 features:
   - |
-    Adds support for deploy steps to ``management`` interface of ``ilo``
-    hardware type. The methods ``reset_ilo``, ``reset_ilo_credential``,
+    Adds support for deploy steps to the ``management`` interface of the
+    ``ilo`` hardware type. The methods ``reset_ilo``, ``reset_ilo_credential``,
     ``reset_bios_to_default``, ``reset_secure_boot_keys_to_default``,
     ``clear_secure_boot_keys`` and ``update_firmware`` can be used as
     deploy steps.
