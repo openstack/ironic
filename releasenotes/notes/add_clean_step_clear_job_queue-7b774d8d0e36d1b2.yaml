@@ -1,11 +1,11 @@
 ---
 features:
   - |
-    Adds ``clear_job_queue`` cleaning step to hardware type ``idrac``.
-    ``clear_job_queue`` cleaning step clears the Lifecycle Controller
-    job queue including any pending jobs.
+    Adds a ``clear_job_queue`` cleaning step to the ``idrac-wsman`` management
+    interface.  The ``clear_job_queue`` cleaning step clears the Lifecycle
+    Controller job queue including any pending jobs.
 fixes:
   - |
-    Fixes an issue where if there is a pending bios config job in job queue,
-    then ironic will abandon the introspection attempt for the node,
-    which will cause overall introspection to fail.
+    Fixes an issue where if there is a pending BIOS config job in job queue,
+    then ironic will abandon an introspection attempt for the node, which will
+    cause overall introspection to fail.
