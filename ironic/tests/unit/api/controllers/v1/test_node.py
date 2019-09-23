@@ -4162,11 +4162,12 @@ class TestPut(test_api_base.BaseApiTest):
     def test_provision_with_deploy_configdrive_as_dict_all_fields(self):
         fake_cd = {'user_data': {'serialize': 'me'},
                    'meta_data': {'hostname': 'example.com'},
-                   'network_data': {'links': []}}
+                   'network_data': {'links': []},
+                   'vendor_data': {'foo': 'bar'}}
         ret = self.put_json('/nodes/%s/states/provision' % self.node.uuid,
                             {'target': states.ACTIVE,
                              'configdrive': fake_cd},
-                            headers={api_base.Version.string: '1.56'})
+                            headers={api_base.Version.string: '1.59'})
         self.assertEqual(http_client.ACCEPTED, ret.status_code)
         self.assertEqual(b'', ret.body)
         self.mock_dnd.assert_called_once_with(context=mock.ANY,

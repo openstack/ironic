@@ -561,6 +561,7 @@ configdrive:
     * ``network_data`` (optional) - JSON object with networking configuration.
     * ``user_data`` (optional) - user data. May be a string (which will be
       UTF-8 encoded); a JSON object, or a JSON array.
+    * ``vendor_data`` (optional) - JSON object with extra vendor data.
 
     This parameter is only accepted when setting the state to "active" or
     "rebuild".

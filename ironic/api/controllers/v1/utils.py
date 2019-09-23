@@ -616,7 +616,8 @@ _CONFIG_DRIVE_SCHEMA = {
                 'network_data': {'type': 'object'},
                 'user_data': {
                     'type': ['object', 'array', 'string', 'null']
-                }
+                },
+                'vendor_data': {'type': 'object'},
             },
             'additionalProperties': False
         },
@@ -648,13 +649,22 @@ def check_allow_configdrive(target, configdrive=None):
         raise wsme.exc.ClientSideError(
             msg, status_code=http_client.BAD_REQUEST)
 
-    if isinstance(configdrive, dict) and not allow_build_configdrive():
-        msg = _('Providing a JSON object for configdrive is only supported'
-                ' starting with API version %(base)s.%(opr)s') % {
-                    'base': versions.BASE_VERSION,
-                    'opr': versions.MINOR_56_BUILD_CONFIGDRIVE}
-        raise wsme.exc.ClientSideError(
-            msg, status_code=http_client.BAD_REQUEST)
+    if isinstance(configdrive, dict):
+        if not allow_build_configdrive():
+            msg = _('Providing a JSON object for configdrive is only supported'
+                    ' starting with API version %(base)s.%(opr)s') % {
+                        'base': versions.BASE_VERSION,
+                        'opr': versions.MINOR_56_BUILD_CONFIGDRIVE}
+            raise wsme.exc.ClientSideError(
+                msg, status_code=http_client.BAD_REQUEST)
+        if ('vendor_data' in configdrive and
+            not allow_configdrive_vendor_data()):
+            msg = _('Providing vendor_data in configdrive is only supported'
+                    ' starting with API version %(base)s.%(opr)s') % {
+                        'base': versions.BASE_VERSION,
+                        'opr': versions.MINOR_59_CONFIGDRIVE_VENDOR_DATA}
+            raise wsme.exc.ClientSideError(
+                msg, status_code=http_client.BAD_REQUEST)
 
 
 def check_allow_filter_by_fault(fault):
@@ -1161,6 +1171,15 @@ def allow_build_configdrive():
     Version 1.56 of the API added support for building configdrive.
     """
     return api.request.version.minor >= versions.MINOR_56_BUILD_CONFIGDRIVE
+
+
+def allow_configdrive_vendor_data():
+    """Check if configdrive can contain a vendor_data key.
+
+    Version 1.59 of the API added support for configdrive vendor_data.
+    """
+    return (api.request.version.minor >=
+            versions.MINOR_59_CONFIGDRIVE_VENDOR_DATA)
 
 
 def allow_allocation_update():
