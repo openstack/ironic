@@ -204,8 +204,8 @@ Step 1: Create a Python virtualenv
 #. Export some ENV vars so the client will connect to the local services
    that you'll start in the next section::
 
-    export OS_TOKEN=fake-token
-    export OS_URL=http://localhost:6385/
+    export OS_AUTH_TYPE=none
+    export OS_ENDPOINT=http://localhost:6385/
 
 Next, install and configure system dependencies.
 
