@@ -2889,15 +2889,17 @@ class AsyncStepTestCase(db_base.DbTestCase):
         self.node.save()
         self._test_get_async_step_return_state()
 
-    def test_set_async_step_flags_cleaning_set_both(self):
+    def test_set_async_step_flags_cleaning_set_all(self):
         self.node.clean_step = {'step': 'create_configuration',
                                 'interface': 'raid'}
         self.node.driver_internal_info = {}
         expected = {'cleaning_reboot': True,
+                    'cleaning_polling': True,
                     'skip_current_clean_step': True}
         self.node.save()
         utils.set_async_step_flags(self.node, reboot=True,
-                                   skip_current_step=True)
+                                   skip_current_step=True,
+                                   polling=True)
         self.assertEqual(expected, self.node.driver_internal_info)
 
     def test_set_async_step_flags_cleaning_set_one(self):
@@ -2909,15 +2911,17 @@ class AsyncStepTestCase(db_base.DbTestCase):
         self.assertEqual({'cleaning_reboot': True},
                          self.node.driver_internal_info)
 
-    def test_set_async_step_flags_deploying_set_both(self):
+    def test_set_async_step_flags_deploying_set_all(self):
         self.node.deploy_step = {'step': 'create_configuration',
                                  'interface': 'raid'}
         self.node.driver_internal_info = {}
         expected = {'deployment_reboot': True,
+                    'deployment_polling': True,
                     'skip_current_deploy_step': True}
         self.node.save()
         utils.set_async_step_flags(self.node, reboot=True,
-                                   skip_current_step=True)
+                                   skip_current_step=True,
+                                   polling=True)
         self.assertEqual(expected, self.node.driver_internal_info)
 
     def test_set_async_step_flags_deploying_set_one(self):

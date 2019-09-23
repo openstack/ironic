@@ -408,9 +408,11 @@ def cleaning_error_handler(task, msg, tear_down_cleaning=True,
         # Clear clean step, msg should already include current step
         node.clean_step = {}
         info = node.driver_internal_info
+        # Clear any leftover metadata about cleaning
         info.pop('clean_step_index', None)
-        # Clear any leftover metadata about cleaning reboots
         info.pop('cleaning_reboot', None)
+        info.pop('cleaning_polling', None)
+        info.pop('skip_current_clean_step', None)
         node.driver_internal_info = info
     # For manual cleaning, the target provision state is MANAGEABLE, whereas
     # for automated cleaning, it is AVAILABLE.
@@ -466,9 +468,11 @@ def deploying_error_handler(task, logmsg, errmsg, traceback=False,
         # in node.driver_internal_info for debugging purposes.
         node.deploy_step = {}
         info = node.driver_internal_info
+        # Clear any leftover metadata about deployment.
         info.pop('deploy_step_index', None)
-        # Clear any leftover metadata about deployment reboots
         info.pop('deployment_reboot', None)
+        info.pop('deployment_polling', None)
+        info.pop('skip_current_deploy_step', None)
         node.driver_internal_info = info
 
     if cleanup_err:

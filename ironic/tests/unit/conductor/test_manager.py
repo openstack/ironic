@@ -1890,6 +1890,26 @@ class ContinueNodeDeployTestCase(mgr_utils.ServiceSetUpMixin,
     def test_continue_node_deploy_no_skip_step(self):
         self._continue_node_deploy_skip_step(skip=False)
 
+    @mock.patch('ironic.conductor.manager.ConductorManager._spawn_worker',
+                autospec=True)
+    def test_continue_node_deploy_polling(self, mock_spawn):
+        # test that deployment_polling flag is cleared
+        driver_info = {'deploy_steps': self.deploy_steps,
+                       'deploy_step_index': 0,
+                       'deployment_polling': True}
+        node = obj_utils.create_test_node(
+            self.context, driver='fake-hardware',
+            provision_state=states.DEPLOYWAIT,
+            target_provision_state=states.MANAGEABLE,
+            driver_internal_info=driver_info, deploy_step=self.deploy_steps[0])
+        self._start_service()
+        self.service.continue_node_deploy(self.context, node.uuid)
+        self._stop_service()
+        node.refresh()
+        self.assertNotIn('deployment_polling', node.driver_internal_info)
+        mock_spawn.assert_called_with(mock.ANY, manager._do_next_deploy_step,
+                                      mock.ANY, 1, mock.ANY)
+
     @mock.patch('ironic.drivers.modules.fake.FakeDeploy.execute_deploy_step',
                 autospec=True)
     def test_do_next_deploy_step_oob_reboot(self, mock_execute):
@@ -3269,7 +3289,12 @@ class DoNodeCleanAbortTestCase(mgr_utils.ServiceSetUpMixin,
             self.context, driver='fake-hardware',
             provision_state=states.CLEANFAIL,
             target_provision_state=states.AVAILABLE,
-            clean_step={'step': 'foo', 'abortable': True})
+            clean_step={'step': 'foo', 'abortable': True},
+            driver_internal_info={
+                'clean_step_index': 2,
+                'cleaning_reboot': True,
+                'cleaning_polling': True,
+                'skip_current_clean_step': True})
 
         with task_manager.acquire(self.context, node.uuid) as task:
             self.service._do_node_clean_abort(task, step_name=step_name)
@@ -3277,8 +3302,16 @@ class DoNodeCleanAbortTestCase(mgr_utils.ServiceSetUpMixin,
             tear_mock.assert_called_once_with(task.driver.deploy, task)
             if step_name:
                 self.assertIn(step_name, task.node.last_error)
-            # assert node's clean_step was cleaned up
+            # assert node's clean_step and metadata was cleaned up
             self.assertEqual({}, task.node.clean_step)
+            self.assertNotIn('clean_step_index',
+                             task.node.driver_internal_info)
+            self.assertNotIn('cleaning_reboot',
+                             task.node.driver_internal_info)
+            self.assertNotIn('cleaning_polling',
+                             task.node.driver_internal_info)
+            self.assertNotIn('skip_current_clean_step',
+                             task.node.driver_internal_info)
 
     def test__do_node_clean_abort(self):
         self._test__do_node_clean_abort(None)
@@ -3554,6 +3587,27 @@ class DoNodeCleanTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
 
     def test_continue_node_clean_no_skip_step(self):
         self._continue_node_clean_skip_step(skip=False)
+
+    @mock.patch('ironic.conductor.manager.ConductorManager._spawn_worker',
+                autospec=True)
+    def test_continue_node_clean_polling(self, mock_spawn):
+        # test that cleaning_polling flag is cleared
+        driver_info = {'clean_steps': self.clean_steps,
+                       'clean_step_index': 0,
+                       'cleaning_polling': True}
+        node = obj_utils.create_test_node(
+            self.context, driver='fake-hardware',
+            provision_state=states.CLEANWAIT,
+            target_provision_state=states.MANAGEABLE,
+            driver_internal_info=driver_info, clean_step=self.clean_steps[0])
+        self._start_service()
+        self.service.continue_node_clean(self.context, node.uuid)
+        self._stop_service()
+        node.refresh()
+        self.assertNotIn('cleaning_polling', node.driver_internal_info)
+        mock_spawn.assert_called_with(self.service,
+                                      self.service._do_next_clean_step,
+                                      mock.ANY, 1)
 
     def _continue_node_clean_abort(self, manual=False):
         last_clean_step = self.clean_steps[0]

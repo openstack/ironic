@@ -1475,7 +1475,8 @@ def get_async_step_return_state(node):
     return states.CLEANWAIT if node.clean_step else states.DEPLOYWAIT
 
 
-def set_async_step_flags(node, reboot=None, skip_current_step=None):
+def set_async_step_flags(node, reboot=None, skip_current_step=None,
+                         polling=None):
     """Sets appropriate reboot flags in driver_internal_info based on operation
 
     :param node: an ironic node object.
@@ -1488,16 +1489,24 @@ def set_async_step_flags(node, reboot=None, skip_current_step=None):
         skip_current_deploy_step based on cleaning or deployment operation
         in progress. If it is None, corresponding skip step flag is not set
         in node's driver_internal_info.
+    :param polling: Boolean value to set for node's driver_internal_info flag
+        deployment_polling or cleaning_polling. If it is None, the
+        corresponding polling flag is not set in the node's
+        driver_internal_info.
     """
     info = node.driver_internal_info
     cleaning = {'reboot': 'cleaning_reboot',
-                'skip': 'skip_current_clean_step'}
+                'skip': 'skip_current_clean_step',
+                'polling': 'cleaning_polling'}
     deployment = {'reboot': 'deployment_reboot',
-                  'skip': 'skip_current_deploy_step'}
+                  'skip': 'skip_current_deploy_step',
+                  'polling': 'deployment_polling'}
     fields = cleaning if node.clean_step else deployment
     if reboot is not None:
         info[fields['reboot']] = reboot
     if skip_current_step is not None:
         info[fields['skip']] = skip_current_step
+    if polling is not None:
+        info[fields['polling']] = polling
     node.driver_internal_info = info
     node.save()

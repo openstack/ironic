@@ -918,12 +918,17 @@ class ConductorManager(base_manager.BaseConductorManager):
                      'state': node.provision_state,
                      'deploy_state': ', '.join(expected_states)})
 
+            save_required = False
             info = node.driver_internal_info
             try:
                 skip_current_step = info.pop('skip_current_deploy_step')
             except KeyError:
                 skip_current_step = True
             else:
+                save_required = True
+            if info.pop('deployment_polling', None) is not None:
+                save_required = True
+            if save_required:
                 node.driver_internal_info = info
                 node.save()
 
@@ -1229,12 +1234,17 @@ class ConductorManager(base_manager.BaseConductorManager):
                      'state': node.provision_state,
                      'clean_state': states.CLEANWAIT})
 
+            save_required = False
             info = node.driver_internal_info
             try:
                 skip_current_step = info.pop('skip_current_clean_step')
             except KeyError:
                 skip_current_step = True
             else:
+                save_required = True
+            if info.pop('cleaning_polling', None) is not None:
+                save_required = True
+            if save_required:
                 node.driver_internal_info = info
                 node.save()
 
@@ -1462,6 +1472,7 @@ class ConductorManager(base_manager.BaseConductorManager):
         driver_internal_info['clean_steps'] = None
         driver_internal_info.pop('clean_step_index', None)
         driver_internal_info.pop('cleaning_reboot', None)
+        driver_internal_info.pop('cleaning_polling', None)
         node.driver_internal_info = driver_internal_info
         node.save()
         try:
@@ -1545,6 +1556,13 @@ class ConductorManager(base_manager.BaseConductorManager):
 
         node.last_error = last_error
         node.clean_step = None
+        info = node.driver_internal_info
+        # Clear any leftover metadata about cleaning
+        info.pop('clean_step_index', None)
+        info.pop('cleaning_reboot', None)
+        info.pop('cleaning_polling', None)
+        info.pop('skip_current_clean_step', None)
+        node.driver_internal_info = info
         node.save()
         LOG.info(info_message)
 
@@ -3960,6 +3978,7 @@ def _do_next_deploy_step(task, step_index, conductor_id):
     driver_internal_info['deploy_steps'] = None
     driver_internal_info.pop('deploy_step_index', None)
     driver_internal_info.pop('deployment_reboot', None)
+    driver_internal_info.pop('deployment_polling', None)
     node.driver_internal_info = driver_internal_info
     node.save()
 

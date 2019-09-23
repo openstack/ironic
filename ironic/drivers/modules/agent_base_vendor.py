@@ -380,7 +380,7 @@ class HeartbeatMixin(object):
             # NOTE(mgoddard): Only handle heartbeats during DEPLOYWAIT if we
             # are currently in the core deploy.deploy step. Other deploy steps
             # may cause the agent to boot, but we should not trigger deployment
-            # at that point.
+            # at that point if the driver is polling for completion of a step.
             if node.provision_state == states.DEPLOYWAIT:
                 if self.in_core_deploy_step(task):
                     if not self.deploy_has_started(task):
@@ -394,7 +394,12 @@ class HeartbeatMixin(object):
                 else:
                     # The exceptions from RPC are not possible as we using cast
                     # here
-                    manager_utils.notify_conductor_resume_deploy(task)
+                    # Check if the driver is polling for completion of a step,
+                    # via the 'deployment_polling' flag.
+                    polling = node.driver_internal_info.get(
+                        'deployment_polling', False)
+                    if not polling:
+                        manager_utils.notify_conductor_resume_deploy(task)
                     node.touch_provisioning()
             elif node.provision_state == states.CLEANWAIT:
                 node.touch_provisioning()
@@ -411,7 +416,12 @@ class HeartbeatMixin(object):
                     manager_utils.notify_conductor_resume_clean(task)
                 else:
                     msg = _('Node failed to check cleaning progress.')
-                    self.continue_cleaning(task)
+                    # Check if the driver is polling for completion of a step,
+                    # via the 'cleaning_polling' flag.
+                    polling = node.driver_internal_info.get(
+                        'cleaning_polling', False)
+                    if not polling:
+                        self.continue_cleaning(task)
             elif (node.provision_state == states.RESCUEWAIT):
                 msg = _('Node failed to perform rescue operation.')
                 self._finalize_rescue(task)
