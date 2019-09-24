@@ -1425,6 +1425,17 @@ function configure_ironic_conductor {
 
     configure_rootwrap ironic
 
+    # additional rootwrap config from ironic-lib
+    local ironic_lib_prefix
+    if use_library_from_git "ironic-lib"; then
+        ironic_lib_prefix=${GITDIR["ironic-lib"]}
+    else
+        # pip uses default python 'data' path
+        ironic_lib_prefix=$(python -c "import sysconfig; \
+            print(sysconfig.get_path('data'))")
+    fi
+    sudo install -o root -g root -m 644 $ironic_lib_prefix/etc/ironic/rootwrap.d/*.filters /etc/ironic/rootwrap.d
+
     # set up drivers / hardware types
     iniset $IRONIC_CONF_FILE DEFAULT enabled_hardware_types $IRONIC_ENABLED_HARDWARE_TYPES
 
