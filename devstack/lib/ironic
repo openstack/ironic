@@ -258,6 +258,9 @@ IRONIC_EFIBOOT=${IRONIC_EFIBOOT:-$TOP_DIR/files/ir-deploy-$IRONIC_DEPLOY_DRIVER.
 IPA_DOWNLOAD_BRANCH=${IPA_DOWNLOAD_BRANCH:-master}
 IPA_DOWNLOAD_BRANCH=$(echo $IPA_DOWNLOAD_BRANCH | tr / -)
 
+# OS for using with DIB images
+IRONIC_DIB_RAMDISK_OS=centos7
+
 # Configure URLs required to download ramdisk if we're not building it, and
 # IRONIC_DEPLOY_RAMDISK/KERNEL or the RAMDISK/KERNEL_URLs have not been
 # preconfigured.
@@ -266,23 +269,21 @@ if [[ "$IRONIC_BUILD_DEPLOY_RAMDISK" == "False" && \
         (-z "$IRONIC_AGENT_KERNEL_URL" || -z "$IRONIC_AGENT_RAMDISK_URL") ]]; then
     case $IRONIC_RAMDISK_TYPE in
         tinyipa)
-            IRONIC_AGENT_KERNEL_URL=${IRONIC_AGENT_KERNEL_URL:-https://tarballs.openstack.org/ironic-python-agent/tinyipa/files/tinyipa-${IPA_DOWNLOAD_BRANCH}.vmlinuz}
-            IRONIC_AGENT_RAMDISK_URL=${IRONIC_AGENT_RAMDISK_URL:-https://tarballs.openstack.org/ironic-python-agent/tinyipa/files/tinyipa-${IPA_DOWNLOAD_BRANCH}.gz}
+            IRONIC_AGENT_KERNEL_FILE=tinyipa-${IPA_DOWNLOAD_BRANCH}.vmlinuz
+            IRONIC_AGENT_RAMDISK_FILE=tinyipa-${IPA_DOWNLOAD_BRANCH}.gz
         ;;
         dib)
-            die "IRONIC_RAMDISK_TYPE 'dib' has no official pre-built "\
-                "images. To fix this select a different ramdisk type, set "\
-                "IRONIC_BUILD_DEPLOY_RAMDISK=True, or manually configure "\
-                "IRONIC_DEPLOY_RAMDISK(_URL) and IRONIC_DEPLOY_KERNEL(_URL) "\
-                "to use your own pre-built ramdisk."
+            IRONIC_AGENT_KERNEL_FILE=ipa-${IRONIC_DIB_RAMDISK_OS}-${IPA_DOWNLOAD_BRANCH}.kernel
+            IRONIC_AGENT_RAMDISK_FILE=ipa-${IRONIC_DIB_RAMDISK_OS}-${IPA_DOWNLOAD_BRANCH}.initramfs
         ;;
     esac
+    IRONIC_AGENT_KERNEL_URL=https://tarballs.openstack.org/ironic-python-agent/${IRONIC_RAMDISK_TYPE}/files/${IRONIC_AGENT_KERNEL_FILE}
+    IRONIC_AGENT_RAMDISK_URL=https://tarballs.openstack.org/ironic-python-agent/${IRONIC_RAMDISK_TYPE}/files/${IRONIC_AGENT_RAMDISK_FILE}
 fi
 
 # This refers the options for disk-image-create and the platform on which
 # to build the dib based ironic-python-agent ramdisk.
-# "centos7 dhcp-all-interfaces" is set since the default value "ubuntu" has some network issue.
-IRONIC_DIB_RAMDISK_OPTIONS=${IRONIC_DIB_RAMDISK_OPTIONS:-'centos7 dhcp-all-interfaces'}
+IRONIC_DIB_RAMDISK_OPTIONS=${IRONIC_DIB_RAMDISK_OPTIONS:-"$IRONIC_DIB_RAMDISK_OS"}
 # DHCP timeout for the dhcp-all-interfaces element.
 IRONIC_DIB_DHCP_TIMEOUT=${IRONIC_DIB_DHCP_TIMEOUT:-60}
 

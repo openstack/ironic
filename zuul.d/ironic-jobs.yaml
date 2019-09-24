@@ -545,3 +545,26 @@
       - ^setup.cfg$
       - ^tools/(?!bandit\.yml).*$
       - ^tox.ini$
+
+- job:
+    name: ironic-tempest-ipa-wholedisk-bios-ipmi-direct-dib-centos7
+    parent: ironic-base
+    timeout: 9600
+    vars:
+      tempest_test_timeout: 2400
+      devstack_services:
+        s-account: True
+        s-container: True
+        s-object: True
+        s-proxy: True
+      devstack_localrc:
+        IRONIC_DEFAULT_DEPLOY_INTERFACE: direct
+        IRONIC_RAMDISK_TYPE: dib
+        IRONIC_DIB_RAMDISK_OS: centos7
+        IRONIC_TEMPEST_WHOLE_DISK_IMAGE: True
+        IRONIC_TEMPEST_BUILD_TIMEOUT: 900
+        IRONIC_VM_EPHEMERAL_DISK: 0
+        IRONIC_VM_INTERFACE_COUNT: 1
+        IRONIC_VM_SPECS_RAM: 3072
+        SWIFT_ENABLE_TEMPURLS: True
+        SWIFT_TEMPURL_KEY: secretkey
