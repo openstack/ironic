@@ -30,6 +30,82 @@ documented in the `Project Team Guide`_.
 
 .. _`Project Team Guide`: https://docs.openstack.org/project-team-guide/release-management.html#how-to-release
 
+What do we have to release?
+===========================
+
+The ironic project has a number of deliverables under its governance.  The
+ultimate source of truth for this is `projects.yaml
+<https://opendev.org/openstack/governance/src/branch/master/reference/projects.yaml>`__
+in the governance repository. These deliverables have varying release models,
+and these are defined in the `deliverables YAML files
+<https://opendev.org/openstack/releases/src/branch/master/deliverables>`__ in
+the releases repository.
+
+In general, ironic deliverables follow the `cycle-with-intermediary
+<https://releases.openstack.org/reference/release_models.html#cycle-with-intermediary>`__
+release model.
+
+Non-client libraries
+--------------------
+
+The following deliverables are non-client libraries:
+
+* ironic-lib
+* metalsmith
+* sushy
+
+Client libraries
+----------------
+
+The following deliverables are client libraries:
+
+* python-ironicclient
+* python-ironic-inspector-client
+
+Normal release
+--------------
+
+The following deliverables are Neutron plugins:
+
+* networking-baremetal
+* networking-generic-switch
+
+The following deliverables are Horizon plugins:
+
+* ironic-ui
+
+The following deliverables are Tempest plugins:
+
+* ironic-tempest-plugin
+
+The following deliverables are services, or treated as such:
+
+* bifrost
+* ironic
+* ironic-inspector
+* ironic-prometheus-exporter
+* ironic-python-agent
+
+Independent
+-----------
+
+The following deliverables are released `independently
+<https://releases.openstack.org/reference/release_models.html#independent>`__:
+
+* ironic-python-agent-builder
+* molteniron
+* sushy-tools
+* tenks
+* virtualbmc
+
+Not released
+------------
+
+The following deliverables do not need to be released:
+
+* ironic-inspector-specs
+* ironic-specs
+
 Things to do before releasing
 =============================
 
