@@ -393,7 +393,7 @@ support for pluggable hardware managers which can be used to extend the
 functionality offered by IPA ramdisk using stevedore plugins.  For more
 information, see Ironic Python Agent `Hardware Manager`_ documentation.
 
-.. _`Hardware Manager`: https://docs.openstack.org/ironic-python-agent/latest/install/index.html#hardware-managers
+.. _`Hardware Manager`: https://docs.openstack.org/ironic-python-agent/train/install/index.html#hardware-managers
 
 The hardware manager that supports RAID configuration should do the following:
 

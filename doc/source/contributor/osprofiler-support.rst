@@ -120,4 +120,4 @@ References
 - `OSProfiler – Cross-project profiling library`_
 - :ref:`deploy_devstack`
 
-.. _OSProfiler – Cross-project profiling library: https://docs.openstack.org/osprofiler/latest/index.html
+.. _OSProfiler – Cross-project profiling library: https://docs.openstack.org/osprofiler/train/index.html

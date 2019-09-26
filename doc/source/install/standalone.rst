@@ -61,7 +61,7 @@ There are however some limitations for different hardware interfaces:
 Steps to start a deployment are pretty similar to those when using Compute:
 
 #. To use the `openstack baremetal CLI
-   <https://docs.openstack.org/python-ironicclient/latest/cli/osc_plugin_cli.html>`_,
+   <https://docs.openstack.org/python-ironicclient/train/cli/osc_plugin_cli.html>`_,
    set up these environment variables. Since no authentication strategy is
    being used, the value none must be set for OS_AUTH_TYPE. OS_ENDPOINT is
    the URL of the ironic-api process.

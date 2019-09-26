@@ -187,7 +187,7 @@ An easy way to do this is to:
 * to disable unauthorized access to these endpoints in the (first) API services
   group that serves external requests, the following lines should be
   added to the `policy.yaml file
-  <https://docs.openstack.org/ironic/latest/configuration/sample-policy.html>`_::
+  <https://docs.openstack.org/ironic/train/configuration/sample-policy.html>`_::
 
     # Send heartbeats from IPA ramdisk
     "baremetal:node:ipa_heartbeat": "rule:is_admin"

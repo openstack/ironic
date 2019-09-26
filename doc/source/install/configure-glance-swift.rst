@@ -74,4 +74,4 @@ and Object Storage service as described below.
 
 #. (Re)start the ironic-conductor service.
 
-.. _swift: https://docs.openstack.org/swift/latest/
+.. _swift: https://docs.openstack.org/swift/train/

@@ -19,7 +19,7 @@ of the following ways:
   <https://docs.openstack.org/security-guide/secure-communication/tls-proxies-and-http-services.html>`_
 
 * `Using native SSL support in swift
-  <https://docs.openstack.org/swift/latest/deployment_guide.html>`_
+  <https://docs.openstack.org/swift/train/deployment_guide.html>`_
   (recommended only for testing purpose by swift).
 
 .. _EnableHTTPSinGlance:
@@ -32,7 +32,7 @@ image service does not use HTTPS, but it is required for secure communication.
 It can be enabled by making the following changes to ``/etc/glance/glance-api.conf``:
 
 #. `Configuring SSL support
-   <https://docs.openstack.org/glance/latest/configuration/configuring.html#configuring-ssl-support>`_
+   <https://docs.openstack.org/glance/train/configuration/configuring.html#configuring-ssl-support>`_
 
 #. Restart the glance-api service::
 
@@ -42,7 +42,7 @@ It can be enabled by making the following changes to ``/etc/glance/glance-api.co
     Debian/Ubuntu:
         sudo service glance-api restart
 
-See the `Glance <https://docs.openstack.org/glance/latest/>`_ documentation,
+See the `Glance <https://docs.openstack.org/glance/train/>`_ documentation,
 for more details on the Image service.
 
 Enabling HTTPS communication between Image service and Object storage
@@ -56,7 +56,7 @@ To enable secure HTTPS communication between Image service and Object storage fo
 #. :ref:`EnableHTTPSinSwift`
 
 #.  `Configure Swift Storage Backend
-    <https://docs.openstack.org/glance/latest/configuration/configuring.html#configuring-the-swift-storage-backend>`_
+    <https://docs.openstack.org/glance/train/configuration/configuring.html#configuring-the-swift-storage-backend>`_
 
 #. :ref:`EnableHTTPSinGlance`
 

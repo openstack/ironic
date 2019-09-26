@@ -138,5 +138,5 @@ the preferred process is:
 -----------------------------------------------------------------
 
 For more information, see the
-`oslo.reports documentation <https://docs.openstack.org/oslo.reports/latest/user/usage.html>`_
+`oslo.reports documentation <https://docs.openstack.org/oslo.reports/train/user/usage.html>`_
 page.

@@ -78,6 +78,6 @@ Configure the Identity service for the Bare Metal service
    file, which enumerates the service's default policies, is provided for
    your convenience with the Bare Metal Service.
 
-.. _Identity: https://docs.openstack.org/keystone/latest/admin/cli-manage-projects-users-and-roles.html
-.. _`command-line client`: https://docs.openstack.org/python-openstackclient/latest/cli/authentication.html
-.. _here: https://docs.openstack.org/keystone/latest/admin/identity-concepts.html#user-management
+.. _Identity: https://docs.openstack.org/keystone/train/admin/cli-manage-projects-users-and-roles.html
+.. _`command-line client`: https://docs.openstack.org/python-openstackclient/train/cli/authentication.html
+.. _here: https://docs.openstack.org/keystone/train/admin/identity-concepts.html#user-management

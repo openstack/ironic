@@ -8,7 +8,7 @@ service running on it for controlling and deploying bare metal nodes.
 
 .. TODO(dtantsur): a link to DIB ramdisks once we finally build them
 
-.. _ironic-python-agent: https://docs.openstack.org/ironic-python-agent/latest/
+.. _ironic-python-agent: https://docs.openstack.org/ironic-python-agent/train/
 
 Building from source
 --------------------
