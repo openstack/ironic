@@ -30,8 +30,6 @@ from ironic.common import service
 from ironic.conf import CONF
 from ironic.db import api as db_api
 from ironic.db import migration
-from ironic.objects import port
-from ironic.objects import portgroup
 from ironic import version
 
 
@@ -68,12 +66,6 @@ dbapi = db_api.get_instance()
 # object, in case it is lazy loaded. The attribute will be accessed when needed
 # by doing getattr on the object
 ONLINE_MIGRATIONS = (
-    # Added in Rocky
-    # TODO(rloo): remove in Stein
-    (port, 'migrate_vif_port_id'),
-    # Added in Rocky
-    # TODO(rloo): remove in Stein
-    (portgroup, 'migrate_vif_port_id'),
     # NOTE(rloo): Don't remove this; it should always be last
     (dbapi, 'update_to_latest_versions'),
 )
@@ -81,11 +73,6 @@ ONLINE_MIGRATIONS = (
 # These are the models added in supported releases. We skip the version check
 # for them since the tables do not exist when it happens.
 NEW_MODELS = [
-    # TODO(dtantsur): remove in Train
-    'Allocation',
-    # TODO(mgoddard): remove in Train
-    'DeployTemplate',
-    'DeployTemplateStep',
 ]
 
 
