@@ -308,13 +308,11 @@ class RedfishManagement(base.ManagementInterface):
         for storage in system.simple_storage.get_members():
             for drive in storage.devices:
                 sensor = cls._sensor2dict(
-                    drive, 'identity', 'model', 'capacity_bytes',
-                    'failure_predicted')
+                    drive, 'name', 'model', 'capacity_bytes')
                 sensor.update(
                     cls._sensor2dict(drive.status, 'state', 'health'))
                 unique_name = '%s:%s@%s' % (
-                    drive.identity, system.simple_storage.identity,
-                    system.identity)
+                    drive.name, storage.identity, system.identity)
                 sensors[unique_name] = sensor
 
         return sensors

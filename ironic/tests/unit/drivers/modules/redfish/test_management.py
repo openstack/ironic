@@ -359,11 +359,10 @@ class RedfishManagementTestCase(db_base.DbTestCase):
 
     def test__get_sensors_data_drive(self):
         attributes = {
-            'identity': '32ADF365C6C1B7BD',
+            'name': '32ADF365C6C1B7BD',
+            'manufacturer': 'IBM',
             'model': 'IBM 350A',
             'capacity_bytes': 3750000000,
-            'failure_predicted': True,
-            'serial_number': 'SN010203040506',
             'status': {
                 'health': 'OK',
                 'state': 'enabled'
@@ -372,10 +371,11 @@ class RedfishManagementTestCase(db_base.DbTestCase):
 
         mock_system = mock.MagicMock(identity='ZZZ-YYY-XXX')
         mock_drive = mock.MagicMock(**attributes)
+        mock_drive.name = attributes['name']
         mock_drive.status = mock.MagicMock(**attributes['status'])
         mock_storage = mock.MagicMock()
         mock_storage.devices = [mock_drive]
-        mock_system.simple_storage.identity = 'XXX-YYY-ZZZ'
+        mock_storage.identity = 'XXX-YYY-ZZZ'
         mock_system.simple_storage.get_members.return_value = [mock_storage]
 
         with task_manager.acquire(self.context, self.node.uuid,
@@ -385,9 +385,8 @@ class RedfishManagementTestCase(db_base.DbTestCase):
         expected = {
             '32ADF365C6C1B7BD:XXX-YYY-ZZZ@ZZZ-YYY-XXX': {
                 'capacity_bytes': 3750000000,
-                'failure_predicted': True,
                 'health': 'OK',
-                'identity': '32ADF365C6C1B7BD',
+                'name': '32ADF365C6C1B7BD',
                 'model': 'IBM 350A',
                 'state': 'enabled'
             }

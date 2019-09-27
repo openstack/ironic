@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    Fixes drive sensors information collection in ``redfish`` management
+    interface. Prior to this fix, wrong Redfish schema has been used for
+    Drive resource what has been causing exception and ultimately sensor
+    data collection failure.
