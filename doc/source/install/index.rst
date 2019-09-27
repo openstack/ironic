@@ -6,7 +6,7 @@ The Bare Metal service is a collection of components that provides support to
 manage and provision physical machines.
 
 This chapter assumes a working setup of OpenStack following the
-`OpenStack Installation Guides <https://docs.openstack.org/latest/install>`_.
+`OpenStack Installation Guides <https://docs.openstack.org/train/install>`_.
 It contains the following sections:
 
 .. toctree::

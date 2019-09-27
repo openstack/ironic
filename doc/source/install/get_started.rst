@@ -140,10 +140,10 @@ bifrost_
 
 .. _remote procedure call (RPC): https://en.wikipedia.org/wiki/Remote_procedure_call
 .. _WSGI: https://en.wikipedia.org/wiki/Web_Server_Gateway_Interface
-.. _oslo.messaging: https://docs.openstack.org/oslo.messaging/latest/
-.. _python-ironicclient: https://docs.openstack.org/python-ironicclient/latest/
-.. _ironic-ui: https://docs.openstack.org/ironic-ui/latest/
-.. _ironic-inspector: https://docs.openstack.org/ironic-inspector/latest/
+.. _oslo.messaging: https://docs.openstack.org/oslo.messaging/train/
+.. _python-ironicclient: https://docs.openstack.org/python-ironicclient/train/
+.. _ironic-ui: https://docs.openstack.org/ironic-ui/train/
+.. _ironic-inspector: https://docs.openstack.org/ironic-inspector/train/
 .. _diskimage-builder: https://docs.openstack.org/diskimage-builder/latest/
-.. _bifrost: https://docs.openstack.org/bifrost/latest/
+.. _bifrost: https://docs.openstack.org/bifrost/train/
 

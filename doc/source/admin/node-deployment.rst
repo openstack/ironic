@@ -90,7 +90,7 @@ executed with particular sets of arguments and priorities.
 
 Each deploy template has a name, which must be a valid trait.  Traits can be
 either standard or custom.  Standard traits are listed in the `os_traits
-library <https://docs.openstack.org/os-traits/latest/>`_.  Custom traits must
+library <https://docs.openstack.org/os-traits/train/>`_.  Custom traits must
 meet the following requirements:
 
 * prefixed with ``CUSTOM_``

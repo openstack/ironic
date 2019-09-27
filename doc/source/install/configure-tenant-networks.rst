@@ -135,7 +135,7 @@ provisioning will happen in a multi-tenant environment (which means using the
 
 #. Install and configure a compatible ML2 mechanism driver which supports bare
    metal provisioning for your switch. See `ML2 plugin configuration manual
-   <https://docs.openstack.org/neutron/latest/admin/config-ml2.html>`_
+   <https://docs.openstack.org/neutron/train/admin/config-ml2.html>`_
    for details.
 
 #. Restart the ironic-conductor and ironic-api services after the

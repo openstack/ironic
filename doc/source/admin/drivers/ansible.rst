@@ -465,6 +465,6 @@ You can use these modules in your playbooks as well.
     is not shadowed.
 
 .. _Ansible: https://docs.ansible.com/ansible/latest/index.html
-.. _Ironic Python Agent: https://docs.openstack.org/ironic-python-agent/latest/
+.. _Ironic Python Agent: https://docs.openstack.org/ironic-python-agent/train/
 .. _ironic-staging-drivers: https://opendev.org/x/ironic-staging-drivers/src/branch/stable/pike/imagebuild
 .. _ironic-python-agent-builder: https://opendev.org/openstack/ironic-python-agent-builder

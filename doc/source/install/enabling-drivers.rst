@@ -292,4 +292,4 @@ existing nodes.
    provide an explicit value for this interface when creating a node.
 
 .. _setup.cfg: https://opendev.org/openstack/ironic/src/branch/master/setup.cfg
-.. _ironic-inspector: https://docs.openstack.org/ironic-inspector/latest/
+.. _ironic-inspector: https://docs.openstack.org/ironic-inspector/train/

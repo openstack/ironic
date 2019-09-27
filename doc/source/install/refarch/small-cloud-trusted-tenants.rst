@@ -237,12 +237,12 @@ protocol, and the *bare metal network* has to have a route to the *storage
 network*. See :doc:`/admin/boot-from-volume` for more details.
 
 .. _an OpenStack installation: https://docs.openstack.org/arch-design/use-cases/use-case-general-compute.html
-.. _Compute service: https://docs.openstack.org/nova/latest/
-.. _Networking service: https://docs.openstack.org/neutron/latest/
-.. _Image service: https://docs.openstack.org/glance/latest/
-.. _Volume service: https://docs.openstack.org/cinder/latest/
-.. _Bare Metal Introspection service: https://docs.openstack.org/ironic-inspector/latest/
+.. _Compute service: https://docs.openstack.org/nova/train/
+.. _Networking service: https://docs.openstack.org/neutron/train/
+.. _Image service: https://docs.openstack.org/glance/train/
+.. _Volume service: https://docs.openstack.org/cinder/train/
+.. _Bare Metal Introspection service: https://docs.openstack.org/ironic-inspector/train/
 .. _control plane design guide: https://docs.openstack.org/arch-design/design-control-plane.html
-.. _networking-baremetal: https://docs.openstack.org/networking-baremetal/latest/
-.. _ironic-neutron-agent: https://docs.openstack.org/networking-baremetal/latest/install/index.html#configure-ironic-neutron-agent
+.. _networking-baremetal: https://docs.openstack.org/networking-baremetal/train/
+.. _ironic-neutron-agent: https://docs.openstack.org/networking-baremetal/train/install/index.html#configure-ironic-neutron-agent
 .. _iSCSI: https://en.wikipedia.org/wiki/ISCSI

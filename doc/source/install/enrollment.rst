@@ -476,7 +476,7 @@ To move a node from ``manageable`` to ``available`` provision state:
 For more details on the Bare Metal service's state machine, see the
 :doc:`/contributor/states` documentation.
 
-.. _ComputeCapabilitiesFilter: https://docs.openstack.org/nova/latest/user/filter-scheduler.html
+.. _ComputeCapabilitiesFilter: https://docs.openstack.org/nova/train/user/filter-scheduler.html
 
 Mapping nodes to Compute cells
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

@@ -47,7 +47,7 @@ version of API that they have been tested against.
     microversion, which always requests the newest supported API version from
     the server.
 
-.. _Nova versioning documentation: https://docs.openstack.org/nova/latest/contributor/microversions.html#when-do-i-need-a-new-microversion
+.. _Nova versioning documentation: https://docs.openstack.org/nova/train/contributor/microversions.html#when-do-i-need-a-new-microversion
 
 REST API Versions History
 -------------------------

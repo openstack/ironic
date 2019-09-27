@@ -12,10 +12,10 @@ It is recommended to use the baremetal ML2 mechanism driver and L2 agent for
 proper integration with the Networking service. Documentation regarding
 installation and configuration of the baremetal mechanism driver and L2 agent
 is available `here
-<https://docs.openstack.org/networking-baremetal/latest/index.html>`_.
+<https://docs.openstack.org/networking-baremetal/train/index.html>`_.
 
 For use with `routed networks
-<https://docs.openstack.org/neutron/latest/admin/config-routed-networks>`_
+<https://docs.openstack.org/neutron/train/admin/config-routed-networks>`_
 the baremetal ML2 components are required.
 
 .. Note::  When the baremetal ML2 components are *not* used, ports in the

@@ -90,7 +90,7 @@ The ironic-python-agent ramdisk emits timing metrics for every API method.
 Deployers who use custom HardwareManagers can emit custom metrics for their
 hardware. For more information on custom HardwareManagers, and emitting
 metrics from them, please see the
-`ironic-python-agent documentation <https://docs.openstack.org/ironic-python-agent/latest/>`_.
+`ironic-python-agent documentation <https://docs.openstack.org/ironic-python-agent/train/>`_.
 
 
 Adding New Metrics
@@ -98,6 +98,6 @@ Adding New Metrics
 
 If you're a developer, and would like to add additional metrics to ironic,
 please see the `ironic-lib developer documentation
-<https://docs.openstack.org/ironic-lib/latest/>`_ for details on how to use
+<https://docs.openstack.org/ironic-lib/train/>`_ for details on how to use
 the metrics library. A release note should also be created each time a metric
 is changed or removed to alert deployers of the change.

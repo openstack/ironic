@@ -123,7 +123,7 @@ The ``ilo`` hardware type supports following hardware interfaces:
         enabled_inspect_interfaces = ilo,inspector
 
     .. note::
-       `Ironic Inspector <https://docs.openstack.org/ironic-inspector/latest/>`_
+       `Ironic Inspector <https://docs.openstack.org/ironic-inspector/train/>`_
        needs to be configured to use ``inspector`` as the inspect interface.
 
 * management
@@ -335,7 +335,7 @@ Glance Configuration
 ^^^^^^^^^^^^^^^^^^^^
 
 1. `Configure Glance image service with its storage backend as Swift
-   <https://docs.openstack.org/glance/latest/configuration/configuring.html#configuring-the-swift-storage-backend>`_.
+   <https://docs.openstack.org/glance/train/configuration/configuring.html#configuring-the-swift-storage-backend>`_.
 
 2. Set a temp-url key for Glance user in Swift. For example, if you have
    configured Glance with user ``glance-swift`` and tenant as ``service``,
