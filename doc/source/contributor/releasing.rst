@@ -157,16 +157,14 @@ This includes:
   * updating the release notes RST to include the new branch.
 
     The generated RST does not include the version range in the title, so we
-    typically submit a follow-up patch to do that. We also manually mark
-    the ``earliest-version`` directive on the new page, due to a `reno bug
-    <https://bugs.launchpad.net/reno/+bug/1746076>` that may cause this to
-    be incorrect for stable branches.
+    typically submit a follow-up patch to do that. An example of this patch is
+    `here <https://review.opendev.org/685070>`__.
 
 We need to submit patches for changes in the stable branch to:
 
 * update the ironic devstack plugin to point at the branched tarball for IPA.
   An example of this patch is
-  `here <https://review.opendev.org/#/c/374863/>`_.
+  `here <https://review.opendev.org/685069/>`_.
 * update links in the documentation (``ironic/doc/source/``) to point to the
   branched versions of any openstack projects' (that branch) documents.
   As of Pike release, the only outlier is
