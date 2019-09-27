@@ -283,6 +283,8 @@ fi
 # to build the dib based ironic-python-agent ramdisk.
 # "centos7 dhcp-all-interfaces" is set since the default value "ubuntu" has some network issue.
 IRONIC_DIB_RAMDISK_OPTIONS=${IRONIC_DIB_RAMDISK_OPTIONS:-'centos7 dhcp-all-interfaces'}
+# DHCP timeout for the dhcp-all-interfaces element.
+IRONIC_DIB_DHCP_TIMEOUT=${IRONIC_DIB_DHCP_TIMEOUT:-60}
 
 # Some drivers in Ironic require deploy ramdisk in bootable ISO format.
 # Set this variable to "true" to build an ISO for deploy ramdisk and
@@ -2520,9 +2522,10 @@ function build_ipa_dib_ramdisk {
     fi
     git_clone $IRONIC_PYTHON_AGENT_BUILDER_REPO $IRONIC_PYTHON_AGENT_BUILDER_DIR
     ELEMENTS_PATH="$IRONIC_PYTHON_AGENT_BUILDER_DIR/dib" \
-            disk-image-create "$IRONIC_DIB_RAMDISK_OPTIONS" \
-            -o  "$tempdir/ironic-agent" \
-            ironic-python-agent-ramdisk
+        DIB_DHCP_TIMEOUT=$IRONIC_DIB_DHCP_TIMEOUT \
+        disk-image-create "$IRONIC_DIB_RAMDISK_OPTIONS" \
+        -x -o  "$tempdir/ironic-agent" \
+        ironic-python-agent-ramdisk
     chmod -R +r $tempdir
     mv "$tempdir/ironic-agent.kernel" "$kernel_path"
     mv "$tempdir/ironic-agent.initramfs" "$ramdisk_path"
