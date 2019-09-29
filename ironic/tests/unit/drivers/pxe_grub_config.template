@@ -13,8 +13,8 @@ menuentry "boot_partition"  {
 }
 
 menuentry "boot_ramdisk"  {
-    linuxefi /tftpboot/1be26c0b-03f2-4d2e-ae87-c02d7f33c123/deploy_kernel root=/dev/ram0 text test_param ramdisk_param
-    initrdefi /tftpboot/1be26c0b-03f2-4d2e-ae87-c02d7f33c123/deploy_ramdisk
+    linuxefi /tftpboot/1be26c0b-03f2-4d2e-ae87-c02d7f33c123/kernel root=/dev/ram0 text test_param ramdisk_param
+    initrdefi /tftpboot/1be26c0b-03f2-4d2e-ae87-c02d7f33c123/ramdisk
 }
 
 menuentry "boot_whole_disk"  {
