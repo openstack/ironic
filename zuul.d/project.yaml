@@ -36,6 +36,8 @@
             voting: false
         - ironic-inspector-tempest:
             voting: false
+        - ironic-tempest-ipa-wholedisk-bios-ipmi-direct-dib-centos7:
+            voting: false
         - bifrost-integration-tinyipa-ubuntu-xenial:
             voting: false
         - metalsmith-integration-glance-localboot-centos7:
