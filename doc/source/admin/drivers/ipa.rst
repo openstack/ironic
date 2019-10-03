@@ -11,8 +11,8 @@ variety of actions such as inspect, configure, clean and deploy images.
 IPA is distributed over nodes and runs, inside of a ramdisk, the
 process of booting this ramdisk on the node.
 
-For more information see the `ironic-python-agent documentation
-<https://docs.openstack.org/ironic-python-agent/latest>`_.
+For more information see the
+:ironic-python-agent-doc:`ironic-python-agent documentation <>`.
 
 Drivers
 =======
@@ -63,7 +63,7 @@ Steps to enable proxies
    This will probably require you to configure the proxy server to cache the
    content even if the requested URL contains a query, and to raise the maximum
    cached file size as images can be pretty big. If you have HTTPS enabled in
-   swift (see `swift deployment guide <https://docs.openstack.org/swift/latest/deployment_guide.html>`_),
+   swift (see :swift-doc:`swift deployment guide <deployment_guide.html>`),
    it is possible to configure the proxy server to talk to swift via HTTPS
    to download the image, store it in the cache unencrypted and return it to
    the node via HTTPS again. Because the image will be stored unencrypted in

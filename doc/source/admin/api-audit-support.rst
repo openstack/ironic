@@ -17,8 +17,8 @@ Enabling API Audit Logging
 ==========================
 
 Audit middleware is available as part of `keystonemiddleware` (>= 1.6) library.
-For information regarding how audit middleware functions refer `here.
-<https://docs.openstack.org/keystonemiddleware/latest/audit.html>`_
+For information regarding how audit middleware functions refer
+:keystonemiddleware-doc:`here <audit.html>`.
 
 Auditing can be enabled for the Bare Metal service by making the following changes
 to ``/etc/ironic/ironic.conf``.

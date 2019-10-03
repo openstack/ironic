@@ -134,8 +134,8 @@ provisioning will happen in a multi-tenant environment (which means using the
        default; make sure not to override it by manually setting it to False.
 
 #. Install and configure a compatible ML2 mechanism driver which supports bare
-   metal provisioning for your switch. See `ML2 plugin configuration manual
-   <https://docs.openstack.org/neutron/latest/admin/config-ml2.html>`_
+   metal provisioning for your switch. See
+   :neutron-doc:`ML2 plugin configuration manual <admin/config-ml2.html>`
    for details.
 
 #. Restart the ironic-conductor and ironic-api services after the

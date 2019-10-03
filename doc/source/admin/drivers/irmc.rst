@@ -58,7 +58,7 @@ hardware interfaces:
     The default is ``irmc``.
 
     .. note::
-       `Ironic Inspector <https://docs.openstack.org/ironic-inspector/latest/>`_
+       :ironic-inspector-doc:`Ironic Inspector <>`
        needs to be present and configured to use ``inspector`` as the
        inspect interface.
 

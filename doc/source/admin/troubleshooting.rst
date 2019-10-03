@@ -142,9 +142,9 @@ A few things should be checked in this case:
         Filter ComputeCapabilitiesFilter returned 0 hosts
 
    The name of the filter that removed the last hosts may give some hints on
-   what exactly was not matched. See `Nova filters documentation
-   <https://docs.openstack.org/nova/latest/filter_scheduler.html>`_ for more
-   details.
+   what exactly was not matched. See
+   :nova-doc:`Nova filters documentation <filter_scheduler.html>`
+   for more details.
 
 #. If none of the above helped, check Ironic conductor log carefully to see
    if there are any conductor-related errors which are the root cause for

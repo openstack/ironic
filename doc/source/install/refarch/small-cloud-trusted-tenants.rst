@@ -22,17 +22,17 @@ Components
 This architecture assumes `an OpenStack installation`_ with the following
 components participating in the bare metal provisioning:
 
-* The `Compute service`_ manages bare metal instances.
+* The :nova-doc:`Compute service <>` manages bare metal instances.
 
-* The `Networking service`_ provides DHCP for bare metal instances.
+* The :neutron-doc:`Networking service <>` provides DHCP for bare metal instances.
 
-* The `Image service`_ provides images for bare metal instances.
+* The :glance-doc:`Image service <>` provides images for bare metal instances.
 
 The following services can be optionally used by the Bare Metal service:
 
-* The `Volume service`_ provides volumes to boot bare metal instances from.
+* The :cinder-doc:`Volume service <>` provides volumes to boot bare metal instances from.
 
-* The `Bare Metal Introspection service`_ simplifies enrolling new bare metal
+* The :ironic-inspector-doc:`Bare Metal Introspection service <>` simplifies enrolling new bare metal
   machines by conducting in-band introspection.
 
 Node roles
@@ -50,7 +50,8 @@ nodes:
   and bare metal nodes.
 
 The *compute* and *block storage* nodes are configured as described in the
-installation guides of the `Compute service`_ and the `Volume service`_
+installation guides of the :nova-doc:`Compute service <>` and the
+:cinder-doc:`Volume service <>`
 respectively. The *controller* nodes host the Bare Metal service components.
 
 Networking
@@ -168,10 +169,10 @@ The following components of the Bare Metal service are installed on a
     There is no 1-1 mapping between ``ironic-conductor`` and ``nova-compute``
     processes, as they communicate only through the Bare Metal API service.
 
-* The networking-baremetal_ ML2 plugin should be loaded into the Networking
+* The :networking-baremetal-doc:`networking-baremetal <>` ML2 plugin should be loaded into the Networking
   service to assist with binding bare metal ports.
 
-  The ironic-neutron-agent_ service should be started as well.
+  The :ironic-neutron-agent-doc:`ironic-neutron-agent <>` service should be started as well.
 
 * If the Bare Metal introspection is used, its ``ironic-inspector`` process
   has to be installed on all *controllers*. Each such process works as both
@@ -237,12 +238,5 @@ protocol, and the *bare metal network* has to have a route to the *storage
 network*. See :doc:`/admin/boot-from-volume` for more details.
 
 .. _an OpenStack installation: https://docs.openstack.org/arch-design/use-cases/use-case-general-compute.html
-.. _Compute service: https://docs.openstack.org/nova/latest/
-.. _Networking service: https://docs.openstack.org/neutron/latest/
-.. _Image service: https://docs.openstack.org/glance/latest/
-.. _Volume service: https://docs.openstack.org/cinder/latest/
-.. _Bare Metal Introspection service: https://docs.openstack.org/ironic-inspector/latest/
 .. _control plane design guide: https://docs.openstack.org/arch-design/design-control-plane.html
-.. _networking-baremetal: https://docs.openstack.org/networking-baremetal/latest/
-.. _ironic-neutron-agent: https://docs.openstack.org/networking-baremetal/latest/install/index.html#configure-ironic-neutron-agent
 .. _iSCSI: https://en.wikipedia.org/wiki/ISCSI

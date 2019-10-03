@@ -48,12 +48,12 @@ developed by the same community.
 
 .. seealso::
 
-   * https://docs.openstack.org/bifrost/latest/
-   * https://docs.openstack.org/ironic-inspector/latest/
-   * https://docs.openstack.org/ironic-lib/latest/
-   * https://docs.openstack.org/ironic-python-agent/latest/
-   * https://docs.openstack.org/python-ironicclient/latest/
-   * https://docs.openstack.org/python-ironic-inspector-client/latest/
+   * :bifrost-doc:`Bifrost Documentation <>`
+   * :ironic-inspector-doc:`Ironic Inspector Documentation <>`
+   * :ironic-lib-doc:`Ironic Lib Documentation <>`
+   * :ironic-python-agent-doc:`Ironic Python Agent (IPA) Documentation <>`
+   * :python-ironicclient-doc:`Ironic Client Documentation <>`
+   * :python-ironic-inspector-client-doc:`Ironic Inspector Client Documentation <>`
 
 Project Hosting Details
 -----------------------

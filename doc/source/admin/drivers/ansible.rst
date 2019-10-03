@@ -8,7 +8,8 @@ All communications with the node are by default performed over secure SSH
 transport.
 
 The ``ansible`` deploy interface uses Ansible playbooks to define the
-deployment logic. It is not based on `Ironic Python Agent`_ (IPA)
+deployment logic. It is not based on
+:ironic-python-agent-doc:`Ironic Python Agent (IPA) <>`
 and does not generally need IPA to be running in the deploy ramdisk.
 
 Overview
@@ -49,7 +50,8 @@ file.
 Features
 --------
 
-Similar to deploy interfaces relying on `Ironic Python Agent`_, this deploy
+Similar to deploy interfaces relying on
+:ironic-python-agent-doc:`Ironic Python Agent (IPA) <>`, this deploy
 interface also depends on the deploy ramdisk calling back to ironic API's
 ``heartbeat`` endpoint.
 
@@ -465,6 +467,5 @@ You can use these modules in your playbooks as well.
     is not shadowed.
 
 .. _Ansible: https://docs.ansible.com/ansible/latest/index.html
-.. _Ironic Python Agent: https://docs.openstack.org/ironic-python-agent/latest/
 .. _ironic-staging-drivers: https://opendev.org/x/ironic-staging-drivers/src/branch/stable/pike/imagebuild
 .. _ironic-python-agent-builder: https://opendev.org/openstack/ironic-python-agent-builder

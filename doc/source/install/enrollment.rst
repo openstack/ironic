@@ -325,7 +325,8 @@ Adding scheduling information
 
 #. If you wish to perform more advanced scheduling of the instances based on
    hardware capabilities, you may add metadata to each node that will be
-   exposed to the Compute scheduler (see: `ComputeCapabilitiesFilter`_).
+   exposed to the Compute scheduler (see:
+   :nova-doc:`ComputeCapabilitiesFilter <user/filter-scheduler.html>`).
    A full explanation of this is outside of the scope of this document. It can
    be done through the special ``capabilities`` member of node properties:
 
@@ -475,8 +476,6 @@ To move a node from ``manageable`` to ``available`` provision state:
 
 For more details on the Bare Metal service's state machine, see the
 :doc:`/contributor/states` documentation.
-
-.. _ComputeCapabilitiesFilter: https://docs.openstack.org/nova/latest/user/filter-scheduler.html
 
 Mapping nodes to Compute cells
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

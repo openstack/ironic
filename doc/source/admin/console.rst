@@ -242,7 +242,8 @@ Node serial console of the Bare Metal service is compatible with the
 serial console of the Compute service. Hence, serial consoles to
 Bare Metal nodes can be seen and interacted with via the Dashboard service.
 In order to achieve that, you need to follow the documentation for
-`Serial Console`_ from the Compute service.
+:nova-doc:`Serial Console <admin/remote-console-access.html#serial>`
+from the Compute service.
 
 Configuring HA
 ~~~~~~~~~~~~~~
@@ -281,4 +282,3 @@ configuration, you may consider some settings below.
     memcache_servers = memcache01:11211,memcache02:11211,memcache03:11211
 
 .. _`socat`: http://www.dest-unreach.org/socat
-.. _`Serial Console`: https://docs.openstack.org/nova/latest/admin/remote-console-access.html#serial

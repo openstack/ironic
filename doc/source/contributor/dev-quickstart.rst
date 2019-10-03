@@ -131,8 +131,8 @@ Then run ``tox`` with the debug environment as one of the following::
   tox -e debug test_file_name.TestClass
   tox -e debug test_file_name.TestClass.test_name
 
-For more information see the `oslotest documentation
-<https://docs.openstack.org/oslotest/latest/user/features.html#debugging-with-oslo-debug-helper>`_.
+For more information see the
+:oslotest-doc:`oslotest documentation <user/features.html#debugging-with-oslo-debug-helper>`.
 
 Database Setup
 --------------
