@@ -21,6 +21,7 @@ from oslo_config import cfg
 
 from ironic.common import boot_devices
 from ironic.common import exception
+from ironic.common import image_service
 from ironic.common import states
 from ironic.conductor import steps as conductor_steps
 from ironic.conductor import task_manager
@@ -1189,11 +1190,13 @@ class AgentDeployMixinTest(AgentDeployMixinBaseTest):
             try_set_boot_device_mock.assert_called_once_with(
                 task, boot_devices.DISK, persistent=True)
 
+    @mock.patch.object(image_service, 'GlanceImageService', autospec=True)
     @mock.patch.object(deploy_utils, 'try_set_boot_device', autospec=True)
     @mock.patch.object(agent_client.AgentClient, 'install_bootloader',
                        autospec=True)
     def test_configure_local_boot_on_software_raid(
-            self, install_bootloader_mock, try_set_boot_device_mock):
+            self, install_bootloader_mock, try_set_boot_device_mock,
+            GlanceImageService_mock):
         with task_manager.acquire(self.context, self.node['uuid'],
                                   shared=False) as task:
             task.node.driver_internal_info['is_whole_disk_image'] = True
@@ -1211,9 +1214,45 @@ class AgentDeployMixinTest(AgentDeployMixinBaseTest):
                     }
                 ]
             }
-
             self.deploy.configure_local_boot(task)
+            self.assertTrue(GlanceImageService_mock.called)
             self.assertTrue(install_bootloader_mock.called)
+            try_set_boot_device_mock.assert_called_once_with(
+                task, boot_devices.DISK, persistent=True)
+
+    @mock.patch.object(image_service, 'GlanceImageService', autospec=True)
+    @mock.patch.object(deploy_utils, 'try_set_boot_device', autospec=True)
+    @mock.patch.object(agent_client.AgentClient, 'install_bootloader',
+                       autospec=True)
+    def test_configure_local_boot_on_software_raid_exception(
+            self, install_bootloader_mock, try_set_boot_device_mock,
+            GlanceImageService_mock):
+        GlanceImageService_mock.side_effect = Exception('Glance not found')
+        with task_manager.acquire(self.context, self.node['uuid'],
+                                  shared=False) as task:
+            task.node.driver_internal_info['is_whole_disk_image'] = True
+            root_uuid = "1efecf88-2b58-4d4e-8fbd-7bef1a40a1b0"
+            task.node.driver_internal_info['root_uuid_or_disk_id'] = root_uuid
+            task.node.target_raid_config = {
+                "logical_disks": [
+                    {
+                        "size_gb": 100,
+                        "raid_level": "1",
+                        "controller": "software",
+                    },
+                    {
+                        "size_gb": 'MAX',
+                        "raid_level": "0",
+                        "controller": "software",
+                    }
+                ]
+            }
+            self.deploy.configure_local_boot(task)
+            self.assertTrue(GlanceImageService_mock.called)
+            # check if the root_uuid comes from the driver_internal_info
+            install_bootloader_mock.assert_called_once_with(
+                mock.ANY, task.node, root_uuid=root_uuid,
+                efi_system_part_uuid=None, prep_boot_part_uuid=None)
             try_set_boot_device_mock.assert_called_once_with(
                 task, boot_devices.DISK, persistent=True)
 
@@ -1237,7 +1276,6 @@ class AgentDeployMixinTest(AgentDeployMixinBaseTest):
                     }
                 ]
             }
-
             self.deploy.configure_local_boot(task)
             self.assertFalse(install_bootloader_mock.called)
             try_set_boot_device_mock.assert_called_once_with(

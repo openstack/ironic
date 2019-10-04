@@ -27,6 +27,7 @@ import retrying
 from ironic.common import boot_devices
 from ironic.common import exception
 from ironic.common.i18n import _
+from ironic.common import image_service
 from ironic.common import states
 from ironic.conductor import steps as conductor_steps
 from ironic.conductor import utils as manager_utils
@@ -827,8 +828,29 @@ class AgentDeployMixin(HeartbeatMixin):
                 LOG.debug('Node %s has a Software RAID configuration',
                           node.uuid)
                 software_raid = True
-                root_uuid = internal_info.get('root_uuid_or_disk_id')
                 break
+
+        # For software RAID try to get the UUID of the root fs from the
+        # image's metadata (via Glance). Fall back to the driver internal
+        # info in case it is not available (e.g. not set or there's no Glance).
+        if software_raid:
+            image_source = node.instance_info.get('image_source')
+            try:
+                context = task.context
+                context.is_admin = True
+                glance = image_service.GlanceImageService(
+                    context=context)
+                image_info = glance.show(image_source)
+                image_properties = image_info.get('properties')
+                root_uuid = image_properties['rootfs_uuid']
+                LOG.debug('Got rootfs_uuid from Glance: %s', root_uuid)
+            except Exception as e:
+                LOG.warning('Could not get \'rootfs_uuid\' property for '
+                            'image %(image)s from Glance: %(error)s.',
+                            {'image': image_source, 'error': e})
+                root_uuid = internal_info.get('root_uuid_or_disk_id')
+                LOG.debug('Got rootfs_uuid from driver internal info: '
+                          ' %s', root_uuid)
 
         whole_disk_image = internal_info.get('is_whole_disk_image')
         if software_raid or (root_uuid and not whole_disk_image):
