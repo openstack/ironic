@@ -886,7 +886,7 @@ function start_redfish {
 }
 
 function stop_redfish {
-    start_service stop $IRONIC_REDFISH_EMULATOR_SYSTEMD_SERVICE
+    stop_service $IRONIC_REDFISH_EMULATOR_SYSTEMD_SERVICE
 }
 
 function cleanup_redfish {
