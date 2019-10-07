@@ -486,12 +486,20 @@ class TaskManager(object):
 
         # publish the state transition by saving the Node
         self.node.save()
-        LOG.info('Node %(node)s moved to provision state "%(state)s" from '
-                 'state "%(previous)s"; target provision state is '
-                 '"%(target)s"',
-                 {'node': self.node.uuid, 'state': self.node.provision_state,
-                  'target': self.node.target_provision_state,
-                  'previous': self._prev_provision_state})
+
+        log_message = ('Node %(node)s moved to provision state "%(state)s" '
+                       'from state "%(previous)s"; target provision state is '
+                       '"%(target)s"' %
+                       {'node': self.node.uuid,
+                        'state': self.node.provision_state,
+                        'target': self.node.target_provision_state,
+                        'previous': self._prev_provision_state})
+
+        if (self.node.provision_state.endswith('failed') or
+                self.node.provision_state == 'error'):
+            LOG.error(log_message)
+        else:
+            LOG.info(log_message)
 
         if callback is None:
             self._notify_provision_state_change()
