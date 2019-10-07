@@ -2518,7 +2518,7 @@ function build_ipa_dib_ramdisk {
     if is_deploy_iso_required; then
         IRONIC_DIB_RAMDISK_OPTIONS+=" iso"
     fi
-    git_clone $IRONIC_PYTHON_AGENT_BUILDER_REPO $IRONIC_PYTHON_AGENT_BUILDER_DIR
+    git_clone $IRONIC_PYTHON_AGENT_BUILDER_REPO $IRONIC_PYTHON_AGENT_BUILDER_DIR $IRONIC_PYTHON_AGENT_BUILDER_BRANCH
     ELEMENTS_PATH="$IRONIC_PYTHON_AGENT_BUILDER_DIR/dib" \
             disk-image-create "$IRONIC_DIB_RAMDISK_OPTIONS" \
             -o  "$tempdir/ironic-agent" \
