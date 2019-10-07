@@ -62,8 +62,12 @@ opts = [
                       'enabled.')),
     cfg.StrOpt('kernel_append_params',
                default='nofb nomodeset vga=normal',
-               help=_('Additional kernel parameters for baremetal '
-                      'Virtual Media boot.')),
+               help=_('Additional kernel parameters to pass down to the '
+                      'instance kernel. These parameters can be consumed by '
+                      'the kernel or by the applications by reading '
+                      '/proc/cmdline. Mind severe cmdline size limit! Can be '
+                      'overridden by `instance_info/kernel_append_params` '
+                      'property.')),
 ]
 
 

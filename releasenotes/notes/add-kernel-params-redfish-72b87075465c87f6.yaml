@@ -1,0 +1,9 @@
+---
+features:
+  - |
+    Adds ``instance_info/kernel_append_params`` property support to ``redfish``
+    hardware type. If given, this property overrides
+    ``[redfish]/kernel_append_params`` ironic option. The rationale for adding
+    this property is to allow passing node-specific kernel parameters to instance
+    kernel. One of the use-cases for this is to pass node static network
+    configuration to the kernel.

@@ -176,6 +176,12 @@ If ``[driver_info]/config_via_floppy`` boolean property of the node is set to
 place into on a FAT image, then insert the image into node's virtual floppy
 drive.
 
+When booting over PXE or virtual media, and user instance requires some
+specific kernel configuration, ``[instance_info]/kernel_append_params``
+property can be used to pass user-specified kernel command line parameters.
+For ramdisk kernel, ``[instance_info]/kernel_append_params`` property serves
+the same purpose.
+
 .. _Redfish: http://redfish.dmtf.org/
 .. _Sushy: https://opendev.org/openstack/sushy
 .. _TLS: https://en.wikipedia.org/wiki/Transport_Layer_Security

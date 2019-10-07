@@ -50,11 +50,19 @@ OPTIONAL_PROPERTIES = {
                            "driver should use virtual media Floppy device "
                            "for passing configuration information to the "
                            "ramdisk. Defaults to False. Optional."),
+    'kernel_append_params': _("Additional kernel parameters to pass down to "
+                              "instance kernel. These parameters can be "
+                              "consumed by the kernel or by the applications "
+                              "by reading /proc/cmdline. Mind severe cmdline "
+                              "size limit. Overrides "
+                              "[redfish]/kernel_append_params ironic "
+                              "option."),
     'bootloader': _("URL or Glance UUID  of the EFI system partition "
                     "image containing EFI boot loader. This image will be "
                     "used by ironic when building UEFI-bootable ISO "
                     "out of kernel and ramdisk. Required for UEFI "
-                    "boot from partition images.")
+                    "boot from partition images."),
+
 }
 
 RESCUE_PROPERTIES = {
@@ -431,12 +439,15 @@ class RedfishVirtualMediaBoot(base.BootInterface):
                 "building ISO for %(node)s") %
                 {'node': task.node.uuid})
 
+        i_info = task.node.instance_info
+
         if deploy_utils.get_boot_option(task.node) == "ramdisk":
-            i_info = task.node.instance_info
             kernel_params = "root=/dev/ram0 text "
             kernel_params += i_info.get("ramdisk_kernel_arguments", "")
+
         else:
-            kernel_params = CONF.redfish.kernel_append_params
+            kernel_params = i_info.get(
+                'kernel_append_params', CONF.redfish.kernel_append_params)
 
         if params:
             kernel_params = ' '.join(

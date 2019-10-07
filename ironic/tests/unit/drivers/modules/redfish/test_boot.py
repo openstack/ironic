@@ -398,6 +398,27 @@ class RedfishVirtualMediaBootTestCase(db_base.DbTestCase):
             self.assertEqual(expected_url, url)
 
     @mock.patch.object(redfish_boot.RedfishVirtualMediaBoot,
+                       '_publish_image', autospec=True)
+    @mock.patch.object(images, 'create_boot_iso', autospec=True)
+    def test__prepare_iso_image_kernel_params(
+            self, mock_create_boot_iso, mock__publish_image):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            kernel_params = 'network-config=base64-cloudinit-blob'
+
+            task.node.instance_info.update(kernel_append_params=kernel_params)
+
+            task.driver.boot._prepare_iso_image(
+                task, 'http://kernel/img', 'http://ramdisk/img',
+                bootloader_href=None, root_uuid=task.node.uuid)
+
+            mock_create_boot_iso.assert_called_once_with(
+                mock.ANY, mock.ANY, 'http://kernel/img', 'http://ramdisk/img',
+                boot_mode=None, esp_image_href=None,
+                kernel_params=kernel_params,
+                root_uuid='1be26c0b-03f2-4d2e-ae87-c02d7f33c123')
+
+    @mock.patch.object(redfish_boot.RedfishVirtualMediaBoot,
                        '_prepare_iso_image', autospec=True)
     def test__prepare_deploy_iso(self, mock__prepare_iso_image):
         with task_manager.acquire(self.context, self.node.uuid,
