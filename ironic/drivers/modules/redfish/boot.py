@@ -20,6 +20,7 @@ from urllib import parse as urlparse
 
 from ironic_lib import utils as ironic_utils
 from oslo_log import log
+from oslo_serialization import base64
 from oslo_utils import importutils
 
 from ironic.common import boot_devices
@@ -411,7 +412,8 @@ class RedfishVirtualMediaBoot(base.BootInterface):
 
     @classmethod
     def _prepare_iso_image(cls, task, kernel_href, ramdisk_href,
-                           bootloader_href=None, root_uuid=None, params=None):
+                           bootloader_href=None, configdrive=None,
+                           root_uuid=None, params=None):
         """Prepare an ISO to boot the node.
 
         Build bootable ISO out of `kernel_href` and `ramdisk_href` (and
@@ -423,6 +425,9 @@ class RedfishVirtualMediaBoot(base.BootInterface):
         :param ramdisk_href: URL or Glance UUID of the ramdisk to use
         :param bootloader_href: URL or Glance UUID of the EFI bootloader
              image to use when creating UEFI bootbable ISO
+        :param configdrive: URL to or a compressed blob of a ISO9660 or
+            FAT-formatted OpenStack config drive image. This image will be
+            written onto the built ISO image. Optional.
         :param root_uuid: optional uuid of the root partition.
         :param params: a dictionary containing 'parameter name'->'value'
             mapping to be passed to kernel command line.
@@ -467,24 +472,48 @@ class RedfishVirtualMediaBoot(base.BootInterface):
                        'params': kernel_params})
 
         with tempfile.NamedTemporaryFile(
-                dir=CONF.tempdir, suffix='.iso') as fileobj:
-            boot_iso_tmp_file = fileobj.name
-            images.create_boot_iso(
-                task.context, boot_iso_tmp_file,
-                kernel_href, ramdisk_href,
-                esp_image_href=bootloader_href,
-                root_uuid=root_uuid,
-                kernel_params=kernel_params,
-                boot_mode=boot_mode)
+                dir=CONF.tempdir, suffix='.iso') as boot_fileobj:
 
-            iso_object_name = cls._get_iso_image_name(task.node)
+            with tempfile.NamedTemporaryFile(
+                    dir=CONF.tempdir, suffix='.img') as cfgdrv_fileobj:
 
-            image_url = cls._publish_image(boot_iso_tmp_file, iso_object_name)
+                configdrive_href = configdrive
 
-        LOG.debug("Created ISO %(name)s in Swift for node %(node)s, exposed "
-                  "as temporary URL %(url)s", {'node': task.node.uuid,
-                                               'name': iso_object_name,
-                                               'url': image_url})
+                if configdrive:
+                    parsed_url = urlparse.urlparse(configdrive)
+                    if not parsed_url.scheme:
+                        cfgdrv_blob = base64.decode_as_bytes(configdrive)
+
+                        with open(cfgdrv_fileobj.name, 'wb') as f:
+                            f.write(cfgdrv_blob)
+
+                        configdrive_href = urlparse.urlunparse(
+                            ('file', '', cfgdrv_fileobj.name, '', '', ''))
+
+                    LOG.info("Burning configdrive %(url)s to boot ISO image "
+                             "for node %(node)s", {'url': configdrive_href,
+                                                   'node': task.node.uuid})
+
+                boot_iso_tmp_file = boot_fileobj.name
+                images.create_boot_iso(
+                    task.context, boot_iso_tmp_file,
+                    kernel_href, ramdisk_href,
+                    esp_image_href=bootloader_href,
+                    configdrive_href=configdrive_href,
+                    root_uuid=root_uuid,
+                    kernel_params=kernel_params,
+                    boot_mode=boot_mode)
+
+                iso_object_name = cls._get_iso_image_name(task.node)
+
+                image_url = cls._publish_image(
+                    boot_iso_tmp_file, iso_object_name)
+
+        LOG.debug("Created ISO %(name)s in object store for node %(node)s, "
+                  "exposed as temporary URL "
+                  "%(url)s", {'node': task.node.uuid,
+                              'name': iso_object_name,
+                              'url': image_url})
 
         return image_url
 
