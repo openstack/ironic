@@ -19,7 +19,7 @@ pysendfile>=2.0.0;sys_platform!='win32' # MIT
 oslo.concurrency>=3.26.0 # Apache-2.0
 oslo.config>=5.2.0 # Apache-2.0
 oslo.context>=2.19.2 # Apache-2.0
-oslo.db>=4.27.0 # Apache-2.0
+oslo.db>=4.40.0 # Apache-2.0
 oslo.rootwrap>=5.8.0 # Apache-2.0
 oslo.i18n>=3.15.3 # Apache-2.0
 oslo.log>=3.36.0 # Apache-2.0
