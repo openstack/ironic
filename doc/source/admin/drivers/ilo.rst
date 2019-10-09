@@ -38,6 +38,7 @@ The hardware type ``ilo`` supports following HPE server features:
 * `Boot mode support`_
 * `UEFI Secure Boot Support`_
 * `Node Cleaning Support`_
+* `Node Deployment Customization`_
 * `Hardware Inspection Support`_
 * `Swiftless deploy for intermediate images`_
 * `HTTP(S) Based Deploy Support`_
@@ -719,6 +720,97 @@ Supported **Manual** Cleaning Operations
   operations.
 
 For more information on node manual cleaning, see :ref:`manual_cleaning`
+
+Node Deployment Customization
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+The hardware type ``ilo`` supports customization of node deployment via
+deploy templates, see :ref:`node-deployment-deploy-steps`
+
+The supported deploy steps are:
+
+* ``apply_configuration``:
+    Applies given BIOS settings on the node. See
+    `BIOS configuration support`_. This step is part of the ``bios`` interface.
+* ``factory_reset``:
+    Resets the BIOS settings on the node to factory defaults. See
+    `BIOS configuration support`_. This step is part of the ``bios`` interface.
+* ``reset_bios_to_default``:
+    Resets system ROM settings to default. This step is supported only
+    on Gen9 and above servers. This step is part of the ``management``
+    interface.
+* ``reset_secure_boot_keys_to_default``:
+    Resets secure boot keys to manufacturer's defaults. This step is supported
+    only on Gen9 and above servers. This step is part of the ``management``
+    interface.
+* ``reset_ilo_credential``:
+    Resets the iLO password. The password need to be specified in
+    ``ilo_password`` argument of the step. This step is part of the
+    ``management`` interface.
+* ``clear_secure_boot_keys``:
+    Clears all secure boot keys. This step is supported only on Gen9 and above
+    servers. This step is part of the ``management`` interface.
+* ``reset_ilo``:
+    Resets the iLO. This step is part of the ``management`` interface.
+* ``update_firmware``:
+    Updates the firmware of the devices. This step is part of the
+    ``management`` interface. See
+    `Initiating firmware update as manual clean step`_ for user guidance on
+    usage. The supported devices for firmware update are: ``ilo``, ``cpld``,
+    ``power_pic``, ``bios`` and ``chassis``. This step is part of
+    ``management`` interface. Please refer to below table for their commonly
+    used descriptions.
+
+    .. csv-table::
+       :header: "Device", "Description"
+       :widths: 30, 80
+
+       "``ilo``", "BMC for HPE ProLiant servers"
+       "``cpld``", "System programmable logic device"
+       "``power_pic``", "Power management controller"
+       "``bios``", "HPE ProLiant System ROM"
+       "``chassis``", "System chassis device"
+
+    Some devices firmware cannot be updated via this method, such as: storage
+    controllers, host bus adapters, disk drive firmware, network interfaces
+    and Onboard Administrator (OA).
+
+* ``apply_configuration``:
+    Applies RAID configuration on the node. See :ref:`raid`
+    for more information. This step is part of the ``raid`` interface.
+* ``delete_configuration``:
+    Deletes RAID configuration on the node. See :ref:`raid`
+    for more information. This step is part of the ``raid`` interface.
+
+Example of using deploy template with the Compute service
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Create a deploy template with a single step:
+
+.. code-block:: console
+
+   openstack baremetal deploy template create \
+       CUSTOM_HYPERTHREADING_ON \
+       --steps '[{"interface": "bios", "step": "apply_configuration", "args": {"settings": [{"name": "ProcHyperthreading", "value": "Enabled"}]}, "priority": 150}]'
+
+Add the trait ``CUSTOM_HYPERTHREADING_ON`` to the node represented by ``$node_ident``:
+
+.. code-block:: console
+
+   openstack baremetal node add trait $node_ident CUSTOM_HYPERTHREADING_ON
+
+Update the flavor ``bm-hyperthreading-on`` in the Compute service with the
+following property:
+
+.. code-block:: console
+
+   openstack flavor set --property trait:CUSTOM_HYPERTHREADING_ON=required bm-hyperthreading-on
+
+Creating a Compute instance with this flavor will ensure that the instance is
+scheduled only to Bare Metal nodes with the ``CUSTOM_HYPERTHREADING_ON`` trait.
+When an instance is created using the ``bm-hyperthreading-on`` flavor, then the
+deploy steps of deploy template ``CUSTOM_HYPERTHREADING_ON`` will be executed
+during the deployment of the scheduled node, causing Hyperthreading to be
+enabled in the node's BIOS configuration.
 
 .. _ilo-inspection:
 
