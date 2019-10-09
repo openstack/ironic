@@ -323,8 +323,6 @@
     parent: ironic-tempest-functional-python2
     vars:
       devstack_localrc:
-        IRONIC_TEMPEST_WHOLE_DISK_IMAGE: False
-        IRONIC_VM_EPHEMERAL_DISK: 1
         USE_PYTHON3: True
 
 - job:
