@@ -54,6 +54,8 @@
 
         Q_AGENT: openvswitch
         Q_ML2_TENANT_NETWORK_TYPE: vxlan
+
+        USE_PYTHON3: True
       devstack_plugins:
         ironic: https://opendev.org/openstack/ironic
       zuul_copy_output:
@@ -196,13 +198,10 @@
         IRONIC_AUTOMATED_CLEAN_ENABLED: False
 
 - job:
-    name: ironic-tempest-ipa-partition-pxe_ipmitool-tinyipa-python3
-    description: ironic-tempest-ipa-partition-pxe_ipmitool-tinyipa-python3
+    name: ironic-tempest-ipa-partition-pxe_ipmitool-tinyipa
+    description: ironic-tempest-ipa-partition-pxe_ipmitool-tinyipa
     parent: ironic-base
     timeout: 5400
-    vars:
-      devstack_localrc:
-        USE_PYTHON3: True
 
 - job:
     name: ironic-tempest-bfv
@@ -276,8 +275,8 @@
         IRONIC_AUTOMATED_CLEAN_ENABLED: False
 
 - job:
-    name: ironic-tempest-functional-python2
-    description: ironic-tempest-functional-python2
+    name: ironic-tempest-functional-python3
+    description: ironic-tempest-functional-python3
     parent: ironic-base
     timeout: 5400
     pre-run: playbooks/ci-workarounds/etc-neutron.yaml
@@ -318,12 +317,12 @@
         neutron-metering: False
 
 - job:
-    name: ironic-tempest-functional-python3
-    description: ironic-tempest-functional-python3
-    parent: ironic-tempest-functional-python2
+    name: ironic-tempest-functional-python2
+    description: ironic-tempest-functional-python2
+    parent: ironic-tempest-functional-python3
     vars:
       devstack_localrc:
-        USE_PYTHON3: True
+        USE_PYTHON3: False
 
 - job:
     name: ironic-tempest-ipa-wholedisk-direct-tinyipa-multinode
@@ -406,6 +405,8 @@
         # a small root partition, so use /opt which is mounted from a bigger
         # ephemeral partition on such nodes
         LIBVIRT_STORAGE_POOL_PATH: /opt/libvirt/images
+
+        USE_PYTHON3: True
       devstack_plugins:
         ironic: https://opendev.org/openstack/ironic
         networking-generic-switch: https://opendev.org/openstack/networking-generic-switch
@@ -471,6 +472,7 @@
           Q_ML2_TENANT_NETWORK_TYPE: vlan
           VIRT_DRIVER: ironic
           PUBLIC_BRIDGE: br-infra
+          USE_PYTHON3: True
         devstack_services:
           c-api: False
           c-bak: False

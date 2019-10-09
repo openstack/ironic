@@ -19,7 +19,7 @@
         # Temporary disable voting because of end of cycle CI instability.
         - ironic-grenade-dsvm-multinode-multitenant:
             voting: false
-        - ironic-tempest-ipa-partition-pxe_ipmitool-tinyipa-python3
+        - ironic-tempest-ipa-partition-pxe_ipmitool-tinyipa
         - ironic-tempest-ipa-partition-redfish-tinyipa
         - ironic-tempest-ipa-partition-uefi-pxe_ipmitool-tinyipa
         - ironic-tempest-ipa-wholedisk-direct-tinyipa-multinode:
@@ -55,7 +55,7 @@
         - ironic-grenade-dsvm
         # removing from voting due to end of cycle gate instability.
         # - ironic-grenade-dsvm-multinode-multitenant
-        - ironic-tempest-ipa-partition-pxe_ipmitool-tinyipa-python3
+        - ironic-tempest-ipa-partition-pxe_ipmitool-tinyipa
         - ironic-tempest-ipa-partition-redfish-tinyipa
         - ironic-tempest-ipa-partition-uefi-pxe_ipmitool-tinyipa
         # removing from voting due to end of cycle gate instability.
