@@ -1,0 +1,5 @@
+---
+fixes:
+  - Fixes a bug with the grub ramdisk boot template handling, such that the template now properly
+    references the user provided kernal and ramdisk. Previously the deployment ramdisk and kernel
+    was referenced in the template.
