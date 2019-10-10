@@ -7,11 +7,6 @@
 echo_summary "ironic devstack plugin.sh called: $1/$2"
 source $DEST/ironic/devstack/lib/ironic
 
-# These packages should be tested under python 3, when the job enables Python 3
-# TODO(jlvillal) Add additional dependencies when they should support Python 3.
-#     Add: pyghmi and virtualbmc when they are ready
-enable_python3_package ironic ironic-lib ironic-python-agent python-ironicclient
-
 if is_service_enabled ir-api ir-cond; then
     if [[ "$1" == "stack" ]]; then
         if [[ "$2" == "install" ]]; then
