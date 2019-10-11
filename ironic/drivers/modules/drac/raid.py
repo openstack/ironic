@@ -754,6 +754,25 @@ def _filter_logical_disks(logical_disks, include_root_volume,
     return filtered_disks
 
 
+def _create_config_job(node, controller, reboot=False, realtime=False,
+                       raid_config_job_ids=[],
+                       raid_config_parameters=[]):
+    job_id = commit_config(node, raid_controller=controller,
+                           reboot=reboot, realtime=realtime)
+
+    raid_config_job_ids.append(job_id)
+    if controller not in raid_config_parameters:
+        raid_config_parameters.append(controller)
+
+    LOG.info('Change has been committed to RAID controller '
+             '%(controller)s on node %(node)s. '
+             'DRAC job id: %(job_id)s',
+             {'controller': controller, 'node': node.uuid,
+              'job_id': job_id})
+    return {'raid_config_job_ids': raid_config_job_ids,
+            'raid_config_parameters': raid_config_parameters}
+
+
 def _commit_to_controllers(node, controllers, substep="completed"):
     """Commit changes to RAID controllers on the node.
 
@@ -776,9 +795,18 @@ def _commit_to_controllers(node, controllers, substep="completed"):
               configuration is in progress asynchronously or None if it is
               completed.
     """
+    # remove controller which does not require configuration job
+    controllers = [controller for controller in controllers
+                   if controller['is_commit_required']]
+
     if not controllers:
         LOG.debug('No changes on any of the controllers on node %s',
                   node.uuid)
+        driver_internal_info = node.driver_internal_info
+        driver_internal_info['raid_config_substep'] = substep
+        driver_internal_info['raid_config_parameters'] = []
+        node.driver_internal_info = driver_internal_info
+        node.save()
         return
 
     driver_internal_info = node.driver_internal_info
@@ -788,43 +816,35 @@ def _commit_to_controllers(node, controllers, substep="completed"):
     if 'raid_config_job_ids' not in driver_internal_info:
         driver_internal_info['raid_config_job_ids'] = []
 
-    # remove controller which does not require configuration job
-    controllers = [controller for controller in controllers
-                   if controller['is_commit_required']]
-
-    all_realtime = True
     optional = drac_constants.RebootRequired.optional
-    for controller in controllers:
-        raid_controller = controller['raid_controller']
+    all_realtime = all(cntlr['is_reboot_required'] == optional
+                       for cntlr in controllers)
+    raid_config_job_ids = []
+    raid_config_parameters = []
+    if all_realtime:
+        for controller in controllers:
+            realtime_controller = controller['raid_controller']
+            job_details = _create_config_job(
+                node, controller=realtime_controller,
+                reboot=False, realtime=True,
+                raid_config_job_ids=raid_config_job_ids,
+                raid_config_parameters=raid_config_parameters)
 
-        # Commit the configuration
-        # The logic below will reboot the node if there is at least one
-        # controller without real time support. In that case the reboot
-        # is triggered when the configuration is committed to the last
-        # controller.
-        realtime = controller['is_reboot_required'] == optional
-        all_realtime = all_realtime and realtime
-        if controller == controllers[-1]:
-            job_id = commit_config(node, raid_controller=raid_controller,
-                                   reboot=not all_realtime,
-                                   realtime=realtime)
-        else:
-            job_id = commit_config(node, raid_controller=raid_controller,
-                                   reboot=False,
-                                   realtime=realtime)
+    else:
+        for controller in controllers:
+            mix_controller = controller['raid_controller']
+            reboot = True if controller == controllers[-1] else False
+            job_details = _create_config_job(
+                node, controller=mix_controller,
+                reboot=reboot, realtime=False,
+                raid_config_job_ids=raid_config_job_ids,
+                raid_config_parameters=raid_config_parameters)
 
-        LOG.info('Change has been committed to RAID controller '
-                 '%(controller)s on node %(node)s. '
-                 'DRAC job id: %(job_id)s',
-                 {'controller': controller, 'node': node.uuid,
-                  'job_id': job_id})
+    driver_internal_info['raid_config_job_ids'] = job_details[
+        'raid_config_job_ids']
 
-        driver_internal_info['raid_config_job_ids'].append(job_id)
-
-        if raid_controller not in driver_internal_info[
-                'raid_config_parameters']:
-            driver_internal_info['raid_config_parameters'].append(
-                raid_controller)
+    driver_internal_info['raid_config_parameters'] = job_details[
+        'raid_config_parameters']
 
     node.driver_internal_info = driver_internal_info
 
@@ -1094,10 +1114,10 @@ class DracWSManRAID(base.RAIDInterface):
                 'raid_config_parameters']:
             controller_cap = clear_foreign_config(
                 node, controller_id)
-            controller = {'raid_controller': controller_id,
-                          'is_reboot_required':
-                              controller_cap[
-                                  'is_reboot_required']}
+            controller = {
+                'raid_controller': controller_id,
+                'is_reboot_required': controller_cap['is_reboot_required'],
+                'is_commit_required': controller_cap['is_commit_required']}
             controllers.append(controller)
             jobs_required = jobs_required or controller_cap[
                 'is_commit_required']
