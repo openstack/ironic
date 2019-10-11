@@ -393,6 +393,30 @@ class VIFPortIDMixin(object):
                 or p_obj.internal_info.get('inspection_vif_port_id')
                 or self._get_vif_id_by_port_like_obj(p_obj) or None)
 
+    def get_node_network_data(self, task):
+        """Return network configuration for node NICs.
+
+        Gather L2 and L3 network settings from ironic node `network_data`
+        field. Ironic would eventually pass network configuration to the node
+        being managed out-of-band.
+
+        :param task: A TaskManager instance.
+        :raises: InvalidParameterValue, if the network interface configuration
+            is invalid.
+        :raises: MissingParameterValue, if some parameters are missing.
+        :returns: a dict holding network configuration information adhearing
+            Nova network metadata layout (`network_data.json`).
+        """
+        node = task.node
+
+        network_data = node.network_data
+
+        # TODO(etingof): remove or truncate `network_data` logging
+        LOG.debug('Collected network data for node %(node)s: %(data)s',
+                  {'node': node.uuid, 'data': network_data})
+
+        return network_data
+
 
 class NeutronVIFPortIDMixin(VIFPortIDMixin):
     """VIF port ID mixin class for neutron network interfaces.
