@@ -13,6 +13,8 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import functools
+import json
 import os
 import shutil
 import tempfile
@@ -461,6 +463,9 @@ def _prepare_iso_image(task, kernel_href, ramdisk_href,
     `bootloader` if it's UEFI boot), then push built image up to Swift and
     return a temporary URL.
 
+    If `configdrive` is specified it will be eventually written onto
+    the boot ISO image.
+
     :param task: a TaskManager instance containing the node to act on.
     :param kernel_href: URL or Glance UUID of the kernel to use
     :param ramdisk_href: URL or Glance UUID of the ramdisk to use
@@ -531,9 +536,8 @@ def _prepare_iso_image(task, kernel_href, ramdisk_href,
                     configdrive_href = urlparse.urlunparse(
                         ('file', '', cfgdrv_fileobj.name, '', '', ''))
 
-                LOG.info("Burning configdrive %(url)s to boot ISO image "
-                         "for node %(node)s", {'url': configdrive_href,
-                                               'node': task.node.uuid})
+                LOG.debug("Built configdrive out of configdrive blob "
+                          "for node %(node)s", {'node': task.node.uuid})
 
             boot_iso_tmp_file = boot_fileobj.name
             images.create_boot_iso(
@@ -568,6 +572,10 @@ def _prepare_deploy_iso(task, params, mode):
     and `[driver_info]/bootloader`, then push built image up to Glance
     and return temporary Swift URL to the image.
 
+    If network interface supplies network configuration (`network_data`),
+    a new `configdrive` will be created with `network_data.json` inside,
+    and eventually written down onto the boot ISO.
+
     :param task: a TaskManager instance containing the node to act on.
     :param params: a dictionary containing 'parameter name'->'value'
         mapping to be passed to kernel command line.
@@ -587,8 +595,38 @@ def _prepare_deploy_iso(task, params, mode):
     ramdisk_href = d_info.get('%s_ramdisk' % mode)
     bootloader_href = d_info.get('bootloader')
 
-    return _prepare_iso_image(
-        task, kernel_href, ramdisk_href, bootloader_href, params=params)
+    prepare_iso_image = functools.partial(
+        _prepare_iso_image, task, kernel_href, ramdisk_href,
+        bootloader_href=bootloader_href, params=params)
+
+    network_data = task.driver.network.get_node_network_data(task)
+    if network_data:
+        with tempfile.NamedTemporaryFile(
+                dir=CONF.tempdir, suffix='.iso') as metadata_fileobj:
+
+            with open(metadata_fileobj.name, 'w') as f:
+                json.dump(network_data, f, indent=2)
+
+            files_info = {
+                metadata_fileobj.name: 'openstack/latest/meta'
+                                       'data/network_data.json'
+            }
+
+            with tempfile.NamedTemporaryFile(
+                    dir=CONF.tempdir, suffix='.img') as cfgdrv_fileobj:
+
+                images.create_vfat_image(cfgdrv_fileobj.name, files_info)
+
+                configdrive_href = urlparse.urlunparse(
+                    ('file', '', cfgdrv_fileobj.name, '', '', ''))
+
+                LOG.debug("Built configdrive %(name)s out of network data "
+                          "for node %(node)s", {'name': configdrive_href,
+                                                'node': task.node.uuid})
+
+                return prepare_iso_image(configdrive=configdrive_href)
+
+    return prepare_iso_image()
 
 
 def _prepare_boot_iso(task, root_uuid=None):

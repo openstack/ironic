@@ -417,7 +417,35 @@ class RedfishVirtualMediaBootTestCase(db_base.DbTestCase):
             redfish_boot._prepare_deploy_iso(task, {}, 'deploy')
 
             mock__prepare_iso_image.assert_called_once_with(
-                mock.ANY, 'kernel', 'ramdisk', 'bootloader', params={})
+                task, 'kernel', 'ramdisk', 'bootloader', params={})
+
+    @mock.patch.object(redfish_boot, '_prepare_iso_image', autospec=True)
+    @mock.patch.object(images, 'create_vfat_image', autospec=True)
+    def test__prepare_deploy_iso_network_data(
+            self, mock_create_vfat_image, mock__prepare_iso_image):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+
+            task.node.driver_info.update(
+                {'deploy_kernel': 'kernel',
+                 'deploy_ramdisk': 'ramdisk'}
+            )
+
+            task.node.instance_info.update()
+
+            network_data = {'a': ['b']}
+
+            mock_get_node_nw_data = mock.MagicMock(return_value=network_data)
+            task.driver.network.get_node_network_data = mock_get_node_nw_data
+
+            redfish_boot._prepare_deploy_iso(task, {}, 'deploy')
+
+            mock_create_vfat_image.assert_called_once_with(
+                mock.ANY, mock.ANY)
+
+            mock__prepare_iso_image.assert_called_once_with(
+                task, 'kernel', 'ramdisk', bootloader_href=None,
+                configdrive=mock.ANY, params={})
 
     @mock.patch.object(redfish_boot, '_prepare_iso_image', autospec=True)
     @mock.patch.object(images, 'create_boot_iso', autospec=True)
