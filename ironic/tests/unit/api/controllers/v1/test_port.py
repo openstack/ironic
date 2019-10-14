@@ -641,6 +641,25 @@ class TestListPorts(test_api_base.BaseApiTest):
         next_marker = data['ports'][-1]['uuid']
         self.assertIn(next_marker, data['next'])
 
+    def test_collection_links_custom_fields(self):
+        fields = 'address,uuid'
+        cfg.CONF.set_override('max_limit', 3, 'api')
+        for i in range(5):
+            obj_utils.create_test_port(
+                self.context,
+                uuid=uuidutils.generate_uuid(),
+                node_id=self.node.id,
+                address='52:54:00:cf:2d:3%s' % i)
+
+        data = self.get_json(
+            '/ports?fields=%s' % fields,
+            headers={api_base.Version.string: str(api_v1.max_version())})
+
+        self.assertEqual(3, len(data['ports']))
+        next_marker = data['ports'][-1]['uuid']
+        self.assertIn(next_marker, data['next'])
+        self.assertIn('fields', data['next'])
+
     def test_port_by_address(self):
         address_template = "aa:bb:cc:dd:ee:f%d"
         for id_ in range(3):

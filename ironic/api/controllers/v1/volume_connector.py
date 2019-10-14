@@ -201,7 +201,8 @@ class VolumeConnectorCollection(collection.Collection):
             for p in rpc_connectors]
         if detail:
             kwargs['detail'] = detail
-        collection.next = collection.get_next(limit, url=url, **kwargs)
+        collection.next = collection.get_next(limit, url=url, fields=fields,
+                                              **kwargs)
         for connector in collection.connectors:
             connector.sanitize(fields)
         return collection
