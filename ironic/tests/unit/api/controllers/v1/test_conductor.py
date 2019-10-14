@@ -206,6 +206,24 @@ class TestListConductors(test_api_base.BaseApiTest):
         next_marker = data['conductors'][-1]['hostname']
         self.assertIn(next_marker, data['next'])
 
+    def test_collection_links_custom_fields(self):
+        cfg.CONF.set_override('max_limit', 3, 'api')
+        conductors = []
+        fields = 'hostname,alive'
+        for id in range(5):
+            hostname = uuidutils.generate_uuid()
+            conductor = obj_utils.create_test_conductor(self.context,
+                                                        hostname=hostname)
+            conductors.append(conductor.hostname)
+        data = self.get_json(
+            '/conductors?fields=%s' % fields,
+            headers={api_base.Version.string: str(api_v1.max_version())})
+        self.assertEqual(3, len(data['conductors']))
+
+        next_marker = data['conductors'][-1]['hostname']
+        self.assertIn(next_marker, data['next'])
+        self.assertIn('fields', data['next'])
+
     def test_sort_key(self):
         conductors = []
         for id in range(5):

@@ -258,6 +258,24 @@ class TestListVolumeTargets(test_api_base.BaseApiTest):
         self.assertIn(next_marker, data['next'])
         self.assertIn('volume/targets', data['next'])
 
+    def test_collection_links_custom_fields(self):
+        fields = 'uuid,extra'
+        cfg.CONF.set_override('max_limit', 3, 'api')
+        targets = []
+        for id_ in range(5):
+            target = obj_utils.create_test_volume_target(
+                self.context, node_id=self.node.id,
+                uuid=uuidutils.generate_uuid(), boot_index=id_)
+            targets.append(target.uuid)
+        data = self.get_json('/volume/targets?fields=%s' % fields,
+                             headers=self.headers)
+        self.assertEqual(3, len(data['targets']))
+
+        next_marker = data['targets'][-1]['uuid']
+        self.assertIn(next_marker, data['next'])
+        self.assertIn('volume/targets', data['next'])
+        self.assertIn('fields', data['next'])
+
     def test_get_collection_pagination_no_uuid(self):
         fields = 'boot_index'
         limit = 2

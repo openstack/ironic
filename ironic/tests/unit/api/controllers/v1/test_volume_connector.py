@@ -273,6 +273,28 @@ class TestListVolumeConnectors(test_api_base.BaseApiTest):
         next_marker = data['connectors'][-1]['uuid']
         self.assertIn(next_marker, data['next'])
 
+    def test_collection_links_custom_fields(self):
+        cfg.CONF.set_override('max_limit', 3, 'api')
+        connectors = []
+        fields = 'uuid,extra'
+        for i in range(5):
+            connector = obj_utils.create_test_volume_connector(
+                self.context, node_id=self.node.id,
+                uuid=uuidutils.generate_uuid(),
+                connector_id='test-connector_id-%s' % i)
+            connectors.append(connector.uuid)
+
+        data = self.get_json(
+            '/volume/connectors?fields=%s' % fields,
+            headers=self.headers)
+
+        self.assertEqual(3, len(data['connectors']))
+        self.assertIn('volume/connectors', data['next'])
+
+        next_marker = data['connectors'][-1]['uuid']
+        self.assertIn(next_marker, data['next'])
+        self.assertIn('fields', data['next'])
+
     def test_get_collection_pagination_no_uuid(self):
         fields = 'connector_id'
         limit = 2

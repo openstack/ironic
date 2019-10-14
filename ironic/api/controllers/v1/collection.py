@@ -43,6 +43,11 @@ class Collection(base.APIBase):
             return wtypes.Unset
 
         resource_url = url or self._type
+        fields = kwargs.pop('fields', None)
+        # NOTE(saga): If fields argument is present in kwargs and not None. It
+        # is a list so convert it into a comma seperated string.
+        if fields:
+            kwargs['fields'] = ','.join(fields)
         q_args = ''.join(['%s=%s&' % (key, kwargs[key]) for key in kwargs])
         next_args = '?%(args)slimit=%(limit)d&marker=%(marker)s' % {
             'args': q_args, 'limit': limit,

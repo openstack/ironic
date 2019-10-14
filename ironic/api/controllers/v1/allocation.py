@@ -186,7 +186,8 @@ class AllocationCollection(collection.Collection):
             Allocation.convert_with_links(p, fields=fields, sanitize=False)
             for p in rpc_allocations
         ]
-        collection.next = collection.get_next(limit, url=url, **kwargs)
+        collection.next = collection.get_next(limit, url=url, fields=fields,
+                                              **kwargs)
 
         for item in collection.allocations:
             item.sanitize(fields=fields)
