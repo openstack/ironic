@@ -157,7 +157,8 @@ class ChassisCollection(collection.Collection):
                                                          sanitize=False)
                               for ch in chassis]
         url = url or None
-        collection.next = collection.get_next(limit, url=url, **kwargs)
+        collection.next = collection.get_next(limit, url=url, fields=fields,
+                                              **kwargs)
         for item in collection.chassis:
             item.sanitize(fields)
         return collection

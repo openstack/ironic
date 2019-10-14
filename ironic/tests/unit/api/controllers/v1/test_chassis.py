@@ -230,6 +230,22 @@ class TestListChassis(test_api_base.BaseApiTest):
         next_marker = data['chassis'][-1]['uuid']
         self.assertIn(next_marker, data['next'])
 
+    def test_collection_links_custom_fields(self):
+        fields = 'extra,uuid'
+        cfg.CONF.set_override('max_limit', 3, 'api')
+        for i in range(5):
+            obj_utils.create_test_chassis(
+                self.context, uuid=uuidutils.generate_uuid())
+
+        data = self.get_json(
+            '/chassis?fields=%s' % fields,
+            headers={api_base.Version.string: str(api_v1.max_version())})
+
+        self.assertEqual(3, len(data['chassis']))
+        next_marker = data['chassis'][-1]['uuid']
+        self.assertIn(next_marker, data['next'])
+        self.assertIn('fields', data['next'])
+
     def test_get_collection_pagination_no_uuid(self):
         fields = 'extra'
         limit = 2
