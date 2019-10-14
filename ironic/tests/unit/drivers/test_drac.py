@@ -16,10 +16,10 @@ from ironic.conductor import task_manager
 from ironic.drivers.modules import agent
 from ironic.drivers.modules import drac
 from ironic.drivers.modules import inspector
+from ironic.drivers.modules import ipxe
 from ironic.drivers.modules import iscsi_deploy
 from ironic.drivers.modules.network import flat as flat_net
 from ironic.drivers.modules import noop
-from ironic.drivers.modules import pxe
 from ironic.drivers.modules.storage import noop as noop_storage
 from ironic.tests.unit.db import base as db_base
 from ironic.tests.unit.objects import utils as obj_utils
@@ -29,7 +29,10 @@ class IDRACHardwareTestCase(db_base.DbTestCase):
 
     def setUp(self):
         super(IDRACHardwareTestCase, self).setUp()
+        self.config_temp_dir('http_root', group='deploy')
         self.config(enabled_hardware_types=['idrac'],
+                    enabled_boot_interfaces=[
+                        'idrac-redfish-virtual-media', 'ipxe', 'pxe'],
                     enabled_management_interfaces=[
                         'idrac', 'idrac-redfish', 'idrac-wsman'],
                     enabled_power_interfaces=[
@@ -46,7 +49,7 @@ class IDRACHardwareTestCase(db_base.DbTestCase):
     def _validate_interfaces(self, driver, **kwargs):
         self.assertIsInstance(
             driver.boot,
-            kwargs.get('boot', pxe.PXEBoot))
+            kwargs.get('boot', ipxe.iPXEBoot))
         self.assertIsInstance(
             driver.deploy,
             kwargs.get('deploy', iscsi_deploy.ISCSIDeploy))
@@ -149,3 +152,12 @@ class IDRACHardwareTestCase(db_base.DbTestCase):
             self._validate_interfaces(
                 task.driver,
                 inspect=drac.inspect.DracRedfishInspect)
+
+    def test_override_with_redfish_virtual_media_boot(self):
+        node = obj_utils.create_test_node(
+            self.context, driver='idrac',
+            boot_interface='idrac-redfish-virtual-media')
+        with task_manager.acquire(self.context, node.id) as task:
+            self._validate_interfaces(
+                task.driver,
+                boot=drac.boot.DracRedfishVirtualMediaBoot)

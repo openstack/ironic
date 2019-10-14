@@ -18,13 +18,16 @@ DRAC Driver for remote system management using Dell Remote Access Card.
 from oslo_config import cfg
 
 from ironic.drivers import generic
+from ironic.drivers.modules.drac import boot
 from ironic.drivers.modules.drac import inspect as drac_inspect
 from ironic.drivers.modules.drac import management
 from ironic.drivers.modules.drac import power
 from ironic.drivers.modules.drac import raid
 from ironic.drivers.modules.drac import vendor_passthru
 from ironic.drivers.modules import inspector
+from ironic.drivers.modules import ipxe
 from ironic.drivers.modules import noop
+from ironic.drivers.modules import pxe
 
 
 CONF = cfg.CONF
@@ -34,6 +37,11 @@ class IDRACHardware(generic.GenericHardware):
     """integrated Dell Remote Access Controller hardware type"""
 
     # Required hardware interfaces
+
+    @property
+    def supported_boot_interfaces(self):
+        """List of supported boot interfaces."""
+        return [ipxe.iPXEBoot, pxe.PXEBoot, boot.DracRedfishVirtualMediaBoot]
 
     @property
     def supported_management_interfaces(self):
