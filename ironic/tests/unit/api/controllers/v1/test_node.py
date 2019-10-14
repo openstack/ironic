@@ -736,6 +736,25 @@ class TestListNodes(test_api_base.BaseApiTest):
         next_marker = data['nodes'][-1]['uuid']
         self.assertIn(next_marker, data['next'])
 
+    def test_collection_links_custom_fields(self):
+        fields = 'driver_info,uuid'
+        cfg.CONF.set_override('max_limit', 3, 'api')
+        nodes = []
+        for id in range(5):
+            node = obj_utils.create_test_node(self.context,
+                                              uuid=uuidutils.generate_uuid(),
+                                              driver_info={'fake': 'value'},
+                                              properties={'fake': 'bar'})
+            nodes.append(node.uuid)
+        data = self.get_json(
+            '/nodes?fields=%s' % fields,
+            headers={api_base.Version.string: str(api_v1.max_version())})
+        self.assertEqual(3, len(data['nodes']))
+
+        next_marker = data['nodes'][-1]['uuid']
+        self.assertIn(next_marker, data['next'])
+        self.assertIn('fields', data['next'])
+
     def test_get_collection_pagination_no_uuid(self):
         fields = 'name'
         limit = 2
