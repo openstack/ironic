@@ -770,3 +770,207 @@ class TestPortgroupIdent(base.TestCase):
         self.assertRaises(exception.InvalidUuidOrName,
                           utils.get_rpc_portgroup,
                           self.invalid_name)
+
+
+class TestCheckNodePolicyAndRetrieve(base.TestCase):
+    def setUp(self):
+        super(TestCheckNodePolicyAndRetrieve, self).setUp()
+        self.valid_node_uuid = uuidutils.generate_uuid()
+        self.node = test_api_utils.post_get_test_node()
+        self.node['owner'] = '12345'
+
+    @mock.patch.object(api, 'request', spec_set=["context", "version"])
+    @mock.patch.object(policy, 'authorize', spec=True)
+    @mock.patch.object(utils, 'get_rpc_node')
+    @mock.patch.object(utils, 'get_rpc_node_with_suffix')
+    def test_check_node_policy_and_retrieve(
+            self, mock_grnws, mock_grn, mock_authorize, mock_pr
+    ):
+        mock_pr.version.minor = 50
+        mock_pr.context.to_policy_values.return_value = {}
+        mock_grn.return_value = self.node
+
+        rpc_node = utils.check_node_policy_and_retrieve(
+            'fake_policy', self.valid_node_uuid
+        )
+        mock_grn.assert_called_once_with(self.valid_node_uuid)
+        mock_grnws.assert_not_called()
+        mock_authorize.assert_called_once_with(
+            'fake_policy', {'node.owner': '12345'}, {})
+        self.assertEqual(self.node, rpc_node)
+
+    @mock.patch.object(api, 'request', spec_set=["context", "version"])
+    @mock.patch.object(policy, 'authorize', spec=True)
+    @mock.patch.object(utils, 'get_rpc_node')
+    @mock.patch.object(utils, 'get_rpc_node_with_suffix')
+    def test_check_node_policy_and_retrieve_with_suffix(
+            self, mock_grnws, mock_grn, mock_authorize, mock_pr
+    ):
+        mock_pr.version.minor = 50
+        mock_pr.context.to_policy_values.return_value = {}
+        mock_grnws.return_value = self.node
+
+        rpc_node = utils.check_node_policy_and_retrieve(
+            'fake_policy', self.valid_node_uuid, True
+        )
+        mock_grn.assert_not_called()
+        mock_grnws.assert_called_once_with(self.valid_node_uuid)
+        mock_authorize.assert_called_once_with(
+            'fake_policy', {'node.owner': '12345'}, {})
+        self.assertEqual(self.node, rpc_node)
+
+    @mock.patch.object(api, 'request', spec_set=["context"])
+    @mock.patch.object(policy, 'authorize', spec=True)
+    @mock.patch.object(utils, 'get_rpc_node')
+    def test_check_node_policy_and_retrieve_no_node_policy_forbidden(
+            self, mock_grn, mock_authorize, mock_pr
+    ):
+        mock_pr.context.to_policy_values.return_value = {}
+        mock_authorize.side_effect = exception.HTTPForbidden(resource='fake')
+        mock_grn.side_effect = exception.NodeNotFound(
+            node=self.valid_node_uuid)
+
+        self.assertRaises(
+            exception.HTTPForbidden,
+            utils.check_node_policy_and_retrieve,
+            'fake-policy',
+            self.valid_node_uuid
+        )
+
+    @mock.patch.object(api, 'request', spec_set=["context"])
+    @mock.patch.object(policy, 'authorize', spec=True)
+    @mock.patch.object(utils, 'get_rpc_node')
+    def test_check_node_policy_and_retrieve_no_node(
+            self, mock_grn, mock_authorize, mock_pr
+    ):
+        mock_pr.context.to_policy_values.return_value = {}
+        mock_grn.side_effect = exception.NodeNotFound(
+            node=self.valid_node_uuid)
+
+        self.assertRaises(
+            exception.NodeNotFound,
+            utils.check_node_policy_and_retrieve,
+            'fake-policy',
+            self.valid_node_uuid
+        )
+
+    @mock.patch.object(api, 'request', spec_set=["context", "version"])
+    @mock.patch.object(policy, 'authorize', spec=True)
+    @mock.patch.object(utils, 'get_rpc_node')
+    def test_check_node_policy_and_retrieve_policy_forbidden(
+            self, mock_grn, mock_authorize, mock_pr
+    ):
+        mock_pr.version.minor = 50
+        mock_pr.context.to_policy_values.return_value = {}
+        mock_authorize.side_effect = exception.HTTPForbidden(resource='fake')
+        mock_grn.return_value = self.node
+
+        self.assertRaises(
+            exception.HTTPForbidden,
+            utils.check_node_policy_and_retrieve,
+            'fake-policy',
+            self.valid_node_uuid
+        )
+
+
+class TestCheckNodeListPolicy(base.TestCase):
+    @mock.patch.object(api, 'request', spec_set=["context", "version"])
+    @mock.patch.object(policy, 'authorize', spec=True)
+    def test_check_node_list_policy(
+            self, mock_authorize, mock_pr
+    ):
+        mock_pr.context.to_policy_values.return_value = {
+            'project_id': '12345'
+        }
+        mock_pr.version.minor = 50
+
+        owner = utils.check_node_list_policy()
+        self.assertIsNone(owner)
+
+    @mock.patch.object(api, 'request', spec_set=["context", "version"])
+    @mock.patch.object(policy, 'authorize', spec=True)
+    def test_check_node_list_policy_with_owner(
+            self, mock_authorize, mock_pr
+    ):
+        mock_pr.context.to_policy_values.return_value = {
+            'project_id': '12345'
+        }
+        mock_pr.version.minor = 50
+
+        owner = utils.check_node_list_policy('12345')
+        self.assertEqual(owner, '12345')
+
+    @mock.patch.object(api, 'request', spec_set=["context", "version"])
+    @mock.patch.object(policy, 'authorize', spec=True)
+    def test_check_node_list_policy_forbidden(
+            self, mock_authorize, mock_pr
+    ):
+        def mock_authorize_function(rule, target, creds):
+            raise exception.HTTPForbidden(resource='fake')
+        mock_authorize.side_effect = mock_authorize_function
+        mock_pr.context.to_policy_values.return_value = {
+            'project_id': '12345'
+        }
+        mock_pr.version.minor = 50
+
+        self.assertRaises(
+            exception.HTTPForbidden,
+            utils.check_node_list_policy,
+        )
+
+    @mock.patch.object(api, 'request', spec_set=["context", "version"])
+    @mock.patch.object(policy, 'authorize', spec=True)
+    def test_check_node_list_policy_forbidden_no_project(
+            self, mock_authorize, mock_pr
+    ):
+        def mock_authorize_function(rule, target, creds):
+            if rule == 'baremetal:node:list_all':
+                raise exception.HTTPForbidden(resource='fake')
+            return True
+        mock_authorize.side_effect = mock_authorize_function
+        mock_pr.context.to_policy_values.return_value = {}
+        mock_pr.version.minor = 50
+
+        self.assertRaises(
+            exception.HTTPForbidden,
+            utils.check_node_list_policy,
+        )
+
+    @mock.patch.object(api, 'request', spec_set=["context", "version"])
+    @mock.patch.object(policy, 'authorize', spec=True)
+    def test_check_node_list_policy_non_admin(
+            self, mock_authorize, mock_pr
+    ):
+        def mock_authorize_function(rule, target, creds):
+            if rule == 'baremetal:node:list_all':
+                raise exception.HTTPForbidden(resource='fake')
+            return True
+        mock_authorize.side_effect = mock_authorize_function
+        mock_pr.context.to_policy_values.return_value = {
+            'project_id': '12345'
+        }
+        mock_pr.version.minor = 50
+
+        owner = utils.check_node_list_policy()
+        self.assertEqual(owner, '12345')
+
+    @mock.patch.object(api, 'request', spec_set=["context", "version"])
+    @mock.patch.object(policy, 'authorize', spec=True)
+    def test_check_node_list_policy_non_admin_owner_proj_mismatch(
+            self, mock_authorize, mock_pr
+    ):
+        def mock_authorize_function(rule, target, creds):
+            if rule == 'baremetal:node:list_all':
+                raise exception.HTTPForbidden(resource='fake')
+            return True
+        mock_authorize.side_effect = mock_authorize_function
+        mock_pr.context.to_policy_values.return_value = {
+            'project_id': '12345'
+        }
+        mock_pr.version.minor = 50
+
+        self.assertRaises(
+            exception.HTTPForbidden,
+            utils.check_node_list_policy,
+            '54321'
+        )

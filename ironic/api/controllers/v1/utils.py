@@ -1155,6 +1155,58 @@ def check_policy(policy_name):
     policy.authorize(policy_name, cdict, cdict)
 
 
+def check_node_policy_and_retrieve(policy_name, node_ident, with_suffix=False):
+    """Check if the specified policy authorizes this request on a node.
+
+    :param: policy_name: Name of the policy to check.
+    :param: node_ident: the UUID or logical name of a node.
+    :param: with_suffix: whether the RPC node should include the suffix
+
+    :raises: HTTPForbidden if the policy forbids access.
+    :raises: NodeNotFound if the node is not found.
+    :return: RPC node identified by node_ident
+    """
+    cdict = api.request.context.to_policy_values()
+
+    try:
+        if with_suffix:
+            rpc_node = get_rpc_node_with_suffix(node_ident)
+        else:
+            rpc_node = get_rpc_node(node_ident)
+    except exception.NodeNotFound:
+        # don't expose non-existence of node unless requester
+        # has generic access to policy
+        policy.authorize(policy_name, cdict, cdict)
+        raise
+
+    target_dict = dict(cdict)
+    target_dict['node.owner'] = rpc_node['owner']
+    policy.authorize(policy_name, target_dict, cdict)
+
+    return rpc_node
+
+
+def check_node_list_policy(owner=None):
+    """Check if the specified policy authorizes this request on a node.
+
+    :param: owner: owner filter for list query, if any
+
+    :raises: HTTPForbidden if the policy forbids access.
+    :raises: NodeNotFound if the node is not found.
+    :return: owner that should be used for list query, if needed
+    """
+    cdict = api.request.context.to_policy_values()
+    try:
+        policy.authorize('baremetal:node:list_all', cdict, cdict)
+    except exception.HTTPForbidden:
+        project_owner = cdict.get('project_id')
+        if (not project_owner or (owner and owner != project_owner)):
+            raise
+        policy.authorize('baremetal:node:list', cdict, cdict)
+        return project_owner
+    return owner
+
+
 def allow_build_configdrive():
     """Check if building configdrive is allowed.
 

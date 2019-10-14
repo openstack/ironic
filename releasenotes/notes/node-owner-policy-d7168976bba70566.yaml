@@ -1,0 +1,6 @@
+---
+features:
+  - Adds a ``is_node_owner`` policy rule. This rule can be used with node
+    policy rules in order to expose specific node APIs to a project ID
+    specified by a node's ``owner`` field. Default rules are unaffected,
+    so default behavior is unchanged.

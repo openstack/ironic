@@ -56,6 +56,19 @@ class PolicyInCodeTestCase(base.TestCase):
         c = {'project_name': 'demo1', 'project_domain_id': 'default2'}
         self.assertFalse(policy.check('is_member', c, c))
 
+    def test_is_node_owner(self):
+        c1 = {'project_id': '1234',
+              'project_name': 'demo',
+              'project_domain_id': 'default'}
+        c2 = {'project_id': '5678',
+              'project_name': 'demo',
+              'project_domain_id': 'default'}
+        target = dict.copy(c1)
+        target['node.owner'] = '1234'
+
+        self.assertTrue(policy.check('is_node_owner', target, c1))
+        self.assertFalse(policy.check('is_node_owner', target, c2))
+
     def test_node_get(self):
         creds = {'roles': ['baremetal_observer'], 'project_name': 'demo',
                  'project_domain_id': 'default'}
