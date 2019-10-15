@@ -2459,12 +2459,15 @@ function build_ipa_ramdisk {
     esac
 }
 
+function setup_ipa_builder {
+    git_clone $IRONIC_PYTHON_AGENT_BUILDER_REPO $IRONIC_PYTHON_AGENT_BUILDER_DIR $IRONIC_PYTHON_AGENT_BUILDER_BRANCH
+}
+
 function build_tinyipa_ramdisk {
     echo "Building ironic-python-agent deploy ramdisk"
     local kernel_path=$1
     local ramdisk_path=$2
     local iso_path=$3
-    git_clone $IRONIC_PYTHON_AGENT_BUILDER_REPO $IRONIC_PYTHON_AGENT_BUILDER_DIR $IRONIC_PYTHON_AGENT_BUILDER_BRANCH
     cd $IRONIC_PYTHON_AGENT_BUILDER_DIR/tinyipa
     export BUILD_AND_INSTALL_TINYIPA=true
     if is_ansible_deploy_enabled; then
@@ -2608,6 +2611,8 @@ function upload_baremetal_ironic_deploy {
         if [ ! -e "$IRONIC_DEPLOY_RAMDISK" ] || \
                 [ ! -e "$IRONIC_DEPLOY_KERNEL" ]  || \
                 ( is_deploy_iso_required && [ ! -e "$IRONIC_DEPLOY_ISO" ] ); then
+            # setup IRONIC_PYTHON_AGENT_BUILDER_DIR
+            setup_ipa_builder
             # files don't exist, need to build them
             if [ "$IRONIC_BUILD_DEPLOY_RAMDISK" = "True" ]; then
                 # we can build them only if we're not offline
