@@ -770,3 +770,27 @@ class NeutronNetworkInterfaceMixin(object):
         return validate_network(
             rescuing_network, _('rescuing network'),
             context=task.context)
+
+    def get_inspection_network_uuid(self, task):
+        inspection_network = (
+            task.node.driver_info.get('inspection_network')
+            or CONF.neutron.inspection_network
+        )
+        return validate_network(
+            inspection_network, _('inspection network'),
+            context=task.context)
+
+    def validate_inspection(self, task):
+        """Validate that the node has required properties for inspection.
+
+        :param task: A TaskManager instance with the node being checked
+        :raises: MissingParameterValue if node is missing one or more required
+            parameters
+        :raises: UnsupportedDriverExtension
+        """
+        try:
+            self.get_inspection_network_uuid(task)
+        except exception.MissingParameterValue:
+            # Fall back to non-managed in-band inspection
+            raise exception.UnsupportedDriverExtension(
+                driver=task.node.driver, extension='inspection')

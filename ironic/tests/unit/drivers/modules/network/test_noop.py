@@ -86,3 +86,11 @@ class NoopInterfaceTestCase(db_base.DbTestCase):
     def test_remove_cleaning_network(self):
         with task_manager.acquire(self.context, self.node.id) as task:
             self.interface.remove_cleaning_network(task)
+
+    def test_add_inspection_network(self):
+        with task_manager.acquire(self.context, self.node.id) as task:
+            self.interface.add_inspection_network(task)
+
+    def test_remove_inspection_network(self):
+        with task_manager.acquire(self.context, self.node.id) as task:
+            self.interface.remove_inspection_network(task)

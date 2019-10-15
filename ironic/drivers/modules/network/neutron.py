@@ -71,27 +71,43 @@ class NeutronNetwork(common.NeutronVIFPortIDMixin,
                            'option.') % node.uuid)
             raise exception.InvalidParameterValue(error_msg)
 
+    def _add_network(self, task, network, security_groups, process):
+        # If we have left over ports from a previous process, remove them
+        neutron.rollback_ports(task, network)
+        LOG.info('Adding %s network to node %s', process, task.node.uuid)
+        vifs = neutron.add_ports_to_network(task, network,
+                                            security_groups=security_groups)
+        field = '%s_vif_port_id' % process
+        for port in task.ports:
+            if port.uuid in vifs:
+                internal_info = port.internal_info
+                internal_info[field] = vifs[port.uuid]
+                port.internal_info = internal_info
+                port.save()
+        return vifs
+
+    def _remove_network(self, task, network, process):
+        LOG.info('Removing ports from %s network for node %s',
+                 process, task.node.uuid)
+        neutron.remove_ports_from_network(task, network)
+        field = '%s_vif_port_id' % process
+        for port in task.ports:
+            if field in port.internal_info:
+                internal_info = port.internal_info
+                del internal_info[field]
+                port.internal_info = internal_info
+                port.save()
+
     def add_provisioning_network(self, task):
         """Add the provisioning network to a node.
 
         :param task: A TaskManager instance.
         :raises: NetworkError
         """
-        # If we have left over ports from a previous provision attempt, remove
-        # them
-        neutron.rollback_ports(
-            task, self.get_provisioning_network_uuid(task))
-        LOG.info('Adding provisioning network to node %s',
-                 task.node.uuid)
-        vifs = neutron.add_ports_to_network(
+        self._add_network(
             task, self.get_provisioning_network_uuid(task),
-            security_groups=CONF.neutron.provisioning_network_security_groups)
-        for port in task.ports:
-            if port.uuid in vifs:
-                internal_info = port.internal_info
-                internal_info['provisioning_vif_port_id'] = vifs[port.uuid]
-                port.internal_info = internal_info
-                port.save()
+            CONF.neutron.provisioning_network_security_groups,
+            'provisioning')
 
     def remove_provisioning_network(self, task):
         """Remove the provisioning network from a node.
@@ -99,16 +115,8 @@ class NeutronNetwork(common.NeutronVIFPortIDMixin,
         :param task: A TaskManager instance.
         :raises: NetworkError
         """
-        LOG.info('Removing provisioning network from node %s',
-                 task.node.uuid)
-        neutron.remove_ports_from_network(
-            task, self.get_provisioning_network_uuid(task))
-        for port in task.ports:
-            if 'provisioning_vif_port_id' in port.internal_info:
-                internal_info = port.internal_info
-                del internal_info['provisioning_vif_port_id']
-                port.internal_info = internal_info
-                port.save()
+        return self._remove_network(
+            task, self.get_provisioning_network_uuid(task), 'provisioning')
 
     def add_cleaning_network(self, task):
         """Create neutron ports for each port on task.node to boot the ramdisk.
@@ -117,21 +125,10 @@ class NeutronNetwork(common.NeutronVIFPortIDMixin,
         :raises: NetworkError
         :returns: a dictionary in the form {port.uuid: neutron_port['id']}
         """
-        # If we have left over ports from a previous cleaning, remove them
-        neutron.rollback_ports(task, self.get_cleaning_network_uuid(task))
-        LOG.info('Adding cleaning network to node %s', task.node.uuid)
-        security_groups = CONF.neutron.cleaning_network_security_groups
-        vifs = neutron.add_ports_to_network(
-            task,
-            self.get_cleaning_network_uuid(task),
-            security_groups=security_groups)
-        for port in task.ports:
-            if port.uuid in vifs:
-                internal_info = port.internal_info
-                internal_info['cleaning_vif_port_id'] = vifs[port.uuid]
-                port.internal_info = internal_info
-                port.save()
-        return vifs
+        return self._add_network(
+            task, self.get_cleaning_network_uuid(task),
+            CONF.neutron.cleaning_network_security_groups,
+            'cleaning')
 
     def remove_cleaning_network(self, task):
         """Deletes the neutron port created for booting the ramdisk.
@@ -139,16 +136,8 @@ class NeutronNetwork(common.NeutronVIFPortIDMixin,
         :param task: a TaskManager instance.
         :raises: NetworkError
         """
-        LOG.info('Removing cleaning network from node %s',
-                 task.node.uuid)
-        neutron.remove_ports_from_network(
-            task, self.get_cleaning_network_uuid(task))
-        for port in task.ports:
-            if 'cleaning_vif_port_id' in port.internal_info:
-                internal_info = port.internal_info
-                del internal_info['cleaning_vif_port_id']
-                port.internal_info = internal_info
-                port.save()
+        return self._remove_network(
+            task, self.get_cleaning_network_uuid(task), 'cleaning')
 
     def validate_rescue(self, task):
         """Validates the network interface for rescue operation.
@@ -166,21 +155,10 @@ class NeutronNetwork(common.NeutronVIFPortIDMixin,
         :param task: a TaskManager instance.
         :returns: a dictionary in the form {port.uuid: neutron_port['id']}
         """
-        # If we have left over ports from a previous rescue, remove them
-        neutron.rollback_ports(task, self.get_rescuing_network_uuid(task))
-        LOG.info('Adding rescuing network to node %s', task.node.uuid)
-        security_groups = CONF.neutron.rescuing_network_security_groups
-        vifs = neutron.add_ports_to_network(
-            task,
-            self.get_rescuing_network_uuid(task),
-            security_groups=security_groups)
-        for port in task.ports:
-            if port.uuid in vifs:
-                internal_info = port.internal_info
-                internal_info['rescuing_vif_port_id'] = vifs[port.uuid]
-                port.internal_info = internal_info
-                port.save()
-        return vifs
+        return self._add_network(
+            task, self.get_rescuing_network_uuid(task),
+            CONF.neutron.rescuing_network_security_groups,
+            'rescuing')
 
     def remove_rescuing_network(self, task):
         """Deletes neutron port created for booting the rescue ramdisk.
@@ -188,16 +166,8 @@ class NeutronNetwork(common.NeutronVIFPortIDMixin,
         :param task: a TaskManager instance.
         :raises: NetworkError
         """
-        LOG.info('Removing rescuing network from node %s',
-                 task.node.uuid)
-        neutron.remove_ports_from_network(
-            task, self.get_rescuing_network_uuid(task))
-        for port in task.ports:
-            if 'rescuing_vif_port_id' in port.internal_info:
-                internal_info = port.internal_info
-                del internal_info['rescuing_vif_port_id']
-                port.internal_info = internal_info
-                port.save()
+        return self._remove_network(
+            task, self.get_rescuing_network_uuid(task), 'rescuing')
 
     def configure_tenant_networks(self, task):
         """Configure tenant networks for a node.
@@ -277,3 +247,28 @@ class NeutronNetwork(common.NeutronVIFPortIDMixin,
             if neutron.is_smartnic_port(port):
                 return True
         return False
+
+    def add_inspection_network(self, task):
+        """Add the inspection network to the node.
+
+        :param task: A TaskManager instance.
+        :returns: a dictionary in the form {port.uuid: neutron_port['id']}
+        :raises: NetworkError
+        :raises: InvalidParameterValue, if the network interface configuration
+            is invalid.
+        """
+        return self._add_network(
+            task, self.get_inspection_network_uuid(task),
+            CONF.neutron.inspection_network_security_groups,
+            'inspection')
+
+    def remove_inspection_network(self, task):
+        """Removes the inspection network from a node.
+
+        :param task: A TaskManager instance.
+        :raises: InvalidParameterValue, if the network interface configuration
+            is invalid.
+        :raises: MissingParameterValue, if some parameters are missing.
+        """
+        return self._remove_network(
+            task, self.get_inspection_network_uuid(task), 'inspection')

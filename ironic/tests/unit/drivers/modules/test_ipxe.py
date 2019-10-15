@@ -207,6 +207,19 @@ class iPXEBootTestCase(db_base.DbTestCase):
                 self.assertRaises(exception.InvalidParameterValue,
                                   task.driver.boot.validate, task)
 
+    def test_validate_inspection(self):
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            task.driver.boot.validate_inspection(task)
+
+    def test_validate_inspection_no_inspection_ramdisk(self):
+        driver_info = self.node.driver_info
+        del driver_info['deploy_ramdisk']
+        self.node.driver_info = driver_info
+        self.node.save()
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            self.assertRaises(exception.UnsupportedDriverExtension,
+                              task.driver.boot.validate_inspection, task)
+
     # TODO(TheJulia): Many of the interfaces mocked below are private PXE
     # interface methods. As time progresses, these will need to be migrated
     # and refactored as we begin to separate PXE and iPXE interfaces.

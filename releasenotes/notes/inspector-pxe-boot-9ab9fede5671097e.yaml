@@ -1,0 +1,12 @@
+---
+features:
+  - |
+    The ``pxe`` and ``ipxe`` boot interfaces, as well as all in-tree network
+    interfaces, now support managing in-band inspection boot.
+upgrade:
+  - |
+    For the managed in-band inspection to work, make sure that the Bare Metal
+    Introspection endpoint (either in the service catalog or in the
+    ``[inspector]endpoint_override`` configuration option) is not set to
+    localhost. Alternatively, set the ``[inspector]callback_endpoint_override``
+    option to a value with a real IP address.
