@@ -1,0 +1,59 @@
+{
+    "port": {
+        "admin_state_up": true,
+        "allowed_address_pairs": [],
+        "binding:host_id": "devstack",
+        "binding:profile": {},
+        "binding:vif_details": {
+            "ovs_hybrid_plug": true,
+            "port_filter": true
+        },
+        "binding:vif_type": "ovs",
+        "binding:vnic_type": "normal",
+        "created_at": "2016-03-08T20:19:41",
+        "data_plane_status": "ACTIVE",
+        "description": "",
+        "device_id": "5e3898d7-11be-483e-9732-b2f5eccd2b2e",
+        "device_owner": "network:router_interface",
+        "dns_assignment": {
+            "hostname": "myport",
+            "ip_address": "fd00:203:0:113::2",
+            "fqdn": "myport.my-domain.org"
+        },
+        "dns_domain": "my-domain.org.",
+        "dns_name": "myport",
+        "extra_dhcp_opts": [
+            {
+                "opt_value": "pxelinux.0",
+                "ip_version": 6,
+                "opt_name": "bootfile-name"
+            }
+        ],
+        "fixed_ips": [
+            {
+                "ip_address": "fd00:203:0:113::2",
+                "subnet_id": "906e685a-b964-4d58-9939-9cf3af197c67"
+            }
+        ],
+        "id": "96d4bfb9-b26e-41f3-bd2e-e6dcc1ccedb8",
+        "ip_allocation": "immediate",
+        "mac_address": "52:54:00:4f:ef:b7",
+        "mac_learning_enabled": false,
+        "name": "",
+        "network_id": "a87cc70a-3e15-4acf-8205-9b711a3531b7",
+        "port_security_enabled": false,
+        "project_id": "7e02058126cc4950b75f9970368ba177",
+        "revision_number": 1,
+        "security_groups": [],
+        "status": "ACTIVE",
+        "tags": ["tag1,tag2"],
+        "tenant_id": "7e02058126cc4950b75f9970368ba177",
+        "updated_at": "2016-03-08T20:19:41",
+        "qos_policy_id": "29d5e02e-d5ab-4929-bee4-4a9fc12e22ae",
+        "resource_request": {
+            "required": ["CUSTOM_PHYSNET_PUBLIC", "CUSTOM_VNIC_TYPE_NORMAL"],
+            "resources": {"NET_BW_EGR_KILOBIT_PER_SEC": 1000}
+        },
+        "uplink_status_propagation": false
+    }
+}

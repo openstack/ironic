@@ -11,6 +11,8 @@
 #    under the License.
 
 import copy
+import json
+import os
 import time
 from unittest import mock
 
@@ -269,6 +271,30 @@ class TestNeutronNetworkActions(db_base.DbTestCase):
                              return_value=self.client_mock, autospec=True)
         patcher.start()
         self.addCleanup(patcher.stop)
+
+        port_show_file = os.path.join(
+            os.path.dirname(__file__), 'json_samples',
+            'neutron_port_show.json')
+        with open(port_show_file, 'rb') as fl:
+            self.port_data = json.load(fl)
+
+        self.client_mock.show_port.return_value = self.port_data
+
+        network_show_file = os.path.join(
+            os.path.dirname(__file__), 'json_samples',
+            'neutron_network_show.json')
+        with open(network_show_file, 'rb') as fl:
+            self.network_data = json.load(fl)
+
+        self.client_mock.show_network.return_value = self.network_data
+
+        subnet_show_file = os.path.join(
+            os.path.dirname(__file__), 'json_samples',
+            'neutron_subnet_show.json')
+        with open(subnet_show_file, 'rb') as fl:
+            self.subnet_data = json.load(fl)
+
+        self.client_mock.show_subnet.return_value = self.subnet_data
 
     @mock.patch.object(neutron, 'update_neutron_port', autospec=True)
     def _test_add_ports_to_network(self, update_mock, is_client_id,
@@ -666,6 +692,103 @@ class TestNeutronNetworkActions(db_base.DbTestCase):
             **{'param': 'value'})
         self.client_mock.delete_port.assert_called_once_with(
             self.neutron_port['id'])
+
+    def test__uncidr_ipv4(self):
+        network, netmask = neutron._uncidr('10.0.0.0/24')
+        self.assertEqual('10.0.0.0', network)
+        self.assertEqual('255.255.255.0', netmask)
+
+    def test__uncidr_ipv6(self):
+        network, netmask = neutron._uncidr('::1/64', ipv6=True)
+        self.assertEqual('::', network)
+        self.assertEqual('ffff:ffff:ffff:ffff::', netmask)
+
+    def test_get_neutron_port_data(self):
+
+        network_data = neutron.get_neutron_port_data('port0', 'vif0')
+
+        expected_port = {
+            'id': 'port0',
+            'type': 'vif',
+            'ethernet_mac_address': 'fa:16:3e:23:fd:d7',
+            'vif_id': '46d4bfb9-b26e-41f3-bd2e-e6dcc1ccedb2',
+            'mtu': 1500
+        }
+
+        self.assertEqual(expected_port, network_data['links'][0])
+
+        expected_network = {
+            'id': 'a0304c3a-4f08-4c43-88af-d796509c97d2',
+            'network_id': 'a87cc70a-3e15-4acf-8205-9b711a3531b7',
+            'type': 'ipv4',
+            'link': 'port0',
+            'ip_address': '10.0.0.2',
+            'netmask': '255.255.255.0',
+            'routes': [
+                {'gateway': '10.0.0.1',
+                 'netmask': '0.0.0.0',
+                 'network': '0.0.0.0'}
+            ]
+        }
+
+        self.assertEqual(expected_network, network_data['networks'][0])
+
+    def load_ipv6_files(self):
+        port_show_file = os.path.join(
+            os.path.dirname(__file__), 'json_samples',
+            'neutron_port_show_ipv6.json')
+        with open(port_show_file, 'rb') as fl:
+            self.port_data = json.load(fl)
+
+        self.client_mock.show_port.return_value = self.port_data
+
+        network_show_file = os.path.join(
+            os.path.dirname(__file__), 'json_samples',
+            'neutron_network_show_ipv6.json')
+        with open(network_show_file, 'rb') as fl:
+            self.network_data = json.load(fl)
+
+        self.client_mock.show_network.return_value = self.network_data
+
+        subnet_show_file = os.path.join(
+            os.path.dirname(__file__), 'json_samples',
+            'neutron_subnet_show_ipv6.json')
+        with open(subnet_show_file, 'rb') as fl:
+            self.subnet_data = json.load(fl)
+
+        self.client_mock.show_subnet.return_value = self.subnet_data
+
+    def test_get_neutron_port_data_ipv6(self):
+        self.load_ipv6_files()
+
+        network_data = neutron.get_neutron_port_data('port1', 'vif1')
+
+        print(network_data)
+        expected_port = {
+            'id': 'port1',
+            'type': 'vif',
+            'ethernet_mac_address': '52:54:00:4f:ef:b7',
+            'vif_id': '96d4bfb9-b26e-41f3-bd2e-e6dcc1ccedb8',
+            'mtu': 1500
+        }
+
+        self.assertEqual(expected_port, network_data['links'][0])
+
+        expected_network = {
+            'id': '906e685a-b964-4d58-9939-9cf3af197c67',
+            'network_id': 'a87cc70a-3e15-4acf-8205-9b711a3531b7',
+            'type': 'ipv6',
+            'link': 'port1',
+            'ip_address': 'fd00:203:0:113::2',
+            'netmask': 'ffff:ffff:ffff:ffff::',
+            'routes': [
+                {'gateway': 'fd00:203:0:113::1',
+                 'netmask': '::0',
+                 'network': '::0'}
+            ]
+        }
+
+        self.assertEqual(expected_network, network_data['networks'][0])
 
     def test_get_node_portmap(self):
         with task_manager.acquire(self.context, self.node.uuid) as task:

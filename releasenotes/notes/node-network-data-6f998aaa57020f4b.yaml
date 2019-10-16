@@ -1,0 +1,7 @@
+---
+features:
+  - |
+    Adds `network_data` property to the node, a dictionary that represents the
+    node static network configuration. The Ironic API performs formal JSON
+    validation of node `network_data` content against user-supplied JSON schema
+    at driver validation step.

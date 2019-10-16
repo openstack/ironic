@@ -699,13 +699,15 @@ class NeutronInterfaceTestCase(db_base.DbTestCase):
         self.node.save()
         self._test_configure_tenant_networks(is_client_id=True)
 
+    @mock.patch.object(neutron_common, 'get_neutron_port_data', autospec=True)
     @mock.patch.object(neutron_common, 'wait_for_host_agent', autospec=True)
     @mock.patch.object(neutron_common, 'update_neutron_port', autospec=True)
     @mock.patch.object(neutron_common, 'get_client', autospec=True)
     @mock.patch.object(neutron_common, 'get_local_group_information',
                        autospec=True)
     def test_configure_tenant_networks_with_portgroups(
-            self, glgi_mock, client_mock, update_mock, wait_agent_mock):
+            self, glgi_mock, client_mock, update_mock, wait_agent_mock,
+            port_data_mock):
         pg = utils.create_test_portgroup(
             self.context, node_id=self.node.id, address='ff:54:00:cf:2d:32',
             extra={'vif_port_id': uuidutils.generate_uuid()})
@@ -860,7 +862,10 @@ class NeutronInterfaceTestCase(db_base.DbTestCase):
             self.assertRaises(exception.UnsupportedDriverExtension,
                               self.interface.validate_inspection, task)
 
-    def test_get_node_network_data(self):
+    @mock.patch.object(neutron_common, 'get_neutron_port_data', autospec=True)
+    def test_get_node_network_data(self, mock_gnpd):
+        mock_gnpd.return_value = {}
+
         with task_manager.acquire(self.context, self.node.id) as task:
             network_data = self.interface.get_node_network_data(task)
 

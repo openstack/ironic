@@ -11,6 +11,7 @@
 # under the License.
 
 import copy
+import ipaddress
 
 from keystoneauth1 import loading as ks_loading
 from neutronclient.common import exceptions as neutron_exceptions
@@ -472,6 +473,160 @@ def remove_neutron_ports(task, params):
 
     LOG.info('Successfully removed node %(node_uuid)s neutron ports.',
              {'node_uuid': node_uuid})
+
+
+def _uncidr(cidr, ipv6=False):
+    """Convert CIDR network representation into network/netmask form
+
+    :param cidr: network in CIDR form
+    :param ipv6: if `True`, consider `cidr` being IPv6
+    :returns: a tuple of network/host number in dotted
+        decimal notation, netmask in dotted decimal notation
+
+    """
+    net = ipaddress.ip_interface(cidr).network
+    return str(net.network_address), str(net.netmask)
+
+
+def get_neutron_port_data(port_id, vif_id, client=None, context=None):
+    """Gather Neutron port and network configuration
+
+    Query Neutron for port and network configuration, return whatever
+    is available.
+
+    :param port_id: ironic port/portgroup ID.
+    :param vif_id: Neutron port ID.
+    :param client: Optional a Neutron client object.
+    :param context: request context
+    :type context: ironic.common.context.RequestContext
+    :raises: NetworkError
+    :returns: a dict holding network configuration information
+         associated with this ironic or Neutron port.
+    """
+
+    if not client:
+        client = get_client(context=context)
+
+    try:
+        port_config = client.show_port(
+            vif_id, fields=['id', 'name', 'dns_assignment', 'fixed_ips',
+                            'mac_address', 'network_id'])
+
+    except neutron_exceptions.NeutronClientException as e:
+        msg = (_('Unable to get port info for %(port_id)s. Error: '
+                 '%(err)s') % {'port_id': vif_id, 'err': e})
+        LOG.exception(msg)
+        raise exception.NetworkError(msg)
+
+    LOG.debug('Received port %(port)s data: %(info)s',
+              {'port': vif_id, 'info': port_config})
+
+    port_config = port_config['port']
+
+    port_id = port_config['name'] or port_id
+
+    network_id = port_config.get('network_id')
+
+    try:
+        network_config = client.show_network(
+            network_id, fields=['id', 'mtu', 'subnets'])
+
+    except neutron_exceptions.NeutronClientException as e:
+        msg = (_('Unable to get network info for %(network_id)s. Error: '
+                 '%(err)s') % {'network_id': network_id, 'err': e})
+        LOG.exception(msg)
+        raise exception.NetworkError(msg)
+
+    LOG.debug('Received network %(network)s data: %(info)s',
+              {'network': network_id, 'info': network_config})
+
+    network_config = network_config['network']
+
+    subnets_config = {}
+
+    network_data = {
+        'links': [
+            {
+                'id': port_id,
+                'type': 'vif',
+                'ethernet_mac_address': port_config['mac_address'],
+                'vif_id': port_config['id'],
+                'mtu': network_config['mtu']
+            }
+        ],
+        'networks': [
+
+        ]
+    }
+
+    for fixed_ip in port_config.get('fixed_ips', []):
+        subnet_id = fixed_ip['subnet_id']
+
+        try:
+            subnet_config = client.show_subnet(
+                subnet_id, fields=['id', 'name', 'enable_dhcp',
+                                   'dns_nameservers', 'host_routes',
+                                   'ip_version', 'gateway_ip', 'cidr'])
+
+            LOG.debug('Received subnet %(subnet)s data: %(info)s',
+                      {'subnet': subnet_id, 'info': subnet_config})
+
+            subnets_config[subnet_id] = subnet_config['subnet']
+
+        except neutron_exceptions.NeutronClientException as e:
+            msg = (_('Unable to get subnet info for %(subnet_id)s. Error: '
+                     '%(err)s') % {'subnet_id': subnet_id, 'err': e})
+            LOG.exception(msg)
+            raise exception.NetworkError(msg)
+
+        subnet_config = subnets_config[subnet_id]
+
+        subnet_network, netmask = _uncidr(
+            subnet_config['cidr'], subnet_config['ip_version'] == 6)
+
+        network = {
+            'id': fixed_ip['subnet_id'],
+            'network_id': port_config['network_id'],
+            'type': 'ipv%s' % subnet_config['ip_version'],
+            'link': port_id,
+            'ip_address': fixed_ip['ip_address'],
+            'netmask': netmask,
+            'routes': [
+
+            ]
+        }
+
+        # TODO(etingof): Adding default route if gateway is present.
+        # This is a hack, Neutron should have given us a route.
+
+        if subnet_config['gateway_ip']:
+            zero_addr = ('::0' if subnet_config['ip_version'] == 6
+                         else '0.0.0.0')
+
+            route = {
+                'network': zero_addr,
+                'netmask': zero_addr,
+                'gateway': subnet_config['gateway_ip']
+            }
+
+            network['routes'].append(route)
+
+        for host_config in subnet_config['host_routes']:
+            subnet_network, netmask = _uncidr(
+                host_config['destination'],
+                subnet_config['ip_version'] == 6)
+
+            route = {
+                'network': subnet_network,
+                'netmask': netmask,
+                'gateway': host_config['nexthop']
+            }
+
+            network['routes'].append(route)
+
+        network_data['networks'].append(network)
+
+    return network_data
 
 
 def get_node_portmap(task):
