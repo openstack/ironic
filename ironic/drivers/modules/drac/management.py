@@ -81,8 +81,8 @@ _NON_PERSISTENT_BOOT_MODE = 'OneTime'
 # Clear job id's constant
 _CLEAR_JOB_IDS = 'JID_CLEARALL_FORCE'
 
-# BIOS pending job constant
-_BIOS_JOB_NAME = 'BIOS.Setup.1-1'
+# Clean steps constant
+_CLEAR_JOBS_CLEAN_STEPS = ['clear_job_queue', 'known_good_state']
 
 
 def _get_boot_device(node, drac_boot_devices=None):
@@ -190,19 +190,24 @@ def set_boot_device(node, device, persistent=False):
                        Default: False.
     :raises: DracOperationError on an error from python-dracclient.
     """
-
     client = drac_common.get_drac_client(node)
 
-    # If pending BIOS job found in job queue, we need to clear that job
-    # before executing cleaning step of management interface.
+    # If pending BIOS job or pending non-BIOS job found in job queue,
+    # we need to clear that jobs before executing clear_job_queue or
+    # known_good_state clean step of management interface.
     # Otherwise, pending BIOS config job can cause creating new config jobs
-    # to fail.
-    unfinished_jobs = drac_job.list_unfinished_jobs(node)
-    if unfinished_jobs:
-        unfinished_bios_jobs = [job.id for job in unfinished_jobs if
-                                _BIOS_JOB_NAME in job.name]
-        if unfinished_bios_jobs:
-            client.delete_jobs(job_ids=unfinished_bios_jobs)
+    # to fail and pending non-BIOS job can execute on reboot the node.
+    validate_job_queue = True
+    if node.driver_internal_info.get("clean_steps"):
+        if node.driver_internal_info.get("clean_steps")[0].get(
+                'step') in _CLEAR_JOBS_CLEAN_STEPS:
+            unfinished_jobs = drac_job.list_unfinished_jobs(node)
+            if unfinished_jobs:
+                validate_job_queue = False
+                client.delete_jobs(job_ids=[job.id for job in unfinished_jobs])
+
+    if validate_job_queue:
+        drac_job.validate_job_queue(node)
 
     try:
         drac_boot_devices = client.list_boot_devices()
