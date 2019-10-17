@@ -173,6 +173,21 @@ The last command will result in the whole Linux file system tree unpacked in
 the current directory. Now you can modify any files you want. The actual
 location of the files will depend on the way you've built the ramdisk.
 
+.. note::
+    On a systemd-based system you can use the ``systemd-nspawn`` tool (from
+    the ``systemd-container`` package) to create a lightweight container from
+    the unpacked filesystem tree::
+
+        sudo systemd-nspawn --directory /path/to/unpacked/ramdisk/ /bin/bash
+
+    This will allow you to run commands within the filesystem, e.g. use package
+    manager. If the ramdisk is also systemd-based, and you have login
+    credentials set up, you can even boot a real ramdisk enviroment with
+
+    ::
+
+        sudo systemd-nspawn --directory /path/to/unpacked/ramdisk/ --boot
+
 After you've done the modifications, pack the whole content of the current
 directory back::
 
