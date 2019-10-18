@@ -109,6 +109,6 @@ def wait_for_job_completion(node,
         return
     err_msg = _(
         'There are unfinished jobs in the job '
-        'queue on node %(node_uuid)r ') % {'node_uuid': node.uuid}
+        'queue on node %(node_uuid)s.') % {'node_uuid': node.uuid}
     LOG.warning(err_msg)
     raise exception.DracOperationError(error=err_msg)
