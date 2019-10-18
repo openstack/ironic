@@ -943,7 +943,7 @@ function configure_redfish {
 
     cat - <<EOF > $IRONIC_REDFISH_EMULATOR_CONFIG
 SUSHY_EMULATOR_BOOT_LOADER_MAP = {
-    'Uefi': {
+    'UEFI': {
         'x86_64': '$UEFI_LOADER_PATH'
     },
     'Legacy': {
@@ -2580,20 +2580,20 @@ function upload_baremetal_ironic_efiboot {
 
         sudo umount $efiboot_mount
 
-        # load efiboot into glance
-        IRONIC_EFIBOOT_ID=$(openstack \
-            image create \
-            $efiboot_name \
-            --public --disk-format=raw \
-            --container-format=bare \
-            -f value -c id \
-            < $efiboot_path)
-        die_if_not_set $LINENO IRONIC_EFIBOOT_ID "Failed to load EFI bootloader image into glance"
-
         mv $efiboot_path $IRONIC_EFIBOOT
-
-        iniset $IRONIC_CONF_FILE conductor bootloader $IRONIC_EFIBOOT_ID
     fi
+
+    # load efiboot into glance
+    IRONIC_EFIBOOT_ID=$(openstack \
+        image create \
+        $efiboot_name \
+        --public --disk-format=raw \
+        --container-format=bare \
+        -f value -c id \
+        < $IRONIC_EFIBOOT)
+    die_if_not_set $LINENO IRONIC_EFIBOOT_ID "Failed to load EFI bootloader image into glance"
+
+    iniset $IRONIC_CONF_FILE conductor bootloader $IRONIC_EFIBOOT_ID
 }
 
 # build deploy kernel+ramdisk, then upload them to glance
