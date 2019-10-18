@@ -18,12 +18,14 @@
 """Test class for console_utils driver module."""
 
 import errno
+import fcntl
 import os
 import random
 import signal
 import string
 import subprocess
 import tempfile
+import time
 
 from ironic_lib import utils as ironic_utils
 import mock
@@ -262,10 +264,11 @@ class ConsoleUtilsTestCase(db_base.DbTestCase):
                           filepath,
                           'password')
 
+    @mock.patch.object(fcntl, 'fcntl', autospec=True)
     @mock.patch.object(console_utils, 'open',
                        mock.mock_open(read_data='12345\n'))
     @mock.patch.object(os.path, 'exists', autospec=True)
-    @mock.patch.object(subprocess, 'Popen', autospec=True)
+    @mock.patch.object(subprocess, 'Popen')
     @mock.patch.object(psutil, 'pid_exists', autospec=True)
     @mock.patch.object(console_utils, '_ensure_console_pid_dir_exists',
                        autospec=True)
@@ -274,8 +277,10 @@ class ConsoleUtilsTestCase(db_base.DbTestCase):
                                        mock_dir_exists,
                                        mock_pid_exists,
                                        mock_popen,
-                                       mock_path_exists):
+                                       mock_path_exists, mock_fcntl):
         mock_popen.return_value.poll.return_value = 0
+        mock_popen.return_value.stdout.return_value.fileno.return_value = 0
+        mock_popen.return_value.stderr.return_value.fileno.return_value = 1
         mock_pid_exists.return_value = True
         mock_path_exists.return_value = True
 
@@ -291,10 +296,11 @@ class ConsoleUtilsTestCase(db_base.DbTestCase):
                                            stderr=subprocess.PIPE)
         mock_popen.return_value.poll.assert_called_once_with()
 
+    @mock.patch.object(fcntl, 'fcntl', autospec=True)
     @mock.patch.object(console_utils, 'open',
                        mock.mock_open(read_data='12345\n'))
     @mock.patch.object(os.path, 'exists', autospec=True)
-    @mock.patch.object(subprocess, 'Popen', autospec=True)
+    @mock.patch.object(subprocess, 'Popen')
     @mock.patch.object(psutil, 'pid_exists', autospec=True)
     @mock.patch.object(console_utils, '_ensure_console_pid_dir_exists',
                        autospec=True)
@@ -303,10 +309,12 @@ class ConsoleUtilsTestCase(db_base.DbTestCase):
                                              mock_dir_exists,
                                              mock_pid_exists,
                                              mock_popen,
-                                             mock_path_exists):
+                                             mock_path_exists, mock_fcntl):
         # no existing PID file before starting
         mock_stop.side_effect = exception.NoConsolePid('/tmp/blah')
         mock_popen.return_value.poll.return_value = 0
+        mock_popen.return_value.stdout.return_value.fileno.return_value = 0
+        mock_popen.return_value.stderr.return_value.fileno.return_value = 1
         mock_pid_exists.return_value = True
         mock_path_exists.return_value = True
 
@@ -322,36 +330,54 @@ class ConsoleUtilsTestCase(db_base.DbTestCase):
                                            stderr=subprocess.PIPE)
         mock_popen.return_value.poll.assert_called_once_with()
 
-    @mock.patch.object(subprocess, 'Popen', autospec=True)
+    @mock.patch.object(time, 'sleep', autospec=True)
+    @mock.patch.object(os, 'read', autospec=True)
+    @mock.patch.object(fcntl, 'fcntl', autospec=True)
+    @mock.patch.object(subprocess, 'Popen')
     @mock.patch.object(console_utils, '_ensure_console_pid_dir_exists',
                        autospec=True)
     @mock.patch.object(console_utils, '_stop_console', autospec=True)
-    def test_start_shellinabox_console_fail(self, mock_stop, mock_dir_exists,
-                                            mock_popen):
+    def test_start_shellinabox_console_fail(
+            self, mock_stop, mock_dir_exists, mock_popen, mock_fcntl,
+            mock_os_read, mock_sleep):
         mock_popen.return_value.poll.return_value = 1
-        mock_popen.return_value.communicate.return_value = ('output', 'error')
+        stdout = mock_popen.return_value.stdout
+        stderr = mock_popen.return_value.stderr
+        stdout.return_value.fileno.return_value = 0
+        stderr.return_value.fileno.return_value = 1
+        err_output = b'error output'
+        mock_os_read.side_effect = [err_output] * 2 + [OSError] * 2
+        mock_fcntl.side_effect = [1, mock.Mock()] * 2
 
         self.assertRaisesRegex(
-            exception.ConsoleSubprocessFailed, "Stdout: 'output'",
+            exception.ConsoleSubprocessFailed, "Stdout: %r" % err_output,
             console_utils.start_shellinabox_console, self.info['uuid'],
             self.info['port'], 'ls&')
 
         mock_stop.assert_called_once_with(self.info['uuid'])
+        mock_sleep.assert_has_calls([mock.call(1), mock.call(1)])
         mock_dir_exists.assert_called_once_with()
+        for obj in (stdout, stderr):
+            mock_fcntl.assert_has_calls([
+                mock.call(obj, fcntl.F_GETFL),
+                mock.call(obj, fcntl.F_SETFL, 1 | os.O_NONBLOCK)])
         mock_popen.assert_called_once_with(mock.ANY,
                                            stdout=subprocess.PIPE,
                                            stderr=subprocess.PIPE)
         mock_popen.return_value.poll.assert_called_with()
 
-    @mock.patch.object(subprocess, 'Popen', autospec=True)
+    @mock.patch.object(fcntl, 'fcntl', autospec=True)
+    @mock.patch.object(subprocess, 'Popen')
     @mock.patch.object(console_utils, '_ensure_console_pid_dir_exists',
                        autospec=True)
     @mock.patch.object(console_utils, '_stop_console', autospec=True)
     def test_start_shellinabox_console_timeout(
-            self, mock_stop, mock_dir_exists, mock_popen):
+            self, mock_stop, mock_dir_exists, mock_popen, mock_fcntl):
         self.config(subprocess_timeout=0, group='console')
         self.config(subprocess_checking_interval=0, group='console')
         mock_popen.return_value.poll.return_value = None
+        mock_popen.return_value.stdout.return_value.fileno.return_value = 0
+        mock_popen.return_value.stderr.return_value.fileno.return_value = 1
 
         self.assertRaisesRegex(
             exception.ConsoleSubprocessFailed, 'Timeout or error',
@@ -366,22 +392,28 @@ class ConsoleUtilsTestCase(db_base.DbTestCase):
         mock_popen.return_value.poll.assert_called_with()
         self.assertEqual(0, mock_popen.return_value.communicate.call_count)
 
+    @mock.patch.object(time, 'sleep', autospec=True)
+    @mock.patch.object(os, 'read', autospec=True)
+    @mock.patch.object(fcntl, 'fcntl', autospec=True)
     @mock.patch.object(console_utils, 'open',
                        mock.mock_open(read_data='12345\n'))
     @mock.patch.object(os.path, 'exists', autospec=True)
-    @mock.patch.object(subprocess, 'Popen', autospec=True)
+    @mock.patch.object(subprocess, 'Popen')
     @mock.patch.object(psutil, 'pid_exists', autospec=True)
     @mock.patch.object(console_utils, '_ensure_console_pid_dir_exists',
                        autospec=True)
     @mock.patch.object(console_utils, '_stop_console', autospec=True)
-    def test_start_shellinabox_console_fail_no_pid(self, mock_stop,
-                                                   mock_dir_exists,
-                                                   mock_pid_exists,
-                                                   mock_popen,
-                                                   mock_path_exists):
+    def test_start_shellinabox_console_fail_no_pid(
+            self, mock_stop, mock_dir_exists, mock_pid_exists, mock_popen,
+            mock_path_exists, mock_fcntl, mock_os_read, mock_sleep):
         mock_popen.return_value.poll.return_value = 0
+        stdout = mock_popen.return_value.stdout
+        stderr = mock_popen.return_value.stderr
+        stdout.return_value.fileno.return_value = 0
+        stderr.return_value.fileno.return_value = 1
         mock_pid_exists.return_value = False
-        mock_popen.return_value.communicate.return_value = ('output', 'error')
+        mock_os_read.side_effect = [b'error output'] * 2 + [OSError] * 2
+        mock_fcntl.side_effect = [1, mock.Mock()] * 2
         mock_path_exists.return_value = True
 
         self.assertRaises(exception.ConsoleSubprocessFailed,
@@ -391,7 +423,12 @@ class ConsoleUtilsTestCase(db_base.DbTestCase):
                           'ls&')
 
         mock_stop.assert_called_once_with(self.info['uuid'])
+        mock_sleep.assert_has_calls([mock.call(1), mock.call(1)])
         mock_dir_exists.assert_called_once_with()
+        for obj in (stdout, stderr):
+            mock_fcntl.assert_has_calls([
+                mock.call(obj, fcntl.F_GETFL),
+                mock.call(obj, fcntl.F_SETFL, 1 | os.O_NONBLOCK)])
         mock_pid_exists.assert_called_with(12345)
         mock_popen.assert_called_once_with(mock.ANY,
                                            stdout=subprocess.PIPE,
