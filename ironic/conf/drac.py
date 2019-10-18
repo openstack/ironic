@@ -28,7 +28,13 @@ opts = [
                help=_('Maximum amount of time (in seconds) to wait for '
                       'the boot device configuration job to transition '
                       'to the correct state to allow a reboot or power '
-                      'on to complete.'))
+                      'on to complete.')),
+    cfg.IntOpt('config_job_max_retries',
+               default=240,
+               min=1,
+               help=_('Maximum number of retries for '
+                      'the configuration job to complete '
+                      'successfully.'))
 ]
 
 
