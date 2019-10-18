@@ -1,0 +1,7 @@
+---
+fixes:
+  - Support for some hardware, including some Dell EMC servers, is
+    broken when using the Redfish hardware type with sushy 1.9.0.
+    The minimum version for the sushy library is now 2.0.0.
+    See `story 2006702 <https://storyboard.openstack.org/#!/story/2006702>`_
+    for more information.
