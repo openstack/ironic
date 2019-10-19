@@ -250,6 +250,23 @@ class TestListDeployTemplates(BaseDeployTemplatesAPITest):
         next_marker = data['deploy_templates'][-1]['uuid']
         self.assertIn(next_marker, data['next'])
 
+    def test_collection_links_custom_fields(self):
+        cfg.CONF.set_override('max_limit', 3, 'api')
+        templates = []
+        fields = 'uuid,steps'
+        for i in range(5):
+            template = obj_utils.create_test_deploy_template(
+                self.context,
+                uuid=uuidutils.generate_uuid(),
+                name='CUSTOM_DT%s' % i)
+            templates.append(template.uuid)
+        data = self.get_json('/deploy_templates?fields=%s' % fields,
+                             headers=self.headers)
+        self.assertEqual(3, len(data['deploy_templates']))
+        next_marker = data['deploy_templates'][-1]['uuid']
+        self.assertIn(next_marker, data['next'])
+        self.assertIn('fields', data['next'])
+
     def test_get_collection_pagination_no_uuid(self):
         fields = 'name'
         limit = 2

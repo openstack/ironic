@@ -238,7 +238,7 @@ class DeployTemplateCollection(collection.Collection):
         collection.deploy_templates = [
             DeployTemplate.convert_with_links(t, fields=fields, sanitize=False)
             for t in templates]
-        collection.next = collection.get_next(limit, **kwargs)
+        collection.next = collection.get_next(limit, fields=fields, **kwargs)
 
         for template in collection.deploy_templates:
             template.sanitize(fields)
