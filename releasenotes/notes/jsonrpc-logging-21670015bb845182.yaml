@@ -1,0 +1,5 @@
+---
+security:
+  - |
+    Node secrets (such as BMC credentials) are no longer logged when JSON RPC
+    is used and DEBUG logging is enabled.
