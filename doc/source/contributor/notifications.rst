@@ -6,7 +6,8 @@ Developing New Notifications
 
 Ironic notifications are events intended for consumption by external services.
 Notifications are sent to these services over a message bus by
-oslo.messaging's Notifier class [1]_. For more information about configuring
+:oslo.messaging-doc:`oslo.messaging's Notifier class <reference/notifier.html>`.
+For more information about configuring
 notifications and available notifications, see :ref:`deploy-notifications`.
 
 Ironic also has a set of base classes that assist in clearly defining the
@@ -62,8 +63,9 @@ object. Here's an example::
             'an_extra_field': fields.StringField(nullable=True)
        }
 
-Note that both the payload and notification classes are oslo versioned
-objects [2]_. Modifications to these require a version bump so that consumers
+Note that both the payload and notification classes are
+:oslo.versionedobjects-doc:`oslo versioned objects <>`.
+Modifications to these require a version bump so that consumers
 of notifications know when the notifications have changed.
 
 SCHEMA defines how to populate the payload fields. It's an optional
@@ -149,5 +151,3 @@ This example will send the following notification over the message bus::
        "publisher_id":"ironic-conductor.hostname01"
     }
 
-.. [1] https://docs.openstack.org/oslo.messaging/latest/reference/notifier.html
-.. [2] https://docs.openstack.org/oslo.versionedobjects/latest/

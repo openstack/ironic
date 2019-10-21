@@ -391,9 +391,9 @@ Developer documentation
 In-band RAID configuration is done using IPA ramdisk. IPA ramdisk has
 support for pluggable hardware managers which can be used to extend the
 functionality offered by IPA ramdisk using stevedore plugins.  For more
-information, see Ironic Python Agent `Hardware Manager`_ documentation.
-
-.. _`Hardware Manager`: https://docs.openstack.org/ironic-python-agent/latest/install/index.html#hardware-managers
+information, see Ironic Python Agent
+:ironic-python-agent-doc:`Hardware Manager <install/index.html#hardware-managers>`
+documentation.
 
 The hardware manager that supports RAID configuration should do the following:
 

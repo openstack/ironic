@@ -186,8 +186,8 @@ An easy way to do this is to:
   deploy RAM disks' requests.
 * to disable unauthorized access to these endpoints in the (first) API services
   group that serves external requests, the following lines should be
-  added to the `policy.yaml file
-  <https://docs.openstack.org/ironic/latest/configuration/sample-policy.html>`_::
+  added to the
+  :ironic-doc:`policy.yaml file <configuration/sample-policy.html>`::
 
     # Send heartbeats from IPA ramdisk
     "baremetal:node:ipa_heartbeat": "rule:is_admin"

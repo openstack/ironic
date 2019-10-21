@@ -50,7 +50,7 @@ Configure the Identity service for the Bare Metal service
 
    More complete documentation on managing Users and Roles within your
    OpenStack deployment are outside the scope of this document, but may be
-   found here_.
+   found :keystone-doc:`here <admin/identity-concepts.html#user-management>`.
 
 #. You can further restrict access to the Bare Metal service by creating a
    separate "baremetal" Project, so that Bare Metal resources (Nodes, Ports,
@@ -73,11 +73,8 @@ Configure the Identity service for the Bare Metal service
           --user USERNAME baremetal_observer
 
 #. Further documentation is available elsewhere for the ``openstack``
-   `command-line client`_ and the Identity_ service. A
-   :doc:`policy.json.sample </configuration/sample-policy>`
+   :python-openstackclient-doc:`command-line client <cli/authentication.html>`
+   and the :keystone-doc:`Identity <admin/cli-manage-projects-users-and-roles.html>`
+   service. A :doc:`policy.json.sample </configuration/sample-policy>`
    file, which enumerates the service's default policies, is provided for
    your convenience with the Bare Metal Service.
-
-.. _Identity: https://docs.openstack.org/keystone/latest/admin/cli-manage-projects-users-and-roles.html
-.. _`command-line client`: https://docs.openstack.org/python-openstackclient/latest/cli/authentication.html
-.. _here: https://docs.openstack.org/keystone/latest/admin/identity-concepts.html#user-management

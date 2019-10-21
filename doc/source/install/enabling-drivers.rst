@@ -98,7 +98,8 @@ inspect
     implements fetching hardware information from nodes. Can be implemented
     out-of-band (via contacting the node's BMC) or in-band (via booting
     a ramdisk on a node). The latter implementation is called ``inspector``
-    and uses a separate service called ironic-inspector_. Example:
+    and uses a separate service called
+    :ironic-inspector-doc:`ironic-inspector <>`. Example:
 
     .. code-block:: ini
 
@@ -292,4 +293,3 @@ existing nodes.
    provide an explicit value for this interface when creating a node.
 
 .. _setup.cfg: https://opendev.org/openstack/ironic/src/branch/master/setup.cfg
-.. _ironic-inspector: https://docs.openstack.org/ironic-inspector/latest/

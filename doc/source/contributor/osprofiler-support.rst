@@ -38,7 +38,8 @@ and ceilometer API is used to retrieve all messages related to one trace.
 OSProfiler has entry point that allows the user to retrieve information
 about traces and present it in HTML/JSON using CLI.
 
-For more details see `OSProfiler – Cross-project profiling library`_.
+For more details see
+:osprofiler-doc:`OSProfiler – Cross-project profiling library <index.html>`.
 
 
 How to Use OSProfiler with Ironic in Devstack
@@ -117,7 +118,5 @@ Each trace has embedded trace point details as shown below:
 References
 ==========
 
-- `OSProfiler – Cross-project profiling library`_
+- :osprofiler-doc:`OSProfiler – Cross-project profiling library <index.html>`
 - :ref:`deploy_devstack`
-
-.. _OSProfiler – Cross-project profiling library: https://docs.openstack.org/osprofiler/latest/index.html

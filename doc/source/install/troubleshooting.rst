@@ -129,6 +129,3 @@ following command.
 ::
 
     $ openstack baremetal node maintenance unset $NODE_UUID
-
-
-.. _ironic-python-agent: https://docs.openstack.org/ironic-python-agent/latest/

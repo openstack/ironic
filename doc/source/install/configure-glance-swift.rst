@@ -53,7 +53,7 @@ and Object Storage service as described below.
 #. Optionally, configure the ironic-conductor service. The default
    configuration assumes that:
 
-   #. the Object Storage service is implemented by swift_,
+   #. the Object Storage service is implemented by :swift-doc:`swift <>`,
    #. the Object Storage service URL is available from the service catalog,
    #. the project, used by the Image service to access the Object Storage, is
       the same as the project, used by the Bare Metal service to access it,
@@ -73,5 +73,3 @@ and Object Storage service as described below.
       swift_temp_url_key = secret
 
 #. (Re)start the ironic-conductor service.
-
-.. _swift: https://docs.openstack.org/swift/latest/

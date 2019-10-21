@@ -65,6 +65,32 @@ apidoc_separate_modules = True
 
 repository_name = 'openstack/ironic'
 use_storyboard = True
+openstack_projects = [
+    'bifrost',
+    'cinder',
+    'glance',
+    'ironic',
+    'ironic-inspector',
+    'ironic-lib',
+    'ironic-neutron-agent',
+    'ironic-python-agent',
+    'ironic-ui',
+    'keystone',
+    'keystonemiddleware',
+    'networking-baremetal',
+    'neutron',
+    'nova',
+    'oslo.messaging',
+    'oslo.reports',
+    'oslo.versionedobjects',
+    'oslotest',
+    'osprofiler',
+    'os-traits',
+    'python-ironicclient',
+    'python-ironic-inspector-client',
+    'python-openstackclient',
+    'swift',
+]
 
 wsme_protocols = ['restjson']
 

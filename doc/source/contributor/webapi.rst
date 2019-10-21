@@ -21,8 +21,8 @@ a minor version. Server minor version is increased every time the API behavior
 is changed (note `Exceptions from Versioning`_).
 
 .. note::
-   `Nova versioning documentation`_ has a nice guide for developers on when to
-   bump an API version.
+   :nova-doc:`Nova versioning documentation <contributor/microversions.html#when-do-i-need-a-new-microversion>`
+   has a nice guide for developers on when to bump an API version.
 
 The server indicates its minimum and maximum supported API versions in the
 ``X-OpenStack-Ironic-API-Minimum-Version`` and
@@ -46,8 +46,6 @@ version of API that they have been tested against.
     A special value ``latest`` can be requested instead a numerical
     microversion, which always requests the newest supported API version from
     the server.
-
-.. _Nova versioning documentation: https://docs.openstack.org/nova/latest/contributor/microversions.html#when-do-i-need-a-new-microversion
 
 REST API Versions History
 -------------------------

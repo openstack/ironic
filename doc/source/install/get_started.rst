@@ -36,7 +36,8 @@ are very similar to other OpenStack services:
   database back-end to further isolate bare metal resources (and associated
   metadata) from users.
 
-- An oslo.messaging_ compatible queue, such as RabbitMQ. It may use the same
+- An :oslo.messaging-doc:`oslo.messaging <>`
+  compatible queue, such as RabbitMQ. It may use the same
   implementation as that of the Compute service, but that is not a requirement.
   Used to implement RPC between ironic-api and ironic-conductor.
 
@@ -118,15 +119,15 @@ Associated projects
 Optionally, one may wish to utilize the following associated projects for
 additional functionality:
 
-python-ironicclient_
+:python-ironicclient-doc:`python-ironicclient <>`
   A command-line interface (CLI) and python bindings for interacting with the
   Bare Metal service.
 
-ironic-ui_
+:ironic-ui-doc:`ironic-ui <>`
   Horizon dashboard, providing graphical interface (GUI) for the Bare Metal
   API.
 
-ironic-inspector_
+:ironic-inspector-doc:`ironic-inspector <>`
   An associated service which performs in-band hardware introspection by
   PXE booting unregistered hardware into the ironic-python-agent ramdisk.
 
@@ -134,16 +135,10 @@ diskimage-builder_
   A related project to help facilitate the creation of ramdisks and machine
   images, such as those running the ironic-python-agent.
 
-bifrost_
+:bifrost-doc:`bifrost <>`
   A set of Ansible playbooks that automates the task of deploying a base image
   onto a set of known hardware using ironic in a standalone mode.
 
 .. _remote procedure call (RPC): https://en.wikipedia.org/wiki/Remote_procedure_call
 .. _WSGI: https://en.wikipedia.org/wiki/Web_Server_Gateway_Interface
-.. _oslo.messaging: https://docs.openstack.org/oslo.messaging/latest/
-.. _python-ironicclient: https://docs.openstack.org/python-ironicclient/latest/
-.. _ironic-ui: https://docs.openstack.org/ironic-ui/latest/
-.. _ironic-inspector: https://docs.openstack.org/ironic-inspector/latest/
 .. _diskimage-builder: https://docs.openstack.org/diskimage-builder/latest/
-.. _bifrost: https://docs.openstack.org/bifrost/latest/
-

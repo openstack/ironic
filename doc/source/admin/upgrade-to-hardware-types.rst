@@ -215,10 +215,9 @@ RAID interface. For example, to update all nodes use:
 
 .. note::
     The ability of a node to use the ``agent`` RAID interface depends on
-    the ramdisk (more specifically, a `hardware manager`_ used in it),
-    not on the driver.
-
-.. _hardware manager: https://docs.openstack.org/ironic-python-agent/latest/contributor/hardware_managers.html
+    the ramdisk (more specifically, a
+    :ironic-python-agent-doc:`hardware manager <contributor/hardware_managers.html>`
+    used in it), not on the driver.
 
 Network and storage
 ~~~~~~~~~~~~~~~~~~~

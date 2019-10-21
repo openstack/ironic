@@ -380,8 +380,8 @@ recommended that you switch to using **ironic-inspector**, which is a newer
 client module for the in-band inspection service, which was previously part of
 the **ironic-discoverd** package. Ironic Liberty supports the
 **ironic-discoverd** service, but does not support its in-tree client module.
-Please refer to `ironic-inspector version support matrix
-<https://docs.openstack.org/ironic-inspector/latest/install/index.html#version-support-matrix>`_
+Please refer to
+:ironic-inspector-doc:`ironic-inspector version support matrix <install/index.html#version-support-matrix>`
 for details on which ironic versions are compatible with which
 **ironic-inspector**/**ironic-discoverd** versions.
 
@@ -391,8 +391,8 @@ The discoverd to inspector upgrade procedure is as follows:
   **ironic-discoverd** (usually the same as conductor).
 
 * Update the **ironic-inspector** configuration file to stop using deprecated
-  configuration options, as marked by the comments in the `example.conf
-  <https://docs.openstack.org/ironic-inspector/latest/install/index.html#configuration>`_.
+  configuration options, as marked by the comments in the
+  :ironic-inspector-doc:`example.conf <install/index.html#configuration>`.
   It is recommended you move the configuration file to
   ``/etc/ironic-inspector/inspector.conf``.
 

@@ -30,8 +30,8 @@ still used to determine the root partition size.
 
    .. note:: You can add ``--id <id>`` to specify an ID for the flavor.
 
-See the `docs on this command
-<https://docs.openstack.org/python-openstackclient/latest/cli/command-objects/flavor.html#flavor-create>`_
+See the
+:python-openstackclient-doc:`docs on this command <cli/command-objects/flavor.html#flavor-create>`
 for other options that may be specified.
 
 After creation, associate each flavor with one custom resource class. The name

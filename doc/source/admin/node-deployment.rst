@@ -89,8 +89,8 @@ templates offer a way to define a set of one or more deploy steps to be
 executed with particular sets of arguments and priorities.
 
 Each deploy template has a name, which must be a valid trait.  Traits can be
-either standard or custom.  Standard traits are listed in the `os_traits
-library <https://docs.openstack.org/os-traits/latest/>`_.  Custom traits must
+either standard or custom.  Standard traits are listed in the
+:os-traits-doc:`os_traits library <>`.  Custom traits must
 meet the following requirements:
 
 * prefixed with ``CUSTOM_``
