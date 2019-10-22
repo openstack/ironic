@@ -160,6 +160,12 @@ This includes:
     typically submit a follow-up patch to do that. An example of this patch is
     `here <https://review.opendev.org/685070>`__.
 
+  * update the `templates` in `.zuul.yaml` or `zuul.d/project.yaml`.
+
+    The update is necessary to use the job for the next release
+    `openstack-python3-<next_release>-jobs`. An example of this patch is
+    `here <https://review.opendev.org/#/c/689705/>`__.
+
 We need to submit patches for changes in the stable branch to:
 
 * update the ironic devstack plugin to point at the branched tarball for IPA.
