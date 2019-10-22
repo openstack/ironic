@@ -22,6 +22,7 @@ from ironic.common.json_rpc import server
 from ironic import objects
 from ironic.objects import base as objects_base
 from ironic.tests import base as test_base
+from ironic.tests.unit.db import utils as db_utils
 from ironic.tests.unit.objects import utils as obj_utils
 
 
@@ -266,6 +267,22 @@ class TestService(test_base.TestCase):
         self._request('success', {'context': self.ctx, 'x': 42},
                       expected_error=403)
 
+    @mock.patch.object(server.LOG, 'debug', autospec=True)
+    def test_mask_secrets(self, mock_log):
+        node = obj_utils.get_test_node(
+            self.context, driver_info=db_utils.get_test_ipmi_info())
+        node = self.serializer.serialize_entity(self.context, node)
+        body = self._request('with_node', {'context': self.ctx, 'node': node})
+        node = self.serializer.deserialize_entity(self.context, body['result'])
+        logged_params = mock_log.call_args_list[0][0][2]
+        logged_node = logged_params['node']['ironic_object.data']
+        self.assertEqual('***', logged_node['driver_info']['ipmi_password'])
+        logged_resp = mock_log.call_args_list[1][0][2]
+        logged_node = logged_resp['ironic_object.data']
+        self.assertEqual('***', logged_node['driver_info']['ipmi_password'])
+        # The result is not affected, only logging
+        self.assertEqual(db_utils.get_test_ipmi_info(), node.driver_info)
+
 
 @mock.patch.object(client, '_get_session', autospec=True)
 class TestClient(test_base.TestCase):
@@ -493,3 +510,34 @@ class TestClient(test_base.TestCase):
                                cctx.call, self.context, 'do_something',
                                answer=42)
         self.assertFalse(mock_session.return_value.post.called)
+
+    @mock.patch.object(client.LOG, 'debug', autospec=True)
+    def test_mask_secrets(self, mock_log, mock_session):
+        request = {
+            'redfish_username': 'admin',
+            'redfish_password': 'passw0rd'
+        }
+        body = """{
+            "jsonrpc": "2.0",
+            "result": {
+                "driver_info": {
+                    "ipmi_username": "admin",
+                    "ipmi_password": "passw0rd"
+                }
+            }
+        }"""
+        response = mock_session.return_value.post.return_value
+        response.text = body
+        cctx = self.client.prepare('foo.example.com')
+        cctx.cast(self.context, 'do_something', node=request)
+        mock_session.return_value.post.assert_called_once_with(
+            'http://example.com:8089',
+            json={'jsonrpc': '2.0',
+                  'method': 'do_something',
+                  'params': {'node': request, 'context': self.ctx_json}})
+        self.assertEqual(2, mock_log.call_count)
+        node = mock_log.call_args_list[0][0][2]['params']['node']
+        self.assertEqual(node, {'redfish_username': 'admin',
+                                'redfish_password': '***'})
+        resp_text = mock_log.call_args_list[1][0][2]
+        self.assertEqual(body.replace('passw0rd', '***'), resp_text)

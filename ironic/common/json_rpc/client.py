@@ -18,6 +18,7 @@ This client is compatible with any JSON RPC 2.0 implementation, including ours.
 from oslo_config import cfg
 from oslo_log import log
 from oslo_utils import importutils
+from oslo_utils import strutils
 from oslo_utils import uuidutils
 
 from ironic.common import exception
@@ -151,10 +152,11 @@ class _CallContext(object):
         if not cast:
             body['id'] = context.request_id or uuidutils.generate_uuid()
 
-        LOG.debug("RPC %s with %s", method, body)
+        LOG.debug("RPC %s with %s", method, strutils.mask_dict_password(body))
         url = 'http://%s:%d' % (self.host, CONF.json_rpc.port)
         result = _get_session().post(url, json=body)
-        LOG.debug('RPC %s returned %s', method, result.text or '<None>')
+        LOG.debug('RPC %s returned %s', method,
+                  strutils.mask_password(result.text or '<None>'))
 
         if not cast:
             result = result.json()
