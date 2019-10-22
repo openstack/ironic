@@ -27,6 +27,7 @@ from oslo_log import log
 import oslo_messaging
 from oslo_service import service
 from oslo_service import wsgi
+from oslo_utils import strutils
 import webob
 
 from ironic.common import context as ir_context
@@ -222,6 +223,7 @@ class WSGIService(service.Service):
         """
         # TODO(dtantsur): server-side version check?
         params.pop('rpc.version', None)
+        logged_params = strutils.mask_dict_password(params)
 
         try:
             context = params.pop('context')
@@ -238,7 +240,7 @@ class WSGIService(service.Service):
                       for key, value in params.items()}
             params['context'] = context
 
-        LOG.debug('RPC %s with %s', name, params)
+        LOG.debug('RPC %s with %s', name, logged_params)
         try:
             result = func(**params)
         # FIXME(dtantsur): we could use the inspect module, but
@@ -251,7 +253,9 @@ class WSGIService(service.Service):
             # Currently it seems that we can serialize even with invalid
             # context, but I'm not sure it's guaranteed to be the case.
             result = self.serializer.serialize_entity(context, result)
-        LOG.debug('RPC %s returned %s', name, result)
+        LOG.debug('RPC %s returned %s', name,
+                  strutils.mask_dict_password(result)
+                  if isinstance(result, dict) else result)
         return result
 
     def start(self):
