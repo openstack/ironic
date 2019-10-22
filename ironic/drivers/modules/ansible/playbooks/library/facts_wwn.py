@@ -33,7 +33,7 @@ def get_devices_wwn(devices, module):
     for device in devices:
         name = '/dev/' + device
         try:
-            udev = pyudev.Device.from_device_file(context, name)
+            udev = pyudev.Devices.from_device_file(context, name)
         except (ValueError, EnvironmentError, pyudev.DeviceNotFoundError) as e:
             module.warn('Device %(dev)s is inaccessible, skipping... '
                         'Error: %(error)s' % {'dev': name, 'error': e})
