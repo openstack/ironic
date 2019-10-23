@@ -736,6 +736,23 @@ class TestListNodes(test_api_base.BaseApiTest):
         next_marker = data['nodes'][-1]['uuid']
         self.assertIn(next_marker, data['next'])
 
+    def test_get_collection_pagination_no_uuid(self):
+        fields = 'name'
+        limit = 2
+        nodes = []
+        for id_ in range(3):
+            node = obj_utils.create_test_node(
+                self.context,
+                uuid=uuidutils.generate_uuid())
+            nodes.append(node)
+
+        data = self.get_json(
+            '/nodes?fields=%s&limit=%s' % (fields, limit),
+            headers={api_base.Version.string: str(api_v1.max_version())})
+
+        self.assertEqual(limit, len(data['nodes']))
+        self.assertIn('marker=%s' % nodes[limit - 1].uuid, data['next'])
+
     def test_collection_links_instance_uuid_param(self):
         cfg.CONF.set_override('max_limit', 1, 'api')
         nodes = []
