@@ -217,6 +217,27 @@ class TestListAllocations(test_api_base.BaseApiTest):
         next_marker = data['allocations'][-1]['uuid']
         self.assertIn(next_marker, data['next'])
 
+    def test_collection_links_custom_fields(self):
+        cfg.CONF.set_override('max_limit', 3, 'api')
+        fields = 'uuid,extra'
+        allocations = []
+        for i in range(5):
+            allocation = obj_utils.create_test_allocation(
+                self.context,
+                node_id=self.node.id,
+                uuid=uuidutils.generate_uuid(),
+                name='allocation%s' % i)
+            allocations.append(allocation.uuid)
+
+        data = self.get_json(
+            '/allocations?fields=%s' % fields,
+            headers=self.headers)
+        self.assertEqual(3, len(data['allocations']))
+
+        next_marker = data['allocations'][-1]['uuid']
+        self.assertIn(next_marker, data['next'])
+        self.assertIn('fields', data['next'])
+
     def test_get_collection_pagination_no_uuid(self):
         fields = 'node_uuid'
         limit = 2

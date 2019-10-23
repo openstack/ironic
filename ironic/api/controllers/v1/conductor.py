@@ -140,7 +140,8 @@ class ConductorCollection(collection.Collection):
         collection = ConductorCollection()
         collection.conductors = [Conductor.convert_with_links(c, fields=fields)
                                  for c in conductors]
-        collection.next = collection.get_next(limit, url=url, **kwargs)
+        collection.next = collection.get_next(limit, url=url, fields=fields,
+                                              **kwargs)
 
         for conductor in collection.conductors:
             conductor.sanitize(fields)

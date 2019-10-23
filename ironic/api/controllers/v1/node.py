@@ -1346,7 +1346,8 @@ class NodeCollection(collection.Collection):
         collection.nodes = [Node.convert_with_links(n, fields=fields,
                                                     sanitize=False)
                             for n in nodes]
-        collection.next = collection.get_next(limit, url=url, **kwargs)
+        collection.next = collection.get_next(limit, url=url, fields=fields,
+                                              **kwargs)
 
         for node in collection.nodes:
             node.sanitize(fields)
