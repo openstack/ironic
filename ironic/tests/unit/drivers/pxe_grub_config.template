@@ -3,7 +3,7 @@ set timeout=5
 set hidden_timeout_quiet=false
 
 menuentry "deploy"  {
-    linuxefi /tftpboot/1be26c0b-03f2-4d2e-ae87-c02d7f33c123/deploy_kernel selinux=0 troubleshoot=0 text test_param boot_server=192.0.2.1 ipa-api-url=http://192.168.122.184:6385
+    linuxefi /tftpboot/1be26c0b-03f2-4d2e-ae87-c02d7f33c123/deploy_kernel selinux=0 troubleshoot=0 text test_param boot_server=192.0.2.1
     initrdefi /tftpboot/1be26c0b-03f2-4d2e-ae87-c02d7f33c123/deploy_ramdisk
 }
 
