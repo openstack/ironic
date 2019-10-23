@@ -3,7 +3,7 @@
 
 - set_fact:
     ironic_root_device: /dev/{{ item.key }}
-  with_dict: "{{ ansible_devices }}"
+  loop: "{{ ansible_devices | dict2items | sort(attribute='key') }}"
   when:
     - ironic_root_device is undefined
     - item.value.host

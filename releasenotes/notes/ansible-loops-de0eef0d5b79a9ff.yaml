@@ -1,0 +1,11 @@
+---
+fixes:
+  - |
+    Fixes the default disk detection in the ``ansible`` deploy interface with
+    Python 3. Previously a random disk was used, resulting in boot failures,
+    now the first disk is used (as intended). This required bumping the minimum
+    required Ansible version to 2.5.
+upgrade:
+  - |
+    Changing minimum version of Ansible for use with the ``ansible``
+    ``deploy_interface`` to version 2.5.
