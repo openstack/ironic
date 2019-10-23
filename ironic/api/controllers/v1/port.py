@@ -306,7 +306,8 @@ class PortCollection(collection.Collection):
 
             collection.ports.append(port)
 
-        collection.next = collection.get_next(limit, url=url, **kwargs)
+        collection.next = collection.get_next(limit, url=url, fields=fields,
+                                              **kwargs)
 
         for item in collection.ports:
             item.sanitize(fields=fields)

@@ -217,7 +217,8 @@ class VolumeTargetCollection(collection.Collection):
             for p in rpc_targets]
         if detail:
             kwargs['detail'] = detail
-        collection.next = collection.get_next(limit, url=url, **kwargs)
+        collection.next = collection.get_next(limit, url=url, fields=fields,
+                                              **kwargs)
         for target in collection.targets:
             target.sanitize(fields)
         return collection
