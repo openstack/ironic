@@ -232,8 +232,9 @@ class PortgroupCollection(collection.Collection):
         collection.portgroups = [Portgroup.convert_with_links(p, fields=fields,
                                                               sanitize=False)
                                  for p in rpc_portgroups]
-        collection.next = collection.get_next(limit, url=url, **kwargs)
 
+        collection.next = collection.get_next(limit, url=url, fields=fields,
+                                              **kwargs)
         for item in collection.portgroups:
             item.sanitize(fields=fields)
 
