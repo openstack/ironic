@@ -1352,9 +1352,11 @@ class ServiceDoNodeDeployTestCase(mgr_utils.ServiceSetUpMixin,
                                autospec=True) as mock_spawn:
             mock_spawn.return_value = thread
 
-            node = obj_utils.create_test_node(self.context,
-                                              driver='fake-hardware',
-                                              provision_state=states.AVAILABLE)
+            node = obj_utils.create_test_node(
+                self.context,
+                driver='fake-hardware',
+                provision_state=states.AVAILABLE,
+                driver_internal_info={'agent_url': 'url'})
 
             self.service.do_node_deploy(self.context, node.uuid)
             self._stop_service()
@@ -1369,6 +1371,7 @@ class ServiceDoNodeDeployTestCase(mgr_utils.ServiceSetUpMixin,
                                                mock.ANY, None)
             mock_iwdi.assert_called_once_with(self.context, node.instance_info)
             self.assertFalse(node.driver_internal_info['is_whole_disk_image'])
+            self.assertNotIn('agent_url', node.driver_internal_info)
 
     @mock.patch('ironic.drivers.modules.fake.FakeDeploy.deploy')
     def test_do_node_deploy_rebuild_active_state_old(self, mock_deploy,
@@ -2658,7 +2661,8 @@ class DoNextDeployStepTestCase(mgr_utils.ServiceSetUpMixin,
     def test__do_next_deploy_step_all(self, mock_execute):
         # Run all steps from start to finish (all synchronous)
         driver_internal_info = {'deploy_step_index': None,
-                                'deploy_steps': self.deploy_steps}
+                                'deploy_steps': self.deploy_steps,
+                                'agent_url': 'url'}
         self._start_service()
         node = obj_utils.create_test_node(
             self.context, driver='fake-hardware',
@@ -2680,6 +2684,7 @@ class DoNextDeployStepTestCase(mgr_utils.ServiceSetUpMixin,
         self.assertIsNone(node.driver_internal_info['deploy_steps'])
         mock_execute.assert_has_calls = [mock.call(self.deploy_steps[0]),
                                          mock.call(self.deploy_steps[1])]
+        self.assertNotIn('agent_url', node.driver_internal_info)
 
     @mock.patch.object(conductor_utils, 'LOG', autospec=True)
     @mock.patch('ironic.drivers.modules.fake.FakeDeploy.execute_deploy_step',
@@ -3854,7 +3859,8 @@ class DoNodeCleanTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
             self.context, driver='fake-hardware',
             provision_state=states.CLEANING,
             target_provision_state=states.AVAILABLE,
-            last_error=None)
+            last_error=None,
+            driver_internal_info={'agent_url': 'url'})
         with task_manager.acquire(
                 self.context, node.uuid, shared=False) as task:
             self.service._do_node_clean(task)
@@ -3864,6 +3870,7 @@ class DoNodeCleanTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         # Assert that the node was cleaned
         self.assertTrue(mock_validate.called)
         self.assertIn('clean_steps', node.driver_internal_info)
+        self.assertNotIn('agent_url', node.driver_internal_info)
 
     @mock.patch('ironic.drivers.modules.fake.FakePower.validate',
                 autospec=True)
@@ -4599,7 +4606,8 @@ class DoNodeRescueTestCase(mgr_utils.CommonMixIn, mgr_utils.ServiceSetUpMixin,
         task = self._create_task(
             node_attrs=dict(driver='fake-hardware',
                             provision_state=states.ACTIVE,
-                            instance_info={}))
+                            instance_info={},
+                            driver_internal_info={'agent_url': 'url'}))
         mock_acquire.side_effect = self._get_acquire_side_effect(task)
         self.service.do_node_rescue(self.context, task.node.uuid,
                                     "password")
@@ -4609,6 +4617,7 @@ class DoNodeRescueTestCase(mgr_utils.CommonMixIn, mgr_utils.ServiceSetUpMixin,
             call_args=(self.service._do_node_rescue, task),
             err_handler=conductor_utils.spawn_rescue_error_handler)
         self.assertIn('rescue_password', task.node.instance_info)
+        self.assertNotIn('agent_url', task.node.driver_internal_info)
 
     def test_do_node_rescue_invalid_state(self):
         self._start_service()
@@ -4740,9 +4749,12 @@ class DoNodeRescueTestCase(mgr_utils.CommonMixIn, mgr_utils.ServiceSetUpMixin,
         self._start_service()
         task = self._create_task(
             node_attrs=dict(driver='fake-hardware',
-                            provision_state=states.RESCUE))
+                            provision_state=states.RESCUE,
+                            driver_internal_info={'agent_url': 'url'}))
         mock_acquire.side_effect = self._get_acquire_side_effect(task)
         self.service.do_node_unrescue(self.context, task.node.uuid)
+        task.node.refresh()
+        self.assertNotIn('agent_url', task.node.driver_internal_info)
         task.process_event.assert_called_once_with(
             'unrescue',
             callback=self.service._spawn_worker,
@@ -4876,12 +4888,14 @@ class DoNodeRescueTestCase(mgr_utils.CommonMixIn, mgr_utils.ServiceSetUpMixin,
         node = obj_utils.create_test_node(
             self.context, driver='fake-hardware',
             provision_state=states.RESCUEFAIL,
-            target_provision_state=states.RESCUE)
+            target_provision_state=states.RESCUE,
+            driver_internal_info={'agent_url': 'url'})
         with task_manager.acquire(self.context, node.uuid) as task:
             self.service._do_node_rescue_abort(task)
             clean_up_mock.assert_called_once_with(task.driver.rescue, task)
             self.assertIsNotNone(task.node.last_error)
             self.assertFalse(task.node.maintenance)
+            self.assertNotIn('agent_url', task.node.driver_internal_info)
 
     @mock.patch.object(fake.FakeRescue, 'clean_up', autospec=True)
     def test__do_node_rescue_abort_clean_up_fail(self, clean_up_mock):
@@ -7872,8 +7886,10 @@ class NodeInspectHardware(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
     @mock.patch('ironic.drivers.modules.fake.FakeInspect.inspect_hardware')
     def test_inspect_hardware_ok(self, mock_inspect):
         self._start_service()
-        node = obj_utils.create_test_node(self.context, driver='fake-hardware',
-                                          provision_state=states.INSPECTING)
+        node = obj_utils.create_test_node(
+            self.context, driver='fake-hardware',
+            provision_state=states.INSPECTING,
+            driver_internal_info={'agent_url': 'url'})
         task = task_manager.TaskManager(self.context, node.uuid)
         mock_inspect.return_value = states.MANAGEABLE
         manager._do_inspect_hardware(task)
@@ -7882,6 +7898,8 @@ class NodeInspectHardware(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         self.assertEqual(states.NOSTATE, node.target_provision_state)
         self.assertIsNone(node.last_error)
         mock_inspect.assert_called_once_with(mock.ANY)
+        task.node.refresh()
+        self.assertNotIn('agent_url', task.node.driver_internal_info)
 
     @mock.patch('ironic.drivers.modules.fake.FakeInspect.inspect_hardware')
     def test_inspect_hardware_return_inspecting(self, mock_inspect):

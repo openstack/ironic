@@ -417,6 +417,9 @@ def cleaning_error_handler(task, msg, tear_down_cleaning=True,
         info.pop('cleaning_reboot', None)
         info.pop('cleaning_polling', None)
         info.pop('skip_current_clean_step', None)
+        # We don't need to keep the old agent URL
+        # as it should change upon the next cleaning attempt.
+        info.pop('agent_url', None)
         node.driver_internal_info = info
     # For manual cleaning, the target provision state is MANAGEABLE, whereas
     # for automated cleaning, it is AVAILABLE.
@@ -477,6 +480,9 @@ def deploying_error_handler(task, logmsg, errmsg, traceback=False,
         info.pop('deployment_reboot', None)
         info.pop('deployment_polling', None)
         info.pop('skip_current_deploy_step', None)
+        # Remove agent_url since it will be re-asserted
+        # upon the next deployment attempt.
+        info.pop('agent_url', None)
         node.driver_internal_info = info
 
     if cleanup_err:
@@ -521,6 +527,7 @@ def rescuing_error_handler(task, msg, set_fail_state=True):
     try:
         node_power_action(task, states.POWER_OFF)
         task.driver.rescue.clean_up(task)
+        remove_agent_url(node)
         node.last_error = msg
     except exception.IronicException as e:
         node.last_error = (_('Rescue operation was unsuccessful, clean up '
@@ -535,6 +542,7 @@ def rescuing_error_handler(task, msg, set_fail_state=True):
         LOG.exception('Rescue failed for node %(node)s, an exception was '
                       'encountered while aborting.', {'node': node.uuid})
     finally:
+        remove_agent_url(node)
         node.save()
 
     if set_fail_state:
@@ -913,3 +921,10 @@ def is_fast_track(task):
                 task.node.driver_internal_info.get('agent_last_heartbeat'),
                 CONF.deploy.fast_track_timeout)
             and task.driver.power.get_power_state(task) == states.POWER_ON)
+
+
+def remove_agent_url(node):
+    """Helper to remove the agent_url record."""
+    info = node.driver_internal_info
+    info.pop('agent_url', None)
+    node.driver_internal_info = info

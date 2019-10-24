@@ -598,6 +598,8 @@ class ConductorManager(base_manager.BaseConductorManager):
                                   node_id, purpose='node rescue') as task:
 
             node = task.node
+            # Record of any pre-existing agent_url should be removed.
+            utils.remove_agent_url(node)
             if node.maintenance:
                 raise exception.NodeInMaintenance(op=_('rescuing'),
                                                   node=node.uuid)
@@ -697,6 +699,9 @@ class ConductorManager(base_manager.BaseConductorManager):
         with task_manager.acquire(context, node_id,
                                   purpose='node unrescue') as task:
             node = task.node
+            # Record of any pre-existing agent_url should be removed,
+            # Not that there should be.
+            utils.remove_agent_url(node)
             if node.maintenance:
                 raise exception.NodeInMaintenance(op=_('unrescuing'),
                                                   node=node.uuid)
@@ -776,6 +781,7 @@ class ConductorManager(base_manager.BaseConductorManager):
         info_message = _('Rescue operation aborted for node %s.') % node.uuid
         last_error = _('By request, the rescue operation was aborted.')
         node.refresh()
+        utils.remove_agent_url(node)
         node.last_error = last_error
         node.save()
         LOG.info(info_message)
@@ -819,6 +825,8 @@ class ConductorManager(base_manager.BaseConductorManager):
         with task_manager.acquire(context, node_id, shared=False,
                                   purpose='node deployment') as task:
             node = task.node
+            # Record of any pre-existing agent_url should be removed.
+            utils.remove_agent_url(node)
             if node.maintenance:
                 raise exception.NodeInMaintenance(op=_('provisioning'),
                                                   node=node.uuid)
@@ -972,6 +980,8 @@ class ConductorManager(base_manager.BaseConductorManager):
 
         with task_manager.acquire(context, node_id, shared=False,
                                   purpose='node tear down') as task:
+            # Record of any pre-existing agent_url should be removed.
+            utils.remove_agent_url(task.node)
             if task.node.protected:
                 raise exception.NodeProtected(node=task.node.uuid)
 
@@ -1168,7 +1178,8 @@ class ConductorManager(base_manager.BaseConductorManager):
         with task_manager.acquire(context, node_id, shared=False,
                                   purpose='node manual cleaning') as task:
             node = task.node
-
+            # Record of any pre-existing agent_url should be removed.
+            utils.remove_agent_url(node)
             if node.maintenance:
                 raise exception.NodeInMaintenance(op=_('cleaning'),
                                                   node=node.uuid)
@@ -1473,6 +1484,8 @@ class ConductorManager(base_manager.BaseConductorManager):
         driver_internal_info.pop('clean_step_index', None)
         driver_internal_info.pop('cleaning_reboot', None)
         driver_internal_info.pop('cleaning_polling', None)
+        # Remove agent_url
+        driver_internal_info.pop('agent_url', None)
         node.driver_internal_info = driver_internal_info
         node.save()
         try:
@@ -1562,6 +1575,7 @@ class ConductorManager(base_manager.BaseConductorManager):
         info.pop('cleaning_reboot', None)
         info.pop('cleaning_polling', None)
         info.pop('skip_current_clean_step', None)
+        info.pop('agent_url', None)
         node.driver_internal_info = info
         node.save()
         LOG.info(info_message)
@@ -3979,6 +3993,8 @@ def _do_next_deploy_step(task, step_index, conductor_id):
     driver_internal_info.pop('deploy_step_index', None)
     driver_internal_info.pop('deployment_reboot', None)
     driver_internal_info.pop('deployment_polling', None)
+    # Remove the agent_url cached from the deployment.
+    driver_internal_info.pop('agent_url', None)
     node.driver_internal_info = driver_internal_info
     node.save()
 
@@ -4202,6 +4218,9 @@ def _do_inspect_hardware(task):
         log_func("Failed to inspect node %(node)s: %(err)s",
                  {'node': node.uuid, 'err': e})
 
+    # Remove agent_url, while not strictly needed for the inspection path,
+    # lets just remove it out of good practice.
+    utils.remove_agent_url(node)
     try:
         new_state = task.driver.inspect.inspect_hardware(task)
     except exception.IronicException as e:
