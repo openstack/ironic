@@ -336,6 +336,7 @@
     required-projects:
       - openstack/ironic
       - openstack/ironic-python-agent
+      - openstack/ironic-python-agent-builder
       - openstack/ironic-tempest-plugin
       - openstack/virtualbmc
       - openstack/networking-generic-switch
