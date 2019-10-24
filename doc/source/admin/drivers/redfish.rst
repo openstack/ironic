@@ -22,12 +22,14 @@ Enabling the Redfish driver
 
 #. Add ``redfish`` to the list of ``enabled_hardware_types``,
    ``enabled_power_interfaces``, ``enabled_management_interfaces`` and
-   ``enabled_inspect_interfaces``
-   in ``/etc/ironic/ironic.conf``. For example::
+   ``enabled_inspect_interfaces`` as well as ``redfish-virtual-media``
+   to ``enabled_boot_interfaces`` in ``/etc/ironic/ironic.conf``.
+   For example::
 
     [DEFAULT]
     ...
     enabled_hardware_types = ipmi,redfish
+    enabled_boot_interfaces = ipmitool,redfish-virtual-media
     enabled_power_interfaces = ipmitool,redfish
     enabled_management_interfaces = ipmitool,redfish
     enabled_inspect_interfaces = inspector,redfish
@@ -93,7 +95,8 @@ a node with the ``redfish`` driver. For example:
   openstack baremetal node create --driver redfish --driver-info \
     redfish_address=https://example.com --driver-info \
     redfish_system_id=/redfish/v1/Systems/CX34R87 --driver-info \
-    redfish_username=admin --driver-info redfish_password=password
+    redfish_username=admin --driver-info redfish_password=password \
+    node-0
 
 For more information about enrolling nodes see :ref:`enrollment`
 in the install guide.
@@ -134,6 +137,46 @@ into the introspection ramdisk.
    node does not have local storage or the Redfish implementation does not
    support the required schema. In this case the property will be set to 0.
 
+Virtual media boot
+^^^^^^^^^^^^^^^^^^
+
+The idea behind virtual media boot is that BMC gets hold of the boot image
+one way or the other (e.g. by HTTP GET, other methods are defined in the
+standard), then "inserts" it into node's virtual drive as if it was burnt
+on a physical CD/DVD. The node can then boot from that virtual drive into
+the operating system residing on the image.
+
+The major advantage of virtual media boot feature is that potentially
+unreliable TFTP image transfer phase of PXE protocol suite is fully
+eliminated.
+
+Hardware types based on the ``redfish`` fully support booting deploy/rescue
+and user images over virtual media. Ironic builds bootable ISO images, for
+either UEFI or BIOS (Legacy) boot modes, at the moment of node deployment out
+of kernel and ramdisk images associated with the ironic node.
+
+To boot a node managed by ``redfish`` hardware type over virtual media using
+BIOS boot mode, it suffice to set ironic boot interface to
+``redfish-virtual-media``, as opposed to ``ipmitool``.
+
+.. code-block:: bash
+
+  openstack baremetal node set --boot-interface redfish-virtual-media node-0
+
+If UEFI boot mode is desired, the user should additionally supply EFI
+System Partition image (ESP_) via ``[driver-info]/bootloader`` ironic node
+property or ironic configuration file in form of Glance image UUID or a URL.
+
+.. code-block:: bash
+
+  openstack baremetal node set --driver-info bootloader=<glance-uuid> node-0
+
+If ``[driver_info]/config_via_floppy`` boolean property of the node is set to
+``true``, ironic will create a file with runtime configuration parameters,
+place into on a FAT image, then insert the image into node's virtual floppy
+drive.
+
 .. _Redfish: http://redfish.dmtf.org/
 .. _Sushy: https://opendev.org/openstack/sushy
 .. _TLS: https://en.wikipedia.org/wiki/Transport_Layer_Security
+.. _ESP: https://wiki.ubuntu.com/EFIBootLoaders#Booting_from_EFI
