@@ -269,9 +269,8 @@ class HeartbeatMixinTest(AgentDeployMixinBaseTest):
                                       shared=True) as task:
                 self.deploy.heartbeat(task, agent_url, '3.2.0')
                 self.assertFalse(task.shared)
-                self.assertEqual(
-                    agent_url,
-                    task.node.driver_internal_info['agent_url'])
+                self.assertIsNone(
+                    task.node.driver_internal_info.get('agent_url', None))
                 self.assertEqual(
                     '3.2.0',
                     task.node.driver_internal_info['agent_version'])

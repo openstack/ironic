@@ -184,6 +184,19 @@ class HeartbeatController(rest.RestController):
         policy.authorize('baremetal:node:ipa_heartbeat', cdict, cdict)
 
         rpc_node = api_utils.get_rpc_node_with_suffix(node_ident)
+        dii = rpc_node['driver_internal_info']
+        agent_url = dii.get('agent_url')
+        # If we have an agent_url on file, and we get something different
+        # we should fail because this is unexpected behavior of the agent.
+        if (agent_url is not None
+            and agent_url != callback_url):
+                LOG.error('Received heartbeat for node %(node)s with '
+                          'callback URL %(url)s. This is not expected, '
+                          'and the heartbeat will not be processed.',
+                          {'node': rpc_node.uuid, 'url': callback_url})
+                raise exception.Invalid(
+                    _('Detected change in ramdisk provided '
+                      '"callback_url"'))
 
         try:
             topic = api.request.rpcapi.get_topic_for(rpc_node)

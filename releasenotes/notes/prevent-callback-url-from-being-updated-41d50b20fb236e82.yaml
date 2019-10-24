@@ -1,0 +1,10 @@
+---
+security:
+  - |
+    Prevents additional updates of an agent ``callback_url`` through the agent
+    heartbeat ``/v1/heartbeat/<node_uuid>`` endpoint as the ``callback_url``
+    should remain stable through the cleaning, provisioning, or rescue
+    processes. Should anything such as an unexpected agent reboot cause the
+    ``callback_url``, heartbeat operations will now be ignored.
+    More information can be found at
+    `story 2006773 <https://storyboard.openstack.org/#!/story/2006773>`_.

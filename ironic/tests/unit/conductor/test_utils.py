@@ -920,6 +920,7 @@ class DeployingErrorHandlerTestCase(tests_base.TestCase):
         info['deployment_reboot'] = True
         info['deployment_polling'] = True
         info['skip_current_deploy_step'] = True
+        info['agent_url'] = 'url'
         conductor_utils.deploying_error_handler(self.task, self.logmsg,
                                                 self.errmsg)
 
@@ -932,6 +933,7 @@ class DeployingErrorHandlerTestCase(tests_base.TestCase):
         self.assertNotIn('deployment_polling', self.node.driver_internal_info)
         self.assertNotIn('skip_current_deploy_step',
                          self.node.driver_internal_info)
+        self.assertNotIn('agent_url', self.node.driver_internal_info)
         self.task.process_event.assert_called_once_with('fail')
 
     def _test_deploying_error_handler_cleanup(self, exc, expected_str):
@@ -1059,7 +1061,8 @@ class ErrorHandlersTestCase(tests_base.TestCase):
             'cleaning_reboot': True,
             'cleaning_polling': True,
             'skip_current_clean_step': True,
-            'clean_step_index': 0}
+            'clean_step_index': 0,
+            'agent_url': 'url'}
         msg = 'error bar'
         conductor_utils.cleaning_error_handler(self.task, msg)
         self.node.save.assert_called_once_with()
@@ -1080,6 +1083,7 @@ class ErrorHandlersTestCase(tests_base.TestCase):
         else:
             self.task.process_event.assert_called_once_with('fail',
                                                             target_state=None)
+        self.assertNotIn('agent_url', self.node.driver_internal_info)
 
     def test_cleaning_error_handler(self):
         self._test_cleaning_error_handler()
@@ -1254,12 +1258,14 @@ class ErrorHandlersTestCase(tests_base.TestCase):
     def _test_rescuing_error_handler(self, node_power_mock,
                                      set_state=True):
         self.node.provision_state = states.RESCUEWAIT
+        self.node.driver_internal_info.update({'agent_url': 'url'})
         conductor_utils.rescuing_error_handler(self.task,
                                                'some exception for node',
                                                set_fail_state=set_state)
         node_power_mock.assert_called_once_with(mock.ANY, states.POWER_OFF)
         self.task.driver.rescue.clean_up.assert_called_once_with(self.task)
         self.node.save.assert_called_once_with()
+        self.assertNotIn('agent_url', self.node.driver_internal_info)
         if set_state:
             self.assertTrue(self.task.process_event.called)
         else:
