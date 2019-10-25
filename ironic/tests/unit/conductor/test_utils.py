@@ -1184,17 +1184,20 @@ class ErrorHandlersTestCase(tests_base.TestCase):
     @mock.patch.object(conductor_utils, 'LOG')
     def test_spawn_rescue_error_handler_no_worker(self, log_mock):
         exc = exception.NoFreeConductorWorker()
-        self.node.instance_info = {'rescue_password': 'pass'}
+        self.node.instance_info = {'rescue_password': 'pass',
+                                   'hashed_rescue_password': '12'}
         conductor_utils.spawn_rescue_error_handler(exc, self.node)
         self.node.save.assert_called_once_with()
         self.assertIn('No free conductor workers', self.node.last_error)
         self.assertTrue(log_mock.warning.called)
         self.assertNotIn('rescue_password', self.node.instance_info)
+        self.assertNotIn('hashed_rescue_password', self.node.instance_info)
 
     @mock.patch.object(conductor_utils, 'LOG')
     def test_spawn_rescue_error_handler_other_error(self, log_mock):
         exc = Exception('foo')
-        self.node.instance_info = {'rescue_password': 'pass'}
+        self.node.instance_info = {'rescue_password': 'pass',
+                                   'hashed_rescue_password': '12'}
         conductor_utils.spawn_rescue_error_handler(exc, self.node)
         self.assertFalse(self.node.save.called)
         self.assertFalse(log_mock.warning.called)

@@ -1954,7 +1954,8 @@ class AgentRescueTestCase(db_base.DbTestCase):
             self.config(**config_kwarg)
         self.config(enabled_hardware_types=['fake-hardware'])
         instance_info = INSTANCE_INFO
-        instance_info.update({'rescue_password': 'password'})
+        instance_info.update({'rescue_password': 'password',
+                              'hashed_rescue_password': '1234'})
         driver_info = DRIVER_INFO
         driver_info.update({'rescue_ramdisk': 'my_ramdisk',
                             'rescue_kernel': 'my_kernel'})
