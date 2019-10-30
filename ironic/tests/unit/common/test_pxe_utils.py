@@ -1164,7 +1164,8 @@ class PXEInterfacesTestCase(db_base.DbTestCase):
     @mock.patch('ironic.common.utils.render_template', autospec=True)
     def _test_build_pxe_config_options_pxe(self, render_mock,
                                            whle_dsk_img=False,
-                                           debug=False, mode='deploy'):
+                                           debug=False, mode='deploy',
+                                           ramdisk_params=None):
         self.config(debug=debug)
         self.config(pxe_append_params='test_param', group='pxe')
         # NOTE: right '/' should be removed from url string
@@ -1216,6 +1217,9 @@ class PXEInterfacesTestCase(db_base.DbTestCase):
         expected_pxe_params = 'test_param'
         if debug:
             expected_pxe_params += ' ipa-debug=1'
+        if ramdisk_params:
+            expected_pxe_params += ' ' + ' '.join(
+                '%s=%s' % tpl for tpl in ramdisk_params.items())
 
         expected_options = {
             'deployment_ari_path': pxe_ramdisk,
@@ -1233,7 +1237,8 @@ class PXEInterfacesTestCase(db_base.DbTestCase):
 
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
-            options = pxe_utils.build_pxe_config_options(task, image_info)
+            options = pxe_utils.build_pxe_config_options(
+                task, image_info, ramdisk_params=ramdisk_params)
         self.assertEqual(expected_options, options)
 
     def test_build_pxe_config_options_pxe(self):
@@ -1262,6 +1267,10 @@ class PXEInterfacesTestCase(db_base.DbTestCase):
         del self.node.driver_internal_info['is_whole_disk_image']
         self.node.save()
         self._test_build_pxe_config_options_pxe(whle_dsk_img=False)
+
+    def test_build_pxe_config_options_ramdisk_params(self):
+        self._test_build_pxe_config_options_pxe(whle_dsk_img=True,
+                                                ramdisk_params={'foo': 'bar'})
 
     def test_build_pxe_config_options_pxe_no_kernel_no_ramdisk(self):
         del self.node.driver_internal_info['is_whole_disk_image']

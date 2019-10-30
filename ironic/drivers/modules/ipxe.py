@@ -158,9 +158,8 @@ class iPXEBoot(pxe_base.PXEBaseMixin, base.BootInterface):
                 pxe_utils.get_instance_image_info(task, ipxe_enabled=True))
             boot_mode_utils.sync_boot_mode(task)
 
-        pxe_options = pxe_utils.build_pxe_config_options(task, pxe_info,
-                                                         ipxe_enabled=True)
-        pxe_options.update(ramdisk_params)
+        pxe_options = pxe_utils.build_pxe_config_options(
+            task, pxe_info, ipxe_enabled=True, ramdisk_params=ramdisk_params)
 
         pxe_config_template = deploy_utils.get_pxe_config_template(node)
 
@@ -186,6 +185,10 @@ class iPXEBoot(pxe_base.PXEBaseMixin, base.BootInterface):
 
         if pxe_info:
             pxe_utils.cache_ramdisk_kernel(task, pxe_info, ipxe_enabled=True)
+
+        LOG.debug('Ramdisk iPXE boot for node %(node)s has been prepared '
+                  'with kernel params %(params)s',
+                  {'node': node.uuid, 'params': pxe_options})
 
     @METRICS.timer('iPXEBoot.prepare_instance')
     def prepare_instance(self, task):

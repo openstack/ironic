@@ -3,7 +3,7 @@ set timeout=5
 set hidden_timeout_quiet=false
 
 menuentry "deploy"  {
-    linuxefi {{ pxe_options.deployment_aki_path }} selinux=0 troubleshoot=0 text {{ pxe_options.pxe_append_params|default("", true) }} boot_server={{pxe_options.tftp_server}} ipa-api-url={{ pxe_options['ipa-api-url'] }}
+    linuxefi {{ pxe_options.deployment_aki_path }} selinux=0 troubleshoot=0 text {{ pxe_options.pxe_append_params|default("", true) }} boot_server={{pxe_options.tftp_server}}
     initrdefi {{ pxe_options.deployment_ari_path }}
 }
 

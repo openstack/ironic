@@ -293,11 +293,11 @@ class iPXEBootTestCase(db_base.DbTestCase):
                         ipxe_enabled=True)
             if uefi:
                 mock_pxe_config.assert_called_once_with(
-                    task, {'foo': 'bar'}, CONF.pxe.uefi_pxe_config_template,
+                    task, {}, CONF.pxe.uefi_pxe_config_template,
                     ipxe_enabled=True)
             else:
                 mock_pxe_config.assert_called_once_with(
-                    task, {'foo': 'bar'}, CONF.pxe.pxe_config_template,
+                    task, {}, CONF.pxe.pxe_config_template,
                     ipxe_enabled=True)
 
     def test_prepare_ramdisk(self):

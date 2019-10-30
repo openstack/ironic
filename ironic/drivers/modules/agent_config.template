@@ -2,7 +2,7 @@ default deploy
 
 label deploy
 kernel {{ pxe_options.deployment_aki_path }}
-append initrd={{ pxe_options.deployment_ari_path }} text {{ pxe_options.pxe_append_params }} ipa-api-url={{ pxe_options['ipa-api-url'] }}
+append initrd={{ pxe_options.deployment_ari_path }} text {{ pxe_options.pxe_append_params }}
 
 label boot_partition
 kernel {{ pxe_options.aki_path }}

@@ -720,12 +720,15 @@ def build_instance_pxe_options(task, pxe_info, ipxe_enabled=False):
     return pxe_opts
 
 
-def build_extra_pxe_options():
+def build_extra_pxe_options(ramdisk_params=None):
     # Enable debug in IPA according to CONF.debug if it was not
     # specified yet
     pxe_append_params = CONF.pxe.pxe_append_params
     if CONF.debug and 'ipa-debug' not in pxe_append_params:
         pxe_append_params += ' ipa-debug=1'
+    if ramdisk_params:
+        pxe_append_params += ' ' + ' '.join('%s=%s' % tpl
+                                            for tpl in ramdisk_params.items())
 
     return {'pxe_append_params': pxe_append_params,
             'tftp_server': CONF.pxe.tftp_server,
@@ -733,7 +736,7 @@ def build_extra_pxe_options():
 
 
 def build_pxe_config_options(task, pxe_info, service=False,
-                             ipxe_enabled=False):
+                             ipxe_enabled=False, ramdisk_params=None):
     """Build the PXE config options for a node
 
     This method builds the PXE boot options for a node,
@@ -749,6 +752,8 @@ def build_pxe_config_options(task, pxe_info, service=False,
         to PXE options.
     :param ipxe_enabled: Default false boolean to indicate if ipxe
                          is in use by the caller.
+    :param ramdisk_params: the parameters to be passed to the ramdisk.
+                           as kernel command-line arguments.
     :returns: A dictionary of pxe options to be used in the pxe bootfile
         template.
     """
@@ -771,7 +776,7 @@ def build_pxe_config_options(task, pxe_info, service=False,
     pxe_options.update(build_instance_pxe_options(task, pxe_info,
                                                   ipxe_enabled=ipxe_enabled))
 
-    pxe_options.update(build_extra_pxe_options())
+    pxe_options.update(build_extra_pxe_options(ramdisk_params))
 
     return pxe_options
 
