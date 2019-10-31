@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    Now passing proper flags during clean up of iPXE boot environments,
+    so that no leftovers are left after node tear down.
