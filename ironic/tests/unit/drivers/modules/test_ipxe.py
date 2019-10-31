@@ -592,8 +592,10 @@ class iPXEBootTestCase(db_base.DbTestCase):
                           ramdisk_label: ['', '/path/to/' + ramdisk_label]}
             get_image_info_mock.return_value = image_info
             task.driver.boot.clean_up_ramdisk(task)
-            clean_up_pxe_env_mock.assert_called_once_with(task, image_info)
-            get_image_info_mock.assert_called_once_with(task.node, mode=mode)
+            clean_up_pxe_env_mock.assert_called_once_with(
+                task, image_info, ipxe_enabled=True)
+            get_image_info_mock.assert_called_once_with(
+                task.node, mode=mode, ipxe_enabled=True)
 
     def test_clean_up_ramdisk(self):
         self.node.provision_state = states.DEPLOYING
@@ -837,7 +839,8 @@ class iPXEBootTestCase(db_base.DbTestCase):
                           'ramdisk': ['', '/path/to/ramdisk']}
             get_image_info_mock.return_value = image_info
             task.driver.boot.clean_up_instance(task)
-            clean_up_pxe_env_mock.assert_called_once_with(task, image_info)
+            clean_up_pxe_env_mock.assert_called_once_with(
+                task, image_info, ipxe_enabled=True)
             get_image_info_mock.assert_called_once_with(
                 task, ipxe_enabled=True)
 

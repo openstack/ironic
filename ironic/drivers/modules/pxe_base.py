@@ -56,6 +56,8 @@ COMMON_PROPERTIES.update(RESCUE_PROPERTIES)
 
 class PXEBaseMixin(object):
 
+    ipxe_enabled = False
+
     def get_properties(self):
         """Return the properties of the interface.
 
@@ -82,13 +84,15 @@ class PXEBaseMixin(object):
         node = task.node
         mode = deploy_utils.rescue_or_deploy_mode(node)
         try:
-            images_info = pxe_utils.get_image_info(node, mode=mode)
+            images_info = pxe_utils.get_image_info(
+                node, mode=mode, ipxe_enabled=self.ipxe_enabled)
         except exception.MissingParameterValue as e:
             LOG.warning('Could not get %(mode)s image info '
                         'to clean up images for node %(node)s: %(err)s',
                         {'mode': mode, 'node': node.uuid, 'err': e})
         else:
-            pxe_utils.clean_up_pxe_env(task, images_info)
+            pxe_utils.clean_up_pxe_env(
+                task, images_info, ipxe_enabled=self.ipxe_enabled)
 
     @METRICS.timer('PXEBaseMixin.validate_rescue')
     def validate_rescue(self, task):

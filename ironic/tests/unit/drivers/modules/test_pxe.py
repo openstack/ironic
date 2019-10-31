@@ -595,8 +595,10 @@ class PXEBootTestCase(db_base.DbTestCase):
                           ramdisk_label: ['', '/path/to/' + ramdisk_label]}
             get_image_info_mock.return_value = image_info
             task.driver.boot.clean_up_ramdisk(task)
-            clean_up_pxe_env_mock.assert_called_once_with(task, image_info)
-            get_image_info_mock.assert_called_once_with(task.node, mode=mode)
+            clean_up_pxe_env_mock.assert_called_once_with(
+                task, image_info, ipxe_enabled=False)
+            get_image_info_mock.assert_called_once_with(
+                task.node, mode=mode, ipxe_enabled=False)
 
     def test_clean_up_ramdisk(self):
         self.node.provision_state = states.DEPLOYING
