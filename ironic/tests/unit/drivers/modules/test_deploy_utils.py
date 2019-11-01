@@ -2939,10 +2939,14 @@ class AsyncStepTestCase(db_base.DbTestCase):
     def test_set_async_step_flags_deploying_set_all(self):
         self.node.deploy_step = {'step': 'create_configuration',
                                  'interface': 'raid'}
-        self.node.driver_internal_info = {}
+        self.node.driver_internal_info = {
+            'agent_secret_token': 'test',
+            'agent_secret_token_pregenerated': True}
         expected = {'deployment_reboot': True,
                     'deployment_polling': True,
-                    'skip_current_deploy_step': True}
+                    'skip_current_deploy_step': True,
+                    'agent_secret_token': 'test',
+                    'agent_secret_token_pregenerated': True}
         self.node.save()
         utils.set_async_step_flags(self.node, reboot=True,
                                    skip_current_step=True,
@@ -2957,3 +2961,16 @@ class AsyncStepTestCase(db_base.DbTestCase):
         utils.set_async_step_flags(self.node, reboot=True)
         self.assertEqual({'deployment_reboot': True},
                          self.node.driver_internal_info)
+
+    def test_set_async_step_flags_clears_non_pregenerated_token(self):
+        self.node.clean_step = {'step': 'create_configuration',
+                                'interface': 'raid'}
+        self.node.driver_internal_info = {'agent_secret_token': 'test'}
+        expected = {'cleaning_reboot': True,
+                    'cleaning_polling': True,
+                    'skip_current_clean_step': True}
+        self.node.save()
+        utils.set_async_step_flags(self.node, reboot=True,
+                                   skip_current_step=True,
+                                   polling=True)
+        self.assertEqual(expected, self.node.driver_internal_info)

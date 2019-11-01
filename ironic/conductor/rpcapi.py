@@ -99,13 +99,15 @@ class ConductorAPI(object):
     |    1.46 - Added reset_interfaces to update_node
     |    1.47 - Added support for conductor groups
     |    1.48 - Added allocation API
+    |    1.49 - Added get_node_with_token and agent_token argument to
+                heartbeat
 
     """
 
     # NOTE(rloo): This must be in sync with manager.ConductorManager's.
     # NOTE(pas-ha): This also must be in sync with
     #               ironic.common.release_mappings.RELEASE_MAPPING['master']
-    RPC_API_VERSION = '1.48'
+    RPC_API_VERSION = '1.49'
 
     def __init__(self, topic=None):
         super(ConductorAPI, self).__init__()
@@ -811,7 +813,7 @@ class ConductorAPI(object):
                           node_id=node_id, clean_steps=clean_steps)
 
     def heartbeat(self, context, node_id, callback_url, agent_version,
-                  topic=None):
+                  agent_token=None, topic=None):
         """Process a node heartbeat.
 
         :param context: request context.
@@ -825,6 +827,9 @@ class ConductorAPI(object):
         if self.client.can_send_version('1.42'):
             version = '1.42'
             new_kws['agent_version'] = agent_version
+        if self.client.can_send_version('1.49'):
+            version = '1.49'
+            new_kws['agent_token'] = agent_token
         cctxt = self.client.prepare(topic=topic or self.topic, version=version)
         return cctxt.call(context, 'heartbeat', node_id=node_id,
                           callback_url=callback_url, **new_kws)
@@ -1133,3 +1138,16 @@ class ConductorAPI(object):
         """
         cctxt = self.client.prepare(topic=topic or self.topic, version='1.48')
         return cctxt.call(context, 'destroy_allocation', allocation=allocation)
+
+    def get_node_with_token(self, context, node_id, topic=None):
+        """Request the node from the conductor with an agent token
+
+        :param context: request context.
+        :param node_id: node ID or UUID.
+        :param topic: RPC topic. Defaults to self.topic.
+        :raises: NodeLocked if node is locked by another conductor.
+
+        :returns: A Node object with agent token.
+        """
+        cctxt = self.client.prepare(topic=topic or self.topic, version='1.49')
+        return cctxt.call(context, 'get_node_with_token', node_id=node_id)

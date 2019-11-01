@@ -1316,3 +1316,8 @@ def allow_allocation_owner():
     Version 1.60 of the API added the owner field to the allocation object.
     """
     return api.request.version.minor >= versions.MINOR_60_ALLOCATION_OWNER
+
+
+def allow_agent_token():
+    """Check if agent token is available."""
+    return api.request.version.minor >= versions.MINOR_62_AGENT_TOKEN

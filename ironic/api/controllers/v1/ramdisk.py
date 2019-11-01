@@ -39,7 +39,7 @@ _LOOKUP_RETURN_FIELDS = ('uuid', 'properties', 'instance_info',
                          'driver_internal_info')
 
 
-def config():
+def config(token):
     return {
         'metrics': {
             'backend': CONF.metrics.agent_backend,
@@ -52,7 +52,8 @@ def config():
             'statsd_host': CONF.metrics_statsd.agent_statsd_host,
             'statsd_port': CONF.metrics_statsd.agent_statsd_port
         },
-        'heartbeat_timeout': CONF.api.ramdisk_heartbeat_timeout
+        'heartbeat_timeout': CONF.api.ramdisk_heartbeat_timeout,
+        'agent_token': token
     }
 
 
@@ -72,8 +73,9 @@ class LookupResult(base.APIBase):
 
     @classmethod
     def convert_with_links(cls, node):
+        token = node.driver_internal_info.get('agent_secret_token')
         node = node_ctl.Node.convert_with_links(node, _LOOKUP_RETURN_FIELDS)
-        return cls(node=node, config=config())
+        return cls(node=node, config=config(token))
 
 
 class LookupController(rest.RestController):
@@ -149,15 +151,27 @@ class LookupController(rest.RestController):
                 and node.provision_state not in self.lookup_allowed_states):
             raise exception.NotFound()
 
-        return LookupResult.convert_with_links(node)
+        if api_utils.allow_agent_token() or CONF.require_agent_token:
+            try:
+                topic = api.request.rpcapi.get_topic_for(node)
+            except exception.NoValidHost as e:
+                e.code = http_client.BAD_REQUEST
+                raise
+
+            found_node = api.request.rpcapi.get_node_with_token(
+                api.request.context, node.uuid, topic=topic)
+        else:
+            found_node = node
+        return LookupResult.convert_with_links(found_node)
 
 
 class HeartbeatController(rest.RestController):
     """Controller handling heartbeats from deploy ramdisk."""
 
     @expose.expose(None, types.uuid_or_name, str,
-                   str, status_code=http_client.ACCEPTED)
-    def post(self, node_ident, callback_url, agent_version=None):
+                   str, str, status_code=http_client.ACCEPTED)
+    def post(self, node_ident, callback_url, agent_version=None,
+             agent_token=None):
         """Process a heartbeat from the deploy ramdisk.
 
         :param node_ident: the UUID or logical name of a node.
@@ -197,6 +211,14 @@ class HeartbeatController(rest.RestController):
                 raise exception.Invalid(
                     _('Detected change in ramdisk provided '
                       '"callback_url"'))
+        # NOTE(TheJulia): If tokens are required, lets go ahead and fail the
+        # heartbeat very early on.
+        token_required = CONF.require_agent_token
+        if token_required and agent_token is None:
+            LOG.error('Agent heartbeat received for node %(node)s '
+                      'without an agent token.', {'node': node_ident})
+            raise exception.InvalidParameterValue(
+                _('Agent token is required for heartbeat processing.'))
 
         try:
             topic = api.request.rpcapi.get_topic_for(rpc_node)
@@ -206,4 +228,4 @@ class HeartbeatController(rest.RestController):
 
         api.request.rpcapi.heartbeat(
             api.request.context, rpc_node.uuid, callback_url,
-            agent_version, topic=topic)
+            agent_version, agent_token, topic=topic)

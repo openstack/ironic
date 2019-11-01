@@ -171,6 +171,8 @@ class Node(base.IronicObject, object_base.VersionedObjectDictCompat):
                 d.get('driver_info', {}), "******")
             d['instance_info'] = strutils.mask_dict_password(
                 d.get('instance_info', {}), "******")
+            d['driver_internal_info'] = strutils.mask_dict_password(
+                d.get('driver_internal_info', {}), "******")
         return d
 
     def _validate_property_values(self, properties):

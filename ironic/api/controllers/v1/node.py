@@ -1245,6 +1245,9 @@ class Node(base.APIBase):
             if self.instance_info.get('image_url'):
                 self.instance_info['image_url'] = "******"
 
+        if self.driver_internal_info.get('agent_secret_token'):
+            self.driver_internal_info['agent_secret_token'] = "******"
+
         update_state_in_older_versions(self)
         hide_fields_in_newer_versions(self)
 

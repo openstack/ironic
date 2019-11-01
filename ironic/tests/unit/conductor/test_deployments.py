@@ -358,7 +358,8 @@ class DoNodeDeployTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
             expected_calls = [
                 mock.call(node.uuid,
                           {'version': mock.ANY,
-                           'instance_info': expected_instance_info}),
+                           'instance_info': expected_instance_info,
+                           'driver_internal_info': mock.ANY}),
                 mock.call(node.uuid,
                           {'version': mock.ANY,
                            'last_error': mock.ANY}),

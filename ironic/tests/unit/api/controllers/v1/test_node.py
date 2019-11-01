@@ -605,6 +605,15 @@ class TestListNodes(test_api_base.BaseApiTest):
                                  headers={api_base.Version.string: '1.61'})
         self.assertIn('retired', response)
 
+    def test_get_one_with_no_agent_secret(self):
+        node = obj_utils.create_test_node(
+            self.context,
+            driver_internal_info={'agent_secret_token': 'abcdefg'})
+        response = self.get_json('/nodes/%s' % (node.uuid),
+                                 headers={api_base.Version.string: '1.52'})
+        token_value = response['driver_internal_info']['agent_secret_token']
+        self.assertEqual('******', token_value)
+
     def test_detail(self):
         node = obj_utils.create_test_node(self.context,
                                           chassis_id=self.chassis.id)

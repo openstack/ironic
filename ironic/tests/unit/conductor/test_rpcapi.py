@@ -486,7 +486,16 @@ class RPCAPITestCase(db_base.DbTestCase):
                           node_id='fake-node',
                           callback_url='http://ramdisk.url:port',
                           agent_version=None,
-                          version='1.42')
+                          version='1.49')
+
+    def test_heartbeat_agent_token(self):
+        self._test_rpcapi('heartbeat',
+                          'call',
+                          node_id='fake-node',
+                          callback_url='http://ramdisk.url:port',
+                          agent_version=None,
+                          agent_token='xyz1',
+                          version='1.49')
 
     def test_destroy_volume_connector(self):
         fake_volume_connector = db_utils.get_test_volume_connector()
@@ -553,6 +562,12 @@ class RPCAPITestCase(db_base.DbTestCase):
         self._test_rpcapi('do_node_unrescue',
                           'call',
                           version='1.43',
+                          node_id=self.fake_node['uuid'])
+
+    def test_get_node_with_token(self):
+        self._test_rpcapi('get_node_with_token',
+                          'call',
+                          version='1.49',
                           node_id=self.fake_node['uuid'])
 
     def _test_can_send_rescue(self, can_send):

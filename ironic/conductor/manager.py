@@ -90,7 +90,7 @@ class ConductorManager(base_manager.BaseConductorManager):
     # NOTE(rloo): This must be in sync with rpcapi.ConductorAPI's.
     # NOTE(pas-ha): This also must be in sync with
     #               ironic.common.release_mappings.RELEASE_MAPPING['master']
-    RPC_API_VERSION = '1.48'
+    RPC_API_VERSION = '1.49'
 
     target = messaging.Target(version=RPC_API_VERSION)
 
@@ -1008,6 +1008,8 @@ class ConductorManager(base_manager.BaseConductorManager):
             node.instance_info = {}
             node.instance_uuid = None
             driver_internal_info = node.driver_internal_info
+            driver_internal_info.pop('agent_secret_token', None)
+            driver_internal_info.pop('agent_secret_token_pregenerated', None)
             driver_internal_info.pop('instance', None)
             driver_internal_info.pop('clean_steps', None)
             driver_internal_info.pop('root_uuid_or_disk_id', None)
@@ -2924,7 +2926,8 @@ class ConductorManager(base_manager.BaseConductorManager):
 
     @METRICS.timer('ConductorManager.heartbeat')
     @messaging.expected_exceptions(exception.NoFreeConductorWorker)
-    def heartbeat(self, context, node_id, callback_url, agent_version=None):
+    def heartbeat(self, context, node_id, callback_url, agent_version=None,
+                  agent_token=None):
         """Process a heartbeat from the ramdisk.
 
         :param context: request context.
@@ -2945,10 +2948,43 @@ class ConductorManager(base_manager.BaseConductorManager):
         if agent_version is None:
             agent_version = '3.0.0'
 
+        token_required = CONF.require_agent_token
+
         # NOTE(dtantsur): we acquire a shared lock to begin with, drivers are
         # free to promote it to an exclusive one.
         with task_manager.acquire(context, node_id, shared=True,
                                   purpose='heartbeat') as task:
+
+            # NOTE(TheJulia): The "token" line of defense.
+            # either tokens are required and they are present,
+            # or a token is present in general and needs to be
+            # validated.
+            if token_required or utils.is_agent_token_present(task.node):
+                if not utils.is_agent_token_valid(task.node, agent_token):
+                    LOG.error('Invalid agent_token receieved for node '
+                              '%(node)s', {'node': node_id})
+                    raise exception.InvalidParameterValue(
+                        'Invalid or missing agent token received.')
+            elif utils.is_agent_token_supported(agent_version):
+                LOG.error('Suspicious activity detected for node %(node)s '
+                          'when attempting to heartbeat. Heartbeat '
+                          'request has been rejected as the version of '
+                          'ironic-python-agent indicated in the heartbeat '
+                          'operation should support agent token '
+                          'functionality.',
+                          {'node': task.node.uuid})
+                raise exception.InvalidParameterValue(
+                    'Invalid or missing agent token received.')
+            else:
+                LOG.warning('Out of date agent detected for node '
+                            '%(node)s. Agent version %(version) '
+                            'reported. Support for this version is '
+                            'deprecated.',
+                            {'node': task.node.uuid,
+                             'version': agent_version})
+                # TODO(TheJulia): raise an exception as of the
+                # ?Victoria? development cycle.
+
             task.spawn_after(
                 self._spawn_worker, task.driver.deploy.heartbeat,
                 task, callback_url, agent_version)
@@ -3300,6 +3336,42 @@ class ConductorManager(base_manager.BaseConductorManager):
                 except Exception:
                     LOG.exception('Unexpected exception when taking over '
                                   'allocation %s', allocation.uuid)
+
+    @METRICS.timer('ConductorManager.get_node_with_token')
+    @messaging.expected_exceptions(exception.NodeLocked,
+                                   exception.Invalid)
+    def get_node_with_token(self, context, node_id):
+        """Add secret agent token to node.
+
+        :param context: request context.
+        :param node_id: node ID or UUID.
+        :returns: Secret token set for the node.
+        :raises: NodeLocked, if node has an exclusive lock held on it
+        :raises: Invalid, if the node already has a token set.
+        """
+        LOG.debug("RPC get_node_with_token called for the node %(node_id)s",
+                  {'node_id': node_id})
+        with task_manager.acquire(context, node_id,
+                                  purpose='generate_token',
+                                  shared=True) as task:
+            node = task.node
+            if utils.is_agent_token_present(task.node):
+                LOG.warning('An agent token generation request is being '
+                            'refused as one is already present for '
+                            'node %(node)s',
+                            {'node': node_id})
+                # Allow lookup to work by returning a value, it is just an
+                # unusable value that can't be verified against.
+                # This is important if the agent lookup has occured with
+                # pre-generation of tokens with virtual media usage.
+                node.driver_internal_info['agent_secret_token'] = "******"
+                return node
+            task.upgrade_lock()
+            LOG.debug('Generating agent token for node %(node)s',
+                      {'node': task.node.uuid})
+            utils.add_secret_token(task.node)
+            task.node.save()
+            return task.node
 
 
 @METRICS.timer('get_vendor_passthru_metadata')

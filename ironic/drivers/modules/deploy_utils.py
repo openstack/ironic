@@ -1486,6 +1486,24 @@ def get_async_step_return_state(node):
     return states.CLEANWAIT if node.clean_step else states.DEPLOYWAIT
 
 
+def _check_agent_token_prior_to_agent_reboot(driver_internal_info):
+    """Removes the agent token if it was not pregenerated.
+
+    Removal of the agent token in cases where it is not pregenerated
+    is a vital action prior to rebooting the agent, as without doing
+    so the agent will be unable to establish communication with
+    the ironic API after the reboot. Effectively locking itself out
+    as in cases where the value is not pregenerated, it is not
+    already included in the payload and must be generated again
+    upon lookup.
+
+    :param driver_internal_info: The driver_interal_info dict object
+                                 from a Node object.
+    """
+    if not driver_internal_info.get('agent_secret_token_pregenerated', False):
+        driver_internal_info.pop('agent_secret_token', None)
+
+
 def set_async_step_flags(node, reboot=None, skip_current_step=None,
                          polling=None):
     """Sets appropriate reboot flags in driver_internal_info based on operation
@@ -1515,6 +1533,10 @@ def set_async_step_flags(node, reboot=None, skip_current_step=None,
     fields = cleaning if node.clean_step else deployment
     if reboot is not None:
         info[fields['reboot']] = reboot
+        if reboot:
+            # If rebooting, we must ensure that we check and remove
+            # an agent token if necessary.
+            _check_agent_token_prior_to_agent_reboot(info)
     if skip_current_step is not None:
         info[fields['skip']] = skip_current_step
     if polling is not None:

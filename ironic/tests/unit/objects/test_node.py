@@ -40,18 +40,24 @@ class TestNodeObject(db_base.DbTestCase, obj_utils.SchemasTestMixIn):
     def test_as_dict_insecure(self):
         self.node.driver_info['ipmi_password'] = 'fake'
         self.node.instance_info['configdrive'] = 'data'
+        self.node.driver_internal_info['agent_secret_token'] = 'abc'
         d = self.node.as_dict()
         self.assertEqual('fake', d['driver_info']['ipmi_password'])
         self.assertEqual('data', d['instance_info']['configdrive'])
+        self.assertEqual('abc',
+                         d['driver_internal_info']['agent_secret_token'])
         # Ensure the node can be serialised.
         jsonutils.dumps(d)
 
     def test_as_dict_secure(self):
         self.node.driver_info['ipmi_password'] = 'fake'
         self.node.instance_info['configdrive'] = 'data'
+        self.node.driver_internal_info['agent_secret_token'] = 'abc'
         d = self.node.as_dict(secure=True)
         self.assertEqual('******', d['driver_info']['ipmi_password'])
         self.assertEqual('******', d['instance_info']['configdrive'])
+        self.assertEqual('******',
+                         d['driver_internal_info']['agent_secret_token'])
         # Ensure the node can be serialised.
         jsonutils.dumps(d)
 

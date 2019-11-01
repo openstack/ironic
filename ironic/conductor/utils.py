@@ -14,6 +14,9 @@
 
 import contextlib
 import datetime
+from distutils.version import StrictVersion
+import random
+import string
 import time
 
 from openstack.baremetal import configdrive as os_configdrive
@@ -1005,3 +1008,94 @@ def get_node_next_clean_steps(task, skip_current_step=True):
 def get_node_next_deploy_steps(task, skip_current_step=True):
     return _get_node_next_steps(task, 'deploy',
                                 skip_current_step=skip_current_step)
+
+
+def add_secret_token(node):
+    """Adds a secret token to driver_internal_info for IPA verification."""
+    characters = string.ascii_letters + string.digits
+    token = ''.join(
+        random.SystemRandom().choice(characters) for i in range(128))
+    i_info = node.driver_internal_info
+    i_info['agent_secret_token'] = token
+    node.driver_internal_info = i_info
+
+
+def del_secret_token(node):
+    """Deletes the IPA agent secret token.
+
+    Removes the agent token secret from the driver_internal_info field
+    from the Node object.
+
+    :param node: Node object
+    """
+    i_info = node.driver_internal_info
+    i_info.pop('agent_secret_token', None)
+    node.driver_internal_info = i_info
+
+
+def is_agent_token_present(node):
+    """Determines if an agent token is present upon a node.
+
+    :param node: Node object
+    :returns: True if an agent_secret_token value is present in a node
+              driver_internal_info field.
+    """
+    # TODO(TheJulia): we should likely record the time when we add the token
+    # and then compare if it was in the last ?hour? to act as an additional
+    # guard rail, but if we do that we will want to check the last heartbeat
+    # because the heartbeat overrides the age of the token.
+    # We may want to do this elsewhere or nowhere, just a thought for the
+    # future.
+    return node.driver_internal_info.get(
+        'agent_secret_token', None) is not None
+
+
+def is_agent_token_valid(node, token):
+    """Validates if a supplied token is valid for the node.
+
+    :param node: Node object
+    :token: A token value to validate against the driver_internal_info field
+            agent_sercret_token.
+    :returns: True if the supplied token matches the token recorded in the
+              supplied node object.
+    """
+    if token is None:
+        # No token is never valid.
+        return False
+    known_token = node.driver_internal_info.get('agent_secret_token', None)
+    return known_token == token
+
+
+def is_agent_token_supported(agent_version):
+    # NOTE(TheJulia): This is hoped that 6.x supports
+    # agent token capabilities and realistically needs to be updated
+    # once that version of IPA is out there in some shape or form.
+    # This allows us to gracefully allow older agent's that were
+    # launched via pre-generated agent_tokens, to still work
+    # and could likely be removed at some point down the road.
+    version = str(agent_version).replace('.dev', 'b', 1)
+    return StrictVersion(version) > StrictVersion('6.1.0')
+
+
+def is_agent_token_pregenerated(node):
+    """Determines if the token was generated for out of band configuration.
+
+    Ironic supports the ability to provide configuration data to the agent
+    through the a virtual floppy or as part of the virtual media image
+    which is attached to the BMC.
+
+    This method helps us identify WHEN we did so as we don't need to remove
+    records of the token prior to rebooting the token. This is important as
+    tokens provided through out of band means presist in the virtual media
+    image, are loaded as part of the agent ramdisk, and do not require
+    regeneration of the token upon the initial lookup, ultimately making
+    the overall usage of virtual media and pregenerated tokens far more
+    secure.
+
+    :param node: Node Object
+    :returns: True if the token was pregenerated as indicated by the node's
+              driver_internal_info field.
+              False in all other cases.
+    """
+    return node.driver_internal_info.get(
+        'agent_secret_token_pregenerated', False)

@@ -1559,11 +1559,35 @@ class AgentDeployMixinTest(AgentDeployMixinBaseTest):
     def test__cleaning_reboot(self, mock_reboot, mock_prepare, mock_build_opt):
         with task_manager.acquire(self.context, self.node['uuid'],
                                   shared=False) as task:
+            i_info = task.node.driver_internal_info
+            i_info['agent_secret_token'] = 'magicvalue01'
+            task.node.driver_internal_info = i_info
             agent_base._cleaning_reboot(task)
             self.assertTrue(mock_build_opt.called)
             self.assertTrue(mock_prepare.called)
             mock_reboot.assert_called_once_with(task, states.REBOOT)
             self.assertTrue(task.node.driver_internal_info['cleaning_reboot'])
+            self.assertNotIn('agent_secret_token',
+                             task.node.driver_internal_info)
+
+    @mock.patch.object(deploy_utils, 'build_agent_options', autospec=True)
+    @mock.patch.object(pxe.PXEBoot, 'prepare_ramdisk', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(manager_utils, 'node_power_action', autospec=True)
+    def test__cleaning_reboot_pregenerated_token(
+            self, mock_reboot, mock_prepare, mock_build_opt):
+        with task_manager.acquire(self.context, self.node['uuid'],
+                                  shared=False) as task:
+            i_info = task.node.driver_internal_info
+            i_info['agent_secret_token'] = 'magicvalue01'
+            i_info['agent_secret_token_pregenerated'] = True
+            task.node.driver_internal_info = i_info
+            agent_base._cleaning_reboot(task)
+            self.assertTrue(mock_build_opt.called)
+            self.assertTrue(mock_prepare.called)
+            mock_reboot.assert_called_once_with(task, states.REBOOT)
+            self.assertIn('agent_secret_token',
+                          task.node.driver_internal_info)
 
     @mock.patch.object(deploy_utils, 'build_agent_options', autospec=True)
     @mock.patch.object(pxe.PXEBoot, 'prepare_ramdisk', spec_set=True,
