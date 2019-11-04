@@ -2205,7 +2205,7 @@ class DoNodeDeployTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         configdrive = 'foo'
         self._test__do_node_deploy_ok(configdrive=configdrive)
 
-    @mock.patch('openstack.baremetal.configdrive.build', autospec=True)
+    @mock.patch('openstack.baremetal.configdrive.build')
     def test__do_node_deploy_configdrive_as_dict(self, mock_cd):
         mock_cd.return_value = 'foo'
         configdrive = {'user_data': 'abcd'}
@@ -2213,9 +2213,10 @@ class DoNodeDeployTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
                                       expected_configdrive='foo')
         mock_cd.assert_called_once_with({'uuid': self.node.uuid},
                                         network_data=None,
-                                        user_data=b'abcd')
+                                        user_data=b'abcd',
+                                        vendor_data=None)
 
-    @mock.patch('openstack.baremetal.configdrive.build', autospec=True)
+    @mock.patch('openstack.baremetal.configdrive.build')
     def test__do_node_deploy_configdrive_as_dict_with_meta_data(self, mock_cd):
         mock_cd.return_value = 'foo'
         configdrive = {'meta_data': {'uuid': uuidutils.generate_uuid(),
@@ -2225,9 +2226,10 @@ class DoNodeDeployTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
                                       expected_configdrive='foo')
         mock_cd.assert_called_once_with(configdrive['meta_data'],
                                         network_data=None,
-                                        user_data=None)
+                                        user_data=None,
+                                        vendor_data=None)
 
-    @mock.patch('openstack.baremetal.configdrive.build', autospec=True)
+    @mock.patch('openstack.baremetal.configdrive.build')
     def test__do_node_deploy_configdrive_with_network_data(self, mock_cd):
         mock_cd.return_value = 'foo'
         configdrive = {'network_data': {'links': []}}
@@ -2235,9 +2237,10 @@ class DoNodeDeployTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
                                       expected_configdrive='foo')
         mock_cd.assert_called_once_with({'uuid': self.node.uuid},
                                         network_data={'links': []},
-                                        user_data=None)
+                                        user_data=None,
+                                        vendor_data=None)
 
-    @mock.patch('openstack.baremetal.configdrive.build', autospec=True)
+    @mock.patch('openstack.baremetal.configdrive.build')
     def test__do_node_deploy_configdrive_and_user_data_as_dict(self, mock_cd):
         mock_cd.return_value = 'foo'
         configdrive = {'user_data': {'user': 'data'}}
@@ -2245,7 +2248,19 @@ class DoNodeDeployTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
                                       expected_configdrive='foo')
         mock_cd.assert_called_once_with({'uuid': self.node.uuid},
                                         network_data=None,
-                                        user_data=b'{"user": "data"}')
+                                        user_data=b'{"user": "data"}',
+                                        vendor_data=None)
+
+    @mock.patch('openstack.baremetal.configdrive.build')
+    def test__do_node_deploy_configdrive_with_vendor_data(self, mock_cd):
+        mock_cd.return_value = 'foo'
+        configdrive = {'vendor_data': {'foo': 'bar'}}
+        self._test__do_node_deploy_ok(configdrive=configdrive,
+                                      expected_configdrive='foo')
+        mock_cd.assert_called_once_with({'uuid': self.node.uuid},
+                                        network_data=None,
+                                        user_data=None,
+                                        vendor_data={'foo': 'bar'})
 
     @mock.patch.object(swift, 'SwiftAPI')
     @mock.patch('ironic.drivers.modules.fake.FakeDeploy.prepare')

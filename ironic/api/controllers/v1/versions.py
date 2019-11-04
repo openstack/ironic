@@ -96,6 +96,7 @@ BASE_VERSION = 1
 # v1.56: Add support for building configdrives.
 # v1.57: Add support for updating an exisiting allocation.
 # v1.58: Add support for backfilling allocations.
+# v1.59: Add support vendor data in configdrives.
 
 MINOR_0_JUNO = 0
 MINOR_1_INITIAL_VERSION = 1
@@ -156,6 +157,7 @@ MINOR_55_DEPLOY_TEMPLATES = 55
 MINOR_56_BUILD_CONFIGDRIVE = 56
 MINOR_57_ALLOCATION_UPDATE = 57
 MINOR_58_ALLOCATION_BACKFILL = 58
+MINOR_59_CONFIGDRIVE_VENDOR_DATA = 59
 
 # When adding another version, update:
 # - MINOR_MAX_VERSION
@@ -163,7 +165,7 @@ MINOR_58_ALLOCATION_BACKFILL = 58
 #   explanation of what changed in the new version
 # - common/release_mappings.py, RELEASE_MAPPING['master']['api']
 
-MINOR_MAX_VERSION = MINOR_58_ALLOCATION_BACKFILL
+MINOR_MAX_VERSION = MINOR_59_CONFIGDRIVE_VENDOR_DATA
 
 # String representations of the minor and maximum versions
 _MIN_VERSION_STRING = '{}.{}'.format(BASE_VERSION, MINOR_1_INITIAL_VERSION)

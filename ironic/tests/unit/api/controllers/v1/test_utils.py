@@ -479,6 +479,12 @@ class TestCheckAllowFields(base.TestCase):
         mock_request.version.minor = 34
         self.assertFalse(utils.allow_node_rebuild_with_configdrive())
 
+    def test_allow_configdrive_vendor_data(self, mock_request):
+        mock_request.version.minor = 59
+        self.assertTrue(utils.allow_configdrive_vendor_data())
+        mock_request.version.minor = 58
+        self.assertFalse(utils.allow_configdrive_vendor_data())
+
     def test_check_allow_configdrive_fails(self, mock_request):
         mock_request.version.minor = 35
         self.assertRaises(wsme.exc.ClientSideError,
@@ -500,16 +506,27 @@ class TestCheckAllowFields(base.TestCase):
         utils.check_allow_configdrive(states.ACTIVE, "abcd")
 
     def test_check_allow_configdrive_as_dict(self, mock_request):
-        mock_request.version.minor = 56
+        mock_request.version.minor = 59
         utils.check_allow_configdrive(states.ACTIVE, {'meta_data': {}})
         utils.check_allow_configdrive(states.ACTIVE, {'meta_data': {},
                                                       'network_data': {},
-                                                      'user_data': {}})
+                                                      'user_data': {},
+                                                      'vendor_data': {}})
         utils.check_allow_configdrive(states.ACTIVE, {'user_data': 'foo'})
         utils.check_allow_configdrive(states.ACTIVE, {'user_data': ['foo']})
 
+    def test_check_allow_configdrive_vendor_data_failed(self, mock_request):
+        mock_request.version.minor = 58
+        self.assertRaises(wsme.exc.ClientSideError,
+                          utils.check_allow_configdrive,
+                          states.ACTIVE,
+                          {'meta_data': {},
+                           'network_data': {},
+                           'user_data': {},
+                           'vendor_data': {}})
+
     def test_check_allow_configdrive_as_dict_invalid(self, mock_request):
-        mock_request.version.minor = 56
+        mock_request.version.minor = 59
         self.assertRaises(wsme.exc.ClientSideError,
                           utils.check_allow_configdrive, states.REBUILD,
                           {'foo': 'bar'})

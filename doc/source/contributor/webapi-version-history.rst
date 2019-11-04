@@ -2,6 +2,12 @@
 REST API Version History
 ========================
 
+1.59 (Ussuri, master)
+
+Added the ability to specify a ``vendor_data`` dictionary field in the
+``configdrive`` parameter submitted with the deployment of a node. The value
+is a dictionary which is served as ``vendor_data2.json`` in the config drive.
+
 1.58 (Train, 12.2.0)
 --------------------
 

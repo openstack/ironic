@@ -831,7 +831,7 @@ def build_configdrive(node, configdrive):
 
     :param node: an Ironic node object.
     :param configdrive: A configdrive as a dict with keys ``meta_data``,
-        ``network_data`` and ``user_data`` (all optional).
+        ``network_data``, ``user_data`` and ``vendor_data`` (all optional).
     :returns: A gzipped and base64 encoded configdrive as a string.
     """
     meta_data = configdrive.setdefault('meta_data', {})
@@ -847,7 +847,8 @@ def build_configdrive(node, configdrive):
 
     LOG.debug('Building a configdrive for node %s', node.uuid)
     return os_configdrive.build(meta_data, user_data=user_data,
-                                network_data=configdrive.get('network_data'))
+                                network_data=configdrive.get('network_data'),
+                                vendor_data=configdrive.get('vendor_data'))
 
 
 def fast_track_able(task):
