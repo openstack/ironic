@@ -160,6 +160,9 @@ class iPXEBoot(pxe_base.PXEBaseMixin, base.BootInterface):
 
         pxe_options = pxe_utils.build_pxe_config_options(
             task, pxe_info, ipxe_enabled=True, ramdisk_params=ramdisk_params)
+        # TODO(dtantsur): backwards compability hack, remove in the V release
+        if ramdisk_params.get("ipa-api-url"):
+            pxe_options["ipa-api-url"] = ramdisk_params["ipa-api-url"]
 
         pxe_config_template = deploy_utils.get_pxe_config_template(node)
 
