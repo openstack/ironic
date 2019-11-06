@@ -15,6 +15,7 @@ docker.io
 ipmitool
 iptables
 ipxe
+isolinux
 gnupg
 libguestfs0
 libguestfs-tools
