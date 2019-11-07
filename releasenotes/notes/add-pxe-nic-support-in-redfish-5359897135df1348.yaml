@@ -1,0 +1,7 @@
+---
+features:
+  - |
+    Adds support for the discovery of PXE Enabled NICs using the
+    ``idrac-redfish`` inspect interface with the ``idrac`` hardware
+    type. With this feature, a port's ``pxe_enabled`` status will
+    be recorded on the bare metal port.
