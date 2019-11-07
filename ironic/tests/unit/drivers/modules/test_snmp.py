@@ -1062,7 +1062,8 @@ class SNMPDeviceDriverTestCase(db_base.DbTestCase):
         calls = [mock.call(driver._snmp_oid())] * 2
         mock_client.get.assert_has_calls(calls)
         self.assertEqual(states.POWER_ON, pstate)
-        mock_sleep.assert_called_once_with(5)
+        calls = [mock.call(5)]
+        mock_sleep.assert_has_calls(calls)
 
     def test_power_reset_on_snmp_get_failure(self, mock_get_client):
         # Ensure SNMP failure exceptions raised during a reset power on get
