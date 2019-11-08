@@ -15,12 +15,14 @@ Modules required to work with ironic_inspector:
     https://pypi.org/project/ironic-inspector
 """
 
+import ipaddress
 import shlex
 
 import eventlet
 from futurist import periodics
 import openstack
 from oslo_log import log as logging
+from six.moves.urllib import parse as urlparse
 
 from ironic.common import exception
 from ironic.common.i18n import _
@@ -72,12 +74,29 @@ def _get_callback_endpoint(client):
     root = CONF.inspector.callback_endpoint_override or client.get_endpoint()
     if root == 'mdns':
         return root
-    root = root.rstrip('/')
+
+    parts = urlparse.urlsplit(root)
+    is_loopback = False
+    try:
+        # ip_address requires a unicode string on Python 2
+        is_loopback = ipaddress.ip_address(parts.hostname).is_loopback
+    except ValueError:  # host name
+        is_loopback = (parts.hostname == 'localhost')
+
+    if is_loopback:
+        raise exception.InvalidParameterValue(
+            _('Loopback address %s cannot be used as an introspection '
+              'callback URL') % parts.hostname)
+
     # NOTE(dtantsur): the IPA side is quite picky about the exact format.
-    if root.endswith('/v1'):
-        return '%s/continue' % root
+    if parts.path.endswith('/v1'):
+        add = '/continue'
     else:
-        return '%s/v1/continue' % root
+        add = '/v1/continue'
+
+    return urlparse.urlunsplit((parts.scheme, parts.netloc,
+                                parts.path.rstrip('/') + add,
+                                parts.query, parts.fragment))
 
 
 def _tear_down_managed_boot(task):
