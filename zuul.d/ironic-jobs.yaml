@@ -164,6 +164,15 @@
         s-proxy: True
 
 - job:
+    name: ironic-tempest-partition-uefi-redfish-vmedia
+    description: "Deploy ironic node over Redfish virtual media using UEFI boot mode"
+    parent: ironic-tempest-partition-bios-redfish-vmedia
+    vars:
+      devstack_localrc:
+        IRONIC_BOOT_MODE: uefi
+        IRONIC_VM_SPECS_RAM: 512
+
+- job:
     name: ironic-tempest-pxe_ipmitool-postgres
     description: ironic-tempest-pxe_ipmitool-postgres
     parent: ironic-base
