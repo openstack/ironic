@@ -36,6 +36,7 @@
             export DEVSTACK_GATE_TEMPEST_BAREMETAL_BUILD_TIMEOUT=1200
             export DEVSTACK_LOCAL_CONFIG+=$'\n'"IRONIC_BUILD_DEPLOY_RAMDISK=False"
             export DEVSTACK_GATE_TLSPROXY=0
+            export DEVSTACK_GATE_USE_PYTHON3=True
             export BUILD_TIMEOUT
 
             # Standardize VM size for each supported ramdisk
