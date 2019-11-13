@@ -2718,7 +2718,7 @@ function cleanup_baremetal_basic_ops {
     for vm_name in $(_ironic_bm_vm_names); do
         # Delete the Virtual BMCs
         if is_deployed_by_ipmi; then
-            vbmc --no-daemon list | grep -a $NAME && vbmc --no-daemon delete $NAME || /bin/true
+            vbmc --no-daemon list | grep -a $vm_name && vbmc --no-daemon delete $vm_name || /bin/true
         fi
 
         # pick up the $LIBVIRT_GROUP we have possibly joint
