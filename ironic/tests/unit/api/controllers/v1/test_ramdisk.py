@@ -255,3 +255,15 @@ class TestHeartbeat(test_api_base.BaseApiTest):
             headers={api_base.Version.string: '1.35'},
             expect_errors=True)
         self.assertEqual(http_client.BAD_REQUEST, response.status_int)
+
+    @mock.patch.object(rpcapi.ConductorAPI, 'heartbeat', autospec=True)
+    def test_heartbeat_rejects_different_callback_url(self, mock_heartbeat):
+        node = obj_utils.create_test_node(
+            self.context,
+            driver_internal_info={'agent_url': 'url'})
+        response = self.post_json(
+            '/heartbeat/%s' % node.uuid,
+            {'callback_url': 'url2'},
+            headers={api_base.Version.string: str(api_v1.max_version())},
+            expect_errors=True)
+        self.assertEqual(http_client.BAD_REQUEST, response.status_int)
