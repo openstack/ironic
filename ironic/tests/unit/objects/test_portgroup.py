@@ -218,33 +218,3 @@ class TestMigrateVifPortId(db_base.DbTestCase):
                 address='52:54:00:cf:2d:3%s' % i,
                 extra=extra, version='1.3')
             self.db_portgroups.append(portgroup)
-
-    @mock.patch.object(objects.Portgroup, '_convert_to_version', autospec=True)
-    def test_migrate_vif_port_id_all(self, mock_convert):
-        with mock.patch.object(self.dbapi, 'get_not_versions',
-                               autospec=True) as mock_get_not_versions:
-            mock_get_not_versions.return_value = self.db_portgroups
-            total, done = objects.portgroup.migrate_vif_port_id(
-                self.context, 0)
-            self.assertEqual(3, total)
-            self.assertEqual(3, done)
-            mock_get_not_versions.assert_called_once_with('Portgroup', ['1.4'])
-            calls = 3 * [
-                mock.call(mock.ANY, '1.4', remove_unavailable_fields=False),
-            ]
-            self.assertEqual(calls, mock_convert.call_args_list)
-
-    @mock.patch.object(objects.Portgroup, '_convert_to_version', autospec=True)
-    def test_migrate_vif_port_id_one(self, mock_convert):
-        with mock.patch.object(self.dbapi, 'get_not_versions',
-                               autospec=True) as mock_get_not_versions:
-            mock_get_not_versions.return_value = self.db_portgroups
-            total, done = objects.portgroup.migrate_vif_port_id(
-                self.context, 1)
-            self.assertEqual(3, total)
-            self.assertEqual(1, done)
-            mock_get_not_versions.assert_called_once_with('Portgroup', ['1.4'])
-            calls = [
-                mock.call(mock.ANY, '1.4', remove_unavailable_fields=False),
-            ]
-            self.assertEqual(calls, mock_convert.call_args_list)

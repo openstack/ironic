@@ -26,36 +26,6 @@ from ironic.objects import fields as object_fields
 from ironic.objects import notification
 
 
-def migrate_vif_port_id(context, max_count):
-    """Copy port's VIF info from extra to internal_info.
-
-    :param context: The context.
-    :param max_count: The maximum number of objects to migrate. Must be
-                      >= 0. If zero, all the objects will be migrated.
-    :returns: A 2-tuple -- the total number of objects that need to be
-              migrated (at the beginning of this call) and the number
-              of migrated objects.
-    """
-    # TODO(rloo): remove this method in Stein, when we remove from dbsync.py
-
-    # NOTE(rloo): if we introduce newer port versions in the same cycle,
-    # we could add those versions along with 1.8. This is only so we don't
-    # duplicate work; it isn't necessary.
-    db_ports = Port.dbapi.get_not_versions('Port', ['1.8', '1.9'])
-    total = len(db_ports)
-    max_count = max_count or total
-    done = 0
-    for db_port in db_ports:
-        # NOTE(rloo): this will indirectly invoke Port._convert_to_version()
-        #             which does all the real work
-        port = Port._from_db_object(context, Port(), db_port)
-        port.save()
-        done += 1
-        if done == max_count:
-            break
-    return total, done
-
-
 @base.IronicObjectRegistry.register
 class Port(base.IronicObject, object_base.VersionedObjectDictCompat):
     # Version 1.0: Initial version
