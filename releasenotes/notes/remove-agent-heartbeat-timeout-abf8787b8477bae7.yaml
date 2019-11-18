@@ -1,0 +1,6 @@
+---
+upgrade:
+  - |
+    The configuration option ``[agent]heartbeat_timeout`` was deprecated
+    before ocata release and now removed, please use
+    ``[api]ramdisk_heartbeat_timeout`` instead.
