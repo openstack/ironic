@@ -8892,7 +8892,7 @@ class DoNodeAdoptionTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
                 autospec=True)
     @mock.patch('ironic.conductor.manager.ConductorManager._spawn_worker',
                 autospec=True)
-    def test_heartbeat(self, mock_spawn, mock_heartbeat):
+    def test_heartbeat_without_version(self, mock_spawn, mock_heartbeat):
         """Test heartbeating."""
         node = obj_utils.create_test_node(
             self.context, driver='fake-hardware',
@@ -8916,7 +8916,7 @@ class DoNodeAdoptionTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
                 autospec=True)
     @mock.patch('ironic.conductor.manager.ConductorManager._spawn_worker',
                 autospec=True)
-    def test_heartbeat_agent_version(self, mock_spawn, mock_heartbeat):
+    def test_heartbeat_with_agent_version(self, mock_spawn, mock_heartbeat):
         """Test heartbeating."""
         node = obj_utils.create_test_node(
             self.context, driver='fake-hardware',
@@ -8936,58 +8936,6 @@ class DoNodeAdoptionTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
             self.context, node.uuid, 'http://callback', '1.4.1')
         mock_heartbeat.assert_called_with(mock.ANY, mock.ANY,
                                           'http://callback', '1.4.1')
-
-    # NOTE(rloo): We cannot use autospec=True for FakeDeploy.heartbeat
-    # since we are testing whether our code makes a call to the old
-    # .heartbeat method that doesn't support 'agent_version' parameter.
-    @mock.patch('ironic.drivers.modules.fake.FakeDeploy.heartbeat')
-    @mock.patch.object(manager, 'LOG', autospec=True)
-    @mock.patch('ironic.conductor.manager.ConductorManager._spawn_worker',
-                autospec=True)
-    def test_heartbeat_agent_version_deprecated(self, mock_spawn, log_mock,
-                                                mock_heartbeat):
-        """Test heartbeating."""
-        node = obj_utils.create_test_node(
-            self.context, driver='fake-hardware',
-            provision_state=states.DEPLOYING,
-            target_provision_state=states.ACTIVE)
-
-        self._start_service()
-
-        mock_spawn.reset_mock()
-
-        def fake_spawn(conductor_obj, func, *args, **kwargs):
-            func(*args, **kwargs)
-            return mock.MagicMock()
-        mock_spawn.side_effect = fake_spawn
-
-        mock_heartbeat.side_effect = [TypeError("Too many parameters"),
-                                      None, TypeError("Too many parameters"),
-                                      None]
-
-        # NOTE(sambetts) Test to make sure deploy driver that doesn't support
-        # version yet falls back to old behaviour and logs a warning.
-        self.service.heartbeat(
-            self.context, node.uuid, 'http://callback', '1.4.1')
-        calls = [
-            mock.call(mock.ANY, 'http://callback', '1.4.1'),
-            mock.call(mock.ANY, 'http://callback')
-        ]
-        mock_heartbeat.assert_has_calls(calls)
-        self.assertTrue(log_mock.warning.called)
-
-        # NOTE(sambetts) Test to make sure that the deprecation warning isn't
-        # thrown again.
-        log_mock.reset_mock()
-        mock_heartbeat.reset_mock()
-        self.service.heartbeat(
-            self.context, node.uuid, 'http://callback', '1.4.1')
-        calls = [
-            mock.call(mock.ANY, 'http://callback', '1.4.1'),
-            mock.call(mock.ANY, 'http://callback')
-        ]
-        mock_heartbeat.assert_has_calls(calls)
-        self.assertFalse(log_mock.warning.called)
 
 
 @mgr_utils.mock_record_keepalive

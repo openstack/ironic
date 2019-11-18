@@ -1,0 +1,5 @@
+---
+upgrade:
+  - |
+    The argument ``agent_version`` of the heartbeat interface is now mandatory
+    to all interfaces that inherit from HeartbeatMixin.

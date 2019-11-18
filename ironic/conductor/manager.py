@@ -87,11 +87,6 @@ METRICS = metrics_utils.get_metrics_logger(__name__)
 
 SYNC_EXCLUDED_STATES = (states.DEPLOYWAIT, states.CLEANWAIT, states.ENROLL)
 
-# NOTE(sambetts) This list is used to keep track of deprecation warnings that
-# have already been issued for deploy drivers that do not accept the
-# agent_version parameter and need updating.
-_SEEN_AGENT_VERSION_DEPRECATIONS = []
-
 # NOTE(rloo) This is used to keep track of deprecation warnings that have
 # already been issued for deploy drivers that do not use deploy steps.
 _SEEN_NO_DEPLOY_STEP_DEPRECATIONS = set()
@@ -3293,29 +3288,12 @@ class ConductorManager(base_manager.BaseConductorManager):
         if agent_version is None:
             agent_version = '3.0.0'
 
-        def heartbeat_with_deprecation(task, callback_url, agent_version):
-            global _SEEN_AGENT_VERSION_DEPRECATIONS
-            # FIXME(sambetts) Remove this try/except statement in Rocky making
-            # taking the agent_version in the deploy driver heartbeat function
-            # mandatory.
-            try:
-                task.driver.deploy.heartbeat(task, callback_url, agent_version)
-            except TypeError:
-                deploy_driver_name = task.driver.deploy.__class__.__name__
-                if deploy_driver_name not in _SEEN_AGENT_VERSION_DEPRECATIONS:
-                    LOG.warning('Deploy driver %s does not support '
-                                'agent_version as part of the heartbeat '
-                                'request, this will be required from Rocky '
-                                'onward.', deploy_driver_name)
-                    _SEEN_AGENT_VERSION_DEPRECATIONS.append(deploy_driver_name)
-                task.driver.deploy.heartbeat(task, callback_url)
-
         # NOTE(dtantsur): we acquire a shared lock to begin with, drivers are
         # free to promote it to an exclusive one.
         with task_manager.acquire(context, node_id, shared=True,
                                   purpose='heartbeat') as task:
             task.spawn_after(
-                self._spawn_worker, heartbeat_with_deprecation,
+                self._spawn_worker, task.driver.deploy.heartbeat,
                 task, callback_url, agent_version)
 
     @METRICS.timer('ConductorManager.vif_list')
