@@ -185,10 +185,10 @@ class BootDeviceController(rest.RestController):
         'supported': ['GET'],
     }
 
-    def _get_boot_device(self, node_ident, supported=False):
+    def _get_boot_device(self, rpc_node, supported=False):
         """Get the current boot device or a list of supported devices.
 
-        :param node_ident: the UUID or logical name of a node.
+        :param rpc_node: RPC Node object.
         :param supported: Boolean value. If true return a list of
                           supported boot devices, if false return the
                           current boot device. Default: False.
@@ -196,7 +196,6 @@ class BootDeviceController(rest.RestController):
                   boot devices.
 
         """
-        rpc_node = api_utils.get_rpc_node(node_ident)
         topic = api.request.rpcapi.get_topic_for(rpc_node)
         if supported:
             return api.request.rpcapi.get_supported_boot_devices(
@@ -221,10 +220,9 @@ class BootDeviceController(rest.RestController):
                            Default: False.
 
         """
-        cdict = api.request.context.to_policy_values()
-        policy.authorize('baremetal:node:set_boot_device', cdict, cdict)
+        rpc_node = api_utils.check_node_policy_and_retrieve(
+            'baremetal:node:set_boot_device', node_ident)
 
-        rpc_node = api_utils.get_rpc_node(node_ident)
         topic = api.request.rpcapi.get_topic_for(rpc_node)
         api.request.rpcapi.set_boot_device(api.request.context,
                                            rpc_node.uuid,
@@ -246,10 +244,10 @@ class BootDeviceController(rest.RestController):
                 future boots or not, None if it is unknown.
 
         """
-        cdict = api.request.context.to_policy_values()
-        policy.authorize('baremetal:node:get_boot_device', cdict, cdict)
+        rpc_node = api_utils.check_node_policy_and_retrieve(
+            'baremetal:node:get_boot_device', node_ident)
 
-        return self._get_boot_device(node_ident)
+        return self._get_boot_device(rpc_node)
 
     @METRICS.timer('BootDeviceController.supported')
     @expose.expose(wtypes.text, types.uuid_or_name)
@@ -261,10 +259,10 @@ class BootDeviceController(rest.RestController):
                   devices.
 
         """
-        cdict = api.request.context.to_policy_values()
-        policy.authorize('baremetal:node:get_boot_device', cdict, cdict)
+        rpc_node = api_utils.check_node_policy_and_retrieve(
+            'baremetal:node:get_boot_device', node_ident)
 
-        boot_devices = self._get_boot_device(node_ident, supported=True)
+        boot_devices = self._get_boot_device(rpc_node, supported=True)
         return {'supported_boot_devices': boot_devices}
 
 
@@ -293,10 +291,9 @@ class InjectNmiController(rest.RestController):
         if not api_utils.allow_inject_nmi():
             raise exception.NotFound()
 
-        cdict = api.request.context.to_policy_values()
-        policy.authorize('baremetal:node:inject_nmi', cdict, cdict)
+        rpc_node = api_utils.check_node_policy_and_retrieve(
+            'baremetal:node:inject_nmi', node_ident)
 
-        rpc_node = api_utils.get_rpc_node(node_ident)
         topic = api.request.rpcapi.get_topic_for(rpc_node)
         api.request.rpcapi.inject_nmi(api.request.context,
                                       rpc_node.uuid,
@@ -337,10 +334,9 @@ class NodeConsoleController(rest.RestController):
 
         :param node_ident: UUID or logical name of a node.
         """
-        cdict = api.request.context.to_policy_values()
-        policy.authorize('baremetal:node:get_console', cdict, cdict)
+        rpc_node = api_utils.check_node_policy_and_retrieve(
+            'baremetal:node:get_console', node_ident)
 
-        rpc_node = api_utils.get_rpc_node(node_ident)
         topic = api.request.rpcapi.get_topic_for(rpc_node)
         try:
             console = api.request.rpcapi.get_console_information(
@@ -362,10 +358,9 @@ class NodeConsoleController(rest.RestController):
         :param enabled: Boolean value; whether to enable or disable the
                 console.
         """
-        cdict = api.request.context.to_policy_values()
-        policy.authorize('baremetal:node:set_console_state', cdict, cdict)
+        rpc_node = api_utils.check_node_policy_and_retrieve(
+            'baremetal:node:set_console_state', node_ident)
 
-        rpc_node = api_utils.get_rpc_node(node_ident)
         topic = api.request.rpcapi.get_topic_for(rpc_node)
         api.request.rpcapi.set_console_mode(api.request.context,
                                             rpc_node.uuid, enabled, topic)
@@ -453,13 +448,12 @@ class NodeStatesController(rest.RestController):
 
         :param node_ident: the UUID or logical_name of a node.
         """
-        cdict = api.request.context.to_policy_values()
-        policy.authorize('baremetal:node:get_states', cdict, cdict)
+        rpc_node = api_utils.check_node_policy_and_retrieve(
+            'baremetal:node:get_states', node_ident)
 
         # NOTE(lucasagomes): All these state values come from the
         # DB. Ironic counts with a periodic task that verify the current
         # power states of the nodes and update the DB accordingly.
-        rpc_node = api_utils.get_rpc_node(node_ident)
         return NodeStates.convert(rpc_node)
 
     @METRICS.timer('NodeStatesController.raid')
@@ -477,12 +471,11 @@ class NodeStatesController(rest.RestController):
         :raises: NotAcceptable, if requested version of the API is less than
             1.12.
         """
-        cdict = api.request.context.to_policy_values()
-        policy.authorize('baremetal:node:set_raid_state', cdict, cdict)
+        rpc_node = api_utils.check_node_policy_and_retrieve(
+            'baremetal:node:set_raid_state', node_ident)
 
         if not api_utils.allow_raid_config():
             raise exception.NotAcceptable()
-        rpc_node = api_utils.get_rpc_node(node_ident)
         topic = api.request.rpcapi.get_topic_for(rpc_node)
         try:
             api.request.rpcapi.set_target_raid_config(
@@ -514,12 +507,11 @@ class NodeStatesController(rest.RestController):
         :raises: Invalid (HTTP 400) if timeout value is less than 1.
 
         """
-        cdict = api.request.context.to_policy_values()
-        policy.authorize('baremetal:node:set_power_state', cdict, cdict)
+        rpc_node = api_utils.check_node_policy_and_retrieve(
+            'baremetal:node:set_power_state', node_ident)
 
         # TODO(lucasagomes): Test if it's able to transition to the
         #                    target state from the current one
-        rpc_node = api_utils.get_rpc_node(node_ident)
         topic = api.request.rpcapi.get_topic_for(rpc_node)
 
         if ((target in [ir_states.SOFT_REBOOT, ir_states.SOFT_POWER_OFF]
@@ -653,11 +645,10 @@ class NodeStatesController(rest.RestController):
         :raises: NotAcceptable (HTTP 406) if the API version specified does
                  not allow the requested state transition.
         """
-        cdict = api.request.context.to_policy_values()
-        policy.authorize('baremetal:node:set_provision_state', cdict, cdict)
+        rpc_node = api_utils.check_node_policy_and_retrieve(
+            'baremetal:node:set_provision_state', node_ident)
 
         api_utils.check_allow_management_verbs(target)
-        rpc_node = api_utils.get_rpc_node(node_ident)
 
         if (target in (ir_states.ACTIVE, ir_states.REBUILD)
                 and rpc_node.maintenance):
@@ -777,9 +768,8 @@ class NodeTraitsController(rest.RestController):
     @expose.expose(Traits)
     def get_all(self):
         """List node traits."""
-        cdict = api.request.context.to_policy_values()
-        policy.authorize('baremetal:node:traits:list', cdict, cdict)
-        node = api_utils.get_rpc_node(self.node_ident)
+        node = api_utils.check_node_policy_and_retrieve(
+            'baremetal:node:traits:list', self.node_ident)
         traits = objects.TraitList.get_by_node_id(api.request.context,
                                                   node.id)
         return Traits(traits=traits.get_trait_names())
@@ -797,9 +787,8 @@ class NodeTraitsController(rest.RestController):
             traits with this list.
         """
         context = api.request.context
-        cdict = context.to_policy_values()
-        policy.authorize('baremetal:node:traits:set', cdict, cdict)
-        node = api_utils.get_rpc_node(self.node_ident)
+        node = api_utils.check_node_policy_and_retrieve(
+            'baremetal:node:traits:set', self.node_ident)
 
         if (trait and traits is not None) or not (trait or traits is not None):
             msg = _("A single node trait may be added via PUT "
@@ -854,9 +843,8 @@ class NodeTraitsController(rest.RestController):
                       None, all traits are removed.
         """
         context = api.request.context
-        cdict = context.to_policy_values()
-        policy.authorize('baremetal:node:traits:delete', cdict, cdict)
-        node = api_utils.get_rpc_node(self.node_ident)
+        node = api_utils.check_node_policy_and_retrieve(
+            'baremetal:node:traits:delete', self.node_ident)
 
         if trait:
             traits = [trait]
@@ -1385,12 +1373,10 @@ class NodeVendorPassthruController(rest.RestController):
                   entries.
         :raises: NodeNotFound if the node is not found.
         """
-        cdict = api.request.context.to_policy_values()
-        policy.authorize('baremetal:node:vendor_passthru', cdict, cdict)
+        rpc_node = api_utils.check_node_policy_and_retrieve(
+            'baremetal:node:vendor_passthru', node_ident)
 
         # Raise an exception if node is not found
-        rpc_node = api_utils.get_rpc_node(node_ident)
-
         if rpc_node.driver not in _VENDOR_METHODS:
             topic = api.request.rpcapi.get_topic_for(rpc_node)
             ret = api.request.rpcapi.get_node_vendor_passthru_methods(
@@ -1409,11 +1395,10 @@ class NodeVendorPassthruController(rest.RestController):
         :param method: name of the method in vendor driver.
         :param data: body of data to supply to the specified method.
         """
-        cdict = api.request.context.to_policy_values()
-        policy.authorize('baremetal:node:vendor_passthru', cdict, cdict)
+        rpc_node = api_utils.check_node_policy_and_retrieve(
+            'baremetal:node:vendor_passthru', node_ident)
 
         # Raise an exception if node is not found
-        rpc_node = api_utils.get_rpc_node(node_ident)
         topic = api.request.rpcapi.get_topic_for(rpc_node)
         return api_utils.vendor_passthru(rpc_node.uuid, method, topic,
                                          data=data)
@@ -1421,9 +1406,8 @@ class NodeVendorPassthruController(rest.RestController):
 
 class NodeMaintenanceController(rest.RestController):
 
-    def _set_maintenance(self, node_ident, maintenance_mode, reason=None):
+    def _set_maintenance(self, rpc_node, maintenance_mode, reason=None):
         context = api.request.context
-        rpc_node = api_utils.get_rpc_node(node_ident)
         rpc_node.maintenance = maintenance_mode
         rpc_node.maintenance_reason = reason
         notify.emit_start_notification(context, rpc_node, 'maintenance_set')
@@ -1449,10 +1433,10 @@ class NodeMaintenanceController(rest.RestController):
         :param reason: Optional, the reason why it's in maintenance.
 
         """
-        cdict = api.request.context.to_policy_values()
-        policy.authorize('baremetal:node:set_maintenance', cdict, cdict)
+        rpc_node = api_utils.check_node_policy_and_retrieve(
+            'baremetal:node:set_maintenance', node_ident)
 
-        self._set_maintenance(node_ident, True, reason=reason)
+        self._set_maintenance(rpc_node, True, reason=reason)
 
     @METRICS.timer('NodeMaintenanceController.delete')
     @expose.expose(None, types.uuid_or_name, status_code=http_client.ACCEPTED)
@@ -1462,10 +1446,10 @@ class NodeMaintenanceController(rest.RestController):
         :param node_ident: the UUID or logical name of a node.
 
         """
-        cdict = api.request.context.to_policy_values()
-        policy.authorize('baremetal:node:clear_maintenance', cdict, cdict)
+        rpc_node = api_utils.check_node_policy_and_retrieve(
+            'baremetal:node:clear_maintenance', node_ident)
 
-        self._set_maintenance(node_ident, False)
+        self._set_maintenance(rpc_node, False)
 
 
 # NOTE(vsaienko) We don't support pagination with VIFs, so we don't use
@@ -1488,8 +1472,9 @@ class NodeVIFController(rest.RestController):
     def __init__(self, node_ident):
         self.node_ident = node_ident
 
-    def _get_node_and_topic(self):
-        rpc_node = api_utils.get_rpc_node(self.node_ident)
+    def _get_node_and_topic(self, policy_name):
+        rpc_node = api_utils.check_node_policy_and_retrieve(
+            policy_name, self.node_ident)
         try:
             return rpc_node, api.request.rpcapi.get_topic_for(rpc_node)
         except exception.NoValidHost as e:
@@ -1500,9 +1485,7 @@ class NodeVIFController(rest.RestController):
     @expose.expose(VifCollection)
     def get_all(self):
         """Get a list of attached VIFs"""
-        cdict = api.request.context.to_policy_values()
-        policy.authorize('baremetal:node:vif:list', cdict, cdict)
-        rpc_node, topic = self._get_node_and_topic()
+        rpc_node, topic = self._get_node_and_topic('baremetal:node:vif:list')
         vifs = api.request.rpcapi.vif_list(api.request.context,
                                            rpc_node.uuid, topic=topic)
         return VifCollection.collection_from_list(vifs)
@@ -1517,9 +1500,7 @@ class NodeVIFController(rest.RestController):
             It must have an 'id' key, whose value is a unique identifier
             for that VIF.
         """
-        cdict = api.request.context.to_policy_values()
-        policy.authorize('baremetal:node:vif:attach', cdict, cdict)
-        rpc_node, topic = self._get_node_and_topic()
+        rpc_node, topic = self._get_node_and_topic('baremetal:node:vif:attach')
         api.request.rpcapi.vif_attach(api.request.context, rpc_node.uuid,
                                       vif_info=vif, topic=topic)
 
@@ -1531,9 +1512,7 @@ class NodeVIFController(rest.RestController):
 
         :param vif_id: The ID of a VIF to detach
         """
-        cdict = api.request.context.to_policy_values()
-        policy.authorize('baremetal:node:vif:detach', cdict, cdict)
-        rpc_node, topic = self._get_node_and_topic()
+        rpc_node, topic = self._get_node_and_topic('baremetal:node:vif:detach')
         api.request.rpcapi.vif_detach(api.request.context, rpc_node.uuid,
                                       vif_id=vif_id, topic=topic)
 
@@ -1842,8 +1821,7 @@ class NodesController(rest.RestController):
                                      with description field contains matching
                                      value.
         """
-        cdict = api.request.context.to_policy_values()
-        policy.authorize('baremetal:node:get', cdict, cdict)
+        owner = api_utils.check_node_list_policy(owner)
 
         api_utils.check_allow_specify_fields(fields)
         api_utils.check_allowed_fields(fields)
@@ -1917,8 +1895,7 @@ class NodesController(rest.RestController):
                                      with description field contains matching
                                      value.
         """
-        cdict = api.request.context.to_policy_values()
-        policy.authorize('baremetal:node:get', cdict, cdict)
+        owner = api_utils.check_node_list_policy(owner)
 
         api_utils.check_for_invalid_state_and_allow_filter(provision_state)
         api_utils.check_allow_specify_driver(driver)
@@ -1960,9 +1937,6 @@ class NodesController(rest.RestController):
         :param node: UUID or name of a node.
         :param node_uuid: UUID of a node.
         """
-        cdict = api.request.context.to_policy_values()
-        policy.authorize('baremetal:node:validate', cdict, cdict)
-
         if node is not None:
             # We're invoking this interface using positional notation, or
             # explicitly using 'node'.  Try and determine which one.
@@ -1970,7 +1944,8 @@ class NodesController(rest.RestController):
                 and not uuidutils.is_uuid_like(node)):
                 raise exception.NotAcceptable()
 
-        rpc_node = api_utils.get_rpc_node(node_uuid or node)
+        rpc_node = api_utils.check_node_policy_and_retrieve(
+            'baremetal:node:validate', node_uuid or node)
 
         topic = api.request.rpcapi.get_topic_for(rpc_node)
         return api.request.rpcapi.validate_driver_interfaces(
@@ -1985,16 +1960,15 @@ class NodesController(rest.RestController):
         :param fields: Optional, a list with a specified set of fields
             of the resource to be returned.
         """
-        cdict = api.request.context.to_policy_values()
-        policy.authorize('baremetal:node:get', cdict, cdict)
-
         if self.from_chassis:
             raise exception.OperationNotPermitted()
+
+        rpc_node = api_utils.check_node_policy_and_retrieve(
+            'baremetal:node:get', node_ident, with_suffix=True)
 
         api_utils.check_allow_specify_fields(fields)
         api_utils.check_allowed_fields(fields)
 
-        rpc_node = api_utils.get_rpc_node_with_suffix(node_ident)
         return Node.convert_with_links(rpc_node, fields=fields)
 
     @METRICS.timer('NodesController.post')
@@ -2004,12 +1978,12 @@ class NodesController(rest.RestController):
 
         :param node: a node within the request body.
         """
+        if self.from_chassis:
+            raise exception.OperationNotPermitted()
+
         context = api.request.context
         cdict = context.to_policy_values()
         policy.authorize('baremetal:node:create', cdict, cdict)
-
-        if self.from_chassis:
-            raise exception.OperationNotPermitted()
 
         if node.conductor is not wtypes.Unset:
             msg = _("Cannot specify conductor on node creation.")
@@ -2112,17 +2086,15 @@ class NodesController(rest.RestController):
             defaults. Only valid when updating the driver field.
         :param patch: a json PATCH document to apply to this node.
         """
-        context = api.request.context
-        cdict = context.to_policy_values()
-        policy.authorize('baremetal:node:update', cdict, cdict)
-
         if (reset_interfaces is not None and not
                 api_utils.allow_reset_interfaces()):
             raise exception.NotAcceptable()
 
         self._validate_patch(patch, reset_interfaces)
 
-        rpc_node = api_utils.get_rpc_node_with_suffix(node_ident)
+        context = api.request.context
+        rpc_node = api_utils.check_node_policy_and_retrieve(
+            'baremetal:node:update', node_ident, with_suffix=True)
 
         remove_inst_uuid_patch = [{'op': 'remove', 'path': '/instance_uuid'}]
         if rpc_node.maintenance and patch == remove_inst_uuid_patch:
@@ -2196,14 +2168,13 @@ class NodesController(rest.RestController):
 
         :param node_ident: UUID or logical name of a node.
         """
-        context = api.request.context
-        cdict = context.to_policy_values()
-        policy.authorize('baremetal:node:delete', cdict, cdict)
-
         if self.from_chassis:
             raise exception.OperationNotPermitted()
 
-        rpc_node = api_utils.get_rpc_node_with_suffix(node_ident)
+        context = api.request.context
+        rpc_node = api_utils.check_node_policy_and_retrieve(
+            'baremetal:node:delete', node_ident, with_suffix=True)
+
         chassis_uuid = _get_chassis_uuid(rpc_node)
         notify.emit_start_notification(context, rpc_node, 'delete',
                                        chassis_uuid=chassis_uuid)

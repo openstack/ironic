@@ -63,6 +63,9 @@ default_policies = [
     policy.RuleDefault('is_admin',
                        'rule:admin_api or (rule:is_member and role:baremetal_admin)',  # noqa
                        description='Full read/write API access'),
+    policy.RuleDefault('is_node_owner',
+                       'project_id:%(node.owner)s',
+                       description='Owner of node'),
 ]
 
 # NOTE(deva): to follow policy-in-code spec, we define defaults for
@@ -79,10 +82,20 @@ node_policies = [
     policy.DocumentedRuleDefault(
         'baremetal:node:get',
         'rule:is_admin or rule:is_observer',
-        'Retrieve Node records',
+        'Retrieve a single Node record',
+        [{'path': '/nodes/{node_ident}', 'method': 'GET'}]),
+    policy.DocumentedRuleDefault(
+        'baremetal:node:list',
+        'rule:baremetal:node:get',
+        'Retrieve multiple Node records, filtered by owner',
         [{'path': '/nodes', 'method': 'GET'},
-         {'path': '/nodes/detail', 'method': 'GET'},
-         {'path': '/nodes/{node_ident}', 'method': 'GET'}]),
+         {'path': '/nodes/detail', 'method': 'GET'}]),
+    policy.DocumentedRuleDefault(
+        'baremetal:node:list_all',
+        'rule:baremetal:node:get',
+        'Retrieve multiple Node records',
+        [{'path': '/nodes', 'method': 'GET'},
+         {'path': '/nodes/detail', 'method': 'GET'}]),
     policy.DocumentedRuleDefault(
         'baremetal:node:update',
         'rule:is_admin',

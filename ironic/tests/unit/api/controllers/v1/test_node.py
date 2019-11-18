@@ -36,6 +36,7 @@ from ironic.api.controllers.v1 import versions
 from ironic.common import boot_devices
 from ironic.common import driver_factory
 from ironic.common import exception
+from ironic.common import policy
 from ironic.common import states
 from ironic.conductor import rpcapi
 from ironic import objects
@@ -684,6 +685,75 @@ class TestListNodes(test_api_base.BaseApiTest):
                                  expect_errors=True)
         self.assertEqual(http_client.NOT_FOUND, response.status_int)
 
+    @mock.patch.object(policy, 'authorize', spec=True)
+    def test_detail_forbidden(self, mock_authorize):
+        def mock_authorize_function(rule, target, creds):
+            raise exception.HTTPForbidden(resource='fake')
+        mock_authorize.side_effect = mock_authorize_function
+
+        response = self.get_json('/nodes/detail', expect_errors=True,
+                                 headers={
+                                     api_base.Version.string: '1.50',
+                                     'X-Project-Id': '12345'
+                                 })
+        self.assertEqual(http_client.FORBIDDEN, response.status_int)
+
+    @mock.patch.object(policy, 'authorize', spec=True)
+    def test_detail_list_all_forbidden_no_project(self, mock_authorize):
+        def mock_authorize_function(rule, target, creds):
+            if rule == 'baremetal:node:list_all':
+                raise exception.HTTPForbidden(resource='fake')
+            return True
+        mock_authorize.side_effect = mock_authorize_function
+
+        response = self.get_json('/nodes/detail', expect_errors=True,
+                                 headers={
+                                     api_base.Version.string: '1.49',
+                                 })
+        self.assertEqual(http_client.FORBIDDEN, response.status_int)
+
+    @mock.patch.object(policy, 'authorize', spec=True)
+    def test_detail_list_all_forbid_owner_proj_mismatch(self, mock_authorize):
+        def mock_authorize_function(rule, target, creds):
+            if rule == 'baremetal:node:list_all':
+                raise exception.HTTPForbidden(resource='fake')
+            return True
+        mock_authorize.side_effect = mock_authorize_function
+
+        response = self.get_json('/nodes/detail?owner=54321',
+                                 expect_errors=True,
+                                 headers={
+                                     api_base.Version.string: '1.50',
+                                     'X-Project-Id': '12345'
+                                 })
+        self.assertEqual(http_client.FORBIDDEN, response.status_int)
+
+    @mock.patch.object(policy, 'authorize', spec=True)
+    def test_detail_list_all_forbidden(self, mock_authorize):
+        def mock_authorize_function(rule, target, creds):
+            if rule == 'baremetal:node:list_all':
+                raise exception.HTTPForbidden(resource='fake')
+            return True
+        mock_authorize.side_effect = mock_authorize_function
+
+        nodes = []
+        for id in range(5):
+            node = obj_utils.create_test_node(self.context,
+                                              uuid=uuidutils.generate_uuid(),
+                                              owner='12345')
+            nodes.append(node.uuid)
+        for id in range(2):
+            node = obj_utils.create_test_node(self.context,
+                                              uuid=uuidutils.generate_uuid())
+
+        data = self.get_json('/nodes/detail', headers={
+            api_base.Version.string: '1.50',
+            'X-Project-Id': '12345'})
+        self.assertEqual(len(nodes), len(data['nodes']))
+
+        uuids = [n['uuid'] for n in data['nodes']]
+        self.assertEqual(sorted(nodes), sorted(uuids))
+
     def test_mask_available_state(self):
         node = obj_utils.create_test_node(self.context,
                                           provision_state=states.AVAILABLE)
@@ -855,6 +925,75 @@ class TestListNodes(test_api_base.BaseApiTest):
         names = [n['name'] for n in data['nodes']]
         self.assertEqual(len(nodes), len(data['nodes']))
         self.assertEqual(sorted(node_names), sorted(names))
+
+    @mock.patch.object(policy, 'authorize', spec=True)
+    def test_many_forbidden(self, mock_authorize):
+        def mock_authorize_function(rule, target, creds):
+            raise exception.HTTPForbidden(resource='fake')
+        mock_authorize.side_effect = mock_authorize_function
+
+        response = self.get_json('/nodes', expect_errors=True,
+                                 headers={
+                                     api_base.Version.string: '1.50',
+                                     'X-Project-Id': '12345'
+                                 })
+        self.assertEqual(http_client.FORBIDDEN, response.status_int)
+
+    @mock.patch.object(policy, 'authorize', spec=True)
+    def test_many_list_all_forbidden_no_project(self, mock_authorize):
+        def mock_authorize_function(rule, target, creds):
+            if rule == 'baremetal:node:list_all':
+                raise exception.HTTPForbidden(resource='fake')
+            return True
+        mock_authorize.side_effect = mock_authorize_function
+
+        response = self.get_json('/nodes', expect_errors=True,
+                                 headers={
+                                     api_base.Version.string: '1.49',
+                                 })
+        self.assertEqual(http_client.FORBIDDEN, response.status_int)
+
+    @mock.patch.object(policy, 'authorize', spec=True)
+    def test_many_list_all_forbid_owner_proj_mismatch(self, mock_authorize):
+        def mock_authorize_function(rule, target, creds):
+            if rule == 'baremetal:node:list_all':
+                raise exception.HTTPForbidden(resource='fake')
+            return True
+        mock_authorize.side_effect = mock_authorize_function
+
+        response = self.get_json('/nodes?owner=54321',
+                                 expect_errors=True,
+                                 headers={
+                                     api_base.Version.string: '1.50',
+                                     'X-Project-Id': '12345'
+                                 })
+        self.assertEqual(http_client.FORBIDDEN, response.status_int)
+
+    @mock.patch.object(policy, 'authorize', spec=True)
+    def test_many_list_all_forbidden(self, mock_authorize):
+        def mock_authorize_function(rule, target, creds):
+            if rule == 'baremetal:node:list_all':
+                raise exception.HTTPForbidden(resource='fake')
+            return True
+        mock_authorize.side_effect = mock_authorize_function
+
+        nodes = []
+        for id in range(5):
+            node = obj_utils.create_test_node(self.context,
+                                              uuid=uuidutils.generate_uuid(),
+                                              owner='12345')
+            nodes.append(node.uuid)
+        for id in range(2):
+            node = obj_utils.create_test_node(self.context,
+                                              uuid=uuidutils.generate_uuid())
+
+        data = self.get_json('/nodes', headers={
+            api_base.Version.string: '1.50',
+            'X-Project-Id': '12345'})
+        self.assertEqual(len(nodes), len(data['nodes']))
+
+        uuids = [n['uuid'] for n in data['nodes']]
+        self.assertEqual(sorted(nodes), sorted(uuids))
 
     def _test_links(self, public_url=None):
         cfg.CONF.set_override('public_endpoint', public_url, 'api')
