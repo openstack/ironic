@@ -54,6 +54,8 @@ class TestExposedAPIMethodsCheckPolicy(test_base.TestCase):
                 ('api_utils.check_node_policy_and_retrieve' in src) or
                 ('api_utils.check_node_list_policy' in src) or
                 ('self._get_node_and_topic' in src) or
+                ('api_utils.check_port_policy_and_retrieve' in src) or
+                ('api_utils.check_port_list_policy' in src) or
                 ('policy.authorize' in src and
                  'context.to_policy_values' in src),
                 'no policy check found in in exposed '

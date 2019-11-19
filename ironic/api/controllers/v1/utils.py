@@ -1228,6 +1228,52 @@ def check_node_list_policy(owner=None):
     return owner
 
 
+def check_port_policy_and_retrieve(policy_name, port_uuid):
+    """Check if the specified policy authorizes this request on a port.
+
+    :param: policy_name: Name of the policy to check.
+    :param: port_uuid: the UUID of a port.
+
+    :raises: HTTPForbidden if the policy forbids access.
+    :raises: NodeNotFound if the node is not found.
+    :return: RPC port identified by port_uuid and associated node
+    """
+    context = api.request.context
+    cdict = context.to_policy_values()
+
+    try:
+        rpc_port = objects.Port.get_by_uuid(context, port_uuid)
+    except exception.PortNotFound:
+        # don't expose non-existence of port unless requester
+        # has generic access to policy
+        policy.authorize(policy_name, cdict, cdict)
+        raise
+
+    rpc_node = objects.Node.get_by_id(context, rpc_port.node_id)
+    target_dict = dict(cdict)
+    target_dict['node.owner'] = rpc_node['owner']
+    policy.authorize(policy_name, target_dict, cdict)
+
+    return rpc_port, rpc_node
+
+
+def check_port_list_policy():
+    """Check if the specified policy authorizes this request on a port.
+
+    :raises: HTTPForbidden if the policy forbids access.
+    :return: owner that should be used for list query, if needed
+    """
+    cdict = api.request.context.to_policy_values()
+    try:
+        policy.authorize('baremetal:port:list_all', cdict, cdict)
+    except exception.HTTPForbidden:
+        owner = cdict.get('project_id')
+        if not owner:
+            raise
+        policy.authorize('baremetal:port:list', cdict, cdict)
+        return owner
+
+
 def allow_build_configdrive():
     """Check if building configdrive is allowed.
 

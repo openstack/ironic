@@ -1,0 +1,8 @@
+---
+features:
+  - |
+    A port is owned by its associated node's owner. This owner is now exposed
+    to policy checks, giving Ironic admins the option of modifying the policy
+    file to allow users specified by a node's owner field to perform API
+    actions on that node's associated ports through the ``is_node_owner``
+    rule.

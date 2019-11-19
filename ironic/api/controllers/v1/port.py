@@ -339,7 +339,8 @@ class PortsController(rest.RestController):
 
     def _get_ports_collection(self, node_ident, address, portgroup_ident,
                               marker, limit, sort_key, sort_dir,
-                              resource_url=None, fields=None, detail=None):
+                              resource_url=None, fields=None, detail=None,
+                              owner=None):
 
         limit = api_utils.validate_limit(limit)
         sort_dir = api_utils.validate_sort_dir(sort_dir)
@@ -370,7 +371,8 @@ class PortsController(rest.RestController):
                                                       portgroup.id, limit,
                                                       marker_obj,
                                                       sort_key=sort_key,
-                                                      sort_dir=sort_dir)
+                                                      sort_dir=sort_dir,
+                                                      owner=owner)
         elif node_ident:
             # FIXME(comstud): Since all we need is the node ID, we can
             #                 make this more efficient by only querying
@@ -380,13 +382,14 @@ class PortsController(rest.RestController):
             ports = objects.Port.list_by_node_id(api.request.context,
                                                  node.id, limit, marker_obj,
                                                  sort_key=sort_key,
-                                                 sort_dir=sort_dir)
+                                                 sort_dir=sort_dir,
+                                                 owner=owner)
         elif address:
-            ports = self._get_ports_by_address(address)
+            ports = self._get_ports_by_address(address, owner=owner)
         else:
             ports = objects.Port.list(api.request.context, limit,
                                       marker_obj, sort_key=sort_key,
-                                      sort_dir=sort_dir)
+                                      sort_dir=sort_dir, owner=owner)
         parameters = {}
 
         if detail is not None:
@@ -399,7 +402,7 @@ class PortsController(rest.RestController):
                                                  sort_dir=sort_dir,
                                                  **parameters)
 
-    def _get_ports_by_address(self, address):
+    def _get_ports_by_address(self, address, owner=None):
         """Retrieve a port by its address.
 
         :param address: MAC address of a port, to get the port which has
@@ -408,7 +411,8 @@ class PortsController(rest.RestController):
 
         """
         try:
-            port = objects.Port.get_by_address(api.request.context, address)
+            port = objects.Port.get_by_address(api.request.context, address,
+                                               owner=owner)
             return [port]
         except exception.PortNotFound:
             return []
@@ -469,8 +473,7 @@ class PortsController(rest.RestController):
                                    for that portgroup.
         :raises: NotAcceptable, HTTPNotFound
         """
-        cdict = api.request.context.to_policy_values()
-        policy.authorize('baremetal:port:get', cdict, cdict)
+        owner = api_utils.check_port_list_policy()
 
         api_utils.check_allow_specify_fields(fields)
         self._check_allowed_port_fields(fields)
@@ -493,7 +496,7 @@ class PortsController(rest.RestController):
         return self._get_ports_collection(node_uuid or node, address,
                                           portgroup, marker, limit, sort_key,
                                           sort_dir, fields=fields,
-                                          detail=detail)
+                                          detail=detail, owner=owner)
 
     @METRICS.timer('PortsController.detail')
     @expose.expose(PortCollection, types.uuid_or_name, types.uuid,
@@ -523,8 +526,7 @@ class PortsController(rest.RestController):
         :param sort_dir: direction to sort. "asc" or "desc". Default: asc.
         :raises: NotAcceptable, HTTPNotFound
         """
-        cdict = api.request.context.to_policy_values()
-        policy.authorize('baremetal:port:get', cdict, cdict)
+        owner = api_utils.check_port_list_policy()
 
         self._check_allowed_port_fields([sort_key])
         if portgroup and not api_utils.allow_portgroups_subcontrollers():
@@ -546,7 +548,7 @@ class PortsController(rest.RestController):
         resource_url = '/'.join(['ports', 'detail'])
         return self._get_ports_collection(node_uuid or node, address,
                                           portgroup, marker, limit, sort_key,
-                                          sort_dir, resource_url)
+                                          sort_dir, resource_url, owner=owner)
 
     @METRICS.timer('PortsController.get_one')
     @expose.expose(Port, types.uuid, types.listtype)
@@ -558,16 +560,15 @@ class PortsController(rest.RestController):
             of the resource to be returned.
         :raises: NotAcceptable, HTTPNotFound
         """
-        cdict = api.request.context.to_policy_values()
-        policy.authorize('baremetal:port:get', cdict, cdict)
-
         if self.parent_node_ident or self.parent_portgroup_ident:
             raise exception.OperationNotPermitted()
+
+        rpc_port, rpc_node = api_utils.check_port_policy_and_retrieve(
+            'baremetal:port:get', port_uuid)
 
         api_utils.check_allow_specify_fields(fields)
         self._check_allowed_port_fields(fields)
 
-        rpc_port = objects.Port.get_by_uuid(api.request.context, port_uuid)
         return Port.convert_with_links(rpc_port, fields=fields)
 
     @METRICS.timer('PortsController.post')
@@ -578,12 +579,12 @@ class PortsController(rest.RestController):
         :param port: a port within the request body.
         :raises: NotAcceptable, HTTPNotFound, Conflict
         """
+        if self.parent_node_ident or self.parent_portgroup_ident:
+            raise exception.OperationNotPermitted()
+
         context = api.request.context
         cdict = context.to_policy_values()
         policy.authorize('baremetal:port:create', cdict, cdict)
-
-        if self.parent_node_ident or self.parent_portgroup_ident:
-            raise exception.OperationNotPermitted()
 
         pdict = port.as_dict()
         self._check_allowed_port_fields(pdict)
@@ -660,12 +661,13 @@ class PortsController(rest.RestController):
         :param patch: a json PATCH document to apply to this port.
         :raises: NotAcceptable, HTTPNotFound
         """
-        context = api.request.context
-        cdict = context.to_policy_values()
-        policy.authorize('baremetal:port:update', cdict, cdict)
-
         if self.parent_node_ident or self.parent_portgroup_ident:
             raise exception.OperationNotPermitted()
+
+        rpc_port, rpc_node = api_utils.check_port_policy_and_retrieve(
+            'baremetal:port:update', port_uuid)
+
+        context = api.request.context
 
         fields_to_check = set()
         for field in (self.advanced_net_fields
@@ -677,7 +679,6 @@ class PortsController(rest.RestController):
                 fields_to_check.add(field)
         self._check_allowed_port_fields(fields_to_check)
 
-        rpc_port = objects.Port.get_by_uuid(context, port_uuid)
         port_dict = rpc_port.as_dict()
         # NOTE(lucasagomes):
         # 1) Remove node_id because it's an internal value and
@@ -708,7 +709,6 @@ class PortsController(rest.RestController):
             if rpc_port[field] != patch_val:
                 rpc_port[field] = patch_val
 
-        rpc_node = objects.Node.get_by_id(context, rpc_port.node_id)
         if (rpc_node.provision_state == ir_states.INSPECTING
                 and api_utils.allow_inspect_wait_state()):
             msg = _('Cannot update port "%(port)s" on "%(node)s" while it is '
@@ -742,15 +742,13 @@ class PortsController(rest.RestController):
         :param port_uuid: UUID of a port.
         :raises: OperationNotPermitted, HTTPNotFound
         """
-        context = api.request.context
-        cdict = context.to_policy_values()
-        policy.authorize('baremetal:port:delete', cdict, cdict)
-
         if self.parent_node_ident or self.parent_portgroup_ident:
             raise exception.OperationNotPermitted()
 
-        rpc_port = objects.Port.get_by_uuid(context, port_uuid)
-        rpc_node = objects.Node.get_by_id(context, rpc_port.node_id)
+        rpc_port, rpc_node = api_utils.check_port_policy_and_retrieve(
+            'baremetal:port:delete', port_uuid)
+
+        context = api.request.context
 
         portgroup_uuid = None
         if rpc_port.portgroup_id:

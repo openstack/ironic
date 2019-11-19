@@ -66,7 +66,7 @@ class TestPortObject(db_base.DbTestCase, obj_utils.SchemasTestMixIn):
 
             port = objects.Port.get(self.context, address)
 
-            mock_get_port.assert_called_once_with(address)
+            mock_get_port.assert_called_once_with(address, owner=None)
             self.assertEqual(self.context, port._context)
 
     def test_get_bad_id_and_uuid_and_address(self):
