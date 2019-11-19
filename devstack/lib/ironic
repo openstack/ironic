@@ -156,7 +156,7 @@ IRONIC_VM_MACS_CSV_FILE=${IRONIC_VM_MACS_CSV_FILE:-$IRONIC_DATA_DIR/ironic_macs.
 IRONIC_CLEAN_NET_NAME=${IRONIC_CLEAN_NET_NAME:-${IRONIC_PROVISION_NETWORK_NAME:-${PRIVATE_NETWORK_NAME}}}
 IRONIC_RESCUE_NET_NAME=${IRONIC_RESCUE_NET_NAME:-${IRONIC_CLEAN_NET_NAME}}
 IRONIC_EXTRA_PXE_PARAMS=${IRONIC_EXTRA_PXE_PARAMS:-}
-IRONIC_TTY_DEV=${IRONIC_TTY_DEV:-ttyS0}
+IRONIC_TTY_DEV=${IRONIC_TTY_DEV:-ttyS0,115200}
 
 IRONIC_TEMPEST_BUILD_TIMEOUT=${IRONIC_TEMPEST_BUILD_TIMEOUT:-${BUILD_TIMEOUT:-}}
 if [[ -n "$BUILD_TIMEOUT" ]]; then
@@ -1508,7 +1508,7 @@ function configure_ironic_conductor {
             -subj '/O=OpenStack/OU=DevStack Servers'
     fi
 
-    local pxe_params="nofb nomodeset vga=normal console=${IRONIC_TTY_DEV}"
+    local pxe_params="nofb nomodeset console=${IRONIC_TTY_DEV}"
     pxe_params+=" systemd.journald.forward_to_console=yes"
     if is_service_enabled tls-proxy; then
         pxe_params+=" ipa-insecure=1"
@@ -1518,6 +1518,16 @@ function configure_ironic_conductor {
 
     if [[ -n "$pxe_params" ]]; then
         iniset $IRONIC_CONF_FILE pxe pxe_append_params "$pxe_params"
+    fi
+
+    local kernel_append_params="nofb nomodeset console=${IRONIC_TTY_DEV}"
+    kernel_append_params+=" systemd.journald.forward_to_console=yes"
+    if is_service_enabled tls-proxy; then
+        kernel_append_params+=" ipa-insecure=1"
+    fi
+
+    if [[ -n "kernel_append_params" ]]; then
+        iniset $IRONIC_CONF_FILE redfish kernel_append_params "$kernel_append_params"
     fi
 
     # Set these options for scenarios in which the agent fetches the image
