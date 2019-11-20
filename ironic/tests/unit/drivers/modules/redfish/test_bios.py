@@ -42,7 +42,8 @@ class NoBiosSystem(object):
                                                      resource=self)
 
 
-@mock.patch('eventlet.greenthread.sleep', lambda _t: None)
+@mock.patch('oslo_utils.eventletutils.EventletEvent.wait',
+            lambda *args, **kwargs: None)
 class RedfishBiosTestCase(db_base.DbTestCase):
 
     def setUp(self):

@@ -1348,7 +1348,7 @@ class IPMIToolPrivateMethodTestCase(Base):
                                           kill_on_timeout=True)
 
     @mock.patch.object(ipmi, '_exec_ipmitool', autospec=True)
-    @mock.patch('eventlet.greenthread.sleep', autospec=True)
+    @mock.patch('oslo_utils.eventletutils.EventletEvent.wait', autospec=True)
     def test__power_on_max_retries(self, sleep_mock, mock_exec):
         self.config(command_retry_timeout=2, group='ipmi')
 
@@ -1370,7 +1370,7 @@ class IPMIToolPrivateMethodTestCase(Base):
         self.assertEqual(expected, mock_exec.call_args_list)
 
     @mock.patch.object(ipmi, '_exec_ipmitool', autospec=True)
-    @mock.patch('eventlet.greenthread.sleep', autospec=True)
+    @mock.patch('oslo_utils.eventletutils.EventletEvent.wait', autospec=True)
     def test__soft_power_off(self, sleep_mock, mock_exec):
 
         def side_effect(driver_info, command, **kwargs):
@@ -1390,7 +1390,7 @@ class IPMIToolPrivateMethodTestCase(Base):
         self.assertEqual(states.POWER_OFF, state)
 
     @mock.patch.object(ipmi, '_exec_ipmitool', autospec=True)
-    @mock.patch('eventlet.greenthread.sleep', autospec=True)
+    @mock.patch('oslo_utils.eventletutils.EventletEvent.wait', autospec=True)
     def test__soft_power_off_max_retries(self, sleep_mock, mock_exec):
 
         def side_effect(driver_info, command, **kwargs):
@@ -1412,7 +1412,7 @@ class IPMIToolPrivateMethodTestCase(Base):
 
     @mock.patch.object(ipmi, '_power_status', autospec=True)
     @mock.patch.object(ipmi, '_exec_ipmitool', autospec=True)
-    @mock.patch('eventlet.greenthread.sleep', autospec=True)
+    @mock.patch('oslo_utils.eventletutils.EventletEvent.wait', autospec=True)
     def test___set_and_wait_no_needless_status_polling(
             self, sleep_mock, mock_exec, mock_status):
         # Check that if the call to power state change fails, it doesn't

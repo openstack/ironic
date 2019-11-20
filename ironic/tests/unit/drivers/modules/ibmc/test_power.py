@@ -27,7 +27,8 @@ ibmc_client = importutils.try_import('ibmc_client')
 ibmc_error = importutils.try_import('ibmc_client.exceptions')
 
 
-@mock.patch('eventlet.greenthread.sleep', lambda _t: None)
+@mock.patch('oslo_utils.eventletutils.EventletEvent.wait',
+            lambda *args, **kwargs: None)
 class IBMCPowerTestCase(base.IBMCTestCase):
 
     def test_get_properties(self):
@@ -183,7 +184,8 @@ class IBMCPowerTestCase(base.IBMCTestCase):
                              sorted(supported_power_states))
 
 
-@mock.patch('eventlet.greenthread.sleep', lambda _t: None)
+@mock.patch('oslo_utils.eventletutils.EventletEvent.wait',
+            lambda *args, **kwargs: None)
 class IBMCPowerRebootTestCase(base.IBMCTestCase):
 
     @mock.patch.object(ibmc_client, 'connect', autospec=True)

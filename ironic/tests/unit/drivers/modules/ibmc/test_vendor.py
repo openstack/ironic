@@ -22,7 +22,8 @@ from ironic.tests.unit.drivers.modules.ibmc import base
 ibmc_client = importutils.try_import('ibmc_client')
 
 
-@mock.patch('eventlet.greenthread.sleep', lambda _t: None)
+@mock.patch('oslo_utils.eventletutils.EventletEvent.wait',
+            lambda *args, **kwargs: None)
 class IBMCVendorTestCase(base.IBMCTestCase):
 
     def setUp(self):

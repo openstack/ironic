@@ -36,7 +36,8 @@ sushy = importutils.try_import('sushy')
 INFO_DICT = db_utils.get_test_redfish_info()
 
 
-@mock.patch('eventlet.greenthread.sleep', lambda _t: None)
+@mock.patch('oslo_utils.eventletutils.EventletEvent.wait',
+            lambda *args, **kwargs: None)
 class RedfishVirtualMediaBootTestCase(db_base.DbTestCase):
 
     def setUp(self):
