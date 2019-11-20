@@ -53,7 +53,6 @@
         Q_AGENT: openvswitch
         Q_ML2_TENANT_NETWORK_TYPE: vxlan
 
-        USE_PYTHON3: True
       devstack_plugins:
         ironic: https://opendev.org/openstack/ironic
       zuul_copy_output:
@@ -319,17 +318,9 @@
         neutron-metering: False
 
 - job:
-    name: ironic-tempest-functional-python2
-    description: ironic-tempest-functional-python2
-    parent: ironic-tempest-functional-python3
-    vars:
-      devstack_localrc:
-        USE_PYTHON3: False
-
-- job:
     name: ironic-tempest-ipa-wholedisk-direct-tinyipa-multinode
     description: ironic-tempest-ipa-wholedisk-direct-tinyipa-multinode
-    parent: tempest-multinode-full
+    parent: tempest-multinode-full-py3
     pre-run: playbooks/ci-workarounds/pre.yaml
     timeout: 10800
     required-projects:
@@ -408,7 +399,6 @@
         # ephemeral partition on such nodes
         LIBVIRT_STORAGE_POOL_PATH: /opt/libvirt/images
 
-        USE_PYTHON3: True
       devstack_plugins:
         ironic: https://opendev.org/openstack/ironic
         networking-generic-switch: https://opendev.org/openstack/networking-generic-switch
@@ -474,7 +464,6 @@
           Q_ML2_TENANT_NETWORK_TYPE: vlan
           VIRT_DRIVER: ironic
           PUBLIC_BRIDGE: br-infra
-          USE_PYTHON3: True
         devstack_services:
           c-api: False
           c-bak: False
@@ -484,14 +473,6 @@
 
           q-agt: True
           n-cpu: True
-
-- job:
-    name: ironic-tox-unit-with-driver-libs
-    parent: tox
-    description: |
-      Run unit tests with driver dependencies installed.
-    vars:
-      tox_envlist: unit-with-driver-libs
 
 - job:
     name: ironic-tox-unit-with-driver-libs-python3
@@ -518,7 +499,6 @@
     parent: ironic-base
     vars:
       devstack_localrc:
-        USE_PYTHON3: True
         IRONIC_ENABLED_HARDWARE_TYPES: ipmi
         IRONIC_ENABLED_BOOT_INTERFACES: pxe
         IRONIC_VM_SPECS_RAM: 512

@@ -793,10 +793,7 @@ function install_virtualbmc {
         git_clone_by_name "virtualbmc"
         setup_dev_lib "virtualbmc"
     else
-        # pyghmi is still not compatible with python3
-        # hence we need to install virtualbmc in python2
-        # environment else IPMI calls will fail at the gate.
-        USE_PYTHON3=False pip_install_gr "virtualbmc"
+        pip_install_gr "virtualbmc"
     fi
 
     local cmd
