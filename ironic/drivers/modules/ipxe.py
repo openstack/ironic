@@ -43,6 +43,8 @@ COMMON_PROPERTIES = pxe_base.COMMON_PROPERTIES
 
 class iPXEBoot(pxe_base.PXEBaseMixin, base.BootInterface):
 
+    ipxe_enabled = True
+
     capabilities = ['iscsi_volume_boot', 'ramdisk_boot', 'ipxe_boot']
 
     def __init__(self):
@@ -303,4 +305,4 @@ class iPXEBoot(pxe_base.PXEBaseMixin, base.BootInterface):
                         'to clean up images for node %(node)s: %(err)s',
                         {'node': node.uuid, 'err': e})
         else:
-            pxe_utils.clean_up_pxe_env(task, images_info)
+            pxe_utils.clean_up_pxe_env(task, images_info, ipxe_enabled=True)
