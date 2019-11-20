@@ -61,7 +61,6 @@ opts = [
                        'in certain states.')),
     cfg.IntOpt('ramdisk_heartbeat_timeout',
                default=300,
-               deprecated_group='agent', deprecated_name='heartbeat_timeout',
                help=_('Maximum interval (in seconds) for agent heartbeats.')),
 ]
 
