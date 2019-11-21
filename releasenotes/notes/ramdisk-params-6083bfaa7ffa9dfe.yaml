@@ -1,0 +1,6 @@
+---
+upgrade:
+  - |
+    The operators using custom PXE/iPXE/Grub templates should update them to
+    remove an explicit mention of ``ipa-api-url``. This field is now a part
+    of ``pxe_append_params`` when required.
