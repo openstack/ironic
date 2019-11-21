@@ -431,6 +431,11 @@ allocation_policies = [
         'Create Allocation records',
         [{'path': '/allocations', 'method': 'POST'}]),
     policy.DocumentedRuleDefault(
+        'baremetal:allocation:create_restricted',
+        'rule:baremetal:allocation:create',
+        'Create Allocation records that are restricted to an owner',
+        [{'path': '/allocations', 'method': 'POST'}]),
+    policy.DocumentedRuleDefault(
         'baremetal:allocation:delete',
         'rule:is_admin',
         'Delete Allocation records',

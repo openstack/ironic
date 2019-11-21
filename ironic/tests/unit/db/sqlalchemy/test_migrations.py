@@ -964,6 +964,11 @@ class MigrationCheckersMixin(object):
         self.assertIsInstance(deploy_templates.c.extra.type,
                               sqlalchemy.types.TEXT)
 
+    def _check_ce6c4b3cf5a2(self, engine, data):
+        allocations = db_utils.get_table(engine, 'allocations')
+        col_names = [column.name for column in allocations.c]
+        self.assertIn('owner', col_names)
+
     def test_upgrade_and_version(self):
         with patch_with_engine(self.engine):
             self.migration_api.upgrade('head')

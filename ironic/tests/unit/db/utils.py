@@ -595,6 +595,7 @@ def get_test_allocation(**kw):
         'updated_at': kw.get('updated_at'),
         'uuid': kw.get('uuid', uuidutils.generate_uuid()),
         'version': kw.get('version', allocation.Allocation.VERSION),
+        'owner': kw.get('owner', None),
     }
 
 

@@ -1048,7 +1048,7 @@ nodes:
   type: array
 owner:
   description: |
-    A string or UUID of the tenant who owns the baremetal node.
+    A string or UUID of the tenant who owns the object.
   in: body
   required: false
   type: string

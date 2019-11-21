@@ -142,3 +142,64 @@ class TestAllocationObject(db_base.DbTestCase, obj_utils.SchemasTestMixIn):
     def test_payload_schemas(self):
         self._check_payload_schemas(objects.allocation,
                                     objects.Allocation.fields)
+
+
+class TestConvertToVersion(db_base.DbTestCase):
+
+    def setUp(self):
+        super(TestConvertToVersion, self).setUp()
+        self.fake_allocation = db_utils.get_test_allocation()
+
+    def test_owner_supported_missing(self):
+        # Physical network not set, should be set to default.
+        allocation = objects.Allocation(self.context, **self.fake_allocation)
+        delattr(allocation, 'owner')
+        allocation.obj_reset_changes()
+        allocation._convert_to_version("1.1")
+        self.assertIsNone(allocation.owner)
+        self.assertEqual({'owner': None}, allocation.obj_get_changes())
+
+    def test_owner_supported_set(self):
+        # Physical network set, no change required.
+        allocation = objects.Allocation(self.context, **self.fake_allocation)
+        allocation.owner = 'owner1'
+        allocation.obj_reset_changes()
+        allocation._convert_to_version("1.1")
+        self.assertEqual('owner1', allocation.owner)
+        self.assertEqual({}, allocation.obj_get_changes())
+
+    def test_owner_unsupported_missing(self):
+        # Physical network not set, no change required.
+        allocation = objects.Allocation(self.context, **self.fake_allocation)
+        delattr(allocation, 'owner')
+        allocation.obj_reset_changes()
+        allocation._convert_to_version("1.0")
+        self.assertNotIn('owner', allocation)
+        self.assertEqual({}, allocation.obj_get_changes())
+
+    def test_owner_unsupported_set_remove(self):
+        # Physical network set, should be removed.
+        allocation = objects.Allocation(self.context, **self.fake_allocation)
+        allocation.owner = 'owner1'
+        allocation.obj_reset_changes()
+        allocation._convert_to_version("1.0")
+        self.assertNotIn('owner', allocation)
+        self.assertEqual({}, allocation.obj_get_changes())
+
+    def test_owner_unsupported_set_no_remove_non_default(self):
+        # Physical network set, should be set to default.
+        allocation = objects.Allocation(self.context, **self.fake_allocation)
+        allocation.owner = 'owner1'
+        allocation.obj_reset_changes()
+        allocation._convert_to_version("1.0", False)
+        self.assertIsNone(allocation.owner)
+        self.assertEqual({'owner': None}, allocation.obj_get_changes())
+
+    def test_owner_unsupported_set_no_remove_default(self):
+        # Physical network set, no change required.
+        allocation = objects.Allocation(self.context, **self.fake_allocation)
+        allocation.owner = None
+        allocation.obj_reset_changes()
+        allocation._convert_to_version("1.0", False)
+        self.assertIsNone(allocation.owner)
+        self.assertEqual({}, allocation.obj_get_changes())

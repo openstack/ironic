@@ -190,7 +190,7 @@ def post_get_test_portgroup(**kw):
 
 _ALLOCATION_POST_FIELDS = {'resource_class', 'uuid', 'traits',
                            'candidate_nodes', 'name', 'extra',
-                           'node'}
+                           'node', 'owner'}
 
 
 def allocation_post_data(node=None, **kw):

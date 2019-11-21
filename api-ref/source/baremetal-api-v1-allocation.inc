@@ -47,6 +47,9 @@ parameters must be missing or match the provided node.
 .. versionadded:: 1.58
     Added support for backfilling allocations.
 
+.. versionadded:: 1.60
+  Introduced the ``owner`` field.
+
 Normal response codes: 201
 
 Error response codes: 400, 401, 403, 409, 503
@@ -63,6 +66,7 @@ Request
    - uuid: req_uuid
    - extra: req_extra
    - node: req_allocation_node
+   - owner: owner
 
 Request Example
 ---------------
@@ -83,6 +87,7 @@ Response Parameters
    - resource_class: allocation_resource_class
    - state: allocation_state
    - traits: allocation_traits
+   - owner: owner
    - extra: extra
    - created_at: created_at
    - updated_at: updated_at
@@ -104,6 +109,9 @@ Lists all Allocations.
 .. versionadded:: 1.52
     Allocation API was introduced.
 
+.. versionadded:: 1.60
+  Introduced the ``owner`` field.
+
 Normal response codes: 200
 
 Error response codes: 400, 401, 403, 404
@@ -116,6 +124,7 @@ Request
    - node: r_allocation_node
    - resource_class: r_resource_class
    - state: r_allocation_state
+   - owner: owner
    - fields: fields
    - limit: limit
    - marker: marker
@@ -135,6 +144,7 @@ Response Parameters
    - resource_class: allocation_resource_class
    - state: allocation_state
    - traits: allocation_traits
+   - owner: owner
    - extra: extra
    - created_at: created_at
    - updated_at: updated_at
@@ -155,6 +165,9 @@ Shows details for an Allocation.
 
 .. versionadded:: 1.52
     Allocation API was introduced.
+
+.. versionadded:: 1.60
+  Introduced the ``owner`` field.
 
 Normal response codes: 200
 
@@ -181,6 +194,7 @@ Response Parameters
    - resource_class: allocation_resource_class
    - state: allocation_state
    - traits: allocation_traits
+   - owner: owner
    - extra: extra
    - created_at: created_at
    - updated_at: updated_at
@@ -237,6 +251,7 @@ Response Parameters
    - resource_class: allocation_resource_class
    - state: allocation_state
    - traits: allocation_traits
+   - owner: owner
    - extra: extra
    - created_at: created_at
    - updated_at: updated_at

@@ -37,6 +37,12 @@ from ironic import objects
 METRICS = metrics_utils.get_metrics_logger(__name__)
 
 
+def hide_fields_in_newer_versions(obj):
+    # if requested version is < 1.60, hide owner field
+    if not api_utils.allow_allocation_owner():
+        obj.owner = wsme.Unset
+
+
 class Allocation(base.APIBase):
     """API representation of an allocation.
 
@@ -71,6 +77,9 @@ class Allocation(base.APIBase):
 
     resource_class = wsme.wsattr(wtypes.StringType(max_length=80))
     """Requested resource class for this allocation"""
+
+    owner = wsme.wsattr(wtypes.text)
+    """Owner of allocation"""
 
     # NOTE(dtantsur): candidate_nodes is a list of UUIDs on the database level,
     # but the API level also accept names, converting them on fly.
@@ -149,6 +158,8 @@ class Allocation(base.APIBase):
         :type fields: list of str
         """
 
+        hide_fields_in_newer_versions(self)
+
         if fields is not None:
             self.unset_fields_except(fields)
 
@@ -165,7 +176,8 @@ class Allocation(base.APIBase):
                      candidate_nodes=[],
                      extra={'foo': 'bar'},
                      created_at=datetime.datetime(2000, 1, 1, 12, 0, 0),
-                     updated_at=datetime.datetime(2000, 1, 1, 12, 0, 0))
+                     updated_at=datetime.datetime(2000, 1, 1, 12, 0, 0),
+                     owner=None)
         return cls._convert_with_links(sample, 'http://localhost:6385')
 
 
@@ -223,8 +235,8 @@ class AllocationsController(pecan.rest.RestController):
         return super(AllocationsController, self)._route(args, request)
 
     def _get_allocations_collection(self, node_ident=None, resource_class=None,
-                                    state=None, marker=None, limit=None,
-                                    sort_key='id', sort_dir='asc',
+                                    state=None, owner=None, marker=None,
+                                    limit=None, sort_key='id', sort_dir='asc',
                                     resource_url=None, fields=None):
         """Return allocations collection.
 
@@ -236,6 +248,7 @@ class AllocationsController(pecan.rest.RestController):
         :param resource_url: Optional, URL to the allocation resource.
         :param fields: Optional, a list with a specified set of fields
                        of the resource to be returned.
+        :param owner: project_id of owner to filter by
         """
         limit = api_utils.validate_limit(limit)
         sort_dir = api_utils.validate_sort_dir(sort_dir)
@@ -262,7 +275,8 @@ class AllocationsController(pecan.rest.RestController):
         possible_filters = {
             'node_uuid': node_uuid,
             'resource_class': resource_class,
-            'state': state
+            'state': state,
+            'owner': owner
         }
 
         filters = {}
@@ -282,12 +296,27 @@ class AllocationsController(pecan.rest.RestController):
                                                        sort_key=sort_key,
                                                        sort_dir=sort_dir)
 
+    def _check_allowed_allocation_fields(self, fields):
+        """Check if fetching a particular field of an allocation is allowed.
+
+        Check if the required version is being requested for fields
+        that are only allowed to be fetched in a particular API version.
+
+        :param fields: list or set of fields to check
+        :raises: NotAcceptable if a field is not allowed
+        """
+        if fields is None:
+            return
+        if 'owner' in fields and not api_utils.allow_allocation_owner():
+            raise exception.NotAcceptable()
+
     @METRICS.timer('AllocationsController.get_all')
     @expose.expose(AllocationCollection, types.uuid_or_name, wtypes.text,
                    wtypes.text, types.uuid, int, wtypes.text, wtypes.text,
-                   types.listtype)
+                   types.listtype, wtypes.text)
     def get_all(self, node=None, resource_class=None, state=None, marker=None,
-                limit=None, sort_key='id', sort_dir='asc', fields=None):
+                limit=None, sort_key='id', sort_dir='asc', fields=None,
+                owner=None):
         """Retrieve a list of allocations.
 
         :param node: UUID or name of a node, to get only allocations for that
@@ -303,12 +332,17 @@ class AllocationsController(pecan.rest.RestController):
         :param sort_dir: direction to sort. "asc" or "desc". Default: asc.
         :param fields: Optional, a list with a specified set of fields
                        of the resource to be returned.
+        :param owner: Filter by owner.
         """
         cdict = api.request.context.to_policy_values()
         policy.authorize('baremetal:allocation:get', cdict, cdict)
 
+        self._check_allowed_allocation_fields(fields)
+        if owner is not None and not api_utils.allow_allocation_owner():
+            raise exception.NotAcceptable()
+
         return self._get_allocations_collection(node, resource_class, state,
-                                                marker, limit,
+                                                owner, marker, limit,
                                                 sort_key, sort_dir,
                                                 fields=fields)
 
@@ -324,6 +358,8 @@ class AllocationsController(pecan.rest.RestController):
         cdict = api.request.context.to_policy_values()
         policy.authorize('baremetal:allocation:get', cdict, cdict)
 
+        self._check_allowed_allocation_fields(fields)
+
         rpc_allocation = api_utils.get_rpc_allocation_with_suffix(
             allocation_ident)
         return Allocation.convert_with_links(rpc_allocation, fields=fields)
@@ -338,7 +374,18 @@ class AllocationsController(pecan.rest.RestController):
         """
         context = api.request.context
         cdict = context.to_policy_values()
-        policy.authorize('baremetal:allocation:create', cdict, cdict)
+
+        try:
+            policy.authorize('baremetal:allocation:create', cdict, cdict)
+            self._check_allowed_allocation_fields(allocation.as_dict())
+        except exception.HTTPForbidden:
+            owner = cdict.get('project_id')
+            if not owner or (allocation.owner and owner != allocation.owner):
+                raise
+            policy.authorize('baremetal:allocation:create_restricted',
+                             cdict, cdict)
+            self._check_allowed_allocation_fields(allocation.as_dict())
+            allocation.owner = owner
 
         if (allocation.name
                 and not api_utils.is_valid_logical_name(allocation.name)):
@@ -416,12 +463,15 @@ class AllocationsController(pecan.rest.RestController):
 
     def _validate_patch(self, patch):
         allowed_fields = ['name', 'extra']
+        fields = set()
         for p in patch:
             path = p['path'].split('/')[1]
             if path not in allowed_fields:
                 msg = _("Cannot update %s in an allocation. Only 'name' and "
                         "'extra' are allowed to be updated.")
                 raise exception.Invalid(msg % p['path'])
+            fields.add(path)
+        self._check_allowed_allocation_fields(fields)
 
     @METRICS.timer('AllocationsController.patch')
     @wsme.validate(types.uuid, [AllocationPatchType])

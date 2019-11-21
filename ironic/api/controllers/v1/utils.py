@@ -1248,3 +1248,11 @@ def allow_allocation_backfill():
     Version 1.58 of the API added support for backfilling allocations.
     """
     return api.request.version.minor >= versions.MINOR_58_ALLOCATION_BACKFILL
+
+
+def allow_allocation_owner():
+    """Check if allocation owner field is allowed.
+
+    Version 1.60 of the API added the owner field to the allocation object.
+    """
+    return api.request.version.minor >= versions.MINOR_60_ALLOCATION_OWNER
