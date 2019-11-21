@@ -14,7 +14,7 @@ openvswitch
 sgabios
 shellinabox
 syslinux
-syslinux-nonlinux
+syslinux-nonlinux # dist:rhel8
 tftp-server
 xinetd
 squashfs-tools
