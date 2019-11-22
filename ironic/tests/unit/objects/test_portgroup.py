@@ -13,7 +13,6 @@
 import datetime
 
 import mock
-from oslo_utils import uuidutils
 from testtools import matchers
 
 from ironic.common import exception
@@ -202,19 +201,3 @@ class TestConvertToVersion(db_base.DbTestCase):
         portgroup._convert_to_version('1.4', False)
         # no change
         self.assertEqual(vif2, portgroup.internal_info['tenant_vif_port_id'])
-
-
-class TestMigrateVifPortId(db_base.DbTestCase):
-
-    def setUp(self):
-        super(TestMigrateVifPortId, self).setUp()
-        self.vif_id = 'some_uuid'
-        self.db_portgroups = []
-        extra = {'vif_port_id': self.vif_id}
-        for i in range(3):
-            portgroup = db_utils.create_test_portgroup(
-                uuid=uuidutils.generate_uuid(),
-                name='pg%s' % i,
-                address='52:54:00:cf:2d:3%s' % i,
-                extra=extra, version='1.3')
-            self.db_portgroups.append(portgroup)

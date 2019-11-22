@@ -18,7 +18,6 @@ import types
 
 import mock
 from oslo_config import cfg
-from oslo_utils import uuidutils
 from testtools import matchers
 
 from ironic.common import exception
@@ -334,18 +333,3 @@ class TestConvertToVersion(db_base.DbTestCase):
         port._convert_to_version("1.8", False)
         self.assertFalse(port.is_smartnic)
         self.assertNotIn('is_smartnic', port.obj_get_changes())
-
-
-class TestMigrateVifPortId(db_base.DbTestCase):
-
-    def setUp(self):
-        super(TestMigrateVifPortId, self).setUp()
-        self.vif_id = 'some_uuid'
-        self.db_ports = []
-        extra = {'vif_port_id': self.vif_id}
-        for i in range(3):
-            port = db_utils.create_test_port(
-                uuid=uuidutils.generate_uuid(),
-                address='52:54:00:cf:2d:3%s' % i,
-                extra=extra, version='1.7')
-            self.db_ports.append(port)
