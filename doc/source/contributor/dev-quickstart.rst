@@ -212,30 +212,10 @@ Next, install and configure system dependencies.
 Step 2: Install System Dependencies Locally
 --------------------------------------------
 
-This step will install RabbitMQ and MySQL on your local system. This may not
-be desirable in some situations (eg, you're developing from a laptop and do not
-want to run a MySQL server on it all the time).
-
-#. Install rabbitmq-server:
-
-   Ubuntu/Debian::
-
-       sudo apt-get install rabbitmq-server
-
-   RHEL7/CentOS7::
-
-       sudo yum install rabbitmq-server
-       sudo systemctl start rabbitmq-server.service
-
-   Fedora::
-
-       sudo dnf install rabbitmq-server
-       sudo systemctl start rabbitmq-server.service
-
-   openSUSE/SLE 12::
-
-       sudo zypper install rabbitmq-server
-       sudo systemctl start rabbitmq-server.service
+This step will install MySQL on your local system. This may not be desirable
+in some situations (eg, you're developing from a laptop and do not want to run
+a MySQL server on it all the time). If you want to use SQLite, skip it and do
+not set the ``connection`` option.
 
 #. Install mysql-server:
 
@@ -263,7 +243,9 @@ want to run a MySQL server on it all the time).
        mysql -u root -pMYSQL_ROOT_PWD -e "create schema ironic"
 
    .. note:: if you choose not to install mysql-server, ironic will default to
-            using a local sqlite database.
+             using a local sqlite database. The database will then be stored in
+             ``ironic/ironic.sqlite``.
+
 
 #. Create a configuration file within the ironic source directory::
 
@@ -287,14 +269,14 @@ want to run a MySQL server on it all the time).
     sed -i "s/#enabled_management_interfaces = .*/enabled_management_interfaces = fake,ipmitool/" etc/ironic/ironic.conf.local
     sed -i "s/#enabled_power_interfaces = .*/enabled_power_interfaces = fake,ipmitool/" etc/ironic/ironic.conf.local
 
-    # set a fake host name [useful if you want to test multiple services on the same host]
-    sed -i "s/#host = .*/host = test-host/" etc/ironic/ironic.conf.local
-
     # change the periodic sync_power_state_interval to a week, to avoid getting NodeLocked exceptions
     sed -i "s/#sync_power_state_interval = 60/sync_power_state_interval = 604800/" etc/ironic/ironic.conf.local
 
     # if you opted to install mysql-server, switch the DB connection from sqlite to mysql
     sed -i "s/#connection = .*/connection = mysql\+pymysql:\/\/root:MYSQL_ROOT_PWD@localhost\/ironic/" etc/ironic/ironic.conf.local
+
+    # use JSON RPC to avoid installing rabbitmq locally
+    sed -i "s/#rpc_transport = oslo/rpc_transport = json-rpc/" etc/ironic/ironic.conf.local
 
 Step 3: Start the Services
 --------------------------
