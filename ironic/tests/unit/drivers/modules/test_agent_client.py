@@ -21,8 +21,12 @@ import six
 from six.moves import http_client
 
 from ironic.common import exception
+from ironic import conf
 from ironic.drivers.modules import agent_client
 from ironic.tests import base
+
+
+CONF = conf.CONF
 
 
 class MockResponse(object):
@@ -181,6 +185,12 @@ class TestAgentClient(base.TestCase):
             res.json.return_value = {'commands': []}
             mock_get.return_value = res
             self.assertEqual([], self.client.get_commands_status(self.node))
+            agent_url = self.node.driver_internal_info.get('agent_url')
+            mock_get.assert_called_once_with(
+                '%(agent_url)s/%(api_version)s/commands' % {
+                    'agent_url': agent_url,
+                    'api_version': CONF.agent.agent_api_version},
+                timeout=CONF.agent.command_timeout)
 
     def test_prepare_image(self):
         self.client._command = mock.MagicMock(spec_set=[])
