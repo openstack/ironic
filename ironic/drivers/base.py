@@ -559,6 +559,17 @@ class BootInterface(BaseInterface):
         raise exception.UnsupportedDriverExtension(
             driver=task.node.driver, extension='validate_rescue')
 
+    def validate_inspection(self, task):
+        """Validate that the node has required properties for inspection.
+
+        :param task: A TaskManager instance with the node being checked
+        :raises: MissingParameterValue if node is missing one or more required
+            parameters
+        :raises: UnsupportedDriverExtension
+        """
+        raise exception.UnsupportedDriverExtension(
+            driver=task.node.driver, extension='validate_inspection')
+
 
 class PowerInterface(BaseInterface):
     """Interface for power-related actions."""
@@ -1492,6 +1503,38 @@ class NetworkInterface(BaseInterface):
         :raises: MissingParameterValue, if some parameters are missing.
         """
         pass
+
+    def validate_inspection(self, task):
+        """Validate that the node has required properties for inspection.
+
+        :param task: A TaskManager instance with the node being checked
+        :raises: MissingParameterValue if node is missing one or more required
+            parameters
+        :raises: UnsupportedDriverExtension
+        """
+        raise exception.UnsupportedDriverExtension(
+            driver=task.node.driver, extension='validate_inspection')
+
+    def add_inspection_network(self, task):
+        """Add the inspection network to the node.
+
+        :param task: A TaskManager instance.
+        :returns: a dictionary in the form {port.uuid: neutron_port['id']}
+        :raises: NetworkError
+        :raises: InvalidParameterValue, if the network interface configuration
+            is invalid.
+        """
+        return {}
+
+    def remove_inspection_network(self, task):
+        """Removes the inspection network from a node.
+
+        :param task: A TaskManager instance.
+        :raises: NetworkError
+        :raises: InvalidParameterValue, if the network interface configuration
+            is invalid.
+        :raises: MissingParameterValue, if some parameters are missing.
+        """
 
     def need_power_on(self, task):
         """Check if ironic node must be powered on before applying network changes

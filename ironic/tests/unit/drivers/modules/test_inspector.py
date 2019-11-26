@@ -15,11 +15,16 @@ import mock
 import openstack
 
 from ironic.common import context
+from ironic.common import exception
 from ironic.common import states
+from ironic.common import utils
 from ironic.conductor import task_manager
 from ironic.drivers.modules import inspector
 from ironic.tests.unit.db import base as db_base
 from ironic.tests.unit.objects import utils as obj_utils
+
+
+CONF = inspector.CONF
 
 
 @mock.patch('ironic.common.keystone.get_auth', autospec=True,
@@ -57,14 +62,17 @@ class GetClientTestCase(db_base.DbTestCase):
 class BaseTestCase(db_base.DbTestCase):
     def setUp(self):
         super(BaseTestCase, self).setUp()
-        self.node = obj_utils.get_test_node(self.context,
-                                            inspect_interface='inspector')
+        self.node = obj_utils.create_test_node(self.context,
+                                               inspect_interface='inspector')
         self.iface = inspector.Inspector()
         self.task = mock.MagicMock(spec=task_manager.TaskManager)
         self.task.context = self.context
         self.task.shared = False
         self.task.node = self.node
-        self.task.driver = mock.Mock(spec=['inspect'], inspect=self.iface)
+        self.task.driver = mock.Mock(
+            spec=['boot', 'network', 'inspect', 'power'],
+            inspect=self.iface)
+        self.driver = self.task.driver
 
 
 class CommonFunctionsTestCase(BaseTestCase):
@@ -75,25 +83,165 @@ class CommonFunctionsTestCase(BaseTestCase):
         res = self.iface.get_properties()
         self.assertEqual({}, res)
 
+    def test_get_callback_endpoint(self):
+        for catalog_endp in ['http://192.168.0.42:5050',
+                             'http://192.168.0.42:5050/v1',
+                             'http://192.168.0.42:5050/']:
+            client = mock.Mock()
+            client.get_endpoint.return_value = catalog_endp
+            self.assertEqual('http://192.168.0.42:5050/v1/continue',
+                             inspector._get_callback_endpoint(client))
+
+    def test_get_callback_endpoint_override(self):
+        CONF.set_override('callback_endpoint_override', 'http://url',
+                          group='inspector')
+        client = mock.Mock()
+        self.assertEqual('http://url/v1/continue',
+                         inspector._get_callback_endpoint(client))
+        self.assertFalse(client.get_endpoint.called)
+
+    def test_get_callback_endpoint_mdns(self):
+        CONF.set_override('callback_endpoint_override', 'mdns',
+                          group='inspector')
+        client = mock.Mock()
+        self.assertEqual('mdns', inspector._get_callback_endpoint(client))
+        self.assertFalse(client.get_endpoint.called)
+
 
 @mock.patch.object(eventlet, 'spawn_n', lambda f, *a, **kw: f(*a, **kw))
 @mock.patch('ironic.drivers.modules.inspector._get_client', autospec=True)
 class InspectHardwareTestCase(BaseTestCase):
-    def test_ok(self, mock_client):
+    def test_validate_ok(self, mock_client):
+        self.iface.validate(self.task)
+
+    def test_validate_invalid_kernel_params(self, mock_client):
+        CONF.set_override('extra_kernel_params', 'abcdef', group='inspector')
+        self.assertRaises(exception.InvalidParameterValue,
+                          self.iface.validate, self.task)
+
+    def test_validate_require_managed_boot(self, mock_client):
+        CONF.set_override('require_managed_boot', True, group='inspector')
+        self.driver.boot.validate_inspection.side_effect = (
+            exception.UnsupportedDriverExtension(''))
+        self.assertRaises(exception.UnsupportedDriverExtension,
+                          self.iface.validate, self.task)
+
+    def test_unmanaged_ok(self, mock_client):
+        self.driver.boot.validate_inspection.side_effect = (
+            exception.UnsupportedDriverExtension(''))
         mock_introspect = mock_client.return_value.start_introspection
         self.assertEqual(states.INSPECTWAIT,
                          self.iface.inspect_hardware(self.task))
         mock_introspect.assert_called_once_with(self.node.uuid)
+        self.assertFalse(self.driver.boot.prepare_ramdisk.called)
+        self.assertFalse(self.driver.network.add_inspection_network.called)
+        self.assertFalse(self.driver.power.reboot.called)
+        self.assertFalse(self.driver.network.remove_inspection_network.called)
+        self.assertFalse(self.driver.boot.clean_up_ramdisk.called)
+        self.assertFalse(self.driver.power.set_power_state.called)
 
     @mock.patch.object(task_manager, 'acquire', autospec=True)
-    def test_error(self, mock_acquire, mock_client):
+    def test_unmanaged_error(self, mock_acquire, mock_client):
+        mock_acquire.return_value.__enter__.return_value = self.task
+        self.driver.boot.validate_inspection.side_effect = (
+            exception.UnsupportedDriverExtension(''))
         mock_introspect = mock_client.return_value.start_introspection
         mock_introspect.side_effect = RuntimeError('boom')
         self.iface.inspect_hardware(self.task)
         mock_introspect.assert_called_once_with(self.node.uuid)
-        task = mock_acquire.return_value.__enter__.return_value
-        self.assertIn('boom', task.node.last_error)
-        task.process_event.assert_called_once_with('fail')
+        self.assertIn('boom', self.task.node.last_error)
+        self.task.process_event.assert_called_once_with('fail')
+        self.assertFalse(self.driver.boot.prepare_ramdisk.called)
+        self.assertFalse(self.driver.network.add_inspection_network.called)
+        self.assertFalse(self.driver.network.remove_inspection_network.called)
+        self.assertFalse(self.driver.boot.clean_up_ramdisk.called)
+        self.assertFalse(self.driver.power.set_power_state.called)
+
+    def test_require_managed_boot(self, mock_client):
+        CONF.set_override('require_managed_boot', True, group='inspector')
+        self.driver.boot.validate_inspection.side_effect = (
+            exception.UnsupportedDriverExtension(''))
+        mock_introspect = mock_client.return_value.start_introspection
+        self.assertRaises(exception.UnsupportedDriverExtension,
+                          self.iface.inspect_hardware, self.task)
+        self.assertFalse(mock_introspect.called)
+        self.assertFalse(self.driver.boot.prepare_ramdisk.called)
+        self.assertFalse(self.driver.network.add_inspection_network.called)
+        self.assertFalse(self.driver.power.reboot.called)
+        self.assertFalse(self.driver.network.remove_inspection_network.called)
+        self.assertFalse(self.driver.boot.clean_up_ramdisk.called)
+        self.assertFalse(self.driver.power.set_power_state.called)
+
+    def test_managed_ok(self, mock_client):
+        endpoint = 'http://192.169.0.42:5050/v1'
+        mock_client.return_value.get_endpoint.return_value = endpoint
+        mock_introspect = mock_client.return_value.start_introspection
+        self.assertEqual(states.INSPECTWAIT,
+                         self.iface.inspect_hardware(self.task))
+        mock_introspect.assert_called_once_with(self.node.uuid,
+                                                manage_boot=False)
+        self.driver.boot.prepare_ramdisk.assert_called_once_with(
+            self.task, ramdisk_params={
+                'ipa-inspection-callback-url': endpoint + '/continue',
+            })
+        self.driver.network.add_inspection_network.assert_called_once_with(
+            self.task)
+        self.driver.power.reboot.assert_called_once_with(
+            self.task, timeout=None)
+        self.assertFalse(self.driver.network.remove_inspection_network.called)
+        self.assertFalse(self.driver.boot.clean_up_ramdisk.called)
+        self.assertFalse(self.driver.power.set_power_state.called)
+
+    def test_managed_custom_params(self, mock_client):
+        CONF.set_override('extra_kernel_params',
+                          'ipa-inspection-collectors=default,logs '
+                          'ipa-collect-dhcp=1',
+                          group='inspector')
+        endpoint = 'http://192.169.0.42:5050/v1'
+        mock_client.return_value.get_endpoint.return_value = endpoint
+        mock_introspect = mock_client.return_value.start_introspection
+        self.iface.validate(self.task)
+        self.assertEqual(states.INSPECTWAIT,
+                         self.iface.inspect_hardware(self.task))
+        mock_introspect.assert_called_once_with(self.node.uuid,
+                                                manage_boot=False)
+        self.driver.boot.prepare_ramdisk.assert_called_once_with(
+            self.task, ramdisk_params={
+                'ipa-inspection-callback-url': endpoint + '/continue',
+                'ipa-inspection-collectors': 'default,logs',
+                'ipa-collect-dhcp': '1',
+            })
+        self.driver.network.add_inspection_network.assert_called_once_with(
+            self.task)
+        self.driver.power.reboot.assert_called_once_with(
+            self.task, timeout=None)
+        self.assertFalse(self.driver.network.remove_inspection_network.called)
+        self.assertFalse(self.driver.boot.clean_up_ramdisk.called)
+        self.assertFalse(self.driver.power.set_power_state.called)
+
+    @mock.patch.object(task_manager, 'acquire', autospec=True)
+    def test_managed_error(self, mock_acquire, mock_client):
+        endpoint = 'http://192.169.0.42:5050/v1'
+        mock_client.return_value.get_endpoint.return_value = endpoint
+        mock_acquire.return_value.__enter__.return_value = self.task
+        mock_introspect = mock_client.return_value.start_introspection
+        mock_introspect.side_effect = RuntimeError('boom')
+        self.assertRaises(exception.HardwareInspectionFailure,
+                          self.iface.inspect_hardware, self.task)
+        mock_introspect.assert_called_once_with(self.node.uuid,
+                                                manage_boot=False)
+        self.assertIn('boom', self.task.node.last_error)
+        self.driver.boot.prepare_ramdisk.assert_called_once_with(
+            self.task, ramdisk_params={
+                'ipa-inspection-callback-url': endpoint + '/continue',
+            })
+        self.driver.network.add_inspection_network.assert_called_once_with(
+            self.task)
+        self.driver.network.remove_inspection_network.assert_called_once_with(
+            self.task)
+        self.driver.boot.clean_up_ramdisk.assert_called_once_with(self.task)
+        self.driver.power.set_power_state.assert_called_once_with(
+            self.task, 'power off', timeout=None)
 
 
 @mock.patch('ironic.drivers.modules.inspector._get_client', autospec=True)
@@ -144,6 +292,43 @@ class CheckStatusTestCase(BaseTestCase):
         inspector._check_status(self.task)
         mock_get.assert_called_once_with(self.node.uuid)
         self.task.process_event.assert_called_once_with('done')
+        self.assertFalse(self.driver.network.remove_inspection_network.called)
+        self.assertFalse(self.driver.boot.clean_up_ramdisk.called)
+        self.assertFalse(self.driver.power.set_power_state.called)
+
+    def test_status_ok_managed(self, mock_client):
+        utils.set_node_nested_field(self.node, 'driver_internal_info',
+                                    'inspector_manage_boot', True)
+        self.node.save()
+        mock_get = mock_client.return_value.get_introspection
+        mock_get.return_value = mock.Mock(is_finished=True,
+                                          error=None,
+                                          spec=['is_finished', 'error'])
+        inspector._check_status(self.task)
+        mock_get.assert_called_once_with(self.node.uuid)
+        self.task.process_event.assert_called_once_with('done')
+        self.driver.network.remove_inspection_network.assert_called_once_with(
+            self.task)
+        self.driver.boot.clean_up_ramdisk.assert_called_once_with(self.task)
+        self.driver.power.set_power_state.assert_called_once_with(
+            self.task, 'power off', timeout=None)
+
+    def test_status_ok_managed_no_power_off(self, mock_client):
+        CONF.set_override('power_off', False, group='inspector')
+        utils.set_node_nested_field(self.node, 'driver_internal_info',
+                                    'inspector_manage_boot', True)
+        self.node.save()
+        mock_get = mock_client.return_value.get_introspection
+        mock_get.return_value = mock.Mock(is_finished=True,
+                                          error=None,
+                                          spec=['is_finished', 'error'])
+        inspector._check_status(self.task)
+        mock_get.assert_called_once_with(self.node.uuid)
+        self.task.process_event.assert_called_once_with('done')
+        self.driver.network.remove_inspection_network.assert_called_once_with(
+            self.task)
+        self.driver.boot.clean_up_ramdisk.assert_called_once_with(self.task)
+        self.assertFalse(self.driver.power.set_power_state.called)
 
     def test_status_error(self, mock_client):
         mock_get = mock_client.return_value.get_introspection
@@ -154,6 +339,75 @@ class CheckStatusTestCase(BaseTestCase):
         mock_get.assert_called_once_with(self.node.uuid)
         self.task.process_event.assert_called_once_with('fail')
         self.assertIn('boom', self.node.last_error)
+        self.assertFalse(self.driver.network.remove_inspection_network.called)
+        self.assertFalse(self.driver.boot.clean_up_ramdisk.called)
+        self.assertFalse(self.driver.power.set_power_state.called)
+
+    def test_status_error_managed(self, mock_client):
+        utils.set_node_nested_field(self.node, 'driver_internal_info',
+                                    'inspector_manage_boot', True)
+        self.node.save()
+        mock_get = mock_client.return_value.get_introspection
+        mock_get.return_value = mock.Mock(is_finished=True,
+                                          error='boom',
+                                          spec=['is_finished', 'error'])
+        inspector._check_status(self.task)
+        mock_get.assert_called_once_with(self.node.uuid)
+        self.task.process_event.assert_called_once_with('fail')
+        self.assertIn('boom', self.node.last_error)
+        self.driver.network.remove_inspection_network.assert_called_once_with(
+            self.task)
+        self.driver.boot.clean_up_ramdisk.assert_called_once_with(self.task)
+        self.driver.power.set_power_state.assert_called_once_with(
+            self.task, 'power off', timeout=None)
+
+    def test_status_error_managed_no_power_off(self, mock_client):
+        CONF.set_override('power_off', False, group='inspector')
+        utils.set_node_nested_field(self.node, 'driver_internal_info',
+                                    'inspector_manage_boot', True)
+        self.node.save()
+        mock_get = mock_client.return_value.get_introspection
+        mock_get.return_value = mock.Mock(is_finished=True,
+                                          error='boom',
+                                          spec=['is_finished', 'error'])
+        inspector._check_status(self.task)
+        mock_get.assert_called_once_with(self.node.uuid)
+        self.task.process_event.assert_called_once_with('fail')
+        self.assertIn('boom', self.node.last_error)
+        self.driver.network.remove_inspection_network.assert_called_once_with(
+            self.task)
+        self.driver.boot.clean_up_ramdisk.assert_called_once_with(self.task)
+        self.assertFalse(self.driver.power.set_power_state.called)
+
+    def _test_status_clean_up_failed(self, mock_client):
+        utils.set_node_nested_field(self.node, 'driver_internal_info',
+                                    'inspector_manage_boot', True)
+        self.node.save()
+        mock_get = mock_client.return_value.get_introspection
+        mock_get.return_value = mock.Mock(is_finished=True,
+                                          error=None,
+                                          spec=['is_finished', 'error'])
+        inspector._check_status(self.task)
+        mock_get.assert_called_once_with(self.node.uuid)
+        self.task.process_event.assert_called_once_with('fail')
+        self.assertIn('boom', self.node.last_error)
+
+    def test_status_boot_clean_up_failed(self, mock_client):
+        self.driver.boot.clean_up_ramdisk.side_effect = RuntimeError('boom')
+
+        self._test_status_clean_up_failed(mock_client)
+
+        self.driver.boot.clean_up_ramdisk.assert_called_once_with(self.task)
+
+    def test_status_network_clean_up_failed(self, mock_client):
+        self.driver.network.remove_inspection_network.side_effect = \
+            RuntimeError('boom')
+
+        self._test_status_clean_up_failed(mock_client)
+
+        self.driver.network.remove_inspection_network.assert_called_once_with(
+            self.task)
+        self.driver.boot.clean_up_ramdisk.assert_called_once_with(self.task)
 
 
 @mock.patch('ironic.drivers.modules.inspector._get_client', autospec=True)

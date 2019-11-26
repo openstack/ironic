@@ -21,6 +21,23 @@ opts = [
     cfg.IntOpt('status_check_period', default=60,
                help=_('period (in seconds) to check status of nodes '
                       'on inspection')),
+    cfg.StrOpt('extra_kernel_params', default='',
+               help=_('extra kernel parameters to pass to the inspection '
+                      'ramdisk when boot is managed by ironic (not '
+                      'ironic-inspector). Pairs key=value separated by '
+                      'spaces.')),
+    cfg.BoolOpt('power_off', default=True,
+                help=_('whether to power off a node after inspection '
+                       'finishes')),
+    cfg.StrOpt('callback_endpoint_override',
+               help=_('endpoint to use as a callback for posting back '
+                      'introspection data when boot is managed by ironic. '
+                      'Standard keystoneauth options are used by default.')),
+    cfg.BoolOpt('require_managed_boot', default=False,
+                help=_('require that the in-band inspection boot is fully '
+                       'managed by ironic. Set this to True if your '
+                       'installation of ironic-inspector does not have a '
+                       'separate PXE boot environment.')),
 ]
 
 
