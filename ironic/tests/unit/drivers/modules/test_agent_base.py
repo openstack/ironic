@@ -1082,7 +1082,10 @@ class AgentDeployMixinTest(AgentDeployMixinBaseTest):
     @mock.patch.object(agent_client.AgentClient, 'install_bootloader',
                        autospec=True)
     @mock.patch.object(deploy_utils, 'try_set_boot_device', autospec=True)
-    def test_configure_local_boot(self, try_set_boot_device_mock,
+    @mock.patch.object(boot_mode_utils, 'get_boot_mode', autospec=True,
+                       return_value='whatever')
+    def test_configure_local_boot(self, boot_mode_mock,
+                                  try_set_boot_device_mock,
                                   install_bootloader_mock):
         install_bootloader_mock.return_value = {
             'command_status': 'SUCCESS', 'command_error': None}
@@ -1092,17 +1095,24 @@ class AgentDeployMixinTest(AgentDeployMixinBaseTest):
             self.deploy.configure_local_boot(task, root_uuid='some-root-uuid')
             try_set_boot_device_mock.assert_called_once_with(
                 task, boot_devices.DISK, persistent=True)
+            boot_mode_mock.assert_called_once_with(task.node)
             install_bootloader_mock.assert_called_once_with(
                 mock.ANY, task.node, root_uuid='some-root-uuid',
-                efi_system_part_uuid=None, prep_boot_part_uuid=None)
+                efi_system_part_uuid=None, prep_boot_part_uuid=None,
+                target_boot_mode='whatever'
+            )
 
     @mock.patch.object(agent_client.AgentClient, 'install_bootloader',
                        autospec=True)
     @mock.patch.object(deploy_utils, 'try_set_boot_device', autospec=True)
-    def test_configure_local_boot_with_prep(self, try_set_boot_device_mock,
+    @mock.patch.object(boot_mode_utils, 'get_boot_mode', autospec=True,
+                       return_value='whatever')
+    def test_configure_local_boot_with_prep(self, boot_mode_mock,
+                                            try_set_boot_device_mock,
                                             install_bootloader_mock):
         install_bootloader_mock.return_value = {
             'command_status': 'SUCCESS', 'command_error': None}
+
         with task_manager.acquire(self.context, self.node['uuid'],
                                   shared=False) as task:
             task.node.driver_internal_info['is_whole_disk_image'] = False
@@ -1110,14 +1120,20 @@ class AgentDeployMixinTest(AgentDeployMixinBaseTest):
                                              prep_boot_part_uuid='fake-prep')
             try_set_boot_device_mock.assert_called_once_with(
                 task, boot_devices.DISK, persistent=True)
+            boot_mode_mock.assert_called_once_with(task.node)
             install_bootloader_mock.assert_called_once_with(
                 mock.ANY, task.node, root_uuid='some-root-uuid',
-                efi_system_part_uuid=None, prep_boot_part_uuid='fake-prep')
+                efi_system_part_uuid=None, prep_boot_part_uuid='fake-prep',
+                target_boot_mode='whatever'
+            )
 
     @mock.patch.object(agent_client.AgentClient, 'install_bootloader',
                        autospec=True)
     @mock.patch.object(deploy_utils, 'try_set_boot_device', autospec=True)
-    def test_configure_local_boot_uefi(self, try_set_boot_device_mock,
+    @mock.patch.object(boot_mode_utils, 'get_boot_mode', autospec=True,
+                       return_value='uefi')
+    def test_configure_local_boot_uefi(self, boot_mode_mock,
+                                       try_set_boot_device_mock,
                                        install_bootloader_mock):
         install_bootloader_mock.return_value = {
             'command_status': 'SUCCESS', 'command_error': None}
@@ -1129,10 +1145,13 @@ class AgentDeployMixinTest(AgentDeployMixinBaseTest):
                 efi_system_part_uuid='efi-system-part-uuid')
             try_set_boot_device_mock.assert_called_once_with(
                 task, boot_devices.DISK, persistent=True)
+            boot_mode_mock.assert_called_once_with(task.node)
             install_bootloader_mock.assert_called_once_with(
                 mock.ANY, task.node, root_uuid='some-root-uuid',
                 efi_system_part_uuid='efi-system-part-uuid',
-                prep_boot_part_uuid=None)
+                prep_boot_part_uuid=None,
+                target_boot_mode='uefi'
+            )
 
     @mock.patch.object(deploy_utils, 'try_set_boot_device', autospec=True)
     @mock.patch.object(agent_client.AgentClient, 'install_bootloader',
@@ -1178,7 +1197,7 @@ class AgentDeployMixinTest(AgentDeployMixinBaseTest):
             install_bootloader_mock.assert_called_once_with(
                 mock.ANY, task.node, root_uuid=None,
                 efi_system_part_uuid='efi-system-part-uuid',
-                prep_boot_part_uuid=None)
+                prep_boot_part_uuid=None, target_boot_mode='uefi')
 
     @mock.patch.object(image_service, 'GlanceImageService', autospec=True)
     @mock.patch.object(deploy_utils, 'try_set_boot_device', autospec=True)
@@ -1242,7 +1261,8 @@ class AgentDeployMixinTest(AgentDeployMixinBaseTest):
             # check if the root_uuid comes from the driver_internal_info
             install_bootloader_mock.assert_called_once_with(
                 mock.ANY, task.node, root_uuid=root_uuid,
-                efi_system_part_uuid=None, prep_boot_part_uuid=None)
+                efi_system_part_uuid=None, prep_boot_part_uuid=None,
+                target_boot_mode='bios')
             try_set_boot_device_mock.assert_called_once_with(
                 task, boot_devices.DISK, persistent=True)
 
@@ -1324,8 +1344,11 @@ class AgentDeployMixinTest(AgentDeployMixinBaseTest):
                        autospec=True)
     @mock.patch.object(agent_client.AgentClient, 'install_bootloader',
                        autospec=True)
+    @mock.patch.object(boot_mode_utils, 'get_boot_mode', autospec=True,
+                       return_value='whatever')
     def test_configure_local_boot_boot_loader_install_fail(
-            self, install_bootloader_mock, collect_logs_mock):
+            self, boot_mode_mock, install_bootloader_mock,
+            collect_logs_mock):
         install_bootloader_mock.return_value = {
             'command_status': 'FAILED', 'command_error': 'boom'}
         self.node.provision_state = states.DEPLOYING
@@ -1337,9 +1360,12 @@ class AgentDeployMixinTest(AgentDeployMixinBaseTest):
             self.assertRaises(exception.InstanceDeployFailure,
                               self.deploy.configure_local_boot,
                               task, root_uuid='some-root-uuid')
+            boot_mode_mock.assert_called_once_with(task.node)
             install_bootloader_mock.assert_called_once_with(
                 mock.ANY, task.node, root_uuid='some-root-uuid',
-                efi_system_part_uuid=None, prep_boot_part_uuid=None)
+                efi_system_part_uuid=None, prep_boot_part_uuid=None,
+                target_boot_mode='whatever'
+            )
             collect_logs_mock.assert_called_once_with(mock.ANY, task.node)
             self.assertEqual(states.DEPLOYFAIL, task.node.provision_state)
             self.assertEqual(states.ACTIVE, task.node.target_provision_state)
@@ -1349,9 +1375,11 @@ class AgentDeployMixinTest(AgentDeployMixinBaseTest):
     @mock.patch.object(deploy_utils, 'try_set_boot_device', autospec=True)
     @mock.patch.object(agent_client.AgentClient, 'install_bootloader',
                        autospec=True)
+    @mock.patch.object(boot_mode_utils, 'get_boot_mode', autospec=True,
+                       return_value='whatever')
     def test_configure_local_boot_set_boot_device_fail(
-            self, install_bootloader_mock, try_set_boot_device_mock,
-            collect_logs_mock):
+            self, boot_mode_mock, install_bootloader_mock,
+            try_set_boot_device_mock, collect_logs_mock):
         install_bootloader_mock.return_value = {
             'command_status': 'SUCCESS', 'command_error': None}
         try_set_boot_device_mock.side_effect = RuntimeError('error')
@@ -1365,9 +1393,11 @@ class AgentDeployMixinTest(AgentDeployMixinBaseTest):
                               self.deploy.configure_local_boot,
                               task, root_uuid='some-root-uuid',
                               prep_boot_part_uuid=None)
+            boot_mode_mock.assert_called_once_with(task.node)
             install_bootloader_mock.assert_called_once_with(
                 mock.ANY, task.node, root_uuid='some-root-uuid',
-                efi_system_part_uuid=None, prep_boot_part_uuid=None)
+                efi_system_part_uuid=None, prep_boot_part_uuid=None,
+                target_boot_mode='whatever')
             try_set_boot_device_mock.assert_called_once_with(
                 task, boot_devices.DISK, persistent=True)
             collect_logs_mock.assert_called_once_with(mock.ANY, task.node)
