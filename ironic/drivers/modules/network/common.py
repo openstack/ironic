@@ -390,6 +390,7 @@ class VIFPortIDMixin(object):
         return (p_obj.internal_info.get('cleaning_vif_port_id')
                 or p_obj.internal_info.get('provisioning_vif_port_id')
                 or p_obj.internal_info.get('rescuing_vif_port_id')
+                or p_obj.internal_info.get('inspection_vif_port_id')
                 or self._get_vif_id_by_port_like_obj(p_obj) or None)
 
 

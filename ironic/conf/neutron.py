@@ -90,6 +90,18 @@ opts = [
                        'cleaning, or rescue. This is done without IP '
                        'addresses assigned to the port, and may be useful '
                        'in some bonded network configurations.')),
+    cfg.StrOpt('inspection_network',
+               help=_('Neutron network UUID or name for the ramdisk to be '
+                      'booted into for in-band inspection of nodes. '
+                      'If a name is provided, it must be unique among all '
+                      'networks or inspection will fail.')),
+    cfg.ListOpt('inspection_network_security_groups',
+                default=[],
+                help=_('List of Neutron Security Group UUIDs to be applied '
+                       'during the node inspection process. Optional for the '
+                       '"neutron" network interface and not used for the '
+                       '"flat" or "noop" network interfaces. If not '
+                       'specified, the default security group is used.')),
 ]
 
 

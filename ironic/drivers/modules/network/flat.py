@@ -126,6 +126,32 @@ class FlatNetwork(common.NeutronVIFPortIDMixin,
         """
         self._unbind_flat_ports(task)
 
+    def _add_service_network(self, task, network, process):
+        # If we have left over ports from a previous process, remove them
+        neutron.rollback_ports(task, network)
+        LOG.info('Adding %s network to node %s', process, task.node.uuid)
+        vifs = neutron.add_ports_to_network(task, network)
+        field = '%s_vif_port_id' % process
+        for port in task.ports:
+            if port.uuid in vifs:
+                internal_info = port.internal_info
+                internal_info[field] = vifs[port.uuid]
+                port.internal_info = internal_info
+                port.save()
+        return vifs
+
+    def _remove_service_network(self, task, network, process):
+        LOG.info('Removing ports from %s network for node %s',
+                 process, task.node.uuid)
+        neutron.remove_ports_from_network(task, network)
+        field = '%s_vif_port_id' % process
+        for port in task.ports:
+            if field in port.internal_info:
+                internal_info = port.internal_info
+                del internal_info[field]
+                port.internal_info = internal_info
+                port.save()
+
     def add_cleaning_network(self, task):
         """Add the cleaning network to a node.
 
@@ -133,19 +159,8 @@ class FlatNetwork(common.NeutronVIFPortIDMixin,
         :returns: a dictionary in the form {port.uuid: neutron_port['id']}
         :raises: NetworkError, InvalidParameterValue
         """
-        # If we have left over ports from a previous cleaning, remove them
-        neutron.rollback_ports(task,
-                               self.get_cleaning_network_uuid(task))
-        LOG.info('Adding cleaning network to node %s', task.node.uuid)
-        vifs = neutron.add_ports_to_network(
-            task, self.get_cleaning_network_uuid(task))
-        for port in task.ports:
-            if port.uuid in vifs:
-                internal_info = port.internal_info
-                internal_info['cleaning_vif_port_id'] = vifs[port.uuid]
-                port.internal_info = internal_info
-                port.save()
-        return vifs
+        return self._add_service_network(
+            task, self.get_cleaning_network_uuid(task), 'cleaning')
 
     def remove_cleaning_network(self, task):
         """Remove the cleaning network from a node.
@@ -153,16 +168,8 @@ class FlatNetwork(common.NeutronVIFPortIDMixin,
         :param task: A TaskManager instance.
         :raises: NetworkError
         """
-        LOG.info('Removing ports from cleaning network for node %s',
-                 task.node.uuid)
-        neutron.remove_ports_from_network(
-            task, self.get_cleaning_network_uuid(task))
-        for port in task.ports:
-            if 'cleaning_vif_port_id' in port.internal_info:
-                internal_info = port.internal_info
-                del internal_info['cleaning_vif_port_id']
-                port.internal_info = internal_info
-                port.save()
+        return self._remove_service_network(
+            task, self.get_cleaning_network_uuid(task), 'cleaning')
 
     def add_rescuing_network(self, task):
         """Add the rescuing network to a node.
@@ -188,3 +195,26 @@ class FlatNetwork(common.NeutronVIFPortIDMixin,
         """
         LOG.info('Unbind ports for rescuing node %s', task.node.uuid)
         self._unbind_flat_ports(task)
+
+    def add_inspection_network(self, task):
+        """Add the inspection network to the node.
+
+        :param task: A TaskManager instance.
+        :returns: a dictionary in the form {port.uuid: neutron_port['id']}
+        :raises: NetworkError
+        :raises: InvalidParameterValue, if the network interface configuration
+            is invalid.
+        """
+        return self._add_service_network(
+            task, self.get_inspection_network_uuid(task), 'inspection')
+
+    def remove_inspection_network(self, task):
+        """Removes the inspection network from a node.
+
+        :param task: A TaskManager instance.
+        :raises: InvalidParameterValue, if the network interface configuration
+            is invalid.
+        :raises: MissingParameterValue, if some parameters are missing.
+        """
+        return self._remove_service_network(
+            task, self.get_inspection_network_uuid(task), 'inspection')

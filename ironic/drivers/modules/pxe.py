@@ -61,20 +61,7 @@ class PXEBoot(pxe_base.PXEBaseMixin, base.BootInterface):
         if CONF.pxe.ipxe_enabled:
             pxe_utils.create_ipxe_boot_script()
 
-    @METRICS.timer('PXEBoot.validate')
-    def validate(self, task):
-        """Validate the PXE-specific info for booting deploy/instance images.
-
-        This method validates the PXE-specific info for booting the
-        ramdisk and instance on the node.  If invalid, raises an
-        exception; otherwise returns None.
-
-        :param task: a task from TaskManager.
-        :returns: None
-        :raises: InvalidParameterValue, if some parameters are invalid.
-        :raises: MissingParameterValue, if some required parameters are
-            missing.
-        """
+    def _validate_common(self, task):
         node = task.node
 
         if not driver_utils.get_node_mac_addresses(task):
@@ -99,11 +86,29 @@ class PXEBoot(pxe_base.PXEBaseMixin, base.BootInterface):
             validate_boot_parameters_for_trusted_boot(node)
 
         pxe_utils.parse_driver_info(node)
+
+    @METRICS.timer('PXEBoot.validate')
+    def validate(self, task):
+        """Validate the PXE-specific info for booting deploy/instance images.
+
+        This method validates the PXE-specific info for booting the
+        ramdisk and instance on the node.  If invalid, raises an
+        exception; otherwise returns None.
+
+        :param task: a task from TaskManager.
+        :returns: None
+        :raises: InvalidParameterValue, if some parameters are invalid.
+        :raises: MissingParameterValue, if some required parameters are
+            missing.
+        """
+        self._validate_common(task)
+
         # NOTE(TheJulia): If we're not writing an image, we can skip
         # the remainder of this method.
         if (not task.driver.storage.should_write_image(task)):
             return
 
+        node = task.node
         d_info = deploy_utils.get_image_instance_info(node)
         if (node.driver_internal_info.get('is_whole_disk_image')
                 or deploy_utils.get_boot_option(node) == 'local'):
@@ -113,6 +118,20 @@ class PXEBoot(pxe_base.PXEBaseMixin, base.BootInterface):
         else:
             props = ['kernel', 'ramdisk']
         deploy_utils.validate_image_properties(task.context, d_info, props)
+
+    @METRICS.timer('PXEBoot.validate_inspection')
+    def validate_inspection(self, task):
+        """Validate that the node has required properties for inspection.
+
+        :param task: A TaskManager instance with the node being checked
+        :raises: UnsupportedDriverExtension
+        """
+        try:
+            self._validate_common(task)
+        except exception.MissingParameterValue:
+            # Fall back to non-managed in-band inspection
+            raise exception.UnsupportedDriverExtension(
+                driver=task.node.driver, extension='inspection')
 
     @METRICS.timer('PXEBoot.prepare_ramdisk')
     def prepare_ramdisk(self, task, ramdisk_params):

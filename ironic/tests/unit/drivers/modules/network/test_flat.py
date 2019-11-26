@@ -104,13 +104,9 @@ class TestFlatInterface(db_base.DbTestCase):
                 task, CONF.neutron.cleaning_network)
             add_mock.assert_called_once_with(
                 task, CONF.neutron.cleaning_network)
-            validate_calls = [
-                mock.call(CONF.neutron.cleaning_network, 'cleaning network',
-                          context=task.context),
-                mock.call(CONF.neutron.cleaning_network, 'cleaning network',
-                          context=task.context)
-            ]
-            validate_mock.assert_has_calls(validate_calls)
+            validate_mock.assert_called_once_with(
+                CONF.neutron.cleaning_network, 'cleaning network',
+                context=task.context)
         self.port.refresh()
         self.assertEqual('vif-port-id',
                          self.port.internal_info['cleaning_vif_port_id'])
@@ -273,3 +269,70 @@ class TestFlatInterface(db_base.DbTestCase):
         with task_manager.acquire(self.context, self.node.id) as task:
             self.interface.remove_provisioning_network(task)
             unbind_mock.assert_called_once_with(task)
+
+    @mock.patch.object(neutron, 'validate_network',
+                       side_effect=lambda n, t, context=None: n)
+    @mock.patch.object(neutron, 'add_ports_to_network')
+    @mock.patch.object(neutron, 'rollback_ports')
+    def test_add_inspection_network(self, rollback_mock, add_mock,
+                                    validate_mock):
+        add_mock.return_value = {self.port.uuid: 'vif-port-id'}
+        with task_manager.acquire(self.context, self.node.id) as task:
+            self.interface.add_inspection_network(task)
+            rollback_mock.assert_called_once_with(
+                task, CONF.neutron.inspection_network)
+            add_mock.assert_called_once_with(
+                task, CONF.neutron.inspection_network)
+            validate_mock.assert_called_once_with(
+                CONF.neutron.inspection_network, 'inspection network',
+                context=task.context)
+        self.port.refresh()
+        self.assertEqual('vif-port-id',
+                         self.port.internal_info['inspection_vif_port_id'])
+
+    @mock.patch.object(neutron, 'validate_network',
+                       side_effect=lambda n, t, context=None: n)
+    @mock.patch.object(neutron, 'add_ports_to_network')
+    @mock.patch.object(neutron, 'rollback_ports')
+    def test_add_inspection_network_from_node(self, rollback_mock, add_mock,
+                                              validate_mock):
+        add_mock.return_value = {self.port.uuid: 'vif-port-id'}
+        # Make sure that changing the network UUID works
+        for inspection_network_uuid in [
+                '3aea0de6-4b92-44da-9aa0-52d134c83fdf',
+                '438be438-6aae-4fb1-bbcb-613ad7a38286']:
+            driver_info = self.node.driver_info
+            driver_info['inspection_network'] = inspection_network_uuid
+            self.node.driver_info = driver_info
+            self.node.save()
+            with task_manager.acquire(self.context, self.node.id) as task:
+                self.interface.add_inspection_network(task)
+                rollback_mock.assert_called_with(
+                    task, inspection_network_uuid)
+                add_mock.assert_called_with(task, inspection_network_uuid)
+                validate_mock.assert_called_with(
+                    inspection_network_uuid,
+                    'inspection network', context=task.context)
+        self.port.refresh()
+        self.assertEqual('vif-port-id',
+                         self.port.internal_info['inspection_vif_port_id'])
+
+    @mock.patch.object(neutron, 'validate_network',
+                       side_effect=lambda n, t, context=None: n)
+    def test_validate_inspection(self, validate_mock):
+        inspection_network_uuid = '3aea0de6-4b92-44da-9aa0-52d134c83fdf'
+        driver_info = self.node.driver_info
+        driver_info['inspection_network'] = inspection_network_uuid
+        self.node.driver_info = driver_info
+        self.node.save()
+        with task_manager.acquire(self.context, self.node.id) as task:
+            self.interface.validate_inspection(task)
+            validate_mock.assert_called_once_with(
+                inspection_network_uuid, 'inspection network',
+                context=task.context),
+
+    def test_validate_inspection_exc(self):
+        self.config(inspection_network="", group='neutron')
+        with task_manager.acquire(self.context, self.node.id) as task:
+            self.assertRaises(exception.UnsupportedDriverExtension,
+                              self.interface.validate_inspection, task)
