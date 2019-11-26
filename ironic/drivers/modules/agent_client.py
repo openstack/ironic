@@ -162,7 +162,7 @@ class AgentClient(object):
         """
         url = self._get_command_url(node)
         LOG.debug('Fetching status of agent commands for node %s', node.uuid)
-        resp = self.session.get(url)
+        resp = self.session.get(url, timeout=CONF.agent.command_timeout)
         result = resp.json()['commands']
         status = '; '.join('%(cmd)s: result "%(res)s", error "%(err)s"' %
                            {'cmd': r.get('command_name'),
