@@ -3,17 +3,14 @@
       - check-requirements
       - openstack-cover-jobs
       - openstack-lower-constraints-jobs
-      - openstack-python-jobs
       - openstack-python3-ussuri-jobs
       - periodic-stable-jobs
       - publish-openstack-docs-pti
       - release-notes-jobs-python3
     check:
       jobs:
-        - ironic-tox-unit-with-driver-libs
         - ironic-tox-unit-with-driver-libs-python3
         - ironic-standalone
-        - ironic-tempest-functional-python2
         - ironic-tempest-functional-python3
         - ironic-grenade-dsvm
         # Temporary disable voting because of end of cycle CI instability.
@@ -47,10 +44,8 @@
     gate:
       queue: ironic
       jobs:
-        - ironic-tox-unit-with-driver-libs
         - ironic-tox-unit-with-driver-libs-python3
         - ironic-standalone
-        - ironic-tempest-functional-python2
         - ironic-tempest-functional-python3
         - ironic-grenade-dsvm
         # removing from voting due to end of cycle gate instability.

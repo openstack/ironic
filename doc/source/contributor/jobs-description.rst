@@ -15,18 +15,12 @@ The description of each jobs that runs in the CI when you submit a patch for
 
    * - Job name
      - Description
-   * - ironic-tox-unit-with-driver-libs
-     - Runs Ironic unit tests with the driver dependencies installed under
-       Python2
    * - ironic-tox-unit-with-driver-libs-python3
      - Runs Ironic unit tests with the driver dependencies installed under
        Python3
    * - ironic-standalone
      - Deploys Ironic in standalone mode and runs tempest tests that match
        the regex `ironic_standalone`.
-   * - ironic-tempest-functional-python2
-     - Deploys Ironic in standalone mode and runs tempest functional tests
-       that matches the regex `ironic_tempest_plugin.tests.api` under Python2
    * - ironic-tempest-functional-python3
      - Deploys Ironic in standalone mode and runs tempest functional tests
        that matches the regex `ironic_tempest_plugin.tests.api` under Python3
