@@ -148,11 +148,12 @@
         IRONIC_ENABLED_MANAGEMENT_INTERFACES: redfish
 
 - job:
-    name: ironic-tempest-partition-bios-redfish-vmedia
-    description: "Deploy ironic node over Redfish virtual media using legacy BIOS boot mode"
+    name: ironic-tempest-partition-uefi-redfish-vmedia
+    description: "Deploy ironic node over Redfish virtual media using UEFI boot mode"
     parent: ironic-tempest-partition-bios-redfish-pxe
     vars:
       devstack_localrc:
+        IRONIC_BOOT_MODE: uefi
         IRONIC_ENABLED_BOOT_INTERFACES: redfish-virtual-media
         IRONIC_VM_SPECS_RAM: 512
         SWIFT_ENABLE_TEMPURLS: True
@@ -164,13 +165,23 @@
         s-proxy: True
 
 - job:
-    name: ironic-tempest-partition-uefi-redfish-vmedia
-    description: "Deploy ironic node over Redfish virtual media using UEFI boot mode"
-    parent: ironic-tempest-partition-bios-redfish-vmedia
+    name: ironic-inspector-tempest-partition-bios-redfish-vmedia
+    description: "Inspect and deploy ironic node over Redfish virtual media using legacy BIOS boot mode"
+    parent: ironic-tempest-partition-uefi-redfish-vmedia
+    required-projects:
+      - openstack/ironic-inspector
     vars:
+      # NOTE(dtantsur): the inspector job includes booting an instance too
+      tempest_test_regex: Inspector
       devstack_localrc:
-        IRONIC_BOOT_MODE: uefi
-        IRONIC_VM_SPECS_RAM: 512
+        IRONIC_BOOT_MODE: bios
+        IRONIC_INSPECTOR_MANAGED_BOOT: True
+        IRONIC_INSPECTOR_NODE_NOT_FOUND_HOOK: ''
+      devstack_plugins:
+        ironic-inspector: https://opendev.org/openstack/ironic-inspector
+      devstack_services:
+        ironic-inspector: True
+        ironic-inspector-dhcp: True
 
 - job:
     name: ironic-tempest-pxe_ipmitool-postgres
