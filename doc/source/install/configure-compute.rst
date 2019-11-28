@@ -32,10 +32,6 @@ service's controller nodes and compute nodes.
        # Enable the ironic virt driver for this compute instance.
        compute_driver=ironic.IronicDriver
 
-       # Firewall driver to use with nova-network service.
-       # Ironic supports only neutron, so set this to noop.
-       firewall_driver=nova.virt.firewall.NoopFirewallDriver
-
        # Amount of memory in MB to reserve for the host so that it is always
        # available to host processes.
        # It is impossible to reserve any memory on bare metal nodes, so set
