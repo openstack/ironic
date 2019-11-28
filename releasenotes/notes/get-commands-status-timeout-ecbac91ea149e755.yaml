@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Add timeout when querying agent for commands status. Without it,
+    node can lock up for a quite long time and ironic will not allow
+    to perform any operations with it.
