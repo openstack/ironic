@@ -10,7 +10,7 @@
     {% if uefi_loader %}
         <loader readonly='yes' type='pflash'>{{ uefi_loader }}</loader>
         {% if uefi_nvram %}
-            <nvram>{{ uefi_nvram }}</nvram>
+            <nvram template='{{ uefi_nvram }}'>{{ uefi_nvram }}-{{ name }}</nvram>
         {% endif %}
     {% endif %}
     <bootmenu enable='no'/>
