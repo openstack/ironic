@@ -35,7 +35,6 @@ from oslo_utils import fileutils
 from oslo_utils import netutils
 from oslo_utils import timeutils
 import pytz
-import six
 
 from ironic.common import exception
 from ironic.common.i18n import _
@@ -92,7 +91,7 @@ def is_valid_datapath_id(datapath_id):
 
     """
     m = "^[0-9a-f]{16}$"
-    return (isinstance(datapath_id, six.string_types)
+    return (isinstance(datapath_id, str)
             and re.match(m, datapath_id.lower()))
 
 
@@ -114,7 +113,7 @@ def is_valid_logical_name(hostname):
 
         ALPHA / DIGIT / "-" / "." / "_" / "~"
     """
-    if not isinstance(hostname, six.string_types) or len(hostname) > 255:
+    if not isinstance(hostname, str) or len(hostname) > 255:
         return False
 
     return _is_valid_logical_name_re.match(hostname) is not None
@@ -136,7 +135,7 @@ def is_hostname_safe(hostname):
     :param hostname: The hostname to be validated.
     :returns: True if valid. False if not.
     """
-    if not isinstance(hostname, six.string_types) or len(hostname) > 255:
+    if not isinstance(hostname, str) or len(hostname) > 255:
         return False
 
     return _is_hostname_safe_re.match(hostname) is not None
@@ -153,7 +152,7 @@ def is_valid_no_proxy(no_proxy):
         (with optional :port).
     :returns: True if no_proxy is valid, False otherwise.
     """
-    if not isinstance(no_proxy, six.string_types):
+    if not isinstance(no_proxy, str):
         return False
     hostname_re = re.compile('(?!-)[A-Z\\d-]{1,63}(?<!-)$', re.IGNORECASE)
     for hostname in no_proxy.split(','):
@@ -219,8 +218,7 @@ def _get_hash_object(hash_algo_name):
     :raises: InvalidParameterValue, on unsupported or invalid input.
     :returns: a hash object based on the given named algorithm.
     """
-    algorithms = (hashlib.algorithms_guaranteed if six.PY3
-                  else hashlib.algorithms)
+    algorithms = hashlib.algorithms_guaranteed
     if hash_algo_name not in algorithms:
         msg = (_("Unsupported/Invalid hash name '%s' provided.")
                % hash_algo_name)
@@ -242,7 +240,7 @@ def file_has_content(path, content, hash_algo='md5'):
     file_hash_hex = fileutils.compute_file_checksum(path, algorithm=hash_algo)
     ref_hash = _get_hash_object(hash_algo)
     encoded_content = (content.encode(encoding='utf-8')
-                       if isinstance(content, six.string_types) else content)
+                       if isinstance(content, str) else content)
     ref_hash.update(encoded_content)
     return file_hash_hex == ref_hash.hexdigest()
 
@@ -294,7 +292,7 @@ def safe_rstrip(value, chars=None):
     :return: Stripped value.
 
     """
-    if not isinstance(value, six.string_types):
+    if not isinstance(value, str):
         LOG.warning("Failed to remove trailing character. Returning "
                     "original object. Supplied object is not a string: "
                     "%s,", value)
@@ -515,7 +513,7 @@ def parse_instance_info_capabilities(node):
         raise exception.InvalidParameterValue(error_msg)
 
     capabilities = node.instance_info.get('capabilities', {})
-    if isinstance(capabilities, six.string_types):
+    if isinstance(capabilities, str):
         try:
             capabilities = jsonutils.loads(capabilities)
         except (ValueError, TypeError):
@@ -528,7 +526,7 @@ def parse_instance_info_capabilities(node):
 
 
 def validate_conductor_group(conductor_group):
-    if not isinstance(conductor_group, six.string_types):
+    if not isinstance(conductor_group, str):
         raise exception.InvalidConductorGroup(group=conductor_group)
     if not re.match(r'^[a-zA-Z0-9_\-\.]*$', conductor_group):
         raise exception.InvalidConductorGroup(group=conductor_group)

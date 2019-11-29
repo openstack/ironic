@@ -15,7 +15,6 @@
 """Tests for manipulating VolumeTargets via the DB API"""
 
 from oslo_utils import uuidutils
-import six
 
 from ironic.common import exception
 from ironic.tests.unit.db import base
@@ -79,20 +78,20 @@ class DbVolumeTargetTestCase(base.DbTestCase):
                           '11111111-2222-3333-4444-555555555555')
 
     def _create_list_of_volume_targets(self, num):
-        uuids = [six.text_type(self.target.uuid)]
+        uuids = [str(self.target.uuid)]
         for i in range(1, num):
             volume_target = db_utils.create_test_volume_target(
                 uuid=uuidutils.generate_uuid(),
                 properties={"target_iqn": "iqn.test-%s" % i},
                 boot_index=i)
-            uuids.append(six.text_type(volume_target.uuid))
+            uuids.append(str(volume_target.uuid))
         return uuids
 
     def test_get_volume_target_list(self):
         uuids = self._create_list_of_volume_targets(6)
         res = self.dbapi.get_volume_target_list()
         res_uuids = [r.uuid for r in res]
-        six.assertCountEqual(self, uuids, res_uuids)
+        self.assertCountEqual(uuids, res_uuids)
 
     def test_get_volume_target_list_sorted(self):
         uuids = self._create_list_of_volume_targets(5)

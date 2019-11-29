@@ -15,18 +15,18 @@
 Firmware file processor
 """
 
+import functools
 import os
 import re
 import shutil
 import tempfile
 import types
+from urllib import parse as urlparse
 
 from oslo_config import cfg
 from oslo_log import log as logging
 from oslo_utils import excutils
 from oslo_utils import importutils
-import six
-import six.moves.urllib.parse as urlparse
 
 from ironic.common import exception
 from ironic.common.i18n import _
@@ -53,7 +53,7 @@ proliantutils_utils = importutils.try_import('proliantutils.utils')
 
 def verify_firmware_update_args(func):
     """Verifies the firmware update arguments."""
-    @six.wraps(func)
+    @functools.wraps(func)
     def wrapper(self, task, **kwargs):
         """Wrapper around ``update_firmware`` call.
 

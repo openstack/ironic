@@ -13,11 +13,11 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import importlib
 import sys
 
 import mock
 from oslo_utils import importutils
-import six
 
 from ironic.common import boot_devices
 from ironic.common import exception
@@ -75,7 +75,7 @@ class XClarityManagementDriverTestCase(db_base.DbTestCase):
             sys.modules['xclarity_client.exceptions'] = (
                 xclarity_client_exceptions)
             if 'ironic.drivers.modules.xclarity' in sys.modules:
-                six.moves.reload_module(
+                importlib.reload(
                     sys.modules['ironic.drivers.modules.xclarity'])
             ex = exception.XClarityError('E')
             mock_get_xc_client.return_value.set_node_boot_info.side_effect = ex
@@ -110,7 +110,7 @@ class XClarityManagementDriverTestCase(db_base.DbTestCase):
             sys.modules['xclarity_client.exceptions'] = (
                 xclarity_client_exceptions)
             if 'ironic.drivers.modules.xclarity' in sys.modules:
-                six.moves.reload_module(
+                importlib.reload(
                     sys.modules['ironic.drivers.modules.xclarity'])
             ex = exception.XClarityError('E')
             mock_xc_client.return_value.get_node_all_boot_info.side_effect = ex

@@ -16,7 +16,6 @@
 """Tests for manipulating Ports via the DB API"""
 
 from oslo_utils import uuidutils
-import six
 
 from ironic.common import exception
 from ironic.tests.unit.db import base
@@ -51,21 +50,21 @@ class DbPortTestCase(base.DbTestCase):
         for i in range(1, 6):
             port = db_utils.create_test_port(uuid=uuidutils.generate_uuid(),
                                              address='52:54:00:cf:2d:4%s' % i)
-            uuids.append(six.text_type(port.uuid))
+            uuids.append(str(port.uuid))
         # Also add the uuid for the port created in setUp()
-        uuids.append(six.text_type(self.port.uuid))
+        uuids.append(str(self.port.uuid))
         res = self.dbapi.get_port_list()
         res_uuids = [r.uuid for r in res]
-        six.assertCountEqual(self, uuids, res_uuids)
+        self.assertCountEqual(uuids, res_uuids)
 
     def test_get_port_list_sorted(self):
         uuids = []
         for i in range(1, 6):
             port = db_utils.create_test_port(uuid=uuidutils.generate_uuid(),
                                              address='52:54:00:cf:2d:4%s' % i)
-            uuids.append(six.text_type(port.uuid))
+            uuids.append(str(port.uuid))
         # Also add the uuid for the port created in setUp()
-        uuids.append(six.text_type(self.port.uuid))
+        uuids.append(str(self.port.uuid))
         res = self.dbapi.get_port_list(sort_key='uuid')
         res_uuids = [r.uuid for r in res]
         self.assertEqual(sorted(uuids), res_uuids)

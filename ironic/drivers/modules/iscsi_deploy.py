@@ -13,12 +13,13 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+from urllib import parse as urlparse
+
 from ironic_lib import disk_utils
 from ironic_lib import metrics_utils
 from ironic_lib import utils as il_utils
 from oslo_log import log as logging
 from oslo_utils import excutils
-from six.moves.urllib import parse
 
 from ironic.common import dhcp_factory
 from ironic.common import exception
@@ -284,7 +285,7 @@ def do_agent_iscsi_deploy(task, agent_client):
         deploy_utils.set_failed_state(task, msg)
         raise exception.InstanceDeployFailure(reason=msg)
 
-    address = parse.urlparse(node.driver_internal_info['agent_url'])
+    address = urlparse.urlparse(node.driver_internal_info['agent_url'])
     address = address.hostname
 
     uuid_dict_returned = continue_deploy(task, iqn=iqn, address=address,

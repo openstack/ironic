@@ -21,7 +21,6 @@ import json
 from oslo_log import log
 from oslo_utils import strutils
 from oslo_utils import uuidutils
-import six
 import wsme
 from wsme import types as wtypes
 
@@ -121,7 +120,7 @@ class BooleanType(wtypes.UserType):
             return strutils.bool_from_string(value, strict=True)
         except ValueError as e:
             # raise Invalid to return 400 (BadRequest) in the API
-            raise exception.Invalid(six.text_type(e))
+            raise exception.Invalid(str(e))
 
     @staticmethod
     def frombasetype(value):
@@ -138,7 +137,7 @@ class JsonType(wtypes.UserType):
 
     def __str__(self):
         # These are the json serializable native types
-        return ' | '.join(map(str, (wtypes.text, six.integer_types, float,
+        return ' | '.join(map(str, (wtypes.text, int, float,
                                     BooleanType, list, dict, None)))
 
     @staticmethod
@@ -170,7 +169,7 @@ class ListType(wtypes.UserType):
                   same order
         """
         items = []
-        for v in six.text_type(value).split(','):
+        for v in str(value).split(','):
             v_norm = v.strip().lower()
             if v_norm and v_norm not in items:
                 items.append(v_norm)

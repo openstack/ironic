@@ -17,13 +17,13 @@ Boot Interface for iLO drivers and its supporting methods.
 
 import os
 import tempfile
+from urllib import parse as urlparse
 
 from ironic_lib import metrics_utils
 from ironic_lib import utils as ironic_utils
 from oslo_config import cfg
 from oslo_log import log as logging
 from oslo_utils import excutils
-import six.moves.urllib.parse as urlparse
 
 from ironic.common import boot_devices
 from ironic.common import exception

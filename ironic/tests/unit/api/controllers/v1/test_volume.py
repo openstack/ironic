@@ -13,7 +13,7 @@
 Tests for the API /volume/ methods.
 """
 
-from six.moves import http_client
+from http import client as http_client
 
 from ironic.api.controllers import base as api_base
 from ironic.api.controllers import v1 as api_v1

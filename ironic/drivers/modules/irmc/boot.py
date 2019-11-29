@@ -19,12 +19,12 @@ iRMC Boot Driver
 import os
 import shutil
 import tempfile
+from urllib import parse as urlparse
 
 from ironic_lib import metrics_utils
 from ironic_lib import utils as ironic_utils
 from oslo_log import log as logging
 from oslo_utils import importutils
-import six.moves.urllib.parse as urlparse
 
 from ironic.common import boot_devices
 from ironic.common import exception

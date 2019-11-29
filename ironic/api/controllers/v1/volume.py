@@ -12,9 +12,10 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+from http import client as http_client
+
 import pecan
 from pecan import rest
-from six.moves import http_client
 import wsme
 
 from ironic import api

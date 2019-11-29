@@ -12,13 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from http import client as http_client
 import json
 
 import mock
 import requests
 import retrying
-import six
-from six.moves import http_client
 
 from ironic.common import exception
 from ironic import conf
@@ -31,7 +30,7 @@ CONF = conf.CONF
 
 class MockResponse(object):
     def __init__(self, text, status_code=http_client.OK):
-        assert isinstance(text, six.string_types)
+        assert isinstance(text, str)
         self.text = text
         self.status_code = status_code
 

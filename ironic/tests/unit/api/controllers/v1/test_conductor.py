@@ -14,12 +14,12 @@ Tests for the API /conductors/ methods.
 """
 
 import datetime
+from http import client as http_client
 
 import mock
 from oslo_config import cfg
 from oslo_utils import timeutils
 from oslo_utils import uuidutils
-from six.moves import http_client
 
 from ironic.api.controllers import base as api_base
 from ironic.api.controllers import v1 as api_v1

@@ -101,6 +101,7 @@ raised in the background thread.):
 """
 
 import copy
+import functools
 
 import futurist
 from oslo_config import cfg
@@ -108,7 +109,6 @@ from oslo_log import log as logging
 from oslo_utils import excutils
 from oslo_utils import timeutils
 import retrying
-import six
 
 from ironic.common import driver_factory
 from ironic.common import exception
@@ -131,7 +131,7 @@ def require_exclusive_lock(f):
     as the first parameter after "self".
 
     """
-    @six.wraps(f)
+    @functools.wraps(f)
     def wrapper(*args, **kwargs):
         # NOTE(dtantsur): this code could be written simpler, but then unit
         # testing decorated functions is pretty hard, as we usually pass a Mock
@@ -378,7 +378,7 @@ class TaskManager(object):
                 if exc is not None:
                     msg = _("Async execution of %(method)s failed with error: "
                             "%(error)s") % {'method': method,
-                                            'error': six.text_type(exc)}
+                                            'error': str(exc)}
                     node.last_error = msg
                     try:
                         node.save()

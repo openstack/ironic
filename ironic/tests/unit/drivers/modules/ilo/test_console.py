@@ -16,18 +16,12 @@
 """Test class for common methods used by iLO modules."""
 
 import mock
-import six
 
 from ironic.common import exception
 from ironic.conductor import task_manager
 from ironic.drivers.modules.ilo import common as ilo_common
 from ironic.drivers.modules import ipmitool
 from ironic.tests.unit.drivers.modules.ilo import test_common
-
-
-if six.PY3:
-    import io
-    file = io.BytesIO
 
 
 class IloConsoleInterfaceTestCase(test_common.BaseIloTest):

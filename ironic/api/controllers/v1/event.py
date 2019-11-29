@@ -10,10 +10,11 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+from http import client as http_client
+
 from ironic_lib import metrics_utils
 from oslo_log import log
 import pecan
-from six.moves import http_client
 
 from ironic import api
 from ironic.api.controllers.v1 import collection

@@ -15,9 +15,10 @@
 Tests to assert that various incorporated middleware works as expected.
 """
 
+from http import client as http_client
+
 from oslo_config import cfg
 import oslo_middleware.cors as cors_middleware
-from six.moves import http_client
 
 from ironic.tests.unit.api import base
 

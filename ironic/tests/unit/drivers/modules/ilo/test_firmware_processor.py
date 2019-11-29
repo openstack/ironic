@@ -13,12 +13,13 @@
 # under the License.
 
 """Test class for Firmware Processor used by iLO management interface."""
+
+import builtins
 import io
+from urllib import parse as urlparse
 
 import mock
 from oslo_utils import importutils
-from six.moves import builtins as __builtin__
-import six.moves.urllib.parse as urlparse
 
 from ironic.common import exception
 from ironic.drivers.modules.ilo import common as ilo_common
@@ -42,8 +43,8 @@ class FirmwareProcessorTestCase(base.TestCase):
         firmware_update_args = {'firmware_update_mode': 'invalid_mode',
                                 'firmware_images': None}
         # Note(deray): Need to set __name__ attribute explicitly to keep
-        # ``six.wraps`` happy. Passing this to the `name` argument at the time
-        # creation of Mock doesn't help.
+        # ``functools.wraps`` happy. Passing this to the `name` argument at
+        # the time creation of Mock doesn't help.
         update_firmware_mock.__name__ = 'update_firmware_mock'
         wrapped_func = (ilo_fw_processor.
                         verify_firmware_update_args(update_firmware_mock))
@@ -370,7 +371,7 @@ class FirmwareProcessorTestCase(base.TestCase):
         shutil_mock.rmtree.assert_called_once_with(
             tempfile_mock.mkdtemp(), ignore_errors=True)
 
-    @mock.patch.object(__builtin__, 'open', autospec=True)
+    @mock.patch.object(builtins, 'open', autospec=True)
     @mock.patch.object(
         ilo_fw_processor.image_service, 'FileImageService', autospec=True)
     def test__download_file_based_fw_to_copies_file_to_target(
@@ -390,7 +391,7 @@ class FirmwareProcessorTestCase(base.TestCase):
         file_image_service_mock.return_value.download.assert_called_once_with(
             firmware_file_path, fd_mock)
 
-    @mock.patch.object(__builtin__, 'open', autospec=True)
+    @mock.patch.object(builtins, 'open', autospec=True)
     @mock.patch.object(ilo_fw_processor, 'image_service', autospec=True)
     def test__download_http_based_fw_to_downloads_the_fw_file(
             self, image_service_mock, open_mock):

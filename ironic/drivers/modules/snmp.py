@@ -29,7 +29,6 @@ import time
 from oslo_log import log as logging
 from oslo_service import loopingcall
 from oslo_utils import importutils
-import six
 
 from ironic.common import exception
 from ironic.common.i18n import _
@@ -430,8 +429,7 @@ def retry_on_outdated_cache(f):
     return wrapper
 
 
-@six.add_metaclass(abc.ABCMeta)
-class SNMPDriverBase(object):
+class SNMPDriverBase(object, metaclass=abc.ABCMeta):
     """SNMP power driver base class.
 
     The SNMPDriver class hierarchy implements manufacturer-specific MIB actions

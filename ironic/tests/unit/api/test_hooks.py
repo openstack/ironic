@@ -14,13 +14,12 @@
 
 """Tests for the Pecan API hooks."""
 
+from http import client as http_client
 import json
 
 import mock
 from oslo_config import cfg
 import oslo_messaging as messaging
-import six
-from six.moves import http_client
 
 from ironic.api.controllers import root
 from ironic.api import hooks
@@ -130,7 +129,7 @@ class TestNoExceptionTracebackHook(base.BaseApiTest):
         # we don't care about this garbage.
         expected_msg = ("Remote error: %s %s"
                         % (test_exc_type, self.MSG_WITHOUT_TRACE)
-                        + ("\n[u'" if six.PY2 else "\n['"))
+                        + "\n['")
         actual_msg = json.loads(response.json['error_message'])['faultstring']
         self.assertEqual(expected_msg, actual_msg)
 

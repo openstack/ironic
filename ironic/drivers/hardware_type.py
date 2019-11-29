@@ -18,8 +18,6 @@ Abstract base class for all hardware types.
 
 import abc
 
-import six
-
 from ironic.common import exception
 from ironic.drivers import base as driver_base
 from ironic.drivers.modules.network import noop as noop_net
@@ -27,8 +25,7 @@ from ironic.drivers.modules import noop
 from ironic.drivers.modules.storage import noop as noop_storage
 
 
-@six.add_metaclass(abc.ABCMeta)
-class AbstractHardwareType(object):
+class AbstractHardwareType(object, metaclass=abc.ABCMeta):
     """Abstract base class for all hardware types.
 
     Hardware type is a family of hardware supporting the same set of interfaces

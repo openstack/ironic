@@ -16,7 +16,6 @@
 """Tests for manipulating Chassis via the DB API"""
 
 from oslo_utils import uuidutils
-import six
 
 from ironic.common import exception
 from ironic.tests.unit.db import base
@@ -33,10 +32,10 @@ class DbChassisTestCase(base.DbTestCase):
         uuids = [self.chassis.uuid]
         for i in range(1, 6):
             ch = utils.create_test_chassis(uuid=uuidutils.generate_uuid())
-            uuids.append(six.text_type(ch.uuid))
+            uuids.append(str(ch.uuid))
         res = self.dbapi.get_chassis_list()
         res_uuids = [r.uuid for r in res]
-        six.assertCountEqual(self, uuids, res_uuids)
+        self.assertCountEqual(uuids, res_uuids)
 
     def test_get_chassis_by_id(self):
         chassis = self.dbapi.get_chassis_by_id(self.chassis.id)

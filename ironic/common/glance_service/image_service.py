@@ -14,18 +14,18 @@
 #    under the License.
 
 import collections
+import functools
 import os
 import re
 import sys
 import time
+from urllib import parse as urlparse
 
 from glanceclient import client
 from glanceclient import exc as glance_exc
 from oslo_log import log
 from oslo_utils import uuidutils
 import sendfile
-import six
-from six.moves.urllib import parse as urlparse
 from swiftclient import utils as swift_utils
 
 from ironic.common import exception
@@ -56,7 +56,7 @@ def _translate_image_exception(image_id, exc_value):
 
 def check_image_service(func):
     """Creates a glance client if doesn't exists and calls the function."""
-    @six.wraps(func)
+    @functools.wraps(func)
     def wrapper(self, *args, **kwargs):
         """Wrapper around methods calls.
 
@@ -153,7 +153,7 @@ class GlanceImageService(object):
                 exc_type, exc_value, exc_trace = sys.exc_info()
                 new_exc = _translate_image_exception(
                     args[0], exc_value)
-                six.reraise(type(new_exc), new_exc, exc_trace)
+                raise type(new_exc)(new_exc).with_traceback(exc_trace)
 
     @check_image_service
     def show(self, image_href):

@@ -19,7 +19,6 @@ import copy
 from oslo_serialization import jsonutils
 from oslo_utils import timeutils
 from oslo_utils import uuidutils
-import six
 
 from ironic.common import exception
 
@@ -70,7 +69,7 @@ def _convert(metadata):
         for attr in _CONVERT_PROPS:
             if attr in properties:
                 prop = properties[attr]
-                if isinstance(prop, six.string_types):
+                if isinstance(prop, str):
                     properties[attr] = jsonutils.loads(prop)
     return metadata
 
@@ -83,7 +82,7 @@ def parse_image_id(image_href):
 
     :raises InvalidImageRef: when input image href is invalid
     """
-    image_href = six.text_type(image_href)
+    image_href = str(image_href)
     if uuidutils.is_uuid_like(image_href):
         image_id = image_href
     elif image_href.startswith('glance://'):
@@ -130,7 +129,7 @@ def is_image_active(image):
 
 
 def is_glance_image(image_href):
-    if not isinstance(image_href, six.string_types):
+    if not isinstance(image_href, str):
         return False
     return (image_href.startswith('glance://')
             or uuidutils.is_uuid_like(image_href))

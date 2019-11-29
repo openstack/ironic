@@ -14,6 +14,7 @@
 iBMC Driver common utils
 """
 
+import functools
 import os
 
 from oslo_log import log
@@ -21,7 +22,6 @@ from oslo_utils import importutils
 from oslo_utils import netutils
 from oslo_utils import strutils
 import retrying
-import six
 
 from ironic.common import exception
 from ironic.common.i18n import _
@@ -90,7 +90,7 @@ def parse_driver_info(node):
 
     # Check if verify_ca is a Boolean or a file/directory in the file-system
     verify_ca = driver_info.get('ibmc_verify_ca', True)
-    if isinstance(verify_ca, six.string_types):
+    if isinstance(verify_ca, str):
         if not os.path.exists(verify_ca):
             try:
                 verify_ca = strutils.bool_from_string(verify_ca, strict=True)
@@ -138,7 +138,7 @@ def handle_ibmc_exception(action):
             retry_on_exception=should_retry,
             stop_max_attempt_number=CONF.ibmc.connection_attempts,
             wait_fixed=CONF.ibmc.connection_retry_interval * 1000)
-        @six.wraps(f)
+        @functools.wraps(f)
         def wrapper(*args, **kwargs):
             # NOTE(dtantsur): this code could be written simpler, but then unit
             # testing decorated functions is pretty hard, as we usually pass a

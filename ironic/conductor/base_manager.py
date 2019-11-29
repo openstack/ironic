@@ -24,7 +24,6 @@ from oslo_db import exception as db_exception
 from oslo_log import log
 from oslo_utils import excutils
 from oslo_utils import versionutils
-import six
 
 from ironic.common import context as ironic_context
 from ironic.common import driver_factory
@@ -471,7 +470,7 @@ class BaseConductorManager(object):
                                   fsm.
 
         """
-        if isinstance(provision_state, six.string_types):
+        if isinstance(provision_state, str):
             provision_state = {provision_state}
 
         node_iter = self.iter_nodes(filters=filters,

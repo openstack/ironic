@@ -15,7 +15,6 @@ import json
 from ironic_lib import utils as irlib_utils
 import mock
 from oslo_concurrency import processutils
-import six
 
 from ironic.common import exception
 from ironic.common import states
@@ -235,7 +234,7 @@ class TestAnsibleMethods(AnsibleDeployTestCaseBase):
                                 ansible_deploy._run_playbook,
                                 self.node, 'deploy', extra_vars,
                                 '/path/to/key')
-        self.assertIn('VIKINGS!', six.text_type(exc))
+        self.assertIn('VIKINGS!', str(exc))
         execute_mock.assert_called_once_with(
             'env', 'ANSIBLE_CONFIG=/path/to/config',
             'ansible-playbook', '/path/to/playbooks/deploy', '-i',
@@ -374,8 +373,8 @@ class TestAnsibleMethods(AnsibleDeployTestCaseBase):
                 exception.InvalidParameterValue,
                 ansible_deploy._parse_root_device_hints, task.node)
             for key, value in expected.items():
-                self.assertIn(six.text_type(key), six.text_type(exc))
-                self.assertIn(six.text_type(value), six.text_type(exc))
+                self.assertIn(str(key), str(exc))
+                self.assertIn(str(value), str(exc))
 
     def test__prepare_variables(self):
         i_info = self.node.instance_info
@@ -486,9 +485,9 @@ class TestAnsibleMethods(AnsibleDeployTestCaseBase):
         exc = self.assertRaises(exception.NodeCleaningFailure,
                                 ansible_deploy._validate_clean_steps,
                                 steps, self.node.uuid)
-        self.assertIn("name foo, field ham.value", six.text_type(exc))
-        self.assertIn("name bar, field interface", six.text_type(exc))
-        self.assertIn("name undefined, field name", six.text_type(exc))
+        self.assertIn("name foo, field ham.value", str(exc))
+        self.assertIn("name bar, field interface", str(exc))
+        self.assertIn("name undefined, field name", str(exc))
 
     def test__validate_clean_steps_names_not_unique(self):
         steps = [{"name": "foo",
@@ -498,7 +497,7 @@ class TestAnsibleMethods(AnsibleDeployTestCaseBase):
         exc = self.assertRaises(exception.NodeCleaningFailure,
                                 ansible_deploy._validate_clean_steps,
                                 steps, self.node.uuid)
-        self.assertIn("unique names", six.text_type(exc))
+        self.assertIn("unique names", str(exc))
 
     @mock.patch.object(ansible_deploy.yaml, 'safe_load', autospec=True)
     def test__get_clean_steps(self, load_mock):

@@ -20,6 +20,7 @@
 
 from collections import namedtuple
 import datetime
+import queue
 import re
 
 import eventlet
@@ -31,8 +32,6 @@ import oslo_messaging as messaging
 from oslo_utils import uuidutils
 from oslo_versionedobjects import base as ovo_base
 from oslo_versionedobjects import fields
-import six
-from six.moves import queue
 
 from ironic.common import boot_devices
 from ironic.common import driver_factory
@@ -5881,12 +5880,6 @@ class SensorsTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         self.assertEqual(5, validate_mock.call_count)
         self.assertEqual(5, get_sensors_data_mock.call_count)
         self.assertEqual(5, notifier_mock.call_count)
-        if six.PY2:
-            # bail out if python2 as matching fails to match the
-            # data structure becasue it requires the order to be consistent
-            # but the mock also records the call dictionary contents in
-            # random order changing with every invocation. :\
-            return
         n_call = mock.call(mock.ANY, mock.ANY, 'hardware.fake.metrics',
                            {'event_type': 'hardware.fake.metrics.update',
                             'node_name': 'fake_node', 'timestamp': mock.ANY,
@@ -6505,7 +6498,7 @@ class RaidHardwareTypeTestCases(RaidTestCases):
         self.node.refresh()
         self.assertEqual({}, self.node.target_raid_config)
         self.assertEqual(exception.UnsupportedDriverExtension, exc.exc_info[0])
-        self.assertIn('manual-management', six.text_type(exc.exc_info[1]))
+        self.assertIn('manual-management', str(exc.exc_info[1]))
 
 
 @mock.patch.object(conductor_utils, 'node_power_action')

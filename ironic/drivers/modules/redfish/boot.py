@@ -16,11 +16,11 @@
 import os
 import shutil
 import tempfile
+from urllib import parse as urlparse
 
 from ironic_lib import utils as ironic_utils
 from oslo_log import log
 from oslo_utils import importutils
-from six.moves.urllib import parse as urlparse
 
 from ironic.common import boot_devices
 from ironic.common import exception

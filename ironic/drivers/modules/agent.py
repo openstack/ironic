@@ -12,12 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from urllib import parse as urlparse
+
 from ironic_lib import metrics_utils
 from ironic_lib import utils as il_utils
 from oslo_log import log
 from oslo_utils import excutils
 from oslo_utils import units
-import six.moves.urllib_parse as urlparse
 
 from ironic.common import dhcp_factory
 from ironic.common import exception

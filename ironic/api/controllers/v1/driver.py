@@ -13,9 +13,10 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+from http import client as http_client
+
 from ironic_lib import metrics_utils
 from pecan import rest
-from six.moves import http_client
 import wsme
 from wsme import types as wtypes
 

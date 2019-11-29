@@ -12,13 +12,13 @@
 #    under the License.
 
 import datetime
+from http import client as http_client
 import json
 
 from cinderclient import exceptions as cinder_exceptions
 import cinderclient.v3 as cinderclient
 import mock
 from oslo_utils import uuidutils
-from six.moves import http_client
 
 from ironic.common import cinder
 from ironic.common import context

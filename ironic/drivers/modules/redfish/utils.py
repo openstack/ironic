@@ -15,6 +15,7 @@
 
 import collections
 import os
+from urllib import parse as urlparse
 
 from oslo_log import log
 from oslo_utils import excutils
@@ -22,8 +23,6 @@ from oslo_utils import importutils
 from oslo_utils import strutils
 import retrying
 import rfc3986
-import six
-from six.moves import urllib
 
 from ironic.common import exception
 from ironic.common.i18n import _
@@ -111,7 +110,7 @@ def parse_driver_info(node):
             {'address': address, 'node': node.uuid})
 
     try:
-        system_id = urllib.parse.quote(driver_info['redfish_system_id'])
+        system_id = urlparse.quote(driver_info['redfish_system_id'])
     except (TypeError, AttributeError):
         raise exception.InvalidParameterValue(
             _('Invalid value "%(value)s" set in '
@@ -123,7 +122,7 @@ def parse_driver_info(node):
 
     # Check if verify_ca is a Boolean or a file/directory in the file-system
     verify_ca = driver_info.get('redfish_verify_ca', True)
-    if isinstance(verify_ca, six.string_types):
+    if isinstance(verify_ca, str):
         if os.path.isdir(verify_ca) or os.path.isfile(verify_ca):
             pass
         else:

@@ -13,9 +13,9 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 """Ironic object test utilities."""
-import inspect
 
-import six
+import functools
+import inspect
 
 from ironic.common import exception
 from ironic.common.i18n import _
@@ -25,7 +25,7 @@ from ironic.tests.unit.db import utils as db_utils
 
 
 def check_keyword_arguments(func):
-    @six.wraps(func)
+    @functools.wraps(func)
     def wrapper(**kw):
         obj_type = kw.pop('object_type')
         result = func(**kw)

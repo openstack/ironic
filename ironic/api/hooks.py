@@ -14,13 +14,12 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+from http import client as http_client
 import re
 
 from oslo_config import cfg
 from oslo_log import log
 from pecan import hooks
-import six
-from six.moves import http_client
 
 from ironic.common import context
 from ironic.common import policy
@@ -48,7 +47,7 @@ def policy_deprecation_check():
         }
         policy_rules = enforcer.file_rules.values()
         for rule in policy_rules:
-            str_rule = six.text_type(rule)
+            str_rule = str(rule)
             for deprecated, replacement in substitution_dict.items():
                 if re.search(r'\b%s\b' % deprecated, str_rule):
                     LOG.warning(

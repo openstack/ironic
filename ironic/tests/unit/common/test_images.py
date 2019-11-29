@@ -15,6 +15,8 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import builtins
+import io
 import os
 import shutil
 
@@ -23,8 +25,6 @@ from ironic_lib import utils as ironic_utils
 import mock
 from oslo_concurrency import processutils
 from oslo_config import cfg
-import six
-import six.moves.builtins as __builtin__
 
 from ironic.common import exception
 from ironic.common.glance_service import service_utils as glance_utils
@@ -32,10 +32,6 @@ from ironic.common import image_service
 from ironic.common import images
 from ironic.common import utils
 from ironic.tests import base
-
-if six.PY3:
-    import io
-    file = io.BytesIO
 
 CONF = cfg.CONF
 
@@ -46,9 +42,9 @@ class IronicImagesTestCase(base.TestCase):
         pass
 
     @mock.patch.object(image_service, 'get_image_service', autospec=True)
-    @mock.patch.object(__builtin__, 'open', autospec=True)
+    @mock.patch.object(builtins, 'open', autospec=True)
     def test_fetch_image_service(self, open_mock, image_service_mock):
-        mock_file_handle = mock.MagicMock(spec=file)
+        mock_file_handle = mock.MagicMock(spec=io.BytesIO)
         mock_file_handle.__enter__.return_value = 'file'
         open_mock.return_value = mock_file_handle
 
@@ -62,10 +58,10 @@ class IronicImagesTestCase(base.TestCase):
 
     @mock.patch.object(image_service, 'get_image_service', autospec=True)
     @mock.patch.object(images, 'image_to_raw', autospec=True)
-    @mock.patch.object(__builtin__, 'open', autospec=True)
+    @mock.patch.object(builtins, 'open', autospec=True)
     def test_fetch_image_service_force_raw(self, open_mock, image_to_raw_mock,
                                            image_service_mock):
-        mock_file_handle = mock.MagicMock(spec=file)
+        mock_file_handle = mock.MagicMock(spec=io.BytesIO)
         mock_file_handle.__enter__.return_value = 'file'
         open_mock.return_value = mock_file_handle
 
@@ -294,7 +290,7 @@ class FsImageTestCase(base.TestCase):
             self, mkfs_mock, mount_mock, umount_mock, dd_mock, write_mock,
             tempdir_mock, create_root_fs_mock):
 
-        mock_file_handle = mock.MagicMock(spec=file)
+        mock_file_handle = mock.MagicMock(spec=io.BytesIO)
         mock_file_handle.__enter__.return_value = 'tempdir'
         tempdir_mock.return_value = mock_file_handle
 
@@ -329,7 +325,7 @@ class FsImageTestCase(base.TestCase):
             self, mkfs_mock, mount_mock, umount_mock, dd_mock,
             tempdir_mock, create_root_fs_mock):
 
-        mock_file_handle = mock.MagicMock(spec=file)
+        mock_file_handle = mock.MagicMock(spec=io.BytesIO)
         mock_file_handle.__enter__.return_value = 'tempdir'
         tempdir_mock.return_value = mock_file_handle
         files_info = {'a': 'b'}
@@ -353,7 +349,7 @@ class FsImageTestCase(base.TestCase):
     def test_create_vfat_image_mkfs_fails(self, mkfs_mock, dd_mock,
                                           tempdir_mock):
 
-        mock_file_handle = mock.MagicMock(spec=file)
+        mock_file_handle = mock.MagicMock(spec=io.BytesIO)
         mock_file_handle.__enter__.return_value = 'tempdir'
         tempdir_mock.return_value = mock_file_handle
 
@@ -371,7 +367,7 @@ class FsImageTestCase(base.TestCase):
             self, mkfs_mock, mount_mock, umount_mock, dd_mock,
             tempdir_mock, create_root_fs_mock):
 
-        mock_file_handle = mock.MagicMock(spec=file)
+        mock_file_handle = mock.MagicMock(spec=io.BytesIO)
         mock_file_handle.__enter__.return_value = 'tempdir'
         tempdir_mock.return_value = mock_file_handle
         umount_mock.side_effect = processutils.ProcessExecutionError
@@ -513,9 +509,9 @@ class FsImageTestCase(base.TestCase):
             'path/to/grub': 'relpath/to/grub.cfg'}
         grub_rel_path = 'relpath/to/grub.cfg'
         e_img_rel_path = 'path/to/efiboot.img'
-        mock_file_handle = mock.MagicMock(spec=file)
+        mock_file_handle = mock.MagicMock(spec=io.BytesIO)
         mock_file_handle.__enter__.return_value = 'tmpdir'
-        mock_file_handle1 = mock.MagicMock(spec=file)
+        mock_file_handle1 = mock.MagicMock(spec=io.BytesIO)
         mock_file_handle1.__enter__.return_value = 'mountdir'
         tempdir_mock.side_effect = mock_file_handle, mock_file_handle1
         mount_mock.return_value = (uefi_path_info,
@@ -561,9 +557,9 @@ class FsImageTestCase(base.TestCase):
         grub_options = {'linux': '/vmlinuz',
                         'initrd': '/initrd'}
 
-        mock_file_handle = mock.MagicMock(spec=file)
+        mock_file_handle = mock.MagicMock(spec=io.BytesIO)
         mock_file_handle.__enter__.return_value = 'tmpdir'
-        mock_file_handle1 = mock.MagicMock(spec=file)
+        mock_file_handle1 = mock.MagicMock(spec=io.BytesIO)
         mock_file_handle1.__enter__.return_value = 'mountdir'
         tempdir_mock.side_effect = mock_file_handle, mock_file_handle1
         mountdir_grub_cfg_path = 'tmpdir' + grub_cfg_file
@@ -590,7 +586,7 @@ class FsImageTestCase(base.TestCase):
             self, gen_cfg_mock, execute_mock, tempdir_mock,
             write_to_file_mock, create_root_fs_mock, ldlinux_path=None):
 
-        mock_file_handle = mock.MagicMock(spec=file)
+        mock_file_handle = mock.MagicMock(spec=io.BytesIO)
         mock_file_handle.__enter__.return_value = 'tmpdir'
         tempdir_mock.return_value = mock_file_handle
 
@@ -653,9 +649,9 @@ class FsImageTestCase(base.TestCase):
                                                      create_root_fs_mock,
                                                      umount_mock):
 
-        mock_file_handle = mock.MagicMock(spec=file)
+        mock_file_handle = mock.MagicMock(spec=io.BytesIO)
         mock_file_handle.__enter__.return_value = 'tmpdir'
-        mock_file_handle1 = mock.MagicMock(spec=file)
+        mock_file_handle1 = mock.MagicMock(spec=io.BytesIO)
         mock_file_handle1.__enter__.return_value = 'mountdir'
         tempdir_mock.side_effect = mock_file_handle, mock_file_handle1
         create_root_fs_mock.side_effect = IOError
@@ -698,9 +694,9 @@ class FsImageTestCase(base.TestCase):
                                                  write_to_file_mock,
                                                  create_root_fs_mock,
                                                  umount_mock):
-        mock_file_handle = mock.MagicMock(spec=file)
+        mock_file_handle = mock.MagicMock(spec=io.BytesIO)
         mock_file_handle.__enter__.return_value = 'tmpdir'
-        mock_file_handle1 = mock.MagicMock(spec=file)
+        mock_file_handle1 = mock.MagicMock(spec=io.BytesIO)
         mock_file_handle1.__enter__.return_value = 'mountdir'
         tempdir_mock.side_effect = mock_file_handle, mock_file_handle1
         mount_mock.return_value = ({'a': 'a'}, 'b', 'c')
@@ -725,7 +721,7 @@ class FsImageTestCase(base.TestCase):
                                                       tempdir_mock,
                                                       write_to_file_mock,
                                                       create_root_fs_mock):
-        mock_file_handle = mock.MagicMock(spec=file)
+        mock_file_handle = mock.MagicMock(spec=io.BytesIO)
         mock_file_handle.__enter__.return_value = 'tmpdir'
         tempdir_mock.return_value = mock_file_handle
         utils_mock.side_effect = processutils.ProcessExecutionError
@@ -740,7 +736,7 @@ class FsImageTestCase(base.TestCase):
     @mock.patch.object(utils, 'tempdir', autospec=True)
     def test_create_boot_iso_for_uefi_deploy_iso(
             self, tempdir_mock, fetch_images_mock, create_isolinux_mock):
-        mock_file_handle = mock.MagicMock(spec=file)
+        mock_file_handle = mock.MagicMock(spec=io.BytesIO)
         mock_file_handle.__enter__.return_value = 'tmpdir'
         tempdir_mock.return_value = mock_file_handle
 
@@ -768,7 +764,7 @@ class FsImageTestCase(base.TestCase):
     @mock.patch.object(utils, 'tempdir', autospec=True)
     def test_create_boot_iso_for_uefi_esp_image(
             self, tempdir_mock, fetch_images_mock, create_isolinux_mock):
-        mock_file_handle = mock.MagicMock(spec=file)
+        mock_file_handle = mock.MagicMock(spec=io.BytesIO)
         mock_file_handle.__enter__.return_value = 'tmpdir'
         tempdir_mock.return_value = mock_file_handle
 
@@ -796,7 +792,7 @@ class FsImageTestCase(base.TestCase):
     @mock.patch.object(utils, 'tempdir', autospec=True)
     def test_create_boot_iso_for_uefi_deploy_iso_for_hrefs(
             self, tempdir_mock, fetch_images_mock, create_isolinux_mock):
-        mock_file_handle = mock.MagicMock(spec=file)
+        mock_file_handle = mock.MagicMock(spec=io.BytesIO)
         mock_file_handle.__enter__.return_value = 'tmpdir'
         tempdir_mock.return_value = mock_file_handle
 
@@ -824,7 +820,7 @@ class FsImageTestCase(base.TestCase):
     @mock.patch.object(utils, 'tempdir', autospec=True)
     def test_create_boot_iso_for_uefi_esp_image_for_hrefs(
             self, tempdir_mock, fetch_images_mock, create_isolinux_mock):
-        mock_file_handle = mock.MagicMock(spec=file)
+        mock_file_handle = mock.MagicMock(spec=io.BytesIO)
         mock_file_handle.__enter__.return_value = 'tmpdir'
         tempdir_mock.return_value = mock_file_handle
 
@@ -852,7 +848,7 @@ class FsImageTestCase(base.TestCase):
     @mock.patch.object(utils, 'tempdir', autospec=True)
     def test_create_boot_iso_for_bios(
             self, tempdir_mock, fetch_images_mock, create_isolinux_mock):
-        mock_file_handle = mock.MagicMock(spec=file)
+        mock_file_handle = mock.MagicMock(spec=io.BytesIO)
         mock_file_handle.__enter__.return_value = 'tmpdir'
         tempdir_mock.return_value = mock_file_handle
 
@@ -884,7 +880,7 @@ class FsImageTestCase(base.TestCase):
     def test_create_boot_iso_for_bios_with_no_boot_mode(self, tempdir_mock,
                                                         fetch_images_mock,
                                                         create_isolinux_mock):
-        mock_file_handle = mock.MagicMock(spec=file)
+        mock_file_handle = mock.MagicMock(spec=io.BytesIO)
         mock_file_handle.__enter__.return_value = 'tmpdir'
         tempdir_mock.return_value = mock_file_handle
 

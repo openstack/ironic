@@ -16,14 +16,13 @@ Tests for the API /chassis/ methods.
 """
 
 import datetime
+from http import client as http_client
+from urllib import parse as urlparse
 
 import mock
 from oslo_config import cfg
 from oslo_utils import timeutils
 from oslo_utils import uuidutils
-import six
-from six.moves import http_client
-from six.moves.urllib import parse as urlparse
 from wsme import types as wtypes
 
 from ironic.api.controllers import base as api_base
@@ -181,7 +180,7 @@ class TestListChassis(test_api_base.BaseApiTest):
         data = self.get_json('/chassis')
         self.assertEqual(len(ch_list), len(data['chassis']))
         uuids = [n['uuid'] for n in data['chassis']]
-        six.assertCountEqual(self, ch_list, uuids)
+        self.assertCountEqual(ch_list, uuids)
 
     def _test_links(self, public_url=None):
         cfg.CONF.set_override('public_endpoint', public_url, 'api')

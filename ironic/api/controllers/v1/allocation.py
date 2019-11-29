@@ -11,11 +11,11 @@
 #    under the License.
 
 import datetime
+from http import client as http_client
 
 from ironic_lib import metrics_utils
 from oslo_utils import uuidutils
 import pecan
-from six.moves import http_client
 from webob import exc as webob_exc
 import wsme
 from wsme import types as wtypes

@@ -19,14 +19,12 @@ Common functionalities shared between different iLO modules.
 import os
 import shutil
 import tempfile
+from urllib import parse as urlparse
 
 from ironic_lib import utils as ironic_utils
 from oslo_log import log as logging
 from oslo_utils import fileutils
 from oslo_utils import importutils
-import six
-import six.moves.urllib.parse as urlparse
-from six.moves.urllib.parse import urljoin
 
 from ironic.common import boot_devices
 from ironic.common import exception
@@ -137,7 +135,7 @@ def copy_image_to_web_server(source_file_path, destination):
 
     """
 
-    image_url = urljoin(CONF.deploy.http_url, destination)
+    image_url = urlparse.urljoin(CONF.deploy.http_url, destination)
     image_path = os.path.join(CONF.deploy.http_root, destination)
     try:
         shutil.copyfile(source_file_path, image_path)
@@ -313,7 +311,7 @@ def _parse_snmp_driver_info(info):
         for param in SNMP_OPTIONAL_PROPERTIES:
             value = None
             try:
-                value = six.text_type(info[param]).upper()
+                value = str(info[param]).upper()
             except KeyError:
                 pass
             if value:
@@ -781,7 +779,7 @@ def remove_single_or_list_of_files(file_location):
         for location in file_location:
             ironic_utils.unlink_without_raise(location)
     # file_location is a single file path
-    elif isinstance(file_location, six.string_types):
+    elif isinstance(file_location, str):
         ironic_utils.unlink_without_raise(file_location)
 
 

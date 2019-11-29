@@ -20,7 +20,6 @@ from oslo_log import log as logging
 from oslo_serialization import base64
 from oslo_utils import strutils
 from oslo_utils import timeutils
-import six
 
 from ironic.common import exception
 from ironic.common.i18n import _
@@ -239,7 +238,7 @@ def capabilities_to_dict(capabilities):
     """
     capabilities_dict = {}
     if capabilities:
-        if not isinstance(capabilities, six.string_types):
+        if not isinstance(capabilities, str):
             raise exception.InvalidParameterValue(
                 _("Value of 'capabilities' must be string. Got %s")
                 % type(capabilities))

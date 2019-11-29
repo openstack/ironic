@@ -15,12 +15,12 @@
 
 """Test class for boot methods used by iLO modules."""
 
+import io
 import tempfile
 
 from ironic_lib import utils as ironic_utils
 import mock
 from oslo_config import cfg
-import six
 
 from ironic.common import boot_devices
 from ironic.common import exception
@@ -42,10 +42,6 @@ from ironic.drivers.modules.storage import noop as noop_storage
 from ironic.drivers import utils as driver_utils
 from ironic.tests.unit.drivers.modules.ilo import test_common
 
-
-if six.PY3:
-    import io
-    file = io.BytesIO
 
 CONF = cfg.CONF
 
@@ -183,9 +179,9 @@ class IloBootPrivateMethodsTestCase(test_common.BaseIloTest):
         CONF.pxe.pxe_append_params = 'kernel-params'
 
         swift_obj_mock = swift_api_mock.return_value
-        fileobj_mock = mock.MagicMock(spec=file)
+        fileobj_mock = mock.MagicMock(spec=io.BytesIO)
         fileobj_mock.name = 'tmpfile'
-        mock_file_handle = mock.MagicMock(spec=file)
+        mock_file_handle = mock.MagicMock(spec=io.BytesIO)
         mock_file_handle.__enter__.return_value = fileobj_mock
         tempfile_mock.return_value = mock_file_handle
 
@@ -241,9 +237,9 @@ class IloBootPrivateMethodsTestCase(test_common.BaseIloTest):
         CONF.deploy.http_root = "/httpboot"
         CONF.pxe.pxe_append_params = 'kernel-params'
 
-        fileobj_mock = mock.MagicMock(spec=file)
+        fileobj_mock = mock.MagicMock(spec=io.BytesIO)
         fileobj_mock.name = 'tmpfile'
-        mock_file_handle = mock.MagicMock(spec=file)
+        mock_file_handle = mock.MagicMock(spec=io.BytesIO)
         mock_file_handle.__enter__.return_value = fileobj_mock
         tempfile_mock.return_value = mock_file_handle
 
@@ -307,9 +303,9 @@ class IloBootPrivateMethodsTestCase(test_common.BaseIloTest):
         CONF.deploy.http_root = "/httpboot"
         CONF.pxe.pxe_append_params = 'kernel-params'
 
-        fileobj_mock = mock.MagicMock(spec=file)
+        fileobj_mock = mock.MagicMock(spec=io.BytesIO)
         fileobj_mock.name = 'tmpfile'
-        mock_file_handle = mock.MagicMock(spec=file)
+        mock_file_handle = mock.MagicMock(spec=io.BytesIO)
         mock_file_handle.__enter__.return_value = fileobj_mock
         tempfile_mock.return_value = mock_file_handle
 

@@ -14,7 +14,6 @@
 
 import mock
 from oslo_utils import versionutils
-import six
 
 from ironic.api.controllers.v1 import versions as api_versions
 from ironic.common import release_mappings
@@ -50,16 +49,16 @@ class ReleaseMappingsTestCase(base.TestCase):
         for value in release_mappings.RELEASE_MAPPING.values():
             self.assertIsInstance(value, dict)
             self.assertEqual({'api', 'rpc', 'objects'}, set(value))
-            self.assertIsInstance(value['api'], six.string_types)
+            self.assertIsInstance(value['api'], str)
             (major, minor) = value['api'].split('.')
             self.assertEqual(1, int(major))
             self.assertLessEqual(int(minor), api_versions.MINOR_MAX_VERSION)
-            self.assertIsInstance(value['rpc'], six.string_types)
+            self.assertIsInstance(value['rpc'], str)
             self.assertIsInstance(value['objects'], dict)
             for obj_value in value['objects'].values():
                 self.assertIsInstance(obj_value, list)
                 for ver in obj_value:
-                    self.assertIsInstance(ver, six.string_types)
+                    self.assertIsInstance(ver, str)
                     tuple_ver = versionutils.convert_version_to_tuple(ver)
                     self.assertEqual(2, len(tuple_ver))
 

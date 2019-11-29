@@ -23,7 +23,6 @@ from oslo_serialization import jsonutils
 from oslo_service import loopingcall
 from oslo_utils import excutils
 from oslo_utils import timeutils
-import six
 
 from ironic.common import boot_devices
 from ironic.common import exception
@@ -731,7 +730,7 @@ def validate_instance_info_traits(node):
     instance_traits = node.instance_info['traits']
     if not isinstance(instance_traits, list):
         invalid()
-    if not all(isinstance(t, six.string_types) for t in instance_traits):
+    if not all(isinstance(t, str) for t in instance_traits):
         invalid()
 
     node_traits = node.traits.get_trait_names()

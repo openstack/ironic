@@ -15,7 +15,6 @@
 """Tests for manipulating VolumeConnectors via the DB API"""
 
 from oslo_utils import uuidutils
-import six
 
 from ironic.common import exception
 from ironic.tests.unit.db import base
@@ -65,20 +64,20 @@ class DbVolumeConnectorTestCase(base.DbTestCase):
                           -1)
 
     def _connector_list_preparation(self):
-        uuids = [six.text_type(self.connector.uuid)]
+        uuids = [str(self.connector.uuid)]
         for i in range(1, 6):
             volume_connector = db_utils.create_test_volume_connector(
                 uuid=uuidutils.generate_uuid(),
                 type='iqn',
                 connector_id='iqn.test-%s' % i)
-            uuids.append(six.text_type(volume_connector.uuid))
+            uuids.append(str(volume_connector.uuid))
         return uuids
 
     def test_get_volume_connector_list(self):
         uuids = self._connector_list_preparation()
         res = self.dbapi.get_volume_connector_list()
         res_uuids = [r.uuid for r in res]
-        six.assertCountEqual(self, uuids, res_uuids)
+        self.assertCountEqual(uuids, res_uuids)
 
     def test_get_volume_connector_list_sorted(self):
         uuids = self._connector_list_preparation()

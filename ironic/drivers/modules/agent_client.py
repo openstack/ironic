@@ -12,12 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from http import client as http_client
+
 from ironic_lib import metrics_utils
 from oslo_log import log
 from oslo_serialization import jsonutils
 import requests
 import retrying
-from six.moves import http_client
 
 from ironic.common import exception
 from ironic.common.i18n import _

@@ -13,7 +13,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-from six.moves import http_client
+from http import client as http_client
 
 from ironic.api.controllers.v1 import versions
 from ironic.tests.unit.api import base

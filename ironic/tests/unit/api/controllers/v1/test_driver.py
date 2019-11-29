@@ -13,11 +13,11 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+from http import client as http_client
 import json
 
 import mock
 from oslo_config import cfg
-from six.moves import http_client
 from testtools import matchers
 
 from ironic.api.controllers import base as api_base

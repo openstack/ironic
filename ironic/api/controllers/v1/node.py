@@ -14,6 +14,7 @@
 #    under the License.
 
 import datetime
+from http import client as http_client
 
 from ironic_lib import metrics_utils
 import jsonschema
@@ -22,7 +23,6 @@ from oslo_utils import strutils
 from oslo_utils import uuidutils
 import pecan
 from pecan import rest
-from six.moves import http_client
 import wsme
 from wsme import types as wtypes
 

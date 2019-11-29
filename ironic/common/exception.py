@@ -16,9 +16,10 @@
 
 """Ironic specific exceptions list."""
 
+from http import client as http_client
+
 from ironic_lib.exception import IronicException
 from oslo_log import log as logging
-from six.moves import http_client
 
 from ironic.common.i18n import _
 

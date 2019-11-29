@@ -16,7 +16,6 @@
 import inspect
 
 import mock
-import six
 import stevedore
 
 from ironic.common import dhcp_factory
@@ -84,7 +83,7 @@ class TestDHCPFactory(base.TestCase):
 class CompareBasetoModules(base.TestCase):
 
     def test_drivers_match_dhcp_base(self):
-        signature_method = inspect.getargspec if six.PY2 else inspect.signature
+        signature_method = inspect.signature
 
         def _get_public_apis(inst):
             methods = {}
