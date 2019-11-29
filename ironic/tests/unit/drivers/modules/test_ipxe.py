@@ -36,6 +36,7 @@ from ironic.drivers import base as drivers_base
 from ironic.drivers.modules import agent_base
 from ironic.drivers.modules import deploy_utils
 from ironic.drivers.modules import ipxe
+from ironic.drivers.modules import pxe_base
 from ironic.drivers.modules.storage import noop as noop_storage
 from ironic.tests.unit.db import base as db_base
 from ironic.tests.unit.db import utils as db_utils
@@ -730,7 +731,7 @@ class iPXEBootTestCase(db_base.DbTestCase):
 
     # NOTE(TheJulia): The log mock below is attached to the iPXE interface
     # which directly logs the warning that is being checked for.
-    @mock.patch.object(ipxe.LOG, 'warning', autospec=True)
+    @mock.patch.object(pxe_base.LOG, 'warning', autospec=True)
     @mock.patch.object(pxe_utils, 'clean_up_pxe_config', autospec=True)
     @mock.patch.object(manager_utils, 'node_set_boot_device', autospec=True)
     @mock.patch.object(dhcp_factory, 'DHCPFactory')

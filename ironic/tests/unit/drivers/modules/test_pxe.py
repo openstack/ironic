@@ -31,7 +31,6 @@ from ironic.common import exception
 from ironic.common.glance_service import image_service
 from ironic.common import pxe_utils
 from ironic.common import states
-from ironic.common import utils as common_utils
 from ironic.conductor import task_manager
 from ironic.conductor import utils as manager_utils
 from ironic.drivers import base as drivers_base
@@ -40,6 +39,7 @@ from ironic.drivers.modules import deploy_utils
 from ironic.drivers.modules import fake
 from ironic.drivers.modules import ipxe
 from ironic.drivers.modules import pxe
+from ironic.drivers.modules import pxe_base
 from ironic.drivers.modules.storage import noop as noop_storage
 from ironic.tests.unit.db import base as db_base
 from ironic.tests.unit.db import utils as db_utils
@@ -268,7 +268,9 @@ class PXEBootTestCase(db_base.DbTestCase):
             dhcp_opts = pxe_utils.dhcp_options_for_instance(
                 task, ipxe_enabled=CONF.pxe.ipxe_enabled)
             task.driver.boot.prepare_ramdisk(task, {'foo': 'bar'})
-            mock_deploy_img_info.assert_called_once_with(task.node, mode=mode)
+            mock_deploy_img_info.assert_called_once_with(task.node,
+                                                         mode=mode,
+                                                         ipxe_enabled=False)
             provider_mock.update_dhcp.assert_called_once_with(task, dhcp_opts)
             if self.node.provision_state == states.DEPLOYING:
                 get_boot_mode_mock.assert_called_once_with(task)
@@ -282,33 +284,35 @@ class PXEBootTestCase(db_base.DbTestCase):
                     mock_cache_r_k.assert_called_once_with(
                         task,
                         {'kernel': 'b'},
-                        ipxe_enabled=CONF.pxe.ipxe_enabled)
-                mock_instance_img_info.assert_called_once_with(task)
+                        ipxe_enabled=False)
+                mock_instance_img_info.assert_called_once_with(
+                    task, ipxe_enabled=False)
             elif not cleaning and mode == 'deploy':
                 mock_cache_r_k.assert_called_once_with(
                     task,
                     {'deploy_kernel': 'a', 'deploy_ramdisk': 'r',
                      'kernel': 'b'},
-                    ipxe_enabled=CONF.pxe.ipxe_enabled)
-                mock_instance_img_info.assert_called_once_with(task)
+                    ipxe_enabled=False)
+                mock_instance_img_info.assert_called_once_with(
+                    task, ipxe_enabled=False)
             elif mode == 'deploy':
                     mock_cache_r_k.assert_called_once_with(
                         task,
                         {'deploy_kernel': 'a', 'deploy_ramdisk': 'r'},
-                        ipxe_enabled=CONF.pxe.ipxe_enabled)
+                        ipxe_enabled=False)
             elif mode == 'rescue':
                     mock_cache_r_k.assert_called_once_with(
                         task,
                         {'rescue_kernel': 'a', 'rescue_ramdisk': 'r'},
-                        ipxe_enabled=CONF.pxe.ipxe_enabled)
+                        ipxe_enabled=False)
             if uefi:
                 mock_pxe_config.assert_called_once_with(
                     task, {}, CONF.pxe.uefi_pxe_config_template,
-                    ipxe_enabled=CONF.pxe.ipxe_enabled)
+                    ipxe_enabled=False)
             else:
                 mock_pxe_config.assert_called_once_with(
                     task, {}, CONF.pxe.pxe_config_template,
-                    ipxe_enabled=CONF.pxe.ipxe_enabled)
+                    ipxe_enabled=False)
 
     def test_prepare_ramdisk(self):
         self.node.provision_state = states.DEPLOYING
@@ -402,93 +406,6 @@ class PXEBootTestCase(db_base.DbTestCase):
         self.node.properties = properties
         self.node.save()
         self._test_prepare_ramdisk(uefi=True)
-
-    @mock.patch.object(os.path, 'isfile', lambda path: True)
-    @mock.patch.object(common_utils, 'file_has_content', lambda *args: False)
-    @mock.patch('ironic.common.utils.write_to_file', autospec=True)
-    @mock.patch('ironic.common.utils.render_template', autospec=True)
-    def test_prepare_ramdisk_ipxe_with_copy_file_different(
-            self, render_mock, write_mock):
-        self.node.provision_state = states.DEPLOYING
-        self.node.save()
-        self.config(group='pxe', ipxe_enabled=True)
-        self.config(group='deploy', http_url='http://myserver')
-        render_mock.return_value = 'foo'
-        self._test_prepare_ramdisk()
-        write_mock.assert_called_once_with(
-            os.path.join(
-                CONF.deploy.http_root,
-                os.path.basename(CONF.pxe.ipxe_boot_script)),
-            'foo')
-        render_mock.assert_called_once_with(
-            CONF.pxe.ipxe_boot_script,
-            {'ipxe_for_mac_uri': 'pxelinux.cfg/'})
-
-    @mock.patch.object(os.path, 'isfile', lambda path: False)
-    @mock.patch('ironic.common.utils.file_has_content', autospec=True)
-    @mock.patch('ironic.common.utils.write_to_file', autospec=True)
-    @mock.patch('ironic.common.utils.render_template', autospec=True)
-    def test_prepare_ramdisk_ipxe_with_copy_no_file(
-            self, render_mock, write_mock, file_has_content_mock):
-        self.node.provision_state = states.DEPLOYING
-        self.node.save()
-        self.config(group='pxe', ipxe_enabled=True)
-        self.config(group='deploy', http_url='http://myserver')
-        render_mock.return_value = 'foo'
-        self._test_prepare_ramdisk()
-        self.assertFalse(file_has_content_mock.called)
-        write_mock.assert_called_once_with(
-            os.path.join(
-                CONF.deploy.http_root,
-                os.path.basename(CONF.pxe.ipxe_boot_script)),
-            'foo')
-        render_mock.assert_called_once_with(
-            CONF.pxe.ipxe_boot_script,
-            {'ipxe_for_mac_uri': 'pxelinux.cfg/'})
-
-    @mock.patch.object(os.path, 'isfile', lambda path: True)
-    @mock.patch.object(common_utils, 'file_has_content', lambda *args: True)
-    @mock.patch('ironic.common.utils.write_to_file', autospec=True)
-    @mock.patch('ironic.common.utils.render_template', autospec=True)
-    def test_prepare_ramdisk_ipxe_without_copy(
-            self, render_mock, write_mock):
-        self.node.provision_state = states.DEPLOYING
-        self.node.save()
-        self.config(group='pxe', ipxe_enabled=True)
-        self.config(group='deploy', http_url='http://myserver')
-        self._test_prepare_ramdisk()
-        self.assertFalse(write_mock.called)
-
-    @mock.patch.object(common_utils, 'render_template', lambda *args: 'foo')
-    @mock.patch('ironic.common.utils.write_to_file', autospec=True)
-    def test_prepare_ramdisk_ipxe_swift(self, write_mock):
-        self.node.provision_state = states.DEPLOYING
-        self.node.save()
-        self.config(group='pxe', ipxe_enabled=True)
-        self.config(group='pxe', ipxe_use_swift=True)
-        self.config(group='deploy', http_url='http://myserver')
-        self._test_prepare_ramdisk(ipxe_use_swift=True)
-        write_mock.assert_called_once_with(
-            os.path.join(
-                CONF.deploy.http_root,
-                os.path.basename(CONF.pxe.ipxe_boot_script)),
-            'foo')
-
-    @mock.patch.object(common_utils, 'render_template', lambda *args: 'foo')
-    @mock.patch('ironic.common.utils.write_to_file', autospec=True)
-    def test_prepare_ramdisk_ipxe_swift_whole_disk_image(
-            self, write_mock):
-        self.node.provision_state = states.DEPLOYING
-        self.node.save()
-        self.config(group='pxe', ipxe_enabled=True)
-        self.config(group='pxe', ipxe_use_swift=True)
-        self.config(group='deploy', http_url='http://myserver')
-        self._test_prepare_ramdisk(ipxe_use_swift=True, whole_disk_image=True)
-        write_mock.assert_called_once_with(
-            os.path.join(
-                CONF.deploy.http_root,
-                os.path.basename(CONF.pxe.ipxe_boot_script)),
-            'foo')
 
     def test_prepare_ramdisk_cleaning(self):
         self.node.provision_state = states.CLEANING
@@ -635,7 +552,7 @@ class PXEBootTestCase(db_base.DbTestCase):
         get_image_info_mock.return_value = image_info
         with task_manager.acquire(self.context, self.node.uuid) as task:
             dhcp_opts = pxe_utils.dhcp_options_for_instance(
-                task, ipxe_enabled=CONF.pxe.ipxe_enabled)
+                task, ipxe_enabled=False)
             pxe_config_path = pxe_utils.get_pxe_config_file_path(
                 task.node.uuid)
             task.node.properties['capabilities'] = 'boot_mode:bios'
@@ -646,9 +563,9 @@ class PXEBootTestCase(db_base.DbTestCase):
             task.driver.boot.prepare_instance(task)
 
             get_image_info_mock.assert_called_once_with(
-                task)
+                task, ipxe_enabled=False)
             cache_mock.assert_called_once_with(
-                task, image_info, ipxe_enabled=CONF.pxe.ipxe_enabled)
+                task, image_info, ipxe_enabled=False)
             provider_mock.update_dhcp.assert_called_once_with(task, dhcp_opts)
             switch_pxe_config_mock.assert_called_once_with(
                 pxe_config_path, "30212642-09d3-467f-8e09-21685826ab50",
@@ -688,9 +605,9 @@ class PXEBootTestCase(db_base.DbTestCase):
             task.driver.boot.prepare_instance(task)
 
             get_image_info_mock.assert_called_once_with(
-                task)
+                task, ipxe_enabled=False)
             cache_mock.assert_called_once_with(
-                task, image_info, ipxe_enabled=CONF.pxe.ipxe_enabled)
+                task, image_info, ipxe_enabled=False)
             provider_mock.update_dhcp.assert_called_once_with(task, dhcp_opts)
             create_pxe_config_mock.assert_called_once_with(
                 task, mock.ANY, CONF.pxe.pxe_config_template,
@@ -716,20 +633,21 @@ class PXEBootTestCase(db_base.DbTestCase):
         get_image_info_mock.return_value = image_info
         with task_manager.acquire(self.context, self.node.uuid) as task:
             dhcp_opts = pxe_utils.dhcp_options_for_instance(
-                task, ipxe_enabled=CONF.pxe.ipxe_enabled)
+                task, ipxe_enabled=False)
             task.node.properties['capabilities'] = 'boot_mode:bios'
             task.node.driver_internal_info['is_whole_disk_image'] = False
 
             task.driver.boot.prepare_instance(task)
 
-            get_image_info_mock.assert_called_once_with(task)
+            get_image_info_mock.assert_called_once_with(task,
+                                                        ipxe_enabled=False)
             cache_mock.assert_called_once_with(
-                task, image_info, ipxe_enabled=CONF.pxe.ipxe_enabled)
+                task, image_info, ipxe_enabled=False)
             provider_mock.update_dhcp.assert_called_once_with(task, dhcp_opts)
             self.assertFalse(switch_pxe_config_mock.called)
             self.assertFalse(set_boot_device_mock.called)
 
-    @mock.patch.object(pxe.LOG, 'warning', autospec=True)
+    @mock.patch.object(pxe_base.LOG, 'warning', autospec=True)
     @mock.patch.object(pxe_utils, 'clean_up_pxe_config', autospec=True)
     @mock.patch.object(manager_utils, 'node_set_boot_device', autospec=True)
     @mock.patch.object(dhcp_factory, 'DHCPFactory')
@@ -744,69 +662,20 @@ class PXEBootTestCase(db_base.DbTestCase):
         get_image_info_mock.return_value = {}
         with task_manager.acquire(self.context, self.node.uuid) as task:
             dhcp_opts = pxe_utils.dhcp_options_for_instance(
-                task, CONF.pxe.ipxe_enabled)
+                task, ipxe_enabled=False)
             task.node.properties['capabilities'] = 'boot_mode:bios'
             task.node.driver_internal_info['is_whole_disk_image'] = True
             task.driver.boot.prepare_instance(task)
-            get_image_info_mock.assert_called_once_with(task)
+            get_image_info_mock.assert_called_once_with(task,
+                                                        ipxe_enabled=False)
             cache_mock.assert_called_once_with(
-                task, {}, ipxe_enabled=CONF.pxe.ipxe_enabled)
+                task, {}, ipxe_enabled=False)
             provider_mock.update_dhcp.assert_called_once_with(task, dhcp_opts)
             self.assertTrue(log_mock.called)
             clean_up_pxe_mock.assert_called_once_with(
-                task, ipxe_enabled=CONF.pxe.ipxe_enabled)
+                task, ipxe_enabled=False)
             set_boot_device_mock.assert_called_once_with(
                 task, boot_devices.DISK, persistent=True)
-
-    @mock.patch('os.path.isfile', lambda filename: False)
-    @mock.patch.object(pxe_utils, 'create_pxe_config', autospec=True)
-    @mock.patch.object(deploy_utils, 'is_iscsi_boot', lambda task: True)
-    @mock.patch.object(noop_storage.NoopStorage, 'should_write_image',
-                       lambda task: False)
-    @mock.patch.object(manager_utils, 'node_set_boot_device', autospec=True)
-    @mock.patch.object(deploy_utils, 'switch_pxe_config', autospec=True)
-    @mock.patch.object(dhcp_factory, 'DHCPFactory', autospec=True)
-    @mock.patch.object(pxe_utils, 'cache_ramdisk_kernel', autospec=True)
-    @mock.patch.object(pxe_utils, 'get_instance_image_info', autospec=True)
-    def test_prepare_instance_netboot_iscsi(
-            self, get_image_info_mock, cache_mock,
-            dhcp_factory_mock, switch_pxe_config_mock,
-            set_boot_device_mock, create_pxe_config_mock):
-        http_url = 'http://192.1.2.3:1234'
-        self.config(ipxe_enabled=True, group='pxe')
-        self.config(http_url=http_url, group='deploy')
-        provider_mock = mock.MagicMock()
-        dhcp_factory_mock.return_value = provider_mock
-        vol_id = uuidutils.generate_uuid()
-        obj_utils.create_test_volume_target(
-            self.context, node_id=self.node.id, volume_type='iscsi',
-            boot_index=0, volume_id='1234', uuid=vol_id,
-            properties={'target_lun': 0,
-                        'target_portal': 'fake_host:3260',
-                        'target_iqn': 'fake_iqn',
-                        'auth_username': 'fake_username',
-                        'auth_password': 'fake_password'})
-        with task_manager.acquire(self.context, self.node.uuid) as task:
-            task.node.driver_internal_info = {
-                'boot_from_volume': vol_id}
-            dhcp_opts = pxe_utils.dhcp_options_for_instance(task,
-                                                            ipxe_enabled=True)
-            pxe_config_path = pxe_utils.get_pxe_config_file_path(
-                task.node.uuid, ipxe_enabled=True)
-            task.node.properties['capabilities'] = 'boot_mode:bios'
-            task.driver.boot.prepare_instance(task)
-            self.assertFalse(get_image_info_mock.called)
-            self.assertFalse(cache_mock.called)
-            provider_mock.update_dhcp.assert_called_once_with(task, dhcp_opts)
-            create_pxe_config_mock.assert_called_once_with(
-                task, mock.ANY, CONF.pxe.pxe_config_template,
-                ipxe_enabled=True)
-            switch_pxe_config_mock.assert_called_once_with(
-                pxe_config_path, None, boot_modes.LEGACY_BIOS, False,
-                ipxe_enabled=True, ramdisk_boot=False, iscsi_boot=True)
-            set_boot_device_mock.assert_called_once_with(task,
-                                                         boot_devices.PXE,
-                                                         persistent=True)
 
     @mock.patch.object(manager_utils, 'node_set_boot_device', autospec=True)
     @mock.patch.object(pxe_utils, 'clean_up_pxe_config', autospec=True)
@@ -869,7 +738,8 @@ class PXEBootTestCase(db_base.DbTestCase):
                 task.node.uuid)
             task.driver.boot.prepare_instance(task)
 
-            get_image_info_mock.assert_called_once_with(task)
+            get_image_info_mock.assert_called_once_with(task,
+                                                        ipxe_enabled=False)
             cache_mock.assert_called_once_with(
                 task, image_info, CONF.pxe.ipxe_enabled)
             provider_mock.update_dhcp.assert_called_once_with(task, dhcp_opts)
@@ -904,8 +774,10 @@ class PXEBootTestCase(db_base.DbTestCase):
                           'ramdisk': ['', '/path/to/ramdisk']}
             get_image_info_mock.return_value = image_info
             task.driver.boot.clean_up_instance(task)
-            clean_up_pxe_env_mock.assert_called_once_with(task, image_info)
-            get_image_info_mock.assert_called_once_with(task)
+            clean_up_pxe_env_mock.assert_called_once_with(task, image_info,
+                                                          ipxe_enabled=False)
+            get_image_info_mock.assert_called_once_with(task,
+                                                        ipxe_enabled=False)
 
 
 class PXERamdiskDeployTestCase(db_base.DbTestCase):
@@ -957,7 +829,7 @@ class PXERamdiskDeployTestCase(db_base.DbTestCase):
         get_image_info_mock.return_value = image_info
         with task_manager.acquire(self.context, self.node.uuid) as task:
             dhcp_opts = pxe_utils.dhcp_options_for_instance(
-                task, ipxe_enabled=CONF.pxe.ipxe_enabled)
+                task, ipxe_enabled=False)
             pxe_config_path = pxe_utils.get_pxe_config_file_path(
                 task.node.uuid)
             task.node.properties['capabilities'] = 'boot_option:netboot'
@@ -965,9 +837,10 @@ class PXERamdiskDeployTestCase(db_base.DbTestCase):
             task.driver.deploy.prepare(task)
             task.driver.deploy.deploy(task)
 
-            get_image_info_mock.assert_called_once_with(task)
+            get_image_info_mock.assert_called_once_with(task,
+                                                        ipxe_enabled=False)
             cache_mock.assert_called_once_with(
-                task, image_info, ipxe_enabled=CONF.pxe.ipxe_enabled)
+                task, image_info, ipxe_enabled=False)
             provider_mock.update_dhcp.assert_called_once_with(task, dhcp_opts)
             switch_pxe_config_mock.assert_called_once_with(
                 pxe_config_path, None,
@@ -993,9 +866,9 @@ class PXERamdiskDeployTestCase(db_base.DbTestCase):
         self.node.save()
         with task_manager.acquire(self.context, self.node.uuid) as task:
             self.assertIsNone(task.driver.deploy.deploy(task))
-            mock_image_info.assert_called_once_with(task)
+            mock_image_info.assert_called_once_with(task, ipxe_enabled=False)
             mock_cache.assert_called_once_with(
-                task, image_info, ipxe_enabled=CONF.pxe.ipxe_enabled)
+                task, image_info, ipxe_enabled=False)
             self.assertFalse(mock_warning.called)
         i_info['configdrive'] = 'meow'
         self.node.instance_info = i_info
@@ -1110,9 +983,9 @@ class PXERamdiskDeployTestCase(db_base.DbTestCase):
         with task_manager.acquire(self.context, self.node.uuid) as task:
             power_on_node_if_needed_mock.return_value = states.POWER_OFF
             self.assertIsNone(task.driver.deploy.deploy(task))
-            mock_image_info.assert_called_once_with(task)
+            mock_image_info.assert_called_once_with(task, ipxe_enabled=False)
             mock_cache.assert_called_once_with(
-                task, image_info, ipxe_enabled=CONF.pxe.ipxe_enabled)
+                task, image_info, ipxe_enabled=False)
             self.assertFalse(mock_warning.called)
             power_on_node_if_needed_mock.assert_called_once_with(task)
             restore_power_state_mock.assert_called_once_with(

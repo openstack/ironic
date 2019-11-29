@@ -1275,7 +1275,8 @@ class CleanUpFullFlowTestCase(db_base.DbTestCase):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
             task.driver.deploy.clean_up(task)
-            mock_get_instance_image_info.assert_called_with(task)
+            mock_get_instance_image_info.assert_called_with(task,
+                                                            ipxe_enabled=False)
             mock_get_deploy_image_info.assert_called_with(
                 task.node, mode='deploy', ipxe_enabled=False)
             set_dhcp_provider_mock.assert_called_once_with()
