@@ -52,8 +52,7 @@ class PXEBoot(pxe_base.PXEBaseMixin, base.BootInterface):
     # TODO(TheJulia): iscsi_volume_boot should be removed from
     # the list below once ipxe support is removed from the PXE
     # interface.
-    capabilities = ['iscsi_volume_boot', 'ramdisk_boot', 'ipxe_boot',
-                    'pxe_boot']
+    capabilities = ['iscsi_volume_boot', 'ramdisk_boot', 'pxe_boot']
 
     def __init__(self):
         # TODO(TheJulia): Once the pxe/ipxe interfaces split is complete,
