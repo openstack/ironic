@@ -107,6 +107,12 @@ class CommonFunctionsTestCase(BaseTestCase):
         self.assertEqual('mdns', inspector._get_callback_endpoint(client))
         self.assertFalse(client.get_endpoint.called)
 
+    def test_get_callback_endpoint_no_loopback(self):
+        client = mock.Mock()
+        client.get_endpoint.return_value = 'http://127.0.0.1:5050'
+        self.assertRaisesRegex(exception.InvalidParameterValue, 'Loopback',
+                               inspector._get_callback_endpoint, client)
+
 
 @mock.patch.object(eventlet, 'spawn_n', lambda f, *a, **kw: f(*a, **kw))
 @mock.patch('ironic.drivers.modules.inspector._get_client', autospec=True)
