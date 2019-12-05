@@ -192,11 +192,12 @@ class InspectHardwareTestCase(BaseTestCase):
             })
         self.driver.network.add_inspection_network.assert_called_once_with(
             self.task)
-        self.driver.power.reboot.assert_called_once_with(
-            self.task, timeout=None)
+        self.driver.power.set_power_state.assert_has_calls([
+            mock.call(self.task, states.POWER_OFF, timeout=None),
+            mock.call(self.task, states.POWER_ON, timeout=None),
+        ])
         self.assertFalse(self.driver.network.remove_inspection_network.called)
         self.assertFalse(self.driver.boot.clean_up_ramdisk.called)
-        self.assertFalse(self.driver.power.set_power_state.called)
 
     def test_managed_custom_params(self, mock_client):
         CONF.set_override('extra_kernel_params',
@@ -219,11 +220,12 @@ class InspectHardwareTestCase(BaseTestCase):
             })
         self.driver.network.add_inspection_network.assert_called_once_with(
             self.task)
-        self.driver.power.reboot.assert_called_once_with(
-            self.task, timeout=None)
+        self.driver.power.set_power_state.assert_has_calls([
+            mock.call(self.task, states.POWER_OFF, timeout=None),
+            mock.call(self.task, states.POWER_ON, timeout=None),
+        ])
         self.assertFalse(self.driver.network.remove_inspection_network.called)
         self.assertFalse(self.driver.boot.clean_up_ramdisk.called)
-        self.assertFalse(self.driver.power.set_power_state.called)
 
     @mock.patch.object(task_manager, 'acquire', autospec=True)
     def test_managed_error(self, mock_acquire, mock_client):
@@ -246,7 +248,7 @@ class InspectHardwareTestCase(BaseTestCase):
         self.driver.network.remove_inspection_network.assert_called_once_with(
             self.task)
         self.driver.boot.clean_up_ramdisk.assert_called_once_with(self.task)
-        self.driver.power.set_power_state.assert_called_once_with(
+        self.driver.power.set_power_state.assert_called_with(
             self.task, 'power off', timeout=None)
 
 

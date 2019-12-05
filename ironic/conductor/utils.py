@@ -12,6 +12,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import contextlib
 import datetime
 import time
 
@@ -829,6 +830,20 @@ def restore_power_state_if_needed(task, power_state_to_restore):
         # enough time to apply network changes.
         time.sleep(CONF.agent.neutron_agent_poll_interval * 2)
         node_power_action(task, power_state_to_restore)
+
+
+@contextlib.contextmanager
+def power_state_for_network_configuration(task):
+    """Handle the power state for a node reconfiguration.
+
+    Powers the node on if and only if it has a Smart NIC port. Yields for
+    the actual reconfiguration, then restores the power state.
+
+    :param task: A TaskManager object.
+    """
+    previous = power_on_node_if_needed(task)
+    yield task
+    restore_power_state_if_needed(task, previous)
 
 
 def build_configdrive(node, configdrive):
