@@ -2116,6 +2116,36 @@ class NodesController(rest.RestController):
                                        'state': ir_states.INSPECTING}
             raise wsme.exc.ClientSideError(msg,
                                            status_code=http_client.CONFLICT)
+        elif api_utils.get_patch_values(patch, '/owner'):
+
+            # check if updating a provisioned node's owner is allowed
+            if rpc_node.provision_state == ir_states.ACTIVE:
+                try:
+                    api_utils.check_node_policy(
+                        'baremetal:node:update_owner_provisioned',
+                        rpc_node['owner'])
+                except exception.HTTPForbidden:
+                    msg = _('Cannot update owner of node "%(node)s" while it '
+                            'is in state "%(state)s".') % {
+                                'node': rpc_node.uuid,
+                                'state': ir_states.ACTIVE}
+                    raise wsme.exc.ClientSideError(
+                        msg, status_code=http_client.CONFLICT)
+
+            # check if node has an associated allocation with an owner
+            if rpc_node.allocation_id:
+                try:
+                    allocation = objects.Allocation.get_by_id(
+                        context,
+                        rpc_node.allocation_id)
+                    if allocation.owner is not None:
+                        msg = _('Cannot update owner of node "%(node)s" while '
+                                'it is allocated to an allocation with an '
+                                ' owner.') % {'node': rpc_node.uuid}
+                        raise wsme.exc.ClientSideError(
+                            msg, status_code=http_client.CONFLICT)
+                except exception.AllocationNotFound:
+                    pass
 
         names = api_utils.get_patch_values(patch, '/name')
         if len(names):

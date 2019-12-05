@@ -3117,7 +3117,15 @@ class TestPatch(test_api_base.BaseApiTest):
         self.assertEqual('application/json', response.content_type)
         self.assertEqual(http_client.OK, response.status_code)
 
-    def test_update_owner(self):
+    @mock.patch.object(policy, 'authorize', spec=True)
+    def test_update_owner(self, mock_authorize):
+        def mock_authorize_function(rule, target, creds):
+            # test should not check this policy rule
+            if rule == 'baremetal:node:update_owner_provisioned':
+                raise exception.HTTPForbidden(resource='fake')
+            return True
+        mock_authorize.side_effect = mock_authorize_function
+
         node = obj_utils.create_test_node(self.context,
                                           uuid=uuidutils.generate_uuid())
         self.mock_update_node.return_value = node
@@ -3129,6 +3137,76 @@ class TestPatch(test_api_base.BaseApiTest):
                                    headers=headers)
         self.assertEqual('application/json', response.content_type)
         self.assertEqual(http_client.OK, response.status_code)
+
+    def test_update_owner_provisioned(self):
+        node = obj_utils.create_test_node(self.context,
+                                          uuid=uuidutils.generate_uuid(),
+                                          provision_state='active')
+        self.mock_update_node.return_value = node
+        headers = {api_base.Version.string: '1.50'}
+        response = self.patch_json('/nodes/%s' % node.uuid,
+                                   [{'path': '/owner',
+                                     'value': 'meow',
+                                     'op': 'replace'}],
+                                   headers=headers)
+        self.assertEqual('application/json', response.content_type)
+        self.assertEqual(http_client.OK, response.status_code)
+
+    @mock.patch.object(policy, 'authorize', spec=True)
+    def test_update_owner_provisioned_forbidden(self, mock_authorize):
+        def mock_authorize_function(rule, target, creds):
+            if rule == 'baremetal:node:update_owner_provisioned':
+                raise exception.HTTPForbidden(resource='fake')
+            return True
+        mock_authorize.side_effect = mock_authorize_function
+
+        node = obj_utils.create_test_node(self.context,
+                                          uuid=uuidutils.generate_uuid(),
+                                          provision_state='active')
+        self.mock_update_node.return_value = node
+        headers = {api_base.Version.string: '1.50'}
+        response = self.patch_json('/nodes/%s' % node.uuid,
+                                   [{'path': '/owner',
+                                     'value': 'meow',
+                                     'op': 'replace'}],
+                                   headers=headers,
+                                   expect_errors=True)
+        self.assertEqual('application/json', response.content_type)
+        self.assertEqual(http_client.CONFLICT, response.status_code)
+        self.assertTrue(response.json['error_message'])
+
+    def test_update_owner_allocation(self):
+        allocation = obj_utils.create_test_allocation(self.context)
+        node = obj_utils.create_test_node(self.context,
+                                          uuid=uuidutils.generate_uuid(),
+                                          allocation_id=allocation.id)
+        self.mock_update_node.return_value = node
+        headers = {api_base.Version.string: '1.50'}
+        response = self.patch_json('/nodes/%s' % node.uuid,
+                                   [{'path': '/owner',
+                                     'value': 'meow',
+                                     'op': 'replace'}],
+                                   headers=headers)
+        self.assertEqual('application/json', response.content_type)
+        self.assertEqual(http_client.OK, response.status_code)
+
+    def test_update_owner_allocation_owned(self):
+        allocation = obj_utils.create_test_allocation(self.context,
+                                                      owner='12345')
+        node = obj_utils.create_test_node(self.context,
+                                          uuid=uuidutils.generate_uuid(),
+                                          allocation_id=allocation.id)
+        self.mock_update_node.return_value = node
+        headers = {api_base.Version.string: '1.50'}
+        response = self.patch_json('/nodes/%s' % node.uuid,
+                                   [{'path': '/owner',
+                                     'value': 'meow',
+                                     'op': 'replace'}],
+                                   headers=headers,
+                                   expect_errors=True)
+        self.assertEqual('application/json', response.content_type)
+        self.assertEqual(http_client.CONFLICT, response.status_code)
+        self.assertTrue(response.json['error_message'])
 
     def test_update_protected_old_api(self):
         node = obj_utils.create_test_node(self.context,

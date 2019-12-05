@@ -102,6 +102,11 @@ node_policies = [
         'Update Node records',
         [{'path': '/nodes/{node_ident}', 'method': 'PATCH'}]),
     policy.DocumentedRuleDefault(
+        'baremetal:node:update_owner_provisioned',
+        'rule:is_admin',
+        'Update Node owner even when Node is provisioned',
+        [{'path': '/nodes/{node_ident}', 'method': 'PATCH'}]),
+    policy.DocumentedRuleDefault(
         'baremetal:node:delete',
         'rule:is_admin',
         'Delete Node records',
