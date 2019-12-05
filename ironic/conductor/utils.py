@@ -1010,13 +1010,22 @@ def get_node_next_deploy_steps(task, skip_current_step=True):
                                 skip_current_step=skip_current_step)
 
 
-def add_secret_token(node):
-    """Adds a secret token to driver_internal_info for IPA verification."""
+def add_secret_token(node, pregenerated=False):
+    """Adds a secret token to driver_internal_info for IPA verification.
+
+    :param node: Node object
+    :param pregenerated: Boolean value, default False, which indicates if
+                         the token should be marked as "pregenerated" in
+                         order to facilitate virtual media booting where
+                         the token is embedded into the configuration.
+    """
     characters = string.ascii_letters + string.digits
     token = ''.join(
         random.SystemRandom().choice(characters) for i in range(128))
     i_info = node.driver_internal_info
     i_info['agent_secret_token'] = token
+    if pregenerated:
+        i_info['agent_secret_token_pregenerated'] = True
     node.driver_internal_info = i_info
 
 

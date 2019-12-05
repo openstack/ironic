@@ -990,7 +990,9 @@ class IRMCVirtualMediaBootTestCase(test_common.BaseIRMCTest):
                                   shared=False) as task:
             task.driver.boot.prepare_ramdisk(task, ramdisk_params)
 
-            expected_ramdisk_opts = {'a': 'b', 'BOOTIF': '12:34:56:78:90:ab'}
+            expected_ramdisk_opts = {'a': 'b', 'BOOTIF': '12:34:56:78:90:ab',
+                                     'ipa-agent-token': mock.ANY}
+
             get_single_nic_with_vif_port_id_mock.assert_called_once_with(
                 task)
             _setup_vmedia_mock.assert_called_once_with(

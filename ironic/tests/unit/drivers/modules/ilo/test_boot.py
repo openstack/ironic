@@ -821,7 +821,8 @@ class IloVirtualMediaBootTestCase(test_common.BaseIloTest):
 
             prepare_node_for_deploy_mock.assert_called_once_with(task)
             eject_mock.assert_called_once_with(task)
-            expected_ramdisk_opts = {'a': 'b', 'BOOTIF': '12:34:56:78:90:ab'}
+            expected_ramdisk_opts = {'a': 'b', 'BOOTIF': '12:34:56:78:90:ab',
+                                     'ipa-agent-token': mock.ANY}
             get_nic_mock.assert_called_once_with(task)
             setup_vmedia_mock.assert_called_once_with(task, iso,
                                                       expected_ramdisk_opts)
