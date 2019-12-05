@@ -82,6 +82,9 @@ class AgentClient(object):
         request_params = {
             'wait': str(wait).lower()
         }
+        agent_token = node.driver_internal_info.get('agent_secret_token')
+        if agent_token:
+            request_params['agent_token'] = agent_token
         LOG.debug('Executing agent command %(method)s for node %(node)s',
                   {'node': node.uuid, 'method': method})
 
