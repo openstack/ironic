@@ -117,7 +117,8 @@ def _link_mac_pxe_configs(task, ipxe_enabled=False):
         create_link(_get_pxe_mac_path(port.address, client_id=client_id,
                                       ipxe_enabled=ipxe_enabled))
         # Grub2 MAC address only
-        create_link(_get_pxe_grub_mac_path(port.address))
+        create_link(_get_pxe_grub_mac_path(port.address,
+                                           ipxe_enabled=ipxe_enabled))
 
 
 def _link_ip_address_pxe_configs(task, ipxe_enabled=False):
@@ -158,8 +159,9 @@ def _link_ip_address_pxe_configs(task, ipxe_enabled=False):
                                         ip_address_path)
 
 
-def _get_pxe_grub_mac_path(mac):
-    return os.path.join(get_root_dir(), mac + '.conf')
+def _get_pxe_grub_mac_path(mac, ipxe_enabled=False):
+    root_dir = get_ipxe_root_dir() if ipxe_enabled else get_root_dir()
+    return os.path.join(root_dir, mac + '.conf')
 
 
 def _get_pxe_mac_path(mac, delimiter='-', client_id=None,
@@ -367,7 +369,7 @@ def clean_up_pxe_config(task, ipxe_enabled=False):
                               ipxe_enabled=ipxe_enabled))
         # Grub2 MAC address based confiuration
         ironic_utils.unlink_without_raise(
-            _get_pxe_grub_mac_path(port.address))
+            _get_pxe_grub_mac_path(port.address, ipxe_enabled=ipxe_enabled))
     if ipxe_enabled:
         utils.rmtree_without_raise(os.path.join(get_ipxe_root_dir(),
                                                 task.node.uuid))
@@ -781,7 +783,8 @@ def build_service_pxe_config(task, instance_image_info,
                              ramdisk_boot=False,
                              ipxe_enabled=False):
     node = task.node
-    pxe_config_path = get_pxe_config_file_path(node.uuid)
+    pxe_config_path = get_pxe_config_file_path(node.uuid,
+                                               ipxe_enabled=ipxe_enabled)
     # NOTE(pas-ha) if it is takeover of ACTIVE node or node performing
     # unrescue operation, first ensure that basic PXE configs and links
     # are in place before switching pxe config
@@ -919,7 +922,7 @@ def prepare_instance_pxe_config(task, image_info,
     provider = dhcp_factory.DHCPFactory()
     provider.update_dhcp(task, dhcp_opts)
     pxe_config_path = get_pxe_config_file_path(
-        node.uuid)
+        node.uuid, ipxe_enabled=ipxe_enabled)
     if not os.path.isfile(pxe_config_path):
         pxe_options = build_pxe_config_options(
             task, image_info, service=ramdisk_boot,

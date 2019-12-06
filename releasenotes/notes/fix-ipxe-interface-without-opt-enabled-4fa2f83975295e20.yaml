@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Fixes an issue that when ``ipxe`` interface is in use with
+    ``[pxe]ipxe_enabled`` set to false, the PXE configuration is not handled
+    properly which prevents the machine from performing a successful iPXE boot.
