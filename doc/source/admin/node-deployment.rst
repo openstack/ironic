@@ -47,8 +47,10 @@ All deploy interfaces based on ironic-python-agent (i.e. ``direct``, ``iscsi``
 and ``ansible`` and any derivatives) expose the following deploy steps:
 
 ``deploy.deploy`` (priority 100)
-  In this step the node is booted using a provisioning image, and the user
-  image is written to the node's disk.
+  In this step the node is booted using a provisioning image.
+``deploy.write_image`` (priority 80)
+  An out-of-band (``iscsi``, ``ansible``) or in-band (``direct``) step that
+  downloads and writes the image to the node.
 ``deploy.tear_down_agent`` (priority 40)
   In this step the provisioning image is shut down.
 ``deploy.switch_to_tenant_network`` (priority 30)
@@ -57,45 +59,30 @@ and ``ansible`` and any derivatives) expose the following deploy steps:
 ``deploy.boot_instance`` (priority 20)
   In this step the node is booted into the user image.
 
+Additionally, the ``iscsi`` and ``direct`` deploy interfaces have:
+
+``deploy.prepare_instance_boot`` (priority 60)
+  In this step the boot device is configured and the bootloader is installed.
+
+  .. note::
+    For the ``ansible`` deploy interface these steps are done in
+    ``deploy.write_image``.
+
 Accordingly, the following priority ranges can be used for custom deploy steps:
 
 > 100
   Out-of-band steps to run before deployment.
+81 to 99
+  In-band deploy steps to run before the image is written.
+61 to 79
+  In-band deploy steps to run after the image is written but before the
+  bootloader is installed.
 41 to 59
   In-band steps to run after the image is written the bootloader is installed.
 21 to 39
   Out-of-band steps to run after the provisioning image is shut down.
 1 to 19
   Any steps that are run when the user instance is already running.
-
-Direct deploy
-^^^^^^^^^^^^^
-
-The :ref:`direct-deploy` interface splits the ``deploy.deploy`` step into:
-
-
-``deploy.deploy`` (priority 100)
-  In this step the node is booted using a provisioning image.
-``deploy.write_image`` (priority 80)
-  A combination of an out-of-band and in-band step that downloads and writes
-  the image to the node. The step is executed asynchronously by the ramdisk.
-``deploy.prepare_instance_boot`` (priority 60)
-  In this step the boot device is configured and the bootloader is installed.
-
-Additional priority ranges can be used for custom deploy steps:
-
-81 to 99
-  In-band deploy steps to run before the image is written.
-61 to 79
-  In-band deploy steps to run after the image is written but before the
-  bootloader is installed.
-
-Other deploy interfaces
-^^^^^^^^^^^^^^^^^^^^^^^
-
-Priorities 60 to 99 are currently reserved and should not be used.
-
-.. TODO(dtantsur): update once iscsi and ansible are converted
 
 Writing a Deploy Step
 ---------------------

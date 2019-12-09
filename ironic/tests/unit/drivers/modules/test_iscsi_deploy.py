@@ -348,8 +348,8 @@ class IscsiDeployMethodsTestCase(db_base.DbTestCase):
             'node': self.node.uuid,
             'params': log_params,
         }
-        uuid_dict_returned = {'root uuid': '12345678-87654321'}
-        deploy_mock.return_value = uuid_dict_returned
+        deployment_uuids = {'root uuid': '12345678-87654321'}
+        deploy_mock.return_value = deployment_uuids
 
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
@@ -362,7 +362,7 @@ class IscsiDeployMethodsTestCase(db_base.DbTestCase):
             self.assertIsNone(task.node.last_error)
             mock_image_cache.assert_called_once_with()
             mock_image_cache.return_value.clean_up.assert_called_once_with()
-            self.assertEqual(uuid_dict_returned, retval)
+            self.assertEqual(deployment_uuids, retval)
             mock_disk_layout.assert_called_once_with(task.node, mock.ANY)
 
     @mock.patch.object(iscsi_deploy, 'LOG', autospec=True)
@@ -392,8 +392,8 @@ class IscsiDeployMethodsTestCase(db_base.DbTestCase):
             'node': self.node.uuid,
             'params': log_params,
         }
-        uuid_dict_returned = {'disk identifier': '87654321'}
-        deploy_mock.return_value = uuid_dict_returned
+        deployment_uuids = {'disk identifier': '87654321'}
+        deploy_mock.return_value = deployment_uuids
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
             task.node.driver_internal_info['is_whole_disk_image'] = True
@@ -406,7 +406,7 @@ class IscsiDeployMethodsTestCase(db_base.DbTestCase):
             self.assertIsNone(task.node.last_error)
             mock_image_cache.assert_called_once_with()
             mock_image_cache.return_value.clean_up.assert_called_once_with()
-            self.assertEqual(uuid_dict_returned, retval)
+            self.assertEqual(deployment_uuids, retval)
 
     def _test_get_deploy_info(self, extra_instance_info=None):
         if extra_instance_info is None:
@@ -489,8 +489,8 @@ class IscsiDeployMethodsTestCase(db_base.DbTestCase):
         driver_internal_info = {'agent_url': 'http://1.2.3.4:1234'}
         self.node.driver_internal_info = driver_internal_info
         self.node.save()
-        uuid_dict_returned = {'root uuid': 'some-root-uuid'}
-        continue_deploy_mock.return_value = uuid_dict_returned
+        deployment_uuids = {'root uuid': 'some-root-uuid'}
+        continue_deploy_mock.return_value = deployment_uuids
         expected_iqn = 'iqn.2008-10.org.openstack:%s' % self.node.uuid
 
         with task_manager.acquire(self.context, self.node.uuid,
@@ -504,7 +504,7 @@ class IscsiDeployMethodsTestCase(db_base.DbTestCase):
             self.assertEqual(
                 'some-root-uuid',
                 task.node.driver_internal_info['root_uuid_or_disk_id'])
-            self.assertEqual(ret_val, uuid_dict_returned)
+            self.assertEqual(ret_val, deployment_uuids)
 
     @mock.patch.object(iscsi_deploy, 'continue_deploy', autospec=True)
     def test_do_agent_iscsi_deploy_preserve_ephemeral(self,
@@ -517,8 +517,8 @@ class IscsiDeployMethodsTestCase(db_base.DbTestCase):
             'agent_url': 'http://1.2.3.4:1234'}
         self.node.driver_internal_info = driver_internal_info
         self.node.save()
-        uuid_dict_returned = {'root uuid': 'some-root-uuid'}
-        continue_deploy_mock.return_value = uuid_dict_returned
+        deployment_uuids = {'root uuid': 'some-root-uuid'}
+        continue_deploy_mock.return_value = deployment_uuids
         expected_iqn = 'iqn.2008-10.org.openstack:%s' % self.node.uuid
 
         with task_manager.acquire(self.context, self.node.uuid,
@@ -831,54 +831,31 @@ class ISCSIDeployTestCase(db_base.DbTestCase):
             self.assertNotIn(
                 'deployment_reboot', task.node.driver_internal_info)
 
+    @mock.patch.object(manager_utils, 'node_power_action', autospec=True)
     @mock.patch.object(noop_storage.NoopStorage, 'should_write_image',
                        autospec=True)
-    @mock.patch.object(flat_network.FlatNetwork,
-                       'configure_tenant_networks',
-                       spec_set=True, autospec=True)
-    @mock.patch.object(flat_network.FlatNetwork,
-                       'remove_provisioning_network',
-                       spec_set=True, autospec=True)
-    @mock.patch.object(pxe.PXEBoot,
-                       'prepare_instance',
-                       spec_set=True, autospec=True)
-    @mock.patch.object(manager_utils, 'node_power_action', autospec=True)
-    @mock.patch.object(iscsi_deploy, 'check_image_size', autospec=True)
-    @mock.patch.object(deploy_utils, 'cache_instance_image', autospec=True)
-    def test_deploy_storage_check_write_image_false(self,
-                                                    mock_cache_instance_image,
-                                                    mock_check_image_size,
-                                                    mock_node_power_action,
-                                                    mock_prepare_instance,
-                                                    mock_remove_network,
-                                                    mock_tenant_network,
-                                                    mock_write):
+    def test_deploy_storage_should_write_image_false(
+            self, mock_write, mock_node_power_action):
         mock_write.return_value = False
         self.node.provision_state = states.DEPLOYING
         self.node.deploy_step = {
             'step': 'deploy', 'priority': 50, 'interface': 'deploy'}
         self.node.save()
-        with task_manager.acquire(self.context,
-                                  self.node.uuid, shared=False) as task:
+        with task_manager.acquire(
+                self.context, self.node.uuid, shared=False) as task:
             ret = task.driver.deploy.deploy(task)
             self.assertIsNone(ret)
-            self.assertFalse(mock_cache_instance_image.called)
-            self.assertFalse(mock_check_image_size.called)
-            mock_remove_network.assert_called_once_with(mock.ANY, task)
-            mock_tenant_network.assert_called_once_with(mock.ANY, task)
-            mock_prepare_instance.assert_called_once_with(mock.ANY, task)
-            self.assertEqual(2, mock_node_power_action.call_count)
-            self.assertEqual(states.DEPLOYING, task.node.provision_state)
+            self.assertFalse(mock_node_power_action.called)
 
     @mock.patch.object(iscsi_deploy, 'check_image_size', autospec=True)
     @mock.patch.object(deploy_utils, 'cache_instance_image', autospec=True)
-    @mock.patch.object(iscsi_deploy.ISCSIDeploy, 'continue_deploy',
+    @mock.patch.object(iscsi_deploy.ISCSIDeploy, 'write_image',
                        autospec=True)
     @mock.patch('ironic.conductor.utils.is_fast_track', autospec=True)
     @mock.patch.object(pxe.PXEBoot, 'prepare_instance', autospec=True)
     @mock.patch('ironic.conductor.utils.node_power_action', autospec=True)
     def test_deploy_fast_track(self, power_mock, mock_pxe_instance,
-                               mock_is_fast_track, continue_deploy_mock,
+                               mock_is_fast_track, write_image_mock,
                                cache_image_mock, check_image_size_mock):
         mock_is_fast_track.return_value = True
         self.node.target_provision_state = states.ACTIVE
@@ -889,16 +866,17 @@ class ISCSIDeployTestCase(db_base.DbTestCase):
         self.node.save()
         with task_manager.acquire(
                 self.context, self.node['uuid'], shared=False) as task:
-            task.driver.deploy.deploy(task)
+            result = task.driver.deploy.deploy(task)
+            self.assertIsNone(result)
             self.assertFalse(power_mock.called)
             self.assertFalse(mock_pxe_instance.called)
             task.node.refresh()
-            self.assertEqual(states.DEPLOYWAIT, task.node.provision_state)
+            self.assertEqual(states.DEPLOYING, task.node.provision_state)
             self.assertEqual(states.ACTIVE,
                              task.node.target_provision_state)
             cache_image_mock.assert_called_with(mock.ANY, task.node)
             check_image_size_mock.assert_called_with(task)
-            continue_deploy_mock.assert_called_with(mock.ANY, task)
+            self.assertFalse(write_image_mock.called)
 
     @mock.patch.object(noop_storage.NoopStorage, 'detach_volumes',
                        autospec=True)
@@ -995,90 +973,95 @@ class ISCSIDeployTestCase(db_base.DbTestCase):
             agent_execute_clean_step_mock.assert_called_once_with(
                 task, {'some-step': 'step-info'}, 'clean')
 
-    @mock.patch.object(agent_base.AgentDeployMixin,
-                       'reboot_and_finish_deploy', autospec=True)
     @mock.patch.object(iscsi_deploy, 'do_agent_iscsi_deploy', autospec=True)
-    def test_continue_deploy_netboot(self, do_agent_iscsi_deploy_mock,
-                                     reboot_and_finish_deploy_mock):
+    def test_write_image(self, do_agent_iscsi_deploy_mock):
 
         self.node.instance_info = {
             'capabilities': {'boot_option': 'netboot'}}
         self.node.provision_state = states.DEPLOYWAIT
         self.node.target_provision_state = states.ACTIVE
         self.node.save()
-        uuid_dict_returned = {'root uuid': 'some-root-uuid'}
-        do_agent_iscsi_deploy_mock.return_value = uuid_dict_returned
+        deployment_uuids = {'root uuid': 'some-root-uuid'}
+        do_agent_iscsi_deploy_mock.return_value = deployment_uuids
         self.node.save()
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            task.driver.deploy.write_image(task)
+            do_agent_iscsi_deploy_mock.assert_called_once_with(
+                task, task.driver.deploy._client)
+            self.assertEqual(
+                task.node.driver_internal_info['deployment_uuids'],
+                deployment_uuids)
+
+    @mock.patch.object(noop_storage.NoopStorage, 'should_write_image',
+                       autospec=True)
+    @mock.patch.object(iscsi_deploy, 'do_agent_iscsi_deploy', autospec=True)
+    def test_write_image_bfv(self, do_agent_iscsi_deploy_mock,
+                             should_write_image_mock):
+        should_write_image_mock.return_value = False
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            task.driver.deploy.write_image(task)
+            self.assertFalse(do_agent_iscsi_deploy_mock.called)
+
+    def test_prepare_instance_boot_netboot(self):
+        deployment_uuids = {'root uuid': 'some-root-uuid'}
+        self.node.instance_info = {
+            'capabilities': {'boot_option': 'netboot'}}
+        self.node.provision_state = states.DEPLOYWAIT
+        self.node.target_provision_state = states.ACTIVE
+        info = self.node.driver_internal_info
+        info['deployment_uuids'] = deployment_uuids
+        self.node.driver_internal_info = info
+        self.node.save()
+
         with task_manager.acquire(self.context, self.node.uuid) as task:
             with mock.patch.object(
                     task.driver.boot, 'prepare_instance') as m_prep_instance:
-                task.driver.deploy.continue_deploy(task)
-                do_agent_iscsi_deploy_mock.assert_called_once_with(
-                    task, task.driver.deploy._client)
-                reboot_and_finish_deploy_mock.assert_called_once_with(
-                    mock.ANY, task)
+                task.driver.deploy.prepare_instance_boot(task)
                 m_prep_instance.assert_called_once_with(task)
 
     @mock.patch.object(fake.FakeManagement, 'set_boot_device', autospec=True)
     @mock.patch.object(agent_base.AgentDeployMixin,
-                       'reboot_and_finish_deploy', autospec=True)
-    @mock.patch.object(agent_base.AgentDeployMixin,
                        'configure_local_boot', autospec=True)
-    @mock.patch.object(iscsi_deploy, 'do_agent_iscsi_deploy', autospec=True)
-    def test_continue_deploy_localboot(self, do_agent_iscsi_deploy_mock,
-                                       configure_local_boot_mock,
-                                       reboot_and_finish_deploy_mock,
-                                       set_boot_device_mock):
+    def test_prepare_instance_boot_localboot(self, configure_local_boot_mock,
+                                             set_boot_device_mock):
 
-        self.node.instance_info = {
-            'capabilities': {'boot_option': 'local'}}
+        deployment_uuids = {'root uuid': 'some-root-uuid'}
         self.node.provision_state = states.DEPLOYWAIT
         self.node.target_provision_state = states.ACTIVE
+        info = self.node.driver_internal_info
+        info['deployment_uuids'] = deployment_uuids
+        self.node.driver_internal_info = info
         self.node.save()
-        uuid_dict_returned = {'root uuid': 'some-root-uuid'}
-        do_agent_iscsi_deploy_mock.return_value = uuid_dict_returned
 
         with task_manager.acquire(self.context, self.node.uuid) as task:
-            task.driver.deploy.continue_deploy(task)
-            do_agent_iscsi_deploy_mock.assert_called_once_with(
-                task, task.driver.deploy._client)
+            task.driver.deploy.prepare_instance_boot(task)
             configure_local_boot_mock.assert_called_once_with(
                 task.driver.deploy, task, root_uuid='some-root-uuid',
                 efi_system_part_uuid=None, prep_boot_part_uuid=None)
-            reboot_and_finish_deploy_mock.assert_called_once_with(
-                task.driver.deploy, task)
             set_boot_device_mock.assert_called_once_with(
                 mock.ANY, task, device=boot_devices.DISK, persistent=True)
 
     @mock.patch.object(fake.FakeManagement, 'set_boot_device', autospec=True)
     @mock.patch.object(agent_base.AgentDeployMixin,
-                       'reboot_and_finish_deploy', autospec=True)
-    @mock.patch.object(agent_base.AgentDeployMixin,
                        'configure_local_boot', autospec=True)
-    @mock.patch.object(iscsi_deploy, 'do_agent_iscsi_deploy', autospec=True)
-    def test_continue_deploy_localboot_uefi(self, do_agent_iscsi_deploy_mock,
-                                            configure_local_boot_mock,
-                                            reboot_and_finish_deploy_mock,
-                                            set_boot_device_mock):
-
+    def test_prepare_instance_boot_localboot_uefi(
+            self, configure_local_boot_mock, set_boot_device_mock):
+        deployment_uuids = {'root uuid': 'some-root-uuid',
+                            'efi system partition uuid': 'efi-part-uuid'}
         self.node.instance_info = {
             'capabilities': {'boot_option': 'local'}}
         self.node.provision_state = states.DEPLOYWAIT
         self.node.target_provision_state = states.ACTIVE
+        info = self.node.driver_internal_info
+        info['deployment_uuids'] = deployment_uuids
+        self.node.driver_internal_info = info
         self.node.save()
-        uuid_dict_returned = {'root uuid': 'some-root-uuid',
-                              'efi system partition uuid': 'efi-part-uuid'}
-        do_agent_iscsi_deploy_mock.return_value = uuid_dict_returned
 
         with task_manager.acquire(self.context, self.node.uuid) as task:
-            task.driver.deploy.continue_deploy(task)
-            do_agent_iscsi_deploy_mock.assert_called_once_with(
-                task, task.driver.deploy._client)
+            task.driver.deploy.prepare_instance_boot(task)
             configure_local_boot_mock.assert_called_once_with(
                 task.driver.deploy, task, root_uuid='some-root-uuid',
                 efi_system_part_uuid='efi-part-uuid', prep_boot_part_uuid=None)
-            reboot_and_finish_deploy_mock.assert_called_once_with(
-                task.driver.deploy, task)
             set_boot_device_mock.assert_called_once_with(
                 mock.ANY, task, device=boot_devices.DISK, persistent=True)
 
@@ -1156,49 +1139,6 @@ class ISCSIDeployTestCase(db_base.DbTestCase):
         with task_manager.acquire(self.context,
                                   self.node.uuid, shared=False) as task:
             self.assertEqual(0, len(task.volume_targets))
-
-    @mock.patch.object(manager_utils, 'restore_power_state_if_needed',
-                       autospec=True)
-    @mock.patch.object(manager_utils, 'power_on_node_if_needed', autospec=True)
-    @mock.patch.object(noop_storage.NoopStorage, 'should_write_image',
-                       autospec=True)
-    @mock.patch.object(flat_network.FlatNetwork,
-                       'configure_tenant_networks',
-                       spec_set=True, autospec=True)
-    @mock.patch.object(flat_network.FlatNetwork,
-                       'remove_provisioning_network',
-                       spec_set=True, autospec=True)
-    @mock.patch.object(pxe.PXEBoot,
-                       'prepare_instance',
-                       spec_set=True, autospec=True)
-    @mock.patch.object(manager_utils, 'node_power_action', autospec=True)
-    @mock.patch.object(iscsi_deploy, 'check_image_size', autospec=True)
-    @mock.patch.object(deploy_utils, 'cache_instance_image', autospec=True)
-    def test_deploy_storage_check_write_image_false_with_smartnic_port(
-            self, mock_cache_instance_image, mock_check_image_size,
-            mock_node_power_action, mock_prepare_instance,
-            mock_remove_network, mock_tenant_network, mock_write,
-            power_on_node_if_needed_mock, restore_power_state_mock):
-        mock_write.return_value = False
-        self.node.provision_state = states.DEPLOYING
-        self.node.deploy_step = {
-            'step': 'deploy', 'priority': 50, 'interface': 'deploy'}
-        self.node.save()
-        with task_manager.acquire(
-                self.context, self.node.uuid, shared=False) as task:
-            power_on_node_if_needed_mock.return_value = states.POWER_OFF
-            ret = task.driver.deploy.deploy(task)
-            self.assertIsNone(ret)
-            self.assertFalse(mock_cache_instance_image.called)
-            self.assertFalse(mock_check_image_size.called)
-            mock_remove_network.assert_called_once_with(mock.ANY, task)
-            mock_tenant_network.assert_called_once_with(mock.ANY, task)
-            mock_prepare_instance.assert_called_once_with(mock.ANY, task)
-            self.assertEqual(2, mock_node_power_action.call_count)
-            self.assertEqual(states.DEPLOYING, task.node.provision_state)
-            power_on_node_if_needed_mock.assert_called_once_with(task)
-            restore_power_state_mock.assert_called_once_with(
-                task, states.POWER_OFF)
 
 
 # Cleanup of iscsi_deploy with pxe boot interface
