@@ -31,7 +31,6 @@ from ironic.conductor import utils as manager_utils
 from ironic.conf import CONF
 from ironic.drivers import base
 from ironic.drivers.modules import agent_base
-from ironic.drivers.modules import agent_client
 from ironic.drivers.modules import boot_mode_utils
 from ironic.drivers.modules import deploy_utils
 
@@ -170,34 +169,14 @@ def validate_http_provisioning_configuration(node):
 
 class AgentDeployMixin(agent_base.AgentDeployMixin):
 
-    @METRICS.timer('AgentDeployMixin.deploy_has_started')
-    def deploy_has_started(self, task):
-        commands = self._client.get_commands_status(task.node)
+    has_decomposed_deploy_steps = True
 
-        for command in commands:
-            if command['command_name'] == 'prepare_image':
-                # deploy did start at some point
-                return True
-        return False
-
-    @METRICS.timer('AgentDeployMixin.deploy_is_done')
-    def deploy_is_done(self, task):
-        commands = self._client.get_commands_status(task.node)
-        if not commands:
-            return False
-
-        try:
-            last_command = next(cmd for cmd in reversed(commands)
-                                if cmd['command_name'] == 'prepare_image')
-        except StopIteration:
-            return False
-        else:
-            return last_command['command_status'] != 'RUNNING'
-
-    @METRICS.timer('AgentDeployMixin.continue_deploy')
+    @METRICS.timer('AgentDeployMixin.write_image')
+    @base.deploy_step(priority=80)
     @task_manager.require_exclusive_lock
-    def continue_deploy(self, task):
-        task.process_event('resume')
+    def write_image(self, task):
+        if not task.driver.storage.should_write_image(task):
+            return
         node = task.node
         image_source = node.instance_info.get('image_source')
         LOG.debug('Continuing deploy for node %(node)s with image %(img)s',
@@ -251,10 +230,33 @@ class AgentDeployMixin(agent_base.AgentDeployMixin):
             if disk_label is not None:
                 image_info['disk_label'] = disk_label
 
-        # Tell the client to download and write the image with the given args
-        self._client.prepare_image(node, image_info)
+        has_write_image = agent_base.find_step(
+            task, 'deploy', 'deploy', 'write_image') is not None
+        if not has_write_image:
+            LOG.warning('The agent on node %s does not have the deploy '
+                        'step deploy.write_image, using the deprecated '
+                        'synchronous fall-back', task.node.uuid)
 
-        task.process_event('wait')
+        if self.has_decomposed_deploy_steps and has_write_image:
+            configdrive = node.instance_info.get('configdrive')
+            # Now switch into the corresponding in-band deploy step and let the
+            # result be polled normally.
+            new_step = {'interface': 'deploy',
+                        'step': 'write_image',
+                        'args': {'image_info': image_info,
+                                 'configdrive': configdrive}}
+            return agent_base.execute_step(task, new_step, 'deploy',
+                                           client=self._client)
+        else:
+            # TODO(dtantsur): remove in W
+            command = self._client.prepare_image(node, image_info, wait=True)
+            if command['command_status'] == 'FAILED':
+                # TODO(jimrollenhagen) power off if using neutron dhcp to
+                #                      align with pxe driver?
+                msg = (_('node %(node)s command status errored: %(error)s') %
+                       {'node': node.uuid, 'error': command['command_error']})
+                LOG.error(msg)
+                deploy_utils.set_failed_state(task, msg)
 
     # TODO(dtantsur): remove in W
     def _get_uuid_from_result(self, task, type_uuid):
@@ -278,29 +280,18 @@ class AgentDeployMixin(agent_base.AgentDeployMixin):
                         return
                     return result
 
-    @METRICS.timer('AgentDeployMixin.check_deploy_success')
-    def check_deploy_success(self, node):
-        # should only ever be called after we've validated that
-        # the prepare_image command is complete
-        command = self._client.get_commands_status(node)[-1]
-        if command['command_status'] == 'FAILED':
-            return agent_client.get_command_error(command)
+    @METRICS.timer('AgentDeployMixin.prepare_instance_boot')
+    @base.deploy_step(priority=60)
+    @task_manager.require_exclusive_lock
+    def prepare_instance_boot(self, task):
+        if not task.driver.storage.should_write_image(task):
+            task.driver.boot.prepare_instance(task)
+            # Move straight to the final steps
+            return
 
-    @METRICS.timer('AgentDeployMixin.reboot_to_instance')
-    def reboot_to_instance(self, task):
-        task.process_event('resume')
         node = task.node
         iwdi = task.node.driver_internal_info.get('is_whole_disk_image')
         cpu_arch = task.node.properties.get('cpu_arch')
-        error = self.check_deploy_success(node)
-        if error is not None:
-            # TODO(jimrollenhagen) power off if using neutron dhcp to
-            #                      align with pxe driver?
-            msg = (_('node %(node)s command status errored: %(error)s') %
-                   {'node': node.uuid, 'error': error})
-            LOG.error(msg)
-            deploy_utils.set_failed_state(task, msg)
-            return
 
         # If `boot_option` is set to `netboot`, PXEBoot.prepare_instance()
         # would need root_uuid of the whole disk image to add it into the
@@ -375,8 +366,6 @@ class AgentDeployMixin(agent_base.AgentDeployMixin):
         # Remove symbolic link when deploy is done.
         if CONF.agent.image_download_source == 'http':
             deploy_utils.remove_http_instance_symlink(task.node.uuid)
-
-        self.reboot_and_finish_deploy(task)
 
 
 class AgentDeploy(AgentDeployMixin, agent_base.AgentBaseMixin,
@@ -481,13 +470,10 @@ class AgentDeploy(AgentDeployMixin, agent_base.AgentBaseMixin,
         :returns: status of the deploy. One of ironic.common.states.
         """
         if manager_utils.is_fast_track(task):
+            # NOTE(mgoddard): For fast track we can skip this step and proceed
+            # immediately to the next deploy step.
             LOG.debug('Performing a fast track deployment for %(node)s.',
                       {'node': task.node.uuid})
-            # Update the database for the API and the task tracking resumes
-            # the state machine state going from DEPLOYWAIT -> DEPLOYING
-            task.process_event('wait')
-            self.continue_deploy(task)
-            return states.DEPLOYWAIT
         elif task.driver.storage.should_write_image(task):
             # Check if the driver has already performed a reboot in a previous
             # deploy step.
@@ -498,19 +484,6 @@ class AgentDeploy(AgentDeployMixin, agent_base.AgentBaseMixin,
             task.node.driver_internal_info = info
             task.node.save()
             return states.DEPLOYWAIT
-        else:
-            # TODO(TheJulia): At some point, we should de-dupe this code
-            # as it is nearly identical to the iscsi deploy interface.
-            # This is not being done now as it is expected to be
-            # refactored in the near future.
-            manager_utils.node_power_action(task, states.POWER_OFF)
-            with manager_utils.power_state_for_network_configuration(task):
-                task.driver.network.remove_provisioning_network(task)
-                task.driver.network.configure_tenant_networks(task)
-            task.driver.boot.prepare_instance(task)
-            manager_utils.node_power_action(task, states.POWER_ON)
-            LOG.info('Deployment to node %s done', task.node.uuid)
-            return None
 
     @METRICS.timer('AgentDeploy.prepare')
     @task_manager.require_exclusive_lock

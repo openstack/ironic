@@ -1,0 +1,17 @@
+---
+features:
+  - |
+    The ``deploy`` deploy step of the ``direct`` deploy interface has been
+    split into three deploy steps:
+
+    * ``deploy`` itself (priority 100) boots the deploy ramdisk
+
+    * ``write_image`` (priority 80) downloads the user image from inside
+      the ramdisk and writes it to the disk.
+
+    * ``prepare_instance_boot`` (priority 60) prepares the boot device and
+      writes the bootloader (if needed).
+
+    Priorities 81 to 99 to be used for in-band deploy steps that run before
+    the image is written. Priorities 61 to 79 can be used for in-band deploy
+    steps that modify the written image before the bootloader is installed.

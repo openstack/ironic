@@ -2279,6 +2279,23 @@ class StepMethodsTestCase(db_base.DbTestCase):
                 self.context, self.node.uuid, shared=False) as task:
             self.assertEqual([], agent_base.get_steps(task, 'clean'))
 
+    def test_find_step(self):
+        with task_manager.acquire(
+                self.context, self.node.uuid, shared=False) as task:
+            step = agent_base.find_step(task, 'clean', 'deploy',
+                                        'erase_devices')
+            self.assertEqual(self.clean_steps['deploy'][0], step)
+
+    def test_find_step_not_found(self):
+        with task_manager.acquire(
+                self.context, self.node.uuid, shared=False) as task:
+            self.assertIsNone(agent_base.find_step(
+                task, 'clean', 'non-deploy', 'erase_devices'))
+            self.assertIsNone(agent_base.find_step(
+                task, 'clean', 'deploy', 'something_else'))
+            self.assertIsNone(agent_base.find_step(
+                task, 'deploy', 'deploy', 'erase_devices'))
+
     def test_get_deploy_steps(self):
         with task_manager.acquire(
                 self.context, self.node.uuid, shared=False) as task:
