@@ -40,6 +40,7 @@ from ironic.drivers.modules.irmc import boot as irmc_boot
 from ironic.drivers.modules.irmc import common as irmc_common
 from ironic.drivers.modules.irmc import management as irmc_management
 from ironic.drivers.modules import pxe
+from ironic.drivers.modules import pxe_base
 from ironic.tests import base
 from ironic.tests.unit.db import utils as db_utils
 from ironic.tests.unit.drivers.modules.irmc import test_common
@@ -1889,7 +1890,7 @@ class IRMCPXEBootBasicTestCase(test_pxe.PXEBootTestCase):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
             properties = task.driver.get_properties()
-            for p in pxe.COMMON_PROPERTIES:
+            for p in pxe_base.COMMON_PROPERTIES:
                 self.assertIn(p, properties)
 
 

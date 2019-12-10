@@ -25,17 +25,15 @@ class ExternalInterfaceTestCase(db_base.DbTestCase):
 
     def setUp(self):
         super(ExternalInterfaceTestCase, self).setUp()
-        self.config(ipxe_enabled=True,
-                    group='pxe')
-        self.config(enabled_storage_interfaces=['noop', 'external'])
+        self.config(enabled_storage_interfaces=['noop', 'external'],
+                    enabled_boot_interfaces=['fake', 'pxe'])
         self.interface = external.ExternalStorage()
 
     @mock.patch.object(external, 'LOG', autospec=True)
     def test_validate_fails_with_ipxe_not_enabled(self, mock_log):
         """Ensure a validation failure is raised when iPXE not enabled."""
-        self.config(ipxe_enabled=False, group='pxe')
         self.node = object_utils.create_test_node(
-            self.context, storage_interface='external')
+            self.context, storage_interface='external', boot_interface='pxe')
         object_utils.create_test_volume_connector(
             self.context, node_id=self.node.id, type='iqn',
             connector_id='foo.address')
@@ -48,8 +46,8 @@ class ExternalInterfaceTestCase(db_base.DbTestCase):
                               task)
         self.assertTrue(mock_log.error.called)
 
-    # Prevent /httpboot validation on creating the node
-    @mock.patch('ironic.drivers.modules.pxe.PXEBoot.__init__',
+    # Prevents creating iPXE boot script
+    @mock.patch('ironic.drivers.modules.ipxe.iPXEBoot.__init__',
                 lambda self: None)
     def test_should_write_image(self):
         self.node = object_utils.create_test_node(

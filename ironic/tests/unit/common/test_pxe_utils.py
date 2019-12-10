@@ -308,7 +308,6 @@ class TestPXEUtils(db_base.DbTestCase):
     @mock.patch('ironic.common.utils.create_link_without_raise', autospec=True)
     @mock.patch('ironic_lib.utils.unlink_without_raise', autospec=True)
     def test__write_mac_ipxe_configs(self, unlink_mock, create_link_mock):
-        self.config(ipxe_enabled=True, group='pxe')
         port_1 = object_utils.create_test_port(
             self.context, node_id=self.node.id,
             address='11:22:33:44:55:66', uuid=uuidutils.generate_uuid())
@@ -526,7 +525,6 @@ class TestPXEUtils(db_base.DbTestCase):
     def test_create_pxe_config_uefi_ipxe(self, ensure_tree_mock, render_mock,
                                          write_mock, link_mac_pxe_mock,
                                          chmod_mock):
-        self.config(ipxe_enabled=True, group='pxe')
         ipxe_template = "ironic/drivers/modules/ipxe_config.template"
         with task_manager.acquire(self.context, self.node.uuid) as task:
             task.node.properties['capabilities'] = 'boot_mode:uefi'
@@ -740,107 +738,6 @@ class TestPXEUtils(db_base.DbTestCase):
         self._test_get_kernel_ramdisk_info(expected_dir, mode='rescue',
                                            ipxe_enabled=True)
 
-    def _dhcp_options_for_instance_ipxe(self, task, boot_file, ip_version=4):
-        self.config(ipxe_enabled=True, group='pxe')
-        self.config(ipxe_boot_script='/test/boot.ipxe', group='pxe')
-        self.config(tftp_root='/tftp-path/', group='pxe')
-        if ip_version == 4:
-            self.config(tftp_server='192.0.2.1', group='pxe')
-            self.config(http_url='http://192.0.3.2:1234', group='deploy')
-            self.config(ipxe_boot_script='/test/boot.ipxe', group='pxe')
-        elif ip_version == 6:
-            self.config(tftp_server='ff80::1', group='pxe')
-            self.config(http_url='http://[ff80::1]:1234', group='deploy')
-
-        self.config(dhcp_provider='isc', group='dhcp')
-        if ip_version == 6:
-            # NOTE(TheJulia): DHCPv6 RFCs seem to indicate that the prior
-            # options are not imported, although they may be supported
-            # by vendors. The apparent proper option is to return a
-            # URL in the field https://tools.ietf.org/html/rfc5970#section-3
-            expected_boot_script_url = 'http://[ff80::1]:1234/boot.ipxe'
-            expected_info = [{'opt_name': '!175,59',
-                              'opt_value': 'tftp://[ff80::1]/fake-bootfile',
-                              'ip_version': ip_version},
-                             {'opt_name': '59',
-                              'opt_value': expected_boot_script_url,
-                              'ip_version': ip_version}]
-
-        elif ip_version == 4:
-            expected_boot_script_url = 'http://192.0.3.2:1234/boot.ipxe'
-            expected_info = [{'opt_name': '!175,67',
-                              'opt_value': boot_file,
-                              'ip_version': ip_version},
-                             {'opt_name': '66',
-                              'opt_value': '192.0.2.1',
-                              'ip_version': ip_version},
-                             {'opt_name': '150',
-                              'opt_value': '192.0.2.1',
-                              'ip_version': ip_version},
-                             {'opt_name': '67',
-                              'opt_value': expected_boot_script_url,
-                              'ip_version': ip_version},
-                             {'opt_name': 'server-ip-address',
-                              'opt_value': '192.0.2.1',
-                              'ip_version': ip_version}]
-
-        self.assertItemsEqual(expected_info,
-                              pxe_utils.dhcp_options_for_instance(
-                                  task, ipxe_enabled=True))
-
-        self.config(dhcp_provider='neutron', group='dhcp')
-        if ip_version == 6:
-            # Boot URL variable set from prior test of isc parameters.
-            expected_info = [{'opt_name': 'tag:!ipxe6,59',
-                              'opt_value': 'tftp://[ff80::1]/fake-bootfile',
-                              'ip_version': ip_version},
-                             {'opt_name': 'tag:ipxe6,59',
-                              'opt_value': expected_boot_script_url,
-                              'ip_version': ip_version}]
-
-        elif ip_version == 4:
-            expected_info = [{'opt_name': 'tag:!ipxe,67',
-                              'opt_value': boot_file,
-                              'ip_version': ip_version},
-                             {'opt_name': '66',
-                              'opt_value': '192.0.2.1',
-                              'ip_version': ip_version},
-                             {'opt_name': '150',
-                              'opt_value': '192.0.2.1',
-                              'ip_version': ip_version},
-                             {'opt_name': 'tag:ipxe,67',
-                              'opt_value': expected_boot_script_url,
-                              'ip_version': ip_version},
-                             {'opt_name': 'server-ip-address',
-                              'opt_value': '192.0.2.1',
-                              'ip_version': ip_version}]
-
-        self.assertItemsEqual(expected_info,
-                              pxe_utils.dhcp_options_for_instance(
-                                  task, ipxe_enabled=True))
-
-    def test_dhcp_options_for_instance_ipxe_bios(self):
-        self.config(ip_version=4, group='pxe')
-        boot_file = 'fake-bootfile-bios'
-        self.config(pxe_bootfile_name=boot_file, group='pxe')
-        with task_manager.acquire(self.context, self.node.uuid) as task:
-            self._dhcp_options_for_instance_ipxe(task, boot_file)
-
-    def test_dhcp_options_for_instance_ipxe_uefi(self):
-        self.config(ip_version=4, group='pxe')
-        boot_file = 'fake-bootfile-uefi'
-        self.config(uefi_pxe_bootfile_name=boot_file, group='pxe')
-        with task_manager.acquire(self.context, self.node.uuid) as task:
-            task.node.properties['capabilities'] = 'boot_mode:uefi'
-            self._dhcp_options_for_instance_ipxe(task, boot_file)
-
-    def test_dhcp_options_for_ipxe_ipv6(self):
-        self.config(ip_version=6, group='pxe')
-        boot_file = 'fake-bootfile'
-        self.config(pxe_bootfile_name=boot_file, group='pxe')
-        with task_manager.acquire(self.context, self.node.uuid) as task:
-            self._dhcp_options_for_instance_ipxe(task, boot_file, ip_version=6)
-
     @mock.patch('ironic.common.utils.rmtree_without_raise', autospec=True)
     @mock.patch('ironic_lib.utils.unlink_without_raise', autospec=True)
     @mock.patch('ironic.common.dhcp_factory.DHCPFactory.provider',
@@ -923,29 +820,6 @@ class TestPXEUtils(db_base.DbTestCase):
             unlink_mock.assert_has_calls(unlink_calls)
             rmtree_mock.assert_called_once_with(
                 os.path.join(CONF.pxe.tftp_root, self.node.uuid))
-
-    @mock.patch('ironic.common.utils.rmtree_without_raise', autospec=True)
-    @mock.patch('ironic_lib.utils.unlink_without_raise', autospec=True)
-    def test_clean_up_ipxe_config_uefi(self, unlink_mock, rmtree_mock):
-        self.config(ipxe_enabled=True, group='pxe')
-        address = "aa:aa:aa:aa:aa:aa"
-        properties = {'capabilities': 'boot_mode:uefi'}
-        object_utils.create_test_port(self.context, node_id=self.node.id,
-                                      address=address)
-
-        with task_manager.acquire(self.context, self.node.uuid) as task:
-            task.node.properties = properties
-            pxe_utils.clean_up_pxe_config(task, ipxe_enabled=True)
-
-            ensure_calls = [
-                mock.call("/httpboot/pxelinux.cfg/%s"
-                          % address.replace(':', '-')),
-                mock.call("/httpboot/%s.conf" % address)
-            ]
-
-            unlink_mock.assert_has_calls(ensure_calls)
-            rmtree_mock.assert_called_once_with(
-                os.path.join(CONF.deploy.http_root, self.node.uuid))
 
     def test_get_tftp_path_prefix_with_trailing_slash(self):
         self.config(tftp_root='/tftpboot-path/', group='pxe')
@@ -1154,6 +1028,118 @@ class PXEInterfacesTestCase(db_base.DbTestCase):
             image_info = pxe_utils.get_instance_image_info(task)
         self.assertEqual({}, image_info)
 
+    @mock.patch.object(deploy_utils, 'fetch_images', autospec=True)
+    def test__cache_tftp_images_master_path(self, mock_fetch_image):
+        temp_dir = tempfile.mkdtemp()
+        self.config(tftp_root=temp_dir, group='pxe')
+        self.config(tftp_master_path=os.path.join(temp_dir,
+                                                  'tftp_master_path'),
+                    group='pxe')
+        image_path = os.path.join(temp_dir, self.node.uuid,
+                                  'deploy_kernel')
+        image_info = {'deploy_kernel': ('deploy_kernel', image_path)}
+        fileutils.ensure_tree(CONF.pxe.tftp_master_path)
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            pxe_utils.cache_ramdisk_kernel(task, image_info)
+
+        mock_fetch_image.assert_called_once_with(self.context,
+                                                 mock.ANY,
+                                                 [('deploy_kernel',
+                                                   image_path)],
+                                                 True)
+
+    @mock.patch.object(pxe_utils, 'TFTPImageCache', lambda: None)
+    @mock.patch.object(fileutils, 'ensure_tree', autospec=True)
+    @mock.patch.object(deploy_utils, 'fetch_images', autospec=True)
+    def test_cache_ramdisk_kernel(self, mock_fetch_image, mock_ensure_tree):
+        fake_pxe_info = {'foo': 'bar'}
+        expected_path = os.path.join(CONF.pxe.tftp_root, self.node.uuid)
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            pxe_utils.cache_ramdisk_kernel(task, fake_pxe_info)
+        mock_ensure_tree.assert_called_with(expected_path)
+        mock_fetch_image.assert_called_once_with(
+            self.context, mock.ANY, list(fake_pxe_info.values()), True)
+
+    @mock.patch.object(pxe_utils, 'TFTPImageCache', lambda: None)
+    @mock.patch.object(fileutils, 'ensure_tree', autospec=True)
+    @mock.patch.object(deploy_utils, 'fetch_images', autospec=True)
+    def test_cache_ramdisk_kernel_ipxe(self, mock_fetch_image,
+                                       mock_ensure_tree):
+        fake_pxe_info = {'foo': 'bar'}
+        expected_path = os.path.join(CONF.deploy.http_root,
+                                     self.node.uuid)
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+                pxe_utils.cache_ramdisk_kernel(task, fake_pxe_info,
+                                               ipxe_enabled=True)
+        mock_ensure_tree.assert_called_with(expected_path)
+        mock_fetch_image.assert_called_once_with(self.context, mock.ANY,
+                                                 list(fake_pxe_info.values()),
+                                                 True)
+
+    @mock.patch.object(pxe_utils.LOG, 'error', autospec=True)
+    def test_validate_boot_parameters_for_trusted_boot_one(self, mock_log):
+        properties = {'capabilities': 'boot_mode:uefi'}
+        instance_info = {"boot_option": "netboot"}
+        self.node.properties = properties
+        self.node.instance_info['capabilities'] = instance_info
+        self.node.driver_internal_info['is_whole_disk_image'] = False
+        self.assertRaises(exception.InvalidParameterValue,
+                          pxe_utils.validate_boot_parameters_for_trusted_boot,
+                          self.node)
+        self.assertTrue(mock_log.called)
+
+    @mock.patch.object(pxe_utils.LOG, 'error', autospec=True)
+    def test_validate_boot_parameters_for_trusted_boot_two(self, mock_log):
+        properties = {'capabilities': 'boot_mode:bios'}
+        instance_info = {"boot_option": "local"}
+        self.node.properties = properties
+        self.node.instance_info['capabilities'] = instance_info
+        self.node.driver_internal_info['is_whole_disk_image'] = False
+        self.assertRaises(exception.InvalidParameterValue,
+                          pxe_utils.validate_boot_parameters_for_trusted_boot,
+                          self.node)
+        self.assertTrue(mock_log.called)
+
+    @mock.patch.object(pxe_utils.LOG, 'error', autospec=True)
+    def test_validate_boot_parameters_for_trusted_boot_three(self, mock_log):
+        properties = {'capabilities': 'boot_mode:bios'}
+        instance_info = {"boot_option": "netboot"}
+        self.node.properties = properties
+        self.node.instance_info['capabilities'] = instance_info
+        self.node.driver_internal_info['is_whole_disk_image'] = True
+        self.assertRaises(exception.InvalidParameterValue,
+                          pxe_utils.validate_boot_parameters_for_trusted_boot,
+                          self.node)
+        self.assertTrue(mock_log.called)
+
+    @mock.patch.object(pxe_utils.LOG, 'error', autospec=True)
+    def test_validate_boot_parameters_for_trusted_boot_pass(self, mock_log):
+        properties = {'capabilities': 'boot_mode:bios'}
+        instance_info = {"boot_option": "netboot"}
+        self.node.properties = properties
+        self.node.instance_info['capabilities'] = instance_info
+        self.node.driver_internal_info['is_whole_disk_image'] = False
+        pxe_utils.validate_boot_parameters_for_trusted_boot(self.node)
+        self.assertFalse(mock_log.called)
+
+
+@mock.patch.object(pxe.PXEBoot, '__init__', lambda self: None)
+class PXEBuildConfigOptionsTestCase(db_base.DbTestCase):
+    def setUp(self):
+        super(PXEBuildConfigOptionsTestCase, self).setUp()
+        n = {
+            'driver': 'fake-hardware',
+            'boot_interface': 'pxe',
+            'instance_info': INST_INFO_DICT,
+            'driver_info': DRV_INFO_DICT,
+            'driver_internal_info': DRV_INTERNAL_INFO_DICT,
+        }
+        self.config_temp_dir('http_root', group='deploy')
+        self.node = object_utils.create_test_node(self.context, **n)
+
     @mock.patch('ironic.common.utils.render_template', autospec=True)
     def _test_build_pxe_config_options_pxe(self, render_mock,
                                            whle_dsk_img=False,
@@ -1294,6 +1280,122 @@ class PXEInterfacesTestCase(db_base.DbTestCase):
             'ipxe_timeout': 0}
         self.assertEqual(expected_options, options)
 
+
+@mock.patch.object(ipxe.iPXEBoot, '__init__', lambda self: None)
+class iPXEBuildConfigOptionsTestCase(db_base.DbTestCase):
+    def setUp(self):
+        super(iPXEBuildConfigOptionsTestCase, self).setUp()
+        n = {
+            'driver': 'fake-hardware',
+            'boot_interface': 'ipxe',
+            'instance_info': INST_INFO_DICT,
+            'driver_info': DRV_INFO_DICT,
+            'driver_internal_info': DRV_INTERNAL_INFO_DICT,
+        }
+        self.config(enabled_boot_interfaces=['ipxe'])
+        self.config_temp_dir('http_root', group='deploy')
+        self.node = object_utils.create_test_node(self.context, **n)
+
+    def _dhcp_options_for_instance_ipxe(self, task, boot_file, ip_version=4):
+        self.config(ipxe_boot_script='/test/boot.ipxe', group='pxe')
+        self.config(tftp_root='/tftp-path/', group='pxe')
+        if ip_version == 4:
+            self.config(tftp_server='192.0.2.1', group='pxe')
+            self.config(http_url='http://192.0.3.2:1234', group='deploy')
+            self.config(ipxe_boot_script='/test/boot.ipxe', group='pxe')
+        elif ip_version == 6:
+            self.config(tftp_server='ff80::1', group='pxe')
+            self.config(http_url='http://[ff80::1]:1234', group='deploy')
+
+        self.config(dhcp_provider='isc', group='dhcp')
+        if ip_version == 6:
+            # NOTE(TheJulia): DHCPv6 RFCs seem to indicate that the prior
+            # options are not imported, although they may be supported
+            # by vendors. The apparent proper option is to return a
+            # URL in the field https://tools.ietf.org/html/rfc5970#section-3
+            expected_boot_script_url = 'http://[ff80::1]:1234/boot.ipxe'
+            expected_info = [{'opt_name': '!175,59',
+                              'opt_value': 'tftp://[ff80::1]/fake-bootfile',
+                              'ip_version': ip_version},
+                             {'opt_name': '59',
+                              'opt_value': expected_boot_script_url,
+                              'ip_version': ip_version}]
+
+        elif ip_version == 4:
+            expected_boot_script_url = 'http://192.0.3.2:1234/boot.ipxe'
+            expected_info = [{'opt_name': '!175,67',
+                              'opt_value': boot_file,
+                              'ip_version': ip_version},
+                             {'opt_name': '66',
+                              'opt_value': '192.0.2.1',
+                              'ip_version': ip_version},
+                             {'opt_name': '150',
+                              'opt_value': '192.0.2.1',
+                              'ip_version': ip_version},
+                             {'opt_name': '67',
+                              'opt_value': expected_boot_script_url,
+                              'ip_version': ip_version},
+                             {'opt_name': 'server-ip-address',
+                              'opt_value': '192.0.2.1',
+                              'ip_version': ip_version}]
+
+        self.assertItemsEqual(expected_info,
+                              pxe_utils.dhcp_options_for_instance(
+                                  task, ipxe_enabled=True))
+
+        self.config(dhcp_provider='neutron', group='dhcp')
+        if ip_version == 6:
+            # Boot URL variable set from prior test of isc parameters.
+            expected_info = [{'opt_name': 'tag:!ipxe6,59',
+                              'opt_value': 'tftp://[ff80::1]/fake-bootfile',
+                              'ip_version': ip_version},
+                             {'opt_name': 'tag:ipxe6,59',
+                              'opt_value': expected_boot_script_url,
+                              'ip_version': ip_version}]
+
+        elif ip_version == 4:
+            expected_info = [{'opt_name': 'tag:!ipxe,67',
+                              'opt_value': boot_file,
+                              'ip_version': ip_version},
+                             {'opt_name': '66',
+                              'opt_value': '192.0.2.1',
+                              'ip_version': ip_version},
+                             {'opt_name': '150',
+                              'opt_value': '192.0.2.1',
+                              'ip_version': ip_version},
+                             {'opt_name': 'tag:ipxe,67',
+                              'opt_value': expected_boot_script_url,
+                              'ip_version': ip_version},
+                             {'opt_name': 'server-ip-address',
+                              'opt_value': '192.0.2.1',
+                              'ip_version': ip_version}]
+
+        self.assertItemsEqual(expected_info,
+                              pxe_utils.dhcp_options_for_instance(
+                                  task, ipxe_enabled=True))
+
+    def test_dhcp_options_for_instance_ipxe_bios(self):
+        self.config(ip_version=4, group='pxe')
+        boot_file = 'fake-bootfile-bios'
+        self.config(pxe_bootfile_name=boot_file, group='pxe')
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            self._dhcp_options_for_instance_ipxe(task, boot_file)
+
+    def test_dhcp_options_for_instance_ipxe_uefi(self):
+        self.config(ip_version=4, group='pxe')
+        boot_file = 'fake-bootfile-uefi'
+        self.config(uefi_pxe_bootfile_name=boot_file, group='pxe')
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            task.node.properties['capabilities'] = 'boot_mode:uefi'
+            self._dhcp_options_for_instance_ipxe(task, boot_file)
+
+    def test_dhcp_options_for_ipxe_ipv6(self):
+        self.config(ip_version=6, group='pxe')
+        boot_file = 'fake-bootfile'
+        self.config(pxe_bootfile_name=boot_file, group='pxe')
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            self._dhcp_options_for_instance_ipxe(task, boot_file, ip_version=6)
+
     @mock.patch('ironic.common.image_service.GlanceImageService',
                 autospec=True)
     @mock.patch('ironic.common.utils.render_template', autospec=True)
@@ -1319,7 +1421,6 @@ class PXEInterfacesTestCase(db_base.DbTestCase):
         tftp_server = CONF.pxe.tftp_server
 
         http_url = 'http://192.1.2.3:1234'
-        self.config(ipxe_enabled=True, group='pxe')
         self.config(http_url=http_url, group='deploy')
 
         kernel_label = '%s_kernel' % mode
@@ -1601,103 +1702,28 @@ class PXEInterfacesTestCase(db_base.DbTestCase):
         self._test_build_pxe_config_options_ipxe(mode='rescue',
                                                  ipxe_timeout=120)
 
-    @mock.patch.object(deploy_utils, 'fetch_images', autospec=True)
-    def test__cache_tftp_images_master_path(self, mock_fetch_image):
-        temp_dir = tempfile.mkdtemp()
-        self.config(tftp_root=temp_dir, group='pxe')
-        self.config(tftp_master_path=os.path.join(temp_dir,
-                                                  'tftp_master_path'),
-                    group='pxe')
-        image_path = os.path.join(temp_dir, self.node.uuid,
-                                  'deploy_kernel')
-        image_info = {'deploy_kernel': ('deploy_kernel', image_path)}
-        fileutils.ensure_tree(CONF.pxe.tftp_master_path)
-        with task_manager.acquire(self.context, self.node.uuid,
-                                  shared=True) as task:
-            pxe_utils.cache_ramdisk_kernel(task, image_info)
-
-        mock_fetch_image.assert_called_once_with(self.context,
-                                                 mock.ANY,
-                                                 [('deploy_kernel',
-                                                   image_path)],
-                                                 True)
-
-    @mock.patch.object(pxe_utils, 'TFTPImageCache', lambda: None)
-    @mock.patch.object(fileutils, 'ensure_tree', autospec=True)
-    @mock.patch.object(deploy_utils, 'fetch_images', autospec=True)
-    def test_cache_ramdisk_kernel(self, mock_fetch_image, mock_ensure_tree):
-        self.config(ipxe_enabled=False, group='pxe')
-        fake_pxe_info = {'foo': 'bar'}
-        expected_path = os.path.join(CONF.pxe.tftp_root, self.node.uuid)
-        with task_manager.acquire(self.context, self.node.uuid,
-                                  shared=True) as task:
-            pxe_utils.cache_ramdisk_kernel(task, fake_pxe_info)
-        mock_ensure_tree.assert_called_with(expected_path)
-        mock_fetch_image.assert_called_once_with(
-            self.context, mock.ANY, list(fake_pxe_info.values()), True)
-
-    @mock.patch.object(pxe_utils, 'TFTPImageCache', lambda: None)
-    @mock.patch.object(fileutils, 'ensure_tree', autospec=True)
-    @mock.patch.object(deploy_utils, 'fetch_images', autospec=True)
-    def test_cache_ramdisk_kernel_ipxe(self, mock_fetch_image,
-                                       mock_ensure_tree):
-        fake_pxe_info = {'foo': 'bar'}
-        expected_path = os.path.join(CONF.deploy.http_root,
-                                     self.node.uuid)
-        with task_manager.acquire(self.context, self.node.uuid,
-                                  shared=True) as task:
-                pxe_utils.cache_ramdisk_kernel(task, fake_pxe_info,
-                                               ipxe_enabled=True)
-        mock_ensure_tree.assert_called_with(expected_path)
-        mock_fetch_image.assert_called_once_with(self.context, mock.ANY,
-                                                 list(fake_pxe_info.values()),
-                                                 True)
-
-    @mock.patch.object(pxe_utils.LOG, 'error', autospec=True)
-    def test_validate_boot_parameters_for_trusted_boot_one(self, mock_log):
+    @mock.patch('ironic.common.utils.rmtree_without_raise', autospec=True)
+    @mock.patch('ironic_lib.utils.unlink_without_raise', autospec=True)
+    def test_clean_up_ipxe_config_uefi(self, unlink_mock, rmtree_mock):
+        self.config(http_root='/httpboot', group='deploy')
+        address = "aa:aa:aa:aa:aa:aa"
         properties = {'capabilities': 'boot_mode:uefi'}
-        instance_info = {"boot_option": "netboot"}
-        self.node.properties = properties
-        self.node.instance_info['capabilities'] = instance_info
-        self.node.driver_internal_info['is_whole_disk_image'] = False
-        self.assertRaises(exception.InvalidParameterValue,
-                          pxe.validate_boot_parameters_for_trusted_boot,
-                          self.node)
-        self.assertTrue(mock_log.called)
+        object_utils.create_test_port(self.context, node_id=self.node.id,
+                                      address=address)
 
-    @mock.patch.object(pxe_utils.LOG, 'error', autospec=True)
-    def test_validate_boot_parameters_for_trusted_boot_two(self, mock_log):
-        properties = {'capabilities': 'boot_mode:bios'}
-        instance_info = {"boot_option": "local"}
-        self.node.properties = properties
-        self.node.instance_info['capabilities'] = instance_info
-        self.node.driver_internal_info['is_whole_disk_image'] = False
-        self.assertRaises(exception.InvalidParameterValue,
-                          pxe.validate_boot_parameters_for_trusted_boot,
-                          self.node)
-        self.assertTrue(mock_log.called)
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            task.node.properties = properties
+            pxe_utils.clean_up_pxe_config(task, ipxe_enabled=True)
 
-    @mock.patch.object(pxe_utils.LOG, 'error', autospec=True)
-    def test_validate_boot_parameters_for_trusted_boot_three(self, mock_log):
-        properties = {'capabilities': 'boot_mode:bios'}
-        instance_info = {"boot_option": "netboot"}
-        self.node.properties = properties
-        self.node.instance_info['capabilities'] = instance_info
-        self.node.driver_internal_info['is_whole_disk_image'] = True
-        self.assertRaises(exception.InvalidParameterValue,
-                          pxe.validate_boot_parameters_for_trusted_boot,
-                          self.node)
-        self.assertTrue(mock_log.called)
+            ensure_calls = [
+                mock.call("/httpboot/pxelinux.cfg/%s"
+                          % address.replace(':', '-')),
+                mock.call("/httpboot/%s.conf" % address)
+            ]
 
-    @mock.patch.object(pxe_utils.LOG, 'error', autospec=True)
-    def test_validate_boot_parameters_for_trusted_boot_pass(self, mock_log):
-        properties = {'capabilities': 'boot_mode:bios'}
-        instance_info = {"boot_option": "netboot"}
-        self.node.properties = properties
-        self.node.instance_info['capabilities'] = instance_info
-        self.node.driver_internal_info['is_whole_disk_image'] = False
-        pxe.validate_boot_parameters_for_trusted_boot(self.node)
-        self.assertFalse(mock_log.called)
+            unlink_mock.assert_has_calls(ensure_calls)
+            rmtree_mock.assert_called_once_with(
+                os.path.join(CONF.deploy.http_root, self.node.uuid))
 
 
 @mock.patch.object(ironic_utils, 'unlink_without_raise', autospec=True)
