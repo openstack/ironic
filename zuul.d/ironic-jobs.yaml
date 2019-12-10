@@ -265,6 +265,8 @@
       devstack_localrc:
         IRONIC_AGENT_IMAGE_DOWNLOAD_SOURCE: http
         IRONIC_AUTOMATED_CLEAN_ENABLED: False
+        IRONIC_DEFAULT_RESCUE_INTERFACE: no-rescue
+        IRONIC_ENABLED_RESCUE_INTERFACES: "fake,no-rescue"
 
 - job:
     name: ironic-tempest-ipa-partition-bios-agent_ipmitool-tinyipa-indirect
@@ -276,6 +278,8 @@
         IRONIC_AGENT_IMAGE_DOWNLOAD_SOURCE: http
         IRONIC_TEMPEST_WHOLE_DISK_IMAGE: False
         IRONIC_AUTOMATED_CLEAN_ENABLED: False
+        IRONIC_DEFAULT_RESCUE_INTERFACE: no-rescue
+        IRONIC_ENABLED_RESCUE_INTERFACES: "fake,no-rescue"
 
 - job:
     name: ironic-tempest-functional-python3
