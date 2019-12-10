@@ -53,15 +53,25 @@ class NovaApiTestCase(base.TestCase):
         self.api = nova
         self.ctx = context.get_admin_context()
 
-    @ddt.data({'events': [{'status': 'completed',
-                           'tag': 'POWER_OFF',
-                           'name': 'power-update',
-                           'server_uuid': '1234',
-                           'code': 200}]},
-              {'events': [{'code': 404}]},
-              {'events': [{'code': 400}]})
+    @ddt.unpack
+    # one @ddt.data element comprises:
+    # - nova_result: POST response JSON dict
+    # - resp_status: POST response status_code
+    # - exp_ret: Expected bool return value from power_update()
+    @ddt.data([{'events': [{'status': 'completed',
+                            'tag': 'POWER_OFF',
+                            'name': 'power-update',
+                            'server_uuid': '1234',
+                            'code': 200}]},
+               200, True],
+              [{'events': [{'code': 422}]}, 207, False],
+              [{'events': [{'code': 404}]}, 207, False],
+              [{'events': [{'code': 400}]}, 207, False],
+              # This (response 207, event code 200) will never happen IRL
+              [{'events': [{'code': 200}]}, 207, True])
     @mock.patch.object(nova, '_get_nova_adapter')
-    def test_power_update(self, nova_result, mock_adapter, mock_log):
+    def test_power_update(self, nova_result, resp_status, exp_ret,
+                          mock_adapter, mock_log):
         server_ids = ['server-id-1', 'server-id-2']
         nova_adapter = mock.Mock()
         with mock.patch.object(nova_adapter, 'post') as mock_post_event:
@@ -70,12 +80,12 @@ class NovaApiTestCase(base.TestCase):
             def json_func():
                 return nova_result
             post_resp_mock.json = json_func
-            post_resp_mock.status_code = 200
+            post_resp_mock.status_code = resp_status
             mock_adapter.return_value = nova_adapter
             mock_post_event.return_value = post_resp_mock
             for server in server_ids:
                 result = self.api.power_update(self.ctx, server, 'power on')
-                self.assertTrue(result)
+                self.assertEqual(exp_ret, result)
 
         mock_adapter.assert_has_calls([mock.call(), mock.call()])
         req_url = '/os-server-external-events'
@@ -95,7 +105,7 @@ class NovaApiTestCase(base.TestCase):
                       global_request_id=self.ctx.global_id,
                       raise_exc=False)
         ])
-        if nova_result['events'][0]['code'] != 200:
+        if not exp_ret:
             expected = ('Nova event: %s returned with failed status.',
                         nova_result['events'][0])
             mock_log.warning.assert_called_with(*expected)
@@ -122,26 +132,17 @@ class NovaApiTestCase(base.TestCase):
                   'tag': 'POWER_OFF'}]
         nova_result = requests.Response()
         with mock.patch.object(nova_adapter, 'post') as mock_post_event:
-            for stat_code in (500, 404, 207):
+            for stat_code in (500, 404, 400):
                 mock_log.reset_mock()
                 nova_result.status_code = stat_code
                 type(nova_result).text = mock.PropertyMock(return_value="blah")
-                if stat_code == 207:
-                    def json_func():
-                        return {'events': [{}]}
-                    nova_result.json = json_func
                 mock_post_event.return_value = nova_result
                 result = self.api.power_update(
                     self.ctx, 'server-id-1', 'power off')
                 self.assertFalse(result)
-                if stat_code == 207:
-                    expected = ('Invalid response %s returned from nova for '
-                                'power-update event %s. %s.')
-                    self.assertIn(expected, mock_log.error.call_args[0][0])
-                else:
-                    expected = ("Failed to notify nova on event: %s. %s.",
-                                event[0], "blah")
-                    mock_log.warning.assert_called_once_with(*expected)
+                expected = ("Failed to notify nova on event: %s. %s.",
+                            event[0], "blah")
+                mock_log.warning.assert_called_once_with(*expected)
 
         mock_post_event.assert_has_calls([
             mock.call('/os-server-external-events',

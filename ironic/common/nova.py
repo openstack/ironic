@@ -82,8 +82,9 @@ def _send_event(context, event, api_version=None):
 
     if code >= 400:
         LOG.warning('Nova event: %s returned with failed status.', resp_event)
-    else:
-        LOG.debug('Nova event response: %s.', resp_event)
+        return False
+
+    LOG.debug('Nova event response: %s.', resp_event)
     return True
 
 
