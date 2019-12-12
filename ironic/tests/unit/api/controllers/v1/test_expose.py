@@ -12,6 +12,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+from importlib import machinery
 import inspect
 import os
 import sys
@@ -44,20 +45,8 @@ class TestExposedAPIMethodsCheckPolicy(test_base.TestCase):
 
     def _test(self, module):
         module_path = os.path.abspath(sys.modules[module].__file__)
-        # (rpittau) we can use importlib only with python >= 3.3
-        # we can remove the if-else block once python 2.x is gone
-        if sys.version_info[:2] >= (3, 3):
-            from importlib.machinery import SourceFileLoader
-            SourceFileLoader(uuidutils.generate_uuid(),
-                             module_path).load_module()
-        else:
-            import imp
-            # NOTE(vdrok): coverage runs on compiled .pyc files, which breaks
-            # load_source. Strip c and o letters from the end of the module
-            # path, just in case someone tries to use .pyo or .pyc for whatever
-            # reason
-            imp.load_source(uuidutils.generate_uuid(),
-                            module_path.rstrip('co'))
+        machinery.SourceFileLoader(uuidutils.generate_uuid(),
+                                   module_path).load_module()
 
         for func in self.exposed_methods:
             src = inspect.getsource(func)
