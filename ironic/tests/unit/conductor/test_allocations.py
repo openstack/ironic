@@ -350,6 +350,28 @@ class DoAllocateTestCase(db_base.DbTestCase):
 
     @mock.patch.object(task_manager, 'acquire', autospec=True,
                        side_effect=task_manager.acquire)
+    def test_nodes_filtered_out_owner(self, mock_acquire):
+        # Owner does not match
+        obj_utils.create_test_node(self.context,
+                                   uuid=uuidutils.generate_uuid(),
+                                   owner='54321',
+                                   resource_class='x-large',
+                                   power_state='power off',
+                                   provision_state='available')
+
+        allocation = obj_utils.create_test_allocation(self.context,
+                                                      resource_class='x-large',
+                                                      owner='12345')
+        allocations.do_allocate(self.context, allocation)
+        self.assertIn('no available nodes', allocation['last_error'])
+        self.assertIn('x-large', allocation['last_error'])
+        self.assertEqual('error', allocation['state'])
+
+        # All nodes are filtered out on the database level.
+        self.assertFalse(mock_acquire.called)
+
+    @mock.patch.object(task_manager, 'acquire', autospec=True,
+                       side_effect=task_manager.acquire)
     def test_nodes_locked(self, mock_acquire):
         self.config(node_locked_retry_attempts=2, group='conductor')
         node1 = obj_utils.create_test_node(self.context,

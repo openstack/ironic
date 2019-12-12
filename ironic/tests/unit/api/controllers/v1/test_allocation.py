@@ -30,6 +30,7 @@ from ironic.api.controllers import v1 as api_v1
 from ironic.api.controllers.v1 import allocation as api_allocation
 from ironic.api.controllers.v1 import notification_utils
 from ironic.common import exception
+from ironic.common import policy
 from ironic.conductor import rpcapi
 from ironic import objects
 from ironic.objects import fields as obj_fields
@@ -67,6 +68,7 @@ class TestListAllocations(test_api_base.BaseApiTest):
         self.assertEqual(allocation.name, data['allocations'][0]['name'])
         self.assertEqual({}, data['allocations'][0]["extra"])
         self.assertEqual(self.node.uuid, data['allocations'][0]["node_uuid"])
+        self.assertEqual(allocation.owner, data['allocations'][0]["owner"])
         # never expose the node_id
         self.assertNotIn('node_id', data['allocations'][0])
 
@@ -78,6 +80,7 @@ class TestListAllocations(test_api_base.BaseApiTest):
         self.assertEqual(allocation.uuid, data['uuid'])
         self.assertEqual({}, data["extra"])
         self.assertEqual(self.node.uuid, data["node_uuid"])
+        self.assertEqual(allocation.owner, data["owner"])
         # never expose the node_id
         self.assertNotIn('node_id', data)
 
@@ -318,6 +321,29 @@ class TestListAllocations(test_api_base.BaseApiTest):
                              headers=self.headers)
         self.assertEqual(3, len(data['allocations']))
 
+    def test_get_all_by_owner(self):
+        for i in range(5):
+            if i < 3:
+                owner = '12345'
+            else:
+                owner = '54321'
+            obj_utils.create_test_allocation(
+                self.context,
+                owner=owner,
+                uuid=uuidutils.generate_uuid(),
+                name='allocation%s' % i)
+        data = self.get_json("/allocations?owner=12345",
+                             headers=self.headers)
+        self.assertEqual(3, len(data['allocations']))
+
+    def test_get_all_by_owner_not_allowed(self):
+        response = self.get_json("/allocations?owner=12345",
+                                 headers={api_base.Version.string: '1.59'},
+                                 expect_errors=True)
+        self.assertEqual('application/json', response.content_type)
+        self.assertEqual(http_client.NOT_ACCEPTABLE, response.status_code)
+        self.assertTrue(response.json['error_message'])
+
     def test_get_all_by_node_name(self):
         for i in range(5):
             if i < 3:
@@ -392,6 +418,44 @@ class TestListAllocations(test_api_base.BaseApiTest):
         res = self.get_json('/node/%s/allocation' % uuidutils.generate_uuid(),
                             expect_errors=True, headers=self.headers)
         self.assertEqual(http_client.NOT_FOUND, res.status_code)
+
+    def test_allocation_owner_hidden_in_lower_version(self):
+        allocation = obj_utils.create_test_allocation(self.context,
+                                                      node_id=self.node.id)
+        data = self.get_json(
+            '/allocations/%s' % allocation.uuid,
+            headers={api_base.Version.string: '1.59'})
+        self.assertNotIn('owner', data)
+        data = self.get_json(
+            '/allocations/%s' % allocation.uuid,
+            headers=self.headers)
+        self.assertIn('owner', data)
+
+    def test_allocation_owner_null_field(self):
+        allocation = obj_utils.create_test_allocation(self.context,
+                                                      node_id=self.node.id,
+                                                      owner=None)
+        data = self.get_json('/allocations/%s' % allocation.uuid,
+                             headers=self.headers)
+        self.assertIsNone(data['owner'])
+
+    def test_allocation_owner_present(self):
+        allocation = obj_utils.create_test_allocation(self.context,
+                                                      node_id=self.node.id,
+                                                      owner='12345')
+        data = self.get_json('/allocations/%s' % allocation.uuid,
+                             headers=self.headers)
+        self.assertEqual(data['owner'], '12345')
+
+    def test_get_owner_field(self):
+        allocation = obj_utils.create_test_allocation(self.context,
+                                                      node_id=self.node.id,
+                                                      owner='12345')
+        fields = 'owner'
+        response = self.get_json(
+            '/allocations/%s?fields=%s' % (allocation.uuid, fields),
+            headers=self.headers)
+        self.assertIn('owner', response)
 
 
 class TestPatch(test_api_base.BaseApiTest):
@@ -592,6 +656,18 @@ class TestPatch(test_api_base.BaseApiTest):
         self.assertEqual(http_client.BAD_REQUEST, response.status_code)
         self.assertTrue(response.json['error_message'])
 
+    def test_update_owner_not_acceptable(self):
+        allocation = obj_utils.create_test_allocation(
+            self.context, owner='12345', uuid=uuidutils.generate_uuid())
+        new_owner = '54321'
+        response = self.patch_json('/allocations/%s' % allocation.uuid,
+                                   [{'path': '/owner',
+                                     'value': new_owner,
+                                     'op': 'replace'}],
+                                   expect_errors=True, headers=self.headers)
+        self.assertEqual('application/json', response.content_type)
+        self.assertEqual(http_client.BAD_REQUEST, response.status_code)
+
 
 def _create_locally(_api, _ctx, allocation, topic):
     if 'node_id' in allocation and allocation.node_id:
@@ -639,6 +715,7 @@ class TestPost(test_api_base.BaseApiTest):
         self.assertIsNone(result['node_uuid'])
         self.assertEqual([], result['candidate_nodes'])
         self.assertEqual([], result['traits'])
+        self.assertIsNone(None, result['owner'])
         self.assertNotIn('node', result)
         return_created_at = timeutils.parse_isotime(
             result['created_at']).replace(tzinfo=None)
@@ -837,6 +914,23 @@ class TestPost(test_api_base.BaseApiTest):
         self.assertEqual('application/json', response.content_type)
         self.assertTrue(response.json['error_message'])
 
+    def test_create_allocation_owner(self):
+        owner = '12345'
+        adict = apiutils.allocation_post_data(owner=owner)
+        self.post_json('/allocations', adict, headers=self.headers)
+        result = self.get_json('/allocations/%s' % adict['uuid'],
+                               headers=self.headers)
+        self.assertEqual(owner, result['owner'])
+
+    def test_create_allocation_owner_not_allowed(self):
+        owner = '12345'
+        adict = apiutils.allocation_post_data(owner=owner)
+        response = self.post_json('/allocations', adict,
+                                  headers={api_base.Version.string: '1.59'},
+                                  expect_errors=True)
+        self.assertEqual('application/json', response.content_type)
+        self.assertEqual(http_client.NOT_ACCEPTABLE, response.status_int)
+
     def test_backfill(self):
         node = obj_utils.create_test_node(self.context)
         adict = apiutils.allocation_post_data(node=node.uuid)
@@ -901,10 +995,104 @@ class TestPost(test_api_base.BaseApiTest):
     def test_backfill_not_allowed(self):
         node = obj_utils.create_test_node(self.context)
         headers = {api_base.Version.string: '1.57'}
-        adict = apiutils.allocation_post_data(node=node.uuid)
+        adict = {'node': node.uuid}
         response = self.post_json('/allocations', adict, expect_errors=True,
                                   headers=headers)
         self.assertEqual(http_client.BAD_REQUEST, response.status_int)
+        self.assertEqual('application/json', response.content_type)
+        self.assertTrue(response.json['error_message'])
+
+    @mock.patch.object(policy, 'authorize', autospec=True)
+    def test_create_restricted_allocation(self, mock_authorize):
+        def mock_authorize_function(rule, target, creds):
+            if rule == 'baremetal:allocation:create':
+                raise exception.HTTPForbidden(resource='fake')
+            return True
+        mock_authorize.side_effect = mock_authorize_function
+
+        owner = '12345'
+        adict = apiutils.allocation_post_data()
+        headers = {api_base.Version.string: '1.60', 'X-Project-Id': owner}
+        response = self.post_json('/allocations', adict, headers=headers)
+        self.assertEqual('application/json', response.content_type)
+        self.assertEqual(http_client.CREATED, response.status_int)
+        self.assertEqual(owner, response.json['owner'])
+        result = self.get_json('/allocations/%s' % adict['uuid'],
+                               headers=headers)
+        self.assertEqual(adict['uuid'], result['uuid'])
+        self.assertEqual(owner, result['owner'])
+
+    @mock.patch.object(policy, 'authorize', autospec=True)
+    def test_create_restricted_allocation_older_version(self, mock_authorize):
+        def mock_authorize_function(rule, target, creds):
+            if rule == 'baremetal:allocation:create':
+                raise exception.HTTPForbidden(resource='fake')
+            return True
+        mock_authorize.side_effect = mock_authorize_function
+
+        owner = '12345'
+        adict = apiutils.allocation_post_data()
+        del adict['owner']
+        headers = {api_base.Version.string: '1.59', 'X-Project-Id': owner}
+        response = self.post_json('/allocations', adict, headers=headers)
+        self.assertEqual('application/json', response.content_type)
+        self.assertEqual(http_client.CREATED, response.status_int)
+        result = self.get_json('/allocations/%s' % adict['uuid'],
+                               headers=headers)
+        self.assertEqual(adict['uuid'], result['uuid'])
+
+    @mock.patch.object(policy, 'authorize', autospec=True)
+    def test_create_restricted_allocation_forbidden(self, mock_authorize):
+        def mock_authorize_function(rule, target, creds):
+            raise exception.HTTPForbidden(resource='fake')
+        mock_authorize.side_effect = mock_authorize_function
+
+        owner = '12345'
+        adict = apiutils.allocation_post_data()
+        headers = {api_base.Version.string: '1.60', 'X-Project-Id': owner}
+        response = self.post_json('/allocations', adict, expect_errors=True,
+                                  headers=headers)
+        self.assertEqual(http_client.FORBIDDEN, response.status_int)
+        self.assertEqual('application/json', response.content_type)
+        self.assertTrue(response.json['error_message'])
+
+    @mock.patch.object(policy, 'authorize', autospec=True)
+    def test_create_restricted_allocation_with_owner(self, mock_authorize):
+        def mock_authorize_function(rule, target, creds):
+            if rule == 'baremetal:allocation:create':
+                raise exception.HTTPForbidden(resource='fake')
+            return True
+        mock_authorize.side_effect = mock_authorize_function
+
+        owner = '12345'
+        adict = apiutils.allocation_post_data(owner=owner)
+        adict['owner'] = owner
+        headers = {api_base.Version.string: '1.60', 'X-Project-Id': owner}
+        response = self.post_json('/allocations', adict, headers=headers)
+        self.assertEqual('application/json', response.content_type)
+        self.assertEqual(http_client.CREATED, response.status_int)
+        self.assertEqual(owner, response.json['owner'])
+        result = self.get_json('/allocations/%s' % adict['uuid'],
+                               headers=headers)
+        self.assertEqual(adict['uuid'], result['uuid'])
+        self.assertEqual(owner, result['owner'])
+
+    @mock.patch.object(policy, 'authorize', autospec=True)
+    def test_create_restricted_allocation_with_mismatch_owner(
+            self, mock_authorize):
+        def mock_authorize_function(rule, target, creds):
+            if rule == 'baremetal:allocation:create':
+                raise exception.HTTPForbidden(resource='fake')
+            return True
+        mock_authorize.side_effect = mock_authorize_function
+
+        owner = '12345'
+        adict = apiutils.allocation_post_data(owner=owner)
+        adict['owner'] = '54321'
+        headers = {api_base.Version.string: '1.60', 'X-Project-Id': owner}
+        response = self.post_json('/allocations', adict, expect_errors=True,
+                                  headers=headers)
+        self.assertEqual(http_client.FORBIDDEN, response.status_int)
         self.assertEqual('application/json', response.content_type)
         self.assertTrue(response.json['error_message'])
 

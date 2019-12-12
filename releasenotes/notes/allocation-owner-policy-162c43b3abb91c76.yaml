@@ -1,0 +1,7 @@
+---
+features:
+  - |
+    Adds an ``owner`` field to allocations. Depending on policy, a non-admin
+    can then create an allocation and have the owner set to their project.
+    Allocation processing will then ensure that only nodes with the same owner
+    are matched.

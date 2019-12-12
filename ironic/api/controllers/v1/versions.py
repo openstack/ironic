@@ -97,6 +97,7 @@ BASE_VERSION = 1
 # v1.57: Add support for updating an exisiting allocation.
 # v1.58: Add support for backfilling allocations.
 # v1.59: Add support vendor data in configdrives.
+# v1.60: Add owner to the allocation object.
 
 MINOR_0_JUNO = 0
 MINOR_1_INITIAL_VERSION = 1
@@ -158,6 +159,7 @@ MINOR_56_BUILD_CONFIGDRIVE = 56
 MINOR_57_ALLOCATION_UPDATE = 57
 MINOR_58_ALLOCATION_BACKFILL = 58
 MINOR_59_CONFIGDRIVE_VENDOR_DATA = 59
+MINOR_60_ALLOCATION_OWNER = 60
 
 # When adding another version, update:
 # - MINOR_MAX_VERSION
@@ -165,7 +167,7 @@ MINOR_59_CONFIGDRIVE_VENDOR_DATA = 59
 #   explanation of what changed in the new version
 # - common/release_mappings.py, RELEASE_MAPPING['master']['api']
 
-MINOR_MAX_VERSION = MINOR_59_CONFIGDRIVE_VENDOR_DATA
+MINOR_MAX_VERSION = MINOR_60_ALLOCATION_OWNER
 
 # String representations of the minor and maximum versions
 _MIN_VERSION_STRING = '{}.{}'.format(BASE_VERSION, MINOR_1_INITIAL_VERSION)

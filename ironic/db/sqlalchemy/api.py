@@ -354,7 +354,7 @@ class Connection(api.Connection):
         if filters is None:
             filters = dict()
         supported_filters = {'state', 'resource_class', 'node_uuid',
-                             'conductor_affinity'}
+                             'conductor_affinity', 'owner'}
         unsupported_filters = set(filters).difference(supported_filters)
         if unsupported_filters:
             msg = _("SqlAlchemy API does not support "

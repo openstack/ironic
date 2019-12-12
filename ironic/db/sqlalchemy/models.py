@@ -340,6 +340,7 @@ class Allocation(Base):
     name = Column(String(255), nullable=True)
     node_id = Column(Integer, ForeignKey('nodes.id'), nullable=True)
     state = Column(String(15), nullable=False)
+    owner = Column(String(255), nullable=True)
     last_error = Column(Text, nullable=True)
     resource_class = Column(String(80), nullable=True)
     traits = Column(db_types.JsonEncodedList)

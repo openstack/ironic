@@ -12,6 +12,7 @@
 
 from oslo_utils import strutils
 from oslo_utils import uuidutils
+from oslo_utils import versionutils
 from oslo_versionedobjects import base as object_base
 
 from ironic.common import exception
@@ -25,7 +26,8 @@ from ironic.objects import notification
 @base.IronicObjectRegistry.register
 class Allocation(base.IronicObject, object_base.VersionedObjectDictCompat):
     # Version 1.0: Initial version
-    VERSION = '1.0'
+    # Version 1.1: Add owner field
+    VERSION = '1.1'
 
     dbapi = dbapi.get_instance()
 
@@ -41,6 +43,7 @@ class Allocation(base.IronicObject, object_base.VersionedObjectDictCompat):
         'candidate_nodes': object_fields.ListOfStringsField(nullable=True),
         'extra': object_fields.FlexibleDictField(nullable=True),
         'conductor_affinity': object_fields.IntegerField(nullable=True),
+        'owner': object_fields.StringField(nullable=True),
     }
 
     def _convert_to_version(self, target_version,
@@ -51,12 +54,30 @@ class Allocation(base.IronicObject, object_base.VersionedObjectDictCompat):
         the same, older, or newer than the version of the object. This is
         used for DB interactions as well as for serialization/deserialization.
 
+        Version 1.1: owner was added. For versions prior to this, it should be
+            set to None or removed.
+
         :param target_version: the desired version of the object
         :param remove_unavailable_fields: True to remove fields that are
             unavailable in the target version; set this to True when
             (de)serializing. False to set the unavailable fields to appropriate
             values; set this to False for DB interactions.
         """
+        target_version = versionutils.convert_version_to_tuple(target_version)
+
+        # Convert the owner field.
+        owner_is_set = self.obj_attr_is_set('owner')
+        if target_version >= (1, 1):
+            if not owner_is_set:
+                self.owner = None
+        elif owner_is_set:
+            # Target version does not support owner, and it is set.
+            if remove_unavailable_fields:
+                # (De)serialising: remove unavailable fields.
+                delattr(self, 'owner')
+            elif self.owner is not None:
+                # DB: set unavailable fields to their default.
+                self.owner = None
 
     # NOTE(xek): We don't want to enable RPC on this call just yet. Remotable
     # methods can be used in the future to replace current explicit RPC calls.
@@ -266,7 +287,8 @@ class AllocationCRUDNotification(notification.NotificationBase):
 @base.IronicObjectRegistry.register
 class AllocationCRUDPayload(notification.NotificationPayloadBase):
     # Version 1.0: Initial version
-    VERSION = '1.0'
+    # Version 1.1: Add allocation owner field.
+    VERSION = '1.1'
 
     SCHEMA = {
         'candidate_nodes': ('allocation', 'candidate_nodes'),
@@ -274,6 +296,7 @@ class AllocationCRUDPayload(notification.NotificationPayloadBase):
         'extra': ('allocation', 'extra'),
         'last_error': ('allocation', 'last_error'),
         'name': ('allocation', 'name'),
+        'owner': ('allocation', 'owner'),
         'resource_class': ('allocation', 'resource_class'),
         'state': ('allocation', 'state'),
         'traits': ('allocation', 'traits'),
@@ -287,6 +310,7 @@ class AllocationCRUDPayload(notification.NotificationPayloadBase):
         'node_uuid': object_fields.StringField(nullable=True),
         'state': object_fields.StringField(nullable=True),
         'last_error': object_fields.StringField(nullable=True),
+        'owner': object_fields.StringField(nullable=True),
         'resource_class': object_fields.StringField(nullable=True),
         'traits': object_fields.ListOfStringsField(nullable=True),
         'candidate_nodes': object_fields.ListOfStringsField(nullable=True),

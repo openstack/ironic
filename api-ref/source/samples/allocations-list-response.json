@@ -17,6 +17,7 @@
       ],
       "name": "allocation-1",
       "node_uuid": "6d85703a-565d-469a-96ce-30b6de53079d",
+      "owner": null,
       "resource_class": "bm-large",
       "state": "active",
       "traits": [],
@@ -40,6 +41,7 @@
       ],
       "name": "allocation-2",
       "node_uuid": null,
+      "owner": null,
       "resource_class": "bm-large",
       "state": "error",
       "traits": [

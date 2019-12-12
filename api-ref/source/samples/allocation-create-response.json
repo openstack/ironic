@@ -15,6 +15,7 @@
   ],
   "name": "allocation-1",
   "node_uuid": null,
+  "owner": null,
   "resource_class": "bm-large",
   "state": "allocating",
   "traits": [],

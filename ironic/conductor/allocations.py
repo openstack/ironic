@@ -112,6 +112,8 @@ def _candidate_nodes(context, allocation):
         # NOTE(dtantsur): we assume that candidate_nodes were converted to
         # UUIDs on the API level.
         filters['uuid_in'] = allocation.candidate_nodes
+    if allocation.owner:
+        filters['owner'] = allocation.owner
 
     nodes = objects.Node.list(context, filters=filters)
 

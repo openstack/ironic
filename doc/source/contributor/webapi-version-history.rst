@@ -2,6 +2,14 @@
 REST API Version History
 ========================
 
+1.60 (Ussuri, master)
+---------------------
+
+Added ``owner`` field to the allocation object. The field should match the
+``project_id`` of the intended owner. If the ``owner`` field is set, the
+allocation process will only match the allocation with a node that has the
+same ``owner`` field set.
+
 1.59 (Ussuri, master)
 ---------------------
 
