@@ -291,7 +291,7 @@ class RedfishVirtualMediaBoot(base.BootInterface):
 
                 shutil.copyfile(image_file, published_file)
 
-            image_url = urlparse.urljoin(
+            image_url = os.path.join(
                 CONF.deploy.http_url, cls.IMAGE_SUBDIR, object_name)
 
         image_url = cls._append_filename_param(

@@ -250,7 +250,7 @@ class RedfishVirtualMediaBootTestCase(db_base.DbTestCase):
             url = task.driver.boot._publish_image('file.iso', 'boot.iso')
 
             self.assertEqual(
-                'http://localhost/redfish?filename=file.iso', url)
+                'http://localhost/redfish/boot.iso?filename=file.iso', url)
 
             mock_mkdir.assert_called_once_with('/httpboot/redfish', 0x755)
             mock_link.assert_called_once_with(
@@ -272,7 +272,7 @@ class RedfishVirtualMediaBootTestCase(db_base.DbTestCase):
             url = task.driver.boot._publish_image('file.iso', 'boot.iso')
 
             self.assertEqual(
-                'http://localhost/redfish?filename=file.iso', url)
+                'http://localhost/redfish/boot.iso?filename=file.iso', url)
 
             mock_mkdir.assert_called_once_with('/httpboot/redfish', 0x755)
 
