@@ -356,7 +356,7 @@
       tempest_test_regex: "(ironic_tempest_plugin.tests.scenario|test_schedule_to_all_nodes)"
       tempest_test_timeout: 2400
       devstack_localrc:
-        BUILD_TIMEOUT: 1200
+        BUILD_TIMEOUT: 2400
         DEFAULT_INSTANCE_TYPE: baremetal
         ENABLE_TENANT_TUNNELS: False
         ENABLE_TENANT_VLANS: True
