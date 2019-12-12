@@ -1611,7 +1611,7 @@ DIB support for Proliant Hardware Manager
 To create an agent ramdisk with ``Proliant Hardware Manager``,
 use the ``proliant-tools`` element in DIB::
 
-  disk-image-create -o proliant-agent-ramdisk ironic-agent fedora proliant-tools
+  disk-image-create -o proliant-agent-ramdisk ironic-python-agent-ramdisk fedora proliant-tools
 
 Disk Erase Support
 ^^^^^^^^^^^^^^^^^^
@@ -1641,7 +1641,7 @@ enabling/disabling a clean step.
 To create an agent ramdisk with ``Proliant Hardware Manager``, use the
 ``proliant-tools`` element in DIB::
 
-    disk-image-create -o proliant-agent-ramdisk ironic-agent fedora proliant-tools
+    disk-image-create -o proliant-agent-ramdisk ironic-python-agent-ramdisk fedora proliant-tools
 
 See the `proliant-tools`_ for more information on creating agent ramdisk with
 ``proliant-tools`` element in DIB.
