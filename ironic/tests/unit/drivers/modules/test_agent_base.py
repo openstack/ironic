@@ -84,6 +84,8 @@ class HeartbeatMixinTest(AgentDeployMixinBaseTest):
         self.deploy = agent_base.HeartbeatMixin()
 
     @mock.patch.object(agent_base.HeartbeatMixin,
+                       'refresh_steps', autospec=True)
+    @mock.patch.object(agent_base.HeartbeatMixin,
                        'in_core_deploy_step', autospec=True)
     @mock.patch.object(agent_base.HeartbeatMixin,
                        'deploy_has_started', autospec=True)
@@ -93,7 +95,8 @@ class HeartbeatMixinTest(AgentDeployMixinBaseTest):
                        'reboot_to_instance', autospec=True)
     def test_heartbeat_continue_deploy(self, rti_mock, cd_mock,
                                        deploy_started_mock,
-                                       in_deploy_mock):
+                                       in_deploy_mock,
+                                       refresh_steps_mock):
         in_deploy_mock.return_value = True
         deploy_started_mock.return_value = False
         self.node.provision_state = states.DEPLOYWAIT
@@ -109,6 +112,42 @@ class HeartbeatMixinTest(AgentDeployMixinBaseTest):
                 task.node.driver_internal_info['agent_version'])
             cd_mock.assert_called_once_with(self.deploy, task)
             self.assertFalse(rti_mock.called)
+            refresh_steps_mock.assert_called_once_with(self.deploy,
+                                                       task, 'deploy')
+
+    @mock.patch.object(agent_base.HeartbeatMixin,
+                       'refresh_steps', autospec=True)
+    @mock.patch.object(agent_base.HeartbeatMixin,
+                       'in_core_deploy_step', autospec=True)
+    @mock.patch.object(agent_base.HeartbeatMixin,
+                       'deploy_has_started', autospec=True)
+    @mock.patch.object(agent_base.HeartbeatMixin, 'continue_deploy',
+                       autospec=True)
+    @mock.patch.object(agent_base.HeartbeatMixin,
+                       'reboot_to_instance', autospec=True)
+    def test_heartbeat_continue_deploy_second_run(self, rti_mock, cd_mock,
+                                                  deploy_started_mock,
+                                                  in_deploy_mock,
+                                                  refresh_steps_mock):
+        in_deploy_mock.return_value = True
+        deploy_started_mock.return_value = False
+        dii = self.node.driver_internal_info
+        dii['agent_cached_deploy_steps'] = ['step']
+        self.node.driver_internal_info = dii
+        self.node.provision_state = states.DEPLOYWAIT
+        self.node.save()
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            self.deploy.heartbeat(task, 'url', '3.2.0')
+            self.assertFalse(task.shared)
+            self.assertEqual(
+                'url', task.node.driver_internal_info['agent_url'])
+            self.assertEqual(
+                '3.2.0',
+                task.node.driver_internal_info['agent_version'])
+            cd_mock.assert_called_once_with(self.deploy, task)
+            self.assertFalse(rti_mock.called)
+            self.assertFalse(refresh_steps_mock.called)
 
     @mock.patch.object(agent_base.HeartbeatMixin,
                        'in_core_deploy_step', autospec=True)
@@ -141,8 +180,8 @@ class HeartbeatMixinTest(AgentDeployMixinBaseTest):
             self.assertFalse(cd_mock.called)
             rti_mock.assert_called_once_with(self.deploy, task)
 
-    @mock.patch.object(manager_utils,
-                       'notify_conductor_resume_deploy', autospec=True)
+    @mock.patch.object(agent_base.HeartbeatMixin,
+                       'process_next_step', autospec=True)
     @mock.patch.object(agent_base.HeartbeatMixin,
                        'in_core_deploy_step', autospec=True)
     @mock.patch.object(agent_base.HeartbeatMixin,
@@ -157,7 +196,7 @@ class HeartbeatMixinTest(AgentDeployMixinBaseTest):
                                                deploy_is_done_mock,
                                                deploy_started_mock,
                                                in_deploy_mock,
-                                               in_resume_deploy_mock):
+                                               process_next_mock):
         # Check that heartbeats do not trigger deployment actions when not in
         # the deploy.deploy step.
         in_deploy_mock.return_value = False
@@ -176,7 +215,53 @@ class HeartbeatMixinTest(AgentDeployMixinBaseTest):
             self.assertFalse(deploy_is_done_mock.called)
             self.assertFalse(cd_mock.called)
             self.assertFalse(rti_mock.called)
-            self.assertTrue(in_resume_deploy_mock.called)
+            process_next_mock.assert_called_once_with(self.deploy,
+                                                      task, 'deploy')
+
+    @mock.patch.object(agent_base.HeartbeatMixin,
+                       'refresh_steps', autospec=True)
+    @mock.patch.object(agent_base.HeartbeatMixin,
+                       'process_next_step', autospec=True)
+    @mock.patch.object(agent_base.HeartbeatMixin,
+                       'in_core_deploy_step', autospec=True)
+    @mock.patch.object(agent_base.HeartbeatMixin,
+                       'deploy_has_started', autospec=True)
+    @mock.patch.object(agent_base.HeartbeatMixin,
+                       'deploy_is_done', autospec=True)
+    @mock.patch.object(agent_base.HeartbeatMixin, 'continue_deploy',
+                       autospec=True)
+    @mock.patch.object(agent_base.HeartbeatMixin,
+                       'reboot_to_instance', autospec=True)
+    def test_heartbeat_not_in_core_deploy_step_refresh(self, rti_mock, cd_mock,
+                                                       deploy_is_done_mock,
+                                                       deploy_started_mock,
+                                                       in_deploy_mock,
+                                                       process_next_mock,
+                                                       refresh_steps_mock):
+        # Check loading in-band deploy steps.
+        in_deploy_mock.return_value = False
+        self.node.provision_state = states.DEPLOYWAIT
+        info = self.node.driver_internal_info
+        info.pop('agent_cached_deploy_steps', None)
+        self.node.driver_internal_info = info
+        self.node.save()
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            self.deploy.heartbeat(task, 'url', '3.2.0')
+            self.assertFalse(task.shared)
+            self.assertEqual(
+                'url', task.node.driver_internal_info['agent_url'])
+            self.assertEqual(
+                '3.2.0',
+                task.node.driver_internal_info['agent_version'])
+            self.assertFalse(deploy_started_mock.called)
+            self.assertFalse(deploy_is_done_mock.called)
+            self.assertFalse(cd_mock.called)
+            self.assertFalse(rti_mock.called)
+            refresh_steps_mock.assert_called_once_with(self.deploy,
+                                                       task, 'deploy')
+            process_next_mock.assert_called_once_with(self.deploy,
+                                                      task, 'deploy')
 
     @mock.patch.object(manager_utils,
                        'notify_conductor_resume_deploy', autospec=True)
@@ -200,6 +285,7 @@ class HeartbeatMixinTest(AgentDeployMixinBaseTest):
         in_deploy_mock.return_value = False
         self.node.provision_state = states.DEPLOYWAIT
         info = self.node.driver_internal_info
+        info['agent_cached_deploy_steps'] = ['step1']
         info['deployment_polling'] = True
         self.node.driver_internal_info = info
         self.node.save()
@@ -2132,6 +2218,10 @@ class TestRefreshCleanSteps(AgentDeployMixinBaseTest):
                                                 task.ports)
 
 
+class FakeAgentDeploy(agent_base.AgentDeployMixin, fake.FakeDeploy):
+    pass
+
+
 class StepMethodsTestCase(db_base.DbTestCase):
 
     def setUp(self):
@@ -2159,6 +2249,7 @@ class StepMethodsTestCase(db_base.DbTestCase):
         self.node = object_utils.create_test_node(self.context, **n)
         self.ports = [object_utils.create_test_port(self.context,
                                                     node_id=self.node.id)]
+        self.deploy = FakeAgentDeploy()
 
     def test_agent_get_steps(self):
         with task_manager.acquire(
@@ -2221,6 +2312,26 @@ class StepMethodsTestCase(db_base.DbTestCase):
         with task_manager.acquire(
                 self.context, self.node.uuid, shared=False) as task:
             self.assertEqual([], agent_base.get_steps(task, 'clean'))
+
+    def test_get_deploy_steps(self):
+        with task_manager.acquire(
+                self.context, self.node.uuid, shared=False) as task:
+            task.node.driver_internal_info = {
+                'agent_cached_deploy_steps': self.clean_steps
+            }
+            steps = self.deploy.get_deploy_steps(task)
+            # 2 in-band steps + one out-of-band
+            self.assertEqual(3, len(steps))
+            self.assertIn(self.clean_steps['deploy'][0], steps)
+            self.assertIn(self.clean_steps['deploy'][1], steps)
+            self.assertNotIn(self.clean_steps['raid'][0], steps)
+
+    def test_get_deploy_steps_only_oob(self):
+        with task_manager.acquire(
+                self.context, self.node.uuid, shared=False) as task:
+            steps = self.deploy.get_deploy_steps(task)
+            # one out-of-band step
+            self.assertEqual(1, len(steps))
 
     @mock.patch('ironic.objects.Port.list_by_node_id',
                 spec_set=types.FunctionType)

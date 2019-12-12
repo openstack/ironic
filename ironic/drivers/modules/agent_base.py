@@ -477,14 +477,22 @@ class HeartbeatMixin(object):
                         {'node': node.uuid})
 
     def _heartbeat_deploy_wait(self, task):
-        msg = _('Failed checking if deploy is done')
+        msg = _('Unexpected exception')
         node = task.node
         try:
+            # NOTE(dtantsur): on first heartbeat, load in-band steps.
+            if not node.driver_internal_info.get('agent_cached_deploy_steps'):
+                msg = _('Failed to load in-band deploy steps')
+                # Refresh steps since this is the first time IPA has
+                # booted and we need to collect in-band steps.
+                self.refresh_steps(task, 'deploy')
+
             # NOTE(mgoddard): Only handle heartbeats during DEPLOYWAIT if we
             # are currently in the core deploy.deploy step. Other deploy steps
             # may cause the agent to boot, but we should not trigger deployment
             # at that point if the driver is polling for completion of a step.
             if self.in_core_deploy_step(task):
+                msg = _('Failed checking if deploy is done')
                 if not self.deploy_has_started(task):
                     msg = _('Node failed to deploy')
                     self.continue_deploy(task)
@@ -494,15 +502,14 @@ class HeartbeatMixin(object):
                 else:
                     node.touch_provisioning()
             else:
-                # The exceptions from RPC are not possible as we using cast
-                # here
-                # Check if the driver is polling for completion of a step,
-                # via the 'deployment_polling' flag.
+                node.touch_provisioning()
+                # Check if the driver is polling for completion of
+                # a step, via the 'deployment_polling' flag.
                 polling = node.driver_internal_info.get(
                     'deployment_polling', False)
                 if not polling:
-                    manager_utils.notify_conductor_resume_deploy(task)
-                node.touch_provisioning()
+                    msg = _('Failed to process the next deploy step')
+                    self.process_next_step(task, 'deploy')
         except Exception as e:
             last_error = _('%(msg)s. Error: %(exc)s') % {'msg': msg, 'exc': e}
             LOG.exception('Asynchronous exception for node %(node)s: %(err)s',
@@ -663,6 +670,25 @@ class AgentDeployMixin(HeartbeatMixin):
             task, 'clean', interface='deploy',
             override_priorities=new_priorities)
 
+    @METRICS.timer('AgentDeployMixin.get_deploy_steps')
+    def get_deploy_steps(self, task):
+        """Get the list of deploy steps from the agent.
+
+        :param task: a TaskManager object containing the node
+        :raises InstanceDeployFailure: if the deploy steps are not yet
+            available (cached), for example, when a node has just been
+            enrolled and has not been deployed yet.
+        :returns: A list of deploy step dictionaries
+        """
+        steps = super(AgentDeployMixin, self).get_deploy_steps(task)[:]
+        ib_steps = get_steps(task, 'deploy', interface='deploy')
+        # NOTE(dtantsur): we allow in-band steps to be shadowed by out-of-band
+        # ones, see the docstring of execute_deploy_step for details.
+        steps += [step for step in ib_steps
+                  # FIXME(dtantsur): nested loops are not too efficient
+                  if not conductor_steps.find_step(steps, step)]
+        return steps
+
     @METRICS.timer('AgentDeployMixin.refresh_steps')
     def refresh_steps(self, task, step_type):
         """Refresh the node's cached clean/deploy steps from the booted agent.
@@ -687,7 +713,18 @@ class AgentDeployMixin(HeartbeatMixin):
                    'steps': previous_steps})
 
         call = getattr(self._client, 'get_%s_steps' % step_type)
-        agent_result = call(node, task.ports).get('command_result', {})
+        try:
+            agent_result = call(node, task.ports).get('command_result', {})
+        except exception.AgentAPIError as exc:
+            if step_type == 'clean':
+                raise
+            else:
+                LOG.warning('Agent running on node %(node)s does not support '
+                            'in-band deploy steps: %(err)s. Support for old '
+                            'agents will be removed in the V release.',
+                            {'node': node.uuid, 'err': exc})
+                return
+
         missing = set(['%s_steps' % step_type,
                        'hardware_manager_version']).difference(agent_result)
         if missing:
@@ -740,6 +777,37 @@ class AgentDeployMixin(HeartbeatMixin):
         :returns: states.CLEANWAIT to signify the step will be completed async
         """
         return execute_step(task, step, 'clean')
+
+    @METRICS.timer('AgentDeployMixin.execute_deploy_step')
+    def execute_deploy_step(self, task, step):
+        """Execute a deploy step.
+
+        We're trying to find a step among both out-of-band and in-band steps.
+        In case of duplicates, out-of-band steps take priority. This property
+        allows having an out-of-band deploy step that calls into
+        a corresponding in-band step after some preparation (e.g. with
+        additional input).
+
+        :param task: a TaskManager object containing the node
+        :param step: a deploy step dictionary to execute
+        :raises: NodeCleaningFailure if the agent does not return a command
+            status
+        :returns: states.DEPLOYWAIT to signify the step will be completed async
+        """
+        agent_running = task.node.driver_internal_info.get(
+            'agent_cached_deploy_steps')
+        oob_steps = self.deploy_steps
+
+        if conductor_steps.find_step(oob_steps, step):
+            return super(AgentDeployMixin, self).execute_deploy_step(
+                task, step)
+        elif not agent_running:
+            raise exception.InstanceDeployFailure(
+                _('Deploy step %(step)s has not been found. Available '
+                  'out-of-band steps: %(oob)s. Agent is not running.') %
+                {'step': step, 'oob': oob_steps})
+        else:
+            return execute_step(task, step, 'deploy')
 
     def _process_version_mismatch(self, task, step_type):
         node = task.node
@@ -811,7 +879,7 @@ class AgentDeployMixin(HeartbeatMixin):
         process (the agent's get_clean|deploy_steps() call) and before
         executing each step. If the version has changed between steps,
         the agent is unable to tell if an ordering change will cause an issue
-        so it returns CLEAN_VERSION_MISMATCH. For automated cleaning, we
+        so it returns VERSION_MISMATCH. For automated cleaning, we
         restart the entire cleaning cycle. For manual cleaning or deploy,
         we don't.
 
@@ -854,8 +922,10 @@ class AgentDeployMixin(HeartbeatMixin):
                     'type': step_type})
             LOG.error(msg)
             return manager_utils.cleaning_error_handler(task, msg)
+        # NOTE(dtantsur): VERSION_MISMATCH is a new alias for
+        # CLEAN_VERSION_MISMATCH, remove the old one after IPA removes it.
         elif command.get('command_status') in ('CLEAN_VERSION_MISMATCH',
-                                               'DEPLOY_VERSION_MISMATCH'):
+                                               'VERSION_MISMATCH'):
             self._process_version_mismatch(task, step_type)
         elif command.get('command_status') == 'SUCCEEDED':
             step_hook = _get_post_step_hook(node, step_type)
