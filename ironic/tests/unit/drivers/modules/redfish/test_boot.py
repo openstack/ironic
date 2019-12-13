@@ -566,6 +566,52 @@ class RedfishVirtualMediaBootTestCase(db_base.DbTestCase):
 
             expected_params = {
                 'BOOTIF': None,
+                'ipa-debug': '1',
+            }
+
+            mock__prepare_deploy_iso.assert_called_once_with(
+                task, expected_params, 'deploy')
+
+            mock_manager_utils.node_set_boot_device.assert_called_once_with(
+                task, boot_devices.CDROM, False)
+
+            mock_boot_mode_utils.sync_boot_mode.assert_called_once_with(task)
+
+    @mock.patch.object(redfish_boot.RedfishVirtualMediaBoot,
+                       '_prepare_deploy_iso', autospec=True)
+    @mock.patch.object(redfish_boot.RedfishVirtualMediaBoot,
+                       '_eject_vmedia', autospec=True)
+    @mock.patch.object(redfish_boot.RedfishVirtualMediaBoot,
+                       '_insert_vmedia', autospec=True)
+    @mock.patch.object(redfish_boot.RedfishVirtualMediaBoot,
+                       '_parse_driver_info', autospec=True)
+    @mock.patch.object(redfish_boot, 'manager_utils', autospec=True)
+    @mock.patch.object(redfish_boot, 'boot_mode_utils', autospec=True)
+    def test_prepare_ramdisk_no_debug(
+            self, mock_boot_mode_utils, mock_manager_utils,
+            mock__parse_driver_info, mock__insert_vmedia, mock__eject_vmedia,
+            mock__prepare_deploy_iso):
+        self.config(debug=False)
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            task.node.provision_state = states.DEPLOYING
+
+            mock__parse_driver_info.return_value = {}
+            mock__prepare_deploy_iso.return_value = 'image-url'
+
+            task.driver.boot.prepare_ramdisk(task, {})
+
+            mock_manager_utils.node_power_action.assert_called_once_with(
+                task, states.POWER_OFF)
+
+            mock__eject_vmedia.assert_called_once_with(
+                task, sushy.VIRTUAL_MEDIA_CD)
+
+            mock__insert_vmedia.assert_called_once_with(
+                task, 'image-url', sushy.VIRTUAL_MEDIA_CD)
+
+            expected_params = {
+                'BOOTIF': None,
             }
 
             mock__prepare_deploy_iso.assert_called_once_with(
@@ -635,6 +681,7 @@ class RedfishVirtualMediaBootTestCase(db_base.DbTestCase):
             expected_params = {
                 'BOOTIF': None,
                 'boot_method': 'vmedia',
+                'ipa-debug': '1',
             }
 
             mock__prepare_deploy_iso.assert_called_once_with(
