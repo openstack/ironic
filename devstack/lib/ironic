@@ -293,7 +293,7 @@ IRONIC_DIB_DHCP_TIMEOUT=${IRONIC_DIB_DHCP_TIMEOUT:-60}
 IRONIC_DEPLOY_ISO_REQUIRED=$(trueorfalse False IRONIC_DEPLOY_ISO_REQUIRED)
 if [[ "$IRONIC_DEPLOY_ISO_REQUIRED" = "True" \
     && "$IRONIC_BUILD_DEPLOY_RAMDISK" = "False" \
-    && -n "$IRONIC_DEPLOY_ISO" ]];  then
+    && ! -e "$IRONIC_DEPLOY_ISO" ]];  then
     die "Prebuilt ISOs are not available, provide an ISO via IRONIC_DEPLOY_ISO \
         or set IRONIC_BUILD_DEPLOY_RAMDISK=True to use ISOs"
 fi
