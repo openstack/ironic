@@ -53,7 +53,10 @@ def config(token):
             'statsd_port': CONF.metrics_statsd.agent_statsd_port
         },
         'heartbeat_timeout': CONF.api.ramdisk_heartbeat_timeout,
-        'agent_token': token
+        'agent_token': token,
+        # Not an API version based indicator, passing as configuration
+        # as the signifigants indicates support should also be present.
+        'agent_token_required': CONF.require_agent_token,
     }
 
 

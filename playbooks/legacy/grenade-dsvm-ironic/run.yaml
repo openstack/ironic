@@ -97,6 +97,8 @@
 
           export DEVSTACK_LOCAL_CONFIG+=$'\n'"IRONIC_VM_COUNT=7"
 
+          export DEVSTACK_LOCAL_CONFIG+=$'\n'"IRONIC_REQUIRE_AGENT_TOKEN=False"
+
           # Ensure the ironic-vars-EARLY file exists
           touch ironic-vars-early
           # Pull in the EARLY variables injected by the optional builders

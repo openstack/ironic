@@ -1,0 +1,19 @@
+---
+features:
+  - |
+    Adds support of ``agent token`` which serves as a mechanism to secure
+    the normally unauthenticated API endpoints in ironic which are used in
+    the mechanics of baremetal provisioning. This feature is optional, however
+    operators may require this feature by changing the
+    ``[DEFAULT]require_agent_token`` setting to ``True``.
+upgrades:
+  - |
+    In order to use the new Agent Token support, all ramdisk settings should
+    be updated for all nodes in ironic. If token use is required by ironic's
+    configuration, and the ramdisks have not been updated, then all
+    deployment, cleaning, and rescue operations will fail until the version of
+    the ironic-python-agent ramdisk has been updated.
+issues:
+  - |
+    The ``ansible`` deployment interface does not support use of an
+    ``agent token`` at this time.
