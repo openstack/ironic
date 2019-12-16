@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    Fix path used to virtual media iso, when served over
+    local HTTP server([redfish]use_swift=false).
