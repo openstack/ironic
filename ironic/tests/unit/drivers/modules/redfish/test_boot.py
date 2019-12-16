@@ -531,6 +531,27 @@ class RedfishVirtualMediaBootTestCase(db_base.DbTestCase):
             self.assertRaises(exception.MissingParameterValue,
                               task.driver.boot.validate, task)
 
+    @mock.patch.object(redfish_utils, 'parse_driver_info', autospec=True)
+    def test_validate_inspection(self, mock_parse_driver_info):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            task.node.driver_info.update(
+                {'deploy_kernel': 'kernel',
+                 'deploy_ramdisk': 'ramdisk',
+                 'bootloader': 'bootloader'}
+            )
+
+            task.driver.boot.validate_inspection(task)
+
+            mock_parse_driver_info.assert_called_once_with(task.node)
+
+    @mock.patch.object(redfish_utils, 'parse_driver_info', autospec=True)
+    def test_validate_inspection_missing(self, mock_parse_driver_info):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            self.assertRaises(exception.UnsupportedDriverExtension,
+                              task.driver.boot.validate_inspection, task)
+
     @mock.patch.object(redfish_boot.RedfishVirtualMediaBoot,
                        '_prepare_deploy_iso', autospec=True)
     @mock.patch.object(redfish_boot.RedfishVirtualMediaBoot,

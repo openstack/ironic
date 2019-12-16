@@ -639,6 +639,21 @@ class RedfishVirtualMediaBoot(base.BootInterface):
         if task.driver.storage.should_write_image(task):
             self._validate_instance_info(task)
 
+    def validate_inspection(self, task):
+        """Validate that the node has required properties for inspection.
+
+        :param task: A TaskManager instance with the node being checked
+        :raises: MissingParameterValue if node is missing one or more required
+            parameters
+        :raises: UnsupportedDriverExtension
+        """
+        try:
+            self._validate_driver_info(task)
+        except exception.MissingParameterValue:
+            # Fall back to non-managed in-band inspection
+            raise exception.UnsupportedDriverExtension(
+                driver=task.node.driver, extension='inspection')
+
     def prepare_ramdisk(self, task, ramdisk_params):
         """Prepares the boot of deploy or rescue ramdisk over virtual media.
 
@@ -663,7 +678,8 @@ class RedfishVirtualMediaBoot(base.BootInterface):
         # modify the state of the node due to virtual media operations.
         if node.provision_state not in (states.DEPLOYING,
                                         states.CLEANING,
-                                        states.RESCUING):
+                                        states.RESCUING,
+                                        states.INSPECTING):
             return
 
         manager_utils.node_power_action(task, states.POWER_OFF)

@@ -1,0 +1,6 @@
+---
+features:
+  - |
+    The ``redfish-virtual-media`` boot interface now supports managing boot
+    for in-band inspection. This enables using virtual media instead of PXE
+    for in-band inspection.

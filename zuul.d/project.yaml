@@ -17,8 +17,6 @@
         - ironic-grenade-dsvm-multinode-multitenant:
             voting: false
         - ironic-tempest-partition-bios-redfish-pxe
-        - ironic-tempest-partition-bios-redfish-vmedia:
-            voting: false
         - ironic-tempest-partition-uefi-redfish-vmedia
         - ironic-tempest-ipa-partition-pxe_ipmitool-tinyipa
         - ironic-tempest-ipa-partition-uefi-pxe_ipmitool-tinyipa
@@ -37,6 +35,8 @@
         - ironic-inspector-tempest:
             voting: false
         - ironic-inspector-tempest-managed:
+            voting: false
+        - ironic-inspector-tempest-partition-bios-redfish-vmedia:
             voting: false
         - ironic-tempest-ipa-wholedisk-bios-ipmi-direct-dib-centos7:
             voting: false
