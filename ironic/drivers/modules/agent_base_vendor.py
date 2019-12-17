@@ -464,10 +464,8 @@ class HeartbeatMixin(object):
                                                   reason=fail_reason)
         task.process_event('resume')
         task.driver.rescue.clean_up(task)
-        power_state_to_restore = manager_utils.power_on_node_if_needed(task)
-        task.driver.network.configure_tenant_networks(task)
-        manager_utils.restore_power_state_if_needed(
-            task, power_state_to_restore)
+        with manager_utils.power_state_for_network_configuration(task):
+            task.driver.network.configure_tenant_networks(task)
         task.process_event('done')
 
 
@@ -736,12 +734,9 @@ class AgentDeployMixin(HeartbeatMixin):
             log_and_raise_deployment_error(task, msg, exc=e)
 
         try:
-            power_state_to_restore = (
-                manager_utils.power_on_node_if_needed(task))
-            task.driver.network.remove_provisioning_network(task)
-            task.driver.network.configure_tenant_networks(task)
-            manager_utils.restore_power_state_if_needed(
-                task, power_state_to_restore)
+            with manager_utils.power_state_for_network_configuration(task):
+                task.driver.network.remove_provisioning_network(task)
+                task.driver.network.configure_tenant_networks(task)
             manager_utils.node_power_action(task, states.POWER_ON)
         except Exception as e:
             msg = (_('Error rebooting node %(node)s after deploy. '

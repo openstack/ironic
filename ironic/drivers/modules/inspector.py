@@ -114,7 +114,8 @@ def _tear_down_managed_boot(task):
         LOG.exception('Unable to clean up ramdisk boot for node %s',
                       task.node.uuid)
     try:
-        task.driver.network.remove_inspection_network(task)
+        with cond_utils.power_state_for_network_configuration(task):
+            task.driver.network.remove_inspection_network(task)
     except Exception as exc:
         errors.append(_('unable to remove inspection ports: %s') % exc)
         LOG.exception('Unable to remove inspection network for node %s',
@@ -194,10 +195,12 @@ def _start_managed_inspection(task):
         params = dict(_parse_kernel_params(),
                       **{'ipa-inspection-callback-url': endpoint})
 
-        task.driver.network.add_inspection_network(task)
+        cond_utils.node_power_action(task, states.POWER_OFF)
+        with cond_utils.power_state_for_network_configuration(task):
+            task.driver.network.add_inspection_network(task)
         task.driver.boot.prepare_ramdisk(task, ramdisk_params=params)
         client.start_introspection(task.node.uuid, manage_boot=False)
-        cond_utils.node_power_action(task, states.REBOOT)
+        cond_utils.node_power_action(task, states.POWER_ON)
     except Exception as exc:
         LOG.exception('Unable to start managed inspection for node %(uuid)s: '
                       '%(err)s', {'uuid': task.node.uuid, 'err': exc})

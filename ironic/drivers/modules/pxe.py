@@ -357,10 +357,8 @@ class PXERamdiskDeploy(agent.AgentDeploy):
         # IDEA(TheJulia): Maybe a "trusted environment" mode flag
         # that we otherwise fail validation on for drivers that
         # require explicit security postures.
-        power_state_to_restore = manager_utils.power_on_node_if_needed(task)
-        task.driver.network.configure_tenant_networks(task)
-        manager_utils.restore_power_state_if_needed(
-            task, power_state_to_restore)
+        with manager_utils.power_state_for_network_configuration(task):
+            task.driver.network.configure_tenant_networks(task)
 
         # calling boot.prepare_instance will also set the node
         # to PXE boot, and update PXE templates accordingly
