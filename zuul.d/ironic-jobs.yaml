@@ -508,6 +508,7 @@
           Q_ML2_TENANT_NETWORK_TYPE: vlan
           VIRT_DRIVER: ironic
           PUBLIC_BRIDGE: br-infra
+          LIBVIRT_STORAGE_POOL_PATH: /opt/libvirt/images
         devstack_services:
           c-api: False
           c-bak: False

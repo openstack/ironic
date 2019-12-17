@@ -94,6 +94,7 @@
             export DEVSTACK_LOCAL_CONFIG+=$'\n'"IRONIC_AUTOMATED_CLEAN_ENABLED=False"
             export DEVSTACK_LOCAL_CONFIG+=$'\n'"IRONIC_VM_SPECS_RAM=384"
             export DEVSTACK_LOCAL_CONFIG+=$'\n'"IRONIC_RAMDISK_TYPE=tinyipa"
+            export DEVSTACK_LOCAL_CONFIG+=$'\n'"LIBVIRT_STORAGE_POOL_PATH=/opt/libvirt/images"
             export DEVSTACK_GATE_TEMPEST_REGEX=test_server_basic_ops
 
           EOF
