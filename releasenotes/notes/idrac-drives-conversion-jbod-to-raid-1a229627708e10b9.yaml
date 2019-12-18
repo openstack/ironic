@@ -1,5 +1,11 @@
 ---
-features:
+fixes:
   - |
-    Hardware type ``idrac`` converts physical drives from
-    ``JBOD`` to ``RAID`` mode before building RAID on them.
+    When using the PERC H730P RAID controller, physical
+    disks must be put into RAID mode prior to creating a
+    virtual disk that includes them.  If one or more
+    physical disks are in JBOD/Non-RAID mode when creating
+    a virtual disk from them, then the iDRAC will return
+    an error.  This patch ensures that the physical disks
+    being included in a virtual disk are converted to RAID
+    mode prior to creating the virtual disk.
