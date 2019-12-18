@@ -1,0 +1,13 @@
+---
+features:
+  - |
+    Software RAID is no longer limited to images which have the root file
+    system in the first partition.
+upgrade:
+  - |
+    For Software RAID, the IPA no longer assumes that the root file system
+    of the deployed image is in the first partition. Instead, it will use
+    the UUID passed from the conductor. Operators need hence to make sure
+    that the conductor has the correct UUID (which either comes from the
+    'rootfs_uuid' field in the image metadata or from the
+    'root_uuid_or_disk_id' in the nodes 'internal_driver_info'.)
