@@ -147,6 +147,7 @@
         IRONIC_ENABLED_HARDWARE_TYPES: redfish
         IRONIC_ENABLED_POWER_INTERFACES: redfish
         IRONIC_ENABLED_MANAGEMENT_INTERFACES: redfish
+        IRONIC_AUTOMATED_CLEAN_ENABLED: False
 
 - job:
     name: ironic-tempest-partition-uefi-redfish-vmedia
@@ -159,6 +160,7 @@
         IRONIC_VM_SPECS_RAM: 512
         SWIFT_ENABLE_TEMPURLS: True
         SWIFT_TEMPURL_KEY: secretkey
+        IRONIC_AUTOMATED_CLEAN_ENABLED: False
       devstack_services:
         s-account: True
         s-container: True
@@ -178,6 +180,7 @@
         IRONIC_BOOT_MODE: bios
         IRONIC_INSPECTOR_MANAGED_BOOT: True
         IRONIC_INSPECTOR_NODE_NOT_FOUND_HOOK: ''
+        IRONIC_AUTOMATED_CLEAN_ENABLED: False
       devstack_plugins:
         ironic-inspector: https://opendev.org/openstack/ironic-inspector
       devstack_services:
@@ -191,6 +194,7 @@
     vars:
       devstack_localrc:
         IRONIC_IPXE_ENABLED: False
+        IRONIC_AUTOMATED_CLEAN_ENABLED: False
       devstack_services:
         mysql: False
         postgresql: True
@@ -594,5 +598,6 @@
         IRONIC_VM_EPHEMERAL_DISK: 0
         IRONIC_VM_INTERFACE_COUNT: 1
         IRONIC_VM_SPECS_RAM: 3072
+        IRONIC_AUTOMATED_CLEAN_ENABLED: False
         SWIFT_ENABLE_TEMPURLS: True
         SWIFT_TEMPURL_KEY: secretkey
