@@ -52,6 +52,7 @@
 
         Q_AGENT: openvswitch
         Q_ML2_TENANT_NETWORK_TYPE: vxlan
+        SERVICE_TIMEOUT: 90
 
       devstack_plugins:
         ironic: https://opendev.org/openstack/ironic
