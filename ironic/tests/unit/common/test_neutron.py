@@ -161,7 +161,8 @@ class TestNeutronNetworkActions(db_base.DbTestCase):
         )]
         # Very simple neutron port representation
         self.neutron_port = {'id': '132f871f-eaec-4fed-9475-0d54465e0f00',
-                             'mac_address': '52:54:00:cf:2d:32'}
+                             'mac_address': '52:54:00:cf:2d:32',
+                             'fixed_ips': []}
         self.network_uuid = uuidutils.generate_uuid()
         self.client_mock = mock.Mock()
         self.client_mock.list_agents.return_value = {
@@ -217,7 +218,8 @@ class TestNeutronNetworkActions(db_base.DbTestCase):
             expected_body2['port']['mac_address'] = port2.address
             expected_body2['fixed_ips'] = []
             neutron_port2 = {'id': '132f871f-eaec-4fed-9475-0d54465e0f01',
-                             'mac_address': port2.address}
+                             'mac_address': port2.address,
+                             'fixed_ips': []}
             self.client_mock.create_port.side_effect = [
                 {'port': self.neutron_port},
                 {'port': neutron_port2}
@@ -258,6 +260,36 @@ class TestNeutronNetworkActions(db_base.DbTestCase):
             sg_ids.append(uuidutils.generate_uuid())
         self._test_add_ports_to_network(is_client_id=False,
                                         security_groups=sg_ids)
+
+    def test__add_ip_addresses_for_ipv6_stateful(self):
+        subnet_id = uuidutils.generate_uuid()
+        self.client_mock.show_subnet.return_value = {
+            'subnet': {
+                'id': subnet_id,
+                'ip_version': 6,
+                'ipv6_address_mode': 'dhcpv6-stateful'
+            }
+        }
+        self.neutron_port['fixed_ips'] = [{'subnet_id': subnet_id,
+                                           'ip_address': '2001:db8::1'}]
+
+        expected_body = {
+            'port': {
+                'fixed_ips': [
+                    {'subnet_id': subnet_id, 'ip_address': '2001:db8::1'},
+                    {'subnet_id': subnet_id},
+                    {'subnet_id': subnet_id},
+                    {'subnet_id': subnet_id}
+                ]
+            }
+        }
+
+        neutron._add_ip_addresses_for_ipv6_stateful(
+            {'port': self.neutron_port},
+            self.client_mock
+        )
+        self.client_mock.update_port.assert_called_once_with(
+            self.neutron_port['id'], expected_body)
 
     def test_verify_sec_groups(self):
         sg_ids = []
@@ -654,6 +686,19 @@ class TestNeutronNetworkActions(db_base.DbTestCase):
         res = neutron.validate_port_info(self.node, port)
         self.assertFalse(res)
         self.assertTrue(log_mock.error.called)
+
+    @mock.patch.object(neutron, 'LOG', autospec=True)
+    def test_validate_port_info_neutron_with_network_type_unmanaged(
+            self, log_mock):
+        self.node.network_interface = 'neutron'
+        self.node.save()
+        llc = {'network_type': 'unmanaged'}
+        port = object_utils.create_test_port(
+            self.context, node_id=self.node.id, uuid=uuidutils.generate_uuid(),
+            address='52:54:00:cf:2d:33', local_link_connection=llc)
+        res = neutron.validate_port_info(self.node, port)
+        self.assertTrue(res)
+        self.assertFalse(log_mock.warning.called)
 
     def test_validate_agent_up(self):
         self.client_mock.list_agents.return_value = {
