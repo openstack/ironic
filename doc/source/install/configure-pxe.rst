@@ -491,6 +491,14 @@ nodes will be deployed by 'grubaa64.efi', and ppc64 nodes by 'bootppc64'::
     # aarch64:/opt/share/grubaa64_pxe_config.template (dict value)
     pxe_config_template_by_arch=aarch64:pxe_grubaa64_config.template,ppc64:pxe_ppc64_config.template
 
+.. note::
+   The grub implementation may vary on different architecture, you may need to
+   tweak the pxe config template for a specific arch. For example, grubaa64.efi
+   shipped with CentoOS7 does not support ``linuxefi`` and ``initrdefi``
+   commands, you'll need to switch to use ``linux`` and ``initrd`` command
+   instead.
+
+
 PXE timeouts tuning
 -------------------
 
