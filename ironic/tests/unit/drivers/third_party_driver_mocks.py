@@ -29,11 +29,11 @@ Current list of mocked libraries:
 - python-ibmcclient
 """
 
+import importlib
 import sys
 
 import mock
 from oslo_utils import importutils
-import six
 
 from ironic.drivers.modules import ipmitool
 from ironic.tests.unit.drivers import third_party_driver_mock_specs \
@@ -68,7 +68,7 @@ if not proliantutils:
     proliantutils.exception.ImageExtractionFailed = type(
         'ImageExtractionFailed', (Exception,), {})
     if 'ironic.drivers.ilo' in sys.modules:
-        six.moves.reload_module(sys.modules['ironic.drivers.ilo'])
+        importlib.reload(sys.modules['ironic.drivers.ilo'])
 
 redfish = importutils.try_import('redfish')
 if not redfish:
@@ -76,7 +76,7 @@ if not redfish:
     sys.modules['redfish'] = redfish
 
 if 'ironic.drivers.redfish' in sys.modules:
-    six.moves.reload_module(sys.modules['ironic.drivers.modules.redfish'])
+    importlib.reload(sys.modules['ironic.drivers.modules.redfish'])
 
 # attempt to load the external 'python-dracclient' library, which is required
 # by the optional drivers.modules.drac module
@@ -109,7 +109,7 @@ if not dracclient:
     # Now that the external library has been mocked, if anything had already
     # loaded any of the drivers, reload them.
     if 'ironic.drivers.modules.drac' in sys.modules:
-        six.moves.reload_module(sys.modules['ironic.drivers.modules.drac'])
+        importlib.reload(sys.modules['ironic.drivers.modules.drac'])
 
 
 # attempt to load the external 'pysnmp' library, which is required by
@@ -128,7 +128,7 @@ if not pysnmp:
 # if anything has loaded the snmp driver yet, reload it now that the
 # external library has been mocked
 if 'ironic.drivers.modules.snmp' in sys.modules:
-    six.moves.reload_module(sys.modules['ironic.drivers.modules.snmp'])
+    importlib.reload(sys.modules['ironic.drivers.modules.snmp'])
 
 
 # attempt to load the external 'scciclient' library, which is required by
@@ -154,7 +154,7 @@ if not scciclient:
 # if anything has loaded the iRMC driver yet, reload it now that the
 # external library has been mocked
 if 'ironic.drivers.modules.irmc' in sys.modules:
-    six.moves.reload_module(sys.modules['ironic.drivers.modules.irmc'])
+    importlib.reload(sys.modules['ironic.drivers.modules.irmc'])
 
 
 # install mock object to prevent the irmc-virtual-media boot interface from
@@ -227,8 +227,7 @@ if not sushy:
     sys.modules['sushy.auth'] = sushy.auth
 
     if 'ironic.drivers.modules.redfish' in sys.modules:
-        six.moves.reload_module(
-            sys.modules['ironic.drivers.modules.redfish'])
+        importlib.reload(sys.modules['ironic.drivers.modules.redfish'])
 
 xclarity_client = importutils.try_import('xclarity_client')
 if not xclarity_client:
@@ -287,5 +286,4 @@ if not ibmc_client:
     sys.modules['ibmc_client.constants'] = constants
 
     if 'ironic.drivers.modules.ibmc' in sys.modules:
-        six.moves.reload_module(
-            sys.modules['ironic.drivers.modules.ibmc'])
+        importlib.reload(sys.modules['ironic.drivers.modules.ibmc'])

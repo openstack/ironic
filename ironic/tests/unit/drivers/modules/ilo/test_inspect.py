@@ -16,7 +16,6 @@
 """Test class for Management Interface used by iLO modules."""
 
 import mock
-import six
 
 from ironic.common import exception
 from ironic.common import states
@@ -365,7 +364,7 @@ class TestInspectPrivateMethods(test_common.BaseIloTest):
                                    self.node,
                                    ilo_mock)
         self.assertEqual(
-            six.text_type(result),
+            str(result),
             ("Failed to inspect hardware. Reason: Server didn't return the "
              "key(s): cpu_arch"))
 

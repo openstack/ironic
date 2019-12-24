@@ -14,16 +14,15 @@ Tests for the API /nodes/ methods.
 """
 
 import datetime
+from http import client as http_client
 import json
+from urllib import parse as urlparse
 
 import fixtures
 import mock
 from oslo_config import cfg
 from oslo_utils import timeutils
 from oslo_utils import uuidutils
-import six
-from six.moves import http_client
-from six.moves.urllib import parse as urlparse
 from testtools import matchers
 from wsme import types as wtypes
 
@@ -3476,8 +3475,7 @@ class TestPost(test_api_base.BaseApiTest):
                                  is_async=True):
         expected_status = http_client.ACCEPTED if is_async else http_client.OK
         expected_return_value = json.dumps(return_value)
-        if six.PY3:
-            expected_return_value = expected_return_value.encode('utf-8')
+        expected_return_value = expected_return_value.encode('utf-8')
 
         node = obj_utils.create_test_node(self.context)
         info = {'foo': 'bar'}
@@ -3495,8 +3493,7 @@ class TestPost(test_api_base.BaseApiTest):
                                          is_async=True):
         expected_status = http_client.ACCEPTED if is_async else http_client.OK
         expected_return_value = json.dumps(return_value)
-        if six.PY3:
-            expected_return_value = expected_return_value.encode('utf-8')
+        expected_return_value = expected_return_value.encode('utf-8')
 
         node = obj_utils.create_test_node(self.context, name='node-109')
         info = {'foo': 'bar'}

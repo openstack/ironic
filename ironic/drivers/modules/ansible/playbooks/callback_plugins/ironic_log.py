@@ -11,13 +11,13 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+import configparser
 import os
 
 from oslo_config import cfg
 from oslo_log import log as logging
 from oslo_utils import strutils
 import pbr.version
-from six.moves import configparser
 
 
 CONF = cfg.CONF

@@ -12,10 +12,11 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+from http import client as http_client
+
 from oslo_config import cfg
 from oslo_log import log
 from pecan import rest
-from six.moves import http_client
 from wsme import types as wtypes
 
 from ironic import api

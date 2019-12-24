@@ -16,9 +16,10 @@ Tests for ACL. Checks whether certain kinds of requests
 are blocked or allowed to be processed.
 """
 
+from http import client as http_client
+
 import mock
 from oslo_config import cfg
-from six.moves import http_client
 
 from ironic.tests.unit.api import base
 from ironic.tests.unit.api import utils

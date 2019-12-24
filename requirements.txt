@@ -35,7 +35,6 @@ os-traits>=0.4.0 # Apache-2.0
 pecan!=1.0.2,!=1.0.3,!=1.0.4,!=1.2,>=1.0.0 # BSD
 requests>=2.14.2 # Apache-2.0
 rfc3986>=0.3.1 # Apache-2.0
-six>=1.10.0 # MIT
 jsonpatch!=1.20,>=1.16 # BSD
 WSME>=0.9.3 # MIT
 Jinja2>=2.10 # BSD License (3 clause)

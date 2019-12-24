@@ -15,7 +15,9 @@
 
 """Test class for common methods used by iLO modules."""
 
+import builtins
 import hashlib
+import io
 import os
 import shutil
 import tempfile
@@ -25,8 +27,6 @@ import mock
 from oslo_config import cfg
 from oslo_utils import importutils
 from oslo_utils import uuidutils
-import six
-import six.moves.builtins as __builtin__
 
 from ironic.common import boot_devices
 from ironic.common import exception
@@ -44,11 +44,6 @@ INFO_DICT = db_utils.get_test_ilo_info()
 
 ilo_client = importutils.try_import('proliantutils.ilo.client')
 ilo_error = importutils.try_import('proliantutils.exception')
-
-if six.PY3:
-    import io
-    file = io.BytesIO
-
 
 CONF = cfg.CONF
 
@@ -315,8 +310,8 @@ class IloCommonMethodsTestCase(BaseIloTest):
                        autospec=True)
     def test__prepare_floppy_image(self, tempfile_mock, fatimage_mock,
                                    swift_api_mock):
-        mock_image_file_handle = mock.MagicMock(spec=file)
-        mock_image_file_obj = mock.MagicMock(spec=file)
+        mock_image_file_handle = mock.MagicMock(spec=io.BytesIO)
+        mock_image_file_obj = mock.MagicMock(spec=io.BytesIO)
         mock_image_file_obj.name = 'image-tmp-file'
         mock_image_file_handle.__enter__.return_value = mock_image_file_obj
 
@@ -355,8 +350,8 @@ class IloCommonMethodsTestCase(BaseIloTest):
     def test__prepare_floppy_image_use_webserver(self, tempfile_mock,
                                                  fatimage_mock,
                                                  copy_mock):
-        mock_image_file_handle = mock.MagicMock(spec=file)
-        mock_image_file_obj = mock.MagicMock(spec=file)
+        mock_image_file_handle = mock.MagicMock(spec=io.BytesIO)
+        mock_image_file_obj = mock.MagicMock(spec=io.BytesIO)
         mock_image_file_obj.name = 'image-tmp-file'
         mock_image_file_handle.__enter__.return_value = mock_image_file_obj
 
@@ -1038,11 +1033,11 @@ class IloCommonMethodsTestCase(BaseIloTest):
         # | THEN |
         unlink_mock.assert_called_once_with('/any_path1/any_file')
 
-    @mock.patch.object(__builtin__, 'open', autospec=True)
+    @mock.patch.object(builtins, 'open', autospec=True)
     def test_verify_image_checksum(self, open_mock):
         # | GIVEN |
         data = b'Yankee Doodle went to town riding on a pony;'
-        file_like_object = six.BytesIO(data)
+        file_like_object = io.BytesIO(data)
         open_mock().__enter__.return_value = file_like_object
         actual_hash = hashlib.md5(data).hexdigest()
         # | WHEN |
@@ -1058,12 +1053,12 @@ class IloCommonMethodsTestCase(BaseIloTest):
                           ilo_common.verify_image_checksum,
                           invalid_file_path, 'hash_xxx')
 
-    @mock.patch.object(__builtin__, 'open', autospec=True)
+    @mock.patch.object(builtins, 'open', autospec=True)
     def test_verify_image_checksum_throws_for_failed_validation(self,
                                                                 open_mock):
         # | GIVEN |
         data = b'Yankee Doodle went to town riding on a pony;'
-        file_like_object = six.BytesIO(data)
+        file_like_object = io.BytesIO(data)
         open_mock().__enter__.return_value = file_like_object
         invalid_hash = 'invalid_hash_value'
         # | WHEN | & | THEN |

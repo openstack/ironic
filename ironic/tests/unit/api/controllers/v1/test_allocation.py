@@ -14,15 +14,14 @@ Tests for the API /allocations/ methods.
 """
 
 import datetime
+from http import client as http_client
+from urllib import parse as urlparse
 
 import fixtures
 import mock
 from oslo_config import cfg
 from oslo_utils import timeutils
 from oslo_utils import uuidutils
-import six
-from six.moves import http_client
-from six.moves.urllib import parse as urlparse
 from wsme import types as wtypes
 
 from ironic.api.controllers import base as api_base
@@ -175,7 +174,7 @@ class TestListAllocations(test_api_base.BaseApiTest):
         self.assertEqual(len(allocations), len(data['allocations']))
 
         uuids = [n['uuid'] for n in data['allocations']]
-        six.assertCountEqual(self, allocations, uuids)
+        self.assertCountEqual(allocations, uuids)
 
     def test_links(self):
         uuid = uuidutils.generate_uuid()

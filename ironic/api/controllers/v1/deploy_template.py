@@ -12,6 +12,7 @@
 
 import collections
 import datetime
+from http import client as http_client
 
 from ironic_lib import metrics_utils
 from oslo_log import log
@@ -19,7 +20,6 @@ from oslo_utils import strutils
 from oslo_utils import uuidutils
 import pecan
 from pecan import rest
-from six.moves import http_client
 from webob import exc as webob_exc
 import wsme
 from wsme import types as wtypes

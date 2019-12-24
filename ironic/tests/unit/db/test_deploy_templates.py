@@ -14,7 +14,6 @@
 
 from oslo_db import exception as db_exc
 from oslo_utils import uuidutils
-import six
 
 from ironic.common import exception
 from ironic.tests.unit.db import base
@@ -173,19 +172,19 @@ class DbDeployTemplateTestCase(base.DbTestCase):
                           self.dbapi.get_deploy_template_by_name, 'bogus')
 
     def _template_list_preparation(self):
-        uuids = [six.text_type(self.template.uuid)]
+        uuids = [str(self.template.uuid)]
         for i in range(1, 3):
             template = db_utils.create_test_deploy_template(
                 uuid=uuidutils.generate_uuid(),
                 name='CUSTOM_DT%d' % (i + 1))
-            uuids.append(six.text_type(template.uuid))
+            uuids.append(str(template.uuid))
         return uuids
 
     def test_get_deploy_template_list(self):
         uuids = self._template_list_preparation()
         res = self.dbapi.get_deploy_template_list()
         res_uuids = [r.uuid for r in res]
-        six.assertCountEqual(self, uuids, res_uuids)
+        self.assertCountEqual(uuids, res_uuids)
 
     def test_get_deploy_template_list_sorted(self):
         uuids = self._template_list_preparation()
@@ -201,7 +200,7 @@ class DbDeployTemplateTestCase(base.DbTestCase):
         names = ['CUSTOM_DT2', 'CUSTOM_DT3']
         res = self.dbapi.get_deploy_template_list_by_names(names=names)
         res_names = [r.name for r in res]
-        six.assertCountEqual(self, names, res_names)
+        self.assertCountEqual(names, res_names)
 
     def test_get_deploy_template_list_by_names_no_match(self):
         self._template_list_preparation()

@@ -18,7 +18,6 @@ import hashlib
 import inspect
 
 from oslo_versionedobjects import fields as object_fields
-import six
 
 from ironic.common import utils
 
@@ -89,7 +88,7 @@ class ListOfObjectsField(object_fields.ListOfObjectsField):
 class FlexibleDict(object_fields.FieldType):
     @staticmethod
     def coerce(obj, attr, value):
-        if isinstance(value, six.string_types):
+        if isinstance(value, str):
             value = ast.literal_eval(value)
         return dict(value)
 

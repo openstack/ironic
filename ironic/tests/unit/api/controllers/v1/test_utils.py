@@ -14,11 +14,12 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+from http import client as http_client
+
 import mock
 import os_traits
 from oslo_config import cfg
 from oslo_utils import uuidutils
-from six.moves import http_client
 from webob import static
 import wsme
 

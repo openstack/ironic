@@ -18,7 +18,6 @@ from oslo_utils import strutils
 from oslo_utils import uuidutils
 from oslo_utils import versionutils
 from oslo_versionedobjects import base as object_base
-import six
 
 from ironic.common import exception
 from ironic.common.i18n import _
@@ -424,7 +423,7 @@ class Node(base.IronicObject, object_base.VersionedObjectDictCompat):
 
         for attr_name in ('last_error', 'maintenance_reason'):
             attr_value = getattr(self, attr_name, '')
-            if (attr_value and isinstance(attr_value, six.string_types) and
+            if (attr_value and isinstance(attr_value, str) and
                     len(attr_value) > CONF.log_in_db_max_size):
                 LOG.info('Truncating too long %s to %s characters for node %s',
                          attr_name, CONF.log_in_db_max_size, self.uuid)

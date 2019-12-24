@@ -16,6 +16,7 @@
 Test class for iRMC Boot Driver
 """
 
+import io
 import os
 import shutil
 import tempfile
@@ -24,7 +25,6 @@ from ironic_lib import utils as ironic_utils
 import mock
 from oslo_config import cfg
 from oslo_utils import uuidutils
-import six
 
 from ironic.common import boot_devices
 from ironic.common import exception
@@ -47,10 +47,6 @@ from ironic.tests.unit.drivers.modules import test_pxe
 from ironic.tests.unit.drivers import third_party_driver_mock_specs \
     as mock_specs
 from ironic.tests.unit.objects import utils as obj_utils
-if six.PY3:
-    import io
-    file = io.BytesIO
-
 
 INFO_DICT = db_utils.get_test_irmc_info()
 CONF = cfg.CONF
@@ -519,7 +515,7 @@ class IRMCDeployPrivateMethodsTestCase(test_common.BaseIRMCTest):
                                    tempfile_mock,
                                    create_vfat_image_mock,
                                    copyfile_mock):
-        mock_image_file_handle = mock.MagicMock(spec=file)
+        mock_image_file_handle = mock.MagicMock(spec=io.BytesIO)
         mock_image_file_obj = mock.MagicMock()
         mock_image_file_obj.name = 'image-tmp-file'
         mock_image_file_handle.__enter__.return_value = mock_image_file_obj
@@ -546,7 +542,7 @@ class IRMCDeployPrivateMethodsTestCase(test_common.BaseIRMCTest):
                                              tempfile_mock,
                                              create_vfat_image_mock,
                                              copyfile_mock):
-        mock_image_file_handle = mock.MagicMock(spec=file)
+        mock_image_file_handle = mock.MagicMock(spec=io.BytesIO)
         mock_image_file_obj = mock.MagicMock()
         mock_image_file_obj.name = 'image-tmp-file'
         mock_image_file_handle.__enter__.return_value = mock_image_file_obj

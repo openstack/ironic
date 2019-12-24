@@ -14,15 +14,14 @@ Tests for the API /ports/ methods.
 """
 
 import datetime
+from http import client as http_client
 import types
+from urllib import parse as urlparse
 
 import mock
 from oslo_config import cfg
 from oslo_utils import timeutils
 from oslo_utils import uuidutils
-import six
-from six.moves import http_client
-from six.moves.urllib import parse as urlparse
 from testtools import matchers
 from wsme import types as wtypes
 
@@ -580,7 +579,7 @@ class TestListPorts(test_api_base.BaseApiTest):
         self.assertEqual(len(ports), len(data['ports']))
 
         uuids = [n['uuid'] for n in data['ports']]
-        six.assertCountEqual(self, ports, uuids)
+        self.assertCountEqual(ports, uuids)
 
     def _test_links(self, public_url=None):
         cfg.CONF.set_override('public_endpoint', public_url, 'api')

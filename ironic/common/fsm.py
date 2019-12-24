@@ -12,9 +12,10 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import functools
+
 from automaton import exceptions as automaton_exceptions
 from automaton import machines
-import six
 
 """State machine modelling.
 
@@ -31,7 +32,7 @@ from ironic.common.i18n import _
 def _translate_excp(func):
     """Decorator to translate automaton exceptions into ironic exceptions."""
 
-    @six.wraps(func)
+    @functools.wraps(func)
     def wrapper(*args, **kwargs):
         try:
             return func(*args, **kwargs)
@@ -39,9 +40,9 @@ def _translate_excp(func):
                 automaton_exceptions.NotInitialized,
                 automaton_exceptions.FrozenMachine,
                 automaton_exceptions.NotFound) as e:
-            raise excp.InvalidState(six.text_type(e))
+            raise excp.InvalidState(str(e))
         except automaton_exceptions.Duplicate as e:
-            raise excp.Duplicate(six.text_type(e))
+            raise excp.Duplicate(str(e))
 
     return wrapper
 

@@ -21,7 +21,6 @@ import abc
 
 from oslo_config import cfg
 from oslo_db import api as db_api
-import six
 
 
 _BACKEND_MAPPING = {'sqlalchemy': 'ironic.db.sqlalchemy.api'}
@@ -34,8 +33,7 @@ def get_instance():
     return IMPL
 
 
-@six.add_metaclass(abc.ABCMeta)
-class Connection(object):
+class Connection(object, metaclass=abc.ABCMeta):
     """Base class for storage system connections."""
 
     @abc.abstractmethod

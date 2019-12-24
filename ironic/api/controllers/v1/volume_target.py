@@ -13,12 +13,11 @@
 #    under the License.
 
 import datetime
+from http import client as http_client
 
 from ironic_lib import metrics_utils
 from oslo_utils import uuidutils
 from pecan import rest
-import six
-from six.moves import http_client
 import wsme
 from wsme import types as wtypes
 
@@ -429,7 +428,7 @@ class VolumeTargetsController(rest.RestController):
         for value in values:
             if not uuidutils.is_uuid_like(value):
                 message = _("Expected a UUID for node_uuid, but received "
-                            "%(uuid)s.") % {'uuid': six.text_type(value)}
+                            "%(uuid)s.") % {'uuid': str(value)}
                 raise exception.InvalidUUID(message=message)
 
         rpc_target = objects.VolumeTarget.get_by_uuid(context, target_uuid)

@@ -14,12 +14,13 @@
 
 """Central place for handling Keystone authorization and service lookup."""
 
+import functools
+
 from keystoneauth1 import exceptions as kaexception
 from keystoneauth1 import loading as kaloading
 from keystoneauth1 import service_token
 from keystoneauth1 import token_endpoint
 from oslo_log import log as logging
-import six
 
 from ironic.common import exception
 from ironic.conf import CONF
@@ -30,7 +31,7 @@ LOG = logging.getLogger(__name__)
 
 def ks_exceptions(f):
     """Wraps keystoneclient functions and centralizes exception handling."""
-    @six.wraps(f)
+    @functools.wraps(f)
     def wrapper(*args, **kwargs):
         try:
             return f(*args, **kwargs)
@@ -43,11 +44,11 @@ def ks_exceptions(f):
             raise exception.KeystoneUnauthorized()
         except (kaexception.NoMatchingPlugin,
                 kaexception.MissingRequiredOptions) as e:
-            raise exception.ConfigInvalid(six.text_type(e))
+            raise exception.ConfigInvalid(str(e))
         except Exception as e:
             LOG.exception('Keystone request failed: %(msg)s',
-                          {'msg': six.text_type(e)})
-            raise exception.KeystoneFailure(six.text_type(e))
+                          {'msg': str(e)})
+            raise exception.KeystoneFailure(str(e))
     return wrapper
 
 

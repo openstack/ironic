@@ -20,13 +20,11 @@ Abstract base class for dhcp providers.
 import abc
 
 from oslo_log import log as logging
-import six
 
 LOG = logging.getLogger(__name__)
 
 
-@six.add_metaclass(abc.ABCMeta)
-class BaseDHCP(object):
+class BaseDHCP(object, metaclass=abc.ABCMeta):
     """Base class for DHCP provider APIs."""
 
     @abc.abstractmethod

@@ -19,11 +19,11 @@ SQLAlchemy models for baremetal data.
 """
 
 from os import path
+from urllib import parse as urlparse
 
 from oslo_db import options as db_options
 from oslo_db.sqlalchemy import models
 from oslo_db.sqlalchemy import types as db_types
-import six.moves.urllib.parse as urlparse
 from sqlalchemy import Boolean, Column, DateTime, false, Index
 from sqlalchemy import ForeignKey, Integer
 from sqlalchemy import schema, String, Text

@@ -34,7 +34,6 @@ from ironic_lib import utils as ironic_utils
 import mock
 from oslo_concurrency import processutils
 from oslo_utils import uuidutils
-import six
 
 from ironic.common import boot_devices
 from ironic.common import exception
@@ -474,8 +473,9 @@ class Base(db_base.DbTestCase):
         self.vendor = ipmi.VendorPassthru()
 
 
-@six.add_metaclass(IPMIToolPrivateMethodTestCaseMeta)
-class IPMIToolPrivateMethodTestCase(Base):
+class IPMIToolPrivateMethodTestCase(
+        Base,
+        metaclass=IPMIToolPrivateMethodTestCaseMeta):
 
     def setUp(self):
         super(IPMIToolPrivateMethodTestCase, self).setUp()
@@ -529,7 +529,7 @@ class IPMIToolPrivateMethodTestCase(Base):
             ValueError,
             self._test__make_password_file,
             12345, ValueError('we should fail'))
-        self.assertEqual('we should fail', six.text_type(result))
+        self.assertEqual('we should fail', str(result))
 
     @mock.patch.object(tempfile, 'NamedTemporaryFile',
                        new=mock.MagicMock(side_effect=OSError('Test Error')))
@@ -548,7 +548,7 @@ class IPMIToolPrivateMethodTestCase(Base):
         result = self.assertRaises(
             OverflowError,
             self._test__make_password_file, 12345)
-        self.assertEqual('Test Error', six.text_type(result))
+        self.assertEqual('Test Error', str(result))
 
     def test__make_password_file_write_exception(self):
         # Test exception in _make_password_file for write()
@@ -761,8 +761,8 @@ class IPMIToolPrivateMethodTestCase(Base):
         info['ipmi_password'] = 12345678
         node = obj_utils.get_test_node(self.context, driver_info=info)
         ret = ipmi._parse_driver_info(node)
-        self.assertEqual(six.u('12345678'), ret['password'])
-        self.assertIsInstance(ret['password'], six.text_type)
+        self.assertEqual(u'12345678', ret['password'])
+        self.assertIsInstance(ret['password'], str)
 
     def test__parse_driver_info_ipmi_prot_version_1_5(self):
         info = dict(INFO_DICT)

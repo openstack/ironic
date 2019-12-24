@@ -13,7 +13,6 @@
 """Tests for manipulating portgroups via the DB API"""
 
 from oslo_utils import uuidutils
-import six
 
 from ironic.common import exception
 from ironic.tests.unit.db import base
@@ -45,7 +44,7 @@ class DbportgroupTestCase(base.DbTestCase):
                 uuid=uuidutils.generate_uuid(),
                 name='portgroup' + str(i),
                 address='52:54:00:cf:2d:4%s' % i)
-            uuids.append(six.text_type(portgroup.uuid))
+            uuids.append(str(portgroup.uuid))
 
         return uuids
 
@@ -87,16 +86,16 @@ class DbportgroupTestCase(base.DbTestCase):
         uuids = self._create_test_portgroup_range(6)
 
         # Also add the uuid for the portgroup created in setUp()
-        uuids.append(six.text_type(self.portgroup.uuid))
+        uuids.append(str(self.portgroup.uuid))
         res = self.dbapi.get_portgroup_list()
         res_uuids = [r.uuid for r in res]
-        six.assertCountEqual(self, uuids, res_uuids)
+        self.assertCountEqual(uuids, res_uuids)
 
     def test_get_portgroup_list_sorted(self):
         uuids = self._create_test_portgroup_range(6)
 
         # Also add the uuid for the portgroup created in setUp()
-        uuids.append(six.text_type(self.portgroup.uuid))
+        uuids.append(str(self.portgroup.uuid))
         res = self.dbapi.get_portgroup_list(sort_key='uuid')
         res_uuids = [r.uuid for r in res]
         self.assertEqual(sorted(uuids), res_uuids)

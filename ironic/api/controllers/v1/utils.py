@@ -13,6 +13,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+from http import client as http_client
 import inspect
 import re
 
@@ -23,8 +24,6 @@ import os_traits
 from oslo_config import cfg
 from oslo_utils import uuidutils
 from pecan import rest
-import six
-from six.moves import http_client
 from webob import static
 import wsme
 
@@ -103,7 +102,7 @@ def validate_trait(trait, error_prefix=_('Invalid trait')):
           'A custom trait must start with the prefix CUSTOM_ and use '
           'the following characters: A-Z, 0-9 and _') %
         {'error_prefix': error_prefix})
-    if not isinstance(trait, six.string_types):
+    if not isinstance(trait, str):
         raise error
 
     if len(trait) > 255 or len(trait) < 1:
@@ -422,7 +421,7 @@ def vendor_passthru(ident, method, topic, data=None, driver_passthru=False):
 
     # Attach the return value to the response object
     if response.get('attach'):
-        if isinstance(return_value, six.text_type):
+        if isinstance(return_value, str):
             # If unicode, convert to bytes
             return_value = return_value.encode('utf-8')
         file_ = wsme.types.File(content=return_value)

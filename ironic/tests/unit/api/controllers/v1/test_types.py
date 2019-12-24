@@ -14,11 +14,11 @@
 #    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 #    License for the specific language governing permissions and limitations
 #    under the License.
+
+from http import client as http_client
 import platform
 
 import mock
-import six
-from six.moves import http_client
 import webtest
 import wsme
 from wsme import types as wtypes
@@ -264,8 +264,7 @@ class TestJsonType(base.TestCase):
     def test_apimultitype_tostring(self):
         vts = str(types.jsontype)
         self.assertIn(str(wtypes.text), vts)
-        for int_type in six.integer_types:
-            self.assertIn(str(int_type), vts)
+        self.assertIn(str(int), vts)
         self.assertIn(str(float), vts)
         self.assertIn(str(types.BooleanType), vts)
         self.assertIn(str(list), vts)

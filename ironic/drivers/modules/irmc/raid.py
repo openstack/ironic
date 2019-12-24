@@ -19,7 +19,6 @@ from futurist import periodics
 from ironic_lib import metrics_utils
 from oslo_log import log as logging
 from oslo_utils import importutils
-import six
 
 from ironic.common import exception
 from ironic.common import raid as raid_common
@@ -392,7 +391,7 @@ class IRMCRAID(base.RAIDInterface):
         logical_disks = target_raid_config['logical_disks']
         for log_disk in logical_disks:
             if log_disk.get('raid_level'):
-                log_disk['raid_level'] = six.text_type(
+                log_disk['raid_level'] = str(
                     log_disk['raid_level']).replace('+', '')
 
         # Validate physical disks on Fujitsu BM Server

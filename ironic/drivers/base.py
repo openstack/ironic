@@ -20,13 +20,13 @@ Abstract base classes for drivers.
 import abc
 import collections
 import copy
+import functools
 import inspect
 import json
 import os
 
 from oslo_log import log as logging
 from oslo_utils import excutils
-import six
 
 from ironic.common import exception
 from ironic.common.i18n import _
@@ -189,8 +189,7 @@ ALL_INTERFACES = set(BareDriver().all_interfaces)
 """Constant holding all known interfaces."""
 
 
-@six.add_metaclass(abc.ABCMeta)
-class BaseInterface(object):
+class BaseInterface(object, metaclass=abc.ABCMeta):
     """A base interface implementing common functions for Driver Interfaces."""
 
     supported = True
@@ -747,7 +746,7 @@ def _passthru(http_methods, method=None, async_call=True,
 
         passthru_logmessage = 'vendor_passthru failed with method %s'
 
-        @six.wraps(func)
+        @functools.wraps(func)
         def passthru_handler(*args, **kwargs):
             try:
                 return func(*args, **kwargs)
@@ -1138,7 +1137,7 @@ def cache_bios_settings(func):
 
     :param func: Function or method to wrap.
     """
-    @six.wraps(func)
+    @functools.wraps(func)
     def wrapped(self, task, *args, **kwargs):
         result = func(self, task, *args, **kwargs)
         self.cache_bios_settings(task)
@@ -1545,8 +1544,7 @@ class NetworkInterface(BaseInterface):
         return False
 
 
-@six.add_metaclass(abc.ABCMeta)
-class StorageInterface(BaseInterface):
+class StorageInterface(BaseInterface, metaclass=abc.ABCMeta):
     """Base class for storage interfaces."""
 
     interface_type = 'storage'
@@ -1609,7 +1607,7 @@ def _validate_argsinfo(argsinfo):
         has_description = False
         for (key, value) in info.items():
             if key == 'description':
-                if not isinstance(value, six.string_types):
+                if not isinstance(value, str):
                     raise exception.InvalidParameterValue(
                         _('For argument "%(arg)s", "description" must be a '
                           'string value instead of "%(value)s".') %

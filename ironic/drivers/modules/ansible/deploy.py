@@ -18,6 +18,7 @@ Ansible deploy interface
 import json
 import os
 import shlex
+from urllib import parse as urlparse
 
 from ironic_lib import metrics_utils
 from ironic_lib import utils as irlib_utils
@@ -26,8 +27,6 @@ from oslo_log import log
 from oslo_utils import strutils
 from oslo_utils import units
 import retrying
-import six
-import six.moves.urllib.parse as urlparse
 import yaml
 
 from ironic.common import dhcp_factory
@@ -242,7 +241,7 @@ def _parse_root_device_hints(node):
     root_device_hints = {}
     advanced = {}
     for hint, value in parsed_hints.items():
-        if isinstance(value, six.string_types):
+        if isinstance(value, str):
             if value.startswith('== '):
                 root_device_hints[hint] = int(value[3:])
             elif value.startswith('s== '):

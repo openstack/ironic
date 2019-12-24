@@ -15,13 +15,13 @@
 iLO Management Interface
 """
 
+from urllib import parse as urlparse
+
 from ironic_lib import metrics_utils
 from oslo_log import log as logging
 from oslo_service import loopingcall
 from oslo_utils import excutils
 from oslo_utils import importutils
-import six
-import six.moves.urllib.parse as urlparse
 
 from ironic.common import boot_devices
 from ironic.common import exception
@@ -418,7 +418,7 @@ class IloManagement(base.ManagementInterface):
         ilo_license_key = kwargs.get('ilo_license_key')
         node = task.node
 
-        if not isinstance(ilo_license_key, six.string_types):
+        if not isinstance(ilo_license_key, str):
             msg = (_("Value of 'ilo_license_key' must be a string instead of "
                      "'%(value)s'. Step 'activate_license' is not executed "
                      "for %(node)s.")

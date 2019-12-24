@@ -17,7 +17,6 @@ Common functionalities shared between different iRMC modules.
 """
 from oslo_log import log as logging
 from oslo_utils import importutils
-import six
 
 from ironic.common import exception
 from ironic.common.i18n import _
@@ -113,13 +112,13 @@ def parse_driver_info(node):
             d_info['irmc_snmp_port'])
     if (d_info['irmc_snmp_version'].lower() in ('v1', 'v2c')
         and d_info['irmc_snmp_community']
-        and not isinstance(d_info['irmc_snmp_community'], six.string_types)):
+        and not isinstance(d_info['irmc_snmp_community'], str)):
         error_msgs.append(
             _("Value '%s' is not a string for 'irmc_snmp_community'") %
             d_info['irmc_snmp_community'])
     if d_info['irmc_snmp_version'].lower() == 'v3':
         if d_info['irmc_snmp_security']:
-            if not isinstance(d_info['irmc_snmp_security'], six.string_types):
+            if not isinstance(d_info['irmc_snmp_security'], str):
                 error_msgs.append(
                     _("Value '%s' is not a string for "
                       "'irmc_snmp_security'") % d_info['irmc_snmp_security'])

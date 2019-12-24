@@ -17,16 +17,15 @@
 
 import abc
 import datetime
+from http import client as http_client
 import os
 import shutil
+from urllib import parse as urlparse
 
 from oslo_log import log
 from oslo_utils import uuidutils
 import requests
 import sendfile
-import six
-from six.moves import http_client
-import six.moves.urllib.parse as urlparse
 
 from ironic.common import exception
 from ironic.common.glance_service import image_service
@@ -45,8 +44,7 @@ LOG = log.getLogger(__name__)
 GlanceImageService = image_service.GlanceImageService
 
 
-@six.add_metaclass(abc.ABCMeta)
-class BaseImageService(object):
+class BaseImageService(object, metaclass=abc.ABCMeta):
     """Provides retrieval of disk images."""
 
     @abc.abstractmethod
@@ -103,7 +101,7 @@ class HttpImageService(BaseImageService):
                              "HEAD request.") % response.status_code)
         except requests.RequestException as e:
             raise exception.ImageRefValidationFailed(image_href=output_url,
-                                                     reason=six.text_type(e))
+                                                     reason=str(e))
         return response
 
     def download(self, image_href, image_file):
@@ -128,7 +126,7 @@ class HttpImageService(BaseImageService):
                 shutil.copyfileobj(input_img, image_file, IMAGE_CHUNK_SIZE)
         except (requests.RequestException, IOError) as e:
             raise exception.ImageDownloadFailed(image_href=image_href,
-                                                reason=six.text_type(e))
+                                                reason=str(e))
 
     def show(self, image_href):
         """Get dictionary of image properties.
@@ -228,7 +226,7 @@ class FileImageService(BaseImageService):
                         offset += nbytes_out
         except Exception as e:
             raise exception.ImageDownloadFailed(image_href=image_href,
-                                                reason=six.text_type(e))
+                                                reason=str(e))
 
     def show(self, image_href):
         """Get dictionary of image properties.
@@ -272,7 +270,7 @@ def get_image_service(image_href, client=None, context=None):
     scheme = urlparse.urlparse(image_href).scheme.lower()
 
     if not scheme:
-        if uuidutils.is_uuid_like(six.text_type(image_href)):
+        if uuidutils.is_uuid_like(str(image_href)):
             cls = GlanceImageService
         else:
             raise exception.ImageRefValidationFailed(

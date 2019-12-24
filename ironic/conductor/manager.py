@@ -42,6 +42,7 @@ notifying Neutron of a change, etc.
 
 import collections
 import datetime
+import queue
 import tempfile
 
 import eventlet
@@ -54,7 +55,6 @@ import oslo_messaging as messaging
 from oslo_utils import excutils
 from oslo_utils import uuidutils
 from oslo_utils import versionutils
-from six.moves import queue
 
 from ironic.common import driver_factory
 from ironic.common import exception

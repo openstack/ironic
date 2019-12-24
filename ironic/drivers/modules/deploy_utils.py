@@ -29,7 +29,6 @@ from oslo_utils import excutils
 from oslo_utils import fileutils
 from oslo_utils import netutils
 from oslo_utils import strutils
-import six
 
 from ironic.common import exception
 from ironic.common import faults
@@ -126,7 +125,7 @@ def get_ironic_api_url():
         raise exception.InvalidParameterValue(_(
             "Couldn't get the URL of the Ironic API service from the "
             "configuration file or keystone catalog. Keystone error: "
-            "%s") % six.text_type(e))
+            "%s") % str(e))
     # NOTE: we should strip '/' from the end because it might be used in
     # hardcoded ramdisk script
     ironic_api = ironic_api.rstrip('/')

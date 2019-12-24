@@ -16,14 +16,13 @@ Tests for the API /volume targets/ methods.
 """
 
 import datetime
+from http import client as http_client
+from urllib import parse as urlparse
 
 import mock
 from oslo_config import cfg
 from oslo_utils import timeutils
 from oslo_utils import uuidutils
-import six
-from six.moves import http_client
-from six.moves.urllib import parse as urlparse
 from wsme import types as wtypes
 
 from ironic.api.controllers import base as api_base
@@ -212,7 +211,7 @@ class TestListVolumeTargets(test_api_base.BaseApiTest):
         self.assertEqual(len(targets), len(data['targets']))
 
         uuids = [n['uuid'] for n in data['targets']]
-        six.assertCountEqual(self, targets, uuids)
+        self.assertCountEqual(targets, uuids)
 
     def test_links(self):
         uuid = uuidutils.generate_uuid()

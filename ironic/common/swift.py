@@ -14,9 +14,9 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import six
-from six.moves import http_client
-from six.moves.urllib import parse
+from http import client as http_client
+from urllib import parse as urlparse
+
 from swiftclient import client as swift_client
 from swiftclient import exceptions as swift_exceptions
 from swiftclient import utils as swift_utils
@@ -69,7 +69,7 @@ class SwiftAPI(object):
         params['timeout'] = session.timeout
         if session.verify is False:
             params['insecure'] = True
-        elif isinstance(session.verify, six.string_types):
+        elif isinstance(session.verify, str):
             params['cacert'] = session.verify
         if session.cert:
             # NOTE(pas-ha) although setting cert as path to single file
@@ -129,17 +129,14 @@ class SwiftAPI(object):
             raise exception.SwiftOperationError(operation=operation,
                                                 error=e)
 
-        parse_result = parse.urlparse(self.connection.url)
+        parse_result = urlparse.urlparse(self.connection.url)
         swift_object_path = '/'.join((parse_result.path, container, obj))
         temp_url_key = account_info['x-account-meta-temp-url-key']
         url_path = swift_utils.generate_temp_url(swift_object_path, timeout,
                                                  temp_url_key, 'GET')
-        return parse.urlunparse((parse_result.scheme,
-                                 parse_result.netloc,
-                                 url_path,
-                                 None,
-                                 None,
-                                 None))
+        return urlparse.urlunparse(
+            (parse_result.scheme, parse_result.netloc, url_path,
+             None, None, None))
 
     def delete_object(self, container, obj):
         """Deletes the given Swift object.

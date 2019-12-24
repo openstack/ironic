@@ -10,7 +10,10 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import builtins
 import datetime
+from http import client as http_client
+import io
 import os
 import shutil
 
@@ -18,18 +21,11 @@ import mock
 from oslo_utils import uuidutils
 import requests
 import sendfile
-import six
-import six.moves.builtins as __builtin__
-from six.moves import http_client
 
 from ironic.common import exception
 from ironic.common.glance_service import image_service as glance_v2_service
 from ironic.common import image_service
 from ironic.tests import base
-
-if six.PY3:
-    import io
-    file = io.BytesIO
 
 
 class HttpImageServiceTestCase(base.TestCase):
@@ -74,8 +70,8 @@ class HttpImageServiceTestCase(base.TestCase):
                               self.service.validate_href,
                               self.href,
                               True)
-        self.assertIn('secreturl', six.text_type(e))
-        self.assertNotIn(self.href, six.text_type(e))
+        self.assertIn('secreturl', str(e))
+        self.assertNotIn(self.href, str(e))
         head_mock.assert_called_once_with(self.href)
 
     @mock.patch.object(requests, 'head', autospec=True)
@@ -115,8 +111,8 @@ class HttpImageServiceTestCase(base.TestCase):
     def test_download_success(self, req_get_mock, shutil_mock):
         response_mock = req_get_mock.return_value
         response_mock.status_code = http_client.OK
-        response_mock.raw = mock.MagicMock(spec=file)
-        file_mock = mock.Mock(spec=file)
+        response_mock.raw = mock.MagicMock(spec=io.BytesIO)
+        file_mock = mock.Mock(spec=io.BytesIO)
         self.service.download(self.href, file_mock)
         shutil_mock.assert_called_once_with(
             response_mock.raw.__enter__(), file_mock,
@@ -127,7 +123,7 @@ class HttpImageServiceTestCase(base.TestCase):
     @mock.patch.object(requests, 'get', autospec=True)
     def test_download_fail_connerror(self, req_get_mock):
         req_get_mock.side_effect = requests.ConnectionError()
-        file_mock = mock.Mock(spec=file)
+        file_mock = mock.Mock(spec=io.BytesIO)
         self.assertRaises(exception.ImageDownloadFailed,
                           self.service.download, self.href, file_mock)
 
@@ -136,8 +132,8 @@ class HttpImageServiceTestCase(base.TestCase):
     def test_download_fail_ioerror(self, req_get_mock, shutil_mock):
         response_mock = req_get_mock.return_value
         response_mock.status_code = http_client.OK
-        response_mock.raw = mock.MagicMock(spec=file)
-        file_mock = mock.Mock(spec=file)
+        response_mock.raw = mock.MagicMock(spec=io.BytesIO)
+        file_mock = mock.Mock(spec=io.BytesIO)
         shutil_mock.side_effect = IOError
         self.assertRaises(exception.ImageDownloadFailed,
                           self.service.download, self.href, file_mock)
@@ -188,7 +184,7 @@ class FileImageServiceTestCase(base.TestCase):
                                 remove_mock, link_mock):
         _validate_mock.return_value = self.href_path
         stat_mock.return_value.st_dev = 'dev1'
-        file_mock = mock.Mock(spec=file)
+        file_mock = mock.Mock(spec=io.BytesIO)
         file_mock.name = 'file'
         self.service.download(self.href, file_mock)
         _validate_mock.assert_called_once_with(mock.ANY, self.href)
@@ -199,7 +195,7 @@ class FileImageServiceTestCase(base.TestCase):
 
     @mock.patch.object(sendfile, 'sendfile', return_value=42, autospec=True)
     @mock.patch.object(os.path, 'getsize', return_value=42, autospec=True)
-    @mock.patch.object(__builtin__, 'open', autospec=True)
+    @mock.patch.object(builtins, 'open', autospec=True)
     @mock.patch.object(os, 'access', return_value=False, autospec=True)
     @mock.patch.object(os, 'stat', autospec=True)
     @mock.patch.object(image_service.FileImageService, 'validate_href',
@@ -208,9 +204,9 @@ class FileImageServiceTestCase(base.TestCase):
                            open_mock, size_mock, copy_mock):
         _validate_mock.return_value = self.href_path
         stat_mock.return_value.st_dev = 'dev1'
-        file_mock = mock.MagicMock(spec=file)
+        file_mock = mock.MagicMock(spec=io.BytesIO)
         file_mock.name = 'file'
-        input_mock = mock.MagicMock(spec=file)
+        input_mock = mock.MagicMock(spec=io.BytesIO)
         open_mock.return_value = input_mock
         self.service.download(self.href, file_mock)
         _validate_mock.assert_called_once_with(mock.ANY, self.href)
@@ -222,7 +218,7 @@ class FileImageServiceTestCase(base.TestCase):
 
     @mock.patch.object(sendfile, 'sendfile', autospec=True)
     @mock.patch.object(os.path, 'getsize', return_value=42, autospec=True)
-    @mock.patch.object(__builtin__, 'open', autospec=True)
+    @mock.patch.object(builtins, 'open', autospec=True)
     @mock.patch.object(os, 'access', return_value=False, autospec=True)
     @mock.patch.object(os, 'stat', autospec=True)
     @mock.patch.object(image_service.FileImageService, 'validate_href',
@@ -236,9 +232,9 @@ class FileImageServiceTestCase(base.TestCase):
         fake_chunk_seq = [chunk_size, chunk_size, chunk_size, 1024]
         _validate_mock.return_value = self.href_path
         stat_mock.return_value.st_dev = 'dev1'
-        file_mock = mock.MagicMock(spec=file)
+        file_mock = mock.MagicMock(spec=io.BytesIO)
         file_mock.name = 'file'
-        input_mock = mock.MagicMock(spec=file)
+        input_mock = mock.MagicMock(spec=io.BytesIO)
         open_mock.return_value = input_mock
         size_mock.return_value = fake_image_size
         copy_mock.side_effect = fake_chunk_seq
@@ -262,7 +258,7 @@ class FileImageServiceTestCase(base.TestCase):
                                      access_mock, remove_mock):
         _validate_mock.return_value = self.href_path
         stat_mock.return_value.st_dev = 'dev1'
-        file_mock = mock.MagicMock(spec=file)
+        file_mock = mock.MagicMock(spec=io.BytesIO)
         file_mock.name = 'file'
         self.assertRaises(exception.ImageDownloadFailed,
                           self.service.download, self.href, file_mock)
@@ -273,7 +269,7 @@ class FileImageServiceTestCase(base.TestCase):
     @mock.patch.object(sendfile, 'sendfile', side_effect=OSError,
                        autospec=True)
     @mock.patch.object(os.path, 'getsize', return_value=42, autospec=True)
-    @mock.patch.object(__builtin__, 'open', autospec=True)
+    @mock.patch.object(builtins, 'open', autospec=True)
     @mock.patch.object(os, 'access', return_value=False, autospec=True)
     @mock.patch.object(os, 'stat', autospec=True)
     @mock.patch.object(image_service.FileImageService, 'validate_href',
@@ -282,9 +278,9 @@ class FileImageServiceTestCase(base.TestCase):
                                 open_mock, size_mock, copy_mock):
         _validate_mock.return_value = self.href_path
         stat_mock.return_value.st_dev = 'dev1'
-        file_mock = mock.MagicMock(spec=file)
+        file_mock = mock.MagicMock(spec=io.BytesIO)
         file_mock.name = 'file'
-        input_mock = mock.MagicMock(spec=file)
+        input_mock = mock.MagicMock(spec=io.BytesIO)
         open_mock.return_value = input_mock
         self.assertRaises(exception.ImageDownloadFailed,
                           self.service.download, self.href, file_mock)

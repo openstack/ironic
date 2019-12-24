@@ -14,14 +14,13 @@ Tests for the API /portgroups/ methods.
 """
 
 import datetime
+from http import client as http_client
+from urllib import parse as urlparse
 
 import mock
 from oslo_config import cfg
 from oslo_utils import timeutils
 from oslo_utils import uuidutils
-import six
-from six.moves import http_client
-from six.moves.urllib import parse as urlparse
 from testtools.matchers import HasLength
 from wsme import types as wtypes
 
@@ -277,7 +276,7 @@ class TestListPortgroups(test_api_base.BaseApiTest):
         self.assertEqual(len(portgroups), len(data['portgroups']))
 
         uuids = [n['uuid'] for n in data['portgroups']]
-        six.assertCountEqual(self, portgroups, uuids)
+        self.assertCountEqual(portgroups, uuids)
 
     def test_links(self):
         uuid = uuidutils.generate_uuid()

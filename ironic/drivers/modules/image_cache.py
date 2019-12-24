@@ -26,7 +26,6 @@ import uuid
 from oslo_concurrency import lockutils
 from oslo_log import log as logging
 from oslo_utils import fileutils
-import six
 
 from ironic.common import exception
 from ironic.common.glance_service import service_utils
@@ -95,11 +94,7 @@ class ImageCache(object):
         if service_utils.is_glance_image(href):
             master_file_name = service_utils.parse_image_id(href)
         else:
-            # NOTE(vdrok): Doing conversion of href in case it's unicode
-            # string, UUID cannot be generated for unicode strings on python 2.
-            href_encoded = href.encode('utf-8') if six.PY2 else href
-            master_file_name = str(uuid.uuid5(uuid.NAMESPACE_URL,
-                                              href_encoded))
+            master_file_name = str(uuid.uuid5(uuid.NAMESPACE_URL, href))
         # NOTE(kaifeng) The ".converted" suffix acts as an indicator that the
         # image cached has gone through the conversion logic.
         if force_raw:

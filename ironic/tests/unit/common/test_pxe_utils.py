@@ -22,7 +22,6 @@ import mock
 from oslo_config import cfg
 from oslo_utils import fileutils
 from oslo_utils import uuidutils
-import six
 
 from ironic.common import exception
 from ironic.common.glance_service import image_service
@@ -122,7 +121,7 @@ class TestPXEUtils(db_base.DbTestCase):
         with open('ironic/tests/unit/drivers/pxe_config.template') as f:
             expected_template = f.read().rstrip()
 
-        self.assertEqual(six.text_type(expected_template), rendered_template)
+        self.assertEqual(str(expected_template), rendered_template)
 
     def test_default_ipxe_boot_script(self):
         rendered_template = utils.render_template(
@@ -132,7 +131,7 @@ class TestPXEUtils(db_base.DbTestCase):
         with open('ironic/tests/unit/drivers/boot.ipxe') as f:
             expected_template = f.read().rstrip()
 
-        self.assertEqual(six.text_type(expected_template), rendered_template)
+        self.assertEqual(str(expected_template), rendered_template)
 
     def test_default_ipxe_config(self):
         # NOTE(lucasagomes): iPXE is just an extension of the PXE driver,
@@ -154,7 +153,7 @@ class TestPXEUtils(db_base.DbTestCase):
         with open(templ_file) as f:
             expected_template = f.read().rstrip()
 
-        self.assertEqual(six.text_type(expected_template), rendered_template)
+        self.assertEqual(str(expected_template), rendered_template)
 
     def test_default_ipxe_timeout_config(self):
         # NOTE(lucasagomes): iPXE is just an extension of the PXE driver,
@@ -176,7 +175,7 @@ class TestPXEUtils(db_base.DbTestCase):
         with open(templ_file) as f:
             expected_template = f.read().rstrip()
 
-        self.assertEqual(six.text_type(expected_template), rendered_template)
+        self.assertEqual(str(expected_template), rendered_template)
 
     def test_default_ipxe_boot_from_volume_config(self):
         self.config(
@@ -195,7 +194,7 @@ class TestPXEUtils(db_base.DbTestCase):
         with open(templ_file) as f:
             expected_template = f.read().rstrip()
 
-        self.assertEqual(six.text_type(expected_template), rendered_template)
+        self.assertEqual(str(expected_template), rendered_template)
 
     def test_default_ipxe_boot_from_volume_config_no_extra_volumes(self):
         self.config(
@@ -217,7 +216,7 @@ class TestPXEUtils(db_base.DbTestCase):
                      'ipxe_config_boot_from_volume_no_extra_volumes.template'
         with open(templ_file) as f:
             expected_template = f.read().rstrip()
-        self.assertEqual(six.text_type(expected_template), rendered_template)
+        self.assertEqual(str(expected_template), rendered_template)
 
     def test_default_grub_config(self):
         pxe_opts = self.pxe_options
@@ -233,7 +232,7 @@ class TestPXEUtils(db_base.DbTestCase):
         with open(templ_file) as f:
             expected_template = f.read().rstrip()
 
-        self.assertEqual(six.text_type(expected_template), rendered_template)
+        self.assertEqual(str(expected_template), rendered_template)
 
     @mock.patch('ironic.common.utils.create_link_without_raise', autospec=True)
     @mock.patch('ironic_lib.utils.unlink_without_raise', autospec=True)

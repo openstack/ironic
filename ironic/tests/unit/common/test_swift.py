@@ -12,11 +12,12 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+import builtins
+from http import client as http_client
+import io
+
 import mock
 from oslo_config import cfg
-import six
-from six.moves import builtins as __builtin__
-from six.moves import http_client
 from swiftclient import client as swift_client
 from swiftclient import exceptions as swift_exception
 from swiftclient import utils as swift_utils
@@ -26,10 +27,6 @@ from ironic.common import swift
 from ironic.tests import base
 
 CONF = cfg.CONF
-
-if six.PY3:
-    import io
-    file = io.BytesIO
 
 
 @mock.patch.object(swift, 'get_swift_session', autospec=True,
@@ -57,11 +54,11 @@ class SwiftTestCase(base.TestCase):
             os_options={'object_storage_url': 'http://example.com/objects'}
         )
 
-    @mock.patch.object(__builtin__, 'open', autospec=True)
+    @mock.patch.object(builtins, 'open', autospec=True)
     def test_create_object(self, open_mock, connection_mock, keystone_mock):
         swiftapi = swift.SwiftAPI()
         connection_obj_mock = connection_mock.return_value
-        mock_file_handle = mock.MagicMock(spec=file)
+        mock_file_handle = mock.MagicMock(spec=io.BytesIO)
         mock_file_handle.__enter__.return_value = 'file-object'
         open_mock.return_value = mock_file_handle
 
@@ -75,7 +72,7 @@ class SwiftTestCase(base.TestCase):
             'container', 'object', 'file-object', headers=None)
         self.assertEqual('object-uuid', object_uuid)
 
-    @mock.patch.object(__builtin__, 'open', autospec=True)
+    @mock.patch.object(builtins, 'open', autospec=True)
     def test_create_object_create_container_fails(self, open_mock,
                                                   connection_mock,
                                                   keystone_mock):
@@ -88,11 +85,11 @@ class SwiftTestCase(base.TestCase):
         connection_obj_mock.put_container.assert_called_once_with('container')
         self.assertFalse(connection_obj_mock.put_object.called)
 
-    @mock.patch.object(__builtin__, 'open', autospec=True)
+    @mock.patch.object(builtins, 'open', autospec=True)
     def test_create_object_put_object_fails(self, open_mock, connection_mock,
                                             keystone_mock):
         swiftapi = swift.SwiftAPI()
-        mock_file_handle = mock.MagicMock(spec=file)
+        mock_file_handle = mock.MagicMock(spec=io.BytesIO)
         mock_file_handle.__enter__.return_value = 'file-object'
         open_mock.return_value = mock_file_handle
         connection_obj_mock = connection_mock.return_value

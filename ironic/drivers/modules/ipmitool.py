@@ -43,7 +43,6 @@ from oslo_concurrency import processutils
 from oslo_log import log as logging
 from oslo_utils import excutils
 from oslo_utils import strutils
-import six
 
 from ironic.common import boot_devices
 from ironic.common import exception
@@ -284,7 +283,7 @@ def _parse_driver_info(node):
 
     address = info.get('ipmi_address')
     username = info.get('ipmi_username')
-    password = six.text_type(info.get('ipmi_password', ''))
+    password = str(info.get('ipmi_password', ''))
     hex_kg_key = info.get('ipmi_hex_kg_key')
     dest_port = info.get('ipmi_port')
     port = info.get('ipmi_terminal_port')
@@ -528,7 +527,7 @@ def _exec_ipmitool(driver_info, command, check_exit_code=None,
                         x for x in (
                             IPMITOOL_RETRYABLE_FAILURES +
                             CONF.ipmi.additional_retryable_ipmi_errors)
-                        if x in six.text_type(e)]
+                        if x in str(e)]
                     if ((time.time() > end_time)
                         or (num_tries == 0)
                         or not err_list):

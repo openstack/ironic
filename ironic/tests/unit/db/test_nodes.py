@@ -20,7 +20,6 @@ import datetime
 import mock
 from oslo_utils import timeutils
 from oslo_utils import uuidutils
-import six
 
 from ironic.common import exception
 from ironic.common import states
@@ -295,10 +294,10 @@ class DbNodeTestCase(base.DbTestCase):
         uuids = []
         for i in range(1, 6):
             node = utils.create_test_node(uuid=uuidutils.generate_uuid())
-            uuids.append(six.text_type(node['uuid']))
+            uuids.append(str(node['uuid']))
         res = self.dbapi.get_node_list()
         res_uuids = [r.uuid for r in res]
-        six.assertCountEqual(self, uuids, res_uuids)
+        self.assertCountEqual(uuids, res_uuids)
         for r in res:
             self.assertEqual([], r.tags)
             self.assertEqual([], r.traits)

@@ -14,14 +14,13 @@ Tests for the API /deploy_templates/ methods.
 """
 
 import datetime
+from http import client as http_client
+from urllib import parse as urlparse
 
 import mock
 from oslo_config import cfg
 from oslo_utils import timeutils
 from oslo_utils import uuidutils
-import six
-from six.moves import http_client
-from six.moves.urllib import parse as urlparse
 
 from ironic.api.controllers import base as api_base
 from ironic.api.controllers import v1 as api_v1
@@ -207,7 +206,7 @@ class TestListDeployTemplates(BaseDeployTemplatesAPITest):
         self.assertEqual(len(templates), len(data['deploy_templates']))
 
         uuids = [n['uuid'] for n in data['deploy_templates']]
-        six.assertCountEqual(self, templates, uuids)
+        self.assertCountEqual(templates, uuids)
 
     def test_links(self):
         uuid = uuidutils.generate_uuid()
