@@ -163,9 +163,10 @@ def get_test_node(**kw):
         "local_gb": "10",
         "memory_mb": "4096",
     }
-    # NOTE(deva): API unit tests confirm that sensitive fields in instance_info
-    #             and driver_info will get scrubbed from the API response
-    #             but other fields (eg, 'foo') do not.
+    # NOTE(tenbrae): API unit tests confirm that sensitive fields in
+    #                instance_info and driver_info will get scrubbed
+    #                from the API response but other fields
+    #                (eg, 'foo') do not.
     fake_instance_info = {
         "configdrive": "TG9yZW0gaXBzdW0gZG9sb3Igc2l0IGFtZXQ=",
         "image_url": "http://example.com/test_image_url",

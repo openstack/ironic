@@ -369,7 +369,7 @@ def provisioning_error_handler(e, node, provision_state,
 
     """
     if isinstance(e, exception.NoFreeConductorWorker):
-        # NOTE(deva): there is no need to clear conductor_affinity
+        # NOTE(tenbrae): there is no need to clear conductor_affinity
         #             because it isn't updated on a failed deploy
         node.provision_state = provision_state
         node.target_provision_state = target_provision_state
@@ -499,7 +499,7 @@ def deploying_error_handler(task, logmsg, errmsg=None, traceback=False,
         node.last_error = cleanup_err
     node.save()
 
-    # NOTE(deva): there is no need to clear conductor_affinity
+    # NOTE(tenbrae): there is no need to clear conductor_affinity
     task.process_event('fail')
 
 

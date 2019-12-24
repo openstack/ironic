@@ -1265,8 +1265,8 @@ class Node(base.APIBase):
     retired_reason = wsme.wsattr(str)
     """Indicates the reason for a node's retirement."""
 
-    # NOTE(deva): "conductor_affinity" shouldn't be presented on the
-    #             API because it's an internal value. Don't add it here.
+    # NOTE(tenbrae): "conductor_affinity" shouldn't be presented on the
+    #                API because it's an internal value. Don't add it here.
 
     def __init__(self, **kwargs):
         self.fields = []
@@ -1399,10 +1399,10 @@ class Node(base.APIBase):
         :type fields: list of str
         """
         cdict = api.request.context.to_policy_values()
-        # NOTE(deva): the 'show_password' policy setting name exists for legacy
-        #             purposes and can not be changed. Changing it will cause
-        #             upgrade problems for any operators who have customized
-        #             the value of this field
+        # NOTE(tenbrae): the 'show_password' policy setting name exists for
+        #             legacy purposes and can not be changed. Changing it will
+        #             cause upgrade problems for any operators who have
+        #             customized the value of this field
         show_driver_secrets = policy.check("show_password", cdict, cdict)
         show_instance_secrets = policy.check("show_instance_secrets",
                                              cdict, cdict)
@@ -1421,7 +1421,7 @@ class Node(base.APIBase):
         if not show_instance_secrets and self.instance_info != wtypes.Unset:
             self.instance_info = strutils.mask_dict_password(
                 self.instance_info, "******")
-            # NOTE(deva): agent driver may store a swift temp_url on the
+            # NOTE(tenbrae): agent driver may store a swift temp_url on the
             # instance_info, which shouldn't be exposed to non-admin users.
             # Now that ironic supports additional policies, we need to hide
             # it here, based on this policy.
@@ -2231,8 +2231,8 @@ class NodesController(rest.RestController):
             msg = _("Allocation UUID cannot be specified, use allocations API")
             raise exception.Invalid(msg)
 
-        # NOTE(deva): get_topic_for checks if node.driver is in the hash ring
-        #             and raises NoValidHost if it is not.
+        # NOTE(tenbrae): get_topic_for checks if node.driver is in the hash
+        #             ring and raises NoValidHost if it is not.
         #             We need to ensure that node has a UUID before it can
         #             be mapped onto the hash ring.
         if not node.uuid:
@@ -2241,7 +2241,7 @@ class NodesController(rest.RestController):
         try:
             topic = api.request.rpcapi.get_topic_for(node)
         except exception.NoValidHost as e:
-            # NOTE(deva): convert from 404 to 400 because client can see
+            # NOTE(tenbrae): convert from 404 to 400 because client can see
             #             list of available drivers and shouldn't request
             #             one that doesn't exist.
             e.code = http_client.BAD_REQUEST
@@ -2400,14 +2400,14 @@ class NodesController(rest.RestController):
         node_dict['chassis_uuid'] = node_dict.pop('chassis_id', None)
         node = Node(**api_utils.apply_jsonpatch(node_dict, patch))
         self._update_changed_fields(node, rpc_node)
-        # NOTE(deva): we calculate the rpc topic here in case node.driver
+        # NOTE(tenbrae): we calculate the rpc topic here in case node.driver
         #             has changed, so that update is sent to the
         #             new conductor, not the old one which may fail to
         #             load the new driver.
         try:
             topic = api.request.rpcapi.get_topic_for(rpc_node)
         except exception.NoValidHost as e:
-            # NOTE(deva): convert from 404 to 400 because client can see
+            # NOTE(tenbrae): convert from 404 to 400 because client can see
             #             list of available drivers and shouldn't request
             #             one that doesn't exist.
             e.code = http_client.BAD_REQUEST

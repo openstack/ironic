@@ -504,7 +504,7 @@ def _exec_ipmitool(driver_info, command, check_exit_code=None,
 
     while True:
         num_tries = num_tries - 1
-        # NOTE(deva): ensure that no communications are sent to a BMC more
+        # NOTE(tenbrae): ensure that no communications are sent to a BMC more
         #             often than once every min_command_interval seconds.
         time_till_next_poll = CONF.ipmi.min_command_interval - (
             time.time() - LAST_CMD_TIME.get(driver_info['address'], 0))
@@ -870,7 +870,7 @@ class IPMIPower(base.PowerInterface):
 
         """
         _parse_driver_info(task.node)
-        # NOTE(deva): don't actually touch the BMC in validate because it is
+        # NOTE(tenbrae): don't actually touch the BMC in validate because it is
         #             called too often, and BMCs are too fragile.
         #             This is a temporary measure to mitigate problems while
         #             1314954 and 1314961 are resolved.

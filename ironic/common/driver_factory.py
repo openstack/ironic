@@ -294,9 +294,9 @@ class BaseDriverFactory(object):
     This is subclassed to load both main drivers and extra interfaces.
     """
 
-    # NOTE(deva): loading the _extension_manager as a class member will break
-    #             stevedore when it loads a driver, because the driver will
-    #             import this file (and thus instantiate another factory).
+    # NOTE(tenbrae): loading the _extension_manager as a class member will
+    #             break stevedore when it loads a driver, because the driver
+    #             will import this file (and thus instantiate another factory).
     #             Instead, we instantiate a NameDispatchExtensionManager only
     #             once, the first time DriverFactory.__init__ is called.
     _extension_manager = None
@@ -322,12 +322,12 @@ class BaseDriverFactory(object):
     def get_driver(self, name):
         return self[name].obj
 
-    # NOTE(deva): Use lockutils to avoid a potential race in eventlet
+    # NOTE(tenbrae): Use lockutils to avoid a potential race in eventlet
     #             that might try to create two driver factories.
     @classmethod
     @lockutils.synchronized(EM_SEMAPHORE)
     def _init_extension_manager(cls):
-        # NOTE(deva): In case multiple greenthreads queue up on this lock
+        # NOTE(tenbrae): In case multiple greenthreads queue up on this lock
         #             before _extension_manager is initialized, prevent
         #             creation of multiple NameDispatchExtensionManagers.
         if cls._extension_manager:
@@ -356,8 +356,8 @@ class BaseDriverFactory(object):
                         'configuration file.',
                         ', '.join(duplicated_drivers))
 
-        # NOTE(deva): Drivers raise "DriverLoadError" if they are unable to be
-        #             loaded, eg. due to missing external dependencies.
+        # NOTE(tenbrae): Drivers raise "DriverLoadError" if they are unable to
+        #             be loaded, eg. due to missing external dependencies.
         #             We capture that exception, and, only if it is for an
         #             enabled driver, raise it from here. If enabled driver
         #             raises other exception type, it is wrapped in
@@ -365,7 +365,7 @@ class BaseDriverFactory(object):
         #             caused it, and raised. If the exception is for a
         #             non-enabled driver, we suppress it.
         def _catch_driver_not_found(mgr, ep, exc):
-            # NOTE(deva): stevedore loads plugins *before* evaluating
+            # NOTE(tenbrae): stevedore loads plugins *before* evaluating
             #             _check_func, so we need to check here, too.
             if ep.name in cls._enabled_driver_list:
                 if not isinstance(exc, exception.DriverLoadError):

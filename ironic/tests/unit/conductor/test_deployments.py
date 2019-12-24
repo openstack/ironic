@@ -53,7 +53,7 @@ class DoNodeDeployTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
                           self.service.conductor.id)
         node.refresh()
         self.assertEqual(states.DEPLOYFAIL, node.provision_state)
-        # NOTE(deva): failing a deploy does not clear the target state
+        # NOTE(tenbrae): failing a deploy does not clear the target state
         #             any longer. Instead, it is cleared when the instance
         #             is deleted.
         self.assertEqual(states.ACTIVE, node.target_provision_state)
@@ -78,7 +78,7 @@ class DoNodeDeployTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
                           self.service.conductor.id)
         node.refresh()
         self.assertEqual(states.DEPLOYFAIL, node.provision_state)
-        # NOTE(deva): failing a deploy does not clear the target state
+        # NOTE(tenbrae): failing a deploy does not clear the target state
         #             any longer. Instead, it is cleared when the instance
         #             is deleted.
         self.assertEqual(states.ACTIVE, node.target_provision_state)
@@ -101,7 +101,7 @@ class DoNodeDeployTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
             deployments.do_node_deploy(task, self.service.conductor.id)
             node.refresh()
             self.assertEqual(states.DEPLOYFAIL, node.provision_state)
-            # NOTE(deva): failing a deploy does not clear the target state
+            # NOTE(tenbrae): failing a deploy does not clear the target state
             #             any longer. Instead, it is cleared when the instance
             #             is deleted.
             self.assertEqual(states.ACTIVE, node.target_provision_state)

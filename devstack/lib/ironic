@@ -1639,7 +1639,7 @@ function create_ironic_accounts {
             "$IRONIC_SERVICE_PROTOCOL://$IRONIC_HOSTPORT"
 
         # Create ironic service user
-        # TODO(deva): make this work with the 'service' role
+        # TODO(tenbrae): make this work with the 'service' role
         #             https://bugs.launchpad.net/ironic/+bug/1605398
         create_service_user "ironic" "admin"
 

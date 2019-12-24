@@ -1004,13 +1004,13 @@ class ConductorManager(base_manager.BaseConductorManager):
                 node.last_error = _("Failed to tear down. Error: %s") % e
                 task.process_event('error')
         else:
-            # NOTE(deva): When tear_down finishes, the deletion is done,
+            # NOTE(tenbrae): When tear_down finishes, the deletion is done,
             # cleaning will start next
             LOG.info('Successfully unprovisioned node %(node)s with '
                      'instance %(instance)s.',
                      {'node': node.uuid, 'instance': node.instance_uuid})
         finally:
-            # NOTE(deva): there is no need to unset conductor_affinity
+            # NOTE(tenbrae): there is no need to unset conductor_affinity
             # because it is a reference to the most recent conductor which
             # deployed a node, and does not limit any future actions.
             # But we do need to clear the instance-related fields.
@@ -1463,7 +1463,7 @@ class ConductorManager(base_manager.BaseConductorManager):
                 with task_manager.acquire(context, node_uuid,
                                           purpose='power state sync',
                                           shared=True) as task:
-                    # NOTE(deva): we should not acquire a lock on a node in
+                    # NOTE(tenbrae): we should not acquire a lock on a node in
                     #             DEPLOYWAIT/CLEANWAIT, as this could cause
                     #             an error within a deploy ramdisk POSTing back
                     #             at the same time.
@@ -1883,7 +1883,7 @@ class ConductorManager(base_manager.BaseConductorManager):
             try:
                 with task_manager.acquire(context, node_uuid,
                                           purpose='node take over') as task:
-                    # NOTE(deva): now that we have the lock, check again to
+                    # NOTE(tenbrae): now that we have the lock, check again to
                     # avoid racing with deletes and other state changes
                     node = task.node
                     if (node.maintenance
@@ -2235,7 +2235,7 @@ class ConductorManager(base_manager.BaseConductorManager):
         try:
             if enabled:
                 task.driver.console.start_console(task)
-                # TODO(deva): We should be updating conductor_affinity here
+                # TODO(tenbrae): We should be updating conductor_affinity here
                 # but there is no support for console sessions in
                 # take_over() right now.
             else:
