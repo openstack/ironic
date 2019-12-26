@@ -2048,7 +2048,7 @@ class DracRaidInterfaceTestCase(test_utils.BaseDracTest):
             return_value = task.driver.raid._execute_foreign_drives(
                 task, self.node)
 
-        self.assertIsNone(None, return_value)
+        self.assertIsNone(return_value)
 
     @mock.patch.object(drac_common, 'get_drac_client', spec_set=True,
                        autospec=True)
