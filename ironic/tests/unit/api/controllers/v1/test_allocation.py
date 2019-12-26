@@ -714,7 +714,7 @@ class TestPost(test_api_base.BaseApiTest):
         self.assertIsNone(result['node_uuid'])
         self.assertEqual([], result['candidate_nodes'])
         self.assertEqual([], result['traits'])
-        self.assertIsNone(None, result['owner'])
+        self.assertIsNone(result['owner'])
         self.assertNotIn('node', result)
         return_created_at = timeutils.parse_isotime(
             result['created_at']).replace(tzinfo=None)
