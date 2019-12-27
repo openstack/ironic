@@ -1,0 +1,9 @@
+---
+fixes:
+  - |
+    Fixes an issue where a provisioned or allocated node could have its owner
+    changed. For backwards compatibility, we preserve the ability to do so
+    for a provisioned node through the use of the
+    ``baremetal:node:update_owner_provisioned`` policy rule. We always prevent
+    the update if the node is associated with an allocation that specifies an
+    owner.

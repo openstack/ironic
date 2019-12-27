@@ -790,6 +790,44 @@ class TestPortgroupIdent(base.TestCase):
                           self.invalid_name)
 
 
+class TestCheckNodePolicy(base.TestCase):
+    def setUp(self):
+        super(TestCheckNodePolicy, self).setUp()
+        self.valid_node_uuid = uuidutils.generate_uuid()
+        self.node = test_api_utils.post_get_test_node()
+        self.node['owner'] = '12345'
+
+    @mock.patch.object(api, 'request', spec_set=["context", "version"])
+    @mock.patch.object(policy, 'authorize', spec=True)
+    def test_check_node_policy(
+            self, mock_authorize, mock_pr
+    ):
+        mock_pr.version.minor = 50
+        mock_pr.context.to_policy_values.return_value = {}
+
+        utils.check_node_policy(
+            'fake_policy', self.node['owner']
+        )
+        mock_authorize.assert_called_once_with(
+            'fake_policy', {'node.owner': '12345'}, {})
+
+    @mock.patch.object(api, 'request', spec_set=["context", "version"])
+    @mock.patch.object(policy, 'authorize', spec=True)
+    def test_check_node_policy_forbidden(
+            self, mock_authorize, mock_pr
+    ):
+        mock_pr.version.minor = 50
+        mock_pr.context.to_policy_values.return_value = {}
+        mock_authorize.side_effect = exception.HTTPForbidden(resource='fake')
+
+        self.assertRaises(
+            exception.HTTPForbidden,
+            utils.check_node_policy,
+            'fake-policy',
+            self.node['owner']
+        )
+
+
 class TestCheckNodePolicyAndRetrieve(base.TestCase):
     def setUp(self):
         super(TestCheckNodePolicyAndRetrieve, self).setUp()

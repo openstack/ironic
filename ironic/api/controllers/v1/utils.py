@@ -1164,7 +1164,23 @@ def check_policy(policy_name):
     policy.authorize(policy_name, cdict, cdict)
 
 
-def check_node_policy_and_retrieve(policy_name, node_ident, with_suffix=False):
+def check_node_policy(policy_name, node_owner):
+    """Check if the specified policy authorizes this request on a node.
+
+    :param: policy_name: Name of the policy to check.
+    :param: node_owner: the node owner
+
+    :raises: HTTPForbidden if the policy forbids access.
+    """
+    cdict = api.request.context.to_policy_values()
+
+    target_dict = dict(cdict)
+    target_dict['node.owner'] = node_owner
+    policy.authorize(policy_name, target_dict, cdict)
+
+
+def check_node_policy_and_retrieve(policy_name, node_ident,
+                                   with_suffix=False):
     """Check if the specified policy authorizes this request on a node.
 
     :param: policy_name: Name of the policy to check.
@@ -1175,8 +1191,6 @@ def check_node_policy_and_retrieve(policy_name, node_ident, with_suffix=False):
     :raises: NodeNotFound if the node is not found.
     :return: RPC node identified by node_ident
     """
-    cdict = api.request.context.to_policy_values()
-
     try:
         if with_suffix:
             rpc_node = get_rpc_node_with_suffix(node_ident)
@@ -1185,13 +1199,11 @@ def check_node_policy_and_retrieve(policy_name, node_ident, with_suffix=False):
     except exception.NodeNotFound:
         # don't expose non-existence of node unless requester
         # has generic access to policy
+        cdict = api.request.context.to_policy_values()
         policy.authorize(policy_name, cdict, cdict)
         raise
 
-    target_dict = dict(cdict)
-    target_dict['node.owner'] = rpc_node['owner']
-    policy.authorize(policy_name, target_dict, cdict)
-
+    check_node_policy(policy_name, rpc_node['owner'])
     return rpc_node
 
 
