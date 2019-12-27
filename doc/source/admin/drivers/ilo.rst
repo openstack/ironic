@@ -1608,10 +1608,12 @@ configuration of RAID:
 DIB support for Proliant Hardware Manager
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Install ``ironic-python-agent-builder`` following the guide [1]_
+
 To create an agent ramdisk with ``Proliant Hardware Manager``,
 use the ``proliant-tools`` element in DIB::
 
-  disk-image-create -o proliant-agent-ramdisk ironic-python-agent-ramdisk fedora proliant-tools
+  ironic-python-agent-builder -o proliant-agent-ramdisk -e proliant-tools fedora
 
 Disk Erase Support
 ^^^^^^^^^^^^^^^^^^
@@ -1638,10 +1640,12 @@ This clean step is performed as part of automated cleaning and it is disabled
 by default. See :ref:`InbandvsOutOfBandCleaning` for more information on
 enabling/disabling a clean step.
 
+Install ``ironic-python-agent-builder`` following the guide [1]_
+
 To create an agent ramdisk with ``Proliant Hardware Manager``, use the
 ``proliant-tools`` element in DIB::
 
-    disk-image-create -o proliant-agent-ramdisk ironic-python-agent-ramdisk fedora proliant-tools
+    ironic-python-agent-builder -o proliant-agent-ramdisk -e proliant-tools fedora
 
 See the `proliant-tools`_ for more information on creating agent ramdisk with
 ``proliant-tools`` element in DIB.
@@ -1990,3 +1994,4 @@ The default erase pattern are, for HDD, 'overwrite' and for SSD, 'block'.
 .. _`Guidelines for SPP ISO`: https://h17007.www1.hpe.com/us/en/enterprise/servers/products/service_pack/spp
 .. _`SUM`: https://h17007.www1.hpe.com/us/en/enterprise/servers/products/service_pack/hpsum/index.aspx
 .. _`SUM User Guide`: https://h20565.www2.hpe.com/hpsc/doc/public/display?docId=c05210448
+.. [1] `ironic-python-agent-builder`: https://docs.openstack.org/ironic-python-agent-builder/latest/install/index.html
