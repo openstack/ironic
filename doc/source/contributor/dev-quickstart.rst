@@ -8,7 +8,7 @@ This is a quick walkthrough to get you started developing code for Ironic.
 This assumes you are already familiar with submitting code reviews to
 an OpenStack project.
 
-The gate currently runs the unit tests under Python 2.7 and Python 3.5. It
+The gate currently runs the unit tests under Python 3.6 and Python 3.7. It
 is strongly encouraged to run the unit tests locally prior to submitting a
 patch.
 
@@ -17,7 +17,7 @@ patch.
     conflicting configuration with system dependencies.
 
 .. note::
-    This document is compatible with Python (3.5), Ubuntu (16.04) and Fedora (24).
+    This document is compatible with Python (3.7), Ubuntu (18.04) and Fedora (31).
     When referring to different versions of Python and OS distributions, this
     is explicitly stated.
 
@@ -98,21 +98,21 @@ Running Unit and Style Tests
 
 All unit tests should be run using tox. To run Ironic's entire test suite::
 
-    # to run the py27, py3 unit tests, and the style tests
+    # to run the py3 unit tests, and the style tests
     tox
 
 To run a specific test or tests, use the "-e" option followed by the tox target
 name. For example::
 
-    # run the unit tests under py27 and also run the pep8 tests
-    tox -epy27 -epep8
+    # run the unit tests under py36 and also run the pep8 tests
+    tox -epy36 -epep8
 
 You may pass options to the test programs using positional arguments.
 To run a specific unit test, this passes the desired test
 (regex string) to `stestr <https://pypi.org/project/stestr>`_::
 
-    # run a specific test for Python 2.7
-    tox -epy27 -- test_conductor
+    # run a specific test for Python 3.6
+    tox -epy36 -- test_conductor
 
 Debugging unit tests
 --------------------
