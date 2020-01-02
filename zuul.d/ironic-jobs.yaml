@@ -579,7 +579,7 @@
       - ^tox.ini$
 
 - job:
-    name: ironic-tempest-ipa-wholedisk-bios-ipmi-direct-dib-centos7
+    name: ironic-tempest-ipa-wholedisk-bios-ipmi-direct-dib
     parent: ironic-base
     timeout: 9600
     vars:
@@ -592,7 +592,7 @@
       devstack_localrc:
         IRONIC_DEFAULT_DEPLOY_INTERFACE: direct
         IRONIC_RAMDISK_TYPE: dib
-        IRONIC_DIB_RAMDISK_OS: centos7
+        IRONIC_DIB_RAMDISK_OS: centos8
         IRONIC_TEMPEST_WHOLE_DISK_IMAGE: True
         IRONIC_TEMPEST_BUILD_TIMEOUT: 900
         IRONIC_VM_EPHEMERAL_DISK: 0
