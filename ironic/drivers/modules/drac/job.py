@@ -66,7 +66,8 @@ def get_job(node, job_id):
     except drac_exceptions.BaseClientException as exc:
         LOG.error('DRAC driver failed to get the job %(job_id)s '
                   'for node %(node_uuid)s. Reason: %(error)s.',
-                  {'node_uuid': node.uuid,
+                  {'job_id': job_id,
+                   'node_uuid': node.uuid,
                    'error': exc})
         raise exception.DracOperationError(error=exc)
 
