@@ -574,6 +574,15 @@ class IscsiDeployMethodsTestCase(db_base.DbTestCase):
             self.assertRaises(exception.InvalidParameterValue,
                               iscsi_deploy.validate, task)
 
+    @mock.patch('ironic.drivers.modules.deploy_utils.get_ironic_api_url')
+    def test_validate_invalid_root_device_hints_iinfo(self, mock_get_url):
+        mock_get_url.return_value = 'http://spam.ham/baremetal'
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            task.node.instance_info['root_device'] = {'size': 'not-int'}
+            self.assertRaises(exception.InvalidParameterValue,
+                              iscsi_deploy.validate, task)
+
 
 class ISCSIDeployTestCase(db_base.DbTestCase):
 
