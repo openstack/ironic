@@ -21,7 +21,6 @@
       - openstack/ironic-python-agent
       - openstack/ironic-tempest-plugin
       - openstack/python-ironicclient
-      - openstack/virtualbmc
     pre-run: playbooks/legacy/ironic-dsvm-base/pre.yaml
     post-run: playbooks/legacy/ironic-dsvm-base/post.yaml
 
@@ -52,7 +51,6 @@
       - openstack/ironic-tempest-plugin
       - openstack/networking-generic-switch
       - openstack/python-ironicclient
-      - openstack/virtualbmc
     pre-run: playbooks/legacy/ironic-dsvm-base-multinode/pre.yaml
     post-run: playbooks/legacy/ironic-dsvm-base-multinode/post.yaml
 
@@ -71,7 +69,6 @@
       - openstack/ironic-lib
       - openstack/ironic-python-agent
       - openstack/python-ironicclient
-      - openstack/virtualbmc
 
 - job:
     name: ironic-grenade-dsvm-multinode-multitenant
@@ -86,5 +83,4 @@
       - openstack/ironic-python-agent
       - openstack/networking-generic-switch
       - openstack/python-ironicclient
-      - openstack/virtualbmc
 
