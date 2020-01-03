@@ -7,7 +7,6 @@
       - openstack/ironic
       - openstack/ironic-python-agent
       - openstack/ironic-tempest-plugin
-      - openstack/virtualbmc
     irrelevant-files:
       - ^.*\.rst$
       - ^api-ref/.*$
