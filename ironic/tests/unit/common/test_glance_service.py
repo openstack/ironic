@@ -15,6 +15,7 @@
 
 
 import datetime
+import importlib
 import time
 
 from glanceclient import client as glance_client
@@ -23,13 +24,13 @@ from keystoneauth1 import loading as kaloading
 import mock
 from oslo_config import cfg
 from oslo_utils import uuidutils
+import retrying
 import testtools
 
 from ironic.common import context
 from ironic.common import exception
 from ironic.common.glance_service import image_service
 from ironic.common.glance_service import service_utils
-from ironic.common import image_service as service
 from ironic.tests import base
 from ironic.tests.unit import stubs
 
@@ -92,7 +93,8 @@ class TestGlanceImageService(base.TestCase):
         self.context = context.RequestContext(auth_token=True)
         self.context.user_id = 'fake'
         self.context.project_id = 'fake'
-        self.service = service.GlanceImageService(self.client, self.context)
+        self.service = image_service.GlanceImageService(self.client,
+                                                        self.context)
 
     @staticmethod
     def _make_fixture(**kwargs):
@@ -175,7 +177,7 @@ class TestGlanceImageService(base.TestCase):
             self.assertRaises(exception.ImageUnacceptable,
                               self.service.show, image_id)
 
-    @mock.patch.object(time, 'sleep', autospec=True)
+    @mock.patch.object(retrying.time, 'sleep', autospec=True)
     def test_download_with_retries(self, mock_sleep):
         tries = [0]
 
@@ -192,7 +194,8 @@ class TestGlanceImageService(base.TestCase):
         stub_context = context.RequestContext(auth_token=True)
         stub_context.user_id = 'fake'
         stub_context.project_id = 'fake'
-        stub_service = service.GlanceImageService(stub_client, stub_context)
+        stub_service = image_service.GlanceImageService(stub_client,
+                                                        stub_context)
         image_id = uuidutils.generate_uuid()
         writer = NullWriter()
 
@@ -202,8 +205,11 @@ class TestGlanceImageService(base.TestCase):
                           stub_service.download, image_id, writer)
 
         # Now lets enable retries. No exception should happen now.
-        tries = [0]
         self.config(num_retries=1, group='glance')
+        importlib.reload(image_service)
+        stub_service = image_service.GlanceImageService(stub_client,
+                                                        stub_context)
+        tries = [0]
         stub_service.download(image_id, writer)
         self.assertTrue(mock_sleep.called)
 
@@ -238,8 +244,8 @@ class TestGlanceImageService(base.TestCase):
         stub_context.project_id = 'fake'
         stub_client = MyGlanceStubClient()
 
-        stub_service = service.GlanceImageService(stub_client,
-                                                  context=stub_context)
+        stub_service = image_service.GlanceImageService(stub_client,
+                                                        context=stub_context)
         image_id = uuidutils.generate_uuid()
 
         self.config(allowed_direct_url_schemes=['file'], group='glance')
@@ -274,7 +280,8 @@ class TestGlanceImageService(base.TestCase):
         stub_context = context.RequestContext(auth_token=True)
         stub_context.user_id = 'fake'
         stub_context.project_id = 'fake'
-        stub_service = service.GlanceImageService(stub_client, stub_context)
+        stub_service = image_service.GlanceImageService(stub_client,
+                                                        stub_context)
         image_id = uuidutils.generate_uuid()
         writer = NullWriter()
         self.assertRaises(exception.ImageNotAuthorized, stub_service.download,
@@ -290,7 +297,8 @@ class TestGlanceImageService(base.TestCase):
         stub_context = context.RequestContext(auth_token=True)
         stub_context.user_id = 'fake'
         stub_context.project_id = 'fake'
-        stub_service = service.GlanceImageService(stub_client, stub_context)
+        stub_service = image_service.GlanceImageService(stub_client,
+                                                        stub_context)
         image_id = uuidutils.generate_uuid()
         writer = NullWriter()
         self.assertRaises(exception.ImageNotAuthorized, stub_service.download,
@@ -306,7 +314,8 @@ class TestGlanceImageService(base.TestCase):
         stub_context = context.RequestContext(auth_token=True)
         stub_context.user_id = 'fake'
         stub_context.project_id = 'fake'
-        stub_service = service.GlanceImageService(stub_client, stub_context)
+        stub_service = image_service.GlanceImageService(stub_client,
+                                                        stub_context)
         image_id = uuidutils.generate_uuid()
         writer = NullWriter()
         self.assertRaises(exception.ImageNotFound, stub_service.download,
@@ -322,7 +331,8 @@ class TestGlanceImageService(base.TestCase):
         stub_context = context.RequestContext(auth_token=True)
         stub_context.user_id = 'fake'
         stub_context.project_id = 'fake'
-        stub_service = service.GlanceImageService(stub_client, stub_context)
+        stub_service = image_service.GlanceImageService(stub_client,
+                                                        stub_context)
         image_id = uuidutils.generate_uuid()
         writer = NullWriter()
         self.assertRaises(exception.ImageNotFound, stub_service.download,
@@ -341,7 +351,7 @@ class CheckImageServiceTestCase(base.TestCase):
     def setUp(self):
         super(CheckImageServiceTestCase, self).setUp()
         self.context = context.RequestContext(global_request_id='global')
-        self.service = service.GlanceImageService(None, self.context)
+        self.service = image_service.GlanceImageService(None, self.context)
         # NOTE(pas-ha) register keystoneauth dynamic options manually
         plugin = kaloading.get_plugin_loader('password')
         opts = kaloading.get_auth_plugin_conf_options(plugin)
@@ -469,7 +479,7 @@ class TestGlanceSwiftTempURL(base.TestCase):
         client = stubs.StubGlanceClient()
         self.context = context.RequestContext()
         self.context.auth_token = 'fake'
-        self.service = service.GlanceImageService(client, self.context)
+        self.service = image_service.GlanceImageService(client, self.context)
         self.config(swift_temp_url_key='correcthorsebatterystaple',
                     group='glance')
         self.config(swift_endpoint_url='https://swift.example.com',
@@ -734,8 +744,8 @@ class TestSwiftTempUrlCache(base.TestCase):
                     group='glance')
         self.config(swift_store_multiple_containers_seed=0,
                     group='glance')
-        self.glance_service = service.GlanceImageService(client,
-                                                         context=self.context)
+        self.glance_service = image_service.GlanceImageService(
+            client, context=self.context)
 
     @mock.patch('swiftclient.utils.generate_temp_url', autospec=True)
     def test_add_items_to_cache(self, tempurl_mock):
