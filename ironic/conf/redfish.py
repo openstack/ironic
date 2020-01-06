@@ -48,7 +48,7 @@ opts = [
                 default=True,
                 help=_('Upload generated ISO images for virtual media boot to '
                        'Swift, then pass temporary URL to BMC for booting the '
-                       'node. If set to false, images are are placed on the '
+                       'node. If set to false, images are placed on the '
                        'ironic-conductor node and served over its '
                        'local HTTP server.')),
     cfg.StrOpt('swift_container',
