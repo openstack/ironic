@@ -108,8 +108,6 @@ opts = [
                       'multiple containers to store images, and this value '
                       'will determine how many containers are created.')),
     cfg.IntOpt('num_retries',
-               # TODO(dtantsur): remove in U
-               deprecated_name='glance_num_retries',
                default=0,
                help=_('Number of retries when downloading an image from '
                       'glance.')),

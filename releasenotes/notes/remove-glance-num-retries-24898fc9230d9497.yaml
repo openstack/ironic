@@ -1,0 +1,5 @@
+---
+upgrade:
+  - |
+    The configuration option ``[glance]glance_num_retries`` was deprecated and
+    now removed, please use ``[glance]num_retries`` instead.
