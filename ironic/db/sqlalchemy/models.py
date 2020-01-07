@@ -180,6 +180,7 @@ class Node(Base):
                        server_default=false())
     protected_reason = Column(Text, nullable=True)
     owner = Column(String(255), nullable=True)
+    lessee = Column(String(255), nullable=True)
     allocation_id = Column(Integer, ForeignKey('allocations.id'),
                            nullable=True)
     description = Column(Text, nullable=True)

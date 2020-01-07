@@ -288,7 +288,7 @@ class Connection(api.Connection):
     _NODE_QUERY_FIELDS = {'console_enabled', 'maintenance', 'retired',
                           'driver', 'resource_class', 'provision_state',
                           'uuid', 'id', 'fault', 'conductor_group',
-                          'owner'}
+                          'owner', 'lessee'}
     _NODE_IN_QUERY_FIELDS = {'%s_in' % field: field
                              for field in ('uuid', 'provision_state')}
     _NODE_NON_NULL_FILTERS = {'associated': 'instance_uuid',
@@ -296,7 +296,7 @@ class Connection(api.Connection):
                               'with_power_state': 'power_state'}
     _NODE_FILTERS = ({'chassis_uuid', 'reserved_by_any_of',
                       'provisioned_before', 'inspection_started_before',
-                      'description_contains'}
+                      'description_contains', 'project'}
                      | _NODE_QUERY_FIELDS
                      | set(_NODE_IN_QUERY_FIELDS)
                      | set(_NODE_NON_NULL_FILTERS))
@@ -354,6 +354,10 @@ class Connection(api.Connection):
             if keyword is not None:
                 query = query.filter(
                     models.Node.description.like(r'%{}%'.format(keyword)))
+        if 'project' in filters:
+            project = filters['project']
+            query = query.filter((models.Node.owner == project)
+                                 | (models.Node.lessee == project))
 
         return query
 

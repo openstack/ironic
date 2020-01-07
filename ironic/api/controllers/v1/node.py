@@ -1250,7 +1250,10 @@ class Node(base.APIBase):
     owner = wsme.wsattr(str)
     """Field for storage of physical node owner"""
 
-    description = wsme.wsattr(str)
+    lessee = wsme.wsattr(wtypes.text)
+    """Field for storage of physical node lessee"""
+
+    description = wsme.wsattr(wtypes.text)
     """Field for node description"""
 
     allocation_uuid = wsme.wsattr(types.uuid, readonly=True)
@@ -1482,7 +1485,7 @@ class Node(base.APIBase):
                      automated_clean=None, protected=False,
                      protected_reason=None, owner=None,
                      allocation_uuid='982ddb5b-bce5-4d23-8fb8-7f710f648cd5',
-                     retired=False, retired_reason=None)
+                     retired=False, retired_reason=None, lessee=None)
         # NOTE(matty_dubs): The chassis_uuid getter() is based on the
         # _chassis_uuid variable:
         sample._chassis_uuid = 'edcad704-b2da-41d5-96d9-afd580ecfa12'
@@ -1801,6 +1804,7 @@ class NodesController(rest.RestController):
                               resource_class=None, resource_url=None,
                               fields=None, fault=None, conductor_group=None,
                               detail=None, conductor=None, owner=None,
+                              lessee=None, project=None,
                               description_contains=None):
         if self.from_chassis and not chassis_uuid:
             raise exception.MissingParameterValue(
@@ -1844,6 +1848,8 @@ class NodesController(rest.RestController):
                 'fault': fault,
                 'conductor_group': conductor_group,
                 'owner': owner,
+                'lessee': lessee,
+                'project': project,
                 'description_contains': description_contains,
                 'retired': retired,
             }
@@ -1970,13 +1976,14 @@ class NodesController(rest.RestController):
                    types.boolean, types.boolean, str, types.uuid, int, str,
                    str, str, types.listtype, str,
                    str, str, types.boolean, str,
-                   str, str)
+                   str, str, str, str)
     def get_all(self, chassis_uuid=None, instance_uuid=None, associated=None,
                 maintenance=None, retired=None, provision_state=None,
                 marker=None, limit=None, sort_key='id', sort_dir='asc',
                 driver=None, fields=None, resource_class=None, fault=None,
                 conductor_group=None, detail=None, conductor=None,
-                owner=None, description_contains=None):
+                owner=None, description_contains=None, lessee=None,
+                project=None):
         """Retrieve a list of nodes.
 
         :param chassis_uuid: Optional UUID of a chassis, to get only nodes for
@@ -2010,6 +2017,10 @@ class NodesController(rest.RestController):
                           that conductor.
         :param owner: Optional string value that set the owner whose nodes
                       are to be retrurned.
+        :param lessee: Optional string value that set the lessee whose nodes
+                      are to be returned.
+        :param project: Optional string value that set the project - lessee or
+                        owner - whose nodes are to be returned.
         :param fields: Optional, a list with a specified set of fields
                        of the resource to be returned.
         :param fault: Optional string value to get only nodes with that fault.
@@ -2017,7 +2028,7 @@ class NodesController(rest.RestController):
                                      with description field contains matching
                                      value.
         """
-        owner = api_utils.check_list_policy('node', owner)
+        project = api_utils.check_list_policy('node', project)
 
         api_utils.check_allow_specify_fields(fields)
         api_utils.check_allowed_fields(fields)
@@ -2029,6 +2040,7 @@ class NodesController(rest.RestController):
         api_utils.check_allow_filter_by_conductor_group(conductor_group)
         api_utils.check_allow_filter_by_conductor(conductor)
         api_utils.check_allow_filter_by_owner(owner)
+        api_utils.check_allow_filter_by_lessee(lessee)
 
         fields = api_utils.get_request_return_fields(fields, detail,
                                                      _DEFAULT_RETURN_FIELDS)
@@ -2044,20 +2056,22 @@ class NodesController(rest.RestController):
                                           conductor_group=conductor_group,
                                           detail=detail,
                                           conductor=conductor,
-                                          owner=owner,
+                                          owner=owner, lessee=lessee,
+                                          project=project,
                                           **extra_args)
 
     @METRICS.timer('NodesController.detail')
     @expose.expose(NodeCollection, types.uuid, types.uuid, types.boolean,
                    types.boolean, types.boolean, str, types.uuid, int, str,
                    str, str, str, str,
-                   str, str, str, str)
+                   str, str, str, str,
+                   str, str)
     def detail(self, chassis_uuid=None, instance_uuid=None, associated=None,
                maintenance=None, retired=None, provision_state=None,
                marker=None, limit=None, sort_key='id', sort_dir='asc',
                driver=None, resource_class=None, fault=None,
                conductor_group=None, conductor=None, owner=None,
-               description_contains=None):
+               description_contains=None, lessee=None, project=None):
         """Retrieve a list of nodes with detail.
 
         :param chassis_uuid: Optional UUID of a chassis, to get only nodes for
@@ -2090,11 +2104,15 @@ class NodesController(rest.RestController):
                                 that conductor_group.
         :param owner: Optional string value that set the owner whose nodes
                       are to be retrurned.
+        :param lessee: Optional string value that set the lessee whose nodes
+                      are to be returned.
+        :param project: Optional string value that set the project - lessee or
+                        owner - whose nodes are to be returned.
         :param description_contains: Optional string value to get only nodes
                                      with description field contains matching
                                      value.
         """
-        owner = api_utils.check_list_policy('node', owner)
+        project = api_utils.check_list_policy('node', project)
 
         api_utils.check_for_invalid_state_and_allow_filter(provision_state)
         api_utils.check_allow_specify_driver(driver)
@@ -2102,6 +2120,7 @@ class NodesController(rest.RestController):
         api_utils.check_allow_filter_by_fault(fault)
         api_utils.check_allow_filter_by_conductor_group(conductor_group)
         api_utils.check_allow_filter_by_owner(owner)
+        api_utils.check_allow_filter_by_lessee(lessee)
         api_utils.check_allowed_fields([sort_key])
         # /detail should only work against collections
         parent = api.request.path.split('/')[:-1][-1]
@@ -2122,7 +2141,8 @@ class NodesController(rest.RestController):
                                           fault=fault,
                                           conductor_group=conductor_group,
                                           conductor=conductor,
-                                          owner=owner,
+                                          owner=owner, lessee=lessee,
+                                          project=project,
                                           **extra_args)
 
     @METRICS.timer('NodesController.validate')
@@ -2341,7 +2361,7 @@ class NodesController(rest.RestController):
                     api_utils.check_owner_policy(
                         'node',
                         'baremetal:node:update_owner_provisioned',
-                        rpc_node['owner'])
+                        rpc_node['owner'], rpc_node['lessee'])
                 except exception.HTTPForbidden:
                     msg = _('Cannot update owner of node "%(node)s" while it '
                             'is in state "%(state)s".') % {

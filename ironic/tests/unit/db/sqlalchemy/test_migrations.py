@@ -990,6 +990,11 @@ class MigrationCheckersMixin(object):
         self.assertFalse(node['retired'])
         self.assertIsNone(node['retired_reason'])
 
+    def _check_b2ad35726bb0(self, engine, data):
+        nodes = db_utils.get_table(engine, 'nodes')
+        col_names = [column.name for column in nodes.c]
+        self.assertIn('lessee', col_names)
+
     def test_upgrade_and_version(self):
         with patch_with_engine(self.engine):
             self.migration_api.upgrade('head')

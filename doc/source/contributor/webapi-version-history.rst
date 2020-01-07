@@ -2,6 +2,14 @@
 REST API Version History
 ========================
 
+1.65 (Ussuri, master)
+---------------------
+
+Added ``lessee`` field to the node object. The field should match the
+``project_id`` of the intended lessee. If an allocation has an owner,
+then the allocation process will only match the allocation with a node
+that has the same ``owner`` or ``lessee``.
+
 1.64 (Ussuri, master)
 ---------------------
 

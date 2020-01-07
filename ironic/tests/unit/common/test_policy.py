@@ -69,6 +69,19 @@ class PolicyInCodeTestCase(base.TestCase):
         self.assertTrue(policy.check('is_node_owner', target, c1))
         self.assertFalse(policy.check('is_node_owner', target, c2))
 
+    def test_is_node_lessee(self):
+        c1 = {'project_id': '1234',
+              'project_name': 'demo',
+              'project_domain_id': 'default'}
+        c2 = {'project_id': '5678',
+              'project_name': 'demo',
+              'project_domain_id': 'default'}
+        target = dict.copy(c1)
+        target['node.lessee'] = '1234'
+
+        self.assertTrue(policy.check('is_node_lessee', target, c1))
+        self.assertFalse(policy.check('is_node_lessee', target, c2))
+
     def test_is_allocation_owner(self):
         c1 = {'project_id': '1234',
               'project_name': 'demo',

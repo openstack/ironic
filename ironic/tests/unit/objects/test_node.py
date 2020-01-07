@@ -1134,6 +1134,68 @@ class TestConvertToVersion(db_base.DbTestCase):
         self.assertIsNone(node.description)
         self.assertEqual({}, node.obj_get_changes())
 
+    def test_lessee_supported_missing(self):
+        # lessee not set, should be set to default.
+        node = obj_utils.get_test_node(self.ctxt, **self.fake_node)
+        delattr(node, 'lessee')
+        node.obj_reset_changes()
+        node._convert_to_version("1.34")
+        self.assertIsNone(node.lessee)
+        self.assertEqual({'lessee': None},
+                         node.obj_get_changes())
+
+    def test_lessee_supported_set(self):
+        # lessee set, no change required.
+        node = obj_utils.get_test_node(self.ctxt, **self.fake_node)
+
+        node.lessee = "some-lucky-project"
+        node.obj_reset_changes()
+        node._convert_to_version("1.34")
+        self.assertEqual("some-lucky-project",
+                         node.lessee)
+        self.assertEqual({}, node.obj_get_changes())
+
+    def test_lessee_unsupported_missing(self):
+        # lessee not set, no change required.
+        node = obj_utils.get_test_node(self.ctxt, **self.fake_node)
+
+        delattr(node, 'lessee')
+        node.obj_reset_changes()
+        node._convert_to_version("1.33")
+        self.assertNotIn('lessee', node)
+        self.assertEqual({}, node.obj_get_changes())
+
+    def test_lessee_unsupported_set_remove(self):
+        # lessee set, should be removed.
+        node = obj_utils.get_test_node(self.ctxt, **self.fake_node)
+
+        node.lessee = "some-lucky-project"
+        node.obj_reset_changes()
+        node._convert_to_version("1.33")
+        self.assertNotIn('lessee', node)
+        self.assertEqual({}, node.obj_get_changes())
+
+    def test_lessee_unsupported_set_no_remove_non_default(self):
+        # lessee set, should be set to default.
+        node = obj_utils.get_test_node(self.ctxt, **self.fake_node)
+
+        node.lessee = "some-lucky-project"
+        node.obj_reset_changes()
+        node._convert_to_version("1.33", False)
+        self.assertIsNone(node.lessee)
+        self.assertEqual({'lessee': None},
+                         node.obj_get_changes())
+
+    def test_lessee_unsupported_set_no_remove_default(self):
+        # lessee set, no change required.
+        node = obj_utils.get_test_node(self.ctxt, **self.fake_node)
+
+        node.lessee = None
+        node.obj_reset_changes()
+        node._convert_to_version("1.33", False)
+        self.assertIsNone(node.lessee)
+        self.assertEqual({}, node.obj_get_changes())
+
 
 class TestNodePayloads(db_base.DbTestCase):
 

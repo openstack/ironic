@@ -226,7 +226,7 @@ def get_test_node(**kw):
         'description': kw.get('description'),
         'retired': kw.get('retired', False),
         'retired_reason': kw.get('retired_reason', None),
-
+        'lessee': kw.get('lessee', None),
     }
 
     for iface in drivers_base.ALL_INTERFACES:

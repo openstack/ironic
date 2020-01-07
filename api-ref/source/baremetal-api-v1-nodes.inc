@@ -101,6 +101,9 @@ supplied when the Node is created, or the resource may be updated later.
 .. versionadded:: 1.52
   Introduced the ``allocation_uuid`` field.
 
+.. versionadded:: 1.65
+  Introduced the ``lessee`` field.
+
 Normal response codes: 201
 
 Error codes: 400,403,406
@@ -131,6 +134,7 @@ Request
    - vendor_interface: req_vendor_interface
    - owner: owner
    - description: n_description
+   - lessee: lessee
 
 **Example Node creation request with a dynamic driver:**
 
@@ -201,6 +205,7 @@ microversion 1.48.
     - protected_reason: protected_reason
     - conductor: conductor
     - owner: owner
+    - lessee: lessee
     - description: n_description
     - allocation_uuid: allocation_uuid
 
@@ -260,6 +265,9 @@ provision state, and maintenance setting for each Node.
 .. versionadded:: 1.51
   Introduced the ``description`` field.
 
+.. versionadded:: 1.65
+  Introduced the ``lessee`` field.
+
 Normal response codes: 200
 
 Error codes: 400,403,406
@@ -279,6 +287,7 @@ Request
    - conductor: r_conductor
    - fault: r_fault
    - owner: owner
+   - lessee: lessee
    - description_contains: r_description_contains
    - fields: fields
    - limit: limit
@@ -347,6 +356,9 @@ Nova instance, eg. with a request to ``v1/nodes/detail?instance_uuid={NOVA INSTA
 .. versionadded:: 1.52
   Introduced the ``allocation_uuid`` field.
 
+.. versionadded:: 1.65
+  Introduced the ``lessee`` field.
+
 Normal response codes: 200
 
 Error codes: 400,403,406
@@ -366,6 +378,7 @@ Request
    - conductor_group: r_conductor_group
    - conductor: r_conductor
    - owner: owner
+   - lessee: lessee
    - description_contains: r_description_contains
    - limit: limit
    - marker: marker
@@ -423,6 +436,7 @@ Response
     - protected: protected
     - protected_reason: protected_reason
     - owner: owner
+    - lessee: lessee
     - description: n_description
     - conductor: conductor
     - allocation_uuid: allocation_uuid
@@ -473,6 +487,9 @@ only the specified set.
 
 .. versionadded:: 1.61
   Introduced the ``retired`` and ``retired_reason`` fields.
+
+.. versionadded:: 1.65
+  Introduced the ``lessee`` field.
 
 Normal response codes: 200
 
@@ -537,6 +554,7 @@ Response
     - protected: protected
     - protected_reason: protected_reason
     - owner: owner
+    - lessee: lessee
     - description: n_description
     - conductor: conductor
     - allocation_uuid: allocation_uuid
@@ -632,6 +650,7 @@ Response
     - protected: protected
     - protected_reason: protected_reason
     - owner: owner
+    - lessee: lessee
     - description: n_description
     - conductor: conductor
     - allocation_uuid: allocation_uuid
