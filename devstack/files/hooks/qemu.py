@@ -1,4 +1,4 @@
-#!/usr/bin/python -tt
+#!/usr/bin/python3
 
 # Copyright (c) 2017 Intel Corporation
 #
@@ -45,10 +45,9 @@ def main():
     action = sys.argv[2]
 
     if action == "started":
-        interfaces = str(
-            subprocess.check_output(
-                ['ip', 'link', 'show', 'type', 'macvtap']
-            )).split("\n")
+        interfaces = subprocess.check_output(
+            ['ip', 'link', 'show', 'type', 'macvtap']
+        ).decode().split("\n")
         for iface_line in interfaces:
             if 'macvtap' in iface_line:
                 iface_string = iface_line.split('@')
