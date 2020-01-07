@@ -356,6 +356,9 @@ detailed documentation of the Ironic State Machine is available
    A ``configdrive`` can be a JSON object with ``meta_data``, ``network_data``
    and ``user_data``.
 
+.. versionadded:: 1.59
+   A ``configdrive`` now accepts ``vendor_data``.
+
 Normal response code: 202
 
 Error codes:
