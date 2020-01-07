@@ -28,7 +28,7 @@ import requests
 import sendfile
 
 from ironic.common import exception
-from ironic.common.glance_service import image_service
+from ironic.common.glance_service.image_service import GlanceImageService
 from ironic.common.i18n import _
 from ironic.common import utils
 
@@ -38,10 +38,6 @@ IMAGE_CHUNK_SIZE = 1024 * 1024  # 1mb
 # while keep the chunk size less than the size limit.
 SENDFILE_CHUNK_SIZE = 1024 * 1024 * 1024  # 1Gb
 LOG = log.getLogger(__name__)
-
-
-# TODO(dtantsur): temporary re-import, refactor the code and remove it.
-GlanceImageService = image_service.GlanceImageService
 
 
 class BaseImageService(object, metaclass=abc.ABCMeta):

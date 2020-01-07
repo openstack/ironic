@@ -25,6 +25,7 @@ from glanceclient import client
 from glanceclient import exc as glance_exc
 from oslo_log import log
 from oslo_utils import uuidutils
+import retrying
 import sendfile
 from swiftclient import utils as swift_utils
 
@@ -111,6 +112,12 @@ class GlanceImageService(object):
         self.context = context
         self.endpoint = None
 
+    @retrying.retry(
+        stop_max_attempt_number=CONF.glance.num_retries + 1,
+        retry_on_exception=lambda e: isinstance(
+            e, exception.GlanceConnectionFailed),
+        wait_fixed=1000
+    )
     def call(self, method, *args, **kwargs):
         """Call a glance client method.
 
@@ -131,29 +138,21 @@ class GlanceImageService(object):
                       glance_exc.Unauthorized,
                       glance_exc.NotFound,
                       glance_exc.BadRequest)
-        num_attempts = 1 + CONF.glance.num_retries
 
-        # TODO(pas-ha) use retrying lib here
-        for attempt in range(1, num_attempts + 1):
-            try:
-                return getattr(self.client.images, method)(*args, **kwargs)
-            except retry_excs as e:
-                error_msg = ("Error contacting glance endpoint "
-                             "%(endpoint)s for '%(method)s', attempt "
-                             "%(attempt)s of %(num_attempts)s failed.")
-                LOG.exception(error_msg, {'endpoint': self.endpoint,
-                                          'num_attempts': num_attempts,
-                                          'attempt': attempt,
-                                          'method': method})
-                if attempt == num_attempts:
-                    raise exception.GlanceConnectionFailed(
-                        endpoint=self.endpoint, reason=e)
-                time.sleep(1)
-            except image_excs:
-                exc_type, exc_value, exc_trace = sys.exc_info()
-                new_exc = _translate_image_exception(
-                    args[0], exc_value)
-                raise type(new_exc)(new_exc).with_traceback(exc_trace)
+        try:
+            return getattr(self.client.images, method)(*args, **kwargs)
+        except retry_excs as e:
+            error_msg = ("Error contacting glance endpoint "
+                         "%(endpoint)s for '%(method)s'")
+            LOG.exception(error_msg, {'endpoint': self.endpoint,
+                                      'method': method})
+            raise exception.GlanceConnectionFailed(
+                endpoint=self.endpoint, reason=e)
+        except image_excs:
+            exc_type, exc_value, exc_trace = sys.exc_info()
+            new_exc = _translate_image_exception(
+                args[0], exc_value)
+            raise type(new_exc)(new_exc).with_traceback(exc_trace)
 
     @check_image_service
     def show(self, image_href):
