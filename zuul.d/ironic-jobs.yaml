@@ -193,6 +193,7 @@
     parent: ironic-base
     vars:
       devstack_localrc:
+        IRONIC_ENABLED_BOOT_INTERFACES: "fake,pxe"
         IRONIC_IPXE_ENABLED: False
         IRONIC_AUTOMATED_CLEAN_ENABLED: False
       devstack_services:
