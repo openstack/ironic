@@ -447,6 +447,21 @@ class IloVirtualMediaBoot(base.BootInterface):
         else:
             _validate_instance_image_info(task)
 
+    def validate_inspection(self, task):
+        """Validate that the node has required properties for inspection.
+
+        :param task: A TaskManager instance with the node being checked
+        :raises: MissingParameterValue if node is missing one or more required
+            parameters
+        :raises: UnsupportedDriverExtension
+        """
+        try:
+            _validate_driver_info(task)
+        except exception.MissingParameterValue:
+            # Fall back to non-managed in-band inspection
+            raise exception.UnsupportedDriverExtension(
+                driver=task.node.driver, extension='inspection')
+
     @METRICS.timer('IloVirtualMediaBoot.prepare_ramdisk')
     def prepare_ramdisk(self, task, ramdisk_params):
         """Prepares the boot of deploy ramdisk using virtual media.
@@ -474,7 +489,8 @@ class IloVirtualMediaBoot(base.BootInterface):
         # modify the state of the node due to virtual media operations.
         if node.provision_state not in (states.DEPLOYING,
                                         states.CLEANING,
-                                        states.RESCUING):
+                                        states.RESCUING,
+                                        states.INSPECTING):
             return
 
         prepare_node_for_deploy(task)
