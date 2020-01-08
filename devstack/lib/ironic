@@ -68,6 +68,7 @@ IRONIC_PYTHON_AGENT_DIR=$DEST/ironic-python-agent
 IRONIC_PYTHON_AGENT_BUILDER_REPO=${IRONIC_PYTHON_AGENT_BUILDER_REPO:-${GIT_BASE}/openstack/ironic-python-agent-builder.git}
 IRONIC_PYTHON_AGENT_BUILDER_BRANCH=${IRONIC_PYTHON_AGENT_BUILDER_BRANCH:-$TARGET_BRANCH}
 IRONIC_PYTHON_AGENT_BUILDER_DIR=$DEST/ironic-python-agent-builder
+IRONIC_DIB_BINDEP_FILE=https://opendev.org/openstack/diskimage-builder/raw/branch/master/bindep.txt
 IRONIC_DATA_DIR=$DATA_DIR/ironic
 IRONIC_STATE_PATH=/var/lib/ironic
 IRONIC_AUTH_CACHE_DIR=${IRONIC_AUTH_CACHE_DIR:-/var/cache/ironic}
@@ -2517,8 +2518,12 @@ function rebuild_tinyipa_for_ansible {
 function install_diskimage_builder {
     if use_library_from_git "diskimage-builder"; then
         git_clone_by_name "diskimage-builder"
-        setup_dev_lib "diskimage-builder"
+        setup_dev_lib -bindep "diskimage-builder"
     else
+        local bindep_file
+        bindep_file=$(mktemp)
+        curl -o "$bindep_file" "$IRONIC_DIB_BINDEP_FILE"
+        install_bindep "$bindep_file"
         pip_install_gr "diskimage-builder"
     fi
 }
