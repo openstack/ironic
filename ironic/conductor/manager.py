@@ -1485,7 +1485,8 @@ class ConductorManager(base_manager.BaseConductorManager):
         driver_internal_info.pop('cleaning_reboot', None)
         driver_internal_info.pop('cleaning_polling', None)
         # Remove agent_url
-        driver_internal_info.pop('agent_url', None)
+        if not utils.fast_track_able(task):
+            driver_internal_info.pop('agent_url', None)
         node.driver_internal_info = driver_internal_info
         node.save()
         try:

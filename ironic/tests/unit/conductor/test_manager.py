@@ -4476,10 +4476,14 @@ class DoNodeCleanTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
 
     @mock.patch('ironic.drivers.modules.fake.FakeDeploy.execute_clean_step',
                 autospec=True)
-    def _do_next_clean_step_no_steps(self, mock_execute, manual=False):
+    def _do_next_clean_step_no_steps(self, mock_execute, manual=False,
+                                     fast_track=False):
+        if fast_track:
+            self.config(fast_track=True, group='deploy')
 
-        for info in ({'clean_steps': None, 'clean_step_index': None},
-                     {'clean_steps': None}):
+        for info in ({'clean_steps': None, 'clean_step_index': None,
+                      'agent_url': 'test-url'},
+                     {'clean_steps': None, 'agent_url': 'test-url'}):
             # Resume where there are no steps, should be a noop
             tgt_prov_state = states.MANAGEABLE if manual else states.AVAILABLE
 
@@ -4506,6 +4510,11 @@ class DoNodeCleanTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
             self.assertEqual({}, node.clean_step)
             self.assertNotIn('clean_step_index', node.driver_internal_info)
             self.assertFalse(mock_execute.called)
+            if fast_track:
+                self.assertEqual('test-url',
+                                 node.driver_internal_info.get('agent_url'))
+            else:
+                self.assertNotIn('agent_url', node.driver_internal_info)
             mock_execute.reset_mock()
 
     def test__do_next_clean_step_automated_no_steps(self):
@@ -4513,6 +4522,9 @@ class DoNodeCleanTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
 
     def test__do_next_clean_step_manual_no_steps(self):
         self._do_next_clean_step_no_steps(manual=True)
+
+    def test__do_next_clean_step_fast_track(self):
+        self._do_next_clean_step_no_steps(fast_track=True)
 
     @mock.patch('ironic.drivers.modules.fake.FakePower.execute_clean_step',
                 autospec=True)
