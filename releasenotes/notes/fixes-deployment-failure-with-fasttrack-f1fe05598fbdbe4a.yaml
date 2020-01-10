@@ -1,0 +1,9 @@
+---
+fixes:
+  - |
+    Fixes an issue with fasttrack where a recent security related change to
+    prevent the ``agent_url`` field from being updated in a node, to
+    functionally prevent fast_track from succeeding as the node would fail
+    with an exception indicating the ``agent_url`` could not be found.
+    The required ``agent_url`` value is now preserved when the fast track
+    feature is enabled as the running ramdisk is not shut down.
