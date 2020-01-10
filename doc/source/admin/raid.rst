@@ -378,6 +378,21 @@ There are certain limitations to be aware of:
 * There is no support for partition images, only whole-disk images are
   supported with Software RAID. See :doc:`/install/configure-glance-images`.
 
+Image requirements
+------------------
+
+Since Ironic needs to perform additional steps when deploying nodes
+with software RAID, there are some requirements the deployed images need
+to fulfill. Up to and including the Train release, the image needs to
+have its root file system on the first partition. Starting with Ussuri,
+the image can also have additional metadata to point Ironic to the
+partition with the root file system: for this, the image needs to set
+the ``rootfs_uuid`` property with the file system UUID of the root file
+system. The pre-Ussuri approach, i.e. to have the root file system on
+the first partition, is kept as a fallback and hence allows software
+RAID deployments where Ironic does not have access to any image metadata
+(e.g. Ironic stand-alone).
+
 Using RAID in nova flavor for scheduling
 ========================================
 
