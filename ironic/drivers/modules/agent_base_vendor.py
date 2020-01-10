@@ -838,14 +838,17 @@ class AgentDeployMixin(HeartbeatMixin):
                 image_info = glance.show(image_source)
                 image_properties = image_info.get('properties')
                 root_uuid = image_properties['rootfs_uuid']
-                LOG.debug('Got rootfs_uuid from Glance: %s', root_uuid)
+                LOG.debug('Got rootfs_uuid from Glance: %s '
+                          '(node %s)', root_uuid, node.uuid)
             except Exception as e:
                 LOG.warning('Could not get \'rootfs_uuid\' property for '
-                            'image %(image)s from Glance: %(error)s.',
-                            {'image': image_source, 'error': e})
+                            'image %(image)s from Glance for node %(node)s. '
+                            '%(cls)s: %(error)s.',
+                            {'image': image_source, 'node': node.uuid,
+                             'cls': e.__class__.__name__, 'error': e})
                 root_uuid = internal_info.get('root_uuid_or_disk_id')
                 LOG.debug('Got rootfs_uuid from driver internal info: '
-                          ' %s', root_uuid)
+                          '%s (node %s)', root_uuid, node.uuid)
 
         whole_disk_image = internal_info.get('is_whole_disk_image')
         if software_raid or (root_uuid and not whole_disk_image):
