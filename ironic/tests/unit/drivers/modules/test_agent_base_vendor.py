@@ -29,6 +29,7 @@ from ironic.drivers import base as drivers_base
 from ironic.drivers.modules import agent
 from ironic.drivers.modules import agent_base_vendor
 from ironic.drivers.modules import agent_client
+from ironic.drivers.modules import boot_mode_utils
 from ironic.drivers.modules import deploy_utils
 from ironic.drivers.modules import fake
 from ironic.drivers.modules import pxe
@@ -1039,6 +1040,26 @@ class AgentDeployMixinTest(AgentDeployMixinBaseTest):
             try_set_boot_device_mock.assert_called_once_with(
                 task, boot_devices.DISK, persistent=True)
 
+    @mock.patch.object(boot_mode_utils, 'get_boot_mode',
+                       autospec=True)
+    @mock.patch.object(deploy_utils, 'try_set_boot_device', autospec=True)
+    @mock.patch.object(agent_client.AgentClient, 'install_bootloader',
+                       autospec=True)
+    def test_configure_local_boot_no_root_uuid_whole_disk(
+            self, install_bootloader_mock, try_set_boot_device_mock,
+            boot_mode_mock):
+        with task_manager.acquire(self.context, self.node['uuid'],
+                                  shared=False) as task:
+            task.node.driver_internal_info['is_whole_disk_image'] = True
+            boot_mode_mock.return_value = 'uefi'
+            self.deploy.configure_local_boot(
+                task, root_uuid=None,
+                efi_system_part_uuid='efi-system-part-uuid')
+            install_bootloader_mock.assert_called_once_with(
+                mock.ANY, task.node, root_uuid=None,
+                efi_system_part_uuid='efi-system-part-uuid',
+                prep_boot_part_uuid=None)
+
     @mock.patch.object(deploy_utils, 'try_set_boot_device', autospec=True)
     @mock.patch.object(agent_client.AgentClient, 'install_bootloader',
                        autospec=True)
@@ -1049,6 +1070,8 @@ class AgentDeployMixinTest(AgentDeployMixinBaseTest):
             driver_info = task.node.driver_info
             driver_info['force_persistent_boot_device'] = 'Default'
             task.node.driver_info = driver_info
+            driver_info['force_persistent_boot_device'] = 'Always'
+            task.node.driver_internal_info['is_whole_disk_image'] = False
             self.deploy.configure_local_boot(task)
             self.assertFalse(install_bootloader_mock.called)
             try_set_boot_device_mock.assert_called_once_with(
@@ -1064,6 +1087,7 @@ class AgentDeployMixinTest(AgentDeployMixinBaseTest):
             driver_info = task.node.driver_info
             driver_info['force_persistent_boot_device'] = 'Always'
             task.node.driver_info = driver_info
+            task.node.driver_internal_info['is_whole_disk_image'] = False
             self.deploy.configure_local_boot(task)
             self.assertFalse(install_bootloader_mock.called)
             try_set_boot_device_mock.assert_called_once_with(
@@ -1079,6 +1103,7 @@ class AgentDeployMixinTest(AgentDeployMixinBaseTest):
             driver_info = task.node.driver_info
             driver_info['force_persistent_boot_device'] = 'Never'
             task.node.driver_info = driver_info
+            task.node.driver_internal_info['is_whole_disk_image'] = False
             self.deploy.configure_local_boot(task)
             self.assertFalse(install_bootloader_mock.called)
             try_set_boot_device_mock.assert_called_once_with(
