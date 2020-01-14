@@ -12,6 +12,13 @@ Two kinds of images are published on every commit from every branch of
 
 * DIB_ images are suitable for production usage and can be downloaded from
   https://tarballs.openstack.org/ironic-python-agent/dib/files/.
+
+  * For Train and older use CentOS 7 images.
+  * For Ussuri and newer use CentOS 8 images.
+
+  .. warning:: CentOS 7 master images are no longer updated and must not be
+               used.
+
 * TinyIPA_ images are suitable for CI and testing environments and can be
   downloaded from
   https://tarballs.openstack.org/ironic-python-agent/tinyipa/files/.
