@@ -1,0 +1,6 @@
+---
+upgrade:
+  - |
+    The configuration option ``[disk_utils]iscsi_verify_attempts``
+    was deprecated in Train and it's now removed from ironic-lib.
+    Please use the ``[iscsi]verify_attempts`` option instead.
