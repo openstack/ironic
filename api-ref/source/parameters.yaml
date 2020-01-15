@@ -1565,8 +1565,7 @@ supported_boot_devices:
 target_power_state:
   description: |
     If a power state transition has been requested, this field represents the
-    requested (ie, "target") state either "power on", "power off", "rebooting",
-    "soft power off" or "soft rebooting".
+    requested (ie, "target") state, either "power on" or "power off".
   in: body
   required: true
   type: string
