@@ -193,6 +193,9 @@ class Node(Base):
     network_interface = Column(String(255), nullable=True)
     raid_interface = Column(String(255), nullable=True)
     rescue_interface = Column(String(255), nullable=True)
+    retired = Column(Boolean, nullable=True, default=False,
+                     server_default=false())
+    retired_reason = Column(Text, nullable=True)
     storage_interface = Column(String(255), nullable=True)
     power_interface = Column(String(255), nullable=True)
     vendor_interface = Column(String(255), nullable=True)

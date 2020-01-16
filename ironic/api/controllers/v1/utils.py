@@ -487,6 +487,8 @@ VERSIONED_FIELDS = {
     'description': versions.MINOR_51_NODE_DESCRIPTION,
     'allocation_uuid': versions.MINOR_52_ALLOCATION,
     'events': versions.MINOR_54_EVENTS,
+    'retired': versions.MINOR_61_NODE_RETIRED,
+    'retired_reason': versions.MINOR_61_NODE_RETIRED,
 }
 
 for field in V31_FIELDS:

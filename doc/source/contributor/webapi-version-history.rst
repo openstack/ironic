@@ -2,6 +2,15 @@
 REST API Version History
 ========================
 
+1.61 (Ussuri, master)
+---------------------
+
+Added ``retired`` field to the node object to mark nodes for retirement.
+If set, this flag will move nodes to ``manageable`` upon automatic
+cleaning. ``manageable`` nodes which have this flag set cannot be
+moved to available. Also added ``retired_reason`` to specify the
+retirement reason.
+
 1.60 (Ussuri, master)
 ---------------------
 

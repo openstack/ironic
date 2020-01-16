@@ -426,6 +426,8 @@ Response
     - description: n_description
     - conductor: conductor
     - allocation_uuid: allocation_uuid
+    - retired: retired
+    - retired_reason: retired_reason
 
 **Example detailed list of Nodes:**
 
@@ -468,6 +470,9 @@ only the specified set.
 
 .. versionadded:: 1.52
   Introduced the ``allocation_uuid`` field.
+
+.. versionadded:: 1.61
+  Introduced the ``retired`` and ``retired_reason`` fields.
 
 Normal response codes: 200
 

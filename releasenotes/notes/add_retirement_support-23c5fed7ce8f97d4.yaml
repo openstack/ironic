@@ -1,0 +1,9 @@
+---
+features:
+  - |
+    Adds support for node retirement by adding a ``retired`` property
+    to the node. If set, a node moves upon automatic cleaning to
+    ``manageable`` (rather than ``available``). The new property can also
+    block the provide keyword, i.e. nodes cannot move from ``manageable``
+    to ``available``. Furthermore, there is an additional optional property
+    ``retirement_reason`` to store the reason for the node's retirement.

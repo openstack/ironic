@@ -1542,6 +1542,20 @@ response_driver_type:
   in: body
   required: true
   type: string
+retired:
+  description: |
+    Whether the node is retired and can hence no longer be provided, i.e. move
+    from ``manageable`` to ``available``, and will end up in ``manageable``
+    after cleaning (rather than ``available``).
+  in: body
+  required: false
+  type: boolean
+retired_reason:
+  description: |
+    The reason the node is marked as retired.
+  in: body
+  required: false
+  type: string
 standalone_ports_supported:
   description: |
     Indicates whether ports that are members of this portgroup can be

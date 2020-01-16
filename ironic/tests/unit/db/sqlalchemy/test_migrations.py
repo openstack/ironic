@@ -969,6 +969,27 @@ class MigrationCheckersMixin(object):
         col_names = [column.name for column in allocations.c]
         self.assertIn('owner', col_names)
 
+    def _pre_upgrade_cd2c80feb331(self, engine):
+        data = {
+            'node_uuid': uuidutils.generate_uuid(),
+        }
+
+        nodes = db_utils.get_table(engine, 'nodes')
+        nodes.insert().execute({'uuid': data['node_uuid']})
+
+        return data
+
+    def _check_cd2c80feb331(self, engine, data):
+        nodes = db_utils.get_table(engine, 'nodes')
+        col_names = [column.name for column in nodes.c]
+        self.assertIn('retired', col_names)
+        self.assertIn('retired_reason', col_names)
+
+        node = nodes.select(
+            nodes.c.uuid == data['node_uuid']).execute().first()
+        self.assertFalse(node['retired'])
+        self.assertIsNone(node['retired_reason'])
+
     def test_upgrade_and_version(self):
         with patch_with_engine(self.engine):
             self.migration_api.upgrade('head')

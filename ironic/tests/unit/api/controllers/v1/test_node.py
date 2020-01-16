@@ -133,6 +133,8 @@ class TestListNodes(test_api_base.BaseApiTest):
         self.assertNotIn('protected', data['nodes'][0])
         self.assertNotIn('protected_reason', data['nodes'][0])
         self.assertNotIn('owner', data['nodes'][0])
+        self.assertNotIn('retired', data['nodes'][0])
+        self.assertNotIn('retired_reason', data['nodes'][0])
 
     def test_get_one(self):
         node = obj_utils.create_test_node(self.context,
@@ -353,6 +355,33 @@ class TestListNodes(test_api_base.BaseApiTest):
                              headers={api_base.Version.string: '1.51'})
         self.assertIsNone(data['description'])
 
+    def test_node_retired_hidden_in_lower_version(self):
+        self._test_node_field_hidden_in_lower_version('retired',
+                                                      '1.60', '1.61')
+
+    def test_node_retired_reason_hidden_in_lower_version(self):
+        self._test_node_field_hidden_in_lower_version('retired_reason',
+                                                      '1.60', '1.61')
+
+    def test_node_retired(self):
+        for value in (True, False):
+            node = obj_utils.create_test_node(self.context, retired=value,
+                                              provision_state='active',
+                                              uuid=uuidutils.generate_uuid())
+            data = self.get_json('/nodes/%s' % node.uuid,
+                                 headers={api_base.Version.string: '1.61'})
+            self.assertIs(data['retired'], value)
+            self.assertIsNone(data['retired_reason'])
+
+    def test_node_retired_with_reason(self):
+        node = obj_utils.create_test_node(self.context, retired=True,
+                                          provision_state='active',
+                                          retired_reason='warranty expired')
+        data = self.get_json('/nodes/%s' % node.uuid,
+                             headers={api_base.Version.string: '1.61'})
+        self.assertTrue(data['retired'])
+        self.assertEqual('warranty expired', data['retired_reason'])
+
     def test_get_one_custom_fields(self):
         node = obj_utils.create_test_node(self.context,
                                           chassis_id=self.chassis.id)
@@ -568,6 +597,14 @@ class TestListNodes(test_api_base.BaseApiTest):
                                  headers={api_base.Version.string: '1.52'})
         self.assertEqual(allocation.uuid, response['allocation_uuid'])
 
+    def test_get_retired_fields(self):
+        node = obj_utils.create_test_node(self.context,
+                                          retired=True)
+        response = self.get_json('/nodes/%s?fields=%s' %
+                                 (node.uuid, 'retired'),
+                                 headers={api_base.Version.string: '1.61'})
+        self.assertIn('retired', response)
+
     def test_detail(self):
         node = obj_utils.create_test_node(self.context,
                                           chassis_id=self.chassis.id)
@@ -606,6 +643,8 @@ class TestListNodes(test_api_base.BaseApiTest):
         self.assertNotIn('chassis_id', data['nodes'][0])
         self.assertNotIn('allocation_id', data['nodes'][0])
         self.assertIn('allocation_uuid', data['nodes'][0])
+        self.assertIn('retired', data['nodes'][0])
+        self.assertIn('retired_reason', data['nodes'][0])
 
     def test_detail_using_query(self):
         node = obj_utils.create_test_node(self.context,
@@ -641,6 +680,8 @@ class TestListNodes(test_api_base.BaseApiTest):
             self.assertIn(field, data['nodes'][0])
         # never expose the chassis_id
         self.assertNotIn('chassis_id', data['nodes'][0])
+        self.assertIn('retired', data['nodes'][0])
+        self.assertIn('retired_reason', data['nodes'][0])
 
     def test_detail_query_false(self):
         obj_utils.create_test_node(self.context)
@@ -3289,6 +3330,66 @@ class TestPatch(test_api_base.BaseApiTest):
         self.assertEqual('application/json', response.content_type)
         self.assertEqual(http_client.BAD_REQUEST, response.status_code)
         self.assertTrue(response.json['error_message'])
+
+    def test_update_retired(self):
+        node = obj_utils.create_test_node(self.context,
+                                          uuid=uuidutils.generate_uuid(),
+                                          provision_state='active')
+        self.mock_update_node.return_value = node
+        headers = {api_base.Version.string: '1.61'}
+        response = self.patch_json('/nodes/%s' % node.uuid,
+                                   [{'path': '/retired',
+                                     'value': True,
+                                     'op': 'replace'}],
+                                   headers=headers)
+        self.assertEqual('application/json', response.content_type)
+        self.assertEqual(http_client.OK, response.status_code)
+
+    def test_update_retired_with_reason(self):
+        node = obj_utils.create_test_node(self.context,
+                                          uuid=uuidutils.generate_uuid(),
+                                          provision_state='active')
+        self.mock_update_node.return_value = node
+        headers = {api_base.Version.string: '1.61'}
+        response = self.patch_json('/nodes/%s' % node.uuid,
+                                   [{'path': '/retired',
+                                     'value': True,
+                                     'op': 'replace'},
+                                    {'path': '/retired_reason',
+                                     'value': 'a better reason',
+                                     'op': 'replace'}],
+                                   headers=headers)
+        self.assertEqual('application/json', response.content_type)
+        self.assertEqual(http_client.OK, response.status_code)
+
+    def test_update_retired_reason(self):
+        node = obj_utils.create_test_node(self.context,
+                                          uuid=uuidutils.generate_uuid(),
+                                          provision_state='active',
+                                          retired=True)
+        self.mock_update_node.return_value = node
+        headers = {api_base.Version.string: '1.61'}
+        response = self.patch_json('/nodes/%s' % node.uuid,
+                                   [{'path': '/retired_reason',
+                                     'value': 'a better reason',
+                                     'op': 'replace'}],
+                                   headers=headers)
+        self.assertEqual('application/json', response.content_type)
+        self.assertEqual(http_client.OK, response.status_code)
+
+    def test_update_retired_old_api(self):
+        node = obj_utils.create_test_node(self.context,
+                                          uuid=uuidutils.generate_uuid())
+        self.mock_update_node.return_value = node
+        headers = {api_base.Version.string: '1.60'}
+        response = self.patch_json('/nodes/%s' % node.uuid,
+                                   [{'path': '/retired',
+                                     'value': True,
+                                     'op': 'replace'}],
+                                   headers=headers,
+                                   expect_errors=True)
+        self.assertEqual('application/json', response.content_type)
+        self.assertEqual(http_client.NOT_ACCEPTABLE, response.status_code)
 
 
 def _create_node_locally(node):

@@ -710,3 +710,8 @@ class IBMCConnectionError(IBMCError):
 
 class ClientSideError(wsme.exc.ClientSideError):
     pass
+
+
+class NodeIsRetired(Invalid):
+    _msg_fmt = _("The %(op)s operation can't be performed on node "
+                 "%(node)s because it is retired.")

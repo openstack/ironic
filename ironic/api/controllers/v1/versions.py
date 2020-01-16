@@ -160,6 +160,7 @@ MINOR_57_ALLOCATION_UPDATE = 57
 MINOR_58_ALLOCATION_BACKFILL = 58
 MINOR_59_CONFIGDRIVE_VENDOR_DATA = 59
 MINOR_60_ALLOCATION_OWNER = 60
+MINOR_61_NODE_RETIRED = 61
 
 # When adding another version, update:
 # - MINOR_MAX_VERSION
@@ -167,7 +168,7 @@ MINOR_60_ALLOCATION_OWNER = 60
 #   explanation of what changed in the new version
 # - common/release_mappings.py, RELEASE_MAPPING['master']['api']
 
-MINOR_MAX_VERSION = MINOR_60_ALLOCATION_OWNER
+MINOR_MAX_VERSION = MINOR_61_NODE_RETIRED
 
 # String representations of the minor and maximum versions
 _MIN_VERSION_STRING = '{}.{}'.format(BASE_VERSION, MINOR_1_INITIAL_VERSION)

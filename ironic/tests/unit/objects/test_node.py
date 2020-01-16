@@ -886,6 +886,64 @@ class TestConvertToVersion(db_base.DbTestCase):
         self.assertEqual({'protected': False, 'protected_reason': None},
                          node.obj_get_changes())
 
+    def test_retired_supported_missing(self):
+        # retired_interface not set, should be set to default.
+        node = obj_utils.get_test_node(self.ctxt, **self.fake_node)
+        delattr(node, 'retired')
+        delattr(node, 'retired_reason')
+        node.obj_reset_changes()
+        node._convert_to_version("1.33")
+        self.assertFalse(node.retired)
+        self.assertIsNone(node.retired_reason)
+        self.assertEqual({'retired': False, 'retired_reason': None},
+                         node.obj_get_changes())
+
+    def test_retired_supported_set(self):
+        # retired set, no change required.
+        node = obj_utils.get_test_node(self.ctxt, **self.fake_node)
+
+        node.retired = True
+        node.retired_reason = 'a reason'
+        node.obj_reset_changes()
+        node._convert_to_version("1.33")
+        self.assertTrue(node.retired)
+        self.assertEqual('a reason', node.retired_reason)
+        self.assertEqual({}, node.obj_get_changes())
+
+    def test_retired_unsupported_missing(self):
+        # retired not set, no change required.
+        node = obj_utils.get_test_node(self.ctxt, **self.fake_node)
+
+        delattr(node, 'retired')
+        delattr(node, 'retired_reason')
+        node.obj_reset_changes()
+        node._convert_to_version("1.32")
+        self.assertNotIn('retired', node)
+        self.assertNotIn('retired_reason', node)
+        self.assertEqual({}, node.obj_get_changes())
+
+    def test_retired_unsupported_set_remove(self):
+        node = obj_utils.get_test_node(self.ctxt, **self.fake_node)
+
+        node.retired = True
+        node.retired_reason = 'another reason'
+        node.obj_reset_changes()
+        node._convert_to_version("1.32")
+        self.assertNotIn('retired', node)
+        self.assertNotIn('retired_reason', node)
+        self.assertEqual({}, node.obj_get_changes())
+
+    def test_retired_unsupported_set_no_remove_non_default(self):
+        node = obj_utils.get_test_node(self.ctxt, **self.fake_node)
+
+        node.retired = True
+        node.retired_reason = 'yet another reason'
+        node.obj_reset_changes()
+        node._convert_to_version("1.32", False)
+        self.assertIsNone(node.automated_clean)
+        self.assertEqual({'retired': False, 'retired_reason': None},
+                         node.obj_get_changes())
+
     def test_owner_supported_missing(self):
         # owner_interface not set, should be set to default.
         node = obj_utils.get_test_node(self.ctxt, **self.fake_node)
