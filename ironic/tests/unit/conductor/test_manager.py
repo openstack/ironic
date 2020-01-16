@@ -8103,6 +8103,7 @@ class ManagerCheckInspectWaitTimeoutsTestCase(mgr_utils.CommonMixIn,
         self.task2 = self._create_task(node=self.node2)
 
         self.filters = {'reserved': False,
+                        'maintenance': False,
                         'inspection_started_before': 300,
                         'provision_state': states.INSPECTWAIT}
         self.columns = ['uuid', 'driver', 'conductor_group']

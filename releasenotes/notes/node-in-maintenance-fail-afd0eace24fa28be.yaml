@@ -1,0 +1,8 @@
+---
+fixes:
+  - |
+    If a node is in mid-deployment or cleaning and its conductor dies, ironic
+    will move that node into a failed state. However, this wasn't being done
+    if those nodes were also in maintenance. This has been fixed. See
+    `story 2007098 <https://storyboard.openstack.org/#!/story/2007098>`_ for
+    more details.

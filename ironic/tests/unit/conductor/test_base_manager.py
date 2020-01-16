@@ -521,3 +521,26 @@ class StartConsolesTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
             self.assertIsNone(test_node.last_error)
             self.assertTrue(log_mock.warning.called)
             self.assertFalse(mock_notify.called)
+
+
+class MiscTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
+    def setUp(self):
+        super(MiscTestCase, self).setUp()
+        self._start_service()
+
+    def test__fail_transient_state(self):
+        node = obj_utils.create_test_node(self.context,
+                                          driver='fake-hardware',
+                                          provision_state=states.DEPLOYING)
+        self.service._fail_transient_state(states.DEPLOYING, 'unknown err')
+        node.refresh()
+        self.assertEqual(states.DEPLOYFAIL, node.provision_state)
+
+    def test__fail_transient_state_maintenance(self):
+        node = obj_utils.create_test_node(self.context,
+                                          driver='fake-hardware',
+                                          maintenance=True,
+                                          provision_state=states.DEPLOYING)
+        self.service._fail_transient_state(states.DEPLOYING, 'unknown err')
+        node.refresh()
+        self.assertEqual(states.DEPLOYFAIL, node.provision_state)
