@@ -24,7 +24,7 @@ The description of each jobs that runs in the CI when you submit a patch for
    * - ironic-tempest-functional-python3
      - Deploys Ironic in standalone mode and runs tempest functional tests
        that matches the regex `ironic_tempest_plugin.tests.api` under Python3
-   * - ironic-grenade-dsvm
+   * - ironic-grenade
      - Deploys Ironic in a DevStack and runs upgrade for all enabled services.
    * - ironic-grenade-dsvm-multinode-multitenant
      - Deploys Ironic in a multinode DevStack and runs upgrade for all enabled
