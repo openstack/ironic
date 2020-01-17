@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    Corrects logic in the entry path of node cleaning and deployment
+    processes to prohibit ``agent_url`` from being preemptively removed
+    if ``fast_track`` is enabled and in use. This allows fast track cleaning
+    and deployment operations to succeed.

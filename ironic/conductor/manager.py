@@ -820,8 +820,10 @@ class ConductorManager(base_manager.BaseConductorManager):
         with task_manager.acquire(context, node_id, shared=False,
                                   purpose='node deployment') as task:
             node = task.node
-            # Record of any pre-existing agent_url should be removed.
-            utils.remove_agent_url(node)
+            # Record of any pre-existing agent_url should be removed
+            # except when we are in fast track conditions.
+            if not utils.is_fast_track(task):
+                utils.remove_agent_url(node)
             if node.maintenance:
                 raise exception.NodeInMaintenance(op=_('provisioning'),
                                                   node=node.uuid)
@@ -1174,7 +1176,10 @@ class ConductorManager(base_manager.BaseConductorManager):
                                   purpose='node manual cleaning') as task:
             node = task.node
             # Record of any pre-existing agent_url should be removed.
-            utils.remove_agent_url(node)
+            if not utils.is_fast_track(task):
+                # If clean->clean with an online agent, we should honor
+                # the operating agent and not prevent the action.
+                utils.remove_agent_url(node)
             if node.maintenance:
                 raise exception.NodeInMaintenance(op=_('cleaning'),
                                                   node=node.uuid)
