@@ -1754,6 +1754,41 @@ class ServiceDoNodeDeployTestCase(mgr_utils.ServiceSetUpMixin,
             mock_iwdi.assert_called_once_with(self.context, node.instance_info)
             self.assertFalse(node.driver_internal_info['is_whole_disk_image'])
 
+    @mock.patch('ironic.drivers.modules.fake.FakeDeploy.deploy')
+    @mock.patch('ironic.conductor.utils.remove_agent_url')
+    @mock.patch('ironic.conductor.utils.is_fast_track')
+    def test_do_node_deploy_fast_track(self, mock_is_fast_track,
+                                       mock_remove_agent_url,
+                                       mock_deploy, mock_iwdi):
+        # TODO(rloo): delete this after the deprecation period for supporting
+        # non deploy_steps.
+        # Mocking FakeDeploy.deploy before starting the service, causes
+        # it not to be a deploy_step.
+        mock_iwdi.return_value = False
+        mock_is_fast_track.return_value = True
+        self._start_service()
+        mock_deploy.return_value = states.DEPLOYDONE
+        node = obj_utils.create_test_node(
+            self.context, driver='fake-hardware',
+            driver_internal_info={'agent_url': 'meow'},
+            provision_state=states.AVAILABLE,
+            target_provision_state=states.NOSTATE)
+
+        self.service.do_node_deploy(self.context, node.uuid)
+        self._stop_service()
+        node.refresh()
+        self.assertEqual(states.ACTIVE, node.provision_state)
+        self.assertEqual(states.NOSTATE, node.target_provision_state)
+        # last_error should be None.
+        self.assertIsNone(node.last_error)
+        # Verify reservation has been cleared.
+        self.assertIsNone(node.reservation)
+        mock_deploy.assert_called_once_with(mock.ANY)
+        mock_iwdi.assert_called_once_with(self.context, node.instance_info)
+        self.assertFalse(node.driver_internal_info['is_whole_disk_image'])
+        mock_is_fast_track.assert_called_once_with(mock.ANY)
+        mock_remove_agent_url.assert_not_called()
+
 
 @mgr_utils.mock_record_keepalive
 class ContinueNodeDeployTestCase(mgr_utils.ServiceSetUpMixin,
@@ -3452,6 +3487,37 @@ class DoNodeCleanTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         self.assertEqual(states.MANAGEABLE, node.target_provision_state)
         self.assertNotIn('clean_steps', node.driver_internal_info)
         self.assertIsNone(node.last_error)
+
+    @mock.patch('ironic.conductor.utils.remove_agent_url')
+    @mock.patch('ironic.conductor.utils.is_fast_track')
+    @mock.patch('ironic.conductor.manager.ConductorManager._spawn_worker',
+                autospec=True)
+    @mock.patch('ironic.drivers.modules.network.flat.FlatNetwork.validate',
+                autospec=True)
+    @mock.patch('ironic.drivers.modules.fake.FakePower.validate',
+                autospec=True)
+    def test_do_node_clean_ok_fast_track(
+            self, mock_power_valid, mock_network_valid, mock_spawn,
+            mock_is_fast_track, mock_remove_agent_url):
+        node = obj_utils.create_test_node(
+            self.context, driver='fake-hardware',
+            provision_state=states.MANAGEABLE,
+            driver_internal_info={'agent_url': 'meow'})
+        mock_is_fast_track.return_value = True
+        self._start_service()
+        clean_steps = [self.deploy_raid]
+        self.service.do_node_clean(self.context, node.uuid, clean_steps)
+        mock_power_valid.assert_called_once_with(mock.ANY, mock.ANY)
+        mock_network_valid.assert_called_once_with(mock.ANY, mock.ANY)
+        mock_spawn.assert_called_with(
+            self.service, self.service._do_node_clean, mock.ANY, clean_steps)
+        node.refresh()
+        # Node will be moved to CLEANING
+        self.assertEqual(states.CLEANING, node.provision_state)
+        self.assertEqual(states.MANAGEABLE, node.target_provision_state)
+        self.assertNotIn('clean_steps', node.driver_internal_info)
+        mock_is_fast_track.assert_called_once_with(mock.ANY)
+        mock_remove_agent_url.assert_not_called()
 
     @mock.patch('ironic.conductor.manager.ConductorManager._spawn_worker',
                 autospec=True)
