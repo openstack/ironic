@@ -229,7 +229,7 @@ def _parse_partitioning_info(node):
 
 def _parse_root_device_hints(node):
     """Convert string with hints to dict. """
-    root_device = node.properties.get('root_device')
+    root_device = deploy_utils.get_root_device_for_deploy(node)
     if not root_device:
         return {}
     try:

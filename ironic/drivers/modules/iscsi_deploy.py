@@ -321,7 +321,7 @@ def validate(task):
     deploy_utils.get_ironic_api_url()
     # Validate the root device hints
     try:
-        root_device = task.node.properties.get('root_device')
+        root_device = deploy_utils.get_root_device_for_deploy(task.node)
         il_utils.parse_root_device_hints(root_device)
     except ValueError as e:
         raise exception.InvalidParameterValue(

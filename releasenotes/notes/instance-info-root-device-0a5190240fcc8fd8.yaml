@@ -1,0 +1,6 @@
+---
+features:
+  - |
+    Allows reading the ``root_device`` from ``instance_info``, overriding
+    the value in ``properties``. This enables per-instance root device
+    settings and requires the Ussuri release of ironic-python-agent.

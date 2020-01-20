@@ -277,6 +277,22 @@ class TestAgentDeploy(db_base.DbTestCase):
                        autospec=True)
     @mock.patch.object(images, 'image_show', autospec=True)
     @mock.patch.object(pxe.PXEBoot, 'validate', autospec=True)
+    def test_validate_invalid_root_device_hints_iinfo(
+            self, pxe_boot_validate_mock, show_mock, validate_http_mock):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            task.node.instance_info['root_device'] = {'size': 'not-int'}
+            self.assertRaises(exception.InvalidParameterValue,
+                              task.driver.deploy.validate, task)
+            pxe_boot_validate_mock.assert_called_once_with(
+                task.driver.boot, task)
+            show_mock.assert_called_once_with(self.context, 'fake-image')
+            validate_http_mock.assert_called_once_with(task.node)
+
+    @mock.patch.object(agent, 'validate_http_provisioning_configuration',
+                       autospec=True)
+    @mock.patch.object(images, 'image_show', autospec=True)
+    @mock.patch.object(pxe.PXEBoot, 'validate', autospec=True)
     def test_validate_invalid_proxies(self, pxe_boot_validate_mock, show_mock,
                                       validate_http_mock):
         with task_manager.acquire(self.context, self.node.uuid,

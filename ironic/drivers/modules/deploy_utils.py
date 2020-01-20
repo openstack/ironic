@@ -1500,3 +1500,9 @@ def set_async_step_flags(node, reboot=None, skip_current_step=None,
         info[fields['polling']] = polling
     node.driver_internal_info = info
     node.save()
+
+
+def get_root_device_for_deploy(node):
+    """Get a root device requested for deployment or None."""
+    return (node.instance_info.get('root_device')
+            or node.properties.get('root_device'))
