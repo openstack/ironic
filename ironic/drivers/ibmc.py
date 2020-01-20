@@ -25,6 +25,8 @@ from ironic.drivers.modules import noop
 class IBMCHardware(generic.GenericHardware):
     """Huawei iBMC hardware type."""
 
+    supported = False
+
     @property
     def supported_management_interfaces(self):
         """List of supported management interfaces."""
