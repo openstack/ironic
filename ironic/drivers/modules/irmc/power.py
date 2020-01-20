@@ -208,6 +208,8 @@ def _set_power_state(task, target_state, timeout=None):
 class IRMCPower(base.PowerInterface):
     """Interface for power-related actions."""
 
+    supported = False
+
     def get_properties(self):
         """Return the properties of the interface.
 
