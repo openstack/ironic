@@ -77,11 +77,10 @@ def parse_driver_info(node):
 
     # Validate the iBMC address
     address = driver_info['ibmc_address']
-    parsed = netutils.urlsplit(address)
-    if not parsed.scheme:
+    if '://' not in address:
         address = 'https://%s' % address
-        parsed = netutils.urlsplit(address)
 
+    parsed = netutils.urlsplit(address)
     if not parsed.netloc:
         raise exception.InvalidParameterValue(
             _('Invalid iBMC address %(address)s set in '

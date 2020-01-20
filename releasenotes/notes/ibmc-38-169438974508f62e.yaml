@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    Fixes incorrect parsing of ``ibmc_address`` with a port but without
+    a schema in the ``ibmc`` hardware type on Python 3.8.
