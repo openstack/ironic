@@ -17,7 +17,6 @@ from urllib import parse as urlparse
 
 from ironic_lib import disk_utils
 from ironic_lib import metrics_utils
-from ironic_lib import utils as il_utils
 from oslo_log import log as logging
 from oslo_utils import excutils
 
@@ -320,14 +319,7 @@ def validate(task):
     # TODO(lucasagomes): Validate the format of the URL
     deploy_utils.get_ironic_api_url()
     # Validate the root device hints
-    try:
-        root_device = deploy_utils.get_root_device_for_deploy(task.node)
-        il_utils.parse_root_device_hints(root_device)
-    except ValueError as e:
-        raise exception.InvalidParameterValue(
-            _('Failed to validate the root device hints for node '
-              '%(node)s. Error: %(error)s') % {'node': task.node.uuid,
-                                               'error': e})
+    deploy_utils.get_root_device_for_deploy(task.node)
     deploy_utils.parse_instance_info(task.node)
 
 

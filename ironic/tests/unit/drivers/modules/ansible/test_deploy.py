@@ -369,6 +369,22 @@ class TestAnsibleMethods(AnsibleDeployTestCaseBase):
             self.assertEqual(
                 expected, ansible_deploy._parse_root_device_hints(task.node))
 
+    def test__parse_root_device_hints_override(self):
+        hints = {"wwn": "fake wwn", "size": "12345", "rotational": True,
+                 "serial": "HELLO"}
+        expected = {"wwn": "fake wwn", "size": 12345, "rotational": True,
+                    "serial": "hello"}
+        props = self.node.properties
+        props['root_device'] = {'size': 'no idea'}
+        self.node.properties = props
+        iinfo = self.node.instance_info
+        iinfo['root_device'] = hints
+        self.node.instance_info = iinfo
+        self.node.save()
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            self.assertEqual(
+                expected, ansible_deploy._parse_root_device_hints(task.node))
+
     def test__parse_root_device_hints_fail_advanced(self):
         hints = {"wwn": "s!= fake wwn",
                  "size": ">= 12345",

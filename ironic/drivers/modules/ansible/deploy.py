@@ -229,15 +229,10 @@ def _parse_partitioning_info(node):
 
 def _parse_root_device_hints(node):
     """Convert string with hints to dict. """
-    root_device = deploy_utils.get_root_device_for_deploy(node)
-    if not root_device:
+    parsed_hints = deploy_utils.get_root_device_for_deploy(node)
+    if not parsed_hints:
         return {}
-    try:
-        parsed_hints = irlib_utils.parse_root_device_hints(root_device)
-    except ValueError as e:
-        raise exception.InvalidParameterValue(
-            _('Failed to validate the root device hints for node %(node)s. '
-              'Error: %(error)s') % {'node': node.uuid, 'error': e})
+
     root_device_hints = {}
     advanced = {}
     for hint, value in parsed_hints.items():
