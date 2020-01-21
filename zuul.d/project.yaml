@@ -41,7 +41,7 @@
             voting: false
         - ironic-tempest-ipa-wholedisk-bios-ipmi-direct-dib:
             voting: false
-        - bifrost-integration-tinyipa-ubuntu-xenial:
+        - bifrost-integration-tinyipa-ubuntu-bionic:
             voting: false
         - ironic-tempest-pxe_ipmitool-postgres:
             voting: false
