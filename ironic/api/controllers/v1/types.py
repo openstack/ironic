@@ -24,6 +24,7 @@ from oslo_utils import uuidutils
 import wsme
 from wsme import types as wtypes
 
+from ironic.api.controllers import base
 from ironic.api.controllers.v1 import utils as v1_utils
 from ironic.common import exception
 from ironic.common.i18n import _
@@ -192,7 +193,7 @@ listtype = ListType()
 jsontype = JsonType()
 
 
-class JsonPatchType(wtypes.Base):
+class JsonPatchType(base.Base):
     """A complex type that represents a single json-patch operation."""
 
     path = wtypes.wsattr(wtypes.StringType(pattern='^(/[\\w-]+)+$'),

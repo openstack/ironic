@@ -84,7 +84,7 @@ def hide_fields_in_newer_versions(obj):
         obj.enabled_bios_interfaces = wsme.Unset
 
 
-class Driver(base.APIBase):
+class Driver(base.Base):
     """API representation of a driver."""
 
     name = str
@@ -209,7 +209,7 @@ class Driver(base.APIBase):
         return sample
 
 
-class DriverList(base.APIBase):
+class DriverList(base.Base):
     """API representation of a list of drivers."""
 
     drivers = [Driver]

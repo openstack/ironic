@@ -20,7 +20,7 @@ from ironic.api.controllers import base
 from ironic.api.controllers import link
 
 
-class Collection(base.APIBase):
+class Collection(base.Base):
 
     next = str
     """A link to retrieve the next subset of the collection"""

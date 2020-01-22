@@ -17,7 +17,7 @@ from ironic.api.controllers import link
 ID_VERSION1 = 'v1'
 
 
-class Version(base.APIBase):
+class Version(base.Base):
     """An API version representation.
 
     This class represents an API version, including the minimum and

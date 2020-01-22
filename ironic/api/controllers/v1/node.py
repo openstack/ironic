@@ -309,7 +309,7 @@ class NodeManagementController(rest.RestController):
     """Expose inject_nmi as a sub-element of management"""
 
 
-class ConsoleInfo(base.APIBase):
+class ConsoleInfo(base.Base):
     """API representation of the console information for a node."""
 
     console_enabled = types.boolean
@@ -1454,7 +1454,7 @@ class NodeMaintenanceController(rest.RestController):
 
 # NOTE(vsaienko) We don't support pagination with VIFs, so we don't use
 # collection.Collection here.
-class VifCollection(wtypes.Base):
+class VifCollection(base.Base):
     """API representation of a collection of VIFs. """
 
     vifs = [types.viftype]
