@@ -29,6 +29,7 @@ def register_all():
     __import__('ironic.objects.chassis')
     __import__('ironic.objects.conductor')
     __import__('ironic.objects.deploy_template')
+    __import__('ironic.objects.deployment')
     __import__('ironic.objects.node')
     __import__('ironic.objects.port')
     __import__('ironic.objects.portgroup')

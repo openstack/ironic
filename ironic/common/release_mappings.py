@@ -238,6 +238,7 @@ RELEASE_MAPPING = {
             'Node': ['1.34'],
             'Conductor': ['1.3'],
             'Chassis': ['1.3'],
+            'Deployment': ['1.0'],
             'DeployTemplate': ['1.1'],
             'Port': ['1.9'],
             'Portgroup': ['1.4'],

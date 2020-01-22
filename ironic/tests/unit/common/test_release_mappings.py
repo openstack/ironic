@@ -91,6 +91,8 @@ class ReleaseMappingsTestCase(base.TestCase):
         model_names -= exceptions
         # NodeTrait maps to two objects
         model_names |= set(['Trait', 'TraitList'])
+        # Deployment is purely virtual.
+        model_names.add('Deployment')
         object_names = set(
             release_mappings.RELEASE_MAPPING['master']['objects'])
         self.assertEqual(model_names, object_names)
