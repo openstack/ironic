@@ -16,7 +16,6 @@
 
 import pecan
 from pecan import rest
-from wsme import types as wtypes
 
 from ironic.api.controllers import base
 from ironic.api.controllers import v1
@@ -26,10 +25,10 @@ from ironic.api import expose
 
 class Root(base.APIBase):
 
-    name = wtypes.text
+    name = str
     """The name of the API"""
 
-    description = wtypes.text
+    description = str
     """Some information about this API"""
 
     versions = [version.Version]

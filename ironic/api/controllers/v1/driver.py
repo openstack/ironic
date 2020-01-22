@@ -18,7 +18,6 @@ from http import client as http_client
 from ironic_lib import metrics_utils
 from pecan import rest
 import wsme
-from wsme import types as wtypes
 
 from ironic import api
 from ironic.api.controllers import base
@@ -88,13 +87,13 @@ def hide_fields_in_newer_versions(obj):
 class Driver(base.APIBase):
     """API representation of a driver."""
 
-    name = wtypes.text
+    name = str
     """The name of the driver"""
 
-    hosts = [wtypes.text]
+    hosts = [str]
     """A list of active conductors that support this driver"""
 
-    type = wtypes.text
+    type = str
     """Whether the driver is classic or dynamic (hardware type)"""
 
     links = wsme.wsattr([link.Link], readonly=True)
@@ -104,32 +103,32 @@ class Driver(base.APIBase):
     """A list containing links to driver properties"""
 
     """Default interface for a hardware type"""
-    default_bios_interface = wtypes.text
-    default_boot_interface = wtypes.text
-    default_console_interface = wtypes.text
-    default_deploy_interface = wtypes.text
-    default_inspect_interface = wtypes.text
-    default_management_interface = wtypes.text
-    default_network_interface = wtypes.text
-    default_power_interface = wtypes.text
-    default_raid_interface = wtypes.text
-    default_rescue_interface = wtypes.text
-    default_storage_interface = wtypes.text
-    default_vendor_interface = wtypes.text
+    default_bios_interface = str
+    default_boot_interface = str
+    default_console_interface = str
+    default_deploy_interface = str
+    default_inspect_interface = str
+    default_management_interface = str
+    default_network_interface = str
+    default_power_interface = str
+    default_raid_interface = str
+    default_rescue_interface = str
+    default_storage_interface = str
+    default_vendor_interface = str
 
     """A list of enabled interfaces for a hardware type"""
-    enabled_bios_interfaces = [wtypes.text]
-    enabled_boot_interfaces = [wtypes.text]
-    enabled_console_interfaces = [wtypes.text]
-    enabled_deploy_interfaces = [wtypes.text]
-    enabled_inspect_interfaces = [wtypes.text]
-    enabled_management_interfaces = [wtypes.text]
-    enabled_network_interfaces = [wtypes.text]
-    enabled_power_interfaces = [wtypes.text]
-    enabled_raid_interfaces = [wtypes.text]
-    enabled_rescue_interfaces = [wtypes.text]
-    enabled_storage_interfaces = [wtypes.text]
-    enabled_vendor_interfaces = [wtypes.text]
+    enabled_bios_interfaces = [str]
+    enabled_boot_interfaces = [str]
+    enabled_console_interfaces = [str]
+    enabled_deploy_interfaces = [str]
+    enabled_inspect_interfaces = [str]
+    enabled_management_interfaces = [str]
+    enabled_network_interfaces = [str]
+    enabled_power_interfaces = [str]
+    enabled_raid_interfaces = [str]
+    enabled_rescue_interfaces = [str]
+    enabled_storage_interfaces = [str]
+    enabled_vendor_interfaces = [str]
 
     @staticmethod
     def convert_with_links(name, hosts, detail=False, interface_info=None):
@@ -269,7 +268,7 @@ class DriverPassthruController(rest.RestController):
     }
 
     @METRICS.timer('DriverPassthruController.methods')
-    @expose.expose(wtypes.text, wtypes.text)
+    @expose.expose(str, str)
     def methods(self, driver_name):
         """Retrieve information about vendor methods of the given driver.
 
@@ -291,8 +290,8 @@ class DriverPassthruController(rest.RestController):
         return _VENDOR_METHODS[driver_name]
 
     @METRICS.timer('DriverPassthruController._default')
-    @expose.expose(wtypes.text, wtypes.text, wtypes.text,
-                   body=wtypes.text)
+    @expose.expose(str, str, str,
+                   body=str)
     def _default(self, driver_name, method, data=None):
         """Call a driver API extension.
 
@@ -316,7 +315,7 @@ class DriverRaidController(rest.RestController):
     }
 
     @METRICS.timer('DriverRaidController.logical_disk_properties')
-    @expose.expose(types.jsontype, wtypes.text)
+    @expose.expose(types.jsontype, str)
     def logical_disk_properties(self, driver_name):
         """Returns the logical disk properties for the driver.
 
@@ -365,7 +364,7 @@ class DriversController(rest.RestController):
     }
 
     @METRICS.timer('DriversController.get_all')
-    @expose.expose(DriverList, wtypes.text, types.boolean)
+    @expose.expose(DriverList, str, types.boolean)
     def get_all(self, type=None, detail=None):
         """Retrieve a list of drivers."""
         # FIXME(deva): formatting of the auto-generated REST API docs
@@ -391,7 +390,7 @@ class DriversController(rest.RestController):
         return DriverList.convert_with_links(hw_type_dict, detail=detail)
 
     @METRICS.timer('DriversController.get_one')
-    @expose.expose(Driver, wtypes.text)
+    @expose.expose(Driver, str)
     def get_one(self, driver_name):
         """Retrieve a single driver."""
         # NOTE(russell_h): There is no way to make this more efficient than
@@ -410,7 +409,7 @@ class DriversController(rest.RestController):
         raise exception.DriverNotFound(driver_name=driver_name)
 
     @METRICS.timer('DriversController.properties')
-    @expose.expose(wtypes.text, wtypes.text)
+    @expose.expose(str, str)
     def properties(self, driver_name):
         """Retrieve property information of the given driver.
 

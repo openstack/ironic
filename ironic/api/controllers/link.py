@@ -34,13 +34,13 @@ def build_url(resource, resource_args, bookmark=False, base_url=None):
 class Link(base.APIBase):
     """A link representation."""
 
-    href = wtypes.text
+    href = str
     """The url of a link."""
 
-    rel = wtypes.text
+    rel = str
     """The name of a link."""
 
-    type = wtypes.text
+    type = str
     """Indicates the type of document/link."""
 
     @staticmethod

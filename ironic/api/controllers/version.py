@@ -10,8 +10,6 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-from wsme import types as wtypes
-
 from ironic import api
 from ironic.api.controllers import base
 from ironic.api.controllers import link
@@ -26,13 +24,13 @@ class Version(base.APIBase):
     maximum minor versions that are supported within the major version.
     """
 
-    id = wtypes.text
+    id = str
     """The ID of the (major) version, also acts as the release number"""
 
     links = [link.Link]
     """A Link that point to a specific version of the API"""
 
-    status = wtypes.text
+    status = str
     """Status of the version.
 
     One of:
@@ -41,10 +39,10 @@ class Version(base.APIBase):
     * DEPRECATED - supported, but deprecated, version of API.
     """
 
-    version = wtypes.text
+    version = str
     """The current, maximum supported (major.minor) version of API."""
 
-    min_version = wtypes.text
+    min_version = str
     """Minimum supported (major.minor) version of API."""
 
     def __init__(self, id, min_version, version, status='CURRENT'):

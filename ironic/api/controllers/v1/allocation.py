@@ -54,39 +54,39 @@ class Allocation(base.APIBase):
     uuid = types.uuid
     """Unique UUID for this allocation"""
 
-    extra = {wtypes.text: types.jsontype}
+    extra = {str: types.jsontype}
     """This allocation's meta data"""
 
     node_uuid = wsme.wsattr(types.uuid, readonly=True)
     """The UUID of the node this allocation belongs to"""
 
-    node = wsme.wsattr(wtypes.text)
+    node = wsme.wsattr(str)
     """The node to backfill the allocation for (POST only)"""
 
-    name = wsme.wsattr(wtypes.text)
+    name = wsme.wsattr(str)
     """The logical name for this allocation"""
 
     links = wsme.wsattr([link.Link], readonly=True)
     """A list containing a self link and associated allocation links"""
 
-    state = wsme.wsattr(wtypes.text, readonly=True)
+    state = wsme.wsattr(str, readonly=True)
     """The current state of the allocation"""
 
-    last_error = wsme.wsattr(wtypes.text, readonly=True)
+    last_error = wsme.wsattr(str, readonly=True)
     """Last error that happened to this allocation"""
 
     resource_class = wsme.wsattr(wtypes.StringType(max_length=80))
     """Requested resource class for this allocation"""
 
-    owner = wsme.wsattr(wtypes.text)
+    owner = wsme.wsattr(str)
     """Owner of allocation"""
 
     # NOTE(dtantsur): candidate_nodes is a list of UUIDs on the database level,
     # but the API level also accept names, converting them on fly.
-    candidate_nodes = wsme.wsattr([wtypes.text])
+    candidate_nodes = wsme.wsattr([str])
     """Candidate nodes for this allocation"""
 
-    traits = wsme.wsattr([wtypes.text])
+    traits = wsme.wsattr([str])
     """Requested traits for the allocation"""
 
     def __init__(self, **kwargs):
@@ -311,9 +311,9 @@ class AllocationsController(pecan.rest.RestController):
             raise exception.NotAcceptable()
 
     @METRICS.timer('AllocationsController.get_all')
-    @expose.expose(AllocationCollection, types.uuid_or_name, wtypes.text,
-                   wtypes.text, types.uuid, int, wtypes.text, wtypes.text,
-                   types.listtype, wtypes.text)
+    @expose.expose(AllocationCollection, types.uuid_or_name, str,
+                   str, types.uuid, int, str, str,
+                   types.listtype, str)
     def get_all(self, node=None, resource_class=None, state=None, marker=None,
                 limit=None, sort_key='id', sort_dir='asc', fields=None,
                 owner=None):

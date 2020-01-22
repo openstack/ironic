@@ -45,7 +45,7 @@ METRICS = metrics_utils.get_metrics_logger(__name__)
 _DEFAULT_RETURN_FIELDS = ('uuid', 'name')
 
 _DEPLOY_INTERFACE_TYPE = wtypes.Enum(
-    wtypes.text, *conductor_steps.DEPLOYING_INTERFACE_PRIORITY)
+    str, *conductor_steps.DEPLOYING_INTERFACE_PRIORITY)
 
 
 class DeployStepType(wtypes.Base, base.AsDictMixin):
@@ -53,9 +53,9 @@ class DeployStepType(wtypes.Base, base.AsDictMixin):
 
     interface = wsme.wsattr(_DEPLOY_INTERFACE_TYPE, mandatory=True)
 
-    step = wsme.wsattr(wtypes.text, mandatory=True)
+    step = wsme.wsattr(str, mandatory=True)
 
-    args = wsme.wsattr({wtypes.text: types.jsontype}, mandatory=True)
+    args = wsme.wsattr({str: types.jsontype}, mandatory=True)
 
     priority = wsme.wsattr(wtypes.IntegerType(0), mandatory=True)
 
@@ -77,7 +77,7 @@ class DeployTemplate(base.APIBase):
     uuid = types.uuid
     """Unique UUID for this deploy template."""
 
-    name = wsme.wsattr(wtypes.text, mandatory=True)
+    name = wsme.wsattr(str, mandatory=True)
     """The logical name for this deploy template."""
 
     steps = wsme.wsattr([DeployStepType], mandatory=True)
@@ -86,7 +86,7 @@ class DeployTemplate(base.APIBase):
     links = wsme.wsattr([link.Link])
     """A list containing a self link and associated deploy template links."""
 
-    extra = {wtypes.text: types.jsontype}
+    extra = {str: types.jsontype}
     """This deploy template's meta data"""
 
     def __init__(self, **kwargs):
@@ -285,8 +285,8 @@ class DeployTemplatesController(rest.RestController):
                 rpc_template[field] = patch_val
 
     @METRICS.timer('DeployTemplatesController.get_all')
-    @expose.expose(DeployTemplateCollection, types.name, int, wtypes.text,
-                   wtypes.text, types.listtype, types.boolean)
+    @expose.expose(DeployTemplateCollection, types.name, int, str,
+                   str, types.listtype, types.boolean)
     def get_all(self, marker=None, limit=None, sort_key='id', sort_dir='asc',
                 fields=None, detail=None):
         """Retrieve a list of deploy templates.

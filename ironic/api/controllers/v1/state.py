@@ -13,21 +13,19 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-from wsme import types as wtypes
-
 from ironic.api.controllers import base
 from ironic.api.controllers import link
 
 
 class State(base.APIBase):
 
-    current = wtypes.text
+    current = str
     """The current state"""
 
-    target = wtypes.text
+    target = str
     """The user modified desired state"""
 
-    available = [wtypes.text]
+    available = [str]
     """A list of available states it is able to transition to"""
 
     links = [link.Link]

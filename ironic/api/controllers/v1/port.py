@@ -133,10 +133,10 @@ class Port(base.APIBase):
     address = wsme.wsattr(types.macaddress, mandatory=True)
     """MAC Address for this port"""
 
-    extra = {wtypes.text: types.jsontype}
+    extra = {str: types.jsontype}
     """This port's meta data"""
 
-    internal_info = wsme.wsattr({wtypes.text: types.jsontype}, readonly=True)
+    internal_info = wsme.wsattr({str: types.jsontype}, readonly=True)
     """This port's internal information maintained by ironic"""
 
     node_uuid = wsme.wsproperty(types.uuid, _get_node_uuid, _set_node_uuid,
@@ -439,8 +439,8 @@ class PortsController(rest.RestController):
 
     @METRICS.timer('PortsController.get_all')
     @expose.expose(PortCollection, types.uuid_or_name, types.uuid,
-                   types.macaddress, types.uuid, int, wtypes.text,
-                   wtypes.text, types.listtype, types.uuid_or_name,
+                   types.macaddress, types.uuid, int, str,
+                   str, types.listtype, types.uuid_or_name,
                    types.boolean)
     def get_all(self, node=None, node_uuid=None, address=None, marker=None,
                 limit=None, sort_key='id', sort_dir='asc', fields=None,
@@ -497,8 +497,8 @@ class PortsController(rest.RestController):
 
     @METRICS.timer('PortsController.detail')
     @expose.expose(PortCollection, types.uuid_or_name, types.uuid,
-                   types.macaddress, types.uuid, int, wtypes.text,
-                   wtypes.text, types.uuid_or_name)
+                   types.macaddress, types.uuid, int, str,
+                   str, types.uuid_or_name)
     def detail(self, node=None, node_uuid=None, address=None, marker=None,
                limit=None, sort_key='id', sort_dir='asc', portgroup=None):
         """Retrieve a list of ports with detail.

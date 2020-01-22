@@ -22,7 +22,7 @@ from ironic.api.controllers import link
 
 class Collection(base.APIBase):
 
-    next = wtypes.text
+    next = str
     """A link to retrieve the next subset of the collection"""
 
     @property

@@ -21,7 +21,6 @@ import platform
 import mock
 import webtest
 import wsme
-from wsme import types as wtypes
 
 from ironic.api.controllers.v1 import types
 from ironic.common import exception
@@ -89,7 +88,7 @@ class TestUuidOrNameType(base.TestCase):
 
 class MyBaseType(object):
     """Helper class, patched by objects of type MyPatchType"""
-    mandatory = wsme.wsattr(wtypes.text, mandatory=True)
+    mandatory = wsme.wsattr(str, mandatory=True)
 
 
 class MyPatchType(types.JsonPatchType):
@@ -105,7 +104,7 @@ class MyPatchType(types.JsonPatchType):
 class MyRoot(wsme.WSRoot):
     """Helper class for TestJsonPatchType tests."""
 
-    @wsme.expose([wsme.types.text], body=[MyPatchType])
+    @wsme.expose([str], body=[MyPatchType])
     @wsme.validate([MyPatchType])
     def test(self, patch):
         return patch
@@ -263,7 +262,7 @@ class TestJsonType(base.TestCase):
 
     def test_apimultitype_tostring(self):
         vts = str(types.jsontype)
-        self.assertIn(str(wtypes.text), vts)
+        self.assertIn(str(str), vts)
         self.assertIn(str(int), vts)
         self.assertIn(str(float), vts)
         self.assertIn(str(types.BooleanType), vts)

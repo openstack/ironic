@@ -17,7 +17,6 @@ from http import client as http_client
 from oslo_config import cfg
 from oslo_log import log
 from pecan import rest
-from wsme import types as wtypes
 
 from ironic import api
 from ironic.api.controllers import base
@@ -63,7 +62,7 @@ class LookupResult(base.APIBase):
     node = node_ctl.Node
     """The short node representation."""
 
-    config = {wtypes.text: types.jsontype}
+    config = {str: types.jsontype}
     """The configuration to pass to the ramdisk."""
 
     @classmethod
@@ -156,8 +155,8 @@ class LookupController(rest.RestController):
 class HeartbeatController(rest.RestController):
     """Controller handling heartbeats from deploy ramdisk."""
 
-    @expose.expose(None, types.uuid_or_name, wtypes.text,
-                   wtypes.text, status_code=http_client.ACCEPTED)
+    @expose.expose(None, types.uuid_or_name, str,
+                   str, status_code=http_client.ACCEPTED)
     def post(self, node_ident, callback_url, agent_version=None):
         """Process a heartbeat from the deploy ramdisk.
 

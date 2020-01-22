@@ -78,17 +78,17 @@ class Portgroup(base.APIBase):
     address = wsme.wsattr(types.macaddress)
     """MAC Address for this portgroup"""
 
-    extra = {wtypes.text: types.jsontype}
+    extra = {str: types.jsontype}
     """This portgroup's meta data"""
 
-    internal_info = wsme.wsattr({wtypes.text: types.jsontype}, readonly=True)
+    internal_info = wsme.wsattr({str: types.jsontype}, readonly=True)
     """This portgroup's internal info"""
 
     node_uuid = wsme.wsproperty(types.uuid, _get_node_uuid, _set_node_uuid,
                                 mandatory=True)
     """The UUID of the node this portgroup belongs to"""
 
-    name = wsme.wsattr(wtypes.text)
+    name = wsme.wsattr(str)
     """The logical name for this portgroup"""
 
     links = wsme.wsattr([link.Link], readonly=True)
@@ -98,12 +98,12 @@ class Portgroup(base.APIBase):
     """Indicates whether ports of this portgroup may be used as
        single NIC ports"""
 
-    mode = wsme.wsattr(wtypes.text)
+    mode = wsme.wsattr(str)
     """The mode for this portgroup. See linux bonding
     documentation for details:
     https://www.kernel.org/doc/Documentation/networking/bonding.txt"""
 
-    properties = {wtypes.text: types.jsontype}
+    properties = {str: types.jsontype}
     """This portgroup's properties"""
 
     ports = wsme.wsattr([link.Link], readonly=True)
@@ -359,7 +359,7 @@ class PortgroupsController(pecan.rest.RestController):
 
     @METRICS.timer('PortgroupsController.get_all')
     @expose.expose(PortgroupCollection, types.uuid_or_name, types.macaddress,
-                   types.uuid, int, wtypes.text, wtypes.text, types.listtype,
+                   types.uuid, int, str, str, types.listtype,
                    types.boolean)
     def get_all(self, node=None, address=None, marker=None,
                 limit=None, sort_key='id', sort_dir='asc', fields=None,
@@ -400,7 +400,7 @@ class PortgroupsController(pecan.rest.RestController):
 
     @METRICS.timer('PortgroupsController.detail')
     @expose.expose(PortgroupCollection, types.uuid_or_name, types.macaddress,
-                   types.uuid, int, wtypes.text, wtypes.text)
+                   types.uuid, int, str, str)
     def detail(self, node=None, address=None, marker=None,
                limit=None, sort_key='id', sort_dir='asc'):
         """Retrieve a list of portgroups with detail.
