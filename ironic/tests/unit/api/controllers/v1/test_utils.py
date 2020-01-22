@@ -47,17 +47,17 @@ class TestApiUtils(base.TestCase):
         self.assertEqual(CONF.api.max_limit, limit)
 
         # negative
-        self.assertRaises(wsme.exc.ClientSideError, utils.validate_limit, -1)
+        self.assertRaises(exception.ClientSideError, utils.validate_limit, -1)
 
         # zero
-        self.assertRaises(wsme.exc.ClientSideError, utils.validate_limit, 0)
+        self.assertRaises(exception.ClientSideError, utils.validate_limit, 0)
 
     def test_validate_sort_dir(self):
         sort_dir = utils.validate_sort_dir('asc')
         self.assertEqual('asc', sort_dir)
 
         # invalid sort_dir parameter
-        self.assertRaises(wsme.exc.ClientSideError,
+        self.assertRaises(exception.ClientSideError,
                           utils.validate_sort_dir,
                           'fake-sort')
 
@@ -65,25 +65,25 @@ class TestApiUtils(base.TestCase):
         utils.validate_trait(os_traits.HW_CPU_X86_AVX2)
         utils.validate_trait("CUSTOM_1")
         utils.validate_trait("CUSTOM_TRAIT_GOLD")
-        self.assertRaises(wsme.exc.ClientSideError,
+        self.assertRaises(exception.ClientSideError,
                           utils.validate_trait, "A" * 256)
-        self.assertRaises(wsme.exc.ClientSideError,
+        self.assertRaises(exception.ClientSideError,
                           utils.validate_trait, "CuSTOM_1")
-        self.assertRaises(wsme.exc.ClientSideError,
+        self.assertRaises(exception.ClientSideError,
                           utils.validate_trait, "")
-        self.assertRaises(wsme.exc.ClientSideError,
+        self.assertRaises(exception.ClientSideError,
                           utils.validate_trait, "CUSTOM_bob")
-        self.assertRaises(wsme.exc.ClientSideError,
+        self.assertRaises(exception.ClientSideError,
                           utils.validate_trait, "CUSTOM_1-BOB")
-        self.assertRaises(wsme.exc.ClientSideError,
+        self.assertRaises(exception.ClientSideError,
                           utils.validate_trait, "aCUSTOM_1a")
         large = "CUSTOM_" + ("1" * 248)
         self.assertEqual(255, len(large))
         utils.validate_trait(large)
-        self.assertRaises(wsme.exc.ClientSideError,
+        self.assertRaises(exception.ClientSideError,
                           utils.validate_trait, large + "1")
         # Check custom error prefix.
-        self.assertRaisesRegex(wsme.exc.ClientSideError,
+        self.assertRaisesRegex(exception.ClientSideError,
                                "spongebob",
                                utils.validate_trait, "invalid", "spongebob")
 
@@ -97,7 +97,7 @@ class TestApiUtils(base.TestCase):
     def test_apply_jsonpatch_no_add_root_attr(self):
         doc = {}
         patch = [{"op": "add", "path": "/foo", "value": 42}]
-        self.assertRaisesRegex(wsme.exc.ClientSideError,
+        self.assertRaisesRegex(exception.ClientSideError,
                                "Adding a new attribute",
                                utils.apply_jsonpatch, doc, patch)
 
@@ -488,14 +488,14 @@ class TestCheckAllowFields(base.TestCase):
 
     def test_check_allow_configdrive_fails(self, mock_request):
         mock_request.version.minor = 35
-        self.assertRaises(wsme.exc.ClientSideError,
+        self.assertRaises(exception.ClientSideError,
                           utils.check_allow_configdrive, states.DELETED,
                           "abcd")
-        self.assertRaises(wsme.exc.ClientSideError,
+        self.assertRaises(exception.ClientSideError,
                           utils.check_allow_configdrive, states.ACTIVE,
                           {'meta_data': {}})
         mock_request.version.minor = 34
-        self.assertRaises(wsme.exc.ClientSideError,
+        self.assertRaises(exception.ClientSideError,
                           utils.check_allow_configdrive, states.REBUILD,
                           "abcd")
 
@@ -518,7 +518,7 @@ class TestCheckAllowFields(base.TestCase):
 
     def test_check_allow_configdrive_vendor_data_failed(self, mock_request):
         mock_request.version.minor = 58
-        self.assertRaises(wsme.exc.ClientSideError,
+        self.assertRaises(exception.ClientSideError,
                           utils.check_allow_configdrive,
                           states.ACTIVE,
                           {'meta_data': {},
@@ -528,15 +528,15 @@ class TestCheckAllowFields(base.TestCase):
 
     def test_check_allow_configdrive_as_dict_invalid(self, mock_request):
         mock_request.version.minor = 59
-        self.assertRaises(wsme.exc.ClientSideError,
+        self.assertRaises(exception.ClientSideError,
                           utils.check_allow_configdrive, states.REBUILD,
                           {'foo': 'bar'})
         for key in ['meta_data', 'network_data']:
-            self.assertRaises(wsme.exc.ClientSideError,
+            self.assertRaises(exception.ClientSideError,
                               utils.check_allow_configdrive, states.REBUILD,
                               {key: 'a string'})
         for key in ['meta_data', 'network_data', 'user_data']:
-            self.assertRaises(wsme.exc.ClientSideError,
+            self.assertRaises(exception.ClientSideError,
                               utils.check_allow_configdrive, states.REBUILD,
                               {key: 42})
 
@@ -654,7 +654,7 @@ class TestNodeIdent(base.TestCase):
 class TestVendorPassthru(base.TestCase):
 
     def test_method_not_specified(self):
-        self.assertRaises(wsme.exc.ClientSideError,
+        self.assertRaises(exception.ClientSideError,
                           utils.vendor_passthru, 'fake-ident',
                           None, 'fake-topic', data='fake-data')
 

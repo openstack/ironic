@@ -82,21 +82,21 @@ def validate_limit(limit):
         return CONF.api.max_limit
 
     if limit <= 0:
-        raise wsme.exc.ClientSideError(_("Limit must be positive"))
+        raise exception.ClientSideError(_("Limit must be positive"))
 
     return min(CONF.api.max_limit, limit)
 
 
 def validate_sort_dir(sort_dir):
     if sort_dir not in ['asc', 'desc']:
-        raise wsme.exc.ClientSideError(_("Invalid sort direction: %s. "
-                                         "Acceptable values are "
-                                         "'asc' or 'desc'") % sort_dir)
+        raise exception.ClientSideError(_("Invalid sort direction: %s. "
+                                          "Acceptable values are "
+                                          "'asc' or 'desc'") % sort_dir)
     return sort_dir
 
 
 def validate_trait(trait, error_prefix=_('Invalid trait')):
-    error = wsme.exc.ClientSideError(
+    error = exception.ClientSideError(
         _('%(error_prefix)s. A valid trait must be no longer than 255 '
           'characters. Standard traits are defined in the os_traits library. '
           'A custom trait must start with the prefix CUSTOM_ and use '
@@ -125,7 +125,7 @@ def apply_jsonpatch(doc, patch):
     :param patch: The JSON patch to apply.
     :returns: The result of the patch operation.
     :raises: PatchError if the patch fails to apply.
-    :raises: wsme.exc.ClientSideError if the patch adds a new root attribute.
+    :raises: exception.ClientSideError if the patch adds a new root attribute.
     """
     # Prevent removal of root attributes.
     for p in patch:
@@ -133,7 +133,7 @@ def apply_jsonpatch(doc, patch):
             if p['path'].lstrip('/') not in doc:
                 msg = _('Adding a new attribute (%s) to the root of '
                         'the resource is not allowed')
-                raise wsme.exc.ClientSideError(msg % p['path'])
+                raise exception.ClientSideError(msg % p['path'])
 
     # Apply operations one at a time, to improve error reporting.
     for patch_op in patch:
@@ -403,7 +403,7 @@ def vendor_passthru(ident, method, topic, data=None, driver_passthru=False):
 
     """
     if not method:
-        raise wsme.exc.ClientSideError(_("Method not specified"))
+        raise exception.ClientSideError(_("Method not specified"))
 
     if data is None:
         data = {}
@@ -638,14 +638,14 @@ def check_allow_configdrive(target, configdrive=None):
     if target not in allowed_targets:
         msg = (_('Adding a config drive is only supported when setting '
                  'provision state to %s') % ', '.join(allowed_targets))
-        raise wsme.exc.ClientSideError(
+        raise exception.ClientSideError(
             msg, status_code=http_client.BAD_REQUEST)
 
     try:
         jsonschema.validate(configdrive, _CONFIG_DRIVE_SCHEMA)
     except json_schema_exc.ValidationError as e:
         msg = _('Invalid configdrive format: %s') % e
-        raise wsme.exc.ClientSideError(
+        raise exception.ClientSideError(
             msg, status_code=http_client.BAD_REQUEST)
 
     if isinstance(configdrive, dict):
@@ -654,7 +654,7 @@ def check_allow_configdrive(target, configdrive=None):
                     ' starting with API version %(base)s.%(opr)s') % {
                         'base': versions.BASE_VERSION,
                         'opr': versions.MINOR_56_BUILD_CONFIGDRIVE}
-            raise wsme.exc.ClientSideError(
+            raise exception.ClientSideError(
                 msg, status_code=http_client.BAD_REQUEST)
         if ('vendor_data' in configdrive and
             not allow_configdrive_vendor_data()):
@@ -662,7 +662,7 @@ def check_allow_configdrive(target, configdrive=None):
                     ' starting with API version %(base)s.%(opr)s') % {
                         'base': versions.BASE_VERSION,
                         'opr': versions.MINOR_59_CONFIGDRIVE_VENDOR_DATA}
-            raise wsme.exc.ClientSideError(
+            raise exception.ClientSideError(
                 msg, status_code=http_client.BAD_REQUEST)
 
 
@@ -682,7 +682,7 @@ def check_allow_filter_by_fault(fault):
         msg = (_('Unrecognized fault "%(fault)s" is specified, allowed faults '
                  'are %(valid_faults)s') %
                {'fault': fault, 'valid_faults': faults.VALID_FAULTS})
-        raise wsme.exc.ClientSideError(
+        raise exception.ClientSideError(
             msg, status_code=http_client.BAD_REQUEST)
 
 

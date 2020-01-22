@@ -484,7 +484,7 @@ class PortgroupsController(pecan.rest.RestController):
                 and not api_utils.is_valid_logical_name(portgroup.name)):
             error_msg = _("Cannot create portgroup with invalid name "
                           "'%(name)s'") % {'name': portgroup.name}
-            raise wsme.exc.ClientSideError(
+            raise exception.ClientSideError(
                 error_msg, status_code=http_client.BAD_REQUEST)
 
         pg_dict = portgroup.as_dict()
@@ -544,7 +544,7 @@ class PortgroupsController(pecan.rest.RestController):
                               " invalid name '%(name)s'") % {'portgroup':
                                                              portgroup_ident,
                                                              'name': name}
-                raise wsme.exc.ClientSideError(
+                raise exception.ClientSideError(
                     error_msg, status_code=http_client.BAD_REQUEST)
 
         portgroup_dict = rpc_portgroup.as_dict()
@@ -578,8 +578,8 @@ class PortgroupsController(pecan.rest.RestController):
                     '"%(node)s" while it is in state "%(state)s".') % {
                 'portgroup': rpc_portgroup.uuid, 'node': rpc_node.uuid,
                 'state': ir_states.INSPECTING}
-            raise wsme.exc.ClientSideError(msg,
-                                           status_code=http_client.CONFLICT)
+            raise exception.ClientSideError(msg,
+                                            status_code=http_client.CONFLICT)
 
         notify.emit_start_notification(context, rpc_portgroup, 'update',
                                        node_uuid=rpc_node.uuid)

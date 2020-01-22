@@ -564,7 +564,7 @@ class NodeStatesController(rest.RestController):
                 msg = (_('A non-empty "rescue_password" is required when '
                          'setting target provision state to %s') %
                        ir_states.VERBS['rescue'])
-                raise wsme.exc.ClientSideError(
+                raise exception.ClientSideError(
                     msg, status_code=http_client.BAD_REQUEST)
             api.request.rpcapi.do_node_rescue(
                 api.request.context, rpc_node.uuid, rescue_password, topic)
@@ -578,7 +578,7 @@ class NodeStatesController(rest.RestController):
             if not clean_steps:
                 msg = (_('"clean_steps" is required when setting target '
                          'provision state to %s') % ir_states.VERBS['clean'])
-                raise wsme.exc.ClientSideError(
+                raise exception.ClientSideError(
                     msg, status_code=http_client.BAD_REQUEST)
             _check_clean_steps(clean_steps)
             api.request.rpcapi.do_node_clean(
@@ -678,14 +678,14 @@ class NodeStatesController(rest.RestController):
         if clean_steps and target != ir_states.VERBS['clean']:
             msg = (_('"clean_steps" is only valid when setting target '
                      'provision state to %s') % ir_states.VERBS['clean'])
-            raise wsme.exc.ClientSideError(
+            raise exception.ClientSideError(
                 msg, status_code=http_client.BAD_REQUEST)
 
         if (rescue_password is not None
             and target != ir_states.VERBS['rescue']):
             msg = (_('"rescue_password" is only valid when setting target '
                      'provision state to %s') % ir_states.VERBS['rescue'])
-            raise wsme.exc.ClientSideError(
+            raise exception.ClientSideError(
                 msg, status_code=http_client.BAD_REQUEST)
 
         if (rpc_node.provision_state == ir_states.INSPECTWAIT and
@@ -1700,10 +1700,10 @@ class NodesController(rest.RestController):
         This function will raise an exception for unacceptable names.
 
         :param names: list of node names to check
-        :param error_msg: error message in case of wsme.exc.ClientSideError,
+        :param error_msg: error message in case of exception.ClientSideError,
             should contain %(name)s placeholder.
         :raises: exception.NotAcceptable
-        :raises: wsme.exc.ClientSideError
+        :raises: exception.ClientSideError
         """
         if not api_utils.allow_node_logical_names():
             raise exception.NotAcceptable()
@@ -1711,11 +1711,11 @@ class NodesController(rest.RestController):
         reserved_names = get_nodes_controller_reserved_names()
         for name in names:
             if not api_utils.is_valid_node_name(name):
-                raise wsme.exc.ClientSideError(
+                raise exception.ClientSideError(
                     error_msg % {'name': name},
                     status_code=http_client.BAD_REQUEST)
             if name in reserved_names:
-                raise wsme.exc.ClientSideError(
+                raise exception.ClientSideError(
                     'The word "%(name)s" is reserved and can not be used as a '
                     'node name. Reserved words are: %(reserved)s.' %
                     {'name': name,
@@ -1762,11 +1762,11 @@ class NodesController(rest.RestController):
 
         :param rpc_node: RPC Node object to be verified.
         :param node_ident: the UUID or logical name of a node.
-        :raises: wsme.exc.ClientSideError
+        :raises: exception.ClientSideError
         """
         delta = rpc_node.obj_what_changed()
         if 'driver' in delta and rpc_node.console_enabled:
-            raise wsme.exc.ClientSideError(
+            raise exception.ClientSideError(
                 _("Node %s can not update the driver while the console is "
                   "enabled. Please stop the console first.") % node_ident,
                 status_code=http_client.CONFLICT)
@@ -2107,15 +2107,15 @@ class NodesController(rest.RestController):
               not in ir_states.UPDATE_ALLOWED_STATES):
             msg = _("Node %s can not be updated while a state transition "
                     "is in progress.")
-            raise wsme.exc.ClientSideError(
+            raise exception.ClientSideError(
                 msg % node_ident, status_code=http_client.CONFLICT)
         elif (rpc_node.provision_state == ir_states.INSPECTING
               and api_utils.allow_inspect_wait_state()):
             msg = _('Cannot update node "%(node)s" while it is in state '
                     '"%(state)s".') % {'node': rpc_node.uuid,
                                        'state': ir_states.INSPECTING}
-            raise wsme.exc.ClientSideError(msg,
-                                           status_code=http_client.CONFLICT)
+            raise exception.ClientSideError(msg,
+                                            status_code=http_client.CONFLICT)
         elif api_utils.get_patch_values(patch, '/owner'):
 
             # check if updating a provisioned node's owner is allowed
@@ -2129,7 +2129,7 @@ class NodesController(rest.RestController):
                             'is in state "%(state)s".') % {
                                 'node': rpc_node.uuid,
                                 'state': ir_states.ACTIVE}
-                    raise wsme.exc.ClientSideError(
+                    raise exception.ClientSideError(
                         msg, status_code=http_client.CONFLICT)
 
             # check if node has an associated allocation with an owner
@@ -2142,7 +2142,7 @@ class NodesController(rest.RestController):
                         msg = _('Cannot update owner of node "%(node)s" while '
                                 'it is allocated to an allocation with an '
                                 ' owner.') % {'node': rpc_node.uuid}
-                        raise wsme.exc.ClientSideError(
+                        raise exception.ClientSideError(
                             msg, status_code=http_client.CONFLICT)
                 except exception.AllocationNotFound:
                     pass

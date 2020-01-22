@@ -715,8 +715,8 @@ class PortsController(rest.RestController):
                     'in state "%(state)s".') % {'port': rpc_port.uuid,
                                                 'node': rpc_node.uuid,
                                                 'state': ir_states.INSPECTING}
-            raise wsme.exc.ClientSideError(msg,
-                                           status_code=http_client.CONFLICT)
+            raise exception.ClientSideError(msg,
+                                            status_code=http_client.CONFLICT)
 
         notify_extra = {'node_uuid': rpc_node.uuid,
                         'portgroup_uuid': port.portgroup_uuid}
