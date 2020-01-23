@@ -580,6 +580,8 @@ class IRMCVolumeBootMixIn(object):
     used by VIOM (Virtual I/O Manager) library of SCCI client.
     """
 
+    supported = False
+
     def _validate_volume_boot(self, task):
         """Validate information for volume boot with this interface.
 
@@ -898,6 +900,8 @@ class IRMCVolumeBootMixIn(object):
 class IRMCVirtualMediaBoot(base.BootInterface, IRMCVolumeBootMixIn):
     """iRMC Virtual Media boot-related actions."""
 
+    supported = False
+
     capabilities = ['iscsi_volume_boot', 'fibre_channel_volume_boot']
 
     def __init__(self):
@@ -1093,6 +1097,8 @@ class IRMCVirtualMediaBoot(base.BootInterface, IRMCVolumeBootMixIn):
 
 class IRMCPXEBoot(pxe.PXEBoot):
     """iRMC PXE boot."""
+
+    supported = False
 
     @METRICS.timer('IRMCPXEBoot.prepare_ramdisk')
     def prepare_ramdisk(self, task, ramdisk_params):

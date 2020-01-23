@@ -1,0 +1,10 @@
+---
+deprecations:
+  - |
+    The Fujitsu ``irmc`` hardware type has been deprecated. The Third Party
+    CI for the driver stopped responding on or around July 7th, 2019. As such,
+    we cannot claim fixes or changes to the driver are in a working state.
+
+    We have heard from the Fujitsu team that they intend to return ``irmc``
+    CI to working order, and as such should that occur this deprecation
+    will be revoked.
