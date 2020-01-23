@@ -1,0 +1,11 @@
+---
+deprecations:
+  - |
+    The ``ibmc`` hardware type has been deprecated. While the Huawei team
+    setup Third-Party CI for the driver's inclusion into ironic, the CI
+    unfortunately went down around the time the United States of America
+    announced commerce restrictions against Huawei.
+    
+    Unfortunantely, without third party CI and no contacts to maintain the
+    driver, the ironic community is left with little choice but to deprecate
+    and ultimately remove the driver.

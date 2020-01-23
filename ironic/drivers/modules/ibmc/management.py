@@ -34,6 +34,8 @@ LOG = log.getLogger(__name__)
 
 class IBMCManagement(base.ManagementInterface):
 
+    supported = False
+
     def __init__(self):
         """Initialize the iBMC management interface
 
