@@ -76,19 +76,19 @@ class VolumeTarget(base.APIBase):
     uuid = types.uuid
     """Unique UUID for this volume target"""
 
-    volume_type = wsme.wsattr(wtypes.text, mandatory=True)
+    volume_type = wsme.wsattr(str, mandatory=True)
     """The volume_type of volume target"""
 
-    properties = {wtypes.text: types.jsontype}
+    properties = {str: types.jsontype}
     """The properties for this volume target"""
 
     boot_index = wsme.wsattr(int, mandatory=True)
     """The boot_index of volume target"""
 
-    volume_id = wsme.wsattr(wtypes.text, mandatory=True)
+    volume_id = wsme.wsattr(str, mandatory=True)
     """The volume_id for this volume target"""
 
-    extra = {wtypes.text: types.jsontype}
+    extra = {str: types.jsontype}
     """The metadata for this volume target"""
 
     node_uuid = wsme.wsproperty(types.uuid, _get_node_uuid,
@@ -279,7 +279,7 @@ class VolumeTargetsController(rest.RestController):
 
     @METRICS.timer('VolumeTargetsController.get_all')
     @expose.expose(VolumeTargetCollection, types.uuid_or_name, types.uuid,
-                   int, wtypes.text, wtypes.text, types.listtype,
+                   int, str, str, types.listtype,
                    types.boolean)
     def get_all(self, node=None, marker=None, limit=None, sort_key='id',
                 sort_dir='asc', fields=None, detail=None):

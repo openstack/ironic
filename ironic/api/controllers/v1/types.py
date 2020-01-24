@@ -36,7 +36,7 @@ LOG = log.getLogger(__name__)
 class MacAddressType(wtypes.UserType):
     """A simple MAC address type."""
 
-    basetype = wtypes.text
+    basetype = str
     name = 'macaddress'
 
     @staticmethod
@@ -53,7 +53,7 @@ class MacAddressType(wtypes.UserType):
 class UuidOrNameType(wtypes.UserType):
     """A simple UUID or logical name type."""
 
-    basetype = wtypes.text
+    basetype = str
     name = 'uuid_or_name'
 
     @staticmethod
@@ -73,7 +73,7 @@ class UuidOrNameType(wtypes.UserType):
 class NameType(wtypes.UserType):
     """A simple logical name type."""
 
-    basetype = wtypes.text
+    basetype = str
     name = 'name'
 
     @staticmethod
@@ -92,7 +92,7 @@ class NameType(wtypes.UserType):
 class UuidType(wtypes.UserType):
     """A simple UUID type."""
 
-    basetype = wtypes.text
+    basetype = str
     name = 'uuid'
 
     @staticmethod
@@ -111,7 +111,7 @@ class UuidType(wtypes.UserType):
 class BooleanType(wtypes.UserType):
     """A simple boolean type."""
 
-    basetype = wtypes.text
+    basetype = str
     name = 'boolean'
 
     @staticmethod
@@ -132,12 +132,12 @@ class BooleanType(wtypes.UserType):
 class JsonType(wtypes.UserType):
     """A simple JSON type."""
 
-    basetype = wtypes.text
+    basetype = str
     name = 'json'
 
     def __str__(self):
         # These are the json serializable native types
-        return ' | '.join(map(str, (wtypes.text, int, float,
+        return ' | '.join(map(str, (str, int, float,
                                     BooleanType, list, dict, None)))
 
     @staticmethod
@@ -157,7 +157,7 @@ class JsonType(wtypes.UserType):
 class ListType(wtypes.UserType):
     """A simple list type."""
 
-    basetype = wtypes.text
+    basetype = str
     name = 'list'
 
     @staticmethod
@@ -303,7 +303,7 @@ class LocalLinkConnectionType(wtypes.UserType):
         :raises: Invalid if some of the keys in the dictionary being validated
             are unknown, invalid, or some required ones are missing.
         """
-        wtypes.DictType(wtypes.text, wtypes.text).validate(value)
+        wtypes.DictType(str, str).validate(value)
 
         keys = set(value)
 
@@ -364,7 +364,7 @@ class LocalLinkConnectionType(wtypes.UserType):
         :return: True if both fields 'port_id' and 'hostname' are present
             in 'value', False otherwise.
         """
-        wtypes.DictType(wtypes.text, wtypes.text).validate(value)
+        wtypes.DictType(str, str).validate(value)
         keys = set(value)
 
         if LocalLinkConnectionType.smart_nic_mandatory_fields <= keys:
@@ -377,7 +377,7 @@ locallinkconnectiontype = LocalLinkConnectionType()
 
 class VifType(JsonType):
 
-    basetype = wtypes.text
+    basetype = str
     name = 'viftype'
 
     mandatory_fields = {'id'}
@@ -422,10 +422,10 @@ class EventType(wtypes.UserType):
         validators = {
             'port_id': UuidType.validate,
             'mac_address': MacAddressType.validate,
-            'status': wtypes.text,
+            'status': str,
             'device_id': UuidType.validate,
             'binding:host_id': UuidType.validate,
-            'binding:vnic_type': wtypes.text
+            'binding:vnic_type': str
         }
 
         keys = set(value)
@@ -473,7 +473,7 @@ class EventType(wtypes.UserType):
         :raises: Invalid if event not in proper format
         """
 
-        wtypes.DictType(wtypes.text, wtypes.text).validate(value)
+        wtypes.DictType(str, str).validate(value)
         keys = set(value)
 
         # Check all mandatory fields are present

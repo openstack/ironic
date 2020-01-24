@@ -56,7 +56,7 @@ class Chassis(base.APIBase):
     description = wtypes.StringType(max_length=255)
     """The description of the chassis"""
 
-    extra = {wtypes.text: types.jsontype}
+    extra = {str: types.jsontype}
     """The metadata of the chassis"""
 
     links = wsme.wsattr([link.Link], readonly=True)
@@ -219,7 +219,7 @@ class ChassisController(rest.RestController):
 
     @METRICS.timer('ChassisController.get_all')
     @expose.expose(ChassisCollection, types.uuid, int,
-                   wtypes.text, wtypes.text, types.listtype, types.boolean)
+                   str, str, types.listtype, types.boolean)
     def get_all(self, marker=None, limit=None, sort_key='id', sort_dir='asc',
                 fields=None, detail=None):
         """Retrieve a list of chassis.
@@ -247,7 +247,7 @@ class ChassisController(rest.RestController):
 
     @METRICS.timer('ChassisController.detail')
     @expose.expose(ChassisCollection, types.uuid, int,
-                   wtypes.text, wtypes.text)
+                   str, str)
     def detail(self, marker=None, limit=None, sort_key='id', sort_dir='asc'):
         """Retrieve a list of chassis with detail.
 

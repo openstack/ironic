@@ -205,7 +205,7 @@ class BootDeviceController(rest.RestController):
                                                       rpc_node.uuid, topic)
 
     @METRICS.timer('BootDeviceController.put')
-    @expose.expose(None, types.uuid_or_name, wtypes.text, types.boolean,
+    @expose.expose(None, types.uuid_or_name, str, types.boolean,
                    status_code=http_client.NO_CONTENT)
     def put(self, node_ident, boot_device, persistent=False):
         """Set the boot device for a node.
@@ -231,7 +231,7 @@ class BootDeviceController(rest.RestController):
                                            topic=topic)
 
     @METRICS.timer('BootDeviceController.get')
-    @expose.expose(wtypes.text, types.uuid_or_name)
+    @expose.expose(str, types.uuid_or_name)
     def get(self, node_ident):
         """Get the current boot device for a node.
 
@@ -250,7 +250,7 @@ class BootDeviceController(rest.RestController):
         return self._get_boot_device(rpc_node)
 
     @METRICS.timer('BootDeviceController.supported')
-    @expose.expose(wtypes.text, types.uuid_or_name)
+    @expose.expose(str, types.uuid_or_name)
     def supported(self, node_ident):
         """Get a list of the supported boot devices.
 
@@ -315,7 +315,7 @@ class ConsoleInfo(base.APIBase):
     console_enabled = types.boolean
     """The console state: if the console is enabled or not."""
 
-    console_info = {wtypes.text: types.jsontype}
+    console_info = {str: types.jsontype}
     """The console information. It typically includes the url to access the
     console and the type of the application that hosts the console."""
 
@@ -376,29 +376,29 @@ class NodeStates(base.APIBase):
     """Indicates whether the console access is enabled or disabled on
     the node."""
 
-    power_state = wtypes.text
+    power_state = str
     """Represent the current (not transition) power state of the node"""
 
-    provision_state = wtypes.text
+    provision_state = str
     """Represent the current (not transition) provision state of the node"""
 
     provision_updated_at = datetime.datetime
     """The UTC date and time of the last provision state change"""
 
-    target_power_state = wtypes.text
+    target_power_state = str
     """The user modified desired power state of the node."""
 
-    target_provision_state = wtypes.text
+    target_provision_state = str
     """The user modified desired provision state of the node."""
 
-    last_error = wtypes.text
+    last_error = str
     """Any error from the most recent (last) asynchronous transaction that
     started but failed to finish."""
 
-    raid_config = wsme.wsattr({wtypes.text: types.jsontype}, readonly=True)
+    raid_config = wsme.wsattr({str: types.jsontype}, readonly=True)
     """Represents the RAID configuration that the node is configured with."""
 
-    target_raid_config = wsme.wsattr({wtypes.text: types.jsontype},
+    target_raid_config = wsme.wsattr({str: types.jsontype},
                                      readonly=True)
     """The desired RAID configuration, to be used the next time the node
     is configured."""
@@ -488,7 +488,7 @@ class NodeStatesController(rest.RestController):
             raise
 
     @METRICS.timer('NodeStatesController.power')
-    @expose.expose(None, types.uuid_or_name, wtypes.text,
+    @expose.expose(None, types.uuid_or_name, str,
                    wtypes.IntegerType(minimum=1),
                    status_code=http_client.ACCEPTED)
     def power(self, node_ident, target, timeout=None):
@@ -592,8 +592,8 @@ class NodeStatesController(rest.RestController):
             raise exception.InvalidStateRequested(message=msg)
 
     @METRICS.timer('NodeStatesController.provision')
-    @expose.expose(None, types.uuid_or_name, wtypes.text,
-                   types.jsontype, types.jsontype, wtypes.text,
+    @expose.expose(None, types.uuid_or_name, str,
+                   types.jsontype, types.jsontype, str,
                    status_code=http_client.ACCEPTED)
     def provision(self, node_ident, target, configdrive=None,
                   clean_steps=None, rescue_password=None):
@@ -775,7 +775,7 @@ class NodeTraitsController(rest.RestController):
         return Traits(traits=traits.get_trait_names())
 
     @METRICS.timer('NodeTraitsController.put')
-    @expose.expose(None, wtypes.text, wtypes.ArrayType(str),
+    @expose.expose(None, str, wtypes.ArrayType(str),
                    status_code=http_client.NO_CONTENT)
     def put(self, trait=None, traits=None):
         """Add a trait to a node.
@@ -834,7 +834,7 @@ class NodeTraitsController(rest.RestController):
             api.response.location = link.build_url('nodes', url_args)
 
     @METRICS.timer('NodeTraitsController.delete')
-    @expose.expose(None, wtypes.text,
+    @expose.expose(None, str,
                    status_code=http_client.NO_CONTENT)
     def delete(self, trait=None):
         """Remove one or all traits from a node.
@@ -908,23 +908,23 @@ class Node(base.APIBase):
     instance_uuid = types.uuid
     """The UUID of the instance in nova-compute"""
 
-    name = wsme.wsattr(wtypes.text)
+    name = wsme.wsattr(str)
     """The logical name for this node"""
 
-    power_state = wsme.wsattr(wtypes.text, readonly=True)
+    power_state = wsme.wsattr(str, readonly=True)
     """Represent the current (not transition) power state of the node"""
 
-    target_power_state = wsme.wsattr(wtypes.text, readonly=True)
+    target_power_state = wsme.wsattr(str, readonly=True)
     """The user modified desired power state of the node."""
 
-    last_error = wsme.wsattr(wtypes.text, readonly=True)
+    last_error = wsme.wsattr(str, readonly=True)
     """Any error from the most recent (last) asynchronous transaction that
     started but failed to finish."""
 
-    provision_state = wsme.wsattr(wtypes.text, readonly=True)
+    provision_state = wsme.wsattr(str, readonly=True)
     """Represent the current (not transition) provision state of the node"""
 
-    reservation = wsme.wsattr(wtypes.text, readonly=True)
+    reservation = wsme.wsattr(str, readonly=True)
     """The hostname of the conductor that holds an exclusive lock on
     the node."""
 
@@ -941,46 +941,46 @@ class Node(base.APIBase):
     maintenance = types.boolean
     """Indicates whether the node is in maintenance mode."""
 
-    maintenance_reason = wsme.wsattr(wtypes.text, readonly=True)
+    maintenance_reason = wsme.wsattr(str, readonly=True)
     """Indicates reason for putting a node in maintenance mode."""
 
-    fault = wsme.wsattr(wtypes.text, readonly=True)
+    fault = wsme.wsattr(str, readonly=True)
     """Indicates the active fault of a node."""
 
-    target_provision_state = wsme.wsattr(wtypes.text, readonly=True)
+    target_provision_state = wsme.wsattr(str, readonly=True)
     """The user modified desired provision state of the node."""
 
     console_enabled = types.boolean
     """Indicates whether the console access is enabled or disabled on
     the node."""
 
-    instance_info = {wtypes.text: types.jsontype}
+    instance_info = {str: types.jsontype}
     """This node's instance info."""
 
-    driver = wsme.wsattr(wtypes.text, mandatory=True)
+    driver = wsme.wsattr(str, mandatory=True)
     """The driver responsible for controlling the node"""
 
-    driver_info = {wtypes.text: types.jsontype}
+    driver_info = {str: types.jsontype}
     """This node's driver configuration"""
 
-    driver_internal_info = wsme.wsattr({wtypes.text: types.jsontype},
+    driver_internal_info = wsme.wsattr({str: types.jsontype},
                                        readonly=True)
     """This driver's internal configuration"""
 
-    clean_step = wsme.wsattr({wtypes.text: types.jsontype}, readonly=True)
+    clean_step = wsme.wsattr({str: types.jsontype}, readonly=True)
     """The current clean step"""
 
-    deploy_step = wsme.wsattr({wtypes.text: types.jsontype}, readonly=True)
+    deploy_step = wsme.wsattr({str: types.jsontype}, readonly=True)
     """The current deploy step"""
 
-    raid_config = wsme.wsattr({wtypes.text: types.jsontype}, readonly=True)
+    raid_config = wsme.wsattr({str: types.jsontype}, readonly=True)
     """Represents the current RAID configuration of the node """
 
-    target_raid_config = wsme.wsattr({wtypes.text: types.jsontype},
+    target_raid_config = wsme.wsattr({str: types.jsontype},
                                      readonly=True)
     """The user modified RAID configuration of the node """
 
-    extra = {wtypes.text: types.jsontype}
+    extra = {str: types.jsontype}
     """This node's meta data"""
 
     resource_class = wsme.wsattr(wtypes.StringType(max_length=80))
@@ -990,7 +990,7 @@ class Node(base.APIBase):
 
     # NOTE: properties should use a class to enforce required properties
     #       current list: arch, cpus, disk, ram, image
-    properties = {wtypes.text: types.jsontype}
+    properties = {str: types.jsontype}
     """The physical characteristics of this node"""
 
     chassis_uuid = wsme.wsproperty(types.uuid, _get_chassis_uuid,
@@ -1012,46 +1012,46 @@ class Node(base.APIBase):
     states = wsme.wsattr([link.Link], readonly=True)
     """Links to endpoint for retrieving and setting node states"""
 
-    boot_interface = wsme.wsattr(wtypes.text)
+    boot_interface = wsme.wsattr(str)
     """The boot interface to be used for this node"""
 
-    console_interface = wsme.wsattr(wtypes.text)
+    console_interface = wsme.wsattr(str)
     """The console interface to be used for this node"""
 
-    deploy_interface = wsme.wsattr(wtypes.text)
+    deploy_interface = wsme.wsattr(str)
     """The deploy interface to be used for this node"""
 
-    inspect_interface = wsme.wsattr(wtypes.text)
+    inspect_interface = wsme.wsattr(str)
     """The inspect interface to be used for this node"""
 
-    management_interface = wsme.wsattr(wtypes.text)
+    management_interface = wsme.wsattr(str)
     """The management interface to be used for this node"""
 
-    network_interface = wsme.wsattr(wtypes.text)
+    network_interface = wsme.wsattr(str)
     """The network interface to be used for this node"""
 
-    power_interface = wsme.wsattr(wtypes.text)
+    power_interface = wsme.wsattr(str)
     """The power interface to be used for this node"""
 
-    raid_interface = wsme.wsattr(wtypes.text)
+    raid_interface = wsme.wsattr(str)
     """The raid interface to be used for this node"""
 
-    rescue_interface = wsme.wsattr(wtypes.text)
+    rescue_interface = wsme.wsattr(str)
     """The rescue interface to be used for this node"""
 
-    storage_interface = wsme.wsattr(wtypes.text)
+    storage_interface = wsme.wsattr(str)
     """The storage interface to be used for this node"""
 
-    vendor_interface = wsme.wsattr(wtypes.text)
+    vendor_interface = wsme.wsattr(str)
     """The vendor interface to be used for this node"""
 
     traits = wtypes.ArrayType(str)
     """The traits associated with this node"""
 
-    bios_interface = wsme.wsattr(wtypes.text)
+    bios_interface = wsme.wsattr(str)
     """The bios interface to be used for this node"""
 
-    conductor_group = wsme.wsattr(wtypes.text)
+    conductor_group = wsme.wsattr(str)
     """The conductor group to manage this node"""
 
     automated_clean = types.boolean
@@ -1060,16 +1060,16 @@ class Node(base.APIBase):
     protected = types.boolean
     """Indicates whether the node is protected from undeploying/rebuilding."""
 
-    protected_reason = wsme.wsattr(wtypes.text)
+    protected_reason = wsme.wsattr(str)
     """Indicates reason for protecting the node."""
 
-    conductor = wsme.wsattr(wtypes.text, readonly=True)
+    conductor = wsme.wsattr(str, readonly=True)
     """Represent the conductor currently serving the node"""
 
-    owner = wsme.wsattr(wtypes.text)
+    owner = wsme.wsattr(str)
     """Field for storage of physical node owner"""
 
-    description = wsme.wsattr(wtypes.text)
+    description = wsme.wsattr(str)
     """Field for node description"""
 
     allocation_uuid = wsme.wsattr(types.uuid, readonly=True)
@@ -1364,7 +1364,7 @@ class NodeVendorPassthruController(rest.RestController):
     }
 
     @METRICS.timer('NodeVendorPassthruController.methods')
-    @expose.expose(wtypes.text, types.uuid_or_name)
+    @expose.expose(str, types.uuid_or_name)
     def methods(self, node_ident):
         """Retrieve information about vendor methods of the given node.
 
@@ -1386,8 +1386,8 @@ class NodeVendorPassthruController(rest.RestController):
         return _VENDOR_METHODS[rpc_node.driver]
 
     @METRICS.timer('NodeVendorPassthruController._default')
-    @expose.expose(wtypes.text, types.uuid_or_name, wtypes.text,
-                   body=wtypes.text)
+    @expose.expose(str, types.uuid_or_name, str,
+                   body=str)
     def _default(self, node_ident, method, data=None):
         """Call a vendor extension.
 
@@ -1424,7 +1424,7 @@ class NodeMaintenanceController(rest.RestController):
         notify.emit_end_notification(context, new_node, 'maintenance_set')
 
     @METRICS.timer('NodeMaintenanceController.put')
-    @expose.expose(None, types.uuid_or_name, wtypes.text,
+    @expose.expose(None, types.uuid_or_name, str,
                    status_code=http_client.ACCEPTED)
     def put(self, node_ident, reason=None):
         """Put the node in maintenance mode.
@@ -1773,10 +1773,10 @@ class NodesController(rest.RestController):
 
     @METRICS.timer('NodesController.get_all')
     @expose.expose(NodeCollection, types.uuid, types.uuid, types.boolean,
-                   types.boolean, wtypes.text, types.uuid, int, wtypes.text,
-                   wtypes.text, wtypes.text, types.listtype, wtypes.text,
-                   wtypes.text, wtypes.text, types.boolean, wtypes.text,
-                   wtypes.text, wtypes.text)
+                   types.boolean, str, types.uuid, int, str,
+                   str, str, types.listtype, str,
+                   str, str, types.boolean, str,
+                   str, str)
     def get_all(self, chassis_uuid=None, instance_uuid=None, associated=None,
                 maintenance=None, provision_state=None, marker=None,
                 limit=None, sort_key='id', sort_dir='asc', driver=None,
@@ -1853,9 +1853,9 @@ class NodesController(rest.RestController):
 
     @METRICS.timer('NodesController.detail')
     @expose.expose(NodeCollection, types.uuid, types.uuid, types.boolean,
-                   types.boolean, wtypes.text, types.uuid, int, wtypes.text,
-                   wtypes.text, wtypes.text, wtypes.text, wtypes.text,
-                   wtypes.text, wtypes.text, wtypes.text, wtypes.text)
+                   types.boolean, str, types.uuid, int, str,
+                   str, str, str, str,
+                   str, str, str, str)
     def detail(self, chassis_uuid=None, instance_uuid=None, associated=None,
                maintenance=None, provision_state=None, marker=None,
                limit=None, sort_key='id', sort_dir='asc', driver=None,
@@ -1927,7 +1927,7 @@ class NodesController(rest.RestController):
                                           **extra_args)
 
     @METRICS.timer('NodesController.validate')
-    @expose.expose(wtypes.text, types.uuid_or_name, types.uuid)
+    @expose.expose(str, types.uuid_or_name, types.uuid)
     def validate(self, node=None, node_uuid=None):
         """Validate the driver interfaces, using the node's UUID or name.
 

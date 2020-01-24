@@ -21,7 +21,6 @@ Specification can be found at doc/source/webapi/v1.rst
 import pecan
 from pecan import rest
 from webob import exc
-from wsme import types as wtypes
 
 from ironic import api
 from ironic.api.controllers import base
@@ -61,8 +60,8 @@ def max_version():
 class MediaType(base.APIBase):
     """A media type representation."""
 
-    base = wtypes.text
-    type = wtypes.text
+    base = str
+    type = str
 
     def __init__(self, base, type):
         self.base = base
@@ -72,7 +71,7 @@ class MediaType(base.APIBase):
 class V1(base.APIBase):
     """The representation of the version 1 of the API."""
 
-    id = wtypes.text
+    id = str
     """The ID of the version, also acts as the release number"""
 
     media_types = [MediaType]

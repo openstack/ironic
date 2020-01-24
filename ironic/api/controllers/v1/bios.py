@@ -34,9 +34,9 @@ METRICS = metrics_utils.get_metrics_logger(__name__)
 class BIOSSetting(base.APIBase):
     """API representation of a BIOS setting."""
 
-    name = wsme.wsattr(wtypes.text)
+    name = wsme.wsattr(str)
 
-    value = wsme.wsattr(wtypes.text)
+    value = wsme.wsattr(str)
 
     links = wsme.wsattr([link.Link], readonly=True)
 
@@ -106,7 +106,7 @@ class NodeBiosController(rest.RestController):
                                                            settings)
 
     @METRICS.timer('NodeBiosController.get_one')
-    @expose.expose({wtypes.text: BIOSSetting}, types.name)
+    @expose.expose({str: BIOSSetting}, types.name)
     def get_one(self, setting_name):
         """Retrieve information about the given bios setting.
 

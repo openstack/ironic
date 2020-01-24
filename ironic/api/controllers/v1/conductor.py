@@ -42,16 +42,16 @@ _DEFAULT_RETURN_FIELDS = ('hostname', 'conductor_group', 'alive')
 class Conductor(base.APIBase):
     """API representation of a bare metal conductor."""
 
-    hostname = wsme.wsattr(wtypes.text)
+    hostname = wsme.wsattr(str)
     """The hostname for this conductor"""
 
-    conductor_group = wsme.wsattr(wtypes.text)
+    conductor_group = wsme.wsattr(str)
     """The conductor group this conductor belongs to"""
 
     alive = types.boolean
     """Indicates whether this conductor is considered alive"""
 
-    drivers = wsme.wsattr([wtypes.text])
+    drivers = wsme.wsattr([str])
     """The drivers enabled on this conductor"""
 
     links = wsme.wsattr([link.Link])
@@ -194,8 +194,8 @@ class ConductorsController(rest.RestController):
                                                       **parameters)
 
     @METRICS.timer('ConductorsController.get_all')
-    @expose.expose(ConductorCollection, types.name, int, wtypes.text,
-                   wtypes.text, types.listtype, types.boolean)
+    @expose.expose(ConductorCollection, types.name, int, str,
+                   str, types.listtype, types.boolean)
     def get_all(self, marker=None, limit=None, sort_key='id', sort_dir='asc',
                 fields=None, detail=None):
         """Retrieve a list of conductors.

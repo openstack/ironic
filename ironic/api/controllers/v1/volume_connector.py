@@ -75,13 +75,13 @@ class VolumeConnector(base.APIBase):
     uuid = types.uuid
     """Unique UUID for this volume connector"""
 
-    type = wsme.wsattr(wtypes.text, mandatory=True)
+    type = wsme.wsattr(str, mandatory=True)
     """The type of volume connector"""
 
-    connector_id = wsme.wsattr(wtypes.text, mandatory=True)
+    connector_id = wsme.wsattr(str, mandatory=True)
     """The connector_id for this volume connector"""
 
-    extra = {wtypes.text: types.jsontype}
+    extra = {str: types.jsontype}
     """The metadata for this volume connector"""
 
     node_uuid = wsme.wsproperty(types.uuid, _get_node_uuid,
@@ -265,7 +265,7 @@ class VolumeConnectorsController(rest.RestController):
 
     @METRICS.timer('VolumeConnectorsController.get_all')
     @expose.expose(VolumeConnectorCollection, types.uuid_or_name, types.uuid,
-                   int, wtypes.text, wtypes.text, types.listtype,
+                   int, str, str, types.listtype,
                    types.boolean)
     def get_all(self, node=None, marker=None, limit=None, sort_key='id',
                 sort_dir='asc', fields=None, detail=None):
