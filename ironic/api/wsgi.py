@@ -25,10 +25,11 @@ CONF = cfg.CONF
 LOG = log.getLogger(__name__)
 
 
-def initialize_wsgi_app():
+# NOTE(dtantsur): WSGI containers may need to override the passed argv.
+def initialize_wsgi_app(argv=sys.argv):
     i18n.install('ironic')
 
-    service.prepare_service(sys.argv)
+    service.prepare_service(argv)
 
     LOG.debug("Configuration:")
     CONF.log_opt_values(LOG, log.DEBUG)
