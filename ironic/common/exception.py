@@ -20,6 +20,7 @@ from http import client as http_client
 
 from ironic_lib.exception import IronicException
 from oslo_log import log as logging
+import wsme
 
 from ironic.common.i18n import _
 
@@ -705,3 +706,7 @@ class IBMCError(DriverOperationError):
 
 class IBMCConnectionError(IBMCError):
     _msg_fmt = _("IBMC connection failed for node %(node)s: %(error)s")
+
+
+class ClientSideError(wsme.exc.ClientSideError):
+    pass

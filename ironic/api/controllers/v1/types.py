@@ -246,16 +246,16 @@ class JsonPatchType(wtypes.Base):
         _path = '/' + patch.path.split('/')[1]
         if _path in patch.internal_attrs():
             msg = _("'%s' is an internal attribute and can not be updated")
-            raise wsme.exc.ClientSideError(msg % patch.path)
+            raise exception.ClientSideError(msg % patch.path)
 
         if patch.path in patch.non_removable_attrs() and patch.op == 'remove':
             msg = _("'%s' is a mandatory attribute and can not be removed")
-            raise wsme.exc.ClientSideError(msg % patch.path)
+            raise exception.ClientSideError(msg % patch.path)
 
         if patch.op != 'remove':
             if patch.value is wsme.Unset:
                 msg = _("'add' and 'replace' operations need a value")
-                raise wsme.exc.ClientSideError(msg)
+                raise exception.ClientSideError(msg)
 
         ret = {'path': patch.path, 'op': patch.op}
         if patch.value is not wsme.Unset:
