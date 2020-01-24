@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    Makes ``ironic.api.wsgi`` compatible with WSGI containers that cannot use
+    an executable WSGI entry point. For example, with gunicorn::
+
+        gunicorn -b 0.0.0.0:6385 'ironic.api.wsgi:initialize_wsgi_app(argv=[])'
