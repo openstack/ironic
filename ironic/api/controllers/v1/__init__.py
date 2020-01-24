@@ -57,7 +57,7 @@ def max_version():
         versions.min_version_string(), versions.max_version_string())
 
 
-class MediaType(base.APIBase):
+class MediaType(base.Base):
     """A media type representation."""
 
     base = str
@@ -68,7 +68,7 @@ class MediaType(base.APIBase):
         self.type = type
 
 
-class V1(base.APIBase):
+class V1(base.Base):
     """The representation of the version 1 of the API."""
 
     id = str

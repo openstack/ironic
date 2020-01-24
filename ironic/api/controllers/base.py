@@ -17,7 +17,6 @@ import functools
 
 from webob import exc
 import wsme
-from wsme import types as wtypes
 
 from ironic.common.i18n import _
 
@@ -43,13 +42,12 @@ class AsDictMixin(object):
                     and getattr(self, k) != wsme.Unset)
 
 
-class APIBase(wtypes.Base, AsDictMixin):
-
-    created_at = wsme.wsattr(datetime.datetime, readonly=True)
-    """The time in UTC at which the object is created"""
-
-    updated_at = wsme.wsattr(datetime.datetime, readonly=True)
-    """The time in UTC at which the object is updated"""
+class Base(AsDictMixin):
+    """Base type for complex types"""
+    def __init__(self, **kw):
+        for key, value in kw.items():
+            if hasattr(self, key):
+                setattr(self, key, value)
 
     def unset_fields_except(self, except_list=None):
         """Unset fields so they don't appear in the message body.
@@ -63,6 +61,15 @@ class APIBase(wtypes.Base, AsDictMixin):
         for k in self.as_dict():
             if k not in except_list:
                 setattr(self, k, wsme.Unset)
+
+
+class APIBase(Base):
+
+    created_at = wsme.wsattr(datetime.datetime, readonly=True)
+    """The time in UTC at which the object is created"""
+
+    updated_at = wsme.wsattr(datetime.datetime, readonly=True)
+    """The time in UTC at which the object is updated"""
 
 
 @functools.total_ordering

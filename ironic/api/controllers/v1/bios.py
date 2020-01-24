@@ -67,7 +67,7 @@ class BIOSSetting(base.APIBase):
         return cls._convert_with_links(bios, node_uuid, api.request.host_url)
 
 
-class BIOSSettingsCollection(wtypes.Base):
+class BIOSSettingsCollection(base.Base):
     """API representation of the bios settings for a node."""
 
     bios = [BIOSSetting]

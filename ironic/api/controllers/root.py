@@ -23,7 +23,7 @@ from ironic.api.controllers import version
 from ironic.api import expose
 
 
-class Root(base.APIBase):
+class Root(base.Base):
 
     name = str
     """The name of the API"""
