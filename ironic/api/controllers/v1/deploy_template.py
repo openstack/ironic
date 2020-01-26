@@ -21,7 +21,6 @@ from oslo_utils import uuidutils
 import pecan
 from pecan import rest
 from webob import exc as webob_exc
-import wsme
 
 from ironic import api
 from ironic.api.controllers import base
@@ -383,7 +382,7 @@ class DeployTemplatesController(rest.RestController):
         return api_template
 
     @METRICS.timer('DeployTemplatesController.patch')
-    @wsme.validate(types.uuid, types.boolean, [DeployTemplatePatchType])
+    @expose.validate(types.uuid, types.boolean, [DeployTemplatePatchType])
     @expose.expose(DeployTemplate, types.uuid_or_name, types.boolean,
                    body=[DeployTemplatePatchType])
     def patch(self, template_ident, patch=None):

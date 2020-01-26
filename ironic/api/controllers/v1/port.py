@@ -20,7 +20,6 @@ from ironic_lib import metrics_utils
 from oslo_log import log
 from oslo_utils import uuidutils
 from pecan import rest
-import wsme
 
 from ironic import api
 from ironic.api.controllers import base
@@ -660,7 +659,7 @@ class PortsController(rest.RestController):
         return Port.convert_with_links(new_port)
 
     @METRICS.timer('PortsController.patch')
-    @wsme.validate(types.uuid, [PortPatchType])
+    @expose.validate(types.uuid, [PortPatchType])
     @expose.expose(Port, types.uuid, body=[PortPatchType])
     def patch(self, port_uuid, patch):
         """Update an existing port.

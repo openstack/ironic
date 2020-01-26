@@ -18,7 +18,6 @@ from http import client as http_client
 from ironic_lib import metrics_utils
 from oslo_utils import uuidutils
 from pecan import rest
-import wsme
 
 from ironic import api
 from ironic.api.controllers import base
@@ -377,7 +376,7 @@ class VolumeConnectorsController(rest.RestController):
         return VolumeConnector.convert_with_links(new_connector)
 
     @METRICS.timer('VolumeConnectorsController.patch')
-    @wsme.validate(types.uuid, [VolumeConnectorPatchType])
+    @expose.validate(types.uuid, [VolumeConnectorPatchType])
     @expose.expose(VolumeConnector, types.uuid,
                    body=[VolumeConnectorPatchType])
     def patch(self, connector_uuid, patch):

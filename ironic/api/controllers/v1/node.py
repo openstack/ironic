@@ -26,7 +26,6 @@ from oslo_utils import strutils
 from oslo_utils import uuidutils
 import pecan
 from pecan import rest
-import wsme
 
 from ironic import api
 from ironic.api.controllers import base
@@ -2356,7 +2355,7 @@ class NodesController(rest.RestController):
             policy_checks, node_ident, with_suffix=True)
 
     @METRICS.timer('NodesController.patch')
-    @wsme.validate(types.uuid, types.boolean, [NodePatchType])
+    @expose.validate(types.uuid, types.boolean, [NodePatchType])
     @expose.expose(Node, types.uuid_or_name, types.boolean,
                    body=[NodePatchType])
     def patch(self, node_ident, reset_interfaces=None, patch=None):

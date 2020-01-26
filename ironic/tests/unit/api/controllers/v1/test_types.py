@@ -20,7 +20,6 @@ import platform
 
 import mock
 from pecan import rest
-import wsme
 
 from ironic.api.controllers.v1 import types
 from ironic.api import expose
@@ -107,7 +106,7 @@ class MyPatchType(types.JsonPatchType):
 class MyTest(rest.RestController):
     """Helper class for TestJsonPatchType tests."""
 
-    @wsme.validate([MyPatchType])
+    @expose.validate([MyPatchType])
     @expose.expose([str], body=[MyPatchType])
     def patch(self, patch):
         return patch

@@ -194,3 +194,25 @@ def format_exception(excinfo, debug=False):
         else:
             r['debuginfo'] = None
         return r
+
+
+class validate(object):
+    """Decorator that define the arguments types of a function.
+
+
+    Example::
+
+        class MyController(object):
+            @expose(str)
+            @validate(datetime.date, datetime.time)
+            def format(self, d, t):
+                return d.isoformat() + ' ' + t.isoformat()
+    """
+    def __init__(self, *param_types):
+        self.param_types = param_types
+
+    def __call__(self, func):
+        argspec = wsme.api.getargspec(func)
+        fd = wsme.api.FunctionDefinition.get(func)
+        fd.set_arg_types(argspec, self.param_types)
+        return func

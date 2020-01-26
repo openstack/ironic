@@ -17,7 +17,6 @@ from ironic_lib import metrics_utils
 from oslo_utils import uuidutils
 import pecan
 from webob import exc as webob_exc
-import wsme
 
 from ironic import api
 from ironic.api.controllers import base
@@ -475,7 +474,7 @@ class AllocationsController(pecan.rest.RestController):
         self._check_allowed_allocation_fields(fields)
 
     @METRICS.timer('AllocationsController.patch')
-    @wsme.validate(types.uuid, [AllocationPatchType])
+    @expose.validate(types.uuid, [AllocationPatchType])
     @expose.expose(Allocation, types.uuid_or_name, body=[AllocationPatchType])
     def patch(self, allocation_ident, patch):
         """Update an existing allocation.
