@@ -21,7 +21,6 @@ import os_traits
 from oslo_config import cfg
 from oslo_utils import uuidutils
 from webob import static
-import wsme
 
 from ironic import api
 from ironic.api.controllers.v1 import node as api_node
@@ -692,7 +691,7 @@ class TestVendorPassthru(base.TestCase):
         passthru_mock.assert_called_once_with(
             'fake-context', 'fake-ident', 'squarepants', 'POST',
             'fake-data', 'fake-topic')
-        self.assertIsInstance(response, wsme.api.Response)
+        self.assertIsInstance(response, atypes.Response)
         self.assertEqual('SpongeBob', response.obj)
         self.assertEqual(response.return_type, atypes.Unset)
         sc = http_client.ACCEPTED if async_call else http_client.OK
@@ -731,7 +730,7 @@ class TestVendorPassthru(base.TestCase):
         self.assertEqual(expct_return_value,
                          mock_response.app_iter.file.read())
         # Assert response message is none
-        self.assertIsInstance(response, wsme.api.Response)
+        self.assertIsInstance(response, atypes.Response)
         self.assertIsNone(response.obj)
         self.assertIsNone(response.return_type)
         self.assertEqual(http_client.OK, response.status_code)

@@ -21,9 +21,35 @@ from wsme.types import DictType  # noqa
 from wsme.types import Enum  # noqa
 from wsme.types import File  # noqa
 from wsme.types import IntegerType  # noqa
+from wsme.types import iscomplex  # noqa
+from wsme.types import list_attributes  # noqa
+from wsme.types import registry  # noqa
 from wsme.types import StringType  # noqa
 from wsme.types import text  # noqa
 from wsme.types import Unset  # noqa
+from wsme.types import UnsetType  # noqa
 from wsme.types import UserType  # noqa
 from wsme.types import wsattr  # noqa
 from wsme.types import wsproperty  # noqa
+
+
+class Response(object):
+    """Object to hold the "response" from a view function"""
+    def __init__(self, obj, status_code=None, error=None,
+                 return_type=Unset):
+        #: Store the result object from the view
+        self.obj = obj
+
+        #: Store an optional status_code
+        self.status_code = status_code
+
+        #: Return error details
+        #: Must be a dictionnary with the following keys: faultcode,
+        #: faultstring and an optional debuginfo
+        self.error = error
+
+        #: Return type
+        #: Type of the value returned by the function
+        #: If the return type is wsme.types.Unset it will be ignored
+        #: and the default return type will prevail.
+        self.return_type = return_type
