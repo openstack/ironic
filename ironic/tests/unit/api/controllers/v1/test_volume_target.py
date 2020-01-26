@@ -23,13 +23,13 @@ import mock
 from oslo_config import cfg
 from oslo_utils import timeutils
 from oslo_utils import uuidutils
-from wsme import types as wtypes
 
 from ironic.api.controllers import base as api_base
 from ironic.api.controllers import v1 as api_v1
 from ironic.api.controllers.v1 import notification_utils
 from ironic.api.controllers.v1 import utils as api_utils
 from ironic.api.controllers.v1 import volume_target as api_volume_target
+from ironic.api import types as atypes
 from ironic.common import exception
 from ironic.conductor import rpcapi
 from ironic import objects
@@ -54,7 +54,7 @@ class TestVolumeTargetObject(base.TestCase):
         target_dict = apiutils.volume_target_post_data(node_id=None)
         del target_dict['extra']
         target = api_volume_target.VolumeTarget(**target_dict)
-        self.assertEqual(wtypes.Unset, target.extra)
+        self.assertEqual(atypes.Unset, target.extra)
 
 
 class TestListVolumeTargets(test_api_base.BaseApiTest):

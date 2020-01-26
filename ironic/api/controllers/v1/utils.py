@@ -29,6 +29,7 @@ import wsme
 
 from ironic import api
 from ironic.api.controllers.v1 import versions
+from ironic.api import types as atypes
 from ironic.common import exception
 from ironic.common import faults
 from ironic.common.i18n import _
@@ -425,7 +426,7 @@ def vendor_passthru(ident, method, topic, data=None, driver_passthru=False):
         if isinstance(return_value, str):
             # If unicode, convert to bytes
             return_value = return_value.encode('utf-8')
-        file_ = wsme.types.File(content=return_value)
+        file_ = atypes.File(content=return_value)
         api.response.app_iter = static.FileIter(file_.file)
         # Since we've attached the return value to the response
         # object the response body should now be empty.

@@ -17,7 +17,6 @@ from ironic_lib import metrics_utils
 from oslo_utils import uuidutils
 import pecan
 import wsme
-from wsme import types as wtypes
 
 from ironic import api
 from ironic.api.controllers import base
@@ -28,6 +27,7 @@ from ironic.api.controllers.v1 import port
 from ironic.api.controllers.v1 import types
 from ironic.api.controllers.v1 import utils as api_utils
 from ironic.api import expose
+from ironic.api import types as atypes
 from ironic.common import exception
 from ironic.common.i18n import _
 from ironic.common import policy
@@ -55,7 +55,7 @@ class Portgroup(base.APIBase):
     def _set_node_uuid(self, value):
         if value and self._node_uuid != value:
             if not api_utils.allow_portgroups():
-                self._node_uuid = wtypes.Unset
+                self._node_uuid = atypes.Unset
                 return
             try:
                 node = objects.Node.get(api.request.context, value)
@@ -69,36 +69,36 @@ class Portgroup(base.APIBase):
                 # response for a POST request to create a Portgroup
                 e.code = http_client.BAD_REQUEST
                 raise e
-        elif value == wtypes.Unset:
-            self._node_uuid = wtypes.Unset
+        elif value == atypes.Unset:
+            self._node_uuid = atypes.Unset
 
     uuid = types.uuid
     """Unique UUID for this portgroup"""
 
-    address = wsme.wsattr(types.macaddress)
+    address = atypes.wsattr(types.macaddress)
     """MAC Address for this portgroup"""
 
     extra = {str: types.jsontype}
     """This portgroup's meta data"""
 
-    internal_info = wsme.wsattr({str: types.jsontype}, readonly=True)
+    internal_info = atypes.wsattr({str: types.jsontype}, readonly=True)
     """This portgroup's internal info"""
 
-    node_uuid = wsme.wsproperty(types.uuid, _get_node_uuid, _set_node_uuid,
-                                mandatory=True)
+    node_uuid = atypes.wsproperty(types.uuid, _get_node_uuid, _set_node_uuid,
+                                  mandatory=True)
     """The UUID of the node this portgroup belongs to"""
 
-    name = wsme.wsattr(str)
+    name = atypes.wsattr(str)
     """The logical name for this portgroup"""
 
-    links = wsme.wsattr([link.Link], readonly=True)
+    links = atypes.wsattr([link.Link], readonly=True)
     """A list containing a self link and associated portgroup links"""
 
     standalone_ports_supported = types.boolean
     """Indicates whether ports of this portgroup may be used as
        single NIC ports"""
 
-    mode = wsme.wsattr(str)
+    mode = atypes.wsattr(str)
     """The mode for this portgroup. See linux bonding
     documentation for details:
     https://www.kernel.org/doc/Documentation/networking/bonding.txt"""
@@ -106,7 +106,7 @@ class Portgroup(base.APIBase):
     properties = {str: types.jsontype}
     """This portgroup's properties"""
 
-    ports = wsme.wsattr([link.Link], readonly=True)
+    ports = atypes.wsattr([link.Link], readonly=True)
     """Links to the collection of ports of this portgroup"""
 
     def __init__(self, **kwargs):
@@ -120,14 +120,14 @@ class Portgroup(base.APIBase):
             if not hasattr(self, field):
                 continue
             self.fields.append(field)
-            setattr(self, field, kwargs.get(field, wtypes.Unset))
+            setattr(self, field, kwargs.get(field, atypes.Unset))
 
         # NOTE: node_id is an attribute created on-the-fly
         # by _set_node_uuid(), it needs to be present in the fields so
         # that as_dict() will contain node_id field when converting it
         # before saving it in the database.
         self.fields.append('node_id')
-        setattr(self, 'node_uuid', kwargs.get('node_id', wtypes.Unset))
+        setattr(self, 'node_uuid', kwargs.get('node_id', atypes.Unset))
 
     @staticmethod
     def _convert_with_links(portgroup, url, fields=None):
@@ -141,7 +141,7 @@ class Portgroup(base.APIBase):
             ]
 
         # never expose the node_id attribute
-        portgroup.node_id = wtypes.Unset
+        portgroup.node_id = atypes.Unset
 
         portgroup.links = [link.Link.make_link('self', url,
                                                'portgroups', portgroup.uuid),
@@ -183,7 +183,7 @@ class Portgroup(base.APIBase):
             self.unset_fields_except(fields)
 
         # never expose the node_id attribute
-        self.node_id = wtypes.Unset
+        self.node_id = atypes.Unset
 
     @classmethod
     def sample(cls, expand=True):
@@ -476,8 +476,8 @@ class PortgroupsController(pecan.rest.RestController):
             raise exception.OperationNotPermitted()
 
         if (not api_utils.allow_portgroup_mode_properties()
-                and (portgroup.mode is not wtypes.Unset
-                     or portgroup.properties is not wtypes.Unset)):
+                and (portgroup.mode is not atypes.Unset
+                     or portgroup.properties is not atypes.Unset)):
             raise exception.NotAcceptable()
 
         if (portgroup.name
@@ -566,7 +566,7 @@ class PortgroupsController(pecan.rest.RestController):
             except AttributeError:
                 # Ignore fields that aren't exposed in the API
                 continue
-            if patch_val == wtypes.Unset:
+            if patch_val == atypes.Unset:
                 patch_val = None
             if rpc_portgroup[field] != patch_val:
                 rpc_portgroup[field] = patch_val

@@ -13,10 +13,9 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-from wsme import types as wtypes
-
 from ironic import api
 from ironic.api.controllers import base
+from ironic.api import types as atypes
 
 
 def build_url(resource, resource_args, bookmark=False, base_url=None):
@@ -45,7 +44,7 @@ class Link(base.Base):
 
     @staticmethod
     def make_link(rel_name, url, resource, resource_args,
-                  bookmark=False, type=wtypes.Unset):
+                  bookmark=False, type=atypes.Unset):
         href = build_url(resource, resource_args,
                          bookmark=bookmark, base_url=url)
         return Link(href=href, rel=rel_name, type=type)

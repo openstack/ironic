@@ -23,7 +23,6 @@ from oslo_config import cfg
 from oslo_utils import timeutils
 from oslo_utils import uuidutils
 from testtools import matchers
-from wsme import types as wtypes
 
 from ironic.api.controllers import base as api_base
 from ironic.api.controllers import v1 as api_v1
@@ -31,6 +30,7 @@ from ironic.api.controllers.v1 import notification_utils
 from ironic.api.controllers.v1 import port as api_port
 from ironic.api.controllers.v1 import utils as api_utils
 from ironic.api.controllers.v1 import versions
+from ironic.api import types as atypes
 from ironic.common import exception
 from ironic.common import policy
 from ironic.common import states
@@ -85,7 +85,7 @@ class TestPortObject(base.TestCase):
                                             portgroup_uuid=None)
         del port_dict['extra']
         port = api_port.Port(**port_dict)
-        self.assertEqual(wtypes.Unset, port.extra)
+        self.assertEqual(atypes.Unset, port.extra)
 
 
 @mock.patch.object(api_utils, 'allow_port_physical_network', autospec=True)
@@ -1150,12 +1150,12 @@ class TestPatch(test_api_base.BaseApiTest):
                                       obj_fields.NotificationLevel.INFO,
                                       obj_fields.NotificationStatus.START,
                                       node_uuid=self.node.uuid,
-                                      portgroup_uuid=wtypes.Unset),
+                                      portgroup_uuid=atypes.Unset),
                                       mock.call(mock.ANY, mock.ANY, 'update',
                                       obj_fields.NotificationLevel.INFO,
                                       obj_fields.NotificationStatus.END,
                                       node_uuid=self.node.uuid,
-                                      portgroup_uuid=wtypes.Unset)])
+                                      portgroup_uuid=atypes.Unset)])
 
     def test_update_byaddress_not_allowed(self, mock_upd):
         response = self.patch_json('/ports/%s' % self.port.address,
@@ -1214,12 +1214,12 @@ class TestPatch(test_api_base.BaseApiTest):
                                       obj_fields.NotificationLevel.INFO,
                                       obj_fields.NotificationStatus.START,
                                       node_uuid=self.node.uuid,
-                                      portgroup_uuid=wtypes.Unset),
+                                      portgroup_uuid=atypes.Unset),
                                       mock.call(mock.ANY, mock.ANY, 'update',
                                       obj_fields.NotificationLevel.ERROR,
                                       obj_fields.NotificationStatus.ERROR,
                                       node_uuid=self.node.uuid,
-                                      portgroup_uuid=wtypes.Unset)])
+                                      portgroup_uuid=atypes.Unset)])
 
     def test_replace_node_uuid(self, mock_upd):
         response = self.patch_json('/ports/%s' % self.port.uuid,

@@ -16,7 +16,6 @@ from http import client as http_client
 
 import pecan
 from pecan import rest
-import wsme
 
 from ironic import api
 from ironic.api.controllers import base
@@ -25,6 +24,7 @@ from ironic.api.controllers.v1 import utils as api_utils
 from ironic.api.controllers.v1 import volume_connector
 from ironic.api.controllers.v1 import volume_target
 from ironic.api import expose
+from ironic.api import types as atypes
 from ironic.common import exception
 from ironic.common import policy
 
@@ -36,13 +36,13 @@ class Volume(base.APIBase):
     targets controllers.
     """
 
-    links = wsme.wsattr([link.Link], readonly=True)
+    links = atypes.wsattr([link.Link], readonly=True)
     """A list containing a self link and associated volume links"""
 
-    connectors = wsme.wsattr([link.Link], readonly=True)
+    connectors = atypes.wsattr([link.Link], readonly=True)
     """Links to the volume connectors resource"""
 
-    targets = wsme.wsattr([link.Link], readonly=True)
+    targets = atypes.wsattr([link.Link], readonly=True)
     """Links to the volume targets resource"""
 
     @staticmethod

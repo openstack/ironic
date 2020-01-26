@@ -13,11 +13,10 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-from wsme import types as wtypes
-
 from ironic import api
 from ironic.api.controllers import base
 from ironic.api.controllers import link
+from ironic.api import types as atypes
 
 
 class Collection(base.Base):
@@ -40,7 +39,7 @@ class Collection(base.Base):
     def get_next(self, limit, url=None, **kwargs):
         """Return a link to the next subset of the collection."""
         if not self.has_next(limit):
-            return wtypes.Unset
+            return atypes.Unset
 
         resource_url = url or self._type
         fields = kwargs.pop('fields', None)

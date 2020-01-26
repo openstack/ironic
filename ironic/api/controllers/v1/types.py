@@ -21,11 +21,10 @@ import json
 from oslo_log import log
 from oslo_utils import strutils
 from oslo_utils import uuidutils
-import wsme
-from wsme import types as wtypes
 
 from ironic.api.controllers import base
 from ironic.api.controllers.v1 import utils as v1_utils
+from ironic.api import types as atypes
 from ironic.common import exception
 from ironic.common.i18n import _
 from ironic.common import utils
@@ -34,7 +33,7 @@ from ironic.common import utils
 LOG = log.getLogger(__name__)
 
 
-class MacAddressType(wtypes.UserType):
+class MacAddressType(atypes.UserType):
     """A simple MAC address type."""
 
     basetype = str
@@ -51,7 +50,7 @@ class MacAddressType(wtypes.UserType):
         return MacAddressType.validate(value)
 
 
-class UuidOrNameType(wtypes.UserType):
+class UuidOrNameType(atypes.UserType):
     """A simple UUID or logical name type."""
 
     basetype = str
@@ -71,7 +70,7 @@ class UuidOrNameType(wtypes.UserType):
         return UuidOrNameType.validate(value)
 
 
-class NameType(wtypes.UserType):
+class NameType(atypes.UserType):
     """A simple logical name type."""
 
     basetype = str
@@ -90,7 +89,7 @@ class NameType(wtypes.UserType):
         return NameType.validate(value)
 
 
-class UuidType(wtypes.UserType):
+class UuidType(atypes.UserType):
     """A simple UUID type."""
 
     basetype = str
@@ -109,7 +108,7 @@ class UuidType(wtypes.UserType):
         return UuidType.validate(value)
 
 
-class BooleanType(wtypes.UserType):
+class BooleanType(atypes.UserType):
     """A simple boolean type."""
 
     basetype = str
@@ -130,7 +129,7 @@ class BooleanType(wtypes.UserType):
         return BooleanType.validate(value)
 
 
-class JsonType(wtypes.UserType):
+class JsonType(atypes.UserType):
     """A simple JSON type."""
 
     basetype = str
@@ -155,7 +154,7 @@ class JsonType(wtypes.UserType):
         return JsonType.validate(value)
 
 
-class ListType(wtypes.UserType):
+class ListType(atypes.UserType):
     """A simple list type."""
 
     basetype = str
@@ -196,11 +195,11 @@ jsontype = JsonType()
 class JsonPatchType(base.Base):
     """A complex type that represents a single json-patch operation."""
 
-    path = wtypes.wsattr(wtypes.StringType(pattern='^(/[\\w-]+)+$'),
+    path = atypes.wsattr(atypes.StringType(pattern='^(/[\\w-]+)+$'),
                          mandatory=True)
-    op = wtypes.wsattr(wtypes.Enum(str, 'add', 'replace', 'remove'),
+    op = atypes.wsattr(atypes.Enum(str, 'add', 'replace', 'remove'),
                        mandatory=True)
-    value = wsme.wsattr(jsontype, default=wtypes.Unset)
+    value = atypes.wsattr(jsontype, default=atypes.Unset)
 
     # The class of the objects being patched. Override this in subclasses.
     # Should probably be a subclass of ironic.api.controllers.base.APIBase.
@@ -254,20 +253,20 @@ class JsonPatchType(base.Base):
             raise exception.ClientSideError(msg % patch.path)
 
         if patch.op != 'remove':
-            if patch.value is wsme.Unset:
+            if patch.value is atypes.Unset:
                 msg = _("'add' and 'replace' operations need a value")
                 raise exception.ClientSideError(msg)
 
         ret = {'path': patch.path, 'op': patch.op}
-        if patch.value is not wsme.Unset:
+        if patch.value is not atypes.Unset:
             ret['value'] = patch.value
         return ret
 
 
-class LocalLinkConnectionType(wtypes.UserType):
+class LocalLinkConnectionType(atypes.UserType):
     """A type describing local link connection."""
 
-    basetype = wtypes.DictType
+    basetype = atypes.DictType
     name = 'locallinkconnection'
 
     local_link_mandatory_fields = {'port_id', 'switch_id'}
@@ -305,7 +304,7 @@ class LocalLinkConnectionType(wtypes.UserType):
         :raises: Invalid if some of the keys in the dictionary being validated
             are unknown, invalid, or some required ones are missing.
         """
-        wtypes.DictType(str, str).validate(value)
+        atypes.DictType(str, str).validate(value)
 
         keys = set(value)
 
@@ -385,7 +384,7 @@ class LocalLinkConnectionType(wtypes.UserType):
         :return: True if both fields 'port_id' and 'hostname' are present
             in 'value', False otherwise.
         """
-        wtypes.DictType(str, str).validate(value)
+        atypes.DictType(str, str).validate(value)
         keys = set(value)
 
         if LocalLinkConnectionType.smart_nic_mandatory_fields <= keys:
@@ -426,10 +425,10 @@ class VifType(JsonType):
 viftype = VifType()
 
 
-class EventType(wtypes.UserType):
+class EventType(atypes.UserType):
     """A simple Event type."""
 
-    basetype = wtypes.DictType
+    basetype = atypes.DictType
     name = 'event'
 
     def _validate_network_port_event(value):
@@ -494,7 +493,7 @@ class EventType(wtypes.UserType):
         :raises: Invalid if event not in proper format
         """
 
-        wtypes.DictType(str, str).validate(value)
+        atypes.DictType(str, str).validate(value)
         keys = set(value)
 
         # Check all mandatory fields are present

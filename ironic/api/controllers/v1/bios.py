@@ -15,8 +15,6 @@
 
 from ironic_lib import metrics_utils
 from pecan import rest
-import wsme
-from wsme import types as wtypes
 
 from ironic import api
 from ironic.api.controllers import base
@@ -24,6 +22,7 @@ from ironic.api.controllers import link
 from ironic.api.controllers.v1 import types
 from ironic.api.controllers.v1 import utils as api_utils
 from ironic.api import expose
+from ironic.api import types as atypes
 from ironic.common import exception
 from ironic.common import policy
 from ironic import objects
@@ -34,11 +33,11 @@ METRICS = metrics_utils.get_metrics_logger(__name__)
 class BIOSSetting(base.APIBase):
     """API representation of a BIOS setting."""
 
-    name = wsme.wsattr(str)
+    name = atypes.wsattr(str)
 
-    value = wsme.wsattr(str)
+    value = atypes.wsattr(str)
 
-    links = wsme.wsattr([link.Link], readonly=True)
+    links = atypes.wsattr([link.Link], readonly=True)
 
     def __init__(self, **kwargs):
         self.fields = []
@@ -46,7 +45,7 @@ class BIOSSetting(base.APIBase):
         for k in fields:
             if hasattr(self, k):
                 self.fields.append(k)
-                value = kwargs.get(k, wtypes.Unset)
+                value = kwargs.get(k, atypes.Unset)
                 setattr(self, k, value)
 
     @staticmethod

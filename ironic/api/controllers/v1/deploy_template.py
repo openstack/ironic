@@ -22,7 +22,6 @@ import pecan
 from pecan import rest
 from webob import exc as webob_exc
 import wsme
-from wsme import types as wtypes
 
 from ironic import api
 from ironic.api.controllers import base
@@ -32,6 +31,7 @@ from ironic.api.controllers.v1 import notification_utils as notify
 from ironic.api.controllers.v1 import types
 from ironic.api.controllers.v1 import utils as api_utils
 from ironic.api import expose
+from ironic.api import types as atypes
 from ironic.common import exception
 from ironic.common.i18n import _
 from ironic.conductor import steps as conductor_steps
@@ -44,30 +44,30 @@ METRICS = metrics_utils.get_metrics_logger(__name__)
 
 _DEFAULT_RETURN_FIELDS = ('uuid', 'name')
 
-_DEPLOY_INTERFACE_TYPE = wtypes.Enum(
+_DEPLOY_INTERFACE_TYPE = atypes.Enum(
     str, *conductor_steps.DEPLOYING_INTERFACE_PRIORITY)
 
 
-class DeployStepType(wtypes.Base, base.AsDictMixin):
+class DeployStepType(atypes.Base, base.AsDictMixin):
     """A type describing a deployment step."""
 
-    interface = wsme.wsattr(_DEPLOY_INTERFACE_TYPE, mandatory=True)
+    interface = atypes.wsattr(_DEPLOY_INTERFACE_TYPE, mandatory=True)
 
-    step = wsme.wsattr(str, mandatory=True)
+    step = atypes.wsattr(str, mandatory=True)
 
-    args = wsme.wsattr({str: types.jsontype}, mandatory=True)
+    args = atypes.wsattr({str: types.jsontype}, mandatory=True)
 
-    priority = wsme.wsattr(wtypes.IntegerType(0), mandatory=True)
+    priority = atypes.wsattr(atypes.IntegerType(0), mandatory=True)
 
     def __init__(self, **kwargs):
         self.fields = ['interface', 'step', 'args', 'priority']
         for field in self.fields:
-            value = kwargs.get(field, wtypes.Unset)
+            value = kwargs.get(field, atypes.Unset)
             setattr(self, field, value)
 
     def sanitize(self):
         """Removes sensitive data."""
-        if self.args != wtypes.Unset:
+        if self.args != atypes.Unset:
             self.args = strutils.mask_dict_password(self.args, "******")
 
 
@@ -77,13 +77,13 @@ class DeployTemplate(base.APIBase):
     uuid = types.uuid
     """Unique UUID for this deploy template."""
 
-    name = wsme.wsattr(str, mandatory=True)
+    name = atypes.wsattr(str, mandatory=True)
     """The logical name for this deploy template."""
 
-    steps = wsme.wsattr([DeployStepType], mandatory=True)
+    steps = atypes.wsattr([DeployStepType], mandatory=True)
     """The deploy steps of this deploy template."""
 
-    links = wsme.wsattr([link.Link])
+    links = atypes.wsattr([link.Link])
     """A list containing a self link and associated deploy template links."""
 
     extra = {str: types.jsontype}
@@ -98,8 +98,8 @@ class DeployTemplate(base.APIBase):
             if not hasattr(self, field):
                 continue
 
-            value = kwargs.get(field, wtypes.Unset)
-            if field == 'steps' and value != wtypes.Unset:
+            value = kwargs.get(field, atypes.Unset)
+            if field == 'steps' and value != atypes.Unset:
                 value = [DeployStepType(**step) for step in value]
             self.fields.append(field)
             setattr(self, field, value)
@@ -110,7 +110,7 @@ class DeployTemplate(base.APIBase):
             return
 
         # The name is mandatory, but the 'mandatory' attribute support in
-        # wtypes.wsattr allows None.
+        # wsattr allows None.
         if value.name is None:
             err = _("Deploy template name cannot be None")
             raise exception.InvalidDeployTemplate(err=err)
@@ -182,7 +182,7 @@ class DeployTemplate(base.APIBase):
             list of fields to preserve, or ``None`` to preserve them all
         :type fields: list of str
         """
-        if self.steps != wtypes.Unset:
+        if self.steps != atypes.Unset:
             for step in self.steps:
                 step.sanitize()
 
@@ -276,7 +276,7 @@ class DeployTemplatesController(rest.RestController):
             except AttributeError:
                 # Ignore fields that aren't exposed in the API.
                 continue
-            if patch_val == wtypes.Unset:
+            if patch_val == atypes.Unset:
                 patch_val = None
             if rpc_template[field] != patch_val:
                 if field == 'steps' and patch_val is not None:

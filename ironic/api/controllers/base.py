@@ -16,8 +16,8 @@ import datetime
 import functools
 
 from webob import exc
-import wsme
 
+from ironic.api import types as atypes
 from ironic.common.i18n import _
 
 
@@ -39,7 +39,7 @@ class AsDictMixin(object):
         return dict((k, _attr_as_pod(getattr(self, k)))
                     for k in self.fields
                     if hasattr(self, k)
-                    and getattr(self, k) != wsme.Unset)
+                    and getattr(self, k) != atypes.Unset)
 
 
 class Base(AsDictMixin):
@@ -60,15 +60,15 @@ class Base(AsDictMixin):
 
         for k in self.as_dict():
             if k not in except_list:
-                setattr(self, k, wsme.Unset)
+                setattr(self, k, atypes.Unset)
 
 
 class APIBase(Base):
 
-    created_at = wsme.wsattr(datetime.datetime, readonly=True)
+    created_at = atypes.wsattr(datetime.datetime, readonly=True)
     """The time in UTC at which the object is created"""
 
-    updated_at = wsme.wsattr(datetime.datetime, readonly=True)
+    updated_at = atypes.wsattr(datetime.datetime, readonly=True)
     """The time in UTC at which the object is updated"""
 
 

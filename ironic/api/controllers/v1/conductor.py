@@ -16,8 +16,6 @@ from ironic_lib import metrics_utils
 from oslo_log import log
 from oslo_utils import timeutils
 from pecan import rest
-import wsme
-from wsme import types as wtypes
 
 from ironic import api
 from ironic.api.controllers import base
@@ -26,6 +24,7 @@ from ironic.api.controllers.v1 import collection
 from ironic.api.controllers.v1 import types
 from ironic.api.controllers.v1 import utils as api_utils
 from ironic.api import expose
+from ironic.api import types as atypes
 from ironic.common import exception
 from ironic.common.i18n import _
 from ironic.common import policy
@@ -42,19 +41,19 @@ _DEFAULT_RETURN_FIELDS = ('hostname', 'conductor_group', 'alive')
 class Conductor(base.APIBase):
     """API representation of a bare metal conductor."""
 
-    hostname = wsme.wsattr(str)
+    hostname = atypes.wsattr(str)
     """The hostname for this conductor"""
 
-    conductor_group = wsme.wsattr(str)
+    conductor_group = atypes.wsattr(str)
     """The conductor group this conductor belongs to"""
 
     alive = types.boolean
     """Indicates whether this conductor is considered alive"""
 
-    drivers = wsme.wsattr([str])
+    drivers = atypes.wsattr([str])
     """The drivers enabled on this conductor"""
 
-    links = wsme.wsattr([link.Link])
+    links = atypes.wsattr([link.Link])
     """A list containing a self link and associated conductor links"""
 
     def __init__(self, **kwargs):
@@ -69,7 +68,7 @@ class Conductor(base.APIBase):
             if not hasattr(self, field):
                 continue
             self.fields.append(field)
-            setattr(self, field, kwargs.get(field, wtypes.Unset))
+            setattr(self, field, kwargs.get(field, atypes.Unset))
 
     @staticmethod
     def _convert_with_links(conductor, url, fields=None):

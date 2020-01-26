@@ -17,7 +17,6 @@ from http import client as http_client
 
 from ironic_lib import metrics_utils
 from pecan import rest
-import wsme
 
 from ironic import api
 from ironic.api.controllers import base
@@ -25,6 +24,7 @@ from ironic.api.controllers import link
 from ironic.api.controllers.v1 import types
 from ironic.api.controllers.v1 import utils as api_utils
 from ironic.api import expose
+from ironic.api import types as atypes
 from ironic.common import exception
 from ironic.common.i18n import _
 from ironic.common import policy
@@ -72,16 +72,16 @@ def hide_fields_in_newer_versions(obj):
     matches or exceeds the versions when these fields were introduced.
     """
     if not api_utils.allow_storage_interface():
-        obj.default_storage_interface = wsme.Unset
-        obj.enabled_storage_interfaces = wsme.Unset
+        obj.default_storage_interface = atypes.Unset
+        obj.enabled_storage_interfaces = atypes.Unset
 
     if not api_utils.allow_rescue_interface():
-        obj.default_rescue_interface = wsme.Unset
-        obj.enabled_rescue_interfaces = wsme.Unset
+        obj.default_rescue_interface = atypes.Unset
+        obj.enabled_rescue_interfaces = atypes.Unset
 
     if not api_utils.allow_bios_interface():
-        obj.default_bios_interface = wsme.Unset
-        obj.enabled_bios_interfaces = wsme.Unset
+        obj.default_bios_interface = atypes.Unset
+        obj.enabled_bios_interfaces = atypes.Unset
 
 
 class Driver(base.Base):
@@ -96,10 +96,10 @@ class Driver(base.Base):
     type = str
     """Whether the driver is classic or dynamic (hardware type)"""
 
-    links = wsme.wsattr([link.Link], readonly=True)
+    links = atypes.wsattr([link.Link], readonly=True)
     """A list containing self and bookmark links"""
 
-    properties = wsme.wsattr([link.Link], readonly=True)
+    properties = atypes.wsattr([link.Link], readonly=True)
     """A list containing links to driver properties"""
 
     """Default interface for a hardware type"""

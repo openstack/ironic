@@ -24,7 +24,6 @@ from oslo_utils import uuidutils
 import pecan
 from pecan import rest
 import wsme
-from wsme import types as wtypes
 
 from ironic import api
 from ironic.api.controllers import base
@@ -40,6 +39,7 @@ from ironic.api.controllers.v1 import utils as api_utils
 from ironic.api.controllers.v1 import versions
 from ironic.api.controllers.v1 import volume
 from ironic.api import expose
+from ironic.api import types as atypes
 from ironic.common import exception
 from ironic.common.i18n import _
 from ironic.common import policy
@@ -131,7 +131,7 @@ def hide_fields_in_newer_versions(obj):
     matches or exceeds the versions when these fields were introduced.
     """
     for field in api_utils.disallowed_fields():
-        setattr(obj, field, wsme.Unset)
+        setattr(obj, field, atypes.Unset)
 
 
 def reject_fields_in_newer_versions(obj):
@@ -146,7 +146,7 @@ def reject_fields_in_newer_versions(obj):
             # explicitly even in old API versions..
             continue
         else:
-            empty_value = wtypes.Unset
+            empty_value = atypes.Unset
 
         if getattr(obj, field, empty_value) != empty_value:
             LOG.debug('Field %(field)s is not acceptable in version %(ver)s',
@@ -298,7 +298,7 @@ class IndicatorAtComponent(object):
 class IndicatorState(base.APIBase):
     """API representation of indicator state."""
 
-    state = wsme.wsattr(wtypes.text)
+    state = atypes.wsattr(str)
 
     def __init__(self, **kwargs):
         self.state = kwargs.get('state')
@@ -307,15 +307,15 @@ class IndicatorState(base.APIBase):
 class Indicator(base.APIBase):
     """API representation of an indicator."""
 
-    name = wsme.wsattr(wtypes.text)
+    name = atypes.wsattr(str)
 
-    component = wsme.wsattr(wtypes.text)
+    component = atypes.wsattr(str)
 
     readonly = types.BooleanType()
 
-    states = wtypes.ArrayType(str)
+    states = atypes.ArrayType(str)
 
-    links = wsme.wsattr([link.Link], readonly=True)
+    links = atypes.wsattr([link.Link], readonly=True)
 
     def __init__(self, **kwargs):
         self.name = kwargs.get('name')
@@ -348,7 +348,7 @@ class Indicator(base.APIBase):
             node_uuid, indicator, pecan.request.host_url)
 
 
-class IndicatorsCollection(wtypes.Base):
+class IndicatorsCollection(atypes.Base):
     """API representation of the indicators for a node."""
 
     indicators = [Indicator]
@@ -374,7 +374,7 @@ class IndicatorsCollection(wtypes.Base):
 class IndicatorController(rest.RestController):
 
     @METRICS.timer('IndicatorController.put')
-    @expose.expose(None, types.uuid_or_name, wtypes.text, wtypes.text,
+    @expose.expose(None, types.uuid_or_name, str, str,
                    status_code=http_client.NO_CONTENT)
     def put(self, node_ident, indicator, state):
         """Set node hardware component indicator to the desired state.
@@ -398,7 +398,7 @@ class IndicatorController(rest.RestController):
             state, topic=topic)
 
     @METRICS.timer('IndicatorController.get_one')
-    @expose.expose(IndicatorState, types.uuid_or_name, wtypes.text)
+    @expose.expose(IndicatorState, types.uuid_or_name, str)
     def get_one(self, node_ident, indicator):
         """Get node hardware component indicator and its state.
 
@@ -421,7 +421,7 @@ class IndicatorController(rest.RestController):
         return IndicatorState(state=state)
 
     @METRICS.timer('IndicatorController.get_all')
-    @expose.expose(IndicatorsCollection, types.uuid_or_name, wtypes.text,
+    @expose.expose(IndicatorsCollection, types.uuid_or_name, str,
                    ignore_extra_args=True)
     def get_all(self, node_ident):
         """Get node hardware components and their indicators.
@@ -576,11 +576,11 @@ class NodeStates(base.APIBase):
     """Any error from the most recent (last) asynchronous transaction that
     started but failed to finish."""
 
-    raid_config = wsme.wsattr({str: types.jsontype}, readonly=True)
+    raid_config = atypes.wsattr({str: types.jsontype}, readonly=True)
     """Represents the RAID configuration that the node is configured with."""
 
-    target_raid_config = wsme.wsattr({str: types.jsontype},
-                                     readonly=True)
+    target_raid_config = atypes.wsattr({str: types.jsontype},
+                                       readonly=True)
     """The desired RAID configuration, to be used the next time the node
     is configured."""
 
@@ -670,7 +670,7 @@ class NodeStatesController(rest.RestController):
 
     @METRICS.timer('NodeStatesController.power')
     @expose.expose(None, types.uuid_or_name, str,
-                   wtypes.IntegerType(minimum=1),
+                   atypes.IntegerType(minimum=1),
                    status_code=http_client.ACCEPTED)
     def power(self, node_ident, target, timeout=None):
         """Set the power state of the node.
@@ -699,7 +699,7 @@ class NodeStatesController(rest.RestController):
              or timeout) and not api_utils.allow_soft_power_off()):
             raise exception.NotAcceptable()
         # FIXME(naohirot): This check is workaround because
-        #                  wtypes.IntegerType(minimum=1) is not effective
+        #                  atypes.IntegerType(minimum=1) is not effective
         if timeout is not None and timeout < 1:
             raise exception.Invalid(
                 _("timeout has to be positive integer"))
@@ -902,7 +902,7 @@ def _check_clean_steps(clean_steps):
 class Traits(base.APIBase):
     """API representation of the traits for a node."""
 
-    traits = wtypes.ArrayType(str)
+    traits = atypes.ArrayType(str)
     """node traits"""
 
     @classmethod
@@ -956,7 +956,7 @@ class NodeTraitsController(rest.RestController):
         return Traits(traits=traits.get_trait_names())
 
     @METRICS.timer('NodeTraitsController.put')
-    @expose.expose(None, str, wtypes.ArrayType(str),
+    @expose.expose(None, str, atypes.ArrayType(str),
                    status_code=http_client.NO_CONTENT)
     def put(self, trait=None, traits=None):
         """Add a trait to a node.
@@ -1067,7 +1067,7 @@ class Node(base.APIBase):
         return self._chassis_uuid
 
     def _set_chassis_uuid(self, value):
-        if value in (wtypes.Unset, None):
+        if value in (atypes.Unset, None):
             self._chassis_uuid = value
         elif self._chassis_uuid != value:
             try:
@@ -1089,23 +1089,23 @@ class Node(base.APIBase):
     instance_uuid = types.uuid
     """The UUID of the instance in nova-compute"""
 
-    name = wsme.wsattr(str)
+    name = atypes.wsattr(str)
     """The logical name for this node"""
 
-    power_state = wsme.wsattr(str, readonly=True)
+    power_state = atypes.wsattr(str, readonly=True)
     """Represent the current (not transition) power state of the node"""
 
-    target_power_state = wsme.wsattr(str, readonly=True)
+    target_power_state = atypes.wsattr(str, readonly=True)
     """The user modified desired power state of the node."""
 
-    last_error = wsme.wsattr(str, readonly=True)
+    last_error = atypes.wsattr(str, readonly=True)
     """Any error from the most recent (last) asynchronous transaction that
     started but failed to finish."""
 
-    provision_state = wsme.wsattr(str, readonly=True)
+    provision_state = atypes.wsattr(str, readonly=True)
     """Represent the current (not transition) provision state of the node"""
 
-    reservation = wsme.wsattr(str, readonly=True)
+    reservation = atypes.wsattr(str, readonly=True)
     """The hostname of the conductor that holds an exclusive lock on
     the node."""
 
@@ -1122,13 +1122,13 @@ class Node(base.APIBase):
     maintenance = types.boolean
     """Indicates whether the node is in maintenance mode."""
 
-    maintenance_reason = wsme.wsattr(str, readonly=True)
+    maintenance_reason = atypes.wsattr(str, readonly=True)
     """Indicates reason for putting a node in maintenance mode."""
 
-    fault = wsme.wsattr(str, readonly=True)
+    fault = atypes.wsattr(str, readonly=True)
     """Indicates the active fault of a node."""
 
-    target_provision_state = wsme.wsattr(str, readonly=True)
+    target_provision_state = atypes.wsattr(str, readonly=True)
     """The user modified desired provision state of the node."""
 
     console_enabled = types.boolean
@@ -1138,33 +1138,33 @@ class Node(base.APIBase):
     instance_info = {str: types.jsontype}
     """This node's instance info."""
 
-    driver = wsme.wsattr(str, mandatory=True)
+    driver = atypes.wsattr(str, mandatory=True)
     """The driver responsible for controlling the node"""
 
     driver_info = {str: types.jsontype}
     """This node's driver configuration"""
 
-    driver_internal_info = wsme.wsattr({str: types.jsontype},
-                                       readonly=True)
+    driver_internal_info = atypes.wsattr({str: types.jsontype},
+                                         readonly=True)
     """This driver's internal configuration"""
 
-    clean_step = wsme.wsattr({str: types.jsontype}, readonly=True)
+    clean_step = atypes.wsattr({str: types.jsontype}, readonly=True)
     """The current clean step"""
 
-    deploy_step = wsme.wsattr({str: types.jsontype}, readonly=True)
+    deploy_step = atypes.wsattr({str: types.jsontype}, readonly=True)
     """The current deploy step"""
 
-    raid_config = wsme.wsattr({str: types.jsontype}, readonly=True)
+    raid_config = atypes.wsattr({str: types.jsontype}, readonly=True)
     """Represents the current RAID configuration of the node """
 
-    target_raid_config = wsme.wsattr({str: types.jsontype},
-                                     readonly=True)
+    target_raid_config = atypes.wsattr({str: types.jsontype},
+                                       readonly=True)
     """The user modified RAID configuration of the node """
 
     extra = {str: types.jsontype}
     """This node's meta data"""
 
-    resource_class = wsme.wsattr(wtypes.StringType(max_length=80))
+    resource_class = atypes.wsattr(atypes.StringType(max_length=80))
     """The resource class for the node, useful for classifying or grouping
        nodes. Used, for example, to classify nodes in Nova's placement
        engine."""
@@ -1174,65 +1174,65 @@ class Node(base.APIBase):
     properties = {str: types.jsontype}
     """The physical characteristics of this node"""
 
-    chassis_uuid = wsme.wsproperty(types.uuid, _get_chassis_uuid,
-                                   _set_chassis_uuid)
+    chassis_uuid = atypes.wsproperty(types.uuid, _get_chassis_uuid,
+                                     _set_chassis_uuid)
     """The UUID of the chassis this node belongs"""
 
-    links = wsme.wsattr([link.Link], readonly=True)
+    links = atypes.wsattr([link.Link], readonly=True)
     """A list containing a self link and associated node links"""
 
-    ports = wsme.wsattr([link.Link], readonly=True)
+    ports = atypes.wsattr([link.Link], readonly=True)
     """Links to the collection of ports on this node"""
 
-    portgroups = wsme.wsattr([link.Link], readonly=True)
+    portgroups = atypes.wsattr([link.Link], readonly=True)
     """Links to the collection of portgroups on this node"""
 
-    volume = wsme.wsattr([link.Link], readonly=True)
+    volume = atypes.wsattr([link.Link], readonly=True)
     """Links to endpoint for retrieving volume resources on this node"""
 
-    states = wsme.wsattr([link.Link], readonly=True)
+    states = atypes.wsattr([link.Link], readonly=True)
     """Links to endpoint for retrieving and setting node states"""
 
-    boot_interface = wsme.wsattr(str)
+    boot_interface = atypes.wsattr(str)
     """The boot interface to be used for this node"""
 
-    console_interface = wsme.wsattr(str)
+    console_interface = atypes.wsattr(str)
     """The console interface to be used for this node"""
 
-    deploy_interface = wsme.wsattr(str)
+    deploy_interface = atypes.wsattr(str)
     """The deploy interface to be used for this node"""
 
-    inspect_interface = wsme.wsattr(str)
+    inspect_interface = atypes.wsattr(str)
     """The inspect interface to be used for this node"""
 
-    management_interface = wsme.wsattr(str)
+    management_interface = atypes.wsattr(str)
     """The management interface to be used for this node"""
 
-    network_interface = wsme.wsattr(str)
+    network_interface = atypes.wsattr(str)
     """The network interface to be used for this node"""
 
-    power_interface = wsme.wsattr(str)
+    power_interface = atypes.wsattr(str)
     """The power interface to be used for this node"""
 
-    raid_interface = wsme.wsattr(str)
+    raid_interface = atypes.wsattr(str)
     """The raid interface to be used for this node"""
 
-    rescue_interface = wsme.wsattr(str)
+    rescue_interface = atypes.wsattr(str)
     """The rescue interface to be used for this node"""
 
-    storage_interface = wsme.wsattr(str)
+    storage_interface = atypes.wsattr(str)
     """The storage interface to be used for this node"""
 
-    vendor_interface = wsme.wsattr(str)
+    vendor_interface = atypes.wsattr(str)
     """The vendor interface to be used for this node"""
 
-    traits = wtypes.ArrayType(str)
+    traits = atypes.ArrayType(str)
     """The traits associated with this node"""
 
-    bios_interface = wsme.wsattr(str)
+    bios_interface = atypes.wsattr(str)
     """The bios interface to be used for this node"""
 
-    conductor_group = wsme.wsattr(str)
+    conductor_group = atypes.wsattr(str)
     """The conductor group to manage this node"""
 
     automated_clean = types.boolean
@@ -1241,28 +1241,28 @@ class Node(base.APIBase):
     protected = types.boolean
     """Indicates whether the node is protected from undeploying/rebuilding."""
 
-    protected_reason = wsme.wsattr(str)
+    protected_reason = atypes.wsattr(str)
     """Indicates reason for protecting the node."""
 
-    conductor = wsme.wsattr(str, readonly=True)
+    conductor = atypes.wsattr(str, readonly=True)
     """Represent the conductor currently serving the node"""
 
-    owner = wsme.wsattr(str)
+    owner = atypes.wsattr(str)
     """Field for storage of physical node owner"""
 
-    lessee = wsme.wsattr(wtypes.text)
+    lessee = atypes.wsattr(str)
     """Field for storage of physical node lessee"""
 
-    description = wsme.wsattr(wtypes.text)
+    description = atypes.wsattr(str)
     """Field for node description"""
 
-    allocation_uuid = wsme.wsattr(types.uuid, readonly=True)
+    allocation_uuid = atypes.wsattr(types.uuid, readonly=True)
     """The UUID of the allocation this node belongs"""
 
     retired = types.boolean
     """Indicates whether the node is marked for retirement."""
 
-    retired_reason = wsme.wsattr(str)
+    retired_reason = atypes.wsattr(str)
     """Indicates the reason for a node's retirement."""
 
     # NOTE(tenbrae): "conductor_affinity" shouldn't be presented on the
@@ -1286,10 +1286,10 @@ class Node(base.APIBase):
                 # NOTE(jroll) this is special-cased to "" and not Unset,
                 # because it is used in hash ring calculations
                 elif (k == 'conductor_group'
-                      and (k not in kwargs or kwargs[k] is wtypes.Unset)):
+                      and (k not in kwargs or kwargs[k] is atypes.Unset)):
                     value = ''
                 else:
-                    value = kwargs.get(k, wtypes.Unset)
+                    value = kwargs.get(k, atypes.Unset)
                 setattr(self, k, value)
 
         # NOTE(lucasagomes): chassis_id is an attribute created on-the-fly
@@ -1299,7 +1299,7 @@ class Node(base.APIBase):
         self.fields.append('chassis_id')
         if 'chassis_uuid' not in kwargs:
             setattr(self, 'chassis_uuid', kwargs.get('chassis_id',
-                                                     wtypes.Unset))
+                                                     atypes.Unset))
 
     @staticmethod
     def _convert_with_links(node, url, fields=None, show_states_links=True,
@@ -1407,7 +1407,7 @@ class Node(base.APIBase):
         show_instance_secrets = policy.check("show_instance_secrets",
                                              cdict, cdict)
 
-        if not show_driver_secrets and self.driver_info != wtypes.Unset:
+        if not show_driver_secrets and self.driver_info != atypes.Unset:
             self.driver_info = strutils.mask_dict_password(
                 self.driver_info, "******")
 
@@ -1418,7 +1418,7 @@ class Node(base.APIBase):
             if self.driver_info.get('ssh_key_contents'):
                 self.driver_info['ssh_key_contents'] = "******"
 
-        if not show_instance_secrets and self.instance_info != wtypes.Unset:
+        if not show_instance_secrets and self.instance_info != atypes.Unset:
             self.instance_info = strutils.mask_dict_password(
                 self.instance_info, "******")
             # NOTE(tenbrae): agent driver may store a swift temp_url on the
@@ -1440,7 +1440,7 @@ class Node(base.APIBase):
 
         # NOTE(lucasagomes): The numeric ID should not be exposed to
         #                    the user, it's internal only.
-        self.chassis_id = wtypes.Unset
+        self.chassis_id = atypes.Unset
 
         show_states_links = (
             api_utils.allow_links_node_states_and_driver_properties())
@@ -1448,11 +1448,11 @@ class Node(base.APIBase):
         show_volume = api_utils.allow_volume()
 
         if not show_volume:
-            self.volume = wtypes.Unset
+            self.volume = atypes.Unset
         if not show_portgroups:
-            self.portgroups = wtypes.Unset
+            self.portgroups = atypes.Unset
         if not show_states_links:
-            self.states = wtypes.Unset
+            self.states = atypes.Unset
 
     @classmethod
     def sample(cls, expand=True):
@@ -1944,7 +1944,7 @@ class NodesController(rest.RestController):
                         raise exception.NotAcceptable()
                     rpc_node[field] = None
                 continue
-            if patch_val == wtypes.Unset:
+            if patch_val == atypes.Unset:
                 patch_val = None
             # conductor_group is case-insensitive, and we use it to calculate
             # the conductor to send an update too. lowercase it here instead
@@ -2204,30 +2204,30 @@ class NodesController(rest.RestController):
         cdict = context.to_policy_values()
         policy.authorize('baremetal:node:create', cdict, cdict)
 
-        if node.conductor is not wtypes.Unset:
+        if node.conductor is not atypes.Unset:
             msg = _("Cannot specify conductor on node creation.")
             raise exception.Invalid(msg)
 
         reject_fields_in_newer_versions(node)
 
-        if node.traits is not wtypes.Unset:
+        if node.traits is not atypes.Unset:
             msg = _("Cannot specify node traits on node creation. Traits must "
                     "be set via the node traits API.")
             raise exception.Invalid(msg)
 
-        if (node.protected is not wtypes.Unset
-                or node.protected_reason is not wtypes.Unset):
+        if (node.protected is not atypes.Unset
+                or node.protected_reason is not atypes.Unset):
             msg = _("Cannot specify protected or protected_reason on node "
                     "creation. These fields can only be set for active nodes")
             raise exception.Invalid(msg)
 
-        if (node.description is not wtypes.Unset
+        if (node.description is not atypes.Unset
                 and len(node.description) > _NODE_DESCRIPTION_MAX_LENGTH):
             msg = _("Cannot create node with description exceeding %s "
                     "characters") % _NODE_DESCRIPTION_MAX_LENGTH
             raise exception.Invalid(msg)
 
-        if node.allocation_uuid is not wtypes.Unset:
+        if node.allocation_uuid is not atypes.Unset:
             msg = _("Allocation UUID cannot be specified, use allocations API")
             raise exception.Invalid(msg)
 
@@ -2247,7 +2247,7 @@ class NodesController(rest.RestController):
             e.code = http_client.BAD_REQUEST
             raise
 
-        if node.name != wtypes.Unset and node.name is not None:
+        if node.name != atypes.Unset and node.name is not None:
             error_msg = _("Cannot create node with invalid name '%(name)s'")
             self._check_names_acceptable([node.name], error_msg)
         node.provision_state = api_utils.initial_node_provision_state()
