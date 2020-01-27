@@ -48,6 +48,10 @@ That will guarantee that Bare Metal service will pick the disk device that
 has the ``wwn`` equal to the specified wwn value, or fail the deployment if it
 can not be found.
 
+.. note::
+    Starting with the Ussuri release, root device hints can be specified
+    per-instance, see :doc:`/install/standalone`.
+
 The hints can have an operator at the beginning of the value string. If
 no operator is specified the default is ``==`` (for numerical values)
 and ``s==`` (for string values). The supported operators are:

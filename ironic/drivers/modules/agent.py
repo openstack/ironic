@@ -15,7 +15,6 @@
 from urllib import parse as urlparse
 
 from ironic_lib import metrics_utils
-from ironic_lib import utils as il_utils
 from oslo_log import log
 from oslo_utils import excutils
 from oslo_utils import units
@@ -431,15 +430,7 @@ class AgentDeploy(AgentDeployMixin, base.DeployInterface):
 
         check_image_size(task, image_source)
         # Validate the root device hints
-        try:
-            root_device = deploy_utils.get_root_device_for_deploy(node)
-            il_utils.parse_root_device_hints(root_device)
-        except ValueError as e:
-            raise exception.InvalidParameterValue(
-                _('Failed to validate the root device hints for node '
-                  '%(node)s. Error: %(error)s') % {'node': node.uuid,
-                                                   'error': e})
-
+        deploy_utils.get_root_device_for_deploy(node)
         validate_image_proxies(node)
 
     @METRICS.timer('AgentDeploy.deploy')

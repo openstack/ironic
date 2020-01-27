@@ -1503,6 +1503,24 @@ def set_async_step_flags(node, reboot=None, skip_current_step=None,
 
 
 def get_root_device_for_deploy(node):
-    """Get a root device requested for deployment or None."""
-    return (node.instance_info.get('root_device')
-            or node.properties.get('root_device'))
+    """Get a root device requested for deployment or None.
+
+    :raises: InvalidParameterValue on invalid hints.
+    :return: Parsed root device hints or None if no hints were provided.
+    """
+    hints = node.instance_info.get('root_device')
+    if not hints:
+        hints = node.properties.get('root_device')
+        if not hints:
+            return
+        source = 'properties'
+    else:
+        source = 'instance_info'
+
+    try:
+        return il_utils.parse_root_device_hints(hints)
+    except ValueError as e:
+        raise exception.InvalidParameterValue(
+            _('Failed to validate the root device hints %(hints)s (from the '
+              'node\'s %(source)s) for node %(node)s. Error: %(error)s') %
+            {'node': node.uuid, 'hints': hints, 'source': source, 'error': e})

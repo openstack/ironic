@@ -281,6 +281,7 @@ class TestAgentDeploy(db_base.DbTestCase):
             self, pxe_boot_validate_mock, show_mock, validate_http_mock):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
+            task.node.properties['root_device'] = {'size': 42}
             task.node.instance_info['root_device'] = {'size': 'not-int'}
             self.assertRaises(exception.InvalidParameterValue,
                               task.driver.deploy.validate, task)

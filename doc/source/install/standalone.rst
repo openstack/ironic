@@ -152,6 +152,15 @@ Steps to start a deployment are pretty similar to those when using Compute:
         --instance-info ramdisk=$RAMDISK \
         --instance-info root_gb=10
 
+#. Starting with the Ussuri release, you can set :ref:`root device hints
+   <root-device-hints>` per instance::
+
+    openstack baremetal node set $NODE_UUID \
+        --instance-info root_device='{"wwn": "0x4000cca77fc4dba1"}'
+
+   This setting overrides any previous setting in ``properties`` and will be
+   removed on undeployment.
+
 #. Validate that all parameters are correct::
 
     openstack baremetal node validate $NODE_UUID

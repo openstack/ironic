@@ -579,6 +579,7 @@ class IscsiDeployMethodsTestCase(db_base.DbTestCase):
         mock_get_url.return_value = 'http://spam.ham/baremetal'
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
+            task.node.properties['root_device'] = {'size': 42}
             task.node.instance_info['root_device'] = {'size': 'not-int'}
             self.assertRaises(exception.InvalidParameterValue,
                               iscsi_deploy.validate, task)
