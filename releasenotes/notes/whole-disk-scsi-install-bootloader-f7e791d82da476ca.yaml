@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    When installing a whole disk image using iscsi, set up the bootloader even
+    if a root partition can not be found.  The bootloaders will be located on
+    the disk.

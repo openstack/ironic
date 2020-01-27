@@ -33,6 +33,7 @@ from ironic.conductor import steps as conductor_steps
 from ironic.conductor import utils as manager_utils
 from ironic.conf import CONF
 from ironic.drivers.modules import agent_client
+from ironic.drivers.modules import boot_mode_utils
 from ironic.drivers.modules import deploy_utils
 from ironic.drivers import utils as driver_utils
 
@@ -850,8 +851,12 @@ class AgentDeployMixin(HeartbeatMixin):
                 LOG.debug('Got rootfs_uuid from driver internal info: '
                           '%s (node %s)', root_uuid, node.uuid)
 
+        # For whole disk images it is not necessary that the root_uuid
+        # be provided since the bootloaders on the disk will be used
         whole_disk_image = internal_info.get('is_whole_disk_image')
-        if software_raid or (root_uuid and not whole_disk_image):
+        if (software_raid or (root_uuid and not whole_disk_image) or
+            (whole_disk_image and
+             boot_mode_utils.get_boot_mode(node) == 'uefi')):
             LOG.debug('Installing the bootloader for node %(node)s on '
                       'partition %(part)s, EFI system partition %(efi)s',
                       {'node': node.uuid, 'part': root_uuid,
@@ -861,11 +866,20 @@ class AgentDeployMixin(HeartbeatMixin):
                 efi_system_part_uuid=efi_system_part_uuid,
                 prep_boot_part_uuid=prep_boot_part_uuid)
             if result['command_status'] == 'FAILED':
-                msg = (_("Failed to install a bootloader when "
-                         "deploying node %(node)s. Error: %(error)s") %
-                       {'node': node.uuid,
-                        'error': result['command_error']})
-                log_and_raise_deployment_error(task, msg)
+                if not whole_disk_image:
+                    msg = (_("Failed to install a bootloader when "
+                             "deploying node %(node)s. Error: %(error)s") %
+                           {'node': node.uuid,
+                            'error': result['command_error']})
+                    log_and_raise_deployment_error(task, msg)
+                else:
+                    # Its possible the install will fail if the IPA image
+                    # has not been updated, log this and continue
+                    LOG.info('Could not install bootloader for whole disk '
+                             'image for node %(node)s, Error: %(error)s"',
+                             {'node': node.uuid,
+                              'error': result['command_error']})
+                    return
 
         try:
             persistent = True
