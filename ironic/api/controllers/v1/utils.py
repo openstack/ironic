@@ -41,7 +41,8 @@ from ironic import objects
 CONF = cfg.CONF
 
 
-_JSONPATCH_EXCEPTIONS = (jsonpatch.JsonPatchException,
+_JSONPATCH_EXCEPTIONS = (jsonpatch.JsonPatchConflict,
+                         jsonpatch.JsonPatchException,
                          jsonpatch.JsonPointerException,
                          KeyError,
                          IndexError)

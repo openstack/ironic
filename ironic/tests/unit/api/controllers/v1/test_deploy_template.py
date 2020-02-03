@@ -360,7 +360,7 @@ class TestPatch(BaseDeployTemplatesAPITest):
         self.assertEqual('application/json', response.content_type)
         self.assertEqual(http_client.BAD_REQUEST, response.status_code)
         self.assertTrue(response.json['error_message'])
-        self.assertIn(error_msg, response.json['error_message'])
+        self.assertRegex(response.json['error_message'], error_msg)
         self.assertFalse(mock_save.called)
         return response
 
@@ -538,7 +538,8 @@ class TestPatch(BaseDeployTemplatesAPITest):
         }
         patch = [{'path': '/steps/1', 'op': 'replace', 'value': step}]
         self._test_update_bad_request(
-            mock_save, patch, "list assignment index out of range")
+            mock_save, patch, "list assignment index out of range|"
+                              "can't replace outside of list")
 
     def test_replace_empty_step_list_fail(self, mock_save):
         patch = [{'path': '/steps', 'op': 'replace', 'value': []}]
@@ -654,7 +655,7 @@ class TestPatch(BaseDeployTemplatesAPITest):
     def test_add_root_non_existent(self, mock_save):
         patch = [{'path': '/foo', 'value': 'bar', 'op': 'add'}]
         self._test_update_bad_request(
-            mock_save, patch, "Adding a new attribute (/foo)")
+            mock_save, patch, "Adding a new attribute \(/foo\)")
 
     def test_add_too_high_index_step_fail(self, mock_save):
         step = {

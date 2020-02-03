@@ -114,6 +114,7 @@ class TestApiUtils(base.TestCase):
         doc = []
         patch = [{"op": "replace", "path": "/0", "value": 42}]
         self.assertRaisesRegex(exception.PatchError,
+                               "can't replace outside of list|"
                                "list assignment index out of range",
                                utils.apply_jsonpatch, doc, patch)
 
