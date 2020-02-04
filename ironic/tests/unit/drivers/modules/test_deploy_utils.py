@@ -1255,6 +1255,31 @@ class OtherFunctionTestCase(db_base.DbTestCase):
         result = utils.get_boot_option(self.node)
         self.assertEqual("netboot", result)
 
+    @mock.patch.object(utils, 'is_software_raid', autospec=True)
+    def test_get_boot_option_software_raid(self, mock_is_software_raid):
+        mock_is_software_raid.return_value = True
+        cfg.CONF.set_override('default_boot_option', 'netboot', 'deploy')
+        result = utils.get_boot_option(self.node)
+        self.assertEqual("local", result)
+
+    def test_is_software_raid(self):
+        self.node.target_raid_config = {
+            "logical_disks": [
+                {
+                    "size_gb": 100,
+                    "raid_level": "1",
+                    "controller": "software",
+                }
+            ]
+        }
+        result = utils.is_software_raid(self.node)
+        self.assertTrue(result)
+
+    def test_is_software_raid_false(self):
+        self.node.target_raid_config = {}
+        result = utils.is_software_raid(self.node)
+        self.assertFalse(result)
+
     @mock.patch.object(image_cache, 'clean_up_caches', autospec=True)
     def test_fetch_images(self, mock_clean_up_caches):
 
