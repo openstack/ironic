@@ -274,6 +274,7 @@ def _parse_driver_info(node):
 
     """
     info = node.driver_info or {}
+    internal_info = node.driver_internal_info or {}
     bridging_types = ['single', 'dual']
     missing_info = [key for key in REQUIRED_PROPERTIES if not info.get(key)]
     if missing_info:
@@ -286,7 +287,8 @@ def _parse_driver_info(node):
     password = str(info.get('ipmi_password', ''))
     hex_kg_key = info.get('ipmi_hex_kg_key')
     dest_port = info.get('ipmi_port')
-    port = info.get('ipmi_terminal_port')
+    port = (info.get('ipmi_terminal_port') or
+            internal_info.get('allocated_ipmi_terminal_port'))
     priv_level = info.get('ipmi_priv_level', 'ADMINISTRATOR')
     bridging_type = info.get('ipmi_bridging', 'no')
     local_address = info.get('ipmi_local_address')
@@ -828,6 +830,27 @@ def _constructor_checks(driver):
     _check_temp_dir()
 
 
+def _allocate_port(task):
+    node = task.node
+    dii = node.driver_internal_info or {}
+    allocated_port = console_utils.acquire_port()
+    dii['allocated_ipmi_terminal_port'] = allocated_port
+    node.driver_internal_info = dii
+    node.save()
+    return allocated_port
+
+
+def _release_allocated_port(task):
+    node = task.node
+    dii = node.driver_internal_info or {}
+    allocated_port = dii.get('allocated_ipmi_terminal_port')
+    if allocated_port:
+        dii.pop('allocated_ipmi_terminal_port')
+        node.driver_internal_info = dii
+        node.save()
+        console_utils.release_port(allocated_port)
+
+
 class IPMIPower(base.PowerInterface):
 
     def __init__(self):
@@ -1292,10 +1315,10 @@ class IPMIConsole(base.ConsoleInterface):
 
         """
         driver_info = _parse_driver_info(task.node)
-        if not driver_info['port']:
+        if not driver_info['port'] and CONF.console.port_range is None:
             raise exception.MissingParameterValue(_(
-                "Missing 'ipmi_terminal_port' parameter in node's"
-                " driver_info."))
+                "Either missing 'ipmi_terminal_port' parameter in node's "
+                "driver_info or [console]port_range is not configured"))
 
         if driver_info['protocol_version'] != '2.0':
             raise exception.InvalidParameterValue(_(
@@ -1367,6 +1390,9 @@ class IPMIShellinaboxConsole(IPMIConsole):
         :raises: ConsoleSubprocessFailed when invoking the subprocess failed
         """
         driver_info = _parse_driver_info(task.node)
+        if not driver_info['port']:
+            driver_info['port'] = _allocate_port(task)
+
         self._start_console(driver_info,
                             console_utils.start_shellinabox_console)
 
@@ -1382,6 +1408,7 @@ class IPMIShellinaboxConsole(IPMIConsole):
         finally:
             ironic_utils.unlink_without_raise(
                 _console_pwfile_path(task.node.uuid))
+        _release_allocated_port(task)
 
     @METRICS.timer('IPMIShellinaboxConsole.get_console')
     def get_console(self, task):
@@ -1407,6 +1434,9 @@ class IPMISocatConsole(IPMIConsole):
         :raises: ConsoleSubprocessFailed when invoking the subprocess failed
         """
         driver_info = _parse_driver_info(task.node)
+        if not driver_info['port']:
+            driver_info['port'] = _allocate_port(task)
+
         try:
             self._exec_stop_console(driver_info)
         except OSError:
@@ -1430,6 +1460,7 @@ class IPMISocatConsole(IPMIConsole):
             ironic_utils.unlink_without_raise(
                 _console_pwfile_path(task.node.uuid))
         self._exec_stop_console(driver_info)
+        _release_allocated_port(task)
 
     def _exec_stop_console(self, driver_info):
         cmd = "sol deactivate"

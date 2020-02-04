@@ -23,10 +23,12 @@ import errno
 import fcntl
 import os
 import signal
+import socket
 import subprocess
 import time
 
 from ironic_lib import utils as ironic_utils
+from oslo_concurrency import lockutils
 from oslo_log import log as logging
 from oslo_service import loopingcall
 from oslo_utils import fileutils
@@ -39,6 +41,9 @@ from ironic.conf import CONF
 
 
 LOG = logging.getLogger(__name__)
+
+ALLOCATED_PORTS = set()  # in-memory set of already allocated ports
+SERIAL_LOCK = 'ironic-console-lock'
 
 
 def _get_console_pid_dir():
@@ -143,6 +148,57 @@ def make_persistent_password_file(path, password):
     except Exception as e:
         fileutils.delete_if_exists(path)
         raise exception.PasswordFileFailedToCreate(error=e)
+
+
+def _get_port_range():
+    config_range = CONF.console.port_range
+
+    start, stop = map(int, config_range.split(':'))
+    if start >= stop:
+        msg = _("[console]port_range should be in the "
+                "format <start>:<stop> and start < stop")
+        raise exception.InvalidParameterValue(msg)
+    return start, stop
+
+
+def _verify_port(port):
+    """Check whether specified port is in use."""
+    s = socket.socket()
+    try:
+        s.bind((CONF.host, port))
+    except socket.error:
+        raise exception.Conflict()
+    finally:
+        s.close()
+
+
+@lockutils.synchronized(SERIAL_LOCK)
+def acquire_port():
+    """Returns a free TCP port on current host.
+
+    Find and returns a free TCP port in the range
+    of 'CONF.console.port_range'.
+    """
+
+    start, stop = _get_port_range()
+
+    for port in range(start, stop):
+        if port in ALLOCATED_PORTS:
+            continue
+        try:
+            _verify_port(port)
+            ALLOCATED_PORTS.add(port)
+            return port
+        except exception.Conflict:
+            pass
+
+    raise exception.NoFreeIPMITerminalPorts(host=CONF.host)
+
+
+@lockutils.synchronized(SERIAL_LOCK)
+def release_port(port):
+    """Release specified TCP port."""
+    ALLOCATED_PORTS.discard(port)
 
 
 def get_shellinabox_console_url(port):

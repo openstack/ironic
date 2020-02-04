@@ -53,6 +53,13 @@ opts = [
               default='$my_ip',
               help=_('IP address of Socat service running on the host of '
                      'ironic conductor. Used only by Socat console.')),
+    cfg.StrOpt('port_range',
+               regex=r'^\d+:\d+$',
+               sample_default='10000:20000',
+               help=_('A range of ports available to be used for the console '
+                      'proxy service running on the host of ironic '
+                      'conductor, in the form of <start>:<stop>. This option '
+                      'is used by both Shellinabox and Socat console')),
 ]
 
 

@@ -1,0 +1,9 @@
+---
+features:
+  - |
+    Adds a new configuration option ``[console]port_range``, which specifies
+    the range of ports can be consumed for the IPMI serial console. The
+    default value is ``None`` for backwards compatibility. If the
+    ``ipmi_terminal_port`` is not specified in the driver information for a
+    node, a free port will be allocated from the configured port range for
+    further use.
