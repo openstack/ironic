@@ -445,11 +445,11 @@ IRONIC_PROVISION_SUBNET_SUBNODE_IP=${IRONIC_PROVISION_SUBNET_SUBNODE_IP:-'10.0.5
 # Example: IRONIC_PROVISION_SUBNET_PREFIX=10.0.5.0/24
 IRONIC_PROVISION_SUBNET_PREFIX=${IRONIC_PROVISION_SUBNET_PREFIX:-'10.0.5.0/24'}
 
-if [[ "$HOST_TOPOLOGY_ROLE" == 'primary' ]]; then
+if [[ "$HOST_TOPOLOGY_ROLE" == "primary" ]]; then
     IRONIC_TFTPSERVER_IP=$IRONIC_PROVISION_SUBNET_GATEWAY
     IRONIC_HTTP_SERVER=$IRONIC_PROVISION_SUBNET_GATEWAY
 fi
-if [[ "$HOST_TOPOLOGY_ROLE" == 'subnode' ]]; then
+if [[ "$HOST_TOPOLOGY_ROLE" == "subnode" ]]; then
     IRONIC_TFTPSERVER_IP=$IRONIC_PROVISION_SUBNET_SUBNODE_IP
     IRONIC_HTTP_SERVER=$IRONIC_PROVISION_SUBNET_SUBNODE_IP
 fi
@@ -570,7 +570,7 @@ fi
 
 # TODO(dtantsur): change this when we change the default value.
 IRONIC_DEFAULT_BOOT_OPTION=${IRONIC_DEFAULT_BOOT_OPTION:-netboot}
-if [ $IRONIC_DEFAULT_BOOT_OPTION != 'netboot' ] && [ $IRONIC_DEFAULT_BOOT_OPTION != 'local' ]; then
+if [ $IRONIC_DEFAULT_BOOT_OPTION != "netboot" ] && [ $IRONIC_DEFAULT_BOOT_OPTION != "local" ]; then
     die $LINENO "Supported values for IRONIC_DEFAULT_BOOT_OPTION are 'netboot' and 'local' only."
 fi
 
@@ -666,7 +666,7 @@ function is_ironic_enabled {
 }
 
 function is_deployed_by_agent {
-    [[ -z "${IRONIC_DEPLOY_DRIVER%%agent*}" || "$IRONIC_DEFAULT_DEPLOY_INTERFACE" == 'direct' ]] && return 0
+    [[ -z "${IRONIC_DEPLOY_DRIVER%%agent*}" || "$IRONIC_DEFAULT_DEPLOY_INTERFACE" == "direct" ]] && return 0
     return 1
 }
 
@@ -1204,7 +1204,7 @@ function configure_ironic_provision_network {
     local ironic_provision_network_ip
     # NOTE(vsaienko) For multinode case there is no need to create a new provisioning
     # network on subnode, as it was created on primary node. Just get an existed network UUID.
-    if [[ "$HOST_TOPOLOGY_ROLE" != 'subnode' ]]; then
+    if [[ "$HOST_TOPOLOGY_ROLE" != "subnode" ]]; then
         die_if_not_set $LINENO IRONIC_PROVISION_SUBNET_PREFIX "You must specify the IRONIC_PROVISION_SUBNET_PREFIX"
         die_if_not_set $LINENO PHYSICAL_NETWORK "You must specify the PHYSICAL_NETWORK"
         die_if_not_set $LINENO IRONIC_PROVISION_SUBNET_GATEWAY "You must specify the IRONIC_PROVISION_SUBNET_GATEWAY"
@@ -2313,7 +2313,7 @@ function enroll_nodes {
     provide_nodes $node_uuids
 
     if is_service_enabled nova && [[ "$VIRT_DRIVER" == "ironic" ]]; then
-        if [[ "$HOST_TOPOLOGY_ROLE" != 'subnode' ]]; then
+        if [[ "$HOST_TOPOLOGY_ROLE" != "subnode" ]]; then
             local adjusted_disk
             adjusted_disk=$(($ironic_node_disk - $ironic_ephemeral_disk))
             openstack flavor create --ephemeral $ironic_ephemeral_disk --ram $ironic_node_ram --disk $adjusted_disk --vcpus $ironic_node_cpu baremetal
@@ -2635,7 +2635,7 @@ function upload_baremetal_ironic_deploy {
     local ironic_deploy_ramdisk_name
     ironic_deploy_kernel_name=$(basename $IRONIC_DEPLOY_KERNEL)
     ironic_deploy_ramdisk_name=$(basename $IRONIC_DEPLOY_RAMDISK)
-    if [[ "$HOST_TOPOLOGY_ROLE" != 'subnode' ]]; then
+    if [[ "$HOST_TOPOLOGY_ROLE" != "subnode" ]]; then
         echo_summary "Creating and uploading baremetal images for ironic"
 
         if [ ! -e "$IRONIC_DEPLOY_RAMDISK" ] || \
