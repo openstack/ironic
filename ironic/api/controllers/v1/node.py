@@ -1075,6 +1075,12 @@ class Node(base.APIBase):
     allocation_uuid = wsme.wsattr(types.uuid, readonly=True)
     """The UUID of the allocation this node belongs"""
 
+    retired = types.boolean
+    """Indicates whether the node is marked for retirement."""
+
+    retired_reason = wsme.wsattr(str)
+    """Indicates the reason for a node's retirement."""
+
     # NOTE(deva): "conductor_affinity" shouldn't be presented on the
     #             API because it's an internal value. Don't add it here.
 
@@ -1291,7 +1297,8 @@ class Node(base.APIBase):
                      bios_interface=None, conductor_group="",
                      automated_clean=None, protected=False,
                      protected_reason=None, owner=None,
-                     allocation_uuid='982ddb5b-bce5-4d23-8fb8-7f710f648cd5')
+                     allocation_uuid='982ddb5b-bce5-4d23-8fb8-7f710f648cd5',
+                     retired=False, retired_reason=None)
         # NOTE(matty_dubs): The chassis_uuid getter() is based on the
         # _chassis_uuid variable:
         sample._chassis_uuid = 'edcad704-b2da-41d5-96d9-afd580ecfa12'
@@ -1605,8 +1612,8 @@ class NodesController(rest.RestController):
         return filtered_nodes
 
     def _get_nodes_collection(self, chassis_uuid, instance_uuid, associated,
-                              maintenance, provision_state, marker, limit,
-                              sort_key, sort_dir, driver=None,
+                              maintenance, retired, provision_state, marker,
+                              limit, sort_key, sort_dir, driver=None,
                               resource_class=None, resource_url=None,
                               fields=None, fault=None, conductor_group=None,
                               detail=None, conductor=None, owner=None,
@@ -1654,6 +1661,7 @@ class NodesController(rest.RestController):
                 'conductor_group': conductor_group,
                 'owner': owner,
                 'description_contains': description_contains,
+                'retired': retired,
             }
             filters = {}
             for key, value in possible_filters.items():
@@ -1673,6 +1681,8 @@ class NodesController(rest.RestController):
                 parameters['associated'] = associated
             if maintenance:
                 parameters['maintenance'] = maintenance
+            if retired:
+                parameters['retired'] = retired
 
         if detail is not None:
             parameters['detail'] = detail
@@ -1773,14 +1783,14 @@ class NodesController(rest.RestController):
 
     @METRICS.timer('NodesController.get_all')
     @expose.expose(NodeCollection, types.uuid, types.uuid, types.boolean,
-                   types.boolean, str, types.uuid, int, str,
+                   types.boolean, types.boolean, str, types.uuid, int, str,
                    str, str, types.listtype, str,
                    str, str, types.boolean, str,
                    str, str)
     def get_all(self, chassis_uuid=None, instance_uuid=None, associated=None,
-                maintenance=None, provision_state=None, marker=None,
-                limit=None, sort_key='id', sort_dir='asc', driver=None,
-                fields=None, resource_class=None, fault=None,
+                maintenance=None, retired=None, provision_state=None,
+                marker=None, limit=None, sort_key='id', sort_dir='asc',
+                driver=None, fields=None, resource_class=None, fault=None,
                 conductor_group=None, detail=None, conductor=None,
                 owner=None, description_contains=None):
         """Retrieve a list of nodes.
@@ -1795,6 +1805,8 @@ class NodesController(rest.RestController):
         :param maintenance: Optional boolean value that indicates whether
                             to get nodes in maintenance mode ("True"), or not
                             in maintenance mode ("False").
+        :param retired: Optional boolean value that indicates whether
+                        to get retired nodes.
         :param provision_state: Optional string value to get only nodes in
                                 that provision state.
         :param marker: pagination marker for large data sets.
@@ -1839,7 +1851,7 @@ class NodesController(rest.RestController):
 
         extra_args = {'description_contains': description_contains}
         return self._get_nodes_collection(chassis_uuid, instance_uuid,
-                                          associated, maintenance,
+                                          associated, maintenance, retired,
                                           provision_state, marker,
                                           limit, sort_key, sort_dir,
                                           driver=driver,
@@ -1853,14 +1865,15 @@ class NodesController(rest.RestController):
 
     @METRICS.timer('NodesController.detail')
     @expose.expose(NodeCollection, types.uuid, types.uuid, types.boolean,
-                   types.boolean, str, types.uuid, int, str,
+                   types.boolean, types.boolean, str, types.uuid, int, str,
                    str, str, str, str,
                    str, str, str, str)
     def detail(self, chassis_uuid=None, instance_uuid=None, associated=None,
-               maintenance=None, provision_state=None, marker=None,
-               limit=None, sort_key='id', sort_dir='asc', driver=None,
-               resource_class=None, fault=None, conductor_group=None,
-               conductor=None, owner=None, description_contains=None):
+               maintenance=None, retired=None, provision_state=None,
+               marker=None, limit=None, sort_key='id', sort_dir='asc',
+               driver=None, resource_class=None, fault=None,
+               conductor_group=None, conductor=None, owner=None,
+               description_contains=None):
         """Retrieve a list of nodes with detail.
 
         :param chassis_uuid: Optional UUID of a chassis, to get only nodes for
@@ -1873,6 +1886,8 @@ class NodesController(rest.RestController):
         :param maintenance: Optional boolean value that indicates whether
                             to get nodes in maintenance mode ("True"), or not
                             in maintenance mode ("False").
+        :param retired: Optional boolean value that indicates whether
+                        to get nodes which are retired.
         :param provision_state: Optional string value to get only nodes in
                                 that provision state.
         :param marker: pagination marker for large data sets.
@@ -1914,7 +1929,7 @@ class NodesController(rest.RestController):
         resource_url = '/'.join(['nodes', 'detail'])
         extra_args = {'description_contains': description_contains}
         return self._get_nodes_collection(chassis_uuid, instance_uuid,
-                                          associated, maintenance,
+                                          associated, maintenance, retired,
                                           provision_state, marker,
                                           limit, sort_key, sort_dir,
                                           driver=driver,

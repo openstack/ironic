@@ -197,11 +197,11 @@ RELEASE_MAPPING = {
         }
     },
     'master': {
-        'api': '1.60',
+        'api': '1.61',
         'rpc': '1.48',
         'objects': {
             'Allocation': ['1.1'],
-            'Node': ['1.32'],
+            'Node': ['1.33', '1.32'],
             'Conductor': ['1.3'],
             'Chassis': ['1.3'],
             'DeployTemplate': ['1.1'],

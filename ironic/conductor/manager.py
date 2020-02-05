@@ -151,6 +151,22 @@ class ConductorManager(base_manager.BaseConductorManager):
                 "The protected_reason field can only be set when "
                 "protected is True")
 
+    def _check_update_retired(self, node_obj, delta):
+        if 'retired' in delta:
+            if not node_obj.retired:
+                node_obj.retired_reason = None
+            elif node_obj.provision_state == states.AVAILABLE:
+                raise exception.InvalidState(
+                    "Node %(node)s can not have 'retired' set in provision "
+                    "state 'available', the current state is '%(state)s'" %
+                    {'node': node_obj.uuid, 'state': node_obj.provision_state})
+
+        if ('retired_reason' in delta and node_obj.retired_reason and not
+                node_obj.retired):
+            raise exception.InvalidParameterValue(
+                "The retired_reason field can only be set when "
+                "retired is True")
+
     @METRICS.timer('ConductorManager.update_node')
     # No need to add these since they are subclasses of InvalidParameterValue:
     #     InterfaceNotFoundInEntrypoint
@@ -187,6 +203,7 @@ class ConductorManager(base_manager.BaseConductorManager):
             node_obj.fault = None
 
         self._check_update_protected(node_obj, delta)
+        self._check_update_retired(node_obj, delta)
 
         # TODO(dtantsur): reconsider allowing changing some (but not all)
         # interfaces for active nodes in the future.
@@ -1500,7 +1517,7 @@ class ConductorManager(base_manager.BaseConductorManager):
                                                 tear_down_cleaning=False)
 
         LOG.info('Node %s cleaning complete', node.uuid)
-        event = 'manage' if manual_clean else 'done'
+        event = 'manage' if manual_clean or node.retired else 'done'
         # NOTE(rloo): No need to specify target prov. state; we're done
         task.process_event(event)
 
@@ -1613,6 +1630,9 @@ class ConductorManager(base_manager.BaseConductorManager):
                         and node.maintenance):
                     raise exception.NodeInMaintenance(op=_('providing'),
                                                       node=node.uuid)
+                if (node.retired):
+                    raise exception.NodeIsRetired(op=_('providing'),
+                                                  node=node.uuid)
                 task.process_event(
                     'provide',
                     callback=self._spawn_worker,

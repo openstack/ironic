@@ -553,6 +553,65 @@ class UpdateNodeTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         self.assertFalse(res['protected'])
         self.assertIsNone(res['protected_reason'])
 
+    def test_update_node_retired_set(self):
+        for state in ('active', 'rescue', 'manageable'):
+            node = obj_utils.create_test_node(self.context,
+                                              uuid=uuidutils.generate_uuid(),
+                                              provision_state=state)
+
+            node.retired = True
+            res = self.service.update_node(self.context, node)
+            self.assertTrue(res['retired'])
+            self.assertIsNone(res['retired_reason'])
+
+    def test_update_node_retired_invalid_state(self):
+        # NOTE(arne_wiebalck): nodes in available cannot be 'retired'.
+        # This is to ensure backwards comaptibility.
+        node = obj_utils.create_test_node(self.context,
+                                          provision_state='available')
+
+        node.retired = True
+        exc = self.assertRaises(messaging.rpc.ExpectedException,
+                                self.service.update_node,
+                                self.context,
+                                node)
+        # Compare true exception hidden by @messaging.expected_exceptions
+        self.assertEqual(exception.InvalidState, exc.exc_info[0])
+
+        res = objects.Node.get_by_uuid(self.context, node['uuid'])
+        self.assertFalse(res['retired'])
+        self.assertIsNone(res['retired_reason'])
+
+    def test_update_node_retired_unset(self):
+        for state in ('active', 'manageable', 'rescue', 'rescue failed'):
+            node = obj_utils.create_test_node(self.context,
+                                              uuid=uuidutils.generate_uuid(),
+                                              provision_state=state,
+                                              retired=True,
+                                              retired_reason='EOL')
+
+            # check that ManagerService.update_node actually updates the node
+            node.retired = False
+            res = self.service.update_node(self.context, node)
+            self.assertFalse(res['retired'])
+            self.assertIsNone(res['retired_reason'])
+
+    def test_update_node_retired_reason_without_retired(self):
+        node = obj_utils.create_test_node(self.context,
+                                          provision_state='active')
+
+        node.retired_reason = 'warranty expired'
+        exc = self.assertRaises(messaging.rpc.ExpectedException,
+                                self.service.update_node,
+                                self.context,
+                                node)
+        # Compare true exception hidden by @messaging.expected_exceptions
+        self.assertEqual(exception.InvalidParameterValue, exc.exc_info[0])
+
+        res = objects.Node.get_by_uuid(self.context, node['uuid'])
+        self.assertFalse(res['retired'])
+        self.assertIsNone(res['retired_reason'])
+
     def test_update_node_already_locked(self):
         node = obj_utils.create_test_node(self.context, driver='fake-hardware',
                                           extra={'test': 'one'})
@@ -4253,7 +4312,8 @@ class DoNodeCleanTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
 
     @mock.patch('ironic.drivers.modules.fake.FakeDeploy.execute_clean_step',
                 autospec=True)
-    def _do_next_clean_step_last_step_noop(self, mock_execute, manual=False):
+    def _do_next_clean_step_last_step_noop(self, mock_execute, manual=False,
+                                           retired=False):
         # Resume where last_step is the last cleaning step, should be noop
         tgt_prov_state = states.MANAGEABLE if manual else states.AVAILABLE
         info = {'clean_steps': self.clean_steps,
@@ -4266,7 +4326,8 @@ class DoNodeCleanTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
             target_provision_state=tgt_prov_state,
             last_error=None,
             driver_internal_info=info,
-            clean_step=self.clean_steps[-1])
+            clean_step=self.clean_steps[-1],
+            retired=retired)
 
         with task_manager.acquire(
                 self.context, node.uuid, shared=False) as task:
@@ -4274,6 +4335,10 @@ class DoNodeCleanTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
 
         self._stop_service()
         node.refresh()
+
+        # retired nodes move to manageable upon cleaning
+        if retired:
+            tgt_prov_state = states.MANAGEABLE
 
         # Cleaning should be complete without calling additional steps
         self.assertEqual(tgt_prov_state, node.provision_state)
@@ -4288,6 +4353,9 @@ class DoNodeCleanTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
 
     def test__do_next_clean_step_manual_last_step_noop(self):
         self._do_next_clean_step_last_step_noop(manual=True)
+
+    def test__do_next_clean_step_retired_last_step_change_tgt_state(self):
+        self._do_next_clean_step_last_step_noop(retired=True)
 
     @mock.patch('ironic.drivers.modules.fake.FakePower.execute_clean_step',
                 autospec=True)

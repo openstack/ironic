@@ -56,6 +56,7 @@ class Connection(object, metaclass=abc.ABCMeta):
                         :reserved: True | False
                         :reserved_by_any_of: [conductor1, conductor2]
                         :maintenance: True | False
+                        :retired: True | False
                         :chassis_uuid: uuid of chassis
                         :driver: driver's name
                         :provision_state: provision state of node
