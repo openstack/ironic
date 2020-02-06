@@ -1915,3 +1915,106 @@ class FastTrackTestCase(db_base.DbTestCase):
         with task_manager.acquire(
                 self.context, self.node.uuid, shared=False) as task:
             self.assertFalse(conductor_utils.is_fast_track(task))
+
+
+class GetNodeNextStepsTestCase(db_base.DbTestCase):
+    def setUp(self):
+        super(GetNodeNextStepsTestCase, self).setUp()
+        self.power_update = {
+            'step': 'update_firmware', 'priority': 10, 'interface': 'power'}
+        self.deploy_update = {
+            'step': 'update_firmware', 'priority': 10, 'interface': 'deploy'}
+        self.deploy_erase = {
+            'step': 'erase_disks', 'priority': 20, 'interface': 'deploy'}
+        # Automated cleaning should be executed in this order
+        self.clean_steps = [self.deploy_erase, self.power_update,
+                            self.deploy_update]
+        self.deploy_start = {
+            'step': 'deploy_start', 'priority': 50, 'interface': 'deploy'}
+        self.deploy_end = {
+            'step': 'deploy_end', 'priority': 20, 'interface': 'deploy'}
+        self.deploy_steps = [self.deploy_start, self.deploy_end]
+
+    def _test_get_node_next_deploy_steps(self, skip=True):
+        driver_internal_info = {'deploy_steps': self.deploy_steps,
+                                'deploy_step_index': 0}
+        node = obj_utils.create_test_node(
+            self.context, driver='fake-hardware',
+            provision_state=states.DEPLOYWAIT,
+            target_provision_state=states.ACTIVE,
+            driver_internal_info=driver_internal_info,
+            last_error=None,
+            deploy_step=self.deploy_steps[0])
+
+        with task_manager.acquire(self.context, node.uuid) as task:
+            step_index = conductor_utils.get_node_next_deploy_steps(
+                task, skip_current_step=skip)
+            expected_index = 1 if skip else 0
+            self.assertEqual(expected_index, step_index)
+
+    def test_get_node_next_deploy_steps(self):
+        self._test_get_node_next_deploy_steps()
+
+    def test_get_node_next_deploy_steps_no_skip(self):
+        self._test_get_node_next_deploy_steps(skip=False)
+
+    def test_get_node_next_deploy_steps_unset_deploy_step(self):
+        driver_internal_info = {'deploy_steps': self.deploy_steps,
+                                'deploy_step_index': None}
+        node = obj_utils.create_test_node(
+            self.context, driver='fake-hardware',
+            provision_state=states.DEPLOYWAIT,
+            target_provision_state=states.ACTIVE,
+            driver_internal_info=driver_internal_info,
+            last_error=None,
+            deploy_step=None)
+
+        with task_manager.acquire(self.context, node.uuid) as task:
+            step_index = conductor_utils.get_node_next_deploy_steps(task)
+            self.assertEqual(0, step_index)
+
+    def test_get_node_next_steps_exception(self):
+        node = obj_utils.create_test_node(self.context)
+
+        with task_manager.acquire(self.context, node.uuid) as task:
+            self.assertRaises(exception.Invalid,
+                              conductor_utils._get_node_next_steps,
+                              task, 'foo')
+
+    def _test_get_node_next_clean_steps(self, skip=True):
+        driver_internal_info = {'clean_steps': self.clean_steps,
+                                'clean_step_index': 0}
+        node = obj_utils.create_test_node(
+            self.context, driver='fake-hardware',
+            provision_state=states.CLEANWAIT,
+            target_provision_state=states.AVAILABLE,
+            driver_internal_info=driver_internal_info,
+            last_error=None,
+            clean_step=self.clean_steps[0])
+
+        with task_manager.acquire(self.context, node.uuid) as task:
+            step_index = conductor_utils.get_node_next_clean_steps(
+                task, skip_current_step=skip)
+            expected_index = 1 if skip else 0
+            self.assertEqual(expected_index, step_index)
+
+    def test_get_node_next_clean_steps(self):
+        self._test_get_node_next_clean_steps()
+
+    def test_get_node_next_clean_steps_no_skip(self):
+        self._test_get_node_next_clean_steps(skip=False)
+
+    def test_get_node_next_clean_steps_unset_clean_step(self):
+        driver_internal_info = {'clean_steps': self.clean_steps,
+                                'clean_step_index': None}
+        node = obj_utils.create_test_node(
+            self.context, driver='fake-hardware',
+            provision_state=states.CLEANWAIT,
+            target_provision_state=states.AVAILABLE,
+            driver_internal_info=driver_internal_info,
+            last_error=None,
+            clean_step=None)
+
+        with task_manager.acquire(self.context, node.uuid) as task:
+            step_index = conductor_utils.get_node_next_clean_steps(task)
+            self.assertEqual(0, step_index)
