@@ -174,7 +174,7 @@ class AutomatedStepsDirective(rst.Directive):
                 )
 
         # NOTE(dhellmann): Useful for debugging.
-        print('\n'.join(result))
+        # print('\n'.join(result))
 
         node = nodes.section()
         node.document = self.state.document
