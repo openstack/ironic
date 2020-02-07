@@ -1031,3 +1031,159 @@ class TestCheckNodeListPolicy(base.TestCase):
             utils.check_node_list_policy,
             '54321'
         )
+
+
+class TestCheckPortPolicyAndRetrieve(base.TestCase):
+    def setUp(self):
+        super(TestCheckPortPolicyAndRetrieve, self).setUp()
+        self.valid_port_uuid = uuidutils.generate_uuid()
+        self.node = test_api_utils.post_get_test_node()
+        self.node['owner'] = '12345'
+        self.port = objects.Port(self.context, node_id=42)
+
+    @mock.patch.object(api, 'request', spec_set=["context", "version"])
+    @mock.patch.object(policy, 'authorize', spec=True)
+    @mock.patch.object(objects.Port, 'get_by_uuid')
+    @mock.patch.object(objects.Node, 'get_by_id')
+    def test_check_port_policy_and_retrieve(
+            self, mock_ngbi, mock_pgbu, mock_authorize, mock_pr
+    ):
+        mock_pr.version.minor = 50
+        mock_pr.context.to_policy_values.return_value = {}
+        mock_pgbu.return_value = self.port
+        mock_ngbi.return_value = self.node
+
+        rpc_port, rpc_node = utils.check_port_policy_and_retrieve(
+            'fake_policy', self.valid_port_uuid
+        )
+        mock_pgbu.assert_called_once_with(mock_pr.context,
+                                          self.valid_port_uuid)
+        mock_ngbi.assert_called_once_with(mock_pr.context, 42)
+        mock_authorize.assert_called_once_with(
+            'fake_policy', {'node.owner': '12345'}, {})
+        self.assertEqual(self.port, rpc_port)
+        self.assertEqual(self.node, rpc_node)
+
+    @mock.patch.object(api, 'request', spec_set=["context"])
+    @mock.patch.object(policy, 'authorize', spec=True)
+    @mock.patch.object(objects.Port, 'get_by_uuid')
+    def test_check_port_policy_and_retrieve_no_port_policy_forbidden(
+            self, mock_pgbu, mock_authorize, mock_pr
+    ):
+        mock_pr.context.to_policy_values.return_value = {}
+        mock_authorize.side_effect = exception.HTTPForbidden(resource='fake')
+        mock_pgbu.side_effect = exception.PortNotFound(
+            port=self.valid_port_uuid)
+
+        self.assertRaises(
+            exception.HTTPForbidden,
+            utils.check_port_policy_and_retrieve,
+            'fake-policy',
+            self.valid_port_uuid
+        )
+
+    @mock.patch.object(api, 'request', spec_set=["context"])
+    @mock.patch.object(policy, 'authorize', spec=True)
+    @mock.patch.object(objects.Port, 'get_by_uuid')
+    def test_check_port_policy_and_retrieve_no_port(
+            self, mock_pgbu, mock_authorize, mock_pr
+    ):
+        mock_pr.context.to_policy_values.return_value = {}
+        mock_pgbu.side_effect = exception.PortNotFound(
+            port=self.valid_port_uuid)
+
+        self.assertRaises(
+            exception.PortNotFound,
+            utils.check_port_policy_and_retrieve,
+            'fake-policy',
+            self.valid_port_uuid
+        )
+
+    @mock.patch.object(api, 'request', spec_set=["context", "version"])
+    @mock.patch.object(policy, 'authorize', spec=True)
+    @mock.patch.object(objects.Port, 'get_by_uuid')
+    @mock.patch.object(objects.Node, 'get_by_id')
+    def test_check_port_policy_and_retrieve_policy_forbidden(
+            self, mock_ngbi, mock_pgbu, mock_authorize, mock_pr
+    ):
+        mock_pr.version.minor = 50
+        mock_pr.context.to_policy_values.return_value = {}
+        mock_authorize.side_effect = exception.HTTPForbidden(resource='fake')
+        mock_pgbu.return_value = self.port
+        mock_ngbi.return_value = self.node
+
+        self.assertRaises(
+            exception.HTTPForbidden,
+            utils.check_port_policy_and_retrieve,
+            'fake-policy',
+            self.valid_port_uuid
+        )
+
+
+class TestCheckPortListPolicy(base.TestCase):
+    @mock.patch.object(api, 'request', spec_set=["context", "version"])
+    @mock.patch.object(policy, 'authorize', spec=True)
+    def test_check_port_list_policy(
+            self, mock_authorize, mock_pr
+    ):
+        mock_pr.context.to_policy_values.return_value = {
+            'project_id': '12345'
+        }
+        mock_pr.version.minor = 50
+
+        owner = utils.check_port_list_policy()
+        self.assertIsNone(owner)
+
+    @mock.patch.object(api, 'request', spec_set=["context", "version"])
+    @mock.patch.object(policy, 'authorize', spec=True)
+    def test_check_port_list_policy_forbidden(
+            self, mock_authorize, mock_pr
+    ):
+        def mock_authorize_function(rule, target, creds):
+            raise exception.HTTPForbidden(resource='fake')
+        mock_authorize.side_effect = mock_authorize_function
+        mock_pr.context.to_policy_values.return_value = {
+            'project_id': '12345'
+        }
+        mock_pr.version.minor = 50
+
+        self.assertRaises(
+            exception.HTTPForbidden,
+            utils.check_port_list_policy,
+        )
+
+    @mock.patch.object(api, 'request', spec_set=["context", "version"])
+    @mock.patch.object(policy, 'authorize', spec=True)
+    def test_check_port_list_policy_forbidden_no_project(
+            self, mock_authorize, mock_pr
+    ):
+        def mock_authorize_function(rule, target, creds):
+            if rule == 'baremetal:port:list_all':
+                raise exception.HTTPForbidden(resource='fake')
+            return True
+        mock_authorize.side_effect = mock_authorize_function
+        mock_pr.context.to_policy_values.return_value = {}
+        mock_pr.version.minor = 50
+
+        self.assertRaises(
+            exception.HTTPForbidden,
+            utils.check_port_list_policy,
+        )
+
+    @mock.patch.object(api, 'request', spec_set=["context", "version"])
+    @mock.patch.object(policy, 'authorize', spec=True)
+    def test_check_port_list_policy_non_admin(
+            self, mock_authorize, mock_pr
+    ):
+        def mock_authorize_function(rule, target, creds):
+            if rule == 'baremetal:port:list_all':
+                raise exception.HTTPForbidden(resource='fake')
+            return True
+        mock_authorize.side_effect = mock_authorize_function
+        mock_pr.context.to_policy_values.return_value = {
+            'project_id': '12345'
+        }
+        mock_pr.version.minor = 50
+
+        owner = utils.check_port_list_policy()
+        self.assertEqual(owner, '12345')

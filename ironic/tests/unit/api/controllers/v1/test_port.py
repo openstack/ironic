@@ -32,6 +32,7 @@ from ironic.api.controllers.v1 import port as api_port
 from ironic.api.controllers.v1 import utils as api_utils
 from ironic.api.controllers.v1 import versions
 from ironic.common import exception
+from ironic.common import policy
 from ironic.common import states
 from ironic.common import utils as common_utils
 from ironic.conductor import rpcapi
@@ -189,7 +190,7 @@ class TestListPorts(test_api_base.BaseApiTest):
 
     def setUp(self):
         super(TestListPorts, self).setUp()
-        self.node = obj_utils.create_test_node(self.context)
+        self.node = obj_utils.create_test_node(self.context, owner='12345')
 
     def test_empty(self):
         data = self.get_json('/ports')
@@ -249,6 +250,42 @@ class TestListPorts(test_api_base.BaseApiTest):
         )
         self.assertEqual(port.uuid, data['ports'][0]["uuid"])
         self.assertIsNone(data['ports'][0]["portgroup_uuid"])
+
+    @mock.patch.object(policy, 'authorize', spec=True)
+    def test_list_non_admin_forbidden(self, mock_authorize):
+        def mock_authorize_function(rule, target, creds):
+            raise exception.HTTPForbidden(resource='fake')
+        mock_authorize.side_effect = mock_authorize_function
+
+        address_template = "aa:bb:cc:dd:ee:f%d"
+        for id_ in range(3):
+            obj_utils.create_test_port(self.context,
+                                       node_id=self.node.id,
+                                       uuid=uuidutils.generate_uuid(),
+                                       address=address_template % id_)
+
+        response = self.get_json('/ports',
+                                 headers={'X-Project-Id': '12345'},
+                                 expect_errors=True)
+        self.assertEqual(http_client.FORBIDDEN, response.status_int)
+
+    @mock.patch.object(policy, 'authorize', spec=True)
+    def test_list_non_admin_forbidden_no_project(self, mock_authorize):
+        def mock_authorize_function(rule, target, creds):
+            if rule == 'baremetal:port:list_all':
+                raise exception.HTTPForbidden(resource='fake')
+            return True
+        mock_authorize.side_effect = mock_authorize_function
+
+        address_template = "aa:bb:cc:dd:ee:f%d"
+        for id_ in range(3):
+            obj_utils.create_test_port(self.context,
+                                       node_id=self.node.id,
+                                       uuid=uuidutils.generate_uuid(),
+                                       address=address_template % id_)
+
+        response = self.get_json('/ports', expect_errors=True)
+        self.assertEqual(http_client.FORBIDDEN, response.status_int)
 
     def test_get_one(self):
         port = obj_utils.create_test_port(self.context, node_id=self.node.id)
@@ -581,6 +618,33 @@ class TestListPorts(test_api_base.BaseApiTest):
         uuids = [n['uuid'] for n in data['ports']]
         self.assertCountEqual(ports, uuids)
 
+    @mock.patch.object(policy, 'authorize', spec=True)
+    def test_many_non_admin(self, mock_authorize):
+        def mock_authorize_function(rule, target, creds):
+            if rule == 'baremetal:port:list_all':
+                raise exception.HTTPForbidden(resource='fake')
+            return True
+        mock_authorize.side_effect = mock_authorize_function
+
+        ports = []
+        # these ports should be retrieved by the API call
+        for id_ in range(0, 2):
+            port = obj_utils.create_test_port(
+                self.context, node_id=self.node.id,
+                uuid=uuidutils.generate_uuid(),
+                address='52:54:00:cf:2d:3%s' % id_)
+            ports.append(port.uuid)
+        # these ports should NOT be retrieved by the API call
+        for id_ in range(3, 5):
+            port = obj_utils.create_test_port(
+                self.context, uuid=uuidutils.generate_uuid(),
+                address='52:54:00:cf:2d:3%s' % id_)
+        data = self.get_json('/ports', headers={'X-Project-Id': '12345'})
+        self.assertEqual(len(ports), len(data['ports']))
+
+        uuids = [n['uuid'] for n in data['ports']]
+        self.assertCountEqual(ports, uuids)
+
     def _test_links(self, public_url=None):
         cfg.CONF.set_override('public_endpoint', public_url, 'api')
         uuid = uuidutils.generate_uuid()
@@ -686,6 +750,47 @@ class TestListPorts(test_api_base.BaseApiTest):
         self.assertEqual('application/json', response.content_type)
         self.assertIn(invalid_address, response.json['error_message'])
 
+    @mock.patch.object(policy, 'authorize', spec=True)
+    def test_port_by_address_non_admin(self, mock_authorize):
+        def mock_authorize_function(rule, target, creds):
+            if rule == 'baremetal:port:list_all':
+                raise exception.HTTPForbidden(resource='fake')
+            return True
+        mock_authorize.side_effect = mock_authorize_function
+
+        address_template = "aa:bb:cc:dd:ee:f%d"
+        for id_ in range(3):
+            obj_utils.create_test_port(self.context,
+                                       node_id=self.node.id,
+                                       uuid=uuidutils.generate_uuid(),
+                                       address=address_template % id_)
+
+        target_address = address_template % 1
+        data = self.get_json('/ports?address=%s' % target_address,
+                             headers={'X-Project-Id': '12345'})
+        self.assertThat(data['ports'], matchers.HasLength(1))
+        self.assertEqual(target_address, data['ports'][0]['address'])
+
+    @mock.patch.object(policy, 'authorize', spec=True)
+    def test_port_by_address_non_admin_no_match(self, mock_authorize):
+        def mock_authorize_function(rule, target, creds):
+            if rule == 'baremetal:port:list_all':
+                raise exception.HTTPForbidden(resource='fake')
+            return True
+        mock_authorize.side_effect = mock_authorize_function
+
+        address_template = "aa:bb:cc:dd:ee:f%d"
+        for id_ in range(3):
+            obj_utils.create_test_port(self.context,
+                                       node_id=self.node.id,
+                                       uuid=uuidutils.generate_uuid(),
+                                       address=address_template % id_)
+
+        target_address = address_template % 1
+        data = self.get_json('/ports?address=%s' % target_address,
+                             headers={'X-Project-Id': '54321'})
+        self.assertThat(data['ports'], matchers.HasLength(0))
+
     def test_sort_key(self):
         ports = []
         for id_ in range(3):
@@ -765,6 +870,60 @@ class TestListPorts(test_api_base.BaseApiTest):
                              headers={api_base.Version.string: '1.5'})
         self.assertEqual(3, len(data['ports']))
 
+    @mock.patch.object(policy, 'authorize', spec=True)
+    @mock.patch.object(api_utils, 'get_rpc_node')
+    def test_get_all_by_node_name_non_admin(
+            self, mock_get_rpc_node, mock_authorize):
+        def mock_authorize_function(rule, target, creds):
+            if rule == 'baremetal:port:list_all':
+                raise exception.HTTPForbidden(resource='fake')
+            return True
+        mock_authorize.side_effect = mock_authorize_function
+        mock_get_rpc_node.return_value = self.node
+
+        for i in range(5):
+            if i < 3:
+                node_id = self.node.id
+            else:
+                node_id = 100000 + i
+            obj_utils.create_test_port(self.context,
+                                       node_id=node_id,
+                                       uuid=uuidutils.generate_uuid(),
+                                       address='52:54:00:cf:2d:3%s' % i)
+        data = self.get_json("/ports?node=%s" % 'test-node',
+                             headers={
+                                 api_base.Version.string: '1.5',
+                                 'X-Project-Id': '12345'
+                             })
+        self.assertEqual(3, len(data['ports']))
+
+    @mock.patch.object(policy, 'authorize', spec=True)
+    @mock.patch.object(api_utils, 'get_rpc_node')
+    def test_get_all_by_node_name_non_admin_no_match(
+            self, mock_get_rpc_node, mock_authorize):
+        def mock_authorize_function(rule, target, creds):
+            if rule == 'baremetal:port:list_all':
+                raise exception.HTTPForbidden(resource='fake')
+            return True
+        mock_authorize.side_effect = mock_authorize_function
+        mock_get_rpc_node.return_value = self.node
+
+        for i in range(5):
+            if i < 3:
+                node_id = self.node.id
+            else:
+                node_id = 100000 + i
+            obj_utils.create_test_port(self.context,
+                                       node_id=node_id,
+                                       uuid=uuidutils.generate_uuid(),
+                                       address='52:54:00:cf:2d:3%s' % i)
+        data = self.get_json("/ports?node=%s" % 'test-node',
+                             headers={
+                                 api_base.Version.string: '1.5',
+                                 'X-Project-Id': '54321'
+                             })
+        self.assertEqual(0, len(data['ports']))
+
     @mock.patch.object(api_utils, 'get_rpc_node')
     def test_get_all_by_node_uuid_and_name(self, mock_get_rpc_node):
         # GET /v1/ports specifying node and uuid - should only use node_uuid
@@ -831,6 +990,48 @@ class TestListPorts(test_api_base.BaseApiTest):
         )
         self.assertEqual('application/json', response.content_type)
         self.assertEqual(http_client.NOT_ACCEPTABLE, response.status_int)
+
+    @mock.patch.object(policy, 'authorize', spec=True)
+    def test_get_all_by_portgroup_uuid_non_admin(self, mock_authorize):
+        def mock_authorize_function(rule, target, creds):
+            if rule == 'baremetal:port:list_all':
+                raise exception.HTTPForbidden(resource='fake')
+            return True
+        mock_authorize.side_effect = mock_authorize_function
+
+        pg = obj_utils.create_test_portgroup(self.context,
+                                             node_id=self.node.id)
+        port = obj_utils.create_test_port(self.context, node_id=self.node.id,
+                                          portgroup_id=pg.id)
+        data = self.get_json('/ports/detail?portgroup=%s' % pg.uuid,
+                             headers={
+                                 api_base.Version.string: '1.24',
+                                 'X-Project-Id': '12345'
+                             })
+
+        self.assertEqual(port.uuid, data['ports'][0]['uuid'])
+        self.assertEqual(pg.uuid,
+                         data['ports'][0]['portgroup_uuid'])
+
+    @mock.patch.object(policy, 'authorize', spec=True)
+    def test_get_all_by_portgroup_uuid_non_admin_no_match(
+            self, mock_authorize):
+        def mock_authorize_function(rule, target, creds):
+            if rule == 'baremetal:port:list_all':
+                raise exception.HTTPForbidden(resource='fake')
+            return True
+        mock_authorize.side_effect = mock_authorize_function
+
+        pg = obj_utils.create_test_portgroup(self.context)
+        obj_utils.create_test_port(self.context, node_id=self.node.id,
+                                   portgroup_id=pg.id)
+        data = self.get_json('/ports/detail?portgroup=%s' % pg.uuid,
+                             headers={
+                                 api_base.Version.string: '1.24',
+                                 'X-Project-Id': '54321'
+                             })
+
+        self.assertThat(data['ports'], matchers.HasLength(0))
 
     def test_get_all_by_portgroup_name(self):
         pg = obj_utils.create_test_portgroup(self.context,
