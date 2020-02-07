@@ -792,7 +792,7 @@ class PXEBootTestCase(db_base.DbTestCase):
             dhcp_opts = pxe_utils.dhcp_options_for_instance(task,
                                                             ipxe_enabled=True)
             pxe_config_path = pxe_utils.get_pxe_config_file_path(
-                task.node.uuid)
+                task.node.uuid, ipxe_enabled=True)
             task.node.properties['capabilities'] = 'boot_mode:bios'
             task.driver.boot.prepare_instance(task)
             self.assertFalse(get_image_info_mock.called)
