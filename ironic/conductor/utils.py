@@ -943,3 +943,65 @@ def remove_agent_url(node):
     info = node.driver_internal_info
     info.pop('agent_url', None)
     node.driver_internal_info = info
+
+
+def _get_node_next_steps(task, step_type, skip_current_step=True):
+    """Get the task's node's next steps.
+
+    This determines what the next (remaining) steps are, and
+    returns the index into the steps list that corresponds to the
+    next step. The remaining steps are determined as follows:
+
+    * If no steps have been started yet, all the steps
+      must be executed
+    * If skip_current_step is False, the remaining steps start
+      with the current step. Otherwise, the remaining steps
+      start with the step after the current one.
+
+    All the steps are in node.driver_internal_info['<step_type>_steps'].
+    node.<step_type>_step is the current step that was just executed
+    (or None, {} if no steps have been executed yet).
+    node.driver_internal_info['<step_type>_step_index'] is the index
+    index into the steps list (or None, doesn't exist if no steps have
+    been executed yet) and corresponds to node.<step_type>_step.
+
+    :param task: A TaskManager object
+    :param step_type: The type of steps to process: 'clean' or 'deploy'.
+    :param skip_current_step: True to skip the current step; False to
+                              include it.
+    :returns: index of the next step; None if there are none to execute.
+
+    """
+    valid_types = set(['clean', 'deploy'])
+    if step_type not in valid_types:
+        # NOTE(rloo): No need to i18n this, since this would be a
+        # developer error; it isn't user-facing.
+        raise exception.Invalid(
+            'step_type must be one of %(valid)s, not %(step)s'
+            % {'valid': valid_types, 'step': step_type})
+    node = task.node
+    if not getattr(node, '%s_step' % step_type):
+        # first time through, all steps need to be done. Return the
+        # index of the first step in the list.
+        return 0
+
+    ind = node.driver_internal_info.get('%s_step_index' % step_type)
+    if ind is None:
+        return None
+
+    if skip_current_step:
+        ind += 1
+    if ind >= len(node.driver_internal_info['%s_steps' % step_type]):
+        # no steps left to do
+        ind = None
+    return ind
+
+
+def get_node_next_clean_steps(task, skip_current_step=True):
+    return _get_node_next_steps(task, 'clean',
+                                skip_current_step=skip_current_step)
+
+
+def get_node_next_deploy_steps(task, skip_current_step=True):
+    return _get_node_next_steps(task, 'deploy',
+                                skip_current_step=skip_current_step)
