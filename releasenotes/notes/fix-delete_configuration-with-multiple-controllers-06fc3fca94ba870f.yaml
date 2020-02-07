@@ -5,5 +5,5 @@ fixes:
     realtime mode and some do not. The approach is to use only realtime
     mode if all controllers support realtime. This removes the race
     condition.
-    See bug `2006502 https://storyboard.openstack.org/#!/story/2006502`
-    for details
+    See bug `2006502 <https://storyboard.openstack.org/#!/story/2006502>`_
+    for details.

@@ -4,5 +4,5 @@ fixes:
     for RAID ``delete_configuration`` cleaning step gets created even
     when there are no virtual disks or hotspares/dedicated hotspares
     present on any controller.
-    See bug `2006562 https://storyboard.openstack.org/#!/story/2006562`
+    See bug `2006562 <https://storyboard.openstack.org/#!/story/2006562>`_
     for details.

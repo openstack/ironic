@@ -1,7 +1,0 @@
----
-upgrade:
-  - |
-    Using localhost as the Bare Metal Introspection endpoint will not work
-    when managed boot is used for in-band inspection. Either update the
-    endpoint to a real IP address or use the new configuration option
-    ``[inspector]callback_endpoint_override``.

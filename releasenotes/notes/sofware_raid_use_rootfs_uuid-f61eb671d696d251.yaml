@@ -9,5 +9,5 @@ upgrade:
     of the deployed image is in the first partition. Instead, it will use
     the UUID passed from the conductor. Operators need hence to make sure
     that the conductor has the correct UUID (which either comes from the
-    'rootfs_uuid' field in the image metadata or from the
-    'root_uuid_or_disk_id' in the nodes 'internal_driver_info'.)
+    ``rootfs_uuid`` field in the image metadata or from the
+    ``root_uuid_or_disk_id`` in the node's ``internal_driver_info``.)

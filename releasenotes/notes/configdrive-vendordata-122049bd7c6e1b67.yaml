@@ -3,6 +3,6 @@ features:
   - |
     Adds support for specifying vendor_data when building config drives.
     Starting with API version 1.59, a JSON based ``configdrive`` parameter to
-    ``/v1/nodes/<node>/states/provision`` can include the key vendor_data.
+    ``/v1/nodes/<node>/states/provision`` can include the key ``vendor_data``.
     This data will be built into the configdrive contents as
-    vendor_data2.json.
+    ``vendor_data2.json``.
