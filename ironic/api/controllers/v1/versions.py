@@ -98,6 +98,7 @@ BASE_VERSION = 1
 # v1.58: Add support for backfilling allocations.
 # v1.59: Add support vendor data in configdrives.
 # v1.60: Add owner to the allocation object.
+# v1.61: Add retired and retired_reason to the node object.
 
 MINOR_0_JUNO = 0
 MINOR_1_INITIAL_VERSION = 1
