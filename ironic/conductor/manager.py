@@ -1562,7 +1562,7 @@ class ConductorManager(base_manager.BaseConductorManager):
                         and node.maintenance):
                     raise exception.NodeInMaintenance(op=_('providing'),
                                                       node=node.uuid)
-                if (node.retired):
+                if node.retired:
                     raise exception.NodeIsRetired(op=_('providing'),
                                                   node=node.uuid)
                 task.process_event(
