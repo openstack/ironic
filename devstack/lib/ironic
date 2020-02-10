@@ -2557,6 +2557,8 @@ function build_ipa_dib_ramdisk {
     ELEMENTS_PATH="$IRONIC_PYTHON_AGENT_BUILDER_DIR/dib" \
         DIB_DHCP_TIMEOUT=$IRONIC_DIB_DHCP_TIMEOUT \
         DIB_RELEASE=$IRONIC_DIB_RAMDISK_RELEASE \
+        DIB_REPOLOCATION_ironic_python_agent="$IRONIC_PYTHON_AGENT_DIR" \
+        DIB_REPOLOCATION_requirements="$DEST/requirements" \
         disk-image-create "$IRONIC_DIB_RAMDISK_OPTIONS" \
         -x -o  "$tempdir/ironic-agent" \
         ironic-python-agent-ramdisk
