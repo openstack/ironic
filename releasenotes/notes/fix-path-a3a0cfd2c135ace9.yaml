@@ -1,5 +1,5 @@
 ---
 fixes:
   - |
-    Fix path used to virtual media iso, when served over
-    local HTTP server([redfish]use_swift=false).
+    Fixes virtual media boot when served using a local HTTP server,
+    i.e. ``[redfish]use_swift`` is ``false``.

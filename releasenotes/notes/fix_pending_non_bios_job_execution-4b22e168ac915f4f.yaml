@@ -6,5 +6,5 @@ fixes:
     (E.g. create/delete virtual disk) were not being deleted before
     job execution.
 
-    See bug `2006580 https://storyboard.openstack.org/#!/story/2006580`
-    for details
+    See bug `2006580 <https://storyboard.openstack.org/#!/story/2006580>`_
+    for details.

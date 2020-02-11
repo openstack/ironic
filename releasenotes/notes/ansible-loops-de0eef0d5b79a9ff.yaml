@@ -1,5 +1,5 @@
 ---
 upgrade:
   - |
-    Changing minimum version of Ansible for use with the ``ansible``
+    Changes the minimum version of Ansible for use with the ``ansible``
     ``deploy_interface`` to version 2.5.
