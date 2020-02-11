@@ -122,6 +122,10 @@ class RedfishUtilsTestCase(db_base.DbTestCase):
                                'The value should be a path',
                                redfish_utils.parse_driver_info, self.node)
 
+    def test_parse_driver_info_missing_system_id(self):
+        self.node.driver_info.pop('redfish_system_id')
+        redfish_utils.parse_driver_info(self.node)
+
     def test_parse_driver_info_valid_string_value_verify_ca(self):
         for value in ('0', 'f', 'false', 'off', 'n', 'no'):
             self.node.driver_info['redfish_verify_ca'] = value
@@ -181,6 +185,15 @@ class RedfishUtilsTestCase(db_base.DbTestCase):
                           redfish_utils.get_system, self.node)
         fake_conn.get_system.assert_called_once_with(
             '/redfish/v1/Systems/FAKESYSTEM')
+
+    @mock.patch.object(sushy, 'Sushy', autospec=True)
+    @mock.patch('ironic.drivers.modules.redfish.utils.'
+                'SessionCache._sessions', {})
+    def test_get_system_multiple_systems(self, mock_sushy):
+        self.node.driver_info.pop('redfish_system_id')
+        fake_conn = mock_sushy.return_value
+        redfish_utils.get_system(self.node)
+        fake_conn.get_system.assert_called_once_with(None)
 
     @mock.patch('time.sleep', autospec=True)
     @mock.patch.object(sushy, 'Sushy', autospec=True)

@@ -37,16 +37,19 @@ REQUIRED_PROPERTIES = {
                          'must include the authority portion of the URL. '
                          'If the scheme is missing, https is assumed. '
                          'For example: https://mgmt.vendor.com. Required'),
+}
+
+OPTIONAL_PROPERTIES = {
     'redfish_system_id': _('The canonical path to the ComputerSystem '
                            'resource that the driver will interact with. '
                            'It should include the root service, version and '
                            'the unique resource path to a ComputerSystem '
                            'within the same authority as the redfish_address '
                            'property. For example: /redfish/v1/Systems/1. '
-                           'Required')
-}
-
-OPTIONAL_PROPERTIES = {
+                           'This property is only required if target BMC '
+                           'manages more than one ComputerSystem. Otherwise '
+                           'ironic will pick the only available '
+                           'ComputerSystem automatically.'),
     'redfish_username': _('User account with admin/server-profile access '
                           'privilege. Although this property is not '
                           'mandatory it\'s highly recommended to set a '
@@ -109,16 +112,18 @@ def parse_driver_info(node):
               'driver_info/redfish_address on node %(node)s') %
             {'address': address, 'node': node.uuid})
 
-    try:
-        system_id = urlparse.quote(driver_info['redfish_system_id'])
-    except (TypeError, AttributeError):
-        raise exception.InvalidParameterValue(
-            _('Invalid value "%(value)s" set in '
-              'driver_info/redfish_system_id on node %(node)s. '
-              'The value should be a path (string) to the resource '
-              'that the driver will interact with. For example: '
-              '/redfish/v1/Systems/1') %
-            {'value': driver_info['redfish_system_id'], 'node': node.uuid})
+    redfish_system_id = driver_info.get('redfish_system_id')
+    if redfish_system_id is not None:
+        try:
+            redfish_system_id = urlparse.quote(redfish_system_id)
+        except (TypeError, AttributeError):
+            raise exception.InvalidParameterValue(
+                _('Invalid value "%(value)s" set in '
+                  'driver_info/redfish_system_id on node %(node)s. '
+                  'The value should be a path (string) to the resource '
+                  'that the driver will interact with. For example: '
+                  '/redfish/v1/Systems/1') %
+                {'value': driver_info['redfish_system_id'], 'node': node.uuid})
 
     # Check if verify_ca is a Boolean or a file/directory in the file-system
     verify_ca = driver_info.get('redfish_verify_ca', True)
@@ -154,7 +159,7 @@ def parse_driver_info(node):
             {'value': auth_type, 'node': node.uuid})
 
     return {'address': address,
-            'system_id': system_id,
+            'system_id': redfish_system_id,
             'username': driver_info.get('redfish_username'),
             'password': driver_info.get('redfish_password'),
             'verify_ca': verify_ca,
@@ -234,7 +239,7 @@ def get_system(node):
     :raises: RedfishError if the System is not registered in Redfish
     """
     driver_info = parse_driver_info(node)
-    system_id = driver_info['system_id']
+    system_id = driver_info.get('system_id')
 
     @retrying.retry(
         retry_on_exception=(
@@ -249,7 +254,8 @@ def get_system(node):
         except sushy.exceptions.ResourceNotFoundError as e:
             LOG.error('The Redfish System "%(system)s" was not found for '
                       'node %(node)s. Error %(error)s',
-                      {'system': system_id, 'node': node.uuid, 'error': e})
+                      {'system': system_id or '<default>',
+                       'node': node.uuid, 'error': e})
             raise exception.RedfishError(error=e)
         # TODO(lucasagomes): We should look at other types of
         # ConnectionError such as AuthenticationError or SSLError and stop
@@ -259,7 +265,7 @@ def get_system(node):
                         'Redfish at address "%(address)s" using auth type '
                         '"%(auth_type)s" when fetching System "%(system)s". '
                         'Error: %(error)s',
-                        {'system': system_id,
+                        {'system': system_id or '<default>',
                          'address': driver_info['address'],
                          'auth_type': driver_info['auth_type'],
                          'node': node.uuid, 'error': e})
