@@ -791,30 +791,30 @@ class TestPortgroupIdent(base.TestCase):
                           self.invalid_name)
 
 
-class TestCheckNodePolicy(base.TestCase):
+class TestCheckOwnerPolicy(base.TestCase):
     def setUp(self):
-        super(TestCheckNodePolicy, self).setUp()
+        super(TestCheckOwnerPolicy, self).setUp()
         self.valid_node_uuid = uuidutils.generate_uuid()
         self.node = test_api_utils.post_get_test_node()
         self.node['owner'] = '12345'
 
     @mock.patch.object(api, 'request', spec_set=["context", "version"])
     @mock.patch.object(policy, 'authorize', spec=True)
-    def test_check_node_policy(
+    def test_check_owner_policy(
             self, mock_authorize, mock_pr
     ):
         mock_pr.version.minor = 50
         mock_pr.context.to_policy_values.return_value = {}
 
-        utils.check_node_policy(
-            'fake_policy', self.node['owner']
+        utils.check_owner_policy(
+            'node', 'fake_policy', self.node['owner']
         )
         mock_authorize.assert_called_once_with(
             'fake_policy', {'node.owner': '12345'}, {})
 
     @mock.patch.object(api, 'request', spec_set=["context", "version"])
     @mock.patch.object(policy, 'authorize', spec=True)
-    def test_check_node_policy_forbidden(
+    def test_check_owner_policy_forbidden(
             self, mock_authorize, mock_pr
     ):
         mock_pr.version.minor = 50
@@ -823,7 +823,8 @@ class TestCheckNodePolicy(base.TestCase):
 
         self.assertRaises(
             exception.HTTPForbidden,
-            utils.check_node_policy,
+            utils.check_owner_policy,
+            'node',
             'fake-policy',
             self.node['owner']
         )
@@ -930,10 +931,89 @@ class TestCheckNodePolicyAndRetrieve(base.TestCase):
         )
 
 
-class TestCheckNodeListPolicy(base.TestCase):
+class TestCheckAllocationPolicyAndRetrieve(base.TestCase):
+    def setUp(self):
+        super(TestCheckAllocationPolicyAndRetrieve, self).setUp()
+        self.valid_allocation_uuid = uuidutils.generate_uuid()
+        self.allocation = test_api_utils.allocation_post_data()
+        self.allocation['owner'] = '12345'
+
     @mock.patch.object(api, 'request', spec_set=["context", "version"])
     @mock.patch.object(policy, 'authorize', spec=True)
-    def test_check_node_list_policy(
+    @mock.patch.object(utils, 'get_rpc_allocation_with_suffix')
+    def test_check_node_policy_and_retrieve(
+            self, mock_graws, mock_authorize, mock_pr
+    ):
+        mock_pr.version.minor = 60
+        mock_pr.context.to_policy_values.return_value = {}
+        mock_graws.return_value = self.allocation
+
+        rpc_allocation = utils.check_allocation_policy_and_retrieve(
+            'fake_policy', self.valid_allocation_uuid
+        )
+        mock_graws.assert_called_once_with(self.valid_allocation_uuid)
+        mock_authorize.assert_called_once_with(
+            'fake_policy', {'allocation.owner': '12345'}, {})
+        self.assertEqual(self.allocation, rpc_allocation)
+
+    @mock.patch.object(api, 'request', spec_set=["context"])
+    @mock.patch.object(policy, 'authorize', spec=True)
+    @mock.patch.object(utils, 'get_rpc_allocation_with_suffix')
+    def test_check_alloc_policy_and_retrieve_no_alloc_policy_forbidden(
+            self, mock_graws, mock_authorize, mock_pr
+    ):
+        mock_pr.context.to_policy_values.return_value = {}
+        mock_authorize.side_effect = exception.HTTPForbidden(resource='fake')
+        mock_graws.side_effect = exception.AllocationNotFound(
+            allocation=self.valid_allocation_uuid)
+
+        self.assertRaises(
+            exception.HTTPForbidden,
+            utils.check_allocation_policy_and_retrieve,
+            'fake-policy',
+            self.valid_allocation_uuid
+        )
+
+    @mock.patch.object(api, 'request', spec_set=["context"])
+    @mock.patch.object(policy, 'authorize', spec=True)
+    @mock.patch.object(utils, 'get_rpc_allocation_with_suffix')
+    def test_check_allocation_policy_and_retrieve_no_allocation(
+            self, mock_graws, mock_authorize, mock_pr
+    ):
+        mock_pr.context.to_policy_values.return_value = {}
+        mock_graws.side_effect = exception.AllocationNotFound(
+            allocation=self.valid_allocation_uuid)
+
+        self.assertRaises(
+            exception.AllocationNotFound,
+            utils.check_allocation_policy_and_retrieve,
+            'fake-policy',
+            self.valid_allocation_uuid
+        )
+
+    @mock.patch.object(api, 'request', spec_set=["context", "version"])
+    @mock.patch.object(policy, 'authorize', spec=True)
+    @mock.patch.object(utils, 'get_rpc_allocation_with_suffix')
+    def test_check_allocation_policy_and_retrieve_policy_forbidden(
+            self, mock_graws, mock_authorize, mock_pr
+    ):
+        mock_pr.version.minor = 50
+        mock_pr.context.to_policy_values.return_value = {}
+        mock_authorize.side_effect = exception.HTTPForbidden(resource='fake')
+        mock_graws.return_value = self.allocation
+
+        self.assertRaises(
+            exception.HTTPForbidden,
+            utils.check_allocation_policy_and_retrieve,
+            'fake-policy',
+            self.valid_allocation_uuid
+        )
+
+
+class TestCheckListPolicy(base.TestCase):
+    @mock.patch.object(api, 'request', spec_set=["context", "version"])
+    @mock.patch.object(policy, 'authorize', spec=True)
+    def test_check_list_policy(
             self, mock_authorize, mock_pr
     ):
         mock_pr.context.to_policy_values.return_value = {
@@ -941,12 +1021,12 @@ class TestCheckNodeListPolicy(base.TestCase):
         }
         mock_pr.version.minor = 50
 
-        owner = utils.check_node_list_policy()
+        owner = utils.check_list_policy('node')
         self.assertIsNone(owner)
 
     @mock.patch.object(api, 'request', spec_set=["context", "version"])
     @mock.patch.object(policy, 'authorize', spec=True)
-    def test_check_node_list_policy_with_owner(
+    def test_check_list_policy_with_owner(
             self, mock_authorize, mock_pr
     ):
         mock_pr.context.to_policy_values.return_value = {
@@ -954,12 +1034,12 @@ class TestCheckNodeListPolicy(base.TestCase):
         }
         mock_pr.version.minor = 50
 
-        owner = utils.check_node_list_policy('12345')
+        owner = utils.check_list_policy('node', '12345')
         self.assertEqual(owner, '12345')
 
     @mock.patch.object(api, 'request', spec_set=["context", "version"])
     @mock.patch.object(policy, 'authorize', spec=True)
-    def test_check_node_list_policy_forbidden(
+    def test_check_list_policy_forbidden(
             self, mock_authorize, mock_pr
     ):
         def mock_authorize_function(rule, target, creds):
@@ -972,12 +1052,13 @@ class TestCheckNodeListPolicy(base.TestCase):
 
         self.assertRaises(
             exception.HTTPForbidden,
-            utils.check_node_list_policy,
+            utils.check_list_policy,
+            'node'
         )
 
     @mock.patch.object(api, 'request', spec_set=["context", "version"])
     @mock.patch.object(policy, 'authorize', spec=True)
-    def test_check_node_list_policy_forbidden_no_project(
+    def test_check_list_policy_forbidden_no_project(
             self, mock_authorize, mock_pr
     ):
         def mock_authorize_function(rule, target, creds):
@@ -990,12 +1071,13 @@ class TestCheckNodeListPolicy(base.TestCase):
 
         self.assertRaises(
             exception.HTTPForbidden,
-            utils.check_node_list_policy,
+            utils.check_list_policy,
+            'node'
         )
 
     @mock.patch.object(api, 'request', spec_set=["context", "version"])
     @mock.patch.object(policy, 'authorize', spec=True)
-    def test_check_node_list_policy_non_admin(
+    def test_check_list_policy_non_admin(
             self, mock_authorize, mock_pr
     ):
         def mock_authorize_function(rule, target, creds):
@@ -1008,12 +1090,12 @@ class TestCheckNodeListPolicy(base.TestCase):
         }
         mock_pr.version.minor = 50
 
-        owner = utils.check_node_list_policy()
+        owner = utils.check_list_policy('node')
         self.assertEqual(owner, '12345')
 
     @mock.patch.object(api, 'request', spec_set=["context", "version"])
     @mock.patch.object(policy, 'authorize', spec=True)
-    def test_check_node_list_policy_non_admin_owner_proj_mismatch(
+    def test_check_list_policy_non_admin_owner_proj_mismatch(
             self, mock_authorize, mock_pr
     ):
         def mock_authorize_function(rule, target, creds):
@@ -1028,7 +1110,8 @@ class TestCheckNodeListPolicy(base.TestCase):
 
         self.assertRaises(
             exception.HTTPForbidden,
-            utils.check_node_list_policy,
+            utils.check_list_policy,
+            'node',
             '54321'
         )
 

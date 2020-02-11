@@ -1,0 +1,7 @@
+---
+features:
+  - |
+    Adds ``is_allocation_owner`` policy rule, which can be applied to allocation
+    get/update/delete rules. Also adds ``baremetal:allocation:list`` and
+    ``baremetal:allocation:list_all`` rules for listing owned allocations and all
+    allocations. Default rules are unaffected, so default behavior is unchanged.

@@ -66,6 +66,9 @@ default_policies = [
     policy.RuleDefault('is_node_owner',
                        'project_id:%(node.owner)s',
                        description='Owner of node'),
+    policy.RuleDefault('is_allocation_owner',
+                       'project_id:%(allocation.owner)s',
+                       description='Owner of allocation'),
 ]
 
 # NOTE(deva): to follow policy-in-code spec, we define defaults for
@@ -437,9 +440,18 @@ allocation_policies = [
         'baremetal:allocation:get',
         'rule:is_admin or rule:is_observer',
         'Retrieve Allocation records',
-        [{'path': '/allocations', 'method': 'GET'},
-         {'path': '/allocations/{allocation_id}', 'method': 'GET'},
+        [{'path': '/allocations/{allocation_id}', 'method': 'GET'},
          {'path': '/nodes/{node_ident}/allocation', 'method': 'GET'}]),
+    policy.DocumentedRuleDefault(
+        'baremetal:allocation:list',
+        'rule:baremetal:allocation:get',
+        'Retrieve multiple Allocation records, filtered by owner',
+        [{'path': '/allocations', 'method': 'GET'}]),
+    policy.DocumentedRuleDefault(
+        'baremetal:allocation:list_all',
+        'rule:baremetal:allocation:get',
+        'Retrieve multiple Allocation records',
+        [{'path': '/allocations', 'method': 'GET'}]),
     policy.DocumentedRuleDefault(
         'baremetal:allocation:create',
         'rule:is_admin',

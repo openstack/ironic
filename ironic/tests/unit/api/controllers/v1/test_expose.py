@@ -52,7 +52,7 @@ class TestExposedAPIMethodsCheckPolicy(test_base.TestCase):
             src = inspect.getsource(func)
             self.assertTrue(
                 ('api_utils.check_node_policy_and_retrieve' in src) or
-                ('api_utils.check_node_list_policy' in src) or
+                ('api_utils.check_list_policy' in src) or
                 ('self._get_node_and_topic' in src) or
                 ('api_utils.check_port_policy_and_retrieve' in src) or
                 ('api_utils.check_port_list_policy' in src) or

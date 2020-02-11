@@ -1167,18 +1167,19 @@ def check_policy(policy_name):
     policy.authorize(policy_name, cdict, cdict)
 
 
-def check_node_policy(policy_name, node_owner):
-    """Check if the specified policy authorizes this request on a node.
+def check_owner_policy(object_type, policy_name, owner):
+    """Check if the policy authorizes this request on an object.
 
+    :param: object_type: type of object being checked
     :param: policy_name: Name of the policy to check.
-    :param: node_owner: the node owner
+    :param: owner: the owner
 
     :raises: HTTPForbidden if the policy forbids access.
     """
     cdict = api.request.context.to_policy_values()
 
     target_dict = dict(cdict)
-    target_dict['node.owner'] = node_owner
+    target_dict[object_type + '.owner'] = owner
     policy.authorize(policy_name, target_dict, cdict)
 
 
@@ -1206,27 +1207,52 @@ def check_node_policy_and_retrieve(policy_name, node_ident,
         policy.authorize(policy_name, cdict, cdict)
         raise
 
-    check_node_policy(policy_name, rpc_node['owner'])
+    check_owner_policy('node', policy_name, rpc_node['owner'])
     return rpc_node
 
 
-def check_node_list_policy(owner=None):
-    """Check if the specified policy authorizes this request on a node.
+def check_allocation_policy_and_retrieve(policy_name, allocation_ident):
+    """Check if the specified policy authorizes request on allocation.
 
+    :param: policy_name: Name of the policy to check.
+    :param: allocation_ident: the UUID or logical name of a node.
+
+    :raises: HTTPForbidden if the policy forbids access.
+    :raises: AllocationNotFound if the node is not found.
+    :return: RPC node identified by node_ident
+    """
+    try:
+        rpc_allocation = get_rpc_allocation_with_suffix(
+            allocation_ident)
+    except exception.AllocationNotFound:
+        # don't expose non-existence unless requester
+        # has generic access to policy
+        cdict = api.request.context.to_policy_values()
+        policy.authorize(policy_name, cdict, cdict)
+        raise
+
+    check_owner_policy('allocation', policy_name, rpc_allocation['owner'])
+    return rpc_allocation
+
+
+def check_list_policy(object_type, owner=None):
+    """Check if the list policy authorizes this request on an object.
+
+    :param: object_type: type of object being checked
     :param: owner: owner filter for list query, if any
 
     :raises: HTTPForbidden if the policy forbids access.
-    :raises: NodeNotFound if the node is not found.
     :return: owner that should be used for list query, if needed
     """
     cdict = api.request.context.to_policy_values()
     try:
-        policy.authorize('baremetal:node:list_all', cdict, cdict)
+        policy.authorize('baremetal:%s:list_all' % object_type,
+                         cdict, cdict)
     except exception.HTTPForbidden:
         project_owner = cdict.get('project_id')
         if (not project_owner or (owner and owner != project_owner)):
             raise
-        policy.authorize('baremetal:node:list', cdict, cdict)
+        policy.authorize('baremetal:%s:list' % object_type, cdict, cdict)
         return project_owner
     return owner
 
