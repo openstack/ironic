@@ -377,7 +377,8 @@ def commit_config(node, raid_controller, reboot=False, realtime=False):
 
 
 def _change_physical_disk_mode(node, mode=None,
-                               controllers_to_physical_disk_ids=None):
+                               controllers_to_physical_disk_ids=None,
+                               substep="completed"):
     """Physical drives conversion from RAID to JBOD or vice-versa.
 
     :param node: an ironic node object.
@@ -400,7 +401,7 @@ def _change_physical_disk_mode(node, mode=None,
 
     return _commit_to_controllers(
         node,
-        controllers, substep='completed')
+        controllers, substep=substep)
 
 
 def abandon_config(node, raid_controller):
@@ -926,6 +927,33 @@ def _commit_to_controllers(node, controllers, substep="completed"):
     return deploy_utils.get_async_step_return_state(node)
 
 
+def _create_virtual_disks(task, node):
+    logical_disks_to_create = node.driver_internal_info[
+        'logical_disks_to_create']
+
+    controllers = list()
+    for logical_disk in logical_disks_to_create:
+        controller = dict()
+        controller_cap = create_virtual_disk(
+            node,
+            raid_controller=logical_disk['controller'],
+            physical_disks=logical_disk['physical_disks'],
+            raid_level=logical_disk['raid_level'],
+            size_mb=logical_disk['size_mb'],
+            disk_name=logical_disk.get('name'),
+            span_length=logical_disk.get('span_length'),
+            span_depth=logical_disk.get('span_depth'))
+        controller['raid_controller'] = logical_disk['controller']
+        controller['is_reboot_required'] = controller_cap[
+            'is_reboot_required']
+        controller['is_commit_required'] = controller_cap[
+            'is_commit_required']
+        if controller not in controllers:
+            controllers.append(controller)
+
+    return _commit_to_controllers(node, controllers)
+
+
 def _get_disk_free_size_mb(disk, pending_delete):
     """Return the size of free space on the disk in MB.
 
@@ -1024,9 +1052,7 @@ class DracWSManRAID(base.RAIDInterface):
             del disk['size_gb']
 
         if delete_existing:
-            controllers = self._delete_configuration_no_commit(task)
-        else:
-            controllers = list()
+            self._delete_configuration_no_commit(task)
 
         physical_disks = list_physical_disks(node)
         logical_disks = _find_configuration(logical_disks, physical_disks,
@@ -1046,45 +1072,31 @@ class DracWSManRAID(base.RAIDInterface):
                     logical_disk['controller']].append(
                     physical_disk_name)
 
+        # adding logical_disks to driver_internal_info to create virtual disks
+        driver_internal_info = node.driver_internal_info
+        driver_internal_info[
+            "logical_disks_to_create"] = logical_disks_to_create
+        node.driver_internal_info = driver_internal_info
+        node.save()
+
+        commit_results = None
         if logical_disks_to_create:
             LOG.debug(
                 "Converting physical disks configured to back RAID "
                 "logical disks to RAID mode for node %(node_uuid)s ",
                 {"node_uuid": node.uuid})
-            raid = drac_constants.RaidStatus.raid
-            _change_physical_disk_mode(
-                node, raid, controllers_to_physical_disk_ids)
+            raid_mode = drac_constants.RaidStatus.raid
+            commit_results = _change_physical_disk_mode(
+                node, raid_mode,
+                controllers_to_physical_disk_ids,
+                substep="create_virtual_disks")
 
-            LOG.debug("Waiting for physical disk conversion to complete "
-                      "for node %(node_uuid)s. ", {"node_uuid": node.uuid})
-            drac_job.wait_for_job_completion(node)
-
-            LOG.info(
-                "Completed converting physical disks configured to back RAID "
-                "logical disks to RAID mode for node %(node_uuid)s",
-                {'node_uuid': node.uuid})
-
-        controllers = list()
-        for logical_disk in logical_disks_to_create:
-            controller = dict()
-            controller_cap = create_virtual_disk(
-                node,
-                raid_controller=logical_disk['controller'],
-                physical_disks=logical_disk['physical_disks'],
-                raid_level=logical_disk['raid_level'],
-                size_mb=logical_disk['size_mb'],
-                disk_name=logical_disk.get('name'),
-                span_length=logical_disk.get('span_length'),
-                span_depth=logical_disk.get('span_depth'))
-            controller['raid_controller'] = logical_disk['controller']
-            controller['is_reboot_required'] = controller_cap[
-                'is_reboot_required']
-            controller['is_commit_required'] = controller_cap[
-                'is_commit_required']
-            if controller not in controllers:
-                controllers.append(controller)
-
-        return _commit_to_controllers(node, controllers)
+        if commit_results:
+            return commit_results
+        else:
+            LOG.debug("Controller does not support drives conversion "
+                      "so creating virtual disks")
+            return _create_virtual_disks(task, node)
 
     @METRICS.timer('DracRAID.delete_configuration')
     @base.clean_step(priority=0)
@@ -1198,6 +1210,8 @@ class DracWSManRAID(base.RAIDInterface):
                         return self._convert_drives(task, node)
                 elif substep == 'physical_disk_conversion':
                     self._convert_drives(task, node)
+                elif substep == "create_virtual_disks":
+                    return _create_virtual_disks(task, node)
                 elif substep == 'completed':
                     self._complete_raid_substep(task, node)
             else:
