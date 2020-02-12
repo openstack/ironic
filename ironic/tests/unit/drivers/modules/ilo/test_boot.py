@@ -772,6 +772,22 @@ class IloVirtualMediaBootTestCase(test_common.BaseIloTest):
             mock_val_driver_info.assert_called_once_with(task)
             self.assertFalse(mock_val_instance_image_info.called)
 
+    @mock.patch.object(ilo_boot, '_validate_driver_info', autospec=True)
+    def test_validate_inspection(self, mock_val_driver_info):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            task.node.driver_info['ilo_deploy_iso'] = 'deploy-iso'
+            task.driver.boot.validate_inspection(task)
+            mock_val_driver_info.assert_called_once_with(task)
+
+    @mock.patch.object(ilo_common, 'parse_driver_info', spec_set=True,
+                       autospec=True)
+    def test_validate_inspection_missing(self, mock_parse_driver_info):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            self.assertRaises(exception.UnsupportedDriverExtension,
+                              task.driver.boot.validate_inspection, task)
+
     @mock.patch.object(ilo_boot, 'prepare_node_for_deploy',
                        spec_set=True, autospec=True)
     @mock.patch.object(ilo_common, 'eject_vmedia_devices',
