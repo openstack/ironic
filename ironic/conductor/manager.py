@@ -56,7 +56,6 @@ from oslo_utils import uuidutils
 from ironic.common import driver_factory
 from ironic.common import exception
 from ironic.common import faults
-from ironic.common.glance_service import service_utils as glance_utils
 from ironic.common.i18n import _
 from ironic.common import images
 from ironic.common import network
@@ -822,6 +821,7 @@ class ConductorManager(base_manager.BaseConductorManager):
         :raises: NodeProtected if the node is protected.
         """
         LOG.debug("RPC do_node_deploy called for node %s.", node_id)
+        event = 'rebuild' if rebuild else 'deploy'
 
         # NOTE(comstud): If the _sync_power_states() periodic task happens
         # to have locked this node, we'll fail to acquire the lock. The
@@ -829,69 +829,8 @@ class ConductorManager(base_manager.BaseConductorManager):
         # want to add retries or extra synchronization here.
         with task_manager.acquire(context, node_id, shared=False,
                                   purpose='node deployment') as task:
-            node = task.node
-            # Record of any pre-existing agent_url should be removed
-            # except when we are in fast track conditions.
-            if not utils.is_fast_track(task):
-                utils.remove_agent_url(node)
-            if node.maintenance:
-                raise exception.NodeInMaintenance(op=_('provisioning'),
-                                                  node=node.uuid)
-
-            if rebuild:
-                if node.protected:
-                    raise exception.NodeProtected(node=node.uuid)
-
-                event = 'rebuild'
-
-                # Note(gilliard) Clear these to force the driver to
-                # check whether they have been changed in glance
-                # NOTE(vdrok): If image_source is not from Glance we should
-                # not clear kernel and ramdisk as they're input manually
-                if glance_utils.is_glance_image(
-                        node.instance_info.get('image_source')):
-                    instance_info = node.instance_info
-                    instance_info.pop('kernel', None)
-                    instance_info.pop('ramdisk', None)
-                    node.instance_info = instance_info
-            else:
-                event = 'deploy'
-
-            driver_internal_info = node.driver_internal_info
-            # Infer the image type to make sure the deploy driver
-            # validates only the necessary variables for different
-            # image types.
-            # NOTE(sirushtim): The iwdi variable can be None. It's up to
-            # the deploy driver to validate this.
-            iwdi = images.is_whole_disk_image(context, node.instance_info)
-            driver_internal_info['is_whole_disk_image'] = iwdi
-            node.driver_internal_info = driver_internal_info
-            node.save()
-
-            try:
-                task.driver.power.validate(task)
-                task.driver.deploy.validate(task)
-                utils.validate_instance_info_traits(task.node)
-                conductor_steps.validate_deploy_templates(task)
-            except exception.InvalidParameterValue as e:
-                raise exception.InstanceDeployFailure(
-                    _("Failed to validate deploy or power info for node "
-                      "%(node_uuid)s. Error: %(msg)s") %
-                    {'node_uuid': node.uuid, 'msg': e}, code=e.code)
-
-            LOG.debug("do_node_deploy Calling event: %(event)s for node: "
-                      "%(node)s", {'event': event, 'node': node.uuid})
-            try:
-                task.process_event(
-                    event,
-                    callback=self._spawn_worker,
-                    call_args=(deployments.do_node_deploy, task,
-                               self.conductor.id, configdrive),
-                    err_handler=utils.provisioning_error_handler)
-            except exception.InvalidState:
-                raise exception.InvalidStateRequested(
-                    action=event, node=task.node.uuid,
-                    state=task.node.provision_state)
+            deployments.validate_node(task, event=event)
+            deployments.start_deploy(task, self, configdrive, event=event)
 
     @METRICS.timer('ConductorManager.continue_node_deploy')
     def continue_node_deploy(self, context, node_id):

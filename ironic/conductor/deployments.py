@@ -21,7 +21,9 @@ from oslo_utils import excutils
 from oslo_utils import versionutils
 
 from ironic.common import exception
+from ironic.common.glance_service import service_utils as glance_utils
 from ironic.common.i18n import _
+from ironic.common import images
 from ironic.common import release_mappings as versions
 from ironic.common import states
 from ironic.common import swift
@@ -39,6 +41,91 @@ METRICS = metrics_utils.get_metrics_logger(__name__)
 # NOTE(rloo) This is used to keep track of deprecation warnings that have
 # already been issued for deploy drivers that do not use deploy steps.
 _SEEN_NO_DEPLOY_STEP_DEPRECATIONS = set()
+
+
+def validate_node(task, event='deploy'):
+    """Validate that a node is suitable for deployment/rebuilding.
+
+    :param task: a TaskManager instance.
+    :param event: event to process: deploy or rebuild.
+    :raises: NodeInMaintenance, NodeProtected, InvalidStateRequested
+    """
+    if task.node.maintenance:
+        raise exception.NodeInMaintenance(op=_('provisioning'),
+                                          node=task.node.uuid)
+
+    if event == 'rebuild' and task.node.protected:
+        raise exception.NodeProtected(node=task.node.uuid)
+
+    if not task.fsm.is_actionable_event(event):
+        raise exception.InvalidStateRequested(
+            action=event, node=task.node.uuid, state=task.node.provision_state)
+
+
+@METRICS.timer('start_deploy')
+@task_manager.require_exclusive_lock
+def start_deploy(task, manager, configdrive=None, event='deploy'):
+    """Start deployment or rebuilding on a node.
+
+    This function does not check the node suitability for deployment, it's left
+    up to the caller.
+
+    :param task: a TaskManager instance.
+    :param manager: a ConductorManager to run tasks on.
+    :param configdrive: a configdrive, if requested.
+    :param event: event to process: deploy or rebuild.
+    """
+    node = task.node
+    # Record of any pre-existing agent_url should be removed
+    # except when we are in fast track conditions.
+    if not utils.is_fast_track(task):
+        utils.remove_agent_url(node)
+
+    if event == 'rebuild':
+        # Note(gilliard) Clear these to force the driver to
+        # check whether they have been changed in glance
+        # NOTE(vdrok): If image_source is not from Glance we should
+        # not clear kernel and ramdisk as they're input manually
+        if glance_utils.is_glance_image(
+                node.instance_info.get('image_source')):
+            instance_info = node.instance_info
+            instance_info.pop('kernel', None)
+            instance_info.pop('ramdisk', None)
+            node.instance_info = instance_info
+
+    driver_internal_info = node.driver_internal_info
+    # Infer the image type to make sure the deploy driver
+    # validates only the necessary variables for different
+    # image types.
+    # NOTE(sirushtim): The iwdi variable can be None. It's up to
+    # the deploy driver to validate this.
+    iwdi = images.is_whole_disk_image(task.context, node.instance_info)
+    driver_internal_info['is_whole_disk_image'] = iwdi
+    node.driver_internal_info = driver_internal_info
+    node.save()
+
+    try:
+        task.driver.power.validate(task)
+        task.driver.deploy.validate(task)
+        utils.validate_instance_info_traits(task.node)
+        conductor_steps.validate_deploy_templates(task)
+    except exception.InvalidParameterValue as e:
+        raise exception.InstanceDeployFailure(
+            _("Failed to validate deploy or power info for node "
+              "%(node_uuid)s. Error: %(msg)s") %
+            {'node_uuid': node.uuid, 'msg': e}, code=e.code)
+
+    try:
+        task.process_event(
+            event,
+            callback=manager._spawn_worker,
+            call_args=(do_node_deploy, task,
+                       manager.conductor.id, configdrive),
+            err_handler=utils.provisioning_error_handler)
+    except exception.InvalidState:
+        raise exception.InvalidStateRequested(
+            action=event, node=task.node.uuid,
+            state=task.node.provision_state)
 
 
 @METRICS.timer('do_node_deploy')
