@@ -94,7 +94,7 @@ ensure_stopped=''
 # According to Ironic upgrade procedure, we shouldn't have upgraded (new) ironic-api and not upgraded (old)
 # ironic-conductor. By setting redirect of API requests from primary node to subnode during upgrade
 # allow to satisfy ironic upgrade requirements.
-if [[ "$HOST_TOPOLOGY_ROLE" == 'primary' ]]; then
+if [[ "$HOST_TOPOLOGY_ROLE" == "primary" ]]; then
     disable_service ir-api
     ensure_stopped+='ironic-api'
     ironic_wsgi_conf=$(apache_site_config_for ironic-api-wsgi)
