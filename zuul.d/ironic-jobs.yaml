@@ -98,7 +98,7 @@
       - ^tox.ini$
     vars:
       tempest_test_regex: ironic_standalone
-      tempest_concurrency: 3
+      tempest_concurrency: 2
       devstack_localrc:
         FORCE_CONFIG_DRIVE: False
         IRONIC_AUTOMATED_CLEAN_ENABLED: False
