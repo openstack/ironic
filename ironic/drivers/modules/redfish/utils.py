@@ -36,7 +36,9 @@ REQUIRED_PROPERTIES = {
     'redfish_address': _('The URL address to the Redfish controller. It '
                          'must include the authority portion of the URL. '
                          'If the scheme is missing, https is assumed. '
-                         'For example: https://mgmt.vendor.com. Required'),
+                         'For example: https://mgmt.vendor.com. '
+                         'If a path is added, it will be used as the API '
+                         'endpoint root_prefix. Required'),
 }
 
 OPTIONAL_PROPERTIES = {
@@ -111,6 +113,11 @@ def parse_driver_info(node):
             _('Invalid Redfish address %(address)s set in '
               'driver_info/redfish_address on node %(node)s') %
             {'address': address, 'node': node.uuid})
+    address = '{}://{}'.format(parsed.scheme, parsed.authority)
+
+    # Obtain the Redfish root prefix from the address path
+    # If not specified, default to '/redfish/v1/'
+    root_prefix = parsed.path
 
     redfish_system_id = driver_info.get('redfish_system_id')
     if redfish_system_id is not None:
@@ -158,13 +165,17 @@ def parse_driver_info(node):
               'The value should be one of "basic", "session" or "auto".') %
             {'value': auth_type, 'node': node.uuid})
 
-    return {'address': address,
-            'system_id': redfish_system_id,
-            'username': driver_info.get('redfish_username'),
-            'password': driver_info.get('redfish_password'),
-            'verify_ca': verify_ca,
-            'auth_type': auth_type,
-            'node_uuid': node.uuid}
+    sushy_params = {'address': address,
+                    'system_id': redfish_system_id,
+                    'username': driver_info.get('redfish_username'),
+                    'password': driver_info.get('redfish_password'),
+                    'verify_ca': verify_ca,
+                    'auth_type': auth_type,
+                    'node_uuid': node.uuid}
+    if root_prefix:
+            sushy_params['root_prefix'] = root_prefix
+
+    return sushy_params
 
 
 class SessionCache(object):
@@ -200,10 +211,13 @@ class SessionCache(object):
                 password=self._driver_info['password']
             )
 
+            sushy_params = {'verify': self._driver_info['verify_ca'],
+                            'auth': authenticator}
+            if 'root_prefix' in self._driver_info:
+                sushy_params['root_prefix'] = self._driver_info['root_prefix']
             conn = sushy.Sushy(
                 self._driver_info['address'],
-                verify=self._driver_info['verify_ca'],
-                auth=authenticator
+                **sushy_params
             )
 
             if CONF.redfish.connection_cache_size:
