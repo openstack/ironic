@@ -1016,6 +1016,68 @@ class TestCheckAllocationPolicyAndRetrieve(base.TestCase):
         )
 
 
+class TestCheckMultipleNodePoliciesAndRetrieve(base.TestCase):
+    def setUp(self):
+        super(TestCheckMultipleNodePoliciesAndRetrieve, self).setUp()
+        self.valid_node_uuid = uuidutils.generate_uuid()
+        self.node = test_api_utils.post_get_test_node()
+        self.node['owner'] = '12345'
+
+    @mock.patch.object(utils, 'check_node_policy_and_retrieve')
+    @mock.patch.object(utils, 'check_owner_policy')
+    def test_check_multiple_node_policies_and_retrieve(
+            self, mock_cop, mock_cnpar
+    ):
+        mock_cnpar.return_value = self.node
+        mock_cop.return_value = True
+
+        rpc_node = utils.check_multiple_node_policies_and_retrieve(
+            ['fake_policy_1', 'fake_policy_2'], self.valid_node_uuid
+        )
+        mock_cnpar.assert_called_once_with('fake_policy_1',
+                                           self.valid_node_uuid, False)
+        mock_cop.assert_called_once_with(
+            'node', 'fake_policy_2', '12345')
+        self.assertEqual(self.node, rpc_node)
+
+    @mock.patch.object(utils, 'check_node_policy_and_retrieve')
+    @mock.patch.object(utils, 'check_owner_policy')
+    def test_check_multiple_node_policies_and_retrieve_first_fail(
+            self, mock_cop, mock_cnpar
+    ):
+        mock_cnpar.side_effect = exception.HTTPForbidden(resource='fake')
+        mock_cop.return_value = True
+
+        self.assertRaises(
+            exception.HTTPForbidden,
+            utils.check_multiple_node_policies_and_retrieve,
+            ['fake_policy_1', 'fake_policy_2'],
+            self.valid_node_uuid
+        )
+        mock_cnpar.assert_called_once_with('fake_policy_1',
+                                           self.valid_node_uuid, False)
+        mock_cop.assert_not_called()
+
+    @mock.patch.object(utils, 'check_node_policy_and_retrieve')
+    @mock.patch.object(utils, 'check_owner_policy')
+    def test_check_node_policy_and_retrieve_no_node(
+            self, mock_cop, mock_cnpar
+    ):
+        mock_cnpar.return_value = self.node
+        mock_cop.side_effect = exception.HTTPForbidden(resource='fake')
+
+        self.assertRaises(
+            exception.HTTPForbidden,
+            utils.check_multiple_node_policies_and_retrieve,
+            ['fake_policy_1', 'fake_policy_2'],
+            self.valid_node_uuid
+        )
+        mock_cnpar.assert_called_once_with('fake_policy_1',
+                                           self.valid_node_uuid, False)
+        mock_cop.assert_called_once_with(
+            'node', 'fake_policy_2', '12345')
+
+
 class TestCheckListPolicy(base.TestCase):
     @mock.patch.object(api, 'request', spec_set=["context", "version"])
     @mock.patch.object(policy, 'authorize', spec=True)

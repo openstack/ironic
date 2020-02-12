@@ -105,6 +105,16 @@ node_policies = [
         'Update Node records',
         [{'path': '/nodes/{node_ident}', 'method': 'PATCH'}]),
     policy.DocumentedRuleDefault(
+        'baremetal:node:update_extra',
+        'rule:baremetal:node:update',
+        'Update Node extra field',
+        [{'path': '/nodes/{node_ident}', 'method': 'PATCH'}]),
+    policy.DocumentedRuleDefault(
+        'baremetal:node:update_instance_info',
+        'rule:baremetal:node:update',
+        'Update Node instance_info field',
+        [{'path': '/nodes/{node_ident}', 'method': 'PATCH'}]),
+    policy.DocumentedRuleDefault(
         'baremetal:node:update_owner_provisioned',
         'rule:is_admin',
         'Update Node owner even when Node is provisioned',

@@ -1,0 +1,8 @@
+---
+features:
+  - |
+    Adds ``baremetal:node:update_extra`` and ``baremetal:node:instance_info``
+    policies to allow finer-grained policy control over node updates. In order
+    to use standalone Ironic to provision a node, a user must be able to
+    update these attributes, and a lessee should not be able to update all
+    node attributes.

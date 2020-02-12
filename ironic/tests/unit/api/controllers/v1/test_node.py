@@ -3400,6 +3400,164 @@ class TestPatch(test_api_base.BaseApiTest):
         self.assertEqual('application/json', response.content_type)
         self.assertEqual(http_client.NOT_ACCEPTABLE, response.status_code)
 
+    @mock.patch.object(api_utils, 'check_multiple_node_policies_and_retrieve')
+    def test_patch_policy_update(self, mock_cmnpar):
+        node = obj_utils.create_test_node(self.context,
+                                          uuid=uuidutils.generate_uuid())
+        mock_cmnpar.return_value = node
+        self.mock_update_node.return_value = node
+        headers = {api_base.Version.string: str(api_v1.max_version())}
+        response = self.patch_json('/nodes/%s' % node.uuid,
+                                   [{'path': '/description',
+                                     'value': 'foo',
+                                     'op': 'replace'}],
+                                   headers=headers)
+        self.assertEqual('application/json', response.content_type)
+        self.assertEqual(http_client.OK, response.status_code)
+        mock_cmnpar.assert_called_once_with(
+            ['baremetal:node:update'], node.uuid, with_suffix=True)
+
+    @mock.patch.object(api_utils, 'check_multiple_node_policies_and_retrieve')
+    def test_patch_policy_update_none(self, mock_cmnpar):
+        node = obj_utils.create_test_node(self.context,
+                                          uuid=uuidutils.generate_uuid())
+        mock_cmnpar.return_value = node
+        self.mock_update_node.return_value = node
+        headers = {api_base.Version.string: str(api_v1.max_version())}
+        response = self.patch_json('/nodes/%s' % node.uuid,
+                                   [],
+                                   headers=headers)
+        self.assertEqual('application/json', response.content_type)
+        self.assertEqual(http_client.OK, response.status_code)
+        mock_cmnpar.assert_called_once_with(
+            ['baremetal:node:update'], node.uuid, with_suffix=True)
+
+    @mock.patch.object(api_utils, 'check_multiple_node_policies_and_retrieve')
+    def test_patch_policy_update_extra(self, mock_cmnpar):
+        node = obj_utils.create_test_node(self.context,
+                                          uuid=uuidutils.generate_uuid())
+        mock_cmnpar.return_value = node
+        self.mock_update_node.return_value = node
+        headers = {api_base.Version.string: str(api_v1.max_version())}
+        response = self.patch_json('/nodes/%s' % node.uuid,
+                                   [{'path': '/extra/foo',
+                                     'value': 'bar',
+                                     'op': 'add'}],
+                                   headers=headers)
+        self.assertEqual('application/json', response.content_type)
+        self.assertEqual(http_client.OK, response.status_code)
+        mock_cmnpar.assert_called_once_with(
+            ['baremetal:node:update_extra'], node.uuid, with_suffix=True)
+
+    @mock.patch.object(api_utils, 'check_multiple_node_policies_and_retrieve')
+    def test_patch_policy_update_instance_info(self, mock_cmnpar):
+        node = obj_utils.create_test_node(self.context,
+                                          uuid=uuidutils.generate_uuid())
+        mock_cmnpar.return_value = node
+        self.mock_update_node.return_value = node
+        headers = {api_base.Version.string: str(api_v1.max_version())}
+        response = self.patch_json('/nodes/%s' % node.uuid,
+                                   [{'path': '/instance_info/foo',
+                                     'value': 'bar',
+                                     'op': 'add'}],
+                                   headers=headers)
+        self.assertEqual('application/json', response.content_type)
+        self.assertEqual(http_client.OK, response.status_code)
+        mock_cmnpar.assert_called_once_with(
+            ['baremetal:node:update_instance_info'],
+            node.uuid, with_suffix=True)
+
+    @mock.patch.object(api_utils, 'check_multiple_node_policies_and_retrieve')
+    def test_patch_policy_update_generic_and_extra(self, mock_cmnpar):
+        node = obj_utils.create_test_node(self.context,
+                                          uuid=uuidutils.generate_uuid())
+        mock_cmnpar.return_value = node
+        self.mock_update_node.return_value = node
+        headers = {api_base.Version.string: str(api_v1.max_version())}
+        response = self.patch_json('/nodes/%s' % node.uuid,
+                                   [{'path': '/description',
+                                     'value': 'foo',
+                                     'op': 'replace'},
+                                    {'path': '/extra/foo',
+                                     'value': 'bar',
+                                     'op': 'add'}],
+                                   headers=headers)
+        self.assertEqual('application/json', response.content_type)
+        self.assertEqual(http_client.OK, response.status_code)
+        mock_cmnpar.assert_called_once_with(
+            ['baremetal:node:update_extra', 'baremetal:node:update'],
+            node.uuid, with_suffix=True)
+
+    @mock.patch.object(api_utils, 'check_multiple_node_policies_and_retrieve')
+    def test_patch_policy_update_generic_and_instance_info(self, mock_cmnpar):
+        node = obj_utils.create_test_node(self.context,
+                                          uuid=uuidutils.generate_uuid())
+        mock_cmnpar.return_value = node
+        self.mock_update_node.return_value = node
+        headers = {api_base.Version.string: str(api_v1.max_version())}
+        response = self.patch_json('/nodes/%s' % node.uuid,
+                                   [{'path': '/description',
+                                     'value': 'foo',
+                                     'op': 'replace'},
+                                    {'path': '/instance_info/foo',
+                                     'value': 'bar',
+                                     'op': 'add'}],
+                                   headers=headers)
+        self.assertEqual('application/json', response.content_type)
+        self.assertEqual(http_client.OK, response.status_code)
+        mock_cmnpar.assert_called_once_with(
+            ['baremetal:node:update_instance_info', 'baremetal:node:update'],
+            node.uuid, with_suffix=True)
+
+    @mock.patch.object(api_utils, 'check_multiple_node_policies_and_retrieve')
+    def test_patch_policy_update_extra_and_instance_info(self, mock_cmnpar):
+        node = obj_utils.create_test_node(self.context,
+                                          uuid=uuidutils.generate_uuid())
+        mock_cmnpar.return_value = node
+        self.mock_update_node.return_value = node
+        headers = {api_base.Version.string: str(api_v1.max_version())}
+        response = self.patch_json('/nodes/%s' % node.uuid,
+                                   [{'path': '/extra/foo',
+                                     'value': 'bar',
+                                     'op': 'add'},
+                                    {'path': '/instance_info/foo',
+                                     'value': 'bar',
+                                     'op': 'add'}],
+                                   headers=headers)
+        self.assertEqual('application/json', response.content_type)
+        self.assertEqual(http_client.OK, response.status_code)
+        mock_cmnpar.assert_called_once_with(
+            ['baremetal:node:update_extra',
+             'baremetal:node:update_instance_info'],
+            node.uuid, with_suffix=True)
+
+    @mock.patch.object(api_utils, 'check_multiple_node_policies_and_retrieve')
+    def test_patch_policy_update_generic_extra_instance_info(
+            self, mock_cmnpar):
+        node = obj_utils.create_test_node(self.context,
+                                          uuid=uuidutils.generate_uuid())
+        mock_cmnpar.return_value = node
+        self.mock_update_node.return_value = node
+        headers = {api_base.Version.string: str(api_v1.max_version())}
+        response = self.patch_json('/nodes/%s' % node.uuid,
+                                   [{'path': '/description',
+                                     'value': 'foo',
+                                     'op': 'replace'},
+                                    {'path': '/extra/foo',
+                                     'value': 'bar',
+                                     'op': 'add'},
+                                    {'path': '/instance_info/foo',
+                                     'value': 'bar',
+                                     'op': 'add'}],
+                                   headers=headers)
+        self.assertEqual('application/json', response.content_type)
+        self.assertEqual(http_client.OK, response.status_code)
+        mock_cmnpar.assert_called_once_with(
+            ['baremetal:node:update_extra',
+             'baremetal:node:update_instance_info',
+             'baremetal:node:update'],
+            node.uuid, with_suffix=True)
+
 
 def _create_node_locally(node):
     driver_factory.check_and_update_node_interfaces(node)

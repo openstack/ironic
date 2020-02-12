@@ -1235,6 +1235,30 @@ def check_allocation_policy_and_retrieve(policy_name, allocation_ident):
     return rpc_allocation
 
 
+def check_multiple_node_policies_and_retrieve(policy_names,
+                                              node_ident,
+                                              with_suffix=False):
+    """Check if the specified policies authorize this request on a node.
+
+    :param: policy_names: List of policy names to check.
+    :param: node_ident: the UUID or logical name of a node.
+    :param: with_suffix: whether the RPC node should include the suffix
+
+    :raises: HTTPForbidden if the policy forbids access.
+    :raises: NodeNotFound if the node is not found.
+    :return: RPC node identified by node_ident
+    """
+    rpc_node = None
+    for policy_name in policy_names:
+        if rpc_node is None:
+            rpc_node = check_node_policy_and_retrieve(policy_names[0],
+                                                      node_ident,
+                                                      with_suffix)
+        else:
+            check_owner_policy('node', policy_name, rpc_node['owner'])
+    return rpc_node
+
+
 def check_list_policy(object_type, owner=None):
     """Check if the list policy authorizes this request on an object.
 
