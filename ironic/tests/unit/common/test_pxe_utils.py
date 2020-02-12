@@ -639,14 +639,7 @@ class TestPXEUtils(db_base.DbTestCase):
 
     def test_get_root_dir(self):
         expected_dir = '/tftproot'
-        self.config(ipxe_enabled=False, group='pxe')
         self.config(tftp_root=expected_dir, group='pxe')
-        self.assertEqual(expected_dir, pxe_utils.get_root_dir())
-
-    def test_get_root_dir_ipxe(self):
-        expected_dir = '/httpboot'
-        self.config(ipxe_enabled=True, group='pxe')
-        self.config(http_root=expected_dir, group='deploy')
         self.assertEqual(expected_dir, pxe_utils.get_root_dir())
 
     def test_get_pxe_config_file_path(self):
@@ -700,7 +693,8 @@ class TestPXEUtils(db_base.DbTestCase):
         self.config(tftp_server='ff80::1', group='pxe')
         self._dhcp_options_for_instance(ip_version=6)
 
-    def _test_get_kernel_ramdisk_info(self, expected_dir, mode='deploy'):
+    def _test_get_kernel_ramdisk_info(self, expected_dir, mode='deploy',
+                                      ipxe_enabled=False):
         node_uuid = 'fake-node'
 
         driver_info = {
@@ -713,7 +707,8 @@ class TestPXEUtils(db_base.DbTestCase):
             expected[k] = (v, expected_dir + '/fake-node/%s' % k)
         kr_info = pxe_utils.get_kernel_ramdisk_info(node_uuid,
                                                     driver_info,
-                                                    mode=mode)
+                                                    mode=mode,
+                                                    ipxe_enabled=ipxe_enabled)
         self.assertEqual(expected, kr_info)
 
     def test_get_kernel_ramdisk_info(self):
@@ -723,9 +718,8 @@ class TestPXEUtils(db_base.DbTestCase):
 
     def test_get_kernel_ramdisk_info_ipxe(self):
         expected_dir = '/http'
-        self.config(ipxe_enabled=True, group='pxe')
         self.config(http_root=expected_dir, group='deploy')
-        self._test_get_kernel_ramdisk_info(expected_dir)
+        self._test_get_kernel_ramdisk_info(expected_dir, ipxe_enabled=True)
 
     def test_get_kernel_ramdisk_info_bad_driver_info(self):
         self.config(tftp_root='/tftp', group='pxe')
@@ -743,9 +737,9 @@ class TestPXEUtils(db_base.DbTestCase):
 
     def test_get_rescue_kr_info_ipxe(self):
         expected_dir = '/http'
-        self.config(ipxe_enabled=True, group='pxe')
         self.config(http_root=expected_dir, group='deploy')
-        self._test_get_kernel_ramdisk_info(expected_dir, mode='rescue')
+        self._test_get_kernel_ramdisk_info(expected_dir, mode='rescue',
+                                           ipxe_enabled=True)
 
     def _dhcp_options_for_instance_ipxe(self, task, boot_file, ip_version=4):
         self.config(ipxe_enabled=True, group='pxe')
@@ -1639,13 +1633,13 @@ class PXEInterfacesTestCase(db_base.DbTestCase):
     @mock.patch.object(deploy_utils, 'fetch_images', autospec=True)
     def test_cache_ramdisk_kernel_ipxe(self, mock_fetch_image,
                                        mock_ensure_tree):
-        self.config(ipxe_enabled=True, group='pxe')
         fake_pxe_info = {'foo': 'bar'}
         expected_path = os.path.join(CONF.deploy.http_root,
                                      self.node.uuid)
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
-                pxe_utils.cache_ramdisk_kernel(task, fake_pxe_info)
+                pxe_utils.cache_ramdisk_kernel(task, fake_pxe_info,
+                                               ipxe_enabled=True)
         mock_ensure_tree.assert_called_with(expected_path)
         mock_fetch_image.assert_called_once_with(self.context, mock.ANY,
                                                  list(fake_pxe_info.values()),
