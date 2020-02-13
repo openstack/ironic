@@ -10,7 +10,8 @@
     check:
       jobs:
         - ironic-tox-unit-with-driver-libs-python3
-        - ironic-standalone
+        - ironic-standalone:
+            voting: false
         - ironic-tempest-functional-python3
         - ironic-grenade-dsvm
         # Temporary disable voting because of end of cycle CI instability.
@@ -49,7 +50,8 @@
       queue: ironic
       jobs:
         - ironic-tox-unit-with-driver-libs-python3
-        - ironic-standalone
+        # removing from voting due to gate instability
+        # - ironic-standalone
         - ironic-tempest-functional-python3
         - ironic-grenade-dsvm
         # removing from voting due to end of cycle gate instability.
