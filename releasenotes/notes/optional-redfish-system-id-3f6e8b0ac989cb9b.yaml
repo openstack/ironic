@@ -1,0 +1,10 @@
+---
+features:
+  - |
+    The ``redfish_system_id`` property of redfish hardware type has been made
+    optional. If not specified in ``driver_info``, and the target BMC manages
+    a single ComputerSystem, ironic will assume that system. Otherwise, ironic
+    will fail requiring explicit ``redfish_system_id`` specification in
+    ``driver_info``. The minimum version for the sushy library is now
+    3.1.0.
+

@@ -56,11 +56,14 @@ field:
                        missing, https is assumed.
                        For example: https://mgmt.vendor.com. This is required.
 
-- ``redfish_system_id``: The canonical path to the System resource that
-                         the driver will interact with. It should include
-                         the root service, version and the unique
-                         resource path to the System. For example:
-                         /redfish/v1/Systems/1. This is required.
+- ``redfish_system_id``: The canonical path to the ComputerSystem resource
+                         that the driver will interact with. It should include
+                         the root service, version and the unique resource
+                         path to the ComputerSystem. This property is only
+                         required if target BMC manages more than one
+                         ComputerSystem. Otherwise ironic will pick the only
+                         available ComputerSystem automatically. For
+                         example: /redfish/v1/Systems/1.
 
 - ``redfish_username``: User account with admin/server-profile access
                         privilege. Although not required, it is highly
