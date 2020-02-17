@@ -1341,7 +1341,7 @@ class ServiceDoNodeDeployTestCase(mgr_utils.ServiceSetUpMixin,
         self.assertIsNone(node.last_error)
         # Verify reservation has been cleared.
         self.assertIsNone(node.reservation)
-        mock_iwdi.assert_called_once_with(self.context, node.instance_info)
+        self.assertFalse(mock_iwdi.called)
         self.assertNotIn('is_whole_disk_image', node.driver_internal_info)
 
     def test_do_node_deploy_maintenance(self, mock_iwdi):
@@ -1761,7 +1761,7 @@ class ServiceDoNodeDeployTestCase(mgr_utils.ServiceSetUpMixin,
         self.assertIsNone(node.last_error)
         # Verify reservation has been cleared.
         self.assertIsNone(node.reservation)
-        mock_iwdi.assert_called_once_with(self.context, node.instance_info)
+        self.assertFalse(mock_iwdi.called)
         self.assertNotIn('is_whole_disk_image', node.driver_internal_info)
 
     def test_do_node_deploy_rebuild_protected(self, mock_iwdi):
