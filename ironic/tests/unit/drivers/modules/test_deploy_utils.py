@@ -2616,37 +2616,21 @@ class TestBuildInstanceInfoForHttpProvisioning(db_base.DbTestCase):
         image_path, instance_info = self._test_build_instance_info(
             image_info=self.image_info, expect_raw=True)
 
-        self.assertEqual(instance_info['image_checksum'], 'fake-checksum')
+        self.assertEqual('md5-not-supported', instance_info['image_checksum'])
         self.assertEqual(instance_info['image_disk_format'], 'raw')
-        calls = [mock.call(image_path, algorithm='md5'),
-                 mock.call(image_path, algorithm='sha512')]
+        calls = [mock.call(image_path, algorithm='sha512')]
         self.checksum_mock.assert_has_calls(calls)
 
-    def test_build_instance_info_force_raw_new_fields_none(self):
-        cfg.CONF.set_override('force_raw_images', True)
-        self.image_info['os_hash_algo'] = None
-        self.image_info['os_hash_value'] = None
-        image_path, instance_info = self._test_build_instance_info(
-            image_info=self.image_info, expect_raw=True)
-
-        self.assertEqual(instance_info['image_checksum'], 'fake-checksum')
-        self.assertEqual(instance_info['image_disk_format'], 'raw')
-        self.assertNotIn('image_os_hash_algo', instance_info.keys())
-        self.assertNotIn('image_os_hash_value', instance_info.keys())
-        self.checksum_mock.assert_called_once_with(image_path, algorithm='md5')
-
-    def test_build_instance_info_force_raw_new_fields_is_md5(self):
+    def test_build_instance_info_force_raw_drops_md5(self):
         cfg.CONF.set_override('force_raw_images', True)
         self.image_info['os_hash_algo'] = 'md5'
-        self.image_info['os_hash_value'] = 'fake-md5'
         image_path, instance_info = self._test_build_instance_info(
             image_info=self.image_info, expect_raw=True)
 
-        self.assertEqual(instance_info['image_checksum'], 'fake-checksum')
+        self.assertEqual('md5-not-supported', instance_info['image_checksum'])
         self.assertEqual(instance_info['image_disk_format'], 'raw')
-        self.assertNotIn('image_os_hash_algo', instance_info.keys())
-        self.assertNotIn('image_os_hash_value', instance_info.keys())
-        self.checksum_mock.assert_called_once_with(image_path, algorithm='md5')
+        calls = [mock.call(image_path, algorithm='sha256')]
+        self.checksum_mock.assert_has_calls(calls)
 
 
 class TestStorageInterfaceUtils(db_base.DbTestCase):
