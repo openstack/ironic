@@ -1,0 +1,4 @@
+fixes:
+  - |
+    Use SHA256 for comparing file contents instead of MD5. This improves FIPS
+    compatibility.
