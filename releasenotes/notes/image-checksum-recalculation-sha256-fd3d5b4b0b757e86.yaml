@@ -1,0 +1,10 @@
+---
+upgrade:
+  - |
+    If ``[DEFAULT]force_raw_images`` is set to ``true``, then MD5 will not be
+    utilized to recalculate the image checksum. This requires the
+    ``ironic-python-agent`` ramdisk to be at least version 3.4.0.
+security:
+  - |
+    Image checksum recalculation when images are forced to raw images, are now
+    calculated using SHA3-256 if MD5 was selected. This is now unconditional.
