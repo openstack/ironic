@@ -228,12 +228,12 @@ def _get_hash_object(hash_algo_name):
     return getattr(hashlib, hash_algo_name)()
 
 
-def file_has_content(path, content, hash_algo='md5'):
+def file_has_content(path, content, hash_algo='sha256'):
     """Checks that content of the file is the same as provided reference.
 
     :param path: path to file
     :param content: reference content to check against
-    :param hash_algo: hashing algo from hashlib to use, default is 'md5'
+    :param hash_algo: hashing algo from hashlib to use, default is 'sha256'
     :returns: True if the hash of reference content is the same as
         the hash of file's content, False otherwise
     """
