@@ -830,6 +830,21 @@ class IPMIToolPrivateMethodTestCase(
         ipmi._parse_driver_info(node)
         self.assertFalse(mock_log.called)
 
+    def test__parse_driver_info_terminal_port_specified(self):
+        info = dict(INFO_DICT)
+        info['ipmi_terminal_port'] = 10000
+        node = obj_utils.get_test_node(self.context, driver_info=info)
+        driver_info = ipmi._parse_driver_info(node)
+        self.assertEqual(driver_info['port'], 10000)
+
+    def test__parse_driver_info_terminal_port_allocated(self):
+        info = dict(INFO_DICT)
+        internal_info = {'allocated_ipmi_terminal_port': 10001}
+        node = obj_utils.get_test_node(self.context, driver_info=info,
+                                       driver_internal_info=internal_info)
+        driver_info = ipmi._parse_driver_info(node)
+        self.assertEqual(driver_info['port'], 10001)
+
     @mock.patch.object(ipmi, '_is_option_supported', autospec=True)
     @mock.patch.object(ipmi, '_make_password_file', _make_password_file_stub)
     @mock.patch.object(utils, 'execute', autospec=True)
@@ -2524,6 +2539,31 @@ class IPMIToolDriverTestCase(Base):
 
         self.assertEqual(fake_ret, ret)
 
+    @mock.patch.object(console_utils, 'acquire_port', autospec=True)
+    def test__allocate_port(self, mock_acquire):
+        mock_acquire.return_value = 1234
+        with task_manager.acquire(self.context,
+                                  self.node.uuid) as task:
+            port = ipmi._allocate_port(task)
+            mock_acquire.assert_called_once_with()
+            self.assertEqual(port, 1234)
+            info = task.node.driver_internal_info
+            self.assertEqual(info['allocated_ipmi_terminal_port'], 1234)
+
+    @mock.patch.object(console_utils, 'release_port', autospec=True)
+    def test__release_allocated_port(self, mock_release):
+        info = self.node.driver_internal_info
+        info['allocated_ipmi_terminal_port'] = 1234
+        self.node.driver_internal_info = info
+        self.node.save()
+
+        with task_manager.acquire(self.context,
+                                  self.node.uuid) as task:
+            ipmi._release_allocated_port(task)
+            mock_release.assert_called_once_with(1234)
+            info = task.node.driver_internal_info
+            self.assertIsNone(info.get('allocated_ipmi_terminal_port'))
+
 
 class IPMIToolShellinaboxTestCase(db_base.DbTestCase):
     console_interface = 'ipmitool-shellinabox'
@@ -2552,6 +2592,13 @@ class IPMIToolShellinaboxTestCase(db_base.DbTestCase):
             task.node.driver_info.pop('ipmi_terminal_port', None)
             self.assertRaises(exception.MissingParameterValue,
                               task.driver.console.validate, task)
+
+    def test_console_validate_missing_port_auto_allocate(self):
+        self.config(port_range='10000:20000', group='console')
+        with task_manager.acquire(
+                self.context, self.node.uuid, shared=True) as task:
+            task.node.driver_info.pop('ipmi_terminal_port', None)
+            task.driver.console.validate(task)
 
     def test_console_validate_invalid_port(self):
         with task_manager.acquire(
@@ -2594,17 +2641,51 @@ class IPMIToolShellinaboxTestCase(db_base.DbTestCase):
                                   'address': driver_info['address']})
         self.assertEqual(expected_ipmi_cmd, ipmi_cmd)
 
+    @mock.patch.object(ipmi, '_allocate_port', autospec=True)
     @mock.patch.object(ipmi.IPMIConsole, '_start_console', autospec=True)
-    def test_start_console(self, mock_start):
+    def test_start_console(self, mock_start, mock_alloc):
         mock_start.return_value = None
+        mock_alloc.return_value = 10000
 
         with task_manager.acquire(self.context,
                                   self.node.uuid) as task:
             self.console.start_console(task)
             driver_info = ipmi._parse_driver_info(task.node)
+            driver_info.update(port=10000)
         mock_start.assert_called_once_with(
             self.console, driver_info,
             console_utils.start_shellinabox_console)
+
+    @mock.patch.object(ipmi, '_allocate_port', autospec=True)
+    @mock.patch.object(ipmi, '_parse_driver_info', autospec=True)
+    @mock.patch.object(ipmi.IPMIConsole, '_start_console', autospec=True)
+    def test_start_console_with_port(self, mock_start, mock_info, mock_alloc):
+        mock_start.return_value = None
+        mock_info.return_value = {'port': 10000}
+
+        with task_manager.acquire(self.context,
+                                  self.node.uuid) as task:
+            self.console.start_console(task)
+        mock_start.assert_called_once_with(
+            self.console, {'port': 10000},
+            console_utils.start_shellinabox_console)
+        mock_alloc.assert_not_called()
+
+    @mock.patch.object(ipmi, '_allocate_port', autospec=True)
+    @mock.patch.object(ipmi, '_parse_driver_info', autospec=True)
+    @mock.patch.object(ipmi.IPMIConsole, '_start_console', autospec=True)
+    def test_start_console_alloc_port(self, mock_start, mock_info, mock_alloc):
+        mock_start.return_value = None
+        mock_info.return_value = {'port': None}
+        mock_alloc.return_value = 1234
+
+        with task_manager.acquire(self.context,
+                                  self.node.uuid) as task:
+            self.console.start_console(task)
+        mock_start.assert_called_once_with(
+            self.console, {'port': 1234},
+            console_utils.start_shellinabox_console)
+        mock_alloc.assert_called_once_with(mock.ANY)
 
     @mock.patch.object(ipmi.IPMIConsole, '_get_ipmi_cmd', autospec=True)
     @mock.patch.object(console_utils, 'start_shellinabox_console',
@@ -2673,9 +2754,10 @@ class IPMIToolShellinaboxTestCase(db_base.DbTestCase):
                                            self.info['port'],
                                            mock.ANY)
 
+    @mock.patch.object(ipmi, '_release_allocated_port', autospec=True)
     @mock.patch.object(console_utils, 'stop_shellinabox_console',
                        autospec=True)
-    def test_stop_console(self, mock_stop):
+    def test_stop_console(self, mock_stop, mock_release):
         mock_stop.return_value = None
 
         with task_manager.acquire(self.context,
@@ -2683,6 +2765,7 @@ class IPMIToolShellinaboxTestCase(db_base.DbTestCase):
             self.console.stop_console(task)
 
         mock_stop.assert_called_once_with(self.info['uuid'])
+        mock_release.assert_called_once_with(mock.ANY)
 
     @mock.patch.object(console_utils, 'stop_shellinabox_console',
                        autospec=True)
@@ -2740,21 +2823,70 @@ class IPMIToolSocatDriverTestCase(IPMIToolShellinaboxTestCase):
                                  {'address': driver_info['address']})
         self.assertEqual(expected_ipmi_cmd, ipmi_cmd)
 
+    def test_console_validate_missing_port_auto_allocate(self):
+        self.config(port_range='10000:20000', group='console')
+        with task_manager.acquire(
+                self.context, self.node.uuid, shared=True) as task:
+            task.node.driver_info.pop('ipmi_terminal_port', None)
+            task.driver.console.validate(task)
+
+    @mock.patch.object(ipmi, '_allocate_port', autospec=True)
     @mock.patch.object(ipmi.IPMIConsole, '_start_console', autospec=True)
     @mock.patch.object(ipmi.IPMISocatConsole, '_exec_stop_console',
                        autospec=True)
-    def test_start_console(self, mock_stop, mock_start):
+    def test_start_console(self, mock_stop, mock_start, mock_alloc):
         mock_start.return_value = None
         mock_stop.return_value = None
+        mock_alloc.return_value = 10000
 
         with task_manager.acquire(self.context,
                                   self.node.uuid) as task:
             self.console.start_console(task)
             driver_info = ipmi._parse_driver_info(task.node)
+            driver_info.update(port=10000)
         mock_stop.assert_called_once_with(self.console, driver_info)
         mock_start.assert_called_once_with(
             self.console, driver_info,
             console_utils.start_socat_console)
+
+    @mock.patch.object(ipmi, '_allocate_port', autospec=True)
+    @mock.patch.object(ipmi, '_parse_driver_info', autospec=True)
+    @mock.patch.object(ipmi.IPMIConsole, '_start_console', autospec=True)
+    @mock.patch.object(ipmi.IPMISocatConsole, '_exec_stop_console',
+                       autospec=True)
+    def test_start_console_with_port(self, mock_stop, mock_start, mock_info,
+                                     mock_alloc):
+        mock_start.return_value = None
+        mock_info.return_value = {'port': 10000}
+
+        with task_manager.acquire(self.context,
+                                  self.node.uuid) as task:
+            self.console.start_console(task)
+        mock_stop.assert_called_once_with(self.console, mock.ANY)
+        mock_start.assert_called_once_with(
+            self.console, {'port': 10000},
+            console_utils.start_socat_console)
+        mock_alloc.assert_not_called()
+
+    @mock.patch.object(ipmi, '_allocate_port', autospec=True)
+    @mock.patch.object(ipmi, '_parse_driver_info', autospec=True)
+    @mock.patch.object(ipmi.IPMIConsole, '_start_console', autospec=True)
+    @mock.patch.object(ipmi.IPMISocatConsole, '_exec_stop_console',
+                       autospec=True)
+    def test_start_console_alloc_port(self, mock_stop, mock_start, mock_info,
+                                      mock_alloc):
+        mock_start.return_value = None
+        mock_info.return_value = {'port': None}
+        mock_alloc.return_value = 1234
+
+        with task_manager.acquire(self.context,
+                                  self.node.uuid) as task:
+            self.console.start_console(task)
+        mock_stop.assert_called_once_with(self.console, mock.ANY)
+        mock_start.assert_called_once_with(
+            self.console, {'port': 1234},
+            console_utils.start_socat_console)
+        mock_alloc.assert_called_once_with(mock.ANY)
 
     @mock.patch.object(ipmi.IPMISocatConsole, '_get_ipmi_cmd', autospec=True)
     @mock.patch.object(console_utils, 'start_socat_console',
@@ -2827,11 +2959,12 @@ class IPMIToolSocatDriverTestCase(IPMIToolShellinaboxTestCase):
                                            self.info['port'],
                                            mock.ANY)
 
+    @mock.patch.object(ipmi, '_release_allocated_port', autospec=True)
     @mock.patch.object(ipmi.IPMISocatConsole, '_exec_stop_console',
                        autospec=True)
     @mock.patch.object(console_utils, 'stop_socat_console',
                        autospec=True)
-    def test_stop_console(self, mock_stop, mock_exec_stop):
+    def test_stop_console(self, mock_stop, mock_exec_stop, mock_release):
         mock_stop.return_value = None
 
         with task_manager.acquire(self.context,
@@ -2842,6 +2975,7 @@ class IPMIToolSocatDriverTestCase(IPMIToolShellinaboxTestCase):
         mock_stop.assert_called_once_with(self.info['uuid'])
         mock_exec_stop.assert_called_once_with(self.console,
                                                driver_info)
+        mock_release.assert_called_once_with(mock.ANY)
 
     @mock.patch.object(ipmi.IPMISocatConsole, '_exec_stop_console',
                        autospec=True)

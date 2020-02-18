@@ -715,3 +715,8 @@ class ClientSideError(wsme.exc.ClientSideError):
 class NodeIsRetired(Invalid):
     _msg_fmt = _("The %(op)s operation can't be performed on node "
                  "%(node)s because it is retired.")
+
+
+class NoFreeIPMITerminalPorts(TemporaryFailure):
+    _msg_fmt = _("Unable to allocate a free port on host %(host)s for IPMI "
+                 "terminal, not enough free ports.")

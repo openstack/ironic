@@ -652,3 +652,44 @@ class ConsoleUtilsTestCase(db_base.DbTestCase):
         mock_stop.assert_called_once_with(self.info['uuid'])
         # LOG.warning() is called when _stop_console() raises NoConsolePid
         self.assertTrue(mock_log_warning.called)
+
+    def test_valid_console_port_range(self):
+        self.config(port_range='10000:20000', group='console')
+        start, stop = console_utils._get_port_range()
+        self.assertEqual((start, stop), (10000, 20000))
+
+    def test_invalid_console_port_range(self):
+        self.config(port_range='20000:10000', group='console')
+        self.assertRaises(exception.InvalidParameterValue,
+                          console_utils._get_port_range)
+
+    @mock.patch.object(console_utils, 'ALLOCATED_PORTS', autospec=True)
+    @mock.patch.object(console_utils, '_verify_port', autospec=True)
+    def test_allocate_port_success(self, mock_verify, mock_ports):
+        self.config(port_range='10000:10001', group='console')
+        port = console_utils.acquire_port()
+        mock_verify.assert_called_once_with(10000)
+        self.assertEqual(port, 10000)
+        mock_ports.add.assert_called_once_with(10000)
+
+    @mock.patch.object(console_utils, 'ALLOCATED_PORTS', autospec=True)
+    @mock.patch.object(console_utils, '_verify_port', autospec=True)
+    def test_allocate_port_range_retry(self, mock_verify, mock_ports):
+        self.config(port_range='10000:10003', group='console')
+        mock_verify.side_effect = (exception.Conflict, exception.Conflict,
+                                   None)
+        port = console_utils.acquire_port()
+        verify_calls = [mock.call(10000), mock.call(10001), mock.call(10002)]
+        mock_verify.assert_has_calls(verify_calls)
+        self.assertEqual(port, 10002)
+        mock_ports.add.assert_called_once_with(10002)
+
+    @mock.patch.object(console_utils, 'ALLOCATED_PORTS', autospec=True)
+    @mock.patch.object(console_utils, '_verify_port', autospec=True)
+    def test_allocate_port_no_free_ports(self, mock_verify, mock_ports):
+        self.config(port_range='10000:10005', group='console')
+        mock_verify.side_effect = exception.Conflict
+        self.assertRaises(exception.NoFreeIPMITerminalPorts,
+                          console_utils.acquire_port)
+        verify_calls = [mock.call(p) for p in range(10000, 10005)]
+        mock_verify.assert_has_calls(verify_calls)

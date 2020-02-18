@@ -6847,6 +6847,40 @@ class DoNodeTakeOverTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
              mock.call(task, 'console_restore',
                        obj_fields.NotificationStatus.ERROR)])
 
+    @mock.patch.object(notification_utils, 'emit_console_notification')
+    @mock.patch('ironic.drivers.modules.fake.FakeConsole.start_console')
+    @mock.patch('ironic.drivers.modules.fake.FakeDeploy.take_over')
+    @mock.patch('ironic.drivers.modules.fake.FakeDeploy.prepare')
+    def test__do_takeover_with_console_port_cleaned(self, mock_prepare,
+                                                    mock_take_over,
+                                                    mock_start_console,
+                                                    mock_notify):
+        self._start_service()
+        node = obj_utils.create_test_node(self.context, driver='fake-hardware',
+                                          console_enabled=True)
+        di_info = node.driver_internal_info
+        di_info['allocated_ipmi_terminal_port'] = 12345
+        node.driver_internal_info = di_info
+        node.save()
+
+        task = task_manager.TaskManager(self.context, node.uuid)
+
+        self.service._do_takeover(task)
+        node.refresh()
+        self.assertIsNone(node.last_error)
+        self.assertTrue(node.console_enabled)
+        self.assertIsNone(
+            node.driver_internal_info.get('allocated_ipmi_terminal_port',
+                                          None))
+        mock_prepare.assert_called_once_with(mock.ANY)
+        mock_take_over.assert_called_once_with(mock.ANY)
+        mock_start_console.assert_called_once_with(mock.ANY)
+        mock_notify.assert_has_calls(
+            [mock.call(task, 'console_restore',
+                       obj_fields.NotificationStatus.START),
+             mock.call(task, 'console_restore',
+                       obj_fields.NotificationStatus.END)])
+
 
 @mgr_utils.mock_record_keepalive
 class DoNodeAdoptionTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
