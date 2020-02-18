@@ -61,8 +61,7 @@ class NeutronDHCPApi(base.BaseDHCP):
             port_id, dhcp_options, token=token, context=context)
         port_req_body = {'port': {'extra_dhcp_opts': dhcp_options}}
         try:
-            neutron.get_client(token=token, context=context).update_port(
-                port_id, port_req_body)
+            neutron.update_neutron_port(context, port_id, port_req_body)
         except neutron_client_exc.NeutronClientException:
             LOG.exception("Failed to update Neutron port %s.", port_id)
             raise exception.FailedToUpdateDHCPOptOnPort(port_id=port_id)

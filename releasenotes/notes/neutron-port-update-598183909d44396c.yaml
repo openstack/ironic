@@ -1,0 +1,8 @@
+---
+features:
+  - |
+    Changes neutron port updates to use auth values from Ironic's neutron
+    conf, preventing issues that can arise when a non-admin user manages
+    Ironic nodes. A check is added to the port update function to verify that
+    the user can actually see the port. This adds an additional Neutron
+    request call to all port updates.

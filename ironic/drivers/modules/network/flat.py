@@ -55,7 +55,6 @@ class FlatNetwork(common.NeutronVIFPortIDMixin,
 
     def _bind_flat_ports(self, task):
         LOG.debug("Binding flat network ports")
-        client = neutron.get_client(context=task.context)
         for port_like_obj in task.ports + task.portgroups:
             vif_port_id = (
                 port_like_obj.internal_info.get(common.TENANT_VIF_KEY)
@@ -71,7 +70,8 @@ class FlatNetwork(common.NeutronVIFPortIDMixin,
                 }
             }
             try:
-                client.update_port(vif_port_id, body)
+                neutron.update_neutron_port(task.context,
+                                            vif_port_id, body)
             except neutron_exceptions.NeutronClientException as e:
                 msg = (_('Unable to set binding:host_id for '
                          'neutron port %(port_id)s. Error: '

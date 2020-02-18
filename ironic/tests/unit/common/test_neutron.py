@@ -145,6 +145,104 @@ class TestNeutronClient(base.TestCase):
         self.assertEqual(0, mock_sauth.call_count)
 
 
+class TestNeutronConfClient(base.TestCase):
+
+    def setUp(self):
+        super(TestNeutronConfClient, self).setUp()
+        # NOTE(pas-ha) register keystoneauth dynamic options manually
+        plugin = kaloading.get_plugin_loader('password')
+        opts = kaloading.get_auth_plugin_conf_options(plugin)
+        self.cfg_fixture.register_opts(opts, group='neutron')
+        self.config(retries=2,
+                    group='neutron')
+        self.config(username='test-admin-user',
+                    project_name='test-admin-tenant',
+                    password='test-admin-password',
+                    auth_url='test-auth-uri',
+                    auth_type='password',
+                    interface='internal',
+                    service_type='network',
+                    timeout=10,
+                    group='neutron')
+        # force-reset the global session object
+        neutron._NEUTRON_SESSION = None
+        self.context = context.RequestContext(global_request_id='global')
+
+    @mock.patch('keystoneauth1.loading.load_auth_from_conf_options',
+                autospec=True, return_value=mock.sentinel.auth)
+    @mock.patch('keystoneauth1.loading.load_session_from_conf_options',
+                autospec=True, return_value=mock.sentinel.session)
+    @mock.patch('ironic.common.keystone.get_endpoint', autospec=True,
+                return_value='neutron_url')
+    @mock.patch.object(client.Client, "__init__", return_value=None,
+                       autospec=True)
+    def test_get_neutron_conf_client(self, mock_client, mock_get_endpoint,
+                                     mock_session, mock_auth):
+        neutron._get_conf_client(self.context)
+        mock_client.assert_called_once_with(mock.ANY,  # this is 'self'
+                                            session=mock.sentinel.session,
+                                            auth=mock.sentinel.auth, retries=2,
+                                            endpoint_override='neutron_url',
+                                            global_request_id='global',
+                                            timeout=45)
+
+
+class TestUpdateNeutronPort(base.TestCase):
+    def setUp(self):
+        super(TestUpdateNeutronPort, self).setUp()
+
+        self.uuid = uuidutils.generate_uuid()
+        self.context = context.RequestContext()
+        self.update_body = {'port': {}}
+
+    @mock.patch.object(neutron, 'get_client', autospec=True)
+    @mock.patch.object(neutron, '_get_conf_client', autospec=True)
+    def test_update_neutron_port(self, conf_client_mock, client_mock):
+        client_mock.return_value.show_port.return_value = {'port': {}}
+        conf_client_mock.return_value.update_port.return_value = {'port': {}}
+
+        neutron.update_neutron_port(self.context, self.uuid, self.update_body)
+
+        client_mock.assert_called_once_with(context=self.context)
+        client_mock.return_value.show_port.assert_called_once_with(self.uuid)
+        conf_client_mock.assert_called_once_with(self.context)
+        conf_client_mock.return_value.update_port.assert_called_once_with(
+            self.uuid, self.update_body)
+
+    @mock.patch.object(neutron, 'get_client', autospec=True)
+    @mock.patch.object(neutron, '_get_conf_client', autospec=True)
+    def test_update_neutron_port_with_client(self, conf_client_mock,
+                                             client_mock):
+        client_mock.return_value.show_port.return_value = {'port': {}}
+        conf_client_mock.return_value.update_port.return_value = {'port': {}}
+        client = mock.Mock()
+        client.update_port.return_value = {'port': {}}
+
+        neutron.update_neutron_port(self.context, self.uuid, self.update_body,
+                                    client)
+
+        self.assertFalse(client_mock.called)
+        self.assertFalse(conf_client_mock.called)
+        client.update_port.assert_called_once_with(self.uuid, self.update_body)
+
+    @mock.patch.object(neutron, 'get_client', autospec=True)
+    @mock.patch.object(neutron, '_get_conf_client', autospec=True)
+    def test_update_neutron_port_with_exception(self, conf_client_mock,
+                                                client_mock):
+        client_mock.return_value.show_port.side_effect = \
+            neutron_client_exc.NeutronClientException
+        conf_client_mock.return_value.update_port.return_value = {'port': {}}
+
+        self.assertRaises(
+            neutron_client_exc.NeutronClientException,
+            neutron.update_neutron_port,
+            self.context, self.uuid, self.update_body)
+
+        client_mock.assert_called_once_with(context=self.context)
+        client_mock.return_value.show_port.assert_called_once_with(self.uuid)
+        self.assertFalse(conf_client_mock.called)
+
+
 class TestNeutronNetworkActions(db_base.DbTestCase):
 
     _CLIENT_ID = (
@@ -172,7 +270,8 @@ class TestNeutronNetworkActions(db_base.DbTestCase):
         patcher.start()
         self.addCleanup(patcher.stop)
 
-    def _test_add_ports_to_network(self, is_client_id,
+    @mock.patch.object(neutron, 'update_neutron_port', autospec=True)
+    def _test_add_ports_to_network(self, update_mock, is_client_id,
                                    security_groups=None,
                                    add_all_ports=False):
         # Ports will be created only if pxe_enabled is True
@@ -192,14 +291,18 @@ class TestNeutronNetworkActions(db_base.DbTestCase):
             extra['client-id'] = self._CLIENT_ID
             port.extra = extra
             port.save()
-        expected_body = {
+        expected_create_body = {
             'port': {
                 'network_id': self.network_uuid,
                 'admin_state_up': True,
                 'binding:vnic_type': 'baremetal',
+                'device_id': self.node.uuid,
+            }
+        }
+        expected_update_body = {
+            'port': {
                 'device_owner': 'baremetal:none',
                 'binding:host_id': self.node.uuid,
-                'device_id': self.node.uuid,
                 'mac_address': port.address,
                 'binding:profile': {
                     'local_link_information': [port.local_link_connection]
@@ -207,16 +310,17 @@ class TestNeutronNetworkActions(db_base.DbTestCase):
             }
         }
         if security_groups:
-            expected_body['port']['security_groups'] = security_groups
+            expected_create_body['port']['security_groups'] = security_groups
 
         if is_client_id:
-            expected_body['port']['extra_dhcp_opts'] = (
+            expected_create_body['port']['extra_dhcp_opts'] = (
                 [{'opt_name': '61', 'opt_value': self._CLIENT_ID}])
 
         if add_all_ports:
-            expected_body2 = copy.deepcopy(expected_body)
-            expected_body2['port']['mac_address'] = port2.address
-            expected_body2['fixed_ips'] = []
+            expected_create_body2 = copy.deepcopy(expected_create_body)
+            expected_update_body2 = copy.deepcopy(expected_update_body)
+            expected_update_body2['port']['mac_address'] = port2.address
+            expected_create_body2['fixed_ips'] = []
             neutron_port2 = {'id': '132f871f-eaec-4fed-9475-0d54465e0f01',
                              'mac_address': port2.address,
                              'fixed_ips': []}
@@ -237,12 +341,21 @@ class TestNeutronNetworkActions(db_base.DbTestCase):
                 task, self.network_uuid, security_groups=security_groups)
             self.assertEqual(expected, ports)
             if add_all_ports:
-                calls = [mock.call(expected_body),
-                         mock.call(expected_body2)]
-                self.client_mock.create_port.assert_has_calls(calls)
+                create_calls = [mock.call(expected_create_body),
+                                mock.call(expected_create_body2)]
+                update_calls = [
+                    mock.call(self.context, self.neutron_port['id'],
+                              expected_update_body),
+                    mock.call(self.context, neutron_port2['id'],
+                              expected_update_body2)]
+                self.client_mock.create_port.assert_has_calls(create_calls)
+                update_mock.assert_has_calls(update_calls)
             else:
                 self.client_mock.create_port.assert_called_once_with(
-                    expected_body)
+                    expected_create_body)
+                update_mock.assert_called_once_with(
+                    self.context, self.neutron_port['id'],
+                    expected_update_body)
 
     def test_add_ports_to_network(self):
         self._test_add_ports_to_network(is_client_id=False,
@@ -261,7 +374,8 @@ class TestNeutronNetworkActions(db_base.DbTestCase):
         self._test_add_ports_to_network(is_client_id=False,
                                         security_groups=sg_ids)
 
-    def test__add_ip_addresses_for_ipv6_stateful(self):
+    @mock.patch.object(neutron, 'update_neutron_port', autospec=True)
+    def test__add_ip_addresses_for_ipv6_stateful(self, mock_update):
         subnet_id = uuidutils.generate_uuid()
         self.client_mock.show_subnet.return_value = {
             'subnet': {
@@ -285,11 +399,12 @@ class TestNeutronNetworkActions(db_base.DbTestCase):
         }
 
         neutron._add_ip_addresses_for_ipv6_stateful(
+            self.context,
             {'port': self.neutron_port},
             self.client_mock
         )
-        self.client_mock.update_port.assert_called_once_with(
-            self.neutron_port['id'], expected_body)
+        mock_update.assert_called_once_with(
+            self.context, self.neutron_port['id'], expected_body)
 
     def test_verify_sec_groups(self):
         sg_ids = []
@@ -371,20 +486,25 @@ class TestNeutronNetworkActions(db_base.DbTestCase):
     def test_add_ports_with_client_id_to_network(self):
         self._test_add_ports_to_network(is_client_id=True)
 
+    @mock.patch.object(neutron, 'update_neutron_port', autospec=True)
     @mock.patch.object(neutron, 'validate_port_info', autospec=True)
-    def test_add_ports_to_network_instance_uuid(self, vpi_mock):
+    def test_add_ports_to_network_instance_uuid(self, vpi_mock, update_mock):
         self.node.instance_uuid = uuidutils.generate_uuid()
         self.node.network_interface = 'neutron'
         self.node.save()
         port = self.ports[0]
-        expected_body = {
+        expected_create_body = {
             'port': {
                 'network_id': self.network_uuid,
                 'admin_state_up': True,
                 'binding:vnic_type': 'baremetal',
+                'device_id': self.node.instance_uuid,
+            }
+        }
+        expected_update_body = {
+            'port': {
                 'device_owner': 'baremetal:none',
                 'binding:host_id': self.node.uuid,
-                'device_id': self.node.instance_uuid,
                 'mac_address': port.address,
                 'binding:profile': {
                     'local_link_information': [port.local_link_connection]
@@ -398,7 +518,11 @@ class TestNeutronNetworkActions(db_base.DbTestCase):
         with task_manager.acquire(self.context, self.node.uuid) as task:
             ports = neutron.add_ports_to_network(task, self.network_uuid)
             self.assertEqual(expected, ports)
-            self.client_mock.create_port.assert_called_once_with(expected_body)
+            self.client_mock.create_port.assert_called_once_with(
+                expected_create_body)
+            update_mock.assert_called_once_with(self.context,
+                                                self.neutron_port['id'],
+                                                expected_update_body)
         self.assertTrue(vpi_mock.called)
 
     @mock.patch.object(neutron, 'rollback_ports', autospec=True)
@@ -413,8 +537,9 @@ class TestNeutronNetworkActions(db_base.DbTestCase):
                 self.network_uuid)
             rollback_mock.assert_called_once_with(task, self.network_uuid)
 
+    @mock.patch.object(neutron, 'update_neutron_port', autospec=True)
     @mock.patch.object(neutron, 'LOG', autospec=True)
-    def test_add_network_create_some_ports_fail(self, log_mock):
+    def test_add_network_create_some_ports_fail(self, log_mock, update_mock):
         object_utils.create_test_port(
             self.context, node_id=self.node.id,
             uuid=uuidutils.generate_uuid(),
@@ -788,10 +913,11 @@ class TestNeutronNetworkActions(db_base.DbTestCase):
                           neutron.wait_for_port_status,
                           self.client_mock, 'port_id', 'DOWN')
 
+    @mock.patch.object(neutron, 'update_neutron_port', autospec=True)
     @mock.patch.object(neutron, 'wait_for_host_agent', autospec=True)
     @mock.patch.object(neutron, 'wait_for_port_status', autospec=True)
     def test_add_smartnic_port_to_network(
-            self, wait_port_mock, wait_agent_mock):
+            self, wait_port_mock, wait_agent_mock, update_mock):
         # Ports will be created only if pxe_enabled is True
         self.node.network_interface = 'neutron'
         self.node.save()
@@ -809,14 +935,18 @@ class TestNeutronNetworkActions(db_base.DbTestCase):
         port.is_smartnic = True
         port.save()
 
-        expected_body = {
+        expected_create_body = {
             'port': {
                 'network_id': self.network_uuid,
                 'admin_state_up': True,
                 'binding:vnic_type': 'smart-nic',
+                'device_id': self.node.uuid,
+            }
+        }
+        expected_update_body = {
+            'port': {
                 'device_owner': 'baremetal:none',
                 'binding:host_id': port.local_link_connection['hostname'],
-                'device_id': self.node.uuid,
                 'mac_address': port.address,
                 'binding:profile': {
                     'local_link_information': [port.local_link_connection]
@@ -832,7 +962,9 @@ class TestNeutronNetworkActions(db_base.DbTestCase):
             ports = neutron.add_ports_to_network(task, self.network_uuid)
             self.assertEqual(expected, ports)
             self.client_mock.create_port.assert_called_once_with(
-                expected_body)
+                expected_create_body)
+            update_mock.assert_called_once_with(
+                self.context, self.neutron_port['id'], expected_update_body)
             wait_agent_mock.assert_called_once_with(
                 self.client_mock, 'hostname')
             wait_port_mock.assert_called_once_with(
@@ -935,18 +1067,20 @@ class TestUpdatePortAddress(base.TestCase):
         super(TestUpdatePortAddress, self).setUp()
         self.context = context.RequestContext()
 
-    def test_update_port_address(self, mock_client):
+    @mock.patch.object(neutron, 'update_neutron_port', autospec=True)
+    def test_update_port_address(self, mock_unp, mock_client):
         address = 'fe:54:00:77:07:d9'
         port_id = 'fake-port-id'
         expected = {'port': {'mac_address': address}}
         mock_client.return_value.show_port.return_value = {}
 
         neutron.update_port_address(port_id, address, context=self.context)
-        mock_client.return_value.update_port.assert_called_once_with(port_id,
-                                                                     expected)
+        mock_unp.assert_called_once_with(self.context, port_id, expected)
 
+    @mock.patch.object(neutron, 'update_neutron_port', autospec=True)
     @mock.patch.object(neutron, 'unbind_neutron_port', autospec=True)
-    def test_update_port_address_with_binding(self, mock_unp, mock_client):
+    def test_update_port_address_with_binding(self, mock_unp, mock_update,
+                                              mock_client):
         address = 'fe:54:00:77:07:d9'
         port_id = 'fake-port-id'
 
@@ -954,19 +1088,22 @@ class TestUpdatePortAddress(base.TestCase):
             'port': {'binding:host_id': 'host',
                      'binding:profile': 'foo'}}
 
-        calls = [mock.call(port_id, {'port': {'mac_address': address}}),
-                 mock.call(port_id, {'port': {'binding:host_id': 'host',
+        calls = [mock.call(self.context, port_id,
+                           {'port': {'mac_address': address}}),
+                 mock.call(self.context, port_id,
+                           {'port': {'binding:host_id': 'host',
                                      'binding:profile': 'foo'}})]
 
         neutron.update_port_address(port_id, address, context=self.context)
         mock_unp.assert_called_once_with(
             port_id,
-            client=mock_client(context=self.context),
             context=self.context)
-        mock_client.return_value.update_port.assert_has_calls(calls)
+        mock_update.assert_has_calls(calls)
 
+    @mock.patch.object(neutron, 'update_neutron_port', autospec=True)
     @mock.patch.object(neutron, 'unbind_neutron_port', autospec=True)
-    def test_update_port_address_without_binding(self, mock_unp, mock_client):
+    def test_update_port_address_without_binding(self, mock_unp, mock_update,
+                                                 mock_client):
         address = 'fe:54:00:77:07:d9'
         port_id = 'fake-port-id'
         expected = {'port': {'mac_address': address}}
@@ -975,7 +1112,7 @@ class TestUpdatePortAddress(base.TestCase):
 
         neutron.update_port_address(port_id, address, context=self.context)
         self.assertFalse(mock_unp.called)
-        mock_client.return_value.update_port.assert_any_call(port_id, expected)
+        mock_update.assert_any_call(self.context, port_id, expected)
 
     def test_update_port_address_show_failed(self, mock_client):
         address = 'fe:54:00:77:07:d9'
@@ -1002,17 +1139,18 @@ class TestUpdatePortAddress(base.TestCase):
                           port_id, address, context=self.context)
         mock_unp.assert_called_once_with(
             port_id,
-            client=mock_client(context=self.context),
             context=self.context)
         self.assertFalse(mock_client.return_value.update_port.called)
 
+    @mock.patch.object(neutron, 'update_neutron_port', autospec=True)
     @mock.patch.object(neutron, 'unbind_neutron_port', autospec=True)
     def test_update_port_address_with_exception(self, mock_unp,
+                                                mock_update,
                                                 mock_client):
         address = 'fe:54:00:77:07:d9'
         port_id = 'fake-port-id'
         mock_client.return_value.show_port.return_value = {}
-        mock_client.return_value.update_port.side_effect = (
+        mock_update.side_effect = (
             neutron_client_exc.NeutronClientException())
 
         self.assertRaises(exception.FailedToUpdateMacOnPort,
@@ -1020,14 +1158,14 @@ class TestUpdatePortAddress(base.TestCase):
                           port_id, address, context=self.context)
 
 
-@mock.patch.object(neutron, 'get_client', autospec=True)
+@mock.patch.object(neutron, 'update_neutron_port', autospec=True)
 class TestUnbindPort(base.TestCase):
 
     def setUp(self):
         super(TestUnbindPort, self).setUp()
         self.context = context.RequestContext()
 
-    def test_unbind_neutron_port_client_passed(self, mock_client):
+    def test_unbind_neutron_port_client_passed(self, mock_unp):
         port_id = 'fake-port-id'
         body_unbind = {
             'port': {
@@ -1040,20 +1178,18 @@ class TestUnbindPort(base.TestCase):
                 'mac_address': None
             }
         }
+        client = mock.MagicMock()
         update_calls = [
-            mock.call(port_id, body_unbind),
-            mock.call(port_id, body_reset_mac)
+            mock.call(self.context, port_id, body_unbind, client),
+            mock.call(self.context, port_id, body_reset_mac, client)
         ]
-        neutron.unbind_neutron_port(port_id,
-                                    mock_client(context=self.context),
-                                    context=self.context)
-        self.assertEqual(1, mock_client.call_count)
-        mock_client.return_value.update_port.assert_has_calls(update_calls)
+        neutron.unbind_neutron_port(port_id, client, context=self.context)
+        self.assertEqual(2, mock_unp.call_count)
+        mock_unp.assert_has_calls(update_calls)
 
     @mock.patch.object(neutron, 'LOG', autospec=True)
-    def test_unbind_neutron_port_failure(self, mock_log, mock_client):
-        mock_client.return_value.update_port.side_effect = (
-            neutron_client_exc.NeutronClientException())
+    def test_unbind_neutron_port_failure(self, mock_log, mock_unp):
+        mock_unp.side_effect = (neutron_client_exc.NeutronClientException())
         body = {
             'port': {
                 'binding:host_id': '',
@@ -1063,12 +1199,10 @@ class TestUnbindPort(base.TestCase):
         port_id = 'fake-port-id'
         self.assertRaises(exception.NetworkError, neutron.unbind_neutron_port,
                           port_id, context=self.context)
-        mock_client.assert_called_once_with(context=self.context)
-        mock_client.return_value.update_port.assert_called_once_with(port_id,
-                                                                     body)
+        mock_unp.assert_called_once_with(self.context, port_id, body, None)
         mock_log.exception.assert_called_once()
 
-    def test_unbind_neutron_port(self, mock_client):
+    def test_unbind_neutron_port(self, mock_unp):
         port_id = 'fake-port-id'
         body_unbind = {
             'port': {
@@ -1082,17 +1216,16 @@ class TestUnbindPort(base.TestCase):
             }
         }
         update_calls = [
-            mock.call(port_id, body_unbind),
-            mock.call(port_id, body_reset_mac)
+            mock.call(self.context, port_id, body_unbind, None),
+            mock.call(self.context, port_id, body_reset_mac, None)
         ]
         neutron.unbind_neutron_port(port_id, context=self.context)
-        mock_client.assert_called_once_with(context=self.context)
-        mock_client.return_value.update_port.assert_has_calls(update_calls)
+        mock_unp.assert_has_calls(update_calls)
 
     @mock.patch.object(neutron, 'LOG', autospec=True)
-    def test_unbind_neutron_port_not_found(self, mock_log, mock_client):
+    def test_unbind_neutron_port_not_found(self, mock_log, mock_unp):
         port_id = 'fake-port-id'
-        mock_client.return_value.update_port.side_effect = (
+        mock_unp.side_effect = (
             neutron_client_exc.PortNotFoundClient())
         body = {
             'port': {
@@ -1101,9 +1234,7 @@ class TestUnbindPort(base.TestCase):
             }
         }
         neutron.unbind_neutron_port(port_id, context=self.context)
-        mock_client.assert_called_once_with(context=self.context)
-        mock_client.return_value.update_port.assert_called_once_with(port_id,
-                                                                     body)
+        mock_unp.assert_called_once_with(self.context, port_id, body, None)
         mock_log.info.assert_called_once_with('Port %s was not found while '
                                               'unbinding.', port_id)
 

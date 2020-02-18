@@ -283,7 +283,7 @@ def plug_port_to_tenant_network(task, port_like_obj, client=None):
         neutron.wait_for_host_agent(client, body['port']['binding:host_id'])
 
     try:
-        client.update_port(vif_id, body)
+        neutron.update_neutron_port(task.context, vif_id, body)
         if is_smart_nic:
             neutron.wait_for_port_status(client, vif_id, 'ACTIVE')
     except neutron_exceptions.ConnectionFailed as e:

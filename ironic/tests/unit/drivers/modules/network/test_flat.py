@@ -170,10 +170,8 @@ class TestFlatInterface(db_base.DbTestCase):
         self.port.refresh()
         self.assertNotIn('cleaning_vif_port_id', self.port.internal_info)
 
-    @mock.patch.object(neutron, 'get_client')
-    def test__bind_flat_ports_set_binding_host_id(self, client_mock):
-        upd_mock = mock.Mock()
-        client_mock.return_value.update_port = upd_mock
+    @mock.patch.object(neutron, 'update_neutron_port')
+    def test__bind_flat_ports_set_binding_host_id(self, update_mock):
         extra = {'vif_port_id': 'foo'}
         utils.create_test_port(self.context, node_id=self.node.id,
                                address='52:54:00:cf:2d:33', extra=extra,
@@ -183,12 +181,10 @@ class TestFlatInterface(db_base.DbTestCase):
                              'mac_address': '52:54:00:cf:2d:33'}}
         with task_manager.acquire(self.context, self.node.id) as task:
             self.interface._bind_flat_ports(task)
-        upd_mock.assert_called_once_with('foo', exp_body)
+        update_mock.assert_called_once_with(self.context, 'foo', exp_body)
 
-    @mock.patch.object(neutron, 'get_client')
-    def test__bind_flat_ports_set_binding_host_id_portgroup(self, client_mock):
-        upd_mock = mock.Mock()
-        client_mock.return_value.update_port = upd_mock
+    @mock.patch.object(neutron, 'update_neutron_port')
+    def test__bind_flat_ports_set_binding_host_id_portgroup(self, update_mock):
         internal_info = {'tenant_vif_port_id': 'foo'}
         utils.create_test_portgroup(
             self.context, node_id=self.node.id, internal_info=internal_info,
@@ -204,8 +200,9 @@ class TestFlatInterface(db_base.DbTestCase):
                               'mac_address': '52:54:00:cf:2d:31'}}
         with task_manager.acquire(self.context, self.node.id) as task:
             self.interface._bind_flat_ports(task)
-        upd_mock.assert_has_calls([
-            mock.call('bar', exp_body1), mock.call('foo', exp_body2)])
+        update_mock.assert_has_calls([
+            mock.call(self.context, 'bar', exp_body1),
+            mock.call(self.context, 'foo', exp_body2)])
 
     @mock.patch.object(neutron, 'unbind_neutron_port')
     def test__unbind_flat_ports(self, unbind_neutron_port_mock):
@@ -234,10 +231,9 @@ class TestFlatInterface(db_base.DbTestCase):
             [mock.call('foo', context=self.context),
              mock.call('bar', context=self.context)])
 
-    @mock.patch.object(neutron, 'get_client')
-    def test__bind_flat_ports_set_binding_host_id_raise(self, client_mock):
-        client_mock.return_value.update_port.side_effect = \
-            (neutron_exceptions.ConnectionFailed())
+    @mock.patch.object(neutron, 'update_neutron_port')
+    def test__bind_flat_ports_set_binding_host_id_raise(self, update_mock):
+        update_mock.side_effect = (neutron_exceptions.ConnectionFailed())
         extra = {'vif_port_id': 'foo'}
         utils.create_test_port(self.context, node_id=self.node.id,
                                address='52:54:00:cf:2d:33', extra=extra,
