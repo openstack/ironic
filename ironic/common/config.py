@@ -29,4 +29,11 @@ def parse_args(argv, default_config_files=None):
              version=version.version_info.release_string(),
              default_config_files=default_config_files)
     rpc.init(cfg.CONF)
+    # TODO(kaifeng) Remove ipxe_enabled option handling after ipxe support
+    # is completely removed from the pxe interface.
+    ipxe_enabled = cfg.BoolOpt('ipxe_enabled', default=False,
+                               deprecated_for_removal=True)
+    cfg.CONF.register_opt(ipxe_enabled, group='pxe')
+    cfg.CONF.set_override('ipxe_enabled', False, group='pxe')
+
     profiler_opts.set_defaults(cfg.CONF)

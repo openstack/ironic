@@ -1,0 +1,7 @@
+---
+upgrade:
+  - |
+    The configuration option ``[pxe]ipxe_enabled`` was deprecated and now has
+    been removed, thus the support for iPXE from the ``pxe`` interface was
+    removed. To use iPXE, the boot interface should be migrated to ``ipxe`` or
+    other boot interfaces capable of booting from iPXE.

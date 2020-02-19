@@ -106,17 +106,6 @@ opts = [
                 default={},
                 help=_('Bootfile DHCP parameter per node architecture. '
                        'For example: aarch64:grubaa64.efi')),
-    cfg.BoolOpt('ipxe_enabled',
-                default=False,
-                help=_('Defaults the PXE interface to only use iPXE.'),
-                deprecated_for_removal=True,
-                deprecated_reason=_("This global setting has been "
-                                    "superseded by an 'ipxe' boot "
-                                    "interface. Set the "
-                                    "[default]default_boot_interface "
-                                    "to 'ipxe' and/or manually set the node "
-                                    "boot interface to 'ipxe' to maintain "
-                                    "the same functionality.")),
     cfg.StrOpt('ipxe_boot_script',
                default=os.path.join(
                    '$pybasedir', 'drivers/modules/boot.ipxe'),
@@ -149,9 +138,8 @@ opts = [
                        "If set to false (default), images are downloaded "
                        "to the ironic-conductor node and served over its "
                        "local HTTP server. "
-                       "Applicable only when 'ipxe_enabled' option is "
-                       "set to true.")),
-
+                       "Applicable only when 'ipxe' compatible boot interface "
+                       "is used.")),
 ]
 
 

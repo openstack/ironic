@@ -21,7 +21,6 @@ import retrying
 from ironic.common import cinder
 from ironic.common import exception
 from ironic.common.i18n import _
-from ironic.common import pxe_utils
 from ironic.common import states
 from ironic.drivers import base
 from ironic.drivers import utils
@@ -77,7 +76,10 @@ class CinderStorage(base.StorageInterface):
         iscsi_uuids_found = []
         wwpn_found = 0
         wwnn_found = 0
-        ipxe_enabled = pxe_utils.is_ipxe_enabled(task)
+        ipxe_enabled = False
+        if 'ipxe_boot' in task.driver.boot.capabilities:
+            ipxe_enabled = True
+
         for connector in task.volume_connectors:
             if (connector.type in VALID_ISCSI_TYPES
                     and connector.connector_id is not None):

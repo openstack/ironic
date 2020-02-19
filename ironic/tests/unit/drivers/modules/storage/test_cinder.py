@@ -30,12 +30,10 @@ class CinderInterfaceTestCase(db_base.DbTestCase):
 
     def setUp(self):
         super(CinderInterfaceTestCase, self).setUp()
-        self.config(ipxe_enabled=True,
-                    group='pxe')
         self.config(action_retries=3,
                     action_retry_interval=0,
                     group='cinder')
-        self.config(enabled_boot_interfaces=['fake'],
+        self.config(enabled_boot_interfaces=['fake', 'pxe'],
                     enabled_storage_interfaces=['noop', 'cinder'])
         self.interface = cinder.CinderStorage()
         self.node = object_utils.create_test_node(self.context,
@@ -290,7 +288,8 @@ class CinderInterfaceTestCase(db_base.DbTestCase):
     @mock.patch.object(cinder, 'LOG', autospec=True)
     def test_validate_fails_with_ipxe_not_enabled(self, mock_log):
         """Ensure a validation failure is raised when iPXE not enabled."""
-        self.config(ipxe_enabled=False, group='pxe')
+        self.node.boot_interface = 'pxe'
+        self.node.save()
         object_utils.create_test_volume_connector(
             self.context, node_id=self.node.id, type='iqn',
             connector_id='foo.address')
