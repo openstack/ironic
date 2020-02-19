@@ -31,7 +31,7 @@ from ironic.conductor import task_manager
 from ironic.conductor import utils as manager_utils
 from ironic.conf import CONF
 from ironic.drivers import base
-from ironic.drivers.modules import agent_base_vendor
+from ironic.drivers.modules import agent_base
 from ironic.drivers.modules import deploy_utils
 from ironic.drivers.modules.ilo import common as ilo_common
 from ironic.drivers.modules.ilo import firmware_processor
@@ -546,7 +546,7 @@ class IloManagement(base.ManagementInterface):
         return deploy_utils.agent_execute_clean_step(task, step)
 
     @staticmethod
-    @agent_base_vendor.post_clean_step_hook(
+    @agent_base.post_clean_step_hook(
         interface='management', step='update_firmware_sum')
     def _update_firmware_sum_final(task, command):
         """Clean step hook after SUM based firmware update operation.

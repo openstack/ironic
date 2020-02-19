@@ -32,7 +32,7 @@ from ironic.common import states
 from ironic.common import utils
 from ironic.conductor import task_manager
 from ironic.conductor import utils as manager_utils
-from ironic.drivers.modules import agent_base_vendor
+from ironic.drivers.modules import agent_base
 from ironic.drivers.modules import agent_client
 from ironic.drivers.modules import deploy_utils
 from ironic.drivers.modules import fake
@@ -991,7 +991,7 @@ class ISCSIDeployTestCase(db_base.DbTestCase):
             agent_execute_clean_step_mock.assert_called_once_with(
                 task, {'some-step': 'step-info'})
 
-    @mock.patch.object(agent_base_vendor.AgentDeployMixin,
+    @mock.patch.object(agent_base.AgentDeployMixin,
                        'reboot_and_finish_deploy', autospec=True)
     @mock.patch.object(iscsi_deploy, 'do_agent_iscsi_deploy', autospec=True)
     def test_continue_deploy_netboot(self, do_agent_iscsi_deploy_mock,
@@ -1013,9 +1013,9 @@ class ISCSIDeployTestCase(db_base.DbTestCase):
                 m_prep_instance.assert_called_once_with(task)
 
     @mock.patch.object(fake.FakeManagement, 'set_boot_device', autospec=True)
-    @mock.patch.object(agent_base_vendor.AgentDeployMixin,
+    @mock.patch.object(agent_base.AgentDeployMixin,
                        'reboot_and_finish_deploy', autospec=True)
-    @mock.patch.object(agent_base_vendor.AgentDeployMixin,
+    @mock.patch.object(agent_base.AgentDeployMixin,
                        'configure_local_boot', autospec=True)
     @mock.patch.object(iscsi_deploy, 'do_agent_iscsi_deploy', autospec=True)
     def test_continue_deploy_localboot(self, do_agent_iscsi_deploy_mock,
@@ -1044,9 +1044,9 @@ class ISCSIDeployTestCase(db_base.DbTestCase):
                 mock.ANY, task, device=boot_devices.DISK, persistent=True)
 
     @mock.patch.object(fake.FakeManagement, 'set_boot_device', autospec=True)
-    @mock.patch.object(agent_base_vendor.AgentDeployMixin,
+    @mock.patch.object(agent_base.AgentDeployMixin,
                        'reboot_and_finish_deploy', autospec=True)
-    @mock.patch.object(agent_base_vendor.AgentDeployMixin,
+    @mock.patch.object(agent_base.AgentDeployMixin,
                        'configure_local_boot', autospec=True)
     @mock.patch.object(iscsi_deploy, 'do_agent_iscsi_deploy', autospec=True)
     def test_continue_deploy_localboot_uefi(self, do_agent_iscsi_deploy_mock,

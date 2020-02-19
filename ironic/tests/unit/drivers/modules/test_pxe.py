@@ -35,7 +35,7 @@ from ironic.common import utils as common_utils
 from ironic.conductor import task_manager
 from ironic.conductor import utils as manager_utils
 from ironic.drivers import base as drivers_base
-from ironic.drivers.modules import agent_base_vendor
+from ironic.drivers.modules import agent_base
 from ironic.drivers.modules import deploy_utils
 from ironic.drivers.modules import fake
 from ironic.drivers.modules import ipxe
@@ -89,7 +89,7 @@ class PXEBootTestCase(db_base.DbTestCase):
 
     def test_get_properties(self):
         expected = pxe.COMMON_PROPERTIES
-        expected.update(agent_base_vendor.VENDOR_PROPERTIES)
+        expected.update(agent_base.VENDOR_PROPERTIES)
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
             self.assertEqual(expected, task.driver.get_properties())

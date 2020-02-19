@@ -31,7 +31,7 @@ from ironic.conductor import task_manager
 from ironic.conductor import utils as manager_utils
 from ironic.conf import CONF
 from ironic.drivers import base
-from ironic.drivers.modules import agent_base_vendor
+from ironic.drivers.modules import agent_base
 from ironic.drivers.modules import boot_mode_utils
 from ironic.drivers.modules import deploy_utils
 
@@ -62,7 +62,7 @@ OPTIONAL_PROPERTIES = {
 
 COMMON_PROPERTIES = REQUIRED_PROPERTIES.copy()
 COMMON_PROPERTIES.update(OPTIONAL_PROPERTIES)
-COMMON_PROPERTIES.update(agent_base_vendor.VENDOR_PROPERTIES)
+COMMON_PROPERTIES.update(agent_base.VENDOR_PROPERTIES)
 
 PARTITION_IMAGE_LABELS = ('kernel', 'ramdisk', 'root_gb', 'root_mb', 'swap_mb',
                           'ephemeral_mb', 'ephemeral_format', 'configdrive',
@@ -166,7 +166,7 @@ def validate_http_provisioning_configuration(node):
     deploy_utils.check_for_missing_params(params, error_msg)
 
 
-class AgentDeployMixin(agent_base_vendor.AgentDeployMixin):
+class AgentDeployMixin(agent_base.AgentDeployMixin):
 
     @METRICS.timer('AgentDeployMixin.deploy_has_started')
     def deploy_has_started(self, task):
@@ -747,7 +747,7 @@ class AgentRAID(base.RAIDInterface):
         return deploy_utils.agent_execute_clean_step(task, step)
 
     @staticmethod
-    @agent_base_vendor.post_clean_step_hook(
+    @agent_base.post_clean_step_hook(
         interface='raid', step='create_configuration')
     def _create_configuration_final(task, command):
         """Clean step hook after a RAID configuration was created.
@@ -790,7 +790,7 @@ class AgentRAID(base.RAIDInterface):
         return deploy_utils.agent_execute_clean_step(task, step)
 
     @staticmethod
-    @agent_base_vendor.post_clean_step_hook(
+    @agent_base.post_clean_step_hook(
         interface='raid', step='delete_configuration')
     def _delete_configuration_final(task, command):
         """Clean step hook after RAID configuration was deleted.
