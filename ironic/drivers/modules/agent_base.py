@@ -36,6 +36,7 @@ from ironic.drivers.modules import agent_client
 from ironic.drivers.modules import boot_mode_utils
 from ironic.drivers.modules import deploy_utils
 from ironic.drivers import utils as driver_utils
+from ironic import objects
 
 LOG = log.getLogger(__name__)
 
@@ -230,6 +231,72 @@ def log_and_raise_deployment_error(task, msg, collect_logs=True, exc=None):
     LOG.error(msg, exc_info=log_traceback)
     deploy_utils.set_failed_state(task, msg, collect_logs=collect_logs)
     raise exception.InstanceDeployFailure(msg)
+
+
+def get_clean_steps(task, interface=None, override_priorities=None):
+    """Get the list of cached clean steps from the agent.
+
+    #TODO(JoshNang) move to BootInterface
+
+    The clean steps cache is updated at the beginning of cleaning.
+
+    :param task: a TaskManager object containing the node
+    :param interface: The interface for which clean steps
+        are to be returned. If this is not provided, it returns the
+        clean steps for all interfaces.
+    :param override_priorities: a dictionary with keys being step names and
+        values being new priorities for them. If a step isn't in this
+        dictionary, the step's original priority is used.
+    :raises NodeCleaningFailure: if the clean steps are not yet cached,
+        for example, when a node has just been enrolled and has not been
+        cleaned yet.
+    :returns: A list of clean step dictionaries
+    """
+    node = task.node
+    try:
+        all_steps = node.driver_internal_info['agent_cached_clean_steps']
+    except KeyError:
+        raise exception.NodeCleaningFailure(_('Cleaning steps are not yet '
+                                              'available for node %(node)s')
+                                            % {'node': node.uuid})
+
+    if interface:
+        steps = [step.copy() for step in all_steps.get(interface, [])]
+    else:
+        steps = [step.copy() for step_list in all_steps.values()
+                 for step in step_list]
+
+    if not steps or not override_priorities:
+        return steps
+
+    for step in steps:
+        new_priority = override_priorities.get(step.get('step'))
+        if new_priority is not None:
+            step['priority'] = new_priority
+
+    return steps
+
+
+def execute_clean_step(task, step):
+    """Execute a clean step asynchronously on the agent.
+
+    #TODO(JoshNang) move to BootInterface
+
+    :param task: a TaskManager object containing the node
+    :param step: a clean step dictionary to execute
+    :raises: NodeCleaningFailure if the agent does not return a command status
+    :returns: states.CLEANWAIT to signify the step will be completed async
+    """
+    client = _get_client()
+    ports = objects.Port.list_by_node_id(
+        task.context, task.node.id)
+    result = client.execute_clean_step(step, task.node, ports)
+    if not result.get('command_status'):
+        raise exception.NodeCleaningFailure(_(
+            'Agent on node %(node)s returned bad command result: '
+            '%(result)s') % {'node': task.node.uuid,
+                             'result': result.get('command_error')})
+    return states.CLEANWAIT
 
 
 class HeartbeatMixin(object):
@@ -478,6 +545,25 @@ class HeartbeatMixin(object):
 class AgentDeployMixin(HeartbeatMixin):
     """Mixin with deploy methods."""
 
+    @METRICS.timer('AgentDeployMixin.get_clean_steps')
+    def get_clean_steps(self, task):
+        """Get the list of clean steps from the agent.
+
+        :param task: a TaskManager object containing the node
+        :raises NodeCleaningFailure: if the clean steps are not yet
+            available (cached), for example, when a node has just been
+            enrolled and has not been cleaned yet.
+        :returns: A list of clean step dictionaries
+        """
+        new_priorities = {
+            'erase_devices': CONF.deploy.erase_devices_priority,
+            'erase_devices_metadata':
+                CONF.deploy.erase_devices_metadata_priority,
+        }
+        return get_clean_steps(
+            task, interface='deploy',
+            override_priorities=new_priorities)
+
     @METRICS.timer('AgentDeployMixin.refresh_clean_steps')
     def refresh_clean_steps(self, task):
         """Refresh the node's cached clean steps from the booted agent.
@@ -534,6 +620,18 @@ class AgentDeployMixin(HeartbeatMixin):
         node.save()
         LOG.debug('Refreshed agent clean step cache for node %(node)s: '
                   '%(steps)s', {'node': node.uuid, 'steps': steps})
+
+    @METRICS.timer('AgentDeployMixin.execute_clean_step')
+    def execute_clean_step(self, task, step):
+        """Execute a clean step asynchronously on the agent.
+
+        :param task: a TaskManager object containing the node
+        :param step: a clean step dictionary to execute
+        :raises: NodeCleaningFailure if the agent does not return a command
+            status
+        :returns: states.CLEANWAIT to signify the step will be completed async
+        """
+        return execute_clean_step(task, step)
 
     @METRICS.timer('AgentDeployMixin.continue_cleaning')
     def continue_cleaning(self, task, **kwargs):

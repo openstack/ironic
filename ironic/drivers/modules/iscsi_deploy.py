@@ -549,37 +549,6 @@ class ISCSIDeploy(AgentDeployMixin, base.DeployInterface):
     def take_over(self, task):
         pass
 
-    @METRICS.timer('ISCSIDeploy.get_clean_steps')
-    def get_clean_steps(self, task):
-        """Get the list of clean steps from the agent.
-
-        :param task: a TaskManager object containing the node
-        :raises NodeCleaningFailure: if the clean steps are not yet
-            available (cached), for example, when a node has just been
-            enrolled and has not been cleaned yet.
-        :returns: A list of clean step dictionaries.
-        """
-        steps = deploy_utils.agent_get_clean_steps(
-            task, interface='deploy',
-            override_priorities={
-                'erase_devices': CONF.deploy.erase_devices_priority,
-                'erase_devices_metadata':
-                    CONF.deploy.erase_devices_metadata_priority})
-        return steps
-
-    @METRICS.timer('ISCSIDeploy.execute_clean_step')
-    def execute_clean_step(self, task, step):
-        """Execute a clean step asynchronously on the agent.
-
-        :param task: a TaskManager object containing the node
-        :param step: a clean step dictionary to execute
-        :raises: NodeCleaningFailure if the agent does not return a command
-            status
-        :returns: states.CLEANWAIT to signify the step will be completed
-            asynchronously.
-        """
-        return deploy_utils.agent_execute_clean_step(task, step)
-
     @METRICS.timer('ISCSIDeploy.prepare_cleaning')
     def prepare_cleaning(self, task):
         """Boot into the agent to prepare for cleaning.

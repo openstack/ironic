@@ -40,7 +40,6 @@ from ironic.common import states
 from ironic.common import utils
 from ironic.conductor import utils as manager_utils
 from ironic.conf import CONF
-from ironic.drivers.modules import agent_client
 from ironic.drivers.modules import boot_mode_utils
 from ironic.drivers.modules import image_cache
 from ironic.drivers import utils as driver_utils
@@ -577,72 +576,6 @@ def get_single_nic_with_vif_port_id(task):
     for port in task.ports:
         if task.driver.network.get_current_vif(task, port):
             return port.address
-
-
-def agent_get_clean_steps(task, interface=None, override_priorities=None):
-    """Get the list of cached clean steps from the agent.
-
-    #TODO(JoshNang) move to BootInterface
-
-    The clean steps cache is updated at the beginning of cleaning.
-
-    :param task: a TaskManager object containing the node
-    :param interface: The interface for which clean steps
-        are to be returned. If this is not provided, it returns the
-        clean steps for all interfaces.
-    :param override_priorities: a dictionary with keys being step names and
-        values being new priorities for them. If a step isn't in this
-        dictionary, the step's original priority is used.
-    :raises NodeCleaningFailure: if the clean steps are not yet cached,
-        for example, when a node has just been enrolled and has not been
-        cleaned yet.
-    :returns: A list of clean step dictionaries
-    """
-    node = task.node
-    try:
-        all_steps = node.driver_internal_info['agent_cached_clean_steps']
-    except KeyError:
-        raise exception.NodeCleaningFailure(_('Cleaning steps are not yet '
-                                              'available for node %(node)s')
-                                            % {'node': node.uuid})
-
-    if interface:
-        steps = [step.copy() for step in all_steps.get(interface, [])]
-    else:
-        steps = [step.copy() for step_list in all_steps.values()
-                 for step in step_list]
-
-    if not steps or not override_priorities:
-        return steps
-
-    for step in steps:
-        new_priority = override_priorities.get(step.get('step'))
-        if new_priority is not None:
-            step['priority'] = new_priority
-
-    return steps
-
-
-def agent_execute_clean_step(task, step):
-    """Execute a clean step asynchronously on the agent.
-
-    #TODO(JoshNang) move to BootInterface
-
-    :param task: a TaskManager object containing the node
-    :param step: a clean step dictionary to execute
-    :raises: NodeCleaningFailure if the agent does not return a command status
-    :returns: states.CLEANWAIT to signify the step will be completed async
-    """
-    client = agent_client.AgentClient()
-    ports = objects.Port.list_by_node_id(
-        task.context, task.node.id)
-    result = client.execute_clean_step(step, task.node, ports)
-    if not result.get('command_status'):
-        raise exception.NodeCleaningFailure(_(
-            'Agent on node %(node)s returned bad command result: '
-            '%(result)s') % {'node': task.node.uuid,
-                             'result': result.get('command_error')})
-    return states.CLEANWAIT
 
 
 def agent_add_clean_params(task):
