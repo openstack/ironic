@@ -40,7 +40,7 @@ from ironic.conductor import task_manager
 from ironic.conductor import utils as manager_utils
 from ironic.conf import CONF
 from ironic.drivers import base
-from ironic.drivers.modules import agent_base_vendor as agent_base
+from ironic.drivers.modules import agent_base
 from ironic.drivers.modules import deploy_utils
 
 

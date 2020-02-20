@@ -28,7 +28,7 @@ from ironic.conductor import task_manager
 from ironic.conductor import utils as manager_utils
 from ironic.drivers import base as drivers_base
 from ironic.drivers.modules import agent
-from ironic.drivers.modules import agent_base_vendor
+from ironic.drivers.modules import agent_base
 from ironic.drivers.modules import agent_client
 from ironic.drivers.modules import boot_mode_utils
 from ironic.drivers.modules import deploy_utils
@@ -65,7 +65,7 @@ class AgentDeployMixinBaseTest(db_base.DbTestCase):
                             'default_%s_interface' % iface: impl}
             self.config(**config_kwarg)
         self.config(enabled_hardware_types=['fake-hardware'])
-        self.deploy = agent_base_vendor.AgentDeployMixin()
+        self.deploy = agent_base.AgentDeployMixin()
         n = {
             'driver': 'fake-hardware',
             'instance_info': INSTANCE_INFO,
@@ -80,15 +80,15 @@ class HeartbeatMixinTest(AgentDeployMixinBaseTest):
 
     def setUp(self):
         super(HeartbeatMixinTest, self).setUp()
-        self.deploy = agent_base_vendor.HeartbeatMixin()
+        self.deploy = agent_base.HeartbeatMixin()
 
-    @mock.patch.object(agent_base_vendor.HeartbeatMixin,
+    @mock.patch.object(agent_base.HeartbeatMixin,
                        'in_core_deploy_step', autospec=True)
-    @mock.patch.object(agent_base_vendor.HeartbeatMixin,
+    @mock.patch.object(agent_base.HeartbeatMixin,
                        'deploy_has_started', autospec=True)
-    @mock.patch.object(agent_base_vendor.HeartbeatMixin, 'continue_deploy',
+    @mock.patch.object(agent_base.HeartbeatMixin, 'continue_deploy',
                        autospec=True)
-    @mock.patch.object(agent_base_vendor.HeartbeatMixin,
+    @mock.patch.object(agent_base.HeartbeatMixin,
                        'reboot_to_instance', autospec=True)
     def test_heartbeat_continue_deploy(self, rti_mock, cd_mock,
                                        deploy_started_mock,
@@ -109,15 +109,15 @@ class HeartbeatMixinTest(AgentDeployMixinBaseTest):
             cd_mock.assert_called_once_with(self.deploy, task)
             self.assertFalse(rti_mock.called)
 
-    @mock.patch.object(agent_base_vendor.HeartbeatMixin,
+    @mock.patch.object(agent_base.HeartbeatMixin,
                        'in_core_deploy_step', autospec=True)
-    @mock.patch.object(agent_base_vendor.HeartbeatMixin,
+    @mock.patch.object(agent_base.HeartbeatMixin,
                        'deploy_has_started', autospec=True)
-    @mock.patch.object(agent_base_vendor.HeartbeatMixin,
+    @mock.patch.object(agent_base.HeartbeatMixin,
                        'deploy_is_done', autospec=True)
-    @mock.patch.object(agent_base_vendor.HeartbeatMixin, 'continue_deploy',
+    @mock.patch.object(agent_base.HeartbeatMixin, 'continue_deploy',
                        autospec=True)
-    @mock.patch.object(agent_base_vendor.HeartbeatMixin,
+    @mock.patch.object(agent_base.HeartbeatMixin,
                        'reboot_to_instance', autospec=True)
     def test_heartbeat_reboot_to_instance(self, rti_mock, cd_mock,
                                           deploy_is_done_mock,
@@ -142,15 +142,15 @@ class HeartbeatMixinTest(AgentDeployMixinBaseTest):
 
     @mock.patch.object(manager_utils,
                        'notify_conductor_resume_deploy', autospec=True)
-    @mock.patch.object(agent_base_vendor.HeartbeatMixin,
+    @mock.patch.object(agent_base.HeartbeatMixin,
                        'in_core_deploy_step', autospec=True)
-    @mock.patch.object(agent_base_vendor.HeartbeatMixin,
+    @mock.patch.object(agent_base.HeartbeatMixin,
                        'deploy_has_started', autospec=True)
-    @mock.patch.object(agent_base_vendor.HeartbeatMixin,
+    @mock.patch.object(agent_base.HeartbeatMixin,
                        'deploy_is_done', autospec=True)
-    @mock.patch.object(agent_base_vendor.HeartbeatMixin, 'continue_deploy',
+    @mock.patch.object(agent_base.HeartbeatMixin, 'continue_deploy',
                        autospec=True)
-    @mock.patch.object(agent_base_vendor.HeartbeatMixin,
+    @mock.patch.object(agent_base.HeartbeatMixin,
                        'reboot_to_instance', autospec=True)
     def test_heartbeat_not_in_core_deploy_step(self, rti_mock, cd_mock,
                                                deploy_is_done_mock,
@@ -179,15 +179,15 @@ class HeartbeatMixinTest(AgentDeployMixinBaseTest):
 
     @mock.patch.object(manager_utils,
                        'notify_conductor_resume_deploy', autospec=True)
-    @mock.patch.object(agent_base_vendor.HeartbeatMixin,
+    @mock.patch.object(agent_base.HeartbeatMixin,
                        'in_core_deploy_step', autospec=True)
-    @mock.patch.object(agent_base_vendor.HeartbeatMixin,
+    @mock.patch.object(agent_base.HeartbeatMixin,
                        'deploy_has_started', autospec=True)
-    @mock.patch.object(agent_base_vendor.HeartbeatMixin,
+    @mock.patch.object(agent_base.HeartbeatMixin,
                        'deploy_is_done', autospec=True)
-    @mock.patch.object(agent_base_vendor.HeartbeatMixin, 'continue_deploy',
+    @mock.patch.object(agent_base.HeartbeatMixin, 'continue_deploy',
                        autospec=True)
-    @mock.patch.object(agent_base_vendor.HeartbeatMixin,
+    @mock.patch.object(agent_base.HeartbeatMixin,
                        'reboot_to_instance', autospec=True)
     def test_heartbeat_not_in_core_deploy_step_polling(self, rti_mock, cd_mock,
                                                        deploy_is_done_mock,
@@ -217,9 +217,9 @@ class HeartbeatMixinTest(AgentDeployMixinBaseTest):
             self.assertFalse(rti_mock.called)
             self.assertFalse(in_resume_deploy_mock.called)
 
-    @mock.patch.object(agent_base_vendor.HeartbeatMixin, 'continue_deploy',
+    @mock.patch.object(agent_base.HeartbeatMixin, 'continue_deploy',
                        autospec=True)
-    @mock.patch.object(agent_base_vendor.HeartbeatMixin,
+    @mock.patch.object(agent_base.HeartbeatMixin,
                        'reboot_to_instance', autospec=True)
     @mock.patch.object(manager_utils, 'notify_conductor_resume_clean',
                        autospec=True)
@@ -248,9 +248,9 @@ class HeartbeatMixinTest(AgentDeployMixinBaseTest):
             self.assertEqual(0, rti_mock.call_count)
             self.assertEqual(0, cd_mock.call_count)
 
-    @mock.patch.object(agent_base_vendor.HeartbeatMixin, 'continue_deploy',
+    @mock.patch.object(agent_base.HeartbeatMixin, 'continue_deploy',
                        autospec=True)
-    @mock.patch.object(agent_base_vendor.HeartbeatMixin,
+    @mock.patch.object(agent_base.HeartbeatMixin,
                        'reboot_to_instance', autospec=True)
     @mock.patch.object(manager_utils, 'notify_conductor_resume_clean',
                        autospec=True)
@@ -284,9 +284,9 @@ class HeartbeatMixinTest(AgentDeployMixinBaseTest):
             self.assertEqual(0, cd_mock.call_count)
 
     @mock.patch('time.sleep', lambda _t: None)
-    @mock.patch.object(agent_base_vendor.HeartbeatMixin, 'continue_deploy',
+    @mock.patch.object(agent_base.HeartbeatMixin, 'continue_deploy',
                        autospec=True)
-    @mock.patch.object(agent_base_vendor.HeartbeatMixin,
+    @mock.patch.object(agent_base.HeartbeatMixin,
                        'reboot_to_instance', autospec=True)
     @mock.patch.object(manager_utils, 'notify_conductor_resume_clean',
                        autospec=True)
@@ -310,10 +310,10 @@ class HeartbeatMixinTest(AgentDeployMixinBaseTest):
             self.assertEqual(0, rti_mock.call_count)
             self.assertEqual(0, cd_mock.call_count)
 
-    @mock.patch.object(agent_base_vendor.LOG, 'error', autospec=True)
-    @mock.patch.object(agent_base_vendor.HeartbeatMixin, 'continue_deploy',
+    @mock.patch.object(agent_base.LOG, 'error', autospec=True)
+    @mock.patch.object(agent_base.HeartbeatMixin, 'continue_deploy',
                        autospec=True)
-    @mock.patch.object(agent_base_vendor.HeartbeatMixin,
+    @mock.patch.object(agent_base.HeartbeatMixin,
                        'reboot_to_instance', autospec=True)
     @mock.patch.object(manager_utils, 'notify_conductor_resume_clean',
                        autospec=True)
@@ -338,9 +338,9 @@ class HeartbeatMixinTest(AgentDeployMixinBaseTest):
                                              {'node': self.node.uuid,
                                               'state': state})
 
-    @mock.patch.object(agent_base_vendor.HeartbeatMixin, 'continue_deploy',
+    @mock.patch.object(agent_base.HeartbeatMixin, 'continue_deploy',
                        autospec=True)
-    @mock.patch.object(agent_base_vendor.HeartbeatMixin,
+    @mock.patch.object(agent_base.HeartbeatMixin,
                        'reboot_to_instance', autospec=True)
     @mock.patch.object(manager_utils, 'notify_conductor_resume_clean',
                        autospec=True)
@@ -361,14 +361,14 @@ class HeartbeatMixinTest(AgentDeployMixinBaseTest):
             self.assertEqual(0, rti_mock.call_count)
             self.assertEqual(0, cd_mock.call_count)
 
-    @mock.patch.object(agent_base_vendor.HeartbeatMixin,
+    @mock.patch.object(agent_base.HeartbeatMixin,
                        'in_core_deploy_step', autospec=True)
-    @mock.patch.object(agent_base_vendor.HeartbeatMixin,
+    @mock.patch.object(agent_base.HeartbeatMixin,
                        'deploy_has_started', autospec=True)
     @mock.patch.object(deploy_utils, 'set_failed_state', autospec=True)
-    @mock.patch.object(agent_base_vendor.HeartbeatMixin, 'deploy_is_done',
+    @mock.patch.object(agent_base.HeartbeatMixin, 'deploy_is_done',
                        autospec=True)
-    @mock.patch.object(agent_base_vendor.LOG, 'exception', autospec=True)
+    @mock.patch.object(agent_base.LOG, 'exception', autospec=True)
     def test_heartbeat_deploy_done_fails(self, log_mock, done_mock,
                                          failed_mock, deploy_started_mock,
                                          in_deploy_mock):
@@ -387,14 +387,14 @@ class HeartbeatMixinTest(AgentDeployMixinBaseTest):
                 'Exception: LlamaException for node %(node)s',
                 {'node': task.node.uuid})
 
-    @mock.patch.object(agent_base_vendor.HeartbeatMixin,
+    @mock.patch.object(agent_base.HeartbeatMixin,
                        'in_core_deploy_step', autospec=True)
-    @mock.patch.object(agent_base_vendor.HeartbeatMixin,
+    @mock.patch.object(agent_base.HeartbeatMixin,
                        'deploy_has_started', autospec=True)
     @mock.patch.object(deploy_utils, 'set_failed_state', autospec=True)
-    @mock.patch.object(agent_base_vendor.HeartbeatMixin, 'deploy_is_done',
+    @mock.patch.object(agent_base.HeartbeatMixin, 'deploy_is_done',
                        autospec=True)
-    @mock.patch.object(agent_base_vendor.LOG, 'exception', autospec=True)
+    @mock.patch.object(agent_base.LOG, 'exception', autospec=True)
     def test_heartbeat_deploy_done_raises_with_event(self, log_mock, done_mock,
                                                      failed_mock,
                                                      deploy_started_mock,
@@ -424,7 +424,7 @@ class HeartbeatMixinTest(AgentDeployMixinBaseTest):
                 {'node': task.node.uuid})
 
     @mock.patch.object(objects.node.Node, 'touch_provisioning', autospec=True)
-    @mock.patch.object(agent_base_vendor.HeartbeatMixin,
+    @mock.patch.object(agent_base.HeartbeatMixin,
                        'refresh_clean_steps', autospec=True)
     @mock.patch.object(conductor_steps, 'set_node_cleaning_steps',
                        autospec=True)
@@ -446,7 +446,7 @@ class HeartbeatMixinTest(AgentDeployMixinBaseTest):
 
     @mock.patch.object(manager_utils, 'cleaning_error_handler')
     @mock.patch.object(objects.node.Node, 'touch_provisioning', autospec=True)
-    @mock.patch.object(agent_base_vendor.HeartbeatMixin,
+    @mock.patch.object(agent_base.HeartbeatMixin,
                        'refresh_clean_steps', autospec=True)
     @mock.patch.object(conductor_steps, 'set_node_cleaning_steps',
                        autospec=True)
@@ -481,7 +481,7 @@ class HeartbeatMixinTest(AgentDeployMixinBaseTest):
             failed_mock.side_effect = None
 
     @mock.patch.object(objects.node.Node, 'touch_provisioning', autospec=True)
-    @mock.patch.object(agent_base_vendor.HeartbeatMixin,
+    @mock.patch.object(agent_base.HeartbeatMixin,
                        'continue_cleaning', autospec=True)
     def test_heartbeat_continue_cleaning(self, mock_continue, mock_touch):
         self.node.clean_step = {
@@ -500,7 +500,7 @@ class HeartbeatMixinTest(AgentDeployMixinBaseTest):
         mock_continue.assert_called_once_with(mock.ANY, task)
 
     @mock.patch.object(objects.node.Node, 'touch_provisioning', autospec=True)
-    @mock.patch.object(agent_base_vendor.HeartbeatMixin,
+    @mock.patch.object(agent_base.HeartbeatMixin,
                        'continue_cleaning', autospec=True)
     def test_heartbeat_continue_cleaning_polling(self, mock_continue,
                                                  mock_touch):
@@ -523,7 +523,7 @@ class HeartbeatMixinTest(AgentDeployMixinBaseTest):
         self.assertFalse(mock_continue.called)
 
     @mock.patch.object(manager_utils, 'cleaning_error_handler')
-    @mock.patch.object(agent_base_vendor.HeartbeatMixin,
+    @mock.patch.object(agent_base.HeartbeatMixin,
                        'continue_cleaning', autospec=True)
     def test_heartbeat_continue_cleaning_fails(self, mock_continue,
                                                mock_handler):
@@ -546,7 +546,7 @@ class HeartbeatMixinTest(AgentDeployMixinBaseTest):
         mock_handler.assert_called_once_with(task, mock.ANY)
 
     @mock.patch.object(manager_utils, 'rescuing_error_handler')
-    @mock.patch.object(agent_base_vendor.HeartbeatMixin, '_finalize_rescue',
+    @mock.patch.object(agent_base.HeartbeatMixin, '_finalize_rescue',
                        autospec=True)
     def test_heartbeat_rescue(self, mock_finalize_rescue,
                               mock_rescue_err_handler):
@@ -560,7 +560,7 @@ class HeartbeatMixinTest(AgentDeployMixinBaseTest):
         self.assertFalse(mock_rescue_err_handler.called)
 
     @mock.patch.object(manager_utils, 'rescuing_error_handler')
-    @mock.patch.object(agent_base_vendor.HeartbeatMixin, '_finalize_rescue',
+    @mock.patch.object(agent_base.HeartbeatMixin, '_finalize_rescue',
                        autospec=True)
     def test_heartbeat_rescue_fails(self, mock_finalize,
                                     mock_rescue_err_handler):
@@ -576,10 +576,10 @@ class HeartbeatMixinTest(AgentDeployMixinBaseTest):
             task, 'Asynchronous exception: Node failed to perform '
             'rescue operation. Exception: some failure for node')
 
-    @mock.patch.object(agent_base_vendor.HeartbeatMixin,
+    @mock.patch.object(agent_base.HeartbeatMixin,
                        'in_core_deploy_step', autospec=True)
     @mock.patch.object(objects.node.Node, 'touch_provisioning', autospec=True)
-    @mock.patch.object(agent_base_vendor.HeartbeatMixin,
+    @mock.patch.object(agent_base.HeartbeatMixin,
                        'deploy_has_started', autospec=True)
     def test_heartbeat_touch_provisioning_and_url_save(self,
                                                        mock_deploy_started,
@@ -601,7 +601,7 @@ class HeartbeatMixinTest(AgentDeployMixinBaseTest):
                 task.node.driver_internal_info['agent_last_heartbeat'])
         mock_touch.assert_called_once_with(mock.ANY)
 
-    @mock.patch.object(agent_base_vendor.LOG, 'error', autospec=True)
+    @mock.patch.object(agent_base.LOG, 'error', autospec=True)
     def test_heartbeat_records_cleaning_deploying(self, log_mock):
         for provision_state in (states.CLEANING, states.DEPLOYING):
             self.node.driver_internal_info = {}
@@ -1076,7 +1076,7 @@ class AgentDeployMixinTest(AgentDeployMixinBaseTest):
             self.assertFalse(mock_collect.called)
 
     @mock.patch.object(driver_utils, 'collect_ramdisk_logs', autospec=True)
-    @mock.patch.object(agent_base_vendor.LOG, 'warning', autospec=True)
+    @mock.patch.object(agent_base.LOG, 'warning', autospec=True)
     @mock.patch.object(manager_utils, 'node_power_action', autospec=True)
     @mock.patch.object(agent_client.AgentClient, 'sync',
                        spec=types.FunctionType)
@@ -1408,7 +1408,7 @@ class AgentDeployMixinTest(AgentDeployMixinBaseTest):
     @mock.patch.object(deploy_utils, 'set_failed_state', autospec=True)
     @mock.patch.object(pxe.PXEBoot, 'prepare_instance', autospec=True)
     @mock.patch.object(deploy_utils, 'get_boot_option', autospec=True)
-    @mock.patch.object(agent_base_vendor.AgentDeployMixin,
+    @mock.patch.object(agent_base.AgentDeployMixin,
                        'configure_local_boot', autospec=True)
     def test_prepare_instance_to_boot_netboot(self, configure_mock,
                                               boot_option_mock,
@@ -1434,7 +1434,7 @@ class AgentDeployMixinTest(AgentDeployMixinBaseTest):
     @mock.patch.object(deploy_utils, 'set_failed_state', autospec=True)
     @mock.patch.object(pxe.PXEBoot, 'prepare_instance', autospec=True)
     @mock.patch.object(deploy_utils, 'get_boot_option', autospec=True)
-    @mock.patch.object(agent_base_vendor.AgentDeployMixin,
+    @mock.patch.object(agent_base.AgentDeployMixin,
                        'configure_local_boot', autospec=True)
     def test_prepare_instance_to_boot_localboot(self, configure_mock,
                                                 boot_option_mock,
@@ -1464,7 +1464,7 @@ class AgentDeployMixinTest(AgentDeployMixinBaseTest):
     @mock.patch.object(deploy_utils, 'set_failed_state', autospec=True)
     @mock.patch.object(pxe.PXEBoot, 'prepare_instance', autospec=True)
     @mock.patch.object(deploy_utils, 'get_boot_option', autospec=True)
-    @mock.patch.object(agent_base_vendor.AgentDeployMixin,
+    @mock.patch.object(agent_base.AgentDeployMixin,
                        'configure_local_boot', autospec=True)
     def test_prepare_instance_to_boot_localboot_prep_partition(
             self, configure_mock, boot_option_mock,
@@ -1495,7 +1495,7 @@ class AgentDeployMixinTest(AgentDeployMixinBaseTest):
     @mock.patch.object(deploy_utils, 'set_failed_state', autospec=True)
     @mock.patch.object(pxe.PXEBoot, 'prepare_instance', autospec=True)
     @mock.patch.object(deploy_utils, 'get_boot_option', autospec=True)
-    @mock.patch.object(agent_base_vendor.AgentDeployMixin,
+    @mock.patch.object(agent_base.AgentDeployMixin,
                        'configure_local_boot', autospec=True)
     def test_prepare_instance_to_boot_configure_fails(self, configure_mock,
                                                       boot_option_mock,
@@ -1559,7 +1559,7 @@ class AgentDeployMixinTest(AgentDeployMixinBaseTest):
     def test__cleaning_reboot(self, mock_reboot, mock_prepare, mock_build_opt):
         with task_manager.acquire(self.context, self.node['uuid'],
                                   shared=False) as task:
-            agent_base_vendor._cleaning_reboot(task)
+            agent_base._cleaning_reboot(task)
             self.assertTrue(mock_build_opt.called)
             self.assertTrue(mock_prepare.called)
             mock_reboot.assert_called_once_with(task, states.REBOOT)
@@ -1576,7 +1576,7 @@ class AgentDeployMixinTest(AgentDeployMixinBaseTest):
 
         with task_manager.acquire(self.context, self.node['uuid'],
                                   shared=False) as task:
-            agent_base_vendor._cleaning_reboot(task)
+            agent_base._cleaning_reboot(task)
             mock_reboot.assert_called_once_with(task, states.REBOOT)
             mock_handler.assert_called_once_with(task, mock.ANY)
             self.assertNotIn('cleaning_reboot',
@@ -1635,7 +1635,7 @@ class AgentDeployMixinTest(AgentDeployMixinBaseTest):
             self.assertNotIn('cleaning_reboot',
                              task.node.driver_internal_info)
 
-    @mock.patch.object(agent_base_vendor,
+    @mock.patch.object(agent_base,
                        '_get_post_clean_step_hook', autospec=True)
     @mock.patch.object(manager_utils, 'notify_conductor_resume_clean',
                        autospec=True)
@@ -1666,7 +1666,7 @@ class AgentDeployMixinTest(AgentDeployMixinBaseTest):
 
     @mock.patch.object(manager_utils, 'notify_conductor_resume_clean',
                        autospec=True)
-    @mock.patch.object(agent_base_vendor,
+    @mock.patch.object(agent_base,
                        '_get_post_clean_step_hook', autospec=True)
     @mock.patch.object(manager_utils, 'cleaning_error_handler', autospec=True)
     @mock.patch.object(agent_client.AgentClient, 'get_commands_status',
@@ -1761,7 +1761,7 @@ class AgentDeployMixinTest(AgentDeployMixinBaseTest):
                        autospec=True)
     @mock.patch.object(manager_utils, 'notify_conductor_resume_clean',
                        autospec=True)
-    @mock.patch.object(agent_base_vendor.AgentDeployMixin,
+    @mock.patch.object(agent_base.AgentDeployMixin,
                        'refresh_clean_steps', autospec=True)
     @mock.patch.object(agent_client.AgentClient, 'get_commands_status',
                        autospec=True)
@@ -1801,7 +1801,7 @@ class AgentDeployMixinTest(AgentDeployMixinBaseTest):
                        autospec=True)
     @mock.patch.object(manager_utils, 'notify_conductor_resume_clean',
                        autospec=True)
-    @mock.patch.object(agent_base_vendor.AgentDeployMixin,
+    @mock.patch.object(agent_base.AgentDeployMixin,
                        'refresh_clean_steps', autospec=True)
     @mock.patch.object(agent_client.AgentClient, 'get_commands_status',
                        autospec=True)
@@ -1853,7 +1853,7 @@ class AgentDeployMixinTest(AgentDeployMixinBaseTest):
         raid.create_configuration and raid.delete_configuration.
 
         :param hook_dict_mock: An instance of mock.MagicMock() which
-            is the mocked value of agent_base_vendor.POST_CLEAN_STEP_HOOKS
+            is the mocked value of agent_base.POST_CLEAN_STEP_HOOKS
         :returns: a tuple, where the first item is the hook method created
             by this method and second item is the backend dictionary for
             the mocked hook_dict_mock
@@ -1876,50 +1876,50 @@ class AgentDeployMixinTest(AgentDeployMixinBaseTest):
         hook_dict_mock.setdefault = setdefault
         some_function_mock = mock.MagicMock()
 
-        @agent_base_vendor.post_clean_step_hook(
+        @agent_base.post_clean_step_hook(
             interface='raid', step='delete_configuration')
-        @agent_base_vendor.post_clean_step_hook(
+        @agent_base.post_clean_step_hook(
             interface='raid', step='create_configuration')
         def hook_method():
             some_function_mock('some-arguments')
 
         return hook_method, hook_dict
 
-    @mock.patch.object(agent_base_vendor, 'POST_CLEAN_STEP_HOOKS',
+    @mock.patch.object(agent_base, 'POST_CLEAN_STEP_HOOKS',
                        spec_set=dict)
     def test_post_clean_step_hook(self, hook_dict_mock):
         # This unit test makes sure that hook methods are registered
         # properly and entries are made in
-        # agent_base_vendor.POST_CLEAN_STEP_HOOKS
+        # agent_base.POST_CLEAN_STEP_HOOKS
         hook_method, hook_dict = self._test_clean_step_hook(hook_dict_mock)
         self.assertEqual(hook_method,
                          hook_dict['raid']['create_configuration'])
         self.assertEqual(hook_method,
                          hook_dict['raid']['delete_configuration'])
 
-    @mock.patch.object(agent_base_vendor, 'POST_CLEAN_STEP_HOOKS',
+    @mock.patch.object(agent_base, 'POST_CLEAN_STEP_HOOKS',
                        spec_set=dict)
     def test__get_post_clean_step_hook(self, hook_dict_mock):
-        # Check if agent_base_vendor._get_post_clean_step_hook can get
+        # Check if agent_base._get_post_clean_step_hook can get
         # clean step for which hook is registered.
         hook_method, hook_dict = self._test_clean_step_hook(hook_dict_mock)
         self.node.clean_step = {'step': 'create_configuration',
                                 'interface': 'raid'}
         self.node.save()
-        hook_returned = agent_base_vendor._get_post_clean_step_hook(self.node)
+        hook_returned = agent_base._get_post_clean_step_hook(self.node)
         self.assertEqual(hook_method, hook_returned)
 
-    @mock.patch.object(agent_base_vendor, 'POST_CLEAN_STEP_HOOKS',
+    @mock.patch.object(agent_base, 'POST_CLEAN_STEP_HOOKS',
                        spec_set=dict)
     def test__get_post_clean_step_hook_no_hook_registered(
             self, hook_dict_mock):
-        # Make sure agent_base_vendor._get_post_clean_step_hook returns
+        # Make sure agent_base._get_post_clean_step_hook returns
         # None when no clean step hook is registered for the clean step.
         hook_method, hook_dict = self._test_clean_step_hook(hook_dict_mock)
         self.node.clean_step = {'step': 'some-clean-step',
                                 'interface': 'some-other-interface'}
         self.node.save()
-        hook_returned = agent_base_vendor._get_post_clean_step_hook(self.node)
+        hook_returned = agent_base._get_post_clean_step_hook(self.node)
         self.assertIsNone(hook_returned)
 
     @mock.patch.object(manager_utils, 'restore_power_state_if_needed',

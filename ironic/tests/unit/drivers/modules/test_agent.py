@@ -27,7 +27,7 @@ from ironic.conductor import task_manager
 from ironic.conductor import utils as manager_utils
 from ironic.drivers import base as drivers_base
 from ironic.drivers.modules import agent
-from ironic.drivers.modules import agent_base_vendor
+from ironic.drivers.modules import agent_base
 from ironic.drivers.modules import agent_client
 from ironic.drivers.modules import boot_mode_utils
 from ironic.drivers.modules import deploy_utils
@@ -1811,7 +1811,7 @@ class AgentRAIDTestCase(db_base.DbTestCase):
         self.node.clean_step = {'interface': 'raid',
                                 'step': 'create_configuration'}
         command = {'command_result': {'clean_result': 'foo'}}
-        create_hook = agent_base_vendor._get_post_clean_step_hook(self.node)
+        create_hook = agent_base._get_post_clean_step_hook(self.node)
         with task_manager.acquire(self.context, self.node.uuid) as task:
             create_hook(task, command)
             update_raid_info_mock.assert_called_once_with(task.node, 'foo')
@@ -1853,7 +1853,7 @@ class AgentRAIDTestCase(db_base.DbTestCase):
                                 'step': 'delete_configuration'}
         self.node.raid_config = {'foo': 'bar'}
         command = {'command_result': {'clean_result': 'foo'}}
-        delete_hook = agent_base_vendor._get_post_clean_step_hook(self.node)
+        delete_hook = agent_base._get_post_clean_step_hook(self.node)
         with task_manager.acquire(self.context, self.node.uuid) as task:
             delete_hook(task, command)
 

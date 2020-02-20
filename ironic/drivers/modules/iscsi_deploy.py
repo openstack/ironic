@@ -28,7 +28,7 @@ from ironic.conductor import task_manager
 from ironic.conductor import utils as manager_utils
 from ironic.conf import CONF
 from ironic.drivers import base
-from ironic.drivers.modules import agent_base_vendor
+from ironic.drivers.modules import agent_base
 from ironic.drivers.modules import boot_mode_utils
 from ironic.drivers.modules import deploy_utils
 
@@ -323,7 +323,7 @@ def validate(task):
     deploy_utils.parse_instance_info(task.node)
 
 
-class AgentDeployMixin(agent_base_vendor.AgentDeployMixin):
+class AgentDeployMixin(agent_base.AgentDeployMixin):
 
     @METRICS.timer('AgentDeployMixin.continue_deploy')
     @task_manager.require_exclusive_lock
@@ -358,7 +358,7 @@ class ISCSIDeploy(AgentDeployMixin, base.DeployInterface):
     """iSCSI Deploy Interface for deploy-related actions."""
 
     def get_properties(self):
-        return agent_base_vendor.VENDOR_PROPERTIES
+        return agent_base.VENDOR_PROPERTIES
 
     @METRICS.timer('ISCSIDeploy.validate')
     def validate(self, task):
