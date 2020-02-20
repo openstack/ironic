@@ -11,7 +11,7 @@ project.
 .. toctree::
   :maxdepth: 1
 
-  Developer Contribution Guide <code-contribution-guide>
+  Developer Contribution Guide <contributing>
   Setting Up Your Development Environment <dev-quickstart>
   Priorities <https://specs.openstack.org/openstack/ironic-specs/#priorities>
   Specifications <https://specs.openstack.org/openstack/ironic-specs/>

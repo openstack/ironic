@@ -1,8 +1,8 @@
 .. _code-contribution-guide:
 
-=======================
-Code Contribution Guide
-=======================
+============================
+So You Want to Contribute...
+============================
 
 This document provides some necessary points for developers to consider when
 writing and reviewing Ironic code. The checklist will help developers get
@@ -22,7 +22,8 @@ LaunchPad
 ---------
 
 Most of the tools used for OpenStack require a launchpad.net ID for
-authentication.
+authentication. Ironic previously used to track work on Launchpad,
+but we have not done so since migrating to Storyboard.
 
 .. seealso::
 
@@ -40,11 +41,31 @@ representing the whole of the ironic community, as opposed to
 the `ironic project <https://storyboard.openstack.org/#!/project/943>`_
 storyboard which represents ironic as a repository.
 
+Internet Relay Chat 'IRC'
+-------------------------
+
+Daily contributor discussions take place on IRC in the '#openstack-ironic'
+channel on Freenode IRC.
+
+Please feel free to join us at irc://irc.freenode.net and join our channel!
+
+Everything Ironic
+~~~~~~~~~~~~~~~~~
+
+Ironic is a community of projects centered around the primary project
+repository 'ironic', which help facilitate the deployment and management
+of bare metal resources.
+
+This means there are a number of different repositories that fall into
+the responsibility of the project team and the community. Some of the
+repositories may not seem strictly hardware related, but they may be tools
+or things to just make an aspect easier.
+
 Related Projects
 ----------------
 
-There are several projects that are tightly integrated with ironic and which are
-developed by the same community.
+There are several projects that are tightly integrated with ironic and
+which are developed by the same community.
 
 .. seealso::
 
@@ -55,23 +76,27 @@ developed by the same community.
    * :python-ironicclient-doc:`Ironic Client Documentation <>`
    * :python-ironic-inspector-client-doc:`Ironic Inspector Client Documentation <>`
 
-Project Hosting Details
------------------------
+Useful Links
+------------
 
-Bug tracker
+Bug/Task tracker
     https://storyboard.openstack.org/#!/project/943
 
 Mailing list (prefix Subject line with ``[ironic]``)
     http://lists.openstack.org/cgi-bin/mailman/listinfo/openstack-discuss
-
-Wiki
-    https://wiki.openstack.org/Ironic
 
 Code Hosting
     https://opendev.org/openstack/ironic
 
 Code Review
     https://review.opendev.org/#/q/status:open+project:openstack/ironic,n,z
+
+Whiteboard
+    https://etherpad.openstack.org/p/IronicWhiteBoard
+
+Weekly Meeting Agenda
+    https://wiki.openstack.org/wiki/Meetings/Ironic#Agenda_for_next_meeting
+
 
 Adding New Features
 ===================
@@ -137,6 +162,11 @@ Feature Submission Process
 Change Tracking
 ---------------
 
+We track our stories and tasks in Storyboard.
+
+https://storyboard.openstack.org/#!/project/ironic
+
+
 When working on an RFE, please be sure to tag your commits properly:
 "Story: #xxxx" or "Task: #xxxx". It is also helpful to set a consistent
 review topic, such as "story/xxxx" for all patches related to the RFE.
@@ -147,6 +177,11 @@ for all the code you're submitting, there is no need to create a separate RFE
 in every project.
 
 .. note:: **RFEs may only be approved by members of the ironic-core team**.
+
+.. note:: While not strictly required for minor changes and fixes,
+          it is highly preferred by the Ironic community that any change
+          which needs to be backported, have a recorded Story and Task in
+          Storyboard.
 
 Managing Change Sets
 --------------------
@@ -165,8 +200,25 @@ In the event that a contributor leaves the community, do not expect
 the contributor's changes to be continued unless someone volunteers
 to do so.
 
+Getting Your Patch Merged
+-------------------------
+
+Within the Ironic project, we generally require two core reviewers to
+sign-off (+2) change sets. We also will generally recognize non-core (+1)
+reviewers, and sometimes even reverse our decision to merge code based upon their reviews.
+
+We recognize that some repositories have less visibility, as such it is okay
+to ask for a review in our IRC channel. Please be prepared to stay in IRC
+for a little while in case we have questions.
+
+Sometimes we may also approve patches with a single core reviewer.
+This is generally discouraged, but sometimes necessary. When we do so,
+we try to explain why we do so. As a patch submitter, it equally helps us
+to understand why the change is important. Generally, more detail and context
+helps us understand the change faster.
+
 Timeline Expectations
-=====================
+---------------------
 
 As with any large project, it does take time for features and changes to be
 merged in any of the project repositories. This is largely due to limited
@@ -218,12 +270,12 @@ be kept in mind.
     in an incremental fashion.
 
 Live Upgrade Related Concerns
-=============================
+-----------------------------
 
 See :doc:`/contributor/rolling-upgrades`.
 
 Driver Internal Info
-====================
+~~~~~~~~~~~~~~~~~~~~
 The ``driver_internal_info`` node field was introduced in the Kilo release. It allows
 driver developers to store internal information that can not be modified by end users.
 Here is the list of existing common and agent driver attributes:
@@ -260,7 +312,7 @@ Here is the list of existing common and agent driver attributes:
 
 
 Ironic Specs Process
-====================
+--------------------
 
 Specifications must follow the template which can be found at
 `specs/template.rst <https://opendev.org/openstack/ironic-specs/src/branch/
@@ -307,3 +359,44 @@ For approved and completed specs:
 
 Please see the `Ironic specs process wiki page <https://wiki.openstack.org/
 wiki/Ironic/Specs_Process>`_ for further reference.
+
+Bug Reporting
+=============
+
+Bugs can reported via our Task and Bug tracking tool Storyboard.
+
+When filing bugs, please include as much detail as possible, and don't be shy.
+
+Essential pieces of information are generally:
+
+* Contents of the 'node' - `openstack baremetal node show <uuid>`
+* Steps to reproduce the issue.
+* Exceptions and surrounding lines from the logs.
+* Versions of ironic, ironic-python-agent, and any other coupled components.
+
+Please also set your expectations of what *should* be happening.
+Statements of user expectations are how we understand what is occuring and
+how we learn new use cases!
+
+Project Team Leader Duties
+==========================
+
+The ``Project Team Leader`` or ``PTL`` is elected each development
+cycle by the contributors to the ironic community.
+
+Think of this person as your primary contact if you need to try and
+rally the project, or have a major issue that requires attention.
+
+They serve a role that is mainly oriented towards trying to drive the
+technical discussion forward and managing the idiosyncrasies of the project.
+With this responsibility, they are considered a "public face" of the project
+and are generally obliged to try and provide "project updates" and outreach
+communication.
+
+All common PTL duties are enumerated here in the `PTL guide <https://docs.openstack.org/project-team-guide/ptl.html>`_.
+
+Tasks like release management or preparation for a release are generally
+delegated with-in the team. Even outreach can be delegated, and specifically
+there is no rule stating that any member of the community can't propose a
+release, clean-up release notes or documentation, or even get on the occasional
+stage.
