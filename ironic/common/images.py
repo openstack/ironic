@@ -222,12 +222,12 @@ def create_isolinux_image_for_bios(output_file, kernel, ramdisk,
             raise exception.ImageCreationFailed(image_type='iso', error=e)
 
 
-def create_isolinux_image_for_uefi(output_file, kernel, ramdisk,
-                                   deploy_iso=None, esp_image=None,
-                                   kernel_params=None):
-    """Creates an isolinux image on the specified file.
+def create_esp_image_for_uefi(output_file, kernel, ramdisk,
+                              deploy_iso=None, esp_image=None,
+                              kernel_params=None):
+    """Creates an ESP image on the specified file.
 
-    Copies the provided kernel, ramdisk and EFI system partition image to
+    Copies the provided kernel, ramdisk and EFI system partition image (ESP) to
     a directory, generates the grub configuration file using kernel parameters
     and then generates a bootable ISO image for UEFI.
 
@@ -315,6 +315,10 @@ def create_isolinux_image_for_uefi(output_file, kernel, ramdisk,
         except processutils.ProcessExecutionError as e:
             LOG.exception("Creating ISO image failed.")
             raise exception.ImageCreationFailed(image_type='iso', error=e)
+
+
+# NOTE(etingof): backward compatibility
+create_isolinux_image_for_uefi = create_esp_image_for_uefi
 
 
 def fetch(context, image_href, path, force_raw=False):
@@ -489,12 +493,12 @@ def create_boot_iso(context, output_filename, kernel_href,
             elif CONF.esp_image:
                 esp_image_path = CONF.esp_image
 
-            create_isolinux_image_for_uefi(output_filename,
-                                           kernel_path,
-                                           ramdisk_path,
-                                           deploy_iso=deploy_iso_path,
-                                           esp_image=esp_image_path,
-                                           kernel_params=params)
+            create_esp_image_for_uefi(output_filename,
+                                      kernel_path,
+                                      ramdisk_path,
+                                      deploy_iso=deploy_iso_path,
+                                      esp_image=esp_image_path,
+                                      kernel_params=params)
         else:
             create_isolinux_image_for_bios(output_filename,
                                            kernel_path,
