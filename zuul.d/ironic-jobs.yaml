@@ -527,12 +527,12 @@
           n-cpu: True
 
 - job:
-    name: ironic-tox-unit-with-driver-libs-python3
+    name: ironic-tox-unit-with-driver-libs
     parent: tox
     description: |
       Run python 3 unit tests with driver dependencies installed.
     vars:
-      tox_envlist: unit-with-driver-libs-python3
+      tox_envlist: unit-with-driver-libs
 
 - job:
     name: ironic-inspector-tempest-discovery-fast-track
