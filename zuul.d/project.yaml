@@ -18,20 +18,20 @@
             voting: false
         - ironic-tempest-partition-bios-redfish-pxe
         - ironic-tempest-partition-uefi-redfish-vmedia
-        - ironic-tempest-ipa-partition-pxe_ipmitool-tinyipa
-        - ironic-tempest-ipa-partition-uefi-pxe_ipmitool-tinyipa
+        - ironic-tempest-ipa-partition-pxe_ipmitool
+        - ironic-tempest-ipa-partition-uefi-pxe_ipmitool
         - ironic-tempest-ipa-wholedisk-direct-tinyipa-multinode:
             voting: false
         - ironic-tempest-ipa-wholedisk-bios-agent_ipmitool-tinyipa
-        - ironic-tempest-ipa-wholedisk-bios-agent_ipmitool-tinyipa-indirect
-        - ironic-tempest-ipa-partition-bios-agent_ipmitool-tinyipa-indirect
+        - ironic-tempest-ipa-wholedisk-bios-agent_ipmitool-indirect
+        - ironic-tempest-ipa-partition-bios-agent_ipmitool-indirect
         - ironic-tempest-bfv
         - ironic-tempest-ipa-partition-uefi-pxe-grub2
         - metalsmith-integration-glance-localboot-centos7
         # Non-voting jobs
         - ironic-tox-bandit:
             voting: false
-        - ironic-tempest-ipa-wholedisk-bios-pxe_snmp-tinyipa:
+        - ironic-tempest-ipa-wholedisk-bios-pxe_snmp:
             voting: false
         - ironic-inspector-tempest:
             voting: false
@@ -56,13 +56,13 @@
         # - ironic-grenade-dsvm-multinode-multitenant
         - ironic-tempest-partition-bios-redfish-pxe
         - ironic-tempest-partition-uefi-redfish-vmedia
-        - ironic-tempest-ipa-partition-pxe_ipmitool-tinyipa
-        - ironic-tempest-ipa-partition-uefi-pxe_ipmitool-tinyipa
+        - ironic-tempest-ipa-partition-pxe_ipmitool
+        - ironic-tempest-ipa-partition-uefi-pxe_ipmitool
         # removing from voting due to end of cycle gate instability.
         # - ironic-tempest-ipa-wholedisk-direct-tinyipa-multinode
         - ironic-tempest-ipa-wholedisk-bios-agent_ipmitool-tinyipa
-        - ironic-tempest-ipa-wholedisk-bios-agent_ipmitool-tinyipa-indirect
-        - ironic-tempest-ipa-partition-bios-agent_ipmitool-tinyipa-indirect
+        - ironic-tempest-ipa-wholedisk-bios-agent_ipmitool-indirect
+        - ironic-tempest-ipa-partition-bios-agent_ipmitool-indirect
         - ironic-tempest-bfv
         - ironic-tempest-ipa-partition-uefi-pxe-grub2
         - metalsmith-integration-glance-localboot-centos7

@@ -39,7 +39,6 @@
         IRONIC_CALLBACK_TIMEOUT: 600
         IRONIC_DEPLOY_DRIVER: ipmi
         IRONIC_INSPECTOR_BUILD_RAMDISK: False
-        IRONIC_RAMDISK_TYPE: tinyipa
         IRONIC_TEMPEST_BUILD_TIMEOUT: 720
         IRONIC_TEMPEST_WHOLE_DISK_IMAGE: False
         IRONIC_VM_COUNT: 1
@@ -110,6 +109,7 @@
         IRONIC_DEFAULT_RESCUE_INTERFACE: agent
         IRONIC_ENABLED_DEPLOY_INTERFACES: "iscsi,direct,ansible"
         IRONIC_ENABLED_RESCUE_INTERFACES: "fake,agent,no-rescue"
+        IRONIC_RAMDISK_TYPE: tinyipa
         IRONIC_RPC_TRANSPORT: json-rpc
         IRONIC_VM_COUNT: 6
         IRONIC_VM_VOLUME_COUNT: 2
@@ -149,6 +149,7 @@
         IRONIC_ENABLED_POWER_INTERFACES: redfish
         IRONIC_ENABLED_MANAGEMENT_INTERFACES: redfish
         IRONIC_AUTOMATED_CLEAN_ENABLED: False
+        IRONIC_VM_SPECS_RAM: 2048
 
 - job:
     name: ironic-tempest-partition-uefi-redfish-vmedia
@@ -158,7 +159,7 @@
       devstack_localrc:
         IRONIC_BOOT_MODE: uefi
         IRONIC_ENABLED_BOOT_INTERFACES: redfish-virtual-media
-        IRONIC_VM_SPECS_RAM: 512
+        IRONIC_VM_SPECS_RAM: 2048
         SWIFT_ENABLE_TEMPURLS: True
         SWIFT_TEMPURL_KEY: secretkey
         IRONIC_AUTOMATED_CLEAN_ENABLED: False
@@ -197,15 +198,18 @@
         IRONIC_ENABLED_BOOT_INTERFACES: "fake,pxe"
         IRONIC_IPXE_ENABLED: False
         IRONIC_AUTOMATED_CLEAN_ENABLED: False
+        IRONIC_VM_SPECS_RAM: 2048
       devstack_services:
         mysql: False
         postgresql: True
 
+# NOTE(rpittau): converted job but not running for now as there
+# could be an issue with the lookup in ironic-python-agent
 - job:
-    name: ironic-tempest-ipa-wholedisk-bios-agent_ipmitool-tinyipa
-    description: ironic-tempest-ipa-wholedisk-bios-agent_ipmitool-tinyipa
+    name: ironic-tempest-ipa-wholedisk-bios-agent_ipmitool
+    description: ironic-tempest-ipa-wholedisk-bios-agent_ipmitool
     parent: ironic-base
-    timeout: 5400
+    timeout: 9600
     vars:
       devstack_localrc:
         IRONIC_DEFAULT_DEPLOY_INTERFACE: direct
@@ -213,6 +217,7 @@
         IRONIC_ENABLED_RESCUE_INTERFACES: "fake,agent,no-rescue"
         IRONIC_TEMPEST_WHOLE_DISK_IMAGE: True
         IRONIC_VM_EPHEMERAL_DISK: 0
+        IRONIC_VM_SPECS_RAM: 3096
         SWIFT_ENABLE_TEMPURLS: True
         SWIFT_TEMPURL_KEY: secretkey
       devstack_services:
@@ -222,8 +227,8 @@
         s-proxy: True
 
 - job:
-    name: ironic-tempest-ipa-wholedisk-bios-pxe_snmp-tinyipa
-    description: ironic-tempest-ipa-wholedisk-bios-pxe_snmp-tinyipa
+    name: ironic-tempest-ipa-wholedisk-bios-pxe_snmp
+    description: ironic-tempest-ipa-wholedisk-bios-pxe_snmp
     parent: ironic-base
     timeout: 5400
     vars:
@@ -235,21 +240,24 @@
         IRONIC_AUTOMATED_CLEAN_ENABLED: False
 
 - job:
-    name: ironic-tempest-ipa-partition-uefi-pxe_ipmitool-tinyipa
-    description: ironic-tempest-ipa-partition-uefi-pxe_ipmitool-tinyipa
+    name: ironic-tempest-ipa-partition-uefi-pxe_ipmitool
+    description: ironic-tempest-ipa-partition-uefi-pxe_ipmitool
     parent: ironic-base
     timeout: 5400
     vars:
       devstack_localrc:
         IRONIC_BOOT_MODE: uefi
-        IRONIC_VM_SPECS_RAM: 512
+        IRONIC_VM_SPECS_RAM: 3096
         IRONIC_AUTOMATED_CLEAN_ENABLED: False
 
 - job:
-    name: ironic-tempest-ipa-partition-pxe_ipmitool-tinyipa
-    description: ironic-tempest-ipa-partition-pxe_ipmitool-tinyipa
+    name: ironic-tempest-ipa-partition-pxe_ipmitool
+    description: ironic-tempest-ipa-partition-pxe_ipmitool
     parent: ironic-base
     timeout: 5400
+    vars:
+      devstack_localrc:
+        IRONIC_VM_SPECS_RAM: 2048
 
 - job:
     name: ironic-tempest-bfv
@@ -290,6 +298,7 @@
         IRONIC_INSPECTOR_MANAGE_FIREWALL: True
         IRONIC_TEMPEST_WHOLE_DISK_IMAGE: True
         IRONIC_VM_EPHEMERAL_DISK: 0
+        IRONIC_VM_SPECS_RAM: 2048
         IRONIC_AUTOMATED_CLEAN_ENABLED: False
         SWIFT_ENABLE_TEMPURLS: True
         SWIFT_TEMPURL_KEY: secretkey
@@ -302,9 +311,9 @@
         s-proxy: True
 
 - job:
-    name: ironic-tempest-ipa-wholedisk-bios-agent_ipmitool-tinyipa-indirect
-    description: ironic-tempest-ipa-wholedisk-bios-agent_ipmitool-tinyipa-indirect
-    parent: ironic-tempest-ipa-wholedisk-bios-agent_ipmitool-tinyipa
+    name: ironic-tempest-ipa-wholedisk-bios-agent_ipmitool-indirect
+    description: ironic-tempest-ipa-wholedisk-bios-agent_ipmitool-indirect
+    parent: ironic-tempest-ipa-wholedisk-bios-agent_ipmitool
     timeout: 5400
     vars:
       devstack_localrc:
@@ -314,9 +323,9 @@
         IRONIC_ENABLED_RESCUE_INTERFACES: "fake,no-rescue"
 
 - job:
-    name: ironic-tempest-ipa-partition-bios-agent_ipmitool-tinyipa-indirect
-    description: ironic-tempest-ipa-partition-bios-agent_ipmitool-tinyipa-indirect
-    parent: ironic-tempest-ipa-wholedisk-bios-agent_ipmitool-tinyipa
+    name: ironic-tempest-ipa-partition-bios-agent_ipmitool-indirect
+    description: ironic-tempest-ipa-partition-bios-agent_ipmitool-indirect
+    parent: ironic-tempest-ipa-wholedisk-bios-agent_ipmitool
     timeout: 5400
     vars:
       devstack_localrc:
@@ -553,7 +562,7 @@
       devstack_localrc:
         IRONIC_ENABLED_HARDWARE_TYPES: ipmi
         IRONIC_ENABLED_BOOT_INTERFACES: pxe
-        IRONIC_VM_SPECS_RAM: 512
+        IRONIC_VM_SPECS_RAM: 2048
         IRONIC_IPXE_ENABLED: False
         IRONIC_BOOT_MODE: uefi
         IRONIC_AUTOMATED_CLEAN_ENABLED: False
@@ -593,7 +602,6 @@
         s-proxy: True
       devstack_localrc:
         IRONIC_DEFAULT_DEPLOY_INTERFACE: direct
-        IRONIC_RAMDISK_TYPE: dib
         IRONIC_DIB_RAMDISK_OS: centos8
         IRONIC_TEMPEST_WHOLE_DISK_IMAGE: True
         IRONIC_TEMPEST_BUILD_TIMEOUT: 900
@@ -603,3 +611,29 @@
         IRONIC_AUTOMATED_CLEAN_ENABLED: False
         SWIFT_ENABLE_TEMPURLS: True
         SWIFT_TEMPURL_KEY: secretkey
+
+# NOTE(rpittau): OLD TINYIPA JOBS
+# Those jobs are used by other projects, we leave them here until
+# we can convert them to dib.
+
+# Used by devstack/ironic/nova/neutron
+- job:
+    name: ironic-tempest-ipa-wholedisk-bios-agent_ipmitool-tinyipa
+    description: ironic-tempest-ipa-wholedisk-bios-agent_ipmitool-tinyipa
+    parent: ironic-base
+    timeout: 5400
+    vars:
+      devstack_localrc:
+        IRONIC_DEFAULT_DEPLOY_INTERFACE: direct
+        IRONIC_DEFAULT_RESCUE_INTERFACE: agent
+        IRONIC_ENABLED_RESCUE_INTERFACES: "fake,agent,no-rescue"
+        IRONIC_RAMDISK_TYPE: tinyipa
+        IRONIC_TEMPEST_WHOLE_DISK_IMAGE: True
+        IRONIC_VM_EPHEMERAL_DISK: 0
+        SWIFT_ENABLE_TEMPURLS: True
+        SWIFT_TEMPURL_KEY: secretkey
+      devstack_services:
+        s-account: True
+        s-container: True
+        s-object: True
+        s-proxy: True
