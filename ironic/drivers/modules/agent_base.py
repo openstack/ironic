@@ -166,6 +166,10 @@ def _cleaning_reboot(task):
     # Signify that we've rebooted
     driver_internal_info = task.node.driver_internal_info
     driver_internal_info['cleaning_reboot'] = True
+    if not driver_internal_info.get('agent_secret_token_pregenerated', False):
+        # Wipes out the existing recorded token because the machine will
+        # need to re-establish the token.
+        driver_internal_info.pop('agent_secret_token', None)
     task.node.driver_internal_info = driver_internal_info
     task.node.save()
 

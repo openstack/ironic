@@ -2,6 +2,13 @@
 REST API Version History
 ========================
 
+1.62 (Ussuri, master)
+---------------------
+
+This version of the API is to signify capability of an ironic deployment
+to support the ``agent token`` functionality with the
+``ironic-python-agent``.
+
 1.61 (Ussuri, master)
 ---------------------
 

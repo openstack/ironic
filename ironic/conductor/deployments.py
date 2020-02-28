@@ -133,7 +133,7 @@ def start_deploy(task, manager, configdrive=None, event='deploy'):
 def do_node_deploy(task, conductor_id=None, configdrive=None):
     """Prepare the environment and deploy a node."""
     node = task.node
-
+    utils.del_secret_token(node)
     try:
         if configdrive:
             if isinstance(configdrive, dict):
@@ -392,6 +392,8 @@ def do_next_deploy_step(task, step_index, conductor_id):
     # Finished executing the steps. Clear deploy_step.
     node.deploy_step = None
     driver_internal_info = node.driver_internal_info
+    driver_internal_info.pop('agent_secret_token', None)
+    driver_internal_info.pop('agent_secret_token_pregenerated', None)
     driver_internal_info['deploy_steps'] = None
     driver_internal_info.pop('deploy_step_index', None)
     driver_internal_info.pop('deployment_reboot', None)

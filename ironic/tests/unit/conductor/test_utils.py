@@ -2018,3 +2018,37 @@ class GetNodeNextStepsTestCase(db_base.DbTestCase):
         with task_manager.acquire(self.context, node.uuid) as task:
             step_index = conductor_utils.get_node_next_clean_steps(task)
             self.assertEqual(0, step_index)
+
+
+class AgentTokenUtilsTestCase(tests_base.TestCase):
+
+    def setUp(self):
+        super(AgentTokenUtilsTestCase, self).setUp()
+        self.node = obj_utils.get_test_node(self.context,
+                                            driver='fake-hardware')
+
+    def test_add_secret_token(self):
+        self.assertNotIn('agent_secret_token', self.node.driver_internal_info)
+        conductor_utils.add_secret_token(self.node)
+        self.assertEqual(
+            128, len(self.node.driver_internal_info['agent_secret_token']))
+
+    def test_del_secret_token(self):
+        conductor_utils.add_secret_token(self.node)
+        self.assertIn('agent_secret_token', self.node.driver_internal_info)
+        conductor_utils.del_secret_token(self.node)
+        self.assertNotIn('agent_secret_token', self.node.driver_internal_info)
+
+    def test_is_agent_token_present(self):
+        # This should always be False as the token has not been added yet.
+        self.assertFalse(conductor_utils.is_agent_token_present(self.node))
+        conductor_utils.add_secret_token(self.node)
+        self.assertTrue(conductor_utils.is_agent_token_present(self.node))
+
+    def test_is_agent_token_supported(self):
+        self.assertTrue(
+            conductor_utils.is_agent_token_supported('6.1.1.dev39'))
+        self.assertTrue(
+            conductor_utils.is_agent_token_supported('6.2.1'))
+        self.assertFalse(
+            conductor_utils.is_agent_token_supported('6.0.0'))

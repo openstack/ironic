@@ -50,6 +50,16 @@ class TestLookup(test_api_base.BaseApiTest):
             fixtures.MockPatchObject(rpcapi.ConductorAPI, 'get_conductor_for',
                                      autospec=True)).mock
         self.mock_get_conductor_for.return_value = 'fake.conductor'
+        self.mock_get_node_with_token = self.useFixture(
+            fixtures.MockPatchObject(rpcapi.ConductorAPI,
+                                     'get_node_with_token',
+                                     autospec=True)).mock
+
+    def _set_secret_mock(self, node, token_value):
+        driver_internal = node.driver_internal_info
+        driver_internal['agent_secret_token'] = token_value
+        node.driver_internal_info = driver_internal
+        self.mock_get_node_with_token.return_value = node
 
     def _check_config(self, data):
         expected_metrics = {
@@ -65,9 +75,12 @@ class TestLookup(test_api_base.BaseApiTest):
                 'statsd_host': CONF.metrics_statsd.agent_statsd_host,
                 'statsd_port': CONF.metrics_statsd.agent_statsd_port
             },
-            'heartbeat_timeout': CONF.api.ramdisk_heartbeat_timeout
+            'heartbeat_timeout': CONF.api.ramdisk_heartbeat_timeout,
+            'agent_token': mock.ANY
         }
         self.assertEqual(expected_metrics, data['config'])
+        self.assertIsNotNone(data['config']['agent_token'])
+        self.assertNotEqual('******', data['config']['agent_token'])
 
     def test_nothing_provided(self):
         response = self.get_json(
@@ -95,6 +108,7 @@ class TestLookup(test_api_base.BaseApiTest):
         self.assertEqual(http_client.NOT_FOUND, response.status_int)
 
     def test_found_by_addresses(self):
+        self._set_secret_mock(self.node, 'some-value')
         obj_utils.create_test_port(self.context,
                                    node_id=self.node.id,
                                    address=self.addresses[1])
@@ -109,6 +123,7 @@ class TestLookup(test_api_base.BaseApiTest):
 
     @mock.patch.object(ramdisk.LOG, 'warning', autospec=True)
     def test_ignore_malformed_address(self, mock_log):
+        self._set_secret_mock(self.node, '123456')
         obj_utils.create_test_port(self.context,
                                    node_id=self.node.id,
                                    address=self.addresses[1])
@@ -125,6 +140,7 @@ class TestLookup(test_api_base.BaseApiTest):
         self.assertTrue(mock_log.called)
 
     def test_found_by_uuid(self):
+        self._set_secret_mock(self.node, 'this_thing_on?')
         data = self.get_json(
             '/lookup?addresses=%s&node_uuid=%s' %
             (','.join(self.addresses), self.node.uuid),
@@ -135,6 +151,7 @@ class TestLookup(test_api_base.BaseApiTest):
         self._check_config(data)
 
     def test_found_by_only_uuid(self):
+        self._set_secret_mock(self.node, 'xyzabc')
         data = self.get_json(
             '/lookup?node_uuid=%s' % self.node.uuid,
             headers={api_base.Version.string: str(api_v1.max_version())})
@@ -153,6 +170,7 @@ class TestLookup(test_api_base.BaseApiTest):
 
     def test_no_restrict_lookup(self):
         CONF.set_override('restrict_lookup', False, 'api')
+        self._set_secret_mock(self.node2, '234567890')
         data = self.get_json(
             '/lookup?addresses=%s&node_uuid=%s' %
             (','.join(self.addresses), self.node2.uuid),
@@ -163,6 +181,7 @@ class TestLookup(test_api_base.BaseApiTest):
         self._check_config(data)
 
     def test_fast_deploy_lookup(self):
+        self._set_secret_mock(self.node, 'abcxyz')
         CONF.set_override('fast_track', True, 'deploy')
         for provision_state in [states.ENROLL, states.MANAGEABLE,
                                 states.AVAILABLE]:
@@ -203,7 +222,7 @@ class TestHeartbeat(test_api_base.BaseApiTest):
         self.assertEqual(http_client.ACCEPTED, response.status_int)
         self.assertEqual(b'', response.body)
         mock_heartbeat.assert_called_once_with(mock.ANY, mock.ANY,
-                                               node.uuid, 'url', None,
+                                               node.uuid, 'url', None, None,
                                                topic='test-topic')
 
     @mock.patch.object(rpcapi.ConductorAPI, 'heartbeat', autospec=True)
@@ -216,7 +235,7 @@ class TestHeartbeat(test_api_base.BaseApiTest):
         self.assertEqual(http_client.ACCEPTED, response.status_int)
         self.assertEqual(b'', response.body)
         mock_heartbeat.assert_called_once_with(mock.ANY, mock.ANY,
-                                               node.uuid, 'url', None,
+                                               node.uuid, 'url', None, None,
                                                topic='test-topic')
 
     @mock.patch.object(rpcapi.ConductorAPI, 'heartbeat', autospec=True)
@@ -229,7 +248,7 @@ class TestHeartbeat(test_api_base.BaseApiTest):
         self.assertEqual(http_client.ACCEPTED, response.status_int)
         self.assertEqual(b'', response.body)
         mock_heartbeat.assert_called_once_with(mock.ANY, mock.ANY,
-                                               node.uuid, 'url', None,
+                                               node.uuid, 'url', None, None,
                                                topic='test-topic')
 
     @mock.patch.object(rpcapi.ConductorAPI, 'heartbeat', autospec=True)
@@ -243,7 +262,7 @@ class TestHeartbeat(test_api_base.BaseApiTest):
         self.assertEqual(http_client.ACCEPTED, response.status_int)
         self.assertEqual(b'', response.body)
         mock_heartbeat.assert_called_once_with(mock.ANY, mock.ANY,
-                                               node.uuid, 'url', '1.4.1',
+                                               node.uuid, 'url', '1.4.1', None,
                                                topic='test-topic')
 
     @mock.patch.object(rpcapi.ConductorAPI, 'heartbeat', autospec=True)
@@ -268,3 +287,18 @@ class TestHeartbeat(test_api_base.BaseApiTest):
             headers={api_base.Version.string: str(api_v1.max_version())},
             expect_errors=True)
         self.assertEqual(http_client.BAD_REQUEST, response.status_int)
+
+    @mock.patch.object(rpcapi.ConductorAPI, 'heartbeat', autospec=True)
+    def test_ok_agent_token(self, mock_heartbeat):
+        node = obj_utils.create_test_node(self.context)
+        response = self.post_json(
+            '/heartbeat/%s' % node.uuid,
+            {'callback_url': 'url',
+             'agent_token': 'abcdef1'},
+            headers={api_base.Version.string: str(api_v1.max_version())})
+        self.assertEqual(http_client.ACCEPTED, response.status_int)
+        self.assertEqual(b'', response.body)
+        mock_heartbeat.assert_called_once_with(mock.ANY, mock.ANY,
+                                               node.uuid, 'url', None,
+                                               'abcdef1',
+                                               topic='test-topic')

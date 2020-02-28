@@ -565,6 +565,12 @@ class TestCheckAllowFields(base.TestCase):
         mock_request.version.minor = 54
         self.assertFalse(utils.allow_deploy_templates())
 
+    def test_allow_agent_token(self, mock_request):
+        mock_request.version.minor = 62
+        self.assertTrue(utils.allow_agent_token())
+        mock_request.version.minor = 61
+        self.assertFalse(utils.allow_agent_token())
+
 
 @mock.patch.object(api, 'request')
 class TestNodeIdent(base.TestCase):
