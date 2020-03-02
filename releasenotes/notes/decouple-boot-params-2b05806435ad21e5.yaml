@@ -1,0 +1,12 @@
+---
+fixes:
+  - |
+    Improves interoperability with Redfish BMCs by untying node boot
+    mode change from other boot parameters change (such as boot device,
+    boot frequency). This fix requires a newer version of the
+    ``sushy`` library, version ``3.2.0``.
+upgrade:
+  - |
+    The version of ``sushy`` can now be updated to ``3.2.0`` or later to
+    address issues with managing persistant boot mode setting with Redfish
+    Baseboard Management Controllers.

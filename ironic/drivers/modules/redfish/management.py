@@ -115,9 +115,15 @@ class RedfishManagement(base.ManagementInterface):
         system = redfish_utils.get_system(task.node)
 
         try:
-            system.set_system_boot_source(
-                BOOT_DEVICE_MAP_REV[device],
-                enabled=BOOT_DEVICE_PERSISTENT_MAP_REV[persistent])
+            try:
+                system.set_system_boot_options(
+                    BOOT_DEVICE_MAP_REV[device],
+                    enabled=BOOT_DEVICE_PERSISTENT_MAP_REV[persistent])
+            except AttributeError:
+                system.set_system_boot_source(
+                    BOOT_DEVICE_MAP_REV[device],
+                    enabled=BOOT_DEVICE_PERSISTENT_MAP_REV[persistent])
+
         except sushy.exceptions.SushyError as e:
             error_msg = (_('Redfish set boot device failed for node '
                            '%(node)s. Error: %(error)s') %
@@ -176,28 +182,30 @@ class RedfishManagement(base.ManagementInterface):
         :raises: RedfishError on an error from the Sushy library
         """
         system = redfish_utils.get_system(task.node)
-
-        boot_device = system.boot.get('target')
-        if not boot_device:
-            error_msg = (_('Cannot change boot mode on node %(node)s '
-                           'because its boot device is not set.') %
-                         {'node': task.node.uuid})
-            LOG.error(error_msg)
-            raise exception.RedfishError(error_msg)
-
-        boot_override = system.boot.get('enabled')
-        if not boot_override:
-            error_msg = (_('Cannot change boot mode on node %(node)s '
-                           'because its boot source override is not set.') %
-                         {'node': task.node.uuid})
-            LOG.error(error_msg)
-            raise exception.RedfishError(error_msg)
-
         try:
-            system.set_system_boot_source(
-                boot_device,
-                enabled=boot_override,
-                mode=BOOT_MODE_MAP_REV[mode])
+            try:
+                system.set_system_boot_options(mode=BOOT_MODE_MAP_REV[mode])
+            except AttributeError:
+                boot_device = system.boot.get('target')
+                if not boot_device:
+                    error_msg = (_('Cannot change boot mode on node %(node)s '
+                                   'because its boot device is not set.') %
+                                 {'node': task.node.uuid})
+                    LOG.error(error_msg)
+                    raise exception.RedfishError(error_msg)
+
+                boot_override = system.boot.get('enabled')
+                if not boot_override:
+                    error_msg = (_('Cannot change boot mode on node %(node)s '
+                                   'because its boot source override is '
+                                   'not set.') %
+                                 {'node': task.node.uuid})
+                    LOG.error(error_msg)
+                    raise exception.RedfishError(error_msg)
+                system.set_system_boot_source(
+                    boot_device,
+                    enabled=boot_override,
+                    mode=BOOT_MODE_MAP_REV[mode])
 
         except sushy.exceptions.SushyError as e:
             error_msg = (_('Setting boot mode to %(mode)s '
