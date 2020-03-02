@@ -1,0 +1,10 @@
+---
+fixes:
+  - |
+    Improves interoperability with Redfish BMCs by untying node boot
+    mode change from other boot parameters change (such as boot device,
+    boot frequency).
+upgrade:
+  - |
+    The required minimum version of the ``sushy`` python Redfish API client
+    library is now version ``3.2.0``.
