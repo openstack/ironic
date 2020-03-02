@@ -1,0 +1,15 @@
+fixes:
+  - |
+    Fixes a bug in the ``idrac`` hardware type where when creating
+    one or more virtual disks on a RAID controller that supports
+    passthru mode (PERC H730P), the cleaning step would finish
+    before the job to create the virtual disks actually completed.
+    This could result in the client attempting to perform another
+    action against the iDRAC that creates a configuration job, and
+    that action would fail since the job to create the virtual disk
+    would still be executing.
+    This patch fixes this issue by only allowing the cleaning step to
+    finish after the job to create the virtual disk completes.
+    See bug
+    `bug 2007285 <https://storyboard.openstack.org/#!/story/2007285>`_
+    for more details.
