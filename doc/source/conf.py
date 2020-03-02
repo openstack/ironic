@@ -44,13 +44,8 @@ extensions = ['sphinx.ext.viewcode',
               'oslo_policy.sphinxext',
               'oslo_policy.sphinxpolicygen',
               'automated_steps',
+              'openstackdocstheme'
               ]
-
-try:
-    import openstackdocstheme
-    extensions.append('openstackdocstheme')
-except ImportError:
-    openstackdocstheme = None
 
 # sphinxcontrib.apidoc options
 apidoc_module_dir = '../../ironic'
@@ -144,10 +139,7 @@ suppress_warnings = ['app.add_directive']
 
 # The theme to use for HTML and HTML Help pages.  Major themes that come with
 # Sphinx are currently 'default' and 'sphinxdoc'.
-if openstackdocstheme is not None:
-    html_theme = 'openstackdocs'
-else:
-    html_theme = 'default'
+html_theme = 'openstackdocs'
 
 # Output file base name for HTML help builder.
 htmlhelp_basename = 'Ironicdoc'

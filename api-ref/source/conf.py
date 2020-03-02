@@ -25,25 +25,21 @@
 # serve to show the default.
 
 import os
-import subprocess
 import sys
 
-import openstackdocstheme
-
-# The version info for the project you're documenting, acts as replacement for
-# |version| and |release|, also used in various other places throughout the
-# built documents.
-from ironic.version import version_info
-
 html_theme = 'openstackdocs'
-html_theme_path = [openstackdocstheme.get_html_theme_path()]
 html_theme_options = {
     "sidebar_mode": "toc",
 }
 
 extensions = [
     'os_api_ref',
+    'openstackdocstheme'
 ]
+
+repository_name = 'openstack/ironic'
+use_storyboard = True
+
 
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
@@ -70,11 +66,6 @@ master_doc = 'index'
 # General information about the project.
 project = u'Ironic API Reference'
 copyright = u'OpenStack Foundation'
-
-# The full version, including alpha/beta/rc tags.
-release = version_info.release_string()
-# The short X.Y version.
-version = version_info.version_string()
 
 # html_context allows us to pass arbitrary values into the html template
 html_context = {"bug_tag": "api-ref",
@@ -150,13 +141,6 @@ pygments_style = 'sphinx'
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
 # html_static_path = ['_static']
-
-# If not '', a 'Last updated on:' timestamp is inserted at every page bottom,
-# using the given strftime format.
-# html_last_updated_fmt = '%b %d, %Y'
-git_cmd = ["git", "log", "--pretty=format:%ad, commit %h", "--date=local",
-           "-n1"]
-html_last_updated_fmt = subprocess.check_output(git_cmd).decode('utf-8')
 
 # If true, SmartyPants will be used to convert quotes and dashes to
 # typographically correct entities.
