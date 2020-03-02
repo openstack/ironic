@@ -1,0 +1,22 @@
+fixes:
+  - |
+    Certain RAID controllers (PERC H730P) require physical disks
+    to be switched from non-RAID (JBOD) mode to RAID mode to be
+    included in a virtual disk.  When this conversion happens,
+    the available free space on the physical disk is reduced due
+    to some space being allocated to RAID mode housekeeping.
+    If the user requests a virtual disk (a RAID 1 for example)
+    with a size close to the max size of the physical disks when
+    they are in JBOD mode, then creation of the virtual disk
+    following conversion of the physical disks from JBOD to RAID
+    mode will fail since there is not enough space due to the
+    space used by RAID mode housekeeping.
+    This patch works around this issue by recalculating the RAID
+    volume size after physical disk conversion has completed and
+    the free space on the converted drives is known.  Note that
+    this may result in a virtual disk that is slightly smaller
+    than the requested size, but still the max size that the
+    drives can support.
+    See bug
+    `bug 2007359 <https://storyboard.openstack.org/#!/story/2007359>`_
+    for more details

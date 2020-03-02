@@ -839,6 +839,40 @@ def _create_config_job(node, controller, reboot=False, realtime=False,
             'raid_config_parameters': raid_config_parameters}
 
 
+def _validate_volume_size(node, logical_disks):
+    new_physical_disks = list_physical_disks(node)
+    free_space_mb = {}
+    new_processed_volumes = []
+    for disk in new_physical_disks:
+        free_space_mb[disk] = disk.free_size_mb
+
+    for logical_disk in logical_disks:
+        selected_disks = [disk for disk in new_physical_disks
+                          if disk.id in logical_disk['physical_disks']]
+
+        spans_count = _calculate_spans(
+            logical_disk['raid_level'], len(selected_disks))
+
+        new_max_vol_size_mb = _max_volume_size_mb(
+            logical_disk['raid_level'],
+            selected_disks,
+            free_space_mb,
+            spans_count=spans_count)
+
+        if logical_disk['size_mb'] > new_max_vol_size_mb:
+            logical_disk['size_mb'] = new_max_vol_size_mb
+            LOG.info("Logical size does not match so calculating volume "
+                     "properties for current logical_disk")
+            _calculate_volume_props(
+                logical_disk, new_physical_disks, free_space_mb)
+            new_processed_volumes.append(logical_disk)
+
+    if new_processed_volumes:
+        return new_processed_volumes
+
+    return logical_disks
+
+
 def _commit_to_controllers(node, controllers, substep="completed"):
     """Commit changes to RAID controllers on the node.
 
@@ -930,6 +964,13 @@ def _commit_to_controllers(node, controllers, substep="completed"):
 def _create_virtual_disks(task, node):
     logical_disks_to_create = node.driver_internal_info[
         'logical_disks_to_create']
+
+    # Check valid properties attached to voiume after drives conversion
+    isVolValidationNeeded = node.driver_internal_info[
+        'volume_validation']
+    if isVolValidationNeeded:
+        logical_disks_to_create = _validate_volume_size(
+            node, logical_disks_to_create)
 
     controllers = list()
     for logical_disk in logical_disks_to_create:
@@ -1076,8 +1117,6 @@ class DracWSManRAID(base.RAIDInterface):
         driver_internal_info = node.driver_internal_info
         driver_internal_info[
             "logical_disks_to_create"] = logical_disks_to_create
-        node.driver_internal_info = driver_internal_info
-        node.save()
 
         commit_results = None
         if logical_disks_to_create:
@@ -1090,6 +1129,11 @@ class DracWSManRAID(base.RAIDInterface):
                 node, raid_mode,
                 controllers_to_physical_disk_ids,
                 substep="create_virtual_disks")
+
+        volume_validation = True if commit_results else False
+        driver_internal_info['volume_validation'] = volume_validation
+        node.driver_internal_info = driver_internal_info
+        node.save()
 
         if commit_results:
             return commit_results
