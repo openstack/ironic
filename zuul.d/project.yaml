@@ -9,11 +9,6 @@
     check:
       jobs:
         - ironic-dsvm-standalone
-        - ironic-grenade-dsvm
-        # Temporary mark multinode job as NV.
-        # see https://bugs.launchpad.net/ironic/+bug/1744139
-        - ironic-grenade-dsvm-multinode-multitenant:
-            voting: false
         - ironic-tempest-dsvm-bfv
         - ironic-tempest-dsvm-ipa-partition-pxe_ipmitool-tinyipa-python3
         - ironic-tempest-dsvm-ipa-partition-redfish-tinyipa
@@ -32,10 +27,6 @@
       queue: ironic
       jobs:
         - ironic-dsvm-standalone
-        - ironic-grenade-dsvm
-        # Temporary disable multinode job, no need to run non-voting in gate.
-        # see https://bugs.launchpad.net/ironic/+bug/1744139
-        # - ironic-grenade-dsvm-multinode-multitenant
         - ironic-tempest-dsvm-bfv
         - ironic-tempest-dsvm-ipa-partition-pxe_ipmitool-tinyipa-python3
         - ironic-tempest-dsvm-ipa-partition-redfish-tinyipa
