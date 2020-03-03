@@ -114,11 +114,17 @@ class RedfishManagement(base.ManagementInterface):
         """
         system = redfish_utils.get_system(task.node)
 
+        desired_persistence = BOOT_DEVICE_PERSISTENT_MAP_REV[persistent]
+        current_persistence = system.boot.get('enabled')
+
+        # NOTE(etingof): this can be racy, esp if BMC is not RESTful
+        enabled = (desired_persistence
+                   if desired_persistence != current_persistence else None)
+
         try:
             try:
                 system.set_system_boot_options(
-                    BOOT_DEVICE_MAP_REV[device],
-                    enabled=BOOT_DEVICE_PERSISTENT_MAP_REV[persistent])
+                    BOOT_DEVICE_MAP_REV[device], enabled=enabled)
             except AttributeError:
                 system.set_system_boot_source(
                     BOOT_DEVICE_MAP_REV[device],

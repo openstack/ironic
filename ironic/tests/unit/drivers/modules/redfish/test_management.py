@@ -146,6 +146,31 @@ class RedfishManagementTestCase(db_base.DbTestCase):
                 fake_system.set_system_boot_options.reset_mock()
                 mock_get_system.reset_mock()
 
+    @mock.patch.object(redfish_utils, 'get_system', autospec=True)
+    def test_set_boot_device_persistency_no_change(self, mock_get_system):
+        fake_system = mock.Mock()
+        mock_get_system.return_value = fake_system
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            expected_values = [
+                (True, sushy.BOOT_SOURCE_ENABLED_CONTINUOUS),
+                (False, sushy.BOOT_SOURCE_ENABLED_ONCE)
+            ]
+
+            for target, expected in expected_values:
+                fake_system.boot.get.return_value = expected
+
+                task.driver.management.set_boot_device(
+                    task, boot_devices.PXE, persistent=target)
+
+                fake_system.set_system_boot_options.assert_called_once_with(
+                    sushy.BOOT_SOURCE_TARGET_PXE, enabled=None)
+                mock_get_system.assert_called_once_with(task.node)
+
+                # Reset mocks
+                fake_system.set_system_boot_options.reset_mock()
+                mock_get_system.reset_mock()
+
     @mock.patch.object(sushy, 'Sushy', autospec=True)
     @mock.patch.object(redfish_utils, 'get_system', autospec=True)
     def test_set_boot_device_fail(self, mock_get_system, mock_sushy):
