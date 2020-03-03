@@ -110,7 +110,8 @@ Steps to start a deployment are pretty similar to those when using Compute:
 
     openstack baremetal port create $MAC_ADDRESS --node $NODE_UUID
 
-#. You also need to specify some fields in the node's ``instance_info``:
+#. You also need to specify image information in the node's ``instance_info``
+   (see :doc:`creating-images`):
 
    * ``image_source`` - URL of the whole disk or root partition image,
      mandatory. For :ref:`direct-deploy` only HTTP(s) links are accepted,
@@ -141,7 +142,7 @@ Steps to start a deployment are pretty similar to those when using Compute:
         md5sum *.img > checksums
 
    * ``kernel``, ``ramdisk`` - HTTP(s) or file URLs of the kernel and
-     initramfs of the target OS, only required for partition images.
+     initramfs of the target OS. Must be added **only** for partition images.
 
    For example::
 
@@ -151,6 +152,12 @@ Steps to start a deployment are pretty similar to those when using Compute:
         --instance-info kernel=$KERNEL \
         --instance-info ramdisk=$RAMDISK \
         --instance-info root_gb=10
+
+   With a whole disk image::
+
+    openstack baremetal node set $NODE_UUID \
+        --instance-info image_source=$IMG \
+        --instance-info image_checksum=$MD5HASH
 
 #. Starting with the Ussuri release, you can set :ref:`root device hints
    <root-device-hints>` per instance::
