@@ -1,5 +1,6 @@
 - job:
     name: ironic-base
+    abstract: true
     description: Base job for devstack/tempest based ironic jobs.
     parent: devstack-tempest
     nodeset: openstack-single-node-bionic
