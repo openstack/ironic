@@ -1,0 +1,7 @@
+---
+features:
+  - |
+    Add `root_prefix` parameter to the sushy context based on the path of
+    `redfish_address`. Defaults to sushy root_prefix default (`/redfish/v1/`).
+    This is needed if the Redfish API is not located in the default
+    /redfish/v1/ endpoint.

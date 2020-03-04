@@ -160,6 +160,13 @@ class RedfishUtilsTestCase(db_base.DbTestCase):
                                    'The value should be one of ',
                                    redfish_utils.parse_driver_info, self.node)
 
+    def test_parse_driver_info_with_root_prefix(self):
+        test_redfish_address = 'https://example.com/test/redfish/v0/'
+        self.node.driver_info['redfish_address'] = test_redfish_address
+        self.parsed_driver_info['root_prefix'] = '/test/redfish/v0/'
+        response = redfish_utils.parse_driver_info(self.node)
+        self.assertEqual(self.parsed_driver_info, response)
+
     @mock.patch.object(sushy, 'Sushy', autospec=True)
     @mock.patch('ironic.drivers.modules.redfish.utils.'
                 'SessionCache._sessions', {})
