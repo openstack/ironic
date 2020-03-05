@@ -1,0 +1,6 @@
+---
+upgrade:
+  - |
+    The minimum supported version of Ansible is now 2.7.
+    All the precedent versions are not maintained anymore, version 2.7 grants
+    at least security fixes.

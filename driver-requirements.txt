@@ -14,7 +14,7 @@ python-xclarityclient>=0.1.6
 sushy>=3.1.0
 
 # Ansible-deploy interface
-ansible>=2.5
+ansible>=2.7
 
 # HUAWEI iBMC hardware type uses the python-ibmcclient library
 python-ibmcclient>=0.1.0
