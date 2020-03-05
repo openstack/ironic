@@ -1686,33 +1686,30 @@ class MiscTestCase(db_base.DbTestCase):
     @mock.patch.object(rpcapi.ConductorAPI, 'continue_node_deploy',
                        autospec=True)
     @mock.patch.object(rpcapi.ConductorAPI, 'get_topic_for', autospec=True)
-    def test__notify_conductor_resume_operation(self, mock_topic,
-                                                mock_rpc_call):
+    def test_notify_conductor_resume_operation(self, mock_topic,
+                                               mock_rpc_call):
         mock_topic.return_value = 'topic'
         with task_manager.acquire(
                 self.context, self.node.uuid, shared=False) as task:
-            conductor_utils._notify_conductor_resume_operation(
-                task, 'deploying', 'continue_node_deploy')
+            conductor_utils.notify_conductor_resume_operation(task, 'deploy')
             mock_rpc_call.assert_called_once_with(
                 mock.ANY, task.context, self.node.uuid, topic='topic')
 
-    @mock.patch.object(conductor_utils, '_notify_conductor_resume_operation',
+    @mock.patch.object(conductor_utils, 'notify_conductor_resume_operation',
                        autospec=True)
     def test_notify_conductor_resume_clean(self, mock_resume):
         with task_manager.acquire(
                 self.context, self.node.uuid, shared=False) as task:
             conductor_utils.notify_conductor_resume_clean(task)
-            mock_resume.assert_called_once_with(
-                task, 'cleaning', 'continue_node_clean')
+            mock_resume.assert_called_once_with(task, 'clean')
 
-    @mock.patch.object(conductor_utils, '_notify_conductor_resume_operation',
+    @mock.patch.object(conductor_utils, 'notify_conductor_resume_operation',
                        autospec=True)
     def test_notify_conductor_resume_deploy(self, mock_resume):
         with task_manager.acquire(
                 self.context, self.node.uuid, shared=False) as task:
             conductor_utils.notify_conductor_resume_deploy(task)
-            mock_resume.assert_called_once_with(
-                task, 'deploying', 'continue_node_deploy')
+            mock_resume.assert_called_once_with(task, 'deploy')
 
     @mock.patch.object(time, 'sleep', autospec=True)
     @mock.patch.object(fake.FakePower, 'get_power_state', autospec=True)

@@ -42,26 +42,27 @@ LOG = log.getLogger(__name__)
 
 METRICS = metrics_utils.get_metrics_logger(__name__)
 
-# This contains a nested dictionary containing the post clean step
-# hooks registered for each clean step of every interface.
-# Every key of POST_CLEAN_STEP_HOOKS is an interface and its value
-# is a dictionary. For this inner dictionary, the key is the name of
-# the clean-step method in the interface, and the value is the post
-# clean-step hook -- the function that is to be called after successful
-# completion of the clean step.
+# This contains a nested dictionary containing the post clean/deploy step hooks
+# registered for each clean/deploy step of every interface.
+# Every key is an interface and its value is a dictionary. For this inner
+# dictionary, the key is the name of the clean-/deploy-step method in the
+# interface, and the value is the post clean-/deploy-step hook -- the function
+# that is to be called after successful completion of the clean/deploy step.
 #
 # For example:
-# POST_CLEAN_STEP_HOOKS =
+# _POST_STEP_HOOKS = {
+#   {'clean':
 #    {
 #     'raid': {'create_configuration': <post-create function>,
 #              'delete_configuration': <post-delete function>}
 #    }
+#  }
 #
 # It means that method '<post-create function>' is to be called after
 # successfully completing the clean step 'create_configuration' of
 # raid interface. '<post-delete function>' is to be called after
 # completing 'delete_configuration' of raid interface.
-POST_CLEAN_STEP_HOOKS = {}
+_POST_STEP_HOOKS = {'clean': {}, 'deploy': {}}
 
 VENDOR_PROPERTIES = {
     'deploy_forces_oob_reboot': _(
@@ -114,39 +115,70 @@ def post_clean_step_hook(interface, step):
         step hook.
     """
     def decorator(func):
-        POST_CLEAN_STEP_HOOKS.setdefault(interface, {})[step] = func
+        _POST_STEP_HOOKS['clean'].setdefault(interface, {})[step] = func
         return func
 
     return decorator
 
 
-def _get_post_clean_step_hook(node):
-    """Get post clean step hook for the currently executing clean step.
+@METRICS.timer('post_deploy_step_hook')
+def post_deploy_step_hook(interface, step):
+    """Decorator method for adding a post deploy step hook.
 
-    This method reads node.clean_step and returns the post clean
-    step hook for the currently executing clean step.
+    This is a mechanism for adding a post deploy step hook for a particular
+    deploy step.  The hook will get executed after the deploy step gets
+    executed successfully.  The hook is not invoked on failure of the deploy
+    step.
+
+    Any method to be made as a hook may be decorated with
+    @post_deploy_step_hook mentioning the interface and step after which the
+    hook should be executed.  A TaskManager instance and the object for the
+    last completed command (provided by agent) will be passed to the hook
+    method. The return value of this method will be ignored. Any exception
+    raised by this method will be treated as a failure of the deploy step and
+    the node will be moved to DEPLOYFAIL state.
+
+    :param interface: name of the interface
+    :param step: The name of the step after which it should be executed.
+    :returns: A method which registers the given method as a post deploy
+        step hook.
+    """
+    def decorator(func):
+        _POST_STEP_HOOKS['deploy'].setdefault(interface, {})[step] = func
+        return func
+
+    return decorator
+
+
+def _get_post_step_hook(node, step_type):
+    """Get post clean/deploy step hook for the currently executing step.
 
     :param node: a node object
+    :param step_type: 'clean' or 'deploy'
     :returns: a method if there is a post clean step hook for this clean
         step; None otherwise
     """
-    interface = node.clean_step.get('interface')
-    step = node.clean_step.get('step')
+    step_obj = node.clean_step if step_type == 'clean' else node.deploy_step
+    interface = step_obj.get('interface')
+    step = step_obj.get('step')
     try:
-        return POST_CLEAN_STEP_HOOKS[interface][step]
+        return _POST_STEP_HOOKS[step_type][interface][step]
     except KeyError:
         pass
 
 
-def _cleaning_reboot(task):
-    """Reboots a node out of band after a clean step that requires it.
+def _post_step_reboot(task, step_type):
+    """Reboots a node out of band after a clean/deploy step that requires it.
 
-    If an agent clean step has 'reboot_requested': True, reboots the
-    node when the step is completed. Will put the node in CLEANFAIL
-    if the node cannot be rebooted.
+    If an agent step has 'reboot_requested': True, reboots the node when
+    the step is completed. Will put the node in CLEANFAIL/DEPLOYFAIL if
+    the node cannot be rebooted.
 
     :param task: a TaskManager instance
+    :param step_type: 'clean' or 'deploy'
     """
+    current_step = (task.node.clean_step if step_type == 'clean'
+                    else task.node.deploy_step)
     try:
         # NOTE(fellypefca): Call prepare_ramdisk on ensure that the
         # baremetal node boots back into the ramdisk after reboot.
@@ -154,19 +186,25 @@ def _cleaning_reboot(task):
         task.driver.boot.prepare_ramdisk(task, deploy_opts)
         manager_utils.node_power_action(task, states.REBOOT)
     except Exception as e:
-        msg = (_('Reboot requested by clean step %(step)s failed for '
+        msg = (_('Reboot requested by %(type)s step %(step)s failed for '
                  'node %(node)s: %(err)s') %
-               {'step': task.node.clean_step,
+               {'step': current_step,
                 'node': task.node.uuid,
-                'err': e})
+                'err': e,
+                'type': step_type})
         LOG.error(msg, exc_info=not isinstance(e, exception.IronicException))
         # do not set cleaning_reboot if we didn't reboot
-        manager_utils.cleaning_error_handler(task, msg)
+        if step_type == 'clean':
+            manager_utils.cleaning_error_handler(task, msg)
+        else:
+            manager_utils.deploying_error_handler(task, msg)
         return
 
     # Signify that we've rebooted
     driver_internal_info = task.node.driver_internal_info
-    driver_internal_info['cleaning_reboot'] = True
+    field = ('cleaning_reboot' if step_type == 'clean'
+             else 'deployment_reboot')
+    driver_internal_info[field] = True
     if not driver_internal_info.get('agent_secret_token_pregenerated', False):
         # Wipes out the existing recorded token because the machine will
         # need to re-establish the token.
@@ -175,8 +213,8 @@ def _cleaning_reboot(task):
     task.node.save()
 
 
-def _get_completed_cleaning_command(task, commands):
-    """Returns None or a completed cleaning command from the agent.
+def _get_completed_command(task, commands, step_type):
+    """Returns None or a completed clean/deploy command from the agent.
 
     :param task: a TaskManager instance to act on.
     :param commands: a set of command results from the agent, typically
@@ -187,28 +225,32 @@ def _get_completed_cleaning_command(task, commands):
 
     last_command = commands[-1]
 
-    if last_command['command_name'] != 'execute_clean_step':
-        # catches race condition where execute_clean_step is still
+    if last_command['command_name'] != 'execute_%s_step' % step_type:
+        # catches race condition where execute_step is still
         # processing so the command hasn't started yet
-        LOG.debug('Expected agent last command to be "execute_clean_step" '
+        LOG.debug('Expected agent last command to be "execute_%(type)s_step" '
                   'for node %(node)s, instead got "%(command)s". Waiting '
                   'for next heartbeat.',
                   {'node': task.node.uuid,
-                   'command': last_command['command_name']})
+                   'command': last_command['command_name'],
+                   'type': step_type})
         return
 
     last_result = last_command.get('command_result') or {}
-    last_step = last_result.get('clean_step')
+    last_step = last_result.get('%s_step' % step_type)
+    current_step = (task.node.clean_step if step_type == 'clean'
+                    else task.node.deploy_step)
     if last_command['command_status'] == 'RUNNING':
-        LOG.debug('Clean step still running for node %(node)s: %(step)s',
-                  {'step': last_step, 'node': task.node.uuid})
+        LOG.debug('%(type)s step still running for node %(node)s: %(step)s',
+                  {'step': last_step, 'node': task.node.uuid,
+                   'type': step_type.capitalize()})
         return
     elif (last_command['command_status'] == 'SUCCEEDED'
-          and last_step != task.node.clean_step):
-        # A previous clean_step was running, the new command has not yet
-        # started.
-        LOG.debug('Clean step not yet started for node %(node)s: %(step)s',
-                  {'step': last_step, 'node': task.node.uuid})
+          and last_step != current_step):
+        # A previous step was running, the new command has not yet started.
+        LOG.debug('%(type)s step not yet started for node %(node)s: %(step)s',
+                  {'step': last_step, 'node': task.node.uuid,
+                   'type': step_type.capitalize()})
         return
     else:
         return last_command
@@ -233,32 +275,29 @@ def log_and_raise_deployment_error(task, msg, collect_logs=True, exc=None):
     raise exception.InstanceDeployFailure(msg)
 
 
-def get_clean_steps(task, interface=None, override_priorities=None):
-    """Get the list of cached clean steps from the agent.
+def get_steps(task, step_type, interface=None, override_priorities=None):
+    """Get the list of cached clean or deploy steps from the agent.
 
-    #TODO(JoshNang) move to BootInterface
-
-    The clean steps cache is updated at the beginning of cleaning.
+    The steps cache is updated at the beginning of cleaning or deploy.
 
     :param task: a TaskManager object containing the node
-    :param interface: The interface for which clean steps
+    :param step_type: 'clean' or 'deploy'
+    :param interface: The interface for which clean/deploy steps
         are to be returned. If this is not provided, it returns the
-        clean steps for all interfaces.
+        steps for all interfaces.
     :param override_priorities: a dictionary with keys being step names and
         values being new priorities for them. If a step isn't in this
         dictionary, the step's original priority is used.
-    :raises NodeCleaningFailure: if the clean steps are not yet cached,
-        for example, when a node has just been enrolled and has not been
-        cleaned yet.
-    :returns: A list of clean step dictionaries
+    :returns: A list of clean/deploy step dictionaries
     """
     node = task.node
     try:
-        all_steps = node.driver_internal_info['agent_cached_clean_steps']
+        all_steps = node.driver_internal_info['agent_cached_%s_steps'
+                                              % step_type]
     except KeyError:
-        raise exception.NodeCleaningFailure(_('Cleaning steps are not yet '
-                                              'available for node %(node)s')
-                                            % {'node': node.uuid})
+        LOG.debug('%(type)s steps are not yet available for node %(node)s',
+                  {'type': step_type.capitalize(), 'node': node.uuid})
+        return []
 
     if interface:
         steps = [step.copy() for step in all_steps.get(interface, [])]
@@ -277,26 +316,40 @@ def get_clean_steps(task, interface=None, override_priorities=None):
     return steps
 
 
-def execute_clean_step(task, step):
-    """Execute a clean step asynchronously on the agent.
+def _raise(step_type, msg):
+    assert step_type in ('clean', 'deploy')
+    exc = (exception.NodeCleaningFailure if step_type == 'clean'
+           else exception.InstanceDeployFailure)
+    raise exc(msg)
 
-    #TODO(JoshNang) move to BootInterface
+
+def execute_step(task, step, step_type):
+    """Execute a clean or deploy step asynchronously on the agent.
 
     :param task: a TaskManager object containing the node
-    :param step: a clean step dictionary to execute
-    :raises: NodeCleaningFailure if the agent does not return a command status
-    :returns: states.CLEANWAIT to signify the step will be completed async
+    :param step: a step dictionary to execute
+    :param step_type: 'clean' or 'deploy'
+    :raises: NodeCleaningFailure (clean step) or InstanceDeployFailure (deploy
+        step) if the agent does not return a command status.
+    :returns: states.CLEANWAIT/DEPLOYWAIT to signify the step will be
+        completed async
     """
     client = _get_client()
     ports = objects.Port.list_by_node_id(
         task.context, task.node.id)
-    result = client.execute_clean_step(step, task.node, ports)
+    call = getattr(client, 'execute_%s_step' % step_type)
+    result = call(step, task.node, ports)
     if not result.get('command_status'):
-        raise exception.NodeCleaningFailure(_(
+        _raise(step_type, _(
             'Agent on node %(node)s returned bad command result: '
             '%(result)s') % {'node': task.node.uuid,
                              'result': result.get('command_error')})
-    return states.CLEANWAIT
+    return states.CLEANWAIT if step_type == 'clean' else states.DEPLOYWAIT
+
+
+def execute_clean_step(task, step):
+    # NOTE(dtantsur): left for compatibility with agent-based hardware types.
+    return execute_step(task, step, 'clean')
 
 
 class HeartbeatMixin(object):
@@ -346,19 +399,33 @@ class HeartbeatMixin(object):
 
         """
 
+    def refresh_steps(self, task, step_type):
+        """Refresh the node's cached clean steps
+
+        :param task: a TaskManager instance
+        :param step_type: "clean" or "deploy"
+        """
+
     def refresh_clean_steps(self, task):
         """Refresh the node's cached clean steps
 
         :param task: a TaskManager instance
+        """
+        return self.refresh_steps(task, 'clean')
 
+    def process_next_step(self, task, step_type):
+        """Start the next clean/deploy step if the previous one is complete.
+
+        :param task: a TaskManager instance
+        :param step_type: "clean" or "deploy"
         """
 
     def continue_cleaning(self, task):
         """Start the next cleaning step if the previous one is complete.
 
         :param task: a TaskManager instance
-
         """
+        return self.process_next_step(task, 'clean')
 
     @property
     def heartbeat_allowed_states(self):
@@ -555,53 +622,60 @@ class AgentDeployMixin(HeartbeatMixin):
             'erase_devices_metadata':
                 CONF.deploy.erase_devices_metadata_priority,
         }
-        return get_clean_steps(
-            task, interface='deploy',
+        return get_steps(
+            task, 'clean', interface='deploy',
             override_priorities=new_priorities)
 
-    @METRICS.timer('AgentDeployMixin.refresh_clean_steps')
-    def refresh_clean_steps(self, task):
-        """Refresh the node's cached clean steps from the booted agent.
+    @METRICS.timer('AgentDeployMixin.refresh_steps')
+    def refresh_steps(self, task, step_type):
+        """Refresh the node's cached clean/deploy steps from the booted agent.
 
-        Gets the node's clean steps from the booted agent and caches them.
+        Gets the node's steps from the booted agent and caches them.
         The steps are cached to make get_clean_steps() calls synchronous, and
-        should be refreshed as soon as the agent boots to start cleaning or
-        if cleaning is restarted because of a cleaning version mismatch.
+        should be refreshed as soon as the agent boots to start cleaning/deploy
+        or if cleaning is restarted because of a hardware manager version
+        mismatch.
 
         :param task: a TaskManager instance
-        :raises: NodeCleaningFailure if the agent returns invalid results
+        :param step_type: 'clean' or 'deploy'
+        :raises: NodeCleaningFailure or InstanceDeployFailure if the agent
+            returns invalid results
         """
         node = task.node
         previous_steps = node.driver_internal_info.get(
-            'agent_cached_clean_steps')
-        LOG.debug('Refreshing agent clean step cache for node %(node)s. '
+            'agent_cached_%s_steps' % step_type)
+        LOG.debug('Refreshing agent %(type)s step cache for node %(node)s. '
                   'Previously cached steps: %(steps)s',
-                  {'node': node.uuid, 'steps': previous_steps})
+                  {'node': node.uuid, 'type': step_type,
+                   'steps': previous_steps})
 
-        agent_result = self._client.get_clean_steps(node, task.ports).get(
-            'command_result', {})
-        missing = set(['clean_steps', 'hardware_manager_version']).difference(
-            agent_result)
+        call = getattr(self._client, 'get_%s_steps' % step_type)
+        agent_result = call(node, task.ports).get('command_result', {})
+        missing = set(['%s_steps' % step_type,
+                       'hardware_manager_version']).difference(agent_result)
         if missing:
-            raise exception.NodeCleaningFailure(_(
-                'agent get_clean_steps for node %(node)s returned an invalid '
-                'result. Keys: %(keys)s are missing from result: %(result)s.')
+            _raise(step_type, _(
+                'agent get_%(type)s_steps for node %(node)s returned an '
+                'invalid result. Keys: %(keys)s are missing from result: '
+                '%(result)s.')
                 % ({'node': node.uuid, 'keys': missing,
-                    'result': agent_result}))
+                    'result': agent_result, 'type': step_type}))
 
         # agent_result['clean_steps'] looks like
         # {'HardwareManager': [{step1},{steps2}...], ...}
         steps = collections.defaultdict(list)
-        for step_list in agent_result['clean_steps'].values():
+        for step_list in agent_result['%s_steps' % step_type].values():
             for step in step_list:
                 missing = set(['interface', 'step', 'priority']).difference(
                     step)
                 if missing:
-                    raise exception.NodeCleaningFailure(_(
-                        'agent get_clean_steps for node %(node)s returned an '
-                        'invalid clean step. Keys: %(keys)s are missing from '
-                        'step: %(step)s.') % ({'node': node.uuid,
-                                               'keys': missing, 'step': step}))
+                    _raise(step_type, _(
+                        'agent get_%(type)s_steps for node %(node)s returned '
+                        'an invalid %(type)s step. Keys: %(keys)s are missing'
+                        'from step: %(step)s.') % ({'node': node.uuid,
+                                                    'keys': missing,
+                                                    'step': step,
+                                                    'type': step_type}))
 
                 steps[step['interface']].append(step)
 
@@ -609,12 +683,14 @@ class AgentDeployMixin(HeartbeatMixin):
         info = node.driver_internal_info
         info['hardware_manager_version'] = agent_result[
             'hardware_manager_version']
-        info['agent_cached_clean_steps'] = dict(steps)
-        info['agent_cached_clean_steps_refreshed'] = str(timeutils.utcnow())
+        info['agent_cached_%s_steps' % step_type] = dict(steps)
+        info['agent_cached_%s_steps_refreshed' % step_type] = str(
+            timeutils.utcnow())
         node.driver_internal_info = info
         node.save()
-        LOG.debug('Refreshed agent clean step cache for node %(node)s: '
-                  '%(steps)s', {'node': node.uuid, 'steps': steps})
+        LOG.debug('Refreshed agent %(type)s step cache for node %(node)s: '
+                  '%(steps)s', {'node': node.uuid, 'steps': steps,
+                                'type': step_type})
 
     @METRICS.timer('AgentDeployMixin.execute_clean_step')
     def execute_clean_step(self, task, step):
@@ -626,24 +702,27 @@ class AgentDeployMixin(HeartbeatMixin):
             status
         :returns: states.CLEANWAIT to signify the step will be completed async
         """
-        return execute_clean_step(task, step)
+        return execute_step(task, step, 'clean')
 
-    @METRICS.timer('AgentDeployMixin.continue_cleaning')
-    def continue_cleaning(self, task, **kwargs):
-        """Start the next cleaning step if the previous one is complete.
+    @METRICS.timer('AgentDeployMixin.process_next_step')
+    def process_next_step(self, task, step_type, **kwargs):
+        """Start the next clean/deploy step if the previous one is complete.
 
         In order to avoid errors and make agent upgrades painless, the agent
         compares the version of all hardware managers at the start of the
-        cleaning (the agent's get_clean_steps() call) and before executing
-        each clean step. If the version has changed between steps, the agent is
-        unable to tell if an ordering change will cause a cleaning issue so
-        it returns CLEAN_VERSION_MISMATCH. For automated cleaning, we restart
-        the entire cleaning cycle. For manual cleaning, we don't.
+        process (the agent's get_clean|deploy_steps() call) and before
+        executing each step. If the version has changed between steps,
+        the agent is unable to tell if an ordering change will cause an issue
+        so it returns CLEAN_VERSION_MISMATCH. For automated cleaning, we
+        restart the entire cleaning cycle. For manual cleaning or deploy,
+        we don't.
 
-        Additionally, if a clean_step includes the reboot_requested property
+        Additionally, if a step includes the reboot_requested property
         set to True, this method will coordinate the reboot once the step is
         completed.
         """
+        assert step_type in ('clean', 'deploy')
+
         node = task.node
         # For manual clean, the target provision state is MANAGEABLE, whereas
         # for automated cleaning, it is (the default) AVAILABLE.
@@ -651,47 +730,61 @@ class AgentDeployMixin(HeartbeatMixin):
         agent_commands = self._client.get_commands_status(task.node)
 
         if not agent_commands:
-            if task.node.driver_internal_info.get('cleaning_reboot'):
+            field = ('cleaning_reboot' if step_type == 'clean'
+                     else 'deployment_reboot')
+            if task.node.driver_internal_info.get(field):
                 # Node finished a cleaning step that requested a reboot, and
                 # this is the first heartbeat after booting. Continue cleaning.
                 info = task.node.driver_internal_info
-                info.pop('cleaning_reboot', None)
+                info.pop(field, None)
                 task.node.driver_internal_info = info
                 task.node.save()
-                manager_utils.notify_conductor_resume_clean(task)
+                manager_utils.notify_conductor_resume_operation(task,
+                                                                step_type)
                 return
             else:
                 # Agent has no commands whatsoever
                 return
 
-        command = _get_completed_cleaning_command(task, agent_commands)
-        LOG.debug('Cleaning command status for node %(node)s on step %(step)s:'
+        current_step = (node.clean_step if step_type == 'clean'
+                        else node.deploy_step)
+        command = _get_completed_command(task, agent_commands, step_type)
+        LOG.debug('%(type)s command status for node %(node)s on step %(step)s:'
                   ' %(command)s', {'node': node.uuid,
-                                   'step': node.clean_step,
-                                   'command': command})
+                                   'step': current_step,
+                                   'command': command,
+                                   'type': step_type})
 
         if not command:
             # Agent command in progress
             return
 
         if command.get('command_status') == 'FAILED':
-            msg = (_('Agent returned error for clean step %(step)s on node '
+            msg = (_('Agent returned error for %(type)s step %(step)s on node '
                      '%(node)s : %(err)s.') %
                    {'node': node.uuid,
                     'err': command.get('command_error'),
-                    'step': node.clean_step})
+                    'step': current_step,
+                    'type': step_type})
             LOG.error(msg)
             return manager_utils.cleaning_error_handler(task, msg)
-        elif command.get('command_status') == 'CLEAN_VERSION_MISMATCH':
+        elif command.get('command_status') in ('CLEAN_VERSION_MISMATCH',
+                                               'DEPLOY_VERSION_MISMATCH'):
             # Cache the new clean steps (and 'hardware_manager_version')
             try:
-                self.refresh_clean_steps(task)
+                self.refresh_steps(task, step_type)
             except exception.NodeCleaningFailure as e:
                 msg = (_('Could not continue cleaning on node '
                          '%(node)s: %(err)s.') %
                        {'node': node.uuid, 'err': e})
                 LOG.exception(msg)
                 return manager_utils.cleaning_error_handler(task, msg)
+            except exception.InstanceDeployFailure as e:
+                msg = (_('Could not continue deployment on node '
+                         '%(node)s: %(err)s.') %
+                       {'node': node.uuid, 'err': e})
+                LOG.exception(msg)
+                return manager_utils.deploying_error_handler(task, msg)
 
             if manual_clean:
                 # Don't restart manual cleaning if agent reboots to a new
@@ -708,60 +801,77 @@ class AgentDeployMixin(HeartbeatMixin):
                 node.driver_internal_info = driver_internal_info
                 node.save()
             else:
-                # Restart cleaning, agent must have rebooted to new version
-                LOG.info('During automated cleaning, node %s detected a '
-                         'clean version mismatch. Resetting clean steps '
-                         'and rebooting the node.', node.uuid)
+                # Restart the process, agent must have rebooted to new version
+                LOG.info('During %(type)s, node %(node)s detected a '
+                         '%(type)s version mismatch. Resetting %(type)s steps '
+                         'and rebooting the node.',
+                         {'type': step_type, 'node': node.uuid})
                 try:
                     conductor_steps.set_node_cleaning_steps(task)
-                except exception.NodeCleaningFailure:
+                except exception.NodeCleaningFailure as e:
                     msg = (_('Could not restart automated cleaning on node '
-                             '%(node)s: %(err)s.') %
-                           {'node': node.uuid,
-                            'err': command.get('command_error'),
+                             '%(node)s after step %(step)s: %(err)s.') %
+                           {'node': node.uuid, 'err': e,
                             'step': node.clean_step})
                     LOG.exception(msg)
                     return manager_utils.cleaning_error_handler(task, msg)
+                except exception.InstanceDeployFailure as e:
+                    msg = (_('Could not restart deployment on node '
+                             '%(node)s after step %(step)s: %(err)s.') %
+                           {'node': node.uuid, 'err': e,
+                            'step': node.deploy_step})
+                    LOG.exception(msg)
+                    return manager_utils.deploying_error_handler(task, msg)
 
-            manager_utils.notify_conductor_resume_clean(task)
+            manager_utils.notify_conductor_resume_operation(task, step_type)
 
         elif command.get('command_status') == 'SUCCEEDED':
-            clean_step_hook = _get_post_clean_step_hook(node)
-            if clean_step_hook is not None:
-                LOG.debug('For node %(node)s, executing post clean step '
-                          'hook %(method)s for clean step %(step)s',
-                          {'method': clean_step_hook.__name__,
+            step_hook = _get_post_step_hook(node, step_type)
+            if step_hook is not None:
+                LOG.debug('For node %(node)s, executing post %(type)s step '
+                          'hook %(method)s for %(type)s step %(step)s',
+                          {'method': step_hook.__name__,
                            'node': node.uuid,
-                           'step': node.clean_step})
+                           'step': current_step,
+                           'type': step_type})
                 try:
-                    clean_step_hook(task, command)
+                    step_hook(task, command)
                 except Exception as e:
-                    msg = (_('For node %(node)s, post clean step hook '
-                             '%(method)s failed for clean step %(step)s.'
+                    msg = (_('For node %(node)s, post %(type)s step hook '
+                             '%(method)s failed for %(type)s step %(step)s.'
                              '%(cls)s: %(error)s') %
-                           {'method': clean_step_hook.__name__,
+                           {'method': step_hook.__name__,
                             'node': node.uuid,
                             'error': e,
                             'cls': e.__class__.__name__,
-                            'step': node.clean_step})
+                            'step': current_step,
+                            'type': step_type})
                     LOG.exception(msg)
-                    return manager_utils.cleaning_error_handler(task, msg)
+                    if step_type == 'clean':
+                        return manager_utils.cleaning_error_handler(task, msg)
+                    else:
+                        return manager_utils.deploying_error_handler(task, msg)
 
-            if task.node.clean_step.get('reboot_requested'):
-                _cleaning_reboot(task)
+            if current_step.get('reboot_requested'):
+                _post_step_reboot(task, step_type)
                 return
 
-            LOG.info('Agent on node %s returned cleaning command success, '
-                     'moving to next clean step', node.uuid)
-            manager_utils.notify_conductor_resume_clean(task)
+            LOG.info('Agent on node %(node)s returned %(type)s command '
+                     'success, moving to next step',
+                     {'node': node.uuid, 'type': step_type})
+            manager_utils.notify_conductor_resume_operation(task, step_type)
         else:
-            msg = (_('Agent returned unknown status for clean step %(step)s '
-                     'on node %(node)s : %(err)s.') %
+            msg = (_('Agent returned unknown status for %(type)s step %(step)s'
+                     ' on node %(node)s : %(err)s.') %
                    {'node': node.uuid,
                     'err': command.get('command_status'),
-                    'step': node.clean_step})
+                    'step': current_step,
+                    'type': step_type})
             LOG.error(msg)
-            return manager_utils.cleaning_error_handler(task, msg)
+            if step_type == 'clean':
+                return manager_utils.cleaning_error_handler(task, msg)
+            else:
+                return manager_utils.deploying_error_handler(task, msg)
 
     @METRICS.timer('AgentDeployMixin.reboot_and_finish_deploy')
     def reboot_and_finish_deploy(self, task):

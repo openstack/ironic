@@ -968,7 +968,7 @@ class ISCSIDeployTestCase(db_base.DbTestCase):
             tear_down_cleaning_mock.assert_called_once_with(
                 task, manage_boot=True)
 
-    @mock.patch.object(agent_base, 'get_clean_steps', autospec=True)
+    @mock.patch.object(agent_base, 'get_steps', autospec=True)
     def test_get_clean_steps(self, mock_get_clean_steps):
         # Test getting clean steps
         self.config(group='deploy', erase_devices_priority=10)
@@ -981,19 +981,19 @@ class ISCSIDeployTestCase(db_base.DbTestCase):
         with task_manager.acquire(self.context, self.node.uuid) as task:
             steps = task.driver.deploy.get_clean_steps(task)
             mock_get_clean_steps.assert_called_once_with(
-                task, interface='deploy',
+                task, 'clean', interface='deploy',
                 override_priorities={
                     'erase_devices': 10,
                     'erase_devices_metadata': 5})
         self.assertEqual(mock_steps, steps)
 
-    @mock.patch.object(agent_base, 'execute_clean_step', autospec=True)
+    @mock.patch.object(agent_base, 'execute_step', autospec=True)
     def test_execute_clean_step(self, agent_execute_clean_step_mock):
         with task_manager.acquire(self.context, self.node.uuid) as task:
             task.driver.deploy.execute_clean_step(
                 task, {'some-step': 'step-info'})
             agent_execute_clean_step_mock.assert_called_once_with(
-                task, {'some-step': 'step-info'})
+                task, {'some-step': 'step-info'}, 'clean')
 
     @mock.patch.object(agent_base.AgentDeployMixin,
                        'reboot_and_finish_deploy', autospec=True)
