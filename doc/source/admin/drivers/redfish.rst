@@ -99,7 +99,7 @@ a node with the ``redfish`` driver. For example:
     redfish_address=https://example.com --driver-info \
     redfish_system_id=/redfish/v1/Systems/CX34R87 --driver-info \
     redfish_username=admin --driver-info redfish_password=password \
-    node-0
+    --name node-0
 
 For more information about enrolling nodes see :ref:`enrollment`
 in the install guide.
