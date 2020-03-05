@@ -1,60 +1,17 @@
 .. _image-requirements:
 
-Create and add images to the Image service
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Add images to the Image service
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Bare Metal provisioning requires two sets of images: the deploy images
-and the user images. The deploy images are used by the Bare Metal service
-to prepare the bare metal server for actual OS deployment. Whereas the
-user images are installed on the bare metal server to be used by the
-end user. Below are the steps to create the required images and add
-them to the Image service:
-
-#. Build the user images
-
-   The `disk-image-builder`_ can be used to create user images required for
-   deployment and the actual OS which the user is going to run.
-
-   .. _disk-image-builder: https://docs.openstack.org/diskimage-builder/latest/
-
-   - Install diskimage-builder package (use virtualenv, if you don't
-     want to install anything globally):
-
-     .. code-block:: console
-
-        # pip install diskimage-builder
-
-   - Build the image your users will run (Ubuntu image has been taken as
-     an example):
-
-     - Partition images
-
-       .. code-block:: console
-
-          $ disk-image-create ubuntu baremetal dhcp-all-interfaces grub2 -o my-image
-
-
-     - Whole disk images
-
-       .. code-block:: console
-
-          $ disk-image-create ubuntu vm dhcp-all-interfaces -o my-image
-
-   The partition image command creates ``my-image.qcow2``,
-   ``my-image.vmlinuz`` and ``my-image.initrd`` files. The ``grub2`` element
-   in the partition image creation command is only needed if local boot will
-   be used to deploy ``my-image.qcow2``, otherwise the images
-   ``my-image.vmlinuz`` and ``my-image.initrd`` will be used for PXE booting
-   after deploying the bare metal with ``my-image.qcow2``.
-
-   If you want to use Fedora image, replace ``ubuntu`` with ``fedora`` in the
-   chosen command.
+#. Build or download the user images as described in :doc:`creating-images`.
 
 #. Add the user images to the Image service
 
    Load all the images created in the below steps into the Image service,
    and note the image UUIDs in the Image service for each one as it is
    generated.
+
+   For *partition images*:
 
    - Add the kernel and ramdisk images to the Image service:
 
@@ -84,14 +41,18 @@ them to the Image service:
           kernel_id=$MY_VMLINUZ_UUID --property \
           ramdisk_id=$MY_INITRD_UUID --file my-image.qcow2
 
-   .. note:: To deploy a whole disk image, a kernel_id and a ramdisk_id
-             shouldn't be associated with the image. For example,
+   For *whole disk images*, skip uploading and configuring kernel and ramdisk
+   images completely, proceed directly to uploading the main image:
 
-             .. code-block:: console
+   .. code-block:: console
 
-                $ openstack image create my-whole-disk-image --public \
-                  --disk-format qcow2 --container-format bare \
-                  --file my-whole-disk-image.qcow2
+      $ openstack image create my-whole-disk-image --public \
+        --disk-format qcow2 --container-format bare \
+        --file my-whole-disk-image.qcow2
+
+   .. warning::
+       The kernel/initramfs pair must not be set for whole disk images,
+       otherwise they'll be mistaken for partition images.
 
 #. Build or download the deploy images
 
