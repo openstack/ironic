@@ -159,6 +159,28 @@ Steps to start a deployment are pretty similar to those when using Compute:
         --instance-info image_source=$IMG \
         --instance-info image_checksum=$MD5HASH
 
+#. :ref:`Boot mode <boot_mode_support>` can be specified per instance::
+
+    openstack baremetal node set $NODE_UUID \
+        --instance-info deploy_boot_mode=uefi
+
+   Otherwise, the ``boot_mode`` capability from the node's ``properties`` will
+   be used.
+
+   .. warning::
+        The two settings must not contradict each other.
+
+   .. note::
+        The ``boot_mode`` capability is only used in the node's ``properties``,
+        not in ``instance_info`` like most other capabilities. Use the separate
+        ``instance_info/deploy_boot_mode`` field instead.
+
+#. To override the :ref:`boot option <local-boot-partition-images>` used for
+   this instance, set the ``boot_option`` capability::
+
+    openstack baremetal node set $NODE_UUID \
+        --instance-info capabilities='{"boot_option": "local"}'
+
 #. Starting with the Ussuri release, you can set :ref:`root device hints
    <root-device-hints>` per instance::
 
