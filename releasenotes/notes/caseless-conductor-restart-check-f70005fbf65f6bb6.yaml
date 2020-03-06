@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    Fixes an issue where a node may be locked from changes if a conductor's
+    hostname case is changed before restarting the conductor service.
