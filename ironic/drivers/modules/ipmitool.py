@@ -843,9 +843,8 @@ def _allocate_port(task):
 def _release_allocated_port(task):
     node = task.node
     dii = node.driver_internal_info or {}
-    allocated_port = dii.get('allocated_ipmi_terminal_port')
+    allocated_port = dii.pop('allocated_ipmi_terminal_port', None)
     if allocated_port:
-        dii.pop('allocated_ipmi_terminal_port')
         node.driver_internal_info = dii
         node.save()
         console_utils.release_port(allocated_port)
