@@ -1312,7 +1312,7 @@ def build_instance_info_for_deploy(task):
                     os_hash_algo = 'sha256'
                 LOG.debug('Recalculating checksum for image %(image)s due to '
                           'image conversion.', {'image': image_path})
-                instance_info['image_checksum'] = 'md5-not-supported'
+                instance_info['image_checksum'] = None
                 hash_value = compute_image_checksum(image_path, os_hash_algo)
                 instance_info['image_os_hash_algo'] = os_hash_algo
                 instance_info['image_os_hash_value'] = hash_value

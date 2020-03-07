@@ -257,6 +257,75 @@ class TestAgentDeploy(db_base.DbTestCase):
             pxe_boot_validate_mock.assert_called_once_with(
                 task.driver.boot, task)
 
+    @mock.patch.object(pxe.PXEBoot, 'validate', autospec=True)
+    def test_validate_nonglance_image_no_checksum_os_algo(
+            self, pxe_boot_validate_mock):
+        i_info = self.node.instance_info
+        i_info['image_source'] = 'http://image-ref'
+        i_info['image_os_hash_value'] = 'az'
+        del i_info['image_checksum']
+        self.node.instance_info = i_info
+        self.node.save()
+
+        with task_manager.acquire(
+                self.context, self.node.uuid, shared=False) as task:
+            self.assertRaises(exception.MissingParameterValue,
+                              self.driver.validate, task)
+            pxe_boot_validate_mock.assert_called_once_with(
+                task.driver.boot, task)
+
+    @mock.patch.object(pxe.PXEBoot, 'validate', autospec=True)
+    def test_validate_nonglance_image_no_os_image_hash(
+            self, pxe_boot_validate_mock, autospec=True):
+        i_info = self.node.instance_info
+        i_info['image_source'] = 'http://image-ref'
+        i_info['image_os_hash_algo'] = 'magicalgo'
+        self.node.instance_info = i_info
+        self.node.save()
+
+        with task_manager.acquire(
+                self.context, self.node.uuid, shared=False) as task:
+            self.assertRaises(exception.MissingParameterValue,
+                              self.driver.validate, task)
+            pxe_boot_validate_mock.assert_called_once_with(
+                task.driver.boot, task)
+
+    @mock.patch.object(pxe.PXEBoot, 'validate', autospec=True)
+    def test_validate_nonglance_image_no_os_algo(
+            self, pxe_boot_validate_mock):
+        i_info = self.node.instance_info
+        i_info['image_source'] = 'http://image-ref'
+        i_info['image_os_hash_value'] = 'az'
+        self.node.instance_info = i_info
+        self.node.save()
+
+        with task_manager.acquire(
+                self.context, self.node.uuid, shared=False) as task:
+            self.assertRaises(exception.MissingParameterValue,
+                              self.driver.validate, task)
+            pxe_boot_validate_mock.assert_called_once_with(
+                task.driver.boot, task)
+
+    @mock.patch.object(images, 'image_show', autospec=True)
+    @mock.patch.object(pxe.PXEBoot, 'validate', autospec=True)
+    def test_validate_nonglance_image_no_os_checksum(
+            self, pxe_boot_validate_mock, show_mock):
+        i_info = self.node.instance_info
+        i_info['image_source'] = 'http://image-ref'
+        del i_info['image_checksum']
+        i_info['image_os_hash_algo'] = 'whacky-algo-1'
+        i_info['image_os_hash_value'] = '1234567890'
+        self.node.instance_info = i_info
+        self.node.save()
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            self.driver.validate(task)
+            pxe_boot_validate_mock.assert_called_once_with(
+                task.driver.boot, task)
+            show_mock.assert_called_once_with(self.context,
+                                              'http://image-ref')
+
     @mock.patch.object(agent, 'validate_http_provisioning_configuration',
                        autospec=True)
     @mock.patch.object(images, 'image_show', autospec=True)

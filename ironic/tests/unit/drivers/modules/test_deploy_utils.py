@@ -2641,7 +2641,7 @@ class TestBuildInstanceInfoForHttpProvisioning(db_base.DbTestCase):
         image_path, instance_info = self._test_build_instance_info(
             image_info=self.image_info, expect_raw=True)
 
-        self.assertEqual('md5-not-supported', instance_info['image_checksum'])
+        self.assertIsNone(instance_info['image_checksum'])
         self.assertEqual(instance_info['image_disk_format'], 'raw')
         calls = [mock.call(image_path, algorithm='sha512')]
         self.checksum_mock.assert_has_calls(calls)
@@ -2652,7 +2652,7 @@ class TestBuildInstanceInfoForHttpProvisioning(db_base.DbTestCase):
         image_path, instance_info = self._test_build_instance_info(
             image_info=self.image_info, expect_raw=True)
 
-        self.assertEqual('md5-not-supported', instance_info['image_checksum'])
+        self.assertIsNone(instance_info['image_checksum'])
         self.assertEqual(instance_info['image_disk_format'], 'raw')
         calls = [mock.call(image_path, algorithm='sha256')]
         self.checksum_mock.assert_has_calls(calls)
