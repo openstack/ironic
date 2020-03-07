@@ -1300,19 +1300,22 @@ def build_instance_info_for_deploy(task):
                                                  force_raw=force_raw)
             if force_raw:
                 instance_info['image_disk_format'] = 'raw'
-
+                # Standard behavior is for image_checksum to be MD5,
+                # so if the hash algorithm is None, then we will use
+                # sha256.
+                os_hash_algo = image_info.get('os_hash_algo')
+                if os_hash_algo == 'md5':
+                    LOG.debug('Checksum calculation for image %(image)s is '
+                              'set to \'%(algo)s\', changing to \'sha256\'',
+                              {'algo': os_hash_algo,
+                               'image': image_path})
+                    os_hash_algo = 'sha256'
                 LOG.debug('Recalculating checksum for image %(image)s due to '
                           'image conversion.', {'image': image_path})
-                md5checksum = compute_image_checksum(image_path, 'md5')
-                instance_info['image_checksum'] = md5checksum
-                # Populate instance_info with os_hash_algo, os_hash_value
-                # if they exists and not md5
-                os_hash_algo = image_info['os_hash_algo']
-                if os_hash_algo and os_hash_algo != 'md5':
-                    hash_value = compute_image_checksum(image_path,
-                                                        os_hash_algo)
-                    instance_info['image_os_hash_algo'] = os_hash_algo
-                    instance_info['image_os_hash_value'] = hash_value
+                instance_info['image_checksum'] = 'md5-not-supported'
+                hash_value = compute_image_checksum(image_path, os_hash_algo)
+                instance_info['image_os_hash_algo'] = os_hash_algo
+                instance_info['image_os_hash_value'] = hash_value
             else:
                 instance_info['image_checksum'] = image_info['checksum']
                 instance_info['image_disk_format'] = image_info['disk_format']
