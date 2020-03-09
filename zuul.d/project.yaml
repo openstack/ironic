@@ -15,8 +15,6 @@
         - ironic-standalone
         - ironic-tempest-functional-python2
         - ironic-tempest-functional-python3
-        - ironic-grenade-dsvm
-        - ironic-grenade-dsvm-multinode-multitenant
         - ironic-tempest-ipa-partition-pxe_ipmitool-tinyipa-python3
         - ironic-tempest-ipa-partition-redfish-tinyipa
         - ironic-tempest-ipa-partition-uefi-pxe_ipmitool-tinyipa
@@ -44,8 +42,6 @@
         - ironic-standalone
         - ironic-tempest-functional-python2
         - ironic-tempest-functional-python3
-        - ironic-grenade-dsvm
-        - ironic-grenade-dsvm-multinode-multitenant
         - ironic-tempest-ipa-partition-pxe_ipmitool-tinyipa-python3
         - ironic-tempest-ipa-partition-redfish-tinyipa
         - ironic-tempest-ipa-partition-uefi-pxe_ipmitool-tinyipa
