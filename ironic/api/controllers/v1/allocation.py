@@ -334,8 +334,7 @@ class AllocationsController(pecan.rest.RestController):
                        of the resource to be returned.
         :param owner: Filter by owner.
         """
-        cdict = api.request.context.to_policy_values()
-        policy.authorize('baremetal:allocation:get', cdict, cdict)
+        owner = api_utils.check_list_policy('allocation', owner)
 
         self._check_allowed_allocation_fields(fields)
         if owner is not None and not api_utils.allow_allocation_owner():
@@ -355,13 +354,10 @@ class AllocationsController(pecan.rest.RestController):
         :param fields: Optional, a list with a specified set of fields
                        of the resource to be returned.
         """
-        cdict = api.request.context.to_policy_values()
-        policy.authorize('baremetal:allocation:get', cdict, cdict)
-
+        rpc_allocation = api_utils.check_allocation_policy_and_retrieve(
+            'baremetal:allocation:get', allocation_ident)
         self._check_allowed_allocation_fields(fields)
 
-        rpc_allocation = api_utils.get_rpc_allocation_with_suffix(
-            allocation_ident)
         return Allocation.convert_with_links(rpc_allocation, fields=fields)
 
     @METRICS.timer('AllocationsController.post')
@@ -485,9 +481,10 @@ class AllocationsController(pecan.rest.RestController):
         if not api_utils.allow_allocation_update():
             raise webob_exc.HTTPMethodNotAllowed(_(
                 "The API version does not allow updating allocations"))
+
         context = api.request.context
-        cdict = context.to_policy_values()
-        policy.authorize('baremetal:allocation:update', cdict, cdict)
+        rpc_allocation = api_utils.check_allocation_policy_and_retrieve(
+            'baremetal:allocation:update', allocation_ident)
         self._validate_patch(patch)
         names = api_utils.get_patch_values(patch, '/name')
         for name in names:
@@ -495,8 +492,6 @@ class AllocationsController(pecan.rest.RestController):
                 msg = _("Cannot update allocation with invalid name "
                         "'%(name)s'") % {'name': name}
                 raise exception.Invalid(msg)
-        rpc_allocation = api_utils.get_rpc_allocation_with_suffix(
-            allocation_ident)
         allocation_dict = rpc_allocation.as_dict()
         allocation = Allocation(**api_utils.apply_jsonpatch(allocation_dict,
                                                             patch))
@@ -528,11 +523,8 @@ class AllocationsController(pecan.rest.RestController):
         :param allocation_ident: UUID or logical name of an allocation.
         """
         context = api.request.context
-        cdict = context.to_policy_values()
-        policy.authorize('baremetal:allocation:delete', cdict, cdict)
-
-        rpc_allocation = api_utils.get_rpc_allocation_with_suffix(
-            allocation_ident)
+        rpc_allocation = api_utils.check_allocation_policy_and_retrieve(
+            'baremetal:allocation:delete', allocation_ident)
         if rpc_allocation.node_id:
             node_uuid = objects.Node.get_by_id(api.request.context,
                                                rpc_allocation.node_id).uuid

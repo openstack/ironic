@@ -268,6 +268,78 @@ class TestListAllocations(test_api_base.BaseApiTest):
                                  expect_errors=True)
         self.assertEqual(http_client.NOT_FOUND, response.status_int)
 
+    @mock.patch.object(policy, 'authorize', spec=True)
+    def test_allocation_get_all_forbidden(self, mock_authorize):
+        def mock_authorize_function(rule, target, creds):
+            raise exception.HTTPForbidden(resource='fake')
+        mock_authorize.side_effect = mock_authorize_function
+
+        response = self.get_json('/allocations', expect_errors=True,
+                                 headers={
+                                     api_base.Version.string: '1.60',
+                                     'X-Project-Id': '12345'
+                                 })
+        self.assertEqual(http_client.FORBIDDEN, response.status_int)
+
+    @mock.patch.object(policy, 'authorize', spec=True)
+    def test_allocation_get_all_forbidden_no_project(self, mock_authorize):
+        def mock_authorize_function(rule, target, creds):
+            if rule == 'baremetal:allocation:list_all':
+                raise exception.HTTPForbidden(resource='fake')
+            return True
+        mock_authorize.side_effect = mock_authorize_function
+
+        response = self.get_json('/allocations', expect_errors=True,
+                                 headers={
+                                     api_base.Version.string: '1.59',
+                                 })
+        self.assertEqual(http_client.FORBIDDEN, response.status_int)
+
+    @mock.patch.object(policy, 'authorize', spec=True)
+    def test_allocation_get_all_forbid_owner_proj_mismatch(
+            self, mock_authorize):
+        def mock_authorize_function(rule, target, creds):
+            if rule == 'baremetal:allocation:list_all':
+                raise exception.HTTPForbidden(resource='fake')
+            return True
+        mock_authorize.side_effect = mock_authorize_function
+
+        response = self.get_json('/allocations?owner=54321',
+                                 expect_errors=True,
+                                 headers={
+                                     api_base.Version.string: '1.60',
+                                     'X-Project-Id': '12345'
+                                 })
+        self.assertEqual(http_client.FORBIDDEN, response.status_int)
+
+    @mock.patch.object(policy, 'authorize', spec=True)
+    def test_allocation_get_all_non_admin(self, mock_authorize):
+        def mock_authorize_function(rule, target, creds):
+            if rule == 'baremetal:allocation:list_all':
+                raise exception.HTTPForbidden(resource='fake')
+            return True
+        mock_authorize.side_effect = mock_authorize_function
+
+        allocations = []
+        for id in range(5):
+            allocation = obj_utils.create_test_allocation(
+                self.context,
+                uuid=uuidutils.generate_uuid(),
+                owner='12345')
+            allocations.append(allocation.uuid)
+        for id in range(2):
+            allocation = obj_utils.create_test_allocation(
+                self.context,
+                uuid=uuidutils.generate_uuid())
+
+        data = self.get_json('/allocations', headers={
+            api_base.Version.string: '1.60',
+            'X-Project-Id': '12345'})
+        self.assertEqual(len(allocations), len(data['allocations']))
+
+        uuids = [n['uuid'] for n in data['allocations']]
+        self.assertEqual(sorted(allocations), sorted(uuids))
+
     def test_sort_key(self):
         allocations = []
         for id_ in range(3):

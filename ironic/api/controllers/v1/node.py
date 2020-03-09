@@ -1836,7 +1836,7 @@ class NodesController(rest.RestController):
                                      with description field contains matching
                                      value.
         """
-        owner = api_utils.check_node_list_policy(owner)
+        owner = api_utils.check_list_policy('node', owner)
 
         api_utils.check_allow_specify_fields(fields)
         api_utils.check_allowed_fields(fields)
@@ -1913,7 +1913,7 @@ class NodesController(rest.RestController):
                                      with description field contains matching
                                      value.
         """
-        owner = api_utils.check_node_list_policy(owner)
+        owner = api_utils.check_list_policy('node', owner)
 
         api_utils.check_for_invalid_state_and_allow_filter(provision_state)
         api_utils.check_allow_specify_driver(driver)
@@ -2139,7 +2139,8 @@ class NodesController(rest.RestController):
             # check if updating a provisioned node's owner is allowed
             if rpc_node.provision_state == ir_states.ACTIVE:
                 try:
-                    api_utils.check_node_policy(
+                    api_utils.check_owner_policy(
+                        'node',
                         'baremetal:node:update_owner_provisioned',
                         rpc_node['owner'])
                 except exception.HTTPForbidden:
