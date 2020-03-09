@@ -1,0 +1,4 @@
+---
+upgrade:
+  - |
+    Removes compatibility with deploy interfaces that do not use deploy steps.

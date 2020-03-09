@@ -608,14 +608,7 @@ class AnsibleDeploy(agent_base.HeartbeatMixin, base.DeployInterface):
         self.reboot_and_finish_deploy(task)
         task.driver.boot.clean_up_ramdisk(task)
 
-        if not node.deploy_step:
-            # TODO(rloo): delete this 'if' part after deprecation period, when
-            # we expect all (out-of-tree) drivers to support deploy steps.
-            # After which we will always notify_conductor_resume_deploy().
-            task.process_event('done')
-            LOG.info('Deployment to node %s done', task.node.uuid)
-        else:
-            manager_utils.notify_conductor_resume_deploy(task)
+        manager_utils.notify_conductor_resume_deploy(task)
 
     @METRICS.timer('AnsibleDeploy.reboot_and_finish_deploy')
     def reboot_and_finish_deploy(self, task):
