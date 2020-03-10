@@ -543,7 +543,7 @@ class IloManagement(base.ManagementInterface):
         ilo_common.attach_vmedia(node, 'CDROM', url)
 
         step = node.clean_step
-        return deploy_utils.agent_execute_clean_step(task, step)
+        return agent_base.execute_clean_step(task, step)
 
     @staticmethod
     @agent_base.post_clean_step_hook(

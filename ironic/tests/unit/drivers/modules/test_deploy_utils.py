@@ -27,7 +27,6 @@ from oslo_config import cfg
 from oslo_utils import fileutils
 from oslo_utils import uuidutils
 import testtools
-from testtools import matchers
 
 from ironic.common import boot_devices
 from ironic.common import exception
@@ -37,7 +36,6 @@ from ironic.common import states
 from ironic.common import utils as common_utils
 from ironic.conductor import task_manager
 from ironic.conductor import utils as manager_utils
-from ironic.drivers.modules import agent_client
 from ironic.drivers.modules import boot_mode_utils
 from ironic.drivers.modules import deploy_utils as utils
 from ironic.drivers.modules import fake
@@ -1626,102 +1624,6 @@ class AgentMethodsTestCase(db_base.DbTestCase):
         self.node = obj_utils.create_test_node(self.context, **n)
         self.ports = [obj_utils.create_test_port(self.context,
                                                  node_id=self.node.id)]
-
-    def test_agent_get_clean_steps(self):
-        with task_manager.acquire(
-                self.context, self.node.uuid, shared=False) as task:
-            response = utils.agent_get_clean_steps(task)
-
-            # Since steps are returned in dicts, they have non-deterministic
-            # ordering
-            self.assertThat(response, matchers.HasLength(3))
-            self.assertIn(self.clean_steps['deploy'][0], response)
-            self.assertIn(self.clean_steps['deploy'][1], response)
-            self.assertIn(self.clean_steps['raid'][0], response)
-
-    def test_get_clean_steps_custom_interface(self):
-        with task_manager.acquire(
-                self.context, self.node.uuid, shared=False) as task:
-            response = utils.agent_get_clean_steps(task, interface='raid')
-            self.assertThat(response, matchers.HasLength(1))
-            self.assertEqual(self.clean_steps['raid'], response)
-
-    def test_get_clean_steps_override_priorities(self):
-        with task_manager.acquire(
-                self.context, self.node.uuid, shared=False) as task:
-            new_priorities = {'create_configuration': 42}
-            response = utils.agent_get_clean_steps(
-                task, interface='raid', override_priorities=new_priorities)
-            self.assertEqual(42, response[0]['priority'])
-
-    def test_get_clean_steps_override_priorities_none(self):
-        with task_manager.acquire(
-                self.context, self.node.uuid, shared=False) as task:
-            # this is simulating the default value of a configuration option
-            new_priorities = {'create_configuration': None}
-            response = utils.agent_get_clean_steps(
-                task, interface='raid', override_priorities=new_priorities)
-            self.assertEqual(10, response[0]['priority'])
-
-    def test_get_clean_steps_missing_steps(self):
-        info = self.node.driver_internal_info
-        del info['agent_cached_clean_steps']
-        self.node.driver_internal_info = info
-        self.node.save()
-        with task_manager.acquire(
-                self.context, self.node.uuid, shared=False) as task:
-            self.assertRaises(exception.NodeCleaningFailure,
-                              utils.agent_get_clean_steps,
-                              task)
-
-    @mock.patch('ironic.objects.Port.list_by_node_id',
-                spec_set=types.FunctionType)
-    @mock.patch.object(agent_client.AgentClient, 'execute_clean_step',
-                       autospec=True)
-    def test_execute_clean_step(self, client_mock, list_ports_mock):
-        client_mock.return_value = {
-            'command_status': 'SUCCEEDED'}
-        list_ports_mock.return_value = self.ports
-
-        with task_manager.acquire(
-                self.context, self.node.uuid, shared=False) as task:
-            response = utils.agent_execute_clean_step(
-                task,
-                self.clean_steps['deploy'][0])
-            self.assertEqual(states.CLEANWAIT, response)
-
-    @mock.patch('ironic.objects.Port.list_by_node_id',
-                spec_set=types.FunctionType)
-    @mock.patch.object(agent_client.AgentClient, 'execute_clean_step',
-                       autospec=True)
-    def test_execute_clean_step_running(self, client_mock, list_ports_mock):
-        client_mock.return_value = {
-            'command_status': 'RUNNING'}
-        list_ports_mock.return_value = self.ports
-
-        with task_manager.acquire(
-                self.context, self.node.uuid, shared=False) as task:
-            response = utils.agent_execute_clean_step(
-                task,
-                self.clean_steps['deploy'][0])
-            self.assertEqual(states.CLEANWAIT, response)
-
-    @mock.patch('ironic.objects.Port.list_by_node_id',
-                spec_set=types.FunctionType)
-    @mock.patch.object(agent_client.AgentClient, 'execute_clean_step',
-                       autospec=True)
-    def test_execute_clean_step_version_mismatch(
-            self, client_mock, list_ports_mock):
-        client_mock.return_value = {
-            'command_status': 'RUNNING'}
-        list_ports_mock.return_value = self.ports
-
-        with task_manager.acquire(
-                self.context, self.node.uuid, shared=False) as task:
-            response = utils.agent_execute_clean_step(
-                task,
-                self.clean_steps['deploy'][0])
-            self.assertEqual(states.CLEANWAIT, response)
 
     def test_agent_add_clean_params(self):
         cfg.CONF.set_override('shred_random_overwrite_iterations', 2, 'deploy')

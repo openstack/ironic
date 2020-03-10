@@ -637,37 +637,6 @@ class AgentDeploy(AgentDeployMixin, base.DeployInterface):
         """
         pass
 
-    @METRICS.timer('AgentDeploy.get_clean_steps')
-    def get_clean_steps(self, task):
-        """Get the list of clean steps from the agent.
-
-        :param task: a TaskManager object containing the node
-        :raises NodeCleaningFailure: if the clean steps are not yet
-            available (cached), for example, when a node has just been
-            enrolled and has not been cleaned yet.
-        :returns: A list of clean step dictionaries
-        """
-        new_priorities = {
-            'erase_devices': CONF.deploy.erase_devices_priority,
-            'erase_devices_metadata':
-                CONF.deploy.erase_devices_metadata_priority,
-        }
-        return deploy_utils.agent_get_clean_steps(
-            task, interface='deploy',
-            override_priorities=new_priorities)
-
-    @METRICS.timer('AgentDeploy.execute_clean_step')
-    def execute_clean_step(self, task, step):
-        """Execute a clean step asynchronously on the agent.
-
-        :param task: a TaskManager object containing the node
-        :param step: a clean step dictionary to execute
-        :raises: NodeCleaningFailure if the agent does not return a command
-            status
-        :returns: states.CLEANWAIT to signify the step will be completed async
-        """
-        return deploy_utils.agent_execute_clean_step(task, step)
-
     @METRICS.timer('AgentDeploy.prepare_cleaning')
     def prepare_cleaning(self, task):
         """Boot into the agent to prepare for cleaning.
@@ -744,7 +713,7 @@ class AgentRAID(base.RAIDInterface):
                   "with the following target RAID configuration: %(target)s",
                   {'node': node.uuid, 'target': target_raid_config})
         step = node.clean_step
-        return deploy_utils.agent_execute_clean_step(task, step)
+        return agent_base.execute_clean_step(task, step)
 
     @staticmethod
     @agent_base.post_clean_step_hook(
@@ -787,7 +756,7 @@ class AgentRAID(base.RAIDInterface):
         LOG.debug("Agent RAID delete_configuration invoked for node %s.",
                   task.node.uuid)
         step = task.node.clean_step
-        return deploy_utils.agent_execute_clean_step(task, step)
+        return agent_base.execute_clean_step(task, step)
 
     @staticmethod
     @agent_base.post_clean_step_hook(

@@ -23,6 +23,7 @@ from ironic.common import exception
 from ironic.common import states
 from ironic.conductor import task_manager
 from ironic.conductor import utils as manager_utils
+from ironic.drivers.modules import agent_base
 from ironic.drivers.modules import deploy_utils
 from ironic.drivers.modules.ilo import boot as ilo_boot
 from ironic.drivers.modules.ilo import common as ilo_common
@@ -822,8 +823,7 @@ class IloManagementTestCase(test_common.BaseIloTest):
 
     @mock.patch.object(ilo_common, 'attach_vmedia', spec_set=True,
                        autospec=True)
-    @mock.patch.object(deploy_utils, 'agent_execute_clean_step',
-                       autospec=True)
+    @mock.patch.object(agent_base, 'execute_clean_step', autospec=True)
     def test_update_firmware_sum_mode_with_component(
             self, execute_mock, attach_vmedia_mock):
         with task_manager.acquire(self.context, self.node.uuid,
@@ -851,8 +851,7 @@ class IloManagementTestCase(test_common.BaseIloTest):
                        autospec=True)
     @mock.patch.object(ilo_management.firmware_processor,
                        'get_swift_url', autospec=True)
-    @mock.patch.object(deploy_utils, 'agent_execute_clean_step',
-                       autospec=True)
+    @mock.patch.object(agent_base, 'execute_clean_step', autospec=True)
     def test_update_firmware_sum_mode_swift_url(
             self, execute_mock, swift_url_mock, attach_vmedia_mock):
         with task_manager.acquire(self.context, self.node.uuid,
@@ -880,8 +879,7 @@ class IloManagementTestCase(test_common.BaseIloTest):
 
     @mock.patch.object(ilo_common, 'attach_vmedia', spec_set=True,
                        autospec=True)
-    @mock.patch.object(deploy_utils, 'agent_execute_clean_step',
-                       autospec=True)
+    @mock.patch.object(agent_base, 'execute_clean_step', autospec=True)
     def test_update_firmware_sum_mode_without_component(
             self, execute_mock, attach_vmedia_mock):
         with task_manager.acquire(self.context, self.node.uuid,
