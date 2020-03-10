@@ -999,9 +999,9 @@ class Connection(api.Connection):
         nodes = []
         with _session_for_write():
             query = (model_query(models.Node)
-                     .filter_by(reservation=hostname))
+                     .filter(models.Node.reservation.ilike(hostname)))
             nodes = [node['uuid'] for node in query]
-            query.update({'reservation': None})
+            query.update({'reservation': None}, synchronize_session=False)
 
         if nodes:
             nodes = ', '.join(nodes)
@@ -1014,13 +1014,14 @@ class Connection(api.Connection):
         nodes = []
         with _session_for_write():
             query = (model_query(models.Node)
-                     .filter_by(reservation=hostname))
+                     .filter(models.Node.reservation.ilike(hostname)))
             query = query.filter(models.Node.target_power_state != sql.null())
             nodes = [node['uuid'] for node in query]
             query.update({'target_power_state': None,
                           'last_error': _("Pending power operation was "
                                           "aborted due to conductor "
-                                          "restart")})
+                                          "restart")},
+                         synchronize_session=False)
 
         if nodes:
             nodes = ', '.join(nodes)
