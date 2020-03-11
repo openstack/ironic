@@ -94,6 +94,9 @@ def _init_steps_by_driver():
         )
 
         for plugin in loader:
+            if plugin.name == 'fake':
+                continue
+
             steps = []
 
             for method_name, method in inspect.getmembers(plugin.plugin):
