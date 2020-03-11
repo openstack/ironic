@@ -86,7 +86,7 @@ class iPXEBootTestCase(db_base.DbTestCase):
         self.config(group='conductor', api_url='http://127.0.0.1:1234/')
 
     def test_get_properties(self):
-        expected = ipxe.COMMON_PROPERTIES
+        expected = pxe_base.COMMON_PROPERTIES
         expected.update(agent_base.VENDOR_PROPERTIES)
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
@@ -415,7 +415,6 @@ class iPXEBootTestCase(db_base.DbTestCase):
             self, render_mock, write_mock):
         self.node.provision_state = states.DEPLOYING
         self.node.save()
-        self.config(group='pxe', ipxe_enabled=False)
         render_mock.return_value = 'foo'
         self._test_prepare_ramdisk()
         write_mock.assert_called_once_with(
@@ -435,7 +434,6 @@ class iPXEBootTestCase(db_base.DbTestCase):
             self, render_mock, write_mock, file_has_content_mock):
         self.node.provision_state = states.DEPLOYING
         self.node.save()
-        self.config(group='pxe', ipxe_enabled=False)
         render_mock.return_value = 'foo'
         self._test_prepare_ramdisk()
         self.assertFalse(file_has_content_mock.called)
@@ -456,7 +454,6 @@ class iPXEBootTestCase(db_base.DbTestCase):
             self, render_mock, write_mock):
         self.node.provision_state = states.DEPLOYING
         self.node.save()
-        self.config(group='pxe', ipxe_enabled=False)
         self._test_prepare_ramdisk()
         self.assertFalse(write_mock.called)
 
@@ -465,7 +462,6 @@ class iPXEBootTestCase(db_base.DbTestCase):
     def test_prepare_ramdisk_ipxe_swift(self, write_mock):
         self.node.provision_state = states.DEPLOYING
         self.node.save()
-        self.config(group='pxe', ipxe_enabled=False)
         self.config(group='pxe', ipxe_use_swift=True)
         self._test_prepare_ramdisk(ipxe_use_swift=True)
         write_mock.assert_called_once_with(
@@ -480,7 +476,6 @@ class iPXEBootTestCase(db_base.DbTestCase):
             self, write_mock):
         self.node.provision_state = states.DEPLOYING
         self.node.save()
-        self.config(group='pxe', ipxe_enabled=False)
         self.config(group='pxe', ipxe_use_swift=True)
         self._test_prepare_ramdisk(ipxe_use_swift=True, whole_disk_image=True)
         write_mock.assert_called_once_with(
@@ -774,7 +769,6 @@ class iPXEBootTestCase(db_base.DbTestCase):
             dhcp_factory_mock, switch_pxe_config_mock,
             set_boot_device_mock, create_pxe_config_mock):
         http_url = 'http://192.1.2.3:1234'
-        self.config(ipxe_enabled=False, group='pxe')
         self.config(http_url=http_url, group='deploy')
         provider_mock = mock.MagicMock()
         dhcp_factory_mock.return_value = provider_mock

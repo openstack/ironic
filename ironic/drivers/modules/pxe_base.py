@@ -22,6 +22,7 @@ from oslo_utils import strutils
 from ironic.common import boot_devices
 from ironic.common import dhcp_factory
 from ironic.common import exception
+from ironic.common.glance_service import service_utils
 from ironic.common.i18n import _
 from ironic.common import pxe_utils
 from ironic.common import states
@@ -29,6 +30,7 @@ from ironic.conductor import task_manager
 from ironic.conductor import utils as manager_utils
 from ironic.drivers.modules import boot_mode_utils
 from ironic.drivers.modules import deploy_utils
+from ironic.drivers import utils as driver_utils
 
 
 CONF = cfg.CONF
@@ -306,6 +308,73 @@ class PXEBaseMixin(object):
             manager_utils.node_set_boot_device(task, boot_device,
                                                persistent=persistent)
 
+    def _validate_common(self, task):
+        node = task.node
+
+        if not driver_utils.get_node_mac_addresses(task):
+            raise exception.MissingParameterValue(
+                _("Node %s does not have any port associated with it.")
+                % node.uuid)
+
+        if self.ipxe_enabled:
+            if not CONF.deploy.http_url or not CONF.deploy.http_root:
+                raise exception.MissingParameterValue(_(
+                    "iPXE boot is enabled but no HTTP URL or HTTP "
+                    "root was specified."))
+
+        # Check the trusted_boot capabilities value.
+        deploy_utils.validate_capabilities(node)
+        if deploy_utils.is_trusted_boot_requested(node):
+            # Check if 'boot_option' and boot mode is compatible with
+            # trusted boot.
+            if self.ipxe_enabled:
+                # NOTE(TheJulia): So in theory (huge theory here, not put to
+                # practice or tested), that one can define the kernel as tboot
+                # and define the actual kernel and ramdisk as appended data.
+                # Similar to how one can iPXE load the XEN hypervisor.
+                # tboot mailing list seem to indicate pxe/ipxe support, or
+                # more specifically avoiding breaking the scenarios of use,
+                # but there is also no definitive documentation on the subject.
+                LOG.warning('Trusted boot has been requested for %(node)s in '
+                            'concert with iPXE. This is not a supported '
+                            'configuration for an ironic deployment.',
+                            {'node': node.uuid})
+            pxe_utils.validate_boot_parameters_for_trusted_boot(node)
+
+        pxe_utils.parse_driver_info(node)
+
+    @METRICS.timer('PXEBaseMixin.validate')
+    def validate(self, task):
+        """Validate the PXE-specific info for booting deploy/instance images.
+
+        This method validates the PXE-specific info for booting the
+        ramdisk and instance on the node.  If invalid, raises an
+        exception; otherwise returns None.
+
+        :param task: a task from TaskManager.
+        :returns: None
+        :raises: InvalidParameterValue, if some parameters are invalid.
+        :raises: MissingParameterValue, if some required parameters are
+            missing.
+        """
+        self._validate_common(task)
+
+        # NOTE(TheJulia): If we're not writing an image, we can skip
+        # the remainder of this method.
+        if (not task.driver.storage.should_write_image(task)):
+            return
+
+        node = task.node
+        d_info = deploy_utils.get_image_instance_info(node)
+        if (node.driver_internal_info.get('is_whole_disk_image')
+                or deploy_utils.get_boot_option(node) == 'local'):
+            props = []
+        elif service_utils.is_glance_image(d_info['image_source']):
+            props = ['kernel_id', 'ramdisk_id']
+        else:
+            props = ['kernel', 'ramdisk']
+        deploy_utils.validate_image_properties(task.context, d_info, props)
+
     @METRICS.timer('PXEBaseMixin.validate_rescue')
     def validate_rescue(self, task):
         """Validate that the node has required properties for rescue.
@@ -315,6 +384,20 @@ class PXEBaseMixin(object):
             parameters
         """
         pxe_utils.parse_driver_info(task.node, mode='rescue')
+
+    @METRICS.timer('PXEBaseMixin.validate_inspection')
+    def validate_inspection(self, task):
+        """Validate that the node has required properties for inspection.
+
+        :param task: A TaskManager instance with the node being checked
+        :raises: UnsupportedDriverExtension
+        """
+        try:
+            self._validate_common(task)
+        except exception.MissingParameterValue:
+            # Fall back to non-managed in-band inspection
+            raise exception.UnsupportedDriverExtension(
+                driver=task.node.driver, extension='inspection')
 
     def _persistent_ramdisk_boot(self, node):
         """If the ramdisk should be configured as a persistent boot device."""

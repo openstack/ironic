@@ -20,7 +20,6 @@ from ironic_lib import utils as ironic_utils
 from oslo_log import log as logging
 from oslo_utils import excutils
 from oslo_utils import fileutils
-from oslo_utils import importutils
 from oslo_utils import netutils
 
 from ironic.common import dhcp_factory
@@ -546,16 +545,7 @@ def is_ipxe_enabled(task):
     :returns: boolean true if ``[pxe]ipxe_enabled`` is configured
               or if the task driver instance is the iPXE driver.
     """
-    # NOTE(TheJulia): importutils used here as we seem to get in circular
-    # import weirdness otherwise, specifically when the classes that use
-    # the pxe interface as their parent.
-    # TODO(TheJulia): We should remove this as soon as it is no longer
-    # required to help us bridge the split of the interfaces and helper
-    # methods.
-    iPXEBoot = importutils.import_class(
-        'ironic.drivers.modules.ipxe.iPXEBoot')
-    return CONF.pxe.ipxe_enabled or isinstance(task.driver.boot,
-                                               iPXEBoot)
+    return 'ipxe_boot' in task.driver.boot.capabilities
 
 
 def parse_driver_info(node, mode='deploy'):
