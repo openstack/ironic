@@ -209,7 +209,7 @@ opts = [
                help=_('Timeout (in seconds) of soft reboot and soft power '
                       'off operation. This value always has to be positive.')),
     cfg.IntOpt('power_state_change_timeout',
-               min=2, default=30,
+               min=2, default=60,
                help=_('Number of seconds to wait for power operations to '
                       'complete, i.e., so that a baremetal node is in the '
                       'desired power state. If timed out, the power operation '

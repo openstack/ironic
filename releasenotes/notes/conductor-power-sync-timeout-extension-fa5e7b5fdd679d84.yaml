@@ -1,0 +1,9 @@
+---
+other:
+  - |
+    The ``[conductor]power_state_change_timeout`` default value has been
+    extended to ``60`` seconds from ``30`` seconds. This is due to some
+    API interfaces with Redfish, may cache the power state and thus may
+    take longer than thirty seconds to update after a change has been
+    requested. Please see `here <https://github.com/metal3-io/ironic-image/issues/143>`_
+    for more information.
