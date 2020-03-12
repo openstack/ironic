@@ -1,0 +1,13 @@
+---
+features:
+  - |
+    Adds a new ``[ipmi]debug`` option that allows users to explicitly turn
+    IPMI command debugging on, as opposed to relying upon the system debug
+    setting ``[DEFAULT]debug``. Users wishing to continue to log this output
+    should set ``[ipmi]debug`` to ``True`` in their ironic.conf.
+upgrade:
+  - Debug logging control has been moved to the ``[ipmi]debug`` configuration
+    setting as opposed to the "conductor" ``[DEFAULT]debug`` setting as
+    the existing ``ipmitool`` output can be extremely misleading for users.
+    Operators who wish to continue to log ``ipmitool`` verbose output in their
+    logs should explicitly set the ``[ipmi]debug`` command to True.
