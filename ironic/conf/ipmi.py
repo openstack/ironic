@@ -53,6 +53,12 @@ opts = [
                     default=[],
                     help=_('Additional errors ipmitool may encounter, '
                            'specific to the environment it is run in.')),
+    cfg.BoolOpt('debug',
+                default=False,
+                help=_('Enables all ipmi commands to be executed with an '
+                       'additional debugging output. This is a separate '
+                       'option as ipmitool can log a substantial amount '
+                       'of misleading text when in this mode.')),
 ]
 
 
