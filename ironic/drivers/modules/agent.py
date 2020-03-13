@@ -208,7 +208,6 @@ class AgentDeployMixin(agent_base.AgentDeployMixin):
         image_info = {
             'id': image_source.split('/')[-1],
             'urls': [node.instance_info['image_url']],
-            'checksum': node.instance_info['image_checksum'],
             # NOTE(comstud): Older versions of ironic do not set
             # 'disk_format' nor 'container_format', so we use .get()
             # to maintain backwards compatibility in case code was
@@ -218,6 +217,9 @@ class AgentDeployMixin(agent_base.AgentDeployMixin):
                 'image_container_format'),
             'stream_raw_images': CONF.agent.stream_raw_images,
         }
+
+        if node.instance_info.get('image_checksum'):
+            image_info['checksum'] = node.instance_info['image_checksum']
 
         if (node.instance_info.get('image_os_hash_algo') and
                 node.instance_info.get('image_os_hash_value')):
@@ -414,6 +416,10 @@ class AgentDeploy(AgentDeployMixin, base.DeployInterface):
 
         params = {}
         image_source = node.instance_info.get('image_source')
+        image_checksum = node.instance_info.get('image_checksum')
+        os_hash_algo = node.instance_info.get('image_os_hash_algo')
+        os_hash_value = node.instance_info.get('image_os_hash_value')
+
         params['instance_info.image_source'] = image_source
         error_msg = _('Node %s failed to validate deploy image info. Some '
                       'parameters were missing') % node.uuid
@@ -421,10 +427,25 @@ class AgentDeploy(AgentDeployMixin, base.DeployInterface):
         deploy_utils.check_for_missing_params(params, error_msg)
 
         if not service_utils.is_glance_image(image_source):
-            if not node.instance_info.get('image_checksum'):
+
+            def _raise_missing_checksum_exception(node):
                 raise exception.MissingParameterValue(_(
-                    "image_source's image_checksum must be provided in "
-                    "instance_info for node %s") % node.uuid)
+                    'image_source\'s "image_checksum", or '
+                    '"image_os_hash_algo" and "image_os_hash_value" '
+                    'must be provided in instance_info for '
+                    'node %s') % node.uuid)
+
+            if os_hash_value and not os_hash_algo:
+                # We are missing a piece of information,
+                # so we still need to raise an error.
+                _raise_missing_checksum_exception(node)
+            elif not os_hash_value and os_hash_algo:
+                # We have the hash setting, but not the hash.
+                _raise_missing_checksum_exception(node)
+            elif not os_hash_value and not image_checksum:
+                # We are lacking the original image_checksum,
+                # so we raise the error.
+                _raise_missing_checksum_exception(node)
 
         validate_http_provisioning_configuration(node)
 
