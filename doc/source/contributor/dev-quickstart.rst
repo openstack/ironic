@@ -405,6 +405,10 @@ station. Deploying Ironic with DevStack requires a machine running Ubuntu
 16.04 (or later) or Fedora 24 (or later). Make sure your machine is fully
 up to date and has the latest packages installed before beginning this process.
 
+The ironic-tempest-plugin is necessary if you want to run integration tests,
+the section `Ironic with ironic-tempest-plugin`_ tells the extra steps you need
+to enable it in DevStack.
+
 .. seealso::
 
     https://docs.openstack.org/devstack/latest/
@@ -427,6 +431,10 @@ Switch to the stack user and clone DevStack::
 
     sudo su - stack
     git clone https://opendev.org/openstack/devstack.git devstack
+
+
+Ironic
+------
 
 Create devstack/local.conf with minimal settings required to enable Ironic.
 An example local.conf that enables both ``direct`` and ``iscsi``
@@ -511,6 +519,111 @@ hardware type by default::
     IRONIC_VM_LOG_DIR=$HOME/ironic-bm-logs
 
     END
+
+.. _itp:
+
+Ironic with ironic-tempest-plugin
+---------------------------------
+
+Using the stack user, clone the ironic-tempest-plugin repository in the same
+directory you cloned DevStack::
+
+    git clone https://opendev.org/openstack/ironic-tempest-plugin.git
+
+An example local.conf that enables the ironic tempest plugin and Ironic can be
+found below. The ``TEMPEST_PLUGINS`` variable needs to have the absolute path
+to the ironic-tempest-plugin folder, otherwise the plugin won't be installed.
+Ironic will have enabled both ``direct`` and
+``iscsi`` :doc:`deploy interfaces </admin/interfaces/deploy>` and uses the
+``ipmi`` hardware type by default::
+
+    cd devstack
+    cat >local.conf <<END
+    [[local|localrc]]
+    # Credentials
+    ADMIN_PASSWORD=password
+    DATABASE_PASSWORD=password
+    RABBIT_PASSWORD=password
+    SERVICE_PASSWORD=password
+    SERVICE_TOKEN=password
+    SWIFT_HASH=password
+    SWIFT_TEMPURL_KEY=password
+
+    # Enable Ironic plugin
+    enable_plugin ironic https://opendev.org/openstack/ironic
+
+    # Disable nova novnc service, ironic does not support it anyway.
+    disable_service n-novnc
+
+    # Enable Swift for the direct deploy interface.
+    enable_service s-proxy
+    enable_service s-object
+    enable_service s-container
+    enable_service s-account
+
+    # Disable Horizon
+    disable_service horizon
+
+    # Disable Cinder
+    disable_service cinder c-sch c-api c-vol
+
+    # Swift temp URL's are required for the direct deploy interface
+    SWIFT_ENABLE_TEMPURLS=True
+
+    # Create 3 virtual machines to pose as Ironic's baremetal nodes.
+    IRONIC_VM_COUNT=3
+    IRONIC_BAREMETAL_BASIC_OPS=True
+    DEFAULT_INSTANCE_TYPE=baremetal
+
+    # Enable additional hardware types, if needed.
+    #IRONIC_ENABLED_HARDWARE_TYPES=ipmi,fake-hardware
+    # Don't forget that many hardware types require enabling of additional
+    # interfaces, most often power and management:
+    #IRONIC_ENABLED_MANAGEMENT_INTERFACES=ipmitool,fake
+    #IRONIC_ENABLED_POWER_INTERFACES=ipmitool,fake
+    # The 'ipmi' hardware type's default deploy interface is 'iscsi'.
+    # This would change the default to 'direct':
+    #IRONIC_DEFAULT_DEPLOY_INTERFACE=direct
+
+    # Change this to alter the default driver for nodes created by devstack.
+    # This driver should be in the enabled list above.
+    IRONIC_DEPLOY_DRIVER=ipmi
+
+    # The parameters below represent the minimum possible values to create
+    # functional nodes.
+    IRONIC_VM_SPECS_RAM=1280
+    IRONIC_VM_SPECS_DISK=10
+
+    # Size of the ephemeral partition in GB. Use 0 for no ephemeral partition.
+    IRONIC_VM_EPHEMERAL_DISK=0
+
+    # To build your own IPA ramdisk from source, set this to True
+    IRONIC_BUILD_DEPLOY_RAMDISK=False
+
+    VIRT_DRIVER=ironic
+
+    # By default, DevStack creates a 10.0.0.0/24 network for instances.
+    # If this overlaps with the hosts network, you may adjust with the
+    # following.
+    NETWORK_GATEWAY=10.1.0.1
+    FIXED_RANGE=10.1.0.0/24
+    FIXED_NETWORK_SIZE=256
+
+    # Log all output to files
+    LOGFILE=$HOME/devstack.log
+    LOGDIR=$HOME/logs
+    IRONIC_VM_LOG_DIR=$HOME/ironic-bm-logs
+    TEMPEST_PLUGINS="/opt/stack/ironic-tempest-plugin"
+
+    END
+
+.. note::
+    Some tests may be skipped depending on the configuration of your
+    environment, they may be reliant on a driver or a capability that you
+    did not configure.
+
+Deployment
+----------
 
 .. note::
     Git protocol requires access to port 9418, which is not a standard port that
@@ -653,9 +766,10 @@ The server should now be accessible via SSH::
 Running Tempest tests
 =====================
 
-After `Deploying Ironic with DevStack`_ one might want to run integration
-tests against the running cloud. The Tempest project is the project that
-offers an integration test suite for OpenStack.
+After :ref:`Deploying Ironic with DevStack <itp>` with the
+ironic-tempest-plugin enabled, one might want to run integration
+tests against the running cloud. The Tempest project is the project
+that offers an integration test suite for OpenStack.
 
 First, navigate to Tempest directory::
 
