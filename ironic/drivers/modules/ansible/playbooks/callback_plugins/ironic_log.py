@@ -34,7 +34,7 @@ def parse_callback_config():
                        'use_journal': True,
                        'use_syslog': False}
     try:
-        config.readfp(open(basename + ".ini"))
+        config.read_file(open(basename + ".ini"))
         if config.has_option('ironic', 'config_file'):
             callback_config['ironic_config'] = config.get(
                 'ironic', 'config_file')
