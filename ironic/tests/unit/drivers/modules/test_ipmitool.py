@@ -459,6 +459,7 @@ class Base(db_base.DbTestCase):
                     enabled_console_interfaces=['fake', 'ipmitool-socat',
                                                 'ipmitool-shellinabox',
                                                 'no-console'])
+        self.config(debug=True, group="ipmi")
         self.node = obj_utils.create_test_node(
             self.context,
             console_interface='ipmitool-socat',
@@ -2622,7 +2623,7 @@ class IPMIToolShellinaboxTestCase(db_base.DbTestCase):
             ipmi_cmd = self.console._get_ipmi_cmd(driver_info, 'pw_file')
             expected_ipmi_cmd = ("/:%(uid)s:%(gid)s:HOME:ipmitool "
                                  "-I lanplus -H %(address)s -L ADMINISTRATOR "
-                                 "-U %(user)s -f pw_file -v" %
+                                 "-U %(user)s -f pw_file" %
                                  {'uid': os.getuid(), 'gid': os.getgid(),
                                   'address': driver_info['address'],
                                   'user': driver_info['username']})
@@ -2636,7 +2637,7 @@ class IPMIToolShellinaboxTestCase(db_base.DbTestCase):
             ipmi_cmd = self.console._get_ipmi_cmd(driver_info, 'pw_file')
             expected_ipmi_cmd = ("/:%(uid)s:%(gid)s:HOME:ipmitool "
                                  "-I lanplus -H %(address)s -L ADMINISTRATOR "
-                                 "-f pw_file -v" %
+                                 "-f pw_file" %
                                  {'uid': os.getuid(), 'gid': os.getgid(),
                                   'address': driver_info['address']})
         self.assertEqual(expected_ipmi_cmd, ipmi_cmd)
@@ -2806,7 +2807,7 @@ class IPMIToolSocatDriverTestCase(IPMIToolShellinaboxTestCase):
             ipmi_cmd = self.console._get_ipmi_cmd(driver_info, 'pw_file')
             expected_ipmi_cmd = ("ipmitool -I lanplus -H %(address)s "
                                  "-L ADMINISTRATOR -U %(user)s "
-                                 "-f pw_file -v" %
+                                 "-f pw_file" %
                                  {'address': driver_info['address'],
                                   'user': driver_info['username']})
         self.assertEqual(expected_ipmi_cmd, ipmi_cmd)
@@ -2819,7 +2820,7 @@ class IPMIToolSocatDriverTestCase(IPMIToolShellinaboxTestCase):
             ipmi_cmd = self.console._get_ipmi_cmd(driver_info, 'pw_file')
             expected_ipmi_cmd = ("ipmitool -I lanplus -H %(address)s "
                                  "-L ADMINISTRATOR "
-                                 "-f pw_file -v" %
+                                 "-f pw_file" %
                                  {'address': driver_info['address']})
         self.assertEqual(expected_ipmi_cmd, ipmi_cmd)
 

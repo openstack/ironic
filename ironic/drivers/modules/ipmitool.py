@@ -446,7 +446,7 @@ def _get_ipmitool_args(driver_info, pw_file=None):
         args.append('-f')
         args.append(pw_file)
 
-    if CONF.debug:
+    if CONF.ipmi.debug:
         args.append('-v')
 
     # ensure all arguments are strings
