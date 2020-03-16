@@ -485,7 +485,7 @@ class FsImageTestCase(base.TestCase):
     @mock.patch.object(images, '_mount_deploy_iso', autospec=True)
     @mock.patch.object(utils, 'tempdir', autospec=True)
     @mock.patch.object(images, '_generate_cfg', autospec=True)
-    def test_create_isolinux_image_for_uefi_with_deploy_iso(
+    def test_create_esp_image_for_uefi_with_deploy_iso(
             self, gen_cfg_mock, tempdir_mock, mount_mock, execute_mock,
             write_to_file_mock, create_root_fs_mock, umount_mock):
 
@@ -517,11 +517,11 @@ class FsImageTestCase(base.TestCase):
         mount_mock.return_value = (uefi_path_info,
                                    e_img_rel_path, grub_rel_path)
 
-        images.create_isolinux_image_for_uefi('tgt_file',
-                                              'path/to/kernel',
-                                              'path/to/ramdisk',
-                                              deploy_iso='path/to/deploy_iso',
-                                              kernel_params=params)
+        images.create_esp_image_for_uefi('tgt_file',
+                                         'path/to/kernel',
+                                         'path/to/ramdisk',
+                                         deploy_iso='path/to/deploy_iso',
+                                         kernel_params=params)
         mount_mock.assert_called_once_with('path/to/deploy_iso', 'mountdir')
         create_root_fs_mock.assert_called_once_with('tmpdir', files_info)
         gen_cfg_mock.assert_any_call(params, CONF.grub_config_template,
@@ -537,7 +537,7 @@ class FsImageTestCase(base.TestCase):
     @mock.patch.object(utils, 'execute', autospec=True)
     @mock.patch.object(utils, 'tempdir', autospec=True)
     @mock.patch.object(images, '_generate_cfg', autospec=True)
-    def test_create_isolinux_image_for_uefi_with_esp_image(
+    def test_create_esp_image_for_uefi_with_esp_image(
             self, gen_cfg_mock, tempdir_mock, execute_mock,
             create_root_fs_mock, write_to_file_mock):
 
@@ -564,7 +564,7 @@ class FsImageTestCase(base.TestCase):
         tempdir_mock.side_effect = mock_file_handle, mock_file_handle1
         mountdir_grub_cfg_path = 'tmpdir' + grub_cfg_file
 
-        images.create_isolinux_image_for_uefi(
+        images.create_esp_image_for_uefi(
             'tgt_file', 'path/to/kernel', 'path/to/ramdisk',
             esp_image='sourceabspath/to/efiboot.img',
             kernel_params=params)
@@ -643,11 +643,9 @@ class FsImageTestCase(base.TestCase):
     @mock.patch.object(utils, 'tempdir', autospec=True)
     @mock.patch.object(utils, 'execute', autospec=True)
     @mock.patch.object(os, 'walk', autospec=True)
-    def test_create_isolinux_image_uefi_rootfs_fails(self, walk_mock,
-                                                     utils_mock,
-                                                     tempdir_mock,
-                                                     create_root_fs_mock,
-                                                     umount_mock):
+    def test_create_esp_image_uefi_rootfs_fails(
+            self, walk_mock, utils_mock, tempdir_mock,
+            create_root_fs_mock, umount_mock):
 
         mock_file_handle = mock.MagicMock(spec=io.BytesIO)
         mock_file_handle.__enter__.return_value = 'tmpdir'
@@ -657,7 +655,7 @@ class FsImageTestCase(base.TestCase):
         create_root_fs_mock.side_effect = IOError
 
         self.assertRaises(exception.ImageCreationFailed,
-                          images.create_isolinux_image_for_uefi,
+                          images.create_esp_image_for_uefi,
                           'tgt_file',
                           'path/to/kernel',
                           'path/to/ramdisk',
@@ -686,14 +684,9 @@ class FsImageTestCase(base.TestCase):
     @mock.patch.object(utils, 'execute', autospec=True)
     @mock.patch.object(images, '_mount_deploy_iso', autospec=True)
     @mock.patch.object(images, '_generate_cfg', autospec=True)
-    def test_create_isolinux_image_mkisofs_fails(self,
-                                                 gen_cfg_mock,
-                                                 mount_mock,
-                                                 utils_mock,
-                                                 tempdir_mock,
-                                                 write_to_file_mock,
-                                                 create_root_fs_mock,
-                                                 umount_mock):
+    def test_create_esp_image_mkisofs_fails(
+            self, gen_cfg_mock, mount_mock, utils_mock, tempdir_mock,
+            write_to_file_mock, create_root_fs_mock, umount_mock):
         mock_file_handle = mock.MagicMock(spec=io.BytesIO)
         mock_file_handle.__enter__.return_value = 'tmpdir'
         mock_file_handle1 = mock.MagicMock(spec=io.BytesIO)
@@ -703,7 +696,7 @@ class FsImageTestCase(base.TestCase):
         utils_mock.side_effect = processutils.ProcessExecutionError
 
         self.assertRaises(exception.ImageCreationFailed,
-                          images.create_isolinux_image_for_uefi,
+                          images.create_esp_image_for_uefi,
                           'tgt_file',
                           'path/to/kernel',
                           'path/to/ramdisk',
@@ -731,7 +724,7 @@ class FsImageTestCase(base.TestCase):
                           'tgt_file', 'path/to/kernel',
                           'path/to/ramdisk')
 
-    @mock.patch.object(images, 'create_isolinux_image_for_uefi', autospec=True)
+    @mock.patch.object(images, 'create_esp_image_for_uefi', autospec=True)
     @mock.patch.object(images, 'fetch', autospec=True)
     @mock.patch.object(utils, 'tempdir', autospec=True)
     def test_create_boot_iso_for_uefi_deploy_iso(
@@ -759,7 +752,7 @@ class FsImageTestCase(base.TestCase):
             deploy_iso='tmpdir/deploy_iso-uuid', esp_image=None,
             kernel_params=params)
 
-    @mock.patch.object(images, 'create_isolinux_image_for_uefi', autospec=True)
+    @mock.patch.object(images, 'create_esp_image_for_uefi', autospec=True)
     @mock.patch.object(images, 'fetch', autospec=True)
     @mock.patch.object(utils, 'tempdir', autospec=True)
     def test_create_boot_iso_for_uefi_esp_image(
@@ -787,7 +780,7 @@ class FsImageTestCase(base.TestCase):
             deploy_iso=None, esp_image='tmpdir/efiboot-uuid',
             kernel_params=params)
 
-    @mock.patch.object(images, 'create_isolinux_image_for_uefi', autospec=True)
+    @mock.patch.object(images, 'create_esp_image_for_uefi', autospec=True)
     @mock.patch.object(images, 'fetch', autospec=True)
     @mock.patch.object(utils, 'tempdir', autospec=True)
     def test_create_boot_iso_for_uefi_deploy_iso_for_hrefs(
@@ -815,7 +808,7 @@ class FsImageTestCase(base.TestCase):
             deploy_iso='tmpdir/deploy_iso-href', esp_image=None,
             kernel_params=params)
 
-    @mock.patch.object(images, 'create_isolinux_image_for_uefi', autospec=True)
+    @mock.patch.object(images, 'create_esp_image_for_uefi', autospec=True)
     @mock.patch.object(images, 'fetch', autospec=True)
     @mock.patch.object(utils, 'tempdir', autospec=True)
     def test_create_boot_iso_for_uefi_esp_image_for_hrefs(
