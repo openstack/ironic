@@ -509,6 +509,13 @@ class IloVirtualMediaBoot(base.BootInterface):
         # during boot.
         ilo_common.eject_vmedia_devices(task)
 
+        # NOTE(TheJulia): Since we're deploying, cleaning, or rescuing,
+        # with virtual media boot, we should generate a token!
+        manager_utils.add_secret_token(task.node, pregenerated=True)
+        ramdisk_params['ipa-agent-token'] = \
+            task.node.driver_internal_info['agent_secret_token']
+        task.node.save()
+
         deploy_nic_mac = deploy_utils.get_single_nic_with_vif_port_id(task)
         ramdisk_params['BOOTIF'] = deploy_nic_mac
         if node.provision_state == states.RESCUING:

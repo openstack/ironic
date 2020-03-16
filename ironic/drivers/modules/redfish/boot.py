@@ -682,6 +682,13 @@ class RedfishVirtualMediaBoot(base.BootInterface):
                                         states.INSPECTING):
             return
 
+        # NOTE(TheJulia): Since we're deploying, cleaning, or rescuing,
+        # with virtual media boot, we should generate a token!
+        manager_utils.add_secret_token(node, pregenerated=True)
+        node.save()
+        ramdisk_params['ipa-agent-token'] = \
+            node.driver_internal_info['agent_secret_token']
+
         manager_utils.node_power_action(task, states.POWER_OFF)
 
         d_info = self._parse_driver_info(node)

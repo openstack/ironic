@@ -552,6 +552,8 @@ class RedfishVirtualMediaBootTestCase(db_base.DbTestCase):
             self.assertRaises(exception.UnsupportedDriverExtension,
                               task.driver.boot.validate_inspection, task)
 
+    @mock.patch.object(redfish_boot.manager_utils, 'node_set_boot_device',
+                       autospec=True)
     @mock.patch.object(redfish_boot.RedfishVirtualMediaBoot,
                        '_prepare_deploy_iso', autospec=True)
     @mock.patch.object(redfish_boot.RedfishVirtualMediaBoot,
@@ -560,15 +562,16 @@ class RedfishVirtualMediaBootTestCase(db_base.DbTestCase):
                        '_insert_vmedia', autospec=True)
     @mock.patch.object(redfish_boot.RedfishVirtualMediaBoot,
                        '_parse_driver_info', autospec=True)
-    @mock.patch.object(redfish_boot, 'manager_utils', autospec=True)
+    @mock.patch.object(redfish_boot.manager_utils, 'node_power_action',
+                       autospec=True)
     @mock.patch.object(redfish_boot, 'boot_mode_utils', autospec=True)
     def test_prepare_ramdisk_with_params(
-            self, mock_boot_mode_utils, mock_manager_utils,
+            self, mock_boot_mode_utils, mock_node_power_action,
             mock__parse_driver_info, mock__insert_vmedia, mock__eject_vmedia,
-            mock__prepare_deploy_iso):
+            mock__prepare_deploy_iso, mock_node_set_boot_device):
 
         with task_manager.acquire(self.context, self.node.uuid,
-                                  shared=True) as task:
+                                  shared=False) as task:
             task.node.provision_state = states.DEPLOYING
 
             mock__parse_driver_info.return_value = {}
@@ -576,7 +579,7 @@ class RedfishVirtualMediaBootTestCase(db_base.DbTestCase):
 
             task.driver.boot.prepare_ramdisk(task, {})
 
-            mock_manager_utils.node_power_action.assert_called_once_with(
+            mock_node_power_action.assert_called_once_with(
                 task, states.POWER_OFF)
 
             mock__eject_vmedia.assert_called_once_with(
@@ -587,17 +590,20 @@ class RedfishVirtualMediaBootTestCase(db_base.DbTestCase):
 
             expected_params = {
                 'BOOTIF': None,
+                'ipa-agent-token': mock.ANY,
                 'ipa-debug': '1',
             }
 
             mock__prepare_deploy_iso.assert_called_once_with(
                 task, expected_params, 'deploy')
 
-            mock_manager_utils.node_set_boot_device.assert_called_once_with(
+            mock_node_set_boot_device.assert_called_once_with(
                 task, boot_devices.CDROM, False)
 
             mock_boot_mode_utils.sync_boot_mode.assert_called_once_with(task)
 
+    @mock.patch.object(redfish_boot.manager_utils, 'node_set_boot_device',
+                       autospec=True)
     @mock.patch.object(redfish_boot.RedfishVirtualMediaBoot,
                        '_prepare_deploy_iso', autospec=True)
     @mock.patch.object(redfish_boot.RedfishVirtualMediaBoot,
@@ -606,12 +612,13 @@ class RedfishVirtualMediaBootTestCase(db_base.DbTestCase):
                        '_insert_vmedia', autospec=True)
     @mock.patch.object(redfish_boot.RedfishVirtualMediaBoot,
                        '_parse_driver_info', autospec=True)
-    @mock.patch.object(redfish_boot, 'manager_utils', autospec=True)
+    @mock.patch.object(redfish_boot.manager_utils, 'node_power_action',
+                       autospec=True)
     @mock.patch.object(redfish_boot, 'boot_mode_utils', autospec=True)
     def test_prepare_ramdisk_no_debug(
-            self, mock_boot_mode_utils, mock_manager_utils,
+            self, mock_boot_mode_utils, mock_node_power_action,
             mock__parse_driver_info, mock__insert_vmedia, mock__eject_vmedia,
-            mock__prepare_deploy_iso):
+            mock__prepare_deploy_iso, mock_node_set_boot_device):
         self.config(debug=False)
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
@@ -622,7 +629,7 @@ class RedfishVirtualMediaBootTestCase(db_base.DbTestCase):
 
             task.driver.boot.prepare_ramdisk(task, {})
 
-            mock_manager_utils.node_power_action.assert_called_once_with(
+            mock_node_power_action.assert_called_once_with(
                 task, states.POWER_OFF)
 
             mock__eject_vmedia.assert_called_once_with(
@@ -633,16 +640,19 @@ class RedfishVirtualMediaBootTestCase(db_base.DbTestCase):
 
             expected_params = {
                 'BOOTIF': None,
+                'ipa-agent-token': mock.ANY,
             }
 
             mock__prepare_deploy_iso.assert_called_once_with(
                 task, expected_params, 'deploy')
 
-            mock_manager_utils.node_set_boot_device.assert_called_once_with(
+            mock_node_set_boot_device.assert_called_once_with(
                 task, boot_devices.CDROM, False)
 
             mock_boot_mode_utils.sync_boot_mode.assert_called_once_with(task)
 
+    @mock.patch.object(redfish_boot.manager_utils, 'node_set_boot_device',
+                       autospec=True)
     @mock.patch.object(redfish_boot.RedfishVirtualMediaBoot,
                        '_prepare_floppy_image', autospec=True)
     @mock.patch.object(redfish_boot.RedfishVirtualMediaBoot,
@@ -655,16 +665,17 @@ class RedfishVirtualMediaBootTestCase(db_base.DbTestCase):
                        '_insert_vmedia', autospec=True)
     @mock.patch.object(redfish_boot.RedfishVirtualMediaBoot,
                        '_parse_driver_info', autospec=True)
-    @mock.patch.object(redfish_boot, 'manager_utils', autospec=True)
+    @mock.patch.object(redfish_boot.manager_utils, 'node_power_action',
+                       autospec=True)
     @mock.patch.object(redfish_boot, 'boot_mode_utils', autospec=True)
     def test_prepare_ramdisk_with_floppy(
-            self, mock_boot_mode_utils, mock_manager_utils,
+            self, mock_boot_mode_utils, mock_node_power_action,
             mock__parse_driver_info, mock__insert_vmedia, mock__eject_vmedia,
             mock__has_vmedia_device, mock__prepare_deploy_iso,
-            mock__prepare_floppy_image):
+            mock__prepare_floppy_image, mock_node_set_boot_device):
 
         with task_manager.acquire(self.context, self.node.uuid,
-                                  shared=True) as task:
+                                  shared=False) as task:
             task.node.provision_state = states.DEPLOYING
 
             mock__parse_driver_info.return_value = {
@@ -677,7 +688,7 @@ class RedfishVirtualMediaBootTestCase(db_base.DbTestCase):
 
             task.driver.boot.prepare_ramdisk(task, {})
 
-            mock_manager_utils.node_power_action.assert_called_once_with(
+            mock_node_power_action.assert_called_once_with(
                 task, states.POWER_OFF)
 
             mock__has_vmedia_device.assert_called_once_with(
@@ -703,12 +714,13 @@ class RedfishVirtualMediaBootTestCase(db_base.DbTestCase):
                 'BOOTIF': None,
                 'boot_method': 'vmedia',
                 'ipa-debug': '1',
+                'ipa-agent-token': mock.ANY,
             }
 
             mock__prepare_deploy_iso.assert_called_once_with(
                 task, expected_params, 'deploy')
 
-            mock_manager_utils.node_set_boot_device.assert_called_once_with(
+            mock_node_set_boot_device.assert_called_once_with(
                 task, boot_devices.CDROM, False)
 
             mock_boot_mode_utils.sync_boot_mode.assert_called_once_with(task)

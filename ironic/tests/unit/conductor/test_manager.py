@@ -7086,6 +7086,30 @@ class DoNodeAdoptionTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
                 autospec=True)
     @mock.patch('ironic.conductor.manager.ConductorManager._spawn_worker',
                 autospec=True)
+    def test_heartbeat_with_agent_pregenerated_token(
+            self, mock_spawn, mock_heartbeat):
+        """Test heartbeating."""
+        node = obj_utils.create_test_node(
+            self.context, driver='fake-hardware',
+            provision_state=states.DEPLOYING,
+            target_provision_state=states.ACTIVE,
+            driver_internal_info={'agent_secret_token': 'a secret'})
+
+        self._start_service()
+
+        mock_spawn.reset_mock()
+
+        mock_spawn.side_effect = self._fake_spawn
+        self.service.heartbeat(
+            self.context, node.uuid, 'http://callback', '6.0.1',
+            agent_token=None)
+        mock_heartbeat.assert_called_with(mock.ANY, mock.ANY,
+                                          'http://callback', '6.0.1')
+
+    @mock.patch('ironic.drivers.modules.fake.FakeDeploy.heartbeat',
+                autospec=True)
+    @mock.patch('ironic.conductor.manager.ConductorManager._spawn_worker',
+                autospec=True)
     def test_heartbeat_with_no_required_agent_token(self, mock_spawn,
                                                     mock_heartbeat):
         """Tests that we kill the heartbeat attempt very early on."""
@@ -7207,32 +7231,6 @@ class DoNodeAdoptionTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
                           self.service.heartbeat, self.context,
                           node.uuid, 'http://callback',
                           agent_token='evil', agent_version='4.0.0')
-        self.assertFalse(mock_heartbeat.called)
-
-    @mock.patch('ironic.drivers.modules.fake.FakeDeploy.heartbeat',
-                autospec=True)
-    @mock.patch('ironic.conductor.manager.ConductorManager._spawn_worker',
-                autospec=True)
-    def test_heartbeat_invalid_when_token_on_file_older_agent(
-            self, mock_spawn, mock_heartbeat):
-        """Heartbeat rejected if a token is on file."""
-        self.config(require_agent_token=False)
-        node = obj_utils.create_test_node(
-            self.context, driver='fake-hardware',
-            provision_state=states.DEPLOYING,
-            target_provision_state=states.ACTIVE,
-            driver_internal_info={'agent_secret_token': 'a secret'})
-
-        self._start_service()
-
-        mock_spawn.reset_mock()
-
-        mock_spawn.side_effect = self._fake_spawn
-
-        self.assertRaises(exception.InvalidParameterValue,
-                          self.service.heartbeat, self.context,
-                          node.uuid, 'http://callback',
-                          agent_token=None, agent_version='4.0.0')
         self.assertFalse(mock_heartbeat.called)
 
     @mock.patch('ironic.drivers.modules.fake.FakeDeploy.heartbeat',

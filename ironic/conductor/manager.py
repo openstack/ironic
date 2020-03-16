@@ -2959,7 +2959,8 @@ class ConductorManager(base_manager.BaseConductorManager):
             # either tokens are required and they are present,
             # or a token is present in general and needs to be
             # validated.
-            if token_required or utils.is_agent_token_present(task.node):
+            if (token_required
+                or (utils.is_agent_token_present(task.node) and agent_token)):
                 if not utils.is_agent_token_valid(task.node, agent_token):
                     LOG.error('Invalid agent_token receieved for node '
                               '%(node)s', {'node': node_id})
