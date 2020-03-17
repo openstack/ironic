@@ -57,8 +57,10 @@
                         "description": "Controller to use for this logical disk. If not specified, the driver will choose a suitable RAID controller on the bare metal node. Optional."
                     },
                     "physical_disks": {
-                        "type": "array",
-                        "items": { "type": "string" },
+                        "anyOf": [
+                            {"type": "array", "items": { "type": "string" }},
+                            {"type": "array", "items": { "type": "object" }, "minItems": 2}
+                        ],
                         "description": "The physical disks to use for this logical disk. If not specified, the driver will choose suitable physical disks to use. Optional."
                     }
                 },

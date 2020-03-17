@@ -143,7 +143,12 @@ are hardware dependent.
   In order to trigger the setup of a Software RAID via the Ironic Python
   Agent, the value of this property needs to be set to ``software``.
 - ``physical_disks`` - A list of physical disks to use as read by the
-  RAID interface. Not supported for software RAID.
+  RAID interface.
+
+  For software RAID ``physical_disks`` is a list of device hints in the same
+  format as used for :ref:`root-device-hints`. The number of provided hints
+  must match the expected number of backing devices (repeat the same hint if
+  necessary).
 
 .. note::
     If properties from both "Backing physical disk hints" or
@@ -256,6 +261,25 @@ HDD:
         "size_gb": "MAX",
         "raid_level": "0",
         "controller": "software"
+      }
+    ]
+  }
+
+*Example 6*. Software RAID, limiting backing block devices to exactly two
+devices with the size exceeding 100 GiB:
+
+.. code-block:: json
+
+  {
+    "logical_disks": [
+      {
+        "size_gb": "MAX",
+        "raid_level": "0",
+        "controller": "software",
+        "physical_disks": [
+          {"size": "> 100"},
+          {"size": "> 100"}
+        ]
       }
     ]
   }

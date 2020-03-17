@@ -1,0 +1,7 @@
+---
+features:
+  - |
+    Target devices for software RAID can now be specified in the form of
+    device hints (same as for root devices) in the ``physical_disks``
+    parameter of a logical disk configuration. This requires
+    ironic-python-agent from the Ussuri release series.

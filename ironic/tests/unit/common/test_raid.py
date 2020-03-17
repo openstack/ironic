@@ -35,6 +35,11 @@ class ValidateRaidConfigurationTestCase(base.TestCase):
         raid.validate_configuration(
             raid_config, raid_config_schema=self.schema)
 
+    def test_validate_configuration_okay_software(self):
+        raid_config = json.loads(raid_constants.RAID_SW_CONFIG_OKAY)
+        raid.validate_configuration(
+            raid_config, raid_config_schema=self.schema)
+
     def test_validate_configuration_no_logical_disk(self):
         self.assertRaises(exception.InvalidParameterValue,
                           raid.validate_configuration,
@@ -135,6 +140,13 @@ class ValidateRaidConfigurationTestCase(base.TestCase):
 
     def test_validate_configuration_invalid_physical_disks(self):
         raid_config = json.loads(raid_constants.RAID_CONFIG_INVALID_PHY_DISKS)
+        self.assertRaises(exception.InvalidParameterValue,
+                          raid.validate_configuration,
+                          raid_config,
+                          raid_config_schema=self.schema)
+
+    def test_validate_configuration_too_few_physical_disks(self):
+        raid_config = json.loads(raid_constants.RAID_CONFIG_TOO_FEW_PHY_DISKS)
         self.assertRaises(exception.InvalidParameterValue,
                           raid.validate_configuration,
                           raid_config,
