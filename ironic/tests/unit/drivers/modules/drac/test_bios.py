@@ -23,12 +23,219 @@ from dracclient import exceptions as drac_exceptions
 import mock
 
 from ironic.common import exception
+from ironic.common import states
 from ironic.conductor import task_manager
+from ironic.drivers.modules import deploy_utils
+from ironic.drivers.modules.drac import bios as drac_bios
 from ironic.drivers.modules.drac import common as drac_common
+from ironic.drivers.modules.drac import job as drac_job
+from ironic import objects
 from ironic.tests.unit.drivers.modules.drac import utils as test_utils
 from ironic.tests.unit.objects import utils as obj_utils
 
 INFO_DICT = test_utils.INFO_DICT
+
+
+class DracWSManBIOSConfigurationTestCase(test_utils.BaseDracTest):
+    def setUp(self):
+        super(DracWSManBIOSConfigurationTestCase, self).setUp()
+        self.node = obj_utils.create_test_node(self.context,
+                                               driver='idrac',
+                                               driver_info=INFO_DICT)
+
+        patch_get_drac_client = mock.patch.object(
+            drac_common, 'get_drac_client', spec_set=True, autospec=True)
+        mock_get_drac_client = patch_get_drac_client.start()
+        self.mock_client = mock_get_drac_client.return_value
+        self.addCleanup(patch_get_drac_client.stop)
+
+        proc_virt_attr = {
+            'current_value': 'Enabled',
+            'pending_value': None,
+            'read_only': False,
+            'possible_values': ['Enabled', 'Disabled']}
+        mock_proc_virt_attr = mock.NonCallableMock(spec=[], **proc_virt_attr)
+        mock_proc_virt_attr.name = 'ProcVirtualization'
+        self.bios_attrs = {'ProcVirtualization': mock_proc_virt_attr}
+
+        self.mock_client.set_lifecycle_settings.return_value = {
+            "is_commit_required": True
+        }
+        self.mock_client.commit_pending_lifecycle_changes.return_value = \
+            "JID_1234"
+
+        self.mock_client.set_bios_settings.return_value = {
+            "is_commit_required": True,
+            "is_reboot_required": True
+        }
+        self.mock_client.commit_pending_bios_changes.return_value = \
+            "JID_5678"
+
+    @mock.patch.object(drac_common, 'parse_driver_info',
+                       autospec=True)
+    def test_validate(self, mock_parse_driver_info):
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            task.driver.bios.validate(task)
+            mock_parse_driver_info.assert_called_once_with(task.node)
+
+    def test_get_properties(self):
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            test_properties = task.driver.bios.get_properties()
+            for each_property in drac_common.COMMON_PROPERTIES:
+                self.assertIn(each_property, test_properties)
+
+    @mock.patch.object(objects, 'BIOSSettingList', autospec=True)
+    def test_cache_bios_settings_noop(self, mock_BIOSSettingList):
+        create_list = []
+        update_list = []
+        delete_list = []
+        nochange_list = [{'name': 'ProcVirtualization', 'value': 'Enabled'}]
+        mock_BIOSSettingList.sync_node_setting.return_value = (
+            create_list, update_list, delete_list, nochange_list)
+
+        self.mock_client.list_bios_settings.return_value = self.bios_attrs
+
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            kwsettings = self.mock_client.list_bios_settings()
+            settings = [{"name": name,
+                         "value": attrib.__dict__['current_value']}
+                        for name, attrib in kwsettings.items()]
+            self.mock_client.list_bios_settings.reset_mock()
+            task.driver.bios.cache_bios_settings(task)
+
+            self.mock_client.list_bios_settings.assert_called_once_with()
+            mock_BIOSSettingList.sync_node_setting.assert_called_once_with(
+                task.context, task.node.id, settings)
+
+            mock_BIOSSettingList.create.assert_not_called()
+            mock_BIOSSettingList.save.assert_not_called()
+            mock_BIOSSettingList.delete.assert_not_called()
+
+    def test_cache_bios_settings_fail(self):
+        exc = drac_exceptions.BaseClientException('boom')
+        self.mock_client.list_bios_settings.side_effect = exc
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            self.assertRaises(exception.DracOperationError,
+                              task.driver.bios.cache_bios_settings, task)
+
+    @mock.patch.object(deploy_utils, 'get_async_step_return_state',
+                       autospec=True)
+    @mock.patch.object(deploy_utils, 'set_async_step_flags', autospec=True)
+    @mock.patch.object(drac_bios.DracWSManBIOS, 'cache_bios_settings',
+                       spec_set=True)
+    @mock.patch.object(drac_job, 'validate_job_queue', spec_set=True,
+                       autospec=True)
+    def _test_step(self, mock_validate_job_queue, mock_cache_bios_settings,
+                   mock_set_async_step_flags,
+                   mock_get_async_step_return_state):
+        if self.node.clean_step:
+            step_data = self.node.clean_step
+            expected_state = states.CLEANWAIT
+            mock_get_async_step_return_state.return_value = states.CLEANWAIT
+        else:
+            step_data = self.node.deploy_step
+            expected_state = states.DEPLOYWAIT
+            mock_get_async_step_return_state.return_value = states.DEPLOYWAIT
+
+        data = step_data['argsinfo'].get('settings', None)
+        step = step_data['step']
+        if step == 'apply_configuration':
+            attributes = {s['name']: s['value'] for s in data}
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            info = task.node.driver_internal_info
+            if step == 'factory_reset':
+                ret_state = task.driver.bios.factory_reset(task)
+
+                attrib = {"BIOS Reset To Defaults Requested": "True"}
+                self.mock_client.set_lifecycle_settings.\
+                    assert_called_once_with(attrib)
+                self.mock_client.commit_pending_lifecycle_changes.\
+                    assert_called_once_with(reboot=True)
+                job_id = self.mock_client.commit_pending_lifecycle_changes()
+                self.assertIn(job_id, info['bios_config_job_ids'])
+
+            if step == 'apply_configuration':
+                ret_state = task.driver.bios.apply_configuration(task, data)
+
+                self.mock_client.set_bios_settings.assert_called_once_with(
+                    attributes)
+                self.mock_client.commit_pending_bios_changes.\
+                    assert_called_once_with(reboot=True)
+                job_id = self.mock_client.commit_pending_bios_changes()
+                self.assertIn(job_id, info['bios_config_job_ids'])
+
+            mock_validate_job_queue.assert_called_once_with(task.node)
+            mock_set_async_step_flags.assert_called_once_with(
+                task.node, reboot=True, skip_current_step=True, polling=True)
+            mock_get_async_step_return_state.assert_called_once_with(
+                task.node)
+            self.assertEqual(expected_state, ret_state)
+
+    def test_factory_reset_clean(self):
+        self.node.clean_step = {'priority': 100, 'interface': 'bios',
+                                'step': 'factory_reset', 'argsinfo': {}}
+        self.node.save()
+        self._test_step()
+
+    def test_factory_reset_deploy(self):
+        self.node.deploy_step = {'priority': 100, 'interface': 'bios',
+                                 'step': 'factory_reset', 'argsinfo': {}}
+        self.node.save()
+        self._test_step()
+
+    def test_apply_configuration_clean(self):
+        settings = [{'name': 'ProcVirtualization', 'value': 'Enabled'}]
+        self.node.clean_step = {'priority': 100, 'interface': 'bios',
+                                'step': 'apply_configuration',
+                                'argsinfo': {'settings': settings}}
+        self.node.save()
+        self._test_step()
+
+    def test_apply_configuration_deploy(self):
+        settings = [{'name': 'ProcVirtualization', 'value': 'Enabled'}]
+        self.node.deploy_step = {'priority': 100, 'interface': 'bios',
+                                 'step': 'apply_configuration',
+                                 'argsinfo': {'settings': settings}}
+        self.node.save()
+        self._test_step()
+
+    def test_apply_conf_set_fail(self):
+        exc = drac_exceptions.BaseClientException('boom')
+        self.mock_client.set_bios_settings.side_affect = exc
+        settings = [{'name': 'ProcVirtualization', 'value': 'Enabled'}]
+
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            self.assertRaises(exception.DracOperationError,
+                              task.driver.bios.apply_configuration, task,
+                              settings)
+
+    def test_apply_conf_commit_fail(self):
+        exc = drac_exceptions.BaseClientException('boom')
+        self.mock_client.commit_pending_bios_changes.side_affect = exc
+        settings = [{'name': 'ProcVirtualization', 'value': 'Enabled'}]
+
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            self.assertRaises(exception.DracOperationError,
+                              task.driver.bios.apply_configuration, task,
+                              settings)
+
+    def test_factory_reset_set_fail(self):
+        exc = drac_exceptions.BaseClientException('boom')
+        self.mock_client.set_lifecycle_settings.side_affect = exc
+
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            self.assertRaises(exception.DracOperationError,
+                              task.driver.bios.factory_reset, task)
+
+    def test_factory_reset_commit_fail(self):
+        exc = drac_exceptions.BaseClientException('boom')
+        self.mock_client.commit_pending_lifecycle_changes.side_affect = exc
+
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            self.assertRaises(exception.DracOperationError,
+                              task.driver.bios.factory_reset, task)
 
 
 class DracBIOSConfigurationTestCase(test_utils.BaseDracTest):
