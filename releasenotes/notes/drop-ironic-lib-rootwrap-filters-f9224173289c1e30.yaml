@@ -1,0 +1,6 @@
+---
+other:
+  - |
+    The rootwrap filter file called "ironic-lib.filters" is no longer part
+    of Ironic. The same file is available from the ironic-lib module which is
+    already an install requirement.
