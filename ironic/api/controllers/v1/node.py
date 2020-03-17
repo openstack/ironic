@@ -2111,8 +2111,24 @@ class NodesController(rest.RestController):
         self._validate_patch(patch, reset_interfaces)
 
         context = api.request.context
-        rpc_node = api_utils.check_node_policy_and_retrieve(
-            'baremetal:node:update', node_ident, with_suffix=True)
+
+        # deal with attribute-specific policy rules
+        policy_checks = []
+        generic_update = False
+        for p in patch:
+            if p['path'].startswith('/instance_info'):
+                policy_checks.append('baremetal:node:update_instance_info')
+            elif p['path'].startswith('/extra'):
+                policy_checks.append('baremetal:node:update_extra')
+            else:
+                generic_update = True
+
+        # always do at least one check
+        if generic_update or policy_checks == []:
+            policy_checks.append('baremetal:node:update')
+
+        rpc_node = api_utils.check_multiple_node_policies_and_retrieve(
+            policy_checks, node_ident, with_suffix=True)
 
         remove_inst_uuid_patch = [{'op': 'remove', 'path': '/instance_uuid'}]
         if rpc_node.maintenance and patch == remove_inst_uuid_patch:
