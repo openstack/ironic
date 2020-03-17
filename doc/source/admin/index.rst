@@ -14,6 +14,7 @@ the services.
    Node Deployment <node-deployment>
    Node Cleaning <cleaning>
    Node Adoption <adoption>
+   Node Retirement <retirement>
    RAID Configuration <raid>
    BIOS Settings <bios>
    Node Rescuing <rescue>
