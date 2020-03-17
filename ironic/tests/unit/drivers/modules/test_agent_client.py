@@ -346,6 +346,28 @@ class TestAgentClient(base.TestCase):
                           self.node)
         self.assertFalse(self.client._command.called)
 
+    def test__command_agent_client(self):
+        response_data = {'status': 'ok'}
+        response_text = json.dumps(response_data)
+        self.client.session.post.return_value = MockResponse(response_text)
+        method = 'standby.run_image'
+        image_info = {'image_id': 'test_image'}
+        params = {'image_info': image_info}
+        i_info = self.node.driver_internal_info
+        i_info['agent_secret_token'] = 'magical'
+        self.node.driver_internal_info = i_info
+        url = self.client._get_command_url(self.node)
+        body = self.client._get_command_body(method, params)
+
+        response = self.client._command(self.node, method, params)
+        self.assertEqual(response, response_data)
+        self.client.session.post.assert_called_once_with(
+            url,
+            data=body,
+            params={'wait': 'false',
+                    'agent_token': 'magical'},
+            timeout=60)
+
 
 class TestAgentClientAttempts(base.TestCase):
     def setUp(self):
