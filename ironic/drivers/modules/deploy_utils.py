@@ -14,20 +14,15 @@
 #    under the License.
 
 
-import contextlib
-import glob
 import os
 import re
 import time
 
-from ironic_lib import disk_utils
 from ironic_lib import metrics_utils
 from ironic_lib import utils as il_utils
-from oslo_concurrency import processutils
 from oslo_log import log as logging
 from oslo_utils import excutils
 from oslo_utils import fileutils
-from oslo_utils import netutils
 from oslo_utils import strutils
 
 from ironic.common import exception
@@ -86,12 +81,6 @@ def _get_ironic_session():
     return _IRONIC_SESSION
 
 
-def _wrap_ipv6(ip):
-    if netutils.is_valid_ipv6(ip):
-        return "[%s]" % ip
-    return ip
-
-
 def get_ironic_api_url():
     """Resolve Ironic API endpoint
 
@@ -125,145 +114,6 @@ def get_ironic_api_url():
 def rescue_or_deploy_mode(node):
     return ('rescue' if node.provision_state in RESCUE_LIKE_STATES
             else 'deploy')
-
-
-def discovery(portal_address, portal_port):
-    """Do iSCSI discovery on portal."""
-    utils.execute('iscsiadm',
-                  '-m', 'discovery',
-                  '-t', 'st',
-                  '-p', '%s:%s' % (_wrap_ipv6(portal_address), portal_port),
-                  run_as_root=True,
-                  check_exit_code=[0],
-                  attempts=5,
-                  delay_on_retry=True)
-
-
-def login_iscsi(portal_address, portal_port, target_iqn):
-    """Login to an iSCSI target."""
-    utils.execute('iscsiadm',
-                  '-m', 'node',
-                  '-p', '%s:%s' % (_wrap_ipv6(portal_address), portal_port),
-                  '-T', target_iqn,
-                  '--login',
-                  run_as_root=True,
-                  check_exit_code=[0],
-                  attempts=5,
-                  delay_on_retry=True)
-
-    error_occurred = False
-    try:
-        # Ensure the login complete
-        verify_iscsi_connection(target_iqn)
-        # force iSCSI initiator to re-read luns
-        force_iscsi_lun_update(target_iqn)
-        # ensure file system sees the block device
-        check_file_system_for_iscsi_device(portal_address,
-                                           portal_port,
-                                           target_iqn)
-    except (exception.InstanceDeployFailure,
-            processutils.ProcessExecutionError) as e:
-        with excutils.save_and_reraise_exception():
-            error_occurred = True
-            LOG.error("Failed to login to an iSCSI target due to %s", e)
-    finally:
-        if error_occurred:
-            try:
-                logout_iscsi(portal_address, portal_port, target_iqn)
-                delete_iscsi(portal_address, portal_port, target_iqn)
-            except processutils.ProcessExecutionError as e:
-                LOG.warning("An error occurred when trying to cleanup "
-                            "failed ISCSI session error %s", e)
-
-
-def check_file_system_for_iscsi_device(portal_address,
-                                       portal_port,
-                                       target_iqn):
-    """Ensure the file system sees the iSCSI block device."""
-    check_dir = "/dev/disk/by-path/ip-%s:%s-iscsi-%s-lun-1" % (portal_address,
-                                                               portal_port,
-                                                               target_iqn)
-    total_checks = CONF.iscsi.verify_attempts
-    for attempt in range(total_checks):
-        if os.path.exists(check_dir):
-            break
-        time.sleep(1)
-        if LOG.isEnabledFor(logging.DEBUG):
-            existing_devs = ', '.join(glob.iglob('/dev/disk/by-path/*iscsi*'))
-            LOG.debug("iSCSI connection not seen by file system. Rechecking. "
-                      "Attempt %(attempt)d out of %(total)d. Available iSCSI "
-                      "devices: %(devs)s.",
-                      {"attempt": attempt + 1,
-                       "total": total_checks,
-                       "devs": existing_devs})
-    else:
-        msg = _("iSCSI connection was not seen by the file system after "
-                "attempting to verify %d times.") % total_checks
-        LOG.error(msg)
-        raise exception.InstanceDeployFailure(msg)
-
-
-def verify_iscsi_connection(target_iqn):
-    """Verify iscsi connection."""
-    LOG.debug("Checking for iSCSI target to become active.")
-
-    total_checks = CONF.iscsi.verify_attempts
-    for attempt in range(total_checks):
-        out, _err = utils.execute('iscsiadm',
-                                  '-m', 'node',
-                                  '-S',
-                                  run_as_root=True,
-                                  check_exit_code=[0])
-        if target_iqn in out:
-            break
-        time.sleep(1)
-        LOG.debug("iSCSI connection not active. Rechecking. Attempt "
-                  "%(attempt)d out of %(total)d",
-                  {"attempt": attempt + 1, "total": total_checks})
-    else:
-        msg = _("iSCSI connection did not become active after attempting to "
-                "verify %d times.") % total_checks
-        LOG.error(msg)
-        raise exception.InstanceDeployFailure(msg)
-
-
-def force_iscsi_lun_update(target_iqn):
-    """force iSCSI initiator to re-read luns."""
-    LOG.debug("Re-reading iSCSI luns.")
-    utils.execute('iscsiadm',
-                  '-m', 'node',
-                  '-T', target_iqn,
-                  '-R',
-                  run_as_root=True,
-                  check_exit_code=[0])
-
-
-def logout_iscsi(portal_address, portal_port, target_iqn):
-    """Logout from an iSCSI target."""
-    utils.execute('iscsiadm',
-                  '-m', 'node',
-                  '-p', '%s:%s' % (_wrap_ipv6(portal_address), portal_port),
-                  '-T', target_iqn,
-                  '--logout',
-                  run_as_root=True,
-                  check_exit_code=[0],
-                  attempts=5,
-                  delay_on_retry=True)
-
-
-def delete_iscsi(portal_address, portal_port, target_iqn):
-    """Delete the iSCSI target."""
-    # Retry delete until it succeeds (exit code 0) or until there is
-    # no longer a target to delete (exit code 21).
-    utils.execute('iscsiadm',
-                  '-m', 'node',
-                  '-p', '%s:%s' % (_wrap_ipv6(portal_address), portal_port),
-                  '-T', target_iqn,
-                  '-o', 'delete',
-                  run_as_root=True,
-                  check_exit_code=[0, 21],
-                  attempts=5,
-                  delay_on_retry=True)
 
 
 def _replace_lines_in_file(path, regex_pattern, replacement):
@@ -341,137 +191,6 @@ def switch_pxe_config(path, root_uuid_or_disk_id, boot_mode,
 
     _replace_boot_line(path, boot_mode, is_whole_disk_image, trusted_boot,
                        iscsi_boot, ramdisk_boot, ipxe_enabled)
-
-
-def get_dev(address, port, iqn, lun):
-    """Returns a device path for given parameters."""
-    dev = ("/dev/disk/by-path/ip-%s:%s-iscsi-%s-lun-%s"
-           % (address, port, iqn, lun))
-    return dev
-
-
-def deploy_partition_image(
-        address, port, iqn, lun, image_path,
-        root_mb, swap_mb, ephemeral_mb, ephemeral_format, node_uuid,
-        preserve_ephemeral=False, configdrive=None,
-        boot_option=None, boot_mode="bios", disk_label=None,
-        cpu_arch=""):
-    """All-in-one function to deploy a partition image to a node.
-
-    :param address: The iSCSI IP address.
-    :param port: The iSCSI port number.
-    :param iqn: The iSCSI qualified name.
-    :param lun: The iSCSI logical unit number.
-    :param image_path: Path for the instance's disk image.
-    :param root_mb: Size of the root partition in megabytes.
-    :param swap_mb: Size of the swap partition in megabytes.
-    :param ephemeral_mb: Size of the ephemeral partition in megabytes. If 0,
-                         no ephemeral partition will be created.
-    :param ephemeral_format: The type of file system to format the ephemeral
-                             partition.
-    :param node_uuid: node's uuid. Used for logging.
-    :param preserve_ephemeral: If True, no filesystem is written to the
-                               ephemeral block device, preserving whatever
-                               content it had (if the partition table has
-                               not changed).
-    :param configdrive: Optional. Base64 encoded Gzipped configdrive content
-                        or configdrive HTTP URL.
-    :param boot_option: Can be "local" or "netboot".
-                        "netboot" by default.
-    :param boot_mode: Can be "bios" or "uefi". "bios" by default.
-    :param disk_label: The disk label to be used when creating the
-                       partition table. Valid values are: "msdos",
-                       "gpt" or None; If None ironic will figure it
-                       out according to the boot_mode parameter.
-    :param cpu_arch: Architecture of the node being deployed to.
-    :raises: InstanceDeployFailure if image virtual size is bigger than root
-             partition size.
-    :returns: a dictionary containing the following keys:
-              'root uuid': UUID of root partition
-              'efi system partition uuid': UUID of the uefi system partition
-              (if boot mode is uefi).
-              NOTE: If key exists but value is None, it means partition doesn't
-              exist.
-    """
-    boot_option = boot_option or get_default_boot_option()
-    image_mb = disk_utils.get_image_mb(image_path)
-    if image_mb > root_mb:
-        msg = (_('Root partition is too small for requested image. Image '
-                 'virtual size: %(image_mb)d MB, Root size: %(root_mb)d MB')
-               % {'image_mb': image_mb, 'root_mb': root_mb})
-        raise exception.InstanceDeployFailure(msg)
-
-    with _iscsi_setup_and_handle_errors(address, port, iqn, lun) as dev:
-        uuid_dict_returned = disk_utils.work_on_disk(
-            dev, root_mb, swap_mb, ephemeral_mb, ephemeral_format, image_path,
-            node_uuid, preserve_ephemeral=preserve_ephemeral,
-            configdrive=configdrive, boot_option=boot_option,
-            boot_mode=boot_mode, disk_label=disk_label, cpu_arch=cpu_arch)
-
-    return uuid_dict_returned
-
-
-def deploy_disk_image(address, port, iqn, lun,
-                      image_path, node_uuid, configdrive=None,
-                      conv_flags=None):
-    """All-in-one function to deploy a whole disk image to a node.
-
-    :param address: The iSCSI IP address.
-    :param port: The iSCSI port number.
-    :param iqn: The iSCSI qualified name.
-    :param lun: The iSCSI logical unit number.
-    :param image_path: Path for the instance's disk image.
-    :param node_uuid: node's uuid.
-    :param configdrive: Optional. Base64 encoded Gzipped configdrive content
-                        or configdrive HTTP URL.
-    :param conv_flags: Optional. Add a flag that will modify the behaviour of
-                       the image copy to disk.
-    :returns: a dictionary containing the key 'disk identifier' to identify
-        the disk which was used for deployment.
-    """
-    with _iscsi_setup_and_handle_errors(address, port, iqn,
-                                        lun) as dev:
-        disk_utils.populate_image(image_path, dev, conv_flags=conv_flags)
-
-        if configdrive:
-            disk_utils.create_config_drive_partition(node_uuid, dev,
-                                                     configdrive)
-
-        disk_identifier = disk_utils.get_disk_identifier(dev)
-
-    return {'disk identifier': disk_identifier}
-
-
-@contextlib.contextmanager
-def _iscsi_setup_and_handle_errors(address, port, iqn, lun):
-    """Function that yields an iSCSI target device to work on.
-
-    :param address: The iSCSI IP address.
-    :param port: The iSCSI port number.
-    :param iqn: The iSCSI qualified name.
-    :param lun: The iSCSI logical unit number.
-    """
-    dev = get_dev(address, port, iqn, lun)
-    discovery(address, port)
-    login_iscsi(address, port, iqn)
-    if not disk_utils.is_block_device(dev):
-        raise exception.InstanceDeployFailure(_("Parent device '%s' not found")
-                                              % dev)
-    try:
-        yield dev
-    except processutils.ProcessExecutionError as err:
-        with excutils.save_and_reraise_exception():
-            LOG.error("Deploy to address %s failed.", address)
-            LOG.error("Command: %s", err.cmd)
-            LOG.error("StdOut: %r", err.stdout)
-            LOG.error("StdErr: %r", err.stderr)
-    except exception.InstanceDeployFailure as e:
-        with excutils.save_and_reraise_exception():
-            LOG.error("Deploy to address %s failed.", address)
-            LOG.error(e)
-    finally:
-        logout_iscsi(address, port, iqn)
-        delete_iscsi(address, port, iqn)
 
 
 def check_for_missing_params(info_dict, error_msg, param_prefix=''):

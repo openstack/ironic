@@ -17,12 +17,16 @@
 
 import os
 import tempfile
+import time
+import types
 
 from ironic_lib import disk_utils
 from ironic_lib import utils as ironic_utils
 import mock
+from oslo_concurrency import processutils
 from oslo_config import cfg
 from oslo_utils import fileutils
+import testtools
 
 from ironic.common import boot_devices
 from ironic.common import dhcp_factory
@@ -41,6 +45,7 @@ from ironic.drivers.modules.network import flat as flat_network
 from ironic.drivers.modules import pxe
 from ironic.drivers.modules.storage import noop as noop_storage
 from ironic.drivers import utils as driver_utils
+from ironic.tests import base as tests_base
 from ironic.tests.unit.db import base as db_base
 from ironic.tests.unit.db import utils as db_utils
 from ironic.tests.unit.objects import utils as obj_utils
@@ -187,7 +192,7 @@ class IscsiDeployMethodsTestCase(db_base.DbTestCase):
     @mock.patch.object(iscsi_deploy, '_save_disk_layout', autospec=True)
     @mock.patch.object(deploy_utils, 'InstanceImageCache', autospec=True)
     @mock.patch.object(manager_utils, 'node_power_action', autospec=True)
-    @mock.patch.object(deploy_utils, 'deploy_partition_image', autospec=True)
+    @mock.patch.object(iscsi_deploy, 'deploy_partition_image', autospec=True)
     def test_continue_deploy_fail(
             self, deploy_mock, power_mock, mock_image_cache, mock_disk_layout,
             mock_collect_logs):
@@ -220,7 +225,7 @@ class IscsiDeployMethodsTestCase(db_base.DbTestCase):
     @mock.patch.object(iscsi_deploy, '_save_disk_layout', autospec=True)
     @mock.patch.object(deploy_utils, 'InstanceImageCache', autospec=True)
     @mock.patch.object(manager_utils, 'node_power_action', autospec=True)
-    @mock.patch.object(deploy_utils, 'deploy_partition_image', autospec=True)
+    @mock.patch.object(iscsi_deploy, 'deploy_partition_image', autospec=True)
     def test_continue_deploy_unexpected_fail(
             self, deploy_mock, power_mock, mock_image_cache, mock_disk_layout,
             mock_collect_logs):
@@ -251,7 +256,7 @@ class IscsiDeployMethodsTestCase(db_base.DbTestCase):
     @mock.patch.object(iscsi_deploy, '_save_disk_layout', autospec=True)
     @mock.patch.object(deploy_utils, 'InstanceImageCache', autospec=True)
     @mock.patch.object(manager_utils, 'node_power_action', autospec=True)
-    @mock.patch.object(deploy_utils, 'deploy_partition_image', autospec=True)
+    @mock.patch.object(iscsi_deploy, 'deploy_partition_image', autospec=True)
     def test_continue_deploy_fail_no_root_uuid_or_disk_id(
             self, deploy_mock, power_mock, mock_image_cache, mock_disk_layout,
             mock_collect_logs):
@@ -281,7 +286,7 @@ class IscsiDeployMethodsTestCase(db_base.DbTestCase):
     @mock.patch.object(iscsi_deploy, '_save_disk_layout', autospec=True)
     @mock.patch.object(deploy_utils, 'InstanceImageCache', autospec=True)
     @mock.patch.object(manager_utils, 'node_power_action', autospec=True)
-    @mock.patch.object(deploy_utils, 'deploy_partition_image', autospec=True)
+    @mock.patch.object(iscsi_deploy, 'deploy_partition_image', autospec=True)
     def test_continue_deploy_fail_empty_root_uuid(
             self, deploy_mock, power_mock, mock_image_cache,
             mock_disk_layout, mock_collect_logs):
@@ -312,7 +317,7 @@ class IscsiDeployMethodsTestCase(db_base.DbTestCase):
     @mock.patch.object(iscsi_deploy, 'get_deploy_info', autospec=True)
     @mock.patch.object(deploy_utils, 'InstanceImageCache', autospec=True)
     @mock.patch.object(manager_utils, 'node_power_action', autospec=True)
-    @mock.patch.object(deploy_utils, 'deploy_partition_image', autospec=True)
+    @mock.patch.object(iscsi_deploy, 'deploy_partition_image', autospec=True)
     def test_continue_deploy(self, deploy_mock, power_mock, mock_image_cache,
                              mock_deploy_info, mock_log, mock_disk_layout):
         kwargs = {'address': '123456', 'iqn': 'aaa-bbb'}
@@ -364,7 +369,7 @@ class IscsiDeployMethodsTestCase(db_base.DbTestCase):
     @mock.patch.object(iscsi_deploy, 'get_deploy_info', autospec=True)
     @mock.patch.object(deploy_utils, 'InstanceImageCache', autospec=True)
     @mock.patch.object(manager_utils, 'node_power_action', autospec=True)
-    @mock.patch.object(deploy_utils, 'deploy_disk_image', autospec=True)
+    @mock.patch.object(iscsi_deploy, 'deploy_disk_image', autospec=True)
     def test_continue_deploy_whole_disk_image(
             self, deploy_mock, power_mock, mock_image_cache, mock_deploy_info,
             mock_log):
@@ -1284,3 +1289,551 @@ class CleanUpFullFlowTestCase(db_base.DbTestCase):
                      + self.files):
             self.assertFalse(os.path.exists(path),
                              '%s is not expected to exist' % path)
+
+
+@mock.patch.object(time, 'sleep', lambda seconds: None)
+class PhysicalWorkTestCase(tests_base.TestCase):
+
+    def setUp(self):
+        super(PhysicalWorkTestCase, self).setUp()
+        self.address = '127.0.0.1'
+        self.port = 3306
+        self.iqn = 'iqn.xyz'
+        self.lun = 1
+        self.image_path = '/tmp/xyz/image'
+        self.node_uuid = "12345678-1234-1234-1234-1234567890abcxyz"
+        self.dev = ("/dev/disk/by-path/ip-%s:%s-iscsi-%s-lun-%s"
+                    % (self.address, self.port, self.iqn, self.lun))
+
+    def _mock_calls(self, name_list, module):
+        patch_list = [mock.patch.object(module, name,
+                                        spec_set=types.FunctionType)
+                      for name in name_list]
+        mock_list = [patcher.start() for patcher in patch_list]
+        for patcher in patch_list:
+            self.addCleanup(patcher.stop)
+
+        parent_mock = mock.MagicMock(spec=[])
+        for mocker, name in zip(mock_list, name_list):
+            parent_mock.attach_mock(mocker, name)
+        return parent_mock
+
+    @mock.patch.object(disk_utils, 'work_on_disk', autospec=True)
+    @mock.patch.object(disk_utils, 'is_block_device', autospec=True)
+    @mock.patch.object(disk_utils, 'get_image_mb', autospec=True)
+    @mock.patch.object(iscsi_deploy, 'logout_iscsi', autospec=True)
+    @mock.patch.object(iscsi_deploy, 'login_iscsi', autospec=True)
+    @mock.patch.object(iscsi_deploy, 'discovery', autospec=True)
+    @mock.patch.object(iscsi_deploy, 'delete_iscsi', autospec=True)
+    def _test_deploy_partition_image(self,
+                                     mock_delete_iscsi,
+                                     mock_discovery,
+                                     mock_login_iscsi,
+                                     mock_logout_iscsi,
+                                     mock_get_image_mb,
+                                     mock_is_block_device,
+                                     mock_work_on_disk, **kwargs):
+        # Below are the only values we allow callers to modify for testing.
+        # Check that values other than this aren't passed in.
+        deploy_args = {
+            'boot_mode': None,
+            'boot_option': None,
+            'configdrive': None,
+            'cpu_arch': None,
+            'disk_label': None,
+            'ephemeral_format': None,
+            'ephemeral_mb': None,
+            'image_mb': 1,
+            'preserve_ephemeral': False,
+            'root_mb': 128,
+            'swap_mb': 64
+        }
+        disallowed_values = set(kwargs) - set(deploy_args)
+        if disallowed_values:
+            raise ValueError("Only the following kwargs are allowed in "
+                             "_test_deploy_partition_image: %(allowed)s. "
+                             "Disallowed values: %(disallowed)s."
+                             % {"allowed": ", ".join(deploy_args),
+                                "disallowed": ", ".join(disallowed_values)})
+        deploy_args.update(kwargs)
+
+        root_uuid = '12345678-1234-1234-12345678-12345678abcdef'
+
+        mock_is_block_device.return_value = True
+        mock_get_image_mb.return_value = deploy_args['image_mb']
+        mock_work_on_disk.return_value = {
+            'root uuid': root_uuid,
+            'efi system partition uuid': None
+        }
+
+        deploy_kwargs = {
+            'boot_mode': deploy_args['boot_mode'],
+            'boot_option': deploy_args['boot_option'],
+            'configdrive': deploy_args['configdrive'],
+            'disk_label': deploy_args['disk_label'],
+            'cpu_arch': deploy_args['cpu_arch'] or '',
+            'preserve_ephemeral': deploy_args['preserve_ephemeral']
+        }
+        iscsi_deploy.deploy_partition_image(
+            self.address, self.port, self.iqn, self.lun, self.image_path,
+            deploy_args['root_mb'],
+            deploy_args['swap_mb'], deploy_args['ephemeral_mb'],
+            deploy_args['ephemeral_format'], self.node_uuid, **deploy_kwargs)
+
+        mock_discovery.assert_called_once_with(self.address, self.port)
+        mock_login_iscsi.assert_called_once_with(self.address, self.port,
+                                                 self.iqn)
+        mock_logout_iscsi.assert_called_once_with(self.address, self.port,
+                                                  self.iqn)
+        mock_delete_iscsi.assert_called_once_with(self.address, self.port,
+                                                  self.iqn)
+        mock_get_image_mb.assert_called_once_with(self.image_path)
+        mock_is_block_device.assert_called_once_with(self.dev)
+
+        work_on_disk_kwargs = {
+            'preserve_ephemeral': deploy_args['preserve_ephemeral'],
+            'configdrive': deploy_args['configdrive'],
+            # boot_option defaults to 'netboot' if
+            # not set
+            'boot_option': deploy_args['boot_option'] or 'netboot',
+            'boot_mode': deploy_args['boot_mode'],
+            'disk_label': deploy_args['disk_label'],
+            'cpu_arch': deploy_args['cpu_arch'] or ''
+        }
+        mock_work_on_disk.assert_called_once_with(
+            self.dev, deploy_args['root_mb'], deploy_args['swap_mb'],
+            deploy_args['ephemeral_mb'], deploy_args['ephemeral_format'],
+            self.image_path, self.node_uuid, **work_on_disk_kwargs)
+
+    def test_deploy_partition_image_without_boot_option(self):
+        self._test_deploy_partition_image()
+
+    def test_deploy_partition_image_netboot(self):
+        self._test_deploy_partition_image(boot_option="netboot")
+
+    def test_deploy_partition_image_localboot(self):
+        self._test_deploy_partition_image(boot_option="local")
+
+    def test_deploy_partition_image_wo_boot_option_and_wo_boot_mode(self):
+        self._test_deploy_partition_image()
+
+    def test_deploy_partition_image_netboot_bios(self):
+        self._test_deploy_partition_image(boot_option="netboot",
+                                          boot_mode="bios")
+
+    def test_deploy_partition_image_localboot_bios(self):
+        self._test_deploy_partition_image(boot_option="local",
+                                          boot_mode="bios")
+
+    def test_deploy_partition_image_netboot_uefi(self):
+        self._test_deploy_partition_image(boot_option="netboot",
+                                          boot_mode="uefi")
+
+    def test_deploy_partition_image_disk_label(self):
+        self._test_deploy_partition_image(disk_label='gpt')
+
+    def test_deploy_partition_image_image_exceeds_root_partition(self):
+        self.assertRaises(exception.InstanceDeployFailure,
+                          self._test_deploy_partition_image, image_mb=129,
+                          root_mb=128)
+
+    def test_deploy_partition_image_localboot_uefi(self):
+        self._test_deploy_partition_image(boot_option="local",
+                                          boot_mode="uefi")
+
+    def test_deploy_partition_image_without_swap(self):
+        self._test_deploy_partition_image(swap_mb=0)
+
+    def test_deploy_partition_image_with_ephemeral(self):
+        self._test_deploy_partition_image(ephemeral_format='exttest',
+                                          ephemeral_mb=256)
+
+    def test_deploy_partition_image_preserve_ephemeral(self):
+        self._test_deploy_partition_image(ephemeral_format='exttest',
+                                          ephemeral_mb=256,
+                                          preserve_ephemeral=True)
+
+    def test_deploy_partition_image_with_configdrive(self):
+        self._test_deploy_partition_image(configdrive='http://1.2.3.4/cd')
+
+    def test_deploy_partition_image_with_cpu_arch(self):
+        self._test_deploy_partition_image(cpu_arch='generic')
+
+    @mock.patch.object(disk_utils, 'create_config_drive_partition',
+                       autospec=True)
+    @mock.patch.object(disk_utils, 'get_disk_identifier', autospec=True)
+    def test_deploy_whole_disk_image(self, mock_gdi, create_config_drive_mock):
+        """Check loosely all functions are called with right args."""
+
+        name_list = ['discovery', 'login_iscsi',
+                     'logout_iscsi', 'delete_iscsi']
+        disk_utils_name_list = ['is_block_device', 'populate_image']
+
+        iscsi_mock = self._mock_calls(name_list, iscsi_deploy)
+
+        disk_utils_mock = self._mock_calls(disk_utils_name_list, disk_utils)
+        disk_utils_mock.is_block_device.return_value = True
+        mock_gdi.return_value = '0x12345678'
+        utils_calls_expected = [mock.call.discovery(self.address, self.port),
+                                mock.call.login_iscsi(self.address, self.port,
+                                                      self.iqn),
+                                mock.call.logout_iscsi(self.address, self.port,
+                                                       self.iqn),
+                                mock.call.delete_iscsi(self.address, self.port,
+                                                       self.iqn)]
+        disk_utils_calls_expected = [mock.call.is_block_device(self.dev),
+                                     mock.call.populate_image(self.image_path,
+                                                              self.dev,
+                                                              conv_flags=None)]
+        uuid_dict_returned = iscsi_deploy.deploy_disk_image(
+            self.address, self.port, self.iqn, self.lun, self.image_path,
+            self.node_uuid)
+
+        self.assertEqual(utils_calls_expected, iscsi_mock.mock_calls)
+        self.assertEqual(disk_utils_calls_expected, disk_utils_mock.mock_calls)
+        self.assertFalse(create_config_drive_mock.called)
+        self.assertEqual('0x12345678', uuid_dict_returned['disk identifier'])
+
+    @mock.patch.object(disk_utils, 'create_config_drive_partition',
+                       autospec=True)
+    @mock.patch.object(disk_utils, 'get_disk_identifier', autospec=True)
+    def test_deploy_whole_disk_image_with_config_drive(self, mock_gdi,
+                                                       create_partition_mock):
+        """Check loosely all functions are called with right args."""
+        config_url = 'http://1.2.3.4/cd'
+
+        iscsi_list = ['discovery', 'login_iscsi', 'logout_iscsi',
+                      'delete_iscsi']
+
+        disk_utils_list = ['is_block_device', 'populate_image']
+        iscsi_mock = self._mock_calls(iscsi_list, iscsi_deploy)
+        disk_utils_mock = self._mock_calls(disk_utils_list, disk_utils)
+        disk_utils_mock.is_block_device.return_value = True
+        mock_gdi.return_value = '0x12345678'
+        utils_calls_expected = [mock.call.discovery(self.address, self.port),
+                                mock.call.login_iscsi(self.address, self.port,
+                                                      self.iqn),
+                                mock.call.logout_iscsi(self.address, self.port,
+                                                       self.iqn),
+                                mock.call.delete_iscsi(self.address, self.port,
+                                                       self.iqn)]
+
+        disk_utils_calls_expected = [mock.call.is_block_device(self.dev),
+                                     mock.call.populate_image(self.image_path,
+                                                              self.dev,
+                                                              conv_flags=None)]
+
+        uuid_dict_returned = iscsi_deploy.deploy_disk_image(
+            self.address, self.port, self.iqn, self.lun, self.image_path,
+            self.node_uuid, configdrive=config_url)
+
+        iscsi_mock.assert_has_calls(utils_calls_expected)
+        disk_utils_mock.assert_has_calls(disk_utils_calls_expected)
+        create_partition_mock.assert_called_once_with(self.node_uuid, self.dev,
+                                                      config_url)
+        self.assertEqual('0x12345678', uuid_dict_returned['disk identifier'])
+
+    @mock.patch.object(disk_utils, 'create_config_drive_partition',
+                       autospec=True)
+    @mock.patch.object(disk_utils, 'get_disk_identifier', autospec=True)
+    def test_deploy_whole_disk_image_sparse(self, mock_gdi,
+                                            create_config_drive_mock):
+        """Check loosely all functions are called with right args."""
+        iscsi_name_list = ['discovery', 'login_iscsi',
+                           'logout_iscsi', 'delete_iscsi']
+        disk_utils_name_list = ['is_block_device', 'populate_image']
+
+        iscsi_mock = self._mock_calls(iscsi_name_list, iscsi_deploy)
+
+        disk_utils_mock = self._mock_calls(disk_utils_name_list, disk_utils)
+        disk_utils_mock.is_block_device.return_value = True
+        mock_gdi.return_value = '0x12345678'
+        utils_calls_expected = [mock.call.discovery(self.address, self.port),
+                                mock.call.login_iscsi(self.address, self.port,
+                                                      self.iqn),
+                                mock.call.logout_iscsi(self.address, self.port,
+                                                       self.iqn),
+                                mock.call.delete_iscsi(self.address, self.port,
+                                                       self.iqn)]
+        disk_utils_calls_expected = [mock.call.is_block_device(self.dev),
+                                     mock.call.populate_image(
+                                         self.image_path, self.dev,
+                                         conv_flags='sparse')]
+
+        uuid_dict_returned = iscsi_deploy.deploy_disk_image(
+            self.address, self.port, self.iqn, self.lun, self.image_path,
+            self.node_uuid, configdrive=None, conv_flags='sparse')
+
+        self.assertEqual(utils_calls_expected, iscsi_mock.mock_calls)
+        self.assertEqual(disk_utils_calls_expected, disk_utils_mock.mock_calls)
+        self.assertFalse(create_config_drive_mock.called)
+        self.assertEqual('0x12345678', uuid_dict_returned['disk identifier'])
+
+    @mock.patch.object(utils, 'execute', autospec=True)
+    def test_verify_iscsi_connection_raises(self, mock_exec):
+        iqn = 'iqn.xyz'
+        mock_exec.return_value = ['iqn.abc', '']
+        self.assertRaises(exception.InstanceDeployFailure,
+                          iscsi_deploy.verify_iscsi_connection, iqn)
+        self.assertEqual(3, mock_exec.call_count)
+
+    @mock.patch.object(utils, 'execute', autospec=True)
+    def test_verify_iscsi_connection_override_attempts(self, mock_exec):
+        utils.CONF.set_override('verify_attempts', 2, group='iscsi')
+        iqn = 'iqn.xyz'
+        mock_exec.return_value = ['iqn.abc', '']
+        self.assertRaises(exception.InstanceDeployFailure,
+                          iscsi_deploy.verify_iscsi_connection, iqn)
+        self.assertEqual(2, mock_exec.call_count)
+
+    @mock.patch.object(os.path, 'exists', autospec=True)
+    def test_check_file_system_for_iscsi_device_raises(self, mock_os):
+        iqn = 'iqn.xyz'
+        ip = "127.0.0.1"
+        port = "22"
+        mock_os.return_value = False
+        self.assertRaises(exception.InstanceDeployFailure,
+                          iscsi_deploy.check_file_system_for_iscsi_device,
+                          ip, port, iqn)
+        self.assertEqual(3, mock_os.call_count)
+
+    @mock.patch.object(os.path, 'exists', autospec=True)
+    def test_check_file_system_for_iscsi_device(self, mock_os):
+        iqn = 'iqn.xyz'
+        ip = "127.0.0.1"
+        port = "22"
+        check_dir = "/dev/disk/by-path/ip-%s:%s-iscsi-%s-lun-1" % (ip,
+                                                                   port,
+                                                                   iqn)
+
+        mock_os.return_value = True
+        iscsi_deploy.check_file_system_for_iscsi_device(ip, port, iqn)
+        mock_os.assert_called_once_with(check_dir)
+
+    @mock.patch.object(utils, 'execute', autospec=True)
+    def test_verify_iscsi_connection(self, mock_exec):
+        iqn = 'iqn.xyz'
+        mock_exec.return_value = ['iqn.xyz', '']
+        iscsi_deploy.verify_iscsi_connection(iqn)
+        mock_exec.assert_called_once_with(
+            'iscsiadm',
+            '-m', 'node',
+            '-S',
+            run_as_root=True,
+            check_exit_code=[0])
+
+    @mock.patch.object(utils, 'execute', autospec=True)
+    def test_force_iscsi_lun_update(self, mock_exec):
+        iqn = 'iqn.xyz'
+        iscsi_deploy.force_iscsi_lun_update(iqn)
+        mock_exec.assert_called_once_with(
+            'iscsiadm',
+            '-m', 'node',
+            '-T', iqn,
+            '-R',
+            run_as_root=True,
+            check_exit_code=[0])
+
+    @mock.patch.object(utils, 'execute', autospec=True)
+    @mock.patch.object(iscsi_deploy, 'verify_iscsi_connection', autospec=True)
+    @mock.patch.object(iscsi_deploy, 'force_iscsi_lun_update', autospec=True)
+    @mock.patch.object(iscsi_deploy, 'check_file_system_for_iscsi_device',
+                       autospec=True)
+    def test_login_iscsi_calls_verify_and_update(self,
+                                                 mock_check_dev,
+                                                 mock_update,
+                                                 mock_verify,
+                                                 mock_exec):
+        address = '127.0.0.1'
+        port = 3306
+        iqn = 'iqn.xyz'
+        mock_exec.return_value = ['iqn.xyz', '']
+        iscsi_deploy.login_iscsi(address, port, iqn)
+        mock_exec.assert_called_once_with(
+            'iscsiadm',
+            '-m', 'node',
+            '-p', '%s:%s' % (address, port),
+            '-T', iqn,
+            '--login',
+            run_as_root=True,
+            check_exit_code=[0],
+            attempts=5,
+            delay_on_retry=True)
+
+        mock_verify.assert_called_once_with(iqn)
+        mock_update.assert_called_once_with(iqn)
+        mock_check_dev.assert_called_once_with(address, port, iqn)
+
+    @mock.patch.object(iscsi_deploy, 'LOG', autospec=True)
+    @mock.patch.object(utils, 'execute', autospec=True)
+    @mock.patch.object(iscsi_deploy, 'verify_iscsi_connection', autospec=True)
+    @mock.patch.object(iscsi_deploy, 'force_iscsi_lun_update', autospec=True)
+    @mock.patch.object(iscsi_deploy, 'check_file_system_for_iscsi_device',
+                       autospec=True)
+    @mock.patch.object(iscsi_deploy, 'delete_iscsi', autospec=True)
+    @mock.patch.object(iscsi_deploy, 'logout_iscsi', autospec=True)
+    def test_login_iscsi_calls_raises(
+            self, mock_loiscsi, mock_discsi, mock_check_dev, mock_update,
+            mock_verify, mock_exec, mock_log):
+        address = '127.0.0.1'
+        port = 3306
+        iqn = 'iqn.xyz'
+        mock_exec.return_value = ['iqn.xyz', '']
+        mock_check_dev.side_effect = exception.InstanceDeployFailure('boom')
+        self.assertRaises(exception.InstanceDeployFailure,
+                          iscsi_deploy.login_iscsi,
+                          address, port, iqn)
+        mock_verify.assert_called_once_with(iqn)
+        mock_update.assert_called_once_with(iqn)
+        mock_loiscsi.assert_called_once_with(address, port, iqn)
+        mock_discsi.assert_called_once_with(address, port, iqn)
+        self.assertIsInstance(mock_log.error.call_args[0][1],
+                              exception.InstanceDeployFailure)
+
+    @mock.patch.object(iscsi_deploy, 'LOG', autospec=True)
+    @mock.patch.object(utils, 'execute', autospec=True)
+    @mock.patch.object(iscsi_deploy, 'verify_iscsi_connection', autospec=True)
+    @mock.patch.object(iscsi_deploy, 'force_iscsi_lun_update', autospec=True)
+    @mock.patch.object(iscsi_deploy, 'check_file_system_for_iscsi_device',
+                       autospec=True)
+    @mock.patch.object(iscsi_deploy, 'delete_iscsi', autospec=True)
+    @mock.patch.object(iscsi_deploy, 'logout_iscsi', autospec=True)
+    def test_login_iscsi_calls_raises_during_cleanup(
+            self, mock_loiscsi, mock_discsi, mock_check_dev, mock_update,
+            mock_verify, mock_exec, mock_log):
+        address = '127.0.0.1'
+        port = 3306
+        iqn = 'iqn.xyz'
+        mock_exec.return_value = ['iqn.xyz', '']
+        mock_check_dev.side_effect = exception.InstanceDeployFailure('boom')
+        mock_discsi.side_effect = processutils.ProcessExecutionError('boom')
+        self.assertRaises(exception.InstanceDeployFailure,
+                          iscsi_deploy.login_iscsi,
+                          address, port, iqn)
+        mock_verify.assert_called_once_with(iqn)
+        mock_update.assert_called_once_with(iqn)
+        mock_loiscsi.assert_called_once_with(address, port, iqn)
+        mock_discsi.assert_called_once_with(address, port, iqn)
+        self.assertIsInstance(mock_log.error.call_args[0][1],
+                              exception.InstanceDeployFailure)
+        self.assertIsInstance(mock_log.warning.call_args[0][1],
+                              processutils.ProcessExecutionError)
+
+    @mock.patch.object(disk_utils, 'is_block_device', lambda d: True)
+    def test_always_logout_and_delete_iscsi(self):
+        """Check if logout_iscsi() and delete_iscsi() are called.
+
+        Make sure that logout_iscsi() and delete_iscsi() are called once
+        login_iscsi() is invoked.
+
+        """
+        address = '127.0.0.1'
+        port = 3306
+        iqn = 'iqn.xyz'
+        lun = 1
+        image_path = '/tmp/xyz/image'
+        root_mb = 128
+        swap_mb = 64
+        ephemeral_mb = 256
+        ephemeral_format = 'exttest'
+        node_uuid = "12345678-1234-1234-1234-1234567890abcxyz"
+
+        class TestException(Exception):
+            pass
+
+        iscsi_name_list = ['discovery', 'login_iscsi',
+                           'logout_iscsi', 'delete_iscsi']
+
+        disk_utils_name_list = ['get_image_mb', 'work_on_disk']
+
+        iscsi_mock = self._mock_calls(iscsi_name_list, iscsi_deploy)
+
+        disk_utils_mock = self._mock_calls(disk_utils_name_list, disk_utils)
+        disk_utils_mock.get_image_mb.return_value = 1
+        disk_utils_mock.work_on_disk.side_effect = TestException
+        utils_calls_expected = [mock.call.discovery(address, port),
+                                mock.call.login_iscsi(address, port, iqn),
+                                mock.call.logout_iscsi(address, port, iqn),
+                                mock.call.delete_iscsi(address, port, iqn)]
+        disk_utils_calls_expected = [mock.call.get_image_mb(image_path),
+                                     mock.call.work_on_disk(
+                                         self.dev, root_mb, swap_mb,
+                                         ephemeral_mb,
+                                         ephemeral_format, image_path,
+                                         node_uuid, configdrive=None,
+                                         preserve_ephemeral=False,
+                                         boot_option="netboot",
+                                         boot_mode="bios",
+                                         disk_label=None,
+                                         cpu_arch="")]
+
+        self.assertRaises(TestException, iscsi_deploy.deploy_partition_image,
+                          address, port, iqn, lun, image_path,
+                          root_mb, swap_mb, ephemeral_mb, ephemeral_format,
+                          node_uuid)
+
+        self.assertEqual(utils_calls_expected, iscsi_mock.mock_calls)
+        self.assertEqual(disk_utils_calls_expected, disk_utils_mock.mock_calls)
+
+    @mock.patch.object(utils, 'execute', autospec=True)
+    @mock.patch.object(iscsi_deploy, 'verify_iscsi_connection', autospec=True)
+    @mock.patch.object(iscsi_deploy, 'force_iscsi_lun_update', autospec=True)
+    @mock.patch.object(iscsi_deploy, 'check_file_system_for_iscsi_device',
+                       autospec=True)
+    def test_ipv6_address_wrapped(self,
+                                  mock_check_dev,
+                                  mock_update,
+                                  mock_verify,
+                                  mock_exec):
+        address = '2001:DB8::1111'
+        port = 3306
+        iqn = 'iqn.xyz'
+        mock_exec.return_value = ['iqn.xyz', '']
+        iscsi_deploy.login_iscsi(address, port, iqn)
+        mock_exec.assert_called_once_with(
+            'iscsiadm',
+            '-m', 'node',
+            '-p', '[%s]:%s' % (address, port),
+            '-T', iqn,
+            '--login',
+            run_as_root=True,
+            check_exit_code=[0],
+            attempts=5,
+            delay_on_retry=True)
+
+
+@mock.patch.object(disk_utils, 'is_block_device', autospec=True)
+@mock.patch.object(iscsi_deploy, 'login_iscsi', lambda *_: None)
+@mock.patch.object(iscsi_deploy, 'discovery', lambda *_: None)
+@mock.patch.object(iscsi_deploy, 'logout_iscsi', lambda *_: None)
+@mock.patch.object(iscsi_deploy, 'delete_iscsi', lambda *_: None)
+class ISCSISetupAndHandleErrorsTestCase(tests_base.TestCase):
+
+    def test_no_parent_device(self, mock_ibd):
+        address = '127.0.0.1'
+        port = 3306
+        iqn = 'iqn.xyz'
+        lun = 1
+        mock_ibd.return_value = False
+        expected_dev = ("/dev/disk/by-path/ip-%s:%s-iscsi-%s-lun-%s"
+                        % (address, port, iqn, lun))
+        with testtools.ExpectedException(exception.InstanceDeployFailure):
+            with iscsi_deploy._iscsi_setup_and_handle_errors(
+                    address, port, iqn, lun) as dev:
+                self.assertEqual(expected_dev, dev)
+
+        mock_ibd.assert_called_once_with(expected_dev)
+
+    def test_parent_device_yield(self, mock_ibd):
+        address = '127.0.0.1'
+        port = 3306
+        iqn = 'iqn.xyz'
+        lun = 1
+        expected_dev = ("/dev/disk/by-path/ip-%s:%s-iscsi-%s-lun-%s"
+                        % (address, port, iqn, lun))
+        mock_ibd.return_value = True
+        with iscsi_deploy._iscsi_setup_and_handle_errors(
+                address, port, iqn, lun) as dev:
+            self.assertEqual(expected_dev, dev)
+
+        mock_ibd.assert_called_once_with(expected_dev)
