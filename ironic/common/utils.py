@@ -558,3 +558,10 @@ def pop_node_nested_field(node, collection, field, default=None):
     result = col.pop(field, default)
     setattr(node, collection, col)
     return result
+
+
+def wrap_ipv6(ip):
+    """Wrap the address in square brackets if it's an IPv6 address."""
+    if netutils.is_valid_ipv6(ip):
+        return "[%s]" % ip
+    return ip

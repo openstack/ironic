@@ -24,7 +24,6 @@ from ironic_lib import metrics_utils
 from oslo_concurrency import processutils
 from oslo_log import log as logging
 from oslo_utils import excutils
-from oslo_utils import netutils
 
 from ironic.common import dhcp_factory
 from ironic.common import exception
@@ -65,18 +64,13 @@ def _save_disk_layout(node, i_info):
     node.save()
 
 
-def _wrap_ipv6(ip):
-    if netutils.is_valid_ipv6(ip):
-        return "[%s]" % ip
-    return ip
-
-
 def discovery(portal_address, portal_port):
     """Do iSCSI discovery on portal."""
     utils.execute('iscsiadm',
                   '-m', 'discovery',
                   '-t', 'st',
-                  '-p', '%s:%s' % (_wrap_ipv6(portal_address), portal_port),
+                  '-p', '%s:%s' % (utils.wrap_ipv6(portal_address),
+                                   portal_port),
                   run_as_root=True,
                   check_exit_code=[0],
                   attempts=5,
@@ -87,7 +81,8 @@ def login_iscsi(portal_address, portal_port, target_iqn):
     """Login to an iSCSI target."""
     utils.execute('iscsiadm',
                   '-m', 'node',
-                  '-p', '%s:%s' % (_wrap_ipv6(portal_address), portal_port),
+                  '-p', '%s:%s' % (utils.wrap_ipv6(portal_address),
+                                   portal_port),
                   '-T', target_iqn,
                   '--login',
                   run_as_root=True,
@@ -186,7 +181,8 @@ def logout_iscsi(portal_address, portal_port, target_iqn):
     """Logout from an iSCSI target."""
     utils.execute('iscsiadm',
                   '-m', 'node',
-                  '-p', '%s:%s' % (_wrap_ipv6(portal_address), portal_port),
+                  '-p', '%s:%s' % (utils.wrap_ipv6(portal_address),
+                                   portal_port),
                   '-T', target_iqn,
                   '--logout',
                   run_as_root=True,
@@ -201,7 +197,8 @@ def delete_iscsi(portal_address, portal_port, target_iqn):
     # no longer a target to delete (exit code 21).
     utils.execute('iscsiadm',
                   '-m', 'node',
-                  '-p', '%s:%s' % (_wrap_ipv6(portal_address), portal_port),
+                  '-p', '%s:%s' % (utils.wrap_ipv6(portal_address),
+                                   portal_port),
                   '-T', target_iqn,
                   '-o', 'delete',
                   run_as_root=True,
