@@ -1431,157 +1431,6 @@ class ServiceDoNodeDeployTestCase(mgr_utils.ServiceSetUpMixin,
             self.assertFalse(node.driver_internal_info['is_whole_disk_image'])
             self.assertNotIn('agent_url', node.driver_internal_info)
 
-    @mock.patch('ironic.drivers.modules.fake.FakeDeploy.deploy')
-    def test_do_node_deploy_rebuild_active_state_old(self, mock_deploy,
-                                                     mock_iwdi):
-        # TODO(rloo): delete this after the deprecation period for supporting
-        # non deploy_steps.
-        # Mocking FakeDeploy.deploy before starting the service, causes
-        # it not to be a deploy_step.
-        # This tests manager._old_rest_of_do_node_deploy(), the 'else' path of
-        # 'if new_state == states.DEPLOYDONE'. The node's states
-        # aren't changed in this case.
-        mock_iwdi.return_value = True
-        self._start_service()
-        mock_deploy.return_value = states.DEPLOYING
-        node = obj_utils.create_test_node(
-            self.context, driver='fake-hardware',
-            provision_state=states.ACTIVE,
-            target_provision_state=states.NOSTATE,
-            instance_info={'image_source': uuidutils.generate_uuid(),
-                           'kernel': 'aaaa', 'ramdisk': 'bbbb'},
-            driver_internal_info={'is_whole_disk_image': False})
-
-        self.service.do_node_deploy(self.context, node.uuid, rebuild=True)
-        self._stop_service()
-        node.refresh()
-        self.assertEqual(states.DEPLOYING, node.provision_state)
-        self.assertEqual(states.ACTIVE, node.target_provision_state)
-        # last_error should be None.
-        self.assertIsNone(node.last_error)
-        # Verify reservation has been cleared.
-        self.assertIsNone(node.reservation)
-        mock_deploy.assert_called_once_with(mock.ANY)
-        # Verify instance_info values has been cleared.
-        self.assertNotIn('kernel', node.instance_info)
-        self.assertNotIn('ramdisk', node.instance_info)
-        mock_iwdi.assert_called_once_with(self.context, node.instance_info)
-        # Verify is_whole_disk_image reflects correct value on rebuild.
-        self.assertTrue(node.driver_internal_info['is_whole_disk_image'])
-
-    @mock.patch('ironic.drivers.modules.fake.FakeDeploy.deploy')
-    def test_do_node_deploy_rebuild_active_state_waiting_old(self, mock_deploy,
-                                                             mock_iwdi):
-        # TODO(rloo): delete this after the deprecation period for supporting
-        # non deploy_steps.
-        # Mocking FakeDeploy.deploy before starting the service, causes
-        # it not to be a deploy_step.
-        mock_iwdi.return_value = False
-        self._start_service()
-        mock_deploy.return_value = states.DEPLOYWAIT
-        node = obj_utils.create_test_node(
-            self.context, driver='fake-hardware',
-            provision_state=states.ACTIVE,
-            target_provision_state=states.NOSTATE,
-            instance_info={'image_source': uuidutils.generate_uuid()})
-
-        self.service.do_node_deploy(self.context, node.uuid, rebuild=True)
-        self._stop_service()
-        node.refresh()
-        self.assertEqual(states.DEPLOYWAIT, node.provision_state)
-        self.assertEqual(states.ACTIVE, node.target_provision_state)
-        # last_error should be None.
-        self.assertIsNone(node.last_error)
-        # Verify reservation has been cleared.
-        self.assertIsNone(node.reservation)
-        mock_deploy.assert_called_once_with(mock.ANY)
-        mock_iwdi.assert_called_once_with(self.context, node.instance_info)
-        self.assertFalse(node.driver_internal_info['is_whole_disk_image'])
-
-    @mock.patch('ironic.drivers.modules.fake.FakeDeploy.deploy')
-    def test_do_node_deploy_rebuild_active_state_done_old(self, mock_deploy,
-                                                          mock_iwdi):
-        # TODO(rloo): delete this after the deprecation period for supporting
-        # non deploy_steps.
-        # Mocking FakeDeploy.deploy before starting the service, causes
-        # it not to be a deploy_step.
-        mock_iwdi.return_value = False
-        self._start_service()
-        mock_deploy.return_value = states.DEPLOYDONE
-        node = obj_utils.create_test_node(
-            self.context, driver='fake-hardware',
-            provision_state=states.ACTIVE,
-            target_provision_state=states.NOSTATE)
-
-        self.service.do_node_deploy(self.context, node.uuid, rebuild=True)
-        self._stop_service()
-        node.refresh()
-        self.assertEqual(states.ACTIVE, node.provision_state)
-        self.assertEqual(states.NOSTATE, node.target_provision_state)
-        # last_error should be None.
-        self.assertIsNone(node.last_error)
-        # Verify reservation has been cleared.
-        self.assertIsNone(node.reservation)
-        mock_deploy.assert_called_once_with(mock.ANY)
-        mock_iwdi.assert_called_once_with(self.context, node.instance_info)
-        self.assertFalse(node.driver_internal_info['is_whole_disk_image'])
-
-    @mock.patch('ironic.drivers.modules.fake.FakeDeploy.deploy')
-    def test_do_node_deploy_rebuild_deployfail_state_old(self, mock_deploy,
-                                                         mock_iwdi):
-        # TODO(rloo): delete this after the deprecation period for supporting
-        # non deploy_steps.
-        # Mocking FakeDeploy.deploy before starting the service, causes
-        # it not to be a deploy_step.
-        mock_iwdi.return_value = False
-        self._start_service()
-        mock_deploy.return_value = states.DEPLOYDONE
-        node = obj_utils.create_test_node(
-            self.context, driver='fake-hardware',
-            provision_state=states.DEPLOYFAIL,
-            target_provision_state=states.NOSTATE)
-
-        self.service.do_node_deploy(self.context, node.uuid, rebuild=True)
-        self._stop_service()
-        node.refresh()
-        self.assertEqual(states.ACTIVE, node.provision_state)
-        self.assertEqual(states.NOSTATE, node.target_provision_state)
-        # last_error should be None.
-        self.assertIsNone(node.last_error)
-        # Verify reservation has been cleared.
-        self.assertIsNone(node.reservation)
-        mock_deploy.assert_called_once_with(mock.ANY)
-        mock_iwdi.assert_called_once_with(self.context, node.instance_info)
-        self.assertFalse(node.driver_internal_info['is_whole_disk_image'])
-
-    @mock.patch('ironic.drivers.modules.fake.FakeDeploy.deploy')
-    def test_do_node_deploy_rebuild_error_state_old(self, mock_deploy,
-                                                    mock_iwdi):
-        # TODO(rloo): delete this after the deprecation period for supporting
-        # non deploy_steps.
-        # Mocking FakeDeploy.deploy before starting the service, causes
-        # it not to be a deploy_step.
-        mock_iwdi.return_value = False
-        self._start_service()
-        mock_deploy.return_value = states.DEPLOYDONE
-        node = obj_utils.create_test_node(
-            self.context, driver='fake-hardware',
-            provision_state=states.ERROR,
-            target_provision_state=states.NOSTATE)
-
-        self.service.do_node_deploy(self.context, node.uuid, rebuild=True)
-        self._stop_service()
-        node.refresh()
-        self.assertEqual(states.ACTIVE, node.provision_state)
-        self.assertEqual(states.NOSTATE, node.target_provision_state)
-        # last_error should be None.
-        self.assertIsNone(node.last_error)
-        # Verify reservation has been cleared.
-        self.assertIsNone(node.reservation)
-        mock_deploy.assert_called_once_with(mock.ANY)
-        mock_iwdi.assert_called_once_with(self.context, node.instance_info)
-        self.assertFalse(node.driver_internal_info['is_whole_disk_image'])
-
     def test_do_node_deploy_rebuild_active_state_error(self, mock_iwdi):
         # Tests manager.do_node_deploy() & deployments.do_next_deploy_step(),
         # when getting an unexpected state returned from a deploy_step.
@@ -1589,10 +1438,8 @@ class ServiceDoNodeDeployTestCase(mgr_utils.ServiceSetUpMixin,
         self._start_service()
         # NOTE(rloo): We have to mock this here as opposed to using a
         # decorator. With a decorator, when initialization is done, the
-        # mocked deploy() method isn't considered a deploy step, causing
-        # manager._old_rest_of_do_node_deploy() to be run instead of
-        # deployments.do_next_deploy_step(). So we defer mock'ing until after
-        # the init is done.
+        # mocked deploy() method isn't considered a deploy step. So we defer
+        # mock'ing until after the init is done.
         with mock.patch.object(fake.FakeDeploy,
                                'deploy', autospec=True) as mock_deploy:
             mock_deploy.return_value = states.DEPLOYING
@@ -1626,10 +1473,8 @@ class ServiceDoNodeDeployTestCase(mgr_utils.ServiceSetUpMixin,
         self._start_service()
         # NOTE(rloo): We have to mock this here as opposed to using a
         # decorator. With a decorator, when initialization is done, the
-        # mocked deploy() method isn't considered a deploy step, causing
-        # manager._old_rest_of_do_node_deploy() to be run instead of
-        # deployments.do_next_deploy_step(). So we defer mock'ing until after
-        # the init is done.
+        # mocked deploy() method isn't considered a deploy step. So we defer
+        # mock'ing until after the init is done.
         with mock.patch.object(fake.FakeDeploy,
                                'deploy', autospec=True) as mock_deploy:
             mock_deploy.return_value = states.DEPLOYWAIT
@@ -1658,10 +1503,8 @@ class ServiceDoNodeDeployTestCase(mgr_utils.ServiceSetUpMixin,
         self._start_service()
         # NOTE(rloo): We have to mock this here as opposed to using a
         # decorator. With a decorator, when initialization is done, the
-        # mocked deploy() method isn't considered a deploy step, causing
-        # manager._old_rest_of_do_node_deploy() to be run instead of
-        # deployments.do_next_deploy_step(). So we defer mock'ing until after
-        # the init is done.
+        # mocked deploy() method isn't considered a deploy step. So we defer
+        # mock'ing until after the init is done.
         with mock.patch.object(fake.FakeDeploy,
                                'deploy', autospec=True) as mock_deploy:
             mock_deploy.return_value = None
@@ -1689,10 +1532,8 @@ class ServiceDoNodeDeployTestCase(mgr_utils.ServiceSetUpMixin,
         self._start_service()
         # NOTE(rloo): We have to mock this here as opposed to using a
         # decorator. With a decorator, when initialization is done, the
-        # mocked deploy() method isn't considered a deploy step, causing
-        # manager._old_rest_of_do_node_deploy() to be run instead of
-        # deployments.do_next_deploy_step(). So we defer mock'ing until after
-        # the init is done.
+        # mocked deploy() method isn't considered a deploy step. So we defer
+        # mock'ing until after the init is done.
         with mock.patch.object(fake.FakeDeploy,
                                'deploy', autospec=True) as mock_deploy:
             mock_deploy.return_value = None
@@ -1720,10 +1561,8 @@ class ServiceDoNodeDeployTestCase(mgr_utils.ServiceSetUpMixin,
         self._start_service()
         # NOTE(rloo): We have to mock this here as opposed to using a
         # decorator. With a decorator, when initialization is done, the
-        # mocked deploy() method isn't considered a deploy step, causing
-        # manager._old_rest_of_do_node_deploy() to be run instead of
-        # deployments.do_next_deploy_step(). So we defer mock'ing until after
-        # the init is done.
+        # mocked deploy() method isn't considered a deploy step. So we defer
+        # mock'ing until after the init is done.
         with mock.patch.object(fake.FakeDeploy,
                                'deploy', autospec=True) as mock_deploy:
             mock_deploy.return_value = None
@@ -1811,41 +1650,6 @@ class ServiceDoNodeDeployTestCase(mgr_utils.ServiceSetUpMixin,
             self.assertIsNone(node.reservation)
             mock_iwdi.assert_called_once_with(self.context, node.instance_info)
             self.assertFalse(node.driver_internal_info['is_whole_disk_image'])
-
-    @mock.patch('ironic.drivers.modules.fake.FakeDeploy.deploy')
-    @mock.patch('ironic.conductor.utils.remove_agent_url')
-    @mock.patch('ironic.conductor.utils.is_fast_track')
-    def test_do_node_deploy_fast_track(self, mock_is_fast_track,
-                                       mock_remove_agent_url,
-                                       mock_deploy, mock_iwdi):
-        # TODO(rloo): delete this after the deprecation period for supporting
-        # non deploy_steps.
-        # Mocking FakeDeploy.deploy before starting the service, causes
-        # it not to be a deploy_step.
-        mock_iwdi.return_value = False
-        mock_is_fast_track.return_value = True
-        self._start_service()
-        mock_deploy.return_value = states.DEPLOYDONE
-        node = obj_utils.create_test_node(
-            self.context, driver='fake-hardware',
-            driver_internal_info={'agent_url': 'meow'},
-            provision_state=states.AVAILABLE,
-            target_provision_state=states.NOSTATE)
-
-        self.service.do_node_deploy(self.context, node.uuid)
-        self._stop_service()
-        node.refresh()
-        self.assertEqual(states.ACTIVE, node.provision_state)
-        self.assertEqual(states.NOSTATE, node.target_provision_state)
-        # last_error should be None.
-        self.assertIsNone(node.last_error)
-        # Verify reservation has been cleared.
-        self.assertIsNone(node.reservation)
-        mock_deploy.assert_called_once_with(mock.ANY)
-        mock_iwdi.assert_called_once_with(self.context, node.instance_info)
-        self.assertFalse(node.driver_internal_info['is_whole_disk_image'])
-        mock_is_fast_track.assert_called_once_with(mock.ANY)
-        mock_remove_agent_url.assert_not_called()
 
 
 @mgr_utils.mock_record_keepalive

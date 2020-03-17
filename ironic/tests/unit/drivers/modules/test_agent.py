@@ -1231,6 +1231,8 @@ class TestAgentDeploy(db_base.DbTestCase):
             self.assertEqual(states.ACTIVE,
                              task.node.target_provision_state)
 
+    @mock.patch.object(manager_utils, 'notify_conductor_resume_deploy',
+                       autospec=True)
     @mock.patch.object(manager_utils, 'power_on_node_if_needed',
                        autospec=True)
     @mock.patch.object(deploy_utils, 'remove_http_instance_symlink',
@@ -1251,7 +1253,7 @@ class TestAgentDeploy(db_base.DbTestCase):
                                 prepare_instance_mock, power_off_mock,
                                 get_power_state_mock, node_power_action_mock,
                                 uuid_mock, log_mock, remove_symlink_mock,
-                                power_on_node_if_needed_mock):
+                                power_on_node_if_needed_mock, resume_mock):
         self.config(manage_agent_boot=True, group='agent')
         self.config(image_download_source='http', group='agent')
         check_deploy_mock.return_value = None
@@ -1278,10 +1280,13 @@ class TestAgentDeploy(db_base.DbTestCase):
             get_power_state_mock.assert_called_once_with(task)
             node_power_action_mock.assert_called_once_with(
                 task, states.POWER_ON)
-            self.assertEqual(states.ACTIVE, task.node.provision_state)
-            self.assertEqual(states.NOSTATE, task.node.target_provision_state)
+            self.assertEqual(states.DEPLOYING, task.node.provision_state)
+            self.assertEqual(states.ACTIVE, task.node.target_provision_state)
             self.assertTrue(remove_symlink_mock.called)
+            resume_mock.assert_called_once_with(task)
 
+    @mock.patch.object(manager_utils, 'notify_conductor_resume_deploy',
+                       autospec=True)
     @mock.patch.object(manager_utils, 'power_on_node_if_needed',
                        autospec=True)
     @mock.patch.object(agent.LOG, 'warning', spec_set=True, autospec=True)
@@ -1300,7 +1305,8 @@ class TestAgentDeploy(db_base.DbTestCase):
     def test_reboot_to_instance_no_manage_agent_boot(
             self, check_deploy_mock, prepare_instance_mock, power_off_mock,
             get_power_state_mock, node_power_action_mock, uuid_mock,
-            bootdev_mock, log_mock, power_on_node_if_needed_mock):
+            bootdev_mock, log_mock, power_on_node_if_needed_mock,
+            resume_mock):
         self.config(manage_agent_boot=False, group='agent')
         check_deploy_mock.return_value = None
         uuid_mock.return_value = None
@@ -1324,9 +1330,12 @@ class TestAgentDeploy(db_base.DbTestCase):
             get_power_state_mock.assert_called_once_with(task)
             node_power_action_mock.assert_called_once_with(
                 task, states.POWER_ON)
-            self.assertEqual(states.ACTIVE, task.node.provision_state)
-            self.assertEqual(states.NOSTATE, task.node.target_provision_state)
+            self.assertEqual(states.DEPLOYING, task.node.provision_state)
+            self.assertEqual(states.ACTIVE, task.node.target_provision_state)
+            resume_mock.assert_called_once_with(task)
 
+    @mock.patch.object(manager_utils, 'notify_conductor_resume_deploy',
+                       autospec=True)
     @mock.patch.object(manager_utils, 'power_on_node_if_needed',
                        autospec=True)
     @mock.patch.object(agent.LOG, 'warning', spec_set=True, autospec=True)
@@ -1350,7 +1359,8 @@ class TestAgentDeploy(db_base.DbTestCase):
                                                 node_power_action_mock,
                                                 uuid_mock, boot_mode_mock,
                                                 log_mock,
-                                                power_on_node_if_needed_mock):
+                                                power_on_node_if_needed_mock,
+                                                resume_mock):
         check_deploy_mock.return_value = None
         uuid_mock.return_value = 'root_uuid'
         self.node.provision_state = states.DEPLOYWAIT
@@ -1381,9 +1391,12 @@ class TestAgentDeploy(db_base.DbTestCase):
             get_power_state_mock.assert_called_once_with(task)
             node_power_action_mock.assert_called_once_with(
                 task, states.POWER_ON)
-            self.assertEqual(states.ACTIVE, task.node.provision_state)
-            self.assertEqual(states.NOSTATE, task.node.target_provision_state)
+            self.assertEqual(states.DEPLOYING, task.node.provision_state)
+            self.assertEqual(states.ACTIVE, task.node.target_provision_state)
+            resume_mock.assert_called_once_with(task)
 
+    @mock.patch.object(manager_utils, 'notify_conductor_resume_deploy',
+                       autospec=True)
     @mock.patch.object(manager_utils, 'power_on_node_if_needed',
                        autospec=True)
     @mock.patch.object(agent.LOG, 'warning', spec_set=True, autospec=True)
@@ -1404,7 +1417,7 @@ class TestAgentDeploy(db_base.DbTestCase):
             self, check_deploy_mock, prepare_instance_mock,
             power_off_mock, get_power_state_mock,
             node_power_action_mock, uuid_mock, boot_mode_mock, log_mock,
-            power_on_node_if_needed_mock):
+            power_on_node_if_needed_mock, resume_mock):
         check_deploy_mock.return_value = None
         uuid_mock.side_effect = ['root_uuid', 'prep_boot_part_uuid']
         self.node.provision_state = states.DEPLOYWAIT
@@ -1442,8 +1455,8 @@ class TestAgentDeploy(db_base.DbTestCase):
             get_power_state_mock.assert_called_once_with(task)
             node_power_action_mock.assert_called_once_with(
                 task, states.POWER_ON)
-            self.assertEqual(states.ACTIVE, task.node.provision_state)
-            self.assertEqual(states.NOSTATE, task.node.target_provision_state)
+            self.assertEqual(states.DEPLOYING, task.node.provision_state)
+            self.assertEqual(states.ACTIVE, task.node.target_provision_state)
 
     @mock.patch.object(agent.LOG, 'warning', spec_set=True, autospec=True)
     @mock.patch.object(driver_utils, 'collect_ramdisk_logs', autospec=True)
@@ -1480,6 +1493,8 @@ class TestAgentDeploy(db_base.DbTestCase):
             self.assertEqual(states.DEPLOYFAIL, task.node.provision_state)
             self.assertEqual(states.ACTIVE, task.node.target_provision_state)
 
+    @mock.patch.object(manager_utils, 'notify_conductor_resume_deploy',
+                       autospec=True)
     @mock.patch.object(manager_utils, 'power_on_node_if_needed',
                        autospec=True)
     @mock.patch.object(agent.LOG, 'warning', spec_set=True, autospec=True)
@@ -1503,7 +1518,8 @@ class TestAgentDeploy(db_base.DbTestCase):
                                           node_power_action_mock,
                                           uuid_mock, boot_mode_mock,
                                           log_mock,
-                                          power_on_node_if_needed_mock):
+                                          power_on_node_if_needed_mock,
+                                          resume_mock):
         check_deploy_mock.return_value = None
         uuid_mock.side_effect = ['root_uuid', 'efi_uuid']
         self.node.provision_state = states.DEPLOYWAIT
@@ -1538,8 +1554,9 @@ class TestAgentDeploy(db_base.DbTestCase):
             get_power_state_mock.assert_called_once_with(task)
             node_power_action_mock.assert_called_once_with(
                 task, states.POWER_ON)
-            self.assertEqual(states.ACTIVE, task.node.provision_state)
-            self.assertEqual(states.NOSTATE, task.node.target_provision_state)
+            self.assertEqual(states.DEPLOYING, task.node.provision_state)
+            self.assertEqual(states.ACTIVE, task.node.target_provision_state)
+            resume_mock.assert_called_once_with(task)
 
     @mock.patch.object(agent_client.AgentClient, 'get_commands_status',
                        autospec=True)

@@ -997,29 +997,6 @@ class TestAnsibleDeploy(AnsibleDeployTestCaseBase):
                 task.driver.boot.clean_up_ramdisk.assert_called_once_with(
                     task)
 
-    @mock.patch.object(utils, 'notify_conductor_resume_deploy', autospec=True)
-    @mock.patch.object(utils, 'node_set_boot_device', autospec=True)
-    def test_reboot_to_instance_deprecated(self, bootdev_mock, resume_mock):
-        # TODO(rloo): no deploy steps; delete this when we remove support
-        # for handling no deploy steps.
-        self.node.provision_state = states.DEPLOYING
-        self.node.deploy_step = None
-        self.node.save()
-        with task_manager.acquire(self.context, self.node.uuid) as task:
-            with mock.patch.object(self.driver, 'reboot_and_finish_deploy',
-                                   autospec=True):
-                task.driver.boot = mock.Mock()
-                task.process_event = mock.Mock()
-                self.driver.reboot_to_instance(task)
-                bootdev_mock.assert_called_once_with(task, 'disk',
-                                                     persistent=True)
-                self.assertFalse(resume_mock.called)
-                task.process_event.assert_called_once_with('done')
-                self.driver.reboot_and_finish_deploy.assert_called_once_with(
-                    task)
-                task.driver.boot.clean_up_ramdisk.assert_called_once_with(
-                    task)
-
     @mock.patch.object(utils, 'restore_power_state_if_needed', autospec=True)
     @mock.patch.object(utils, 'power_on_node_if_needed')
     @mock.patch.object(utils, 'node_power_action', autospec=True)

@@ -651,13 +651,6 @@ class HeartbeatMixinTest(AgentDeployMixinBaseTest):
                 self.context, self.node.uuid, shared=False) as task:
             self.assertTrue(self.deploy.in_core_deploy_step(task))
 
-    def test_in_core_deploy_step_no_steps_list(self):
-        # Need to handle drivers without deploy step support, remove in the
-        # Train release.
-        with task_manager.acquire(
-                self.context, self.node.uuid, shared=False) as task:
-            self.assertTrue(self.deploy.in_core_deploy_step(task))
-
     def test_in_core_deploy_step_in_other_step(self):
         self.node.deploy_step = {
             'interface': 'deploy', 'step': 'other-step', 'priority': 100}
@@ -784,8 +777,6 @@ class AgentDeployMixinTest(AgentDeployMixinBaseTest):
         cfg.CONF.set_override('deploy_logs_collect', 'always', 'agent')
         self.node.provision_state = states.DEPLOYING
         self.node.target_provision_state = states.ACTIVE
-        self.node.deploy_step = {
-            'step': 'deploy', 'priority': 50, 'interface': 'deploy'}
         self.node.save()
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
@@ -814,41 +805,6 @@ class AgentDeployMixinTest(AgentDeployMixinBaseTest):
                        spec=types.FunctionType)
     @mock.patch.object(agent_client.AgentClient, 'power_off',
                        spec=types.FunctionType)
-    def test_reboot_and_finish_deploy_deprecated(
-            self, power_off_mock, get_power_state_mock,
-            node_power_action_mock, collect_mock, resume_mock,
-            power_on_node_if_needed_mock):
-        # TODO(rloo): no deploy steps; delete this when we remove support
-        # for handling no deploy steps.
-        cfg.CONF.set_override('deploy_logs_collect', 'always', 'agent')
-        self.node.provision_state = states.DEPLOYING
-        self.node.target_provision_state = states.ACTIVE
-        self.node.deploy_step = None
-        self.node.save()
-        with task_manager.acquire(self.context, self.node.uuid,
-                                  shared=True) as task:
-            get_power_state_mock.side_effect = [states.POWER_ON,
-                                                states.POWER_OFF]
-            power_on_node_if_needed_mock.return_value = None
-            self.deploy.reboot_and_finish_deploy(task)
-            power_off_mock.assert_called_once_with(task.node)
-            self.assertEqual(2, get_power_state_mock.call_count)
-            node_power_action_mock.assert_called_once_with(
-                task, states.POWER_ON)
-            self.assertEqual(states.ACTIVE, task.node.provision_state)
-            self.assertEqual(states.NOSTATE, task.node.target_provision_state)
-            collect_mock.assert_called_once_with(task.node)
-            self.assertFalse(resume_mock.called)
-
-    @mock.patch.object(manager_utils, 'power_on_node_if_needed',
-                       autospec=True)
-    @mock.patch.object(driver_utils, 'collect_ramdisk_logs', autospec=True)
-    @mock.patch.object(time, 'sleep', lambda seconds: None)
-    @mock.patch.object(manager_utils, 'node_power_action', autospec=True)
-    @mock.patch.object(fake.FakePower, 'get_power_state',
-                       spec=types.FunctionType)
-    @mock.patch.object(agent_client.AgentClient, 'power_off',
-                       spec=types.FunctionType)
     @mock.patch('ironic.drivers.modules.network.noop.NoopNetwork.'
                 'remove_provisioning_network', spec_set=True, autospec=True)
     @mock.patch('ironic.drivers.modules.network.noop.NoopNetwork.'
@@ -856,7 +812,7 @@ class AgentDeployMixinTest(AgentDeployMixinBaseTest):
     def test_reboot_and_finish_deploy_soft_poweroff_doesnt_complete(
             self, configure_tenant_net_mock, remove_provisioning_net_mock,
             power_off_mock, get_power_state_mock,
-            node_power_action_mock, mock_collect,
+            node_power_action_mock, mock_collect, resume_mock,
             power_on_node_if_needed_mock):
         self.node.provision_state = states.DEPLOYING
         self.node.target_provision_state = states.ACTIVE
@@ -874,10 +830,13 @@ class AgentDeployMixinTest(AgentDeployMixinBaseTest):
             remove_provisioning_net_mock.assert_called_once_with(mock.ANY,
                                                                  task)
             configure_tenant_net_mock.assert_called_once_with(mock.ANY, task)
-            self.assertEqual(states.ACTIVE, task.node.provision_state)
-            self.assertEqual(states.NOSTATE, task.node.target_provision_state)
+            self.assertEqual(states.DEPLOYING, task.node.provision_state)
+            self.assertEqual(states.ACTIVE, task.node.target_provision_state)
             self.assertFalse(mock_collect.called)
+            resume_mock.assert_called_once_with(task)
 
+    @mock.patch.object(manager_utils, 'notify_conductor_resume_deploy',
+                       autospec=True)
     @mock.patch.object(driver_utils, 'collect_ramdisk_logs', autospec=True)
     @mock.patch.object(manager_utils, 'node_power_action', autospec=True)
     @mock.patch.object(agent_client.AgentClient, 'power_off',
@@ -888,7 +847,7 @@ class AgentDeployMixinTest(AgentDeployMixinBaseTest):
                 'configure_tenant_networks', spec_set=True, autospec=True)
     def test_reboot_and_finish_deploy_soft_poweroff_fails(
             self, configure_tenant_net_mock, remove_provisioning_net_mock,
-            power_off_mock, node_power_action_mock, mock_collect):
+            power_off_mock, node_power_action_mock, mock_collect, resume_mock):
         power_off_mock.side_effect = RuntimeError("boom")
         self.node.provision_state = states.DEPLOYING
         self.node.target_provision_state = states.ACTIVE
@@ -903,11 +862,13 @@ class AgentDeployMixinTest(AgentDeployMixinBaseTest):
             remove_provisioning_net_mock.assert_called_once_with(mock.ANY,
                                                                  task)
             configure_tenant_net_mock.assert_called_once_with(mock.ANY, task)
-            self.assertEqual(states.ACTIVE, task.node.provision_state)
-            self.assertEqual(states.NOSTATE, task.node.target_provision_state)
+            self.assertEqual(states.DEPLOYING, task.node.provision_state)
+            self.assertEqual(states.ACTIVE, task.node.target_provision_state)
             self.assertFalse(mock_collect.called)
 
     @mock.patch.object(manager_utils, 'power_on_node_if_needed')
+    @mock.patch.object(manager_utils, 'notify_conductor_resume_deploy',
+                       autospec=True)
     @mock.patch.object(driver_utils, 'collect_ramdisk_logs', autospec=True)
     @mock.patch.object(time, 'sleep', lambda seconds: None)
     @mock.patch.object(manager_utils, 'node_power_action', autospec=True)
@@ -922,7 +883,7 @@ class AgentDeployMixinTest(AgentDeployMixinBaseTest):
     def test_reboot_and_finish_deploy_get_power_state_fails(
             self, configure_tenant_net_mock, remove_provisioning_net_mock,
             power_off_mock, get_power_state_mock, node_power_action_mock,
-            mock_collect, power_on_node_if_needed_mock):
+            mock_collect, resume_mock, power_on_node_if_needed_mock):
         self.node.provision_state = states.DEPLOYING
         self.node.target_provision_state = states.ACTIVE
         self.node.save()
@@ -939,8 +900,8 @@ class AgentDeployMixinTest(AgentDeployMixinBaseTest):
             remove_provisioning_net_mock.assert_called_once_with(mock.ANY,
                                                                  task)
             configure_tenant_net_mock.assert_called_once_with(mock.ANY, task)
-            self.assertEqual(states.ACTIVE, task.node.provision_state)
-            self.assertEqual(states.NOSTATE, task.node.target_provision_state)
+            self.assertEqual(states.DEPLOYING, task.node.provision_state)
+            self.assertEqual(states.ACTIVE, task.node.target_provision_state)
             self.assertFalse(mock_collect.called)
 
     @mock.patch.object(manager_utils, 'power_on_node_if_needed',
@@ -1049,12 +1010,15 @@ class AgentDeployMixinTest(AgentDeployMixinBaseTest):
             self.assertEqual(states.ACTIVE, task.node.target_provision_state)
             self.assertFalse(mock_collect.called)
 
+    @mock.patch.object(manager_utils, 'notify_conductor_resume_deploy',
+                       autospec=True)
     @mock.patch.object(driver_utils, 'collect_ramdisk_logs', autospec=True)
     @mock.patch.object(manager_utils, 'node_power_action', autospec=True)
     @mock.patch.object(agent_client.AgentClient, 'sync',
                        spec=types.FunctionType)
     def test_reboot_and_finish_deploy_power_action_oob_power_off(
-            self, sync_mock, node_power_action_mock, mock_collect):
+            self, sync_mock, node_power_action_mock, mock_collect,
+            resume_mock):
         # Enable force power off
         driver_info = self.node.driver_info
         driver_info['deploy_forces_oob_reboot'] = True
@@ -1072,17 +1036,21 @@ class AgentDeployMixinTest(AgentDeployMixinBaseTest):
                 mock.call(task, states.POWER_OFF),
                 mock.call(task, states.POWER_ON),
             ])
-            self.assertEqual(states.ACTIVE, task.node.provision_state)
-            self.assertEqual(states.NOSTATE, task.node.target_provision_state)
+            self.assertEqual(states.DEPLOYING, task.node.provision_state)
+            self.assertEqual(states.ACTIVE, task.node.target_provision_state)
             self.assertFalse(mock_collect.called)
+            resume_mock.assert_called_once_with(task)
 
+    @mock.patch.object(manager_utils, 'notify_conductor_resume_deploy',
+                       autospec=True)
     @mock.patch.object(driver_utils, 'collect_ramdisk_logs', autospec=True)
     @mock.patch.object(agent_base.LOG, 'warning', autospec=True)
     @mock.patch.object(manager_utils, 'node_power_action', autospec=True)
     @mock.patch.object(agent_client.AgentClient, 'sync',
                        spec=types.FunctionType)
     def test_reboot_and_finish_deploy_power_action_oob_power_off_failed(
-            self, sync_mock, node_power_action_mock, log_mock, mock_collect):
+            self, sync_mock, node_power_action_mock, log_mock, mock_collect,
+            resume_mock):
         # Enable force power off
         driver_info = self.node.driver_info
         driver_info['deploy_forces_oob_reboot'] = True
@@ -1101,8 +1069,8 @@ class AgentDeployMixinTest(AgentDeployMixinBaseTest):
                 mock.call(task, states.POWER_OFF),
                 mock.call(task, states.POWER_ON),
             ])
-            self.assertEqual(states.ACTIVE, task.node.provision_state)
-            self.assertEqual(states.NOSTATE, task.node.target_provision_state)
+            self.assertEqual(states.DEPLOYING, task.node.provision_state)
+            self.assertEqual(states.ACTIVE, task.node.target_provision_state)
             log_error = ('The version of the IPA ramdisk used in the '
                          'deployment do not support the command "sync"')
             log_mock.assert_called_once_with(

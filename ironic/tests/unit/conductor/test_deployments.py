@@ -86,59 +86,6 @@ class DoNodeDeployTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         self.assertTrue(mock_prepare.called)
         self.assertFalse(mock_deploy.called)
 
-    @mock.patch('ironic.drivers.modules.fake.FakeDeploy.deploy')
-    def test__do_node_deploy_driver_raises_error_old(self, mock_deploy):
-        # TODO(rloo): delete this after the deprecation period for supporting
-        # non deploy_steps.
-        # Mocking FakeDeploy.deploy before starting the service, causes
-        # it not to be a deploy_step.
-        self._start_service()
-        # test when driver.deploy.deploy raises an ironic error
-        mock_deploy.side_effect = exception.InstanceDeployFailure('test')
-        node = obj_utils.create_test_node(self.context, driver='fake-hardware',
-                                          provision_state=states.DEPLOYING,
-                                          target_provision_state=states.ACTIVE)
-        task = task_manager.TaskManager(self.context, node.uuid)
-
-        self.assertRaises(exception.InstanceDeployFailure,
-                          deployments.do_node_deploy, task,
-                          self.service.conductor.id)
-        node.refresh()
-        self.assertEqual(states.DEPLOYFAIL, node.provision_state)
-        # NOTE(deva): failing a deploy does not clear the target state
-        #             any longer. Instead, it is cleared when the instance
-        #             is deleted.
-        self.assertEqual(states.ACTIVE, node.target_provision_state)
-        self.assertIsNotNone(node.last_error)
-        mock_deploy.assert_called_once_with(mock.ANY)
-
-    @mock.patch('ironic.drivers.modules.fake.FakeDeploy.deploy')
-    def test__do_node_deploy_driver_unexpected_exception_old(self,
-                                                             mock_deploy):
-        # TODO(rloo): delete this after the deprecation period for supporting
-        # non deploy_steps.
-        # Mocking FakeDeploy.deploy before starting the service, causes
-        # it not to be a deploy_step.
-        self._start_service()
-        # test when driver.deploy.deploy raises an exception
-        mock_deploy.side_effect = RuntimeError('test')
-        node = obj_utils.create_test_node(self.context, driver='fake-hardware',
-                                          provision_state=states.DEPLOYING,
-                                          target_provision_state=states.ACTIVE)
-        task = task_manager.TaskManager(self.context, node.uuid)
-
-        self.assertRaises(RuntimeError,
-                          deployments.do_node_deploy, task,
-                          self.service.conductor.id)
-        node.refresh()
-        self.assertEqual(states.DEPLOYFAIL, node.provision_state)
-        # NOTE(deva): failing a deploy does not clear the target state
-        #             any longer. Instead, it is cleared when the instance
-        #             is deleted.
-        self.assertEqual(states.ACTIVE, node.target_provision_state)
-        self.assertIsNotNone(node.last_error)
-        mock_deploy.assert_called_once_with(mock.ANY)
-
     def _test__do_node_deploy_driver_exception(self, exc, unexpected=False):
         self._start_service()
         with mock.patch.object(fake.FakeDeploy,
@@ -173,55 +120,6 @@ class DoNodeDeployTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
     def test__do_node_deploy_driver_unexpected_exception(self):
         self._test__do_node_deploy_driver_exception(RuntimeError('test'),
                                                     unexpected=True)
-
-    @mock.patch.object(deployments, '_store_configdrive', autospec=True)
-    @mock.patch('ironic.drivers.modules.fake.FakeDeploy.deploy')
-    def test__do_node_deploy_ok_old(self, mock_deploy, mock_store):
-        # TODO(rloo): delete this after the deprecation period for supporting
-        # non deploy_steps.
-        # Mocking FakeDeploy.deploy before starting the service, causes
-        # it not to be a deploy_step.
-        self._start_service()
-        # test when driver.deploy.deploy returns DEPLOYDONE
-        mock_deploy.return_value = states.DEPLOYDONE
-        node = obj_utils.create_test_node(self.context, driver='fake-hardware',
-                                          provision_state=states.DEPLOYING,
-                                          target_provision_state=states.ACTIVE)
-        task = task_manager.TaskManager(self.context, node.uuid)
-
-        deployments.do_node_deploy(task, self.service.conductor.id)
-        node.refresh()
-        self.assertEqual(states.ACTIVE, node.provision_state)
-        self.assertEqual(states.NOSTATE, node.target_provision_state)
-        self.assertIsNone(node.last_error)
-        mock_deploy.assert_called_once_with(mock.ANY)
-        # assert _store_configdrive wasn't invoked
-        self.assertFalse(mock_store.called)
-
-    @mock.patch.object(deployments, '_store_configdrive', autospec=True)
-    @mock.patch('ironic.drivers.modules.fake.FakeDeploy.deploy')
-    def test__do_node_deploy_ok_configdrive_old(self, mock_deploy, mock_store):
-        # TODO(rloo): delete this after the deprecation period for supporting
-        # non deploy_steps.
-        # Mocking FakeDeploy.deploy before starting the service, causes
-        # it not to be a deploy_step.
-        self._start_service()
-        # test when driver.deploy.deploy returns DEPLOYDONE
-        mock_deploy.return_value = states.DEPLOYDONE
-        node = obj_utils.create_test_node(self.context, driver='fake-hardware',
-                                          provision_state=states.DEPLOYING,
-                                          target_provision_state=states.ACTIVE)
-        task = task_manager.TaskManager(self.context, node.uuid)
-        configdrive = 'foo'
-
-        deployments.do_node_deploy(task, self.service.conductor.id,
-                                   configdrive=configdrive)
-        node.refresh()
-        self.assertEqual(states.ACTIVE, node.provision_state)
-        self.assertEqual(states.NOSTATE, node.target_provision_state)
-        self.assertIsNone(node.last_error)
-        mock_deploy.assert_called_once_with(mock.ANY)
-        mock_store.assert_called_once_with(task.node, configdrive)
 
     @mock.patch.object(deployments, '_store_configdrive', autospec=True)
     def _test__do_node_deploy_ok(self, mock_store, configdrive=None,
@@ -396,28 +294,6 @@ class DoNodeDeployTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         self.assertIsNotNone(node.last_error)
         self.assertFalse(mock_prepare.called)
 
-    @mock.patch('ironic.drivers.modules.fake.FakeDeploy.deploy')
-    def test__do_node_deploy_ok_2_old(self, mock_deploy):
-        # TODO(rloo): delete this after the deprecation period for supporting
-        # non deploy_steps.
-        # Mocking FakeDeploy.deploy before starting the service, causes
-        # it not to be a deploy_step.
-        # NOTE(rloo): a different way of testing for the same thing as in
-        # test__do_node_deploy_ok()
-        self._start_service()
-        # test when driver.deploy.deploy returns DEPLOYDONE
-        mock_deploy.return_value = states.DEPLOYDONE
-        node = obj_utils.create_test_node(self.context, driver='fake-hardware')
-        task = task_manager.TaskManager(self.context, node.uuid)
-        task.process_event('deploy')
-
-        deployments.do_node_deploy(task, self.service.conductor.id)
-        node.refresh()
-        self.assertEqual(states.ACTIVE, node.provision_state)
-        self.assertEqual(states.NOSTATE, node.target_provision_state)
-        self.assertIsNone(node.last_error)
-        mock_deploy.assert_called_once_with(mock.ANY)
-
     def test__do_node_deploy_ok_2(self):
         # NOTE(rloo): a different way of testing for the same thing as in
         # test__do_node_deploy_ok(). Instead of specifying the provision &
@@ -441,33 +317,9 @@ class DoNodeDeployTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
             mock_deploy.assert_called_once_with(mock.ANY, mock.ANY)
 
     @mock.patch.object(deployments, 'do_next_deploy_step', autospec=True)
-    @mock.patch.object(deployments, '_old_rest_of_do_node_deploy',
-                       autospec=True)
     @mock.patch.object(conductor_steps, 'set_node_deployment_steps',
                        autospec=True)
-    def test_do_node_deploy_deprecated(self, mock_set_steps, mock_old_way,
-                                       mock_deploy_step):
-        # TODO(rloo): no deploy steps; delete this when we remove support
-        # for handling no deploy steps.
-        self._start_service()
-        node = obj_utils.create_test_node(self.context, driver='fake-hardware')
-        task = task_manager.TaskManager(self.context, node.uuid)
-        task.process_event('deploy')
-
-        deployments.do_node_deploy(task, self.service.conductor.id)
-        mock_set_steps.assert_called_once_with(task)
-        mock_old_way.assert_called_once_with(task, self.service.conductor.id,
-                                             True)
-        self.assertFalse(mock_deploy_step.called)
-        self.assertNotIn('deploy_steps', task.node.driver_internal_info)
-
-    @mock.patch.object(deployments, 'do_next_deploy_step', autospec=True)
-    @mock.patch.object(deployments, '_old_rest_of_do_node_deploy',
-                       autospec=True)
-    @mock.patch.object(conductor_steps, 'set_node_deployment_steps',
-                       autospec=True)
-    def test_do_node_deploy_steps(self, mock_set_steps, mock_old_way,
-                                  mock_deploy_step):
+    def test_do_node_deploy_steps(self, mock_set_steps, mock_deploy_step):
         # these are not real steps...
         fake_deploy_steps = ['step1', 'step2']
 
@@ -485,112 +337,9 @@ class DoNodeDeployTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
 
         deployments.do_node_deploy(task, self.service.conductor.id)
         mock_set_steps.assert_called_once_with(task)
-        self.assertFalse(mock_old_way.called)
         mock_set_steps.assert_called_once_with(task)
         self.assertEqual(fake_deploy_steps,
                          task.node.driver_internal_info['deploy_steps'])
-
-    @mock.patch.object(deployments, 'do_next_deploy_step', autospec=True)
-    @mock.patch.object(deployments, '_old_rest_of_do_node_deploy',
-                       autospec=True)
-    @mock.patch.object(conductor_steps, 'set_node_deployment_steps',
-                       autospec=True)
-    def test_do_node_deploy_steps_old_rpc(self, mock_set_steps, mock_old_way,
-                                          mock_deploy_step):
-        # TODO(rloo): old RPC; delete this when we remove support for drivers
-        # with no deploy steps.
-        CONF.set_override('pin_release_version', '11.0')
-        # these are not real steps...
-        fake_deploy_steps = ['step1', 'step2']
-
-        def add_steps(task):
-            info = task.node.driver_internal_info
-            info['deploy_steps'] = fake_deploy_steps
-            task.node.driver_internal_info = info
-            task.node.save()
-
-        mock_set_steps.side_effect = add_steps
-        self._start_service()
-        node = obj_utils.create_test_node(self.context, driver='fake-hardware')
-        task = task_manager.TaskManager(self.context, node.uuid)
-        task.process_event('deploy')
-
-        deployments.do_node_deploy(task, self.service.conductor.id)
-        mock_set_steps.assert_called_once_with(task)
-        mock_old_way.assert_called_once_with(task, self.service.conductor.id,
-                                             False)
-        self.assertFalse(mock_deploy_step.called)
-        self.assertNotIn('deploy_steps', task.node.driver_internal_info)
-
-    @mock.patch.object(deployments, '_SEEN_NO_DEPLOY_STEP_DEPRECATIONS',
-                       autospec=True)
-    @mock.patch.object(deployments, 'LOG', autospec=True)
-    @mock.patch('ironic.drivers.modules.fake.FakeDeploy.deploy', autospec=True)
-    def test__old_rest_of_do_node_deploy_no_steps(self, mock_deploy, mock_log,
-                                                  mock_deprecate):
-        # TODO(rloo): no deploy steps; delete this when we remove support
-        # for handling no deploy steps.
-        mock_deprecate.__contains__.side_effect = [False, True]
-        self._start_service()
-        node = obj_utils.create_test_node(self.context, driver='fake-hardware')
-        task = task_manager.TaskManager(self.context, node.uuid)
-        task.process_event('deploy')
-
-        deployments._old_rest_of_do_node_deploy(
-            task, self.service.conductor.id, True)
-        mock_deploy.assert_called_once_with(mock.ANY, task)
-        self.assertTrue(mock_log.warning.called)
-        self.assertEqual(self.service.conductor.id,
-                         task.node.conductor_affinity)
-        mock_deprecate.__contains__.assert_called_once_with('FakeDeploy')
-        mock_deprecate.add.assert_called_once_with('FakeDeploy')
-
-        # Make sure the deprecation warning isn't logged again
-        mock_log.reset_mock()
-        mock_deprecate.add.reset_mock()
-        deployments._old_rest_of_do_node_deploy(
-            task, self.service.conductor.id, True)
-        self.assertFalse(mock_log.warning.called)
-        mock_deprecate.__contains__.assert_has_calls(
-            [mock.call('FakeDeploy'), mock.call('FakeDeploy')])
-        self.assertFalse(mock_deprecate.add.called)
-
-    @mock.patch.object(deployments, 'LOG', autospec=True)
-    @mock.patch('ironic.drivers.modules.fake.FakeDeploy.deploy', autospec=True)
-    def test__old_rest_of_do_node_deploy_has_steps(self, mock_deploy,
-                                                   mock_log):
-        # TODO(rloo): has steps but old RPC; delete this when we remove support
-        # for handling no deploy steps.
-        deployments._SEEN_NO_DEPLOY_STEP_DEPRECATIONS = set()
-        self._start_service()
-        node = obj_utils.create_test_node(self.context, driver='fake-hardware')
-        task = task_manager.TaskManager(self.context, node.uuid)
-        task.process_event('deploy')
-
-        deployments._old_rest_of_do_node_deploy(
-            task, self.service.conductor.id, False)
-        mock_deploy.assert_called_once_with(mock.ANY, task)
-        self.assertFalse(mock_log.warning.called)
-        self.assertEqual(self.service.conductor.id,
-                         task.node.conductor_affinity)
-
-    @mock.patch('ironic.conductor.deployments._start_console_in_deploy',
-                autospec=True)
-    @mock.patch('ironic.drivers.modules.fake.FakeDeploy.deploy', autospec=True)
-    def test__old_rest_of_do_node_deploy_console(self, mock_deploy,
-                                                 mock_console):
-        self._start_service()
-        node = obj_utils.create_test_node(self.context, driver='fake-hardware')
-        task = task_manager.TaskManager(self.context, node.uuid)
-        task.process_event('deploy')
-        mock_deploy.return_value = states.DEPLOYDONE
-
-        deployments._old_rest_of_do_node_deploy(
-            task, self.service.conductor.id, True)
-        mock_deploy.assert_called_once_with(mock.ANY, task)
-        mock_console.assert_called_once_with(task)
-        self.assertEqual(self.service.conductor.id,
-                         task.node.conductor_affinity)
 
 
 @mgr_utils.mock_record_keepalive

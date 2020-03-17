@@ -18,13 +18,11 @@ from ironic_lib import metrics_utils
 from oslo_db import exception as db_exception
 from oslo_log import log
 from oslo_utils import excutils
-from oslo_utils import versionutils
 
 from ironic.common import exception
 from ironic.common.glance_service import service_utils as glance_utils
 from ironic.common.i18n import _
 from ironic.common import images
-from ironic.common import release_mappings as versions
 from ironic.common import states
 from ironic.common import swift
 from ironic.conductor import notification_utils as notify_utils
@@ -37,10 +35,6 @@ from ironic.objects import fields
 LOG = log.getLogger(__name__)
 
 METRICS = metrics_utils.get_metrics_logger(__name__)
-
-# NOTE(rloo) This is used to keep track of deprecation warnings that have
-# already been issued for deploy drivers that do not use deploy steps.
-_SEEN_NO_DEPLOY_STEP_DEPRECATIONS = set()
 
 
 def validate_node(task, event='deploy'):
@@ -202,97 +196,7 @@ def do_node_deploy(task, conductor_id=None, configdrive=None):
                 '%(node)s. Error: %(err)s' % {'node': node.uuid, 'err': e},
                 _("Cannot get deploy steps; failed to deploy: %s") % e)
 
-    steps = node.driver_internal_info.get('deploy_steps', [])
-
-    new_rpc_version = True
-    release_ver = versions.RELEASE_MAPPING.get(CONF.pin_release_version)
-    if release_ver:
-        new_rpc_version = versionutils.is_compatible('1.45',
-                                                     release_ver['rpc'])
-
-    if not steps or not new_rpc_version:
-        # TODO(rloo): This if.. (and the above code wrt rpc version)
-        # can be deleted after the deprecation period when we no
-        # longer support drivers with no deploy steps.
-        # Note that after the deprecation period, there needs to be at least
-        # one deploy step. If none, the deployment fails.
-
-        if steps:
-            info = node.driver_internal_info
-            info.pop('deploy_steps')
-            node.driver_internal_info = info
-            node.save()
-
-        # We go back to using the old way, if:
-        # - out-of-tree driver hasn't yet converted to using deploy steps, or
-        # - we're in the middle of a rolling upgrade. This is to prevent the
-        #   corner case of having new conductors with old conductors, and
-        #   a node is deployed with a new conductor (via deploy steps), but
-        #   after the deploy_wait, the node gets handled by an old conductor.
-        #   To avoid this, we need to wait until all the conductors are new,
-        # signalled by the RPC API version being '1.45'.
-        _old_rest_of_do_node_deploy(task, conductor_id, not steps)
-    else:
-        do_next_deploy_step(task, 0, conductor_id)
-
-
-def _old_rest_of_do_node_deploy(task, conductor_id, no_deploy_steps):
-    """The rest of the do_node_deploy() if not using deploy steps.
-
-    To support out-of-tree drivers that have not yet migrated to using
-    deploy steps.
-
-    :param no_deploy_steps: Boolean; True if there are no deploy steps.
-    """
-    # TODO(rloo): This method can be deleted after the deprecation period
-    #             for supporting drivers with no deploy steps.
-
-    if no_deploy_steps:
-        deploy_driver_name = task.driver.deploy.__class__.__name__
-        if deploy_driver_name not in _SEEN_NO_DEPLOY_STEP_DEPRECATIONS:
-            LOG.warning('Deploy driver %s does not support deploy steps; this '
-                        'will be required starting with the Stein release.',
-                        deploy_driver_name)
-            _SEEN_NO_DEPLOY_STEP_DEPRECATIONS.add(deploy_driver_name)
-
-    node = task.node
-    try:
-        new_state = task.driver.deploy.deploy(task)
-    except exception.IronicException as e:
-        with excutils.save_and_reraise_exception():
-            utils.deploying_error_handler(
-                task,
-                ('Error in deploy of node %(node)s: %(err)s' %
-                 {'node': node.uuid, 'err': e}),
-                _("Failed to deploy: %s") % e)
-    except Exception as e:
-        with excutils.save_and_reraise_exception():
-            utils.deploying_error_handler(
-                task,
-                ('Unexpected error while deploying node %(node)s' %
-                 {'node': node.uuid}),
-                _("Failed to deploy. Exception: %s") % e,
-                traceback=True)
-
-    # Update conductor_affinity to reference this conductor's ID
-    # since there may be local persistent state
-    node.conductor_affinity = conductor_id
-
-    # NOTE(deva): Some drivers may return states.DEPLOYWAIT
-    #             eg. if they are waiting for a callback
-    if new_state == states.DEPLOYDONE:
-        _start_console_in_deploy(task)
-        task.process_event('done')
-        LOG.info('Successfully deployed node %(node)s with '
-                 'instance %(instance)s.',
-                 {'node': node.uuid, 'instance': node.instance_uuid})
-    elif new_state == states.DEPLOYWAIT:
-        task.process_event('wait')
-    else:
-        LOG.error('Unexpected state %(state)s returned while '
-                  'deploying node %(node)s.',
-                  {'state': new_state, 'node': node.uuid})
-    node.save()
+    do_next_deploy_step(task, 0, conductor_id)
 
 
 @task_manager.require_exclusive_lock
