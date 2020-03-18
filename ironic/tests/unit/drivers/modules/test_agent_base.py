@@ -789,7 +789,7 @@ class AgentDeployMixinTest(AgentDeployMixinBaseTest):
             self.assertEqual(2, get_power_state_mock.call_count)
             node_power_action_mock.assert_called_once_with(
                 task, states.POWER_ON)
-            self.assertEqual(states.DEPLOYING, task.node.provision_state)
+            self.assertEqual(states.DEPLOYWAIT, task.node.provision_state)
             self.assertEqual(states.ACTIVE, task.node.target_provision_state)
             collect_mock.assert_called_once_with(task.node)
             resume_mock.assert_called_once_with(task)
@@ -830,7 +830,7 @@ class AgentDeployMixinTest(AgentDeployMixinBaseTest):
             remove_provisioning_net_mock.assert_called_once_with(mock.ANY,
                                                                  task)
             configure_tenant_net_mock.assert_called_once_with(mock.ANY, task)
-            self.assertEqual(states.DEPLOYING, task.node.provision_state)
+            self.assertEqual(states.DEPLOYWAIT, task.node.provision_state)
             self.assertEqual(states.ACTIVE, task.node.target_provision_state)
             self.assertFalse(mock_collect.called)
             resume_mock.assert_called_once_with(task)
@@ -862,7 +862,7 @@ class AgentDeployMixinTest(AgentDeployMixinBaseTest):
             remove_provisioning_net_mock.assert_called_once_with(mock.ANY,
                                                                  task)
             configure_tenant_net_mock.assert_called_once_with(mock.ANY, task)
-            self.assertEqual(states.DEPLOYING, task.node.provision_state)
+            self.assertEqual(states.DEPLOYWAIT, task.node.provision_state)
             self.assertEqual(states.ACTIVE, task.node.target_provision_state)
             self.assertFalse(mock_collect.called)
 
@@ -900,7 +900,7 @@ class AgentDeployMixinTest(AgentDeployMixinBaseTest):
             remove_provisioning_net_mock.assert_called_once_with(mock.ANY,
                                                                  task)
             configure_tenant_net_mock.assert_called_once_with(mock.ANY, task)
-            self.assertEqual(states.DEPLOYING, task.node.provision_state)
+            self.assertEqual(states.DEPLOYWAIT, task.node.provision_state)
             self.assertEqual(states.ACTIVE, task.node.target_provision_state)
             self.assertFalse(mock_collect.called)
 
@@ -1036,7 +1036,7 @@ class AgentDeployMixinTest(AgentDeployMixinBaseTest):
                 mock.call(task, states.POWER_OFF),
                 mock.call(task, states.POWER_ON),
             ])
-            self.assertEqual(states.DEPLOYING, task.node.provision_state)
+            self.assertEqual(states.DEPLOYWAIT, task.node.provision_state)
             self.assertEqual(states.ACTIVE, task.node.target_provision_state)
             self.assertFalse(mock_collect.called)
             resume_mock.assert_called_once_with(task)
@@ -1069,7 +1069,7 @@ class AgentDeployMixinTest(AgentDeployMixinBaseTest):
                 mock.call(task, states.POWER_OFF),
                 mock.call(task, states.POWER_ON),
             ])
-            self.assertEqual(states.DEPLOYING, task.node.provision_state)
+            self.assertEqual(states.DEPLOYWAIT, task.node.provision_state)
             self.assertEqual(states.ACTIVE, task.node.target_provision_state)
             log_error = ('The version of the IPA ramdisk used in the '
                          'deployment do not support the command "sync"')
@@ -1947,7 +1947,7 @@ class AgentDeployMixinTest(AgentDeployMixinBaseTest):
             self.assertEqual(2, get_power_state_mock.call_count)
             node_power_action_mock.assert_called_once_with(
                 task, states.POWER_ON)
-            self.assertEqual(states.DEPLOYING, task.node.provision_state)
+            self.assertEqual(states.DEPLOYWAIT, task.node.provision_state)
             self.assertEqual(states.ACTIVE, task.node.target_provision_state)
             collect_mock.assert_called_once_with(task.node)
             resume_mock.assert_called_once_with(task)

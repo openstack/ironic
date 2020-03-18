@@ -1,0 +1,9 @@
+---
+deprecations:
+  - |
+    Some deploy interfaces use the ``continue_node_deploy`` RPC call to notify
+    the conductor when they're ready to leave the ``deploy`` core deploy step.
+    Currently ironic allows a node to be either in ``wait call-back`` or
+    ``deploying`` state when entering this call. This is deprecated, and in
+    the next release a node will have to be in the ``wait call-back``
+    (``DEPLOYWAIT``) state for this call.

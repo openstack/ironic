@@ -608,6 +608,9 @@ class AnsibleDeploy(agent_base.HeartbeatMixin, base.DeployInterface):
         self.reboot_and_finish_deploy(task)
         task.driver.boot.clean_up_ramdisk(task)
 
+        # TODO(dtantsur): remove these two calls when this function becomes a
+        # real deploy step.
+        task.process_event('wait')
         manager_utils.notify_conductor_resume_deploy(task)
 
     @METRICS.timer('AnsibleDeploy.reboot_and_finish_deploy')
