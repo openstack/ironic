@@ -20,7 +20,6 @@ from ironic_lib import utils as ironic_utils
 from oslo_log import log as logging
 from oslo_utils import excutils
 from oslo_utils import fileutils
-from oslo_utils import netutils
 
 from ironic.common import dhcp_factory
 from ironic.common import exception
@@ -388,10 +387,7 @@ def _dhcp_option_file_or_url(task, urlboot=False):
     if not urlboot:
         return boot_file
     elif urlboot:
-        if netutils.is_valid_ipv6(CONF.pxe.tftp_server):
-            host = "[%s]" % CONF.pxe.tftp_server
-        else:
-            host = CONF.pxe.tftp_server
+        host = utils.wrap_ipv6(CONF.pxe.tftp_server)
         return "tftp://{host}/{boot_file}".format(host=host,
                                                   boot_file=boot_file)
 

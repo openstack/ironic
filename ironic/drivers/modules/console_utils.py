@@ -37,6 +37,7 @@ import psutil
 
 from ironic.common import exception
 from ironic.common.i18n import _
+from ironic.common import utils
 from ironic.conf import CONF
 
 
@@ -207,9 +208,7 @@ def get_shellinabox_console_url(port):
     :param port: the terminal port for the node.
     """
 
-    console_host = CONF.my_ip
-    if netutils.is_valid_ipv6(console_host):
-        console_host = '[%s]' % console_host
+    console_host = utils.wrap_ipv6(CONF.my_ip)
     scheme = 'https' if CONF.console.terminal_cert_dir else 'http'
     return '%(scheme)s://%(host)s:%(port)s' % {'scheme': scheme,
                                                'host': console_host,
@@ -367,10 +366,7 @@ def get_socat_console_url(port):
     :param port: the terminal port (integer) for the node
     :return: an access URL to the socat console of the node
     """
-    console_host = CONF.console.socat_address
-    if netutils.is_valid_ipv6(console_host):
-        console_host = '[%s]' % console_host
-
+    console_host = utils.wrap_ipv6(CONF.console.socat_address)
     return 'tcp://%(host)s:%(port)s' % {'host': console_host,
                                         'port': port}
 
