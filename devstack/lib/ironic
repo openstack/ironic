@@ -1433,6 +1433,11 @@ function configure_ironic_conductor {
         # pip uses default python 'data' path
         ironic_lib_prefix=$(python -c "import sysconfig; \
             print(sysconfig.get_path('data'))")
+
+        # on Centos7 the data is installed to /usr/local
+        if [ ! -d $ironic_lib_prefix/etc/ironic/rootwrap.d ]; then
+            ironic_lib_prefix=/usr/local
+        fi
     fi
     sudo install -o root -g root -m 644 $ironic_lib_prefix/etc/ironic/rootwrap.d/*.filters /etc/ironic/rootwrap.d
 
