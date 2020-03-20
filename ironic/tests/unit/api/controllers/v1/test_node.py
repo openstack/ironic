@@ -3400,7 +3400,8 @@ class TestPatch(test_api_base.BaseApiTest):
         self.assertEqual('application/json', response.content_type)
         self.assertEqual(http_client.NOT_ACCEPTABLE, response.status_code)
 
-    @mock.patch.object(api_utils, 'check_multiple_node_policies_and_retrieve')
+    @mock.patch.object(api_utils, 'check_multiple_node_policies_and_retrieve',
+                       autospec=True)
     def test_patch_policy_update(self, mock_cmnpar):
         node = obj_utils.create_test_node(self.context,
                                           uuid=uuidutils.generate_uuid())
@@ -3417,7 +3418,8 @@ class TestPatch(test_api_base.BaseApiTest):
         mock_cmnpar.assert_called_once_with(
             ['baremetal:node:update'], node.uuid, with_suffix=True)
 
-    @mock.patch.object(api_utils, 'check_multiple_node_policies_and_retrieve')
+    @mock.patch.object(api_utils, 'check_multiple_node_policies_and_retrieve',
+                       autospec=True)
     def test_patch_policy_update_none(self, mock_cmnpar):
         node = obj_utils.create_test_node(self.context,
                                           uuid=uuidutils.generate_uuid())
@@ -3432,7 +3434,8 @@ class TestPatch(test_api_base.BaseApiTest):
         mock_cmnpar.assert_called_once_with(
             ['baremetal:node:update'], node.uuid, with_suffix=True)
 
-    @mock.patch.object(api_utils, 'check_multiple_node_policies_and_retrieve')
+    @mock.patch.object(api_utils, 'check_multiple_node_policies_and_retrieve',
+                       autospec=True)
     def test_patch_policy_update_extra(self, mock_cmnpar):
         node = obj_utils.create_test_node(self.context,
                                           uuid=uuidutils.generate_uuid())
@@ -3449,7 +3452,8 @@ class TestPatch(test_api_base.BaseApiTest):
         mock_cmnpar.assert_called_once_with(
             ['baremetal:node:update_extra'], node.uuid, with_suffix=True)
 
-    @mock.patch.object(api_utils, 'check_multiple_node_policies_and_retrieve')
+    @mock.patch.object(api_utils, 'check_multiple_node_policies_and_retrieve',
+                       autospec=True)
     def test_patch_policy_update_instance_info(self, mock_cmnpar):
         node = obj_utils.create_test_node(self.context,
                                           uuid=uuidutils.generate_uuid())
@@ -3467,7 +3471,8 @@ class TestPatch(test_api_base.BaseApiTest):
             ['baremetal:node:update_instance_info'],
             node.uuid, with_suffix=True)
 
-    @mock.patch.object(api_utils, 'check_multiple_node_policies_and_retrieve')
+    @mock.patch.object(api_utils, 'check_multiple_node_policies_and_retrieve',
+                       autospec=True)
     def test_patch_policy_update_generic_and_extra(self, mock_cmnpar):
         node = obj_utils.create_test_node(self.context,
                                           uuid=uuidutils.generate_uuid())
@@ -3488,7 +3493,8 @@ class TestPatch(test_api_base.BaseApiTest):
             ['baremetal:node:update_extra', 'baremetal:node:update'],
             node.uuid, with_suffix=True)
 
-    @mock.patch.object(api_utils, 'check_multiple_node_policies_and_retrieve')
+    @mock.patch.object(api_utils, 'check_multiple_node_policies_and_retrieve',
+                       autospec=True)
     def test_patch_policy_update_generic_and_instance_info(self, mock_cmnpar):
         node = obj_utils.create_test_node(self.context,
                                           uuid=uuidutils.generate_uuid())
@@ -3509,7 +3515,8 @@ class TestPatch(test_api_base.BaseApiTest):
             ['baremetal:node:update_instance_info', 'baremetal:node:update'],
             node.uuid, with_suffix=True)
 
-    @mock.patch.object(api_utils, 'check_multiple_node_policies_and_retrieve')
+    @mock.patch.object(api_utils, 'check_multiple_node_policies_and_retrieve',
+                       autospec=True)
     def test_patch_policy_update_extra_and_instance_info(self, mock_cmnpar):
         node = obj_utils.create_test_node(self.context,
                                           uuid=uuidutils.generate_uuid())
@@ -3531,7 +3538,8 @@ class TestPatch(test_api_base.BaseApiTest):
              'baremetal:node:update_instance_info'],
             node.uuid, with_suffix=True)
 
-    @mock.patch.object(api_utils, 'check_multiple_node_policies_and_retrieve')
+    @mock.patch.object(api_utils, 'check_multiple_node_policies_and_retrieve',
+                       autospec=True)
     def test_patch_policy_update_generic_extra_instance_info(
             self, mock_cmnpar):
         node = obj_utils.create_test_node(self.context,

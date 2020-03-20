@@ -2124,7 +2124,7 @@ class NodesController(rest.RestController):
                 generic_update = True
 
         # always do at least one check
-        if generic_update or policy_checks == []:
+        if generic_update or not policy_checks:
             policy_checks.append('baremetal:node:update')
 
         rpc_node = api_utils.check_multiple_node_policies_and_retrieve(
