@@ -39,9 +39,11 @@ class BaseDHCP(object, metaclass=abc.ABCMeta):
                              ::
 
                               [{'opt_name': '67',
-                                'opt_value': 'pxelinux.0'},
+                                'opt_value': 'pxelinux.0',
+                                'ip_version': 4},
                                {'opt_name': '66',
-                                'opt_value': '123.123.123.456'}]
+                                'opt_value': '123.123.123.456',
+                                'ip_version': 4}]
         :param token: An optional authentication token. Deprecated, use context
         :param context: request context
         :type context: ironic.common.context.RequestContext
@@ -63,9 +65,11 @@ class BaseDHCP(object, metaclass=abc.ABCMeta):
                         ::
 
                          [{'opt_name': '67',
-                           'opt_value': 'pxelinux.0'},
+                           'opt_value': 'pxelinux.0',
+                           'ip_version': 4},
                           {'opt_name': '66',
-                           'opt_value': '123.123.123.456'}]
+                           'opt_value': '123.123.123.456',
+                           'ip_version': 4}]
 
         :param vifs: A dict with keys 'ports' and 'portgroups' and
             dicts as values. Each dict has key/value pairs of the form

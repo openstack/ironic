@@ -373,13 +373,16 @@ def clean_up_pxe_config(task, ipxe_enabled=False):
                                                 task.node.uuid))
 
 
-def _dhcp_option_file_or_url(task, urlboot=False):
+def _dhcp_option_file_or_url(task, urlboot=False, ip_version=None):
     """Returns the appropriate file or URL.
 
     :param task: A TaskManager object.
     :param url_boot: Boolean value default False to indicate if a
                      URL should be returned to the file as opposed
                      to a file.
+    :param ip_version: Integer representing the version of IP of
+                       to return options for DHCP. Possible options
+                       are 4, and 6.
     """
     boot_file = deploy_utils.get_pxe_boot_file(task.node)
     # NOTE(TheJulia): There are additional cases as we add new
@@ -387,12 +390,16 @@ def _dhcp_option_file_or_url(task, urlboot=False):
     if not urlboot:
         return boot_file
     elif urlboot:
-        host = utils.wrap_ipv6(CONF.pxe.tftp_server)
+        if CONF.my_ipv6 and ip_version == 6:
+            host = utils.wrap_ipv6(CONF.my_ipv6)
+        else:
+            host = utils.wrap_ipv6(CONF.pxe.tftp_server)
         return "tftp://{host}/{boot_file}".format(host=host,
                                                   boot_file=boot_file)
 
 
-def dhcp_options_for_instance(task, ipxe_enabled=False, url_boot=False):
+def dhcp_options_for_instance(task, ipxe_enabled=False, url_boot=False,
+                              ip_version=None):
     """Retrieves the DHCP PXE boot options.
 
     :param task: A TaskManager instance.
@@ -404,13 +411,19 @@ def dhcp_options_for_instance(task, ipxe_enabled=False, url_boot=False):
                      If [pxe]ip_version is set to `6`, then this option
                      has no effect as url_boot form is required by DHCPv6
                      standards.
+    :param ip_version: The IP version of options to return as values
+                       differ by IP version. Default to [pxe]ip_version.
+                       Possible options are integers 4 or 6.
     :returns: Dictionary to be sent to the networking service describing
               the DHCP options to be set.
     """
+    if ip_version:
+        use_ip_version = ip_version
+    else:
+        use_ip_version = int(CONF.pxe.ip_version)
     dhcp_opts = []
-    ip_version = int(CONF.pxe.ip_version)
     dhcp_provider_name = CONF.dhcp.dhcp_provider
-    if ip_version == 4:
+    if use_ip_version == 4:
         boot_file_param = DHCP_BOOTFILE_NAME
     else:
         # NOTE(TheJulia): Booting with v6 means it is always
@@ -421,7 +434,7 @@ def dhcp_options_for_instance(task, ipxe_enabled=False, url_boot=False):
     # guarded in the configuration, so there is no real sense in having
     # anything else here in the event the value is something aside from
     # 4 or 6, as there are no other possible values.
-    boot_file = _dhcp_option_file_or_url(task, url_boot)
+    boot_file = _dhcp_option_file_or_url(task, url_boot, use_ip_version)
 
     if ipxe_enabled:
         # TODO(TheJulia): DHCPv6 through dnsmasq + ipxe matching simply
@@ -444,7 +457,7 @@ def dhcp_options_for_instance(task, ipxe_enabled=False, url_boot=False):
             # added in the Stein cycle which identifies the iPXE User-Class
             # directly and is only sent in DHCPv6.
 
-            if ip_version != 6:
+            if use_ip_version != 6:
                 dhcp_opts.append(
                     {'opt_name': "tag:!ipxe,%s" % boot_file_param,
                      'opt_value': boot_file}
@@ -463,7 +476,7 @@ def dhcp_options_for_instance(task, ipxe_enabled=False, url_boot=False):
         else:
             # !175 == non-iPXE.
             # http://ipxe.org/howto/dhcpd#ipxe-specific_options
-            if ip_version == 6:
+            if use_ip_version == 6:
                 LOG.warning('IPv6 is enabled and the DHCP driver appears set '
                             'to a plugin aside from "neutron". Node %(name)s '
                             'may not receive proper DHCPv6 provided '
@@ -512,7 +525,7 @@ def dhcp_options_for_instance(task, ipxe_enabled=False, url_boot=False):
 
     # Append the IP version for all the configuration options
     for opt in dhcp_opts:
-        opt.update({'ip_version': ip_version})
+        opt.update({'ip_version': use_ip_version})
 
     return dhcp_opts
 
@@ -906,7 +919,16 @@ def prepare_instance_pxe_config(task, image_info,
     """
 
     node = task.node
-    dhcp_opts = dhcp_options_for_instance(task, ipxe_enabled)
+    # Generate options for both IPv4 and IPv6, and they can be
+    # filtered down later based upon the port options.
+    # TODO(TheJulia): This should be re-tooled during the Victoria
+    # development cycle so that we call a single method and return
+    # combined options. The method we currently call is relied upon
+    # by two eternal projects, to changing the behavior is not ideal.
+    dhcp_opts = dhcp_options_for_instance(task, ipxe_enabled,
+                                          ip_version=4)
+    dhcp_opts += dhcp_options_for_instance(task, ipxe_enabled,
+                                           ip_version=6)
     provider = dhcp_factory.DHCPFactory()
     provider.update_dhcp(task, dhcp_opts)
     pxe_config_path = get_pxe_config_file_path(

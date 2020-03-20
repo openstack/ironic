@@ -270,11 +270,14 @@ class iPXEBootTestCase(db_base.DbTestCase):
         self.node.save()
         with task_manager.acquire(self.context, self.node.uuid) as task:
             dhcp_opts = pxe_utils.dhcp_options_for_instance(
-                task, ipxe_enabled=True)
+                task, ipxe_enabled=True, ip_version=4)
+            dhcp_opts += pxe_utils.dhcp_options_for_instance(
+                task, ipxe_enabled=True, ip_version=6)
             task.driver.boot.prepare_ramdisk(task, {'foo': 'bar'})
             mock_deploy_img_info.assert_called_once_with(task.node, mode=mode,
                                                          ipxe_enabled=True)
-            provider_mock.update_dhcp.assert_called_once_with(task, dhcp_opts)
+            provider_mock.update_dhcp.assert_called_once_with(
+                task, dhcp_opts)
             if self.node.provision_state == states.DEPLOYING:
                 get_boot_mode_mock.assert_called_once_with(task)
             set_boot_device_mock.assert_called_once_with(task,
@@ -630,6 +633,8 @@ class iPXEBootTestCase(db_base.DbTestCase):
         with task_manager.acquire(self.context, self.node.uuid) as task:
             dhcp_opts = pxe_utils.dhcp_options_for_instance(
                 task, ipxe_enabled=True)
+            dhcp_opts += pxe_utils.dhcp_options_for_instance(
+                task, ipxe_enabled=True, ip_version=6)
             pxe_config_path = pxe_utils.get_pxe_config_file_path(
                 task.node.uuid, ipxe_enabled=True)
             task.node.properties['capabilities'] = 'boot_mode:bios'
@@ -672,6 +677,8 @@ class iPXEBootTestCase(db_base.DbTestCase):
         with task_manager.acquire(self.context, self.node.uuid) as task:
             dhcp_opts = pxe_utils.dhcp_options_for_instance(
                 task, ipxe_enabled=True)
+            dhcp_opts += pxe_utils.dhcp_options_for_instance(
+                task, ipxe_enabled=True, ip_version=6)
             pxe_config_path = pxe_utils.get_pxe_config_file_path(
                 task.node.uuid, ipxe_enabled=True)
             task.node.properties['capabilities'] = 'boot_mode:bios'
@@ -710,7 +717,9 @@ class iPXEBootTestCase(db_base.DbTestCase):
         get_image_info_mock.return_value = image_info
         with task_manager.acquire(self.context, self.node.uuid) as task:
             dhcp_opts = pxe_utils.dhcp_options_for_instance(
-                task, ipxe_enabled=True)
+                task, ipxe_enabled=True, ip_version=4)
+            dhcp_opts += pxe_utils.dhcp_options_for_instance(
+                task, ipxe_enabled=True, ip_version=6)
             task.node.properties['capabilities'] = 'boot_mode:bios'
             task.node.driver_internal_info['is_whole_disk_image'] = False
 
@@ -742,6 +751,8 @@ class iPXEBootTestCase(db_base.DbTestCase):
         with task_manager.acquire(self.context, self.node.uuid) as task:
             dhcp_opts = pxe_utils.dhcp_options_for_instance(
                 task, ipxe_enabled=True)
+            dhcp_opts += pxe_utils.dhcp_options_for_instance(
+                task, ipxe_enabled=True, ip_version=6)
             task.node.properties['capabilities'] = 'boot_mode:bios'
             task.node.driver_internal_info['is_whole_disk_image'] = True
             task.driver.boot.prepare_instance(task)
@@ -786,6 +797,8 @@ class iPXEBootTestCase(db_base.DbTestCase):
                 'boot_from_volume': vol_id}
             dhcp_opts = pxe_utils.dhcp_options_for_instance(task,
                                                             ipxe_enabled=True)
+            dhcp_opts += pxe_utils.dhcp_options_for_instance(
+                task, ipxe_enabled=True, ip_version=6)
             pxe_config_path = pxe_utils.get_pxe_config_file_path(
                 task.node.uuid, ipxe_enabled=True)
             task.node.properties['capabilities'] = 'boot_mode:bios'

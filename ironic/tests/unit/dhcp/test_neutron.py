@@ -48,8 +48,9 @@ class TestNeutron(db_base.DbTestCase):
 
         dhcp_factory.DHCPFactory._dhcp_provider = None
 
+    @mock.patch('ironic.common.neutron.get_client', autospec=True)
     @mock.patch('ironic.common.neutron.update_neutron_port', autospec=True)
-    def test_update_port_dhcp_opts(self, update_mock):
+    def test_update_port_dhcp_opts(self, update_mock, client_mock):
         opts = [{'opt_name': 'bootfile-name',
                  'opt_value': 'pxelinux.0'},
                 {'opt_name': 'tftp-server',
@@ -58,6 +59,56 @@ class TestNeutron(db_base.DbTestCase):
                  'opt_value': '1.1.1.1'}]
         port_id = 'fake-port-id'
         expected = {'port': {'extra_dhcp_opts': opts}}
+        port_data = {
+            "id": port_id,
+            "fixed_ips": [
+                {
+                    "ip_address": "192.168.1.3",
+                }
+            ],
+        }
+        client_mock.return_value.show_port.return_value = {'port': port_data}
+
+        api = dhcp_factory.DHCPFactory()
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            api.provider.update_port_dhcp_opts(port_id, opts,
+                                               context=task.context)
+        update_mock.assert_called_once_with(
+            self.context, port_id, expected)
+
+    @mock.patch('ironic.common.neutron.get_client', autospec=True)
+    @mock.patch('ironic.common.neutron.update_neutron_port', autospec=True)
+    def test_update_port_dhcp_opts_v6(self, update_mock, client_mock):
+        opts = [{'opt_name': 'bootfile-name',
+                 'opt_value': 'pxelinux.0',
+                 'ip_version': 4},
+                {'opt_name': 'tftp-server',
+                 'opt_value': '1.1.1.1',
+                 'ip_version': 4},
+                {'opt_name': 'server-ip-address',
+                 'opt_value': '1.1.1.1',
+                 'ip_version': 4},
+                {'opt_name': 'bootfile-url',
+                 'opt_value': 'tftp://::1/file.name',
+                 'ip_version': 6}]
+        port_id = 'fake-port-id'
+        expected = {
+            'port': {
+                'extra_dhcp_opts': [{
+                    'opt_name': 'bootfile-url',
+                    'opt_value': 'tftp://::1/file.name',
+                    'ip_version': 6}]
+            }
+        }
+        port_data = {
+            "id": port_id,
+            "fixed_ips": [
+                {
+                    "ip_address": "2001:db8::201",
+                }
+            ],
+        }
+        client_mock.return_value.show_port.return_value = {'port': port_data}
 
         api = dhcp_factory.DHCPFactory()
         with task_manager.acquire(self.context, self.node.uuid) as task:
@@ -66,10 +117,21 @@ class TestNeutron(db_base.DbTestCase):
         update_mock.assert_called_once_with(
             task.context, port_id, expected)
 
+    @mock.patch('ironic.common.neutron.get_client', autospec=True)
     @mock.patch('ironic.common.neutron.update_neutron_port', autospec=True)
-    def test_update_port_dhcp_opts_with_exception(self, update_mock):
+    def test_update_port_dhcp_opts_with_exception(self, update_mock,
+                                                  client_mock):
         opts = [{}]
         port_id = 'fake-port-id'
+        port_data = {
+            "id": port_id,
+            "fixed_ips": [
+                {
+                    "ip_address": "192.168.1.3",
+                }
+            ],
+        }
+        client_mock.return_value.show_port.return_value = {'port': port_data}
         update_mock.side_effect = (
             neutron_client_exc.NeutronClientException())
 

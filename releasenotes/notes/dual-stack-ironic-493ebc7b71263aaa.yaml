@@ -1,0 +1,16 @@
+---
+features:
+  - |
+    Adds functionality with neutron integration to support dual-stack
+    (IPv4 and IPv6 environment configurations). This enables ironic to
+    look up the attached port(s) and supply DHCP options in alignment
+    with the protocol version allocated on the port.
+upgrade:
+  - |
+    The ``[pxe]ip_version`` setting may no longer be required depending on
+    neutron integration.
+  - |
+    Operators that used the ``[DEFAULT]my_ip`` setting with an IPv6 address
+    may wish to explore migrating to the ``[DEFAULT]my_ipv6`` setting. Setting
+    both values enables the appropriate IP addresses based on protocol version
+    for PXE/iPXE.
