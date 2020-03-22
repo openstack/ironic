@@ -15,8 +15,7 @@
 import contextlib
 import datetime
 from distutils.version import StrictVersion
-import random
-import string
+import secrets
 import time
 
 from openstack.baremetal import configdrive as os_configdrive
@@ -1019,9 +1018,7 @@ def add_secret_token(node, pregenerated=False):
                          order to facilitate virtual media booting where
                          the token is embedded into the configuration.
     """
-    characters = string.ascii_letters + string.digits
-    token = ''.join(
-        random.SystemRandom().choice(characters) for i in range(128))
+    token = secrets.token_urlsafe()
     i_info = node.driver_internal_info
     i_info['agent_secret_token'] = token
     if pregenerated:
