@@ -2968,6 +2968,9 @@ function ironic_configure_tempest {
     if [[ -n "$IRONIC_IP_VERSION" ]]; then
         iniset $TEMPEST_CONFIG validation ip_version_for_ssh $IRONIC_IP_VERSION
     fi
+    if [[ -n "$IRONIC_BOOT_MODE" ]]; then
+        iniset $TEMPEST_CONFIG baremetal boot_mode $IRONIC_BOOT_MODE
+    fi
     if [[ "$IRONIC_IP_VERSION" == "6" ]]; then
         # No FIPs in V6 and we dynamically create networks...
         # network_for_ssh is defaulted to public
