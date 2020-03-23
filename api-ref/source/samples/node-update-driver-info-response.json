@@ -42,6 +42,7 @@
   "maintenance_reason": "Replacing the hard drive",
   "management_interface": null,
   "name": "test_node_classic",
+  "network_data": {},
   "network_interface": "flat",
   "owner": null,
   "portgroups": [

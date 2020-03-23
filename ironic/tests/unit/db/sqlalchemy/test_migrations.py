@@ -969,6 +969,13 @@ class MigrationCheckersMixin(object):
         col_names = [column.name for column in allocations.c]
         self.assertIn('owner', col_names)
 
+    def _check_cf1a80fdb352(self, engine, data):
+        nodes = db_utils.get_table(engine, 'nodes')
+        col_names = [column.name for column in nodes.c]
+        self.assertIn('network_data', col_names)
+        self.assertIsInstance(
+            nodes.c.network_data.type, sqlalchemy.types.String)
+
     def _pre_upgrade_cd2c80feb331(self, engine):
         data = {
             'node_uuid': uuidutils.generate_uuid(),

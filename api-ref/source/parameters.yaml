@@ -1012,6 +1012,13 @@ name:
   in: body
   required: true
   type: string
+network_data:
+  description: |
+    Static network configuration for the node to eventually pass to node's
+    operating system.
+  in: body
+  required: false
+  type: JSON
 network_interface:
   description: |
     Which Network Interface provider to use when plumbing the network

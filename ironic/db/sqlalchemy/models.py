@@ -197,6 +197,7 @@ class Node(Base):
     retired = Column(Boolean, nullable=True, default=False,
                      server_default=false())
     retired_reason = Column(Text, nullable=True)
+    network_data = Column(db_types.JsonEncodedDict)
     storage_interface = Column(String(255), nullable=True)
     power_interface = Column(String(255), nullable=True)
     vendor_interface = Column(String(255), nullable=True)

@@ -103,6 +103,7 @@ BASE_VERSION = 1
 # v1.63: Add support for indicators
 # v1.64: Add network_type to port.local_link_connection
 # v1.65: Add lessee to the node object.
+# v1.66: Add support for node network_data field.
 
 MINOR_0_JUNO = 0
 MINOR_1_INITIAL_VERSION = 1
@@ -170,6 +171,7 @@ MINOR_62_AGENT_TOKEN = 62
 MINOR_63_INDICATORS = 63
 MINOR_64_LOCAL_LINK_CONNECTION_NETWORK_TYPE = 64
 MINOR_65_NODE_LESSEE = 65
+MINOR_66_NODE_NETWORK_DATA = 66
 
 # When adding another version, update:
 # - MINOR_MAX_VERSION
@@ -177,7 +179,7 @@ MINOR_65_NODE_LESSEE = 65
 #   explanation of what changed in the new version
 # - common/release_mappings.py, RELEASE_MAPPING['master']['api']
 
-MINOR_MAX_VERSION = MINOR_65_NODE_LESSEE
+MINOR_MAX_VERSION = MINOR_66_NODE_NETWORK_DATA
 
 # String representations of the minor and maximum versions
 _MIN_VERSION_STRING = '{}.{}'.format(BASE_VERSION, MINOR_1_INITIAL_VERSION)

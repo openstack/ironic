@@ -67,7 +67,6 @@ RESCUE_LIKE_STATES = (states.RESCUING, states.RESCUEWAIT, states.RESCUEFAIL,
 
 DISK_LAYOUT_PARAMS = ('root_gb', 'swap_mb', 'ephemeral_gb')
 
-
 # All functions are called from deploy() directly or indirectly.
 # They are split for stub-out.
 

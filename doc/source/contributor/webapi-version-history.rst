@@ -2,6 +2,13 @@
 REST API Version History
 ========================
 
+1.66 (Victoria, master)
+-----------------------
+
+Add ``network_data`` field to the node object, that will be used by
+stand-alone ironic to pass L3 network configuration information to
+ramdisk.
+
 1.65 (Ussuri, 15.0)
 ---------------------
 
