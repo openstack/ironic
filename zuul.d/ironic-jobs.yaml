@@ -140,6 +140,7 @@
       devstack_localrc:
         IRONIC_DEPLOY_DRIVER: redfish
         IRONIC_ENABLED_HARDWARE_TYPES: redfish
+        IRONIC_VM_COUNT: 2
 
 - job:
     name: ironic-tempest-pxe_ipmitool-postgres
@@ -155,7 +156,7 @@
 
 - job:
     name: ironic-tempest-ipa-wholedisk-bios-agent_ipmitool-tinyipa
-    description: ironic-tempest-ipa-wholedisk-bios-agent_ipmitool-tinyipa
+    description: ironic-tempest-ipa-wholedisk-bios-agent_ipmitool-tinyipa that also tests cleaning.
     parent: ironic-base
     timeout: 5400
     vars:
@@ -163,6 +164,7 @@
         IRONIC_DEFAULT_DEPLOY_INTERFACE: direct
         IRONIC_DEFAULT_RESCUE_INTERFACE: agent
         IRONIC_ENABLED_RESCUE_INTERFACES: "fake,agent,no-rescue"
+        IRONIC_VM_COUNT: 2
         IRONIC_TEMPEST_WHOLE_DISK_IMAGE: True
         IRONIC_VM_EPHEMERAL_DISK: 0
         SWIFT_ENABLE_TEMPURLS: True
@@ -199,12 +201,14 @@
 
 - job:
     name: ironic-tempest-ipa-partition-pxe_ipmitool-tinyipa-python3
-    description: ironic-tempest-ipa-partition-pxe_ipmitool-tinyipa-python3
+    description: ironic-tempest-ipa-partition-pxe_ipmitool-tinyipa-python3 that also tests cleaning.
     parent: ironic-base
     timeout: 5400
     vars:
       devstack_localrc:
         USE_PYTHON3: True
+        IRONIC_VM_COUNT: 2
+        IRONIC_AUTOMATED_CLEAN_ENABLED: True
 
 - job:
     name: ironic-tempest-bfv

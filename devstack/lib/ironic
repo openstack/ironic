@@ -2757,6 +2757,9 @@ function ironic_configure_tempest {
     if [[ -n "$IRONIC_PING_TIMEOUT" ]]; then
         iniset $TEMPEST_CONFIG validation ping_timeout $IRONIC_PING_TIMEOUT
     fi
+    if [[ -n "$IRONIC_BOOT_MODE" ]]; then
+        iniset $TEMPEST_CONFIG baremetal boot_mode $IRONIC_BOOT_MODE
+    fi
 
     if is_service_enabled nova; then
         local bm_flavor_id
