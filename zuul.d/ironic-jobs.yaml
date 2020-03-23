@@ -327,12 +327,15 @@
 
 - job:
     name: ironic-tempest-ipa-partition-pxe_ipmitool
-    description: ironic-tempest-ipa-partition-pxe_ipmitool
+    description: ironic-tempest-ipa-partition-pxe_ipmitool that also tests cleaning.
     parent: ironic-base
     timeout: 5400
     vars:
       devstack_localrc:
         IRONIC_DEFAULT_BOOT_OPTION: netboot
+        IRONIC_VM_COUNT: 2
+        IRONIC_AUTOMATED_CLEAN_ENABLED: True
+
 
 - job:
     name: ironic-tempest-bfv
@@ -763,7 +766,7 @@
 # Used by devstack/ironic/nova/neutron
 - job:
     name: ironic-tempest-ipa-wholedisk-bios-agent_ipmitool-tinyipa
-    description: ironic-tempest-ipa-wholedisk-bios-agent_ipmitool-tinyipa
+    description: ironic-tempest-ipa-wholedisk-bios-agent_ipmitool-tinyipa that also tests cleaning.
     parent: ironic-base
     timeout: 5400
     vars:
@@ -773,6 +776,7 @@
         IRONIC_ENABLED_RESCUE_INTERFACES: "fake,agent,no-rescue"
         IRONIC_RAMDISK_TYPE: tinyipa
         IRONIC_VM_SPECS_RAM: 384
+        IRONIC_VM_COUNT: 2
         IRONIC_TEMPEST_WHOLE_DISK_IMAGE: True
         IRONIC_VM_EPHEMERAL_DISK: 0
         SWIFT_ENABLE_TEMPURLS: True
