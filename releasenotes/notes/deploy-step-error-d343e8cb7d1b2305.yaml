@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Fixes vague node ``last_error`` field reporting upon deploy step
+    failure by providing the exception error message in addition
+    to the step that failed.
