@@ -15,6 +15,8 @@
 DRAC power interface
 """
 
+import time
+
 from ironic_lib import metrics_utils
 from oslo_log import log as logging
 from oslo_utils import importutils
@@ -42,6 +44,10 @@ if drac_constants:
     }
 
     REVERSE_POWER_STATES = dict((v, k) for (k, v) in POWER_STATES.items())
+
+POWER_STATE_TRIES = 15
+POWER_STATE_SLEEP = 2
+POWER_STATE_CHANGE_FAIL = 'The command failed to set RequestedState'
 
 
 def _get_power_state(node):
@@ -101,18 +107,60 @@ def _set_power_state(node, power_state):
     _commit_boot_list_change(node)
 
     client = drac_common.get_drac_client(node)
-    target_power_state = REVERSE_POWER_STATES[power_state]
+    tries = POWER_STATE_TRIES
 
-    try:
-        client.set_power_state(target_power_state)
-    except drac_exceptions.BaseClientException as exc:
-        LOG.error('DRAC driver failed to set power state for node '
-                  '%(node_uuid)s to %(power_state)s. '
-                  'Reason: %(error)s.',
-                  {'node_uuid': node.uuid,
-                   'power_state': power_state,
-                   'error': exc})
-        raise exception.DracOperationError(error=exc)
+    # Cases have been seen where the iDRAC returns a SYS021 error even when
+    # the server is in the right power state and a valid power state change
+    # is attempted. Retry in this case.
+    while tries > 0:
+        # The iDRAC will return a SYS021 error if the server is powered off
+        # and a reboot is requested.  In this situation, convert the requested
+        # reboot into a power on to avoid this error. To minimize the chance
+        # of a race condition, it is critical to do this check immediately
+        # before sending the power state change command.  This keeps the
+        # window during which the server could change power states without us
+        # knowing about it as small as possible.
+        calc_power_state = power_state
+        if power_state == states.REBOOT:
+            current_power_state = _get_power_state(node)
+            # If the server is not on, then power it on instead of rebooting
+            if current_power_state != states.POWER_ON:
+                calc_power_state = states.POWER_ON
+
+        target_power_state = REVERSE_POWER_STATES[calc_power_state]
+
+        try:
+            client.set_power_state(target_power_state)
+            break
+        except drac_exceptions.BaseClientException as exc:
+            if (power_state == states.REBOOT
+                    and POWER_STATE_CHANGE_FAIL in str(exc)
+                    and tries > 0):
+                LOG.warning('DRAC driver failed to set power state for node '
+                            '%(node_uuid)s to %(calc_power_state)s. '
+                            'Reason: %(error)s. Retrying...',
+                            {'node_uuid': node.uuid,
+                             'calc_power_state': calc_power_state,
+                             'error': exc})
+                tries -= 1
+                time.sleep(POWER_STATE_SLEEP)
+            else:
+                LOG.error('DRAC driver failed to set power state for node '
+                          '%(node_uuid)s to %(calc_power_state)s. '
+                          'Reason: %(error)s.',
+                          {'node_uuid': node.uuid,
+                           'calc_power_state': calc_power_state,
+                           'error': exc})
+                raise exception.DracOperationError(error=exc)
+
+    if tries <= 0:
+        error_msg = (_('DRAC driver timed out while trying to set the power '
+                       'state for node %(node_uuid)s to '
+                       '%(calc_power_state)s.') %
+                     {'node_uuid': node.uuid,
+                      'calc_power_state': calc_power_state})
+        LOG.error(error_msg)
+        raise exception.DracOperationError(error_msg)
 
 
 class DracRedfishPower(redfish_power.RedfishPower):
@@ -199,13 +247,7 @@ class DracWSManPower(base.PowerInterface):
                         "timeout=%(timeout)s",
                         {'timeout': timeout})
 
-        current_power_state = _get_power_state(task.node)
-        if current_power_state == states.POWER_ON:
-            target_power_state = states.REBOOT
-        else:
-            target_power_state = states.POWER_ON
-
-        _set_power_state(task.node, target_power_state)
+        _set_power_state(task.node, states.REBOOT)
 
 
 class DracPower(DracWSManPower):

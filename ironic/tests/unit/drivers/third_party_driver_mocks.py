@@ -106,6 +106,17 @@ if not dracclient:
     sys.modules['dracclient.exceptions'] = dracclient.exceptions
     dracclient.exceptions.BaseClientException = type('BaseClientException',
                                                      (Exception,), {})
+
+    dracclient.exceptions.DRACRequestFailed = type(
+        'DRACRequestFailed', (dracclient.exceptions.BaseClientException,), {})
+
+    class DRACOperationFailed(dracclient.exceptions.DRACRequestFailed):
+        def __init__(self, **kwargs):
+            super(DRACOperationFailed, self).__init__(
+                'DRAC operation failed. Messages: %(drac_messages)s' % kwargs)
+
+    dracclient.exceptions.DRACOperationFailed = DRACOperationFailed
+
     # Now that the external library has been mocked, if anything had already
     # loaded any of the drivers, reload them.
     if 'ironic.drivers.modules.drac' in sys.modules:
