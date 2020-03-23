@@ -26,7 +26,9 @@ import oslo_messaging as messaging
 from oslo_messaging import _utils as messaging_utils
 
 from ironic.common import boot_devices
+from ironic.common import components
 from ironic.common import exception
+from ironic.common import indicator_states
 from ironic.common import release_mappings
 from ironic.common import states
 from ironic.conductor import manager as conductor_manager
@@ -360,6 +362,29 @@ class RPCAPITestCase(db_base.DbTestCase):
         self._test_rpcapi('get_supported_boot_devices',
                           'call',
                           version='1.17',
+                          node_id=self.fake_node['uuid'])
+
+    def test_set_indicator_state(self):
+        self._test_rpcapi('set_indicator_state',
+                          'call',
+                          version='1.50',
+                          node_id=self.fake_node['uuid'],
+                          component=components.CHASSIS,
+                          indicator='led',
+                          state=indicator_states.ON)
+
+    def test_get_indicator_state(self):
+        self._test_rpcapi('get_indicator_state',
+                          'call',
+                          version='1.50',
+                          node_id=self.fake_node['uuid'],
+                          component=components.CHASSIS,
+                          indicator='led')
+
+    def test_get_supported_indicators(self):
+        self._test_rpcapi('get_supported_indicators',
+                          'call',
+                          version='1.50',
                           node_id=self.fake_node['uuid'])
 
     def test_get_node_vendor_passthru_methods(self):

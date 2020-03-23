@@ -158,6 +158,23 @@ node_policies = [
           'method': 'PUT'}]),
 
     policy.DocumentedRuleDefault(
+        'baremetal:node:get_indicator_state',
+        'rule:is_admin or rule:is_observer',
+        'Retrieve Node indicators and their states',
+        [{'path': '/nodes/{node_ident}/management/indicators/'
+                  '{component}/{indicator}',
+          'method': 'GET'},
+         {'path': '/nodes/{node_ident}/management/indicators',
+          'method': 'GET'}]),
+    policy.DocumentedRuleDefault(
+        'baremetal:node:set_indicator_state',
+        'rule:is_admin',
+        'Change Node indicator state',
+        [{'path': '/nodes/{node_ident}/management/indicators/'
+                  '{component}/{indicator}',
+          'method': 'PUT'}]),
+
+    policy.DocumentedRuleDefault(
         'baremetal:node:inject_nmi',
         'rule:is_admin',
         'Inject NMI for a node',

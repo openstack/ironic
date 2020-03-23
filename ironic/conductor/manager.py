@@ -90,7 +90,7 @@ class ConductorManager(base_manager.BaseConductorManager):
     # NOTE(rloo): This must be in sync with rpcapi.ConductorAPI's.
     # NOTE(pas-ha): This also must be in sync with
     #               ironic.common.release_mappings.RELEASE_MAPPING['master']
-    RPC_API_VERSION = '1.49'
+    RPC_API_VERSION = '1.50'
 
     target = messaging.Target(version=RPC_API_VERSION)
 
@@ -2783,6 +2783,132 @@ class ConductorManager(base_manager.BaseConductorManager):
         with task_manager.acquire(context, node_id, shared=True,
                                   purpose=lock_purpose) as task:
             return task.driver.management.get_supported_boot_devices(task)
+
+    @METRICS.timer('ConductorManager.set_indicator_state')
+    @messaging.expected_exceptions(exception.NodeLocked,
+                                   exception.UnsupportedDriverExtension,
+                                   exception.InvalidParameterValue)
+    def set_indicator_state(self, context, node_id, component,
+                            indicator, state):
+        """Set node hardware components indicator to the desired state.
+
+        :param context: request context.
+        :param node_id: node id or uuid.
+        :param component: The hardware component, one of
+            :mod:`ironic.common.components`.
+        :param indicator: Indicator IDs, as
+            reported by `get_supported_indicators`)
+        :param state: Indicator state, one of
+            mod:`ironic.common.indicator_states`.
+        :raises: NodeLocked if node is locked by another conductor.
+        :raises: UnsupportedDriverExtension if the node's driver doesn't
+                 support management.
+        :raises: InvalidParameterValue when the wrong driver info is
+                 specified or an invalid boot device is specified.
+        :raises: MissingParameterValue if missing supplied info.
+
+        """
+        LOG.debug('RPC set_indicator_state called for node %(node)s with '
+                  'component %(component)s, indicator %(indicator)s and state '
+                  '%(state)s', {'node': node_id, 'component': component,
+                                'indicator': indicator, 'state': state})
+        with task_manager.acquire(context, node_id,
+                                  purpose='setting indicator state') as task:
+            task.driver.management.validate(task)
+            task.driver.management.set_indicator_state(
+                task, component, indicator, state)
+
+    @METRICS.timer('ConductorManager.get_indicator_states')
+    @messaging.expected_exceptions(exception.NodeLocked,
+                                   exception.UnsupportedDriverExtension,
+                                   exception.InvalidParameterValue)
+    def get_indicator_state(self, context, node_id, component, indicator):
+        """Get node hardware component indicator state.
+
+        :param context: request context.
+        :param node_id: node id or uuid.
+        :param component: The hardware component, one of
+            :mod:`ironic.common.components`.
+        :param indicator: Indicator IDs, as
+            reported by `get_supported_indicators`)
+        :raises: NodeLocked if node is locked by another conductor.
+        :raises: UnsupportedDriverExtension if the node's driver doesn't
+                 support management.
+        :raises: InvalidParameterValue when the wrong driver info is
+                 specified.
+        :raises: MissingParameterValue if missing supplied info.
+        :returns: Indicator state, one of
+            mod:`ironic.common.indicator_states`.
+
+        """
+        LOG.debug('RPC get_indicator_states called for node %s', node_id)
+        with task_manager.acquire(context, node_id,
+                                  purpose='getting indicators states') as task:
+            task.driver.management.validate(task)
+            return task.driver.management.get_indicator_state(
+                task, component, indicator)
+
+    @METRICS.timer('ConductorManager.get_supported_indicators')
+    @messaging.expected_exceptions(exception.NodeLocked,
+                                   exception.UnsupportedDriverExtension,
+                                   exception.InvalidParameterValue)
+    def get_supported_indicators(self, context, node_id, component=None):
+        """Get node hardware components and their indicators.
+
+        :param context: request context.
+        :param node_id: node id or uuid.
+        :param component: If not `None`, return indicator information
+            for just this component, otherwise return indicators for
+            all existing components.
+        :raises: NodeLocked if node is locked by another conductor.
+        :raises: UnsupportedDriverExtension if the node's driver doesn't
+                 support management.
+        :raises: InvalidParameterValue when the wrong driver info is
+                 specified.
+        :raises: MissingParameterValue if missing supplied info.
+        :returns: A dictionary of hardware components
+            (:mod:`ironic.common.components`) as keys with indicator IDs
+            as values.
+
+            ::
+
+                {
+                    'chassis': {
+                        'enclosure-0': {
+                            "readonly": true,
+                            "states": [
+                                "OFF",
+                                "ON"
+                            ]
+                        }
+                    },
+                    'system':
+                        'blade-A': {
+                            "readonly": true,
+                            "states": [
+                                "OFF",
+                                "ON"
+                            ]
+                        }
+                    },
+                    'drive':
+                        'ssd0': {
+                            "readonly": true,
+                            "states": [
+                                "OFF",
+                                "ON"
+                            ]
+                        }
+                    }
+                }
+
+        """
+        LOG.debug('RPC get_supported_indicators called for node %s', node_id)
+        lock_purpose = 'getting supported indicators'
+        with task_manager.acquire(context, node_id, shared=True,
+                                  purpose=lock_purpose) as task:
+            return task.driver.management.get_supported_indicators(
+                task, component)
 
     @METRICS.timer('ConductorManager.inspect_hardware')
     @messaging.expected_exceptions(exception.NoFreeConductorWorker,
