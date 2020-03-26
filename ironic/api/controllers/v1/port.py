@@ -440,6 +440,14 @@ class PortsController(rest.RestController):
         if ('is_smartnic' in fields
                 and not api_utils.allow_port_is_smartnic()):
             raise exception.NotAcceptable()
+        if ('local_link_connection/network_type' in fields
+                and not api_utils.allow_local_link_connection_network_type()):
+            raise exception.NotAcceptable()
+        if isinstance(fields, dict):
+            if (not api_utils.allow_local_link_connection_network_type()
+                    and 'network_type' in fields.get('local_link_connection',
+                                                     {}).keys()):
+                raise exception.NotAcceptable()
 
     @METRICS.timer('PortsController.get_all')
     @expose.expose(PortCollection, types.uuid_or_name, types.uuid,
@@ -668,11 +676,10 @@ class PortsController(rest.RestController):
             'baremetal:port:update', port_uuid)
 
         context = api.request.context
-
         fields_to_check = set()
         for field in (self.advanced_net_fields
                       + ['portgroup_uuid', 'physical_network',
-                         'is_smartnic']):
+                         'is_smartnic', 'local_link_connection/network_type']):
             field_path = '/%s' % field
             if (api_utils.get_patch_values(patch, field_path)
                     or api_utils.is_path_removed(patch, field_path)):

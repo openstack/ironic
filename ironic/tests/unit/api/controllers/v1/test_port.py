@@ -1246,6 +1246,59 @@ class TestPatch(test_api_base.BaseApiTest):
         self.assertTrue(response.json['error_message'])
         self.assertEqual(http_client.NOT_ACCEPTABLE, response.status_code)
 
+    def test_add_local_link_connection_network_type(self, mock_upd):
+        response = self.patch_json(
+            '/ports/%s' % self.port.uuid,
+            [{'path': '/local_link_connection/network_type',
+              'value': 'unmanaged', 'op': 'add'}],
+            headers={api_base.Version.string: '1.64'})
+        self.assertEqual('application/json', response.content_type)
+        self.assertEqual(http_client.OK, response.status_code)
+        self.assertEqual(
+            'unmanaged',
+            response.json['local_link_connection']['network_type'])
+        self.assertTrue(mock_upd.called)
+
+        kargs = mock_upd.call_args[0][2]
+        self.assertEqual('unmanaged',
+                         kargs.local_link_connection['network_type'])
+
+    def test_add_local_link_connection_network_type_old_api(self, mock_upd):
+        response = self.patch_json(
+            '/ports/%s' % self.port.uuid,
+            [{'path': '/local_link_connection/network_type',
+              'value': 'unmanaged', 'op': 'add'}],
+            headers={api_base.Version.string: '1.63'}, expect_errors=True)
+        self.assertEqual('application/json', response.content_type)
+        self.assertTrue(response.json['error_message'])
+        self.assertEqual(http_client.NOT_ACCEPTABLE, response.status_code)
+
+    def test_remove_local_link_connection_network_type(self, mock_upd):
+        llc = {'network_type': 'unmanaged'}
+        port = obj_utils.create_test_port(self.context,
+                                          node_id=self.node.id,
+                                          uuid=uuidutils.generate_uuid(),
+                                          address='bb:bb:bb:bb:bb:bb',
+                                          local_link_connection=llc)
+        llc.pop('network_type')
+        response = self.patch_json(
+            '/ports/%s' % port.uuid,
+            [{'path': '/local_link_connection/network_type', 'op': 'remove'}],
+            headers={api_base.Version.string: '1.64'})
+        self.assertEqual('application/json', response.content_type)
+        self.assertEqual(http_client.OK, response.status_code)
+        self.assertTrue(mock_upd.called)
+        self.assertEqual(llc, response.json['local_link_connection'])
+
+    def test_remove_local_link_connection_network_type_old_api(self, mock_upd):
+        response = self.patch_json(
+            '/ports/%s' % self.port.uuid,
+            [{'path': '/local_link_connection/network_type', 'op': 'remove'}],
+            headers={api_base.Version.string: '1.63'}, expect_errors=True)
+        self.assertEqual('application/json', response.content_type)
+        self.assertTrue(response.json['error_message'])
+        self.assertEqual(http_client.NOT_ACCEPTABLE, response.status_code)
+
     def test_set_pxe_enabled_false_old_api(self, mock_upd):
         response = self.patch_json('/ports/%s' % self.port.uuid,
                                    [{'path': '/pxe_enabled',
@@ -2258,6 +2311,26 @@ class TestPost(test_api_base.BaseApiTest):
         pdict = post_get_test_port(
             local_link_connection={'switch_id': '0a:1b:2c:3d:4e:5f',
                                    'port_id': 'Ethernet1/15'})
+        response = self.post_json('/ports', pdict, headers=headers,
+                                  expect_errors=True)
+        self.assertEqual('application/json', response.content_type)
+        self.assertEqual(http_client.NOT_ACCEPTABLE, response.status_int)
+        self.assertFalse(mock_create.called)
+
+    def test_create_port_with_network_type_in_llc(self, mock_create):
+        pdict = post_get_test_port(
+            local_link_connection={'network_type': 'unmanaged'})
+        response = self.post_json('/ports', pdict, headers=self.headers)
+        self.assertEqual('application/json', response.content_type)
+        self.assertEqual(http_client.CREATED, response.status_int)
+        mock_create.assert_called_once_with(mock.ANY, mock.ANY, mock.ANY,
+                                            'test-topic')
+
+    def test_create_port_with_network_type_in_llc_old_api_version(
+            self, mock_create):
+        headers = {api_base.Version.string: '1.63'}
+        pdict = post_get_test_port(
+            local_link_connection={'network_type': 'unmanaged'})
         response = self.post_json('/ports', pdict, headers=headers,
                                   expect_errors=True)
         self.assertEqual('application/json', response.content_type)

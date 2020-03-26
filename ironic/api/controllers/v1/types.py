@@ -274,8 +274,9 @@ class LocalLinkConnectionType(wtypes.UserType):
     smart_nic_mandatory_fields = {'port_id', 'hostname'}
     mandatory_fields_list = [local_link_mandatory_fields,
                              smart_nic_mandatory_fields]
-    optional_field = {'switch_info'}
-    valid_fields = set.union(optional_field, *mandatory_fields_list)
+    optional_fields = {'switch_info', 'network_type'}
+    valid_fields = set.union(optional_fields, *mandatory_fields_list)
+    valid_network_types = {'managed', 'unmanaged'}
 
     @staticmethod
     def validate(value):
@@ -317,6 +318,25 @@ class LocalLinkConnectionType(wtypes.UserType):
         invalid = keys - LocalLinkConnectionType.valid_fields
         if invalid:
             raise exception.Invalid(_('%s are invalid keys') % (invalid))
+
+        # If network_type is 'unmanaged', this is a network with no switch
+        # management. i.e local_link_connection details are not required.
+        if 'network_type' in keys:
+            if (value['network_type'] not in
+                    LocalLinkConnectionType.valid_network_types):
+                msg = _(
+                    'Invalid network_type %(type)s, valid network_types are '
+                    '%(valid_network_types)s.') % {
+                    'type': value['network_type'],
+                    'valid_network_types':
+                        LocalLinkConnectionType.valid_network_types}
+                raise exception.Invalid(msg)
+
+            if (value['network_type'] == 'unmanaged'
+                    and not (keys - {'network_type'})):
+                # Only valid network_type 'unmanaged' is set, no for further
+                # validation required.
+                return value
 
         # Check any mandatory fields sets are present
         for mandatory_set in LocalLinkConnectionType.mandatory_fields_list:

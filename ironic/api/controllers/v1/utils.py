@@ -1369,3 +1369,9 @@ def allow_allocation_owner():
 def allow_agent_token():
     """Check if agent token is available."""
     return api.request.version.minor >= versions.MINOR_62_AGENT_TOKEN
+
+
+def allow_local_link_connection_network_type():
+    """Check if network_type is allowed in ports link_local_connection"""
+    return (api.request.version.minor
+            >= versions.MINOR_64_LOCAL_LINK_CONNECTION_NETWORK_TYPE)

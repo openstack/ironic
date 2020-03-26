@@ -101,6 +101,7 @@ BASE_VERSION = 1
 # v1.61: Add retired and retired_reason to the node object.
 # v1.62: Add agent_token support for agent communication.
 # v1.63: Add support for indicators
+# v1.64: Add network_type to port.local_link_connection
 
 MINOR_0_JUNO = 0
 MINOR_1_INITIAL_VERSION = 1
@@ -166,6 +167,7 @@ MINOR_60_ALLOCATION_OWNER = 60
 MINOR_61_NODE_RETIRED = 61
 MINOR_62_AGENT_TOKEN = 62
 MINOR_63_INDICATORS = 63
+MINOR_64_LOCAL_LINK_CONNECTION_NETWORK_TYPE = 64
 
 # When adding another version, update:
 # - MINOR_MAX_VERSION
@@ -173,7 +175,7 @@ MINOR_63_INDICATORS = 63
 #   explanation of what changed in the new version
 # - common/release_mappings.py, RELEASE_MAPPING['master']['api']
 
-MINOR_MAX_VERSION = MINOR_63_INDICATORS
+MINOR_MAX_VERSION = MINOR_64_LOCAL_LINK_CONNECTION_NETWORK_TYPE
 
 # String representations of the minor and maximum versions
 _MIN_VERSION_STRING = '{}.{}'.format(BASE_VERSION, MINOR_1_INITIAL_VERSION)

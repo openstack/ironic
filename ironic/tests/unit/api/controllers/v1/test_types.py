@@ -365,6 +365,23 @@ class TestLocalLinkConnectionType(base.TestCase):
         self.assertFalse(v.validate_for_smart_nic(value))
         self.assertRaises(exception.Invalid, v.validate, value)
 
+    def test_local_link_connection_net_type_unmanaged(self):
+        v = types.locallinkconnectiontype
+        value = {'network_type': 'unmanaged'}
+        self.assertItemsEqual(value, v.validate(value))
+
+    def test_local_link_connection_net_type_unmanaged_combine_ok(self):
+        v = types.locallinkconnectiontype
+        value = {'network_type': 'unmanaged',
+                 'switch_id': '0a:1b:2c:3d:4e:5f',
+                 'port_id': 'rep0-0'}
+        self.assertItemsEqual(value, v.validate(value))
+
+    def test_local_link_connection_net_type_invalid(self):
+        v = types.locallinkconnectiontype
+        value = {'network_type': 'invalid'}
+        self.assertRaises(exception.Invalid, v.validate, value)
+
 
 @mock.patch("ironic.api.request", mock.Mock(version=mock.Mock(minor=10)))
 class TestVifType(base.TestCase):

@@ -1,0 +1,7 @@
+---
+features:
+  - |
+    To allow use of the ``neutron`` network interface in combination with
+    ``flat`` provider networks where no actual switch management is done. The
+    `local_link_connection` field on ports is extended to support the
+    ``network_type`` field.

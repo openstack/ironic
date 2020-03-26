@@ -2,6 +2,15 @@
 REST API Version History
 ========================
 
+1.64 (Ussuri, master)
+---------------------
+
+Added the ``network_type`` to the port objects ``local_link_connection`` field.
+The ``network_type`` can be set to either ``managed`` or ``unmanaged``. When the
+type is ``unmanaged`` other fields are not required. Use ``unmanaged`` when the
+neutron ``network_interface`` is required, but the network is in fact a flat
+network where no actual switch management is done.
+
 1.63 (Ussuri, master)
 ---------------------
 
