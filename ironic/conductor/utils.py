@@ -13,6 +13,7 @@
 #    under the License.
 
 import contextlib
+import crypt
 import datetime
 from distutils.version import StrictVersion
 import secrets
@@ -39,6 +40,12 @@ from ironic.objects import fields
 
 LOG = log.getLogger(__name__)
 CONF = cfg.CONF
+
+
+PASSWORD_HASH_FORMAT = {
+    'sha256': crypt.METHOD_SHA256,
+    'sha512': crypt.METHOD_SHA512,
+}
 
 
 @task_manager.require_exclusive_lock
@@ -706,9 +713,13 @@ def remove_node_rescue_password(node, save=True):
     instance_info = node.instance_info
     if 'rescue_password' in instance_info:
         del instance_info['rescue_password']
-        node.instance_info = instance_info
-        if save:
-            node.save()
+
+    if 'hashed_rescue_password' in instance_info:
+        del instance_info['hashed_rescue_password']
+
+    node.instance_info = instance_info
+    if save:
+        node.save()
 
 
 def validate_instance_info_traits(node):
@@ -1105,3 +1116,21 @@ def is_agent_token_pregenerated(node):
     """
     return node.driver_internal_info.get(
         'agent_secret_token_pregenerated', False)
+
+
+def make_salt():
+    """Generate a random salt with the indicator tag for password type.
+
+    :returns: a valid salt for use with crypt.crypt
+    """
+    return crypt.mksalt(
+        method=PASSWORD_HASH_FORMAT[
+            CONF.conductor.rescue_password_hash_algorithm])
+
+
+def hash_password(password=''):
+    """Hashes a supplied password.
+
+    :param value: Value to be hashed
+    """
+    return crypt.crypt(password, make_salt())

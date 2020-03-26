@@ -610,9 +610,11 @@ class ConductorManager(base_manager.BaseConductorManager):
 
             # driver validation may check rescue_password, so save it on the
             # node early
-            instance_info = node.instance_info
-            instance_info['rescue_password'] = rescue_password
-            node.instance_info = instance_info
+            i_info = node.instance_info
+            i_info['rescue_password'] = rescue_password
+            i_info['hashed_rescue_password'] = utils.hash_password(
+                rescue_password)
+            node.instance_info = i_info
             node.save()
 
             try:

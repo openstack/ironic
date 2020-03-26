@@ -330,8 +330,10 @@ class TestAgentClient(base.TestCase):
     def test_finalize_rescue(self):
         self.client._command = mock.MagicMock(spec_set=[])
         self.node.instance_info['rescue_password'] = 'password'
+        self.node.instance_info['hashed_rescue_password'] = '1234'
         expected_params = {
-            'rescue_password': 'password',
+            'rescue_password': '1234',
+            'hashed': True,
         }
         self.client.finalize_rescue(self.node)
         self.client._command.assert_called_once_with(
@@ -345,6 +347,36 @@ class TestAgentClient(base.TestCase):
                           self.client.finalize_rescue,
                           self.node)
         self.assertFalse(self.client._command.called)
+
+    def test_finalize_rescue_fallback(self):
+        self.config(require_rescue_password_hashed=False, group="conductor")
+        self.client._command = mock.MagicMock(spec_set=[])
+        self.node.instance_info['rescue_password'] = 'password'
+        self.node.instance_info['hashed_rescue_password'] = '1234'
+        self.client._command.side_effect = [
+            exception.AgentAPIError('blah'),
+            ('', '')]
+        self.client.finalize_rescue(self.node)
+        self.client._command.assert_has_calls([
+            mock.call(node=mock.ANY, method='rescue.finalize_rescue',
+                      params={'rescue_password': '1234',
+                              'hashed': True}),
+            mock.call(node=mock.ANY, method='rescue.finalize_rescue',
+                      params={'rescue_password': 'password'})])
+
+    def test_finalize_rescue_fallback_restricted(self):
+        self.config(require_rescue_password_hashed=True, group="conductor")
+        self.client._command = mock.MagicMock(spec_set=[])
+        self.node.instance_info['rescue_password'] = 'password'
+        self.node.instance_info['hashed_rescue_password'] = '1234'
+        self.client._command.side_effect = exception.AgentAPIError('blah')
+        self.assertRaises(exception.InstanceRescueFailure,
+                          self.client.finalize_rescue,
+                          self.node)
+        self.client._command.assert_has_calls([
+            mock.call(node=mock.ANY, method='rescue.finalize_rescue',
+                      params={'rescue_password': '1234',
+                              'hashed': True})])
 
     def test__command_agent_client(self):
         response_data = {'status': 'ok'}

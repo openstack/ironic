@@ -2652,6 +2652,7 @@ class DoNodeRescueTestCase(mgr_utils.CommonMixIn, mgr_utils.ServiceSetUpMixin,
             call_args=(self.service._do_node_rescue, task),
             err_handler=conductor_utils.spawn_rescue_error_handler)
         self.assertIn('rescue_password', task.node.instance_info)
+        self.assertIn('hashed_rescue_password', task.node.instance_info)
         self.assertNotIn('agent_url', task.node.driver_internal_info)
 
     def test_do_node_rescue_invalid_state(self):
@@ -2665,6 +2666,7 @@ class DoNodeRescueTestCase(mgr_utils.CommonMixIn, mgr_utils.ServiceSetUpMixin,
                                 self.context, node.uuid, "password")
         node.refresh()
         self.assertNotIn('rescue_password', node.instance_info)
+        self.assertNotIn('hashed_rescue_password', node.instance_info)
         self.assertEqual(exception.InvalidStateRequested, exc.exc_info[0])
 
     def _test_do_node_rescue_when_validate_fail(self, mock_validate):
@@ -2679,7 +2681,7 @@ class DoNodeRescueTestCase(mgr_utils.CommonMixIn, mgr_utils.ServiceSetUpMixin,
                                 self.service.do_node_rescue,
                                 self.context, node.uuid, "password")
         node.refresh()
-        self.assertNotIn('rescue_password', node.instance_info)
+        self.assertNotIn('hashed_rescue_password', node.instance_info)
         # Compare true exception hidden by @messaging.expected_exceptions
         self.assertEqual(exception.InstanceRescueFailure, exc.exc_info[0])
 
@@ -2714,10 +2716,11 @@ class DoNodeRescueTestCase(mgr_utils.CommonMixIn, mgr_utils.ServiceSetUpMixin,
     @mock.patch('ironic.drivers.modules.fake.FakeRescue.rescue')
     def test__do_node_rescue_returns_rescuewait(self, mock_rescue):
         self._start_service()
-        node = obj_utils.create_test_node(self.context, driver='fake-hardware',
-                                          provision_state=states.RESCUING,
-                                          instance_info={'rescue_password':
-                                                         'password'})
+        node = obj_utils.create_test_node(
+            self.context, driver='fake-hardware',
+            provision_state=states.RESCUING,
+            instance_info={'rescue_password': 'password',
+                           'hashed_rescue_password': '1234'})
         with task_manager.TaskManager(self.context, node.uuid) as task:
             mock_rescue.return_value = states.RESCUEWAIT
             self.service._do_node_rescue(task)
@@ -2725,14 +2728,17 @@ class DoNodeRescueTestCase(mgr_utils.CommonMixIn, mgr_utils.ServiceSetUpMixin,
             self.assertEqual(states.RESCUEWAIT, node.provision_state)
             self.assertEqual(states.RESCUE, node.target_provision_state)
             self.assertIn('rescue_password', node.instance_info)
+            self.assertIn('hashed_rescue_password', node.instance_info)
 
     @mock.patch('ironic.drivers.modules.fake.FakeRescue.rescue')
     def test__do_node_rescue_returns_rescue(self, mock_rescue):
         self._start_service()
-        node = obj_utils.create_test_node(self.context, driver='fake-hardware',
-                                          provision_state=states.RESCUING,
-                                          instance_info={'rescue_password':
-                                                         'password'})
+        node = obj_utils.create_test_node(
+            self.context, driver='fake-hardware',
+            provision_state=states.RESCUING,
+            instance_info={
+                'rescue_password': 'password',
+                'hashed_rescue_password': '1234'})
         with task_manager.TaskManager(self.context, node.uuid) as task:
             mock_rescue.return_value = states.RESCUE
             self.service._do_node_rescue(task)
@@ -2740,15 +2746,18 @@ class DoNodeRescueTestCase(mgr_utils.CommonMixIn, mgr_utils.ServiceSetUpMixin,
             self.assertEqual(states.RESCUE, node.provision_state)
             self.assertEqual(states.NOSTATE, node.target_provision_state)
             self.assertIn('rescue_password', node.instance_info)
+            self.assertIn('hashed_rescue_password', node.instance_info)
 
     @mock.patch.object(manager, 'LOG')
     @mock.patch('ironic.drivers.modules.fake.FakeRescue.rescue')
     def test__do_node_rescue_errors(self, mock_rescue, mock_log):
         self._start_service()
-        node = obj_utils.create_test_node(self.context, driver='fake-hardware',
-                                          provision_state=states.RESCUING,
-                                          instance_info={'rescue_password':
-                                                         'password'})
+        node = obj_utils.create_test_node(
+            self.context, driver='fake-hardware',
+            provision_state=states.RESCUING,
+            instance_info={
+                'rescue_password': 'password',
+                'hashed_rescue_password': '1234'})
         mock_rescue.side_effect = exception.InstanceRescueFailure(
             'failed to rescue')
         with task_manager.TaskManager(self.context, node.uuid) as task:
@@ -2758,6 +2767,7 @@ class DoNodeRescueTestCase(mgr_utils.CommonMixIn, mgr_utils.ServiceSetUpMixin,
             self.assertEqual(states.RESCUEFAIL, node.provision_state)
             self.assertEqual(states.RESCUE, node.target_provision_state)
             self.assertNotIn('rescue_password', node.instance_info)
+            self.assertNotIn('hashed_rescue_password', node.instance_info)
             self.assertTrue(node.last_error.startswith('Failed to rescue'))
             self.assertTrue(mock_log.error.called)
 
@@ -2765,10 +2775,12 @@ class DoNodeRescueTestCase(mgr_utils.CommonMixIn, mgr_utils.ServiceSetUpMixin,
     @mock.patch('ironic.drivers.modules.fake.FakeRescue.rescue')
     def test__do_node_rescue_bad_state(self, mock_rescue, mock_log):
         self._start_service()
-        node = obj_utils.create_test_node(self.context, driver='fake-hardware',
-                                          provision_state=states.RESCUING,
-                                          instance_info={'rescue_password':
-                                                         'password'})
+        node = obj_utils.create_test_node(
+            self.context, driver='fake-hardware',
+            provision_state=states.RESCUING,
+            instance_info={
+                'rescue_password': 'password',
+                'hashed_rescue_password': '1234'})
         mock_rescue.return_value = states.ACTIVE
         with task_manager.TaskManager(self.context, node.uuid) as task:
             self.service._do_node_rescue(task)
@@ -2776,6 +2788,7 @@ class DoNodeRescueTestCase(mgr_utils.CommonMixIn, mgr_utils.ServiceSetUpMixin,
             self.assertEqual(states.RESCUEFAIL, node.provision_state)
             self.assertEqual(states.RESCUE, node.target_provision_state)
             self.assertNotIn('rescue_password', node.instance_info)
+            self.assertNotIn('hashed_rescue_password', node.instance_info)
             self.assertTrue(node.last_error.startswith('Failed to rescue'))
             self.assertTrue(mock_log.error.called)
 

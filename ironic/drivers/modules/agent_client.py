@@ -379,15 +379,35 @@ class AgentClient(object):
                  to issue the request, or there was a malformed response from
                  the agent.
         :raises: AgentAPIError when agent failed to execute specified command.
+        :raises: InstanceRescueFailure when the agent ramdisk is too old
+                 to support transmission of the rescue password.
         :returns: A dict containing command response from agent.
                   See :func:`get_commands_status` for a command result sample.
         """
-        rescue_pass = node.instance_info.get('rescue_password')
+        rescue_pass = node.instance_info.get('hashed_rescue_password')
+        # TODO(TheJulia): Remove fallback to use the fallback_rescue_password
+        # in the Victoria cycle.
+        fallback_rescue_pass = node.instance_info.get(
+            'rescue_password')
         if not rescue_pass:
             raise exception.IronicException(_('Agent rescue requires '
                                               'rescue_password in '
                                               'instance_info'))
-        params = {'rescue_password': rescue_pass}
-        return self._command(node=node,
-                             method='rescue.finalize_rescue',
-                             params=params)
+        params = {'rescue_password': rescue_pass,
+                  'hashed': True}
+        try:
+            return self._command(node=node,
+                                 method='rescue.finalize_rescue',
+                                 params=params)
+        except exception.AgentAPIError:
+            if CONF.conductor.require_rescue_password_hashed:
+                raise exception.InstanceRescueFailure(
+                    _('Unable to rescue node due to an out of date agent '
+                      'ramdisk. Please contact the administrator to update '
+                      'the rescue ramdisk to contain an ironic-python-agent '
+                      'version of at least 6.0.0.'))
+            else:
+                params = {'rescue_password': fallback_rescue_pass}
+                return self._command(node=node,
+                                     method='rescue.finalize_rescue',
+                                     params=params)

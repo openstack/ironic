@@ -252,6 +252,18 @@ opts = [
                mutable=True,
                help=_('Glance ID, http:// or file:// URL of the initramfs of '
                       'the default rescue image.')),
+    cfg.StrOpt('rescue_password_hash_algorithm',
+               default='sha256',
+               choices=['sha256', 'sha512'],
+               help=_('Password hash algorithm to be used for the rescue '
+                      'password.')),
+    cfg.BoolOpt('require_rescue_password_hashed',
+                # TODO(TheJulia): Change this to True in Victoria.
+                default=False,
+                help=_('Option to cause the conductor to not fallback to '
+                       'an un-hashed version of the rescue password, '
+                       'permitting rescue with older ironic-python-agent '
+                       'ramdisks.')),
     cfg.StrOpt('bootloader',
                mutable=True,
                help=_('Glance ID, http:// or file:// URL of the EFI system '
