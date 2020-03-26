@@ -358,3 +358,36 @@ do that for a Cisco Nexus switch is:
     $ config terminal
     $ (config) interface eth1/11
     $ (config-if) spanning-tree port type edge
+
+
+IPMI errors
+===========
+
+When working with IPMI, several settings need to be enabled depending on vendors.
+
+Enable IPMI over LAN
+--------------------
+
+Machines may not have IPMI access over LAN enabled by default. This could cause
+the IPMI port to be unreachable through ipmitool, as shown:
+
+.. code-block:: bash
+
+    $ipmitool -I lan -H ipmi_host -U ipmi_user -P ipmi_pass chassis power status
+    Error: Unable to establish LAN session
+
+To fix this, enable `IPMI over lan` setting using your BMC tool or web app.
+
+Troubleshooting lanplus interface
+---------------------------------
+
+When working with lanplus interfaces, you may encounter the following error:
+
+.. code-block:: bash
+
+    $ipmitool -I lanplus -H ipmi_host -U ipmi_user -P ipmi_pass power status
+    Error in open session response message : insufficient resources for session
+    Error: Unable to establish IPMI v2 / RMCP+ session
+
+To fix that issue, please enable `RMCP+ Cipher Suite3 Configuration` setting
+using your BMC tool or web app.
