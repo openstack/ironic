@@ -133,6 +133,10 @@ class AgentClient(object):
         return result
 
     @METRICS.timer('AgentClient.get_commands_status')
+    @retrying.retry(
+        retry_on_exception=(
+            lambda e: isinstance(e, exception.AgentConnectionFailed)),
+        stop_max_attempt_number=CONF.agent.max_command_attempts)
     def get_commands_status(self, node):
         """Get command status from agent.
 
@@ -162,7 +166,16 @@ class AgentClient(object):
         """
         url = self._get_command_url(node)
         LOG.debug('Fetching status of agent commands for node %s', node.uuid)
-        resp = self.session.get(url, timeout=CONF.agent.command_timeout)
+        try:
+            resp = self.session.get(url, timeout=CONF.agent.command_timeout)
+        except (requests.ConnectionError, requests.Timeout) as e:
+            msg = (_('Failed to connect to the agent running on node %(node)s '
+                     'to collect commands status. '
+                     'Error: %(error)s') %
+                   {'node': node.uuid, 'error': e})
+            LOG.error(msg)
+            raise exception.AgentConnectionFailed(reason=msg)
+
         result = resp.json()['commands']
         status = '; '.join('%(cmd)s: result "%(res)s", error "%(err)s"' %
                            {'cmd': r.get('command_name'),

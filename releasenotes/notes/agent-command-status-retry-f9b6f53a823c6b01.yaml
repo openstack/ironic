@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Fixes an issue with the agent client code where checks of the agent
+    command status had no logic to prevent an intermittent or transient
+    connection failure from causing the entire operation to fail.
