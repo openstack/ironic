@@ -113,3 +113,25 @@ the documentation below.
   Job roles in the CI <jobs-description>
   How to add a new job? <adding-new-job>
   How to debug failures in CI jobs <debug-ci-failures>
+
+Our policy for stable branches
+------------------------------
+
+Stable branches that are on `Extended Maintenance`_ and haven't received
+backports in a while, can be tagged as ``Unmaintained``, after discussions
+within the ironic community. If such a decision is taken, an email will
+be sent to the OpenStack mailing list.
+
+What does ``Unmaintained`` mean? The branch still exists, but the ironic
+upstream community will not actively backport patches from maintained
+branches. Fixes can still be merged, though, if pushed into review by
+operators or other downstream developers. It also means that branchless
+projects (e.g.: ironic-tempest-plugin), may not have configurations that are
+compatible with those branches.
+
+As of 09 March 2020, the list of ``Unmaintained`` branches includes:
+
+* Ocata (Last commit - Jun 28, 2019)
+* Pike (Last commit - Oct 2, 2019)
+
+.. _Extended Maintenance: https://docs.openstack.org/project-team-guide/stable-branches.html#maintenance-phases
