@@ -70,7 +70,7 @@ all using WSMAN, add the following to your ``/etc/ironic/ironic.conf``:
 .. code-block:: ini
 
     [DEFAULT]
-    enabled_hardware_types=idrac-wsman
+    enabled_hardware_types=idrac
     enabled_management_interfaces=idrac-wsman
     enabled_power_interfaces=idrac-wsman
 
