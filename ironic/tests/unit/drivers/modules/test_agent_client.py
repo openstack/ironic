@@ -191,6 +191,17 @@ class TestAgentClient(base.TestCase):
                     'api_version': CONF.agent.agent_api_version},
                 timeout=CONF.agent.command_timeout)
 
+    def test_get_commands_status_retries(self):
+        with mock.patch.object(self.client.session, 'get',
+                               autospec=True) as mock_get:
+            res = mock.MagicMock(spec_set=['json'])
+            res.json.return_value = {'commands': []}
+            mock_get.side_effect = [
+                requests.ConnectionError('boom'),
+                res]
+            self.assertEqual([], self.client.get_commands_status(self.node))
+            self.assertEqual(2, mock_get.call_count)
+
     def test_prepare_image(self):
         self.client._command = mock.MagicMock(spec_set=[])
         image_info = {'image_id': 'image'}
