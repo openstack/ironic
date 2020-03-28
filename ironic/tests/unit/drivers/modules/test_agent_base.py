@@ -222,7 +222,7 @@ class HeartbeatMixinTest(AgentDeployMixinBaseTest):
                        autospec=True)
     @mock.patch.object(agent_base.HeartbeatMixin,
                        'reboot_to_instance', autospec=True)
-    @mock.patch.object(manager_utils, 'notify_conductor_resume_clean',
+    @mock.patch.object(manager_utils, 'notify_conductor_resume_operation',
                        autospec=True)
     def test_heartbeat_in_maintenance(self, ncrc_mock, rti_mock, cd_mock):
         # NOTE(pas-ha) checking only for states that are not noop
@@ -253,7 +253,7 @@ class HeartbeatMixinTest(AgentDeployMixinBaseTest):
                        autospec=True)
     @mock.patch.object(agent_base.HeartbeatMixin,
                        'reboot_to_instance', autospec=True)
-    @mock.patch.object(manager_utils, 'notify_conductor_resume_clean',
+    @mock.patch.object(manager_utils, 'notify_conductor_resume_operation',
                        autospec=True)
     def test_heartbeat_in_maintenance_abort(self, ncrc_mock, rti_mock,
                                             cd_mock):
@@ -289,7 +289,7 @@ class HeartbeatMixinTest(AgentDeployMixinBaseTest):
                        autospec=True)
     @mock.patch.object(agent_base.HeartbeatMixin,
                        'reboot_to_instance', autospec=True)
-    @mock.patch.object(manager_utils, 'notify_conductor_resume_clean',
+    @mock.patch.object(manager_utils, 'notify_conductor_resume_operation',
                        autospec=True)
     def test_heartbeat_with_reservation(self, ncrc_mock, rti_mock, cd_mock):
         # NOTE(pas-ha) checking only for states that are not noop
@@ -316,7 +316,7 @@ class HeartbeatMixinTest(AgentDeployMixinBaseTest):
                        autospec=True)
     @mock.patch.object(agent_base.HeartbeatMixin,
                        'reboot_to_instance', autospec=True)
-    @mock.patch.object(manager_utils, 'notify_conductor_resume_clean',
+    @mock.patch.object(manager_utils, 'notify_conductor_resume_operation',
                        autospec=True)
     def test_heartbeat_noops_in_wrong_state(self, ncrc_mock, rti_mock,
                                             cd_mock, log_mock):
@@ -343,7 +343,7 @@ class HeartbeatMixinTest(AgentDeployMixinBaseTest):
                        autospec=True)
     @mock.patch.object(agent_base.HeartbeatMixin,
                        'reboot_to_instance', autospec=True)
-    @mock.patch.object(manager_utils, 'notify_conductor_resume_clean',
+    @mock.patch.object(manager_utils, 'notify_conductor_resume_operation',
                        autospec=True)
     def test_heartbeat_noops_in_wrong_state2(self, ncrc_mock, rti_mock,
                                              cd_mock):
@@ -426,10 +426,10 @@ class HeartbeatMixinTest(AgentDeployMixinBaseTest):
 
     @mock.patch.object(objects.node.Node, 'touch_provisioning', autospec=True)
     @mock.patch.object(agent_base.HeartbeatMixin,
-                       'refresh_clean_steps', autospec=True)
+                       'refresh_steps', autospec=True)
     @mock.patch.object(conductor_steps, 'set_node_cleaning_steps',
                        autospec=True)
-    @mock.patch.object(manager_utils, 'notify_conductor_resume_clean',
+    @mock.patch.object(manager_utils, 'notify_conductor_resume_operation',
                        autospec=True)
     def test_heartbeat_resume_clean(self, mock_notify, mock_set_steps,
                                     mock_refresh, mock_touch):
@@ -441,17 +441,17 @@ class HeartbeatMixinTest(AgentDeployMixinBaseTest):
             self.deploy.heartbeat(task, 'http://127.0.0.1:8080', '1.0.0')
 
         mock_touch.assert_called_once_with(mock.ANY)
-        mock_refresh.assert_called_once_with(mock.ANY, task)
-        mock_notify.assert_called_once_with(task)
+        mock_refresh.assert_called_once_with(mock.ANY, task, 'clean')
+        mock_notify.assert_called_once_with(task, 'clean')
         mock_set_steps.assert_called_once_with(task)
 
     @mock.patch.object(manager_utils, 'cleaning_error_handler')
     @mock.patch.object(objects.node.Node, 'touch_provisioning', autospec=True)
     @mock.patch.object(agent_base.HeartbeatMixin,
-                       'refresh_clean_steps', autospec=True)
+                       'refresh_steps', autospec=True)
     @mock.patch.object(conductor_steps, 'set_node_cleaning_steps',
                        autospec=True)
-    @mock.patch.object(manager_utils, 'notify_conductor_resume_clean',
+    @mock.patch.object(manager_utils, 'notify_conductor_resume_operation',
                        autospec=True)
     def test_heartbeat_resume_clean_fails(self, mock_notify, mock_set_steps,
                                           mock_refresh, mock_touch,
@@ -1496,7 +1496,7 @@ class AgentDeployMixinTest(AgentDeployMixinBaseTest):
             self.assertFalse(prepare_mock.called)
             self.assertFalse(failed_state_mock.called)
 
-    @mock.patch.object(manager_utils, 'notify_conductor_resume_clean',
+    @mock.patch.object(manager_utils, 'notify_conductor_resume_operation',
                        autospec=True)
     @mock.patch.object(agent_client.AgentClient, 'get_commands_status',
                        autospec=True)
@@ -1519,19 +1519,20 @@ class AgentDeployMixinTest(AgentDeployMixinBaseTest):
         with task_manager.acquire(self.context, self.node['uuid'],
                                   shared=False) as task:
             self.deploy.continue_cleaning(task)
-            notify_mock.assert_called_once_with(task)
+            notify_mock.assert_called_once_with(task, 'clean')
 
     @mock.patch.object(deploy_utils, 'build_agent_options', autospec=True)
     @mock.patch.object(pxe.PXEBoot, 'prepare_ramdisk', spec_set=True,
                        autospec=True)
     @mock.patch.object(manager_utils, 'node_power_action', autospec=True)
-    def test__cleaning_reboot(self, mock_reboot, mock_prepare, mock_build_opt):
+    def test__post_step_reboot(self, mock_reboot, mock_prepare,
+                               mock_build_opt):
         with task_manager.acquire(self.context, self.node['uuid'],
                                   shared=False) as task:
             i_info = task.node.driver_internal_info
             i_info['agent_secret_token'] = 'magicvalue01'
             task.node.driver_internal_info = i_info
-            agent_base._cleaning_reboot(task)
+            agent_base._post_step_reboot(task, 'clean')
             self.assertTrue(mock_build_opt.called)
             self.assertTrue(mock_prepare.called)
             mock_reboot.assert_called_once_with(task, states.REBOOT)
@@ -1543,7 +1544,27 @@ class AgentDeployMixinTest(AgentDeployMixinBaseTest):
     @mock.patch.object(pxe.PXEBoot, 'prepare_ramdisk', spec_set=True,
                        autospec=True)
     @mock.patch.object(manager_utils, 'node_power_action', autospec=True)
-    def test__cleaning_reboot_pregenerated_token(
+    def test__post_step_reboot_deploy(self, mock_reboot, mock_prepare,
+                                      mock_build_opt):
+        with task_manager.acquire(self.context, self.node['uuid'],
+                                  shared=False) as task:
+            i_info = task.node.driver_internal_info
+            i_info['agent_secret_token'] = 'magicvalue01'
+            task.node.driver_internal_info = i_info
+            agent_base._post_step_reboot(task, 'deploy')
+            self.assertTrue(mock_build_opt.called)
+            self.assertTrue(mock_prepare.called)
+            mock_reboot.assert_called_once_with(task, states.REBOOT)
+            self.assertTrue(
+                task.node.driver_internal_info['deployment_reboot'])
+            self.assertNotIn('agent_secret_token',
+                             task.node.driver_internal_info)
+
+    @mock.patch.object(deploy_utils, 'build_agent_options', autospec=True)
+    @mock.patch.object(pxe.PXEBoot, 'prepare_ramdisk', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(manager_utils, 'node_power_action', autospec=True)
+    def test__post_step_reboot_pregenerated_token(
             self, mock_reboot, mock_prepare, mock_build_opt):
         with task_manager.acquire(self.context, self.node['uuid'],
                                   shared=False) as task:
@@ -1551,7 +1572,7 @@ class AgentDeployMixinTest(AgentDeployMixinBaseTest):
             i_info['agent_secret_token'] = 'magicvalue01'
             i_info['agent_secret_token_pregenerated'] = True
             task.node.driver_internal_info = i_info
-            agent_base._cleaning_reboot(task)
+            agent_base._post_step_reboot(task, 'clean')
             self.assertTrue(mock_build_opt.called)
             self.assertTrue(mock_prepare.called)
             mock_reboot.assert_called_once_with(task, states.REBOOT)
@@ -1563,16 +1584,33 @@ class AgentDeployMixinTest(AgentDeployMixinBaseTest):
                        autospec=True)
     @mock.patch.object(manager_utils, 'cleaning_error_handler', autospec=True)
     @mock.patch.object(manager_utils, 'node_power_action', autospec=True)
-    def test__cleaning_reboot_fail(self, mock_reboot, mock_handler,
-                                   mock_prepare, mock_build_opt):
+    def test__post_step_reboot_fail(self, mock_reboot, mock_handler,
+                                    mock_prepare, mock_build_opt):
         mock_reboot.side_effect = RuntimeError("broken")
 
         with task_manager.acquire(self.context, self.node['uuid'],
                                   shared=False) as task:
-            agent_base._cleaning_reboot(task)
+            agent_base._post_step_reboot(task, 'clean')
             mock_reboot.assert_called_once_with(task, states.REBOOT)
             mock_handler.assert_called_once_with(task, mock.ANY)
             self.assertNotIn('cleaning_reboot',
+                             task.node.driver_internal_info)
+
+    @mock.patch.object(deploy_utils, 'build_agent_options', autospec=True)
+    @mock.patch.object(pxe.PXEBoot, 'prepare_ramdisk', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(manager_utils, 'deploying_error_handler', autospec=True)
+    @mock.patch.object(manager_utils, 'node_power_action', autospec=True)
+    def test__post_step_reboot_fail_deploy(self, mock_reboot, mock_handler,
+                                           mock_prepare, mock_build_opt):
+        mock_reboot.side_effect = RuntimeError("broken")
+
+        with task_manager.acquire(self.context, self.node['uuid'],
+                                  shared=False) as task:
+            agent_base._post_step_reboot(task, 'deploy')
+            mock_reboot.assert_called_once_with(task, states.REBOOT)
+            mock_handler.assert_called_once_with(task, mock.ANY)
+            self.assertNotIn('deployment_reboot',
                              task.node.driver_internal_info)
 
     @mock.patch.object(deploy_utils, 'build_agent_options', autospec=True)
@@ -1603,7 +1641,7 @@ class AgentDeployMixinTest(AgentDeployMixinBaseTest):
             self.deploy.continue_cleaning(task)
             reboot_mock.assert_called_once_with(task, states.REBOOT)
 
-    @mock.patch.object(manager_utils, 'notify_conductor_resume_clean',
+    @mock.patch.object(manager_utils, 'notify_conductor_resume_operation',
                        autospec=True)
     @mock.patch.object(agent_client.AgentClient, 'get_commands_status',
                        autospec=True)
@@ -1621,16 +1659,17 @@ class AgentDeployMixinTest(AgentDeployMixinBaseTest):
         self.node.save()
         # Represents a freshly booted agent with no commands
         status_mock.return_value = []
+
         with task_manager.acquire(self.context, self.node['uuid'],
                                   shared=False) as task:
             self.deploy.continue_cleaning(task)
-            notify_mock.assert_called_once_with(task)
+            notify_mock.assert_called_once_with(task, 'clean')
             self.assertNotIn('cleaning_reboot',
                              task.node.driver_internal_info)
 
     @mock.patch.object(agent_base,
-                       '_get_post_clean_step_hook', autospec=True)
-    @mock.patch.object(manager_utils, 'notify_conductor_resume_clean',
+                       '_get_post_step_hook', autospec=True)
+    @mock.patch.object(manager_utils, 'notify_conductor_resume_operation',
                        autospec=True)
     @mock.patch.object(agent_client.AgentClient, 'get_commands_status',
                        autospec=True)
@@ -1653,14 +1692,14 @@ class AgentDeployMixinTest(AgentDeployMixinBaseTest):
                                   shared=False) as task:
             self.deploy.continue_cleaning(task)
 
-            get_hook_mock.assert_called_once_with(task.node)
+            get_hook_mock.assert_called_once_with(task.node, 'clean')
             hook_mock.assert_called_once_with(task, command_status)
-            notify_mock.assert_called_once_with(task)
+            notify_mock.assert_called_once_with(task, 'clean')
 
-    @mock.patch.object(manager_utils, 'notify_conductor_resume_clean',
+    @mock.patch.object(manager_utils, 'notify_conductor_resume_operation',
                        autospec=True)
     @mock.patch.object(agent_base,
-                       '_get_post_clean_step_hook', autospec=True)
+                       '_get_post_step_hook', autospec=True)
     @mock.patch.object(manager_utils, 'cleaning_error_handler', autospec=True)
     @mock.patch.object(agent_client.AgentClient, 'get_commands_status',
                        autospec=True)
@@ -1685,12 +1724,12 @@ class AgentDeployMixinTest(AgentDeployMixinBaseTest):
                                   shared=False) as task:
             self.deploy.continue_cleaning(task)
 
-            get_hook_mock.assert_called_once_with(task.node)
+            get_hook_mock.assert_called_once_with(task.node, 'clean')
             hook_mock.assert_called_once_with(task, command_status)
             error_handler_mock.assert_called_once_with(task, mock.ANY)
             self.assertFalse(notify_mock.called)
 
-    @mock.patch.object(manager_utils, 'notify_conductor_resume_clean',
+    @mock.patch.object(manager_utils, 'notify_conductor_resume_operation',
                        autospec=True)
     @mock.patch.object(agent_client.AgentClient, 'get_commands_status',
                        autospec=True)
@@ -1719,7 +1758,7 @@ class AgentDeployMixinTest(AgentDeployMixinBaseTest):
             self.deploy.continue_cleaning(task)
             self.assertFalse(notify_mock.called)
 
-    @mock.patch.object(manager_utils, 'notify_conductor_resume_clean',
+    @mock.patch.object(manager_utils, 'notify_conductor_resume_operation',
                        autospec=True)
     @mock.patch.object(agent_client.AgentClient, 'get_commands_status',
                        autospec=True)
@@ -1752,10 +1791,10 @@ class AgentDeployMixinTest(AgentDeployMixinBaseTest):
 
     @mock.patch.object(conductor_steps, 'set_node_cleaning_steps',
                        autospec=True)
-    @mock.patch.object(manager_utils, 'notify_conductor_resume_clean',
+    @mock.patch.object(manager_utils, 'notify_conductor_resume_operation',
                        autospec=True)
     @mock.patch.object(agent_base.AgentDeployMixin,
-                       'refresh_clean_steps', autospec=True)
+                       'refresh_steps', autospec=True)
     @mock.patch.object(agent_client.AgentClient, 'get_commands_status',
                        autospec=True)
     def _test_continue_cleaning_clean_version_mismatch(
@@ -1772,8 +1811,8 @@ class AgentDeployMixinTest(AgentDeployMixinBaseTest):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
             self.deploy.continue_cleaning(task)
-            notify_mock.assert_called_once_with(task)
-            refresh_steps_mock.assert_called_once_with(mock.ANY, task)
+            notify_mock.assert_called_once_with(task, 'clean')
+            refresh_steps_mock.assert_called_once_with(mock.ANY, task, 'clean')
             if manual:
                 self.assertFalse(
                     task.node.driver_internal_info['skip_current_clean_step'])
@@ -1792,10 +1831,10 @@ class AgentDeployMixinTest(AgentDeployMixinBaseTest):
     @mock.patch.object(manager_utils, 'cleaning_error_handler', autospec=True)
     @mock.patch.object(conductor_steps, 'set_node_cleaning_steps',
                        autospec=True)
-    @mock.patch.object(manager_utils, 'notify_conductor_resume_clean',
+    @mock.patch.object(manager_utils, 'notify_conductor_resume_operation',
                        autospec=True)
     @mock.patch.object(agent_base.AgentDeployMixin,
-                       'refresh_clean_steps', autospec=True)
+                       'refresh_steps', autospec=True)
     @mock.patch.object(agent_client.AgentClient, 'get_commands_status',
                        autospec=True)
     def test_continue_cleaning_clean_version_mismatch_fail(
@@ -1816,7 +1855,7 @@ class AgentDeployMixinTest(AgentDeployMixinBaseTest):
             self.deploy.continue_cleaning(task)
 
             status_mock.assert_called_once_with(mock.ANY, task.node)
-            refresh_steps_mock.assert_called_once_with(mock.ANY, task)
+            refresh_steps_mock.assert_called_once_with(mock.ANY, task, 'clean')
             error_mock.assert_called_once_with(task, mock.ANY)
             self.assertFalse(notify_mock.called)
             self.assertFalse(steps_mock.called)
@@ -1836,37 +1875,8 @@ class AgentDeployMixinTest(AgentDeployMixinBaseTest):
             self.deploy.continue_cleaning(task)
             error_mock.assert_called_once_with(task, mock.ANY)
 
-    def _test_clean_step_hook(self, hook_dict_mock):
-        """Helper method for unit tests related to clean step hooks.
-
-        This is a helper method for other unit tests related to
-        clean step hooks. It acceps a mock 'hook_dict_mock' which is
-        a MagicMock and sets it up to function as a mock dictionary.
-        After that, it defines a dummy hook_method for two clean steps
-        raid.create_configuration and raid.delete_configuration.
-
-        :param hook_dict_mock: An instance of mock.MagicMock() which
-            is the mocked value of agent_base.POST_CLEAN_STEP_HOOKS
-        :returns: a tuple, where the first item is the hook method created
-            by this method and second item is the backend dictionary for
-            the mocked hook_dict_mock
-        """
-        hook_dict = {}
-
-        def get(key, default):
-            return hook_dict.get(key, default)
-
-        def getitem(self, key):
-            return hook_dict[key]
-
-        def setdefault(key, default):
-            if key not in hook_dict:
-                hook_dict[key] = default
-            return hook_dict[key]
-
-        hook_dict_mock.get = get
-        hook_dict_mock.__getitem__ = getitem
-        hook_dict_mock.setdefault = setdefault
+    def _test_clean_step_hook(self):
+        """Helper method for unit tests related to clean step hooks."""
         some_function_mock = mock.MagicMock()
 
         @agent_base.post_clean_step_hook(
@@ -1876,43 +1886,41 @@ class AgentDeployMixinTest(AgentDeployMixinBaseTest):
         def hook_method():
             some_function_mock('some-arguments')
 
-        return hook_method, hook_dict
+        return hook_method
 
-    @mock.patch.object(agent_base, 'POST_CLEAN_STEP_HOOKS',
-                       spec_set=dict)
-    def test_post_clean_step_hook(self, hook_dict_mock):
+    @mock.patch.object(agent_base, '_POST_STEP_HOOKS',
+                       {'clean': {}, 'deploy': {}})
+    def test_post_clean_step_hook(self):
         # This unit test makes sure that hook methods are registered
         # properly and entries are made in
         # agent_base.POST_CLEAN_STEP_HOOKS
-        hook_method, hook_dict = self._test_clean_step_hook(hook_dict_mock)
-        self.assertEqual(hook_method,
-                         hook_dict['raid']['create_configuration'])
-        self.assertEqual(hook_method,
-                         hook_dict['raid']['delete_configuration'])
+        hook_method = self._test_clean_step_hook()
+        hooks = agent_base._POST_STEP_HOOKS['clean']
+        self.assertEqual(hook_method, hooks['raid']['create_configuration'])
+        self.assertEqual(hook_method, hooks['raid']['delete_configuration'])
 
-    @mock.patch.object(agent_base, 'POST_CLEAN_STEP_HOOKS',
-                       spec_set=dict)
-    def test__get_post_clean_step_hook(self, hook_dict_mock):
-        # Check if agent_base._get_post_clean_step_hook can get
+    @mock.patch.object(agent_base, '_POST_STEP_HOOKS',
+                       {'clean': {}, 'deploy': {}})
+    def test__get_post_step_hook(self):
+        # Check if agent_base._get_post_step_hook can get
         # clean step for which hook is registered.
-        hook_method, hook_dict = self._test_clean_step_hook(hook_dict_mock)
+        hook_method = self._test_clean_step_hook()
         self.node.clean_step = {'step': 'create_configuration',
                                 'interface': 'raid'}
         self.node.save()
-        hook_returned = agent_base._get_post_clean_step_hook(self.node)
+        hook_returned = agent_base._get_post_step_hook(self.node, 'clean')
         self.assertEqual(hook_method, hook_returned)
 
-    @mock.patch.object(agent_base, 'POST_CLEAN_STEP_HOOKS',
-                       spec_set=dict)
-    def test__get_post_clean_step_hook_no_hook_registered(
-            self, hook_dict_mock):
-        # Make sure agent_base._get_post_clean_step_hook returns
+    @mock.patch.object(agent_base, '_POST_STEP_HOOKS',
+                       {'clean': {}, 'deploy': {}})
+    def test__get_post_step_hook_no_hook_registered(self):
+        # Make sure agent_base._get_post_step_hook returns
         # None when no clean step hook is registered for the clean step.
-        hook_method, hook_dict = self._test_clean_step_hook(hook_dict_mock)
+        self._test_clean_step_hook()
         self.node.clean_step = {'step': 'some-clean-step',
                                 'interface': 'some-other-interface'}
         self.node.save()
-        hook_returned = agent_base._get_post_clean_step_hook(self.node)
+        hook_returned = agent_base._get_post_step_hook(self.node, 'clean')
         self.assertIsNone(hook_returned)
 
     @mock.patch.object(manager_utils, 'restore_power_state_if_needed',
@@ -1982,16 +1990,22 @@ class TestRefreshCleanSteps(AgentDeployMixinBaseTest):
                 ]
             }
         }
+        # NOTE(dtantsur): deploy steps are structurally identical to clean
+        # steps, reusing self.clean_steps for simplicity
+        self.deploy_steps = {
+            'hardware_manager_version': '1',
+            'deploy_steps': self.clean_steps['clean_steps'],
+        }
 
     @mock.patch.object(agent_client.AgentClient, 'get_clean_steps',
                        autospec=True)
-    def test_refresh_clean_steps(self, client_mock):
+    def test_refresh_steps(self, client_mock):
         client_mock.return_value = {
             'command_result': self.clean_steps}
 
         with task_manager.acquire(
                 self.context, self.node.uuid, shared=False) as task:
-            self.deploy.refresh_clean_steps(task)
+            self.deploy.refresh_steps(task, 'clean')
 
             client_mock.assert_called_once_with(mock.ANY, task.node,
                                                 task.ports)
@@ -2010,9 +2024,36 @@ class TestRefreshCleanSteps(AgentDeployMixinBaseTest):
             self.assertEqual([self.clean_steps['clean_steps'][
                 'SpecificHardwareManager'][1]], steps['raid'])
 
+    @mock.patch.object(agent_client.AgentClient, 'get_deploy_steps',
+                       autospec=True)
+    def test_refresh_steps_deploy(self, client_mock):
+        client_mock.return_value = {
+            'command_result': self.deploy_steps}
+
+        with task_manager.acquire(
+                self.context, self.node.uuid, shared=False) as task:
+            self.deploy.refresh_steps(task, 'deploy')
+
+            client_mock.assert_called_once_with(mock.ANY, task.node,
+                                                task.ports)
+            self.assertEqual('1', task.node.driver_internal_info[
+                'hardware_manager_version'])
+            self.assertIn('agent_cached_deploy_steps_refreshed',
+                          task.node.driver_internal_info)
+            steps = task.node.driver_internal_info['agent_cached_deploy_steps']
+            self.assertEqual({'deploy', 'raid'}, set(steps))
+            # Since steps are returned in dicts, they have non-deterministic
+            # ordering
+            self.assertIn(self.clean_steps['clean_steps'][
+                'GenericHardwareManager'][0], steps['deploy'])
+            self.assertIn(self.clean_steps['clean_steps'][
+                'SpecificHardwareManager'][0], steps['deploy'])
+            self.assertEqual([self.clean_steps['clean_steps'][
+                'SpecificHardwareManager'][1]], steps['raid'])
+
     @mock.patch.object(agent_client.AgentClient, 'get_clean_steps',
                        autospec=True)
-    def test_refresh_clean_steps_missing_steps(self, client_mock):
+    def test_refresh_steps_missing_steps(self, client_mock):
         del self.clean_steps['clean_steps']
         client_mock.return_value = {
             'command_result': self.clean_steps}
@@ -2021,14 +2062,14 @@ class TestRefreshCleanSteps(AgentDeployMixinBaseTest):
                 self.context, self.node.uuid, shared=False) as task:
             self.assertRaisesRegex(exception.NodeCleaningFailure,
                                    'invalid result',
-                                   self.deploy.refresh_clean_steps,
-                                   task)
+                                   self.deploy.refresh_steps,
+                                   task, 'clean')
             client_mock.assert_called_once_with(mock.ANY, task.node,
                                                 task.ports)
 
     @mock.patch.object(agent_client.AgentClient, 'get_clean_steps',
                        autospec=True)
-    def test_refresh_clean_steps_missing_interface(self, client_mock):
+    def test_refresh_steps_missing_interface(self, client_mock):
         step = self.clean_steps['clean_steps']['SpecificHardwareManager'][1]
         del step['interface']
         client_mock.return_value = {
@@ -2038,16 +2079,16 @@ class TestRefreshCleanSteps(AgentDeployMixinBaseTest):
                 self.context, self.node.uuid, shared=False) as task:
             self.assertRaisesRegex(exception.NodeCleaningFailure,
                                    'invalid clean step',
-                                   self.deploy.refresh_clean_steps,
-                                   task)
+                                   self.deploy.refresh_steps,
+                                   task, 'clean')
             client_mock.assert_called_once_with(mock.ANY, task.node,
                                                 task.ports)
 
 
-class CleanStepMethodsTestCase(db_base.DbTestCase):
+class StepMethodsTestCase(db_base.DbTestCase):
 
     def setUp(self):
-        super(CleanStepMethodsTestCase, self).setUp()
+        super(StepMethodsTestCase, self).setUp()
 
         self.clean_steps = {
             'deploy': [
@@ -2072,10 +2113,10 @@ class CleanStepMethodsTestCase(db_base.DbTestCase):
         self.ports = [object_utils.create_test_port(self.context,
                                                     node_id=self.node.id)]
 
-    def test_agent_get_clean_steps(self):
+    def test_agent_get_steps(self):
         with task_manager.acquire(
                 self.context, self.node.uuid, shared=False) as task:
-            response = agent_base.get_clean_steps(task)
+            response = agent_base.get_steps(task, 'clean')
 
             # Since steps are returned in dicts, they have non-deterministic
             # ordering
@@ -2084,40 +2125,55 @@ class CleanStepMethodsTestCase(db_base.DbTestCase):
             self.assertIn(self.clean_steps['deploy'][1], response)
             self.assertIn(self.clean_steps['raid'][0], response)
 
-    def test_get_clean_steps_custom_interface(self):
+    def test_agent_get_steps_deploy(self):
         with task_manager.acquire(
                 self.context, self.node.uuid, shared=False) as task:
-            response = agent_base.get_clean_steps(task, interface='raid')
+            task.node.driver_internal_info = {
+                'agent_cached_deploy_steps': self.clean_steps
+            }
+            response = agent_base.get_steps(task, 'deploy')
+
+            # Since steps are returned in dicts, they have non-deterministic
+            # ordering
+            self.assertThat(response, matchers.HasLength(3))
+            self.assertIn(self.clean_steps['deploy'][0], response)
+            self.assertIn(self.clean_steps['deploy'][1], response)
+            self.assertIn(self.clean_steps['raid'][0], response)
+
+    def test_get_steps_custom_interface(self):
+        with task_manager.acquire(
+                self.context, self.node.uuid, shared=False) as task:
+            response = agent_base.get_steps(task, 'clean', interface='raid')
             self.assertThat(response, matchers.HasLength(1))
             self.assertEqual(self.clean_steps['raid'], response)
 
-    def test_get_clean_steps_override_priorities(self):
+    def test_get_steps_override_priorities(self):
         with task_manager.acquire(
                 self.context, self.node.uuid, shared=False) as task:
             new_priorities = {'create_configuration': 42}
-            response = agent_base.get_clean_steps(
-                task, interface='raid', override_priorities=new_priorities)
+            response = agent_base.get_steps(
+                task, 'clean', interface='raid',
+                override_priorities=new_priorities)
             self.assertEqual(42, response[0]['priority'])
 
-    def test_get_clean_steps_override_priorities_none(self):
+    def test_get_steps_override_priorities_none(self):
         with task_manager.acquire(
                 self.context, self.node.uuid, shared=False) as task:
             # this is simulating the default value of a configuration option
             new_priorities = {'create_configuration': None}
-            response = agent_base.get_clean_steps(
-                task, interface='raid', override_priorities=new_priorities)
+            response = agent_base.get_steps(
+                task, 'clean', interface='raid',
+                override_priorities=new_priorities)
             self.assertEqual(10, response[0]['priority'])
 
-    def test_get_clean_steps_missing_steps(self):
+    def test_get_steps_missing_steps(self):
         info = self.node.driver_internal_info
         del info['agent_cached_clean_steps']
         self.node.driver_internal_info = info
         self.node.save()
         with task_manager.acquire(
                 self.context, self.node.uuid, shared=False) as task:
-            self.assertRaises(exception.NodeCleaningFailure,
-                              agent_base.get_clean_steps,
-                              task)
+            self.assertEqual([], agent_base.get_steps(task, 'clean'))
 
     @mock.patch('ironic.objects.Port.list_by_node_id',
                 spec_set=types.FunctionType)
@@ -2130,10 +2186,24 @@ class CleanStepMethodsTestCase(db_base.DbTestCase):
 
         with task_manager.acquire(
                 self.context, self.node.uuid, shared=False) as task:
-            response = agent_base.execute_clean_step(
-                task,
-                self.clean_steps['deploy'][0])
+            response = agent_base.execute_step(
+                task, self.clean_steps['deploy'][0], 'clean')
             self.assertEqual(states.CLEANWAIT, response)
+
+    @mock.patch('ironic.objects.Port.list_by_node_id',
+                spec_set=types.FunctionType)
+    @mock.patch.object(agent_client.AgentClient, 'execute_deploy_step',
+                       autospec=True)
+    def test_execute_deploy_step(self, client_mock, list_ports_mock):
+        client_mock.return_value = {
+            'command_status': 'SUCCEEDED'}
+        list_ports_mock.return_value = self.ports
+
+        with task_manager.acquire(
+                self.context, self.node.uuid, shared=False) as task:
+            response = agent_base.execute_step(
+                task, self.clean_steps['deploy'][0], 'deploy')
+            self.assertEqual(states.DEPLOYWAIT, response)
 
     @mock.patch('ironic.objects.Port.list_by_node_id',
                 spec_set=types.FunctionType)
@@ -2146,9 +2216,8 @@ class CleanStepMethodsTestCase(db_base.DbTestCase):
 
         with task_manager.acquire(
                 self.context, self.node.uuid, shared=False) as task:
-            response = agent_base.execute_clean_step(
-                task,
-                self.clean_steps['deploy'][0])
+            response = agent_base.execute_step(
+                task, self.clean_steps['deploy'][0], 'clean')
             self.assertEqual(states.CLEANWAIT, response)
 
     @mock.patch('ironic.objects.Port.list_by_node_id',
@@ -2163,7 +2232,6 @@ class CleanStepMethodsTestCase(db_base.DbTestCase):
 
         with task_manager.acquire(
                 self.context, self.node.uuid, shared=False) as task:
-            response = agent_base.execute_clean_step(
-                task,
-                self.clean_steps['deploy'][0])
+            response = agent_base.execute_step(
+                task, self.clean_steps['deploy'][0], 'clean')
             self.assertEqual(states.CLEANWAIT, response)

@@ -163,6 +163,9 @@ class AgentClient(object):
                                   * a dictionary containing keys clean_result
                                     and clean_step for the command
                                     clean.execute_clean_step;
+                                  * a dictionary containing keys deploy_result
+                                    and deploy_step for the command
+                                    deploy.execute_deploy_step;
                                   * a string representing result message for
                                     the command standby.cache_image;
                                   * None for the command standby.sync.>
@@ -334,6 +337,69 @@ class AgentClient(object):
         }
         return self._command(node=node,
                              method='clean.execute_clean_step',
+                             params=params)
+
+    @METRICS.timer('AgentClient.get_deploy_steps')
+    def get_deploy_steps(self, node, ports):
+        """Get deploy steps from agent.
+
+        :param node: A node object.
+        :param ports: Ports associated with the node.
+        :raises: IronicException when failed to issue the request or there was
+                 a malformed response from the agent.
+        :raises: AgentAPIError when agent failed to execute specified command.
+        :returns: A dict containing command response from agent.
+            See :func:`get_commands_status` for a command result sample.
+            The value of key command_result is in the form of:
+
+            ::
+
+              {
+                'deploy_steps': <a list of deploy steps>,
+                'hardware_manager_version': <manager version>
+              }
+
+        """
+        params = {
+            'node': node.as_dict(secure=True),
+            'ports': [port.as_dict() for port in ports]
+        }
+        return self._command(node=node,
+                             method='deploy.get_deploy_steps',
+                             params=params,
+                             wait=True)
+
+    @METRICS.timer('AgentClient.execute_deploy_step')
+    def execute_deploy_step(self, step, node, ports):
+        """Execute specified deploy step.
+
+        :param step: A deploy step dictionary to execute.
+        :param node: A Node object.
+        :param ports: Ports associated with the node.
+        :raises: IronicException when failed to issue the request or there was
+                 a malformed response from the agent.
+        :raises: AgentAPIError when agent failed to execute specified command.
+        :returns: A dict containing command response from agent.
+            See :func:`get_commands_status` for a command result sample.
+            The value of key command_result is in the form of:
+
+            ::
+
+              {
+                'deploy_result': <the result of execution, step specific>,
+                'deploy_step': <the deploy step issued to agent>
+              }
+
+        """
+        params = {
+            'step': step,
+            'node': node.as_dict(secure=True),
+            'ports': [port.as_dict() for port in ports],
+            'deploy_version': node.driver_internal_info.get(
+                'hardware_manager_version')
+        }
+        return self._command(node=node,
+                             method='deploy.execute_deploy_step',
                              params=params)
 
     @METRICS.timer('AgentClient.power_off')

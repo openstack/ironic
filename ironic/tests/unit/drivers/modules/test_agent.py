@@ -1042,33 +1042,33 @@ class TestAgentDeploy(db_base.DbTestCase):
             set_dhcp_provider_mock.assert_called_once_with()
             clean_dhcp_mock.assert_called_once_with(task)
 
-    @mock.patch.object(agent_base, 'get_clean_steps', autospec=True)
-    def test_get_clean_steps(self, mock_get_clean_steps):
+    @mock.patch.object(agent_base, 'get_steps', autospec=True)
+    def test_get_clean_steps(self, mock_get_steps):
         # Test getting clean steps
         mock_steps = [{'priority': 10, 'interface': 'deploy',
                        'step': 'erase_devices'}]
-        mock_get_clean_steps.return_value = mock_steps
+        mock_get_steps.return_value = mock_steps
         with task_manager.acquire(self.context, self.node.uuid) as task:
             steps = self.driver.get_clean_steps(task)
-            mock_get_clean_steps.assert_called_once_with(
-                task, interface='deploy',
+            mock_get_steps.assert_called_once_with(
+                task, 'clean', interface='deploy',
                 override_priorities={'erase_devices': None,
                                      'erase_devices_metadata': None})
         self.assertEqual(mock_steps, steps)
 
-    @mock.patch.object(agent_base, 'get_clean_steps', autospec=True)
-    def test_get_clean_steps_config_priority(self, mock_get_clean_steps):
+    @mock.patch.object(agent_base, 'get_steps', autospec=True)
+    def test_get_clean_steps_config_priority(self, mock_get_steps):
         # Test that we can override the priority of get clean steps
         # Use 0 because it is an edge case (false-y) and used in devstack
         self.config(erase_devices_priority=0, group='deploy')
         self.config(erase_devices_metadata_priority=0, group='deploy')
         mock_steps = [{'priority': 10, 'interface': 'deploy',
                        'step': 'erase_devices'}]
-        mock_get_clean_steps.return_value = mock_steps
+        mock_get_steps.return_value = mock_steps
         with task_manager.acquire(self.context, self.node.uuid) as task:
             self.driver.get_clean_steps(task)
-            mock_get_clean_steps.assert_called_once_with(
-                task, interface='deploy',
+            mock_get_steps.assert_called_once_with(
+                task, 'clean', interface='deploy',
                 override_priorities={'erase_devices': 0,
                                      'erase_devices_metadata': 0})
 
@@ -1774,7 +1774,7 @@ class AgentRAIDTestCase(db_base.DbTestCase):
         }
         self.node = object_utils.create_test_node(self.context, **n)
 
-    @mock.patch.object(agent_base, 'get_clean_steps', autospec=True)
+    @mock.patch.object(agent_base, 'get_steps', autospec=True)
     def test_get_clean_steps(self, get_steps_mock):
         get_steps_mock.return_value = [
             {'step': 'create_configuration', 'interface': 'raid',
@@ -1789,7 +1789,7 @@ class AgentRAIDTestCase(db_base.DbTestCase):
         self.assertEqual(0, ret[1]['priority'])
 
     @mock.patch.object(raid, 'filter_target_raid_config')
-    @mock.patch.object(agent_base, 'execute_clean_step', autospec=True)
+    @mock.patch.object(agent_base, 'execute_step', autospec=True)
     def test_create_configuration(self, execute_mock,
                                   filter_target_raid_config_mock):
         with task_manager.acquire(self.context, self.node.uuid) as task:
@@ -1802,10 +1802,11 @@ class AgentRAIDTestCase(db_base.DbTestCase):
             self.assertEqual(
                 self.target_raid_config,
                 task.node.driver_internal_info['target_raid_config'])
-            execute_mock.assert_called_once_with(task, self.clean_step)
+            execute_mock.assert_called_once_with(task, self.clean_step,
+                                                 'clean')
 
     @mock.patch.object(raid, 'filter_target_raid_config')
-    @mock.patch.object(agent_base, 'execute_clean_step', autospec=True)
+    @mock.patch.object(agent_base, 'execute_step', autospec=True)
     def test_create_configuration_skip_root(self, execute_mock,
                                             filter_target_raid_config_mock):
         with task_manager.acquire(self.context, self.node.uuid) as task:
@@ -1819,13 +1820,14 @@ class AgentRAIDTestCase(db_base.DbTestCase):
             return_value = task.driver.raid.create_configuration(
                 task, create_root_volume=False)
             self.assertEqual(states.CLEANWAIT, return_value)
-            execute_mock.assert_called_once_with(task, self.clean_step)
+            execute_mock.assert_called_once_with(task, self.clean_step,
+                                                 'clean')
             self.assertEqual(
                 exp_target_raid_config,
                 task.node.driver_internal_info['target_raid_config'])
 
     @mock.patch.object(raid, 'filter_target_raid_config')
-    @mock.patch.object(agent_base, 'execute_clean_step', autospec=True)
+    @mock.patch.object(agent_base, 'execute_step', autospec=True)
     def test_create_configuration_skip_nonroot(self, execute_mock,
                                                filter_target_raid_config_mock):
         with task_manager.acquire(self.context, self.node.uuid) as task:
@@ -1839,13 +1841,14 @@ class AgentRAIDTestCase(db_base.DbTestCase):
             return_value = task.driver.raid.create_configuration(
                 task, create_nonroot_volumes=False)
             self.assertEqual(states.CLEANWAIT, return_value)
-            execute_mock.assert_called_once_with(task, self.clean_step)
+            execute_mock.assert_called_once_with(task, self.clean_step,
+                                                 'clean')
             self.assertEqual(
                 exp_target_raid_config,
                 task.node.driver_internal_info['target_raid_config'])
 
     @mock.patch.object(raid, 'filter_target_raid_config')
-    @mock.patch.object(agent_base, 'execute_clean_step', autospec=True)
+    @mock.patch.object(agent_base, 'execute_step', autospec=True)
     def test_create_configuration_no_target_raid_config_after_skipping(
             self, execute_mock, filter_target_raid_config_mock):
         with task_manager.acquire(self.context, self.node.uuid) as task:
@@ -1860,7 +1863,7 @@ class AgentRAIDTestCase(db_base.DbTestCase):
             self.assertFalse(execute_mock.called)
 
     @mock.patch.object(raid, 'filter_target_raid_config')
-    @mock.patch.object(agent_base, 'execute_clean_step', autospec=True)
+    @mock.patch.object(agent_base, 'execute_step', autospec=True)
     def test_create_configuration_empty_target_raid_config(
             self, execute_mock, filter_target_raid_config_mock):
         execute_mock.return_value = states.CLEANING
@@ -1890,7 +1893,7 @@ class AgentRAIDTestCase(db_base.DbTestCase):
         self.node.clean_step = {'interface': 'raid',
                                 'step': 'create_configuration'}
         command = {'command_result': {'clean_result': 'foo'}}
-        create_hook = agent_base._get_post_clean_step_hook(self.node)
+        create_hook = agent_base._get_post_step_hook(self.node, 'clean')
         with task_manager.acquire(self.context, self.node.uuid) as task:
             create_hook(task, command)
             update_raid_info_mock.assert_called_once_with(task.node, 'foo')
@@ -1906,13 +1909,14 @@ class AgentRAIDTestCase(db_base.DbTestCase):
                               task, command)
             self.assertFalse(update_raid_info_mock.called)
 
-    @mock.patch.object(agent_base, 'execute_clean_step', autospec=True)
+    @mock.patch.object(agent_base, 'execute_step', autospec=True)
     def test_delete_configuration(self, execute_mock):
         execute_mock.return_value = states.CLEANING
         with task_manager.acquire(self.context, self.node.uuid) as task:
             return_value = task.driver.raid.delete_configuration(task)
 
-            execute_mock.assert_called_once_with(task, self.clean_step)
+            execute_mock.assert_called_once_with(task, self.clean_step,
+                                                 'clean')
             self.assertEqual(states.CLEANING, return_value)
 
     def test__delete_configuration_final(self):
@@ -1931,7 +1935,7 @@ class AgentRAIDTestCase(db_base.DbTestCase):
                                 'step': 'delete_configuration'}
         self.node.raid_config = {'foo': 'bar'}
         command = {'command_result': {'clean_result': 'foo'}}
-        delete_hook = agent_base._get_post_clean_step_hook(self.node)
+        delete_hook = agent_base._get_post_step_hook(self.node, 'clean')
         with task_manager.acquire(self.context, self.node.uuid) as task:
             delete_hook(task, command)
 

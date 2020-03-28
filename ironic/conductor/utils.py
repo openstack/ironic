@@ -444,7 +444,7 @@ def cleaning_error_handler(task, msg, tear_down_cleaning=True,
         task.process_event('fail', target_state=target_state)
 
 
-def deploying_error_handler(task, logmsg, errmsg, traceback=False,
+def deploying_error_handler(task, logmsg, errmsg=None, traceback=False,
                             clean_up=True):
     """Put a failed node in DEPLOYFAIL.
 
@@ -454,6 +454,7 @@ def deploying_error_handler(task, logmsg, errmsg, traceback=False,
     :param traceback: Boolean; True to log a traceback
     :param clean_up: Boolean; True to clean up
     """
+    errmsg = errmsg or logmsg
     node = task.node
     LOG.error(logmsg, exc_info=traceback)
     node.last_error = errmsg
@@ -755,15 +756,15 @@ def validate_instance_info_traits(node):
         raise exception.InvalidParameterValue(err)
 
 
-def _notify_conductor_resume_operation(task, operation, method):
+def notify_conductor_resume_operation(task, operation):
     """Notify the conductor to resume an operation.
 
     :param task: the task
     :param operation: the operation, a string
-    :param method: The name of the RPC method, a string
     """
-    LOG.debug('Sending RPC to conductor to resume %(op)s for node %(node)s',
-              {'op': operation, 'node': task.node.uuid})
+    LOG.debug('Sending RPC to conductor to resume %(op)s steps for node '
+              '%(node)s', {'op': operation, 'node': task.node.uuid})
+    method = 'continue_node_%s' % operation
     from ironic.conductor import rpcapi
     uuid = task.node.uuid
     rpc = rpcapi.ConductorAPI()
@@ -774,12 +775,11 @@ def _notify_conductor_resume_operation(task, operation, method):
 
 
 def notify_conductor_resume_clean(task):
-    _notify_conductor_resume_operation(task, 'cleaning', 'continue_node_clean')
+    notify_conductor_resume_operation(task, 'clean')
 
 
 def notify_conductor_resume_deploy(task):
-    _notify_conductor_resume_operation(task, 'deploying',
-                                       'continue_node_deploy')
+    notify_conductor_resume_operation(task, 'deploy')
 
 
 def skip_automated_cleaning(node):
