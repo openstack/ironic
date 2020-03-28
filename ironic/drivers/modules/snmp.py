@@ -404,7 +404,7 @@ def memoize(f):
     def memoized(self, node_info):
         hashable_node_info = frozenset((key, val)
                                        for key, val in node_info.items()
-                                       if key is not 'outlet')
+                                       if key != 'outlet')
         if hashable_node_info not in _memoized:
             _memoized[hashable_node_info] = f(self)
         return _memoized[hashable_node_info]
@@ -420,7 +420,7 @@ def retry_on_outdated_cache(f):
             hashable_node_info = (
                 frozenset((key, val)
                           for key, val in self.snmp_info.items()
-                          if key is not 'outlet')
+                          if key != 'outlet')
             )
             del _memoized[hashable_node_info]
             self.driver = self._get_pdu_driver(self.snmp_info)
@@ -857,6 +857,7 @@ class SNMPDriverAuto(SNMPDriverBase):
     @memoize
     def _fetch_driver(self):
         return self.client.get(self.SYS_OBJ_OID)
+
 
 # A dictionary of supported drivers keyed by snmp_driver attribute
 DRIVER_CLASSES = {

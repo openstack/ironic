@@ -655,7 +655,7 @@ class TestPatch(BaseDeployTemplatesAPITest):
     def test_add_root_non_existent(self, mock_save):
         patch = [{'path': '/foo', 'value': 'bar', 'op': 'add'}]
         self._test_update_bad_request(
-            mock_save, patch, "Adding a new attribute \(/foo\)")
+            mock_save, patch, "Adding a new attribute \\(/foo\\)")
 
     def test_add_too_high_index_step_fail(self, mock_save):
         step = {

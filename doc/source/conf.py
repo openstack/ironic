@@ -54,6 +54,7 @@ apidoc_excluded_paths = [
     'db/sqlalchemy/alembic/env',
     'db/sqlalchemy/alembic/versions/*',
     'drivers/modules/ansible/playbooks*',
+    'hacking',
     'tests',
 ]
 apidoc_separate_modules = True

@@ -3657,7 +3657,7 @@ def do_sync_power_state(task, count):
             # node_power_action will update the node record
             # so don't do that again here.
             utils.node_power_action(task, node.power_state)
-        except Exception as e:
+        except Exception:
             LOG.error(
                 "Failed to change power state of node %(node)s "
                 "to '%(state)s', attempt %(attempt)s of %(retries)s.",

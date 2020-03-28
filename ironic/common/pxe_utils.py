@@ -809,7 +809,7 @@ def get_volume_pxe_options(task):
 
     def __get_property(properties, key):
         prop = __return_item_or_first_if_list(properties.get(key, ''))
-        if prop is not '':
+        if prop != '':
             return prop
         return __return_item_or_first_if_list(properties.get(key + 's', ''))
 
