@@ -33,6 +33,7 @@ the services.
    Windows Images <building-windows-images>
    Troubleshooting FAQ <troubleshooting>
    Power Sync with the Compute Service <power-sync>
+   Agent Token <agent-token>
 
 .. toctree::
   :hidden:

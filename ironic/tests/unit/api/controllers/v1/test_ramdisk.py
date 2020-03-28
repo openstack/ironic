@@ -62,7 +62,7 @@ class TestLookup(test_api_base.BaseApiTest):
         self.mock_get_node_with_token.return_value = node
 
     def _check_config(self, data):
-        expected_metrics = {
+        expected_config = {
             'metrics': {
                 'backend': 'statsd',
                 'prepend_host': CONF.metrics.agent_prepend_host,
@@ -76,9 +76,10 @@ class TestLookup(test_api_base.BaseApiTest):
                 'statsd_port': CONF.metrics_statsd.agent_statsd_port
             },
             'heartbeat_timeout': CONF.api.ramdisk_heartbeat_timeout,
-            'agent_token': mock.ANY
+            'agent_token': mock.ANY,
+            'agent_token_required': False,
         }
-        self.assertEqual(expected_metrics, data['config'])
+        self.assertEqual(expected_config, data['config'])
         self.assertIsNotNone(data['config']['agent_token'])
         self.assertNotEqual('******', data['config']['agent_token'])
 
