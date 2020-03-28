@@ -888,8 +888,15 @@ class ConductorManager(base_manager.BaseConductorManager):
                 task, skip_current_step=skip_current_step)
 
             # TODO(rloo): When deprecation period is over and node is in
-            # states.DEPLOYWAIT only, delete the 'if' and always 'resume'.
-            if node.provision_state != states.DEPLOYING:
+            # states.DEPLOYWAIT only, delete the check and always 'resume'.
+            if node.provision_state == states.DEPLOYING:
+                LOG.warning('Node %(node)s was found in the state %(state)s '
+                            'in the continue_node_deploy RPC call. This is '
+                            'deprecated, the driver must be updated to leave '
+                            'nodes in %(new)s state instead.',
+                            {'node': node.uuid, 'state': states.DEPLOYING,
+                             'new': states.DEPLOYWAIT})
+            else:
                 task.process_event('resume')
 
             task.set_spawn_error_hook(utils.spawn_deploying_error_handler,

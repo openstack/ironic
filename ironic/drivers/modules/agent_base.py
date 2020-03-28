@@ -846,6 +846,10 @@ class AgentDeployMixin(HeartbeatMixin):
             # powered off.
             log_and_raise_deployment_error(task, msg, collect_logs=False,
                                            exc=e)
+
+        # TODO(dtantsur): remove these two calls when this function becomes a
+        # real deploy step.
+        task.process_event('wait')
         manager_utils.notify_conductor_resume_deploy(task)
 
     @METRICS.timer('AgentDeployMixin.prepare_instance_to_boot')

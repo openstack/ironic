@@ -185,7 +185,7 @@ def do_node_deploy(task, conductor_id=None, configdrive=None):
                 traceback=True, clean_up=False)
 
     try:
-        # This gets the deploy steps (if any) and puts them in the node's
+        # This gets the deploy steps and puts them in the node's
         # driver_internal_info['deploy_steps'].
         conductor_steps.set_node_deployment_steps(task)
     except exception.InstanceDeployFailure as e:
@@ -195,6 +195,14 @@ def do_node_deploy(task, conductor_id=None, configdrive=None):
                 'Error while getting deploy steps; cannot deploy to node '
                 '%(node)s. Error: %(err)s' % {'node': node.uuid, 'err': e},
                 _("Cannot get deploy steps; failed to deploy: %s") % e)
+
+    if not node.driver_internal_info.get('deploy_steps'):
+        msg = _('Error while getting deploy steps: no steps returned for '
+                'node %s') % node.uuid
+        utils.deploying_error_handler(
+            task, msg,
+            _("No deploy steps returned by the driver"))
+        raise exception.InstanceDeployFailure(msg)
 
     do_next_deploy_step(task, 0, conductor_id)
 

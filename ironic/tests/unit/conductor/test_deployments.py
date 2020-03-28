@@ -341,6 +341,25 @@ class DoNodeDeployTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         self.assertEqual(fake_deploy_steps,
                          task.node.driver_internal_info['deploy_steps'])
 
+    @mock.patch('ironic.drivers.modules.fake.FakeDeploy.deploy', autospec=True)
+    def test__do_node_deploy_driver_raises_error_old(self, mock_deploy):
+        # Mocking FakeDeploy.deploy before starting the service, causes
+        # it not to be a deploy_step.
+        self._start_service()
+        node = obj_utils.create_test_node(self.context, driver='fake-hardware',
+                                          provision_state=states.DEPLOYING,
+                                          target_provision_state=states.ACTIVE)
+        task = task_manager.TaskManager(self.context, node.uuid)
+
+        self.assertRaises(exception.InstanceDeployFailure,
+                          deployments.do_node_deploy, task,
+                          self.service.conductor.id)
+        node.refresh()
+        self.assertEqual(states.DEPLOYFAIL, node.provision_state)
+        self.assertEqual(states.ACTIVE, node.target_provision_state)
+        self.assertIsNotNone(node.last_error)
+        self.assertFalse(mock_deploy.called)
+
 
 @mgr_utils.mock_record_keepalive
 class DoNextDeployStepTestCase(mgr_utils.ServiceSetUpMixin,

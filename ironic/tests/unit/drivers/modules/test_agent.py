@@ -1280,7 +1280,7 @@ class TestAgentDeploy(db_base.DbTestCase):
             get_power_state_mock.assert_called_once_with(task)
             node_power_action_mock.assert_called_once_with(
                 task, states.POWER_ON)
-            self.assertEqual(states.DEPLOYING, task.node.provision_state)
+            self.assertEqual(states.DEPLOYWAIT, task.node.provision_state)
             self.assertEqual(states.ACTIVE, task.node.target_provision_state)
             self.assertTrue(remove_symlink_mock.called)
             resume_mock.assert_called_once_with(task)
@@ -1330,7 +1330,7 @@ class TestAgentDeploy(db_base.DbTestCase):
             get_power_state_mock.assert_called_once_with(task)
             node_power_action_mock.assert_called_once_with(
                 task, states.POWER_ON)
-            self.assertEqual(states.DEPLOYING, task.node.provision_state)
+            self.assertEqual(states.DEPLOYWAIT, task.node.provision_state)
             self.assertEqual(states.ACTIVE, task.node.target_provision_state)
             resume_mock.assert_called_once_with(task)
 
@@ -1391,7 +1391,7 @@ class TestAgentDeploy(db_base.DbTestCase):
             get_power_state_mock.assert_called_once_with(task)
             node_power_action_mock.assert_called_once_with(
                 task, states.POWER_ON)
-            self.assertEqual(states.DEPLOYING, task.node.provision_state)
+            self.assertEqual(states.DEPLOYWAIT, task.node.provision_state)
             self.assertEqual(states.ACTIVE, task.node.target_provision_state)
             resume_mock.assert_called_once_with(task)
 
@@ -1455,7 +1455,7 @@ class TestAgentDeploy(db_base.DbTestCase):
             get_power_state_mock.assert_called_once_with(task)
             node_power_action_mock.assert_called_once_with(
                 task, states.POWER_ON)
-            self.assertEqual(states.DEPLOYING, task.node.provision_state)
+            self.assertEqual(states.DEPLOYWAIT, task.node.provision_state)
             self.assertEqual(states.ACTIVE, task.node.target_provision_state)
 
     @mock.patch.object(agent.LOG, 'warning', spec_set=True, autospec=True)
@@ -1554,7 +1554,7 @@ class TestAgentDeploy(db_base.DbTestCase):
             get_power_state_mock.assert_called_once_with(task)
             node_power_action_mock.assert_called_once_with(
                 task, states.POWER_ON)
-            self.assertEqual(states.DEPLOYING, task.node.provision_state)
+            self.assertEqual(states.DEPLOYWAIT, task.node.provision_state)
             self.assertEqual(states.ACTIVE, task.node.target_provision_state)
             resume_mock.assert_called_once_with(task)
 
