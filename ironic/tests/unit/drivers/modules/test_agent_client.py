@@ -282,7 +282,8 @@ class TestAgentClient(base.TestCase):
             self.node, root_uuid, efi_system_part_uuid=efi_system_part_uuid,
             prep_boot_part_uuid=prep_boot_part_uuid)
         self.client._command.assert_called_once_with(
-            node=self.node, method='image.install_bootloader', params=params,
+            command_timeout_factor=2, node=self.node,
+            method='image.install_bootloader', params=params,
             wait=True)
 
     def test_install_bootloader(self):

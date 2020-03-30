@@ -104,7 +104,11 @@ opts = [
                       'service.')),
     cfg.IntOpt('command_timeout',
                default=60,
-               help=_('Timeout (in seconds) for IPA commands.')),
+               help=_('Timeout (in seconds) for IPA commands. '
+                      'Please note, the bootloader installation command '
+                      'to the agent is permitted a timeout of twice the '
+                      'value set here as these are IO heavy operations '
+                      'depending on the configuration of the instance.')),
     cfg.IntOpt('max_command_attempts',
                default=3,
                help=_('This is the maximum number of attempts that will be '
