@@ -808,8 +808,8 @@ class SNMPDriverAuto(SNMPDriverBase):
 
             system_id = self.oid_enterprise + getattr(obj, 'system_id')
 
-            if (system_id in drivers_map and
-                    drivers_map[system_id] is not obj):
+            if (system_id in drivers_map
+                    and drivers_map[system_id] is not obj):
                 raise exception.InvalidParameterValue(_(
                     "SNMPDriverAuto: duplicate driver system ID prefix "
                     "%(system_id)s") % {'system_id': system_id})
@@ -954,23 +954,23 @@ def _parse_driver_info_snmpv3_crypto(node, info):
         if 'priv_protocol' not in snmp_info:
             snmp_info['priv_protocol'] = snmp_priv_protocols['des']
 
-    if ('priv_protocol' in snmp_info and
-            'auth_protocol' not in snmp_info):
+    if ('priv_protocol' in snmp_info
+            and 'auth_protocol' not in snmp_info):
         raise exception.MissingParameterValue(_(
             "SNMPPowerDriver: SNMPv3 privacy requires authentication. "
             "Please add `driver_info/auth_protocol` property to node "
             "%(node)s configuration.") % {'node': node.uuid})
 
-    if ('auth_protocol' in snmp_info and
-            'auth_key' not in snmp_info):
+    if ('auth_protocol' in snmp_info
+            and 'auth_key' not in snmp_info):
         raise exception.MissingParameterValue(_(
             "SNMPPowerDriver: missing SNMPv3 authentication key while "
             "`driver_info/snmp_auth_protocol` is present. Please "
             "add `driver_info/snmp_auth_key` to node %(node)s "
             "configuration.") % {'node': node.uuid})
 
-    if ('priv_protocol' in snmp_info and
-            'priv_key' not in snmp_info):
+    if ('priv_protocol' in snmp_info
+            and 'priv_key' not in snmp_info):
         raise exception.MissingParameterValue(_(
             "SNMPPowerDriver: missing SNMPv3 privacy key while "
             "`driver_info/snmp_priv_protocol` is present. Please "

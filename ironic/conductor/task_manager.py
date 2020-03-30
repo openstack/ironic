@@ -495,8 +495,8 @@ class TaskManager(object):
                         'target': self.node.target_provision_state,
                         'previous': self._prev_provision_state})
 
-        if (self.node.provision_state.endswith('failed') or
-                self.node.provision_state == 'error'):
+        if (self.node.provision_state.endswith('failed')
+                or self.node.provision_state == 'error'):
             LOG.error(log_message)
         else:
             LOG.info(log_message)

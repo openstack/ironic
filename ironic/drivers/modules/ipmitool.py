@@ -287,8 +287,8 @@ def _parse_driver_info(node):
     password = str(info.get('ipmi_password', ''))
     hex_kg_key = info.get('ipmi_hex_kg_key')
     dest_port = info.get('ipmi_port')
-    port = (info.get('ipmi_terminal_port') or
-            internal_info.get('allocated_ipmi_terminal_port'))
+    port = (info.get('ipmi_terminal_port')
+            or internal_info.get('allocated_ipmi_terminal_port'))
     priv_level = info.get('ipmi_priv_level', 'ADMINISTRATOR')
     bridging_type = info.get('ipmi_bridging', 'no')
     local_address = info.get('ipmi_local_address')
@@ -527,8 +527,8 @@ def _exec_ipmitool(driver_info, command, check_exit_code=None,
                 with excutils.save_and_reraise_exception() as ctxt:
                     err_list = [
                         x for x in (
-                            IPMITOOL_RETRYABLE_FAILURES +
-                            CONF.ipmi.additional_retryable_ipmi_errors)
+                            IPMITOOL_RETRYABLE_FAILURES
+                            + CONF.ipmi.additional_retryable_ipmi_errors)
                         if x in str(e)]
                     if ((time.time() > end_time)
                         or (num_tries == 0)

@@ -36,12 +36,12 @@ class ExternalStorage(base.StorageInterface):
             raise exception(msg)
 
         if (not self.should_write_image(task)
-            and not common_pxe_utils.is_ipxe_enabled(task)):
-                msg = _("The [pxe]/ipxe_enabled option must "
-                        "be set to True to support network "
-                        "booting to an iSCSI volume or the boot "
-                        "interface must be set to ``ipxe``.")
-                _fail_validation(task, msg)
+                and not common_pxe_utils.is_ipxe_enabled(task)):
+            msg = _("The [pxe]/ipxe_enabled option must "
+                    "be set to True to support network "
+                    "booting to an iSCSI volume or the boot "
+                    "interface must be set to ``ipxe``.")
+            _fail_validation(task, msg)
 
     def get_properties(self):
         return {}

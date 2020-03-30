@@ -120,13 +120,74 @@ class RedfishInspect(base.InspectInterface):
                                 "for node %(node)s", {'node': task.node.uuid,
                                                       'arch': arch})
 
+        # TODO(etingof): should we respect root device hints here?
+        local_gb = self._detect_local_gb(task, system)
+
+        if local_gb:
+            inspected_properties['local_gb'] = str(local_gb)
+        else:
+            LOG.warning("Could not provide a valid storage size configured "
+                        "for node %(node)s. Assuming this is a disk-less node",
+                        {'node': task.node.uuid})
+            inspected_properties['local_gb'] = '0'
+
+        if system.boot.mode:
+            if not drivers_utils.get_node_capability(task.node, 'boot_mode'):
+                capabilities = utils.get_updated_capabilities(
+                    inspected_properties.get('capabilities', ''),
+                    {'boot_mode': BOOT_MODE_MAP[system.boot.mode]})
+
+                inspected_properties['capabilities'] = capabilities
+
+        valid_keys = self.ESSENTIAL_PROPERTIES
+        missing_keys = valid_keys - set(inspected_properties)
+        if missing_keys:
+            error = (_('Failed to discover the following properties: '
+                       '%(missing_keys)s on node %(node)s'),
+                     {'missing_keys': ', '.join(missing_keys),
+                      'node': task.node.uuid})
+            raise exception.HardwareInspectionFailure(error=error)
+
+        task.node.properties = inspected_properties
+        task.node.save()
+
+        LOG.debug("Node properties for %(node)s are updated as "
+                  "%(properties)s", {'properties': inspected_properties,
+                                     'node': task.node.uuid})
+
+        self._create_ports(task, system)
+
+        return states.MANAGEABLE
+
+    def _create_ports(self, task, system):
+        if (system.ethernet_interfaces
+                and system.ethernet_interfaces.summary):
+            macs = system.ethernet_interfaces.summary
+
+            # Create ports for the discovered NICs being in 'enabled' state
+            enabled_macs = {nic_mac: nic_state
+                            for nic_mac, nic_state in macs.items()
+                            if nic_state == sushy.STATE_ENABLED}
+            if enabled_macs:
+                inspect_utils.create_ports_if_not_exist(
+                    task, enabled_macs, get_mac_address=lambda x: x[0])
+            else:
+                LOG.warning("Not attempting to create any port as no NICs "
+                            "were discovered in 'enabled' state for node "
+                            "%(node)s: %(mac_data)s",
+                            {'mac_data': macs, 'node': task.node.uuid})
+        else:
+            LOG.warning("No NIC information discovered "
+                        "for node %(node)s", {'node': task.node.uuid})
+
+    def _detect_local_gb(self, task, system):
         simple_storage_size = 0
 
         try:
             LOG.debug("Attempting to discover system simple storage size for "
                       "node %(node)s", {'node': task.node.uuid})
-            if (system.simple_storage and
-                    system.simple_storage.disks_sizes_bytes):
+            if (system.simple_storage
+                    and system.simple_storage.disks_sizes_bytes):
                 simple_storage_size = [
                     size for size in system.simple_storage.disks_sizes_bytes
                     if size >= 4 * units.Gi
@@ -184,60 +245,4 @@ class RedfishInspect(base.InspectInterface):
         # Note(deray): Convert the received size to GiB and reduce the
         # value by 1 GB as consumers like Ironic requires the ``local_gb``
         # to be returned 1 less than actual size.
-        local_gb = max(0, int(local_gb / units.Gi - 1))
-
-        # TODO(etingof): should we respect root device hints here?
-
-        if local_gb:
-            inspected_properties['local_gb'] = str(local_gb)
-        else:
-            LOG.warning("Could not provide a valid storage size configured "
-                        "for node %(node)s. Assuming this is a disk-less node",
-                        {'node': task.node.uuid})
-            inspected_properties['local_gb'] = '0'
-
-        if system.boot.mode:
-            if not drivers_utils.get_node_capability(task.node, 'boot_mode'):
-                capabilities = utils.get_updated_capabilities(
-                    inspected_properties.get('capabilities', ''),
-                    {'boot_mode': BOOT_MODE_MAP[system.boot.mode]})
-
-                inspected_properties['capabilities'] = capabilities
-
-        valid_keys = self.ESSENTIAL_PROPERTIES
-        missing_keys = valid_keys - set(inspected_properties)
-        if missing_keys:
-            error = (_('Failed to discover the following properties: '
-                       '%(missing_keys)s on node %(node)s'),
-                     {'missing_keys': ', '.join(missing_keys),
-                      'node': task.node.uuid})
-            raise exception.HardwareInspectionFailure(error=error)
-
-        task.node.properties = inspected_properties
-        task.node.save()
-
-        LOG.debug("Node properties for %(node)s are updated as "
-                  "%(properties)s", {'properties': inspected_properties,
-                                     'node': task.node.uuid})
-
-        if (system.ethernet_interfaces and
-                system.ethernet_interfaces.summary):
-            macs = system.ethernet_interfaces.summary
-
-            # Create ports for the discovered NICs being in 'enabled' state
-            enabled_macs = {nic_mac: nic_state
-                            for nic_mac, nic_state in macs.items()
-                            if nic_state == sushy.STATE_ENABLED}
-            if enabled_macs:
-                inspect_utils.create_ports_if_not_exist(
-                    task, enabled_macs, get_mac_address=lambda x: x[0])
-            else:
-                LOG.warning("Not attempting to create any port as no NICs "
-                            "were discovered in 'enabled' state for node "
-                            "%(node)s: %(mac_data)s",
-                            {'mac_data': macs, 'node': task.node.uuid})
-        else:
-            LOG.warning("No NIC information discovered "
-                        "for node %(node)s", {'node': task.node.uuid})
-
-        return states.MANAGEABLE
+        return max(0, int(local_gb / units.Gi - 1))

@@ -1072,8 +1072,8 @@ class PXEInterfacesTestCase(db_base.DbTestCase):
                                      self.node.uuid)
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
-                pxe_utils.cache_ramdisk_kernel(task, fake_pxe_info,
-                                               ipxe_enabled=True)
+            pxe_utils.cache_ramdisk_kernel(task, fake_pxe_info,
+                                           ipxe_enabled=True)
         mock_ensure_tree.assert_called_with(expected_path)
         mock_fetch_image.assert_called_once_with(self.context, mock.ANY,
                                                  list(fake_pxe_info.values()),
@@ -1177,10 +1177,9 @@ class PXEBuildConfigOptionsTestCase(db_base.DbTestCase):
                                          ramdisk_label))
         }
 
-        if (whle_dsk_img
-            or deploy_utils.get_boot_option(self.node) == 'local'):
-                ramdisk = 'no_ramdisk'
-                kernel = 'no_kernel'
+        if whle_dsk_img or deploy_utils.get_boot_option(self.node) == 'local':
+            ramdisk = 'no_ramdisk'
+            kernel = 'no_kernel'
         else:
             image_info.update({
                 'kernel': ('kernel_id',
@@ -1461,10 +1460,9 @@ class iPXEBuildConfigOptionsTestCase(db_base.DbTestCase):
 
         kernel = os.path.join(http_url, self.node.uuid, 'kernel')
         ramdisk = os.path.join(http_url, self.node.uuid, 'ramdisk')
-        if (whle_dsk_img
-            or deploy_utils.get_boot_option(self.node) == 'local'):
-                ramdisk = 'no_ramdisk'
-                kernel = 'no_kernel'
+        if whle_dsk_img or deploy_utils.get_boot_option(self.node) == 'local':
+            ramdisk = 'no_ramdisk'
+            kernel = 'no_kernel'
         else:
             image_info.update({
                 'kernel': ('kernel_id',

@@ -195,10 +195,10 @@ class UpdateToLatestVersionsTestCase(base.DbTestCase):
                          self.dbapi.update_to_latest_versions(self.context, 1))
         node = self.dbapi.get_node_by_uuid(orig_node.uuid)
         chassis = self.dbapi.get_chassis_by_uuid(orig_chassis.uuid)
-        self.assertTrue(node.version == self.node_old_ver or
-                        chassis.version == self.chassis_old_ver)
-        self.assertTrue(node.version == self.node_ver or
-                        chassis.version == self.chassis_ver)
+        self.assertTrue(node.version == self.node_old_ver
+                        or chassis.version == self.chassis_old_ver)
+        self.assertTrue(node.version == self.node_ver
+                        or chassis.version == self.chassis_ver)
 
     def _create_nodes(self, num_nodes):
         version = self.node_old_ver

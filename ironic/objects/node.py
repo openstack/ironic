@@ -428,8 +428,8 @@ class Node(base.IronicObject, object_base.VersionedObjectDictCompat):
 
         for attr_name in ('last_error', 'maintenance_reason'):
             attr_value = getattr(self, attr_name, '')
-            if (attr_value and isinstance(attr_value, str) and
-                    len(attr_value) > CONF.log_in_db_max_size):
+            if (attr_value and isinstance(attr_value, str)
+                    and len(attr_value) > CONF.log_in_db_max_size):
                 LOG.info('Truncating too long %s to %s characters for node %s',
                          attr_name, CONF.log_in_db_max_size, self.uuid)
                 setattr(self, attr_name,

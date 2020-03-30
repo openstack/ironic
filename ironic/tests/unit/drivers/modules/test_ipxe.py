@@ -298,13 +298,13 @@ class iPXEBootTestCase(db_base.DbTestCase):
                 mock_instance_img_info.assert_called_once_with(
                     task, ipxe_enabled=True)
             elif mode == 'deploy':
-                    mock_cache_r_k.assert_called_once_with(
-                        task, {'deploy_kernel': 'a', 'deploy_ramdisk': 'r'},
-                        ipxe_enabled=True)
+                mock_cache_r_k.assert_called_once_with(
+                    task, {'deploy_kernel': 'a', 'deploy_ramdisk': 'r'},
+                    ipxe_enabled=True)
             elif mode == 'rescue':
-                    mock_cache_r_k.assert_called_once_with(
-                        task, {'rescue_kernel': 'a', 'rescue_ramdisk': 'r'},
-                        ipxe_enabled=True)
+                mock_cache_r_k.assert_called_once_with(
+                    task, {'rescue_kernel': 'a', 'rescue_ramdisk': 'r'},
+                    ipxe_enabled=True)
             if uefi:
                 mock_pxe_config.assert_called_once_with(
                     task, {}, CONF.pxe.uefi_pxe_config_template,

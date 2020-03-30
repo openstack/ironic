@@ -6071,15 +6071,15 @@ class TestBIOS(test_api_base.BaseApiTest):
                             headers={api_base.Version.string: self.version})
 
         expected_json = [
-            {u'created_at': ret['bios'][0]['created_at'],
-             u'updated_at': ret['bios'][0]['updated_at'],
-             u'links': [
-                {u'href': u'http://localhost/v1/nodes/' + self.node.uuid +
-                 '/bios/virtualization', u'rel': u'self'},
-                {u'href': u'http://localhost/nodes/' + self.node.uuid +
-                 '/bios/virtualization', u'rel': u'bookmark'}], u'name':
-             u'virtualization', u'value': u'on'}]
-        self.assertEqual({u'bios': expected_json}, ret)
+            {'created_at': ret['bios'][0]['created_at'],
+             'updated_at': ret['bios'][0]['updated_at'],
+             'links': [
+                {'href': 'http://localhost/v1/nodes/%s/bios/virtualization'
+                 % self.node.uuid, 'rel': 'self'},
+                {'href': 'http://localhost/nodes/%s/bios/virtualization'
+                 % self.node.uuid, 'rel': 'bookmark'}],
+             'name': 'virtualization', 'value': 'on'}]
+        self.assertEqual({'bios': expected_json}, ret)
 
     def test_get_all_bios_fails_with_bad_version(self):
         ret = self.get_json('/nodes/%s/bios' % self.node.uuid,
@@ -6092,15 +6092,15 @@ class TestBIOS(test_api_base.BaseApiTest):
                             headers={api_base.Version.string: self.version})
 
         expected_json = {
-            u'virtualization': {
-                u'created_at': ret['virtualization']['created_at'],
-                u'updated_at': ret['virtualization']['updated_at'],
-                u'links': [
-                    {u'href': u'http://localhost/v1/nodes/' + self.node.uuid +
-                     '/bios/virtualization', u'rel': u'self'},
-                    {u'href': u'http://localhost/nodes/' + self.node.uuid +
-                     '/bios/virtualization', u'rel': u'bookmark'}],
-                u'name': u'virtualization', u'value': u'on'}}
+            'virtualization': {
+                'created_at': ret['virtualization']['created_at'],
+                'updated_at': ret['virtualization']['updated_at'],
+                'links': [
+                    {'href': 'http://localhost/v1/nodes/%s/bios/virtualization'
+                     % self.node.uuid, u'rel': u'self'},
+                    {'href': 'http://localhost/nodes/%s/bios/virtualization'
+                     % self.node.uuid, u'rel': u'bookmark'}],
+                'name': 'virtualization', 'value': 'on'}}
         self.assertEqual(expected_json, ret)
 
     def test_get_one_bios_fails_with_bad_version(self):

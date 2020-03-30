@@ -212,7 +212,7 @@ class NeutronDHCPApi(base.BaseDHCP):
             except (exception.FailedToGetIPAddressOnPort,
                     exception.InvalidIPv4Address,
                     exception.NetworkError):
-                    failures.append(obj.uuid)
+                failures.append(obj.uuid)
 
         if failures:
             obj_name = 'portgroups'

@@ -7396,11 +7396,11 @@ class UpdateVolumeTargetTestCase(mgr_utils.ServiceSetUpMixin,
             self.assertEqual(expected_exc, exc.exc_info[0])
 
     def test_update_volume_target_node_not_found(self):
-            self._test_update_volume_target_exception(exception.NodeNotFound)
+        self._test_update_volume_target_exception(exception.NodeNotFound)
 
     def test_update_volume_target_not_found(self):
-            self._test_update_volume_target_exception(
-                exception.VolumeTargetNotFound)
+        self._test_update_volume_target_exception(
+            exception.VolumeTargetNotFound)
 
     def test_update_volume_target_node_power_on(self):
         node = obj_utils.create_test_node(self.context, driver='fake-hardware',

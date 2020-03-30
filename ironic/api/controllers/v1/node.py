@@ -869,8 +869,8 @@ class NodeStatesController(rest.RestController):
             raise exception.ClientSideError(
                 msg, status_code=http_client.BAD_REQUEST)
 
-        if (rpc_node.provision_state == ir_states.INSPECTWAIT and
-            target == ir_states.VERBS['abort']):
+        if (rpc_node.provision_state == ir_states.INSPECTWAIT
+                and target == ir_states.VERBS['abort']):
             if not api_utils.allow_inspect_abort():
                 raise exception.NotAcceptable()
 
@@ -1282,8 +1282,8 @@ class Node(base.APIBase):
                     value = [t['trait'] for t in kwargs['traits']['objects']]
                 # NOTE(jroll) this is special-cased to "" and not Unset,
                 # because it is used in hash ring calculations
-                elif k == 'conductor_group' and (k not in kwargs or
-                                                 kwargs[k] is wtypes.Unset):
+                elif (k == 'conductor_group'
+                      and (k not in kwargs or kwargs[k] is wtypes.Unset)):
                     value = ''
                 else:
                     value = kwargs.get(k, wtypes.Unset)
@@ -1341,8 +1341,8 @@ class Node(base.APIBase):
     def convert_with_links(cls, rpc_node, fields=None, sanitize=True):
         node = Node(**rpc_node.as_dict())
 
-        if (api_utils.allow_expose_conductors() and
-                (fields is None or 'conductor' in fields)):
+        if (api_utils.allow_expose_conductors()
+                and (fields is None or 'conductor' in fields)):
             # NOTE(kaifeng) It is possible a node gets orphaned in certain
             # circumstances, set conductor to None in such case.
             try:
@@ -1767,8 +1767,8 @@ class NodesController(rest.RestController):
                 and not api_utils.allow_portgroups_subcontrollers())
             or (remainder[0] == 'vifs'
                 and not api_utils.allow_vifs_subcontroller())
-            or (remainder[0] == 'bios' and
-                not api_utils.allow_bios_interface())
+            or (remainder[0] == 'bios'
+                and not api_utils.allow_bios_interface())
             or (remainder[0] == 'allocation'
                 and not api_utils.allow_allocations())):
             pecan.abort(http_client.NOT_FOUND)
@@ -2195,14 +2195,14 @@ class NodesController(rest.RestController):
                     "be set via the node traits API.")
             raise exception.Invalid(msg)
 
-        if (node.protected is not wtypes.Unset or
-                node.protected_reason is not wtypes.Unset):
+        if (node.protected is not wtypes.Unset
+                or node.protected_reason is not wtypes.Unset):
             msg = _("Cannot specify protected or protected_reason on node "
                     "creation. These fields can only be set for active nodes")
             raise exception.Invalid(msg)
 
-        if (node.description is not wtypes.Unset and
-                len(node.description) > _NODE_DESCRIPTION_MAX_LENGTH):
+        if (node.description is not wtypes.Unset
+                and len(node.description) > _NODE_DESCRIPTION_MAX_LENGTH):
             msg = _("Cannot create node with description exceeding %s "
                     "characters") % _NODE_DESCRIPTION_MAX_LENGTH
             raise exception.Invalid(msg)
@@ -2273,6 +2273,25 @@ class NodesController(rest.RestController):
                     "characters") % _NODE_DESCRIPTION_MAX_LENGTH
             raise exception.Invalid(msg)
 
+    def _authorize_patch_and_get_node(self, node_ident, patch):
+        # deal with attribute-specific policy rules
+        policy_checks = []
+        generic_update = False
+        for p in patch:
+            if p['path'].startswith('/instance_info'):
+                policy_checks.append('baremetal:node:update_instance_info')
+            elif p['path'].startswith('/extra'):
+                policy_checks.append('baremetal:node:update_extra')
+            else:
+                generic_update = True
+
+        # always do at least one check
+        if generic_update or not policy_checks:
+            policy_checks.append('baremetal:node:update')
+
+        return api_utils.check_multiple_node_policies_and_retrieve(
+            policy_checks, node_ident, with_suffix=True)
+
     @METRICS.timer('NodesController.patch')
     @wsme.validate(types.uuid, types.boolean, [NodePatchType])
     @expose.expose(Node, types.uuid_or_name, types.boolean,
@@ -2292,24 +2311,7 @@ class NodesController(rest.RestController):
         self._validate_patch(patch, reset_interfaces)
 
         context = api.request.context
-
-        # deal with attribute-specific policy rules
-        policy_checks = []
-        generic_update = False
-        for p in patch:
-            if p['path'].startswith('/instance_info'):
-                policy_checks.append('baremetal:node:update_instance_info')
-            elif p['path'].startswith('/extra'):
-                policy_checks.append('baremetal:node:update_extra')
-            else:
-                generic_update = True
-
-        # always do at least one check
-        if generic_update or not policy_checks:
-            policy_checks.append('baremetal:node:update')
-
-        rpc_node = api_utils.check_multiple_node_policies_and_retrieve(
-            policy_checks, node_ident, with_suffix=True)
+        rpc_node = self._authorize_patch_and_get_node(node_ident, patch)
 
         remove_inst_uuid_patch = [{'op': 'remove', 'path': '/instance_uuid'}]
         if rpc_node.maintenance and patch == remove_inst_uuid_patch:

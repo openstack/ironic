@@ -769,8 +769,9 @@ def _assign_disks_to_volume(logical_disks, physical_disks_by_type,
 
         for disks_count in range(min_disks, candidate_max_disks + 1):
             if ('number_of_physical_disks' in logical_disk
-                and logical_disk['number_of_physical_disks'] != disks_count):
-                    continue
+                    and (logical_disk['number_of_physical_disks']
+                         != disks_count)):
+                continue
 
             # skip invalid disks_count
             if disks_count != _usable_disks_count(logical_disk['raid_level'],

@@ -485,8 +485,9 @@ class RedfishManagement(base.ManagementInterface):
                       '%(error)s', {'node': task.node.uuid, 'error': e})
 
         try:
-            if (component in (None, components.DISK) and
-                    system.simple_storage and system.simple_storage.drives):
+            if (component in (None, components.DISK)
+                    and system.simple_storage
+                    and system.simple_storage.drives):
                 indicators[components.DISK] = {
                     drive.uuid: properties
                     for drive in system.simple_storage.drives
@@ -530,8 +531,9 @@ class RedfishManagement(base.ManagementInterface):
                             INDICATOR_MAP_REV[state])
                         return
 
-            elif (component == components.DISK and
-                  system.simple_storage and system.simple_storage.drives):
+            elif (component == components.DISK
+                  and system.simple_storage
+                  and system.simple_storage.drives):
                 for drive in system.simple_storage.drives:
                     if drive.uuid == indicator:
                         drive.set_indicator_led(
@@ -581,8 +583,9 @@ class RedfishManagement(base.ManagementInterface):
                     if chassis.uuid == indicator:
                         return INDICATOR_MAP[chassis.indicator_led]
 
-            if (component == components.DISK and
-                    system.simple_storage and system.simple_storage.drives):
+            if (component == components.DISK
+                    and system.simple_storage
+                    and system.simple_storage.drives):
                 for drive in system.simple_storage.drives:
                     if drive.uuid == indicator:
                         return INDICATOR_MAP[drive.indicator_led]

@@ -659,8 +659,8 @@ def check_allow_configdrive(target, configdrive=None):
                         'opr': versions.MINOR_56_BUILD_CONFIGDRIVE}
             raise exception.ClientSideError(
                 msg, status_code=http_client.BAD_REQUEST)
-        if ('vendor_data' in configdrive and
-            not allow_configdrive_vendor_data()):
+        if ('vendor_data' in configdrive
+                and not allow_configdrive_vendor_data()):
             msg = _('Providing vendor_data in configdrive is only supported'
                     ' starting with API version %(base)s.%(opr)s') % {
                         'base': versions.BASE_VERSION,
@@ -1057,14 +1057,12 @@ def allow_detail_query():
     Version 1.43 allows a user to pass the detail query string to
     list the resource with all the fields.
     """
-    return (api.request.version.minor >=
-            versions.MINOR_43_ENABLE_DETAIL_QUERY)
+    return api.request.version.minor >= versions.MINOR_43_ENABLE_DETAIL_QUERY
 
 
 def allow_reset_interfaces():
     """Check if passing a reset_interfaces query string is allowed."""
-    return (api.request.version.minor >=
-            versions.MINOR_45_RESET_INTERFACES)
+    return api.request.version.minor >= versions.MINOR_45_RESET_INTERFACES
 
 
 def get_request_return_fields(fields, detail, default_fields):
@@ -1340,8 +1338,8 @@ def allow_configdrive_vendor_data():
 
     Version 1.59 of the API added support for configdrive vendor_data.
     """
-    return (api.request.version.minor >=
-            versions.MINOR_59_CONFIGDRIVE_VENDOR_DATA)
+    return (api.request.version.minor
+            >= versions.MINOR_59_CONFIGDRIVE_VENDOR_DATA)
 
 
 def allow_allocation_update():

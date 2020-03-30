@@ -47,21 +47,23 @@ class TestExposedAPIMethodsCheckPolicy(test_base.TestCase):
         module_path = os.path.abspath(sys.modules[module].__file__)
         machinery.SourceFileLoader(uuidutils.generate_uuid(),
                                    module_path).load_module()
+        expected_calls = [
+            'api_utils.check_node_policy_and_retrieve',
+            'api_utils.check_list_policy',
+            'api_utils.check_multiple_node_policies_and_retrieve',
+            'self._get_node_and_topic',
+            'api_utils.check_port_policy_and_retrieve',
+            'api_utils.check_port_list_policy',
+            'self._authorize_patch_and_get_node',
+        ]
 
         for func in self.exposed_methods:
             src = inspect.getsource(func)
             self.assertTrue(
-                ('api_utils.check_node_policy_and_retrieve' in src) or
-                ('api_utils.check_list_policy' in src) or
-                ('api_utils.check_multiple_node_policies_and_retrieve' in
-                    src) or
-                ('self._get_node_and_topic' in src) or
-                ('api_utils.check_port_policy_and_retrieve' in src) or
-                ('api_utils.check_port_list_policy' in src) or
-                ('policy.authorize' in src and
-                 'context.to_policy_values' in src),
-                'no policy check found in in exposed '
-                'method %s' % func)
+                any(call in src for call in expected_calls)
+                or ('policy.authorize' in src
+                    and 'context.to_policy_values' in src),
+                'no policy check found in in exposed method %s' % func)
 
     def test_chassis_api_policy(self):
         self._test('ironic.api.controllers.v1.chassis')

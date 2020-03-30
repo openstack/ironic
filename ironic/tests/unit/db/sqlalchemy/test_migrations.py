@@ -944,8 +944,8 @@ class MigrationCheckersMixin(object):
         deploy_template_steps.insert().execute(step)
         # Query by deploy template ID.
         result = deploy_template_steps.select(
-            deploy_template_steps.c.deploy_template_id ==
-            template_id).execute().first()
+            deploy_template_steps.c.deploy_template_id
+            == template_id).execute().first()
         self.assertEqual(template_id, result['deploy_template_id'])
         self.assertEqual(interface, result['interface'])
         self.assertEqual(step_name, result['step'])
