@@ -1,0 +1,8 @@
+---
+fixes:
+  - |
+    Fixes an agent command issue in the bootloader installation process that
+    can present itself as a connection timeout under heavy IO load conditions.
+    Now installation commands have an internal timeout which is double the
+    conductor wide ``[agent]command_timeout``. For more information, see
+    bug `2007483 <https://storyboard.openstack.org/#!/story/2007483>`_.
