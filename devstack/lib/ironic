@@ -238,7 +238,7 @@ IRONIC_BUILD_DEPLOY_RAMDISK=$(trueorfalse True IRONIC_BUILD_DEPLOY_RAMDISK)
 
 # Ironic IPA ramdisk type, supported types are:
 IRONIC_SUPPORTED_RAMDISK_TYPES_RE="^(tinyipa|dib)$"
-IRONIC_RAMDISK_TYPE=${IRONIC_RAMDISK_TYPE:-tinyipa}
+IRONIC_RAMDISK_TYPE=${IRONIC_RAMDISK_TYPE:-dib}
 
 # Confirm we have a supported ramdisk type or fail early.
 if [[ ! "$IRONIC_RAMDISK_TYPE" =~ $IRONIC_SUPPORTED_RAMDISK_TYPES_RE ]]; then
