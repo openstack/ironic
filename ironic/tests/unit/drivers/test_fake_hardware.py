@@ -96,7 +96,7 @@ class FakeHardwareTestCase(db_base.DbTestCase):
         self.driver.management.validate(self.task)
 
     def test_management_interface_set_boot_device_good(self):
-            self.driver.management.set_boot_device(self.task, boot_devices.PXE)
+        self.driver.management.set_boot_device(self.task, boot_devices.PXE)
 
     def test_management_interface_set_boot_device_fail(self):
         self.assertRaises(exception.InvalidParameterValue,

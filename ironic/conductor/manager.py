@@ -1294,10 +1294,10 @@ class ConductorManager(base_manager.BaseConductorManager):
                     err_handler=utils.provisioning_error_handler)
                 return
 
-            if (action == states.VERBS['abort'] and
-                    node.provision_state in (states.CLEANWAIT,
-                                             states.RESCUEWAIT,
-                                             states.INSPECTWAIT)):
+            if (action == states.VERBS['abort']
+                    and node.provision_state in (states.CLEANWAIT,
+                                                 states.RESCUEWAIT,
+                                                 states.INSPECTWAIT)):
                 self._do_abort(task)
                 return
 
@@ -1513,11 +1513,11 @@ class ConductorManager(base_manager.BaseConductorManager):
 
             # NOTE(dtantsur): it's also pointless (and dangerous) to
             # sync power state when a power action is in progress
-            if (task.node.provision_state == states.ENROLL or
-                    not task.node.maintenance or
-                    task.node.fault != faults.POWER_FAILURE or
-                    task.node.target_power_state or
-                    task.node.reservation):
+            if (task.node.provision_state == states.ENROLL
+                    or not task.node.maintenance
+                    or task.node.fault != faults.POWER_FAILURE
+                    or task.node.target_power_state
+                    or task.node.reservation):
                 return False
             return True
 
@@ -2052,14 +2052,14 @@ class ConductorManager(base_manager.BaseConductorManager):
             node = task.node
             vif = task.driver.network.get_current_vif(task, port)
             if ((node.provision_state == states.ACTIVE or node.instance_uuid)
-                and not node.maintenance and vif):
-                    msg = _("Cannot delete the port %(port)s as node "
-                            "%(node)s is active or has "
-                            "instance UUID assigned or port is bound "
-                            "to vif %(vif)s")
-                    raise exception.InvalidState(msg % {'node': node.uuid,
-                                                        'port': port.uuid,
-                                                        'vif': vif})
+                    and not node.maintenance and vif):
+                msg = _("Cannot delete the port %(port)s as node "
+                        "%(node)s is active or has "
+                        "instance UUID assigned or port is bound "
+                        "to vif %(vif)s")
+                raise exception.InvalidState(msg % {'node': node.uuid,
+                                                    'port': port.uuid,
+                                                    'vif': vif})
             port.destroy()
             LOG.info('Successfully deleted port %(port)s. '
                      'The node associated with the port was %(node)s',
@@ -2327,13 +2327,13 @@ class ConductorManager(base_manager.BaseConductorManager):
             # Only allow updating MAC addresses for active nodes if maintenance
             # mode is on.
             if ((node.provision_state == states.ACTIVE or node.instance_uuid)
-                and 'address' in port_obj.obj_what_changed()
-                and not node.maintenance):
-                    action = _("Cannot update hardware address for port "
-                               "%(port)s as node %(node)s is active or has "
-                               "instance UUID assigned")
-                    raise exception.InvalidState(action % {'node': node.uuid,
-                                                           'port': port_uuid})
+                    and 'address' in port_obj.obj_what_changed()
+                    and not node.maintenance):
+                action = _("Cannot update hardware address for port "
+                           "%(port)s as node %(node)s is active or has "
+                           "instance UUID assigned")
+                raise exception.InvalidState(action % {'node': node.uuid,
+                                                       'port': port_uuid})
 
             # If port update is modifying the portgroup membership of the port
             # or modifying the local_link_connection, pxe_enabled or physical

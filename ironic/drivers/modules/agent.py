@@ -152,8 +152,8 @@ def validate_http_provisioning_configuration(node):
     :raises: MissingParameterValue if required option(s) is not set.
     """
     image_source = node.instance_info.get('image_source')
-    if (not service_utils.is_glance_image(image_source) or
-            CONF.agent.image_download_source != 'http'):
+    if (not service_utils.is_glance_image(image_source)
+            or CONF.agent.image_download_source != 'http'):
         return
 
     params = {
@@ -221,8 +221,8 @@ class AgentDeployMixin(agent_base.AgentDeployMixin):
         if node.instance_info.get('image_checksum'):
             image_info['checksum'] = node.instance_info['image_checksum']
 
-        if (node.instance_info.get('image_os_hash_algo') and
-                node.instance_info.get('image_os_hash_value')):
+        if (node.instance_info.get('image_os_hash_algo')
+                and node.instance_info.get('image_os_hash_value')):
             image_info['os_hash_algo'] = node.instance_info[
                 'image_os_hash_algo']
             image_info['os_hash_value'] = node.instance_info[

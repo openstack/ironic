@@ -385,8 +385,8 @@ class TestFakeHardware(hardware_type.AbstractHardwareType):
         return [fake.FakeVendorB, fake.FakeVendorA]
 
 
-OPTIONAL_INTERFACES = (drivers_base.BareDriver().optional_interfaces +
-                       ['vendor'])
+OPTIONAL_INTERFACES = (drivers_base.BareDriver().optional_interfaces
+                       + ['vendor'])
 
 
 class HardwareTypeLoadTestCase(db_base.DbTestCase):

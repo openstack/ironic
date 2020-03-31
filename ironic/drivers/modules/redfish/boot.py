@@ -758,8 +758,8 @@ class RedfishVirtualMediaBoot(base.BootInterface):
         self._eject_vmedia(task, sushy.VIRTUAL_MEDIA_CD)
         self._cleanup_iso_image(task)
 
-        if (config_via_floppy and
-                self._has_vmedia_device(task, sushy.VIRTUAL_MEDIA_FLOPPY)):
+        if (config_via_floppy
+                and self._has_vmedia_device(task, sushy.VIRTUAL_MEDIA_FLOPPY)):
             self._eject_vmedia(task, sushy.VIRTUAL_MEDIA_FLOPPY)
             self._cleanup_floppy_image(task)
 

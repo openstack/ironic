@@ -46,9 +46,9 @@ def check_explicit_underscore_import(logical_line, filename):
     # checking needed once it is found.
     if filename in UNDERSCORE_IMPORT_FILES:
         pass
-    elif (underscore_import_check.match(logical_line) or
-          custom_underscore_check.match(logical_line)):
+    elif (underscore_import_check.match(logical_line)
+          or custom_underscore_check.match(logical_line)):
         UNDERSCORE_IMPORT_FILES.append(filename)
-    elif (translated_log.match(logical_line) or
-          string_translation.match(logical_line)):
+    elif (translated_log.match(logical_line)
+          or string_translation.match(logical_line)):
         yield(0, "N323: Found use of _() without explicit import of _!")

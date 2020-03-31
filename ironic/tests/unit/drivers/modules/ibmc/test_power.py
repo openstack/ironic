@@ -84,8 +84,8 @@ class IBMCPowerTestCase(base.IBMCTestCase):
 
                 # Mocks
                 mock_system_get_results = (
-                    [mock.Mock(power_state=transient)] * 3 +
-                    [mock.Mock(power_state=final)])
+                    [mock.Mock(power_state=transient)] * 3
+                    + [mock.Mock(power_state=final)])
                 conn.system.get.side_effect = mock_system_get_results
 
                 task.driver.power.set_power_state(task, expect_state)
@@ -119,8 +119,8 @@ class IBMCPowerTestCase(base.IBMCTestCase):
 
                 # Mocks
                 mock_system_get_results = (
-                    [mock.Mock(power_state=transient)] * 5 +
-                    [mock.Mock(power_state=final)])
+                    [mock.Mock(power_state=transient)] * 5
+                    + [mock.Mock(power_state=final)])
                 conn.system.get.side_effect = mock_system_get_results
 
                 self.assertRaises(exception.PowerStateFailure,

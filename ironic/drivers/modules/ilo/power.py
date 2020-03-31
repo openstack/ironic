@@ -127,8 +127,8 @@ def _wait_for_state_change(node, target_state, requested_state,
     use_post_state = False
     if _can_get_server_post_state(node):
         use_post_state = True
-        if (target_state in [states.POWER_OFF, states.SOFT_POWER_OFF] or
-            target_state == states.SOFT_REBOOT and not is_final_state):
+        if (target_state in [states.POWER_OFF, states.SOFT_POWER_OFF]
+                or target_state == states.SOFT_REBOOT and not is_final_state):
             state_to_check = ilo_common.POST_POWEROFF_STATE
         else:
             # It may not be able to finish POST if no bootable device is

@@ -596,8 +596,8 @@ def get_instance_image_info(task, ipxe_enabled=False):
     # NOTE(pas-ha) do not report image kernel and ramdisk for
     # local boot or whole disk images so that they are not cached
     if (node.driver_internal_info.get('is_whole_disk_image')
-        or deploy_utils.get_boot_option(node) == 'local'):
-            return image_info
+            or deploy_utils.get_boot_option(node) == 'local'):
+        return image_info
     if ipxe_enabled:
         root_dir = get_ipxe_root_dir()
     else:
@@ -657,9 +657,9 @@ def build_deploy_pxe_options(task, pxe_info, mode='deploy',
         if ipxe_enabled:
             image_href = pxe_info[label][0]
             if (CONF.pxe.ipxe_use_swift
-                and service_utils.is_glance_image(image_href)):
-                    pxe_opts[option] = images.get_temp_url_for_glance_image(
-                        task.context, image_href)
+                    and service_utils.is_glance_image(image_href)):
+                pxe_opts[option] = images.get_temp_url_for_glance_image(
+                    task.context, image_href)
             else:
                 pxe_opts[option] = '/'.join([CONF.deploy.http_url, node.uuid,
                                             label])

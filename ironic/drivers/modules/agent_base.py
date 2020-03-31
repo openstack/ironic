@@ -268,8 +268,8 @@ def log_and_raise_deployment_error(task, msg, collect_logs=True, exc=None):
                          CONF.agent.deploy_logs_collect config option.
     :param exc: Exception that caused the failure.
     """
-    log_traceback = (exc is not None and
-                     not isinstance(exc, exception.IronicException))
+    log_traceback = (exc is not None
+                     and not isinstance(exc, exception.IronicException))
     LOG.error(msg, exc_info=log_traceback)
     deploy_utils.set_failed_state(task, msg, collect_logs=collect_logs)
     raise exception.InstanceDeployFailure(msg)
@@ -1057,9 +1057,9 @@ class AgentDeployMixin(HeartbeatMixin):
         # For whole disk images it is not necessary that the root_uuid
         # be provided since the bootloaders on the disk will be used
         whole_disk_image = internal_info.get('is_whole_disk_image')
-        if (software_raid or (root_uuid and not whole_disk_image) or
-            (whole_disk_image and
-             boot_mode_utils.get_boot_mode(node) == 'uefi')):
+        if (software_raid or (root_uuid and not whole_disk_image)
+                or (whole_disk_image
+                    and boot_mode_utils.get_boot_mode(node) == 'uefi')):
             LOG.debug('Installing the bootloader for node %(node)s on '
                       'partition %(part)s, EFI system partition %(efi)s',
                       {'node': node.uuid, 'part': root_uuid,

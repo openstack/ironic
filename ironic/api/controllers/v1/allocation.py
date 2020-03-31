@@ -360,16 +360,8 @@ class AllocationsController(pecan.rest.RestController):
 
         return Allocation.convert_with_links(rpc_allocation, fields=fields)
 
-    @METRICS.timer('AllocationsController.post')
-    @expose.expose(Allocation, body=Allocation,
-                   status_code=http_client.CREATED)
-    def post(self, allocation):
-        """Create a new allocation.
-
-        :param allocation: an allocation within the request body.
-        """
-        context = api.request.context
-        cdict = context.to_policy_values()
+    def _authorize_create_allocation(self, allocation):
+        cdict = api.request.context.to_policy_values()
 
         try:
             policy.authorize('baremetal:allocation:create', cdict, cdict)
@@ -382,6 +374,19 @@ class AllocationsController(pecan.rest.RestController):
                              cdict, cdict)
             self._check_allowed_allocation_fields(allocation.as_dict())
             allocation.owner = owner
+
+        return allocation
+
+    @METRICS.timer('AllocationsController.post')
+    @expose.expose(Allocation, body=Allocation,
+                   status_code=http_client.CREATED)
+    def post(self, allocation):
+        """Create a new allocation.
+
+        :param allocation: an allocation within the request body.
+        """
+        context = api.request.context
+        allocation = self._authorize_create_allocation(allocation)
 
         if (allocation.name
                 and not api_utils.is_valid_logical_name(allocation.name)):

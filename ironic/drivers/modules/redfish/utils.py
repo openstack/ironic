@@ -173,7 +173,7 @@ def parse_driver_info(node):
                     'auth_type': auth_type,
                     'node_uuid': node.uuid}
     if root_prefix:
-            sushy_params['root_prefix'] = root_prefix
+        sushy_params['root_prefix'] = root_prefix
 
     return sushy_params
 
@@ -223,8 +223,8 @@ class SessionCache(object):
             if CONF.redfish.connection_cache_size:
                 self.__class__._sessions[self._session_key] = conn
 
-                if (len(self.__class__._sessions) >
-                        CONF.redfish.connection_cache_size):
+                if (len(self.__class__._sessions)
+                        > CONF.redfish.connection_cache_size):
                     self._expire_oldest_session()
 
             return conn

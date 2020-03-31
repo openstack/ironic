@@ -115,8 +115,8 @@ def is_image_available(context, image):
     if getattr(image, 'visibility', None) == 'public' or context.is_admin:
         return True
 
-    return (context.project_id and
-            getattr(image, 'owner', None) == context.project_id)
+    return (context.project_id
+            and getattr(image, 'owner', None) == context.project_id)
 
 
 def is_image_active(image):

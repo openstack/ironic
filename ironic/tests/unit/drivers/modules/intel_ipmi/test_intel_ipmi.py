@@ -36,33 +36,33 @@ class IntelIPMIHardwareTestCase(db_base.DbTestCase):
                     enabled_vendor_interfaces=['ipmitool', 'no-vendor'])
 
     def _validate_interfaces(self, task, **kwargs):
-            self.assertIsInstance(
-                task.driver.management,
-                kwargs.get('management', intel_management.IntelIPMIManagement))
-            self.assertIsInstance(
-                task.driver.power,
-                kwargs.get('power', ipmitool.IPMIPower))
-            self.assertIsInstance(
-                task.driver.boot,
-                kwargs.get('boot', pxe.PXEBoot))
-            self.assertIsInstance(
-                task.driver.deploy,
-                kwargs.get('deploy', iscsi_deploy.ISCSIDeploy))
-            self.assertIsInstance(
-                task.driver.console,
-                kwargs.get('console', noop.NoConsole))
-            self.assertIsInstance(
-                task.driver.raid,
-                kwargs.get('raid', noop.NoRAID))
-            self.assertIsInstance(
-                task.driver.vendor,
-                kwargs.get('vendor', ipmitool.VendorPassthru))
-            self.assertIsInstance(
-                task.driver.storage,
-                kwargs.get('storage', noop_storage.NoopStorage))
-            self.assertIsInstance(
-                task.driver.rescue,
-                kwargs.get('rescue', noop.NoRescue))
+        self.assertIsInstance(
+            task.driver.management,
+            kwargs.get('management', intel_management.IntelIPMIManagement))
+        self.assertIsInstance(
+            task.driver.power,
+            kwargs.get('power', ipmitool.IPMIPower))
+        self.assertIsInstance(
+            task.driver.boot,
+            kwargs.get('boot', pxe.PXEBoot))
+        self.assertIsInstance(
+            task.driver.deploy,
+            kwargs.get('deploy', iscsi_deploy.ISCSIDeploy))
+        self.assertIsInstance(
+            task.driver.console,
+            kwargs.get('console', noop.NoConsole))
+        self.assertIsInstance(
+            task.driver.raid,
+            kwargs.get('raid', noop.NoRAID))
+        self.assertIsInstance(
+            task.driver.vendor,
+            kwargs.get('vendor', ipmitool.VendorPassthru))
+        self.assertIsInstance(
+            task.driver.storage,
+            kwargs.get('storage', noop_storage.NoopStorage))
+        self.assertIsInstance(
+            task.driver.rescue,
+            kwargs.get('rescue', noop.NoRescue))
 
     def test_default_interfaces(self):
         node = obj_utils.create_test_node(self.context, driver='intel-ipmi')

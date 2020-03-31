@@ -735,10 +735,10 @@ class Ilo5Management(IloManagement):
             for device_type, pattern in erase_pattern.items():
                 if device_type == 'hdd' and pattern in (
                         'overwrite', 'crypto', 'zero'):
-                        continue
+                    continue
                 elif device_type == 'ssd' and pattern in (
                         'block', 'crypto', 'zero'):
-                        continue
+                    continue
                 else:
                     invalid = True
                     break

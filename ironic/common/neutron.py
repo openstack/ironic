@@ -703,8 +703,8 @@ def wait_for_host_agent(client, host_id, target_state='up'):
     LOG.debug('Agent on host %(host_id)s is %(status)s',
               {'host_id': host_id,
                'status': 'up' if is_alive else 'down'})
-    if ((target_state == 'up' and is_alive) or
-            (target_state == 'down' and not is_alive)):
+    if ((target_state == 'up' and is_alive)
+            or (target_state == 'down' and not is_alive)):
         return True
     raise exception.NetworkError(
         'Agent on host %(host)s failed to reach state %(state)s' % {

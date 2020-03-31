@@ -436,8 +436,8 @@ def _validate_user_step(task, user_step, driver_step, step_type):
 
         # NOTE(mgoddard): we'll need something a little more sophisticated to
         # track core steps once we split out the single core step.
-        is_core = (driver_step['interface'] == 'deploy' and
-                   driver_step['step'] == 'deploy')
+        is_core = (driver_step['interface'] == 'deploy'
+                   and driver_step['step'] == 'deploy')
         if is_core:
             error = (_('deploy step %(step)s on interface %(interface)s is a '
                        'core step and cannot be overridden by user steps. It '
