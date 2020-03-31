@@ -750,7 +750,7 @@ def _passthru(http_methods, method=None, async_call=True,
         def passthru_handler(*args, **kwargs):
             try:
                 return func(*args, **kwargs)
-            except exception.IronicException as e:
+            except exception.IronicException:
                 with excutils.save_and_reraise_exception():
                     LOG.exception(passthru_logmessage, api_method)
             except Exception as e:

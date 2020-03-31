@@ -938,8 +938,8 @@ class ParseInstanceInfoCapabilitiesTestCase(tests_base.TestCase):
         result = boot_mode_utils.get_boot_mode_for_deploy(self.node)
         self.assertEqual('bios', result)
 
-        instance_info = {'capabilities': {'trusted_boot': 'True'},
-                         'capabilities': {'secure_boot': 'True'}}
+        instance_info = {'capabilities': {'trusted_boot': 'True',
+                                          'secure_boot': 'True'}}
         self.node.instance_info = instance_info
 
         result = boot_mode_utils.get_boot_mode_for_deploy(self.node)

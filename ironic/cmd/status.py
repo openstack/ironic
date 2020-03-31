@@ -61,5 +61,6 @@ def main():
     return upgradecheck.main(
         cfg.CONF, project='ironic', upgrade_command=Checks())
 
+
 if __name__ == '__main__':
     sys.exit(main())
