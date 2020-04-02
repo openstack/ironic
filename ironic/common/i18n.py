@@ -19,9 +19,20 @@ See https://docs.openstack.org/oslo.i18n/latest/user/
 
 """
 
-import oslo_i18n as i18n
+try:
+    import oslo_i18n as i18n
+except ImportError:
+    def _(msg):
+        return msg
 
-_translators = i18n.TranslatorFactory(domain='ironic')
+    def install(domain):
+        # NOTE(dtantsur): this is called before logging is initialized, so we
+        # cannot really log a warning here.
+        pass
+else:
+    _translators = i18n.TranslatorFactory(domain='ironic')
 
-# The primary translation function using the well-known name "_"
-_ = _translators.primary
+    # The primary translation function using the well-known name "_"
+    _ = _translators.primary
+
+    install = i18n.install

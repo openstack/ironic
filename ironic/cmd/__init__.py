@@ -25,6 +25,6 @@ import eventlet
 
 eventlet.monkey_patch(os=False)
 
-import oslo_i18n as i18n  # noqa for I202 due to 'import eventlet' above
+from ironic.common import i18n  # noqa for I202 due to 'import eventlet' above
 
 i18n.install('ironic')
