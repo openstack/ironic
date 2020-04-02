@@ -1063,28 +1063,7 @@ function install_ironic {
         # Replace the default virtio PXE ROM in QEMU with an EFI capable
         # one. The EFI ROM should work on with both boot modes, Legacy
         # BIOS and UEFI.
-        if is_ubuntu; then
-            # (rpittau) in bionic the UEFI in the ovmf 0~20180205.c0d9813c-2
-            # package is broken: EFI v2.70 by EDK II
-            # As a workaround, here we download and install the old working
-            # version from the multiverse repository: EFI v2.60 by EDK II
-            # Bug reference:
-            # https://bugs.launchpad.net/ubuntu/+source/edk2/+bug/1821729
-            local temp_deb
-            temp_deb="$(mktemp)"
-            wget http://archive.ubuntu.com/ubuntu/pool/multiverse/e/edk2/ovmf_0~20160408.ffea0a2c-2_all.deb -O "$temp_deb"
-            sudo dpkg -i "$temp_deb"
-            rm -f "$temp_deb"
-
-            # NOTE(TheJulia): This no longer seems required as the ovmf images
-            # DO correctly network boot. The effect of this is making the
-            # default boot loader iPXE, which is not always desired nor
-            # realistic for hardware in the field.
-            # If it is after Train, we should likely just delete the lines
-            # below and consider the same for Fedora.
-            # sudo rm /usr/share/qemu/pxe-virtio.rom
-            # sudo ln -s /usr/lib/ipxe/qemu/efi-virtio.rom /usr/share/qemu/pxe-virtio.rom
-        elif is_fedora; then
+        if is_fedora; then
             sudo rm /usr/share/qemu/pxe-virtio.rom
             sudo ln -s /usr/share/ipxe.efi/1af41000.rom /usr/share/qemu/pxe-virtio.rom
         fi

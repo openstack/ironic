@@ -316,6 +316,7 @@
     name: ironic-tempest-ipa-partition-uefi-pxe_ipmitool
     description: ironic-tempest-ipa-partition-uefi-pxe_ipmitool
     parent: ironic-base
+    nodeset: openstack-single-node-focal
     timeout: 5400
     vars:
       devstack_localrc:
@@ -635,6 +636,7 @@
     name: ironic-tempest-ipa-partition-uefi-pxe-grub2
     description: Ironic tempest scenario test utilizing PXE, UEFI, and Grub2
     parent: ironic-base
+    nodeset: openstack-single-node-focal
     vars:
       devstack_localrc:
         IRONIC_ENABLED_HARDWARE_TYPES: ipmi
@@ -643,6 +645,8 @@
         IRONIC_BOOT_MODE: uefi
         IRONIC_AUTOMATED_CLEAN_ENABLED: False
         IRONIC_DEFAULT_BOOT_OPTION: netboot
+        IRONIC_VM_SPECS_DISK: 10
+        IRONIC_VM_SPECS_RAM: 4096
 
 - job:
     # Security testing for known issues
