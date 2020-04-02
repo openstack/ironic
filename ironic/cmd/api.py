@@ -20,7 +20,11 @@
 import sys
 
 from oslo_config import cfg
-from oslo_reports import guru_meditation_report as gmr
+from oslo_log import log
+try:
+    from oslo_reports import guru_meditation_report as gmr
+except ImportError:
+    gmr = None
 
 from ironic.common import profiler
 from ironic.common import service as ironic_service
@@ -29,12 +33,18 @@ from ironic import version
 
 CONF = cfg.CONF
 
+LOG = log.getLogger(__name__)
+
 
 def main():
     # Parse config file and command line options, then start logging
     ironic_service.prepare_service(sys.argv)
 
-    gmr.TextGuruMeditation.setup_autorun(version)
+    if gmr is not None:
+        gmr.TextGuruMeditation.setup_autorun(version)
+    else:
+        LOG.debug('Guru meditation reporting is disabled '
+                  'because oslo.reports is not installed')
 
     profiler.setup('ironic_api', CONF.host)
 
