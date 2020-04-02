@@ -474,7 +474,12 @@ def render_template(template, params, is_file=True):
     else:
         tmpl_name = 'template'
         loader = jinja2.DictLoader({tmpl_name: template})
-    env = jinja2.Environment(loader=loader, autoescape=True)
+    # NOTE(pas-ha) bandit does not seem to cope with such syntaxis
+    # and still complains with B701 for that line
+    # NOTE(pas-ha) not using default_for_string=False as we set the name
+    # of the template above for strings too.
+    env = jinja2.Environment(loader=loader,  # nosec B701
+                             autoescape=jinja2.select_autoescape())
     tmpl = env.get_template(tmpl_name)
     return tmpl.render(params, enumerate=enumerate)
 
