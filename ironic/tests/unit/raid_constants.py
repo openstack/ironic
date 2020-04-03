@@ -36,6 +36,19 @@ RAID_CONFIG_OKAY = '''
 }
 '''
 
+RAID_SW_CONFIG_OKAY = '''
+{
+  "logical_disks": [
+      {
+       "raid_level": "1",
+       "size_gb": 100,
+       "controller": "software",
+       "physical_disks": [{"size": ">= 50"}, {"name": "/dev/sdc"}]
+      }
+  ]
+}
+'''
+
 RAID_CONFIG_NO_LOGICAL_DISKS = '''
 {
   "logical_disks": []
@@ -191,6 +204,19 @@ RAID_CONFIG_INVALID_PHY_DISKS = '''
        "size_gb": 100,
        "controller": "Smart Array P822 in Slot 2",
        "physical_disks": "5I:1:1"
+      }
+  ]
+}
+'''
+
+RAID_CONFIG_TOO_FEW_PHY_DISKS = '''
+{
+  "logical_disks": [
+      {
+       "raid_level": "1",
+       "size_gb": 100,
+       "controller": "Smart Array P822 in Slot 2",
+       "physical_disks": [{"size": ">= 50"}]
       }
   ]
 }
