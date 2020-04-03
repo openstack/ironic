@@ -1,0 +1,6 @@
+---
+upgrade:
+  - |
+    The guru meditation reporting functionality is now optional and the
+    ``oslo.reports`` package is no longer a part of requirements. Install it
+    manually if you need this feature.

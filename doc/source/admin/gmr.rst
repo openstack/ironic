@@ -12,6 +12,16 @@ and more. The eventlet backdoor facility provides an interactive shell
 interface for any eventlet based process, allowing an administrator to
 telnet to a pre-defined port and execute a variety of commands.
 
+Configuration
+-------------
+
+The GMR feature is optional and requires the oslo.reports_ package to be
+installed. For example, using pip::
+
+    pip install 'oslo.reports>=1.18.0'
+
+.. _oslo.reports: https://opendev.org/openstack/oslo.reports
+
 Generating a GMR
 ----------------
 
