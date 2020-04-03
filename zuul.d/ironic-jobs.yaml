@@ -58,6 +58,7 @@
         ironic: https://opendev.org/openstack/ironic
       zuul_copy_output:
         '{{ devstack_base_dir }}/ironic-bm-logs': 'logs'
+        '{{ devstack_base_dir }}/data/networking-generic-switch/netmiko_session.log': 'logs'
       devstack_services:
         q-agt: false
         q-dhcp: false
@@ -464,6 +465,7 @@
         networking-generic-switch: https://opendev.org/openstack/networking-generic-switch
       zuul_copy_output:
         '{{ devstack_base_dir }}/ironic-bm-logs': 'logs'
+        '{{ devstack_base_dir }}/data/networking-generic-switch/netmiko_session.log': 'logs'
       devstack_services:
         c-api: False
         c-bak: False
