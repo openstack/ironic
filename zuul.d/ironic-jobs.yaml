@@ -4,6 +4,7 @@
     description: Base job for devstack/tempest based ironic jobs.
     parent: devstack-tempest
     nodeset: openstack-single-node-bionic
+    post-run: playbooks/ci-workarounds/get_tftpd.yaml
     timeout: 10800
     required-projects:
       - openstack/ironic
