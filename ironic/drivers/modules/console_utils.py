@@ -21,6 +21,7 @@ Ironic console utilities.
 
 import errno
 import fcntl
+import ipaddress
 import os
 import signal
 import socket
@@ -32,7 +33,6 @@ from oslo_concurrency import lockutils
 from oslo_log import log as logging
 from oslo_service import loopingcall
 from oslo_utils import fileutils
-from oslo_utils import netutils
 import psutil
 
 from ironic.common import exception
@@ -402,7 +402,7 @@ def start_socat_console(node_uuid, port, console_cmd):
     args.append('-L%s' % pid_file)
 
     console_host = CONF.console.socat_address
-    if netutils.is_valid_ipv6(console_host):
+    if ipaddress.ip_address(console_host).version == 6:
         arg = ('TCP6-LISTEN:%(port)s,bind=[%(host)s],reuseaddr,fork,'
                'max-children=1')
     else:

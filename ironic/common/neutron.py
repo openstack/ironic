@@ -17,7 +17,6 @@ from keystoneauth1 import loading as ks_loading
 from neutronclient.common import exceptions as neutron_exceptions
 from neutronclient.v2_0 import client as clientv20
 from oslo_log import log
-from oslo_utils import netutils
 from oslo_utils import uuidutils
 import retrying
 
@@ -248,7 +247,8 @@ def _add_ip_addresses_for_ipv6_stateful(context, port, client):
     """
     fixed_ips = port['port']['fixed_ips']
     if (not fixed_ips
-            or not netutils.is_valid_ipv6(fixed_ips[0]['ip_address'])):
+            or ipaddress.ip_address(
+                fixed_ips[0]['ip_address']).version != 6):
         return
 
     subnet = client.show_subnet(
