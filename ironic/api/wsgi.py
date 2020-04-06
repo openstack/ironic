@@ -14,10 +14,10 @@
 import sys
 
 from oslo_config import cfg
-import oslo_i18n as i18n
 from oslo_log import log
 
 from ironic.api import app
+from ironic.common import i18n
 from ironic.common import service
 
 

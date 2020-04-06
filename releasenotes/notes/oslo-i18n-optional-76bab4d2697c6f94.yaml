@@ -1,0 +1,5 @@
+---
+upgrade:
+  - |
+    The dependency on ``oslo.i18n`` is now optional. If you would like messages
+    from ironic to be translated, you need to install it explicitly.
