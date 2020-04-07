@@ -48,8 +48,8 @@ class TestNeutron(db_base.DbTestCase):
 
         dhcp_factory.DHCPFactory._dhcp_provider = None
 
-    @mock.patch('ironic.common.neutron.get_client', autospec=True)
-    def test_update_port_dhcp_opts(self, client_mock):
+    @mock.patch('ironic.common.neutron.update_neutron_port', autospec=True)
+    def test_update_port_dhcp_opts(self, update_mock):
         opts = [{'opt_name': 'bootfile-name',
                  'opt_value': 'pxelinux.0'},
                 {'opt_name': 'tftp-server',
@@ -63,14 +63,14 @@ class TestNeutron(db_base.DbTestCase):
         with task_manager.acquire(self.context, self.node.uuid) as task:
             api.provider.update_port_dhcp_opts(port_id, opts,
                                                context=task.context)
-        client_mock.return_value.update_port.assert_called_once_with(
-            port_id, expected)
+        update_mock.assert_called_once_with(
+            task.context, port_id, expected)
 
-    @mock.patch('ironic.common.neutron.get_client', autospec=True)
-    def test_update_port_dhcp_opts_with_exception(self, client_mock):
+    @mock.patch('ironic.common.neutron.update_neutron_port', autospec=True)
+    def test_update_port_dhcp_opts_with_exception(self, update_mock):
         opts = [{}]
         port_id = 'fake-port-id'
-        client_mock.return_value.update_port.side_effect = (
+        update_mock.side_effect = (
             neutron_client_exc.NeutronClientException())
 
         api = dhcp_factory.DHCPFactory()

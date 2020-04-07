@@ -12,6 +12,7 @@
 
 import copy
 
+from keystoneauth1 import loading as ks_loading
 import netaddr
 from neutronclient.common import exceptions as neutron_exceptions
 from neutronclient.v2_0 import client as clientv20
@@ -79,6 +80,49 @@ def get_client(token=None, context=None):
                             timeout=CONF.neutron.request_timeout)
 
 
+def _get_conf_client(context):
+    """Retrieve a neutron client connection using conf parameters.
+
+    :param context: request context,
+                    instance of ironic.common.context.RequestContext
+    :returns: A neutron client.
+    """
+
+    auth = ks_loading.load_auth_from_conf_options(CONF, 'neutron')
+    session = ks_loading.load_session_from_conf_options(
+        CONF,
+        'neutron',
+        auth=auth)
+    endpoint = keystone.get_endpoint('neutron', session=session,
+                                     auth=auth)
+    return clientv20.Client(session=session,
+                            auth=auth,
+                            endpoint_override=endpoint,
+                            retries=CONF.neutron.retries,
+                            global_request_id=context.global_id,
+                            timeout=CONF.neutron.request_timeout)
+
+
+def update_neutron_port(context, port_id, update_body, client=None):
+    """Undate a neutron port
+
+    Uses neutron client from conf client to update a neutron client
+    an unbound state.
+
+    :param context: request context,
+                    instance of ironic.common.context.RequestContext
+    :param port_id: Neutron port ID.
+    :param update_body: Body of update
+    :param client: Optional Neutron client
+    """
+    if not client:
+        # verify that user can see the port before updating it
+        get_client(context=context).show_port(port_id)
+        client = _get_conf_client(context)
+
+    return client.update_port(port_id, update_body)
+
+
 def unbind_neutron_port(port_id, client=None, context=None):
     """Unbind a neutron port
 
@@ -92,20 +136,17 @@ def unbind_neutron_port(port_id, client=None, context=None):
     :raises: NetworkError
     """
 
-    if not client:
-        client = get_client(context=context)
-
     body_unbind = {'port': {'binding:host_id': '',
                             'binding:profile': {}}}
     body_reset_mac = {'port': {'mac_address': None}}
 
     try:
-        client.update_port(port_id, body_unbind)
+        update_neutron_port(context, port_id, body_unbind, client)
         # NOTE(hjensas): We need to reset the mac address in a separate step.
         #   Exception PortBound will be raised by neutron as it refuses to
         #   update the mac address of a bound port if we attempt to unbind and
         #   reset the mac in the same call.
-        client.update_port(port_id, body_reset_mac)
+        update_neutron_port(context, port_id, body_reset_mac, client)
     # NOTE(vsaienko): Ignore if port was deleted before calling vif detach.
     except neutron_exceptions.PortNotFoundClient:
         LOG.info('Port %s was not found while unbinding.', port_id)
@@ -142,10 +183,10 @@ def update_port_address(port_id, address, context=None):
             msg = (_("Failed to remove the current binding from "
                      "Neutron port %s, while updating its MAC "
                      "address.") % port_id)
-            unbind_neutron_port(port_id, client=client, context=context)
+            unbind_neutron_port(port_id, context=context)
 
         msg = (_("Failed to update MAC address on Neutron port %s.") % port_id)
-        client.update_port(port_id, port_req_body)
+        update_neutron_port(context, port_id, port_req_body)
 
         # Restore original binding:profile and host_id
         if binding_host_id:
@@ -154,7 +195,7 @@ def update_port_address(port_id, address, context=None):
             port_req_body = {'port': {'binding:host_id': binding_host_id,
                                       'binding:profile': binding_profile}}
 
-            client.update_port(port_id, port_req_body)
+            update_neutron_port(context, port_id, port_req_body)
     except (neutron_exceptions.NeutronClientException, exception.NetworkError):
         LOG.exception(msg)
         raise exception.FailedToUpdateMacOnPort(port_id=port_id)
@@ -193,7 +234,7 @@ def _verify_security_groups(security_groups, client):
     raise exception.NetworkError(msg)
 
 
-def _add_ip_addresses_for_ipv6_stateful(port, client):
+def _add_ip_addresses_for_ipv6_stateful(context, port, client):
     """Add additional IP addresses to the ipv6 stateful neutron port
 
     When network booting with DHCPv6-stateful we cannot control the CLID/IAID
@@ -216,7 +257,7 @@ def _add_ip_addresses_for_ipv6_stateful(port, client):
             fixed_ips.append({'subnet_id': subnet['id']})
 
         body = {'port': {'fixed_ips': fixed_ips}}
-        client.update_port(port['port']['id'], body)
+        update_neutron_port(context, port['port']['id'], body)
 
 
 def add_ports_to_network(task, network_uuid, security_groups=None):
@@ -254,8 +295,13 @@ def add_ports_to_network(task, network_uuid, security_groups=None):
             'network_id': network_uuid,
             'admin_state_up': True,
             'binding:vnic_type': VNIC_BAREMETAL,
-            'device_owner': 'baremetal:none',
+        }
+    }
+    # separate out fields that can only be updated by admins
+    update_body = {
+        'port': {
             'binding:host_id': node.uuid,
+            'device_owner': 'baremetal:none',
         }
     }
     if security_groups:
@@ -283,14 +329,15 @@ def add_ports_to_network(task, network_uuid, security_groups=None):
     for ironic_port in ports_to_create:
         # Start with a clean state for each port
         port_body = copy.deepcopy(body)
+        update_port_body = copy.deepcopy(update_body)
         # Skip ports that are missing required information for deploy.
         if not validate_port_info(node, ironic_port):
             failures.append(ironic_port.uuid)
             continue
-        port_body['port']['mac_address'] = ironic_port.address
+        update_port_body['port']['mac_address'] = ironic_port.address
         binding_profile = {'local_link_information':
                            [portmap[ironic_port.uuid]]}
-        port_body['port']['binding:profile'] = binding_profile
+        update_port_body['port']['binding:profile'] = binding_profile
 
         if not ironic_port.pxe_enabled:
             LOG.debug("Adding port %(port)s to network %(net)s for "
@@ -306,7 +353,7 @@ def add_ports_to_network(task, network_uuid, security_groups=None):
                       'port %(port_id)s, hostname %(hostname)s',
                       {'port_id': ironic_port.uuid,
                        'hostname': link_info['hostname']})
-            port_body['port']['binding:host_id'] = link_info['hostname']
+            update_port_body['port']['binding:host_id'] = link_info['hostname']
 
             # TODO(hamdyk): use portbindings.VNIC_SMARTNIC from neutron-lib
             port_body['port']['binding:vnic_type'] = VNIC_SMARTNIC
@@ -319,11 +366,13 @@ def add_ports_to_network(task, network_uuid, security_groups=None):
             port_body['port']['extra_dhcp_opts'] = extra_dhcp_opts
         try:
             if is_smart_nic:
-                wait_for_host_agent(client,
-                                    port_body['port']['binding:host_id'])
+                wait_for_host_agent(
+                    client, update_port_body['port']['binding:host_id'])
             port = client.create_port(port_body)
+            update_neutron_port(task.context, port['port']['id'],
+                                update_port_body)
             if CONF.neutron.dhcpv6_stateful_address_count > 1:
-                _add_ip_addresses_for_ipv6_stateful(port, client)
+                _add_ip_addresses_for_ipv6_stateful(task.context, port, client)
             if is_smart_nic:
                 wait_for_port_status(client, port['port']['id'], 'ACTIVE')
         except neutron_exceptions.NeutronClientException as e:

@@ -400,22 +400,26 @@ class TestCommonFunctions(db_base.DbTestCase):
                               common.get_free_port_like_object,
                               task, self.vif_id, {'physnet2'})
 
+    @mock.patch.object(neutron_common, 'update_neutron_port', autospec=True)
     @mock.patch.object(neutron_common, 'get_client', autospec=True)
-    def test_plug_port_to_tenant_network_client(self, mock_gc):
+    def test_plug_port_to_tenant_network_client(self, mock_gc, mock_update):
         self.port.internal_info = {common.TENANT_VIF_KEY: self.vif_id}
         self.port.save()
         with task_manager.acquire(self.context, self.node.id) as task:
             common.plug_port_to_tenant_network(task, self.port,
                                                client=mock.MagicMock())
         self.assertFalse(mock_gc.called)
+        self.assertTrue(mock_update.called)
 
+    @mock.patch.object(neutron_common, 'update_neutron_port', autospec=True)
     @mock.patch.object(neutron_common, 'get_client', autospec=True)
-    def test_plug_port_to_tenant_network_no_client(self, mock_gc):
+    def test_plug_port_to_tenant_network_no_client(self, mock_gc, mock_update):
         self.port.internal_info = {common.TENANT_VIF_KEY: self.vif_id}
         self.port.save()
         with task_manager.acquire(self.context, self.node.id) as task:
             common.plug_port_to_tenant_network(task, self.port)
         self.assertTrue(mock_gc.called)
+        self.assertTrue(mock_update.called)
 
     @mock.patch.object(neutron_common, 'get_client', autospec=True)
     def test_plug_port_to_tenant_network_no_tenant_vif(self, mock_gc):
@@ -432,9 +436,10 @@ class TestCommonFunctions(db_base.DbTestCase):
 
     @mock.patch.object(neutron_common, 'wait_for_host_agent', autospec=True)
     @mock.patch.object(neutron_common, 'wait_for_port_status', autospec=True)
+    @mock.patch.object(neutron_common, 'update_neutron_port', autospec=True)
     @mock.patch.object(neutron_common, 'get_client', autospec=True)
     def test_plug_port_to_tenant_network_smartnic_port(
-            self, mock_gc, wait_port_mock, wait_agent_mock):
+            self, mock_gc, mock_update, wait_port_mock, wait_agent_mock):
         nclient = mock.MagicMock()
         mock_gc.return_value = nclient
         local_link_connection = self.port.local_link_connection
@@ -449,6 +454,7 @@ class TestCommonFunctions(db_base.DbTestCase):
                 nclient, 'hostname')
             wait_port_mock.assert_called_once_with(
                 nclient, self.vif_id, 'ACTIVE')
+            self.assertTrue(mock_update.called)
 
 
 class TestVifPortIDMixin(db_base.DbTestCase):
