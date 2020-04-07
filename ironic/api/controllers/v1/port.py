@@ -443,10 +443,10 @@ class PortsController(rest.RestController):
         if ('local_link_connection/network_type' in fields
                 and not api_utils.allow_local_link_connection_network_type()):
             raise exception.NotAcceptable()
-        if isinstance(fields, dict):
+        if (isinstance(fields, dict)
+                and fields.get('local_link_connection') is not None):
             if (not api_utils.allow_local_link_connection_network_type()
-                    and 'network_type' in fields.get('local_link_connection',
-                                                     {}).keys()):
+                    and 'network_type' in fields['local_link_connection']):
                 raise exception.NotAcceptable()
 
     @METRICS.timer('PortsController.get_all')
