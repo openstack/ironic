@@ -19,10 +19,10 @@ import os
 import tempfile
 import time
 import types
+from unittest import mock
 
 from ironic_lib import disk_utils
 from ironic_lib import utils as ironic_utils
-import mock
 from oslo_concurrency import processutils
 from oslo_config import cfg
 from oslo_utils import fileutils

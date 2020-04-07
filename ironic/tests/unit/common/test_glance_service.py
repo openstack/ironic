@@ -17,11 +17,11 @@
 import datetime
 import importlib
 import time
+from unittest import mock
 
 from glanceclient import client as glance_client
 from glanceclient import exc as glance_exc
 from keystoneauth1 import loading as kaloading
-import mock
 from oslo_config import cfg
 from oslo_utils import uuidutils
 import retrying

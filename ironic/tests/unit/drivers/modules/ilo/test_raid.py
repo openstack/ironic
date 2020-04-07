@@ -14,7 +14,8 @@
 
 """Test class for Raid Interface used by iLO5."""
 
-import mock
+from unittest import mock
+
 from oslo_utils import importutils
 
 from ironic.common import exception

@@ -16,9 +16,9 @@
 
 import os
 import tempfile
+from unittest import mock
 
 import fixtures
-import mock
 from oslo_config import cfg
 from oslo_utils import fileutils
 from oslo_utils import uuidutils

@@ -17,8 +17,8 @@ are blocked or allowed to be processed.
 """
 
 from http import client as http_client
+from unittest import mock
 
-import mock
 from oslo_config import cfg
 
 from ironic.tests.unit.api import base

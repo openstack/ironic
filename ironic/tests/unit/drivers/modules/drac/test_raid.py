@@ -15,9 +15,10 @@
 Test class for DRAC RAID interface
 """
 
+from unittest import mock
+
 from dracclient import constants
 from dracclient import exceptions as drac_exceptions
-import mock
 
 from ironic.common import exception
 from ironic.common import states

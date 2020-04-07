@@ -19,8 +19,8 @@ Unit Tests for :py:class:`ironic.conductor.rpcapi.ConductorAPI`.
 """
 
 import copy
+from unittest import mock
 
-import mock
 from oslo_config import cfg
 import oslo_messaging as messaging
 from oslo_messaging import _utils as messaging_utils

@@ -14,7 +14,8 @@
 
 """Test class for Management Interface used by iLO modules."""
 
-import mock
+from unittest import mock
+
 from oslo_utils import importutils
 from oslo_utils import uuidutils
 

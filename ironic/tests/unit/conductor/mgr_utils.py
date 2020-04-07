@@ -17,8 +17,9 @@
 
 """Test utils for Ironic Managers."""
 
+from unittest import mock
+
 from futurist import periodics
-import mock
 from oslo_utils import strutils
 from oslo_utils import uuidutils
 

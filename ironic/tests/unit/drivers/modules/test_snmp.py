@@ -17,8 +17,8 @@
 """Test class for SNMP power driver module."""
 
 import time
+from unittest import mock
 
-import mock
 from oslo_config import cfg
 from pysnmp import error as snmp_error
 from pysnmp import hlapi as pysnmp

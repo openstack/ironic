@@ -11,8 +11,8 @@
 #    under the License.
 
 import random
+from unittest import mock
 
-import mock
 from oslo_db.sqlalchemy import utils as db_utils
 from oslo_utils import uuidutils
 from testtools import matchers

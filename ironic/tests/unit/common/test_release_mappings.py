@@ -12,7 +12,8 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import mock
+from unittest import mock
+
 from oslo_utils import versionutils
 
 from ironic.api.controllers.v1 import versions as api_versions

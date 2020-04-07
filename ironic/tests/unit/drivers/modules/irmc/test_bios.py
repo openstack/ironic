@@ -16,7 +16,7 @@
 Test class for IRMC BIOS configuration
 """
 
-import mock
+from unittest import mock
 
 from ironic.common import exception
 from ironic.conductor import task_manager

@@ -12,7 +12,7 @@
 # under the License.
 """Test base class for iBMC Driver."""
 
-import mock
+from unittest import mock
 
 from ironic.drivers.modules.ibmc import utils
 from ironic.tests.unit.db import base as db_base

@@ -14,8 +14,8 @@
 
 import copy
 import os
+from unittest import mock
 
-import mock
 from oslo_utils import importutils
 
 from ironic.common import exception

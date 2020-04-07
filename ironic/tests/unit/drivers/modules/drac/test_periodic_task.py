@@ -15,7 +15,7 @@
 Test class for DRAC periodic tasks
 """
 
-import mock
+from unittest import mock
 
 from ironic.conductor import task_manager
 from ironic.conductor import utils as manager_utils

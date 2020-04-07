@@ -14,8 +14,8 @@
 
 import datetime
 import types
+from unittest import mock
 
-import mock
 from testtools.matchers import HasLength
 
 from ironic.common import exception

@@ -16,8 +16,8 @@
 """Tests for manipulating Conductors via the DB API"""
 
 import datetime
+from unittest import mock
 
-import mock
 import oslo_db
 from oslo_db import exception as db_exc
 from oslo_db import sqlalchemy

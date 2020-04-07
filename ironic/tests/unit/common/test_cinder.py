@@ -14,10 +14,10 @@
 import datetime
 from http import client as http_client
 import json
+from unittest import mock
 
 from cinderclient import exceptions as cinder_exceptions
 import cinderclient.v3 as cinderclient
-import mock
 from oslo_utils import uuidutils
 
 from ironic.common import cinder

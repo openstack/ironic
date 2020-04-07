@@ -12,7 +12,8 @@
 
 """Unit tests for functionality related to allocations."""
 
-import mock
+from unittest import mock
+
 import oslo_messaging as messaging
 from oslo_utils import uuidutils
 

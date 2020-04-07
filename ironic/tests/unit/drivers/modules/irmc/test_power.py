@@ -16,7 +16,7 @@
 Test class for iRMC Power Driver
 """
 
-import mock
+from unittest import mock
 
 from ironic.common import exception
 from ironic.common import states

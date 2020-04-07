@@ -17,9 +17,9 @@
 
 import io
 import tempfile
+from unittest import mock
 
 from ironic_lib import utils as ironic_utils
-import mock
 from oslo_config import cfg
 
 from ironic.common import boot_devices

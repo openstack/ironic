@@ -18,7 +18,8 @@
 Test class for DRAC boot interface
 """
 
-import mock
+from unittest import mock
+
 from oslo_utils import importutils
 
 from ironic.common import boot_devices

@@ -15,8 +15,9 @@
 Test class for DRAC job specific methods
 """
 
+from unittest import mock
+
 from dracclient import exceptions as drac_exceptions
-import mock
 
 from ironic.common import exception
 from ironic.conductor import task_manager

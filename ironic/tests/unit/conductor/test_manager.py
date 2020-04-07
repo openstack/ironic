@@ -22,10 +22,10 @@ from collections import namedtuple
 import datetime
 import queue
 import re
+from unittest import mock
 
 import eventlet
 from futurist import waiters
-import mock
 from oslo_config import cfg
 import oslo_messaging as messaging
 from oslo_utils import uuidutils

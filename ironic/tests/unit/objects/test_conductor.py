@@ -16,8 +16,8 @@
 
 import datetime
 import types
+from unittest import mock
 
-import mock
 from oslo_utils import timeutils
 
 from ironic.common import exception

@@ -14,8 +14,8 @@
 #    under the License.
 
 import datetime
+from unittest import mock
 
-import mock
 from oslo_serialization import jsonutils
 from oslo_utils import uuidutils
 from testtools import matchers

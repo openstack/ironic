@@ -12,7 +12,8 @@
 # under the License.
 """Test class for iBMC Power interface."""
 
-import mock
+from unittest import mock
+
 from oslo_utils import importutils
 
 from ironic.common import exception

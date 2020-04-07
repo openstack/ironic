@@ -15,9 +15,9 @@
 import contextlib
 import datetime
 import types
+from unittest import mock
 
 import iso8601
-import mock
 from oslo_utils import timeutils
 from oslo_versionedobjects import base as object_base
 from oslo_versionedobjects import exception as object_exception

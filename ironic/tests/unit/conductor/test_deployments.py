@@ -13,7 +13,8 @@
 
 """Tests for deployment aspects of the conductor."""
 
-import mock
+from unittest import mock
+
 from oslo_config import cfg
 from oslo_db import exception as db_exception
 from oslo_utils import uuidutils

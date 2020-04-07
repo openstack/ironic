@@ -16,8 +16,8 @@
 
 from http import client as http_client
 import json
+from unittest import mock
 
-import mock
 from oslo_config import cfg
 import oslo_messaging as messaging
 

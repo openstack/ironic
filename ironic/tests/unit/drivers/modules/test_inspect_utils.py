@@ -14,7 +14,8 @@
 #    under the License.
 
 
-import mock
+from unittest import mock
+
 from oslo_utils import importutils
 
 from ironic.common import exception

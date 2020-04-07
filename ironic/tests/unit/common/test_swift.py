@@ -15,8 +15,8 @@
 import builtins
 from http import client as http_client
 import io
+from unittest import mock
 
-import mock
 from oslo_config import cfg
 from swiftclient import client as swift_client
 from swiftclient import exceptions as swift_exception

@@ -17,8 +17,9 @@
 
 """Tests for :class:`ironic.conductor.task_manager`."""
 
+from unittest import mock
+
 import futurist
-import mock
 from oslo_utils import uuidutils
 
 from ironic.common import driver_factory

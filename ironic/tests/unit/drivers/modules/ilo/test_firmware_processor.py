@@ -16,9 +16,10 @@
 
 import builtins
 import io
+from unittest import mock
 from urllib import parse as urlparse
 
-import mock
+
 from oslo_utils import importutils
 
 from ironic.common import exception
