@@ -535,6 +535,15 @@ class JinjaTemplatingTestCase(base.TestCase):
                                                self.params,
                                                is_file=False))
 
+    def test_render_with_quotes(self):
+        """test jinja2 autoescaping for everything is disabled """
+        self.expected = '"spam" ham'
+        self.params = {'foo': '"spam"', 'bar': 'ham'}
+        self.assertEqual(self.expected,
+                         utils.render_template(self.template,
+                                               self.params,
+                                               is_file=False))
+
     @mock.patch('ironic.common.utils.jinja2.FileSystemLoader', autospec=True)
     def test_render_file(self, jinja_fsl_mock):
         path = '/path/to/template.j2'
