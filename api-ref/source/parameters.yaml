@@ -910,6 +910,12 @@ last_error:
   in: body
   required: true
   type: string
+lessee:
+  description: |
+    A string or UUID of the tenant who is leasing the object.
+  in: body
+  required: false
+  type: string
 links:
   description: |
     A list of relative links. Includes the self and

@@ -350,11 +350,17 @@ class DoAllocateTestCase(db_base.DbTestCase):
 
     @mock.patch.object(task_manager, 'acquire', autospec=True,
                        side_effect=task_manager.acquire)
-    def test_nodes_filtered_out_owner(self, mock_acquire):
-        # Owner does not match
+    def test_nodes_filtered_out_project(self, mock_acquire):
+        # Owner and lessee do not match
         obj_utils.create_test_node(self.context,
                                    uuid=uuidutils.generate_uuid(),
                                    owner='54321',
+                                   resource_class='x-large',
+                                   power_state='power off',
+                                   provision_state='available')
+        obj_utils.create_test_node(self.context,
+                                   uuid=uuidutils.generate_uuid(),
+                                   lessee='54321',
                                    resource_class='x-large',
                                    power_state='power off',
                                    provision_state='available')

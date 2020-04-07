@@ -803,6 +803,7 @@ class TestCheckOwnerPolicy(base.TestCase):
         self.valid_node_uuid = uuidutils.generate_uuid()
         self.node = test_api_utils.post_get_test_node()
         self.node['owner'] = '12345'
+        self.node['lessee'] = '54321'
 
     @mock.patch.object(api, 'request', spec_set=["context", "version"])
     @mock.patch.object(policy, 'authorize', spec=True)
@@ -813,10 +814,11 @@ class TestCheckOwnerPolicy(base.TestCase):
         mock_pr.context.to_policy_values.return_value = {}
 
         utils.check_owner_policy(
-            'node', 'fake_policy', self.node['owner']
+            'node', 'fake_policy', self.node['owner'], self.node['lessee']
         )
         mock_authorize.assert_called_once_with(
-            'fake_policy', {'node.owner': '12345'}, {})
+            'fake_policy',
+            {'node.owner': '12345', 'node.lessee': '54321'}, {})
 
     @mock.patch.object(api, 'request', spec_set=["context", "version"])
     @mock.patch.object(policy, 'authorize', spec=True)
@@ -832,7 +834,7 @@ class TestCheckOwnerPolicy(base.TestCase):
             utils.check_owner_policy,
             'node',
             'fake-policy',
-            self.node['owner']
+            self.node
         )
 
 
@@ -842,6 +844,7 @@ class TestCheckNodePolicyAndRetrieve(base.TestCase):
         self.valid_node_uuid = uuidutils.generate_uuid()
         self.node = test_api_utils.post_get_test_node()
         self.node['owner'] = '12345'
+        self.node['lessee'] = '54321'
 
     @mock.patch.object(api, 'request', spec_set=["context", "version"])
     @mock.patch.object(policy, 'authorize', spec=True)
@@ -860,7 +863,8 @@ class TestCheckNodePolicyAndRetrieve(base.TestCase):
         mock_grn.assert_called_once_with(self.valid_node_uuid)
         mock_grnws.assert_not_called()
         mock_authorize.assert_called_once_with(
-            'fake_policy', {'node.owner': '12345'}, {})
+            'fake_policy',
+            {'node.owner': '12345', 'node.lessee': '54321'}, {})
         self.assertEqual(self.node, rpc_node)
 
     @mock.patch.object(api, 'request', spec_set=["context", "version"])
@@ -880,7 +884,8 @@ class TestCheckNodePolicyAndRetrieve(base.TestCase):
         mock_grn.assert_not_called()
         mock_grnws.assert_called_once_with(self.valid_node_uuid)
         mock_authorize.assert_called_once_with(
-            'fake_policy', {'node.owner': '12345'}, {})
+            'fake_policy',
+            {'node.owner': '12345', 'node.lessee': '54321'}, {})
         self.assertEqual(self.node, rpc_node)
 
     @mock.patch.object(api, 'request', spec_set=["context"])
@@ -1022,6 +1027,7 @@ class TestCheckMultipleNodePoliciesAndRetrieve(base.TestCase):
         self.valid_node_uuid = uuidutils.generate_uuid()
         self.node = test_api_utils.post_get_test_node()
         self.node['owner'] = '12345'
+        self.node['lessee'] = '54321'
 
     @mock.patch.object(utils, 'check_node_policy_and_retrieve')
     @mock.patch.object(utils, 'check_owner_policy')
@@ -1037,7 +1043,7 @@ class TestCheckMultipleNodePoliciesAndRetrieve(base.TestCase):
         mock_cnpar.assert_called_once_with('fake_policy_1',
                                            self.valid_node_uuid, False)
         mock_cop.assert_called_once_with(
-            'node', 'fake_policy_2', '12345')
+            'node', 'fake_policy_2', '12345', '54321')
         self.assertEqual(self.node, rpc_node)
 
     @mock.patch.object(utils, 'check_node_policy_and_retrieve')
@@ -1075,7 +1081,7 @@ class TestCheckMultipleNodePoliciesAndRetrieve(base.TestCase):
         mock_cnpar.assert_called_once_with('fake_policy_1',
                                            self.valid_node_uuid, False)
         mock_cop.assert_called_once_with(
-            'node', 'fake_policy_2', '12345')
+            'node', 'fake_policy_2', '12345', '54321')
 
 
 class TestCheckListPolicy(base.TestCase):
@@ -1190,6 +1196,7 @@ class TestCheckPortPolicyAndRetrieve(base.TestCase):
         self.valid_port_uuid = uuidutils.generate_uuid()
         self.node = test_api_utils.post_get_test_node()
         self.node['owner'] = '12345'
+        self.node['lessee'] = '54321'
         self.port = objects.Port(self.context, node_id=42)
 
     @mock.patch.object(api, 'request', spec_set=["context", "version"])
@@ -1211,7 +1218,9 @@ class TestCheckPortPolicyAndRetrieve(base.TestCase):
                                           self.valid_port_uuid)
         mock_ngbi.assert_called_once_with(mock_pr.context, 42)
         mock_authorize.assert_called_once_with(
-            'fake_policy', {'node.owner': '12345'}, {})
+            'fake_policy',
+            {'node.owner': '12345', 'node.lessee': '54321'},
+            {})
         self.assertEqual(self.port, rpc_port)
         self.assertEqual(self.node, rpc_node)
 

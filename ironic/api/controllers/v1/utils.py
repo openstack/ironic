@@ -490,6 +490,7 @@ VERSIONED_FIELDS = {
     'events': versions.MINOR_54_EVENTS,
     'retired': versions.MINOR_61_NODE_RETIRED,
     'retired_reason': versions.MINOR_61_NODE_RETIRED,
+    'lessee': versions.MINOR_65_NODE_LESSEE,
 }
 
 for field in V31_FIELDS:
@@ -715,6 +716,20 @@ def check_allow_filter_by_owner(owner):
             "should be %(base)s.%(opr)s") %
             {'base': versions.BASE_VERSION,
              'opr': versions.MINOR_50_NODE_OWNER})
+
+
+def check_allow_filter_by_lessee(lessee):
+    """Check if filtering nodes by lessee is allowed.
+
+    Version 1.62 of the API allows filtering nodes by lessee.
+    """
+    if (lessee is not None and api.request.version.minor
+            < versions.MINOR_65_NODE_LESSEE):
+        raise exception.NotAcceptable(_(
+            "Request not acceptable. The minimal required API version "
+            "should be %(base)s.%(opr)s") %
+            {'base': versions.BASE_VERSION,
+             'opr': versions.MINOR_65_NODE_LESSEE})
 
 
 def initial_node_provision_state():
@@ -1165,12 +1180,13 @@ def check_policy(policy_name):
     policy.authorize(policy_name, cdict, cdict)
 
 
-def check_owner_policy(object_type, policy_name, owner):
+def check_owner_policy(object_type, policy_name, owner, lessee=None):
     """Check if the policy authorizes this request on an object.
 
     :param: object_type: type of object being checked
     :param: policy_name: Name of the policy to check.
     :param: owner: the owner
+    :param: lessee: the lessee
 
     :raises: HTTPForbidden if the policy forbids access.
     """
@@ -1178,6 +1194,8 @@ def check_owner_policy(object_type, policy_name, owner):
 
     target_dict = dict(cdict)
     target_dict[object_type + '.owner'] = owner
+    if lessee:
+        target_dict[object_type + '.lessee'] = lessee
     policy.authorize(policy_name, target_dict, cdict)
 
 
@@ -1205,7 +1223,8 @@ def check_node_policy_and_retrieve(policy_name, node_ident,
         policy.authorize(policy_name, cdict, cdict)
         raise
 
-    check_owner_policy('node', policy_name, rpc_node['owner'])
+    check_owner_policy('node', policy_name,
+                       rpc_node['owner'], rpc_node['lessee'])
     return rpc_node
 
 
@@ -1253,7 +1272,8 @@ def check_multiple_node_policies_and_retrieve(policy_names,
                                                       node_ident,
                                                       with_suffix)
         else:
-            check_owner_policy('node', policy_name, rpc_node['owner'])
+            check_owner_policy('node', policy_name,
+                               rpc_node['owner'], rpc_node['lessee'])
     return rpc_node
 
 
@@ -1303,6 +1323,7 @@ def check_port_policy_and_retrieve(policy_name, port_uuid):
     rpc_node = objects.Node.get_by_id(context, rpc_port.node_id)
     target_dict = dict(cdict)
     target_dict['node.owner'] = rpc_node['owner']
+    target_dict['node.lessee'] = rpc_node['lessee']
     policy.authorize(policy_name, target_dict, cdict)
 
     return rpc_port, rpc_node

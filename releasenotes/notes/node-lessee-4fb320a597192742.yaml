@@ -1,0 +1,5 @@
+---
+features:
+  - |
+    Adds a ``lessee`` field to nodes. This field is exposed to policy, so if
+    a policy file permits, a lessee will have access to specified node APIs.

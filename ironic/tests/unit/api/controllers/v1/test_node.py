@@ -137,6 +137,7 @@ class TestListNodes(test_api_base.BaseApiTest):
         self.assertNotIn('owner', data['nodes'][0])
         self.assertNotIn('retired', data['nodes'][0])
         self.assertNotIn('retired_reason', data['nodes'][0])
+        self.assertNotIn('lessee', data['nodes'][0])
 
     def test_get_one(self):
         node = obj_utils.create_test_node(self.context,
@@ -179,6 +180,7 @@ class TestListNodes(test_api_base.BaseApiTest):
         self.assertIn('protected', data)
         self.assertIn('protected_reason', data)
         self.assertIn('owner', data)
+        self.assertIn('lessee', data)
         self.assertNotIn('allocation_id', data)
         self.assertIn('allocation_uuid', data)
 
@@ -383,6 +385,23 @@ class TestListNodes(test_api_base.BaseApiTest):
                              headers={api_base.Version.string: '1.61'})
         self.assertTrue(data['retired'])
         self.assertEqual('warranty expired', data['retired_reason'])
+
+    def test_node_lessee_hidden_in_lower_version(self):
+        self._test_node_field_hidden_in_lower_version('lessee',
+                                                      '1.64', '1.65')
+
+    def test_node_lessee_null_field(self):
+        node = obj_utils.create_test_node(self.context, lessee=None)
+        data = self.get_json('/nodes/%s' % node.uuid,
+                             headers={api_base.Version.string: '1.65'})
+        self.assertIsNone(data['lessee'])
+
+    def test_node_lessee_present(self):
+        node = obj_utils.create_test_node(self.context,
+                                          lessee="some-lucky-project")
+        data = self.get_json('/nodes/%s' % node.uuid,
+                             headers={api_base.Version.string: '1.65'})
+        self.assertEqual(data['lessee'], "some-lucky-project")
 
     def test_get_one_custom_fields(self):
         node = obj_utils.create_test_node(self.context,
@@ -590,6 +609,14 @@ class TestListNodes(test_api_base.BaseApiTest):
                                  headers={api_base.Version.string: '1.51'})
         self.assertIn('description', response)
 
+    def test_get_lessee_field(self):
+        node = obj_utils.create_test_node(self.context,
+                                          lessee='some-lucky-project')
+        fields = 'lessee'
+        response = self.get_json('/nodes/%s?fields=%s' % (node.uuid, fields),
+                                 headers={api_base.Version.string: '1.65'})
+        self.assertIn('lessee', response)
+
     def test_get_with_allocation(self):
         allocation = obj_utils.create_test_allocation(self.context)
         node = obj_utils.create_test_node(self.context,
@@ -650,6 +677,7 @@ class TestListNodes(test_api_base.BaseApiTest):
         self.assertIn('protected', data['nodes'][0])
         self.assertIn('protected_reason', data['nodes'][0])
         self.assertIn('owner', data['nodes'][0])
+        self.assertIn('lessee', data['nodes'][0])
         # never expose the chassis_id
         self.assertNotIn('chassis_id', data['nodes'][0])
         self.assertNotIn('allocation_id', data['nodes'][0])
@@ -687,6 +715,7 @@ class TestListNodes(test_api_base.BaseApiTest):
         self.assertIn('protected', data['nodes'][0])
         self.assertIn('protected_reason', data['nodes'][0])
         self.assertIn('owner', data['nodes'][0])
+        self.assertIn('lessee', data['nodes'][0])
         for field in api_utils.V31_FIELDS:
             self.assertIn(field, data['nodes'][0])
         # never expose the chassis_id
@@ -764,14 +793,14 @@ class TestListNodes(test_api_base.BaseApiTest):
         self.assertEqual(http_client.FORBIDDEN, response.status_int)
 
     @mock.patch.object(policy, 'authorize', spec=True)
-    def test_detail_list_all_forbid_owner_proj_mismatch(self, mock_authorize):
+    def test_detail_list_all_forbid_project_mismatch(self, mock_authorize):
         def mock_authorize_function(rule, target, creds):
             if rule == 'baremetal:node:list_all':
                 raise exception.HTTPForbidden(resource='fake')
             return True
         mock_authorize.side_effect = mock_authorize_function
 
-        response = self.get_json('/nodes/detail?owner=54321',
+        response = self.get_json('/nodes/detail?project=54321',
                                  expect_errors=True,
                                  headers={
                                      api_base.Version.string: '1.50',
@@ -788,17 +817,27 @@ class TestListNodes(test_api_base.BaseApiTest):
         mock_authorize.side_effect = mock_authorize_function
 
         nodes = []
-        for id in range(5):
+        for id in range(3):
             node = obj_utils.create_test_node(self.context,
                                               uuid=uuidutils.generate_uuid(),
                                               owner='12345')
             nodes.append(node.uuid)
+        for id in range(3):
+            node = obj_utils.create_test_node(self.context,
+                                              uuid=uuidutils.generate_uuid(),
+                                              lessee='12345')
+            nodes.append(node.uuid)
         for id in range(2):
             node = obj_utils.create_test_node(self.context,
-                                              uuid=uuidutils.generate_uuid())
+                                              uuid=uuidutils.generate_uuid(),
+                                              owner='54321')
+        for id in range(2):
+            node = obj_utils.create_test_node(self.context,
+                                              uuid=uuidutils.generate_uuid(),
+                                              lessee='54321')
 
         data = self.get_json('/nodes/detail', headers={
-            api_base.Version.string: '1.50',
+            api_base.Version.string: '1.65',
             'X-Project-Id': '12345'})
         self.assertEqual(len(nodes), len(data['nodes']))
 
@@ -1005,14 +1044,14 @@ class TestListNodes(test_api_base.BaseApiTest):
         self.assertEqual(http_client.FORBIDDEN, response.status_int)
 
     @mock.patch.object(policy, 'authorize', spec=True)
-    def test_many_list_all_forbid_owner_proj_mismatch(self, mock_authorize):
+    def test_many_list_all_forbid_project_mismatch(self, mock_authorize):
         def mock_authorize_function(rule, target, creds):
             if rule == 'baremetal:node:list_all':
                 raise exception.HTTPForbidden(resource='fake')
             return True
         mock_authorize.side_effect = mock_authorize_function
 
-        response = self.get_json('/nodes?owner=54321',
+        response = self.get_json('/nodes?project=54321',
                                  expect_errors=True,
                                  headers={
                                      api_base.Version.string: '1.50',
@@ -1029,17 +1068,27 @@ class TestListNodes(test_api_base.BaseApiTest):
         mock_authorize.side_effect = mock_authorize_function
 
         nodes = []
-        for id in range(5):
+        for id in range(3):
             node = obj_utils.create_test_node(self.context,
                                               uuid=uuidutils.generate_uuid(),
                                               owner='12345')
             nodes.append(node.uuid)
+        for id in range(3):
+            node = obj_utils.create_test_node(self.context,
+                                              uuid=uuidutils.generate_uuid(),
+                                              lessee='12345')
+            nodes.append(node.uuid)
         for id in range(2):
             node = obj_utils.create_test_node(self.context,
-                                              uuid=uuidutils.generate_uuid())
+                                              uuid=uuidutils.generate_uuid(),
+                                              owner='54321')
+        for id in range(2):
+            node = obj_utils.create_test_node(self.context,
+                                              uuid=uuidutils.generate_uuid(),
+                                              lessee='54321')
 
         data = self.get_json('/nodes', headers={
-            api_base.Version.string: '1.50',
+            api_base.Version.string: '1.65',
             'X-Project-Id': '12345'})
         self.assertEqual(len(nodes), len(data['nodes']))
 
@@ -1955,6 +2004,36 @@ class TestListNodes(test_api_base.BaseApiTest):
         uuids = [n['uuid'] for n in data['nodes']]
         self.assertIn(node2.uuid, uuids)
         self.assertNotIn(node1.uuid, uuids)
+
+    def test_get_nodes_by_lessee(self):
+        node1 = obj_utils.create_test_node(self.context,
+                                           uuid=uuidutils.generate_uuid(),
+                                           lessee='project1')
+        node2 = obj_utils.create_test_node(self.context,
+                                           uuid=uuidutils.generate_uuid(),
+                                           lessee='project2')
+
+        for base_url in ('/nodes', '/nodes/detail'):
+            data = self.get_json(base_url + '?lessee=project1',
+                                 headers={api_base.Version.string: "1.65"})
+            uuids = [n['uuid'] for n in data['nodes']]
+            self.assertIn(node1.uuid, uuids)
+            self.assertNotIn(node2.uuid, uuids)
+            data = self.get_json(base_url + '?lessee=project2',
+                                 headers={api_base.Version.string: "1.65"})
+            uuids = [n['uuid'] for n in data['nodes']]
+            self.assertIn(node2.uuid, uuids)
+            self.assertNotIn(node1.uuid, uuids)
+
+    def test_get_nodes_by_lessee_not_allowed(self):
+        for url in ('/nodes?lessee=project1',
+                    '/nodes/detail?lessee=project1'):
+            response = self.get_json(
+                url, headers={api_base.Version.string: "1.64"},
+                expect_errors=True)
+            self.assertEqual('application/json', response.content_type)
+            self.assertEqual(http_client.NOT_ACCEPTABLE, response.status_code)
+            self.assertTrue(response.json['error_message'])
 
     def test_get_console_information(self):
         node = obj_utils.create_test_node(self.context)
@@ -3474,6 +3553,33 @@ class TestPatch(test_api_base.BaseApiTest):
         self.assertEqual('application/json', response.content_type)
         self.assertEqual(http_client.BAD_REQUEST, response.status_code)
 
+    def test_update_lessee(self):
+        node = obj_utils.create_test_node(self.context,
+                                          uuid=uuidutils.generate_uuid())
+        self.mock_update_node.return_value = node
+        headers = {api_base.Version.string: '1.65'}
+        response = self.patch_json('/nodes/%s' % node.uuid,
+                                   [{'path': '/lessee',
+                                     'value': 'new-project',
+                                     'op': 'replace'}],
+                                   headers=headers)
+        self.assertEqual('application/json', response.content_type)
+        self.assertEqual(http_client.OK, response.status_code)
+
+    def test_update_lessee_old_api(self):
+        node = obj_utils.create_test_node(self.context,
+                                          uuid=uuidutils.generate_uuid())
+        self.mock_update_node.return_value = node
+        headers = {api_base.Version.string: '1.64'}
+        response = self.patch_json('/nodes/%s' % node.uuid,
+                                   [{'path': '/lessee',
+                                     'value': 'new-project',
+                                     'op': 'replace'}],
+                                   headers=headers,
+                                   expect_errors=True)
+        self.assertEqual('application/json', response.content_type)
+        self.assertEqual(http_client.NOT_ACCEPTABLE, response.status_code)
+
     def test_patch_allocation_forbidden(self):
         node = obj_utils.create_test_node(self.context,
                                           uuid=uuidutils.generate_uuid())
@@ -4358,6 +4464,25 @@ class TestPost(test_api_base.BaseApiTest):
                                   expect_errors=True)
         self.assertEqual('application/json', response.content_type)
         self.assertEqual(http_client.BAD_REQUEST, response.status_int)
+
+    def test_create_node_lessee(self):
+        ndict = test_api_utils.post_get_test_node(lessee='project')
+        response = self.post_json('/nodes', ndict,
+                                  headers={api_base.Version.string:
+                                           str(api_v1.max_version())})
+        self.assertEqual(http_client.CREATED, response.status_int)
+        result = self.get_json('/nodes/%s' % ndict['uuid'],
+                               headers={api_base.Version.string:
+                                        str(api_v1.max_version())})
+        self.assertEqual('project', result['lessee'])
+
+    def test_create_node_lessee_old_api_version(self):
+        headers = {api_base.Version.string: '1.64'}
+        ndict = test_api_utils.post_get_test_node(lessee='project')
+        response = self.post_json('/nodes', ndict, headers=headers,
+                                  expect_errors=True)
+        self.assertEqual('application/json', response.content_type)
+        self.assertEqual(http_client.NOT_ACCEPTABLE, response.status_int)
 
 
 class TestDelete(test_api_base.BaseApiTest):

@@ -399,6 +399,35 @@ class DbNodeTestCase(base.DbTestCase):
                                self.dbapi.get_node_list,
                                filters=filters)
 
+    def test_get_node_list_filter_by_project(self):
+        utils.create_test_node(uuid=uuidutils.generate_uuid())
+        node2 = utils.create_test_node(
+            uuid=uuidutils.generate_uuid(),
+            owner='project1',
+            lessee='project2',
+        )
+        node3 = utils.create_test_node(
+            uuid=uuidutils.generate_uuid(),
+            owner='project2',
+        )
+        node4 = utils.create_test_node(
+            uuid=uuidutils.generate_uuid(),
+            owner='project1',
+            lessee='project3',
+        )
+
+        res = self.dbapi.get_node_list(filters={'project': 'project1'})
+        self.assertEqual([node2.id, node4.id], [r.id for r in res])
+
+        res = self.dbapi.get_node_list(filters={'project': 'project2'})
+        self.assertEqual([node2.id, node3.id], [r.id for r in res])
+
+        res = self.dbapi.get_node_list(filters={'project': 'project3'})
+        self.assertEqual([node4.id], [r.id for r in res])
+
+        res = self.dbapi.get_node_list(filters={'project': 'flargle'})
+        self.assertEqual([], [r.id for r in res])
+
     def test_get_node_list_description(self):
         node1 = utils.create_test_node(uuid=uuidutils.generate_uuid(),
                                        description='Hello')

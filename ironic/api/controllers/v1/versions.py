@@ -102,6 +102,7 @@ BASE_VERSION = 1
 # v1.62: Add agent_token support for agent communication.
 # v1.63: Add support for indicators
 # v1.64: Add network_type to port.local_link_connection
+# v1.65: Add lessee to the node object.
 
 MINOR_0_JUNO = 0
 MINOR_1_INITIAL_VERSION = 1
@@ -168,6 +169,7 @@ MINOR_61_NODE_RETIRED = 61
 MINOR_62_AGENT_TOKEN = 62
 MINOR_63_INDICATORS = 63
 MINOR_64_LOCAL_LINK_CONNECTION_NETWORK_TYPE = 64
+MINOR_65_NODE_LESSEE = 65
 
 # When adding another version, update:
 # - MINOR_MAX_VERSION
@@ -175,7 +177,7 @@ MINOR_64_LOCAL_LINK_CONNECTION_NETWORK_TYPE = 64
 #   explanation of what changed in the new version
 # - common/release_mappings.py, RELEASE_MAPPING['master']['api']
 
-MINOR_MAX_VERSION = MINOR_64_LOCAL_LINK_CONNECTION_NETWORK_TYPE
+MINOR_MAX_VERSION = MINOR_65_NODE_LESSEE
 
 # String representations of the minor and maximum versions
 _MIN_VERSION_STRING = '{}.{}'.format(BASE_VERSION, MINOR_1_INITIAL_VERSION)
