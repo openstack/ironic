@@ -384,9 +384,10 @@ class HeartbeatMixinTest(AgentDeployMixinBaseTest):
             failed_mock.assert_called_once_with(
                 task, mock.ANY, collect_logs=True)
             log_mock.assert_called_once_with(
-                'Asynchronous exception: Failed checking if deploy is done. '
-                'Exception: LlamaException for node %(node)s',
-                {'node': task.node.uuid})
+                'Asynchronous exception for node %(node)s: %(err)s',
+                {'err': 'Failed checking if deploy is done. '
+                 'Error: LlamaException',
+                 'node': task.node.uuid})
 
     @mock.patch.object(agent_base.HeartbeatMixin,
                        'in_core_deploy_step', autospec=True)
@@ -420,9 +421,10 @@ class HeartbeatMixinTest(AgentDeployMixinBaseTest):
             # deploy_utils.set_failed_state anymore
             self.assertFalse(failed_mock.called)
             log_mock.assert_called_once_with(
-                'Asynchronous exception: Failed checking if deploy is done. '
-                'Exception: LlamaException for node %(node)s',
-                {'node': task.node.uuid})
+                'Asynchronous exception for node %(node)s: %(err)s',
+                {'err': 'Failed checking if deploy is done. '
+                 'Error: LlamaException',
+                 'node': task.node.uuid})
 
     @mock.patch.object(objects.node.Node, 'touch_provisioning', autospec=True)
     @mock.patch.object(agent_base.HeartbeatMixin,
@@ -574,8 +576,8 @@ class HeartbeatMixinTest(AgentDeployMixinBaseTest):
 
         mock_finalize.assert_called_once_with(mock.ANY, task)
         mock_rescue_err_handler.assert_called_once_with(
-            task, 'Asynchronous exception: Node failed to perform '
-            'rescue operation. Exception: some failure for node')
+            task, 'Node failed to perform '
+            'rescue operation. Error: some failure')
 
     @mock.patch.object(agent_base.HeartbeatMixin,
                        'in_core_deploy_step', autospec=True)
