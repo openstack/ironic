@@ -73,6 +73,7 @@ openstack_projects = [
     'ironic-ui',
     'keystone',
     'keystonemiddleware',
+    'metalsmith',
     'networking-baremetal',
     'neutron',
     'nova',
