@@ -476,15 +476,19 @@ class BaseConductorManager(object):
         node_iter = self.iter_nodes(filters=filters,
                                     sort_key=sort_key,
                                     sort_dir='asc')
-
+        desired_maintenance = filters.get('maintenance')
         workers_count = 0
         for node_uuid, driver, conductor_group in node_iter:
             try:
                 with task_manager.acquire(context, node_uuid,
                                           purpose='node state check') as task:
-                    if (task.node.maintenance
-                            or task.node.provision_state
-                            not in provision_state):
+                    # Check maintenance value since it could have changed
+                    # after the filtering was done.
+                    if (desired_maintenance is not None
+                            and desired_maintenance != task.node.maintenance):
+                        continue
+
+                    if task.node.provision_state not in provision_state:
                         continue
 
                     target_state = (None if not keep_target_state else

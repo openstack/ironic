@@ -2981,6 +2981,7 @@ class ConductorManager(base_manager.BaseConductorManager):
         callback_timeout = CONF.conductor.inspect_wait_timeout
 
         filters = {'reserved': False,
+                   'maintenance': False,
                    'provision_state': states.INSPECTWAIT,
                    'inspection_started_before': callback_timeout}
         sort_key = 'inspection_started_at'
