@@ -916,11 +916,10 @@ function install_redfish {
     # TODO(lucasagomes): Use Apache WSGI instead of gunicorn
     gunicorn=gunicorn
 
-    if python3_enabled; then
-        gunicorn=${gunicorn}3
-    fi
-
     if is_ubuntu; then
+        if python3_enabled; then
+            gunicorn=${gunicorn}3
+        fi
         install_package $gunicorn
     else
         pip_install_gr "gunicorn"
