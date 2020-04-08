@@ -81,6 +81,12 @@ def _sorted_steps(steps, sort_step_key):
     return sorted(steps, key=sort_step_key, reverse=True)
 
 
+def is_equivalent(step1, step2):
+    """Compare steps, ignoring their priority."""
+    return (step1.get('interface') == step2.get('interface')
+            and step1.get('step') == step2.get('step'))
+
+
 def _get_steps(task, interfaces, get_method, enabled=False,
                sort_step_key=None):
     """Get steps for task.node.

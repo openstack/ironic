@@ -1806,6 +1806,21 @@ class AgentDeployMixinTest(AgentDeployMixinBaseTest):
             self.deploy.continue_cleaning(task)
             self.assertFalse(notify_mock.called)
 
+    @mock.patch.object(manager_utils, 'notify_conductor_resume_operation',
+                       autospec=True)
+    @mock.patch.object(agent_client.AgentClient, 'get_commands_status',
+                       autospec=True)
+    def test_continue_cleaning_no_step_running(self, status_mock, notify_mock):
+        status_mock.return_value = [{
+            'command_status': 'SUCCEEDED',
+            'command_name': 'get_clean_steps',
+            'command_result': []
+        }]
+        with task_manager.acquire(self.context, self.node['uuid'],
+                                  shared=False) as task:
+            self.deploy.continue_cleaning(task)
+            notify_mock.assert_called_once_with(task, 'clean')
+
     @mock.patch.object(manager_utils, 'cleaning_error_handler', autospec=True)
     @mock.patch.object(agent_client.AgentClient, 'get_commands_status',
                        autospec=True)

@@ -29,6 +29,7 @@ from ironic.common import exception
 from ironic.common.i18n import _
 from ironic.common import image_service
 from ironic.common import states
+from ironic.common import utils
 from ironic.conductor import steps as conductor_steps
 from ironic.conductor import utils as manager_utils
 from ironic.conf import CONF
@@ -213,6 +214,20 @@ def _post_step_reboot(task, step_type):
     task.node.save()
 
 
+def _freshly_booted(commands, step_type):
+    """Check if the ramdisk has just started.
+
+    On the very first boot we fetch the available steps, hence the only command
+    agent executed will be get_XXX_steps. For later reboots the list of
+    commands will be empty.
+    """
+    return (
+        not commands
+        or (len(commands) == 1
+            and commands[0]['command_name'] == 'get_%s_steps' % step_type)
+    )
+
+
 def _get_completed_command(task, commands, step_type):
     """Returns None or a completed clean/deploy command from the agent.
 
@@ -220,8 +235,7 @@ def _get_completed_command(task, commands, step_type):
     :param commands: a set of command results from the agent, typically
                      fetched with agent_client.get_commands_status().
     """
-    if not commands:
-        return
+    assert commands, 'BUG: _get_completed_command called with no commands'
 
     last_command = commands[-1]
 
@@ -229,8 +243,8 @@ def _get_completed_command(task, commands, step_type):
         # catches race condition where execute_step is still
         # processing so the command hasn't started yet
         LOG.debug('Expected agent last command to be "execute_%(type)s_step" '
-                  'for node %(node)s, instead got "%(command)s". Waiting '
-                  'for next heartbeat.',
+                  'for node %(node)s, instead got "%(command)s". An out-of-'
+                  'band step may be running. Waiting for next heartbeat.',
                   {'node': task.node.uuid,
                    'command': last_command['command_name'],
                    'type': step_type})
@@ -246,11 +260,14 @@ def _get_completed_command(task, commands, step_type):
                    'type': step_type.capitalize()})
         return
     elif (last_command['command_status'] == 'SUCCEEDED'
-          and last_step != current_step):
+          and (not last_step
+               or not conductor_steps.is_equivalent(last_step, current_step))):
         # A previous step was running, the new command has not yet started.
-        LOG.debug('%(type)s step not yet started for node %(node)s: %(step)s',
-                  {'step': last_step, 'node': task.node.uuid,
-                   'type': step_type.capitalize()})
+        LOG.debug('%(type)s step %(step)s is not currently running for node '
+                  '%(node)s. Not yet started or an out-of-band step is in '
+                  'progress. The last finished step is %(previous)s.',
+                  {'step': current_step, 'node': task.node.uuid,
+                   'type': step_type.capitalize(), 'previous': last_step})
         return
     else:
         return last_command
@@ -807,22 +824,13 @@ class AgentDeployMixin(HeartbeatMixin):
         node = task.node
         agent_commands = self._client.get_commands_status(task.node)
 
-        if not agent_commands:
+        if _freshly_booted(agent_commands, step_type):
             field = ('cleaning_reboot' if step_type == 'clean'
                      else 'deployment_reboot')
-            if task.node.driver_internal_info.get(field):
-                # Node finished a cleaning step that requested a reboot, and
-                # this is the first heartbeat after booting. Continue cleaning.
-                info = task.node.driver_internal_info
-                info.pop(field, None)
-                task.node.driver_internal_info = info
-                task.node.save()
-                manager_utils.notify_conductor_resume_operation(task,
-                                                                step_type)
-                return
-            else:
-                # Agent has no commands whatsoever
-                return
+            utils.pop_node_nested_field(
+                task.node, 'driver_internal_info', field)
+            manager_utils.notify_conductor_resume_operation(task, step_type)
+            return
 
         current_step = (node.clean_step if step_type == 'clean'
                         else node.deploy_step)
