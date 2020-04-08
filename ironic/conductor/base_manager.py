@@ -296,6 +296,8 @@ class BaseConductorManager(object):
             return
         self._shutdown = True
         self._keepalive_evt.set()
+        # clear all locks held by this conductor before deregistering
+        self.dbapi.clear_node_reservations_for_conductor(self.host)
         if deregister:
             try:
                 # Inform the cluster that this conductor is shutting down.
