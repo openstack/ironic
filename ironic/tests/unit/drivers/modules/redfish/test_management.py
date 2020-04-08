@@ -96,12 +96,12 @@ class RedfishManagementTestCase(db_base.DbTestCase):
                 task.driver.management.set_boot_device(task, target)
 
                 # Asserts
-                fake_system.set_system_boot_source.assert_called_once_with(
+                fake_system.set_system_boot_options.assert_called_once_with(
                     expected, enabled=sushy.BOOT_SOURCE_ENABLED_ONCE)
                 mock_get_system.assert_called_once_with(task.node)
 
                 # Reset mocks
-                fake_system.set_system_boot_source.reset_mock()
+                fake_system.set_system_boot_options.reset_mock()
                 mock_get_system.reset_mock()
 
     @mock.patch.object(redfish_utils, 'get_system', autospec=True)
@@ -119,19 +119,19 @@ class RedfishManagementTestCase(db_base.DbTestCase):
                 task.driver.management.set_boot_device(
                     task, boot_devices.PXE, persistent=target)
 
-                fake_system.set_system_boot_source.assert_called_once_with(
+                fake_system.set_system_boot_options.assert_called_once_with(
                     sushy.BOOT_SOURCE_TARGET_PXE, enabled=expected)
                 mock_get_system.assert_called_once_with(task.node)
 
                 # Reset mocks
-                fake_system.set_system_boot_source.reset_mock()
+                fake_system.set_system_boot_options.reset_mock()
                 mock_get_system.reset_mock()
 
     @mock.patch.object(sushy, 'Sushy', autospec=True)
     @mock.patch.object(redfish_utils, 'get_system', autospec=True)
     def test_set_boot_device_fail(self, mock_get_system, mock_sushy):
         fake_system = mock.Mock()
-        fake_system.set_system_boot_source.side_effect = (
+        fake_system.set_system_boot_options.side_effect = (
             sushy.exceptions.SushyError()
         )
         mock_get_system.return_value = fake_system
@@ -140,7 +140,7 @@ class RedfishManagementTestCase(db_base.DbTestCase):
             self.assertRaisesRegex(
                 exception.RedfishError, 'Redfish set boot device',
                 task.driver.management.set_boot_device, task, boot_devices.PXE)
-            fake_system.set_system_boot_source.assert_called_once_with(
+            fake_system.set_system_boot_options.assert_called_once_with(
                 sushy.BOOT_SOURCE_TARGET_PXE,
                 enabled=sushy.BOOT_SOURCE_ENABLED_ONCE)
             mock_get_system.assert_called_once_with(task.node)
@@ -183,19 +183,19 @@ class RedfishManagementTestCase(db_base.DbTestCase):
                 task.driver.management.set_boot_mode(task, mode=mode)
 
                 # Asserts
-                fake_system.set_system_boot_source.assert_called_once_with(
-                    mock.ANY, enabled=mock.ANY, mode=mode)
+                fake_system.set_system_boot_options.assert_called_once_with(
+                    mode=mode)
                 mock_get_system.assert_called_once_with(task.node)
 
                 # Reset mocks
-                fake_system.set_system_boot_source.reset_mock()
+                fake_system.set_system_boot_options.reset_mock()
                 mock_get_system.reset_mock()
 
     @mock.patch.object(sushy, 'Sushy', autospec=True)
     @mock.patch.object(redfish_utils, 'get_system', autospec=True)
     def test_set_boot_mode_fail(self, mock_get_system, mock_sushy):
         fake_system = mock.Mock()
-        fake_system.set_system_boot_source.side_effect = (
+        fake_system.set_system_boot_options.side_effect = (
             sushy.exceptions.SushyError)
         mock_get_system.return_value = fake_system
         with task_manager.acquire(self.context, self.node.uuid,
@@ -203,8 +203,8 @@ class RedfishManagementTestCase(db_base.DbTestCase):
             self.assertRaisesRegex(
                 exception.RedfishError, 'Setting boot mode',
                 task.driver.management.set_boot_mode, task, boot_modes.UEFI)
-            fake_system.set_system_boot_source.assert_called_once_with(
-                mock.ANY, enabled=mock.ANY, mode=boot_modes.UEFI)
+            fake_system.set_system_boot_options.assert_called_once_with(
+                mode=boot_modes.UEFI)
             mock_get_system.assert_called_once_with(task.node)
 
     @mock.patch.object(redfish_utils, 'get_system', autospec=True)
