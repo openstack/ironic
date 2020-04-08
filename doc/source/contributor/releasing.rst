@@ -61,6 +61,7 @@ The following deliverables are client libraries:
 
 * python-ironicclient
 * python-ironic-inspector-client
+* sushy-cli
 
 Normal release
 --------------
