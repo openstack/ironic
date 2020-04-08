@@ -244,15 +244,16 @@ to fail state.
 """
 
 _LOOKUP_ALLOWED_STATES = (DEPLOYING, DEPLOYWAIT, CLEANING, CLEANWAIT,
-                          INSPECTING, RESCUING, RESCUEWAIT)
+                          INSPECTING, INSPECTWAIT, RESCUING, RESCUEWAIT)
 LOOKUP_ALLOWED_STATES = frozenset(_LOOKUP_ALLOWED_STATES)
 
 """States when API lookups are normally allowed for nodes."""
 
 _FASTTRACK_LOOKUP_ALLOWED_STATES = (ENROLL, MANAGEABLE, AVAILABLE,
-                                    DEPLOYING, DEPLOYWAIT, CLEANING,
-                                    CLEANWAIT, INSPECTING, RESCUING,
-                                    RESCUEWAIT)
+                                    DEPLOYING, DEPLOYWAIT,
+                                    CLEANING, CLEANWAIT,
+                                    INSPECTING, INSPECTWAIT,
+                                    RESCUING, RESCUEWAIT)
 FASTTRACK_LOOKUP_ALLOWED_STATES = frozenset(_FASTTRACK_LOOKUP_ALLOWED_STATES)
 """States where API lookups are permitted with fast track enabled."""
 
