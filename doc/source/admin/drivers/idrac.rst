@@ -606,3 +606,17 @@ and restart Ironic API service.
 
   [DEFAULT]
   rpc_response_timeout = 600
+
+Timeout when powering off
+-------------------------
+
+Some servers might be slow when soft powering off and time out. The default retry count
+is 6, resulting in 30 seconds timeout (the default retry interval set by
+``post_deploy_get_power_state_retry_interval`` is 5 seconds).
+To resolve this issue, increase the timeout to 90 seconds by setting the retry count to
+18 as follows:
+
+.. code-block:: ini
+
+    [agent]
+    post_deploy_get_power_state_retries = 18
