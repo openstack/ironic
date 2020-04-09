@@ -185,6 +185,15 @@ class TestPortsController__CheckAllowedPortFields(base.TestCase):
         self.assertFalse(mock_allow_portgroup.called)
         mock_allow_physnet.assert_called_once_with()
 
+    def test__check_allowed_port_fields_local_link_connection_none_type(
+            self, mock_allow_port, mock_allow_portgroup, mock_allow_physnet):
+        mock_allow_port.return_value = True
+        mock_allow_physnet.return_value = True
+        self.assertIsNone(
+            self.controller._check_allowed_port_fields(
+                {'local_link_connection': None}))
+        mock_allow_port.assert_called_once_with()
+
 
 class TestListPorts(test_api_base.BaseApiTest):
 
