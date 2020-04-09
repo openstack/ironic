@@ -34,6 +34,7 @@ the services.
    Troubleshooting FAQ <troubleshooting>
    Power Sync with the Compute Service <power-sync>
    Agent Token <agent-token>
+   Node Multi-Tenancy <node-multitenancy>
 
 .. toctree::
   :hidden:
