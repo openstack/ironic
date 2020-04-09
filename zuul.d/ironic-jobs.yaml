@@ -43,7 +43,7 @@
         IRONIC_TEMPEST_WHOLE_DISK_IMAGE: False
         IRONIC_VM_COUNT: 1
         IRONIC_VM_EPHEMERAL_DISK: 1
-        IRONIC_VM_SPECS_RAM: 384
+        IRONIC_VM_SPECS_RAM: 2048
         IRONIC_VM_LOG_DIR: '{{ devstack_base_dir }}/ironic-bm-logs'
         # NOTE(dtantsur): in some jobs we end up with 12 disks total, so reduce
         # each of them. For don't need all 10 GiB for CirrOS anyway.
@@ -112,6 +112,7 @@
         IRONIC_ENABLED_RESCUE_INTERFACES: "fake,agent,no-rescue"
         IRONIC_RAMDISK_TYPE: tinyipa
         IRONIC_RPC_TRANSPORT: json-rpc
+        IRONIC_VM_SPECS_RAM: 384
         IRONIC_VM_COUNT: 6
         IRONIC_VM_VOLUME_COUNT: 2
         # We're using a lot of disk space in this job. Some testing nodes have
@@ -150,7 +151,6 @@
         IRONIC_ENABLED_POWER_INTERFACES: redfish
         IRONIC_ENABLED_MANAGEMENT_INTERFACES: redfish
         IRONIC_AUTOMATED_CLEAN_ENABLED: False
-        IRONIC_VM_SPECS_RAM: 2048
 
 - job:
     name: ironic-tempest-partition-uefi-redfish-vmedia
@@ -160,7 +160,6 @@
       devstack_localrc:
         IRONIC_BOOT_MODE: uefi
         IRONIC_ENABLED_BOOT_INTERFACES: redfish-virtual-media
-        IRONIC_VM_SPECS_RAM: 2048
         SWIFT_ENABLE_TEMPURLS: True
         SWIFT_TEMPURL_KEY: secretkey
         IRONIC_AUTOMATED_CLEAN_ENABLED: False
@@ -199,7 +198,6 @@
         IRONIC_ENABLED_BOOT_INTERFACES: "fake,pxe"
         IRONIC_IPXE_ENABLED: False
         IRONIC_AUTOMATED_CLEAN_ENABLED: False
-        IRONIC_VM_SPECS_RAM: 2048
       devstack_services:
         mysql: False
         postgresql: True
@@ -256,9 +254,6 @@
     description: ironic-tempest-ipa-partition-pxe_ipmitool
     parent: ironic-base
     timeout: 5400
-    vars:
-      devstack_localrc:
-        IRONIC_VM_SPECS_RAM: 2048
 
 - job:
     name: ironic-tempest-bfv
@@ -299,7 +294,6 @@
         IRONIC_INSPECTOR_MANAGE_FIREWALL: True
         IRONIC_TEMPEST_WHOLE_DISK_IMAGE: True
         IRONIC_VM_EPHEMERAL_DISK: 0
-        IRONIC_VM_SPECS_RAM: 2048
         IRONIC_AUTOMATED_CLEAN_ENABLED: False
         SWIFT_ENABLE_TEMPURLS: True
         SWIFT_TEMPURL_KEY: secretkey
@@ -564,7 +558,6 @@
       devstack_localrc:
         IRONIC_ENABLED_HARDWARE_TYPES: ipmi
         IRONIC_ENABLED_BOOT_INTERFACES: pxe
-        IRONIC_VM_SPECS_RAM: 2048
         IRONIC_IPXE_ENABLED: False
         IRONIC_BOOT_MODE: uefi
         IRONIC_AUTOMATED_CLEAN_ENABLED: False
@@ -609,7 +602,6 @@
         IRONIC_TEMPEST_BUILD_TIMEOUT: 900
         IRONIC_VM_EPHEMERAL_DISK: 0
         IRONIC_VM_INTERFACE_COUNT: 1
-        IRONIC_VM_SPECS_RAM: 2048
         IRONIC_AUTOMATED_CLEAN_ENABLED: False
         SWIFT_ENABLE_TEMPURLS: True
         SWIFT_TEMPURL_KEY: secretkey
@@ -630,6 +622,7 @@
         IRONIC_DEFAULT_RESCUE_INTERFACE: agent
         IRONIC_ENABLED_RESCUE_INTERFACES: "fake,agent,no-rescue"
         IRONIC_RAMDISK_TYPE: tinyipa
+        IRONIC_VM_SPECS_RAM: 384
         IRONIC_TEMPEST_WHOLE_DISK_IMAGE: True
         IRONIC_VM_EPHEMERAL_DISK: 0
         SWIFT_ENABLE_TEMPURLS: True
