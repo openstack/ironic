@@ -364,6 +364,7 @@ class RedfishVirtualMediaBootTestCase(db_base.DbTestCase):
             mock_create_boot_iso.assert_called_once_with(
                 mock.ANY, mock.ANY, 'http://kernel/img', 'http://ramdisk/img',
                 boot_mode='uefi', esp_image_href='http://bootloader/img',
+                configdrive_href=mock.ANY,
                 kernel_params='nofb nomodeset vga=normal',
                 root_uuid='1be26c0b-03f2-4d2e-ae87-c02d7f33c123')
 
@@ -393,6 +394,7 @@ class RedfishVirtualMediaBootTestCase(db_base.DbTestCase):
             mock_create_boot_iso.assert_called_once_with(
                 mock.ANY, mock.ANY, 'http://kernel/img', 'http://ramdisk/img',
                 boot_mode=None, esp_image_href=None,
+                configdrive_href=mock.ANY,
                 kernel_params='nofb nomodeset vga=normal',
                 root_uuid='1be26c0b-03f2-4d2e-ae87-c02d7f33c123')
 
@@ -416,6 +418,7 @@ class RedfishVirtualMediaBootTestCase(db_base.DbTestCase):
             mock_create_boot_iso.assert_called_once_with(
                 mock.ANY, mock.ANY, 'http://kernel/img', 'http://ramdisk/img',
                 boot_mode=None, esp_image_href=None,
+                configdrive_href=mock.ANY,
                 kernel_params=kernel_params,
                 root_uuid='1be26c0b-03f2-4d2e-ae87-c02d7f33c123')
 

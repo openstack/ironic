@@ -413,6 +413,21 @@ class FsImageTestCase(base.TestCase):
                                    options)
         self.assertEqual(expected_cfg, cfg)
 
+    @mock.patch.object(images, 'os', autospec=True)
+    def test__read_dir(self, mock_os):
+        mock_os.path.join = os.path.join
+        mock_os.path.isdir.side_effect = (False, True, False)
+        mock_os.listdir.side_effect = [['a', 'b'], ['c']]
+
+        file_info = images._read_dir('/mnt')
+
+        expected = {
+            '/mnt/a': 'a',
+            '/mnt/b/c': 'b/c'
+        }
+
+        self.assertEqual(expected, file_info)
+
     @mock.patch.object(os.path, 'relpath', autospec=True)
     @mock.patch.object(os, 'walk', autospec=True)
     @mock.patch.object(utils, 'mount', autospec=True)
@@ -749,8 +764,8 @@ class FsImageTestCase(base.TestCase):
         params = ['root=UUID=root-uuid', 'kernel-params']
         create_isolinux_mock.assert_called_once_with(
             'output_file', 'tmpdir/kernel-uuid', 'tmpdir/ramdisk-uuid',
-            deploy_iso='tmpdir/deploy_iso-uuid', esp_image=None,
-            kernel_params=params)
+            deploy_iso='tmpdir/deploy_iso-uuid',
+            esp_image=None, kernel_params=params, configdrive=None)
 
     @mock.patch.object(images, 'create_esp_image_for_uefi', autospec=True)
     @mock.patch.object(images, 'fetch', autospec=True)
@@ -778,7 +793,7 @@ class FsImageTestCase(base.TestCase):
         create_isolinux_mock.assert_called_once_with(
             'output_file', 'tmpdir/kernel-uuid', 'tmpdir/ramdisk-uuid',
             deploy_iso=None, esp_image='tmpdir/efiboot-uuid',
-            kernel_params=params)
+            kernel_params=params, configdrive=None)
 
     @mock.patch.object(images, 'create_esp_image_for_uefi', autospec=True)
     @mock.patch.object(images, 'fetch', autospec=True)
@@ -805,8 +820,8 @@ class FsImageTestCase(base.TestCase):
         params = ['root=UUID=root-uuid', 'kernel-params']
         create_isolinux_mock.assert_called_once_with(
             'output_file', 'tmpdir/kernel-href', 'tmpdir/ramdisk-href',
-            deploy_iso='tmpdir/deploy_iso-href', esp_image=None,
-            kernel_params=params)
+            deploy_iso='tmpdir/deploy_iso-href',
+            esp_image=None, kernel_params=params, configdrive=None)
 
     @mock.patch.object(images, 'create_esp_image_for_uefi', autospec=True)
     @mock.patch.object(images, 'fetch', autospec=True)
@@ -834,7 +849,7 @@ class FsImageTestCase(base.TestCase):
         create_isolinux_mock.assert_called_once_with(
             'output_file', 'tmpdir/kernel-href', 'tmpdir/ramdisk-href',
             deploy_iso=None, esp_image='tmpdir/efiboot-href',
-            kernel_params=params)
+            kernel_params=params, configdrive=None)
 
     @mock.patch.object(images, 'create_isolinux_image_for_bios', autospec=True)
     @mock.patch.object(images, 'fetch', autospec=True)
@@ -847,25 +862,27 @@ class FsImageTestCase(base.TestCase):
 
         images.create_boot_iso('ctx', 'output_file', 'kernel-uuid',
                                'ramdisk-uuid', 'deploy_iso-uuid',
-                               'efiboot-uuid', 'root-uuid', 'kernel-params',
-                               'bios')
+                               'efiboot-uuid', 'root-uuid',
+                               'kernel-params', 'bios', 'configdrive')
 
         fetch_images_mock.assert_any_call(
             'ctx', 'kernel-uuid', 'tmpdir/kernel-uuid')
         fetch_images_mock.assert_any_call(
             'ctx', 'ramdisk-uuid', 'tmpdir/ramdisk-uuid')
+        fetch_images_mock.assert_any_call(
+            'ctx', 'configdrive', 'tmpdir/configdrive')
+
         # Note (NobodyCam): the original assert asserted that fetch_images
         #                   was not called with parameters, this did not
         #                   work, So I instead assert that there were only
         #                   Two calls to the mock validating the above
         #                   asserts.
-        self.assertEqual(2, fetch_images_mock.call_count)
+        self.assertEqual(3, fetch_images_mock.call_count)
 
         params = ['root=UUID=root-uuid', 'kernel-params']
-        create_isolinux_mock.assert_called_once_with('output_file',
-                                                     'tmpdir/kernel-uuid',
-                                                     'tmpdir/ramdisk-uuid',
-                                                     params)
+        create_isolinux_mock.assert_called_once_with(
+            'output_file', 'tmpdir/kernel-uuid', 'tmpdir/ramdisk-uuid',
+            kernel_params=params, configdrive='tmpdir/configdrive')
 
     @mock.patch.object(images, 'create_isolinux_image_for_bios', autospec=True)
     @mock.patch.object(images, 'fetch', autospec=True)
@@ -879,19 +896,20 @@ class FsImageTestCase(base.TestCase):
 
         images.create_boot_iso('ctx', 'output_file', 'kernel-uuid',
                                'ramdisk-uuid', 'deploy_iso-uuid',
-                               'efiboot-uuid', 'root-uuid', 'kernel-params',
-                               None)
+                               'efiboot-uuid', 'root-uuid',
+                               'kernel-params', None, 'http://configdrive')
 
         fetch_images_mock.assert_any_call(
             'ctx', 'kernel-uuid', 'tmpdir/kernel-uuid')
         fetch_images_mock.assert_any_call(
             'ctx', 'ramdisk-uuid', 'tmpdir/ramdisk-uuid')
+        fetch_images_mock.assert_any_call(
+            'ctx', 'http://configdrive', 'tmpdir/configdrive')
 
         params = ['root=UUID=root-uuid', 'kernel-params']
-        create_isolinux_mock.assert_called_once_with('output_file',
-                                                     'tmpdir/kernel-uuid',
-                                                     'tmpdir/ramdisk-uuid',
-                                                     params)
+        create_isolinux_mock.assert_called_once_with(
+            'output_file', 'tmpdir/kernel-uuid', 'tmpdir/ramdisk-uuid',
+            configdrive='tmpdir/configdrive', kernel_params=params)
 
     @mock.patch.object(image_service, 'get_image_service', autospec=True)
     def test_get_glance_image_properties_no_such_prop(self,
