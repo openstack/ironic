@@ -90,6 +90,16 @@ opts = [
                        'cleaning, or rescue. This is done without IP '
                        'addresses assigned to the port, and may be useful '
                        'in some bonded network configurations.')),
+    cfg.IntOpt('dhcpv6_stateful_address_count',
+               default=1,
+               help=_('Number of IPv6 addresses to allocate for ports created '
+                      'for provisioning, cleaning, rescue or inspection on '
+                      'DHCPv6-stateful networks. Different stages of the '
+                      'chain-loading process will request addresses with '
+                      'different CLID/IAID. Due to non-identical identifiers '
+                      'multiple addresses must be reserved for the host to '
+                      'ensure each step of the boot process can successfully '
+                      'lease addresses.'))
 ]
 
 

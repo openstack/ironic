@@ -1,0 +1,14 @@
+---
+features:
+  - |
+    For baremetal operations on DHCPv6-stateful networks multiple IPv6
+    addresses can now be allocated for neutron ports created for provisioning,
+    cleaning, rescue or inspection. The new parameter
+    ``[neutron]/dhcpv6_stateful_address_count`` controls the number of addresses
+    to allocate (Default: 1).
+fixes:
+  - |
+    The 'no address available' problem seen when network booting on
+    DHCPv6-stateful networks is fixed with the support for allocating multiple
+    IPv6 addresses. See `bug: 1861032
+    <https://bugs.launchpad.net/neutron/+bug/1861032>`_.
