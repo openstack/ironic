@@ -17,12 +17,12 @@ Modules required to work with ironic_inspector:
 
 import ipaddress
 import shlex
+from urllib import parse as urlparse
 
 import eventlet
 from futurist import periodics
 import openstack
 from oslo_log import log as logging
-from six.moves.urllib import parse as urlparse
 
 from ironic.common import exception
 from ironic.common.i18n import _
