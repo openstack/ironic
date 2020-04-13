@@ -31,10 +31,10 @@ node = table('nodes',
              column('provision_state', String(15)))
 
 
-# NOTE(deva): We must represent the states as static strings in this migration
-# file, rather than import ironic.common.states, because that file may change
-# in the future. This migration script must still be able to be run with
-# future versions of the code and still produce the same results.
+# NOTE(tenbrae): We must represent the states as static strings in this
+# migration file, rather than import ironic.common.states, because that file
+# may change in the future. This migration script must still be able to be
+# run with future versions of the code and still produce the same results.
 AVAILABLE = 'available'
 
 

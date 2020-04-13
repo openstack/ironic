@@ -13,9 +13,9 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-# NOTE(deva): since __init__ is loaded before the files in the same directory,
-#             and some third-party driver tests may need to have their
-#             external libraries mocked, we load the file which does that
-#             mocking here -- in the __init__.
+# NOTE(tenbrae): since __init__ is loaded before the files in the same
+#             directory, and some third-party driver tests may need to have
+#             their external libraries mocked, we load the file which does
+#             that mocking here -- in the __init__.
 
 from ironic.tests.unit.drivers import third_party_driver_mocks   # noqa

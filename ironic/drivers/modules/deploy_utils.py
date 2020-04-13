@@ -276,7 +276,7 @@ def set_failed_state(task, msg, collect_logs=True):
                     'should be removed from Ironic or put in maintenance '
                     'mode until the problem is resolved.' % node.uuid)
             LOG.exception(msg2)
-    # NOTE(deva): node_power_action() erases node.last_error
+    # NOTE(tenbrae): node_power_action() erases node.last_error
     #             so we need to set it here.
     node.last_error = msg
     node.save()

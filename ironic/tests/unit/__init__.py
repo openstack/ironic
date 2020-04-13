@@ -22,7 +22,7 @@
    :platform: Unix
 """
 
-# TODO(deva): move eventlet imports to ironic.__init__ once we move to PBR
+# TODO(tenbrae): move eventlet imports to ironic.__init__ once we move to PBR
 
 import eventlet
 from oslo_config import cfg

@@ -38,7 +38,7 @@ LOG = logging.getLogger(__name__)
 # Provisioning states
 #####################
 
-# TODO(deva): add add'l state mappings here
+# TODO(tenbrae): add add'l state mappings here
 VERBS = {
     'active': 'deploy',
     'deleted': 'delete',
@@ -315,7 +315,7 @@ for state in STABLE_STATES:
 machine.add_state(VERIFYING, target=MANAGEABLE, **watchers)
 
 # Add deploy* states
-# NOTE(deva): Juno shows a target_provision_state of DEPLOYDONE
+# NOTE(tenbrae): Juno shows a target_provision_state of DEPLOYDONE
 #             this is changed in Kilo to ACTIVE
 machine.add_state(DEPLOYING, target=ACTIVE, **watchers)
 machine.add_state(DEPLOYWAIT, target=ACTIVE, **watchers)
@@ -354,7 +354,7 @@ machine.add_transition(DEPLOYING, DEPLOYFAIL, 'fail')
 # A failed deployment may be retried
 # ironic/conductor/manager.py:do_node_deploy()
 machine.add_transition(DEPLOYFAIL, DEPLOYING, 'rebuild')
-# NOTE(deva): Juno allows a client to send "active" to initiate a rebuild
+# NOTE(tenbrae): Juno allows a client to send "active" to initiate a rebuild
 machine.add_transition(DEPLOYFAIL, DEPLOYING, 'deploy')
 
 # A deployment may also wait on external callbacks

@@ -22,7 +22,7 @@ from ironic.common import policy as ironic_policy
 
 CONF = cfg.CONF
 
-# NOTE(deva): We ship a default that always masks passwords, but for testing
+# NOTE(tenbrae): We ship a default that always masks passwords, but for testing
 #             we need to override that default to ensure passwords can be
 #             made visible by operators that choose to do so.
 policy_data = """

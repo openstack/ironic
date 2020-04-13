@@ -118,7 +118,8 @@ class BaseConductorManager(object):
 
         _check_enabled_interfaces()
 
-        # NOTE(deva): these calls may raise DriverLoadError or DriverNotFound
+        # NOTE(tenbrae): these calls may raise DriverLoadError or
+        # DriverNotFound
         # NOTE(vdrok): Instantiate network and storage interface factory on
         # startup so that all the interfaces are loaded at the very
         # beginning, and failures prevent the conductor from starting.

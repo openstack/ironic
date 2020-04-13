@@ -41,7 +41,7 @@ default_policies = [
                        'is_public_api:True',
                        description='Internal flag for public API routes'),
     # Generic default to hide passwords in node driver_info
-    # NOTE(deva): the 'show_password' policy setting hides secrets in
+    # NOTE(tenbrae): the 'show_password' policy setting hides secrets in
     #             driver_info. However, the name exists for legacy
     #             purposes and can not be changed. Changing it will cause
     #             upgrade problems for any operators who have customized
@@ -74,7 +74,7 @@ default_policies = [
                        description='Owner of allocation'),
 ]
 
-# NOTE(deva): to follow policy-in-code spec, we define defaults for
+# NOTE(tenbrae): to follow policy-in-code spec, we define defaults for
 #             the granular policies in code, rather than in policy.json.
 #             All of these may be overridden by configuration, but we can
 #             depend on their existence throughout the code.
@@ -581,7 +581,7 @@ def init_enforcer(policy_file=None, rules=None,
     if _ENFORCER:
         return
 
-    # NOTE(deva): Register defaults for policy-in-code here so that they are
+    # NOTE(tenbrae): Register defaults for policy-in-code here so that they are
     # loaded exactly once - when this module-global is initialized.
     # Defining these in the relevant API modules won't work
     # because API classes lack singletons and don't use globals.
@@ -622,7 +622,7 @@ def get_oslo_policy_enforcer():
     return get_enforcer()
 
 
-# NOTE(deva): We can't call these methods from within decorators because the
+# NOTE(tenbrae): We can't call these methods from within decorators because the
 # 'target' and 'creds' parameter must be fetched from the call time
 # context-local pecan.request magic variable, but decorators are compiled
 # at module-load time.

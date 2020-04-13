@@ -281,8 +281,8 @@ def do_next_deploy_step(task, step_index, conductor_id):
         # Check if the step is done or not. The step should return
         # states.DEPLOYWAIT if the step is still being executed, or
         # None if the step is done.
-        # NOTE(deva): Some drivers may return states.DEPLOYWAIT
-        #             eg. if they are waiting for a callback
+        # NOTE(tenbrae): Some drivers may return states.DEPLOYWAIT
+        #                eg. if they are waiting for a callback
         if result == states.DEPLOYWAIT:
             # Kill this worker, the async step will make an RPC call to
             # continue_node_deploy() to continue deploying

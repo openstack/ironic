@@ -52,7 +52,8 @@ class TemporaryFailure(IronicException):
 
 
 class NotAcceptable(IronicException):
-    # TODO(deva): We need to set response headers in the API for this exception
+    # TODO(tenbrae): We need to set response headers in the API
+    # for this exception
     _msg_fmt = _("Request not acceptable.")
     code = http_client.NOT_ACCEPTABLE
 

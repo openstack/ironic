@@ -128,7 +128,7 @@ class Node(Base):
         table_args())
     id = Column(Integer, primary_key=True)
     uuid = Column(String(36))
-    # NOTE(deva): we store instance_uuid directly on the node so that we can
+    # NOTE(tenbrae): we store instance_uuid directly on the node so that we can
     #             filter on it more efficiently, even though it is
     #             user-settable, and would otherwise be in node.properties.
     instance_uuid = Column(String(36), nullable=True)
@@ -152,12 +152,12 @@ class Node(Base):
     raid_config = Column(db_types.JsonEncodedDict)
     target_raid_config = Column(db_types.JsonEncodedDict)
 
-    # NOTE(deva): this is the host name of the conductor which has
+    # NOTE(tenbrae): this is the host name of the conductor which has
     #             acquired a TaskManager lock on the node.
     #             We should use an INT FK (conductors.id) in the future.
     reservation = Column(String(255), nullable=True)
 
-    # NOTE(deva): this is the id of the last conductor which prepared local
+    # NOTE(tenbrae): this is the id of the last conductor which prepared local
     #             state for the node (eg, a PXE config file).
     #             When affinity and the hash ring's mapping do not match,
     #             this indicates that a conductor should rebuild local state.

@@ -367,7 +367,7 @@ class DriversController(rest.RestController):
     @expose.expose(DriverList, str, types.boolean)
     def get_all(self, type=None, detail=None):
         """Retrieve a list of drivers."""
-        # FIXME(deva): formatting of the auto-generated REST API docs
+        # FIXME(tenbrae): formatting of the auto-generated REST API docs
         #              will break from a single-line doc string.
         #              This is a result of a bug in sphinxcontrib-pecanwsme
         # https://github.com/dreamhost/sphinxcontrib-pecanwsme/issues/8

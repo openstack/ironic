@@ -132,7 +132,7 @@ class ConductorAPI(object):
                                          serializer=serializer)
 
         use_groups = self.client.can_send_version('1.47')
-        # NOTE(deva): this is going to be buggy
+        # NOTE(tenbrae): this is going to be buggy
         self.ring_manager = hash_ring.HashRingManager(use_groups=use_groups)
 
     def get_conductor_for(self, node):

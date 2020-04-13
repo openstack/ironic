@@ -2097,12 +2097,12 @@ class DoNodeTearDownTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         for state in valid_rescue_states:
             self._test_do_node_tear_down_from_state(state, True)
 
-    # NOTE(deva): partial tear-down was broken. A node left in a state of
-    #             DELETING could not have tear_down called on it a second time
-    #             Thus, I have removed the unit test, which faultily asserted
-    #             only that a node could be left in a state of incomplete
-    #             deletion -- not that such a node's deletion could later be
-    #             completed.
+    # NOTE(tenbrae): partial tear-down was broken. A node left in a state of
+    #                DELETING could not have tear_down called on it a second
+    #                time Thus, I have removed the unit test, which faultily
+    #                asserted only that a node could be left in a state of
+    #                incomplete deletion -- not that such a node's deletion
+    #                could later be completed.
 
     @mock.patch('ironic.conductor.manager.ConductorManager._spawn_worker',
                 autospec=True)

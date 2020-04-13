@@ -5062,10 +5062,10 @@ class TestPut(test_api_base.BaseApiTest):
         self.assertEqual(urlparse.urlparse(ret.location).path,
                          expected_location)
 
-    # NOTE(deva): this test asserts API functionality which is not part of
+    # NOTE(tenbrae): this test asserts API functionality which is not part of
     # the new-ironic-state-machine in Kilo. It is retained for backwards
     # compatibility with Juno.
-    # TODO(deva): add a deprecation-warning to the REST result
+    # TODO(tenbrae): add a deprecation-warning to the REST result
     # and check for it here.
     def test_provision_with_deploy_after_deployfail(self):
         node = self.node
