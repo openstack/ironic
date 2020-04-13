@@ -365,11 +365,6 @@ There are certain limitations to be aware of:
 * Only the mandatory properties (plus the required ``controller`` property)
   from `Target RAID configuration`_ are currently supported.
 
-* There is no way to select the disks which are used to set up the software
-  RAID, so the Ironic Python Agent will use all available disks. This seems
-  appropriate for servers with 2 or 4 disks, but needs to be considered when
-  disk arrays are attached.
-
 * The number of created Software RAID devices must be 1 or 2. If there is only
   one Software RAID device, it has to be a RAID-1. If there are two, the first
   one has to be a RAID-1, while the RAID level for the second one can
