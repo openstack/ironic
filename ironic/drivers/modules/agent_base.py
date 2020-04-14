@@ -459,6 +459,85 @@ class HeartbeatMixin(object):
                         'maintenance mode; not taking any action.',
                         {'node': node.uuid})
 
+    def _heartbeat_deploy_wait(self, task):
+        msg = _('Failed checking if deploy is done')
+        node = task.node
+        try:
+            # NOTE(mgoddard): Only handle heartbeats during DEPLOYWAIT if we
+            # are currently in the core deploy.deploy step. Other deploy steps
+            # may cause the agent to boot, but we should not trigger deployment
+            # at that point if the driver is polling for completion of a step.
+            if self.in_core_deploy_step(task):
+                if not self.deploy_has_started(task):
+                    msg = _('Node failed to deploy')
+                    self.continue_deploy(task)
+                elif self.deploy_is_done(task):
+                    msg = _('Node failed to move to active state')
+                    self.reboot_to_instance(task)
+                else:
+                    node.touch_provisioning()
+            else:
+                # The exceptions from RPC are not possible as we using cast
+                # here
+                # Check if the driver is polling for completion of a step,
+                # via the 'deployment_polling' flag.
+                polling = node.driver_internal_info.get(
+                    'deployment_polling', False)
+                if not polling:
+                    manager_utils.notify_conductor_resume_deploy(task)
+                node.touch_provisioning()
+        except Exception as e:
+            last_error = _('%(msg)s. Error: %(exc)s') % {'msg': msg, 'exc': e}
+            LOG.exception('Asynchronous exception for node %(node)s: %(err)s',
+                          {'node': task.node.uuid, 'err': last_error})
+            # Do not call the error handler is the node is already DEPLOYFAIL
+            if node.provision_state in (states.DEPLOYING, states.DEPLOYWAIT):
+                deploy_utils.set_failed_state(
+                    task, last_error, collect_logs=bool(self._client))
+
+    def _heartbeat_clean_wait(self, task):
+        node = task.node
+        msg = _('Failed checking if cleaning is done')
+        try:
+            node.touch_provisioning()
+            if not node.clean_step:
+                LOG.debug('Node %s just booted to start cleaning.',
+                          node.uuid)
+                msg = _('Node failed to start the first cleaning step')
+                # First, cache the clean steps
+                self.refresh_clean_steps(task)
+                # Then set/verify node clean steps and start cleaning
+                conductor_steps.set_node_cleaning_steps(task)
+                # The exceptions from RPC are not possible as we using cast
+                # here
+                manager_utils.notify_conductor_resume_clean(task)
+            else:
+                msg = _('Node failed to check cleaning progress')
+                # Check if the driver is polling for completion of a step,
+                # via the 'cleaning_polling' flag.
+                polling = node.driver_internal_info.get(
+                    'cleaning_polling', False)
+                if not polling:
+                    self.continue_cleaning(task)
+        except Exception as e:
+            last_error = _('%(msg)s. Error: %(exc)s') % {'msg': msg, 'exc': e}
+            LOG.exception('Asynchronous exception for node %(node)s: %(err)s',
+                          {'node': task.node.uuid, 'err': last_error})
+            if node.provision_state in (states.CLEANING, states.CLEANWAIT):
+                manager_utils.cleaning_error_handler(task, last_error)
+
+    def _heartbeat_rescue_wait(self, task):
+        msg = _('Node failed to perform rescue operation')
+        try:
+            self._finalize_rescue(task)
+        except Exception as e:
+            last_error = _('%(msg)s. Error: %(exc)s') % {'msg': msg, 'exc': e}
+            LOG.exception('Asynchronous exception for node %(node)s: %(err)s',
+                          {'node': task.node.uuid, 'err': last_error})
+            if task.node.provision_state in (states.RESCUING,
+                                             states.RESCUEWAIT):
+                manager_utils.rescuing_error_handler(task, last_error)
+
     @METRICS.timer('HeartbeatMixin.heartbeat')
     def heartbeat(self, task, callback_url, agent_version):
         """Process a heartbeat.
@@ -508,71 +587,12 @@ class HeartbeatMixin(object):
         if node.maintenance:
             return self._heartbeat_in_maintenance(task)
 
-        # Async call backs don't set error state on their own
-        # TODO(jimrollenhagen) improve error messages here
-        msg = _('Failed checking if deploy is done.')
-        try:
-            # NOTE(mgoddard): Only handle heartbeats during DEPLOYWAIT if we
-            # are currently in the core deploy.deploy step. Other deploy steps
-            # may cause the agent to boot, but we should not trigger deployment
-            # at that point if the driver is polling for completion of a step.
-            if node.provision_state == states.DEPLOYWAIT:
-                if self.in_core_deploy_step(task):
-                    if not self.deploy_has_started(task):
-                        msg = _('Node failed to deploy.')
-                        self.continue_deploy(task)
-                    elif self.deploy_is_done(task):
-                        msg = _('Node failed to move to active state.')
-                        self.reboot_to_instance(task)
-                    else:
-                        node.touch_provisioning()
-                else:
-                    # The exceptions from RPC are not possible as we using cast
-                    # here
-                    # Check if the driver is polling for completion of a step,
-                    # via the 'deployment_polling' flag.
-                    polling = node.driver_internal_info.get(
-                        'deployment_polling', False)
-                    if not polling:
-                        manager_utils.notify_conductor_resume_deploy(task)
-                    node.touch_provisioning()
-            elif node.provision_state == states.CLEANWAIT:
-                node.touch_provisioning()
-                if not node.clean_step:
-                    LOG.debug('Node %s just booted to start cleaning.',
-                              node.uuid)
-                    msg = _('Node failed to start the first cleaning step.')
-                    # First, cache the clean steps
-                    self.refresh_clean_steps(task)
-                    # Then set/verify node clean steps and start cleaning
-                    conductor_steps.set_node_cleaning_steps(task)
-                    # The exceptions from RPC are not possible as we using cast
-                    # here
-                    manager_utils.notify_conductor_resume_clean(task)
-                else:
-                    msg = _('Node failed to check cleaning progress.')
-                    # Check if the driver is polling for completion of a step,
-                    # via the 'cleaning_polling' flag.
-                    polling = node.driver_internal_info.get(
-                        'cleaning_polling', False)
-                    if not polling:
-                        self.continue_cleaning(task)
-            elif (node.provision_state == states.RESCUEWAIT):
-                msg = _('Node failed to perform rescue operation.')
-                self._finalize_rescue(task)
-        except Exception as e:
-            err_info = {'msg': msg, 'e': e}
-            last_error = _('Asynchronous exception: %(msg)s '
-                           'Exception: %(e)s for node') % err_info
-            errmsg = last_error + ' %(node)s'
-            LOG.exception(errmsg, {'node': node.uuid})
-            if node.provision_state in (states.CLEANING, states.CLEANWAIT):
-                manager_utils.cleaning_error_handler(task, last_error)
-            elif node.provision_state in (states.DEPLOYING, states.DEPLOYWAIT):
-                deploy_utils.set_failed_state(
-                    task, last_error, collect_logs=bool(self._client))
-            elif node.provision_state in (states.RESCUING, states.RESCUEWAIT):
-                manager_utils.rescuing_error_handler(task, last_error)
+        if node.provision_state == states.DEPLOYWAIT:
+            self._heartbeat_deploy_wait(task)
+        elif node.provision_state == states.CLEANWAIT:
+            self._heartbeat_clean_wait(task)
+        elif node.provision_state == states.RESCUEWAIT:
+            self._heartbeat_rescue_wait(task)
 
     def _finalize_rescue(self, task):
         """Call ramdisk to prepare rescue mode and verify result.
@@ -704,6 +724,67 @@ class AgentDeployMixin(HeartbeatMixin):
         """
         return execute_step(task, step, 'clean')
 
+    def _process_version_mismatch(self, task, step_type):
+        node = task.node
+        # For manual clean, the target provision state is MANAGEABLE, whereas
+        # for automated cleaning, it is (the default) AVAILABLE.
+        manual_clean = node.target_provision_state == states.MANAGEABLE
+
+        # Cache the new clean steps (and 'hardware_manager_version')
+        try:
+            self.refresh_steps(task, step_type)
+        except exception.NodeCleaningFailure as e:
+            msg = (_('Could not continue cleaning on node '
+                     '%(node)s: %(err)s.') %
+                   {'node': node.uuid, 'err': e})
+            LOG.exception(msg)
+            return manager_utils.cleaning_error_handler(task, msg)
+        except exception.InstanceDeployFailure as e:
+            msg = (_('Could not continue deployment on node '
+                     '%(node)s: %(err)s.') %
+                   {'node': node.uuid, 'err': e})
+            LOG.exception(msg)
+            return manager_utils.deploying_error_handler(task, msg)
+
+        if manual_clean:
+            # Don't restart manual cleaning if agent reboots to a new
+            # version. Both are operator actions, unlike automated
+            # cleaning. Manual clean steps are not necessarily idempotent
+            # like automated clean steps and can be even longer running.
+            LOG.info('During manual cleaning, node %(node)s detected '
+                     'a clean version mismatch. Re-executing and '
+                     'continuing from current step %(step)s.',
+                     {'node': node.uuid, 'step': node.clean_step})
+
+            driver_internal_info = node.driver_internal_info
+            driver_internal_info['skip_current_clean_step'] = False
+            node.driver_internal_info = driver_internal_info
+            node.save()
+        else:
+            # Restart the process, agent must have rebooted to new version
+            LOG.info('During %(type)s, node %(node)s detected a '
+                     '%(type)s version mismatch. Resetting %(type)s steps '
+                     'and rebooting the node.',
+                     {'type': step_type, 'node': node.uuid})
+            try:
+                conductor_steps.set_node_cleaning_steps(task)
+            except exception.NodeCleaningFailure as e:
+                msg = (_('Could not restart automated cleaning on node '
+                         '%(node)s after step %(step)s: %(err)s.') %
+                       {'node': node.uuid, 'err': e,
+                        'step': node.clean_step})
+                LOG.exception(msg)
+                return manager_utils.cleaning_error_handler(task, msg)
+            except exception.InstanceDeployFailure as e:
+                msg = (_('Could not restart deployment on node '
+                         '%(node)s after step %(step)s: %(err)s.') %
+                       {'node': node.uuid, 'err': e,
+                        'step': node.deploy_step})
+                LOG.exception(msg)
+                return manager_utils.deploying_error_handler(task, msg)
+
+        manager_utils.notify_conductor_resume_operation(task, step_type)
+
     @METRICS.timer('AgentDeployMixin.process_next_step')
     def process_next_step(self, task, step_type, **kwargs):
         """Start the next clean/deploy step if the previous one is complete.
@@ -724,9 +805,6 @@ class AgentDeployMixin(HeartbeatMixin):
         assert step_type in ('clean', 'deploy')
 
         node = task.node
-        # For manual clean, the target provision state is MANAGEABLE, whereas
-        # for automated cleaning, it is (the default) AVAILABLE.
-        manual_clean = node.target_provision_state == states.MANAGEABLE
         agent_commands = self._client.get_commands_status(task.node)
 
         if not agent_commands:
@@ -770,61 +848,7 @@ class AgentDeployMixin(HeartbeatMixin):
             return manager_utils.cleaning_error_handler(task, msg)
         elif command.get('command_status') in ('CLEAN_VERSION_MISMATCH',
                                                'DEPLOY_VERSION_MISMATCH'):
-            # Cache the new clean steps (and 'hardware_manager_version')
-            try:
-                self.refresh_steps(task, step_type)
-            except exception.NodeCleaningFailure as e:
-                msg = (_('Could not continue cleaning on node '
-                         '%(node)s: %(err)s.') %
-                       {'node': node.uuid, 'err': e})
-                LOG.exception(msg)
-                return manager_utils.cleaning_error_handler(task, msg)
-            except exception.InstanceDeployFailure as e:
-                msg = (_('Could not continue deployment on node '
-                         '%(node)s: %(err)s.') %
-                       {'node': node.uuid, 'err': e})
-                LOG.exception(msg)
-                return manager_utils.deploying_error_handler(task, msg)
-
-            if manual_clean:
-                # Don't restart manual cleaning if agent reboots to a new
-                # version. Both are operator actions, unlike automated
-                # cleaning. Manual clean steps are not necessarily idempotent
-                # like automated clean steps and can be even longer running.
-                LOG.info('During manual cleaning, node %(node)s detected '
-                         'a clean version mismatch. Re-executing and '
-                         'continuing from current step %(step)s.',
-                         {'node': node.uuid, 'step': node.clean_step})
-
-                driver_internal_info = node.driver_internal_info
-                driver_internal_info['skip_current_clean_step'] = False
-                node.driver_internal_info = driver_internal_info
-                node.save()
-            else:
-                # Restart the process, agent must have rebooted to new version
-                LOG.info('During %(type)s, node %(node)s detected a '
-                         '%(type)s version mismatch. Resetting %(type)s steps '
-                         'and rebooting the node.',
-                         {'type': step_type, 'node': node.uuid})
-                try:
-                    conductor_steps.set_node_cleaning_steps(task)
-                except exception.NodeCleaningFailure as e:
-                    msg = (_('Could not restart automated cleaning on node '
-                             '%(node)s after step %(step)s: %(err)s.') %
-                           {'node': node.uuid, 'err': e,
-                            'step': node.clean_step})
-                    LOG.exception(msg)
-                    return manager_utils.cleaning_error_handler(task, msg)
-                except exception.InstanceDeployFailure as e:
-                    msg = (_('Could not restart deployment on node '
-                             '%(node)s after step %(step)s: %(err)s.') %
-                           {'node': node.uuid, 'err': e,
-                            'step': node.deploy_step})
-                    LOG.exception(msg)
-                    return manager_utils.deploying_error_handler(task, msg)
-
-            manager_utils.notify_conductor_resume_operation(task, step_type)
-
+            self._process_version_mismatch(task, step_type)
         elif command.get('command_status') == 'SUCCEEDED':
             step_hook = _get_post_step_hook(node, step_type)
             if step_hook is not None:
