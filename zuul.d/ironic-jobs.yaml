@@ -254,6 +254,14 @@
     description: ironic-tempest-ipa-partition-pxe_ipmitool
     parent: ironic-base
     timeout: 5400
+    vars:
+      devstack_localrc:
+        # This test runs cleaning by default, and with a larger
+        # IPA image means that it takes longer to boot for deploy
+        # and cleaning. As such, CI performance variations can
+        # cause this job to fail easily due to the extra steps
+        # and boot cycle of the cleaning operation.
+        IRONIC_TEMPEST_BUILD_TIMEOUT: 850
 
 - job:
     name: ironic-tempest-bfv
