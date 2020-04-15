@@ -70,7 +70,8 @@ class TestAgentClient(base.TestCase):
 
     def test__get_command_url(self):
         command_url = self.client._get_command_url(self.node)
-        expected = self.node.driver_internal_info['agent_url'] + '/v1/commands'
+        expected = ('%s/v1/commands/'
+                    % self.node.driver_internal_info['agent_url'])
         self.assertEqual(expected, command_url)
 
     def test__get_command_url_fail(self):
