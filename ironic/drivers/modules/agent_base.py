@@ -1037,6 +1037,9 @@ class AgentDeployMixin(HeartbeatMixin):
             on encountering error while setting the boot device on the node.
         """
         node = task.node
+        # Almost never taken into account on agent side, just used for softraid
+        # Can be useful with whole_disk_images
+        target_boot_mode = boot_mode_utils.get_boot_mode(task.node)
         LOG.debug('Configuring local boot for node %s', node.uuid)
 
         # If the target RAID configuration is set to 'software' for the
@@ -1091,7 +1094,9 @@ class AgentDeployMixin(HeartbeatMixin):
             result = self._client.install_bootloader(
                 node, root_uuid=root_uuid,
                 efi_system_part_uuid=efi_system_part_uuid,
-                prep_boot_part_uuid=prep_boot_part_uuid)
+                prep_boot_part_uuid=prep_boot_part_uuid,
+                target_boot_mode=target_boot_mode
+            )
             if result['command_status'] == 'FAILED':
                 if not whole_disk_image:
                     msg = (_("Failed to install a bootloader when "

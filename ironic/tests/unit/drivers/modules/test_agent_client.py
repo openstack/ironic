@@ -276,11 +276,12 @@ class TestAgentClient(base.TestCase):
         self.client._command = mock.MagicMock(spec_set=[])
         params = {'root_uuid': root_uuid,
                   'efi_system_part_uuid': efi_system_part_uuid,
-                  'prep_boot_part_uuid': prep_boot_part_uuid}
+                  'prep_boot_part_uuid': prep_boot_part_uuid,
+                  'target_boot_mode': 'hello'}
 
         self.client.install_bootloader(
             self.node, root_uuid, efi_system_part_uuid=efi_system_part_uuid,
-            prep_boot_part_uuid=prep_boot_part_uuid)
+            prep_boot_part_uuid=prep_boot_part_uuid, target_boot_mode='hello')
         self.client._command.assert_called_once_with(
             command_timeout_factor=2, node=self.node,
             method='image.install_bootloader', params=params,
@@ -290,7 +291,7 @@ class TestAgentClient(base.TestCase):
         self._test_install_bootloader(root_uuid='fake-root-uuid',
                                       efi_system_part_uuid='fake-efi-uuid')
 
-    def test_install_bootloaderi_with_prep(self):
+    def test_install_bootloader_with_prep(self):
         self._test_install_bootloader(root_uuid='fake-root-uuid',
                                       efi_system_part_uuid='fake-efi-uuid',
                                       prep_boot_part_uuid='fake-prep-uuid')

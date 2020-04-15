@@ -259,12 +259,14 @@ class AgentClient(object):
                              wait=True)
 
     @METRICS.timer('AgentClient.install_bootloader')
-    def install_bootloader(self, node, root_uuid, efi_system_part_uuid=None,
+    def install_bootloader(self, node, root_uuid, target_boot_mode,
+                           efi_system_part_uuid=None,
                            prep_boot_part_uuid=None):
         """Install a boot loader on the image.
 
         :param node: A node object.
         :param root_uuid: The UUID of the root partition.
+        :param target_boot_mode: The target deployment boot mode.
         :param efi_system_part_uuid: The UUID of the efi system partition
                where the bootloader will be installed to, only used for uefi
                boot mode.
@@ -279,7 +281,9 @@ class AgentClient(object):
         """
         params = {'root_uuid': root_uuid,
                   'efi_system_part_uuid': efi_system_part_uuid,
-                  'prep_boot_part_uuid': prep_boot_part_uuid}
+                  'prep_boot_part_uuid': prep_boot_part_uuid,
+                  'target_boot_mode': target_boot_mode
+                  }
 
         # NOTE(TheJulia): This command explicitly sends a larger timeout
         # factor to the _command call such that the agent ramdisk has enough
@@ -289,11 +293,34 @@ class AgentClient(object):
         # compatible. We could at least begin to delineate the commands apart
         # over the next cycle or two so we don't need a command timeout
         # extension factor.
-        return self._command(node=node,
-                             method='image.install_bootloader',
-                             params=params,
-                             wait=True,
-                             command_timeout_factor=2)
+        try:
+            return self._command(node=node,
+                                 method='image.install_bootloader',
+                                 params=params,
+                                 wait=True,
+                                 command_timeout_factor=2)
+        except exception.AgentAPIError:
+            # NOTE(arne_wiebalck): If we require to pass 'uefi' as the boot
+            # mode, but find that the IPA does not yet support the additional
+            # 'target_boot_mode' parameter, we need to fail. For 'bios' boot
+            # mode on the other hand we can retry without the parameter,
+            # since 'bios' is the default value the IPA will use.
+            if target_boot_mode == 'uefi':
+                LOG.error('Unable to pass UEFI boot mode to an out of date '
+                          'agent ramdisk. Please contact the administrator '
+                          'to update the ramdisk to contain an '
+                          'ironic-python-agent version of at least 6.0.0.')
+                raise
+            else:
+                params = {'root_uuid': root_uuid,
+                          'efi_system_part_uuid': efi_system_part_uuid,
+                          'prep_boot_part_uuid': prep_boot_part_uuid
+                          }
+                return self._command(node=node,
+                                     method='image.install_bootloader',
+                                     params=params,
+                                     wait=True,
+                                     command_timeout_factor=2)
 
     @METRICS.timer('AgentClient.get_clean_steps')
     def get_clean_steps(self, node, ports):
