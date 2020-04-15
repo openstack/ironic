@@ -586,3 +586,23 @@ the Ironic power state poll interval to 70 seconds. See
 
 .. _Ironic_RAID: https://docs.openstack.org/ironic/latest/admin/raid.html
 .. _iDRAC: https://www.dell.com/idracmanuals
+
+Vendor passthru timeout
+-----------------------
+
+When iDRAC is not ready and executing vendor passthru commands, they take more
+time as waiting for iDRAC to become ready again and then time out, for example:
+
+.. code-block:: bash
+
+  openstack baremetal node passthru call --http-method GET \
+    aed58dca-1b25-409a-a32f-3a817d59e1e0 list_unfinished_jobs
+  Timed out waiting for a reply to message ID 547ce7995342418c99ef1ea4a0054572 (HTTP 500)
+
+To avoid this need to increase timeout for messaging in ``/etc/ironic/ironic.conf``
+and restart Ironic API service.
+
+.. code-block:: ini
+
+  [DEFAULT]
+  rpc_response_timeout = 600
