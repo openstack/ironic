@@ -45,7 +45,7 @@ class AgentClient(object):
             raise exception.IronicException(_('Agent driver requires '
                                               'agent_url in '
                                               'driver_internal_info'))
-        return ('%(agent_url)s/%(api_version)s/commands' %
+        return ('%(agent_url)s/%(api_version)s/commands/' %
                 {'agent_url': agent_url,
                  'api_version': CONF.agent.agent_api_version})
 
