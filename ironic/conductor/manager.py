@@ -3114,7 +3114,7 @@ class ConductorManager(base_manager.BaseConductorManager):
                     'Invalid or missing agent token received.')
             else:
                 LOG.warning('Out of date agent detected for node '
-                            '%(node)s. Agent version %(version) '
+                            '%(node)s. Agent version %(version)s '
                             'reported. Support for this version is '
                             'deprecated.',
                             {'node': task.node.uuid,

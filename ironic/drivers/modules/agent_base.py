@@ -691,7 +691,7 @@ class AgentDeployMixin(HeartbeatMixin):
                 if missing:
                     _raise(step_type, _(
                         'agent get_%(type)s_steps for node %(node)s returned '
-                        'an invalid %(type)s step. Keys: %(keys)s are missing'
+                        'an invalid %(type)s step. Keys: %(keys)s are missing '
                         'from step: %(step)s.') % ({'node': node.uuid,
                                                     'keys': missing,
                                                     'step': step,
