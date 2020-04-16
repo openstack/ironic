@@ -572,7 +572,7 @@ if [[ "$IRONIC_BOOT_MODE" == "uefi" ]]; then
 fi
 
 # TODO(dtantsur): change this when we change the default value.
-IRONIC_DEFAULT_BOOT_OPTION=${IRONIC_DEFAULT_BOOT_OPTION:-netboot}
+IRONIC_DEFAULT_BOOT_OPTION=${IRONIC_DEFAULT_BOOT_OPTION:-local}
 if [ $IRONIC_DEFAULT_BOOT_OPTION != "netboot" ] && [ $IRONIC_DEFAULT_BOOT_OPTION != "local" ]; then
     die $LINENO "Supported values for IRONIC_DEFAULT_BOOT_OPTION are 'netboot' and 'local' only."
 fi

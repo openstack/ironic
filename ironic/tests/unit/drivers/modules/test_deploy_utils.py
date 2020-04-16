@@ -701,7 +701,7 @@ class OtherFunctionTestCase(db_base.DbTestCase):
     def test_get_boot_option_default_value(self):
         self.node.instance_info = {}
         result = utils.get_boot_option(self.node)
-        self.assertEqual("netboot", result)
+        self.assertEqual("local", result)
 
     def test_get_boot_option_overridden_default_value(self):
         cfg.CONF.set_override('default_boot_option', 'local', 'deploy')

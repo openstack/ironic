@@ -998,9 +998,17 @@ class PXEInterfacesTestCase(db_base.DbTestCase):
 
     def test_get_instance_image_info(self):
         # Tests when 'is_whole_disk_image' exists in driver_internal_info
+        # NOTE(TheJulia): The method being tested is primarily geared for
+        # only netboot operation as the information should only need to be
+        # looked up again during network booting.
+        self.config(group="deploy", default_boot_option="netboot")
         self._test_get_instance_image_info()
 
     def test_get_instance_image_info_without_is_whole_disk_image(self):
+        # NOTE(TheJulia): The method being tested is primarily geared for
+        # only netboot operation as the information should only need to be
+        # looked up again during network booting.
+        self.config(group="deploy", default_boot_option="netboot")
         # Tests when 'is_whole_disk_image' doesn't exists in
         # driver_internal_info
         del self.node.driver_internal_info['is_whole_disk_image']

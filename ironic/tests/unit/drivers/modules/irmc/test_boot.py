@@ -1074,6 +1074,8 @@ class IRMCVirtualMediaBootTestCase(test_common.BaseIRMCTest):
                        autospec=True)
     def test_prepare_instance_partition_image(
             self, _cleanup_vmedia_boot_mock, _configure_vmedia_mock):
+        self.node.instance_info = {
+            'capabilities': {'boot_option': 'netboot'}}
         self.node.driver_internal_info = {'root_uuid_or_disk_id': "some_uuid"}
         self.node.save()
         with task_manager.acquire(self.context, self.node.uuid,
@@ -1149,7 +1151,7 @@ class IRMCVirtualMediaBootTestCase(test_common.BaseIRMCTest):
         self.node.target_provision_state = states.ACTIVE
         self.node.instance_info = {
             'capabilities': {
-                "secure_boot": "true"
+                "secure_boot": "true", 'boot_option': 'netboot'
             }
         }
         self.node.save()
@@ -1177,7 +1179,7 @@ class IRMCVirtualMediaBootTestCase(test_common.BaseIRMCTest):
         self.node.target_provision_state = states.ACTIVE
         self.node.instance_info = {
             'capabilities': {
-                "secure_boot": "false"
+                "secure_boot": "false", 'boot_option': 'netboot'
             }
         }
         self.node.save()
@@ -1202,6 +1204,11 @@ class IRMCVirtualMediaBootTestCase(test_common.BaseIRMCTest):
         self.node.driver_internal_info = {'root_uuid_or_disk_id': "12312642"}
         self.node.provision_state = states.DEPLOYING
         self.node.target_provision_state = states.ACTIVE
+        self.node.instance_info = {
+            'capabilities': {
+                'boot_option': 'netboot'
+            }
+        }
         self.node.save()
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:

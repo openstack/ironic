@@ -1105,6 +1105,8 @@ class IloVirtualMediaBootTestCase(test_common.BaseIloTest):
             is_iscsi_boot_mock):
         self.node.driver_internal_info = {'root_uuid_or_disk_id': (
             "12312642-09d3-467f-8e09-12385826a123")}
+        self.node.instance_info = {
+            'capabilities': {'boot_option': 'netboot'}}
         self.node.save()
         is_iscsi_boot_mock.return_value = False
         with task_manager.acquire(self.context, self.node.uuid,

@@ -180,9 +180,11 @@ class PXEBootTestCase(db_base.DbTestCase):
 
     @mock.patch.object(image_service.GlanceImageService, 'show', autospec=True)
     def test_validate_fail_no_image_kernel_ramdisk_props(self, mock_glance):
+        instance_info = {"boot_option": "netboot"}
         mock_glance.return_value = {'properties': {}}
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
+            task.node.instance_info['capabilities'] = instance_info
             self.assertRaises(exception.MissingParameterValue,
                               task.driver.boot.validate,
                               task)
@@ -559,7 +561,8 @@ class PXEBootTestCase(db_base.DbTestCase):
             task.node.driver_internal_info['root_uuid_or_disk_id'] = (
                 "30212642-09d3-467f-8e09-21685826ab50")
             task.node.driver_internal_info['is_whole_disk_image'] = False
-
+            task.node.instance_info = {
+                'capabilities': {'boot_option': 'netboot'}}
             task.driver.boot.prepare_instance(task)
 
             get_image_info_mock.assert_called_once_with(
@@ -589,6 +592,7 @@ class PXEBootTestCase(db_base.DbTestCase):
         dhcp_factory_mock.return_value = provider_mock
         image_info = {'kernel': ('', '/path/to/kernel'),
                       'ramdisk': ('', '/path/to/ramdisk')}
+        instance_info = {"boot_option": "netboot"}
         get_image_info_mock.return_value = image_info
         self.node.provision_state = states.ACTIVE
         self.node.save()
@@ -601,7 +605,7 @@ class PXEBootTestCase(db_base.DbTestCase):
             task.node.driver_internal_info['root_uuid_or_disk_id'] = (
                 "30212642-09d3-467f-8e09-21685826ab50")
             task.node.driver_internal_info['is_whole_disk_image'] = False
-
+            task.node.instance_info['capabilities'] = instance_info
             task.driver.boot.prepare_instance(task)
 
             get_image_info_mock.assert_called_once_with(
@@ -630,11 +634,13 @@ class PXEBootTestCase(db_base.DbTestCase):
         dhcp_factory_mock.return_value = provider_mock
         image_info = {'kernel': ('', '/path/to/kernel'),
                       'ramdisk': ('', '/path/to/ramdisk')}
+        instance_info = {"boot_option": "netboot"}
         get_image_info_mock.return_value = image_info
         with task_manager.acquire(self.context, self.node.uuid) as task:
             dhcp_opts = pxe_utils.dhcp_options_for_instance(
                 task, ipxe_enabled=False)
             task.node.properties['capabilities'] = 'boot_mode:bios'
+            task.node.instance_info['capabilities'] = instance_info
             task.node.driver_internal_info['is_whole_disk_image'] = False
 
             task.driver.boot.prepare_instance(task)
@@ -660,10 +666,12 @@ class PXEBootTestCase(db_base.DbTestCase):
         provider_mock = mock.MagicMock()
         dhcp_factory_mock.return_value = provider_mock
         get_image_info_mock.return_value = {}
+        instance_info = {"boot_option": "netboot"}
         with task_manager.acquire(self.context, self.node.uuid) as task:
             dhcp_opts = pxe_utils.dhcp_options_for_instance(
                 task, ipxe_enabled=False)
             task.node.properties['capabilities'] = 'boot_mode:bios'
+            task.node.instance_info['capabilities'] = instance_info
             task.node.driver_internal_info['is_whole_disk_image'] = True
             task.driver.boot.prepare_instance(task)
             get_image_info_mock.assert_called_once_with(task,

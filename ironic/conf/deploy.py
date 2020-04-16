@@ -80,11 +80,11 @@ opts = [
     cfg.StrOpt('default_boot_option',
                choices=[('netboot', _('boot from a network')),
                         ('local', _('local boot'))],
+               default='local',
                help=_('Default boot option to use when no boot option is '
-                      'requested in node\'s driver_info. Currently the '
-                      'default is "netboot", but it will be changed to '
-                      '"local" in the future. It is recommended to set '
-                      'an explicit value for this option.')),
+                      'requested in node\'s driver_info. Defaults to '
+                      '"local". Prior to the Ussuri release, the default '
+                      'was "netboot".')),
     cfg.StrOpt('default_boot_mode',
                choices=[(boot_modes.UEFI, _('UEFI boot mode')),
                         (boot_modes.LEGACY_BIOS, _('Legacy BIOS boot mode'))],

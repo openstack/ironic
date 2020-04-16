@@ -563,6 +563,12 @@ class AgentDeploy(AgentDeployMixin, base.DeployInterface):
                 # 'instance_info' to 'local for backward compatibility.
                 # TODO(stendulker): Fail here once the default boot
                 # option is local.
+                # NOTE(TheJulia): Fixing the default boot mode only
+                # masks the failure as the lack of a user definition
+                # can be perceived as both an invalid configuration and
+                # reliance upon the default configuration. The reality
+                # being that in most scenarios, users do not want network
+                # booting, so the changed default should be valid.
                 with excutils.save_and_reraise_exception(reraise=False) as ctx:
                     instance_info = node.instance_info
                     capabilities = utils.parse_instance_info_capabilities(node)

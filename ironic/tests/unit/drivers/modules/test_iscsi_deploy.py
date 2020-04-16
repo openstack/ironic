@@ -423,7 +423,7 @@ class IscsiDeployMethodsTestCase(db_base.DbTestCase):
 
     def test_get_deploy_info_boot_option_default(self):
         ret_val = self._test_get_deploy_info()
-        self.assertEqual('netboot', ret_val['boot_option'])
+        self.assertEqual('local', ret_val['boot_option'])
 
     def test_get_deploy_info_netboot_specified(self):
         capabilities = {'capabilities': {'boot_option': 'netboot'}}
@@ -1001,11 +1001,14 @@ class ISCSIDeployTestCase(db_base.DbTestCase):
     def test_continue_deploy_netboot(self, do_agent_iscsi_deploy_mock,
                                      reboot_and_finish_deploy_mock):
 
+        self.node.instance_info = {
+            'capabilities': {'boot_option': 'netboot'}}
         self.node.provision_state = states.DEPLOYWAIT
         self.node.target_provision_state = states.ACTIVE
         self.node.save()
         uuid_dict_returned = {'root uuid': 'some-root-uuid'}
         do_agent_iscsi_deploy_mock.return_value = uuid_dict_returned
+        self.node.save()
         with task_manager.acquire(self.context, self.node.uuid) as task:
             with mock.patch.object(
                     task.driver.boot, 'prepare_instance') as m_prep_instance:
@@ -1395,7 +1398,7 @@ class PhysicalWorkTestCase(tests_base.TestCase):
             'configdrive': deploy_args['configdrive'],
             # boot_option defaults to 'netboot' if
             # not set
-            'boot_option': deploy_args['boot_option'] or 'netboot',
+            'boot_option': deploy_args['boot_option'] or 'local',
             'boot_mode': deploy_args['boot_mode'],
             'disk_label': deploy_args['disk_label'],
             'cpu_arch': deploy_args['cpu_arch'] or ''
@@ -1762,7 +1765,7 @@ class PhysicalWorkTestCase(tests_base.TestCase):
                                          ephemeral_format, image_path,
                                          node_uuid, configdrive=None,
                                          preserve_ephemeral=False,
-                                         boot_option="netboot",
+                                         boot_option="local",
                                          boot_mode="bios",
                                          disk_label=None,
                                          cpu_arch="")]

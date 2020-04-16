@@ -497,7 +497,8 @@ def validate_image_properties(ctx, deploy_info, properties):
 
 def get_default_boot_option():
     """Gets the default boot option."""
-    return CONF.deploy.default_boot_option or 'netboot'
+    # TODO(TheJulia): Deprecated: Remove after Ussuri.
+    return CONF.deploy.default_boot_option
 
 
 def get_boot_option(node):
@@ -514,7 +515,8 @@ def get_boot_option(node):
     if is_software_raid(node):
         return 'local'
     capabilities = utils.parse_instance_info_capabilities(node)
-    return capabilities.get('boot_option', get_default_boot_option()).lower()
+    return capabilities.get('boot_option',
+                            CONF.deploy.default_boot_option).lower()
 
 
 def is_software_raid(node):

@@ -49,14 +49,6 @@ def warn_about_unsafe_shred_parameters(conf):
                     'Secure Erase. This is a possible SECURITY ISSUE!')
 
 
-def warn_about_missing_default_boot_option(conf):
-    if not conf.deploy.default_boot_option:
-        LOG.warning('The default value of default_boot_option '
-                    'configuration will change eventually from '
-                    '"netboot" to "local". It is recommended to set '
-                    'an explicit value for it during the transition period')
-
-
 def warn_about_agent_token_deprecation(conf):
     if not conf.require_agent_token:
         LOG.warning('The ``[DEFAULT]require_agent_token`` option is not '
@@ -70,7 +62,6 @@ def warn_about_agent_token_deprecation(conf):
 
 def issue_startup_warnings(conf):
     warn_about_unsafe_shred_parameters(conf)
-    warn_about_missing_default_boot_option(conf)
     warn_about_agent_token_deprecation(conf)
 
 

@@ -1362,6 +1362,8 @@ class TestAgentDeploy(db_base.DbTestCase):
                                                 power_on_node_if_needed_mock,
                                                 resume_mock):
         check_deploy_mock.return_value = None
+        self.node.instance_info = {
+            'capabilities': {'boot_option': 'netboot'}}
         uuid_mock.return_value = 'root_uuid'
         self.node.provision_state = states.DEPLOYWAIT
         self.node.target_provision_state = states.ACTIVE
