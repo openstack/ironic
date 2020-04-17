@@ -276,7 +276,8 @@ class AgentClient(object):
     @METRICS.timer('AgentClient.install_bootloader')
     def install_bootloader(self, node, root_uuid, target_boot_mode,
                            efi_system_part_uuid=None,
-                           prep_boot_part_uuid=None):
+                           prep_boot_part_uuid=None,
+                           software_raid=False):
         """Install a boot loader on the image.
 
         :param node: A node object.
@@ -315,12 +316,12 @@ class AgentClient(object):
                                  wait=True,
                                  command_timeout_factor=2)
         except exception.AgentAPIError:
-            # NOTE(arne_wiebalck): If we require to pass 'uefi' as the boot
-            # mode, but find that the IPA does not yet support the additional
+            # NOTE(arne_wiebalck): If for software RAID and 'uefi' as the boot
+            # mode, we find that the IPA does not yet support the additional
             # 'target_boot_mode' parameter, we need to fail. For 'bios' boot
             # mode on the other hand we can retry without the parameter,
             # since 'bios' is the default value the IPA will use.
-            if target_boot_mode == 'uefi':
+            if target_boot_mode == 'uefi' and software_raid:
                 LOG.error('Unable to pass UEFI boot mode to an out of date '
                           'agent ramdisk. Please contact the administrator '
                           'to update the ramdisk to contain an '

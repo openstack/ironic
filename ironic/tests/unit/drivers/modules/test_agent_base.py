@@ -1101,7 +1101,7 @@ class AgentDeployMixinTest(AgentDeployMixinBaseTest):
             install_bootloader_mock.assert_called_once_with(
                 mock.ANY, task.node, root_uuid='some-root-uuid',
                 efi_system_part_uuid=None, prep_boot_part_uuid=None,
-                target_boot_mode='whatever'
+                target_boot_mode='whatever', software_raid=False
             )
 
     @mock.patch.object(agent_client.AgentClient, 'install_bootloader',
@@ -1126,7 +1126,7 @@ class AgentDeployMixinTest(AgentDeployMixinBaseTest):
             install_bootloader_mock.assert_called_once_with(
                 mock.ANY, task.node, root_uuid='some-root-uuid',
                 efi_system_part_uuid=None, prep_boot_part_uuid='fake-prep',
-                target_boot_mode='whatever'
+                target_boot_mode='whatever', software_raid=False
             )
 
     @mock.patch.object(agent_client.AgentClient, 'install_bootloader',
@@ -1152,7 +1152,7 @@ class AgentDeployMixinTest(AgentDeployMixinBaseTest):
                 mock.ANY, task.node, root_uuid='some-root-uuid',
                 efi_system_part_uuid='efi-system-part-uuid',
                 prep_boot_part_uuid=None,
-                target_boot_mode='uefi'
+                target_boot_mode='uefi', software_raid=False
             )
 
     @mock.patch.object(deploy_utils, 'try_set_boot_device', autospec=True)
@@ -1199,7 +1199,8 @@ class AgentDeployMixinTest(AgentDeployMixinBaseTest):
             install_bootloader_mock.assert_called_once_with(
                 mock.ANY, task.node, root_uuid=None,
                 efi_system_part_uuid='efi-system-part-uuid',
-                prep_boot_part_uuid=None, target_boot_mode='uefi')
+                prep_boot_part_uuid=None, target_boot_mode='uefi',
+                software_raid=False)
 
     @mock.patch.object(image_service, 'GlanceImageService', autospec=True)
     @mock.patch.object(deploy_utils, 'try_set_boot_device', autospec=True)
@@ -1264,7 +1265,7 @@ class AgentDeployMixinTest(AgentDeployMixinBaseTest):
             install_bootloader_mock.assert_called_once_with(
                 mock.ANY, task.node, root_uuid=root_uuid,
                 efi_system_part_uuid=None, prep_boot_part_uuid=None,
-                target_boot_mode='bios')
+                target_boot_mode='bios', software_raid=True)
             try_set_boot_device_mock.assert_called_once_with(
                 task, boot_devices.DISK, persistent=True)
 
@@ -1366,7 +1367,7 @@ class AgentDeployMixinTest(AgentDeployMixinBaseTest):
             install_bootloader_mock.assert_called_once_with(
                 mock.ANY, task.node, root_uuid='some-root-uuid',
                 efi_system_part_uuid=None, prep_boot_part_uuid=None,
-                target_boot_mode='whatever'
+                target_boot_mode='whatever', software_raid=False
             )
             collect_logs_mock.assert_called_once_with(mock.ANY, task.node)
             self.assertEqual(states.DEPLOYFAIL, task.node.provision_state)
@@ -1399,7 +1400,7 @@ class AgentDeployMixinTest(AgentDeployMixinBaseTest):
             install_bootloader_mock.assert_called_once_with(
                 mock.ANY, task.node, root_uuid='some-root-uuid',
                 efi_system_part_uuid=None, prep_boot_part_uuid=None,
-                target_boot_mode='whatever')
+                target_boot_mode='whatever', software_raid=False)
             try_set_boot_device_mock.assert_called_once_with(
                 task, boot_devices.DISK, persistent=True)
             collect_logs_mock.assert_called_once_with(mock.ANY, task.node)
