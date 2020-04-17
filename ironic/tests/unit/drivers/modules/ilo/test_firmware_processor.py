@@ -22,6 +22,7 @@ import mock
 from oslo_utils import importutils
 
 from ironic.common import exception
+from ironic.drivers.modules import deploy_utils
 from ironic.drivers.modules.ilo import common as ilo_common
 from ironic.drivers.modules.ilo import firmware_processor as ilo_fw_processor
 from ironic.tests import base
@@ -481,10 +482,12 @@ class FirmwareProcessorTestCase(base.TestCase):
         utils_mock.process_firmware_image.assert_called_once_with(
             any_target_file, ilo_object_mock)
 
+    @mock.patch.object(deploy_utils, 'copy_image_to_web_server',
+                       autospec=True)
     @mock.patch.object(ilo_fw_processor, 'ilo_common', autospec=True)
     @mock.patch.object(ilo_fw_processor, 'proliantutils_utils', autospec=True)
     def test__extract_fw_from_file_doesnt_upload_firmware(
-            self, utils_mock, ilo_common_mock):
+            self, utils_mock, ilo_common_mock, copy_mock):
         # | GIVEN |
         node_mock = mock.MagicMock(uuid='fake_node_uuid')
         any_target_file = 'any_target_file'
@@ -493,7 +496,7 @@ class FirmwareProcessorTestCase(base.TestCase):
         # | WHEN |
         ilo_fw_processor._extract_fw_from_file(node_mock, any_target_file)
         # | THEN |
-        ilo_common_mock.copy_image_to_web_server.assert_not_called()
+        copy_mock.assert_not_called()
 
     @mock.patch.object(ilo_fw_processor, 'ilo_common', autospec=True)
     @mock.patch.object(ilo_fw_processor, 'proliantutils_utils', autospec=True)
@@ -513,10 +516,12 @@ class FirmwareProcessorTestCase(base.TestCase):
         # | THEN |
         _remove_mock.assert_called_once_with(location_obj)
 
+    @mock.patch.object(deploy_utils, 'copy_image_to_web_server',
+                       autospec=True)
     @mock.patch.object(ilo_fw_processor, 'ilo_common', autospec=True)
     @mock.patch.object(ilo_fw_processor, 'proliantutils_utils', autospec=True)
     def test__extract_fw_from_file_uploads_firmware_to_webserver(
-            self, utils_mock, ilo_common_mock):
+            self, utils_mock, ilo_common_mock, copy_mock):
         # | GIVEN |
         node_mock = mock.MagicMock(uuid='fake_node_uuid')
         any_target_file = 'any_target_file'
@@ -526,15 +531,17 @@ class FirmwareProcessorTestCase(base.TestCase):
         # | WHEN |
         ilo_fw_processor._extract_fw_from_file(node_mock, any_target_file)
         # | THEN |
-        ilo_common_mock.copy_image_to_web_server.assert_called_once_with(
+        copy_mock.assert_called_once_with(
             'some_location/some_fw_file', 'some_fw_file')
 
+    @mock.patch.object(deploy_utils, 'copy_image_to_web_server',
+                       autospec=True)
     @mock.patch.object(ilo_fw_processor, 'ilo_common', autospec=True)
     @mock.patch.object(ilo_fw_processor, 'proliantutils_utils', autospec=True)
     @mock.patch.object(ilo_fw_processor, '_remove_webserver_based_me',
                        autospec=True)
     def test__extract_fw_from_file_sets_loc_obj_remove_to_webserver(
-            self, _remove_mock, utils_mock, ilo_common_mock):
+            self, _remove_mock, utils_mock, ilo_common_mock, copy_mock):
         # | GIVEN |
         node_mock = mock.MagicMock(uuid='fake_node_uuid')
         any_target_file = 'any_target_file'

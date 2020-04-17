@@ -16,8 +16,6 @@ Boot Interface for iLO drivers and its supporting methods.
 """
 
 import os
-import tempfile
-from urllib import parse as urlparse
 
 from ironic_lib import metrics_utils
 from ironic_lib import utils as ironic_utils
@@ -40,6 +38,7 @@ from ironic.drivers.modules import deploy_utils
 from ironic.drivers.modules.ilo import common as ilo_common
 from ironic.drivers.modules import ipxe
 from ironic.drivers.modules import pxe
+from ironic.drivers.modules import virtual_media_base
 
 LOG = logging.getLogger(__name__)
 
@@ -47,16 +46,45 @@ METRICS = metrics_utils.get_metrics_logger(__name__)
 
 CONF = cfg.CONF
 
-REQUIRED_PROPERTIES = {
+DEPLOY_ISO_PROPERTIES = {
     'ilo_deploy_iso': _("UUID (from Glance) of the deployment ISO. "
                         "Required.")
 }
-RESCUE_PROPERTIES = {
+
+DEPLOY_RAMDISK_PROPERTIES = {
+    'deploy_kernel': _("URL or Glance UUID of the deployment kernel. "
+                       "Required."),
+    'deploy_ramdisk': _("URL or Glance UUID of the ramdisk that is "
+                        "mounted at boot time. Required.")
+}
+
+OPTIONAL_PROPERTIES = {
+    'bootloader': _("URL or Glance UUID  of the EFI system partition "
+                    "image containing EFI boot loader. This image will be "
+                    "used by ironic when building UEFI-bootable ISO "
+                    "out of kernel and ramdisk. Required for UEFI "
+                    "boot from partition images.")
+}
+
+RESCUE_ISO_PROPERTIES = {
     'ilo_rescue_iso': _("UUID (from Glance) of the rescue ISO. Only "
                         "required if rescue mode is being used and ironic is "
                         "managing booting the rescue ramdisk.")
 }
-COMMON_PROPERTIES = REQUIRED_PROPERTIES
+
+RESCUE_RAMDISK_PROPERTIES = {
+    'rescue_kernel': _("URL or Glance UUID of the rescue kernel. "
+                       "Required."),
+    'rescue_ramdisk': _("URL or Glance UUID of the ramdisk that is "
+                        "mounted at boot time. Required.")
+}
+
+COMMON_PROPERTIES = DEPLOY_ISO_PROPERTIES
+
+KERNEL_RAMDISK_LABELS = {
+    'deploy': DEPLOY_RAMDISK_PROPERTIES,
+    'rescue': RESCUE_RAMDISK_PROPERTIES
+}
 
 
 def parse_driver_info(node, mode='deploy'):
@@ -77,24 +105,35 @@ def parse_driver_info(node, mode='deploy'):
     """
     info = node.driver_info
     d_info = {}
-    if mode == 'rescue':
+    if mode == 'rescue' and info.get('ilo_rescue_iso'):
         d_info['ilo_rescue_iso'] = info.get('ilo_rescue_iso')
-    else:
+    elif mode == 'deploy' and info.get('ilo_deploy_iso'):
         d_info['ilo_deploy_iso'] = info.get('ilo_deploy_iso')
+    else:
+        params_to_check = KERNEL_RAMDISK_LABELS[mode]
 
-    error_msg = (_("Error validating iLO virtual media for %s. Some "
-                   "parameters were missing in node's driver_info") % mode)
+        d_info = {option: info.get(option)
+                  for option in params_to_check}
+
+        if not any(d_info.values()):
+            # NOTE(dtantsur): avoid situation when e.g. deploy_kernel comes
+            # from driver_info but deploy_ramdisk comes from configuration,
+            # since it's a sign of a potential operator's mistake.
+            d_info = {k: getattr(CONF.conductor, k)
+                      for k in params_to_check}
+
+    error_msg = (_("Error validating iLO virtual media for %(mode)s. "
+                   "Either 'ilo_%(mode)s_iso' is missing or "
+                   "DEPLOY_RAMDISK_PROPERTIES or RESCUE_RAMDISK_PROPERTIES "
+                   "were missing in node's driver_info.") % {'mode': mode})
+
     deploy_utils.check_for_missing_params(d_info, error_msg)
 
+    d_info.update(
+        {option: info.get(option, getattr(CONF.conductor, option, None))
+         for option in OPTIONAL_PROPERTIES})
+
     return d_info
-
-
-def _get_boot_iso_object_name(node):
-    """Returns the boot iso object name for a given node.
-
-    :param node: the node for which object name is to be provided.
-    """
-    return "boot-%s" % node.uuid
 
 
 def _get_boot_iso(task, root_uuid):
@@ -171,12 +210,6 @@ def _get_boot_iso(task, root_uuid):
         LOG.debug("Found boot_iso %s in Glance", boot_iso_uuid)
         return boot_iso_uuid
 
-    if not kernel_href or not ramdisk_href:
-        LOG.error("Unable to find kernel or ramdisk for "
-                  "image %(image)s to generate boot ISO for %(node)s",
-                  {'image': image_href, 'node': task.node.uuid})
-        return
-
     # NOTE(rameshg87): Functionality to share the boot ISOs created for
     # similar instances (instances with same deployed image) is
     # not implemented as of now. Creation/Deletion of such a shared boot ISO
@@ -186,43 +219,15 @@ def _get_boot_iso(task, root_uuid):
     # Option 3 - Create boot_iso from kernel/ramdisk, upload to Swift
     # or web server and provide its name.
     deploy_iso_uuid = deploy_info['ilo_deploy_iso']
-    boot_mode = boot_mode_utils.get_boot_mode(task.node)
-    boot_iso_object_name = _get_boot_iso_object_name(task.node)
-    kernel_params = ""
-    if deploy_utils.get_boot_option(task.node) == "ramdisk":
-        i_info = task.node.instance_info
-        kernel_params = "root=/dev/ram0 text "
-        kernel_params += i_info.get("ramdisk_kernel_arguments", "")
-    else:
-        kernel_params = CONF.pxe.pxe_append_params
-    with tempfile.NamedTemporaryFile(dir=CONF.tempdir) as fileobj:
-        boot_iso_tmp_file = fileobj.name
-        images.create_boot_iso(task.context, boot_iso_tmp_file,
-                               kernel_href, ramdisk_href,
-                               deploy_iso_href=deploy_iso_uuid,
-                               root_uuid=root_uuid,
-                               kernel_params=kernel_params,
-                               boot_mode=boot_mode)
 
-        if CONF.ilo.use_web_server_for_images:
-            boot_iso_url = (
-                ilo_common.copy_image_to_web_server(boot_iso_tmp_file,
-                                                    boot_iso_object_name))
-            driver_internal_info = task.node.driver_internal_info
-            driver_internal_info['boot_iso_created_in_web_server'] = True
-            task.node.driver_internal_info = driver_internal_info
-            task.node.save()
-            LOG.debug("Created boot_iso %(boot_iso)s for node %(node)s",
-                      {'boot_iso': boot_iso_url, 'node': task.node.uuid})
-            return boot_iso_url
-        else:
-            container = CONF.ilo.swift_ilo_container
-            swift_api = swift.SwiftAPI()
-            swift_api.create_object(container, boot_iso_object_name,
-                                    boot_iso_tmp_file)
+    use_web_server = CONF.ilo.use_web_server_for_images
+    container = CONF.ilo.swift_ilo_container
 
-            LOG.debug("Created boot_iso %s in Swift", boot_iso_object_name)
-            return 'swift:%s' % boot_iso_object_name
+    return virtual_media_base.prepare_iso_image(
+        task, kernel_href, ramdisk_href,
+        deploy_iso_href=deploy_iso_uuid,
+        root_uuid=root_uuid, use_web_server=use_web_server,
+        container=container)
 
 
 def _clean_up_boot_iso_for_instance(node):
@@ -230,25 +235,21 @@ def _clean_up_boot_iso_for_instance(node):
 
     :param node: an ironic node object.
     """
-    ilo_boot_iso = node.instance_info.get('ilo_boot_iso')
-    if not ilo_boot_iso:
-        return
-    if ilo_boot_iso.startswith('swift'):
+    boot_iso_object_name = virtual_media_base.get_iso_image_name(node)
+
+    if CONF.ilo.use_web_server_for_images:
+        boot_iso_path = os.path.join(
+            CONF.deploy.http_root, boot_iso_object_name)
+        ironic_utils.unlink_without_raise(boot_iso_path)
+    else:
         swift_api = swift.SwiftAPI()
         container = CONF.ilo.swift_ilo_container
-        boot_iso_object_name = _get_boot_iso_object_name(node)
         try:
             swift_api.delete_object(container, boot_iso_object_name)
         except exception.SwiftOperationError as e:
             LOG.exception("Failed to clean up boot ISO for node "
                           "%(node)s. Error: %(error)s.",
                           {'node': node.uuid, 'error': e})
-    elif CONF.ilo.use_web_server_for_images:
-        result = urlparse.urlparse(ilo_boot_iso)
-        ilo_boot_iso_name = os.path.basename(result.path)
-        boot_iso_path = os.path.join(
-            CONF.deploy.http_root, ilo_boot_iso_name)
-        ironic_utils.unlink_without_raise(boot_iso_path)
 
 
 def _parse_deploy_info(node):
@@ -284,19 +285,7 @@ def _validate_driver_info(task):
     """
     node = task.node
     ilo_common.parse_driver_info(node)
-    if 'ilo_deploy_iso' not in node.driver_info:
-        raise exception.MissingParameterValue(_(
-            "Missing 'ilo_deploy_iso' parameter in node's 'driver_info'."))
-    deploy_iso = node.driver_info['ilo_deploy_iso']
-    if not service_utils.is_glance_image(deploy_iso):
-        try:
-            image_service.HttpImageService().validate_href(deploy_iso)
-        except exception.ImageRefValidationFailed:
-            raise exception.InvalidParameterValue(_(
-                "Virtual media boot accepts only Glance images or "
-                "HTTP(S) as driver_info['ilo_deploy_iso']. Either '%s' "
-                "is not a glance UUID or not a valid HTTP(S) URL or "
-                "the given URL is not reachable.") % deploy_iso)
+    parse_driver_info(node)
 
 
 def _validate_instance_image_info(task):
@@ -518,11 +507,19 @@ class IloVirtualMediaBoot(base.BootInterface):
 
         deploy_nic_mac = deploy_utils.get_single_nic_with_vif_port_id(task)
         ramdisk_params['BOOTIF'] = deploy_nic_mac
-        if node.provision_state == states.RESCUING:
+        if (node.driver_info.get('ilo_rescue_iso')
+                and node.provision_state == states.RESCUING):
             iso = node.driver_info['ilo_rescue_iso']
-        else:
+        elif node.driver_info.get('ilo_deploy_iso'):
             iso = node.driver_info['ilo_deploy_iso']
-
+        else:
+            mode = deploy_utils.rescue_or_deploy_mode(node)
+            d_info = parse_driver_info(node, mode)
+            use_web_server = CONF.ilo.use_web_server_for_images
+            container = CONF.ilo.swift_ilo_container
+            iso = virtual_media_base.prepare_deploy_iso(
+                task, ramdisk_params, mode, d_info,
+                use_web_server=use_web_server, container=container)
         ilo_common.setup_vmedia(task, iso, ramdisk_params)
 
     @METRICS.timer('IloVirtualMediaBoot.prepare_instance')
@@ -636,6 +633,10 @@ class IloVirtualMediaBoot(base.BootInterface):
         :returns: None
         :raises: IloOperationError, if some operation on iLO failed.
         """
+        info = task.node.driver_info
+
+        if not info.get('ilo_deploy_iso') and not info.get('ilo_rescue_iso'):
+            _clean_up_boot_iso_for_instance(task.node)
         ilo_common.cleanup_vmedia_boot(task)
 
     def _configure_vmedia_boot(self, task, root_uuid):

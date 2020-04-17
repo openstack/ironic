@@ -1,0 +1,8 @@
+features:
+  - |
+    Add functionality to perform virtual media boot without
+    user-built deploy/rescue/boot ISO images for hardware type ilo.
+    Instead, ironic will build necessary images out of common
+    kernel/ramdisk pair (though user needs to provide ESP image).
+    User provided deploy/rescue/boot ISO images are
+    also supported.
