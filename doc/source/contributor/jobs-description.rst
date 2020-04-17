@@ -29,19 +29,19 @@ The description of each jobs that runs in the CI when you submit a patch for
    * - ironic-grenade-dsvm-multinode-multitenant
      - Deploys Ironic in a multinode DevStack and runs upgrade for all enabled
        services.
-   * - ironic-tempest-ipa-partition-pxe_ipmitool-tinyipa-python3
-     - Deploys Ironic in DevStack under Python3, configured to use tinyipa
+   * - ironic-tempest-ipa-partition-pxe_ipmitool
+     - Deploys Ironic in DevStack under Python3, configured to use dib
        ramdisk partition image with `pxe` boot and `ipmi` driver.
        Runs tempest tests that match the regex
        `ironic_tempest_plugin.tests.scenario` and deploy 1 virtual baremetal.
-   * - ironic-tempest-ipa-partition-redfish-tinyipa
-     - Deploys Ironic in DevStack, configured to use tinyipa ramdisk partition
+   * - ironic-tempest-partition-bios-redfish-pxe
+     - Deploys Ironic in DevStack, configured to use dib ramdisk partition
        image with `pxe` boot and `redfish` driver.
        Runs tempest tests that match the regex
        `ironic_tempest_plugin.tests.scenario`, also deploys 1 virtual
        baremetal.
-   * - ironic-tempest-ipa-partition-uefi-pxe_ipmitool-tinyipa
-     - Deploys Ironic in DevStack, configured to use tinyipa ramdisk partition
+   * - ironic-tempest-ipa-partition-uefi-pxe_ipmitool
+     - Deploys Ironic in DevStack, configured to use dib ramdisk partition
        image with `uefi` boot and `ipmi` driver.
        Runs tempest tests that match the regex
        `ironic_tempest_plugin.tests.scenario`, also deploys 1 virtual
@@ -59,14 +59,14 @@ The description of each jobs that runs in the CI when you submit a patch for
        `pxe` boot and `ipmi` driver.
        Runs tempest tests that match the regex
        `ironic_tempest_plugin.tests.scenario` and deploys 1 virtual baremetal.
-   * - ironic-tempest-ipa-wholedisk-bios-agent_ipmitool-tinyipa-indirect
-     - Deploys Ironic in DevStack, configured to use a pre-build tinyipa
+   * - ironic-tempest-ipa-wholedisk-bios-agent_ipmitool-indirect
+     - Deploys Ironic in DevStack, configured to use a pre-built dib
        ramdisk wholedisk image that is downloaded from http url, `pxe` boot
        and `ipmi` driver.
        Runs tempest tests that match the regex
        `ironic_tempest_plugin.tests.scenario` and deploys 1 virtual baremetal.
-   * - ironic-tempest-ipa-partition-bios-agent_ipmitool-tinyipa-indirect
-     - Deploys Ironic in DevStack, configured to use a pre-build tinyipa
+   * - ironic-tempest-ipa-partition-bios-agent_ipmitool-indirect
+     - Deploys Ironic in DevStack, configured to use a pre-built dib
        ramdisk partition image that is downloaded from http url, `pxe` boot
        and `ipmi` driver.
        Runs tempest tests that match the regex
@@ -84,8 +84,8 @@ The description of each jobs that runs in the CI when you submit a patch for
    * - ironic-tox-bandit
      - Runs bandit security tests in a tox environment to find known issues in
        the Ironic code.
-   * - ironic-tempest-ipa-wholedisk-bios-pxe_snmp-tinyipa
-     - Deploys Ironic in DevStack, configured to use a pre-build tinyipa
+   * - ironic-tempest-ipa-wholedisk-bios-pxe_snmp
+     - Deploys Ironic in DevStack, configured to use a pre-built dib
        ramdisk wholedisk image that is downloaded from a Swift temporary url,
        `pxe` boot and `snmp` driver.
        Runs tempest tests that match the regex
@@ -96,7 +96,7 @@ The description of each jobs that runs in the CI when you submit a patch for
        Swift temporary url, `pxe` boot and `ipmi` driver.
        Runs tempest tests that match the regex `InspectorBasicTest` and
        deploys 1 virtual baremetal.
-   * - bifrost-integration-tinyipa-ubuntu-xenial
+   * - bifrost-integration-tinyipa-ubuntu-bionic
      - Tests the integration between Ironic and Bifrost.
    * - metalsmith-integration-glance-localboot-centos7
      - Tests the integration between Ironic and Metalsmith using Glance as
