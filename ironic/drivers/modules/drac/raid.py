@@ -1050,7 +1050,7 @@ class DracWSManRAID(base.RAIDInterface):
                 with task_manager.acquire(context, node_uuid,
                                           purpose=lock_purpose,
                                           shared=True) as task:
-                    if not isinstance(task.driver.raid, DracRAID):
+                    if not isinstance(task.driver.raid, DracWSManRAID):
                         continue
 
                     job_ids = driver_internal_info.get('raid_config_job_ids')

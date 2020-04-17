@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Fixes RAID configuration using `idrac-wsman` RAID interface where node
+    remains in 'clean wait' provisioning state forever.
+    See `story 2007567 <https://storyboard.openstack.org/#!/story/2007567>`_.
