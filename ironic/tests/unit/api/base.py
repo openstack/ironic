@@ -44,6 +44,8 @@ class BaseApiTest(db_base.DbTestCase):
 
     SOURCE_DATA = {'test_source': {'somekey': '666'}}
 
+    root_controller = 'ironic.api.controllers.root.RootController'
+
     def setUp(self):
         super(BaseApiTest, self).setUp()
         cfg.CONF.set_override("auth_version", "v3",
@@ -68,7 +70,7 @@ class BaseApiTest(db_base.DbTestCase):
 
         self.app_config = {
             'app': {
-                'root': 'ironic.api.controllers.root.RootController',
+                'root': self.root_controller,
                 'modules': ['ironic.api'],
                 'static_root': '%s/public' % root_dir,
                 'debug': True,
