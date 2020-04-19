@@ -57,6 +57,24 @@ class IBMCVendorTestCase(base.IBMCTestCase):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
             seq = task.driver.vendor.boot_up_seq(task)
-            conn.system.get.assert_called_once()
+            conn.system.get.assert_called_once_with()
             connect_ibmc.assert_called_once_with(**self.ibmc)
             self.assertEqual(expected, seq)
+
+    @mock.patch.object(ibmc_client, 'connect', autospec=True)
+    def test_list_raid_controller(self, connect_ibmc):
+        # Mocks
+        conn = self.mock_ibmc_conn(connect_ibmc)
+
+        ctrl = mock.Mock()
+        summary = mock.Mock()
+        ctrl.summary.return_value = summary
+        conn.system.storage.list.return_value = [ctrl]
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            summries = task.driver.vendor.get_raid_controller_list(task)
+            ctrl.summary.assert_called_once_with()
+            conn.system.storage.list.assert_called_once_with()
+            connect_ibmc.assert_called_once_with(**self.ibmc)
+            self.assertEqual([summary], summries)

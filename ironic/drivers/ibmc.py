@@ -18,7 +18,9 @@ CH121 V5.
 from ironic.drivers import generic
 from ironic.drivers.modules.ibmc import management as ibmc_mgmt
 from ironic.drivers.modules.ibmc import power as ibmc_power
+from ironic.drivers.modules.ibmc import raid as ibmc_raid
 from ironic.drivers.modules.ibmc import vendor as ibmc_vendor
+from ironic.drivers.modules import inspector
 from ironic.drivers.modules import noop
 
 
@@ -39,3 +41,13 @@ class IBMCHardware(generic.GenericHardware):
     def supported_vendor_interfaces(self):
         """List of supported vendor interfaces."""
         return [ibmc_vendor.IBMCVendor, noop.NoVendor]
+
+    @property
+    def supported_raid_interfaces(self):
+        """List of supported raid interfaces."""
+        return [ibmc_raid.IbmcRAID, noop.NoRAID]
+
+    @property
+    def supported_inspect_interfaces(self):
+        """List of supported inspect interfaces."""
+        return [inspector.Inspector, noop.NoInspect]
