@@ -1,7 +1,7 @@
 ---
 features:
   - |
-    Makes management interface of ``redfish`` hardware type not changing
-    current boot frequency if currently set is the same as the desired one.
-    The goal is to avoid touching potentially faulty BMC option whenever
-    possible.
+    Makes management interface of ``redfish`` hardware type not change the
+    current boot frequency if the current setting is the same as the desired
+    one. The goal is to avoid touching a potentially faulty BMC option
+    whenever possible.

@@ -1,7 +1,7 @@
 ---
 features:
   - |
-    Adds the cability for the ``instance_info\image_checksum`` value
+    Adds the capability for the ``instance_info\image_checksum`` value
     to be optional in stand-alone deployments if the
     ``instance_info\image_os_hash_algo`` and
     ``instance_info\image_os_hash_value`` fields are populated.
