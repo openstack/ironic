@@ -16,9 +16,7 @@
 
 import os
 import re
-import shutil
 import time
-from urllib import parse as urlparse
 
 from ironic_lib import metrics_utils
 from ironic_lib import utils as il_utils
@@ -822,35 +820,6 @@ def direct_deploy_should_convert_raw_image(node):
         image to raw.
     """
     return CONF.force_raw_images and CONF.agent.stream_raw_images
-
-
-def copy_image_to_web_server(source_file_path, destination):
-    """Copies the given image to the http web server.
-
-    This method copies the given image to the http_root location.
-    It enables read-write access to the image else the deploy fails
-    as the image file at the web_server url is inaccessible.
-
-    :param source_file_path: The absolute path of the image file
-                             which needs to be copied to the
-                             web server root.
-    :param destination: The name of the file that
-                        will contain the copied image.
-    :raises: ImageUploadFailed exception if copying the source
-             file to the web server fails.
-    :returns: image url after the source image is uploaded.
-
-    """
-
-    image_url = urlparse.urljoin(CONF.deploy.http_url, destination)
-    image_path = os.path.join(CONF.deploy.http_root, destination)
-    try:
-        shutil.copyfile(source_file_path, image_path)
-    except IOError as exc:
-        raise exception.ImageUploadFailed(image_name=destination,
-                                          web_server=CONF.deploy.http_url,
-                                          reason=exc)
-    return image_url
 
 
 @image_cache.cleanup(priority=50)

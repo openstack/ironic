@@ -20,6 +20,7 @@ from urllib import parse as urlparse
 
 from ironic_lib import utils as ironic_utils
 from oslo_log import log
+from oslo_serialization import base64
 from oslo_utils import importutils
 
 from ironic.common import boot_devices
@@ -35,7 +36,6 @@ from ironic.drivers import base
 from ironic.drivers.modules import boot_mode_utils
 from ironic.drivers.modules import deploy_utils
 from ironic.drivers.modules.redfish import utils as redfish_utils
-from ironic.drivers.modules import virtual_media_base
 
 LOG = log.getLogger(__name__)
 
@@ -392,15 +392,162 @@ class RedfishVirtualMediaBoot(base.BootInterface):
 
         return image_url
 
+    @staticmethod
+    def _get_iso_image_name(node):
+        """Returns the boot iso image name for a given node.
+
+        :param node: the node for which image name is to be provided.
+        """
+        return "boot-%s" % node.uuid
+
     @classmethod
     def _cleanup_iso_image(cls, task):
         """Deletes the ISO if it was created for the instance.
 
         :param task: an ironic node object.
         """
-        iso_object_name = virtual_media_base.get_iso_image_name(task.node)
+        iso_object_name = cls._get_iso_image_name(task.node)
 
         cls._unpublish_image(iso_object_name)
+
+    @classmethod
+    def _prepare_iso_image(cls, task, kernel_href, ramdisk_href,
+                           bootloader_href=None, configdrive=None,
+                           root_uuid=None, params=None):
+        """Prepare an ISO to boot the node.
+
+        Build bootable ISO out of `kernel_href` and `ramdisk_href` (and
+        `bootloader` if it's UEFI boot), then push built image up to Swift and
+        return a temporary URL.
+
+        :param task: a TaskManager instance containing the node to act on.
+        :param kernel_href: URL or Glance UUID of the kernel to use
+        :param ramdisk_href: URL or Glance UUID of the ramdisk to use
+        :param bootloader_href: URL or Glance UUID of the EFI bootloader
+             image to use when creating UEFI bootbable ISO
+        :param configdrive: URL to or a compressed blob of a ISO9660 or
+            FAT-formatted OpenStack config drive image. This image will be
+            written onto the built ISO image. Optional.
+        :param root_uuid: optional uuid of the root partition.
+        :param params: a dictionary containing 'parameter name'->'value'
+            mapping to be passed to kernel command line.
+        :returns: bootable ISO HTTP URL.
+        :raises: MissingParameterValue, if any of the required parameters are
+            missing.
+        :raises: InvalidParameterValue, if any of the parameters have invalid
+            value.
+        :raises: ImageCreationFailed, if creating ISO image failed.
+        """
+        if not kernel_href or not ramdisk_href:
+            raise exception.InvalidParameterValue(_(
+                "Unable to find kernel or ramdisk for "
+                "building ISO for %(node)s") %
+                {'node': task.node.uuid})
+
+        i_info = task.node.instance_info
+
+        if deploy_utils.get_boot_option(task.node) == "ramdisk":
+            kernel_params = "root=/dev/ram0 text "
+            kernel_params += i_info.get("ramdisk_kernel_arguments", "")
+
+        else:
+            kernel_params = i_info.get(
+                'kernel_append_params', CONF.redfish.kernel_append_params)
+
+        if params:
+            kernel_params = ' '.join(
+                (kernel_params, ' '.join(
+                    '%s=%s' % kv for kv in params.items())))
+
+        boot_mode = boot_mode_utils.get_boot_mode_for_deploy(task.node)
+
+        LOG.debug("Trying to create %(boot_mode)s ISO image for node %(node)s "
+                  "with kernel %(kernel_href)s, ramdisk %(ramdisk_href)s, "
+                  "bootloader %(bootloader_href)s and kernel params %(params)s"
+                  "", {'node': task.node.uuid,
+                       'boot_mode': boot_mode,
+                       'kernel_href': kernel_href,
+                       'ramdisk_href': ramdisk_href,
+                       'bootloader_href': bootloader_href,
+                       'params': kernel_params})
+
+        with tempfile.NamedTemporaryFile(
+                dir=CONF.tempdir, suffix='.iso') as boot_fileobj:
+
+            with tempfile.NamedTemporaryFile(
+                    dir=CONF.tempdir, suffix='.img') as cfgdrv_fileobj:
+
+                configdrive_href = configdrive
+
+                if configdrive:
+                    parsed_url = urlparse.urlparse(configdrive)
+                    if not parsed_url.scheme:
+                        cfgdrv_blob = base64.decode_as_bytes(configdrive)
+
+                        with open(cfgdrv_fileobj.name, 'wb') as f:
+                            f.write(cfgdrv_blob)
+
+                        configdrive_href = urlparse.urlunparse(
+                            ('file', '', cfgdrv_fileobj.name, '', '', ''))
+
+                    LOG.info("Burning configdrive %(url)s to boot ISO image "
+                             "for node %(node)s", {'url': configdrive_href,
+                                                   'node': task.node.uuid})
+
+                boot_iso_tmp_file = boot_fileobj.name
+                images.create_boot_iso(
+                    task.context, boot_iso_tmp_file,
+                    kernel_href, ramdisk_href,
+                    esp_image_href=bootloader_href,
+                    configdrive_href=configdrive_href,
+                    root_uuid=root_uuid,
+                    kernel_params=kernel_params,
+                    boot_mode=boot_mode)
+
+                iso_object_name = cls._get_iso_image_name(task.node)
+
+                image_url = cls._publish_image(
+                    boot_iso_tmp_file, iso_object_name)
+
+        LOG.debug("Created ISO %(name)s in object store for node %(node)s, "
+                  "exposed as temporary URL "
+                  "%(url)s", {'node': task.node.uuid,
+                              'name': iso_object_name,
+                              'url': image_url})
+
+        return image_url
+
+    @classmethod
+    def _prepare_deploy_iso(cls, task, params, mode):
+        """Prepare deploy or rescue ISO image
+
+        Build bootable ISO out of
+        `[driver_info]/deploy_kernel`/`[driver_info]/deploy_ramdisk` or
+        `[driver_info]/rescue_kernel`/`[driver_info]/rescue_ramdisk`
+        and `[driver_info]/bootloader`, then push built image up to Glance
+        and return temporary Swift URL to the image.
+
+        :param task: a TaskManager instance containing the node to act on.
+        :param params: a dictionary containing 'parameter name'->'value'
+            mapping to be passed to kernel command line.
+        :param mode: either 'deploy' or 'rescue'.
+        :returns: bootable ISO HTTP URL.
+        :raises: MissingParameterValue, if any of the required parameters are
+            missing.
+        :raises: InvalidParameterValue, if any of the parameters have invalid
+            value.
+        :raises: ImageCreationFailed, if creating ISO image failed.
+        """
+        node = task.node
+
+        d_info = cls._parse_driver_info(node)
+
+        kernel_href = d_info.get('%s_kernel' % mode)
+        ramdisk_href = d_info.get('%s_ramdisk' % mode)
+        bootloader_href = d_info.get('bootloader')
+
+        return cls._prepare_iso_image(
+            task, kernel_href, ramdisk_href, bootloader_href, params=params)
 
     @classmethod
     def _prepare_boot_iso(cls, task, root_uuid=None):
@@ -451,19 +598,9 @@ class RedfishVirtualMediaBoot(base.BootInterface):
 
         bootloader_href = d_info.get('bootloader')
 
-        if CONF.redfish.use_swift:
-            use_web_server = False
-            container = CONF.redfish.swift_container
-            timeout = CONF.redfish.swift_object_expiry_timeout
-        else:
-            use_web_server = True
-            container = None
-            timeout = None
-
-        return virtual_media_base.prepare_iso_image(
-            task, kernel_href, ramdisk_href, bootloader_href=bootloader_href,
-            root_uuid=root_uuid, timeout=timeout,
-            use_web_server=use_web_server, container=container)
+        return cls._prepare_iso_image(
+            task, kernel_href, ramdisk_href, bootloader_href,
+            root_uuid=root_uuid)
 
     def get_properties(self):
         """Return the properties of the interface.
@@ -616,16 +753,7 @@ class RedfishVirtualMediaBoot(base.BootInterface):
 
         mode = deploy_utils.rescue_or_deploy_mode(node)
 
-        if CONF.redfish.use_swift:
-            use_web_server = False
-            container = CONF.redfish.swift_container
-        else:
-            use_web_server = True
-            container = None
-
-        iso_ref = virtual_media_base.prepare_deploy_iso(
-            task, ramdisk_params, mode, d_info,
-            use_web_server=use_web_server, container=container)
+        iso_ref = self._prepare_deploy_iso(task, ramdisk_params, mode)
 
         self._eject_vmedia(task, sushy.VIRTUAL_MEDIA_CD)
         self._insert_vmedia(task, iso_ref, sushy.VIRTUAL_MEDIA_CD)

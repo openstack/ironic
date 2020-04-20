@@ -15,7 +15,6 @@
 #    under the License.
 
 import os
-import shutil
 import tempfile
 
 import fixtures
@@ -1241,38 +1240,6 @@ class AgentMethodsTestCase(db_base.DbTestCase):
         self.node.driver_internal_info = internal_info
         self.assertTrue(
             utils.direct_deploy_should_convert_raw_image(self.node))
-
-    @mock.patch.object(shutil, 'copyfile', spec_set=True,
-                       autospec=True)
-    def test_copy_image_to_web_server(self, copy_mock):
-        cfg.CONF.deploy.http_url = "http://x.y.z.a/webserver/"
-        cfg.CONF.deploy.http_root = "/webserver"
-        expected_url = "http://x.y.z.a/webserver/image-UUID"
-        source = 'tmp_image_file'
-        destination = "image-UUID"
-        image_path = "/webserver/image-UUID"
-        actual_url = utils.copy_image_to_web_server(source, destination)
-        self.assertEqual(expected_url, actual_url)
-        copy_mock.assert_called_once_with(source, image_path)
-
-    @mock.patch.object(os, 'chmod', spec_set=True,
-                       autospec=True)
-    @mock.patch.object(shutil, 'copyfile', spec_set=True,
-                       autospec=True)
-    def test_copy_image_to_web_server_fails(self, copy_mock,
-                                            chmod_mock):
-        cfg.CONF.deploy.http_url = "http://x.y.z.a/webserver/"
-        cfg.CONF.deploy.http_root = "/webserver"
-        source = 'tmp_image_file'
-        destination = "image-UUID"
-        image_path = "/webserver/image-UUID"
-        exc = exception.ImageUploadFailed('reason')
-        copy_mock.side_effect = exc
-        self.assertRaises(exception.ImageUploadFailed,
-                          utils.copy_image_to_web_server,
-                          source, destination)
-        copy_mock.assert_called_once_with(source, image_path)
-        self.assertFalse(chmod_mock.called)
 
 
 class ValidateImagePropertiesTestCase(db_base.DbTestCase):

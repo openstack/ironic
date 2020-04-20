@@ -32,7 +32,6 @@ from ironic.common import exception
 from ironic.common.i18n import _
 from ironic.common import image_service
 from ironic.common import swift
-from ironic.drivers.modules import deploy_utils
 from ironic.drivers.modules.ilo import common as ilo_common
 
 # Supported components for firmware update when invoked through manual clean
@@ -371,7 +370,7 @@ def _extract_fw_from_file(node, target_file):
                           "firmware file %(firmware_image)s on web server ...",
                           {'firmware_image': fw_image_location,
                            'node': node.uuid})
-                fw_image_uploaded_url = deploy_utils.copy_image_to_web_server(
+                fw_image_uploaded_url = ilo_common.copy_image_to_web_server(
                     fw_image_location, fw_image_filename)
 
                 fw_image_location_obj.fw_image_location = fw_image_uploaded_url
