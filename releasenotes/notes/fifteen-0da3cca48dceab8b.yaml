@@ -1,0 +1,11 @@
+---
+prelude: >
+    The Ironic Developers are proud to announce the release of Ironic 15.0!
+
+    This release contains a number of changes that have been sought by
+    operators and users of Ironic for some time, including support for UEFI
+    booting a software RAID system, improved Ironic/Ironic Python Agent
+    security, multi-tenancy constructs, a hardware retirement mechanism,
+    stateful DHCPv6, and numerous fixes.
+
+    We sincerely hope you enjoy!
