@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    Fixes 'Invalid parameter value for SpanLength' when configuring RAID
+    using Python 3. This passed incorrect data type to iDRAC, e.g., instead
+    of `2` it passed `2.0`.
+    See `story 2004265 <https://storyboard.openstack.org/#!/story/2004265>`_.
