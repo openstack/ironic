@@ -680,7 +680,7 @@ def _calculate_volume_props(logical_disk, physical_disks, free_space_mb):
         error_msg = _('invalid number of physical disks was provided')
         raise exception.DracOperationError(error=error_msg)
 
-    disks_per_span = len(selected_disks) / spans_count
+    disks_per_span = int(len(selected_disks) / spans_count)
 
     # Best practice is to not pass span_length and span_depth when creating a
     # RAID10.  The iDRAC will dynamically calculate these values using maximum
