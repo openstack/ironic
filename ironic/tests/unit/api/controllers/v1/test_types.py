@@ -19,14 +19,16 @@ from http import client as http_client
 import platform
 
 import mock
-import webtest
+from pecan import rest
 import wsme
 
 from ironic.api.controllers.v1 import types
+from ironic.api import expose
 from ironic.api import types as atypes
 from ironic.common import exception
 from ironic.common import utils
 from ironic.tests import base
+from ironic.tests.unit.api import base as api_base
 from ironic.tests.unit.api.utils import fake_event_validator
 
 
@@ -102,21 +104,27 @@ class MyPatchType(types.JsonPatchType):
         return ['/internal']
 
 
-class MyRoot(wsme.WSRoot):
+class MyTest(rest.RestController):
     """Helper class for TestJsonPatchType tests."""
 
-    @wsme.expose([str], body=[MyPatchType])
     @wsme.validate([MyPatchType])
-    def test(self, patch):
+    @expose.expose([str], body=[MyPatchType])
+    def patch(self, patch):
         return patch
 
 
-class TestJsonPatchType(base.TestCase):
+class MyRoot(rest.RestController):
+    test = MyTest()
+
+
+class TestJsonPatchType(api_base.BaseApiTest):
+
+    root_controller = ('ironic.tests.unit.api.controllers.v1.'
+                       'test_types.MyRoot')
 
     @mock.patch.object(platform, '_syscmd_uname', lambda *x: '')
     def setUp(self):
         super(TestJsonPatchType, self).setUp()
-        self.app = webtest.TestApp(MyRoot(['restjson']).wsgiapp())
 
     def _patch_json(self, params, expect_errors=False):
         return self.app.patch_json('/test', params=params,
@@ -144,14 +152,14 @@ class TestJsonPatchType(base.TestCase):
         patch = [{'path': '/internal', 'op': 'replace', 'value': 'foo'}]
         ret = self._patch_json(patch, True)
         self.assertEqual(http_client.BAD_REQUEST, ret.status_int)
-        self.assertTrue(ret.json['faultstring'])
+        self.assertTrue(ret.json['error_message'])
 
     def test_cannot_update_internal_dict_attr(self):
         patch = [{'path': '/internal/test', 'op': 'replace',
                  'value': 'foo'}]
         ret = self._patch_json(patch, True)
         self.assertEqual(http_client.BAD_REQUEST, ret.status_int)
-        self.assertTrue(ret.json['faultstring'])
+        self.assertTrue(ret.json['error_message'])
 
     def test_mandatory_attr(self):
         patch = [{'op': 'replace', 'path': '/mandatory', 'value': 'foo'}]
@@ -163,49 +171,49 @@ class TestJsonPatchType(base.TestCase):
         patch = [{'op': 'remove', 'path': '/mandatory'}]
         ret = self._patch_json(patch, True)
         self.assertEqual(http_client.BAD_REQUEST, ret.status_int)
-        self.assertTrue(ret.json['faultstring'])
+        self.assertTrue(ret.json['error_message'])
 
     def test_cannot_remove_extra_non_removable_attr(self):
         patch = [{'op': 'remove', 'path': '/non_removable'}]
         ret = self._patch_json(patch, True)
         self.assertEqual(http_client.BAD_REQUEST, ret.status_int)
-        self.assertTrue(ret.json['faultstring'])
+        self.assertTrue(ret.json['error_message'])
 
     def test_missing_required_fields_path(self):
         missing_path = [{'op': 'remove'}]
         ret = self._patch_json(missing_path, True)
         self.assertEqual(http_client.BAD_REQUEST, ret.status_int)
-        self.assertTrue(ret.json['faultstring'])
+        self.assertTrue(ret.json['error_message'])
 
     def test_missing_required_fields_op(self):
         missing_op = [{'path': '/foo'}]
         ret = self._patch_json(missing_op, True)
         self.assertEqual(http_client.BAD_REQUEST, ret.status_int)
-        self.assertTrue(ret.json['faultstring'])
+        self.assertTrue(ret.json['error_message'])
 
     def test_invalid_op(self):
         patch = [{'path': '/foo', 'op': 'invalid'}]
         ret = self._patch_json(patch, True)
         self.assertEqual(http_client.BAD_REQUEST, ret.status_int)
-        self.assertTrue(ret.json['faultstring'])
+        self.assertTrue(ret.json['error_message'])
 
     def test_invalid_path(self):
         patch = [{'path': 'invalid-path', 'op': 'remove'}]
         ret = self._patch_json(patch, True)
         self.assertEqual(http_client.BAD_REQUEST, ret.status_int)
-        self.assertTrue(ret.json['faultstring'])
+        self.assertTrue(ret.json['error_message'])
 
     def test_cannot_add_with_no_value(self):
         patch = [{'path': '/extra/foo', 'op': 'add'}]
         ret = self._patch_json(patch, True)
         self.assertEqual(http_client.BAD_REQUEST, ret.status_int)
-        self.assertTrue(ret.json['faultstring'])
+        self.assertTrue(ret.json['error_message'])
 
     def test_cannot_replace_with_no_value(self):
         patch = [{'path': '/foo', 'op': 'replace'}]
         ret = self._patch_json(patch, True)
         self.assertEqual(http_client.BAD_REQUEST, ret.status_int)
-        self.assertTrue(ret.json['faultstring'])
+        self.assertTrue(ret.json['error_message'])
 
 
 class TestBooleanType(base.TestCase):
