@@ -14,6 +14,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import ipaddress
 import time
 
 from neutronclient.common import exceptions as neutron_client_exc
@@ -49,9 +50,11 @@ class NeutronDHCPApi(base.BaseDHCP):
                              ::
 
                               [{'opt_name': '67',
-                                'opt_value': 'pxelinux.0'},
+                                'opt_value': 'pxelinux.0',
+                                'ip_version': 4},
                                {'opt_name': '66',
-                                'opt_value': '123.123.123.456'}]
+                                'opt_value': '123.123.123.456'},
+                                'ip_version': 4}]
         :param token: optional auth token. Deprecated, use context.
         :param context: request context
         :type context: ironic.common.context.RequestContext
@@ -59,8 +62,36 @@ class NeutronDHCPApi(base.BaseDHCP):
         """
         super(NeutronDHCPApi, self).update_port_dhcp_opts(
             port_id, dhcp_options, token=token, context=context)
-        port_req_body = {'port': {'extra_dhcp_opts': dhcp_options}}
         try:
+            neutron_client = neutron.get_client(token=token,
+                                                context=context)
+
+            fip = None
+            port = neutron_client.show_port(port_id).get('port')
+            try:
+                if port:
+                    # TODO(TheJulia): We need to retool this down the
+                    # road so that we handle ports and allow preferences
+                    # for multi-address ports with different IP versions
+                    # and enable operators to possibly select preferences
+                    # for provisionioning operations.
+                    # This is compounded by v6 mainly only being available
+                    # with UEFI machines, so the support matrix also gets
+                    # a little "weird".
+                    # Ideally, we should work on this in Victoria.
+                    fip = port.get('fixed_ips')[0]
+            except (TypeError, IndexError):
+                fip = None
+            update_opts = []
+            if fip:
+                ip_version = ipaddress.ip_address(fip['ip_address']).version
+                for option in dhcp_options:
+                    if option.get('ip_version', 4) == ip_version:
+                        update_opts.append(option)
+            else:
+                LOG.error('Requested to update port for port %s, '
+                          'however port lacks an IP address.', port_id)
+            port_req_body = {'port': {'extra_dhcp_opts': update_opts}}
             neutron.update_neutron_port(context, port_id, port_req_body)
         except neutron_client_exc.NeutronClientException:
             LOG.exception("Failed to update Neutron port %s.", port_id)
@@ -75,9 +106,11 @@ class NeutronDHCPApi(base.BaseDHCP):
                         ::
 
                          [{'opt_name': '67',
-                           'opt_value': 'pxelinux.0'},
+                           'opt_value': 'pxelinux.0',
+                           'ip_version': 4},
                           {'opt_name': '66',
-                           'opt_value': '123.123.123.456'}]
+                           'opt_value': '123.123.123.456',
+                           'ip_version': 4}]
         :param vifs: a dict of Neutron port/portgroup dicts
                      to update DHCP options on. The port/portgroup dict
                      key should be Ironic port UUIDs, and the values

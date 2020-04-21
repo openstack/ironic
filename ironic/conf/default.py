@@ -239,9 +239,20 @@ netconf_opts = [
     cfg.StrOpt('my_ip',
                default=netutils.get_my_ipv4(),
                sample_default='127.0.0.1',
-               help=_('IP address of this host. If unset, will determine the '
-                      'IP programmatically. If unable to do so, will use '
-                      '"127.0.0.1".')),
+               help=_('IPv4 address of this host. If unset, will determine '
+                      'the IP programmatically. If unable to do so, will use '
+                      '"127.0.0.1". NOTE: This field does accept an IPv6 '
+                      'address as an override for templates and URLs, '
+                      'however it is recommended that [DEFAULT]my_ipv6 '
+                      'is used along with DNS names for service URLs for '
+                      'dual-stack environments.')),
+    cfg.StrOpt('my_ipv6',
+               default=None,
+               sample_default='2001:db8::1',
+               help=_('IP address of this host using IPv6. This value must '
+                      'be supplied via the configuration and cannot be '
+                      'adequately programmatically determined like the '
+                      '[DEFAULT]my_ip parameter for IPv4.')),
 ]
 
 notification_opts = [

@@ -86,6 +86,7 @@ class PXEBootTestCase(db_base.DbTestCase):
         self.port = obj_utils.create_test_port(self.context,
                                                node_id=self.node.id)
         self.config(group='conductor', api_url='http://127.0.0.1:1234/')
+        self.config(my_ipv6='2001:db8::1')
 
     def test_get_properties(self):
         expected = pxe_base.COMMON_PROPERTIES
@@ -269,6 +270,8 @@ class PXEBootTestCase(db_base.DbTestCase):
         with task_manager.acquire(self.context, self.node.uuid) as task:
             dhcp_opts = pxe_utils.dhcp_options_for_instance(
                 task, ipxe_enabled=False)
+            dhcp_opts += pxe_utils.dhcp_options_for_instance(
+                task, ipxe_enabled=False, ip_version=6)
             task.driver.boot.prepare_ramdisk(task, {'foo': 'bar'})
             mock_deploy_img_info.assert_called_once_with(task.node,
                                                          mode=mode,
@@ -554,7 +557,9 @@ class PXEBootTestCase(db_base.DbTestCase):
         get_image_info_mock.return_value = image_info
         with task_manager.acquire(self.context, self.node.uuid) as task:
             dhcp_opts = pxe_utils.dhcp_options_for_instance(
-                task, ipxe_enabled=False)
+                task, ipxe_enabled=False, ip_version=4)
+            dhcp_opts += pxe_utils.dhcp_options_for_instance(
+                task, ipxe_enabled=False, ip_version=6)
             pxe_config_path = pxe_utils.get_pxe_config_file_path(
                 task.node.uuid)
             task.node.properties['capabilities'] = 'boot_mode:bios'
@@ -599,6 +604,8 @@ class PXEBootTestCase(db_base.DbTestCase):
         with task_manager.acquire(self.context, self.node.uuid) as task:
             dhcp_opts = pxe_utils.dhcp_options_for_instance(
                 task, ipxe_enabled=False)
+            dhcp_opts += pxe_utils.dhcp_options_for_instance(
+                task, ipxe_enabled=False, ip_version=6)
             pxe_config_path = pxe_utils.get_pxe_config_file_path(
                 task.node.uuid)
             task.node.properties['capabilities'] = 'boot_mode:bios'
@@ -639,6 +646,8 @@ class PXEBootTestCase(db_base.DbTestCase):
         with task_manager.acquire(self.context, self.node.uuid) as task:
             dhcp_opts = pxe_utils.dhcp_options_for_instance(
                 task, ipxe_enabled=False)
+            dhcp_opts += pxe_utils.dhcp_options_for_instance(
+                task, ipxe_enabled=False, ip_version=6)
             task.node.properties['capabilities'] = 'boot_mode:bios'
             task.node.instance_info['capabilities'] = instance_info
             task.node.driver_internal_info['is_whole_disk_image'] = False
@@ -670,6 +679,8 @@ class PXEBootTestCase(db_base.DbTestCase):
         with task_manager.acquire(self.context, self.node.uuid) as task:
             dhcp_opts = pxe_utils.dhcp_options_for_instance(
                 task, ipxe_enabled=False)
+            dhcp_opts += pxe_utils.dhcp_options_for_instance(
+                task, ipxe_enabled=False, ip_version=6)
             task.node.properties['capabilities'] = 'boot_mode:bios'
             task.node.instance_info['capabilities'] = instance_info
             task.node.driver_internal_info['is_whole_disk_image'] = True
@@ -742,6 +753,8 @@ class PXEBootTestCase(db_base.DbTestCase):
             task.node.save()
             dhcp_opts = pxe_utils.dhcp_options_for_instance(
                 task, ipxe_enabled=False)
+            dhcp_opts += pxe_utils.dhcp_options_for_instance(
+                task, ipxe_enabled=False, ip_version=6)
             pxe_config_path = pxe_utils.get_pxe_config_file_path(
                 task.node.uuid)
             task.driver.boot.prepare_instance(task)
@@ -838,6 +851,8 @@ class PXERamdiskDeployTestCase(db_base.DbTestCase):
         with task_manager.acquire(self.context, self.node.uuid) as task:
             dhcp_opts = pxe_utils.dhcp_options_for_instance(
                 task, ipxe_enabled=False)
+            dhcp_opts += pxe_utils.dhcp_options_for_instance(
+                task, ipxe_enabled=False, ip_version=6)
             pxe_config_path = pxe_utils.get_pxe_config_file_path(
                 task.node.uuid)
             task.node.properties['capabilities'] = 'boot_option:netboot'

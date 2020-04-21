@@ -169,8 +169,16 @@ class PXEBaseMixin(object):
             # or was deleted.
             pxe_utils.create_ipxe_boot_script()
 
+        # Generate options for both IPv4 and IPv6, and they can be
+        # filtered down later based upon the port options.
+        # TODO(TheJulia): This should be re-tooled during the Victoria
+        # development cycle so that we call a single method and return
+        # combined options. The method we currently call is relied upon
+        # by two eternal projects, to changing the behavior is not ideal.
         dhcp_opts = pxe_utils.dhcp_options_for_instance(
-            task, ipxe_enabled=self.ipxe_enabled)
+            task, ipxe_enabled=self.ipxe_enabled, ip_version=4)
+        dhcp_opts += pxe_utils.dhcp_options_for_instance(
+            task, ipxe_enabled=self.ipxe_enabled, ip_version=6)
         provider = dhcp_factory.DHCPFactory()
         provider.update_dhcp(task, dhcp_opts)
 
@@ -259,7 +267,9 @@ class PXEBaseMixin(object):
 
             # If it's going to PXE boot we need to update the DHCP server
             dhcp_opts = pxe_utils.dhcp_options_for_instance(
-                task, ipxe_enabled=self.ipxe_enabled)
+                task, ipxe_enabled=self.ipxe_enabled, ip_version=4)
+            dhcp_opts += pxe_utils.dhcp_options_for_instance(
+                task, ipxe_enabled=self.ipxe_enabled, ip_version=6)
             provider = dhcp_factory.DHCPFactory()
             provider.update_dhcp(task, dhcp_opts)
 
