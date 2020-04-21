@@ -23,6 +23,7 @@ from oslo_config import cfg
 from oslo_log import log
 try:
     from oslo_reports import guru_meditation_report as gmr
+    from oslo_reports import opts as gmr_opts
 except ImportError:
     gmr = None
 
@@ -41,6 +42,7 @@ def main():
     ironic_service.prepare_service(sys.argv)
 
     if gmr is not None:
+        gmr_opts.set_defaults(CONF)
         gmr.TextGuruMeditation.setup_autorun(version)
     else:
         LOG.debug('Guru meditation reporting is disabled '

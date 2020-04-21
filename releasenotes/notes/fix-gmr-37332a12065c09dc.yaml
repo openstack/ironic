@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Fixes state report via Guru Meditation Reports that did not work
+    previously because of empty ``log_dir`` and no way to configure
+    this configuration option.
