@@ -22,13 +22,13 @@ from oslo_config import cfg
 from oslo_utils import timeutils
 from oslo_utils import uuidutils
 from testtools.matchers import HasLength
-from wsme import types as wtypes
 
 from ironic.api.controllers import base as api_base
 from ironic.api.controllers import v1 as api_v1
 from ironic.api.controllers.v1 import notification_utils
 from ironic.api.controllers.v1 import portgroup as api_portgroup
 from ironic.api.controllers.v1 import utils as api_utils
+from ironic.api import types as atypes
 from ironic.common import exception
 from ironic.common import states
 from ironic.common import utils as common_utils
@@ -57,7 +57,7 @@ class TestPortgroupObject(base.TestCase):
         portgroup_dict = apiutils.portgroup_post_data(node_id=None)
         del portgroup_dict['extra']
         portgroup = api_portgroup.Portgroup(**portgroup_dict)
-        self.assertEqual(wtypes.Unset, portgroup.extra)
+        self.assertEqual(atypes.Unset, portgroup.extra)
 
 
 class TestListPortgroups(test_api_base.BaseApiTest):

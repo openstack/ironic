@@ -19,7 +19,6 @@ from ironic_lib import metrics_utils
 from oslo_utils import uuidutils
 from pecan import rest
 import wsme
-from wsme import types as wtypes
 
 from ironic import api
 from ironic.api.controllers import base
@@ -29,6 +28,7 @@ from ironic.api.controllers.v1 import notification_utils as notify
 from ironic.api.controllers.v1 import types
 from ironic.api.controllers.v1 import utils as api_utils
 from ironic.api import expose
+from ironic.api import types as atypes
 from ironic.common import exception
 from ironic.common.i18n import _
 from ironic.common import policy
@@ -56,10 +56,10 @@ class VolumeTarget(base.APIBase):
     def _set_node_identifiers(self, value):
         """Set both UUID and ID of a node for VolumeTarget object
 
-        :param value: UUID, ID of a node, or wtypes.Unset
+        :param value: UUID, ID of a node, or atypes.Unset
         """
-        if value == wtypes.Unset:
-            self._node_uuid = wtypes.Unset
+        if value == atypes.Unset:
+            self._node_uuid = atypes.Unset
         elif value and self._node_uuid != value:
             try:
                 node = objects.Node.get(api.request.context, value)
@@ -76,26 +76,26 @@ class VolumeTarget(base.APIBase):
     uuid = types.uuid
     """Unique UUID for this volume target"""
 
-    volume_type = wsme.wsattr(str, mandatory=True)
+    volume_type = atypes.wsattr(str, mandatory=True)
     """The volume_type of volume target"""
 
     properties = {str: types.jsontype}
     """The properties for this volume target"""
 
-    boot_index = wsme.wsattr(int, mandatory=True)
+    boot_index = atypes.wsattr(int, mandatory=True)
     """The boot_index of volume target"""
 
-    volume_id = wsme.wsattr(str, mandatory=True)
+    volume_id = atypes.wsattr(str, mandatory=True)
     """The volume_id for this volume target"""
 
     extra = {str: types.jsontype}
     """The metadata for this volume target"""
 
-    node_uuid = wsme.wsproperty(types.uuid, _get_node_uuid,
-                                _set_node_identifiers, mandatory=True)
+    node_uuid = atypes.wsproperty(types.uuid, _get_node_uuid,
+                                  _set_node_identifiers, mandatory=True)
     """The UUID of the node this volume target belongs to"""
 
-    links = wsme.wsattr([link.Link], readonly=True)
+    links = atypes.wsattr([link.Link], readonly=True)
     """A list containing a self link and associated volume target links"""
 
     def __init__(self, **kwargs):
@@ -106,7 +106,7 @@ class VolumeTarget(base.APIBase):
             if not hasattr(self, field):
                 continue
             self.fields.append(field)
-            setattr(self, field, kwargs.get(field, wtypes.Unset))
+            setattr(self, field, kwargs.get(field, atypes.Unset))
 
         # NOTE(smoriya): node_id is an attribute created on-the-fly
         # by _set_node_uuid(), it needs to be present in the fields so
@@ -120,7 +120,7 @@ class VolumeTarget(base.APIBase):
         # secondary identifier in case RPC volume target object dictionary
         # was passed to the constructor.
         self.node_uuid = kwargs.get('node_uuid') or kwargs.get('node_id',
-                                                               wtypes.Unset)
+                                                               atypes.Unset)
 
     @staticmethod
     def _convert_with_links(target, url):
@@ -165,7 +165,7 @@ class VolumeTarget(base.APIBase):
             self.unset_fields_except(fields)
 
         # never expose the node_id attribute
-        self.node_id = wtypes.Unset
+        self.node_id = atypes.Unset
 
     @classmethod
     def sample(cls, expand=True):
@@ -448,7 +448,7 @@ class VolumeTargetsController(rest.RestController):
             except AttributeError:
                 # Ignore fields that aren't exposed in the API
                 continue
-            if patch_val == wtypes.Unset:
+            if patch_val == atypes.Unset:
                 patch_val = None
             if rpc_target[field] != patch_val:
                 rpc_target[field] = patch_val

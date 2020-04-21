@@ -24,7 +24,6 @@ from oslo_config import cfg
 from oslo_utils import timeutils
 from oslo_utils import uuidutils
 from testtools import matchers
-from wsme import types as wtypes
 
 from ironic.api.controllers import base as api_base
 from ironic.api.controllers import v1 as api_v1
@@ -32,6 +31,7 @@ from ironic.api.controllers.v1 import node as api_node
 from ironic.api.controllers.v1 import notification_utils
 from ironic.api.controllers.v1 import utils as api_utils
 from ironic.api.controllers.v1 import versions
+from ironic.api import types as atypes
 from ironic.common import boot_devices
 from ironic.common import components
 from ironic.common import driver_factory
@@ -54,7 +54,7 @@ class TestNodeObject(base.TestCase):
         node_dict = test_api_utils.node_post_data()
         del node_dict['instance_uuid']
         node = api_node.Node(**node_dict)
-        self.assertEqual(wtypes.Unset, node.instance_uuid)
+        self.assertEqual(atypes.Unset, node.instance_uuid)
 
 
 class TestListNodes(test_api_base.BaseApiTest):

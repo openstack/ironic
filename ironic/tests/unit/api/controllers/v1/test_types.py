@@ -23,6 +23,7 @@ import webtest
 import wsme
 
 from ironic.api.controllers.v1 import types
+from ironic.api import types as atypes
 from ironic.common import exception
 from ironic.common import utils
 from ironic.tests import base
@@ -88,7 +89,7 @@ class TestUuidOrNameType(base.TestCase):
 
 class MyBaseType(object):
     """Helper class, patched by objects of type MyPatchType"""
-    mandatory = wsme.wsattr(str, mandatory=True)
+    mandatory = atypes.wsattr(str, mandatory=True)
 
 
 class MyPatchType(types.JsonPatchType):

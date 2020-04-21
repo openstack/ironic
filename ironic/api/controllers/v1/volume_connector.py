@@ -19,7 +19,6 @@ from ironic_lib import metrics_utils
 from oslo_utils import uuidutils
 from pecan import rest
 import wsme
-from wsme import types as wtypes
 
 from ironic import api
 from ironic.api.controllers import base
@@ -29,6 +28,7 @@ from ironic.api.controllers.v1 import notification_utils as notify
 from ironic.api.controllers.v1 import types
 from ironic.api.controllers.v1 import utils as api_utils
 from ironic.api import expose
+from ironic.api import types as atypes
 from ironic.common import exception
 from ironic.common.i18n import _
 from ironic.common import policy
@@ -55,10 +55,10 @@ class VolumeConnector(base.APIBase):
     def _set_node_identifiers(self, value):
         """Set both UUID and ID of a node for VolumeConnector object
 
-        :param value: UUID, ID of a node, or wtypes.Unset
+        :param value: UUID, ID of a node, or atypes.Unset
         """
-        if value == wtypes.Unset:
-            self._node_uuid = wtypes.Unset
+        if value == atypes.Unset:
+            self._node_uuid = atypes.Unset
         elif value and self._node_uuid != value:
             try:
                 node = objects.Node.get(api.request.context, value)
@@ -75,20 +75,20 @@ class VolumeConnector(base.APIBase):
     uuid = types.uuid
     """Unique UUID for this volume connector"""
 
-    type = wsme.wsattr(str, mandatory=True)
+    type = atypes.wsattr(str, mandatory=True)
     """The type of volume connector"""
 
-    connector_id = wsme.wsattr(str, mandatory=True)
+    connector_id = atypes.wsattr(str, mandatory=True)
     """The connector_id for this volume connector"""
 
     extra = {str: types.jsontype}
     """The metadata for this volume connector"""
 
-    node_uuid = wsme.wsproperty(types.uuid, _get_node_uuid,
-                                _set_node_identifiers, mandatory=True)
+    node_uuid = atypes.wsproperty(types.uuid, _get_node_uuid,
+                                  _set_node_identifiers, mandatory=True)
     """The UUID of the node this volume connector belongs to"""
 
-    links = wsme.wsattr([link.Link], readonly=True)
+    links = atypes.wsattr([link.Link], readonly=True)
     """A list containing a self link and associated volume connector links"""
 
     def __init__(self, **kwargs):
@@ -99,7 +99,7 @@ class VolumeConnector(base.APIBase):
             if not hasattr(self, field):
                 continue
             self.fields.append(field)
-            setattr(self, field, kwargs.get(field, wtypes.Unset))
+            setattr(self, field, kwargs.get(field, atypes.Unset))
 
         # NOTE(smoriya): node_id is an attribute created on-the-fly
         # by _set_node_uuid(), it needs to be present in the fields so
@@ -113,7 +113,7 @@ class VolumeConnector(base.APIBase):
         # secondary identifier in case RPC volume connector object dictionary
         # was passed to the constructor.
         self.node_uuid = kwargs.get('node_uuid') or kwargs.get('node_id',
-                                                               wtypes.Unset)
+                                                               atypes.Unset)
 
     @staticmethod
     def _convert_with_links(connector, url):
@@ -159,7 +159,7 @@ class VolumeConnector(base.APIBase):
             self.unset_fields_except(fields)
 
         # never expose the node_id attribute
-        self.node_id = wtypes.Unset
+        self.node_id = atypes.Unset
 
     @classmethod
     def sample(cls, expand=True):
@@ -437,7 +437,7 @@ class VolumeConnectorsController(rest.RestController):
             except AttributeError:
                 # Ignore fields that aren't exposed in the API
                 continue
-            if patch_val == wtypes.Unset:
+            if patch_val == atypes.Unset:
                 patch_val = None
             if rpc_connector[field] != patch_val:
                 rpc_connector[field] = patch_val

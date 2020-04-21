@@ -14,9 +14,9 @@
 
 import mock
 from oslo_utils import uuidutils
-from wsme import types as wtypes
 
 from ironic.api.controllers.v1 import notification_utils as notif_utils
+from ironic.api import types as atypes
 from ironic.objects import fields
 from ironic.objects import notification
 from ironic.tests import base as tests_base
@@ -102,7 +102,7 @@ class APINotifyTestCase(tests_base.TestCase):
         test_status = fields.NotificationStatus.SUCCESS
         notif_utils._emit_api_notification(self.context, node, 'create',
                                            test_level, test_status,
-                                           chassis_uuid=wtypes.Unset)
+                                           chassis_uuid=atypes.Unset)
         init_kwargs = self.node_notify_mock.call_args[1]
         payload = init_kwargs['payload']
         self.assertIsNone(payload.chassis_uuid)

@@ -17,8 +17,8 @@ from oslo_log import log
 from oslo_messaging import exceptions as oslo_msg_exc
 from oslo_utils import excutils
 from oslo_versionedobjects import exception as oslo_vo_exc
-from wsme import types as wtypes
 
+from ironic.api import types as atypes
 from ironic.common import exception
 from ironic.common.i18n import _
 from ironic.objects import allocation as allocation_objects
@@ -71,8 +71,8 @@ def _emit_api_notification(context, obj, action, level, status, **kwargs):
     :param kwargs: kwargs to use when creating the notification payload.
     """
     resource = obj.__class__.__name__.lower()
-    # value wsme.Unset can be passed from API representation of resource
-    extra_args = {k: (v if v != wtypes.Unset else None)
+    # value atypes.Unset can be passed from API representation of resource
+    extra_args = {k: (v if v != atypes.Unset else None)
                   for k, v in kwargs.items()}
     try:
         try:

@@ -18,7 +18,6 @@ from oslo_utils import uuidutils
 import pecan
 from webob import exc as webob_exc
 import wsme
-from wsme import types as wtypes
 
 from ironic import api
 from ironic.api.controllers import base
@@ -28,6 +27,7 @@ from ironic.api.controllers.v1 import notification_utils as notify
 from ironic.api.controllers.v1 import types
 from ironic.api.controllers.v1 import utils as api_utils
 from ironic.api import expose
+from ironic.api import types as atypes
 from ironic.common import exception
 from ironic.common.i18n import _
 from ironic.common import policy
@@ -40,7 +40,7 @@ METRICS = metrics_utils.get_metrics_logger(__name__)
 def hide_fields_in_newer_versions(obj):
     # if requested version is < 1.60, hide owner field
     if not api_utils.allow_allocation_owner():
-        obj.owner = wsme.Unset
+        obj.owner = atypes.Unset
 
 
 class Allocation(base.APIBase):
@@ -57,36 +57,36 @@ class Allocation(base.APIBase):
     extra = {str: types.jsontype}
     """This allocation's meta data"""
 
-    node_uuid = wsme.wsattr(types.uuid, readonly=True)
+    node_uuid = atypes.wsattr(types.uuid, readonly=True)
     """The UUID of the node this allocation belongs to"""
 
-    node = wsme.wsattr(str)
+    node = atypes.wsattr(str)
     """The node to backfill the allocation for (POST only)"""
 
-    name = wsme.wsattr(str)
+    name = atypes.wsattr(str)
     """The logical name for this allocation"""
 
-    links = wsme.wsattr([link.Link], readonly=True)
+    links = atypes.wsattr([link.Link], readonly=True)
     """A list containing a self link and associated allocation links"""
 
-    state = wsme.wsattr(str, readonly=True)
+    state = atypes.wsattr(str, readonly=True)
     """The current state of the allocation"""
 
-    last_error = wsme.wsattr(str, readonly=True)
+    last_error = atypes.wsattr(str, readonly=True)
     """Last error that happened to this allocation"""
 
-    resource_class = wsme.wsattr(wtypes.StringType(max_length=80))
+    resource_class = atypes.wsattr(atypes.StringType(max_length=80))
     """Requested resource class for this allocation"""
 
-    owner = wsme.wsattr(str)
+    owner = atypes.wsattr(str)
     """Owner of allocation"""
 
     # NOTE(dtantsur): candidate_nodes is a list of UUIDs on the database level,
     # but the API level also accept names, converting them on fly.
-    candidate_nodes = wsme.wsattr([str])
+    candidate_nodes = atypes.wsattr([str])
     """Candidate nodes for this allocation"""
 
-    traits = wsme.wsattr([str])
+    traits = atypes.wsattr([str])
     """Requested traits for the allocation"""
 
     def __init__(self, **kwargs):
@@ -100,13 +100,13 @@ class Allocation(base.APIBase):
             if not hasattr(self, field):
                 continue
             self.fields.append(field)
-            setattr(self, field, kwargs.get(field, wtypes.Unset))
+            setattr(self, field, kwargs.get(field, atypes.Unset))
 
     @staticmethod
     def _convert_with_links(allocation, url):
         """Add links to the allocation."""
         # This field is only used in POST, never return it.
-        allocation.node = wsme.Unset
+        allocation.node = atypes.Unset
         allocation.links = [
             link.Link.make_link('self', url, 'allocations', allocation.uuid),
             link.Link.make_link('bookmark', url, 'allocations',
@@ -399,7 +399,7 @@ class AllocationsController(pecan.rest.RestController):
                 api_utils.validate_trait(trait)
 
         node = None
-        if allocation.node is not wtypes.Unset:
+        if allocation.node is not atypes.Unset:
             if api_utils.allow_allocation_backfill():
                 try:
                     node = api_utils.get_rpc_node(allocation.node)
@@ -507,7 +507,7 @@ class AllocationsController(pecan.rest.RestController):
             except AttributeError:
                 # Ignore fields that aren't exposed in the API
                 continue
-            if patch_val == wtypes.Unset:
+            if patch_val == atypes.Unset:
                 patch_val = None
             if rpc_allocation[field] != patch_val:
                 rpc_allocation[field] = patch_val

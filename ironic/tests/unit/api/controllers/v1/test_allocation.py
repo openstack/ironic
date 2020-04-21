@@ -22,12 +22,12 @@ import mock
 from oslo_config import cfg
 from oslo_utils import timeutils
 from oslo_utils import uuidutils
-from wsme import types as wtypes
 
 from ironic.api.controllers import base as api_base
 from ironic.api.controllers import v1 as api_v1
 from ironic.api.controllers.v1 import allocation as api_allocation
 from ironic.api.controllers.v1 import notification_utils
+from ironic.api import types as atypes
 from ironic.common import exception
 from ironic.common import policy
 from ironic.conductor import rpcapi
@@ -45,7 +45,7 @@ class TestAllocationObject(base.TestCase):
         allocation_dict = apiutils.allocation_post_data(node_id=None)
         del allocation_dict['extra']
         allocation = api_allocation.Allocation(**allocation_dict)
-        self.assertEqual(wtypes.Unset, allocation.extra)
+        self.assertEqual(atypes.Unset, allocation.extra)
 
 
 class TestListAllocations(test_api_base.BaseApiTest):

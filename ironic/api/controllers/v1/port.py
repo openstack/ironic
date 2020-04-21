@@ -21,7 +21,6 @@ from oslo_log import log
 from oslo_utils import uuidutils
 from pecan import rest
 import wsme
-from wsme import types as wtypes
 
 from ironic import api
 from ironic.api.controllers import base
@@ -31,6 +30,7 @@ from ironic.api.controllers.v1 import notification_utils as notify
 from ironic.api.controllers.v1 import types
 from ironic.api.controllers.v1 import utils as api_utils
 from ironic.api import expose
+from ironic.api import types as atypes
 from ironic.common import exception
 from ironic.common.i18n import _
 from ironic.common import policy
@@ -47,21 +47,21 @@ _DEFAULT_RETURN_FIELDS = ('uuid', 'address')
 def hide_fields_in_newer_versions(obj):
     # if requested version is < 1.18, hide internal_info field
     if not api_utils.allow_port_internal_info():
-        obj.internal_info = wsme.Unset
+        obj.internal_info = atypes.Unset
     # if requested version is < 1.19, hide local_link_connection and
     # pxe_enabled fields
     if not api_utils.allow_port_advanced_net_fields():
-        obj.pxe_enabled = wsme.Unset
-        obj.local_link_connection = wsme.Unset
+        obj.pxe_enabled = atypes.Unset
+        obj.local_link_connection = atypes.Unset
     # if requested version is < 1.24, hide portgroup_uuid field
     if not api_utils.allow_portgroups_subcontrollers():
-        obj.portgroup_uuid = wsme.Unset
+        obj.portgroup_uuid = atypes.Unset
     # if requested version is < 1.34, hide physical_network field.
     if not api_utils.allow_port_physical_network():
-        obj.physical_network = wsme.Unset
+        obj.physical_network = atypes.Unset
     # if requested version is < 1.53, hide is_smartnic field.
     if not api_utils.allow_port_is_smartnic():
-        obj.is_smartnic = wsme.Unset
+        obj.is_smartnic = atypes.Unset
 
 
 class Port(base.APIBase):
@@ -94,8 +94,8 @@ class Port(base.APIBase):
                 # response for a POST request to create a Port
                 e.code = http_client.BAD_REQUEST  # BadRequest
                 raise
-        elif value == wtypes.Unset:
-            self._node_uuid = wtypes.Unset
+        elif value == atypes.Unset:
+            self._node_uuid = atypes.Unset
 
     def _get_portgroup_uuid(self):
         return self._portgroup_uuid
@@ -103,7 +103,7 @@ class Port(base.APIBase):
     def _set_portgroup_uuid(self, value):
         if value and self._portgroup_uuid != value:
             if not api_utils.allow_portgroups_subcontrollers():
-                self._portgroup_uuid = wtypes.Unset
+                self._portgroup_uuid = atypes.Unset
                 return
             try:
                 portgroup = objects.Portgroup.get(api.request.context, value)
@@ -121,8 +121,8 @@ class Port(base.APIBase):
                 # response for a POST request to create a Port
                 e.code = http_client.BAD_REQUEST  # BadRequest
                 raise e
-        elif value == wtypes.Unset:
-            self._portgroup_uuid = wtypes.Unset
+        elif value == atypes.Unset:
+            self._portgroup_uuid = atypes.Unset
         elif value is None and api_utils.allow_portgroups_subcontrollers():
             # This is to output portgroup_uuid field if API version allows this
             self._portgroup_uuid = None
@@ -130,21 +130,21 @@ class Port(base.APIBase):
     uuid = types.uuid
     """Unique UUID for this port"""
 
-    address = wsme.wsattr(types.macaddress, mandatory=True)
+    address = atypes.wsattr(types.macaddress, mandatory=True)
     """MAC Address for this port"""
 
     extra = {str: types.jsontype}
     """This port's meta data"""
 
-    internal_info = wsme.wsattr({str: types.jsontype}, readonly=True)
+    internal_info = atypes.wsattr({str: types.jsontype}, readonly=True)
     """This port's internal information maintained by ironic"""
 
-    node_uuid = wsme.wsproperty(types.uuid, _get_node_uuid, _set_node_uuid,
-                                mandatory=True)
+    node_uuid = atypes.wsproperty(types.uuid, _get_node_uuid, _set_node_uuid,
+                                  mandatory=True)
     """The UUID of the node this port belongs to"""
 
-    portgroup_uuid = wsme.wsproperty(types.uuid, _get_portgroup_uuid,
-                                     _set_portgroup_uuid, mandatory=False)
+    portgroup_uuid = atypes.wsproperty(types.uuid, _get_portgroup_uuid,
+                                       _set_portgroup_uuid, mandatory=False)
     """The UUID of the portgroup this port belongs to"""
 
     pxe_enabled = types.boolean
@@ -153,10 +153,10 @@ class Port(base.APIBase):
     local_link_connection = types.locallinkconnectiontype
     """The port binding profile for the port"""
 
-    physical_network = wtypes.StringType(max_length=64)
+    physical_network = atypes.StringType(max_length=64)
     """The name of the physical network to which this port is connected."""
 
-    links = wsme.wsattr([link.Link], readonly=True)
+    links = atypes.wsattr([link.Link], readonly=True)
     """A list containing a self link and associated port links"""
 
     is_smartnic = types.boolean
@@ -175,14 +175,14 @@ class Port(base.APIBase):
             # Add fields we expose.
             if hasattr(self, field):
                 self.fields.append(field)
-                setattr(self, field, kwargs.get(field, wtypes.Unset))
+                setattr(self, field, kwargs.get(field, atypes.Unset))
 
         # NOTE(lucasagomes): node_id is an attribute created on-the-fly
         # by _set_node_uuid(), it needs to be present in the fields so
         # that as_dict() will contain node_id field when converting it
         # before saving it in the database.
         self.fields.append('node_id')
-        setattr(self, 'node_uuid', kwargs.get('node_id', wtypes.Unset))
+        setattr(self, 'node_uuid', kwargs.get('node_id', atypes.Unset))
 
         # NOTE: portgroup_id is an attribute created on-the-fly
         # by _set_portgroup_uuid(), it needs to be present in the fields so
@@ -190,7 +190,7 @@ class Port(base.APIBase):
         # before saving it in the database.
         self.fields.append('portgroup_id')
         setattr(self, 'portgroup_uuid', kwargs.get('portgroup_id',
-                                                   wtypes.Unset))
+                                                   atypes.Unset))
 
     @classmethod
     def convert_with_links(cls, rpc_port, fields=None, sanitize=True):
@@ -233,10 +233,10 @@ class Port(base.APIBase):
             self.unset_fields_except(fields)
 
         # never expose the node_id attribute
-        self.node_id = wtypes.Unset
+        self.node_id = atypes.Unset
 
         # never expose the portgroup_id attribute
-        self.portgroup_id = wtypes.Unset
+        self.portgroup_id = atypes.Unset
 
     @classmethod
     def sample(cls, expand=True):
@@ -711,7 +711,7 @@ class PortsController(rest.RestController):
             except AttributeError:
                 # Ignore fields that aren't exposed in the API
                 continue
-            if patch_val == wtypes.Unset:
+            if patch_val == atypes.Unset:
                 patch_val = None
             if rpc_port[field] != patch_val:
                 rpc_port[field] = patch_val

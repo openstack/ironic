@@ -23,13 +23,13 @@ import mock
 from oslo_config import cfg
 from oslo_utils import timeutils
 from oslo_utils import uuidutils
-from wsme import types as wtypes
 
 from ironic.api.controllers import base as api_base
 from ironic.api.controllers import v1 as api_v1
 from ironic.api.controllers.v1 import notification_utils
 from ironic.api.controllers.v1 import utils as api_utils
 from ironic.api.controllers.v1 import volume_connector as api_volume_connector
+from ironic.api import types as atypes
 from ironic.common import exception
 from ironic.conductor import rpcapi
 from ironic import objects
@@ -54,7 +54,7 @@ class TestVolumeConnectorObject(base.TestCase):
         connector_dict = apiutils.volume_connector_post_data(node_id=None)
         del connector_dict['extra']
         connector = api_volume_connector.VolumeConnector(**connector_dict)
-        self.assertEqual(wtypes.Unset, connector.extra)
+        self.assertEqual(atypes.Unset, connector.extra)
 
 
 class TestListVolumeConnectors(test_api_base.BaseApiTest):

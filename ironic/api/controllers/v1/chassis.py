@@ -20,7 +20,6 @@ from ironic_lib import metrics_utils
 from oslo_utils import uuidutils
 from pecan import rest
 import wsme
-from wsme import types as wtypes
 
 from ironic import api
 from ironic.api.controllers import base
@@ -31,6 +30,7 @@ from ironic.api.controllers.v1 import notification_utils as notify
 from ironic.api.controllers.v1 import types
 from ironic.api.controllers.v1 import utils as api_utils
 from ironic.api import expose
+from ironic.api import types as atypes
 from ironic.common import exception
 from ironic.common.i18n import _
 from ironic.common import policy
@@ -53,16 +53,16 @@ class Chassis(base.APIBase):
     uuid = types.uuid
     """The UUID of the chassis"""
 
-    description = wtypes.StringType(max_length=255)
+    description = atypes.StringType(max_length=255)
     """The description of the chassis"""
 
     extra = {str: types.jsontype}
     """The metadata of the chassis"""
 
-    links = wsme.wsattr([link.Link], readonly=True)
+    links = atypes.wsattr([link.Link], readonly=True)
     """A list containing a self link and associated chassis links"""
 
-    nodes = wsme.wsattr([link.Link], readonly=True)
+    nodes = atypes.wsattr([link.Link], readonly=True)
     """Links to the collection of nodes contained in this chassis"""
 
     def __init__(self, **kwargs):
@@ -72,7 +72,7 @@ class Chassis(base.APIBase):
             if not hasattr(self, field):
                 continue
             self.fields.append(field)
-            setattr(self, field, kwargs.get(field, wtypes.Unset))
+            setattr(self, field, kwargs.get(field, atypes.Unset))
 
     @staticmethod
     def _convert_with_links(chassis, url, fields=None):
@@ -336,7 +336,7 @@ class ChassisController(rest.RestController):
             except AttributeError:
                 # Ignore fields that aren't exposed in the API
                 continue
-            if patch_val == wtypes.Unset:
+            if patch_val == atypes.Unset:
                 patch_val = None
             if rpc_chassis[field] != patch_val:
                 rpc_chassis[field] = patch_val

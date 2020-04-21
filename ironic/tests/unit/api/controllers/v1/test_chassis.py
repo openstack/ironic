@@ -23,12 +23,12 @@ import mock
 from oslo_config import cfg
 from oslo_utils import timeutils
 from oslo_utils import uuidutils
-from wsme import types as wtypes
 
 from ironic.api.controllers import base as api_base
 from ironic.api.controllers import v1 as api_v1
 from ironic.api.controllers.v1 import chassis as api_chassis
 from ironic.api.controllers.v1 import notification_utils
+from ironic.api import types as atypes
 from ironic import objects
 from ironic.objects import fields as obj_fields
 from ironic.tests import base
@@ -43,7 +43,7 @@ class TestChassisObject(base.TestCase):
         chassis_dict = apiutils.chassis_post_data()
         del chassis_dict['description']
         chassis = api_chassis.Chassis(**chassis_dict)
-        self.assertEqual(wtypes.Unset, chassis.description)
+        self.assertEqual(atypes.Unset, chassis.description)
 
     def test_chassis_sample(self):
         expected_description = 'Sample chassis'

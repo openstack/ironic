@@ -26,6 +26,7 @@ import wsme
 from ironic import api
 from ironic.api.controllers.v1 import node as api_node
 from ironic.api.controllers.v1 import utils
+from ironic.api import types as atypes
 from ironic.common import exception
 from ironic.common import policy
 from ironic.common import states
@@ -693,7 +694,7 @@ class TestVendorPassthru(base.TestCase):
             'fake-data', 'fake-topic')
         self.assertIsInstance(response, wsme.api.Response)
         self.assertEqual('SpongeBob', response.obj)
-        self.assertEqual(response.return_type, wsme.types.Unset)
+        self.assertEqual(response.return_type, atypes.Unset)
         sc = http_client.ACCEPTED if async_call else http_client.OK
         self.assertEqual(sc, response.status_code)
 
