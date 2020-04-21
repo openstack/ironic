@@ -1,0 +1,9 @@
+---
+features:
+  - |
+    Adds support for managing an iDRAC -- reset, clear job queue, and reset to
+    known good state -- via the Redfish out-of-band (OOB) management protocol
+    to the ``idrac`` hardware type. This is offered by new ``idrac-redfish``
+    management hardware interface implementation cleaning steps:
+    ``reset_idrac``, ``clear_job_queue``, and ``known_good_state``.
+    ``known_good_state`` both resets an iDRAC and clears its job queue.

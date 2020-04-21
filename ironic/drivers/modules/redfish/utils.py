@@ -1,5 +1,6 @@
 # Copyright 2017 Red Hat, Inc.
 # All Rights Reserved.
+# Copyright (c) 2020-2021 Dell Inc. or its subsidiaries.
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
 #    not use this file except in compliance with the License. You may obtain
@@ -372,3 +373,28 @@ def get_enabled_macs(task, system):
     else:
         LOG.debug("No ethernet interface information is available "
                   "for node %(node)s", {'node': task.node.uuid})
+
+
+@tenacity.retry(
+    retry=tenacity.retry_if_exception_type(
+        exception.RedfishConnectionError),
+    stop=tenacity.stop_after_attempt(CONF.redfish.connection_attempts),
+    wait=tenacity.wait_fixed(CONF.redfish.connection_retry_interval),
+    reraise=True)
+def wait_until_get_system_ready(node):
+    """Wait until Redfish system is ready.
+
+    :param node: an Ironic node object
+    :raises: RedfishConnectionError on time out.
+    """
+    driver_info = parse_driver_info(node)
+    system_id = driver_info['system_id']
+    try:
+        with SessionCache(driver_info) as conn:
+            return conn.get_system(system_id)
+    except sushy.exceptions.BadRequestError as e:
+        err_msg = ("System is not ready for node %(node)s, with error"
+                   "%(error)s, so retrying it",
+                   {'node': node.uuid, 'error': e})
+        LOG.warning(err_msg)
+        raise exception.RedfishConnectionError(node=node.uuid, error=e)
