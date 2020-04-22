@@ -2,7 +2,7 @@
 REST API Version History
 ========================
 
-1.65 (Ussuri, master)
+1.65 (Ussuri, 15.0)
 ---------------------
 
 Added ``lessee`` field to the node object. The field should match the
@@ -10,7 +10,7 @@ Added ``lessee`` field to the node object. The field should match the
 then the allocation process will only match the allocation with a node
 that has the same ``owner`` or ``lessee``.
 
-1.64 (Ussuri, master)
+1.64 (Ussuri, 15.0)
 ---------------------
 
 Added the ``network_type`` to the port objects ``local_link_connection`` field.
@@ -19,7 +19,7 @@ type is ``unmanaged`` other fields are not required. Use ``unmanaged`` when the
 neutron ``network_interface`` is required, but the network is in fact a flat
 network where no actual switch management is done.
 
-1.63 (Ussuri, master)
+1.63 (Ussuri, 15.0)
 ---------------------
 
 Added the following new endpoints for indicator management:
@@ -33,14 +33,14 @@ Added the following new endpoints for indicator management:
 * ``PUT /v1/nodes/<node_ident>/management/indicators/<component>/<indicator_ident>``
   change state of the desired indicators of the component.
 
-1.62 (Ussuri, master)
+1.62 (Ussuri, 15.0)
 ---------------------
 
 This version of the API is to signify capability of an ironic deployment
 to support the ``agent token`` functionality with the
 ``ironic-python-agent``.
 
-1.61 (Ussuri, master)
+1.61 (Ussuri, 14.0)
 ---------------------
 
 Added ``retired`` field to the node object to mark nodes for retirement.
@@ -49,7 +49,7 @@ cleaning. ``manageable`` nodes which have this flag set cannot be
 moved to available. Also added ``retired_reason`` to specify the
 retirement reason.
 
-1.60 (Ussuri, master)
+1.60 (Ussuri, 14.0)
 ---------------------
 
 Added ``owner`` field to the allocation object. The field should match the
@@ -57,7 +57,7 @@ Added ``owner`` field to the allocation object. The field should match the
 allocation process will only match the allocation with a node that has the
 same ``owner`` field set.
 
-1.59 (Ussuri, master)
+1.59 (Ussuri, 14.0)
 ---------------------
 
 Added the ability to specify a ``vendor_data`` dictionary field in the

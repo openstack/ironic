@@ -1,7 +1,7 @@
 ---
 features:
   - |
-    Adds support of ``agent token`` which serves as a mechanism to secure
+    Adds support of "agent token" which serves as a mechanism to secure
     the normally unauthenticated API endpoints in ironic which are used in
     the mechanics of baremetal provisioning. This feature is optional, however
     operators may require this feature by changing the

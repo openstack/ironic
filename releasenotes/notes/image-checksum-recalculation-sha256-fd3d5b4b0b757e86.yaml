@@ -7,4 +7,5 @@ upgrade:
 security:
   - |
     Image checksum recalculation when images are forced to raw images, are now
-    calculated using SHA3-256 if MD5 was selected. This is now unconditional.
+    calculated using ``SHA3-256`` if MD5 was selected.
+    This is now unconditional.

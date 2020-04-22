@@ -1,6 +1,6 @@
 ---
 fixes:
   - |
-    Renames misleadingly named `images.create_isolinux_image_for_uefi`
-    function into `images.create_esp_image_for_uefi`. The new name
+    Renames misleadingly named ``images.create_isolinux_image_for_uefi``
+    function into ``images.create_esp_image_for_uefi``. The new name
     reflects what's actually going on under the hood.
