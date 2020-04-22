@@ -316,6 +316,9 @@ class AgentClient(object):
                           'efi_system_part_uuid': efi_system_part_uuid,
                           'prep_boot_part_uuid': prep_boot_part_uuid
                           }
+                LOG.warning('Failed to install bootloader on first attempt '
+                            'for node %(node)s. Falling back to older IPA '
+                            'format.', {'node': node.uuid})
                 return self._command(node=node,
                                      method='image.install_bootloader',
                                      params=params,
