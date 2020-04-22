@@ -141,6 +141,8 @@ The Redfish protocol requires the following properties:
 * ``redfish_system_id``: The Redfish ID of the server to be
   managed. This should always be: ``/redfish/v1/Systems/System.Embedded.1``.
 
+For other Redfish protocol parameters see :doc:`/admin/drivers/redfish`.
+
 If using only interfaces which use WSMAN (``idrac-wsman``), then only
 the WSMAN properties must be supplied. If using only interfaces which
 use Redfish (``idrac-redfish``), then only the Redfish properties must be
