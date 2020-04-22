@@ -19,6 +19,7 @@ import builtins
 import hashlib
 import io
 import os
+import shutil
 import tempfile
 
 from ironic_lib import utils as ironic_utils
@@ -340,7 +341,7 @@ class IloCommonMethodsTestCase(BaseIloTest):
             'ilo_cont', object_name, timeout)
         self.assertEqual('temp-url', temp_url)
 
-    @mock.patch.object(deploy_utils, 'copy_image_to_web_server',
+    @mock.patch.object(ilo_common, 'copy_image_to_web_server',
                        spec_set=True, autospec=True)
     @mock.patch.object(images, 'create_vfat_image', spec_set=True,
                        autospec=True)
@@ -806,6 +807,42 @@ class IloCommonMethodsTestCase(BaseIloTest):
                               ilo_common.set_secure_boot_mode,
                               task, False)
         ilo_mock_object.set_secure_boot_mode.assert_called_once_with(False)
+
+    @mock.patch.object(os, 'chmod', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(shutil, 'copyfile', spec_set=True,
+                       autospec=True)
+    def test_copy_image_to_web_server(self, copy_mock,
+                                      chmod_mock):
+        CONF.deploy.http_url = "http://x.y.z.a/webserver/"
+        CONF.deploy.http_root = "/webserver"
+        expected_url = "http://x.y.z.a/webserver/image-UUID"
+        source = 'tmp_image_file'
+        destination = "image-UUID"
+        image_path = "/webserver/image-UUID"
+        actual_url = ilo_common.copy_image_to_web_server(source, destination)
+        self.assertEqual(expected_url, actual_url)
+        copy_mock.assert_called_once_with(source, image_path)
+        chmod_mock.assert_called_once_with(image_path, 0o644)
+
+    @mock.patch.object(os, 'chmod', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(shutil, 'copyfile', spec_set=True,
+                       autospec=True)
+    def test_copy_image_to_web_server_fails(self, copy_mock,
+                                            chmod_mock):
+        CONF.deploy.http_url = "http://x.y.z.a/webserver/"
+        CONF.deploy.http_root = "/webserver"
+        source = 'tmp_image_file'
+        destination = "image-UUID"
+        image_path = "/webserver/image-UUID"
+        exc = exception.ImageUploadFailed('reason')
+        copy_mock.side_effect = exc
+        self.assertRaises(exception.ImageUploadFailed,
+                          ilo_common.copy_image_to_web_server,
+                          source, destination)
+        copy_mock.assert_called_once_with(source, image_path)
+        self.assertFalse(chmod_mock.called)
 
     @mock.patch.object(ilo_common, 'ironic_utils', autospec=True)
     def test_remove_image_from_web_server(self, utils_mock):
