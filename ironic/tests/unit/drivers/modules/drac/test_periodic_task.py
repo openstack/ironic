@@ -36,6 +36,7 @@ class DracPeriodicTaskTestCase(db_base.DbTestCase):
                                                driver='idrac',
                                                driver_info=INFO_DICT)
         self.raid = drac_raid.DracRAID()
+        self.raid_wsman = drac_raid.DracWSManRAID()
         self.job = {
             'id': 'JID_001436912645',
             'name': 'ConfigBIOS:BIOS.Setup.1-1',
@@ -58,8 +59,14 @@ class DracPeriodicTaskTestCase(db_base.DbTestCase):
             'pending_operations': None
         }
 
+    def test__query_raid_config_job_status_drac(self):
+        self._test__query_raid_config_job_status(self.raid)
+
+    def test__query_raid_config_job_status_drac_wsman(self):
+        self._test__query_raid_config_job_status(self.raid_wsman)
+
     @mock.patch.object(task_manager, 'acquire', autospec=True)
-    def test__query_raid_config_job_status(self, mock_acquire):
+    def _test__query_raid_config_job_status(self, raid, mock_acquire):
         # mock node.driver_internal_info
         driver_internal_info = {'raid_config_job_ids': ['42']}
         self.node.driver_internal_info = driver_internal_info
@@ -70,33 +77,41 @@ class DracPeriodicTaskTestCase(db_base.DbTestCase):
                       {'raid_config_job_ids': ['42']})]
         mock_manager.iter_nodes.return_value = node_list
         # mock task_manager.acquire
-        task = mock.Mock(node=self.node, driver=mock.Mock(raid=self.raid))
+        task = mock.Mock(node=self.node, driver=mock.Mock(raid=raid))
         mock_acquire.return_value = mock.MagicMock(
             __enter__=mock.MagicMock(return_value=task))
         # mock _check_node_raid_jobs
-        self.raid._check_node_raid_jobs = mock.Mock()
+        raid._check_node_raid_jobs = mock.Mock()
 
-        self.raid._query_raid_config_job_status(mock_manager,
-                                                self.context)
+        raid._query_raid_config_job_status(mock_manager,
+                                           self.context)
 
-        self.raid._check_node_raid_jobs.assert_called_once_with(task)
+        raid._check_node_raid_jobs.assert_called_once_with(task)
+
+    def test__query_raid_config_job_status_no_config_jobs_drac(self):
+        self._test__query_raid_config_job_status_no_config_jobs(self.raid)
+
+    def test__query_raid_config_job_status_no_config_jobs_drac_wsman(self):
+        self._test__query_raid_config_job_status_no_config_jobs(
+            self.raid_wsman)
 
     @mock.patch.object(task_manager, 'acquire', autospec=True)
-    def test__query_raid_config_job_status_no_config_jobs(self, mock_acquire):
+    def _test__query_raid_config_job_status_no_config_jobs(self, raid,
+                                                           mock_acquire):
         # mock manager
         mock_manager = mock.Mock()
         node_list = [(self.node.uuid, 'idrac', '', {})]
         mock_manager.iter_nodes.return_value = node_list
         # mock task_manager.acquire
-        task = mock.Mock(node=self.node, driver=mock.Mock(raid=self.raid))
+        task = mock.Mock(node=self.node, driver=mock.Mock(raid=raid))
         mock_acquire.return_value = mock.MagicMock(
             __enter__=mock.MagicMock(return_value=task))
         # mock _check_node_raid_jobs
-        self.raid._check_node_raid_jobs = mock.Mock()
+        raid._check_node_raid_jobs = mock.Mock()
 
-        self.raid._query_raid_config_job_status(mock_manager, None)
+        raid._query_raid_config_job_status(mock_manager, None)
 
-        self.assertEqual(0, self.raid._check_node_raid_jobs.call_count)
+        self.assertEqual(0, raid._check_node_raid_jobs.call_count)
 
     def test__query_raid_config_job_status_no_nodes(self):
         # mock manager
