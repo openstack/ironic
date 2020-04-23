@@ -827,8 +827,8 @@ class AgentDeployMixin(HeartbeatMixin):
         if _freshly_booted(agent_commands, step_type):
             field = ('cleaning_reboot' if step_type == 'clean'
                      else 'deployment_reboot')
-            utils.pop_node_nested_field(
-                task.node, 'driver_internal_info', field)
+            utils.pop_node_nested_field(node, 'driver_internal_info', field)
+            node.save()
             manager_utils.notify_conductor_resume_operation(task, step_type)
             return
 
