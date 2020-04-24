@@ -44,7 +44,9 @@ class IDRACHardwareTestCase(db_base.DbTestCase):
                     enabled_raid_interfaces=[
                         'idrac', 'idrac-wsman', 'no-raid'],
                     enabled_vendor_interfaces=[
-                        'idrac', 'idrac-wsman', 'no-vendor'])
+                        'idrac', 'idrac-wsman', 'no-vendor'],
+                    enabled_bios_interfaces=[
+                        'idrac-wsman', 'no-bios'])
 
     def _validate_interfaces(self, driver, **kwargs):
         self.assertIsInstance(

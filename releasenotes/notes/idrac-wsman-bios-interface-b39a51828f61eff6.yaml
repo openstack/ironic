@@ -1,0 +1,8 @@
+---
+features:
+  - |
+    Implemented the ``BIOS interface`` for the ``idrac`` hardware type.
+    Primarily, implemented ``factory_reset`` and ``apply_configuration``
+    clean and deploy steps, as asynchronous operations.
+    For more details, see story `2007400
+    <https://storyboard.openstack.org/#!/story/2007400>`_.

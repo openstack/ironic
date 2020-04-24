@@ -37,7 +37,8 @@ class BaseDracTest(db_base.DbTestCase):
                         'idrac-wsman', 'fake', 'no-inspect'],
                     enabled_vendor_interfaces=[
                         'idrac-wsman', 'fake', 'no-vendor'],
-                    enabled_raid_interfaces=['idrac-wsman', 'fake', 'no-raid'])
+                    enabled_raid_interfaces=['idrac-wsman', 'fake', 'no-raid'],
+                    enabled_bios_interfaces=['idrac-wsman', 'no-bios'])
 
 
 class DictToObj(object):

@@ -27,6 +27,7 @@ Ironic Features
 
 The ``idrac`` hardware type supports the following Ironic interfaces:
 
+* `BIOS Interface`_: BIOS management
 * `Inspect Interface`_: Hardware inspection
 * Management Interface: Boot device management
 * Power Interface: Power management
@@ -51,7 +52,7 @@ configured to use an ``idrac-redfish`` interface implementation, for example::
 Enabling
 --------
 
-The iDRAC driver supports WSMAN for the inspect, management, power,
+The iDRAC driver supports WSMAN for the bios, inspect, management, power,
 raid, and vendor interfaces. In addition, it supports Redfish for
 the inspect, management, and power interfaces. The iDRAC driver
 allows you to mix and match WSMAN and Redfish interfaces.
@@ -74,7 +75,7 @@ all using WSMAN, add the following to your ``/etc/ironic/ironic.conf``:
     enabled_management_interfaces=idrac-wsman
     enabled_power_interfaces=idrac-wsman
 
-To enable all optional features (inspection, RAID, and vendor passthru)
+To enable all optional features (BIOS, inspection, RAID, and vendor passthru)
 using Redfish where it is supported and WSMAN where not, use the
 following configuration:
 
@@ -82,6 +83,7 @@ following configuration:
 
     [DEFAULT]
     enabled_hardware_types=idrac
+    enabled_bios_interfaces=idrac-wsman
     enabled_inspect_interfaces=idrac-redfish
     enabled_management_interfaces=idrac-redfish
     enabled_power_interfaces=idrac-redfish
@@ -94,7 +96,7 @@ order:
 ================     ===================================================
 Interface            Supported Implementations
 ================     ===================================================
-``bios``             ``no-bios``
+``bios``             ``idrac-wsman``, ``no-bios``
 ``boot``             ``ipxe``, ``pxe``
 ``console``          ``no-console``
 ``deploy``           ``iscsi``, ``direct``, ``ansible``, ``ramdisk``
@@ -199,6 +201,42 @@ hardware type assuming a mix of Redfish and WSMAN interfaces are used:
    If using WSMAN for the management interface, then WSMAN must be  used
    for the power interface. The same applies to Redfish. It is currently not
    possible to use Redfish for one and WSMAN for the other.
+
+BIOS Interface
+==============
+
+The BIOS interface implementation for idrac-wsman allows BIOS to be
+configured with the standard clean/deploy step approach.
+
+Example
+-------
+A clean step to enable ``Virtualization`` and ``SRIOV`` in BIOS of an iDRAC
+BMC would be as follows::
+
+  {
+    "target":"clean",
+    "clean_steps": [
+      {
+        "interface": "bios",
+        "step": "apply_configuration",
+        "args": {
+          "settings": [
+            {
+              "name": "ProcVirtualization",
+              "value": "Enabled"
+            },
+            {
+              "name": "SriovGlobalEnable",
+              "value": "Enabled
+            }
+          ]
+        }
+      }
+    ]
+  }
+
+To see all the available BIOS parameters on a node with iDRAC BMC, and also
+for additional details of BIOS configuration, see :doc:`/admin/bios`.
 
 Inspect Interface
 =================
