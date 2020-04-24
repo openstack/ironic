@@ -225,7 +225,7 @@ BMC would be as follows::
             },
             {
               "name": "SriovGlobalEnable",
-              "value": "Enabled
+              "value": "Enabled"
             }
           ]
         }
@@ -233,8 +233,8 @@ BMC would be as follows::
     ]
   }
 
-To see all the available BIOS parameters on a node with iDRAC BMC, and also
-for additional details of BIOS configuration, see :doc:`/admin/bios`.
+See the `Known Issues`_ for a known issue with ``factory_reset`` clean step.
+For additional details of BIOS configuration, see :doc:`/admin/bios`.
 
 Inspect Interface
 =================
@@ -621,6 +621,22 @@ After some period of time, nodes managed by the ``idrac`` hardware type may go
 into maintenance mode in Ironic. This issue can be worked around by changing
 the Ironic power state poll interval to 70 seconds. See
 ``[conductor]sync_power_state_interval`` in ``/etc/ironic/ironic.conf``.
+
+PXE reset with "factory_reset" BIOS clean step
+----------------------------------------------
+
+When using the ``UEFI boot mode``` with non-default PXE interface, the factory
+reset can cause the PXE interface to be reset to default, which doesn't allow
+the server to PXE boot for any further operations. This can cause a
+``clean_failed`` state on the node or ``deploy_failed`` if you attempt to
+deploy a node after this step. For now, the only solution is for the operator
+to manually restore the PXE settings of the server for it to PXE boot again,
+properly.
+The problem is caused by the fact that with the ``UEFI boot mode``, the
+``idrac`` uses BIOS settings to manage PXE configuration. This is not the case
+with the ``BIOS boot mode`` where the PXE configuration is handled as a
+configuration job on the integrated NIC itself, independently of the BIOS
+settings.
 
 .. _Ironic_RAID: https://docs.openstack.org/ironic/latest/admin/raid.html
 .. _iDRAC: https://www.dell.com/idracmanuals
