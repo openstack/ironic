@@ -374,6 +374,9 @@ There are certain limitations to be aware of:
   devices at boot time (which is usually done by having the RAID drivers
   embedded in the image's initrd).
 
+* For local boot, UEFI is not supported and you must use legacy BIOS mode.
+  UEFI support arrives in Ussuri.
+
 * Regular cleaning will not remove RAID configuration (similarly to hardware
   RAID). To destroy RAID run the ``delete_configuration`` manual clean step.
 
