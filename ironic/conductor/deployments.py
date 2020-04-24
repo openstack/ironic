@@ -87,14 +87,13 @@ def start_deploy(task, manager, configdrive=None, event='deploy'):
             instance_info.pop('ramdisk', None)
             node.instance_info = instance_info
 
-    driver_internal_info = node.driver_internal_info
-    driver_internal_info.pop('steps_validated', None)
     # Infer the image type to make sure the deploy driver
     # validates only the necessary variables for different
     # image types.
     # NOTE(sirushtim): The iwdi variable can be None. It's up to
     # the deploy driver to validate this.
     iwdi = images.is_whole_disk_image(task.context, node.instance_info)
+    driver_internal_info = node.driver_internal_info
     driver_internal_info['is_whole_disk_image'] = iwdi
     node.driver_internal_info = driver_internal_info
     node.save()
@@ -128,6 +127,7 @@ def start_deploy(task, manager, configdrive=None, event='deploy'):
 def do_node_deploy(task, conductor_id=None, configdrive=None):
     """Prepare the environment and deploy a node."""
     node = task.node
+    utils.wipe_deploy_internal_info(node)
     utils.del_secret_token(node)
     try:
         if configdrive:
@@ -308,17 +308,7 @@ def do_next_deploy_step(task, step_index, conductor_id):
 
     # Finished executing the steps. Clear deploy_step.
     node.deploy_step = None
-    driver_internal_info = node.driver_internal_info
-    driver_internal_info.pop('agent_secret_token', None)
-    driver_internal_info.pop('agent_secret_token_pregenerated', None)
-    driver_internal_info['deploy_steps'] = None
-    driver_internal_info.pop('deploy_step_index', None)
-    driver_internal_info.pop('deployment_reboot', None)
-    driver_internal_info.pop('deployment_polling', None)
-    driver_internal_info.pop('steps_validated', None)
-    # Remove the agent_url cached from the deployment.
-    driver_internal_info.pop('agent_url', None)
-    node.driver_internal_info = driver_internal_info
+    utils.wipe_deploy_internal_info(node)
     node.save()
 
     _start_console_in_deploy(task)
