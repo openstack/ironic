@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    Fixed a bug where rebooting a node managed by the ``idrac`` hardware
+    type when using the WS-MAN power interface sometimes fails with a
+    ``The command failed to set RequestedState`` error.  See bug `2007487
+    <https://storyboard.openstack.org/#!/story/2007487>`_ for details.
