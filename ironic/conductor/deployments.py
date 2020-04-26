@@ -189,7 +189,7 @@ def do_node_deploy(task, conductor_id=None, configdrive=None):
         # This gets the deploy steps (if any) and puts them in the node's
         # driver_internal_info['deploy_steps']. In-band steps are skipped since
         # we know that an agent is not running yet.
-        conductor_steps.set_node_deployment_steps(task)
+        conductor_steps.set_node_deployment_steps(task, skip_missing=True)
     except exception.InstanceDeployFailure as e:
         with excutils.save_and_reraise_exception():
             utils.deploying_error_handler(

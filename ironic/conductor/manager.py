@@ -873,7 +873,7 @@ class ConductorManager(base_manager.BaseConductorManager):
             save_required = False
             info = node.driver_internal_info
 
-            # Agent is running, we're ready to validate the remaining steps
+            # Agent is now running, we're ready to validate the remaining steps
             if not info.get('steps_validated'):
                 conductor_steps.validate_deploy_templates(task)
                 conductor_steps.set_node_deployment_steps(
@@ -1944,7 +1944,11 @@ class ConductorManager(base_manager.BaseConductorManager):
                     iface.validate(task)
                     if iface_name == 'deploy':
                         utils.validate_instance_info_traits(task.node)
-                        conductor_steps.validate_deploy_templates(task)
+                        # NOTE(dtantsur): without the agent running we cannot
+                        # have the complete list of steps, so skip ones that we
+                        # don't know.
+                        conductor_steps.validate_deploy_templates(
+                            task, skip_missing=True)
                     result = True
                 except (exception.InvalidParameterValue,
                         exception.UnsupportedDriverExtension) as e:

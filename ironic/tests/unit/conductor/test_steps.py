@@ -193,7 +193,7 @@ class NodeDeployStepsTestCase(db_base.DbTestCase):
                 self.context, self.node.uuid, shared=False) as task:
             steps = conductor_steps._get_all_deployment_steps(task)
             self.assertEqual(expected_steps, steps)
-            mock_validated.assert_called_once_with(task)
+            mock_validated.assert_called_once_with(task, skip_missing=False)
             mock_steps.assert_called_once_with(task, enabled=True, sort=False)
 
     def test__get_all_deployment_steps_no_steps(self):
@@ -227,6 +227,25 @@ class NodeDeployStepsTestCase(db_base.DbTestCase):
         expected_steps = self.deploy_steps
         self._test__get_all_deployment_steps(user_steps, driver_steps,
                                              expected_steps)
+
+    @mock.patch.object(conductor_steps, '_get_validated_steps_from_templates',
+                       autospec=True)
+    @mock.patch.object(conductor_steps, '_get_deployment_steps', autospec=True)
+    def test__get_all_deployment_steps_skip_missing(self, mock_steps,
+                                                    mock_validated):
+        user_steps = self.deploy_steps[:2]
+        driver_steps = self.deploy_steps[2:]
+        expected_steps = self.deploy_steps
+        mock_validated.return_value = user_steps
+        mock_steps.return_value = driver_steps
+
+        with task_manager.acquire(
+                self.context, self.node.uuid, shared=False) as task:
+            steps = conductor_steps._get_all_deployment_steps(
+                task, skip_missing=True)
+            self.assertEqual(expected_steps, steps)
+            mock_validated.assert_called_once_with(task, skip_missing=True)
+            mock_steps.assert_called_once_with(task, enabled=True, sort=False)
 
     def test__get_all_deployment_steps_disable_core_steps(self):
         # User steps can disable core driver steps.
@@ -274,7 +293,7 @@ class NodeDeployStepsTestCase(db_base.DbTestCase):
                 self.context, self.node.uuid, shared=False) as task:
             self.assertRaises(exception.InvalidParameterValue,
                               conductor_steps._get_all_deployment_steps, task)
-            mock_validated.assert_called_once_with(task)
+            mock_validated.assert_called_once_with(task, skip_missing=False)
             self.assertFalse(mock_steps.called)
 
     @mock.patch.object(conductor_steps, '_get_all_deployment_steps',
@@ -291,7 +310,23 @@ class NodeDeployStepsTestCase(db_base.DbTestCase):
             self.assertEqual({}, self.node.deploy_step)
             self.assertIsNone(
                 self.node.driver_internal_info['deploy_step_index'])
-            mock_steps.assert_called_once_with(task)
+            mock_steps.assert_called_once_with(task, skip_missing=False)
+
+    @mock.patch.object(conductor_steps, '_get_all_deployment_steps',
+                       autospec=True)
+    def test_set_node_deployment_steps_skip_missing(self, mock_steps):
+        mock_steps.return_value = self.deploy_steps
+
+        with task_manager.acquire(
+                self.context, self.node.uuid, shared=False) as task:
+            conductor_steps.set_node_deployment_steps(task, skip_missing=True)
+            self.node.refresh()
+            self.assertEqual(self.deploy_steps,
+                             self.node.driver_internal_info['deploy_steps'])
+            self.assertEqual({}, self.node.deploy_step)
+            self.assertIsNone(
+                self.node.driver_internal_info['deploy_step_index'])
+            mock_steps.assert_called_once_with(task, skip_missing=True)
 
     @mock.patch.object(conductor_steps, '_get_deployment_steps', autospec=True)
     def test__validate_user_deploy_steps(self, mock_steps):
@@ -341,6 +376,19 @@ class NodeDeployStepsTestCase(db_base.DbTestCase):
                                    conductor_steps._validate_user_deploy_steps,
                                    task, user_steps)
             mock_steps.assert_called_once_with(task, enabled=False, sort=False)
+
+    @mock.patch.object(conductor_steps, '_get_deployment_steps', autospec=True)
+    def test__validate_user_deploy_steps_skip_missing(self, mock_steps):
+        mock_steps.return_value = self.deploy_steps
+        user_steps = [{'step': 'power_one', 'interface': 'power',
+                       'priority': 200},
+                      {'step': 'bad_step', 'interface': 'deploy',
+                       'priority': 100}]
+
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            result = conductor_steps._validate_user_deploy_steps(
+                task, user_steps, skip_missing=True)
+            self.assertEqual(user_steps[:1], result)
 
     @mock.patch.object(conductor_steps, '_get_deployment_steps', autospec=True)
     def test__validate_user_deploy_steps_invalid_arg(self, mock_steps):
@@ -676,7 +724,23 @@ class GetValidatedStepsFromTemplatesTestCase(db_base.DbTestCase):
             self.assertEqual(steps, result)
             mock_templates.assert_called_once_with(task)
             mock_steps.assert_called_once_with(task, [self.template])
-            mock_validate.assert_called_once_with(task, steps, mock.ANY)
+            mock_validate.assert_called_once_with(task, steps, mock.ANY,
+                                                  skip_missing=False)
+
+    def test_skip_missing(self, mock_validate, mock_steps, mock_templates):
+        mock_templates.return_value = [self.template]
+        steps = [db_utils.get_test_deploy_template_step()]
+        mock_steps.return_value = steps
+        mock_validate.return_value = steps
+        with task_manager.acquire(
+                self.context, self.node.uuid, shared=False) as task:
+            result = conductor_steps._get_validated_steps_from_templates(
+                task, skip_missing=True)
+            self.assertEqual(steps, result)
+            mock_templates.assert_called_once_with(task)
+            mock_steps.assert_called_once_with(task, [self.template])
+            mock_validate.assert_called_once_with(task, steps, mock.ANY,
+                                                  skip_missing=True)
 
     def test_invalid_parameter_value(self, mock_validate, mock_steps,
                                      mock_templates):
@@ -713,7 +777,15 @@ class ValidateDeployTemplatesTestCase(db_base.DbTestCase):
                 self.context, self.node.uuid, shared=False) as task:
             result = conductor_steps.validate_deploy_templates(task)
             self.assertIsNone(result)
-            mock_validated.assert_called_once_with(task)
+            mock_validated.assert_called_once_with(task, skip_missing=False)
+
+    def test_skip_missing(self, mock_validated):
+        with task_manager.acquire(
+                self.context, self.node.uuid, shared=False) as task:
+            result = conductor_steps.validate_deploy_templates(
+                task, skip_missing=True)
+            self.assertIsNone(result)
+            mock_validated.assert_called_once_with(task, skip_missing=True)
 
     def test_error(self, mock_validated):
         with task_manager.acquire(
@@ -721,4 +793,4 @@ class ValidateDeployTemplatesTestCase(db_base.DbTestCase):
             mock_validated.side_effect = exception.InvalidParameterValue('foo')
             self.assertRaises(exception.InvalidParameterValue,
                               conductor_steps.validate_deploy_templates, task)
-            mock_validated.assert_called_once_with(task)
+            mock_validated.assert_called_once_with(task, skip_missing=False)

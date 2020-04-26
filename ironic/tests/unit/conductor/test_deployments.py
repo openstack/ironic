@@ -323,7 +323,7 @@ class DoNodeDeployTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         # these are not real steps...
         fake_deploy_steps = ['step1', 'step2']
 
-        def add_steps(task):
+        def add_steps(task, **kwargs):
             info = task.node.driver_internal_info
             info['deploy_steps'] = fake_deploy_steps
             task.node.driver_internal_info = info
@@ -336,8 +336,7 @@ class DoNodeDeployTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         task.process_event('deploy')
 
         deployments.do_node_deploy(task, self.service.conductor.id)
-        mock_set_steps.assert_called_once_with(task)
-        mock_set_steps.assert_called_once_with(task)
+        mock_set_steps.assert_called_once_with(task, skip_missing=True)
         self.assertEqual(fake_deploy_steps,
                          task.node.driver_internal_info['deploy_steps'])
 

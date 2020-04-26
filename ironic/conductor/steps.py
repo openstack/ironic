@@ -238,7 +238,7 @@ def _get_steps_from_deployment_templates(task, templates):
     return steps
 
 
-def _get_validated_steps_from_templates(task):
+def _get_validated_steps_from_templates(task, skip_missing=False):
     """Return a list of validated deploy steps from deploy templates.
 
     Deployment template steps are those steps defined in deployment templates
@@ -269,10 +269,11 @@ def _get_validated_steps_from_templates(task):
                       'deploy templates: %(templates)s. Errors: ') %
                     {'templates': ','.join(t.name for t in templates)})
     return _validate_user_deploy_steps(task, user_steps,
-                                       error_prefix=error_prefix)
+                                       error_prefix=error_prefix,
+                                       skip_missing=skip_missing)
 
 
-def _get_all_deployment_steps(task):
+def _get_all_deployment_steps(task, skip_missing=False):
     """Get deployment steps for task.node.
 
     Deployment steps from matching deployment templates are combined with those
@@ -287,7 +288,8 @@ def _get_all_deployment_steps(task):
     # NOTE(mgoddard): although we've probably just validated the templates in
     # do_node_deploy, they may have changed in the DB since we last checked, so
     # validate again.
-    user_steps = _get_validated_steps_from_templates(task)
+    user_steps = _get_validated_steps_from_templates(task,
+                                                     skip_missing=skip_missing)
 
     # Gather enabled deploy steps from drivers.
     driver_steps = _get_deployment_steps(task, enabled=True, sort=False)
@@ -304,7 +306,7 @@ def _get_all_deployment_steps(task):
     return _sorted_steps(steps, _deploy_step_key)
 
 
-def set_node_deployment_steps(task, reset_current=True):
+def set_node_deployment_steps(task, reset_current=True, skip_missing=False):
     """Set up the node with deployment step information for deploying.
 
     Get the deploy steps from the driver.
@@ -315,7 +317,8 @@ def set_node_deployment_steps(task, reset_current=True):
     """
     node = task.node
     driver_internal_info = node.driver_internal_info
-    driver_internal_info['deploy_steps'] = _get_all_deployment_steps(task)
+    driver_internal_info['deploy_steps'] = _get_all_deployment_steps(
+        task, skip_missing=skip_missing)
     if reset_current:
         node.deploy_step = {}
         driver_internal_info['deploy_step_index'] = None
@@ -463,7 +466,7 @@ def _validate_user_step(task, user_step, driver_step, step_type):
 
 
 def _validate_user_steps(task, user_steps, driver_steps, step_type,
-                         error_prefix=None):
+                         error_prefix=None, skip_missing=False):
     """Validate the user-specified steps.
 
     :param task: A TaskManager object
@@ -519,23 +522,34 @@ def _validate_user_steps(task, user_steps, driver_steps, step_type,
     # Convert driver steps to a dict.
     driver_steps = {_step_id(s): s for s in driver_steps}
 
+    result = []
+
     for user_step in user_steps:
         # Check if this user-specified step isn't supported by the driver
         try:
             driver_step = driver_steps[_step_id(user_step)]
         except KeyError:
-            error = (_('node does not support this %(type)s step: %(step)s')
-                     % {'type': step_type, 'step': user_step})
-            errors.append(error)
+            if skip_missing:
+                LOG.debug('%(type)s step %(step)s is not currently known for '
+                          'node %(node)s, delaying its validation until '
+                          'in-band steps are loaded',
+                          {'type': step_type.capitalize(),
+                           'step': user_step, 'node': task.node.uuid})
+            else:
+                error = (_('node does not support this %(type)s step: '
+                           '%(step)s')
+                         % {'type': step_type, 'step': user_step})
+                errors.append(error)
             continue
 
         step_errors = _validate_user_step(task, user_step, driver_step,
                                           step_type)
         errors.extend(step_errors)
+        result.append(user_step)
 
     if step_type == 'deploy':
         # Deploy steps should be unique across all combined templates.
-        dup_errors = _validate_deploy_steps_unique(user_steps)
+        dup_errors = _validate_deploy_steps_unique(result)
         errors.extend(dup_errors)
 
     if errors:
@@ -543,7 +557,7 @@ def _validate_user_steps(task, user_steps, driver_steps, step_type,
         err += '; '.join(errors)
         raise exception.InvalidParameterValue(err=err)
 
-    return user_steps
+    return result
 
 
 def _validate_user_clean_steps(task, user_steps):
@@ -571,7 +585,8 @@ def _validate_user_clean_steps(task, user_steps):
     return _validate_user_steps(task, user_steps, driver_steps, 'clean')
 
 
-def _validate_user_deploy_steps(task, user_steps, error_prefix=None):
+def _validate_user_deploy_steps(task, user_steps, error_prefix=None,
+                                skip_missing=False):
     """Validate the user-specified deploy steps.
 
     :param task: A TaskManager object
@@ -598,10 +613,11 @@ def _validate_user_deploy_steps(task, user_steps, error_prefix=None):
     """
     driver_steps = _get_deployment_steps(task, enabled=False, sort=False)
     return _validate_user_steps(task, user_steps, driver_steps, 'deploy',
-                                error_prefix=error_prefix)
+                                error_prefix=error_prefix,
+                                skip_missing=skip_missing)
 
 
-def validate_deploy_templates(task):
+def validate_deploy_templates(task, skip_missing=False):
     """Validate the deploy templates for a node.
 
     :param task: A TaskManager object
@@ -611,4 +627,4 @@ def validate_deploy_templates(task):
         steps from the driver.
     """
     # Gather deploy steps from matching deploy templates and validate them.
-    _get_validated_steps_from_templates(task)
+    _get_validated_steps_from_templates(task, skip_missing=skip_missing)
