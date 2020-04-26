@@ -872,6 +872,15 @@ class ConductorManager(base_manager.BaseConductorManager):
 
             save_required = False
             info = node.driver_internal_info
+
+            # Agent is running, we're ready to validate the remaining steps
+            if not info.get('steps_validated'):
+                conductor_steps.validate_deploy_templates(task)
+                conductor_steps.set_node_deployment_steps(
+                    task, reset_current=False)
+                info['steps_validated'] = True
+                save_required = True
+
             try:
                 skip_current_step = info.pop('skip_current_deploy_step')
             except KeyError:

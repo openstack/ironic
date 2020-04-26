@@ -87,6 +87,11 @@ def is_equivalent(step1, step2):
             and step1.get('step') == step2.get('step'))
 
 
+def find_step(steps, step):
+    """Find an identical step in the list of steps."""
+    return next((x for x in steps if is_equivalent(x, step)), None)
+
+
 def _get_steps(task, interfaces, get_method, enabled=False,
                sort_step_key=None):
     """Get steps for task.node.
@@ -299,19 +304,21 @@ def _get_all_deployment_steps(task):
     return _sorted_steps(steps, _deploy_step_key)
 
 
-def set_node_deployment_steps(task):
+def set_node_deployment_steps(task, reset_current=True):
     """Set up the node with deployment step information for deploying.
 
     Get the deploy steps from the driver.
 
+    :param reset_current: Whether to reset the current step to the first one.
     :raises: InstanceDeployFailure if there was a problem getting the
              deployment steps.
     """
     node = task.node
     driver_internal_info = node.driver_internal_info
     driver_internal_info['deploy_steps'] = _get_all_deployment_steps(task)
-    node.deploy_step = {}
-    driver_internal_info['deploy_step_index'] = None
+    if reset_current:
+        node.deploy_step = {}
+        driver_internal_info['deploy_step_index'] = None
     node.driver_internal_info = driver_internal_info
     node.save()
 
