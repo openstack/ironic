@@ -20,4 +20,4 @@ ansible>=2.7
 python-ibmcclient>=0.1.0
 
 # Dell EMC iDRAC sushy OEM extension
-sushy-oem-idrac<=0.1.0
+sushy-oem-idrac<=1.0.0
