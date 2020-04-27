@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    Now that HUAWEI ironic 3rd party CI is back, the ``ibmc`` hardware type
+    driver is supported.
