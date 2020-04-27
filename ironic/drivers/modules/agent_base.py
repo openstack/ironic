@@ -713,6 +713,7 @@ class AgentDeployMixin(HeartbeatMixin):
                    'steps': previous_steps})
 
         call = getattr(self._client, 'get_%s_steps' % step_type)
+        # TODO(dtantsur): remove the error handling in the V release.
         try:
             agent_result = call(node, task.ports).get('command_result', {})
         except exception.AgentAPIError as exc:
@@ -790,7 +791,7 @@ class AgentDeployMixin(HeartbeatMixin):
 
         :param task: a TaskManager object containing the node
         :param step: a deploy step dictionary to execute
-        :raises: NodeCleaningFailure if the agent does not return a command
+        :raises: InstanceDeployFailure if the agent does not return a command
             status
         :returns: states.DEPLOYWAIT to signify the step will be completed async
         """

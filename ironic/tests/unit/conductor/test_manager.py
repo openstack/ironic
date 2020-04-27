@@ -1468,7 +1468,7 @@ class ServiceDoNodeDeployTestCase(mgr_utils.ServiceSetUpMixin,
             mock_iwdi.assert_called_once_with(self.context, node.instance_info)
             # Verify is_whole_disk_image reflects correct value on rebuild.
             self.assertTrue(node.driver_internal_info['is_whole_disk_image'])
-            self.assertEqual(1, len(node.driver_internal_info['deploy_steps']))
+            self.assertIsNone(node.driver_internal_info['deploy_steps'])
 
     def test_do_node_deploy_rebuild_active_state_waiting(self, mock_iwdi):
         mock_iwdi.return_value = False

@@ -444,6 +444,25 @@ def cleaning_error_handler(task, msg, tear_down_cleaning=True,
         task.process_event('fail', target_state=target_state)
 
 
+def wipe_deploy_internal_info(node):
+    """Remove temporary deployment fields from driver_internal_info."""
+    info = node.driver_internal_info
+    info.pop('agent_secret_token', None)
+    info.pop('agent_secret_token_pregenerated', None)
+    # Clear any leftover metadata about deployment.
+    info['deploy_steps'] = None
+    info.pop('agent_cached_deploy_steps', None)
+    info.pop('deploy_step_index', None)
+    info.pop('deployment_reboot', None)
+    info.pop('deployment_polling', None)
+    info.pop('skip_current_deploy_step', None)
+    info.pop('steps_validated', None)
+    # Remove agent_url since it will be re-asserted
+    # upon the next deployment attempt.
+    info.pop('agent_url', None)
+    node.driver_internal_info = info
+
+
 def deploying_error_handler(task, logmsg, errmsg=None, traceback=False,
                             clean_up=True):
     """Put a failed node in DEPLOYFAIL.
@@ -484,16 +503,7 @@ def deploying_error_handler(task, logmsg, errmsg=None, traceback=False,
         # Clear deploy step; we leave the list of deploy steps
         # in node.driver_internal_info for debugging purposes.
         node.deploy_step = {}
-        info = node.driver_internal_info
-        # Clear any leftover metadata about deployment.
-        info.pop('deploy_step_index', None)
-        info.pop('deployment_reboot', None)
-        info.pop('deployment_polling', None)
-        info.pop('skip_current_deploy_step', None)
-        # Remove agent_url since it will be re-asserted
-        # upon the next deployment attempt.
-        info.pop('agent_url', None)
-        node.driver_internal_info = info
+        wipe_deploy_internal_info(node)
 
     if cleanup_err:
         node.last_error = cleanup_err
