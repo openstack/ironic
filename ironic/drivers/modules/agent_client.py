@@ -127,11 +127,18 @@ class AgentClient(object):
             LOG.error(msg)
             raise exception.IronicException(msg)
 
+        error = result.get('command_error')
+        exc_type = None
+        if error:
+            # if an error, we should see if a type field exists. This type
+            # field may signal an exception that is compatability based.
+            exc_type = error.get('type')
+
         LOG.debug('Agent command %(method)s for node %(node)s returned '
                   'result %(res)s, error %(error)s, HTTP status code %(code)d',
                   {'node': node.uuid, 'method': method,
                    'res': result.get('command_result'),
-                   'error': result.get('command_error'),
+                   'error': error,
                    'code': response.status_code})
 
         if response.status_code >= http_client.BAD_REQUEST:
@@ -141,6 +148,14 @@ class AgentClient(object):
                        'code': response.status_code})
             raise exception.AgentAPIError(node=node.uuid,
                                           status=response.status_code,
+                                          error=result.get('faultstring'))
+        if exc_type == 'TypeError':
+            LOG.error('Agent command %(method)s for node %(node)s failed. '
+                      'Internal %(exc_type)s error detected: Error %(error)s',
+                      {'method': method, 'node': node.uuid,
+                       'exc_type': exc_type, 'error': error})
+            raise exception.AgentAPIError(node=node.uuid,
+                                          status=error.get('code'),
                                           error=result.get('faultstring'))
 
         return result

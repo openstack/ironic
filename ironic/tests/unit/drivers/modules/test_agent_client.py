@@ -178,6 +178,27 @@ class TestAgentClient(base.TestCase):
             params={'wait': 'false'},
             timeout=60)
 
+    def test__command_error_code_okay_error_typeerror_embedded(self):
+        response_text = ('{"faultstring": "you dun goofd", '
+                         '"command_error": {"type": "TypeError"}}')
+        self.client.session.post.return_value = MockResponse(
+            response_text)
+        method = 'standby.run_image'
+        image_info = {'image_id': 'test_image'}
+        params = {'image_info': image_info}
+
+        url = self.client._get_command_url(self.node)
+        body = self.client._get_command_body(method, params)
+
+        self.assertRaises(exception.AgentAPIError,
+                          self.client._command,
+                          self.node, method, params)
+        self.client.session.post.assert_called_once_with(
+            url,
+            data=body,
+            params={'wait': 'false'},
+            timeout=60)
+
     def test_get_commands_status(self):
         with mock.patch.object(self.client.session, 'get',
                                autospec=True) as mock_get:
