@@ -65,8 +65,8 @@ MIGRATIONS_TIMEOUT = 300
 
 @contextlib.contextmanager
 def patch_with_engine(engine):
-    with mock.patch.object(enginefacade.writer,
-                           'get_engine') as patch_engine:
+    with mock.patch.object(enginefacade.writer, 'get_engine',
+                           autospec=True) as patch_engine:
         patch_engine.return_value = engine
         yield
 
@@ -150,10 +150,10 @@ class TestWalkVersions(base.TestCase, WalkVersionsMixin):
         self._pre_upgrade_141.assert_called_with(self.engine)
         self._check_141.assert_called_with(self.engine, test_value)
 
-    @mock.patch.object(script, 'ScriptDirectory')
-    @mock.patch.object(WalkVersionsMixin, '_migrate_up')
+    @mock.patch.object(script, 'ScriptDirectory', autospec=True)
+    @mock.patch.object(WalkVersionsMixin, '_migrate_up', autospec=True)
     def test_walk_versions_all_default(self, _migrate_up, script_directory):
-        fc = script_directory.from_config()
+        fc = script_directory.from_config.return_value
         fc.walk_revisions.return_value = self.versions
         self.migration_api.version.return_value = None
 
@@ -161,20 +161,20 @@ class TestWalkVersions(base.TestCase, WalkVersionsMixin):
 
         self.migration_api.version.assert_called_with(self.config)
 
-        upgraded = [mock.call(self.engine, self.config, v.revision,
+        upgraded = [mock.call(self, self.engine, self.config, v.revision,
                     with_data=True) for v in reversed(self.versions)]
         self.assertEqual(self._migrate_up.call_args_list, upgraded)
 
-    @mock.patch.object(script, 'ScriptDirectory')
-    @mock.patch.object(WalkVersionsMixin, '_migrate_up')
+    @mock.patch.object(script, 'ScriptDirectory', autospec=True)
+    @mock.patch.object(WalkVersionsMixin, '_migrate_up', autospec=True)
     def test_walk_versions_all_false(self, _migrate_up, script_directory):
-        fc = script_directory.from_config()
+        fc = script_directory.from_config.return_value
         fc.walk_revisions.return_value = self.versions
         self.migration_api.version.return_value = None
 
         self._walk_versions(self.engine, self.config)
 
-        upgraded = [mock.call(self.engine, self.config, v.revision,
+        upgraded = [mock.call(self, self.engine, self.config, v.revision,
                     with_data=True) for v in reversed(self.versions)]
         self.assertEqual(upgraded, self._migrate_up.call_args_list)
 
