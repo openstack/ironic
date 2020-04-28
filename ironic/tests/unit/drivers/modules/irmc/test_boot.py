@@ -66,13 +66,12 @@ PARSED_IFNO = {
 }
 
 
+@mock.patch.object(irmc_boot, 'check_share_fs_mounted', spec_set=True,
+                   autospec=True)
 class IRMCDeployPrivateMethodsTestCase(test_common.BaseIRMCTest):
-
     boot_interface = 'irmc-virtual-media'
 
     def setUp(self):
-        irmc_boot.check_share_fs_mounted_patcher.start()
-        self.addCleanup(irmc_boot.check_share_fs_mounted_patcher.stop)
         super(IRMCDeployPrivateMethodsTestCase, self).setUp()
 
         CONF.irmc.remote_image_share_root = '/remote_image_share_root'
@@ -84,7 +83,8 @@ class IRMCDeployPrivateMethodsTestCase(test_common.BaseIRMCTest):
         CONF.irmc.remote_image_user_domain = 'local'
 
     @mock.patch.object(os.path, 'isdir', spec_set=True, autospec=True)
-    def test__parse_config_option(self, isdir_mock):
+    def test__parse_config_option(self, isdir_mock,
+                                  check_share_fs_mounted_mock):
         isdir_mock.return_value = True
 
         result = irmc_boot._parse_config_option()
@@ -93,7 +93,8 @@ class IRMCDeployPrivateMethodsTestCase(test_common.BaseIRMCTest):
         self.assertIsNone(result)
 
     @mock.patch.object(os.path, 'isdir', spec_set=True, autospec=True)
-    def test__parse_config_option_non_existed_root(self, isdir_mock):
+    def test__parse_config_option_non_existed_root(
+            self, isdir_mock, check_share_fs_mounted_mock):
         CONF.irmc.remote_image_share_root = '/non_existed_root'
         isdir_mock.return_value = False
 
@@ -102,7 +103,8 @@ class IRMCDeployPrivateMethodsTestCase(test_common.BaseIRMCTest):
         isdir_mock.assert_called_once_with('/non_existed_root')
 
     @mock.patch.object(os.path, 'isfile', spec_set=True, autospec=True)
-    def test__parse_driver_info_in_share(self, isfile_mock):
+    def test__parse_driver_info_in_share(self, isfile_mock,
+                                         check_share_fs_mounted_mock):
         """With required 'irmc_deploy_iso' in share."""
         isfile_mock.return_value = True
         self.node.driver_info['irmc_deploy_iso'] = 'deploy.iso'
@@ -118,10 +120,11 @@ class IRMCDeployPrivateMethodsTestCase(test_common.BaseIRMCTest):
     @mock.patch.object(irmc_boot, '_is_image_href_ordinary_file_name',
                        spec_set=True, autospec=True)
     def test__parse_driver_info_not_in_share(
-            self, is_image_href_ordinary_file_name_mock):
+            self, is_image_href_ordinary_file_name_mock,
+            check_share_fs_mounted_mock):
         """With required 'irmc_deploy_iso' not in share."""
-        self.node.driver_info[
-            'irmc_rescue_iso'] = 'bc784057-a140-4130-add3-ef890457e6b3'
+        self.node.driver_info['irmc_rescue_iso'] = (
+            'bc784057-a140-4130-add3-ef890457e6b3')
         driver_info_expected = {'irmc_rescue_iso':
                                 'bc784057-a140-4130-add3-ef890457e6b3'}
         is_image_href_ordinary_file_name_mock.return_value = False
@@ -132,7 +135,8 @@ class IRMCDeployPrivateMethodsTestCase(test_common.BaseIRMCTest):
         self.assertEqual(driver_info_expected, driver_info_actual)
 
     @mock.patch.object(os.path, 'isfile', spec_set=True, autospec=True)
-    def test__parse_driver_info_with_iso_invalid(self, isfile_mock):
+    def test__parse_driver_info_with_iso_invalid(self, isfile_mock,
+                                                 check_share_fs_mounted_mock):
         """With required 'irmc_deploy_iso' non existed."""
         isfile_mock.return_value = False
 
@@ -148,7 +152,8 @@ class IRMCDeployPrivateMethodsTestCase(test_common.BaseIRMCTest):
                                   task.node, mode='deploy')
             self.assertEqual(error_msg, str(e))
 
-    def test__parse_driver_info_with_iso_missing(self):
+    def test__parse_driver_info_with_iso_missing(self,
+                                                 check_share_fs_mounted_mock):
         """With required 'irmc_rescue_iso' empty."""
         self.node.driver_info['irmc_rescue_iso'] = None
 
@@ -160,7 +165,8 @@ class IRMCDeployPrivateMethodsTestCase(test_common.BaseIRMCTest):
                               self.node, mode='rescue')
         self.assertEqual(error_msg, str(e))
 
-    def test__parse_instance_info_with_boot_iso_file_name_ok(self):
+    def test__parse_instance_info_with_boot_iso_file_name_ok(
+            self, check_share_fs_mounted_mock):
         """With optional 'irmc_boot_iso' file name."""
         CONF.irmc.remote_image_share_root = '/etc'
         self.node.instance_info['irmc_boot_iso'] = 'hosts'
@@ -169,7 +175,8 @@ class IRMCDeployPrivateMethodsTestCase(test_common.BaseIRMCTest):
 
         self.assertEqual(instance_info_expected, instance_info_actual)
 
-    def test__parse_instance_info_without_boot_iso_ok(self):
+    def test__parse_instance_info_without_boot_iso_ok(
+            self, check_share_fs_mounted_mock):
         """With optional no 'irmc_boot_iso' file name."""
         CONF.irmc.remote_image_share_root = '/etc'
 
@@ -179,7 +186,8 @@ class IRMCDeployPrivateMethodsTestCase(test_common.BaseIRMCTest):
 
         self.assertEqual(instance_info_expected, instance_info_actual)
 
-    def test__parse_instance_info_with_boot_iso_uuid_ok(self):
+    def test__parse_instance_info_with_boot_iso_uuid_ok(
+            self, check_share_fs_mounted_mock):
         """With optional 'irmc_boot_iso' glance uuid."""
         self.node.instance_info[
             'irmc_boot_iso'] = 'bc784057-a140-4130-add3-ef890457e6b3'
@@ -189,7 +197,8 @@ class IRMCDeployPrivateMethodsTestCase(test_common.BaseIRMCTest):
 
         self.assertEqual(instance_info_expected, instance_info_actual)
 
-    def test__parse_instance_info_with_boot_iso_glance_ok(self):
+    def test__parse_instance_info_with_boot_iso_glance_ok(
+            self, check_share_fs_mounted_mock):
         """With optional 'irmc_boot_iso' glance url."""
         self.node.instance_info['irmc_boot_iso'] = (
             'glance://bc784057-a140-4130-add3-ef890457e6b3')
@@ -200,7 +209,8 @@ class IRMCDeployPrivateMethodsTestCase(test_common.BaseIRMCTest):
 
         self.assertEqual(instance_info_expected, instance_info_actual)
 
-    def test__parse_instance_info_with_boot_iso_http_ok(self):
+    def test__parse_instance_info_with_boot_iso_http_ok(
+            self, check_share_fs_mounted_mock):
         """With optional 'irmc_boot_iso' http url."""
         self.node.driver_info[
             'irmc_deploy_iso'] = 'http://irmc_boot_iso'
@@ -209,7 +219,8 @@ class IRMCDeployPrivateMethodsTestCase(test_common.BaseIRMCTest):
 
         self.assertEqual(driver_info_expected, driver_info_actual)
 
-    def test__parse_instance_info_with_boot_iso_https_ok(self):
+    def test__parse_instance_info_with_boot_iso_https_ok(
+            self, check_share_fs_mounted_mock):
         """With optional 'irmc_boot_iso' https url."""
         self.node.instance_info[
             'irmc_boot_iso'] = 'https://irmc_boot_iso'
@@ -218,7 +229,8 @@ class IRMCDeployPrivateMethodsTestCase(test_common.BaseIRMCTest):
 
         self.assertEqual(instance_info_expected, instance_info_actual)
 
-    def test__parse_instance_info_with_boot_iso_file_url_ok(self):
+    def test__parse_instance_info_with_boot_iso_file_url_ok(
+            self, check_share_fs_mounted_mock):
         """With optional 'irmc_boot_iso' file url."""
         self.node.instance_info[
             'irmc_boot_iso'] = 'file://irmc_boot_iso'
@@ -228,7 +240,8 @@ class IRMCDeployPrivateMethodsTestCase(test_common.BaseIRMCTest):
         self.assertEqual(instance_info_expected, instance_info_actual)
 
     @mock.patch.object(os.path, 'isfile', spec_set=True, autospec=True)
-    def test__parse_instance_info_with_boot_iso_invalid(self, isfile_mock):
+    def test__parse_instance_info_with_boot_iso_invalid(
+            self, isfile_mock, check_share_fs_mounted_mock):
         CONF.irmc.remote_image_share_root = '/etc'
         isfile_mock.return_value = False
 
@@ -249,7 +262,8 @@ class IRMCDeployPrivateMethodsTestCase(test_common.BaseIRMCTest):
                        spec_set=True, autospec=True)
     @mock.patch('os.path.isfile', autospec=True)
     def test_parse_deploy_info_ok(self, mock_isfile,
-                                  get_image_instance_info_mock):
+                                  get_image_instance_info_mock,
+                                  check_share_fs_mounted_mock):
         CONF.irmc.remote_image_share_root = '/etc'
         get_image_instance_info_mock.return_value = {'a': 'b'}
         driver_info_expected = {'a': 'b',
@@ -276,7 +290,8 @@ class IRMCDeployPrivateMethodsTestCase(test_common.BaseIRMCTest):
     def test__setup_vmedia_with_file_deploy(self,
                                             fetch_mock,
                                             setup_vmedia_mock,
-                                            set_boot_device_mock):
+                                            set_boot_device_mock,
+                                            check_share_fs_mounted_mock):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
             task.node.driver_info['irmc_deploy_iso'] = 'deploy_iso_filename'
@@ -302,7 +317,8 @@ class IRMCDeployPrivateMethodsTestCase(test_common.BaseIRMCTest):
     def test__setup_vmedia_with_file_rescue(self,
                                             fetch_mock,
                                             setup_vmedia_mock,
-                                            set_boot_device_mock):
+                                            set_boot_device_mock,
+                                            check_share_fs_mounted_mock):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
             task.node.driver_info['irmc_rescue_iso'] = 'rescue_iso_filename'
@@ -329,7 +345,8 @@ class IRMCDeployPrivateMethodsTestCase(test_common.BaseIRMCTest):
             self,
             fetch_mock,
             setup_vmedia_mock,
-            set_boot_device_mock):
+            set_boot_device_mock,
+            check_share_fs_mounted_mock):
         CONF.irmc.remote_image_share_root = '/'
 
         with task_manager.acquire(self.context, self.node.uuid,
@@ -361,7 +378,8 @@ class IRMCDeployPrivateMethodsTestCase(test_common.BaseIRMCTest):
             self,
             fetch_mock,
             setup_vmedia_mock,
-            set_boot_device_mock):
+            set_boot_device_mock,
+            check_share_fs_mounted_mock):
         CONF.irmc.remote_image_share_root = '/'
 
         with task_manager.acquire(self.context, self.node.uuid,
@@ -383,7 +401,7 @@ class IRMCDeployPrivateMethodsTestCase(test_common.BaseIRMCTest):
             set_boot_device_mock.assert_called_once_with(
                 task, boot_devices.CDROM)
 
-    def test__get_iso_name(self):
+    def test__get_iso_name(self, check_share_fs_mounted_mock):
         actual = irmc_boot._get_iso_name(self.node, label='deploy')
         expected = "deploy-%s.iso" % self.node.uuid
         self.assertEqual(expected, actual)
@@ -402,7 +420,8 @@ class IRMCDeployPrivateMethodsTestCase(test_common.BaseIRMCTest):
                                     fetch_mock,
                                     image_props_mock,
                                     boot_mode_mock,
-                                    create_boot_iso_mock):
+                                    create_boot_iso_mock,
+                                    check_share_fs_mounted_mock):
         deploy_info_mock.return_value = {'irmc_boot_iso': 'irmc_boot.iso'}
         with task_manager.acquire(self.context, self.node.uuid) as task:
             irmc_boot._prepare_boot_iso(task, 'root-uuid')
@@ -433,8 +452,8 @@ class IRMCDeployPrivateMethodsTestCase(test_common.BaseIRMCTest):
                                         fetch_mock,
                                         image_props_mock,
                                         boot_mode_mock,
-                                        create_boot_iso_mock):
-
+                                        create_boot_iso_mock,
+                                        check_share_fs_mounted_mock):
         CONF.irmc.remote_image_share_root = '/'
         image = '733d1c44-a2ea-414b-aca7-69decf20d810'
         is_image_href_ordinary_file_name_mock.return_value = False
@@ -471,7 +490,8 @@ class IRMCDeployPrivateMethodsTestCase(test_common.BaseIRMCTest):
                                          fetch_mock,
                                          image_props_mock,
                                          boot_mode_mock,
-                                         create_boot_iso_mock):
+                                         create_boot_iso_mock,
+                                         check_share_fs_mounted_mock):
         CONF.pxe.pxe_append_params = 'kernel-params'
 
         deploy_info_mock.return_value = \
@@ -502,7 +522,7 @@ class IRMCDeployPrivateMethodsTestCase(test_common.BaseIRMCTest):
             self.assertEqual("boot-%s.iso" % self.node.uuid,
                              task.node.driver_internal_info['irmc_boot_iso'])
 
-    def test__get_floppy_image_name(self):
+    def test__get_floppy_image_name(self, check_share_fs_mounted_mock):
         actual = irmc_boot._get_floppy_image_name(self.node)
         expected = "image-%s.img" % self.node.uuid
         self.assertEqual(expected, actual)
@@ -515,7 +535,8 @@ class IRMCDeployPrivateMethodsTestCase(test_common.BaseIRMCTest):
     def test__prepare_floppy_image(self,
                                    tempfile_mock,
                                    create_vfat_image_mock,
-                                   copyfile_mock):
+                                   copyfile_mock,
+                                   check_share_fs_mounted_mock):
         mock_image_file_handle = mock.MagicMock(spec=io.BytesIO)
         mock_image_file_obj = mock.MagicMock()
         mock_image_file_obj.name = 'image-tmp-file'
@@ -542,7 +563,8 @@ class IRMCDeployPrivateMethodsTestCase(test_common.BaseIRMCTest):
     def test__prepare_floppy_image_exception(self,
                                              tempfile_mock,
                                              create_vfat_image_mock,
-                                             copyfile_mock):
+                                             copyfile_mock,
+                                             check_share_fs_mounted_mock):
         mock_image_file_handle = mock.MagicMock(spec=io.BytesIO)
         mock_image_file_obj = mock.MagicMock()
         mock_image_file_obj.name = 'image-tmp-file'
@@ -572,7 +594,8 @@ class IRMCDeployPrivateMethodsTestCase(test_common.BaseIRMCTest):
     def test_attach_boot_iso_if_needed(
             self,
             setup_vmedia_mock,
-            set_boot_device_mock):
+            set_boot_device_mock,
+            check_share_fs_mounted_mock):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
             task.node.provision_state = states.ACTIVE
@@ -589,7 +612,8 @@ class IRMCDeployPrivateMethodsTestCase(test_common.BaseIRMCTest):
     def test_attach_boot_iso_if_needed_on_rebuild(
             self,
             setup_vmedia_mock,
-            set_boot_device_mock):
+            set_boot_device_mock,
+            check_share_fs_mounted_mock):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
             task.node.provision_state = states.DEPLOYING
@@ -608,12 +632,14 @@ class IRMCDeployPrivateMethodsTestCase(test_common.BaseIRMCTest):
                        autospec=True)
     @mock.patch.object(irmc_boot, '_detach_virtual_cd', spec_set=True,
                        autospec=True)
-    def test__setup_vmedia_for_boot_with_parameters(self,
-                                                    _detach_virtual_cd_mock,
-                                                    _detach_virtual_fd_mock,
-                                                    _prepare_floppy_image_mock,
-                                                    _attach_virtual_fd_mock,
-                                                    _attach_virtual_cd_mock):
+    def test__setup_vmedia_for_boot_with_parameters(
+            self,
+            _detach_virtual_cd_mock,
+            _detach_virtual_fd_mock,
+            _prepare_floppy_image_mock,
+            _attach_virtual_fd_mock,
+            _attach_virtual_cd_mock,
+            check_share_fs_mounted_mock):
         parameters = {'a': 'b'}
         iso_filename = 'deploy_iso_or_boot_iso'
         _prepare_floppy_image_mock.return_value = 'floppy_file_name'
@@ -640,8 +666,8 @@ class IRMCDeployPrivateMethodsTestCase(test_common.BaseIRMCTest):
             self,
             _detach_virtual_cd_mock,
             _detach_virtual_fd_mock,
-            _attach_virtual_cd_mock):
-
+            _attach_virtual_cd_mock,
+            check_share_fs_mounted_mock):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
             irmc_boot._setup_vmedia_for_boot(task, 'bootable_iso_filename')
@@ -667,7 +693,8 @@ class IRMCDeployPrivateMethodsTestCase(test_common.BaseIRMCTest):
                                      _detach_virtual_fd_mock,
                                      _remove_share_file_mock,
                                      _get_floppy_image_name_mock,
-                                     _get_iso_name_mock):
+                                     _get_iso_name_mock,
+                                     check_share_fs_mounted_mock):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
             irmc_boot._cleanup_vmedia_boot(task)
@@ -686,7 +713,8 @@ class IRMCDeployPrivateMethodsTestCase(test_common.BaseIRMCTest):
 
     @mock.patch.object(ironic_utils, 'unlink_without_raise', spec_set=True,
                        autospec=True)
-    def test__remove_share_file(self, unlink_without_raise_mock):
+    def test__remove_share_file(self, unlink_without_raise_mock,
+                                check_share_fs_mounted_mock):
         CONF.irmc.remote_image_share_root = '/share'
 
         irmc_boot._remove_share_file("boot.iso")
@@ -695,7 +723,8 @@ class IRMCDeployPrivateMethodsTestCase(test_common.BaseIRMCTest):
 
     @mock.patch.object(irmc_common, 'get_irmc_client', spec_set=True,
                        autospec=True)
-    def test__attach_virtual_cd_ok(self, get_irmc_client_mock):
+    def test__attach_virtual_cd_ok(self, get_irmc_client_mock,
+                                   check_share_fs_mounted_mock):
         irmc_client = get_irmc_client_mock.return_value
         irmc_boot.scci.get_virtual_cd_set_params_cmd = (
             mock.MagicMock(sepc_set=[]))
@@ -730,7 +759,8 @@ class IRMCDeployPrivateMethodsTestCase(test_common.BaseIRMCTest):
 
     @mock.patch.object(irmc_common, 'get_irmc_client', spec_set=True,
                        autospec=True)
-    def test__attach_virtual_cd_fail(self, get_irmc_client_mock):
+    def test__attach_virtual_cd_fail(self, get_irmc_client_mock,
+                                     check_share_fs_mounted_mock):
         irmc_client = get_irmc_client_mock.return_value
         irmc_client.side_effect = Exception("fake error")
         irmc_boot.scci.SCCIClientError = Exception
@@ -747,7 +777,8 @@ class IRMCDeployPrivateMethodsTestCase(test_common.BaseIRMCTest):
 
     @mock.patch.object(irmc_common, 'get_irmc_client', spec_set=True,
                        autospec=True)
-    def test__detach_virtual_cd_ok(self, get_irmc_client_mock):
+    def test__detach_virtual_cd_ok(self, get_irmc_client_mock,
+                                   check_share_fs_mounted_mock):
         irmc_client = get_irmc_client_mock.return_value
 
         with task_manager.acquire(self.context, self.node.uuid,
@@ -758,7 +789,8 @@ class IRMCDeployPrivateMethodsTestCase(test_common.BaseIRMCTest):
 
     @mock.patch.object(irmc_common, 'get_irmc_client', spec_set=True,
                        autospec=True)
-    def test__detach_virtual_cd_fail(self, get_irmc_client_mock):
+    def test__detach_virtual_cd_fail(self, get_irmc_client_mock,
+                                     check_share_fs_mounted_mock):
         irmc_client = get_irmc_client_mock.return_value
         irmc_client.side_effect = Exception("fake error")
         irmc_boot.scci.SCCIClientError = Exception
@@ -773,7 +805,8 @@ class IRMCDeployPrivateMethodsTestCase(test_common.BaseIRMCTest):
 
     @mock.patch.object(irmc_common, 'get_irmc_client', spec_set=True,
                        autospec=True)
-    def test__attach_virtual_fd_ok(self, get_irmc_client_mock):
+    def test__attach_virtual_fd_ok(self, get_irmc_client_mock,
+                                   check_share_fs_mounted_mock):
         irmc_client = get_irmc_client_mock.return_value
         irmc_boot.scci.get_virtual_fd_set_params_cmd = (
             mock.MagicMock(sepc_set=[]))
@@ -809,7 +842,8 @@ class IRMCDeployPrivateMethodsTestCase(test_common.BaseIRMCTest):
 
     @mock.patch.object(irmc_common, 'get_irmc_client', spec_set=True,
                        autospec=True)
-    def test__attach_virtual_fd_fail(self, get_irmc_client_mock):
+    def test__attach_virtual_fd_fail(self, get_irmc_client_mock,
+                                     check_share_fs_mounted_mock):
         irmc_client = get_irmc_client_mock.return_value
         irmc_client.side_effect = Exception("fake error")
         irmc_boot.scci.SCCIClientError = Exception
@@ -826,7 +860,8 @@ class IRMCDeployPrivateMethodsTestCase(test_common.BaseIRMCTest):
 
     @mock.patch.object(irmc_common, 'get_irmc_client', spec_set=True,
                        autospec=True)
-    def test__detach_virtual_fd_ok(self, get_irmc_client_mock):
+    def test__detach_virtual_fd_ok(self, get_irmc_client_mock,
+                                   check_share_fs_mounted_mock):
         irmc_client = get_irmc_client_mock.return_value
 
         with task_manager.acquire(self.context, self.node.uuid,
@@ -837,7 +872,8 @@ class IRMCDeployPrivateMethodsTestCase(test_common.BaseIRMCTest):
 
     @mock.patch.object(irmc_common, 'get_irmc_client', spec_set=True,
                        autospec=True)
-    def test__detach_virtual_fd_fail(self, get_irmc_client_mock):
+    def test__detach_virtual_fd_fail(self, get_irmc_client_mock,
+                                     check_share_fs_mounted_mock):
         irmc_client = get_irmc_client_mock.return_value
         irmc_client.side_effect = Exception("fake error")
         irmc_boot.scci.SCCIClientError = Exception
@@ -852,7 +888,8 @@ class IRMCDeployPrivateMethodsTestCase(test_common.BaseIRMCTest):
 
     @mock.patch.object(irmc_boot, '_parse_config_option', spec_set=True,
                        autospec=True)
-    def test_check_share_fs_mounted_ok(self, parse_conf_mock):
+    def test_check_share_fs_mounted_ok(self, parse_conf_mock,
+                                       check_share_fs_mounted_mock):
         # Note(naohirot): mock.patch.stop() and mock.patch.start() don't work.
         # therefor monkey patching is used to
         # irmc_boot.check_share_fs_mounted.
@@ -868,7 +905,8 @@ class IRMCDeployPrivateMethodsTestCase(test_common.BaseIRMCTest):
 
     @mock.patch.object(irmc_boot, '_parse_config_option', spec_set=True,
                        autospec=True)
-    def test_check_share_fs_mounted_exception(self, parse_conf_mock):
+    def test_check_share_fs_mounted_exception(self, parse_conf_mock,
+                                              check_share_fs_mounted_mock):
         # Note(naohirot): mock.patch.stop() and mock.patch.start() don't work.
         # therefor monkey patching is used to
         # irmc_boot.check_share_fs_mounted.
@@ -883,13 +921,12 @@ class IRMCDeployPrivateMethodsTestCase(test_common.BaseIRMCTest):
         parse_conf_mock.assert_called_once_with()
 
 
+@mock.patch.object(irmc_boot, 'check_share_fs_mounted', spec_set=True,
+                   autospec=True)
 class IRMCVirtualMediaBootTestCase(test_common.BaseIRMCTest):
-
     boot_interface = 'irmc-virtual-media'
 
     def setUp(self):
-        irmc_boot.check_share_fs_mounted_patcher.start()
-        self.addCleanup(irmc_boot.check_share_fs_mounted_patcher.stop)
         super(IRMCVirtualMediaBootTestCase, self).setUp()
 
     @mock.patch.object(deploy_utils, 'validate_image_properties',
@@ -898,13 +935,11 @@ class IRMCVirtualMediaBootTestCase(test_common.BaseIRMCTest):
                        autospec=True)
     @mock.patch.object(irmc_boot, '_parse_deploy_info', spec_set=True,
                        autospec=True)
-    @mock.patch.object(irmc_boot, 'check_share_fs_mounted', spec_set=True,
-                       autospec=True)
     def test_validate_whole_disk_image(self,
-                                       check_share_fs_mounted_mock,
                                        deploy_info_mock,
                                        is_glance_image_mock,
-                                       validate_prop_mock):
+                                       validate_prop_mock,
+                                       check_share_fs_mounted_mock):
         d_info = {'image_source': '733d1c44-a2ea-414b-aca7-69decf20d810'}
         deploy_info_mock.return_value = d_info
         with task_manager.acquire(self.context, self.node.uuid,
@@ -912,7 +947,7 @@ class IRMCVirtualMediaBootTestCase(test_common.BaseIRMCTest):
             task.node.driver_internal_info = {'is_whole_disk_image': True}
             task.driver.boot.validate(task)
 
-            check_share_fs_mounted_mock.assert_called_once_with()
+            self.assertTrue(check_share_fs_mounted_mock.call_count, 2)
             deploy_info_mock.assert_called_once_with(task.node)
             self.assertFalse(is_glance_image_mock.called)
             validate_prop_mock.assert_called_once_with(task.context,
@@ -924,13 +959,11 @@ class IRMCVirtualMediaBootTestCase(test_common.BaseIRMCTest):
                        autospec=True)
     @mock.patch.object(irmc_boot, '_parse_deploy_info', spec_set=True,
                        autospec=True)
-    @mock.patch.object(irmc_boot, 'check_share_fs_mounted', spec_set=True,
-                       autospec=True)
     def test_validate_glance_image(self,
-                                   check_share_fs_mounted_mock,
                                    deploy_info_mock,
                                    is_glance_image_mock,
-                                   validate_prop_mock):
+                                   validate_prop_mock,
+                                   check_share_fs_mounted_mock):
         d_info = {'image_source': '733d1c44-a2ea-414b-aca7-69decf20d810'}
         deploy_info_mock.return_value = d_info
         is_glance_image_mock.return_value = True
@@ -938,7 +971,7 @@ class IRMCVirtualMediaBootTestCase(test_common.BaseIRMCTest):
                                   shared=False) as task:
             task.driver.boot.validate(task)
 
-            check_share_fs_mounted_mock.assert_called_once_with()
+            self.assertTrue(check_share_fs_mounted_mock.call_count, 2)
             deploy_info_mock.assert_called_once_with(task.node)
             validate_prop_mock.assert_called_once_with(
                 task.context, d_info, ['kernel_id', 'ramdisk_id'])
@@ -949,13 +982,11 @@ class IRMCVirtualMediaBootTestCase(test_common.BaseIRMCTest):
                        autospec=True)
     @mock.patch.object(irmc_boot, '_parse_deploy_info', spec_set=True,
                        autospec=True)
-    @mock.patch.object(irmc_boot, 'check_share_fs_mounted', spec_set=True,
-                       autospec=True)
     def test_validate_non_glance_image(self,
-                                       check_share_fs_mounted_mock,
                                        deploy_info_mock,
                                        is_glance_image_mock,
-                                       validate_prop_mock):
+                                       validate_prop_mock,
+                                       check_share_fs_mounted_mock):
         d_info = {'image_source': '733d1c44-a2ea-414b-aca7-69decf20d810'}
         deploy_info_mock.return_value = d_info
         is_glance_image_mock.return_value = False
@@ -963,7 +994,7 @@ class IRMCVirtualMediaBootTestCase(test_common.BaseIRMCTest):
                                   shared=False) as task:
             task.driver.boot.validate(task)
 
-            check_share_fs_mounted_mock.assert_called_once_with()
+            self.assertTrue(check_share_fs_mounted_mock.call_count, 2)
             deploy_info_mock.assert_called_once_with(task.node)
             validate_prop_mock.assert_called_once_with(
                 task.context, d_info, ['kernel', 'ramdisk'])
@@ -1004,24 +1035,28 @@ class IRMCVirtualMediaBootTestCase(test_common.BaseIRMCTest):
             self.assertEqual(1 if provision_state == states.DEPLOYING else 0,
                              mock_backup_bios.call_count)
 
-    def test_prepare_ramdisk_glance_image_deploying(self):
+    def test_prepare_ramdisk_glance_image_deploying(
+            self, check_share_fs_mounted_mock):
         self.node.provision_state = states.DEPLOYING
         self.node.save()
         self._test_prepare_ramdisk()
 
-    def test_prepare_ramdisk_glance_image_rescuing(self):
+    def test_prepare_ramdisk_glance_image_rescuing(
+            self, check_share_fs_mounted_mock):
         self.node.provision_state = states.RESCUING
         self.node.save()
         self._test_prepare_ramdisk(mode='rescue')
 
-    def test_prepare_ramdisk_glance_image_cleaning(self):
+    def test_prepare_ramdisk_glance_image_cleaning(
+            self, check_share_fs_mounted_mock):
         self.node.provision_state = states.CLEANING
         self.node.save()
         self._test_prepare_ramdisk()
 
     @mock.patch.object(irmc_boot, '_setup_vmedia', spec_set=True,
                        autospec=True)
-    def test_prepare_ramdisk_not_deploying_not_cleaning(self, mock_is_image):
+    def test_prepare_ramdisk_not_deploying_not_cleaning(
+            self, mock_is_image, check_share_fs_mounted_mock):
         """Ensure deploy ops are blocked when not deploying and not cleaning"""
 
         for state in states.STABLE_STATES:
@@ -1036,7 +1071,8 @@ class IRMCVirtualMediaBootTestCase(test_common.BaseIRMCTest):
 
     @mock.patch.object(irmc_boot, '_cleanup_vmedia_boot', spec_set=True,
                        autospec=True)
-    def test_clean_up_ramdisk(self, _cleanup_vmedia_boot_mock):
+    def test_clean_up_ramdisk(self, _cleanup_vmedia_boot_mock,
+                              check_share_fs_mounted_mock):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
             task.driver.boot.clean_up_ramdisk(task)
@@ -1059,12 +1095,14 @@ class IRMCVirtualMediaBootTestCase(test_common.BaseIRMCTest):
                                                          boot_devices.DISK,
                                                          persistent=True)
 
-    def test_prepare_instance_whole_disk_image_local(self):
+    def test_prepare_instance_whole_disk_image_local(
+            self, check_share_fs_mounted_mock):
         self.node.instance_info = {'capabilities': '{"boot_option": "local"}'}
         self.node.save()
         self._test_prepare_instance_whole_disk_image()
 
-    def test_prepare_instance_whole_disk_image(self):
+    def test_prepare_instance_whole_disk_image(self,
+                                               check_share_fs_mounted_mock):
         self._test_prepare_instance_whole_disk_image()
 
     @mock.patch.object(irmc_boot.IRMCVirtualMediaBoot,
@@ -1073,7 +1111,8 @@ class IRMCVirtualMediaBootTestCase(test_common.BaseIRMCTest):
     @mock.patch.object(irmc_boot, '_cleanup_vmedia_boot', spec_set=True,
                        autospec=True)
     def test_prepare_instance_partition_image(
-            self, _cleanup_vmedia_boot_mock, _configure_vmedia_mock):
+            self, _cleanup_vmedia_boot_mock, _configure_vmedia_mock,
+            check_share_fs_mounted_mock):
         self.node.instance_info = {
             'capabilities': {'boot_option': 'netboot'}}
         self.node.driver_internal_info = {'root_uuid_or_disk_id': "some_uuid"}
@@ -1091,7 +1130,8 @@ class IRMCVirtualMediaBootTestCase(test_common.BaseIRMCTest):
     @mock.patch.object(irmc_boot, '_remove_share_file', spec_set=True,
                        autospec=True)
     def test_clean_up_instance(self, _remove_share_file_mock,
-                               _cleanup_vmedia_boot_mock):
+                               _cleanup_vmedia_boot_mock,
+                               check_share_fs_mounted_mock):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
             task.node.instance_info['irmc_boot_iso'] = 'glance://deploy_iso'
@@ -1114,7 +1154,8 @@ class IRMCVirtualMediaBootTestCase(test_common.BaseIRMCTest):
     def test__configure_vmedia_boot(self,
                                     _prepare_boot_iso_mock,
                                     _setup_vmedia_for_boot_mock,
-                                    node_set_boot_device):
+                                    node_set_boot_device,
+                                    check_share_fs_mounted_mock):
         root_uuid_or_disk_id = {'root uuid': 'root_uuid'}
 
         with task_manager.acquire(self.context, self.node.uuid,
@@ -1130,7 +1171,8 @@ class IRMCVirtualMediaBootTestCase(test_common.BaseIRMCTest):
             node_set_boot_device.assert_called_once_with(
                 task, boot_devices.CDROM, persistent=True)
 
-    def test_remote_image_share_type_values(self):
+    def test_remote_image_share_type_values(
+            self, check_share_fs_mounted_mock):
         cfg.CONF.set_override('remote_image_share_type', 'cifs', 'irmc')
         cfg.CONF.set_override('remote_image_share_type', 'nfs', 'irmc')
         self.assertRaises(ValueError, cfg.CONF.set_override,
@@ -1145,7 +1187,8 @@ class IRMCVirtualMediaBootTestCase(test_common.BaseIRMCTest):
                        autospec=True)
     def test_prepare_instance_with_secure_boot(self, mock_cleanup_vmedia_boot,
                                                mock_configure_vmedia_boot,
-                                               mock_set_secure_boot_mode):
+                                               mock_set_secure_boot_mode,
+                                               check_share_fs_mounted_mock):
         self.node.driver_internal_info = {'root_uuid_or_disk_id': "12312642"}
         self.node.provision_state = states.DEPLOYING
         self.node.target_provision_state = states.ACTIVE
@@ -1173,7 +1216,7 @@ class IRMCVirtualMediaBootTestCase(test_common.BaseIRMCTest):
                        autospec=True)
     def test_prepare_instance_with_secure_boot_false(
             self, mock_cleanup_vmedia_boot, mock_configure_vmedia_boot,
-            mock_set_secure_boot_mode):
+            mock_set_secure_boot_mode, check_share_fs_mounted_mock):
         self.node.driver_internal_info = {'root_uuid_or_disk_id': "12312642"}
         self.node.provision_state = states.DEPLOYING
         self.node.target_provision_state = states.ACTIVE
@@ -1200,7 +1243,7 @@ class IRMCVirtualMediaBootTestCase(test_common.BaseIRMCTest):
                        autospec=True)
     def test_prepare_instance_without_secure_boot(
             self, mock_cleanup_vmedia_boot, mock_configure_vmedia_boot,
-            mock_set_secure_boot_mode):
+            mock_set_secure_boot_mode, check_share_fs_mounted_mock):
         self.node.driver_internal_info = {'root_uuid_or_disk_id': "12312642"}
         self.node.provision_state = states.DEPLOYING
         self.node.target_provision_state = states.ACTIVE
@@ -1223,7 +1266,8 @@ class IRMCVirtualMediaBootTestCase(test_common.BaseIRMCTest):
     @mock.patch.object(irmc_boot, '_cleanup_vmedia_boot', spec_set=True,
                        autospec=True)
     def test_clean_up_instance_with_secure_boot(self, mock_cleanup_vmedia_boot,
-                                                mock_set_secure_boot_mode):
+                                                mock_set_secure_boot_mode,
+                                                check_share_fs_mounted_mock):
         self.node.provision_state = states.DELETING
         self.node.target_provision_state = states.AVAILABLE
         self.node.instance_info = {
@@ -1244,7 +1288,8 @@ class IRMCVirtualMediaBootTestCase(test_common.BaseIRMCTest):
     @mock.patch.object(irmc_boot, '_cleanup_vmedia_boot', spec_set=True,
                        autospec=True)
     def test_clean_up_instance_with_secure_boot_false(
-            self, mock_cleanup_vmedia_boot, mock_set_secure_boot_mode):
+            self, mock_cleanup_vmedia_boot, mock_set_secure_boot_mode,
+            check_share_fs_mounted_mock):
         self.node.provision_state = states.DELETING
         self.node.target_provision_state = states.AVAILABLE
         self.node.instance_info = {
@@ -1264,7 +1309,8 @@ class IRMCVirtualMediaBootTestCase(test_common.BaseIRMCTest):
     @mock.patch.object(irmc_boot, '_cleanup_vmedia_boot', spec_set=True,
                        autospec=True)
     def test_clean_up_instance_without_secure_boot(
-            self, mock_cleanup_vmedia_boot, mock_set_secure_boot_mode):
+            self, mock_cleanup_vmedia_boot, mock_set_secure_boot_mode,
+            check_share_fs_mounted_mock):
         self.node.provision_state = states.DELETING
         self.node.target_provision_state = states.AVAILABLE
         self.node.save()
@@ -1276,7 +1322,7 @@ class IRMCVirtualMediaBootTestCase(test_common.BaseIRMCTest):
 
     @mock.patch.object(os.path, 'isfile', return_value=True,
                        autospec=True)
-    def test_validate_rescue(self, mock_isfile):
+    def test_validate_rescue(self, mock_isfile, check_share_fs_mounted_mock):
         driver_info = self.node.driver_info
         driver_info['irmc_rescue_iso'] = 'rescue.iso'
         self.node.driver_info = driver_info
@@ -1284,7 +1330,8 @@ class IRMCVirtualMediaBootTestCase(test_common.BaseIRMCTest):
         with task_manager.acquire(self.context, self.node.uuid) as task:
             task.driver.boot.validate_rescue(task)
 
-    def test_validate_rescue_no_rescue_ramdisk(self):
+    def test_validate_rescue_no_rescue_ramdisk(
+            self, check_share_fs_mounted_mock):
         with task_manager.acquire(self.context, self.node.uuid) as task:
             self.assertRaisesRegex(exception.MissingParameterValue,
                                    'Missing.*irmc_rescue_iso',
@@ -1292,7 +1339,8 @@ class IRMCVirtualMediaBootTestCase(test_common.BaseIRMCTest):
 
     @mock.patch.object(os.path, 'isfile', return_value=False,
                        autospec=True)
-    def test_validate_rescue_ramdisk_not_exist(self, mock_isfile):
+    def test_validate_rescue_ramdisk_not_exist(
+            self, mock_isfile, check_share_fs_mounted_mock):
         driver_info = self.node.driver_info
         driver_info['irmc_rescue_iso'] = 'rescue.iso'
         self.node.driver_info = driver_info
@@ -1455,16 +1503,15 @@ class IRMCPXEBootTestCase(test_common.BaseIRMCTest):
                 task.driver.boot, task)
 
 
+@mock.patch.object(irmc_boot, 'check_share_fs_mounted', spec_set=True,
+                   autospec=True)
 @mock.patch.object(irmc_boot, 'viom',
                    spec_set=mock_specs.SCCICLIENT_VIOM_SPEC)
 class IRMCVirtualMediaBootWithVolumeTestCase(test_common.BaseIRMCTest):
-
     boot_interface = 'irmc-virtual-media'
 
     def setUp(self):
         super(IRMCVirtualMediaBootWithVolumeTestCase, self).setUp()
-        irmc_boot.check_share_fs_mounted_patcher.start()
-        self.addCleanup(irmc_boot.check_share_fs_mounted_patcher.stop)
         driver_info = INFO_DICT
         d_in_info = dict(boot_from_volume='volume-uuid')
         self.config(enabled_storage_interfaces=['cinder'])
@@ -1580,14 +1627,15 @@ class IRMCVirtualMediaBootWithVolumeTestCase(test_common.BaseIRMCTest):
         with task_manager.acquire(self.context, self.node.uuid) as task:
             task.driver.boot.validate(task)
 
-    def test_validate_iscsi(self, mock_viom):
+    def test_validate_iscsi(self, mock_viom, check_share_fs_mounted_mock):
         self._create_port()
         self._create_iscsi_resources()
         self._call_validate()
         self.assertEqual([mock.call('LAN0-1'), mock.call('CNA1-1')],
                          mock_viom.validate_physical_port_id.call_args_list)
 
-    def test_validate_no_physical_id_in_lan_port(self, mock_viom):
+    def test_validate_no_physical_id_in_lan_port(self, mock_viom,
+                                                 check_share_fs_mounted_mock):
         self._create_port(physical_id=None)
         self._create_iscsi_resources()
         self.assertRaises(exception.MissingParameterValue,
@@ -1595,8 +1643,8 @@ class IRMCVirtualMediaBootWithVolumeTestCase(test_common.BaseIRMCTest):
 
     @mock.patch.object(irmc_boot, 'scci',
                        spec_set=mock_specs.SCCICLIENT_IRMC_SCCI_SPEC)
-    def test_validate_invalid_physical_id_in_lan_port(self, mock_scci,
-                                                      mock_viom):
+    def test_validate_invalid_physical_id_in_lan_port(
+            self, mock_scci, mock_viom, check_share_fs_mounted_mock):
         self._create_port(physical_id='wrong-id')
         self._create_iscsi_resources()
 
@@ -1606,7 +1654,8 @@ class IRMCVirtualMediaBootWithVolumeTestCase(test_common.BaseIRMCTest):
         self.assertRaises(exception.InvalidParameterValue,
                           self._call_validate)
 
-    def test_validate_iscsi_connector_no_ip(self, mock_viom):
+    def test_validate_iscsi_connector_no_ip(self, mock_viom,
+                                            check_share_fs_mounted_mock):
         self._create_port()
         self._create_iscsi_iqn_connector()
         self._create_iscsi_target()
@@ -1614,7 +1663,8 @@ class IRMCVirtualMediaBootWithVolumeTestCase(test_common.BaseIRMCTest):
         self.assertRaises(exception.MissingParameterValue,
                           self._call_validate)
 
-    def test_validate_iscsi_connector_no_iqn(self, mock_viom):
+    def test_validate_iscsi_connector_no_iqn(self, mock_viom,
+                                             check_share_fs_mounted_mock):
         self._create_port()
         self._create_iscsi_ip_connector(physical_id='CNA1-1')
         self._create_iscsi_target()
@@ -1622,7 +1672,8 @@ class IRMCVirtualMediaBootWithVolumeTestCase(test_common.BaseIRMCTest):
         self.assertRaises(exception.MissingParameterValue,
                           self._call_validate)
 
-    def test_validate_iscsi_connector_no_netmask(self, mock_viom):
+    def test_validate_iscsi_connector_no_netmask(self, mock_viom,
+                                                 check_share_fs_mounted_mock):
         self._create_port()
         self._create_iscsi_iqn_connector()
         self._create_iscsi_ip_connector(network_size=None)
@@ -1631,7 +1682,8 @@ class IRMCVirtualMediaBootWithVolumeTestCase(test_common.BaseIRMCTest):
         self.assertRaises(exception.MissingParameterValue,
                           self._call_validate)
 
-    def test_validate_iscsi_connector_invalid_netmask(self, mock_viom):
+    def test_validate_iscsi_connector_invalid_netmask(
+            self, mock_viom, check_share_fs_mounted_mock):
         self._create_port()
         self._create_iscsi_iqn_connector()
         self._create_iscsi_ip_connector(network_size='worng-netmask')
@@ -1640,7 +1692,8 @@ class IRMCVirtualMediaBootWithVolumeTestCase(test_common.BaseIRMCTest):
         self.assertRaises(exception.InvalidParameterValue,
                           self._call_validate)
 
-    def test_validate_iscsi_connector_too_small_netmask(self, mock_viom):
+    def test_validate_iscsi_connector_too_small_netmask(
+            self, mock_viom, check_share_fs_mounted_mock):
         self._create_port()
         self._create_iscsi_iqn_connector()
         self._create_iscsi_ip_connector(network_size='0')
@@ -1649,7 +1702,8 @@ class IRMCVirtualMediaBootWithVolumeTestCase(test_common.BaseIRMCTest):
         self.assertRaises(exception.InvalidParameterValue,
                           self._call_validate)
 
-    def test_validate_iscsi_connector_too_large_netmask(self, mock_viom):
+    def test_validate_iscsi_connector_too_large_netmask(
+            self, mock_viom, check_share_fs_mounted_mock):
         self._create_port()
         self._create_iscsi_iqn_connector()
         self._create_iscsi_ip_connector(network_size='32')
@@ -1658,7 +1712,8 @@ class IRMCVirtualMediaBootWithVolumeTestCase(test_common.BaseIRMCTest):
         self.assertRaises(exception.InvalidParameterValue,
                           self._call_validate)
 
-    def test_validate_iscsi_connector_no_physical_id(self, mock_viom):
+    def test_validate_iscsi_connector_no_physical_id(
+            self, mock_viom, check_share_fs_mounted_mock):
         self._create_port()
         self._create_iscsi_iqn_connector(physical_id=None)
         self._create_iscsi_ip_connector()
@@ -1668,7 +1723,8 @@ class IRMCVirtualMediaBootWithVolumeTestCase(test_common.BaseIRMCTest):
                           self._call_validate)
 
     @mock.patch.object(deploy_utils, 'get_single_nic_with_vif_port_id')
-    def test_prepare_ramdisk_skip(self, mock_nic, mock_viom):
+    def test_prepare_ramdisk_skip(self, mock_nic, mock_viom,
+                                  check_share_fs_mounted_mock):
         self._create_iscsi_resources()
         with task_manager.acquire(self.context, self.node.uuid) as task:
             task.node.provision_state = states.DEPLOYING
@@ -1676,7 +1732,8 @@ class IRMCVirtualMediaBootWithVolumeTestCase(test_common.BaseIRMCTest):
             mock_nic.assert_not_called()
 
     @mock.patch.object(irmc_boot, '_cleanup_vmedia_boot')
-    def test_prepare_instance(self, mock_clean, mock_viom):
+    def test_prepare_instance(self, mock_clean, mock_viom,
+                              check_share_fs_mounted_mock):
         mock_conf = self._create_mock_conf(mock_viom)
         self._create_port()
         self._create_iscsi_resources()
@@ -1711,7 +1768,8 @@ class IRMCVirtualMediaBootWithVolumeTestCase(test_common.BaseIRMCTest):
         mock_viom.VIOMConfiguration.assert_called_once_with(
             PARSED_IFNO, identification=self.node.uuid)
 
-    def test__configure_boot_from_volume_iscsi(self, mock_viom):
+    def test__configure_boot_from_volume_iscsi(self, mock_viom,
+                                               check_share_fs_mounted_mock):
         mock_conf = self._create_mock_conf(mock_viom)
         self._create_port()
         self._create_iscsi_resources()
@@ -1734,7 +1792,8 @@ class IRMCVirtualMediaBootWithVolumeTestCase(test_common.BaseIRMCTest):
         mock_viom.validate_physical_port_id.assert_called_once_with('CNA1-1')
         self._assert_viom_apply(mock_viom, mock_conf)
 
-    def test__configure_boot_from_volume_multi_lan_ports(self, mock_viom):
+    def test__configure_boot_from_volume_multi_lan_ports(
+            self, mock_viom, check_share_fs_mounted_mock):
         mock_conf = self._create_mock_conf(mock_viom)
         self._create_port()
         self._create_port(physical_id='LAN0-2',
@@ -1760,7 +1819,8 @@ class IRMCVirtualMediaBootWithVolumeTestCase(test_common.BaseIRMCTest):
         mock_viom.validate_physical_port_id.assert_called_once_with('CNA1-1')
         self._assert_viom_apply(mock_viom, mock_conf)
 
-    def test__configure_boot_from_volume_iscsi_no_portal_port(self, mock_viom):
+    def test__configure_boot_from_volume_iscsi_no_portal_port(
+            self, mock_viom, check_share_fs_mounted_mock):
         mock_conf = self._create_mock_conf(mock_viom)
         self._create_port()
         self._create_iscsi_iqn_connector()
@@ -1786,7 +1846,8 @@ class IRMCVirtualMediaBootWithVolumeTestCase(test_common.BaseIRMCTest):
         mock_viom.validate_physical_port_id.assert_called_once_with('CNA1-1')
         self._assert_viom_apply(mock_viom, mock_conf)
 
-    def test__configure_boot_from_volume_iscsi_chap(self, mock_viom):
+    def test__configure_boot_from_volume_iscsi_chap(
+            self, mock_viom, check_share_fs_mounted_mock):
         mock_conf = self._create_mock_conf(mock_viom)
         self._create_port()
         self._create_iscsi_iqn_connector()
@@ -1814,7 +1875,8 @@ class IRMCVirtualMediaBootWithVolumeTestCase(test_common.BaseIRMCTest):
         mock_viom.validate_physical_port_id.assert_called_once_with('CNA1-1')
         self._assert_viom_apply(mock_viom, mock_conf)
 
-    def test__configure_boot_from_volume_fc(self, mock_viom):
+    def test__configure_boot_from_volume_fc(self, mock_viom,
+                                            check_share_fs_mounted_mock):
         mock_conf = self._create_mock_conf(mock_viom)
         self._create_port()
         self._create_fc_connector()
@@ -1833,8 +1895,8 @@ class IRMCVirtualMediaBootWithVolumeTestCase(test_common.BaseIRMCTest):
 
     @mock.patch.object(irmc_boot, 'scci',
                        spec_set=mock_specs.SCCICLIENT_IRMC_SCCI_SPEC)
-    def test__configure_boot_from_volume_apply_error(self, mock_scci,
-                                                     mock_viom):
+    def test__configure_boot_from_volume_apply_error(
+            self, mock_scci, mock_viom, check_share_fs_mounted_mock):
         mock_conf = self._create_mock_conf(mock_viom)
         self._create_port()
         self._create_fc_connector()
@@ -1856,7 +1918,7 @@ class IRMCVirtualMediaBootWithVolumeTestCase(test_common.BaseIRMCTest):
         mock_viom.validate_physical_port_id.assert_called_once_with('FC2-1')
         self._assert_viom_apply(mock_viom, mock_conf)
 
-    def test_clean_up_instance(self, mock_viom):
+    def test_clean_up_instance(self, mock_viom, check_share_fs_mounted_mock):
         mock_conf = self._create_mock_conf(mock_viom)
         with task_manager.acquire(self.context, self.node.uuid) as task:
             task.driver.boot.clean_up_instance(task)
@@ -1865,7 +1927,8 @@ class IRMCVirtualMediaBootWithVolumeTestCase(test_common.BaseIRMCTest):
                                                             self.node.uuid)
         mock_conf.terminate.assert_called_once_with(reboot=False)
 
-    def test_clean_up_instance_error(self, mock_viom):
+    def test_clean_up_instance_error(self, mock_viom,
+                                     check_share_fs_mounted_mock):
         mock_conf = self._create_mock_conf(mock_viom)
         mock_conf.terminate.side_effect = Exception('fake error')
         irmc_boot.scci.SCCIError = Exception
@@ -1878,7 +1941,8 @@ class IRMCVirtualMediaBootWithVolumeTestCase(test_common.BaseIRMCTest):
                                                             self.node.uuid)
         mock_conf.terminate.assert_called_once_with(reboot=False)
 
-    def test__cleanup_boot_from_volume(self, mock_viom):
+    def test__cleanup_boot_from_volume(self, mock_viom,
+                                       check_share_fs_mounted_mock):
         mock_conf = self._create_mock_conf(mock_viom)
         with task_manager.acquire(self.context, self.node.uuid) as task:
             task.driver.boot._cleanup_boot_from_volume(task)
@@ -1889,7 +1953,6 @@ class IRMCVirtualMediaBootWithVolumeTestCase(test_common.BaseIRMCTest):
 
 
 class IRMCPXEBootBasicTestCase(test_pxe.PXEBootTestCase):
-
     boot_interface = 'irmc-pxe'
     # NOTE(etingof): add driver-specific configuration
     driver_info = dict(test_pxe.PXEBootTestCase.driver_info)
