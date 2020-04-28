@@ -36,6 +36,7 @@ if is_service_enabled ir-api ir-cond; then
 
             if [[ "$IRONIC_BAREMETAL_BASIC_OPS" == "True" && "$IRONIC_IS_HARDWARE" == "False" ]]; then
                 echo_summary "Precreating bridge: $IRONIC_VM_NETWORK_BRIDGE"
+                install_package openvswitch-switch
                 sudo ovs-vsctl -- --may-exist add-br $IRONIC_VM_NETWORK_BRIDGE
             fi
 

@@ -682,6 +682,74 @@
         SWIFT_ENABLE_TEMPURLS: True
         SWIFT_TEMPURL_KEY: secretkey
 
+- job:
+    name: ironic-tempest-ipxe-ipv6
+    description: ironic-tempest-ipxe-ipv6
+    parent: ironic-base
+    required-projects:
+      - openstack/networking-generic-switch
+    vars:
+      tempest_test_timeout: 2400
+      devstack_services:
+        # NOTE(TheJulia): It seems our devstack plugin does not play well
+        # with multitenancy and the newer neutron service names.
+        neutron: True
+        neutron-api: True
+        neutron-agent: True
+        neutron-dhcp: True
+        neutron-l3: True
+        neutron-metadata-agent: False
+        neutron-metering: False
+        q-agt: False
+        q-dhcp: False
+        q-l3: False
+        q-meta: False
+        q-metering: False
+        q-svc: False
+        swift: True
+      devstack_plugins:
+        ironic: git://git.openstack.org/openstack/ironic
+        networking-generic-switch: git://git.openstack.org/openstack/networking-generic-switch
+      # NOTE(TheJulia): Nova default behavior is to rely upon stack defaults, v6 needs to
+      # be explicit. This is the best place to wire it in.
+      tempest_test_regex: BaremetalSingleTenant
+      devstack_localrc:
+        IRONIC_AGENT_IMAGE_DOWNLOAD_SOURCE: http
+        IPV6_ENABLED: True
+        IP_VERSION: 6
+        SERVICE_IP_VERSION: 6
+        IRONIC_AUTOMATED_CLEAN_ENABLED: False
+        IRONIC_ENABLED_BOOT_INTERFACES: ipxe,pxe
+        IRONIC_DEFAULT_BOOT_INTERFACE: ipxe
+        IRONIC_IPXE_ENABLED: True
+        IRONIC_PROVISION_NETWORK_NAME: ironic-provision
+        OVS_PHYSICAL_BRIDGE: brbm
+        NEUTRON_PHYSICAL_NETWORK: mynetwork
+        NEUTRON_TENANT_VLAN_RANGE: 100:150
+        IRONIC_ENABLED_NETWORK_INTERFACES: flat,neutron
+        IRONIC_NETWORK_INTERFACE: neutron
+        IRONIC_DEFAILT_DEPLOY_INTERFACE: direct
+        IRONIC_DEFAILT_RESCUE_INTERFACE: no-rescue
+        IRONIC_USE_LINK_LOCAL: True
+        IRONIC_TEMPEST_WHOLE_DISK_IMAGE: True
+        IRONIC_VM_EPHEMERAL_DISK: 0
+        # This will swap and needs to get to tinycore soon.
+        IRONIC_VM_COUNT: 2
+        IRONIC_VM_SPECS_RAM: 2048
+        IRONIC_VM_SPECS_CPU: 2
+        Q_PLUGIN: ml2
+        ENABLE_TENANT_VLANS: True
+        Q_ML2_TENANT_NETWORK_TYPE: vlan
+        NEUTRON_TENANT_NETWORK_TYPE: vlan
+        OVS_BRIDGE_MAPPINGS: "public:br-ex,mynetwork:brbm"
+        USE_PROVIDER_NETWORKING: True
+        PUBLIC_PHYSICAL_NETWORK: public
+        PUBLIC_PROVIDERNET_TYPE: flat
+        Q_USE_PROVIDERNET_FOR_PUBLIC: True
+        BUILD_TIMEOUT: 1440
+        IRONIC_TEMPEST_BUILD_TIMEOUT: 1440
+        IRONIC_PING_TIMEOUT: 1440
+
 # NOTE(rpittau): OLD TINYIPA JOBS
 # Those jobs are used by other projects, we leave them here until
 # we can convert them to dib.
