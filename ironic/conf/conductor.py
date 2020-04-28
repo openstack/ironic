@@ -70,6 +70,7 @@ opts = [
                       'in seconds. Set to 0 to disable checks.')),
     cfg.IntOpt('deploy_callback_timeout',
                default=1800,
+               min=0,
                help=_('Timeout (seconds) to wait for a callback from '
                       'a deploy ramdisk. Set to 0 to disable timeout.')),
     cfg.BoolOpt('force_power_state_during_sync',
@@ -158,6 +159,7 @@ opts = [
                       'configdrive_use_object_store is True.')),
     cfg.IntOpt('inspect_wait_timeout',
                default=1800,
+               min=0,
                help=_('Timeout (seconds) for waiting for node inspection. '
                       '0 - unlimited.')),
     cfg.BoolOpt('automated_clean',
@@ -192,6 +194,7 @@ opts = [
                        'maintenance will make the process continue.')),
     cfg.IntOpt('clean_callback_timeout',
                default=1800,
+               min=0,
                help=_('Timeout (seconds) to wait for a callback from the '
                       'ramdisk doing the cleaning. If the timeout is reached '
                       'the node will be put in the "clean failed" provision '
