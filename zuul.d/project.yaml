@@ -44,6 +44,8 @@
             voting: false
         - ironic-tempest-pxe_ipmitool-postgres:
             voting: false
+        - ironic-tempest-ipxe-ipv6:
+            voting: false
     gate:
       queue: ironic
       jobs:

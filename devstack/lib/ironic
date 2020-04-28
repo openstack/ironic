@@ -325,6 +325,9 @@ IRONIC_BIN_DIR=$(get_python_exec_prefix)
 IRONIC_UWSGI_CONF=$IRONIC_CONF_DIR/ironic-uwsgi.ini
 IRONIC_UWSGI=$IRONIC_BIN_DIR/ironic-api-wsgi
 
+# Lets support IPv6 testing!
+IRONIC_IP_VERSION=${IRONIC_IP_VERSION:-${IP_VERSION:-4}}
+
 # Ironic connection info.  Note the port must be specified.
 if is_service_enabled tls-proxy; then
     IRONIC_SERVICE_PROTOCOL=https
@@ -416,10 +419,43 @@ IRONIC_PROVISION_PROVIDER_NETWORK_TYPE=${IRONIC_PROVISION_PROVIDER_NETWORK_TYPE:
 # This is only used if IRONIC_PROVISION_NETWORK_NAME has been set.
 IRONIC_PROVISION_SEGMENTATION_ID=${IRONIC_PROVISION_SEGMENTATION_ID:-}
 
-# Allocation network pool for provision network
-# Example: IRONIC_PROVISION_ALLOCATION_POOL=start=10.0.5.10,end=10.0.5.100
-# This is only used if IRONIC_PROVISION_NETWORK_NAME has been set.
-IRONIC_PROVISION_ALLOCATION_POOL=${IRONIC_PROVISION_ALLOCATION_POOL:-'start=10.0.5.10,end=10.0.5.100'}
+if [[ "$IRONIC_IP_VERSION" != '6' ]]; then
+    # NOTE(TheJulia): Lets not try and support mixed mode since the conductor
+    # can't support mixed mode operation. We are either IPv4 OR IPv6.
+    IRONIC_IP_VERSION='4'
+    # Allocation network pool for provision network
+    # Example: IRONIC_PROVISION_ALLOCATION_POOL=start=10.0.5.10,end=10.0.5.100
+    # This is only used if IRONIC_PROVISION_NETWORK_NAME has been set.
+    IRONIC_PROVISION_ALLOCATION_POOL=${IRONIC_PROVISION_ALLOCATION_POOL:-'start=10.0.5.10,end=10.0.5.100'}
+
+    # With multinode case all ironic-conductors should have IP from provisioning network.
+    # IRONIC_PROVISION_SUBNET_GATEWAY - is configured on primary node.
+    # Ironic provision subnet gateway.
+    IRONIC_PROVISION_SUBNET_GATEWAY=${IRONIC_PROVISION_SUBNET_GATEWAY:-'10.0.5.1'}
+    IRONIC_PROVISION_SUBNET_SUBNODE_IP=${IRONIC_PROVISION_SUBNET_SUBNODE_IP:-'10.0.5.2'}
+
+    # Ironic provision subnet prefix
+    # Example: IRONIC_PROVISION_SUBNET_PREFIX=10.0.5.0/24
+    IRONIC_PROVISION_SUBNET_PREFIX=${IRONIC_PROVISION_SUBNET_PREFIX:-'10.0.5.0/24'}
+else
+    IRONIC_IP_VERSION='6'
+    # NOTE(TheJulia): The IPv6 address devstack has identified is the
+    # local loopback. This does not really serve our purposes very
+    # well, so we need to setup something that will work.
+    if [[ "$HOST_IPV6" == '::1' ]] || [[ ! $HOST_IPV6 =~ "::" ]]; then
+    # We setup an address elsewhere because the service address of
+    # loopback cannot be used for v6 testing.
+        IRONIC_HOST_IPV6='fc00::1'
+    else
+        IRONIC_HOST_IPV6=$SERVICE_HOST
+    fi
+    IRONIC_PROVISION_SUBNET_GATEWAY=${IRONIC_PROVISION_SUBNET_GATEWAY:-'fc01::1'}
+    IRONIC_PROVISION_SUBNET_SUBNODE_IP=${IRONIC_PROVISION_SUBNET_SUBNODE_IP:-'fc01::2'}
+    IRONIC_PROVISION_SUBNET_PREFIX=${IRONIC_PROVISION_SUBNET_PREFIX:-'fc01::/64'}
+    IRONIC_TFTPSERVER_IP=$IRONIC_HOST_IPV6
+fi
+
+IRONIC_ROUTER_NAME=${Q_ROUTER_NAME:-router1}
 
 # Ironic provision subnet name.
 # This is only used if IRONIC_PROVISION_NETWORK_NAME has been set.
@@ -446,6 +482,8 @@ IRONIC_PROVISION_SUBNET_SUBNODE_IP=${IRONIC_PROVISION_SUBNET_SUBNODE_IP:-'10.0.5
 IRONIC_PROVISION_SUBNET_PREFIX=${IRONIC_PROVISION_SUBNET_PREFIX:-'10.0.5.0/24'}
 
 if [[ "$HOST_TOPOLOGY_ROLE" == "primary" ]]; then
+    # Some CI jobs get triggered without a HOST_TOPOLOGY_ROLE
+    # If so, none of this logic is, or needs to be executed.
     IRONIC_TFTPSERVER_IP=$IRONIC_PROVISION_SUBNET_GATEWAY
     IRONIC_HTTP_SERVER=$IRONIC_PROVISION_SUBNET_GATEWAY
 fi
@@ -454,6 +492,8 @@ if [[ "$HOST_TOPOLOGY_ROLE" == "subnode" ]]; then
     IRONIC_HTTP_SERVER=$IRONIC_PROVISION_SUBNET_SUBNODE_IP
 fi
 
+# NOTE(TheJulia): Last catch for this being set or not.
+# should only work for v4.
 IRONIC_HTTP_SERVER=${IRONIC_HTTP_SERVER:-$IRONIC_TFTPSERVER_IP}
 
 # Port that must be permitted for iSCSI connections to be
@@ -488,10 +528,19 @@ TEMPEST_BAREMETAL_MIN_MICROVERSION=${TEMPEST_BAREMETAL_MIN_MICROVERSION:-}
 # Define baremetal max_microversion in tempest config. No default value means that it is picked from tempest.
 TEMPEST_BAREMETAL_MAX_MICROVERSION=${TEMPEST_BAREMETAL_MAX_MICROVERSION:-}
 
+# TODO(TheJulia): This PHYSICAL_NETWORK needs to be refactored in
+# our devstack plugin. It is used by the neutron-legacy integration,
+# however they want to name the new variable for the current neutron
+# plugin NEUTRON_PHYSICAL_NETWORK. For now we'll do some magic and
+# change it later once we migrate our jobs.
+
+PHYSICAL_NETWORK=${NEUTRON_PHYSICAL_NETWORK:-${PHYSICAL_NETWORK:-}}
+
 # get_pxe_boot_file() - Get the PXE/iPXE boot file path
 function get_pxe_boot_file {
     local pxe_boot_file
     if [[ "$IRONIC_IPXE_ENABLED" == "True" ]] ; then
+        # TODO(TheJulia): This is not UEFI safe.
         if is_ubuntu; then
             pxe_boot_file=/usr/lib/ipxe/undionly.kpxe
         elif is_fedora || is_suse; then
@@ -1203,6 +1252,33 @@ function configure_ironic_rescue_network {
 }
 
 function configure_ironic_provision_network {
+    if [[ "$IP_VERSION" == "6" ]]; then
+        # NOTE(TheJulia): Ideally we should let this happen
+        # with our global address, but iPXE seems to have in
+        # consistant behavior in this configuration with devstack.
+        # so we will setup a dummy interface and use that.
+        sudo ip link add magicv6 type dummy
+        sudo ip link set dev magicv6 up
+        sudo ip -6 addr add $IRONIC_HOST_IPV6/64 dev magicv6
+    fi
+    if is_service_enabled neutron-api; then
+        if [[ "$IRONIC_IP_VERSION" == "6" ]]; then
+            sudo sysctl -w net.ipv6.conf.all.proxy_ndp=1
+            configure_neutron_l3_lower_v6_ra
+        fi
+        # Neutron agent needs to be pre-configured before proceeding down the
+        # path of configuring the provision network. This was done for us in
+        # the legacy neutron code.
+        neutron_plugin_configure_plugin_agent
+        # This prior step updates configuration related to physnet mappings,
+        # and we must restart neutron as a result
+        stop_neutron
+        sleep 15
+        # By default, upon start, neutron tries to create the networks...
+        NEUTRON_CREATE_INITIAL_NETWORKS=False
+        start_neutron_api
+        start_neutron
+    fi
     # This is only called if IRONIC_PROVISION_NETWORK_NAME has been set and
     # means we are using multi-tenant networking.
     local net_id
@@ -1228,12 +1304,28 @@ function configure_ironic_provision_network {
         fi
 
         local subnet_id
-        subnet_id="$(openstack subnet create --ip-version 4 \
-            ${IRONIC_PROVISION_ALLOCATION_POOL:+--allocation-pool $IRONIC_PROVISION_ALLOCATION_POOL} \
-            ${net_segment_id:+--network-segment $net_segment_id} \
-            $IRONIC_PROVISION_PROVIDER_SUBNET_NAME \
-            --gateway $IRONIC_PROVISION_SUBNET_GATEWAY --network $net_id \
-            --subnet-range $IRONIC_PROVISION_SUBNET_PREFIX -f value -c id)"
+        if [[ "$IRONIC_IP_VERSION" == '4' ]]; then
+            subnet_id="$(openstack subnet create --ip-version 4 \
+                ${IRONIC_PROVISION_ALLOCATION_POOL:+--allocation-pool $IRONIC_PROVISION_ALLOCATION_POOL} \
+                ${net_segment_id:+--network-segment $net_segment_id} \
+                $IRONIC_PROVISION_PROVIDER_SUBNET_NAME \
+                --gateway $IRONIC_PROVISION_SUBNET_GATEWAY --network $net_id \
+                --subnet-range $IRONIC_PROVISION_SUBNET_PREFIX -f value -c id)"
+        else
+            subnet_id="$(openstack subnet create --ip-version 6 \
+                --ipv6-address-mode dhcpv6-stateful \
+                --ipv6-ra-mode dhcpv6-stateful \
+                --dns-nameserver 2001:4860:4860::8888 \
+                ${net_segment_id:+--network-segment $net_segment_id} \
+                $IRONIC_PROVISION_PROVIDER_SUBNET_NAME \
+                --gateway $IRONIC_PROVISION_SUBNET_GATEWAY --network $net_id \
+                --subnet-range $IRONIC_PROVISION_SUBNET_PREFIX -f value -c id)"
+            # NOTE(TheJulia): router must be attached to the subnet for RAs.
+            openstack router add subnet $IRONIC_ROUTER_NAME $subnet_id
+
+            # We're going to be using this router of public access to tenant networks
+            PUBLIC_ROUTER_ID=$(openstack router show -c id -f value $IRONIC_ROUTER_NAME)
+        fi
 
         die_if_not_set $LINENO subnet_id "Failure creating SUBNET_ID for $IRONIC_PROVISION_NETWORK_NAME"
 
@@ -1249,14 +1341,22 @@ function configure_ironic_provision_network {
     # Set provision network GW on physical interface
     # Add vlan on br interface in case of IRONIC_PROVISION_PROVIDER_NETWORK_TYPE==vlan
     # othervise assign ip to br interface directly.
-    if [[ "$IRONIC_PROVISION_PROVIDER_NETWORK_TYPE" == "vlan" ]]; then
-        sudo ip link add link $OVS_PHYSICAL_BRIDGE name $OVS_PHYSICAL_BRIDGE.$IRONIC_PROVISION_SEGMENTATION_ID type vlan id $IRONIC_PROVISION_SEGMENTATION_ID
-        sudo ip link set dev $OVS_PHYSICAL_BRIDGE up
-        sudo ip link set dev $OVS_PHYSICAL_BRIDGE.$IRONIC_PROVISION_SEGMENTATION_ID up
-        sudo ip addr add dev $OVS_PHYSICAL_BRIDGE.$IRONIC_PROVISION_SEGMENTATION_ID $ironic_provision_network_ip/$provision_net_prefix
+    sudo ip link set dev $OVS_PHYSICAL_BRIDGE up
+    if [[ "$IRONIC_IP_VERSION" == "4" ]]; then
+        if [[ "$IRONIC_PROVISION_PROVIDER_NETWORK_TYPE" == "vlan" ]]; then
+            sudo ip link add link $OVS_PHYSICAL_BRIDGE name $OVS_PHYSICAL_BRIDGE.$IRONIC_PROVISION_SEGMENTATION_ID type vlan id $IRONIC_PROVISION_SEGMENTATION_ID
+            sudo ip link set dev $OVS_PHYSICAL_BRIDGE.$IRONIC_PROVISION_SEGMENTATION_ID up
+            sudo ip -$IRONIC_IP_VERSION addr add dev $OVS_PHYSICAL_BRIDGE.$IRONIC_PROVISION_SEGMENTATION_ID $ironic_provision_network_ip/$provision_net_prefix
+        else
+            sudo ip -$IRONIC_IP_VERSION addr add dev $OVS_PHYSICAL_BRIDGE $ironic_provision_network_ip/$provision_net_prefix
+        fi
     else
-        sudo ip link set dev $OVS_PHYSICAL_BRIDGE up
-        sudo ip addr add dev $OVS_PHYSICAL_BRIDGE $ironic_provision_network_ip/$provision_net_prefix
+        # Turn on the external/integration bridges, for IPV6.
+        sudo ip link set dev br-ex up
+        sudo ip link set dev br-int up
+
+        sudo ip6tables -I FORWARD -i brbm -j LOG || true
+        sudo ip6tables -I FORWARD -i br-ex -j LOG || true
     fi
 
     iniset $IRONIC_CONF_FILE neutron provisioning_network $IRONIC_PROVISION_NETWORK_NAME
@@ -1270,6 +1370,10 @@ function cleanup_ironic_provision_network {
         sudo ip link set dev $sub_int down
         sudo ip link del dev $sub_int
     done
+}
+
+function configure_neutron_l3_lower_v6_ra {
+    iniset $Q_L3_CONF_FILE DEFAULT min_rtr_adv_interval 5
 }
 
 # configure_ironic() - Set config files, create data dirs, etc
@@ -1305,6 +1409,9 @@ function configure_ironic {
     if [[ "$IRONIC_RPC_TRANSPORT" == "oslo" ]]; then
         iniset_rpc_backend ironic $IRONIC_CONF_FILE
     fi
+
+    # Set IP version
+    iniset $IRONIC_CONF_FILE pxe ip_version $IRONIC_IP_VERSION
 
     # Configure Ironic conductor, if it was enabled.
     if is_service_enabled ir-cond; then
@@ -1515,11 +1622,15 @@ function configure_ironic_conductor {
     fi
 
     iniset $IRONIC_CONF_FILE DEFAULT rootwrap_config $IRONIC_ROOTWRAP_CONF
-    iniset $IRONIC_CONF_FILE conductor api_url $IRONIC_SERVICE_PROTOCOL://$IRONIC_HOSTPORT
+    iniset $IRONIC_CONF_FILE service_catalog endpoint_override "$IRONIC_SERVICE_PROTOCOL://$([[ $IRONIC_HTTP_SERVER =~ : ]] && echo "[$IRONIC_HTTP_SERVER]" || echo $IRONIC_HTTP_SERVER)/baremetal"
     if [[ -n "$IRONIC_CALLBACK_TIMEOUT" ]]; then
         iniset $IRONIC_CONF_FILE conductor deploy_callback_timeout $IRONIC_CALLBACK_TIMEOUT
     fi
-    iniset $IRONIC_CONF_FILE pxe tftp_server $IRONIC_TFTPSERVER_IP
+    if [[ "$IRONIC_IP_VERSION" == "6" ]]; then
+        iniset $IRONIC_CONF_FILE pxe tftp_server $IRONIC_HOST_IPV6
+    else
+        iniset $IRONIC_CONF_FILE pxe tftp_server $IRONIC_TFTPSERVER_IP
+    fi
     iniset $IRONIC_CONF_FILE pxe tftp_root $IRONIC_TFTPBOOT_DIR
     iniset $IRONIC_CONF_FILE pxe tftp_master_path $IRONIC_TFTPBOOT_DIR/master_images
     if [[ -n "$IRONIC_PXE_BOOT_RETRY_TIMEOUT" ]]; then
@@ -1595,7 +1706,7 @@ function configure_ironic_conductor {
         iniset $IRONIC_CONF_FILE pxe uefi_pxe_config_template '$pybasedir/drivers/modules/ipxe_config.template'
         iniset $IRONIC_CONF_FILE pxe uefi_pxe_bootfile_name $uefipxebin
         iniset $IRONIC_CONF_FILE deploy http_root $IRONIC_HTTP_DIR
-        iniset $IRONIC_CONF_FILE deploy http_url "http://$IRONIC_HTTP_SERVER:$IRONIC_HTTP_PORT"
+        iniset $IRONIC_CONF_FILE deploy http_url "http://$([[ $IRONIC_HTTP_SERVER =~ : ]] && echo "[$IRONIC_HTTP_SERVER]" || echo $IRONIC_HTTP_SERVER):$IRONIC_HTTP_PORT"
         if [[ "$IRONIC_IPXE_USE_SWIFT" == "True" ]]; then
             iniset $IRONIC_CONF_FILE pxe ipxe_use_swift True
         fi
@@ -1936,18 +2047,40 @@ SUBSHELL
         # Add route here to have connection to VMs during provisioning.
         local pub_router_id
         local r_net_gateway
-        pub_router_id=$(openstack router show $Q_ROUTER_NAME -f value -c id)
-        r_net_gateway=$(sudo ip netns exec qrouter-$pub_router_id ip -4 route get 8.8.8.8 |grep dev | awk '{print $7}')
-        local replace_range=${SUBNETPOOL_PREFIX_V4}
-        if [[ -z "${SUBNETPOOL_V4_ID}" ]]; then
-            replace_range=${FIXED_RANGE}
+        local dns_server
+        local replace_range
+        if [[ "$IRONIC_IP_VERSION" == '4' ]]; then
+            dns_server="8.8.8.8"
+            if [[ -z "${SUBNETPOOL_V4_ID}" ]]; then
+                replace_range=${FIXED_RANGE}
+            else
+                replace_range=${SUBNETPOOL_PREFIX_V4}
+            fi
+        else
+            dns_server="2001:4860:4860::8888"
+            if [[ -z "${SUBNETPOOL_V6_ID}" ]]; then
+                replace_range=${FIXED_RANGE_V6}
+            else
+                replace_range=${SUBNETPOOL_PREFIX_V6}
+            fi
         fi
+        pub_router_id=$(openstack router show $Q_ROUTER_NAME -f value -c id)
+        # Select the text starting at "src ", and grabbing the following field.
+        r_net_gateway=$(sudo ip netns exec qrouter-$pub_router_id ip -$IRONIC_IP_VERSION route get $dns_server |grep dev | sed s/^.*src\ // |awk '{ print $1 }')
         sudo ip route replace $replace_range via $r_net_gateway
     fi
     # Here is a good place to restart tcpdump to begin capturing packets.
     # See: https://docs.openstack.org/devstack/latest/debugging.html
     # stop_tcpdump
     # start_tcpdump
+
+    if [[ "$IRONIC_IP_VERSION" == "6" ]]; then
+        # route us back through the neutron router!
+        sudo ip -6 route add $IRONIC_PROVISION_SUBNET_PREFIX via $IPV6_ROUTER_GW_IP
+        sudo ip link set dev br-ex up || true
+        # Route back to our test subnet. Static should be safe for a while.
+        sudo ip -6 route add fd00::/8 via $IPV6_ROUTER_GW_IP
+    fi
 }
 
 function wait_for_nova_resources {
@@ -2392,13 +2525,22 @@ function configure_iptables {
         die_if_module_not_loaded nf_conntrack_tftp
         die_if_module_not_loaded nf_nat_tftp
     fi
+    ################ NETWORK DHCP
     # explicitly allow DHCP - packets are occasionally being dropped here
     sudo iptables -I INPUT -p udp --dport 67:68 --sport 67:68 -j ACCEPT || true
     # nodes boot from TFTP and callback to the API server listening on $HOST_IP
     sudo iptables -I INPUT -d $IRONIC_TFTPSERVER_IP -p udp --dport 69 -j ACCEPT || true
+
+    # dhcpv6 which is the only way to transmit boot options
+    sudo ip6tables -I INPUT -d $IRONIC_HOST_IPV6 -p udp --dport 546:547 --sport 546:547 -j ACCEPT || true
+
+    sudo ip6tables -I INPUT -d $IRONIC_HOST_IPV6 -p udp --dport 69 -j ACCEPT || true
+
+    ################ Webserver/API
     # To use named /baremetal endpoint we should open default apache port
     if [[ "$IRONIC_USE_WSGI" == "False" ]]; then
         sudo iptables -I INPUT -d $HOST_IP -p tcp --dport $IRONIC_SERVICE_PORT -j ACCEPT || true
+        sudo ip6tables -I INPUT -d $HOST_IP -p tcp --dport $IRONIC_SERVICE_PORT -j ACCEPT || true
         # open ironic API on baremetal network
         sudo iptables -I INPUT -d $IRONIC_HTTP_SERVER -p tcp --dport $IRONIC_SERVICE_PORT -j ACCEPT || true
         # allow IPA to connect to ironic API on subnode
@@ -2408,7 +2550,9 @@ function configure_iptables {
         sudo iptables -I INPUT -d $HOST_IP -p tcp --dport 443 -j ACCEPT || true
         # open ironic API on baremetal network
         sudo iptables -I INPUT -d $IRONIC_HTTP_SERVER -p tcp --dport 80 -j ACCEPT || true
+        sudo ip6tables -I INPUT -d $IRONIC_HTTP_SERVER -p tcp --dport 80 -j ACCEPT || true
         sudo iptables -I INPUT -d $IRONIC_HTTP_SERVER -p tcp --dport 443 -j ACCEPT || true
+        sudo ip6tables -I INPUT -d $IRONIC_HTTP_SERVER -p tcp --dport 443 -j ACCEPT || true
     fi
     if is_deployed_by_agent; then
         # agent ramdisk gets instance image from swift
@@ -2418,6 +2562,7 @@ function configure_iptables {
 
     if [[ "$IRONIC_IPXE_ENABLED" == "True" ]] ; then
         sudo iptables -I INPUT -d $IRONIC_HTTP_SERVER -p tcp --dport $IRONIC_HTTP_PORT -j ACCEPT || true
+        sudo ip6tables -I INPUT -d $IRONIC_HOST_IPV6 -p tcp --dport $IRONIC_HTTP_PORT -j ACCEPT || true
     fi
 
     if [[ "${IRONIC_STORAGE_INTERFACE}" == "cinder" ]]; then
@@ -2429,6 +2574,7 @@ function configure_iptables {
     qrouter=$(sudo ip netns list | grep qrouter | awk '{print $1;}')
     if [[ ! -z "$qrouter" ]]; then
         sudo ip netns exec $qrouter /sbin/iptables -A PREROUTING -t raw -p udp --dport 69 -j CT --helper tftp
+        sudo ip netns exec $qrouter /sbin/ip6tables -A PREROUTING -t raw -p udp --dport 69 -j CT --helper tftp || true
     fi
 }
 
@@ -2439,7 +2585,9 @@ function configure_tftpd {
     sudo cp $IRONIC_TEMPLATES_DIR/tftpd-xinetd.template /etc/xinetd.d/tftp
     sudo sed -e "s|%TFTPBOOT_DIR%|$IRONIC_TFTPBOOT_DIR|g" -i /etc/xinetd.d/tftp
     sudo sed -e "s|%MAX_BLOCKSIZE%|$IRONIC_TFTP_BLOCKSIZE|g" -i /etc/xinetd.d/tftp
-
+    if [[ "$IRONIC_IP_VERSION" == '6' ]]; then
+        sudo sed -e "s|IPv4|IPv6|g" -i /etc/xinetd.d/tftp
+    fi
     # setup tftp file mapping to satisfy requests at the root (booting) and
     # /tftpboot/ sub-dir (as per deploy-ironic elements)
     # this section is only for ubuntu and fedora
@@ -2817,6 +2965,23 @@ function ironic_configure_tempest {
     if [[ -n "$IRONIC_PING_TIMEOUT" ]]; then
         iniset $TEMPEST_CONFIG validation ping_timeout $IRONIC_PING_TIMEOUT
     fi
+    if [[ -n "$IRONIC_IP_VERSION" ]]; then
+        iniset $TEMPEST_CONFIG validation ip_version_for_ssh $IRONIC_IP_VERSION
+    fi
+    if [[ "$IRONIC_IP_VERSION" == "6" ]]; then
+        # No FIPs in V6 and we dynamically create networks...
+        # network_for_ssh is defaulted to public
+        iniset $TEMPEST_CONFIG validation network_for_ssh
+        iniset $TEMPEST_CONFIG validation connect_method fixed
+        iniset $TEMPEST_CONFIG network ipv6-private-subnet
+        if [ -n "${PUBLIC_ROUTER_ID:-}" ] ; then
+        # For IPv6 tempest is going to use a precreated router for
+        # access to the tenant networks (as we have set up routes to it)
+        # it needs to know the ID of the router and be admin to attach to it
+            iniset $TEMPEST_CONFIG network public_router_id $PUBLIC_ROUTER_ID
+            iniset $TEMPEST_CONFIG auth tempest_roles "admin"
+        fi
+    fi
 
     if is_service_enabled nova; then
         local bm_flavor_id
@@ -2859,7 +3024,11 @@ function ironic_configure_tempest {
         iniset $TEMPEST_CONFIG baremetal partition_image_ref $image_uuid
     fi
 
-    iniset $TEMPEST_CONFIG baremetal whole_disk_image_url "http://$IRONIC_HTTP_SERVER:$IRONIC_HTTP_PORT/${IRONIC_WHOLEDISK_IMAGE_NAME}.img"
+    if [[ "$IRONIC_IP_VERSION" == "6" ]]; then
+        iniset $TEMPEST_CONFIG baremetal whole_disk_image_url "http://$IRONIC_HOST_IPV6:$IRONIC_HTTP_PORT/${IRONIC_WHOLEDISK_IMAGE_NAME}.img"
+    else
+        iniset $TEMPEST_CONFIG baremetal whole_disk_image_url "http://$IRONIC_HTTP_SERVER:$IRONIC_HTTP_PORT/${IRONIC_WHOLEDISK_IMAGE_NAME}.img"
+    fi
     iniset $TEMPEST_CONFIG baremetal whole_disk_image_checksum $(md5sum $FILES/${IRONIC_WHOLEDISK_IMAGE_NAME}.img)
 
     # NOTE(dtantsur): keep this option here until the defaults change in
