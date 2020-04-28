@@ -3,7 +3,7 @@
   <memory unit='KiB'>{{ memory }}</memory>
   <vcpu>{{ cpus }}</vcpu>
   <os>
-    <type arch='{{ arch }}' machine='pc-1.0'>hvm</type>
+    <type arch='{{ arch }}' machine='pc'>hvm</type>
     {% if bootdev == 'network' and not uefi_loader %}
     <boot dev='{{ bootdev }}'/>
     {% endif %}
