@@ -18,6 +18,7 @@
             voting: false
         - ironic-tempest-partition-bios-redfish-pxe
         - ironic-tempest-partition-uefi-redfish-vmedia
+        - ironic-tempest-wholedisk-bios-snmp-pxe
         - ironic-tempest-ipa-partition-pxe_ipmitool
         - ironic-tempest-ipa-partition-uefi-pxe_ipmitool
         - ironic-tempest-ipa-wholedisk-direct-tinyipa-multinode
@@ -29,8 +30,6 @@
         - metalsmith-integration-glance-localboot-centos7
         # Non-voting jobs
         - ironic-tox-bandit:
-            voting: false
-        - ironic-tempest-ipa-wholedisk-bios-pxe_snmp:
             voting: false
         - ironic-inspector-tempest:
             voting: false
@@ -55,6 +54,7 @@
         # - ironic-grenade-dsvm-multinode-multitenant
         - ironic-tempest-partition-bios-redfish-pxe
         - ironic-tempest-partition-uefi-redfish-vmedia
+        - ironic-tempest-wholedisk-bios-snmp-pxe
         - ironic-tempest-ipa-partition-pxe_ipmitool
         - ironic-tempest-ipa-partition-uefi-pxe_ipmitool
         - ironic-tempest-ipa-wholedisk-direct-tinyipa-multinode
