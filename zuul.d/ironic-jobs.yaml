@@ -177,9 +177,12 @@
     required-projects:
       - openstack/ironic-inspector
     vars:
-      # NOTE(dtantsur): the inspector job includes booting an instance too
-      tempest_test_regex: Inspector
+      # NOTE(dtantsur): the inspector job includes booting an instance too.
+      # Excluding the abort tests since it hits "node locked" too often.
+      tempest_test_regex: test_baremetal_introspection
       devstack_localrc:
+        BUILD_TIMEOUT: 900
+        IRONIC_TEMPEST_BUILD_TIMEOUT: 900
         IRONIC_BOOT_MODE: bios
         IRONIC_INSPECTOR_MANAGED_BOOT: True
         IRONIC_INSPECTOR_NODE_NOT_FOUND_HOOK: ''
