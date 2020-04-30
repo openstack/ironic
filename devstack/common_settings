@@ -4,19 +4,18 @@ if [[ -f $TOP_DIR/../../old/devstack/.localrc.auto ]]; then
     source <(cat $TOP_DIR/../../old/devstack/.localrc.auto | grep -v 'enable_plugin')
 fi
 
-CIRROS_VERSION=0.4.0
-
 # Whether configure the nodes to boot in Legacy BIOS or UEFI mode. Accepted
 # values are: "bios" or "uefi", defaults to "bios".
-#
-# WARNING: UEFI is EXPERIMENTAL. The CirrOS images uploaded by DevStack by
-# default WILL NOT WORK with UEFI.
 IRONIC_BOOT_MODE=${IRONIC_BOOT_MODE:-bios}
 
-IRONIC_DEFAULT_IMAGE_NAME=cirros-${CIRROS_VERSION}-x86_64-uec
+# TODO(dtantsur): migrate all jobs to 0.5.1
 if [[ "$IRONIC_BOOT_MODE" == "uefi" ]]; then
-    IRONIC_DEFAULT_IMAGE_NAME=cirros-d160722-x86_64-uec
+    CIRROS_VERSION=0.5.1
+else
+    CIRROS_VERSION=0.4.0
 fi
+
+IRONIC_DEFAULT_IMAGE_NAME=cirros-${CIRROS_VERSION}-x86_64-uec
 
 IRONIC_IMAGE_NAME=${DEFAULT_IMAGE_NAME:-$IRONIC_DEFAULT_IMAGE_NAME}
 
@@ -33,17 +32,12 @@ function add_image_link {
     fi
 }
 
-if [[ "$IRONIC_BOOT_MODE" == "uefi" ]]; then
-    add_image_link http://download.cirros-cloud.net/daily/20160722/cirros-d160722-x86_64-uec.tar.gz
-    add_image_link http://download.cirros-cloud.net/daily/20160722/cirros-d160722-x86_64-disk.img
-else
-    # NOTE (vsaienko) We are going to test mixed drivers/partitions in single setup.
-    # Do not restrict downloading image only for specific case. Download both disk and uec images.
-    # NOTE (vdrok): Here the images are actually pre-cached by devstack, in
-    # the files folder, so they won't be downloaded again.
-    add_image_link http://download.cirros-cloud.net/${CIRROS_VERSION}/cirros-${CIRROS_VERSION}-x86_64-uec.tar.gz
-    add_image_link http://download.cirros-cloud.net/${CIRROS_VERSION}/cirros-${CIRROS_VERSION}-x86_64-disk.img
-fi
+# NOTE (vsaienko) We are going to test mixed drivers/partitions in single setup.
+# Do not restrict downloading image only for specific case. Download both disk and uec images.
+# NOTE (vdrok): Here the images are actually pre-cached by devstack, in
+# the files folder, so they won't be downloaded again.
+add_image_link http://download.cirros-cloud.net/${CIRROS_VERSION}/cirros-${CIRROS_VERSION}-x86_64-uec.tar.gz
+add_image_link http://download.cirros-cloud.net/${CIRROS_VERSION}/cirros-${CIRROS_VERSION}-x86_64-disk.img
 
 export IRONIC_WHOLEDISK_IMAGE_NAME=${IRONIC_WHOLEDISK_IMAGE_NAME:-${IRONIC_IMAGE_NAME/-uec/-disk}}
 export IRONIC_PARTITIONED_IMAGE_NAME=${IRONIC_PARTITIONED_IMAGE_NAME:-${IRONIC_IMAGE_NAME/-disk/-uec}}
