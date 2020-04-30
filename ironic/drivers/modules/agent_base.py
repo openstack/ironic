@@ -1174,7 +1174,8 @@ class AgentDeployMixin(HeartbeatMixin):
                 node, root_uuid=root_uuid,
                 efi_system_part_uuid=efi_system_part_uuid,
                 prep_boot_part_uuid=prep_boot_part_uuid,
-                target_boot_mode=target_boot_mode
+                target_boot_mode=target_boot_mode,
+                software_raid=software_raid
             )
             if result['command_status'] == 'FAILED':
                 if not whole_disk_image:
