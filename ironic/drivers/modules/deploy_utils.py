@@ -92,10 +92,6 @@ def get_ironic_api_url():
         CONF.set_override('auth_type', 'none', group='service_catalog')
     adapter_opts['auth'] = keystone.get_auth('service_catalog')
 
-    # TODO(pas-ha) remove in Rocky
-    # NOTE(pas-ha) if both set, the new options win
-    if CONF.conductor.api_url and not CONF.service_catalog.endpoint_override:
-        adapter_opts['endpoint_override'] = CONF.conductor.api_url
     try:
         ironic_api = keystone.get_endpoint('service_catalog', **adapter_opts)
     except (exception.KeystoneFailure,

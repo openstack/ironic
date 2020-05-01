@@ -773,16 +773,6 @@ class OtherFunctionTestCase(db_base.DbTestCase):
 
     @mock.patch('ironic.common.keystone.get_auth')
     @mock.patch.object(utils, '_get_ironic_session')
-    def test_get_ironic_api_url_from_config(self, mock_ks, mock_auth):
-        mock_sess = mock.Mock()
-        mock_ks.return_value = mock_sess
-        fake_api_url = 'http://foo/'
-        self.config(api_url=fake_api_url, group='conductor')
-        # also checking for stripped trailing slash
-        self.assertEqual(fake_api_url[:-1], utils.get_ironic_api_url())
-
-    @mock.patch('ironic.common.keystone.get_auth')
-    @mock.patch.object(utils, '_get_ironic_session')
     @mock.patch('ironic.common.keystone.get_adapter')
     def test_get_ironic_api_url_from_keystone(self, mock_ka, mock_ks,
                                               mock_auth):
@@ -791,7 +781,6 @@ class OtherFunctionTestCase(db_base.DbTestCase):
         fake_api_url = 'http://foo/'
         mock_ka.return_value.get_endpoint.return_value = fake_api_url
         # NOTE(pas-ha) endpoint_override is None by default
-        self.config(api_url=None, group='conductor')
         url = utils.get_ironic_api_url()
         # also checking for stripped trailing slash
         self.assertEqual(fake_api_url[:-1], url)
@@ -807,7 +796,6 @@ class OtherFunctionTestCase(db_base.DbTestCase):
         mock_ks.return_value = mock_sess
         mock_ka.return_value.get_endpoint.side_effect = (
             exception.KeystoneFailure())
-        self.config(api_url=None, group='conductor')
         self.assertRaises(exception.InvalidParameterValue,
                           utils.get_ironic_api_url)
 
@@ -818,7 +806,6 @@ class OtherFunctionTestCase(db_base.DbTestCase):
         mock_sess = mock.Mock()
         mock_ks.return_value = mock_sess
         mock_ka.return_value.get_endpoint.return_value = None
-        self.config(api_url=None, group='conductor')
         self.assertRaises(exception.InvalidParameterValue,
                           utils.get_ironic_api_url)
 
@@ -1192,13 +1179,13 @@ class AgentMethodsTestCase(db_base.DbTestCase):
         self._test_tear_down_inband_cleaning(cleaning_error=True)
 
     def test_build_agent_options_conf(self):
-        self.config(api_url='https://api-url', group='conductor')
+        self.config(endpoint_override='https://api-url',
+                    group='service_catalog')
         options = utils.build_agent_options(self.node)
         self.assertEqual('https://api-url', options['ipa-api-url'])
 
     @mock.patch.object(utils, '_get_ironic_session')
     def test_build_agent_options_keystone(self, session_mock):
-        self.config(api_url=None, group='conductor')
         sess = mock.Mock()
         sess.get_endpoint.return_value = 'https://api-url'
         session_mock.return_value = sess

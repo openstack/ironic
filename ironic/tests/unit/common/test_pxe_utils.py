@@ -1155,8 +1155,6 @@ class PXEBuildConfigOptionsTestCase(db_base.DbTestCase):
                                            ramdisk_params=None):
         self.config(debug=debug)
         self.config(pxe_append_params='test_param', group='pxe')
-        # NOTE: right '/' should be removed from url string
-        self.config(api_url='http://192.168.122.184:6385', group='conductor')
 
         driver_internal_info = self.node.driver_internal_info
         driver_internal_info['is_whole_disk_image'] = whle_dsk_img
@@ -1415,8 +1413,6 @@ class iPXEBuildConfigOptionsTestCase(db_base.DbTestCase):
                                             mode='deploy'):
         self.config(debug=debug)
         self.config(pxe_append_params='test_param', group='pxe')
-        # NOTE: right '/' should be removed from url string
-        self.config(api_url='http://192.168.122.184:6385', group='conductor')
         self.config(ipxe_timeout=ipxe_timeout, group='pxe')
         root_dir = CONF.deploy.http_root
 
