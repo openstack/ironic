@@ -679,6 +679,7 @@
           INSTALL_TEMPEST: False
           VIRT_DRIVER: ironic
           BUILD_TIMEOUT: 1200
+          IRONIC_TEMPEST_BUILD_TIMEOUT: 1200
           IRONIC_BAREMETAL_BASIC_OPS: True
           IRONIC_BUILD_DEPLOY_RAMDISK: False
           IRONIC_CALLBACK_TIMEOUT: 600
@@ -695,8 +696,11 @@
           Q_AGENT: openvswitch
           Q_ML2_TENANT_NETWORK_TYPE: vxlan
           EBTABLES_RACE_FIX: True
+          LIBVIRT_STORAGE_POOL_PATH: /opt/libvirt/images
         old:
           IRONIC_VM_LOG_DIR: '{{ devstack_bases.old }}/ironic-bm-logs'
+      grenade_localrc:
+        BASE_RUN_SMOKE: False
       grenade_tempest_concurrency: 1
       grenade_test_timeout: 2600
       devstack_plugins:
@@ -711,7 +715,7 @@
         ir-cond: True
       tempest_plugins:
         - ironic-tempest-plugin
-      tempest_test_regex: 'test_server_basic_ops'
+      tempest_test_regex: ironic_tempest_plugin.tests.scenario
       tox_envlist: all
       tempest_concurrency: 1
       zuul_copy_output:
