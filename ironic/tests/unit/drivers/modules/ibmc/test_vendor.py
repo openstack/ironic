@@ -12,7 +12,8 @@
 # under the License.
 """Test class for iBMC vendor interface."""
 
-import mock
+from unittest import mock
+
 from oslo_utils import importutils
 
 from ironic.conductor import task_manager

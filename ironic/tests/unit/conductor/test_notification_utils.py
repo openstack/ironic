@@ -15,7 +15,8 @@
 
 """Test class for ironic-conductor notification utilities."""
 
-import mock
+from unittest import mock
+
 from oslo_versionedobjects.exception import VersionedObjectsException
 
 from ironic.common import exception

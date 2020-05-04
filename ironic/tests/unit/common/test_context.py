@@ -10,7 +10,8 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import mock
+from unittest import mock
+
 from oslo_context import context as oslo_context
 
 from ironic.common import context
@@ -49,7 +50,7 @@ class RequestContextTestCase(tests_base.TestCase):
             {'project_name': 'demo', 'is_public_api': True,
              'domain_id': 'meow'})
         self.assertEqual('demo', test_context.project_name)
-        self.assertEqual('meow', test_context.user_domain)
+        self.assertEqual('meow', test_context.user_domain_id)
         self.assertTrue(test_context.is_public_api)
 
     def test_to_policy_values(self):

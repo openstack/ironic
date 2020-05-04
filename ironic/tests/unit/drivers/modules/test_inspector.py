@@ -10,8 +10,9 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+from unittest import mock
+
 import eventlet
-import mock
 import openstack
 
 from ironic.common import context

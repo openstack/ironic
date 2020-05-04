@@ -19,9 +19,9 @@ import os
 import os.path
 import shutil
 import tempfile
+from unittest import mock
 
 import jinja2
-import mock
 from oslo_concurrency import processutils
 from oslo_config import cfg
 from oslo_utils import netutils

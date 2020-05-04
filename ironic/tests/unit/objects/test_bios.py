@@ -11,8 +11,7 @@
 #    under the License.
 
 import types
-
-import mock
+from unittest import mock
 
 from ironic.common import context
 from ironic.db import api as dbapi

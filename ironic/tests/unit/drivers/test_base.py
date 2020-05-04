@@ -14,8 +14,7 @@
 #    under the License.
 
 import json
-
-import mock
+from unittest import mock
 
 from ironic.common import components
 from ironic.common import exception

@@ -11,8 +11,8 @@
 #    under the License.
 
 import copy
+from unittest import mock
 
-import mock
 from neutronclient.common import exceptions as neutron_exceptions
 from oslo_config import cfg
 from oslo_utils import uuidutils

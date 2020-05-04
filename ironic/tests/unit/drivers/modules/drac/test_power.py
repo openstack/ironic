@@ -15,9 +15,10 @@
 Test class for DRAC power interface
 """
 
+from unittest import mock
+
 from dracclient import constants as drac_constants
 from dracclient import exceptions as drac_exceptions
-import mock
 
 from ironic.common import exception
 from ironic.common import states

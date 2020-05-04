@@ -13,7 +13,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import mock
+from unittest import mock
 
 from ironic.common import boot_modes
 from ironic.drivers.modules import boot_mode_utils

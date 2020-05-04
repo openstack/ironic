@@ -10,12 +10,11 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+from unittest import mock
 
 import ddt
 from keystoneauth1 import exceptions as kaexception
-import mock
 import requests
-
 
 from ironic.common import context
 from ironic.common import keystone

@@ -31,8 +31,8 @@ Current list of mocked libraries:
 
 import importlib
 import sys
+from unittest import mock
 
-import mock
 from oslo_utils import importutils
 
 from ironic.drivers.modules import ipmitool

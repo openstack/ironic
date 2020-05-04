@@ -36,10 +36,10 @@ For postgres on Ubuntu this can be done with the following commands:
 
 import collections
 import contextlib
+from unittest import mock
 
 from alembic import script
 import fixtures
-import mock
 from oslo_db import exception as db_exc
 from oslo_db.sqlalchemy import enginefacade
 from oslo_db.sqlalchemy import test_fixtures

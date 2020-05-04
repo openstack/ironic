@@ -20,9 +20,9 @@
 #       ceilometer/tests/api/__init__.py). This should be oslo'ified:
 #       https://bugs.launchpad.net/ironic/+bug/1255115.
 
+from unittest import mock
 from urllib import parse as urlparse
 
-import mock
 from oslo_config import cfg
 import pecan
 import pecan.testing

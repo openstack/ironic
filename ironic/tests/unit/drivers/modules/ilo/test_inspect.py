@@ -15,7 +15,7 @@
 
 """Test class for Management Interface used by iLO modules."""
 
-import mock
+from unittest import mock
 
 from ironic.common import exception
 from ironic.common import states

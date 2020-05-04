@@ -13,8 +13,8 @@
 # limitations under the License.
 
 import types
+from unittest import mock
 
-import mock
 from oslo_config import cfg
 
 from ironic.common import dhcp_factory

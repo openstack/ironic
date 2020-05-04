@@ -15,8 +15,8 @@
 
 import time
 import types
+from unittest import mock
 
-import mock
 from oslo_config import cfg
 from testtools import matchers
 

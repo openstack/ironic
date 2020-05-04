@@ -12,7 +12,8 @@
 
 """Tests for cleaning bits."""
 
-import mock
+from unittest import mock
+
 from oslo_config import cfg
 from oslo_utils import uuidutils
 

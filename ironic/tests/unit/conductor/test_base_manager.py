@@ -13,13 +13,13 @@
 """Test class for Ironic BaseConductorManager."""
 
 import collections
+from unittest import mock
 import uuid
 
 import eventlet
 import futurist
 from futurist import periodics
 from ironic_lib import mdns
-import mock
 from oslo_config import cfg
 from oslo_db import exception as db_exception
 from oslo_utils import uuidutils

@@ -20,7 +20,8 @@
 Test class for DRAC management interface
 """
 
-import mock
+from unittest import mock
+
 from oslo_utils import importutils
 
 import ironic.common.boot_devices

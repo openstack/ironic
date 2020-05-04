@@ -16,7 +16,8 @@
 Test class for iRMC periodic tasks
 """
 
-import mock
+from unittest import mock
+
 from oslo_utils import uuidutils
 
 from ironic.conductor import task_manager

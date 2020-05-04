@@ -12,9 +12,9 @@
 
 import copy
 import time
+from unittest import mock
 
 from keystoneauth1 import loading as kaloading
-import mock
 from neutronclient.common import exceptions as neutron_client_exc
 from neutronclient.v2_0 import client
 from oslo_utils import uuidutils

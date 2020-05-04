@@ -13,8 +13,9 @@
 Tests to assert that audit middleware works as expected.
 """
 
+from unittest import mock
+
 from keystonemiddleware import audit
-import mock
 from oslo_config import cfg
 
 from ironic.common import exception

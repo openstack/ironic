@@ -11,9 +11,9 @@
 # limitations under the License.
 
 import json
+from unittest import mock
 
 from ironic_lib import utils as irlib_utils
-import mock
 from oslo_concurrency import processutils
 
 from ironic.common import exception

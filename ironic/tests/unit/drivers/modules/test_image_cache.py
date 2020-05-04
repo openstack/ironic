@@ -20,9 +20,9 @@ import datetime
 import os
 import tempfile
 import time
+from unittest import mock
 import uuid
 
-import mock
 from oslo_utils import uuidutils
 
 from ironic.common import exception

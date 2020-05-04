@@ -16,7 +16,8 @@
 Test class for common methods used by iRMC modules.
 """
 
-import mock
+from unittest import mock
+
 from oslo_config import cfg
 from oslo_utils import uuidutils
 

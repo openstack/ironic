@@ -14,8 +14,8 @@
 
 from http import client as http_client
 import json
+from unittest import mock
 
-import mock
 import requests
 import retrying
 

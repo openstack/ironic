@@ -11,8 +11,8 @@
 #    under the License.
 
 import datetime
+from unittest import mock
 
-import mock
 from testtools import matchers
 
 from ironic.common import exception

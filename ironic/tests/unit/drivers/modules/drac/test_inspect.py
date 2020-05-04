@@ -15,8 +15,9 @@
 Test class for DRAC inspection interface
 """
 
+from unittest import mock
+
 from dracclient import exceptions as drac_exceptions
-import mock
 
 from ironic.common import exception
 from ironic.common import states

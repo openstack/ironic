@@ -15,8 +15,9 @@
 Test class for common methods used by DRAC modules.
 """
 
+from unittest import mock
+
 import dracclient.client
-import mock
 
 from ironic.common import exception
 from ironic.drivers.modules.drac import common as drac_common

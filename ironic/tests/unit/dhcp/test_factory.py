@@ -14,8 +14,8 @@
 #    under the License.
 
 import inspect
+from unittest import mock
 
-import mock
 import stevedore
 
 from ironic.common import dhcp_factory

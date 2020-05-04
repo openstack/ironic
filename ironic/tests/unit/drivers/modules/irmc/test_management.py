@@ -17,9 +17,8 @@ Test class for iRMC Management Driver
 """
 
 import os
+from unittest import mock
 import xml.etree.ElementTree as ET
-
-import mock
 
 from ironic.common import boot_devices
 from ironic.common import exception

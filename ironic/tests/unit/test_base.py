@@ -12,9 +12,9 @@
 # limitations under the License.
 
 import subprocess
+from unittest import mock
 
 from ironic_lib import utils
-import mock
 from oslo_concurrency import processutils
 
 from ironic.tests import base
