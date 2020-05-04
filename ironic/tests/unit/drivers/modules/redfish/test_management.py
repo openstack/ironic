@@ -118,6 +118,8 @@ class RedfishManagementTestCase(db_base.DbTestCase):
                 fake_system.set_system_boot_source.assert_called_once_with(
                     expected, enabled=sushy.BOOT_SOURCE_ENABLED_ONCE)
                 mock_get_system.assert_called_once_with(task.node)
+                self.assertNotIn('redfish_boot_device',
+                                 task.node.driver_internal_info)
 
                 # Reset mocks
                 fake_system.set_system_boot_options.reset_mock()
@@ -141,6 +143,8 @@ class RedfishManagementTestCase(db_base.DbTestCase):
                 fake_system.set_system_boot_options.assert_called_once_with(
                     sushy.BOOT_SOURCE_TARGET_PXE, enabled=expected)
                 mock_get_system.assert_called_once_with(task.node)
+                self.assertNotIn('redfish_boot_device',
+                                 task.node.driver_internal_info)
 
                 # Reset mocks
                 fake_system.set_system_boot_options.reset_mock()
@@ -188,6 +192,84 @@ class RedfishManagementTestCase(db_base.DbTestCase):
                 sushy.BOOT_SOURCE_TARGET_PXE,
                 enabled=sushy.BOOT_SOURCE_ENABLED_ONCE)
             mock_get_system.assert_called_once_with(task.node)
+            self.assertNotIn('redfish_boot_device',
+                             task.node.driver_internal_info)
+
+    @mock.patch.object(sushy, 'Sushy', autospec=True)
+    @mock.patch.object(redfish_utils, 'get_system', autospec=True)
+    def test_set_boot_device_persistence_fallback(self, mock_get_system,
+                                                  mock_sushy):
+        fake_system = mock.Mock()
+        fake_system.set_system_boot_options.side_effect = [
+            sushy.exceptions.SushyError(),
+            None,
+        ]
+        mock_get_system.return_value = fake_system
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            task.driver.management.set_boot_device(
+                task, boot_devices.PXE, persistent=True)
+            fake_system.set_system_boot_options.assert_has_calls([
+                mock.call(sushy.BOOT_SOURCE_TARGET_PXE,
+                          enabled=sushy.BOOT_SOURCE_ENABLED_CONTINUOUS),
+                mock.call(sushy.BOOT_SOURCE_TARGET_PXE,
+                          enabled=sushy.BOOT_SOURCE_ENABLED_ONCE),
+            ])
+            mock_get_system.assert_called_once_with(task.node)
+
+            task.node.refresh()
+            self.assertEqual(
+                sushy.BOOT_SOURCE_TARGET_PXE,
+                task.node.driver_internal_info['redfish_boot_device'])
+
+    def test_restore_boot_device(self):
+        fake_system = mock.Mock()
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            task.node.driver_internal_info['redfish_boot_device'] = (
+                sushy.BOOT_SOURCE_TARGET_HDD
+            )
+
+            task.driver.management.restore_boot_device(task, fake_system)
+
+            fake_system.set_system_boot_options.assert_called_once_with(
+                sushy.BOOT_SOURCE_TARGET_HDD,
+                enabled=sushy.BOOT_SOURCE_ENABLED_ONCE)
+            # The stored boot device is kept intact
+            self.assertEqual(
+                sushy.BOOT_SOURCE_TARGET_HDD,
+                task.node.driver_internal_info['redfish_boot_device'])
+
+    def test_restore_boot_device_noop(self):
+        fake_system = mock.Mock()
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            task.driver.management.restore_boot_device(task, fake_system)
+
+            self.assertFalse(fake_system.set_system_boot_options.called)
+
+    @mock.patch.object(redfish_mgmt.LOG, 'warning', autospec=True)
+    def test_restore_boot_device_failure(self, mock_log):
+        fake_system = mock.Mock()
+        fake_system.set_system_boot_options.side_effect = (
+            sushy.exceptions.SushyError()
+        )
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            task.node.driver_internal_info['redfish_boot_device'] = (
+                sushy.BOOT_SOURCE_TARGET_HDD
+            )
+
+            task.driver.management.restore_boot_device(task, fake_system)
+
+            fake_system.set_system_boot_options.assert_called_once_with(
+                sushy.BOOT_SOURCE_TARGET_HDD,
+                enabled=sushy.BOOT_SOURCE_ENABLED_ONCE)
+            self.assertTrue(mock_log.called)
+            # The stored boot device is kept intact
+            self.assertEqual(
+                sushy.BOOT_SOURCE_TARGET_HDD,
+                task.node.driver_internal_info['redfish_boot_device'])
 
     @mock.patch.object(redfish_utils, 'get_system', autospec=True)
     def test_get_boot_device(self, mock_get_system):
