@@ -67,7 +67,7 @@ class RedfishVirtualMediaBootTestCase(db_base.DbTestCase):
                  'bootloader': 'bootloader'}
             )
 
-            actual_driver_info = task.driver.boot._parse_driver_info(task.node)
+            actual_driver_info = redfish_boot._parse_driver_info(task.node)
 
             self.assertIn('kernel', actual_driver_info['deploy_kernel'])
             self.assertIn('ramdisk', actual_driver_info['deploy_ramdisk'])
@@ -83,7 +83,7 @@ class RedfishVirtualMediaBootTestCase(db_base.DbTestCase):
                  'bootloader': 'bootloader'}
             )
 
-            actual_driver_info = task.driver.boot._parse_driver_info(task.node)
+            actual_driver_info = redfish_boot._parse_driver_info(task.node)
 
             self.assertIn('kernel', actual_driver_info['rescue_kernel'])
             self.assertIn('ramdisk', actual_driver_info['rescue_ramdisk'])
@@ -93,7 +93,7 @@ class RedfishVirtualMediaBootTestCase(db_base.DbTestCase):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
             self.assertRaises(exception.MissingParameterValue,
-                              task.driver.boot._parse_driver_info,
+                              redfish_boot._parse_driver_info,
                               task.node)
 
     def _test_parse_driver_info_from_conf(self, mode='deploy'):
@@ -109,7 +109,7 @@ class RedfishVirtualMediaBootTestCase(db_base.DbTestCase):
 
             self.config(group='conductor', **expected)
 
-            image_info = task.driver.boot._parse_driver_info(task.node)
+            image_info = redfish_boot._parse_driver_info(task.node)
 
             for key, value in expected.items():
                 self.assertEqual(value, image_info[key])
@@ -139,7 +139,7 @@ class RedfishVirtualMediaBootTestCase(db_base.DbTestCase):
             task.node.driver_info.update(ramdisk_config)
 
             self.assertRaises(exception.MissingParameterValue,
-                              task.driver.boot._parse_driver_info, task.node)
+                              redfish_boot._parse_driver_info, task.node)
 
     def test_parse_driver_info_mixed_source_deploy(self):
         self._test_parse_driver_info_mixed_source()
@@ -161,8 +161,7 @@ class RedfishVirtualMediaBootTestCase(db_base.DbTestCase):
                  'kernel': 'http://kernel/img',
                  'ramdisk': 'http://ramdisk/img'})
 
-            actual_instance_info = task.driver.boot._parse_deploy_info(
-                task.node)
+            actual_instance_info = redfish_boot._parse_deploy_info(task.node)
 
             self.assertEqual(
                 'http://boot/iso', actual_instance_info['image_source'])
@@ -175,52 +174,44 @@ class RedfishVirtualMediaBootTestCase(db_base.DbTestCase):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
             self.assertRaises(exception.MissingParameterValue,
-                              task.driver.boot._parse_deploy_info,
+                              redfish_boot._parse_deploy_info,
                               task.node)
 
     def test__append_filename_param_without_qs(self):
-        with task_manager.acquire(self.context, self.node.uuid,
-                                  shared=True) as task:
-            res = task.driver.boot._append_filename_param(
-                'http://a.b/c', 'b.img')
-            expected = 'http://a.b/c?filename=b.img'
-            self.assertEqual(expected, res)
+        res = redfish_boot._append_filename_param(
+            'http://a.b/c', 'b.img')
+        expected = 'http://a.b/c?filename=b.img'
+        self.assertEqual(expected, res)
 
     def test__append_filename_param_with_qs(self):
-        with task_manager.acquire(self.context, self.node.uuid,
-                                  shared=True) as task:
-            res = task.driver.boot._append_filename_param(
-                'http://a.b/c?d=e&f=g', 'b.img')
-            expected = 'http://a.b/c?d=e&f=g&filename=b.img'
-            self.assertEqual(expected, res)
+        res = redfish_boot._append_filename_param(
+            'http://a.b/c?d=e&f=g', 'b.img')
+        expected = 'http://a.b/c?d=e&f=g&filename=b.img'
+        self.assertEqual(expected, res)
 
     def test__append_filename_param_with_filename(self):
-        with task_manager.acquire(self.context, self.node.uuid,
-                                  shared=True) as task:
-            res = task.driver.boot._append_filename_param(
-                'http://a.b/c?filename=bootme.img', 'b.img')
-            expected = 'http://a.b/c?filename=bootme.img'
-            self.assertEqual(expected, res)
+        res = redfish_boot._append_filename_param(
+            'http://a.b/c?filename=bootme.img', 'b.img')
+        expected = 'http://a.b/c?filename=bootme.img'
+        self.assertEqual(expected, res)
 
     @mock.patch.object(redfish_boot, 'swift', autospec=True)
     def test__publish_image_swift(self, mock_swift):
-        with task_manager.acquire(self.context, self.node.uuid,
-                                  shared=True) as task:
-            mock_swift_api = mock_swift.SwiftAPI.return_value
-            mock_swift_api.get_temp_url.return_value = 'https://a.b/c.f?e=f'
+        mock_swift_api = mock_swift.SwiftAPI.return_value
+        mock_swift_api.get_temp_url.return_value = 'https://a.b/c.f?e=f'
 
-            url = task.driver.boot._publish_image('file.iso', 'boot.iso')
+        url = redfish_boot._publish_image('file.iso', 'boot.iso')
 
-            self.assertEqual(
-                'https://a.b/c.f?e=f&filename=file.iso', url)
+        self.assertEqual(
+            'https://a.b/c.f?e=f&filename=file.iso', url)
 
-            mock_swift.SwiftAPI.assert_called_once_with()
+        mock_swift.SwiftAPI.assert_called_once_with()
 
-            mock_swift_api.create_object.assert_called_once_with(
-                mock.ANY, mock.ANY, mock.ANY, mock.ANY)
+        mock_swift_api.create_object.assert_called_once_with(
+            mock.ANY, mock.ANY, mock.ANY, mock.ANY)
 
-            mock_swift_api.get_temp_url.assert_called_once_with(
-                mock.ANY, mock.ANY, mock.ANY)
+        mock_swift_api.get_temp_url.assert_called_once_with(
+            mock.ANY, mock.ANY, mock.ANY)
 
     @mock.patch.object(redfish_boot, 'swift', autospec=True)
     def test__unpublish_image_swift(self, mock_swift):
@@ -228,7 +219,7 @@ class RedfishVirtualMediaBootTestCase(db_base.DbTestCase):
                                   shared=True) as task:
             object_name = 'image-%s' % task.node.uuid
 
-            task.driver.boot._unpublish_image(object_name)
+            redfish_boot._unpublish_image(object_name)
 
             mock_swift.SwiftAPI.assert_called_once_with()
             mock_swift_api = mock_swift.SwiftAPI.return_value
@@ -244,17 +235,14 @@ class RedfishVirtualMediaBootTestCase(db_base.DbTestCase):
         self.config(use_swift=False, group='redfish')
         self.config(http_url='http://localhost', group='deploy')
 
-        with task_manager.acquire(self.context, self.node.uuid,
-                                  shared=True) as task:
+        url = redfish_boot._publish_image('file.iso', 'boot.iso')
 
-            url = task.driver.boot._publish_image('file.iso', 'boot.iso')
+        self.assertEqual(
+            'http://localhost/redfish/boot.iso?filename=file.iso', url)
 
-            self.assertEqual(
-                'http://localhost/redfish/boot.iso?filename=file.iso', url)
-
-            mock_mkdir.assert_called_once_with('/httpboot/redfish', 0x755)
-            mock_link.assert_called_once_with(
-                'file.iso', '/httpboot/redfish/boot.iso')
+        mock_mkdir.assert_called_once_with('/httpboot/redfish', 0x755)
+        mock_link.assert_called_once_with(
+            'file.iso', '/httpboot/redfish/boot.iso')
 
     @mock.patch.object(redfish_boot, 'shutil', autospec=True)
     @mock.patch.object(os, 'link', autospec=True)
@@ -266,18 +254,15 @@ class RedfishVirtualMediaBootTestCase(db_base.DbTestCase):
 
         mock_link.side_effect = OSError()
 
-        with task_manager.acquire(self.context, self.node.uuid,
-                                  shared=True) as task:
+        url = redfish_boot._publish_image('file.iso', 'boot.iso')
 
-            url = task.driver.boot._publish_image('file.iso', 'boot.iso')
+        self.assertEqual(
+            'http://localhost/redfish/boot.iso?filename=file.iso', url)
 
-            self.assertEqual(
-                'http://localhost/redfish/boot.iso?filename=file.iso', url)
+        mock_mkdir.assert_called_once_with('/httpboot/redfish', 0x755)
 
-            mock_mkdir.assert_called_once_with('/httpboot/redfish', 0x755)
-
-            mock_shutil.copyfile.assert_called_once_with(
-                'file.iso', '/httpboot/redfish/boot.iso')
+        mock_shutil.copyfile.assert_called_once_with(
+            'file.iso', '/httpboot/redfish/boot.iso')
 
     @mock.patch.object(redfish_boot, 'ironic_utils', autospec=True)
     def test__unpublish_image_local(self, mock_ironic_utils):
@@ -289,24 +274,22 @@ class RedfishVirtualMediaBootTestCase(db_base.DbTestCase):
 
             expected_file = '/httpboot/redfish/' + object_name
 
-            task.driver.boot._unpublish_image(object_name)
+            redfish_boot._unpublish_image(object_name)
 
             mock_ironic_utils.unlink_without_raise.assert_called_once_with(
                 expected_file)
 
-    @mock.patch.object(redfish_boot.RedfishVirtualMediaBoot,
-                       '_unpublish_image', autospec=True)
+    @mock.patch.object(redfish_boot, '_unpublish_image', autospec=True)
     def test__cleanup_floppy_image(self, mock_unpublish):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
-            task.driver.boot._cleanup_floppy_image(task)
+            redfish_boot._cleanup_floppy_image(task)
 
             object_name = 'image-%s' % task.node.uuid
 
             mock_unpublish.assert_called_once_with(object_name)
 
-    @mock.patch.object(redfish_boot.RedfishVirtualMediaBoot,
-                       '_publish_image', autospec=True)
+    @mock.patch.object(redfish_boot, '_publish_image', autospec=True)
     @mock.patch.object(images, 'create_vfat_image', autospec=True)
     def test__prepare_floppy_image(
             self, mock_create_vfat_image, mock__publish_image):
@@ -316,7 +299,7 @@ class RedfishVirtualMediaBootTestCase(db_base.DbTestCase):
 
             mock__publish_image.return_value = expected_url
 
-            url = task.driver.boot._prepare_floppy_image(task)
+            url = redfish_boot._prepare_floppy_image(task)
 
             object_name = 'image-%s' % task.node.uuid
 
@@ -328,19 +311,17 @@ class RedfishVirtualMediaBootTestCase(db_base.DbTestCase):
 
             self.assertEqual(expected_url, url)
 
-    @mock.patch.object(redfish_boot.RedfishVirtualMediaBoot,
-                       '_unpublish_image', autospec=True)
+    @mock.patch.object(redfish_boot, '_unpublish_image', autospec=True)
     def test__cleanup_iso_image(self, mock_unpublish):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
-            task.driver.boot._cleanup_iso_image(task)
+            redfish_boot._cleanup_iso_image(task)
 
             object_name = 'boot-%s' % task.node.uuid
 
             mock_unpublish.assert_called_once_with(object_name)
 
-    @mock.patch.object(redfish_boot.RedfishVirtualMediaBoot,
-                       '_publish_image', autospec=True)
+    @mock.patch.object(redfish_boot, '_publish_image', autospec=True)
     @mock.patch.object(images, 'create_boot_iso', autospec=True)
     def test__prepare_iso_image_uefi(
             self, mock_create_boot_iso, mock__publish_image):
@@ -352,7 +333,7 @@ class RedfishVirtualMediaBootTestCase(db_base.DbTestCase):
 
             mock__publish_image.return_value = expected_url
 
-            url = task.driver.boot._prepare_iso_image(
+            url = redfish_boot._prepare_iso_image(
                 task, 'http://kernel/img', 'http://ramdisk/img',
                 'http://bootloader/img', root_uuid=task.node.uuid)
 
@@ -370,8 +351,7 @@ class RedfishVirtualMediaBootTestCase(db_base.DbTestCase):
 
             self.assertEqual(expected_url, url)
 
-    @mock.patch.object(redfish_boot.RedfishVirtualMediaBoot,
-                       '_publish_image', autospec=True)
+    @mock.patch.object(redfish_boot, '_publish_image', autospec=True)
     @mock.patch.object(images, 'create_boot_iso', autospec=True)
     def test__prepare_iso_image_bios(
             self, mock_create_boot_iso, mock__publish_image):
@@ -382,7 +362,7 @@ class RedfishVirtualMediaBootTestCase(db_base.DbTestCase):
 
             mock__publish_image.return_value = expected_url
 
-            url = task.driver.boot._prepare_iso_image(
+            url = redfish_boot._prepare_iso_image(
                 task, 'http://kernel/img', 'http://ramdisk/img',
                 bootloader_href=None, root_uuid=task.node.uuid)
 
@@ -400,8 +380,7 @@ class RedfishVirtualMediaBootTestCase(db_base.DbTestCase):
 
             self.assertEqual(expected_url, url)
 
-    @mock.patch.object(redfish_boot.RedfishVirtualMediaBoot,
-                       '_publish_image', autospec=True)
+    @mock.patch.object(redfish_boot, '_publish_image', autospec=True)
     @mock.patch.object(images, 'create_boot_iso', autospec=True)
     def test__prepare_iso_image_kernel_params(
             self, mock_create_boot_iso, mock__publish_image):
@@ -411,7 +390,7 @@ class RedfishVirtualMediaBootTestCase(db_base.DbTestCase):
 
             task.node.instance_info.update(kernel_append_params=kernel_params)
 
-            task.driver.boot._prepare_iso_image(
+            redfish_boot._prepare_iso_image(
                 task, 'http://kernel/img', 'http://ramdisk/img',
                 bootloader_href=None, root_uuid=task.node.uuid)
 
@@ -422,8 +401,7 @@ class RedfishVirtualMediaBootTestCase(db_base.DbTestCase):
                 kernel_params=kernel_params,
                 root_uuid='1be26c0b-03f2-4d2e-ae87-c02d7f33c123')
 
-    @mock.patch.object(redfish_boot.RedfishVirtualMediaBoot,
-                       '_prepare_iso_image', autospec=True)
+    @mock.patch.object(redfish_boot, '_prepare_iso_image', autospec=True)
     def test__prepare_deploy_iso(self, mock__prepare_iso_image):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
@@ -436,13 +414,12 @@ class RedfishVirtualMediaBootTestCase(db_base.DbTestCase):
 
             task.node.instance_info.update(deploy_boot_mode='uefi')
 
-            task.driver.boot._prepare_deploy_iso(task, {}, 'deploy')
+            redfish_boot._prepare_deploy_iso(task, {}, 'deploy')
 
             mock__prepare_iso_image.assert_called_once_with(
                 mock.ANY, 'kernel', 'ramdisk', 'bootloader', params={})
 
-    @mock.patch.object(redfish_boot.RedfishVirtualMediaBoot,
-                       '_prepare_iso_image', autospec=True)
+    @mock.patch.object(redfish_boot, '_prepare_iso_image', autospec=True)
     @mock.patch.object(images, 'create_boot_iso', autospec=True)
     def test__prepare_boot_iso(self, mock_create_boot_iso,
                                mock__prepare_iso_image):
@@ -459,7 +436,7 @@ class RedfishVirtualMediaBootTestCase(db_base.DbTestCase):
                  'kernel': 'http://kernel/img',
                  'ramdisk': 'http://ramdisk/img'})
 
-            task.driver.boot._prepare_boot_iso(
+            redfish_boot._prepare_boot_iso(
                 task, root_uuid=task.node.uuid)
 
             mock__prepare_iso_image.assert_called_once_with(
@@ -557,14 +534,10 @@ class RedfishVirtualMediaBootTestCase(db_base.DbTestCase):
 
     @mock.patch.object(redfish_boot.manager_utils, 'node_set_boot_device',
                        autospec=True)
-    @mock.patch.object(redfish_boot.RedfishVirtualMediaBoot,
-                       '_prepare_deploy_iso', autospec=True)
-    @mock.patch.object(redfish_boot.RedfishVirtualMediaBoot,
-                       '_eject_vmedia', autospec=True)
-    @mock.patch.object(redfish_boot.RedfishVirtualMediaBoot,
-                       '_insert_vmedia', autospec=True)
-    @mock.patch.object(redfish_boot.RedfishVirtualMediaBoot,
-                       '_parse_driver_info', autospec=True)
+    @mock.patch.object(redfish_boot, '_prepare_deploy_iso', autospec=True)
+    @mock.patch.object(redfish_boot, '_eject_vmedia', autospec=True)
+    @mock.patch.object(redfish_boot, '_insert_vmedia', autospec=True)
+    @mock.patch.object(redfish_boot, '_parse_driver_info', autospec=True)
     @mock.patch.object(redfish_boot.manager_utils, 'node_power_action',
                        autospec=True)
     @mock.patch.object(redfish_boot, 'boot_mode_utils', autospec=True)
@@ -607,14 +580,10 @@ class RedfishVirtualMediaBootTestCase(db_base.DbTestCase):
 
     @mock.patch.object(redfish_boot.manager_utils, 'node_set_boot_device',
                        autospec=True)
-    @mock.patch.object(redfish_boot.RedfishVirtualMediaBoot,
-                       '_prepare_deploy_iso', autospec=True)
-    @mock.patch.object(redfish_boot.RedfishVirtualMediaBoot,
-                       '_eject_vmedia', autospec=True)
-    @mock.patch.object(redfish_boot.RedfishVirtualMediaBoot,
-                       '_insert_vmedia', autospec=True)
-    @mock.patch.object(redfish_boot.RedfishVirtualMediaBoot,
-                       '_parse_driver_info', autospec=True)
+    @mock.patch.object(redfish_boot, '_prepare_deploy_iso', autospec=True)
+    @mock.patch.object(redfish_boot, '_eject_vmedia', autospec=True)
+    @mock.patch.object(redfish_boot, '_insert_vmedia', autospec=True)
+    @mock.patch.object(redfish_boot, '_parse_driver_info', autospec=True)
     @mock.patch.object(redfish_boot.manager_utils, 'node_power_action',
                        autospec=True)
     @mock.patch.object(redfish_boot, 'boot_mode_utils', autospec=True)
@@ -656,18 +625,12 @@ class RedfishVirtualMediaBootTestCase(db_base.DbTestCase):
 
     @mock.patch.object(redfish_boot.manager_utils, 'node_set_boot_device',
                        autospec=True)
-    @mock.patch.object(redfish_boot.RedfishVirtualMediaBoot,
-                       '_prepare_floppy_image', autospec=True)
-    @mock.patch.object(redfish_boot.RedfishVirtualMediaBoot,
-                       '_prepare_deploy_iso', autospec=True)
-    @mock.patch.object(redfish_boot.RedfishVirtualMediaBoot,
-                       '_has_vmedia_device', autospec=True)
-    @mock.patch.object(redfish_boot.RedfishVirtualMediaBoot,
-                       '_eject_vmedia', autospec=True)
-    @mock.patch.object(redfish_boot.RedfishVirtualMediaBoot,
-                       '_insert_vmedia', autospec=True)
-    @mock.patch.object(redfish_boot.RedfishVirtualMediaBoot,
-                       '_parse_driver_info', autospec=True)
+    @mock.patch.object(redfish_boot, '_prepare_floppy_image', autospec=True)
+    @mock.patch.object(redfish_boot, '_prepare_deploy_iso', autospec=True)
+    @mock.patch.object(redfish_boot, '_has_vmedia_device', autospec=True)
+    @mock.patch.object(redfish_boot, '_eject_vmedia', autospec=True)
+    @mock.patch.object(redfish_boot, '_insert_vmedia', autospec=True)
+    @mock.patch.object(redfish_boot, '_parse_driver_info', autospec=True)
     @mock.patch.object(redfish_boot.manager_utils, 'node_power_action',
                        autospec=True)
     @mock.patch.object(redfish_boot, 'boot_mode_utils', autospec=True)
@@ -728,16 +691,11 @@ class RedfishVirtualMediaBootTestCase(db_base.DbTestCase):
 
             mock_boot_mode_utils.sync_boot_mode.assert_called_once_with(task)
 
-    @mock.patch.object(redfish_boot.RedfishVirtualMediaBoot,
-                       '_has_vmedia_device', autospec=True)
-    @mock.patch.object(redfish_boot.RedfishVirtualMediaBoot,
-                       '_eject_vmedia', autospec=True)
-    @mock.patch.object(redfish_boot.RedfishVirtualMediaBoot,
-                       '_cleanup_iso_image', autospec=True)
-    @mock.patch.object(redfish_boot.RedfishVirtualMediaBoot,
-                       '_cleanup_floppy_image', autospec=True)
-    @mock.patch.object(redfish_boot.RedfishVirtualMediaBoot,
-                       '_parse_driver_info', autospec=True)
+    @mock.patch.object(redfish_boot, '_has_vmedia_device', autospec=True)
+    @mock.patch.object(redfish_boot, '_eject_vmedia', autospec=True)
+    @mock.patch.object(redfish_boot, '_cleanup_iso_image', autospec=True)
+    @mock.patch.object(redfish_boot, '_cleanup_floppy_image', autospec=True)
+    @mock.patch.object(redfish_boot, '_parse_driver_info', autospec=True)
     def test_clean_up_ramdisk(
             self, mock__parse_driver_info, mock__cleanup_floppy_image,
             mock__cleanup_iso_image, mock__eject_vmedia,
@@ -768,14 +726,10 @@ class RedfishVirtualMediaBootTestCase(db_base.DbTestCase):
 
     @mock.patch.object(redfish_boot.RedfishVirtualMediaBoot,
                        'clean_up_instance', autospec=True)
-    @mock.patch.object(redfish_boot.RedfishVirtualMediaBoot,
-                       '_prepare_boot_iso', autospec=True)
-    @mock.patch.object(redfish_boot.RedfishVirtualMediaBoot,
-                       '_eject_vmedia', autospec=True)
-    @mock.patch.object(redfish_boot.RedfishVirtualMediaBoot,
-                       '_insert_vmedia', autospec=True)
-    @mock.patch.object(redfish_boot.RedfishVirtualMediaBoot,
-                       '_parse_driver_info', autospec=True)
+    @mock.patch.object(redfish_boot, '_prepare_boot_iso', autospec=True)
+    @mock.patch.object(redfish_boot, '_eject_vmedia', autospec=True)
+    @mock.patch.object(redfish_boot, '_insert_vmedia', autospec=True)
+    @mock.patch.object(redfish_boot, '_parse_driver_info', autospec=True)
     @mock.patch.object(redfish_boot, 'manager_utils', autospec=True)
     @mock.patch.object(redfish_boot, 'deploy_utils', autospec=True)
     @mock.patch.object(redfish_boot, 'boot_mode_utils', autospec=True)
@@ -817,14 +771,10 @@ class RedfishVirtualMediaBootTestCase(db_base.DbTestCase):
 
     @mock.patch.object(redfish_boot.RedfishVirtualMediaBoot,
                        'clean_up_instance', autospec=True)
-    @mock.patch.object(redfish_boot.RedfishVirtualMediaBoot,
-                       '_prepare_boot_iso', autospec=True)
-    @mock.patch.object(redfish_boot.RedfishVirtualMediaBoot,
-                       '_eject_vmedia', autospec=True)
-    @mock.patch.object(redfish_boot.RedfishVirtualMediaBoot,
-                       '_insert_vmedia', autospec=True)
-    @mock.patch.object(redfish_boot.RedfishVirtualMediaBoot,
-                       '_parse_driver_info', autospec=True)
+    @mock.patch.object(redfish_boot, '_prepare_boot_iso', autospec=True)
+    @mock.patch.object(redfish_boot, '_eject_vmedia', autospec=True)
+    @mock.patch.object(redfish_boot, '_insert_vmedia', autospec=True)
+    @mock.patch.object(redfish_boot, '_parse_driver_info', autospec=True)
     @mock.patch.object(redfish_boot, 'manager_utils', autospec=True)
     @mock.patch.object(redfish_boot, 'deploy_utils', autospec=True)
     @mock.patch.object(redfish_boot, 'boot_mode_utils', autospec=True)
@@ -858,10 +808,8 @@ class RedfishVirtualMediaBootTestCase(db_base.DbTestCase):
 
             mock_boot_mode_utils.sync_boot_mode.assert_called_once_with(task)
 
-    @mock.patch.object(redfish_boot.RedfishVirtualMediaBoot,
-                       '_eject_vmedia', autospec=True)
-    @mock.patch.object(redfish_boot.RedfishVirtualMediaBoot,
-                       '_cleanup_iso_image', autospec=True)
+    @mock.patch.object(redfish_boot, '_eject_vmedia', autospec=True)
+    @mock.patch.object(redfish_boot, '_cleanup_iso_image', autospec=True)
     @mock.patch.object(redfish_boot, 'manager_utils', autospec=True)
     def _test_prepare_instance_local_boot(
             self, mock_manager_utils,
@@ -893,10 +841,8 @@ class RedfishVirtualMediaBootTestCase(db_base.DbTestCase):
         self.node.save()
         self._test_prepare_instance_local_boot()
 
-    @mock.patch.object(redfish_boot.RedfishVirtualMediaBoot,
-                       '_eject_vmedia', autospec=True)
-    @mock.patch.object(redfish_boot.RedfishVirtualMediaBoot,
-                       '_cleanup_iso_image', autospec=True)
+    @mock.patch.object(redfish_boot, '_eject_vmedia', autospec=True)
+    @mock.patch.object(redfish_boot, '_cleanup_iso_image', autospec=True)
     def _test_clean_up_instance(self, mock__cleanup_iso_image,
                                 mock__eject_vmedia):
 
@@ -942,7 +888,7 @@ class RedfishVirtualMediaBootTestCase(db_base.DbTestCase):
             mock_redfish_utils.get_system.return_value.managers = [
                 mock_manager]
 
-            task.driver.boot._insert_vmedia(
+            redfish_boot._insert_vmedia(
                 task, 'img-url', sushy.VIRTUAL_MEDIA_CD)
 
             mock_vmedia_cd.insert_media.assert_called_once_with(
@@ -967,7 +913,7 @@ class RedfishVirtualMediaBootTestCase(db_base.DbTestCase):
             mock_redfish_utils.get_system.return_value.managers = [
                 mock_manager]
 
-            task.driver.boot._insert_vmedia(
+            redfish_boot._insert_vmedia(
                 task, 'img-url', sushy.VIRTUAL_MEDIA_CD)
 
             self.assertFalse(mock_vmedia_cd.insert_media.call_count)
@@ -990,7 +936,7 @@ class RedfishVirtualMediaBootTestCase(db_base.DbTestCase):
 
             self.assertRaises(
                 exception.InvalidParameterValue,
-                task.driver.boot._insert_vmedia,
+                redfish_boot._insert_vmedia,
                 task, 'img-url', sushy.VIRTUAL_MEDIA_CD)
 
     @mock.patch.object(redfish_boot, 'redfish_utils', autospec=True)
@@ -1013,7 +959,7 @@ class RedfishVirtualMediaBootTestCase(db_base.DbTestCase):
             mock_redfish_utils.get_system.return_value.managers = [
                 mock_manager]
 
-            task.driver.boot._eject_vmedia(task)
+            redfish_boot._eject_vmedia(task)
 
             mock_vmedia_cd.eject_media.assert_called_once_with()
             mock_vmedia_floppy.eject_media.assert_called_once_with()
@@ -1038,7 +984,7 @@ class RedfishVirtualMediaBootTestCase(db_base.DbTestCase):
             mock_redfish_utils.get_system.return_value.managers = [
                 mock_manager]
 
-            task.driver.boot._eject_vmedia(task, sushy.VIRTUAL_MEDIA_CD)
+            redfish_boot._eject_vmedia(task, sushy.VIRTUAL_MEDIA_CD)
 
             mock_vmedia_cd.eject_media.assert_called_once_with()
             self.assertFalse(mock_vmedia_floppy.eject_media.call_count)
@@ -1063,7 +1009,7 @@ class RedfishVirtualMediaBootTestCase(db_base.DbTestCase):
             mock_redfish_utils.get_system.return_value.managers = [
                 mock_manager]
 
-            task.driver.boot._eject_vmedia(task)
+            redfish_boot._eject_vmedia(task)
 
             self.assertFalse(mock_vmedia_cd.eject_media.call_count)
             self.assertFalse(mock_vmedia_floppy.eject_media.call_count)
@@ -1085,6 +1031,6 @@ class RedfishVirtualMediaBootTestCase(db_base.DbTestCase):
             mock_redfish_utils.get_system.return_value.managers = [
                 mock_manager]
 
-            task.driver.boot._eject_vmedia(task)
+            redfish_boot._eject_vmedia(task)
 
             self.assertFalse(mock_vmedia_cd.eject_media.call_count)
