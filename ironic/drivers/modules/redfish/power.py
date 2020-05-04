@@ -22,6 +22,7 @@ from ironic.common import states
 from ironic.conductor import task_manager
 from ironic.conductor import utils as cond_utils
 from ironic.drivers import base
+from ironic.drivers.modules.redfish import management as redfish_mgmt
 from ironic.drivers.modules.redfish import utils as redfish_utils
 
 LOG = log.getLogger(__name__)
@@ -123,6 +124,12 @@ class RedfishPower(base.PowerInterface):
         :raises: RedfishError on an error from the Sushy library
         """
         system = redfish_utils.get_system(task.node)
+
+        if (power_state in (states.POWER_ON, states.SOFT_REBOOT, states.REBOOT)
+                and isinstance(task.driver.management,
+                               redfish_mgmt.RedfishManagement)):
+            task.driver.management.restore_boot_device(task, system)
+
         try:
             _set_power_state(task, system, power_state, timeout=timeout)
         except sushy.exceptions.SushyError as e:
@@ -150,6 +157,10 @@ class RedfishPower(base.PowerInterface):
             if current_power_state == states.POWER_ON:
                 next_state = states.POWER_OFF
                 _set_power_state(task, system, next_state, timeout=timeout)
+
+            if isinstance(task.driver.management,
+                          redfish_mgmt.RedfishManagement):
+                task.driver.management.restore_boot_device(task, system)
 
             next_state = states.POWER_ON
             _set_power_state(task, system, next_state, timeout=timeout)
