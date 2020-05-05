@@ -31,7 +31,7 @@
         DEFAULT_INSTANCE_TYPE: baremetal
         FORCE_CONFIG_DRIVE: True
         INSTALL_TEMPEST: False # Don't install a tempest package globaly
-        TEMPEST_PLUGINS: "{{ ansible_user_dir }}/src/opendev.org/openstack/ironic-tempest-plugin"
+        TEMPEST_PLUGINS: "/opt/stack/ironic-tempest-plugin"
         VIRT_DRIVER: ironic
         BUILD_TIMEOUT: 720
         IRONIC_BAREMETAL_BASIC_OPS: True
@@ -460,7 +460,7 @@
         Q_PLUGIN: ml2
         SWIFT_ENABLE_TEMPURLS: True
         SWIFT_TEMPURL_KEY: secretkey
-        TEMPEST_PLUGINS: "{{ ansible_user_dir }}/src/opendev.org/openstack/ironic-tempest-plugin"
+        TEMPEST_PLUGINS: "/opt/stack/ironic-tempest-plugin"
         TENANT_VLAN_RANGE: 100:150
         VIRT_DRIVER: ironic
         # We're using a lot of disk space in this job. Some testing nodes have
