@@ -51,6 +51,23 @@ TARGET_STATE_MAP = {
 }
 
 
+def _set_power_state(task, system, power_state, timeout=None):
+    """An internal helper to set a power state on the system.
+
+    :param task: a TaskManager instance containing the node to act on.
+    :param system: a Redfish System object.
+    :param power_state: Any power state from :mod:`ironic.common.states`.
+    :param timeout: Time to wait for the node to reach the requested state.
+    :raises: MissingParameterValue if a required parameter is missing.
+    :raises: RedfishConnectionError when it fails to connect to Redfish
+    :raises: RedfishError on an error from the Sushy library
+    """
+    system.reset_system(SET_POWER_STATE_MAP.get(power_state))
+    target_state = TARGET_STATE_MAP.get(power_state, power_state)
+    cond_utils.node_wait_for_power_state(task, target_state,
+                                         timeout=timeout)
+
+
 class RedfishPower(base.PowerInterface):
 
     def __init__(self):
@@ -107,17 +124,14 @@ class RedfishPower(base.PowerInterface):
         """
         system = redfish_utils.get_system(task.node)
         try:
-            system.reset_system(SET_POWER_STATE_MAP.get(power_state))
+            _set_power_state(task, system, power_state, timeout=timeout)
         except sushy.exceptions.SushyError as e:
-            error_msg = (_('Redfish set power state failed for node '
+            error_msg = (_('Setting power state to %(state)s failed for node '
                            '%(node)s. Error: %(error)s') %
-                         {'node': task.node.uuid, 'error': e})
+                         {'node': task.node.uuid, 'state': power_state,
+                          'error': e})
             LOG.error(error_msg)
             raise exception.RedfishError(error=error_msg)
-
-        target_state = TARGET_STATE_MAP.get(power_state, power_state)
-        cond_utils.node_wait_for_power_state(task, target_state,
-                                             timeout=timeout)
 
     @task_manager.require_exclusive_lock
     def reboot(self, task, timeout=None):
@@ -134,18 +148,18 @@ class RedfishPower(base.PowerInterface):
 
         try:
             if current_power_state == states.POWER_ON:
-                system.reset_system(SET_POWER_STATE_MAP.get(states.REBOOT))
-            else:
-                system.reset_system(SET_POWER_STATE_MAP.get(states.POWER_ON))
+                next_state = states.POWER_OFF
+                _set_power_state(task, system, next_state, timeout=timeout)
+
+            next_state = states.POWER_ON
+            _set_power_state(task, system, next_state, timeout=timeout)
         except sushy.exceptions.SushyError as e:
-            error_msg = (_('Redfish reboot failed for node %(node)s. '
-                           'Error: %(error)s') % {'node': task.node.uuid,
-                                                  'error': e})
+            error_msg = (_('Reboot failed for node %(node)s when setting '
+                           'power state to %(state)s. Error: %(error)s') %
+                         {'node': task.node.uuid, 'state': next_state,
+                          'error': e})
             LOG.error(error_msg)
             raise exception.RedfishError(error=error_msg)
-
-        cond_utils.node_wait_for_power_state(task, states.POWER_ON,
-                                             timeout=timeout)
 
     def get_supported_power_states(self, task):
         """Get a list of the supported power states.

@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Rebooting a node with the ``redfish`` power interface is now implemented
+    via a power off request followed by power on to avoid returning success
+    when a node stays powered on after the reboot request.
