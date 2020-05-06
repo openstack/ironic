@@ -88,7 +88,9 @@ def update_opt_defaults():
             'amqp=WARNING',
             'amqplib=WARNING',
             'qpid.messaging=INFO',
+            # This comes in two flavors
             'oslo.messaging=INFO',
+            'oslo_messaging=INFO',
             'sqlalchemy=WARNING',
             'stevedore=INFO',
             'eventlet.wsgi.server=INFO',
