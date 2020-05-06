@@ -31,7 +31,6 @@
         DEFAULT_INSTANCE_TYPE: baremetal
         FORCE_CONFIG_DRIVE: True
         INSTALL_TEMPEST: False # Don't install a tempest package globaly
-        TEMPEST_PLUGINS: "/opt/stack/ironic-tempest-plugin"
         VIRT_DRIVER: ironic
         BUILD_TIMEOUT: 720
         IRONIC_BAREMETAL_BASIC_OPS: True
@@ -56,6 +55,8 @@
 
       devstack_plugins:
         ironic: https://opendev.org/openstack/ironic
+      tempest_plugins:
+        - ironic-tempest-plugin
       zuul_copy_output:
         '{{ devstack_base_dir }}/ironic-bm-logs': 'logs'
         '{{ devstack_base_dir }}/data/networking-generic-switch/netmiko_session.log': 'logs'
@@ -466,7 +467,6 @@
         Q_PLUGIN: ml2
         SWIFT_ENABLE_TEMPURLS: True
         SWIFT_TEMPURL_KEY: secretkey
-        TEMPEST_PLUGINS: "/opt/stack/ironic-tempest-plugin"
         TENANT_VLAN_RANGE: 100:150
         VIRT_DRIVER: ironic
         # We're using a lot of disk space in this job. Some testing nodes have
@@ -477,6 +477,8 @@
       devstack_plugins:
         ironic: https://opendev.org/openstack/ironic
         networking-generic-switch: https://opendev.org/openstack/networking-generic-switch
+      tempest_plugins:
+        - ironic-tempest-plugin
       zuul_copy_output:
         '{{ devstack_base_dir }}/ironic-bm-logs': 'logs'
         '{{ devstack_base_dir }}/data/networking-generic-switch/netmiko_session.log': 'logs'
