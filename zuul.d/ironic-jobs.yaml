@@ -228,8 +228,8 @@
         s-proxy: True
 
 - job:
-    name: ironic-tempest-ipa-wholedisk-bios-pxe_snmp
-    description: ironic-tempest-ipa-wholedisk-bios-pxe_snmp
+    name: ironic-tempest-wholedisk-bios-snmp-pxe
+    description: SNMP power, no-op management, netboot and whole disk images.
     parent: ironic-base
     timeout: 5400
     vars:
@@ -239,6 +239,9 @@
         IRONIC_TEMPEST_WHOLE_DISK_IMAGE: True
         IRONIC_VM_EPHEMERAL_DISK: 0
         IRONIC_AUTOMATED_CLEAN_ENABLED: False
+        # NOTE(dtantsur): the snmp hardware type does not have a management
+        # interface, thus we cannot switch to local boot on deploy.
+        IRONIC_DEFAULT_BOOT_OPTION: netboot
 
 - job:
     name: ironic-tempest-ipa-partition-uefi-pxe_ipmitool
