@@ -172,7 +172,7 @@ class IPMIToolCheckInitTestCase(base.TestCase):
     @mock.patch.object(ipmi, '_is_option_supported', autospec=True)
     @mock.patch.object(utils, 'check_dir', autospec=True)
     def test_console_init_calls_for_socat(self, mock_check_dir, mock_support):
-        with mock.patch.object(ipmi, 'TMP_DIR_CHECKED'):
+        with mock.patch.object(ipmi, 'TMP_DIR_CHECKED', autospec=True):
             mock_support.return_value = True
             ipmi.TMP_DIR_CHECKED = None
             ipmi.IPMISocatConsole()
@@ -184,7 +184,7 @@ class IPMIToolCheckInitTestCase(base.TestCase):
     def test_console_init_calls_for_socat_already_checked(self,
                                                           mock_check_dir,
                                                           mock_support):
-        with mock.patch.object(ipmi, 'TMP_DIR_CHECKED'):
+        with mock.patch.object(ipmi, 'TMP_DIR_CHECKED', autospec=True):
             mock_support.return_value = True
             ipmi.TMP_DIR_CHECKED = True
             ipmi.IPMISocatConsole()
@@ -498,7 +498,8 @@ class IPMIToolPrivateMethodTestCase(
         # BackoffLoopingCall, it multiplies default interval (equals to 1) by
         # 2 * return_value, so if you want BackoffLoopingCall to "sleep" for
         # 1 second, return_value should be 0.5.
-        m = mock.patch.object(random.SystemRandom, 'gauss', return_value=0.5)
+        m = mock.patch.object(random.SystemRandom, 'gauss', return_value=0.5,
+                              autospec=True)
         m.start()
         self.addCleanup(m.stop)
 
@@ -2087,7 +2088,8 @@ class IPMIToolDriverTestCase(Base):
                               self.management.set_boot_device,
                               task, boot_devices.PXE)
 
-    @mock.patch.object(boot_mode_utils, 'get_boot_mode_for_deploy')
+    @mock.patch.object(boot_mode_utils, 'get_boot_mode_for_deploy',
+                       autospec=True)
     @mock.patch.object(ipmi, '_exec_ipmitool', autospec=True)
     def test_management_interface_set_boot_device_uefi(self, mock_exec,
                                                        mock_boot_mode):
@@ -2103,7 +2105,8 @@ class IPMIToolDriverTestCase(Base):
         ]
         mock_exec.assert_has_calls(mock_calls)
 
-    @mock.patch.object(boot_mode_utils, 'get_boot_mode_for_deploy')
+    @mock.patch.object(boot_mode_utils, 'get_boot_mode_for_deploy',
+                       autospec=True)
     @mock.patch.object(ipmi, '_exec_ipmitool', autospec=True)
     def test_management_interface_set_boot_device_uefi_and_persistent(
             self, mock_exec, mock_boot_mode):
