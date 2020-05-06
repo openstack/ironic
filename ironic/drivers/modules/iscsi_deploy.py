@@ -283,6 +283,8 @@ def deploy_partition_image(
               NOTE: If key exists but value is None, it means partition doesn't
               exist.
     """
+    # NOTE(dtantsur): CONF.default_boot_option is mutable, don't use it in
+    # the function signature!
     boot_option = boot_option or deploy_utils.get_default_boot_option()
     image_mb = disk_utils.get_image_mb(image_path)
     if image_mb > root_mb:

@@ -72,6 +72,7 @@ api_opts = [
                 help=_('Enable pecan debug mode. WARNING: this is insecure '
                        'and should not be used in a production environment.')),
     cfg.StrOpt('default_resource_class',
+               mutable=True,
                help=_('Resource class to use for new nodes when no resource '
                       'class is provided in the creation request.')),
 ]
@@ -191,6 +192,7 @@ hash_opts = [
 image_opts = [
     cfg.BoolOpt('force_raw_images',
                 default=True,
+                mutable=True,
                 help=_('If True, convert backing images to "raw" disk image '
                        'format.')),
     cfg.StrOpt('isolinux_bin',
@@ -231,6 +233,7 @@ image_opts = [
 img_cache_opts = [
     cfg.BoolOpt('parallel_image_downloads',
                 default=False,
+                mutable=True,
                 help=_('Run image downloads and raw format conversions in '
                        'parallel.')),
 ]
@@ -304,6 +307,7 @@ path_opts = [
 portgroup_opts = [
     cfg.StrOpt(
         'default_portgroup_mode', default='active-backup',
+        mutable=True,
         help=_(
             'Default mode for portgroups. Allowed values can be found in the '
             'linux kernel documentation on bonding: '
@@ -340,6 +344,7 @@ service_opts = [
                       'conductor and API services')),
     cfg.BoolOpt('require_agent_token',
                 default=False,
+                mutable=True,
                 help=_('Used to require the use of agent tokens. These '
                        'tokens are used to guard the api lookup endpoint and '
                        'conductor heartbeat processing logic to authenticate '

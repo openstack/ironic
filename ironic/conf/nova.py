@@ -18,6 +18,7 @@ from ironic.conf import auth
 opts = [
     cfg.BoolOpt('send_power_notifications',
                 default=True,
+                mutable=True,
                 help=_('When set to True, it will enable the support '
                        'for power state change callbacks to nova. This '
                        'option should be set to False in deployments '

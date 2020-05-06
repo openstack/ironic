@@ -28,6 +28,7 @@ opts = [
                        'ramdisk.')),
     cfg.IntOpt('memory_consumed_by_agent',
                default=0,
+               mutable=True,
                help=_('The memory size in MiB consumed by agent when it is '
                       'booted on a bare metal node. This is used for '
                       'checking if the image can be downloaded and deployed '
@@ -36,6 +37,7 @@ opts = [
                       'the agent ramdisk image.')),
     cfg.BoolOpt('stream_raw_images',
                 default=True,
+                mutable=True,
                 help=_('Whether the agent ramdisk should stream raw images '
                        'directly onto the disk or not. By streaming raw '
                        'images directly onto the disk the agent ramdisk will '
@@ -63,6 +65,7 @@ opts = [
                                          'failure')),
                         ('never', _('never collect logs'))],
                default='on_failure',
+               mutable=True,
                help=_('Whether Ironic should collect the deployment logs on '
                       'deployment failure (on_failure), always or never.')),
     cfg.StrOpt('deploy_logs_storage_backend',
@@ -70,20 +73,24 @@ opts = [
                         ('swift', _('store the logs in Object Storage '
                                     'service'))],
                default='local',
+               mutable=True,
                help=_('The name of the storage backend where the logs '
                       'will be stored.')),
     cfg.StrOpt('deploy_logs_local_path',
                default='/var/log/ironic/deploy',
+               mutable=True,
                help=_('The path to the directory where the logs should be '
                       'stored, used when the deploy_logs_storage_backend '
                       'is configured to "local".')),
     cfg.StrOpt('deploy_logs_swift_container',
                default='ironic_deploy_logs_container',
+               mutable=True,
                help=_('The name of the Swift container to store the logs, '
                       'used when the deploy_logs_storage_backend is '
                       'configured to "swift".')),
     cfg.IntOpt('deploy_logs_swift_days_to_expire',
                default=30,
+               mutable=True,
                help=_('Number of days before a log object is marked as '
                       'expired in Swift. If None, the logs will be kept '
                       'forever or until manually deleted. Used when the '
@@ -96,6 +103,7 @@ opts = [
                                    'from HTTP service served at conductor '
                                    'nodes.'))],
                default='swift',
+               mutable=True,
                help=_('Specifies whether direct deploy interface should try '
                       'to use the image source directly or if ironic should '
                       'cache the image on the conductor and serve it from '
@@ -104,6 +112,7 @@ opts = [
                       'service.')),
     cfg.IntOpt('command_timeout',
                default=60,
+               mutable=True,
                help=_('Timeout (in seconds) for IPA commands. '
                       'Please note, the bootloader installation command '
                       'to the agent is permitted a timeout of twice the '
@@ -116,6 +125,7 @@ opts = [
                       'problems.')),
     cfg.IntOpt('neutron_agent_poll_interval',
                default=2,
+               mutable=True,
                help=_('The number of seconds Neutron agent will wait between '
                       'polling for device changes. This value should be '
                       'the same as CONF.AGENT.polling_interval in Neutron '

@@ -1,0 +1,48 @@
+---
+other:
+  - |
+    The following configuration options can now be reloaded without restarting
+    ironic:
+
+    From ``[agent]``: ``memory_consumed_by_agent``, ``stream_raw_images``,
+    ``deploy_logs_*``, ``image_download_source``, ``command_timeout``
+    and ``neutron_agent_poll_interval``.
+
+    From ``[api]``: ``max_limit``, ``public_endpoint``
+    and ``ramdisk_heartbeat_timeout``.
+
+    From ``[conductor]``: ``heartbeat_timeout``,
+    ``force_power_state_during_sync``, ``automated_clean``,
+    ``soft_power_off_timeout``, ``power_state_change_timeout``,
+    ``rescue_password_hash_algorithm`` and ``require_rescue_password_hashed``.
+
+    From ``[DEFAULT]``: ``default_resource_class``, ``force_raw_images``,
+    ``parallel_image_downloads``, ``default_portgroup_mode``
+    and ``require_agent_token``.
+
+    From ``[deploy]``: ``enable_ata_secure_erase``, ``erase_devices_priority``,
+    ``erase_devices_metadata_priority``, ``shred_random_overwrite_iterations``,
+    ``shred_final_overwrite_with_zeros``,
+    ``continue_if_disk_secure_erase_fails``, ``disk_erasure_concurrency``,
+    ``power_off_after_deploy_failure``, ``default_boot_option``,
+    ``default_boot_mode``, ``configdrive_use_object_store``, ``fast_track``,
+    and ``fast_track_timeout``.
+
+    From ``[ipmi]``: ``kill_on_timeout``, ``disable_boot_timeout``,
+    ``command_retry_interval``, ``min_command_interval``, ``debug``
+    and ``additional_retryable_ipmi_errors``.
+
+    From ``[iscsi]``: ``portal_port``, ``conv_flags`` and ``verify_attempts``.
+
+    From ``[neutron]``: ``port_setup_delay``, ``*_network``,
+    ``*_network_security_groups``, ``request_timeout``, ``add_all_ports``
+    and ``dhcpv6_stateful_address_count``.
+
+    From ``[nova]``: ``send_power_notifications``.
+
+    From ``[pxe]``: ``pxe_append_params``, ``default_ephemeral_format``,
+    ``pxe_config_template``, ``uefi_pxe_config_template``,
+    ``pxe_config_template_by_arch``, ``ip_version`` and ``ipxe_use_swift``.
+
+    From ``[redfish]``: ``use_swift``, ``swift_container``,
+    ``swift_object_expiry_timeout`` and ``kernel_append_params``.
