@@ -309,9 +309,6 @@
         IRONIC_TEMPEST_WHOLE_DISK_IMAGE: True
         IRONIC_VM_EPHEMERAL_DISK: 0
         IRONIC_AUTOMATED_CLEAN_ENABLED: False
-        # NOTE(dtantsur): the snmp hardware type does not have a management
-        # interface, thus we cannot switch to local boot on deploy.
-        IRONIC_DEFAULT_BOOT_OPTION: netboot
 
 - job:
     name: ironic-tempest-ipa-partition-uefi-pxe_ipmitool

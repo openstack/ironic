@@ -1,0 +1,12 @@
+---
+issues:
+  - |
+    The SNMP hardware type cannot change boot devices and thus may fail
+    to deploy nodes with local boot. To work around this problem, set
+    ``[pxe]enable_netboot_fallback`` to ``True``.
+features:
+  - |
+    Adds an ability to generate network boot templates even for nodes that
+    use local boot via the new ``[pxe]enable_netboot_fallback`` option.
+    This is required to work around the situation when switching boot devices
+    does not work reliably.

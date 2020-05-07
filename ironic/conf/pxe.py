@@ -147,6 +147,15 @@ opts = [
                        "local HTTP server. "
                        "Applicable only when 'ipxe' compatible boot interface "
                        "is used.")),
+    cfg.BoolOpt('enable_netboot_fallback',
+                default=False,
+                mutable=True,
+                help=_('If True, generate a PXE environment even for nodes '
+                       'that use local boot. This is useful when the driver '
+                       'cannot switch nodes to local boot, e.g. with SNMP '
+                       'or with Redfish on machines that cannot do persistent '
+                       'boot. Mostly useful for standalone ironic since '
+                       'Neutron will prevent incorrect PXE boot.')),
 ]
 
 
