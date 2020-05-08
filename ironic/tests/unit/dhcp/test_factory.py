@@ -61,8 +61,8 @@ class TestDHCPFactory(base.TestCase):
                     group='dhcp')
         dhcp_factory.DHCPFactory()
 
-        with mock.patch.object(dhcp_factory.DHCPFactory,
-                               '_set_dhcp_provider') as mock_set_dhcp:
+        with mock.patch.object(dhcp_factory.DHCPFactory, '_set_dhcp_provider',
+                               autospec=True) as mock_set_dhcp:
             # There is already a dhcp_provider, so this shouldn't call
             # _set_dhcp_provider again.
             dhcp_factory.DHCPFactory()
