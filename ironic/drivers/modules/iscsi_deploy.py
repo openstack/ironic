@@ -699,7 +699,19 @@ class ISCSIDeploy(agent_base.AgentDeployMixin, agent_base.AgentBaseMixin,
 
         node = task.node
         LOG.debug('Continuing the deployment on node %s', node.uuid)
-
+        if utils.is_memory_insufficent():
+            # Insufficent memory, but we can just let the agent heartbeat
+            # again in order to initiate deployment when the situation has
+            # changed.
+            LOG.warning('Insufficent memory to write image for node '
+                        '%(node)s. Skipping until next heartbeat.',
+                        {'node': node.uuid})
+            info = node.driver_internal_info
+            info['skip_current_deploy_step'] = False
+            node.driver_internal_info = info
+            node.last_error = "Deploy delayed due to insufficent memory"
+            node.save()
+            return states.DEPLOYWAIT
         uuid_dict_returned = do_agent_iscsi_deploy(task, self._client)
         utils.set_node_nested_field(node, 'driver_internal_info',
                                     'deployment_uuids', uuid_dict_returned)

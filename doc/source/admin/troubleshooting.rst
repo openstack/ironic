@@ -829,3 +829,46 @@ commonly where it is encountered.:
 Once you have updated the saved interfaces, you should be able to safely
 return the ``ironic.conf`` configuration change in changing what interfaces
 are enabled by the conductor.
+
+I'm getting Out of Memory errors
+================================
+
+This issue, also known as the "the OOMKiller got my conductor" case,
+is where your OS system memory reaches a point where the operating
+system engages measures to shed active memory consumption in order
+to prevent a complete failure of the machine. Unfortunately this
+can cause unpredictable behavior.
+
+How did I get here?
+-------------------
+
+One of the major consumers of memory in a host running an ironic-conductor is
+transformation of disk images using the ``qemu-img`` tool. This tool, because
+the disk images it works with are both compressed and out of linear block
+order, requires a considerable amount of memory to efficently re-assemble
+and write-out a disk to a device, or to simply convert the format such as
+to a ``raw`` image.
+
+By default, ironic's configuration limits this conversion to 1 GB of RAM
+for the process, but each conversion does cause additional buffer memory
+to be used, which increases overall system memory pressure. Generally
+memory pressure alone from buffers will not cause an out of memory condition,
+but the multiple conversions or deployments running at the same time
+CAN cause extreme memory pressure and risk the system running out of memory.
+
+How do I resolve this?
+----------------------
+
+This can be addressed a few different ways:
+
+  * Use raw images, however these images can be substantially larger
+    and require more data to be transmitted "over the wire".
+  * Add more physical memory.
+  * Add swap space.
+  * Reduce concurrency, possibly via another conductor or changing the
+    nova-compute.conf ``max_concurrent_builds`` parameter.
+  * Or finally, adjust the ``[DEFAULT]minimum_required_memory`` parameter
+    in your ironic.conf file. The default should be considered a "default
+    of last resort" and you may need to reserve additional memory. You may
+    also wish to adjust the ``[DEFAULT]minimum_memory_wait_retries`` and
+    ``[DEFAULT]minimum_memory_wait_time`` parameters.

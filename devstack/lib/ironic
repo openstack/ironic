@@ -1414,6 +1414,9 @@ function configure_ironic {
     iniset $IRONIC_CONF_FILE DEFAULT use_syslog $SYSLOG
     # NOTE(vsaienko) with multinode each conductor should have its own host.
     iniset $IRONIC_CONF_FILE DEFAULT host $LOCAL_HOSTNAME
+    # NOTE(TheJulia) Set a minimum amount of memory that is more in-line with
+    # OpenStack CI and the images deployed.
+    iniset $IRONIC_CONF_FILE DEFAULT minimum_required_memory 256
     # Retrieve deployment logs
     iniset $IRONIC_CONF_FILE agent deploy_logs_collect $IRONIC_DEPLOY_LOGS_COLLECT
     iniset $IRONIC_CONF_FILE agent deploy_logs_storage_backend $IRONIC_DEPLOY_LOGS_STORAGE_BACKEND

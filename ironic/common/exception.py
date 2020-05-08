@@ -808,3 +808,8 @@ class UnknownAttribute(ClientSideError):
 class AgentInProgress(IronicException):
     _msg_fmt = _('Node %(node)s command "%(command)s" failed. Agent is '
                  'presently executing a command. Error %(error)s')
+
+
+class InsufficentMemory(IronicException):
+    _msg_fmt = _("Available memory at %(free)s, Insufficent as %(required)s "
+                 "is required to proceed at this time.")
