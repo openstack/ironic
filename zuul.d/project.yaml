@@ -11,6 +11,8 @@
       jobs:
         - ironic-tox-unit-with-driver-libs
         - ironic-standalone
+        - ironic-standalone-redfish:
+            voting: false
         - ironic-tempest-functional-python3
         - ironic-grenade
         # Temporary disable voting because of end of cycle CI instability.
