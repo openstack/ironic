@@ -173,9 +173,6 @@ if 'ironic.drivers.modules.irmc' in sys.modules:
 irmc_boot = importutils.import_module(
     'ironic.drivers.modules.irmc.boot')
 irmc_boot.check_share_fs_mounted_orig = irmc_boot.check_share_fs_mounted
-irmc_boot.check_share_fs_mounted_patcher = mock.patch(
-    'ironic.drivers.modules.irmc.boot.check_share_fs_mounted')
-irmc_boot.check_share_fs_mounted_patcher.return_value = None
 
 
 class MockKwargsException(Exception):
