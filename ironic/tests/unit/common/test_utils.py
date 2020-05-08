@@ -452,7 +452,6 @@ class TempFilesTestCase(base.TestCase):
     @mock.patch.object(time, 'sleep', autospec=True)
     @mock.patch.object(psutil, 'virtual_memory', autospec=True)
     def test_is_memory_insufficent(self, mock_vm_check, mock_sleep):
-        self.config(minimum_memory_warning_only=False)
 
         class vm_check(object):
             available = 1000000000
@@ -465,7 +464,6 @@ class TempFilesTestCase(base.TestCase):
     @mock.patch.object(psutil, 'virtual_memory', autospec=True)
     def test_is_memory_insufficent_good(self, mock_vm_check,
                                         mock_sleep):
-        self.config(minimum_memory_warning_only=False)
 
         class vm_check(object):
             available = 3276700000
@@ -491,6 +489,19 @@ class TempFilesTestCase(base.TestCase):
                                           vm_check_good])
         self.assertFalse(utils.is_memory_insufficent())
         self.assertEqual(3, mock_vm_check.call_count)
+
+    @mock.patch.object(time, 'sleep', autospec=True)
+    @mock.patch.object(psutil, 'virtual_memory', autospec=True)
+    def test_is_memory_insufficent_warning_only(self, mock_vm_check,
+                                                mock_sleep):
+        self.config(minimum_memory_warning_only=True)
+
+        class vm_check_bad(object):
+            available = 1023000000
+
+        mock_vm_check.side_effect = vm_check_bad
+        self.assertFalse(utils.is_memory_insufficent())
+        self.assertEqual(2, mock_vm_check.call_count)
 
 
 class GetUpdatedCapabilitiesTestCase(base.TestCase):
