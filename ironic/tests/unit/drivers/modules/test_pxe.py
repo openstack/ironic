@@ -85,7 +85,6 @@ class PXEBootTestCase(db_base.DbTestCase):
             driver_internal_info=self.driver_internal_info)
         self.port = obj_utils.create_test_port(self.context,
                                                node_id=self.node.id)
-        self.config(group='conductor', api_url='http://127.0.0.1:1234/')
         self.config(my_ipv6='2001:db8::1')
 
     def test_get_properties(self):

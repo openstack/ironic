@@ -83,7 +83,6 @@ class iPXEBootTestCase(db_base.DbTestCase):
             driver_internal_info=self.driver_internal_info)
         self.port = obj_utils.create_test_port(self.context,
                                                node_id=self.node.id)
-        self.config(group='conductor', api_url='http://127.0.0.1:1234/')
 
     def test_get_properties(self):
         expected = pxe_base.COMMON_PROPERTIES

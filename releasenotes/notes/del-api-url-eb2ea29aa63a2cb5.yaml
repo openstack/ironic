@@ -1,0 +1,6 @@
+---
+upgrade:
+  - |
+    The ``[conductor]api_url`` was deprecated and removed, use
+    ``[service_catalog]endpoint_override`` instead if required to use
+    a specific ironic api url.
