@@ -29,7 +29,7 @@ class GetBootModeTestCase(tests_base.TestCase):
                                             driver='fake-hardware')
 
     @mock.patch.object(boot_mode_utils, 'get_boot_mode_for_deploy',
-                       autospect=True)
+                       autospec=True)
     def test_get_boot_mode_bios(self, mock_for_deploy):
         mock_for_deploy.return_value = boot_modes.LEGACY_BIOS
         boot_mode = boot_mode_utils.get_boot_mode(self.node)
@@ -42,9 +42,9 @@ class GetBootModeTestCase(tests_base.TestCase):
         boot_mode = boot_mode_utils.get_boot_mode(self.node)
         self.assertEqual(boot_modes.UEFI, boot_mode)
 
-    @mock.patch.object(boot_mode_utils, 'LOG', autospect=True)
+    @mock.patch.object(boot_mode_utils, 'LOG', autospec=True)
     @mock.patch.object(boot_mode_utils, 'get_boot_mode_for_deploy',
-                       autospect=True)
+                       autospec=True)
     def test_get_boot_mode_default(self, mock_for_deploy, mock_log):
         boot_mode_utils.warn_about_default_boot_mode = False
         mock_for_deploy.return_value = None
