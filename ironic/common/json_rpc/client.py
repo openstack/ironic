@@ -41,10 +41,13 @@ def _get_session():
         else:
             auth = None
 
-        _SESSION = keystone.get_session('json_rpc', auth=auth)
-        _SESSION.headers = {
+        session = keystone.get_session('json_rpc', auth=auth)
+        session.headers = {
             'Content-Type': 'application/json'
         }
+
+        # Adds options like connect_retries
+        _SESSION = keystone.get_adapter('json_rpc', session=session)
 
     return _SESSION
 
