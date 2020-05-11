@@ -647,3 +647,78 @@
         s-container: True
         s-object: True
         s-proxy: True
+
+- job:
+    name: ironic-grenade
+    parent: grenade
+    timeout: 10800
+    irrelevant-files:
+      - ^driver-requirements.txt$
+      - ^.*\.rst$
+      - ^api-ref/.*$
+      - ^doc/.*$
+      - ^install-guide/.*$
+      - ^ironic/locale/.*$
+      - ^ironic/tests/.*$
+      - ^releasenotes/.*$
+      - ^setup.cfg$
+      - ^tools/.*$
+      - ^tox.ini$
+    required-projects:
+      - openstack/grenade
+      - openstack/ironic
+      - openstack/ironic-python-agent
+      - openstack/ironic-python-agent-builder
+      - openstack/ironic-tempest-plugin
+      - openstack/virtualbmc
+    vars:
+      grenade_devstack_localrc:
+        shared:
+          DEFAULT_INSTANCE_TYPE: baremetal
+          FORCE_CONFIG_DRIVE: True
+          INSTALL_TEMPEST: False
+          VIRT_DRIVER: ironic
+          BUILD_TIMEOUT: 1200
+          IRONIC_BAREMETAL_BASIC_OPS: True
+          IRONIC_BUILD_DEPLOY_RAMDISK: False
+          IRONIC_CALLBACK_TIMEOUT: 600
+          IRONIC_DEPLOY_DRIVER: ipmi
+          IRONIC_INSPECTOR_BUILD_RAMDISK: False
+          IRONIC_RAMDISK_TYPE: tinyipa
+          IRONIC_TEMPEST_WHOLE_DISK_IMAGE: False
+          IRONIC_VM_COUNT: 6
+          IRONIC_VM_EPHEMERAL_DISK: 1
+          IRONIC_VM_SPECS_RAM: 384
+          IRONIC_DEFAULT_BOOT_OPTION: netboot
+          IRONIC_AUTOMATED_CLEAN_ENABLED: False
+          IRONIC_REQUIRE_AGENT_TOKEN: False
+          Q_AGENT: openvswitch
+          Q_ML2_TENANT_NETWORK_TYPE: vxlan
+          EBTABLES_RACE_FIX: True
+        old:
+          IRONIC_VM_LOG_DIR: '{{ devstack_bases.old }}/ironic-bm-logs'
+      grenade_tempest_concurrency: 1
+      grenade_test_timeout: 2600
+      devstack_plugins:
+        ironic: https://opendev.org/openstack/ironic
+      devstack_services:
+        c-api: False
+        c-bak: False
+        c-sch: False
+        c-vol: False
+        cinder: False
+        ir-api: True
+        ir-cond: True
+      tempest_plugins:
+        - ironic-tempest-plugin
+      tempest_test_regex: 'test_server_basic_ops'
+      tox_envlist: all
+      tempest_concurrency: 1
+      zuul_copy_output:
+        '{{ devstack_bases.old }}/ironic-bm-logs': logs
+
+# Keeping till we can rename the job on grenade
+- job:
+    name: ironic-grenade-dsvm
+    parent: ironic-grenade
+    timeout: 10800

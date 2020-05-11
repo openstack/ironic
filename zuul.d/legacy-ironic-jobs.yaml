@@ -1,31 +1,3 @@
-- job:
-    name: legacy-ironic-dsvm-base
-    parent: legacy-dsvm-base
-    irrelevant-files:
-      - ^driver-requirements.txt$
-      - ^.*\.rst$
-      - ^api-ref/.*$
-      - ^doc/.*$
-      - ^install-guide/.*$
-      - ^ironic/locale/.*$
-      - ^ironic/tests/.*$
-      - ^releasenotes/.*$
-      - ^setup.cfg$
-      - ^tools/.*$
-      - ^tox.ini$
-    # NOTE: When adding to 'required-projects' also need to add a corresponding
-    # "export PROJECTS=..." line in all the playbooks/legacy/*/run.yaml files
-    required-projects:
-      - openstack/ironic
-      - openstack/ironic-lib
-      - openstack/ironic-python-agent
-      - openstack/ironic-python-agent-builder
-      - openstack/ironic-tempest-plugin
-      - openstack/python-ironicclient
-      - openstack/virtualbmc
-    pre-run: playbooks/legacy/ironic-dsvm-base/pre.yaml
-    post-run: playbooks/legacy/ironic-dsvm-base/post.yaml
-
 # TODO(TheJulia): When we migrate to a non-legacy job, we will need to set the BUILD_TIMEOUT
 # and the DEVSTACK_GATE_TEMPEST_BAREMETAL_BUILD_TIMEOUT to 1200 seconds to prevent
 # needless CI job timeouts as the scale of the job is greater than a normal test jobs.
@@ -57,22 +29,6 @@
     pre-run: playbooks/legacy/ironic-dsvm-base-multinode/pre.yaml
     post-run: playbooks/legacy/ironic-dsvm-base-multinode/post.yaml
 
-# TODO(TheJulia): When we migrate to a non-legacy job, we will need to set the BUILD_TIMEOUT
-# and the DEVSTACK_GATE_TEMPEST_BAREMETAL_BUILD_TIMEOUT to 1200 seconds to prevent
-# needless CI job timeouts as the scale of the job is greater than a normal test jobs.
-- job:
-    name: ironic-grenade-dsvm
-    parent: legacy-ironic-dsvm-base
-    run: playbooks/legacy/grenade-dsvm-ironic/run.yaml
-    timeout: 10800
-    required-projects:
-      - openstack/grenade
-      - openstack/devstack-gate
-      - openstack/ironic
-      - openstack/ironic-lib
-      - openstack/ironic-python-agent
-      - openstack/python-ironicclient
-      - openstack/virtualbmc
 
 - job:
     name: ironic-grenade-dsvm-multinode-multitenant
@@ -88,4 +44,3 @@
       - openstack/networking-generic-switch
       - openstack/python-ironicclient
       - openstack/virtualbmc
-
