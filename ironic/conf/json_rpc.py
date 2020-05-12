@@ -38,6 +38,8 @@ opts = [
 def register_opts(conf):
     conf.register_opts(opts, group='json_rpc')
     auth.register_auth_opts(conf, 'json_rpc')
+    conf.set_default('timeout', 15, group='json_rpc')
+    conf.set_default('connect_retries', 2, group='json_rpc')
 
 
 def list_opts():
