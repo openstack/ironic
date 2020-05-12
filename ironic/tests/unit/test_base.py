@@ -29,10 +29,7 @@ class BlockExecuteTestCase(base.TestCase):
                              subprocess.check_output, utils.execute)
 
         for function_name in execute_functions:
-            exc = self.assertRaises(
-                Exception,
-                function_name,
-                ["echo", "%s" % function_name])  # noqa
+            exc = self.assertRaises(Exception, function_name, ["echo", "%s" % function_name])  # noqa
             # Have to use 'noqa' as we are raising plain Exception and we will
             # get H202 error in 'pep8' check.
 
@@ -58,10 +55,7 @@ class BlockExecuteTestCase(base.TestCase):
         # still get an exception for a child. So in this case
         # ironic_lib.utils.execute() calls processutils.execute(). Make sure an
         # exception is raised even though we mocked processutils.execute()
-        exc = self.assertRaises(
-            Exception,
-            utils.execute,
-            "ls")  # noqa
+        exc = self.assertRaises(Exception, utils.execute, "ls")  # noqa
         # Have to use 'noqa' as we are raising plain Exception and we will get
         # H202 error in 'pep8' check.
 
