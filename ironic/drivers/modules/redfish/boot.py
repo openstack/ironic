@@ -458,7 +458,7 @@ def _parse_deploy_info(node):
 
 def _prepare_iso_image(task, kernel_href, ramdisk_href,
                        bootloader_href=None, configdrive=None,
-                       root_uuid=None, params=None):
+                       root_uuid=None, params=None, base_iso=None):
     """Prepare an ISO to boot the node.
 
     Build bootable ISO out of `kernel_href` and `ramdisk_href` (and
@@ -486,23 +486,28 @@ def _prepare_iso_image(task, kernel_href, ramdisk_href,
         value.
     :raises: ImageCreationFailed, if creating ISO image failed.
     """
-    if not kernel_href or not ramdisk_href:
+    if (not kernel_href or not ramdisk_href) and not base_iso:
         raise exception.InvalidParameterValue(_(
-            "Unable to find kernel or ramdisk for "
-            "building ISO for %(node)s") %
+            "Unable to find kernel, ramdisk for "
+            "building ISO, or explicit ISO for %(node)s") %
             {'node': task.node.uuid})
 
     i_info = task.node.instance_info
 
+    # NOTE(TheJulia): Until we support modifying a base iso, most of
+    # this logic actually does nothing in the end. But it should!
     if deploy_utils.get_boot_option(task.node) == "ramdisk":
-        kernel_params = "root=/dev/ram0 text "
-        kernel_params += i_info.get("ramdisk_kernel_arguments", "")
+        if not base_iso:
+            kernel_params = "root=/dev/ram0 text "
+            kernel_params += i_info.get("ramdisk_kernel_arguments", "")
+        else:
+            kernel_params = None
 
     else:
         kernel_params = i_info.get(
             'kernel_append_params', CONF.redfish.kernel_append_params)
 
-    if params:
+    if params and not base_iso:
         kernel_params = ' '.join(
             (kernel_params, ' '.join(
                 '%s=%s' % kv for kv in params.items())))
@@ -527,7 +532,11 @@ def _prepare_iso_image(task, kernel_href, ramdisk_href,
 
             configdrive_href = configdrive
 
-            if configdrive:
+            # FIXME(TheJulia): This is treated as conditional with
+            # a base_iso as the intent, eventually, is to support
+            # injection into the supplied image.
+
+            if configdrive and not base_iso:
                 parsed_url = urlparse.urlparse(configdrive)
                 if not parsed_url.scheme:
                     cfgdrv_blob = base64.decode_as_bytes(configdrive)
@@ -549,7 +558,8 @@ def _prepare_iso_image(task, kernel_href, ramdisk_href,
                 configdrive_href=configdrive_href,
                 root_uuid=root_uuid,
                 kernel_params=kernel_params,
-                boot_mode=boot_mode)
+                boot_mode=boot_mode,
+                base_iso=base_iso)
 
             iso_object_name = _get_iso_image_name(task.node)
 
@@ -597,6 +607,9 @@ def _prepare_deploy_iso(task, params, mode):
     ramdisk_href = d_info.get('%s_ramdisk' % mode)
     bootloader_href = d_info.get('bootloader')
 
+    # TODO(TheJulia): At some point we should support something like
+    # boot_iso for the deploy interface, perhaps when we support config
+    # injection.
     prepare_iso_image = functools.partial(
         _prepare_iso_image, task, kernel_href, ramdisk_href,
         bootloader_href=bootloader_href, params=params)
@@ -656,8 +669,9 @@ def _prepare_boot_iso(task, root_uuid=None):
 
     kernel_href = node.instance_info.get('kernel')
     ramdisk_href = node.instance_info.get('ramdisk')
+    base_iso = node.instance_info.get('boot_iso')
 
-    if not kernel_href or not ramdisk_href:
+    if (not kernel_href or not ramdisk_href) and not base_iso:
 
         image_href = d_info['image_source']
 
@@ -671,17 +685,17 @@ def _prepare_boot_iso(task, root_uuid=None):
         if not ramdisk_href:
             ramdisk_href = image_properties.get('ramdisk_id')
 
-    if not kernel_href or not ramdisk_href:
-        raise exception.InvalidParameterValue(_(
-            "Unable to find kernel or ramdisk for "
-            "to generate boot ISO for %(node)s") %
-            {'node': task.node.uuid})
+        if (not kernel_href or not ramdisk_href):
+            raise exception.InvalidParameterValue(_(
+                "Unable to find kernel or ramdisk for "
+                "to generate boot ISO for %(node)s") %
+                {'node': task.node.uuid})
 
     bootloader_href = d_info.get('bootloader')
 
     return _prepare_iso_image(
         task, kernel_href, ramdisk_href, bootloader_href,
-        root_uuid=root_uuid)
+        root_uuid=root_uuid, base_iso=base_iso)
 
 
 class RedfishVirtualMediaBoot(base.BootInterface):
@@ -767,7 +781,8 @@ class RedfishVirtualMediaBoot(base.BootInterface):
 
         if node.driver_internal_info.get('is_whole_disk_image'):
             props = []
-
+        elif d_info.get('boot_iso'):
+            props = ['boot_iso']
         elif service_utils.is_glance_image(d_info['image_source']):
             props = ['kernel_id', 'ramdisk_id']
 

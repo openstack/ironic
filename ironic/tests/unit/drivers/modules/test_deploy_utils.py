@@ -1397,6 +1397,20 @@ class ValidateImagePropertiesTestCase(db_base.DbTestCase):
                                   inst_info, ['kernel', 'ramdisk'])
         self.assertEqual(expected_error, str(error))
 
+    def test_validate_image_properties_boot_iso_conflict(self):
+        instance_info = {
+            'image_source': 'http://ubuntu',
+            'boot_iso': 'http://ubuntu.iso',
+        }
+        expected_error = ("An 'image_source' and 'boot_iso' "
+                          "parameter may not be specified at "
+                          "the same time.")
+        error = self.assertRaises(exception.InvalidParameterValue,
+                                  utils.validate_image_properties,
+                                  self.context,
+                                  instance_info, [])
+        self.assertEqual(expected_error, str(error))
+
 
 class ValidateParametersTestCase(db_base.DbTestCase):
 

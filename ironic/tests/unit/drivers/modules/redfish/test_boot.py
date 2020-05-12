@@ -340,7 +340,8 @@ class RedfishVirtualMediaBootTestCase(db_base.DbTestCase):
 
             url = redfish_boot._prepare_iso_image(
                 task, 'http://kernel/img', 'http://ramdisk/img',
-                'http://bootloader/img', root_uuid=task.node.uuid)
+                'http://bootloader/img', root_uuid=task.node.uuid,
+                base_iso=None)
 
             object_name = 'boot-%s' % task.node.uuid
 
@@ -352,7 +353,8 @@ class RedfishVirtualMediaBootTestCase(db_base.DbTestCase):
                 boot_mode='uefi', esp_image_href='http://bootloader/img',
                 configdrive_href=mock.ANY,
                 kernel_params='nofb nomodeset vga=normal',
-                root_uuid='1be26c0b-03f2-4d2e-ae87-c02d7f33c123')
+                root_uuid='1be26c0b-03f2-4d2e-ae87-c02d7f33c123',
+                base_iso=None)
 
             self.assertEqual(expected_url, url)
 
@@ -381,7 +383,8 @@ class RedfishVirtualMediaBootTestCase(db_base.DbTestCase):
                 boot_mode=None, esp_image_href=None,
                 configdrive_href=mock.ANY,
                 kernel_params='nofb nomodeset vga=normal',
-                root_uuid='1be26c0b-03f2-4d2e-ae87-c02d7f33c123')
+                root_uuid='1be26c0b-03f2-4d2e-ae87-c02d7f33c123',
+                base_iso=None)
 
             self.assertEqual(expected_url, url)
 
@@ -397,14 +400,39 @@ class RedfishVirtualMediaBootTestCase(db_base.DbTestCase):
 
             redfish_boot._prepare_iso_image(
                 task, 'http://kernel/img', 'http://ramdisk/img',
-                bootloader_href=None, root_uuid=task.node.uuid)
+                bootloader_href=None, root_uuid=task.node.uuid,
+                base_iso=None)
 
             mock_create_boot_iso.assert_called_once_with(
                 mock.ANY, mock.ANY, 'http://kernel/img', 'http://ramdisk/img',
                 boot_mode=None, esp_image_href=None,
                 configdrive_href=mock.ANY,
                 kernel_params=kernel_params,
-                root_uuid='1be26c0b-03f2-4d2e-ae87-c02d7f33c123')
+                root_uuid='1be26c0b-03f2-4d2e-ae87-c02d7f33c123',
+                base_iso=None)
+
+    @mock.patch.object(redfish_boot, '_publish_image', autospec=True)
+    @mock.patch.object(images, 'create_boot_iso', autospec=True)
+    def test__prepare_iso_image_boot_iso(
+            self, mock_create_boot_iso, mock__publish_image):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+
+            task.node.instance_info = {'boot_iso': 'http://host/boot.iso',
+                                       'capabilities': {
+                                           'boot_option': 'ramdisk'}}
+
+            redfish_boot._prepare_iso_image(
+                task, None, None, root_uuid=None,
+                base_iso='http://host/boot.iso')
+
+            mock_create_boot_iso.assert_called_once_with(
+                mock.ANY, mock.ANY, None, None,
+                boot_mode=None, esp_image_href=None,
+                configdrive_href=None,
+                kernel_params=None,
+                root_uuid=None,
+                base_iso='http://host/boot.iso')
 
     @mock.patch.object(redfish_boot, '_prepare_iso_image', autospec=True)
     def test__prepare_deploy_iso(self, mock__prepare_iso_image):
@@ -474,7 +502,30 @@ class RedfishVirtualMediaBootTestCase(db_base.DbTestCase):
 
             mock__prepare_iso_image.assert_called_once_with(
                 mock.ANY, 'http://kernel/img', 'http://ramdisk/img',
-                'bootloader', root_uuid=task.node.uuid)
+                'bootloader', root_uuid=task.node.uuid, base_iso=None)
+
+    @mock.patch.object(redfish_boot, '_prepare_iso_image', autospec=True)
+    @mock.patch.object(images, 'create_boot_iso', autospec=True)
+    def test__prepare_boot_iso_user_supplied(self, mock_create_boot_iso,
+                                             mock__prepare_iso_image):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            task.node.driver_info.update(
+                {'deploy_kernel': 'kernel',
+                 'deploy_ramdisk': 'ramdisk',
+                 'bootloader': 'bootloader'}
+            )
+
+            task.node.instance_info.update(
+                {'boot_iso': 'http://boot/iso'})
+
+            redfish_boot._prepare_boot_iso(
+                task, root_uuid=task.node.uuid)
+
+            mock__prepare_iso_image.assert_called_once_with(
+                mock.ANY, None, None,
+                'bootloader', root_uuid=task.node.uuid,
+                base_iso='http://boot/iso')
 
     @mock.patch.object(redfish_utils, 'parse_driver_info', autospec=True)
     @mock.patch.object(deploy_utils, 'validate_image_properties',
@@ -527,6 +578,64 @@ class RedfishVirtualMediaBootTestCase(db_base.DbTestCase):
                  'bootloader': 'bootloader'}
             )
 
+            mock_get_boot_mode.return_value = 'bios'
+
+            task.driver.boot.validate(task)
+
+            mock_validate_image_properties.assert_called_once_with(
+                mock.ANY, mock.ANY, mock.ANY)
+
+    @mock.patch.object(redfish_utils, 'parse_driver_info', autospec=True)
+    @mock.patch.object(deploy_utils, 'validate_image_properties',
+                       autospec=True)
+    @mock.patch.object(boot_mode_utils, 'get_boot_mode_for_deploy',
+                       autospec=True)
+    def test_validate_bios_boot_iso(self, mock_get_boot_mode,
+                                    mock_validate_image_properties,
+                                    mock_parse_driver_info):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            task.node.instance_info.update(
+                {'boot_iso': 'http://localhost/file.iso'}
+            )
+
+            task.node.driver_info.update(
+                {'deploy_kernel': 'kernel',
+                 'deploy_ramdisk': 'ramdisk',
+                 'bootloader': 'bootloader'}
+            )
+            # NOTE(TheJulia): Boot mode doesn't matter for this
+            # test scenario.
+            mock_get_boot_mode.return_value = 'bios'
+
+            task.driver.boot.validate(task)
+
+            mock_validate_image_properties.assert_called_once_with(
+                mock.ANY, mock.ANY, mock.ANY)
+
+    @mock.patch.object(redfish_utils, 'parse_driver_info', autospec=True)
+    @mock.patch.object(deploy_utils, 'validate_image_properties',
+                       autospec=True)
+    @mock.patch.object(boot_mode_utils, 'get_boot_mode_for_deploy',
+                       autospec=True)
+    def test_validate_bios_boot_iso_conflicting_image_source(
+            self, mock_get_boot_mode,
+            mock_validate_image_properties,
+            mock_parse_driver_info):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            task.node.instance_info.update(
+                {'boot_iso': 'http://localhost/file.iso',
+                 'image_source': 'http://localhost/file.img'}
+            )
+
+            task.node.driver_info.update(
+                {'deploy_kernel': 'kernel',
+                 'deploy_ramdisk': 'ramdisk',
+                 'bootloader': 'bootloader'}
+            )
+            # NOTE(TheJulia): Boot mode doesn't matter for this
+            # test scenario.
             mock_get_boot_mode.return_value = 'bios'
 
             task.driver.boot.validate(task)
@@ -822,6 +931,85 @@ class RedfishVirtualMediaBootTestCase(db_base.DbTestCase):
             task.node.driver_internal_info[
                 'root_uuid_or_disk_id'] = self.node.uuid
 
+            mock_deploy_utils.get_boot_option.return_value = 'ramdisk'
+
+            mock__prepare_boot_iso.return_value = 'image-url'
+
+            task.driver.boot.prepare_instance(task)
+
+            mock__prepare_boot_iso.assert_called_once_with(task)
+
+            mock__eject_vmedia.assert_called_once_with(
+                task, sushy.VIRTUAL_MEDIA_CD)
+
+            mock__insert_vmedia.assert_called_once_with(
+                task, 'image-url', sushy.VIRTUAL_MEDIA_CD)
+
+            mock_manager_utils.node_set_boot_device.assert_called_once_with(
+                task, boot_devices.CDROM, persistent=True)
+
+            mock_boot_mode_utils.sync_boot_mode.assert_called_once_with(task)
+
+    @mock.patch.object(redfish_boot.RedfishVirtualMediaBoot,
+                       'clean_up_instance', autospec=True)
+    @mock.patch.object(redfish_boot, '_prepare_boot_iso', autospec=True)
+    @mock.patch.object(redfish_boot, '_eject_vmedia', autospec=True)
+    @mock.patch.object(redfish_boot, '_insert_vmedia', autospec=True)
+    @mock.patch.object(redfish_boot, '_parse_driver_info', autospec=True)
+    @mock.patch.object(redfish_boot, 'manager_utils', autospec=True)
+    @mock.patch.object(redfish_boot, 'deploy_utils', autospec=True)
+    @mock.patch.object(redfish_boot, 'boot_mode_utils', autospec=True)
+    def test_prepare_instance_ramdisk_boot_iso(
+            self, mock_boot_mode_utils, mock_deploy_utils, mock_manager_utils,
+            mock__parse_driver_info, mock__insert_vmedia, mock__eject_vmedia,
+            mock__prepare_boot_iso, mock_clean_up_instance):
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            task.node.provision_state = states.DEPLOYING
+            task.node.driver_internal_info[
+                'root_uuid_or_disk_id'] = self.node.uuid
+            task.node.instance_info = {'boot_iso': 'http://host/boot.iso'}
+
+            mock_deploy_utils.get_boot_option.return_value = 'ramdisk'
+
+            mock__prepare_boot_iso.return_value = 'image-url'
+
+            task.driver.boot.prepare_instance(task)
+
+            mock__prepare_boot_iso.assert_called_once_with(task)
+
+            mock__eject_vmedia.assert_called_once_with(
+                task, sushy.VIRTUAL_MEDIA_CD)
+
+            mock__insert_vmedia.assert_called_once_with(
+                task, 'image-url', sushy.VIRTUAL_MEDIA_CD)
+
+            mock_manager_utils.node_set_boot_device.assert_called_once_with(
+                task, boot_devices.CDROM, persistent=True)
+
+            mock_boot_mode_utils.sync_boot_mode.assert_called_once_with(task)
+
+    @mock.patch.object(redfish_boot.RedfishVirtualMediaBoot,
+                       'clean_up_instance', autospec=True)
+    @mock.patch.object(redfish_boot, '_prepare_boot_iso', autospec=True)
+    @mock.patch.object(redfish_boot, '_eject_vmedia', autospec=True)
+    @mock.patch.object(redfish_boot, '_insert_vmedia', autospec=True)
+    @mock.patch.object(redfish_boot, '_parse_driver_info', autospec=True)
+    @mock.patch.object(redfish_boot, 'manager_utils', autospec=True)
+    @mock.patch.object(redfish_boot, 'deploy_utils', autospec=True)
+    @mock.patch.object(redfish_boot, 'boot_mode_utils', autospec=True)
+    def test_prepare_instance_ramdisk_boot_iso_boot(
+            self, mock_boot_mode_utils, mock_deploy_utils, mock_manager_utils,
+            mock__parse_driver_info, mock__insert_vmedia, mock__eject_vmedia,
+            mock__prepare_boot_iso, mock_clean_up_instance):
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            task.node.provision_state = states.DEPLOYING
+            i_info = task.node.instance_info
+            i_info['boot_iso'] = "super-magic"
+            task.node.instance_info = i_info
             mock_deploy_utils.get_boot_option.return_value = 'ramdisk'
 
             mock__prepare_boot_iso.return_value = 'image-url'

@@ -511,6 +511,11 @@ def validate_image_properties(ctx, deploy_info, properties):
         the mentioned properties.
     """
     image_href = deploy_info['image_source']
+    boot_iso = deploy_info.get('boot_iso')
+    if image_href and boot_iso:
+        raise exception.InvalidParameterValue(_(
+            "An 'image_source' and 'boot_iso' parameter may not be "
+            "specified at the same time."))
     try:
         img_service = image_service.get_image_service(image_href, context=ctx)
         image_props = img_service.show(image_href)['properties']
@@ -697,11 +702,21 @@ def get_image_instance_info(node):
         instance_info. Also raises same exception if kernel/ramdisk is
         missing in instance_info for non-glance images.
     """
+    # TODO(TheJulia): We seem to have a lack of direct unit testing of this
+    # method, but that is likely okay. If memory serves we test this at
+    # a few different levels. That being said, it would be good for some
+    # more explicit unit testing to exist.
     info = {}
-    info['image_source'] = node.instance_info.get('image_source')
 
     is_whole_disk_image = node.driver_internal_info.get('is_whole_disk_image')
-    if not is_whole_disk_image:
+    boot_iso = node.instance_info.get('boot_iso')
+
+    if not boot_iso:
+        info['image_source'] = node.instance_info.get('image_source')
+    else:
+        info['boot_iso'] = boot_iso
+
+    if not is_whole_disk_image and not boot_iso:
         if not service_utils.is_glance_image(info['image_source']):
             info['kernel'] = node.instance_info.get('kernel')
             info['ramdisk'] = node.instance_info.get('ramdisk')
