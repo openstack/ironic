@@ -33,13 +33,13 @@
         INSTALL_TEMPEST: False # Don't install a tempest package globaly
         TEMPEST_PLUGINS: "{{ ansible_user_dir }}/src/opendev.org/openstack/ironic-tempest-plugin"
         VIRT_DRIVER: ironic
-        BUILD_TIMEOUT: 720
+        BUILD_TIMEOUT: 900
         IRONIC_BAREMETAL_BASIC_OPS: True
         IRONIC_BUILD_DEPLOY_RAMDISK: False
         IRONIC_CALLBACK_TIMEOUT: 600
         IRONIC_DEPLOY_DRIVER: ipmi
         IRONIC_INSPECTOR_BUILD_RAMDISK: False
-        IRONIC_TEMPEST_BUILD_TIMEOUT: 720
+        IRONIC_TEMPEST_BUILD_TIMEOUT: 900
         IRONIC_TEMPEST_WHOLE_DISK_IMAGE: False
         IRONIC_VM_COUNT: 1
         IRONIC_VM_EPHEMERAL_DISK: 1
@@ -259,12 +259,6 @@
     timeout: 5400
     vars:
       devstack_localrc:
-        # This test runs cleaning by default, and with a larger
-        # IPA image means that it takes longer to boot for deploy
-        # and cleaning. As such, CI performance variations can
-        # cause this job to fail easily due to the extra steps
-        # and boot cycle of the cleaning operation.
-        IRONIC_TEMPEST_BUILD_TIMEOUT: 850
         IRONIC_DEFAULT_BOOT_OPTION: netboot
 
 - job:
@@ -614,7 +608,6 @@
         IRONIC_DEFAULT_DEPLOY_INTERFACE: direct
         IRONIC_DIB_RAMDISK_OS: centos8
         IRONIC_TEMPEST_WHOLE_DISK_IMAGE: True
-        IRONIC_TEMPEST_BUILD_TIMEOUT: 900
         IRONIC_VM_EPHEMERAL_DISK: 0
         IRONIC_VM_INTERFACE_COUNT: 1
         IRONIC_AUTOMATED_CLEAN_ENABLED: False
