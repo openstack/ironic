@@ -480,7 +480,7 @@ def dhcp_options_for_instance(task, ipxe_enabled=False, url_boot=False,
                 LOG.warning('IPv6 is enabled and the DHCP driver appears set '
                             'to a plugin aside from "neutron". Node %(name)s '
                             'may not receive proper DHCPv6 provided '
-                            'boot parameters.'.format(name=task.node.uuid))
+                            'boot parameters.', {'name': task.node.uuid})
             # NOTE(TheJulia): This was added for ISC DHCPd support, however it
             # appears that isc support was never added to neutron and is likely
             # a down stream driver.
