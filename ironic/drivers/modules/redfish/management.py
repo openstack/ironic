@@ -24,6 +24,7 @@ from ironic.common import components
 from ironic.common import exception
 from ironic.common.i18n import _
 from ironic.common import indicator_states
+from ironic.common import utils
 from ironic.conductor import task_manager
 from ironic.drivers import base
 from ironic.drivers.modules.redfish import utils as redfish_utils
@@ -68,6 +69,42 @@ if sushy:
         v: k for k, v in INDICATOR_MAP.items()}
 
 
+def _set_boot_device(task, system, device, enabled=None):
+    """An internal routine to set the boot device.
+
+    :param task: a task from TaskManager.
+    :param system: a Redfish System object.
+    :param device: the Redfish boot device.
+    :param enabled: Redfish boot device persistence value or None.
+    :raises: SushyError on an error from the Sushy library
+    """
+    try:
+        system.set_system_boot_options(device, enabled=enabled)
+    except sushy.exceptions.SushyError as e:
+        if enabled == sushy.BOOT_SOURCE_ENABLED_CONTINUOUS:
+            # NOTE(dtantsur): continuous boot device settings have been
+            # removed from Redfish, and some vendors stopped supporting
+            # it before an alternative was provided. As a work around,
+            # use one-time boot and restore the boot device on every
+            # reboot via RedfishPower.
+            LOG.debug('Error %(error)s when trying to set a '
+                      'persistent boot device on node %(node)s, '
+                      'falling back to one-time boot settings',
+                      {'error': e, 'node': task.node.uuid})
+            system.set_system_boot_options(
+                device, enabled=sushy.BOOT_SOURCE_ENABLED_ONCE)
+            LOG.warning('Could not set persistent boot device to '
+                        '%(dev)s for node %(node)s, using one-time '
+                        'boot device instead',
+                        {'dev': device, 'node': task.node.uuid})
+            utils.set_node_nested_field(
+                task.node, 'driver_internal_info',
+                'redfish_boot_device', device)
+            task.node.save()
+        else:
+            raise
+
+
 class RedfishManagement(base.ManagementInterface):
 
     def __init__(self):
@@ -108,6 +145,33 @@ class RedfishManagement(base.ManagementInterface):
         return list(BOOT_DEVICE_MAP_REV)
 
     @task_manager.require_exclusive_lock
+    def restore_boot_device(self, task, system):
+        """Restore boot device if needed.
+
+        Checks the redfish_boot_device internal flag and sets the one-time
+        boot device accordingly. A warning is issued if it fails.
+
+        This method is supposed to be called from the Redfish power interface
+        and should be considered private to the Redfish hardware type.
+
+        :param task: a task from TaskManager.
+        :param system: a Redfish System object.
+        """
+        device = task.node.driver_internal_info.get('redfish_boot_device')
+        if not device:
+            return
+
+        LOG.debug('Restoring boot device %(dev)s on node %(node)s',
+                  {'dev': device, 'node': task.node.uuid})
+        try:
+            _set_boot_device(task, system, device)
+        except sushy.exceptions.SushyError as e:
+            LOG.warning('Unable to recover boot device %(dev)s for node '
+                        '%(node)s, relying on the pre-configured boot order. '
+                        'Error: %(error)s',
+                        {'dev': device, 'node': task.node.uuid, 'error': e})
+
+    @task_manager.require_exclusive_lock
     def set_boot_device(self, task, device, persistent=False):
         """Set the boot device for a node.
 
@@ -124,6 +188,10 @@ class RedfishManagement(base.ManagementInterface):
         :raises: RedfishConnectionError when it fails to connect to Redfish
         :raises: RedfishError on an error from the Sushy library
         """
+        utils.pop_node_nested_field(
+            task.node, 'driver_internal_info', 'redfish_boot_device')
+        task.node.save()
+
         system = redfish_utils.get_system(task.node)
 
         desired_persistence = BOOT_DEVICE_PERSISTENT_MAP_REV[persistent]
@@ -132,11 +200,9 @@ class RedfishManagement(base.ManagementInterface):
         # NOTE(etingof): this can be racy, esp if BMC is not RESTful
         enabled = (desired_persistence
                    if desired_persistence != current_persistence else None)
-
         try:
-            system.set_system_boot_options(
-                BOOT_DEVICE_MAP_REV[device], enabled=enabled)
-
+            _set_boot_device(task, system, BOOT_DEVICE_MAP_REV[device],
+                             enabled=enabled)
         except sushy.exceptions.SushyError as e:
             error_msg = (_('Redfish set boot device failed for node '
                            '%(node)s. Error: %(error)s') %
