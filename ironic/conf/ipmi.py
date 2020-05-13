@@ -49,6 +49,12 @@ opts = [
                        'that command, the default value is True. It may be '
                        'overridden by per-node \'ipmi_disable_boot_timeout\' '
                        'option in node\'s \'driver_info\' field.')),
+    cfg.BoolOpt('debug',
+                default=False,
+                help=_('Enables all ipmi commands to be executed with an '
+                       'additional debugging output. This is a separate '
+                       'option as ipmitool can log a substantial amount '
+                       'of misleading text when in this mode.')),
 ]
 
 
