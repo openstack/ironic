@@ -17,14 +17,6 @@ from ironic.common.i18n import _
 from ironic.conf import auth
 
 opts = [
-    cfg.URIOpt('url',
-               schemes=('http', 'https'),
-               deprecated_for_removal=True,
-               deprecated_reason=_('Use [cinder]/endpoint_override option '
-                                   'to set a specific cinder API URL to '
-                                   'connect to.'),
-               help=_('URL for connecting to cinder. If set, the value must '
-                      'start with either http:// or https://.')),
     cfg.IntOpt('retries',
                default=3,
                help=_('Client retries in the case of a failed request '
