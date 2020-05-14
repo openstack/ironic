@@ -21,6 +21,7 @@ from ironic.conductor import steps as conductor_steps
 from ironic.conductor import task_manager
 from ironic.conductor import utils
 from ironic.conf import CONF
+from ironic.drivers import utils as driver_utils
 
 LOG = log.getLogger(__name__)
 
@@ -182,6 +183,7 @@ def do_next_clean_step(task, step_index):
                    {'node': node.uuid, 'exc': e,
                     'step': node.clean_step})
             LOG.exception(msg)
+            driver_utils.collect_ramdisk_logs(task.node, label='cleaning')
             utils.cleaning_error_handler(task, msg)
             return
 
@@ -205,6 +207,9 @@ def do_next_clean_step(task, step_index):
             return utils.cleaning_error_handler(task, msg)
         LOG.info('Node %(node)s finished clean step %(step)s',
                  {'node': node.uuid, 'step': step})
+
+    if CONF.agent.deploy_logs_collect == 'always':
+        driver_utils.collect_ramdisk_logs(task.node, label='cleaning')
 
     # Clear clean_step
     node.clean_step = None
