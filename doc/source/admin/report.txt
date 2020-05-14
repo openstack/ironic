@@ -273,7 +273,6 @@ default:
     no-raid
   enabled_vendor_interfaces =
     no-vendor
-  fatal_exception_format_errors = False
   force_raw_images = True
   graceful_shutdown_timeout = 60
   grub_config_template = /opt/stack/ironic/ironic/common/grub_conf.template

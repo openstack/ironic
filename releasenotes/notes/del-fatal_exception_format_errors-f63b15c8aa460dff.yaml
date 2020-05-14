@@ -1,0 +1,5 @@
+---
+upgrade:
+  - |
+    The ``[DEFAULT]fatal_exception_format_errors`` was removed,
+    use ``[ironic_lib]fatal_exception_format_errors`` instead.
