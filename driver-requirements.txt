@@ -17,7 +17,7 @@ sushy>=3.2.0
 ansible>=2.7
 
 # HUAWEI iBMC hardware type uses the python-ibmcclient library
-python-ibmcclient>=0.1.0
+python-ibmcclient>=0.1.0,<0.2.0
 
 # Dell EMC iDRAC sushy OEM extension
 sushy-oem-idrac<=1.0.0
