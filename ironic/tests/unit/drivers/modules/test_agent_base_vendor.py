@@ -1626,6 +1626,7 @@ class AgentDeployMixinTest(AgentDeployMixinBaseTest):
             hook_mock.assert_called_once_with(task, command_status)
             notify_mock.assert_called_once_with(task)
 
+    @mock.patch.object(driver_utils, 'collect_ramdisk_logs', autospec=True)
     @mock.patch.object(manager_utils, 'notify_conductor_resume_clean',
                        autospec=True)
     @mock.patch.object(agent_base_vendor,
@@ -1635,7 +1636,7 @@ class AgentDeployMixinTest(AgentDeployMixinBaseTest):
                        autospec=True)
     def test_continue_cleaning_with_hook_fails(
             self, status_mock, error_handler_mock, get_hook_mock,
-            notify_mock):
+            notify_mock, collect_logs_mock):
         self.node.clean_step = {
             'priority': 10,
             'interface': 'raid',
@@ -1658,6 +1659,8 @@ class AgentDeployMixinTest(AgentDeployMixinBaseTest):
             hook_mock.assert_called_once_with(task, command_status)
             error_handler_mock.assert_called_once_with(task, mock.ANY)
             self.assertFalse(notify_mock.called)
+            collect_logs_mock.assert_called_once_with(task.node,
+                                                      label='cleaning')
 
     @mock.patch.object(manager_utils, 'notify_conductor_resume_clean',
                        autospec=True)
@@ -1704,10 +1707,12 @@ class AgentDeployMixinTest(AgentDeployMixinBaseTest):
             self.deploy.continue_cleaning(task)
             self.assertFalse(notify_mock.called)
 
+    @mock.patch.object(driver_utils, 'collect_ramdisk_logs', autospec=True)
     @mock.patch.object(manager_utils, 'cleaning_error_handler', autospec=True)
     @mock.patch.object(agent_client.AgentClient, 'get_commands_status',
                        autospec=True)
-    def test_continue_cleaning_fail(self, status_mock, error_mock):
+    def test_continue_cleaning_fail(self, status_mock, error_mock,
+                                    collect_logs_mock):
         # Test that a failure puts the node in CLEANFAIL
         status_mock.return_value = [{
             'command_status': 'FAILED',
@@ -1718,6 +1723,8 @@ class AgentDeployMixinTest(AgentDeployMixinBaseTest):
                                   shared=False) as task:
             self.deploy.continue_cleaning(task)
             error_mock.assert_called_once_with(task, mock.ANY)
+            collect_logs_mock.assert_called_once_with(task.node,
+                                                      label='cleaning')
 
     @mock.patch.object(conductor_steps, 'set_node_cleaning_steps',
                        autospec=True)

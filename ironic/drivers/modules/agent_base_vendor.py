@@ -585,6 +585,7 @@ class AgentDeployMixin(HeartbeatMixin):
                     'err': command.get('command_error'),
                     'step': node.clean_step})
             LOG.error(msg)
+            driver_utils.collect_ramdisk_logs(task.node, label='cleaning')
             return manager_utils.cleaning_error_handler(task, msg)
         elif command.get('command_status') == 'CLEAN_VERSION_MISMATCH':
             # Cache the new clean steps (and 'hardware_manager_version')
@@ -649,6 +650,8 @@ class AgentDeployMixin(HeartbeatMixin):
                             'cls': e.__class__.__name__,
                             'step': node.clean_step})
                     LOG.exception(msg)
+                    driver_utils.collect_ramdisk_logs(task.node,
+                                                      label='cleaning')
                     return manager_utils.cleaning_error_handler(task, msg)
 
             if task.node.clean_step.get('reboot_requested'):
@@ -665,6 +668,7 @@ class AgentDeployMixin(HeartbeatMixin):
                     'err': command.get('command_status'),
                     'step': node.clean_step})
             LOG.error(msg)
+            driver_utils.collect_ramdisk_logs(task.node, label='cleaning')
             return manager_utils.cleaning_error_handler(task, msg)
 
     @METRICS.timer('AgentDeployMixin.reboot_and_finish_deploy')

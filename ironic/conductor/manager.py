@@ -75,6 +75,7 @@ from ironic.conductor import task_manager
 from ironic.conductor import utils
 from ironic.conf import CONF
 from ironic.drivers import base as drivers_base
+from ironic.drivers import utils as driver_utils
 from ironic import objects
 from ironic.objects import base as objects_base
 from ironic.objects import fields
@@ -1458,6 +1459,7 @@ class ConductorManager(base_manager.BaseConductorManager):
                        {'node': node.uuid, 'exc': e,
                         'step': node.clean_step})
                 LOG.exception(msg)
+                driver_utils.collect_ramdisk_logs(task.node, label='cleaning')
                 utils.cleaning_error_handler(task, msg)
                 return
 
@@ -1481,6 +1483,9 @@ class ConductorManager(base_manager.BaseConductorManager):
                 return utils.cleaning_error_handler(task, msg)
             LOG.info('Node %(node)s finished clean step %(step)s',
                      {'node': node.uuid, 'step': step})
+
+        if CONF.agent.deploy_logs_collect == 'always':
+            driver_utils.collect_ramdisk_logs(node, label='cleaning')
 
         # Clear clean_step
         node.clean_step = None
