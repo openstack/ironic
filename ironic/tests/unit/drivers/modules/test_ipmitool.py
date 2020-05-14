@@ -1041,6 +1041,63 @@ class IPMIToolPrivateMethodTestCase(
         mock_support.assert_called_once_with('timing')
         mock_exec.assert_called_once_with(*args)
 
+    @mock.patch.object(ipmi, '_is_option_supported', autospec=True)
+    @mock.patch.object(ipmi, '_make_password_file', _make_password_file_stub)
+    @mock.patch.object(utils, 'execute', autospec=True)
+    def test__exec_ipmitool_with_ironic_retries(
+            self, mock_exec, mock_support):
+        args = [
+            'ipmitool',
+            '-I', 'lanplus',
+            '-H', self.info['address'],
+            '-L', self.info['priv_level'],
+            '-U', self.info['username'],
+            '-v',
+            '-R', '1',
+            '-N', '1',
+            '-f', awesome_password_filename,
+            'A', 'B', 'C',
+        ]
+
+        mock_support.return_value = True
+        mock_exec.return_value = (None, None)
+
+        self.config(use_ipmitool_retries=False, group='ipmi')
+
+        ipmi._exec_ipmitool(self.info, 'A B C')
+
+        mock_support.assert_called_once_with('timing')
+        mock_exec.assert_called_once_with(*args)
+
+    @mock.patch.object(ipmi, '_is_option_supported', autospec=True)
+    @mock.patch.object(ipmi, '_make_password_file', _make_password_file_stub)
+    @mock.patch.object(utils, 'execute', autospec=True)
+    def test__exec_ipmitool_with_ironic_retries_multiple(
+            self, mock_exec, mock_support):
+
+        mock_exec.side_effect = [
+            processutils.ProcessExecutionError(
+                stderr="Unknown"
+            ),
+            processutils.ProcessExecutionError(
+                stderr="Unknown"
+            ),
+            processutils.ProcessExecutionError(
+                stderr="Unknown"
+            ),
+        ]
+
+        self.config(min_command_interval=1, group='ipmi')
+        self.config(command_retry_timeout=3, group='ipmi')
+        self.config(use_ipmitool_retries=False, group='ipmi')
+
+        self.assertRaises(processutils.ProcessExecutionError,
+                          ipmi._exec_ipmitool,
+                          self.info, 'A B C')
+
+        mock_support.assert_called_once_with('timing')
+        self.assertEqual(3, mock_exec.call_count)
+
     def test__exec_ipmitool_wait(self):
         mock_popen = mock.MagicMock()
         mock_popen.poll.side_effect = [1, 1, 1, 1, 1]
