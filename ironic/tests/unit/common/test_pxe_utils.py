@@ -1249,6 +1249,8 @@ class PXEBuildConfigOptionsTestCase(db_base.DbTestCase):
         if ramdisk_params:
             expected_pxe_params += ' ' + ' '.join(
                 '%s=%s' % tpl for tpl in ramdisk_params.items())
+        expected_pxe_params += (
+            " ipa-global-request-id=%s" % self.context.global_id)
 
         expected_options = {
             'deployment_ari_path': pxe_ramdisk,
@@ -1305,8 +1307,8 @@ class PXEBuildConfigOptionsTestCase(db_base.DbTestCase):
         del self.node.driver_internal_info['is_whole_disk_image']
         self.node.save()
         pxe_params = 'my-pxe-append-params ipa-debug=0'
-        self.config(group='pxe', tftp_server='my-tftp-server')
         self.config(group='pxe', pxe_append_params=pxe_params)
+        self.config(group='pxe', tftp_server='my-tftp-server')
         self.config(group='pxe', tftp_root='/tftp-path/')
         image_info = {
             'deploy_kernel': ('deploy_kernel',
@@ -1325,7 +1327,8 @@ class PXEBuildConfigOptionsTestCase(db_base.DbTestCase):
             'ari_path': 'no_ramdisk',
             'deployment_aki_path': 'path-to-deploy_kernel',
             'deployment_ari_path': 'path-to-deploy_ramdisk',
-            'pxe_append_params': pxe_params,
+            'pxe_append_params': pxe_params + (
+                " ipa-global-request-id=%s" % self.context.global_id),
             'tftp_server': 'my-tftp-server',
             'ipxe_timeout': 0}
         self.assertEqual(expected_options, options)
@@ -1530,6 +1533,8 @@ class iPXEBuildConfigOptionsTestCase(db_base.DbTestCase):
         expected_pxe_params = 'test_param'
         if debug:
             expected_pxe_params += ' ipa-debug=1'
+        expected_pxe_params += (
+            ' ipa-global-request-id=%s' % self.context.global_id)
 
         expected_options = {
             'deployment_ari_path': pxe_ramdisk,
