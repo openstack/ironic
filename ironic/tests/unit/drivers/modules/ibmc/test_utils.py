@@ -144,8 +144,8 @@ class IBMCUtilsTestCase(base.IBMCTestCase):
         conn = self.mock_ibmc_conn(connect_ibmc)
         # Mocks
         conn.system.get.side_effect = [
-            ibmc_error.ConnectionError(url=self.ibmc['address'],
-                                       error='Failed to connect to host'),
+            ibmc_error.IBMCConnectionError(url=self.ibmc['address'],
+                                           error='Failed to connect to host'),
             mock.PropertyMock(
                 boot_source_override=mock.PropertyMock(
                     target=constants.BOOT_SOURCE_TARGET_PXE,

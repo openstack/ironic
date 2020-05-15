@@ -152,7 +152,7 @@ def handle_ibmc_exception(action):
 
             try:
                 return f(*args, **kwargs)
-            except ibmc_error.ConnectionError as e:
+            except ibmc_error.IBMCConnectionError as e:
                 error = (_('Failed to connect to iBMC for node %(node)s, '
                            'Error: %(error)s')
                          % {'node': node.uuid, 'error': e})
