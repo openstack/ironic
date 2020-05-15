@@ -1,0 +1,17 @@
+---
+upgrade:
+  - |
+    Operators upgrading from earlier versions using PXE should explicitly set
+    ``[pxe]ipxe_bootfile_name``, ``[pxe]uefi_ipxe_bootfile_name``, and
+    possibly ``[pxe]ipxe_bootfile_name_by_arch`` settings, as well as a
+    iPXE specific ``[pxe]ipxe_config_template`` override, if required.
+
+    Setting the ``[pxe]ipxe_config_template`` to no value will result in the
+    ``[pxe]pxe_config_template`` being used. The default value points to the
+    supplied standard iPXE template, so only highly customized operators may
+    have to tune this setting.
+fixes:
+  - |
+    Addresses the lack of an ability to explicitly set different bootloaders
+    for ``iPXE`` and ``PXE`` based boot operations via their respective
+    ``ipxe`` and ``pxe`` boot interfaces.

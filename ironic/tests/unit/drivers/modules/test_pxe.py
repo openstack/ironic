@@ -786,7 +786,7 @@ class PXEBootTestCase(db_base.DbTestCase):
             self.assertFalse(cache_mock.called)
             provider_mock.update_dhcp.assert_called_once_with(task, dhcp_opts)
             create_pxe_config_mock.assert_called_once_with(
-                task, mock.ANY, CONF.pxe.pxe_config_template,
+                task, mock.ANY, CONF.pxe.ipxe_config_template,
                 ipxe_enabled=True)
             switch_pxe_config_mock.assert_called_once_with(
                 pxe_config_path, None, boot_modes.LEGACY_BIOS, False,

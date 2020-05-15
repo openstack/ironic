@@ -291,14 +291,9 @@ class iPXEBootTestCase(db_base.DbTestCase):
                     mock_cache_r_k.assert_called_once_with(
                         task, {'rescue_kernel': 'a', 'rescue_ramdisk': 'r'},
                         ipxe_enabled=True)
-            if uefi:
-                mock_pxe_config.assert_called_once_with(
-                    task, {'foo': 'bar'}, CONF.pxe.uefi_pxe_config_template,
-                    ipxe_enabled=True)
-            else:
-                mock_pxe_config.assert_called_once_with(
-                    task, {'foo': 'bar'}, CONF.pxe.pxe_config_template,
-                    ipxe_enabled=True)
+            mock_pxe_config.assert_called_once_with(
+                task, {'foo': 'bar'}, CONF.pxe.ipxe_config_template,
+                ipxe_enabled=True)
 
     def test_prepare_ramdisk(self):
         self.node.provision_state = states.DEPLOYING
@@ -678,7 +673,7 @@ class iPXEBootTestCase(db_base.DbTestCase):
                                                ipxe_enabled=True)
             provider_mock.update_dhcp.assert_called_once_with(task, dhcp_opts)
             create_pxe_config_mock.assert_called_once_with(
-                task, mock.ANY, CONF.pxe.pxe_config_template,
+                task, mock.ANY, CONF.pxe.ipxe_config_template,
                 ipxe_enabled=True)
             switch_pxe_config_mock.assert_called_once_with(
                 pxe_config_path, "30212642-09d3-467f-8e09-21685826ab50",
@@ -786,7 +781,7 @@ class iPXEBootTestCase(db_base.DbTestCase):
             self.assertFalse(cache_mock.called)
             provider_mock.update_dhcp.assert_called_once_with(task, dhcp_opts)
             create_pxe_config_mock.assert_called_once_with(
-                task, mock.ANY, CONF.pxe.pxe_config_template,
+                task, mock.ANY, CONF.pxe.ipxe_config_template,
                 ipxe_enabled=True)
             switch_pxe_config_mock.assert_called_once_with(
                 pxe_config_path, None, boot_modes.LEGACY_BIOS, False,
