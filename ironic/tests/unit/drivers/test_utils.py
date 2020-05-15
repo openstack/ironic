@@ -252,7 +252,16 @@ class UtilsRamdiskLogsTestCase(tests_base.TestCase):
         logs = 'Gary the Snail'
         mock_collect.return_value = {'command_result': {'system_logs': logs}}
         driver_utils.collect_ramdisk_logs(self.node)
-        mock_store.assert_called_once_with(self.node, logs)
+        mock_store.assert_called_once_with(self.node, logs, label=None)
+
+    @mock.patch.object(driver_utils, 'store_ramdisk_logs', autospec=True)
+    @mock.patch.object(agent_client.AgentClient,
+                       'collect_system_logs', autospec=True)
+    def test_collect_ramdisk_logs_with_label(self, mock_collect, mock_store):
+        logs = 'Gary the Snail'
+        mock_collect.return_value = {'command_result': {'system_logs': logs}}
+        driver_utils.collect_ramdisk_logs(self.node, label='logs')
+        mock_store.assert_called_once_with(self.node, logs, label='logs')
 
     @mock.patch.object(driver_utils.LOG, 'error', autospec=True)
     @mock.patch.object(driver_utils, 'store_ramdisk_logs', autospec=True)
@@ -286,7 +295,7 @@ class UtilsRamdiskLogsTestCase(tests_base.TestCase):
         logs = 'Gary the Snail'
         mock_collect.return_value = {'command_result': {'system_logs': logs}}
         driver_utils.collect_ramdisk_logs(self.node)
-        mock_store.assert_called_once_with(self.node, logs)
+        mock_store.assert_called_once_with(self.node, logs, label=None)
 
     @mock.patch.object(driver_utils.LOG, 'exception', autospec=True)
     def test_collect_ramdisk_logs_storage_fail_fs(self, mock_log):

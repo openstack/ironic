@@ -369,6 +369,15 @@ def execute_clean_step(task, step):
     return execute_step(task, step, 'clean')
 
 
+def _step_failure_handler(task, msg, step_type):
+    driver_utils.collect_ramdisk_logs(
+        task.node, label='cleaning' if step_type == 'clean' else None)
+    if step_type == 'clean':
+        manager_utils.cleaning_error_handler(task, msg)
+    else:
+        manager_utils.deploying_error_handler(task, msg)
+
+
 class HeartbeatMixin(object):
     """Mixin class implementing heartbeat processing."""
 
@@ -922,7 +931,7 @@ class AgentDeployMixin(HeartbeatMixin):
                     'step': current_step,
                     'type': step_type})
             LOG.error(msg)
-            return manager_utils.cleaning_error_handler(task, msg)
+            return _step_failure_handler(task, msg, step_type)
         # NOTE(dtantsur): VERSION_MISMATCH is a new alias for
         # CLEAN_VERSION_MISMATCH, remove the old one after IPA removes it.
         elif command.get('command_status') in ('CLEAN_VERSION_MISMATCH',
@@ -950,10 +959,7 @@ class AgentDeployMixin(HeartbeatMixin):
                             'step': current_step,
                             'type': step_type})
                     LOG.exception(msg)
-                    if step_type == 'clean':
-                        return manager_utils.cleaning_error_handler(task, msg)
-                    else:
-                        return manager_utils.deploying_error_handler(task, msg)
+                    return _step_failure_handler(task, msg, step_type)
 
             if current_step.get('reboot_requested'):
                 _post_step_reboot(task, step_type)
@@ -971,10 +977,7 @@ class AgentDeployMixin(HeartbeatMixin):
                     'step': current_step,
                     'type': step_type})
             LOG.error(msg)
-            if step_type == 'clean':
-                return manager_utils.cleaning_error_handler(task, msg)
-            else:
-                return manager_utils.deploying_error_handler(task, msg)
+            return _step_failure_handler(task, msg, step_type)
 
     @METRICS.timer('AgentDeployMixin.reboot_and_finish_deploy')
     def reboot_and_finish_deploy(self, task):

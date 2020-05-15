@@ -573,12 +573,14 @@ class DoNodeCleanTestCase(db_base.DbTestCase):
     def test__do_next_clean_step_retired_last_step_change_tgt_state(self):
         self._do_next_clean_step_last_step_noop(retired=True)
 
+    @mock.patch('ironic.drivers.utils.collect_ramdisk_logs', autospec=True)
     @mock.patch('ironic.drivers.modules.fake.FakePower.execute_clean_step',
                 autospec=True)
     @mock.patch('ironic.drivers.modules.fake.FakeDeploy.execute_clean_step',
                 autospec=True)
     def _do_next_clean_step_all(self, mock_deploy_execute,
-                                mock_power_execute, manual=False):
+                                mock_power_execute, mock_collect_logs,
+                                manual=False):
         # Run all steps from start to finish (all synchronous)
         tgt_prov_state = states.MANAGEABLE if manual else states.AVAILABLE
 
@@ -618,6 +620,7 @@ class DoNodeCleanTestCase(db_base.DbTestCase):
         mock_deploy_execute.assert_has_calls(
             [mock.call(mock.ANY, mock.ANY, self.clean_steps[0]),
              mock.call(mock.ANY, mock.ANY, self.clean_steps[2])])
+        self.assertFalse(mock_collect_logs.called)
 
     def test_do_next_clean_step_automated_all(self):
         self._do_next_clean_step_all()
@@ -625,11 +628,62 @@ class DoNodeCleanTestCase(db_base.DbTestCase):
     def test_do_next_clean_step_manual_all(self):
         self._do_next_clean_step_all(manual=True)
 
+    @mock.patch('ironic.drivers.utils.collect_ramdisk_logs', autospec=True)
+    @mock.patch('ironic.drivers.modules.fake.FakePower.execute_clean_step',
+                autospec=True)
+    @mock.patch('ironic.drivers.modules.fake.FakeDeploy.execute_clean_step',
+                autospec=True)
+    def test_do_next_clean_step_collect_logs(self, mock_deploy_execute,
+                                             mock_power_execute,
+                                             mock_collect_logs):
+        CONF.set_override('deploy_logs_collect', 'always', group='agent')
+        # Run all steps from start to finish (all synchronous)
+        tgt_prov_state = states.MANAGEABLE
+
+        node = obj_utils.create_test_node(
+            self.context, driver='fake-hardware',
+            provision_state=states.CLEANING,
+            target_provision_state=tgt_prov_state,
+            last_error=None,
+            driver_internal_info={'clean_steps': self.clean_steps,
+                                  'clean_step_index': None},
+            clean_step={})
+
+        def fake_deploy(conductor_obj, task, step):
+            driver_internal_info = task.node.driver_internal_info
+            driver_internal_info['goober'] = 'test'
+            task.node.driver_internal_info = driver_internal_info
+            task.node.save()
+
+        mock_deploy_execute.side_effect = fake_deploy
+        mock_power_execute.return_value = None
+
+        with task_manager.acquire(
+                self.context, node.uuid, shared=False) as task:
+            cleaning.do_next_clean_step(task, 0)
+
+        node.refresh()
+
+        # Cleaning should be complete
+        self.assertEqual(tgt_prov_state, node.provision_state)
+        self.assertEqual(states.NOSTATE, node.target_provision_state)
+        self.assertEqual({}, node.clean_step)
+        self.assertNotIn('clean_step_index', node.driver_internal_info)
+        self.assertEqual('test', node.driver_internal_info['goober'])
+        self.assertIsNone(node.driver_internal_info['clean_steps'])
+        mock_power_execute.assert_called_once_with(mock.ANY, mock.ANY,
+                                                   self.clean_steps[1])
+        mock_deploy_execute.assert_has_calls(
+            [mock.call(mock.ANY, mock.ANY, self.clean_steps[0]),
+             mock.call(mock.ANY, mock.ANY, self.clean_steps[2])])
+        mock_collect_logs.assert_called_once_with(mock.ANY, label='cleaning')
+
+    @mock.patch('ironic.drivers.utils.collect_ramdisk_logs', autospec=True)
     @mock.patch('ironic.drivers.modules.fake.FakeDeploy.execute_clean_step',
                 autospec=True)
     @mock.patch.object(fake.FakeDeploy, 'tear_down_cleaning', autospec=True)
     def _do_next_clean_step_execute_fail(self, tear_mock, mock_execute,
-                                         manual=False):
+                                         mock_collect_logs, manual=False):
         # When a clean step fails, go to CLEANFAIL
         tgt_prov_state = states.MANAGEABLE if manual else states.AVAILABLE
 
@@ -659,6 +713,7 @@ class DoNodeCleanTestCase(db_base.DbTestCase):
         self.assertTrue(node.maintenance)
         mock_execute.assert_called_once_with(
             mock.ANY, mock.ANY, self.clean_steps[0])
+        mock_collect_logs.assert_called_once_with(mock.ANY, label='cleaning')
 
     def test__do_next_clean_step_automated_execute_fail(self):
         self._do_next_clean_step_execute_fail()
