@@ -49,16 +49,10 @@ def get_client(context):
     service_auth = keystone.get_auth('cinder')
     session = _get_cinder_session()
 
-    # TODO(pas-ha) remove in Rocky
-    adapter_opts = {}
-    # NOTE(pas-ha) new option must always win if set
-    if CONF.cinder.url and not CONF.cinder.endpoint_override:
-        adapter_opts['endpoint_override'] = CONF.cinder.url
-
     # TODO(pas-ha) use versioned endpoint data to select required
     # cinder api version
     cinder_url = keystone.get_endpoint('cinder', session=session,
-                                       auth=service_auth, **adapter_opts)
+                                       auth=service_auth)
     # TODO(pas-ha) investigate possibility of passing a user context here,
     # similar to what neutron/glance-related code does
     # NOTE(pas-ha) cinderclient has both 'connect_retries' (passed to

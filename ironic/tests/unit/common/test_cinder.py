@@ -97,21 +97,6 @@ class TestCinderClient(base.TestCase):
                                              auth=mock.sentinel.auth)
         self.assertFalse(mock_sauth.called)
 
-    def test_get_client_deprecated_opts(self, mock_client_init, mock_session,
-                                        mock_auth, mock_sauth, mock_adapter):
-
-        self.config(url='http://test-url', group='cinder')
-        mock_adapter.return_value = mock_adapter_obj = mock.Mock()
-        mock_adapter_obj.get_endpoint.return_value = 'http://test-url'
-
-        self._assert_client_call(mock_client_init, 'http://test-url')
-        mock_auth.assert_called_once_with('cinder')
-        mock_session.assert_called_once_with('cinder')
-        mock_adapter.assert_called_once_with(
-            'cinder', session=mock.sentinel.session, auth=mock.sentinel.auth,
-            endpoint_override='http://test-url')
-        self.assertFalse(mock_sauth.called)
-
 
 class TestCinderUtils(db_base.DbTestCase):
 

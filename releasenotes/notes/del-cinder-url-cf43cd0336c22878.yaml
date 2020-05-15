@@ -1,0 +1,3 @@
+upgrade:
+  - |
+    The ``[cinder]url`` was removed, use ``[cinder]endpoint_override`` instead.
