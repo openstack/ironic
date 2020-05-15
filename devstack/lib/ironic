@@ -1727,10 +1727,8 @@ function configure_ironic_conductor {
         local pxebin
         pxebin=`basename $IRONIC_PXE_BOOT_IMAGE`
         uefipxebin=`basename $(get_uefi_ipxe_boot_file)`
-        iniset $IRONIC_CONF_FILE pxe pxe_config_template '$pybasedir/drivers/modules/ipxe_config.template'
-        iniset $IRONIC_CONF_FILE pxe pxe_bootfile_name $pxebin
-        iniset $IRONIC_CONF_FILE pxe uefi_pxe_config_template '$pybasedir/drivers/modules/ipxe_config.template'
-        iniset $IRONIC_CONF_FILE pxe uefi_pxe_bootfile_name $uefipxebin
+        iniset $IRONIC_CONF_FILE pxe ipxe_bootfile_name $pxebin
+        iniset $IRONIC_CONF_FILE pxe uefi_ipxe_bootfile_name $uefipxebin
         iniset $IRONIC_CONF_FILE deploy http_root $IRONIC_HTTP_DIR
         iniset $IRONIC_CONF_FILE deploy http_url "http://$([[ $IRONIC_HTTP_SERVER =~ : ]] && echo "[$IRONIC_HTTP_SERVER]" || echo $IRONIC_HTTP_SERVER):$IRONIC_HTTP_PORT"
         if [[ "$IRONIC_IPXE_USE_SWIFT" == "True" ]]; then

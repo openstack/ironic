@@ -51,13 +51,20 @@ opts = [
                default=os.path.join(
                    '$pybasedir', 'drivers/modules/pxe_config.template'),
                help=_('On ironic-conductor node, template file for PXE '
-                      'configuration.')),
+                      'loader configuration.')),
+    cfg.StrOpt('ipxe_config_template',
+               default=os.path.join(
+                   '$pybasedir', 'drivers/modules/ipxe_config.template'),
+               mutable=True,
+               help=_('On ironic-conductor node, template file for iPXE '
+                      'operations.')),
     cfg.StrOpt('uefi_pxe_config_template',
                default=os.path.join(
                    '$pybasedir',
                    'drivers/modules/pxe_grub_config.template'),
                help=_('On ironic-conductor node, template file for PXE '
-                      'configuration for UEFI boot loader.')),
+                      'configuration for UEFI boot loader. Generally this '
+                      'is used for GRUB specific templates.')),
     cfg.DictOpt('pxe_config_template_by_arch',
                 default={},
                 help=_('On ironic-conductor node, template file for PXE '
@@ -102,10 +109,22 @@ opts = [
     cfg.StrOpt('uefi_pxe_bootfile_name',
                default='bootx64.efi',
                help=_('Bootfile DHCP parameter for UEFI boot mode.')),
+    cfg.StrOpt('ipxe_bootfile_name',
+               default='undionly.kpxe',
+               help=_('Bootfile DHCP parameter.')),
+    cfg.StrOpt('uefi_ipxe_bootfile_name',
+               default='ipxe.efi',
+               help=_('Bootfile DHCP parameter for UEFI boot mode. If you '
+                      'experience problems with booting using it, try '
+                      'snponly.efi.')),
     cfg.DictOpt('pxe_bootfile_name_by_arch',
                 default={},
                 help=_('Bootfile DHCP parameter per node architecture. '
                        'For example: aarch64:grubaa64.efi')),
+    cfg.DictOpt('ipxe_bootfile_name_by_arch',
+                default={},
+                help=_('Bootfile DHCP parameter per node architecture. '
+                       'For example: aarch64:ipxe_aa64.efi')),
     cfg.StrOpt('ipxe_boot_script',
                default=os.path.join(
                    '$pybasedir', 'drivers/modules/boot.ipxe'),

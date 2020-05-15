@@ -268,7 +268,10 @@ def create_pxe_config(task, pxe_options, template=None, ipxe_enabled=False):
     """
     LOG.debug("Building PXE config for node %s", task.node.uuid)
     if template is None:
-        template = deploy_utils.get_pxe_config_template(task.node)
+        if ipxe_enabled:
+            template = deploy_utils.get_ipxe_config_template(task.node)
+        else:
+            template = deploy_utils.get_pxe_config_template(task.node)
 
     _ensure_config_dirs_exist(task, ipxe_enabled)
 
@@ -386,7 +389,16 @@ def _dhcp_option_file_or_url(task, urlboot=False, ip_version=None):
                        to return options for DHCP. Possible options
                        are 4, and 6.
     """
-    boot_file = deploy_utils.get_pxe_boot_file(task.node)
+    try:
+        if task.driver.boot.ipxe_enabled:
+            boot_file = deploy_utils.get_ipxe_boot_file(task.node)
+        else:
+            boot_file = deploy_utils.get_pxe_boot_file(task.node)
+    except AttributeError:
+        # Support boot interfaces that lack an explicit ipxe_enabled
+        # attribute flag.
+        boot_file = deploy_utils.get_pxe_boot_file(task.node)
+
     # NOTE(TheJulia): There are additional cases as we add new
     # features, so the logic below is in the form of if/elif/elif
     if not urlboot:
@@ -801,7 +813,10 @@ def build_service_pxe_config(task, instance_image_info,
         pxe_options = build_pxe_config_options(task, instance_image_info,
                                                service=True,
                                                ipxe_enabled=ipxe_enabled)
-        pxe_config_template = deploy_utils.get_pxe_config_template(node)
+        if ipxe_enabled:
+            pxe_config_template = deploy_utils.get_ipxe_config_template(node)
+        else:
+            pxe_config_template = deploy_utils.get_pxe_config_template(node)
         create_pxe_config(task, pxe_options, pxe_config_template,
                           ipxe_enabled=ipxe_enabled)
     iwdi = node.driver_internal_info.get('is_whole_disk_image')
@@ -939,8 +954,12 @@ def prepare_instance_pxe_config(task, image_info,
         pxe_options = build_pxe_config_options(
             task, image_info, service=ramdisk_boot,
             ipxe_enabled=ipxe_enabled)
-        pxe_config_template = (
-            deploy_utils.get_pxe_config_template(node))
+        if ipxe_enabled:
+            pxe_config_template = (
+                deploy_utils.get_ipxe_config_template(node))
+        else:
+            pxe_config_template = (
+                deploy_utils.get_pxe_config_template(node))
         create_pxe_config(
             task, pxe_options, pxe_config_template,
             ipxe_enabled=ipxe_enabled)
