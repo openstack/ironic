@@ -378,6 +378,54 @@ def get_pxe_boot_file(node):
     return boot_file
 
 
+def get_ipxe_boot_file(node):
+    """Return the iPXE boot file name requested for deploy.
+
+    This method returns iPXE boot file name to be used for deploy.
+    Architecture specific boot file is searched first. BIOS/UEFI
+    boot file is used if no valid architecture specific file found.
+
+    If no valid value is found, the default reverts to the
+    ``get_pxe_boot_file`` method and thus the
+    ``[pxe]pxe_bootfile_name`` and ``[pxe]uefi_ipxe_bootfile_name``
+    settings.
+
+    :param node: A single Node.
+    :returns: The iPXE boot file name.
+    """
+    cpu_arch = node.properties.get('cpu_arch')
+    boot_file = CONF.pxe.ipxe_bootfile_name_by_arch.get(cpu_arch)
+    if boot_file is None:
+        if boot_mode_utils.get_boot_mode(node) == 'uefi':
+            boot_file = CONF.pxe.uefi_ipxe_bootfile_name
+        else:
+            boot_file = CONF.pxe.ipxe_bootfile_name
+
+    if boot_file is None:
+        boot_file = get_pxe_boot_file(node)
+
+    return boot_file
+
+
+def get_ipxe_config_template(node):
+    """Return the iPXE config template file name requested of deploy.
+
+    This method returns the iPXE configuration template file.
+
+    :param node: A single Node.
+    :returns: The iPXE config template file name.
+    """
+    # NOTE(TheJulia): iPXE configuration files don't change based upon the
+    # architecture and we're not trying to support multiple different boot
+    # loaders by architecture as they are all consistent. Where as PXE
+    # could need to be grub for one arch, PXELINUX for another.
+    configured_template = CONF.pxe.ipxe_config_template
+    override_template = node.driver_info.get('pxe_template')
+    if override_template:
+        configured_template = override_template
+    return configured_template or get_pxe_config_template(node)
+
+
 def get_pxe_config_template(node):
     """Return the PXE config template file name requested for deploy.
 

@@ -200,7 +200,10 @@ class PXEBaseMixin(object):
         if ramdisk_params.get("ipa-api-url"):
             pxe_options["ipa-api-url"] = ramdisk_params["ipa-api-url"]
 
-        pxe_config_template = deploy_utils.get_pxe_config_template(node)
+        if self.ipxe_enabled:
+            pxe_config_template = deploy_utils.get_ipxe_config_template(node)
+        else:
+            pxe_config_template = deploy_utils.get_pxe_config_template(node)
 
         pxe_utils.create_pxe_config(task, pxe_options,
                                     pxe_config_template,

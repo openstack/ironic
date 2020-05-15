@@ -645,7 +645,7 @@ class TestPXEUtils(db_base.DbTestCase):
                                       'config'),
                          pxe_utils.get_pxe_config_file_path(self.node.uuid))
 
-    def _dhcp_options_for_instance(self, ip_version=4):
+    def _dhcp_options_for_instance(self, ip_version=4, ipxe=False):
         self.config(ip_version=ip_version, group='pxe')
         if ip_version == 4:
             self.config(tftp_server='192.0.2.1', group='pxe')
@@ -653,6 +653,10 @@ class TestPXEUtils(db_base.DbTestCase):
             self.config(tftp_server='ff80::1', group='pxe')
         self.config(pxe_bootfile_name='fake-bootfile', group='pxe')
         self.config(tftp_root='/tftp-path/', group='pxe')
+        if ipxe:
+            bootfile = 'fake-bootfile-ipxe'
+        else:
+            bootfile = 'fake-bootfile'
 
         if ip_version == 6:
             # NOTE(TheJulia): DHCPv6 RFCs seem to indicate that the prior
@@ -660,11 +664,11 @@ class TestPXEUtils(db_base.DbTestCase):
             # by vendors. The apparent proper option is to return a
             # URL in the field https://tools.ietf.org/html/rfc5970#section-3
             expected_info = [{'opt_name': '59',
-                              'opt_value': 'tftp://[ff80::1]/fake-bootfile',
+                              'opt_value': 'tftp://[ff80::1]/%s' % bootfile,
                               'ip_version': ip_version}]
         elif ip_version == 4:
             expected_info = [{'opt_name': '67',
-                              'opt_value': 'fake-bootfile',
+                              'opt_value': bootfile,
                               'ip_version': ip_version},
                              {'opt_name': '210',
                               'opt_value': '/tftp-path/',
@@ -1320,7 +1324,7 @@ class iPXEBuildConfigOptionsTestCase(db_base.DbTestCase):
             # URL in the field https://tools.ietf.org/html/rfc5970#section-3
             expected_boot_script_url = 'http://[ff80::1]:1234/boot.ipxe'
             expected_info = [{'opt_name': '!175,59',
-                              'opt_value': 'tftp://[ff80::1]/fake-bootfile',
+                              'opt_value': 'tftp://[ff80::1]/%s' % boot_file,
                               'ip_version': ip_version},
                              {'opt_name': '59',
                               'opt_value': expected_boot_script_url,
@@ -1352,7 +1356,7 @@ class iPXEBuildConfigOptionsTestCase(db_base.DbTestCase):
         if ip_version == 6:
             # Boot URL variable set from prior test of isc parameters.
             expected_info = [{'opt_name': 'tag:!ipxe6,59',
-                              'opt_value': 'tftp://[ff80::1]/fake-bootfile',
+                              'opt_value': 'tftp://[ff80::1]/%s' % boot_file,
                               'ip_version': ip_version},
                              {'opt_name': 'tag:ipxe6,59',
                               'opt_value': expected_boot_script_url,
@@ -1381,23 +1385,23 @@ class iPXEBuildConfigOptionsTestCase(db_base.DbTestCase):
 
     def test_dhcp_options_for_instance_ipxe_bios(self):
         self.config(ip_version=4, group='pxe')
-        boot_file = 'fake-bootfile-bios'
-        self.config(pxe_bootfile_name=boot_file, group='pxe')
+        boot_file = 'fake-bootfile-bios-ipxe'
+        self.config(ipxe_bootfile_name=boot_file, group='pxe')
         with task_manager.acquire(self.context, self.node.uuid) as task:
             self._dhcp_options_for_instance_ipxe(task, boot_file)
 
     def test_dhcp_options_for_instance_ipxe_uefi(self):
         self.config(ip_version=4, group='pxe')
-        boot_file = 'fake-bootfile-uefi'
-        self.config(uefi_pxe_bootfile_name=boot_file, group='pxe')
+        boot_file = 'fake-bootfile-uefi-ipxe'
+        self.config(uefi_ipxe_bootfile_name=boot_file, group='pxe')
         with task_manager.acquire(self.context, self.node.uuid) as task:
             task.node.properties['capabilities'] = 'boot_mode:uefi'
             self._dhcp_options_for_instance_ipxe(task, boot_file)
 
     def test_dhcp_options_for_ipxe_ipv6(self):
         self.config(ip_version=6, group='pxe')
-        boot_file = 'fake-bootfile'
-        self.config(pxe_bootfile_name=boot_file, group='pxe')
+        boot_file = 'fake-bootfile-ipxe'
+        self.config(ipxe_bootfile_name=boot_file, group='pxe')
         with task_manager.acquire(self.context, self.node.uuid) as task:
             self._dhcp_options_for_instance_ipxe(task, boot_file, ip_version=6)
 
