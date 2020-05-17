@@ -383,6 +383,7 @@ There are certain limitations to be aware of:
     {
       "interface": "deploy",
       "step": "erase_devices_metadata"
+    },
     {
       "interface": "raid",
       "step": "create_configuration"
