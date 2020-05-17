@@ -1,0 +1,4 @@
+---
+upgrade:
+  - |
+    Updates required ibmcclient version for ibmc drivers to 0.2.2.

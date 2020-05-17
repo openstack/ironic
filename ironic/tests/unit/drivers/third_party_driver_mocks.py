@@ -264,8 +264,8 @@ if not ibmc_client:
 
     # Mock iBMC client exceptions
     exceptions = mock.MagicMock()
-    exceptions.ConnectionError = (
-        type('ConnectionError', (MockKwargsException,), {}))
+    exceptions.IBMCConnectionError = (
+        type('IBMCConnectionError', (MockKwargsException,), {}))
     exceptions.IBMCClientError = (
         type('IBMCClientError', (MockKwargsException,), {}))
     sys.modules['ibmc_client.exceptions'] = exceptions
