@@ -30,6 +30,8 @@ from ironic.common import driver_factory
 
 LOG = logging.getLogger(__name__)
 
+# Enable this locally if you need debugging output
+DEBUG = False
 
 def _list_table(add, headers, data, title='', columns=None):
     """Build a list-table directive.
@@ -85,8 +87,9 @@ def _init_steps_by_driver():
     # the methods of the class.
 
     for interface_name in sorted(driver_factory.driver_base.ALL_INTERFACES):
-        LOG.info('[{}] probing available plugins for interface {}'.format(
-            __name__, interface_name))
+        if DEBUG:
+            LOG.info('[{}] probing available plugins for interface {}'.format(
+                __name__, interface_name))
 
         loader = stevedore.ExtensionManager(
             'ironic.hardware.interfaces.{}'.format(interface_name),
@@ -110,8 +113,9 @@ def _init_steps_by_driver():
                     'interface': interface_name,
                     'doc': _format_doc(inspect.getdoc(method)),
                 }
-                LOG.info('[{}] interface {!r} driver {!r} STEP {}'.format(
-                    __name__, interface_name, plugin.name, step))
+                if DEBUG:
+                    LOG.info('[{}] interface {!r} driver {!r} STEP {}'.format(
+                        __name__, interface_name, plugin.name, step))
                 steps.append(step)
 
             if steps:
