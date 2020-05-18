@@ -93,14 +93,13 @@ class RedfishBiosTestCase(db_base.DbTestCase):
 
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
-            attributes = mock_get_system(task.node).bios.attributes
-            settings = [{'name': k, 'value': v} for k, v in attributes.items()]
-            mock_get_system.reset_mock()
+            settings = {'foo': 'bar'}
+            mock_get_system.return_value.bios.attributes = settings
 
             task.driver.bios.cache_bios_settings(task)
             mock_get_system.assert_called_once_with(task.node)
             mock_setting_list.sync_node_setting.assert_called_once_with(
-                task.context, task.node.id, settings)
+                task.context, task.node.id, [{'name': 'foo', 'value': 'bar'}])
             mock_setting_list.create.assert_not_called()
             mock_setting_list.save.assert_not_called()
             mock_setting_list.delete.assert_not_called()
@@ -148,14 +147,13 @@ class RedfishBiosTestCase(db_base.DbTestCase):
 
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
-            attributes = mock_get_system(task.node).bios.attributes
-            settings = [{'name': k, 'value': v} for k, v in attributes.items()]
-            mock_get_system.reset_mock()
+            settings = {'foo': 'bar'}
+            mock_get_system.return_value.bios.attributes = settings
 
             task.driver.bios.cache_bios_settings(task)
             mock_get_system.assert_called_once_with(task.node)
             mock_setting_list.sync_node_setting.assert_called_once_with(
-                task.context, task.node.id, settings)
+                task.context, task.node.id, [{'name': 'foo', 'value': 'bar'}])
             mock_setting_list.create.assert_called_once_with(
                 task.context, task.node.id, create_list)
             mock_setting_list.save.assert_called_once_with(
