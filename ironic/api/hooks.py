@@ -97,7 +97,7 @@ class ContextHook(hooks.PecanHook):
         ctx = context.RequestContext.from_environ(state.request.environ,
                                                   is_public_api=is_public_api)
         # Do not pass any token with context for noauth mode
-        if cfg.CONF.auth_strategy == 'noauth':
+        if cfg.CONF.auth_strategy != 'keystone':
             ctx.auth_token = None
 
         creds = ctx.to_policy_values()

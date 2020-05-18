@@ -58,10 +58,15 @@ api_opts = [
         default='keystone',
         choices=[('noauth', _('no authentication')),
                  ('keystone', _('use the Identity service for '
-                                'authentication'))],
+                                'authentication')),
+                 ('http_basic', _('HTTP basic authentication'))],
         help=_('Authentication strategy used by ironic-api. "noauth" should '
                'not be used in a production environment because all '
                'authentication will be disabled.')),
+    cfg.StrOpt('http_basic_auth_user_file',
+               default='/etc/ironic/htpasswd',
+               help=_('Path to Apache format user authentication file used '
+                      'when auth_strategy=http_basic')),
     cfg.BoolOpt('debug_tracebacks_in_api',
                 default=False,
                 help=_('Return server tracebacks in the API response for any '
