@@ -37,9 +37,9 @@ extensions = [
     'openstackdocstheme'
 ]
 
-repository_name = 'openstack/ironic'
-use_storyboard = True
-
+openstackdocs_repo_name = 'openstack/ironic'
+openstackdocs_use_storyboard = True
+openstackdocs_auto_name = False
 
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
