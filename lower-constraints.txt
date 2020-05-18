@@ -32,7 +32,7 @@ futurist==1.2.0
 gitdb==4.0.5
 GitPython==3.1.2
 greenlet==0.4.15
-hacking==3.0.0
+hacking==3.0.1
 ifaddr==0.1.6
 importlib-metadata==1.6.0
 ironic-lib==4.3.0
