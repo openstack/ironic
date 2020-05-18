@@ -837,8 +837,8 @@ class InstanceImageCache(image_cache.ImageCache):
 def cache_instance_image(ctx, node, force_raw=CONF.force_raw_images):
     """Fetch the instance's image from Glance
 
-    This method pulls the AMI and writes them to the appropriate place
-    on local disk.
+    This method pulls the disk image and writes them to the appropriate
+    place on local disk.
 
     :param ctx: context
     :param node: an ironic node object
