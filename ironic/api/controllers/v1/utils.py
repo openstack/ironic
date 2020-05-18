@@ -25,7 +25,6 @@ from oslo_config import cfg
 from oslo_utils import uuidutils
 from pecan import rest
 from webob import static
-import wsme
 
 from ironic import api
 from ironic.api.controllers.v1 import versions
@@ -433,7 +432,7 @@ def vendor_passthru(ident, method, topic, data=None, driver_passthru=False):
         return_value = None
         response_params['return_type'] = None
 
-    return wsme.api.Response(return_value, **response_params)
+    return atypes.Response(return_value, **response_params)
 
 
 def check_for_invalid_fields(fields, object_fields):
