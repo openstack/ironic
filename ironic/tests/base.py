@@ -28,7 +28,7 @@ import sys
 import tempfile
 
 import eventlet
-eventlet.monkey_patch(os=False)  # noqa E402
+eventlet.monkey_patch(os=False)
 import fixtures
 from ironic_lib import utils
 from oslo_concurrency import processutils

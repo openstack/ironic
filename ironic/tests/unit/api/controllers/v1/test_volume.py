@@ -25,9 +25,9 @@ class TestGetVolume(test_api_base.BaseApiTest):
     def _test_links(self, data, key, headers):
         self.assertIn(key, data)
         self.assertEqual(2, len(data[key]))
-        for l in data[key]:
-            bookmark = (l['rel'] == 'bookmark')
-            self.assertTrue(self.validate_link(l['href'],
+        for link in data[key]:
+            bookmark = (link['rel'] == 'bookmark')
+            self.assertTrue(self.validate_link(link['href'],
                                                bookmark=bookmark,
                                                headers=headers))
 

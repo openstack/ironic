@@ -223,9 +223,9 @@ class TestListVolumeTargets(test_api_base.BaseApiTest):
         self.assertIn('links', data)
         self.assertEqual(2, len(data['links']))
         self.assertIn(uuid, data['links'][0]['href'])
-        for l in data['links']:
-            bookmark = l['rel'] == 'bookmark'
-            self.assertTrue(self.validate_link(l['href'], bookmark=bookmark,
+        for link in data['links']:
+            bookmark = link['rel'] == 'bookmark'
+            self.assertTrue(self.validate_link(link['href'], bookmark=bookmark,
                                                headers=self.headers))
 
     def test_collection_links(self):
