@@ -14,23 +14,22 @@
 
 import re
 
-from keystonemiddleware import auth_token
-
 from ironic.common import exception
 from ironic.common.i18n import _
 from ironic.common import utils
 
 
-class AuthTokenMiddleware(auth_token.AuthProtocol):
-    """A wrapper on Keystone auth_token middleware.
+class AuthPublicRoutes(object):
+    """A wrapper on authentication middleware.
 
     Does not perform verification of authentication tokens
     for public routes in the API.
 
     """
-    def __init__(self, app, conf, public_api_routes=None):
+    def __init__(self, app, auth, public_api_routes=None):
         api_routes = [] if public_api_routes is None else public_api_routes
         self._ironic_app = app
+        self._middleware = auth
         # TODO(mrda): Remove .xml and ensure that doesn't result in a
         # 401 Authentication Required instead of 404 Not Found
         route_pattern_tpl = '%s(\\.json|\\.xml)?$'
@@ -41,8 +40,6 @@ class AuthTokenMiddleware(auth_token.AuthProtocol):
         except re.error as e:
             raise exception.ConfigInvalid(
                 error_msg=_('Cannot compile public API routes: %s') % e)
-
-        super(AuthTokenMiddleware, self).__init__(app, conf)
 
     def __call__(self, env, start_response):
         path = utils.safe_rstrip(env.get('PATH_INFO'), '/')
@@ -56,4 +53,4 @@ class AuthTokenMiddleware(auth_token.AuthProtocol):
         if env['is_public_api']:
             return self._ironic_app(env, start_response)
 
-        return super(AuthTokenMiddleware, self).__call__(env, start_response)
+        return self._middleware(env, start_response)

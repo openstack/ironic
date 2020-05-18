@@ -36,7 +36,7 @@ default_policies = [
     policy.RuleDefault('admin_api',
                        'role:admin or role:administrator',
                        description='Legacy rule for cloud admin access'),
-    # is_public_api is set in the environment from AuthTokenMiddleware
+    # is_public_api is set in the environment from AuthPublicRoutes
     policy.RuleDefault('public_api',
                        'is_public_api:True',
                        description='Internal flag for public API routes'),

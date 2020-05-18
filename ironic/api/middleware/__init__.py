@@ -12,15 +12,15 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-from ironic.api.middleware import auth_token
+from ironic.api.middleware import auth_public_routes
 from ironic.api.middleware import json_ext
 from ironic.api.middleware import parsable_error
 
 
 ParsableErrorMiddleware = parsable_error.ParsableErrorMiddleware
-AuthTokenMiddleware = auth_token.AuthTokenMiddleware
+AuthPublicRoutes = auth_public_routes.AuthPublicRoutes
 JsonExtensionMiddleware = json_ext.JsonExtensionMiddleware
 
 __all__ = ('ParsableErrorMiddleware',
-           'AuthTokenMiddleware',
+           'AuthPublicRoutes',
            'JsonExtensionMiddleware')

@@ -16,6 +16,7 @@
 #    under the License.
 
 import keystonemiddleware.audit as audit_middleware
+from keystonemiddleware import auth_token
 from oslo_config import cfg
 import oslo_middleware.cors as cors_middleware
 from oslo_middleware import healthcheck
@@ -27,7 +28,7 @@ from ironic.api import config
 from ironic.api.controllers import base
 from ironic.api import hooks
 from ironic.api import middleware
-from ironic.api.middleware import auth_token
+from ironic.api.middleware import auth_public_routes
 from ironic.api.middleware import json_ext
 from ironic.common import exception
 from ironic.conf import CONF
@@ -98,8 +99,10 @@ def setup_app(pecan_config=None, extra_hooks=None):
             )
 
     if CONF.auth_strategy == "keystone":
-        app = auth_token.AuthTokenMiddleware(
-            app, {"oslo_config_config": cfg.CONF},
+        app = auth_public_routes.AuthPublicRoutes(
+            app,
+            auth=auth_token.AuthProtocol(
+                app, {"oslo_config_config": cfg.CONF}),
             public_api_routes=pecan_config.app.acl_public_routes)
 
     if CONF.profiler.enabled:
