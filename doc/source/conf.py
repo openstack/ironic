@@ -59,9 +59,10 @@ apidoc_excluded_paths = [
 ]
 apidoc_separate_modules = True
 
-repository_name = 'openstack/ironic'
-use_storyboard = True
-openstack_projects = [
+openstackdocs_repo_name = 'openstack/ironic'
+openstackdocs_use_storyboard = True
+openstackdocs_pdf_link = True
+openstackdocs_projects = [
     'bifrost',
     'cinder',
     'glance',
