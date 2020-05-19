@@ -1,0 +1,5 @@
+---
+other:
+  - |
+    Ramdisk logs are now collected during cleaning the same way as during
+    deployment.
