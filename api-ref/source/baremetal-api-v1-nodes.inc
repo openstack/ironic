@@ -442,6 +442,7 @@ Response
     - allocation_uuid: allocation_uuid
     - retired: retired
     - retired_reason: retired_reason
+    - network_data: network_data
 
 **Example detailed list of Nodes:**
 
@@ -490,6 +491,9 @@ only the specified set.
 
 .. versionadded:: 1.65
   Introduced the ``lessee`` field.
+
+.. versionadded:: 1.66
+  Introduced the ``network_data`` field.
 
 Normal response codes: 200
 

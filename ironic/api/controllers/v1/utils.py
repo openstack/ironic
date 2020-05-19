@@ -491,6 +491,7 @@ VERSIONED_FIELDS = {
     'retired': versions.MINOR_61_NODE_RETIRED,
     'retired_reason': versions.MINOR_61_NODE_RETIRED,
     'lessee': versions.MINOR_65_NODE_LESSEE,
+    'network_data': versions.MINOR_66_NODE_NETWORK_DATA,
 }
 
 for field in V31_FIELDS:

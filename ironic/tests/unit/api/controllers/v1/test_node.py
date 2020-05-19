@@ -16,6 +16,7 @@ Tests for the API /nodes/ methods.
 import datetime
 from http import client as http_client
 import json
+import os
 from urllib import parse as urlparse
 
 import fixtures
@@ -42,10 +43,18 @@ from ironic.common import states
 from ironic.conductor import rpcapi
 from ironic import objects
 from ironic.objects import fields as obj_fields
+from ironic import tests as tests_root
 from ironic.tests import base
 from ironic.tests.unit.api import base as test_api_base
 from ironic.tests.unit.api import utils as test_api_utils
 from ironic.tests.unit.objects import utils as obj_utils
+
+
+with open(
+        os.path.join(
+            os.path.dirname(tests_root.__file__),
+            'json_samples', 'network_data.json')) as fl:
+    NETWORK_DATA = json.load(fl)
 
 
 class TestNodeObject(base.TestCase):
@@ -138,6 +147,7 @@ class TestListNodes(test_api_base.BaseApiTest):
         self.assertNotIn('retired', data['nodes'][0])
         self.assertNotIn('retired_reason', data['nodes'][0])
         self.assertNotIn('lessee', data['nodes'][0])
+        self.assertNotIn('network_data', data['nodes'][0])
 
     def test_get_one(self):
         node = obj_utils.create_test_node(self.context,
@@ -402,6 +412,19 @@ class TestListNodes(test_api_base.BaseApiTest):
         data = self.get_json('/nodes/%s' % node.uuid,
                              headers={api_base.Version.string: '1.65'})
         self.assertEqual(data['lessee'], "some-lucky-project")
+
+    def test_node_network_data_hidden_in_lower_version(self):
+        self._test_node_field_hidden_in_lower_version('network_data',
+                                                      '1.65', '1.66')
+
+    def test_node_network_data(self):
+        node = obj_utils.create_test_node(
+            self.context, network_data=NETWORK_DATA,
+            provision_state='active',
+            uuid=uuidutils.generate_uuid())
+        data = self.get_json('/nodes/%s' % node.uuid,
+                             headers={api_base.Version.string: '1.66'})
+        self.assertEqual(data['network_data'], NETWORK_DATA)
 
     def test_get_one_custom_fields(self):
         node = obj_utils.create_test_node(self.context,
@@ -684,6 +707,7 @@ class TestListNodes(test_api_base.BaseApiTest):
         self.assertIn('allocation_uuid', data['nodes'][0])
         self.assertIn('retired', data['nodes'][0])
         self.assertIn('retired_reason', data['nodes'][0])
+        self.assertIn('network_data', data['nodes'][0])
 
     def test_detail_using_query(self):
         node = obj_utils.create_test_node(self.context,
@@ -722,6 +746,7 @@ class TestListNodes(test_api_base.BaseApiTest):
         self.assertNotIn('chassis_id', data['nodes'][0])
         self.assertIn('retired', data['nodes'][0])
         self.assertIn('retired_reason', data['nodes'][0])
+        self.assertIn('network_data', data['nodes'][0])
 
     def test_detail_query_false(self):
         obj_utils.create_test_node(self.context)
@@ -3649,6 +3674,36 @@ class TestPatch(test_api_base.BaseApiTest):
         response = self.patch_json('/nodes/%s' % node.uuid,
                                    [{'path': '/retired',
                                      'value': True,
+                                     'op': 'replace'}],
+                                   headers=headers,
+                                   expect_errors=True)
+        self.assertEqual('application/json', response.content_type)
+        self.assertEqual(http_client.NOT_ACCEPTABLE, response.status_code)
+
+    def test_update_network_data(self):
+        node = obj_utils.create_test_node(self.context,
+                                          uuid=uuidutils.generate_uuid(),
+                                          provision_state='active')
+        self.mock_update_node.return_value = node
+        headers = {api_base.Version.string: '1.66'}
+
+        response = self.patch_json('/nodes/%s' % node.uuid,
+                                   [{'path': '/network_data',
+                                     'value': NETWORK_DATA,
+                                     'op': 'replace'}],
+                                   headers=headers)
+        self.assertEqual('application/json', response.content_type)
+        self.assertEqual(http_client.OK, response.status_code)
+
+    def test_update_network_data_old_api(self):
+        node = obj_utils.create_test_node(self.context,
+                                          uuid=uuidutils.generate_uuid())
+        self.mock_update_node.return_value = node
+        headers = {api_base.Version.string: '1.62'}
+
+        response = self.patch_json('/nodes/%s' % node.uuid,
+                                   [{'path': '/network_data',
+                                     'value': NETWORK_DATA,
                                      'op': 'replace'}],
                                    headers=headers,
                                    expect_errors=True)

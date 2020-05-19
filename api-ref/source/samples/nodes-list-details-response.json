@@ -43,6 +43,7 @@
       "maintenance_reason": null,
       "management_interface": null,
       "name": "test_node_classic",
+      "network_data": {},
       "network_interface": "flat",
       "owner": "john doe",
       "portgroups": [
@@ -148,6 +149,7 @@
       "maintenance_reason": null,
       "management_interface": "ipmitool",
       "name": "test_node_dynamic",
+      "network_data": {},
       "network_interface": "flat",
       "owner": "43e61ec9-8e42-4dcb-bc45-30d66aa93e5b",
       "portgroups": [

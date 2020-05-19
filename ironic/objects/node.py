@@ -75,7 +75,8 @@ class Node(base.IronicObject, object_base.VersionedObjectDictCompat):
     # Version 1.32: Add description field
     # Version 1.33: Add retired and retired_reason fields
     # Version 1.34: Add lessee field
-    VERSION = '1.34'
+    # Version 1.35: Add network_data field
+    VERSION = '1.35'
 
     dbapi = db_api.get_instance()
 
@@ -164,6 +165,7 @@ class Node(base.IronicObject, object_base.VersionedObjectDictCompat):
         'description': object_fields.StringField(nullable=True),
         'retired': objects.fields.BooleanField(nullable=True),
         'retired_reason': object_fields.StringField(nullable=True),
+        'network_data': object_fields.FlexibleDictField(nullable=True),
     }
 
     def as_dict(self, secure=False):
@@ -549,6 +551,21 @@ class Node(base.IronicObject, object_base.VersionedObjectDictCompat):
             elif self.conductor_group:
                 self.conductor_group = ''
 
+    def _convert_network_data_field(self, target_version,
+                                    remove_unavailable_fields=True):
+        # NOTE(etingof): The default value for `network_data` is an empty
+        # dict. Therefore we can't use generic version adjustment
+        # routine.
+        field_is_set = self.obj_attr_is_set('network_data')
+        if target_version >= (1, 35):
+            if not field_is_set:
+                self.network_data = {}
+        elif field_is_set:
+            if remove_unavailable_fields:
+                delattr(self, 'network_data')
+            elif self.network_data:
+                self.network_data = {}
+
     # NOTE (yolanda): new method created to avoid repeating code in
     # _convert_to_version, and to avoid pep8 too complex error
     def _adjust_field_to_version(self, field_name, field_default_value,
@@ -606,6 +623,8 @@ class Node(base.IronicObject, object_base.VersionedObjectDictCompat):
             should be set to False (or removed).
         Version 1.34: lessee was added. For versions prior to this, it should
             be set to None or removed.
+        Version 1.35: network_data was added. For versions prior to this, it
+            should be set to empty dict (or removed).
 
         :param target_version: the desired version of the object
         :param remove_unavailable_fields: True to remove fields that are
@@ -621,6 +640,7 @@ class Node(base.IronicObject, object_base.VersionedObjectDictCompat):
                   ('automated_clean', 28), ('protected_reason', 29),
                   ('owner', 30), ('allocation_id', 31), ('description', 32),
                   ('retired_reason', 33), ('lessee', 34)]
+
         for name, minor in fields:
             self._adjust_field_to_version(name, None, target_version,
                                           1, minor, remove_unavailable_fields)
@@ -637,14 +657,17 @@ class Node(base.IronicObject, object_base.VersionedObjectDictCompat):
         self._adjust_field_to_version('retired', False, target_version,
                                       1, 33, remove_unavailable_fields)
 
+        self._convert_network_data_field(target_version,
+                                         remove_unavailable_fields)
+
 
 @base.IronicObjectRegistry.register
 class NodePayload(notification.NotificationPayloadBase):
     """Base class used for all notification payloads about a Node object."""
     # NOTE: This payload does not include the Node fields "chassis_id",
     # "driver_info", "driver_internal_info", "instance_info", "raid_config",
-    # "reservation", or "target_raid_config". These were excluded for reasons
-    # including:
+    # "network_data", "reservation", or "target_raid_config". These were
+    # excluded for reasons including:
     # - increased complexity needed for creating the payload
     # - sensitive information in the fields that shouldn't be exposed to
     #   external services

@@ -15,9 +15,12 @@
 
 import datetime
 from http import client as http_client
+import json
+import os
 
 from ironic_lib import metrics_utils
 import jsonschema
+from jsonschema import exceptions as json_schema_exc
 from oslo_log import log
 from oslo_utils import strutils
 from oslo_utils import uuidutils
@@ -115,6 +118,10 @@ ALLOWED_TARGET_POWER_STATES = (ir_states.POWER_ON,
 _NODE_DESCRIPTION_MAX_LENGTH = 4096
 
 
+NETWORK_DATA_SCHEMA = os.path.join(
+    os.path.dirname(__file__), 'network-data-schema.json')
+
+
 def get_nodes_controller_reserved_names():
     global _NODES_CONTROLLER_RESERVED_WORDS
     if _NODES_CONTROLLER_RESERVED_WORDS is None:
@@ -177,6 +184,28 @@ def update_state_in_older_versions(obj):
     if (not api_utils.allow_inspect_wait_state()
             and obj.provision_state == ir_states.INSPECTWAIT):
         obj.provision_state = ir_states.INSPECTING
+
+
+def validate_network_data(network_data):
+    """Validates node network_data field.
+
+    This method validates network data configuration against JSON
+    schema.
+
+    :param network_data: a network_data field to validate
+    :raises: Invalid if network data is not schema-compliant
+    """
+    with open(NETWORK_DATA_SCHEMA, 'rb') as fl:
+        network_data_schema = json.load(fl)
+
+    try:
+        jsonschema.validate(network_data, network_data_schema)
+
+    except json_schema_exc.ValidationError as e:
+        # NOTE: Even though e.message is deprecated in general, it is
+        # said in jsonschema documentation to use this still.
+        msg = _("Invalid network_data: %s ") % e.message
+        raise exception.Invalid(msg)
 
 
 class BootDeviceController(rest.RestController):
@@ -1265,6 +1294,9 @@ class Node(base.APIBase):
     retired_reason = atypes.wsattr(str)
     """Indicates the reason for a node's retirement."""
 
+    network_data = atypes.wsattr({str: types.jsontype})
+    """Static network configuration JSON ironic will hand over to the node."""
+
     # NOTE(tenbrae): "conductor_affinity" shouldn't be presented on the
     #                API because it's an internal value. Don't add it here.
 
@@ -1485,7 +1517,9 @@ class Node(base.APIBase):
                      automated_clean=None, protected=False,
                      protected_reason=None, owner=None,
                      allocation_uuid='982ddb5b-bce5-4d23-8fb8-7f710f648cd5',
-                     retired=False, retired_reason=None, lessee=None)
+                     retired=False, retired_reason=None, lessee=None,
+                     network_data={})
+
         # NOTE(matty_dubs): The chassis_uuid getter() is based on the
         # _chassis_uuid variable:
         sample._chassis_uuid = 'edcad704-b2da-41d5-96d9-afd580ecfa12'
@@ -1746,7 +1780,7 @@ class NodesController(rest.RestController):
                              'instance_info', 'driver_internal_info',
                              'clean_step', 'deploy_step',
                              'raid_config', 'target_raid_config',
-                             'traits']
+                             'traits', 'network_data']
 
     _subcontroller_map = {
         'ports': port.PortsController,
@@ -2231,6 +2265,9 @@ class NodesController(rest.RestController):
             msg = _("Allocation UUID cannot be specified, use allocations API")
             raise exception.Invalid(msg)
 
+        if node.network_data is not atypes.Unset:
+            validate_network_data(node.network_data)
+
         # NOTE(tenbrae): get_topic_for checks if node.driver is in the hash
         #             ring and raises NoValidHost if it is not.
         #             We need to ensure that node has a UUID before it can
@@ -2292,6 +2329,12 @@ class NodesController(rest.RestController):
             msg = _("Cannot update node with description exceeding %s "
                     "characters") % _NODE_DESCRIPTION_MAX_LENGTH
             raise exception.Invalid(msg)
+
+        network_data_fields = api_utils.get_patch_values(
+            patch, '/network_data')
+
+        for network_data in network_data_fields:
+            validate_network_data(network_data)
 
     def _authorize_patch_and_get_node(self, node_ident, patch):
         # deal with attribute-specific policy rules

@@ -228,6 +228,7 @@ def get_test_node(**kw):
         'retired': kw.get('retired', False),
         'retired_reason': kw.get('retired_reason', None),
         'lessee': kw.get('lessee', None),
+        'network_data': kw.get('network_data'),
     }
 
     for iface in drivers_base.ALL_INTERFACES:
