@@ -28,9 +28,11 @@ opts = [
                 help=_('The TCP port on which ironic-api listens.')),
     cfg.IntOpt('max_limit',
                default=1000,
+               mutable=True,
                help=_('The maximum number of items returned in a single '
                       'response from a collection resource.')),
     cfg.StrOpt('public_endpoint',
+               mutable=True,
                help=_("Public URL to use when building the links to the API "
                       "resources (for example, \"https://ironic.rocks:6384\")."
                       " If None the links will be built using the request's "
@@ -57,10 +59,12 @@ opts = [
                        "to set URLs in responses to the SSL terminated one.")),
     cfg.BoolOpt('restrict_lookup',
                 default=True,
+                mutable=True,
                 help=_('Whether to restrict the lookup API to only nodes '
                        'in certain states.')),
     cfg.IntOpt('ramdisk_heartbeat_timeout',
                default=300,
+               mutable=True,
                help=_('Maximum interval (in seconds) for agent heartbeats.')),
 ]
 

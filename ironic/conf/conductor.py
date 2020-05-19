@@ -35,6 +35,7 @@ opts = [
                # We're using timedelta which can overflow if somebody sets this
                # too high, so limit to a sane value of 10 years.
                max=315576000,
+               mutable=True,
                help=_('Maximum time (in seconds) since the last check-in '
                       'of a conductor. A conductor is considered inactive '
                       'when this time has been exceeded.')),
@@ -63,6 +64,7 @@ opts = [
                       'a deploy ramdisk. Set to 0 to disable timeout.')),
     cfg.BoolOpt('force_power_state_during_sync',
                 default=True,
+                mutable=True,
                 help=_('During sync_power_state, should the hardware power '
                        'state be set to the state recorded in the database '
                        '(True) or should the database be updated based on '
@@ -151,6 +153,7 @@ opts = [
                       '0 - unlimited.')),
     cfg.BoolOpt('automated_clean',
                 default=True,
+                mutable=True,
                 help=_('Enables or disables automated cleaning. Automated '
                        'cleaning is a configurable set of steps, '
                        'such as erasing disk drives, that are performed on '
@@ -195,10 +198,12 @@ opts = [
     cfg.IntOpt('soft_power_off_timeout',
                default=600,
                min=1,
+               mutable=True,
                help=_('Timeout (in seconds) of soft reboot and soft power '
                       'off operation. This value always has to be positive.')),
     cfg.IntOpt('power_state_change_timeout',
                min=2, default=60,
+               mutable=True,
                help=_('Number of seconds to wait for power operations to '
                       'complete, i.e., so that a baremetal node is in the '
                       'desired power state. If timed out, the power operation '
@@ -244,11 +249,13 @@ opts = [
     cfg.StrOpt('rescue_password_hash_algorithm',
                default='sha256',
                choices=['sha256', 'sha512'],
+               mutable=True,
                help=_('Password hash algorithm to be used for the rescue '
                       'password.')),
     cfg.BoolOpt('require_rescue_password_hashed',
                 # TODO(TheJulia): Change this to True in Victoria.
                 default=False,
+                mutable=True,
                 help=_('Option to cause the conductor to not fallback to '
                        'an un-hashed version of the rescue password, '
                        'permitting rescue with older ironic-python-agent '

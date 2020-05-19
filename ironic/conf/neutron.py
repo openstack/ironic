@@ -23,12 +23,15 @@ opts = [
     cfg.IntOpt('port_setup_delay',
                default=0,
                min=0,
+               mutable=True,
                help=_('Delay value to wait for Neutron agents to setup '
                       'sufficient DHCP configuration for port.')),
     cfg.IntOpt('retries',
                default=3,
+               mutable=True,
                help=_('Client retries in the case of a failed request.')),
     cfg.StrOpt('cleaning_network',
+               mutable=True,
                help=_('Neutron network UUID or name for the ramdisk to be '
                       'booted into for cleaning nodes. Required for "neutron" '
                       'network interface. It is also required if cleaning '
@@ -37,6 +40,7 @@ opts = [
                       'unique among all networks or cleaning will fail.'),
                deprecated_name='cleaning_network_uuid'),
     cfg.StrOpt('provisioning_network',
+               mutable=True,
                help=_('Neutron network UUID or name for the ramdisk to be '
                       'booted into for provisioning nodes. Required for '
                       '"neutron" network interface. If a name is provided, '
@@ -45,6 +49,7 @@ opts = [
                deprecated_name='provisioning_network_uuid'),
     cfg.ListOpt('provisioning_network_security_groups',
                 default=[],
+                mutable=True,
                 help=_('List of Neutron Security Group UUIDs to be '
                        'applied during provisioning of the nodes. '
                        'Optional for the "neutron" network interface and not '
@@ -53,6 +58,7 @@ opts = [
                        'is used.')),
     cfg.ListOpt('cleaning_network_security_groups',
                 default=[],
+                mutable=True,
                 help=_('List of Neutron Security Group UUIDs to be '
                        'applied during cleaning of the nodes. '
                        'Optional for the "neutron" network interface and not '
@@ -60,6 +66,7 @@ opts = [
                        'If not specified, default security group '
                        'is used.')),
     cfg.StrOpt('rescuing_network',
+               mutable=True,
                help=_('Neutron network UUID or name for booting the ramdisk '
                       'for rescue mode. This is not the network that the '
                       'rescue ramdisk will use post-boot -- the tenant '
@@ -70,6 +77,7 @@ opts = [
                       'among all networks or rescue will fail.')),
     cfg.ListOpt('rescuing_network_security_groups',
                 default=[],
+                mutable=True,
                 help=_('List of Neutron Security Group UUIDs to be applied '
                        'during the node rescue process. Optional for the '
                        '"neutron" network interface and not used for the '
@@ -77,6 +85,7 @@ opts = [
                        'specified, the default security group is used.')),
     cfg.IntOpt('request_timeout',
                default=45,
+               mutable=True,
                help=_('Timeout for request processing when interacting '
                       'with Neutron. This value should be increased if '
                       'neutron port action timeouts are observed as neutron '
@@ -85,18 +94,21 @@ opts = [
                       'client/server interactions.')),
     cfg.BoolOpt('add_all_ports',
                 default=False,
+                mutable=True,
                 help=_('Option to enable transmission of all ports '
                        'to neutron when creating ports for provisioning, '
                        'cleaning, or rescue. This is done without IP '
                        'addresses assigned to the port, and may be useful '
                        'in some bonded network configurations.')),
     cfg.StrOpt('inspection_network',
+               mutable=True,
                help=_('Neutron network UUID or name for the ramdisk to be '
                       'booted into for in-band inspection of nodes. '
                       'If a name is provided, it must be unique among all '
                       'networks or inspection will fail.')),
     cfg.ListOpt('inspection_network_security_groups',
                 default=[],
+                mutable=True,
                 help=_('List of Neutron Security Group UUIDs to be applied '
                        'during the node inspection process. Optional for the '
                        '"neutron" network interface and not used for the '
@@ -104,6 +116,7 @@ opts = [
                        'specified, the default security group is used.')),
     cfg.IntOpt('dhcpv6_stateful_address_count',
                default=4,
+               mutable=True,
                help=_('Number of IPv6 addresses to allocate for ports created '
                       'for provisioning, cleaning, rescue or inspection on '
                       'DHCPv6-stateful networks. Different stages of the '

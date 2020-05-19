@@ -46,6 +46,7 @@ opts = [
                help=_('Redfish HTTP client authentication method.')),
     cfg.BoolOpt('use_swift',
                 default=True,
+                mutable=True,
                 help=_('Upload generated ISO images for virtual media boot to '
                        'Swift, then pass temporary URL to BMC for booting the '
                        'node. If set to false, images are placed on the '
@@ -53,15 +54,18 @@ opts = [
                        'local HTTP server.')),
     cfg.StrOpt('swift_container',
                default='ironic_redfish_container',
+               mutable=True,
                help=_('The Swift container to store Redfish driver data. '
                       'Applies only when `use_swift` is enabled.')),
     cfg.IntOpt('swift_object_expiry_timeout',
                default=900,
+               mutable=True,
                help=_('Amount of time in seconds for Swift objects to '
                       'auto-expire. Applies only when `use_swift` is '
                       'enabled.')),
     cfg.StrOpt('kernel_append_params',
                default='nofb nomodeset vga=normal',
+               mutable=True,
                help=_('Additional kernel parameters to pass down to the '
                       'instance kernel. These parameters can be consumed by '
                       'the kernel or by the applications by reading '

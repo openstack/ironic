@@ -23,9 +23,11 @@ from ironic.common.i18n import _
 opts = [
     cfg.StrOpt('pxe_append_params',
                default='nofb nomodeset vga=normal',
+               mutable=True,
                help=_('Additional append parameters for baremetal PXE boot.')),
     cfg.StrOpt('default_ephemeral_format',
                default='ext4',
+               mutable=True,
                help=_('Default file system format for ephemeral partition, '
                       'if one is created.')),
     cfg.StrOpt('images_path',
@@ -50,16 +52,19 @@ opts = [
     cfg.StrOpt('pxe_config_template',
                default=os.path.join(
                    '$pybasedir', 'drivers/modules/pxe_config.template'),
+               mutable=True,
                help=_('On ironic-conductor node, template file for PXE '
                       'configuration.')),
     cfg.StrOpt('uefi_pxe_config_template',
                default=os.path.join(
                    '$pybasedir',
                    'drivers/modules/pxe_grub_config.template'),
+               mutable=True,
                help=_('On ironic-conductor node, template file for PXE '
                       'configuration for UEFI boot loader.')),
     cfg.DictOpt('pxe_config_template_by_arch',
                 default={},
+                mutable=True,
                 help=_('On ironic-conductor node, template file for PXE '
                        'configuration per node architecture. '
                        'For example: '
@@ -129,10 +134,12 @@ opts = [
                default='4',
                choices=[('4', _('IPv4')),
                         ('6', _('IPv6'))],
+               mutable=True,
                help=_('The IP version that will be used for PXE booting. '
                       'Defaults to 4. EXPERIMENTAL')),
     cfg.BoolOpt('ipxe_use_swift',
                 default=False,
+                mutable=True,
                 help=_("Download deploy and rescue images directly from swift "
                        "using temporary URLs. "
                        "If set to false (default), images are downloaded "

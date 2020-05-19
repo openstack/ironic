@@ -22,6 +22,7 @@ from ironic.common.i18n import _
 opts = [
     cfg.IntOpt('command_retry_timeout',
                default=60,
+               mutable=True,
                help=_('Maximum time in seconds to retry retryable IPMI '
                       'operations. (An operation is retryable, for '
                       'example, if the requested operation fails '
@@ -31,18 +32,21 @@ opts = [
                       'unresponsive BMCs.')),
     cfg.IntOpt('min_command_interval',
                default=5,
+               mutable=True,
                help=_('Minimum time, in seconds, between IPMI operations '
                       'sent to a server. There is a risk with some hardware '
                       'that setting this too low may cause the BMC to crash. '
                       'Recommended setting is 5 seconds.')),
     cfg.BoolOpt('kill_on_timeout',
                 default=True,
+                mutable=True,
                 help=_('Kill `ipmitool` process invoked by ironic to read '
                        'node power state if `ipmitool` process does not exit '
                        'after `command_retry_timeout` timeout expires. '
                        'Recommended setting is True')),
     cfg.BoolOpt('disable_boot_timeout',
                 default=True,
+                mutable=True,
                 help=_('Default timeout behavior whether ironic sends a raw '
                        'IPMI command to disable the 60 second timeout for '
                        'booting. Setting this option to False will NOT send '
@@ -51,10 +55,12 @@ opts = [
                        'option in node\'s \'driver_info\' field.')),
     cfg.MultiStrOpt('additional_retryable_ipmi_errors',
                     default=[],
+                    mutable=True,
                     help=_('Additional errors ipmitool may encounter, '
                            'specific to the environment it is run in.')),
     cfg.BoolOpt('debug',
                 default=False,
+                mutable=True,
                 help=_('Enables all ipmi commands to be executed with an '
                        'additional debugging output. This is a separate '
                        'option as ipmitool can log a substantial amount '

@@ -834,7 +834,7 @@ class InstanceImageCache(image_cache.ImageCache):
 
 
 @METRICS.timer('cache_instance_image')
-def cache_instance_image(ctx, node, force_raw=CONF.force_raw_images):
+def cache_instance_image(ctx, node, force_raw=None):
     """Fetch the instance's image from Glance
 
     This method pulls the AMI and writes them to the appropriate place
@@ -846,6 +846,10 @@ def cache_instance_image(ctx, node, force_raw=CONF.force_raw_images):
     :returns: a tuple containing the uuid of the image and the path in
         the filesystem where image is cached.
     """
+    # NOTE(dtantsur): applying the default here to make the option mutable
+    if force_raw is None:
+        force_raw = CONF.force_raw_images
+
     i_info = parse_instance_info(node)
     fileutils.ensure_tree(_get_image_dir_path(node.uuid))
     image_path = _get_image_file_path(node.uuid)

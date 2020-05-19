@@ -21,9 +21,11 @@ from ironic.common.i18n import _
 opts = [
     cfg.PortOpt('portal_port',
                 default=3260,
+                mutable=True,
                 help=_('The port number on which the iSCSI portal listens '
                        'for incoming connections.')),
     cfg.StrOpt('conv_flags',
+               mutable=True,
                help=_('Flags that need to be sent to the dd command, '
                       'to control the conversion of the original file '
                       'when copying to the host. It can contain several '
@@ -31,6 +33,7 @@ opts = [
     cfg.IntOpt('verify_attempts',
                default=3,
                min=1,
+               mutable=True,
                help=_('Maximum attempts to verify an iSCSI connection is '
                       'active, sleeping 1 second between attempts. Defaults '
                       'to 3.')),

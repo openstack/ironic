@@ -29,15 +29,18 @@ opts = [
                help=_("ironic-conductor node's HTTP root path.")),
     cfg.BoolOpt('enable_ata_secure_erase',
                 default=True,
+                mutable=True,
                 help=_('Whether to support the use of ATA Secure Erase '
                        'during the cleaning process. Defaults to True.')),
     cfg.IntOpt('erase_devices_priority',
+               mutable=True,
                help=_('Priority to run in-band erase devices via the Ironic '
                       'Python Agent ramdisk. If unset, will use the priority '
                       'set in the ramdisk (defaults to 10 for the '
                       'GenericHardwareManager). If set to 0, will not run '
                       'during cleaning.')),
     cfg.IntOpt('erase_devices_metadata_priority',
+               mutable=True,
                help=_('Priority to run in-band clean step that erases '
                       'metadata from devices, via the Ironic Python Agent '
                       'ramdisk. If unset, will use the priority set in the '
@@ -47,11 +50,13 @@ opts = [
     cfg.IntOpt('shred_random_overwrite_iterations',
                default=1,
                min=0,
+               mutable=True,
                help=_('During shred, overwrite all block devices N times with '
                       'random data. This is only used if a device could not '
                       'be ATA Secure Erased. Defaults to 1.')),
     cfg.BoolOpt('shred_final_overwrite_with_zeros',
                 default=True,
+                mutable=True,
                 help=_("Whether to write zeros to a node's block devices "
                        "after writing random data. This will write zeros to "
                        "the device even when "
@@ -60,6 +65,7 @@ opts = [
                        "Secure Erased. Defaults to True.")),
     cfg.BoolOpt('continue_if_disk_secure_erase_fails',
                 default=False,
+                mutable=True,
                 help=_('Defines what to do if an ATA secure erase operation '
                        'fails during cleaning in the Ironic Python Agent. '
                        'If False, the cleaning operation will fail and the '
@@ -69,18 +75,21 @@ opts = [
     cfg.IntOpt('disk_erasure_concurrency',
                default=1,
                min=1,
+               mutable=True,
                help=_('Defines the target pool size used by Ironic Python '
                       'Agent ramdisk to erase disk devices. The number of '
                       'threads created to erase disks will not exceed this '
                       'value or the number of disks to be erased.')),
     cfg.BoolOpt('power_off_after_deploy_failure',
                 default=True,
+                mutable=True,
                 help=_('Whether to power off a node after deploy failure. '
                        'Defaults to True.')),
     cfg.StrOpt('default_boot_option',
                choices=[('netboot', _('boot from a network')),
                         ('local', _('local boot'))],
                default='local',
+               mutable=True,
                help=_('Default boot option to use when no boot option is '
                       'requested in node\'s driver_info. Defaults to '
                       '"local". Prior to the Ussuri release, the default '
@@ -89,6 +98,7 @@ opts = [
                choices=[(boot_modes.UEFI, _('UEFI boot mode')),
                         (boot_modes.LEGACY_BIOS, _('Legacy BIOS boot mode'))],
                default=boot_modes.LEGACY_BIOS,
+               mutable=True,
                help=_('Default boot mode to use when no boot mode is '
                       'requested in node\'s driver_info, capabilities or '
                       'in the `instance_info` configuration. Currently the '
@@ -103,6 +113,7 @@ opts = [
                 default=False,
                 deprecated_group='conductor',
                 deprecated_name='configdrive_use_swift',
+                mutable=True,
                 help=_('Whether to upload the config drive to object store. '
                        'Set this option to True to store config drive '
                        'in a swift endpoint.')),
@@ -115,6 +126,7 @@ opts = [
                       'instead of swift tempurls.')),
     cfg.BoolOpt('fast_track',
                 default=False,
+                mutable=True,
                 help=_('Whether to allow deployment agents to perform lookup, '
                        'heartbeat operations during initial states of a '
                        'machine lifecycle and by-pass the normal setup '
@@ -127,6 +139,7 @@ opts = [
                default=300,
                min=0,
                max=300,
+               mutable=True,
                help=_('Seconds for which the last heartbeat event is to be '
                       'considered valid for the purpose of a fast '
                       'track sequence. This setting should generally be '
