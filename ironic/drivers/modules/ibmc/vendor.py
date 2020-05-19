@@ -29,8 +29,6 @@ LOG = log.getLogger(__name__)
 
 class IBMCVendor(base.VendorInterface):
 
-    supported = False
-
     def __init__(self):
         """Initialize the iBMC vendor interface.
 
