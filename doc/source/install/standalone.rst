@@ -270,6 +270,78 @@ For iLO drivers, fields that should be provided are:
    images, the file system modification time is used.
 
 
+Ramdisk booting
+---------------
+
+Advanced operators, specifically ones working with ephemeral workloads,
+may find it more useful to explicitly treat a node as one that would always
+boot from a Ramdisk.
+
+This functionality is largely intended for network booting, however some
+other boot interface, such as the ``redfish-virtual-media`` support enabling
+the same basic functionality through the existing interfaces.
+
+To use, a few different settings must be modified.
+
+#. Change the ``deploy_interface`` on the node to ``ramdisk``::
+
+       openstack baremetal node set $NODE_UUID \
+               --deploy-interface ramdisk
+
+#. Set a kernel and ramdisk to be utilized::
+
+       openstack baremetal node set $NODE_UUID \
+               --instance-info kernel=$KERNEL_URL \
+               --instance-info ramdisk=$RAMDISK_URL
+
+#. Deploy the node::
+
+       openstack baremetal node deploy $NODE_UUID
+
+   .. warning::
+      Configuration drives, also known as a configdrive, is not supported
+      with the ``ramdisk`` deploy interface. Please ensure your ramdisk
+      CPIO archive contains all necessary configuration and credentials.
+      This is as no disk image is written to the disk of the node being
+      provisioned with a ramdisk.
+
+The node ramdisk components will then be assembled by the conductor,
+appropriate configuration put in place, and the node will then be powered
+on. From there, normal node booting will occur. Upon undeployment of the node,
+normal cleaning proceedures will occur as configured with-in the conductor.
+
+Ramdisk booting with ISO media
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Currently supported for the use of ramdisks with the ``redfish-virtual-media``
+and ``ipxe`` boot interfaces, an operator may request an explict ISO file to
+be booted.
+
+#. Store the URL to the ISO image to ``instance_info/boot_iso``,
+   instead of a ``kernel`` or ``ramdisk`` setting::
+
+       openstack barmetal node set $NODE_UUID \
+               --instance-info boot_iso=$BOOT_ISO_URL
+
+#. Deploy the node::
+
+          openstack baremetal node deploy $NODE_UUID
+
+
+.. warning::
+   This feature, when utilized with the ``ipxe`` ``boot_interface``,
+   will only allow a kernel and ramdisk to be booted from the
+   supplied ISO file. Any additional contents, such as additional
+   ramdisk contents or installer package files will be unavailable
+   after the boot of the Operating System. Operators wishing to leverage
+   this functionality for actions such as OS installation should explore
+   use of the standard ``ramdisk`` ``deploy_interface`` along with the
+   ``instance_info/kernel_append_params`` setting to pass arbitrary
+   settings such as a mirror URL for the initial ramdisk to load data from.
+   This is a limitation of iPXE and the overall boot process of the
+   operating system where memory allocated by iPXE is released.
+
+
 Other references
 ----------------
 

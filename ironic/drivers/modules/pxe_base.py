@@ -244,7 +244,6 @@ class PXEBaseMixin(object):
         boot_option = deploy_utils.get_boot_option(node)
         boot_device = None
         instance_image_info = {}
-
         if boot_option == "ramdisk":
             instance_image_info = pxe_utils.get_instance_image_info(
                 task, ipxe_enabled=self.ipxe_enabled)
@@ -365,6 +364,14 @@ class PXEBaseMixin(object):
                             {'node': node.uuid})
             pxe_utils.validate_boot_parameters_for_trusted_boot(node)
 
+        # Check if we have invalid parameters being passed which will not work
+        # for ramdisk configurations.
+        if (node.instance_info.get('image_source')
+            and node.instance_info.get('boot_iso')):
+            raise exception.InvalidParameterValue(_(
+                "An 'image_source' and 'boot_iso' parameter may not be "
+                "specified at the same time."))
+
         pxe_utils.parse_driver_info(node)
 
     @METRICS.timer('PXEBaseMixin.validate')
@@ -393,6 +400,8 @@ class PXEBaseMixin(object):
         if (node.driver_internal_info.get('is_whole_disk_image')
                 or deploy_utils.get_boot_option(node) == 'local'):
             props = []
+        elif d_info.get('boot_iso'):
+            props = ['boot_iso']
         elif service_utils.is_glance_image(d_info['image_source']):
             props = ['kernel_id', 'ramdisk_id']
         else:
