@@ -125,7 +125,7 @@ add_function_parentheses = True
 add_module_names = True
 
 # The name of the Pygments (syntax highlighting) style to use.
-pygments_style = 'sphinx'
+pygments_style = 'native'
 
 # A list of glob-style patterns that should be excluded when looking for
 # source files. They are matched against the source file names relative to the
