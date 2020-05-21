@@ -315,7 +315,7 @@ class DracWSManBIOS(base.BIOSInterface):
                 commit_job_id = client.commit_pending_lifecycle_changes(
                     reboot=reboot_needed)
             except drac_exceptions.BaseClientException as exc:
-                LOG.error('Failed to commit BIOS reset on node'
+                LOG.error('Failed to commit BIOS reset on node '
                           '%(node_uuid)s. Reason: %(error)s.', {
                               'node_uuid': node.uuid,
                               'error': exc})
