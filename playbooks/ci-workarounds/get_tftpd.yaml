@@ -1,0 +1,5 @@
+- hosts: all
+  tasks:
+    - name: Get tftpd info from journald
+      shell: "journalctl -t in.tftpd  > {{ zuul_output_dir }}/logs/tftpd-journal.txt"
+      become: yes
