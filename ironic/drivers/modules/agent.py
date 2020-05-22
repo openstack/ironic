@@ -71,11 +71,12 @@ PARTITION_IMAGE_LABELS = ('kernel', 'ramdisk', 'root_gb', 'root_mb', 'swap_mb',
 
 
 @METRICS.timer('check_image_size')
-def check_image_size(task, image_source):
+def check_image_size(task, image_source, image_disk_format=None):
     """Check if the requested image is larger than the ram size.
 
     :param task: a TaskManager instance containing the node to act on.
     :param image_source: href of the image.
+    :param image_disk_format: The disk format of the image if provided
     :raises: InvalidParameterValue if size of the image is greater than
         the available ram size.
     """
@@ -88,7 +89,8 @@ def check_image_size(task, image_source):
         return
 
     image_show = images.image_show(task.context, image_source)
-    if CONF.agent.stream_raw_images and image_show.get('disk_format') == 'raw':
+    if CONF.agent.stream_raw_images and (image_show.get('disk_format') == 'raw'
+                                         or image_disk_format == 'raw'):
         LOG.debug('Skip the image size check since the image is going to be '
                   'streamed directly onto the disk for node %s', node.uuid)
         return
@@ -417,6 +419,7 @@ class AgentDeploy(AgentDeployMixin, base.DeployInterface):
         params = {}
         image_source = node.instance_info.get('image_source')
         image_checksum = node.instance_info.get('image_checksum')
+        image_disk_format = node.instance_info.get('image_disk_format')
         os_hash_algo = node.instance_info.get('image_os_hash_algo')
         os_hash_value = node.instance_info.get('image_os_hash_value')
 
@@ -449,7 +452,7 @@ class AgentDeploy(AgentDeployMixin, base.DeployInterface):
 
         validate_http_provisioning_configuration(node)
 
-        check_image_size(task, image_source)
+        check_image_size(task, image_source, image_disk_format)
         # Validate the root device hints
         deploy_utils.get_root_device_for_deploy(node)
         validate_image_proxies(node)
