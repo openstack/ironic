@@ -24,6 +24,7 @@ from oslo_utils import timeutils
 from oslo_utils import uuidutils
 from testtools import matchers
 
+from ironic import api
 from ironic.api.controllers import base as api_base
 from ironic.api.controllers import v1 as api_v1
 from ironic.api.controllers.v1 import notification_utils
@@ -193,6 +194,40 @@ class TestPortsController__CheckAllowedPortFields(base.TestCase):
             self.controller._check_allowed_port_fields(
                 {'local_link_connection': None}))
         mock_allow_port.assert_called_once_with()
+
+
+@mock.patch.object(objects.Port, 'list', autospec=True)
+@mock.patch.object(api, 'request', spec_set=['context'])
+class TestPortsController__GetPortsCollection(base.TestCase):
+
+    def setUp(self):
+        super(TestPortsController__GetPortsCollection, self).setUp()
+        self.controller = api_port.PortsController()
+
+    def test__get_ports_collection(self, mock_request, mock_list):
+        mock_request.context = 'fake-context'
+        mock_list.return_value = []
+        self.controller._get_ports_collection(None, None, None, None, None,
+                                              None, 'asc')
+        mock_list.assert_called_once_with('fake-context', 1000, None,
+                                          project=None, sort_dir='asc',
+                                          sort_key=None)
+
+
+@mock.patch.object(objects.Port, 'get_by_address', autospec=True)
+@mock.patch.object(api, 'request', spec_set=['context'])
+class TestPortsController__GetPortByAddress(base.TestCase):
+
+    def setUp(self):
+        super(TestPortsController__GetPortByAddress, self).setUp()
+        self.controller = api_port.PortsController()
+
+    def test__get_ports_by_address(self, mock_request, mock_gba):
+        mock_request.context = 'fake-context'
+        mock_gba.return_value = None
+        self.controller._get_ports_by_address('fake-address')
+        mock_gba.assert_called_once_with('fake-context', 'fake-address',
+                                         project=None)
 
 
 class TestListPorts(test_api_base.BaseApiTest):
