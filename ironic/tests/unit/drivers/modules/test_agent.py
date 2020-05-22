@@ -122,6 +122,35 @@ class TestAgentMethods(db_base.DbTestCase):
             show_mock.assert_called_once_with(self.context, 'fake-image')
 
     @mock.patch.object(images, 'image_show', autospec=True)
+    def test_check_image_size_raw_stream_enabled_format_raw(self, show_mock):
+        CONF.set_override('stream_raw_images', True, 'agent')
+        # Image is bigger than memory but it's raw and will be streamed
+        # so the test should pass
+        show_mock.return_value = {
+            'size': 15 * 1024 * 1024,
+        }
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            task.node.properties['memory_mb'] = 10
+            agent.check_image_size(task, 'fake-image', 'raw')
+            show_mock.assert_called_once_with(self.context, 'fake-image')
+
+    @mock.patch.object(images, 'image_show', autospec=True)
+    def test_check_image_size_raw_stream_enabled_format_qcow2(self, show_mock):
+        CONF.set_override('stream_raw_images', True, 'agent')
+        # Image is bigger than memory and won't be streamed
+        show_mock.return_value = {
+            'size': 15 * 1024 * 1024,
+        }
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            task.node.properties['memory_mb'] = 10
+            self.assertRaises(exception.InvalidParameterValue,
+                              agent.check_image_size,
+                              task, 'fake-image', 'qcow2')
+            show_mock.assert_called_once_with(self.context, 'fake-image')
+
+    @mock.patch.object(images, 'image_show', autospec=True)
     def test_check_image_size_raw_stream_disabled(self, show_mock):
         CONF.set_override('stream_raw_images', False, 'agent')
         show_mock.return_value = {

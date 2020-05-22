@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    If the disk format of the image is provided in the instance_info, skip the
+    memory check if it is set to `raw` and raw image streaming is enabled. That
+    allows to stream raw images provided as URL and not through Glance.
