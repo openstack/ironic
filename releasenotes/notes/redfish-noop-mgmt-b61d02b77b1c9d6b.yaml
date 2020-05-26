@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    To provide a workaround for incorrect boot order problems on some hardware,
+    the ``redfish`` hardware type now supports the ``noop`` management
+    interface, similarly to IPMI and SNMP.
