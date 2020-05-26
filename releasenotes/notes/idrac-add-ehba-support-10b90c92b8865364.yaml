@@ -1,0 +1,15 @@
+fixes:
+  - |
+    Fixes the virtual disks creation by changing PERC H740P controller
+    mode from `Enhanced HBA` to `RAID` in delete_configuration clean
+    step.
+    PERC H740P controllers supports RAID mode and Enhanced HBA mode.
+    When the controller is in Enhanced HBA, it creates single disk
+    RAID0 virtual disks of NON-RAID physical disks.
+    Hence the request for VD creation with supported RAID
+    fails due to no available physical disk.
+    This patch converts the PERC H740P RAID controllers to RAID mode
+    if enhanced HBA mode found enabled
+    See bug
+    `bug 2007711 <https://storyboard.openstack.org/#!/story/2007711>`_
+    for more details
