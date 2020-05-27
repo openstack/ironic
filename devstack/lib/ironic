@@ -1713,7 +1713,7 @@ function start_ironic_api {
     fi
 
     if [[ "$IRONIC_USE_WSGI" == "True" ]]; then
-        run_process "ir-api" "$IRONIC_BIN_DIR/uwsgi --procname-prefix ironic-api --ini $IRONIC_UWSGI_CONF"
+        run_process "ir-api" "$(which uwsgi) --procname-prefix ironic-api --ini $IRONIC_UWSGI_CONF"
         ironic_url=$service_protocol://$SERVICE_HOST/baremetal
     else
         run_process ir-api "$IRONIC_BIN_DIR/ironic-api --config-file=$IRONIC_CONF_FILE"
