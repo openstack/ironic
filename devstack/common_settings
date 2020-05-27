@@ -7,13 +7,7 @@ fi
 # Whether configure the nodes to boot in Legacy BIOS or UEFI mode. Accepted
 # values are: "bios" or "uefi", defaults to "bios".
 IRONIC_BOOT_MODE=${IRONIC_BOOT_MODE:-bios}
-
-# TODO(dtantsur): migrate all jobs to 0.5.1
-if [[ "$IRONIC_BOOT_MODE" == "uefi" ]]; then
-    CIRROS_VERSION=0.5.1
-else
-    CIRROS_VERSION=0.4.0
-fi
+CIRROS_VERSION=${CIRROS_VERSION:-"0.5.1"}
 
 IRONIC_DEFAULT_IMAGE_NAME=cirros-${CIRROS_VERSION}-x86_64-uec
 
