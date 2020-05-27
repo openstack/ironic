@@ -15,7 +15,8 @@
         - ironic-standalone
         - ironic-tempest-functional-python2
         - ironic-tempest-functional-python3
-        - ironic-grenade-dsvm
+        - ironic-grenade-dsvm:
+            voting: false
         # Temporary disable voting because of end of cycle CI instability.
         - ironic-grenade-dsvm-multinode-multitenant:
             voting: false
@@ -50,7 +51,7 @@
         - ironic-standalone
         - ironic-tempest-functional-python2
         - ironic-tempest-functional-python3
-        - ironic-grenade-dsvm
+        # - ironic-grenade-dsvm
         # removing from voting due to end of cycle gate instability.
         # - ironic-grenade-dsvm-multinode-multitenant
         - ironic-tempest-ipa-partition-pxe_ipmitool-tinyipa-python3
