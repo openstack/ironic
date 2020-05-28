@@ -104,6 +104,41 @@ not compatible with them. There are three ways to deal with this situation:
    .. note:: This feature is available starting with ironic 11.1.0 (Rocky
              series, API version 1.45).
 
+.. _static-boot-order:
+
+Static boot order configuration
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Some hardware is known to misbehave when changing the boot device through the
+BMC. To work around it you can use the ``noop`` management interface
+implementation with the ``ipmi`` and ``redfish`` hardware types. In this case
+the Bare Metal service will not change the boot device for you, leaving
+the pre-configured boot order.
+
+For example, in case of the :ref:`pxe-boot`:
+
+#. Via any available means configure the boot order on the node as follows:
+
+   #. Boot from PXE/iPXE on the provisioning NIC.
+
+      .. warning::
+         If it is not possible to limit network boot to only provisioning NIC,
+         make sure that no other DHCP/PXE servers are accessible by the node.
+
+   #. Boot from hard drive.
+
+#. Make sure the ``noop`` management interface is enabled, for example:
+
+   .. code-block:: ini
+
+    [DEFAULT]
+    enabled_hardware_types = ipmi,redfish
+    enabled_management_interfaces = ipmitool,redfish,noop
+
+#. Change the node to use the ``noop`` management interface::
+
+      openstack baremetal node set <NODE> --management-interface noop
+
 Unsupported drivers
 -------------------
 
