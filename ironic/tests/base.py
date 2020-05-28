@@ -120,7 +120,6 @@ class TestCase(oslo_test_base.BaseTestCase):
     def _set_config(self):
         self.cfg_fixture = self.useFixture(config_fixture.Config(CONF))
         self.config(use_stderr=False,
-                    fatal_exception_format_errors=True,
                     tempdir=tempfile.tempdir)
         self.config(cleaning_network=uuidutils.generate_uuid(),
                     group='neutron')
