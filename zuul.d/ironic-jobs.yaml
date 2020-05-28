@@ -229,6 +229,10 @@
         SWIFT_ENABLE_TEMPURLS: True
         SWIFT_TEMPURL_KEY: secretkey
         IRONIC_AUTOMATED_CLEAN_ENABLED: False
+        # Ironic has to master a new image, and this CAN take longer as a
+        # result and makes this job VERY sensitive to heavy disk IO of the
+        # underlying hypervisor/cloud.
+        IRONIC_CALLBACK_TIMEOUT: 800
       devstack_services:
         s-account: True
         s-container: True
