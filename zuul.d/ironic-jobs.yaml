@@ -27,6 +27,7 @@
       - ^tox.ini$
     vars:
       tox_envlist: all
+      tempest_test_timeout: 2400
       tempest_test_regex: ironic_tempest_plugin.tests.scenario
       tempest_concurrency: 1
       devstack_localrc:
@@ -668,7 +669,6 @@
     parent: ironic-base
     timeout: 9600
     vars:
-      tempest_test_timeout: 2400
       devstack_services:
         s-account: True
         s-container: True
