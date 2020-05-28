@@ -83,7 +83,7 @@ def _is_port_physnet_allowed(port, physnets):
             or port.physical_network in physnets)
 
 
-def _get_free_portgroups_and_ports(task, vif_id, physnets):
+def _get_free_portgroups_and_ports(task, vif_id, physnets, vif_info={}):
     """Get free portgroups and ports.
 
     It only returns ports or portgroups that can be used for attachment of
@@ -95,6 +95,8 @@ def _get_free_portgroups_and_ports(task, vif_id, physnets):
         attached. This is governed by the segments of the VIF's network. An
         empty set indicates that the ports' physical networks should be
         ignored.
+    :param vif_info: dict that may contain extra information, such as
+        port_uuid
     :returns: list of free ports and portgroups.
     :raises: VifAlreadyAttached, if vif_id is attached to any of the
         node's ports or portgroups.
@@ -109,9 +111,18 @@ def _get_free_portgroups_and_ports(task, vif_id, physnets):
     # at least one port with vif already attached to it
     non_usable_portgroups = set()
 
+    port_uuid = None
+    portgroup_uuid = None
+    if 'port_uuid' in vif_info:
+        port_uuid = vif_info['port_uuid']
+    elif 'portgroup_uuid' in vif_info:
+        portgroup_uuid = vif_info['portgroup_uuid']
+
     for p in task.ports:
+        # If port_uuid is specified in vif_info, check id
         # Validate that port has needed information
-        if not neutron.validate_port_info(task.node, p):
+        if ((port_uuid and port_uuid != p.uuid)
+            or not neutron.validate_port_info(task.node, p)):
             continue
         if _vif_attached(p, vif_id):
             # Consider such portgroup unusable. The fact that we can have None
@@ -120,27 +131,30 @@ def _get_free_portgroups_and_ports(task, vif_id, physnets):
             continue
         if not _is_port_physnet_allowed(p, physnets):
             continue
-        if p.portgroup_id is None:
-            # ports without portgroup_id are always considered candidates
+        if p.portgroup_id is None and not portgroup_uuid:
             free_port_like_objs.append(p)
         else:
             ports_by_portgroup[p.portgroup_id].append(p)
 
-    for pg in task.portgroups:
-        if _vif_attached(pg, vif_id):
-            continue
-        if pg.id in non_usable_portgroups:
-            # This portgroup has vifs attached to its ports, consider its
-            # ports instead to avoid collisions
-            free_port_like_objs.extend(ports_by_portgroup[pg.id])
-        # Also ignore empty portgroups
-        elif ports_by_portgroup[pg.id]:
-            free_port_like_objs.append(pg)
+    if not port_uuid:
+        for pg in task.portgroups:
+            # if portgroup_uuid is specified in vif_info, check id
+            if ((portgroup_uuid and portgroup_uuid != pg.uuid)
+                or _vif_attached(pg, vif_id)):
+                continue
+            if pg.id in non_usable_portgroups:
+                # This portgroup has vifs attached to its ports, consider its
+                # ports instead to avoid collisions
+                if not portgroup_uuid:
+                    free_port_like_objs.extend(ports_by_portgroup[pg.id])
+            # Also ignore empty portgroups
+            elif ports_by_portgroup[pg.id]:
+                free_port_like_objs.append(pg)
 
     return free_port_like_objs
 
 
-def get_free_port_like_object(task, vif_id, physnets):
+def get_free_port_like_object(task, vif_id, physnets, vif_info={}):
     """Find free port-like object (portgroup or port) VIF will be attached to.
 
     Ensures that the VIF is not already attached to this node.  When selecting
@@ -160,6 +174,8 @@ def get_free_port_like_object(task, vif_id, physnets):
         attached. This is governed by the segments of the VIF's network. An
         empty set indicates that the ports' physical networks should be
         ignored.
+    :param vif_info: dict that may contain extra information, such as
+        port_uuid
     :raises: VifAlreadyAttached, if VIF is already attached to the node.
     :raises: NoFreePhysicalPorts, if there is no port-like object VIF can be
         attached to.
@@ -167,8 +183,8 @@ def get_free_port_like_object(task, vif_id, physnets):
              has ports which are not all assigned the same physical network.
     :returns: port-like object VIF will be attached to.
     """
-    free_port_like_objs = _get_free_portgroups_and_ports(task, vif_id,
-                                                         physnets)
+    free_port_like_objs = _get_free_portgroups_and_ports(
+        task, vif_id, physnets, vif_info)
 
     if not free_port_like_objs:
         raise exception.NoFreePhysicalPorts(vif=vif_id)
@@ -552,7 +568,8 @@ class NeutronVIFPortIDMixin(VIFPortIDMixin):
                     raise exception.VifInvalidForAttach(
                         node=task.node.uuid, vif=vif_id, reason=reason)
 
-        port_like_obj = get_free_port_like_object(task, vif_id, physnets)
+        port_like_obj = get_free_port_like_object(
+            task, vif_id, physnets, vif_info)
 
         # Address is optional for portgroups
         if port_like_obj.address:

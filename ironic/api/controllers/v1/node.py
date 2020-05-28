@@ -1729,6 +1729,10 @@ class NodeVIFController(rest.RestController):
             for that VIF.
         """
         rpc_node, topic = self._get_node_and_topic('baremetal:node:vif:attach')
+        if api.request.version.minor >= versions.MINOR_67_NODE_VIF_ATTACH_PORT:
+            if 'port_uuid' in vif and 'portgroup_uuid' in vif:
+                msg = _("Cannot specify both port_uuid and portgroup_uuid")
+                raise exception.Invalid(msg)
         api.request.rpcapi.vif_attach(api.request.context, rpc_node.uuid,
                                       vif_info=vif, topic=topic)
 
