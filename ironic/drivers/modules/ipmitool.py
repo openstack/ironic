@@ -480,10 +480,16 @@ def _exec_ipmitool(driver_info, command, check_exit_code=None,
 
     if _is_option_supported('timing'):
         args.append('-R')
-        args.append(str(num_tries))
+        if CONF.ipmi.use_ipmitool_retries:
+            args.append(str(num_tries))
+        else:
+            args.append('1')
 
         args.append('-N')
-        args.append(str(CONF.ipmi.min_command_interval))
+        if CONF.ipmi.use_ipmitool_retries:
+            args.append(str(CONF.ipmi.min_command_interval))
+        else:
+            args.append('1')
 
     extra_args = {}
 
@@ -530,9 +536,12 @@ def _exec_ipmitool(driver_info, command, check_exit_code=None,
                             IPMITOOL_RETRYABLE_FAILURES
                             + CONF.ipmi.additional_retryable_ipmi_errors)
                         if x in str(e)]
+                    # If Ironic is doing retries then retry all errors
+                    retry_failures = (err_list
+                                      or not CONF.ipmi.use_ipmitool_retries)
                     if ((time.time() > end_time)
                         or (num_tries == 0)
-                        or not err_list):
+                        or not retry_failures):
                         LOG.error('IPMI Error while attempting "%(cmd)s" '
                                   'for node %(node)s. Error: %(error)s',
                                   {'node': driver_info['uuid'],
