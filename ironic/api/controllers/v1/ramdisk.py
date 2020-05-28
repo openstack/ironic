@@ -184,6 +184,7 @@ class HeartbeatController(rest.RestController):
             before sending agent_version was introduced so agent v3.0.0 (the
             last release before sending agent_version was introduced) will be
             assumed.
+        :param agent_token: randomly generated validation token.
         :raises: NodeNotFound if node with provided UUID or name was not found.
         :raises: InvalidUuidOrName if node_ident is not valid name or UUID.
         :raises: NoValidHost if RPC topic for node could not be retrieved.

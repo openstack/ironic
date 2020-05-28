@@ -3089,6 +3089,7 @@ class ConductorManager(base_manager.BaseConductorManager):
             agent_version, in these cases assume agent v3.0.0 (the last release
             before sending agent_version was introduced).
         :param callback_url: URL to reach back to the ramdisk.
+        :param agent_token: randomly generated validation token.
         :raises: NoFreeConductorWorker if there are no conductors to process
             this heartbeat request.
         """

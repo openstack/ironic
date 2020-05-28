@@ -905,6 +905,7 @@ class ConductorAPI(object):
         :param node_id: node ID or UUID.
         :param callback_url: URL to reach back to the ramdisk.
         :param topic: RPC topic. Defaults to self.topic.
+        :param agent_token: randomly generated validation token.
         :param agent_version: the version of the agent that is heartbeating
         """
         new_kws = {}
