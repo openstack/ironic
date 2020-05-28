@@ -926,7 +926,10 @@ class AgentDeployMixinTest(AgentDeployMixinBaseTest):
     @mock.patch.object(manager_utils, 'notify_conductor_resume_deploy',
                        autospec=True)
     @mock.patch.object(driver_utils, 'collect_ramdisk_logs', autospec=True)
+    @mock.patch.object(time, 'sleep', lambda seconds: None)
     @mock.patch.object(manager_utils, 'node_power_action', autospec=True)
+    @mock.patch.object(fake.FakePower, 'get_power_state',
+                       spec=types.FunctionType)
     @mock.patch.object(agent_client.AgentClient, 'power_off',
                        spec=types.FunctionType)
     @mock.patch('ironic.drivers.modules.network.noop.NoopNetwork.'
@@ -935,18 +938,58 @@ class AgentDeployMixinTest(AgentDeployMixinBaseTest):
                 'configure_tenant_networks', spec_set=True, autospec=True)
     def test_reboot_and_finish_deploy_soft_poweroff_fails(
             self, configure_tenant_net_mock, remove_provisioning_net_mock,
-            power_off_mock, node_power_action_mock, mock_collect, resume_mock):
+            power_off_mock, get_power_state_mock, node_power_action_mock,
+            mock_collect, resume_mock):
         power_off_mock.side_effect = RuntimeError("boom")
         self.node.provision_state = states.DEPLOYING
         self.node.target_provision_state = states.ACTIVE
         self.node.save()
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
+            get_power_state_mock.return_value = states.POWER_ON
             self.deploy.reboot_and_finish_deploy(task)
             power_off_mock.assert_called_once_with(task.node)
             node_power_action_mock.assert_has_calls([
                 mock.call(task, states.POWER_OFF),
                 mock.call(task, states.POWER_ON)])
+            remove_provisioning_net_mock.assert_called_once_with(mock.ANY,
+                                                                 task)
+            configure_tenant_net_mock.assert_called_once_with(mock.ANY, task)
+            self.assertEqual(states.DEPLOYWAIT, task.node.provision_state)
+            self.assertEqual(states.ACTIVE, task.node.target_provision_state)
+            self.assertFalse(mock_collect.called)
+
+    @mock.patch.object(manager_utils, 'notify_conductor_resume_deploy',
+                       autospec=True)
+    @mock.patch.object(driver_utils, 'collect_ramdisk_logs', autospec=True)
+    @mock.patch.object(time, 'sleep', lambda seconds: None)
+    @mock.patch.object(manager_utils, 'node_power_action', autospec=True)
+    @mock.patch.object(fake.FakePower, 'get_power_state',
+                       spec=types.FunctionType)
+    @mock.patch.object(agent_client.AgentClient, 'power_off',
+                       spec=types.FunctionType)
+    @mock.patch('ironic.drivers.modules.network.noop.NoopNetwork.'
+                'remove_provisioning_network', spec_set=True, autospec=True)
+    @mock.patch('ironic.drivers.modules.network.noop.NoopNetwork.'
+                'configure_tenant_networks', spec_set=True, autospec=True)
+    def test_reboot_and_finish_deploy_soft_poweroff_race(
+            self, configure_tenant_net_mock, remove_provisioning_net_mock,
+            power_off_mock, get_power_state_mock, node_power_action_mock,
+            mock_collect, resume_mock):
+        # Test the situation when soft power off works, but ironic doesn't
+        # learn about it.
+        power_off_mock.side_effect = RuntimeError("boom")
+        self.node.provision_state = states.DEPLOYING
+        self.node.target_provision_state = states.ACTIVE
+        self.node.save()
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            get_power_state_mock.side_effect = [states.POWER_ON,
+                                                states.POWER_OFF]
+            self.deploy.reboot_and_finish_deploy(task)
+            power_off_mock.assert_called_once_with(task.node)
+            node_power_action_mock.assert_called_once_with(
+                task, states.POWER_ON)
             remove_provisioning_net_mock.assert_called_once_with(mock.ANY,
                                                                  task)
             configure_tenant_net_mock.assert_called_once_with(mock.ANY, task)

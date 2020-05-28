@@ -1015,16 +1015,25 @@ class AgentDeployMixin(HeartbeatMixin):
             if not oob_power_off:
                 try:
                     self._client.power_off(node)
-                    _wait_until_powered_off(task)
                 except Exception as e:
-                    LOG.warning('Failed to soft power off node %(node_uuid)s '
-                                'in at least %(timeout)d seconds. '
+                    LOG.warning('Failed to soft power off node %(node_uuid)s. '
                                 '%(cls)s: %(error)s',
                                 {'node_uuid': node.uuid,
-                                 'timeout': (wait * (attempts - 1)) / 1000,
                                  'cls': e.__class__.__name__, 'error': e},
                                 exc_info=not isinstance(
                                     e, exception.IronicException))
+
+                # NOTE(dtantsur): in rare cases it may happen that the power
+                # off request comes through but we never receive the response.
+                # Check the power state before trying to force off.
+                try:
+                    _wait_until_powered_off(task)
+                except Exception:
+                    LOG.warning('Failed to soft power off node %(node_uuid)s '
+                                'in at least %(timeout)d seconds. Forcing '
+                                'hard power off and proceeding.',
+                                {'node_uuid': node.uuid,
+                                 'timeout': (wait * (attempts - 1)) / 1000})
                     manager_utils.node_power_action(task, states.POWER_OFF)
             else:
                 # Flush the file system prior to hard rebooting the node
