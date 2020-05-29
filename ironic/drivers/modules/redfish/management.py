@@ -69,19 +69,28 @@ if sushy:
         v: k for k, v in INDICATOR_MAP.items()}
 
 
-def _set_boot_device(task, system, device, enabled=None):
+def _set_boot_device(task, system, device, persistent=False):
     """An internal routine to set the boot device.
 
     :param task: a task from TaskManager.
     :param system: a Redfish System object.
     :param device: the Redfish boot device.
-    :param enabled: Redfish boot device persistence value or None.
+    :param persistent: Boolean value. True if the boot device will
+                       persist to all future boots, False if not.
+                       Default: False.
     :raises: SushyError on an error from the Sushy library
     """
+    desired_enabled = BOOT_DEVICE_PERSISTENT_MAP_REV[persistent]
+    current_enabled = system.boot.get('enabled')
+
+    # NOTE(etingof): this can be racy, esp if BMC is not RESTful
+    enabled = (desired_enabled
+               if desired_enabled != current_enabled else None)
+
     try:
         system.set_system_boot_options(device, enabled=enabled)
     except sushy.exceptions.SushyError as e:
-        if enabled == sushy.BOOT_SOURCE_ENABLED_CONTINUOUS:
+        if desired_enabled == sushy.BOOT_SOURCE_ENABLED_CONTINUOUS:
             # NOTE(dtantsur): continuous boot device settings have been
             # removed from Redfish, and some vendors stopped supporting
             # it before an alternative was provided. As a work around,
@@ -194,15 +203,10 @@ class RedfishManagement(base.ManagementInterface):
 
         system = redfish_utils.get_system(task.node)
 
-        desired_persistence = BOOT_DEVICE_PERSISTENT_MAP_REV[persistent]
-        current_persistence = system.boot.get('enabled')
-
-        # NOTE(etingof): this can be racy, esp if BMC is not RESTful
-        enabled = (desired_persistence
-                   if desired_persistence != current_persistence else None)
         try:
-            _set_boot_device(task, system, BOOT_DEVICE_MAP_REV[device],
-                             enabled=enabled)
+            _set_boot_device(
+                task, system, BOOT_DEVICE_MAP_REV[device],
+                persistent=persistent)
         except sushy.exceptions.SushyError as e:
             error_msg = (_('Redfish set boot device failed for node '
                            '%(node)s. Error: %(error)s') %
