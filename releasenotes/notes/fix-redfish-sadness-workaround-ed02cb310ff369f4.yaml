@@ -1,0 +1,11 @@
+---
+fixes:
+  - |
+    Fixes a workaround for hardware that does not support persistent
+    boot device setting with the ``redfish`` or ``idrac-redfish``
+    management interface implementation. When such situation is
+    detected, ironic falls back to one-time boot device setting,
+    restoring it on every reboot or power on.
+
+    For more information, see `story 2007733
+    <https://storyboard.openstack.org/#!/story/2007733>`_.
