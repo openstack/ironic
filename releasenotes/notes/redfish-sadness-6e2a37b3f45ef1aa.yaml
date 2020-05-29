@@ -1,0 +1,18 @@
+---
+fixes:
+  - |
+    Provides a workaround for hardware that does not support persistent boot
+    device setting with the ``redfish`` hardware type. When such situation is
+    detected, ironic will fall back to one-time boot device setting, restoring
+    it on every reboot.
+issues:
+  - |
+    Some redfish-enabled hardware is known not to support persistent boot
+    device setting that is used by the Bare Metal service for deployed
+    instances. The ``redfish`` hardware type tries to work around this problem,
+    but rebooting such an instance in-band may cause it to boot incorrectly.
+    A predictable boot order should be configured in the node's boot firmware
+    to avoid issues and at least metadata cleaning must be enabled.
+    See `this mailing list thread
+    <http://lists.openstack.org/pipermail/openstack-discuss/2020-April/014543.html>`_
+    for technical details.

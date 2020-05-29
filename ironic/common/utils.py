@@ -537,3 +537,31 @@ def validate_conductor_group(conductor_group):
         raise exception.InvalidConductorGroup(group=conductor_group)
     if not re.match(r'^[a-zA-Z0-9_\-\.]*$', conductor_group):
         raise exception.InvalidConductorGroup(group=conductor_group)
+
+
+def set_node_nested_field(node, collection, field, value):
+    """Set a value in a dictionary field of a node.
+
+    :param node: Node object.
+    :param collection: Name of the field with the dictionary.
+    :param field: Nested field name.
+    :param value: New value.
+    """
+    col = getattr(node, collection)
+    col[field] = value
+    setattr(node, collection, col)
+
+
+def pop_node_nested_field(node, collection, field, default=None):
+    """Pop a value from a dictionary field of a node.
+
+    :param node: Node object.
+    :param collection: Name of the field with the dictionary.
+    :param field: Nested field name.
+    :param default: The default value to return.
+    :return: The removed value or the default.
+    """
+    col = getattr(node, collection)
+    result = col.pop(field, default)
+    setattr(node, collection, col)
+    return result
