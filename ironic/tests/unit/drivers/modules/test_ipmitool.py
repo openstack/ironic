@@ -1037,6 +1037,8 @@ class IPMIToolPrivateMethodTestCase(
         mock_support.return_value = True
         mock_exec.return_value = (None, None)
 
+        self.config(use_ipmitool_retries=True, group='ipmi')
+
         ipmi._exec_ipmitool(self.info, 'A B C')
 
         mock_support.assert_called_once_with('timing')
@@ -1300,6 +1302,8 @@ class IPMIToolPrivateMethodTestCase(
             '-f', awesome_password_filename,
             'A', 'B', 'C',
         ]
+
+        self.config(use_ipmitool_retries=True, group='ipmi')
 
         mock_support.return_value = False
         mock_exec.side_effect = processutils.ProcessExecutionError("x")

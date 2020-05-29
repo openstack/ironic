@@ -1,0 +1,9 @@
+---
+fixes:
+  - |
+    Change the default for ``use_ipmitool_retries`` to ``False`` so that
+    Ironic will do the retries by default.  This is needed for certain BMCs
+    that don't support the Cipher Suites command and ipmitool retries take an
+    excessively long time.  See `story 2007632
+    <https://storyboard.openstack.org/#!/story/2007632>`_ for additional
+    information.
