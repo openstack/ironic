@@ -448,8 +448,8 @@ class DracManagementInternalMethodsTestCase(test_utils.BaseDracTest):
         self.assertEqual(0, mock_client.set_bios_settings.call_count)
         self.assertEqual(0, mock_client.commit_pending_bios_changes.call_count)
 
-    @mock.patch('time.time')
-    @mock.patch('time.sleep')
+    @mock.patch('time.time', autospec=True)
+    @mock.patch('time.sleep', autospec=True)
     @mock.patch.object(drac_mgmt, '_get_next_persistent_boot_mode',
                        spec_set=True, autospec=True)
     @mock.patch.object(drac_mgmt, '_get_boot_device', spec_set=True,

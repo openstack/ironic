@@ -187,7 +187,8 @@ class DracPeriodicTaskTestCase(db_base.DbTestCase):
                          self.node.raid_config['logical_disks'])
         mock_notify_conductor_resume.assert_called_once_with(task)
 
-    @mock.patch.object(manager_utils, 'notify_conductor_resume_clean')
+    @mock.patch.object(manager_utils, 'notify_conductor_resume_clean',
+                       autospec=True)
     def test__check_node_raid_jobs_with_completed_job_in_clean(
             self, mock_notify_conductor_resume):
         self.node.clean_step = {'foo': 'bar'}
@@ -195,7 +196,8 @@ class DracPeriodicTaskTestCase(db_base.DbTestCase):
         self._test__check_node_raid_jobs_with_completed_job(
             mock_notify_conductor_resume)
 
-    @mock.patch.object(manager_utils, 'notify_conductor_resume_deploy')
+    @mock.patch.object(manager_utils, 'notify_conductor_resume_deploy',
+                       autospec=True)
     def test__check_node_raid_jobs_with_completed_job_in_deploy(
             self, mock_notify_conductor_resume):
         self._test__check_node_raid_jobs_with_completed_job(
@@ -272,7 +274,8 @@ class DracPeriodicTaskTestCase(db_base.DbTestCase):
         task.process_event.assert_called_once_with('fail')
         self.assertFalse(mock_notify_conductor_resume.called)
 
-    @mock.patch.object(manager_utils, 'notify_conductor_resume_clean')
+    @mock.patch.object(manager_utils, 'notify_conductor_resume_clean',
+                       autospec=True)
     def test__check_node_raid_jobs_with_completed_job_already_failed_in_clean(
             self, mock_notify_conductor_resume):
         self.node.clean_step = {'foo': 'bar'}
@@ -280,7 +283,8 @@ class DracPeriodicTaskTestCase(db_base.DbTestCase):
         self._test__check_node_raid_jobs_with_completed_job_already_failed(
             mock_notify_conductor_resume)
 
-    @mock.patch.object(manager_utils, 'notify_conductor_resume_deploy')
+    @mock.patch.object(manager_utils, 'notify_conductor_resume_deploy',
+                       autospec=True)
     def test__check_node_raid_jobs_with_completed_job_already_failed_in_deploy(
             self, mock_notify_conductor_resume):
         self._test__check_node_raid_jobs_with_completed_job_already_failed(
@@ -326,7 +330,8 @@ class DracPeriodicTaskTestCase(db_base.DbTestCase):
                          self.node.raid_config['logical_disks'])
         mock_notify_conductor_resume.assert_called_once_with(task)
 
-    @mock.patch.object(manager_utils, 'notify_conductor_resume_clean')
+    @mock.patch.object(manager_utils, 'notify_conductor_resume_clean',
+                       autospec=True)
     def test__check_node_raid_jobs_with_multiple_jobs_completed_in_clean(
             self, mock_notify_conductor_resume):
         self.node.clean_step = {'foo': 'bar'}
@@ -334,7 +339,8 @@ class DracPeriodicTaskTestCase(db_base.DbTestCase):
         self._test__check_node_raid_jobs_with_multiple_jobs_completed(
             mock_notify_conductor_resume)
 
-    @mock.patch.object(manager_utils, 'notify_conductor_resume_deploy')
+    @mock.patch.object(manager_utils, 'notify_conductor_resume_deploy',
+                       autospec=True)
     def test__check_node_raid_jobs_with_multiple_jobs_completed_in_deploy(
             self, mock_notify_conductor_resume):
         self._test__check_node_raid_jobs_with_multiple_jobs_completed(
@@ -384,7 +390,8 @@ class DracPeriodicTaskTestCase(db_base.DbTestCase):
         task.process_event.assert_called_once_with('fail')
         self.assertFalse(mock_notify_conductor_resume.called)
 
-    @mock.patch.object(manager_utils, 'notify_conductor_resume_clean')
+    @mock.patch.object(manager_utils, 'notify_conductor_resume_clean',
+                       autospec=True)
     def test__check_node_raid_jobs_with_multiple_jobs_failed_in_clean(
             self, mock_notify_conductor_resume):
         self.node.clean_step = {'foo': 'bar'}
@@ -392,7 +399,8 @@ class DracPeriodicTaskTestCase(db_base.DbTestCase):
         self._test__check_node_raid_jobs_with_multiple_jobs_failed(
             mock_notify_conductor_resume)
 
-    @mock.patch.object(manager_utils, 'notify_conductor_resume_deploy')
+    @mock.patch.object(manager_utils, 'notify_conductor_resume_deploy',
+                       autospec=True)
     def test__check_node_raid_jobs_with_multiple_jobs_failed_in_deploy(
             self, mock_notify_conductor_resume):
         self._test__check_node_raid_jobs_with_multiple_jobs_failed(

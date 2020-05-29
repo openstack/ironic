@@ -69,7 +69,7 @@ class DracPowerTestCase(test_utils.BaseDracTest):
 
         mock_client.get_power_state.assert_called_once_with()
 
-    @mock.patch.object(drac_power.LOG, 'warning')
+    @mock.patch.object(drac_power.LOG, 'warning', autospec=True)
     def test_set_power_state(self, mock_log, mock_get_drac_client):
         mock_client = mock_get_drac_client.return_value
 
@@ -95,7 +95,7 @@ class DracPowerTestCase(test_utils.BaseDracTest):
         drac_power_state = drac_power.REVERSE_POWER_STATES[states.POWER_OFF]
         mock_client.set_power_state.assert_called_once_with(drac_power_state)
 
-    @mock.patch.object(drac_power.LOG, 'warning')
+    @mock.patch.object(drac_power.LOG, 'warning', autospec=True)
     def test_set_power_state_timeout(self, mock_log, mock_get_drac_client):
         mock_client = mock_get_drac_client.return_value
 
@@ -108,7 +108,7 @@ class DracPowerTestCase(test_utils.BaseDracTest):
         mock_client.set_power_state.assert_called_once_with(drac_power_state)
         self.assertTrue(mock_log.called)
 
-    @mock.patch.object(drac_power.LOG, 'warning')
+    @mock.patch.object(drac_power.LOG, 'warning', autospec=True)
     def test_reboot_while_powered_on(self, mock_log, mock_get_drac_client):
         mock_client = mock_get_drac_client.return_value
         mock_client.get_power_state.return_value = drac_constants.POWER_ON
@@ -121,7 +121,7 @@ class DracPowerTestCase(test_utils.BaseDracTest):
         mock_client.set_power_state.assert_called_once_with(drac_power_state)
         self.assertFalse(mock_log.called)
 
-    @mock.patch.object(drac_power.LOG, 'warning')
+    @mock.patch.object(drac_power.LOG, 'warning', autospec=True)
     def test_reboot_while_powered_on_timeout(self, mock_log,
                                              mock_get_drac_client):
         mock_client = mock_get_drac_client.return_value
@@ -146,7 +146,7 @@ class DracPowerTestCase(test_utils.BaseDracTest):
         drac_power_state = drac_power.REVERSE_POWER_STATES[states.POWER_ON]
         mock_client.set_power_state.assert_called_once_with(drac_power_state)
 
-    @mock.patch('time.sleep')
+    @mock.patch('time.sleep', autospec=True)
     def test_reboot_retries_success(self, mock_sleep, mock_get_drac_client):
         mock_client = mock_get_drac_client.return_value
         mock_client.get_power_state.return_value = drac_constants.POWER_OFF
@@ -164,7 +164,7 @@ class DracPowerTestCase(test_utils.BaseDracTest):
             [mock.call(drac_power_state),
              mock.call(drac_power_state)])
 
-    @mock.patch('time.sleep')
+    @mock.patch('time.sleep', autospec=True)
     def test_reboot_retries_fail(self, mock_sleep, mock_get_drac_client):
         mock_client = mock_get_drac_client.return_value
         mock_client.get_power_state.return_value = drac_constants.POWER_OFF
@@ -180,7 +180,7 @@ class DracPowerTestCase(test_utils.BaseDracTest):
         self.assertEqual(drac_power.POWER_STATE_TRIES,
                          mock_client.set_power_state.call_count)
 
-    @mock.patch('time.sleep')
+    @mock.patch('time.sleep', autospec=True)
     def test_reboot_retries_power_change_success(self, mock_sleep,
                                                  mock_get_drac_client):
         mock_client = mock_get_drac_client.return_value
