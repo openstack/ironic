@@ -215,7 +215,8 @@ class RedfishManagementTestCase(db_base.DbTestCase):
             task.driver.management.restore_boot_device(task, fake_system)
 
             fake_system.set_system_boot_options.assert_called_once_with(
-                sushy.BOOT_SOURCE_TARGET_HDD, enabled=None)
+                sushy.BOOT_SOURCE_TARGET_HDD,
+                enabled=sushy.BOOT_SOURCE_ENABLED_ONCE)
             # The stored boot device is kept intact
             self.assertEqual(
                 sushy.BOOT_SOURCE_TARGET_HDD,
@@ -244,7 +245,8 @@ class RedfishManagementTestCase(db_base.DbTestCase):
             task.driver.management.restore_boot_device(task, fake_system)
 
             fake_system.set_system_boot_options.assert_called_once_with(
-                sushy.BOOT_SOURCE_TARGET_HDD, enabled=None)
+                sushy.BOOT_SOURCE_TARGET_HDD,
+                enabled=sushy.BOOT_SOURCE_ENABLED_ONCE)
             self.assertTrue(mock_log.called)
             # The stored boot device is kept intact
             self.assertEqual(
