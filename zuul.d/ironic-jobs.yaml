@@ -855,9 +855,3 @@
       tempest_concurrency: 1
       zuul_copy_output:
         '{{ devstack_bases.old }}/ironic-bm-logs': logs
-
-# Keeping till we can rename the job on grenade
-- job:
-    name: ironic-grenade-dsvm
-    parent: ironic-grenade
-    timeout: 10800
