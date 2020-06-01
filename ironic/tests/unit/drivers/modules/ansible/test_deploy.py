@@ -637,7 +637,7 @@ class TestAnsibleDeploy(AnsibleDeployTestCaseBase):
     @mock.patch('ironic.drivers.modules.deploy_utils.'
                 'build_instance_info_for_deploy',
                 return_value={'test': 'test'}, autospec=True)
-    @mock.patch.object(pxe.PXEBoot, 'prepare_ramdisk')
+    @mock.patch.object(pxe.PXEBoot, 'prepare_ramdisk', autospec=True)
     def test_prepare(self, pxe_prepare_ramdisk_mock,
                      build_instance_info_mock, build_options_mock,
                      power_action_mock):
@@ -656,7 +656,7 @@ class TestAnsibleDeploy(AnsibleDeployTestCaseBase):
             build_instance_info_mock.assert_called_once_with(task)
             build_options_mock.assert_called_once_with(task.node)
             pxe_prepare_ramdisk_mock.assert_called_once_with(
-                task, {'op1': 'test1'})
+                task.driver.boot, task, {'op1': 'test1'})
 
         self.node.refresh()
         self.assertEqual('test', self.node.instance_info['test'])
@@ -664,13 +664,13 @@ class TestAnsibleDeploy(AnsibleDeployTestCaseBase):
     @mock.patch.object(ansible_deploy, '_get_configdrive_path',
                        return_value='/path/test', autospec=True)
     @mock.patch.object(irlib_utils, 'unlink_without_raise', autospec=True)
-    @mock.patch.object(pxe.PXEBoot, 'clean_up_ramdisk')
+    @mock.patch.object(pxe.PXEBoot, 'clean_up_ramdisk', autospec=True)
     def test_clean_up(self, pxe_clean_up_mock, unlink_mock,
                       get_cfdrive_path_mock):
         with task_manager.acquire(
                 self.context, self.node['uuid'], shared=False) as task:
             self.driver.clean_up(task)
-            pxe_clean_up_mock.assert_called_once_with(task)
+            pxe_clean_up_mock.assert_called_once_with(task.driver.boot, task)
             get_cfdrive_path_mock.assert_called_once_with(self.node['uuid'])
             unlink_mock.assert_called_once_with('/path/test')
 
@@ -764,7 +764,7 @@ class TestAnsibleDeploy(AnsibleDeployTestCaseBase):
     @mock.patch.object(utils, 'node_power_action', autospec=True)
     @mock.patch('ironic.drivers.modules.deploy_utils.build_agent_options',
                 return_value={'op1': 'test1'}, autospec=True)
-    @mock.patch.object(pxe.PXEBoot, 'prepare_ramdisk')
+    @mock.patch.object(pxe.PXEBoot, 'prepare_ramdisk', autospec=True)
     def test_prepare_cleaning(
             self, prepare_ramdisk_mock, buid_options_mock, power_action_mock,
             set_node_cleaning_steps, run_playbook_mock):
@@ -785,7 +785,7 @@ class TestAnsibleDeploy(AnsibleDeployTestCaseBase):
                 task)
             buid_options_mock.assert_called_once_with(task.node)
             prepare_ramdisk_mock.assert_called_once_with(
-                task, {'op1': 'test1'})
+                task.driver.boot, task, {'op1': 'test1'})
             power_action_mock.assert_called_once_with(task, states.REBOOT)
             self.assertFalse(run_playbook_mock.called)
             self.assertEqual(states.CLEANWAIT, state)
@@ -802,7 +802,7 @@ class TestAnsibleDeploy(AnsibleDeployTestCaseBase):
             self.assertFalse(task.driver.network.add_cleaning_network.called)
 
     @mock.patch.object(utils, 'node_power_action', autospec=True)
-    @mock.patch.object(pxe.PXEBoot, 'clean_up_ramdisk')
+    @mock.patch.object(pxe.PXEBoot, 'clean_up_ramdisk', autospec=True)
     def test_tear_down_cleaning(self, clean_ramdisk_mock, power_action_mock):
         with task_manager.acquire(self.context, self.node.uuid) as task:
             task.driver.network.remove_cleaning_network = mock.Mock()
@@ -810,7 +810,7 @@ class TestAnsibleDeploy(AnsibleDeployTestCaseBase):
             self.driver.tear_down_cleaning(task)
 
             power_action_mock.assert_called_once_with(task, states.POWER_OFF)
-            clean_ramdisk_mock.assert_called_once_with(task)
+            clean_ramdisk_mock.assert_called_once_with(task.driver.boot, task)
             (task.driver.network.remove_cleaning_network
                 .assert_called_once_with(task))
 
@@ -892,7 +892,7 @@ class TestAnsibleDeploy(AnsibleDeployTestCaseBase):
 
     @mock.patch.object(utils, 'power_on_node_if_needed', autospec=True)
     @mock.patch.object(fake.FakePower, 'get_power_state',
-                       return_value=states.POWER_OFF)
+                       return_value=states.POWER_OFF, autospec=True)
     @mock.patch.object(utils, 'node_power_action', autospec=True)
     def test_reboot_and_finish_deploy_force_reboot(
             self, power_action_mock, get_pow_state_mock,
@@ -908,7 +908,8 @@ class TestAnsibleDeploy(AnsibleDeployTestCaseBase):
 
         power_on_node_if_needed_mock.return_value = None
         with task_manager.acquire(self.context, self.node.uuid) as task:
-            with mock.patch.object(task.driver, 'network') as net_mock:
+            with mock.patch.object(task.driver, 'network',
+                                   autospec=True) as net_mock:
                 self.driver.reboot_and_finish_deploy(task)
                 net_mock.remove_provisioning_network.assert_called_once_with(
                     task)
@@ -938,10 +939,12 @@ class TestAnsibleDeploy(AnsibleDeployTestCaseBase):
 
         power_on_node_if_needed_mock.return_value = None
         with task_manager.acquire(self.context, self.node.uuid) as task:
-            with mock.patch.object(task.driver, 'network') as net_mock:
+            with mock.patch.object(task.driver, 'network',
+                                   autospec=True) as net_mock:
                 with mock.patch.object(task.driver.power,
                                        'get_power_state',
-                                       return_value=states.POWER_ON) as p_mock:
+                                       return_value=states.POWER_ON,
+                                       autospec=True) as p_mock:
                     self.driver.reboot_and_finish_deploy(task)
                     p_mock.assert_called_with(task)
                     self.assertEqual(2, len(p_mock.mock_calls))
@@ -998,7 +1001,7 @@ class TestAnsibleDeploy(AnsibleDeployTestCaseBase):
                     task)
 
     @mock.patch.object(utils, 'restore_power_state_if_needed', autospec=True)
-    @mock.patch.object(utils, 'power_on_node_if_needed')
+    @mock.patch.object(utils, 'power_on_node_if_needed', autospec=True)
     @mock.patch.object(utils, 'node_power_action', autospec=True)
     def test_tear_down_with_smartnic_port(
             self, power_mock, power_on_node_if_needed_mock,
@@ -1021,7 +1024,7 @@ class TestAnsibleDeploy(AnsibleDeployTestCaseBase):
     @mock.patch.object(deploy_utils, 'build_agent_options', autospec=True)
     @mock.patch.object(deploy_utils, 'build_instance_info_for_deploy',
                        autospec=True)
-    @mock.patch.object(pxe.PXEBoot, 'prepare_ramdisk')
+    @mock.patch.object(pxe.PXEBoot, 'prepare_ramdisk', autospec=True)
     def test_prepare_with_smartnic_port(
             self, pxe_prepare_ramdisk_mock,
             build_instance_info_mock, build_options_mock,
@@ -1039,7 +1042,7 @@ class TestAnsibleDeploy(AnsibleDeployTestCaseBase):
             build_instance_info_mock.assert_called_once_with(task)
             build_options_mock.assert_called_once_with(task.node)
             pxe_prepare_ramdisk_mock.assert_called_once_with(
-                task, {'op1': 'test1'})
+                task.driver.boot, task, {'op1': 'test1'})
             power_on_node_if_needed_mock.assert_called_once_with(task)
             restore_power_state_mock.assert_called_once_with(
                 task, states.POWER_OFF)
@@ -1053,7 +1056,7 @@ class TestAnsibleDeploy(AnsibleDeployTestCaseBase):
     @mock.patch.object(steps, 'set_node_cleaning_steps', autospec=True)
     @mock.patch.object(utils, 'node_power_action', autospec=True)
     @mock.patch.object(deploy_utils, 'build_agent_options', autospec=True)
-    @mock.patch.object(pxe.PXEBoot, 'prepare_ramdisk')
+    @mock.patch.object(pxe.PXEBoot, 'prepare_ramdisk', autospec=True)
     def test_prepare_cleaning_with_smartnic_port(
             self, prepare_ramdisk_mock, build_options_mock, power_action_mock,
             set_node_cleaning_steps, run_playbook_mock,
@@ -1075,7 +1078,7 @@ class TestAnsibleDeploy(AnsibleDeployTestCaseBase):
                 task)
             build_options_mock.assert_called_once_with(task.node)
             prepare_ramdisk_mock.assert_called_once_with(
-                task, {'op1': 'test1'})
+                task.driver.boot, task, {'op1': 'test1'})
             power_action_mock.assert_called_once_with(task, states.REBOOT)
             self.assertFalse(run_playbook_mock.called)
             self.assertEqual(states.CLEANWAIT, state)
@@ -1086,7 +1089,7 @@ class TestAnsibleDeploy(AnsibleDeployTestCaseBase):
     @mock.patch.object(utils, 'restore_power_state_if_needed', autospec=True)
     @mock.patch.object(utils, 'power_on_node_if_needed', autospec=True)
     @mock.patch.object(utils, 'node_power_action', autospec=True)
-    @mock.patch.object(pxe.PXEBoot, 'clean_up_ramdisk')
+    @mock.patch.object(pxe.PXEBoot, 'clean_up_ramdisk', autospec=True)
     def test_tear_down_cleaning_with_smartnic_port(
             self, clean_ramdisk_mock, power_action_mock,
             power_on_node_if_needed_mock, restore_power_state_mock):
@@ -1095,7 +1098,8 @@ class TestAnsibleDeploy(AnsibleDeployTestCaseBase):
             power_on_node_if_needed_mock.return_value = states.POWER_OFF
             self.driver.tear_down_cleaning(task)
             power_action_mock.assert_called_once_with(task, states.POWER_OFF)
-            clean_ramdisk_mock.assert_called_once_with(task)
+            power_action_mock.assert_called_once_with(task, states.POWER_OFF)
+            clean_ramdisk_mock.assert_called_once_with(task.driver.boot, task)
             (task.driver.network.remove_cleaning_network
                 .assert_called_once_with(task))
             power_on_node_if_needed_mock.assert_called_once_with(task)
@@ -1109,7 +1113,7 @@ class TestAnsibleDeploy(AnsibleDeployTestCaseBase):
     @mock.patch.object(utils, 'restore_power_state_if_needed', autospec=True)
     @mock.patch.object(utils, 'power_on_node_if_needed', autospec=True)
     @mock.patch.object(fake.FakePower, 'get_power_state',
-                       return_value=states.POWER_OFF)
+                       return_value=states.POWER_OFF, autospec=True)
     @mock.patch.object(utils, 'node_power_action', autospec=True)
     def test_reboot_and_finish_deploy_with_smartnic_port(
             self, power_action_mock, get_pow_state_mock,
