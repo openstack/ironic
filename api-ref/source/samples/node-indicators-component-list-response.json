@@ -1,0 +1,45 @@
+{
+    "indicators": [
+        {
+            "name": "power",
+            "readonly": true,
+            "states": [
+                "OFF",
+                "ON"
+            ],
+            "links": [
+                {
+                    "href": "http://127.0.0.1:6385/v1/nodes/Compute0/
+                    management/indicators/system/power",
+                    "rel": "self"
+                },
+                {
+                    "href": "http://127.0.0.1:6385/nodes/Compute0/
+                    management/indicators/system/power",
+                    "rel": "bookmark"
+                }
+            ]
+        },
+        {
+            "name": "alert",
+            "readonly": false,
+            "states": [
+                "OFF",
+                "BLINKING",
+                "UNKNOWN"
+            ],
+            "links": [
+                {
+                    "href": "http://127.0.0.1:6385/v1/nodes/Compute0/
+                    management/indicators/system/alert",
+                    "rel": "self"
+                },
+                {
+                    "href": "http://127.0.0.1:6385/nodes/Compute0/
+                    management/indicators/system/alert",
+                    "rel": "bookmark"
+                }
+            ]
+        },
+    ]
+}

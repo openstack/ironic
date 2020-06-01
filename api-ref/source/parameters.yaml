@@ -56,6 +56,12 @@ chassis_ident:
   in: path
   required: true
   type: string
+component:
+  description: |
+    The Bare Metal node component.
+  in: path
+  required: true
+  type: string
 deploy_template_ident:
   description: |
     The UUID or name of the deploy template.
@@ -71,6 +77,12 @@ driver_ident:
 hostname_ident:
   description: |
     The hostname of the conductor.
+  in: path
+  required: true
+  type: string
+ind_ident:
+  description: |
+    The indicator of a Bare Metal component.
   in: path
   required: true
   type: string
@@ -538,6 +550,12 @@ clean_steps:
   in: body
   required: false
   type: array
+component_name:
+  description: |
+    The name of the component available for the node.
+  in: body
+  required: true
+  type: string
 conductor:
   description: |
     The conductor currently servicing a node. This field is read-only.
@@ -855,6 +873,25 @@ id:
   in: body
   required: true
   type: string
+indicator_name:
+  description: |
+    The name of the indicator.
+  in: body
+  required: true
+  type: boolean
+indicator_readonly:
+  description: |
+    Indicates whether the indicator is readonly.
+  in: body
+  required: true
+  type: boolean
+indicator_states:
+  description: |
+    The possible states for a given indicator, the only values that can be
+    returned are:  ``ON``, ``OFF``, ``BLINKING`` and ``UNKNOWN``
+  in: body
+  required: true
+  type: string
 inspect_interface:
   description: |
     The interface used for node inspection, e.g. "no-inspect".
@@ -956,12 +993,33 @@ management_interface:
   in: body
   required: true
   type: string
+n_components:
+  description: |
+    List all available indicators names for each of the hardware components
+    for this node.
+  in: body
+  required: true
+  type: array
 n_description:
   description: |
     Informational text about this node.
   in: body
   required: true
   type: string
+n_ind_state:
+  description: |
+    The state of an indicator of the component of the node. Possible values
+    are: ``OFF``, ``ON``, ``BLINKING`` or ``UNKNOWN``.
+  in: body
+  required: true
+  type: string
+n_indicators:
+  description: |
+    Retrieves all indicators for a given hardware component along with their
+    attributes for this node.
+  in: body
+  required: true
+  type: array
 n_portgroups:
   description: |
     Links to the collection of portgroups on this node.
