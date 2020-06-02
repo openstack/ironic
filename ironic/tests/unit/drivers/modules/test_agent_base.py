@@ -533,7 +533,7 @@ class HeartbeatMixinTest(AgentDeployMixinBaseTest):
         mock_notify.assert_called_once_with(task, 'clean')
         mock_set_steps.assert_called_once_with(task)
 
-    @mock.patch.object(manager_utils, 'cleaning_error_handler')
+    @mock.patch.object(manager_utils, 'cleaning_error_handler', autospec=True)
     @mock.patch.object(objects.node.Node, 'touch_provisioning', autospec=True)
     @mock.patch.object(agent_base.HeartbeatMixin,
                        'refresh_steps', autospec=True)
@@ -611,7 +611,7 @@ class HeartbeatMixinTest(AgentDeployMixinBaseTest):
         mock_touch.assert_called_once_with(mock.ANY)
         self.assertFalse(mock_continue.called)
 
-    @mock.patch.object(manager_utils, 'cleaning_error_handler')
+    @mock.patch.object(manager_utils, 'cleaning_error_handler', autospec=True)
     @mock.patch.object(agent_base.HeartbeatMixin,
                        'continue_cleaning', autospec=True)
     def test_heartbeat_continue_cleaning_fails(self, mock_continue,
@@ -634,7 +634,7 @@ class HeartbeatMixinTest(AgentDeployMixinBaseTest):
         mock_continue.assert_called_once_with(mock.ANY, task)
         mock_handler.assert_called_once_with(task, mock.ANY)
 
-    @mock.patch.object(manager_utils, 'rescuing_error_handler')
+    @mock.patch.object(manager_utils, 'rescuing_error_handler', autospec=True)
     @mock.patch.object(agent_base.HeartbeatMixin, '_finalize_rescue',
                        autospec=True)
     def test_heartbeat_rescue(self, mock_finalize_rescue,
@@ -648,7 +648,7 @@ class HeartbeatMixinTest(AgentDeployMixinBaseTest):
         mock_finalize_rescue.assert_called_once_with(mock.ANY, task)
         self.assertFalse(mock_rescue_err_handler.called)
 
-    @mock.patch.object(manager_utils, 'rescuing_error_handler')
+    @mock.patch.object(manager_utils, 'rescuing_error_handler', autospec=True)
     @mock.patch.object(agent_base.HeartbeatMixin, '_finalize_rescue',
                        autospec=True)
     def test_heartbeat_rescue_fails(self, mock_finalize,
@@ -848,7 +848,7 @@ class AgentRescueTests(AgentDeployMixinBaseTest):
 
 
 class AgentDeployMixinTest(AgentDeployMixinBaseTest):
-    @mock.patch.object(manager_utils, 'power_on_node_if_needed')
+    @mock.patch.object(manager_utils, 'power_on_node_if_needed', autospec=True)
     @mock.patch.object(manager_utils, 'notify_conductor_resume_deploy',
                        autospec=True)
     @mock.patch.object(driver_utils, 'collect_ramdisk_logs', autospec=True)
@@ -997,7 +997,7 @@ class AgentDeployMixinTest(AgentDeployMixinBaseTest):
             self.assertEqual(states.ACTIVE, task.node.target_provision_state)
             self.assertFalse(mock_collect.called)
 
-    @mock.patch.object(manager_utils, 'power_on_node_if_needed')
+    @mock.patch.object(manager_utils, 'power_on_node_if_needed', autospec=True)
     @mock.patch.object(manager_utils, 'notify_conductor_resume_deploy',
                        autospec=True)
     @mock.patch.object(driver_utils, 'collect_ramdisk_logs', autospec=True)
@@ -2109,7 +2109,7 @@ class AgentDeployMixinTest(AgentDeployMixinBaseTest):
 
     @mock.patch.object(manager_utils, 'restore_power_state_if_needed',
                        autospec=True)
-    @mock.patch.object(manager_utils, 'power_on_node_if_needed')
+    @mock.patch.object(manager_utils, 'power_on_node_if_needed', autospec=True)
     @mock.patch.object(manager_utils, 'notify_conductor_resume_deploy',
                        autospec=True)
     @mock.patch.object(driver_utils, 'collect_ramdisk_logs', autospec=True)
