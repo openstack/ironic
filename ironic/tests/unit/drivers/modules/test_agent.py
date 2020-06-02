@@ -167,12 +167,12 @@ class TestAgentMethods(db_base.DbTestCase):
                               task, 'fake-image')
             show_mock.assert_called_once_with(self.context, 'fake-image')
 
-    @mock.patch.object(deploy_utils, 'check_for_missing_params')
+    @mock.patch.object(deploy_utils, 'check_for_missing_params', autospec=True)
     def test_validate_http_provisioning_not_glance(self, utils_mock):
         agent.validate_http_provisioning_configuration(self.node)
         utils_mock.assert_not_called()
 
-    @mock.patch.object(deploy_utils, 'check_for_missing_params')
+    @mock.patch.object(deploy_utils, 'check_for_missing_params', autospec=True)
     def test_validate_http_provisioning_not_http(self, utils_mock):
         i_info = self.node.instance_info
         i_info['image_source'] = '0448fa34-4db1-407b-a051-6357d5f86c59'
@@ -538,10 +538,12 @@ class TestAgentDeploy(db_base.DbTestCase):
 
     @mock.patch.object(noop_storage.NoopStorage, 'attach_volumes',
                        autospec=True)
-    @mock.patch.object(deploy_utils, 'populate_storage_driver_internal_info')
-    @mock.patch.object(pxe.PXEBoot, 'prepare_ramdisk')
-    @mock.patch.object(deploy_utils, 'build_agent_options')
-    @mock.patch.object(deploy_utils, 'build_instance_info_for_deploy')
+    @mock.patch.object(deploy_utils, 'populate_storage_driver_internal_info',
+                       autospec=True)
+    @mock.patch.object(pxe.PXEBoot, 'prepare_ramdisk', autospec=True)
+    @mock.patch.object(deploy_utils, 'build_agent_options', autospec=True)
+    @mock.patch.object(deploy_utils, 'build_instance_info_for_deploy',
+                       autospec=True)
     @mock.patch.object(flat_network.FlatNetwork, 'add_provisioning_network',
                        spec_set=True, autospec=True)
     @mock.patch.object(flat_network.FlatNetwork,
@@ -573,16 +575,18 @@ class TestAgentDeploy(db_base.DbTestCase):
             build_instance_info_mock.assert_called_once_with(task)
             build_options_mock.assert_called_once_with(task.node)
             pxe_prepare_ramdisk_mock.assert_called_once_with(
-                task, {'a': 'b'})
+                task.driver.boot, task, {'a': 'b'})
         self.node.refresh()
         self.assertEqual('bar', self.node.instance_info['foo'])
 
     @mock.patch.object(noop_storage.NoopStorage, 'attach_volumes',
                        autospec=True)
-    @mock.patch.object(deploy_utils, 'populate_storage_driver_internal_info')
-    @mock.patch.object(pxe.PXEBoot, 'prepare_ramdisk')
-    @mock.patch.object(deploy_utils, 'build_agent_options')
-    @mock.patch.object(deploy_utils, 'build_instance_info_for_deploy')
+    @mock.patch.object(deploy_utils, 'populate_storage_driver_internal_info',
+                       autospec=True)
+    @mock.patch.object(pxe.PXEBoot, 'prepare_ramdisk', autospec=True)
+    @mock.patch.object(deploy_utils, 'build_agent_options', autospec=True)
+    @mock.patch.object(deploy_utils, 'build_instance_info_for_deploy',
+                       autospec=True)
     @mock.patch.object(neutron_network.NeutronNetwork,
                        'add_provisioning_network',
                        spec_set=True, autospec=True)
@@ -615,15 +619,16 @@ class TestAgentDeploy(db_base.DbTestCase):
             build_instance_info_mock.assert_called_once_with(task)
             build_options_mock.assert_called_once_with(task.node)
             pxe_prepare_ramdisk_mock.assert_called_once_with(
-                task, {'a': 'b'})
+                task.driver.boot, task, {'a': 'b'})
         self.node.refresh()
         self.assertEqual('bar', self.node.instance_info['foo'])
 
     @mock.patch.object(noop_storage.NoopStorage, 'attach_volumes',
                        autospec=True)
-    @mock.patch.object(deploy_utils, 'populate_storage_driver_internal_info')
-    @mock.patch.object(pxe.PXEBoot, 'prepare_ramdisk')
-    @mock.patch.object(deploy_utils, 'build_agent_options')
+    @mock.patch.object(deploy_utils, 'populate_storage_driver_internal_info',
+                       autospec=True)
+    @mock.patch.object(pxe.PXEBoot, 'prepare_ramdisk', autospec=True)
+    @mock.patch.object(deploy_utils, 'build_agent_options', autospec=True)
     @mock.patch.object(image_service.HttpImageService, 'validate_href',
                        autospec=True)
     @mock.patch.object(neutron_network.NeutronNetwork,
@@ -663,7 +668,7 @@ class TestAgentDeploy(db_base.DbTestCase):
                                                        secret=False)
             build_options_mock.assert_called_once_with(task.node)
             pxe_prepare_ramdisk_mock.assert_called_once_with(
-                task, {'a': 'b'})
+                task.driver.boot, task, {'a': 'b'})
         self.node.refresh()
         capabilities = self.node.instance_info['capabilities']
         self.assertEqual('local', capabilities['boot_option'])
@@ -671,9 +676,10 @@ class TestAgentDeploy(db_base.DbTestCase):
 
     @mock.patch.object(noop_storage.NoopStorage, 'attach_volumes',
                        autospec=True)
-    @mock.patch.object(deploy_utils, 'populate_storage_driver_internal_info')
-    @mock.patch.object(pxe.PXEBoot, 'prepare_ramdisk')
-    @mock.patch.object(deploy_utils, 'build_agent_options')
+    @mock.patch.object(deploy_utils, 'populate_storage_driver_internal_info',
+                       autospec=True)
+    @mock.patch.object(pxe.PXEBoot, 'prepare_ramdisk', autospec=True)
+    @mock.patch.object(deploy_utils, 'build_agent_options', autospec=True)
     @mock.patch.object(image_service.HttpImageService, 'validate_href',
                        autospec=True)
     @mock.patch.object(neutron_network.NeutronNetwork,
@@ -710,16 +716,17 @@ class TestAgentDeploy(db_base.DbTestCase):
                                                        secret=False)
             build_options_mock.assert_called_once_with(task.node)
             pxe_prepare_ramdisk_mock.assert_called_once_with(
-                task, {'a': 'b'})
+                task.driver.boot, task, {'a': 'b'})
         self.node.refresh()
         capabilities = self.node.instance_info['capabilities']
         self.assertEqual('local', capabilities['boot_option'])
 
     @mock.patch.object(noop_storage.NoopStorage, 'attach_volumes',
                        autospec=True)
-    @mock.patch.object(deploy_utils, 'populate_storage_driver_internal_info')
-    @mock.patch.object(pxe.PXEBoot, 'prepare_ramdisk')
-    @mock.patch.object(deploy_utils, 'build_agent_options')
+    @mock.patch.object(deploy_utils, 'populate_storage_driver_internal_info',
+                       autospec=True)
+    @mock.patch.object(pxe.PXEBoot, 'prepare_ramdisk', autospec=True)
+    @mock.patch.object(deploy_utils, 'build_agent_options', autospec=True)
     @mock.patch.object(image_service.HttpImageService, 'validate_href',
                        autospec=True)
     @mock.patch.object(neutron_network.NeutronNetwork,
@@ -759,7 +766,7 @@ class TestAgentDeploy(db_base.DbTestCase):
                                                        secret=False)
             build_options_mock.assert_called_once_with(task.node)
             pxe_prepare_ramdisk_mock.assert_called_once_with(
-                task, {'a': 'b'})
+                task.driver.boot, task, {'a': 'b'})
         self.node.refresh()
         capabilities = self.node.instance_info['capabilities']
         self.assertEqual('local', capabilities['boot_option'])
@@ -767,10 +774,12 @@ class TestAgentDeploy(db_base.DbTestCase):
 
     @mock.patch.object(noop_storage.NoopStorage, 'attach_volumes',
                        autospec=True)
-    @mock.patch.object(deploy_utils, 'populate_storage_driver_internal_info')
-    @mock.patch.object(pxe.PXEBoot, 'prepare_ramdisk')
-    @mock.patch.object(deploy_utils, 'build_agent_options')
-    @mock.patch.object(deploy_utils, 'build_instance_info_for_deploy')
+    @mock.patch.object(deploy_utils, 'populate_storage_driver_internal_info',
+                       autospec=True)
+    @mock.patch.object(pxe.PXEBoot, 'prepare_ramdisk', autospec=True)
+    @mock.patch.object(deploy_utils, 'build_agent_options', autospec=True)
+    @mock.patch.object(deploy_utils, 'build_instance_info_for_deploy',
+                       autospec=True)
     @mock.patch.object(neutron_network.NeutronNetwork,
                        'add_provisioning_network',
                        spec_set=True, autospec=True)
@@ -815,9 +824,10 @@ class TestAgentDeploy(db_base.DbTestCase):
                        spec_set=True, autospec=True)
     @mock.patch.object(flat_network.FlatNetwork, 'validate',
                        spec_set=True, autospec=True)
-    @mock.patch.object(pxe.PXEBoot, 'prepare_ramdisk')
-    @mock.patch.object(deploy_utils, 'build_agent_options')
-    @mock.patch.object(deploy_utils, 'build_instance_info_for_deploy')
+    @mock.patch.object(pxe.PXEBoot, 'prepare_ramdisk', autospec=True)
+    @mock.patch.object(deploy_utils, 'build_agent_options', autospec=True)
+    @mock.patch.object(deploy_utils, 'build_instance_info_for_deploy',
+                       autospec=True)
     def test_prepare_manage_agent_boot_false(
             self, build_instance_info_mock,
             build_options_mock, pxe_prepare_ramdisk_mock,
@@ -842,9 +852,10 @@ class TestAgentDeploy(db_base.DbTestCase):
         self.node.refresh()
         self.assertEqual('bar', self.node.instance_info['foo'])
 
-    @mock.patch.object(pxe.PXEBoot, 'prepare_ramdisk')
-    @mock.patch.object(deploy_utils, 'build_agent_options')
-    @mock.patch.object(deploy_utils, 'build_instance_info_for_deploy')
+    @mock.patch.object(pxe.PXEBoot, 'prepare_ramdisk', autospec=True)
+    @mock.patch.object(deploy_utils, 'build_agent_options', autospec=True)
+    @mock.patch.object(deploy_utils, 'build_instance_info_for_deploy',
+                       autospec=True)
     def _test_prepare_rescue_states(
             self, build_instance_info_mock, build_options_mock,
             pxe_prepare_ramdisk_mock, prov_state):
@@ -856,7 +867,7 @@ class TestAgentDeploy(db_base.DbTestCase):
             self.assertFalse(build_instance_info_mock.called)
             build_options_mock.assert_called_once_with(task.node)
             pxe_prepare_ramdisk_mock.assert_called_once_with(
-                task, {'a': 'b'})
+                task.driver.boot, task, {'a': 'b'})
 
     def test_prepare_rescue_states(self):
         for state in (states.RESCUING, states.RESCUEWAIT,
@@ -865,7 +876,8 @@ class TestAgentDeploy(db_base.DbTestCase):
 
     @mock.patch.object(noop_storage.NoopStorage, 'attach_volumes',
                        autospec=True)
-    @mock.patch.object(deploy_utils, 'populate_storage_driver_internal_info')
+    @mock.patch.object(deploy_utils, 'populate_storage_driver_internal_info',
+                       autospec=True)
     @mock.patch.object(flat_network.FlatNetwork, 'add_provisioning_network',
                        spec_set=True, autospec=True)
     @mock.patch.object(pxe.PXEBoot, 'prepare_instance',
@@ -945,9 +957,10 @@ class TestAgentDeploy(db_base.DbTestCase):
 
     @mock.patch.object(flat_network.FlatNetwork, 'add_provisioning_network',
                        spec_set=True, autospec=True)
-    @mock.patch.object(pxe.PXEBoot, 'prepare_ramdisk')
-    @mock.patch.object(deploy_utils, 'build_agent_options')
-    @mock.patch.object(deploy_utils, 'build_instance_info_for_deploy')
+    @mock.patch.object(pxe.PXEBoot, 'prepare_ramdisk', autospec=True)
+    @mock.patch.object(deploy_utils, 'build_agent_options', autospec=True)
+    @mock.patch.object(deploy_utils, 'build_instance_info_for_deploy',
+                       autospec=True)
     def test_prepare_adopting(
             self, build_instance_info_mock, build_options_mock,
             pxe_prepare_ramdisk_mock, add_provisioning_net_mock):
@@ -966,9 +979,10 @@ class TestAgentDeploy(db_base.DbTestCase):
                        spec_set=True, autospec=True)
     @mock.patch.object(flat_network.FlatNetwork, 'validate',
                        spec_set=True, autospec=True)
-    @mock.patch.object(pxe.PXEBoot, 'prepare_ramdisk')
-    @mock.patch.object(deploy_utils, 'build_agent_options')
-    @mock.patch.object(deploy_utils, 'build_instance_info_for_deploy')
+    @mock.patch.object(pxe.PXEBoot, 'prepare_ramdisk', autospec=True)
+    @mock.patch.object(deploy_utils, 'build_agent_options', autospec=True)
+    @mock.patch.object(deploy_utils, 'build_instance_info_for_deploy',
+                       autospec=True)
     @mock.patch.object(noop_storage.NoopStorage, 'should_write_image',
                        autospec=True)
     def test_prepare_boot_from_volume(self, mock_write,
@@ -996,10 +1010,12 @@ class TestAgentDeploy(db_base.DbTestCase):
     @mock.patch('ironic.conductor.utils.is_fast_track', autospec=True)
     @mock.patch.object(noop_storage.NoopStorage, 'attach_volumes',
                        autospec=True)
-    @mock.patch.object(deploy_utils, 'populate_storage_driver_internal_info')
-    @mock.patch.object(pxe.PXEBoot, 'prepare_ramdisk')
-    @mock.patch.object(deploy_utils, 'build_agent_options')
-    @mock.patch.object(deploy_utils, 'build_instance_info_for_deploy')
+    @mock.patch.object(deploy_utils, 'populate_storage_driver_internal_info',
+                       autospec=True)
+    @mock.patch.object(pxe.PXEBoot, 'prepare_ramdisk', autospec=True)
+    @mock.patch.object(deploy_utils, 'build_agent_options', autospec=True)
+    @mock.patch.object(deploy_utils, 'build_instance_info_for_deploy',
+                       autospec=True)
     @mock.patch.object(flat_network.FlatNetwork, 'add_provisioning_network',
                        spec_set=True, autospec=True)
     @mock.patch.object(flat_network.FlatNetwork,
@@ -1039,37 +1055,34 @@ class TestAgentDeploy(db_base.DbTestCase):
             self.assertFalse(build_options_mock.called)
             self.assertFalse(pxe_prepare_ramdisk_mock.called)
 
-    @mock.patch('ironic.common.dhcp_factory.DHCPFactory._set_dhcp_provider')
-    @mock.patch('ironic.common.dhcp_factory.DHCPFactory.clean_dhcp')
-    @mock.patch.object(pxe.PXEBoot, 'clean_up_instance')
-    @mock.patch.object(pxe.PXEBoot, 'clean_up_ramdisk')
+    @mock.patch('ironic.common.dhcp_factory.DHCPFactory', autospec=True)
+    @mock.patch.object(pxe.PXEBoot, 'clean_up_instance', autospec=True)
+    @mock.patch.object(pxe.PXEBoot, 'clean_up_ramdisk', autospec=True)
     def test_clean_up(self, pxe_clean_up_ramdisk_mock,
-                      pxe_clean_up_instance_mock, clean_dhcp_mock,
-                      set_dhcp_provider_mock):
+                      pxe_clean_up_instance_mock, dhcp_factor_mock):
         with task_manager.acquire(
                 self.context, self.node['uuid'], shared=False) as task:
             self.driver.clean_up(task)
-            pxe_clean_up_ramdisk_mock.assert_called_once_with(task)
-            pxe_clean_up_instance_mock.assert_called_once_with(task)
-            set_dhcp_provider_mock.assert_called_once_with()
-            clean_dhcp_mock.assert_called_once_with(task)
+            pxe_clean_up_ramdisk_mock.assert_called_once_with(
+                task.driver.boot, task)
+            pxe_clean_up_instance_mock.assert_called_once_with(
+                task.driver.boot, task)
+            dhcp_factor_mock.assert_called_once_with()
 
-    @mock.patch('ironic.common.dhcp_factory.DHCPFactory._set_dhcp_provider')
-    @mock.patch('ironic.common.dhcp_factory.DHCPFactory.clean_dhcp')
-    @mock.patch.object(pxe.PXEBoot, 'clean_up_instance')
-    @mock.patch.object(pxe.PXEBoot, 'clean_up_ramdisk')
+    @mock.patch('ironic.common.dhcp_factory.DHCPFactory', autospec=True)
+    @mock.patch.object(pxe.PXEBoot, 'clean_up_instance', autospec=True)
+    @mock.patch.object(pxe.PXEBoot, 'clean_up_ramdisk', autospec=True)
     def test_clean_up_manage_agent_boot_false(self, pxe_clean_up_ramdisk_mock,
                                               pxe_clean_up_instance_mock,
-                                              clean_dhcp_mock,
-                                              set_dhcp_provider_mock):
+                                              dhcp_factor_mock):
         with task_manager.acquire(
                 self.context, self.node['uuid'], shared=False) as task:
             self.config(group='agent', manage_agent_boot=False)
             self.driver.clean_up(task)
             self.assertFalse(pxe_clean_up_ramdisk_mock.called)
-            pxe_clean_up_instance_mock.assert_called_once_with(task)
-            set_dhcp_provider_mock.assert_called_once_with()
-            clean_dhcp_mock.assert_called_once_with(task)
+            pxe_clean_up_instance_mock.assert_called_once_with(
+                task.driver.boot, task)
+            dhcp_factor_mock.assert_called_once_with()
 
     @mock.patch.object(agent_base, 'get_steps', autospec=True)
     def test_get_clean_steps(self, mock_get_steps):
@@ -1667,10 +1680,12 @@ class TestAgentDeploy(db_base.DbTestCase):
                        autospec=True)
     @mock.patch.object(noop_storage.NoopStorage, 'attach_volumes',
                        autospec=True)
-    @mock.patch.object(deploy_utils, 'populate_storage_driver_internal_info')
-    @mock.patch.object(pxe.PXEBoot, 'prepare_ramdisk')
-    @mock.patch.object(deploy_utils, 'build_agent_options')
-    @mock.patch.object(deploy_utils, 'build_instance_info_for_deploy')
+    @mock.patch.object(deploy_utils, 'populate_storage_driver_internal_info',
+                       autospec=True)
+    @mock.patch.object(pxe.PXEBoot, 'prepare_ramdisk', autospec=True)
+    @mock.patch.object(deploy_utils, 'build_agent_options', autospec=True)
+    @mock.patch.object(deploy_utils, 'build_instance_info_for_deploy',
+                       autospec=True)
     @mock.patch.object(flat_network.FlatNetwork,
                        'add_provisioning_network',
                        spec_set=True, autospec=True)
@@ -1706,7 +1721,7 @@ class TestAgentDeploy(db_base.DbTestCase):
             build_instance_info_mock.assert_called_once_with(task)
             build_options_mock.assert_called_once_with(task.node)
             pxe_prepare_ramdisk_mock.assert_called_once_with(
-                task, {'a': 'b'})
+                task.driver.boot, task, {'a': 'b'})
             power_on_node_if_needed_mock.assert_called_once_with(task)
             restore_power_state_mock.assert_called_once_with(
                 task, states.POWER_OFF)
@@ -1819,7 +1834,7 @@ class AgentRAIDTestCase(db_base.DbTestCase):
         self.assertEqual(0, ret[0]['priority'])
         self.assertEqual(0, ret[1]['priority'])
 
-    @mock.patch.object(raid, 'filter_target_raid_config')
+    @mock.patch.object(raid, 'filter_target_raid_config', autospec=True)
     @mock.patch.object(agent_base, 'execute_step', autospec=True)
     def test_create_configuration(self, execute_mock,
                                   filter_target_raid_config_mock):
@@ -1836,7 +1851,7 @@ class AgentRAIDTestCase(db_base.DbTestCase):
             execute_mock.assert_called_once_with(task, self.clean_step,
                                                  'clean')
 
-    @mock.patch.object(raid, 'filter_target_raid_config')
+    @mock.patch.object(raid, 'filter_target_raid_config', autospec=True)
     @mock.patch.object(agent_base, 'execute_step', autospec=True)
     def test_create_configuration_skip_root(self, execute_mock,
                                             filter_target_raid_config_mock):
@@ -1857,7 +1872,7 @@ class AgentRAIDTestCase(db_base.DbTestCase):
                 exp_target_raid_config,
                 task.node.driver_internal_info['target_raid_config'])
 
-    @mock.patch.object(raid, 'filter_target_raid_config')
+    @mock.patch.object(raid, 'filter_target_raid_config', autospec=True)
     @mock.patch.object(agent_base, 'execute_step', autospec=True)
     def test_create_configuration_skip_nonroot(self, execute_mock,
                                                filter_target_raid_config_mock):
@@ -1878,7 +1893,7 @@ class AgentRAIDTestCase(db_base.DbTestCase):
                 exp_target_raid_config,
                 task.node.driver_internal_info['target_raid_config'])
 
-    @mock.patch.object(raid, 'filter_target_raid_config')
+    @mock.patch.object(raid, 'filter_target_raid_config', autospec=True)
     @mock.patch.object(agent_base, 'execute_step', autospec=True)
     def test_create_configuration_no_target_raid_config_after_skipping(
             self, execute_mock, filter_target_raid_config_mock):
@@ -1893,7 +1908,7 @@ class AgentRAIDTestCase(db_base.DbTestCase):
                 create_nonroot_volumes=False)
             self.assertFalse(execute_mock.called)
 
-    @mock.patch.object(raid, 'filter_target_raid_config')
+    @mock.patch.object(raid, 'filter_target_raid_config', autospec=True)
     @mock.patch.object(agent_base, 'execute_step', autospec=True)
     def test_create_configuration_empty_target_raid_config(
             self, execute_mock, filter_target_raid_config_mock):
