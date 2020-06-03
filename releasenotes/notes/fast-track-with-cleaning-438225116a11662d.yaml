@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    Fixes a bug in "fast track" where Ironic would delete the ``agent token``
+    upon exiting cleaning steps. However, if we are in fast track mode, we can
+    preserve the token and continue operations with the agent as it is not
+    powered off during fast track operations.
