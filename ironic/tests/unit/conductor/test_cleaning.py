@@ -888,8 +888,9 @@ class DoNodeCleanTestCase(db_base.DbTestCase):
             self.config(fast_track=True, group='deploy')
 
         for info in ({'clean_steps': None, 'clean_step_index': None,
-                      'agent_url': 'test-url'},
-                     {'clean_steps': None, 'agent_url': 'test-url'}):
+                      'agent_url': 'test-url', 'agent_secret_token': 'magic'},
+                     {'clean_steps': None, 'agent_url': 'test-url',
+                      'agent_secret_token': 'it_is_a_kind_of_magic'}):
             # Resume where there are no steps, should be a noop
             tgt_prov_state = states.MANAGEABLE if manual else states.AVAILABLE
 
@@ -917,8 +918,12 @@ class DoNodeCleanTestCase(db_base.DbTestCase):
             if fast_track:
                 self.assertEqual('test-url',
                                  node.driver_internal_info.get('agent_url'))
+                self.assertIsNotNone(
+                    node.driver_internal_info.get('agent_secret_token'))
             else:
                 self.assertNotIn('agent_url', node.driver_internal_info)
+                self.assertNotIn('agent_secret_token',
+                                 node.driver_internal_info)
             mock_execute.reset_mock()
 
     def test__do_next_clean_step_automated_no_steps(self):
