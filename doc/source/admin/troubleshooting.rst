@@ -488,3 +488,45 @@ deployment, but hopefully these are areas where these actions can occur.
    explore the ``direct`` deployment interface in these sorts of cases in
    order to minimize the conductor becoming a limiting factor due to memory
    and network IO.
+
+Why are my nodes stuck in a "wait" state?
+=========================================
+
+The Ironic conductor uses states containing ``wait`` as a signifier that
+the conductor is waiting for a callback from another component, such as
+the Ironic Python Agent or the Inspector. If this feedback does not arrive,
+the conductor will time out and the node will eventually move to a ``failed``
+state. Depending on the configuration and the circumstances, however, a node
+can stay in a ``wait`` state for a long time or even never time out. The list
+of such wait states includes:
+
+* ``clean wait`` for cleaning,
+* ``inspect wait`` for introspection,
+* ``rescue wait`` for rescueing, and
+* ``wait call-back`` for deploying.
+
+Communication issues between the conductor and the node
+-------------------------------------------------------
+
+One of the most common issues when nodes seem to be stuck in a wait state
+occur when the node never received any instructions or does not react as
+expected: the conductor moved the node to a wait state but the node will
+never call back. Examples include wrong ciphers which will make ipmitool
+get stuck or BMCs in a state where they accept commands, but don't do the
+requested task (or only a part of it, like shutting off, but not starting).
+It is useful in these cases to see via a ping or the console if and which
+action the node is performing. If the node does not seem to react to the
+requests sent be the conductor, it may be worthwhile to try the corresponding
+action out-of-band, e.g. confirm that power on/off commands work when directly
+sent to the BMC. The section on `IPMI errors`_. above gives some additional
+points to check. In some situations, a BMC reset may be necessary.
+
+Ironic Python Agent stuck
+-------------------------
+
+Nodes can also get remain in a wait state when the component the conductor is
+waiting for gets stuck, e.g. when a hardware manager enters a loop or is
+waiting for an event that is never happening. In these cases, it might be
+helpful to connect to the IPA and inspect its logs, see the trouble shooting
+guide of the :ironic-python-agent-doc:`ironic-python-agent (IPA) <>` on how
+to do this.
