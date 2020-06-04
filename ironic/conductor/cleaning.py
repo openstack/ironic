@@ -218,12 +218,13 @@ def do_next_clean_step(task, step_index):
     driver_internal_info.pop('clean_step_index', None)
     driver_internal_info.pop('cleaning_reboot', None)
     driver_internal_info.pop('cleaning_polling', None)
-    driver_internal_info.pop('agent_secret_token', None)
-    driver_internal_info.pop('agent_secret_token_pregenerated', None)
 
     # Remove agent_url
     if not utils.fast_track_able(task):
         driver_internal_info.pop('agent_url', None)
+        driver_internal_info.pop('agent_secret_token', None)
+        driver_internal_info.pop('agent_secret_token_pregenerated', None)
+
     node.driver_internal_info = driver_internal_info
     node.save()
     try:
