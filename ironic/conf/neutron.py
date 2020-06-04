@@ -29,7 +29,11 @@ opts = [
     cfg.IntOpt('retries',
                default=3,
                mutable=True,
-               help=_('Client retries in the case of a failed request.')),
+               deprecated_for_removal=True,
+               deprecated_reason=_('Replaced by status_code_retries and '
+                                   'status_code_retry_delay.'),
+               help=_('DEPRECATED: Client retries in the case of a failed '
+                      'request.')),
     cfg.StrOpt('cleaning_network',
                mutable=True,
                help=_('Neutron network UUID or name for the ramdisk to be '

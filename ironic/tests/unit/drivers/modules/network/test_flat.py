@@ -12,7 +12,7 @@
 
 from unittest import mock
 
-from neutronclient.common import exceptions as neutron_exceptions
+from openstack.connection import exceptions as openstack_exc
 from oslo_config import cfg
 from oslo_utils import uuidutils
 
@@ -178,9 +178,9 @@ class TestFlatInterface(db_base.DbTestCase):
         utils.create_test_port(self.context, node_id=self.node.id,
                                address='52:54:00:cf:2d:33', extra=extra,
                                uuid=uuidutils.generate_uuid())
-        exp_body = {'port': {'binding:host_id': self.node.uuid,
-                             'binding:vnic_type': neutron.VNIC_BAREMETAL,
-                             'mac_address': '52:54:00:cf:2d:33'}}
+        exp_body = {'binding:host_id': self.node.uuid,
+                    'binding:vnic_type': neutron.VNIC_BAREMETAL,
+                    'mac_address': '52:54:00:cf:2d:33'}
         with task_manager.acquire(self.context, self.node.id) as task:
             self.interface._bind_flat_ports(task)
         update_mock.assert_called_once_with(self.context, 'foo', exp_body)
@@ -194,12 +194,12 @@ class TestFlatInterface(db_base.DbTestCase):
         utils.create_test_port(
             self.context, node_id=self.node.id, address='52:54:00:cf:2d:33',
             extra={'vif_port_id': 'bar'}, uuid=uuidutils.generate_uuid())
-        exp_body1 = {'port': {'binding:host_id': self.node.uuid,
-                              'binding:vnic_type': neutron.VNIC_BAREMETAL,
-                              'mac_address': '52:54:00:cf:2d:33'}}
-        exp_body2 = {'port': {'binding:host_id': self.node.uuid,
-                              'binding:vnic_type': neutron.VNIC_BAREMETAL,
-                              'mac_address': '52:54:00:cf:2d:31'}}
+        exp_body1 = {'binding:host_id': self.node.uuid,
+                     'binding:vnic_type': neutron.VNIC_BAREMETAL,
+                     'mac_address': '52:54:00:cf:2d:33'}
+        exp_body2 = {'binding:host_id': self.node.uuid,
+                     'binding:vnic_type': neutron.VNIC_BAREMETAL,
+                     'mac_address': '52:54:00:cf:2d:31'}
         with task_manager.acquire(self.context, self.node.id) as task:
             self.interface._bind_flat_ports(task)
         update_mock.assert_has_calls([
@@ -235,7 +235,7 @@ class TestFlatInterface(db_base.DbTestCase):
 
     @mock.patch.object(neutron, 'update_neutron_port', autospec=True)
     def test__bind_flat_ports_set_binding_host_id_raise(self, update_mock):
-        update_mock.side_effect = (neutron_exceptions.ConnectionFailed())
+        update_mock.side_effect = openstack_exc.OpenStackCloudException()
         extra = {'vif_port_id': 'foo'}
         utils.create_test_port(self.context, node_id=self.node.id,
                                address='52:54:00:cf:2d:33', extra=extra,

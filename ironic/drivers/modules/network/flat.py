@@ -14,7 +14,7 @@
 Flat network interface. Useful for shared, flat networks.
 """
 
-from neutronclient.common import exceptions as neutron_exceptions
+from openstack.connection import exceptions as openstack_exc
 from oslo_config import cfg
 from oslo_log import log
 
@@ -62,17 +62,13 @@ class FlatNetwork(common.NeutronVIFPortIDMixin,
             )
             if not vif_port_id:
                 continue
-            body = {
-                'port': {
-                    'binding:host_id': task.node.uuid,
-                    'binding:vnic_type': neutron.VNIC_BAREMETAL,
-                    'mac_address': port_like_obj.address
-                }
-            }
+            port_attrs = {'binding:host_id': task.node.uuid,
+                          'binding:vnic_type': neutron.VNIC_BAREMETAL,
+                          'mac_address': port_like_obj.address}
             try:
                 neutron.update_neutron_port(task.context,
-                                            vif_port_id, body)
-            except neutron_exceptions.NeutronClientException as e:
+                                            vif_port_id, port_attrs)
+            except openstack_exc.OpenStackCloudException as e:
                 msg = (_('Unable to set binding:host_id for '
                          'neutron port %(port_id)s. Error: '
                          '%(err)s') % {'port_id': vif_port_id, 'err': e})

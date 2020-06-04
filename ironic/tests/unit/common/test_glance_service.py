@@ -21,7 +21,7 @@ from unittest import mock
 
 from glanceclient import client as glance_client
 from glanceclient import exc as glance_exc
-from keystoneauth1 import loading as kaloading
+from keystoneauth1 import loading as ks_loading
 from oslo_config import cfg
 from oslo_utils import uuidutils
 import retrying
@@ -353,8 +353,8 @@ class CheckImageServiceTestCase(base.TestCase):
         self.context = context.RequestContext(global_request_id='global')
         self.service = image_service.GlanceImageService(None, self.context)
         # NOTE(pas-ha) register keystoneauth dynamic options manually
-        plugin = kaloading.get_plugin_loader('password')
-        opts = kaloading.get_auth_plugin_conf_options(plugin)
+        plugin = ks_loading.get_plugin_loader('password')
+        opts = ks_loading.get_auth_plugin_conf_options(plugin)
         self.cfg_fixture.register_opts(opts, group='glance')
         self.config(auth_type='password',
                     auth_url='viking',

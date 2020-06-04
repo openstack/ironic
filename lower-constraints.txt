@@ -56,7 +56,7 @@ msgpack-python==0.5.6
 munch==2.5.0
 netaddr==0.7.19
 netifaces==0.10.9
-openstacksdk==0.37.0
+openstacksdk==0.48.0
 os-client-config==2.1.0
 os-service-types==1.7.0
 os-traits==0.4.0
@@ -106,7 +106,6 @@ python-editor==1.0.4
 python-glanceclient==2.8.0
 python-keystoneclient==4.0.0
 python-mimeparse==1.6.0
-python-neutronclient==6.7.0
 python-subunit==1.4.0
 python-swiftclient==3.2.0
 pytz==2013.6

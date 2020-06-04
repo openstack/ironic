@@ -1,0 +1,10 @@
+---
+deprecations:
+  - |
+    With the switch from neutronclient to openstacksdk the ``[neutron]/retries``
+    option has been deprecated, use ``[neutron]/status_code_retries`` and
+    ``[neutron]/status_code_retry_delay`` instead.
+other:
+  - |
+    Communication with neutron is now using openstacksdk, removing the
+    dependency on neutronclient.

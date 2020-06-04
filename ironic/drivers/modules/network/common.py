@@ -15,7 +15,7 @@
 
 import collections
 
-from neutronclient.common import exceptions as neutron_exceptions
+from openstack.connection import exceptions as openstack_exc
 from oslo_config import cfg
 from oslo_log import log
 
@@ -267,47 +267,40 @@ def plug_port_to_tenant_network(task, port_like_obj, client=None):
     # NOTE(sambetts) Only update required binding: attributes,
     # because other port attributes may have been set by the user or
     # nova.
-    body = {
-        'port': {
-            'binding:vnic_type': neutron.VNIC_BAREMETAL,
-            'binding:host_id': node.uuid,
-            'mac_address': port_like_obj.address
-        }
-    }
+    port_attrs = {'binding:vnic_type': neutron.VNIC_BAREMETAL,
+                  'binding:host_id': node.uuid,
+                  'mac_address': port_like_obj.address}
     binding_profile = {'local_link_information': local_link_info}
     if local_group_info:
         binding_profile['local_group_information'] = local_group_info
-    body['port']['binding:profile'] = binding_profile
+    port_attrs['binding:profile'] = binding_profile
 
     if client_id_opt:
-        body['port']['extra_dhcp_opts'] = [client_id_opt]
+        port_attrs['extra_dhcp_opts'] = [client_id_opt]
 
     is_smart_nic = neutron.is_smartnic_port(port_like_obj)
     if is_smart_nic:
         link_info = local_link_info[0]
         LOG.debug('Setting hostname as host_id in case of Smart NIC, '
                   'port %(port_id)s, hostname %(hostname)s',
-                  {'port_id': vif_id,
-                   'hostname': link_info['hostname']})
-        body['port']['binding:host_id'] = link_info['hostname']
-        body['port']['binding:vnic_type'] = neutron.VNIC_SMARTNIC
+                  {'port_id': vif_id, 'hostname': link_info['hostname']})
+        port_attrs['binding:host_id'] = link_info['hostname']
+        port_attrs['binding:vnic_type'] = neutron.VNIC_SMARTNIC
 
     if not client:
         client = neutron.get_client(context=task.context)
 
     if is_smart_nic:
-        neutron.wait_for_host_agent(client, body['port']['binding:host_id'])
+        neutron.wait_for_host_agent(client, port_attrs['binding:host_id'])
 
     try:
-        neutron.update_neutron_port(task.context, vif_id, body)
+        neutron.update_neutron_port(task.context, vif_id, port_attrs)
         if is_smart_nic:
             neutron.wait_for_port_status(client, vif_id, 'ACTIVE')
-    except neutron_exceptions.ConnectionFailed as e:
+    except openstack_exc.OpenStackCloudException as e:
         msg = (_('Could not add public network VIF %(vif)s '
                  'to node %(node)s, possible network issue. %(exc)s') %
-               {'vif': vif_id,
-                'node': node.uuid,
-                'exc': e})
+               {'vif': vif_id, 'node': node.uuid, 'exc': e})
         LOG.error(msg)
         raise exception.NetworkError(msg)
 
@@ -467,8 +460,7 @@ class NeutronVIFPortIDMixin(VIFPortIDMixin):
             original_port = objects.Port.get_by_id(context, port_obj.id)
             updated_client_id = port_obj.extra.get('client-id')
 
-            if (original_port.extra.get('client-id')
-                != updated_client_id):
+            if original_port.extra.get('client-id') != updated_client_id:
                 # DHCP Option with opt_value=None will remove it
                 # from the neutron port
                 if vif:
@@ -485,8 +477,7 @@ class NeutronVIFPortIDMixin(VIFPortIDMixin):
                         "No VIF found for instance %(instance)s "
                         "port %(port)s when attempting to update port "
                         "client-id.",
-                        {'port': port_uuid,
-                         'instance': node.instance_uuid})
+                        {'port': port_uuid, 'instance': node.instance_uuid})
 
         if portgroup_obj and ((set(port_obj.obj_what_changed())
                               & {'pxe_enabled', 'portgroup_id'}) or vif):
