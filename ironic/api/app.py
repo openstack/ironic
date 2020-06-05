@@ -15,6 +15,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+from ironic_lib import auth_basic
 import keystonemiddleware.audit as audit_middleware
 from keystonemiddleware import auth_token
 from oslo_config import cfg
@@ -98,11 +99,18 @@ def setup_app(pecan_config=None, extra_hooks=None):
                 reason=e
             )
 
+    auth_middleware = None
     if CONF.auth_strategy == "keystone":
+        auth_middleware = auth_token.AuthProtocol(
+            app, {"oslo_config_config": cfg.CONF})
+    elif CONF.auth_strategy == "http_basic":
+        auth_middleware = auth_basic.BasicAuthMiddleware(
+            app, cfg.CONF.http_basic_auth_user_file)
+
+    if auth_middleware:
         app = auth_public_routes.AuthPublicRoutes(
             app,
-            auth=auth_token.AuthProtocol(
-                app, {"oslo_config_config": cfg.CONF}),
+            auth=auth_middleware,
             public_api_routes=pecan_config.app.acl_public_routes)
 
     if CONF.profiler.enabled:

@@ -45,7 +45,7 @@ _IRONIC_MANAGES_BOOT = 'inspector_manage_boot'
 def _get_inspector_session(**kwargs):
     global _INSPECTOR_SESSION
     if not _INSPECTOR_SESSION:
-        if CONF.auth_strategy == 'noauth':
+        if CONF.auth_strategy != 'keystone':
             # NOTE(dtantsur): using set_default instead of set_override because
             # the native keystoneauth option must have priority.
             CONF.set_default('auth_type', 'none', group='inspector')

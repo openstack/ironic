@@ -16,11 +16,15 @@ Tests to assert that various incorporated middleware works as expected.
 """
 
 from http import client as http_client
+import os
+import tempfile
 
 from oslo_config import cfg
 import oslo_middleware.cors as cors_middleware
 
 from ironic.tests.unit.api import base
+from ironic.tests.unit.api import utils
+from ironic.tests.unit.db import utils as db_utils
 
 
 class TestCORSMiddleware(base.BaseApiTest):
@@ -112,3 +116,38 @@ class TestCORSMiddleware(base.BaseApiTest):
         self.assertEqual(
             self._response_string(http_client.OK), response.status)
         self.assertNotIn('Access-Control-Allow-Origin', response.headers)
+
+
+class TestBasicAuthMiddleware(base.BaseApiTest):
+
+    def _make_app(self):
+        with tempfile.NamedTemporaryFile(mode='w', delete=False) as f:
+            f.write('myName:$2y$05$lE3eGtyj41jZwrzS87KTqe6.'
+                    'JETVCWBkc32C63UP2aYrGoYOEpbJm\n\n\n')
+            cfg.CONF.set_override('http_basic_auth_user_file', f.name)
+        self.addCleanup(os.remove, cfg.CONF.http_basic_auth_user_file)
+
+        cfg.CONF.set_override('auth_strategy', 'http_basic')
+        return super(TestBasicAuthMiddleware, self)._make_app()
+
+    def setUp(self):
+        super(TestBasicAuthMiddleware, self).setUp()
+        self.environ = {'fake.cache': utils.FakeMemcache()}
+        self.fake_db_node = db_utils.get_test_node(chassis_id=None)
+
+    def test_not_authenticated(self):
+        response = self.get_json('/chassis', expect_errors=True)
+        self.assertEqual(http_client.UNAUTHORIZED, response.status_int)
+        self.assertEqual(
+            'Basic realm="Baremetal API"',
+            response.headers['WWW-Authenticate']
+        )
+
+    def test_authenticated(self):
+        auth_header = {'Authorization': 'Basic bXlOYW1lOm15UGFzc3dvcmQ='}
+        response = self.get_json('/chassis', headers=auth_header)
+        self.assertEqual({'chassis': []}, response)
+
+    def test_public_unauthenticated(self):
+        response = self.get_json('/')
+        self.assertEqual('v1', response['id'])

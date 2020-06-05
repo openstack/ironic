@@ -633,9 +633,9 @@ def authorize(rule, target, creds, *args, **kwargs):
 
     Checks authorization of a rule against the target and credentials, and
     raises an exception if the rule is not defined.
-    Always returns true if CONF.auth_strategy == noauth.
+    Always returns true if CONF.auth_strategy is not keystone.
     """
-    if CONF.auth_strategy == 'noauth':
+    if CONF.auth_strategy != 'keystone':
         return True
     enforcer = get_enforcer()
     try:
