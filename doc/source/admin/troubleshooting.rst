@@ -391,3 +391,100 @@ When working with lanplus interfaces, you may encounter the following error:
 
 To fix that issue, please enable `RMCP+ Cipher Suite3 Configuration` setting
 using your BMC tool or web app.
+
+Why are my nodes stuck in a "-ing" state?
+=========================================
+
+The Ironic conductor uses states ending with ``ing`` as a signifier that
+the conductor is actively working on something related to the node.
+
+Often, this means there is an internal lock or ``reservation`` set on the node
+and the conductor is downloading, uploading, or attempting to perform some
+sort of Input/Output operation.
+
+In the case the conductor gets stuck, these operations should timeout,
+but there are cases in operating systems where operations are blocked until
+completion. These sorts of operations can vary based on the specific
+environment and operating configuration.
+
+What can cause these sorts of failures?
+---------------------------------------
+
+Typical causes of such failures are going to be largely rooted in the concept
+of ``iowait``, either in the form of downloading from a remote host or
+reading or writing to the disk of the conductor. An operator can use the
+`iostat <https://man7.org/linux/man-pages/man1/iostat.1.html>`_ tool to
+identify the percentage of CPU time spent waiting on storage devices.
+
+The fields that will be particularly important are the ``iowait``, ``await``,
+and ``tps`` ones, which can be read about in the ``iostat`` manual page.
+
+In the case of network file systems, for backing components such as image
+caches or distributed ``tftpboot`` or ``httpboot`` folders, IO operations
+failing on these can, depending on operating system and underlying client
+settings, cause threads to be stuck in a blocking wait state, which is
+realistically undetectable short the operating system logging connectivity
+errors or even lock manager access errors.
+
+For example with
+`nfs <https://www.man7.org/linux/man-pages/man5/nfs.5.html>`_,
+the underlying client recovery behavior, in terms of ``soft``, ``hard``,
+``softreval``, ``nosoftreval``, will largely impact this behavior, but also
+NFS server settings can impact this behavior. A solid sign that this is a
+failure, is when an ``ls /path/to/nfs`` command hangs for a period of time.
+In such cases, the Storage Administrator should be consulted and network
+connectivity investigated for errors before trying to recover to
+proceed.
+
+The bad news for IO related failures
+------------------------------------
+
+If the node has a populated ``reservation`` field, and has not timed out or
+proceeded to a ``fail`` state, then the conductor process will likely need to
+be restarted. This is because the worker thread is hung with-in the conductor.
+
+Manual intervention with-in Ironic's database is *not* advised to try and
+"un-wedge" the machine in this state, and restarting the conductor is
+encouraged.
+
+.. note::
+   Ironic's conductor, upon restart, clears reservations for nodes which
+   were previously managed by the conductor before restart.
+
+If a distributed or network file system is in use, it is highly recommended
+that the operating system of the node running the conductor be rebooted as
+the running conductor may not even be able to exit in the state of an IO
+failure, again dependent upon site and server configuration.
+
+File Size != Disk Size
+----------------------
+
+An easy to make misconception is that a 2.4 GB file means that only 2.4 GB
+is written to disk. But if that file's virtual size is 20 GB, or 100 GB
+things can become very problematic and extend the amount of time the node
+spends in ``deploying`` and ``deploy wait`` states.
+
+Again, these sorts of cases will depend upon the exact configuration of the
+deployment, but hopefully these are areas where these actions can occur.
+
+* Conversion to raw image files upon download to the conductor, from the
+  ``[DEFAULT]force_raw_images`` option, in particular with the ``iscsi``
+  deployment interface. Users using glance and the ``direct`` deployment
+  interface may also experience issues here as the conductor will cache
+  the image to be written which takes place when the
+  ``[agent]image_download_source`` is set to ``http`` instead of ``swift``.
+
+* Write of a QCOW2 file over the ``iscsi`` deployment interface from the
+  conductor to the node being deployed can result in large amounts of
+  "white space" to be written to be transmitted over the wire and written
+  to the end device.
+
+.. note::
+   The QCOW2 image conversion utility does consume quite a bit of memory
+   when converting images or writing them to the end storage device. This
+   is because the files are not sequential in nature, and must be re-assembled
+   from an internal block mapping. Internally Ironic limits this to 1GB
+   of RAM. Operators performing large numbers of deployments may wish to
+   explore the ``direct`` deployment interface in these sorts of cases in
+   order to minimize the conductor becoming a limiting factor due to memory
+   and network IO.
