@@ -1543,6 +1543,26 @@ class NetworkInterface(BaseInterface):
         """
         return False
 
+    def get_node_network_data(self, task):
+        """Return network configuration for node NICs.
+
+        Gather L2 and L3 network settings from ironic port/portgroups
+        objects and underlying network provider, then put together
+        collected data in form of Nova network metadata (`network_data.json`)
+        dict.
+
+        Ironic would eventually pass network configuration to the node
+        being managed out-of-band.
+
+        :param task: A TaskManager instance.
+        :raises: InvalidParameterValue, if the network interface configuration
+            is invalid.
+        :raises: MissingParameterValue, if some parameters are missing.
+        :returns: a dict holding network configuration information adhearing
+            Nova network metadata layout (`network_data.json`).
+        """
+        return {}
+
 
 class StorageInterface(BaseInterface, metaclass=abc.ABCMeta):
     """Base class for storage interfaces."""

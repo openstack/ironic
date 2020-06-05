@@ -94,3 +94,9 @@ class NoopInterfaceTestCase(db_base.DbTestCase):
     def test_remove_inspection_network(self):
         with task_manager.acquire(self.context, self.node.id) as task:
             self.interface.remove_inspection_network(task)
+
+    def test_get_node_network_data(self):
+        with task_manager.acquire(self.context, self.node.id) as task:
+            network_data = self.interface.get_node_network_data(task)
+
+        self.assertEqual({}, network_data)

@@ -853,3 +853,9 @@ class NeutronInterfaceTestCase(db_base.DbTestCase):
         with task_manager.acquire(self.context, self.node.id) as task:
             self.assertRaises(exception.UnsupportedDriverExtension,
                               self.interface.validate_inspection, task)
+
+    def test_get_node_network_data(self):
+        with task_manager.acquire(self.context, self.node.id) as task:
+            network_data = self.interface.get_node_network_data(task)
+
+        self.assertEqual({}, network_data)
