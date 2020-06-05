@@ -1599,7 +1599,7 @@ class ConductorManager(base_manager.BaseConductorManager):
     @periodics.periodic(
         spacing=CONF.conductor.check_provision_state_interval,
         enabled=CONF.conductor.check_provision_state_interval > 0
-        and CONF.conductor.deploy_callback_timeout != 0)
+        and CONF.conductor.deploy_callback_timeout > 0)
     def _check_deploy_timeouts(self, context):
         """Periodically checks whether a deploy RPC call has timed out.
 
@@ -1607,8 +1607,6 @@ class ConductorManager(base_manager.BaseConductorManager):
 
         :param context: request context.
         """
-        # FIXME(rloo): If the value is < 0, it will be enabled. That doesn't
-        #              seem right.
         callback_timeout = CONF.conductor.deploy_callback_timeout
 
         filters = {'reserved': False,
@@ -1821,7 +1819,7 @@ class ConductorManager(base_manager.BaseConductorManager):
     @periodics.periodic(
         spacing=CONF.conductor.check_provision_state_interval,
         enabled=CONF.conductor.check_provision_state_interval > 0
-        and CONF.conductor.clean_callback_timeout != 0)
+        and CONF.conductor.clean_callback_timeout > 0)
     def _check_cleanwait_timeouts(self, context):
         """Periodically checks for nodes being cleaned.
 
@@ -1830,8 +1828,6 @@ class ConductorManager(base_manager.BaseConductorManager):
 
         :param context: request context.
         """
-        # FIXME(rloo): If the value is < 0, it will be enabled. That doesn't
-        #              seem right.
         callback_timeout = CONF.conductor.clean_callback_timeout
 
         filters = {'reserved': False,
@@ -2982,15 +2978,13 @@ class ConductorManager(base_manager.BaseConductorManager):
     @periodics.periodic(
         spacing=CONF.conductor.check_provision_state_interval,
         enabled=CONF.conductor.check_provision_state_interval > 0
-        and CONF.conductor.inspect_wait_timeout != 0)
+        and CONF.conductor.inspect_wait_timeout > 0)
     def _check_inspect_wait_timeouts(self, context):
         """Periodically checks inspect_wait_timeout and fails upon reaching it.
 
         :param context: request context
 
         """
-        # FIXME(rloo): If the value is < 0, it will be enabled. That doesn't
-        #              seem right.
         callback_timeout = CONF.conductor.inspect_wait_timeout
 
         filters = {'reserved': False,
