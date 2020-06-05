@@ -227,7 +227,7 @@ class iPXEBootTestCase(db_base.DbTestCase):
     # and refactored as we begin to separate PXE and iPXE interfaces.
     @mock.patch.object(manager_utils, 'node_get_boot_mode', autospec=True)
     @mock.patch.object(manager_utils, 'node_set_boot_device', autospec=True)
-    @mock.patch.object(dhcp_factory, 'DHCPFactory')
+    @mock.patch.object(dhcp_factory, 'DHCPFactory', autospec=True)
     @mock.patch.object(pxe_utils, 'get_instance_image_info', autospec=True)
     @mock.patch.object(pxe_utils, 'get_image_info', autospec=True)
     @mock.patch.object(pxe_utils, 'cache_ramdisk_kernel', autospec=True)
@@ -659,7 +659,7 @@ class iPXEBootTestCase(db_base.DbTestCase):
                                                          boot_devices.PXE,
                                                          persistent=True)
 
-    @mock.patch('os.path.isfile', return_value=False)
+    @mock.patch('os.path.isfile', return_value=False, autospec=True)
     @mock.patch.object(pxe_utils, 'create_pxe_config', autospec=True)
     @mock.patch.object(manager_utils, 'node_set_boot_device', autospec=True)
     @mock.patch.object(deploy_utils, 'switch_pxe_config', autospec=True)
@@ -708,7 +708,7 @@ class iPXEBootTestCase(db_base.DbTestCase):
 
     @mock.patch.object(manager_utils, 'node_set_boot_device', autospec=True)
     @mock.patch.object(deploy_utils, 'switch_pxe_config', autospec=True)
-    @mock.patch.object(dhcp_factory, 'DHCPFactory')
+    @mock.patch.object(dhcp_factory, 'DHCPFactory', autospec=True)
     @mock.patch.object(pxe_utils, 'cache_ramdisk_kernel', autospec=True)
     @mock.patch.object(pxe_utils, 'get_instance_image_info', autospec=True)
     def test_prepare_instance_netboot_missing_root_uuid(
@@ -745,7 +745,7 @@ class iPXEBootTestCase(db_base.DbTestCase):
     @mock.patch.object(pxe_base.LOG, 'warning', autospec=True)
     @mock.patch.object(pxe_utils, 'clean_up_pxe_config', autospec=True)
     @mock.patch.object(manager_utils, 'node_set_boot_device', autospec=True)
-    @mock.patch.object(dhcp_factory, 'DHCPFactory')
+    @mock.patch.object(dhcp_factory, 'DHCPFactory', autospec=True)
     @mock.patch.object(pxe_utils, 'cache_ramdisk_kernel', autospec=True)
     @mock.patch.object(pxe_utils, 'get_instance_image_info', autospec=True)
     def test_prepare_instance_whole_disk_image_missing_root_uuid(
