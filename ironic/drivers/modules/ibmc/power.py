@@ -40,8 +40,6 @@ EXPECT_POWER_STATE_MAP = {
 
 class IBMCPower(base.PowerInterface):
 
-    supported = False
-
     def __init__(self):
         """Initialize the iBMC power interface.
 

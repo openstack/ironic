@@ -2,10 +2,6 @@
 iBMC driver
 ===============
 
-.. warning::
-   The ``ibmc`` driver has been deprecated due to a lack of a functioning
-   third party CI and will be removed in the Victoria development cycle.
-
 Overview
 ========
 
