@@ -988,6 +988,9 @@ function install_redfish {
     cmd+=" --bind ${HOST_IP}:${IRONIC_REDFISH_EMULATOR_PORT}"
     cmd+=" --env FLASK_DEBUG=1"
     cmd+=" --env SUSHY_EMULATOR_CONFIG=${IRONIC_REDFISH_EMULATOR_CONFIG}"
+    # NOTE(dtantsur): handling virtual media ISO can take time, so increase
+    # both concurrency and the worker timeout.
+    cmd+=" --workers 2 --threads 2 --timeout 90"
 
     write_user_unit_file $IRONIC_REDFISH_EMULATOR_SYSTEMD_SERVICE "$cmd" "" "$STACK_USER"
 
