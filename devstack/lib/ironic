@@ -256,7 +256,7 @@ IRONIC_DEPLOY_ISO=${IRONIC_DEPLOY_ISO:-$TOP_DIR/files/ir-deploy-$IRONIC_DEPLOY_D
 IRONIC_EFIBOOT=${IRONIC_EFIBOOT:-$TOP_DIR/files/ir-deploy-$IRONIC_DEPLOY_DRIVER.efiboot}
 
 # NOTE(jroll) this needs to be updated when stable branches are cut
-IPA_DOWNLOAD_BRANCH=${IPA_DOWNLOAD_BRANCH:-master}
+IPA_DOWNLOAD_BRANCH=${IPA_DOWNLOAD_BRANCH:-stable/ussuri}
 IPA_DOWNLOAD_BRANCH=$(echo $IPA_DOWNLOAD_BRANCH | tr / -)
 
 # OS for using with DIB images
