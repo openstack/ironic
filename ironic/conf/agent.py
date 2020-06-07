@@ -113,16 +113,20 @@ opts = [
     cfg.IntOpt('command_timeout',
                default=60,
                mutable=True,
-               help=_('Timeout (in seconds) for IPA commands. '
-                      'Please note, the bootloader installation command '
-                      'to the agent is permitted a timeout of twice the '
-                      'value set here as these are IO heavy operations '
-                      'depending on the configuration of the instance.')),
+               help=_('Timeout (in seconds) for IPA commands.')),
     cfg.IntOpt('max_command_attempts',
                default=3,
                help=_('This is the maximum number of attempts that will be '
                       'done for IPA commands that fails due to network '
                       'problems.')),
+    cfg.IntOpt('command_wait_attempts',
+               default=100,
+               help=_('Number of attempts to check for asynchronous commands '
+                      'completion before timing out.')),
+    cfg.IntOpt('command_wait_interval',
+               default=6,
+               help=_('Number of seconds to wait for between checks for '
+                      'asynchronous commands completion.')),
     cfg.IntOpt('neutron_agent_poll_interval',
                default=2,
                mutable=True,

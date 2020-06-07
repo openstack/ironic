@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    Instead of increasing timeout when running long synchronous tasks on
+    ironic-python-agent, ironic now runs them asynchronously and polls
+    the agent until completion. It is no longer necessary to account for
+    long-running tasks when setting ``[agent]command_timeout``.

@@ -56,13 +56,60 @@ class AgentClient(object):
             'params': params,
         })
 
+    def _raise_if_typeerror(self, result, node, method):
+        error = result.get('command_error')
+        if error and error.get('type') == 'TypeError':
+            LOG.error('Agent command %(method)s for node %(node)s failed. '
+                      'Internal TypeError detected: Error %(error)s',
+                      {'method': method, 'node': node.uuid, 'error': error})
+            raise exception.AgentAPIError(node=node.uuid,
+                                          status=error.get('code'),
+                                          error=result.get('faultstring'))
+
+    @METRICS.timer('AgentClient._wait_for_command')
+    @retrying.retry(
+        retry_on_exception=(
+            lambda e: isinstance(e, exception.AgentCommandTimeout)),
+        stop_max_attempt_number=CONF.agent.command_wait_attempts,
+        wait_fixed=CONF.agent.command_wait_interval * 1000)
+    def _wait_for_command(self, node, method):
+        """Wait for a command to complete.
+
+        :param node: A Node object.
+        :param method: A string represents the command executed by agent.
+        """
+        try:
+            method = method.split('.', 1)[1]
+        except IndexError:
+            pass
+
+        commands = self.get_commands_status(node)
+        try:
+            result = next(c for c in reversed(commands)
+                          if c.get('command_name') == method)
+        except StopIteration:
+            LOG.debug('Command %(cmd)s is not in the executing commands list '
+                      'for node %(node)s',
+                      {'cmd': method, 'node': node.uuid})
+            raise exception.AgentCommandTimeout(command=method, node=node.uuid)
+
+        if result.get('command_status') == 'RUNNING':
+            LOG.debug('Command %(cmd)s has not finished yet for node %(node)s',
+                      {'cmd': method, 'node': node.uuid})
+            raise exception.AgentCommandTimeout(command=method, node=node.uuid)
+        else:
+            LOG.debug('Command %(cmd)s has finished for node %(node)s with '
+                      'result %(result)s',
+                      {'cmd': method, 'node': node.uuid, 'result': result})
+            self._raise_if_typeerror(result, node, method)
+            return result
+
     @METRICS.timer('AgentClient._command')
     @retrying.retry(
         retry_on_exception=(
             lambda e: isinstance(e, exception.AgentConnectionFailed)),
         stop_max_attempt_number=CONF.agent.max_command_attempts)
-    def _command(self, node, method, params, wait=False,
-                 command_timeout_factor=1):
+    def _command(self, node, method, params, wait=False, poll=False):
         """Sends command to agent.
 
         :param node: A Node object.
@@ -72,19 +119,16 @@ class AgentClient(object):
                        body.
         :param wait: True to wait for the command to finish executing, False
                      otherwise.
-        :param command_timeout_factor: An integer, default 1, by which to
-                                       multiply the [agent]command_timeout
-                                       value. This is intended for use with
-                                       extremely long running commands to
-                                       the agent ramdisk where a general
-                                       timeout value should not be extended
-                                       in all cases.
+        :param poll: Whether to poll the command until completion. Provides
+                     a better alternative to `wait` for long-running commands.
         :raises: IronicException when failed to issue the request or there was
                  a malformed response from the agent.
         :raises: AgentAPIError when agent failed to execute specified command.
         :returns: A dict containing command result from agent, see
                   get_commands_status for a sample.
         """
+        assert not (wait and poll)
+
         url = self._get_command_url(node)
         body = self._get_command_body(method, params)
         request_params = {
@@ -99,7 +143,7 @@ class AgentClient(object):
         try:
             response = self.session.post(
                 url, params=request_params, data=body,
-                timeout=CONF.agent.command_timeout * command_timeout_factor)
+                timeout=CONF.agent.command_timeout)
         except (requests.ConnectionError, requests.Timeout) as e:
             msg = (_('Failed to connect to the agent running on node %(node)s '
                      'for invoking command %(method)s. Error: %(error)s') %
@@ -128,12 +172,6 @@ class AgentClient(object):
             raise exception.IronicException(msg)
 
         error = result.get('command_error')
-        exc_type = None
-        if error:
-            # if an error, we should see if a type field exists. This type
-            # field may signal an exception that is compatability based.
-            exc_type = error.get('type')
-
         LOG.debug('Agent command %(method)s for node %(node)s returned '
                   'result %(res)s, error %(error)s, HTTP status code %(code)d',
                   {'node': node.uuid, 'method': method,
@@ -149,14 +187,11 @@ class AgentClient(object):
             raise exception.AgentAPIError(node=node.uuid,
                                           status=response.status_code,
                                           error=result.get('faultstring'))
-        if exc_type == 'TypeError':
-            LOG.error('Agent command %(method)s for node %(node)s failed. '
-                      'Internal %(exc_type)s error detected: Error %(error)s',
-                      {'method': method, 'node': node.uuid,
-                       'exc_type': exc_type, 'error': error})
-            raise exception.AgentAPIError(node=node.uuid,
-                                          status=error.get('code'),
-                                          error=result.get('faultstring'))
+
+        self._raise_if_typeerror(result, node, method)
+
+        if poll:
+            result = self._wait_for_command(node, method)
 
         return result
 
@@ -245,7 +280,7 @@ class AgentClient(object):
         return self._command(node=node,
                              method='standby.prepare_image',
                              params=params,
-                             wait=wait)
+                             poll=wait)
 
     @METRICS.timer('AgentClient.start_iscsi_target')
     def start_iscsi_target(self, node, iqn,
@@ -313,8 +348,7 @@ class AgentClient(object):
             return self._command(node=node,
                                  method='image.install_bootloader',
                                  params=params,
-                                 wait=True,
-                                 command_timeout_factor=2)
+                                 poll=True)
         except exception.AgentAPIError:
             # NOTE(arne_wiebalck): If for software RAID and 'uefi' as the boot
             # mode, we find that the IPA does not yet support the additional
@@ -338,8 +372,7 @@ class AgentClient(object):
                 return self._command(node=node,
                                      method='image.install_bootloader',
                                      params=params,
-                                     wait=True,
-                                     command_timeout_factor=2)
+                                     poll=True)
 
     @METRICS.timer('AgentClient.get_clean_steps')
     def get_clean_steps(self, node, ports):

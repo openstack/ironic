@@ -29,13 +29,29 @@ CONF = conf.CONF
 
 
 class MockResponse(object):
-    def __init__(self, text, status_code=http_client.OK):
-        assert isinstance(text, str)
+    def __init__(self, data=None, status_code=http_client.OK, text=None):
+        assert not (data and text)
         self.text = text
+        self.data = data
         self.status_code = status_code
 
     def json(self):
-        return json.loads(self.text)
+        if self.text:
+            return json.loads(self.text)
+        else:
+            return self.data
+
+
+class MockCommandStatus(MockResponse):
+    def __init__(self, status, name='fake', error=None):
+        super().__init__({
+            'commands': [
+                {'command_name': name,
+                 'command_status': status,
+                 'command_result': 'I did something',
+                 'command_error': error}
+            ]
+        })
 
 
 class MockNode(object):
@@ -87,8 +103,7 @@ class TestAgentClient(base.TestCase):
 
     def test__command(self):
         response_data = {'status': 'ok'}
-        response_text = json.dumps(response_data)
-        self.client.session.post.return_value = MockResponse(response_text)
+        self.client.session.post.return_value = MockResponse(response_data)
         method = 'standby.run_image'
         image_info = {'image_id': 'test_image'}
         params = {'image_info': image_info}
@@ -106,7 +121,8 @@ class TestAgentClient(base.TestCase):
 
     def test__command_fail_json(self):
         response_text = 'this be not json matey!'
-        self.client.session.post.return_value = MockResponse(response_text)
+        self.client.session.post.return_value = MockResponse(
+            text=response_text)
         method = 'standby.run_image'
         image_info = {'image_id': 'test_image'}
         params = {'image_info': image_info}
@@ -159,7 +175,7 @@ class TestAgentClient(base.TestCase):
                           'error': error}, str(e))
 
     def test__command_error_code(self):
-        response_text = '{"faultstring": "you dun goofd"}'
+        response_text = {"faultstring": "you dun goofd"}
         self.client.session.post.return_value = MockResponse(
             response_text, status_code=http_client.BAD_REQUEST)
         method = 'standby.run_image'
@@ -179,10 +195,9 @@ class TestAgentClient(base.TestCase):
             timeout=60)
 
     def test__command_error_code_okay_error_typeerror_embedded(self):
-        response_text = ('{"faultstring": "you dun goofd", '
-                         '"command_error": {"type": "TypeError"}}')
-        self.client.session.post.return_value = MockResponse(
-            response_text)
+        response_data = {"faultstring": "you dun goofd",
+                         "command_error": {"type": "TypeError"}}
+        self.client.session.post.return_value = MockResponse(response_data)
         method = 'standby.run_image'
         image_info = {'image_id': 'test_image'}
         params = {'image_info': image_info}
@@ -198,6 +213,36 @@ class TestAgentClient(base.TestCase):
             data=body,
             params={'wait': 'false'},
             timeout=60)
+
+    @mock.patch('time.sleep', lambda seconds: None)
+    def test__command_poll(self):
+        response_data = {'status': 'ok'}
+        final_status = MockCommandStatus('SUCCEEDED', name='run_image')
+        self.client.session.post.return_value = MockResponse(response_data)
+        self.client.session.get.side_effect = [
+            MockCommandStatus('RUNNING', name='run_image'),
+            final_status,
+        ]
+
+        method = 'standby.run_image'
+        image_info = {'image_id': 'test_image'}
+        params = {'image_info': image_info}
+        expected = {'command_error': None,
+                    'command_name': 'run_image',
+                    'command_result': 'I did something',
+                    'command_status': 'SUCCEEDED'}
+
+        url = self.client._get_command_url(self.node)
+        body = self.client._get_command_body(method, params)
+
+        response = self.client._command(self.node, method, params, poll=True)
+        self.assertEqual(expected, response)
+        self.client.session.post.assert_called_once_with(
+            url,
+            data=body,
+            params={'wait': 'false'},
+            timeout=60)
+        self.client.session.get.assert_called_with(url, timeout=60)
 
     def test_get_commands_status(self):
         with mock.patch.object(self.client.session, 'get',
@@ -234,7 +279,7 @@ class TestAgentClient(base.TestCase):
                                   wait=False)
         self.client._command.assert_called_once_with(
             node=self.node, method='standby.prepare_image',
-            params=params, wait=False)
+            params=params, poll=False)
 
     def test_prepare_image_with_configdrive(self):
         self.client._command = mock.MagicMock(spec_set=[])
@@ -251,7 +296,19 @@ class TestAgentClient(base.TestCase):
                                   wait=False)
         self.client._command.assert_called_once_with(
             node=self.node, method='standby.prepare_image',
-            params=params, wait=False)
+            params=params, poll=False)
+
+    def test_prepare_image_with_wait(self):
+        self.client._command = mock.MagicMock(spec_set=[])
+        image_info = {'image_id': 'image'}
+        params = {'image_info': image_info}
+
+        self.client.prepare_image(self.node,
+                                  image_info,
+                                  wait=True)
+        self.client._command.assert_called_once_with(
+            node=self.node, method='standby.prepare_image',
+            params=params, poll=True)
 
     def test_start_iscsi_target(self):
         self.client._command = mock.MagicMock(spec_set=[])
@@ -305,9 +362,8 @@ class TestAgentClient(base.TestCase):
             self.node, root_uuid, efi_system_part_uuid=efi_system_part_uuid,
             prep_boot_part_uuid=prep_boot_part_uuid, target_boot_mode='hello')
         self.client._command.assert_called_once_with(
-            command_timeout_factor=2, node=self.node,
-            method='image.install_bootloader', params=params,
-            wait=True)
+            node=self.node, method='image.install_bootloader', params=params,
+            poll=True)
 
     def test_install_bootloader(self):
         self._test_install_bootloader(root_uuid='fake-root-uuid',
@@ -415,8 +471,7 @@ class TestAgentClient(base.TestCase):
 
     def test__command_agent_client(self):
         response_data = {'status': 'ok'}
-        response_text = json.dumps(response_data)
-        self.client.session.post.return_value = MockResponse(response_text)
+        self.client.session.post.return_value = MockResponse(response_data)
         method = 'standby.run_image'
         image_info = {'image_id': 'test_image'}
         params = {'image_info': image_info}
@@ -472,13 +527,12 @@ class TestAgentClientAttempts(base.TestCase):
         mock_sleep.return_value = None
         error = 'Connection Timeout'
         response_data = {'status': 'ok'}
-        response_text = json.dumps(response_data)
         method = 'standby.run_image'
         image_info = {'image_id': 'test_image'}
         params = {'image_info': image_info}
         self.client.session.post.side_effect = [requests.Timeout(error),
                                                 requests.Timeout(error),
-                                                MockResponse(response_text)]
+                                                MockResponse(response_data)]
 
         response = self.client._command(self.node, method, params)
         self.assertEqual(3, self.client.session.post.call_count)
@@ -494,12 +548,11 @@ class TestAgentClientAttempts(base.TestCase):
         mock_sleep.return_value = None
         error = 'Connection Timeout'
         response_data = {'status': 'ok'}
-        response_text = json.dumps(response_data)
         method = 'standby.run_image'
         image_info = {'image_id': 'test_image'}
         params = {'image_info': image_info}
         self.client.session.post.side_effect = [requests.Timeout(error),
-                                                MockResponse(response_text),
+                                                MockResponse(response_data),
                                                 requests.Timeout(error)]
 
         response = self.client._command(self.node, method, params)
