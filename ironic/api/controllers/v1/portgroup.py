@@ -16,7 +16,6 @@ from http import client as http_client
 from ironic_lib import metrics_utils
 from oslo_utils import uuidutils
 import pecan
-import wsme
 
 from ironic import api
 from ironic.api.controllers import base
@@ -511,7 +510,7 @@ class PortgroupsController(pecan.rest.RestController):
         return Portgroup.convert_with_links(new_portgroup)
 
     @METRICS.timer('PortgroupsController.patch')
-    @wsme.validate(types.uuid_or_name, [PortgroupPatchType])
+    @expose.validate(types.uuid_or_name, [PortgroupPatchType])
     @expose.expose(Portgroup, types.uuid_or_name, body=[PortgroupPatchType])
     def patch(self, portgroup_ident, patch):
         """Update an existing portgroup.

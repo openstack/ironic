@@ -19,7 +19,6 @@ from http import client as http_client
 from ironic_lib import metrics_utils
 from oslo_utils import uuidutils
 from pecan import rest
-import wsme
 
 from ironic import api
 from ironic.api.controllers import base
@@ -313,7 +312,7 @@ class ChassisController(rest.RestController):
         return Chassis.convert_with_links(new_chassis)
 
     @METRICS.timer('ChassisController.patch')
-    @wsme.validate(types.uuid, [ChassisPatchType])
+    @expose.validate(types.uuid, [ChassisPatchType])
     @expose.expose(Chassis, types.uuid, body=[ChassisPatchType])
     def patch(self, chassis_uuid, patch):
         """Update an existing chassis.
