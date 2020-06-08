@@ -16,9 +16,9 @@ Tests for the API /ports/ methods.
 import datetime
 from http import client as http_client
 import types
+from unittest import mock
 from urllib import parse as urlparse
 
-import mock
 from oslo_config import cfg
 from oslo_utils import timeutils
 from oslo_utils import uuidutils

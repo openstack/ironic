@@ -19,8 +19,8 @@ import inspect
 import json
 import os
 import sys
+from unittest import mock
 
-import mock
 from oslo_utils import uuidutils
 import pecan.rest
 import pecan.testing

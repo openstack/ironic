@@ -17,9 +17,9 @@ Tests for the API /chassis/ methods.
 
 import datetime
 from http import client as http_client
+from unittest import mock
 from urllib import parse as urlparse
 
-import mock
 from oslo_config import cfg
 from oslo_utils import timeutils
 from oslo_utils import uuidutils

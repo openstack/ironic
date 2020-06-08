@@ -15,8 +15,8 @@ Tests for the API /conductors/ methods.
 
 import datetime
 from http import client as http_client
+from unittest import mock
 
-import mock
 from oslo_config import cfg
 from oslo_utils import timeutils
 from oslo_utils import uuidutils

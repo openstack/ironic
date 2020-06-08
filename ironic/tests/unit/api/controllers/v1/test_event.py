@@ -14,8 +14,7 @@ Tests for the API /events methods.
 """
 
 from http import client as http_client
-
-import mock
+from unittest import mock
 
 from ironic.api.controllers import base as api_base
 from ironic.api.controllers.v1 import types

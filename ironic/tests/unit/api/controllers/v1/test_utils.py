@@ -15,8 +15,8 @@
 #    under the License.
 
 from http import client as http_client
+from unittest import mock
 
-import mock
 import os_traits
 from oslo_config import cfg
 from oslo_utils import uuidutils

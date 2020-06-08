@@ -12,7 +12,8 @@
 
 """Test class for ironic-api notification utilities."""
 
-import mock
+from unittest import mock
+
 from oslo_utils import uuidutils
 
 from ironic.api.controllers.v1 import notification_utils as notif_utils

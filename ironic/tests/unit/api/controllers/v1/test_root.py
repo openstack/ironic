@@ -12,7 +12,8 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import mock
+from unittest import mock
+
 from webob import exc as webob_exc
 
 from ironic.api.controllers import v1 as v1_api

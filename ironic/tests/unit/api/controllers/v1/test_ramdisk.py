@@ -16,9 +16,9 @@ Tests for the API /lookup/ methods.
 """
 
 from http import client as http_client
+from unittest import mock
 
 import fixtures
-import mock
 from oslo_config import cfg
 from oslo_utils import uuidutils
 
