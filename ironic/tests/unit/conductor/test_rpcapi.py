@@ -48,14 +48,15 @@ class ConductorRPCAPITestCase(tests_base.TestCase):
             conductor_manager.ConductorManager.RPC_API_VERSION,
             conductor_rpcapi.ConductorAPI.RPC_API_VERSION)
 
-    @mock.patch('ironic.common.rpc.get_client')
+    @mock.patch('ironic.common.rpc.get_client', autospec=True)
     def test_version_cap(self, mock_get_client):
         conductor_rpcapi.ConductorAPI()
         self.assertEqual(conductor_rpcapi.ConductorAPI.RPC_API_VERSION,
                          mock_get_client.call_args[1]['version_cap'])
 
-    @mock.patch('ironic.common.release_mappings.RELEASE_MAPPING')
-    @mock.patch('ironic.common.rpc.get_client')
+    @mock.patch('ironic.common.release_mappings.RELEASE_MAPPING',
+                autospec=True)
+    @mock.patch('ironic.common.rpc.get_client', autospec=True)
     def test_version_capped(self, mock_get_client, mock_release_mapping):
         CONF.set_override('pin_release_version',
                           release_mappings.RELEASE_VERSIONS[0])
@@ -187,7 +188,8 @@ class RPCAPITestCase(db_base.DbTestCase):
     def _test_can_send_create_port(self, can_send):
         rpcapi = conductor_rpcapi.ConductorAPI(topic='fake-topic')
         with mock.patch.object(rpcapi.client,
-                               "can_send_version") as mock_can_send_version:
+                               "can_send_version",
+                               autospec=True) as mock_can_send_version:
             mock_can_send_version.return_value = can_send
             result = rpcapi.can_send_create_port()
             self.assertEqual(can_send, result)
@@ -233,13 +235,16 @@ class RPCAPITestCase(db_base.DbTestCase):
                 return expected_retval
 
         with mock.patch.object(rpcapi.client,
-                               "can_send_version") as mock_can_send_version:
+                               "can_send_version",
+                               autospec=True) as mock_can_send_version:
             mock_can_send_version.side_effect = _fake_can_send_version_method
-            with mock.patch.object(rpcapi.client, "prepare") as mock_prepared:
+            with mock.patch.object(rpcapi.client, "prepare",
+                                   autospec=True) as mock_prepared:
                 mock_prepared.side_effect = _fake_prepare_method
 
                 with mock.patch.object(rpcapi.client,
-                                       rpc_method) as mock_method:
+                                       rpc_method,
+                                       autospec=True) as mock_method:
                     mock_method.side_effect = _fake_rpc_method
                     retval = getattr(rpcapi, method)(self.context, **kwargs)
                     self.assertEqual(retval, expected_retval)
@@ -598,7 +603,8 @@ class RPCAPITestCase(db_base.DbTestCase):
     def _test_can_send_rescue(self, can_send):
         rpcapi = conductor_rpcapi.ConductorAPI(topic='fake-topic')
         with mock.patch.object(rpcapi.client,
-                               "can_send_version") as mock_can_send_version:
+                               "can_send_version",
+                               autospec=True) as mock_can_send_version:
             mock_can_send_version.return_value = can_send
             result = rpcapi.can_send_rescue()
             self.assertEqual(can_send, result)
