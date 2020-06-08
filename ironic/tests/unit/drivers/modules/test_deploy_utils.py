@@ -771,9 +771,9 @@ class OtherFunctionTestCase(db_base.DbTestCase):
         mock_clean_up_caches.assert_called_once_with(None, 'master_dir',
                                                      [('uuid', 'path')])
 
-    @mock.patch('ironic.common.keystone.get_auth')
-    @mock.patch.object(utils, '_get_ironic_session')
-    @mock.patch('ironic.common.keystone.get_adapter')
+    @mock.patch('ironic.common.keystone.get_auth', autospec=True)
+    @mock.patch.object(utils, '_get_ironic_session', autospec=True)
+    @mock.patch('ironic.common.keystone.get_adapter', autospec=True)
     def test_get_ironic_api_url_from_keystone(self, mock_ka, mock_ks,
                                               mock_auth):
         mock_sess = mock.Mock()
@@ -788,9 +788,9 @@ class OtherFunctionTestCase(db_base.DbTestCase):
                                    auth=mock_auth.return_value)
         mock_ka.return_value.get_endpoint.assert_called_once_with()
 
-    @mock.patch('ironic.common.keystone.get_auth')
-    @mock.patch.object(utils, '_get_ironic_session')
-    @mock.patch('ironic.common.keystone.get_adapter')
+    @mock.patch('ironic.common.keystone.get_auth', autospec=True)
+    @mock.patch.object(utils, '_get_ironic_session', autospec=True)
+    @mock.patch('ironic.common.keystone.get_adapter', autospec=True)
     def test_get_ironic_api_url_fail(self, mock_ka, mock_ks, mock_auth):
         mock_sess = mock.Mock()
         mock_ks.return_value = mock_sess
@@ -799,9 +799,9 @@ class OtherFunctionTestCase(db_base.DbTestCase):
         self.assertRaises(exception.InvalidParameterValue,
                           utils.get_ironic_api_url)
 
-    @mock.patch('ironic.common.keystone.get_auth')
-    @mock.patch.object(utils, '_get_ironic_session')
-    @mock.patch('ironic.common.keystone.get_adapter')
+    @mock.patch('ironic.common.keystone.get_auth', autospec=True)
+    @mock.patch.object(utils, '_get_ironic_session', autospec=True)
+    @mock.patch('ironic.common.keystone.get_adapter', autospec=True)
     def test_get_ironic_api_url_none(self, mock_ka, mock_ks, mock_auth):
         mock_sess = mock.Mock()
         mock_ks.return_value = mock_sess
@@ -1102,7 +1102,7 @@ class AgentMethodsTestCase(db_base.DbTestCase):
     @mock.patch('ironic.conductor.utils.node_power_action', autospec=True)
     @mock.patch.object(utils, 'build_agent_options', autospec=True)
     @mock.patch('ironic.drivers.modules.network.flat.FlatNetwork.'
-                'add_cleaning_network')
+                'add_cleaning_network', autospec=True)
     def _test_prepare_inband_cleaning(
             self, add_cleaning_network_mock,
             build_options_mock, power_mock, prepare_ramdisk_mock,
@@ -1114,7 +1114,8 @@ class AgentMethodsTestCase(db_base.DbTestCase):
             self.assertEqual(
                 states.CLEANWAIT,
                 utils.prepare_inband_cleaning(task, manage_boot=manage_boot))
-            add_cleaning_network_mock.assert_called_once_with(task)
+            add_cleaning_network_mock.assert_called_once_with(
+                task.driver.network, task)
             if not fast_track:
                 power_mock.assert_called_once_with(task, states.REBOOT)
             else:
@@ -1143,7 +1144,7 @@ class AgentMethodsTestCase(db_base.DbTestCase):
     @mock.patch('ironic.conductor.utils.is_fast_track', autospec=True)
     @mock.patch.object(pxe.PXEBoot, 'clean_up_ramdisk', autospec=True)
     @mock.patch('ironic.drivers.modules.network.flat.FlatNetwork.'
-                'remove_cleaning_network')
+                'remove_cleaning_network', autospec=True)
     @mock.patch('ironic.conductor.utils.node_power_action', autospec=True)
     def _test_tear_down_inband_cleaning(
             self, power_mock, remove_cleaning_network_mock,
@@ -1159,7 +1160,8 @@ class AgentMethodsTestCase(db_base.DbTestCase):
                 power_mock.assert_called_once_with(task, states.POWER_OFF)
             else:
                 self.assertFalse(power_mock.called)
-            remove_cleaning_network_mock.assert_called_once_with(task)
+            remove_cleaning_network_mock.assert_called_once_with(
+                task.driver.network, task)
             if manage_boot:
                 clean_up_ramdisk_mock.assert_called_once_with(
                     task.driver.boot, task)
@@ -1184,7 +1186,7 @@ class AgentMethodsTestCase(db_base.DbTestCase):
         options = utils.build_agent_options(self.node)
         self.assertEqual('https://api-url', options['ipa-api-url'])
 
-    @mock.patch.object(utils, '_get_ironic_session')
+    @mock.patch.object(utils, '_get_ironic_session', autospec=True)
     def test_build_agent_options_keystone(self, session_mock):
         sess = mock.Mock()
         sess.get_endpoint.return_value = 'https://api-url'
@@ -2163,7 +2165,7 @@ class TestStorageInterfaceUtils(db_base.DbTestCase):
 
 
 class InstanceImageCacheTestCase(db_base.DbTestCase):
-    @mock.patch.object(fileutils, 'ensure_tree')
+    @mock.patch.object(fileutils, 'ensure_tree', autospec=True)
     def test_with_master_path(self, mock_ensure_tree):
         self.config(instance_master_path='/fake/path', group='pxe')
         self.config(image_cache_size=500, group='pxe')
@@ -2175,7 +2177,7 @@ class InstanceImageCacheTestCase(db_base.DbTestCase):
         self.assertEqual(500 * 1024 * 1024, cache._cache_size)
         self.assertEqual(30 * 60, cache._cache_ttl)
 
-    @mock.patch.object(fileutils, 'ensure_tree')
+    @mock.patch.object(fileutils, 'ensure_tree', autospec=True)
     def test_without_master_path(self, mock_ensure_tree):
         self.config(instance_master_path='', group='pxe')
         self.config(image_cache_size=500, group='pxe')
