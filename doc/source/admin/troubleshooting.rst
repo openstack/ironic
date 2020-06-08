@@ -163,11 +163,13 @@ inject your code and/or SSH keys during the ramdisk build (depends on how
 exactly you've built your ramdisk). But it's also possible to quickly modify
 an already built ramdisk.
 
-Create an empty directory and unpack the ramdisk content there::
+Create an empty directory and unpack the ramdisk content there:
 
-    mkdir unpack
-    cd unpack
-    gzip -dc /path/to/the/ramdisk | cpio -id
+.. code-block:: bash
+
+    $ mkdir unpack
+    $ cd unpack
+    $ gzip -dc /path/to/the/ramdisk | cpio -id
 
 The last command will result in the whole Linux file system tree unpacked in
 the current directory. Now you can modify any files you want. The actual
@@ -178,7 +180,7 @@ location of the files will depend on the way you've built the ramdisk.
     the ``systemd-container`` package) to create a lightweight container from
     the unpacked filesystem tree::
 
-        sudo systemd-nspawn --directory /path/to/unpacked/ramdisk/ /bin/bash
+        $ sudo systemd-nspawn --directory /path/to/unpacked/ramdisk/ /bin/bash
 
     This will allow you to run commands within the filesystem, e.g. use package
     manager. If the ramdisk is also systemd-based, and you have login
@@ -186,12 +188,12 @@ location of the files will depend on the way you've built the ramdisk.
 
     ::
 
-        sudo systemd-nspawn --directory /path/to/unpacked/ramdisk/ --boot
+        $ sudo systemd-nspawn --directory /path/to/unpacked/ramdisk/ --boot
 
 After you've done the modifications, pack the whole content of the current
 directory back::
 
-    find . | cpio -H newc -o | gzip -c > /path/to/the/new/ramdisk
+    $ find . | cpio -H newc -o | gzip -c > /path/to/the/new/ramdisk
 
 .. note:: You don't need to modify the kernel (e.g.
           ``tinyipa-master.vmlinuz``), only the ramdisk part.
@@ -373,7 +375,7 @@ the IPMI port to be unreachable through ipmitool, as shown:
 
 .. code-block:: bash
 
-    $ipmitool -I lan -H ipmi_host -U ipmi_user -P ipmi_pass chassis power status
+    $ ipmitool -I lan -H ipmi_host -U ipmi_user -P ipmi_pass chassis power status
     Error: Unable to establish LAN session
 
 To fix this, enable `IPMI over lan` setting using your BMC tool or web app.
@@ -385,7 +387,7 @@ When working with lanplus interfaces, you may encounter the following error:
 
 .. code-block:: bash
 
-    $ipmitool -I lanplus -H ipmi_host -U ipmi_user -P ipmi_pass power status
+    $ ipmitool -I lanplus -H ipmi_host -U ipmi_user -P ipmi_pass power status
     Error in open session response message : insufficient resources for session
     Error: Unable to establish IPMI v2 / RMCP+ session
 
