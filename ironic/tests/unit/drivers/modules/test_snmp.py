@@ -1603,7 +1603,8 @@ class SNMPDeviceDriverTestCase(db_base.DbTestCase):
 
         mock_client.get.assert_called_once_with(SNMPDriverAuto.SYS_OBJ_OID)
 
-    @mock.patch.object(snmp.SNMPDriverAPCRackPDU, "_snmp_power_on")
+    @mock.patch.object(snmp.SNMPDriverAPCRackPDU, "_snmp_power_on",
+                       autospec=True)
     def test_snmp_auto_cache_supports_pdu_replacement(
             self, broken_pdu_power_on_mock, mock_get_client):
 
@@ -1695,7 +1696,7 @@ class SNMPDriverTestCase(db_base.DbTestCase):
                               task.driver.power.get_power_state, task)
         mock_driver.power_state.assert_called_once_with()
 
-    @mock.patch.object(snmp.LOG, 'warning')
+    @mock.patch.object(snmp.LOG, 'warning', autospec=True)
     def test_set_power_state_on(self, mock_log, mock_get_driver):
         mock_driver = mock_get_driver.return_value
         mock_driver.power_on.return_value = states.POWER_ON
@@ -1704,7 +1705,7 @@ class SNMPDriverTestCase(db_base.DbTestCase):
         mock_driver.power_on.assert_called_once_with()
         self.assertFalse(mock_log.called)
 
-    @mock.patch.object(snmp.LOG, 'warning')
+    @mock.patch.object(snmp.LOG, 'warning', autospec=True)
     def test_set_power_state_on_timeout(self, mock_log, mock_get_driver):
         mock_driver = mock_get_driver.return_value
         mock_driver.power_on.return_value = states.POWER_ON
@@ -1763,7 +1764,7 @@ class SNMPDriverTestCase(db_base.DbTestCase):
                               task, states.POWER_OFF)
         mock_driver.power_off.assert_called_once_with()
 
-    @mock.patch.object(snmp.LOG, 'warning')
+    @mock.patch.object(snmp.LOG, 'warning', autospec=True)
     def test_reboot(self, mock_log, mock_get_driver):
         mock_driver = mock_get_driver.return_value
         mock_driver.power_reset.return_value = states.POWER_ON
@@ -1772,7 +1773,7 @@ class SNMPDriverTestCase(db_base.DbTestCase):
         mock_driver.power_reset.assert_called_once_with()
         self.assertFalse(mock_log.called)
 
-    @mock.patch.object(snmp.LOG, 'warning')
+    @mock.patch.object(snmp.LOG, 'warning', autospec=True)
     def test_reboot_timeout(self, mock_log, mock_get_driver):
         mock_driver = mock_get_driver.return_value
         mock_driver.power_reset.return_value = states.POWER_ON
