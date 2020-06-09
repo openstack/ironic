@@ -78,6 +78,35 @@ A few things should be checked in this case:
    set to ``1``. See :doc:`/install/configure-nova-flavors` for more
    details on the correct configuration.
 
+#. Upon scheduling, Nova will query the Placement API service for the
+   available resource providers (in the case of Ironic: nodes with a given
+   resource class). If placement does not have any allocation candidates for the
+   requested resource class, the request will result in a "Nova valid host
+   was found" error. It is hence sensible to check if Placement is aware of
+   resource providers (nodes) for the requested resource class with::
+
+       $ openstack allocation candidate list --resource CUSTOM_BAREMETAL_LARGE='1'
+       +---+-----------------------------+--------------------------------------+-------------------------------+
+       | # | allocation                  | resource provider                    | inventory used/capacity       |
+       +---+-----------------------------+--------------------------------------+-------------------------------+
+       | 1 | CUSTOM_BAREMETAL_LARGE=1    | 2f7b9c69-c1df-4e40-b94e-5821a4ea0453 | CUSTOM_BAREMETAL_LARGE=0/1    |
+       +---+-----------------------------+--------------------------------------+-------------------------------+
+
+  For Ironic, the resource provider is the UUID of the available Ironic node.
+  If this command returns an empty list (or does not contain the targeted
+  resource provider), the operator needs to understand first, why the resource
+  tracker has not reported this provider to placement. Potential explanations
+  include:
+
+  * the resource tracker cycle has not finished yet and the resource provider
+    will appear once it has (the time to finish the cycle scales linearly with
+    the number of nodes the corresponding ``nova-compute`` service manages);
+
+  * the node is in a state where the resource tracker does not consider it to
+    be eligible for scheduling, e.g. when the node has ``maintenance`` set to
+    ``True``; make sure the target nodes are in ``available`` and
+    ``maintenance`` is ``False``;
+
 #. If you do not use scheduling based on resource classes, then the node's
    properties must have been set either manually or via inspection.
    For each node with ``available`` state check that the ``properties``
