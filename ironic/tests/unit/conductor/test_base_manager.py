@@ -92,7 +92,7 @@ class StartStopTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         res = objects.Conductor.get_by_hostname(self.context, self.hostname)
         self.assertEqual(self.hostname, res['hostname'])
 
-    @mock.patch.object(manager.ConductorManager, 'init_host')
+    @mock.patch.object(manager.ConductorManager, 'init_host', autospec=True)
     def test_stop_uninitialized_conductor(self, mock_init):
         self._start_service()
         self.service.del_host()
@@ -107,7 +107,8 @@ class StartStopTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         mock_def_iface.return_value = 'fake'
 
         df = driver_factory.HardwareTypesFactory()
-        with mock.patch.object(df._extension_manager, 'names') as mock_names:
+        with mock.patch.object(df._extension_manager, 'names',
+                               autospec=True) as mock_names:
             # verify driver names are registered
             self.config(enabled_hardware_types=init_names)
             mock_names.return_value = init_names
@@ -180,10 +181,12 @@ class StartStopTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         self.assertTrue(periodics.is_periodic(hw_type.task))
         self.assertNotIn(hw_type.task, tasks)
 
-    @mock.patch.object(driver_factory.HardwareTypesFactory, '__init__')
+    @mock.patch.object(driver_factory.HardwareTypesFactory, '__init__',
+                       autospec=True)
     def test_start_fails_on_missing_driver(self, mock_df):
         mock_df.side_effect = exception.DriverNotFound('test')
-        with mock.patch.object(self.dbapi, 'register_conductor') as mock_reg:
+        with mock.patch.object(self.dbapi, 'register_conductor',
+                               autospec=True) as mock_reg:
             self.assertRaises(exception.DriverNotFound,
                               self.service.init_host)
             self.assertTrue(mock_df.called)
@@ -195,8 +198,8 @@ class StartStopTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
                                'options enabled_boot_interfaces',
                                self.service.init_host)
 
-    @mock.patch.object(base_manager, 'LOG')
-    @mock.patch.object(driver_factory, 'HardwareTypesFactory')
+    @mock.patch.object(base_manager, 'LOG', autospec=True)
+    @mock.patch.object(driver_factory, 'HardwareTypesFactory', autospec=True)
     def test_start_fails_on_hw_types(self, ht_mock, log_mock):
         driver_factory_mock = mock.MagicMock(names=[])
         ht_mock.return_value = driver_factory_mock
@@ -205,16 +208,18 @@ class StartStopTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         self.assertTrue(log_mock.error.called)
         ht_mock.assert_called_once_with()
 
-    @mock.patch.object(base_manager, 'LOG')
+    @mock.patch.object(base_manager, 'LOG', autospec=True)
     @mock.patch.object(base_manager.BaseConductorManager,
-                       '_register_and_validate_hardware_interfaces')
-    @mock.patch.object(base_manager.BaseConductorManager, 'del_host')
+                       '_register_and_validate_hardware_interfaces',
+                       autospec=True)
+    @mock.patch.object(base_manager.BaseConductorManager, 'del_host',
+                       autospec=True)
     def test_start_fails_hw_type_register(self, del_mock, reg_mock, log_mock):
         reg_mock.side_effect = exception.DriverNotFound('hw-type')
         self.assertRaises(exception.DriverNotFound,
                           self.service.init_host)
         self.assertTrue(log_mock.error.called)
-        del_mock.assert_called_once_with()
+        del_mock.assert_called_once()
 
     def test_prevent_double_start(self):
         self._start_service()
@@ -242,13 +247,13 @@ class StartStopTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
             self.assertEqual(state[1], node.provision_state,
                              'Test failed when recovering from %s' % state[0])
 
-    @mock.patch.object(base_manager, 'LOG')
+    @mock.patch.object(base_manager, 'LOG', autospec=True)
     def test_warning_on_low_workers_pool(self, log_mock):
         CONF.set_override('workers_pool_size', 3, 'conductor')
         self._start_service()
         self.assertTrue(log_mock.warning.called)
 
-    @mock.patch.object(eventlet.greenpool.GreenPool, 'waitall')
+    @mock.patch.object(eventlet.greenpool.GreenPool, 'waitall', autospec=True)
     def test_del_host_waits_on_workerpool(self, wait_mock):
         self._start_service()
         self.service.del_host()
@@ -311,9 +316,10 @@ class KeepAliveTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         self._start_service()
         # avoid wasting time at the event.wait()
         CONF.set_override('heartbeat_interval', 0, 'conductor')
-        with mock.patch.object(self.dbapi, 'touch_conductor') as mock_touch:
+        with mock.patch.object(self.dbapi, 'touch_conductor',
+                               autospec=True) as mock_touch:
             with mock.patch.object(self.service._keepalive_evt,
-                                   'is_set') as mock_is_set:
+                                   'is_set', autospec=True) as mock_is_set:
                 mock_is_set.side_effect = [False, True]
                 self.service._conductor_service_record_keepalive()
             mock_touch.assert_called_once_with(self.hostname)
@@ -322,11 +328,12 @@ class KeepAliveTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         self._start_service()
         # avoid wasting time at the event.wait()
         CONF.set_override('heartbeat_interval', 0, 'conductor')
-        with mock.patch.object(self.dbapi, 'touch_conductor') as mock_touch:
+        with mock.patch.object(self.dbapi, 'touch_conductor',
+                               autospec=True) as mock_touch:
             mock_touch.side_effect = [None, db_exception.DBConnectionError(),
                                       None]
             with mock.patch.object(self.service._keepalive_evt,
-                                   'is_set') as mock_is_set:
+                                   'is_set', autospec=True) as mock_is_set:
                 mock_is_set.side_effect = [False, False, False, True]
                 self.service._conductor_service_record_keepalive()
             self.assertEqual(3, mock_touch.call_count)
@@ -335,11 +342,12 @@ class KeepAliveTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         self._start_service()
         # avoid wasting time at the event.wait()
         CONF.set_override('heartbeat_interval', 0, 'conductor')
-        with mock.patch.object(self.dbapi, 'touch_conductor') as mock_touch:
+        with mock.patch.object(self.dbapi, 'touch_conductor',
+                               autospec=True) as mock_touch:
             mock_touch.side_effect = [None, Exception(),
                                       None]
             with mock.patch.object(self.service._keepalive_evt,
-                                   'is_set') as mock_is_set:
+                                   'is_set', autospec=True) as mock_is_set:
                 mock_is_set.side_effect = [False, False, False, True]
                 self.service._conductor_service_record_keepalive()
             self.assertEqual(3, mock_touch.call_count)
@@ -447,7 +455,8 @@ class RegisterInterfacesTestCase(mgr_utils.ServiceSetUpMixin,
 
 
 @mock.patch.object(fake.FakeConsole, 'start_console', autospec=True)
-@mock.patch.object(notification_utils, 'emit_console_notification')
+@mock.patch.object(notification_utils, 'emit_console_notification',
+                   autospec=True)
 class StartConsolesTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
     def test__start_consoles(self, mock_notify, mock_start_console):
         obj_utils.create_test_node(self.context,
@@ -500,7 +509,7 @@ class StartConsolesTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
              mock.call(mock.ANY, 'console_restore',
                        fields.NotificationStatus.ERROR)])
 
-    @mock.patch.object(base_manager, 'LOG')
+    @mock.patch.object(base_manager, 'LOG', autospec=True)
     def test__start_consoles_node_locked(self, log_mock, mock_notify,
                                          mock_start_console):
         test_node = obj_utils.create_test_node(self.context,
@@ -516,14 +525,15 @@ class StartConsolesTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         self.assertTrue(log_mock.warning.called)
         self.assertFalse(mock_notify.called)
 
-    @mock.patch.object(base_manager, 'LOG')
+    @mock.patch.object(base_manager, 'LOG', autospec=True)
     def test__start_consoles_node_not_found(self, log_mock, mock_notify,
                                             mock_start_console):
         test_node = obj_utils.create_test_node(self.context,
                                                driver='fake-hardware',
                                                console_enabled=True)
         self._start_service()
-        with mock.patch.object(task_manager, 'acquire') as mock_acquire:
+        with mock.patch.object(task_manager, 'acquire',
+                               autospec=True) as mock_acquire:
             mock_acquire.side_effect = exception.NodeNotFound(node='not found')
             self.service._start_consoles(self.context)
             self.assertFalse(mock_start_console.called)
