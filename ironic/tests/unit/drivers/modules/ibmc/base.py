@@ -28,7 +28,8 @@ class IBMCTestCase(db_base.DbTestCase):
         self.config(enabled_hardware_types=['ibmc'],
                     enabled_power_interfaces=['ibmc'],
                     enabled_management_interfaces=['ibmc'],
-                    enabled_vendor_interfaces=['ibmc'])
+                    enabled_vendor_interfaces=['ibmc'],
+                    enabled_raid_interfaces=['ibmc'])
         self.node = obj_utils.create_test_node(
             self.context, driver='ibmc', driver_info=self.driver_info)
         self.ibmc = utils.parse_driver_info(self.node)
