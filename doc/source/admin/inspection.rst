@@ -92,7 +92,7 @@ the following option:
 .. code-block:: ini
 
     [inspector]
-    endpoint-override = http://inspector.example.com:5050
+    endpoint_override = http://inspector.example.com:5050
 
 In order to ensure that ports in Bare Metal service are synchronized with
 NIC ports on the node, the following settings in the ironic-inspector
