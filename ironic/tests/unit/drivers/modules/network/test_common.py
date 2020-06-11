@@ -96,7 +96,7 @@ class TestCommonFunctions(db_base.DbTestCase):
             free_port_like_objs = (
                 common._get_free_portgroups_and_ports(task, self.vif_id,
                                                       {'anyphysnet'}))
-        self.assertItemsEqual(
+        self.assertCountEqual(
             [pg1.uuid, self.port.uuid] + [p.uuid for p in pg2_ports[:2]],
             [p.uuid for p in free_port_like_objs])
 
@@ -109,7 +109,7 @@ class TestCommonFunctions(db_base.DbTestCase):
             free_port_like_objs = (
                 common._get_free_portgroups_and_ports(task, self.vif_id,
                                                       set()))
-        self.assertItemsEqual(
+        self.assertCountEqual(
             [pg1.uuid, self.port.uuid] + [p.uuid for p in pg2_ports[:2]],
             [p.uuid for p in free_port_like_objs])
 
@@ -122,7 +122,7 @@ class TestCommonFunctions(db_base.DbTestCase):
             free_port_like_objs = (
                 common._get_free_portgroups_and_ports(task, self.vif_id,
                                                       {'notaphysnet'}))
-        self.assertItemsEqual(
+        self.assertCountEqual(
             [self.port.uuid],
             [p.uuid for p in free_port_like_objs])
 
@@ -135,7 +135,7 @@ class TestCommonFunctions(db_base.DbTestCase):
             free_port_like_objs = (
                 common._get_free_portgroups_and_ports(task, self.vif_id,
                                                       {'physnet1'}))
-        self.assertItemsEqual(
+        self.assertCountEqual(
             [pg1.uuid, self.port.uuid],
             [p.uuid for p in free_port_like_objs])
 
@@ -148,7 +148,7 @@ class TestCommonFunctions(db_base.DbTestCase):
             free_port_like_objs = (
                 common._get_free_portgroups_and_ports(task, self.vif_id,
                                                       {'physnet2'}))
-        self.assertItemsEqual(
+        self.assertCountEqual(
             [self.port.uuid] + [p.uuid for p in pg2_ports[:2]],
             [p.uuid for p in free_port_like_objs])
 
@@ -161,7 +161,7 @@ class TestCommonFunctions(db_base.DbTestCase):
             free_port_like_objs = (
                 common._get_free_portgroups_and_ports(task, self.vif_id,
                                                       {'physnet3'}))
-        self.assertItemsEqual(
+        self.assertCountEqual(
             [self.port.uuid], [p.uuid for p in free_port_like_objs])
 
     def test__get_free_portgroups_and_ports_all_physnets(self):
@@ -174,7 +174,7 @@ class TestCommonFunctions(db_base.DbTestCase):
             free_port_like_objs = (
                 common._get_free_portgroups_and_ports(task, self.vif_id,
                                                       physnets))
-        self.assertItemsEqual(
+        self.assertCountEqual(
             [pg1.uuid, self.port.uuid] + [p.uuid for p in pg2_ports[:2]],
             [p.uuid for p in free_port_like_objs])
 
@@ -185,7 +185,7 @@ class TestCommonFunctions(db_base.DbTestCase):
             free_port_like_objs = (
                 common._get_free_portgroups_and_ports(task, self.vif_id,
                                                       {'anyphysnet'}))
-        self.assertItemsEqual([], free_port_like_objs)
+        self.assertCountEqual([], free_port_like_objs)
 
     @mock.patch.object(neutron_common, 'validate_port_info', autospec=True)
     def test__get_free_portgroups_and_ports_neutron(self, vpi_mock):
@@ -194,7 +194,7 @@ class TestCommonFunctions(db_base.DbTestCase):
             free_port_like_objs = (
                 common._get_free_portgroups_and_ports(task, self.vif_id,
                                                       {'anyphysnet'}))
-        self.assertItemsEqual(
+        self.assertCountEqual(
             [self.port.uuid], [p.uuid for p in free_port_like_objs])
 
     @mock.patch.object(neutron_common, 'validate_port_info', autospec=True)
@@ -206,7 +206,7 @@ class TestCommonFunctions(db_base.DbTestCase):
             free_port_like_objs = (
                 common._get_free_portgroups_and_ports(task, self.vif_id,
                                                       {'anyphysnet'}))
-        self.assertItemsEqual(
+        self.assertCountEqual(
             [self.port.uuid], [p.uuid for p in free_port_like_objs])
 
     @mock.patch.object(neutron_common, 'validate_port_info', autospec=True,
@@ -606,7 +606,7 @@ class TestVifPortIDMixin(db_base.DbTestCase):
             address='52:54:00:cf:2d:01', uuid=uuidutils.generate_uuid())
         with task_manager.acquire(self.context, self.node.id) as task:
             vifs = self.interface.vif_list(task)
-            self.assertItemsEqual([{'id': pg_vif_id}, {'id': vif_id}], vifs)
+            self.assertCountEqual([{'id': pg_vif_id}, {'id': vif_id}], vifs)
 
     def test_vif_list_internal(self):
         vif_id = uuidutils.generate_uuid()
@@ -622,7 +622,7 @@ class TestVifPortIDMixin(db_base.DbTestCase):
             address='52:54:00:cf:2d:01', uuid=uuidutils.generate_uuid())
         with task_manager.acquire(self.context, self.node.id) as task:
             vifs = self.interface.vif_list(task)
-            self.assertItemsEqual([{'id': pg_vif_id}, {'id': vif_id}], vifs)
+            self.assertCountEqual([{'id': pg_vif_id}, {'id': vif_id}], vifs)
 
     def test_vif_list_extra_and_internal_priority(self):
         vif_id = uuidutils.generate_uuid()

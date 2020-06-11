@@ -78,7 +78,7 @@ class TestListChassis(test_api_base.BaseApiTest):
             '/chassis/%s?fields=%s' % (chassis.uuid, fields),
             headers={api_base.Version.string: str(api_v1.max_version())})
         # We always append "links"
-        self.assertItemsEqual(['description', 'extra', 'links'], data)
+        self.assertCountEqual(['description', 'extra', 'links'], data)
 
     def test_get_collection_custom_fields(self):
         fields = 'uuid,extra'
@@ -93,7 +93,7 @@ class TestListChassis(test_api_base.BaseApiTest):
         self.assertEqual(3, len(data['chassis']))
         for ch in data['chassis']:
             # We always append "links"
-            self.assertItemsEqual(['uuid', 'extra', 'links'], ch)
+            self.assertCountEqual(['uuid', 'extra', 'links'], ch)
 
     def test_get_custom_fields_invalid_fields(self):
         chassis = obj_utils.create_test_chassis(self.context)

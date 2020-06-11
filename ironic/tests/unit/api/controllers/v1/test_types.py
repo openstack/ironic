@@ -145,7 +145,7 @@ class TestJsonPatchType(api_base.BaseApiTest):
                           'value': {'cat': 'meow'}}]
         ret = self._patch_json(valid_patches, False)
         self.assertEqual(http_client.OK, ret.status_int)
-        self.assertItemsEqual(valid_patches, ret.json)
+        self.assertCountEqual(valid_patches, ret.json)
 
     def test_cannot_update_internal_attr(self):
         patch = [{'path': '/internal', 'op': 'replace', 'value': 'foo'}]
@@ -301,14 +301,14 @@ class TestLocalLinkConnectionType(base.TestCase):
         value = {'switch_id': '0a:1b:2c:3d:4e:5f',
                  'port_id': 'value2',
                  'switch_info': 'value3'}
-        self.assertItemsEqual(value, v.validate(value))
+        self.assertCountEqual(value, v.validate(value))
 
     def test_local_link_connection_type_datapath_id(self):
         v = types.locallinkconnectiontype
         value = {'switch_id': '0000000000000000',
                  'port_id': 'value2',
                  'switch_info': 'value3'}
-        self.assertItemsEqual(value,
+        self.assertCountEqual(value,
                               v.validate(value))
 
     def test_local_link_connection_type_not_mac_or_datapath_id(self):
@@ -338,12 +338,12 @@ class TestLocalLinkConnectionType(base.TestCase):
         v = types.locallinkconnectiontype
         value = {'switch_id': '0a:1b:2c:3d:4e:5f',
                  'port_id': 'value2'}
-        self.assertItemsEqual(value, v.validate(value))
+        self.assertCountEqual(value, v.validate(value))
 
     def test_local_link_connection_type_empty_value(self):
         v = types.locallinkconnectiontype
         value = {}
-        self.assertItemsEqual(value, v.validate(value))
+        self.assertCountEqual(value, v.validate(value))
 
     def test_local_link_connection_type_smart_nic_keys_mandatory(self):
         v = types.locallinkconnectiontype
@@ -376,14 +376,14 @@ class TestLocalLinkConnectionType(base.TestCase):
     def test_local_link_connection_net_type_unmanaged(self):
         v = types.locallinkconnectiontype
         value = {'network_type': 'unmanaged'}
-        self.assertItemsEqual(value, v.validate(value))
+        self.assertCountEqual(value, v.validate(value))
 
     def test_local_link_connection_net_type_unmanaged_combine_ok(self):
         v = types.locallinkconnectiontype
         value = {'network_type': 'unmanaged',
                  'switch_id': '0a:1b:2c:3d:4e:5f',
                  'port_id': 'rep0-0'}
-        self.assertItemsEqual(value, v.validate(value))
+        self.assertCountEqual(value, v.validate(value))
 
     def test_local_link_connection_net_type_invalid(self):
         v = types.locallinkconnectiontype
@@ -397,7 +397,7 @@ class TestVifType(base.TestCase):
     def test_vif_type(self):
         v = types.viftype
         value = {'id': 'foo'}
-        self.assertItemsEqual(value, v.validate(value))
+        self.assertCountEqual(value, v.validate(value))
 
     def test_vif_type_missing_mandatory_key(self):
         v = types.viftype
@@ -408,7 +408,7 @@ class TestVifType(base.TestCase):
     def test_vif_type_optional_key(self):
         v = types.viftype
         value = {'id': 'foo', 'misc': 'something'}
-        self.assertItemsEqual(value, v.frombasetype(value))
+        self.assertCountEqual(value, v.frombasetype(value))
 
     def test_vif_type_bad_id(self):
         v = types.viftype
@@ -427,7 +427,7 @@ class TestEventType(base.TestCase):
     @mock.patch.object(types.EventType, 'valid_events', set(['valid.event']))
     def test_simple_event_type(self):
         value = {'event': 'valid.event'}
-        self.assertItemsEqual(value, self.v.validate(value))
+        self.assertCountEqual(value, self.v.validate(value))
 
     @mock.patch.object(types.EventType, 'valid_events', set(['valid.event']))
     def test_invalid_event_type(self):
@@ -450,7 +450,7 @@ class TestEventType(base.TestCase):
                  'binding:host_id': '22222222-aaaa-bbbb-cccc-555555555555',
                  'binding:vnic_type': 'baremetal'
                  }
-        self.assertItemsEqual(value, self.v.validate(value))
+        self.assertCountEqual(value, self.v.validate(value))
 
     def test_invalid_mac_network_port_event(self):
         value = {'event': 'network.bind_port',

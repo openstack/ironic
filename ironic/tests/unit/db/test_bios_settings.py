@@ -62,9 +62,9 @@ class DbBIOSSettingTestCase(base.DbTestCase):
         settings = db_utils.get_test_bios_setting_setting_list()
         result = self.dbapi.create_bios_setting_list(
             self.node.id, settings, '1.0')
-        self.assertItemsEqual(['virtualization', 'hyperthread', 'numlock'],
+        self.assertCountEqual(['virtualization', 'hyperthread', 'numlock'],
                               [setting.name for setting in result])
-        self.assertItemsEqual(['on', 'enabled', 'off'],
+        self.assertCountEqual(['on', 'enabled', 'off'],
                               [setting.value for setting in result])
 
     def test_create_bios_setting_list_duplicate(self):
@@ -87,7 +87,7 @@ class DbBIOSSettingTestCase(base.DbTestCase):
                     {'name': 'numlock', 'value': 'on'}]
         result = self.dbapi.update_bios_setting_list(
             self.node.id, settings, '1.0')
-        self.assertItemsEqual(['off', 'disabled', 'on'],
+        self.assertCountEqual(['off', 'disabled', 'on'],
                               [setting.value for setting in result])
 
     def test_update_bios_setting_list_setting_not_exist(self):
