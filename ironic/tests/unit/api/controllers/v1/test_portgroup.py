@@ -127,7 +127,7 @@ class TestListPortgroups(test_api_base.BaseApiTest):
             '/portgroups/%s?fields=%s' % (portgroup.uuid, fields),
             headers=self.headers)
         # We always append "links"
-        self.assertItemsEqual(['address', 'extra', 'links'], data)
+        self.assertCountEqual(['address', 'extra', 'links'], data)
 
     def test_get_one_mode_field_lower_api_version(self):
         portgroup = obj_utils.create_test_portgroup(self.context,
@@ -157,7 +157,7 @@ class TestListPortgroups(test_api_base.BaseApiTest):
         self.assertEqual(3, len(data['portgroups']))
         for portgroup in data['portgroups']:
             # We always append "links"
-            self.assertItemsEqual(['uuid', 'extra', 'links'], portgroup)
+            self.assertCountEqual(['uuid', 'extra', 'links'], portgroup)
 
     def test_get_collection_properties_field_lower_api_version(self):
         obj_utils.create_test_portgroup(self.context, node_id=self.node.id)

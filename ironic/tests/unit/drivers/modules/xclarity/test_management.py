@@ -88,7 +88,7 @@ class XClarityManagementDriverTestCase(db_base.DbTestCase):
         with task_manager.acquire(self.context, self.node.uuid) as task:
             expected = [boot_devices.PXE, boot_devices.BIOS,
                         boot_devices.DISK, boot_devices.CDROM]
-            self.assertItemsEqual(
+            self.assertCountEqual(
                 expected,
                 task.driver.management.get_supported_boot_devices(task))
 

@@ -328,7 +328,7 @@ class TestListPorts(test_api_base.BaseApiTest):
             '/ports/%s?fields=%s' % (port.uuid, fields),
             headers={api_base.Version.string: str(api_v1.max_version())})
         # We always append "links"
-        self.assertItemsEqual(['address', 'extra', 'links'], data)
+        self.assertCountEqual(['address', 'extra', 'links'], data)
 
     def test_hide_fields_in_newer_versions_internal_info(self):
         port = obj_utils.create_test_port(self.context, node_id=self.node.id,
@@ -423,7 +423,7 @@ class TestListPorts(test_api_base.BaseApiTest):
         self.assertEqual(3, len(data['ports']))
         for port in data['ports']:
             # We always append "links"
-            self.assertItemsEqual(['uuid', 'extra', 'links'], port)
+            self.assertCountEqual(['uuid', 'extra', 'links'], port)
 
     def test_get_collection_next_marker_no_uuid(self):
         fields = 'address'
@@ -479,7 +479,7 @@ class TestListPorts(test_api_base.BaseApiTest):
             '/ports/%s?fields=%s' % (port.uuid, fields),
             headers={api_base.Version.string: "1.34"})
         # We always append "links".
-        self.assertItemsEqual(['uuid', 'physical_network', 'links'], response)
+        self.assertCountEqual(['uuid', 'physical_network', 'links'], response)
 
     @mock.patch.object(objects.Port, 'supports_physical_network')
     def test_get_custom_fields_physical_network_upgrade(self, mock_spn):
@@ -509,7 +509,7 @@ class TestListPorts(test_api_base.BaseApiTest):
 
         # 'links' field is always retrieved in the response
         # regardless of which fields are specified.
-        self.assertItemsEqual(['uuid', 'is_smartnic', 'links'], response)
+        self.assertCountEqual(['uuid', 'is_smartnic', 'links'], response)
 
     def test_detail(self):
         llc = {'switch_info': 'switch', 'switch_id': 'aa:bb:cc:dd:ee:ff',

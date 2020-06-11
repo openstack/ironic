@@ -114,7 +114,7 @@ class TestListVolumeTargets(test_api_base.BaseApiTest):
             '/volume/targets/%s?fields=%s' % (target.uuid, fields),
             headers=self.headers)
         # We always append "links"
-        self.assertItemsEqual(['boot_index', 'extra', 'links'], data)
+        self.assertCountEqual(['boot_index', 'extra', 'links'], data)
 
     def test_get_collection_custom_fields(self):
         fields = 'uuid,extra'
@@ -130,7 +130,7 @@ class TestListVolumeTargets(test_api_base.BaseApiTest):
         self.assertEqual(3, len(data['targets']))
         for target in data['targets']:
             # We always append "links"
-            self.assertItemsEqual(['uuid', 'extra', 'links'], target)
+            self.assertCountEqual(['uuid', 'extra', 'links'], target)
 
     def test_get_custom_fields_invalid_fields(self):
         target = obj_utils.create_test_volume_target(

@@ -114,7 +114,7 @@ class TestListAllocations(test_api_base.BaseApiTest):
             '/allocations/%s?fields=%s' % (allocation.uuid, fields),
             headers=self.headers)
         # We always append "links"
-        self.assertItemsEqual(['resource_class', 'extra', 'links'], data)
+        self.assertCountEqual(['resource_class', 'extra', 'links'], data)
 
     def test_get_collection_custom_fields(self):
         fields = 'uuid,extra'
@@ -132,7 +132,7 @@ class TestListAllocations(test_api_base.BaseApiTest):
         self.assertEqual(3, len(data['allocations']))
         for allocation in data['allocations']:
             # We always append "links"
-            self.assertItemsEqual(['uuid', 'extra', 'links'], allocation)
+            self.assertCountEqual(['uuid', 'extra', 'links'], allocation)
 
     def test_get_custom_fields_invalid_fields(self):
         allocation = obj_utils.create_test_allocation(self.context,

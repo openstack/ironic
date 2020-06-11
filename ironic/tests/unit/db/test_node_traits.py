@@ -27,7 +27,7 @@ class DbNodeTraitTestCase(base.DbTestCase):
         result = self.dbapi.set_node_traits(self.node.id, ['trait1', 'trait2'],
                                             '1.0')
         self.assertEqual(self.node.id, result[0].node_id)
-        self.assertItemsEqual(['trait1', 'trait2'],
+        self.assertCountEqual(['trait1', 'trait2'],
                               [trait.trait for trait in result])
 
         result = self.dbapi.set_node_traits(self.node.id, [], '1.0')
@@ -38,14 +38,14 @@ class DbNodeTraitTestCase(base.DbTestCase):
                                             ['trait1', 'trait2', 'trait2'],
                                             '1.0')
         self.assertEqual(self.node.id, result[0].node_id)
-        self.assertItemsEqual(['trait1', 'trait2'],
+        self.assertCountEqual(['trait1', 'trait2'],
                               [trait.trait for trait in result])
 
     def test_set_node_traits_at_limit(self):
         traits = ['trait%d' % n for n in range(50)]
         result = self.dbapi.set_node_traits(self.node.id, traits, '1.0')
         self.assertEqual(self.node.id, result[0].node_id)
-        self.assertItemsEqual(traits, [trait.trait for trait in result])
+        self.assertCountEqual(traits, [trait.trait for trait in result])
 
     def test_set_node_traits_over_limit(self):
         traits = ['trait%d' % n for n in range(51)]
@@ -66,7 +66,7 @@ class DbNodeTraitTestCase(base.DbTestCase):
                                          traits=['trait1', 'trait2'])
         result = self.dbapi.get_node_traits_by_node_id(self.node.id)
         self.assertEqual(self.node.id, result[0].node_id)
-        self.assertItemsEqual(['trait1', 'trait2'],
+        self.assertCountEqual(['trait1', 'trait2'],
                               [trait.trait for trait in result])
 
     def test_get_node_traits_empty(self):

@@ -114,7 +114,7 @@ class TestListVolumeConnectors(test_api_base.BaseApiTest):
             '/volume/connectors/%s?fields=%s' % (connector.uuid, fields),
             headers=self.headers)
         # We always append "links"
-        self.assertItemsEqual(['connector_id', 'extra', 'links'], data)
+        self.assertCountEqual(['connector_id', 'extra', 'links'], data)
 
     def test_get_collection_custom_fields(self):
         fields = 'uuid,extra'
@@ -131,7 +131,7 @@ class TestListVolumeConnectors(test_api_base.BaseApiTest):
         self.assertEqual(3, len(data['connectors']))
         for connector in data['connectors']:
             # We always append "links"
-            self.assertItemsEqual(['uuid', 'extra', 'links'], connector)
+            self.assertCountEqual(['uuid', 'extra', 'links'], connector)
 
     def test_get_custom_fields_invalid_fields(self):
         connector = obj_utils.create_test_volume_connector(

@@ -72,8 +72,8 @@ class DbNodeTestCase(base.DbTestCase):
         res = self.dbapi.get_node_by_id(node.id)
         self.assertEqual(node.id, res.id)
         self.assertEqual(node.uuid, res.uuid)
-        self.assertItemsEqual(['tag1', 'tag2'], [tag.tag for tag in res.tags])
-        self.assertItemsEqual(['trait1', 'trait2'],
+        self.assertCountEqual(['tag1', 'tag2'], [tag.tag for tag in res.tags])
+        self.assertCountEqual(['trait1', 'trait2'],
                               [trait.trait for trait in res.traits])
 
     def test_get_node_by_uuid(self):
@@ -84,8 +84,8 @@ class DbNodeTestCase(base.DbTestCase):
         res = self.dbapi.get_node_by_uuid(node.uuid)
         self.assertEqual(node.id, res.id)
         self.assertEqual(node.uuid, res.uuid)
-        self.assertItemsEqual(['tag1', 'tag2'], [tag.tag for tag in res.tags])
-        self.assertItemsEqual(['trait1', 'trait2'],
+        self.assertCountEqual(['tag1', 'tag2'], [tag.tag for tag in res.tags])
+        self.assertCountEqual(['trait1', 'trait2'],
                               [trait.trait for trait in res.traits])
 
     def test_get_node_by_name(self):
@@ -97,8 +97,8 @@ class DbNodeTestCase(base.DbTestCase):
         self.assertEqual(node.id, res.id)
         self.assertEqual(node.uuid, res.uuid)
         self.assertEqual(node.name, res.name)
-        self.assertItemsEqual(['tag1', 'tag2'], [tag.tag for tag in res.tags])
-        self.assertItemsEqual(['trait1', 'trait2'],
+        self.assertCountEqual(['tag1', 'tag2'], [tag.tag for tag in res.tags])
+        self.assertCountEqual(['trait1', 'trait2'],
                               [trait.trait for trait in res.traits])
 
     def test_get_node_that_does_not_exist(self):
@@ -455,8 +455,8 @@ class DbNodeTestCase(base.DbTestCase):
 
         res = self.dbapi.get_node_by_instance(node.instance_uuid)
         self.assertEqual(node.uuid, res.uuid)
-        self.assertItemsEqual(['tag1', 'tag2'], [tag.tag for tag in res.tags])
-        self.assertItemsEqual(['trait1', 'trait2'],
+        self.assertCountEqual(['tag1', 'tag2'], [tag.tag for tag in res.tags])
+        self.assertCountEqual(['trait1', 'trait2'],
                               [trait.trait for trait in res.traits])
 
     def test_get_node_by_instance_wrong_uuid(self):
@@ -723,8 +723,8 @@ class DbNodeTestCase(base.DbTestCase):
 
         # reserve the node
         res = self.dbapi.reserve_node(r1, uuid)
-        self.assertItemsEqual(['tag1', 'tag2'], [tag.tag for tag in res.tags])
-        self.assertItemsEqual(['trait1', 'trait2'],
+        self.assertCountEqual(['tag1', 'tag2'], [tag.tag for tag in res.tags])
+        self.assertCountEqual(['trait1', 'trait2'],
                               [trait.trait for trait in res.traits])
 
         # check reservation

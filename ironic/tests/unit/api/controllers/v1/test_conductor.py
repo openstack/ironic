@@ -120,7 +120,7 @@ class TestListConductors(test_api_base.BaseApiTest):
         data = self.get_json(
             '/conductors/rocky.rocks?fields=%s' % fields,
             headers={api_base.Version.string: str(api_v1.max_version())})
-        self.assertItemsEqual(['hostname', 'alive', 'links'], data)
+        self.assertCountEqual(['hostname', 'alive', 'links'], data)
 
     def test_get_collection_custom_fields(self):
         obj_utils.create_test_conductor(self.context, hostname='rocky.rocks')
@@ -133,7 +133,7 @@ class TestListConductors(test_api_base.BaseApiTest):
 
         self.assertEqual(2, len(data['conductors']))
         for c in data['conductors']:
-            self.assertItemsEqual(['hostname', 'alive', 'links'], c)
+            self.assertCountEqual(['hostname', 'alive', 'links'], c)
 
     def test_get_custom_fields_invalid_fields(self):
         obj_utils.create_test_conductor(self.context, hostname='rocky.rocks')

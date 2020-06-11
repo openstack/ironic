@@ -119,7 +119,7 @@ class TestListDeployTemplates(BaseDeployTemplatesAPITest):
             '/deploy_templates/%s?fields=%s' % (template.uuid, fields),
             headers=self.headers)
         # We always append "links"
-        self.assertItemsEqual(['name', 'steps', 'links'], data)
+        self.assertCountEqual(['name', 'steps', 'links'], data)
 
     def test_get_collection_custom_fields(self):
         fields = 'uuid,steps'
@@ -136,7 +136,7 @@ class TestListDeployTemplates(BaseDeployTemplatesAPITest):
         self.assertEqual(3, len(data['deploy_templates']))
         for template in data['deploy_templates']:
             # We always append "links"
-            self.assertItemsEqual(['uuid', 'steps', 'links'], template)
+            self.assertCountEqual(['uuid', 'steps', 'links'], template)
 
     def test_get_custom_fields_invalid_fields(self):
         template = obj_utils.create_test_deploy_template(self.context)

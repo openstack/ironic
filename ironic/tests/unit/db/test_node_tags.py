@@ -26,7 +26,7 @@ class DbNodeTagTestCase(base.DbTestCase):
     def test_set_node_tags(self):
         tags = self.dbapi.set_node_tags(self.node.id, ['tag1', 'tag2'])
         self.assertEqual(self.node.id, tags[0].node_id)
-        self.assertItemsEqual(['tag1', 'tag2'], [tag.tag for tag in tags])
+        self.assertCountEqual(['tag1', 'tag2'], [tag.tag for tag in tags])
 
         tags = self.dbapi.set_node_tags(self.node.id, [])
         self.assertEqual([], tags)
@@ -35,7 +35,7 @@ class DbNodeTagTestCase(base.DbTestCase):
         tags = self.dbapi.set_node_tags(self.node.id,
                                         ['tag1', 'tag2', 'tag2'])
         self.assertEqual(self.node.id, tags[0].node_id)
-        self.assertItemsEqual(['tag1', 'tag2'], [tag.tag for tag in tags])
+        self.assertCountEqual(['tag1', 'tag2'], [tag.tag for tag in tags])
 
     def test_set_node_tags_node_not_exist(self):
         self.assertRaises(exception.NodeNotFound,
@@ -45,7 +45,7 @@ class DbNodeTagTestCase(base.DbTestCase):
         self.dbapi.set_node_tags(self.node.id, ['tag1', 'tag2'])
         tags = self.dbapi.get_node_tags_by_node_id(self.node.id)
         self.assertEqual(self.node.id, tags[0].node_id)
-        self.assertItemsEqual(['tag1', 'tag2'], [tag.tag for tag in tags])
+        self.assertCountEqual(['tag1', 'tag2'], [tag.tag for tag in tags])
 
     def test_get_node_tags_empty(self):
         tags = self.dbapi.get_node_tags_by_node_id(self.node.id)
