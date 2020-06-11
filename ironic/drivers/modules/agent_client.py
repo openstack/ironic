@@ -467,6 +467,22 @@ class AgentClient(object):
                              method='deploy.execute_deploy_step',
                              params=params)
 
+    @METRICS.timer('AgentClient.get_partition_uuids')
+    def get_partition_uuids(self, node):
+        """Get deploy steps from agent.
+
+        :param node: A node object.
+        :raises: IronicException when failed to issue the request or there was
+                 a malformed response from the agent.
+        :raises: AgentAPIError when agent failed to execute specified command.
+        :returns: A dict containing command response from agent.
+
+        """
+        return self._command(node=node,
+                             method='standby.get_partition_uuids',
+                             params={},
+                             wait=True)
+
     @METRICS.timer('AgentClient.power_off')
     def power_off(self, node):
         """Soft powers off the bare metal node by shutting down ramdisk OS.

@@ -260,6 +260,7 @@ class AgentDeployMixin(agent_base.AgentDeployMixin):
 
         task.process_event('wait')
 
+    # TODO(dtantsur): remove in W
     def _get_uuid_from_result(self, task, type_uuid):
         command = self._client.get_commands_status(task.node)[-1]
 
@@ -319,39 +320,47 @@ class AgentDeployMixin(agent_base.AgentDeployMixin):
         # ppc64* hardware we need to provide the 'PReP_Boot_partition_uuid' to
         # direct where the bootloader should be installed.
         driver_internal_info = task.node.driver_internal_info
-        root_uuid = self._get_uuid_from_result(task, 'root_uuid')
+        try:
+            partition_uuids = self._client.get_partition_uuids(node).get(
+                'command_result') or {}
+            root_uuid = partition_uuids.get('root uuid')
+        except exception.AgentAPIError:
+            # TODO(dtantsur): remove in W
+            LOG.warning('Old ironic-python-agent detected, please update '
+                        'to Victoria or newer')
+            partition_uuids = None
+            root_uuid = self._get_uuid_from_result(task, 'root_uuid')
+
         if root_uuid:
             driver_internal_info['root_uuid_or_disk_id'] = root_uuid
             task.node.driver_internal_info = driver_internal_info
             task.node.save()
-        elif iwdi and CONF.agent.manage_agent_boot:
-            # IPA version less than 3.1.0 will not return root_uuid for
-            # whole disk image. Also IPA version introduced a requirement
-            # for hexdump utility that may not be always available. Need to
-            # fall back to older behavior for the same.
-            LOG.warning("With the deploy ramdisk based on Ironic Python Agent "
-                        "version 3.1.0 and beyond, the drivers using "
-                        "`direct` deploy interface performs `netboot` or "
-                        "`local` boot for whole disk image based on value "
-                        "of boot option setting. When you upgrade Ironic "
-                        "Python Agent in your deploy ramdisk, ensure that "
-                        "boot option is set appropriately for the node %s. "
-                        "The boot option can be set using configuration "
-                        "`[deploy]/default_boot_option` or as a `boot_option` "
-                        "capability in node's `properties['capabilities']`. "
-                        "Also please note that this functionality requires "
-                        "`hexdump` command in the ramdisk.", node.uuid)
+        elif not iwdi:
+            LOG.error('No root UUID returned from the ramdisk for node '
+                      '%(node)s, the deploy will likely fail. Partition '
+                      'UUIDs are %(uuids)s',
+                      {'node': node.uuid, 'uuid': partition_uuids})
 
         efi_sys_uuid = None
         if not iwdi:
             if boot_mode_utils.get_boot_mode(node) == 'uefi':
-                efi_sys_uuid = (self._get_uuid_from_result(task,
-                                'efi_system_partition_uuid'))
+                # TODO(dtantsur): remove in W
+                if partition_uuids is None:
+                    efi_sys_uuid = (self._get_uuid_from_result(task,
+                                    'efi_system_partition_uuid'))
+                else:
+                    efi_sys_uuid = partition_uuids.get(
+                        'efi system partition uuid')
 
         prep_boot_part_uuid = None
         if cpu_arch is not None and cpu_arch.startswith('ppc64'):
-            prep_boot_part_uuid = (self._get_uuid_from_result(task,
-                                   'PReP_Boot_partition_uuid'))
+            # TODO(dtantsur): remove in W
+            if partition_uuids is None:
+                prep_boot_part_uuid = (self._get_uuid_from_result(task,
+                                       'PReP_Boot_partition_uuid'))
+            else:
+                prep_boot_part_uuid = partition_uuids.get(
+                    'PReP Boot partition uuid')
 
         LOG.info('Image successfully written to node %s', node.uuid)
 
