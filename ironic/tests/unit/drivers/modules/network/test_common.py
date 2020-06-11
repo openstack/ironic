@@ -10,6 +10,8 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import json
+import os
 from unittest import mock
 
 from oslo_config import cfg
@@ -470,6 +472,10 @@ class TestVifPortIDMixin(db_base.DbTestCase):
             address='52:54:00:cf:2d:32',
             extra={'vif_port_id': uuidutils.generate_uuid(),
                    'client-id': 'fake1'})
+        network_data_file = os.path.join(
+            os.path.dirname(__file__), 'json_samples', 'network_data.json')
+        with open(network_data_file, 'rb') as fl:
+            self.network_data = json.load(fl)
 
     def test__save_vif_to_port_like_obj_port(self):
         self.port.extra = {}
@@ -679,6 +685,14 @@ class TestVifPortIDMixin(db_base.DbTestCase):
         with task_manager.acquire(self.context, self.node.id) as task:
             vif = self.interface.get_current_vif(task, self.port)
             self.assertIsNone(vif)
+
+    def test_get_node_network_data_complete(self):
+        self.node.network_data = self.network_data
+        self.node.save()
+        with task_manager.acquire(self.context, self.node.id) as task:
+            network_data = self.interface.get_node_network_data(task)
+
+        self.assertEqual(self.network_data, network_data)
 
 
 class TestNeutronVifPortIDMixin(db_base.DbTestCase):
