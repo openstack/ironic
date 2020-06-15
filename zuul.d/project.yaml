@@ -14,7 +14,9 @@
         - ironic-standalone-redfish:
             voting: false
         - ironic-tempest-functional-python3
-        - ironic-grenade
+        # FIXME(dtantsur): disable because of the uWSGI problem
+        - ironic-grenade:
+            voting: false
         # Temporary disable voting because of end of cycle CI instability.
         - ironic-grenade-dsvm-multinode-multitenant:
             voting: false
@@ -53,7 +55,7 @@
         - ironic-tox-unit-with-driver-libs
         - ironic-standalone
         - ironic-tempest-functional-python3
-        - ironic-grenade
+        # - ironic-grenade
         # removing from voting due to end of cycle gate instability.
         # - ironic-grenade-dsvm-multinode-multitenant
         - ironic-tempest-partition-bios-redfish-pxe
