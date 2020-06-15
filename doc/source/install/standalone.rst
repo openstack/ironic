@@ -12,7 +12,7 @@ You should make the following changes to ``/etc/ironic/ironic.conf``:
     ...
     auth_strategy=noauth
 
-   Another options is ``http_basic`` where the credentials are stored in an
+   Another option is ``http_basic`` where the credentials are stored in an
    `Apache htpasswd format`_ file::
 
     [DEFAULT]
@@ -51,6 +51,27 @@ You should make the following changes to ``/etc/ironic/ironic.conf``:
 
       [DEFAULT]
       rpc_transport = json-rpc
+
+   JSON RPC also has its own authentication strategy. If it is not specified then
+   the stategy defaults to ``[DEFAULT]``  ``auth_strategy``. The following will
+   set JSON RPC to ``noauth``::
+
+    [json_rpc]
+    auth_strategy=noauth
+
+   For ``http_basic`` the conductor server needs a credentials file to validate
+   requests::
+
+    [json_rpc]
+    auth_strategy=http_basic
+    http_basic_auth_user_file=/etc/ironic/htpasswd-json-rpc
+
+   The API server also needs client-side credentials to be specified::
+
+    [json_rpc]
+    auth_strategy=http_basic
+    http_basic_username=myName
+    http_basic_password=myPassword
 
 If you don't use Image service, it's possible to provide images to Bare Metal
 service via a URL.

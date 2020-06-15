@@ -15,6 +15,8 @@
 This client is compatible with any JSON RPC 2.0 implementation, including ours.
 """
 
+import base64
+
 from oslo_config import cfg
 from oslo_log import log
 from oslo_utils import importutils
@@ -36,18 +38,27 @@ def _get_session():
     global _SESSION
 
     if _SESSION is None:
-        if json_rpc.require_authentication():
+        auth_strategy = json_rpc.auth_strategy()
+        if auth_strategy == 'keystone':
             auth = keystone.get_auth('json_rpc')
         else:
             auth = None
 
         session = keystone.get_session('json_rpc', auth=auth)
-        session.headers = {
+        headers = {
             'Content-Type': 'application/json'
         }
+        if auth_strategy == 'http_basic':
+            token = '{}:{}'.format(
+                CONF.json_rpc.http_basic_username,
+                CONF.json_rpc.http_basic_password
+            ).encode('utf-8')
+            encoded = base64.b64encode(token).decode('utf-8')
+            headers['Authorization'] = 'Basic {}'.format(encoded)
 
         # Adds options like connect_retries
-        _SESSION = keystone.get_adapter('json_rpc', session=session)
+        _SESSION = keystone.get_adapter('json_rpc', session=session,
+                                        additional_headers=headers)
 
     return _SESSION
 

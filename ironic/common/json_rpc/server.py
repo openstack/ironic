@@ -21,6 +21,7 @@ https://www.jsonrpc.org/specification. Main differences:
 
 import json
 
+from ironic_lib import auth_basic
 from keystonemiddleware import auth_token
 from oslo_config import cfg
 from oslo_log import log
@@ -90,9 +91,14 @@ class WSGIService(service.Service):
         self.manager = manager
         self.serializer = serializer
         self._method_map = _build_method_map(manager)
-        if json_rpc.require_authentication():
+        auth_strategy = json_rpc.auth_strategy()
+        if auth_strategy == 'keystone':
             conf = dict(CONF.keystone_authtoken)
             app = auth_token.AuthProtocol(self._application, conf)
+        elif auth_strategy == 'http_basic':
+            app = auth_basic.BasicAuthMiddleware(
+                self._application,
+                cfg.CONF.json_rpc.http_basic_auth_user_file)
         else:
             app = self._application
         self.server = wsgi.Server(CONF, 'ironic-json-rpc', app,
@@ -109,7 +115,7 @@ class WSGIService(service.Service):
             return webob.Response(status_code=405, json_body=body)(
                 environment, start_response)
 
-        if json_rpc.require_authentication():
+        if json_rpc.auth_strategy() == 'keystone':
             roles = (request.headers.get('X-Roles') or '').split(',')
             if 'admin' not in roles:
                 LOG.debug('Roles %s do not contain "admin", rejecting '

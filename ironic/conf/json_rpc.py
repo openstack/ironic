@@ -19,9 +19,14 @@ opts = [
     cfg.StrOpt('auth_strategy',
                choices=[('noauth', _('no authentication')),
                         ('keystone', _('use the Identity service for '
-                                       'authentication'))],
+                                       'authentication')),
+                        ('http_basic', _('HTTP basic authentication'))],
                help=_('Authentication strategy used by JSON RPC. Defaults to '
                       'the global auth_strategy setting.')),
+    cfg.StrOpt('http_basic_auth_user_file',
+               default='/etc/ironic/htpasswd-json-rpc',
+               help=_('Path to Apache format user authentication file used '
+                      'when auth_strategy=http_basic')),
     cfg.HostAddressOpt('host_ip',
                        default='::',
                        help=_('The IP address or hostname on which JSON RPC '
@@ -32,6 +37,17 @@ opts = [
     cfg.BoolOpt('use_ssl',
                 default=False,
                 help=_('Whether to use TLS for JSON RPC')),
+    cfg.StrOpt('http_basic_username',
+               default='',
+               help=_("Name of the user to use for HTTP Basic authentication "
+                      "client requests. Required when "
+                      "auth_strategy=http_basic.")),
+    cfg.StrOpt('http_basic_password',
+               default='',
+               secret=True,
+               help=_("Password to use for HTTP Basic authentication "
+                      "client requests. Required when "
+                      "auth_strategy=http_basic.")),
 ]
 
 
