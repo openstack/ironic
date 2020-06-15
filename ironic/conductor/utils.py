@@ -963,6 +963,21 @@ def value_within_timeout(value, timeout):
     return last_valid <= last
 
 
+def agent_is_alive(node, timeout=None):
+    """Check that the agent is likely alive.
+
+    The method then checks for the last agent heartbeat, and if it occured
+    within the timeout set by [deploy]fast_track_timeout, then agent is
+    presumed alive.
+
+    :param node: A node object.
+    :param timeout: Heartbeat timeout, defaults to `fast_track_timeout`.
+    """
+    return value_within_timeout(
+        node.driver_internal_info.get('agent_last_heartbeat'),
+        timeout or CONF.deploy.fast_track_timeout)
+
+
 def is_fast_track(task):
     """Checks a fast track is available.
 
@@ -987,9 +1002,7 @@ def is_fast_track(task):
                       {'node': task.node.uuid, 'error': task.node.last_error})
         return False
 
-    if value_within_timeout(
-            task.node.driver_internal_info.get('agent_last_heartbeat'),
-            CONF.deploy.fast_track_timeout):
+    if agent_is_alive(task.node):
         return True
     else:
         LOG.debug('Node %(node)s should be fast-track-able, but the agent '

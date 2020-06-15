@@ -1,0 +1,6 @@
+---
+features:
+  - |
+    The new **experimental** ``agent`` power interface allows limited
+    provisioning operations on nodes without BMC credentials. See `story
+    2007771 <https://storyboard.openstack.org/#!/story/2007771>`_ for details.

@@ -30,6 +30,8 @@ METRICS = metrics_utils.get_metrics_logger(__name__)
 
 DEFAULT_IPA_PORTAL_PORT = 3260
 
+REBOOT_COMMAND = 'run_image'
+
 
 def get_command_error(command):
     """Extract an error string from the command result.
@@ -562,6 +564,21 @@ class AgentClient(object):
         """
         return self._command(node=node,
                              method='standby.power_off',
+                             params={})
+
+    @METRICS.timer('AgentClient.reboot')
+    def reboot(self, node):
+        """Soft reboots the bare metal node by shutting down ramdisk OS.
+
+        :param node: A Node object.
+        :raises: IronicException when failed to issue the request or there was
+                 a malformed response from the agent.
+        :raises: AgentAPIError when agent failed to execute specified command.
+        :returns: A dict containing command response from agent.
+                  See :func:`get_commands_status` for a command result sample.
+        """
+        return self._command(node=node,
+                             method='standby.%s' % REBOOT_COMMAND,
                              params={})
 
     @METRICS.timer('AgentClient.sync')

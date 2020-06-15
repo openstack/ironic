@@ -336,6 +336,19 @@ class TaskManager(object):
         self._on_error_args = args
         self._on_error_kwargs = kwargs
 
+    def downgrade_lock(self):
+        """Downgrade the lock to a shared one."""
+        if self.node is None:
+            raise RuntimeError("Cannot downgrade an already released lock")
+
+        if not self.shared:
+            objects.Node.release(self.context, CONF.host, self.node.id)
+            self.shared = True
+            self.node.refresh()
+            LOG.debug("Successfully downgraded lock for %(purpose)s "
+                      "on node %(node)s",
+                      {'purpose': self._purpose, 'node': self.node.uuid})
+
     def release_resources(self):
         """Unlock a node and release resources.
 
