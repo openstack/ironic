@@ -1344,7 +1344,7 @@ class iPXEBuildConfigOptionsTestCase(db_base.DbTestCase):
                               'opt_value': '192.0.2.1',
                               'ip_version': ip_version}]
 
-        self.assertItemsEqual(expected_info,
+        self.assertCountEqual(expected_info,
                               pxe_utils.dhcp_options_for_instance(
                                   task, ipxe_enabled=True))
 
@@ -1375,7 +1375,7 @@ class iPXEBuildConfigOptionsTestCase(db_base.DbTestCase):
                               'opt_value': '192.0.2.1',
                               'ip_version': ip_version}]
 
-        self.assertItemsEqual(expected_info,
+        self.assertCountEqual(expected_info,
                               pxe_utils.dhcp_options_for_instance(
                                   task, ipxe_enabled=True))
 

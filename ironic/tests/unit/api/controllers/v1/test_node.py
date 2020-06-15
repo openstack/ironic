@@ -434,7 +434,7 @@ class TestListNodes(test_api_base.BaseApiTest):
             '/nodes/%s?fields=%s' % (node.uuid, fields),
             headers={api_base.Version.string: str(api_v1.max_version())})
         # We always append "links"
-        self.assertItemsEqual(['extra', 'instance_info', 'links'], data)
+        self.assertCountEqual(['extra', 'instance_info', 'links'], data)
 
     def test_get_collection_custom_fields(self):
         fields = 'uuid,instance_info'
@@ -450,7 +450,7 @@ class TestListNodes(test_api_base.BaseApiTest):
         self.assertEqual(3, len(data['nodes']))
         for node in data['nodes']:
             # We always append "links"
-            self.assertItemsEqual(['uuid', 'instance_info', 'links'], node)
+            self.assertCountEqual(['uuid', 'instance_info', 'links'], node)
 
     def test_get_custom_fields_invalid_fields(self):
         node = obj_utils.create_test_node(self.context,
@@ -483,7 +483,7 @@ class TestListNodes(test_api_base.BaseApiTest):
             '/nodes/%s?fields=%s' % (node.uuid, fields),
             headers={api_base.Version.string: str(api_v1.max_version())})
         # We always append "links"
-        self.assertItemsEqual(['driver_info', 'links'], data)
+        self.assertCountEqual(['driver_info', 'links'], data)
         self.assertEqual('******', data['driver_info']['fake_password'])
 
     def test_get_network_interface_fields_invalid_api_version(self):
