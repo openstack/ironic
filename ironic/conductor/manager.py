@@ -1025,11 +1025,9 @@ class ConductorManager(base_manager.BaseConductorManager):
             # But we do need to clear the instance-related fields.
             node.instance_info = {}
             node.instance_uuid = None
+            utils.wipe_deploy_internal_info(task)
             driver_internal_info = node.driver_internal_info
-            driver_internal_info.pop('agent_secret_token', None)
-            driver_internal_info.pop('agent_secret_token_pregenerated', None)
             driver_internal_info.pop('instance', None)
-            driver_internal_info.pop('clean_steps', None)
             driver_internal_info.pop('root_uuid_or_disk_id', None)
             driver_internal_info.pop('is_whole_disk_image', None)
             driver_internal_info.pop('deploy_boot_mode', None)

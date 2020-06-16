@@ -124,7 +124,9 @@ class DoNodeDeployTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
 
     @mock.patch.object(deployments, '_store_configdrive', autospec=True)
     def _test__do_node_deploy_ok(self, mock_store, configdrive=None,
-                                 expected_configdrive=None):
+                                 expected_configdrive=None, fast_track=False):
+        if fast_track:
+            self.config(fast_track=True, group='deploy')
         expected_configdrive = expected_configdrive or configdrive
         self._start_service()
         with mock.patch.object(fake.FakeDeploy,
@@ -133,7 +135,9 @@ class DoNodeDeployTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
             self.node = obj_utils.create_test_node(
                 self.context, driver='fake-hardware', name=None,
                 provision_state=states.DEPLOYING,
-                target_provision_state=states.ACTIVE)
+                target_provision_state=states.ACTIVE,
+                driver_internal_info={'agent_url': 'url',
+                                      'agent_secret_token': 'token'})
             task = task_manager.TaskManager(self.context, self.node.uuid)
 
             deployments.do_node_deploy(task, self.service.conductor.id,
@@ -148,6 +152,12 @@ class DoNodeDeployTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
                                                    expected_configdrive)
             else:
                 self.assertFalse(mock_store.called)
+            self.assertEqual(
+                fast_track,
+                bool(task.node.driver_internal_info.get('agent_url')))
+            self.assertEqual(
+                fast_track,
+                bool(task.node.driver_internal_info.get('agent_secret_token')))
 
     def test__do_node_deploy_ok(self):
         self._test__do_node_deploy_ok()
@@ -155,6 +165,9 @@ class DoNodeDeployTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
     def test__do_node_deploy_ok_configdrive(self):
         configdrive = 'foo'
         self._test__do_node_deploy_ok(configdrive=configdrive)
+
+    def test__do_node_deploy_fast_track(self):
+        self._test__do_node_deploy_ok(fast_track=True)
 
     @mock.patch('openstack.baremetal.configdrive.build')
     def test__do_node_deploy_configdrive_as_dict(self, mock_cd):
@@ -495,7 +508,8 @@ class DoNextDeployStepTestCase(mgr_utils.ServiceSetUpMixin,
         # Run all steps from start to finish (all synchronous)
         driver_internal_info = {'deploy_step_index': None,
                                 'deploy_steps': self.deploy_steps,
-                                'agent_url': 'url'}
+                                'agent_url': 'url',
+                                'agent_secret_token': 'token'}
         self._start_service()
         node = obj_utils.create_test_node(
             self.context, driver='fake-hardware',
@@ -518,6 +532,41 @@ class DoNextDeployStepTestCase(mgr_utils.ServiceSetUpMixin,
         mock_execute.assert_has_calls = [mock.call(self.deploy_steps[0]),
                                          mock.call(self.deploy_steps[1])]
         self.assertNotIn('agent_url', node.driver_internal_info)
+        self.assertNotIn('agent_secret_token', node.driver_internal_info)
+
+    @mock.patch('ironic.drivers.modules.fake.FakeDeploy.execute_deploy_step',
+                autospec=True)
+    def test__do_next_deploy_step_fast_track(self, mock_execute):
+        self.config(fast_track=True, group='deploy')
+        # Run all steps from start to finish (all synchronous)
+        driver_internal_info = {'deploy_step_index': None,
+                                'deploy_steps': self.deploy_steps,
+                                'agent_url': 'url',
+                                'agent_secret_token': 'token'}
+        self._start_service()
+        node = obj_utils.create_test_node(
+            self.context, driver='fake-hardware',
+            driver_internal_info=driver_internal_info,
+            deploy_step={})
+        mock_execute.return_value = None
+
+        task = task_manager.TaskManager(self.context, node.uuid)
+        task.process_event('deploy')
+
+        deployments.do_next_deploy_step(task, 1, self.service.conductor.id)
+
+        # Deploying should be complete
+        node.refresh()
+        self.assertEqual(states.ACTIVE, node.provision_state)
+        self.assertEqual(states.NOSTATE, node.target_provision_state)
+        self.assertEqual({}, node.deploy_step)
+        self.assertNotIn('deploy_step_index', node.driver_internal_info)
+        self.assertIsNone(node.driver_internal_info['deploy_steps'])
+        mock_execute.assert_has_calls = [mock.call(self.deploy_steps[0]),
+                                         mock.call(self.deploy_steps[1])]
+        self.assertEqual('url', node.driver_internal_info['agent_url'])
+        self.assertEqual('token',
+                         node.driver_internal_info['agent_secret_token'])
 
     @mock.patch.object(conductor_utils, 'LOG', autospec=True)
     @mock.patch('ironic.drivers.modules.fake.FakeDeploy.execute_deploy_step',

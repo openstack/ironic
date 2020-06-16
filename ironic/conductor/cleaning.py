@@ -213,19 +213,7 @@ def do_next_clean_step(task, step_index):
 
     # Clear clean_step
     node.clean_step = None
-    driver_internal_info = node.driver_internal_info
-    driver_internal_info['clean_steps'] = None
-    driver_internal_info.pop('clean_step_index', None)
-    driver_internal_info.pop('cleaning_reboot', None)
-    driver_internal_info.pop('cleaning_polling', None)
-
-    # Remove agent_url
-    if not utils.fast_track_able(task):
-        driver_internal_info.pop('agent_url', None)
-        driver_internal_info.pop('agent_secret_token', None)
-        driver_internal_info.pop('agent_secret_token_pregenerated', None)
-
-    node.driver_internal_info = driver_internal_info
+    utils.wipe_cleaning_internal_info(task)
     node.save()
     try:
         task.driver.deploy.tear_down_cleaning(task)
@@ -273,15 +261,6 @@ def do_node_clean_abort(task, step_name=None):
 
     node.last_error = last_error
     node.clean_step = None
-    info = node.driver_internal_info
-    # Clear any leftover metadata about cleaning
-    info.pop('clean_step_index', None)
-    info.pop('cleaning_reboot', None)
-    info.pop('cleaning_polling', None)
-    info.pop('skip_current_clean_step', None)
-    info.pop('agent_url', None)
-    info.pop('agent_secret_token', None)
-    info.pop('agent_secret_token_pregenerated', None)
-    node.driver_internal_info = info
+    utils.wipe_cleaning_internal_info(task)
     node.save()
     LOG.info(info_message)
