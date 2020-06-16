@@ -5,11 +5,25 @@ Using Bare Metal service as a standalone service
 It is possible to use the Bare Metal service without other OpenStack services.
 You should make the following changes to ``/etc/ironic/ironic.conf``:
 
-#. To disable usage of Identity service tokens::
+#. Choose an authentication strategy which supports standalone, one option is
+   ``noauth``::
 
     [DEFAULT]
     ...
     auth_strategy=noauth
+
+   Another options is ``http_basic`` where the credentials are stored in an
+   `Apache htpasswd format`_ file::
+
+    [DEFAULT]
+    ...
+    auth_strategy=http_basic
+    http_basic_auth_user_file=/etc/ironic/htpasswd
+
+   Only the ``bcrypt`` format is supported, and the Apache `htpasswd` utility can
+   be used to populate the file with entries, for example::
+
+    htpasswd -nbB myName myPassword >> /etc/ironic/htpasswd
 
 #. If you want to disable the Networking service, you should have your network
    pre-configured to serve DHCP and TFTP for machines that you're deploying.
@@ -62,13 +76,21 @@ Steps to start a deployment are pretty similar to those when using Compute:
 
 #. To use the
    :python-ironicclient-doc:`openstack baremetal CLI <cli/osc_plugin_cli.html>`,
-   set up these environment variables. Since no authentication strategy is
-   being used, the value none must be set for OS_AUTH_TYPE. OS_ENDPOINT is
+   set up these environment variables. If the ``noauth`` authentication strategy is
+   being used, the value ``none`` must be set for OS_AUTH_TYPE. OS_ENDPOINT is
    the URL of the ironic-api process.
    For example::
 
     export OS_AUTH_TYPE=none
     export OS_ENDPOINT=http://localhost:6385/
+
+   If the ``http_basic`` authentication strategy is being used, the value
+   ``http_basic`` must be set for OS_AUTH_TYPE. For example::
+
+    export OS_AUTH_TYPE=http_basic
+    export OS_ENDPOINT=http://localhost:6385/
+    export OS_USERNAME=myUser
+    export OS_PASSWORD=myPassword
 
 #. Create a node in Bare Metal service. At minimum, you must specify the driver
    name (for example, ``ipmi``). You can also specify all the required
@@ -232,3 +254,4 @@ Other references
 
 * :ref:`local-boot-without-compute`
 
+.. _`Apache htpasswd format`: https://httpd.apache.org/docs/current/misc/password_encryptions.html
