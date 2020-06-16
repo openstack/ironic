@@ -70,10 +70,6 @@ def start_deploy(task, manager, configdrive=None, event='deploy'):
     :param event: event to process: deploy or rebuild.
     """
     node = task.node
-    # Record of any pre-existing agent_url should be removed
-    # except when we are in fast track conditions.
-    if not utils.is_fast_track(task):
-        utils.remove_agent_url(node)
 
     if event == 'rebuild':
         # Note(gilliard) Clear these to force the driver to
@@ -127,8 +123,7 @@ def start_deploy(task, manager, configdrive=None, event='deploy'):
 def do_node_deploy(task, conductor_id=None, configdrive=None):
     """Prepare the environment and deploy a node."""
     node = task.node
-    utils.wipe_deploy_internal_info(node)
-    utils.del_secret_token(node)
+    utils.wipe_deploy_internal_info(task)
     try:
         if configdrive:
             if isinstance(configdrive, dict):
@@ -308,7 +303,7 @@ def do_next_deploy_step(task, step_index, conductor_id):
 
     # Finished executing the steps. Clear deploy_step.
     node.deploy_step = None
-    utils.wipe_deploy_internal_info(node)
+    utils.wipe_deploy_internal_info(task)
     node.save()
 
     _start_console_in_deploy(task)

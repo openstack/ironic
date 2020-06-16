@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Fixes deployment in fast-track mode by keeping the required internal fields
+    (``agent_url`` and ``agent_secret_token``) intact when starting and
+    finishing deployment and cleaning.

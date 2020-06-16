@@ -530,11 +530,15 @@ class DoNodeCleanTestCase(db_base.DbTestCase):
     @mock.patch('ironic.drivers.modules.fake.FakeDeploy.execute_clean_step',
                 autospec=True)
     def _do_next_clean_step_last_step_noop(self, mock_execute, manual=False,
-                                           retired=False):
+                                           retired=False, fast_track=False):
+        if fast_track:
+            self.config(fast_track=True, group='deploy')
         # Resume where last_step is the last cleaning step, should be noop
         tgt_prov_state = states.MANAGEABLE if manual else states.AVAILABLE
         info = {'clean_steps': self.clean_steps,
-                'clean_step_index': len(self.clean_steps) - 1}
+                'clean_step_index': len(self.clean_steps) - 1,
+                'agent_url': 'test-url',
+                'agent_secret_token': 'token'}
 
         node = obj_utils.create_test_node(
             self.context, driver='fake-hardware',
@@ -562,6 +566,15 @@ class DoNodeCleanTestCase(db_base.DbTestCase):
         self.assertNotIn('clean_step_index', node.driver_internal_info)
         self.assertIsNone(node.driver_internal_info['clean_steps'])
         self.assertFalse(mock_execute.called)
+        if fast_track:
+            self.assertEqual('test-url',
+                             node.driver_internal_info.get('agent_url'))
+            self.assertIsNotNone(
+                node.driver_internal_info.get('agent_secret_token'))
+        else:
+            self.assertNotIn('agent_url', node.driver_internal_info)
+            self.assertNotIn('agent_secret_token',
+                             node.driver_internal_info)
 
     def test__do_next_clean_step_automated_last_step_noop(self):
         self._do_next_clean_step_last_step_noop()
@@ -571,6 +584,9 @@ class DoNodeCleanTestCase(db_base.DbTestCase):
 
     def test__do_next_clean_step_retired_last_step_change_tgt_state(self):
         self._do_next_clean_step_last_step_noop(retired=True)
+
+    def test__do_next_clean_step_last_step_noop_fast_track(self):
+        self._do_next_clean_step_last_step_noop(fast_track=True)
 
     @mock.patch('ironic.drivers.utils.collect_ramdisk_logs', autospec=True)
     @mock.patch('ironic.drivers.modules.fake.FakePower.execute_clean_step',
@@ -988,6 +1004,8 @@ class DoNodeCleanAbortTestCase(db_base.DbTestCase):
             target_provision_state=states.AVAILABLE,
             clean_step={'step': 'foo', 'abortable': True},
             driver_internal_info={
+                'agent_url': 'some url',
+                'agent_secret_token': 'token',
                 'clean_step_index': 2,
                 'cleaning_reboot': True,
                 'cleaning_polling': True,
@@ -1008,6 +1026,10 @@ class DoNodeCleanAbortTestCase(db_base.DbTestCase):
             self.assertNotIn('cleaning_polling',
                              task.node.driver_internal_info)
             self.assertNotIn('skip_current_clean_step',
+                             task.node.driver_internal_info)
+            self.assertNotIn('agent_url',
+                             task.node.driver_internal_info)
+            self.assertNotIn('agent_secret_token',
                              task.node.driver_internal_info)
 
     def test__do_node_clean_abort(self):
