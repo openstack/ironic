@@ -564,7 +564,7 @@ class Connection(api.Connection):
 
     @oslo_db_api.retry_on_deadlock
     def destroy_node(self, node_id):
-        with _session_for_write():
+        with _session_for_write() as session:
             query = model_query(models.Node)
             query = add_identity_filter(query, node_id)
 
@@ -572,6 +572,11 @@ class Connection(api.Connection):
                 node_ref = query.one()
             except NoResultFound:
                 raise exception.NodeNotFound(node=node_id)
+
+            # Orphan allocation, if any. On the API level this is only allowed
+            # with maintenance on.
+            node_ref.allocation_id = None
+            node_ref.save(session)
 
             # Get node ID, if an UUID was supplied. The ID is
             # required for deleting all ports, attached to the node.
