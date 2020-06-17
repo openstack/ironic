@@ -3985,7 +3985,8 @@ def _do_next_deploy_step(task, step_index, conductor_id):
             LOG.info('Deploy step %(step)s on node %(node)s being '
                      'executed asynchronously, waiting for driver.',
                      {'node': node.uuid, 'step': step})
-            task.process_event('wait')
+            if task.node.provision_state != states.DEPLOYWAIT:
+                task.process_event('wait')
             return
         elif result is not None:
             # NOTE(rloo): This is an internal/dev error; shouldn't happen.

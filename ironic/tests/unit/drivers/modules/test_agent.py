@@ -377,7 +377,7 @@ class TestAgentDeploy(db_base.DbTestCase):
         self.node.save()
         with task_manager.acquire(
                 self.context, self.node['uuid'], shared=False) as task:
-            self.driver.deploy(task)
+            self.assertEqual(states.DEPLOYWAIT, self.driver.deploy(task))
             self.assertFalse(power_mock.called)
             self.assertFalse(mock_pxe_instance.called)
             task.node.refresh()
@@ -1528,6 +1528,27 @@ class TestAgentDeploy(db_base.DbTestCase):
             mock_get_cmd.return_value = [{'command_name': 'prepare_image',
                                           'command_status': 'RUNNING'}]
             self.assertFalse(task.driver.deploy.deploy_is_done(task))
+
+    @mock.patch.object(agent_client.AgentClient, 'get_commands_status',
+                       autospec=True)
+    def test_deploy_is_done_several_results(self, mock_get_cmd):
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            mock_get_cmd.return_value = [
+                {'command_name': 'prepare_image', 'command_status': 'SUCCESS'},
+                {'command_name': 'other_command', 'command_status': 'SUCCESS'},
+                {'command_name': 'prepare_image', 'command_status': 'RUNNING'},
+            ]
+            self.assertFalse(task.driver.deploy.deploy_is_done(task))
+
+    @mock.patch.object(agent_client.AgentClient, 'get_commands_status',
+                       autospec=True)
+    def test_deploy_is_done_not_the_last(self, mock_get_cmd):
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            mock_get_cmd.return_value = [
+                {'command_name': 'prepare_image', 'command_status': 'SUCCESS'},
+                {'command_name': 'other_command', 'command_status': 'SUCCESS'},
+            ]
+            self.assertTrue(task.driver.deploy.deploy_is_done(task))
 
     @mock.patch.object(manager_utils, 'restore_power_state_if_needed',
                        autospec=True)
