@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    Fixes fast-track deployments with the ``direct`` deploy interface that
+    used to hang previously.

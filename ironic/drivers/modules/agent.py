@@ -186,17 +186,13 @@ class AgentDeployMixin(agent_base.AgentDeployMixin):
         if not commands:
             return False
 
-        last_command = commands[-1]
-
-        if last_command['command_name'] != 'prepare_image':
-            # catches race condition where prepare_image is still processing
-            # so deploy hasn't started yet
+        try:
+            last_command = next(cmd for cmd in reversed(commands)
+                                if cmd['command_name'] == 'prepare_image')
+        except StopIteration:
             return False
-
-        if last_command['command_status'] != 'RUNNING':
-            return True
-
-        return False
+        else:
+            return last_command['command_status'] != 'RUNNING'
 
     @METRICS.timer('AgentDeployMixin.continue_deploy')
     @task_manager.require_exclusive_lock
@@ -487,6 +483,7 @@ class AgentDeploy(AgentDeployMixin, base.DeployInterface):
             # the state machine state going from DEPLOYWAIT -> DEPLOYING
             task.process_event('wait')
             self.continue_deploy(task)
+            return states.DEPLOYWAIT
         elif task.driver.storage.should_write_image(task):
             # Check if the driver has already performed a reboot in a previous
             # deploy step.
