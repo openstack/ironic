@@ -116,6 +116,7 @@
         IRONIC_DEFAULT_RESCUE_INTERFACE: agent
         IRONIC_ENABLED_DEPLOY_INTERFACES: "iscsi,direct"
         IRONIC_ENABLED_RESCUE_INTERFACES: "fake,agent,no-rescue"
+        IRONIC_JSON_RPC_AUTH_STRATEGY: 'http_basic'
         IRONIC_RAMDISK_TYPE: tinyipa
         IRONIC_RPC_TRANSPORT: json-rpc
         IRONIC_VM_SPECS_RAM: 384
