@@ -436,6 +436,29 @@ class IloCommonMethodsTestCase(BaseIloTest):
         get_ilo_object_mock.assert_called_once_with(self.node)
         get_pending_boot_mode_mock.assert_called_once_with()
 
+    @mock.patch.object(ilo_common, 'get_ilo_object', spec_set=True,
+                       autospec=True)
+    def test_get_current_boot_mode(self, get_ilo_object_mock):
+        ilo_object_mock = get_ilo_object_mock.return_value
+        get_current_boot_mode_mock = ilo_object_mock.get_current_boot_mode
+        get_current_boot_mode_mock.return_value = 'LEGACY'
+        ret = ilo_common.get_current_boot_mode(self.node)
+        self.assertEqual('bios', ret)
+        get_ilo_object_mock.assert_called_once_with(self.node)
+        get_current_boot_mode_mock.assert_called_once_with()
+
+    @mock.patch.object(ilo_common, 'get_ilo_object', spec_set=True,
+                       autospec=True)
+    def test_get_current_boot_mode_fail(self, get_ilo_object_mock):
+        ilo_object_mock = get_ilo_object_mock.return_value
+        get_current_boot_mode_mock = ilo_object_mock.get_current_boot_mode
+        exc = ilo_error.IloError('error')
+        get_current_boot_mode_mock.side_effect = exc
+        self.assertRaises(exception.IloOperationError,
+                          ilo_common.get_current_boot_mode, self.node)
+        get_ilo_object_mock.assert_called_once_with(self.node)
+        get_current_boot_mode_mock.assert_called_once_with()
+
     @mock.patch.object(ilo_common, 'set_boot_mode', spec_set=True,
                        autospec=True)
     def test_update_boot_mode_instance_info_exists(self,
