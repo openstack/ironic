@@ -722,10 +722,15 @@ class AgentDeployMixin(HeartbeatMixin):
                    'steps': previous_steps})
 
         call = getattr(self._client, 'get_%s_steps' % step_type)
-        # TODO(dtantsur): remove the error handling in the V release.
         try:
             agent_result = call(node, task.ports).get('command_result', {})
         except exception.AgentAPIError as exc:
+            if 'agent is busy' in str(exc):
+                LOG.debug('Agent is busy with a command, will refresh steps '
+                          'on the next heartbeat')
+                return
+
+            # TODO(dtantsur): change to just 'raise'
             if step_type == 'clean':
                 raise
             else:

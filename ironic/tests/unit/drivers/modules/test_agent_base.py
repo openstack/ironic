@@ -2192,6 +2192,25 @@ class TestRefreshCleanSteps(AgentDeployMixinBaseTest):
             self.assertEqual([self.clean_steps['clean_steps'][
                 'SpecificHardwareManager'][1]], steps['raid'])
 
+    @mock.patch.object(agent_base.LOG, 'warning', autospec=True)
+    @mock.patch.object(agent_client.AgentClient, 'get_deploy_steps',
+                       autospec=True)
+    def test_refresh_steps_busy(self, client_mock, log_mock):
+        client_mock.side_effect = exception.AgentAPIError(
+            node="node", status="500", error='agent is busy')
+
+        with task_manager.acquire(
+                self.context, self.node.uuid, shared=False) as task:
+            self.deploy.refresh_steps(task, 'deploy')
+
+            client_mock.assert_called_once_with(mock.ANY, task.node,
+                                                task.ports)
+            self.assertNotIn('agent_cached_deploy_steps_refreshed',
+                             task.node.driver_internal_info)
+            self.assertIsNone(task.node.driver_internal_info.get(
+                'agent_cached_deploy_steps'))
+            self.assertFalse(log_mock.called)
+
     @mock.patch.object(agent_client.AgentClient, 'get_clean_steps',
                        autospec=True)
     def test_refresh_steps_missing_steps(self, client_mock):
