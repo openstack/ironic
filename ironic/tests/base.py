@@ -26,6 +26,7 @@ import os
 import subprocess
 import sys
 import tempfile
+from unittest import mock
 
 import eventlet
 eventlet.monkey_patch(os=False)
@@ -51,6 +52,21 @@ from ironic.tests.unit import policy_fixture
 
 logging.register_options(CONF)
 logging.setup(CONF, 'ironic')
+
+
+# NOTE(rpittau) this function allows autospec for classmethods and
+# staticmethods in Python 3.6, while no issue occurs in Python 3.7
+# and later.
+# For more info please see: http://bugs.python.org/issue23078
+def _patch_mock_callable(obj):
+    if isinstance(obj, type):
+        return True
+    if getattr(obj, '__call__', None) is not None:
+        return True
+    if (isinstance(obj, (staticmethod, classmethod))
+            and mock._callable(obj.__func__)):
+        return True
+    return False
 
 
 class ReplaceModule(fixtures.Fixture):
@@ -116,6 +132,10 @@ class TestCase(oslo_test_base.BaseTestCase):
             self.patch(utils, 'execute', do_not_call)
             # subprocess.Popen is a class
             self.patch(subprocess, 'Popen', DoNotCallPopen)
+
+        if sys.version_info < (3, 7):
+            _patch_mock_callable._old_func = mock._callable
+            mock._callable = _patch_mock_callable
 
     def _set_config(self):
         self.cfg_fixture = self.useFixture(config_fixture.Config(CONF))
