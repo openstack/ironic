@@ -126,7 +126,7 @@ class NodeDeployStepsTestCase(db_base.DbTestCase):
             mock_power_steps.assert_called_once_with(mock.ANY, task)
             mock_deploy_steps.assert_called_once_with(mock.ANY, task)
 
-    @mock.patch.object(objects.DeployTemplate, 'list_by_names')
+    @mock.patch.object(objects.DeployTemplate, 'list_by_names', autospec=True)
     def test__get_deployment_templates_no_traits(self, mock_list):
         with task_manager.acquire(
                 self.context, self.node.uuid, shared=False) as task:
@@ -134,7 +134,8 @@ class NodeDeployStepsTestCase(db_base.DbTestCase):
             self.assertEqual([], templates)
             self.assertFalse(mock_list.called)
 
-    @mock.patch.object(objects.DeployTemplate, 'list_by_names')
+    @mock.patch.object(objects.DeployTemplate, 'list_by_names',
+                       autospec=True)
     def test__get_deployment_templates(self, mock_list):
         traits = ['CUSTOM_DT1', 'CUSTOM_DT2']
         node = obj_utils.create_test_node(
@@ -505,8 +506,10 @@ class NodeCleaningStepsTestCase(db_base.DbTestCase):
 
     @mock.patch('ironic.drivers.modules.fake.FakeBIOS.get_clean_steps',
                 lambda self, task: [])
-    @mock.patch('ironic.drivers.modules.fake.FakeDeploy.get_clean_steps')
-    @mock.patch('ironic.drivers.modules.fake.FakePower.get_clean_steps')
+    @mock.patch('ironic.drivers.modules.fake.FakeDeploy.get_clean_steps',
+                autospec=True)
+    @mock.patch('ironic.drivers.modules.fake.FakePower.get_clean_steps',
+                autospec=True)
     def test__get_cleaning_steps(self, mock_power_steps, mock_deploy_steps):
         # Test getting cleaning steps, with one driver returning None, two
         # conflicting priorities, and asserting they are ordered properly.
@@ -527,8 +530,10 @@ class NodeCleaningStepsTestCase(db_base.DbTestCase):
 
     @mock.patch('ironic.drivers.modules.fake.FakeBIOS.get_clean_steps',
                 lambda self, task: [])
-    @mock.patch('ironic.drivers.modules.fake.FakeDeploy.get_clean_steps')
-    @mock.patch('ironic.drivers.modules.fake.FakePower.get_clean_steps')
+    @mock.patch('ironic.drivers.modules.fake.FakeDeploy.get_clean_steps',
+                autospec=True)
+    @mock.patch('ironic.drivers.modules.fake.FakePower.get_clean_steps',
+                autospec=True)
     def test__get_cleaning_steps_unsorted(self, mock_power_steps,
                                           mock_deploy_steps):
         node = obj_utils.create_test_node(
@@ -545,8 +550,10 @@ class NodeCleaningStepsTestCase(db_base.DbTestCase):
                                                         sort=False)
         self.assertEqual(mock_deploy_steps.return_value, steps)
 
-    @mock.patch('ironic.drivers.modules.fake.FakeDeploy.get_clean_steps')
-    @mock.patch('ironic.drivers.modules.fake.FakePower.get_clean_steps')
+    @mock.patch('ironic.drivers.modules.fake.FakeDeploy.get_clean_steps',
+                autospec=True)
+    @mock.patch('ironic.drivers.modules.fake.FakePower.get_clean_steps',
+                autospec=True)
     def test__get_cleaning_steps_only_enabled(self, mock_power_steps,
                                               mock_deploy_steps):
         # Test getting only cleaning steps, with one driver returning None, two
@@ -568,8 +575,9 @@ class NodeCleaningStepsTestCase(db_base.DbTestCase):
 
         self.assertEqual(self.clean_steps, steps)
 
-    @mock.patch.object(conductor_steps, '_validate_user_clean_steps')
-    @mock.patch.object(conductor_steps, '_get_cleaning_steps')
+    @mock.patch.object(conductor_steps, '_validate_user_clean_steps',
+                       autospec=True)
+    @mock.patch.object(conductor_steps, '_get_cleaning_steps', autospec=True)
     def test_set_node_cleaning_steps_automated(self, mock_steps,
                                                mock_validate_user_steps):
         mock_steps.return_value = self.clean_steps
@@ -591,8 +599,9 @@ class NodeCleaningStepsTestCase(db_base.DbTestCase):
             mock_steps.assert_called_once_with(task, enabled=True)
             self.assertFalse(mock_validate_user_steps.called)
 
-    @mock.patch.object(conductor_steps, '_validate_user_clean_steps')
-    @mock.patch.object(conductor_steps, '_get_cleaning_steps')
+    @mock.patch.object(conductor_steps, '_validate_user_clean_steps',
+                       autospec=True)
+    @mock.patch.object(conductor_steps, '_get_cleaning_steps', autospec=True)
     def test_set_node_cleaning_steps_manual(self, mock_steps,
                                             mock_validate_user_steps):
         clean_steps = [self.deploy_raid]
@@ -617,7 +626,7 @@ class NodeCleaningStepsTestCase(db_base.DbTestCase):
             self.assertFalse(mock_steps.called)
             mock_validate_user_steps.assert_called_once_with(task, clean_steps)
 
-    @mock.patch.object(conductor_steps, '_get_cleaning_steps')
+    @mock.patch.object(conductor_steps, '_get_cleaning_steps', autospec=True)
     def test__validate_user_clean_steps(self, mock_steps):
         node = obj_utils.create_test_node(self.context)
         mock_steps.return_value = self.clean_steps
@@ -636,7 +645,7 @@ class NodeCleaningStepsTestCase(db_base.DbTestCase):
                      'priority': 20, 'abortable': True}]
         self.assertEqual(expected, result)
 
-    @mock.patch.object(conductor_steps, '_get_cleaning_steps')
+    @mock.patch.object(conductor_steps, '_get_cleaning_steps', autospec=True)
     def test__validate_user_clean_steps_no_steps(self, mock_steps):
         node = obj_utils.create_test_node(self.context)
         mock_steps.return_value = self.clean_steps
@@ -645,7 +654,7 @@ class NodeCleaningStepsTestCase(db_base.DbTestCase):
             conductor_steps._validate_user_clean_steps(task, [])
             mock_steps.assert_called_once_with(task, enabled=False, sort=False)
 
-    @mock.patch.object(conductor_steps, '_get_cleaning_steps')
+    @mock.patch.object(conductor_steps, '_get_cleaning_steps', autospec=True)
     def test__validate_user_clean_steps_get_steps_exception(self, mock_steps):
         node = obj_utils.create_test_node(self.context)
         mock_steps.side_effect = exception.NodeCleaningFailure('bad')
@@ -656,7 +665,7 @@ class NodeCleaningStepsTestCase(db_base.DbTestCase):
                               task, [])
             mock_steps.assert_called_once_with(task, enabled=False, sort=False)
 
-    @mock.patch.object(conductor_steps, '_get_cleaning_steps')
+    @mock.patch.object(conductor_steps, '_get_cleaning_steps', autospec=True)
     def test__validate_user_clean_steps_not_supported(self, mock_steps):
         node = obj_utils.create_test_node(self.context)
         mock_steps.return_value = [self.power_update, self.deploy_raid]
@@ -670,7 +679,7 @@ class NodeCleaningStepsTestCase(db_base.DbTestCase):
                                    task, user_steps)
             mock_steps.assert_called_once_with(task, enabled=False, sort=False)
 
-    @mock.patch.object(conductor_steps, '_get_cleaning_steps')
+    @mock.patch.object(conductor_steps, '_get_cleaning_steps', autospec=True)
     def test__validate_user_clean_steps_invalid_arg(self, mock_steps):
         node = obj_utils.create_test_node(self.context)
         mock_steps.return_value = self.clean_steps
@@ -685,7 +694,7 @@ class NodeCleaningStepsTestCase(db_base.DbTestCase):
                                    task, user_steps)
             mock_steps.assert_called_once_with(task, enabled=False, sort=False)
 
-    @mock.patch.object(conductor_steps, '_get_cleaning_steps')
+    @mock.patch.object(conductor_steps, '_get_cleaning_steps', autospec=True)
     def test__validate_user_clean_steps_missing_required_arg(self, mock_steps):
         node = obj_utils.create_test_node(self.context)
         mock_steps.return_value = [self.power_update, self.deploy_raid]
