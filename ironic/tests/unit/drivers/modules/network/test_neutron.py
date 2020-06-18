@@ -56,32 +56,33 @@ class NeutronInterfaceTestCase(db_base.DbTestCase):
         self.neutron_port = {'id': '132f871f-eaec-4fed-9475-0d54465e0f00',
                              'mac_address': '52:54:00:cf:2d:32'}
 
-    @mock.patch('%s.vif_list' % VIFMIXINPATH)
+    @mock.patch('%s.vif_list' % VIFMIXINPATH, autospec=True)
     def test_vif_list(self, mock_vif_list):
         with task_manager.acquire(self.context, self.node.id) as task:
             self.interface.vif_list(task)
-            mock_vif_list.assert_called_once_with(task)
+            mock_vif_list.assert_called_once_with(self.interface, task)
 
-    @mock.patch('%s.vif_attach' % VIFMIXINPATH)
+    @mock.patch('%s.vif_attach' % VIFMIXINPATH, autospec=True)
     def test_vif_attach(self, mock_vif_attach):
         vif = mock.MagicMock()
         with task_manager.acquire(self.context, self.node.id) as task:
             self.interface.vif_attach(task, vif)
-            mock_vif_attach.assert_called_once_with(task, vif)
+            mock_vif_attach.assert_called_once_with(self.interface, task, vif)
 
-    @mock.patch('%s.vif_detach' % VIFMIXINPATH)
+    @mock.patch('%s.vif_detach' % VIFMIXINPATH, autospec=True)
     def test_vif_detach(self, mock_vif_detach):
         vif_id = "vif"
         with task_manager.acquire(self.context, self.node.id) as task:
             self.interface.vif_detach(task, vif_id)
-            mock_vif_detach.assert_called_once_with(task, vif_id)
+            mock_vif_detach.assert_called_once_with(
+                self.interface, task, vif_id)
 
-    @mock.patch('%s.port_changed' % VIFMIXINPATH)
+    @mock.patch('%s.port_changed' % VIFMIXINPATH, autospec=True)
     def test_vif_port_changed(self, mock_p_changed):
         port = mock.MagicMock()
         with task_manager.acquire(self.context, self.node.id) as task:
             self.interface.port_changed(task, port)
-            mock_p_changed.assert_called_once_with(task, port)
+            mock_p_changed.assert_called_once_with(self.interface, task, port)
 
     def test_init_incorrect_provisioning_net(self):
         self.config(provisioning_network=None, group='neutron')
@@ -163,9 +164,9 @@ class NeutronInterfaceTestCase(db_base.DbTestCase):
                              validate_mock.call_args_list)
 
     @mock.patch.object(neutron_common, 'validate_network',
-                       side_effect=lambda n, t, context=None: n)
-    @mock.patch.object(neutron_common, 'rollback_ports')
-    @mock.patch.object(neutron_common, 'add_ports_to_network')
+                       side_effect=lambda n, t, context=None: n, autospec=True)
+    @mock.patch.object(neutron_common, 'rollback_ports', autospec=True)
+    @mock.patch.object(neutron_common, 'add_ports_to_network', autospec=True)
     def test_add_provisioning_network(self, add_ports_mock, rollback_mock,
                                       validate_mock):
         self.port.internal_info = {'provisioning_vif_port_id': 'vif-port-id'}
@@ -186,9 +187,9 @@ class NeutronInterfaceTestCase(db_base.DbTestCase):
                          self.port.internal_info['provisioning_vif_port_id'])
 
     @mock.patch.object(neutron_common, 'validate_network',
-                       side_effect=lambda n, t, context=None: n)
-    @mock.patch.object(neutron_common, 'rollback_ports')
-    @mock.patch.object(neutron_common, 'add_ports_to_network')
+                       side_effect=lambda n, t, context=None: n, autospec=True)
+    @mock.patch.object(neutron_common, 'rollback_ports', autospec=True)
+    @mock.patch.object(neutron_common, 'add_ports_to_network', autospec=True)
     def test_add_provisioning_network_from_node(self, add_ports_mock,
                                                 rollback_mock, validate_mock):
         self.port.internal_info = {'provisioning_vif_port_id': 'vif-port-id'}
@@ -219,8 +220,8 @@ class NeutronInterfaceTestCase(db_base.DbTestCase):
 
     @mock.patch.object(neutron_common, 'validate_network',
                        lambda n, t, context=None: n)
-    @mock.patch.object(neutron_common, 'rollback_ports')
-    @mock.patch.object(neutron_common, 'add_ports_to_network')
+    @mock.patch.object(neutron_common, 'rollback_ports', autospec=True)
+    @mock.patch.object(neutron_common, 'add_ports_to_network', autospec=True)
     def test_add_provisioning_network_with_sg(self, add_ports_mock,
                                               rollback_mock):
         sg_ids = []
@@ -243,8 +244,9 @@ class NeutronInterfaceTestCase(db_base.DbTestCase):
                          self.port.internal_info['provisioning_vif_port_id'])
 
     @mock.patch.object(neutron_common, 'validate_network',
-                       side_effect=lambda n, t, context=None: n)
-    @mock.patch.object(neutron_common, 'remove_ports_from_network')
+                       side_effect=lambda n, t, context=None: n, autospec=True)
+    @mock.patch.object(neutron_common, 'remove_ports_from_network',
+                       autospec=True)
     def test_remove_provisioning_network(self, remove_ports_mock,
                                          validate_mock):
         self.port.internal_info = {'provisioning_vif_port_id': 'vif-port-id'}
@@ -260,8 +262,9 @@ class NeutronInterfaceTestCase(db_base.DbTestCase):
         self.assertNotIn('provisioning_vif_port_id', self.port.internal_info)
 
     @mock.patch.object(neutron_common, 'validate_network',
-                       side_effect=lambda n, t, context=None: n)
-    @mock.patch.object(neutron_common, 'remove_ports_from_network')
+                       side_effect=lambda n, t, context=None: n, autospec=True)
+    @mock.patch.object(neutron_common, 'remove_ports_from_network',
+                       autospec=True)
     def test_remove_provisioning_network_from_node(self, remove_ports_mock,
                                                    validate_mock):
         self.port.internal_info = {'provisioning_vif_port_id': 'vif-port-id'}
@@ -282,9 +285,9 @@ class NeutronInterfaceTestCase(db_base.DbTestCase):
         self.assertNotIn('provisioning_vif_port_id', self.port.internal_info)
 
     @mock.patch.object(neutron_common, 'validate_network',
-                       side_effect=lambda n, t, context=None: n)
-    @mock.patch.object(neutron_common, 'rollback_ports')
-    @mock.patch.object(neutron_common, 'add_ports_to_network')
+                       side_effect=lambda n, t, context=None: n, autospec=True)
+    @mock.patch.object(neutron_common, 'rollback_ports', autospec=True)
+    @mock.patch.object(neutron_common, 'add_ports_to_network', autospec=True)
     def test_add_cleaning_network(self, add_ports_mock, rollback_mock,
                                   validate_mock):
         add_ports_mock.return_value = {self.port.uuid: self.neutron_port['id']}
@@ -301,9 +304,9 @@ class NeutronInterfaceTestCase(db_base.DbTestCase):
                          self.port.internal_info['cleaning_vif_port_id'])
 
     @mock.patch.object(neutron_common, 'validate_network',
-                       side_effect=lambda n, t, context=None: n)
-    @mock.patch.object(neutron_common, 'rollback_ports')
-    @mock.patch.object(neutron_common, 'add_ports_to_network')
+                       side_effect=lambda n, t, context=None: n, autospec=True)
+    @mock.patch.object(neutron_common, 'rollback_ports', autospec=True)
+    @mock.patch.object(neutron_common, 'add_ports_to_network', autospec=True)
     def test_add_cleaning_network_from_node(self, add_ports_mock,
                                             rollback_mock, validate_mock):
         add_ports_mock.return_value = {self.port.uuid: self.neutron_port['id']}
@@ -328,8 +331,8 @@ class NeutronInterfaceTestCase(db_base.DbTestCase):
 
     @mock.patch.object(neutron_common, 'validate_network',
                        lambda n, t, context=None: n)
-    @mock.patch.object(neutron_common, 'rollback_ports')
-    @mock.patch.object(neutron_common, 'add_ports_to_network')
+    @mock.patch.object(neutron_common, 'rollback_ports', autospec=True)
+    @mock.patch.object(neutron_common, 'add_ports_to_network', autospec=True)
     def test_add_cleaning_network_with_sg(self, add_ports_mock, rollback_mock):
         add_ports_mock.return_value = {self.port.uuid: self.neutron_port['id']}
         sg_ids = []
@@ -349,8 +352,9 @@ class NeutronInterfaceTestCase(db_base.DbTestCase):
                          self.port.internal_info['cleaning_vif_port_id'])
 
     @mock.patch.object(neutron_common, 'validate_network',
-                       side_effect=lambda n, t, context=None: n)
-    @mock.patch.object(neutron_common, 'remove_ports_from_network')
+                       side_effect=lambda n, t, context=None: n, autospec=True)
+    @mock.patch.object(neutron_common, 'remove_ports_from_network',
+                       autospec=True)
     def test_remove_cleaning_network(self, remove_ports_mock,
                                      validate_mock):
         self.port.internal_info = {'cleaning_vif_port_id': 'vif-port-id'}
@@ -366,8 +370,9 @@ class NeutronInterfaceTestCase(db_base.DbTestCase):
         self.assertNotIn('cleaning_vif_port_id', self.port.internal_info)
 
     @mock.patch.object(neutron_common, 'validate_network',
-                       side_effect=lambda n, t, context=None: n)
-    @mock.patch.object(neutron_common, 'remove_ports_from_network')
+                       side_effect=lambda n, t, context=None: n, autospec=True)
+    @mock.patch.object(neutron_common, 'remove_ports_from_network',
+                       autospec=True)
     def test_remove_cleaning_network_from_node(self, remove_ports_mock,
                                                validate_mock):
         self.port.internal_info = {'cleaning_vif_port_id': 'vif-port-id'}
@@ -388,7 +393,7 @@ class NeutronInterfaceTestCase(db_base.DbTestCase):
         self.assertNotIn('cleaning_vif_port_id', self.port.internal_info)
 
     @mock.patch.object(neutron_common, 'validate_network',
-                       side_effect=lambda n, t, context=None: n)
+                       side_effect=lambda n, t, context=None: n, autospec=True)
     def test_validate_rescue(self, validate_mock):
         rescuing_network_uuid = '3aea0de6-4b92-44da-9aa0-52d134c83fdf'
         driver_info = self.node.driver_info
@@ -409,9 +414,9 @@ class NeutronInterfaceTestCase(db_base.DbTestCase):
                                    self.interface.validate_rescue, task)
 
     @mock.patch.object(neutron_common, 'validate_network',
-                       side_effect=lambda n, t, context=None: n)
-    @mock.patch.object(neutron_common, 'rollback_ports')
-    @mock.patch.object(neutron_common, 'add_ports_to_network')
+                       side_effect=lambda n, t, context=None: n, autospec=True)
+    @mock.patch.object(neutron_common, 'rollback_ports', autospec=True)
+    @mock.patch.object(neutron_common, 'add_ports_to_network', autospec=True)
     def test_add_rescuing_network(self, add_ports_mock, rollback_mock,
                                   validate_mock):
         other_port = utils.create_test_port(
@@ -440,9 +445,9 @@ class NeutronInterfaceTestCase(db_base.DbTestCase):
         self.assertNotIn('rescuing_vif_port_id', self.port.internal_info)
 
     @mock.patch.object(neutron_common, 'validate_network',
-                       side_effect=lambda n, t, context=None: n)
-    @mock.patch.object(neutron_common, 'rollback_ports')
-    @mock.patch.object(neutron_common, 'add_ports_to_network')
+                       side_effect=lambda n, t, context=None: n, autospec=True)
+    @mock.patch.object(neutron_common, 'rollback_ports', autospec=True)
+    @mock.patch.object(neutron_common, 'add_ports_to_network', autospec=True)
     def test_add_rescuing_network_from_node(self, add_ports_mock,
                                             rollback_mock, validate_mock):
         other_port = utils.create_test_port(
@@ -477,8 +482,8 @@ class NeutronInterfaceTestCase(db_base.DbTestCase):
 
     @mock.patch.object(neutron_common, 'validate_network',
                        lambda n, t, context=None: n)
-    @mock.patch.object(neutron_common, 'rollback_ports')
-    @mock.patch.object(neutron_common, 'add_ports_to_network')
+    @mock.patch.object(neutron_common, 'rollback_ports', autospec=True)
+    @mock.patch.object(neutron_common, 'add_ports_to_network', autospec=True)
     def test_add_rescuing_network_with_sg(self, add_ports_mock, rollback_mock):
         add_ports_mock.return_value = {self.port.uuid: self.neutron_port['id']}
         sg_ids = []
@@ -498,8 +503,9 @@ class NeutronInterfaceTestCase(db_base.DbTestCase):
                          self.port.internal_info['rescuing_vif_port_id'])
 
     @mock.patch.object(neutron_common, 'validate_network',
-                       side_effect=lambda n, t, context=None: n)
-    @mock.patch.object(neutron_common, 'remove_ports_from_network')
+                       side_effect=lambda n, t, context=None: n, autospec=True)
+    @mock.patch.object(neutron_common, 'remove_ports_from_network',
+                       autospec=True)
     def test_remove_rescuing_network(self, remove_ports_mock,
                                      validate_mock):
         other_port = utils.create_test_port(
@@ -520,16 +526,16 @@ class NeutronInterfaceTestCase(db_base.DbTestCase):
         self.assertNotIn('rescuing_vif_port_id', self.port.internal_info)
         self.assertNotIn('rescuing_vif_port_id', other_port.internal_info)
 
-    @mock.patch.object(neutron_common, 'unbind_neutron_port')
+    @mock.patch.object(neutron_common, 'unbind_neutron_port', autospec=True)
     def test_unconfigure_tenant_networks(self, mock_unbind_port):
         with task_manager.acquire(self.context, self.node.id) as task:
             self.interface.unconfigure_tenant_networks(task)
             mock_unbind_port.assert_called_once_with(
                 self.port.extra['vif_port_id'], context=task.context)
 
-    @mock.patch.object(neutron_common, 'get_client')
-    @mock.patch.object(neutron_common, 'wait_for_host_agent')
-    @mock.patch.object(neutron_common, 'unbind_neutron_port')
+    @mock.patch.object(neutron_common, 'get_client', autospec=True)
+    @mock.patch.object(neutron_common, 'wait_for_host_agent', autospec=True)
+    @mock.patch.object(neutron_common, 'unbind_neutron_port', autospec=True)
     def test_unconfigure_tenant_networks_smartnic(
             self, mock_unbind_port, wait_agent_mock, client_mock):
         nclient = mock.MagicMock()
@@ -553,8 +559,8 @@ class NeutronInterfaceTestCase(db_base.DbTestCase):
                 exception.NetworkError, 'No ports are associated',
                 self.interface.configure_tenant_networks, task)
 
-    @mock.patch.object(neutron_common, 'get_client')
-    @mock.patch.object(neutron, 'LOG')
+    @mock.patch.object(neutron_common, 'get_client', autospec=True)
+    @mock.patch.object(neutron, 'LOG', autospec=True)
     def test_configure_tenant_networks_no_vif_id(self, log_mock, client_mock):
         self.port.extra = {}
         self.port.save()
@@ -572,9 +578,9 @@ class NeutronInterfaceTestCase(db_base.DbTestCase):
                       log_mock.error.call_args[0][0])
 
     @mock.patch.object(neutron_common, 'wait_for_host_agent', autospec=True)
-    @mock.patch.object(neutron_common, 'update_neutron_port')
-    @mock.patch.object(neutron_common, 'get_client')
-    @mock.patch.object(neutron, 'LOG')
+    @mock.patch.object(neutron_common, 'update_neutron_port', autospec=True)
+    @mock.patch.object(neutron_common, 'get_client', autospec=True)
+    @mock.patch.object(neutron, 'LOG', autospec=True)
     def test_configure_tenant_networks_multiple_ports_one_vif_id(
             self, log_mock, client_mock, update_mock, wait_agent_mock):
         expected_body = {
@@ -594,8 +600,8 @@ class NeutronInterfaceTestCase(db_base.DbTestCase):
                                             expected_body)
 
     @mock.patch.object(neutron_common, 'wait_for_host_agent', autospec=True)
-    @mock.patch.object(neutron_common, 'update_neutron_port')
-    @mock.patch.object(neutron_common, 'get_client')
+    @mock.patch.object(neutron_common, 'update_neutron_port', autospec=True)
+    @mock.patch.object(neutron_common, 'get_client', autospec=True)
     def test_configure_tenant_networks_update_fail(self, client_mock,
                                                    update_mock,
                                                    wait_agent_mock):
@@ -608,8 +614,8 @@ class NeutronInterfaceTestCase(db_base.DbTestCase):
             client_mock.assert_called_once_with(context=task.context)
 
     @mock.patch.object(neutron_common, 'wait_for_host_agent', autospec=True)
-    @mock.patch.object(neutron_common, 'update_neutron_port')
-    @mock.patch.object(neutron_common, 'get_client')
+    @mock.patch.object(neutron_common, 'update_neutron_port', autospec=True)
+    @mock.patch.object(neutron_common, 'get_client', autospec=True)
     def _test_configure_tenant_networks(self, client_mock, update_mock,
                                         wait_agent_mock,
                                         is_client_id=False,
@@ -765,9 +771,9 @@ class NeutronInterfaceTestCase(db_base.DbTestCase):
             self.assertFalse(self.interface.need_power_on(task))
 
     @mock.patch.object(neutron_common, 'validate_network',
-                       side_effect=lambda n, t, context=None: n)
-    @mock.patch.object(neutron_common, 'rollback_ports')
-    @mock.patch.object(neutron_common, 'add_ports_to_network')
+                       side_effect=lambda n, t, context=None: n, autospec=True)
+    @mock.patch.object(neutron_common, 'rollback_ports', autospec=True)
+    @mock.patch.object(neutron_common, 'add_ports_to_network', autospec=True)
     def test_add_inspection_network(self, add_ports_mock, rollback_mock,
                                     validate_mock):
         add_ports_mock.return_value = {self.port.uuid: self.neutron_port['id']}
@@ -784,9 +790,9 @@ class NeutronInterfaceTestCase(db_base.DbTestCase):
                          self.port.internal_info['inspection_vif_port_id'])
 
     @mock.patch.object(neutron_common, 'validate_network',
-                       side_effect=lambda n, t, context=None: n)
-    @mock.patch.object(neutron_common, 'rollback_ports')
-    @mock.patch.object(neutron_common, 'add_ports_to_network')
+                       side_effect=lambda n, t, context=None: n, autospec=True)
+    @mock.patch.object(neutron_common, 'rollback_ports', autospec=True)
+    @mock.patch.object(neutron_common, 'add_ports_to_network', autospec=True)
     def test_add_inspection_network_from_node(self, add_ports_mock,
                                               rollback_mock, validate_mock):
         add_ports_mock.return_value = {self.port.uuid: self.neutron_port['id']}
@@ -812,8 +818,8 @@ class NeutronInterfaceTestCase(db_base.DbTestCase):
 
     @mock.patch.object(neutron_common, 'validate_network',
                        lambda n, t, context=None: n)
-    @mock.patch.object(neutron_common, 'rollback_ports')
-    @mock.patch.object(neutron_common, 'add_ports_to_network')
+    @mock.patch.object(neutron_common, 'rollback_ports', autospec=True)
+    @mock.patch.object(neutron_common, 'add_ports_to_network', autospec=True)
     def test_add_inspection_network_with_sg(self, add_ports_mock,
                                             rollback_mock):
         add_ports_mock.return_value = {self.port.uuid: self.neutron_port['id']}
@@ -835,7 +841,7 @@ class NeutronInterfaceTestCase(db_base.DbTestCase):
                          self.port.internal_info['inspection_vif_port_id'])
 
     @mock.patch.object(neutron_common, 'validate_network',
-                       side_effect=lambda n, t, context=None: n)
+                       side_effect=lambda n, t, context=None: n, autospec=True)
     def test_validate_inspection(self, validate_mock):
         inspection_network_uuid = '3aea0de6-4b92-44da-9aa0-52d134c83fdf'
         driver_info = self.node.driver_info
