@@ -67,8 +67,7 @@ class IBMCVendorTestCase(base.IBMCTestCase):
         conn = self.mock_ibmc_conn(connect_ibmc)
 
         ctrl = mock.Mock()
-        summary = mock.Mock()
-        ctrl.summary.return_value = summary
+        summary = ctrl.summary.return_value
         conn.system.storage.list.return_value = [ctrl]
 
         with task_manager.acquire(self.context, self.node.uuid,
