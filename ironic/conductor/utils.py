@@ -1144,3 +1144,30 @@ def hash_password(password=''):
     :param value: Value to be hashed
     """
     return crypt.crypt(password, make_salt())
+
+
+def get_attached_vif(port):
+    """Get any attached vif ID for the port
+
+    :param port: The port object upon which to check for a vif
+                 record.
+    :returns: Returns a tuple of the vif if found and the use of
+              the vif in the form of a string, 'tenant', 'cleaning'
+              'provisioning', 'rescuing'.
+    :raises: InvalidState exception upon finding a port with a
+             transient state vif on the port.
+    """
+
+    tenant_vif = port.internal_info.get('tenant_vif_port_id')
+    if tenant_vif:
+        return (tenant_vif, 'tenant')
+    clean_vif = port.internal_info.get('cleaning_vif_port_id')
+    if clean_vif:
+        return (clean_vif, 'cleaning')
+    prov_vif = port.internal_info.get('provisioning_vif_port_id')
+    if prov_vif:
+        return (prov_vif, 'provisioning')
+    rescue_vif = port.internal_info.get('rescuing_vif_port_id')
+    if rescue_vif:
+        return (rescue_vif, 'rescuing')
+    return (None, None)
