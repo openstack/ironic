@@ -2032,10 +2032,10 @@ class AgentTokenUtilsTestCase(tests_base.TestCase):
         conductor_utils.add_secret_token(self.node)
         self.assertIn('agent_secret_token', self.node.driver_internal_info)
 
-    def test_del_secret_token(self):
+    def test_wipe_deploy_internal_info(self):
         conductor_utils.add_secret_token(self.node)
         self.assertIn('agent_secret_token', self.node.driver_internal_info)
-        conductor_utils.del_secret_token(self.node)
+        conductor_utils.wipe_deploy_internal_info(mock.Mock(node=self.node))
         self.assertNotIn('agent_secret_token', self.node.driver_internal_info)
 
     def test_is_agent_token_present(self):

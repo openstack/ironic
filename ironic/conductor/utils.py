@@ -444,11 +444,15 @@ def cleaning_error_handler(task, msg, tear_down_cleaning=True,
         task.process_event('fail', target_state=target_state)
 
 
-def wipe_deploy_internal_info(node):
+def wipe_deploy_internal_info(task):
     """Remove temporary deployment fields from driver_internal_info."""
-    info = node.driver_internal_info
-    info.pop('agent_secret_token', None)
-    info.pop('agent_secret_token_pregenerated', None)
+    info = task.node.driver_internal_info
+    if not fast_track_able(task):
+        info.pop('agent_secret_token', None)
+        info.pop('agent_secret_token_pregenerated', None)
+        # Remove agent_url since it will be re-asserted
+        # upon the next deployment attempt.
+        info.pop('agent_url', None)
     # Clear any leftover metadata about deployment.
     info['deploy_steps'] = None
     info.pop('agent_cached_deploy_steps', None)
@@ -457,10 +461,24 @@ def wipe_deploy_internal_info(node):
     info.pop('deployment_polling', None)
     info.pop('skip_current_deploy_step', None)
     info.pop('steps_validated', None)
-    # Remove agent_url since it will be re-asserted
-    # upon the next deployment attempt.
-    info.pop('agent_url', None)
-    node.driver_internal_info = info
+    task.node.driver_internal_info = info
+
+
+def wipe_cleaning_internal_info(task):
+    """Remove temporary cleaning fields from driver_internal_info."""
+    info = task.node.driver_internal_info
+    if not fast_track_able(task):
+        info.pop('agent_url', None)
+        info.pop('agent_secret_token', None)
+        info.pop('agent_secret_token_pregenerated', None)
+    info['clean_steps'] = None
+    info.pop('agent_cached_clean_steps', None)
+    info.pop('clean_step_index', None)
+    info.pop('cleaning_reboot', None)
+    info.pop('cleaning_polling', None)
+    info.pop('skip_current_clean_step', None)
+    info.pop('steps_validated', None)
+    task.node.driver_internal_info = info
 
 
 def deploying_error_handler(task, logmsg, errmsg=None, traceback=False,
@@ -503,7 +521,7 @@ def deploying_error_handler(task, logmsg, errmsg=None, traceback=False,
         # Clear deploy step; we leave the list of deploy steps
         # in node.driver_internal_info for debugging purposes.
         node.deploy_step = {}
-        wipe_deploy_internal_info(node)
+        wipe_deploy_internal_info(task)
 
     if cleanup_err:
         node.last_error = cleanup_err
@@ -1044,19 +1062,6 @@ def add_secret_token(node, pregenerated=False):
     i_info['agent_secret_token'] = token
     if pregenerated:
         i_info['agent_secret_token_pregenerated'] = True
-    node.driver_internal_info = i_info
-
-
-def del_secret_token(node):
-    """Deletes the IPA agent secret token.
-
-    Removes the agent token secret from the driver_internal_info field
-    from the Node object.
-
-    :param node: Node object
-    """
-    i_info = node.driver_internal_info
-    i_info.pop('agent_secret_token', None)
     node.driver_internal_info = i_info
 
 

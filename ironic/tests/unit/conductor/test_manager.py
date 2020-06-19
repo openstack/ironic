@@ -1431,7 +1431,6 @@ class ServiceDoNodeDeployTestCase(mgr_utils.ServiceSetUpMixin,
                                                mock.ANY, None)
             mock_iwdi.assert_called_once_with(self.context, node.instance_info)
             self.assertFalse(node.driver_internal_info['is_whole_disk_image'])
-            self.assertNotIn('agent_url', node.driver_internal_info)
 
     def test_do_node_deploy_rebuild_active_state_error(self, mock_iwdi):
         # Tests manager.do_node_deploy() & deployments.do_next_deploy_step(),
@@ -2042,7 +2041,7 @@ class DoNodeTearDownTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
             instance_info={'foo': 'bar'},
             console_enabled=enabled_console,
             driver_internal_info={'is_whole_disk_image': False,
-                                  'clean_steps': {},
+                                  'deploy_steps': {},
                                   'root_uuid_or_disk_id': 'foo',
                                   'instance': {'ephemeral_gb': 10}})
         port = obj_utils.create_test_port(
@@ -2068,7 +2067,7 @@ class DoNodeTearDownTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         self.assertIsNone(node.allocation_id)
         self.assertEqual({}, node.instance_info)
         self.assertNotIn('instance', node.driver_internal_info)
-        self.assertNotIn('clean_steps', node.driver_internal_info)
+        self.assertIsNone(node.driver_internal_info['deploy_steps'])
         self.assertNotIn('root_uuid_or_disk_id', node.driver_internal_info)
         self.assertNotIn('is_whole_disk_image', node.driver_internal_info)
         mock_tear_down.assert_called_once_with(task)
