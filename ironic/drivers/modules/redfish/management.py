@@ -90,7 +90,7 @@ def _set_boot_device(task, system, device, persistent=False):
     try:
         system.set_system_boot_options(device, enabled=enabled)
     except sushy.exceptions.SushyError as e:
-        if desired_enabled == sushy.BOOT_SOURCE_ENABLED_CONTINUOUS:
+        if enabled == sushy.BOOT_SOURCE_ENABLED_CONTINUOUS:
             # NOTE(dtantsur): continuous boot device settings have been
             # removed from Redfish, and some vendors stopped supporting
             # it before an alternative was provided. As a work around,
