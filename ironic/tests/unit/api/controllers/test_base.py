@@ -14,8 +14,8 @@
 #    under the License.
 
 from http import client as http_client
+from unittest import mock
 
-import mock
 from webob import exc
 
 from ironic.api.controllers import base as cbase

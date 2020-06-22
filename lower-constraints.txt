@@ -50,7 +50,6 @@ logutils==0.3.5
 Mako==1.1.2
 MarkupSafe==1.1.1
 mccabe==0.6.1
-mock==4.0.2
 monotonic==1.5
 mox3==1.0.0
 msgpack-python==0.5.6

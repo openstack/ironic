@@ -15,8 +15,8 @@
 
 from http import client as http_client
 import json
+from unittest import mock
 
-import mock
 from oslo_config import cfg
 from testtools import matchers
 

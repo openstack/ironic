@@ -16,8 +16,7 @@ Tests for the versions constants and methods.
 """
 
 import re
-
-import mock
+from unittest import mock
 
 from ironic.api.controllers.v1 import versions
 from ironic.common import release_mappings

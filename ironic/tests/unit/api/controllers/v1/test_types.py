@@ -17,8 +17,8 @@
 
 from http import client as http_client
 import platform
+from unittest import mock
 
-import mock
 from pecan import rest
 
 from ironic.api.controllers.v1 import types
