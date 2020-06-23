@@ -209,6 +209,59 @@ class TestCommonFunctions(db_base.DbTestCase):
         self.assertCountEqual(
             [self.port.uuid], [p.uuid for p in free_port_like_objs])
 
+    def test__get_free_portgroups_and_ports_port_uuid(self):
+        self.node.network_interface = 'flat'
+        self.node.save()
+        pg1, pg1_ports, pg2, pg2_ports, pg3, pg3_ports = self._objects_setup(
+            set_physnets=False)
+        with task_manager.acquire(self.context, self.node.id) as task:
+            free_port_like_objs = (
+                common._get_free_portgroups_and_ports(
+                    task, self.vif_id, {}, {'port_uuid': self.port.uuid}))
+        self.assertItemsEqual(
+            [self.port.uuid],
+            [p.uuid for p in free_port_like_objs])
+
+    def test__get_free_portgroups_and_ports_portgroup_uuid(self):
+        self.node.network_interface = 'flat'
+        self.node.save()
+        pg1, pg1_ports, pg2, pg2_ports, pg3, pg3_ports = self._objects_setup(
+            set_physnets=False)
+        with task_manager.acquire(self.context, self.node.id) as task:
+            free_port_like_objs = (
+                common._get_free_portgroups_and_ports(
+                    task, self.vif_id, {}, {'portgroup_uuid': pg1.uuid}))
+        self.assertItemsEqual(
+            [pg1.uuid],
+            [p.uuid for p in free_port_like_objs])
+
+    def test__get_free_portgroups_and_ports_portgroup_uuid_attached_vifs(self):
+        self.node.network_interface = 'flat'
+        self.node.save()
+        pg1, pg1_ports, pg2, pg2_ports, pg3, pg3_ports = self._objects_setup(
+            set_physnets=False)
+        with task_manager.acquire(self.context, self.node.id) as task:
+            free_port_like_objs = (
+                common._get_free_portgroups_and_ports(
+                    task, self.vif_id, {}, {'portgroup_uuid': pg2.uuid}))
+        self.assertItemsEqual(
+            [],
+            [p.uuid for p in free_port_like_objs])
+
+    def test__get_free_portgroups_and_ports_no_matching_uuid(self):
+        self.node.network_interface = 'flat'
+        self.node.save()
+        pg1, pg1_ports, pg2, pg2_ports, pg3, pg3_ports = self._objects_setup(
+            set_physnets=False)
+        with task_manager.acquire(self.context, self.node.id) as task:
+            free_port_like_objs = (
+                common._get_free_portgroups_and_ports(
+                    task, self.vif_id, {},
+                    {'port_uuid': uuidutils.generate_uuid()}))
+        self.assertItemsEqual(
+            [],
+            [p.uuid for p in free_port_like_objs])
+
     @mock.patch.object(neutron_common, 'validate_port_info', autospec=True,
                        return_value=True)
     def test_get_free_port_like_object_ports(self, vpi_mock):
@@ -726,7 +779,8 @@ class TestNeutronVifPortIDMixin(db_base.DbTestCase):
             mock_upa.assert_called_once_with(
                 "fake_vif_id", self.port.address, context=task.context)
         self.assertFalse(mock_gpbpi.called)
-        mock_gfp.assert_called_once_with(task, 'fake_vif_id', set())
+        mock_gfp.assert_called_once_with(task, 'fake_vif_id', set(),
+                                         {'id': 'fake_vif_id'})
         mock_save.assert_called_once_with(self.port, "fake_vif_id")
 
     @mock.patch.object(common.VIFPortIDMixin, '_save_vif_to_port_like_obj')
@@ -742,7 +796,8 @@ class TestNeutronVifPortIDMixin(db_base.DbTestCase):
         with task_manager.acquire(self.context, self.node.id) as task:
             self.assertRaises(exception.NoFreePhysicalPorts,
                               self.interface.vif_attach, task, vif)
-        mock_gfp.assert_called_once_with(task, 'fake_vif_id', set())
+        mock_gfp.assert_called_once_with(task, 'fake_vif_id', set(),
+                                         {'id': 'fake_vif_id'})
         self.assertFalse(mock_save.called)
 
     @mock.patch.object(common.VIFPortIDMixin, '_save_vif_to_port_like_obj')
@@ -765,7 +820,8 @@ class TestNeutronVifPortIDMixin(db_base.DbTestCase):
                 "fake_vif_id", self.port.address, context=task.context)
         mock_gpbpi.assert_called_once_with(mock_client.return_value,
                                            'fake_vif_id')
-        mock_gfp.assert_called_once_with(task, 'fake_vif_id', {'physnet1'})
+        mock_gfp.assert_called_once_with(task, 'fake_vif_id', {'physnet1'},
+                                         {'id': 'fake_vif_id'})
         mock_save.assert_called_once_with(self.port, "fake_vif_id")
 
     @mock.patch.object(common.VIFPortIDMixin, '_save_vif_to_port_like_obj')
@@ -787,7 +843,8 @@ class TestNeutronVifPortIDMixin(db_base.DbTestCase):
             mock_upa.assert_called_once_with(
                 "fake_vif_id", self.port.address, context=task.context)
         self.assertFalse(mock_gpbpi.called)
-        mock_gfp.assert_called_once_with(task, 'fake_vif_id', set())
+        mock_gfp.assert_called_once_with(task, 'fake_vif_id', set(),
+                                         {'id': 'fake_vif_id'})
         mock_save.assert_called_once_with(self.port, "fake_vif_id")
         mock_plug.assert_called_once_with(task, self.port, mock.ANY)
 
@@ -813,7 +870,8 @@ class TestNeutronVifPortIDMixin(db_base.DbTestCase):
             mock_upa.assert_called_once_with(
                 "fake_vif_id", self.port.address, context=task.context)
         self.assertFalse(mock_gpbpi.called)
-        mock_gfp.assert_called_once_with(task, 'fake_vif_id', set())
+        mock_gfp.assert_called_once_with(task, 'fake_vif_id', set(),
+                                         {'id': 'fake_vif_id'})
         mock_save.assert_called_once_with(self.port, "fake_vif_id")
         mock_plug.assert_called_once_with(task, self.port, mock.ANY)
 
@@ -833,7 +891,8 @@ class TestNeutronVifPortIDMixin(db_base.DbTestCase):
             self.interface.vif_attach(task, vif)
             mock_client.assert_called_once_with(context=task.context)
         self.assertFalse(mock_gpbpi.called)
-        mock_gfp.assert_called_once_with(task, 'fake_vif_id', set())
+        mock_gfp.assert_called_once_with(task, 'fake_vif_id', set(),
+                                         {'id': 'fake_vif_id'})
         self.assertFalse(mock_client.return_value.show_port.called)
         self.assertFalse(mock_upa.called)
         mock_save.assert_called_once_with(pg, "fake_vif_id")

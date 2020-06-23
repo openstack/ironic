@@ -1,0 +1,8 @@
+---
+features:
+  - |
+    Adds the ability for Ironic to attach a node to a specific port or portgroup.
+    This is accomplished by having the node vif_attach API accept a port_uuid or
+    portgroup_uuid key within vif_info. If one is specified, then Ironic will
+    attempt to attach to the specified port/portgroup. Specifying both returns
+    an error.

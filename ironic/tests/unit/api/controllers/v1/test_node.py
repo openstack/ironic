@@ -6177,6 +6177,51 @@ class TestAttachDetachVif(test_api_base.BaseApiTest):
         self.assertTrue(ret.json['error_message'])
 
     @mock.patch.object(objects.Node, 'get_by_uuid')
+    @mock.patch.object(rpcapi.ConductorAPI, 'vif_attach')
+    def test_vif_attach_port_uuid_and_portgroup_uuid(self, mock_attach,
+                                                     mock_get):
+        vif_id = uuidutils.generate_uuid()
+        request_body = {
+            'id': vif_id,
+            'port_uuid': 'port-uuid',
+            'portgroup_uuid': 'portgroup-uuid'
+        }
+
+        mock_get.return_value = self.node
+
+        ret = self.post_json('/nodes/%s/vifs' % self.node.uuid,
+                             request_body, expect_errors=True,
+                             headers={api_base.Version.string:
+                                      "1.67"})
+
+        self.assertEqual(http_client.BAD_REQUEST, ret.status_int)
+        self.assertTrue(ret.json['error_message'])
+
+    @mock.patch.object(objects.Node, 'get_by_uuid')
+    @mock.patch.object(rpcapi.ConductorAPI, 'vif_attach')
+    def test_vif_attach_port_uuid_and_portgroup_uuid_old(self, mock_attach,
+                                                         mock_get):
+        vif_id = uuidutils.generate_uuid()
+        request_body = {
+            'id': vif_id,
+            'port_uuid': 'port-uuid',
+            'portgroup_uuid': 'portgroup-uuid'
+        }
+
+        mock_get.return_value = self.node
+
+        ret = self.post_json('/nodes/%s/vifs' % self.node.uuid,
+                             request_body,
+                             headers={api_base.Version.string:
+                                      self.vif_version})
+
+        self.assertEqual(http_client.NO_CONTENT, ret.status_code)
+        mock_get.assert_called_once_with(mock.ANY, self.node.uuid)
+        mock_attach.assert_called_once_with(mock.ANY, self.node.uuid,
+                                            vif_info=request_body,
+                                            topic='test-topic')
+
+    @mock.patch.object(objects.Node, 'get_by_uuid')
     @mock.patch.object(rpcapi.ConductorAPI, 'vif_detach')
     def test_vif_detach(self, mock_detach, mock_get):
         vif_id = uuidutils.generate_uuid()
