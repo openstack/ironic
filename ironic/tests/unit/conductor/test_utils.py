@@ -175,7 +175,8 @@ class NodePowerActionTestCase(db_base.DbTestCase):
         self.assertIsNone(node['target_power_state'])
         self.assertIsNone(node['last_error'])
 
-    @mock.patch('ironic.objects.node.NodeSetPowerStateNotification')
+    @mock.patch('ironic.objects.node.NodeSetPowerStateNotification',
+                autospec=True)
     @mock.patch.object(fake.FakePower, 'get_power_state', autospec=True)
     @mock.patch.object(nova, 'power_update', autospec=True)
     def test_node_power_action_power_on_notify(self, mock_power_update,
@@ -288,7 +289,8 @@ class NodePowerActionTestCase(db_base.DbTestCase):
         self.assertIsNone(node['target_power_state'])
         self.assertIsNone(node['last_error'])
 
-    @mock.patch('ironic.objects.node.NodeSetPowerStateNotification')
+    @mock.patch('ironic.objects.node.NodeSetPowerStateNotification',
+                autospec=True)
     @mock.patch.object(fake.FakePower, 'get_power_state', autospec=True)
     def test_node_power_action_invalid_state_notify(self, get_power_mock,
                                                     mock_notif):
@@ -440,7 +442,8 @@ class NodePowerActionTestCase(db_base.DbTestCase):
         self.assertIsNone(node['target_power_state'])
         self.assertIsNotNone(node['last_error'])
 
-    @mock.patch('ironic.objects.node.NodeSetPowerStateNotification')
+    @mock.patch('ironic.objects.node.NodeSetPowerStateNotification',
+                autospec=True)
     @mock.patch.object(fake.FakePower, 'get_power_state', autospec=True)
     def test_node_power_action_failed_getting_state_notify(self,
                                                            get_power_mock,
@@ -514,7 +517,8 @@ class NodePowerActionTestCase(db_base.DbTestCase):
         self.assertIsNone(node['target_power_state'])
         self.assertIsNotNone(node['last_error'])
 
-    @mock.patch('ironic.objects.node.NodeSetPowerStateNotification')
+    @mock.patch('ironic.objects.node.NodeSetPowerStateNotification',
+                autospec=True)
     @mock.patch.object(fake.FakePower, 'set_power_state', autospec=True)
     @mock.patch.object(fake.FakePower, 'get_power_state', autospec=True)
     def test_node_power_action_set_power_failure_notify(self, get_power_mock,
@@ -711,7 +715,8 @@ class NodePowerActionTestCase(db_base.DbTestCase):
         self.assertEqual(states.NOSTATE, node['target_power_state'])
         self.assertIsNone(node['last_error'])
 
-    @mock.patch('ironic.objects.node.NodeSetPowerStateNotification')
+    @mock.patch('ironic.objects.node.NodeSetPowerStateNotification',
+                autospec=True)
     @mock.patch.object(fake.FakePower, 'get_power_state', autospec=True)
     def test__can_skip_state_change_failed_getting_state_notify(
             self, get_power_mock, mock_notif):
@@ -1001,7 +1006,7 @@ class ErrorHandlersTestCase(tests_base.TestCase):
                                  maintenance=False, maintenance_reason=None)
         self.task.context = self.context
 
-    @mock.patch.object(conductor_utils, 'LOG')
+    @mock.patch.object(conductor_utils, 'LOG', autospec=True)
     def test_provision_error_handler_no_worker(self, log_mock):
         exc = exception.NoFreeConductorWorker()
         conductor_utils.provisioning_error_handler(exc, self.node, 'state-one',
@@ -1012,7 +1017,7 @@ class ErrorHandlersTestCase(tests_base.TestCase):
         self.assertIn('No free conductor workers', self.node.last_error)
         self.assertTrue(log_mock.warning.called)
 
-    @mock.patch.object(conductor_utils, 'LOG')
+    @mock.patch.object(conductor_utils, 'LOG', autospec=True)
     def test_provision_error_handler_other_error(self, log_mock):
         exc = Exception('foo')
         conductor_utils.provisioning_error_handler(exc, self.node, 'state-one',
@@ -1020,7 +1025,8 @@ class ErrorHandlersTestCase(tests_base.TestCase):
         self.assertFalse(self.node.save.called)
         self.assertFalse(log_mock.warning.called)
 
-    @mock.patch.object(conductor_utils, 'cleaning_error_handler')
+    @mock.patch.object(conductor_utils, 'cleaning_error_handler',
+                       autospec=True)
     def test_cleanup_cleanwait_timeout_handler_call(self, mock_error_handler):
         self.node.clean_step = {}
         conductor_utils.cleanup_cleanwait_timeout(self.task)
@@ -1117,7 +1123,7 @@ class ErrorHandlersTestCase(tests_base.TestCase):
         driver.tear_down_cleaning.assert_called_once_with(self.task)
         self.assertFalse(self.task.process_event.called)
 
-    @mock.patch.object(conductor_utils, 'LOG')
+    @mock.patch.object(conductor_utils, 'LOG', autospec=True)
     def test_cleaning_error_handler_tear_down_error(self, log_mock):
         def _side_effect(task):
             # simulate overwriting last error by another operation (e.g. power)
@@ -1151,7 +1157,7 @@ class ErrorHandlersTestCase(tests_base.TestCase):
         self.assertIn('take over', self.node.last_error)
         self.node.save.assert_called_once_with()
 
-    @mock.patch.object(conductor_utils, 'LOG')
+    @mock.patch.object(conductor_utils, 'LOG', autospec=True)
     def test_spawn_cleaning_error_handler_no_worker(self, log_mock):
         exc = exception.NoFreeConductorWorker()
         conductor_utils.spawn_cleaning_error_handler(exc, self.node)
@@ -1159,7 +1165,7 @@ class ErrorHandlersTestCase(tests_base.TestCase):
         self.assertIn('No free conductor workers', self.node.last_error)
         self.assertTrue(log_mock.warning.called)
 
-    @mock.patch.object(conductor_utils, 'LOG')
+    @mock.patch.object(conductor_utils, 'LOG', autospec=True)
     def test_spawn_cleaning_error_handler_other_error(self, log_mock):
         exc = Exception('foo')
         conductor_utils.spawn_cleaning_error_handler(exc, self.node)
@@ -1181,7 +1187,7 @@ class ErrorHandlersTestCase(tests_base.TestCase):
         self.assertFalse(self.node.save.called)
         self.assertFalse(log_mock.warning.called)
 
-    @mock.patch.object(conductor_utils, 'LOG')
+    @mock.patch.object(conductor_utils, 'LOG', autospec=True)
     def test_spawn_rescue_error_handler_no_worker(self, log_mock):
         exc = exception.NoFreeConductorWorker()
         self.node.instance_info = {'rescue_password': 'pass',
@@ -1193,7 +1199,7 @@ class ErrorHandlersTestCase(tests_base.TestCase):
         self.assertNotIn('rescue_password', self.node.instance_info)
         self.assertNotIn('hashed_rescue_password', self.node.instance_info)
 
-    @mock.patch.object(conductor_utils, 'LOG')
+    @mock.patch.object(conductor_utils, 'LOG', autospec=True)
     def test_spawn_rescue_error_handler_other_error(self, log_mock):
         exc = Exception('foo')
         self.node.instance_info = {'rescue_password': 'pass',
@@ -1203,7 +1209,7 @@ class ErrorHandlersTestCase(tests_base.TestCase):
         self.assertFalse(log_mock.warning.called)
         self.assertIn('rescue_password', self.node.instance_info)
 
-    @mock.patch.object(conductor_utils, 'LOG')
+    @mock.patch.object(conductor_utils, 'LOG', autospec=True)
     def test_power_state_error_handler_no_worker(self, log_mock):
         exc = exception.NoFreeConductorWorker()
         conductor_utils.power_state_error_handler(exc, self.node, 'newstate')
@@ -1213,15 +1219,15 @@ class ErrorHandlersTestCase(tests_base.TestCase):
         self.assertIn('No free conductor workers', self.node.last_error)
         self.assertTrue(log_mock.warning.called)
 
-    @mock.patch.object(conductor_utils, 'LOG')
+    @mock.patch.object(conductor_utils, 'LOG', autospec=True)
     def test_power_state_error_handler_other_error(self, log_mock):
         exc = Exception('foo')
         conductor_utils.power_state_error_handler(exc, self.node, 'foo')
         self.assertFalse(self.node.save.called)
         self.assertFalse(log_mock.warning.called)
 
-    @mock.patch.object(conductor_utils, 'LOG')
-    @mock.patch.object(conductor_utils, 'node_power_action')
+    @mock.patch.object(conductor_utils, 'LOG', autospec=True)
+    @mock.patch.object(conductor_utils, 'node_power_action', autospec=True)
     def test_cleanup_rescuewait_timeout(self, node_power_mock, log_mock):
         conductor_utils.cleanup_rescuewait_timeout(self.task)
         self.assertTrue(log_mock.error.called)
@@ -1230,8 +1236,8 @@ class ErrorHandlersTestCase(tests_base.TestCase):
         self.assertIn('Timeout reached', self.node.last_error)
         self.node.save.assert_called_once_with()
 
-    @mock.patch.object(conductor_utils, 'LOG')
-    @mock.patch.object(conductor_utils, 'node_power_action')
+    @mock.patch.object(conductor_utils, 'LOG', autospec=True)
+    @mock.patch.object(conductor_utils, 'node_power_action', autospec=True)
     def test_cleanup_rescuewait_timeout_known_exc(
             self, node_power_mock, log_mock):
         clean_up_mock = self.task.driver.rescue.clean_up
@@ -1243,8 +1249,8 @@ class ErrorHandlersTestCase(tests_base.TestCase):
         self.assertIn('moocow', self.node.last_error)
         self.node.save.assert_called_once_with()
 
-    @mock.patch.object(conductor_utils, 'LOG')
-    @mock.patch.object(conductor_utils, 'node_power_action')
+    @mock.patch.object(conductor_utils, 'LOG', autospec=True)
+    @mock.patch.object(conductor_utils, 'node_power_action', autospec=True)
     def test_cleanup_rescuewait_timeout_unknown_exc(
             self, node_power_mock, log_mock):
         clean_up_mock = self.task.driver.rescue.clean_up
@@ -1257,7 +1263,7 @@ class ErrorHandlersTestCase(tests_base.TestCase):
         self.node.save.assert_called_once_with()
         self.assertTrue(log_mock.exception.called)
 
-    @mock.patch.object(conductor_utils, 'node_power_action')
+    @mock.patch.object(conductor_utils, 'node_power_action', autospec=True)
     def _test_rescuing_error_handler(self, node_power_mock,
                                      set_state=True):
         self.node.provision_state = states.RESCUEWAIT
@@ -1280,8 +1286,8 @@ class ErrorHandlersTestCase(tests_base.TestCase):
     def test_rescuing_error_handler_set_failed_state_false(self):
         self._test_rescuing_error_handler(set_state=False)
 
-    @mock.patch.object(conductor_utils.LOG, 'error')
-    @mock.patch.object(conductor_utils, 'node_power_action')
+    @mock.patch.object(conductor_utils.LOG, 'error', autospec=True)
+    @mock.patch.object(conductor_utils, 'node_power_action', autospec=True)
     def test_rescuing_error_handler_ironic_exc(self, node_power_mock,
                                                log_mock):
         self.node.provision_state = states.RESCUEWAIT
@@ -1299,8 +1305,8 @@ class ErrorHandlersTestCase(tests_base.TestCase):
                                           'error': expected_exc})
         self.node.save.assert_called_once_with()
 
-    @mock.patch.object(conductor_utils.LOG, 'exception')
-    @mock.patch.object(conductor_utils, 'node_power_action')
+    @mock.patch.object(conductor_utils.LOG, 'exception', autospec=True)
+    @mock.patch.object(conductor_utils, 'node_power_action', autospec=True)
     def test_rescuing_error_handler_other_exc(self, node_power_mock,
                                               log_mock):
         self.node.provision_state = states.RESCUEWAIT
@@ -1317,8 +1323,8 @@ class ErrorHandlersTestCase(tests_base.TestCase):
                                          {'node': self.node.uuid})
         self.node.save.assert_called_once_with()
 
-    @mock.patch.object(conductor_utils.LOG, 'error')
-    @mock.patch.object(conductor_utils, 'node_power_action')
+    @mock.patch.object(conductor_utils.LOG, 'error', autospec=True)
+    @mock.patch.object(conductor_utils, 'node_power_action', autospec=True)
     def test_rescuing_error_handler_bad_state(self, node_power_mock,
                                               log_mock):
         self.node.provision_state = states.RESCUE
@@ -1351,7 +1357,7 @@ class ValidatePortPhysnetTestCase(db_base.DbTestCase):
         self.node = obj_utils.create_test_node(self.context,
                                                driver='fake-hardware')
 
-    @mock.patch.object(objects.Port, 'obj_what_changed')
+    @mock.patch.object(objects.Port, 'obj_what_changed', autospec=True)
     def test_validate_port_physnet_no_portgroup_create(self, mock_owc):
         port = obj_utils.get_test_port(self.context, node_id=self.node.id)
         # NOTE(mgoddard): The port object passed to the conductor will not have
@@ -1362,7 +1368,7 @@ class ValidatePortPhysnetTestCase(db_base.DbTestCase):
         # Verify the early return in the non-portgroup case.
         self.assertFalse(mock_owc.called)
 
-    @mock.patch.object(network, 'get_ports_by_portgroup_id')
+    @mock.patch.object(network, 'get_ports_by_portgroup_id', autospec=True)
     def test_validate_port_physnet_no_portgroup_update(self, mock_gpbpi):
         port = obj_utils.create_test_port(self.context, node_id=self.node.id)
         port.extra = {'foo': 'bar'}
@@ -1716,7 +1722,8 @@ class MiscTestCase(db_base.DbTestCase):
 
     @mock.patch.object(time, 'sleep', autospec=True)
     @mock.patch.object(fake.FakePower, 'get_power_state', autospec=True)
-    @mock.patch.object(drivers_base.NetworkInterface, 'need_power_on')
+    @mock.patch.object(drivers_base.NetworkInterface, 'need_power_on',
+                       autospec=True)
     @mock.patch.object(conductor_utils, 'node_set_boot_device',
                        autospec=True)
     @mock.patch.object(conductor_utils, 'node_power_action',
@@ -1736,7 +1743,8 @@ class MiscTestCase(db_base.DbTestCase):
 
     @mock.patch.object(time, 'sleep', autospec=True)
     @mock.patch.object(fake.FakePower, 'get_power_state', autospec=True)
-    @mock.patch.object(drivers_base.NetworkInterface, 'need_power_on')
+    @mock.patch.object(drivers_base.NetworkInterface, 'need_power_on',
+                       autospec=True)
     @mock.patch.object(conductor_utils, 'node_set_boot_device',
                        autospec=True)
     @mock.patch.object(conductor_utils, 'node_power_action',
@@ -1755,7 +1763,8 @@ class MiscTestCase(db_base.DbTestCase):
 
     @mock.patch.object(time, 'sleep', autospec=True)
     @mock.patch.object(fake.FakePower, 'get_power_state', autospec=True)
-    @mock.patch.object(drivers_base.NetworkInterface, 'need_power_on')
+    @mock.patch.object(drivers_base.NetworkInterface, 'need_power_on',
+                       autospec=True)
     @mock.patch.object(conductor_utils, 'node_set_boot_device',
                        autospec=True)
     @mock.patch.object(conductor_utils, 'node_power_action',
@@ -1776,7 +1785,8 @@ class MiscTestCase(db_base.DbTestCase):
     @mock.patch.object(neutron, 'wait_for_host_agent', autospec=True)
     @mock.patch.object(time, 'sleep', autospec=True)
     @mock.patch.object(fake.FakePower, 'get_power_state', autospec=True)
-    @mock.patch.object(drivers_base.NetworkInterface, 'need_power_on')
+    @mock.patch.object(drivers_base.NetworkInterface, 'need_power_on',
+                       autospec=True)
     @mock.patch.object(conductor_utils, 'node_set_boot_device',
                        autospec=True)
     @mock.patch.object(conductor_utils, 'node_power_action',
