@@ -36,10 +36,12 @@ The ironic project moved from Launchpad to `StoryBoard
 <https://storyboard.openstack.org/>`_ for work and task tracking.
 This provides an aggregate view called a "Project Group"
 and individual "Projects". A good starting place is the
-`project group <https://storyboard.openstack.org/#!/project_group/75>`_
+`project group <https://storyboard.openstack.org/#!/project_group/ironic>`_
 representing the whole of the ironic community, as opposed to
 the `ironic project <https://storyboard.openstack.org/#!/project/943>`_
 storyboard which represents ironic as a repository.
+
+See :doc:`bugs` for more details on how we track bugs.
 
 Internet Relay Chat 'IRC'
 -------------------------
