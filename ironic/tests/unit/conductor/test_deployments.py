@@ -426,6 +426,39 @@ class DoNextDeployStepTestCase(mgr_utils.ServiceSetUpMixin,
 
     @mock.patch('ironic.drivers.modules.fake.FakeDeploy.execute_deploy_step',
                 autospec=True)
+    def test__do_next_deploy_step_in_deploywait(self, mock_execute):
+        driver_internal_info = {'deploy_step_index': None,
+                                'deploy_steps': self.deploy_steps}
+        self._start_service()
+        node = obj_utils.create_test_node(
+            self.context, driver='fake-hardware',
+            driver_internal_info=driver_internal_info,
+            deploy_step={})
+
+        def fake_execute(interface, task, step):
+            # A deploy step leaves the node in DEPLOYWAIT
+            task.process_event('wait')
+            return states.DEPLOYWAIT
+
+        mock_execute.side_effect = fake_execute
+        expected_first_step = node.driver_internal_info['deploy_steps'][0]
+        task = task_manager.TaskManager(self.context, node.uuid)
+        task.process_event('deploy')
+
+        deployments.do_next_deploy_step(task, 0, self.service.conductor.id)
+
+        node.refresh()
+        self.assertIsNone(node.last_error)
+        self.assertEqual(states.DEPLOYWAIT, node.provision_state)
+        self.assertEqual(states.ACTIVE, node.target_provision_state)
+        self.assertEqual(expected_first_step, node.deploy_step)
+        self.assertEqual(0, node.driver_internal_info['deploy_step_index'])
+        self.assertEqual(self.service.conductor.id, node.conductor_affinity)
+        mock_execute.assert_called_once_with(mock.ANY, task,
+                                             self.deploy_steps[0])
+
+    @mock.patch('ironic.drivers.modules.fake.FakeDeploy.execute_deploy_step',
+                autospec=True)
     def test__do_next_deploy_step_continue_from_last_step(self, mock_execute):
         # Resume an in-progress deploy after the first async step
         driver_internal_info = {'deploy_step_index': 0,
