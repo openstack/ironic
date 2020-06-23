@@ -77,11 +77,16 @@ class AgentClient(object):
 
         :param node: A Node object.
         :param method: A string represents the command executed by agent.
+        :raises: AgentCommandTimeout if timeout is reached.
         """
         try:
             method = method.split('.', 1)[1]
         except IndexError:
             pass
+
+        # NOTE(dtantsur): this function uses AgentCommandTimeout on every
+        # failure, but unless the timeout is reached, the exception is caught
+        # and retried by the @retry decorator above.
 
         commands = self.get_commands_status(node)
         try:
