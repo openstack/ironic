@@ -1590,6 +1590,7 @@ function configure_ironic_conductor {
         # specific driver interfaces in DevStack
         iniset $IRONIC_CONF_FILE DEFAULT enabled_power_interfaces "snmp"
         iniset $IRONIC_CONF_FILE DEFAULT enabled_management_interfaces "noop"
+        iniset $IRONIC_CONF_FILE pxe enable_netboot_fallback True
     fi
 
     if is_ansible_deploy_enabled; then

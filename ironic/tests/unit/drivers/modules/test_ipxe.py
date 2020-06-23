@@ -857,6 +857,41 @@ class iPXEBootTestCase(db_base.DbTestCase):
                 task, ipxe_enabled=True)
             self.assertFalse(set_boot_device_mock.called)
 
+    @mock.patch.object(manager_utils, 'node_set_boot_device', autospec=True)
+    @mock.patch.object(pxe_utils, 'clean_up_pxe_config', autospec=True)
+    @mock.patch.object(deploy_utils, 'switch_pxe_config', autospec=True)
+    @mock.patch.object(dhcp_factory, 'DHCPFactory', autospec=True)
+    @mock.patch.object(pxe_utils, 'cache_ramdisk_kernel', autospec=True)
+    @mock.patch.object(pxe_utils, 'get_instance_image_info', autospec=True)
+    def test_prepare_instance_localboot_with_fallback(
+            self, get_image_info_mock, cache_mock,
+            dhcp_factory_mock, switch_pxe_config_mock,
+            clean_up_pxe_config_mock, set_boot_device_mock):
+        self.config(enable_netboot_fallback=True, group='pxe')
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            task.node.instance_info = task.node.instance_info
+            task.node.instance_info['capabilities'] = {'boot_option': 'local'}
+            task.node.driver_internal_info['root_uuid_or_disk_id'] = (
+                "30212642-09d3-467f-8e09-21685826ab50")
+            task.node.driver_internal_info['is_whole_disk_image'] = False
+            pxe_config_path = pxe_utils.get_pxe_config_file_path(
+                task.node.uuid, ipxe_enabled=True)
+
+            task.driver.boot.prepare_instance(task)
+
+            set_boot_device_mock.assert_called_once_with(task,
+                                                         boot_devices.DISK,
+                                                         persistent=True)
+            switch_pxe_config_mock.assert_called_once_with(
+                pxe_config_path, "30212642-09d3-467f-8e09-21685826ab50",
+                'bios', True, False, False, False, ipxe_enabled=True)
+            # No clean up
+            self.assertFalse(clean_up_pxe_config_mock.called)
+            # No netboot configuration beyond the PXE files
+            self.assertFalse(get_image_info_mock.called)
+            self.assertFalse(cache_mock.called)
+            self.assertFalse(dhcp_factory_mock.return_value.update_dhcp.called)
+
     @mock.patch.object(pxe_utils, 'clean_up_pxe_env', autospec=True)
     @mock.patch.object(pxe_utils, 'get_instance_image_info', autospec=True)
     def test_clean_up_instance(self, get_image_info_mock,

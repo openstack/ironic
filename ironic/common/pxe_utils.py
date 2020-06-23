@@ -782,7 +782,8 @@ def build_pxe_config_options(task, pxe_info, service=False,
 def build_service_pxe_config(task, instance_image_info,
                              root_uuid_or_disk_id,
                              ramdisk_boot=False,
-                             ipxe_enabled=False):
+                             ipxe_enabled=False,
+                             is_whole_disk_image=None):
     node = task.node
     pxe_config_path = get_pxe_config_file_path(node.uuid,
                                                ipxe_enabled=ipxe_enabled)
@@ -802,12 +803,16 @@ def build_service_pxe_config(task, instance_image_info,
         pxe_config_template = deploy_utils.get_pxe_config_template(node)
         create_pxe_config(task, pxe_options, pxe_config_template,
                           ipxe_enabled=ipxe_enabled)
-    iwdi = node.driver_internal_info.get('is_whole_disk_image')
+
+    if is_whole_disk_image is None:
+        is_whole_disk_image = node.driver_internal_info.get(
+            'is_whole_disk_image')
 
     deploy_utils.switch_pxe_config(
         pxe_config_path, root_uuid_or_disk_id,
         boot_mode_utils.get_boot_mode(node),
-        iwdi, deploy_utils.is_trusted_boot_requested(node),
+        is_whole_disk_image,
+        deploy_utils.is_trusted_boot_requested(node),
         deploy_utils.is_iscsi_boot(task), ramdisk_boot,
         ipxe_enabled=ipxe_enabled)
 

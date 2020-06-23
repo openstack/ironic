@@ -178,7 +178,7 @@ def switch_pxe_config(path, root_uuid_or_disk_id, boot_mode,
     :param ipxe_enabled: A default False boolean value to tell the method
                          if the caller is using iPXE.
     """
-    if not ramdisk_boot:
+    if not ramdisk_boot and root_uuid_or_disk_id is not None:
         if not is_whole_disk_image:
             _replace_root_uuid(path, root_uuid_or_disk_id)
         else:

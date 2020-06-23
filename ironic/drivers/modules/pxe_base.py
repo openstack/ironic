@@ -301,11 +301,22 @@ class PXEBaseMixin(object):
                     ipxe_enabled=self.ipxe_enabled)
                 boot_device = boot_devices.PXE
         else:
-            # If it's going to boot from the local disk, we don't need
-            # PXE config files. They still need to be generated as part
-            # of the prepare() because the deployment does PXE boot the
-            # deploy ramdisk
-            pxe_utils.clean_up_pxe_config(task, ipxe_enabled=self.ipxe_enabled)
+            # NOTE(dtantsur): create a PXE configuration as a safety net for
+            # hardware uncapable of persistent boot. If on a reboot it will try
+            # to boot from PXE, this configuration will return it back.
+            if CONF.pxe.enable_netboot_fallback:
+                pxe_utils.build_service_pxe_config(
+                    task, instance_image_info,
+                    task.node.driver_internal_info.get('root_uuid_or_disk_id'),
+                    ipxe_enabled=self.ipxe_enabled,
+                    # PXE config for whole disk images is identical to what
+                    # we need to boot from local disk, so use True even
+                    # for partition images.
+                    is_whole_disk_image=True)
+            else:
+                # Clean up the deployment configuration
+                pxe_utils.clean_up_pxe_config(
+                    task, ipxe_enabled=self.ipxe_enabled)
             boot_device = boot_devices.DISK
 
         # NOTE(pas-ha) do not re-set boot device on ACTIVE nodes
