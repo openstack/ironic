@@ -25,9 +25,9 @@ import traceback
 from oslo_config import cfg
 from oslo_log import log
 import pecan
-import wsme
 import wsme.rest.args
 
+from ironic.api import functions
 from ironic.api import types as atypes
 
 LOG = log.getLogger(__name__)
@@ -58,11 +58,11 @@ pecan_json_decorate = pecan.expose(
 
 
 def expose(*args, **kwargs):
-    sig = wsme.signature(*args, **kwargs)
+    sig = functions.signature(*args, **kwargs)
 
     def decorate(f):
         sig(f)
-        funcdef = wsme.api.FunctionDefinition.get(f)
+        funcdef = functions.FunctionDefinition.get(f)
         funcdef.resolve_types(atypes.registry)
 
         @functools.wraps(f)
@@ -212,7 +212,7 @@ class validate(object):
         self.param_types = param_types
 
     def __call__(self, func):
-        argspec = wsme.api.getargspec(func)
-        fd = wsme.api.FunctionDefinition.get(func)
+        argspec = functions.getargspec(func)
+        fd = functions.FunctionDefinition.get(func)
         fd.set_arg_types(argspec, self.param_types)
         return func
