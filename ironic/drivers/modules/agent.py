@@ -19,7 +19,6 @@ from oslo_log import log
 from oslo_utils import excutils
 from oslo_utils import units
 
-from ironic.common import dhcp_factory
 from ironic.common import exception
 from ironic.common.glance_service import service_utils
 from ironic.common.i18n import _
@@ -380,7 +379,8 @@ class AgentDeployMixin(agent_base.AgentDeployMixin):
         self.reboot_and_finish_deploy(task)
 
 
-class AgentDeploy(AgentDeployMixin, base.DeployInterface):
+class AgentDeploy(AgentDeployMixin, agent_base.AgentBaseMixin,
+                  base.DeployInterface):
     """Interface for deploy-related actions."""
 
     def get_properties(self):
@@ -389,6 +389,10 @@ class AgentDeploy(AgentDeployMixin, base.DeployInterface):
         :returns: dictionary of <property name>:<property description> entries.
         """
         return COMMON_PROPERTIES
+
+    def should_manage_boot(self, task):
+        """Whether agent boot is managed by ironic."""
+        return CONF.agent.manage_agent_boot
 
     @METRICS.timer('AgentDeploy.validate')
     def validate(self, task):
@@ -507,31 +511,6 @@ class AgentDeploy(AgentDeployMixin, base.DeployInterface):
             manager_utils.node_power_action(task, states.POWER_ON)
             LOG.info('Deployment to node %s done', task.node.uuid)
             return None
-
-    @METRICS.timer('AgentDeploy.tear_down')
-    @task_manager.require_exclusive_lock
-    def tear_down(self, task):
-        """Tear down a previous deployment on the task's node.
-
-        :param task: a TaskManager instance.
-        :returns: status of the deploy. One of ironic.common.states.
-        :raises: NetworkError if the cleaning ports cannot be removed.
-        :raises: InvalidParameterValue when the wrong power state is specified
-             or the wrong driver info is specified for power management.
-        :raises: StorageError when the storage interface attached volumes fail
-             to detach.
-        :raises: other exceptions by the node's power driver if something
-             wrong occurred during the power action.
-        """
-        manager_utils.node_power_action(task, states.POWER_OFF)
-        task.driver.storage.detach_volumes(task)
-        deploy_utils.tear_down_storage_configuration(task)
-        with manager_utils.power_state_for_network_configuration(task):
-            task.driver.network.unconfigure_tenant_networks(task)
-            # NOTE(mgoddard): If the deployment was unsuccessful the node may
-            # have ports on the provisioning network which were not deleted.
-            task.driver.network.remove_provisioning_network(task)
-        return states.DELETED
 
     @METRICS.timer('AgentDeploy.prepare')
     @task_manager.require_exclusive_lock
@@ -658,45 +637,9 @@ class AgentDeploy(AgentDeployMixin, base.DeployInterface):
 
         :param task: a TaskManager instance.
         """
-        if CONF.agent.manage_agent_boot:
-            task.driver.boot.clean_up_ramdisk(task)
-        task.driver.boot.clean_up_instance(task)
-        provider = dhcp_factory.DHCPFactory()
-        provider.clean_dhcp(task)
+        super(AgentDeploy, self).clean_up(task)
         if CONF.agent.image_download_source == 'http':
             deploy_utils.destroy_http_instance_images(task.node)
-
-    def take_over(self, task):
-        """Take over management of this node from a dead conductor.
-
-        :param task: a TaskManager instance.
-        """
-        pass
-
-    @METRICS.timer('AgentDeploy.prepare_cleaning')
-    def prepare_cleaning(self, task):
-        """Boot into the agent to prepare for cleaning.
-
-        :param task: a TaskManager object containing the node
-        :raises: NodeCleaningFailure, NetworkError if the previous cleaning
-            ports cannot be removed or if new cleaning ports cannot be created.
-        :raises: InvalidParameterValue if cleaning network UUID config option
-            has an invalid value.
-        :returns: states.CLEANWAIT to signify an asynchronous prepare
-        """
-        return deploy_utils.prepare_inband_cleaning(
-            task, manage_boot=CONF.agent.manage_agent_boot)
-
-    @METRICS.timer('AgentDeploy.tear_down_cleaning')
-    def tear_down_cleaning(self, task):
-        """Clean up the PXE and DHCP files after cleaning.
-
-        :param task: a TaskManager object containing the node
-        :raises: NodeCleaningFailure, NetworkError if the cleaning ports cannot
-            be removed
-        """
-        deploy_utils.tear_down_inband_cleaning(
-            task, manage_boot=CONF.agent.manage_agent_boot)
 
 
 class AgentRAID(base.RAIDInterface):
