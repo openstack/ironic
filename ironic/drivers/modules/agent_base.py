@@ -35,6 +35,7 @@ from ironic.conductor import steps as conductor_steps
 from ironic.conductor import task_manager
 from ironic.conductor import utils as manager_utils
 from ironic.conf import CONF
+from ironic.drivers import base
 from ironic.drivers.modules import agent_client
 from ironic.drivers.modules import boot_mode_utils
 from ironic.drivers.modules import deploy_utils
@@ -382,8 +383,21 @@ def _step_failure_handler(task, msg, step_type):
 class HeartbeatMixin(object):
     """Mixin class implementing heartbeat processing."""
 
+    has_decomposed_deploy_steps = False
+    """Whether the driver supports decomposed deploy steps.
+
+    Previously (since Rocky), drivers used a single 'deploy' deploy step on
+    the deploy interface. Some additional steps were added for the 'direct'
+    and 'iscsi' deploy interfaces in the Ussuri cycle, which means that
+    more of the deployment flow is driven by deploy steps.
+    """
+
     def __init__(self):
         self._client = _get_client()
+        if not self.has_decomposed_deploy_steps:
+            LOG.warning('%s does not support decomposed deploy steps. This '
+                        'is deprecated and will stop working in a future '
+                        'release', self.__class__.__name__)
 
     def continue_deploy(self, task):
         """Continues the deployment of baremetal node.
@@ -501,8 +515,12 @@ class HeartbeatMixin(object):
             # are currently in the core deploy.deploy step. Other deploy steps
             # may cause the agent to boot, but we should not trigger deployment
             # at that point if the driver is polling for completion of a step.
-            if self.in_core_deploy_step(task):
+            if (not self.has_decomposed_deploy_steps
+                    and self.in_core_deploy_step(task)):
                 msg = _('Failed checking if deploy is done')
+                # NOTE(mgoddard): support backwards compatibility for
+                # drivers which do not implement continue_deploy and
+                # reboot_to_instance as deploy steps.
                 if not self.deploy_has_started(task):
                     msg = _('Node failed to deploy')
                     self.continue_deploy(task)
@@ -1067,16 +1085,13 @@ class AgentDeployMixin(HeartbeatMixin):
             LOG.error(msg)
             return _step_failure_handler(task, msg, step_type)
 
-    @METRICS.timer('AgentDeployMixin.reboot_and_finish_deploy')
-    def reboot_and_finish_deploy(self, task):
-        """Helper method to trigger reboot on the node and finish deploy.
-
-        This method initiates a reboot on the node. On success, it
-        marks the deploy as complete. On failure, it logs the error
-        and marks deploy as failure.
+    @METRICS.timer('AgentDeployMixin.tear_down_agent')
+    @base.deploy_step(priority=40)
+    @task_manager.require_exclusive_lock
+    def tear_down_agent(self, task):
+        """A deploy step to tear down the agent.
 
         :param task: a TaskManager object containing the node
-        :raises: InstanceDeployFailure, if node reboot failed.
         """
         wait = CONF.agent.post_deploy_get_power_state_retry_interval * 1000
         attempts = CONF.agent.post_deploy_get_power_state_retries + 1
@@ -1145,23 +1160,63 @@ class AgentDeployMixin(HeartbeatMixin):
                     'error': e})
             log_and_raise_deployment_error(task, msg, exc=e)
 
+    @METRICS.timer('AgentDeployMixin.switch_networking')
+    @base.deploy_step(priority=30)
+    @task_manager.require_exclusive_lock
+    def switch_to_tenant_network(self, task):
+        """Deploy step to switch the node to the tenant network.
+
+        :param task: a TaskManager object containing the node
+        """
         try:
             with manager_utils.power_state_for_network_configuration(task):
                 task.driver.network.remove_provisioning_network(task)
                 task.driver.network.configure_tenant_networks(task)
-            manager_utils.node_power_action(task, states.POWER_ON)
         except Exception as e:
-            msg = (_('Error rebooting node %(node)s after deploy. '
-                     '%(cls)s: %(error)s') %
-                   {'node': node.uuid, 'cls': e.__class__.__name__,
+            msg = (_('Error changing node %(node)s to tenant networks after '
+                     'deploy. %(cls)s: %(error)s') %
+                   {'node': task.node.uuid, 'cls': e.__class__.__name__,
                     'error': e})
             # NOTE(mgoddard): Don't collect logs since the node has been
             # powered off.
             log_and_raise_deployment_error(task, msg, collect_logs=False,
                                            exc=e)
 
-        # TODO(dtantsur): remove these two calls when this function becomes a
-        # real deploy step.
+    @METRICS.timer('AgentDeployMixin.boot_instance')
+    @base.deploy_step(priority=20)
+    @task_manager.require_exclusive_lock
+    def boot_instance(self, task):
+        """Deploy step to boot the final instance.
+
+        :param task: a TaskManager object containing the node
+        """
+        try:
+            manager_utils.node_power_action(task, states.POWER_ON)
+        except Exception as e:
+            msg = (_('Error booting node %(node)s after deploy. '
+                     '%(cls)s: %(error)s') %
+                   {'node': task.node.uuid, 'cls': e.__class__.__name__,
+                    'error': e})
+            # NOTE(mgoddard): Don't collect logs since the node has been
+            # powered off.
+            log_and_raise_deployment_error(task, msg, collect_logs=False,
+                                           exc=e)
+
+    # TODO(dtantsur): remove in W
+    @METRICS.timer('AgentDeployMixin.reboot_and_finish_deploy')
+    def reboot_and_finish_deploy(self, task):
+        """Helper method to trigger reboot on the node and finish deploy.
+
+        This method initiates a reboot on the node. On success, it
+        marks the deploy as complete. On failure, it logs the error
+        and marks deploy as failure.
+
+        :param task: a TaskManager object containing the node
+        :raises: InstanceDeployFailure, if node reboot failed.
+        """
+        # NOTE(dtantsur): do nothing here, the new deploy steps tear_down_agent
+        # and boot_instance will be picked up and finish the deploy (even for
+        # legacy deploy interfaces without decomposed steps).
         task.process_event('wait')
         manager_utils.notify_conductor_resume_deploy(task)
 

@@ -376,7 +376,6 @@ class AgentDeployMixin(agent_base.AgentDeployMixin):
         if CONF.agent.image_download_source == 'http':
             deploy_utils.remove_http_instance_symlink(task.node.uuid)
 
-        LOG.debug('Rebooting node %s to instance', node.uuid)
         self.reboot_and_finish_deploy(task)
 
 

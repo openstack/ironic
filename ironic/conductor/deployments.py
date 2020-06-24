@@ -268,6 +268,13 @@ def do_next_deploy_step(task, step_index, conductor_id):
                 _("Failed to deploy. Exception: %s") % e, traceback=True)
             return
 
+        if task.node.provision_state == states.DEPLOYFAIL:
+            # NOTE(dtantsur): some deploy steps do not raise but rather update
+            # the node and return. Take them into account.
+            LOG.debug('Node %s is in error state, not processing '
+                      'the remaining deploy steps', task.node)
+            return
+
         if ind == 0:
             # We've done the very first deploy step.
             # Update conductor_affinity to reference this conductor's ID
