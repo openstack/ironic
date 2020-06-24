@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    Ironic now does not try to allocate the space needed for instance image
+    conversion to raw format if it is already raw.

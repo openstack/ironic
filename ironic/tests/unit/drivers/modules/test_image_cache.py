@@ -733,8 +733,12 @@ class TestFetchCleanup(base.TestCase):
     @mock.patch.object(images, 'converted_size', autospec=True)
     @mock.patch.object(images, 'fetch', autospec=True)
     @mock.patch.object(images, 'image_to_raw', autospec=True)
+    @mock.patch.object(images, 'force_raw_will_convert', autospec=True,
+                       return_value=True)
     @mock.patch.object(image_cache, '_clean_up_caches', autospec=True)
-    def test__fetch(self, mock_clean, mock_raw, mock_fetch, mock_size):
+    def test__fetch(
+            self, mock_clean, mock_will_convert, mock_raw, mock_fetch,
+            mock_size):
         mock_size.return_value = 100
         image_cache._fetch('fake', 'fake-uuid', '/foo/bar', force_raw=True)
         mock_fetch.assert_called_once_with('fake', 'fake-uuid',
@@ -742,3 +746,22 @@ class TestFetchCleanup(base.TestCase):
         mock_clean.assert_called_once_with('/foo', 100)
         mock_raw.assert_called_once_with('fake-uuid', '/foo/bar',
                                          '/foo/bar.part')
+        mock_will_convert.assert_called_once_with('fake-uuid', '/foo/bar.part')
+
+    @mock.patch.object(images, 'converted_size', autospec=True)
+    @mock.patch.object(images, 'fetch', autospec=True)
+    @mock.patch.object(images, 'image_to_raw', autospec=True)
+    @mock.patch.object(images, 'force_raw_will_convert', autospec=True,
+                       return_value=False)
+    @mock.patch.object(image_cache, '_clean_up_caches', autospec=True)
+    def test__fetch_already_raw(
+            self, mock_clean, mock_will_convert, mock_raw, mock_fetch,
+            mock_size):
+        image_cache._fetch('fake', 'fake-uuid', '/foo/bar', force_raw=True)
+        mock_fetch.assert_called_once_with('fake', 'fake-uuid',
+                                           '/foo/bar.part', force_raw=False)
+        mock_clean.assert_not_called()
+        mock_size.assert_not_called()
+        mock_raw.assert_called_once_with('fake-uuid', '/foo/bar',
+                                         '/foo/bar.part')
+        mock_will_convert.assert_called_once_with('fake-uuid', '/foo/bar.part')

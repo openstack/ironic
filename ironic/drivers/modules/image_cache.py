@@ -313,9 +313,10 @@ def _fetch(context, image_href, path, force_raw=False):
     # Notes(yjiang5): If glance can provide the virtual size information,
     # then we can firstly clean cache and then invoke images.fetch().
     if force_raw:
-        required_space = images.converted_size(path_tmp)
-        directory = os.path.dirname(path_tmp)
-        _clean_up_caches(directory, required_space)
+        if images.force_raw_will_convert(image_href, path_tmp):
+            required_space = images.converted_size(path_tmp)
+            directory = os.path.dirname(path_tmp)
+            _clean_up_caches(directory, required_space)
         images.image_to_raw(image_href, path, path_tmp)
     else:
         os.rename(path_tmp, path)

@@ -414,22 +414,36 @@ def fetch(context, image_href, path, force_raw=False):
         image_to_raw(image_href, path, "%s.part" % path)
 
 
+def force_raw_get_source_format(image_href, path):
+    data = disk_utils.qemu_img_info(path)
+
+    fmt = data.file_format
+    if fmt is None:
+        raise exception.ImageUnacceptable(
+            reason=_("'qemu-img info' parsing failed."),
+            image_id=image_href)
+
+    backing_file = data.backing_file
+    if backing_file is not None:
+        raise exception.ImageUnacceptable(
+            image_id=image_href,
+            reason=_("fmt=%(fmt)s backed by: %(backing_file)s") %
+            {'fmt': fmt, 'backing_file': backing_file})
+
+    return fmt
+
+
+def force_raw_will_convert(image_href, path_tmp):
+    with fileutils.remove_path_on_error(path_tmp):
+        fmt = force_raw_get_source_format(image_href, path_tmp)
+    if fmt != "raw":
+        return True
+    return False
+
+
 def image_to_raw(image_href, path, path_tmp):
     with fileutils.remove_path_on_error(path_tmp):
-        data = disk_utils.qemu_img_info(path_tmp)
-
-        fmt = data.file_format
-        if fmt is None:
-            raise exception.ImageUnacceptable(
-                reason=_("'qemu-img info' parsing failed."),
-                image_id=image_href)
-
-        backing_file = data.backing_file
-        if backing_file is not None:
-            raise exception.ImageUnacceptable(
-                image_id=image_href,
-                reason=_("fmt=%(fmt)s backed by: %(backing_file)s") %
-                {'fmt': fmt, 'backing_file': backing_file})
+        fmt = force_raw_get_source_format(image_href, path_tmp)
 
         if fmt != "raw":
             staged = "%s.converted" % path
