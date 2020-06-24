@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Fixes deleting nodes with maintenance mode on and an allocation present.
+    Previously it caused an internal server error. See `story 2007823
+    <https://storyboard.openstack.org/#!/story/2007823>`_ for details.

@@ -595,6 +595,8 @@ class DbNodeTestCase(base.DbTestCase):
         node = utils.create_test_node()
 
         allocation = utils.create_test_allocation(node_id=node.id)
+        node = self.dbapi.update_node(node.id,
+                                      {'allocation_id': allocation.id})
 
         self.dbapi.destroy_node(node.uuid)
         self.assertRaises(exception.AllocationNotFound,
