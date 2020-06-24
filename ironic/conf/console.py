@@ -47,8 +47,8 @@ opts = [
                       'to start.')),
     cfg.IntOpt('kill_timeout',
                default=1,
-               help=_('Time (in seconds) to wait for the shellinabox console '
-                      'subprocess to exit before sending SIGKILL signal.')),
+               help=_('Time (in seconds) to wait for the console subprocess '
+                      'to exit before sending SIGKILL signal.')),
     cfg.IPOpt('socat_address',
               default='$my_ip',
               help=_('IP address of Socat service running on the host of '
