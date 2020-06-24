@@ -16,5 +16,5 @@ from oslo_config import cfg
 CONF = cfg.CONF
 
 
-def require_authentication():
-    return (CONF.json_rpc.auth_strategy or CONF.auth_strategy) == 'keystone'
+def auth_strategy():
+    return CONF.json_rpc.auth_strategy or CONF.auth_strategy

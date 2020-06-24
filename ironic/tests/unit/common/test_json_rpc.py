@@ -10,6 +10,8 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+import os
+import tempfile
 from unittest import mock
 
 import fixtures
@@ -109,7 +111,7 @@ class TestService(test_base.TestCase):
             else:
                 return response.json_body
         else:
-            self.assertFalse(response.text)
+            return response.text
 
     def _check(self, body, result=None, error=None, request_id='abcd'):
         self.assertEqual('2.0', body.pop('jsonrpc'))
@@ -118,6 +120,33 @@ class TestService(test_base.TestCase):
             self.assertEqual({'error': error}, body)
         else:
             self.assertEqual({'result': result}, body)
+
+    def _setup_http_basic(self):
+        with tempfile.NamedTemporaryFile(mode='w', delete=False) as f:
+            f.write('myName:$2y$05$lE3eGtyj41jZwrzS87KTqe6.'
+                    'JETVCWBkc32C63UP2aYrGoYOEpbJm\n\n\n')
+        self.addCleanup(os.remove, f.name)
+        self.config(http_basic_auth_user_file=f.name, group='json_rpc')
+        self.config(auth_strategy='http_basic', group='json_rpc')
+        # self.config(http_basic_username='myUser', group='json_rpc')
+        # self.config(http_basic_password='myPassword', group='json_rpc')
+        self.service = server.WSGIService(FakeManager(), self.serializer)
+        self.app = self.server_mock.call_args[0][2]
+
+    def test_http_basic_not_authenticated(self):
+        self._setup_http_basic()
+        self._request('success', {'context': self.ctx, 'x': 42},
+                      request_id=None, expected_error=401)
+
+    def test_http_basic(self):
+        self._setup_http_basic()
+        headers = {
+            'Content-Type': 'application/json',
+            'Authorization': 'Basic bXlOYW1lOm15UGFzc3dvcmQ='
+        }
+        body = self._request('success', {'context': self.ctx, 'x': 42},
+                             headers=headers)
+        self._check(body, result=42)
 
     def test_success(self):
         body = self._request('success', {'context': self.ctx, 'x': 42})
@@ -130,7 +159,7 @@ class TestService(test_base.TestCase):
     def test_notification(self):
         body = self._request('no_result', {'context': self.ctx},
                              request_id=None)
-        self.assertIsNone(body)
+        self.assertEqual('', body)
 
     def test_no_context(self):
         body = self._request('no_context')
@@ -542,3 +571,70 @@ class TestClient(test_base.TestCase):
                                 'redfish_password': '***'})
         resp_text = mock_log.call_args_list[1][0][2]
         self.assertEqual(body.replace('passw0rd', '***'), resp_text)
+
+
+@mock.patch('ironic.common.json_rpc.client.keystone', autospec=True)
+class TestSession(test_base.TestCase):
+
+    def setUp(self):
+        super(TestSession, self).setUp()
+        client._SESSION = None
+
+    def test_noauth(self, mock_keystone):
+        self.config(auth_strategy='noauth', group='json_rpc')
+        session = client._get_session()
+
+        mock_keystone.get_auth.assert_not_called()
+        mock_keystone.get_session.assert_called_once_with(
+            'json_rpc', auth=None)
+
+        internal_session = mock_keystone.get_session.return_value
+
+        mock_keystone.get_adapter.assert_called_once_with(
+            'json_rpc',
+            session=internal_session,
+            additional_headers={
+                'Content-Type': 'application/json'
+            })
+        self.assertEqual(mock_keystone.get_adapter.return_value, session)
+
+    def test_keystone(self, mock_keystone):
+        self.config(auth_strategy='keystone', group='json_rpc')
+        session = client._get_session()
+
+        mock_keystone.get_auth.assert_called_once_with('json_rpc')
+        auth = mock_keystone.get_auth.return_value
+
+        mock_keystone.get_session.assert_called_once_with(
+            'json_rpc', auth=auth)
+
+        internal_session = mock_keystone.get_session.return_value
+
+        mock_keystone.get_adapter.assert_called_once_with(
+            'json_rpc',
+            session=internal_session,
+            additional_headers={
+                'Content-Type': 'application/json'
+            })
+        self.assertEqual(mock_keystone.get_adapter.return_value, session)
+
+    def test_http_basic(self, mock_keystone):
+        self.config(auth_strategy='http_basic', group='json_rpc')
+        self.config(http_basic_username='myName', group='json_rpc')
+        self.config(http_basic_password='myPassword', group='json_rpc')
+        session = client._get_session()
+
+        mock_keystone.get_auth.assert_not_called()
+        mock_keystone.get_session.assert_called_once_with(
+            'json_rpc', auth=None)
+
+        internal_session = mock_keystone.get_session.return_value
+
+        mock_keystone.get_adapter.assert_called_once_with(
+            'json_rpc',
+            session=internal_session,
+            additional_headers={
+                'Authorization': 'Basic bXlOYW1lOm15UGFzc3dvcmQ=',
+                'Content-Type': 'application/json'
+            })
+        self.assertEqual(mock_keystone.get_adapter.return_value, session)
