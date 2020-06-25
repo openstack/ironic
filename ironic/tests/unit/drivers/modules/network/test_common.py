@@ -763,7 +763,8 @@ class TestNeutronVifPortIDMixin(db_base.DbTestCase):
         self.neutron_port = {'id': '132f871f-eaec-4fed-9475-0d54465e0f00',
                              'mac_address': '52:54:00:cf:2d:32'}
 
-    @mock.patch.object(common.VIFPortIDMixin, '_save_vif_to_port_like_obj')
+    @mock.patch.object(common.VIFPortIDMixin, '_save_vif_to_port_like_obj',
+                       autospec=True)
     @mock.patch.object(common, 'get_free_port_like_object', autospec=True)
     @mock.patch.object(neutron_common, 'get_client', autospec=True)
     @mock.patch.object(neutron_common, 'update_port_address', autospec=True)
@@ -783,7 +784,8 @@ class TestNeutronVifPortIDMixin(db_base.DbTestCase):
                                          {'id': 'fake_vif_id'})
         mock_save.assert_called_once_with(self.port, "fake_vif_id")
 
-    @mock.patch.object(common.VIFPortIDMixin, '_save_vif_to_port_like_obj')
+    @mock.patch.object(common.VIFPortIDMixin, '_save_vif_to_port_like_obj',
+                       autospec=True)
     @mock.patch.object(common, 'get_free_port_like_object', autospec=True)
     @mock.patch.object(neutron_common, 'get_client', autospec=True)
     @mock.patch.object(neutron_common, 'update_port_address', autospec=True)
@@ -800,7 +802,8 @@ class TestNeutronVifPortIDMixin(db_base.DbTestCase):
                                          {'id': 'fake_vif_id'})
         self.assertFalse(mock_save.called)
 
-    @mock.patch.object(common.VIFPortIDMixin, '_save_vif_to_port_like_obj')
+    @mock.patch.object(common.VIFPortIDMixin, '_save_vif_to_port_like_obj',
+                       autospec=True)
     @mock.patch.object(common, 'get_free_port_like_object', autospec=True)
     @mock.patch.object(neutron_common, 'get_client', autospec=True)
     @mock.patch.object(neutron_common, 'update_port_address', autospec=True)
@@ -824,7 +827,8 @@ class TestNeutronVifPortIDMixin(db_base.DbTestCase):
                                          {'id': 'fake_vif_id'})
         mock_save.assert_called_once_with(self.port, "fake_vif_id")
 
-    @mock.patch.object(common.VIFPortIDMixin, '_save_vif_to_port_like_obj')
+    @mock.patch.object(common.VIFPortIDMixin, '_save_vif_to_port_like_obj',
+                       autospec=True)
     @mock.patch.object(common, 'plug_port_to_tenant_network', autospec=True)
     @mock.patch.object(common, 'get_free_port_like_object', autospec=True)
     @mock.patch.object(neutron_common, 'get_client', autospec=True)
@@ -848,7 +852,8 @@ class TestNeutronVifPortIDMixin(db_base.DbTestCase):
         mock_save.assert_called_once_with(self.port, "fake_vif_id")
         mock_plug.assert_called_once_with(task, self.port, mock.ANY)
 
-    @mock.patch.object(common.VIFPortIDMixin, '_save_vif_to_port_like_obj')
+    @mock.patch.object(common.VIFPortIDMixin, '_save_vif_to_port_like_obj',
+                       autospec=True)
     @mock.patch.object(common, 'plug_port_to_tenant_network', autospec=True)
     @mock.patch.object(common, 'get_free_port_like_object', autospec=True)
     @mock.patch.object(neutron_common, 'get_client', autospec=True)
@@ -875,10 +880,11 @@ class TestNeutronVifPortIDMixin(db_base.DbTestCase):
         mock_save.assert_called_once_with(self.port, "fake_vif_id")
         mock_plug.assert_called_once_with(task, self.port, mock.ANY)
 
-    @mock.patch.object(common.VIFPortIDMixin, '_save_vif_to_port_like_obj')
+    @mock.patch.object(common.VIFPortIDMixin, '_save_vif_to_port_like_obj',
+                       autospec=True)
     @mock.patch.object(common, 'get_free_port_like_object', autospec=True)
     @mock.patch.object(neutron_common, 'get_client', autospec=True)
-    @mock.patch.object(neutron_common, 'update_port_address')
+    @mock.patch.object(neutron_common, 'update_port_address', autospec=True)
     @mock.patch.object(neutron_common, 'get_physnets_by_port_uuid',
                        autospec=True)
     def test_vif_attach_portgroup_no_address(self, mock_gpbpi, mock_upa,
@@ -897,9 +903,10 @@ class TestNeutronVifPortIDMixin(db_base.DbTestCase):
         self.assertFalse(mock_upa.called)
         mock_save.assert_called_once_with(pg, "fake_vif_id")
 
-    @mock.patch.object(common.VIFPortIDMixin, '_save_vif_to_port_like_obj')
+    @mock.patch.object(common.VIFPortIDMixin, '_save_vif_to_port_like_obj',
+                       autospec=True)
     @mock.patch.object(neutron_common, 'get_client', autospec=True)
-    @mock.patch.object(neutron_common, 'update_port_address')
+    @mock.patch.object(neutron_common, 'update_port_address', autospec=True)
     @mock.patch.object(neutron_common, 'get_physnets_by_port_uuid',
                        autospec=True)
     def test_vif_attach_update_port_exception(self, mock_gpbpi, mock_upa,
@@ -920,10 +927,11 @@ class TestNeutronVifPortIDMixin(db_base.DbTestCase):
                                            'fake_vif_id')
         self.assertFalse(mock_save.called)
 
-    @mock.patch.object(common.VIFPortIDMixin, '_save_vif_to_port_like_obj')
+    @mock.patch.object(common.VIFPortIDMixin, '_save_vif_to_port_like_obj',
+                       autospec=True)
     @mock.patch.object(common, 'get_free_port_like_object', autospec=True)
-    @mock.patch.object(neutron_common, 'get_client')
-    @mock.patch.object(neutron_common, 'update_port_address')
+    @mock.patch.object(neutron_common, 'get_client', autospec=True)
+    @mock.patch.object(neutron_common, 'update_port_address', autospec=True)
     @mock.patch.object(neutron_common, 'get_physnets_by_port_uuid',
                        autospec=True)
     def test_vif_attach_portgroup_physnet_inconsistent(self, mock_gpbpi,
@@ -945,10 +953,11 @@ class TestNeutronVifPortIDMixin(db_base.DbTestCase):
         self.assertFalse(mock_upa.called)
         self.assertFalse(mock_save.called)
 
-    @mock.patch.object(common.VIFPortIDMixin, '_save_vif_to_port_like_obj')
+    @mock.patch.object(common.VIFPortIDMixin, '_save_vif_to_port_like_obj',
+                       autospec=True)
     @mock.patch.object(common, 'get_free_port_like_object', autospec=True)
-    @mock.patch.object(neutron_common, 'get_client')
-    @mock.patch.object(neutron_common, 'update_port_address')
+    @mock.patch.object(neutron_common, 'get_client', autospec=True)
+    @mock.patch.object(neutron_common, 'update_port_address', autospec=True)
     @mock.patch.object(neutron_common, 'get_physnets_by_port_uuid',
                        autospec=True)
     def test_vif_attach_multiple_segment_mappings(self, mock_gpbpi, mock_upa,
@@ -972,33 +981,39 @@ class TestNeutronVifPortIDMixin(db_base.DbTestCase):
         self.assertFalse(mock_upa.called)
         self.assertFalse(mock_save.called)
 
-    @mock.patch.object(common.VIFPortIDMixin, '_clear_vif_from_port_like_obj')
+    @mock.patch.object(common.VIFPortIDMixin, '_clear_vif_from_port_like_obj',
+                       autospec=True)
     @mock.patch.object(neutron_common, 'unbind_neutron_port', autospec=True)
-    @mock.patch.object(common.VIFPortIDMixin, '_get_port_like_obj_by_vif_id')
+    @mock.patch.object(common.VIFPortIDMixin, '_get_port_like_obj_by_vif_id',
+                       autospec=True)
     def test_vif_detach(self, mock_get, mock_unp, mock_clear):
         mock_get.return_value = self.port
         with task_manager.acquire(self.context, self.node.id) as task:
             self.interface.vif_detach(task, 'fake_vif_id')
-        mock_get.assert_called_once_with(task, 'fake_vif_id')
+        mock_get.assert_called_once_with(self.interface, task, 'fake_vif_id')
         self.assertFalse(mock_unp.called)
         mock_clear.assert_called_once_with(self.port)
 
-    @mock.patch.object(common.VIFPortIDMixin, '_clear_vif_from_port_like_obj')
+    @mock.patch.object(common.VIFPortIDMixin, '_clear_vif_from_port_like_obj',
+                       autospec=True)
     @mock.patch.object(neutron_common, 'unbind_neutron_port', autospec=True)
-    @mock.patch.object(common.VIFPortIDMixin, '_get_port_like_obj_by_vif_id')
+    @mock.patch.object(common.VIFPortIDMixin, '_get_port_like_obj_by_vif_id',
+                       autospec=True)
     def test_vif_detach_portgroup(self, mock_get, mock_unp, mock_clear):
         pg = obj_utils.create_test_portgroup(
             self.context, node_id=self.node.id)
         mock_get.return_value = pg
         with task_manager.acquire(self.context, self.node.id) as task:
             self.interface.vif_detach(task, 'fake_vif_id')
-        mock_get.assert_called_once_with(task, 'fake_vif_id')
+        mock_get.assert_called_once_with(self.interface, task, 'fake_vif_id')
         self.assertFalse(mock_unp.called)
         mock_clear.assert_called_once_with(pg)
 
-    @mock.patch.object(common.VIFPortIDMixin, '_clear_vif_from_port_like_obj')
+    @mock.patch.object(common.VIFPortIDMixin, '_clear_vif_from_port_like_obj',
+                       autospec=True)
     @mock.patch.object(neutron_common, 'unbind_neutron_port', autospec=True)
-    @mock.patch.object(common.VIFPortIDMixin, '_get_port_like_obj_by_vif_id')
+    @mock.patch.object(common.VIFPortIDMixin, '_get_port_like_obj_by_vif_id',
+                       autospec=True)
     def test_vif_detach_not_attached(self, mock_get, mock_unp, mock_clear):
         mock_get.side_effect = exception.VifNotAttached(vif='fake-vif',
                                                         node='fake-node')
@@ -1006,13 +1021,15 @@ class TestNeutronVifPortIDMixin(db_base.DbTestCase):
             self.assertRaisesRegex(
                 exception.VifNotAttached, "it is not attached to it.",
                 self.interface.vif_detach, task, 'fake_vif_id')
-        mock_get.assert_called_once_with(task, 'fake_vif_id')
+        mock_get.assert_called_once_with(self.interface, task, 'fake_vif_id')
         self.assertFalse(mock_unp.called)
         self.assertFalse(mock_clear.called)
 
-    @mock.patch.object(common.VIFPortIDMixin, '_clear_vif_from_port_like_obj')
+    @mock.patch.object(common.VIFPortIDMixin, '_clear_vif_from_port_like_obj',
+                       autospec=True)
     @mock.patch.object(neutron_common, 'unbind_neutron_port', autospec=True)
-    @mock.patch.object(common.VIFPortIDMixin, '_get_port_like_obj_by_vif_id')
+    @mock.patch.object(common.VIFPortIDMixin, '_get_port_like_obj_by_vif_id',
+                       autospec=True)
     def test_vif_detach_active_node(self, mock_get, mock_unp, mock_clear):
         self.node.provision_state = states.ACTIVE
         self.node.save()
@@ -1021,12 +1038,14 @@ class TestNeutronVifPortIDMixin(db_base.DbTestCase):
             self.interface.vif_detach(task, 'fake_vif_id')
             mock_unp.assert_called_once_with('fake_vif_id',
                                              context=task.context)
-        mock_get.assert_called_once_with(task, 'fake_vif_id')
+        mock_get.assert_called_once_with(self.interface, task, 'fake_vif_id')
         mock_clear.assert_called_once_with(self.port)
 
-    @mock.patch.object(common.VIFPortIDMixin, '_clear_vif_from_port_like_obj')
+    @mock.patch.object(common.VIFPortIDMixin, '_clear_vif_from_port_like_obj',
+                       autospec=True)
     @mock.patch.object(neutron_common, 'unbind_neutron_port', autospec=True)
-    @mock.patch.object(common.VIFPortIDMixin, '_get_port_like_obj_by_vif_id')
+    @mock.patch.object(common.VIFPortIDMixin, '_get_port_like_obj_by_vif_id',
+                       autospec=True)
     def test_vif_detach_deleting_node(self, mock_get, mock_unp, mock_clear):
         self.node.provision_state = states.DELETING
         self.node.save()
@@ -1035,12 +1054,14 @@ class TestNeutronVifPortIDMixin(db_base.DbTestCase):
             self.interface.vif_detach(task, 'fake_vif_id')
             mock_unp.assert_called_once_with('fake_vif_id',
                                              context=task.context)
-        mock_get.assert_called_once_with(task, 'fake_vif_id')
+        mock_get.assert_called_once_with(self.interface, task, 'fake_vif_id')
         mock_clear.assert_called_once_with(self.port)
 
-    @mock.patch.object(common.VIFPortIDMixin, '_clear_vif_from_port_like_obj')
+    @mock.patch.object(common.VIFPortIDMixin, '_clear_vif_from_port_like_obj',
+                       autospec=True)
     @mock.patch.object(neutron_common, 'unbind_neutron_port', autospec=True)
-    @mock.patch.object(common.VIFPortIDMixin, '_get_port_like_obj_by_vif_id')
+    @mock.patch.object(common.VIFPortIDMixin, '_get_port_like_obj_by_vif_id',
+                       autospec=True)
     def test_vif_detach_active_node_failure(self, mock_get, mock_unp,
                                             mock_clear):
         self.node.provision_state = states.ACTIVE
@@ -1052,7 +1073,7 @@ class TestNeutronVifPortIDMixin(db_base.DbTestCase):
                               self.interface.vif_detach, task, 'fake_vif_id')
             mock_unp.assert_called_once_with('fake_vif_id',
                                              context=task.context)
-        mock_get.assert_called_once_with(task, 'fake_vif_id')
+        mock_get.assert_called_once_with(self.interface, task, 'fake_vif_id')
         mock_clear.assert_called_once_with(self.port)
 
     @mock.patch.object(neutron_common, 'update_port_address', autospec=True)
@@ -1062,7 +1083,8 @@ class TestNeutronVifPortIDMixin(db_base.DbTestCase):
         with task_manager.acquire(self.context, self.node.id) as task:
             self.interface.port_changed(task, self.port)
             mac_update_mock.assert_called_once_with(
-                self.port.extra['vif_port_id'], new_address,
+                self.port.extra['vif_port_id'],
+                new_address,
                 context=task.context)
 
     @mock.patch.object(neutron_common, 'update_port_address', autospec=True)
@@ -1088,7 +1110,8 @@ class TestNeutronVifPortIDMixin(db_base.DbTestCase):
             self.interface.port_changed(task, self.port)
             self.assertFalse(mac_update_mock.called)
 
-    @mock.patch('ironic.dhcp.neutron.NeutronDHCPApi.update_port_dhcp_opts')
+    @mock.patch('ironic.dhcp.neutron.NeutronDHCPApi.update_port_dhcp_opts',
+                autospec=True)
     def test_port_changed_client_id(self, dhcp_update_mock):
         expected_extra = {'vif_port_id': 'fake-id', 'client-id': 'fake2'}
         expected_dhcp_opts = [{'opt_name': '61', 'opt_value': 'fake2'}]
@@ -1096,9 +1119,10 @@ class TestNeutronVifPortIDMixin(db_base.DbTestCase):
         with task_manager.acquire(self.context, self.node.id) as task:
             self.interface.port_changed(task, self.port)
             dhcp_update_mock.assert_called_once_with(
-                'fake-id', expected_dhcp_opts, context=task.context)
+                mock.ANY, 'fake-id', expected_dhcp_opts, context=task.context)
 
-    @mock.patch('ironic.dhcp.neutron.NeutronDHCPApi.update_port_dhcp_opts')
+    @mock.patch('ironic.dhcp.neutron.NeutronDHCPApi.update_port_dhcp_opts',
+                autospec=True)
     def test_port_changed_extra_add_new_key(self, dhcp_update_mock):
         self.port.extra = {'vif_port_id': 'fake-id'}
         self.port.save()
@@ -1109,7 +1133,8 @@ class TestNeutronVifPortIDMixin(db_base.DbTestCase):
             self.interface.port_changed(task, self.port)
             self.assertFalse(dhcp_update_mock.called)
 
-    @mock.patch('ironic.dhcp.neutron.NeutronDHCPApi.update_port_dhcp_opts')
+    @mock.patch('ironic.dhcp.neutron.NeutronDHCPApi.update_port_dhcp_opts',
+                autospec=True)
     def test_port_changed_client_id_fail(self, dhcp_update_mock):
         self.port.extra = {'vif_port_id': 'fake-id', 'client-id': 'fake2'}
         dhcp_update_mock.side_effect = (
@@ -1119,7 +1144,8 @@ class TestNeutronVifPortIDMixin(db_base.DbTestCase):
                               self.interface.port_changed,
                               task, self.port)
 
-    @mock.patch('ironic.dhcp.neutron.NeutronDHCPApi.update_port_dhcp_opts')
+    @mock.patch('ironic.dhcp.neutron.NeutronDHCPApi.update_port_dhcp_opts',
+                autospec=True)
     def test_port_changed_client_id_no_vif_id(self, dhcp_update_mock):
         self.port.extra = {'client-id': 'fake1'}
         self.port.save()
@@ -1128,7 +1154,8 @@ class TestNeutronVifPortIDMixin(db_base.DbTestCase):
             self.interface.port_changed(task, self.port)
             self.assertFalse(dhcp_update_mock.called)
 
-    @mock.patch('ironic.dhcp.neutron.NeutronDHCPApi.update_port_dhcp_opts')
+    @mock.patch('ironic.dhcp.neutron.NeutronDHCPApi.update_port_dhcp_opts',
+                autospec=True)
     def test_port_changed_message_format_failure(self, dhcp_update_mock):
         pg = obj_utils.create_test_portgroup(
             self.context, node_id=self.node.id,
