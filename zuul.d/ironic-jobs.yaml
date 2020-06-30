@@ -738,7 +738,6 @@
         IRONIC_VM_EPHEMERAL_DISK: 0
         # This will swap and needs to get to tinycore soon.
         IRONIC_VM_COUNT: 2
-        IRONIC_VM_SPECS_RAM: 2048
         IRONIC_VM_SPECS_CPU: 2
         Q_PLUGIN: ml2
         ENABLE_TENANT_VLANS: True
