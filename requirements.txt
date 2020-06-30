@@ -16,7 +16,7 @@ python-swiftclient>=3.2.0 # Apache-2.0
 pytz>=2013.6 # MIT
 stevedore>=1.20.0 # Apache-2.0
 pysendfile>=2.0.0;sys_platform!='win32' # MIT
-oslo.concurrency>=3.26.0 # Apache-2.0
+oslo.concurrency>=4.2.0 # Apache-2.0
 oslo.config>=5.2.0 # Apache-2.0
 oslo.context>=2.19.2 # Apache-2.0
 oslo.db>=4.40.0 # Apache-2.0
