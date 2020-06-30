@@ -1493,7 +1493,7 @@ EOF
 # API specific configuration.
 function configure_ironic_api {
     iniset $IRONIC_CONF_FILE DEFAULT auth_strategy $IRONIC_AUTH_STRATEGY
-    configure_auth_token_middleware $IRONIC_CONF_FILE ironic $IRONIC_AUTH_CACHE_DIR/api
+    configure_keystone_authtoken_middleware $IRONIC_CONF_FILE ironic
 
     if [[ "$IRONIC_USE_WSGI" == "True" ]]; then
         iniset $IRONIC_CONF_FILE oslo_middleware enable_proxy_headers_parsing True
