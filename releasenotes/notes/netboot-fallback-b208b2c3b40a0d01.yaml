@@ -8,5 +8,5 @@ features:
   - |
     Adds an ability to generate network boot templates even for nodes that
     use local boot via the new ``[pxe]enable_netboot_fallback`` option.
-    This is required to work around the situation when switching boot devices
+    This is required to work around the situation where switching boot devices
     does not work reliably.

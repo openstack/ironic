@@ -1,5 +1,5 @@
 ---
 features:
   - |
-    Add raid interface for ibmc driver which includes ``delete_configuration``
+    Adds raid interface for ibmc driver which includes ``delete_configuration``
     and ``create_configuration`` steps.
