@@ -711,8 +711,8 @@
         q-svc: False
         swift: True
       devstack_plugins:
-        ironic: git://git.openstack.org/openstack/ironic
-        networking-generic-switch: git://git.openstack.org/openstack/networking-generic-switch
+        ironic: https://opendev.org/openstack/ironic
+        networking-generic-switch: https://opendev.org/openstack/networking-generic-switch
       # NOTE(TheJulia): Nova default behavior is to rely upon stack defaults, v6 needs to
       # be explicit. This is the best place to wire it in.
       tempest_test_regex: BaremetalSingleTenant
