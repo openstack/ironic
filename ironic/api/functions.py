@@ -37,7 +37,8 @@ def wrapfunc(f):
 
 def getargspec(f):
     f = getattr(f, '_wsme_original_func', f)
-    return inspect.getargspec(f)
+    func_argspec = inspect.getfullargspec(f)
+    return func_argspec[0:4]
 
 
 class FunctionArgument(object):
