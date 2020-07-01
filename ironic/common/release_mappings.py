@@ -230,12 +230,29 @@ RELEASE_MAPPING = {
             'VolumeTarget': ['1.0'],
         }
     },
-    'master': {
+    '15.1': {
         'api': '1.67',
         'rpc': '1.50',
         'objects': {
             'Allocation': ['1.1'],
             'Node': ['1.35', '1.34'],
+            'Conductor': ['1.3'],
+            'Chassis': ['1.3'],
+            'DeployTemplate': ['1.1'],
+            'Port': ['1.9'],
+            'Portgroup': ['1.4'],
+            'Trait': ['1.0'],
+            'TraitList': ['1.0'],
+            'VolumeConnector': ['1.0'],
+            'VolumeTarget': ['1.0'],
+        }
+    },
+    'master': {
+        'api': '1.67',
+        'rpc': '1.50',
+        'objects': {
+            'Allocation': ['1.1'],
+            'Node': ['1.35'],
             'Conductor': ['1.3'],
             'Chassis': ['1.3'],
             'DeployTemplate': ['1.1'],
@@ -264,7 +281,7 @@ RELEASE_MAPPING = {
 
 # NOTE(mgoddard): remove Train prior to the Victoria release.
 RELEASE_MAPPING['train'] = RELEASE_MAPPING['13.0']
-RELEASE_MAPPING['ussuri'] = RELEASE_MAPPING['15.0']
+RELEASE_MAPPING['ussuri'] = RELEASE_MAPPING['15.1']
 
 # List of available versions with named versions first; 'master' is excluded.
 RELEASE_VERSIONS = sorted(set(RELEASE_MAPPING) - {'master'}, reverse=True)
