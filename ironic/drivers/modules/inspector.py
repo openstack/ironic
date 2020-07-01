@@ -33,6 +33,7 @@ from ironic.conductor import task_manager
 from ironic.conductor import utils as cond_utils
 from ironic.conf import CONF
 from ironic.drivers import base
+from ironic.drivers.modules import deploy_utils
 
 
 LOG = logging.getLogger(__name__)
@@ -194,6 +195,8 @@ def _start_managed_inspection(task):
         endpoint = _get_callback_endpoint(client)
         params = dict(_parse_kernel_params(),
                       **{'ipa-inspection-callback-url': endpoint})
+        if CONF.deploy.fast_track:
+            params['ipa-api-url'] = deploy_utils.get_ironic_api_url()
 
         cond_utils.node_power_action(task, states.POWER_OFF)
         with cond_utils.power_state_for_network_configuration(task):

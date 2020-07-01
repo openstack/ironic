@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    Fixes fast track deployment preceeded by managed inspection by providing
+    the ironic API URL to the ramdisk so that it can heartbeat.
