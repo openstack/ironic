@@ -2088,12 +2088,12 @@ class DoNodeTearDownTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         self.assertIsNone(node.driver_internal_info['deploy_steps'])
         self.assertNotIn('root_uuid_or_disk_id', node.driver_internal_info)
         self.assertNotIn('is_whole_disk_image', node.driver_internal_info)
-        mock_tear_down.assert_called_once_with(mock.ANY, task)
+        mock_tear_down.assert_called_once_with(task.driver.deploy, task)
         mock_clean.assert_called_once_with(task)
         self.assertEqual({}, port.internal_info)
         mock_unbind.assert_called_once_with('foo', context=mock.ANY)
         if enabled_console:
-            mock_console.assert_called_once_with(mock.ANY, task)
+            mock_console.assert_called_once_with(task.driver.console, task)
         else:
             self.assertFalse(mock_console.called)
         if with_allocation:
@@ -6012,7 +6012,7 @@ class NodeInspectHardware(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         self.assertEqual(states.MANAGEABLE, node.provision_state)
         self.assertEqual(states.NOSTATE, node.target_provision_state)
         self.assertIsNone(node.last_error)
-        mock_inspect.assert_called_once_with(mock.ANY, task)
+        mock_inspect.assert_called_once_with(task.driver.inspect, task)
         task.node.refresh()
         self.assertNotIn('agent_url', task.node.driver_internal_info)
 
@@ -6031,7 +6031,7 @@ class NodeInspectHardware(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         self.assertIn('driver returned unexpected state', node.last_error)
         self.assertEqual(states.INSPECTFAIL, node.provision_state)
         self.assertEqual(states.MANAGEABLE, node.target_provision_state)
-        mock_inspect.assert_called_once_with(mock.ANY, task)
+        mock_inspect.assert_called_once_with(task.driver.inspect, task)
 
     @mock.patch('ironic.drivers.modules.fake.FakeInspect.inspect_hardware',
                 autospec=True)
@@ -6046,7 +6046,7 @@ class NodeInspectHardware(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         self.assertEqual(states.INSPECTWAIT, node.provision_state)
         self.assertEqual(states.MANAGEABLE, node.target_provision_state)
         self.assertIsNone(node.last_error)
-        mock_inspect.assert_called_once_with(mock.ANY, task)
+        mock_inspect.assert_called_once_with(task.driver.inspect, task)
 
     @mock.patch.object(manager, 'LOG', autospec=True)
     @mock.patch('ironic.drivers.modules.fake.FakeInspect.inspect_hardware',
@@ -6063,7 +6063,7 @@ class NodeInspectHardware(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         self.assertEqual(states.INSPECTFAIL, node.provision_state)
         self.assertEqual(states.MANAGEABLE, node.target_provision_state)
         self.assertIsNotNone(node.last_error)
-        mock_inspect.assert_called_once_with(mock.ANY, task)
+        mock_inspect.assert_called_once_with(task.driver.inspect, task)
         self.assertTrue(log_mock.error.called)
 
     def test__check_inspect_wait_timeouts(self):
@@ -6828,8 +6828,8 @@ class DoNodeTakeOverTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         node.refresh()
         self.assertIsNone(node.last_error)
         self.assertFalse(node.console_enabled)
-        mock_prepare.assert_called_once_with(mock.ANY, task)
-        mock_take_over.assert_called_once_with(mock.ANY, task)
+        mock_prepare.assert_called_once_with(task.driver.deploy, task)
+        mock_take_over.assert_called_once_with(task.driver.deploy, task)
         self.assertFalse(mock_start_console.called)
 
     @mock.patch.object(notification_utils, 'emit_console_notification',
@@ -6853,9 +6853,9 @@ class DoNodeTakeOverTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         node.refresh()
         self.assertIsNone(node.last_error)
         self.assertTrue(node.console_enabled)
-        mock_prepare.assert_called_once_with(mock.ANY, task)
-        mock_take_over.assert_called_once_with(mock.ANY, task)
-        mock_start_console.assert_called_once_with(mock.ANY, task)
+        mock_prepare.assert_called_once_with(task.driver.deploy, task)
+        mock_take_over.assert_called_once_with(task.driver.deploy, task)
+        mock_start_console.assert_called_once_with(task.driver.console, task)
         mock_notify.assert_has_calls(
             [mock.call(task, 'console_restore',
                        obj_fields.NotificationStatus.START),
@@ -6884,9 +6884,9 @@ class DoNodeTakeOverTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         node.refresh()
         self.assertIsNotNone(node.last_error)
         self.assertFalse(node.console_enabled)
-        mock_prepare.assert_called_once_with(mock.ANY, task)
-        mock_take_over.assert_called_once_with(mock.ANY, task)
-        mock_start_console.assert_called_once_with(mock.ANY, task)
+        mock_prepare.assert_called_once_with(task.driver.deploy, task)
+        mock_take_over.assert_called_once_with(task.driver.deploy, task)
+        mock_start_console.assert_called_once_with(task.driver.console, task)
         mock_notify.assert_has_calls(
             [mock.call(task, 'console_restore',
                        obj_fields.NotificationStatus.START),
@@ -6922,9 +6922,9 @@ class DoNodeTakeOverTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         self.assertIsNone(
             node.driver_internal_info.get('allocated_ipmi_terminal_port',
                                           None))
-        mock_prepare.assert_called_once_with(mock.ANY, task)
-        mock_take_over.assert_called_once_with(mock.ANY, task)
-        mock_start_console.assert_called_once_with(mock.ANY, task)
+        mock_prepare.assert_called_once_with(task.driver.deploy, task)
+        mock_take_over.assert_called_once_with(task.driver.deploy, task)
+        mock_start_console.assert_called_once_with(task.driver.console, task)
         mock_notify.assert_has_calls(
             [mock.call(task, 'console_restore',
                        obj_fields.NotificationStatus.START),
@@ -6967,8 +6967,8 @@ class DoNodeAdoptionTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         self.assertEqual(states.ACTIVE, node.provision_state)
         self.assertIsNone(node.last_error)
         self.assertFalse(node.console_enabled)
-        mock_prepare.assert_called_once_with(mock.ANY, task)
-        mock_take_over.assert_called_once_with(mock.ANY, task)
+        mock_prepare.assert_called_once_with(task.driver.deploy, task)
+        mock_take_over.assert_called_once_with(task.driver.deploy, task)
         self.assertFalse(mock_start_console.called)
         self.assertTrue(mock_boot_validate.called)
         self.assertIn('is_whole_disk_image', task.node.driver_internal_info)
@@ -7003,8 +7003,8 @@ class DoNodeAdoptionTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         self.assertEqual(states.ADOPTFAIL, node.provision_state)
         self.assertIsNotNone(node.last_error)
         self.assertFalse(node.console_enabled)
-        mock_prepare.assert_called_once_with(mock.ANY, task)
-        mock_take_over.assert_called_once_with(mock.ANY, task)
+        mock_prepare.assert_called_once_with(task.driver.deploy, task)
+        mock_take_over.assert_called_once_with(task.driver.deploy, task)
         self.assertFalse(mock_start_console.called)
         self.assertTrue(mock_boot_validate.called)
         self.assertIn('is_whole_disk_image', task.node.driver_internal_info)
