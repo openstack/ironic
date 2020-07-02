@@ -228,6 +228,39 @@ class InspectHardwareTestCase(BaseTestCase):
         self.assertFalse(self.driver.network.remove_inspection_network.called)
         self.assertFalse(self.driver.boot.clean_up_ramdisk.called)
 
+    @mock.patch('ironic.drivers.modules.deploy_utils.get_ironic_api_url',
+                autospec=True)
+    def test_managed_fast_track(self, mock_ironic_url, mock_client):
+        CONF.set_override('fast_track', True, group='deploy')
+        CONF.set_override('extra_kernel_params',
+                          'ipa-inspection-collectors=default,logs '
+                          'ipa-collect-dhcp=1',
+                          group='inspector')
+        endpoint = 'http://192.169.0.42:5050/v1'
+        mock_ironic_url.return_value = 'http://192.169.0.42:6385'
+        mock_client.return_value.get_endpoint.return_value = endpoint
+        mock_introspect = mock_client.return_value.start_introspection
+        self.iface.validate(self.task)
+        self.assertEqual(states.INSPECTWAIT,
+                         self.iface.inspect_hardware(self.task))
+        mock_introspect.assert_called_once_with(self.node.uuid,
+                                                manage_boot=False)
+        self.driver.boot.prepare_ramdisk.assert_called_once_with(
+            self.task, ramdisk_params={
+                'ipa-inspection-callback-url': endpoint + '/continue',
+                'ipa-inspection-collectors': 'default,logs',
+                'ipa-collect-dhcp': '1',
+                'ipa-api-url': 'http://192.169.0.42:6385',
+            })
+        self.driver.network.add_inspection_network.assert_called_once_with(
+            self.task)
+        self.driver.power.set_power_state.assert_has_calls([
+            mock.call(self.task, states.POWER_OFF, timeout=None),
+            mock.call(self.task, states.POWER_ON, timeout=None),
+        ])
+        self.assertFalse(self.driver.network.remove_inspection_network.called)
+        self.assertFalse(self.driver.boot.clean_up_ramdisk.called)
+
     @mock.patch.object(task_manager, 'acquire', autospec=True)
     def test_managed_error(self, mock_acquire, mock_client):
         endpoint = 'http://192.169.0.42:5050/v1'
