@@ -1555,7 +1555,7 @@ function configure_ironic_conductor {
         ironic_lib_prefix=${GITDIR["ironic-lib"]}
     else
         # pip uses default python 'data' path
-        ironic_lib_prefix=$(python -c "import sysconfig; \
+        ironic_lib_prefix=$(python3 -c "import sysconfig; \
             print(sysconfig.get_path('data'))")
 
         # on Centos7 the data is installed to /usr/local
