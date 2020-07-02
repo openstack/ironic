@@ -353,6 +353,11 @@ IRONIC_HTTP_PORT=${IRONIC_HTTP_PORT:-3928}
 IRONIC_RPC_TRANSPORT=${IRONIC_RPC_TRANSPORT:-oslo}
 IRONIC_JSON_RPC_PORT=${IRONIC_JSON_RPC_PORT:-8089}
 
+# The authentication strategy used by json-rpc. Valid values are:
+# keystone, http_basic, noauth, or no value to inherit from ironic-api
+# auth strategy.
+IRONIC_JSON_RPC_AUTH_STRATEGY=${IRONIC_JSON_RPC_AUTH_STRATEGY:-}
+
 # The first port in the range to bind the Virtual BMCs. The number of
 # ports that will be used depends on $IRONIC_VM_COUNT variable, e.g if
 # $IRONIC_VM_COUNT=3 the ports 6230, 6231 and 6232 will be used for the
@@ -387,7 +392,7 @@ LIBVIRT_STORAGE_POOL=${LIBVIRT_STORAGE_POOL:-"default"}
 LIBVIRT_STORAGE_POOL_PATH=${LIBVIRT_STORAGE_POOL_PATH:-/var/lib/libvirt/images}
 
 # The authentication strategy used by ironic-api. Valid values are:
-# keystone and noauth.
+# keystone, http_basic, noauth.
 IRONIC_AUTH_STRATEGY=${IRONIC_AUTH_STRATEGY:-keystone}
 
 # By default, terminal SSL certificate is disabled.
@@ -1397,6 +1402,13 @@ function configure_ironic {
     # Configure JSON RPC backend
     iniset $IRONIC_CONF_FILE DEFAULT rpc_transport $IRONIC_RPC_TRANSPORT
     iniset $IRONIC_CONF_FILE json_rpc port $IRONIC_JSON_RPC_PORT
+    if [[ "$IRONIC_JSON_RPC_AUTH_STRATEGY" != "" ]]; then
+        iniset $IRONIC_CONF_FILE json_rpc auth_strategy $IRONIC_JSON_RPC_AUTH_STRATEGY
+    fi
+    iniset $IRONIC_CONF_FILE json_rpc http_basic_username myName
+    iniset $IRONIC_CONF_FILE json_rpc http_basic_password myPassword
+    # json-rpc auth file with bcrypt hash of myPassword
+    echo 'myName:$2y$05$lE3eGtyj41jZwrzS87KTqe6.JETVCWBkc32C63UP2aYrGoYOEpbJm' > /etc/ironic/htpasswd-json-rpc
 
     # Set fast track options
     iniset $IRONIC_CONF_FILE deploy fast_track $IRONIC_DEPLOY_FAST_TRACK
