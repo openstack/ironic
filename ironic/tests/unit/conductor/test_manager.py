@@ -117,7 +117,7 @@ class ChangeNodePowerStateTestCase(mgr_utils.ServiceSetUpMixin,
         # background task's link callback.
         self.assertIsNone(node.reservation)
 
-    @mock.patch.object(conductor_utils, 'node_power_action')
+    @mock.patch.object(conductor_utils, 'node_power_action', autospec=True)
     def test_change_node_power_state_node_already_locked(self,
                                                          pwr_act_mock):
         # Test change_node_power_state with mocked
@@ -155,7 +155,7 @@ class ChangeNodePowerStateTestCase(mgr_utils.ServiceSetUpMixin,
         self._start_service()
 
         with mock.patch.object(self.service,
-                               '_spawn_worker') as spawn_mock:
+                               '_spawn_worker', autospec=True) as spawn_mock:
             spawn_mock.side_effect = exception.NoFreeConductorWorker()
 
             exc = self.assertRaises(messaging.rpc.ExpectedException,
@@ -234,7 +234,8 @@ class ChangeNodePowerStateTestCase(mgr_utils.ServiceSetUpMixin,
         self.assertIsNone(node.target_power_state)
         self.assertIsNone(node.last_error)
 
-    @mock.patch('ironic.objects.node.NodeSetPowerStateNotification')
+    @mock.patch('ironic.objects.node.NodeSetPowerStateNotification',
+                autospec=True)
     def test_node_set_power_state_notif_success(self, mock_notif):
         # Test that successfully changing a node's power state sends the
         # correct .start and .end notifications
@@ -270,7 +271,8 @@ class ChangeNodePowerStateTestCase(mgr_utils.ServiceSetUpMixin,
                                      obj_fields.NotificationLevel.INFO)
 
     @mock.patch.object(fake.FakePower, 'get_power_state', autospec=True)
-    @mock.patch('ironic.objects.node.NodeSetPowerStateNotification')
+    @mock.patch('ironic.objects.node.NodeSetPowerStateNotification',
+                autospec=True)
     def test_node_set_power_state_notif_get_power_fail(self, mock_notif,
                                                        get_power_mock):
         # Test that correct notifications are sent when changing node power
@@ -310,7 +312,8 @@ class ChangeNodePowerStateTestCase(mgr_utils.ServiceSetUpMixin,
                                      obj_fields.NotificationLevel.ERROR)
 
     @mock.patch.object(fake.FakePower, 'set_power_state', autospec=True)
-    @mock.patch('ironic.objects.node.NodeSetPowerStateNotification')
+    @mock.patch('ironic.objects.node.NodeSetPowerStateNotification',
+                autospec=True)
     def test_node_set_power_state_notif_set_power_fail(self, mock_notif,
                                                        set_power_mock):
         # Test that correct notifications are sent when changing node power
@@ -350,7 +353,8 @@ class ChangeNodePowerStateTestCase(mgr_utils.ServiceSetUpMixin,
                                      'baremetal.node.power_set.error',
                                      obj_fields.NotificationLevel.ERROR)
 
-    @mock.patch('ironic.objects.node.NodeSetPowerStateNotification')
+    @mock.patch('ironic.objects.node.NodeSetPowerStateNotification',
+                autospec=True)
     def test_node_set_power_state_notif_spawn_fail(self, mock_notif):
         # Test that failure notification is not sent when spawning the
         # background conductor worker fails
@@ -364,7 +368,7 @@ class ChangeNodePowerStateTestCase(mgr_utils.ServiceSetUpMixin,
 
         self._start_service()
         with mock.patch.object(self.service,
-                               '_spawn_worker') as spawn_mock:
+                               '_spawn_worker', autospec=True) as spawn_mock:
             spawn_mock.side_effect = exception.NoFreeConductorWorker()
             self.assertRaises(messaging.rpc.ExpectedException,
                               self.service.change_node_power_state,
@@ -377,7 +381,8 @@ class ChangeNodePowerStateTestCase(mgr_utils.ServiceSetUpMixin,
                 timeout=None)
             self.assertFalse(mock_notif.called)
 
-    @mock.patch('ironic.objects.node.NodeSetPowerStateNotification')
+    @mock.patch('ironic.objects.node.NodeSetPowerStateNotification',
+                autospec=True)
     def test_node_set_power_state_notif_no_state_change(self, mock_notif):
         # Test that correct notifications are sent when changing node power
         # state and no state change is necessary
@@ -648,7 +653,8 @@ class UpdateNodeTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         res = objects.Node.get_by_uuid(self.context, node['uuid'])
         self.assertEqual(old_instance, res['instance_uuid'])
 
-    @mock.patch('ironic.drivers.modules.fake.FakePower.get_power_state')
+    @mock.patch('ironic.drivers.modules.fake.FakePower.get_power_state',
+                autospec=True)
     def _test_associate_node(self, power_state, mock_get_power_state):
         mock_get_power_state.return_value = power_state
         node = obj_utils.create_test_node(self.context, driver='fake-hardware',
@@ -958,8 +964,8 @@ class UpdateNodeTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
 @mgr_utils.mock_record_keepalive
 class VendorPassthruTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
 
-    @mock.patch.object(task_manager.TaskManager, 'upgrade_lock')
-    @mock.patch.object(task_manager.TaskManager, 'spawn_after')
+    @mock.patch.object(task_manager.TaskManager, 'upgrade_lock', autospec=True)
+    @mock.patch.object(task_manager.TaskManager, 'spawn_after', autospec=True)
     def test_vendor_passthru_async(self, mock_spawn,
                                    mock_upgrade):
         node = obj_utils.create_test_node(self.context,
@@ -986,8 +992,8 @@ class VendorPassthruTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         # Verify reservation has been cleared.
         self.assertIsNone(node.reservation)
 
-    @mock.patch.object(task_manager.TaskManager, 'upgrade_lock')
-    @mock.patch.object(task_manager.TaskManager, 'spawn_after')
+    @mock.patch.object(task_manager.TaskManager, 'upgrade_lock', autospec=True)
+    @mock.patch.object(task_manager.TaskManager, 'spawn_after', autospec=True)
     def test_vendor_passthru_sync(self, mock_spawn, mock_upgrade):
         node = obj_utils.create_test_node(self.context, driver='fake-hardware')
         info = {'bar': 'meow'}
@@ -1012,8 +1018,8 @@ class VendorPassthruTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         # Verify reservation has been cleared.
         self.assertIsNone(node.reservation)
 
-    @mock.patch.object(task_manager.TaskManager, 'upgrade_lock')
-    @mock.patch.object(task_manager.TaskManager, 'spawn_after')
+    @mock.patch.object(task_manager.TaskManager, 'upgrade_lock', autospec=True)
+    @mock.patch.object(task_manager.TaskManager, 'spawn_after', autospec=True)
     def test_vendor_passthru_shared_lock(self, mock_spawn, mock_upgrade):
         node = obj_utils.create_test_node(self.context, driver='fake-hardware')
         info = {'bar': 'woof'}
@@ -1115,7 +1121,7 @@ class VendorPassthruTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         self._start_service()
 
         with mock.patch.object(self.service,
-                               '_spawn_worker') as spawn_mock:
+                               '_spawn_worker', autospec=True) as spawn_mock:
             spawn_mock.side_effect = exception.NoFreeConductorWorker()
 
             exc = self.assertRaises(messaging.rpc.ExpectedException,
@@ -1149,8 +1155,9 @@ class VendorPassthruTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         del fake_routes['test_method']['func']
         self.assertEqual(fake_routes, data)
 
-    @mock.patch.object(driver_factory, 'get_interface')
-    @mock.patch.object(manager.ConductorManager, '_spawn_worker')
+    @mock.patch.object(driver_factory, 'get_interface', autospec=True)
+    @mock.patch.object(manager.ConductorManager, '_spawn_worker',
+                       autospec=True)
     def test_driver_vendor_passthru_sync(self, mock_spawn, mock_get_if):
         expected = {'foo': 'bar'}
         vendor_mock = mock.Mock(spec=drivers_base.VendorInterface)
@@ -1323,7 +1330,7 @@ class VendorPassthruTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
 
 
 @mgr_utils.mock_record_keepalive
-@mock.patch.object(images, 'is_whole_disk_image')
+@mock.patch.object(images, 'is_whole_disk_image', autospec=True)
 class ServiceDoNodeDeployTestCase(mgr_utils.ServiceSetUpMixin,
                                   db_base.DbTestCase):
     def test_do_node_deploy_invalid_state(self, mock_iwdi):
@@ -1385,21 +1392,25 @@ class ServiceDoNodeDeployTestCase(mgr_utils.ServiceSetUpMixin,
         mock_iwdi.assert_called_once_with(self.context, node.instance_info)
         self.assertNotIn('is_whole_disk_image', node.driver_internal_info)
 
-    @mock.patch('ironic.drivers.modules.fake.FakeDeploy.validate')
+    @mock.patch('ironic.drivers.modules.fake.FakeDeploy.validate',
+                autospec=True)
     def test_do_node_deploy_validate_fail(self, mock_validate, mock_iwdi):
         self._test_do_node_deploy_validate_fail(mock_validate, mock_iwdi)
 
-    @mock.patch('ironic.drivers.modules.fake.FakePower.validate')
+    @mock.patch('ironic.drivers.modules.fake.FakePower.validate',
+                autospec=True)
     def test_do_node_deploy_power_validate_fail(self, mock_validate,
                                                 mock_iwdi):
         self._test_do_node_deploy_validate_fail(mock_validate, mock_iwdi)
 
-    @mock.patch.object(conductor_utils, 'validate_instance_info_traits')
+    @mock.patch.object(conductor_utils, 'validate_instance_info_traits',
+                       autospec=True)
     def test_do_node_deploy_traits_validate_fail(self, mock_validate,
                                                  mock_iwdi):
         self._test_do_node_deploy_validate_fail(mock_validate, mock_iwdi)
 
-    @mock.patch.object(conductor_steps, 'validate_deploy_templates')
+    @mock.patch.object(conductor_steps, 'validate_deploy_templates',
+                       autospec=True)
     def test_do_node_deploy_validate_template_fail(self, mock_validate,
                                                    mock_iwdi):
         self._test_do_node_deploy_validate_fail(mock_validate, mock_iwdi)
@@ -1854,7 +1865,8 @@ class ContinueNodeDeployTestCase(mgr_utils.ServiceSetUpMixin,
 
 @mgr_utils.mock_record_keepalive
 class CheckTimeoutsTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
-    @mock.patch('ironic.drivers.modules.fake.FakeDeploy.clean_up')
+    @mock.patch('ironic.drivers.modules.fake.FakeDeploy.clean_up',
+                autospec=True)
     def test__check_deploy_timeouts(self, mock_cleanup):
         self._start_service()
         CONF.set_override('deploy_callback_timeout', 1, group='conductor')
@@ -1870,7 +1882,7 @@ class CheckTimeoutsTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         self.assertEqual(states.DEPLOYFAIL, node.provision_state)
         self.assertEqual(states.ACTIVE, node.target_provision_state)
         self.assertIsNotNone(node.last_error)
-        mock_cleanup.assert_called_once_with(mock.ANY)
+        mock_cleanup.assert_called_once_with(mock.ANY, mock.ANY)
 
     def _check_cleanwait_timeouts(self, manual=False):
         self._start_service()
@@ -1906,8 +1918,9 @@ class CheckTimeoutsTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
     def test__check_cleanwait_timeouts_manual_clean(self):
         self._check_cleanwait_timeouts(manual=True)
 
-    @mock.patch('ironic.drivers.modules.fake.FakeRescue.clean_up')
-    @mock.patch.object(conductor_utils, 'node_power_action')
+    @mock.patch('ironic.drivers.modules.fake.FakeRescue.clean_up',
+                autospec=True)
+    @mock.patch.object(conductor_utils, 'node_power_action', autospec=True)
     def test_check_rescuewait_timeouts(self, node_power_mock,
                                        mock_clean_up):
         self._start_service()
@@ -1929,7 +1942,7 @@ class CheckTimeoutsTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         self.assertIsNotNone(node.last_error)
         self.assertIn('Timeout reached while waiting for rescue ramdisk',
                       node.last_error)
-        mock_clean_up.assert_called_once_with(mock.ANY)
+        mock_clean_up.assert_called_once_with(mock.ANY, mock.ANY)
         node_power_mock.assert_called_once_with(mock.ANY, states.POWER_OFF)
 
 
@@ -1958,7 +1971,8 @@ class DoNodeTearDownTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         # Compare true exception hidden by @messaging.expected_exceptions
         self.assertEqual(exception.NodeProtected, exc.exc_info[0])
 
-    @mock.patch('ironic.drivers.modules.fake.FakePower.validate')
+    @mock.patch('ironic.drivers.modules.fake.FakePower.validate',
+                autospec=True)
     def test_do_node_tear_down_validate_fail(self, mock_validate):
         # InvalidParameterValue should be re-raised as InstanceDeployFailure
         mock_validate.side_effect = exception.InvalidParameterValue('error')
@@ -1972,7 +1986,8 @@ class DoNodeTearDownTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         # Compare true exception hidden by @messaging.expected_exceptions
         self.assertEqual(exception.InstanceDeployFailure, exc.exc_info[0])
 
-    @mock.patch('ironic.drivers.modules.fake.FakeDeploy.tear_down')
+    @mock.patch('ironic.drivers.modules.fake.FakeDeploy.tear_down',
+                autospec=True)
     def test_do_node_tear_down_driver_raises_error(self, mock_tear_down):
         # test when driver.deploy.tear_down raises exception
         node = obj_utils.create_test_node(
@@ -1994,9 +2009,10 @@ class DoNodeTearDownTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         self.assertIsNotNone(node.last_error)
         # Assert instance_info was erased
         self.assertEqual({}, node.instance_info)
-        mock_tear_down.assert_called_once_with(task)
+        mock_tear_down.assert_called_once_with(mock.ANY, task)
 
-    @mock.patch('ironic.drivers.modules.fake.FakeConsole.stop_console')
+    @mock.patch('ironic.drivers.modules.fake.FakeConsole.stop_console',
+                autospec=True)
     def test_do_node_tear_down_console_raises_error(self, mock_console):
         # test when _set_console_mode raises exception
         node = obj_utils.create_test_node(
@@ -2019,14 +2035,16 @@ class DoNodeTearDownTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         self.assertIsNotNone(node.last_error)
         # Assert instance_info was erased
         self.assertEqual({}, node.instance_info)
-        mock_console.assert_called_once_with(task)
+        mock_console.assert_called_once_with(mock.ANY, task)
 
     # TODO(TheJulia): Since we're functionally bound to neutron support
     # by default, the fake drivers still invoke neutron.
-    @mock.patch('ironic.drivers.modules.fake.FakeConsole.stop_console')
-    @mock.patch('ironic.common.neutron.unbind_neutron_port')
-    @mock.patch('ironic.conductor.cleaning.do_node_clean')
-    @mock.patch('ironic.drivers.modules.fake.FakeDeploy.tear_down')
+    @mock.patch('ironic.drivers.modules.fake.FakeConsole.stop_console',
+                autospec=True)
+    @mock.patch('ironic.common.neutron.unbind_neutron_port', autospec=True)
+    @mock.patch('ironic.conductor.cleaning.do_node_clean', autospec=True)
+    @mock.patch('ironic.drivers.modules.fake.FakeDeploy.tear_down',
+                autospec=True)
     def _test__do_node_tear_down_ok(self, mock_tear_down, mock_clean,
                                     mock_unbind, mock_console,
                                     enabled_console=False,
@@ -2070,12 +2088,12 @@ class DoNodeTearDownTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         self.assertIsNone(node.driver_internal_info['deploy_steps'])
         self.assertNotIn('root_uuid_or_disk_id', node.driver_internal_info)
         self.assertNotIn('is_whole_disk_image', node.driver_internal_info)
-        mock_tear_down.assert_called_once_with(task)
+        mock_tear_down.assert_called_once_with(mock.ANY, task)
         mock_clean.assert_called_once_with(task)
         self.assertEqual({}, port.internal_info)
         mock_unbind.assert_called_once_with('foo', context=mock.ANY)
         if enabled_console:
-            mock_console.assert_called_once_with(task)
+            mock_console.assert_called_once_with(mock.ANY, task)
         else:
             self.assertFalse(mock_console.called)
         if with_allocation:
@@ -2092,9 +2110,11 @@ class DoNodeTearDownTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
     def test__do_node_tear_down_with_allocation(self):
         self._test__do_node_tear_down_ok(with_allocation=True)
 
-    @mock.patch('ironic.drivers.modules.fake.FakeRescue.clean_up')
-    @mock.patch('ironic.conductor.cleaning.do_node_clean')
-    @mock.patch('ironic.drivers.modules.fake.FakeDeploy.tear_down')
+    @mock.patch('ironic.drivers.modules.fake.FakeRescue.clean_up',
+                autospec=True)
+    @mock.patch('ironic.conductor.cleaning.do_node_clean', autospec=True)
+    @mock.patch('ironic.drivers.modules.fake.FakeDeploy.tear_down',
+                autospec=True)
     def _test_do_node_tear_down_from_state(self, init_state, is_rescue_state,
                                            mock_tear_down, mock_clean,
                                            mock_rescue_clean):
@@ -2114,10 +2134,10 @@ class DoNodeTearDownTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         self.assertEqual(states.AVAILABLE, node.target_provision_state)
         self.assertIsNone(node.last_error)
         self.assertEqual({}, node.instance_info)
-        mock_tear_down.assert_called_once_with(mock.ANY)
+        mock_tear_down.assert_called_once_with(mock.ANY, mock.ANY)
         mock_clean.assert_called_once_with(mock.ANY)
         if is_rescue_state:
-            mock_rescue_clean.assert_called_once_with(mock.ANY)
+            mock_rescue_clean.assert_called_once_with(mock.ANY, mock.ANY)
         else:
             self.assertFalse(mock_rescue_clean.called)
 
@@ -2419,8 +2439,8 @@ class DoNodeCleanTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         self.assertNotIn('clean_steps', node.driver_internal_info)
         self.assertIsNone(node.last_error)
 
-    @mock.patch('ironic.conductor.utils.remove_agent_url')
-    @mock.patch('ironic.conductor.utils.is_fast_track')
+    @mock.patch('ironic.conductor.utils.remove_agent_url', autospec=True)
+    @mock.patch('ironic.conductor.utils.is_fast_track', autospec=True)
     @mock.patch('ironic.conductor.manager.ConductorManager._spawn_worker',
                 autospec=True)
     @mock.patch('ironic.drivers.modules.network.flat.FlatNetwork.validate',
@@ -2720,15 +2740,18 @@ class DoNodeRescueTestCase(mgr_utils.CommonMixIn, mgr_utils.ServiceSetUpMixin,
         # Compare true exception hidden by @messaging.expected_exceptions
         self.assertEqual(exception.InstanceRescueFailure, exc.exc_info[0])
 
-    @mock.patch('ironic.drivers.modules.fake.FakeRescue.validate')
+    @mock.patch('ironic.drivers.modules.fake.FakeRescue.validate',
+                autospec=True)
     def test_do_node_rescue_when_rescue_validate_fail(self, mock_validate):
         self._test_do_node_rescue_when_validate_fail(mock_validate)
 
-    @mock.patch('ironic.drivers.modules.fake.FakePower.validate')
+    @mock.patch('ironic.drivers.modules.fake.FakePower.validate',
+                autospec=True)
     def test_do_node_rescue_when_power_validate_fail(self, mock_validate):
         self._test_do_node_rescue_when_validate_fail(mock_validate)
 
-    @mock.patch('ironic.drivers.modules.network.flat.FlatNetwork.validate')
+    @mock.patch('ironic.drivers.modules.network.flat.FlatNetwork.validate',
+                autospec=True)
     def test_do_node_rescue_when_network_validate_fail(self, mock_validate):
         self._test_do_node_rescue_when_validate_fail(mock_validate)
 
@@ -2748,7 +2771,7 @@ class DoNodeRescueTestCase(mgr_utils.CommonMixIn, mgr_utils.ServiceSetUpMixin,
         # This is a sync operation last_error should be None.
         self.assertIsNone(node.last_error)
 
-    @mock.patch('ironic.drivers.modules.fake.FakeRescue.rescue')
+    @mock.patch('ironic.drivers.modules.fake.FakeRescue.rescue', autospec=True)
     def test__do_node_rescue_returns_rescuewait(self, mock_rescue):
         self._start_service()
         node = obj_utils.create_test_node(
@@ -2765,7 +2788,7 @@ class DoNodeRescueTestCase(mgr_utils.CommonMixIn, mgr_utils.ServiceSetUpMixin,
             self.assertIn('rescue_password', node.instance_info)
             self.assertIn('hashed_rescue_password', node.instance_info)
 
-    @mock.patch('ironic.drivers.modules.fake.FakeRescue.rescue')
+    @mock.patch('ironic.drivers.modules.fake.FakeRescue.rescue', autospec=True)
     def test__do_node_rescue_returns_rescue(self, mock_rescue):
         self._start_service()
         node = obj_utils.create_test_node(
@@ -2783,8 +2806,8 @@ class DoNodeRescueTestCase(mgr_utils.CommonMixIn, mgr_utils.ServiceSetUpMixin,
             self.assertIn('rescue_password', node.instance_info)
             self.assertIn('hashed_rescue_password', node.instance_info)
 
-    @mock.patch.object(manager, 'LOG')
-    @mock.patch('ironic.drivers.modules.fake.FakeRescue.rescue')
+    @mock.patch.object(manager, 'LOG', autospec=True)
+    @mock.patch('ironic.drivers.modules.fake.FakeRescue.rescue', autospec=True)
     def test__do_node_rescue_errors(self, mock_rescue, mock_log):
         self._start_service()
         node = obj_utils.create_test_node(
@@ -2806,8 +2829,8 @@ class DoNodeRescueTestCase(mgr_utils.CommonMixIn, mgr_utils.ServiceSetUpMixin,
             self.assertTrue(node.last_error.startswith('Failed to rescue'))
             self.assertTrue(mock_log.error.called)
 
-    @mock.patch.object(manager, 'LOG')
-    @mock.patch('ironic.drivers.modules.fake.FakeRescue.rescue')
+    @mock.patch.object(manager, 'LOG', autospec=True)
+    @mock.patch('ironic.drivers.modules.fake.FakeRescue.rescue', autospec=True)
     def test__do_node_rescue_bad_state(self, mock_rescue, mock_log):
         self._start_service()
         node = obj_utils.create_test_node(
@@ -2853,7 +2876,8 @@ class DoNodeRescueTestCase(mgr_utils.CommonMixIn, mgr_utils.ServiceSetUpMixin,
                                 self.context, node.uuid)
         self.assertEqual(exception.InvalidStateRequested, exc.exc_info[0])
 
-    @mock.patch('ironic.drivers.modules.fake.FakePower.validate')
+    @mock.patch('ironic.drivers.modules.fake.FakePower.validate',
+                autospec=True)
     def test_do_node_unrescue_validate_fail(self, mock_validate):
         # InvalidParameterValue should be re-raised as InstanceUnrescueFailure
         mock_validate.side_effect = exception.InvalidParameterValue('error')
@@ -2883,7 +2907,8 @@ class DoNodeRescueTestCase(mgr_utils.CommonMixIn, mgr_utils.ServiceSetUpMixin,
         node.refresh()
         self.assertIsNone(node.last_error)
 
-    @mock.patch('ironic.drivers.modules.fake.FakeRescue.unrescue')
+    @mock.patch('ironic.drivers.modules.fake.FakeRescue.unrescue',
+                autospec=True)
     def test__do_node_unrescue(self, mock_unrescue):
         self._start_service()
         node = obj_utils.create_test_node(self.context, driver='fake-hardware',
@@ -2897,8 +2922,9 @@ class DoNodeRescueTestCase(mgr_utils.CommonMixIn, mgr_utils.ServiceSetUpMixin,
             self.assertEqual(states.ACTIVE, node.provision_state)
             self.assertEqual(states.NOSTATE, node.target_provision_state)
 
-    @mock.patch.object(manager, 'LOG')
-    @mock.patch('ironic.drivers.modules.fake.FakeRescue.unrescue')
+    @mock.patch.object(manager, 'LOG', autospec=True)
+    @mock.patch('ironic.drivers.modules.fake.FakeRescue.unrescue',
+                autospec=True)
     def test__do_node_unrescue_ironic_error(self, mock_unrescue, mock_log):
         self._start_service()
         node = obj_utils.create_test_node(self.context, driver='fake-hardware',
@@ -2916,8 +2942,9 @@ class DoNodeRescueTestCase(mgr_utils.CommonMixIn, mgr_utils.ServiceSetUpMixin,
             self.assertTrue('Unable to unrescue' in node.last_error)
             self.assertTrue(mock_log.error.called)
 
-    @mock.patch.object(manager, 'LOG')
-    @mock.patch('ironic.drivers.modules.fake.FakeRescue.unrescue')
+    @mock.patch.object(manager, 'LOG', autospec=True)
+    @mock.patch('ironic.drivers.modules.fake.FakeRescue.unrescue',
+                autospec=True)
     def test__do_node_unrescue_other_error(self, mock_unrescue, mock_log):
         self._start_service()
         node = obj_utils.create_test_node(self.context, driver='fake-hardware',
@@ -2934,7 +2961,8 @@ class DoNodeRescueTestCase(mgr_utils.CommonMixIn, mgr_utils.ServiceSetUpMixin,
             self.assertTrue('Some failure' in node.last_error)
             self.assertTrue(mock_log.exception.called)
 
-    @mock.patch('ironic.drivers.modules.fake.FakeRescue.unrescue')
+    @mock.patch('ironic.drivers.modules.fake.FakeRescue.unrescue',
+                autospec=True)
     def test__do_node_unrescue_bad_state(self, mock_unrescue):
         self._start_service()
         node = obj_utils.create_test_node(self.context, driver='fake-hardware',
@@ -2998,9 +3026,12 @@ class DoNodeRescueTestCase(mgr_utils.CommonMixIn, mgr_utils.ServiceSetUpMixin,
 
 @mgr_utils.mock_record_keepalive
 class DoNodeVerifyTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
-    @mock.patch('ironic.objects.node.NodeCorrectedPowerStateNotification')
-    @mock.patch('ironic.drivers.modules.fake.FakePower.get_power_state')
-    @mock.patch('ironic.drivers.modules.fake.FakePower.validate')
+    @mock.patch('ironic.objects.node.NodeCorrectedPowerStateNotification',
+                autospec=True)
+    @mock.patch('ironic.drivers.modules.fake.FakePower.get_power_state',
+                autospec=True)
+    @mock.patch('ironic.drivers.modules.fake.FakePower.validate',
+                autospec=True)
     def test__do_node_verify(self, mock_validate, mock_get_power_state,
                              mock_notif):
         self._start_service()
@@ -3030,16 +3061,18 @@ class DoNodeVerifyTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
 
         node.refresh()
 
-        mock_validate.assert_called_once_with(task)
-        mock_get_power_state.assert_called_once_with(task)
+        mock_validate.assert_called_once_with(mock.ANY, task)
+        mock_get_power_state.assert_called_once_with(mock.ANY, task)
 
         self.assertEqual(states.MANAGEABLE, node.provision_state)
         self.assertIsNone(node.target_provision_state)
         self.assertIsNone(node.last_error)
         self.assertEqual(states.POWER_OFF, node.power_state)
 
-    @mock.patch('ironic.drivers.modules.fake.FakePower.get_power_state')
-    @mock.patch('ironic.drivers.modules.fake.FakePower.validate')
+    @mock.patch('ironic.drivers.modules.fake.FakePower.get_power_state',
+                autospec=True)
+    @mock.patch('ironic.drivers.modules.fake.FakePower.validate',
+                autospec=True)
     def test__do_node_verify_validation_fails(self, mock_validate,
                                               mock_get_power_state):
         self._start_service()
@@ -3059,15 +3092,17 @@ class DoNodeVerifyTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         self._stop_service()
         node.refresh()
 
-        mock_validate.assert_called_once_with(task)
+        mock_validate.assert_called_once_with(mock.ANY, task)
 
         self.assertEqual(states.ENROLL, node.provision_state)
         self.assertIsNone(node.target_provision_state)
         self.assertTrue(node.last_error)
         self.assertFalse(mock_get_power_state.called)
 
-    @mock.patch('ironic.drivers.modules.fake.FakePower.get_power_state')
-    @mock.patch('ironic.drivers.modules.fake.FakePower.validate')
+    @mock.patch('ironic.drivers.modules.fake.FakePower.get_power_state',
+                autospec=True)
+    @mock.patch('ironic.drivers.modules.fake.FakePower.validate',
+                autospec=True)
     def test__do_node_verify_get_state_fails(self, mock_validate,
                                              mock_get_power_state):
         self._start_service()
@@ -3087,7 +3122,7 @@ class DoNodeVerifyTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         self._stop_service()
         node.refresh()
 
-        mock_get_power_state.assert_called_once_with(task)
+        mock_get_power_state.assert_called_once_with(mock.ANY, task)
 
         self.assertEqual(states.ENROLL, node.provision_state)
         self.assertIsNone(node.target_provision_state)
@@ -3108,7 +3143,7 @@ class MiscTestCase(mgr_utils.ServiceSetUpMixin, mgr_utils.CommonMixIn,
                                                                 'otherdriver',
                                                                 ''))
 
-    @mock.patch.object(images, 'is_whole_disk_image')
+    @mock.patch.object(images, 'is_whole_disk_image', autospec=True)
     def test_validate_dynamic_driver_interfaces(self, mock_iwdi):
         mock_iwdi.return_value = False
         target_raid_config = {'logical_disks': [{'size_gb': 1,
@@ -3134,7 +3169,7 @@ class MiscTestCase(mgr_utils.ServiceSetUpMixin, mgr_utils.CommonMixIn,
         mock_iwdi.assert_called_once_with(self.context, node.instance_info)
 
     @mock.patch.object(fake.FakeDeploy, 'validate', autospec=True)
-    @mock.patch.object(images, 'is_whole_disk_image')
+    @mock.patch.object(images, 'is_whole_disk_image', autospec=True)
     def test_validate_driver_interfaces_validation_fail(self, mock_iwdi,
                                                         mock_val):
         mock_iwdi.return_value = False
@@ -3149,7 +3184,7 @@ class MiscTestCase(mgr_utils.ServiceSetUpMixin, mgr_utils.CommonMixIn,
         mock_iwdi.assert_called_once_with(self.context, node.instance_info)
 
     @mock.patch.object(fake.FakeDeploy, 'validate', autospec=True)
-    @mock.patch.object(images, 'is_whole_disk_image')
+    @mock.patch.object(images, 'is_whole_disk_image', autospec=True)
     def test_validate_driver_interfaces_validation_fail_unexpected(
             self, mock_iwdi, mock_val):
         node = obj_utils.create_test_node(self.context, driver='fake-hardware')
@@ -3164,15 +3199,15 @@ class MiscTestCase(mgr_utils.ServiceSetUpMixin, mgr_utils.CommonMixIn,
 
         mock_iwdi.assert_called_once_with(self.context, node.instance_info)
 
-    @mock.patch.object(images, 'is_whole_disk_image')
+    @mock.patch.object(images, 'is_whole_disk_image', autospec=True)
     def test_validate_driver_interfaces_validation_fail_instance_traits(
             self, mock_iwdi):
         mock_iwdi.return_value = False
         node = obj_utils.create_test_node(self.context, driver='fake-hardware',
                                           network_interface='noop')
         with mock.patch(
-            'ironic.conductor.utils.validate_instance_info_traits'
-        ) as ii_traits:
+                'ironic.conductor.utils.validate_instance_info_traits',
+                autospec=True) as ii_traits:
             reason = 'fake reason'
             ii_traits.side_effect = exception.InvalidParameterValue(reason)
             ret = self.service.validate_driver_interfaces(self.context,
@@ -3181,15 +3216,15 @@ class MiscTestCase(mgr_utils.ServiceSetUpMixin, mgr_utils.CommonMixIn,
             self.assertEqual(reason, ret['deploy']['reason'])
             mock_iwdi.assert_called_once_with(self.context, node.instance_info)
 
-    @mock.patch.object(images, 'is_whole_disk_image')
+    @mock.patch.object(images, 'is_whole_disk_image', autospec=True)
     def test_validate_driver_interfaces_validation_fail_deploy_templates(
             self, mock_iwdi):
         mock_iwdi.return_value = False
         node = obj_utils.create_test_node(self.context, driver='fake-hardware',
                                           network_interface='noop')
         with mock.patch(
-            'ironic.conductor.steps.validate_deploy_templates'
-        ) as mock_validate:
+                'ironic.conductor.steps.validate_deploy_templates',
+                autospec=True) as mock_validate:
             reason = 'fake reason'
             mock_validate.side_effect = exception.InvalidParameterValue(reason)
             ret = self.service.validate_driver_interfaces(self.context,
@@ -3200,8 +3235,9 @@ class MiscTestCase(mgr_utils.ServiceSetUpMixin, mgr_utils.CommonMixIn,
 
     @mock.patch.object(manager.ConductorManager, '_fail_if_in_state',
                        autospec=True)
-    @mock.patch.object(manager.ConductorManager, '_mapped_to_this_conductor')
-    @mock.patch.object(dbapi.IMPL, 'get_nodeinfo_list')
+    @mock.patch.object(manager.ConductorManager, '_mapped_to_this_conductor',
+                       autospec=True)
+    @mock.patch.object(dbapi.IMPL, 'get_nodeinfo_list', autospec=True)
     def test_iter_nodes(self, mock_nodeinfo_list, mock_mapped,
                         mock_fail_if_state):
         self._start_service()
@@ -3232,7 +3268,7 @@ class MiscTestCase(mgr_utils.ServiceSetUpMixin, mgr_utils.CommonMixIn,
                                     last_error=mock.ANY)]
         mock_fail_if_state.assert_has_calls(expected_calls)
 
-    @mock.patch.object(dbapi.IMPL, 'get_nodeinfo_list')
+    @mock.patch.object(dbapi.IMPL, 'get_nodeinfo_list', autospec=True)
     def test_iter_nodes_shutdown(self, mock_nodeinfo_list):
         self._start_service()
         self.columns = ['uuid', 'driver', 'conductor_group', 'id']
@@ -3252,7 +3288,7 @@ class ConsoleTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         node = obj_utils.create_test_node(self.context, driver='fake-hardware')
         self._start_service()
         with mock.patch.object(self.service,
-                               '_spawn_worker') as spawn_mock:
+                               '_spawn_worker', autospec=True) as spawn_mock:
             spawn_mock.side_effect = exception.NoFreeConductorWorker()
 
             exc = self.assertRaises(messaging.rpc.ExpectedException,
@@ -3263,7 +3299,8 @@ class ConsoleTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
             self._stop_service()
             spawn_mock.assert_called_once_with(mock.ANY, mock.ANY, mock.ANY)
 
-    @mock.patch.object(notification_utils, 'emit_console_notification')
+    @mock.patch.object(notification_utils, 'emit_console_notification',
+                       autospec=True)
     def test_set_console_mode_enabled(self, mock_notify):
         node = obj_utils.create_test_node(self.context, driver='fake-hardware')
         self._start_service()
@@ -3277,7 +3314,8 @@ class ConsoleTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
              mock.call(mock.ANY, 'console_set',
                        obj_fields.NotificationStatus.END)])
 
-    @mock.patch.object(notification_utils, 'emit_console_notification')
+    @mock.patch.object(notification_utils, 'emit_console_notification',
+                       autospec=True)
     def test_set_console_mode_disabled(self, mock_notify):
         node = obj_utils.create_test_node(self.context, driver='fake-hardware',
                                           console_enabled=True)
@@ -3305,7 +3343,8 @@ class ConsoleTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         self.assertEqual(exception.InvalidParameterValue, exc.exc_info[0])
 
     @mock.patch.object(fake.FakeConsole, 'start_console', autospec=True)
-    @mock.patch.object(notification_utils, 'emit_console_notification')
+    @mock.patch.object(notification_utils, 'emit_console_notification',
+                       autospec=True)
     def test_set_console_mode_start_fail(self, mock_notify, mock_sc):
         node = obj_utils.create_test_node(self.context, driver='fake-hardware',
                                           last_error=None,
@@ -3324,7 +3363,8 @@ class ConsoleTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
                        obj_fields.NotificationStatus.ERROR)])
 
     @mock.patch.object(fake.FakeConsole, 'stop_console', autospec=True)
-    @mock.patch.object(notification_utils, 'emit_console_notification')
+    @mock.patch.object(notification_utils, 'emit_console_notification',
+                       autospec=True)
     def test_set_console_mode_stop_fail(self, mock_notify, mock_sc):
         node = obj_utils.create_test_node(self.context, driver='fake-hardware',
                                           last_error=None,
@@ -3343,7 +3383,8 @@ class ConsoleTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
                        obj_fields.NotificationStatus.ERROR)])
 
     @mock.patch.object(fake.FakeConsole, 'start_console', autospec=True)
-    @mock.patch.object(notification_utils, 'emit_console_notification')
+    @mock.patch.object(notification_utils, 'emit_console_notification',
+                       autospec=True)
     def test_enable_console_already_enabled(self, mock_notify, mock_sc):
         node = obj_utils.create_test_node(self.context, driver='fake-hardware',
                                           console_enabled=True)
@@ -3354,7 +3395,8 @@ class ConsoleTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         self.assertFalse(mock_notify.called)
 
     @mock.patch.object(fake.FakeConsole, 'stop_console', autospec=True)
-    @mock.patch.object(notification_utils, 'emit_console_notification')
+    @mock.patch.object(notification_utils, 'emit_console_notification',
+                       autospec=True)
     def test_disable_console_already_disabled(self, mock_notify, mock_sc):
         node = obj_utils.create_test_node(self.context, driver='fake-hardware',
                                           console_enabled=False)
@@ -3522,7 +3564,8 @@ class DestroyNodeTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         self.service.destroy_node(self.context, node.uuid)
 
     @mock.patch.object(fake.FakeConsole, 'stop_console', autospec=True)
-    @mock.patch.object(notification_utils, 'emit_console_notification')
+    @mock.patch.object(notification_utils, 'emit_console_notification',
+                       autospec=True)
     def test_destroy_node_console_enabled(self, mock_notify, mock_sc):
         self._start_service()
         node = obj_utils.create_test_node(self.context, driver='fake-hardware',
@@ -3539,7 +3582,8 @@ class DestroyNodeTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
                        obj_fields.NotificationStatus.END)])
 
     @mock.patch.object(fake.FakeConsole, 'stop_console', autospec=True)
-    @mock.patch.object(notification_utils, 'emit_console_notification')
+    @mock.patch.object(notification_utils, 'emit_console_notification',
+                       autospec=True)
     def test_destroy_node_console_disable_fail(self, mock_notify, mock_sc):
         self._start_service()
         node = obj_utils.create_test_node(self.context, driver='fake-hardware',
@@ -3569,7 +3613,7 @@ class DestroyNodeTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
 @mgr_utils.mock_record_keepalive
 class CreatePortTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
 
-    @mock.patch.object(conductor_utils, 'validate_port_physnet')
+    @mock.patch.object(conductor_utils, 'validate_port_physnet', autospec=True)
     def test_create_port(self, mock_validate):
         node = obj_utils.create_test_node(self.context, driver='fake-hardware')
         port = obj_utils.get_test_port(self.context, node_id=node.id,
@@ -3592,7 +3636,7 @@ class CreatePortTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         self.assertRaises(exception.PortNotFound, port.get_by_uuid,
                           self.context, port.uuid)
 
-    @mock.patch.object(conductor_utils, 'validate_port_physnet')
+    @mock.patch.object(conductor_utils, 'validate_port_physnet', autospec=True)
     def test_create_port_mac_exists(self, mock_validate):
         node = obj_utils.create_test_node(self.context, driver='fake-hardware')
         port = obj_utils.create_test_port(self.context, node_id=node.id)
@@ -3606,7 +3650,7 @@ class CreatePortTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         self.assertRaises(exception.PortNotFound, port.get_by_uuid,
                           self.context, port.uuid)
 
-    @mock.patch.object(conductor_utils, 'validate_port_physnet')
+    @mock.patch.object(conductor_utils, 'validate_port_physnet', autospec=True)
     def test_create_port_physnet_validation_failure_conflict(self,
                                                              mock_validate):
         mock_validate.side_effect = exception.Conflict
@@ -3620,7 +3664,7 @@ class CreatePortTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         self.assertRaises(exception.PortNotFound, port.get_by_uuid,
                           self.context, port.uuid)
 
-    @mock.patch.object(conductor_utils, 'validate_port_physnet')
+    @mock.patch.object(conductor_utils, 'validate_port_physnet', autospec=True)
     def test_create_port_physnet_validation_failure_inconsistent(
             self, mock_validate):
         mock_validate.side_effect = exception.PortgroupPhysnetInconsistent(
@@ -3640,7 +3684,7 @@ class CreatePortTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
 @mgr_utils.mock_record_keepalive
 class UpdatePortTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
 
-    @mock.patch.object(conductor_utils, 'validate_port_physnet')
+    @mock.patch.object(conductor_utils, 'validate_port_physnet', autospec=True)
     @mock.patch.object(n_flat.FlatNetwork, 'port_changed', autospec=True)
     @mock.patch.object(n_flat.FlatNetwork, 'validate', autospec=True)
     def test_update_port(self, mock_val, mock_pc, mock_vpp):
@@ -3865,7 +3909,7 @@ class UpdatePortTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         port.refresh()
         self.assertEqual(old_physnet, port.physical_network)
 
-    @mock.patch.object(conductor_utils, 'validate_port_physnet')
+    @mock.patch.object(conductor_utils, 'validate_port_physnet', autospec=True)
     def test_update_port_physnet_validation_failure_conflict(self,
                                                              mock_validate):
         mock_validate.side_effect = exception.Conflict
@@ -3880,7 +3924,7 @@ class UpdatePortTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         self.assertEqual(exception.Conflict, exc.exc_info[0])
         mock_validate.assert_called_once_with(mock.ANY, port)
 
-    @mock.patch.object(conductor_utils, 'validate_port_physnet')
+    @mock.patch.object(conductor_utils, 'validate_port_physnet', autospec=True)
     def test_update_port_physnet_validation_failure_inconsistent(
             self, mock_validate):
         mock_validate.side_effect = exception.PortgroupPhysnetInconsistent(
@@ -3929,7 +3973,7 @@ class SensorsTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         self.assertEqual(expected_result, actual_result)
 
     @mock.patch.object(messaging.Notifier, 'info', autospec=True)
-    @mock.patch.object(task_manager, 'acquire')
+    @mock.patch.object(task_manager, 'acquire', autospec=True)
     def test_send_sensor_task(self, acquire_mock, notifier_mock):
         nodes = queue.Queue()
         for i in range(5):
@@ -3958,7 +4002,7 @@ class SensorsTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         notifier_mock.assert_has_calls([n_call, n_call, n_call,
                                         n_call, n_call])
 
-    @mock.patch.object(task_manager, 'acquire')
+    @mock.patch.object(task_manager, 'acquire', autospec=True)
     def test_send_sensor_task_shutdown(self, acquire_mock):
         nodes = queue.Queue()
         nodes.put_nowait(('fake_uuid', 'fake-hardware', '', None))
@@ -3966,7 +4010,7 @@ class SensorsTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         self.service._shutdown = True
         CONF.set_override('send_sensor_data', True, group='conductor')
         self.service._sensors_nodes_task(self.context, nodes)
-        acquire_mock.__enter__.assert_not_called()
+        acquire_mock.return_value.__enter__.assert_not_called()
 
     @mock.patch.object(task_manager, 'acquire', autospec=True)
     def test_send_sensor_task_no_management(self, acquire_mock):
@@ -4006,8 +4050,9 @@ class SensorsTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
 
     @mock.patch.object(manager.ConductorManager, '_spawn_worker',
                        autospec=True)
-    @mock.patch.object(manager.ConductorManager, '_mapped_to_this_conductor')
-    @mock.patch.object(dbapi.IMPL, 'get_nodeinfo_list')
+    @mock.patch.object(manager.ConductorManager, '_mapped_to_this_conductor',
+                       autospec=True)
+    @mock.patch.object(dbapi.IMPL, 'get_nodeinfo_list', autospec=True)
     def test___send_sensor_data(self, get_nodeinfo_list_mock,
                                 _mapped_to_this_conductor_mock,
                                 mock_spawn):
@@ -4026,8 +4071,9 @@ class SensorsTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
 
     @mock.patch('ironic.conductor.manager.ConductorManager._spawn_worker',
                 autospec=True)
-    @mock.patch.object(manager.ConductorManager, '_mapped_to_this_conductor')
-    @mock.patch.object(dbapi.IMPL, 'get_nodeinfo_list')
+    @mock.patch.object(manager.ConductorManager, '_mapped_to_this_conductor',
+                       autospec=True)
+    @mock.patch.object(dbapi.IMPL, 'get_nodeinfo_list', autospec=True)
     def test___send_sensor_data_multiple_workers(
             self, get_nodeinfo_list_mock, _mapped_to_this_conductor_mock,
             mock_spawn):
@@ -4267,7 +4313,7 @@ class VifTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         mock_valid.assert_called_once_with(mock.ANY, mock.ANY)
         mock_attach.assert_called_once_with(mock.ANY, mock.ANY, self.vif)
 
-    @mock.patch.object(n_flat.FlatNetwork, 'vif_attach', autpspec=True)
+    @mock.patch.object(n_flat.FlatNetwork, 'vif_attach', autospec=True)
     def test_vif_attach_raises_portgroup_physnet_inconsistent(
             self, mock_attach, mock_valid):
         mock_valid.side_effect = exception.PortgroupPhysnetInconsistent(
@@ -4282,7 +4328,7 @@ class VifTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         mock_valid.assert_called_once_with(mock.ANY, mock.ANY)
         self.assertFalse(mock_attach.called)
 
-    @mock.patch.object(n_flat.FlatNetwork, 'vif_attach', autpspec=True)
+    @mock.patch.object(n_flat.FlatNetwork, 'vif_attach', autospec=True)
     def test_vif_attach_raises_vif_invalid_for_attach(
             self, mock_attach, mock_valid):
         mock_valid.side_effect = exception.VifInvalidForAttach(
@@ -4297,7 +4343,7 @@ class VifTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         mock_valid.assert_called_once_with(mock.ANY, mock.ANY)
         self.assertFalse(mock_attach.called)
 
-    @mock.patch.object(n_flat.FlatNetwork, 'vif_attach', autpspec=True)
+    @mock.patch.object(n_flat.FlatNetwork, 'vif_attach', autospec=True)
     def test_vif_attach_validate_error(self, mock_attach,
                                        mock_valid):
         mock_valid.side_effect = exception.MissingParameterValue("BOOM")
@@ -4310,14 +4356,14 @@ class VifTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         mock_valid.assert_called_once_with(mock.ANY, mock.ANY)
         self.assertFalse(mock_attach.called)
 
-    @mock.patch.object(n_flat.FlatNetwork, 'vif_detach', autpspec=True)
+    @mock.patch.object(n_flat.FlatNetwork, 'vif_detach', autospec=True)
     def test_vif_detach(self, mock_detach, mock_valid):
         node = obj_utils.create_test_node(self.context, driver='fake-hardware')
         self.service.vif_detach(self.context, node.uuid, "interface")
-        mock_detach.assert_called_once_with(mock.ANY, "interface")
+        mock_detach.assert_called_once_with(mock.ANY, mock.ANY, "interface")
         mock_valid.assert_called_once_with(mock.ANY, mock.ANY)
 
-    @mock.patch.object(n_flat.FlatNetwork, 'vif_detach', autpspec=True)
+    @mock.patch.object(n_flat.FlatNetwork, 'vif_detach', autospec=True)
     def test_vif_detach_node_locked(self, mock_detach, mock_valid):
         node = obj_utils.create_test_node(self.context, driver='fake-hardware',
                                           reservation='fake-reserv')
@@ -4329,7 +4375,7 @@ class VifTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         self.assertFalse(mock_detach.called)
         self.assertFalse(mock_valid.called)
 
-    @mock.patch.object(n_flat.FlatNetwork, 'vif_detach', autpspec=True)
+    @mock.patch.object(n_flat.FlatNetwork, 'vif_detach', autospec=True)
     def test_vif_detach_raises_network_error(self, mock_detach,
                                              mock_valid):
         mock_detach.side_effect = exception.NetworkError("BOOM")
@@ -4340,9 +4386,9 @@ class VifTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         # Compare true exception hidden by @messaging.expected_exceptions
         self.assertEqual(exception.NetworkError, exc.exc_info[0])
         mock_valid.assert_called_once_with(mock.ANY, mock.ANY)
-        mock_detach.assert_called_once_with(mock.ANY, "interface")
+        mock_detach.assert_called_once_with(mock.ANY, mock.ANY, "interface")
 
-    @mock.patch.object(n_flat.FlatNetwork, 'vif_detach', autpspec=True)
+    @mock.patch.object(n_flat.FlatNetwork, 'vif_detach', autospec=True)
     def test_vif_detach_validate_error(self, mock_detach,
                                        mock_valid):
         mock_valid.side_effect = exception.MissingParameterValue("BOOM")
@@ -4426,7 +4472,7 @@ class UpdatePortgroupTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         portgroup.refresh()
         self.assertEqual(old_node_id, portgroup.node_id)
 
-    @mock.patch.object(dbapi.IMPL, 'get_ports_by_portgroup_id')
+    @mock.patch.object(dbapi.IMPL, 'get_ports_by_portgroup_id', autospec=True)
     @mock.patch.object(n_flat.FlatNetwork, 'portgroup_changed', autospec=True)
     @mock.patch.object(n_flat.FlatNetwork, 'validate', autospec=True)
     def test_update_portgroup_to_node_in_manageable_state(self, mock_val,
@@ -4452,7 +4498,7 @@ class UpdatePortgroupTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         mock_val.assert_called_once_with(mock.ANY, mock.ANY)
         mock_pgc.assert_called_once_with(mock.ANY, mock.ANY, portgroup)
 
-    @mock.patch.object(dbapi.IMPL, 'get_ports_by_portgroup_id')
+    @mock.patch.object(dbapi.IMPL, 'get_ports_by_portgroup_id', autospec=True)
     @mock.patch.object(n_flat.FlatNetwork, 'portgroup_changed', autospec=True)
     @mock.patch.object(n_flat.FlatNetwork, 'validate', autospec=True)
     def test_update_portgroup_to_node_in_inspect_wait_state(self, mock_val,
@@ -4478,7 +4524,7 @@ class UpdatePortgroupTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         mock_val.assert_called_once_with(mock.ANY, mock.ANY)
         mock_pgc.assert_called_once_with(mock.ANY, mock.ANY, portgroup)
 
-    @mock.patch.object(dbapi.IMPL, 'get_ports_by_portgroup_id')
+    @mock.patch.object(dbapi.IMPL, 'get_ports_by_portgroup_id', autospec=True)
     @mock.patch.object(n_flat.FlatNetwork, 'portgroup_changed', autospec=True)
     @mock.patch.object(n_flat.FlatNetwork, 'validate', autospec=True)
     def test_update_portgroup_to_node_in_active_state_and_maintenance(
@@ -4504,7 +4550,7 @@ class UpdatePortgroupTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         mock_val.assert_called_once_with(mock.ANY, mock.ANY)
         mock_pgc.assert_called_once_with(mock.ANY, mock.ANY, portgroup)
 
-    @mock.patch.object(dbapi.IMPL, 'get_ports_by_portgroup_id')
+    @mock.patch.object(dbapi.IMPL, 'get_ports_by_portgroup_id', autospec=True)
     @mock.patch.object(n_flat.FlatNetwork, 'portgroup_changed', autospec=True)
     @mock.patch.object(n_flat.FlatNetwork, 'validate', autospec=True)
     def test_update_portgroup_association_with_ports(self, mock_val,
@@ -4620,7 +4666,7 @@ class RaidHardwareTypeTestCases(RaidTestCases):
         self.assertIn('manual-management', str(exc.exc_info[1]))
 
 
-@mock.patch.object(conductor_utils, 'node_power_action')
+@mock.patch.object(conductor_utils, 'node_power_action', autospec=True)
 class ManagerDoSyncPowerStateTestCase(db_base.DbTestCase):
     def setUp(self):
         super(ManagerDoSyncPowerStateTestCase, self).setUp()
@@ -4718,7 +4764,8 @@ class ManagerDoSyncPowerStateTestCase(db_base.DbTestCase):
         mock_power_update.assert_called_once_with(
             self.task.context, self.node.instance_uuid, states.POWER_OFF)
 
-    @mock.patch('ironic.objects.node.NodeCorrectedPowerStateNotification')
+    @mock.patch('ironic.objects.node.NodeCorrectedPowerStateNotification',
+                autospec=True)
     @mock.patch.object(nova, 'power_update', autospec=True)
     def test_state_changed_no_sync_notify(self, mock_power_update, mock_notif,
                                           node_power_action):
@@ -4821,7 +4868,8 @@ class ManagerDoSyncPowerStateTestCase(db_base.DbTestCase):
         mock_power_update.assert_called_once_with(
             self.task.context, self.node.instance_uuid, states.POWER_OFF)
 
-    @mock.patch('ironic.objects.node.NodeCorrectedPowerStateNotification')
+    @mock.patch('ironic.objects.node.NodeCorrectedPowerStateNotification',
+                autospec=True)
     @mock.patch.object(nova, 'power_update', autospec=True)
     def test_max_retries_exceeded_notify(self, mock_power_update,
                                          mock_notif, node_power_action):
@@ -4926,10 +4974,11 @@ class ManagerDoSyncPowerStateTestCase(db_base.DbTestCase):
                    new=mock.MagicMock(return_value=(0, 0)))
 @mock.patch.object(manager.ConductorManager, '_spawn_worker',
                    new=lambda self, fun, *args: fun(*args))
-@mock.patch.object(manager, 'do_sync_power_state')
-@mock.patch.object(task_manager, 'acquire')
-@mock.patch.object(manager.ConductorManager, '_mapped_to_this_conductor')
-@mock.patch.object(dbapi.IMPL, 'get_nodeinfo_list')
+@mock.patch.object(manager, 'do_sync_power_state', autospec=True)
+@mock.patch.object(task_manager, 'acquire', autospec=True)
+@mock.patch.object(manager.ConductorManager, '_mapped_to_this_conductor',
+                   autospec=True)
+@mock.patch.object(dbapi.IMPL, 'get_nodeinfo_list', autospec=True)
 class ManagerSyncPowerStatesTestCase(mgr_utils.CommonMixIn,
                                      db_base.DbTestCase):
     def setUp(self):
@@ -4949,7 +4998,8 @@ class ManagerSyncPowerStatesTestCase(mgr_utils.CommonMixIn,
 
         get_nodeinfo_mock.assert_called_once_with(
             columns=self.columns, filters=self.filters)
-        mapped_mock.assert_called_once_with(self.node.uuid,
+        mapped_mock.assert_called_once_with(self.service,
+                                            self.node.uuid,
                                             self.node.driver,
                                             self.node.conductor_group)
         self.assertFalse(acquire_mock.called)
@@ -4967,7 +5017,8 @@ class ManagerSyncPowerStatesTestCase(mgr_utils.CommonMixIn,
 
         get_nodeinfo_mock.assert_called_once_with(
             columns=self.columns, filters=self.filters)
-        mapped_mock.assert_called_once_with(self.node.uuid,
+        mapped_mock.assert_called_once_with(self.service,
+                                            self.node.uuid,
                                             self.node.driver,
                                             self.node.conductor_group)
         acquire_mock.assert_called_once_with(self.context, self.node.uuid,
@@ -4990,7 +5041,8 @@ class ManagerSyncPowerStatesTestCase(mgr_utils.CommonMixIn,
 
         get_nodeinfo_mock.assert_called_once_with(
             columns=self.columns, filters=self.filters)
-        mapped_mock.assert_called_once_with(self.node.uuid,
+        mapped_mock.assert_called_once_with(self.service,
+                                            self.node.uuid,
                                             self.node.driver,
                                             self.node.conductor_group)
         acquire_mock.assert_called_once_with(self.context, self.node.uuid,
@@ -5012,7 +5064,8 @@ class ManagerSyncPowerStatesTestCase(mgr_utils.CommonMixIn,
 
         get_nodeinfo_mock.assert_called_once_with(
             columns=self.columns, filters=self.filters)
-        mapped_mock.assert_called_once_with(self.node.uuid,
+        mapped_mock.assert_called_once_with(self.service,
+                                            self.node.uuid,
                                             self.node.driver,
                                             self.node.conductor_group)
         acquire_mock.assert_called_once_with(self.context, self.node.uuid,
@@ -5034,7 +5087,8 @@ class ManagerSyncPowerStatesTestCase(mgr_utils.CommonMixIn,
 
         get_nodeinfo_mock.assert_called_once_with(
             columns=self.columns, filters=self.filters)
-        mapped_mock.assert_called_once_with(self.node.uuid,
+        mapped_mock.assert_called_once_with(self.service,
+                                            self.node.uuid,
                                             self.node.driver,
                                             self.node.conductor_group)
         acquire_mock.assert_called_once_with(self.context, self.node.uuid,
@@ -5055,7 +5109,8 @@ class ManagerSyncPowerStatesTestCase(mgr_utils.CommonMixIn,
 
         get_nodeinfo_mock.assert_called_once_with(
             columns=self.columns, filters=self.filters)
-        mapped_mock.assert_called_once_with(self.node.uuid,
+        mapped_mock.assert_called_once_with(self.service,
+                                            self.node.uuid,
                                             self.node.driver,
                                             self.node.conductor_group)
         acquire_mock.assert_called_once_with(self.context, self.node.uuid,
@@ -5074,7 +5129,8 @@ class ManagerSyncPowerStatesTestCase(mgr_utils.CommonMixIn,
 
         get_nodeinfo_mock.assert_called_once_with(
             columns=self.columns, filters=self.filters)
-        mapped_mock.assert_called_once_with(self.node.uuid,
+        mapped_mock.assert_called_once_with(self.service,
+                                            self.node.uuid,
                                             self.node.driver,
                                             self.node.conductor_group)
         acquire_mock.assert_called_once_with(self.context, self.node.uuid,
@@ -5093,7 +5149,8 @@ class ManagerSyncPowerStatesTestCase(mgr_utils.CommonMixIn,
 
         get_nodeinfo_mock.assert_called_once_with(
             columns=self.columns, filters=self.filters)
-        mapped_mock.assert_called_once_with(self.node.uuid,
+        mapped_mock.assert_called_once_with(self.service,
+                                            self.node.uuid,
                                             self.node.driver,
                                             self.node.conductor_group)
         acquire_mock.assert_called_once_with(self.context, self.node.uuid,
@@ -5140,11 +5197,11 @@ class ManagerSyncPowerStatesTestCase(mgr_utils.CommonMixIn,
 
         get_nodeinfo_mock.return_value = (
             self._get_nodeinfo_list_response(nodes))
-        mapped_mock.side_effect = lambda x, y, z: mapped_map[x]
+        mapped_mock.side_effect = lambda q, x, y, z: mapped_map[x]
         acquire_mock.side_effect = self._get_acquire_side_effect(tasks)
         sync_mock.side_effect = sync_results
 
-        with mock.patch.object(eventlet, 'sleep') as sleep_mock:
+        with mock.patch.object(eventlet, 'sleep', autospec=True) as sleep_mock:
             self.service._sync_power_states(self.context)
             # Ensure we've yielded on every iteration, except for node
             # not mapped to this conductor
@@ -5152,7 +5209,7 @@ class ManagerSyncPowerStatesTestCase(mgr_utils.CommonMixIn,
 
         get_nodeinfo_mock.assert_called_once_with(
             columns=self.columns, filters=self.filters)
-        mapped_calls = [mock.call(x.uuid, x.driver,
+        mapped_calls = [mock.call(self.service, x.uuid, x.driver,
                                   x.conductor_group) for x in nodes]
         self.assertEqual(mapped_calls, mapped_mock.call_args_list)
         acquire_calls = [mock.call(self.context, x.uuid,
@@ -5166,9 +5223,10 @@ class ManagerSyncPowerStatesTestCase(mgr_utils.CommonMixIn,
         self.assertEqual(sync_calls, sync_mock.call_args_list)
 
 
-@mock.patch.object(task_manager, 'acquire')
-@mock.patch.object(manager.ConductorManager, '_mapped_to_this_conductor')
-@mock.patch.object(dbapi.IMPL, 'get_nodeinfo_list')
+@mock.patch.object(task_manager, 'acquire', autospec=True)
+@mock.patch.object(manager.ConductorManager, '_mapped_to_this_conductor',
+                   autospec=True)
+@mock.patch.object(dbapi.IMPL, 'get_nodeinfo_list', autospec=True)
 class ManagerPowerRecoveryTestCase(mgr_utils.CommonMixIn,
                                    db_base.DbTestCase):
     def setUp(self):
@@ -5197,7 +5255,8 @@ class ManagerPowerRecoveryTestCase(mgr_utils.CommonMixIn,
 
         get_nodeinfo_mock.assert_called_once_with(
             columns=self.columns, filters=self.filters)
-        mapped_mock.assert_called_once_with(self.node.uuid,
+        mapped_mock.assert_called_once_with(self.service,
+                                            self.node.uuid,
                                             self.node.driver,
                                             self.node.conductor_group)
         self.assertFalse(acquire_mock.called)
@@ -5215,7 +5274,8 @@ class ManagerPowerRecoveryTestCase(mgr_utils.CommonMixIn,
 
         get_nodeinfo_mock.assert_called_once_with(
             columns=self.columns, filters=self.filters)
-        mapped_mock.assert_called_once_with(self.node.uuid,
+        mapped_mock.assert_called_once_with(self.service,
+                                            self.node.uuid,
                                             self.node.driver,
                                             self.node.conductor_group)
         acquire_mock.assert_called_once_with(self.context, self.node.uuid,
@@ -5261,7 +5321,8 @@ class ManagerPowerRecoveryTestCase(mgr_utils.CommonMixIn,
 
         get_nodeinfo_mock.assert_called_once_with(
             columns=self.columns, filters=self.filters)
-        mapped_mock.assert_called_once_with(self.node.uuid,
+        mapped_mock.assert_called_once_with(self.service,
+                                            self.node.uuid,
                                             self.node.driver,
                                             self.node.conductor_group)
         acquire_mock.assert_called_once_with(self.context, self.node.uuid,
@@ -5270,7 +5331,8 @@ class ManagerPowerRecoveryTestCase(mgr_utils.CommonMixIn,
         self.assertFalse(self.power.validate.called)
 
     @mock.patch.object(notification_utils,
-                       'emit_power_state_corrected_notification')
+                       'emit_power_state_corrected_notification',
+                       autospec=True)
     @mock.patch.object(nova, 'power_update', autospec=True)
     def test_node_recovery_success(self, mock_power_update, notify_mock,
                                    get_nodeinfo_mock, mapped_mock,
@@ -5285,7 +5347,8 @@ class ManagerPowerRecoveryTestCase(mgr_utils.CommonMixIn,
 
         get_nodeinfo_mock.assert_called_once_with(
             columns=self.columns, filters=self.filters)
-        mapped_mock.assert_called_once_with(self.node.uuid,
+        mapped_mock.assert_called_once_with(self.service,
+                                            self.node.uuid,
                                             self.node.driver,
                                             self.node.conductor_group)
         acquire_mock.assert_called_once_with(self.context, self.node.uuid,
@@ -5313,7 +5376,8 @@ class ManagerPowerRecoveryTestCase(mgr_utils.CommonMixIn,
 
         get_nodeinfo_mock.assert_called_once_with(
             columns=self.columns, filters=self.filters)
-        mapped_mock.assert_called_once_with(self.node.uuid,
+        mapped_mock.assert_called_once_with(self.service,
+                                            self.node.uuid,
                                             self.node.driver,
                                             self.node.conductor_group)
         acquire_mock.assert_called_once_with(self.context, self.node.uuid,
@@ -5327,9 +5391,10 @@ class ManagerPowerRecoveryTestCase(mgr_utils.CommonMixIn,
         self.assertEqual('Unreachable BMC', self.node.maintenance_reason)
 
 
-@mock.patch.object(task_manager, 'acquire')
-@mock.patch.object(manager.ConductorManager, '_mapped_to_this_conductor')
-@mock.patch.object(dbapi.IMPL, 'get_nodeinfo_list')
+@mock.patch.object(task_manager, 'acquire', autospec=True)
+@mock.patch.object(manager.ConductorManager, '_mapped_to_this_conductor',
+                   autospec=True)
+@mock.patch.object(dbapi.IMPL, 'get_nodeinfo_list', autospec=True)
 class ManagerCheckDeployTimeoutsTestCase(mgr_utils.CommonMixIn,
                                          db_base.DbTestCase):
     def setUp(self):
@@ -5363,7 +5428,8 @@ class ManagerCheckDeployTimeoutsTestCase(mgr_utils.CommonMixIn,
         self.service._check_deploy_timeouts(self.context)
 
         self._assert_get_nodeinfo_args(get_nodeinfo_mock)
-        mapped_mock.assert_called_once_with(self.node.uuid, self.node.driver,
+        mapped_mock.assert_called_once_with(self.service,
+                                            self.node.uuid, self.node.driver,
                                             self.node.conductor_group)
         self.assertFalse(acquire_mock.called)
 
@@ -5375,7 +5441,8 @@ class ManagerCheckDeployTimeoutsTestCase(mgr_utils.CommonMixIn,
         self.service._check_deploy_timeouts(self.context)
 
         self._assert_get_nodeinfo_args(get_nodeinfo_mock)
-        mapped_mock.assert_called_once_with(self.node.uuid, self.node.driver,
+        mapped_mock.assert_called_once_with(self.service,
+                                            self.node.uuid, self.node.driver,
                                             self.node.conductor_group)
         acquire_mock.assert_called_once_with(self.context, self.node.uuid,
                                              purpose=mock.ANY)
@@ -5396,8 +5463,10 @@ class ManagerCheckDeployTimeoutsTestCase(mgr_utils.CommonMixIn,
         self.service._check_deploy_timeouts(self.context)
 
         self._assert_get_nodeinfo_args(get_nodeinfo_mock)
-        mapped_mock.assert_called_once_with(
-            self.node.uuid, self.node.driver, self.node.conductor_group)
+        mapped_mock.assert_called_once_with(self.service,
+                                            self.node.uuid,
+                                            self.node.driver,
+                                            self.node.conductor_group)
         acquire_mock.assert_called_once_with(self.context,
                                              self.node.uuid,
                                              purpose=mock.ANY)
@@ -5414,8 +5483,10 @@ class ManagerCheckDeployTimeoutsTestCase(mgr_utils.CommonMixIn,
         self.service._check_deploy_timeouts(self.context)
 
         self._assert_get_nodeinfo_args(get_nodeinfo_mock)
-        mapped_mock.assert_called_once_with(
-            self.node.uuid, self.node.driver, self.node.conductor_group)
+        mapped_mock.assert_called_once_with(self.service,
+                                            self.node.uuid,
+                                            self.node.driver,
+                                            self.node.conductor_group)
         acquire_mock.assert_called_once_with(self.context,
                                              self.node.uuid,
                                              purpose=mock.ANY)
@@ -5433,8 +5504,10 @@ class ManagerCheckDeployTimeoutsTestCase(mgr_utils.CommonMixIn,
         self.service._check_deploy_timeouts(self.context)
 
         self._assert_get_nodeinfo_args(get_nodeinfo_mock)
-        mapped_mock.assert_called_once_with(
-            self.node.uuid, self.node.driver, self.node.conductor_group)
+        mapped_mock.assert_called_once_with(self.service,
+                                            self.node.uuid,
+                                            self.node.driver,
+                                            self.node.conductor_group)
         acquire_mock.assert_called_once_with(self.context,
                                              self.node.uuid,
                                              purpose=mock.ANY)
@@ -5456,9 +5529,11 @@ class ManagerCheckDeployTimeoutsTestCase(mgr_utils.CommonMixIn,
         self.service._check_deploy_timeouts(self.context)
 
         self._assert_get_nodeinfo_args(get_nodeinfo_mock)
-        self.assertEqual([mock.call(self.node.uuid, task.node.driver,
+        self.assertEqual([mock.call(self.service,
+                                    self.node.uuid, task.node.driver,
                                     task.node.conductor_group),
-                          mock.call(self.node2.uuid, self.node2.driver,
+                          mock.call(self.service,
+                                    self.node2.uuid, self.node2.driver,
                                     self.node2.conductor_group)],
                          mapped_mock.call_args_list)
         self.assertEqual([mock.call(self.context, self.node.uuid,
@@ -5490,8 +5565,10 @@ class ManagerCheckDeployTimeoutsTestCase(mgr_utils.CommonMixIn,
         self._assert_get_nodeinfo_args(get_nodeinfo_mock)
         # mapped should be only called for the first node as we should
         # have exited the loop early due to NoFreeConductorWorker
-        mapped_mock.assert_called_once_with(
-            self.node.uuid, self.node.driver, self.node.conductor_group)
+        mapped_mock.assert_called_once_with(self.service,
+                                            self.node.uuid,
+                                            self.node.driver,
+                                            self.node.conductor_group)
         acquire_mock.assert_called_once_with(self.context,
                                              self.node.uuid,
                                              purpose=mock.ANY)
@@ -5518,7 +5595,8 @@ class ManagerCheckDeployTimeoutsTestCase(mgr_utils.CommonMixIn,
         self._assert_get_nodeinfo_args(get_nodeinfo_mock)
         # mapped should be only called for the first node as we should
         # have exited the loop early due to unknown exception
-        mapped_mock.assert_called_once_with(self.node.uuid, self.node.driver,
+        mapped_mock.assert_called_once_with(self.service,
+                                            self.node.uuid, self.node.driver,
                                             self.node.conductor_group)
         acquire_mock.assert_called_once_with(self.context,
                                              self.node.uuid,
@@ -5545,7 +5623,8 @@ class ManagerCheckDeployTimeoutsTestCase(mgr_utils.CommonMixIn,
         self.service._check_deploy_timeouts(self.context)
 
         # Should only have ran 2.
-        self.assertEqual([mock.call(self.node.uuid, self.node.driver,
+        self.assertEqual([mock.call(self.service,
+                                    self.node.uuid, self.node.driver,
                                     self.node.conductor_group)] * 2,
                          mapped_mock.call_args_list)
         self.assertEqual([mock.call(self.context, self.node.uuid,
@@ -5654,9 +5733,10 @@ class ManagerTestHardwareTypeProperties(mgr_utils.ServiceSetUpMixin,
         self._check_hardware_type_properties('manual-management', expected)
 
 
-@mock.patch.object(waiters, 'wait_for_all')
-@mock.patch.object(manager.ConductorManager, '_spawn_worker')
-@mock.patch.object(manager.ConductorManager, '_sync_power_state_nodes_task')
+@mock.patch.object(waiters, 'wait_for_all', autospec=True)
+@mock.patch.object(manager.ConductorManager, '_spawn_worker', autospec=True)
+@mock.patch.object(manager.ConductorManager, '_sync_power_state_nodes_task',
+                   autospec=True)
 class ParallelPowerSyncTestCase(mgr_utils.CommonMixIn, db_base.DbTestCase):
 
     def setUp(self):
@@ -5740,9 +5820,10 @@ class ParallelPowerSyncTestCase(mgr_utils.CommonMixIn, db_base.DbTestCase):
             queue_mock.return_value.put.assert_has_calls(expected_calls)
 
 
-@mock.patch.object(task_manager, 'acquire')
-@mock.patch.object(manager.ConductorManager, '_mapped_to_this_conductor')
-@mock.patch.object(dbapi.IMPL, 'get_nodeinfo_list')
+@mock.patch.object(task_manager, 'acquire', autospec=True)
+@mock.patch.object(manager.ConductorManager, '_mapped_to_this_conductor',
+                   autospec=True)
+@mock.patch.object(dbapi.IMPL, 'get_nodeinfo_list', autospec=True)
 class ManagerSyncLocalStateTestCase(mgr_utils.CommonMixIn, db_base.DbTestCase):
 
     def setUp(self):
@@ -5775,8 +5856,9 @@ class ManagerSyncLocalStateTestCase(mgr_utils.CommonMixIn, db_base.DbTestCase):
         self.service._sync_local_state(self.context)
 
         self._assert_get_nodeinfo_args(get_nodeinfo_mock)
-        mapped_mock.assert_called_once_with(self.node.uuid, self.node.driver,
-                                            self.node.conductor_group)
+        mapped_mock.assert_called_once_with(
+            self.service, self.node.uuid, self.node.driver,
+            self.node.conductor_group)
         self.assertFalse(acquire_mock.called)
 
     def test_already_mapped(self, get_nodeinfo_mock, mapped_mock,
@@ -5791,8 +5873,9 @@ class ManagerSyncLocalStateTestCase(mgr_utils.CommonMixIn, db_base.DbTestCase):
         self.service._sync_local_state(self.context)
 
         self._assert_get_nodeinfo_args(get_nodeinfo_mock)
-        mapped_mock.assert_called_once_with(self.node.uuid, self.node.driver,
-                                            self.node.conductor_group)
+        mapped_mock.assert_called_once_with(
+            self.service, self.node.uuid, self.node.driver,
+            self.node.conductor_group)
         self.assertFalse(acquire_mock.called)
 
     def test_good(self, get_nodeinfo_mock, mapped_mock, acquire_mock):
@@ -5803,8 +5886,9 @@ class ManagerSyncLocalStateTestCase(mgr_utils.CommonMixIn, db_base.DbTestCase):
         self.service._sync_local_state(self.context)
 
         self._assert_get_nodeinfo_args(get_nodeinfo_mock)
-        mapped_mock.assert_called_once_with(self.node.uuid, self.node.driver,
-                                            self.node.conductor_group)
+        mapped_mock.assert_called_once_with(
+            self.service, self.node.uuid, self.node.driver,
+            self.node.conductor_group)
         acquire_mock.assert_called_once_with(self.context, self.node.uuid,
                                              purpose=mock.ANY)
         # assert spawn_after has been called
@@ -5833,7 +5917,7 @@ class ManagerSyncLocalStateTestCase(mgr_utils.CommonMixIn, db_base.DbTestCase):
         # assert  _mapped_to_this_conductor() gets called 2 times only
         # instead of 3. When NoFreeConductorWorker is raised the loop
         # should be broken
-        expected = [mock.call(self.node.uuid, self.node.driver,
+        expected = [mock.call(self.service, self.node.uuid, self.node.driver,
                               self.node.conductor_group)] * 2
         self.assertEqual(expected, mapped_mock.call_args_list)
 
@@ -5863,8 +5947,9 @@ class ManagerSyncLocalStateTestCase(mgr_utils.CommonMixIn, db_base.DbTestCase):
         self._assert_get_nodeinfo_args(get_nodeinfo_mock)
 
         # assert _mapped_to_this_conductor() gets called 3 times
-        expected = [mock.call(self.node.uuid, self.node.driver,
-                              self.node.conductor_group)] * 3
+        expected = [mock.call(
+            self.service, self.node.uuid, self.node.driver,
+            self.node.conductor_group)] * 3
         self.assertEqual(expected, mapped_mock.call_args_list)
 
         # assert acquire() gets called 3 times
@@ -5895,8 +5980,9 @@ class ManagerSyncLocalStateTestCase(mgr_utils.CommonMixIn, db_base.DbTestCase):
 
         # assert _mapped_to_this_conductor() gets called only once
         # because of the worker limit
-        mapped_mock.assert_called_once_with(self.node.uuid, self.node.driver,
-                                            self.node.conductor_group)
+        mapped_mock.assert_called_once_with(
+            self.service, self.node.uuid, self.node.driver,
+            self.node.conductor_group)
 
         # assert acquire() gets called only once because of the worker limit
         acquire_mock.assert_called_once_with(self.context, self.node.uuid,
@@ -5911,7 +5997,8 @@ class ManagerSyncLocalStateTestCase(mgr_utils.CommonMixIn, db_base.DbTestCase):
 @mgr_utils.mock_record_keepalive
 class NodeInspectHardware(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
 
-    @mock.patch('ironic.drivers.modules.fake.FakeInspect.inspect_hardware')
+    @mock.patch('ironic.drivers.modules.fake.FakeInspect.inspect_hardware',
+                autospec=True)
     def test_inspect_hardware_ok(self, mock_inspect):
         self._start_service()
         node = obj_utils.create_test_node(
@@ -5925,11 +6012,12 @@ class NodeInspectHardware(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         self.assertEqual(states.MANAGEABLE, node.provision_state)
         self.assertEqual(states.NOSTATE, node.target_provision_state)
         self.assertIsNone(node.last_error)
-        mock_inspect.assert_called_once_with(mock.ANY)
+        mock_inspect.assert_called_once_with(mock.ANY, task)
         task.node.refresh()
         self.assertNotIn('agent_url', task.node.driver_internal_info)
 
-    @mock.patch('ironic.drivers.modules.fake.FakeInspect.inspect_hardware')
+    @mock.patch('ironic.drivers.modules.fake.FakeInspect.inspect_hardware',
+                autospec=True)
     def test_inspect_hardware_return_inspecting(self, mock_inspect):
         self._start_service()
         node = obj_utils.create_test_node(self.context, driver='fake-hardware',
@@ -5943,9 +6031,10 @@ class NodeInspectHardware(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         self.assertIn('driver returned unexpected state', node.last_error)
         self.assertEqual(states.INSPECTFAIL, node.provision_state)
         self.assertEqual(states.MANAGEABLE, node.target_provision_state)
-        mock_inspect.assert_called_once_with(mock.ANY)
+        mock_inspect.assert_called_once_with(mock.ANY, task)
 
-    @mock.patch('ironic.drivers.modules.fake.FakeInspect.inspect_hardware')
+    @mock.patch('ironic.drivers.modules.fake.FakeInspect.inspect_hardware',
+                autospec=True)
     def test_inspect_hardware_return_inspect_wait(self, mock_inspect):
         self._start_service()
         node = obj_utils.create_test_node(self.context, driver='fake-hardware',
@@ -5957,10 +6046,11 @@ class NodeInspectHardware(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         self.assertEqual(states.INSPECTWAIT, node.provision_state)
         self.assertEqual(states.MANAGEABLE, node.target_provision_state)
         self.assertIsNone(node.last_error)
-        mock_inspect.assert_called_once_with(mock.ANY)
+        mock_inspect.assert_called_once_with(mock.ANY, task)
 
-    @mock.patch.object(manager, 'LOG')
-    @mock.patch('ironic.drivers.modules.fake.FakeInspect.inspect_hardware')
+    @mock.patch.object(manager, 'LOG', autospec=True)
+    @mock.patch('ironic.drivers.modules.fake.FakeInspect.inspect_hardware',
+                autospec=True)
     def test_inspect_hardware_return_other_state(self, mock_inspect, log_mock):
         self._start_service()
         node = obj_utils.create_test_node(self.context, driver='fake-hardware',
@@ -5973,7 +6063,7 @@ class NodeInspectHardware(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         self.assertEqual(states.INSPECTFAIL, node.provision_state)
         self.assertEqual(states.MANAGEABLE, node.target_provision_state)
         self.assertIsNotNone(node.last_error)
-        mock_inspect.assert_called_once_with(mock.ANY)
+        mock_inspect.assert_called_once_with(mock.ANY, task)
         self.assertTrue(log_mock.error.called)
 
     def test__check_inspect_wait_timeouts(self):
@@ -6043,15 +6133,18 @@ class NodeInspectHardware(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         # Verify reservation has been cleared.
         self.assertIsNone(node.reservation)
 
-    @mock.patch('ironic.drivers.modules.fake.FakeInspect.validate')
+    @mock.patch('ironic.drivers.modules.fake.FakeInspect.validate',
+                autospec=True)
     def test_inspect_hardware_validate_fail(self, mock_validate):
         self._test_inspect_hardware_validate_fail(mock_validate)
 
-    @mock.patch('ironic.drivers.modules.fake.FakePower.validate')
+    @mock.patch('ironic.drivers.modules.fake.FakePower.validate',
+                autospec=True)
     def test_inspect_hardware_power_validate_fail(self, mock_validate):
         self._test_inspect_hardware_validate_fail(mock_validate)
 
-    @mock.patch('ironic.drivers.modules.fake.FakeInspect.inspect_hardware')
+    @mock.patch('ironic.drivers.modules.fake.FakeInspect.inspect_hardware',
+                autospec=True)
     def test_inspect_hardware_raises_error(self, mock_inspect):
         self._start_service()
         mock_inspect.side_effect = exception.HardwareInspectionFailure('test')
@@ -6069,7 +6162,8 @@ class NodeInspectHardware(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         self.assertEqual('test', node.last_error)
         self.assertTrue(mock_inspect.called)
 
-    @mock.patch('ironic.drivers.modules.fake.FakeInspect.inspect_hardware')
+    @mock.patch('ironic.drivers.modules.fake.FakeInspect.inspect_hardware',
+                autospec=True)
     def test_inspect_hardware_unexpected_error(self, mock_inspect):
         self._start_service()
         mock_inspect.side_effect = RuntimeError('x')
@@ -6090,9 +6184,10 @@ class NodeInspectHardware(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         self.assertTrue(mock_inspect.called)
 
 
-@mock.patch.object(task_manager, 'acquire')
-@mock.patch.object(manager.ConductorManager, '_mapped_to_this_conductor')
-@mock.patch.object(dbapi.IMPL, 'get_nodeinfo_list')
+@mock.patch.object(task_manager, 'acquire', autospec=True)
+@mock.patch.object(manager.ConductorManager, '_mapped_to_this_conductor',
+                   autospec=True)
+@mock.patch.object(dbapi.IMPL, 'get_nodeinfo_list', autospec=True)
 class ManagerCheckInspectWaitTimeoutsTestCase(mgr_utils.CommonMixIn,
                                               db_base.DbTestCase):
     def setUp(self):
@@ -6129,7 +6224,8 @@ class ManagerCheckInspectWaitTimeoutsTestCase(mgr_utils.CommonMixIn,
         self.service._check_inspect_wait_timeouts(self.context)
 
         self._assert_get_nodeinfo_args(get_nodeinfo_mock)
-        mapped_mock.assert_called_once_with(self.node.uuid, self.node.driver,
+        mapped_mock.assert_called_once_with(self.service,
+                                            self.node.uuid, self.node.driver,
                                             self.node.conductor_group)
         self.assertFalse(acquire_mock.called)
 
@@ -6142,7 +6238,8 @@ class ManagerCheckInspectWaitTimeoutsTestCase(mgr_utils.CommonMixIn,
         self.service._check_inspect_wait_timeouts(self.context)
 
         self._assert_get_nodeinfo_args(get_nodeinfo_mock)
-        mapped_mock.assert_called_once_with(self.node.uuid, self.node.driver,
+        mapped_mock.assert_called_once_with(self.service,
+                                            self.node.uuid, self.node.driver,
                                             self.node.conductor_group)
         acquire_mock.assert_called_once_with(self.context, self.node.uuid,
                                              purpose=mock.ANY)
@@ -6160,7 +6257,8 @@ class ManagerCheckInspectWaitTimeoutsTestCase(mgr_utils.CommonMixIn,
         self.service._check_inspect_wait_timeouts(self.context)
 
         self._assert_get_nodeinfo_args(get_nodeinfo_mock)
-        mapped_mock.assert_called_once_with(self.node.uuid,
+        mapped_mock.assert_called_once_with(self.service,
+                                            self.node.uuid,
                                             self.node.driver,
                                             self.node.conductor_group)
         acquire_mock.assert_called_once_with(self.context,
@@ -6181,7 +6279,8 @@ class ManagerCheckInspectWaitTimeoutsTestCase(mgr_utils.CommonMixIn,
         self.service._check_inspect_wait_timeouts(self.context)
 
         self._assert_get_nodeinfo_args(get_nodeinfo_mock)
-        mapped_mock.assert_called_once_with(self.node.uuid,
+        mapped_mock.assert_called_once_with(self.service,
+                                            self.node.uuid,
                                             self.node.driver,
                                             self.node.conductor_group)
         acquire_mock.assert_called_once_with(self.context,
@@ -6203,8 +6302,10 @@ class ManagerCheckInspectWaitTimeoutsTestCase(mgr_utils.CommonMixIn,
         self.service._check_inspect_wait_timeouts(self.context)
 
         self._assert_get_nodeinfo_args(get_nodeinfo_mock)
-        mapped_mock.assert_called_once_with(
-            self.node.uuid, self.node.driver, self.node.conductor_group)
+        mapped_mock.assert_called_once_with(self.service,
+                                            self.node.uuid,
+                                            self.node.driver,
+                                            self.node.conductor_group)
         acquire_mock.assert_called_once_with(self.context,
                                              self.node.uuid,
                                              purpose=mock.ANY)
@@ -6226,9 +6327,11 @@ class ManagerCheckInspectWaitTimeoutsTestCase(mgr_utils.CommonMixIn,
         self.service._check_inspect_wait_timeouts(self.context)
 
         self._assert_get_nodeinfo_args(get_nodeinfo_mock)
-        self.assertEqual([mock.call(self.node.uuid, task.node.driver,
+        self.assertEqual([mock.call(self.service,
+                                    self.node.uuid, task.node.driver,
                                     task.node.conductor_group),
-                          mock.call(self.node2.uuid, self.node2.driver,
+                          mock.call(self.service,
+                                    self.node2.uuid, self.node2.driver,
                                     self.node2.conductor_group)],
                          mapped_mock.call_args_list)
         self.assertEqual([mock.call(self.context, self.node.uuid,
@@ -6255,8 +6358,10 @@ class ManagerCheckInspectWaitTimeoutsTestCase(mgr_utils.CommonMixIn,
         self._assert_get_nodeinfo_args(get_nodeinfo_mock)
         # mapped should be only called for the first node as we should
         # have exited the loop early due to NoFreeConductorWorker
-        mapped_mock.assert_called_once_with(
-            self.node.uuid, self.node.driver, self.node.conductor_group)
+        mapped_mock.assert_called_once_with(self.service,
+                                            self.node.uuid,
+                                            self.node.driver,
+                                            self.node.conductor_group)
         acquire_mock.assert_called_once_with(self.context,
                                              self.node.uuid,
                                              purpose=mock.ANY)
@@ -6278,8 +6383,10 @@ class ManagerCheckInspectWaitTimeoutsTestCase(mgr_utils.CommonMixIn,
         self._assert_get_nodeinfo_args(get_nodeinfo_mock)
         # mapped should be only called for the first node as we should
         # have exited the loop early due to unknown exception
-        mapped_mock.assert_called_once_with(
-            self.node.uuid, self.node.driver, self.node.conductor_group)
+        mapped_mock.assert_called_once_with(self.service,
+                                            self.node.uuid,
+                                            self.node.driver,
+                                            self.node.conductor_group)
         acquire_mock.assert_called_once_with(self.context,
                                              self.node.uuid,
                                              purpose=mock.ANY)
@@ -6301,7 +6408,8 @@ class ManagerCheckInspectWaitTimeoutsTestCase(mgr_utils.CommonMixIn,
         self.service._check_inspect_wait_timeouts(self.context)
 
         # Should only have ran 2.
-        self.assertEqual([mock.call(self.node.uuid, self.node.driver,
+        self.assertEqual([mock.call(self.service,
+                                    self.node.uuid, self.node.driver,
                                     self.node.conductor_group)] * 2,
                          mapped_mock.call_args_list)
         self.assertEqual([mock.call(self.context, self.node.uuid,
@@ -6437,9 +6545,11 @@ class DestroyPortgroupTestCase(mgr_utils.ServiceSetUpMixin,
 
 
 @mgr_utils.mock_record_keepalive
-@mock.patch.object(manager.ConductorManager, '_fail_if_in_state')
-@mock.patch.object(manager.ConductorManager, '_mapped_to_this_conductor')
-@mock.patch.object(dbapi.IMPL, 'get_offline_conductors')
+@mock.patch.object(manager.ConductorManager, '_fail_if_in_state',
+                   autospec=True)
+@mock.patch.object(manager.ConductorManager, '_mapped_to_this_conductor',
+                   autospec=True)
+@mock.patch.object(dbapi.IMPL, 'get_offline_conductors', autospec=True)
 class ManagerCheckOrphanNodesTestCase(mgr_utils.ServiceSetUpMixin,
                                       db_base.DbTestCase):
     def setUp(self):
@@ -6468,9 +6578,10 @@ class ManagerCheckOrphanNodesTestCase(mgr_utils.ServiceSetUpMixin,
 
         self.node.refresh()
         mock_off_cond.assert_called_once_with()
-        mock_mapped.assert_called_once_with(self.node.uuid, 'fake-hardware',
-                                            '')
+        mock_mapped.assert_called_once_with(
+            self.service, self.node.uuid, 'fake-hardware', '')
         mock_fail_if.assert_called_once_with(
+            self.service,
             mock.ANY, {'uuid': self.node.uuid},
             {states.DEPLOYING, states.CLEANING},
             'provision_updated_at',
@@ -6491,9 +6602,10 @@ class ManagerCheckOrphanNodesTestCase(mgr_utils.ServiceSetUpMixin,
 
         self.node.refresh()
         mock_off_cond.assert_called_once_with()
-        mock_mapped.assert_called_once_with(self.node.uuid, 'fake-hardware',
-                                            '')
+        mock_mapped.assert_called_once_with(
+            self.service, self.node.uuid, 'fake-hardware', '')
         mock_fail_if.assert_called_once_with(
+            self.service,
             mock.ANY, {'uuid': self.node.uuid},
             {states.DEPLOYING, states.CLEANING},
             'provision_updated_at',
@@ -6517,7 +6629,7 @@ class ManagerCheckOrphanNodesTestCase(mgr_utils.ServiceSetUpMixin,
         # assert node still locked
         self.assertIsNotNone(self.node.reservation)
 
-    @mock.patch.object(objects.Node, 'release')
+    @mock.patch.object(objects.Node, 'release', autospec=True)
     def test__check_orphan_nodes_release_exceptions_skipping(
             self, mock_release, mock_off_cond, mock_mapped, mock_fail_if):
         mock_off_cond.return_value = ['fake-conductor']
@@ -6535,8 +6647,10 @@ class ManagerCheckOrphanNodesTestCase(mgr_utils.ServiceSetUpMixin,
 
         self.node.refresh()
         mock_off_cond.assert_called_once_with()
-        expected_calls = [mock.call(self.node.uuid, 'fake-hardware', ''),
-                          mock.call(node2.uuid, 'fake-hardware', '')]
+        expected_calls = [
+            mock.call(self.service, self.node.uuid, 'fake-hardware', ''),
+            mock.call(self.service, node2.uuid, 'fake-hardware', '')
+        ]
         mock_mapped.assert_has_calls(expected_calls)
         # Assert we skipped and didn't try to call _fail_if_in_state
         self.assertFalse(mock_fail_if.called)
@@ -6557,15 +6671,17 @@ class ManagerCheckOrphanNodesTestCase(mgr_utils.ServiceSetUpMixin,
         mock_off_cond.return_value = ['fake-conductor']
         mock_mapped.return_value = True
         with mock.patch.object(objects.Node, 'release',
-                               side_effect=_fake_release) as mock_release:
+                               side_effect=_fake_release,
+                               autospec=True) as mock_release:
             self.service._check_orphan_nodes(self.context)
             mock_release.assert_called_with(self.context, mock.ANY,
                                             self.node.id)
 
         mock_off_cond.assert_called_once_with()
-        mock_mapped.assert_called_once_with(self.node.uuid, 'fake-hardware',
-                                            '')
+        mock_mapped.assert_called_once_with(
+            self.service, self.node.uuid, 'fake-hardware', '')
         mock_fail_if.assert_called_once_with(
+            self.service,
             mock.ANY, {'uuid': self.node.uuid},
             {states.DEPLOYING, states.CLEANING},
             'provision_updated_at',
@@ -6582,8 +6698,8 @@ class ManagerCheckOrphanNodesTestCase(mgr_utils.ServiceSetUpMixin,
 
         self.node.refresh()
         mock_off_cond.assert_called_once_with()
-        mock_mapped.assert_called_once_with(self.node.uuid, 'fake-hardware',
-                                            '')
+        mock_mapped.assert_called_once_with(
+            self.service, self.node.uuid, 'fake-hardware', '')
         # assert node was released
         self.assertIsNone(self.node.reservation)
         # not changing states in maintenance
@@ -6696,9 +6812,12 @@ class TestIndirectionApiConductor(db_base.DbTestCase):
 @mgr_utils.mock_record_keepalive
 class DoNodeTakeOverTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
 
-    @mock.patch('ironic.drivers.modules.fake.FakeConsole.start_console')
-    @mock.patch('ironic.drivers.modules.fake.FakeDeploy.take_over')
-    @mock.patch('ironic.drivers.modules.fake.FakeDeploy.prepare')
+    @mock.patch('ironic.drivers.modules.fake.FakeConsole.start_console',
+                autospec=True)
+    @mock.patch('ironic.drivers.modules.fake.FakeDeploy.take_over',
+                autospec=True)
+    @mock.patch('ironic.drivers.modules.fake.FakeDeploy.prepare',
+                autospec=True)
     def test__do_takeover(self, mock_prepare, mock_take_over,
                           mock_start_console):
         self._start_service()
@@ -6709,14 +6828,18 @@ class DoNodeTakeOverTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         node.refresh()
         self.assertIsNone(node.last_error)
         self.assertFalse(node.console_enabled)
-        mock_prepare.assert_called_once_with(mock.ANY)
-        mock_take_over.assert_called_once_with(mock.ANY)
+        mock_prepare.assert_called_once_with(mock.ANY, task)
+        mock_take_over.assert_called_once_with(mock.ANY, task)
         self.assertFalse(mock_start_console.called)
 
-    @mock.patch.object(notification_utils, 'emit_console_notification')
-    @mock.patch('ironic.drivers.modules.fake.FakeConsole.start_console')
-    @mock.patch('ironic.drivers.modules.fake.FakeDeploy.take_over')
-    @mock.patch('ironic.drivers.modules.fake.FakeDeploy.prepare')
+    @mock.patch.object(notification_utils, 'emit_console_notification',
+                       autospec=True)
+    @mock.patch('ironic.drivers.modules.fake.FakeConsole.start_console',
+                autospec=True)
+    @mock.patch('ironic.drivers.modules.fake.FakeDeploy.take_over',
+                autospec=True)
+    @mock.patch('ironic.drivers.modules.fake.FakeDeploy.prepare',
+                autospec=True)
     def test__do_takeover_with_console_enabled(self, mock_prepare,
                                                mock_take_over,
                                                mock_start_console,
@@ -6730,19 +6853,23 @@ class DoNodeTakeOverTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         node.refresh()
         self.assertIsNone(node.last_error)
         self.assertTrue(node.console_enabled)
-        mock_prepare.assert_called_once_with(mock.ANY)
-        mock_take_over.assert_called_once_with(mock.ANY)
-        mock_start_console.assert_called_once_with(mock.ANY)
+        mock_prepare.assert_called_once_with(mock.ANY, task)
+        mock_take_over.assert_called_once_with(mock.ANY, task)
+        mock_start_console.assert_called_once_with(mock.ANY, task)
         mock_notify.assert_has_calls(
             [mock.call(task, 'console_restore',
                        obj_fields.NotificationStatus.START),
              mock.call(task, 'console_restore',
                        obj_fields.NotificationStatus.END)])
 
-    @mock.patch.object(notification_utils, 'emit_console_notification')
-    @mock.patch('ironic.drivers.modules.fake.FakeConsole.start_console')
-    @mock.patch('ironic.drivers.modules.fake.FakeDeploy.take_over')
-    @mock.patch('ironic.drivers.modules.fake.FakeDeploy.prepare')
+    @mock.patch.object(notification_utils, 'emit_console_notification',
+                       autospec=True)
+    @mock.patch('ironic.drivers.modules.fake.FakeConsole.start_console',
+                autospec=True)
+    @mock.patch('ironic.drivers.modules.fake.FakeDeploy.take_over',
+                autospec=True)
+    @mock.patch('ironic.drivers.modules.fake.FakeDeploy.prepare',
+                autospec=True)
     def test__do_takeover_with_console_exception(self, mock_prepare,
                                                  mock_take_over,
                                                  mock_start_console,
@@ -6757,19 +6884,23 @@ class DoNodeTakeOverTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         node.refresh()
         self.assertIsNotNone(node.last_error)
         self.assertFalse(node.console_enabled)
-        mock_prepare.assert_called_once_with(mock.ANY)
-        mock_take_over.assert_called_once_with(mock.ANY)
-        mock_start_console.assert_called_once_with(mock.ANY)
+        mock_prepare.assert_called_once_with(mock.ANY, task)
+        mock_take_over.assert_called_once_with(mock.ANY, task)
+        mock_start_console.assert_called_once_with(mock.ANY, task)
         mock_notify.assert_has_calls(
             [mock.call(task, 'console_restore',
                        obj_fields.NotificationStatus.START),
              mock.call(task, 'console_restore',
                        obj_fields.NotificationStatus.ERROR)])
 
-    @mock.patch.object(notification_utils, 'emit_console_notification')
-    @mock.patch('ironic.drivers.modules.fake.FakeConsole.start_console')
-    @mock.patch('ironic.drivers.modules.fake.FakeDeploy.take_over')
-    @mock.patch('ironic.drivers.modules.fake.FakeDeploy.prepare')
+    @mock.patch.object(notification_utils, 'emit_console_notification',
+                       autospec=True)
+    @mock.patch('ironic.drivers.modules.fake.FakeConsole.start_console',
+                autospec=True)
+    @mock.patch('ironic.drivers.modules.fake.FakeDeploy.take_over',
+                autospec=True)
+    @mock.patch('ironic.drivers.modules.fake.FakeDeploy.prepare',
+                autospec=True)
     def test__do_takeover_with_console_port_cleaned(self, mock_prepare,
                                                     mock_take_over,
                                                     mock_start_console,
@@ -6791,9 +6922,9 @@ class DoNodeTakeOverTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         self.assertIsNone(
             node.driver_internal_info.get('allocated_ipmi_terminal_port',
                                           None))
-        mock_prepare.assert_called_once_with(mock.ANY)
-        mock_take_over.assert_called_once_with(mock.ANY)
-        mock_start_console.assert_called_once_with(mock.ANY)
+        mock_prepare.assert_called_once_with(mock.ANY, task)
+        mock_take_over.assert_called_once_with(mock.ANY, task)
+        mock_start_console.assert_called_once_with(mock.ANY, task)
         mock_notify.assert_has_calls(
             [mock.call(task, 'console_restore',
                        obj_fields.NotificationStatus.START),
@@ -6808,11 +6939,15 @@ class DoNodeAdoptionTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         func(*args, **kwargs)
         return mock.MagicMock()
 
-    @mock.patch('ironic.drivers.modules.fake.FakePower.validate')
-    @mock.patch('ironic.drivers.modules.fake.FakeBoot.validate')
-    @mock.patch('ironic.drivers.modules.fake.FakeConsole.start_console')
-    @mock.patch('ironic.drivers.modules.fake.FakeDeploy.take_over')
-    @mock.patch('ironic.drivers.modules.fake.FakeDeploy.prepare')
+    @mock.patch('ironic.drivers.modules.fake.FakePower.validate',
+                autospec=True)
+    @mock.patch('ironic.drivers.modules.fake.FakeBoot.validate', autospec=True)
+    @mock.patch('ironic.drivers.modules.fake.FakeConsole.start_console',
+                autospec=True)
+    @mock.patch('ironic.drivers.modules.fake.FakeDeploy.take_over',
+                autospec=True)
+    @mock.patch('ironic.drivers.modules.fake.FakeDeploy.prepare',
+                autospec=True)
     def test__do_adoption_with_takeover(self,
                                         mock_prepare,
                                         mock_take_over,
@@ -6832,16 +6967,19 @@ class DoNodeAdoptionTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         self.assertEqual(states.ACTIVE, node.provision_state)
         self.assertIsNone(node.last_error)
         self.assertFalse(node.console_enabled)
-        mock_prepare.assert_called_once_with(mock.ANY)
-        mock_take_over.assert_called_once_with(mock.ANY)
+        mock_prepare.assert_called_once_with(mock.ANY, task)
+        mock_take_over.assert_called_once_with(mock.ANY, task)
         self.assertFalse(mock_start_console.called)
         self.assertTrue(mock_boot_validate.called)
         self.assertIn('is_whole_disk_image', task.node.driver_internal_info)
 
-    @mock.patch('ironic.drivers.modules.fake.FakeBoot.validate')
-    @mock.patch('ironic.drivers.modules.fake.FakeConsole.start_console')
-    @mock.patch('ironic.drivers.modules.fake.FakeDeploy.take_over')
-    @mock.patch('ironic.drivers.modules.fake.FakeDeploy.prepare')
+    @mock.patch('ironic.drivers.modules.fake.FakeBoot.validate', autospec=True)
+    @mock.patch('ironic.drivers.modules.fake.FakeConsole.start_console',
+                autospec=True)
+    @mock.patch('ironic.drivers.modules.fake.FakeDeploy.take_over',
+                autospec=True)
+    @mock.patch('ironic.drivers.modules.fake.FakeDeploy.prepare',
+                autospec=True)
     def test__do_adoption_take_over_failure(self,
                                             mock_prepare,
                                             mock_take_over,
@@ -6865,16 +7003,19 @@ class DoNodeAdoptionTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         self.assertEqual(states.ADOPTFAIL, node.provision_state)
         self.assertIsNotNone(node.last_error)
         self.assertFalse(node.console_enabled)
-        mock_prepare.assert_called_once_with(mock.ANY)
-        mock_take_over.assert_called_once_with(mock.ANY)
+        mock_prepare.assert_called_once_with(mock.ANY, task)
+        mock_take_over.assert_called_once_with(mock.ANY, task)
         self.assertFalse(mock_start_console.called)
         self.assertTrue(mock_boot_validate.called)
         self.assertIn('is_whole_disk_image', task.node.driver_internal_info)
 
-    @mock.patch('ironic.drivers.modules.fake.FakeBoot.validate')
-    @mock.patch('ironic.drivers.modules.fake.FakeConsole.start_console')
-    @mock.patch('ironic.drivers.modules.fake.FakeDeploy.take_over')
-    @mock.patch('ironic.drivers.modules.fake.FakeDeploy.prepare')
+    @mock.patch('ironic.drivers.modules.fake.FakeBoot.validate', autospec=True)
+    @mock.patch('ironic.drivers.modules.fake.FakeConsole.start_console',
+                autospec=True)
+    @mock.patch('ironic.drivers.modules.fake.FakeDeploy.take_over',
+                autospec=True)
+    @mock.patch('ironic.drivers.modules.fake.FakeDeploy.prepare',
+                autospec=True)
     def test__do_adoption_boot_validate_failure(self,
                                                 mock_prepare,
                                                 mock_take_over,
@@ -7437,7 +7578,8 @@ class UpdateVolumeTargetTestCase(mgr_utils.ServiceSetUpMixin,
             self.context, node_id=node.id, extra={'vol_id': 'fake-id'})
         new_volume_type = 'fibre_channel'
         volume_target.volume_type = new_volume_type
-        with mock.patch.object(objects.VolumeTarget, 'save') as mock_save:
+        with mock.patch.object(objects.VolumeTarget, 'save',
+                               autospec=True) as mock_save:
             mock_save.side_effect = expected_exc('Boo')
             exc = self.assertRaises(messaging.rpc.ExpectedException,
                                     self.service.update_volume_target,
@@ -7497,7 +7639,8 @@ class NodeTraitsTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         self.assertEqual(self.traits[1:], [trait.trait for trait in traits])
 
     def _test_add_node_traits_exception(self, expected_exc):
-        with mock.patch.object(objects.Trait, 'create') as mock_create:
+        with mock.patch.object(objects.Trait, 'create',
+                               autospec=True) as mock_create:
             mock_create.side_effect = expected_exc('Boo')
             exc = self.assertRaises(messaging.rpc.ExpectedException,
                                     self.service.add_node_traits, self.context,
@@ -7542,7 +7685,8 @@ class NodeTraitsTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
 
     def _test_remove_node_traits_exception(self, expected_exc):
         objects.TraitList.create(self.context, self.node.id, self.traits)
-        with mock.patch.object(objects.Trait, 'destroy') as mock_destroy:
+        with mock.patch.object(objects.Trait, 'destroy',
+                               autospec=True) as mock_destroy:
             mock_destroy.side_effect = expected_exc('Boo')
             exc = self.assertRaises(messaging.rpc.ExpectedException,
                                     self.service.remove_node_traits,
@@ -7566,8 +7710,8 @@ class NodeTraitsTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
 class DoNodeInspectAbortTestCase(mgr_utils.CommonMixIn,
                                  mgr_utils.ServiceSetUpMixin,
                                  db_base.DbTestCase):
-    @mock.patch.object(manager, 'LOG')
-    @mock.patch('ironic.drivers.modules.fake.FakeInspect.abort')
+    @mock.patch.object(manager, 'LOG', autospec=True)
+    @mock.patch('ironic.drivers.modules.fake.FakeInspect.abort', autospec=True)
     @mock.patch('ironic.conductor.task_manager.acquire', autospec=True)
     def test_do_inspect_abort_interface_not_support(self, mock_acquire,
                                                     mock_abort, mock_log):
@@ -7587,8 +7731,8 @@ class DoNodeInspectAbortTestCase(mgr_utils.CommonMixIn,
                          exc.exc_info[0])
         self.assertTrue(mock_log.error.called)
 
-    @mock.patch.object(manager, 'LOG')
-    @mock.patch('ironic.drivers.modules.fake.FakeInspect.abort')
+    @mock.patch.object(manager, 'LOG', autospec=True)
+    @mock.patch('ironic.drivers.modules.fake.FakeInspect.abort', autospec=True)
     @mock.patch('ironic.conductor.task_manager.acquire', autospec=True)
     def test_do_inspect_abort_interface_return_failed(self, mock_acquire,
                                                       mock_abort, mock_log):
@@ -7607,7 +7751,7 @@ class DoNodeInspectAbortTestCase(mgr_utils.CommonMixIn,
         self.assertTrue(mock_log.exception.called)
         self.assertIn('Failed to abort inspection.', node.last_error)
 
-    @mock.patch('ironic.drivers.modules.fake.FakeInspect.abort')
+    @mock.patch('ironic.drivers.modules.fake.FakeInspect.abort', autospec=True)
     @mock.patch('ironic.conductor.task_manager.acquire', autospec=True)
     def test_do_inspect_abort_succeeded(self, mock_acquire, mock_abort):
         self._start_service()
