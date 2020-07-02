@@ -25,12 +25,14 @@ from oslo_utils import timeutils
 import retrying
 
 from ironic.common import boot_devices
+from ironic.common import dhcp_factory
 from ironic.common import exception
 from ironic.common.i18n import _
 from ironic.common import image_service
 from ironic.common import states
 from ironic.common import utils
 from ironic.conductor import steps as conductor_steps
+from ironic.conductor import task_manager
 from ironic.conductor import utils as manager_utils
 from ironic.conf import CONF
 from ironic.drivers.modules import agent_client
@@ -655,6 +657,88 @@ class HeartbeatMixin(object):
         with manager_utils.power_state_for_network_configuration(task):
             task.driver.network.configure_tenant_networks(task)
         task.process_event('done')
+
+
+class AgentBaseMixin(object):
+    """Mixin with base methods not relying on any deploy steps."""
+
+    def should_manage_boot(self, task):
+        """Whether agent boot is managed by ironic."""
+        return True
+
+    @METRICS.timer('AgentBaseMixin.tear_down')
+    @task_manager.require_exclusive_lock
+    def tear_down(self, task):
+        """Tear down a previous deployment on the task's node.
+
+        Power off the node. All actual clean-up is done in the clean_up()
+        method which should be called separately.
+
+        :param task: a TaskManager instance containing the node to act on.
+        :returns: deploy state DELETED.
+        :raises: NetworkError if the cleaning ports cannot be removed.
+        :raises: InvalidParameterValue when the wrong state is specified
+             or the wrong driver info is specified.
+        :raises: StorageError when volume detachment fails.
+        :raises: other exceptions by the node's power driver if something
+             wrong occurred during the power action.
+        """
+        manager_utils.node_power_action(task, states.POWER_OFF)
+        task.driver.storage.detach_volumes(task)
+        deploy_utils.tear_down_storage_configuration(task)
+        with manager_utils.power_state_for_network_configuration(task):
+            task.driver.network.unconfigure_tenant_networks(task)
+            # NOTE(mgoddard): If the deployment was unsuccessful the node may
+            # have ports on the provisioning network which were not deleted.
+            task.driver.network.remove_provisioning_network(task)
+        return states.DELETED
+
+    @METRICS.timer('AgentBaseMixin.clean_up')
+    def clean_up(self, task):
+        """Clean up the deployment environment for the task's node.
+
+        Unlinks TFTP and instance images and triggers image cache cleanup.
+        Removes the TFTP configuration files for this node.
+
+        :param task: a TaskManager instance containing the node to act on.
+        """
+        if self.should_manage_boot(task):
+            task.driver.boot.clean_up_ramdisk(task)
+        task.driver.boot.clean_up_instance(task)
+        provider = dhcp_factory.DHCPFactory()
+        provider.clean_dhcp(task)
+
+    def take_over(self, task):
+        """Take over management of this node from a dead conductor.
+
+        :param task: a TaskManager instance.
+        """
+        pass
+
+    @METRICS.timer('AgentDeployMixin.prepare_cleaning')
+    def prepare_cleaning(self, task):
+        """Boot into the agent to prepare for cleaning.
+
+        :param task: a TaskManager object containing the node
+        :raises: NodeCleaningFailure, NetworkError if the previous cleaning
+            ports cannot be removed or if new cleaning ports cannot be created.
+        :raises: InvalidParameterValue if cleaning network UUID config option
+            has an invalid value.
+        :returns: states.CLEANWAIT to signify an asynchronous prepare
+        """
+        return deploy_utils.prepare_inband_cleaning(
+            task, manage_boot=self.should_manage_boot(task))
+
+    @METRICS.timer('AgentDeployMixin.tear_down_cleaning')
+    def tear_down_cleaning(self, task):
+        """Clean up the PXE and DHCP files after cleaning.
+
+        :param task: a TaskManager object containing the node
+        :raises: NodeCleaningFailure, NetworkError if the cleaning ports cannot
+            be removed
+        """
+        deploy_utils.tear_down_inband_cleaning(
+            task, manage_boot=self.should_manage_boot(task))
 
 
 class AgentDeployMixin(HeartbeatMixin):

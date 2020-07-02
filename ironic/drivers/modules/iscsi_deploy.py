@@ -25,7 +25,6 @@ from oslo_concurrency import processutils
 from oslo_log import log as logging
 from oslo_utils import excutils
 
-from ironic.common import dhcp_factory
 from ironic.common import exception
 from ironic.common.i18n import _
 from ironic.common import states
@@ -599,38 +598,8 @@ def validate(task):
     deploy_utils.parse_instance_info(task.node)
 
 
-class AgentDeployMixin(agent_base.AgentDeployMixin):
-
-    @METRICS.timer('AgentDeployMixin.continue_deploy')
-    @task_manager.require_exclusive_lock
-    def continue_deploy(self, task):
-        """Method invoked when deployed using iSCSI.
-
-        This method is invoked during a heartbeat from an agent when
-        the node is in wait-call-back state. This deploys the image on
-        the node and then configures the node to boot according to the
-        desired boot option (netboot or localboot).
-
-        :param task: a TaskManager object containing the node.
-        :param kwargs: the kwargs passed from the heartbeat method.
-        :raises: InstanceDeployFailure, if it encounters some error during
-            the deploy.
-        """
-        task.process_event('resume')
-        node = task.node
-        LOG.debug('Continuing the deployment on node %s', node.uuid)
-
-        uuid_dict_returned = do_agent_iscsi_deploy(task, self._client)
-        root_uuid = uuid_dict_returned.get('root uuid')
-        efi_sys_uuid = uuid_dict_returned.get('efi system partition uuid')
-        prep_boot_part_uuid = uuid_dict_returned.get(
-            'PrEP Boot partition uuid')
-        self.prepare_instance_to_boot(task, root_uuid, efi_sys_uuid,
-                                      prep_boot_part_uuid=prep_boot_part_uuid)
-        self.reboot_and_finish_deploy(task)
-
-
-class ISCSIDeploy(AgentDeployMixin, base.DeployInterface):
+class ISCSIDeploy(agent_base.AgentDeployMixin, agent_base.AgentBaseMixin,
+                  base.DeployInterface):
     """iSCSI Deploy Interface for deploy-related actions."""
 
     def get_properties(self):
@@ -717,32 +686,33 @@ class ISCSIDeploy(AgentDeployMixin, base.DeployInterface):
 
             return None
 
-    @METRICS.timer('ISCSIDeploy.tear_down')
+    @METRICS.timer('AgentDeployMixin.continue_deploy')
     @task_manager.require_exclusive_lock
-    def tear_down(self, task):
-        """Tear down a previous deployment on the task's node.
+    def continue_deploy(self, task):
+        """Method invoked when deployed using iSCSI.
 
-        Power off the node. All actual clean-up is done in the clean_up()
-        method which should be called separately.
+        This method is invoked during a heartbeat from an agent when
+        the node is in wait-call-back state. This deploys the image on
+        the node and then configures the node to boot according to the
+        desired boot option (netboot or localboot).
 
-        :param task: a TaskManager instance containing the node to act on.
-        :returns: deploy state DELETED.
-        :raises: NetworkError if the cleaning ports cannot be removed.
-        :raises: InvalidParameterValue when the wrong state is specified
-             or the wrong driver info is specified.
-        :raises: StorageError when volume detachment fails.
-        :raises: other exceptions by the node's power driver if something
-             wrong occurred during the power action.
+        :param task: a TaskManager object containing the node.
+        :param kwargs: the kwargs passed from the heartbeat method.
+        :raises: InstanceDeployFailure, if it encounters some error during
+            the deploy.
         """
-        manager_utils.node_power_action(task, states.POWER_OFF)
-        task.driver.storage.detach_volumes(task)
-        deploy_utils.tear_down_storage_configuration(task)
-        with manager_utils.power_state_for_network_configuration(task):
-            task.driver.network.unconfigure_tenant_networks(task)
-            # NOTE(mgoddard): If the deployment was unsuccessful the node may
-            # have ports on the provisioning network which were not deleted.
-            task.driver.network.remove_provisioning_network(task)
-        return states.DELETED
+        task.process_event('resume')
+        node = task.node
+        LOG.debug('Continuing the deployment on node %s', node.uuid)
+
+        uuid_dict_returned = do_agent_iscsi_deploy(task, self._client)
+        root_uuid = uuid_dict_returned.get('root uuid')
+        efi_sys_uuid = uuid_dict_returned.get('efi system partition uuid')
+        prep_boot_part_uuid = uuid_dict_returned.get(
+            'PrEP Boot partition uuid')
+        self.prepare_instance_to_boot(task, root_uuid, efi_sys_uuid,
+                                      prep_boot_part_uuid=prep_boot_part_uuid)
+        self.reboot_and_finish_deploy(task)
 
     @METRICS.timer('ISCSIDeploy.prepare')
     @task_manager.require_exclusive_lock
@@ -817,33 +787,4 @@ class ISCSIDeploy(AgentDeployMixin, base.DeployInterface):
         :param task: a TaskManager instance containing the node to act on.
         """
         deploy_utils.destroy_images(task.node.uuid)
-        task.driver.boot.clean_up_ramdisk(task)
-        task.driver.boot.clean_up_instance(task)
-        provider = dhcp_factory.DHCPFactory()
-        provider.clean_dhcp(task)
-
-    def take_over(self, task):
-        pass
-
-    @METRICS.timer('ISCSIDeploy.prepare_cleaning')
-    def prepare_cleaning(self, task):
-        """Boot into the agent to prepare for cleaning.
-
-        :param task: a TaskManager object containing the node
-        :raises NodeCleaningFailure: if the previous cleaning ports cannot
-            be removed or if new cleaning ports cannot be created
-        :returns: states.CLEANWAIT to signify an asynchronous prepare.
-        """
-        return deploy_utils.prepare_inband_cleaning(
-            task, manage_boot=True)
-
-    @METRICS.timer('ISCSIDeploy.tear_down_cleaning')
-    def tear_down_cleaning(self, task):
-        """Clean up the PXE and DHCP files after cleaning.
-
-        :param task: a TaskManager object containing the node
-        :raises NodeCleaningFailure: if the cleaning ports cannot be
-            removed
-        """
-        deploy_utils.tear_down_inband_cleaning(
-            task, manage_boot=True)
+        super(ISCSIDeploy, self).clean_up(task)

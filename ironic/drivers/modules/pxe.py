@@ -24,7 +24,7 @@ from ironic.common import states
 from ironic.conductor import task_manager
 from ironic.conductor import utils as manager_utils
 from ironic.drivers import base
-from ironic.drivers.modules import agent
+from ironic.drivers.modules import agent_base
 from ironic.drivers.modules import deploy_utils
 from ironic.drivers.modules import pxe_base
 LOG = logging.getLogger(__name__)
@@ -37,7 +37,10 @@ class PXEBoot(pxe_base.PXEBaseMixin, base.BootInterface):
     capabilities = ['ramdisk_boot', 'pxe_boot']
 
 
-class PXERamdiskDeploy(agent.AgentDeploy):
+class PXERamdiskDeploy(agent_base.AgentBaseMixin, base.DeployInterface):
+
+    def get_properties(self, task):
+        return {}
 
     def validate(self, task):
         if 'ramdisk_boot' not in task.driver.boot.capabilities:
