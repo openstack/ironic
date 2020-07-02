@@ -12,6 +12,7 @@ project.
   :maxdepth: 1
 
   Developer Contribution Guide <contributing>
+  Bugs Reporting and Triaging Guide <bugs>
   Setting Up Your Development Environment <dev-quickstart>
   Priorities <https://specs.openstack.org/openstack/ironic-specs/#priorities>
   Specifications <https://specs.openstack.org/openstack/ironic-specs/>

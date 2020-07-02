@@ -22,6 +22,8 @@ previous release of ironic, append the OpenStack release name to the URL; for
 example, the ``ocata`` release is available at
 https://docs.openstack.org/ironic/ocata/.
 
+Found a bug in one of our projects? Please see :doc:`/contributor/bugs`.
+
 Installation Guide
 ==================
 
