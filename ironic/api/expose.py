@@ -123,7 +123,7 @@ def expose(*args, **kwargs):
             )
 
         pecan_json_decorate(callfunction)
-        pecan.util._cfg(callfunction)['argspec'] = inspect.getargspec(f)
+        pecan.util._cfg(callfunction)['argspec'] = inspect.getfullargspec(f)
         callfunction._wsme_definition = funcdef
         return callfunction
 
