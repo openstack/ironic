@@ -1,25 +1,15 @@
 ---
 upgrade:
   - |
-    Operators may need to check their ``/httpboot/redfish`` folder permissions
-    if using ``redfish-virtual-media``. The conductor was previously creating
-    the folder with incorrect permissions.
-  - |
     A permission setting has been added for ``redfish-virtual-media`` boot
     interface, which allows for explicit file permission setting when the
-    driver is being used. The default for the new ``[redfish]file_permission
+    driver is used. The default for the new ``[redfish]file_permission
     setting is ``0u644``, or 644 if manually changed using ``chmod`` on the
-    command line. Operators MAY need to adjust this if they were running the
-    conductor with a specific ``umask`` to work around the permission setting
-    defect.
+    command line.
+    Operators may need to check ``/httpboot/redfish`` folder permissions if
+    using ``redfish-virtual-media`` if they were running the conductor with
+    a specific ``umask`` to work around the permission setting defect.
 fixes:
   - |
-    Fixes the ``redfish-virtual-media`` and related based drivers to utilize
-    an explicit file permission instead of rely upon the ironic-conductor
-    umask, which may be incorrect. This can be tuned with the
-    ``[redfish]file_permission`` setting.
-  - |
-    Fixes an issue where the default folder permission for the
-    ``redfish-virtual-media`` driver where the folder permissions for the
-    ``/httpboot/redfish`` folder was being created with incorrect
-    permissions.
+    Fixes an issue where the folder ``/httpboot/redfish`` was being created
+    with incorrect permissions.

@@ -3,5 +3,5 @@ fixes:
   - |
     Fixes the JSON RPC backend potentially hanging on inability to connect
     to a conductor. The default timeout is now 120 seconds. The timeout and
-    a number of retries can be adjusted via the configuration options
+    the number of retries can be adjusted via the configuration options
     ``[json_rpc]timeout`` and ``[json_rpc]connect_retries`` accordingly.

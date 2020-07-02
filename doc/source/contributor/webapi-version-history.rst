@@ -2,6 +2,15 @@
 REST API Version History
 ========================
 
+1.67 (Victoria, master)
+-----------------------
+
+Add support for the mutually exclusive ``port_uuid`` and ``portgroup_uuid``
+fields by having the node vif_attach API accept those values within
+``vif_info``.
+If one is specified, then Ironic will attempt to attach a VIF to the relative
+port or portgroup.
+
 1.66 (Victoria, master)
 -----------------------
 

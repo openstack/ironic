@@ -2,7 +2,6 @@
 fixes:
   - |
     Fixes periodic task initialization options to prevent a negative number.
-
-    If "[conductor]clean_callback_timeout","[conductor]inspect_wait_timeout"
-    and "[conductor]inspect_wait_timeout" are a negative value will cause an
-    error on start up from now on.
+    If ``[conductor]clean_callback_timeout``, ``[conductor]inspect_wait_timeout``
+    or ``[conductor]inspect_wait_timeout`` have a negative value an error
+    will be triggered.

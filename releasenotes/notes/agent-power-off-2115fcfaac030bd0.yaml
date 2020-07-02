@@ -1,5 +1,5 @@
 ---
 fixes:
   - |
-    Fixes a rare issue when agent successfully powers off a node after
+    Fixes a rare issue where agent successfully powers off a node after
     deployment, but ironic never learns about it and does another reboot.
