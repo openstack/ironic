@@ -1,0 +1,15 @@
+raven
+redis
+
+# ironic driver dep
+python-openstackclient
+python-ilorest-library>=2.1.0
+hpOneView>=4.4.0
+ucsmsdk>=0.9.1
+ImcSdk>=0.7.2
+pymemcache==1.2.9
+
+git+https://github.com/openstack/ironic-inspector@stable/train#egg=ironic-inspector
+git+https://github.com/sapcc/openstack-watcher-middleware.git#egg=watcher-middleware
+git+https://github.com/sapcc/openstack-audit-middleware.git@master#egg=audit-middleware
+git+https://github.com/sapcc/ptftpd.git#egg=ptftpd

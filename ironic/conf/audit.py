@@ -32,6 +32,16 @@ opts = [
                       'auditing will not be done on any GET or POST '
                       'requests if this is set to "GET,POST". It is used '
                       'only when API audit is enabled.')),
+
+    cfg.BoolOpt('record_payloads', default=False,
+                help=_('The payload of the API response to a CRUD request can be '
+                       'attached to the event optionally. This will increase the '
+                       'size of the events, but brings a lot of value when it '
+                       'comes to diagnostics')),
+
+    cfg.BoolOpt('metrics_enabled', default=False,
+                help=_('The middleware can emit statistics on emitted events '
+                       'using tagged statsd metrics.')),
 ]
 
 
