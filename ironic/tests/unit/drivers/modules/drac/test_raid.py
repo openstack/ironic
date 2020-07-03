@@ -15,6 +15,7 @@
 Test class for DRAC RAID interface
 """
 
+from collections import defaultdict
 from unittest import mock
 
 from dracclient import constants
@@ -286,6 +287,33 @@ class DracManageVirtualDisksTestCase(test_utils.BaseDracTest):
 
     @mock.patch.object(drac_job, 'validate_job_queue', spec_set=True,
                        autospec=True)
+    def test_set_raid_settings(self, mock_validate_job_queue,
+                               mock_get_drac_client):
+        mock_client = mock.Mock()
+        mock_get_drac_client.return_value = mock_client
+        controller_fqdd = "RAID.Integrated.1-1"
+        raid_cntrl_attr = "RAID.Integrated.1-1:RAIDRequestedControllerMode"
+        raid_settings = {raid_cntrl_attr: 'RAID'}
+        drac_raid.set_raid_settings(self.node, controller_fqdd, raid_settings)
+
+        mock_validate_job_queue.assert_called_once_with(
+            self.node)
+        mock_client.set_raid_settings.assert_called_once_with(
+            controller_fqdd, raid_settings)
+
+    @mock.patch.object(drac_job, 'validate_job_queue', spec_set=True,
+                       autospec=True)
+    def test_list_raid_settings(self, mock_validate_job_queue,
+                                mock_get_drac_client):
+        mock_client = mock.Mock()
+        mock_get_drac_client.return_value = mock_client
+        drac_raid.list_raid_settings(self.node)
+        mock_validate_job_queue.assert_called_once_with(
+            self.node)
+        mock_client.list_raid_settings.assert_called_once_with()
+
+    @mock.patch.object(drac_job, 'validate_job_queue', spec_set=True,
+                       autospec=True)
     def test_change_physical_disk_state(self,
                                         mock_validate_job_queue,
                                         mock_get_drac_client):
@@ -389,6 +417,7 @@ class DracManageVirtualDisksTestCase(test_utils.BaseDracTest):
                                                     mock_get_drac_client):
         controllers = [{'is_reboot_required': 'true',
                         'is_commit_required': True,
+                        'is_ehba_mode': False,
                         'raid_controller': 'AHCI.Slot.3-1'}]
         substep = "delete_foreign_config"
 
@@ -1065,6 +1094,7 @@ class DracRaidInterfaceTestCase(test_utils.BaseDracTest):
                        autospec=True)
     @mock.patch.object(drac_raid, '_reset_raid_config', autospec=True)
     @mock.patch.object(drac_raid, 'list_virtual_disks', autospec=True)
+    @mock.patch.object(drac_raid, 'list_raid_settings', autospec=True)
     @mock.patch.object(drac_raid, 'list_physical_disks', autospec=True)
     @mock.patch.object(drac_raid, 'change_physical_disk_state', spec_set=True,
                        autospec=True)
@@ -1077,6 +1107,7 @@ class DracRaidInterfaceTestCase(test_utils.BaseDracTest):
             mock_validate_job_queue,
             mock_change_physical_disk_state,
             mock_list_physical_disks,
+            mock_list_raid_settings,
             mock_list_virtual_disks,
             mock__reset_raid_config,
             mock_get_drac_client):
@@ -1097,6 +1128,18 @@ class DracRaidInterfaceTestCase(test_utils.BaseDracTest):
             'supports_realtime': True}
         raid_controller = test_utils.make_raid_controller(
             raid_controller_dict)
+
+        raid_attr = "RAID.Integrated.1-1:RAIDCurrentControllerMode"
+        raid_controller_config = {
+            'id': 'RAID.Integrated.1-1:RAIDCurrentControllerMode',
+            'current_value': ['RAID'],
+            'read_only': True,
+            'name': 'RAIDCurrentControllerMode',
+            'possible_values': ['RAID', 'Enhanced HBA']}
+        raid_cntrl_settings = {
+            raid_attr: test_utils.create_raid_setting(raid_controller_config)}
+
+        mock_list_raid_settings.return_value = raid_cntrl_settings
         mock_list_physical_disks.return_value = physical_disks
         mock_commit_config.side_effect = ['12']
         mock_client.list_raid_controllers.return_value = [raid_controller]
@@ -1806,6 +1849,7 @@ class DracRaidInterfaceTestCase(test_utils.BaseDracTest):
                        autospec=True)
     @mock.patch.object(drac_raid, '_reset_raid_config', autospec=True)
     @mock.patch.object(drac_raid, 'list_raid_controllers', autospec=True)
+    @mock.patch.object(drac_raid, 'list_raid_settings', autospec=True)
     @mock.patch.object(drac_job, 'validate_job_queue', spec_set=True,
                        autospec=True)
     @mock.patch.object(drac_raid, 'commit_config', spec_set=True,
@@ -1813,11 +1857,23 @@ class DracRaidInterfaceTestCase(test_utils.BaseDracTest):
     def _test_delete_configuration(self, expected_state,
                                    mock_commit_config,
                                    mock_validate_job_queue,
+                                   mock_list_raid_settings,
                                    mock_list_raid_controllers,
                                    mock__reset_raid_config,
                                    mock_get_drac_client):
         mock_client = mock.Mock()
         mock_get_drac_client.return_value = mock_client
+        raid_attr = "RAID.Integrated.1-1:RAIDCurrentControllerMode"
+        raid_controller_config = {
+            'id': 'RAID.Integrated.1-1:RAIDCurrentControllerMode',
+            'current_value': ['RAID'],
+            'read_only': True,
+            'name': 'RAIDCurrentControllerMode',
+            'possible_values': ['RAID', 'Enhanced HBA']}
+
+        raid_cntrl_settings = {
+            raid_attr: test_utils.create_raid_setting(raid_controller_config)}
+
         raid_controller_dict = {
             'id': 'RAID.Integrated.1-1',
             'description': 'Integrated RAID Controller 1',
@@ -1830,6 +1886,7 @@ class DracRaidInterfaceTestCase(test_utils.BaseDracTest):
 
         mock_list_raid_controllers.return_value = [
             test_utils.make_raid_controller(raid_controller_dict)]
+        mock_list_raid_settings.return_value = raid_cntrl_settings
         mock_commit_config.return_value = '42'
         mock__reset_raid_config.return_value = {
             'is_reboot_required': constants.RebootRequired.optional,
@@ -1859,16 +1916,17 @@ class DracRaidInterfaceTestCase(test_utils.BaseDracTest):
     @mock.patch.object(drac_common, 'get_drac_client', spec_set=True,
                        autospec=True)
     @mock.patch.object(drac_raid, 'list_raid_controllers', autospec=True)
+    @mock.patch.object(drac_raid, 'list_raid_settings', autospec=True)
     @mock.patch.object(drac_job, 'validate_job_queue', spec_set=True,
                        autospec=True)
     @mock.patch.object(drac_raid, 'commit_config', spec_set=True,
                        autospec=True)
     @mock.patch.object(drac_raid, '_reset_raid_config', spec_set=True,
                        autospec=True)
-    def test_delete_configuration_with_non_realtime_controller(
+    def test_delete_configuration_with_mix_realtime_controller_in_raid_mode(
             self, mock__reset_raid_config, mock_commit_config,
-            mock_validate_job_queue, mock_list_raid_controllers,
-            mock_get_drac_client):
+            mock_validate_job_queue, mock_list_raid_settings,
+            mock_list_raid_controllers, mock_get_drac_client):
         mock_client = mock.Mock()
         mock_get_drac_client.return_value = mock_client
         expected_raid_config_params = ['AHCI.Slot.3-1', 'RAID.Integrated.1-1']
@@ -1892,6 +1950,25 @@ class DracRaidInterfaceTestCase(test_utils.BaseDracTest):
         mock_list_raid_controllers.return_value = [
             test_utils.make_raid_controller(controller) for
             controller in mix_controllers]
+
+        raid_controller_config = [
+            {'id': 'AHCI.Slot.3-1:RAIDCurrentControllerMode',
+             'current_value': ['RAID'],
+             'read_only': True,
+             'name': 'RAIDCurrentControllerMode',
+             'possible_values': ['RAID', 'Enhanced HBA']},
+            {'id': 'RAID.Integrated.1-1:RAIDCurrentControllerMode',
+             'current_value': ['RAID'],
+             'read_only': True,
+             'name': 'RAIDCurrentControllerMode',
+             'possible_values': ['RAID', 'Enhanced HBA']}]
+
+        raid_settings = defaultdict()
+        for sett in raid_controller_config:
+            raid_settings[sett.get('id')] = test_utils.create_raid_setting(
+                sett)
+
+        mock_list_raid_settings.return_value = raid_settings
 
         mock_commit_config.side_effect = ['42', '12']
         mock__reset_raid_config.side_effect = [{
@@ -1919,6 +1996,97 @@ class DracRaidInterfaceTestCase(test_utils.BaseDracTest):
                          self.node.driver_internal_info[
                              'raid_config_parameters'])
         self.assertEqual(['42', '12'],
+                         self.node.driver_internal_info['raid_config_job_ids'])
+
+    @mock.patch.object(drac_common, 'get_drac_client', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(drac_raid, 'list_raid_controllers', autospec=True)
+    @mock.patch.object(drac_raid, 'list_raid_settings', autospec=True)
+    @mock.patch.object(drac_job, 'list_unfinished_jobs', autospec=True)
+    @mock.patch.object(drac_job, 'validate_job_queue', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(drac_raid, 'set_raid_settings', autospec=True)
+    @mock.patch.object(drac_raid, 'commit_config', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(drac_raid, '_reset_raid_config', spec_set=True,
+                       autospec=True)
+    def test_delete_configuration_with_mix_realtime_controller_in_ehba_mode(
+            self, mock__reset_raid_config, mock_commit_config,
+            mock_set_raid_settings, mock_validate_job_queue,
+            mock_list_unfinished_jobs, mock_list_raid_settings,
+            mock_list_raid_controllers, mock_get_drac_client):
+        mock_client = mock.Mock()
+        mock_get_drac_client.return_value = mock_client
+        expected_raid_config_params = ['RAID.Integrated.1-1', 'AHCI.Slot.3-1']
+        mix_controllers = [{'id': 'RAID.Integrated.1-1',
+                            'description': 'Integrated RAID Controller 1',
+                            'manufacturer': 'DELL',
+                            'model': 'PERC H740 Mini',
+                            'primary_status': 'unknown',
+                            'firmware_version': '50.5.0-1750',
+                            'bus': '3C',
+                            'supports_realtime': True},
+                           {'id': 'AHCI.Slot.3-1',
+                            'description': 'AHCI controller in slot 3',
+                            'manufacturer': 'DELL',
+                            'model': 'BOSS-S1',
+                            'primary_status': 'unknown',
+                            'firmware_version': '2.5.13.3016',
+                            'bus': '5E',
+                            'supports_realtime': False}]
+
+        mock_list_raid_controllers.return_value = [
+            test_utils.make_raid_controller(controller) for
+            controller in mix_controllers]
+        raid_controller_config = [
+            {'id': 'RAID.Integrated.1-1:RAIDCurrentControllerMode',
+             'current_value': ['Enhanced HBA'],
+             'read_only': True,
+             'name': 'RAIDCurrentControllerMode',
+             'possible_values': ['RAID', 'Enhanced HBA']},
+            {'id': 'AHCI.Slot.3-1:RAIDCurrentControllerMode',
+             'current_value': ['RAID'],
+             'read_only': True,
+             'name': 'RAIDCurrentControllerMode',
+             'possible_values': ['RAID', 'Enhanced HBA']}]
+
+        raid_settings = defaultdict()
+        for sett in raid_controller_config:
+            raid_settings[sett.get('id')] = test_utils.create_raid_setting(
+                sett)
+
+        mock_list_raid_settings.return_value = raid_settings
+        mock_list_unfinished_jobs.return_value = []
+        mock_commit_config.side_effect = ['42', '12', '13']
+        mock__reset_raid_config.side_effect = [{
+            'is_reboot_required': constants.RebootRequired.optional,
+            'is_commit_required': True
+        }, {
+            'is_reboot_required': constants.RebootRequired.true,
+            'is_commit_required': True
+        }]
+        mock_set_raid_settings.return_value = {
+            'is_reboot_required': constants.RebootRequired.true,
+            'is_commit_required': True}
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            return_value = task.driver.raid.delete_configuration(task)
+            mock_commit_config.assert_has_calls(
+                [mock.call(mock.ANY, raid_controller='RAID.Integrated.1-1',
+                           reboot=False, realtime=True),
+                 mock.call(mock.ANY, raid_controller='AHCI.Slot.3-1',
+                           reboot=False, realtime=False),
+                 mock.call(mock.ANY, raid_controller='RAID.Integrated.1-1',
+                           reboot=True, realtime=False)],
+                any_order=True)
+
+        self.assertEqual(states.CLEANWAIT, return_value)
+        self.node.refresh()
+        self.assertEqual(expected_raid_config_params,
+                         self.node.driver_internal_info[
+                             'raid_config_parameters'])
+        self.assertEqual(['42', '12', '13'],
                          self.node.driver_internal_info['raid_config_job_ids'])
 
     @mock.patch.object(drac_common, 'get_drac_client', spec_set=True,

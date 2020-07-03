@@ -96,3 +96,8 @@ def make_physical_disk(physical_disk_dict):
     tuple_class = dracclient_raid.PhysicalDisk if dracclient_raid else None
     return dict_to_namedtuple(values=physical_disk_dict,
                               tuple_class=tuple_class)
+
+
+def create_raid_setting(raid_settings_dict):
+    """Returns the raid configuration tuple object"""
+    return dict_to_namedtuple(values=raid_settings_dict)
