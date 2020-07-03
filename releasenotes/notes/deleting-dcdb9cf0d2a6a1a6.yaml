@@ -1,0 +1,4 @@
+---
+fixes:
+  - |
+    Cleans up nodes stuck in the ``deleting`` state on conductor restart.

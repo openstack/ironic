@@ -235,7 +235,7 @@ UNSTABLE_STATES = (DEPLOYING, DEPLOYWAIT, CLEANING, CLEANWAIT, VERIFYING,
 """States that can be changed without external request."""
 
 STUCK_STATES_TREATED_AS_FAIL = (DEPLOYING, CLEANING, VERIFYING, INSPECTING,
-                                ADOPTING, RESCUING, UNRESCUING)
+                                ADOPTING, RESCUING, UNRESCUING, DELETING)
 """States that cannot be resumed once a conductor dies.
 
 If a node gets stuck with one of these states for some reason
@@ -384,7 +384,7 @@ machine.add_transition(DEPLOYWAIT, DELETING, 'delete')
 machine.add_transition(DEPLOYFAIL, DELETING, 'delete')
 
 # This state can also transition to error
-machine.add_transition(DELETING, ERROR, 'error')
+machine.add_transition(DELETING, ERROR, 'fail')
 
 # When finished deleting, a node will begin cleaning
 machine.add_transition(DELETING, CLEANING, 'clean')
