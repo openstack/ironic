@@ -219,6 +219,7 @@ class StartStopTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
             (states.ADOPTING, states.ADOPTFAIL),
             (states.RESCUING, states.RESCUEFAIL),
             (states.UNRESCUING, states.UNRESCUEFAIL),
+            (states.DELETING, states.ERROR),
         ]
         nodes = [obj_utils.create_test_node(self.context, uuid=uuid.uuid4(),
                                             driver='fake-hardware',
