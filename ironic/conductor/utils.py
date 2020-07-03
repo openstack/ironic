@@ -972,11 +972,25 @@ def is_fast_track(task):
     :returns: True if the last heartbeat that was recorded was within
               the [deploy]fast_track_timeout setting.
     """
-    return (fast_track_able(task)
-            and value_within_timeout(
-                task.node.driver_internal_info.get('agent_last_heartbeat'),
-                CONF.deploy.fast_track_timeout)
-            and task.driver.power.get_power_state(task) == states.POWER_ON)
+    if (not fast_track_able(task)
+            or task.driver.power.get_power_state(task) != states.POWER_ON):
+        if task.node.last_error:
+            LOG.debug('Node %(node)s is not fast-track-able because it has '
+                      'an error: %(error)s',
+                      {'node': task.node.uuid, 'error': task.node.last_error})
+        return False
+
+    if value_within_timeout(
+            task.node.driver_internal_info.get('agent_last_heartbeat'),
+            CONF.deploy.fast_track_timeout):
+        return True
+    else:
+        LOG.debug('Node %(node)s should be fast-track-able, but the agent '
+                  'doesn\'t seem to be running. Last heartbeat: %(last)s',
+                  {'node': task.node.uuid,
+                   'last': task.node.driver_internal_info.get(
+                       'agent_last_heartbeat')})
+        return False
 
 
 def remove_agent_url(node):
