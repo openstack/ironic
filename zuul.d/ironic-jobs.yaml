@@ -321,7 +321,7 @@
     vars:
       devstack_localrc:
         IRONIC_BOOT_MODE: uefi
-        IRONIC_VM_SPECS_RAM: 3096
+        IRONIC_VM_SPECS_RAM: 4096
         IRONIC_AUTOMATED_CLEAN_ENABLED: False
         IRONIC_DEFAULT_BOOT_OPTION: netboot
 
@@ -645,7 +645,6 @@
         IRONIC_BOOT_MODE: uefi
         IRONIC_AUTOMATED_CLEAN_ENABLED: False
         IRONIC_DEFAULT_BOOT_OPTION: netboot
-        IRONIC_VM_SPECS_DISK: 10
         IRONIC_VM_SPECS_RAM: 4096
 
 - job:

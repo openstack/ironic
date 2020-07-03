@@ -20,9 +20,6 @@ jq
 libguestfs-tools
 libguestfs0
 libvirt-bin # dist:bionic
-libvirt-daemon-driver-storage-gluster # dist:focal
-libvirt-daemon-driver-lxc # dist:focal
-libvirt-daemon-driver-storage-rbd # dist:focal
 libvirt-daemon-system # dist:focal
 libvirt-dev
 open-iscsi
