@@ -1520,12 +1520,12 @@ class Connection(api.Connection):
             per-node trait limit.
         """
         if num_traits > MAX_TRAITS_PER_NODE:
-            msg = _("Could not modify traits for node %(node_id)s as it would "
-                    "exceed the maximum number of traits per node "
-                    "(%(num_traits)d vs. %(max_traits)d)")
-            raise exception.InvalidParameterValue(
-                msg, node_id=node_id, num_traits=num_traits,
-                max_traits=MAX_TRAITS_PER_NODE)
+            msg = (_("Could not modify traits for node %(node_id)s as it "
+                     "would exceed the maximum number of traits per node "
+                     "(%(num_traits)d vs. %(max_traits)d)")
+                   % {'node_id': node_id, 'num_traits': num_traits,
+                      'max_traits': MAX_TRAITS_PER_NODE})
+            raise exception.InvalidParameterValue(err=msg)
 
     @oslo_db_api.retry_on_deadlock
     def set_node_traits(self, node_id, traits, version):
