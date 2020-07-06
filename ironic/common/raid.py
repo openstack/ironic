@@ -114,7 +114,8 @@ def update_raid_info(node, raid_config):
     if root_logical_disk:
         # Update local_gb and root_device_hint
         properties = node.properties
-        properties['local_gb'] = root_logical_disk['size_gb']
+        if root_logical_disk['size_gb'] != 'MAX':
+            properties['local_gb'] = root_logical_disk['size_gb']
         try:
             properties['root_device'] = (
                 root_logical_disk['root_device_hint'])
