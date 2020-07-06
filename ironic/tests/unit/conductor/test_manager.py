@@ -2527,7 +2527,7 @@ class DoNodeCleanTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
     def test_continue_node_clean_wrong_state(self, mock_spawn):
         # Test the appropriate exception is raised if node isn't already
         # in CLEANWAIT state
-        prv_state = states.DELETING
+        prv_state = states.ACTIVE
         tgt_prv_state = states.AVAILABLE
         node = obj_utils.create_test_node(self.context, driver='fake-hardware',
                                           provision_state=prv_state,
