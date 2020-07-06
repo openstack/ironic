@@ -1022,9 +1022,7 @@ function cleanup_redfish {
 function install_redfish {
     # TODO(lucasagomes): Use Apache WSGI instead of gunicorn
 
-    if is_ubuntu; then
-        install_package gunicorn3
-    elif is_fedora; then
+    if is_fedora; then
         install_package python3-gunicorn
     else
         pip_install_gr "gunicorn"
@@ -1039,7 +1037,7 @@ function install_redfish {
 
     local cmd
 
-    cmd=$(which gunicorn3)
+    cmd=$(which gunicorn)
     cmd+=" sushy_tools.emulator.main:app"
     cmd+=" --bind ${HOST_IP}:${IRONIC_REDFISH_EMULATOR_PORT}"
     cmd+=" --env FLASK_DEBUG=1"
