@@ -137,6 +137,97 @@ Things to do before releasing
     Otherwise, once it is made, CI (the grenade job that tests new-release ->
     master) will fail.
 
+* Check for any open patches that are close to be merged or release critical.
+
+  This usually includes important bug fixes and/or features that we'd like to
+  release, including the related documentation.
+
+How to propose a release
+========================
+
+The steps that lead to a release proposal are mainly manual, while proposing
+the release itself is almost a 100% automated process, accomplished by
+following the next steps:
+
+* Clone the `openstack/releases <https://opendev.org/openstack/releases>`_
+  repository. This is where deliverables are tracked and all the automation
+  resides.
+
+  * Under the ``deliverables`` directory you can see yaml files for each
+    deliverable (i.e. subproject) grouped by release cycles.
+
+  * The ``_independent`` directory contains yaml files for deliverables that
+    are not bound to (official) cycles (e.g. ironic-python-agent-builder).
+
+* To check the changes we're about to release we can use the script
+  ``list_unreleased_changes.sh``, that can be found under the ``tools``
+  directory, with this syntax:
+
+  .. code-block:: bash
+
+    list_unreleased_changes.sh <branch> <deliverable>
+
+  The ``branch`` argument is a branch, not a release series (i.e. master or
+  stable/train, not ussuri or train).
+
+  For example, assuming we're in the main directory of the releases repository,
+  to check the changes in the train branch for ironic-python-agent
+  type:
+
+  .. code-block:: bash
+
+    ./tools/list_unreleased_changes.sh stable/train openstack/ironic-python-agent
+
+* To update the deliverable file for the new release, we use a scripted process
+  in the form of a tox environment called ``new-release``.
+
+  To get familiar with it and see all the options, type:
+
+  .. code-block:: bash
+
+    tox -e venv -- new-release -h
+
+  Now, based on the list of changes we found in the precedent step, and the
+  release notes, we need to decide on whether the next version will be major,
+  minor (feature) or patch (bugfix).
+
+  Note that in this case ``series`` is a code name (train, ussuri), not a
+  branch.
+
+  The ``--stable-branch argument`` is used only for branching in the end of a
+  cycle, independent projects are not branched this way though.
+
+  To propose the release, use the script to update the deliverable file, then
+  commit the change, and propose it for review.
+
+  For example, to propose a minor release for ironic in the master branch use:
+
+  .. code-block:: bash
+
+    tox -e venv -- new-release -v master ironic feature
+
+  Remember to use a meaningful topic, usually using the name of the
+  deliverable, the new version and the branch, if applicable.
+
+  A good commit message title should also include the same, for example
+  "Release ironic 1.2.3 for ussuri"
+
+* As an optional step, we can use ``tox -e list-changes`` to double-check the
+  changes before submitting them for review.
+
+  Also ``tox -e validate`` (it might take a while to run based on the number of
+  changes) does some some sanity-checks, but since everything is scripted,
+  there shouldn't be any issue.
+
+  All the scripts are designed and maintained by the release team; in case of
+  questions or doubts or if any errors should arise, you can reach to them in
+  the IRC channel ``#openstack-release``; all release liaisons should be
+  present there.
+
+* After the change is up for review, the PTL or a release liaison will have to approve
+  it before it can get approved by the release team. Then, it will be processed
+  automatically by zuul.
+
 Things to do after releasing
 ============================
 
