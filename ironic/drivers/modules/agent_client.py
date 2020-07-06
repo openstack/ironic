@@ -31,6 +31,24 @@ METRICS = metrics_utils.get_metrics_logger(__name__)
 DEFAULT_IPA_PORTAL_PORT = 3260
 
 
+def get_command_error(command):
+    """Extract an error string from the command result.
+
+    :param command: Command information from the agent.
+    :return: Error string.
+    """
+    error = command.get('command_error')
+    if error is None:
+        LOG.error('Agent returned invalid response: missing command_error in '
+                  '%s', command)
+        return _('Invalid agent response')
+
+    if isinstance(error, dict):
+        return error.get('details') or error.get('message') or str(error)
+    else:
+        return error
+
+
 class AgentClient(object):
     """Client for interacting with nodes via a REST API."""
     @METRICS.timer('AgentClient.__init__')
@@ -64,7 +82,7 @@ class AgentClient(object):
                       {'method': method, 'node': node.uuid, 'error': error})
             raise exception.AgentAPIError(node=node.uuid,
                                           status=error.get('code'),
-                                          error=result.get('faultstring'))
+                                          error=get_command_error(result))
 
     @METRICS.timer('AgentClient._wait_for_command')
     @retrying.retry(
