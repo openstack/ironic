@@ -12,7 +12,8 @@
 
 """Test class for iBMC RAID interface."""
 
-import mock
+from unittest import mock
+
 from oslo_utils import importutils
 
 from ironic.common import exception
