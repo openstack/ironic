@@ -960,6 +960,51 @@ class UpdateNodeTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         self.assertIsNone(node.instance_uuid)
         self.assertIsNone(node.allocation_id)
 
+    def test_update_node_maintenance_with_broken_interface(self):
+        # Updates of non-driver fields are possible with a broken driver
+        node = obj_utils.create_test_node(self.context, driver='fake-hardware',
+                                          power_interface='foobar',
+                                          extra={'test': 'one'})
+
+        node.maintenance = True
+        res = self.service.update_node(self.context, node)
+        self.assertTrue(res.maintenance)
+
+        node.refresh()
+        self.assertTrue(node.maintenance)
+        self.assertEqual('foobar', node.power_interface)
+
+    def test_update_node_interface_field_with_broken_interface(self):
+        # Updates of driver fields are NOT possible with a broken driver,
+        # unless they're fixing the breakage.
+        node = obj_utils.create_test_node(self.context, driver='fake-hardware',
+                                          power_interface='foobar',
+                                          deploy_interface='fake',
+                                          extra={'test': 'one'})
+
+        node.deploy_interface = 'iscsi'
+        exc = self.assertRaises(messaging.rpc.ExpectedException,
+                                self.service.update_node,
+                                self.context, node)
+        self.assertEqual(exception.InterfaceNotFoundInEntrypoint,
+                         exc.exc_info[0])
+
+        node.refresh()
+        self.assertEqual('foobar', node.power_interface)
+        self.assertEqual('fake', node.deploy_interface)
+
+    def test_update_node_fix_broken_interface(self):
+        # Updates of non-driver fields are possible with a broken driver
+        node = obj_utils.create_test_node(self.context, driver='fake-hardware',
+                                          power_interface='foobar',
+                                          extra={'test': 'one'})
+
+        node.power_interface = 'fake'
+        self.service.update_node(self.context, node)
+
+        node.refresh()
+        self.assertEqual('fake', node.power_interface)
+
 
 @mgr_utils.mock_record_keepalive
 class VendorPassthruTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):

@@ -209,6 +209,7 @@ class ConductorManager(base_manager.BaseConductorManager):
                    "updated unless it is in one of allowed "
                    "(%(allowed)s) states or in maintenance mode.")
         updating_driver = 'driver' in delta
+        check_interfaces = updating_driver
         for iface in drivers_base.ALL_INTERFACES:
             interface_field = '%s_interface' % iface
             if interface_field not in delta:
@@ -224,7 +225,10 @@ class ConductorManager(base_manager.BaseConductorManager):
                               'allowed': ', '.join(allowed_update_states),
                               'field': interface_field})
 
-        driver_factory.check_and_update_node_interfaces(node_obj)
+            check_interfaces = True
+
+        if check_interfaces:
+            driver_factory.check_and_update_node_interfaces(node_obj)
 
         # NOTE(dtantsur): if we're updating the driver from an invalid value,
         # loading the old driver may be impossible. Since we only need to
