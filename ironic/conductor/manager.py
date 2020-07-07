@@ -2329,6 +2329,7 @@ class ConductorManager(base_manager.BaseConductorManager):
         # we would disallow it otherwise. That's done for recovering hopelessly
         # broken nodes (e.g. with broken BMC).
         with task_manager.acquire(context, node_id,
+                                  load_driver=False,
                                   purpose='node deletion') as task:
             node = task.node
             if not node.maintenance and node.instance_uuid is not None:
@@ -2363,6 +2364,17 @@ class ConductorManager(base_manager.BaseConductorManager):
             if node.console_enabled:
                 notify_utils.emit_console_notification(
                     task, 'console_set', fields.NotificationStatus.START)
+
+                try:
+                    task.load_driver()
+                except Exception:
+                    with excutils.save_and_reraise_exception():
+                        LOG.exception('Could not load the driver for node %s '
+                                      'to shut down its console', node.uuid)
+                        notify_utils.emit_console_notification(
+                            task, 'console_set',
+                            fields.NotificationStatus.ERROR)
+
                 try:
                     task.driver.console.stop_console(task)
                 except Exception as err:
