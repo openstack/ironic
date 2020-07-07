@@ -35,14 +35,14 @@ from ironic.tests.unit.db import base as db_base
 from ironic.tests.unit.objects import utils as obj_utils
 
 
-@mock.patch.object(objects.Node, 'get')
-@mock.patch.object(objects.Node, 'release')
-@mock.patch.object(objects.Node, 'reserve')
-@mock.patch.object(driver_factory, 'build_driver_for_task')
-@mock.patch.object(objects.Port, 'list_by_node_id')
-@mock.patch.object(objects.Portgroup, 'list_by_node_id')
-@mock.patch.object(objects.VolumeConnector, 'list_by_node_id')
-@mock.patch.object(objects.VolumeTarget, 'list_by_node_id')
+@mock.patch.object(objects.Node, 'get', autospec=True)
+@mock.patch.object(objects.Node, 'release', autospec=True)
+@mock.patch.object(objects.Node, 'reserve', autospec=True)
+@mock.patch.object(driver_factory, 'build_driver_for_task', autospec=True)
+@mock.patch.object(objects.Port, 'list_by_node_id', autospec=True)
+@mock.patch.object(objects.Portgroup, 'list_by_node_id', autospec=True)
+@mock.patch.object(objects.VolumeConnector, 'list_by_node_id', autospec=True)
+@mock.patch.object(objects.VolumeTarget, 'list_by_node_id', autospec=True)
 class TaskManagerTestCase(db_base.DbTestCase):
     def setUp(self):
         super(TaskManagerTestCase, self).setUp()
@@ -673,7 +673,7 @@ class TaskManagerTestCase(db_base.DbTestCase):
         on_error_handler.assert_called_once_with(expected_exception,
                                                  'fake-argument')
 
-    @mock.patch.object(states.machine, 'copy')
+    @mock.patch.object(states.machine, 'copy', autospec=True)
     def test_init_prepares_fsm(
             self, copy_mock, get_volconn_mock, get_voltgt_mock,
             get_portgroups_mock, get_ports_mock,
