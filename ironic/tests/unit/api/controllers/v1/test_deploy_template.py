@@ -353,14 +353,15 @@ class TestPatch(BaseDeployTemplatesAPITest):
         mock_save.assert_called_once_with(mock.ANY)
         return response
 
-    def _test_update_bad_request(self, mock_save, patch, error_msg):
+    def _test_update_bad_request(self, mock_save, patch, error_msg=None):
         response = self.patch_json('/deploy_templates/%s' % self.template.uuid,
                                    patch, expect_errors=True,
                                    headers=self.headers)
         self.assertEqual('application/json', response.content_type)
         self.assertEqual(http_client.BAD_REQUEST, response.status_code)
         self.assertTrue(response.json['error_message'])
-        self.assertRegex(response.json['error_message'], error_msg)
+        if error_msg:
+            self.assertRegex(response.json['error_message'], error_msg)
         self.assertFalse(mock_save.called)
         return response
 
@@ -537,16 +538,14 @@ class TestPatch(BaseDeployTemplatesAPITest):
             'priority': 42
         }
         patch = [{'path': '/steps/1', 'op': 'replace', 'value': step}]
-        self._test_update_bad_request(
-            mock_save, patch, "list assignment index out of range|"
-                              "can't replace outside of list")
+        self._test_update_bad_request(mock_save, patch)
 
     def test_replace_empty_step_list_fail(self, mock_save):
         patch = [{'path': '/steps', 'op': 'replace', 'value': []}]
         self._test_update_bad_request(
             mock_save, patch, 'No deploy steps specified')
 
-    def _test_remove_not_allowed(self, mock_save, field, error_msg):
+    def _test_remove_not_allowed(self, mock_save, field, error_msg=None):
         patch = [{'path': '/%s' % field, 'op': 'remove'}]
         self._test_update_bad_request(mock_save, patch, error_msg)
 
@@ -566,8 +565,7 @@ class TestPatch(BaseDeployTemplatesAPITest):
             "'/steps' is a mandatory attribute and can not be removed")
 
     def test_remove_foo(self, mock_save):
-        self._test_remove_not_allowed(
-            mock_save, 'foo', "can't remove non-existent object 'foo'")
+        self._test_remove_not_allowed(mock_save, 'foo')
 
     def test_replace_step_invalid_interface(self, mock_save):
         patch = [{'path': '/steps/0/interface', 'op': 'replace',
@@ -632,14 +630,11 @@ class TestPatch(BaseDeployTemplatesAPITest):
 
     def test_remove_non_existent_property_fail(self, mock_save):
         patch = [{'path': '/non-existent', 'op': 'remove'}]
-        self._test_update_bad_request(
-            mock_save, patch,
-            "can't remove non-existent object 'non-existent'")
+        self._test_update_bad_request(mock_save, patch)
 
     def test_remove_non_existent_step_fail(self, mock_save):
         patch = [{'path': '/steps/1', 'op': 'remove'}]
-        self._test_update_bad_request(
-            mock_save, patch, "can't remove non-existent object '1'")
+        self._test_update_bad_request(mock_save, patch)
 
     def test_remove_only_step_fail(self, mock_save):
         patch = [{'path': '/steps/0', 'op': 'remove'}]
@@ -648,9 +643,7 @@ class TestPatch(BaseDeployTemplatesAPITest):
 
     def test_remove_non_existent_step_property_fail(self, mock_save):
         patch = [{'path': '/steps/0/non-existent', 'op': 'remove'}]
-        self._test_update_bad_request(
-            mock_save, patch,
-            "can't remove non-existent object 'non-existent'")
+        self._test_update_bad_request(mock_save, patch)
 
     def test_add_root_non_existent(self, mock_save):
         patch = [{'path': '/foo', 'value': 'bar', 'op': 'add'}]
@@ -665,8 +658,7 @@ class TestPatch(BaseDeployTemplatesAPITest):
             'priority': 42
         }
         patch = [{'path': '/steps/2', 'op': 'add', 'value': step}]
-        self._test_update_bad_request(
-            mock_save, patch, "can't insert outside of list")
+        self._test_update_bad_request(mock_save, patch)
 
     def test_add_multi(self, mock_save):
         steps = [
