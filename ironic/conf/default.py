@@ -17,6 +17,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import hashlib
 import os
 import socket
 import tempfile
@@ -183,6 +184,15 @@ hash_opts = [
                help=_('Time (in seconds) after which the hash ring is '
                       'considered outdated and is refreshed on the next '
                       'access.')),
+    cfg.StrOpt('hash_ring_algorithm',
+               default='md5',
+               advanced=True,
+               choices=hashlib.algorithms_guaranteed,
+               help=_('Hash function to use when building the hash ring. '
+                      'If running on a FIPS system, do not use md5. '
+                      'WARNING: all ironic services in a cluster MUST use '
+                      'the same algorithm at all times. Changing the '
+                      'algorithm requires an offline update.')),
 ]
 
 image_opts = [

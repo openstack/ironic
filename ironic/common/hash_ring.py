@@ -69,7 +69,8 @@ class HashRingManager(object):
 
         for driver_name, hosts in d2c.items():
             rings[driver_name] = hashring.HashRing(
-                hosts, partitions=2 ** CONF.hash_partition_exponent)
+                hosts, partitions=2 ** CONF.hash_partition_exponent,
+                hash_function=CONF.hash_ring_algorithm)
 
         return rings
 
