@@ -14,8 +14,6 @@
 #    under the License.
 
 import ast
-import hashlib
-import inspect
 
 from oslo_versionedobjects import fields as object_fields
 
@@ -57,10 +55,7 @@ class StringFieldThatAcceptsCallable(object_fields.StringField):
         default = self._default
         if (self._default != object_fields.UnspecifiedDefault
                 and callable(self._default)):
-            default = "%s-%s" % (
-                self._default.__name__,
-                hashlib.md5(inspect.getsource(
-                    self._default).encode()).hexdigest())
+            default = '<function %s>' % default.__name__
         return '%s(default=%s,nullable=%s)' % (self._type.__class__.__name__,
                                                default, self._nullable)
 
