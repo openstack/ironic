@@ -253,6 +253,10 @@ class TaskManager(object):
             self.fsm.initialize(start_state=self.node.provision_state,
                                 target_state=self.node.target_provision_state)
 
+    def load_driver(self):
+        if self.driver is None:
+            self.driver = driver_factory.build_driver_for_task(self)
+
     def _lock(self):
         self._debug_timer.restart()
 
