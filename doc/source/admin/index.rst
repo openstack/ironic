@@ -53,6 +53,7 @@ Advanced Topics
    Agent Token <agent-token>
    Deploying without BMC Credentials <agent-power>
    Layer 3 or DHCP-less Ramdisk Booting <dhcp-less>
+   Tuning Ironic <tuning>
 
 .. toctree::
   :hidden:
