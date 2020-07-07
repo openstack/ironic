@@ -29,6 +29,7 @@
         - ironic-tempest-ipa-partition-bios-agent_ipmitool-indirect
         - ironic-tempest-bfv
         - ironic-tempest-ipa-partition-uefi-pxe-grub2
+        - ironic-tempest-ipxe-ipv6
         - metalsmith-integration-glance-localboot-centos7
         # Non-voting jobs
         - ironic-tox-bandit:
@@ -44,8 +45,6 @@
         - bifrost-integration-tinyipa-ubuntu-bionic:
             voting: false
         - ironic-tempest-pxe_ipmitool-postgres:
-            voting: false
-        - ironic-tempest-ipxe-ipv6:
             voting: false
     gate:
       queue: ironic
@@ -67,6 +66,7 @@
         - ironic-tempest-ipa-partition-bios-agent_ipmitool-indirect
         - ironic-tempest-bfv
         - ironic-tempest-ipa-partition-uefi-pxe-grub2
+        - ironic-tempest-ipxe-ipv6
         - metalsmith-integration-glance-localboot-centos7
     experimental:
       jobs:
