@@ -361,8 +361,7 @@ def execute_step(task, step, step_type):
     if not result.get('command_status'):
         _raise(step_type, _(
             'Agent on node %(node)s returned bad command result: '
-            '%(result)s') % {'node': task.node.uuid,
-                             'result': result.get('command_error')})
+            '%(result)s') % {'node': task.node.uuid, 'result': result})
     return states.CLEANWAIT if step_type == 'clean' else states.DEPLOYWAIT
 
 
@@ -648,7 +647,7 @@ class HeartbeatMixin(object):
             # handler.
             fail_reason = (_('Agent returned bad result for command '
                              'finalize_rescue: %(result)s') %
-                           {'result': result.get('command_error')})
+                           {'result': agent_client.get_command_error(result)})
             raise exception.InstanceRescueFailure(node=node.uuid,
                                                   instance=node.instance_uuid,
                                                   reason=fail_reason)
@@ -1016,7 +1015,7 @@ class AgentDeployMixin(HeartbeatMixin):
             msg = (_('Agent returned error for %(type)s step %(step)s on node '
                      '%(node)s : %(err)s.') %
                    {'node': node.uuid,
-                    'err': command.get('command_error'),
+                    'err': agent_client.get_command_error(command),
                     'step': current_step,
                     'type': step_type})
             LOG.error(msg)
@@ -1283,7 +1282,7 @@ class AgentDeployMixin(HeartbeatMixin):
                     msg = (_("Failed to install a bootloader when "
                              "deploying node %(node)s. Error: %(error)s") %
                            {'node': node.uuid,
-                            'error': result['command_error']})
+                            'error': agent_client.get_command_error(result)})
                     log_and_raise_deployment_error(task, msg)
                 else:
                     # Its possible the install will fail if the IPA image
@@ -1291,7 +1290,7 @@ class AgentDeployMixin(HeartbeatMixin):
                     LOG.info('Could not install bootloader for whole disk '
                              'image for node %(node)s, Error: %(error)s"',
                              {'node': node.uuid,
-                              'error': result['command_error']})
+                              'error': agent_client.get_command_error(result)})
                     return
 
         try:

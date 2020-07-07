@@ -31,6 +31,7 @@ from ironic.conductor import utils as manager_utils
 from ironic.conf import CONF
 from ironic.drivers import base
 from ironic.drivers.modules import agent_base
+from ironic.drivers.modules import agent_client
 from ironic.drivers.modules import boot_mode_utils
 from ironic.drivers.modules import deploy_utils
 
@@ -283,7 +284,7 @@ class AgentDeployMixin(agent_base.AgentDeployMixin):
         # the prepare_image command is complete
         command = self._client.get_commands_status(node)[-1]
         if command['command_status'] == 'FAILED':
-            return command['command_error']
+            return agent_client.get_command_error(command)
 
     @METRICS.timer('AgentDeployMixin.reboot_to_instance')
     def reboot_to_instance(self, task):
