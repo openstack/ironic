@@ -371,8 +371,7 @@ def list_raid_settings(node):
         client = drac_common.get_drac_client(node)
         return client.list_raid_settings()
     except drac_exceptions.BaseClientException as exc:
-        LOG.error('DRAC driver failed to  list raid settings'
-                  'on %(raid_controller_fqdd)s '
+        LOG.error('DRAC driver failed to list raid settings '
                   'for node %(node_uuid)s. '
                   'Reason: %(error)s.',
                   {'node_uuid': node.uuid,
