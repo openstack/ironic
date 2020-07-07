@@ -218,7 +218,7 @@ class TestCommonFunctions(db_base.DbTestCase):
             free_port_like_objs = (
                 common._get_free_portgroups_and_ports(
                     task, self.vif_id, {}, {'port_uuid': self.port.uuid}))
-        self.assertItemsEqual(
+        self.assertCountEqual(
             [self.port.uuid],
             [p.uuid for p in free_port_like_objs])
 
@@ -231,7 +231,7 @@ class TestCommonFunctions(db_base.DbTestCase):
             free_port_like_objs = (
                 common._get_free_portgroups_and_ports(
                     task, self.vif_id, {}, {'portgroup_uuid': pg1.uuid}))
-        self.assertItemsEqual(
+        self.assertCountEqual(
             [pg1.uuid],
             [p.uuid for p in free_port_like_objs])
 
@@ -244,7 +244,7 @@ class TestCommonFunctions(db_base.DbTestCase):
             free_port_like_objs = (
                 common._get_free_portgroups_and_ports(
                     task, self.vif_id, {}, {'portgroup_uuid': pg2.uuid}))
-        self.assertItemsEqual(
+        self.assertCountEqual(
             [],
             [p.uuid for p in free_port_like_objs])
 
@@ -258,7 +258,7 @@ class TestCommonFunctions(db_base.DbTestCase):
                 common._get_free_portgroups_and_ports(
                     task, self.vif_id, {},
                     {'port_uuid': uuidutils.generate_uuid()}))
-        self.assertItemsEqual(
+        self.assertCountEqual(
             [],
             [p.uuid for p in free_port_like_objs])
 
