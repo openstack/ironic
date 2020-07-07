@@ -13,9 +13,6 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import hashlib
-import inspect
-
 from ironic.common import exception
 from ironic.objects import fields
 from ironic.tests import base as test_base
@@ -73,8 +70,6 @@ class TestStringFieldThatAcceptsCallable(test_base.TestCase):
         def test_default_function():
             return "default value"
 
-        self.test_default_function_hash = hashlib.md5(
-            inspect.getsource(test_default_function).encode()).hexdigest()
         self.field = fields.StringFieldThatAcceptsCallable(
             default=test_default_function)
 
@@ -102,8 +97,8 @@ class TestStringFieldThatAcceptsCallable(test_base.TestCase):
                          self.field.coerce('obj', 'attr', None))
 
     def test__repr__includes_default_function_name_and_source_hash(self):
-        expected = ('StringAcceptsCallable(default=test_default_function-%s,'
-                    'nullable=False)' % self.test_default_function_hash)
+        expected = ('StringAcceptsCallable(default=<function '
+                    'test_default_function>,nullable=False)')
         self.assertEqual(expected, repr(self.field))
 
 
