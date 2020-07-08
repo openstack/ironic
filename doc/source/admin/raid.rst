@@ -410,7 +410,17 @@ have its root file system on the first partition. Starting with Ussuri,
 the image can also have additional metadata to point Ironic to the
 partition with the root file system: for this, the image needs to set
 the ``rootfs_uuid`` property with the file system UUID of the root file
-system. The pre-Ussuri approach, i.e. to have the root file system on
+system. One way to extract this UUID from an existing image is to
+download the image, mount it as a loopback device, and use ``blkid``:
+
+.. code-block:: bash
+
+    $ sudo losetup -f
+    $ sudo losetup /dev/loop0 /tmp/myimage.raw
+    $ sudo kpartx -a /dev/loop0
+    $ blkid
+
+The pre-Ussuri approach, i.e. to have the root file system on
 the first partition, is kept as a fallback and hence allows software
 RAID deployments where Ironic does not have access to any image metadata
 (e.g. Ironic stand-alone).
