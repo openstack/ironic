@@ -105,18 +105,15 @@ class TestApiUtils(base.TestCase):
         # Raises a KeyError.
         doc = {}
         patch = [{"op": "remove", "path": "/foo"}]
-        self.assertRaisesRegex(exception.PatchError,
-                               "can't remove non-existent object 'foo'",
-                               utils.apply_jsonpatch, doc, patch)
+        self.assertRaises(exception.PatchError,
+                          utils.apply_jsonpatch, doc, patch)
 
     def test_apply_jsonpatch_replace_non_existent_list_item(self):
         # Raises an IndexError.
         doc = []
         patch = [{"op": "replace", "path": "/0", "value": 42}]
-        self.assertRaisesRegex(exception.PatchError,
-                               "can't replace outside of list|"
-                               "list assignment index out of range",
-                               utils.apply_jsonpatch, doc, patch)
+        self.assertRaises(exception.PatchError,
+                          utils.apply_jsonpatch, doc, patch)
 
     def test_get_patch_values_no_path(self):
         patch = [{'path': '/name', 'op': 'update', 'value': 'node-0'}]
