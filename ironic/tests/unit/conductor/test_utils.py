@@ -224,10 +224,12 @@ class NodePowerActionTestCase(db_base.DbTestCase):
     @mock.patch.object(fake.FakePower, 'get_power_state', autospec=True)
     def test_node_power_action_power_off(self, get_power_mock):
         """Test node_power_action to turn node power off."""
+        dii = {'agent_secret_token': 'token'}
         node = obj_utils.create_test_node(self.context,
                                           uuid=uuidutils.generate_uuid(),
                                           driver='fake-hardware',
-                                          power_state=states.POWER_ON)
+                                          power_state=states.POWER_ON,
+                                          driver_internal_info=dii)
         task = task_manager.TaskManager(self.context, node.uuid)
 
         get_power_mock.return_value = states.POWER_ON
@@ -239,6 +241,31 @@ class NodePowerActionTestCase(db_base.DbTestCase):
         self.assertEqual(states.POWER_OFF, node['power_state'])
         self.assertIsNone(node['target_power_state'])
         self.assertIsNone(node['last_error'])
+        self.assertNotIn('agent_secret_token', node['driver_internal_info'])
+
+    @mock.patch.object(fake.FakePower, 'get_power_state', autospec=True)
+    def test_node_power_action_power_off_pregenerated_token(self,
+                                                            get_power_mock):
+        dii = {'agent_secret_token': 'token',
+               'agent_secret_token_pregenerated': True}
+        node = obj_utils.create_test_node(self.context,
+                                          uuid=uuidutils.generate_uuid(),
+                                          driver='fake-hardware',
+                                          power_state=states.POWER_ON,
+                                          driver_internal_info=dii)
+        task = task_manager.TaskManager(self.context, node.uuid)
+
+        get_power_mock.return_value = states.POWER_ON
+
+        conductor_utils.node_power_action(task, states.POWER_OFF)
+
+        node.refresh()
+        get_power_mock.assert_called_once_with(mock.ANY, mock.ANY)
+        self.assertEqual(states.POWER_OFF, node['power_state'])
+        self.assertIsNone(node['target_power_state'])
+        self.assertIsNone(node['last_error'])
+        self.assertEqual('token',
+                         node['driver_internal_info']['agent_secret_token'])
 
     @mock.patch.object(fake.FakePower, 'reboot', autospec=True)
     @mock.patch.object(fake.FakePower, 'get_power_state', autospec=True)

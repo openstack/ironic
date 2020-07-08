@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    Removes stale agent tokens when rebooting nodes using API. This prevents
+    lookup failures for nodes that get rebooted between fast-track operations.
