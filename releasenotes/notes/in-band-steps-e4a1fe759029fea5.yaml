@@ -1,0 +1,23 @@
+---
+features:
+  - |
+    Adds support for running custom in-band deploy steps when provisioning.
+    Step priorities from 41 to 59 can be used for steps that run after
+    the image is written and the bootloader is installed.
+deprecations:
+  - |
+    Running the whole deployment process as a monolithic ``deploy.deploy``
+    deploy step is now deprecated. In a future release this step will only be
+    used to prepare deployment and starting the agent, and special handling
+    will be removed. All third party deploy interfaces must be updated
+    to provide real deploy steps instead and set the
+    ``has_decomposed_deploy_steps`` attribute to ``True`` on the deploy
+    interface level.
+other:
+  - |
+    As part of the agent deploy interfaces refactoring, breaking changes will
+    be made to implementations of ``AgentDeploy`` and ``ISCSIDeploy``.
+    Third party deploy interfaces must be updated to inherit
+    ``HeartbeatMixin``, ``AgentBaseMixin`` or ``AgentDeployMixin``
+    from ``ironic.drivers.modules.agent_base`` instead since their API is
+    considered more stable.

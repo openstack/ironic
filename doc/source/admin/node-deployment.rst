@@ -40,15 +40,35 @@ BIOS, and RAID interfaces.
 
 .. _node-deployment-core-steps:
 
-Core steps
-----------
+Agent steps
+-----------
 
-Certain default deploy steps are designated as 'core' deploy steps. The
-following deploy steps are core:
+All deploy interfaces based on ironic-python-agent (i.e. ``direct``, ``iscsi``
+and ``ansible`` and any derivatives) expose the following deploy steps:
 
-``deploy.deploy``
+``deploy.deploy`` (priority 100)
   In this step the node is booted using a provisioning image, and the user
-  image is written to the node's disk. It has a priority of 100.
+  image is written to the node's disk.
+``deploy.tear_down_agent`` (priority 40)
+  In this step the provisioning image is shut down.
+``deploy.switch_to_tenant_network`` (priority 30)
+  In this step networking for the node is switched from provisioning to
+  tenant networks.
+``deploy.boot_instance`` (priority 20)
+  In this step the node is booted into the user image.
+
+Accordingly, the following priority ranges can be used for custom deploy steps:
+
+> 100
+  Out-of-band steps to run before deployment.
+41 to 59
+  In-band steps to run after the image is written the bootloader is installed.
+21 to 39
+  Out-of-band steps to run after the provisioning image is shut down.
+1 to 19
+  Any steps that are run when the user instance is already running.
+
+.. note:: Priorities 60 to 99 are currently reserved and should not be used.
 
 Writing a Deploy Step
 ---------------------
