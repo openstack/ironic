@@ -44,9 +44,11 @@ class RPCService(service.Service):
         super(RPCService, self).start()
         admin_context = context.get_admin_context()
 
+        serializer = objects_base.IronicObjectSerializer(is_server=True)
+        # Perform preparatory actions before starting the RPC listener
+        self.manager.prepare_host()
         target = messaging.Target(topic=self.topic, server=self.host)
         endpoints = [self.manager]
-        serializer = objects_base.IronicObjectSerializer(is_server=True)
         self.rpcserver = rpc.get_server(target, endpoints, serializer)
         self.rpcserver.start()
 
