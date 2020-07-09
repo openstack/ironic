@@ -43,7 +43,7 @@ It remains available to the conductors, and is stored in memory of the
 With the token is available in memory in the agent, the token is embedded with
 ``heartbeat`` operations to the ironic API endpoint. This enables the API to
 authenticate the heartbeat request, and refuse "heartbeat" requests from the
-``ironic-python-agent``. With the ``Ussuri`` release, the confiuration option
+``ironic-python-agent``. With the ``Ussuri`` release, the configuration option
 ``[DEFAULT]require_agent_token`` can be set ``True`` to explicitly require
 token use.
 
