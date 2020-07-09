@@ -68,7 +68,34 @@ Accordingly, the following priority ranges can be used for custom deploy steps:
 1 to 19
   Any steps that are run when the user instance is already running.
 
-.. note:: Priorities 60 to 99 are currently reserved and should not be used.
+Direct deploy
+^^^^^^^^^^^^^
+
+The :ref:`direct-deploy` interface splits the ``deploy.deploy`` step into:
+
+
+``deploy.deploy`` (priority 100)
+  In this step the node is booted using a provisioning image.
+``deploy.write_image`` (priority 80)
+  A combination of an out-of-band and in-band step that downloads and writes
+  the image to the node. The step is executed asynchronously by the ramdisk.
+``deploy.prepare_instance_boot`` (priority 60)
+  In this step the boot device is configured and the bootloader is installed.
+
+Additional priority ranges can be used for custom deploy steps:
+
+81 to 99
+  In-band deploy steps to run before the image is written.
+61 to 79
+  In-band deploy steps to run after the image is written but before the
+  bootloader is installed.
+
+Other deploy interfaces
+^^^^^^^^^^^^^^^^^^^^^^^
+
+Priorities 60 to 99 are currently reserved and should not be used.
+
+.. TODO(dtantsur): update once iscsi and ansible are converted
 
 Writing a Deploy Step
 ---------------------

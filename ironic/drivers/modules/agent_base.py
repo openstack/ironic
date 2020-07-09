@@ -336,6 +336,13 @@ def get_steps(task, step_type, interface=None, override_priorities=None):
     return steps
 
 
+def find_step(task, step_type, interface, name):
+    """Find the given in-band step."""
+    steps = get_steps(task, step_type, interface)
+    return conductor_steps.find_step(
+        steps, {'interface': interface, 'step': name})
+
+
 def _raise(step_type, msg):
     assert step_type in ('clean', 'deploy')
     exc = (exception.NodeCleaningFailure if step_type == 'clean'
@@ -343,18 +350,20 @@ def _raise(step_type, msg):
     raise exc(msg)
 
 
-def execute_step(task, step, step_type):
+def execute_step(task, step, step_type, client=None):
     """Execute a clean or deploy step asynchronously on the agent.
 
     :param task: a TaskManager object containing the node
     :param step: a step dictionary to execute
     :param step_type: 'clean' or 'deploy'
+    :param client: agent client (if available)
     :raises: NodeCleaningFailure (clean step) or InstanceDeployFailure (deploy
         step) if the agent does not return a command status.
     :returns: states.CLEANWAIT/DEPLOYWAIT to signify the step will be
         completed async
     """
-    client = _get_client()
+    if client is None:
+        client = _get_client()
     ports = objects.Port.list_by_node_id(
         task.context, task.node.id)
     call = getattr(client, 'execute_%s_step' % step_type)
