@@ -1,0 +1,9 @@
+---
+fixes:
+  - |
+    Fixes an issue where ``ironic-conductor`` initialization could return a
+    ``NodeNotLocked`` error for requests requiring locks when the conductor
+    was starting. This was due to the conductor removing locks after
+    beginning accepting new work. The lock removal has been moved to after
+    the Database connectivity has been established but before the RPC bus
+    is initialized.

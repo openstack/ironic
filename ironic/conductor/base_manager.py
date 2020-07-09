@@ -78,6 +78,33 @@ class BaseConductorManager(object):
         self.sensors_notifier = rpc.get_sensors_notifier()
         self._started = False
         self._shutdown = None
+        self.dbapi = None
+
+    def prepare_host(self):
+        """Prepares host for initialization
+
+        Removes existing database entries involved with node locking for nodes
+        in a transitory power state and nodes that are presently locked by
+        the hostname of this conductor.
+
+        Under normal operation, this is also when the initial database
+        connectivity is established for the conductor's normal operation.
+        """
+        # NOTE(TheJulia) We need to clear locks early on in the process
+        # of starting where the database shows we still hold them.
+        # This must be done before we re-register our existence in the
+        # conductors table and begin accepting new requests via RPC as
+        # if we do not then we may squash our *new* locks from new work.
+
+        if not self.dbapi:
+            LOG.debug('Initializing database client for %s.', self.host)
+            self.dbapi = dbapi.get_instance()
+        LOG.debug('Removing stale locks from the database matching '
+                  'this conductor\'s hostname: %s', self.host)
+        # clear all target_power_state with locks by this conductor
+        self.dbapi.clear_node_target_power_state(self.host)
+        # clear all locks held by this conductor before registering
+        self.dbapi.clear_node_reservations_for_conductor(self.host)
 
     def init_host(self, admin_context=None):
         """Initialize the conductor host.
@@ -95,7 +122,8 @@ class BaseConductorManager(object):
                                  'conductor manager'))
         self._shutdown = False
 
-        self.dbapi = dbapi.get_instance()
+        if not self.dbapi:
+            self.dbapi = dbapi.get_instance()
 
         self._keepalive_evt = threading.Event()
         """Event for the keepalive thread."""
@@ -143,10 +171,6 @@ class BaseConductorManager(object):
 
         self._collect_periodic_tasks(admin_context)
 
-        # clear all target_power_state with locks by this conductor
-        self.dbapi.clear_node_target_power_state(self.host)
-        # clear all locks held by this conductor before registering
-        self.dbapi.clear_node_reservations_for_conductor(self.host)
         try:
             # Register this conductor with the cluster
             self.conductor = objects.Conductor.register(
