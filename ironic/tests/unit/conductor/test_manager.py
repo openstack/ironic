@@ -7185,9 +7185,10 @@ class DoNodeAdoptionTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
 
         mock_spawn.side_effect = self._fake_spawn
 
-        self.assertRaises(
-            exception.InvalidParameterValue, self.service.heartbeat,
+        exc = self.assertRaises(
+            messaging.rpc.ExpectedException, self.service.heartbeat,
             self.context, node.uuid, 'http://callback', agent_token=None)
+        self.assertEqual(exception.InvalidParameterValue, exc.exc_info[0])
         self.assertFalse(mock_heartbeat.called)
 
     @mock.patch('ironic.drivers.modules.fake.FakeDeploy.heartbeat',
@@ -7260,10 +7261,11 @@ class DoNodeAdoptionTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
 
         mock_spawn.side_effect = self._fake_spawn
 
-        self.assertRaises(exception.InvalidParameterValue,
-                          self.service.heartbeat, self.context,
-                          node.uuid, 'http://callback',
-                          agent_token='evil', agent_version='5.0.0b23')
+        exc = self.assertRaises(messaging.rpc.ExpectedException,
+                                self.service.heartbeat, self.context,
+                                node.uuid, 'http://callback',
+                                agent_token='evil', agent_version='5.0.0b23')
+        self.assertEqual(exception.InvalidParameterValue, exc.exc_info[0])
         self.assertFalse(mock_heartbeat.called)
 
     @mock.patch('ironic.drivers.modules.fake.FakeDeploy.heartbeat',
@@ -7287,10 +7289,11 @@ class DoNodeAdoptionTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         mock_spawn.side_effect = self._fake_spawn
         # Intentionally sending an older client in case something fishy
         # occurs.
-        self.assertRaises(exception.InvalidParameterValue,
-                          self.service.heartbeat, self.context,
-                          node.uuid, 'http://callback',
-                          agent_token='evil', agent_version='4.0.0')
+        exc = self.assertRaises(messaging.rpc.ExpectedException,
+                                self.service.heartbeat, self.context,
+                                node.uuid, 'http://callback',
+                                agent_token='evil', agent_version='4.0.0')
+        self.assertEqual(exception.InvalidParameterValue, exc.exc_info[0])
         self.assertFalse(mock_heartbeat.called)
 
     @mock.patch('ironic.drivers.modules.fake.FakeDeploy.heartbeat',
@@ -7312,10 +7315,11 @@ class DoNodeAdoptionTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
 
         mock_spawn.side_effect = self._fake_spawn
 
-        self.assertRaises(exception.InvalidParameterValue,
-                          self.service.heartbeat, self.context,
-                          node.uuid, 'http://callback',
-                          agent_token=None, agent_version='6.1.5')
+        exc = self.assertRaises(messaging.rpc.ExpectedException,
+                                self.service.heartbeat, self.context,
+                                node.uuid, 'http://callback',
+                                agent_token=None, agent_version='6.1.5')
+        self.assertEqual(exception.InvalidParameterValue, exc.exc_info[0])
         self.assertFalse(mock_heartbeat.called)
 
 

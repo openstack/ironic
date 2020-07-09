@@ -907,6 +907,7 @@ class ConductorAPI(object):
         :param topic: RPC topic. Defaults to self.topic.
         :param agent_token: randomly generated validation token.
         :param agent_version: the version of the agent that is heartbeating
+        :raises: InvalidParameterValue if an invalid agent token is received.
         """
         new_kws = {}
         version = '1.34'

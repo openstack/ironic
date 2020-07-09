@@ -3064,6 +3064,7 @@ class ConductorManager(base_manager.BaseConductorManager):
         return raid_iface.get_logical_disk_properties()
 
     @METRICS.timer('ConductorManager.heartbeat')
+    @messaging.expected_exceptions(exception.InvalidParameterValue)
     @messaging.expected_exceptions(exception.NoFreeConductorWorker)
     def heartbeat(self, context, node_id, callback_url, agent_version=None,
                   agent_token=None):
