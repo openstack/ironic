@@ -266,7 +266,7 @@ class TestService(test_base.TestCase):
                         'code': -32601,
                     })
 
-    def test_no_blacklisted_methods(self):
+    def test_no_deny_methods(self):
         for name in ('__init__', '_private', 'init_host', 'value'):
             body = self._request(name, {'context': self.ctx})
             self._check(body,

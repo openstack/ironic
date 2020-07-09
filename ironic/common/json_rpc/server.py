@@ -39,7 +39,7 @@ from ironic.common import json_rpc
 
 CONF = cfg.CONF
 LOG = log.getLogger(__name__)
-_BLACK_LIST = {'init_host', 'del_host', 'target', 'iter_nodes'}
+_DENY_LIST = {'init_host', 'del_host', 'target', 'iter_nodes'}
 
 
 def _build_method_map(manager):
@@ -50,7 +50,7 @@ def _build_method_map(manager):
     """
     result = {}
     for method in dir(manager):
-        if method.startswith('_') or method in _BLACK_LIST:
+        if method.startswith('_') or method in _DENY_LIST:
             continue
         func = getattr(manager, method)
         if not callable(func):
