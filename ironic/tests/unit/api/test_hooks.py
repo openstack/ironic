@@ -103,7 +103,7 @@ class TestNoExceptionTracebackHook(base.BaseApiTest):
 
     def setUp(self):
         super(TestNoExceptionTracebackHook, self).setUp()
-        p = mock.patch.object(root.Root, 'convert')
+        p = mock.patch.object(root, 'root')
         self.root_convert_mock = p.start()
         self.addCleanup(p.stop)
 

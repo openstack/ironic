@@ -17,53 +17,28 @@
 import pecan
 from pecan import rest
 
-from ironic.api.controllers import base
 from ironic.api.controllers import v1
 from ironic.api.controllers import version
-from ironic.api import expose
+from ironic.api import method
 
 
-class Root(base.Base):
-
-    name = str
-    """The name of the API"""
-
-    description = str
-    """Some information about this API"""
-
-    versions = [version.Version]
-    """Links to all the versions available in this API"""
-
-    default_version = version.Version
-    """A link to the default version of the API"""
-
-    @staticmethod
-    def convert():
-        root = Root()
-        root.name = "OpenStack Ironic API"
-        root.description = ("Ironic is an OpenStack project which aims to "
-                            "provision baremetal machines.")
-        root.default_version = version.default_version()
-        root.versions = [root.default_version]
-        return root
+def root():
+    return {
+        'name': "OpenStack Ironic API",
+        'description': ("Ironic is an OpenStack project which aims to "
+                        "provision baremetal machines."),
+        'default_version': version.default_version(),
+        'versions': version.all_versions()
+    }
 
 
 class RootController(rest.RestController):
 
-    _versions = [version.ID_VERSION1]
-    """All supported API versions"""
-
-    _default_version = version.ID_VERSION1
-    """The default API version"""
-
     v1 = v1.Controller()
 
-    @expose.expose(Root)
+    @method.expose()
     def get(self):
-        # NOTE: The reason why convert() it's being called for every
-        #       request is because we need to get the host url from
-        #       the request object to make the links.
-        return Root.convert()
+        return root()
 
     @pecan.expose()
     def _route(self, args, request=None):
@@ -73,6 +48,6 @@ class RootController(rest.RestController):
         if the version number is not specified in the url.
         """
 
-        if args[0] and args[0] not in self._versions:
-            args = [self._default_version] + args
+        if args[0] and args[0] != version.ID_VERSION1:
+            args = [version.ID_VERSION1] + args
         return super(RootController, self)._route(args, request)

@@ -113,7 +113,7 @@ class V1(base.Base):
     deploy_templates = None
     """Links to the deploy_templates resource"""
 
-    version = version.Version
+    version = None
     """Version discovery information."""
 
     events = None
