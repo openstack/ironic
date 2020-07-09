@@ -48,6 +48,8 @@ class RPCService(service.Service):
         admin_context = context.get_admin_context()
 
         serializer = objects_base.IronicObjectSerializer(is_server=True)
+        # Perform preparatory actions before starting the RPC listener
+        self.manager.prepare_host()
         if CONF.rpc_transport == 'json-rpc':
             self.rpcserver = json_rpc.WSGIService(self.manager,
                                                   serializer)
