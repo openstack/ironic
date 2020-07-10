@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    When Ironic is doing IPMI retries the configured ``min_command_interval``
+    should be used instead of a default value of ``1``, which may be too short
+    for some BMCs. 

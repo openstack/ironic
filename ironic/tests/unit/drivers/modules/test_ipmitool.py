@@ -1054,7 +1054,7 @@ class IPMIToolPrivateMethodTestCase(
             '-U', self.info['username'],
             '-v',
             '-R', '1',
-            '-N', '1',
+            '-N', '5',
             '-f', awesome_password_filename,
             'A', 'B', 'C',
         ]
