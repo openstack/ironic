@@ -177,7 +177,7 @@ to a remote boot from volume target, so that also must be ensured by
 the user in advance.
 
 Records of volume targets are removed upon the node being undeployed,
-and as such are not presistent across deployments.
+and as such are not persistent across deployments.
 
 Cinder Multi-attach
 -------------------
