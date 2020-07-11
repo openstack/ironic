@@ -16,7 +16,7 @@
 
 """Base classes for our unit tests.
 
-Allows overriding of config for use of fakes, and some black magic for
+Allows overriding of config for use of fakes, and some magic for
 inline callbacks.
 
 """
