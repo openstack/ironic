@@ -311,6 +311,7 @@ def agent_add_clean_params(task):
     secure_erase = CONF.deploy.enable_ata_secure_erase
     info['agent_enable_ata_secure_erase'] = secure_erase
     info['disk_erasure_concurrency'] = CONF.deploy.disk_erasure_concurrency
+    info['agent_erase_skip_read_only'] = CONF.deploy.erase_skip_read_only
 
     task.node.driver_internal_info = info
     task.node.save()

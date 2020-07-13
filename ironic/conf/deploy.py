@@ -147,6 +147,17 @@ opts = [
                       'Test" and typical ramdisk start-up. This value should '
                       'not exceed the [api]ramdisk_heartbeat_timeout '
                       'setting.')),
+    cfg.BoolOpt('erase_skip_read_only',
+                default=False,
+                mutable=True,
+                help=_('If the ironic-python-agent should skip read-only '
+                       'devices when running the "erase_devices" clean step '
+                       'where block devices are zeroed out. This requires '
+                       'ironic-python-agent 6.0.0 or greater. By default '
+                       'a read-only device will cause non-metadata based '
+                       'cleaning operations to fail due to the possible '
+                       'operational security risk of data being retained '
+                       'between deployments of the bare metal node.')),
 ]
 
 

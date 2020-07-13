@@ -1,0 +1,12 @@
+---
+features:
+  - |
+    Adds the capability for an operator to set a configuration setting which
+    tells the ironic-python-agent it is okay to skip read-only block devices
+    when performing an ``erase_devices`` cleaning operation. This requires
+    ironic-python-agent version 6.0.0 or greater and can be set using the
+    ``[deploy]erase_skip_read_only`` configuration option.
+other:
+  - |
+    Starting in ironic-python-agent 6.0.0, metadata erasure of read-only
+    devices is skipped by default.
