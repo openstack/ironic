@@ -16,10 +16,11 @@
 Test class for iLO Drivers
 """
 
+from oslo_utils import uuidutils
+
 from ironic.conductor import task_manager
 from ironic.drivers import ilo
 from ironic.drivers.modules import agent
-from ironic.drivers.modules.ilo import management
 from ironic.drivers.modules.ilo import raid
 from ironic.drivers.modules import inspector
 from ironic.drivers.modules import iscsi_deploy
@@ -187,16 +188,6 @@ class Ilo5HardwareTestCase(db_base.DbTestCase):
     def test_default_interfaces(self):
         node = obj_utils.create_test_node(self.context, driver='ilo5')
         with task_manager.acquire(self.context, node.id) as task:
-            self.assertIsInstance(task.driver.raid, raid.Ilo5RAID)
-            self.assertIsInstance(task.driver.management,
-                                  management.Ilo5Management)
-
-    def test_override_with_no_raid(self):
-        self.config(enabled_raid_interfaces=['no-raid', 'ilo5'])
-        node = obj_utils.create_test_node(self.context, driver='ilo5',
-                                          raid_interface='no-raid')
-        with task_manager.acquire(self.context, node.id) as task:
-            self.assertIsInstance(task.driver.raid, noop.NoRAID)
             self.assertIsInstance(task.driver.boot,
                                   ilo.boot.IloVirtualMediaBoot)
             self.assertIsInstance(task.driver.console,
@@ -209,7 +200,19 @@ class Ilo5HardwareTestCase(db_base.DbTestCase):
                                   ilo.management.IloManagement)
             self.assertIsInstance(task.driver.power,
                                   ilo.power.IloPower)
+            self.assertIsInstance(task.driver.raid, raid.Ilo5RAID)
             self.assertIsInstance(task.driver.rescue,
                                   noop.NoRescue)
             self.assertIsInstance(task.driver.vendor,
                                   ilo.vendor.VendorPassthru)
+
+    def test_override_raid(self):
+        self.config(enabled_raid_interfaces=['agent', 'no-raid', 'ilo5'])
+        for iface, impl in [('agent', agent.AgentRAID),
+                            ('no-raid', noop.NoRAID)]:
+            node = obj_utils.create_test_node(self.context,
+                                              uuid=uuidutils.generate_uuid(),
+                                              driver='ilo5',
+                                              raid_interface=iface)
+            with task_manager.acquire(self.context, node.id) as task:
+                self.assertIsInstance(task.driver.raid, impl)
