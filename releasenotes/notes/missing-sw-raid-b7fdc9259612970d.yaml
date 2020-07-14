@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    Fixes missing ``agent`` RAID compatibility for the ``ilo5`` and ``idrac``
+    hardware type preventing software RAID for working with them.
