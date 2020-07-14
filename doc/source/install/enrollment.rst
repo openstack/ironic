@@ -250,6 +250,13 @@ and may be combined if desired.
 
     $ openstack baremetal port create $MAC_ADDRESS --node $NODE_UUID
 
+   .. note::
+      When it is time to remove the node from the Bare Metal service, the
+      command used to remove the port is ``openstack baremetal port delete
+      <port uuid>``. When doing so, it is important to ensure that the
+      baremetal node is not in ``maintenance`` as guarding logic to prevent
+      orphaning Neutron Virtual Interfaces (VIFs) will be overriden.
+
 .. _enrollment-scheduling:
 
 Adding scheduling information
