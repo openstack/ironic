@@ -4,7 +4,7 @@
 # python projects they should package as optional dependencies for Ironic.
 
 # These are available on pypi
-proliantutils>=2.9.1
+proliantutils>=2.9.5
 pysnmp>=4.3.0,<5.0.0
 python-scciclient>=0.8.0
 python-dracclient>=3.1.0,<5.0.0
