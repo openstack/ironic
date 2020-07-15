@@ -765,8 +765,8 @@
 
 # Used by devstack/ironic/nova/neutron
 - job:
-    name: ironic-tempest-ipa-wholedisk-bios-agent_ipmitool-tinyipa
-    description: ironic-tempest-ipa-wholedisk-bios-agent_ipmitool-tinyipa that also tests cleaning.
+    name: ironic-tempest-bios-ipmi-direct-tinyipa
+    description: ironic-tempest-wholedisk-bios-ipmi-direct-tinyipa that also tests cleaning.
     parent: ironic-base
     timeout: 5400
     vars:
@@ -786,6 +786,11 @@
         s-container: True
         s-object: True
         s-proxy: True
+
+- job:
+    name: ironic-tempest-ipa-wholedisk-bios-agent_ipmitool-tinyipa
+    description: Alias for ironic-tempest-wholedisk-bios-ipmi-direct-tinyipa
+    parent: ironic-tempest-bios-ipmi-direct-tinyipa
 
 - job:
     name: ironic-grenade
