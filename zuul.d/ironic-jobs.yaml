@@ -65,18 +65,12 @@
         '{{ devstack_base_dir }}/ironic-bm-logs': 'logs'
         '{{ devstack_base_dir }}/data/networking-generic-switch/netmiko_session.log': 'logs'
       devstack_services:
-        q-agt: false
-        q-dhcp: false
-        q-l3: false
-        q-meta: false
-        q-metering: false
-        q-svc: false
-        neutron-api: true
-        neutron-agent: true
-        neutron-dhcp: true
-        neutron-l3: true
-        neutron-metadata-agent: true
-        neutron-metering: true
+        q-agt: true
+        q-dhcp: true
+        q-l3: true
+        q-meta: true
+        q-metering: true
+        q-svc: true
 
         c-api: False
         c-bak: False
@@ -449,12 +443,6 @@
         q-meta: False
         q-metering: False
         q-svc: False
-        neutron-api: False
-        neutron-agent: False
-        neutron-dhcp: False
-        neutron-l3: False
-        neutron-metadata-agent: False
-        neutron-metering: False
 
 - job:
     name: ironic-tempest-ipa-wholedisk-direct-tinyipa-multinode
@@ -703,19 +691,12 @@
       devstack_services:
         # NOTE(TheJulia): It seems our devstack plugin does not play well
         # with multitenancy and the newer neutron service names.
-        neutron: True
-        neutron-api: True
-        neutron-agent: True
-        neutron-dhcp: True
-        neutron-l3: True
-        neutron-metadata-agent: False
-        neutron-metering: False
-        q-agt: False
-        q-dhcp: False
-        q-l3: False
+        q-agt: True
+        q-dhcp: True
+        q-l3: True
         q-meta: False
         q-metering: False
-        q-svc: False
+        q-svc: True
         swift: True
       devstack_plugins:
         ironic: https://opendev.org/openstack/ironic
@@ -734,8 +715,8 @@
         IRONIC_IPXE_ENABLED: True
         IRONIC_PROVISION_NETWORK_NAME: ironic-provision
         OVS_PHYSICAL_BRIDGE: brbm
-        NEUTRON_PHYSICAL_NETWORK: mynetwork
-        NEUTRON_TENANT_VLAN_RANGE: 100:150
+        PHYSICAL_NETWORK: mynetwork
+        TENANT_VLAN_RANGE: 100:150
         IRONIC_ENABLED_NETWORK_INTERFACES: flat,neutron
         IRONIC_NETWORK_INTERFACE: neutron
         IRONIC_DEFAILT_DEPLOY_INTERFACE: direct
@@ -749,7 +730,6 @@
         Q_PLUGIN: ml2
         ENABLE_TENANT_VLANS: True
         Q_ML2_TENANT_NETWORK_TYPE: vlan
-        NEUTRON_TENANT_NETWORK_TYPE: vlan
         OVS_BRIDGE_MAPPINGS: "public:br-ex,mynetwork:brbm"
         USE_PROVIDER_NETWORKING: True
         PUBLIC_PHYSICAL_NETWORK: public
