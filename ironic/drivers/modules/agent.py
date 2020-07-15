@@ -622,6 +622,18 @@ class AgentRAID(base.RAIDInterface):
         """Return the properties of the interface."""
         return {}
 
+    @METRICS.timer('AgentRAID.get_deploy_steps')
+    def get_deploy_steps(self, task):
+        """Get the list of deploy steps from the agent.
+
+        :param task: a TaskManager object containing the node
+        :raises InstanceDeployFailure: if the deploy steps are not yet
+            available (cached), for example, when a node has just been
+            enrolled and has not been deployed yet.
+        :returns: A list of deploy step dictionaries
+        """
+        return agent_base.get_steps(task, 'deploy', interface='raid')
+
     @METRICS.timer('AgentRAID.create_configuration')
     @base.clean_step(priority=0)
     def create_configuration(self, task,

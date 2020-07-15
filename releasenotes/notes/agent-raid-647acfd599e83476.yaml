@@ -1,0 +1,5 @@
+---
+features:
+  - |
+    The ``agent`` RAID interface now supports building RAID as a deploy step
+    ``apply_configuration``.

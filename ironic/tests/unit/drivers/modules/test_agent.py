@@ -1649,6 +1649,18 @@ class AgentRAIDTestCase(db_base.DbTestCase):
         self.assertEqual(0, ret[0]['priority'])
         self.assertEqual(0, ret[1]['priority'])
 
+    @mock.patch.object(agent_base, 'get_steps', autospec=True)
+    def test_get_deploy_steps(self, get_steps_mock):
+        get_steps_mock.return_value = [
+            {'step': 'apply_configuration', 'interface': 'raid',
+             'priority': 0},
+        ]
+
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            ret = task.driver.raid.get_deploy_steps(task)
+
+        self.assertEqual('apply_configuration', ret[0]['step'])
+
     @mock.patch.object(raid, 'filter_target_raid_config', autospec=True)
     @mock.patch.object(agent_base, 'execute_step', autospec=True)
     def test_create_configuration(self, execute_mock,
