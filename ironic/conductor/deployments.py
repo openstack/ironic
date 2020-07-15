@@ -98,7 +98,7 @@ def start_deploy(task, manager, configdrive=None, event='deploy'):
         task.driver.power.validate(task)
         task.driver.deploy.validate(task)
         utils.validate_instance_info_traits(task.node)
-        conductor_steps.validate_deploy_templates(task)
+        conductor_steps.validate_deploy_templates(task, skip_missing=True)
     except exception.InvalidParameterValue as e:
         raise exception.InstanceDeployFailure(
             _("Failed to validate deploy or power info for node "
