@@ -410,7 +410,7 @@ class VIFPortIDMixin(object):
                 or self._get_vif_id_by_port_like_obj(p_obj) or None)
 
     def get_node_network_data(self, task):
-        """Return network configuration for node NICs.
+        """Get network configuration data for node's ports/portgroups.
 
         Gather L2 and L3 network settings from ironic node `network_data`
         field. Ironic would eventually pass network configuration to the node
@@ -633,3 +633,51 @@ class NeutronVIFPortIDMixin(VIFPortIDMixin):
         # DELETING state.
         if task.node.provision_state in [states.ACTIVE, states.DELETING]:
             neutron.unbind_neutron_port(vif_id, context=task.context)
+
+    def get_node_network_data(self, task):
+        """Get network configuration data for node ports.
+
+        Pull network data from ironic node object if present, otherwise
+        collect it for Neutron VIFs.
+
+        :param task: A TaskManager instance.
+        :raises: InvalidParameterValue, if the network interface configuration
+            is invalid.
+        :raises: MissingParameterValue, if some parameters are missing.
+        :returns: a dict holding network configuration information adhearing
+            Nova network metadata layout (`network_data.json`).
+        """
+        # NOTE(etingof): static network data takes precedence
+        network_data = (
+            super(NeutronVIFPortIDMixin, self).get_node_network_data(task))
+        if network_data:
+            return network_data
+
+        node = task.node
+
+        LOG.debug('Gathering network data from ports of node '
+                  '%(node)s', {'node': node.uuid})
+
+        network_data = collections.defaultdict(list)
+
+        for port_obj in task.ports:
+            vif_port_id = self.get_current_vif(task, port_obj)
+
+            LOG.debug('Considering node %(node)s port %(port)s, VIF %(vif)s',
+                      {'node': node.uuid, 'port': port_obj.uuid,
+                       'vif': vif_port_id})
+
+            if not vif_port_id:
+                continue
+
+            port_network_data = neutron.get_neutron_port_data(
+                port_obj.uuid, vif_port_id, context=task.context)
+
+            for field, field_data in port_network_data.items():
+                if field_data:
+                    network_data[field].extend(field_data)
+
+        LOG.debug('Collected network data for node %(node)s: %(data)s',
+                  {'node': node.uuid, 'data': network_data})
+
+        return network_data

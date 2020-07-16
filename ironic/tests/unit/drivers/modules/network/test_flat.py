@@ -339,7 +339,10 @@ class TestFlatInterface(db_base.DbTestCase):
             self.assertRaises(exception.UnsupportedDriverExtension,
                               self.interface.validate_inspection, task)
 
-    def test_get_node_network_data(self):
+    @mock.patch.object(neutron, 'get_neutron_port_data', autospec=True)
+    def test_get_node_network_data(self, mock_gnpd):
+        mock_gnpd.return_value = {}
+
         with task_manager.acquire(self.context, self.node.id) as task:
             network_data = self.interface.get_node_network_data(task)
 
