@@ -3609,6 +3609,15 @@ class DestroyNodeTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         self.service.destroy_node(self.context, node.uuid)
         self.assertFalse(mock_power.called)
 
+    def test_destroy_node_broken_driver(self):
+        node = obj_utils.create_test_node(self.context,
+                                          power_interface='broken')
+        self._start_service()
+        self.service.destroy_node(self.context, node.uuid)
+        self.assertRaises(exception.NodeNotFound,
+                          self.dbapi.get_node_by_uuid,
+                          node.uuid)
+
 
 @mgr_utils.mock_record_keepalive
 class CreatePortTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):

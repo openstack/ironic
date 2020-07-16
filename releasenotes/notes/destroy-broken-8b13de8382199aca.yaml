@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    Allows deleting nodes with a broken driver unless they require stopping
+    serial console.
