@@ -486,10 +486,7 @@ def _exec_ipmitool(driver_info, command, check_exit_code=None,
             args.append('1')
 
         args.append('-N')
-        if CONF.ipmi.use_ipmitool_retries:
-            args.append(str(CONF.ipmi.min_command_interval))
-        else:
-            args.append('1')
+        args.append(str(CONF.ipmi.min_command_interval))
 
     extra_args = {}
 
