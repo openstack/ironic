@@ -40,7 +40,8 @@ class TestNotificationUtils(db_base.DbTestCase):
                                         'upgrade_lock', 'shared'])
         self.task.node = self.node
 
-    @mock.patch.object(notif_utils, '_emit_conductor_node_notification')
+    @mock.patch.object(notif_utils, '_emit_conductor_node_notification',
+                       autospec=True)
     def test_emit_power_state_corrected_notification(self, mock_cond_emit):
         notif_utils.emit_power_state_corrected_notification(
             self.task, states.POWER_ON)
@@ -54,7 +55,8 @@ class TestNotificationUtils(db_base.DbTestCase):
             from_power=states.POWER_ON
         )
 
-    @mock.patch.object(notif_utils, '_emit_conductor_node_notification')
+    @mock.patch.object(notif_utils, '_emit_conductor_node_notification',
+                       autospec=True)
     def test_emit_power_set_notification(self, mock_cond_emit):
         notif_utils.emit_power_set_notification(
             self.task,
@@ -71,7 +73,8 @@ class TestNotificationUtils(db_base.DbTestCase):
             to_power=states.POWER_ON
         )
 
-    @mock.patch.object(notif_utils, '_emit_conductor_node_notification')
+    @mock.patch.object(notif_utils, '_emit_conductor_node_notification',
+                       autospec=True)
     def test_emit_console_notification(self, mock_cond_emit):
         notif_utils.emit_console_notification(
             self.task, 'console_set', fields.NotificationStatus.END)
@@ -84,7 +87,8 @@ class TestNotificationUtils(db_base.DbTestCase):
             fields.NotificationStatus.END,
         )
 
-    @mock.patch.object(notif_utils, '_emit_conductor_node_notification')
+    @mock.patch.object(notif_utils, '_emit_conductor_node_notification',
+                       autospec=True)
     def test_emit_console_notification_error_status(self, mock_cond_emit):
         notif_utils.emit_console_notification(
             self.task, 'console_set', fields.NotificationStatus.ERROR)
@@ -97,7 +101,7 @@ class TestNotificationUtils(db_base.DbTestCase):
             fields.NotificationStatus.ERROR,
         )
 
-    @mock.patch.object(notification, 'mask_secrets')
+    @mock.patch.object(notification, 'mask_secrets', autospec=True)
     def test__emit_conductor_node_notification(self, mock_secrets):
         mock_notify_method = mock.Mock()
         # Required for exception handling
@@ -152,7 +156,7 @@ class TestNotificationUtils(db_base.DbTestCase):
 
         self.assertFalse(mock_notify_method.called)
 
-    @mock.patch.object(notification, 'mask_secrets')
+    @mock.patch.object(notification, 'mask_secrets', autospec=True)
     def test__emit_conductor_node_notification_known_notify_exc(self,
                                                                 mock_secrets):
         """Test exception caught for a known notification exception."""
@@ -179,7 +183,8 @@ class TestNotificationUtils(db_base.DbTestCase):
 
 
 class ProvisionNotifyTestCase(tests_base.TestCase):
-    @mock.patch('ironic.objects.node.NodeSetProvisionStateNotification')
+    @mock.patch('ironic.objects.node.NodeSetProvisionStateNotification',
+                autospec=True)
     def test_emit_notification(self, provision_mock):
         provision_mock.__name__ = 'NodeSetProvisionStateNotification'
         self.config(host='fake-host')
