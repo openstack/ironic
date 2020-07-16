@@ -30,13 +30,13 @@ class TestOsprofilerWsgiMiddleware(base.BaseApiTest):
     def setUp(self):
         super(TestOsprofilerWsgiMiddleware, self).setUp()
 
-    @mock.patch.object(web, 'WsgiMiddleware')
+    @mock.patch.object(web, 'WsgiMiddleware', autospec=True)
     def test_enable_osp_wsgi_request(self, mock_ospmiddleware):
         CONF.profiler.enabled = True
         self._make_app()
         mock_ospmiddleware.assert_called_once_with(mock.ANY)
 
-    @mock.patch.object(web, 'WsgiMiddleware')
+    @mock.patch.object(web, 'WsgiMiddleware', autospec=True)
     def test_disable_osp_wsgi_request(self, mock_ospmiddleware):
         CONF.profiler.enabled = False
         self._make_app()

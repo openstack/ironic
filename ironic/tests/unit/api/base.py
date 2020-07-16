@@ -60,7 +60,8 @@ class BaseApiTest(db_base.DbTestCase):
 
         self.addCleanup(reset_pecan)
 
-        p = mock.patch('ironic.api.controllers.v1.Controller._check_version')
+        p = mock.patch('ironic.api.controllers.v1.Controller._check_version',
+                       autospec=True)
         self._check_version = p.start()
         self.addCleanup(p.stop)
 

@@ -27,13 +27,13 @@ CONF = cfg.CONF
 class TestHealthcheckMiddleware(base.BaseApiTest):
     """Provide a basic smoke test to ensure healthcheck middleware works."""
 
-    @mock.patch.object(healthcheck, 'Healthcheck')
+    @mock.patch.object(healthcheck, 'Healthcheck', autospec=True)
     def test_enable(self, mock_healthcheck):
         CONF.set_override('enabled', True, group='healthcheck')
         self._make_app()
         mock_healthcheck.assert_called_once_with(mock.ANY, CONF)
 
-    @mock.patch.object(healthcheck, 'Healthcheck')
+    @mock.patch.object(healthcheck, 'Healthcheck', autospec=True)
     def test_disable(self, mock_healthcheck):
         CONF.set_override('enabled', False, group='healthcheck')
         self._make_app()

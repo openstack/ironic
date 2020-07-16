@@ -103,7 +103,7 @@ class TestNoExceptionTracebackHook(base.BaseApiTest):
 
     def setUp(self):
         super(TestNoExceptionTracebackHook, self).setUp()
-        p = mock.patch.object(root, 'root')
+        p = mock.patch.object(root, 'root', autospec=True)
         self.root_convert_mock = p.start()
         self.addCleanup(p.stop)
 
@@ -204,8 +204,8 @@ class TestNoExceptionTracebackHook(base.BaseApiTest):
 
 class TestContextHook(base.BaseApiTest):
 
-    @mock.patch.object(context, 'RequestContext')
-    @mock.patch.object(policy, 'check')
+    @mock.patch.object(context, 'RequestContext', autospec=True)
+    @mock.patch.object(policy, 'check', autospec=True)
     def _test_context_hook(self, mock_policy, mock_ctx, is_admin=False,
                            is_public_api=False, auth_strategy='keystone',
                            request_id=None):
@@ -260,8 +260,8 @@ class TestContextHook(base.BaseApiTest):
 class TestPolicyDeprecation(tests_base.TestCase):
 
     @mock.patch.object(hooks, 'CHECKED_DEPRECATED_POLICY_ARGS', False)
-    @mock.patch.object(hooks.LOG, 'warning')
-    @mock.patch.object(policy, 'get_enforcer')
+    @mock.patch.object(hooks.LOG, 'warning', autospec=True)
+    @mock.patch.object(policy, 'get_enforcer', autospec=True)
     def test_policy_deprecation_check(self, enforcer_mock, warning_mock):
         rules = {'is_member': 'project_name:demo or tenant:baremetal',
                  'is_default_project_domain': 'project_domain_id:default'}

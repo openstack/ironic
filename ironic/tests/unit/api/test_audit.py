@@ -33,7 +33,7 @@ class TestAuditMiddleware(base.BaseApiTest):
     the test suite in keystone audit_middleware.
     """
 
-    @mock.patch.object(audit, 'AuditMiddleware')
+    @mock.patch.object(audit, 'AuditMiddleware', autospec=True)
     def test_enable_audit_request(self, mock_audit):
         CONF.audit.enabled = True
         self._make_app()
@@ -42,7 +42,7 @@ class TestAuditMiddleware(base.BaseApiTest):
             audit_map_file=CONF.audit.audit_map_file,
             ignore_req_list=CONF.audit.ignore_req_list)
 
-    @mock.patch.object(audit, 'AuditMiddleware')
+    @mock.patch.object(audit, 'AuditMiddleware', autospec=True)
     def test_enable_audit_request_error(self, mock_audit):
         CONF.audit.enabled = True
         mock_audit.side_effect = IOError("file access error")
@@ -50,7 +50,7 @@ class TestAuditMiddleware(base.BaseApiTest):
         self.assertRaises(exception.InputFileError,
                           self._make_app)
 
-    @mock.patch.object(audit, 'AuditMiddleware')
+    @mock.patch.object(audit, 'AuditMiddleware', autospec=True)
     def test_disable_audit_request(self, mock_audit):
         CONF.audit.enabled = False
         self._make_app()
