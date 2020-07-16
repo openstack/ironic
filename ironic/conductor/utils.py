@@ -284,6 +284,13 @@ def node_power_action(task, new_state, timeout=None):
         driver_internal_info = node.driver_internal_info
         driver_internal_info['last_power_state_change'] = str(
             timeutils.utcnow().isoformat())
+        # NOTE(dtantsur): wipe token on shutting down, otherwise a reboot in
+        # fast-track (or an accidentally booted agent) will cause subsequent
+        # actions to fail.
+        if target_state in (states.POWER_OFF, states.SOFT_POWER_OFF,
+                            states.REBOOT, states.SOFT_REBOOT):
+            if not is_agent_token_pregenerated(node):
+                driver_internal_info.pop('agent_secret_token', False)
         node.driver_internal_info = driver_internal_info
         node.save()
 
