@@ -441,10 +441,6 @@ class Node(base.IronicObject, object_base.VersionedObjectDictCompat):
 
         updates = self.do_version_changes_for_db()
         self._validate_property_values(updates.get('properties'))
-        if 'driver' in updates and 'driver_internal_info' not in updates:
-            # Clean driver_internal_info when changes driver
-            self.driver_internal_info = {}
-            updates = self.do_version_changes_for_db()
         self._validate_and_remove_traits(updates)
         self._validate_and_format_conductor_group(updates)
         db_node = self.dbapi.update_node(self.uuid, updates)

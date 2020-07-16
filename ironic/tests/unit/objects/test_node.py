@@ -171,7 +171,6 @@ class TestNodeObject(db_base.DbTestCase, obj_utils.SchemasTestMixIn):
                 mock_update_node.assert_called_once_with(
                     uuid, {'properties': {"fake": "property"},
                            'driver': 'fake-driver',
-                           'driver_internal_info': {},
                            'version': objects.Node.VERSION})
                 self.assertEqual(self.context, n._context)
                 res_updated_at = (n.updated_at).replace(tzinfo=None)
@@ -221,7 +220,6 @@ class TestNodeObject(db_base.DbTestCase, obj_utils.SchemasTestMixIn):
                     {
                         'properties': {'fake': 'property'},
                         'driver': 'fake-driver',
-                        'driver_internal_info': {},
                         'version': objects.Node.VERSION,
                         'maintenance_reason':
                             maintenance_reason[
