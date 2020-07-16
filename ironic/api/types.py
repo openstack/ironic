@@ -280,7 +280,7 @@ Unset = UnsetType()
 
 
 def validate_value(datatype, value):
-    if value in (Unset, None):
+    if value in (Unset, None) or datatype is None:
         return value
 
     # Try to promote the data type to one of our complex types.

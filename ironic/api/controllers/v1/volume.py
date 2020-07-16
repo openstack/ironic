@@ -24,7 +24,6 @@ from ironic.api.controllers.v1 import utils as api_utils
 from ironic.api.controllers.v1 import volume_connector
 from ironic.api.controllers.v1 import volume_target
 from ironic.api import expose
-from ironic.api import types as atypes
 from ironic.common import exception
 from ironic.common import policy
 
@@ -36,13 +35,13 @@ class Volume(base.APIBase):
     targets controllers.
     """
 
-    links = atypes.wsattr([link.Link], readonly=True)
+    links = None
     """A list containing a self link and associated volume links"""
 
-    connectors = atypes.wsattr([link.Link], readonly=True)
+    connectors = None
     """Links to the volume connectors resource"""
 
-    targets = atypes.wsattr([link.Link], readonly=True)
+    targets = None
     """Links to the volume targets resource"""
 
     @staticmethod
@@ -57,19 +56,19 @@ class Volume(base.APIBase):
             args = ''
 
         volume.links = [
-            link.Link.make_link('self', url, resource, args),
-            link.Link.make_link('bookmark', url, resource, args,
-                                bookmark=True)]
+            link.make_link('self', url, resource, args),
+            link.make_link('bookmark', url, resource, args,
+                           bookmark=True)]
 
         volume.connectors = [
-            link.Link.make_link('self', url, resource, args + 'connectors'),
-            link.Link.make_link('bookmark', url, resource, args + 'connectors',
-                                bookmark=True)]
+            link.make_link('self', url, resource, args + 'connectors'),
+            link.make_link('bookmark', url, resource, args + 'connectors',
+                           bookmark=True)]
 
         volume.targets = [
-            link.Link.make_link('self', url, resource, args + 'targets'),
-            link.Link.make_link('bookmark', url, resource, args + 'targets',
-                                bookmark=True)]
+            link.make_link('self', url, resource, args + 'targets'),
+            link.make_link('bookmark', url, resource, args + 'targets',
+                           bookmark=True)]
 
         return volume
 

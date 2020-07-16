@@ -96,10 +96,10 @@ class Driver(base.Base):
     type = str
     """Whether the driver is classic or dynamic (hardware type)"""
 
-    links = atypes.wsattr([link.Link], readonly=True)
+    links = None
     """A list containing self and bookmark links"""
 
-    properties = atypes.wsattr([link.Link], readonly=True)
+    properties = None
     """A list containing links to driver properties"""
 
     """Default interface for a hardware type"""
@@ -146,23 +146,23 @@ class Driver(base.Base):
         driver.name = name
         driver.hosts = hosts
         driver.links = [
-            link.Link.make_link('self',
-                                api.request.public_url,
-                                'drivers', name),
-            link.Link.make_link('bookmark',
-                                api.request.public_url,
-                                'drivers', name,
-                                bookmark=True)
+            link.make_link('self',
+                           api.request.public_url,
+                           'drivers', name),
+            link.make_link('bookmark',
+                           api.request.public_url,
+                           'drivers', name,
+                           bookmark=True)
         ]
         if api_utils.allow_links_node_states_and_driver_properties():
             driver.properties = [
-                link.Link.make_link('self',
-                                    api.request.public_url,
-                                    'drivers', name + "/properties"),
-                link.Link.make_link('bookmark',
-                                    api.request.public_url,
-                                    'drivers', name + "/properties",
-                                    bookmark=True)
+                link.make_link('self',
+                               api.request.public_url,
+                               'drivers', name + "/properties"),
+                link.make_link('bookmark',
+                               api.request.public_url,
+                               'drivers', name + "/properties",
+                               bookmark=True)
             ]
 
         if api_utils.allow_dynamic_drivers():

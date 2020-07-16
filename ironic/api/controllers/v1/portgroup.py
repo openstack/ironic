@@ -90,7 +90,7 @@ class Portgroup(base.APIBase):
     name = atypes.wsattr(str)
     """The logical name for this portgroup"""
 
-    links = atypes.wsattr([link.Link], readonly=True)
+    links = None
     """A list containing a self link and associated portgroup links"""
 
     standalone_ports_supported = types.boolean
@@ -105,7 +105,7 @@ class Portgroup(base.APIBase):
     properties = {str: types.jsontype}
     """This portgroup's properties"""
 
-    ports = atypes.wsattr([link.Link], readonly=True)
+    ports = None
     """Links to the collection of ports of this portgroup"""
 
     def __init__(self, **kwargs):
@@ -133,20 +133,20 @@ class Portgroup(base.APIBase):
         """Add links to the portgroup."""
         if fields is None:
             portgroup.ports = [
-                link.Link.make_link('self', url, 'portgroups',
-                                    portgroup.uuid + "/ports"),
-                link.Link.make_link('bookmark', url, 'portgroups',
-                                    portgroup.uuid + "/ports", bookmark=True)
+                link.make_link('self', url, 'portgroups',
+                               portgroup.uuid + "/ports"),
+                link.make_link('bookmark', url, 'portgroups',
+                               portgroup.uuid + "/ports", bookmark=True)
             ]
 
         # never expose the node_id attribute
         portgroup.node_id = atypes.Unset
 
-        portgroup.links = [link.Link.make_link('self', url,
-                                               'portgroups', portgroup.uuid),
-                           link.Link.make_link('bookmark', url,
-                                               'portgroups', portgroup.uuid,
-                                               bookmark=True)
+        portgroup.links = [link.make_link('self', url,
+                                          'portgroups', portgroup.uuid),
+                           link.make_link('bookmark', url,
+                                          'portgroups', portgroup.uuid,
+                                          bookmark=True)
                            ]
         return portgroup
 

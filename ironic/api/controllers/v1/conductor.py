@@ -53,7 +53,7 @@ class Conductor(base.APIBase):
     drivers = atypes.wsattr([str])
     """The drivers enabled on this conductor"""
 
-    links = atypes.wsattr([link.Link])
+    links = None
     """A list containing a self link and associated conductor links"""
 
     def __init__(self, **kwargs):
@@ -72,11 +72,11 @@ class Conductor(base.APIBase):
 
     @staticmethod
     def _convert_with_links(conductor, url, fields=None):
-        conductor.links = [link.Link.make_link('self', url, 'conductors',
-                                               conductor.hostname),
-                           link.Link.make_link('bookmark', url, 'conductors',
-                                               conductor.hostname,
-                                               bookmark=True)]
+        conductor.links = [link.make_link('self', url, 'conductors',
+                                          conductor.hostname),
+                           link.make_link('bookmark', url, 'conductors',
+                                          conductor.hostname,
+                                          bookmark=True)]
         return conductor
 
     @classmethod

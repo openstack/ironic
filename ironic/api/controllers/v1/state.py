@@ -14,7 +14,6 @@
 #    under the License.
 
 from ironic.api.controllers import base
-from ironic.api.controllers import link
 
 
 class State(base.APIBase):
@@ -28,5 +27,5 @@ class State(base.APIBase):
     available = [str]
     """A list of available states it is able to transition to"""
 
-    links = [link.Link]
+    links = None
     """A list containing a self link and associated state links"""
