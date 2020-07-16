@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    Fixes updating driver fields for nodes with a broken driver. This is
+    required to be able to set maintenance for such nodes.
