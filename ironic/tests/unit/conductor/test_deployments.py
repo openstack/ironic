@@ -38,8 +38,9 @@ CONF = cfg.CONF
 
 @mgr_utils.mock_record_keepalive
 class DoNodeDeployTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
-    @mock.patch('ironic.drivers.modules.fake.FakeDeploy.deploy')
-    @mock.patch('ironic.drivers.modules.fake.FakeDeploy.prepare')
+    @mock.patch('ironic.drivers.modules.fake.FakeDeploy.deploy', autospec=True)
+    @mock.patch('ironic.drivers.modules.fake.FakeDeploy.prepare',
+                autospec=True)
     def test__do_node_deploy_driver_raises_prepare_error(self, mock_prepare,
                                                          mock_deploy):
         self._start_service()
@@ -63,8 +64,9 @@ class DoNodeDeployTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         self.assertTrue(mock_prepare.called)
         self.assertFalse(mock_deploy.called)
 
-    @mock.patch('ironic.drivers.modules.fake.FakeDeploy.deploy')
-    @mock.patch('ironic.drivers.modules.fake.FakeDeploy.prepare')
+    @mock.patch('ironic.drivers.modules.fake.FakeDeploy.deploy', autospec=True)
+    @mock.patch('ironic.drivers.modules.fake.FakeDeploy.prepare',
+                autospec=True)
     def test__do_node_deploy_unexpected_prepare_error(self, mock_prepare,
                                                       mock_deploy):
         self._start_service()
@@ -170,7 +172,7 @@ class DoNodeDeployTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
     def test__do_node_deploy_fast_track(self):
         self._test__do_node_deploy_ok(fast_track=True)
 
-    @mock.patch('openstack.baremetal.configdrive.build')
+    @mock.patch('openstack.baremetal.configdrive.build', autospec=True)
     def test__do_node_deploy_configdrive_as_dict(self, mock_cd):
         mock_cd.return_value = 'foo'
         configdrive = {'user_data': 'abcd'}
@@ -181,7 +183,7 @@ class DoNodeDeployTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
                                         user_data=b'abcd',
                                         vendor_data=None)
 
-    @mock.patch('openstack.baremetal.configdrive.build')
+    @mock.patch('openstack.baremetal.configdrive.build', autospec=True)
     def test__do_node_deploy_configdrive_as_dict_with_meta_data(self, mock_cd):
         mock_cd.return_value = 'foo'
         configdrive = {'meta_data': {'uuid': uuidutils.generate_uuid(),
@@ -194,7 +196,7 @@ class DoNodeDeployTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
                                         user_data=None,
                                         vendor_data=None)
 
-    @mock.patch('openstack.baremetal.configdrive.build')
+    @mock.patch('openstack.baremetal.configdrive.build', autospec=True)
     def test__do_node_deploy_configdrive_with_network_data(self, mock_cd):
         mock_cd.return_value = 'foo'
         configdrive = {'network_data': {'links': []}}
@@ -205,7 +207,7 @@ class DoNodeDeployTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
                                         user_data=None,
                                         vendor_data=None)
 
-    @mock.patch('openstack.baremetal.configdrive.build')
+    @mock.patch('openstack.baremetal.configdrive.build', autospec=True)
     def test__do_node_deploy_configdrive_and_user_data_as_dict(self, mock_cd):
         mock_cd.return_value = 'foo'
         configdrive = {'user_data': {'user': 'data'}}
@@ -216,7 +218,7 @@ class DoNodeDeployTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
                                         user_data=b'{"user": "data"}',
                                         vendor_data=None)
 
-    @mock.patch('openstack.baremetal.configdrive.build')
+    @mock.patch('openstack.baremetal.configdrive.build', autospec=True)
     def test__do_node_deploy_configdrive_with_vendor_data(self, mock_cd):
         mock_cd.return_value = 'foo'
         configdrive = {'vendor_data': {'foo': 'bar'}}
@@ -227,8 +229,9 @@ class DoNodeDeployTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
                                         user_data=None,
                                         vendor_data={'foo': 'bar'})
 
-    @mock.patch.object(swift, 'SwiftAPI')
-    @mock.patch('ironic.drivers.modules.fake.FakeDeploy.prepare')
+    @mock.patch.object(swift, 'SwiftAPI', autospec=True)
+    @mock.patch('ironic.drivers.modules.fake.FakeDeploy.prepare',
+                autospec=True)
     def test__do_node_deploy_configdrive_swift_error(self, mock_prepare,
                                                      mock_swift):
         CONF.set_override('configdrive_use_object_store', True,
@@ -250,7 +253,8 @@ class DoNodeDeployTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         self.assertIsNotNone(node.last_error)
         self.assertFalse(mock_prepare.called)
 
-    @mock.patch('ironic.drivers.modules.fake.FakeDeploy.prepare')
+    @mock.patch('ironic.drivers.modules.fake.FakeDeploy.prepare',
+                autospec=True)
     def test__do_node_deploy_configdrive_db_error(self, mock_prepare):
         self._start_service()
         node = obj_utils.create_test_node(self.context, driver='fake-hardware',
@@ -259,7 +263,8 @@ class DoNodeDeployTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         task = task_manager.TaskManager(self.context, node.uuid)
         task.node.save()
         expected_instance_info = dict(node.instance_info)
-        with mock.patch.object(dbapi.IMPL, 'update_node') as mock_db:
+        with mock.patch.object(dbapi.IMPL, 'update_node',
+                               autospec=True) as mock_db:
             db_node = self.dbapi.get_node_by_uuid(node.uuid)
             mock_db.side_effect = [db_exception.DBDataError('DB error'),
                                    db_node, db_node, db_node]
@@ -289,7 +294,8 @@ class DoNodeDeployTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
             self.assertFalse(mock_prepare.called)
 
     @mock.patch.object(deployments, '_store_configdrive', autospec=True)
-    @mock.patch('ironic.drivers.modules.fake.FakeDeploy.prepare')
+    @mock.patch('ironic.drivers.modules.fake.FakeDeploy.prepare',
+                autospec=True)
     def test__do_node_deploy_configdrive_unexpected_error(self, mock_prepare,
                                                           mock_store):
         self._start_service()
@@ -376,8 +382,10 @@ class DoNodeDeployTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
 
     @mock.patch.object(task_manager.TaskManager, 'process_event',
                        autospec=True)
-    @mock.patch('ironic.drivers.modules.fake.FakePower.validate')
-    @mock.patch('ironic.drivers.modules.fake.FakeDeploy.validate')
+    @mock.patch('ironic.drivers.modules.fake.FakePower.validate',
+                autospec=True)
+    @mock.patch('ironic.drivers.modules.fake.FakeDeploy.validate',
+                autospec=True)
     @mock.patch.object(conductor_steps, 'validate_deploy_templates',
                        autospec=True)
     @mock.patch.object(conductor_utils, 'validate_instance_info_traits',
@@ -397,8 +405,8 @@ class DoNodeDeployTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
                                  event='deploy')
         node.refresh()
         self.assertTrue(mock_iwdi.called)
-        mock_power_validate.assert_called_once_with(task)
-        mock_deploy_validate.assert_called_once_with(task)
+        mock_power_validate.assert_called_once_with(task.driver.power, task)
+        mock_deploy_validate.assert_called_once_with(task.driver.deploy, task)
         mock_validate_traits.assert_called_once_with(task.node)
         mock_validate_templates.assert_called_once_with(
             task, skip_missing=True)
@@ -803,7 +811,7 @@ class DoNextDeployStepTestCase(mgr_utils.ServiceSetUpMixin,
             mock.ANY, mock.ANY, self.deploy_steps[0])
 
 
-@mock.patch.object(swift, 'SwiftAPI')
+@mock.patch.object(swift, 'SwiftAPI', autospec=True)
 class StoreConfigDriveTestCase(db_base.DbTestCase):
 
     def setUp(self):
