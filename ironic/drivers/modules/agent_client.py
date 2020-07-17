@@ -60,9 +60,9 @@ class AgentClient(object):
         """Get URL endpoint for agent command request"""
         agent_url = node.driver_internal_info.get('agent_url')
         if not agent_url:
-            raise exception.IronicException(_('Agent driver requires '
-                                              'agent_url in '
-                                              'driver_internal_info'))
+            raise exception.AgentConnectionFailed(_('Agent driver requires '
+                                                    'agent_url in '
+                                                    'driver_internal_info'))
         return ('%(agent_url)s/%(api_version)s/commands/' %
                 {'agent_url': agent_url,
                  'api_version': CONF.agent.agent_api_version})
@@ -219,14 +219,14 @@ class AgentClient(object):
         return result
 
     @METRICS.timer('AgentClient.get_commands_status')
-    @retrying.retry(
-        retry_on_exception=(
-            lambda e: isinstance(e, exception.AgentConnectionFailed)),
-        stop_max_attempt_number=CONF.agent.max_command_attempts)
-    def get_commands_status(self, node):
+    def get_commands_status(self, node, retry_connection=True,
+                            expect_errors=False):
         """Get command status from agent.
 
         :param node: A Node object.
+        :param retry_connection: Whether to retry connection problems.
+        :param expect_errors: If True, do not log connection problems as
+            errors.
         :return: A list of command results, each result is related to a
             command been issued to agent. A typical result can be:
 
@@ -255,17 +255,27 @@ class AgentClient(object):
         """
         url = self._get_command_url(node)
         LOG.debug('Fetching status of agent commands for node %s', node.uuid)
-        try:
-            resp = self.session.get(url, timeout=CONF.agent.command_timeout)
-        except (requests.ConnectionError, requests.Timeout) as e:
-            msg = (_('Failed to connect to the agent running on node %(node)s '
-                     'to collect commands status. '
-                     'Error: %(error)s') %
-                   {'node': node.uuid, 'error': e})
-            LOG.error(msg)
-            raise exception.AgentConnectionFailed(reason=msg)
 
-        result = resp.json()['commands']
+        def _get():
+            try:
+                return self.session.get(url,
+                                        timeout=CONF.agent.command_timeout)
+            except (requests.ConnectionError, requests.Timeout) as e:
+                msg = (_('Failed to connect to the agent running on node '
+                         '%(node)s to collect commands status. '
+                         'Error: %(error)s') %
+                       {'node': node.uuid, 'error': e})
+                logging_call = LOG.debug if expect_errors else LOG.error
+                logging_call(msg)
+                raise exception.AgentConnectionFailed(reason=msg)
+
+        if retry_connection:
+            _get = retrying.retry(
+                retry_on_exception=(
+                    lambda e: isinstance(e, exception.AgentConnectionFailed)),
+                stop_max_attempt_number=CONF.agent.max_command_attempts)(_get)
+
+        result = _get().json()['commands']
         status = '; '.join('%(cmd)s: result "%(res)s", error "%(err)s"' %
                            {'cmd': r.get('command_name'),
                             'res': r.get('command_result'),
