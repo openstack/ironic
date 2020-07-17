@@ -23,18 +23,27 @@ the services.
    Port Groups <portgroups>
    Configuring Web or Serial Console <console>
    Enabling Notifications <notifications>
-   Ceph Object Gateway <radosgw>
-   Emitting Software Metrics <metrics>
-   Auditing API Traffic <api-audit-support>
-   Service State Reporting <gmr>
    Conductor Groups <conductor-groups>
    Upgrade Guide <upgrade-guide>
    Security <security>
-   Windows Images <building-windows-images>
    Troubleshooting FAQ <troubleshooting>
    Power Sync with the Compute Service <power-sync>
-   Agent Token <agent-token>
    Node Multi-Tenancy <node-multitenancy>
+   Fast-Track Deployment <fast-track>
+
+Advanced Topics
+---------------
+
+.. toctree::
+  :maxdepth: 1
+
+   Ceph Object Gateway <radosgw>
+   Windows Images <building-windows-images>
+   Emitting Software Metrics <metrics>
+   Auditing API Traffic <api-audit-support>
+   Service State Reporting <gmr>
+   Agent Token <agent-token>
+   Deploying without BMC Credentials <agent-power>
 
 .. toctree::
   :hidden:
