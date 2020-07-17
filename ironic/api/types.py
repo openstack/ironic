@@ -22,6 +22,7 @@ from wsme.types import Enum  # noqa
 from wsme.types import File  # noqa
 from wsme.types import IntegerType  # noqa
 from wsme.types import iscomplex  # noqa
+from wsme.types import isusertype  # noqa
 from wsme.types import list_attributes  # noqa
 from wsme.types import registry  # noqa
 from wsme.types import StringType  # noqa
@@ -29,6 +30,7 @@ from wsme.types import text  # noqa
 from wsme.types import Unset  # noqa
 from wsme.types import UnsetType  # noqa
 from wsme.types import UserType  # noqa
+from wsme.types import validate_value  # noqa
 from wsme.types import wsattr  # noqa
 from wsme.types import wsproperty  # noqa
 

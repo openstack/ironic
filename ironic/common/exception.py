@@ -725,3 +725,75 @@ class NodeIsRetired(Invalid):
 class NoFreeIPMITerminalPorts(TemporaryFailure):
     _msg_fmt = _("Unable to allocate a free port on host %(host)s for IPMI "
                  "terminal, not enough free ports.")
+
+
+class InvalidInput(ClientSideError):
+    def __init__(self, fieldname, value, msg=''):
+        self.fieldname = fieldname
+        self.value = value
+        super(InvalidInput, self).__init__(msg)
+
+    @property
+    def faultstring(self):
+        return _(
+            "Invalid input for field/attribute %(fieldname)s. "
+            "Value: '%(value)s'. %(msg)s"
+        ) % {
+            'fieldname': self.fieldname,
+            'value': self.value,
+            'msg': self.msg
+        }
+
+
+class UnknownArgument(ClientSideError):
+    def __init__(self, argname, msg=''):
+        self.argname = argname
+        super(UnknownArgument, self).__init__(msg)
+
+    @property
+    def faultstring(self):
+        return _('Unknown argument: "%(argname)s"%(msg)s') % {
+            'argname': self.argname,
+            'msg': self.msg and ": " + self.msg or ""
+        }
+
+
+class MissingArgument(ClientSideError):
+    def __init__(self, argname, msg=''):
+        self.argname = argname
+        super(MissingArgument, self).__init__(msg)
+
+    @property
+    def faultstring(self):
+        return _('Missing argument: "%(argname)s"%(msg)s') % {
+            'argname': self.argname,
+            'msg': self.msg and ": " + self.msg or ""
+        }
+
+
+class UnknownAttribute(ClientSideError):
+    def __init__(self, fieldname, attributes, msg=''):
+        self.fieldname = fieldname
+        self.attributes = attributes
+        self.msg = msg
+        super(UnknownAttribute, self).__init__(self.msg)
+
+    @property
+    def faultstring(self):
+        error = _("Unknown attribute for argument %(argn)s: %(attrs)s")
+        if len(self.attributes) > 1:
+            error = _("Unknown attributes for argument %(argn)s: %(attrs)s")
+        str_attrs = ", ".join(self.attributes)
+        return error % {'argn': self.fieldname, 'attrs': str_attrs}
+
+    def add_fieldname(self, name):
+        """Add a fieldname to concatenate the full name.
+
+        Add a fieldname so that the whole hierarchy is displayed. Successive
+        calls to this method will prepend ``name`` to the hierarchy of names.
+        """
+        if self.fieldname is not None:
+            self.fieldname = "{}.{}".format(name, self.fieldname)
+        else:
+            self.fieldname = name
+        super(UnknownAttribute, self).__init__(self.msg)

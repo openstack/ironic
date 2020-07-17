@@ -42,6 +42,15 @@ from ironic.conf import CONF
 
 LOG = logging.getLogger(__name__)
 
+DATE_RE = r'(?P<year>-?\d{4,})-(?P<month>\d{2})-(?P<day>\d{2})'
+TIME_RE = r'(?P<hour>\d{2}):(?P<min>\d{2}):(?P<sec>\d{2})' + \
+          r'(\.(?P<sec_frac>\d+))?'
+TZ_RE = r'((?P<tz_sign>[+-])(?P<tz_hour>\d{2}):(?P<tz_min>\d{2}))' + \
+        r'|(?P<tz_z>Z)'
+
+DATETIME_RE = re.compile(
+    '%sT%s(%s)?' % (DATE_RE, TIME_RE, TZ_RE))
+
 warn_deprecated_extra_vif_port_id = False
 
 

@@ -25,8 +25,8 @@ import traceback
 from oslo_config import cfg
 from oslo_log import log
 import pecan
-import wsme.rest.args
 
+from ironic.api import args as api_args
 from ironic.api import functions
 from ironic.api import types as atypes
 
@@ -70,8 +70,8 @@ def expose(*args, **kwargs):
             return_type = funcdef.return_type
 
             try:
-                args, kwargs = wsme.rest.args.get_args(
-                    funcdef, args, kwargs, pecan.request.params, None,
+                args, kwargs = api_args.get_args(
+                    funcdef, args, kwargs, pecan.request.params,
                     pecan.request.body, pecan.request.content_type
                 )
                 result = f(self, *args, **kwargs)
