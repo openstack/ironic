@@ -602,6 +602,8 @@ class ISCSIDeploy(agent_base.AgentDeployMixin, agent_base.AgentBaseMixin,
                   base.DeployInterface):
     """iSCSI Deploy Interface for deploy-related actions."""
 
+    has_decomposed_deploy_steps = True
+
     def get_properties(self):
         return agent_base.VENDOR_PROPERTIES
 
@@ -647,14 +649,12 @@ class ISCSIDeploy(agent_base.AgentDeployMixin, agent_base.AgentBaseMixin,
         """
         node = task.node
         if manager_utils.is_fast_track(task):
+            # NOTE(mgoddard): For fast track we can mostly skip this step and
+            # proceed to the next step (i.e. write_image).
             LOG.debug('Performing a fast track deployment for %(node)s.',
                       {'node': task.node.uuid})
             deploy_utils.cache_instance_image(task.context, node)
             check_image_size(task)
-            # Update the database for the API and the task tracking resumes
-            # the state machine state going from DEPLOYWAIT -> DEPLOYING
-            task.process_event('wait')
-            self.continue_deploy(task)
         elif task.driver.storage.should_write_image(task):
             # Standard deploy process
             deploy_utils.cache_instance_image(task.context, node)
@@ -666,29 +666,16 @@ class ISCSIDeploy(agent_base.AgentDeployMixin, agent_base.AgentBaseMixin,
                 manager_utils.node_power_action(task, states.REBOOT)
             info = task.node.driver_internal_info
             info.pop('deployment_reboot', None)
+            info.pop('deployment_uuids', None)
             task.node.driver_internal_info = info
             task.node.save()
 
             return states.DEPLOYWAIT
-        else:
-            # Boot to an Storage Volume
 
-            # TODO(TheJulia): At some point, we should de-dupe this code
-            # as it is nearly identical to the agent deploy interface.
-            # This is not being done now as it is expected to be
-            # refactored in the near future.
-            manager_utils.node_power_action(task, states.POWER_OFF)
-            with manager_utils.power_state_for_network_configuration(task):
-                task.driver.network.remove_provisioning_network(task)
-                task.driver.network.configure_tenant_networks(task)
-            task.driver.boot.prepare_instance(task)
-            manager_utils.node_power_action(task, states.POWER_ON)
-
-            return None
-
-    @METRICS.timer('AgentDeployMixin.continue_deploy')
+    @METRICS.timer('ISCSIDeploy.write_image')
+    @base.deploy_step(priority=90)
     @task_manager.require_exclusive_lock
-    def continue_deploy(self, task):
+    def write_image(self, task):
         """Method invoked when deployed using iSCSI.
 
         This method is invoked during a heartbeat from an agent when
@@ -701,18 +688,39 @@ class ISCSIDeploy(agent_base.AgentDeployMixin, agent_base.AgentBaseMixin,
         :raises: InstanceDeployFailure, if it encounters some error during
             the deploy.
         """
-        task.process_event('resume')
+        if not task.driver.storage.should_write_image(task):
+            LOG.debug('Skipping write_image for node %s', task.node.uuid)
+            return
+
         node = task.node
         LOG.debug('Continuing the deployment on node %s', node.uuid)
 
         uuid_dict_returned = do_agent_iscsi_deploy(task, self._client)
+        utils.set_node_nested_field(node, 'driver_internal_info',
+                                    'deployment_uuids', uuid_dict_returned)
+        node.save()
+
+    @METRICS.timer('ISCSIDeploy.prepare_instance_boot')
+    @base.deploy_step(priority=80)
+    def prepare_instance_boot(self, task):
+        if not task.driver.storage.should_write_image(task):
+            task.driver.boot.prepare_instance(task)
+            return
+
+        node = task.node
+        try:
+            uuid_dict_returned = node.driver_internal_info['deployment_uuids']
+        except KeyError:
+            raise exception.InstanceDeployFailure(
+                _('Invalid internal state: the write_image deploy step has '
+                  'not been called before prepare_instance_boot'))
         root_uuid = uuid_dict_returned.get('root uuid')
         efi_sys_uuid = uuid_dict_returned.get('efi system partition uuid')
         prep_boot_part_uuid = uuid_dict_returned.get(
             'PrEP Boot partition uuid')
+
         self.prepare_instance_to_boot(task, root_uuid, efi_sys_uuid,
                                       prep_boot_part_uuid=prep_boot_part_uuid)
-        self.reboot_and_finish_deploy(task)
 
     @METRICS.timer('ISCSIDeploy.prepare')
     @task_manager.require_exclusive_lock
@@ -788,3 +796,6 @@ class ISCSIDeploy(agent_base.AgentDeployMixin, agent_base.AgentBaseMixin,
         """
         deploy_utils.destroy_images(task.node.uuid)
         super(ISCSIDeploy, self).clean_up(task)
+        if utils.pop_node_nested_field(task.node, 'driver_internal_info',
+                                       'deployment_uuids'):
+            task.node.save()

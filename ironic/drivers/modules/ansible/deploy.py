@@ -375,8 +375,12 @@ def _get_clean_steps(node, interface=None, override_priorities=None):
     return steps
 
 
-class AnsibleDeploy(agent_base.HeartbeatMixin, base.DeployInterface):
+class AnsibleDeploy(agent_base.HeartbeatMixin,
+                    agent_base.AgentOobStepsMixin,
+                    base.DeployInterface):
     """Interface for deploy-related actions."""
+
+    has_decomposed_deploy_steps = True
 
     def __init__(self):
         super(AnsibleDeploy, self).__init__()
@@ -442,12 +446,22 @@ class AnsibleDeploy(agent_base.HeartbeatMixin, base.DeployInterface):
         manager_utils.node_power_action(task, states.REBOOT)
         return states.DEPLOYWAIT
 
+    def process_next_step(self, task, step_type):
+        """Start the next clean/deploy step if the previous one is complete.
+
+        :param task: a TaskManager instance
+        :param step_type: "clean" or "deploy"
+        """
+        # Run the next step as soon as agent heartbeats in deploy.deploy
+        if step_type == 'deploy' and self.in_core_deploy_step(task):
+            manager_utils.notify_conductor_resume_deploy(task)
+
     @staticmethod
     def _required_image_info(task):
         """Gather and save needed image info while the context is good.
 
         Gather image info that will be needed later, during the
-        continue_deploy execution, where the context won't be the same
+        write_image execution, where the context won't be the same
         anymore, since coming from the server's heartbeat.
         """
         node = task.node
@@ -586,35 +600,30 @@ class AnsibleDeploy(agent_base.HeartbeatMixin, base.DeployInterface):
         manager_utils.restore_power_state_if_needed(
             task, power_state_to_restore)
 
-    @METRICS.timer('AnsibleDeploy.continue_deploy')
-    def continue_deploy(self, task):
+    @METRICS.timer('AnsibleDeploy.write_image')
+    @base.deploy_step(priority=80)
+    def write_image(self, task):
         # NOTE(pas-ha) the lock should be already upgraded in heartbeat,
         # just setting its purpose for better logging
         task.upgrade_lock(purpose='deploy')
-        task.process_event('resume')
         # NOTE(pas-ha) this method is called from heartbeat processing only,
         # so we are sure we need this particular method, not the general one
         node_address = _get_node_ip(task)
         self._ansible_deploy(task, node_address)
-        self.reboot_to_instance(task)
-
-    @METRICS.timer('AnsibleDeploy.reboot_to_instance')
-    def reboot_to_instance(self, task):
-        node = task.node
-        LOG.info('Ansible complete deploy on node %s', node.uuid)
-
-        LOG.debug('Rebooting node %s to instance', node.uuid)
+        LOG.info('Ansible complete deploy on node %s', task.node.uuid)
         manager_utils.node_set_boot_device(task, 'disk', persistent=True)
-        self.reboot_and_finish_deploy(task)
-        task.driver.boot.clean_up_ramdisk(task)
 
-        # TODO(dtantsur): remove these two calls when this function becomes a
-        # real deploy step.
-        task.process_event('wait')
-        manager_utils.notify_conductor_resume_deploy(task)
+    @METRICS.timer('AnsibleDeploy.tear_down_agent')
+    @base.deploy_step(priority=40)
+    @task_manager.require_exclusive_lock
+    def tear_down_agent(self, task):
+        """A deploy step to tear down the agent.
 
-    @METRICS.timer('AnsibleDeploy.reboot_and_finish_deploy')
-    def reboot_and_finish_deploy(self, task):
+        Shuts down the machine and removes it from the provisioning
+        network.
+
+        :param task: a TaskManager object containing the node
+        """
         wait = CONF.ansible.post_deploy_get_power_state_retry_interval * 1000
         attempts = CONF.ansible.post_deploy_get_power_state_retries + 1
 
@@ -652,13 +661,6 @@ class AnsibleDeploy(agent_base.HeartbeatMixin, base.DeployInterface):
                     manager_utils.node_power_action(task, states.POWER_OFF)
             else:
                 manager_utils.node_power_action(task, states.POWER_OFF)
-            power_state_to_restore = (
-                manager_utils.power_on_node_if_needed(task))
-            task.driver.network.remove_provisioning_network(task)
-            task.driver.network.configure_tenant_networks(task)
-            manager_utils.restore_power_state_if_needed(
-                task, power_state_to_restore)
-            manager_utils.node_power_action(task, states.POWER_ON)
         except Exception as e:
             msg = (_('Error rebooting node %(node)s after deploy. '
                      'Error: %(error)s') %

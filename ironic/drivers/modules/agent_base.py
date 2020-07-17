@@ -767,7 +767,53 @@ class AgentBaseMixin(object):
             task, manage_boot=self.should_manage_boot(task))
 
 
-class AgentDeployMixin(HeartbeatMixin):
+class AgentOobStepsMixin(object):
+    """Mixin with out-of-band deploy steps."""
+
+    @METRICS.timer('AgentDeployMixin.switch_to_tenant_network')
+    @base.deploy_step(priority=30)
+    @task_manager.require_exclusive_lock
+    def switch_to_tenant_network(self, task):
+        """Deploy step to switch the node to the tenant network.
+
+        :param task: a TaskManager object containing the node
+        """
+        try:
+            with manager_utils.power_state_for_network_configuration(task):
+                task.driver.network.remove_provisioning_network(task)
+                task.driver.network.configure_tenant_networks(task)
+        except Exception as e:
+            msg = (_('Error changing node %(node)s to tenant networks after '
+                     'deploy. %(cls)s: %(error)s') %
+                   {'node': task.node.uuid, 'cls': e.__class__.__name__,
+                    'error': e})
+            # NOTE(mgoddard): Don't collect logs since the node has been
+            # powered off.
+            log_and_raise_deployment_error(task, msg, collect_logs=False,
+                                           exc=e)
+
+    @METRICS.timer('AgentDeployMixin.boot_instance')
+    @base.deploy_step(priority=20)
+    @task_manager.require_exclusive_lock
+    def boot_instance(self, task):
+        """Deploy step to boot the final instance.
+
+        :param task: a TaskManager object containing the node
+        """
+        try:
+            manager_utils.node_power_action(task, states.POWER_ON)
+        except Exception as e:
+            msg = (_('Error booting node %(node)s after deploy. '
+                     '%(cls)s: %(error)s') %
+                   {'node': task.node.uuid, 'cls': e.__class__.__name__,
+                    'error': e})
+            # NOTE(mgoddard): Don't collect logs since the node has been
+            # powered off.
+            log_and_raise_deployment_error(task, msg, collect_logs=False,
+                                           exc=e)
+
+
+class AgentDeployMixin(HeartbeatMixin, AgentOobStepsMixin):
     """Mixin with deploy methods."""
 
     @METRICS.timer('AgentDeployMixin.get_clean_steps')
@@ -1168,48 +1214,6 @@ class AgentDeployMixin(HeartbeatMixin):
                    {'node': node.uuid, 'cls': e.__class__.__name__,
                     'error': e})
             log_and_raise_deployment_error(task, msg, exc=e)
-
-    @METRICS.timer('AgentDeployMixin.switch_networking')
-    @base.deploy_step(priority=30)
-    @task_manager.require_exclusive_lock
-    def switch_to_tenant_network(self, task):
-        """Deploy step to switch the node to the tenant network.
-
-        :param task: a TaskManager object containing the node
-        """
-        try:
-            with manager_utils.power_state_for_network_configuration(task):
-                task.driver.network.remove_provisioning_network(task)
-                task.driver.network.configure_tenant_networks(task)
-        except Exception as e:
-            msg = (_('Error changing node %(node)s to tenant networks after '
-                     'deploy. %(cls)s: %(error)s') %
-                   {'node': task.node.uuid, 'cls': e.__class__.__name__,
-                    'error': e})
-            # NOTE(mgoddard): Don't collect logs since the node has been
-            # powered off.
-            log_and_raise_deployment_error(task, msg, collect_logs=False,
-                                           exc=e)
-
-    @METRICS.timer('AgentDeployMixin.boot_instance')
-    @base.deploy_step(priority=20)
-    @task_manager.require_exclusive_lock
-    def boot_instance(self, task):
-        """Deploy step to boot the final instance.
-
-        :param task: a TaskManager object containing the node
-        """
-        try:
-            manager_utils.node_power_action(task, states.POWER_ON)
-        except Exception as e:
-            msg = (_('Error booting node %(node)s after deploy. '
-                     '%(cls)s: %(error)s') %
-                   {'node': task.node.uuid, 'cls': e.__class__.__name__,
-                    'error': e})
-            # NOTE(mgoddard): Don't collect logs since the node has been
-            # powered off.
-            log_and_raise_deployment_error(task, msg, collect_logs=False,
-                                           exc=e)
 
     # TODO(dtantsur): remove in W
     @METRICS.timer('AgentDeployMixin.reboot_and_finish_deploy')
