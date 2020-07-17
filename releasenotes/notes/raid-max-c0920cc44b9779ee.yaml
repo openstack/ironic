@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    No longer tries to set ``local_gb`` to ``MAX`` when building RAID with
+    the root disk using ``MAX`` for its size.

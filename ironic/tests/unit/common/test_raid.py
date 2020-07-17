@@ -212,7 +212,8 @@ class RaidPublicMethodsTestCase(db_base.DbTestCase):
         self.assertIn('foo', logical_disk_properties)
 
     def _test_update_raid_info(self, current_config,
-                               capabilities=None):
+                               capabilities=None,
+                               skip_local_gb=False):
         node = self.node
         if capabilities:
             properties = node.properties
@@ -231,7 +232,10 @@ class RaidPublicMethodsTestCase(db_base.DbTestCase):
         if current_config['logical_disks'][0].get('is_root_volume'):
             self.assertEqual({'wwn': '600508B100'},
                              properties['root_device'])
-            self.assertEqual(100, properties['local_gb'])
+            if skip_local_gb:
+                self.assertNotIn('local_gb', properties)
+            else:
+                self.assertEqual(100, properties['local_gb'])
             self.assertIn('raid_level:1', properties['capabilities'])
             if capabilities:
                 self.assertIn(capabilities, properties['capabilities'])
@@ -266,6 +270,13 @@ class RaidPublicMethodsTestCase(db_base.DbTestCase):
         self.assertRaises(exception.InvalidParameterValue,
                           self._test_update_raid_info,
                           current_config)
+
+    def test_update_raid_info_skip_MAX(self):
+        current_config = json.loads(raid_constants.CURRENT_RAID_CONFIG)
+        current_config['logical_disks'][0]['size_gb'] = 'MAX'
+        self._test_update_raid_info(current_config,
+                                    capabilities='boot_mode:bios',
+                                    skip_local_gb=True)
 
     def test_filter_target_raid_config(self):
         result = raid.filter_target_raid_config(self.node)
