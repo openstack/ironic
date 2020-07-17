@@ -800,8 +800,15 @@ class AgentOobStepsMixin(object):
 
         :param task: a TaskManager object containing the node
         """
+        can_power_on = (states.POWER_ON in
+                        task.driver.power.get_supported_power_states(task))
         try:
-            manager_utils.node_power_action(task, states.POWER_ON)
+            if can_power_on:
+                manager_utils.node_power_action(task, states.POWER_ON)
+            else:
+                LOG.debug('Not trying to power on node %s that does not '
+                          'support powering on, assuming already running',
+                          task.node.uuid)
         except Exception as e:
             msg = (_('Error booting node %(node)s after deploy. '
                      '%(cls)s: %(error)s') %
@@ -1168,9 +1175,17 @@ class AgentDeployMixin(HeartbeatMixin, AgentOobStepsMixin):
         # in-band methods
         oob_power_off = strutils.bool_from_string(
             node.driver_info.get('deploy_forces_oob_reboot', False))
+        can_power_on = (states.POWER_ON in
+                        task.driver.power.get_supported_power_states(task))
 
         try:
-            if not oob_power_off:
+            if not can_power_on:
+                LOG.info('Power interface of node %(node)s does not support '
+                         'power on, using reboot to switch to the instance',
+                         node.uuid)
+                self._client.sync(node)
+                manager_utils.node_power_action(task, states.REBOOT)
+            elif not oob_power_off:
                 try:
                     self._client.power_off(node)
                 except Exception as e:

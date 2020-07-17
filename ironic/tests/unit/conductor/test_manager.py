@@ -4878,6 +4878,21 @@ class ManagerDoSyncPowerStateTestCase(db_base.DbTestCase):
                          self.service.power_state_sync_count[self.node.uuid])
 
     @mock.patch.object(nova, 'power_update', autospec=True)
+    def test_no_power_sync_support(self, mock_power_update, node_power_action):
+        self.config(force_power_state_during_sync=True, group='conductor')
+        self.power.supports_power_sync.return_value = False
+
+        self._do_sync_power_state(states.POWER_ON, states.POWER_OFF)
+
+        self.assertFalse(self.power.validate.called)
+        self.power.get_power_state.assert_called_once_with(self.task)
+        self.assertFalse(node_power_action.called)
+        self.assertEqual(states.POWER_OFF, self.node.power_state)
+        self.task.upgrade_lock.assert_called_once_with()
+        mock_power_update.assert_called_once_with(
+            self.task.context, self.node.instance_uuid, states.POWER_OFF)
+
+    @mock.patch.object(nova, 'power_update', autospec=True)
     def test_max_retries_exceeded(self, mock_power_update, node_power_action):
         self.config(force_power_state_during_sync=True, group='conductor')
         self.config(power_state_sync_max_retries=1, group='conductor')

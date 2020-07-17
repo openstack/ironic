@@ -3669,7 +3669,8 @@ def do_sync_power_state(task, count):
         handle_sync_power_state_max_retries_exceeded(task, power_state)
         return count
 
-    if CONF.conductor.force_power_state_during_sync:
+    if (CONF.conductor.force_power_state_during_sync
+            and task.driver.power.supports_power_sync(task)):
         LOG.warning("During sync_power_state, node %(node)s state "
                     "'%(actual)s' does not match expected state. "
                     "Changing hardware state to '%(state)s'.",

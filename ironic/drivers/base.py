@@ -616,6 +616,18 @@ class PowerInterface(BaseInterface):
         """
         return [states.POWER_ON, states.POWER_OFF, states.REBOOT]
 
+    def supports_power_sync(self, task):
+        """Check if power sync is supported for the given node.
+
+        If ``False``, the conductor will simply store whatever
+        ``get_power_state`` returns in the database instead of trying
+        to force the expected power state.
+
+        :param task: A TaskManager instance containing the node to act on.
+        :returns: boolean, whether power sync is supported.
+        """
+        return True
+
 
 class ConsoleInterface(BaseInterface):
     """Interface for console-related actions."""
