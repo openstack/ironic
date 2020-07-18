@@ -1196,4 +1196,7 @@ def get_attached_vif(port):
     rescue_vif = port.internal_info.get('rescuing_vif_port_id')
     if rescue_vif:
         return (rescue_vif, 'rescuing')
+    inspection_vif = port.internal_info.get('inspection_vif_port_id')
+    if inspection_vif:
+        return (inspection_vif, 'inspecting')
     return (None, None)

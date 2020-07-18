@@ -6519,10 +6519,8 @@ class DestroyPortTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
             self.context,
             node_id=node.id,
             internal_info={'tenant_vif_port_id': 'fake-id'})
-        exc = self.assertRaises(messaging.rpc.ExpectedException,
-                                self.service.destroy_port,
-                                self.context, port)
-        self.assertEqual(exception.InvalidState, exc.exc_info[0])
+        self.service.destroy_port(self.context, port)
+        self.assertRaises(exception.PortNotFound, port.refresh)
 
     def test_destroy_port_node_active_and_maintenance_no_vif(self):
         instance_uuid = uuidutils.generate_uuid()

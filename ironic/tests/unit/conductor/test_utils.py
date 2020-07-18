@@ -2127,3 +2127,9 @@ class GetAttachedVifTestCase(db_base.DbTestCase):
         vif, use = conductor_utils.get_attached_vif(self.port)
         self.assertEqual('1', vif)
         self.assertEqual('rescuing', use)
+
+    def test_get_attached_vif_inspecting(self):
+        self.port.internal_info = {'inspection_vif_port_id': '1'}
+        vif, use = conductor_utils.get_attached_vif(self.port)
+        self.assertEqual('1', vif)
+        self.assertEqual('inspecting', use)

@@ -559,3 +559,80 @@ waiting for an event that is never happening. In these cases, it might be
 helpful to connect to the IPA and inspect its logs, see the trouble shooting
 guide of the :ironic-python-agent-doc:`ironic-python-agent (IPA) <>` on how
 to do this.
+
+Deployments fail with "failed to update MAC address"
+====================================================
+
+The design of the integration with the Networking service (neutron) is such
+that once virtual ports have been created in the API, their MAC address must
+be updated in order for the DHCP server to be able to appropriately reply.
+
+This can sometimes result in errors being raised indicating that the MAC
+address is already in use. This is because at some point in the past, a
+virtual interface was orphaned either by accident or by some unexpected
+glitch, and a previous entry is still present in Neutron.
+
+This error looks something like this when reported in the ironic-conductor
+log output.:
+
+  Failed to update MAC address on Neutron port 305beda7-0dd0-4fec-b4d2-78b7aa4e8e6a.: MacAddressInUseClient: Unable to complete operation for network 1e252627-6223-4076-a2b9-6f56493c9bac. The mac address 52:54:00:7c:c4:56 is in use.
+
+Because we have no idea about this entry, we fail the deployment process
+as we can't make a number of assumptions in order to attempt to automatically
+resolve the conflict.
+
+How did I get here?
+-------------------
+
+Originally this was a fairly easy issue to encounter. The retry logic path
+which resulted between the Orchestration (heat) and Compute (nova) services,
+could sometimes result in additional un-necessary ports being created.
+
+Bugs of this class have been largely resolved since the Rocky development
+cycle. Since then, the way this can become encountered is due to Networking
+(neutron) VIF attachments not being removed or deleted prior to deleting a
+port in the Bare Metal service.
+
+Ultimately, the key of this is that the port is being deleted. Under most
+operating circumstances, there really is no need to delete the port, and
+VIF attachments are stored on the port object, so deleting the port
+*CAN* result in the VIF not being cleaned up from Neutron.
+
+Under normal circumstances, when deleting ports, a node should be in a
+stable state, and the node should not be provisioned. If the
+``openstack baremetal port delete`` command fails, this may indicate that
+a known VIF is still attached. Generally if they are transitory from cleaning,
+provisioning, rescuing, or even inspection, getting the node to the
+``available`` state wil unblock your delete operation, that is unless there is
+a tenant VIF attahment. In that case, the vif will need to be removed from
+with-in the Bare Metal service using the
+``openstack baremetal node vif detach`` command.
+
+A port can also be checked to see if there is a VIF attachment by consulting
+the port's ``internal_info`` field.
+
+.. warning::
+   The ``maintenance`` flag can be used to force the node's port to be
+   deleted, however this will disable any check that would normally block
+   the user from issuing a delete and accidently orphaning the VIF attachment
+   record.
+
+How do I resolve this?
+----------------------
+
+Generally, you need to identify the port with the offending MAC address.
+Example:
+
+  openstack port list --mac-address 52:54:00:7c:c4:56
+
+From the command's output, you should be able to identify the ``id`` field.
+Using that, you can delete the port. Example:
+
+  openstack port delete <id>
+
+.. warning::
+   Before deleting a port, you should always verify that it is no longer in
+   use or no longer seems applicable/operable. If multiple deployments of
+   the Bare Metal service with a single Neutron, the possibility that a
+   inventory typo, or possibly even a duplicate MAC address exists, which
+   could also produce the same basic error message.
