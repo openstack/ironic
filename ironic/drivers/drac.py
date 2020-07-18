@@ -25,7 +25,6 @@ from ironic.drivers.modules.drac import management
 from ironic.drivers.modules.drac import power
 from ironic.drivers.modules.drac import raid
 from ironic.drivers.modules.drac import vendor_passthru
-from ironic.drivers.modules import inspector
 from ironic.drivers.modules import ipxe
 from ironic.drivers.modules import noop
 from ironic.drivers.modules import pxe
@@ -69,13 +68,14 @@ class IDRACHardware(generic.GenericHardware):
         # if it is enabled by an operator (implying that the service is
         # installed).
         return [drac_inspect.DracWSManInspect, drac_inspect.DracInspect,
-                drac_inspect.DracRedfishInspect, inspector.Inspector,
-                noop.NoInspect]
+                drac_inspect.DracRedfishInspect] + super(
+                    IDRACHardware, self).supported_inspect_interfaces
 
     @property
     def supported_raid_interfaces(self):
         """List of supported raid interfaces."""
-        return [raid.DracWSManRAID, raid.DracRAID, noop.NoRAID]
+        return [raid.DracWSManRAID, raid.DracRAID] + super(
+            IDRACHardware, self).supported_raid_interfaces
 
     @property
     def supported_vendor_interfaces(self):

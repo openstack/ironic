@@ -24,7 +24,6 @@ from ironic.drivers.modules.ilo import management
 from ironic.drivers.modules.ilo import power
 from ironic.drivers.modules.ilo import raid
 from ironic.drivers.modules.ilo import vendor
-from ironic.drivers.modules import inspector
 from ironic.drivers.modules import noop
 
 
@@ -53,8 +52,8 @@ class IloHardware(generic.GenericHardware):
     @property
     def supported_inspect_interfaces(self):
         """List of supported inspect interfaces."""
-        return [inspect.IloInspect, inspector.Inspector,
-                noop.NoInspect]
+        return [inspect.IloInspect] + super(
+            IloHardware, self).supported_inspect_interfaces
 
     @property
     def supported_management_interfaces(self):
@@ -81,7 +80,8 @@ class Ilo5Hardware(IloHardware):
     @property
     def supported_raid_interfaces(self):
         """List of supported raid interfaces."""
-        return [raid.Ilo5RAID, noop.NoRAID]
+        return [raid.Ilo5RAID] + super(
+            Ilo5Hardware, self).supported_raid_interfaces
 
     @property
     def supported_management_interfaces(self):
