@@ -19,6 +19,7 @@
 
 import errno
 import fcntl
+import ipaddress
 import os
 import random
 import signal
@@ -31,7 +32,6 @@ from unittest import mock
 from ironic_lib import utils as ironic_utils
 from oslo_config import cfg
 from oslo_service import loopingcall
-from oslo_utils import netutils
 import psutil
 
 from ironic.common import exception
@@ -223,7 +223,7 @@ class ConsoleUtilsTestCase(db_base.DbTestCase):
         generated_url = (
             console_utils.get_shellinabox_console_url(self.info['port']))
         console_host = CONF.my_ip
-        if netutils.is_valid_ipv6(console_host):
+        if ipaddress.ip_address(console_host).version == 6:
             console_host = '[%s]' % console_host
         http_url = "%s://%s:%s" % (scheme, console_host, self.info['port'])
         self.assertEqual(http_url, generated_url)

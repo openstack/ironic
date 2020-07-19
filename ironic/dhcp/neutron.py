@@ -19,7 +19,6 @@ import time
 
 from neutronclient.common import exceptions as neutron_client_exc
 from oslo_log import log as logging
-from oslo_utils import netutils
 
 from ironic.common import exception
 from ironic.common.i18n import _
@@ -187,12 +186,18 @@ class NeutronDHCPApi(base.BaseDHCP):
             ip_address = fixed_ips[0].get('ip_address', None)
 
         if ip_address:
-            if netutils.is_valid_ipv4(ip_address):
-                return ip_address
-            else:
-                LOG.error("Neutron returned invalid IPv4 "
-                          "address %(ip_address)s on port %(port_uuid)s.",
-                          {'ip_address': ip_address, 'port_uuid': port_uuid})
+            try:
+                if ipaddress.ip_address(ip_address).version == 4:
+                    return ip_address
+                else:
+                    LOG.error("Neutron returned invalid IPv4 "
+                              "address %(ip_address)s on port %(port_uuid)s.",
+                              {'ip_address': ip_address,
+                               'port_uuid': port_uuid})
+                    raise exception.InvalidIPv4Address(ip_address=ip_address)
+            except ValueError as exc:
+                LOG.error("An Invalid IP address was supplied and failed "
+                          "basic validation: %s", exc)
                 raise exception.InvalidIPv4Address(ip_address=ip_address)
         else:
             LOG.error("No IP address assigned to Neutron port %s.",
