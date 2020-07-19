@@ -23,7 +23,6 @@ import base64
 import datetime
 import decimal
 import inspect
-import io
 import re
 import weakref
 
@@ -698,52 +697,6 @@ class Base(metaclass=BaseMeta):
         for key, value in kw.items():
             if hasattr(self, key):
                 setattr(self, key, value)
-
-
-class File(Base):
-    """A complex type that represents a file.
-
-    In the particular case of protocol accepting form encoded data as
-    input, File can be loaded from a form file field.
-    """
-    #: The file name
-    filename = str
-
-    #: Mime type of the content
-    contenttype = str
-
-    def _get_content(self):
-        if self._content is None and self._file:
-            self._content = self._file.read()
-        return self._content
-
-    def _set_content(self, value):
-        self._content = value
-        self._file = None
-
-    #: File content
-    content = wsproperty(binary, _get_content, _set_content)
-
-    def __init__(self, filename=None, file=None, content=None,
-                 contenttype=None, fieldstorage=None):
-        self.filename = filename
-        self.contenttype = contenttype
-        self._file = file
-        self._content = content
-
-        if fieldstorage is not None:
-            if fieldstorage.file:
-                self._file = fieldstorage.file
-                self.filename = fieldstorage.filename
-                self.contenttype = str(fieldstorage.type)
-            else:
-                self._content = fieldstorage.value
-
-    @property
-    def file(self):
-        if self._file is None and self._content:
-            self._file = io.BytesIO(self._content)
-        return self._file
 
 
 class Response(object):

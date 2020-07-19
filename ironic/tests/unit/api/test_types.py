@@ -474,68 +474,6 @@ Value: 'v3'. Value should be one of: v., v.",
         assert isinstance(a.datatype, list)
         assert a.datatype[0] is int
 
-    def test_file_get_content_by_reading(self):
-        class buffer:
-            def read(self):
-                return 'abcdef'
-        f = types.File(file=buffer())
-        assert f.content == 'abcdef'
-
-    def test_file_content_overrides_file(self):
-        class buffer:
-            def read(self):
-                return 'from-file'
-        f = types.File(content='from-content', file=buffer())
-        assert f.content == 'from-content'
-
-    def test_file_setting_content_discards_file(self):
-        class buffer:
-            def read(self):
-                return 'from-file'
-        f = types.File(file=buffer())
-        f.content = 'from-content'
-        assert f.content == 'from-content'
-
-    def test_file_field_storage(self):
-        class buffer:
-            def read(self):
-                return 'from-file'
-
-        class fieldstorage:
-            filename = 'static.json'
-            file = buffer()
-            type = 'application/json'
-        f = types.File(fieldstorage=fieldstorage)
-        assert f.content == 'from-file'
-
-    def test_file_field_storage_value(self):
-        class buffer:
-            def read(self):
-                return 'from-file'
-
-        class fieldstorage:
-            filename = 'static.json'
-            file = None
-            type = 'application/json'
-            value = 'from-value'
-        f = types.File(fieldstorage=fieldstorage)
-        assert f.content == 'from-value'
-
-    def test_file_property_file(self):
-        class buffer:
-            def read(self):
-                return 'from-file'
-        buf = buffer()
-        f = types.File(file=buf)
-        assert f.file is buf
-
-    def test_file_property_content(self):
-        class buffer:
-            def read(self):
-                return 'from-file'
-        f = types.File(content=b'from-content')
-        assert f.file.read() == b'from-content'
-
     def test_unregister(self):
         class TempType(object):
             pass
