@@ -1,0 +1,16 @@
+---
+features:
+  - |
+    Adds a new ``[ipmi]use_ipmitool_retries`` option. When set to
+    ``True`` and timing is supported by ipmitool, the number of
+    retries and command interval will be passed to ipmitool so
+    that ipmitool will do the retries.  When set to ``False``,
+    ironic will do the retries.  Default is ``True``.
+issues:
+  - |
+    Some BMCs do not support the ``Channel Cipher Suites`` command
+    that newer versions of ipmitool use.  These versions of
+    ipmitool will resend this command for each ipmitool retry,
+    resulting in long response times.  Setting
+    ``[ipmi]use_ipmitool_retries`` to ``false`` will avoid this
+    situation by implementing retries on the ironic level.
