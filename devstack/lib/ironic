@@ -164,6 +164,17 @@ if [[ -n "$BUILD_TIMEOUT" ]]; then
     echo "WARNING: BUILD_TIMEOUT variable is renamed to IRONIC_TEMPEST_BUILD_TIMEOUT and will be deprecated in Pike."
 fi
 
+hostdomain=$(hostname)
+if [[ "$hostdomain" =~ "rax" ]]; then
+    echo "WARNING: Auto-increasing the requested build timeout by 1.5 as the detected hostname suggests a cloud host where VMs are software emulated."
+    # NOTE(TheJulia): Rax hosts are entirely qemu emulated, not CPU enabled
+    # virtualization. As such, the ramdisk decompression is known to take an
+    # eceptional amount of time and we need to afford a little more time to
+    # these hosts for jobs to complete without issues.
+    new_timeout=$(echo "$IRONIC_TEMPEST_BUILD_TIMEOUT * 1.5 / 1" | bc)
+    IRONIC_TEMPEST_BUILD_TIMEOUT=$new_timeout
+fi
+
 IRONIC_DEFAULT_API_VERSION=${IRONIC_DEFAULT_API_VERSION:-}
 IRONIC_CMD="openstack baremetal"
 if [[ -n "$IRONIC_DEFAULT_API_VERSION" ]]; then
