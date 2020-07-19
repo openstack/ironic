@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from oslo_utils import uuidutils
+
 from ironic.conductor import task_manager
 from ironic.drivers.modules import agent
 from ironic.drivers.modules import drac
@@ -42,7 +44,7 @@ class IDRACHardwareTestCase(db_base.DbTestCase):
                         'no-inspect'],
                     enabled_network_interfaces=['flat', 'neutron', 'noop'],
                     enabled_raid_interfaces=[
-                        'idrac', 'idrac-wsman', 'no-raid'],
+                        'idrac', 'idrac-wsman', 'no-raid', 'agent'],
                     enabled_vendor_interfaces=[
                         'idrac', 'idrac-wsman', 'no-vendor'],
                     enabled_bios_interfaces=[
@@ -108,11 +110,14 @@ class IDRACHardwareTestCase(db_base.DbTestCase):
                                       inspect=inspector.Inspector)
 
     def test_override_with_raid(self):
-        node = obj_utils.create_test_node(self.context, driver='idrac',
-                                          raid_interface='no-raid')
-        with task_manager.acquire(self.context, node.id) as task:
-            self._validate_interfaces(task.driver,
-                                      raid=noop.NoRAID)
+        for iface, impl in [('agent', agent.AgentRAID),
+                            ('no-raid', noop.NoRAID)]:
+            node = obj_utils.create_test_node(self.context,
+                                              uuid=uuidutils.generate_uuid(),
+                                              driver='idrac',
+                                              raid_interface=iface)
+            with task_manager.acquire(self.context, node.id) as task:
+                self._validate_interfaces(task.driver, raid=impl)
 
     def test_override_no_vendor(self):
         node = obj_utils.create_test_node(self.context, driver='idrac',
