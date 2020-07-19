@@ -92,7 +92,7 @@ class TestAgentClient(base.TestCase):
 
     def test__get_command_url_fail(self):
         del self.node.driver_internal_info['agent_url']
-        self.assertRaises(exception.IronicException,
+        self.assertRaises(exception.AgentConnectionFailed,
                           self.client._get_command_url,
                           self.node)
 
@@ -162,7 +162,7 @@ class TestAgentClient(base.TestCase):
         method = 'foo.bar'
         params = {}
 
-        self.client._get_command_url(self.node)
+        url = self.client._get_command_url(self.node)
         self.client._get_command_body(method, params)
 
         e = self.assertRaises(exception.AgentConnectionFailed,
@@ -173,6 +173,12 @@ class TestAgentClient(base.TestCase):
                          'command %(method)s. Error: %(error)s' %
                          {'method': method, 'node': self.node.uuid,
                           'error': error}, str(e))
+        self.client.session.post.assert_called_with(
+            url,
+            data=mock.ANY,
+            params={'wait': 'false'},
+            timeout=60)
+        self.assertEqual(3, self.client.session.post.call_count)
 
     def test__command_error_code(self):
         response_text = {"faultstring": "you dun goofd"}
@@ -259,15 +265,21 @@ class TestAgentClient(base.TestCase):
                 timeout=CONF.agent.command_timeout)
 
     def test_get_commands_status_retries(self):
-        with mock.patch.object(self.client.session, 'get',
-                               autospec=True) as mock_get:
-            res = mock.MagicMock(spec_set=['json'])
-            res.json.return_value = {'commands': []}
-            mock_get.side_effect = [
-                requests.ConnectionError('boom'),
-                res]
-            self.assertEqual([], self.client.get_commands_status(self.node))
-            self.assertEqual(2, mock_get.call_count)
+        res = mock.MagicMock(spec_set=['json'])
+        res.json.return_value = {'commands': []}
+        self.client.session.get.side_effect = [
+            requests.ConnectionError('boom'),
+            res
+        ]
+        self.assertEqual([], self.client.get_commands_status(self.node))
+        self.assertEqual(2, self.client.session.get.call_count)
+
+    def test_get_commands_status_no_retries(self):
+        self.client.session.get.side_effect = requests.ConnectionError('boom')
+        self.assertRaises(exception.AgentConnectionFailed,
+                          self.client.get_commands_status, self.node,
+                          retry_connection=False)
+        self.assertEqual(1, self.client.session.get.call_count)
 
     def test_prepare_image(self):
         self.client._command = mock.MagicMock(spec_set=[])
