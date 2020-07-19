@@ -176,6 +176,37 @@ class RedfishManagementTestCase(db_base.DbTestCase):
             self.assertNotIn('redfish_boot_device',
                              task.node.driver_internal_info)
 
+    @mock.patch.object(redfish_utils, 'get_system', autospec=True)
+    def test_set_boot_device_fail_no_change(self, mock_get_system):
+        fake_system = mock.Mock()
+        fake_system.set_system_boot_options.side_effect = (
+            sushy.exceptions.SushyError()
+        )
+        mock_get_system.return_value = fake_system
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            expected_values = [
+                (True, sushy.BOOT_SOURCE_ENABLED_CONTINUOUS),
+                (False, sushy.BOOT_SOURCE_ENABLED_ONCE)
+            ]
+
+            for target, expected in expected_values:
+                fake_system.boot.get.return_value = expected
+
+                self.assertRaisesRegex(
+                    exception.RedfishError, 'Redfish set boot device',
+                    task.driver.management.set_boot_device, task,
+                    boot_devices.PXE, persistent=target)
+                fake_system.set_system_boot_options.assert_called_once_with(
+                    sushy.BOOT_SOURCE_TARGET_PXE, enabled=None)
+                mock_get_system.assert_called_once_with(task.node)
+                self.assertNotIn('redfish_boot_device',
+                                 task.node.driver_internal_info)
+
+                # Reset mocks
+                fake_system.set_system_boot_options.reset_mock()
+                mock_get_system.reset_mock()
+
     @mock.patch.object(sushy, 'Sushy', autospec=True)
     @mock.patch.object(redfish_utils, 'get_system', autospec=True)
     def test_set_boot_device_persistence_fallback(self, mock_get_system,
