@@ -257,11 +257,11 @@ class MyThingController(pecan.rest.RestController):
 
     @expose.expose(str)
     def no_content(self):
-        return atypes.Response('nothing', status_code=204)
+        return atypes.PassthruResponse('nothing', status_code=204)
 
     @expose.expose(str)
     def response_content(self):
-        return atypes.Response('nothing', status_code=200)
+        return atypes.PassthruResponse('nothing', status_code=200)
 
     @expose.expose(str)
     def ouch(self):

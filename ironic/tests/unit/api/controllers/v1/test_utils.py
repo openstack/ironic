@@ -15,12 +15,12 @@
 #    under the License.
 
 from http import client as http_client
+import io
 from unittest import mock
 
 import os_traits
 from oslo_config import cfg
 from oslo_utils import uuidutils
-from webob import static
 
 from ironic import api
 from ironic.api.controllers.v1 import node as api_node
@@ -688,9 +688,8 @@ class TestVendorPassthru(base.TestCase):
         passthru_mock.assert_called_once_with(
             'fake-context', 'fake-ident', 'squarepants', 'POST',
             'fake-data', 'fake-topic')
-        self.assertIsInstance(response, atypes.Response)
+        self.assertIsInstance(response, atypes.PassthruResponse)
         self.assertEqual('SpongeBob', response.obj)
-        self.assertEqual(response.return_type, atypes.Unset)
         sc = http_client.ACCEPTED if async_call else http_client.OK
         self.assertEqual(sc, response.status_code)
 
@@ -706,11 +705,10 @@ class TestVendorPassthru(base.TestCase):
     def test_driver_vendor_passthru_sync(self):
         self._vendor_passthru(async_call=False, driver_passthru=True)
 
-    @mock.patch.object(api, 'response', spec_set=['app_iter'])
     @mock.patch.object(api, 'request',
                        spec_set=['method', 'context', 'rpcapi'])
     def _test_vendor_passthru_attach(self, return_value, expct_return_value,
-                                     mock_request, mock_response):
+                                     mock_request):
         return_ = {'return': return_value, 'async': False, 'attach': True}
         mock_request.method = 'get'
         mock_request.context = 'fake-context'
@@ -723,13 +721,10 @@ class TestVendorPassthru(base.TestCase):
             'fake-data', 'fake-topic')
 
         # Assert file was attached to the response object
-        self.assertIsInstance(mock_response.app_iter, static.FileIter)
-        self.assertEqual(expct_return_value,
-                         mock_response.app_iter.file.read())
+        self.assertIsInstance(response.obj, io.BytesIO)
+        self.assertEqual(expct_return_value, response.obj.read())
         # Assert response message is none
-        self.assertIsInstance(response, atypes.Response)
-        self.assertIsNone(response.obj)
-        self.assertIsNone(response.return_type)
+        self.assertIsInstance(response, atypes.PassthruResponse)
         self.assertEqual(http_client.OK, response.status_code)
 
     def test_vendor_passthru_attach(self):

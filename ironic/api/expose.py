@@ -25,6 +25,7 @@ import traceback
 from oslo_config import cfg
 from oslo_log import log
 import pecan
+from webob import static
 
 from ironic.api import args as api_args
 from ironic.api import functions
@@ -78,7 +79,7 @@ def expose(*args, **kwargs):
 
                 # NOTE: Support setting of status_code with default 201
                 pecan.response.status = funcdef.status_code
-                if isinstance(result, atypes.Response):
+                if isinstance(result, atypes.PassthruResponse):
                     pecan.response.status = result.status_code
 
                     # NOTE(lucasagomes): If the return code is 204
@@ -87,11 +88,14 @@ def expose(*args, **kwargs):
                     # content-length is 0
                     if result.status_code == 204:
                         return_type = None
-                    elif not isinstance(result.return_type,
-                                        atypes.UnsetType):
-                        return_type = result.return_type
 
-                    result = result.obj
+                    if callable(getattr(result.obj, 'read', None)):
+                        # Stream the files-like data directly to the response
+                        pecan.response.app_iter = static.FileIter(result.obj)
+                        return_type = None
+                        result = None
+                    else:
+                        result = result.obj
 
             except Exception:
                 try:
