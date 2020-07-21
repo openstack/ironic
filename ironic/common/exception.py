@@ -20,7 +20,6 @@ from http import client as http_client
 
 from ironic_lib.exception import IronicException
 from oslo_log import log as logging
-import wsme
 
 from ironic.common.i18n import _
 
@@ -713,8 +712,21 @@ class IBMCConnectionError(IBMCError):
     _msg_fmt = _("IBMC connection failed for node %(node)s: %(error)s")
 
 
-class ClientSideError(wsme.exc.ClientSideError):
-    pass
+class ClientSideError(RuntimeError):
+    def __init__(self, msg=None, status_code=400, faultcode='Client'):
+        self.msg = msg
+        self.code = status_code
+        self.faultcode = faultcode
+        super(ClientSideError, self).__init__(self.faultstring)
+
+    @property
+    def faultstring(self):
+        if self.msg is None:
+            return str(self)
+        elif isinstance(self.msg, str):
+            return self.msg
+        else:
+            return str(self.msg)
 
 
 class NodeIsRetired(Invalid):
