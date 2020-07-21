@@ -258,12 +258,6 @@ class TestArgs(test_base.TestCase):
         )
         self.assertIsNone(args.from_param(datetime.datetime, None))
 
-        # file param
-        self.assertEqual(
-            b'foo',
-            args.from_param(atypes.File, b'foo').content
-        )
-
         # usertype param
         self.assertEqual(
             ['0', '1', '2', 'three'],

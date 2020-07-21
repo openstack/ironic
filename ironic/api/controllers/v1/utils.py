@@ -15,6 +15,7 @@
 
 from http import client as http_client
 import inspect
+import io
 import re
 
 import jsonpatch
@@ -425,8 +426,7 @@ def vendor_passthru(ident, method, topic, data=None, driver_passthru=False):
         if isinstance(return_value, str):
             # If unicode, convert to bytes
             return_value = return_value.encode('utf-8')
-        file_ = atypes.File(content=return_value)
-        api.response.app_iter = static.FileIter(file_.file)
+        api.response.app_iter = static.FileIter(io.BytesIO(return_value))
         # Since we've attached the return value to the response
         # object the response body should now be empty.
         return_value = None

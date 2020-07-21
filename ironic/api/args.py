@@ -16,7 +16,6 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-import cgi
 import datetime
 import decimal
 import json
@@ -186,11 +185,6 @@ def parse(s, datatypes, bodyarg, encoding='utf8'):
 def from_param(datatype, value):
     if datatype is datetime.datetime:
         return dateparser.parse(value) if value else None
-
-    if datatype is atypes.File:
-        if isinstance(value, cgi.FieldStorage):
-            return atypes.File(fieldstorage=value)
-        return atypes.File(content=value)
 
     if isinstance(datatype, atypes.UserType):
         return datatype.frombasetype(
