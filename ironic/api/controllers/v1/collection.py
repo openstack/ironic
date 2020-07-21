@@ -52,5 +52,5 @@ class Collection(base.Base):
             'args': q_args, 'limit': limit,
             'marker': getattr(self.collection[-1], self.get_key_field())}
 
-        return link.Link.make_link('next', api.request.public_url,
-                                   resource_url, next_args).href
+        return link.make_link('next', api.request.public_url,
+                              resource_url, next_args)['href']

@@ -87,7 +87,7 @@ class VolumeConnector(base.APIBase):
                                   _set_node_identifiers, mandatory=True)
     """The UUID of the node this volume connector belongs to"""
 
-    links = atypes.wsattr([link.Link], readonly=True)
+    links = None
     """A list containing a self link and associated volume connector links"""
 
     def __init__(self, **kwargs):
@@ -117,13 +117,13 @@ class VolumeConnector(base.APIBase):
     @staticmethod
     def _convert_with_links(connector, url):
 
-        connector.links = [link.Link.make_link('self', url,
-                                               'volume/connectors',
-                                               connector.uuid),
-                           link.Link.make_link('bookmark', url,
-                                               'volume/connectors',
-                                               connector.uuid,
-                                               bookmark=True)
+        connector.links = [link.make_link('self', url,
+                                          'volume/connectors',
+                                          connector.uuid),
+                           link.make_link('bookmark', url,
+                                          'volume/connectors',
+                                          connector.uuid,
+                                          bookmark=True)
                            ]
         return connector
 

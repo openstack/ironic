@@ -343,7 +343,7 @@ class Indicator(base.APIBase):
 
     states = atypes.ArrayType(str)
 
-    links = atypes.wsattr([link.Link], readonly=True)
+    links = None
 
     def __init__(self, **kwargs):
         self.name = kwargs.get('name')
@@ -355,11 +355,11 @@ class Indicator(base.APIBase):
     def _convert_with_links(node_uuid, indicator, url):
         """Add links to the indicator."""
         indicator.links = [
-            link.Link.make_link(
+            link.make_link(
                 'self', url, 'nodes',
                 '%s/management/indicators/%s' % (
                     node_uuid, indicator.name)),
-            link.Link.make_link(
+            link.make_link(
                 'bookmark', url, 'nodes',
                 '%s/management/indicators/%s' % (
                     node_uuid, indicator.name),
@@ -1206,19 +1206,19 @@ class Node(base.APIBase):
                                      _set_chassis_uuid)
     """The UUID of the chassis this node belongs"""
 
-    links = atypes.wsattr([link.Link], readonly=True)
+    links = None
     """A list containing a self link and associated node links"""
 
-    ports = atypes.wsattr([link.Link], readonly=True)
+    ports = None
     """Links to the collection of ports on this node"""
 
-    portgroups = atypes.wsattr([link.Link], readonly=True)
+    portgroups = None
     """Links to the collection of portgroups on this node"""
 
-    volume = atypes.wsattr([link.Link], readonly=True)
+    volume = None
     """Links to endpoint for retrieving volume resources on this node"""
 
-    states = atypes.wsattr([link.Link], readonly=True)
+    states = None
     """Links to endpoint for retrieving and setting node states"""
 
     boot_interface = atypes.wsattr(str)
@@ -1336,38 +1336,38 @@ class Node(base.APIBase):
     def _convert_with_links(node, url, fields=None, show_states_links=True,
                             show_portgroups=True, show_volume=True):
         if fields is None:
-            node.ports = [link.Link.make_link('self', url, 'nodes',
-                                              node.uuid + "/ports"),
-                          link.Link.make_link('bookmark', url, 'nodes',
-                                              node.uuid + "/ports",
-                                              bookmark=True)
+            node.ports = [link.make_link('self', url, 'nodes',
+                                         node.uuid + "/ports"),
+                          link.make_link('bookmark', url, 'nodes',
+                                         node.uuid + "/ports",
+                                         bookmark=True)
                           ]
             if show_states_links:
-                node.states = [link.Link.make_link('self', url, 'nodes',
-                                                   node.uuid + "/states"),
-                               link.Link.make_link('bookmark', url, 'nodes',
-                                                   node.uuid + "/states",
-                                                   bookmark=True)]
+                node.states = [link.make_link('self', url, 'nodes',
+                                              node.uuid + "/states"),
+                               link.make_link('bookmark', url, 'nodes',
+                                              node.uuid + "/states",
+                                              bookmark=True)]
             if show_portgroups:
                 node.portgroups = [
-                    link.Link.make_link('self', url, 'nodes',
-                                        node.uuid + "/portgroups"),
-                    link.Link.make_link('bookmark', url, 'nodes',
-                                        node.uuid + "/portgroups",
-                                        bookmark=True)]
+                    link.make_link('self', url, 'nodes',
+                                   node.uuid + "/portgroups"),
+                    link.make_link('bookmark', url, 'nodes',
+                                   node.uuid + "/portgroups",
+                                   bookmark=True)]
 
             if show_volume:
                 node.volume = [
-                    link.Link.make_link('self', url, 'nodes',
-                                        node.uuid + "/volume"),
-                    link.Link.make_link('bookmark', url, 'nodes',
-                                        node.uuid + "/volume",
-                                        bookmark=True)]
+                    link.make_link('self', url, 'nodes',
+                                   node.uuid + "/volume"),
+                    link.make_link('bookmark', url, 'nodes',
+                                   node.uuid + "/volume",
+                                   bookmark=True)]
 
-        node.links = [link.Link.make_link('self', url, 'nodes',
-                                          node.uuid),
-                      link.Link.make_link('bookmark', url, 'nodes',
-                                          node.uuid, bookmark=True)
+        node.links = [link.make_link('self', url, 'nodes',
+                                     node.uuid),
+                      link.make_link('bookmark', url, 'nodes',
+                                     node.uuid, bookmark=True)
                       ]
         return node
 

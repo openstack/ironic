@@ -65,7 +65,7 @@ class Allocation(base.APIBase):
     name = atypes.wsattr(str)
     """The logical name for this allocation"""
 
-    links = atypes.wsattr([link.Link], readonly=True)
+    links = None
     """A list containing a self link and associated allocation links"""
 
     state = atypes.wsattr(str, readonly=True)
@@ -107,9 +107,9 @@ class Allocation(base.APIBase):
         # This field is only used in POST, never return it.
         allocation.node = atypes.Unset
         allocation.links = [
-            link.Link.make_link('self', url, 'allocations', allocation.uuid),
-            link.Link.make_link('bookmark', url, 'allocations',
-                                allocation.uuid, bookmark=True)
+            link.make_link('self', url, 'allocations', allocation.uuid),
+            link.make_link('bookmark', url, 'allocations',
+                           allocation.uuid, bookmark=True)
         ]
         return allocation
 

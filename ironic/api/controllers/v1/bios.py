@@ -37,7 +37,7 @@ class BIOSSetting(base.APIBase):
 
     value = atypes.wsattr(str)
 
-    links = atypes.wsattr([link.Link], readonly=True)
+    links = None
 
     def __init__(self, **kwargs):
         self.fields = []
@@ -52,11 +52,11 @@ class BIOSSetting(base.APIBase):
     def _convert_with_links(bios, node_uuid, url):
         """Add links to the bios setting."""
         name = bios.name
-        bios.links = [link.Link.make_link('self', url, 'nodes',
-                                          "%s/bios/%s" % (node_uuid, name)),
-                      link.Link.make_link('bookmark', url, 'nodes',
-                                          "%s/bios/%s" % (node_uuid, name),
-                                          bookmark=True)]
+        bios.links = [link.make_link('self', url, 'nodes',
+                                     "%s/bios/%s" % (node_uuid, name)),
+                      link.make_link('bookmark', url, 'nodes',
+                                     "%s/bios/%s" % (node_uuid, name),
+                                     bookmark=True)]
         return bios
 
     @classmethod

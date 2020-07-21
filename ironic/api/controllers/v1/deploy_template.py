@@ -82,7 +82,7 @@ class DeployTemplate(base.APIBase):
     steps = atypes.wsattr([DeployStepType], mandatory=True)
     """The deploy steps of this deploy template."""
 
-    links = atypes.wsattr([link.Link])
+    links = None
     """A list containing a self link and associated deploy template links."""
 
     extra = {str: types.jsontype}
@@ -148,11 +148,11 @@ class DeployTemplate(base.APIBase):
     @staticmethod
     def _convert_with_links(template, url, fields=None):
         template.links = [
-            link.Link.make_link('self', url, 'deploy_templates',
-                                template.uuid),
-            link.Link.make_link('bookmark', url, 'deploy_templates',
-                                template.uuid,
-                                bookmark=True)
+            link.make_link('self', url, 'deploy_templates',
+                           template.uuid),
+            link.make_link('bookmark', url, 'deploy_templates',
+                           template.uuid,
+                           bookmark=True)
         ]
         return template
 

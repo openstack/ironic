@@ -77,158 +77,158 @@ class V1(base.Base):
     media_types = [MediaType]
     """An array of supported media types for this version"""
 
-    links = [link.Link]
+    links = None
     """Links that point to a specific URL for this version and documentation"""
 
-    chassis = [link.Link]
+    chassis = None
     """Links to the chassis resource"""
 
-    nodes = [link.Link]
+    nodes = None
     """Links to the nodes resource"""
 
-    ports = [link.Link]
+    ports = None
     """Links to the ports resource"""
 
-    portgroups = [link.Link]
+    portgroups = None
     """Links to the portgroups resource"""
 
-    drivers = [link.Link]
+    drivers = None
     """Links to the drivers resource"""
 
-    volume = [link.Link]
+    volume = None
     """Links to the volume resource"""
 
-    lookup = [link.Link]
+    lookup = None
     """Links to the lookup resource"""
 
-    heartbeat = [link.Link]
+    heartbeat = None
     """Links to the heartbeat resource"""
 
-    conductors = [link.Link]
+    conductors = None
     """Links to the conductors resource"""
 
-    allocations = [link.Link]
+    allocations = None
     """Links to the allocations resource"""
 
-    deploy_templates = [link.Link]
+    deploy_templates = None
     """Links to the deploy_templates resource"""
 
     version = version.Version
     """Version discovery information."""
 
-    events = [link.Link]
+    events = None
     """Links to the events resource"""
 
     @staticmethod
     def convert():
         v1 = V1()
         v1.id = "v1"
-        v1.links = [link.Link.make_link('self', api.request.public_url,
-                                        'v1', '', bookmark=True),
-                    link.Link.make_link('describedby',
-                                        'https://docs.openstack.org',
-                                        '/ironic/latest/contributor/',
-                                        'webapi.html',
-                                        bookmark=True, type='text/html')
+        v1.links = [link.make_link('self', api.request.public_url,
+                                   'v1', '', bookmark=True),
+                    link.make_link('describedby',
+                                   'https://docs.openstack.org',
+                                   '/ironic/latest/contributor/',
+                                   'webapi.html',
+                                   bookmark=True, type='text/html')
                     ]
         v1.media_types = [MediaType('application/json',
                           'application/vnd.openstack.ironic.v1+json')]
-        v1.chassis = [link.Link.make_link('self', api.request.public_url,
-                                          'chassis', ''),
-                      link.Link.make_link('bookmark',
-                                          api.request.public_url,
-                                          'chassis', '',
-                                          bookmark=True)
+        v1.chassis = [link.make_link('self', api.request.public_url,
+                                     'chassis', ''),
+                      link.make_link('bookmark',
+                                     api.request.public_url,
+                                     'chassis', '',
+                                     bookmark=True)
                       ]
-        v1.nodes = [link.Link.make_link('self', api.request.public_url,
-                                        'nodes', ''),
-                    link.Link.make_link('bookmark',
-                                        api.request.public_url,
-                                        'nodes', '',
-                                        bookmark=True)
+        v1.nodes = [link.make_link('self', api.request.public_url,
+                                   'nodes', ''),
+                    link.make_link('bookmark',
+                                   api.request.public_url,
+                                   'nodes', '',
+                                   bookmark=True)
                     ]
-        v1.ports = [link.Link.make_link('self', api.request.public_url,
-                                        'ports', ''),
-                    link.Link.make_link('bookmark',
-                                        api.request.public_url,
-                                        'ports', '',
-                                        bookmark=True)
+        v1.ports = [link.make_link('self', api.request.public_url,
+                                   'ports', ''),
+                    link.make_link('bookmark',
+                                   api.request.public_url,
+                                   'ports', '',
+                                   bookmark=True)
                     ]
         if utils.allow_portgroups():
             v1.portgroups = [
-                link.Link.make_link('self', api.request.public_url,
-                                    'portgroups', ''),
-                link.Link.make_link('bookmark', api.request.public_url,
-                                    'portgroups', '', bookmark=True)
+                link.make_link('self', api.request.public_url,
+                               'portgroups', ''),
+                link.make_link('bookmark', api.request.public_url,
+                               'portgroups', '', bookmark=True)
             ]
-        v1.drivers = [link.Link.make_link('self', api.request.public_url,
-                                          'drivers', ''),
-                      link.Link.make_link('bookmark',
-                                          api.request.public_url,
-                                          'drivers', '',
-                                          bookmark=True)
+        v1.drivers = [link.make_link('self', api.request.public_url,
+                                     'drivers', ''),
+                      link.make_link('bookmark',
+                                     api.request.public_url,
+                                     'drivers', '',
+                                     bookmark=True)
                       ]
         if utils.allow_volume():
             v1.volume = [
-                link.Link.make_link('self',
-                                    api.request.public_url,
-                                    'volume', ''),
-                link.Link.make_link('bookmark',
-                                    api.request.public_url,
-                                    'volume', '',
-                                    bookmark=True)
+                link.make_link('self',
+                               api.request.public_url,
+                               'volume', ''),
+                link.make_link('bookmark',
+                               api.request.public_url,
+                               'volume', '',
+                               bookmark=True)
             ]
         if utils.allow_ramdisk_endpoints():
-            v1.lookup = [link.Link.make_link('self', api.request.public_url,
-                                             'lookup', ''),
-                         link.Link.make_link('bookmark',
-                                             api.request.public_url,
-                                             'lookup', '',
-                                             bookmark=True)
+            v1.lookup = [link.make_link('self', api.request.public_url,
+                                        'lookup', ''),
+                         link.make_link('bookmark',
+                                        api.request.public_url,
+                                        'lookup', '',
+                                        bookmark=True)
                          ]
-            v1.heartbeat = [link.Link.make_link('self',
-                                                api.request.public_url,
-                                                'heartbeat', ''),
-                            link.Link.make_link('bookmark',
-                                                api.request.public_url,
-                                                'heartbeat', '',
-                                                bookmark=True)
+            v1.heartbeat = [link.make_link('self',
+                                           api.request.public_url,
+                                           'heartbeat', ''),
+                            link.make_link('bookmark',
+                                           api.request.public_url,
+                                           'heartbeat', '',
+                                           bookmark=True)
                             ]
         if utils.allow_expose_conductors():
-            v1.conductors = [link.Link.make_link('self',
-                                                 api.request.public_url,
-                                                 'conductors', ''),
-                             link.Link.make_link('bookmark',
-                                                 api.request.public_url,
-                                                 'conductors', '',
-                                                 bookmark=True)
+            v1.conductors = [link.make_link('self',
+                                            api.request.public_url,
+                                            'conductors', ''),
+                             link.make_link('bookmark',
+                                            api.request.public_url,
+                                            'conductors', '',
+                                            bookmark=True)
                              ]
         if utils.allow_allocations():
-            v1.allocations = [link.Link.make_link('self',
-                                                  api.request.public_url,
-                                                  'allocations', ''),
-                              link.Link.make_link('bookmark',
-                                                  api.request.public_url,
-                                                  'allocations', '',
-                                                  bookmark=True)
+            v1.allocations = [link.make_link('self',
+                                             api.request.public_url,
+                                             'allocations', ''),
+                              link.make_link('bookmark',
+                                             api.request.public_url,
+                                             'allocations', '',
+                                             bookmark=True)
                               ]
         if utils.allow_expose_events():
-            v1.events = [link.Link.make_link('self', api.request.public_url,
-                                             'events', ''),
-                         link.Link.make_link('bookmark',
-                                             api.request.public_url,
-                                             'events', '',
-                                             bookmark=True)
+            v1.events = [link.make_link('self', api.request.public_url,
+                                        'events', ''),
+                         link.make_link('bookmark',
+                                        api.request.public_url,
+                                        'events', '',
+                                        bookmark=True)
                          ]
         if utils.allow_deploy_templates():
             v1.deploy_templates = [
-                link.Link.make_link('self',
-                                    api.request.public_url,
-                                    'deploy_templates', ''),
-                link.Link.make_link('bookmark',
-                                    api.request.public_url,
-                                    'deploy_templates', '',
-                                    bookmark=True)
+                link.make_link('self',
+                               api.request.public_url,
+                               'deploy_templates', ''),
+                link.make_link('bookmark',
+                               api.request.public_url,
+                               'deploy_templates', '',
+                               bookmark=True)
             ]
         v1.version = version.default_version()
         return v1

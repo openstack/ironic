@@ -27,7 +27,7 @@ class Version(base.Base):
     id = str
     """The ID of the (major) version, also acts as the release number"""
 
-    links = [link.Link]
+    links = None
     """A Link that point to a specific version of the API"""
 
     status = str
@@ -47,8 +47,8 @@ class Version(base.Base):
 
     def __init__(self, id, min_version, version, status='CURRENT'):
         self.id = id
-        self.links = [link.Link.make_link('self', api.request.public_url,
-                                          self.id, '', bookmark=True)]
+        self.links = [link.make_link('self', api.request.public_url,
+                                     self.id, '', bookmark=True)]
         self.status = status
         self.version = version
         self.min_version = min_version

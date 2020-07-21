@@ -94,7 +94,7 @@ class VolumeTarget(base.APIBase):
                                   _set_node_identifiers, mandatory=True)
     """The UUID of the node this volume target belongs to"""
 
-    links = atypes.wsattr([link.Link], readonly=True)
+    links = None
     """A list containing a self link and associated volume target links"""
 
     def __init__(self, **kwargs):
@@ -124,13 +124,13 @@ class VolumeTarget(base.APIBase):
     @staticmethod
     def _convert_with_links(target, url):
 
-        target.links = [link.Link.make_link('self', url,
-                                            'volume/targets',
-                                            target.uuid),
-                        link.Link.make_link('bookmark', url,
-                                            'volume/targets',
-                                            target.uuid,
-                                            bookmark=True)
+        target.links = [link.make_link('self', url,
+                                       'volume/targets',
+                                       target.uuid),
+                        link.make_link('bookmark', url,
+                                       'volume/targets',
+                                       target.uuid,
+                                       bookmark=True)
                         ]
         return target
 

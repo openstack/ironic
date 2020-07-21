@@ -14,8 +14,6 @@
 #    under the License.
 
 from ironic import api
-from ironic.api.controllers import base
-from ironic.api import types as atypes
 
 
 def build_url(resource, resource_args, bookmark=False, base_url=None):
@@ -30,28 +28,15 @@ def build_url(resource, resource_args, bookmark=False, base_url=None):
     return template % {'url': base_url, 'res': resource, 'args': resource_args}
 
 
-class Link(base.Base):
-    """A link representation."""
-
-    href = str
-    """The url of a link."""
-
-    rel = str
-    """The name of a link."""
-
-    type = str
-    """Indicates the type of document/link."""
-
-    @staticmethod
-    def make_link(rel_name, url, resource, resource_args,
-                  bookmark=False, type=atypes.Unset):
-        href = build_url(resource, resource_args,
-                         bookmark=bookmark, base_url=url)
-        return Link(href=href, rel=rel_name, type=type)
-
-    @classmethod
-    def sample(cls):
-        sample = cls(href="http://localhost:6385/chassis/"
-                          "eaaca217-e7d8-47b4-bb41-3f99f20eed89",
-                     rel="bookmark")
-        return sample
+def make_link(rel_name, url, resource, resource_args,
+              bookmark=False, type=None):
+    """Build a dict representing a link"""
+    href = build_url(resource, resource_args,
+                     bookmark=bookmark, base_url=url)
+    l = {
+        'href': href,
+        'rel': rel_name
+    }
+    if type:
+        l['type'] = type
+    return l

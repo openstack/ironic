@@ -58,10 +58,10 @@ class Chassis(base.APIBase):
     extra = {str: types.jsontype}
     """The metadata of the chassis"""
 
-    links = atypes.wsattr([link.Link], readonly=True)
+    links = None
     """A list containing a self link and associated chassis links"""
 
-    nodes = atypes.wsattr([link.Link], readonly=True)
+    nodes = None
     """Links to the collection of nodes contained in this chassis"""
 
     def __init__(self, **kwargs):
@@ -76,23 +76,23 @@ class Chassis(base.APIBase):
     @staticmethod
     def _convert_with_links(chassis, url, fields=None):
         if fields is None:
-            chassis.nodes = [link.Link.make_link('self',
-                                                 url,
-                                                 'chassis',
-                                                 chassis.uuid + "/nodes"),
-                             link.Link.make_link('bookmark',
-                                                 url,
-                                                 'chassis',
-                                                 chassis.uuid + "/nodes",
-                                                 bookmark=True)
+            chassis.nodes = [link.make_link('self',
+                                            url,
+                                            'chassis',
+                                            chassis.uuid + "/nodes"),
+                             link.make_link('bookmark',
+                                            url,
+                                            'chassis',
+                                            chassis.uuid + "/nodes",
+                                            bookmark=True)
                              ]
-        chassis.links = [link.Link.make_link('self',
-                                             url,
-                                             'chassis', chassis.uuid),
-                         link.Link.make_link('bookmark',
-                                             url,
-                                             'chassis', chassis.uuid,
-                                             bookmark=True)
+        chassis.links = [link.make_link('self',
+                                        url,
+                                        'chassis', chassis.uuid),
+                         link.make_link('bookmark',
+                                        url,
+                                        'chassis', chassis.uuid,
+                                        bookmark=True)
                          ]
         return chassis
 

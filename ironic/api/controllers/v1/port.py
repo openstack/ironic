@@ -155,7 +155,7 @@ class Port(base.APIBase):
     physical_network = atypes.StringType(max_length=64)
     """The name of the physical network to which this port is connected."""
 
-    links = atypes.wsattr([link.Link], readonly=True)
+    links = None
     """A list containing a self link and associated port links"""
 
     is_smartnic = types.boolean
@@ -199,11 +199,11 @@ class Port(base.APIBase):
 
         url = api.request.public_url
 
-        port.links = [link.Link.make_link('self', url,
-                                          'ports', port.uuid),
-                      link.Link.make_link('bookmark', url,
-                                          'ports', port.uuid,
-                                          bookmark=True)
+        port.links = [link.make_link('self', url,
+                                     'ports', port.uuid),
+                      link.make_link('bookmark', url,
+                                     'ports', port.uuid,
+                                     bookmark=True)
                       ]
 
         if not sanitize:
