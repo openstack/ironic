@@ -470,7 +470,7 @@
     vars:
       tox_envlist: all
       tempest_concurrency: 3
-      tempest_test_regex: "(ironic_tempest_plugin.tests.scenario|test_schedule_to_all_nodes)"
+      tempest_test_regex: "ironic_tempest_plugin.tests.scenario"
       tempest_test_timeout: 2400
       devstack_localrc:
         BUILD_TIMEOUT: 2400
@@ -500,10 +500,10 @@
         IRONIC_TEMPEST_BUILD_TIMEOUT: 600
         IRONIC_TEMPEST_WHOLE_DISK_IMAGE: True
         IRONIC_USE_LINK_LOCAL: True
-        IRONIC_VM_COUNT: 6
+        IRONIC_VM_COUNT: 3
         IRONIC_VM_EPHEMERAL_DISK: 0
         IRONIC_VM_LOG_DIR: '{{ devstack_base_dir }}/ironic-bm-logs'
-        IRONIC_VM_SPECS_RAM: 384
+        IRONIC_VM_SPECS_RAM: 512
         IRONIC_VM_SPECS_DISK: 4
         IRONIC_VM_SPECS_CPU: 1
         OVS_BRIDGE_MAPPINGS: 'mynetwork:brbm,public:br-infra'
@@ -583,11 +583,12 @@
           IRONIC_PROVISION_NETWORK_NAME: ironic-provision
           IRONIC_RAMDISK_TYPE: tinyipa
           IRONIC_USE_LINK_LOCAL: True
-          IRONIC_VM_COUNT: 6
+          IRONIC_VM_COUNT: 3
           IRONIC_VM_EPHEMERAL_DISK: 0
           IRONIC_VM_LOG_DIR: '{{ devstack_base_dir }}/ironic-bm-logs'
           IRONIC_VM_NETWORK_BRIDGE: sub1brbm
-          IRONIC_VM_SPECS_RAM: 384
+          IRONIC_VM_SPECS_RAM: 512
+          IRONIC_VM_SPECS_DISK: 4
           IRONIC_VM_SPECS_CPU: 1
           OVS_BRIDGE_MAPPINGS: 'mynetwork:sub1brbm,public:br-infra'
           OVS_PHYSICAL_BRIDGE: sub1brbm
