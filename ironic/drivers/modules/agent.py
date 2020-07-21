@@ -59,6 +59,21 @@ OPTIONAL_PROPERTIES = {
                         '``image_https_proxy`` are not specified. Optional.'),
 }
 
+_RAID_APPLY_CONFIGURATION_ARGSINFO = {
+    "raid_config": {
+        "description": "The RAID configuration to apply.",
+        "required": True,
+    },
+    "delete_existing": {
+        "description": (
+            "Setting this to 'True' indicates to delete existing RAID "
+            "configuration prior to creating the new configuration. "
+            "Default value is 'True'."
+        ),
+        "required": False,
+    }
+}
+
 COMMON_PROPERTIES = REQUIRED_PROPERTIES.copy()
 COMMON_PROPERTIES.update(OPTIONAL_PROPERTIES)
 COMMON_PROPERTIES.update(agent_base.VENDOR_PROPERTIES)
@@ -634,6 +649,25 @@ class AgentRAID(base.RAIDInterface):
         """
         return agent_base.get_steps(task, 'deploy', interface='raid')
 
+    @METRICS.timer('AgentRAID.apply_configuration')
+    @base.deploy_step(priority=0,
+                      argsinfo=_RAID_APPLY_CONFIGURATION_ARGSINFO)
+    def apply_configuration(self, task, raid_config,
+                            delete_existing=True):
+        """Applies RAID configuration on the given node.
+
+        :param task: A TaskManager instance.
+        :param raid_config: The RAID configuration to apply.
+        :param delete_existing: Setting this to True indicates to delete RAID
+            configuration prior to creating the new configuration.
+        :raises: InvalidParameterValue, if the RAID configuration is invalid.
+        :returns: states.DEPLOYWAIT if RAID configuration is in progress
+            asynchronously or None if it is complete.
+        """
+        self.validate_raid_config(task, raid_config)
+        step = task.node.deploy_step
+        return agent_base.execute_step(task, step, 'deploy')
+
     @METRICS.timer('AgentRAID.create_configuration')
     @base.clean_step(priority=0)
     def create_configuration(self, task,
@@ -682,6 +716,8 @@ class AgentRAID(base.RAIDInterface):
     @staticmethod
     @agent_base.post_clean_step_hook(
         interface='raid', step='create_configuration')
+    @agent_base.post_deploy_step_hook(
+        interface='raid', step='apply_configuration')
     def _create_configuration_final(task, command):
         """Clean step hook after a RAID configuration was created.
 
@@ -699,15 +735,21 @@ class AgentRAID(base.RAIDInterface):
             the 'command' argument passed.
         """
         try:
-            clean_result = command['command_result']['clean_result']
+            if task.node.provision_state == states.DEPLOYWAIT:
+                operation = "deploying"
+                result = command['command_result']['deploy_result']
+            else:
+                operation = "cleaning"
+                result = command['command_result']['clean_result']
         except KeyError:
             raise exception.IronicException(
                 _("Agent ramdisk didn't return a proper command result while "
-                  "cleaning %(node)s. It returned '%(result)s' after command "
-                  "execution.") % {'node': task.node.uuid,
-                                   'result': command})
+                  "%(operation)s %(node)s. It returned '%(result)s' after "
+                  "command execution.") % {'operation': operation,
+                                           'node': task.node.uuid,
+                                           'result': command})
 
-        raid.update_raid_info(task.node, clean_result)
+        raid.update_raid_info(task.node, result)
 
     @METRICS.timer('AgentRAID.delete_configuration')
     @base.clean_step(priority=0)

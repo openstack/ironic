@@ -1,0 +1,6 @@
+---
+features:
+  - |
+    Adds raid configuration validation to deploy step ``apply_configuration``
+    of ``agent`` RAID interface. Also, a post deploy hook has been added to
+    this deploy step to update root device hint.

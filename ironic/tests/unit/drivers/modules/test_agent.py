@@ -1618,8 +1618,8 @@ class AgentRAIDTestCase(db_base.DbTestCase):
         self.config(enabled_raid_interfaces=['fake', 'agent', 'no-raid'])
         self.target_raid_config = {
             "logical_disks": [
-                {'size_gb': 200, 'raid_level': 0, 'is_root_volume': True},
-                {'size_gb': 200, 'raid_level': 5}
+                {'size_gb': 200, 'raid_level': "0", 'is_root_volume': True},
+                {'size_gb': 200, 'raid_level': "5"}
             ]}
         self.clean_step = {'step': 'create_configuration',
                            'interface': 'raid'}
@@ -1660,6 +1660,25 @@ class AgentRAIDTestCase(db_base.DbTestCase):
             ret = task.driver.raid.get_deploy_steps(task)
 
         self.assertEqual('apply_configuration', ret[0]['step'])
+
+    @mock.patch.object(agent_base, 'execute_step', autospec=True)
+    def test_apply_configuration(self, execute_mock):
+        deploy_step = {
+            'interface': 'raid',
+            'step': 'apply_configuration',
+            'args': {
+                'raid_config': self.target_raid_config,
+                'delete_existing': True
+            },
+            'priority': 82
+        }
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            execute_mock.return_value = states.DEPLOYWAIT
+            task.node.deploy_step = deploy_step
+            return_value = task.driver.raid.apply_configuration(
+                task, self.target_raid_config, delete_existing=True)
+            self.assertEqual(states.DEPLOYWAIT, return_value)
+            execute_mock.assert_called_once_with(task, deploy_step, 'deploy')
 
     @mock.patch.object(raid, 'filter_target_raid_config', autospec=True)
     @mock.patch.object(agent_base, 'execute_step', autospec=True)
@@ -1761,15 +1780,32 @@ class AgentRAIDTestCase(db_base.DbTestCase):
             update_raid_info_mock.assert_called_once_with(task.node, 'foo')
 
     @mock.patch.object(raid, 'update_raid_info', autospec=True)
-    def test__create_configuration_final_registered(
-            self, update_raid_info_mock):
-        self.node.clean_step = {'interface': 'raid',
-                                'step': 'create_configuration'}
-        command = {'command_result': {'clean_result': 'foo'}}
-        create_hook = agent_base._get_post_step_hook(self.node, 'clean')
+    def _test__create_configuration_final_registered(
+            self, update_raid_info_mock, step_type='clean'):
+        step = {'interface': 'raid'}
+        if step_type == 'clean':
+            step['step'] = 'create_configuration'
+            self.node.clean_step = step
+            state = states.CLEANWAIT
+            command = {'command_result': {'clean_result': 'foo'}}
+            create_hook = agent_base._get_post_step_hook(self.node, 'clean')
+        else:
+            step['step'] = 'apply_configuration'
+            self.node.deploy_step = step
+            command = {'command_result': {'deploy_result': 'foo'}}
+            state = states.DEPLOYWAIT
+            create_hook = agent_base._get_post_step_hook(self.node, 'deploy')
+
         with task_manager.acquire(self.context, self.node.uuid) as task:
+            task.node.provision_state = state
             create_hook(task, command)
             update_raid_info_mock.assert_called_once_with(task.node, 'foo')
+
+    def test__create_configuration_final_registered_clean(self):
+        self._test__create_configuration_final_registered(step_type='clean')
+
+    def test__create_configuration_final_registered_deploy(self):
+        self._test__create_configuration_final_registered(step_type='deploy')
 
     @mock.patch.object(raid, 'update_raid_info', autospec=True)
     def test__create_configuration_final_bad_command_result(
