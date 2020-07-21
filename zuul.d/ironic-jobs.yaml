@@ -44,7 +44,7 @@
         IRONIC_INSPECTOR_TEMPEST_INTROSPECTION_TIMEOUT: 1200
         IRONIC_TEMPEST_BUILD_TIMEOUT: 900
         IRONIC_TEMPEST_WHOLE_DISK_IMAGE: False
-        IRONIC_VM_COUNT: 1
+        IRONIC_VM_COUNT: 2
         IRONIC_VM_EPHEMERAL_DISK: 1
         IRONIC_VM_SPECS_RAM: 3072
         IRONIC_VM_LOG_DIR: '{{ devstack_base_dir }}/ironic-bm-logs'
@@ -329,7 +329,6 @@
     vars:
       devstack_localrc:
         IRONIC_DEFAULT_BOOT_OPTION: netboot
-        IRONIC_VM_COUNT: 2
         IRONIC_AUTOMATED_CLEAN_ENABLED: True
 
 
@@ -731,7 +730,6 @@
         IRONIC_TEMPEST_WHOLE_DISK_IMAGE: True
         IRONIC_VM_EPHEMERAL_DISK: 0
         # This will swap and needs to get to tinycore soon.
-        IRONIC_VM_COUNT: 2
         IRONIC_VM_SPECS_CPU: 2
         Q_PLUGIN: ml2
         ENABLE_TENANT_VLANS: True
@@ -761,7 +759,6 @@
         IRONIC_ENABLED_RESCUE_INTERFACES: "fake,agent,no-rescue"
         IRONIC_RAMDISK_TYPE: tinyipa
         IRONIC_VM_SPECS_RAM: 384
-        IRONIC_VM_COUNT: 2
         IRONIC_TEMPEST_WHOLE_DISK_IMAGE: True
         IRONIC_VM_EPHEMERAL_DISK: 0
         SWIFT_ENABLE_TEMPURLS: True
