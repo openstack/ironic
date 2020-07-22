@@ -42,7 +42,7 @@ jmespath==0.9.5
 jsonpatch==1.16
 jsonpointer==2.0
 jsonschema==3.2.0
-keystoneauth1==3.18.0
+keystoneauth1==4.2.0
 keystonemiddleware==4.17.0
 kombu==4.6.8
 linecache2==1.0.0

@@ -15,8 +15,6 @@
 This client is compatible with any JSON RPC 2.0 implementation, including ours.
 """
 
-import base64
-
 from oslo_config import cfg
 from oslo_log import log
 from oslo_utils import importutils
@@ -38,23 +36,25 @@ def _get_session():
     global _SESSION
 
     if _SESSION is None:
+        kwargs = {}
         auth_strategy = json_rpc.auth_strategy()
-        if auth_strategy == 'keystone':
-            auth = keystone.get_auth('json_rpc')
-        else:
-            auth = None
+        if auth_strategy != 'keystone':
+            auth_type = 'none' if auth_strategy == 'noauth' else auth_strategy
+            CONF.set_default('auth_type', auth_type, group='json_rpc')
+
+            # Deprecated, remove in W
+            if auth_strategy == 'http_basic':
+                if CONF.json_rpc.http_basic_username:
+                    kwargs['username'] = CONF.json_rpc.http_basic_username
+                if CONF.json_rpc.http_basic_password:
+                    kwargs['password'] = CONF.json_rpc.http_basic_password
+
+        auth = keystone.get_auth('json_rpc', **kwargs)
 
         session = keystone.get_session('json_rpc', auth=auth)
         headers = {
             'Content-Type': 'application/json'
         }
-        if auth_strategy == 'http_basic':
-            token = '{}:{}'.format(
-                CONF.json_rpc.http_basic_username,
-                CONF.json_rpc.http_basic_password
-            ).encode('utf-8')
-            encoded = base64.b64encode(token).decode('utf-8')
-            headers['Authorization'] = 'Basic {}'.format(encoded)
 
         # Adds options like connect_retries
         _SESSION = keystone.get_adapter('json_rpc', session=session,

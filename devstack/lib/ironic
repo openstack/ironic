@@ -1395,10 +1395,15 @@ function configure_ironic {
     if [[ "$IRONIC_JSON_RPC_AUTH_STRATEGY" != "" ]]; then
         iniset $IRONIC_CONF_FILE json_rpc auth_strategy $IRONIC_JSON_RPC_AUTH_STRATEGY
     fi
-    iniset $IRONIC_CONF_FILE json_rpc http_basic_username myName
-    iniset $IRONIC_CONF_FILE json_rpc http_basic_password myPassword
-    # json-rpc auth file with bcrypt hash of myPassword
-    echo 'myName:$2y$05$lE3eGtyj41jZwrzS87KTqe6.JETVCWBkc32C63UP2aYrGoYOEpbJm' > /etc/ironic/htpasswd-json-rpc
+    if [[ "$IRONIC_JSON_RPC_AUTH_STRATEGY" == "http_basic" ]]; then
+        iniset $IRONIC_CONF_FILE json_rpc username myName
+        iniset $IRONIC_CONF_FILE json_rpc password myPassword
+        # json-rpc auth file with bcrypt hash of myPassword
+        echo 'myName:$2y$05$lE3eGtyj41jZwrzS87KTqe6.JETVCWBkc32C63UP2aYrGoYOEpbJm' > /etc/ironic/htpasswd-json-rpc
+    fi
+    if [[ "$IRONIC_JSON_RPC_AUTH_STRATEGY" == "" ]] || [[ "$IRONIC_JSON_RPC_AUTH_STRATEGY" == "keystone" ]]; then
+        configure_client_for json_rpc
+    fi
 
     # Set fast track options
     iniset $IRONIC_CONF_FILE deploy fast_track $IRONIC_DEPLOY_FAST_TRACK
@@ -1532,7 +1537,7 @@ function configure_ironic_conductor {
 
     # NOTE(pas-ha) service_catalog section is used to discover
     # ironic API endpoint from keystone catalog
-    local client_sections="neutron swift glance inspector cinder service_catalog json_rpc nova"
+    local client_sections="neutron swift glance inspector cinder service_catalog nova"
     for conf_section in $client_sections; do
         configure_client_for $conf_section
     done

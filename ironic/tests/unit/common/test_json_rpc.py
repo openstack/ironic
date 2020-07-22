@@ -584,9 +584,11 @@ class TestSession(test_base.TestCase):
         self.config(auth_strategy='noauth', group='json_rpc')
         session = client._get_session()
 
-        mock_keystone.get_auth.assert_not_called()
+        mock_keystone.get_auth.assert_called_once_with('json_rpc')
+        auth = mock_keystone.get_auth.return_value
+
         mock_keystone.get_session.assert_called_once_with(
-            'json_rpc', auth=None)
+            'json_rpc', auth=auth)
 
         internal_session = mock_keystone.get_session.return_value
 
@@ -620,13 +622,12 @@ class TestSession(test_base.TestCase):
 
     def test_http_basic(self, mock_keystone):
         self.config(auth_strategy='http_basic', group='json_rpc')
-        self.config(http_basic_username='myName', group='json_rpc')
-        self.config(http_basic_password='myPassword', group='json_rpc')
         session = client._get_session()
 
-        mock_keystone.get_auth.assert_not_called()
+        mock_keystone.get_auth.assert_called_once_with('json_rpc')
+        auth = mock_keystone.get_auth.return_value
         mock_keystone.get_session.assert_called_once_with(
-            'json_rpc', auth=None)
+            'json_rpc', auth=auth)
 
         internal_session = mock_keystone.get_session.return_value
 
@@ -634,7 +635,28 @@ class TestSession(test_base.TestCase):
             'json_rpc',
             session=internal_session,
             additional_headers={
-                'Authorization': 'Basic bXlOYW1lOm15UGFzc3dvcmQ=',
+                'Content-Type': 'application/json'
+            })
+        self.assertEqual(mock_keystone.get_adapter.return_value, session)
+
+    def test_http_basic_deprecated(self, mock_keystone):
+        self.config(auth_strategy='http_basic', group='json_rpc')
+        self.config(http_basic_username='myName', group='json_rpc')
+        self.config(http_basic_password='myPassword', group='json_rpc')
+        session = client._get_session()
+
+        mock_keystone.get_auth.assert_called_once_with(
+            'json_rpc', username='myName', password='myPassword')
+        auth = mock_keystone.get_auth.return_value
+        mock_keystone.get_session.assert_called_once_with(
+            'json_rpc', auth=auth)
+
+        internal_session = mock_keystone.get_session.return_value
+
+        mock_keystone.get_adapter.assert_called_once_with(
+            'json_rpc',
+            session=internal_session,
+            additional_headers={
                 'Content-Type': 'application/json'
             })
         self.assertEqual(mock_keystone.get_adapter.return_value, session)

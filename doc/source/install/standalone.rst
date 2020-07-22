@@ -70,8 +70,8 @@ You should make the following changes to ``/etc/ironic/ironic.conf``:
 
     [json_rpc]
     auth_strategy=http_basic
-    http_basic_username=myName
-    http_basic_password=myPassword
+    username=myName
+    password=myPassword
 
 If you don't use Image service, it's possible to provide images to Bare Metal
 service via a URL.
