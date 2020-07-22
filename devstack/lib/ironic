@@ -173,6 +173,13 @@ if [[ "$hostdomain" =~ "rax" ]]; then
     # these hosts for jobs to complete without issues.
     new_timeout=$(echo "$IRONIC_TEMPEST_BUILD_TIMEOUT * 1.5 / 1" | bc)
     IRONIC_TEMPEST_BUILD_TIMEOUT=$new_timeout
+
+    if [ -n "$IRONIC_PXE_BOOT_RETRY_TIMEOUT" ]; then
+        new_timeout=$(echo "$IRONIC_PXE_BOOT_RETRY_TIMEOUT * 1.5 / 1" | bc)
+        IRONIC_PXE_BOOT_RETRY_TIMEOUT=$new_timeout
+    fi
+    # TODO(TheJulia): If we have to do magically extend timeouts again,
+    # we should make a helper method...
 fi
 
 IRONIC_DEFAULT_API_VERSION=${IRONIC_DEFAULT_API_VERSION:-}
