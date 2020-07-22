@@ -263,6 +263,14 @@ if [[ ! "$IRONIC_RAMDISK_TYPE" =~ $IRONIC_SUPPORTED_RAMDISK_TYPES_RE ]]; then
     die $LINENO "Unrecognized IRONIC_RAMDISK_TYPE: $IRONIC_RAMDISK_TYPE. Expected 'tinyipa' or 'dib'"
 fi
 
+# Prevent a case that will likely result in a failure.
+if [[ "$hostdomain" =~ "rax" ]]; then
+    if [[ "$IRONIC_RAMDISK_TYPE" == "dib" ]] && [[ "$IRONIC_BUILD_DEPLOY_RAMDISK" == "False" ]]; then
+        echo "** WARNING ** - DIB based IPA images have been defined, however we are running devstack on RAX VM. Due to virtualization constraints, we are automatically falling back to TinyIPA to ensure CI job passage."
+        IRONIC_RAMDISK_TYPE="tinyipa"
+    fi
+fi
+
 # If present, these files are used as deploy ramdisk/kernel.
 # (The value must be an absolute path)
 IRONIC_DEPLOY_RAMDISK=${IRONIC_DEPLOY_RAMDISK:-$TOP_DIR/files/ir-deploy-$IRONIC_DEPLOY_DRIVER.initramfs}
