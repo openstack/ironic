@@ -911,6 +911,27 @@ class FsImageTestCase(base.TestCase):
             'output_file', 'tmpdir/kernel-uuid', 'tmpdir/ramdisk-uuid',
             configdrive='tmpdir/configdrive', kernel_params=params)
 
+    @mock.patch.object(images, 'create_isolinux_image_for_bios', autospec=True)
+    @mock.patch.object(images, 'fetch', autospec=True)
+    @mock.patch.object(utils, 'tempdir', autospec=True)
+    def test_create_boot_iso_for_existing_iso(self, tempdir_mock,
+                                              fetch_images_mock,
+                                              create_isolinux_mock):
+        mock_file_handle = mock.MagicMock(spec=io.BytesIO)
+        mock_file_handle.__enter__.return_value = 'tmpdir'
+        tempdir_mock.return_value = mock_file_handle
+        base_iso = 'http://fake.local:1234/fake.iso'
+        images.create_boot_iso('ctx', 'output_file', 'kernel-uuid',
+                               'ramdisk-uuid', 'deploy_iso-uuid',
+                               'efiboot-uuid', None,
+                               None, None, 'http://configdrive',
+                               base_iso=base_iso)
+
+        fetch_images_mock.assert_any_call(
+            'ctx', base_iso, 'output_file')
+
+        create_isolinux_mock.assert_not_called()
+
     @mock.patch.object(image_service, 'get_image_service', autospec=True)
     def test_get_glance_image_properties_no_such_prop(self,
                                                       image_service_mock):

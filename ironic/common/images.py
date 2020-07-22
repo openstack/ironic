@@ -526,7 +526,7 @@ def get_temp_url_for_glance_image(context, image_uuid):
 def create_boot_iso(context, output_filename, kernel_href,
                     ramdisk_href, deploy_iso_href=None, esp_image_href=None,
                     root_uuid=None, kernel_params=None, boot_mode=None,
-                    configdrive_href=None):
+                    configdrive_href=None, base_iso=None):
     """Creates a bootable ISO image for a node.
 
     Given the hrefs for kernel, ramdisk, root partition's UUID and
@@ -553,14 +553,26 @@ def create_boot_iso(context, output_filename, kernel_href,
     :param configdrive_href: URL to ISO9660 or FAT-formatted OpenStack config
         drive image. This image will be embedded into the built ISO image.
         Optional.
+    :param base_iso: URL or glance UUID of a to be used as an override of
+        what should be retrieved for to use, instead of building an ISO
+        bootable ramdisk.
     :raises: ImageCreationFailed, if creating boot ISO failed.
     """
     with utils.tempdir() as tmpdir:
-        kernel_path = os.path.join(tmpdir, kernel_href.split('/')[-1])
-        ramdisk_path = os.path.join(tmpdir, ramdisk_href.split('/')[-1])
-
-        fetch(context, kernel_href, kernel_path)
-        fetch(context, ramdisk_href, ramdisk_path)
+        if base_iso:
+            # NOTE(TheJulia): Eventually we want to use the creation method
+            # to perform the massaging of the image, because oddly enough
+            # we need to do all the same basic things, just a little
+            # differently.
+            fetch(context, base_iso, output_filename)
+            # Temporary, return to the caller until we support the combined
+            # operation.
+            return
+        else:
+            kernel_path = os.path.join(tmpdir, kernel_href.split('/')[-1])
+            ramdisk_path = os.path.join(tmpdir, ramdisk_href.split('/')[-1])
+            fetch(context, kernel_href, kernel_path)
+            fetch(context, ramdisk_href, ramdisk_path)
 
         if configdrive_href:
             configdrive_path = os.path.join(
@@ -592,7 +604,11 @@ def create_boot_iso(context, output_filename, kernel_href,
 
             elif CONF.esp_image:
                 esp_image_path = CONF.esp_image
-
+            # TODO(TheJulia): we should opportunisticly try to make bios
+            # bootable and UEFI. In other words, collapse a lot of this
+            # path since they are not mutually exclusive.
+            # UEFI boot mode, but Network iPXE -> ISO means bios bootable
+            # contents are still required.
             create_esp_image_for_uefi(
                 output_filename, kernel_path, ramdisk_path,
                 deploy_iso=deploy_iso_path, esp_image=esp_image_path,

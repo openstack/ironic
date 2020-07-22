@@ -1,0 +1,8 @@
+---
+features:
+  - |
+    Adds functionality to allow a user to supply a node
+    ``instance_info/boot_iso`` parameter on machines utilizing the
+    ``redfish-virtual-media`` boot interface. When combined with the
+    ``ramdisk`` deployment interface, this allows an instance to boot
+    into a user supplied ISO image.
