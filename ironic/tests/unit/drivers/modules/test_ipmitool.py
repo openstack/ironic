@@ -1075,6 +1075,33 @@ class IPMIToolPrivateMethodTestCase(
     @mock.patch.object(ipmi, '_is_option_supported', autospec=True)
     @mock.patch.object(ipmi, '_make_password_file', _make_password_file_stub)
     @mock.patch.object(utils, 'execute', autospec=True)
+    def test__exec_ipmitool_with_timeout(
+            self, mock_exec, mock_support):
+        args = [
+            'ipmitool',
+            '-I', 'lanplus',
+            '-H', self.info['address'],
+            '-L', self.info['priv_level'],
+            '-U', self.info['username'],
+            '-v',
+            '-R', '12',
+            '-N', '5',
+            '-f', awesome_password_filename,
+            'A', 'B', 'C',
+        ]
+
+        mock_support.return_value = True
+        mock_exec.return_value = (None, None)
+
+        self.config(use_ipmitool_retries=True, group='ipmi')
+        ipmi._exec_ipmitool(self.info, 'A B C', kill_on_timeout=True)
+
+        mock_support.assert_called_once_with('timing')
+        mock_exec.assert_called_once_with(*args, timeout=60)
+
+    @mock.patch.object(ipmi, '_is_option_supported', autospec=True)
+    @mock.patch.object(ipmi, '_make_password_file', _make_password_file_stub)
+    @mock.patch.object(utils, 'execute', autospec=True)
     def test__exec_ipmitool_with_ironic_retries_multiple(
             self, mock_exec, mock_support):
 
@@ -1100,14 +1127,6 @@ class IPMIToolPrivateMethodTestCase(
 
         mock_support.assert_called_once_with('timing')
         self.assertEqual(3, mock_exec.call_count)
-
-    def test__exec_ipmitool_wait(self):
-        mock_popen = mock.MagicMock()
-        mock_popen.poll.side_effect = [1, 1, 1, 1, 1]
-        ipmi._exec_ipmitool_wait(1, {'uuid': ''}, mock_popen)
-
-        self.assertTrue(mock_popen.terminate.called)
-        self.assertTrue(mock_popen.kill.called)
 
     @mock.patch.object(ipmi, '_is_option_supported', autospec=True)
     @mock.patch.object(ipmi, '_make_password_file', _make_password_file_stub)

@@ -30,13 +30,13 @@ DRIVER.
 """
 
 import contextlib
-import functools
 import os
 import re
 import subprocess
 import tempfile
 import time
 
+from eventlet.green import subprocess as green_subprocess
 from ironic_lib import metrics_utils
 from ironic_lib import utils as ironic_utils
 from oslo_concurrency import processutils
@@ -389,31 +389,6 @@ def _parse_driver_info(node):
     }
 
 
-def _exec_ipmitool_wait(timeout, driver_info, popen_obj):
-    wait_interval = min(timeout, 0.5)
-
-    while timeout >= 0:
-        if not popen_obj.poll():
-            return
-
-        time.sleep(wait_interval)
-        timeout -= wait_interval
-
-    LOG.warning('Killing timed out IPMI process "%(cmd)s" for node %(node)s.',
-                {'node': driver_info['uuid'], 'cmd': popen_obj.cmd})
-
-    popen_obj.terminate()
-    time.sleep(0.5)
-    if popen_obj.poll():
-        popen_obj.kill()
-
-    time.sleep(1)
-
-    if popen_obj.poll():
-        LOG.warning('Could not kill IPMI process "%(cmd)s" for node %(node)s.',
-                    {'node': driver_info['uuid'], 'cmd': popen_obj.cmd})
-
-
 def _get_ipmitool_args(driver_info, pw_file=None):
     ipmi_version = ('lanplus'
                     if driver_info['protocol_version'] == '2.0'
@@ -491,14 +466,7 @@ def _exec_ipmitool(driver_info, command, check_exit_code=None,
     extra_args = {}
 
     if kill_on_timeout:
-        # NOTE(etingof): We can't trust ipmitool to terminate in time.
-        # Therefore we have to kill it if it is running for longer than
-        # we asked it to.
-        # For that purpose we inject the time-capped `popen.wait` call
-        # before the uncapped `popen.communicate` is called internally.
-        # That gives us a chance to kill misbehaving `ipmitool` child.
-        extra_args['on_execute'] = functools.partial(
-            _exec_ipmitool_wait, timeout, driver_info)
+        extra_args['timeout'] = timeout
 
     if check_exit_code is not None:
         extra_args['check_exit_code'] = check_exit_code
@@ -588,7 +556,10 @@ def _set_and_wait(task, power_action, driver_info, timeout=None):
     try:
         _exec_ipmitool(driver_info, cmd)
     except (exception.PasswordFileFailedToCreate,
-            processutils.ProcessExecutionError) as e:
+            processutils.ProcessExecutionError,
+            subprocess.TimeoutExpired,
+            # https://github.com/eventlet/eventlet/issues/624
+            green_subprocess.TimeoutExpired) as e:
         LOG.warning("IPMI power action %(cmd)s failed for node %(node_id)s "
                     "with error: %(error)s.",
                     {'node_id': driver_info['uuid'], 'cmd': cmd, 'error': e})
