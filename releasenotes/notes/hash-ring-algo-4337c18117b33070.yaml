@@ -1,0 +1,7 @@
+---
+features:
+  - |
+    Provides a new option ``[DEFAULT]hash_ring_algorithm`` that specifies
+    which cryptographic algorithm to use when building the hash ring. Set
+    to something other than ``md5`` when using ironic on a system in FIPS
+    mode.
