@@ -159,24 +159,23 @@ following the next steps:
   * The ``_independent`` directory contains yaml files for deliverables that
     are not bound to (official) cycles (e.g. ironic-python-agent-builder).
 
-* To check the changes we're about to release we can use the script
-  ``list_unreleased_changes.sh``, that can be found under the ``tools``
-  directory, with this syntax:
+* To check the changes we're about to release we can use the tox environment
+  ``list-unreleased-changes``, with this syntax:
 
   .. code-block:: bash
 
-    list_unreleased_changes.sh <branch> <deliverable>
+    tox -e venv -- list-unreleased-changes <series> <deliverable>
 
-  The ``branch`` argument is a branch, not a release series (i.e. master or
-  stable/train, not ussuri or train).
+  The ``series`` argument is a release series (i.e. master or train,
+  not stable/ussuri or stable/train).
 
   For example, assuming we're in the main directory of the releases repository,
-  to check the changes in the train branch for ironic-python-agent
+  to check the changes in the ussuri series for ironic-python-agent
   type:
 
   .. code-block:: bash
 
-    ./tools/list_unreleased_changes.sh stable/train openstack/ironic-python-agent
+    tox -e venv -- list-unreleased-changes ussuri openstack/ironic-python-agent
 
 * To update the deliverable file for the new release, we use a scripted process
   in the form of a tox environment called ``new-release``.
