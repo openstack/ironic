@@ -18,6 +18,7 @@ Generic hardware types.
 
 from ironic.drivers import hardware_type
 from ironic.drivers.modules import agent
+from ironic.drivers.modules import agent_power
 from ironic.drivers.modules.ansible import deploy as ansible_deploy
 from ironic.drivers.modules import fake
 from ironic.drivers.modules import inspector
@@ -102,7 +103,7 @@ class ManualManagementHardware(GenericHardware):
     @property
     def supported_power_interfaces(self):
         """List of supported power interfaces."""
-        return [fake.FakePower]
+        return [agent_power.AgentPower, fake.FakePower]
 
     @property
     def supported_vendor_interfaces(self):
