@@ -1,0 +1,9 @@
+---
+other:
+  - |
+    A new method ``supports_power_sync`` has been added to ``PowerInterface``.
+    If it returns ``False``, the conductor will not try to assert power state
+    for the node, merely recording the returned state instead.
+  - |
+    The base agent deploy interface code now correctly handles power interfaces
+    that do not support the ``power on`` action but support ``reboot``.

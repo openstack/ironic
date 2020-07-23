@@ -1100,6 +1100,29 @@ class AgentDeployMixinTest(AgentDeployMixinBaseTest):
                 {'node': task.node.uuid, 'error': log_error})
             self.assertFalse(mock_collect.called)
 
+    @mock.patch.object(manager_utils, 'power_on_node_if_needed', autospec=True)
+    @mock.patch.object(driver_utils, 'collect_ramdisk_logs', autospec=True)
+    @mock.patch.object(time, 'sleep', lambda seconds: None)
+    @mock.patch.object(manager_utils, 'node_power_action', autospec=True)
+    @mock.patch.object(fake.FakePower, 'get_supported_power_states',
+                       lambda self, task: [states.REBOOT])
+    @mock.patch.object(agent_client.AgentClient, 'sync', autospec=True)
+    def test_tear_down_agent_no_power_on_support(
+            self, sync_mock, node_power_action_mock, collect_mock,
+            power_on_node_if_needed_mock):
+        cfg.CONF.set_override('deploy_logs_collect', 'always', 'agent')
+        self.node.provision_state = states.DEPLOYING
+        self.node.target_provision_state = states.ACTIVE
+        self.node.save()
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            self.deploy.tear_down_agent(task)
+            node_power_action_mock.assert_called_once_with(task, states.REBOOT)
+            self.assertEqual(states.DEPLOYING, task.node.provision_state)
+            self.assertEqual(states.ACTIVE, task.node.target_provision_state)
+            collect_mock.assert_called_once_with(task.node)
+            self.assertFalse(power_on_node_if_needed_mock.called)
+            sync_mock.assert_called_once_with(self.deploy._client, task.node)
+
     @mock.patch.object(manager_utils, 'restore_power_state_if_needed',
                        autospec=True)
     @mock.patch.object(manager_utils, 'power_on_node_if_needed', autospec=True)
@@ -1144,6 +1167,27 @@ class AgentDeployMixinTest(AgentDeployMixinBaseTest):
                                                                  task)
             configure_tenant_net_mock.assert_called_once_with(mock.ANY, task)
             self.assertFalse(mock_collect.called)
+
+    @mock.patch.object(manager_utils, 'node_power_action', autospec=True)
+    def test_boot_instance(self, node_power_action_mock):
+        self.node.provision_state = states.DEPLOYING
+        self.node.target_provision_state = states.ACTIVE
+        self.node.save()
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            self.deploy.boot_instance(task)
+            node_power_action_mock.assert_called_once_with(task,
+                                                           states.POWER_ON)
+
+    @mock.patch.object(fake.FakePower, 'get_supported_power_states',
+                       lambda self, task: [states.REBOOT])
+    @mock.patch.object(manager_utils, 'node_power_action', autospec=True)
+    def test_boot_instance_no_power_on(self, node_power_action_mock):
+        self.node.provision_state = states.DEPLOYING
+        self.node.target_provision_state = states.ACTIVE
+        self.node.save()
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            self.deploy.boot_instance(task)
+            self.assertFalse(node_power_action_mock.called)
 
     @mock.patch.object(agent_client.AgentClient, 'install_bootloader',
                        autospec=True)
