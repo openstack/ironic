@@ -699,23 +699,11 @@ class Base(metaclass=BaseMeta):
                 setattr(self, key, value)
 
 
-class Response(object):
-    """Object to hold the "response" from a view function"""
-    def __init__(self, obj, status_code=None, error=None,
-                 return_type=Unset):
+class PassthruResponse(object):
+    """Object to hold the "response" from a passthru call"""
+    def __init__(self, obj, status_code=None):
         #: Store the result object from the view
         self.obj = obj
 
         #: Store an optional status_code
         self.status_code = status_code
-
-        #: Return error details
-        #: Must be a dictionnary with the following keys: faultcode,
-        #: faultstring and an optional debuginfo
-        self.error = error
-
-        #: Return type
-        #: Type of the value returned by the function
-        #: If the return type is wsme.types.Unset it will be ignored
-        #: and the default return type will prevail.
-        self.return_type = return_type

@@ -25,7 +25,6 @@ import os_traits
 from oslo_config import cfg
 from oslo_utils import uuidutils
 from pecan import rest
-from webob import static
 
 from ironic import api
 from ironic.api.controllers.v1 import versions
@@ -419,20 +418,15 @@ def vendor_passthru(ident, method, topic, data=None, driver_passthru=False):
 
     status_code = http_client.ACCEPTED if response['async'] else http_client.OK
     return_value = response['return']
-    response_params = {'status_code': status_code}
 
     # Attach the return value to the response object
     if response.get('attach'):
         if isinstance(return_value, str):
             # If unicode, convert to bytes
             return_value = return_value.encode('utf-8')
-        api.response.app_iter = static.FileIter(io.BytesIO(return_value))
-        # Since we've attached the return value to the response
-        # object the response body should now be empty.
-        return_value = None
-        response_params['return_type'] = None
+        return_value = io.BytesIO(return_value)
 
-    return atypes.Response(return_value, **response_params)
+    return atypes.PassthruResponse(return_value, status_code=status_code)
 
 
 def check_for_invalid_fields(fields, object_fields):
