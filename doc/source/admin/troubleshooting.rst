@@ -636,3 +636,39 @@ Using that, you can delete the port. Example:
    the Bare Metal service with a single Neutron, the possibility that a
    inventory typo, or possibly even a duplicate MAC address exists, which
    could also produce the same basic error message.
+
+My test VM image does not deploy -- mount point does not exist
+==============================================================
+
+What is likely occuring
+-----------------------
+
+The image attempting to be deployed likely is a partition image where
+the file system that the user wishes to boot from lacks the required
+folders, such as ``/dev`` and ``/proc``, which are required to install
+a bootloader for a Linux OS image
+
+It should be noted that similar errors can also occur with whole disk
+images where we are attempting to setup the UEFI bootloader configuration.
+That being said, in this case, the image is likely invalid or contains
+an unexpected internal structure.
+
+Users performing testing may choose something that they believe
+will work based on it working for virtual machines. These images are often
+attractive for testing as they are generic and include basic support
+for establishing networking and possibly installing user keys.
+Unfortunately, these images often lack drivers and firmware required for
+many different types of physical hardware which makes using them
+very problematic. Additionally, images such as `Cirros <https://download.cirros-cloud.net>`_
+do not have any contents in the root filesystem (i.e. an empty filesystem),
+as they are designed for the ``ramdisk`` to write the contents to disk upon
+boot.
+
+How do I not encounter this issue?
+----------------------------------
+
+We generally recommend using `diskimage-builder <https://docs.openstack.org/diskimage-builder>`_
+or vendor supplied images. Centos, Ubuntu, Fedora, and Debian all publish
+operating system images which do generally include drivers and firmware for
+physical hardware. Many of these published "cloud" images, also support
+auto-configuration of networking AND population of user keys.
