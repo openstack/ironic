@@ -1,0 +1,12 @@
+---
+features:
+  - |
+    Adds functionality to the ``ipxe`` boot interface to support use of an
+    ``instance_info\boot_iso`` value with the ``ramdisk`` deployment interface.
+other:
+  - |
+    Support for iPXE booting a ISO medium will only work if the ramdisk loaded
+    by the bootloader contains all artifacts required for the booting operating
+    system to load. This is a limitation of iPXE and x86 systems architecture,
+    as the memory allocated for the rest of the ISO disk image in memory is
+    freed by the booting kernel.

@@ -511,12 +511,14 @@ def validate_image_properties(ctx, deploy_info, properties):
     :raises: MissingParameterValue if the image doesn't contain
         the mentioned properties.
     """
-    image_href = deploy_info['image_source']
+    image_href = deploy_info.get('image_source')
     boot_iso = deploy_info.get('boot_iso')
     if image_href and boot_iso:
         raise exception.InvalidParameterValue(_(
             "An 'image_source' and 'boot_iso' parameter may not be "
             "specified at the same time."))
+    if not image_href:
+        image_href = boot_iso
     try:
         img_service = image_service.get_image_service(image_href, context=ctx)
         image_props = img_service.show(image_href)['properties']
@@ -711,7 +713,6 @@ def get_image_instance_info(node):
 
     is_whole_disk_image = node.driver_internal_info.get('is_whole_disk_image')
     boot_iso = node.instance_info.get('boot_iso')
-
     if not boot_iso:
         info['image_source'] = node.instance_info.get('image_source')
     else:

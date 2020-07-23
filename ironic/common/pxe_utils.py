@@ -628,6 +628,13 @@ def get_instance_image_info(task, ipxe_enabled=False):
     else:
         root_dir = get_root_dir()
     i_info = node.instance_info
+    if i_info.get('boot_iso'):
+        image_info['boot_iso'] = (
+            i_info['boot_iso'],
+            os.path.join(root_dir, node.uuid, 'boot_iso'))
+
+        return image_info
+
     labels = ('kernel', 'ramdisk')
     d_info = deploy_utils.get_image_instance_info(node)
     if not (i_info.get('kernel') and i_info.get('ramdisk')):
@@ -637,7 +644,6 @@ def get_instance_image_info(task, ipxe_enabled=False):
             i_info[label] = str(iproperties[label + '_id'])
         node.instance_info = i_info
         node.save()
-
     for label in labels:
         image_info[label] = (
             i_info[label],
@@ -724,6 +730,14 @@ def build_instance_pxe_options(task, pxe_info, ipxe_enabled=False):
     i_info = task.node.instance_info
     try:
         pxe_opts['ramdisk_opts'] = i_info['ramdisk_kernel_arguments']
+    except KeyError:
+        pass
+    try:
+        # TODO(TheJulia): Boot iso should change at a later point
+        # if we serve more than just as a pass-through.
+        if i_info.get('boot_iso'):
+            pxe_opts['boot_iso_url'] = '/'.join(
+                [CONF.deploy.http_url, node.uuid, 'boot_iso'])
     except KeyError:
         pass
 
@@ -937,7 +951,6 @@ def prepare_instance_pxe_config(task, image_info,
                          is in use by the caller.
     :returns: None
     """
-
     node = task.node
     # Generate options for both IPv4 and IPv6, and they can be
     # filtered down later based upon the port options.

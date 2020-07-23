@@ -108,6 +108,12 @@ class TestPXEUtils(db_base.DbTestCase):
         self.ipxe_options_boot_from_volume_extra_volume.pop(
             'initrd_filename', None)
 
+        self.ipxe_options_boot_from_iso = self.ipxe_options.copy()
+        self.ipxe_options_boot_from_iso.update({
+            'boot_from_iso': True,
+            'boot_iso_url': 'http://1.2.3.4:1234/uuid/iso'
+        })
+
         self.node = object_utils.create_test_node(self.context)
 
     def test_default_pxe_config(self):
@@ -214,6 +220,27 @@ class TestPXEUtils(db_base.DbTestCase):
 
         templ_file = 'ironic/tests/unit/drivers/' \
                      'ipxe_config_boot_from_volume_no_extra_volumes.template'
+        with open(templ_file) as f:
+            expected_template = f.read().rstrip()
+        self.assertEqual(str(expected_template), rendered_template)
+
+    def test_default_ipxe_boot_from_iso(self):
+        self.config(
+            pxe_config_template='ironic/drivers/modules/ipxe_config.template',
+            group='pxe'
+        )
+        self.config(http_url='http://1.2.3.4:1234', group='deploy')
+
+        pxe_options = self.ipxe_options_boot_from_iso
+
+        rendered_template = utils.render_template(
+            CONF.pxe.pxe_config_template,
+            {'pxe_options': pxe_options,
+             'ROOT': '{{ ROOT }}'},
+        )
+
+        templ_file = 'ironic/tests/unit/drivers/' \
+                     'ipxe_config_boot_from_iso.template'
         with open(templ_file) as f:
             expected_template = f.read().rstrip()
         self.assertEqual(str(expected_template), rendered_template)
@@ -1040,6 +1067,20 @@ class PXEInterfacesTestCase(db_base.DbTestCase):
             image_info = pxe_utils.get_instance_image_info(task)
         self.assertEqual({}, image_info)
 
+    @mock.patch('ironic.drivers.modules.deploy_utils.get_boot_option',
+                return_value='ramdisk')
+    def test_get_instance_image_info_boot_iso(self, boot_opt_mock):
+        self.node.instance_info = {'boot_iso': 'http://localhost/boot.iso'}
+        self.node.save()
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            image_info = pxe_utils.get_instance_image_info(
+                task, ipxe_enabled=True)
+            self.assertEqual('http://localhost/boot.iso',
+                             image_info['boot_iso'][0])
+
+            boot_opt_mock.assert_called_once_with(task.node)
+
     @mock.patch.object(deploy_utils, 'fetch_images', autospec=True)
     def test__cache_tftp_images_master_path(self, mock_fetch_image):
         temp_dir = tempfile.mkdtemp()
@@ -1414,7 +1455,8 @@ class iPXEBuildConfigOptionsTestCase(db_base.DbTestCase):
                                             ipxe_use_swift=False,
                                             debug=False,
                                             boot_from_volume=False,
-                                            mode='deploy'):
+                                            mode='deploy',
+                                            iso_boot=False):
         self.config(debug=debug)
         self.config(pxe_append_params='test_param', group='pxe')
         self.config(ipxe_timeout=ipxe_timeout, group='pxe')
@@ -1519,6 +1561,19 @@ class iPXEBuildConfigOptionsTestCase(db_base.DbTestCase):
             expected_options.pop('deployment_aki_path')
             expected_options.pop('deployment_ari_path')
             expected_options.pop('initrd_filename')
+
+        if iso_boot:
+            self.node.instance_info = {'boot_iso': 'http://test.url/file.iso'}
+            self.node.save()
+            print(expected_options)
+            print(image_info)
+            iso_url = os.path.join(http_url, self.node.uuid, 'boot_iso')
+            expected_options.update(
+                {
+                    'boot_iso_url': iso_url
+
+                }
+            )
 
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
@@ -1707,6 +1762,9 @@ class iPXEBuildConfigOptionsTestCase(db_base.DbTestCase):
     def test_build_pxe_config_options_ipxe_rescue_timeout(self):
         self._test_build_pxe_config_options_ipxe(mode='rescue',
                                                  ipxe_timeout=120)
+
+    def test_build_pxe_config_options_ipxe_boot_iso(self):
+        self._test_build_pxe_config_options_ipxe(iso_boot=True)
 
     @mock.patch('ironic.common.utils.rmtree_without_raise', autospec=True)
     @mock.patch('ironic_lib.utils.unlink_without_raise', autospec=True)

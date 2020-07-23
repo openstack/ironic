@@ -33,9 +33,14 @@ boot
 
 :boot_ramdisk
 imgfree
+{%- if pxe_options.boot_iso_url %}
+sanboot {{ pxe_options.boot_iso_url }}
+{%- else %}
 kernel {% if pxe_options.ipxe_timeout > 0 %}--timeout {{ pxe_options.ipxe_timeout }} {% endif %}{{ pxe_options.aki_path }} root=/dev/ram0 text {{ pxe_options.pxe_append_params|default("", true) }} {{ pxe_options.ramdisk_opts|default('', true) }} initrd=ramdisk || goto boot_ramdisk
 initrd {% if pxe_options.ipxe_timeout > 0 %}--timeout {{ pxe_options.ipxe_timeout }} {% endif %}{{ pxe_options.ari_path }} || goto boot_ramdisk
 boot
+{%- endif %}
+
 {%- if pxe_options.boot_from_volume %}
 
 :boot_iscsi
