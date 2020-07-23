@@ -68,6 +68,8 @@ for scheduling::
 Please see a specific :doc:`hardware type page </admin/drivers>` for
 the exact list of capabilities this hardware type can discover.
 
+.. _in-band inspection:
+
 In-band inspection
 ------------------
 
