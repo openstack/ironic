@@ -24,6 +24,7 @@ from oslo_utils import excutils
 from oslo_utils import importutils
 
 from ironic.common import boot_devices
+from ironic.common import boot_modes
 from ironic.common import exception
 from ironic.common.i18n import _
 from ironic.common import states
@@ -683,6 +684,59 @@ class IloManagement(base.ManagementInterface):
         except ilo_error.IloError as ilo_exception:
             raise exception.IloOperationError(operation=operation,
                                               error=ilo_exception)
+
+    def get_supported_boot_modes(self, task):
+        """Get a list of the supported boot devices.
+
+        :param task: a task from TaskManager.
+        :raises: IloOperationError if any exception happens in proliantutils
+        :returns: A list with the supported boot devices defined
+                  in :mod:`ironic.common.boot_devices`.
+        """
+        node = task.node
+        ilo_object = ilo_common.get_ilo_object(node)
+        try:
+            modes = ilo_object.get_supported_boot_mode()
+            if modes == ilo_common.SUPPORTED_BOOT_MODE_LEGACY_BIOS_ONLY:
+                return [boot_modes.LEGACY_BIOS]
+            elif modes == ilo_common.SUPPORTED_BOOT_MODE_UEFI_ONLY:
+                return [boot_modes.UEFI]
+            elif modes == ilo_common.SUPPORTED_BOOT_MODE_LEGACY_BIOS_AND_UEFI:
+                return [boot_modes.UEFI, boot_modes.LEGACY_BIOS]
+        except ilo_error.IloError as ilo_exception:
+            operation = _("Get supported boot modes")
+            raise exception.IloOperationError(operation=operation,
+                                              error=ilo_exception)
+
+    @task_manager.require_exclusive_lock
+    def set_boot_mode(self, task, mode):
+        """Set the boot mode for a node.
+
+        Set the boot mode to use on next reboot of the node.
+
+        :param task: A task from TaskManager.
+        :param mode: The boot mode, one of
+                     :mod:`ironic.common.boot_modes`.
+        :raises: InvalidParameterValue if an invalid boot mode is
+                 specified.
+        :raises: IloOperationError if setting boot mode failed.
+        """
+        if mode not in self.get_supported_boot_modes(task):
+            raise exception.InvalidParameterValue(_(
+                "The given boot mode '%s' is not supported.") % mode)
+        ilo_common.set_boot_mode(task.node, mode)
+
+    def get_boot_mode(self, task):
+        """Get the current boot mode for a node.
+
+        Provides the current boot mode of the node.
+
+        :param task: A task from TaskManager.
+        :raises: IloOperationError on an error from IloClient library.
+        :returns: The boot mode, one of :mod:`ironic.common.boot_mode` or
+                  None if it is unknown.
+        """
+        return ilo_common.get_current_boot_mode(task.node)
 
 
 class Ilo5Management(IloManagement):

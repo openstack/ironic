@@ -116,6 +116,15 @@ POST_INPOSTDISCOVERY_STATE = "InPostDiscoveryComplete"
 POST_FINISHEDPOST_STATE = "FinishedPost"
 """ Node is in FinishedPost post state."""
 
+SUPPORTED_BOOT_MODE_LEGACY_BIOS_ONLY = 'legacy bios only'
+""" Node supports only legacy BIOS boot mode."""
+
+SUPPORTED_BOOT_MODE_UEFI_ONLY = 'uefi only'
+""" Node supports only UEFI boot mode."""
+
+SUPPORTED_BOOT_MODE_LEGACY_BIOS_AND_UEFI = 'legacy bios and uefi'
+""" Node supports both legacy BIOS and UEFI boot mode."""
+
 
 def copy_image_to_web_server(source_file_path, destination):
     """Copies the given image to the http web server.
@@ -490,6 +499,24 @@ def set_boot_mode(node, boot_mode):
 
     LOG.info("Node %(uuid)s boot mode is set to %(boot_mode)s.",
              {'uuid': node.uuid, 'boot_mode': boot_mode})
+
+
+def get_current_boot_mode(node):
+    """Get the current boot mode for a node.
+
+    :param node: an ironic node object.
+    :raises: IloOperationError if failed to fetch boot mode.
+    :raises: IloOperationNotSupported if node does not support getting pending
+             boot mode.
+    """
+    ilo_object = get_ilo_object(node)
+    operation = _("Get current boot mode")
+    try:
+        c_boot_mode = ilo_object.get_current_boot_mode()
+        return BOOT_MODE_ILO_TO_GENERIC[c_boot_mode.lower()]
+    except ilo_error.IloError as ilo_exception:
+        raise exception.IloOperationError(operation=operation,
+                                          error=ilo_exception)
 
 
 def update_boot_mode(task):

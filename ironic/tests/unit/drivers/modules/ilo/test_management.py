@@ -16,10 +16,12 @@
 
 from unittest import mock
 
+import ddt
 from oslo_utils import importutils
 from oslo_utils import uuidutils
 
 from ironic.common import boot_devices
+from ironic.common import boot_modes
 from ironic.common import exception
 from ironic.common import states
 from ironic.conductor import task_manager
@@ -41,6 +43,7 @@ ilo_error = importutils.try_import('proliantutils.exception')
 INFO_DICT = db_utils.get_test_ilo_info()
 
 
+@ddt.ddt
 class IloManagementTestCase(test_common.BaseIloTest):
 
     def setUp(self):
@@ -1180,6 +1183,88 @@ class IloManagementTestCase(test_common.BaseIloTest):
             self.assertRaises(exception.IloOperationNotSupported,
                               task.driver.management.inject_nmi,
                               task)
+
+    @mock.patch.object(ilo_common, 'get_ilo_object', spec_set=True,
+                       autospec=True)
+    @ddt.data((ilo_common.SUPPORTED_BOOT_MODE_LEGACY_BIOS_ONLY,
+               ['bios']),
+              (ilo_common.SUPPORTED_BOOT_MODE_UEFI_ONLY,
+               ['uefi']),
+              (ilo_common.SUPPORTED_BOOT_MODE_LEGACY_BIOS_AND_UEFI,
+               ['uefi', 'bios']))
+    @ddt.unpack
+    def test_get_supported_boot_modes(self, boot_modes_val,
+                                      exp_boot_modes,
+                                      get_ilo_object_mock):
+        ilo_object_mock = get_ilo_object_mock.return_value
+        ilo_object_mock.get_supported_boot_mode.return_value = boot_modes_val
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            supported_boot_modes = (
+                task.driver.management.get_supported_boot_modes(task))
+            self.assertEqual(exp_boot_modes, supported_boot_modes)
+
+    @mock.patch.object(ilo_common, 'set_boot_mode', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(ilo_management.IloManagement,
+                       'get_supported_boot_modes',
+                       spec_set=True, autospec=True)
+    def test_set_boot_mode(self, supp_boot_modes_mock,
+                           set_boot_mode_mock):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            exp_boot_modes = [boot_modes.UEFI, boot_modes.LEGACY_BIOS]
+            supp_boot_modes_mock.return_value = exp_boot_modes
+
+            for mode in exp_boot_modes:
+                task.driver.management.set_boot_mode(task, mode=mode)
+                supp_boot_modes_mock.assert_called_once_with(mock.ANY, task)
+                set_boot_mode_mock.assert_called_once_with(task.node, mode)
+                set_boot_mode_mock.reset_mock()
+                supp_boot_modes_mock.reset_mock()
+
+    @mock.patch.object(ilo_common, 'get_ilo_object', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(ilo_management.IloManagement,
+                       'get_supported_boot_modes',
+                       spec_set=True, autospec=True)
+    def test_set_boot_mode_fail(self, supp_boot_modes_mock,
+                                get_ilo_object_mock):
+        ilo_mock_obj = get_ilo_object_mock.return_value
+        ilo_mock_obj.get_pending_boot_mode.return_value = 'legacy'
+        exc = ilo_error.IloError('error')
+        ilo_mock_obj.set_pending_boot_mode.side_effect = exc
+        exp_boot_modes = [boot_modes.UEFI, boot_modes.LEGACY_BIOS]
+        supp_boot_modes_mock.return_value = exp_boot_modes
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            self.assertRaisesRegex(
+                exception.IloOperationError, 'uefi as boot mode failed',
+                task.driver.management.set_boot_mode, task, boot_modes.UEFI)
+            supp_boot_modes_mock.assert_called_once_with(mock.ANY, task)
+
+    @mock.patch.object(ilo_common, 'get_ilo_object', spec_set=True,
+                       autospec=True)
+    def test_get_boot_mode(self, get_ilo_object_mock):
+        expected = 'bios'
+        ilo_mock_obj = get_ilo_object_mock.return_value
+        ilo_mock_obj.get_current_boot_mode.return_value = 'LEGACY'
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            response = task.driver.management.get_boot_mode(task)
+            self.assertEqual(expected, response)
+
+    @mock.patch.object(ilo_common, 'get_ilo_object', spec_set=True,
+                       autospec=True)
+    def test_get_boot_mode_fail(self, get_ilo_object_mock):
+        ilo_mock_obj = get_ilo_object_mock.return_value
+        exc = ilo_error.IloError('error')
+        ilo_mock_obj.get_current_boot_mode.side_effect = exc
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            self.assertRaisesRegex(
+                exception.IloOperationError, 'Get current boot mode',
+                task.driver.management.get_boot_mode, task)
 
 
 class Ilo5ManagementTestCase(db_base.DbTestCase):

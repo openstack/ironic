@@ -1,0 +1,5 @@
+---
+features:
+  - |
+    Adds support for boot mode retrieval and setting with the ``ilo`` and
+    ``ilo5`` hardware types.
