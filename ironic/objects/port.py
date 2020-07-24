@@ -203,18 +203,21 @@ class Port(base.IronicObject, object_base.VersionedObjectDictCompat):
     # Implications of calling new remote procedures should be thought through.
     # @object_base.remotable_classmethod
     @classmethod
-    def get_by_address(cls, context, address, owner=None):
+    def get_by_address(cls, context, address, owner=None, project=None):
         """Find a port based on address and return a :class:`Port` object.
 
         :param cls: the :class:`Port`
         :param context: Security context
         :param address: the address of a port.
-        :param owner: a node owner to match against
+        :param owner: DEPRECATED a node owner to match against
+        :param project: a node owner or lessee to match against
         :returns: a :class:`Port` object.
         :raises: PortNotFound
 
         """
-        db_port = cls.dbapi.get_port_by_address(address, owner=owner)
+        if owner and not project:
+            project = owner
+        db_port = cls.dbapi.get_port_by_address(address, project=project)
         port = cls._from_db_object(context, cls(), db_port)
         return port
 
@@ -224,7 +227,7 @@ class Port(base.IronicObject, object_base.VersionedObjectDictCompat):
     # @object_base.remotable_classmethod
     @classmethod
     def list(cls, context, limit=None, marker=None,
-             sort_key=None, sort_dir=None, owner=None):
+             sort_key=None, sort_dir=None, owner=None, project=None):
         """Return a list of Port objects.
 
         :param context: Security context.
@@ -232,16 +235,19 @@ class Port(base.IronicObject, object_base.VersionedObjectDictCompat):
         :param marker: pagination marker for large data sets.
         :param sort_key: column to sort results by.
         :param sort_dir: direction to sort. "asc" or "desc".
-        :param owner: a node owner to match against
+        :param owner: DEPRECATED a node owner to match against
+        :param project: a node owner or lessee to match against
         :returns: a list of :class:`Port` object.
         :raises: InvalidParameterValue
 
         """
+        if owner and not project:
+            project = owner
         db_ports = cls.dbapi.get_port_list(limit=limit,
                                            marker=marker,
                                            sort_key=sort_key,
                                            sort_dir=sort_dir,
-                                           owner=owner)
+                                           project=project)
         return cls._from_db_object_list(context, db_ports)
 
     # NOTE(xek): We don't want to enable RPC on this call just yet. Remotable
@@ -250,7 +256,8 @@ class Port(base.IronicObject, object_base.VersionedObjectDictCompat):
     # @object_base.remotable_classmethod
     @classmethod
     def list_by_node_id(cls, context, node_id, limit=None, marker=None,
-                        sort_key=None, sort_dir=None, owner=None):
+                        sort_key=None, sort_dir=None, owner=None,
+                        project=None):
         """Return a list of Port objects associated with a given node ID.
 
         :param context: Security context.
@@ -259,15 +266,18 @@ class Port(base.IronicObject, object_base.VersionedObjectDictCompat):
         :param marker: pagination marker for large data sets.
         :param sort_key: column to sort results by.
         :param sort_dir: direction to sort. "asc" or "desc".
-        :param owner: a node owner to match against
+        :param owner: DEPRECATED a node owner to match against
+        :param project: a node owner or lessee to match against
         :returns: a list of :class:`Port` object.
 
         """
+        if owner and not project:
+            project = owner
         db_ports = cls.dbapi.get_ports_by_node_id(node_id, limit=limit,
                                                   marker=marker,
                                                   sort_key=sort_key,
                                                   sort_dir=sort_dir,
-                                                  owner=owner)
+                                                  project=project)
         return cls._from_db_object_list(context, db_ports)
 
     # NOTE(xek): We don't want to enable RPC on this call just yet. Remotable
@@ -277,7 +287,7 @@ class Port(base.IronicObject, object_base.VersionedObjectDictCompat):
     @classmethod
     def list_by_portgroup_id(cls, context, portgroup_id, limit=None,
                              marker=None, sort_key=None, sort_dir=None,
-                             owner=None):
+                             owner=None, project=None):
         """Return a list of Port objects associated with a given portgroup ID.
 
         :param context: Security context.
@@ -286,16 +296,19 @@ class Port(base.IronicObject, object_base.VersionedObjectDictCompat):
         :param marker: pagination marker for large data sets.
         :param sort_key: column to sort results by.
         :param sort_dir: direction to sort. "asc" or "desc".
-        :param owner: a node owner to match against
+        :param owner: DEPRECATED a node owner to match against
+        :param project: a node owner or lessee to match against
         :returns: a list of :class:`Port` object.
 
         """
+        if owner and not project:
+            project = owner
         db_ports = cls.dbapi.get_ports_by_portgroup_id(portgroup_id,
                                                        limit=limit,
                                                        marker=marker,
                                                        sort_key=sort_key,
                                                        sort_dir=sort_dir,
-                                                       owner=owner)
+                                                       project=project)
         return cls._from_db_object_list(context, db_ports)
 
     # NOTE(xek): We don't want to enable RPC on this call just yet. Remotable

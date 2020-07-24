@@ -1,0 +1,5 @@
+---
+features:
+  - |
+    Allow port lists to be filtered by project. Doing so checks the specified
+    project against the port's node's owner and lessee.

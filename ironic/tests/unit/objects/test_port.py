@@ -66,7 +66,7 @@ class TestPortObject(db_base.DbTestCase, obj_utils.SchemasTestMixIn):
 
             port = objects.Port.get(self.context, address)
 
-            mock_get_port.assert_called_once_with(address, owner=None)
+            mock_get_port.assert_called_once_with(address, project=None)
             self.assertEqual(self.context, port._context)
 
     def test_get_bad_id_and_uuid_and_address(self):
@@ -146,6 +146,22 @@ class TestPortObject(db_base.DbTestCase, obj_utils.SchemasTestMixIn):
             self.assertThat(ports, matchers.HasLength(1))
             self.assertIsInstance(ports[0], objects.Port)
             self.assertEqual(self.context, ports[0]._context)
+            mock_get_list.assert_called_once_with(
+                limit=None, marker=None, project=None, sort_dir=None,
+                sort_key=None)
+
+    def test_list_deprecated_owner(self):
+        with mock.patch.object(self.dbapi, 'get_port_list',
+                               autospec=True) as mock_get_list:
+            mock_get_list.return_value = [self.fake_port]
+            ports = objects.Port.list(self.context,
+                                      owner='12345')
+            self.assertThat(ports, matchers.HasLength(1))
+            self.assertIsInstance(ports[0], objects.Port)
+            self.assertEqual(self.context, ports[0]._context)
+            mock_get_list.assert_called_once_with(
+                limit=None, marker=None, project='12345', sort_dir=None,
+                sort_key=None)
 
     @mock.patch.object(obj_base.IronicObject, 'supports_version',
                        spec_set=types.FunctionType)

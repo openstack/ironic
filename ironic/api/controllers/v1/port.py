@@ -339,7 +339,30 @@ class PortsController(rest.RestController):
     def _get_ports_collection(self, node_ident, address, portgroup_ident,
                               marker, limit, sort_key, sort_dir,
                               resource_url=None, fields=None, detail=None,
-                              owner=None):
+                              project=None):
+        """Retrieve a collection of ports.
+
+        :param node_ident: UUID or name of a node, to get only ports for that
+                           node.
+        :param address: MAC address of a port, to get the port which has
+                        this MAC address.
+        :param portgroup_ident: UUID or name of a portgroup, to get only ports
+                                for that portgroup.
+        :param marker: pagination marker for large data sets.
+        :param limit: maximum number of resources to return in a single result.
+                      This value cannot be larger than the value of max_limit
+                      in the [api] section of the ironic configuration, or only
+                      max_limit resources will be returned.
+        :param sort_key: column to sort results by. Default: id.
+        :param sort_dir: direction to sort. "asc" or "desc". Default: asc.
+        :param resource_url: Optional, base url to be used for links
+        :param fields: Optional, a list with a specified set of fields
+            of the resource to be returned.
+        :param detail: Optional, show detailed list of ports
+        :param project: Optional, filter by project
+        :returns: a list of ports.
+
+        """
 
         limit = api_utils.validate_limit(limit)
         sort_dir = api_utils.validate_sort_dir(sort_dir)
@@ -371,7 +394,7 @@ class PortsController(rest.RestController):
                                                       marker_obj,
                                                       sort_key=sort_key,
                                                       sort_dir=sort_dir,
-                                                      owner=owner)
+                                                      project=project)
         elif node_ident:
             # FIXME(comstud): Since all we need is the node ID, we can
             #                 make this more efficient by only querying
@@ -382,13 +405,13 @@ class PortsController(rest.RestController):
                                                  node.id, limit, marker_obj,
                                                  sort_key=sort_key,
                                                  sort_dir=sort_dir,
-                                                 owner=owner)
+                                                 project=project)
         elif address:
-            ports = self._get_ports_by_address(address, owner=owner)
+            ports = self._get_ports_by_address(address, project=project)
         else:
             ports = objects.Port.list(api.request.context, limit,
                                       marker_obj, sort_key=sort_key,
-                                      sort_dir=sort_dir, owner=owner)
+                                      sort_dir=sort_dir, project=project)
         parameters = {}
 
         if detail is not None:
@@ -401,17 +424,18 @@ class PortsController(rest.RestController):
                                                  sort_dir=sort_dir,
                                                  **parameters)
 
-    def _get_ports_by_address(self, address, owner=None):
+    def _get_ports_by_address(self, address, project=None):
         """Retrieve a port by its address.
 
         :param address: MAC address of a port, to get the port which has
                         this MAC address.
+        :param project: Optional, filter by project
         :returns: a list with the port, or an empty list if no port is found.
 
         """
         try:
             port = objects.Port.get_by_address(api.request.context, address,
-                                               owner=owner)
+                                               project=project)
             return [port]
         except exception.PortNotFound:
             return []
@@ -480,7 +504,7 @@ class PortsController(rest.RestController):
                                    for that portgroup.
         :raises: NotAcceptable, HTTPNotFound
         """
-        owner = api_utils.check_port_list_policy()
+        project = api_utils.check_port_list_policy()
 
         api_utils.check_allow_specify_fields(fields)
         self._check_allowed_port_fields(fields)
@@ -503,7 +527,7 @@ class PortsController(rest.RestController):
         return self._get_ports_collection(node_uuid or node, address,
                                           portgroup, marker, limit, sort_key,
                                           sort_dir, fields=fields,
-                                          detail=detail, owner=owner)
+                                          detail=detail, project=project)
 
     @METRICS.timer('PortsController.detail')
     @expose.expose(PortCollection, types.uuid_or_name, types.uuid,
@@ -533,7 +557,7 @@ class PortsController(rest.RestController):
         :param sort_dir: direction to sort. "asc" or "desc". Default: asc.
         :raises: NotAcceptable, HTTPNotFound
         """
-        owner = api_utils.check_port_list_policy()
+        project = api_utils.check_port_list_policy()
 
         self._check_allowed_port_fields([sort_key])
         if portgroup and not api_utils.allow_portgroups_subcontrollers():
@@ -555,7 +579,8 @@ class PortsController(rest.RestController):
         resource_url = '/'.join(['ports', 'detail'])
         return self._get_ports_collection(node_uuid or node, address,
                                           portgroup, marker, limit, sort_key,
-                                          sort_dir, resource_url, owner=owner)
+                                          sort_dir, resource_url,
+                                          project=project)
 
     @METRICS.timer('PortsController.get_one')
     @expose.expose(Port, types.uuid, types.listtype)

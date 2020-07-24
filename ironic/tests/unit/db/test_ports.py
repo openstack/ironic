@@ -28,7 +28,8 @@ class DbPortTestCase(base.DbTestCase):
         # This method creates a port for every test and
         # replaces a test for creating a port.
         super(DbPortTestCase, self).setUp()
-        self.node = db_utils.create_test_node(owner='12345')
+        self.node = db_utils.create_test_node(owner='12345',
+                                              lessee='54321')
         self.portgroup = db_utils.create_test_portgroup(node_id=self.node.id)
         self.port = db_utils.create_test_port(node_id=self.node.id,
                                               portgroup_id=self.portgroup.id)
@@ -55,6 +56,17 @@ class DbPortTestCase(base.DbTestCase):
                           self.dbapi.get_port_by_address,
                           self.port.address,
                           owner='54321')
+
+    def test_get_port_by_address_filter_by_project(self):
+        res = self.dbapi.get_port_by_address(self.port.address,
+                                             project=self.node.lessee)
+        self.assertEqual(self.port.id, res.id)
+
+    def test_get_port_by_address_filter_by_project_no_match(self):
+        self.assertRaises(exception.PortNotFound,
+                          self.dbapi.get_port_by_address,
+                          self.port.address,
+                          project='55555')
 
     def test_get_port_list(self):
         uuids = []
@@ -99,6 +111,30 @@ class DbPortTestCase(base.DbTestCase):
         res_uuids = [r.uuid for r in res]
         self.assertCountEqual(uuids, res_uuids)
 
+    def test_get_port_list_filter_by_node_project(self):
+        lessee_node = db_utils.create_test_node(uuid=uuidutils.generate_uuid(),
+                                                lessee=self.node.owner)
+
+        uuids = []
+        for i in range(1, 3):
+            port = db_utils.create_test_port(uuid=uuidutils.generate_uuid(),
+                                             node_id=lessee_node.id,
+                                             address='52:54:00:cf:2d:4%s' % i)
+            uuids.append(str(port.uuid))
+        for i in range(4, 6):
+            port = db_utils.create_test_port(uuid=uuidutils.generate_uuid(),
+                                             address='52:54:00:cf:2d:4%s' % i)
+        for i in range(7, 9):
+            port = db_utils.create_test_port(uuid=uuidutils.generate_uuid(),
+                                             node_id=self.node.id,
+                                             address='52:54:00:cf:2d:4%s' % i)
+            uuids.append(str(port.uuid))
+        # Also add the uuid for the port created in setUp()
+        uuids.append(str(self.port.uuid))
+        res = self.dbapi.get_port_list(project=self.node.owner)
+        res_uuids = [r.uuid for r in res]
+        self.assertCountEqual(uuids, res_uuids)
+
     def test_get_ports_by_node_id(self):
         res = self.dbapi.get_ports_by_node_id(self.node.id)
         self.assertEqual(self.port.address, res[0].address)
@@ -111,6 +147,16 @@ class DbPortTestCase(base.DbTestCase):
     def test_get_ports_by_node_id_filter_by_node_owner_no_match(self):
         res = self.dbapi.get_ports_by_node_id(self.node.id,
                                               owner='54321')
+        self.assertEqual([], res)
+
+    def test_get_ports_by_node_id_filter_by_node_project(self):
+        res = self.dbapi.get_ports_by_node_id(self.node.id,
+                                              project=self.node.lessee)
+        self.assertEqual(self.port.address, res[0].address)
+
+    def test_get_ports_by_node_id_filter_by_node_project_no_match(self):
+        res = self.dbapi.get_ports_by_node_id(self.node.id,
+                                              owner='11111')
         self.assertEqual([], res)
 
     def test_get_ports_by_node_id_that_does_not_exist(self):
@@ -128,6 +174,16 @@ class DbPortTestCase(base.DbTestCase):
     def test_get_ports_by_portgroup_id_filter_by_node_owner_no_match(self):
         res = self.dbapi.get_ports_by_portgroup_id(self.portgroup.id,
                                                    owner='54321')
+        self.assertEqual([], res)
+
+    def test_get_ports_by_portgroup_id_filter_by_node_project(self):
+        res = self.dbapi.get_ports_by_portgroup_id(self.portgroup.id,
+                                                   project=self.node.lessee)
+        self.assertEqual(self.port.address, res[0].address)
+
+    def test_get_ports_by_portgroup_id_filter_by_node_project_no_match(self):
+        res = self.dbapi.get_ports_by_portgroup_id(self.portgroup.id,
+                                                   project='11111')
         self.assertEqual([], res)
 
     def test_get_ports_by_portgroup_id_that_does_not_exist(self):

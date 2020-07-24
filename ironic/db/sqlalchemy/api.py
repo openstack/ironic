@@ -155,6 +155,13 @@ def add_port_filter_by_node_owner(query, value):
     return query.filter(models.Node.owner == value)
 
 
+def add_port_filter_by_node_project(query, value):
+    query = query.join(models.Node,
+                       models.Port.node_id == models.Node.id)
+    return query.filter((models.Node.owner == value)
+                        | (models.Node.lessee == value))
+
+
 def add_portgroup_filter(query, value):
     """Adds a portgroup-specific filter to a query.
 
@@ -687,38 +694,49 @@ class Connection(api.Connection):
         except NoResultFound:
             raise exception.PortNotFound(port=port_uuid)
 
-    def get_port_by_address(self, address, owner=None):
+    def get_port_by_address(self, address, owner=None, project=None):
         query = model_query(models.Port).filter_by(address=address)
         if owner:
             query = add_port_filter_by_node_owner(query, owner)
+        elif project:
+            query = add_port_filter_by_node_project(query, project)
         try:
             return query.one()
         except NoResultFound:
             raise exception.PortNotFound(port=address)
 
     def get_port_list(self, limit=None, marker=None,
-                      sort_key=None, sort_dir=None, owner=None):
+                      sort_key=None, sort_dir=None, owner=None,
+                      project=None):
         query = model_query(models.Port)
         if owner:
             query = add_port_filter_by_node_owner(query, owner)
+        elif project:
+            query = add_port_filter_by_node_project(query, project)
         return _paginate_query(models.Port, limit, marker,
                                sort_key, sort_dir, query)
 
     def get_ports_by_node_id(self, node_id, limit=None, marker=None,
-                             sort_key=None, sort_dir=None, owner=None):
+                             sort_key=None, sort_dir=None, owner=None,
+                             project=None):
         query = model_query(models.Port)
         query = query.filter_by(node_id=node_id)
         if owner:
             query = add_port_filter_by_node_owner(query, owner)
+        elif project:
+            query = add_port_filter_by_node_project(query, project)
         return _paginate_query(models.Port, limit, marker,
                                sort_key, sort_dir, query)
 
     def get_ports_by_portgroup_id(self, portgroup_id, limit=None, marker=None,
-                                  sort_key=None, sort_dir=None, owner=None):
+                                  sort_key=None, sort_dir=None, owner=None,
+                                  project=None):
         query = model_query(models.Port)
         query = query.filter_by(portgroup_id=portgroup_id)
         if owner:
             query = add_port_filter_by_node_owner(query, owner)
+        elif project:
+            query = add_port_filter_by_node_project(query, project)
         return _paginate_query(models.Port, limit, marker,
                                sort_key, sort_dir, query)
 
