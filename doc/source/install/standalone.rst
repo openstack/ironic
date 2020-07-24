@@ -2,6 +2,9 @@
 Using Bare Metal service as a standalone service
 ================================================
 
+Service settings
+----------------
+
 It is possible to use the Bare Metal service without other OpenStack services.
 You should make the following changes to ``/etc/ironic/ironic.conf``:
 
@@ -73,6 +76,9 @@ You should make the following changes to ``/etc/ironic/ironic.conf``:
     http_basic_username=myName
     http_basic_password=myPassword
 
+Preparing images
+----------------
+
 If you don't use Image service, it's possible to provide images to Bare Metal
 service via a URL.
 
@@ -93,25 +99,37 @@ There are however some limitations for different hardware interfaces:
 * :ref:`direct-deploy` requires the instance image be accessible through a
   HTTP(s) URL.
 
-Steps to start a deployment are pretty similar to those when using Compute:
+.. note::
+   The Bare Metal service tracks content changes for non-Glance images by
+   checking their modification date and time. For example, for HTTP image,
+   if 'Last-Modified' header value from response to a HEAD request to
+   "http://my.server.net/images/deploy.ramdisk" is greater than cached image
+   modification time, Ironic will re-download the content. For "file://"
+   images, the file system modification time is used.
 
-#. To use the
-   :python-ironicclient-doc:`openstack baremetal CLI <cli/osc_plugin_cli.html>`,
-   set up these environment variables. If the ``noauth`` authentication strategy is
-   being used, the value ``none`` must be set for OS_AUTH_TYPE. OS_ENDPOINT is
-   the URL of the ironic-api process.
-   For example::
+Using CLI
+---------
 
-    export OS_AUTH_TYPE=none
-    export OS_ENDPOINT=http://localhost:6385/
+To use the
+:python-ironicclient-doc:`openstack baremetal CLI <cli/osc_plugin_cli.html>`,
+set up these environment variables. If the ``noauth`` authentication strategy is
+being used, the value ``none`` must be set for OS_AUTH_TYPE. OS_ENDPOINT is
+the URL of the ironic-api process.
+For example::
 
-   If the ``http_basic`` authentication strategy is being used, the value
-   ``http_basic`` must be set for OS_AUTH_TYPE. For example::
+ export OS_AUTH_TYPE=none
+ export OS_ENDPOINT=http://localhost:6385/
 
-    export OS_AUTH_TYPE=http_basic
-    export OS_ENDPOINT=http://localhost:6385/
-    export OS_USERNAME=myUser
-    export OS_PASSWORD=myPassword
+If the ``http_basic`` authentication strategy is being used, the value
+``http_basic`` must be set for OS_AUTH_TYPE. For example::
+
+ export OS_AUTH_TYPE=http_basic
+ export OS_ENDPOINT=http://localhost:6385/
+ export OS_USERNAME=myUser
+ export OS_PASSWORD=myPassword
+
+Enrolling nodes
+---------------
 
 #. Create a node in Bare Metal service. At minimum, you must specify the driver
    name (for example, ``ipmi``). You can also specify all the required
@@ -152,6 +170,9 @@ Steps to start a deployment are pretty similar to those when using Compute:
    address. In this case, they're used for naming of PXE configs for a node::
 
     openstack baremetal port create $MAC_ADDRESS --node $NODE_UUID
+
+Populating instance_info
+------------------------
 
 #. You also need to specify image information in the node's ``instance_info``
    (see :doc:`creating-images`):
@@ -233,6 +254,15 @@ Steps to start a deployment are pretty similar to those when using Compute:
    This setting overrides any previous setting in ``properties`` and will be
    removed on undeployment.
 
+#. For iLO drivers, fields that should be provided are:
+
+   * ``ilo_deploy_iso`` under ``driver_info``;
+
+   * ``ilo_boot_iso``, ``image_source``, ``root_gb`` under ``instance_info``.
+
+Deployment
+----------
+
 #. Validate that all parameters are correct::
 
     openstack baremetal node validate $NODE_UUID
@@ -254,20 +284,6 @@ Steps to start a deployment are pretty similar to those when using Compute:
 #. Now you can start the deployment, run::
 
     openstack baremetal node deploy $NODE_UUID
-
-For iLO drivers, fields that should be provided are:
-
-* ``ilo_deploy_iso`` under ``driver_info``;
-
-* ``ilo_boot_iso``, ``image_source``, ``root_gb`` under ``instance_info``.
-
-.. note::
-   The Bare Metal service tracks content changes for non-Glance images by
-   checking their modification date and time. For example, for HTTP image,
-   if 'Last-Modified' header value from response to a HEAD request to
-   "http://my.server.net/images/deploy.ramdisk" is greater than cached image
-   modification time, Ironic will re-download the content. For "file://"
-   images, the file system modification time is used.
 
 
 Ramdisk booting
