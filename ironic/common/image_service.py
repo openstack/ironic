@@ -23,6 +23,7 @@ import shutil
 from urllib import parse as urlparse
 
 from oslo_log import log
+from oslo_utils import strutils
 from oslo_utils import uuidutils
 import requests
 import sendfile
@@ -31,6 +32,7 @@ from ironic.common import exception
 from ironic.common.glance_service.image_service import GlanceImageService
 from ironic.common.i18n import _
 from ironic.common import utils
+from ironic.conf import CONF
 
 IMAGE_CHUNK_SIZE = 1024 * 1024  # 1mb
 # NOTE(kaifeng) Image will be truncated to 2GiB by sendfile,
@@ -88,14 +90,23 @@ class HttpImageService(BaseImageService):
         :returns: Response to HEAD request.
         """
         output_url = 'secreturl' if secret else image_href
+
         try:
-            response = requests.head(image_href)
+            verify = strutils.bool_from_string(CONF.webserver_verify_ca,
+                                               strict=True)
+        except ValueError:
+            verify = CONF.webserver_verify_ca
+
+        try:
+            response = requests.head(image_href, verify=verify)
             if response.status_code != http_client.OK:
                 raise exception.ImageRefValidationFailed(
                     image_href=output_url,
-                    reason=_("Got HTTP code %s instead of 200 in response to "
-                             "HEAD request.") % response.status_code)
-        except requests.RequestException as e:
+                    reason=_("Got HTTP code %s instead of 200 in response "
+                             "to HEAD request.") % response.status_code)
+
+        except (OSError, requests.ConnectionError,
+                requests.RequestException) as e:
             raise exception.ImageRefValidationFailed(image_href=output_url,
                                                      reason=str(e))
         return response
@@ -111,16 +122,27 @@ class HttpImageService(BaseImageService):
             * IOError happened during file write;
             * GET request failed.
         """
+
         try:
-            response = requests.get(image_href, stream=True)
+            verify = strutils.bool_from_string(CONF.webserver_verify_ca,
+                                               strict=True)
+        except ValueError:
+            verify = CONF.webserver_verify_ca
+
+        try:
+            response = requests.get(image_href, stream=True,
+                                    verify=verify)
             if response.status_code != http_client.OK:
                 raise exception.ImageRefValidationFailed(
                     image_href=image_href,
-                    reason=_("Got HTTP code %s instead of 200 in response to "
-                             "GET request.") % response.status_code)
+                    reason=_("Got HTTP code %s instead of 200 in response "
+                             "to GET request.") % response.status_code)
+
             with response.raw as input_img:
                 shutil.copyfileobj(input_img, image_file, IMAGE_CHUNK_SIZE)
-        except (requests.RequestException, IOError) as e:
+
+        except (OSError, requests.ConnectionError, requests.RequestException,
+                IOError) as e:
             raise exception.ImageDownloadFailed(image_href=image_href,
                                                 reason=str(e))
 

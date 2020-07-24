@@ -372,6 +372,26 @@ utils_opts = [
                       'dir.')),
 ]
 
+cert_verify_opts = [
+    cfg.StrOpt('webserver_verify_ca',
+               default='True',
+               mutable=True,
+               help=_('CA certificates to be used for certificate '
+                      'verification. This can be either a Boolean value '
+                      'or a path to a CA_BUNDLE file.'
+                      'If set to True, the certificates present in the '
+                      'standard path are used to verify the host '
+                      'certificates.'
+                      'If set to False, the conductor will ignore verifying '
+                      'the SSL certificate presented by the host.'
+                      'If it"s a path, conductor uses the specified '
+                      'certificate for SSL verification. If the path does '
+                      'not exist, the behavior is same as when this value '
+                      'is set to True i.e the certificates present in the '
+                      'standard path are used for SSL verification.'
+                      'Defaults to True.')),
+]
+
 
 def register_opts(conf):
     conf.register_opts(api_opts)
@@ -386,3 +406,4 @@ def register_opts(conf):
     conf.register_opts(portgroup_opts)
     conf.register_opts(service_opts)
     conf.register_opts(utils_opts)
+    conf.register_opts(cert_verify_opts)
