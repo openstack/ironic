@@ -19,6 +19,7 @@ from oslo_db import exception as db_exception
 from oslo_utils import uuidutils
 
 from ironic.common import exception
+from ironic.common import images
 from ironic.common import states
 from ironic.common import swift
 from ironic.conductor import deployments
@@ -371,6 +372,39 @@ class DoNodeDeployTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         self.assertEqual(states.ACTIVE, node.target_provision_state)
         self.assertIsNotNone(node.last_error)
         self.assertFalse(mock_deploy.called)
+
+    @mock.patch.object(task_manager.TaskManager, 'process_event',
+                       autospec=True)
+    @mock.patch('ironic.drivers.modules.fake.FakePower.validate')
+    @mock.patch('ironic.drivers.modules.fake.FakeDeploy.validate')
+    @mock.patch.object(conductor_steps, 'validate_deploy_templates',
+                       autospec=True)
+    @mock.patch.object(conductor_utils, 'validate_instance_info_traits',
+                       autospec=True)
+    @mock.patch.object(images, 'is_whole_disk_image', autospec=True)
+    def test_start_deploy(self, mock_iwdi, mock_validate_traits,
+                          mock_validate_templates, mock_deploy_validate,
+                          mock_power_validate, mock_process_event):
+        self._start_service()
+        mock_iwdi.return_value = False
+        node = obj_utils.create_test_node(self.context, driver='fake-hardware',
+                                          provision_state=states.AVAILABLE,
+                                          target_provision_state=states.ACTIVE)
+        task = task_manager.TaskManager(self.context, node.uuid)
+
+        deployments.start_deploy(task, self.service, configdrive=None,
+                                 event='deploy')
+        node.refresh()
+        self.assertTrue(mock_iwdi.called)
+        mock_power_validate.assert_called_once_with(task)
+        mock_deploy_validate.assert_called_once_with(task)
+        mock_validate_traits.assert_called_once_with(task.node)
+        mock_validate_templates.assert_called_once_with(
+            task, skip_missing=True)
+        mock_process_event.assert_called_with(
+            mock.ANY, 'deploy', call_args=(
+                deployments.do_node_deploy, task, 1, None),
+            callback=mock.ANY, err_handler=mock.ANY)
 
 
 @mgr_utils.mock_record_keepalive
