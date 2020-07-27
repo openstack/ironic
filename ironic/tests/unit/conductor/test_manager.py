@@ -7061,7 +7061,13 @@ class DoNodeAdoptionTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         self._start_service()
         node = obj_utils.create_test_node(
             self.context, driver='fake-hardware',
-            provision_state=states.ADOPTING)
+            provision_state=states.ADOPTING,
+            power_state=states.POWER_ON)
+        # NOTE(TheJulia): When nodes are created for adoption, they
+        # would have no power state. Under normal circumstances
+        # during validate the node object is updated with power state
+        # however we need to make sure that we wipe preserved state
+        # as part of failure handling.
         task = task_manager.TaskManager(self.context, node.uuid)
 
         self.service._do_adoption(task)
@@ -7075,6 +7081,7 @@ class DoNodeAdoptionTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         self.assertFalse(mock_start_console.called)
         self.assertTrue(mock_boot_validate.called)
         self.assertIn('is_whole_disk_image', task.node.driver_internal_info)
+        self.assertEqual(states.NOSTATE, node.power_state)
 
     @mock.patch('ironic.drivers.modules.fake.FakeBoot.validate', autospec=True)
     @mock.patch('ironic.drivers.modules.fake.FakeConsole.start_console',
