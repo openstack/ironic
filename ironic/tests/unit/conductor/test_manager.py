@@ -1907,6 +1907,35 @@ class ContinueNodeDeployTestCase(mgr_utils.ServiceSetUpMixin,
                                       deployments.do_next_deploy_step,
                                       mock.ANY, 1, mock.ANY)
 
+    @mock.patch.object(conductor_steps, 'validate_deploy_templates',
+                       autospec=True)
+    @mock.patch('ironic.conductor.manager.ConductorManager._spawn_worker',
+                autospec=True)
+    def test_continue_node_steps_validation(self, mock_spawn, mock_validate):
+        prv_state = states.DEPLOYWAIT
+        tgt_prv_state = states.ACTIVE
+        mock_validate.side_effect = exception.InvalidParameterValue('boom')
+        driver_info = {'deploy_steps': self.deploy_steps,
+                       'deploy_step_index': 0,
+                       'steps_validated': False}
+        node = obj_utils.create_test_node(self.context, driver='fake-hardware',
+                                          provision_state=prv_state,
+                                          target_provision_state=tgt_prv_state,
+                                          last_error=None,
+                                          driver_internal_info=driver_info,
+                                          deploy_step=self.deploy_steps[0])
+        self._start_service()
+        mock_spawn.reset_mock()
+        self.service.continue_node_deploy(self.context, node.uuid)
+        self._stop_service()
+        node.refresh()
+        self.assertEqual(states.DEPLOYFAIL, node.provision_state)
+        self.assertIn('Failed to validate the final deploy steps',
+                      node.last_error)
+        self.assertIn('boom', node.last_error)
+        self.assertEqual(tgt_prv_state, node.target_provision_state)
+        self.assertFalse(mock_spawn.called)
+
 
 @mgr_utils.mock_record_keepalive
 class CheckTimeoutsTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):

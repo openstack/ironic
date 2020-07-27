@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    Fixes deployment hanging on an invalid in-band deploy step in a deploy
+    templates.
