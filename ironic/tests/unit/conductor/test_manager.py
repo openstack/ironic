@@ -5832,7 +5832,8 @@ class ManagerTestProperties(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
                     'ilo_deploy_iso', 'console_port', 'ilo_change_password',
                     'ca_file', 'snmp_auth_user', 'snmp_auth_prot_password',
                     'snmp_auth_priv_password', 'snmp_auth_protocol',
-                    'snmp_auth_priv_protocol', 'deploy_forces_oob_reboot']
+                    'snmp_auth_priv_protocol', 'deploy_forces_oob_reboot',
+                    'ilo_verify_ca']
         self._check_driver_properties("ilo", expected)
 
     def test_driver_properties_fail(self):
