@@ -1,0 +1,6 @@
+---
+deprecations:
+  - |
+    The configuration options ``[json_rpc]http_basic_username`` and
+    ``[json_rpc]http_basic_password`` have been deprecated in favour of the
+    more generic ``[json_rpc]username`` and ``[json_rpc]password``.

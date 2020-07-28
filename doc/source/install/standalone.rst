@@ -73,8 +73,8 @@ You should make the following changes to ``/etc/ironic/ironic.conf``:
 
     [json_rpc]
     auth_strategy=http_basic
-    http_basic_username=myName
-    http_basic_password=myPassword
+    username=myName
+    password=myPassword
 
 Preparing images
 ----------------

@@ -38,16 +38,16 @@ opts = [
                 default=False,
                 help=_('Whether to use TLS for JSON RPC')),
     cfg.StrOpt('http_basic_username',
-               default='',
+               deprecated_for_removal=True,
+               deprecated_reason=_("Use username instead"),
                help=_("Name of the user to use for HTTP Basic authentication "
-                      "client requests. Required when "
-                      "auth_strategy=http_basic.")),
+                      "client requests.")),
     cfg.StrOpt('http_basic_password',
-               default='',
+               deprecated_for_removal=True,
+               deprecated_reason=_("Use password instead"),
                secret=True,
                help=_("Password to use for HTTP Basic authentication "
-                      "client requests. Required when "
-                      "auth_strategy=http_basic.")),
+                      "client requests.")),
 ]
 
 
