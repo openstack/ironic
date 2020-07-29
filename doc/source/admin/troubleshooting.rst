@@ -388,6 +388,52 @@ do that for a Cisco Nexus switch is:
     $ (config) interface eth1/11
     $ (config-if) spanning-tree port type edge
 
+Why does X issue occur when I am using LACP bonding with iPXE?
+==============================================================
+
+If you are using iPXE, an unfortunate aspect of its design and interaction
+with networking is an automatic response as a Link Aggregation Control
+Protocol (or LACP) peer to remote switches. iPXE does this for only the
+single port which is used for network booting.
+
+In theory, this may help establish the port link-state faster with some
+switch vendors, but the official reasoning as far as the Ironic Developers
+are aware is not documented for iPXE. The end result of this is that once
+iPXE has stopped responding to LACP messages from the peer port, which
+occurs as part of the process of booting a ramdisk and iPXE handing
+over control to a full operating-system, switches typically begin a
+timer to determine how to handle the failure. This is because,
+depending on the mode of LACP, this can be interpreted as a switch or
+network fabric failure.
+
+This may demonstrate as any number of behaviors or issues from ramdisks
+finding they are unable to acquire DHCP addresses over the network interface
+to downloads abruptly stalling, to even minor issues such as LLDP port data
+being unavailable in introspection.
+
+Overall:
+
+* Ironic's agent doesn't officially support LACP and the Ironic community
+  generally believes this may cause more problems than it would solve.
+  During the Victoria development cycle, we added retry logic for most
+  actions in an attempt to navigate the worst-known default hold-down
+  timers to help ensure a deployment does not fail due to a short-lived
+  transitory network connectivity failure in the form of a switch port having
+  moved to a temporary blocking state. Where applicable and possible,
+  many of these patches have been backported to supported releases,
+  however users of the iSCSI deployment interface will see the least
+  capability for these sorts of situations to be handled
+  automatically. These patches also require that the switchport has an
+  eventual fallback to a non-bonded mode. If the port remains in a blocking
+  state, then traffic will be unable to flow and the deloyment is likely to
+  time out.
+* If you must use LACP, consider ``passive`` LACP negotiation settings
+  in the network switch as opposed to ``active``. The difference being with
+  passive the connected workload is likely a server where it should likely
+  request the switch to establish the Link Aggregate. This is instead of
+  being treated as if it's possibly another switch.
+* Consult your switch vendor's support forums. Some vendors have recommended
+  port settings for booting machines using iPXE with their switches.
 
 IPMI errors
 ===========
