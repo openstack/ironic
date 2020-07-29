@@ -143,6 +143,7 @@ class ServiceSetUpMixin(object):
             self.service.init_host()
         else:
             with mock.patch.object(periodics, 'PeriodicWorker', autospec=True):
+                self.service.prepare_host()
                 self.service.init_host()
         self.addCleanup(self._stop_service)
 

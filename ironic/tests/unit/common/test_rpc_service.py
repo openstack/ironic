@@ -36,13 +36,14 @@ class TestRPCService(base.TestCase):
         mgr_class = "ConductorManager"
         self.rpc_svc = rpc_service.RPCService(host, mgr_module, mgr_class)
 
+    @mock.patch.object(manager.ConductorManager, 'prepare_host', autospec=True)
     @mock.patch.object(oslo_messaging, 'Target', autospec=True)
     @mock.patch.object(objects_base, 'IronicObjectSerializer', autospec=True)
     @mock.patch.object(rpc, 'get_server', autospec=True)
     @mock.patch.object(manager.ConductorManager, 'init_host', autospec=True)
     @mock.patch.object(context, 'get_admin_context', autospec=True)
     def test_start(self, mock_ctx, mock_init_method,
-                   mock_rpc, mock_ios, mock_target):
+                   mock_rpc, mock_ios, mock_target, mock_prepare_method):
         mock_rpc.return_value.start = mock.MagicMock()
         self.rpc_svc.handle_signal = mock.MagicMock()
         self.rpc_svc.start()
@@ -50,5 +51,6 @@ class TestRPCService(base.TestCase):
         mock_target.assert_called_once_with(topic=self.rpc_svc.topic,
                                             server="fake_host")
         mock_ios.assert_called_once_with(is_server=True)
+        mock_prepare_method.assert_called_once_with(self.rpc_svc.manager)
         mock_init_method.assert_called_once_with(self.rpc_svc.manager,
                                                  mock_ctx.return_value)
