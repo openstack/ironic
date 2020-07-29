@@ -57,24 +57,30 @@ You should make the following changes to ``/etc/ironic/ironic.conf``:
 
    JSON RPC also has its own authentication strategy. If it is not specified then
    the stategy defaults to ``[DEFAULT]``  ``auth_strategy``. The following will
-   set JSON RPC to ``noauth``::
+   set JSON RPC to ``noauth``:
+
+   .. code-block:: ini
 
     [json_rpc]
-    auth_strategy=noauth
+    auth_strategy = noauth
 
    For ``http_basic`` the conductor server needs a credentials file to validate
-   requests::
+   requests:
+
+   .. code-block:: ini
 
     [json_rpc]
-    auth_strategy=http_basic
-    http_basic_auth_user_file=/etc/ironic/htpasswd-json-rpc
+    auth_strategy = http_basic
+    http_basic_auth_user_file = /etc/ironic/htpasswd-json-rpc
 
-   The API server also needs client-side credentials to be specified::
+   The API server also needs client-side credentials to be specified:
+
+   .. code-block:: ini
 
     [json_rpc]
-    auth_strategy=http_basic
-    username=myName
-    password=myPassword
+    auth_type = http_basic
+    username = myName
+    password = myPassword
 
 Preparing images
 ----------------
