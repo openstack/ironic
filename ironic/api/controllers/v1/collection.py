@@ -19,6 +19,38 @@ from ironic.api.controllers import link
 from ironic.api import types as atypes
 
 
+def has_next(collection, limit):
+    """Return whether collection has more items."""
+    return len(collection) and len(collection) == limit
+
+
+def get_next(collection, limit, url=None, key_field='uuid', **kwargs):
+    """Return a link to the next subset of the collection."""
+    if not has_next(collection, limit):
+        return None
+
+    fields = kwargs.pop('fields', None)
+    # NOTE(saga): If fields argument is present in kwargs and not None. It
+    # is a list so convert it into a comma seperated string.
+    if fields:
+        kwargs['fields'] = ','.join(fields)
+    q_args = ''.join(['%s=%s&' % (key, kwargs[key]) for key in kwargs])
+
+    last_item = collection[-1]
+    # handle items which are either objects or dicts
+    if hasattr(last_item, key_field):
+        marker = getattr(last_item, key_field)
+    else:
+        marker = last_item.get(key_field)
+
+    next_args = '?%(args)slimit=%(limit)d&marker=%(marker)s' % {
+        'args': q_args, 'limit': limit,
+        'marker': marker}
+
+    return link.make_link('next', api.request.public_url,
+                          url, next_args)['href']
+
+
 class Collection(base.Base):
 
     next = str
@@ -34,23 +66,13 @@ class Collection(base.Base):
 
     def has_next(self, limit):
         """Return whether collection has more items."""
-        return len(self.collection) and len(self.collection) == limit
+        return has_next(self.collection, limit)
 
     def get_next(self, limit, url=None, **kwargs):
         """Return a link to the next subset of the collection."""
-        if not self.has_next(limit):
-            return atypes.Unset
-
         resource_url = url or self._type
-        fields = kwargs.pop('fields', None)
-        # NOTE(saga): If fields argument is present in kwargs and not None. It
-        # is a list so convert it into a comma seperated string.
-        if fields:
-            kwargs['fields'] = ','.join(fields)
-        q_args = ''.join(['%s=%s&' % (key, kwargs[key]) for key in kwargs])
-        next_args = '?%(args)slimit=%(limit)d&marker=%(marker)s' % {
-            'args': q_args, 'limit': limit,
-            'marker': getattr(self.collection[-1], self.get_key_field())}
-
-        return link.make_link('next', api.request.public_url,
-                              resource_url, next_args)['href']
+        the_next = get_next(self.collection, limit, url=resource_url,
+                            key_field=self.get_key_field(), **kwargs)
+        if the_next is None:
+            return atypes.Unset
+        return the_next
