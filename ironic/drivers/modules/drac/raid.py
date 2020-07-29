@@ -1171,7 +1171,7 @@ class DracWSManRAID(base.RAIDInterface):
     def apply_configuration(self, task, raid_config, create_root_volume=True,
                             create_nonroot_volumes=False,
                             delete_existing=True):
-        return super(DracRAID, self).apply_configuration(
+        return super(DracWSManRAID, self).apply_configuration(
             task, raid_config, create_root_volume=create_root_volume,
             create_nonroot_volumes=create_nonroot_volumes,
             delete_existing=delete_existing)
