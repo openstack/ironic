@@ -22,6 +22,7 @@ import mock
 from ironic.common import exception
 from ironic.common import states
 from ironic.conductor import task_manager
+from ironic.drivers import base
 from ironic.drivers.modules.drac import common as drac_common
 from ironic.drivers.modules.drac import job as drac_job
 from ironic.drivers.modules.drac import raid as drac_raid
@@ -2055,3 +2056,17 @@ class DracRaidInterfaceTestCase(test_utils.BaseDracTest):
         mock_commit_config.assert_called_once_with(
             self.node, raid_controller='RAID.Integrated.1-1', reboot=False,
             realtime=True)
+
+    @mock.patch.object(base.RAIDInterface, 'apply_configuration',
+                       autospec=True)
+    def test_apply_configuration(self, mock_apply_configuration):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            task.driver.raid.apply_configuration(
+                task, self.target_raid_configuration,
+                create_root_volume=False, create_nonroot_volumes=True,
+                delete_existing=False)
+
+            mock_apply_configuration.assert_called_once_with(
+                task.driver.raid, task,
+                self.target_raid_configuration, False, True, False)
