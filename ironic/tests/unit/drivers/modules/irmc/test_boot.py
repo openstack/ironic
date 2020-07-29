@@ -947,7 +947,7 @@ class IRMCVirtualMediaBootTestCase(test_common.BaseIRMCTest):
             task.node.driver_internal_info = {'is_whole_disk_image': True}
             task.driver.boot.validate(task)
 
-            self.assertTrue(check_share_fs_mounted_mock.call_count, 2)
+            self.assertEqual(check_share_fs_mounted_mock.call_count, 2)
             deploy_info_mock.assert_called_once_with(task.node)
             self.assertFalse(is_glance_image_mock.called)
             validate_prop_mock.assert_called_once_with(task.context,
@@ -971,7 +971,7 @@ class IRMCVirtualMediaBootTestCase(test_common.BaseIRMCTest):
                                   shared=False) as task:
             task.driver.boot.validate(task)
 
-            self.assertTrue(check_share_fs_mounted_mock.call_count, 2)
+            self.assertEqual(check_share_fs_mounted_mock.call_count, 2)
             deploy_info_mock.assert_called_once_with(task.node)
             validate_prop_mock.assert_called_once_with(
                 task.context, d_info, ['kernel_id', 'ramdisk_id'])
@@ -994,7 +994,7 @@ class IRMCVirtualMediaBootTestCase(test_common.BaseIRMCTest):
                                   shared=False) as task:
             task.driver.boot.validate(task)
 
-            self.assertTrue(check_share_fs_mounted_mock.call_count, 2)
+            self.assertEqual(check_share_fs_mounted_mock.call_count, 2)
             deploy_info_mock.assert_called_once_with(task.node)
             validate_prop_mock.assert_called_once_with(
                 task.context, d_info, ['kernel', 'ramdisk'])
