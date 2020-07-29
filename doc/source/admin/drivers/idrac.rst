@@ -622,24 +622,3 @@ To resolve this issue, increase the timeout to 90 seconds by setting the retry c
 
     [agent]
     post_deploy_get_power_state_retries = 18
-
-Redfish management interface failure to set boot device
--------------------------------------------------------
-
-When using the ``idrac-redfish`` management interface with certain iDRAC
-firmware versions (at least versions 2.70.70.70, 4.00.00.00, and
-4.10.10.10) and attempting to set the boot device on a baremetal server
-that is configured to UEFI boot, the iDRAC will return the following
-error::
-
-    Unable to Process the request because the value entered for the
-    parameter Continuous is not supported by the implementation.
-
-To work around this issue, set the ``force_persistent_boot_device`` parameter
-in ``driver-info`` on the node to ``Never`` by running the following command
-from the command line:
-
-.. code-block:: bash
-
-  openstack baremetal node set --driver-info \
-    force_persistent_boot_device=Never ${node_uuid}
