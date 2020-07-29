@@ -385,6 +385,24 @@ class TestClient(test_base.TestCase):
                              'rpc.version': '1.42'},
                   'id': self.context.request_id})
 
+    def test_call_with_ssl(self, mock_session):
+        self.config(use_ssl=True, group='json_rpc')
+        response = mock_session.return_value.post.return_value
+        response.json.return_value = {
+            'jsonrpc': '2.0',
+            'result': 42
+        }
+        cctx = self.client.prepare('foo.example.com')
+        self.assertEqual('example.com', cctx.host)
+        result = cctx.call(self.context, 'do_something', answer=42)
+        self.assertEqual(42, result)
+        mock_session.return_value.post.assert_called_once_with(
+            'https://example.com:8089',
+            json={'jsonrpc': '2.0',
+                  'method': 'do_something',
+                  'params': {'answer': 42, 'context': self.ctx_json},
+                  'id': self.context.request_id})
+
     def test_cast_success(self, mock_session):
         cctx = self.client.prepare('foo.example.com')
         self.assertEqual('example.com', cctx.host)
