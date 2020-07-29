@@ -1818,6 +1818,17 @@ class AgentRAIDTestCase(db_base.DbTestCase):
                               task, command)
             self.assertFalse(update_raid_info_mock.called)
 
+    @mock.patch.object(raid, 'update_raid_info', autospec=True)
+    def test__create_configuration_final_bad_command_result2(
+            self, update_raid_info_mock):
+        command = {'command_result': {'deploy_result': None}}
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            raid_mgmt = agent.AgentRAID
+            self.assertRaises(exception.IronicException,
+                              raid_mgmt._create_configuration_final,
+                              task, command)
+            self.assertFalse(update_raid_info_mock.called)
+
     @mock.patch.object(agent_base, 'execute_step', autospec=True)
     def test_delete_configuration(self, execute_mock):
         execute_mock.return_value = states.CLEANING
