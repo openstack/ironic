@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    Fixes json_rpc client connections always using HTTP even if `use_ssl` was
+    set to True.
