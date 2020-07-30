@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    Fixes the preservation of potentially incorrect power state
+    information when adoption process fails. Power state is now
+    wiped as part of the failure handling process instead of
+    being preserved.

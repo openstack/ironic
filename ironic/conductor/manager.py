@@ -1770,6 +1770,8 @@ class ConductorManager(base_manager.BaseConductorManager):
             msg = (_('Error while attempting to adopt node %(node)s: '
                      '%(err)s.') % {'node': node.uuid, 'err': err})
             LOG.error(msg)
+            # Wipe power state from being preserved as it is likely invalid.
+            node.power_state = states.NOSTATE
             node.last_error = msg
             task.process_event('fail')
 
