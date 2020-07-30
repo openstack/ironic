@@ -736,17 +736,17 @@ class AgentRAID(base.RAIDInterface):
         """
         try:
             if task.node.provision_state == states.DEPLOYWAIT:
-                operation = "deploying"
                 result = command['command_result']['deploy_result']
             else:
-                operation = "cleaning"
                 result = command['command_result']['clean_result']
         except KeyError:
+            result = None
+
+        if not result:
             raise exception.IronicException(
                 _("Agent ramdisk didn't return a proper command result while "
-                  "%(operation)s %(node)s. It returned '%(result)s' after "
-                  "command execution.") % {'operation': operation,
-                                           'node': task.node.uuid,
+                  "building RAID on %(node)s. It returned '%(result)s' after "
+                  "command execution.") % {'node': task.node.uuid,
                                            'result': command})
 
         raid.update_raid_info(task.node, result)
