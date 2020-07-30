@@ -553,7 +553,8 @@ class IscsiDeployMethodsTestCase(db_base.DbTestCase):
             self.assertIsNotNone(self.node.last_error)
             mock_collect_logs.assert_called_once_with(task.node)
 
-    @mock.patch('ironic.drivers.modules.deploy_utils.get_ironic_api_url')
+    @mock.patch('ironic.drivers.modules.deploy_utils.get_ironic_api_url',
+                autospec=True)
     def test_validate_good_api_url(self, mock_get_url):
         mock_get_url.return_value = 'http://127.0.0.1:1234'
         with task_manager.acquire(self.context, self.node.uuid,
@@ -561,7 +562,8 @@ class IscsiDeployMethodsTestCase(db_base.DbTestCase):
             iscsi_deploy.validate(task)
         mock_get_url.assert_called_once_with()
 
-    @mock.patch('ironic.drivers.modules.deploy_utils.get_ironic_api_url')
+    @mock.patch('ironic.drivers.modules.deploy_utils.get_ironic_api_url',
+                autospec=True)
     def test_validate_fail_no_api_url(self, mock_get_url):
         mock_get_url.side_effect = exception.InvalidParameterValue('Ham!')
         with task_manager.acquire(self.context, self.node.uuid,
@@ -570,7 +572,8 @@ class IscsiDeployMethodsTestCase(db_base.DbTestCase):
                               iscsi_deploy.validate, task)
         mock_get_url.assert_called_once_with()
 
-    @mock.patch('ironic.drivers.modules.deploy_utils.get_ironic_api_url')
+    @mock.patch('ironic.drivers.modules.deploy_utils.get_ironic_api_url',
+                autospec=True)
     def test_validate_invalid_root_device_hints(self, mock_get_url):
         mock_get_url.return_value = 'http://spam.ham/baremetal'
         with task_manager.acquire(self.context, self.node.uuid,
@@ -579,7 +582,8 @@ class IscsiDeployMethodsTestCase(db_base.DbTestCase):
             self.assertRaises(exception.InvalidParameterValue,
                               iscsi_deploy.validate, task)
 
-    @mock.patch('ironic.drivers.modules.deploy_utils.get_ironic_api_url')
+    @mock.patch('ironic.drivers.modules.deploy_utils.get_ironic_api_url',
+                autospec=True)
     def test_validate_invalid_root_device_hints_iinfo(self, mock_get_url):
         mock_get_url.return_value = 'http://spam.ham/baremetal'
         with task_manager.acquire(self.context, self.node.uuid,
@@ -752,10 +756,13 @@ class ISCSIDeployTestCase(db_base.DbTestCase):
     @mock.patch('ironic.conductor.utils.is_fast_track', autospec=True)
     @mock.patch.object(noop_storage.NoopStorage, 'attach_volumes',
                        autospec=True)
-    @mock.patch.object(deploy_utils, 'populate_storage_driver_internal_info')
-    @mock.patch.object(pxe.PXEBoot, 'prepare_ramdisk')
-    @mock.patch.object(deploy_utils, 'build_agent_options')
-    @mock.patch.object(deploy_utils, 'build_instance_info_for_deploy')
+    @mock.patch.object(deploy_utils, 'populate_storage_driver_internal_info',
+                       autospec=True)
+    @mock.patch.object(pxe.PXEBoot, 'prepare_ramdisk', autospec=True)
+    @mock.patch.object(deploy_utils, 'build_agent_options',
+                       autospec=True)
+    @mock.patch.object(deploy_utils, 'build_instance_info_for_deploy',
+                       autospec=True)
     @mock.patch.object(flat_network.FlatNetwork, 'add_provisioning_network',
                        spec_set=True, autospec=True)
     @mock.patch.object(flat_network.FlatNetwork,
@@ -910,8 +917,10 @@ class ISCSIDeployTestCase(db_base.DbTestCase):
                                   self.node.uuid, shared=False) as task:
             self.assertEqual(0, len(task.volume_targets))
 
-    @mock.patch('ironic.common.dhcp_factory.DHCPFactory._set_dhcp_provider')
-    @mock.patch('ironic.common.dhcp_factory.DHCPFactory.clean_dhcp')
+    @mock.patch('ironic.common.dhcp_factory.DHCPFactory._set_dhcp_provider',
+                autospec=True)
+    @mock.patch('ironic.common.dhcp_factory.DHCPFactory.clean_dhcp',
+                autospec=True)
     @mock.patch.object(pxe.PXEBoot, 'clean_up_instance', autospec=True)
     @mock.patch.object(pxe.PXEBoot, 'clean_up_ramdisk', autospec=True)
     @mock.patch.object(deploy_utils, 'destroy_images', autospec=True)
@@ -927,7 +936,7 @@ class ISCSIDeployTestCase(db_base.DbTestCase):
             clean_up_instance_mock.assert_called_once_with(
                 task.driver.boot, task)
             set_dhcp_provider_mock.assert_called_once_with()
-            clean_dhcp_mock.assert_called_once_with(task)
+            clean_dhcp_mock.assert_called_once_with(mock.ANY, task)
 
     @mock.patch.object(deploy_utils, 'prepare_inband_cleaning', autospec=True)
     def test_prepare_cleaning(self, prepare_inband_cleaning_mock):
@@ -1014,8 +1023,9 @@ class ISCSIDeployTestCase(db_base.DbTestCase):
         self.node.save()
 
         with task_manager.acquire(self.context, self.node.uuid) as task:
-            with mock.patch.object(
-                    task.driver.boot, 'prepare_instance') as m_prep_instance:
+            with mock.patch.object(task.driver.boot,
+                                   'prepare_instance',
+                                   autospec=True) as m_prep_instance:
                 task.driver.deploy.prepare_instance_boot(task)
                 m_prep_instance.assert_called_once_with(task)
 
@@ -1207,8 +1217,10 @@ class CleanUpFullFlowTestCase(db_base.DbTestCase):
         os.link(self.master_instance_path, self.image_path)
         dhcp_factory.DHCPFactory._dhcp_provider = None
 
-    @mock.patch('ironic.common.dhcp_factory.DHCPFactory._set_dhcp_provider')
-    @mock.patch('ironic.common.dhcp_factory.DHCPFactory.clean_dhcp')
+    @mock.patch('ironic.common.dhcp_factory.DHCPFactory._set_dhcp_provider',
+                autospec=True)
+    @mock.patch('ironic.common.dhcp_factory.DHCPFactory.clean_dhcp',
+                autospec=True)
     @mock.patch.object(pxe_utils, 'get_instance_image_info', autospec=True)
     @mock.patch.object(pxe_utils, 'get_image_info', autospec=True)
     def test_clean_up_with_master(self, mock_get_deploy_image_info,
@@ -1227,7 +1239,7 @@ class CleanUpFullFlowTestCase(db_base.DbTestCase):
             mock_get_deploy_image_info.assert_called_with(
                 task.node, mode='deploy', ipxe_enabled=False)
             set_dhcp_provider_mock.assert_called_once_with()
-            clean_dhcp_mock.assert_called_once_with(task)
+            clean_dhcp_mock.assert_called_once_with(mock.ANY, task)
         for path in ([self.kernel_path, self.image_path, self.config_path]
                      + self.files):
             self.assertFalse(os.path.exists(path),
