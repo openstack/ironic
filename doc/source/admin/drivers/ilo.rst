@@ -61,6 +61,7 @@ features:
 
 * `Out of Band RAID Support`_
 * `Out of Band Sanitize Disk Erase Support`_
+* `Out of Band One Button Secure Erase Support`_
 
 Hardware interfaces
 ^^^^^^^^^^^^^^^^^^^
@@ -2008,9 +2009,57 @@ The default erase pattern are, for HDD, 'overwrite' and for SSD, 'block'.
    9 hours and 300GB SSD with default pattern "block" would take approx. 30
    seconds to complete the erase.
 
+Out of Band One Button Secure Erase Support
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+With Gen10 HPE Proliant servers which have been updated with SPP version 2019.03.0
+or later the ``ilo5`` hardware type supports firmware based one button secure erase
+as a clean step.
+
+The One Button Secure Erase resets iLO and deletes all licenses stored there, resets
+BIOS settings, and deletes all Active Health System (AHS) and warranty data stored on
+the system. It also erases supported non-volatile storage data and deletes any
+deployment settings profiles. See `HPE Gen10 Security Reference Guide`_ for more
+information.
+
+Below are the steps to perform this clean step:
+
+* Perform the cleaning using 'one_button_secure_erase' clean step
+
+.. code-block:: console
+
+    openstack baremetal node clean test_node --clean-steps\
+        '[{"interface": "management", "step": "one_button_secure_erase"}]'
+
+* Once the clean step would triggered and node go to 'clean wait' state and
+  'maintenance' flag on node would be set to 'True', then delete the node
+
+.. code-block:: console
+
+    openstack baremetal node delete test_node
+
+.. note::
+   * Even after deleting the node, One Button Secure Erase operation would continue
+     on the node.
+
+   * This clean step should be kept last if the multiple clean steps are to be executed.
+     No clean step after this step would be executed.
+
+   * One Button Secure Erase should be used with extreme caution, and only when a system
+     is being decommissioned. During the erase the iLO network would keep disconnecting
+     and after the erase user will completly lose iLO access along with the credentials
+     of the server, which needs to be regained by the administrator. The process can take
+     up to a day or two to fully erase and reset all user data.
+
+   * When you activate One Button Secure Erase, iLO 5 does not allow firmware update
+     or reset operations.
+
+.. note::
+   Do not perform any iLO 5 configuration changes until this process is completed.
+
 .. _`ssacli documentation`: https://support.hpe.com/hpsc/doc/public/display?docId=c03909334
 .. _`proliant-tools`: https://docs.openstack.org/diskimage-builder/latest/elements/proliant-tools/README.html
 .. _`HPE iLO4 User Guide`: https://h20566.www2.hpe.com/hpsc/doc/public/display?docId=c03334051
+.. _`HPE Gen10 Security Reference Guide`: https://support.hpe.com/hpesc/public/docDisplay?docLocale=en_US&docId=a00018320en_us
 .. _`iLO 4 management engine`: https://www.hpe.com/us/en/servers/integrated-lights-out-ilo.html
 .. _`iLO 5 management engine`: https://www.hpe.com/us/en/servers/integrated-lights-out-ilo.html#innovations
 .. _`Redfish`: https://www.dmtf.org/standards/redfish
