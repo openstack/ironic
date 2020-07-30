@@ -1228,6 +1228,8 @@ class ConductorManager(base_manager.BaseConductorManager):
             error = (_('Failed to validate power driver interface for node '
                        '%(node)s. Error: %(msg)s') %
                      {'node': node.uuid, 'msg': e})
+            log_traceback = not isinstance(e, exception.IronicException)
+            LOG.error(error, exc_info=log_traceback)
         else:
             try:
                 power_state = task.driver.power.get_power_state(task)
@@ -1235,6 +1237,8 @@ class ConductorManager(base_manager.BaseConductorManager):
                 error = (_('Failed to get power state for node '
                            '%(node)s. Error: %(msg)s') %
                          {'node': node.uuid, 'msg': e})
+                log_traceback = not isinstance(e, exception.IronicException)
+                LOG.error(error, exc_info=log_traceback)
 
         if error is None:
             if power_state != node.power_state:
@@ -1246,7 +1250,6 @@ class ConductorManager(base_manager.BaseConductorManager):
             else:
                 task.process_event('done')
         else:
-            LOG.error(error)
             node.last_error = error
             task.process_event('fail')
 
