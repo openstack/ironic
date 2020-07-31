@@ -15,11 +15,13 @@
 # under the License.
 
 import pecan
-from pecan import rest
 
 from ironic.api.controllers import v1
 from ironic.api.controllers import version
 from ironic.api import method
+
+
+V1 = v1.Controller()
 
 
 def root():
@@ -32,22 +34,32 @@ def root():
     }
 
 
-class RootController(rest.RestController):
-
-    v1 = v1.Controller()
+class RootController(object):
 
     @method.expose()
-    def get(self):
+    def index(self, *args):
+        if args:
+            pecan.abort(404)
         return root()
 
     @pecan.expose()
-    def _route(self, args, request=None):
+    def _lookup(self, primary_key, *remainder):
         """Overrides the default routing behavior.
 
         It redirects the request to the default version of the ironic API
         if the version number is not specified in the url.
         """
 
-        if args[0] and args[0] != version.ID_VERSION1:
-            args = [version.ID_VERSION1] + args
-        return super(RootController, self)._route(args, request)
+        # support paths which are missing the first version element
+        if primary_key and primary_key != version.ID_VERSION1:
+            remainder = [primary_key] + list(remainder)
+
+        # remove any trailing /
+        if remainder and not remainder[-1]:
+            remainder = remainder[:-1]
+
+        # but ensure /v1 goes to /v1/
+        if not remainder:
+            remainder = ['']
+
+        return V1, remainder
