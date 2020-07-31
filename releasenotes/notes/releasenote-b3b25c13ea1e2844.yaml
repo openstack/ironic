@@ -1,0 +1,6 @@
+---
+features:
+  - |
+    Adds ``[conductor]clean_step_priority_override`` configuration parameter
+    which allows the operator to define a custom order in which the cleaning
+    steps are to run.
