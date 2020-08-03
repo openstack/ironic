@@ -23,6 +23,7 @@ import ipaddress
 import os
 import random
 import signal
+import socket
 import string
 import subprocess
 import tempfile
@@ -668,7 +669,7 @@ class ConsoleUtilsTestCase(db_base.DbTestCase):
     def test_allocate_port_success(self, mock_verify, mock_ports):
         self.config(port_range='10000:10001', group='console')
         port = console_utils.acquire_port()
-        mock_verify.assert_called_once_with(10000)
+        mock_verify.assert_called_once_with(10000, host=None)
         self.assertEqual(port, 10000)
         mock_ports.add.assert_called_once_with(10000)
 
@@ -679,7 +680,9 @@ class ConsoleUtilsTestCase(db_base.DbTestCase):
         mock_verify.side_effect = (exception.Conflict, exception.Conflict,
                                    None)
         port = console_utils.acquire_port()
-        verify_calls = [mock.call(10000), mock.call(10001), mock.call(10002)]
+        verify_calls = [mock.call(10000, host=None),
+                        mock.call(10001, host=None),
+                        mock.call(10002, host=None)]
         mock_verify.assert_has_calls(verify_calls)
         self.assertEqual(port, 10002)
         mock_ports.add.assert_called_once_with(10002)
@@ -691,5 +694,39 @@ class ConsoleUtilsTestCase(db_base.DbTestCase):
         mock_verify.side_effect = exception.Conflict
         self.assertRaises(exception.NoFreeIPMITerminalPorts,
                           console_utils.acquire_port)
-        verify_calls = [mock.call(p) for p in range(10000, 10005)]
+        verify_calls = [mock.call(p, host=None) for p in range(10000, 10005)]
         mock_verify.assert_has_calls(verify_calls)
+
+    @mock.patch.object(socket, 'socket', autospec=True)
+    def test__verify_port_default(self, mock_socket):
+        self.config(host='localhost.localdomain')
+        mock_sock = mock.MagicMock()
+        mock_socket.return_value = mock_sock
+        console_utils._verify_port(10000)
+        mock_sock.bind.assert_called_once_with(('localhost.localdomain',
+                                                10000))
+
+    @mock.patch.object(socket, 'socket', autospec=True)
+    def test__verify_port_hostname(self, mock_socket):
+        mock_sock = mock.MagicMock()
+        mock_socket.return_value = mock_sock
+        console_utils._verify_port(10000, host='localhost.localdomain')
+        mock_socket.assert_called_once_with()
+        mock_sock.bind.assert_called_once_with(('localhost.localdomain',
+                                                10000))
+
+    @mock.patch.object(socket, 'socket', autospec=True)
+    def test__verify_port_ipv4(self, mock_socket):
+        mock_sock = mock.MagicMock()
+        mock_socket.return_value = mock_sock
+        console_utils._verify_port(10000, host='1.2.3.4')
+        mock_socket.assert_called_once_with()
+        mock_sock.bind.assert_called_once_with(('1.2.3.4', 10000))
+
+    @mock.patch.object(socket, 'socket', autospec=True)
+    def test__verify_port_ipv6(self, mock_socket):
+        mock_sock = mock.MagicMock()
+        mock_socket.return_value = mock_sock
+        console_utils._verify_port(10000, host='2001:dead:beef::1')
+        mock_socket.assert_called_once_with(socket.AF_INET6)
+        mock_sock.bind.assert_called_once_with(('2001:dead:beef::1', 10000))

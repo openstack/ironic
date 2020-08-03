@@ -162,11 +162,24 @@ def _get_port_range():
     return start, stop
 
 
-def _verify_port(port):
+def _verify_port(port, host=None):
     """Check whether specified port is in use."""
-    s = socket.socket()
+    ip_version = None
+    if host is not None:
+        try:
+            ip_version = ipaddress.ip_address(host).version
+        except ValueError:
+            # Assume it's a hostname
+            pass
+    else:
+        host = CONF.host
+    if ip_version == 6:
+        s = socket.socket(socket.AF_INET6)
+    else:
+        s = socket.socket()
+
     try:
-        s.bind((CONF.host, port))
+        s.bind((host, port))
     except socket.error:
         raise exception.Conflict()
     finally:
@@ -174,7 +187,7 @@ def _verify_port(port):
 
 
 @lockutils.synchronized(SERIAL_LOCK)
-def acquire_port():
+def acquire_port(host=None):
     """Returns a free TCP port on current host.
 
     Find and returns a free TCP port in the range
@@ -187,7 +200,7 @@ def acquire_port():
         if port in ALLOCATED_PORTS:
             continue
         try:
-            _verify_port(port)
+            _verify_port(port, host=host)
             ALLOCATED_PORTS.add(port)
             return port
         except exception.Conflict:

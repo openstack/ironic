@@ -807,10 +807,10 @@ def _constructor_checks(driver):
     _check_temp_dir()
 
 
-def _allocate_port(task):
+def _allocate_port(task, host=None):
     node = task.node
     dii = node.driver_internal_info or {}
-    allocated_port = console_utils.acquire_port()
+    allocated_port = console_utils.acquire_port(host=host)
     dii['allocated_ipmi_terminal_port'] = allocated_port
     node.driver_internal_info = dii
     node.save()
@@ -1411,7 +1411,8 @@ class IPMISocatConsole(IPMIConsole):
         """
         driver_info = _parse_driver_info(task.node)
         if not driver_info['port']:
-            driver_info['port'] = _allocate_port(task)
+            driver_info['port'] = _allocate_port(
+                task, host=CONF.console.socat_address)
 
         try:
             self._exec_stop_console(driver_info)
