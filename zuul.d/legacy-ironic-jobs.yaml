@@ -19,7 +19,8 @@
       - openstack/ironic
       - openstack/ironic-lib
       - openstack/ironic-python-agent
-      - openstack/ironic-tempest-plugin
+      - name: openstack/ironic-tempest-plugin
+        override-checkout: 1.5.1
       - openstack/python-ironicclient
     pre-run: playbooks/legacy/ironic-dsvm-base/pre.yaml
     post-run: playbooks/legacy/ironic-dsvm-base/post.yaml
@@ -48,7 +49,8 @@
       - openstack/ironic
       - openstack/ironic-lib
       - openstack/ironic-python-agent
-      - openstack/ironic-tempest-plugin
+      - name: openstack/ironic-tempest-plugin
+        override-checkout: 1.5.1
       - openstack/networking-generic-switch
       - openstack/python-ironicclient
     pre-run: playbooks/legacy/ironic-dsvm-base-multinode/pre.yaml

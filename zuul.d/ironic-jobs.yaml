@@ -6,7 +6,8 @@
     required-projects:
       - openstack/ironic
       - openstack/ironic-python-agent
-      - openstack/ironic-tempest-plugin
+      - name: openstack/ironic-tempest-plugin
+        override-checkout: 1.5.1
     irrelevant-files:
       - ^.*\.rst$
       - ^api-ref/.*$

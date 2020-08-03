@@ -15,7 +15,8 @@
         - ironic-tempest-dsvm-ipa-partition-pxe_ipmitool-tinyipa-python3
         - ironic-tempest-dsvm-ipa-partition-redfish-tinyipa
         - ironic-tempest-dsvm-ipa-partition-uefi-pxe_ipmitool-tinyipa
-        - ironic-tempest-dsvm-ipa-wholedisk-agent_ipmitool-tinyipa-multinode
+        - ironic-tempest-dsvm-ipa-wholedisk-agent_ipmitool-tinyipa-multinode:
+            voting: false
         - ironic-tempest-dsvm-ipa-wholedisk-bios-agent_ipmitool-tinyipa
         # Non-voting jobs
         - ironic-tempest-dsvm-ipa-wholedisk-bios-pxe_snmp-tinyipa:
@@ -36,7 +37,7 @@
         - ironic-tempest-dsvm-ipa-partition-pxe_ipmitool-tinyipa-python3
         - ironic-tempest-dsvm-ipa-partition-redfish-tinyipa
         - ironic-tempest-dsvm-ipa-partition-uefi-pxe_ipmitool-tinyipa
-        - ironic-tempest-dsvm-ipa-wholedisk-agent_ipmitool-tinyipa-multinode
+        # - ironic-tempest-dsvm-ipa-wholedisk-agent_ipmitool-tinyipa-multinode
         - ironic-tempest-dsvm-ipa-wholedisk-bios-agent_ipmitool-tinyipa
         - openstack-tox-lower-constraints
         - openstack-tox-cover
