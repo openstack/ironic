@@ -2673,11 +2673,14 @@ class DoNodeRescueTestCase(mgr_utils.CommonMixIn, mgr_utils.ServiceSetUpMixin,
     @mock.patch('ironic.conductor.task_manager.acquire', autospec=True)
     def test_do_node_rescue(self, mock_acquire):
         self._start_service()
+        dii = {'agent_secret_token': 'token',
+               'agent_url': 'http://url',
+               'other field': 'value'}
         task = self._create_task(
             node_attrs=dict(driver='fake-hardware',
                             provision_state=states.ACTIVE,
                             instance_info={},
-                            driver_internal_info={'agent_url': 'url'}))
+                            driver_internal_info=dii))
         mock_acquire.side_effect = self._get_acquire_side_effect(task)
         self.service.do_node_rescue(self.context, task.node.uuid,
                                     "password")
@@ -2688,7 +2691,8 @@ class DoNodeRescueTestCase(mgr_utils.CommonMixIn, mgr_utils.ServiceSetUpMixin,
             err_handler=conductor_utils.spawn_rescue_error_handler)
         self.assertIn('rescue_password', task.node.instance_info)
         self.assertIn('hashed_rescue_password', task.node.instance_info)
-        self.assertNotIn('agent_url', task.node.driver_internal_info)
+        self.assertEqual({'other field': 'value'},
+                         task.node.driver_internal_info)
 
     def test_do_node_rescue_invalid_state(self):
         self._start_service()
@@ -2886,16 +2890,22 @@ class DoNodeRescueTestCase(mgr_utils.CommonMixIn, mgr_utils.ServiceSetUpMixin,
     @mock.patch('ironic.drivers.modules.fake.FakeRescue.unrescue')
     def test__do_node_unrescue(self, mock_unrescue):
         self._start_service()
+        dii = {'agent_url': 'http://url',
+               'agent_secret_token': 'token',
+               'other field': 'value'}
         node = obj_utils.create_test_node(self.context, driver='fake-hardware',
                                           provision_state=states.UNRESCUING,
                                           target_provision_state=states.ACTIVE,
-                                          instance_info={})
+                                          instance_info={},
+                                          driver_internal_info=dii)
         with task_manager.TaskManager(self.context, node.uuid) as task:
             mock_unrescue.return_value = states.ACTIVE
             self.service._do_node_unrescue(task)
             node.refresh()
             self.assertEqual(states.ACTIVE, node.provision_state)
             self.assertEqual(states.NOSTATE, node.target_provision_state)
+            self.assertEqual({'other field': 'value'},
+                             node.driver_internal_info)
 
     @mock.patch.object(manager, 'LOG')
     @mock.patch('ironic.drivers.modules.fake.FakeRescue.unrescue')

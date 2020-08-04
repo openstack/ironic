@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    Removes stale agent token on rescue and unrescue operations. Previously it
+    would cause subsequent rescue operations to fail.
