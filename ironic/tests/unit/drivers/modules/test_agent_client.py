@@ -62,13 +62,15 @@ class MockNode(object):
             'hardware_manager_version': {'generic': '1'}
         }
         self.instance_info = {}
+        self.driver_info = {}
 
     def as_dict(self, secure=False):
         assert secure, 'agent_client must pass secure=True'
         return {
             'uuid': self.uuid,
             'driver_internal_info': self.driver_internal_info,
-            'instance_info': self.instance_info
+            'instance_info': self.instance_info,
+            'driver_info': self.driver_info,
         }
 
 
@@ -117,7 +119,8 @@ class TestAgentClient(base.TestCase):
             url,
             data=body,
             params={'wait': 'false'},
-            timeout=60)
+            timeout=60,
+            verify=True)
 
     def test__command_fail_json(self):
         response_text = 'this be not json matey!'
@@ -137,7 +140,8 @@ class TestAgentClient(base.TestCase):
             url,
             data=body,
             params={'wait': 'false'},
-            timeout=60)
+            timeout=60,
+            verify=True)
 
     def test__command_fail_post(self):
         error = 'Boom'
@@ -177,7 +181,8 @@ class TestAgentClient(base.TestCase):
             url,
             data=mock.ANY,
             params={'wait': 'false'},
-            timeout=60)
+            timeout=60,
+            verify=True)
         self.assertEqual(3, self.client.session.post.call_count)
 
     def test__command_error_code(self):
@@ -198,7 +203,8 @@ class TestAgentClient(base.TestCase):
             url,
             data=body,
             params={'wait': 'false'},
-            timeout=60)
+            timeout=60,
+            verify=True)
 
     def test__command_error_code_okay_error_typeerror_embedded(self):
         response_data = {"faultstring": "you dun goofd",
@@ -218,7 +224,29 @@ class TestAgentClient(base.TestCase):
             url,
             data=body,
             params={'wait': 'false'},
-            timeout=60)
+            timeout=60,
+            verify=True)
+
+    def test__command_verify(self):
+        response_data = {'status': 'ok'}
+        self.client.session.post.return_value = MockResponse(response_data)
+        method = 'standby.run_image'
+        image_info = {'image_id': 'test_image'}
+        params = {'image_info': image_info}
+
+        self.node.driver_info['agent_verify_ca'] = '/path/to/agent.crt'
+
+        url = self.client._get_command_url(self.node)
+        body = self.client._get_command_body(method, params)
+
+        response = self.client._command(self.node, method, params)
+        self.assertEqual(response, response_data)
+        self.client.session.post.assert_called_once_with(
+            url,
+            data=body,
+            params={'wait': 'false'},
+            timeout=60,
+            verify='/path/to/agent.crt')
 
     @mock.patch('time.sleep', lambda seconds: None)
     def test__command_poll(self):
@@ -247,8 +275,10 @@ class TestAgentClient(base.TestCase):
             url,
             data=body,
             params={'wait': 'false'},
-            timeout=60)
-        self.client.session.get.assert_called_with(url, timeout=60)
+            timeout=60,
+            verify=True)
+        self.client.session.get.assert_called_with(url, timeout=60,
+                                                   verify=True)
 
     def test_get_commands_status(self):
         with mock.patch.object(self.client.session, 'get',
@@ -262,7 +292,8 @@ class TestAgentClient(base.TestCase):
                 '%(agent_url)s/%(api_version)s/commands' % {
                     'agent_url': agent_url,
                     'api_version': CONF.agent.agent_api_version},
-                timeout=CONF.agent.command_timeout)
+                timeout=CONF.agent.command_timeout,
+                verify=True)
 
     def test_get_commands_status_retries(self):
         res = mock.MagicMock(spec_set=['json'])
@@ -280,6 +311,23 @@ class TestAgentClient(base.TestCase):
                           self.client.get_commands_status, self.node,
                           retry_connection=False)
         self.assertEqual(1, self.client.session.get.call_count)
+
+    def test_get_commands_status_verify(self):
+        self.node.driver_info['agent_verify_ca'] = '/path/to/agent.crt'
+
+        with mock.patch.object(self.client.session, 'get',
+                               autospec=True) as mock_get:
+            res = mock.MagicMock(spec_set=['json'])
+            res.json.return_value = {'commands': []}
+            mock_get.return_value = res
+            self.assertEqual([], self.client.get_commands_status(self.node))
+            agent_url = self.node.driver_internal_info.get('agent_url')
+            mock_get.assert_called_once_with(
+                '%(agent_url)s/%(api_version)s/commands' % {
+                    'agent_url': agent_url,
+                    'api_version': CONF.agent.agent_api_version},
+                timeout=CONF.agent.command_timeout,
+                verify='/path/to/agent.crt')
 
     def test_prepare_image(self):
         self.client._command = mock.MagicMock(spec_set=[])
@@ -500,7 +548,8 @@ class TestAgentClient(base.TestCase):
             data=body,
             params={'wait': 'false',
                     'agent_token': 'magical'},
-            timeout=60)
+            timeout=60,
+            verify=True)
 
 
 class TestAgentClientAttempts(base.TestCase):
@@ -553,7 +602,8 @@ class TestAgentClientAttempts(base.TestCase):
             self.client._get_command_url(self.node),
             data=self.client._get_command_body(method, params),
             params={'wait': 'false'},
-            timeout=60)
+            timeout=60,
+            verify=True)
 
     @mock.patch.object(retrying.time, 'sleep', autospec=True)
     def test__command_succeed_after_one_timeout(self, mock_sleep):
@@ -574,4 +624,5 @@ class TestAgentClientAttempts(base.TestCase):
             self.client._get_command_url(self.node),
             data=self.client._get_command_body(method, params),
             params={'wait': 'false'},
-            timeout=60)
+            timeout=60,
+            verify=True)

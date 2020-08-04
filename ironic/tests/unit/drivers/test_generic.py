@@ -68,7 +68,8 @@ class ManualManagementHardwareTestCase(db_base.DbTestCase):
     def test_get_properties(self):
         # These properties are from vendor (agent) and boot (pxe) interfaces
         expected_prop_keys = [
-            'deploy_forces_oob_reboot', 'deploy_kernel', 'deploy_ramdisk',
+            'agent_verify_ca', 'deploy_forces_oob_reboot',
+            'deploy_kernel', 'deploy_ramdisk',
             'force_persistent_boot_device', 'rescue_kernel', 'rescue_ramdisk']
         hardware_type = driver_factory.get_hardware_type("manual-management")
         properties = hardware_type.get_properties()

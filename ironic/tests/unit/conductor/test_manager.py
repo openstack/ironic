@@ -5759,7 +5759,7 @@ class ManagerTestProperties(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
                     enabled_power_interfaces=['ipmitool'],
                     enabled_management_interfaces=['ipmitool'],
                     enabled_console_interfaces=['ipmitool-socat'])
-        expected = ['ipmi_address', 'ipmi_terminal_port',
+        expected = ['agent_verify_ca', 'ipmi_address', 'ipmi_terminal_port',
                     'ipmi_password', 'ipmi_port', 'ipmi_priv_level',
                     'ipmi_username', 'ipmi_bridging', 'ipmi_transit_channel',
                     'ipmi_transit_address', 'ipmi_target_channel',
@@ -5774,7 +5774,7 @@ class ManagerTestProperties(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
     def test_driver_properties_snmp(self):
         self.config(enabled_hardware_types='snmp',
                     enabled_power_interfaces=['snmp'])
-        expected = ['deploy_kernel', 'deploy_ramdisk',
+        expected = ['agent_verify_ca', 'deploy_kernel', 'deploy_ramdisk',
                     'force_persistent_boot_device',
                     'rescue_kernel', 'rescue_ramdisk',
                     'snmp_driver', 'snmp_address', 'snmp_port', 'snmp_version',
@@ -5795,9 +5795,9 @@ class ManagerTestProperties(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
                     enabled_boot_interfaces=['ilo-virtual-media'],
                     enabled_inspect_interfaces=['ilo'],
                     enabled_console_interfaces=['ilo'])
-        expected = ['ilo_address', 'ilo_username', 'ilo_password',
-                    'client_port', 'client_timeout', 'ilo_deploy_iso',
-                    'console_port', 'ilo_change_password',
+        expected = ['agent_verify_ca', 'ilo_address', 'ilo_username',
+                    'ilo_password', 'client_port', 'client_timeout',
+                    'ilo_deploy_iso', 'console_port', 'ilo_change_password',
                     'ca_file', 'snmp_auth_user', 'snmp_auth_prot_password',
                     'snmp_auth_priv_password', 'snmp_auth_protocol',
                     'snmp_auth_priv_protocol', 'deploy_forces_oob_reboot']
@@ -5825,7 +5825,7 @@ class ManagerTestHardwareTypeProperties(mgr_utils.ServiceSetUpMixin,
         self.assertEqual(sorted(expected), sorted(properties))
 
     def test_hardware_type_properties_manual_management(self):
-        expected = ['deploy_kernel', 'deploy_ramdisk',
+        expected = ['agent_verify_ca', 'deploy_kernel', 'deploy_ramdisk',
                     'force_persistent_boot_device', 'deploy_forces_oob_reboot',
                     'rescue_kernel', 'rescue_ramdisk']
         self._check_hardware_type_properties('manual-management', expected)

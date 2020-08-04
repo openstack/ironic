@@ -576,7 +576,7 @@ class TestAnsibleDeploy(AnsibleDeployTestCaseBase):
     def test_get_properties(self):
         self.assertEqual(
             set(list(ansible_deploy.COMMON_PROPERTIES)
-                + ['deploy_forces_oob_reboot']),
+                + ['agent_verify_ca', 'deploy_forces_oob_reboot']),
             set(self.driver.get_properties()))
 
     @mock.patch.object(deploy_utils, 'check_for_missing_params',
