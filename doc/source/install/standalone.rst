@@ -342,7 +342,7 @@ be booted.
 #. Store the URL to the ISO image to ``instance_info/boot_iso``,
    instead of a ``kernel`` or ``ramdisk`` setting::
 
-       openstack barmetal node set $NODE_UUID \
+       openstack baremetal node set $NODE_UUID \
                --instance-info boot_iso=$BOOT_ISO_URL
 
 #. Deploy the node::
