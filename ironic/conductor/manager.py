@@ -602,11 +602,12 @@ class ConductorManager(base_manager.BaseConductorManager):
                                   node_id, purpose='node rescue') as task:
 
             node = task.node
-            # Record of any pre-existing agent_url should be removed.
-            utils.remove_agent_url(node)
             if node.maintenance:
                 raise exception.NodeInMaintenance(op=_('rescuing'),
                                                   node=node.uuid)
+
+            # Record of any pre-existing agent_url should be removed.
+            utils.wipe_token_and_url(task)
 
             # driver validation may check rescue_password, so save it on the
             # node early
@@ -754,6 +755,9 @@ class ConductorManager(base_manager.BaseConductorManager):
                 handle_failure(e,
                                _('Failed to unrescue. Exception: %s'),
                                log_func=LOG.exception)
+
+        utils.wipe_token_and_url(task)
+
         if next_state == states.ACTIVE:
             task.process_event('done')
         else:

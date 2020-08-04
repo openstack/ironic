@@ -444,16 +444,23 @@ def cleaning_error_handler(task, msg, tear_down_cleaning=True,
         task.process_event('fail', target_state=target_state)
 
 
+def wipe_token_and_url(task):
+    """Remove agent URL and token from the task."""
+    info = task.node.driver_internal_info
+    info.pop('agent_secret_token', None)
+    info.pop('agent_secret_token_pregenerated', None)
+    # Remove agent_url since it will be re-asserted
+    # upon the next deployment attempt.
+    info.pop('agent_url', None)
+    task.node.driver_internal_info = info
+
+
 def wipe_deploy_internal_info(task):
     """Remove temporary deployment fields from driver_internal_info."""
-    info = task.node.driver_internal_info
     if not fast_track_able(task):
-        info.pop('agent_secret_token', None)
-        info.pop('agent_secret_token_pregenerated', None)
-        # Remove agent_url since it will be re-asserted
-        # upon the next deployment attempt.
-        info.pop('agent_url', None)
+        wipe_token_and_url(task)
     # Clear any leftover metadata about deployment.
+    info = task.node.driver_internal_info
     info['deploy_steps'] = None
     info.pop('agent_cached_deploy_steps', None)
     info.pop('deploy_step_index', None)
@@ -466,11 +473,9 @@ def wipe_deploy_internal_info(task):
 
 def wipe_cleaning_internal_info(task):
     """Remove temporary cleaning fields from driver_internal_info."""
-    info = task.node.driver_internal_info
     if not fast_track_able(task):
-        info.pop('agent_url', None)
-        info.pop('agent_secret_token', None)
-        info.pop('agent_secret_token_pregenerated', None)
+        wipe_token_and_url(task)
+    info = task.node.driver_internal_info
     info['clean_steps'] = None
     info.pop('agent_cached_clean_steps', None)
     info.pop('clean_step_index', None)
