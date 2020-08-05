@@ -673,7 +673,7 @@ class ISCSIDeploy(agent_base.AgentDeployMixin, agent_base.AgentBaseMixin,
             return states.DEPLOYWAIT
 
     @METRICS.timer('ISCSIDeploy.write_image')
-    @base.deploy_step(priority=90)
+    @base.deploy_step(priority=80)
     @task_manager.require_exclusive_lock
     def write_image(self, task):
         """Method invoked when deployed using iSCSI.
@@ -701,7 +701,7 @@ class ISCSIDeploy(agent_base.AgentDeployMixin, agent_base.AgentBaseMixin,
         node.save()
 
     @METRICS.timer('ISCSIDeploy.prepare_instance_boot')
-    @base.deploy_step(priority=80)
+    @base.deploy_step(priority=60)
     def prepare_instance_boot(self, task):
         if not task.driver.storage.should_write_image(task):
             task.driver.boot.prepare_instance(task)
