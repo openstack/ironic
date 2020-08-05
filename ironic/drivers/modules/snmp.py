@@ -554,15 +554,18 @@ class SNMPDriverSimple(SNMPDriverBase):
         super(SNMPDriverSimple, self).__init__(*args, **kwargs)
         self.oid = self._snmp_oid()
 
-    @abc.abstractproperty
+    @property
+    @abc.abstractmethod
     def oid_device(self):
         """Device dependent portion of the power state object OID."""
 
-    @abc.abstractproperty
+    @property
+    @abc.abstractmethod
     def value_power_on(self):
         """Value representing power on state."""
 
-    @abc.abstractproperty
+    @property
+    @abc.abstractmethod
     def value_power_off(self):
         """Value representing power off state."""
 
