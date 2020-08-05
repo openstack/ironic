@@ -44,9 +44,10 @@ class TestRoot(base.BaseApiTest):
         self.assertNotIn('<html', response.json['error_message'])
 
     def test_no_html_errors2(self):
-        response = self.delete('/v1', expect_errors=True)
+        response = self.delete('/', expect_errors=True)
         self.assertEqual(http_client.METHOD_NOT_ALLOWED, response.status_int)
-        self.assertIn('Not Allowed', response.json['error_message'])
+        self.assertIn('malformed or otherwise incorrect',
+                      response.json['error_message'])
         self.assertNotIn('<html', response.json['error_message'])
 
 
@@ -68,8 +69,8 @@ class TestV1Root(base.BaseApiTest):
         expected_resources = (['chassis', 'drivers', 'nodes', 'ports']
                               + additional_expected_resources)
         self.assertEqual(sorted(expected_resources), sorted(actual_resources))
-        self.assertIn({'type': 'application/vnd.openstack.ironic.v1+json',
-                       'base': 'application/json'}, data['media_types'])
+        self.assertEqual({'type': 'application/vnd.openstack.ironic.v1+json',
+                          'base': 'application/json'}, data['media_types'])
 
         version1 = data['version']
         self.assertEqual('v1', version1['id'])
