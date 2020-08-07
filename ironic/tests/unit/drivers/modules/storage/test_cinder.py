@@ -368,7 +368,7 @@ class CinderInterfaceTestCase(db_base.DbTestCase):
 
     @mock.patch.object(cinder_common, 'detach_volumes', autospec=True)
     @mock.patch.object(cinder_common, 'attach_volumes', autospec=True)
-    @mock.patch.object(cinder, 'LOG')
+    @mock.patch.object(cinder, 'LOG', autospec=True)
     def test_attach_detach_volumes_no_volumes(self, mock_log,
                                               mock_attach, mock_detach):
         with task_manager.acquire(self.context, self.node.id) as task:
@@ -400,7 +400,8 @@ class CinderInterfaceTestCase(db_base.DbTestCase):
     @mock.patch.object(cinder_common, 'detach_volumes', autospec=True)
     @mock.patch.object(cinder_common, 'attach_volumes', autospec=True)
     @mock.patch.object(cinder, 'LOG', autospec=True)
-    @mock.patch.object(objects.volume_target.VolumeTarget, 'list_by_volume_id')
+    @mock.patch.object(objects.volume_target.VolumeTarget, 'list_by_volume_id',
+                       autospec=True)
     def test_attach_detach_called_with_target_and_connector(self,
                                                             mock_target_list,
                                                             mock_log,
@@ -514,7 +515,7 @@ class CinderInterfaceTestCase(db_base.DbTestCase):
             self.assertEqual(1, mock_log.warning.call_count)
 
     @mock.patch.object(cinder_common, 'detach_volumes', autospec=True)
-    @mock.patch.object(cinder, 'LOG')
+    @mock.patch.object(cinder, 'LOG', autospec=True)
     def test_detach_volumes_failure_raises_exception(self,
                                                      mock_log,
                                                      mock_detach):
