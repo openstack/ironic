@@ -76,6 +76,9 @@ class AgentClient(object):
             'params': params,
         })
 
+    def _get_verify(self, node):
+        return node.driver_info.get('agent_verify_ca', True)
+
     def _raise_if_typeerror(self, result, node, method):
         error = result.get('command_error')
         if error and error.get('type') == 'TypeError':
@@ -168,6 +171,7 @@ class AgentClient(object):
         try:
             response = self.session.post(
                 url, params=request_params, data=body,
+                verify=self._get_verify(node),
                 timeout=CONF.agent.command_timeout)
         except (requests.ConnectionError, requests.Timeout) as e:
             msg = (_('Failed to connect to the agent running on node %(node)s '
@@ -261,6 +265,7 @@ class AgentClient(object):
         def _get():
             try:
                 return self.session.get(url,
+                                        verify=self._get_verify(node),
                                         timeout=CONF.agent.command_timeout)
             except (requests.ConnectionError, requests.Timeout) as e:
                 msg = (_('Failed to connect to the agent running on node '

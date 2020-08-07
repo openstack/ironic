@@ -1,0 +1,6 @@
+---
+features:
+  - |
+    Adds a new ``driver_info`` parameter ``agent_verify_ca`` that allows
+    specifying a file with certificates to use when accessing IPA. Set
+    to ``False`` to disable certificate validation.

@@ -72,7 +72,14 @@ VENDOR_PROPERTIES = {
     'deploy_forces_oob_reboot': _(
         'Whether Ironic should force a reboot of the Node via the out-of-band '
         'channel after deployment is complete. Provides compatibility with '
-        'older deploy ramdisks. Defaults to False. Optional.')
+        'older deploy ramdisks. Defaults to False. Optional.'),
+    'agent_verify_ca': _(
+        'Either a Boolean value, a path to a CA_BUNDLE file or directory with '
+        'certificates of trusted CAs. If set to True ironic will verify '
+        'the agent\'s certificate; if False the driver will ignore verifying '
+        'the SSL certificate. If it\'s a path the driver will use the '
+        'specified certificate or one of the certificates in the '
+        'directory. Defaults to True. Optional'),
 }
 
 __HEARTBEAT_RECORD_ONLY = (states.ENROLL, states.MANAGEABLE, states.AVAILABLE,
