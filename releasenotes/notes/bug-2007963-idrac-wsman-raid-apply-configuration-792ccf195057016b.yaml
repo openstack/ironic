@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Fixes RAID ``apply_configuration`` deploy step for ``idrac-wsman`` where
+    deployment failed with ``TypeError``.
+    See `story 2007963 <https://storyboard.openstack.org/#!/story/2007963>`_.
