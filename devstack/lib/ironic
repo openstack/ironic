@@ -3084,6 +3084,7 @@ function ironic_configure_tempest {
 
     if [[ $IRONIC_VM_VOLUME_COUNT -gt 1 ]]; then
         iniset $TEMPEST_CONFIG baremetal_feature_enabled software_raid True
+        iniset $TEMPEST_CONFIG baremetal_feature_enabled deploy_time_raid True
     fi
 
     # Enabled features
