@@ -66,10 +66,10 @@ class XClarityPowerDriverTestCase(db_base.DbTestCase):
         mock_validate_driver_info.assert_called_with(task.node)
 
     @mock.patch.object(power.XClarityPower, 'get_power_state',
-                       return_value=STATE_POWER_ON)
+                       return_value=STATE_POWER_ON, autospec=True)
     def test_get_power_state(self, mock_get_power_state, mock_get_xc_client):
         with task_manager.acquire(self.context, self.node.uuid) as task:
-            result = power.XClarityPower.get_power_state(task)
+            result = power.XClarityPower.get_power_state(self, task)
         self.assertEqual(STATE_POWER_ON, result)
 
     @mock.patch.object(common, 'translate_xclarity_power_state',
@@ -89,9 +89,9 @@ class XClarityPowerDriverTestCase(db_base.DbTestCase):
                               task)
             self.assertFalse(mock_translate_state.called)
 
-    @mock.patch.object(power.LOG, 'warning')
+    @mock.patch.object(power.LOG, 'warning', autospec=True)
     @mock.patch.object(power.XClarityPower, 'get_power_state',
-                       return_value=states.POWER_ON)
+                       return_value=states.POWER_ON, autospec=True)
     def test_set_power(self, mock_set_power_state, mock_log,
                        mock_get_xc_client):
         with task_manager.acquire(self.context, self.node.uuid) as task:
@@ -100,9 +100,9 @@ class XClarityPowerDriverTestCase(db_base.DbTestCase):
         self.assertEqual(expected, states.POWER_ON)
         self.assertFalse(mock_log.called)
 
-    @mock.patch.object(power.LOG, 'warning')
+    @mock.patch.object(power.LOG, 'warning', autospec=True)
     @mock.patch.object(power.XClarityPower, 'get_power_state',
-                       return_value=states.POWER_ON)
+                       return_value=states.POWER_ON, autospec=True)
     def test_set_power_timeout(self, mock_set_power_state, mock_log,
                                mock_get_xc_client):
         with task_manager.acquire(self.context, self.node.uuid) as task:
@@ -126,19 +126,21 @@ class XClarityPowerDriverTestCase(db_base.DbTestCase):
                               task.driver.power.set_power_state,
                               task, states.POWER_OFF)
 
-    @mock.patch.object(power.LOG, 'warning')
-    @mock.patch.object(power.XClarityPower, 'set_power_state')
+    @mock.patch.object(power.LOG, 'warning', autospec=True)
+    @mock.patch.object(power.XClarityPower, 'set_power_state', autospec=True)
     def test_reboot(self, mock_set_power_state, mock_log, mock_get_xc_client):
         with task_manager.acquire(self.context, self.node.uuid) as task:
             task.driver.power.reboot(task)
-            mock_set_power_state.assert_called_with(task, states.REBOOT)
+            mock_set_power_state.assert_called_with(
+                mock.ANY, task, states.REBOOT)
             self.assertFalse(mock_log.called)
 
-    @mock.patch.object(power.LOG, 'warning')
-    @mock.patch.object(power.XClarityPower, 'set_power_state')
+    @mock.patch.object(power.LOG, 'warning', autospec=True)
+    @mock.patch.object(power.XClarityPower, 'set_power_state', autospec=True)
     def test_reboot_timeout(self, mock_set_power_state, mock_log,
                             mock_get_xc_client):
         with task_manager.acquire(self.context, self.node.uuid) as task:
             task.driver.power.reboot(task, timeout=55)
-            mock_set_power_state.assert_called_with(task, states.REBOOT)
+            mock_set_power_state.assert_called_with(
+                mock.ANY, task, states.REBOOT)
             self.assertTrue(mock_log.called)

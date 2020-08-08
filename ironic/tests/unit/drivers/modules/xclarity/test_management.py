@@ -61,7 +61,7 @@ class XClarityManagementDriverTestCase(db_base.DbTestCase):
         self.assertEqual(expected, driver.get_properties())
 
     @mock.patch.object(management.XClarityManagement, 'get_boot_device',
-                       return_value='pxe')
+                       return_value='pxe', autospec=True)
     def test_set_boot_device(self, mock_get_boot_device,
                              mock_get_xc_client):
         with task_manager.acquire(self.context, self.node.uuid) as task:
@@ -95,7 +95,8 @@ class XClarityManagementDriverTestCase(db_base.DbTestCase):
     @mock.patch.object(
         management.XClarityManagement,
         'get_boot_device',
-        return_value={'boot_device': 'pxe', 'persistent': False})
+        return_value={'boot_device': 'pxe', 'persistent': False},
+        autospec=True)
     def test_get_boot_device(self, mock_get_boot_device, mock_get_xc_client):
         reference = {'boot_device': 'pxe', 'persistent': False}
         with task_manager.acquire(self.context, self.node.uuid) as task:
