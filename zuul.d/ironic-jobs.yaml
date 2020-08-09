@@ -39,7 +39,7 @@
         IRONIC_RAMDISK_TYPE: tinyipa
         IRONIC_TEMPEST_BUILD_TIMEOUT: 600
         IRONIC_TEMPEST_WHOLE_DISK_IMAGE: False
-        IRONIC_VM_COUNT: 1
+        IRONIC_VM_COUNT: 2
         IRONIC_VM_EPHEMERAL_DISK: 1
         IRONIC_VM_LOG_DIR: '{{ devstack_base_dir }}/ironic-bm-logs'
         IRONIC_VM_SPECS_RAM: 384
