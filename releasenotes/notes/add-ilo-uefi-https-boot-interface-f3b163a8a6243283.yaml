@@ -1,0 +1,7 @@
+---
+features:
+  - |
+    Adds ``ilo-uefi-https`` boot interface to ``ilo5`` hardware type.
+    This boot interface levereges the iLO UEFI firmware capability to
+    boot from given HTTPS URLs hosted securely over HTTPS webserver
+    with standard/custom certificates.

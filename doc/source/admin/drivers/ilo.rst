@@ -62,6 +62,7 @@ features:
 * `Out of Band RAID Support`_
 * `Out of Band Sanitize Disk Erase Support`_
 * `Out of Band One Button Secure Erase Support`_
+* `UEFI-HTTPS Boot support`_
 
 Hardware interfaces
 ^^^^^^^^^^^^^^^^^^^
@@ -191,7 +192,8 @@ The ``ilo`` hardware type supports following hardware interfaces:
 
 
 The ``ilo5`` hardware type supports all the ``ilo`` interfaces described above,
-except for ``raid`` interface. The details of ``raid`` interface is as under:
+except for ``boot`` and ``raid`` interfaces. The details of ``boot`` and
+``raid`` interfaces is as under:
 
 * raid
     Supports ``ilo5`` and ``no-raid``. The default is ``ilo5``.
@@ -203,6 +205,19 @@ except for ``raid`` interface. The details of ``raid`` interface is as under:
         [DEFAULT]
         enabled_hardware_types = ilo5
         enabled_raid_interfaces = ilo5,no-raid
+
+* boot
+    Supports ``ilo-uefi-https`` apart from the other boot interfaces supported
+    by ``ilo`` hardware type.
+    This can be enabled by using the ``[DEFAULT]enabled_boot_interfaces``
+    option in ``ironic.conf`` as given below:
+
+    .. code-block:: ini
+
+        [DEFAULT]
+        enabled_hardware_types = ilo5
+        enabled_boot_interfaces = ilo-uefi-https,ilo-virtual-media
+
 
 
 The ``ilo`` and ``ilo5`` hardware type support all standard ``deploy`` and
@@ -289,6 +304,27 @@ Node configuration
   - ``rescue_ramdisk``: The glance UUID or a HTTP(S) URL of the rescue ramdisk.
     This is optional property and is used when ``rescue`` interface is set to
     ``agent``.
+
+* The following properties are also required in node object's
+  ``driver_info`` if ``ilo-uefi-https`` boot interface is used for ``ilo5``
+  hardware type:
+
+  - ``ilo_deploy_kernel``: The glance UUID or a HTTPS URL of the deployment kernel.
+  - ``ilo_deploy_ramdisk``: The glance UUID or a HTTPS URL of the deployment ramdisk.
+  - ``ilo_bootloader``: The glance UUID or a HTTPS URL of the bootloader.
+  - ``ilo_rescue_kernel``: The glance UUID or a HTTPS URL of the rescue kernel.
+    This is optional property and is used when ``rescue`` interface is set to
+    ``agent``.
+  - ``ilo_rescue_ramdisk``: The glance UUID or a HTTP(S) URL of the rescue ramdisk.
+    This is optional property and is used when ``rescue`` interface is set to
+    ``agent``.
+
+    .. note::
+       ``ilo-uefi-https`` boot interface is supported by only ``ilo5`` hardware
+       type. If the images are not hosted in glance, the references
+       must be HTTPS URLs hosted by secure webserver. This boot interface can
+       be used only when the current boot mode is ``UEFI``.
+
 
 * The  following parameters are mandatory in ``driver_info``
   if ``ilo-inspect`` inspect inteface is used and SNMPv3 inspection
@@ -438,7 +474,9 @@ the intermediate floppy image and the boot ISO.
 .. note::
    HTTPS is strongly recommended over HTTP web server configuration for security
    enhancement. The ``ilo-virtual-media`` boot interface will send the instance's
-   configdrive over an encrypted channel if web server is HTTPS enabled.
+   configdrive over an encrypted channel if web server is HTTPS enabled. However
+   for ``ilo-uefi-https`` boot interface HTTPS webserver is mandatory as this
+   interface only supports HTTPS URLs.
 
 Enable driver
 =============
@@ -2081,6 +2119,45 @@ Below are the steps to perform this clean step:
 .. note::
    Do not perform any iLO 5 configuration changes until this process is completed.
 
+UEFI-HTTPS Boot support
+^^^^^^^^^^^^^^^^^^^^^^^
+The UEFI firmware on Gen10 HPE Proliant servers supports booting from secured URLs.
+With this capability ``ilo5`` hardware with ``ilo-uefi-https`` boot interface supports
+deploy/rescue features in more secured environments.
+
+If swift is used as glance backend and ironic is configured to use swift to store
+temporary images, it is required that swift is configured on HTTPS so that the tempurl
+generated is HTTPS URL.
+
+If the webserver is used for hosting the temporary images, then the webserver is required
+to serve requests on HTTPS.
+
+If the images are hosted on a HTTPS webserver or swift configured with HTTPS with
+custom certificates, the user is required to export SSL certificates into iLO.
+Refer to `HPE Integrated Lights-Out Security Technology Brief`_ for more information.
+
+The following command can be used to enroll a ProLiant node with ``ilo5`` hardware type
+and ``ilo-uefi-https`` boot interface:
+
+.. code-block:: console
+
+    openstack baremetal node create \
+        --driver ilo5 \
+        --boot-interface ilo-uefi-https \
+        --deploy-interface direct \
+        --raid-interface ilo5 \
+        --rescue-interface agent \
+        --driver-info ilo_address=<ilo-ip-address> \
+        --driver-info ilo_username=<ilo-username> \
+        --driver-info ilo_password=<ilo-password> \
+        --driver-info ilo_deploy_kernel=<glance-uuid-of-deploy-kernel> \
+        --driver-info ilo_deploy_ramdisk=<glance-uuid-of-rescue-ramdisk> \
+        --driver-info ilo_bootloader=<glance-uuid-of-bootloader>
+
+.. note::
+   UEFI secure boot is not supported with ``ilo-uefi-https`` boot interface.
+
+
 .. _`ssacli documentation`: https://support.hpe.com/hpsc/doc/public/display?docId=c03909334
 .. _`proliant-tools`: https://docs.openstack.org/diskimage-builder/latest/elements/proliant-tools/README.html
 .. _`HPE iLO4 User Guide`: https://h20566.www2.hpe.com/hpsc/doc/public/display?docId=c03334051
@@ -2093,3 +2170,4 @@ Below are the steps to perform this clean step:
 .. _`SUM`: https://h17007.www1.hpe.com/us/en/enterprise/servers/products/service_pack/hpsum/index.aspx
 .. _`SUM User Guide`: https://h20565.www2.hpe.com/hpsc/doc/public/display?docId=c05210448
 .. [1] `ironic-python-agent-builder`: https://docs.openstack.org/ironic-python-agent-builder/latest/install/index.html
+.. _`HPE Integrated Lights-Out Security Technology Brief`: http://h20564.www2.hpe.com/hpsc/doc/public/display?docId=c04530504

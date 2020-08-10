@@ -103,6 +103,14 @@ opts = [
                       '"auto" for backward compatibility. When "auto" is '
                       'specified, default boot mode will be selected based '
                       'on boot mode settings on the system.')),
+    cfg.IntOpt('file_permission',
+               default=0o644,
+               help=_('File permission for swift-less image hosting with the '
+                      'octal permission representation of file access '
+                      'permissions. This setting defaults to ``644``, '
+                      'or as the octal number ``0o644`` in Python. '
+                      'This setting must be set to the octal number '
+                      'representation, meaning starting with ``0o``.')),
 ]
 
 

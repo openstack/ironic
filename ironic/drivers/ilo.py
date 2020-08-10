@@ -78,6 +78,12 @@ class Ilo5Hardware(IloHardware):
     """
 
     @property
+    def supported_boot_interfaces(self):
+        """List of supported boot interfaces."""
+        return super(Ilo5Hardware,
+                     self).supported_boot_interfaces + [boot.IloUefiHttpsBoot]
+
+    @property
     def supported_raid_interfaces(self):
         """List of supported raid interfaces."""
         return [raid.Ilo5RAID] + super(

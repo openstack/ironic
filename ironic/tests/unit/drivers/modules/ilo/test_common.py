@@ -675,7 +675,6 @@ class IloCommonMethodsTestCase(BaseIloTest):
         swift_obj_mock = swift_api_mock.return_value
         boot_iso = 'swift:object-name'
         swift_obj_mock.get_temp_url.return_value = 'image_url'
-        CONF.keystone_authtoken.auth_uri = 'http://authurl'
         CONF.ilo.swift_ilo_container = 'ilo_cont'
         CONF.ilo.swift_object_expiry_timeout = 1
         with task_manager.acquire(self.context, self.node.uuid,
@@ -1206,3 +1205,79 @@ class IloCommonMethodsTestCase(BaseIloTest):
                               ilo_common.get_server_post_state,
                               task.node)
         ilo_mock_object.get_host_post_state.assert_called_once_with()
+
+    @mock.patch.object(ilo_common, 'get_ilo_object', spec_set=True,
+                       autospec=True)
+    def test_setup_uefi_https_scheme_http(self, get_ilo_object_mock):
+        ilo_mock_object = get_ilo_object_mock.return_value
+        iso = "http://1.1.1.1/image.iso"
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            self.assertRaises(exception.IloOperationNotSupported,
+                              ilo_common.setup_uefi_https,
+                              task, iso, True)
+
+        ilo_mock_object.set_http_boot_url.assert_not_called()
+        ilo_mock_object.set_one_time_boot.assert_not_called()
+        ilo_mock_object.update_persistent_boot.assert_not_called()
+
+    @mock.patch.object(ilo_common, 'get_ilo_object', spec_set=True,
+                       autospec=True)
+    def _test_setup_uefi_https(self, get_ilo_object_mock, persistent):
+
+        ilo_mock_object = get_ilo_object_mock.return_value
+
+        iso = "https://1.1.1.1/image.iso"
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            ilo_common.setup_uefi_https(task, iso, persistent=persistent)
+
+        ilo_mock_object.set_http_boot_url.assert_called_once_with(iso)
+        if persistent:
+            ilo_mock_object.set_one_time_boot.assert_not_called()
+            ilo_mock_object.update_persistent_boot.assert_called_once_with(
+                ['UEFIHTTP'])
+        else:
+            ilo_mock_object.set_one_time_boot.assert_called_once_with(
+                'UEFIHTTP')
+            ilo_mock_object.update_persistent_boot.assert_not_called()
+
+    def test_setup_uefi_https_persistent_true(self):
+        self._test_setup_uefi_https(persistent=True)
+
+    def test_setup_uefi_https_persistent_false(self):
+        self._test_setup_uefi_https(persistent=False)
+
+    @mock.patch.object(ilo_common, 'get_ilo_object', spec_set=True,
+                       autospec=True)
+    def test_setup_uefi_https_raises_not_supported(self, get_ilo_object_mock):
+        ilo_mock_object = get_ilo_object_mock.return_value
+
+        exc = ilo_error.IloCommandNotSupportedInBiosError('error')
+        ilo_mock_object.set_http_boot_url.side_effect = exc
+
+        iso = "https://1.1.1.1/image.iso"
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            self.assertRaises(exception.IloOperationNotSupported,
+                              ilo_common.setup_uefi_https,
+                              task, iso, True)
+
+    @mock.patch.object(ilo_common, 'get_ilo_object', spec_set=True,
+                       autospec=True)
+    def test_setup_uefi_https_raises_ilo_error(self, get_ilo_object_mock):
+        ilo_mock_object = get_ilo_object_mock.return_value
+
+        exc = ilo_error.IloError('error')
+        ilo_mock_object.set_http_boot_url.side_effect = exc
+
+        iso = "https://1.1.1.1/image.iso"
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            self.assertRaises(exception.IloOperationError,
+                              ilo_common.setup_uefi_https,
+                              task, iso, True)

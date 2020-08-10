@@ -38,6 +38,7 @@ from ironic.drivers import base
 from ironic.drivers.modules import boot_mode_utils
 from ironic.drivers.modules import deploy_utils
 from ironic.drivers.modules.ilo import common as ilo_common
+from ironic.drivers.modules import image_utils
 from ironic.drivers.modules import ipxe
 from ironic.drivers.modules import pxe
 
@@ -55,6 +56,29 @@ RESCUE_PROPERTIES = {
     'ilo_rescue_iso': _("UUID (from Glance) of the rescue ISO. Only "
                         "required if rescue mode is being used and ironic is "
                         "managing booting the rescue ramdisk.")
+}
+REQUIRED_PROPERTIES_UEFI_HTTPS_BOOT = {
+    'ilo_deploy_kernel': _("URL or Glance UUID of the deployment kernel. "
+                           "Required."),
+    'ilo_deploy_ramdisk': _("URL or Glance UUID of the ramdisk that is "
+                            "mounted at boot time. Required."),
+    'ilo_bootloader': _("URL or Glance UUID  of the EFI system partition "
+                        "image containing EFI boot loader. This image will "
+                        "be used by ironic when building UEFI-bootable ISO "
+                        "out of kernel and ramdisk. Required for UEFI "
+                        "boot from partition images.")
+}
+RESCUE_PROPERTIES_UEFI_HTTPS_BOOT = {
+    'ilo_rescue_kernel': _('URL or Glance UUID of the rescue kernel. This '
+                           'value is required for rescue mode.'),
+    'ilo_rescue_ramdisk': _('URL or Glance UUID of the rescue ramdisk with '
+                            'agent that is used at node rescue time. '
+                            'The value is required for rescue mode.'),
+    'ilo_bootloader': _("URL or Glance UUID  of the EFI system partition "
+                        "image containing EFI boot loader. This image will "
+                        "be used by ironic when building UEFI-bootable ISO "
+                        "out of kernel and ramdisk. Required for UEFI "
+                        "boot from partition images.")
 }
 COMMON_PROPERTIES = REQUIRED_PROPERTIES
 
@@ -871,3 +895,363 @@ class IloiPXEBoot(ipxe.iPXEBoot):
             # Volume boot in BIOS boot mode is handled using
             # PXE boot interface
             super(IloiPXEBoot, self).clean_up_instance(task)
+
+
+class IloUefiHttpsBoot(base.BootInterface):
+
+    capabilities = ['ramdisk_boot']
+
+    def get_properties(self):
+        """Return the properties of the interface.
+
+        :returns: dictionary of <property name>:<property description> entries.
+        """
+        return REQUIRED_PROPERTIES_UEFI_HTTPS_BOOT
+
+    def _validate_hrefs(self, image_dict):
+        """Validates if the given URLs are secured URLs.
+
+        If the given URLs are not glance images then validates if the URLs
+        are secured.
+
+        :param image_dict: a dictionary containing property/URL pair.
+        :returns: None
+        :raises: InvalidParameterValue, if any of URLs provided are insecure.
+        """
+        insecure_props = []
+
+        for prop in image_dict:
+            image_ref = image_dict.get(prop)
+            if not service_utils.is_glance_image(image_ref):
+                prefix = urlparse.urlparse(image_ref).scheme.lower()
+                if prefix == 'http':
+                    insecure_props.append(prop)
+
+        if len(insecure_props) > 0:
+            error = (_('Secure URLs exposed over HTTPS are expected. '
+                       'Insecure URLs are provided for %s') % insecure_props)
+            raise exception.InvalidParameterValue(error)
+
+    def _parse_deploy_info(self, node):
+        """Gets the instance and driver specific Node deployment info.
+
+        This method validates whether the 'instance_info' and 'driver_info'
+        property of the supplied node contains the required information for
+        this driver to deploy images to the node.
+
+        :param node: a target node of the deployment
+        :returns: a dict with the instance_info and driver_info values.
+        :raises: MissingParameterValue, if any of the required parameters are
+            missing.
+        :raises: InvalidParameterValue, if any of the parameters have invalid
+            value.
+        """
+        deploy_info = {}
+        deploy_info.update(deploy_utils.get_image_instance_info(node))
+        deploy_info.update(self._parse_driver_info(node))
+
+        return deploy_info
+
+    def _parse_driver_info(self, node, mode='deploy'):
+        """Gets the node specific deploy/rescue info.
+
+        This method validates whether the 'driver_info' property of the
+        supplied node contains the required information for this driver to
+        deploy images to the node.
+
+        :param node: a single Node.
+        :param mode: Label indicating a deploy or rescue operation being
+            carried out on the node. Supported values are 'deploy' and
+            'rescue'. Defaults to 'deploy', indicating deploy operation
+            is being carried out.
+        :returns: A dict with the driver_info values.
+        :raises: MissingParameterValue, if any of the required parameters are
+            missing.
+        """
+        info = node.driver_info
+
+        if mode == 'rescue':
+            params_to_check = RESCUE_PROPERTIES_UEFI_HTTPS_BOOT.keys()
+        else:
+            params_to_check = REQUIRED_PROPERTIES_UEFI_HTTPS_BOOT.keys()
+
+        deploy_info = {option: info.get(option)
+                       for option in params_to_check}
+
+        self._validate_hrefs(deploy_info)
+
+        error_msg = (_("Error validating %s for iLO UEFI HTTPS boot. Some "
+                       "parameters were missing in node's driver_info") % mode)
+        deploy_utils.check_for_missing_params(deploy_info, error_msg)
+
+        deploy_info.update(ilo_common.parse_driver_info(node))
+
+        return deploy_info
+
+    def _validate_driver_info(self, task):
+        """Validates the prerequisites for ilo-uefi-https boot interface.
+
+        This method validates whether the 'driver_info' property of the
+        supplied node contains the required information for this driver.
+
+        :param task: a TaskManager instance containing the node to act on.
+        :raises: InvalidParameterValue if any parameters are incorrect
+        :raises: MissingParameterValue if some mandatory information
+            is missing on the node
+        """
+        node = task.node
+
+        self._parse_driver_info(node)
+
+    def _validate_instance_image_info(self, task):
+        """Validate instance image information for the task's node.
+
+        :param task: a TaskManager instance containing the node to act on.
+        :raises: InvalidParameterValue, if some information is invalid.
+        :raises: MissingParameterValue if 'kernel_id' and 'ramdisk_id' are
+            missing in the Glance image or 'kernel' and 'ramdisk' not provided
+            in instance_info for non-Glance image.
+        """
+        node = task.node
+
+        d_info = deploy_utils.get_image_instance_info(node)
+
+        self._validate_hrefs(d_info)
+
+        if node.driver_internal_info.get('is_whole_disk_image'):
+            props = []
+        elif service_utils.is_glance_image(d_info['image_source']):
+            props = ['kernel_id', 'ramdisk_id']
+        else:
+            props = ['kernel', 'ramdisk']
+        deploy_utils.validate_image_properties(task.context, d_info, props)
+
+    @METRICS.timer('IloUefiHttpsBoot.validate')
+    def validate(self, task):
+        """Validate the deployment information for the task's node.
+
+        This method validates whether the 'driver_info' and/or 'instance_info'
+        properties of the task's node contains the required information for
+        this interface to function.
+
+        :param task: A TaskManager instance containing the node to act on.
+        :raises: InvalidParameterValue on malformed parameter(s)
+        :raises: MissingParameterValue on missing parameter(s)
+        """
+        node = task.node
+        boot_option = deploy_utils.get_boot_option(node)
+        try:
+            boot_mode = ilo_common.get_current_boot_mode(task.node)
+        except exception.IloOperationError:
+            error = _("Validation for 'ilo-uefi-https' boot interface failed. "
+                      "Could not determine current boot mode for node "
+                      "%(node)s.") % node.uuid
+            raise exception.InvalidParameterValue(error)
+
+        if boot_mode.lower() != 'uefi':
+            error = _("Validation for 'ilo-uefi-https' boot interface failed. "
+                      "The node is required to be in 'UEFI' boot mode.")
+            raise exception.InvalidParameterValue(error)
+
+        boot_iso = node.instance_info.get('ilo_boot_iso')
+        if (boot_option == "ramdisk" and boot_iso):
+            if not service_utils.is_glance_image(boot_iso):
+                try:
+                    image_service.HttpImageService().validate_href(boot_iso)
+                except exception.ImageRefValidationFailed:
+                    with excutils.save_and_reraise_exception():
+                        LOG.error("UEFI-HTTPS boot with 'ramdisk' "
+                                  "boot_option accepts only Glance images or "
+                                  "HTTPS URLs as "
+                                  "instance_info['ilo_boot_iso']. Either %s "
+                                  "is not a valid HTTPS URL or is not "
+                                  "reachable.", boot_iso)
+            return
+
+        self._validate_driver_info(task)
+
+        if task.driver.storage.should_write_image(task):
+            self._validate_instance_image_info(task)
+
+    def validate_inspection(self, task):
+        """Validate that the node has required properties for inspection.
+
+        :param task: A TaskManager instance with the node being checked
+        :raises: MissingParameterValue if node is missing one or more required
+            parameters
+        :raises: UnsupportedDriverExtension
+        """
+        try:
+            self._validate_driver_info(task)
+        except exception.MissingParameterValue:
+            # Fall back to non-managed in-band inspection
+            raise exception.UnsupportedDriverExtension(
+                driver=task.node.driver, extension='inspection')
+
+    @METRICS.timer('IloUefiHttpsBoot.prepare_ramdisk')
+    def prepare_ramdisk(self, task, ramdisk_params):
+        """Prepares the boot of deploy ramdisk using UEFI-HTTPS boot.
+
+        This method prepares the boot of the deploy or rescue ramdisk after
+        reading relevant information from the node's driver_info and
+        instance_info.
+
+        :param task: a task from TaskManager.
+        :param ramdisk_params: the parameters to be passed to the ramdisk.
+        :returns: None
+        :raises: MissingParameterValue, if some information is missing in
+            node's driver_info or instance_info.
+        :raises: InvalidParameterValue, if some information provided is
+            invalid.
+        :raises: IronicException, if some power or set boot boot device
+            operation failed on the node.
+        :raises: IloOperationError, if some operation on iLO failed.
+        """
+        node = task.node
+        # NOTE(TheJulia): If this method is being called by something
+        # aside from deployment, clean and rescue, such as conductor takeover,
+        # we should treat this as a no-op and move on otherwise we would
+        # modify the state of the node due to virtual media operations.
+        if node.provision_state not in (states.DEPLOYING,
+                                        states.CLEANING,
+                                        states.RESCUING,
+                                        states.INSPECTING):
+            return
+
+        prepare_node_for_deploy(task)
+
+        # Clear ilo_boot_iso if it's a glance image to force recreate
+        # another one again (or use existing one in glance).
+        # This is mainly for rebuild and rescue scenario.
+        if service_utils.is_glance_image(
+                node.instance_info.get('image_source')):
+            instance_info = node.instance_info
+            instance_info.pop('ilo_boot_iso', None)
+            node.instance_info = instance_info
+            node.save()
+
+        # NOTE(TheJulia): Since we're deploying, cleaning, or rescuing,
+        # with virtual media boot, we should generate a token!
+        manager_utils.add_secret_token(node, pregenerated=True)
+        ramdisk_params['ipa-agent-token'] = \
+            task.node.driver_internal_info['agent_secret_token']
+        task.node.save()
+
+        deploy_nic_mac = deploy_utils.get_single_nic_with_vif_port_id(task)
+        ramdisk_params['BOOTIF'] = deploy_nic_mac
+
+        mode = 'deploy'
+        if node.provision_state == states.RESCUING:
+            mode = 'rescue'
+
+        d_info = self._parse_driver_info(node, mode)
+
+        iso_ref = image_utils.prepare_deploy_iso(task, ramdisk_params,
+                                                 mode, d_info)
+
+        LOG.debug("Set 'UEFIHTTP' as one time boot option on the node "
+                  "%(node)s to boot from URL %(iso_ref)s.",
+                  {'node': node.uuid, 'iso_ref': iso_ref})
+
+        ilo_common.setup_uefi_https(task, iso_ref)
+
+    @METRICS.timer('IloUefiHttpsBoot.clean_up_ramdisk')
+    def clean_up_ramdisk(self, task):
+        """Cleans up the boot of ironic ramdisk.
+
+        This method cleans up the environment that was setup for booting the
+        deploy ramdisk.
+
+        :param task: A task from TaskManager.
+        :returns: None
+        """
+        LOG.debug("Cleaning up deploy boot for "
+                  "%(node)s", {'node': task.node.uuid})
+
+        image_utils.cleanup_iso_image(task)
+
+    @METRICS.timer('IloUefiHttpsBoot.prepare_instance')
+    def prepare_instance(self, task):
+        """Prepares the boot of instance.
+
+        This method prepares the boot of the instance after reading
+        relevant information from the node's instance_info.
+        It does the following depending on boot_option for deploy:
+
+        - If the boot_option requested for this deploy is 'local' or image is
+          a whole disk image, then it sets the node to boot from disk.
+        - Otherwise it finds/creates the boot ISO, sets the node boot option
+          to UEFIHTTP and sets the URL as the boot ISO to boot the instance
+          image.
+
+        :param task: a task from TaskManager.
+        :returns: None
+        :raises: IloOperationError, if some operation on iLO failed.
+        :raises: InstanceDeployFailure, if its try to boot iSCSI volume in
+                 'BIOS' boot mode.
+        """
+        node = task.node
+        image_utils.cleanup_iso_image(task)
+        boot_option = deploy_utils.get_boot_option(task.node)
+
+        iwdi = node.driver_internal_info.get('is_whole_disk_image')
+        if boot_option == "local" or iwdi:
+            manager_utils.node_set_boot_device(task, boot_devices.DISK,
+                                               persistent=True)
+            LOG.debug("Node %(node)s is set to permanently boot from local "
+                      "%(device)s", {'node': task.node.uuid,
+                                     'device': boot_devices.DISK})
+            return
+
+        params = {}
+
+        if boot_option != 'ramdisk':
+            root_uuid = node.driver_internal_info.get('root_uuid_or_disk_id')
+            if not root_uuid and task.driver.storage.should_write_image(task):
+                LOG.warning(
+                    "The UUID of the root partition could not be found for "
+                    "node %s. Booting instance from disk anyway.", node.uuid)
+                manager_utils.node_set_boot_device(task, boot_devices.DISK,
+                                                   persistent=True)
+
+                return
+            params.update(root_uuid=root_uuid)
+
+        d_info = self._parse_deploy_info(node)
+        iso_ref = image_utils.prepare_boot_iso(task, d_info, **params)
+
+        if boot_option != 'ramdisk':
+            i_info = node.instance_info
+            i_info['ilo_boot_iso'] = iso_ref
+            node.instance_info = i_info
+            node.save()
+
+        ilo_common.setup_uefi_https(task, iso_ref, persistent=True)
+
+        LOG.debug("Node %(node)s is set to boot from UEFIHTTP "
+                  "boot option", {'node': task.node.uuid})
+
+    @METRICS.timer('IloUefiHttpsBoot.clean_up_instance')
+    def clean_up_instance(self, task):
+        """Cleans up the boot of instance.
+
+        This method cleans up the environment that was setup for booting
+        the instance.
+
+        :param task: A task from TaskManager.
+        :returns: None
+        """
+        LOG.debug("Cleaning up instance boot for "
+                  "%(node)s", {'node': task.node.uuid})
+
+        image_utils.cleanup_iso_image(task)
+
+    @METRICS.timer('IloUefiHttpsBoot.validate_rescue')
+    def validate_rescue(self, task):
+        """Validate that the node has required properties for rescue.
+
+        :param task: a TaskManager instance with the node being checked
+        :raises: MissingParameterValue if node is missing one or more required
+            parameters
+        """
+        self._parse_driver_info(task.node, mode='rescue')
