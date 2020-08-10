@@ -118,7 +118,8 @@ class IRMCPowerInternalMethodsTestCase(test_common.BaseIRMCTest):
                        autospec=True)
     @mock.patch.object(irmc_common, 'get_irmc_client', spec_set=True,
                        autospec=True)
-    @mock.patch.object(irmc_boot, 'attach_boot_iso_if_needed')
+    @mock.patch.object(irmc_boot, 'attach_boot_iso_if_needed',
+                       autospec=True)
     def test__set_power_state_power_on_ok(
             self,
             attach_boot_iso_if_needed_mock,
@@ -152,7 +153,8 @@ class IRMCPowerInternalMethodsTestCase(test_common.BaseIRMCTest):
                        autospec=True)
     @mock.patch.object(irmc_common, 'get_irmc_client', spec_set=True,
                        autospec=True)
-    @mock.patch.object(irmc_boot, 'attach_boot_iso_if_needed')
+    @mock.patch.object(irmc_boot, 'attach_boot_iso_if_needed',
+                       autospec=True)
     def test__set_power_state_reboot_ok(
             self,
             attach_boot_iso_if_needed_mock,
@@ -171,7 +173,8 @@ class IRMCPowerInternalMethodsTestCase(test_common.BaseIRMCTest):
                        autospec=True)
     @mock.patch.object(irmc_common, 'get_irmc_client', spec_set=True,
                        autospec=True)
-    @mock.patch.object(irmc_boot, 'attach_boot_iso_if_needed')
+    @mock.patch.object(irmc_boot, 'attach_boot_iso_if_needed',
+                       autospec=True)
     def test__set_power_state_soft_reboot_ok(
             self,
             attach_boot_iso_if_needed_mock,
@@ -192,7 +195,8 @@ class IRMCPowerInternalMethodsTestCase(test_common.BaseIRMCTest):
                        autospec=True)
     @mock.patch.object(irmc_common, 'get_irmc_client', spec_set=True,
                        autospec=True)
-    @mock.patch.object(irmc_boot, 'attach_boot_iso_if_needed')
+    @mock.patch.object(irmc_boot, 'attach_boot_iso_if_needed',
+                       autospec=True)
     def test__set_power_state_soft_power_off_ok(self,
                                                 attach_boot_iso_if_needed_mock,
                                                 get_irmc_client_mock,
@@ -209,7 +213,8 @@ class IRMCPowerInternalMethodsTestCase(test_common.BaseIRMCTest):
 
     @mock.patch.object(irmc_power, '_wait_power_state', spec_set=True,
                        autospec=True)
-    @mock.patch.object(irmc_boot, 'attach_boot_iso_if_needed')
+    @mock.patch.object(irmc_boot, 'attach_boot_iso_if_needed',
+                       autospec=True)
     def test__set_power_state_invalid_target_state(
             self,
             attach_boot_iso_if_needed_mock,
@@ -227,7 +232,8 @@ class IRMCPowerInternalMethodsTestCase(test_common.BaseIRMCTest):
                        autospec=True)
     @mock.patch.object(irmc_common, 'get_irmc_client', spec_set=True,
                        autospec=True)
-    @mock.patch.object(irmc_boot, 'attach_boot_iso_if_needed')
+    @mock.patch.object(irmc_boot, 'attach_boot_iso_if_needed',
+                       autospec=True)
     def test__set_power_state_scci_exception(self,
                                              attach_boot_iso_if_needed_mock,
                                              get_irmc_client_mock,
@@ -250,7 +256,8 @@ class IRMCPowerInternalMethodsTestCase(test_common.BaseIRMCTest):
                        autospec=True)
     @mock.patch.object(irmc_common, 'get_irmc_client', spec_set=True,
                        autospec=True)
-    @mock.patch.object(irmc_boot, 'attach_boot_iso_if_needed')
+    @mock.patch.object(irmc_boot, 'attach_boot_iso_if_needed',
+                       autospec=True)
     def test__set_power_state_snmp_exception(self,
                                              attach_boot_iso_if_needed_mock,
                                              get_irmc_client_mock,

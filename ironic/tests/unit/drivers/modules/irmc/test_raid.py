@@ -138,8 +138,10 @@ class IRMCRaidConfigurationInternalMethodsTestCase(test_common.BaseIRMCTest):
             ]
         }
 
-    @mock.patch('ironic.drivers.modules.irmc.raid._get_physical_disk')
-    @mock.patch('ironic.drivers.modules.irmc.raid._get_raid_adapter')
+    @mock.patch('ironic.drivers.modules.irmc.raid._get_physical_disk',
+                autospec=True)
+    @mock.patch('ironic.drivers.modules.irmc.raid._get_raid_adapter',
+                autospec=True)
     def test___fail_validation_with_none_raid_adapter_profile(
             self, get_raid_adapter_mock, get_physical_disk_mock):
         get_raid_adapter_mock.return_value = None
@@ -158,8 +160,10 @@ class IRMCRaidConfigurationInternalMethodsTestCase(test_common.BaseIRMCTest):
                               raid._validate_physical_disks,
                               task.node, target_raid_config['logical_disks'])
 
-    @mock.patch('ironic.drivers.modules.irmc.raid._get_physical_disk')
-    @mock.patch('ironic.drivers.modules.irmc.raid._get_raid_adapter')
+    @mock.patch('ironic.drivers.modules.irmc.raid._get_physical_disk',
+                autospec=True)
+    @mock.patch('ironic.drivers.modules.irmc.raid._get_raid_adapter',
+                autospec=True)
     def test___fail_validation_without_raid_level(
             self, get_raid_adapter_mock, get_physical_disk_mock):
         get_raid_adapter_mock.return_value = self.raid_adapter_profile
@@ -177,8 +181,10 @@ class IRMCRaidConfigurationInternalMethodsTestCase(test_common.BaseIRMCTest):
                               raid._validate_physical_disks,
                               task.node, target_raid_config['logical_disks'])
 
-    @mock.patch('ironic.drivers.modules.irmc.raid._get_physical_disk')
-    @mock.patch('ironic.drivers.modules.irmc.raid._get_raid_adapter')
+    @mock.patch('ironic.drivers.modules.irmc.raid._get_physical_disk',
+                autospec=True)
+    @mock.patch('ironic.drivers.modules.irmc.raid._get_raid_adapter',
+                autospec=True)
     def test___fail_validation_with_raid_level_is_none(self,
                                                        get_raid_adapter_mock,
                                                        get_physical_disk_mock):
@@ -198,8 +204,10 @@ class IRMCRaidConfigurationInternalMethodsTestCase(test_common.BaseIRMCTest):
                               raid._validate_physical_disks,
                               task.node, target_raid_config['logical_disks'])
 
-    @mock.patch('ironic.drivers.modules.irmc.raid._get_physical_disk')
-    @mock.patch('ironic.drivers.modules.irmc.raid._get_raid_adapter')
+    @mock.patch('ironic.drivers.modules.irmc.raid._get_physical_disk',
+                autospec=True)
+    @mock.patch('ironic.drivers.modules.irmc.raid._get_raid_adapter',
+                autospec=True)
     def test__fail_validation_without_physical_disks(
             self, get_raid_adapter_mock, get_physical_disk_mock):
         get_raid_adapter_mock.return_value = {
@@ -235,8 +243,10 @@ class IRMCRaidConfigurationInternalMethodsTestCase(test_common.BaseIRMCTest):
                               raid._validate_physical_disks,
                               task.node, target_raid_config['logical_disks'])
 
-    @mock.patch('ironic.drivers.modules.irmc.raid._get_physical_disk')
-    @mock.patch('ironic.drivers.modules.irmc.raid._get_raid_adapter')
+    @mock.patch('ironic.drivers.modules.irmc.raid._get_physical_disk',
+                autospec=True)
+    @mock.patch('ironic.drivers.modules.irmc.raid._get_raid_adapter',
+                autospec=True)
     def test___fail_validation_with_raid_level_outside_list(
             self, get_raid_adapter_mock, get_physical_disk_mock):
         get_raid_adapter_mock.return_value = self.raid_adapter_profile
@@ -256,9 +266,12 @@ class IRMCRaidConfigurationInternalMethodsTestCase(test_common.BaseIRMCTest):
                               task.node, target_raid_config['logical_disks'])
 
     @mock.patch(
-        'ironic.drivers.modules.irmc.raid._validate_logical_drive_capacity')
-    @mock.patch('ironic.drivers.modules.irmc.raid._get_physical_disk')
-    @mock.patch('ironic.drivers.modules.irmc.raid._get_raid_adapter')
+        'ironic.drivers.modules.irmc.raid._validate_logical_drive_capacity',
+        autospec=True)
+    @mock.patch('ironic.drivers.modules.irmc.raid._get_physical_disk',
+                autospec=True)
+    @mock.patch('ironic.drivers.modules.irmc.raid._get_raid_adapter',
+                autospec=True)
     def test__fail_validation_with_not_enough_valid_disks(
             self, get_raid_adapter_mock, get_physical_disk_mock,
             capacity_mock):
@@ -282,8 +295,10 @@ class IRMCRaidConfigurationInternalMethodsTestCase(test_common.BaseIRMCTest):
                               raid._validate_physical_disks,
                               task.node, target_raid_config['logical_disks'])
 
-    @mock.patch('ironic.drivers.modules.irmc.raid._get_physical_disk')
-    @mock.patch('ironic.drivers.modules.irmc.raid._get_raid_adapter')
+    @mock.patch('ironic.drivers.modules.irmc.raid._get_physical_disk',
+                autospec=True)
+    @mock.patch('ironic.drivers.modules.irmc.raid._get_raid_adapter',
+                autospec=True)
     def test__fail_validation_with_physical_disk_insufficient(
             self, get_raid_adapter_mock, get_physical_disk_mock):
         get_raid_adapter_mock.return_value = self.raid_adapter_profile
@@ -307,8 +322,10 @@ class IRMCRaidConfigurationInternalMethodsTestCase(test_common.BaseIRMCTest):
                               raid._validate_physical_disks,
                               task.node, target_raid_config['logical_disks'])
 
-    @mock.patch('ironic.drivers.modules.irmc.raid._get_physical_disk')
-    @mock.patch('ironic.drivers.modules.irmc.raid._get_raid_adapter')
+    @mock.patch('ironic.drivers.modules.irmc.raid._get_physical_disk',
+                autospec=True)
+    @mock.patch('ironic.drivers.modules.irmc.raid._get_raid_adapter',
+                autospec=True)
     def test__fail_validation_with_physical_disk_not_enough_disks(
             self, get_raid_adapter_mock, get_physical_disk_mock):
         get_raid_adapter_mock.return_value = self.raid_adapter_profile
@@ -331,8 +348,10 @@ class IRMCRaidConfigurationInternalMethodsTestCase(test_common.BaseIRMCTest):
                               raid._validate_physical_disks,
                               task.node, target_raid_config['logical_disks'])
 
-    @mock.patch('ironic.drivers.modules.irmc.raid._get_physical_disk')
-    @mock.patch('ironic.drivers.modules.irmc.raid._get_raid_adapter')
+    @mock.patch('ironic.drivers.modules.irmc.raid._get_physical_disk',
+                autospec=True)
+    @mock.patch('ironic.drivers.modules.irmc.raid._get_raid_adapter',
+                autospec=True)
     def test__fail_validation_with_physical_disk_incorrect_valid_disks(
             self, get_raid_adapter_mock, get_physical_disk_mock):
         get_raid_adapter_mock.return_value = self.raid_adapter_profile
@@ -358,8 +377,10 @@ class IRMCRaidConfigurationInternalMethodsTestCase(test_common.BaseIRMCTest):
                               raid._validate_physical_disks,
                               task.node, target_raid_config['logical_disks'])
 
-    @mock.patch('ironic.drivers.modules.irmc.raid._get_physical_disk')
-    @mock.patch('ironic.drivers.modules.irmc.raid._get_raid_adapter')
+    @mock.patch('ironic.drivers.modules.irmc.raid._get_physical_disk',
+                autospec=True)
+    @mock.patch('ironic.drivers.modules.irmc.raid._get_raid_adapter',
+                autospec=True)
     def test__fail_validation_with_physical_disk_outside_valid_disks_1(
             self, get_raid_adapter_mock, get_physical_disk_mock):
         get_raid_adapter_mock.return_value = self.raid_adapter_profile
@@ -383,9 +404,12 @@ class IRMCRaidConfigurationInternalMethodsTestCase(test_common.BaseIRMCTest):
                               task.node, target_raid_config['logical_disks'])
 
     @mock.patch(
-        'ironic.drivers.modules.irmc.raid._validate_logical_drive_capacity')
-    @mock.patch('ironic.drivers.modules.irmc.raid._get_physical_disk')
-    @mock.patch('ironic.drivers.modules.irmc.raid._get_raid_adapter')
+        'ironic.drivers.modules.irmc.raid._validate_logical_drive_capacity',
+        autospec=True)
+    @mock.patch('ironic.drivers.modules.irmc.raid._get_physical_disk',
+                autospec=True)
+    @mock.patch('ironic.drivers.modules.irmc.raid._get_raid_adapter',
+                autospec=True)
     def test__fail_validation_with_physical_disk_outside_valid_slots_2(
             self, get_raid_adapter_mock, get_physical_disk_mock,
             capacity_mock):
@@ -418,9 +442,12 @@ class IRMCRaidConfigurationInternalMethodsTestCase(test_common.BaseIRMCTest):
                               task.node, target_raid_config['logical_disks'])
 
     @mock.patch(
-        'ironic.drivers.modules.irmc.raid._validate_logical_drive_capacity')
-    @mock.patch('ironic.drivers.modules.irmc.raid._get_physical_disk')
-    @mock.patch('ironic.drivers.modules.irmc.raid._get_raid_adapter')
+        'ironic.drivers.modules.irmc.raid._validate_logical_drive_capacity',
+        autospec=True)
+    @mock.patch('ironic.drivers.modules.irmc.raid._get_physical_disk',
+                autospec=True)
+    @mock.patch('ironic.drivers.modules.irmc.raid._get_raid_adapter',
+                autospec=True)
     def test__fail_validation_with_duplicated_physical_disks(
             self, get_raid_adapter_mock, get_physical_disk_mock,
             capacity_mock):
@@ -452,7 +479,8 @@ class IRMCRaidConfigurationInternalMethodsTestCase(test_common.BaseIRMCTest):
                               raid._validate_physical_disks,
                               task.node, target_raid_config['logical_disks'])
 
-    @mock.patch('ironic.drivers.modules.irmc.raid._get_raid_adapter')
+    @mock.patch('ironic.drivers.modules.irmc.raid._get_raid_adapter',
+                autospec=True)
     def test__fail_validation_with_difference_physical_disks_type(
             self, get_raid_adapter_mock):
         get_raid_adapter_mock.return_value = {
@@ -573,11 +601,12 @@ class IRMCRaidConfigurationInternalMethodsTestCase(test_common.BaseIRMCTest):
                           raid._validate_logical_drive_capacity,
                           disk, self.valid_disk_slots)
 
-    @mock.patch('ironic.common.raid.update_raid_info')
-    @mock.patch('ironic.drivers.modules.irmc.raid.client')
-    def test__commit_raid_config_with_logical_drives(self, client_mock,
-                                                     update_raid_info_mock):
-        client_mock.elcm.get_raid_adapter.return_value = {
+    @mock.patch('ironic.common.raid.update_raid_info', autospec=True)
+    @mock.patch('ironic.drivers.modules.irmc.raid.client.elcm.'
+                'get_raid_adapter', autospec=True)
+    def test__commit_raid_config_with_logical_drives(
+            self, get_raid_adapter_mock, update_raid_info_mock):
+        get_raid_adapter_mock.return_value = {
             "Server": {
                 "HWConfigurationIrmc": {
                     "Adapters": {
@@ -665,7 +694,7 @@ class IRMCRaidConfigurationInternalMethodsTestCase(test_common.BaseIRMCTest):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
             raid._commit_raid_config(task)
-            client_mock.elcm.get_raid_adapter.assert_called_once_with(
+            get_raid_adapter_mock.assert_called_once_with(
                 task.node.driver_info)
             update_raid_info_mock.assert_called_once_with(
                 task.node, task.node.raid_config)
@@ -730,9 +759,12 @@ class IRMCRaidConfigurationTestCase(test_common.BaseIRMCTest):
             self.assertRaises(exception.MissingParameterValue,
                               raid_configuration.create_configuration, task)
 
-    @mock.patch('ironic.drivers.modules.irmc.raid._validate_physical_disks')
-    @mock.patch('ironic.drivers.modules.irmc.raid._create_raid_adapter')
-    @mock.patch('ironic.drivers.modules.irmc.raid._commit_raid_config')
+    @mock.patch('ironic.drivers.modules.irmc.raid._validate_physical_disks',
+                autospec=True)
+    @mock.patch('ironic.drivers.modules.irmc.raid._create_raid_adapter',
+                autospec=True)
+    @mock.patch('ironic.drivers.modules.irmc.raid._commit_raid_config',
+                autospec=True)
     def test_create_raid_with_raid_1_and_0(self, commit_mock,
                                            create_raid_mock, validation_mock):
         expected_input = {
@@ -759,9 +791,12 @@ class IRMCRaidConfigurationTestCase(test_common.BaseIRMCTest):
                 task.node, expected_input['logical_disks'])
             commit_mock.assert_called_once_with(task)
 
-    @mock.patch('ironic.drivers.modules.irmc.raid._validate_physical_disks')
-    @mock.patch('ironic.drivers.modules.irmc.raid._create_raid_adapter')
-    @mock.patch('ironic.drivers.modules.irmc.raid._commit_raid_config')
+    @mock.patch('ironic.drivers.modules.irmc.raid._validate_physical_disks',
+                autospec=True)
+    @mock.patch('ironic.drivers.modules.irmc.raid._create_raid_adapter',
+                autospec=True)
+    @mock.patch('ironic.drivers.modules.irmc.raid._commit_raid_config',
+                autospec=True)
     def test_create_raid_with_raid_5_and_0(self, commit_mock,
                                            create_raid_mock, validation_mock):
         expected_input = {
@@ -788,7 +823,8 @@ class IRMCRaidConfigurationTestCase(test_common.BaseIRMCTest):
                 task.node, expected_input['logical_disks'])
             commit_mock.assert_called_once_with(task)
 
-    @mock.patch('ironic.drivers.modules.irmc.raid._delete_raid_adapter')
+    @mock.patch('ironic.drivers.modules.irmc.raid._delete_raid_adapter',
+                autospec=True)
     def test_delete_raid_configuration(self, delete_raid_mock):
 
         with task_manager.acquire(self.context, self.node.uuid,
@@ -796,7 +832,8 @@ class IRMCRaidConfigurationTestCase(test_common.BaseIRMCTest):
             task.driver.raid.delete_configuration(task)
             delete_raid_mock.assert_called_once_with(task.node)
 
-    @mock.patch('ironic.drivers.modules.irmc.raid._delete_raid_adapter')
+    @mock.patch('ironic.drivers.modules.irmc.raid._delete_raid_adapter',
+                autospec=True)
     def test_delete_raid_configuration_return_cleared_raid_config(
             self, delete_raid_mock):
         with task_manager.acquire(self.context, self.node.uuid,
