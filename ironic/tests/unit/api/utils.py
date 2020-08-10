@@ -150,10 +150,8 @@ def volume_target_post_data(**kw):
 
 def chassis_post_data(**kw):
     chassis = db_utils.get_test_chassis(**kw)
-    # version is not part of the API object
-    chassis.pop('version')
-    internal = chassis_controller.ChassisPatchType.internal_attrs()
-    return remove_internal(chassis, internal)
+    return remove_other_fields(
+        chassis, chassis_controller.CHASSIS_SCHEMA['properties'])
 
 
 def post_get_test_node(**kw):
