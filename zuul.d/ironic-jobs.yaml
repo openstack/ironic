@@ -48,6 +48,7 @@
         # NOTE(dtantsur): in some jobs we end up with 12 disks total, so reduce
         # each of them. For don't need all 10 GiB for CirrOS anyway.
         IRONIC_VM_SPECS_DISK: 4
+        IRONIC_VM_SPECS_CPU: 2
         IRONIC_DEFAULT_DEPLOY_INTERFACE: iscsi
 
         Q_AGENT: openvswitch
@@ -113,6 +114,7 @@
         IRONIC_RAMDISK_TYPE: tinyipa
         IRONIC_RPC_TRANSPORT: json-rpc
         IRONIC_VM_SPECS_RAM: 384
+        IRONIC_VM_SPECS_CPU: 1
         IRONIC_VM_COUNT: 6
         IRONIC_VM_VOLUME_COUNT: 2
         # We're using a lot of disk space in this job. Some testing nodes have
@@ -448,6 +450,7 @@
         IRONIC_VM_LOG_DIR: '{{ devstack_base_dir }}/ironic-bm-logs'
         IRONIC_VM_SPECS_RAM: 512
         IRONIC_VM_SPECS_DISK: 4
+        IRONIC_VM_SPECS_CPU: 1
         OVS_BRIDGE_MAPPINGS: 'mynetwork:brbm,public:br-infra'
         OVS_PHYSICAL_BRIDGE: brbm
         PHYSICAL_NETWORK: mynetwork
