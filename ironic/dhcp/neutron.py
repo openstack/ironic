@@ -187,18 +187,19 @@ class NeutronDHCPApi(base.BaseDHCP):
 
         if ip_address:
             try:
-                if ipaddress.ip_address(ip_address).version == 4:
+                if (ipaddress.ip_address(ip_address).version == 4
+                        or ipaddress.ip_address(ip_address).version == 6):
                     return ip_address
                 else:
-                    LOG.error("Neutron returned invalid IPv4 "
+                    LOG.error("Neutron returned invalid IP "
                               "address %(ip_address)s on port %(port_uuid)s.",
                               {'ip_address': ip_address,
                                'port_uuid': port_uuid})
-                    raise exception.InvalidIPv4Address(ip_address=ip_address)
+                    raise exception.InvalidIPAddress(ip_address=ip_address)
             except ValueError as exc:
                 LOG.error("An Invalid IP address was supplied and failed "
                           "basic validation: %s", exc)
-                raise exception.InvalidIPv4Address(ip_address=ip_address)
+                raise exception.InvalidIPAddress(ip_address=ip_address)
         else:
             LOG.error("No IP address assigned to Neutron port %s.",
                       port_uuid)
