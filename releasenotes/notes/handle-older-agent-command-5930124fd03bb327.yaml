@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Fixes an issue with agent token handling where the agent has not been
+    upgraded resulting in an AgentAPIError, when the token is not required.
+    The conductor now retries without sending an agent token.
