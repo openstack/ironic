@@ -55,6 +55,9 @@ class MockNode(object):
             'instance_info': self.instance_info
         }
 
+    def save(self):
+        pass
+
 
 class TestAgentClient(base.TestCase):
     def setUp(self):
@@ -488,6 +491,61 @@ class TestAgentClientAttempts(base.TestCase):
             data=self.client._get_command_body(method, params),
             params={'wait': 'false'},
             timeout=60)
+
+    @mock.patch.object(retrying.time, 'sleep', autospec=True)
+    def test__command_succeed_after_agent_token(self, mock_sleep):
+        self.config(require_agent_token=False)
+        mock_sleep.return_value = None
+        error = {'faultstring': 'Unknown Argument: "agent_token"'}
+        response_data = {'status': 'ok'}
+        method = 'standby.run_image'
+        image_info = {'image_id': 'test_image'}
+        params = {'image_info': image_info}
+        i_info = self.node.driver_internal_info
+        i_info['agent_secret_token'] = 'meowmeowmeow'
+        self.client.session.post.side_effect = [
+            MockResponse(json.dumps(error),
+                         status_code=http_client.BAD_REQUEST),
+            MockResponse(json.dumps(response_data)),
+        ]
+
+        response = self.client._command(self.node, method, params)
+        self.assertEqual(2, self.client.session.post.call_count)
+        self.assertEqual(response, response_data)
+        self.client.session.post.assert_called_with(
+            self.client._get_command_url(self.node),
+            data=self.client._get_command_body(method, params),
+            params={'wait': 'false'},
+            timeout=60)
+        self.assertNotIn('agent_secret_token', self.node.driver_internal_info)
+
+    @mock.patch.object(retrying.time, 'sleep', autospec=True)
+    def test__command_fail_agent_token_required(self, mock_sleep):
+        self.config(require_agent_token=True)
+        mock_sleep.return_value = None
+        error = {'faultstring': 'Unknown Argument: "agent_token"'}
+        method = 'standby.run_image'
+        image_info = {'image_id': 'test_image'}
+        params = {'image_info': image_info}
+        i_info = self.node.driver_internal_info
+        i_info['agent_secret_token'] = 'meowmeowmeow'
+        self.client.session.post.side_effect = [
+            MockResponse(json.dumps(error),
+                         status_code=http_client.BAD_REQUEST),
+        ]
+
+        self.assertRaises(exception.AgentAPIError,
+                          self.client._command,
+                          self.node, method, params)
+        self.assertEqual(1, self.client.session.post.call_count)
+        self.client.session.post.assert_called_with(
+            self.client._get_command_url(self.node),
+            data=self.client._get_command_body(method, params),
+            params={'wait': 'false', 'agent_token': 'meowmeowmeow'},
+            timeout=60)
+        self.assertEqual(
+            'meowmeowmeow',
+            self.node.driver_internal_info.get('agent_secret_token'))
 
     @mock.patch.object(retrying.time, 'sleep', autospec=True)
     def test__command_succeed_after_one_timeout(self, mock_sleep):
