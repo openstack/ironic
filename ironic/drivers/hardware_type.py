@@ -42,19 +42,23 @@ class AbstractHardwareType(object, metaclass=abc.ABCMeta):
 
     # Required hardware interfaces
 
-    @abc.abstractproperty
+    @property
+    @abc.abstractmethod
     def supported_boot_interfaces(self):
         """List of supported boot interfaces."""
 
-    @abc.abstractproperty
+    @property
+    @abc.abstractmethod
     def supported_deploy_interfaces(self):
         """List of supported deploy interfaces."""
 
-    @abc.abstractproperty
+    @property
+    @abc.abstractmethod
     def supported_management_interfaces(self):
         """List of supported management interfaces."""
 
-    @abc.abstractproperty
+    @property
+    @abc.abstractmethod
     def supported_power_interfaces(self):
         """List of supported power interfaces."""
 
