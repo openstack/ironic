@@ -30,6 +30,7 @@ from ironic.conductor import base_manager
 from ironic.conductor import manager
 from ironic.conductor import notification_utils
 from ironic.conductor import task_manager
+from ironic.db import api as dbapi
 from ironic.drivers import fake_hardware
 from ironic.drivers import generic
 from ironic.drivers.modules import fake
@@ -247,6 +248,15 @@ class StartStopTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         self.assertFalse(self.service._shutdown)
         self.service.del_host()
         self.assertTrue(self.service._shutdown)
+
+    @mock.patch.object(dbapi, 'get_instance', autospec=True)
+    def test_start_dbapi_single_call(self, mock_dbapi):
+        self._start_service()
+        # NOTE(TheJulia): This seems like it should only be 1, but
+        # the hash ring initailization pulls it's own database connection
+        # instance, which is likely a good thing, thus this is 2 instead of
+        # 3 without reuse of the database connection.
+        self.assertEqual(2, mock_dbapi.call_count)
 
 
 class CheckInterfacesTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
