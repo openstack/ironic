@@ -11,7 +11,6 @@
 # under the License.
 
 import collections
-import datetime
 from http import client as http_client
 
 from ironic_lib import metrics_utils
@@ -23,14 +22,12 @@ from pecan import rest
 from webob import exc as webob_exc
 
 from ironic import api
-from ironic.api.controllers import base
 from ironic.api.controllers import link
 from ironic.api.controllers.v1 import collection
 from ironic.api.controllers.v1 import notification_utils as notify
-from ironic.api.controllers.v1 import types
 from ironic.api.controllers.v1 import utils as api_utils
-from ironic.api import expose
-from ironic.api import types as atypes
+from ironic.api import method
+from ironic.common import args
 from ironic.common import exception
 from ironic.common.i18n import _
 from ironic.conductor import steps as conductor_steps
@@ -41,215 +38,131 @@ CONF = ironic.conf.CONF
 LOG = log.getLogger(__name__)
 METRICS = metrics_utils.get_metrics_logger(__name__)
 
-_DEFAULT_RETURN_FIELDS = ('uuid', 'name')
+DEFAULT_RETURN_FIELDS = ['uuid', 'name']
 
-_DEPLOY_INTERFACE_TYPE = atypes.Enum(
-    str, *conductor_steps.DEPLOYING_INTERFACE_PRIORITY)
+INTERFACE_NAMES = list(
+    conductor_steps.DEPLOYING_INTERFACE_PRIORITY.keys())
 
+STEP_SCHEMA = {
+    'type': 'object',
+    'properties': {
+        'args': {'type': 'object'},
+        'interface': {'type': 'string', 'enum': INTERFACE_NAMES},
+        'priority': {'anyOf': [
+            {'type': 'integer', 'minimum': 0},
+            {'type': 'string', 'minLength': 1, 'pattern': '^[0-9]+$'}
+        ]},
+        'step': {'type': 'string', 'minLength': 1},
+    },
+    'required': ['interface', 'step', 'args', 'priority'],
+    'additionalProperties': False,
+}
 
-class DeployStepType(atypes.Base, base.AsDictMixin):
-    """A type describing a deployment step."""
+TEMPLATE_SCHEMA = {
+    'type': 'object',
+    'properties': {
+        'description': {'type': ['string', 'null'], 'maxLength': 255},
+        'extra': {'type': ['object', 'null']},
+        'name': api_utils.TRAITS_SCHEMA,
+        'steps': {'type': 'array', 'items': STEP_SCHEMA, 'minItems': 1},
+        'uuid': {'type': ['string', 'null']},
+    },
+    'required': ['steps', 'name'],
+    'additionalProperties': False,
+}
 
-    interface = atypes.wsattr(_DEPLOY_INTERFACE_TYPE, mandatory=True)
-
-    step = atypes.wsattr(str, mandatory=True)
-
-    args = atypes.wsattr({str: types.jsontype}, mandatory=True)
-
-    priority = atypes.wsattr(atypes.IntegerType(0), mandatory=True)
-
-    def __init__(self, **kwargs):
-        self.fields = ['interface', 'step', 'args', 'priority']
-        for field in self.fields:
-            value = kwargs.get(field, atypes.Unset)
-            setattr(self, field, value)
-
-    def sanitize(self):
-        """Removes sensitive data."""
-        if self.args != atypes.Unset:
-            self.args = strutils.mask_dict_password(self.args, "******")
-
-
-class DeployTemplate(base.APIBase):
-    """API representation of a deploy template."""
-
-    uuid = types.uuid
-    """Unique UUID for this deploy template."""
-
-    name = atypes.wsattr(str, mandatory=True)
-    """The logical name for this deploy template."""
-
-    steps = atypes.wsattr([DeployStepType], mandatory=True)
-    """The deploy steps of this deploy template."""
-
-    links = None
-    """A list containing a self link and associated deploy template links."""
-
-    extra = {str: types.jsontype}
-    """This deploy template's meta data"""
-
-    def __init__(self, **kwargs):
-        self.fields = []
-        fields = list(objects.DeployTemplate.fields)
-
-        for field in fields:
-            # Skip fields we do not expose.
-            if not hasattr(self, field):
-                continue
-
-            value = kwargs.get(field, atypes.Unset)
-            if field == 'steps' and value != atypes.Unset:
-                value = [DeployStepType(**step) for step in value]
-            self.fields.append(field)
-            setattr(self, field, value)
-
-    @staticmethod
-    def validate(value):
-        if value is None:
-            return
-
-        # The name is mandatory, but the 'mandatory' attribute support in
-        # wsattr allows None.
-        if value.name is None:
-            err = _("Deploy template name cannot be None")
-            raise exception.InvalidDeployTemplate(err=err)
-
-        # The name must also be a valid trait.
-        api_utils.validate_trait(
-            value.name,
-            error_prefix=_("Deploy template name must be a valid trait"))
-
-        # There must be at least one step.
-        if not value.steps:
-            err = _("No deploy steps specified. A deploy template must have "
-                    "at least one deploy step.")
-            raise exception.InvalidDeployTemplate(err=err)
-
-        # TODO(mgoddard): Determine the consequences of allowing duplicate
-        # steps.
-        # * What if one step has zero priority and another non-zero?
-        # * What if a step that is enabled by default is included in a
-        #   template? Do we override the default or add a second invocation?
-
-        # Check for duplicate steps. Each interface/step combination can be
-        # specified at most once.
-        counter = collections.Counter((step.interface, step.step)
-                                      for step in value.steps)
-        duplicates = {key for key, count in counter.items() if count > 1}
-        if duplicates:
-            duplicates = {"interface: %s, step: %s" % (interface, step)
-                          for interface, step in duplicates}
-            err = _("Duplicate deploy steps. A deploy template cannot have "
-                    "multiple deploy steps with the same interface and step. "
-                    "Duplicates: %s") % "; ".join(duplicates)
-            raise exception.InvalidDeployTemplate(err=err)
-        return value
-
-    @staticmethod
-    def _convert_with_links(template, url, fields=None):
-        template.links = [
-            link.make_link('self', url, 'deploy_templates',
-                           template.uuid),
-            link.make_link('bookmark', url, 'deploy_templates',
-                           template.uuid,
-                           bookmark=True)
-        ]
-        return template
-
-    @classmethod
-    def convert_with_links(cls, rpc_template, fields=None, sanitize=True):
-        """Add links to the deploy template."""
-        template = DeployTemplate(**rpc_template.as_dict())
-
-        if fields is not None:
-            api_utils.check_for_invalid_fields(fields, template.as_dict())
-
-        template = cls._convert_with_links(template,
-                                           api.request.public_url,
-                                           fields=fields)
-        if sanitize:
-            template.sanitize(fields)
-
-        return template
-
-    def sanitize(self, fields):
-        """Removes sensitive and unrequested data.
-
-        Will only keep the fields specified in the ``fields`` parameter.
-
-        :param fields:
-            list of fields to preserve, or ``None`` to preserve them all
-        :type fields: list of str
-        """
-        if self.steps != atypes.Unset:
-            for step in self.steps:
-                step.sanitize()
-
-        if fields is not None:
-            self.unset_fields_except(fields)
-
-    @classmethod
-    def sample(cls, expand=True):
-        time = datetime.datetime(2000, 1, 1, 12, 0, 0)
-        template_uuid = '534e73fa-1014-4e58-969a-814cc0cb9d43'
-        template_name = 'CUSTOM_RAID1'
-        template_steps = [{
-            "interface": "raid",
-            "step": "create_configuration",
-            "args": {
-                "logical_disks": [{
-                    "size_gb": "MAX",
-                    "raid_level": "1",
-                    "is_root_volume": True
-                }],
-                "delete_configuration": True
-            },
-            "priority": 10
-        }]
-        template_extra = {'foo': 'bar'}
-        sample = cls(uuid=template_uuid,
-                     name=template_name,
-                     steps=template_steps,
-                     extra=template_extra,
-                     created_at=time,
-                     updated_at=time)
-        fields = None if expand else _DEFAULT_RETURN_FIELDS
-        return cls._convert_with_links(sample, 'http://localhost:6385',
-                                       fields=fields)
+PATCH_ALLOWED_FIELDS = ['extra', 'name', 'steps', 'description']
+STEP_PATCH_ALLOWED_FIELDS = ['args', 'interface', 'priority', 'step']
 
 
-class DeployTemplatePatchType(types.JsonPatchType):
+def duplicate_steps(name, value):
+    """Argument validator to check template for duplicate steps"""
+    # TODO(mgoddard): Determine the consequences of allowing duplicate
+    # steps.
+    # * What if one step has zero priority and another non-zero?
+    # * What if a step that is enabled by default is included in a
+    #   template? Do we override the default or add a second invocation?
 
-    _api_base = DeployTemplate
+    # Check for duplicate steps. Each interface/step combination can be
+    # specified at most once.
+    counter = collections.Counter((step['interface'], step['step'])
+                                  for step in value['steps'])
+    duplicates = {key for key, count in counter.items() if count > 1}
+    if duplicates:
+        duplicates = {"interface: %s, step: %s" % (interface, step)
+                      for interface, step in duplicates}
+        err = _("Duplicate deploy steps. A deploy template cannot have "
+                "multiple deploy steps with the same interface and step. "
+                "Duplicates: %s") % "; ".join(duplicates)
+        raise exception.InvalidDeployTemplate(err=err)
+    return value
 
 
-class DeployTemplateCollection(collection.Collection):
-    """API representation of a collection of deploy templates."""
+TEMPLATE_VALIDATOR = args.and_valid(
+    args.schema(TEMPLATE_SCHEMA),
+    duplicate_steps,
+    args.dict_valid(uuid=args.uuid)
+)
 
-    _type = 'deploy_templates'
 
-    deploy_templates = [DeployTemplate]
-    """A list containing deploy template objects"""
+def convert_steps(rpc_steps):
+    for step in rpc_steps:
+        yield {
+            'interface': step['interface'],
+            'step': step['step'],
+            'args': step['args'],
+            'priority': step['priority'],
+        }
 
-    @staticmethod
-    def convert_with_links(templates, limit, fields=None, **kwargs):
-        collection = DeployTemplateCollection()
-        collection.deploy_templates = [
-            DeployTemplate.convert_with_links(t, fields=fields, sanitize=False)
-            for t in templates]
-        collection.next = collection.get_next(limit, fields=fields, **kwargs)
 
-        for template in collection.deploy_templates:
-            template.sanitize(fields)
+def convert_with_links(rpc_template, fields=None, sanitize=True):
+    """Add links to the deploy template."""
+    template = api_utils.object_to_dict(
+        rpc_template,
+        fields=('name', 'extra'),
+        link_resource='deploy_templates',
+    )
+    template['steps'] = list(convert_steps(rpc_template.steps))
 
-        return collection
+    if fields is not None:
+        api_utils.check_for_invalid_fields(fields, template)
 
-    @classmethod
-    def sample(cls):
-        sample = cls()
-        template = DeployTemplate.sample(expand=False)
-        sample.deploy_templates = [template]
-        return sample
+    if sanitize:
+        template_sanitize(template, fields)
+
+    return template
+
+
+def template_sanitize(template, fields):
+    """Removes sensitive and unrequested data.
+
+    Will only keep the fields specified in the ``fields`` parameter.
+
+    :param fields:
+        list of fields to preserve, or ``None`` to preserve them all
+    :type fields: list of str
+    """
+    api_utils.sanitize_dict(template, fields)
+    if template.get('steps'):
+        for step in template['steps']:
+            step_sanitize(step)
+
+
+def step_sanitize(step):
+    if step.get('args'):
+        step['args'] = strutils.mask_dict_password(step['args'], "******")
+
+
+def list_convert_with_links(rpc_templates, limit, fields=None, **kwargs):
+    return collection.list_convert_with_links(
+        items=[convert_with_links(t, fields=fields, sanitize=False)
+               for t in rpc_templates],
+        item_name='deploy_templates',
+        limit=limit,
+        fields=fields,
+        sanitize_func=template_sanitize,
+        **kwargs
+    )
 
 
 class DeployTemplatesController(rest.RestController):
@@ -267,25 +180,11 @@ class DeployTemplatesController(rest.RestController):
                 raise webob_exc.HTTPMethodNotAllowed(msg)
         return super(DeployTemplatesController, self)._route(args, request)
 
-    def _update_changed_fields(self, template, rpc_template):
-        """Update rpc_template based on changed fields in a template."""
-        for field in objects.DeployTemplate.fields:
-            try:
-                patch_val = getattr(template, field)
-            except AttributeError:
-                # Ignore fields that aren't exposed in the API.
-                continue
-            if patch_val == atypes.Unset:
-                patch_val = None
-            if rpc_template[field] != patch_val:
-                if field == 'steps' and patch_val is not None:
-                    # Convert from DeployStepType to dict.
-                    patch_val = [s.as_dict() for s in patch_val]
-                rpc_template[field] = patch_val
-
     @METRICS.timer('DeployTemplatesController.get_all')
-    @expose.expose(DeployTemplateCollection, types.name, int, str,
-                   str, types.listtype, types.boolean)
+    @method.expose()
+    @args.validate(marker=args.name, limit=args.integer, sort_key=args.string,
+                   sort_dir=args.string, fields=args.string_list,
+                   detail=args.boolean)
     def get_all(self, marker=None, limit=None, sort_key='id', sort_dir='asc',
                 fields=None, detail=None):
         """Retrieve a list of deploy templates.
@@ -308,7 +207,7 @@ class DeployTemplatesController(rest.RestController):
         api_utils.check_allowed_fields([sort_key])
 
         fields = api_utils.get_request_return_fields(fields, detail,
-                                                     _DEFAULT_RETURN_FIELDS)
+                                                     DEFAULT_RETURN_FIELDS)
 
         limit = api_utils.validate_limit(limit)
         sort_dir = api_utils.validate_sort_dir(sort_dir)
@@ -332,11 +231,12 @@ class DeployTemplatesController(rest.RestController):
         if detail is not None:
             parameters['detail'] = detail
 
-        return DeployTemplateCollection.convert_with_links(
+        return list_convert_with_links(
             templates, limit, fields=fields, **parameters)
 
     @METRICS.timer('DeployTemplatesController.get_one')
-    @expose.expose(DeployTemplate, types.uuid_or_name, types.listtype)
+    @method.expose()
+    @args.validate(template_ident=args.uuid_or_name, fields=args.string_list)
     def get_one(self, template_ident, fields=None):
         """Retrieve information about the given deploy template.
 
@@ -351,11 +251,12 @@ class DeployTemplatesController(rest.RestController):
         rpc_template = api_utils.get_rpc_deploy_template_with_suffix(
             template_ident)
 
-        return DeployTemplate.convert_with_links(rpc_template, fields=fields)
+        return convert_with_links(rpc_template, fields=fields)
 
     @METRICS.timer('DeployTemplatesController.post')
-    @expose.expose(DeployTemplate, body=DeployTemplate,
-                   status_code=http_client.CREATED)
+    @method.expose(status_code=http_client.CREATED)
+    @method.body('template')
+    @args.validate(template=TEMPLATE_VALIDATOR)
     def post(self, template):
         """Create a new deploy template.
 
@@ -364,12 +265,12 @@ class DeployTemplatesController(rest.RestController):
         api_utils.check_policy('baremetal:deploy_template:create')
 
         context = api.request.context
-        tdict = template.as_dict()
-        # NOTE(mgoddard): UUID is mandatory for notifications payload
-        if not tdict.get('uuid'):
-            tdict['uuid'] = uuidutils.generate_uuid()
 
-        new_template = objects.DeployTemplate(context, **tdict)
+        # NOTE(mgoddard): UUID is mandatory for notifications payload
+        if not template.get('uuid'):
+            template['uuid'] = uuidutils.generate_uuid()
+
+        new_template = objects.DeployTemplate(context, **template)
 
         notify.emit_start_notification(context, new_template, 'create')
         with notify.handle_error_notification(context, new_template, 'create'):
@@ -377,14 +278,14 @@ class DeployTemplatesController(rest.RestController):
         # Set the HTTP Location Header
         api.response.location = link.build_url('deploy_templates',
                                                new_template.uuid)
-        api_template = DeployTemplate.convert_with_links(new_template)
+        api_template = convert_with_links(new_template)
         notify.emit_end_notification(context, new_template, 'create')
         return api_template
 
     @METRICS.timer('DeployTemplatesController.patch')
-    @expose.validate(types.uuid, types.boolean, [DeployTemplatePatchType])
-    @expose.expose(DeployTemplate, types.uuid_or_name, types.boolean,
-                   body=[DeployTemplatePatchType])
+    @method.expose()
+    @method.body('patch')
+    @args.validate(template_ident=args.uuid_or_name, patch=args.patch)
     def patch(self, template_ident, patch=None):
         """Update an existing deploy template.
 
@@ -393,15 +294,28 @@ class DeployTemplatesController(rest.RestController):
         """
         api_utils.check_policy('baremetal:deploy_template:update')
 
+        api_utils.patch_validate_allowed_fields(patch, PATCH_ALLOWED_FIELDS)
+
         context = api.request.context
         rpc_template = api_utils.get_rpc_deploy_template_with_suffix(
             template_ident)
 
-        template_dict = rpc_template.as_dict()
-        template = DeployTemplate(
-            **api_utils.apply_jsonpatch(template_dict, patch))
-        template.validate(template)
-        self._update_changed_fields(template, rpc_template)
+        template = rpc_template.as_dict()
+
+        # apply the patch
+        template = api_utils.apply_jsonpatch(template, patch)
+
+        # validate the result with the patch schema
+        for step in template.get('steps', []):
+            api_utils.patched_validate_with_schema(
+                step, STEP_SCHEMA)
+        api_utils.patched_validate_with_schema(
+            template, TEMPLATE_SCHEMA, TEMPLATE_VALIDATOR)
+
+        api_utils.patch_update_changed_fields(
+            template, rpc_template, fields=objects.DeployTemplate.fields,
+            schema=TEMPLATE_SCHEMA
+        )
 
         # NOTE(mgoddard): There could be issues with concurrent updates of a
         # template. This is particularly true for the complex 'steps' field,
@@ -421,14 +335,14 @@ class DeployTemplatesController(rest.RestController):
         with notify.handle_error_notification(context, rpc_template, 'update'):
             rpc_template.save()
 
-        api_template = DeployTemplate.convert_with_links(rpc_template)
+        api_template = convert_with_links(rpc_template)
         notify.emit_end_notification(context, rpc_template, 'update')
 
         return api_template
 
     @METRICS.timer('DeployTemplatesController.delete')
-    @expose.expose(None, types.uuid_or_name,
-                   status_code=http_client.NO_CONTENT)
+    @method.expose(status_code=http_client.NO_CONTENT)
+    @args.validate(template_ident=args.uuid_or_name)
     def delete(self, template_ident):
         """Delete a deploy template.
 
