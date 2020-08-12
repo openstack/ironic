@@ -2629,7 +2629,7 @@ class IPMIToolDriverTestCase(Base):
         with task_manager.acquire(self.context,
                                   self.node.uuid) as task:
             port = ipmi._allocate_port(task)
-            mock_acquire.assert_called_once_with()
+            mock_acquire.assert_called_once_with(host=None)
             self.assertEqual(port, 1234)
             info = task.node.driver_internal_info
             self.assertEqual(info['allocated_ipmi_terminal_port'], 1234)
@@ -2959,6 +2959,7 @@ class IPMIToolSocatDriverTestCase(IPMIToolShellinaboxTestCase):
                        autospec=True)
     def test_start_console_alloc_port(self, mock_stop, mock_start, mock_info,
                                       mock_alloc):
+        self.config(socat_address='2001:dead:beef::1', group='console')
         mock_start.return_value = None
         mock_info.return_value = {'port': None}
         mock_alloc.return_value = 1234
@@ -2970,7 +2971,7 @@ class IPMIToolSocatDriverTestCase(IPMIToolShellinaboxTestCase):
         mock_start.assert_called_once_with(
             self.console, {'port': 1234},
             console_utils.start_socat_console)
-        mock_alloc.assert_called_once_with(mock.ANY)
+        mock_alloc.assert_called_once_with(mock.ANY, host='2001:dead:beef::1')
 
     @mock.patch.object(ipmi.IPMISocatConsole, '_get_ipmi_cmd', autospec=True)
     @mock.patch.object(console_utils, 'start_socat_console',
