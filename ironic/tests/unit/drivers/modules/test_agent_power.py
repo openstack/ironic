@@ -30,7 +30,7 @@ class AgentPowerTest(db_base.DbTestCase):
         self.config(fast_track=True, group='deploy')
         self.power = agent_power.AgentPower()
         dii = {
-            'agent_last_heartbeat': datetime.datetime.now().strftime(
+            'agent_last_heartbeat': datetime.datetime.utcnow().strftime(
                 "%Y-%m-%dT%H:%M:%S.%f"),
             'deployment_reboot': True,
             'agent_url': 'http://url',
