@@ -3,7 +3,7 @@ features:
   - Adds option ``[ansible]default_python_interpreter`` to choose
     the python interpreter that ansible uses on managed machines.
     By default, ansible uses ``/usr/bin/python`` as interpreter, making the
-    assumption that that path is always present on remote managed systems.
+    assumption that path is always present on remote managed systems.
     This might not be always the case, for example in custom build
     images or Python 3 native distributions.
     With this option the operator has the ability to set the absolute

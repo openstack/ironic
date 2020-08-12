@@ -188,7 +188,7 @@ the same purpose.
 Virtual Media Ramdisk
 ~~~~~~~~~~~~~~~~~~~~~
 
-The ``ramdisk`` deploy interface can be used in concert with the the
+The ``ramdisk`` deploy interface can be used in concert with the
 ``redfish-virtual-media`` boot interface to facilitate the boot of a remote
 node utilizing pre-supplied virtual media.
 
