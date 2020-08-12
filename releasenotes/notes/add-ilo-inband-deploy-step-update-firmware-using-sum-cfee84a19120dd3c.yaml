@@ -1,0 +1,11 @@
+---
+features:
+  - |
+    Adds inband deploy step ``flash_firmware_sum`` to the ``management``
+    interface of the ``ilo`` and ``ilo5`` hardware types. The required
+    minimum version for the proliantutils library is 2.9.5.
+other:
+  - |
+    The proliantutils library version 2.9.5 enables ``ssacli`` based
+    in-band deploy step ``apply_configuration`` of ``agent`` RAID
+    interface for ``ilo`` and ``ilo5`` hardware types.

@@ -524,12 +524,43 @@ class IloManagement(base.ManagementInterface):
     @base.clean_step(priority=0, abortable=False,
                      argsinfo=_FIRMWARE_UPDATE_SUM_ARGSINFO)
     def update_firmware_sum(self, task, **kwargs):
-        """Updates the firmware using Smart Update Manager (SUM).
+        """Clean step to update the firmware using Smart Update Manager (SUM)
 
         :param task: a TaskManager object.
         :raises: NodeCleaningFailure, on failure to execute of clean step.
+        :returns: states.CLEANWAIT to signify the step will be completed async
+        """
+        return self._do_update_firmware_sum(task, **kwargs)
+
+    @METRICS.timer('IloManagement.update_firmware_sum')
+    @base.deploy_step(priority=0, argsinfo=_FIRMWARE_UPDATE_SUM_ARGSINFO)
+    def flash_firmware_sum(self, task, **kwargs):
+        """Deploy step to Update the firmware using Smart Update Manager (SUM).
+
+        :param task: a TaskManager object.
+        :raises: InstanceDeployFailure, on failure to execute of deploy step.
+        :returns: states.DEPLOYWAIT to signify the step will be completed
+            async
+        """
+        return self._do_update_firmware_sum(task, **kwargs)
+
+    def _do_update_firmware_sum(self, task, **kwargs):
+        """Update the firmware using Smart Update Manager (SUM).
+
+        :param task: a TaskManager object.
+        :raises: NodeCleaningFailure or InstanceDeployFailure, on failure to
+            execute of clean or deploy step respectively.
+        :returns: states.CLEANWAIT or states.DEPLOYWAIT to signify the step
+            will be completed async for clean or deploy step respectively.
         """
         node = task.node
+        if node.provision_state == states.DEPLOYING:
+            step = node.deploy_step
+            step_type = 'deploy'
+        else:
+            step = node.clean_step
+            step_type = 'clean'
+
         # The arguments are validated and sent to the ProliantHardwareManager
         # to perform SUM based firmware update clean step.
         firmware_processor.get_and_validate_firmware_image_info(kwargs,
@@ -538,24 +569,25 @@ class IloManagement(base.ManagementInterface):
         url = kwargs['url']
         if urlparse.urlparse(url).scheme == 'swift':
             url = firmware_processor.get_swift_url(urlparse.urlparse(url))
-            node.clean_step['args']['url'] = url
+            step['args']['url'] = url
 
         # Insert SPP ISO into virtual media CDROM
         ilo_common.attach_vmedia(node, 'CDROM', url)
 
-        step = node.clean_step
-        return agent_base.execute_clean_step(task, step)
+        return agent_base.execute_step(task, step, step_type)
 
     @staticmethod
+    @agent_base.post_deploy_step_hook(
+        interface='management', step='flash_firmware_sum')
     @agent_base.post_clean_step_hook(
         interface='management', step='update_firmware_sum')
     def _update_firmware_sum_final(task, command):
-        """Clean step hook after SUM based firmware update operation.
+        """Deploy/Clean step hook after SUM based firmware update operation.
 
-        This method is invoked as a post clean step hook by the Ironic
-        conductor once firmware update operaion is completed. The clean logs
-        are collected and stored according to the configured storage backend
-        when the node is configured to collect the logs.
+        This method is invoked as a post deploy/clean step hook by the Ironic
+        conductor once firmware update operaion is completed. The deploy/clean
+        logs are collected and stored according to the configured storage
+        backend when the node is configured to collect the logs.
 
         :param task: a TaskManager instance.
         :param command: A command result structure of the SUM based firmware
@@ -565,12 +597,16 @@ class IloManagement(base.ManagementInterface):
         if not _should_collect_logs(command):
             return
 
+        if task.node.provision_state == states.DEPLOYWAIT:
+            log_data = command['command_result']['deploy_result']['Log Data']
+            label = command['command_result']['deploy_step']['step']
+        else:
+            log_data = command['command_result']['clean_result']['Log Data']
+            label = command['command_result']['clean_step']['step']
+
         node = task.node
         try:
-            driver_utils.store_ramdisk_logs(
-                node,
-                command['command_result']['clean_result']['Log Data'],
-                label='update_firmware_sum')
+            driver_utils.store_ramdisk_logs(node, log_data, label=label)
         except exception.SwiftOperationError as e:
             LOG.error('Failed to store the logs from the node %(node)s '
                       'for "update_firmware_sum" clean step in Swift. '

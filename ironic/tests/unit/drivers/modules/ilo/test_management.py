@@ -827,176 +827,387 @@ class IloManagementTestCase(test_common.BaseIloTest):
 
     @mock.patch.object(ilo_common, 'attach_vmedia', spec_set=True,
                        autospec=True)
-    @mock.patch.object(agent_base, 'execute_clean_step', autospec=True)
-    def test_update_firmware_sum_mode_with_component(
-            self, execute_mock, attach_vmedia_mock):
+    @mock.patch.object(agent_base, 'execute_step', autospec=True)
+    def _test_write_firmware_sum_mode_with_component(
+            self, execute_mock, attach_vmedia_mock, step_type='clean'):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
-            execute_mock.return_value = states.CLEANWAIT
             # | GIVEN |
             firmware_update_args = {
                 'url': 'http://any_url',
                 'checksum': 'xxxx',
                 'component': ['CP02345.scexe', 'CP02567.exe']}
-            clean_step = {'step': 'update_firmware',
-                          'interface': 'management',
-                          'args': firmware_update_args}
-            task.node.clean_step = clean_step
+            step = {'interface': 'management',
+                    'args': firmware_update_args}
+            if step_type == 'clean':
+                step['step'] = 'update_firmware_sum'
+                task.node.provision_state = states.CLEANING
+                execute_mock.return_value = states.CLEANWAIT
+                task.node.clean_step = step
+                func = task.driver.management.update_firmware_sum
+                exp_ret_state = states.CLEANWAIT
+            else:
+                step['step'] = 'flash_firmware_sum'
+                task.node.provision_state = states.DEPLOYING
+                execute_mock.return_value = states.DEPLOYWAIT
+                task.node.deploy_step = step
+                func = task.driver.management.flash_firmware_sum
+                exp_ret_state = states.DEPLOYWAIT
             # | WHEN |
-            return_value = task.driver.management.update_firmware_sum(
-                task, **firmware_update_args)
+            return_value = func(task, **firmware_update_args)
             # | THEN |
             attach_vmedia_mock.assert_any_call(
                 task.node, 'CDROM', 'http://any_url')
-            self.assertEqual(states.CLEANWAIT, return_value)
-            execute_mock.assert_called_once_with(task, clean_step)
+            self.assertEqual(exp_ret_state, return_value)
+            execute_mock.assert_called_once_with(task, step, step_type)
+
+    def test_update_firmware_sum_mode_with_component(self):
+        self._test_write_firmware_sum_mode_with_component(step_type='clean')
+
+    def test_flash_firmware_sum_mode_with_component(self):
+        self._test_write_firmware_sum_mode_with_component(step_type='deploy')
 
     @mock.patch.object(ilo_common, 'attach_vmedia', spec_set=True,
                        autospec=True)
     @mock.patch.object(ilo_management.firmware_processor,
                        'get_swift_url', autospec=True)
-    @mock.patch.object(agent_base, 'execute_clean_step', autospec=True)
-    def test_update_firmware_sum_mode_swift_url(
-            self, execute_mock, swift_url_mock, attach_vmedia_mock):
+    @mock.patch.object(agent_base, 'execute_step', autospec=True)
+    def _test_write_firmware_sum_mode_swift_url(
+            self, execute_mock, swift_url_mock, attach_vmedia_mock,
+            step_type='clean'):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
-            swift_url_mock.return_value = "http://path-to-file"
-            execute_mock.return_value = states.CLEANWAIT
             # | GIVEN |
+            swift_url_mock.return_value = "http://path-to-file"
             firmware_update_args = {
                 'url': 'swift://container/object',
                 'checksum': 'xxxx',
                 'components': ['CP02345.scexe', 'CP02567.exe']}
-            clean_step = {'step': 'update_firmware',
-                          'interface': 'management',
-                          'args': firmware_update_args}
-            task.node.clean_step = clean_step
+            step = {'interface': 'management',
+                    'args': firmware_update_args}
+            if step_type == 'clean':
+                task.node.provision_state = states.CLEANING
+                execute_mock.return_value = states.CLEANWAIT
+                step['step'] = 'update_firmware_sum',
+                task.node.clean_step = step
+                func = task.driver.management.update_firmware_sum
+                exp_ret_state = states.CLEANWAIT
+                args_data = task.node.clean_step['args']
+            else:
+                task.node.provision_state = states.DEPLOYING
+                execute_mock.return_value = states.DEPLOYWAIT
+                step['step'] = 'flash_firmware_sum',
+                task.node.deploy_step = step
+                func = task.driver.management.flash_firmware_sum
+                exp_ret_state = states.DEPLOYWAIT
+                args_data = task.node.deploy_step['args']
             # | WHEN |
-            return_value = task.driver.management.update_firmware_sum(
-                task, **firmware_update_args)
+            return_value = func(task, **firmware_update_args)
             # | THEN |
             attach_vmedia_mock.assert_any_call(
                 task.node, 'CDROM', 'http://path-to-file')
-            self.assertEqual(states.CLEANWAIT, return_value)
-            self.assertEqual(task.node.clean_step['args']['url'],
-                             "http://path-to-file")
+            self.assertEqual(exp_ret_state, return_value)
+            self.assertEqual(args_data['url'], "http://path-to-file")
+
+    def test_write_firmware_sum_mode_swift_url_clean(self):
+        self._test_write_firmware_sum_mode_swift_url(step_type='clean')
+
+    def test_write_firmware_sum_mode_swift_url_deploy(self):
+        self._test_write_firmware_sum_mode_swift_url(step_type='deploy')
 
     @mock.patch.object(ilo_common, 'attach_vmedia', spec_set=True,
                        autospec=True)
-    @mock.patch.object(agent_base, 'execute_clean_step', autospec=True)
-    def test_update_firmware_sum_mode_without_component(
-            self, execute_mock, attach_vmedia_mock):
+    @mock.patch.object(agent_base, 'execute_step', autospec=True)
+    def _test_write_firmware_sum_mode_without_component(
+            self, execute_mock, attach_vmedia_mock, step_type='clean'):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
-            execute_mock.return_value = states.CLEANWAIT
             # | GIVEN |
             firmware_update_args = {
                 'url': 'any_valid_url',
                 'checksum': 'xxxx'}
-            clean_step = {'step': 'update_firmware',
-                          'interface': 'management',
-                          'args': firmware_update_args}
-            task.node.clean_step = clean_step
+            step = {'interface': 'management',
+                    'args': firmware_update_args}
+            if step_type == 'clean':
+                task.node.provision_state = states.CLEANING
+                execute_mock.return_value = states.CLEANWAIT
+                step['step'] = 'update_firmware_sum'
+                task.node.clean_step = step
+                func = task.driver.management.update_firmware_sum
+                exp_ret_state = states.CLEANWAIT
+            else:
+                task.node.provision_state = states.DEPLOYING
+                execute_mock.return_value = states.DEPLOYWAIT
+                step['step'] = 'flash_firmware_sum'
+                task.node.deploy_step = step
+                func = task.driver.management.flash_firmware_sum
+                exp_ret_state = states.DEPLOYWAIT
             # | WHEN |
-            return_value = task.driver.management.update_firmware_sum(
-                task, **firmware_update_args)
+            return_value = func(task, **firmware_update_args)
             # | THEN |
             attach_vmedia_mock.assert_any_call(
                 task.node, 'CDROM', 'any_valid_url')
-            self.assertEqual(states.CLEANWAIT, return_value)
-            execute_mock.assert_called_once_with(task, clean_step)
+            self.assertEqual(exp_ret_state, return_value)
+            execute_mock.assert_called_once_with(task, step, step_type)
 
-    def test_update_firmware_sum_mode_invalid_component(self):
+    def test_write_firmware_sum_mode_without_component_clean(self):
+        self._test_write_firmware_sum_mode_without_component(
+            step_type='clean')
+
+    def test_write_firmware_sum_mode_without_component_deploy(self):
+        self._test_write_firmware_sum_mode_without_component(
+            step_type='deploy')
+
+    def _test_write_firmware_sum_mode_invalid_component(self,
+                                                        step_type='clean'):
+        # | GIVEN |
+        firmware_update_args = {
+            'url': 'any_valid_url',
+            'checksum': 'xxxx',
+            'components': ['CP02345']}
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
-            # | GIVEN |
-            firmware_update_args = {
-                'url': 'any_valid_url',
-                'checksum': 'xxxx',
-                'components': ['CP02345']}
             # | WHEN & THEN |
+            if step_type == 'clean':
+                func = task.driver.management.update_firmware_sum
+            else:
+                func = task.driver.management.flash_firmware_sum
             self.assertRaises(exception.InvalidParameterValue,
-                              task.driver.management.update_firmware_sum,
-                              task,
-                              **firmware_update_args)
+                              func, task, **firmware_update_args)
+
+    def test_write_firmware_sum_mode_invalid_component_clean(self):
+        self._test_write_firmware_sum_mode_invalid_component(
+            step_type='clean')
+
+    def test_write_firmware_sum_mode_invalid_component_deploy(self):
+        self._test_write_firmware_sum_mode_invalid_component(
+            step_type='deploy')
 
     @mock.patch.object(driver_utils, 'store_ramdisk_logs')
-    def test__update_firmware_sum_final_with_logs(self, store_mock):
+    def _test__write_firmware_sum_final_with_logs(self, store_mock,
+                                                  step_type='clean'):
         self.config(deploy_logs_collect='always', group='agent')
-        command = {'command_status': 'SUCCEEDED',
-                   'command_result': {
-                       'clean_result': {'Log Data': 'aaaabbbbcccdddd'}}
-                   }
+        firmware_update_args = {
+            'url': 'any_valid_url',
+            'checksum': 'xxxx'}
+        step = {'interface': 'management',
+                'args': firmware_update_args}
+        if step_type == 'clean':
+            step['step'] = 'update_firmware_sum'
+            node_state = states.CLEANWAIT
+            command = {
+                'command_status': 'SUCCEEDED',
+                'command_result': {
+                    'clean_result': {'Log Data': 'aaaabbbbcccdddd'},
+                    'clean_step': step,
+                }
+            }
+            exp_label = 'update_firmware_sum'
+        else:
+            step['step'] = 'flash_firmware_sum'
+            node_state = states.DEPLOYWAIT
+            command = {
+                'command_status': 'SUCCEEDED',
+                'command_result': {
+                    'deploy_result': {'Log Data': 'aaaabbbbcccdddd'},
+                    'deploy_step': step,
+                }
+            }
+            exp_label = 'flash_firmware_sum'
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
+            task.node.provision_state = node_state
             task.driver.management._update_firmware_sum_final(
                 task, command)
             store_mock.assert_called_once_with(task.node, 'aaaabbbbcccdddd',
-                                               label='update_firmware_sum')
+                                               label=exp_label)
+
+    def test__write_firmware_sum_final_with_logs_clean(self):
+        self._test__write_firmware_sum_final_with_logs(step_type='clean')
+
+    def test__write_firmware_sum_final_with_logs_deploy(self):
+        self._test__write_firmware_sum_final_with_logs(step_type='deploy')
 
     @mock.patch.object(driver_utils, 'store_ramdisk_logs')
-    def test__update_firmware_sum_final_without_logs(self, store_mock):
+    def _test__write_firmware_sum_final_without_logs(self, store_mock,
+                                                     step_type='clean'):
         self.config(deploy_logs_collect='on_failure', group='agent')
-        command = {'command_status': 'SUCCEEDED',
-                   'command_result': {
-                       'clean_result': {'Log Data': 'aaaabbbbcccdddd'}}
-                   }
+        firmware_update_args = {
+            'url': 'any_valid_url',
+            'checksum': 'xxxx'}
+        step = {'interface': 'management',
+                'args': firmware_update_args}
+        if step_type == 'clean':
+            step['step'] = 'update_firmware_sum'
+            command = {
+                'command_status': 'SUCCEEDED',
+                'command_result': {
+                    'clean_result': {'Log Data': 'aaaabbbbcccdddd'},
+                    'clean_step': step,
+                }
+            }
+        else:
+            step['step'] = 'flash_firmware_sum'
+            command = {
+                'command_status': 'SUCCEEDED',
+                'command_result': {
+                    'deploy_result': {'Log Data': 'aaaabbbbcccdddd'},
+                    'deploy_step': step,
+                }
+            }
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
             task.driver.management._update_firmware_sum_final(
                 task, command)
         self.assertFalse(store_mock.called)
 
+    def test__write_firmware_sum_final_without_logs_clean(self):
+        self._test__write_firmware_sum_final_without_logs(step_type='clean')
+
+    def test__write_firmware_sum_final_without_logs_deploy(self):
+        self._test__write_firmware_sum_final_without_logs(step_type='deploy')
+
     @mock.patch.object(ilo_management, 'LOG', spec_set=True, autospec=True)
     @mock.patch.object(driver_utils, 'store_ramdisk_logs')
-    def test__update_firmware_sum_final_swift_error(self, store_mock,
-                                                    log_mock):
+    def _test__write_firmware_sum_final_swift_error(self, store_mock,
+                                                    log_mock,
+                                                    step_type='clean'):
         self.config(deploy_logs_collect='always', group='agent')
-        command = {'command_status': 'SUCCEEDED',
-                   'command_result': {
-                       'clean_result': {'Log Data': 'aaaabbbbcccdddd'}}
-                   }
+        firmware_update_args = {
+            'url': 'any_valid_url',
+            'checksum': 'xxxx'}
+        step = {'interface': 'management',
+                'args': firmware_update_args}
+        if step_type == 'clean':
+            step['step'] = 'update_firmware_sum'
+            node_state = states.CLEANWAIT
+            command = {
+                'command_status': 'SUCCEEDED',
+                'command_result': {
+                    'clean_result': {'Log Data': 'aaaabbbbcccdddd'},
+                    'clean_step': step,
+                }
+            }
+        else:
+            step['step'] = 'flash_firmware_sum'
+            node_state = states.DEPLOYWAIT
+            command = {
+                'command_status': 'SUCCEEDED',
+                'command_result': {
+                    'deploy_result': {'Log Data': 'aaaabbbbcccdddd'},
+                    'deploy_step': step,
+                }
+            }
         store_mock.side_effect = exception.SwiftOperationError('Error')
 
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
+            task.node.provision_state = node_state
             task.driver.management._update_firmware_sum_final(
                 task, command)
         self.assertTrue(log_mock.error.called)
 
+    def test__write_firmware_sum_final_swift_error_clean(self):
+        self._test__write_firmware_sum_final_swift_error(step_type='clean')
+
+    def test__write_firmware_sum_final_swift_error_deploy(self):
+        self._test__write_firmware_sum_final_swift_error(step_type='deploy')
+
     @mock.patch.object(ilo_management, 'LOG', spec_set=True, autospec=True)
     @mock.patch.object(driver_utils, 'store_ramdisk_logs')
-    def test__update_firmware_sum_final_environment_error(self, store_mock,
-                                                          log_mock):
+    def _test__write_firmware_sum_final_environment_error(self, store_mock,
+                                                          log_mock,
+                                                          step_type='clean'):
         self.config(deploy_logs_collect='always', group='agent')
-        command = {'command_status': 'SUCCEEDED',
-                   'command_result': {
-                       'clean_result': {'Log Data': 'aaaabbbbcccdddd'}}
-                   }
+        firmware_update_args = {
+            'url': 'any_valid_url',
+            'checksum': 'xxxx'}
+        step = {'interface': 'management',
+                'args': firmware_update_args}
+        if step_type == 'clean':
+            step['step'] = 'update_firmware_sum'
+            node_state = states.CLEANWAIT
+            command = {
+                'command_status': 'SUCCEEDED',
+                'command_result': {
+                    'clean_result': {'Log Data': 'aaaabbbbcccdddd'},
+                    'clean_step': step,
+                }
+            }
+        else:
+            step['step'] = 'flash_firmware_sum'
+            node_state = states.DEPLOYWAIT
+            command = {
+                'command_status': 'SUCCEEDED',
+                'command_result': {
+                    'deploy_result': {'Log Data': 'aaaabbbbcccdddd'},
+                    'deploy_step': step,
+                }
+            }
         store_mock.side_effect = EnvironmentError('Error')
 
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
+            task.node.provision_state = node_state
             task.driver.management._update_firmware_sum_final(
                 task, command)
         self.assertTrue(log_mock.exception.called)
 
+    def test__write_firmware_sum_final_environment_error_clean(self):
+        self._test__write_firmware_sum_final_environment_error(
+            step_type='clean')
+
+    def test__write_firmware_sum_final_environment_error_deploy(self):
+        self._test__write_firmware_sum_final_environment_error(
+            step_type='deploy')
+
     @mock.patch.object(ilo_management, 'LOG', spec_set=True, autospec=True)
     @mock.patch.object(driver_utils, 'store_ramdisk_logs')
-    def test__update_firmware_sum_final_unknown_exception(self, store_mock,
-                                                          log_mock):
+    def _test__write_firmware_sum_final_unknown_exception(self, store_mock,
+                                                          log_mock,
+                                                          step_type='clean'):
         self.config(deploy_logs_collect='always', group='agent')
-        command = {'command_status': 'SUCCEEDED',
-                   'command_result': {
-                       'clean_result': {'Log Data': 'aaaabbbbcccdddd'}}
-                   }
+        firmware_update_args = {
+            'url': 'any_valid_url',
+            'checksum': 'xxxx'}
+        step = {'interface': 'management',
+                'args': firmware_update_args}
+        if step_type == 'clean':
+            step['step'] = 'update_firmware_sum'
+            node_state = states.CLEANWAIT
+            command = {
+                'command_status': 'SUCCEEDED',
+                'command_result': {
+                    'clean_result': {'Log Data': 'aaaabbbbcccdddd'},
+                    'clean_step': step,
+                }
+            }
+        else:
+            step['step'] = 'flash_firmware_sum'
+            node_state = states.DEPLOYWAIT
+            command = {
+                'command_status': 'SUCCEEDED',
+                'command_result': {
+                    'deploy_result': {'Log Data': 'aaaabbbbcccdddd'},
+                    'deploy_step': step,
+                }
+            }
         store_mock.side_effect = Exception('Error')
 
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
+            task.node.provision_state = node_state
             task.driver.management._update_firmware_sum_final(
                 task, command)
         self.assertTrue(log_mock.exception.called)
+
+    def test__write_firmware_sum_final_unknown_exception_clean(self):
+        self._test__write_firmware_sum_final_unknown_exception(
+            step_type='clean')
+
+    def test__write_firmware_sum_final_unknown_exception_deploy(self):
+        self._test__write_firmware_sum_final_unknown_exception(
+            step_type='deploy')
 
     @mock.patch.object(ilo_common, 'get_ilo_object', spec_set=True,
                        autospec=True)
