@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    Fixes the conductor so the power sync operations are not asserted for
+    nodes in the ``adopt failed`` state.

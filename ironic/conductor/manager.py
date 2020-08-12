@@ -81,7 +81,8 @@ LOG = log.getLogger(__name__)
 
 METRICS = metrics_utils.get_metrics_logger(__name__)
 
-SYNC_EXCLUDED_STATES = (states.DEPLOYWAIT, states.CLEANWAIT, states.ENROLL)
+SYNC_EXCLUDED_STATES = (states.DEPLOYWAIT, states.CLEANWAIT, states.ENROLL,
+                        states.ADOPTFAIL)
 
 
 class ConductorManager(base_manager.BaseConductorManager):

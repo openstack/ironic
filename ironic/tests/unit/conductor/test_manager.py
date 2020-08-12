@@ -5266,6 +5266,28 @@ class ManagerSyncPowerStatesTestCase(mgr_utils.CommonMixIn,
                                              shared=True)
         sync_mock.assert_called_once_with(task, mock.ANY)
 
+    def test_single_node_adopt_failed(self, get_nodeinfo_mock,
+                                      mapped_mock, acquire_mock, sync_mock):
+        get_nodeinfo_mock.return_value = self._get_nodeinfo_list_response()
+        mapped_mock.return_value = True
+        task = self._create_task(
+            node_attrs=dict(uuid=self.node.uuid,
+                            provision_state=states.ADOPTFAIL))
+        acquire_mock.side_effect = self._get_acquire_side_effect(task)
+
+        self.service._sync_power_states(self.context)
+
+        get_nodeinfo_mock.assert_called_once_with(
+            columns=self.columns, filters=self.filters)
+        mapped_mock.assert_called_once_with(self.service,
+                                            self.node.uuid,
+                                            self.node.driver,
+                                            self.node.conductor_group)
+        acquire_mock.assert_called_once_with(self.context, self.node.uuid,
+                                             purpose=mock.ANY,
+                                             shared=True)
+        sync_mock.assert_not_called()
+
     def test__sync_power_state_multiple_nodes(self, get_nodeinfo_mock,
                                               mapped_mock, acquire_mock,
                                               sync_mock):
