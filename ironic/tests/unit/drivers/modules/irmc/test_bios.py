@@ -87,10 +87,14 @@ class IRMCBIOSTestCase(test_common.BaseIRMCTest):
             self.assertRaises(exception.UnsupportedDriverExtension,
                               task.driver.bios.factory_reset, task)
 
-    @mock.patch.object(objects.BIOSSettingList, 'sync_node_setting')
-    @mock.patch.object(objects.BIOSSettingList, 'create')
-    @mock.patch.object(objects.BIOSSettingList, 'save')
-    @mock.patch.object(objects.BIOSSettingList, 'delete')
+    @mock.patch.object(objects.BIOSSettingList, 'sync_node_setting',
+                       autospec=True)
+    @mock.patch.object(objects.BIOSSettingList, 'create',
+                       autospec=True)
+    @mock.patch.object(objects.BIOSSettingList, 'save',
+                       autospec=True)
+    @mock.patch.object(objects.BIOSSettingList, 'delete',
+                       autospec=True)
     @mock.patch.object(irmc_bios.irmc.elcm, 'get_bios_settings',
                        autospec=True)
     def test_cache_bios_settings(self, get_bios_settings_mock,

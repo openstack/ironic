@@ -1722,7 +1722,8 @@ class IRMCVirtualMediaBootWithVolumeTestCase(test_common.BaseIRMCTest):
         self.assertRaises(exception.MissingParameterValue,
                           self._call_validate)
 
-    @mock.patch.object(deploy_utils, 'get_single_nic_with_vif_port_id')
+    @mock.patch.object(deploy_utils, 'get_single_nic_with_vif_port_id',
+                       autospec=True)
     def test_prepare_ramdisk_skip(self, mock_nic, mock_viom,
                                   check_share_fs_mounted_mock):
         self._create_iscsi_resources()
@@ -1731,7 +1732,7 @@ class IRMCVirtualMediaBootWithVolumeTestCase(test_common.BaseIRMCTest):
             task.driver.boot.prepare_ramdisk(task, {})
             mock_nic.assert_not_called()
 
-    @mock.patch.object(irmc_boot, '_cleanup_vmedia_boot')
+    @mock.patch.object(irmc_boot, '_cleanup_vmedia_boot', autospec=True)
     def test_prepare_instance(self, mock_clean, mock_viom,
                               check_share_fs_mounted_mock):
         mock_conf = self._create_mock_conf(mock_viom)
