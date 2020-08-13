@@ -3,4 +3,4 @@ fixes:
   - |
     Fixes a minor issue with ``get_boot_option`` logic that did not account
     for Software RAID. This can erroniously cause the deployment to take the
-    the incorrect deployment path and attempt to install a boot loader.
+    incorrect deployment path and attempt to install a boot loader.
