@@ -267,6 +267,30 @@ class TestNeutron(db_base.DbTestCase):
         self.assertEqual(expected, result)
         fake_client.show_port.assert_called_once_with(port_id)
 
+    def test__get_fixed_ip_address_ipv6(self):
+        port_id = 'fake-port-id'
+        expected = "2001:dead:beef::1234"
+        api = dhcp_factory.DHCPFactory().provider
+        port_data = {
+            "id": port_id,
+            "network_id": "3cb9bc59-5699-4588-a4b1-b87f96708bc6",
+            "admin_state_up": True,
+            "status": "ACTIVE",
+            "mac_address": "fa:16:3e:4c:2c:30",
+            "fixed_ips": [
+                {
+                    "ip_address": "2001:dead:beef::1234",
+                    "subnet_id": "f8a6e8f8-c2ec-497c-9f23-da9616de54ef"
+                }
+            ],
+            "device_id": 'bece68a3-2f8b-4e66-9092-244493d6aba7',
+        }
+        fake_client = mock.Mock()
+        fake_client.show_port.return_value = {'port': port_data}
+        result = api._get_fixed_ip_address(port_id, fake_client)
+        self.assertEqual(expected, result)
+        fake_client.show_port.assert_called_once_with(port_id)
+
     def test__get_fixed_ip_address_invalid_ip(self):
         port_id = 'fake-port-id'
         api = dhcp_factory.DHCPFactory().provider
@@ -286,7 +310,7 @@ class TestNeutron(db_base.DbTestCase):
         }
         fake_client = mock.Mock()
         fake_client.show_port.return_value = {'port': port_data}
-        self.assertRaises(exception.InvalidIPv4Address,
+        self.assertRaises(exception.InvalidIPAddress,
                           api._get_fixed_ip_address,
                           port_id, fake_client)
         fake_client.show_port.assert_called_once_with(port_id)

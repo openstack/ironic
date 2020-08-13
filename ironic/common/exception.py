@@ -297,6 +297,10 @@ class InvalidIPv4Address(IronicException):
     _msg_fmt = _("Invalid IPv4 address %(ip_address)s.")
 
 
+class InvalidIPAddress(IronicException):
+    _msg_fmt = _("Invalid IP address %(ip_address)s.")
+
+
 class FailedToUpdateMacOnPort(IronicException):
     _msg_fmt = _("Update MAC address on port: %(port_id)s failed.")
 
