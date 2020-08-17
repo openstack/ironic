@@ -284,6 +284,59 @@ class DracManageVirtualDisksTestCase(test_utils.BaseDracTest):
             exception.DracOperationError, drac_raid.clear_foreign_config,
             self.node, 'RAID.Integrated.1-1')
 
+    @mock.patch.object(drac_job, 'validate_job_queue', spec_set=True,
+                       autospec=True)
+    def test_change_physical_disk_state(self,
+                                        mock_validate_job_queue,
+                                        mock_get_drac_client):
+        mock_client = mock.Mock()
+        mock_get_drac_client.return_value = mock_client
+        controllers_to_physical_disk_ids = {'RAID.Integrated.1-1': [
+            'Disk.Bay.0:Enclosure.Internal.0-1:RAID.Integrated.1-1',
+            'Disk.Bay.1:Enclosure.Internal.0-1:RAID.Integrated.1-1']}
+        expected_change_disk_state = {
+            'is_reboot_required': True,
+            'commit_required_ids': ['RAID.Integrated.1-1']}
+        mode = constants.RaidStatus.raid
+        mock_client.change_physical_disk_state.return_value = \
+            expected_change_disk_state
+        actual_change_disk_state = drac_raid.change_physical_disk_state(
+            self.node,
+            mode=mode,
+            controllers_to_physical_disk_ids=controllers_to_physical_disk_ids)
+
+        mock_validate_job_queue.assert_called_once_with(self.node)
+        mock_client.change_physical_disk_state.assert_called_once_with(
+            mode, controllers_to_physical_disk_ids)
+        self.assertEqual(expected_change_disk_state, actual_change_disk_state)
+
+    @mock.patch.object(drac_raid, 'change_physical_disk_state', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(drac_raid, 'commit_config', spec_set=True,
+                       autospec=True)
+    def test__change_physical_disk_mode(self,
+                                        mock_commit_config,
+                                        mock_change_physical_disk_state,
+                                        mock_get_drac_client):
+        mock_commit_config.return_value = '42'
+        mock_change_physical_disk_state.return_value = {
+            'is_reboot_required': constants.RebootRequired.optional,
+            'commit_required_ids': ['RAID.Integrated.1-1']}
+
+        actual_change_disk_state = drac_raid._change_physical_disk_mode(
+            self.node, mode=constants.RaidStatus.raid)
+        self.assertEqual(['42'],
+                         self.node.driver_internal_info['raid_config_job_ids'])
+        self.assertEqual('completed',
+                         self.node.driver_internal_info['raid_config_substep'])
+        self.assertEqual(
+            ['RAID.Integrated.1-1'],
+            self.node.driver_internal_info['raid_config_parameters'])
+        mock_commit_config.assert_called_once_with(
+            self.node, raid_controller='RAID.Integrated.1-1', reboot=False,
+            realtime=True)
+        self.assertEqual(states.DEPLOYWAIT, actual_change_disk_state)
+
     def test_commit_config(self, mock_get_drac_client):
         mock_client = mock.Mock()
         mock_get_drac_client.return_value = mock_client
@@ -746,12 +799,17 @@ class DracRaidInterfaceTestCase(test_utils.BaseDracTest):
     @mock.patch.object(drac_raid, 'list_physical_disks', autospec=True)
     @mock.patch.object(drac_job, 'validate_job_queue', spec_set=True,
                        autospec=True)
+    @mock.patch.object(drac_raid, 'change_physical_disk_state', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(drac_job, 'wait_for_job_completion', spec_set=True,
+                       autospec=True)
     @mock.patch.object(drac_raid, 'commit_config', spec_set=True,
                        autospec=True)
     def _test_create_configuration(
-            self, expected_state, mock_commit_config, mock_validate_job_queue,
-            mock_list_physical_disks, mock__reset_raid_config,
-            mock_get_drac_client):
+            self, expected_state, mock_commit_config,
+            mock_wait_for_job_completion, mock_change_physical_disk_state,
+            mock_validate_job_queue, mock_list_physical_disks,
+            mock__reset_raid_config, mock_get_drac_client):
         mock_client = mock.Mock()
         mock_get_drac_client.return_value = mock_client
         physical_disks = self._generate_physical_disks()
@@ -772,6 +830,10 @@ class DracRaidInterfaceTestCase(test_utils.BaseDracTest):
         mock__reset_raid_config.return_value = {
             'is_reboot_required': constants.RebootRequired.optional,
             'is_commit_required': True}
+        mock_change_physical_disk_state.return_value = {
+            'is_reboot_required': constants.RebootRequired.optional,
+            'commit_required_ids': ['RAID.Integrated.1-1']}
+        mock_commit_config.side_effect = ['42', '12']
         mock_client.create_virtual_disk.return_value = {
             'is_reboot_required': constants.RebootRequired.optional,
             'is_commit_required': True}
@@ -787,13 +849,17 @@ class DracRaidInterfaceTestCase(test_utils.BaseDracTest):
                  'Disk.Bay.1:Enclosure.Internal.0-1:RAID.Integrated.1-1'],
                 '1', 51200, None, 2, 1)
 
-            mock_commit_config.assert_called_once_with(
+            mock_commit_config.assert_called_with(
                 task.node, raid_controller='RAID.Integrated.1-1', reboot=False,
                 realtime=True)
 
         self.assertEqual(expected_state, return_value)
+        self.assertEqual(2, mock_commit_config.call_count)
+        self.assertEqual(1, mock_client.create_virtual_disk.call_count)
+        self.assertEqual(1, mock_change_physical_disk_state.call_count)
+
         self.node.refresh()
-        self.assertEqual(['42'],
+        self.assertEqual(['42', '12'],
                          self.node.driver_internal_info['raid_config_job_ids'])
 
     def test_create_configuration_in_clean(self):
@@ -809,16 +875,24 @@ class DracRaidInterfaceTestCase(test_utils.BaseDracTest):
     @mock.patch.object(drac_raid, 'list_physical_disks', autospec=True)
     @mock.patch.object(drac_job, 'validate_job_queue', spec_set=True,
                        autospec=True)
+    @mock.patch.object(drac_raid, 'change_physical_disk_state', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(drac_job, 'wait_for_job_completion', spec_set=True,
+                       autospec=True)
     @mock.patch.object(drac_raid, 'commit_config', spec_set=True,
                        autospec=True)
     def test_create_configuration_no_change(
-            self, mock_commit_config, mock_validate_job_queue,
-            mock_list_physical_disks,
-            mock_get_drac_client):
+            self, mock_commit_config, mock_wait_for_job_completion,
+            mock_change_physical_disk_state, mock_validate_job_queue,
+            mock_list_physical_disks, mock_get_drac_client):
         mock_client = mock.Mock()
         mock_get_drac_client.return_value = mock_client
         physical_disks = self._generate_physical_disks()
         mock_list_physical_disks.return_value = physical_disks
+        mock_change_physical_disk_state.return_value = {
+            'is_reboot_required': constants.RebootRequired.optional,
+            'commit_required_ids': ['RAID.Integrated.1-1']}
+        mock_commit_config.return_value = '42'
         mock_client.create_virtual_disk.return_value = {
             'is_reboot_required': constants.RebootRequired.optional,
             'is_commit_required': True}
@@ -842,6 +916,10 @@ class DracRaidInterfaceTestCase(test_utils.BaseDracTest):
     @mock.patch.object(drac_raid, '_reset_raid_config', autospec=True)
     @mock.patch.object(drac_raid, 'list_virtual_disks', autospec=True)
     @mock.patch.object(drac_raid, 'list_physical_disks', autospec=True)
+    @mock.patch.object(drac_raid, 'change_physical_disk_state', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(drac_job, 'wait_for_job_completion', spec_set=True,
+                       autospec=True)
     @mock.patch.object(drac_job, 'validate_job_queue', spec_set=True,
                        autospec=True)
     @mock.patch.object(drac_raid, 'commit_config', spec_set=True,
@@ -849,6 +927,8 @@ class DracRaidInterfaceTestCase(test_utils.BaseDracTest):
     def test_create_configuration_delete_existing(
             self, mock_commit_config,
             mock_validate_job_queue,
+            mock_wait_for_job_completion,
+            mock_change_physical_disk_state,
             mock_list_physical_disks,
             mock_list_virtual_disks,
             mock__reset_raid_config,
@@ -871,11 +951,15 @@ class DracRaidInterfaceTestCase(test_utils.BaseDracTest):
         raid_controller = test_utils.make_raid_controller(
             raid_controller_dict)
         mock_list_physical_disks.return_value = physical_disks
-        mock_commit_config.return_value = '42'
+        mock_commit_config.side_effect = ['42', '12']
         mock_client.list_raid_controllers.return_value = [raid_controller]
         mock__reset_raid_config.return_value = {
             'is_reboot_required': constants.RebootRequired.optional,
             'is_commit_required': True}
+
+        mock_change_physical_disk_state.return_value = {
+            'is_reboot_required': constants.RebootRequired.optional,
+            'commit_required_ids': ['RAID.Integrated.1-1']}
 
         mock_client.create_virtual_disk.return_value = {
             'is_reboot_required': constants.RebootRequired.optional,
@@ -892,15 +976,15 @@ class DracRaidInterfaceTestCase(test_utils.BaseDracTest):
                 ['Disk.Bay.0:Enclosure.Internal.0-1:RAID.Integrated.1-1',
                  'Disk.Bay.1:Enclosure.Internal.0-1:RAID.Integrated.1-1'],
                 '1', 51200, None, 2, 1)
-            mock_commit_config.assert_called_once_with(
+            mock_commit_config.assert_called_with(
                 task.node, raid_controller='RAID.Integrated.1-1',
                 realtime=True, reboot=False)
 
-            self.assertEqual(1, mock_commit_config.call_count)
+            self.assertEqual(2, mock_commit_config.call_count)
 
         self.assertEqual(states.DEPLOYWAIT, return_value)
         self.node.refresh()
-        self.assertEqual(['42'],
+        self.assertEqual(['42', '12'],
                          self.node.driver_internal_info['raid_config_job_ids'])
 
     @mock.patch.object(drac_common, 'get_drac_client', spec_set=True,
@@ -908,10 +992,15 @@ class DracRaidInterfaceTestCase(test_utils.BaseDracTest):
     @mock.patch.object(drac_raid, 'list_physical_disks', autospec=True)
     @mock.patch.object(drac_job, 'validate_job_queue', spec_set=True,
                        autospec=True)
+    @mock.patch.object(drac_raid, 'change_physical_disk_state', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(drac_job, 'wait_for_job_completion', spec_set=True,
+                       autospec=True)
     @mock.patch.object(drac_raid, 'commit_config', spec_set=True,
                        autospec=True)
     def test_create_configuration_with_nested_raid_level(
-            self, mock_commit_config, mock_validate_job_queue,
+            self, mock_commit_config, mock_wait_for_job_completion,
+            mock_change_physical_disk_state, mock_validate_job_queue,
             mock_list_physical_disks, mock_get_drac_client):
         mock_client = mock.Mock()
         mock_get_drac_client.return_value = mock_client
@@ -929,7 +1018,10 @@ class DracRaidInterfaceTestCase(test_utils.BaseDracTest):
 
         physical_disks = self._generate_physical_disks()
         mock_list_physical_disks.return_value = physical_disks
-        mock_commit_config.return_value = '42'
+        mock_commit_config.side_effect = ['42', '12']
+        mock_change_physical_disk_state.return_value = {
+            'is_reboot_required': constants.RebootRequired.optional,
+            'commit_required_ids': ['RAID.Integrated.1-1']}
         mock_client.create_virtual_disk.return_value = {
             'is_reboot_required': constants.RebootRequired.optional,
             'is_commit_required': True}
@@ -951,12 +1043,16 @@ class DracRaidInterfaceTestCase(test_utils.BaseDracTest):
                 '5+0', 102400, None, 3, 2)
 
             # Commits to the controller
-            mock_commit_config.assert_called_once_with(
+            mock_commit_config.assert_called_with(
                 mock.ANY, raid_controller='RAID.Integrated.1-1', reboot=False,
                 realtime=True)
 
+            self.assertEqual(2, mock_commit_config.call_count)
+            self.assertEqual(1, mock_client.create_virtual_disk.call_count)
+            self.assertEqual(1, mock_change_physical_disk_state.call_count)
+
         self.node.refresh()
-        self.assertEqual(['42'],
+        self.assertEqual(['42', '12'],
                          self.node.driver_internal_info['raid_config_job_ids'])
 
     @mock.patch.object(drac_common, 'get_drac_client', spec_set=True,
@@ -964,12 +1060,16 @@ class DracRaidInterfaceTestCase(test_utils.BaseDracTest):
     @mock.patch.object(drac_raid, 'list_physical_disks', autospec=True)
     @mock.patch.object(drac_job, 'validate_job_queue', spec_set=True,
                        autospec=True)
+    @mock.patch.object(drac_raid, 'change_physical_disk_state', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(drac_job, 'wait_for_job_completion', spec_set=True,
+                       autospec=True)
     @mock.patch.object(drac_raid, 'commit_config', spec_set=True,
                        autospec=True)
     def test_create_configuration_with_nested_raid_10(
-            self, mock_commit_config,
-            mock_validate_job_queue, mock_list_physical_disks,
-            mock_get_drac_client):
+            self, mock_commit_config, mock_wait_for_job_completion,
+            mock_change_physical_disk_state, mock_validate_job_queue,
+            mock_list_physical_disks, mock_get_drac_client):
         mock_client = mock.Mock()
         mock_get_drac_client.return_value = mock_client
 
@@ -986,7 +1086,10 @@ class DracRaidInterfaceTestCase(test_utils.BaseDracTest):
         physical_disks = self._generate_physical_disks()
         mock_list_physical_disks.return_value = physical_disks
 
-        mock_commit_config.return_value = '42'
+        mock_commit_config.side_effect = ['42', '12']
+        mock_change_physical_disk_state.return_value = {
+            'is_reboot_required': constants.RebootRequired.optional,
+            'commit_required_ids': ['RAID.Integrated.1-1']}
         mock_client.create_virtual_disk.return_value = {
             'is_reboot_required': constants.RebootRequired.optional,
             'is_commit_required': True}
@@ -1006,12 +1109,16 @@ class DracRaidInterfaceTestCase(test_utils.BaseDracTest):
                 '1+0', 102400, None, None, None)
 
             # Commits to the controller
-            mock_commit_config.assert_called_once_with(
+            mock_commit_config.assert_called_with(
                 mock.ANY, raid_controller='RAID.Integrated.1-1', reboot=False,
                 realtime=True)
 
+            self.assertEqual(2, mock_commit_config.call_count)
+            self.assertEqual(1, mock_client.create_virtual_disk.call_count)
+            self.assertEqual(1, mock_change_physical_disk_state.call_count)
+
         self.node.refresh()
-        self.assertEqual(['42'],
+        self.assertEqual(['42', '12'],
                          self.node.driver_internal_info['raid_config_job_ids'])
 
     @mock.patch.object(drac_common, 'get_drac_client', spec_set=True,
@@ -1019,10 +1126,15 @@ class DracRaidInterfaceTestCase(test_utils.BaseDracTest):
     @mock.patch.object(drac_raid, 'list_physical_disks', autospec=True)
     @mock.patch.object(drac_job, 'validate_job_queue', spec_set=True,
                        autospec=True)
+    @mock.patch.object(drac_raid, 'change_physical_disk_state', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(drac_job, 'wait_for_job_completion', spec_set=True,
+                       autospec=True)
     @mock.patch.object(drac_raid, 'commit_config', spec_set=True,
                        autospec=True)
     def test_create_configuration_with_multiple_controllers(
-            self, mock_commit_config, mock_validate_job_queue,
+            self, mock_commit_config, mock_wait_for_job_completion,
+            mock_change_physical_disk_state, mock_validate_job_queue,
             mock_list_physical_disks, mock_get_drac_client):
         mock_client = mock.Mock()
         mock_get_drac_client.return_value = mock_client
@@ -1032,7 +1144,12 @@ class DracRaidInterfaceTestCase(test_utils.BaseDracTest):
         physical_disks = self._generate_physical_disks()
         mock_list_physical_disks.return_value = physical_disks
 
-        mock_commit_config.side_effect = ['42', '12', '13']
+        mock_commit_config.side_effect = ['42', '12', '13', '14']
+
+        mock_change_physical_disk_state.return_value = {
+            'is_reboot_required': constants.RebootRequired.optional,
+            'commit_required_ids': ['RAID.Integrated.1-1']}
+
         mock_client.create_virtual_disk.side_effect = [{
             'is_reboot_required': constants.RebootRequired.true,
             'is_commit_required': True
@@ -1079,7 +1196,7 @@ class DracRaidInterfaceTestCase(test_utils.BaseDracTest):
                 any_order=True)
 
         self.node.refresh()
-        self.assertEqual(['42', '12', '13'],
+        self.assertEqual(['42', '12', '13', '14'],
                          self.node.driver_internal_info['raid_config_job_ids'])
 
     @mock.patch.object(drac_common, 'get_drac_client', spec_set=True,
@@ -1087,10 +1204,15 @@ class DracRaidInterfaceTestCase(test_utils.BaseDracTest):
     @mock.patch.object(drac_raid, 'list_physical_disks', autospec=True)
     @mock.patch.object(drac_job, 'validate_job_queue', spec_set=True,
                        autospec=True)
+    @mock.patch.object(drac_raid, 'change_physical_disk_state', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(drac_job, 'wait_for_job_completion', spec_set=True,
+                       autospec=True)
     @mock.patch.object(drac_raid, 'commit_config', spec_set=True,
                        autospec=True)
     def test_create_configuration_with_backing_physical_disks(
-            self, mock_commit_config, mock_validate_job_queue,
+            self, mock_commit_config, mock_wait_for_job_completion,
+            mock_change_physical_disk_state, mock_validate_job_queue,
             mock_list_physical_disks, mock_get_drac_client):
         mock_client = mock.Mock()
         mock_get_drac_client.return_value = mock_client
@@ -1107,7 +1229,11 @@ class DracRaidInterfaceTestCase(test_utils.BaseDracTest):
         physical_disks = self._generate_physical_disks()
         mock_list_physical_disks.return_value = physical_disks
 
-        mock_commit_config.side_effect = ['42', '12', '13']
+        mock_commit_config.side_effect = ['42', '12']
+        mock_change_physical_disk_state.return_value = {
+            'is_reboot_required': constants.RebootRequired.optional,
+            'commit_required_ids': ['RAID.Integrated.1-1']}
+
         mock_client.create_virtual_disk.return_value = {
             'is_reboot_required': constants.RebootRequired.optional,
             'is_commit_required': True
@@ -1144,7 +1270,7 @@ class DracRaidInterfaceTestCase(test_utils.BaseDracTest):
                 reboot=False, realtime=True)
 
         self.node.refresh()
-        self.assertEqual(['42'],
+        self.assertEqual(['42', '12'],
                          self.node.driver_internal_info['raid_config_job_ids'])
 
     @mock.patch.object(drac_common, 'get_drac_client', spec_set=True,
@@ -1152,12 +1278,16 @@ class DracRaidInterfaceTestCase(test_utils.BaseDracTest):
     @mock.patch.object(drac_raid, 'list_physical_disks', autospec=True)
     @mock.patch.object(drac_job, 'validate_job_queue', spec_set=True,
                        autospec=True)
+    @mock.patch.object(drac_raid, 'change_physical_disk_state', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(drac_job, 'wait_for_job_completion', spec_set=True,
+                       autospec=True)
     @mock.patch.object(drac_raid, 'commit_config', spec_set=True,
                        autospec=True)
     def test_create_configuration_with_predefined_number_of_phyisical_disks(
-            self, mock_commit_config, mock_validate_job_queue,
+            self, mock_commit_config, mock_wait_for_job_completion,
+            mock_change_physical_disk_state, mock_validate_job_queue,
             mock_list_physical_disks, mock_get_drac_client):
-
         mock_client = mock.Mock()
         mock_get_drac_client.return_value = mock_client
 
@@ -1172,6 +1302,9 @@ class DracRaidInterfaceTestCase(test_utils.BaseDracTest):
         physical_disks = self._generate_physical_disks()
         mock_list_physical_disks.return_value = physical_disks
         mock_commit_config.side_effect = ['42', '12']
+        mock_change_physical_disk_state.return_value = {
+            'is_reboot_required': constants.RebootRequired.optional,
+            'commit_required_ids': ['RAID.Integrated.1-1']}
         mock_client.create_virtual_disk.return_value = {
             'is_reboot_required': constants.RebootRequired.optional,
             'is_commit_required': True
@@ -1204,7 +1337,7 @@ class DracRaidInterfaceTestCase(test_utils.BaseDracTest):
                 reboot=False, realtime=True)
 
         self.node.refresh()
-        self.assertEqual(['42'],
+        self.assertEqual(['42', '12'],
                          self.node.driver_internal_info['raid_config_job_ids'])
 
     @mock.patch.object(drac_common, 'get_drac_client', spec_set=True,
@@ -1212,10 +1345,15 @@ class DracRaidInterfaceTestCase(test_utils.BaseDracTest):
     @mock.patch.object(drac_raid, 'list_physical_disks', autospec=True)
     @mock.patch.object(drac_job, 'validate_job_queue', spec_set=True,
                        autospec=True)
+    @mock.patch.object(drac_raid, 'change_physical_disk_state', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(drac_job, 'wait_for_job_completion', spec_set=True,
+                       autospec=True)
     @mock.patch.object(drac_raid, 'commit_config', spec_set=True,
                        autospec=True)
     def test_create_configuration_with_max_size(
-            self, mock_commit_config, mock_validate_job_queue,
+            self, mock_commit_config, mock_wait_for_job_completion,
+            mock_change_physical_disk_state, mock_validate_job_queue,
             mock_list_physical_disks, mock_get_drac_client):
         mock_client = mock.Mock()
         mock_get_drac_client.return_value = mock_client
@@ -1237,7 +1375,10 @@ class DracRaidInterfaceTestCase(test_utils.BaseDracTest):
         physical_disks = self._generate_physical_disks()
         mock_list_physical_disks.return_value = physical_disks
 
-        mock_commit_config.side_effect = ['42', '12', '13']
+        mock_commit_config.side_effect = ['42', '12']
+        mock_change_physical_disk_state.return_value = {
+            'is_reboot_required': constants.RebootRequired.optional,
+            'commit_required_ids': ['RAID.Integrated.1-1']}
         mock_client.create_virtual_disk.return_value = {
             'is_reboot_required': constants.RebootRequired.optional,
             'is_commit_required': True
@@ -1275,7 +1416,7 @@ class DracRaidInterfaceTestCase(test_utils.BaseDracTest):
                 realtime=True)
 
         self.node.refresh()
-        self.assertEqual(['42'],
+        self.assertEqual(['42', '12'],
                          self.node.driver_internal_info['raid_config_job_ids'])
 
     @mock.patch.object(drac_common, 'get_drac_client', spec_set=True,
@@ -1312,10 +1453,15 @@ class DracRaidInterfaceTestCase(test_utils.BaseDracTest):
     @mock.patch.object(drac_raid, 'list_physical_disks', autospec=True)
     @mock.patch.object(drac_job, 'validate_job_queue', spec_set=True,
                        autospec=True)
+    @mock.patch.object(drac_raid, 'change_physical_disk_state', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(drac_job, 'wait_for_job_completion', spec_set=True,
+                       autospec=True)
     @mock.patch.object(drac_raid, 'commit_config', spec_set=True,
                        autospec=True)
     def test_create_configuration_with_share_physical_disks(
-            self, mock_commit_config, mock_validate_job_queue,
+            self, mock_commit_config, mock_wait_for_job_completion,
+            mock_change_physical_disk_state, mock_validate_job_queue,
             mock_list_physical_disks, mock_get_drac_client):
         mock_client = mock.Mock()
         mock_get_drac_client.return_value = mock_client
@@ -1332,6 +1478,9 @@ class DracRaidInterfaceTestCase(test_utils.BaseDracTest):
         mock_list_physical_disks.return_value = physical_disks
 
         mock_commit_config.side_effect = ['42', '12']
+        mock_change_physical_disk_state.return_value = {
+            'is_reboot_required': constants.RebootRequired.optional,
+            'commit_required_ids': ['RAID.Integrated.1-1']}
         mock_client.create_virtual_disk.return_value = {
             'is_reboot_required': constants.RebootRequired.optional,
             'is_commit_required': True
@@ -1363,7 +1512,7 @@ class DracRaidInterfaceTestCase(test_utils.BaseDracTest):
                 realtime=True)
 
         self.node.refresh()
-        self.assertEqual(['42'],
+        self.assertEqual(['42', '12'],
                          self.node.driver_internal_info['raid_config_job_ids'])
 
     @mock.patch.object(drac_common, 'get_drac_client', spec_set=True,
@@ -1420,12 +1569,16 @@ class DracRaidInterfaceTestCase(test_utils.BaseDracTest):
     @mock.patch.object(drac_raid, 'list_physical_disks', autospec=True)
     @mock.patch.object(drac_job, 'validate_job_queue', spec_set=True,
                        autospec=True)
+    @mock.patch.object(drac_raid, 'change_physical_disk_state', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(drac_job, 'wait_for_job_completion', spec_set=True,
+                       autospec=True)
     @mock.patch.object(drac_raid, 'commit_config', spec_set=True,
                        autospec=True)
     def test_create_configuration_with_max_size_and_share_physical_disks(
-            self, mock_commit_config, mock_validate_job_queue,
-            mock_list_physical_disks,
-            mock_get_drac_client):
+            self, mock_commit_config, mock_wait_for_job_completion,
+            mock_change_physical_disk_state, mock_validate_job_queue,
+            mock_list_physical_disks, mock_get_drac_client):
         mock_client = mock.Mock()
         mock_get_drac_client.return_value = mock_client
 
@@ -1445,7 +1598,10 @@ class DracRaidInterfaceTestCase(test_utils.BaseDracTest):
         physical_disks = self._generate_physical_disks()
         mock_list_physical_disks.return_value = physical_disks
 
-        mock_commit_config.return_value = '42'
+        mock_commit_config.side_effect = ['42', '12']
+        mock_change_physical_disk_state.return_value = {
+            'is_reboot_required': constants.RebootRequired.optional,
+            'commit_required_ids': ['RAID.Integrated.1-1']}
         mock_client.create_virtual_disk.return_value = {
             'is_reboot_required': constants.RebootRequired.optional,
             'is_commit_required': True
@@ -1478,7 +1634,7 @@ class DracRaidInterfaceTestCase(test_utils.BaseDracTest):
                 realtime=True)
 
         self.node.refresh()
-        self.assertEqual(['42'],
+        self.assertEqual(['42', '12'],
                          self.node.driver_internal_info['raid_config_job_ids'])
 
     @mock.patch.object(drac_common, 'get_drac_client', spec_set=True,
