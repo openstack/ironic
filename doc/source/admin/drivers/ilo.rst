@@ -614,7 +614,7 @@ For more up-to-date information, refer
 
 Node Cleaning Support
 ^^^^^^^^^^^^^^^^^^^^^
-The hardware type ``ilo`` supports node cleaning.
+The hardware type ``ilo`` and ``ilo5`` supports node cleaning.
 
 For more information on node cleaning, see :ref:`cleaning`
 
@@ -689,6 +689,18 @@ Supported **Manual** Cleaning Operations
     delivered with a flexible-quantity kit or after completing an Activation
     Key Agreement (AKA), then the driver can still be used for executing
     this cleaning step.
+  ``apply_configuration``:
+    Applies given BIOS settings on the node. See
+    `BIOS configuration support`_. This step is part of the ``bios`` interface.
+  ``factory_reset``:
+    Resets the BIOS settings on the node to factory defaults. See
+    `BIOS configuration support`_. This step is part of the ``bios`` interface.
+  ``create_configuration``:
+    Applies RAID configuration on the node. See :ref:`raid`
+    for more information. This step is part of the ``raid`` interface.
+  ``delete_configuration``:
+    Deletes RAID configuration on the node. See :ref:`raid`
+    for more information. This step is part of the ``raid`` interface.
   ``update_firmware``:
     Updates the firmware of the devices. Also an out-of-band step associated
     with the ``management`` interface. See
@@ -723,8 +735,8 @@ For more information on node manual cleaning, see :ref:`manual_cleaning`
 
 Node Deployment Customization
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-The hardware type ``ilo`` supports customization of node deployment via
-deploy templates, see :ref:`node-deployment-deploy-steps`
+The hardware type ``ilo`` and ``ilo5`` supports customization of node
+deployment via deploy templates, see :ref:`node-deployment-deploy-steps`
 
 The supported deploy steps are:
 
@@ -774,11 +786,13 @@ The supported deploy steps are:
     controllers, host bus adapters, disk drive firmware, network interfaces
     and Onboard Administrator (OA).
 
+*  ``flash_firmware_sum``:
+     Updates all or list of user specified firmware components on the node
+     using Smart Update Manager (SUM). It is an inband step associated with
+     the ``management`` interface. See `Smart Update Manager (SUM) based firmware update`_
+     for more information on usage.
 * ``apply_configuration``:
     Applies RAID configuration on the node. See :ref:`raid`
-    for more information. This step is part of the ``raid`` interface.
-* ``delete_configuration``:
-    Deletes RAID configuration on the node. See :ref:`raid`
     for more information. This step is part of the ``raid`` interface.
 
 Example of using deploy template with the Compute service
@@ -1513,17 +1527,25 @@ All the fields in the firmware image block are mandatory.
 Smart Update Manager (SUM) based firmware update
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-The firmware update based on `SUM`_ is an inband clean step supported by iLO
-driver. The firmware update is performed on all or list of user specified
-firmware components on the node. Refer to `SUM User Guide`_ to get more
-information on SUM based firmware update.
+The firmware update based on `SUM`_ is an inband clean/deploy step supported
+by iLO driver. The firmware update is performed on all or list of user
+specified firmware components on the node. Refer to `SUM User Guide`_ to get
+more information on SUM based firmware update.
 
-``update_firmware_sum`` clean step requires the agent ramdisk with
-``Proliant Hardware Manager`` from the proliantutils version 2.5.0 or higher.
-See `DIB support for Proliant Hardware Manager`_ to create the agent ramdisk
-with ``Proliant Hardware Manager``.
+.. note::
+   ``update_firmware_sum`` clean step requires the agent ramdisk with
+   ``Proliant Hardware Manager`` from the proliantutils version 2.5.0 or
+   higher.  See `DIB support for Proliant Hardware Manager`_ to create the
+   agent ramdisk with ``Proliant Hardware Manager``.
 
-The attributes of ``update_firmware_sum`` clean step are as follows:
+.. note::
+   ``flash_firmware_sum`` deploy step requires the agent ramdisk with
+   ``Proliant Hardware Manager`` from the proliantutils version 2.9.5 or
+   higher.  See `DIB support for Proliant Hardware Manager`_ to create the
+   agent ramdisk with ``Proliant Hardware Manager``.
+
+The attributes of ``update_firmware_sum``/``flash_firmware_sum`` step are as
+follows:
 
 .. csv-table::
  :header: "Attribute", "Description"
@@ -1533,7 +1555,7 @@ The attributes of ``update_firmware_sum`` clean step are as follows:
  "``step``", "Name of the clean step, here ``update_firmware_sum``"
  "``args``", "Keyword-argument entry (<name>: <value>) being passed to the clean step"
 
-The keyword arguments used for the clean step are as follows:
+The keyword arguments used for the step are as follows:
 
 * ``url``: URL of SPP (Service Pack for Proliant) ISO. It is mandatory. The
   URL schemes supported are ``http``, ``https`` and ``swift``.
@@ -1542,13 +1564,15 @@ The keyword arguments used for the clean step are as follows:
   It is optional. If not provided, the firmware update is performed on all
   the firmware components.
 
-The clean step performs an update on all or a list of firmware components and
+The step performs an update on all or a list of firmware components and
 returns the SUM log files. The log files include ``hpsum_log.txt`` and
 ``hpsum_detail_log.txt`` which holds the information about firmware components,
 firmware version for each component and their update status. The log object
 will be named with the following pattern::
 
     <node-uuid>[_<instance-uuid>]_update_firmware_sum_<timestamp yyyy-mm-dd-hh-mm-ss>.tar.gz
+    or
+    <node-uuid>[_<instance-uuid>]_flash_firmware_sum_<timestamp yyyy-mm-dd-hh-mm-ss>.tar.gz
 
 Refer to :ref:`retrieve_deploy_ramdisk_logs` for more information on enabling and
 viewing the logs returned from the ramdisk.
@@ -1568,8 +1592,8 @@ An example of ``update_firmware_sum`` clean step:
             }
     }
 
-The clean step fails if there is any error in the processing of clean step
-arguments. The processing error could happen during validation of components'
+The step fails if there is any error in the processing of step arguments.
+The processing error could happen during validation of components'
 file extension, image download, image checksum verification or image extraction.
 In case of a failure, check Ironic conductor logs carefully to see if there are
 any validation or firmware processing related errors which may help in root
