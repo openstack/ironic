@@ -200,11 +200,6 @@ def allocation_post_data(node=None, **kw):
         allocation, al_controller.ALLOCATION_SCHEMA['properties'])
 
 
-def fake_event_validator(v):
-    """A fake event validator"""
-    return v
-
-
 def deploy_template_post_data(**kw):
     """Return a DeployTemplate object without internal attributes."""
     template = db_utils.get_test_deploy_template(**kw)

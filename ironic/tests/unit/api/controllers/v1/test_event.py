@@ -14,13 +14,14 @@ Tests for the API /events methods.
 """
 
 from http import client as http_client
-from unittest import mock
 
 from ironic.api.controllers import base as api_base
-from ironic.api.controllers.v1 import types
+from ironic.api.controllers.v1 import event
 from ironic.api.controllers.v1 import versions
+from ironic.common import args
+from ironic.common import exception
+from ironic.tests import base as test_base
 from ironic.tests.unit.api import base as test_api_base
-from ironic.tests.unit.api.utils import fake_event_validator
 
 
 def get_fake_port_event():
@@ -33,6 +34,55 @@ def get_fake_port_event():
             'binding:vnic_type': 'baremetal'}
 
 
+class TestEventValidator(test_base.TestCase):
+    def setUp(self):
+        super(TestEventValidator, self).setUp()
+        self.v_event = event.NETWORK_EVENT_VALIDATOR
+        self.v_events = args.schema(event.EVENTS_SCHEMA)
+
+    def test_simple_event_type(self):
+        self.v_events('body', {'events': [get_fake_port_event()]})
+
+    def test_invalid_event_type(self):
+        value = {'events': [{'event': 'invalid.event'}]}
+        self.assertRaisesRegex(exception.Invalid,
+                               "Schema error for body: "
+                               "'invalid.event' is not one of",
+                               self.v_events, 'body', value)
+
+    def test_event_missing_madatory_field(self):
+        value = {'invalid': 'invalid'}
+        self.assertRaisesRegex(exception.Invalid,
+                               "Schema error for event: "
+                               "'event' is a required property",
+                               self.v_event, 'event', value)
+
+    def test_invalid_mac_network_port_event(self):
+        value = {'event': 'network.bind_port',
+                 'port_id': '11111111-aaaa-bbbb-cccc-555555555555',
+                 'mac_address': 'INVALID_MAC_ADDRESS',
+                 'status': 'ACTIVE',
+                 'device_id': '22222222-aaaa-bbbb-cccc-555555555555',
+                 'binding:host_id': '22222222-aaaa-bbbb-cccc-555555555555',
+                 'binding:vnic_type': 'baremetal'
+                 }
+        self.assertRaisesRegex(exception.Invalid,
+                               'Expected valid MAC address for mac_address: '
+                               'INVALID_MAC_ADDRESS',
+                               self.v_event, 'event', value)
+
+    def test_missing_mandatory_fields_network_port_event(self):
+        value = {'event': 'network.bind_port',
+                 'device_id': '22222222-aaaa-bbbb-cccc-555555555555',
+                 'binding:host_id': '22222222-aaaa-bbbb-cccc-555555555555',
+                 'binding:vnic_type': 'baremetal'
+                 }
+        self.assertRaisesRegex(exception.Invalid,
+                               "Schema error for event: "
+                               "'port_id' is a required property",
+                               self.v_event, 'event', value)
+
+
 class TestPost(test_api_base.BaseApiTest):
 
     def setUp(self):
@@ -40,24 +90,15 @@ class TestPost(test_api_base.BaseApiTest):
         self.headers = {api_base.Version.string: str(
             versions.max_version_string())}
 
-    @mock.patch.object(types.EventType, 'event_validators',
-                       {'valid.event': fake_event_validator})
-    @mock.patch.object(types.EventType, 'valid_events', {'valid.event'})
     def test_events(self):
-        events_dict = {'events': [{'event': 'valid.event'}]}
+        events_dict = {'events': [get_fake_port_event()]}
         response = self.post_json('/events', events_dict, headers=self.headers)
         self.assertEqual(http_client.NO_CONTENT, response.status_int)
 
-    @mock.patch.object(types.EventType, 'event_validators',
-                       {'valid.event1': fake_event_validator,
-                        'valid.event2': fake_event_validator,
-                        'valid.event3': fake_event_validator})
-    @mock.patch.object(types.EventType, 'valid_events',
-                       {'valid.event1', 'valid.event2', 'valid.event3'})
     def test_multiple_events(self):
-        events_dict = {'events': [{'event': 'valid.event1'},
-                                  {'event': 'valid.event2'},
-                                  {'event': 'valid.event3'}]}
+        events_dict = {'events': [get_fake_port_event(),
+                                  get_fake_port_event(),
+                                  get_fake_port_event()]}
         response = self.post_json('/events', events_dict, headers=self.headers)
         self.assertEqual(http_client.NO_CONTENT, response.status_int)
 
@@ -69,8 +110,6 @@ class TestPost(test_api_base.BaseApiTest):
         self.assertEqual('application/json', response.content_type)
         self.assertTrue(response.json['error_message'])
 
-    @mock.patch.object(types.EventType, 'event_validators',
-                       {'valid.event': fake_event_validator})
     def test_events_invalid_event(self):
         events_dict = {'events': [{'event': 'invalid.event'}]}
         response = self.post_json('/events', events_dict, expect_errors=True,
@@ -167,12 +206,9 @@ class TestPost(test_api_base.BaseApiTest):
         self.assertEqual('application/json', response.content_type)
         self.assertTrue(response.json['error_message'])
 
-    @mock.patch.object(types.EventType, 'event_validators',
-                       {'valid.event': fake_event_validator})
-    @mock.patch.object(types.EventType, 'valid_events', {'valid.event'})
     def test_events_unsupported_api_version(self):
         headers = {api_base.Version.string: '1.50'}
-        events_dict = {'events': [{'event': 'valid.event'}]}
+        events_dict = {'events': [get_fake_port_event()]}
         response = self.post_json('/events', events_dict, expect_errors=True,
                                   headers=headers)
         self.assertEqual(http_client.NOT_FOUND, response.status_int)
