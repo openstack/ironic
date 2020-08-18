@@ -1,0 +1,8 @@
+---
+fixes:
+  - |
+    Hardware type ``idrac`` converts physical drives from
+    ``RAID`` to ``JBOD`` mode after RAID ``delete_configuration``
+    cleaning step through raid interface. This ensures that the
+    individual disks freed by deleting the virtual disks
+    are visible to the OS.

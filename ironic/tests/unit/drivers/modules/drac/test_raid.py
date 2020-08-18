@@ -22,7 +22,6 @@ import mock
 from ironic.common import exception
 from ironic.common import states
 from ironic.conductor import task_manager
-from ironic.conductor import utils as conductor_utils
 from ironic.drivers.modules.drac import common as drac_common
 from ironic.drivers.modules.drac import job as drac_job
 from ironic.drivers.modules.drac import raid as drac_raid
@@ -1981,39 +1980,19 @@ class DracRaidInterfaceTestCase(test_utils.BaseDracTest):
 
     @mock.patch.object(drac_common, 'get_drac_client', spec_set=True,
                        autospec=True)
-    @mock.patch.object(conductor_utils, '_notify_conductor_resume_operation',
-                       autospec=True)
     @mock.patch.object(drac_raid, 'clear_foreign_config', spec_set=True,
                        autospec=True)
-    @mock.patch.object(drac_raid, 'list_virtual_disks', autospec=True)
     @mock.patch.object(drac_job, 'validate_job_queue', spec_set=True,
                        autospec=True)
-    def test__execute_cleaning_foreign_drives(self,
-                                              mock_validate_job_queue,
-                                              mock_list_virtual_disks,
-                                              mock_clear_foreign_config,
-                                              mock_resume,
-                                              mock_get_drac_client):
+    def test__execute_foreign_drives_with_no_foreign_drives(
+            self, mock_validate_job_queue,
+            mock_clear_foreign_config,
+            mock_get_drac_client):
         mock_client = mock.Mock()
         mock_get_drac_client.return_value = mock_client
-        virtual_disk_dict = {
-            'id': 'Disk.Virtual.0:RAID.Integrated.1-1',
-            'name': 'disk 0',
-            'description': 'Virtual Disk 0 on Integrated RAID Controller 1',
-            'controller': 'RAID.Integrated.1-1',
-            'raid_level': '1',
-            'size_mb': 571776,
-            'status': 'ok',
-            'raid_status': 'online',
-            'span_depth': 1,
-            'span_length': 2,
-            'pending_operations': None,
-            'physical_disks': []}
-        mock_list_virtual_disks.return_value = [
-            test_utils.make_virtual_disk(virtual_disk_dict)]
 
         raid_config_params = ['RAID.Integrated.1-1']
-        raid_config_substep = ['completed']
+        raid_config_substep = 'clear_foreign_config'
         driver_internal_info = self.node.driver_internal_info
         driver_internal_info['raid_config_parameters'] = raid_config_params
         driver_internal_info['raid_config_substep'] = raid_config_substep
@@ -2028,11 +2007,52 @@ class DracRaidInterfaceTestCase(test_utils.BaseDracTest):
                                   shared=False) as task:
             return_value = task.driver.raid._execute_foreign_drives(
                 task, self.node)
-            mock_resume.assert_called_once_with(
-                task, 'cleaning', 'continue_node_clean')
 
-        self.assertIsNone(return_value)
-        self.assertNotIn('raid_config_parameters',
-                         self.node.driver_internal_info)
-        self.assertNotIn('raid_config_substep',
-                         self.node.driver_internal_info)
+        self.assertIsNone(None, return_value)
+
+    @mock.patch.object(drac_common, 'get_drac_client', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(drac_raid, 'clear_foreign_config', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(drac_job, 'validate_job_queue', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(drac_raid, 'commit_config', spec_set=True,
+                       autospec=True)
+    def test__execute_foreign_drives_with_foreign_drives(
+            self, mock_commit_config,
+            mock_validate_job_queue,
+            mock_clear_foreign_config,
+            mock_get_drac_client):
+        mock_client = mock.Mock()
+        mock_get_drac_client.return_value = mock_client
+
+        raid_config_params = ['RAID.Integrated.1-1']
+        raid_config_substep = 'clear_foreign_config'
+        driver_internal_info = self.node.driver_internal_info
+        driver_internal_info['raid_config_parameters'] = raid_config_params
+        driver_internal_info['raid_config_substep'] = raid_config_substep
+        self.node.driver_internal_info = driver_internal_info
+        self.node.save()
+        mock_clear_foreign_config.return_value = {
+            'is_reboot_required': constants.RebootRequired.optional,
+            'is_commit_required': True
+        }
+        mock_commit_config.return_value = '42'
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            return_value = task.driver.raid._execute_foreign_drives(
+                task, self.node)
+
+            self.assertEqual(states.CLEANWAIT, return_value)
+
+        self.assertEqual(['42'],
+                         self.node.driver_internal_info['raid_config_job_ids'])
+        self.assertEqual('physical_disk_conversion',
+                         self.node.driver_internal_info['raid_config_substep'])
+        self.assertEqual(
+            ['RAID.Integrated.1-1'],
+            self.node.driver_internal_info['raid_config_parameters'])
+        mock_commit_config.assert_called_once_with(
+            self.node, raid_controller='RAID.Integrated.1-1', reboot=False,
+            realtime=True)

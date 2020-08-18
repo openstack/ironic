@@ -1199,11 +1199,15 @@ class DracWSManRAID(base.RAIDInterface):
         if not node.driver_internal_info.get('raid_config_job_failure',
                                              False):
             if 'raid_config_substep' in node.driver_internal_info:
-                if node.driver_internal_info['raid_config_substep'] == \
-                        'delete_foreign_config':
-                    self._execute_foreign_drives(task, node)
-                elif node.driver_internal_info['raid_config_substep'] == \
-                        'completed':
+                substep = node.driver_internal_info['raid_config_substep']
+
+                if substep == 'delete_foreign_config':
+                    foreign_drives = self._execute_foreign_drives(task, node)
+                    if foreign_drives is None:
+                        return self._convert_drives(task, node)
+                elif substep == 'physical_disk_conversion':
+                    self._convert_drives(task, node)
+                elif substep == 'completed':
                     self._complete_raid_substep(task, node)
             else:
                 self._complete_raid_substep(task, node)
@@ -1231,16 +1235,26 @@ class DracWSManRAID(base.RAIDInterface):
             LOG.info(
                 "No foreign drives detected, so "
                 "resume %s", "cleaning" if node.clean_step else "deployment")
-            self._complete_raid_substep(task, node)
+            return None
         else:
-            _commit_to_controllers(
+            return _commit_to_controllers(
                 node,
                 controllers,
-                substep='completed')
+                substep='physical_disk_conversion')
 
     def _complete_raid_substep(self, task, node):
         self._clear_raid_substep(node)
         self._resume(task)
+
+    def _convert_drives(self, task, node):
+        jbod = drac_constants.RaidStatus.jbod
+        drives_results = _change_physical_disk_mode(
+            node, mode=jbod)
+        if drives_results is None:
+            LOG.debug("Controller does not support drives "
+                      "conversion on %(node_uuid)s",
+                      {'node_uuid': node.uuid})
+            self._complete_raid_substep(task, node)
 
     def _clear_raid_substep(self, node):
         driver_internal_info = node.driver_internal_info
