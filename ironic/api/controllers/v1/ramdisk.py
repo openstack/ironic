@@ -173,9 +173,9 @@ class HeartbeatController(rest.RestController):
     """Controller handling heartbeats from deploy ramdisk."""
 
     @expose.expose(None, types.uuid_or_name, str,
-                   str, str, status_code=http_client.ACCEPTED)
+                   str, str, str, status_code=http_client.ACCEPTED)
     def post(self, node_ident, callback_url, agent_version=None,
-             agent_token=None):
+             agent_token=None, agent_verify_ca=None):
         """Process a heartbeat from the deploy ramdisk.
 
         :param node_ident: the UUID or logical name of a node.
@@ -186,6 +186,7 @@ class HeartbeatController(rest.RestController):
             last release before sending agent_version was introduced) will be
             assumed.
         :param agent_token: randomly generated validation token.
+        :param agent_verify_ca: TLS certificate to use to connect to the agent.
         :raises: NodeNotFound if node with provided UUID or name was not found.
         :raises: InvalidUuidOrName if node_ident is not valid name or UUID.
         :raises: NoValidHost if RPC topic for node could not be retrieved.
@@ -201,6 +202,11 @@ class HeartbeatController(rest.RestController):
 
         cdict = api.request.context.to_policy_values()
         policy.authorize('baremetal:node:ipa_heartbeat', cdict, cdict)
+
+        if (agent_verify_ca is not None
+                and not api_utils.allow_verify_ca_in_heartbeat()):
+            raise exception.InvalidParameterValue(
+                _('Field "agent_verify_ca" not recognised in this version'))
 
         rpc_node = api_utils.get_rpc_node_with_suffix(node_ident)
         dii = rpc_node['driver_internal_info']
@@ -231,4 +237,4 @@ class HeartbeatController(rest.RestController):
 
         api.request.rpcapi.heartbeat(
             api.request.context, rpc_node.uuid, callback_url,
-            agent_version, agent_token, topic=topic)
+            agent_version, agent_token, agent_verify_ca, topic=topic)

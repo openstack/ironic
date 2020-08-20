@@ -149,6 +149,10 @@ opts = [
                 mutable=True,
                 help=_('If set to True, callback URLs without https:// will '
                        'be rejected by the conductor.')),
+    cfg.StrOpt('certificates_path',
+               default='/var/lib/ironic/certificates',
+               help=_('Path for TLS certificates used to validate '
+                      'connections to the ramdisk.')),
 ]
 
 

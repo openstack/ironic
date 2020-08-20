@@ -91,7 +91,7 @@ class ConductorManager(base_manager.BaseConductorManager):
     # NOTE(rloo): This must be in sync with rpcapi.ConductorAPI's.
     # NOTE(pas-ha): This also must be in sync with
     #               ironic.common.release_mappings.RELEASE_MAPPING['master']
-    RPC_API_VERSION = '1.50'
+    RPC_API_VERSION = '1.51'
 
     target = messaging.Target(version=RPC_API_VERSION)
 
@@ -3099,11 +3099,12 @@ class ConductorManager(base_manager.BaseConductorManager):
     @messaging.expected_exceptions(exception.InvalidParameterValue)
     @messaging.expected_exceptions(exception.NoFreeConductorWorker)
     def heartbeat(self, context, node_id, callback_url, agent_version=None,
-                  agent_token=None):
+                  agent_token=None, agent_verify_ca=None):
         """Process a heartbeat from the ramdisk.
 
         :param context: request context.
         :param node_id: node id or uuid.
+        :param callback_url: URL to reach back to the ramdisk.
         :param agent_version: The version of the agent that is heartbeating. If
             not provided it either indicates that the agent that is
             heartbeating is a version before sending agent_version was
@@ -3111,8 +3112,8 @@ class ConductorManager(base_manager.BaseConductorManager):
             RPC version is pinned so the API isn't passing us the
             agent_version, in these cases assume agent v3.0.0 (the last release
             before sending agent_version was introduced).
-        :param callback_url: URL to reach back to the ramdisk.
         :param agent_token: randomly generated validation token.
+        :param agent_verify_ca: TLS certificate for the agent.
         :raises: NoFreeConductorWorker if there are no conductors to process
             this heartbeat request.
         """
@@ -3144,9 +3145,13 @@ class ConductorManager(base_manager.BaseConductorManager):
                 raise exception.InvalidParameterValue(
                     _('TLS is required by configuration'))
 
+            if agent_verify_ca:
+                agent_verify_ca = utils.store_agent_certificate(
+                    task.node, agent_verify_ca)
+
             task.spawn_after(
                 self._spawn_worker, task.driver.deploy.heartbeat,
-                task, callback_url, agent_version)
+                task, callback_url, agent_version, agent_verify_ca)
 
     @METRICS.timer('ConductorManager.vif_list')
     @messaging.expected_exceptions(exception.NetworkError,

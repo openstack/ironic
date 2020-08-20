@@ -16,6 +16,7 @@ import contextlib
 import crypt
 import datetime
 from distutils.version import StrictVersion
+import os
 import secrets
 import time
 
@@ -462,6 +463,8 @@ def wipe_internal_info_on_power_off(node):
     # Wipe cached steps since they may change after reboot.
     driver_internal_info.pop('agent_cached_deploy_steps', None)
     driver_internal_info.pop('agent_cached_clean_steps', None)
+    # Remove TLS certificate since it's regenerated on each run.
+    driver_internal_info.pop('agent_verify_ca', None)
     node.driver_internal_info = driver_internal_info
 
 
@@ -473,6 +476,8 @@ def wipe_token_and_url(task):
     # Remove agent_url since it will be re-asserted
     # upon the next deployment attempt.
     info.pop('agent_url', None)
+    # Remove TLS certificate since it's regenerated on each run.
+    info.pop('agent_verify_ca', None)
     task.node.driver_internal_info = info
 
 
@@ -1232,3 +1237,45 @@ def get_attached_vif(port):
     if inspection_vif:
         return (inspection_vif, 'inspecting')
     return (None, None)
+
+
+def store_agent_certificate(node, agent_verify_ca):
+    """Store certificate received from the agent and return its path."""
+    existing_verify_ca = node.driver_internal_info.get(
+        'agent_verify_ca')
+    if existing_verify_ca:
+        if os.path.exists(existing_verify_ca):
+            try:
+                with open(existing_verify_ca, 'rt') as fp:
+                    existing_text = fp.read()
+            except EnvironmentError:
+                with excutils.save_and_reraise_exception():
+                    LOG.exception('Could not read the existing TLS certificate'
+                                  ' for node %s', node.uuid)
+
+            if existing_text.strip() != agent_verify_ca.strip():
+                LOG.error('Content mismatch for agent_verify_ca for '
+                          'node %s', node.uuid)
+                raise exception.InvalidParameterValue(
+                    _('Detected change in ramdisk provided "agent_verify_ca"'))
+            else:
+                return existing_verify_ca
+        else:
+            LOG.info('Current agent_verify_ca was not found for node '
+                     '%s, assuming take over and storing', node.uuid)
+
+    fname = os.path.join(CONF.agent.certificates_path, '%s.crt' % node.uuid)
+    try:
+        # FIXME(dtantsur): it makes more sense to create this path on conductor
+        # start-up, but it requires reworking a ton of unit tests.
+        os.makedirs(CONF.agent.certificates_path, exist_ok=True)
+        with open(fname, 'wt') as fp:
+            fp.write(agent_verify_ca)
+    except EnvironmentError:
+        with excutils.save_and_reraise_exception():
+            LOG.exception('Could not save the TLS certificate for node %s',
+                          node.uuid)
+    else:
+        LOG.debug('Saved the custom certificate for node %(node)s to %(file)s',
+                  {'node': node.uuid, 'file': fname})
+        return fname

@@ -1,0 +1,4 @@
+---
+features:
+  - |
+    Adds an ability to accept a custom TLS certificate in the heartbeat API.

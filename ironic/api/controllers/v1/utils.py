@@ -1391,3 +1391,8 @@ def allow_local_link_connection_network_type():
     """Check if network_type is allowed in ports link_local_connection"""
     return (api.request.version.minor
             >= versions.MINOR_64_LOCAL_LINK_CONNECTION_NETWORK_TYPE)
+
+
+def allow_verify_ca_in_heartbeat():
+    """Check if heartbeat accepts agent_verify_ca."""
+    return api.request.version.minor >= versions.MINOR_68_HEARTBEAT_VERIFY_CA

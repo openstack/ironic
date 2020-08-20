@@ -105,6 +105,7 @@ BASE_VERSION = 1
 # v1.65: Add lessee to the node object.
 # v1.66: Add support for node network_data field.
 # v1.67: Add support for port_uuid/portgroup_uuid in node vif_attach
+# v1.68: Add agent_verify_ca to heartbeat.
 
 MINOR_0_JUNO = 0
 MINOR_1_INITIAL_VERSION = 1
@@ -174,6 +175,7 @@ MINOR_64_LOCAL_LINK_CONNECTION_NETWORK_TYPE = 64
 MINOR_65_NODE_LESSEE = 65
 MINOR_66_NODE_NETWORK_DATA = 66
 MINOR_67_NODE_VIF_ATTACH_PORT = 67
+MINOR_68_HEARTBEAT_VERIFY_CA = 68
 
 # When adding another version, update:
 # - MINOR_MAX_VERSION
@@ -181,7 +183,7 @@ MINOR_67_NODE_VIF_ATTACH_PORT = 67
 #   explanation of what changed in the new version
 # - common/release_mappings.py, RELEASE_MAPPING['master']['api']
 
-MINOR_MAX_VERSION = MINOR_67_NODE_VIF_ATTACH_PORT
+MINOR_MAX_VERSION = MINOR_68_HEARTBEAT_VERIFY_CA
 
 # String representations of the minor and maximum versions
 _MIN_VERSION_STRING = '{}.{}'.format(BASE_VERSION, MINOR_1_INITIAL_VERSION)

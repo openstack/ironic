@@ -258,6 +258,28 @@ class TestAgentClient(base.TestCase):
             timeout=60,
             verify='/path/to/agent.crt')
 
+    def test__command_verify_internal(self):
+        response_data = {'status': 'ok'}
+        self.client.session.post.return_value = MockResponse(response_data)
+        method = 'standby.run_image'
+        image_info = {'image_id': 'test_image'}
+        params = {'image_info': image_info}
+
+        self.node.driver_info['agent_verify_ca'] = True
+        self.node.driver_internal_info['agent_verify_ca'] = '/path/to/crt'
+
+        url = self.client._get_command_url(self.node)
+        body = self.client._get_command_body(method, params)
+
+        response = self.client._command(self.node, method, params)
+        self.assertEqual(response, response_data)
+        self.client.session.post.assert_called_once_with(
+            url,
+            data=body,
+            params={'wait': 'false'},
+            timeout=60,
+            verify='/path/to/crt')
+
     @mock.patch('time.sleep', lambda seconds: None)
     def test__command_poll(self):
         response_data = {'status': 'ok'}

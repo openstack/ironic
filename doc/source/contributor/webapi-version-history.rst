@@ -2,6 +2,11 @@
 REST API Version History
 ========================
 
+1.68 (Victoria, master)
+-----------------------
+
+Added the ``agent_verify_ca`` parameter to the ramdisk heartbeat API.
+
 1.67 (Victoria, master)
 -----------------------
 

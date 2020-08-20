@@ -9,6 +9,9 @@
 #    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 #    License for the specific language governing permissions and limitations
 #    under the License.
+
+import os
+import tempfile
 import time
 from unittest import mock
 
@@ -2136,3 +2139,52 @@ class GetAttachedVifTestCase(db_base.DbTestCase):
         vif, use = conductor_utils.get_attached_vif(self.port)
         self.assertEqual('1', vif)
         self.assertEqual('inspecting', use)
+
+
+class StoreAgentCertificateTestCase(db_base.DbTestCase):
+
+    def setUp(self):
+        super(StoreAgentCertificateTestCase, self).setUp()
+        self.node = obj_utils.create_test_node(self.context,
+                                               driver='fake-hardware')
+        self.tempdir = tempfile.mkdtemp()
+        CONF.set_override('certificates_path', self.tempdir, group='agent')
+        self.fname = os.path.join(self.tempdir, '%s.crt' % self.node.uuid)
+
+    def test_store_new(self):
+        result = conductor_utils.store_agent_certificate(self.node,
+                                                         'cert text')
+        self.assertEqual(self.fname, result)
+        with open(self.fname, 'rt') as fp:
+            self.assertEqual('cert text', fp.read())
+
+    def test_store_existing(self):
+        old_fname = os.path.join(self.tempdir, 'old.crt')
+        with open(old_fname, 'wt') as fp:
+            fp.write('cert text')
+
+        self.node.driver_internal_info['agent_verify_ca'] = old_fname
+        result = conductor_utils.store_agent_certificate(self.node,
+                                                         'cert text')
+        self.assertEqual(old_fname, result)
+        self.assertFalse(os.path.exists(self.fname))
+
+    def test_no_change(self):
+        old_fname = os.path.join(self.tempdir, 'old.crt')
+        with open(old_fname, 'wt') as fp:
+            fp.write('cert text')
+
+        self.node.driver_internal_info['agent_verify_ca'] = old_fname
+        self.assertRaises(exception.InvalidParameterValue,
+                          conductor_utils.store_agent_certificate,
+                          self.node, 'new cert text')
+        self.assertFalse(os.path.exists(self.fname))
+
+    def test_take_over(self):
+        old_fname = os.path.join(self.tempdir, 'old.crt')
+        self.node.driver_internal_info['agent_verify_ca'] = old_fname
+        result = conductor_utils.store_agent_certificate(self.node,
+                                                         'cert text')
+        self.assertEqual(self.fname, result)
+        with open(self.fname, 'rt') as fp:
+            self.assertEqual('cert text', fp.read())
