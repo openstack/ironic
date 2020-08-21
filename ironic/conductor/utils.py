@@ -284,14 +284,13 @@ def node_power_action(task, new_state, timeout=None):
         driver_internal_info = node.driver_internal_info
         driver_internal_info['last_power_state_change'] = str(
             timeutils.utcnow().isoformat())
+        node.driver_internal_info = driver_internal_info
         # NOTE(dtantsur): wipe token on shutting down, otherwise a reboot in
         # fast-track (or an accidentally booted agent) will cause subsequent
         # actions to fail.
         if target_state in (states.POWER_OFF, states.SOFT_POWER_OFF,
                             states.REBOOT, states.SOFT_REBOOT):
-            if not is_agent_token_pregenerated(node):
-                driver_internal_info.pop('agent_secret_token', False)
-        node.driver_internal_info = driver_internal_info
+            wipe_internal_info_on_power_off(node)
         node.save()
 
     # take power action
@@ -449,6 +448,19 @@ def cleaning_error_handler(task, msg, tear_down_cleaning=True,
     if set_fail_state and node.provision_state != states.CLEANFAIL:
         target_state = states.MANAGEABLE if manual_clean else None
         task.process_event('fail', target_state=target_state)
+
+
+def wipe_internal_info_on_power_off(node):
+    """Wipe information that should not survive reboot/power off."""
+    driver_internal_info = node.driver_internal_info
+    if not is_agent_token_pregenerated(node):
+        # Wipe the token if it's not pre-generated, otherwise we'll refuse to
+        # generate it again for the newly booted agent.
+        driver_internal_info.pop('agent_secret_token', False)
+    # Wipe cached steps since they may change after reboot.
+    driver_internal_info.pop('agent_cached_deploy_steps', None)
+    driver_internal_info.pop('agent_cached_clean_steps', None)
+    node.driver_internal_info = driver_internal_info
 
 
 def wipe_token_and_url(task):

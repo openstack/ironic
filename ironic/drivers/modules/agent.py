@@ -489,6 +489,9 @@ class AgentDeploy(AgentDeployMixin, agent_base.AgentBaseMixin,
             # immediately to the next deploy step.
             LOG.debug('Performing a fast track deployment for %(node)s.',
                       {'node': task.node.uuid})
+            # NOTE(dtantsur): while the node is up and heartbeating, we don't
+            # necessary have the deploy steps cached. Force a refresh here.
+            self.refresh_steps(task, 'deploy')
         elif task.driver.storage.should_write_image(task):
             # Check if the driver has already performed a reboot in a previous
             # deploy step.
