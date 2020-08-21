@@ -53,5 +53,7 @@ class RedfishHardware(generic.GenericHardware):
     @property
     def supported_boot_interfaces(self):
         """List of supported boot interfaces."""
-        return [redfish_boot.RedfishVirtualMediaBoot,
-                ipxe.iPXEBoot, pxe.PXEBoot]
+        # NOTE(dtantsur): virtual media goes last because of limited hardware
+        # vendors support.
+        return [ipxe.iPXEBoot, pxe.PXEBoot,
+                redfish_boot.RedfishVirtualMediaBoot]

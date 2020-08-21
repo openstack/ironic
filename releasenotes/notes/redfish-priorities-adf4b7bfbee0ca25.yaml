@@ -1,0 +1,13 @@
+---
+upgrade:
+  - |
+    The ``redfish-virtual-media`` boot interface is now the last in the list of
+    priorities from the ``redfish`` hardware type. This means that new nodes
+    will be created with ``ipxe`` or ``pxe`` boot if they are enabled. The
+    reason for this change is limited support for pure Redfish virtual media
+    from hardware vendors.
+
+    To use virtual media with Redfish, please provide an explicit
+    ``boot_interface`` parameter when creating nodes. If you enable only the
+    ``redfish`` hardware type, you can also set the ``default_boot_interface``
+    configuration option to ``redfish-virtual-media``.
