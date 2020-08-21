@@ -17,6 +17,8 @@ GIB = 1 << 30
 EXTRA_PARAMS = set(['wwn', 'serial', 'wwn_with_extension',
                     'wwn_vendor_extension'])
 
+IGNORE_DEVICES = ['sr', 'loop', 'mem', 'fd']
+
 
 # NOTE: ansible calculates device size as float with 2-digits precision,
 # Ironic requires size in GiB, if we will use ansible size parameter
@@ -46,6 +48,10 @@ def root_hint(hints, devices):
     hint = None
     name = hints.pop('name', None)
     for device in devices:
+        if any(x in device for x in IGNORE_DEVICES):
+            # NOTE(TheJulia): Devices like CD roms, Loop devices, and ramdisks
+            # should not be considered as target devices.
+            continue
         for key in hints:
             if hints[key] != devices[device].get(key):
                 break
