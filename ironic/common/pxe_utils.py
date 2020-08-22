@@ -744,7 +744,7 @@ def build_instance_pxe_options(task, pxe_info, ipxe_enabled=False):
     return pxe_opts
 
 
-def build_extra_pxe_options(ramdisk_params=None):
+def build_extra_pxe_options(task=None, ramdisk_params=None):
     # Enable debug in IPA according to CONF.debug if it was not
     # specified yet
     pxe_append_params = CONF.pxe.pxe_append_params
@@ -753,6 +753,9 @@ def build_extra_pxe_options(ramdisk_params=None):
     if ramdisk_params:
         pxe_append_params += ' ' + ' '.join('%s=%s' % tpl
                                             for tpl in ramdisk_params.items())
+    if task and task.context.global_id:
+        pxe_append_params += (
+            ' ipa-global-request-id=%s' % task.context.global_id)
 
     return {'pxe_append_params': pxe_append_params,
             'tftp_server': CONF.pxe.tftp_server,
@@ -800,7 +803,7 @@ def build_pxe_config_options(task, pxe_info, service=False,
     pxe_options.update(build_instance_pxe_options(task, pxe_info,
                                                   ipxe_enabled=ipxe_enabled))
 
-    pxe_options.update(build_extra_pxe_options(ramdisk_params))
+    pxe_options.update(build_extra_pxe_options(task, ramdisk_params))
 
     return pxe_options
 
