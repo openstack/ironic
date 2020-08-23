@@ -25,14 +25,11 @@ eventlet==0.18.2
 extras==1.0.0
 fasteners==0.15
 fixtures==3.0.0
-flake8==3.7.0
-flake8-import-order==0.17.1
 future==0.18.2
 futurist==1.2.0
 gitdb==4.0.5
 GitPython==3.1.2
 greenlet==0.4.15
-hacking==3.0.1
 ifaddr==0.1.6
 importlib-metadata==1.6.0
 ironic-lib==4.3.0
@@ -49,7 +46,6 @@ linecache2==1.0.0
 logutils==0.3.5
 Mako==1.1.2
 MarkupSafe==1.1.1
-mccabe==0.6.1
 monotonic==1.5
 mox3==1.0.0
 msgpack-python==0.5.6
@@ -92,7 +88,6 @@ psycopg2==2.7.3
 pycadf==3.0.0
 pycodestyle==2.5.0
 pycparser==2.20
-pyflakes==2.1.1
 Pygments==2.2.0
 pyinotify==0.9.6
 PyMySQL==0.7.6
