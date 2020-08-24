@@ -68,12 +68,13 @@ class NovaApiTestCase(base.TestCase):
               [{'events': [{'code': 400}]}, 207, False],
               # This (response 207, event code 200) will never happen IRL
               [{'events': [{'code': 200}]}, 207, True])
-    @mock.patch.object(nova, '_get_nova_adapter')
+    @mock.patch.object(nova, '_get_nova_adapter', autospec=True)
     def test_power_update(self, nova_result, resp_status, exp_ret,
                           mock_adapter, mock_log):
         server_ids = ['server-id-1', 'server-id-2']
         nova_adapter = mock.Mock()
-        with mock.patch.object(nova_adapter, 'post') as mock_post_event:
+        with mock.patch.object(nova_adapter, 'post',
+                               autospec=True) as mock_post_event:
             post_resp_mock = requests.Response()
 
             def json_func():
@@ -112,10 +113,11 @@ class NovaApiTestCase(base.TestCase):
             expected = ("Nova event response: %s.", nova_result['events'][0])
             mock_log.debug.assert_called_with(*expected)
 
-    @mock.patch.object(nova, '_get_nova_adapter')
+    @mock.patch.object(nova, '_get_nova_adapter', autospec=True)
     def test_invalid_power_update(self, mock_adapter, mock_log):
         nova_adapter = mock.Mock()
-        with mock.patch.object(nova_adapter, 'post') as mock_post_event:
+        with mock.patch.object(nova_adapter, 'post',
+                               autospec=True) as mock_post_event:
             result = self.api.power_update(self.ctx, 'server', None)
             self.assertFalse(result)
             expected = ('Invalid Power State %s.', None)
@@ -130,7 +132,8 @@ class NovaApiTestCase(base.TestCase):
                   'server_uuid': 'server-id-1',
                   'tag': 'POWER_OFF'}]
         nova_result = requests.Response()
-        with mock.patch.object(nova_adapter, 'post') as mock_post_event:
+        with mock.patch.object(nova_adapter, 'post',
+                               autospec=True) as mock_post_event:
             for stat_code in (500, 404, 400):
                 mock_log.reset_mock()
                 nova_result.status_code = stat_code
@@ -155,11 +158,12 @@ class NovaApiTestCase(base.TestCase):
               {'events': []},
               {'events': None},
               {})
-    @mock.patch.object(nova, '_get_nova_adapter')
+    @mock.patch.object(nova, '_get_nova_adapter', autospec=True)
     def test_power_update_invalid_reponse_format(self, nova_result,
                                                  mock_adapter, mock_log):
         nova_adapter = mock.Mock()
-        with mock.patch.object(nova_adapter, 'post') as mock_post_event:
+        with mock.patch.object(nova_adapter, 'post',
+                               autospec=True) as mock_post_event:
             post_resp_mock = requests.Response()
 
             def json_func():
@@ -192,7 +196,7 @@ class NovaApiTestCase(base.TestCase):
         self.assertFalse(result)
         mock_adapter.assert_not_called()
 
-    @mock.patch.object(nova, '_get_nova_adapter')
+    @mock.patch.object(nova, '_get_nova_adapter', autospec=True)
     def test_power_update_failed_no_nova_auth_url(self, mock_adapter,
                                                   mock_log):
         server = 'server-id-1'

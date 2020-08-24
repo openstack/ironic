@@ -183,7 +183,7 @@ class TestRemoveVifsTestCase(db_base.DbTestCase):
             network_interface='flat',
             provision_state=states.DELETING)
 
-    @mock.patch.object(neutron_common, 'unbind_neutron_port')
+    @mock.patch.object(neutron_common, 'unbind_neutron_port', autospec=True)
     def test_remove_vifs_from_node_failure(self, mock_unbind):
         db_utils.create_test_port(
             node_id=self.node.id, address='aa:bb:cc:dd:ee:ff',

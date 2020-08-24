@@ -1047,7 +1047,7 @@ class PXEInterfacesTestCase(db_base.DbTestCase):
         self._test_get_instance_image_info()
 
     @mock.patch('ironic.drivers.modules.deploy_utils.get_boot_option',
-                return_value='local')
+                return_value='local', autospec=True)
     def test_get_instance_image_info_localboot(self, boot_opt_mock):
         self.node.driver_internal_info['is_whole_disk_image'] = False
         self.node.save()
@@ -1068,7 +1068,7 @@ class PXEInterfacesTestCase(db_base.DbTestCase):
         self.assertEqual({}, image_info)
 
     @mock.patch('ironic.drivers.modules.deploy_utils.get_boot_option',
-                return_value='ramdisk')
+                return_value='ramdisk', autospec=True)
     def test_get_instance_image_info_boot_iso(self, boot_opt_mock):
         self.node.instance_info = {'boot_iso': 'http://localhost/boot.iso'}
         self.node.save()
@@ -1822,7 +1822,7 @@ class CleanUpPxeEnvTestCase(db_base.DbTestCase):
 
 
 class TFTPImageCacheTestCase(db_base.DbTestCase):
-    @mock.patch.object(fileutils, 'ensure_tree')
+    @mock.patch.object(fileutils, 'ensure_tree', autospec=True)
     def test_with_master_path(self, mock_ensure_tree):
         self.config(tftp_master_path='/fake/path', group='pxe')
         self.config(image_cache_size=500, group='pxe')
@@ -1834,7 +1834,7 @@ class TFTPImageCacheTestCase(db_base.DbTestCase):
         self.assertEqual(500 * 1024 * 1024, cache._cache_size)
         self.assertEqual(30 * 60, cache._cache_ttl)
 
-    @mock.patch.object(fileutils, 'ensure_tree')
+    @mock.patch.object(fileutils, 'ensure_tree', autospec=True)
     def test_without_master_path(self, mock_ensure_tree):
         self.config(tftp_master_path='', group='pxe')
         self.config(image_cache_size=500, group='pxe')

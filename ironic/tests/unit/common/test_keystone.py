@@ -78,8 +78,9 @@ class KeystoneTestCase(base.TestCase):
         self.assertEqual('admin', adapter.interface)
         self.assertEqual(session, adapter.session)
 
-    @mock.patch('keystoneauth1.service_token.ServiceTokenAuthWrapper')
-    @mock.patch('keystoneauth1.token_endpoint.Token')
+    @mock.patch('keystoneauth1.service_token.ServiceTokenAuthWrapper',
+                autospec=True)
+    @mock.patch('keystoneauth1.token_endpoint.Token', autospec=True)
     def test_get_service_auth(self, token_mock, service_auth_mock):
         ctxt = context.RequestContext(auth_token='spam')
         mock_auth = mock.Mock()
