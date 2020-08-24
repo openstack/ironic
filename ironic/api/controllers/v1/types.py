@@ -393,33 +393,3 @@ class LocalLinkConnectionType(atypes.UserType):
 
 
 locallinkconnectiontype = LocalLinkConnectionType()
-
-
-class VifType(JsonType):
-
-    basetype = str
-    name = 'viftype'
-
-    mandatory_fields = {'id'}
-
-    @staticmethod
-    def validate(value):
-        super(VifType, VifType).validate(value)
-        keys = set(value)
-        # Check all mandatory fields are present
-        missing = VifType.mandatory_fields - keys
-        if missing:
-            msg = _('Missing mandatory keys: %s') % ', '.join(list(missing))
-            raise exception.Invalid(msg)
-        UuidOrNameType.validate(value['id'])
-
-        return value
-
-    @staticmethod
-    def frombasetype(value):
-        if value is None:
-            return None
-        return VifType.validate(value)
-
-
-viftype = VifType()

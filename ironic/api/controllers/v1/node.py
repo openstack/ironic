@@ -13,6 +13,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import copy
 import datetime
 from http import client as http_client
 import json
@@ -28,7 +29,6 @@ import pecan
 from pecan import rest
 
 from ironic import api
-from ironic.api.controllers import base
 from ironic.api.controllers import link
 from ironic.api.controllers.v1 import allocation
 from ironic.api.controllers.v1 import bios
@@ -36,12 +36,11 @@ from ironic.api.controllers.v1 import collection
 from ironic.api.controllers.v1 import notification_utils as notify
 from ironic.api.controllers.v1 import port
 from ironic.api.controllers.v1 import portgroup
-from ironic.api.controllers.v1 import types
 from ironic.api.controllers.v1 import utils as api_utils
 from ironic.api.controllers.v1 import versions
 from ironic.api.controllers.v1 import volume
-from ironic.api import expose
-from ironic.api import types as atypes
+from ironic.api import method
+from ironic.common import args
 from ironic.common import exception
 from ironic.common.i18n import _
 from ironic.common import policy
@@ -97,8 +96,8 @@ METRICS = metrics_utils.get_metrics_logger(__name__)
 # versions, the API service should be restarted.
 _VENDOR_METHODS = {}
 
-_DEFAULT_RETURN_FIELDS = ('instance_uuid', 'maintenance', 'power_state',
-                          'provision_state', 'uuid', 'name')
+_DEFAULT_RETURN_FIELDS = ['instance_uuid', 'maintenance', 'power_state',
+                          'provision_state', 'uuid', 'name']
 
 # States where calling do_provisioning_action makes sense
 PROVISION_ACTION_STATES = (ir_states.VERBS['manage'],
@@ -116,9 +115,141 @@ ALLOWED_TARGET_POWER_STATES = (ir_states.POWER_ON,
 
 _NODE_DESCRIPTION_MAX_LENGTH = 4096
 
+with open(os.path.join(os.path.dirname(__file__),
+          'network-data-schema.json'), 'rb') as fl:
+    NETWORK_DATA_SCHEMA = json.load(fl)
 
-NETWORK_DATA_SCHEMA = os.path.join(
-    os.path.dirname(__file__), 'network-data-schema.json')
+NODE_SCHEMA = {
+    'type': 'object',
+    'properties': {
+        'automated_clean': {'type': ['string', 'boolean', 'null']},
+        'bios_interface': {'type': ['string', 'null']},
+        'boot_interface': {'type': ['string', 'null']},
+        'chassis_uuid': {'type': ['string', 'null']},
+        'conductor_group': {'type': ['string', 'null']},
+        'console_enabled': {'type': ['string', 'boolean', 'null']},
+        'console_interface': {'type': ['string', 'null']},
+        'deploy_interface': {'type': ['string', 'null']},
+        'description': {'type': ['string', 'null'],
+                        'maxLength': _NODE_DESCRIPTION_MAX_LENGTH},
+        'driver': {'type': 'string'},
+        'driver_info': {'type': ['object', 'null']},
+        'extra': {'type': ['object', 'null']},
+        'inspect_interface': {'type': ['string', 'null']},
+        'instance_info': {'type': ['object', 'null']},
+        'instance_uuid': {'type': ['string', 'null']},
+        'lessee': {'type': ['string', 'null']},
+        'management_interface': {'type': ['string', 'null']},
+        'maintenance': {'type': ['string', 'boolean', 'null']},
+        'name': {'type': ['string', 'null']},
+        'network_data': {'anyOf': [
+            {'type': 'null'},
+            {'type': 'object', 'additionalProperties': False},
+            NETWORK_DATA_SCHEMA
+        ]},
+        'network_interface': {'type': ['string', 'null']},
+        'owner': {'type': ['string', 'null']},
+        'power_interface': {'type': ['string', 'null']},
+        'properties': {'type': ['object', 'null']},
+        'raid_interface': {'type': ['string', 'null']},
+        'rescue_interface': {'type': ['string', 'null']},
+        'resource_class': {'type': ['string', 'null'], 'maxLength': 80},
+        'retired': {'type': ['string', 'boolean', 'null']},
+        'retired_reason': {'type': ['string', 'null']},
+        'storage_interface': {'type': ['string', 'null']},
+        'uuid': {'type': ['string', 'null']},
+        'vendor_interface': {'type': ['string', 'null']},
+    },
+    'required': ['driver'],
+    'additionalProperties': False,
+    'definitions': NETWORK_DATA_SCHEMA.get('definitions')
+}
+
+NODE_PATCH_SCHEMA = copy.deepcopy(NODE_SCHEMA)
+# add schema for patchable fields
+NODE_PATCH_SCHEMA['properties']['protected'] = {
+    'type': ['string', 'boolean', 'null']}
+NODE_PATCH_SCHEMA['properties']['protected_reason'] = {
+    'type': ['string', 'null']}
+
+NODE_VALIDATE_EXTRA = args.dict_valid(
+    automated_clean=args.boolean,
+    chassis_uuid=args.uuid,
+    console_enabled=args.boolean,
+    instance_uuid=args.uuid,
+    protected=args.boolean,
+    maintenance=args.boolean,
+    retired=args.boolean,
+    uuid=args.uuid,
+)
+
+NODE_VALIDATOR = args.and_valid(
+    args.schema(NODE_SCHEMA),
+    NODE_VALIDATE_EXTRA
+)
+
+NODE_PATCH_VALIDATOR = args.and_valid(
+    args.schema(NODE_PATCH_SCHEMA),
+    NODE_VALIDATE_EXTRA
+)
+
+PATCH_ALLOWED_FIELDS = [
+    'automated_clean',
+    'bios_interface',
+    'boot_interface',
+    'chassis_uuid',
+    'conductor_group',
+    'console_interface',
+    'deploy_interface',
+    'description',
+    'driver',
+    'driver_info',
+    'extra',
+    'inspect_interface',
+    'instance_info',
+    'instance_uuid',
+    'lessee',
+    'maintenance',
+    'management_interface',
+    'name',
+    'network_data',
+    'network_interface',
+    'owner',
+    'power_interface',
+    'properties',
+    'protected',
+    'protected_reason',
+    'raid_interface',
+    'rescue_interface',
+    'resource_class',
+    'retired',
+    'retired_reason',
+    'storage_interface',
+    'vendor_interface'
+]
+
+TRAITS_SCHEMA = {
+    'type': 'object',
+    'properties': {
+        'traits': {
+            'type': 'array',
+            'items': api_utils.TRAITS_SCHEMA
+        },
+    },
+    'additionalProperties': False,
+}
+
+VIF_VALIDATOR = args.and_valid(
+    args.schema({
+        'type': 'object',
+        'properties': {
+            'id': {'type': 'string'},
+        },
+        'required': ['id'],
+        'additionalProperties': True,
+    }),
+    args.dict_valid(id=args.uuid_or_name)
+)
 
 
 def get_nodes_controller_reserved_names():
@@ -137,7 +268,7 @@ def hide_fields_in_newer_versions(obj):
     matches or exceeds the versions when these fields were introduced.
     """
     for field in api_utils.disallowed_fields():
-        setattr(obj, field, atypes.Unset)
+        obj.pop(field, None)
 
 
 def reject_fields_in_newer_versions(obj):
@@ -147,14 +278,14 @@ def reject_fields_in_newer_versions(obj):
             # NOTE(jroll) this is special-cased to "" and not Unset,
             # because it is used in hash ring calculations
             empty_value = ''
-        elif field == 'name' and obj.name is None:
+        elif field == 'name' and obj.get('name') is None:
             # NOTE(dtantsur): for some reason we allow specifying name=None
             # explicitly even in old API versions..
             continue
         else:
-            empty_value = atypes.Unset
+            empty_value = None
 
-        if getattr(obj, field, empty_value) != empty_value:
+        if obj.get(field, empty_value) != empty_value:
             LOG.debug('Field %(field)s is not acceptable in version %(ver)s',
                       {'field': field, 'ver': api.request.version})
             raise exception.NotAcceptable()
@@ -172,17 +303,17 @@ def reject_patch_in_newer_versions(patch):
 def update_state_in_older_versions(obj):
     """Change provision state names for API backwards compatibility.
 
-    :param obj: The object being returned to the API client that is
+    :param obj: The dict being returned to the API client that is
                 to be updated by this method.
     """
     # if requested version is < 1.2, convert AVAILABLE to the old NOSTATE
     if (api.request.version.minor < versions.MINOR_2_AVAILABLE_STATE
-            and obj.provision_state == ir_states.AVAILABLE):
-        obj.provision_state = ir_states.NOSTATE
+            and obj.get('provision_state') == ir_states.AVAILABLE):
+        obj['provision_state'] = ir_states.NOSTATE
     # if requested version < 1.39, convert INSPECTWAIT to INSPECTING
     if (not api_utils.allow_inspect_wait_state()
-            and obj.provision_state == ir_states.INSPECTWAIT):
-        obj.provision_state = ir_states.INSPECTING
+            and obj.get('provision_state') == ir_states.INSPECTWAIT):
+        obj['provision_state'] = ir_states.INSPECTING
 
 
 def validate_network_data(network_data):
@@ -194,11 +325,8 @@ def validate_network_data(network_data):
     :param network_data: a network_data field to validate
     :raises: Invalid if network data is not schema-compliant
     """
-    with open(NETWORK_DATA_SCHEMA, 'rb') as fl:
-        network_data_schema = json.load(fl)
-
     try:
-        jsonschema.validate(network_data, network_data_schema)
+        jsonschema.validate(network_data, NETWORK_DATA_SCHEMA)
 
     except json_schema_exc.ValidationError as e:
         # NOTE: Even though e.message is deprecated in general, it is
@@ -233,8 +361,9 @@ class BootDeviceController(rest.RestController):
                                                       rpc_node.uuid, topic)
 
     @METRICS.timer('BootDeviceController.put')
-    @expose.expose(None, types.uuid_or_name, str, types.boolean,
-                   status_code=http_client.NO_CONTENT)
+    @method.expose(status_code=http_client.NO_CONTENT)
+    @args.validate(node_ident=args.uuid_or_name, boot_device=args.string,
+                   persistent=args.boolean)
     def put(self, node_ident, boot_device, persistent=False):
         """Set the boot device for a node.
 
@@ -259,7 +388,8 @@ class BootDeviceController(rest.RestController):
                                            topic=topic)
 
     @METRICS.timer('BootDeviceController.get')
-    @expose.expose(str, types.uuid_or_name)
+    @method.expose()
+    @args.validate(node_ident=args.uuid_or_name)
     def get(self, node_ident):
         """Get the current boot device for a node.
 
@@ -278,7 +408,8 @@ class BootDeviceController(rest.RestController):
         return self._get_boot_device(rpc_node)
 
     @METRICS.timer('BootDeviceController.supported')
-    @expose.expose(str, types.uuid_or_name)
+    @method.expose()
+    @args.validate(node_ident=args.uuid_or_name)
     def supported(self, node_ident):
         """Get a list of the supported boot devices.
 
@@ -323,87 +454,48 @@ class IndicatorAtComponent(object):
                 _('Missing indicator name "%s"'))
 
 
-class IndicatorState(base.APIBase):
-    """API representation of indicator state."""
-
-    state = atypes.wsattr(str)
-
-    def __init__(self, **kwargs):
-        self.state = kwargs.get('state')
-
-
-class Indicator(base.APIBase):
-    """API representation of an indicator."""
-
-    name = atypes.wsattr(str)
-
-    component = atypes.wsattr(str)
-
-    readonly = types.BooleanType()
-
-    states = atypes.ArrayType(str)
-
-    links = None
-
-    def __init__(self, **kwargs):
-        self.name = kwargs.get('name')
-        self.component = kwargs.get('component')
-        self.readonly = kwargs.get('readonly', True)
-        self.states = kwargs.get('states', [])
-
-    @staticmethod
-    def _convert_with_links(node_uuid, indicator, url):
-        """Add links to the indicator."""
-        indicator.links = [
+def indicator_convert_with_links(node_uuid, rpc_component, rpc_name,
+                                 **rpc_fields):
+    """Add links to the indicator."""
+    url = api.request.public_url
+    return {
+        'name': rpc_name,
+        'component': rpc_component,
+        'readonly': rpc_fields.get('readonly', True),
+        'states': rpc_fields.get('states', []),
+        'links': [
             link.make_link(
                 'self', url, 'nodes',
                 '%s/management/indicators/%s' % (
-                    node_uuid, indicator.name)),
+                    node_uuid, rpc_name)),
             link.make_link(
                 'bookmark', url, 'nodes',
                 '%s/management/indicators/%s' % (
-                    node_uuid, indicator.name),
-                bookmark=True)]
-        return indicator
-
-    @classmethod
-    def convert_with_links(cls, node_uuid, rpc_component, rpc_name,
-                           **rpc_fields):
-        """Add links to the indicator."""
-        indicator = Indicator(
-            component=rpc_component, name=rpc_name, **rpc_fields)
-        return cls._convert_with_links(
-            node_uuid, indicator, pecan.request.host_url)
+                    node_uuid, rpc_name),
+                bookmark=True)
+        ]
+    }
 
 
-class IndicatorsCollection(atypes.Base):
-    """API representation of the indicators for a node."""
-
-    indicators = [Indicator]
-    """Node indicators list"""
-
-    @staticmethod
-    def collection_from_dict(node_ident, indicators):
-        col = IndicatorsCollection()
-
-        indicator_list = []
-        for component, names in indicators.items():
-            for name, fields in names.items():
-                indicator_at_component = IndicatorAtComponent(
-                    component=component, name=name)
-                indicator = Indicator.convert_with_links(
-                    node_ident, component, indicator_at_component.unique_name,
-                    **fields)
-                indicator_list.append(indicator)
-        col.indicators = indicator_list
-        return col
+def indicator_list_from_dict(node_ident, indicators):
+    indicator_list = []
+    for component, names in indicators.items():
+        for name, fields in names.items():
+            indicator_at_component = IndicatorAtComponent(
+                component=component, name=name)
+            indicator = indicator_convert_with_links(
+                node_ident, component, indicator_at_component.unique_name,
+                **fields)
+            indicator_list.append(indicator)
+    return {'indicators': indicator_list}
 
 
 class IndicatorController(rest.RestController):
 
     @METRICS.timer('IndicatorController.put')
-    @expose.expose(None, types.uuid_or_name, str, str,
-                   status_code=http_client.NO_CONTENT)
+    @method.expose(status_code=http_client.NO_CONTENT)
+    @args.validate(node_ident=args.uuid_or_name, indicator=args.string,
+                   state=args.string)
     def put(self, node_ident, indicator, state):
         """Set node hardware component indicator to the desired state.
 
@@ -426,7 +518,8 @@ class IndicatorController(rest.RestController):
             state, topic=topic)
 
     @METRICS.timer('IndicatorController.get_one')
-    @expose.expose(IndicatorState, types.uuid_or_name, str)
+    @method.expose()
+    @args.validate(node_ident=args.uuid_or_name, indicator=args.string)
     def get_one(self, node_ident, indicator):
         """Get node hardware component indicator and its state.
 
@@ -446,12 +539,12 @@ class IndicatorController(rest.RestController):
             pecan.request.context, rpc_node.uuid,
             indicator_at_component.component, indicator_at_component.name,
             topic=topic)
-        return IndicatorState(state=state)
+        return {'state': state}
 
     @METRICS.timer('IndicatorController.get_all')
-    @expose.expose(IndicatorsCollection, types.uuid_or_name, str,
-                   ignore_extra_args=True)
-    def get_all(self, node_ident):
+    @method.expose()
+    @args.validate(node_ident=args.uuid_or_name)
+    def get_all(self, node_ident, **kwargs):
         """Get node hardware components and their indicators.
 
         :param node_ident: the UUID or logical name of a node.
@@ -468,15 +561,15 @@ class IndicatorController(rest.RestController):
         indicators = pecan.request.rpcapi.get_supported_indicators(
             pecan.request.context, rpc_node.uuid, topic=topic)
 
-        return IndicatorsCollection.collection_from_dict(
+        return indicator_list_from_dict(
             node_ident, indicators)
 
 
 class InjectNmiController(rest.RestController):
 
     @METRICS.timer('InjectNmiController.put')
-    @expose.expose(None, types.uuid_or_name,
-                   status_code=http_client.NO_CONTENT)
+    @method.expose(status_code=http_client.NO_CONTENT)
+    @args.validate(node_ident=args.uuid_or_name)
     def put(self, node_ident):
         """Inject NMI for a node.
 
@@ -518,26 +611,11 @@ class NodeManagementController(rest.RestController):
     """Expose indicators as a sub-element of management"""
 
 
-class ConsoleInfo(base.Base):
-    """API representation of the console information for a node."""
-
-    console_enabled = types.boolean
-    """The console state: if the console is enabled or not."""
-
-    console_info = {str: types.jsontype}
-    """The console information. It typically includes the url to access the
-    console and the type of the application that hosts the console."""
-
-    @classmethod
-    def sample(cls):
-        console = {'type': 'shellinabox', 'url': 'http://<hostname>:4201'}
-        return cls(console_enabled=True, console_info=console)
-
-
 class NodeConsoleController(rest.RestController):
 
     @METRICS.timer('NodeConsoleController.get')
-    @expose.expose(ConsoleInfo, types.uuid_or_name)
+    @method.expose()
+    @args.validate(node_ident=args.uuid_or_name)
     def get(self, node_ident):
         """Get connection information about the console.
 
@@ -555,11 +633,11 @@ class NodeConsoleController(rest.RestController):
             console = None
             console_state = False
 
-        return ConsoleInfo(console_enabled=console_state, console_info=console)
+        return {'console_enabled': console_state, 'console_info': console}
 
     @METRICS.timer('NodeConsoleController.put')
-    @expose.expose(None, types.uuid_or_name, types.boolean,
-                   status_code=http_client.ACCEPTED)
+    @method.expose(status_code=http_client.ACCEPTED)
+    @args.validate(node_ident=args.uuid_or_name, enabled=args.boolean)
     def put(self, node_ident, enabled):
         """Start and stop the node console.
 
@@ -578,65 +656,19 @@ class NodeConsoleController(rest.RestController):
         api.response.location = link.build_url('nodes', url_args)
 
 
-class NodeStates(base.APIBase):
-    """API representation of the states of a node."""
-
-    console_enabled = types.boolean
-    """Indicates whether the console access is enabled or disabled on
-    the node."""
-
-    power_state = str
-    """Represent the current (not transition) power state of the node"""
-
-    provision_state = str
-    """Represent the current (not transition) provision state of the node"""
-
-    provision_updated_at = datetime.datetime
-    """The UTC date and time of the last provision state change"""
-
-    target_power_state = str
-    """The user modified desired power state of the node."""
-
-    target_provision_state = str
-    """The user modified desired provision state of the node."""
-
-    last_error = str
-    """Any error from the most recent (last) asynchronous transaction that
-    started but failed to finish."""
-
-    raid_config = atypes.wsattr({str: types.jsontype}, readonly=True)
-    """Represents the RAID configuration that the node is configured with."""
-
-    target_raid_config = atypes.wsattr({str: types.jsontype},
-                                       readonly=True)
-    """The desired RAID configuration, to be used the next time the node
-    is configured."""
-
-    @staticmethod
-    def convert(rpc_node):
-        attr_list = ['console_enabled', 'last_error', 'power_state',
-                     'provision_state', 'target_power_state',
-                     'target_provision_state', 'provision_updated_at']
-        if api_utils.allow_raid_config():
-            attr_list.extend(['raid_config', 'target_raid_config'])
-        states = NodeStates()
-        for attr in attr_list:
-            setattr(states, attr, getattr(rpc_node, attr))
-        update_state_in_older_versions(states)
-        return states
-
-    @classmethod
-    def sample(cls):
-        sample = cls(target_power_state=ir_states.POWER_ON,
-                     target_provision_state=ir_states.ACTIVE,
-                     last_error=None,
-                     console_enabled=False,
-                     provision_updated_at=None,
-                     power_state=ir_states.POWER_ON,
-                     provision_state=None,
-                     raid_config=None,
-                     target_raid_config=None)
-        return sample
+def node_states_convert(rpc_node):
+    attr_list = ['console_enabled', 'last_error', 'power_state',
+                 'provision_state', 'target_power_state',
+                 'target_provision_state', 'provision_updated_at']
+    if api_utils.allow_raid_config():
+        attr_list.extend(['raid_config', 'target_raid_config'])
+    states = {}
+    for attr in attr_list:
+        states[attr] = getattr(rpc_node, attr)
+        if isinstance(states[attr], datetime.datetime):
+            states[attr] = states[attr].isoformat()
+    update_state_in_older_versions(states)
+    return states
 
 
 class NodeStatesController(rest.RestController):
@@ -651,7 +683,8 @@ class NodeStatesController(rest.RestController):
     """Expose console as a sub-element of states"""
 
     @METRICS.timer('NodeStatesController.get')
-    @expose.expose(NodeStates, types.uuid_or_name)
+    @method.expose()
+    @args.validate(node_ident=args.uuid_or_name)
     def get(self, node_ident):
         """List the states of the node.
 
@@ -663,10 +696,13 @@ class NodeStatesController(rest.RestController):
         # NOTE(lucasagomes): All these state values come from the
         # DB. Ironic counts with a periodic task that verify the current
         # power states of the nodes and update the DB accordingly.
-        return NodeStates.convert(rpc_node)
+        return node_states_convert(rpc_node)
 
     @METRICS.timer('NodeStatesController.raid')
-    @expose.expose(None, types.uuid_or_name, body=types.jsontype)
+    @method.expose(status_code=http_client.NO_CONTENT)
+    @method.body('target_raid_config')
+    @args.validate(node_ident=args.uuid_or_name,
+                   target_raid_config=args.types(dict))
     def raid(self, node_ident, target_raid_config):
         """Set the target raid config of the node.
 
@@ -697,9 +733,9 @@ class NodeStatesController(rest.RestController):
             raise
 
     @METRICS.timer('NodeStatesController.power')
-    @expose.expose(None, types.uuid_or_name, str,
-                   atypes.IntegerType(minimum=1),
-                   status_code=http_client.ACCEPTED)
+    @method.expose(status_code=http_client.ACCEPTED)
+    @args.validate(node_ident=args.uuid_or_name, target=args.string,
+                   timeout=args.integer)
     def power(self, node_ident, target, timeout=None):
         """Set the power state of the node.
 
@@ -726,8 +762,6 @@ class NodeStatesController(rest.RestController):
         if ((target in [ir_states.SOFT_REBOOT, ir_states.SOFT_POWER_OFF]
              or timeout) and not api_utils.allow_soft_power_off()):
             raise exception.NotAcceptable()
-        # FIXME(naohirot): This check is workaround because
-        #                  atypes.IntegerType(minimum=1) is not effective
         if timeout is not None and timeout < 1:
             raise exception.Invalid(
                 _("timeout has to be positive integer"))
@@ -801,9 +835,11 @@ class NodeStatesController(rest.RestController):
             raise exception.InvalidStateRequested(message=msg)
 
     @METRICS.timer('NodeStatesController.provision')
-    @expose.expose(None, types.uuid_or_name, str,
-                   types.jsontype, types.jsontype, str,
-                   status_code=http_client.ACCEPTED)
+    @method.expose(status_code=http_client.ACCEPTED)
+    @args.validate(node_ident=args.uuid_or_name, target=args.string,
+                   configdrive=args.types(type(None), dict, str),
+                   clean_steps=args.types(type(None), list),
+                   rescue_password=args.string)
     def provision(self, node_ident, target, configdrive=None,
                   clean_steps=None, rescue_password=None):
         """Asynchronous trigger the provisioning of the node.
@@ -927,18 +963,6 @@ def _check_clean_steps(clean_steps):
                                               exc)
 
 
-class Traits(base.APIBase):
-    """API representation of the traits for a node."""
-
-    traits = atypes.ArrayType(str)
-    """node traits"""
-
-    @classmethod
-    def sample(cls):
-        traits = ["CUSTOM_TRAIT1", "CUSTOM_TRAIT2"]
-        return cls(traits=traits)
-
-
 def _get_chassis_uuid(node):
     """Return the UUID of a node's chassis, or None.
 
@@ -950,6 +974,24 @@ def _get_chassis_uuid(node):
         return
     chassis = objects.Chassis.get_by_id(api.request.context, node.chassis_id)
     return chassis.uuid
+
+
+def _replace_chassis_uuid_with_id(node_dict):
+    chassis_uuid = node_dict.pop('chassis_uuid', None)
+    if not chassis_uuid:
+        node_dict['chassis_id'] = None
+        return
+
+    try:
+        chassis = objects.Chassis.get_by_uuid(api.request.context,
+                                              chassis_uuid)
+        node_dict['chassis_id'] = chassis.id
+    except exception.ChassisNotFound as e:
+        # Change error code because 404 (NotFound) is inappropriate
+        # response for requests acting on nodes
+        e.code = http_client.BAD_REQUEST  # BadRequest
+        raise
+    return chassis
 
 
 def _make_trait_list(context, node_id, traits):
@@ -974,19 +1016,21 @@ class NodeTraitsController(rest.RestController):
         self.node_ident = node_ident
 
     @METRICS.timer('NodeTraitsController.get_all')
-    @expose.expose(Traits)
+    @method.expose()
     def get_all(self):
         """List node traits."""
         node = api_utils.check_node_policy_and_retrieve(
             'baremetal:node:traits:list', self.node_ident)
         traits = objects.TraitList.get_by_node_id(api.request.context,
                                                   node.id)
-        return Traits(traits=traits.get_trait_names())
+        return {'traits': traits.get_trait_names()}
 
     @METRICS.timer('NodeTraitsController.put')
-    @expose.expose(None, str, atypes.ArrayType(str),
-                   status_code=http_client.NO_CONTENT)
-    def put(self, trait=None, traits=None):
+    @method.expose(status_code=http_client.NO_CONTENT)
+    @method.body('body')
+    @args.validate(trait=args.schema(api_utils.TRAITS_SCHEMA),
+                   body=args.schema(TRAITS_SCHEMA))
+    def put(self, trait=None, body=None):
         """Add a trait to a node.
 
         :param trait: String value; trait to add to a node, or None. Mutually
@@ -998,6 +1042,10 @@ class NodeTraitsController(rest.RestController):
         context = api.request.context
         node = api_utils.check_node_policy_and_retrieve(
             'baremetal:node:traits:set', self.node_ident)
+
+        traits = None
+        if body and 'traits' in body:
+            traits = body['traits']
 
         if (trait and traits is not None) or not (trait or traits is not None):
             msg = _("A single node trait may be added via PUT "
@@ -1020,9 +1068,6 @@ class NodeTraitsController(rest.RestController):
             replace = True
             new_traits = set(traits)
 
-        for trait in traits:
-            api_utils.validate_trait(trait)
-
         # Update the node's traits to reflect the desired state.
         node.traits = _make_trait_list(context, node.id, sorted(new_traits))
         node.obj_reset_changes()
@@ -1043,8 +1088,8 @@ class NodeTraitsController(rest.RestController):
             api.response.location = link.build_url('nodes', url_args)
 
     @METRICS.timer('NodeTraitsController.delete')
-    @expose.expose(None, str,
-                   status_code=http_client.NO_CONTENT)
+    @method.expose(status_code=http_client.NO_CONTENT)
+    @args.validate(trait=args.string)
     def delete(self, trait=None):
         """Remove one or all traits from a node.
 
@@ -1082,500 +1127,208 @@ class NodeTraitsController(rest.RestController):
                                      chassis_uuid=chassis_uuid)
 
 
-class Node(base.APIBase):
-    """API representation of a bare metal node.
+def node_convert_with_links(rpc_node, fields=None, sanitize=True):
+    node = api_utils.object_to_dict(
+        rpc_node,
+        link_resource='nodes',
+        fields=(
+            'automated_clean',
+            'bios_interface',
+            'boot_interface',
+            'clean_step',
+            'conductor_group',
+            'console_interface',
+            'deploy_interface',
+            'deploy_step',
+            'description',
+            'driver',
+            'driver_info',
+            'driver_internal_info',
+            'extra',
+            'fault',
+            'inspect_interface',
+            'instance_info',
+            'instance_uuid',
+            'last_error',
+            'lessee',
+            'maintenance_reason',
+            'management_interface',
+            'name',
+            'network_data',
+            'network_interface',
+            'owner',
+            'power_interface',
+            'power_state',
+            'properties',
+            'protected_reason',
+            'provision_state',
+            'raid_config',
+            'raid_interface',
+            'rescue_interface',
+            'reservation',
+            'resource_class',
+            'retired_reason',
+            'storage_interface',
+            'target_power_state',
+            'target_provision_state',
+            'target_raid_config',
+            'vendor_interface'
+        ),
+        boolean_fields=('console_enabled', 'maintenance', 'protected',
+                        'retired'),
+        date_fields=('inspection_finished_at', 'inspection_started_at',
+                     'provision_updated_at'),
+    )
+    node['traits'] = rpc_node.traits.get_trait_names()
 
-    This class enforces type checking and value constraints, and converts
-    between the internal object model and the API representation of a node.
+    if (api_utils.allow_expose_conductors()
+            and (fields is None or 'conductor' in fields)):
+        # NOTE(kaifeng) It is possible a node gets orphaned in certain
+        # circumstances, set conductor to None in such case.
+        try:
+            host = api.request.rpcapi.get_conductor_for(rpc_node)
+            node['conductor'] = host
+        except (exception.NoValidHost, exception.TemporaryFailure):
+            LOG.debug('Currently there is no conductor servicing node '
+                      '%(node)s.', {'node': rpc_node.uuid})
+            node['conductor'] = None
+
+    if (api_utils.allow_allocations()
+            and (fields is None or 'allocation_uuid' in fields)):
+        node['allocation_uuid'] = None
+        if rpc_node.allocation_id:
+            try:
+                allocation = objects.Allocation.get_by_id(
+                    api.request.context,
+                    rpc_node.allocation_id)
+                node['allocation_uuid'] = allocation.uuid
+            except exception.AllocationNotFound:
+                pass
+
+    if fields is None or 'chassis_uuid' in fields:
+        node['chassis_uuid'] = _get_chassis_uuid(rpc_node)
+
+    if fields is not None:
+        api_utils.check_for_invalid_fields(
+            fields, set(node))
+
+    show_states_links = (
+        api_utils.allow_links_node_states_and_driver_properties())
+    show_portgroups = api_utils.allow_portgroups_subcontrollers()
+    show_volume = api_utils.allow_volume()
+
+    url = api.request.public_url
+
+    if fields is None:
+        node['ports'] = [link.make_link('self', url, 'nodes',
+                                        node['uuid'] + "/ports"),
+                         link.make_link('bookmark', url, 'nodes',
+                                        node['uuid'] + "/ports",
+                                        bookmark=True)]
+        if show_states_links:
+            node['states'] = [link.make_link('self', url, 'nodes',
+                                             node['uuid'] + "/states"),
+                              link.make_link('bookmark', url, 'nodes',
+                                             node['uuid'] + "/states",
+                                             bookmark=True)]
+        if show_portgroups:
+            node['portgroups'] = [
+                link.make_link('self', url, 'nodes',
+                               node['uuid'] + "/portgroups"),
+                link.make_link('bookmark', url, 'nodes',
+                               node['uuid'] + "/portgroups",
+                               bookmark=True)]
+
+        if show_volume:
+            node['volume'] = [
+                link.make_link('self', url, 'nodes',
+                               node['uuid'] + "/volume"),
+                link.make_link('bookmark', url, 'nodes',
+                               node['uuid'] + "/volume",
+                               bookmark=True)]
+
+    if not sanitize:
+        return node
+
+    node_sanitize(node, fields)
+
+    return node
+
+
+def node_sanitize(node, fields):
+    """Removes sensitive and unrequested data.
+
+    Will only keep the fields specified in the ``fields`` parameter.
+
+    :param fields:
+        list of fields to preserve, or ``None`` to preserve them all
+    :type fields: list of str
     """
-
-    _chassis_uuid = None
-
-    def _get_chassis_uuid(self):
-        return self._chassis_uuid
-
-    def _set_chassis_uuid(self, value):
-        if value in (atypes.Unset, None):
-            self._chassis_uuid = value
-        elif self._chassis_uuid != value:
-            try:
-                chassis = objects.Chassis.get(api.request.context, value)
-                self._chassis_uuid = chassis.uuid
-                # NOTE(lucasagomes): Create the chassis_id attribute on-the-fly
-                #                    to satisfy the api -> rpc object
-                #                    conversion.
-                self.chassis_id = chassis.id
-            except exception.ChassisNotFound as e:
-                # Change error code because 404 (NotFound) is inappropriate
-                # response for a POST request to create a Port
-                e.code = http_client.BAD_REQUEST
-                raise
-
-    uuid = types.uuid
-    """Unique UUID for this node"""
-
-    instance_uuid = types.uuid
-    """The UUID of the instance in nova-compute"""
-
-    name = atypes.wsattr(str)
-    """The logical name for this node"""
-
-    power_state = atypes.wsattr(str, readonly=True)
-    """Represent the current (not transition) power state of the node"""
-
-    target_power_state = atypes.wsattr(str, readonly=True)
-    """The user modified desired power state of the node."""
-
-    last_error = atypes.wsattr(str, readonly=True)
-    """Any error from the most recent (last) asynchronous transaction that
-    started but failed to finish."""
-
-    provision_state = atypes.wsattr(str, readonly=True)
-    """Represent the current (not transition) provision state of the node"""
-
-    reservation = atypes.wsattr(str, readonly=True)
-    """The hostname of the conductor that holds an exclusive lock on
-    the node."""
-
-    provision_updated_at = datetime.datetime
-    """The UTC date and time of the last provision state change"""
-
-    inspection_finished_at = datetime.datetime
-    """The UTC date and time when the last hardware inspection finished
-    successfully."""
-
-    inspection_started_at = datetime.datetime
-    """The UTC date and time when the hardware inspection was started"""
-
-    maintenance = types.boolean
-    """Indicates whether the node is in maintenance mode."""
-
-    maintenance_reason = atypes.wsattr(str, readonly=True)
-    """Indicates reason for putting a node in maintenance mode."""
-
-    fault = atypes.wsattr(str, readonly=True)
-    """Indicates the active fault of a node."""
-
-    target_provision_state = atypes.wsattr(str, readonly=True)
-    """The user modified desired provision state of the node."""
-
-    console_enabled = types.boolean
-    """Indicates whether the console access is enabled or disabled on
-    the node."""
-
-    instance_info = {str: types.jsontype}
-    """This node's instance info."""
-
-    driver = atypes.wsattr(str, mandatory=True)
-    """The driver responsible for controlling the node"""
-
-    driver_info = {str: types.jsontype}
-    """This node's driver configuration"""
-
-    driver_internal_info = atypes.wsattr({str: types.jsontype},
-                                         readonly=True)
-    """This driver's internal configuration"""
-
-    clean_step = atypes.wsattr({str: types.jsontype}, readonly=True)
-    """The current clean step"""
-
-    deploy_step = atypes.wsattr({str: types.jsontype}, readonly=True)
-    """The current deploy step"""
-
-    raid_config = atypes.wsattr({str: types.jsontype}, readonly=True)
-    """Represents the current RAID configuration of the node """
-
-    target_raid_config = atypes.wsattr({str: types.jsontype},
-                                       readonly=True)
-    """The user modified RAID configuration of the node """
-
-    extra = {str: types.jsontype}
-    """This node's meta data"""
-
-    resource_class = atypes.wsattr(atypes.StringType(max_length=80))
-    """The resource class for the node, useful for classifying or grouping
-       nodes. Used, for example, to classify nodes in Nova's placement
-       engine."""
-
-    # NOTE: properties should use a class to enforce required properties
-    #       current list: arch, cpus, disk, ram, image
-    properties = {str: types.jsontype}
-    """The physical characteristics of this node"""
-
-    chassis_uuid = atypes.wsproperty(types.uuid, _get_chassis_uuid,
-                                     _set_chassis_uuid)
-    """The UUID of the chassis this node belongs"""
-
-    links = None
-    """A list containing a self link and associated node links"""
-
-    ports = None
-    """Links to the collection of ports on this node"""
-
-    portgroups = None
-    """Links to the collection of portgroups on this node"""
-
-    volume = None
-    """Links to endpoint for retrieving volume resources on this node"""
-
-    states = None
-    """Links to endpoint for retrieving and setting node states"""
-
-    boot_interface = atypes.wsattr(str)
-    """The boot interface to be used for this node"""
-
-    console_interface = atypes.wsattr(str)
-    """The console interface to be used for this node"""
-
-    deploy_interface = atypes.wsattr(str)
-    """The deploy interface to be used for this node"""
-
-    inspect_interface = atypes.wsattr(str)
-    """The inspect interface to be used for this node"""
-
-    management_interface = atypes.wsattr(str)
-    """The management interface to be used for this node"""
-
-    network_interface = atypes.wsattr(str)
-    """The network interface to be used for this node"""
-
-    power_interface = atypes.wsattr(str)
-    """The power interface to be used for this node"""
-
-    raid_interface = atypes.wsattr(str)
-    """The raid interface to be used for this node"""
-
-    rescue_interface = atypes.wsattr(str)
-    """The rescue interface to be used for this node"""
-
-    storage_interface = atypes.wsattr(str)
-    """The storage interface to be used for this node"""
-
-    vendor_interface = atypes.wsattr(str)
-    """The vendor interface to be used for this node"""
-
-    traits = atypes.ArrayType(str)
-    """The traits associated with this node"""
-
-    bios_interface = atypes.wsattr(str)
-    """The bios interface to be used for this node"""
-
-    conductor_group = atypes.wsattr(str)
-    """The conductor group to manage this node"""
-
-    automated_clean = types.boolean
-    """Indicates whether the node will perform automated clean or not."""
-
-    protected = types.boolean
-    """Indicates whether the node is protected from undeploying/rebuilding."""
-
-    protected_reason = atypes.wsattr(str)
-    """Indicates reason for protecting the node."""
-
-    conductor = atypes.wsattr(str, readonly=True)
-    """Represent the conductor currently serving the node"""
-
-    owner = atypes.wsattr(str)
-    """Field for storage of physical node owner"""
-
-    lessee = atypes.wsattr(str)
-    """Field for storage of physical node lessee"""
-
-    description = atypes.wsattr(str)
-    """Field for node description"""
-
-    allocation_uuid = atypes.wsattr(types.uuid, readonly=True)
-    """The UUID of the allocation this node belongs"""
-
-    retired = types.boolean
-    """Indicates whether the node is marked for retirement."""
-
-    retired_reason = atypes.wsattr(str)
-    """Indicates the reason for a node's retirement."""
-
-    network_data = atypes.wsattr({str: types.jsontype})
-    """Static network configuration JSON ironic will hand over to the node."""
-
-    # NOTE(tenbrae): "conductor_affinity" shouldn't be presented on the
-    #                API because it's an internal value. Don't add it here.
-
-    def __init__(self, **kwargs):
-        self.fields = []
-        fields = list(objects.Node.fields)
-        # NOTE(lucasagomes): chassis_uuid is not part of objects.Node.fields
-        # because it's an API-only attribute.
-        fields.append('chassis_uuid')
-        # NOTE(kaifeng) conductor is not part of objects.Node.fields too.
-        fields.append('conductor')
-        for k in fields:
-            # Add fields we expose.
-            if hasattr(self, k):
-                self.fields.append(k)
-                # TODO(jroll) is there a less hacky way to do this?
-                if k == 'traits' and kwargs.get('traits') is not None:
-                    value = [t['trait'] for t in kwargs['traits']['objects']]
-                # NOTE(jroll) this is special-cased to "" and not Unset,
-                # because it is used in hash ring calculations
-                elif (k == 'conductor_group'
-                      and (k not in kwargs or kwargs[k] is atypes.Unset)):
-                    value = ''
-                else:
-                    value = kwargs.get(k, atypes.Unset)
-                setattr(self, k, value)
-
-        # NOTE(lucasagomes): chassis_id is an attribute created on-the-fly
-        # by _set_chassis_uuid(), it needs to be present in the fields so
-        # that as_dict() will contain chassis_id field when converting it
-        # before saving it in the database.
-        self.fields.append('chassis_id')
-        if 'chassis_uuid' not in kwargs:
-            setattr(self, 'chassis_uuid', kwargs.get('chassis_id',
-                                                     atypes.Unset))
-
-    @staticmethod
-    def _convert_with_links(node, url, fields=None, show_states_links=True,
-                            show_portgroups=True, show_volume=True):
-        if fields is None:
-            node.ports = [link.make_link('self', url, 'nodes',
-                                         node.uuid + "/ports"),
-                          link.make_link('bookmark', url, 'nodes',
-                                         node.uuid + "/ports",
-                                         bookmark=True)
-                          ]
-            if show_states_links:
-                node.states = [link.make_link('self', url, 'nodes',
-                                              node.uuid + "/states"),
-                               link.make_link('bookmark', url, 'nodes',
-                                              node.uuid + "/states",
-                                              bookmark=True)]
-            if show_portgroups:
-                node.portgroups = [
-                    link.make_link('self', url, 'nodes',
-                                   node.uuid + "/portgroups"),
-                    link.make_link('bookmark', url, 'nodes',
-                                   node.uuid + "/portgroups",
-                                   bookmark=True)]
-
-            if show_volume:
-                node.volume = [
-                    link.make_link('self', url, 'nodes',
-                                   node.uuid + "/volume"),
-                    link.make_link('bookmark', url, 'nodes',
-                                   node.uuid + "/volume",
-                                   bookmark=True)]
-
-        node.links = [link.make_link('self', url, 'nodes',
-                                     node.uuid),
-                      link.make_link('bookmark', url, 'nodes',
-                                     node.uuid, bookmark=True)
-                      ]
-        return node
-
-    @classmethod
-    def convert_with_links(cls, rpc_node, fields=None, sanitize=True):
-        node = Node(**rpc_node.as_dict())
-
-        if (api_utils.allow_expose_conductors()
-                and (fields is None or 'conductor' in fields)):
-            # NOTE(kaifeng) It is possible a node gets orphaned in certain
-            # circumstances, set conductor to None in such case.
-            try:
-                host = api.request.rpcapi.get_conductor_for(rpc_node)
-                node.conductor = host
-            except (exception.NoValidHost, exception.TemporaryFailure):
-                LOG.debug('Currently there is no conductor servicing node '
-                          '%(node)s.', {'node': rpc_node.uuid})
-                node.conductor = None
-
-        if (api_utils.allow_allocations()
-                and (fields is None or 'allocation_uuid' in fields)):
-            node.allocation_uuid = None
-            if rpc_node.allocation_id:
-                try:
-                    allocation = objects.Allocation.get_by_id(
-                        api.request.context,
-                        rpc_node.allocation_id)
-                    node.allocation_uuid = allocation.uuid
-                except exception.AllocationNotFound:
-                    pass
-
-        if fields is not None:
-            api_utils.check_for_invalid_fields(
-                fields, set(node.as_dict()) | {'allocation_uuid'})
-
-        show_states_links = (
-            api_utils.allow_links_node_states_and_driver_properties())
-        show_portgroups = api_utils.allow_portgroups_subcontrollers()
-        show_volume = api_utils.allow_volume()
-
-        node = cls._convert_with_links(node, api.request.public_url,
-                                       fields=fields,
-                                       show_states_links=show_states_links,
-                                       show_portgroups=show_portgroups,
-                                       show_volume=show_volume)
-        if not sanitize:
-            return node
-
-        node.sanitize(fields)
-
-        return node
-
-    def sanitize(self, fields):
-        """Removes sensitive and unrequested data.
-
-        Will only keep the fields specified in the ``fields`` parameter.
-
-        :param fields:
-            list of fields to preserve, or ``None`` to preserve them all
-        :type fields: list of str
-        """
-        cdict = api.request.context.to_policy_values()
-        # NOTE(tenbrae): the 'show_password' policy setting name exists for
-        #             legacy purposes and can not be changed. Changing it will
-        #             cause upgrade problems for any operators who have
-        #             customized the value of this field
-        show_driver_secrets = policy.check("show_password", cdict, cdict)
-        show_instance_secrets = policy.check("show_instance_secrets",
-                                             cdict, cdict)
-
-        if not show_driver_secrets and self.driver_info != atypes.Unset:
-            self.driver_info = strutils.mask_dict_password(
-                self.driver_info, "******")
-
-            # NOTE(derekh): mask ssh keys for the ssh power driver.
-            # As this driver is deprecated masking here (opposed to strutils)
-            # is simpler, and easier to backport. This can be removed along
-            # with support for the ssh power driver.
-            if self.driver_info.get('ssh_key_contents'):
-                self.driver_info['ssh_key_contents'] = "******"
-
-        if not show_instance_secrets and self.instance_info != atypes.Unset:
-            self.instance_info = strutils.mask_dict_password(
-                self.instance_info, "******")
-            # NOTE(tenbrae): agent driver may store a swift temp_url on the
-            # instance_info, which shouldn't be exposed to non-admin users.
-            # Now that ironic supports additional policies, we need to hide
-            # it here, based on this policy.
-            # Related to bug #1613903
-            if self.instance_info.get('image_url'):
-                self.instance_info['image_url'] = "******"
-
-        if self.driver_internal_info.get('agent_secret_token'):
-            self.driver_internal_info['agent_secret_token'] = "******"
-
-        update_state_in_older_versions(self)
-        hide_fields_in_newer_versions(self)
-
-        if fields is not None:
-            self.unset_fields_except(fields)
-
-        # NOTE(lucasagomes): The numeric ID should not be exposed to
-        #                    the user, it's internal only.
-        self.chassis_id = atypes.Unset
-
-        show_states_links = (
-            api_utils.allow_links_node_states_and_driver_properties())
-        show_portgroups = api_utils.allow_portgroups_subcontrollers()
-        show_volume = api_utils.allow_volume()
-
-        if not show_volume:
-            self.volume = atypes.Unset
-        if not show_portgroups:
-            self.portgroups = atypes.Unset
-        if not show_states_links:
-            self.states = atypes.Unset
-
-    @classmethod
-    def sample(cls, expand=True):
-        time = datetime.datetime(2000, 1, 1, 12, 0, 0)
-        node_uuid = '1be26c0b-03f2-4d2e-ae87-c02d7f33c123'
-        instance_uuid = 'dcf1fbc5-93fc-4596-9395-b80572f6267b'
-        name = 'database16-dc02'
-        sample = cls(uuid=node_uuid, instance_uuid=instance_uuid,
-                     name=name, power_state=ir_states.POWER_ON,
-                     target_power_state=ir_states.NOSTATE,
-                     last_error=None, provision_state=ir_states.ACTIVE,
-                     target_provision_state=ir_states.NOSTATE,
-                     reservation=None, driver='fake', driver_info={},
-                     driver_internal_info={}, extra={},
-                     properties={
-                         'memory_mb': '1024', 'local_gb': '10', 'cpus': '1'},
-                     updated_at=time, created_at=time,
-                     provision_updated_at=time, instance_info={},
-                     maintenance=False, maintenance_reason=None, fault=None,
-                     inspection_finished_at=None, inspection_started_at=time,
-                     console_enabled=False, clean_step={}, deploy_step={},
-                     raid_config=None, target_raid_config=None,
-                     network_interface='flat', resource_class='baremetal-gold',
-                     boot_interface=None, console_interface=None,
-                     deploy_interface=None, inspect_interface=None,
-                     management_interface=None, power_interface=None,
-                     raid_interface=None, vendor_interface=None,
-                     storage_interface=None, traits=[], rescue_interface=None,
-                     bios_interface=None, conductor_group="",
-                     automated_clean=None, protected=False,
-                     protected_reason=None, owner=None,
-                     allocation_uuid='982ddb5b-bce5-4d23-8fb8-7f710f648cd5',
-                     retired=False, retired_reason=None, lessee=None,
-                     network_data={})
-
-        # NOTE(matty_dubs): The chassis_uuid getter() is based on the
-        # _chassis_uuid variable:
-        sample._chassis_uuid = 'edcad704-b2da-41d5-96d9-afd580ecfa12'
-        fields = None if expand else _DEFAULT_RETURN_FIELDS
-        return cls._convert_with_links(sample, 'http://localhost:6385',
-                                       fields=fields)
-
-
-class NodePatchType(types.JsonPatchType):
-
-    _api_base = Node
-
-    @staticmethod
-    def internal_attrs():
-        defaults = types.JsonPatchType.internal_attrs()
-        # TODO(lucasagomes): Include maintenance once the endpoint
-        # v1/nodes/<uuid>/maintenance do more things than updating the DB.
-        return defaults + ['/console_enabled', '/last_error',
-                           '/power_state', '/provision_state', '/reservation',
-                           '/target_power_state', '/target_provision_state',
-                           '/provision_updated_at', '/maintenance_reason',
-                           '/driver_internal_info', '/inspection_finished_at',
-                           '/inspection_started_at', '/clean_step',
-                           '/deploy_step',
-                           '/raid_config', '/target_raid_config',
-                           '/fault', '/conductor', '/allocation_uuid']
-
-
-class NodeCollection(collection.Collection):
-    """API representation of a collection of nodes."""
-
-    nodes = [Node]
-    """A list containing nodes objects"""
-
-    def __init__(self, **kwargs):
-        self._type = 'nodes'
-
-    @staticmethod
-    def convert_with_links(nodes, limit, url=None, fields=None, **kwargs):
-        collection = NodeCollection()
-        collection.nodes = [Node.convert_with_links(n, fields=fields,
-                                                    sanitize=False)
-                            for n in nodes]
-        collection.next = collection.get_next(limit, url=url, fields=fields,
-                                              **kwargs)
-
-        for node in collection.nodes:
-            node.sanitize(fields)
-
-        return collection
-
-    @classmethod
-    def sample(cls):
-        sample = cls()
-        node = Node.sample(expand=False)
-        sample.nodes = [node]
-        return sample
+    cdict = api.request.context.to_policy_values()
+    # NOTE(tenbrae): the 'show_password' policy setting name exists for
+    #             legacy purposes and can not be changed. Changing it will
+    #             cause upgrade problems for any operators who have
+    #             customized the value of this field
+    show_driver_secrets = policy.check("show_password", cdict, cdict)
+    show_instance_secrets = policy.check("show_instance_secrets",
+                                         cdict, cdict)
+
+    if not show_driver_secrets and node.get('driver_info'):
+        node['driver_info'] = strutils.mask_dict_password(
+            node['driver_info'], "******")
+
+        # NOTE(derekh): mask ssh keys for the ssh power driver.
+        # As this driver is deprecated masking here (opposed to strutils)
+        # is simpler, and easier to backport. This can be removed along
+        # with support for the ssh power driver.
+        if node['driver_info'].get('ssh_key_contents'):
+            node['driver_info']['ssh_key_contents'] = "******"
+
+    if not show_instance_secrets and node.get('instance_info'):
+        node['instance_info'] = strutils.mask_dict_password(
+            node['instance_info'], "******")
+        # NOTE(tenbrae): agent driver may store a swift temp_url on the
+        # instance_info, which shouldn't be exposed to non-admin users.
+        # Now that ironic supports additional policies, we need to hide
+        # it here, based on this policy.
+        # Related to bug #1613903
+        if node['instance_info'].get('image_url'):
+            node['instance_info']['image_url'] = "******"
+
+    if node.get('driver_internal_info', {}).get('agent_secret_token'):
+        node['driver_internal_info']['agent_secret_token'] = "******"
+
+    update_state_in_older_versions(node)
+    hide_fields_in_newer_versions(node)
+
+    api_utils.sanitize_dict(node, fields)
+
+    show_states_links = (
+        api_utils.allow_links_node_states_and_driver_properties())
+    show_portgroups = api_utils.allow_portgroups_subcontrollers()
+    show_volume = api_utils.allow_volume()
+
+    if not show_volume:
+        node.pop('volume', None)
+    if not show_portgroups:
+        node.pop('portgroups', None)
+    if not show_states_links:
+        node.pop('states', None)
+
+
+def node_list_convert_with_links(nodes, limit, url=None, fields=None,
+                                 **kwargs):
+    return collection.list_convert_with_links(
+        items=[node_convert_with_links(n, fields=fields,
+                                       sanitize=False)
+               for n in nodes],
+        item_name='nodes',
+        limit=limit,
+        url=url,
+        fields=fields,
+        sanitize_func=node_sanitize,
+        **kwargs
+    )
 
 
 class NodeVendorPassthruController(rest.RestController):
@@ -1591,7 +1344,8 @@ class NodeVendorPassthruController(rest.RestController):
     }
 
     @METRICS.timer('NodeVendorPassthruController.methods')
-    @expose.expose(str, types.uuid_or_name)
+    @method.expose()
+    @args.validate(node_ident=args.uuid_or_name)
     def methods(self, node_ident):
         """Retrieve information about vendor methods of the given node.
 
@@ -1613,8 +1367,9 @@ class NodeVendorPassthruController(rest.RestController):
         return _VENDOR_METHODS[rpc_node.driver]
 
     @METRICS.timer('NodeVendorPassthruController._default')
-    @expose.expose(str, types.uuid_or_name, str,
-                   body=str)
+    @method.expose()
+    @method.body('data')
+    @args.validate(node_ident=args.uuid_or_name, method=args.string)
     def _default(self, node_ident, method, data=None):
         """Call a vendor extension.
 
@@ -1627,8 +1382,10 @@ class NodeVendorPassthruController(rest.RestController):
 
         # Raise an exception if node is not found
         topic = api.request.rpcapi.get_topic_for(rpc_node)
-        return api_utils.vendor_passthru(rpc_node.uuid, method, topic,
+        resp = api_utils.vendor_passthru(rpc_node.uuid, method, topic,
                                          data=data)
+        api.response.status_code = resp.status_code
+        return resp.obj
 
 
 class NodeMaintenanceController(rest.RestController):
@@ -1651,8 +1408,8 @@ class NodeMaintenanceController(rest.RestController):
         notify.emit_end_notification(context, new_node, 'maintenance_set')
 
     @METRICS.timer('NodeMaintenanceController.put')
-    @expose.expose(None, types.uuid_or_name, str,
-                   status_code=http_client.ACCEPTED)
+    @method.expose(status_code=http_client.ACCEPTED)
+    @args.validate(node_ident=args.uuid_or_name, reason=args.string)
     def put(self, node_ident, reason=None):
         """Put the node in maintenance mode.
 
@@ -1666,7 +1423,8 @@ class NodeMaintenanceController(rest.RestController):
         self._set_maintenance(rpc_node, True, reason=reason)
 
     @METRICS.timer('NodeMaintenanceController.delete')
-    @expose.expose(None, types.uuid_or_name, status_code=http_client.ACCEPTED)
+    @method.expose(status_code=http_client.ACCEPTED)
+    @args.validate(node_ident=args.uuid_or_name)
     def delete(self, node_ident):
         """Remove the node from maintenance mode.
 
@@ -1677,21 +1435,6 @@ class NodeMaintenanceController(rest.RestController):
             'baremetal:node:clear_maintenance', node_ident)
 
         self._set_maintenance(rpc_node, False)
-
-
-# NOTE(vsaienko) We don't support pagination with VIFs, so we don't use
-# collection.Collection here.
-class VifCollection(base.Base):
-    """API representation of a collection of VIFs. """
-
-    vifs = [types.viftype]
-    """A list containing VIFs objects"""
-
-    @staticmethod
-    def collection_from_list(vifs):
-        col = VifCollection()
-        col.vifs = [types.VifType.frombasetype(vif) for vif in vifs]
-        return col
 
 
 class NodeVIFController(rest.RestController):
@@ -1709,17 +1452,18 @@ class NodeVIFController(rest.RestController):
             raise
 
     @METRICS.timer('NodeVIFController.get_all')
-    @expose.expose(VifCollection)
+    @method.expose()
     def get_all(self):
         """Get a list of attached VIFs"""
         rpc_node, topic = self._get_node_and_topic('baremetal:node:vif:list')
         vifs = api.request.rpcapi.vif_list(api.request.context,
                                            rpc_node.uuid, topic=topic)
-        return VifCollection.collection_from_list(vifs)
+        return {'vifs': vifs}
 
     @METRICS.timer('NodeVIFController.post')
-    @expose.expose(None, body=types.viftype,
-                   status_code=http_client.NO_CONTENT)
+    @method.expose(status_code=http_client.NO_CONTENT)
+    @method.body('vif')
+    @args.validate(vif=VIF_VALIDATOR)
     def post(self, vif):
         """Attach a VIF to this node
 
@@ -1736,8 +1480,8 @@ class NodeVIFController(rest.RestController):
                                       vif_info=vif, topic=topic)
 
     @METRICS.timer('NodeVIFController.delete')
-    @expose.expose(None, types.uuid_or_name,
-                   status_code=http_client.NO_CONTENT)
+    @method.expose(status_code=http_client.NO_CONTENT)
+    @args.validate(vif_id=args.uuid_or_name)
     def delete(self, vif_id):
         """Detach a VIF from this node
 
@@ -1797,9 +1541,13 @@ class NodesController(rest.RestController):
 
     @pecan.expose()
     def _lookup(self, ident, *remainder):
+
+        if ident in self._subcontroller_map:
+            pecan.abort(http_client.NOT_FOUND)
+
         try:
-            ident = types.uuid_or_name.validate(ident)
-        except exception.InvalidUuidOrName as e:
+            ident = args.uuid_or_name('node', ident)
+        except exception.InvalidParameterValue as e:
             pecan.abort(http_client.BAD_REQUEST, e.args[0])
         if not remainder:
             return
@@ -1914,10 +1662,10 @@ class NodesController(rest.RestController):
         if detail is not None:
             parameters['detail'] = detail
 
-        return NodeCollection.convert_with_links(nodes, limit,
-                                                 url=resource_url,
-                                                 fields=fields,
-                                                 **parameters)
+        return node_list_convert_with_links(nodes, limit,
+                                            url=resource_url,
+                                            fields=fields,
+                                            **parameters)
 
     def _get_nodes_by_instance(self, instance_uuid):
         """Retrieve a node by its instance uuid.
@@ -1963,36 +1711,31 @@ class NodesController(rest.RestController):
         """Update rpc_node based on changed fields in a node.
 
         """
+
+        original_chassis_id = rpc_node.chassis_id
+        chassis = _replace_chassis_uuid_with_id(node)
+
+        # conductor_group is case-insensitive, and we use it to
+        # calculate the conductor to send an update too. lowercase
+        # it here instead of just before saving so we calculate
+        # correctly.
+        node['conductor_group'] = node['conductor_group'].lower()
+
+        # Node object protected field is not nullable
+        if node.get('protected') is None:
+            node['protected'] = False
+
         # NOTE(mgoddard): Traits cannot be updated via a node PATCH.
-        fields = set(objects.Node.fields) - {'traits'}
-        for field in fields:
-            try:
-                patch_val = getattr(node, field)
-            except AttributeError:
-                # Ignore fields that aren't exposed in the API, except
-                # chassis_id. chassis_id would have been set (instead of
-                # chassis_uuid) if the node belongs to a chassis. This
-                # AttributeError is raised for chassis_id only if
-                # 1. the node doesn't belong to a chassis or
-                # 2. the node belonged to a chassis but is now being removed
-                # from the chassis.
-                if (field == "chassis_id" and rpc_node[field] is not None):
-                    if not api_utils.allow_remove_chassis_uuid():
-                        raise exception.NotAcceptable()
-                    rpc_node[field] = None
-                continue
-            if patch_val == atypes.Unset:
-                patch_val = None
-            # conductor_group is case-insensitive, and we use it to calculate
-            # the conductor to send an update too. lowercase it here instead
-            # of just before saving so we calculate correctly.
-            if field == 'conductor_group':
-                patch_val = patch_val.lower()
-            # Node object protected field is not nullable
-            if field == 'protected' and patch_val is None:
-                patch_val = False
-            if rpc_node[field] != patch_val:
-                rpc_node[field] = patch_val
+        api_utils.patch_update_changed_fields(
+            node, rpc_node,
+            fields=set(objects.Node.fields) - {'traits'},
+            schema=NODE_PATCH_SCHEMA,
+            id_map={'chassis_id': chassis and chassis.id or None}
+        )
+
+        if original_chassis_id and not rpc_node.chassis_id:
+            if not api_utils.allow_remove_chassis_uuid():
+                raise exception.NotAcceptable()
 
     def _check_driver_changed_and_console_enabled(self, rpc_node, node_ident):
         """Checks if the driver and the console is enabled in a node.
@@ -2012,11 +1755,17 @@ class NodesController(rest.RestController):
                 status_code=http_client.CONFLICT)
 
     @METRICS.timer('NodesController.get_all')
-    @expose.expose(NodeCollection, types.uuid, types.uuid, types.boolean,
-                   types.boolean, types.boolean, str, types.uuid, int, str,
-                   str, str, types.listtype, str,
-                   str, str, types.boolean, str,
-                   str, str, str, str)
+    @method.expose()
+    @args.validate(chassis_uuid=args.uuid, instance_uuid=args.uuid,
+                   associated=args.boolean, maintenance=args.boolean,
+                   retired=args.boolean, provision_state=args.string,
+                   marker=args.uuid, limit=args.integer, sort_key=args.string,
+                   sort_dir=args.string, driver=args.string,
+                   fields=args.string_list, resource_class=args.string,
+                   fault=args.string, conductor_group=args.string,
+                   detail=args.boolean, conductor=args.string,
+                   owner=args.string, description_contains=args.string,
+                   lessee=args.string, project=args.string)
     def get_all(self, chassis_uuid=None, instance_uuid=None, associated=None,
                 maintenance=None, retired=None, provision_state=None,
                 marker=None, limit=None, sort_key='id', sort_dir='asc',
@@ -2101,11 +1850,16 @@ class NodesController(rest.RestController):
                                           **extra_args)
 
     @METRICS.timer('NodesController.detail')
-    @expose.expose(NodeCollection, types.uuid, types.uuid, types.boolean,
-                   types.boolean, types.boolean, str, types.uuid, int, str,
-                   str, str, str, str,
-                   str, str, str, str,
-                   str, str)
+    @method.expose()
+    @args.validate(chassis_uuid=args.uuid, instance_uuid=args.uuid,
+                   associated=args.boolean, maintenance=args.boolean,
+                   retired=args.boolean, provision_state=args.string,
+                   marker=args.uuid, limit=args.integer, sort_key=args.string,
+                   sort_dir=args.string, driver=args.string,
+                   resource_class=args.string, fault=args.string,
+                   conductor_group=args.string, conductor=args.string,
+                   owner=args.string, description_contains=args.string,
+                   lessee=args.string, project=args.string)
     def detail(self, chassis_uuid=None, instance_uuid=None, associated=None,
                maintenance=None, retired=None, provision_state=None,
                marker=None, limit=None, sort_key='id', sort_dir='asc',
@@ -2186,7 +1940,8 @@ class NodesController(rest.RestController):
                                           **extra_args)
 
     @METRICS.timer('NodesController.validate')
-    @expose.expose(str, types.uuid_or_name, types.uuid)
+    @method.expose()
+    @args.validate(node=args.uuid_or_name, node_uuid=args.uuid)
     def validate(self, node=None, node_uuid=None):
         """Validate the driver interfaces, using the node's UUID or name.
 
@@ -2211,7 +1966,8 @@ class NodesController(rest.RestController):
             api.request.context, rpc_node.uuid, topic)
 
     @METRICS.timer('NodesController.get_one')
-    @expose.expose(Node, types.uuid_or_name, types.listtype)
+    @method.expose()
+    @args.validate(node_ident=args.uuid_or_name, fields=args.string_list)
     def get_one(self, node_ident, fields=None):
         """Retrieve information about the given node.
 
@@ -2228,10 +1984,12 @@ class NodesController(rest.RestController):
         api_utils.check_allow_specify_fields(fields)
         api_utils.check_allowed_fields(fields)
 
-        return Node.convert_with_links(rpc_node, fields=fields)
+        return node_convert_with_links(rpc_node, fields=fields)
 
     @METRICS.timer('NodesController.post')
-    @expose.expose(Node, body=Node, status_code=http_client.CREATED)
+    @method.expose(status_code=http_client.CREATED)
+    @method.body('node')
+    @args.validate(node=NODE_VALIDATOR)
     def post(self, node):
         """Create a new node.
 
@@ -2244,45 +2002,35 @@ class NodesController(rest.RestController):
         cdict = context.to_policy_values()
         policy.authorize('baremetal:node:create', cdict, cdict)
 
-        if node.conductor is not atypes.Unset:
-            msg = _("Cannot specify conductor on node creation.")
-            raise exception.Invalid(msg)
-
         reject_fields_in_newer_versions(node)
-
-        if node.traits is not atypes.Unset:
-            msg = _("Cannot specify node traits on node creation. Traits must "
-                    "be set via the node traits API.")
-            raise exception.Invalid(msg)
-
-        if (node.protected is not atypes.Unset
-                or node.protected_reason is not atypes.Unset):
-            msg = _("Cannot specify protected or protected_reason on node "
-                    "creation. These fields can only be set for active nodes")
-            raise exception.Invalid(msg)
-
-        if (node.description is not atypes.Unset
-                and len(node.description) > _NODE_DESCRIPTION_MAX_LENGTH):
-            msg = _("Cannot create node with description exceeding %s "
-                    "characters") % _NODE_DESCRIPTION_MAX_LENGTH
-            raise exception.Invalid(msg)
-
-        if node.allocation_uuid is not atypes.Unset:
-            msg = _("Allocation UUID cannot be specified, use allocations API")
-            raise exception.Invalid(msg)
-
-        if node.network_data is not atypes.Unset:
-            validate_network_data(node.network_data)
 
         # NOTE(tenbrae): get_topic_for checks if node.driver is in the hash
         #             ring and raises NoValidHost if it is not.
         #             We need to ensure that node has a UUID before it can
         #             be mapped onto the hash ring.
-        if not node.uuid:
-            node.uuid = uuidutils.generate_uuid()
+        if not node.get('uuid'):
+            node['uuid'] = uuidutils.generate_uuid()
+
+        # NOTE(jroll) this is special-cased to "" and not None,
+        # because it is used in hash ring calculations
+        if not node.get('conductor_group'):
+            node['conductor_group'] = ''
+
+        if node.get('name') is not None:
+            error_msg = _("Cannot create node with invalid name '%(name)s'")
+            self._check_names_acceptable([node['name']], error_msg)
+        node['provision_state'] = api_utils.initial_node_provision_state()
+
+        if not node.get('resource_class'):
+            node['resource_class'] = CONF.default_resource_class
+
+        chassis = _replace_chassis_uuid_with_id(node)
+        chassis_uuid = chassis and chassis.uuid or None
+
+        new_node = objects.Node(context, **node)
 
         try:
-            topic = api.request.rpcapi.get_topic_for(node)
+            topic = api.request.rpcapi.get_topic_for(new_node)
         except exception.NoValidHost as e:
             # NOTE(tenbrae): convert from 404 to 400 because client can see
             #             list of available drivers and shouldn't request
@@ -2290,31 +2038,25 @@ class NodesController(rest.RestController):
             e.code = http_client.BAD_REQUEST
             raise
 
-        if node.name != atypes.Unset and node.name is not None:
-            error_msg = _("Cannot create node with invalid name '%(name)s'")
-            self._check_names_acceptable([node.name], error_msg)
-        node.provision_state = api_utils.initial_node_provision_state()
-
-        if not node.resource_class:
-            node.resource_class = CONF.default_resource_class
-
-        new_node = objects.Node(context, **node.as_dict())
         notify.emit_start_notification(context, new_node, 'create',
-                                       chassis_uuid=node.chassis_uuid)
+                                       chassis_uuid=chassis_uuid)
         with notify.handle_error_notification(context, new_node, 'create',
-                                              chassis_uuid=node.chassis_uuid):
+                                              chassis_uuid=chassis_uuid):
             new_node = api.request.rpcapi.create_node(context,
                                                       new_node, topic)
         # Set the HTTP Location Header
         api.response.location = link.build_url('nodes', new_node.uuid)
-        api_node = Node.convert_with_links(new_node)
+        api_node = node_convert_with_links(new_node)
+        chassis_uuid = api_node.get('chassis_uuid')
         notify.emit_end_notification(context, new_node, 'create',
-                                     chassis_uuid=api_node.chassis_uuid)
+                                     chassis_uuid=chassis_uuid)
         return api_node
 
     def _validate_patch(self, patch, reset_interfaces):
         if self.from_chassis:
             raise exception.OperationNotPermitted()
+
+        api_utils.patch_validate_allowed_fields(patch, PATCH_ALLOWED_FIELDS)
 
         reject_patch_in_newer_versions(patch)
 
@@ -2362,9 +2104,10 @@ class NodesController(rest.RestController):
             policy_checks, node_ident, with_suffix=True)
 
     @METRICS.timer('NodesController.patch')
-    @expose.validate(types.uuid, types.boolean, [NodePatchType])
-    @expose.expose(Node, types.uuid_or_name, types.boolean,
-                   body=[NodePatchType])
+    @method.expose()
+    @method.body('patch')
+    @args.validate(node_ident=args.uuid_or_name, reset_interfaces=args.boolean,
+                   patch=args.patch)
     def patch(self, node_ident, reset_interfaces=None, patch=None):
         """Update an existing node.
 
@@ -2446,9 +2189,15 @@ class NodesController(rest.RestController):
         # 1) Remove chassis_id because it's an internal value and
         #    not present in the API object
         # 2) Add chassis_uuid
-        node_dict['chassis_uuid'] = node_dict.pop('chassis_id', None)
-        node = Node(**api_utils.apply_jsonpatch(node_dict, patch))
-        self._update_changed_fields(node, rpc_node)
+        node_dict['chassis_uuid'] = _get_chassis_uuid(rpc_node)
+
+        node_dict = api_utils.apply_jsonpatch(node_dict, patch)
+
+        api_utils.patched_validate_with_schema(
+            node_dict, NODE_PATCH_SCHEMA, NODE_PATCH_VALIDATOR)
+
+        self._update_changed_fields(node_dict, rpc_node)
+
         # NOTE(tenbrae): we calculate the rpc topic here in case node.driver
         #             has changed, so that update is sent to the
         #             new conductor, not the old one which may fail to
@@ -2463,28 +2212,35 @@ class NodesController(rest.RestController):
             raise
         self._check_driver_changed_and_console_enabled(rpc_node, node_ident)
 
+        chassis_uuid = _get_chassis_uuid(rpc_node)
         notify.emit_start_notification(context, rpc_node, 'update',
-                                       chassis_uuid=node.chassis_uuid)
+                                       chassis_uuid=chassis_uuid)
         with notify.handle_error_notification(context, rpc_node, 'update',
-                                              chassis_uuid=node.chassis_uuid):
+                                              chassis_uuid=chassis_uuid):
             new_node = api.request.rpcapi.update_node(context,
                                                       rpc_node, topic,
                                                       reset_interfaces)
 
-        api_node = Node.convert_with_links(new_node)
+        api_node = node_convert_with_links(new_node)
+        chassis_uuid = api_node.get('chassis_uuid')
         notify.emit_end_notification(context, new_node, 'update',
-                                     chassis_uuid=api_node.chassis_uuid)
+                                     chassis_uuid=chassis_uuid)
 
         return api_node
 
     @METRICS.timer('NodesController.delete')
-    @expose.expose(None, types.uuid_or_name,
-                   status_code=http_client.NO_CONTENT)
-    def delete(self, node_ident):
+    @method.expose(status_code=http_client.NO_CONTENT)
+    @args.validate(node_ident=args.uuid_or_name)
+    def delete(self, node_ident, *args):
         """Delete a node.
 
         :param node_ident: UUID or logical name of a node.
         """
+
+        # occurs when deleting traits with an old API version
+        if args:
+            raise exception.NotFound()
+
         if self.from_chassis:
             raise exception.OperationNotPermitted()
 

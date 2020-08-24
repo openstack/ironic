@@ -386,28 +386,3 @@ class TestLocalLinkConnectionType(base.TestCase):
         v = types.locallinkconnectiontype
         value = {'network_type': 'invalid'}
         self.assertRaises(exception.Invalid, v.validate, value)
-
-
-@mock.patch("ironic.api.request", mock.Mock(version=mock.Mock(minor=10)))
-class TestVifType(base.TestCase):
-
-    def test_vif_type(self):
-        v = types.viftype
-        value = {'id': 'foo'}
-        self.assertCountEqual(value, v.validate(value))
-
-    def test_vif_type_missing_mandatory_key(self):
-        v = types.viftype
-        value = {'foo': 'bar'}
-        self.assertRaisesRegex(exception.Invalid, 'Missing mandatory',
-                               v.validate, value)
-
-    def test_vif_type_optional_key(self):
-        v = types.viftype
-        value = {'id': 'foo', 'misc': 'something'}
-        self.assertCountEqual(value, v.frombasetype(value))
-
-    def test_vif_type_bad_id(self):
-        v = types.viftype
-        self.assertRaises(exception.InvalidUuidOrName,
-                          v.frombasetype, {'id': 5678})

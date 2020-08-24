@@ -35,8 +35,8 @@ from ironic import objects
 CONF = cfg.CONF
 LOG = log.getLogger(__name__)
 
-_LOOKUP_RETURN_FIELDS = ('uuid', 'properties', 'instance_info',
-                         'driver_internal_info')
+_LOOKUP_RETURN_FIELDS = ['uuid', 'properties', 'instance_info',
+                         'driver_internal_info']
 
 
 def config(token):
@@ -64,21 +64,16 @@ def config(token):
 class LookupResult(base.APIBase):
     """API representation of the node lookup result."""
 
-    node = node_ctl.Node
+    node = None
     """The short node representation."""
 
     config = {str: types.jsontype}
     """The configuration to pass to the ramdisk."""
 
     @classmethod
-    def sample(cls):
-        return cls(node=node_ctl.Node.sample(),
-                   config={'heartbeat_timeout': 600})
-
-    @classmethod
     def convert_with_links(cls, node):
         token = node.driver_internal_info.get('agent_secret_token')
-        node = node_ctl.Node.convert_with_links(node, _LOOKUP_RETURN_FIELDS)
+        node = node_ctl.node_convert_with_links(node, _LOOKUP_RETURN_FIELDS)
         return cls(node=node, config=config(token))
 
 

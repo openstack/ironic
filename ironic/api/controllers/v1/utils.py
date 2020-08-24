@@ -343,27 +343,6 @@ def validate_sort_dir(sort_dir):
     return sort_dir
 
 
-def validate_trait(trait, error_prefix=_('Invalid trait')):
-    # TODO(sbaker) remove when all trait validation is jsonschema based
-    error = exception.ClientSideError(
-        _('%(error_prefix)s. A valid trait must be no longer than 255 '
-          'characters. Standard traits are defined in the os_traits library. '
-          'A custom trait must start with the prefix CUSTOM_ and use '
-          'the following characters: A-Z, 0-9 and _') %
-        {'error_prefix': error_prefix})
-    if not isinstance(trait, str):
-        raise error
-
-    if len(trait) > 255 or len(trait) < 1:
-        raise error
-
-    if trait in STANDARD_TRAITS:
-        return
-
-    if CUSTOM_TRAIT_REGEX.match(trait) is None:
-        raise error
-
-
 def apply_jsonpatch(doc, patch):
     """Apply a JSON patch, one operation at a time.
 

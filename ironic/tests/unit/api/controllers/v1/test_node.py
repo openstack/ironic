@@ -32,7 +32,6 @@ from ironic.api.controllers.v1 import node as api_node
 from ironic.api.controllers.v1 import notification_utils
 from ironic.api.controllers.v1 import utils as api_utils
 from ironic.api.controllers.v1 import versions
-from ironic.api import types as atypes
 from ironic.common import boot_devices
 from ironic.common import components
 from ironic.common import driver_factory
@@ -55,15 +54,6 @@ with open(
             os.path.dirname(tests_root.__file__),
             'json_samples', 'network_data.json')) as fl:
     NETWORK_DATA = json.load(fl)
-
-
-class TestNodeObject(base.TestCase):
-
-    def test_node_init(self):
-        node_dict = test_api_utils.node_post_data()
-        del node_dict['instance_uuid']
-        node = api_node.Node(**node_dict)
-        self.assertEqual(atypes.Unset, node.instance_uuid)
 
 
 class TestListNodes(test_api_base.BaseApiTest):
@@ -1359,11 +1349,11 @@ class TestListNodes(test_api_base.BaseApiTest):
         self.assertEqual(http_client.NOT_FOUND, response.status_int)
 
     def test_ports_subresource_invalid_ident(self):
-        invalid_ident = '123~123'
+        invalid_ident = '123 123'
         response = self.get_json('/nodes/%s/ports' % invalid_ident,
                                  expect_errors=True)
         self.assertEqual(http_client.BAD_REQUEST, response.status_int)
-        self.assertIn('Expected a logical name or UUID',
+        self.assertIn('Expected UUID or name for node',
                       response.json['error_message'])
 
     def test_ports_subresource_via_portgroups_subres_not_allowed(self):
@@ -2798,9 +2788,8 @@ class TestPatch(test_api_base.BaseApiTest):
 
         node_dict = self.node.as_dict()
         node_dict['conductor_group'] = 'NEW-GROUP'
-        node_obj = api_node.Node(**node_dict)
 
-        controller._update_changed_fields(node_obj, self.node)
+        controller._update_changed_fields(node_dict, self.node)
         self.assertEqual('new-group', self.node.conductor_group)
 
     @mock.patch("ironic.api.request")
@@ -2810,9 +2799,8 @@ class TestPatch(test_api_base.BaseApiTest):
 
         node_dict = self.node.as_dict()
         del node_dict['chassis_id']
-        node_no_chassis = api_node.Node(**node_dict)
 
-        controller._update_changed_fields(node_no_chassis, self.node)
+        controller._update_changed_fields(node_dict, self.node)
         self.assertIsNone(self.node.chassis_id)
 
     def test_add_chassis_id(self):
@@ -2876,7 +2864,7 @@ class TestPatch(test_api_base.BaseApiTest):
 
         response = self.patch_json('/nodes/%s' % self.node.uuid,
                                    [{'path': '/maintenance', 'op': 'replace',
-                                     'value': 'true'}])
+                                     'value': True}])
         self.assertEqual('application/json', response.content_type)
         self.assertEqual(http_client.OK, response.status_code)
 
@@ -2889,7 +2877,7 @@ class TestPatch(test_api_base.BaseApiTest):
         response = self.patch_json(
             '/nodes/%s' % self.node.name,
             [{'path': '/maintenance', 'op': 'replace',
-              'value': 'true'}],
+              'value': True}],
             headers={api_base.Version.string: "1.5"})
         self.assertEqual('application/json', response.content_type)
         self.assertEqual(http_client.OK, response.status_code)
@@ -3387,6 +3375,18 @@ class TestPatch(test_api_base.BaseApiTest):
         self.assertEqual('application/json', response.content_type)
         self.assertEqual(http_client.OK, response.status_code)
 
+    def test_update_protected_remove(self):
+        node = obj_utils.create_test_node(self.context,
+                                          uuid=uuidutils.generate_uuid(),
+                                          provision_state='active')
+        self.mock_update_node.return_value = node
+        headers = {api_base.Version.string: '1.48'}
+        response = self.patch_json('/nodes/%s' % node.uuid,
+                                   [{"op": "remove", "path": "/protected"}],
+                                   headers=headers)
+        self.assertEqual('application/json', response.content_type)
+        self.assertEqual(http_client.OK, response.status_code)
+
     def test_update_protected_with_reason(self):
         node = obj_utils.create_test_node(self.context,
                                           uuid=uuidutils.generate_uuid(),
@@ -3630,6 +3630,18 @@ class TestPatch(test_api_base.BaseApiTest):
                                    [{'path': '/retired',
                                      'value': True,
                                      'op': 'replace'}],
+                                   headers=headers)
+        self.assertEqual('application/json', response.content_type)
+        self.assertEqual(http_client.OK, response.status_code)
+
+    def test_update_retired_remove(self):
+        node = obj_utils.create_test_node(self.context,
+                                          uuid=uuidutils.generate_uuid(),
+                                          provision_state='active')
+        self.mock_update_node.return_value = node
+        headers = {api_base.Version.string: '1.61'}
+        response = self.patch_json('/nodes/%s' % node.uuid,
+                                   [{"op": "remove", "path": "/retired"}],
                                    headers=headers)
         self.assertEqual('application/json', response.content_type)
         self.assertEqual(http_client.OK, response.status_code)
@@ -4132,14 +4144,13 @@ class TestPost(test_api_base.BaseApiTest):
     def test_create_node_valid_driver_info(self):
         self._test_jsontype_attributes('driver_info')
 
-    def test_create_node_valid_instance_info(self):
-        self._test_jsontype_attributes('instance_info')
-
     def _test_vendor_passthru_ok(self, mock_vendor, return_value=None,
                                  is_async=True):
         expected_status = http_client.ACCEPTED if is_async else http_client.OK
-        expected_return_value = json.dumps(return_value)
-        expected_return_value = expected_return_value.encode('utf-8')
+        if return_value is None:
+            expected_return_value = b''
+        else:
+            expected_return_value = json.dumps(return_value).encode('utf-8')
 
         node = obj_utils.create_test_node(self.context)
         info = {'foo': 'bar'}
@@ -4156,8 +4167,10 @@ class TestPost(test_api_base.BaseApiTest):
     def _test_vendor_passthru_ok_by_name(self, mock_vendor, return_value=None,
                                          is_async=True):
         expected_status = http_client.ACCEPTED if is_async else http_client.OK
-        expected_return_value = json.dumps(return_value)
-        expected_return_value = expected_return_value.encode('utf-8')
+        if return_value is None:
+            expected_return_value = b''
+        else:
+            expected_return_value = json.dumps(return_value).encode('utf-8')
 
         node = obj_utils.create_test_node(self.context, name='node-109')
         info = {'foo': 'bar'}
@@ -4191,7 +4204,7 @@ class TestPost(test_api_base.BaseApiTest):
             '/nodes/%s/vendor_passthru/do_test' % node.uuid,
             {'test_key': 'test_value'})
         self.assertEqual(http_client.ACCEPTED, response.status_int)
-        self.assertEqual(return_value['return'], response.json)
+        self.assertEqual(b'', response.body)
 
     @mock.patch.object(rpcapi.ConductorAPI, 'vendor_passthru')
     def test_vendor_passthru_by_name(self, mock_vendor):
@@ -4214,7 +4227,7 @@ class TestPost(test_api_base.BaseApiTest):
         response = self.delete(
             '/nodes/%s/vendor_passthru/do_test' % node.uuid)
         self.assertEqual(http_client.ACCEPTED, response.status_int)
-        self.assertEqual(return_value['return'], response.json)
+        self.assertEqual(b'', response.body)
 
     def test_vendor_passthru_no_such_method(self):
         node = obj_utils.create_test_node(self.context)
@@ -4245,7 +4258,7 @@ class TestPost(test_api_base.BaseApiTest):
         pdict['node_uuid'] = node.uuid
         response = self.post_json('/nodes/ports', pdict,
                                   expect_errors=True)
-        self.assertEqual(http_client.BAD_REQUEST, response.status_int)
+        self.assertEqual(http_client.NOT_FOUND, response.status_int)
 
     def test_post_ports_subresource(self):
         node = obj_utils.create_test_node(self.context)
@@ -4475,7 +4488,8 @@ class TestPost(test_api_base.BaseApiTest):
 
     def test_create_node_protected_not_allowed(self):
         headers = {api_base.Version.string: '1.48'}
-        ndict = test_api_utils.post_get_test_node(protected=True)
+        ndict = test_api_utils.post_get_test_node()
+        ndict['protected'] = True
         response = self.post_json('/nodes', ndict, headers=headers,
                                   expect_errors=True)
         self.assertEqual('application/json', response.content_type)
@@ -6038,6 +6052,7 @@ class TestAttachDetachVif(test_api_base.BaseApiTest):
     @mock.patch.object(rpcapi.ConductorAPI, 'vif_list')
     def test_vif_list(self, mock_list, mock_get):
         mock_get.return_value = self.node
+        mock_list.return_value = []
         self.get_json('/nodes/%s/vifs' % self.node.uuid,
                       headers={api_base.Version.string:
                                self.vif_version})
