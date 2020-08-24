@@ -225,7 +225,8 @@ class NodePowerActionTestCase(db_base.DbTestCase):
     @mock.patch.object(fake.FakePower, 'get_power_state', autospec=True)
     def test_node_power_action_power_off(self, get_power_mock):
         """Test node_power_action to turn node power off."""
-        dii = {'agent_secret_token': 'token'}
+        dii = {'agent_secret_token': 'token',
+               'agent_cached_deploy_steps': ['steps']}
         node = obj_utils.create_test_node(self.context,
                                           uuid=uuidutils.generate_uuid(),
                                           driver='fake-hardware',
@@ -243,6 +244,8 @@ class NodePowerActionTestCase(db_base.DbTestCase):
         self.assertIsNone(node['target_power_state'])
         self.assertIsNone(node['last_error'])
         self.assertNotIn('agent_secret_token', node['driver_internal_info'])
+        self.assertNotIn('agent_cached_deploy_steps',
+                         node['driver_internal_info'])
 
     @mock.patch.object(fake.FakePower, 'get_power_state', autospec=True)
     def test_node_power_action_power_off_pregenerated_token(self,

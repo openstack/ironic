@@ -655,6 +655,9 @@ class ISCSIDeploy(agent_base.AgentDeployMixin, agent_base.AgentBaseMixin,
                       {'node': task.node.uuid})
             deploy_utils.cache_instance_image(task.context, node)
             check_image_size(task)
+            # NOTE(dtantsur): while the node is up and heartbeating, we don't
+            # necessary have the deploy steps cached. Force a refresh here.
+            self.refresh_steps(task, 'deploy')
         elif task.driver.storage.should_write_image(task):
             # Standard deploy process
             deploy_utils.cache_instance_image(task.context, node)

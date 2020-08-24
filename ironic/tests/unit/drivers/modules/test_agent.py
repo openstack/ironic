@@ -467,13 +467,15 @@ class TestAgentDeploy(db_base.DbTestCase):
             self.assertIsNone(driver_return)
             self.assertFalse(mock_power.called)
 
+    @mock.patch.object(agent.AgentDeploy, 'refresh_steps', autospec=True)
     @mock.patch.object(agent_client.AgentClient, 'prepare_image',
                        autospec=True)
     @mock.patch('ironic.conductor.utils.is_fast_track', autospec=True)
     @mock.patch.object(pxe.PXEBoot, 'prepare_instance', autospec=True)
     @mock.patch('ironic.conductor.utils.node_power_action', autospec=True)
     def test_deploy_fast_track(self, power_mock, mock_pxe_instance,
-                               mock_is_fast_track, prepare_image_mock):
+                               mock_is_fast_track, prepare_image_mock,
+                               refresh_mock):
         mock_is_fast_track.return_value = True
         self.node.target_provision_state = states.ACTIVE
         self.node.provision_state = states.DEPLOYING
@@ -488,6 +490,7 @@ class TestAgentDeploy(db_base.DbTestCase):
             self.assertEqual(states.DEPLOYING, task.node.provision_state)
             self.assertEqual(states.ACTIVE,
                              task.node.target_provision_state)
+            refresh_mock.assert_called_once_with(self.driver, task, 'deploy')
 
     @mock.patch.object(noop_storage.NoopStorage, 'detach_volumes',
                        autospec=True)
