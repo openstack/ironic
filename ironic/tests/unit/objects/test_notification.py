@@ -37,6 +37,16 @@ class TestNotificationBase(test_base.TestCase):
         }
 
     @base.IronicObjectRegistry.register_if(False)
+    class TestObjectMaskSecrets(base.IronicObject):
+        VERSION = '1.0'
+        fields = {
+            'instance_info': fields.FlexibleDictField(nullable=True),
+            'driver_info': fields.FlexibleDictField(nullable=True),
+            'driver_internal_info': fields.FlexibleDictField(nullable=True),
+            'some_dict': fields.FlexibleDictField(nullable=True),
+        }
+
+    @base.IronicObjectRegistry.register_if(False)
     class TestNotificationPayload(notification.NotificationPayloadBase):
         VERSION = '1.0'
 
@@ -59,6 +69,25 @@ class TestNotificationBase(test_base.TestCase):
 
         fields = {
             'fake_field': fields.StringField()
+        }
+
+    @base.IronicObjectRegistry.register_if(False)
+    class TestNotificationPayloadMaskSecrets(
+            notification.NotificationPayloadBase):
+        VERSION = '1.0'
+
+        SCHEMA = {
+            'instance_info': ('test_obj', 'instance_info'),
+            'driver_info': ('test_obj', 'driver_info'),
+            'driver_internal_info': ('test_obj', 'driver_internal_info'),
+            'some_dict': ('test_obj', 'some_dict'),
+        }
+
+        fields = {
+            'instance_info': fields.FlexibleDictField(nullable=True),
+            'driver_info': fields.FlexibleDictField(nullable=True),
+            'driver_internal_info': fields.FlexibleDictField(nullable=True),
+            'some_dict': fields.FlexibleDictField(nullable=True),
         }
 
     @base.IronicObjectRegistry.register_if(False)
@@ -281,3 +310,57 @@ class TestNotificationBase(test_base.TestCase):
         event_type = notification.EventType(
             object='test_object', action='test', status='start')
         self.assertRaises(ValueError, make_status_invalid)
+
+    def test_mask_secrets_not_affected(self):
+        payload = self.TestNotificationPayload(an_extra_field='extra',
+                                               an_optional_field=1)
+        payload.populate_schema(test_obj=self.fake_obj)
+        notification.mask_secrets(payload)
+        self.assertEqual('extra', payload.an_extra_field)
+        self.assertEqual(1, payload.an_optional_field)
+        self.assertEqual(self.fake_obj.fake_field_1, payload.fake_field_a)
+        self.assertEqual(self.fake_obj.fake_field_2, payload.fake_field_b)
+
+    def test_mask_secrets_no_secrets(self):
+        instance_info = {'inst1': 'v1'}
+        driver_info = {'driver_i1': 'd1'}
+        driver_internal_info = {'driver_int1': 'dii1'}
+        some_dict = {'key1': 'v1'}
+        test_obj = self.TestObjectMaskSecrets(
+            instance_info=instance_info,
+            driver_info=driver_info,
+            driver_internal_info=driver_internal_info,
+            some_dict=some_dict)
+        payload = self.TestNotificationPayloadMaskSecrets()
+        payload.populate_schema(test_obj=test_obj)
+        notification.mask_secrets(payload)
+        self.assertEqual(test_obj.instance_info, payload.instance_info)
+        self.assertEqual(test_obj.driver_info, payload.driver_info)
+        self.assertEqual(test_obj.driver_internal_info,
+                         payload.driver_internal_info)
+        self.assertEqual(test_obj.some_dict, payload.some_dict)
+
+    def test_mask_secrets_has_secrets(self):
+        instance_info = {'configdrive': 'somestuffhere',
+                         'image_url': 'http://image_to_fetch'}
+        driver_info = {'password': 'some password'}
+        driver_internal_info = {'agent_secret_token': '123532234145'}
+        some_dict = {'password': 'another password'}
+        test_obj = self.TestObjectMaskSecrets(
+            instance_info=instance_info,
+            driver_info=driver_info,
+            driver_internal_info=driver_internal_info,
+            some_dict=some_dict)
+        payload = self.TestNotificationPayloadMaskSecrets()
+        payload.populate_schema(test_obj=test_obj)
+        notification.mask_secrets(payload)
+        self.assertNotEqual(test_obj.instance_info, payload.instance_info)
+        self.assertEqual('******', payload.instance_info['configdrive'])
+        self.assertEqual('******', payload.instance_info['image_url'])
+        self.assertNotEqual(test_obj.driver_info, payload.driver_info)
+        self.assertEqual('******', payload.driver_info['password'])
+        self.assertNotEqual(test_obj.driver_internal_info,
+                            payload.driver_internal_info)
+        self.assertEqual('******',
+                         payload.driver_internal_info['agent_secret_token'])
+        self.assertEqual(test_obj.some_dict, payload.some_dict)

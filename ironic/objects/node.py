@@ -916,13 +916,16 @@ class NodeSetProvisionStatePayload(NodePayload):
     # Version 1.13: Parent NodePayload version 1.13
     # Version 1.14: Parent NodePayload version 1.14
     # Version 1.15: Parent NodePayload version 1.15
-    VERSION = '1.15'
+    # Version 1.16: add driver_internal_info
+    VERSION = '1.16'
 
     SCHEMA = dict(NodePayload.SCHEMA,
-                  **{'instance_info': ('node', 'instance_info')})
+                  **{'instance_info': ('node', 'instance_info'),
+                     'driver_internal_info': ('node', 'driver_internal_info')})
 
     fields = {
         'instance_info': object_fields.FlexibleDictField(nullable=True),
+        'driver_internal_info': object_fields.FlexibleDictField(nullable=True),
         'event': object_fields.StringField(nullable=True),
         'previous_provision_state': object_fields.StringField(nullable=True),
         'previous_target_provision_state':
