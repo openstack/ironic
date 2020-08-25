@@ -967,8 +967,8 @@ class TestNeutronNetworkActions(db_base.DbTestCase):
         port = self.ports[0]
         self.assertFalse(neutron.is_smartnic_port(port))
 
-    @mock.patch.object(neutron, '_validate_agent')
-    @mock.patch.object(time, 'sleep')
+    @mock.patch.object(neutron, '_validate_agent', autospec=True)
+    @mock.patch.object(time, 'sleep', autospec=True)
     def test_wait_for_host_agent_up_target_state_up(
             self, sleep_mock, validate_agent_mock):
         validate_agent_mock.return_value = True
@@ -976,8 +976,8 @@ class TestNeutronNetworkActions(db_base.DbTestCase):
             self.client_mock, 'hostname'))
         sleep_mock.assert_not_called()
 
-    @mock.patch.object(neutron, '_validate_agent')
-    @mock.patch.object(time, 'sleep')
+    @mock.patch.object(neutron, '_validate_agent', autospec=True)
+    @mock.patch.object(time, 'sleep', autospec=True)
     def test_wait_for_host_agent_down_target_state_up(
             self, sleep_mock, validate_agent_mock):
         validate_agent_mock.return_value = False
@@ -985,8 +985,8 @@ class TestNeutronNetworkActions(db_base.DbTestCase):
                           neutron.wait_for_host_agent,
                           self.client_mock, 'hostname')
 
-    @mock.patch.object(neutron, '_validate_agent')
-    @mock.patch.object(time, 'sleep')
+    @mock.patch.object(neutron, '_validate_agent', autospec=True)
+    @mock.patch.object(time, 'sleep', autospec=True)
     def test_wait_for_host_agent_up_target_state_down(
             self, sleep_mock, validate_agent_mock):
         validate_agent_mock.return_value = True
@@ -994,8 +994,8 @@ class TestNeutronNetworkActions(db_base.DbTestCase):
                           neutron.wait_for_host_agent,
                           self.client_mock, 'hostname', target_state='down')
 
-    @mock.patch.object(neutron, '_validate_agent')
-    @mock.patch.object(time, 'sleep')
+    @mock.patch.object(neutron, '_validate_agent', autospec=True)
+    @mock.patch.object(time, 'sleep', autospec=True)
     def test_wait_for_host_agent_down_target_state_down(
             self, sleep_mock, validate_agent_mock):
         validate_agent_mock.return_value = False
@@ -1004,22 +1004,22 @@ class TestNeutronNetworkActions(db_base.DbTestCase):
                                         target_state='down'))
         sleep_mock.assert_not_called()
 
-    @mock.patch.object(neutron, '_get_port_by_uuid')
-    @mock.patch.object(time, 'sleep')
+    @mock.patch.object(neutron, '_get_port_by_uuid', autospec=True)
+    @mock.patch.object(time, 'sleep', autospec=True)
     def test_wait_for_port_status_up(self, sleep_mock, get_port_mock):
         get_port_mock.return_value = {'status': 'ACTIVE'}
         neutron.wait_for_port_status(self.client_mock, 'port_id', 'ACTIVE')
         sleep_mock.assert_not_called()
 
-    @mock.patch.object(neutron, '_get_port_by_uuid')
-    @mock.patch.object(time, 'sleep')
+    @mock.patch.object(neutron, '_get_port_by_uuid', autospec=True)
+    @mock.patch.object(time, 'sleep', autospec=True)
     def test_wait_for_port_status_down(self, sleep_mock, get_port_mock):
         get_port_mock.side_effect = [{'status': 'DOWN'}, {'status': 'ACTIVE'}]
         neutron.wait_for_port_status(self.client_mock, 'port_id', 'ACTIVE')
         sleep_mock.assert_called_once()
 
-    @mock.patch.object(neutron, '_get_port_by_uuid')
-    @mock.patch.object(time, 'sleep')
+    @mock.patch.object(neutron, '_get_port_by_uuid', autospec=True)
+    @mock.patch.object(time, 'sleep', autospec=True)
     def test_wait_for_port_status_active_max_retry(self, sleep_mock,
                                                    get_port_mock):
         get_port_mock.return_value = {'status': 'DOWN'}
@@ -1027,8 +1027,8 @@ class TestNeutronNetworkActions(db_base.DbTestCase):
                           neutron.wait_for_port_status,
                           self.client_mock, 'port_id', 'ACTIVE')
 
-    @mock.patch.object(neutron, '_get_port_by_uuid')
-    @mock.patch.object(time, 'sleep')
+    @mock.patch.object(neutron, '_get_port_by_uuid', autospec=True)
+    @mock.patch.object(time, 'sleep', autospec=True)
     def test_wait_for_port_status_down_max_retry(self, sleep_mock,
                                                  get_port_mock):
         get_port_mock.return_value = {'status': 'ACTIVE'}
