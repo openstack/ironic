@@ -1,0 +1,10 @@
+---
+fixes:
+  - |
+    The cleaning operation may fail, if an in-band clean step were to
+    execute after the completion of out-of-band clean step that
+    performs reboot of the node. The failure is caused because of race
+    condition where in cleaning is resumed before the Ironic Python
+    Agent(IPA) is ready to execute clean steps. This has been fixed.
+    For more information, see `bug 2002731
+    <https://storyboard.openstack.org/#!/story/2002731>`_.

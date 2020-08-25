@@ -774,3 +774,7 @@ class InstanceRescueFailure(IronicException):
 class InstanceUnrescueFailure(IronicException):
     _msg_fmt = _('Failed to unrescue instance %(instance)s for node '
                  '%(node)s: %(reason)s')
+
+
+class AgentConnectionFailed(IronicException):
+    _msg_fmt = _("Connection to agent failed: %(reason)s")

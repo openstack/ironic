@@ -2780,6 +2780,114 @@ class DoNodeCleanTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
     def test__do_next_clean_step_manual_execute_fail(self):
         self._do_next_clean_step_execute_fail(manual=True)
 
+    @mock.patch('ironic.drivers.modules.fake.FakeDeploy.execute_clean_step',
+                autospec=True)
+    def test_do_next_clean_step_oob_reboot(self, mock_execute):
+        # When a clean step fails, go to CLEANWAIT
+        tgt_prov_state = states.MANAGEABLE
+
+        self._start_service()
+        node = obj_utils.create_test_node(
+            self.context, driver='fake-hardware',
+            provision_state=states.CLEANING,
+            target_provision_state=tgt_prov_state,
+            last_error=None,
+            driver_internal_info={'clean_steps': self.clean_steps,
+                                  'clean_step_index': None,
+                                  'cleaning_reboot': True},
+            clean_step={})
+        mock_execute.side_effect = exception.AgentConnectionFailed(
+            reason='failed')
+
+        with task_manager.acquire(
+                self.context, node.uuid, shared=False) as task:
+            self.service._do_next_clean_step(task, 0)
+
+        self._stop_service()
+        node.refresh()
+
+        # Make sure we go to CLEANWAIT
+        self.assertEqual(states.CLEANWAIT, node.provision_state)
+        self.assertEqual(tgt_prov_state, node.target_provision_state)
+        self.assertEqual(self.clean_steps[0], node.clean_step)
+        self.assertEqual(0, node.driver_internal_info['clean_step_index'])
+        self.assertFalse(node.driver_internal_info['skip_current_clean_step'])
+        mock_execute.assert_called_once_with(
+            mock.ANY, mock.ANY, self.clean_steps[0])
+
+    @mock.patch('ironic.drivers.modules.fake.FakeDeploy.execute_clean_step',
+                autospec=True)
+    def test_do_next_clean_step_oob_reboot_last_step(self, mock_execute):
+        # Resume where last_step is the last cleaning step
+        tgt_prov_state = states.MANAGEABLE
+        info = {'clean_steps': self.clean_steps,
+                'cleaning_reboot': True,
+                'clean_step_index': len(self.clean_steps) - 1}
+
+        self._start_service()
+        node = obj_utils.create_test_node(
+            self.context, driver='fake-hardware',
+            provision_state=states.CLEANING,
+            target_provision_state=tgt_prov_state,
+            last_error=None,
+            driver_internal_info=info,
+            clean_step=self.clean_steps[-1])
+
+        with task_manager.acquire(
+                self.context, node.uuid, shared=False) as task:
+            self.service._do_next_clean_step(task, None)
+
+        self._stop_service()
+        node.refresh()
+
+        # Cleaning should be complete without calling additional steps
+        self.assertEqual(tgt_prov_state, node.provision_state)
+        self.assertEqual(states.NOSTATE, node.target_provision_state)
+        self.assertEqual({}, node.clean_step)
+        self.assertNotIn('clean_step_index', node.driver_internal_info)
+        self.assertNotIn('cleaning_reboot', node.driver_internal_info)
+        self.assertIsNone(node.driver_internal_info['clean_steps'])
+        self.assertFalse(mock_execute.called)
+
+    @mock.patch('ironic.drivers.modules.fake.FakeDeploy.execute_clean_step',
+                autospec=True)
+    @mock.patch.object(fake.FakeDeploy, 'tear_down_cleaning', autospec=True)
+    def test_do_next_clean_step_oob_reboot_fail(self, tear_mock,
+                                                mock_execute):
+        # When a clean step fails with no reboot requested go to CLEANFAIL
+        tgt_prov_state = states.MANAGEABLE
+
+        self._start_service()
+        node = obj_utils.create_test_node(
+            self.context, driver='fake-hardware',
+            provision_state=states.CLEANING,
+            target_provision_state=tgt_prov_state,
+            last_error=None,
+            driver_internal_info={'clean_steps': self.clean_steps,
+                                  'clean_step_index': None},
+            clean_step={})
+        mock_execute.side_effect = exception.AgentConnectionFailed(
+            reason='failed')
+
+        with task_manager.acquire(
+                self.context, node.uuid, shared=False) as task:
+            self.service._do_next_clean_step(task, 0)
+            tear_mock.assert_called_once_with(task.driver.deploy, task)
+
+        self._stop_service()
+        node.refresh()
+
+        # Make sure we go to CLEANFAIL, clear clean_steps
+        self.assertEqual(states.CLEANFAIL, node.provision_state)
+        self.assertEqual(tgt_prov_state, node.target_provision_state)
+        self.assertEqual({}, node.clean_step)
+        self.assertNotIn('clean_step_index', node.driver_internal_info)
+        self.assertNotIn('skip_current_clean_step', node.driver_internal_info)
+        self.assertIsNotNone(node.last_error)
+        self.assertTrue(node.maintenance)
+        mock_execute.assert_called_once_with(
+            mock.ANY, mock.ANY, self.clean_steps[0])
+
     @mock.patch.object(manager, 'LOG', autospec=True)
     @mock.patch('ironic.drivers.modules.fake.FakeDeploy.execute_clean_step',
                 autospec=True)

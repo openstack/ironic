@@ -64,6 +64,12 @@ class AgentClient(object):
 
         try:
             response = self.session.post(url, params=request_params, data=body)
+        except requests.ConnectionError as e:
+            msg = (_('Failed to invoke agent command %(method)s for node '
+                     '%(node)s. Error: %(error)s') %
+                   {'method': method, 'node': node.uuid, 'error': e})
+            LOG.error(msg)
+            raise exception.AgentConnectionFailed(reason=msg)
         except requests.RequestException as e:
             msg = (_('Error invoking agent command %(method)s for node '
                      '%(node)s. Error: %(error)s') %

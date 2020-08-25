@@ -1253,6 +1253,19 @@ class ConductorManager(base_manager.BaseConductorManager):
             try:
                 result = interface.execute_clean_step(task, step)
             except Exception as e:
+                if isinstance(e, exception.AgentConnectionFailed):
+                    if task.node.driver_internal_info.get('cleaning_reboot'):
+                        LOG.info('Agent is not yet running on node %(node)s '
+                                 'after cleaning reboot, waiting for agent to '
+                                 'come up to run next clean step %(step)s.',
+                                 {'node': node.uuid, 'step': step})
+                        driver_internal_info['skip_current_clean_step'] = False
+                        node.driver_internal_info = driver_internal_info
+                        target_state = (states.MANAGEABLE if manual_clean
+                                        else None)
+                        task.process_event('wait', target_state=target_state)
+                        return
+
                 msg = (_('Node %(node)s failed step %(step)s: '
                          '%(exc)s') %
                        {'node': node.uuid, 'exc': e,
@@ -1286,6 +1299,7 @@ class ConductorManager(base_manager.BaseConductorManager):
         node.clean_step = None
         driver_internal_info['clean_steps'] = None
         driver_internal_info.pop('clean_step_index', None)
+        driver_internal_info.pop('cleaning_reboot', None)
         node.driver_internal_info = driver_internal_info
         node.save()
         try:
