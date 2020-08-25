@@ -855,6 +855,8 @@ class ISCSIDeployTestCase(db_base.DbTestCase):
             self.assertIsNone(ret)
             self.assertFalse(mock_node_power_action.called)
 
+    @mock.patch.object(iscsi_deploy.ISCSIDeploy, 'refresh_steps',
+                       autospec=True)
     @mock.patch.object(iscsi_deploy, 'check_image_size', autospec=True)
     @mock.patch.object(deploy_utils, 'cache_instance_image', autospec=True)
     @mock.patch.object(iscsi_deploy.ISCSIDeploy, 'write_image',
@@ -864,7 +866,8 @@ class ISCSIDeployTestCase(db_base.DbTestCase):
     @mock.patch('ironic.conductor.utils.node_power_action', autospec=True)
     def test_deploy_fast_track(self, power_mock, mock_pxe_instance,
                                mock_is_fast_track, write_image_mock,
-                               cache_image_mock, check_image_size_mock):
+                               cache_image_mock, check_image_size_mock,
+                               refresh_mock):
         mock_is_fast_track.return_value = True
         self.node.target_provision_state = states.ACTIVE
         self.node.provision_state = states.DEPLOYING
@@ -885,6 +888,8 @@ class ISCSIDeployTestCase(db_base.DbTestCase):
             cache_image_mock.assert_called_with(mock.ANY, task.node)
             check_image_size_mock.assert_called_with(task)
             self.assertFalse(write_image_mock.called)
+            refresh_mock.assert_called_once_with(task.driver.deploy,
+                                                 task, 'deploy')
 
     @mock.patch.object(noop_storage.NoopStorage, 'detach_volumes',
                        autospec=True)

@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    Fixes an issue that caused in-band deploy steps inserted before
+    ``write_image`` to be skipped when fast-track is used.
+  - |
+    Makes sure in-band deploy and clean steps are not cached across reboots.
