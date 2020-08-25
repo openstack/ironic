@@ -601,10 +601,11 @@ class IloBiosTestCase(test_common.BaseIloTest):
         self.node.save()
         self._test__execute_post_boot_bios_get_settings_failed()
 
-    @mock.patch.object(objects.BIOSSettingList, 'create')
-    @mock.patch.object(objects.BIOSSettingList, 'save')
-    @mock.patch.object(objects.BIOSSettingList, 'delete')
-    @mock.patch.object(objects.BIOSSettingList, 'sync_node_setting')
+    @mock.patch.object(objects.BIOSSettingList, 'create', autospec=True)
+    @mock.patch.object(objects.BIOSSettingList, 'save', autospec=True)
+    @mock.patch.object(objects.BIOSSettingList, 'delete', autospec=True)
+    @mock.patch.object(objects.BIOSSettingList, 'sync_node_setting',
+                       autospec=True)
     @mock.patch.object(ilo_common, 'get_ilo_object', autospec=True)
     def test_cache_bios_settings(self, get_ilo_object_mock, sync_node_mock,
                                  delete_mock, save_mock, create_mock):

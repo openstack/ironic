@@ -141,7 +141,7 @@ class IloPowerInternalMethodsTestCase(test_common.BaseIloTest):
             get_post_mock.assert_called_with(task.node)
         ilo_mock_object.set_host_power.assert_called_once_with('ON')
 
-    @mock.patch.object(ilo_power.LOG, 'info')
+    @mock.patch.object(ilo_power.LOG, 'info', autospec=True)
     @mock.patch.object(ilo_power, '_attach_boot_iso_if_needed',
                        spec_set=True, autospec=True)
     @mock.patch.object(ilo_common, 'get_server_post_state', spec_set=True,
@@ -169,7 +169,7 @@ class IloPowerInternalMethodsTestCase(test_common.BaseIloTest):
                 {'state': 'soft rebooting', 'node_id': task.node.uuid,
                  'time_consumed': 2})
 
-    @mock.patch.object(ilo_power.LOG, 'info')
+    @mock.patch.object(ilo_power.LOG, 'info', autospec=True)
     @mock.patch.object(ilo_power, '_attach_boot_iso_if_needed',
                        spec_set=True, autospec=True)
     @mock.patch.object(ilo_common, 'get_server_post_state', spec_set=True,
@@ -195,7 +195,7 @@ class IloPowerInternalMethodsTestCase(test_common.BaseIloTest):
                 {'state': 'power on', 'node_id': task.node.uuid,
                  'time_consumed': 1})
 
-    @mock.patch.object(ilo_power.LOG, 'info')
+    @mock.patch.object(ilo_power.LOG, 'info', autospec=True)
     @mock.patch.object(ilo_power, '_attach_boot_iso_if_needed',
                        spec_set=True, autospec=True)
     @mock.patch.object(ilo_common, 'get_server_post_state', spec_set=True,
@@ -219,7 +219,7 @@ class IloPowerInternalMethodsTestCase(test_common.BaseIloTest):
             self.assertFalse(attach_boot_iso_mock.called)
             self.assertFalse(log_mock.called)
 
-    @mock.patch.object(ilo_power.LOG, 'info')
+    @mock.patch.object(ilo_power.LOG, 'info', autospec=True)
     @mock.patch.object(ilo_power, '_attach_boot_iso_if_needed',
                        spec_set=True, autospec=True)
     @mock.patch.object(ilo_common, 'get_server_post_state', spec_set=True,
@@ -247,7 +247,7 @@ class IloPowerInternalMethodsTestCase(test_common.BaseIloTest):
             attach_boot_iso_mock.assert_called_once_with(task)
             self.assertFalse(log_mock.called)
 
-    @mock.patch.object(ilo_power.LOG, 'info')
+    @mock.patch.object(ilo_power.LOG, 'info', autospec=True)
     @mock.patch.object(ilo_power, '_attach_boot_iso_if_needed',
                        spec_set=True, autospec=True)
     @mock.patch.object(ilo_common, 'get_server_post_state', spec_set=True,
@@ -273,7 +273,7 @@ class IloPowerInternalMethodsTestCase(test_common.BaseIloTest):
             attach_boot_iso_mock.assert_called_once_with(task)
             self.assertFalse(log_mock.called)
 
-    @mock.patch.object(ilo_power.LOG, 'info')
+    @mock.patch.object(ilo_power.LOG, 'info', autospec=True)
     @mock.patch.object(ilo_common, 'get_server_post_state', spec_set=True,
                        autospec=True)
     def test__set_power_state_soft_power_off_ok(
@@ -294,7 +294,7 @@ class IloPowerInternalMethodsTestCase(test_common.BaseIloTest):
                 {'state': 'soft power off', 'node_id': task.node.uuid,
                  'time_consumed': 2})
 
-    @mock.patch.object(ilo_power.LOG, 'info')
+    @mock.patch.object(ilo_power.LOG, 'info', autospec=True)
     @mock.patch.object(ilo_common, 'get_server_post_state', spec_set=True,
                        autospec=True)
     def test__set_power_state_soft_power_off_fail(
@@ -314,7 +314,7 @@ class IloPowerInternalMethodsTestCase(test_common.BaseIloTest):
             self.assertFalse(get_post_mock.called)
             self.assertFalse(log_mock.called)
 
-    @mock.patch.object(ilo_power.LOG, 'info')
+    @mock.patch.object(ilo_power.LOG, 'info', autospec=True)
     @mock.patch.object(ilo_common, 'get_server_post_state', spec_set=True,
                        autospec=True)
     def test__set_power_state_soft_power_off_timeout(

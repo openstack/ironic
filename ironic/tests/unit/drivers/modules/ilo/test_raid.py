@@ -136,8 +136,9 @@ class Ilo5RAIDTestCase(db_base.DbTestCase):
         self.node.save()
         self._test__prepare_for_read_raid_delete_raid()
 
-    @mock.patch.object(ilo_raid.Ilo5RAID, '_prepare_for_read_raid')
-    @mock.patch.object(raid, 'filter_target_raid_config')
+    @mock.patch.object(ilo_raid.Ilo5RAID, '_prepare_for_read_raid',
+                       autospec=True)
+    @mock.patch.object(raid, 'filter_target_raid_config', autospec=True)
     @mock.patch.object(ilo_common, 'get_ilo_object', autospec=True)
     def _test_create_configuration(
             self, ilo_mock, filter_target_raid_config_mock, prepare_raid_mock):
@@ -146,7 +147,8 @@ class Ilo5RAIDTestCase(db_base.DbTestCase):
             filter_target_raid_config_mock.return_value = (
                 self.target_raid_config)
             result = task.driver.raid.create_configuration(task)
-            prepare_raid_mock.assert_called_once_with(task, 'create_raid')
+            prepare_raid_mock.assert_called_once_with(
+                mock.ANY, task, 'create_raid')
             if task.node.clean_step:
                 self.assertEqual(states.CLEANWAIT, result)
             else:
@@ -167,7 +169,7 @@ class Ilo5RAIDTestCase(db_base.DbTestCase):
         self._test_create_configuration()
 
     @mock.patch.object(raid, 'update_raid_info', autospec=True)
-    @mock.patch.object(raid, 'filter_target_raid_config')
+    @mock.patch.object(raid, 'filter_target_raid_config', autospec=True)
     @mock.patch.object(ilo_common, 'get_ilo_object', autospec=True)
     def _test_create_configuration_with_read_raid(
             self, ilo_mock, filter_target_raid_config_mock, update_raid_mock):
@@ -215,7 +217,7 @@ class Ilo5RAIDTestCase(db_base.DbTestCase):
         self.node.save()
         self._test_create_configuration_with_read_raid()
 
-    @mock.patch.object(raid, 'filter_target_raid_config')
+    @mock.patch.object(raid, 'filter_target_raid_config', autospec=True)
     @mock.patch.object(ilo_common, 'get_ilo_object', autospec=True)
     def _test_create_configuration_with_read_raid_failed(
             self, ilo_mock, filter_target_raid_config_mock):
@@ -257,7 +259,7 @@ class Ilo5RAIDTestCase(db_base.DbTestCase):
         self.node.save()
         self._test_create_configuration_with_read_raid_failed()
 
-    @mock.patch.object(raid, 'filter_target_raid_config')
+    @mock.patch.object(raid, 'filter_target_raid_config', autospec=True)
     @mock.patch.object(ilo_common, 'get_ilo_object', autospec=True)
     def _test_create_configuration_empty_target_raid_config(
             self, ilo_mock, filter_target_raid_config_mock):
@@ -284,8 +286,9 @@ class Ilo5RAIDTestCase(db_base.DbTestCase):
         self.node.save()
         self._test_create_configuration_empty_target_raid_config()
 
-    @mock.patch.object(ilo_raid.Ilo5RAID, '_prepare_for_read_raid')
-    @mock.patch.object(raid, 'filter_target_raid_config')
+    @mock.patch.object(ilo_raid.Ilo5RAID, '_prepare_for_read_raid',
+                       autospec=True)
+    @mock.patch.object(raid, 'filter_target_raid_config', autospec=True)
     @mock.patch.object(ilo_common, 'get_ilo_object', autospec=True)
     def _test_create_configuration_skip_root(
             self, ilo_mock, filter_target_raid_config_mock,
@@ -306,7 +309,8 @@ class Ilo5RAIDTestCase(db_base.DbTestCase):
                 self.assertEqual(states.CLEANWAIT, result)
             else:
                 self.assertEqual(states.DEPLOYWAIT, result)
-            prepare_raid_mock.assert_called_once_with(task, 'create_raid')
+            prepare_raid_mock.assert_called_once_with(
+                mock.ANY, task, 'create_raid')
             self.assertEqual(
                 exp_target_raid_config,
                 task.node.driver_internal_info['target_raid_config'])
@@ -323,8 +327,9 @@ class Ilo5RAIDTestCase(db_base.DbTestCase):
         self.node.save()
         self._test_create_configuration_skip_root()
 
-    @mock.patch.object(ilo_raid.Ilo5RAID, '_prepare_for_read_raid')
-    @mock.patch.object(raid, 'filter_target_raid_config')
+    @mock.patch.object(ilo_raid.Ilo5RAID, '_prepare_for_read_raid',
+                       autospec=True)
+    @mock.patch.object(raid, 'filter_target_raid_config', autospec=True)
     @mock.patch.object(ilo_common, 'get_ilo_object', autospec=True)
     def _test_create_configuration_skip_non_root(
             self, ilo_mock, filter_target_raid_config_mock, prepare_raid_mock):
@@ -340,7 +345,8 @@ class Ilo5RAIDTestCase(db_base.DbTestCase):
                 task, create_nonroot_volumes=False)
             (ilo_mock_object.create_raid_configuration.
              assert_called_once_with(exp_target_raid_config))
-            prepare_raid_mock.assert_called_once_with(task, 'create_raid')
+            prepare_raid_mock.assert_called_once_with(
+                mock.ANY, task, 'create_raid')
             if task.node.clean_step:
                 self.assertEqual(states.CLEANWAIT, result)
             else:
@@ -361,7 +367,7 @@ class Ilo5RAIDTestCase(db_base.DbTestCase):
         self.node.save()
         self._test_create_configuration_skip_non_root()
 
-    @mock.patch.object(raid, 'filter_target_raid_config')
+    @mock.patch.object(raid, 'filter_target_raid_config', autospec=True)
     @mock.patch.object(ilo_common, 'get_ilo_object', autospec=True)
     def _test_create_configuration_skip_root_skip_non_root(
             self, ilo_mock, filter_target_raid_config_mock):
@@ -388,7 +394,7 @@ class Ilo5RAIDTestCase(db_base.DbTestCase):
         self.node.save()
         self._test_create_configuration_skip_root_skip_non_root()
 
-    @mock.patch.object(ilo_raid.Ilo5RAID, '_set_step_failed')
+    @mock.patch.object(ilo_raid.Ilo5RAID, '_set_step_failed', autospec=True)
     @mock.patch.object(ilo_common, 'get_ilo_object', autospec=True)
     def _test_create_configuration_ilo_error(self, ilo_mock,
                                              set_step_failed_mock):
@@ -399,6 +405,7 @@ class Ilo5RAIDTestCase(db_base.DbTestCase):
             task.driver.raid.create_configuration(
                 task, create_nonroot_volumes=False)
             set_step_failed_mock.assert_called_once_with(
+                mock.ANY,
                 task,
                 'Failed to create raid configuration '
                 'on node %s' % self.node.uuid, exc)
@@ -423,7 +430,8 @@ class Ilo5RAIDTestCase(db_base.DbTestCase):
         self.node.save()
         self._test_create_configuration_ilo_error()
 
-    @mock.patch.object(ilo_raid.Ilo5RAID, '_prepare_for_read_raid')
+    @mock.patch.object(ilo_raid.Ilo5RAID, '_prepare_for_read_raid',
+                       autospec=True)
     @mock.patch.object(ilo_common, 'get_ilo_object', autospec=True)
     def _test_delete_configuration(self, ilo_mock, prepare_raid_mock):
         ilo_mock_object = ilo_mock.return_value
@@ -434,7 +442,8 @@ class Ilo5RAIDTestCase(db_base.DbTestCase):
             else:
                 self.assertEqual(states.DEPLOYWAIT, result)
         ilo_mock_object.delete_raid_configuration.assert_called_once_with()
-        prepare_raid_mock.assert_called_once_with(task, 'delete_raid')
+        prepare_raid_mock.assert_called_once_with(mock.ANY, task,
+                                                  'delete_raid')
 
     def test_delete_configuration_cleaning(self):
         self.node.clean_step = {'step': 'create_configuration',
@@ -450,7 +459,8 @@ class Ilo5RAIDTestCase(db_base.DbTestCase):
 
     @mock.patch.object(ilo_raid.LOG, 'info', spec_set=True,
                        autospec=True)
-    @mock.patch.object(ilo_raid.Ilo5RAID, '_prepare_for_read_raid')
+    @mock.patch.object(ilo_raid.Ilo5RAID, '_prepare_for_read_raid',
+                       autospec=True)
     @mock.patch.object(ilo_common, 'get_ilo_object', autospec=True)
     def _test_delete_configuration_no_logical_drive(
             self, ilo_mock, prepare_raid_mock, log_mock):
@@ -547,7 +557,7 @@ class Ilo5RAIDTestCase(db_base.DbTestCase):
         self.node.save()
         self._test_delete_configuration_with_read_raid_failed()
 
-    @mock.patch.object(ilo_raid.Ilo5RAID, '_set_step_failed')
+    @mock.patch.object(ilo_raid.Ilo5RAID, '_set_step_failed', autospec=True)
     @mock.patch.object(ilo_common, 'get_ilo_object', autospec=True)
     def _test_delete_configuration_ilo_error(self, ilo_mock,
                                              set_step_failed_mock):
@@ -564,6 +574,7 @@ class Ilo5RAIDTestCase(db_base.DbTestCase):
             self.assertNotIn('skip_current_clean_step',
                              task.node.driver_internal_info)
             set_step_failed_mock.assert_called_once_with(
+                mock.ANY,
                 task,
                 'Failed to delete raid configuration '
                 'on node %s' % self.node.uuid, exc)

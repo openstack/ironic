@@ -177,7 +177,7 @@ class FirmwareProcessorTestCase(base.TestCase):
 
         self.assertEqual(ret_val, result)
 
-    @mock.patch.object(ilo_fw_processor, 'LOG')
+    @mock.patch.object(ilo_fw_processor, 'LOG', autospec=True)
     def test__validate_sum_components_fails(self, LOG_mock):
         components = ['INVALID']
 
