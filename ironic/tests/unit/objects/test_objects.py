@@ -692,7 +692,7 @@ expected_object_fingerprints = {
     'NodeCorrectedPowerStatePayload': '1.15-59a224a9191cdc9f1acc2e0dcd2d3adb',
     'NodeSetProvisionStateNotification':
         '1.0-59acc533c11d306f149846f922739c15',
-    'NodeSetProvisionStatePayload': '1.15-488a3d62a0643d17e288ecf89ed5bbb4',
+    'NodeSetProvisionStatePayload': '1.16-c5a8eea43c514baf721fc61ce5d9d5a4',
     'VolumeConnector': '1.0-3e0252c0ab6e6b9d158d09238a577d97',
     'VolumeTarget': '1.0-0b10d663d8dae675900b2c7548f76f5e',
     'ChassisCRUDNotification': '1.0-59acc533c11d306f149846f922739c15',

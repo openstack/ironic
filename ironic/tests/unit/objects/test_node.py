@@ -1282,6 +1282,8 @@ class TestNodePayloads(db_base.DbTestCase):
                                                        'DEPLOYING', 'DEPLOY')
         self._test_node_payload(payload)
         self.assertEqual(self.node.instance_info, payload.instance_info)
+        self.assertEqual(self.node.driver_internal_info,
+                         payload.driver_internal_info)
         self.assertEqual('DEPLOY', payload.event)
         self.assertEqual('AVAILABLE', payload.previous_provision_state)
         self.assertEqual('DEPLOYING', payload.previous_target_provision_state)

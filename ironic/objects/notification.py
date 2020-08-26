@@ -188,11 +188,13 @@ class NotificationPublisher(base.IronicObject):
 def mask_secrets(payload):
     """Remove secrets from payload object."""
     mask = '******'
+
+    dict_fields = ['instance_info', 'driver_info', 'driver_internal_info']
+    for f in dict_fields:
+        if hasattr(payload, f):
+            masked = strutils.mask_dict_password(getattr(payload, f), mask)
+            setattr(payload, f, masked)
+
     if hasattr(payload, 'instance_info'):
-        payload.instance_info = strutils.mask_dict_password(
-            payload.instance_info, mask)
         if 'image_url' in payload.instance_info:
             payload.instance_info['image_url'] = mask
-    if hasattr(payload, 'driver_info'):
-        payload.driver_info = strutils.mask_dict_password(
-            payload.driver_info, mask)

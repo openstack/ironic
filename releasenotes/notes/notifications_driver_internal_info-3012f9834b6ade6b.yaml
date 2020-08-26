@@ -1,0 +1,5 @@
+---
+features:
+  - |
+    Adds ``driver_internal_info`` field to the node-related notification
+    ``baremetal.node.provision_set.*``, new payload version 1.16.
