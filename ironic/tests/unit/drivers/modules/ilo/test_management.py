@@ -388,7 +388,7 @@ class IloManagementTestCase(test_common.BaseIloTest):
                        spec_set=True, autospec=True)
     @mock.patch.object(ilo_boot.IloVirtualMediaBoot, 'prepare_ramdisk',
                        spec_set=True, autospec=True)
-    @mock.patch.object(ilo_management, 'LOG')
+    @mock.patch.object(ilo_management, 'LOG', autospec=True)
     @mock.patch.object(ilo_management, '_execute_ilo_step',
                        spec_set=True, autospec=True)
     @mock.patch.object(ilo_management.firmware_processor, 'FirmwareProcessor',
@@ -621,7 +621,7 @@ class IloManagementTestCase(test_common.BaseIloTest):
         self.node.save()
         self._test_update_firmware_throws_error_for_invalid_component_type()
 
-    @mock.patch.object(ilo_management, 'LOG')
+    @mock.patch.object(ilo_management, 'LOG', autospec=True)
     @mock.patch.object(ilo_management.firmware_processor.FirmwareProcessor,
                        'process_fw_on', spec_set=True, autospec=True)
     def _test_update_firmware_throws_error_for_checksum_validation_error(
@@ -744,7 +744,7 @@ class IloManagementTestCase(test_common.BaseIloTest):
         self.node.save()
         self._test_update_firmware_doesnt_update_any_if_any_url_fails()
 
-    @mock.patch.object(ilo_management, 'LOG')
+    @mock.patch.object(ilo_management, 'LOG', autospec=True)
     @mock.patch.object(ilo_management, '_execute_ilo_step',
                        spec_set=True, autospec=True)
     @mock.patch.object(ilo_management.firmware_processor, 'FirmwareProcessor',
@@ -983,7 +983,7 @@ class IloManagementTestCase(test_common.BaseIloTest):
         self._test_write_firmware_sum_mode_invalid_component(
             step_type='deploy')
 
-    @mock.patch.object(driver_utils, 'store_ramdisk_logs')
+    @mock.patch.object(driver_utils, 'store_ramdisk_logs', autospec=True)
     def _test__write_firmware_sum_final_with_logs(self, store_mock,
                                                   step_type='clean'):
         self.config(deploy_logs_collect='always', group='agent')
@@ -1028,7 +1028,7 @@ class IloManagementTestCase(test_common.BaseIloTest):
     def test__write_firmware_sum_final_with_logs_deploy(self):
         self._test__write_firmware_sum_final_with_logs(step_type='deploy')
 
-    @mock.patch.object(driver_utils, 'store_ramdisk_logs')
+    @mock.patch.object(driver_utils, 'store_ramdisk_logs', autospec=True)
     def _test__write_firmware_sum_final_without_logs(self, store_mock,
                                                      step_type='clean'):
         self.config(deploy_logs_collect='on_failure', group='agent')
@@ -1068,7 +1068,7 @@ class IloManagementTestCase(test_common.BaseIloTest):
         self._test__write_firmware_sum_final_without_logs(step_type='deploy')
 
     @mock.patch.object(ilo_management, 'LOG', spec_set=True, autospec=True)
-    @mock.patch.object(driver_utils, 'store_ramdisk_logs')
+    @mock.patch.object(driver_utils, 'store_ramdisk_logs', autospec=True)
     def _test__write_firmware_sum_final_swift_error(self, store_mock,
                                                     log_mock,
                                                     step_type='clean'):
@@ -1114,7 +1114,7 @@ class IloManagementTestCase(test_common.BaseIloTest):
         self._test__write_firmware_sum_final_swift_error(step_type='deploy')
 
     @mock.patch.object(ilo_management, 'LOG', spec_set=True, autospec=True)
-    @mock.patch.object(driver_utils, 'store_ramdisk_logs')
+    @mock.patch.object(driver_utils, 'store_ramdisk_logs', autospec=True)
     def _test__write_firmware_sum_final_environment_error(self, store_mock,
                                                           log_mock,
                                                           step_type='clean'):
@@ -1162,7 +1162,7 @@ class IloManagementTestCase(test_common.BaseIloTest):
             step_type='deploy')
 
     @mock.patch.object(ilo_management, 'LOG', spec_set=True, autospec=True)
-    @mock.patch.object(driver_utils, 'store_ramdisk_logs')
+    @mock.patch.object(driver_utils, 'store_ramdisk_logs', autospec=True)
     def _test__write_firmware_sum_final_unknown_exception(self, store_mock,
                                                           log_mock,
                                                           step_type='clean'):
@@ -1584,7 +1584,7 @@ class Ilo5ManagementTestCase(db_base.DbTestCase):
             self.assertEqual(states.CLEANWAIT, result)
             mock_power.assert_called_once_with(task, states.REBOOT)
 
-    @mock.patch.object(ilo_management.LOG, 'info')
+    @mock.patch.object(ilo_management.LOG, 'info', autospec=True)
     @mock.patch.object(ilo_management.Ilo5Management,
                        '_wait_for_disk_erase_status', autospec=True)
     @mock.patch.object(ilo_common, 'get_ilo_object', autospec=True)
@@ -1634,7 +1634,7 @@ class Ilo5ManagementTestCase(db_base.DbTestCase):
             self.assertEqual(states.CLEANWAIT, result)
             mock_power.assert_called_once_with(task, states.REBOOT)
 
-    @mock.patch.object(ilo_management.LOG, 'info')
+    @mock.patch.object(ilo_management.LOG, 'info', autospec=True)
     @mock.patch.object(ilo_common, 'get_ilo_object', autospec=True)
     def test_erase_devices_when_no_drive_available(
             self, ilo_mock, log_mock):
@@ -1670,7 +1670,8 @@ class Ilo5ManagementTestCase(db_base.DbTestCase):
                               task, erase_pattern={'ssd': 'xyz'})
 
     @mock.patch.object(ilo_common, 'get_ilo_object', autospec=True)
-    @mock.patch.object(ilo_management.Ilo5Management, '_set_clean_failed')
+    @mock.patch.object(ilo_management.Ilo5Management, '_set_clean_failed',
+                       autospec=True)
     def test_erase_devices_hdd_ilo_error(self, set_clean_failed_mock,
                                          ilo_mock):
         ilo_mock_object = ilo_mock.return_value
@@ -1691,4 +1692,4 @@ class Ilo5ManagementTestCase(db_base.DbTestCase):
             self.assertNotIn('skip_current_clean_step',
                              task.node.driver_internal_info)
             set_clean_failed_mock.assert_called_once_with(
-                task, exc)
+                mock.ANY, task, exc)
