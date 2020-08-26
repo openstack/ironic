@@ -192,7 +192,7 @@ def _get_iso_image_name(node):
 
     :param node: the node for which image name is to be provided.
     """
-    return "boot-%s" % node.uuid
+    return "boot-%s.iso" % node.uuid
 
 
 def cleanup_iso_image(task):
