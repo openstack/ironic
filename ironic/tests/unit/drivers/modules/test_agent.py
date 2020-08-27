@@ -166,7 +166,10 @@ class TestAgentMethods(db_base.DbTestCase):
             show_mock.assert_called_once_with(self.context, 'fake-image')
 
     @mock.patch.object(deploy_utils, 'check_for_missing_params', autospec=True)
-    def test_validate_http_provisioning_not_glance(self, utils_mock):
+    def test_validate_http_provisioning_http_image(self, utils_mock):
+        i_info = self.node.instance_info
+        i_info['image_source'] = 'http://image-ref'
+        self.node.instance_info = i_info
         agent.validate_http_provisioning_configuration(self.node)
         utils_mock.assert_not_called()
 
@@ -183,6 +186,16 @@ class TestAgentMethods(db_base.DbTestCase):
         CONF.set_override('http_url', None, group='deploy')
         i_info = self.node.instance_info
         i_info['image_source'] = '0448fa34-4db1-407b-a051-6357d5f86c59'
+        self.node.instance_info = i_info
+        self.assertRaisesRegex(exception.MissingParameterValue,
+                               'failed to validate http provisoning',
+                               agent.validate_http_provisioning_configuration,
+                               self.node)
+
+    def test_validate_http_provisioning_missing_args_file(self):
+        CONF.set_override('http_url', None, group='deploy')
+        i_info = self.node.instance_info
+        i_info['image_source'] = 'file://image-ref'
         self.node.instance_info = i_info
         self.assertRaisesRegex(exception.MissingParameterValue,
                                'failed to validate http provisoning',
@@ -211,6 +224,7 @@ class TestAgentDeploy(db_base.DbTestCase):
         self.ports = [
             object_utils.create_test_port(self.context, node_id=self.node.id)]
         dhcp_factory.DHCPFactory._dhcp_provider = None
+        CONF.set_override('http_url', 'http://example.com', group='deploy')
 
     def test_get_properties(self):
         expected = agent.COMMON_PROPERTIES
@@ -352,6 +366,24 @@ class TestAgentDeploy(db_base.DbTestCase):
                 task.driver.boot, task)
             show_mock.assert_called_once_with(self.context,
                                               'http://image-ref')
+
+    @mock.patch.object(image_service.FileImageService, 'validate_href',
+                       autospec=True)
+    @mock.patch.object(pxe.PXEBoot, 'validate', autospec=True)
+    def test_validate_file_image_no_checksum(
+            self, pxe_boot_validate_mock, validate_mock):
+        i_info = self.node.instance_info
+        i_info['image_source'] = 'file://image-ref'
+        del i_info['image_checksum']
+        self.node.instance_info = i_info
+        self.node.save()
+
+        with task_manager.acquire(
+                self.context, self.node.uuid, shared=False) as task:
+            self.driver.validate(task)
+            pxe_boot_validate_mock.assert_called_once_with(
+                task.driver.boot, task)
+            validate_mock.assert_called_once_with(mock.ANY, 'file://image-ref')
 
     @mock.patch.object(agent, 'validate_http_provisioning_configuration',
                        autospec=True)
@@ -1045,11 +1077,14 @@ class TestAgentDeploy(db_base.DbTestCase):
             self.assertFalse(build_options_mock.called)
             self.assertFalse(pxe_prepare_ramdisk_mock.called)
 
+    @mock.patch.object(deploy_utils, 'destroy_http_instance_images',
+                       autospec=True)
     @mock.patch('ironic.common.dhcp_factory.DHCPFactory', autospec=True)
     @mock.patch.object(pxe.PXEBoot, 'clean_up_instance', autospec=True)
     @mock.patch.object(pxe.PXEBoot, 'clean_up_ramdisk', autospec=True)
     def test_clean_up(self, pxe_clean_up_ramdisk_mock,
-                      pxe_clean_up_instance_mock, dhcp_factor_mock):
+                      pxe_clean_up_instance_mock, dhcp_factor_mock,
+                      destroy_images_mock):
         with task_manager.acquire(
                 self.context, self.node['uuid'], shared=False) as task:
             self.driver.clean_up(task)
@@ -1058,13 +1093,17 @@ class TestAgentDeploy(db_base.DbTestCase):
             pxe_clean_up_instance_mock.assert_called_once_with(
                 task.driver.boot, task)
             dhcp_factor_mock.assert_called_once_with()
+            destroy_images_mock.assert_called_once_with(task.node)
 
+    @mock.patch.object(deploy_utils, 'destroy_http_instance_images',
+                       autospec=True)
     @mock.patch('ironic.common.dhcp_factory.DHCPFactory', autospec=True)
     @mock.patch.object(pxe.PXEBoot, 'clean_up_instance', autospec=True)
     @mock.patch.object(pxe.PXEBoot, 'clean_up_ramdisk', autospec=True)
     def test_clean_up_manage_agent_boot_false(self, pxe_clean_up_ramdisk_mock,
                                               pxe_clean_up_instance_mock,
-                                              dhcp_factor_mock):
+                                              dhcp_factor_mock,
+                                              destroy_images_mock):
         with task_manager.acquire(
                 self.context, self.node['uuid'], shared=False) as task:
             self.config(group='agent', manage_agent_boot=False)
@@ -1073,6 +1112,7 @@ class TestAgentDeploy(db_base.DbTestCase):
             pxe_clean_up_instance_mock.assert_called_once_with(
                 task.driver.boot, task)
             dhcp_factor_mock.assert_called_once_with()
+            destroy_images_mock.assert_called_once_with(task.node)
 
     @mock.patch.object(agent_base, 'get_steps', autospec=True)
     def test_get_clean_steps(self, mock_get_steps):
