@@ -20,11 +20,14 @@ when needing to mock those third party modules"""
 DRACCLIENT_SPEC = (
     'client',
     'constants',
-    'exceptions'
+    'exceptions',
+    'resources',
+    'utils'
 )
 
 DRACCLIENT_CLIENT_MOD_SPEC = (
     'DRACClient',
+    'WSManClient'
 )
 
 DRACCLIENT_CONSTANTS_MOD_SPEC = (
@@ -44,6 +47,14 @@ DRACCLIENT_CONSTANTS_REBOOT_REQUIRED_MOD_SPEC = (
 DRACCLIENT_CONSTANTS_RAID_STATUS_MOD_SPEC = (
     'jbod',
     'raid'
+)
+
+DRACCLIENT_RESOURCES_URIS_MOD_SPEC = (
+    'DCIM_SystemView',
+)
+
+DRACCLIENT_UTILS_MOD_SPEC = (
+    'find_xml',
 )
 
 # proliantutils
