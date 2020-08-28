@@ -19,6 +19,7 @@ from futurist import periodics
 from ironic_lib import metrics_utils
 from oslo_log import log as logging
 from oslo_utils import importutils
+from oslo_utils import timeutils
 
 from ironic.common import exception
 from ironic.common.i18n import _
@@ -32,11 +33,46 @@ from ironic.drivers.modules.drac import job as drac_job
 from ironic.drivers.modules.redfish import bios as redfish_bios
 from ironic import objects
 
+drac_client = importutils.try_import('dracclient.client')
 drac_exceptions = importutils.try_import('dracclient.exceptions')
+drac_uris = importutils.try_import('dracclient.resources.uris')
+drac_utils = importutils.try_import('dracclient.utils')
 
 LOG = logging.getLogger(__name__)
 
 METRICS = metrics_utils.get_metrics_logger(__name__)
+
+
+def _get_last_system_inventory_time(client, task):
+    """Gets last system inventory time
+
+    Uses last_system_inventory_time, if that is not available, then fall
+    backs to raw requests. Warns user about option to update
+    python-dracclient.
+    :param client: python-dracclient instance
+    :param task: a TaskManager instance with the node to act on
+    :returns: Last system inventory time
+    """
+    try:
+        return client.get_system().last_system_inventory_time
+    except AttributeError as ae:
+        LOG.warning("Failed to get the last system inventory time for node "
+                    "%(node_uuid)s. Update the python-dracclient to the "
+                    "latest version. Reason: %(error)s",
+                    {"node_uuid": task.node.uuid, "error": ae})
+        driver_info = drac_common.parse_driver_info(task.node)
+        client = drac_client.WSManClient(
+            driver_info['drac_address'], driver_info['drac_username'],
+            driver_info['drac_password'], driver_info['drac_port'],
+            driver_info['drac_path'], driver_info['drac_protocol'])
+
+        doc = client.enumerate(
+            drac_uris.DCIM_SystemView, filter_query=(
+                'select LastSystemInventoryTime from DCIM_SystemView'))
+
+        return drac_utils.find_xml(
+            doc, 'LastSystemInventoryTime',
+            drac_uris.DCIM_SystemView).text.split('.')[0]
 
 
 class DracRedfishBIOS(redfish_bios.RedfishBIOS):
@@ -166,7 +202,6 @@ class DracWSManBIOS(base.BIOSInterface):
              driver_internal_info) in node_list:
             try:
                 lock_purpose = 'checking async bios configuration jobs'
-                job_ids = driver_internal_info.get('bios_config_job_ids')
                 # Performing read-only/non-destructive work with shared lock
                 with task_manager.acquire(context, node_uuid,
                                           purpose=lock_purpose,
@@ -175,11 +210,13 @@ class DracWSManBIOS(base.BIOSInterface):
                     if not isinstance(task.driver.bios, DracWSManBIOS):
                         continue
 
-                    # skip if nothing to check on this node
-                    if not job_ids:
-                        continue
+                    # check bios_config_job_id exist & checks job is completed
+                    if driver_internal_info.get("bios_config_job_ids"):
+                        self._check_node_bios_jobs(task)
 
-                    self._check_node_bios_jobs(task)
+                    if driver_internal_info.get(
+                            "factory_reset_time_before_reboot"):
+                        self._check_last_system_inventory_changed(task)
 
             except exception.NodeNotFound:
                 LOG.info("During query_bios_config_job_status, node "
@@ -189,6 +226,74 @@ class DracWSManBIOS(base.BIOSInterface):
                 LOG.info("During query_bios_config_job_status, node "
                          "%(node)s was already locked by another process. "
                          "Skip.", {'node': node_uuid})
+
+    def _check_last_system_inventory_changed(self, task):
+        """Check the progress of last system inventory time of a node.
+
+        This handles jobs for BIOS factory reset. Handle means,
+        it checks for job status to not only signify completed jobs but
+        also handle failures by invoking the 'fail' event, allowing the
+        conductor to put the node into clean/deploy FAIL state.
+
+        :param task: a TaskManager instance with the node to act on
+        """
+        node = task.node
+        client = drac_common.get_drac_client(node)
+        # Get the last system inventory time from node before reboot
+        factory_reset_time_before_reboot = node.driver_internal_info.get(
+            'factory_reset_time_before_reboot')
+
+        # Get the factory reset start time
+        factory_reset_time = node.driver_internal_info.get(
+            'factory_reset_time')
+        LOG.debug("Factory resetting node %(node_uuid)s factory reset time "
+                  " %(factory_reset_time)s", {"node_uuid": task.node.uuid,
+                                              "factory_reset_time":
+                                              factory_reset_time})
+        # local variable to track difference between current time and factory
+        # reset start time
+        time_difference = 0
+        # Get the last system inventory time after reboot
+        factory_reset_time_endof_reboot = _get_last_system_inventory_time(
+            client, task)
+
+        LOG.debug("Factory resetting node %(node_uuid)s "
+                  "last inventory reboot time after factory reset "
+                  "%(factory_reset_time_endof_reboot)s",
+                  {"node_uuid": task.node.uuid,
+                   "factory_reset_time_endof_reboot":
+                   factory_reset_time_endof_reboot})
+
+        if factory_reset_time_before_reboot != factory_reset_time_endof_reboot:
+            # from the database cleanup with factory reset time
+            self._delete_cached_reboot_time(node)
+            # Cache the new BIOS settings,
+            self.cache_bios_settings(task)
+            self._resume_current_operation(task)
+        else:
+            # Calculate difference between current time and factory reset
+            # start time if it is more than configured timeout then set
+            # the node to fail state
+            time = timeutils.utcnow(with_timezone=True
+                                    ) - timeutils.parse_isotime(str(
+                                        factory_reset_time))
+            time_difference = time.seconds
+            LOG.debug("Factory resetting node %(node_uuid)s "
+                      "time difference %(time_diffrence)s ",
+                      {"node_uuid": task.node.uuid, "time_diffrence":
+                       time_difference})
+
+            if time_difference > CONF.drac.bios_factory_reset_timeout:
+                task.upgrade_lock()
+                self._delete_cached_reboot_time(node)
+                error_message = ("BIOS factory reset was not completed within "
+                                 "{} seconds, unable to cache updated bios "
+                                 "setting").format(
+                                     CONF.drac.bios_factory_reset_timeout)
+                self._set_failed(task, error_message)
+            else:
+                LOG.debug("Factory reset for a node %(node)s is not done "
+                          "will check again later", {'node': task.node.uuid})
 
     def _check_node_bios_jobs(self, task):
         """Check the progress of running BIOS config jobs of a node.
@@ -234,7 +339,9 @@ class DracWSManBIOS(base.BIOSInterface):
         else:
             # invoke 'fail' event to allow conductor to put the node in
             # a clean/deploy fail state
-            self._set_failed(task, config_job)
+            error_message = ("Failed config job: {}. Message: '{}'.".format(
+                config_job.id, config_job.message))
+            self._set_failed(task, error_message)
 
     def _delete_cached_config_job_ids(self, node, finished_job_ids=None):
         """Remove Job IDs from the driver_internal_info table in database.
@@ -255,24 +362,32 @@ class DracWSManBIOS(base.BIOSInterface):
         node.driver_internal_info = driver_internal_info
         node.save()
 
-    def _set_failed(self, task, config_job):
+    def _delete_cached_reboot_time(self, node):
+        """Remove factory time from the driver_internal_info table in database.
+
+         :param node: an ironic node object
+         """
+        driver_internal_info = node.driver_internal_info
+        # Remove the last reboot time and factory reset time
+        driver_internal_info.pop(
+            'factory_reset_time_before_reboot')
+        driver_internal_info.pop('factory_reset_time')
+        node.driver_internal_info = driver_internal_info
+        node.save()
+
+    def _set_failed(self, task, error_message):
         """Set the node in failed state by invoking 'fail' event.
 
         :param task: a TaskManager instance with node to act on
-        :param config_job: a python-dracclient Job object (named tuple)
+        :param error_message: Error message
         """
-        error_msg = (_("Failed config job: %(config_job_id)s. "
-                       "Message: '%(message)s'.") %
-                     {'config_job_id': config_job.id,
-                      'message': config_job.message})
-        log_msg = ("BIOS configuration job failed for node %(node)s. "
-                   "%(error)s " %
+        log_msg = ("BIOS configuration failed for node %(node)s. %(error)s " %
                    {'node': task.node.uuid,
-                    'error': error_msg})
+                    'error': error_message})
         if task.node.clean_step:
-            manager_utils.cleaning_error_handler(task, log_msg, error_msg)
+            manager_utils.cleaning_error_handler(task, log_msg, error_message)
         else:
-            manager_utils.deploying_error_handler(task, log_msg, error_msg)
+            manager_utils.deploying_error_handler(task, log_msg, error_message)
 
     def _resume_current_operation(self, task):
         """Continue cleaning/deployment of the node.
@@ -327,20 +442,39 @@ class DracWSManBIOS(base.BIOSInterface):
             # reboot_required=False/Optional, which is not desired
             reboot_needed = True
             try:
+                factory_reset_time_before_reboot =\
+                    _get_last_system_inventory_time(client, task)
+
+                LOG.debug("Factory resetting node %(node_uuid)s "
+                          "last inventory reboot time before factory reset "
+                          "%(factory_reset_time_before_reboot)s",
+                          {"node_uuid": task.node.uuid,
+                           "factory_reset_time_before_reboot":
+                           factory_reset_time_before_reboot})
+
                 commit_job_id = client.commit_pending_lifecycle_changes(
                     reboot=reboot_needed)
+                LOG.info("Commit job id of a node %(node_uuid)s."
+                         "%(commit_job_id)s", {'node_uuid': node.uuid,
+                                               "commit_job_id": commit_job_id})
             except drac_exceptions.BaseClientException as exc:
                 LOG.error('Failed to commit BIOS reset on node '
                           '%(node_uuid)s. Reason: %(error)s.', {
                               'node_uuid': node.uuid,
                               'error': exc})
                 raise exception.DracOperationError(error=exc)
-
-            # Store JobID for the async job handler _check_node_bios_jobs
+            # Store the last inventory time on reboot for async job handler
+            # _check_last_system_inventory_changed
             driver_internal_info = node.driver_internal_info
-            driver_internal_info.setdefault(
-                'bios_config_job_ids', []).append(commit_job_id)
+            driver_internal_info['factory_reset_time_before_reboot'] = \
+                factory_reset_time_before_reboot
+            # Store the current time to later check if factory reset times out
+            driver_internal_info['factory_reset_time'] = str(
+                timeutils.utcnow(with_timezone=True))
+
             node.driver_internal_info = driver_internal_info
+            # rebooting the server to apply factory reset value
+            client.set_power_state('REBOOT')
 
             # This method calls node.save(), bios_config_job_id will be
             # saved automatically

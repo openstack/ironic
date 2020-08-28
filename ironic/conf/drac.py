@@ -39,7 +39,13 @@ opts = [
                min=0,
                default=60,
                help=_('Number of seconds to wait between checking for '
-                      'completed import configuration task'))
+                      'completed import configuration task')),
+    cfg.IntOpt('bios_factory_reset_timeout',
+               default=600,
+               min=1,
+               help=_('Maximum time (in seconds) to wait for factory reset of '
+                      'BIOS settings to complete.'))
+
 ]
 
 

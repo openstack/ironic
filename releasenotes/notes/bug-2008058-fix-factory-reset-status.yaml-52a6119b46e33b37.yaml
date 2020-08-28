@@ -1,0 +1,8 @@
+---
+fixes:
+  - |
+    Fixes the ``idrac-wsman`` BIOS ``factory_reset`` clean and deploy step to
+    indicate success and update the cached BIOS settings to their defaults only
+    when the BIOS settings have actually been reset. See story
+    `2008058 <https://storyboard.openstack.org/#!/story/2008058>`_ for more
+    details.

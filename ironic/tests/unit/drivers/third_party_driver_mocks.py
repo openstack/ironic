@@ -99,11 +99,20 @@ if not dracclient:
         spec_set=mock_specs.DRACCLIENT_CONSTANTS_RAID_STATUS_MOD_SPEC,
         jbod=mock.sentinel.jbod,
         raid=mock.sentinel.raid)
+    dracclient.resources.uris = mock.MagicMock(
+        spec_set=mock_specs.DRACCLIENT_RESOURCES_URIS_MOD_SPEC,
+        DCIM_SystemView=mock.sentinel.DCIM_SystemView
+    )
+    dracclient.utils = mock.MagicMock(
+        spec_set=mock_specs.DRACCLIENT_UTILS_MOD_SPEC
+    )
 
     sys.modules['dracclient'] = dracclient
     sys.modules['dracclient.client'] = dracclient.client
     sys.modules['dracclient.constants'] = dracclient.constants
     sys.modules['dracclient.exceptions'] = dracclient.exceptions
+    sys.modules['dracclient.resources.uris'] = dracclient.resources.uris
+    sys.modules['dracclient.utils'] = dracclient.utils
     dracclient.exceptions.BaseClientException = type('BaseClientException',
                                                      (Exception,), {})
 
