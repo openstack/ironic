@@ -1,0 +1,214 @@
+{
+    "@Redfish.Copyright": "Copyright (c) 2020-2022 Dell Inc. or its subsidiaries.",
+    "@Redfish.License": "Apache License, Version 2.0. For full text, see link: http://www.apache.org/licenses/LICENSE-2.0",
+    "SchemaDefinition": "RedfishInteroperabilityProfile.v1_5_1",
+    "ProfileName": "OpenStackIronicProfile",
+    "ProfileVersion": "1.0.0",
+    "Purpose": "Specifies the OpenStack Ironic vendor-independent Redfish service requirements, typically offered by a baseboard management controller (BMC).",
+    "OwningEntity": "Dell Inc.",
+    "ContactInfo": "michael.raineri@dell.com, aija.jaunteva@dell.com",
+    "Protocol": {
+        "MinVersion": "1.6.0"
+    },
+    "Resources": {
+        "Bios": {
+            "PropertyRequirements": {
+                "Attributes": {}
+            },
+            "ActionRequirements": {
+                "ResetBios": {}
+            }
+        },
+        "ComputerSystem": {
+            "PropertyRequirements": {
+                "AssetTag": {
+                    "ReadRequirement": "Recommended"
+                },
+                "Bios": {},
+                "BiosVersion": {
+                    "ReadRequirement": "Recommended"
+                },
+                "Boot": {
+                    "PropertyRequirements": {
+                        "BootSourceOverrideEnabled": {
+                            "WriteRequirement": "Mandatory",
+                            "MinSupportValues": [
+                                "Disabled",
+                                "Once",
+                                "Continuous"
+                            ]
+                        },
+                        "BootSourceOverrideMode": {
+                            "WriteRequirement": "Mandatory",
+                            "MinSupportValues": [
+                                "UEFI"
+                            ]
+                        },
+                        "BootSourceOverrideTarget": {
+                            "WriteRequirement": "Mandatory",
+                            "MinSupportValues": [
+                                "Pxe",
+                                "Hdd",
+                                "Cd",
+                                "BiosSetup"
+                            ]
+                        }
+                    }
+                },
+                "IndicatorLED": {
+                    "WriteRequirement": "Mandatory",
+                    "MinSupportValues": [
+                        "Lit",
+                        "Off",
+                        "Blinking"
+                    ]
+                },
+                "Links": {
+                    "PropertyRequirements": {
+                        "Chassis": {},
+                        "ManagedBy": {}
+                    }
+                },
+                "MemorySummary": {
+                    "PropertyRequirements": {
+                        "TotalSystemMemoryGiB": {}
+                    }
+                },
+                "PowerState": {},
+                "Processors": {},
+                "SimpleStorage": {
+                    "ReadRequirement": "Conditional",
+                    "ConditionalRequirements": [
+                        {
+                            "Purpose": "Either SimpleStorage or Storage must be present, even if the system is disk-less.",
+                            "CompareProperty": "Storage",
+                            "CompareType": "Absent",
+                            "ReadRequirement": "Mandatory"
+                        }
+                    ]
+                },
+                "Status": {
+                    "PropertyRequirements": {
+                        "Health": {},
+                        "State": {}
+                    }
+                },
+                "Storage": {
+                    "ReadRequirement": "Conditional",
+                    "ConditionalRequirements": [
+                        {
+                            "Purpose": "Either SimpleStorage or Storage must be present, even if the system is disk-less.",
+                            "CompareProperty": "SimpleStorage",
+                            "CompareType": "Absent",
+                            "ReadRequirement": "Mandatory"
+                        }
+                    ]
+                },
+                "SystemType": {}
+            },
+            "ActionRequirements": {
+                "Reset": {
+                    "Parameters": {
+                        "ResetType": {
+                            "ParameterValues": [
+                                "On",
+                                "ForceOff",
+                                "GracefulShutdown",
+                                "GracefulRestart",
+                                "ForceRestart",
+                                "Nmi"
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "Drive": {
+            "ReadRequirement": "IfPopulated",
+            "Purpose": "Either SimpleStorage or Storage must be present, even if the system is disk-less.",
+            "PropertyRequirements": {
+                "CapacityBytes": {
+                    "ReadRequirement": "IfPopulated"
+                },
+                "Status": {
+                    "PropertyRequirements": {
+                        "Health": {},
+                        "State": {}
+                    }
+                }
+            }
+        },
+        "EthernetInterface": {
+            "URIs": [
+                "/redfish/v1/Systems/{ComputerSystemId}/EthernetInterfaces/{EthernetInterfaceId}"
+            ],
+            "PropertyRequirements": {
+                "MACAddress": {},
+                "Status": {
+                    "PropertyRequirements": {
+                        "Health": {},
+                        "State": {}
+                    }
+                }
+            }
+        },
+        "Processor": {
+            "PropertyRequirements": {
+                "ProcessorArchitecture": {},
+                "Status": {
+                    "PropertyRequirements": {
+                        "Health": {},
+                        "State": {}
+                    }
+                },
+                "TotalThreads": {}
+            }
+        },
+        "SimpleStorage": {
+            "ReadRequirement": "IfPopulated",
+            "Purpose": "Either SimpleStorage or Storage must be present, even if the system is disk-less.",
+            "PropertyRequirements": {
+                "Devices": {
+                    "PropertyRequirements": {
+                        "CapacityBytes": {
+                            "ReadRequirement": "IfPopulated"
+                        },
+                        "Status": {
+                            "PropertyRequirements": {
+                                "Health": {},
+                                "State": {}
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "VirtualMedia": {
+            "PropertyRequirements": {
+                "Image": {},
+                "Inserted": {
+                    "ReadRequirement": "Recommended"
+                },
+                "MediaTypes": {
+                    "ReadRequirement": "Recommended"
+                },
+                "WriteProtected": {
+                    "ReadRequirement": "Recommended"
+                }
+            },
+            "ActionRequirements": {
+                "EjectMedia": {},
+                "InsertMedia": {
+                    "Parameters": {
+                        "Inserted": {
+                            "ReadRequirement": "Recommended"
+                        },
+                        "WriteProtected": {
+                            "ReadRequirement": "Recommended"
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
