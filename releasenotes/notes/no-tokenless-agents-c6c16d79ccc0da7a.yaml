@@ -1,0 +1,20 @@
+---
+upgrade:
+  - |
+    Support for token-less agents has been removed as the token-less agent
+    support was deprecated in the Ussuri development cycle. The ironic-python-agent
+    must be updated to 6.1.0 or higher to support communicating with the
+    Ironic deployment after upgrade. This will generally require deployment,
+    cleaning, and rescue kernels and ramdisks to be updated. If this is not
+    done, actions such as cleaning and deployment will time out as the agent
+    will be unable to record heartbeats with Ironic. For more information,
+    please see the `agent token <https://docs.openstack.org/ironic/latest/admin/agent-token.html>`_
+    documentation.
+security:
+  - |
+    Ramdisks supporting agent token are now globally required by Ironic.
+    As this is a core security mechanism, it cannot be disabled and support
+    for the ``[DEFAULT]require_agent_token`` configuration parameter has been
+    removed as tokens are now always required by Ironic. For more information,
+    please see the `agent token <https://docs.openstack.org/ironic/latest/admin/agent-token.html>`_
+    documentation.

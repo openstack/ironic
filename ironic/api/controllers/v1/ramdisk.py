@@ -54,9 +54,10 @@ def config(token):
         },
         'heartbeat_timeout': CONF.api.ramdisk_heartbeat_timeout,
         'agent_token': token,
-        # Not an API version based indicator, passing as configuration
-        # as the signifigants indicates support should also be present.
-        'agent_token_required': CONF.require_agent_token,
+        # Since this is for the Victoria release, we send this as an
+        # explicit True statement for newer agents to lock the setting
+        # and behavior into place.
+        'agent_token_required': True,
     }
 
 
@@ -154,7 +155,7 @@ class LookupController(rest.RestController):
                 and node.provision_state not in self.lookup_allowed_states):
             raise exception.NotFound()
 
-        if api_utils.allow_agent_token() or CONF.require_agent_token:
+        if api_utils.allow_agent_token():
             try:
                 topic = api.request.rpcapi.get_topic_for(node)
             except exception.NoValidHost as e:
@@ -216,8 +217,7 @@ class HeartbeatController(rest.RestController):
                   '"callback_url"'))
         # NOTE(TheJulia): If tokens are required, lets go ahead and fail the
         # heartbeat very early on.
-        token_required = CONF.require_agent_token
-        if token_required and agent_token is None:
+        if agent_token is None:
             LOG.error('Agent heartbeat received for node %(node)s '
                       'without an agent token.', {'node': node_ident})
             raise exception.InvalidParameterValue(

@@ -3120,8 +3120,6 @@ class ConductorManager(base_manager.BaseConductorManager):
         if agent_version is None:
             agent_version = '3.0.0'
 
-        token_required = CONF.require_agent_token
-
         # NOTE(dtantsur): we acquire a shared lock to begin with, drivers are
         # free to promote it to an exclusive one.
         with task_manager.acquire(context, node_id, shared=True,
@@ -3131,32 +3129,11 @@ class ConductorManager(base_manager.BaseConductorManager):
             # either tokens are required and they are present,
             # or a token is present in general and needs to be
             # validated.
-            if (token_required
-                or (utils.is_agent_token_present(task.node) and agent_token)):
-                if not utils.is_agent_token_valid(task.node, agent_token):
-                    LOG.error('Invalid agent_token receieved for node '
-                              '%(node)s', {'node': node_id})
-                    raise exception.InvalidParameterValue(
-                        'Invalid or missing agent token received.')
-            elif utils.is_agent_token_supported(agent_version):
-                LOG.error('Suspicious activity detected for node %(node)s '
-                          'when attempting to heartbeat. Heartbeat '
-                          'request has been rejected as the version of '
-                          'ironic-python-agent indicated in the heartbeat '
-                          'operation should support agent token '
-                          'functionality.',
-                          {'node': task.node.uuid})
+            if not utils.is_agent_token_valid(task.node, agent_token):
+                LOG.error('Invalid or missing agent_token receieved for '
+                          'node %(node)s', {'node': node_id})
                 raise exception.InvalidParameterValue(
                     'Invalid or missing agent token received.')
-            else:
-                LOG.warning('Out of date agent detected for node '
-                            '%(node)s. Agent version %(version)s '
-                            'reported. Support for this version is '
-                            'deprecated.',
-                            {'node': task.node.uuid,
-                             'version': agent_version})
-                # TODO(TheJulia): raise an exception as of the
-                # ?Victoria? development cycle.
 
             task.spawn_after(
                 self._spawn_worker, task.driver.deploy.heartbeat,

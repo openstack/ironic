@@ -550,9 +550,6 @@ IRONIC_DEPLOY_LOGS_LOCAL_PATH=${IRONIC_DEPLOY_LOGS_LOCAL_PATH:-$IRONIC_VM_LOG_DI
 # Fast track option
 IRONIC_DEPLOY_FAST_TRACK=${IRONIC_DEPLOY_FAST_TRACK:-False}
 
-# Agent Token requirement
-IRONIC_REQUIRE_AGENT_TOKEN=${IRONIC_REQUIRE_AGENT_TOKEN:-True}
-
 # Define baremetal min_microversion in tempest config. Default value None is picked from tempest.
 TEMPEST_BAREMETAL_MIN_MICROVERSION=${TEMPEST_BAREMETAL_MIN_MICROVERSION:-}
 
@@ -1423,8 +1420,6 @@ function configure_ironic {
     # Set fast track options
     iniset $IRONIC_CONF_FILE deploy fast_track $IRONIC_DEPLOY_FAST_TRACK
 
-    # Set requirement for agent tokens
-    iniset $IRONIC_CONF_FILE DEFAULT require_agent_token $IRONIC_REQUIRE_AGENT_TOKEN
     # No need to check if RabbitMQ is enabled, this call does it in a smart way
     if [[ "$IRONIC_RPC_TRANSPORT" == "oslo" ]]; then
         iniset_rpc_backend ironic $IRONIC_CONF_FILE
