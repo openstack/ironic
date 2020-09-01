@@ -54,7 +54,7 @@ Enabling
 
 The iDRAC driver supports WSMAN for the bios, inspect, management, power,
 raid, and vendor interfaces. In addition, it supports Redfish for
-the inspect, management, and power interfaces. The iDRAC driver
+the bios, inspect, management, and power interfaces. The iDRAC driver
 allows you to mix and match WSMAN and Redfish interfaces.
 
 The ``idrac-wsman`` implementation must be enabled to use WSMAN for
@@ -62,7 +62,7 @@ an interface. The ``idrac-redfish`` implementation must be enabled
 to use Redfish for an interface.
 
 .. NOTE::
-   Redfish is supported for only the inspect, management, and power
+   Redfish is supported for only the bios, inspect, management, and power
    interfaces at the present time.
 
 To enable the ``idrac`` hardware type with the minimum interfaces,
@@ -83,7 +83,7 @@ following configuration:
 
     [DEFAULT]
     enabled_hardware_types=idrac
-    enabled_bios_interfaces=idrac-wsman
+    enabled_bios_interfaces=idrac-redfish
     enabled_inspect_interfaces=idrac-redfish
     enabled_management_interfaces=idrac-redfish
     enabled_power_interfaces=idrac-redfish
@@ -96,7 +96,7 @@ order:
 ================     ===================================================
 Interface            Supported Implementations
 ================     ===================================================
-``bios``             ``idrac-wsman``, ``no-bios``
+``bios``             ``idrac-wsman``, ``idrac-redfish``, ``no-bios``
 ``boot``             ``ipxe``, ``pxe``
 ``console``          ``no-console``
 ``deploy``           ``iscsi``, ``direct``, ``ansible``, ``ramdisk``
@@ -174,6 +174,7 @@ hardware type using Redfish for all interfaces:
         --driver-info redfish_password=pa$$w0rd \
         --driver-info redfish_address=drac.host \
         --driver-info redfish_system_id=/redfish/v1/Systems/System.Embedded.1 \
+        --bios-interface idrac-redfish \
         --inspect-interface idrac-redfish \
         --management-interface idrac-redfish \
         --power-interface idrac-redfish \
@@ -193,6 +194,7 @@ hardware type assuming a mix of Redfish and WSMAN interfaces are used:
         --driver-info redfish_password=pa$$w0rd \
         --driver-info redfish_address=drac.host \
         --driver-info redfish_system_id=/redfish/v1/Systems/System.Embedded.1 \
+        --bios-interface idrac-redfish \
         --inspect-interface idrac-redfish \
         --management-interface idrac-redfish \
         --power-interface idrac-redfish
@@ -205,8 +207,8 @@ hardware type assuming a mix of Redfish and WSMAN interfaces are used:
 BIOS Interface
 ==============
 
-The BIOS interface implementation for idrac-wsman allows BIOS to be
-configured with the standard clean/deploy step approach.
+The BIOS interface implementations supported by the ``idrac`` hardware type
+allows BIOS to be configured with the standard clean/deploy step approach.
 
 Example
 -------
