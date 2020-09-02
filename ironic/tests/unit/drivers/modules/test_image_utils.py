@@ -223,7 +223,7 @@ class RedfishImageUtilsTestCase(db_base.DbTestCase):
                                   shared=True) as task:
             image_utils.cleanup_iso_image(task)
 
-            object_name = 'boot-%s' % task.node.uuid
+            object_name = 'boot-%s.iso' % task.node.uuid
 
             mock_unpublish.assert_called_once_with(mock.ANY, object_name)
 
@@ -244,7 +244,7 @@ class RedfishImageUtilsTestCase(db_base.DbTestCase):
                 task, 'http://kernel/img', 'http://ramdisk/img',
                 'http://bootloader/img', root_uuid=task.node.uuid)
 
-            object_name = 'boot-%s' % task.node.uuid
+            object_name = 'boot-%s.iso' % task.node.uuid
 
             mock_publish_image.assert_called_once_with(
                 mock.ANY, mock.ANY, object_name)
@@ -275,7 +275,7 @@ class RedfishImageUtilsTestCase(db_base.DbTestCase):
                 task, 'http://kernel/img', 'http://ramdisk/img',
                 bootloader_href=None, root_uuid=task.node.uuid, base_iso=None)
 
-            object_name = 'boot-%s' % task.node.uuid
+            object_name = 'boot-%s.iso' % task.node.uuid
 
             mock_publish_image.assert_called_once_with(
                 mock.ANY, mock.ANY, object_name)
