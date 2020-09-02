@@ -3120,7 +3120,12 @@ class ConductorManager(base_manager.BaseConductorManager):
         LOG.debug('RPC heartbeat called for node %s', node_id)
 
         if agent_version is None:
-            agent_version = '3.0.0'
+            LOG.error('Node %s transmitted no version information which '
+                      'indicates the agent is incompatible with the ironic '
+                      'services and must be upgraded.', node_id)
+            raise exception.InvalidParameterValue(
+                _('Agent did not transmit a version, and a version is '
+                  'required. Please update the agent being used.'))
 
         # NOTE(dtantsur): we acquire a shared lock to begin with, drivers are
         # free to promote it to an exclusive one.

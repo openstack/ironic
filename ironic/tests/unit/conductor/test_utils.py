@@ -2087,14 +2087,6 @@ class AgentTokenUtilsTestCase(tests_base.TestCase):
         conductor_utils.add_secret_token(self.node)
         self.assertTrue(conductor_utils.is_agent_token_present(self.node))
 
-    def test_is_agent_token_supported(self):
-        self.assertTrue(
-            conductor_utils.is_agent_token_supported('6.1.1.dev39'))
-        self.assertTrue(
-            conductor_utils.is_agent_token_supported('6.2.1'))
-        self.assertFalse(
-            conductor_utils.is_agent_token_supported('6.0.0'))
-
 
 class GetAttachedVifTestCase(db_base.DbTestCase):
 

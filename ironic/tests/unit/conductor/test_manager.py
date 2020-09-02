@@ -7243,10 +7243,15 @@ class DoNodeAdoptionTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
 
         mock_spawn.side_effect = self._fake_spawn
 
-        self.service.heartbeat(self.context, node.uuid, 'http://callback',
-                               agent_token='magic')
-        mock_heartbeat.assert_called_with(mock.ANY, mock.ANY,
-                                          'http://callback', '3.0.0', None)
+        exc = self.assertRaises(
+            messaging.rpc.ExpectedException,
+            self.service.heartbeat,
+            self.context, node.uuid, 'http://callback',
+            agent_token='magic')
+        expected_string = ('Agent did not transmit a version, and a version '
+                           'is required. Please update the agent being used.')
+        self.assertEqual(exception.InvalidParameterValue, exc.exc_info[0])
+        self.assertEqual(expected_string, str(exc.exc_info[1]))
 
     @mock.patch('ironic.drivers.modules.fake.FakeDeploy.heartbeat',
                 autospec=True)
@@ -7315,9 +7320,9 @@ class DoNodeAdoptionTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         mock_spawn.side_effect = self._fake_spawn
 
         self.service.heartbeat(self.context, node.uuid, 'http://callback',
-                               agent_token='a secret')
+                               '6.1.0', agent_token='a secret')
         mock_heartbeat.assert_called_with(mock.ANY, mock.ANY,
-                                          'http://callback', '3.0.0', None)
+                                          'http://callback', '6.1.0', None)
 
     @mock.patch('ironic.drivers.modules.fake.FakeDeploy.heartbeat',
                 autospec=True)
@@ -7339,9 +7344,9 @@ class DoNodeAdoptionTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         mock_spawn.side_effect = self._fake_spawn
 
         self.service.heartbeat(self.context, node.uuid, 'http://callback',
-                               agent_token='a secret')
+                               '6.1.0', agent_token='a secret')
         mock_heartbeat.assert_called_with(mock.ANY, mock.ANY,
-                                          'http://callback', '3.0.0', None)
+                                          'http://callback', '6.1.0', None)
 
     @mock.patch('ironic.drivers.modules.fake.FakeDeploy.heartbeat',
                 autospec=True)
@@ -7442,7 +7447,8 @@ class DoNodeAdoptionTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         exc = self.assertRaises(messaging.rpc.ExpectedException,
                                 self.service.heartbeat, self.context,
                                 node.uuid, 'http://callback',
-                                agent_token='a secret')
+                                agent_token='a secret',
+                                agent_version='3.0.0')
         self.assertEqual(exception.InvalidParameterValue, exc.exc_info[0])
         self.assertIn('TLS is required', str(exc.exc_info[1]))
         self.assertFalse(mock_heartbeat.called)
@@ -7469,9 +7475,10 @@ class DoNodeAdoptionTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
 
         mock_spawn.side_effect = self._fake_spawn
         self.service.heartbeat(self.context, node.uuid, 'http://callback',
-                               agent_token='a secret', agent_verify_ca='abcd')
+                               agent_version='6.1.0', agent_token='a secret',
+                               agent_verify_ca='abcd')
         mock_heartbeat.assert_called_with(
-            mock.ANY, mock.ANY, 'http://callback', '3.0.0',
+            mock.ANY, mock.ANY, 'http://callback', '6.1.0',
             '/path/to/crt')
 
 
