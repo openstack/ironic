@@ -71,6 +71,15 @@ This configuration affects *glance* and ``file://`` images. If you want
    [agent]
    image_download_source = local
 
+.. note::
+   This option can also be set per node in ``driver_info``::
+
+    openstack baremetal node set <node> --driver-info image_download_source=local
+
+   or per instance in ``instance_info``::
+
+    openstack baremetal node set <node> --instance-info image_download_source=local
+
 You need to set up a workable HTTP server at each conductor node which with
 ``direct`` deploy interface enabled, and check http related options in the
 ironic configuration file to match the HTTP server configurations.

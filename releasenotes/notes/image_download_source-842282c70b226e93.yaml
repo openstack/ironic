@@ -1,0 +1,6 @@
+---
+features:
+  - |
+    The ``image_download_source`` configuration option can now also be set
+    per node in the ``instance_info`` or ``driver_info`` (the former having
+    the highest priority).

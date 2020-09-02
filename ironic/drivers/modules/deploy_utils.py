@@ -1046,6 +1046,13 @@ def _cache_and_convert_image(task, instance_info, image_info=None):
     instance_info['image_url'] = http_image_url
 
 
+def get_image_download_source(node):
+    """Get the effective value of image_download_source for the node."""
+    return (node.instance_info.get('image_download_source')
+            or node.driver_info.get('image_download_source')
+            or CONF.agent.image_download_source)
+
+
 @METRICS.timer('build_instance_info_for_deploy')
 def build_instance_info_for_deploy(task):
     """Build instance_info necessary for deploying to a node.
@@ -1060,13 +1067,14 @@ def build_instance_info_for_deploy(task):
     instance_info = node.instance_info
     iwdi = node.driver_internal_info.get('is_whole_disk_image')
     image_source = instance_info['image_source']
+    image_download_source = get_image_download_source(node)
 
     if service_utils.is_glance_image(image_source):
         glance = image_service.GlanceImageService(context=task.context)
         image_info = glance.show(image_source)
         LOG.debug('Got image info: %(info)s for node %(node)s.',
                   {'info': image_info, 'node': node.uuid})
-        if CONF.agent.image_download_source == 'swift':
+        if image_download_source == 'swift':
             swift_temp_url = glance.swift_temp_url(image_info)
             _validate_image_url(node, swift_temp_url, secret=True)
             instance_info['image_url'] = swift_temp_url
@@ -1086,7 +1094,7 @@ def build_instance_info_for_deploy(task):
             instance_info['kernel'] = image_info['properties']['kernel_id']
             instance_info['ramdisk'] = image_info['properties']['ramdisk_id']
     elif (image_source.startswith('file://')
-          or CONF.agent.image_download_source == 'local'):
+          or image_download_source == 'local'):
         _cache_and_convert_image(task, instance_info)
     else:
         _validate_image_url(node, image_source)

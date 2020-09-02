@@ -57,6 +57,12 @@ OPTIONAL_PROPERTIES = {
                         'a dot to prefix the domain name. This value will be '
                         'ignored if ``image_http_proxy`` and '
                         '``image_https_proxy`` are not specified. Optional.'),
+    'image_download_source': _('Specifies whether direct deploy interface '
+                               'should try to use the image source directly '
+                               'or if ironic should cache the image on the '
+                               'conductor and serve it from ironic\'s own '
+                               'HTTP server. Accepted values are "swift", '
+                               '"http" and "local". Optional.'),
 }
 
 _RAID_APPLY_CONFIGURATION_ARGSINFO = {
@@ -168,13 +174,19 @@ def validate_http_provisioning_configuration(node):
     :raises: MissingParameterValue if required option(s) is not set.
     """
     image_source = node.instance_info.get('image_source')
+    image_download_source = deploy_utils.get_image_download_source(node)
+    if image_download_source not in ('swift', 'http', 'local'):
+        raise exception.InvalidParameterValue(
+            _('Invalid value for image_download_source: "%s". Valid values '
+              'are swift, http or local.') % image_download_source)
+
     # NOTE(dtantsur): local HTTP configuration is required in two cases:
     # 1. Glance images with image_download_source == http
     # 2. File images (since we need to serve them to IPA)
     if (not image_source.startswith('file://')
-            and CONF.agent.image_download_source != 'local'
+            and image_download_source != 'local'
             and (not service_utils.is_glance_image(image_source)
-                 or CONF.agent.image_download_source == 'swift')):
+                 or image_download_source == 'swift')):
         return
 
     params = {
