@@ -172,6 +172,7 @@ def validate_http_provisioning_configuration(node):
     # 1. Glance images with image_download_source == http
     # 2. File images (since we need to serve them to IPA)
     if (not image_source.startswith('file://')
+            and CONF.agent.image_download_source != 'local'
             and (not service_utils.is_glance_image(image_source)
                  or CONF.agent.image_download_source == 'swift')):
         return

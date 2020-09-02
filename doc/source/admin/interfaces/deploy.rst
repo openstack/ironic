@@ -63,6 +63,14 @@ To use this deploy interface with a custom HTTP server, set
    image_download_source = http
    ...
 
+This configuration affects *glance* and ``file://`` images. If you want
+``http(s)://`` images to also be cached and served locally, use instead:
+
+.. code-block:: ini
+
+   [agent]
+   image_download_source = local
+
 You need to set up a workable HTTP server at each conductor node which with
 ``direct`` deploy interface enabled, and check http related options in the
 ironic configuration file to match the HTTP server configurations.

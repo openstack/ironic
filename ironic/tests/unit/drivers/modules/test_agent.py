@@ -202,6 +202,17 @@ class TestAgentMethods(db_base.DbTestCase):
                                agent.validate_http_provisioning_configuration,
                                self.node)
 
+    def test_validate_http_provisioning_missing_args_local_http(self):
+        CONF.set_override('image_download_source', 'local', group='agent')
+        CONF.set_override('http_url', None, group='deploy')
+        i_info = self.node.instance_info
+        i_info['image_source'] = 'http://image-ref'
+        self.node.instance_info = i_info
+        self.assertRaisesRegex(exception.MissingParameterValue,
+                               'failed to validate http provisoning',
+                               agent.validate_http_provisioning_configuration,
+                               self.node)
+
 
 class TestAgentDeploy(db_base.DbTestCase):
     def setUp(self):
