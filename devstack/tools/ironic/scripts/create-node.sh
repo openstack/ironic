@@ -113,7 +113,7 @@ if ! virsh list --all | grep -q $NAME; then
         fi
         virsh vol-list --pool $LIBVIRT_STORAGE_POOL | grep -q $vol_name &&
             virsh vol-delete $vol_name --pool $LIBVIRT_STORAGE_POOL >&2
-        virsh vol-create-as $LIBVIRT_STORAGE_POOL ${vol_name} ${DISK}G --format $DISK_FORMAT $PREALLOC >&2
+        virsh vol-create-as $LIBVIRT_STORAGE_POOL ${vol_name} ${DISK}G --allocation 0 --format $DISK_FORMAT $PREALLOC >&2
         volume_path=$(virsh vol-path --pool $LIBVIRT_STORAGE_POOL $vol_name)
         # Pre-touch the VM to set +C, as it can only be set on empty files.
         sudo touch "$volume_path"
