@@ -245,6 +245,23 @@ class SessionCache(object):
         cls._sessions.pop(session_key, None)
 
 
+def get_update_service(node):
+    """Get a node's update service.
+
+    :param node: an Ironic node object
+    :raises: RedfishConnectionError when it fails to connect to Redfish
+    :raises: RedfishError when the UpdateService is not registered in Redfish
+    """
+
+    try:
+        return _get_connection(node, lambda conn: conn.get_update_service())
+    except sushy.exceptions.MissingAttributeError as e:
+        LOG.error('The Redfish UpdateService was not found for '
+                  'node %(node)s. Error %(error)s',
+                  {'node': node.uuid, 'error': e})
+        raise exception.RedfishError(error=e)
+
+
 def get_system(node):
     """Get a Redfish System that represents a node.
 
@@ -253,40 +270,60 @@ def get_system(node):
     :raises: RedfishError if the System is not registered in Redfish
     """
     driver_info = parse_driver_info(node)
-    system_id = driver_info.get('system_id')
+    system_id = driver_info['system_id']
+
+    try:
+        return _get_connection(
+            node,
+            lambda conn, system_id: conn.get_system(system_id),
+            system_id)
+    except sushy.exceptions.ResourceNotFoundError as e:
+        LOG.error('The Redfish System "%(system)s" was not found for '
+                  'node %(node)s. Error %(error)s',
+                  {'system': system_id or '<default>',
+                   'node': node.uuid, 'error': e})
+        raise exception.RedfishError(error=e)
+
+
+def _get_connection(node, lambda_fun, *args):
+    """Get a Redfish connection to a node.
+
+    This method gets a Redfish connection to a node by calling the passed
+    lambda function, and returns the sushy object returned by the function.
+
+    :param node: an Ironic node object
+    :param lambda_fun: the function to call to retrieve the desired sushy
+                       object
+    :param args: the arguments to pass to the function
+    :returns: the sushy object returned by the lambda function
+    :raises: RedfishConnectionError when it fails to connect to Redfish
+    """
+    driver_info = parse_driver_info(node)
 
     @retrying.retry(
         retry_on_exception=(
             lambda e: isinstance(e, exception.RedfishConnectionError)),
         stop_max_attempt_number=CONF.redfish.connection_attempts,
         wait_fixed=CONF.redfish.connection_retry_interval * 1000)
-    def _get_system():
+    def _get_cached_connection(lambda_fun, *args):
         try:
             with SessionCache(driver_info) as conn:
-                return conn.get_system(system_id)
+                return lambda_fun(conn, *args)
 
-        except sushy.exceptions.ResourceNotFoundError as e:
-            LOG.error('The Redfish System "%(system)s" was not found for '
-                      'node %(node)s. Error %(error)s',
-                      {'system': system_id or '<default>',
-                       'node': node.uuid, 'error': e})
-            raise exception.RedfishError(error=e)
         # TODO(lucasagomes): We should look at other types of
         # ConnectionError such as AuthenticationError or SSLError and stop
         # retrying on them
         except sushy.exceptions.ConnectionError as e:
             LOG.warning('For node %(node)s, got a connection error from '
                         'Redfish at address "%(address)s" using auth type '
-                        '"%(auth_type)s" when fetching System "%(system)s". '
-                        'Error: %(error)s',
-                        {'system': system_id or '<default>',
-                         'address': driver_info['address'],
+                        '"%(auth_type)s". Error: %(error)s',
+                        {'address': driver_info['address'],
                          'auth_type': driver_info['auth_type'],
                          'node': node.uuid, 'error': e})
             raise exception.RedfishConnectionError(node=node.uuid, error=e)
 
     try:
-        return _get_system()
+        return _get_cached_connection(lambda_fun, *args)
     except exception.RedfishConnectionError as e:
         with excutils.save_and_reraise_exception():
             LOG.error('Failed to connect to Redfish at %(address)s for '

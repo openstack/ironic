@@ -80,6 +80,16 @@ opts = [
                       'or as the octal number ``0o644`` in Python. '
                       'This setting must be set to the octal number '
                       'representation, meaning starting with ``0o``.')),
+    cfg.IntOpt('firmware_update_status_interval',
+               min=0,
+               default=60,
+               help=_('Number of seconds to wait between checking for '
+                      'completed firmware update tasks')),
+    cfg.IntOpt('firmware_update_fail_interval',
+               min=0,
+               default=60,
+               help=_('Number of seconds to wait between checking for '
+                      'failed firmware update tasks')),
 ]
 
 
