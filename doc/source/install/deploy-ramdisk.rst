@@ -19,6 +19,10 @@ Two kinds of images are published on every commit from every branch of
   .. warning:: CentOS 7 master images are no longer updated and must not be
                used.
 
+  .. warning:: The published images will not work for dhcp-less deployments
+               since the simple-init_ element is not present. Check the DIB_
+               documentation to see how to build the image.
+
 * TinyIPA_ images are suitable for CI and testing environments and can be
   downloaded from
   https://tarballs.openstack.org/ironic-python-agent/tinyipa/files/.
@@ -32,3 +36,4 @@ ironic-python-agent ramdisks.
 .. _DIB: https://docs.openstack.org/ironic-python-agent-builder/latest/admin/dib.html
 .. _TinyIPA: https://docs.openstack.org/ironic-python-agent-builder/latest/admin/tinyipa.html
 .. _ironic-python-agent-builder: https://docs.openstack.org/ironic-python-agent-builder/latest/
+.. _simple-init: https://docs.openstack.org/diskimage-builder/latest/elements/simple-init/README.html
