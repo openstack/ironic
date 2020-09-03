@@ -95,14 +95,27 @@ and file URLs (file:///images/img).
 There are however some limitations for different hardware interfaces:
 
 * If you're using :ref:`direct-deploy` with HTTP(s) URLs, you have to provide
-  the Bare Metal service with the MD5 checksum of your instance image.
-  To compute it, you can use the following command::
+  the Bare Metal service with the a checksum of your instance image.
 
-   md5sum image.qcow2
+  MD5 is used by default for backward compatibility reasons. To compute an MD5
+  checksum, you can use the following command::
+
+   $ md5sum image.qcow2
    ed82def8730f394fb85aef8a208635f6  image.qcow2
+
+  Alternatively, use a SHA256 checksum or any other algorithm supported by
+  the Python's hashlib_, e.g.::
+
+   $ sha256sum image.qcow2
+   9f6c942ad81690a9926ff530629fb69a82db8b8ab267e2cbd59df417c1a28060  image.qcow2
 
 * :ref:`direct-deploy` started supporting ``file://`` images in the Victoria
   release cycle, before that only HTTP(s) had been supported.
+
+  .. warning::
+     File images must be accessible to every conductor! Use a shared file
+     system if you have more than one conductor. The ironic CLI tool will not
+     transfer the file from a local machine to the conductor(s).
 
 .. note::
    The Bare Metal service tracks content changes for non-Glance images by
@@ -111,6 +124,8 @@ There are however some limitations for different hardware interfaces:
    "http://my.server.net/images/deploy.ramdisk" is greater than cached image
    modification time, Ironic will re-download the content. For "file://"
    images, the file system modification time is used.
+
+.. _hashlib: https://docs.python.org/3/library/hashlib.html
 
 Using CLI
 ---------
@@ -183,9 +198,7 @@ Populating instance_info
    (see :doc:`creating-images`):
 
    * ``image_source`` - URL of the whole disk or root partition image,
-     mandatory. For :ref:`direct-deploy` only HTTP(s) links are accepted,
-     while :ref:`iscsi-deploy` also accepts links to local files (prefixed
-     with ``file://``).
+     mandatory.
 
    * ``root_gb`` - size of the root partition, required for partition images.
 
@@ -195,12 +208,17 @@ Populating instance_info
         it for compatibility.
 
    * ``image_checksum`` - MD5 checksum of the image specified by
-     ``image_source``, only required for :ref:`direct-deploy`.
+     ``image_source``, only required for ``http://`` images when using
+     :ref:`direct-deploy`.
 
      .. note::
         Additional checksum support exists via the ``image_os_hash_algo`` and
         ``image_os_hash_value`` fields. They may be used instead of the
         ``image_checksum`` field.
+
+     .. warning::
+        If your operating system is running in FIPS 140-2 mode, MD5 will not be
+        available, and you **must** use SHA256 or another modern algorithm.
 
      Starting with the Stein release of ironic-python-agent can also be a URL
      to a checksums file, e.g. one generated with:
@@ -218,6 +236,16 @@ Populating instance_info
     openstack baremetal node set $NODE_UUID \
         --instance-info image_source=$IMG \
         --instance-info image_checksum=$MD5HASH \
+        --instance-info kernel=$KERNEL \
+        --instance-info ramdisk=$RAMDISK \
+        --instance-info root_gb=10
+
+   With a SHA256 hash::
+
+    openstack baremetal node set $NODE_UUID \
+        --instance-info image_source=$IMG \
+        --instance-info image_os_hash_algo=sha256 \
+        --instance-info image_os_hash_value=$SHA256HASH \
         --instance-info kernel=$KERNEL \
         --instance-info ramdisk=$RAMDISK \
         --instance-info root_gb=10
