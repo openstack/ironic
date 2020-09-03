@@ -2592,8 +2592,8 @@ function configure_iptables {
     local qrouter
     qrouter=$(sudo ip netns list | grep qrouter | awk '{print $1;}')
     if [[ ! -z "$qrouter" ]]; then
-        sudo ip netns exec $qrouter /sbin/iptables -A PREROUTING -t raw -p udp --dport 69 -j CT --helper tftp
-        sudo ip netns exec $qrouter /sbin/ip6tables -A PREROUTING -t raw -p udp --dport 69 -j CT --helper tftp || true
+        sudo ip netns exec $qrouter iptables -A PREROUTING -t raw -p udp --dport 69 -j CT --helper tftp
+        sudo ip netns exec $qrouter ip6tables -A PREROUTING -t raw -p udp --dport 69 -j CT --helper tftp || true
     fi
 }
 
