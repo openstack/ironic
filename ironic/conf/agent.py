@@ -101,15 +101,16 @@ opts = [
                                     'from the Object Storage service.')),
                         ('http', _('IPA ramdisk retrieves instance image '
                                    'from HTTP service served at conductor '
-                                   'nodes.'))],
+                                   'nodes.')),
+                        ('local', _('Same as "http", but HTTP images '
+                                    'are also cached locally, converted '
+                                    'and served from the conductor'))],
                default='swift',
                mutable=True,
                help=_('Specifies whether direct deploy interface should try '
                       'to use the image source directly or if ironic should '
                       'cache the image on the conductor and serve it from '
-                      'ironic\'s own http server. This option takes effect '
-                      'only when instance image is provided from the Image '
-                      'service.')),
+                      'ironic\'s own http server.')),
     cfg.IntOpt('command_timeout',
                default=60,
                mutable=True,

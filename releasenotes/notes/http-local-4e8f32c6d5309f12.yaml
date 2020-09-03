@@ -1,0 +1,7 @@
+---
+features:
+  - |
+    Adds a new possible value for ``image_download_source``: ``local``.
+    When used, even ``http://`` images are downloaded, converted to RAW if
+    needed and served from the conductor's HTTP server. This feature targets
+    primarily nodes with low RAM.

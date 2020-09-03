@@ -2073,6 +2073,39 @@ class TestBuildInstanceInfoForHttpProvisioning(db_base.DbTestCase):
             validate_href_mock.assert_called_once_with(
                 mock.ANY, expected_url, False)
 
+    @mock.patch.object(image_service.HttpImageService, 'validate_href',
+                       autospec=True)
+    def test_build_instance_info_local_image(self, validate_href_mock):
+        cfg.CONF.set_override('image_download_source', 'local', group='agent')
+        i_info = self.node.instance_info
+        driver_internal_info = self.node.driver_internal_info
+        i_info['image_source'] = 'http://image-ref'
+        i_info['image_checksum'] = 'aa'
+        i_info['root_gb'] = 10
+        i_info['image_checksum'] = 'aa'
+        driver_internal_info['is_whole_disk_image'] = True
+        self.node.instance_info = i_info
+        self.node.driver_internal_info = driver_internal_info
+        self.node.save()
+
+        expected_url = (
+            'http://172.172.24.10:8080/agent_images/%s' % self.node.uuid)
+
+        with task_manager.acquire(
+                self.context, self.node.uuid, shared=False) as task:
+
+            info = utils.build_instance_info_for_deploy(task)
+
+            self.assertEqual(expected_url, info['image_url'])
+            self.assertEqual('sha256', info['image_os_hash_algo'])
+            self.assertEqual('fake-checksum', info['image_os_hash_value'])
+            self.cache_image_mock.assert_called_once_with(
+                task.context, task.node, force_raw=True)
+            self.checksum_mock.assert_called_once_with(
+                self.fake_path, algorithm='sha256')
+            validate_href_mock.assert_called_once_with(
+                mock.ANY, expected_url, False)
+
 
 class TestStorageInterfaceUtils(db_base.DbTestCase):
     def setUp(self):

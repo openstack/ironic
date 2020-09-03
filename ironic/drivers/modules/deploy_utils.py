@@ -1085,7 +1085,8 @@ def build_instance_info_for_deploy(task):
         if not iwdi:
             instance_info['kernel'] = image_info['properties']['kernel_id']
             instance_info['ramdisk'] = image_info['properties']['ramdisk_id']
-    elif image_source.startswith('file://'):
+    elif (image_source.startswith('file://')
+          or CONF.agent.image_download_source == 'local'):
         _cache_and_convert_image(task, instance_info)
     else:
         _validate_image_url(node, image_source)
