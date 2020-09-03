@@ -3117,8 +3117,3 @@ function setup_vxlan_network {
 # Restore xtrace + pipefail
 $_XTRACE_IRONIC
 $_PIPEFAIL_IRONIC
-
-# Tell emacs to use shell-script-mode
-## Local variables:
-## mode: shell-script
-## End:
