@@ -414,7 +414,7 @@ def fetch(context, image_href, path, force_raw=False):
         image_to_raw(image_href, path, "%s.part" % path)
 
 
-def force_raw_get_source_format(image_href, path):
+def get_source_format(image_href, path):
     data = disk_utils.qemu_img_info(path)
 
     fmt = data.file_format
@@ -435,7 +435,7 @@ def force_raw_get_source_format(image_href, path):
 
 def force_raw_will_convert(image_href, path_tmp):
     with fileutils.remove_path_on_error(path_tmp):
-        fmt = force_raw_get_source_format(image_href, path_tmp)
+        fmt = get_source_format(image_href, path_tmp)
     if fmt != "raw":
         return True
     return False
@@ -443,7 +443,7 @@ def force_raw_will_convert(image_href, path_tmp):
 
 def image_to_raw(image_href, path, path_tmp):
     with fileutils.remove_path_on_error(path_tmp):
-        fmt = force_raw_get_source_format(image_href, path_tmp)
+        fmt = get_source_format(image_href, path_tmp)
 
         if fmt != "raw":
             staged = "%s.converted" % path

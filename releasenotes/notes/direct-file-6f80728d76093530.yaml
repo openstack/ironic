@@ -1,0 +1,4 @@
+---
+features:
+  - |
+    ``file://`` images are now supported in the ``direct`` deploy interface.

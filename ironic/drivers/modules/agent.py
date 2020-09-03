@@ -168,8 +168,12 @@ def validate_http_provisioning_configuration(node):
     :raises: MissingParameterValue if required option(s) is not set.
     """
     image_source = node.instance_info.get('image_source')
-    if (not service_utils.is_glance_image(image_source)
-            or CONF.agent.image_download_source != 'http'):
+    # NOTE(dtantsur): local HTTP configuration is required in two cases:
+    # 1. Glance images with image_download_source == http
+    # 2. File images (since we need to serve them to IPA)
+    if (not image_source.startswith('file://')
+            and (not service_utils.is_glance_image(image_source)
+                 or CONF.agent.image_download_source == 'swift')):
         return
 
     params = {
@@ -379,8 +383,7 @@ class AgentDeployMixin(agent_base.AgentDeployMixin):
             manager_utils.node_set_boot_device(task, 'disk', persistent=True)
 
         # Remove symbolic link when deploy is done.
-        if CONF.agent.image_download_source == 'http':
-            deploy_utils.remove_http_instance_symlink(task.node.uuid)
+        deploy_utils.remove_http_instance_symlink(task.node.uuid)
 
 
 class AgentDeploy(AgentDeployMixin, agent_base.AgentBaseMixin,
@@ -442,7 +445,10 @@ class AgentDeploy(AgentDeployMixin, agent_base.AgentBaseMixin,
 
         deploy_utils.check_for_missing_params(params, error_msg)
 
-        if not service_utils.is_glance_image(image_source):
+        # NOTE(dtantsur): glance images contain a checksum; for file images we
+        # will recalculate the checksum anyway.
+        if (not service_utils.is_glance_image(image_source)
+                and not image_source.startswith('file://')):
 
             def _raise_missing_checksum_exception(node):
                 raise exception.MissingParameterValue(_(
@@ -629,8 +635,7 @@ class AgentDeploy(AgentDeployMixin, agent_base.AgentBaseMixin,
         :param task: a TaskManager instance.
         """
         super(AgentDeploy, self).clean_up(task)
-        if CONF.agent.image_download_source == 'http':
-            deploy_utils.destroy_http_instance_images(task.node)
+        deploy_utils.destroy_http_instance_images(task.node)
 
 
 class AgentRAID(base.RAIDInterface):

@@ -1921,12 +1921,12 @@ class TestBuildInstanceInfoForDeploy(db_base.DbTestCase):
 
     @mock.patch.object(image_service.HttpImageService, 'validate_href',
                        autospec=True)
-    def test_build_instance_info_for_deploy_nonsupported_image(
+    def test_build_instance_info_for_deploy_image_not_found(
             self, validate_href_mock):
         validate_href_mock.side_effect = exception.ImageRefValidationFailed(
-            image_href='file://img.qcow2', reason='fail')
+            image_href='http://img.qcow2', reason='fail')
         i_info = self.node.instance_info
-        i_info['image_source'] = 'file://img.qcow2'
+        i_info['image_source'] = 'http://img.qcow2'
         i_info['image_checksum'] = 'aa'
         self.node.instance_info = i_info
         self.node.save()
@@ -1958,9 +1958,11 @@ class TestBuildInstanceInfoForHttpProvisioning(db_base.DbTestCase):
         self.checksum_mock.return_value = 'fake-checksum'
         self.cache_image_mock = self.useFixture(fixtures.MockPatchObject(
             utils, 'cache_instance_image', autospec=True)).mock
+        self.fake_path = '/var/lib/ironic/images/{}/disk'.format(
+            self.node.uuid)
         self.cache_image_mock.return_value = (
             '733d1c44-a2ea-414b-aca7-69decf20d810',
-            '/var/lib/ironic/images/{}/disk'.format(self.node.uuid))
+            self.fake_path)
         self.ensure_tree_mock = self.useFixture(fixtures.MockPatchObject(
             utils.fileutils, 'ensure_tree', autospec=True)).mock
         self.create_link_mock = self.useFixture(fixtures.MockPatchObject(
@@ -2003,7 +2005,7 @@ class TestBuildInstanceInfoForHttpProvisioning(db_base.DbTestCase):
             self.create_link_mock.assert_called_once_with(image_path,
                                                           symlink_file)
             validate_mock.assert_called_once_with(mock.ANY, self.expected_url,
-                                                  secret=True)
+                                                  secret=False)
             return image_path, instance_info
 
     def test_build_instance_info_no_force_raw(self):
@@ -2038,6 +2040,38 @@ class TestBuildInstanceInfoForHttpProvisioning(db_base.DbTestCase):
         self.assertEqual(instance_info['image_disk_format'], 'raw')
         calls = [mock.call(image_path, algorithm='sha256')]
         self.checksum_mock.assert_has_calls(calls)
+
+    @mock.patch.object(image_service.HttpImageService, 'validate_href',
+                       autospec=True)
+    def test_build_instance_info_file_image(self, validate_href_mock):
+        i_info = self.node.instance_info
+        driver_internal_info = self.node.driver_internal_info
+        i_info['image_source'] = 'file://image-ref'
+        i_info['image_checksum'] = 'aa'
+        i_info['root_gb'] = 10
+        i_info['image_checksum'] = 'aa'
+        driver_internal_info['is_whole_disk_image'] = True
+        self.node.instance_info = i_info
+        self.node.driver_internal_info = driver_internal_info
+        self.node.save()
+
+        expected_url = (
+            'http://172.172.24.10:8080/agent_images/%s' % self.node.uuid)
+
+        with task_manager.acquire(
+                self.context, self.node.uuid, shared=False) as task:
+
+            info = utils.build_instance_info_for_deploy(task)
+
+            self.assertEqual(expected_url, info['image_url'])
+            self.assertEqual('sha256', info['image_os_hash_algo'])
+            self.assertEqual('fake-checksum', info['image_os_hash_value'])
+            self.cache_image_mock.assert_called_once_with(
+                task.context, task.node, force_raw=True)
+            self.checksum_mock.assert_called_once_with(
+                self.fake_path, algorithm='sha256')
+            validate_href_mock.assert_called_once_with(
+                mock.ANY, expected_url, False)
 
 
 class TestStorageInterfaceUtils(db_base.DbTestCase):

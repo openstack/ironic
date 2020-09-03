@@ -30,6 +30,7 @@ from ironic.common import faults
 from ironic.common.glance_service import service_utils
 from ironic.common.i18n import _
 from ironic.common import image_service
+from ironic.common import images
 from ironic.common import keystone
 from ironic.common import states
 from ironic.common import utils
@@ -966,6 +967,85 @@ def destroy_http_instance_images(node):
     destroy_images(node.uuid)
 
 
+def _validate_image_url(node, url, secret=False):
+    """Validates image URL through the HEAD request.
+
+    :param url: URL to be validated
+    :param secret: if URL is secret (e.g. swift temp url),
+        it will not be shown in logs.
+    """
+    try:
+        image_service.HttpImageService().validate_href(url, secret)
+    except exception.ImageRefValidationFailed as e:
+        with excutils.save_and_reraise_exception():
+            LOG.error("The specified URL is not a valid HTTP(S) URL or is "
+                      "not reachable for node %(node)s. Error: %(msg)s",
+                      {'node': node.uuid, 'msg': e})
+
+
+def _cache_and_convert_image(task, instance_info, image_info=None):
+    """Cache an image locally and covert it to RAW if needed."""
+    # Ironic cache and serve images from httpboot server
+    force_raw = direct_deploy_should_convert_raw_image(task.node)
+    _, image_path = cache_instance_image(task.context, task.node,
+                                         force_raw=force_raw)
+    if force_raw or image_info is None:
+        if force_raw:
+            instance_info['image_disk_format'] = 'raw'
+        else:
+            LOG.debug('Detecting image format for the locally cached image '
+                      '%(image)s for node %(node)s',
+                      {'image': image_path, 'node': task.node.uuid})
+            instance_info['image_disk_format'] = \
+                images.get_source_format(instance_info['image_source'],
+                                         image_path)
+
+        # Standard behavior is for image_checksum to be MD5,
+        # so if the hash algorithm is None, then we will use
+        # sha256.
+        if image_info is None:
+            os_hash_algo = instance_info.get('image_os_hash_algo')
+        else:
+            os_hash_algo = image_info.get('os_hash_algo')
+
+        if not os_hash_algo or os_hash_algo == 'md5':
+            LOG.debug("Checksum algorithm for image %(image)s for node "
+                      "%(node)s is set to '%(algo)s', changing to 'sha256'",
+                      {'algo': os_hash_algo, 'node': task.node.uuid,
+                       'image': image_path})
+            os_hash_algo = 'sha256'
+
+        LOG.debug('Recalculating checksum for image %(image)s for node '
+                  '%(node)s due to image conversion',
+                  {'image': image_path, 'node': task.node.uuid})
+        instance_info['image_checksum'] = None
+        hash_value = compute_image_checksum(image_path, os_hash_algo)
+        instance_info['image_os_hash_algo'] = os_hash_algo
+        instance_info['image_os_hash_value'] = hash_value
+    else:
+        instance_info['image_checksum'] = image_info['checksum']
+        instance_info['image_disk_format'] = image_info['disk_format']
+        instance_info['image_os_hash_algo'] = image_info[
+            'os_hash_algo']
+        instance_info['image_os_hash_value'] = image_info[
+            'os_hash_value']
+
+    # Create symlink and update image url
+    symlink_dir = _get_http_image_symlink_dir_path()
+    fileutils.ensure_tree(symlink_dir)
+    symlink_path = _get_http_image_symlink_file_path(task.node.uuid)
+    utils.create_link_without_raise(image_path, symlink_path)
+
+    base_url = CONF.deploy.http_url
+    if base_url.endswith('/'):
+        base_url = base_url[:-1]
+    http_image_url = '/'.join(
+        [base_url, CONF.deploy.http_image_subdir,
+         task.node.uuid])
+    _validate_image_url(task.node, http_image_url, secret=False)
+    instance_info['image_url'] = http_image_url
+
+
 @METRICS.timer('build_instance_info_for_deploy')
 def build_instance_info_for_deploy(task):
     """Build instance_info necessary for deploying to a node.
@@ -976,23 +1056,6 @@ def build_instance_info_for_deploy(task):
     :raises: exception.ImageRefValidationFailed if image_source is not
         Glance href and is not HTTP(S) URL.
     """
-    def validate_image_url(url, secret=False):
-        """Validates image URL through the HEAD request.
-
-        :param url: URL to be validated
-        :param secret: if URL is secret (e.g. swift temp url),
-            it will not be shown in logs.
-        """
-        try:
-            image_service.HttpImageService().validate_href(url, secret)
-        except exception.ImageRefValidationFailed as e:
-            with excutils.save_and_reraise_exception():
-                LOG.error("Agent deploy supports only HTTP(S) URLs as "
-                          "instance_info['image_source'] or swift "
-                          "temporary URL. Either the specified URL is not "
-                          "a valid HTTP(S) URL or is not reachable "
-                          "for node %(node)s. Error: %(msg)s",
-                          {'node': node.uuid, 'msg': e})
     node = task.node
     instance_info = node.instance_info
     iwdi = node.driver_internal_info.get('is_whole_disk_image')
@@ -1005,56 +1068,14 @@ def build_instance_info_for_deploy(task):
                   {'info': image_info, 'node': node.uuid})
         if CONF.agent.image_download_source == 'swift':
             swift_temp_url = glance.swift_temp_url(image_info)
-            validate_image_url(swift_temp_url, secret=True)
+            _validate_image_url(node, swift_temp_url, secret=True)
             instance_info['image_url'] = swift_temp_url
             instance_info['image_checksum'] = image_info['checksum']
             instance_info['image_disk_format'] = image_info['disk_format']
             instance_info['image_os_hash_algo'] = image_info['os_hash_algo']
             instance_info['image_os_hash_value'] = image_info['os_hash_value']
         else:
-            # Ironic cache and serve images from httpboot server
-            force_raw = direct_deploy_should_convert_raw_image(node)
-            _, image_path = cache_instance_image(task.context, node,
-                                                 force_raw=force_raw)
-            if force_raw:
-                instance_info['image_disk_format'] = 'raw'
-                # Standard behavior is for image_checksum to be MD5,
-                # so if the hash algorithm is None, then we will use
-                # sha256.
-                os_hash_algo = image_info.get('os_hash_algo')
-                if os_hash_algo == 'md5':
-                    LOG.debug('Checksum calculation for image %(image)s is '
-                              'set to \'%(algo)s\', changing to \'sha256\'',
-                              {'algo': os_hash_algo,
-                               'image': image_path})
-                    os_hash_algo = 'sha256'
-                LOG.debug('Recalculating checksum for image %(image)s due to '
-                          'image conversion.', {'image': image_path})
-                instance_info['image_checksum'] = None
-                hash_value = compute_image_checksum(image_path, os_hash_algo)
-                instance_info['image_os_hash_algo'] = os_hash_algo
-                instance_info['image_os_hash_value'] = hash_value
-            else:
-                instance_info['image_checksum'] = image_info['checksum']
-                instance_info['image_disk_format'] = image_info['disk_format']
-                instance_info['image_os_hash_algo'] = image_info[
-                    'os_hash_algo']
-                instance_info['image_os_hash_value'] = image_info[
-                    'os_hash_value']
-
-            # Create symlink and update image url
-            symlink_dir = _get_http_image_symlink_dir_path()
-            fileutils.ensure_tree(symlink_dir)
-            symlink_path = _get_http_image_symlink_file_path(node.uuid)
-            utils.create_link_without_raise(image_path, symlink_path)
-            base_url = CONF.deploy.http_url
-            if base_url.endswith('/'):
-                base_url = base_url[:-1]
-            http_image_url = '/'.join(
-                [base_url, CONF.deploy.http_image_subdir,
-                 node.uuid])
-            validate_image_url(http_image_url, secret=True)
-            instance_info['image_url'] = http_image_url
+            _cache_and_convert_image(task, instance_info, image_info)
 
         instance_info['image_container_format'] = (
             image_info['container_format'])
@@ -1064,8 +1085,10 @@ def build_instance_info_for_deploy(task):
         if not iwdi:
             instance_info['kernel'] = image_info['properties']['kernel_id']
             instance_info['ramdisk'] = image_info['properties']['ramdisk_id']
+    elif image_source.startswith('file://'):
+        _cache_and_convert_image(task, instance_info)
     else:
-        validate_image_url(image_source)
+        _validate_image_url(node, image_source)
         instance_info['image_url'] = image_source
 
     if not iwdi:

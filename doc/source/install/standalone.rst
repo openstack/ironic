@@ -88,22 +88,21 @@ Preparing images
 If you don't use Image service, it's possible to provide images to Bare Metal
 service via a URL.
 
-.. note::
-   At the moment, only two types of URLs are acceptable instead of Image
-   service UUIDs: HTTP(S) URLs (for example, "http://my.server.net/images/img")
-   and file URLs (file:///images/img).
+At the moment, only two types of URLs are acceptable instead of Image
+service UUIDs: HTTP(S) URLs (for example, "http://my.server.net/images/img")
+and file URLs (file:///images/img).
 
 There are however some limitations for different hardware interfaces:
 
-* If you're using :ref:`direct-deploy`, you have to provide the Bare Metal
-  service with the MD5 checksum of your instance image. To compute it, you can
-  use the following command::
+* If you're using :ref:`direct-deploy` with HTTP(s) URLs, you have to provide
+  the Bare Metal service with the MD5 checksum of your instance image.
+  To compute it, you can use the following command::
 
    md5sum image.qcow2
    ed82def8730f394fb85aef8a208635f6  image.qcow2
 
-* :ref:`direct-deploy` requires the instance image be accessible through a
-  HTTP(s) URL.
+* :ref:`direct-deploy` started supporting ``file://`` images in the Victoria
+  release cycle, before that only HTTP(s) had been supported.
 
 .. note::
    The Bare Metal service tracks content changes for non-Glance images by
