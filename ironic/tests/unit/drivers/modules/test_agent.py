@@ -213,6 +213,33 @@ class TestAgentMethods(db_base.DbTestCase):
                                agent.validate_http_provisioning_configuration,
                                self.node)
 
+    def test_validate_http_provisioning_missing_args_local_via_node(self):
+        CONF.set_override('http_url', None, group='deploy')
+        i_info = self.node.instance_info
+        i_info['image_source'] = 'http://image-ref'
+        i_info['image_download_source'] = 'local'
+        self.node.instance_info = i_info
+        self.assertRaisesRegex(exception.MissingParameterValue,
+                               'failed to validate http provisoning',
+                               agent.validate_http_provisioning_configuration,
+                               self.node)
+
+    def test_validate_http_provisioning_invalid_image_download_source(self):
+        CONF.set_override('http_url', None, group='deploy')
+        self.node.instance_info['image_source'] = 'http://image-ref'
+        self.node.instance_info['image_download_source'] = 'fridge'
+        self.assertRaisesRegex(exception.InvalidParameterValue, 'fridge',
+                               agent.validate_http_provisioning_configuration,
+                               self.node)
+
+    def test_validate_http_provisioning_invalid_image_download_source2(self):
+        CONF.set_override('http_url', None, group='deploy')
+        self.node.instance_info['image_source'] = 'http://image-ref'
+        self.node.driver_info['image_download_source'] = 'fridge'
+        self.assertRaisesRegex(exception.InvalidParameterValue, 'fridge',
+                               agent.validate_http_provisioning_configuration,
+                               self.node)
+
 
 class TestAgentDeploy(db_base.DbTestCase):
     def setUp(self):

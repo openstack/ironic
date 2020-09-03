@@ -228,6 +228,13 @@ Populating instance_info
         --instance-info image_source=$IMG \
         --instance-info image_checksum=$MD5HASH
 
+#. When using low RAM nodes with ``http://`` images that are not in the RAW
+   format, you may want them cached locally, converted to raw and served from
+   the conductor's HTTP server::
+
+    openstack baremetal node set $NODE_UUID \
+        --instance-info image_download_source=local
+
 #. :ref:`Boot mode <boot_mode_support>` can be specified per instance::
 
     openstack baremetal node set $NODE_UUID \
