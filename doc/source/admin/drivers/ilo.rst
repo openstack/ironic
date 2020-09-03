@@ -736,7 +736,7 @@ For more information on node manual cleaning, see :ref:`manual_cleaning`
 Node Deployment Customization
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 The hardware type ``ilo`` and ``ilo5`` supports customization of node
-deployment via deploy templates, see :ref:`node-deployment-deploy-steps`
+deployment via deploy templates, see :doc:`/admin/node-deployment`.
 
 The supported deploy steps are:
 

@@ -60,3 +60,9 @@ The above command outputs the ``driver_internal_info`` as following::
 
     Similarly, clean steps can be implemented using the ``clean_step``
     decorator.
+
+In-band deploy steps (deploy steps that are run inside the ramdisk) have to be
+implemented in a custom :ironic-python-agent-doc:`IPA hardware manager
+<contributor/hardware_managers.html#custom-hardwaremanagers-and-deploying>`.
+All in-band deploy steps must have priorities between 41 and 99, see
+:ref:`node-deployment-core-steps` for details.
