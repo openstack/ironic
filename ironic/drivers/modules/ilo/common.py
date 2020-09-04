@@ -25,6 +25,7 @@ from ironic_lib import utils as ironic_utils
 from oslo_log import log as logging
 from oslo_utils import fileutils
 from oslo_utils import importutils
+from oslo_utils import strutils
 
 from ironic.common import boot_devices
 from ironic.common import exception
@@ -56,7 +57,17 @@ REQUIRED_PROPERTIES = {
 OPTIONAL_PROPERTIES = {
     'client_port': _("port to be used for iLO operations. Optional."),
     'client_timeout': _("timeout (in seconds) for iLO operations. Optional."),
-    'ca_file': _("CA certificate file to validate iLO. Optional")
+    'ca_file': _("CA certificate file to validate iLO. This "
+                 "attibute is deprecated and will be removed in "
+                 "future release. Optional"),
+    'ilo_verify_ca': _("Either a Boolean value, a path to a CA_BUNDLE "
+                       "file or directory with certificates of trusted "
+                       "CAs. If set to True the driver will verify the "
+                       "host certificates; if False the driver will ignore "
+                       "verifying the SSL certificate. If it\'s a path the "
+                       "driver will use the specified certificate or one of "
+                       "the certificates in the directory. Defaults to True. "
+                       "Optional")
 }
 
 SNMP_PROPERTIES = {
@@ -255,22 +266,8 @@ def parse_driver_info(node):
             "The following required iLO parameters are missing from the "
             "node's driver_info: %s") % missing_info)
 
-    not_integers = []
-    for param in OPTIONAL_PROPERTIES:
-        value = info.get(param, CONF.ilo.get(param))
-        if param == "client_port":
-            d_info[param] = utils.validate_network_port(value, param)
-        elif param == "ca_file":
-            if value and not os.path.isfile(value):
-                raise exception.InvalidParameterValue(_(
-                    '%(param)s "%(value)s" is not found.') %
-                    {'param': param, 'value': value})
-            d_info[param] = value
-        else:
-            try:
-                d_info[param] = int(value)
-            except ValueError:
-                not_integers.append(param)
+    optional_info = _parse_optional_driver_info(node)
+    d_info.update(optional_info)
 
     snmp_info = _parse_snmp_driver_info(info)
     if snmp_info:
@@ -283,11 +280,6 @@ def parse_driver_info(node):
             # in CONSOLE_PROPERTIES
             if param == "console_port":
                 d_info[param] = utils.validate_network_port(value, param)
-
-    if not_integers:
-        raise exception.InvalidParameterValue(_(
-            "The following iLO parameters from the node's driver_info "
-            "should be integers: %s") % not_integers)
 
     return d_info
 
@@ -335,6 +327,75 @@ def _parse_snmp_driver_info(info):
     return snmp_info
 
 
+def _parse_optional_driver_info(node):
+    """Parses the optional driver_info parameters.
+
+    :param node: an ironic Node object.
+    :returns: a dictionary containing information of optional properties.
+    :raises: InvalidParameterValue if any parameters are incorrect
+    """
+    info = node.driver_info
+    optional_info = {}
+    not_integers = []
+
+    for param in OPTIONAL_PROPERTIES:
+        if param != 'ilo_verify_ca':
+            value = info.get(param, CONF.ilo.get(param))
+
+        if param == "client_port":
+            optional_info[param] = utils.validate_network_port(value, param)
+        elif param == "client_timeout":
+            try:
+                optional_info[param] = int(value)
+            except ValueError:
+                not_integers.append(param)
+
+    if not_integers:
+        raise exception.InvalidParameterValue(_(
+            "The following iLO parameters from the node's driver_info "
+            "should be integers: %s") % not_integers)
+
+    ca_file_value = info.get('ca_file', CONF.ilo.get('ca_file'))
+    verify_ca = info.get('ilo_verify_ca', CONF.ilo.get('verify_ca'))
+
+    if ca_file_value:
+        LOG.warning("The `driver_info/ca_file` parameter is deprecated "
+                    "in favor of `driver_info/ilo_verify_ca` parameter. "
+                    "Please use `driver_info/ilo_verify_ca` instead of "
+                    "`driver_info/ca_file` in node %(node)s "
+                    "configuration.", {'node': node.uuid})
+
+        if not os.path.isfile(ca_file_value):
+            raise exception.InvalidParameterValue(_(
+                'ca_file "%(value)s" is not found.') %
+                {'value': ca_file_value})
+        optional_info['verify_ca'] = ca_file_value
+    else:
+        # Check if ilo_verify_ca is a Boolean or a file/directory
+        # in the file-system
+        if isinstance(verify_ca, str):
+            if not os.path.isdir(verify_ca) and not os.path.isfile(verify_ca):
+                try:
+                    verify_ca = strutils.bool_from_string(verify_ca,
+                                                          strict=True)
+                except ValueError:
+                    raise exception.InvalidParameterValue(
+                        _('Invalid value type set in driver_info/'
+                          'ilo_verify_ca on node %(node)s. '
+                          'The value should be a Boolean or the path '
+                          'to a file/directory, not "%(value)s"'
+                          ) % {'value': verify_ca, 'node': node.uuid})
+        elif not isinstance(verify_ca, bool):
+            raise exception.InvalidParameterValue(
+                _('Invalid value type set in driver_info/ilo_verify_ca '
+                  'on node %(node)s. The value should be a Boolean '
+                  'or the path to a file/directory, not "%(value)s"'
+                  ) % {'value': verify_ca, 'node': node.uuid})
+        optional_info['verify_ca'] = verify_ca
+
+    return optional_info
+
+
 def get_ilo_object(node):
     """Gets an IloClient object from proliantutils library.
 
@@ -369,7 +430,7 @@ def get_ilo_object(node):
                                       driver_info['ilo_password'],
                                       driver_info['client_timeout'],
                                       driver_info['client_port'],
-                                      cacert=driver_info.get('ca_file'),
+                                      cacert=driver_info['verify_ca'],
                                       snmp_credentials=info)
     return ilo_object
 

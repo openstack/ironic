@@ -77,7 +77,20 @@ opts = [
                       '300GB SSD with default pattern "block" would take '
                       'approx. 30 seconds to complete sanitize disk erase.')),
     cfg.StrOpt('ca_file',
+               deprecated_for_removal=True,
+               deprecated_reason=_('Its being replaced by new configuration '
+                                   'parameter "verify_ca".'),
                help=_('CA certificate file to validate iLO.')),
+    cfg.StrOpt('verify_ca',
+               default='True',
+               help=_('CA certificate to validate iLO. This can be either '
+                      'a Boolean value, a path to a CA_BUNDLE file or '
+                      'directory with certificates of trusted CAs. If set '
+                      'to True the driver will verify the host certificates; '
+                      'if False the driver will ignore verifying the SSL '
+                      'certificate. If it\'s a path the driver will use the '
+                      'specified certificate or one of the certificates in '
+                      'the directory. Defaults to True.')),
     cfg.StrOpt('default_boot_mode',
                default='auto',
                choices=[('auto', _('based on boot mode settings on the '

@@ -83,7 +83,7 @@ class IloValidateParametersTestCase(BaseIloTest):
         self.assertEqual(INFO_DICT['ilo_password'], info['ilo_password'])
         self.assertEqual(60, info['client_timeout'])
         self.assertEqual(443, info['client_port'])
-        self.assertEqual('/home/user/cafile.pem', info['ca_file'])
+        self.assertEqual('/home/user/cafile.pem', info['verify_ca'])
         self.assertEqual('user', info['snmp_auth_user'])
         self.assertEqual('1234', info['snmp_auth_prot_password'])
         self.assertEqual('4321', info['snmp_auth_priv_password'])
@@ -99,6 +99,81 @@ class IloValidateParametersTestCase(BaseIloTest):
         self.assertEqual(60, info['client_timeout'])
         self.assertEqual(443, info['client_port'])
 
+    @mock.patch.object(os.path, 'isdir', autospec=True)
+    def test_parse_driver_info_path_verify_ca_dir(self, mock_isdir):
+        mock_isdir.return_value = True
+        fake_path = '/path/to/a/valid/CA'
+        self.node.driver_info['ilo_verify_ca'] = fake_path
+        info = ilo_common.parse_driver_info(self.node)
+        self.assertEqual(INFO_DICT['ilo_address'], info['ilo_address'])
+        self.assertEqual(INFO_DICT['ilo_username'], info['ilo_username'])
+        self.assertEqual(INFO_DICT['ilo_password'], info['ilo_password'])
+        self.assertEqual(60, info['client_timeout'])
+        self.assertEqual(443, info['client_port'])
+        self.assertEqual(fake_path, info['verify_ca'])
+        mock_isdir.assert_called_once_with(fake_path)
+
+    @mock.patch.object(os.path, 'isfile', autospec=True)
+    def test_parse_driver_info_path_verify_ca_file(self, mock_isfile):
+        mock_isfile.return_value = True
+        fake_path = '/path/to/a/valid/CA.pem'
+        self.node.driver_info['ilo_verify_ca'] = fake_path
+        info = ilo_common.parse_driver_info(self.node)
+        self.assertEqual(INFO_DICT['ilo_address'], info['ilo_address'])
+        self.assertEqual(INFO_DICT['ilo_username'], info['ilo_username'])
+        self.assertEqual(INFO_DICT['ilo_password'], info['ilo_password'])
+        self.assertEqual(60, info['client_timeout'])
+        self.assertEqual(443, info['client_port'])
+        self.assertEqual(fake_path, info['verify_ca'])
+        mock_isfile.assert_called_once_with(fake_path)
+
+    def test_parse_driver_info_verify_ca_default_value(self):
+        info = ilo_common.parse_driver_info(self.node)
+        self.assertEqual(INFO_DICT['ilo_address'], info['ilo_address'])
+        self.assertEqual(INFO_DICT['ilo_username'], info['ilo_username'])
+        self.assertEqual(INFO_DICT['ilo_password'], info['ilo_password'])
+        self.assertEqual(60, info['client_timeout'])
+        self.assertEqual(443, info['client_port'])
+        self.assertEqual(True, info['verify_ca'])
+
+    def test_parse_driver_info_verify_ca_string_false(self):
+        self.config(verify_ca="False", group='ilo')
+        info = ilo_common.parse_driver_info(self.node)
+        self.assertEqual(INFO_DICT['ilo_address'], info['ilo_address'])
+        self.assertEqual(INFO_DICT['ilo_username'], info['ilo_username'])
+        self.assertEqual(INFO_DICT['ilo_password'], info['ilo_password'])
+        self.assertEqual(60, info['client_timeout'])
+        self.assertEqual(443, info['client_port'])
+        self.assertEqual(False, info['verify_ca'])
+
+    def test_parse_driver_info_verify_ca_boolean_true(self):
+        self.config(verify_ca=True, group='ilo')
+        info = ilo_common.parse_driver_info(self.node)
+        self.assertEqual(INFO_DICT['ilo_address'], info['ilo_address'])
+        self.assertEqual(INFO_DICT['ilo_username'], info['ilo_username'])
+        self.assertEqual(INFO_DICT['ilo_password'], info['ilo_password'])
+        self.assertEqual(60, info['client_timeout'])
+        self.assertEqual(443, info['client_port'])
+        self.assertEqual(True, info['verify_ca'])
+
+    def test_parse_driver_info_verify_ca_boolean_false(self):
+        self.config(verify_ca=False, group='ilo')
+        info = ilo_common.parse_driver_info(self.node)
+        self.assertEqual(INFO_DICT['ilo_address'], info['ilo_address'])
+        self.assertEqual(INFO_DICT['ilo_username'], info['ilo_username'])
+        self.assertEqual(INFO_DICT['ilo_password'], info['ilo_password'])
+        self.assertEqual(60, info['client_timeout'])
+        self.assertEqual(443, info['client_port'])
+        self.assertEqual(False, info['verify_ca'])
+
+    def test_parse_driver_info_invalid_value_verify_ca(self):
+        # Integers are not supported
+        self.node.driver_info['ilo_verify_ca'] = 123456
+        self.assertRaisesRegex(exception.InvalidParameterValue,
+                               'Invalid value type',
+                               ilo_common._parse_optional_driver_info,
+                               self.node)
+
     @mock.patch.object(os.path, 'isfile', return_value=True, autospec=True)
     def test_parse_driver_info_snmp_true_no_auth_priv_protocols(self,
                                                                 isFile_mock):
@@ -113,7 +188,7 @@ class IloValidateParametersTestCase(BaseIloTest):
         self.assertEqual(INFO_DICT['ilo_password'], info['ilo_password'])
         self.assertEqual(60, info['client_timeout'])
         self.assertEqual(443, info['client_port'])
-        self.assertEqual('/home/user/cafile.pem', info['ca_file'])
+        self.assertEqual('/home/user/cafile.pem', info['verify_ca'])
         self.assertEqual('user', info['snmp_auth_user'])
         self.assertEqual('1234', info['snmp_auth_prot_password'])
         self.assertEqual('4321', info['snmp_auth_priv_password'])
@@ -230,7 +305,7 @@ class IloCommonMethodsTestCase(BaseIloTest):
     def _test_get_ilo_object(self, ilo_client_mock, isFile_mock, ca_file=None):
         self.info['client_timeout'] = 600
         self.info['client_port'] = 4433
-        self.info['ca_file'] = ca_file
+        self.info['ilo_verify_ca'] = ca_file
         self.node.driver_info = self.info
         ilo_client_mock.return_value = 'ilo_object'
         returned_ilo_object = ilo_common.get_ilo_object(self.node)
@@ -240,7 +315,7 @@ class IloCommonMethodsTestCase(BaseIloTest):
             self.info['ilo_password'],
             self.info['client_timeout'],
             self.info['client_port'],
-            cacert=self.info['ca_file'],
+            cacert=self.info['ilo_verify_ca'],
             snmp_credentials=None)
         self.assertEqual('ilo_object', returned_ilo_object)
 
@@ -256,7 +331,7 @@ class IloCommonMethodsTestCase(BaseIloTest):
                 'snmp_inspection': True}
         d_info = {'client_timeout': 600,
                   'client_port': 4433,
-                  'ca_file': 'ca_file',
+                  'verify_ca': 'True',
                   'snmp_auth_user': 'user',
                   'snmp_auth_prot_password': '1234',
                   'snmp_auth_priv_password': '4321',
@@ -272,15 +347,15 @@ class IloCommonMethodsTestCase(BaseIloTest):
             self.info['ilo_password'],
             self.info['client_timeout'],
             self.info['client_port'],
-            cacert=self.info['ca_file'],
+            cacert=self.info['verify_ca'],
             snmp_credentials=info)
         self.assertEqual('ilo_object', returned_ilo_object)
 
     def test_get_ilo_object_cafile(self):
         self._test_get_ilo_object(ca_file='/home/user/ilo.pem')
 
-    def test_get_ilo_object_no_cafile(self):
-        self._test_get_ilo_object()
+    def test_get_ilo_object_cafile_boolean(self):
+        self._test_get_ilo_object(ca_file=True)
 
     def test_update_ipmi_properties(self):
         with task_manager.acquire(self.context, self.node.uuid,
