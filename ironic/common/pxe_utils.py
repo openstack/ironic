@@ -42,11 +42,11 @@ PXE_CFG_DIR_NAME = CONF.pxe.pxe_config_subdir
 DHCP_CLIENT_ID = '61'  # rfc2132
 DHCP_TFTP_SERVER_NAME = '66'  # rfc2132
 DHCP_BOOTFILE_NAME = '67'  # rfc2132
-DHCPV6_BOOTFILE_NAME = '59'  # rfc5870
+DHCPV6_BOOTFILE_NAME = '59'  # rfc5970
 # NOTE(TheJulia): adding note for the bootfile parameter
 # field as defined by RFC 5870. No practical examples seem
 # available. Neither grub2 or ipxe seem to leverage this.
-# DHCPV6_BOOTFILE_PARAMS = '60'  # rfc5870
+# DHCPV6_BOOTFILE_PARAMS = '60'  # rfc5970
 DHCP_TFTP_SERVER_ADDRESS = '150'  # rfc5859
 DHCP_IPXE_ENCAP_OPTS = '175'  # Tentatively Assigned
 DHCP_TFTP_PATH_PREFIX = '210'  # rfc5071
