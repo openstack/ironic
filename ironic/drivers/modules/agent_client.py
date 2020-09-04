@@ -217,6 +217,29 @@ class AgentClient(object):
                   {'node': node.uuid, 'status': status})
         return result
 
+    def get_last_command_status(self, node, method):
+        """Get the last status for the given command.
+
+        :param node: A Node object.
+        :param method: Command name.
+        :returns: A dict containing command status from agent or None
+            if the command was not found.
+        """
+        try:
+            method = method.split('.', 1)[1]
+        except IndexError:
+            pass
+
+        commands = self.get_commands_status(node)
+        try:
+            return next(c for c in reversed(commands)
+                        if c.get('command_name') == method)
+        except StopIteration:
+            LOG.debug('Command %(cmd)s is not in the executing commands list '
+                      'for node %(node)s',
+                      {'cmd': method, 'node': node.uuid})
+            return None
+
     @METRICS.timer('AgentClient.prepare_image')
     def prepare_image(self, node, image_info, wait=False):
         """Call the `prepare_image` method on the node.

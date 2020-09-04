@@ -1734,6 +1734,34 @@ class TestAgentDeploy(db_base.DbTestCase):
         self.node.refresh()
         self.assertEqual('bar', self.node.instance_info['foo'])
 
+    @mock.patch.object(agent_client.AgentClient, 'get_commands_status',
+                       autospec=True)
+    def test_get_uuid_from_result(self, mock_statuses):
+        mock_statuses.return_value = [
+            {'command_name': 'banana', 'command_result': None},
+            {'command_name': 'prepare_image',
+             'command_result': {'result': 'okay root_uuid=abcd'}},
+            {'command_name': 'get_deploy_steps',
+             'command_result': {'deploy_steps': []}}
+        ]
+        with task_manager.acquire(
+                self.context, self.node['uuid'], shared=False) as task:
+            result = self.driver._get_uuid_from_result(task, 'root_uuid')
+            self.assertEqual('abcd', result)
+
+    @mock.patch.object(agent_client.AgentClient, 'get_commands_status',
+                       autospec=True)
+    def test_get_uuid_from_result_fails(self, mock_statuses):
+        mock_statuses.return_value = [
+            {'command_name': 'banana', 'command_result': None},
+            {'command_name': 'get_deploy_steps',
+             'command_result': {'deploy_steps': []}}
+        ]
+        with task_manager.acquire(
+                self.context, self.node['uuid'], shared=False) as task:
+            result = self.driver._get_uuid_from_result(task, 'root_uuid')
+            self.assertIsNone(result)
+
     @mock.patch.object(manager_utils, 'restore_power_state_if_needed',
                        autospec=True)
     @mock.patch.object(manager_utils, 'power_on_node_if_needed',
