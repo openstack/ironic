@@ -5,8 +5,6 @@ Node Deployment
 .. contents::
   :depth: 2
 
-.. _node-deployment-deploy-steps:
-
 Overview
 ========
 
@@ -83,6 +81,13 @@ Accordingly, the following priority ranges can be used for custom deploy steps:
   Out-of-band steps to run after the provisioning image is shut down.
 1 to 19
   Any steps that are run when the user instance is already running.
+
+In-band steps
+-------------
+
+More deploy steps can be provided by the ramdisk, see
+:ironic-python-agent-doc:`IPA hardware managers documentation
+<admin/hardware_managers.html>` for a listing.
 
 Writing a Deploy Step
 ---------------------
