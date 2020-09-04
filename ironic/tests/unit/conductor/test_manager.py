@@ -7431,6 +7431,33 @@ class DoNodeAdoptionTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         self.assertEqual(exception.InvalidParameterValue, exc.exc_info[0])
         self.assertFalse(mock_heartbeat.called)
 
+    @mock.patch('ironic.drivers.modules.fake.FakeDeploy.heartbeat',
+                autospec=True)
+    @mock.patch('ironic.conductor.manager.ConductorManager._spawn_worker',
+                autospec=True)
+    def test_heartbeat_tls_required(self, mock_spawn, mock_heartbeat):
+        """Heartbeat fails when it does not match."""
+        self.config(require_tls=True, group='agent')
+        node = obj_utils.create_test_node(
+            self.context, driver='fake-hardware',
+            provision_state=states.DEPLOYING,
+            target_provision_state=states.ACTIVE,
+            driver_internal_info={'agent_secret_token': 'a secret'})
+
+        self._start_service()
+
+        mock_spawn.reset_mock()
+
+        mock_spawn.side_effect = self._fake_spawn
+
+        exc = self.assertRaises(messaging.rpc.ExpectedException,
+                                self.service.heartbeat, self.context,
+                                node.uuid, 'http://callback',
+                                agent_token='a secret')
+        self.assertEqual(exception.InvalidParameterValue, exc.exc_info[0])
+        self.assertIn('TLS is required', str(exc.exc_info[1]))
+        self.assertFalse(mock_heartbeat.called)
+
 
 @mgr_utils.mock_record_keepalive
 class DestroyVolumeConnectorTestCase(mgr_utils.ServiceSetUpMixin,

@@ -3136,6 +3136,14 @@ class ConductorManager(base_manager.BaseConductorManager):
                 raise exception.InvalidParameterValue(
                     'Invalid or missing agent token received.')
 
+            if (CONF.agent.require_tls and callback_url
+                    and not callback_url.startswith('https://')):
+                LOG.error('Rejecting callback_url %(url)s for node '
+                          '%(node)s because it does not use TLS',
+                          {'url': callback_url, 'node': task.node.uuid})
+                raise exception.InvalidParameterValue(
+                    _('TLS is required by configuration'))
+
             task.spawn_after(
                 self._spawn_worker, task.driver.deploy.heartbeat,
                 task, callback_url, agent_version)
