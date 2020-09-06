@@ -792,9 +792,6 @@ class Ilo5Management(IloManagement):
         task.node.save()
 
     def _set_clean_failed(self, task, msg):
-        LOG.error("Out-of-band sanitize disk erase job failed for node "
-                  "%(node)s. Message: '%(message)s'.",
-                  {'node': task.node.uuid, 'message': msg})
         task.node.last_error = msg
         task.process_event('fail')
 
@@ -927,9 +924,43 @@ class Ilo5Management(IloManagement):
                 LOG.info("No drive found to perform out-of-band sanitize "
                          "disk erase for node %(node)s", {'node': node.uuid})
         except ilo_error.IloError as ilo_exception:
+            LOG.error("Out-of-band sanitize disk erase job failed for node "
+                      "%(node)s. Message: '%(message)s'.",
+                      {'node': task.node.uuid, 'message': ilo_exception})
             self._pop_driver_internal_values(task,
                                              'ilo_disk_erase_hdd_check',
                                              'ilo_disk_erase_ssd_check',
                                              'cleaning_reboot',
                                              'skip_current_clean_step')
+            self._set_clean_failed(task, ilo_exception)
+
+    @base.clean_step(priority=0, abortable=False)
+    def one_button_secure_erase(self, task):
+        """Erase the whole system securely.
+
+        The One-button secure erase process resets iLO and deletes all licenses
+        stored there, resets BIOS settings, and deletes all Active Health
+        System (AHS) and warranty data stored on the system. It also erases
+        supported non-volatile storage data and deletes any deployment settings
+        profiles.
+
+        :param task: a TaskManager instance.
+        :raises: IloError on an error from iLO.
+        """
+        node = task.node
+        LOG.info("Calling one button secure erase for node %(node)s",
+                 {'node': node.uuid})
+        try:
+            ilo_object = ilo_common.get_ilo_object(node)
+            ilo_object.do_one_button_secure_erase()
+            manager_utils.node_power_action(task, states.REBOOT)
+            node.maintenance = True
+            node.maintenance_reason = (
+                "Running one button secure erase clean step.")
+            node.save()
+            return states.CLEANWAIT
+        except ilo_error.IloError as ilo_exception:
+            LOG.error("One button secure erase job failed for node "
+                      "%(node)s. Message: '%(message)s'.",
+                      {'node': task.node.uuid, 'message': ilo_exception})
             self._set_clean_failed(task, ilo_exception)

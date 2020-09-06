@@ -1669,11 +1669,12 @@ class Ilo5ManagementTestCase(db_base.DbTestCase):
                               task.driver.management.erase_devices,
                               task, erase_pattern={'ssd': 'xyz'})
 
+    @mock.patch.object(ilo_management.LOG, 'error', autospec=True)
     @mock.patch.object(ilo_common, 'get_ilo_object', autospec=True)
     @mock.patch.object(ilo_management.Ilo5Management, '_set_clean_failed',
                        autospec=True)
     def test_erase_devices_hdd_ilo_error(self, set_clean_failed_mock,
-                                         ilo_mock):
+                                         ilo_mock, log_mock):
         ilo_mock_object = ilo_mock.return_value
         ilo_mock_object.get_available_disk_types.return_value = ['HDD']
         exc = ilo_error.IloError('error')
@@ -1691,5 +1692,43 @@ class Ilo5ManagementTestCase(db_base.DbTestCase):
                              task.node.driver_internal_info)
             self.assertNotIn('skip_current_clean_step',
                              task.node.driver_internal_info)
+            self.assertTrue(log_mock.called)
             set_clean_failed_mock.assert_called_once_with(
                 mock.ANY, task, exc)
+
+    @mock.patch.object(manager_utils, 'node_power_action', autospec=True)
+    @mock.patch.object(ilo_common, 'get_ilo_object', autospec=True)
+    def test_one_button_secure_erase(self, ilo_mock, mock_power):
+        ilo_mock_object = ilo_mock.return_value
+        self.node.clean_step = {'step': 'one_button_secure_erase',
+                                'interface': 'management'}
+        self.node.save()
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            result = task.driver.management.one_button_secure_erase(task)
+            self.assertTrue(
+                ilo_mock_object.do_one_button_secure_erase.called)
+            self.assertEqual(states.CLEANWAIT, result)
+            mock_power.assert_called_once_with(task, states.REBOOT)
+            self.assertEqual(task.node.maintenance, True)
+
+    @mock.patch.object(ilo_management.LOG, 'error', autospec=True)
+    @mock.patch.object(ilo_common, 'get_ilo_object', autospec=True)
+    @mock.patch.object(ilo_management.Ilo5Management, '_set_clean_failed',
+                       autospec=True)
+    def test_one_button_secure_erase_ilo_error(
+            self, set_clean_failed_mock, ilo_mock, log_mock):
+        ilo_mock_object = ilo_mock.return_value
+        self.node.clean_step = {'step': 'one_button_secure_erase',
+                                'interface': 'management'}
+        self.node.save()
+        exc = ilo_error.IloError('error')
+        ilo_mock_object.do_one_button_secure_erase.side_effect = exc
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            task.driver.management.one_button_secure_erase(task)
+            set_clean_failed_mock.assert_called_once_with(mock.ANY,
+                                                          task, exc)
+            self.assertTrue(
+                ilo_mock_object.do_one_button_secure_erase.called)
+            self.assertTrue(log_mock.called)
