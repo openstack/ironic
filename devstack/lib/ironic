@@ -194,7 +194,7 @@ IRONIC_DRIVER_INTERFACE_TYPES="bios boot power management deploy console inspect
 IRONIC_ENABLED_BIOS_INTERFACES=${IRONIC_ENABLED_BIOS_INTERFACES:-"fake,no-bios"}
 IRONIC_ENABLED_BOOT_INTERFACES=${IRONIC_ENABLED_BOOT_INTERFACES:-"fake,ipxe"}
 IRONIC_ENABLED_CONSOLE_INTERFACES=${IRONIC_ENABLED_CONSOLE_INTERFACES:-"fake,no-console"}
-IRONIC_ENABLED_DEPLOY_INTERFACES=${IRONIC_ENABLED_DEPLOY_INTERFACES:-"fake,iscsi,direct"}
+IRONIC_ENABLED_DEPLOY_INTERFACES=${IRONIC_ENABLED_DEPLOY_INTERFACES:-"fake,iscsi,direct,ramdisk"}
 IRONIC_ENABLED_INSPECT_INTERFACES=${IRONIC_ENABLED_INSPECT_INTERFACES:-"fake,no-inspect"}
 IRONIC_ENABLED_MANAGEMENT_INTERFACES=${IRONIC_ENABLED_MANAGEMENT_INTERFACES:-"fake,ipmitool,noop"}
 IRONIC_ENABLED_NETWORK_INTERFACES=${IRONIC_ENABLED_NETWORK_INTERFACES:-"flat,noop"}
@@ -566,6 +566,9 @@ TEMPEST_BAREMETAL_MAX_MICROVERSION=${TEMPEST_BAREMETAL_MAX_MICROVERSION:-}
 # change it later once we migrate our jobs.
 
 PHYSICAL_NETWORK=${NEUTRON_PHYSICAL_NETWORK:-${PHYSICAL_NETWORK:-}}
+
+# Ramdisk ISO image for Ramdisk Virtual Media/iPXE testing
+IRONIC_RAMDISK_IMAGE=${IRONIC_RAMDISK_IMAGE:-http://tinycorelinux.net/10.x/x86/archive/10.0/Core-10.0.iso}
 
 # get_pxe_boot_file() - Get the PXE/iPXE boot file path
 function get_pxe_boot_file {
@@ -3053,6 +3056,9 @@ function ironic_configure_tempest {
     fi
     iniset $TEMPEST_CONFIG baremetal whole_disk_image_checksum $(md5sum $FILES/${IRONIC_WHOLEDISK_IMAGE_NAME}.img)
 
+    if [[ "$IRONIC_RAMDISK_IMAGE" != "" ]]; then
+        iniset $TEMPEST_CONFIG baremetal ramdisk_iso_image_ref "$IRONIC_RAMDISK_IMAGE"
+    fi
     # NOTE(dtantsur): keep this option here until the defaults change in
     # ironic-tempest-plugin to disable classic drivers testing.
     iniset $TEMPEST_CONFIG baremetal enabled_drivers ""
