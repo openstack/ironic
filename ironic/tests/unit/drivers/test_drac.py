@@ -19,7 +19,6 @@ from ironic.drivers.modules import agent
 from ironic.drivers.modules import drac
 from ironic.drivers.modules import inspector
 from ironic.drivers.modules import ipxe
-from ironic.drivers.modules import iscsi_deploy
 from ironic.drivers.modules.network import flat as flat_net
 from ironic.drivers.modules import noop
 from ironic.drivers.modules.storage import noop as noop_storage
@@ -56,7 +55,7 @@ class IDRACHardwareTestCase(db_base.DbTestCase):
             kwargs.get('boot', ipxe.iPXEBoot))
         self.assertIsInstance(
             driver.deploy,
-            kwargs.get('deploy', iscsi_deploy.ISCSIDeploy))
+            kwargs.get('deploy', agent.AgentDeploy))
         self.assertIsInstance(
             driver.management,
             kwargs.get('management', drac.management.DracWSManManagement))
@@ -98,15 +97,6 @@ class IDRACHardwareTestCase(db_base.DbTestCase):
                                           inspect_interface='inspector')
         with task_manager.acquire(self.context, node.id) as task:
             self._validate_interfaces(task.driver,
-                                      inspect=inspector.Inspector)
-
-    def test_override_with_agent(self):
-        node = obj_utils.create_test_node(self.context, driver='idrac',
-                                          deploy_interface='direct',
-                                          inspect_interface='inspector')
-        with task_manager.acquire(self.context, node.id) as task:
-            self._validate_interfaces(task.driver,
-                                      deploy=agent.AgentDeploy,
                                       inspect=inspector.Inspector)
 
     def test_override_with_raid(self):

@@ -27,7 +27,6 @@ from ironic.drivers.modules import ipxe
 from ironic.drivers.modules.irmc import bios as irmc_bios
 from ironic.drivers.modules.irmc import boot as irmc_boot
 from ironic.drivers.modules.irmc import raid
-from ironic.drivers.modules import iscsi_deploy
 from ironic.drivers.modules import noop
 from ironic.tests.unit.db import base as db_base
 from ironic.tests.unit.objects import utils as obj_utils
@@ -43,7 +42,7 @@ class IRMCHardwareTestCase(db_base.DbTestCase):
         self.config(enabled_hardware_types=['irmc'],
                     enabled_boot_interfaces=['irmc-virtual-media', 'ipxe'],
                     enabled_console_interfaces=['ipmitool-socat'],
-                    enabled_deploy_interfaces=['iscsi', 'direct'],
+                    enabled_deploy_interfaces=['ansible', 'direct'],
                     enabled_inspect_interfaces=['irmc'],
                     enabled_management_interfaces=['irmc'],
                     enabled_power_interfaces=['irmc', 'ipmitool'],
@@ -59,7 +58,7 @@ class IRMCHardwareTestCase(db_base.DbTestCase):
             self.assertIsInstance(task.driver.console,
                                   ipmitool.IPMISocatConsole)
             self.assertIsInstance(task.driver.deploy,
-                                  iscsi_deploy.ISCSIDeploy)
+                                  agent.AgentDeploy)
             self.assertIsInstance(task.driver.inspect,
                                   irmc.inspect.IRMCInspect)
             self.assertIsInstance(task.driver.management,
@@ -77,7 +76,6 @@ class IRMCHardwareTestCase(db_base.DbTestCase):
         self.config(enabled_inspect_interfaces=['inspector', 'irmc'])
         node = obj_utils.create_test_node(
             self.context, driver='irmc',
-            deploy_interface='direct',
             inspect_interface='inspector',
             raid_interface='agent')
         with task_manager.acquire(self.context, node.id) as task:
@@ -101,7 +99,6 @@ class IRMCHardwareTestCase(db_base.DbTestCase):
     def test_override_with_agent_rescue(self, check_share_fs_mounted_mock):
         node = obj_utils.create_test_node(
             self.context, driver='irmc',
-            deploy_interface='direct',
             rescue_interface='agent',
             raid_interface='agent')
         with task_manager.acquire(self.context, node.id) as task:
@@ -131,7 +128,7 @@ class IRMCHardwareTestCase(db_base.DbTestCase):
             self.assertIsInstance(task.driver.console,
                                   ipmitool.IPMISocatConsole)
             self.assertIsInstance(task.driver.deploy,
-                                  iscsi_deploy.ISCSIDeploy)
+                                  agent.AgentDeploy)
             self.assertIsInstance(task.driver.inspect,
                                   irmc.inspect.IRMCInspect)
             self.assertIsInstance(task.driver.management,
@@ -147,7 +144,6 @@ class IRMCHardwareTestCase(db_base.DbTestCase):
                                               check_share_fs_mounted_mock):
         node = obj_utils.create_test_node(
             self.context, driver='irmc',
-            deploy_interface='direct',
             rescue_interface='agent',
             raid_interface='irmc')
         with task_manager.acquire(self.context, node.id) as task:
@@ -172,7 +168,6 @@ class IRMCHardwareTestCase(db_base.DbTestCase):
                                               check_share_fs_mounted_mock):
         node = obj_utils.create_test_node(
             self.context, driver='irmc',
-            deploy_interface='direct',
             rescue_interface='agent',
             bios_interface='no-bios')
         with task_manager.acquire(self.context, node.id) as task:

@@ -23,7 +23,6 @@ from ironic.drivers import ilo
 from ironic.drivers.modules import agent
 from ironic.drivers.modules.ilo import raid
 from ironic.drivers.modules import inspector
-from ironic.drivers.modules import iscsi_deploy
 from ironic.drivers.modules import noop
 from ironic.tests.unit.db import base as db_base
 from ironic.tests.unit.objects import utils as obj_utils
@@ -37,7 +36,7 @@ class IloHardwareTestCase(db_base.DbTestCase):
                     enabled_boot_interfaces=['ilo-virtual-media', 'ilo-pxe'],
                     enabled_bios_interfaces=['no-bios', 'ilo'],
                     enabled_console_interfaces=['ilo'],
-                    enabled_deploy_interfaces=['iscsi', 'direct'],
+                    enabled_deploy_interfaces=['ansible', 'direct'],
                     enabled_inspect_interfaces=['ilo'],
                     enabled_management_interfaces=['ilo'],
                     enabled_power_interfaces=['ilo'],
@@ -56,7 +55,7 @@ class IloHardwareTestCase(db_base.DbTestCase):
             self.assertIsInstance(task.driver.console,
                                   ilo.console.IloConsoleInterface)
             self.assertIsInstance(task.driver.deploy,
-                                  iscsi_deploy.ISCSIDeploy)
+                                  agent.AgentDeploy)
             self.assertIsInstance(task.driver.inspect,
                                   ilo.inspect.IloInspect)
             self.assertIsInstance(task.driver.management,
@@ -74,7 +73,6 @@ class IloHardwareTestCase(db_base.DbTestCase):
         self.config(enabled_inspect_interfaces=['inspector', 'ilo'])
         node = obj_utils.create_test_node(
             self.context, driver='ilo',
-            deploy_interface='direct',
             inspect_interface='inspector',
             raid_interface='agent',
             vendor_interface='no-vendor')
@@ -109,7 +107,7 @@ class IloHardwareTestCase(db_base.DbTestCase):
             self.assertIsInstance(task.driver.console,
                                   ilo.console.IloConsoleInterface)
             self.assertIsInstance(task.driver.deploy,
-                                  iscsi_deploy.ISCSIDeploy)
+                                  agent.AgentDeploy)
             self.assertIsInstance(task.driver.inspect,
                                   ilo.inspect.IloInspect)
             self.assertIsInstance(task.driver.management,
@@ -127,7 +125,6 @@ class IloHardwareTestCase(db_base.DbTestCase):
         self.config(enabled_inspect_interfaces=['inspector', 'ilo'])
         node = obj_utils.create_test_node(
             self.context, driver='ilo',
-            deploy_interface='direct',
             rescue_interface='agent',
             raid_interface='agent')
         with task_manager.acquire(self.context, node.id) as task:
@@ -155,7 +152,6 @@ class IloHardwareTestCase(db_base.DbTestCase):
             self.context, driver='ilo',
             boot_interface='ilo-pxe',
             bios_interface='no-bios',
-            deploy_interface='direct',
             raid_interface='agent')
         with task_manager.acquire(self.context, node.id) as task:
             self.assertIsInstance(task.driver.boot,
@@ -177,7 +173,7 @@ class Ilo5HardwareTestCase(db_base.DbTestCase):
         self.config(enabled_hardware_types=['ilo5'],
                     enabled_boot_interfaces=['ilo-virtual-media', 'ilo-pxe'],
                     enabled_console_interfaces=['ilo'],
-                    enabled_deploy_interfaces=['iscsi', 'direct'],
+                    enabled_deploy_interfaces=['ansible', 'direct'],
                     enabled_inspect_interfaces=['ilo'],
                     enabled_management_interfaces=['ilo5'],
                     enabled_power_interfaces=['ilo'],
@@ -193,7 +189,7 @@ class Ilo5HardwareTestCase(db_base.DbTestCase):
             self.assertIsInstance(task.driver.console,
                                   ilo.console.IloConsoleInterface)
             self.assertIsInstance(task.driver.deploy,
-                                  iscsi_deploy.ISCSIDeploy)
+                                  agent.AgentDeploy)
             self.assertIsInstance(task.driver.inspect,
                                   ilo.inspect.IloInspect)
             self.assertIsInstance(task.driver.management,

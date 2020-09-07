@@ -111,7 +111,7 @@ driver_opts = [
     cfg.StrOpt('default_console_interface',
                help=_DEFAULT_IFACE_HELP.format('console')),
     cfg.ListOpt('enabled_deploy_interfaces',
-                default=['iscsi', 'direct'],
+                default=['direct'],
                 help=_ENABLED_IFACE_HELP.format('deploy')),
     cfg.StrOpt('default_deploy_interface',
                help=_DEFAULT_IFACE_HELP.format('deploy')),

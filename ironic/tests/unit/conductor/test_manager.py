@@ -5777,29 +5777,38 @@ class ManagerTestProperties(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         super(ManagerTestProperties, self).setUp()
         self.service = manager.ConductorManager('test-host', 'test-topic')
 
-    def _check_driver_properties(self, hw_type, expected):
+    def _check_driver_properties(self, hw_type, expected, agent_common=True,
+                                 pxe_common=True):
         self._start_service()
         properties = self.service.get_driver_properties(self.context, hw_type)
-        self.assertEqual(sorted(expected), sorted(properties))
+        if agent_common:
+            expected.extend(['agent_verify_ca',
+                             'deploy_kernel', 'deploy_ramdisk',
+                             'deploy_forces_oob_reboot',
+                             'image_download_source',
+                             'image_http_proxy', 'image_https_proxy',
+                             'image_no_proxy'])
+        if pxe_common:
+            expected.extend(['force_persistent_boot_device',
+                             'rescue_kernel', 'rescue_ramdisk'])
+        self.assertCountEqual(expected, properties)
 
     def test_driver_properties_fake(self):
         expected = ['B1', 'B2']
-        self._check_driver_properties("fake-hardware", expected)
+        self._check_driver_properties("fake-hardware", expected,
+                                      agent_common=False, pxe_common=False)
 
     def test_driver_properties_ipmi(self):
         self.config(enabled_hardware_types='ipmi',
                     enabled_power_interfaces=['ipmitool'],
                     enabled_management_interfaces=['ipmitool'],
                     enabled_console_interfaces=['ipmitool-socat'])
-        expected = ['agent_verify_ca', 'ipmi_address', 'ipmi_terminal_port',
+        expected = ['ipmi_address', 'ipmi_terminal_port',
                     'ipmi_password', 'ipmi_port', 'ipmi_priv_level',
                     'ipmi_username', 'ipmi_bridging', 'ipmi_transit_channel',
                     'ipmi_transit_address', 'ipmi_target_channel',
                     'ipmi_target_address', 'ipmi_local_address',
-                    'deploy_kernel', 'deploy_ramdisk',
-                    'force_persistent_boot_device', 'ipmi_protocol_version',
-                    'ipmi_force_boot_device', 'deploy_forces_oob_reboot',
-                    'rescue_kernel', 'rescue_ramdisk',
+                    'ipmi_protocol_version', 'ipmi_force_boot_device',
                     'ipmi_disable_boot_timeout', 'ipmi_hex_kg_key',
                     'ipmi_cipher_suite']
         self._check_driver_properties("ipmi", expected)
@@ -5807,18 +5816,14 @@ class ManagerTestProperties(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
     def test_driver_properties_snmp(self):
         self.config(enabled_hardware_types='snmp',
                     enabled_power_interfaces=['snmp'])
-        expected = ['agent_verify_ca', 'deploy_kernel', 'deploy_ramdisk',
-                    'force_persistent_boot_device',
-                    'rescue_kernel', 'rescue_ramdisk',
-                    'snmp_driver', 'snmp_address', 'snmp_port', 'snmp_version',
+        expected = ['snmp_driver', 'snmp_address', 'snmp_port', 'snmp_version',
                     'snmp_community',
                     'snmp_community_read', 'snmp_community_write',
                     'snmp_security', 'snmp_outlet',
                     'snmp_user',
                     'snmp_context_engine_id', 'snmp_context_name',
                     'snmp_auth_key', 'snmp_auth_protocol',
-                    'snmp_priv_key', 'snmp_priv_protocol',
-                    'deploy_forces_oob_reboot']
+                    'snmp_priv_key', 'snmp_priv_protocol']
         self._check_driver_properties("snmp", expected)
 
     def test_driver_properties_ilo(self):
@@ -5828,14 +5833,17 @@ class ManagerTestProperties(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
                     enabled_boot_interfaces=['ilo-virtual-media'],
                     enabled_inspect_interfaces=['ilo'],
                     enabled_console_interfaces=['ilo'])
-        expected = ['agent_verify_ca', 'ilo_address', 'ilo_username',
+        expected = ['ilo_address', 'ilo_username',
                     'ilo_password', 'client_port', 'client_timeout',
                     'ilo_deploy_iso', 'console_port', 'ilo_change_password',
                     'ca_file', 'snmp_auth_user', 'snmp_auth_prot_password',
                     'snmp_auth_priv_password', 'snmp_auth_protocol',
-                    'snmp_auth_priv_protocol', 'deploy_forces_oob_reboot',
-                    'ilo_verify_ca']
-        self._check_driver_properties("ilo", expected)
+                    'snmp_auth_priv_protocol', 'ilo_verify_ca']
+        self._check_driver_properties("ilo", expected, pxe_common=False)
+
+    def test_driver_properties_manual_management(self):
+        self.config(enabled_hardware_types=['manual-management'])
+        self._check_driver_properties('manual-management', [])
 
     def test_driver_properties_fail(self):
         self.service.init_host()
@@ -5844,25 +5852,6 @@ class ManagerTestProperties(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
                                 self.context, "bad-driver")
         # Compare true exception hidden by @messaging.expected_exceptions
         self.assertEqual(exception.DriverNotFound, exc.exc_info[0])
-
-
-@mgr_utils.mock_record_keepalive
-class ManagerTestHardwareTypeProperties(mgr_utils.ServiceSetUpMixin,
-                                        db_base.DbTestCase):
-
-    def _check_hardware_type_properties(self, hardware_type, expected):
-        self.config(enabled_hardware_types=[hardware_type])
-        self.hardware_type = driver_factory.get_hardware_type(hardware_type)
-        self._start_service()
-        properties = self.service.get_driver_properties(self.context,
-                                                        hardware_type)
-        self.assertEqual(sorted(expected), sorted(properties))
-
-    def test_hardware_type_properties_manual_management(self):
-        expected = ['agent_verify_ca', 'deploy_kernel', 'deploy_ramdisk',
-                    'force_persistent_boot_device', 'deploy_forces_oob_reboot',
-                    'rescue_kernel', 'rescue_ramdisk']
-        self._check_hardware_type_properties('manual-management', expected)
 
 
 @mock.patch.object(waiters, 'wait_for_all', autospec=True)

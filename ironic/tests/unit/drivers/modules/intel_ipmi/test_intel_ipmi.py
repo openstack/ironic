@@ -14,7 +14,6 @@ from ironic.conductor import task_manager
 from ironic.drivers.modules import agent
 from ironic.drivers.modules.intel_ipmi import management as intel_management
 from ironic.drivers.modules import ipmitool
-from ironic.drivers.modules import iscsi_deploy
 from ironic.drivers.modules import noop
 from ironic.drivers.modules import pxe
 from ironic.drivers.modules.storage import cinder
@@ -47,7 +46,7 @@ class IntelIPMIHardwareTestCase(db_base.DbTestCase):
             kwargs.get('boot', pxe.PXEBoot))
         self.assertIsInstance(
             task.driver.deploy,
-            kwargs.get('deploy', iscsi_deploy.ISCSIDeploy))
+            kwargs.get('deploy', agent.AgentDeploy))
         self.assertIsInstance(
             task.driver.console,
             kwargs.get('console', noop.NoConsole))

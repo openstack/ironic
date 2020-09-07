@@ -21,7 +21,6 @@ from ironic.drivers import base as driver_base
 from ironic.drivers.modules import agent
 from ironic.drivers.modules import fake
 from ironic.drivers.modules import inspector
-from ironic.drivers.modules import iscsi_deploy
 from ironic.drivers.modules import noop
 from ironic.drivers.modules import noop_mgmt
 from ironic.drivers.modules import pxe
@@ -45,7 +44,7 @@ class ManualManagementHardwareTestCase(db_base.DbTestCase):
                                   noop_mgmt.NoopManagement)
             self.assertIsInstance(task.driver.power, fake.FakePower)
             self.assertIsInstance(task.driver.boot, pxe.PXEBoot)
-            self.assertIsInstance(task.driver.deploy, iscsi_deploy.ISCSIDeploy)
+            self.assertIsInstance(task.driver.deploy, agent.AgentDeploy)
             self.assertIsInstance(task.driver.inspect, noop.NoInspect)
             self.assertIsInstance(task.driver.raid, noop.NoRAID)
 
@@ -70,10 +69,12 @@ class ManualManagementHardwareTestCase(db_base.DbTestCase):
         expected_prop_keys = [
             'agent_verify_ca', 'deploy_forces_oob_reboot',
             'deploy_kernel', 'deploy_ramdisk',
+            'image_download_source', 'image_http_proxy',
+            'image_https_proxy', 'image_no_proxy',
             'force_persistent_boot_device', 'rescue_kernel', 'rescue_ramdisk']
         hardware_type = driver_factory.get_hardware_type("manual-management")
         properties = hardware_type.get_properties()
-        self.assertEqual(sorted(expected_prop_keys), sorted(properties))
+        self.assertCountEqual(expected_prop_keys, properties)
 
     @mock.patch.object(driver_factory, 'default_interface', autospec=True)
     def test_get_properties_none(self, mock_def_iface):

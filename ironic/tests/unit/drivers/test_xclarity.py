@@ -18,7 +18,6 @@ Test class for XClarity Driver
 
 from ironic.conductor import task_manager
 from ironic.drivers.modules import agent
-from ironic.drivers.modules import iscsi_deploy
 from ironic.drivers.modules import pxe
 from ironic.drivers.xclarity import management as xc_management
 from ironic.drivers.xclarity import power as xc_power
@@ -40,7 +39,6 @@ class XClarityHardwareTestCase(db_base.DbTestCase):
             self.assertIsInstance(task.driver.boot,
                                   pxe.PXEBoot)
             self.assertIsInstance(task.driver.deploy,
-                                  iscsi_deploy.ISCSIDeploy,
                                   agent.AgentDeploy)
             self.assertIsInstance(task.driver.management,
                                   xc_management.XClarityManagement)
