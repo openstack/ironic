@@ -77,7 +77,7 @@ class TestLookup(test_api_base.BaseApiTest):
             },
             'heartbeat_timeout': CONF.api.ramdisk_heartbeat_timeout,
             'agent_token': mock.ANY,
-            'agent_token_required': False,
+            'agent_token_required': True,
         }
         self.assertEqual(expected_config, data['config'])
         self.assertIsNotNone(data['config']['agent_token'])
@@ -218,12 +218,13 @@ class TestHeartbeat(test_api_base.BaseApiTest):
         node = obj_utils.create_test_node(self.context)
         response = self.post_json(
             '/heartbeat/%s' % node.uuid,
-            {'callback_url': 'url'},
+            {'callback_url': 'url',
+             'agent_token': 'x'},
             headers={api_base.Version.string: str(api_v1.max_version())})
         self.assertEqual(http_client.ACCEPTED, response.status_int)
         self.assertEqual(b'', response.body)
         mock_heartbeat.assert_called_once_with(mock.ANY, mock.ANY,
-                                               node.uuid, 'url', None, None,
+                                               node.uuid, 'url', None, 'x',
                                                topic='test-topic')
 
     @mock.patch.object(rpcapi.ConductorAPI, 'heartbeat', autospec=True)
@@ -231,12 +232,14 @@ class TestHeartbeat(test_api_base.BaseApiTest):
         node = obj_utils.create_test_node(self.context)
         response = self.post_json(
             '/heartbeat/%s.json' % node.uuid,
-            {'callback_url': 'url'},
+            {'callback_url': 'url',
+             'agent_token': 'maybe some magic'},
             headers={api_base.Version.string: str(api_v1.max_version())})
         self.assertEqual(http_client.ACCEPTED, response.status_int)
         self.assertEqual(b'', response.body)
         mock_heartbeat.assert_called_once_with(mock.ANY, mock.ANY,
-                                               node.uuid, 'url', None, None,
+                                               node.uuid, 'url', None,
+                                               'maybe some magic',
                                                topic='test-topic')
 
     @mock.patch.object(rpcapi.ConductorAPI, 'heartbeat', autospec=True)
@@ -244,12 +247,14 @@ class TestHeartbeat(test_api_base.BaseApiTest):
         node = obj_utils.create_test_node(self.context, name='test.1')
         response = self.post_json(
             '/heartbeat/%s' % node.name,
-            {'callback_url': 'url'},
+            {'callback_url': 'url',
+             'agent_token': 'token'},
             headers={api_base.Version.string: str(api_v1.max_version())})
         self.assertEqual(http_client.ACCEPTED, response.status_int)
         self.assertEqual(b'', response.body)
         mock_heartbeat.assert_called_once_with(mock.ANY, mock.ANY,
-                                               node.uuid, 'url', None, None,
+                                               node.uuid, 'url', None,
+                                               'token',
                                                topic='test-topic')
 
     @mock.patch.object(rpcapi.ConductorAPI, 'heartbeat', autospec=True)
@@ -258,12 +263,14 @@ class TestHeartbeat(test_api_base.BaseApiTest):
         response = self.post_json(
             '/heartbeat/%s' % node.uuid,
             {'callback_url': 'url',
-             'agent_version': '1.4.1'},
+             'agent_version': '1.4.1',
+             'agent_token': 'meow'},
             headers={api_base.Version.string: str(api_v1.max_version())})
         self.assertEqual(http_client.ACCEPTED, response.status_int)
         self.assertEqual(b'', response.body)
         mock_heartbeat.assert_called_once_with(mock.ANY, mock.ANY,
-                                               node.uuid, 'url', '1.4.1', None,
+                                               node.uuid, 'url', '1.4.1',
+                                               'meow',
                                                topic='test-topic')
 
     @mock.patch.object(rpcapi.ConductorAPI, 'heartbeat', autospec=True)

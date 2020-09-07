@@ -348,16 +348,6 @@ service_opts = [
                         ('json-rpc', _('use JSON RPC transport'))],
                help=_('Which RPC transport implementation to use between '
                       'conductor and API services')),
-    cfg.BoolOpt('require_agent_token',
-                default=False,
-                mutable=True,
-                help=_('Used to require the use of agent tokens. These '
-                       'tokens are used to guard the api lookup endpoint and '
-                       'conductor heartbeat processing logic to authenticate '
-                       'transactions with the ironic-python-agent. Tokens '
-                       'are provided only upon the first lookup of a node '
-                       'and may be provided via out of band means through '
-                       'the use of virtual media.')),
 ]
 
 utils_opts = [

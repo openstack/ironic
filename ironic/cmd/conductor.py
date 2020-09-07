@@ -50,20 +50,8 @@ def warn_about_unsafe_shred_parameters(conf):
                     'Secure Erase. This is a possible SECURITY ISSUE!')
 
 
-def warn_about_agent_token_deprecation(conf):
-    if not conf.require_agent_token:
-        LOG.warning('The ``[DEFAULT]require_agent_token`` option is not '
-                    'set and support for ironic-python-agents that do not '
-                    'utilize agent tokens, along with the configuration '
-                    'option will be removed in the W development cycle. '
-                    'Please upgrade your ironic-python-agent version, and '
-                    'consider adopting the require_agent_token setting '
-                    'during the Victoria development cycle.')
-
-
 def issue_startup_warnings(conf):
     warn_about_unsafe_shred_parameters(conf)
-    warn_about_agent_token_deprecation(conf)
 
 
 def main():

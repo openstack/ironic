@@ -7244,7 +7244,8 @@ class DoNodeAdoptionTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         node = obj_utils.create_test_node(
             self.context, driver='fake-hardware',
             provision_state=states.DEPLOYING,
-            target_provision_state=states.ACTIVE)
+            target_provision_state=states.ACTIVE,
+            driver_internal_info={'agent_secret_token': 'magic'})
 
         self._start_service()
 
@@ -7252,7 +7253,8 @@ class DoNodeAdoptionTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
 
         mock_spawn.side_effect = self._fake_spawn
 
-        self.service.heartbeat(self.context, node.uuid, 'http://callback')
+        self.service.heartbeat(self.context, node.uuid, 'http://callback',
+                               agent_token='magic')
         mock_heartbeat.assert_called_with(mock.ANY, mock.ANY,
                                           'http://callback', '3.0.0')
 
@@ -7265,7 +7267,8 @@ class DoNodeAdoptionTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         node = obj_utils.create_test_node(
             self.context, driver='fake-hardware',
             provision_state=states.DEPLOYING,
-            target_provision_state=states.ACTIVE)
+            target_provision_state=states.ACTIVE,
+            driver_internal_info={'agent_secret_token': 'magic'})
 
         self._start_service()
 
@@ -7273,34 +7276,10 @@ class DoNodeAdoptionTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
 
         mock_spawn.side_effect = self._fake_spawn
 
-        self.service.heartbeat(
-            self.context, node.uuid, 'http://callback', '1.4.1')
+        self.service.heartbeat(self.context, node.uuid, 'http://callback',
+                               '1.4.1', agent_token='magic')
         mock_heartbeat.assert_called_with(mock.ANY, mock.ANY,
                                           'http://callback', '1.4.1')
-
-    @mock.patch('ironic.drivers.modules.fake.FakeDeploy.heartbeat',
-                autospec=True)
-    @mock.patch('ironic.conductor.manager.ConductorManager._spawn_worker',
-                autospec=True)
-    def test_heartbeat_with_agent_pregenerated_token(
-            self, mock_spawn, mock_heartbeat):
-        """Test heartbeating."""
-        node = obj_utils.create_test_node(
-            self.context, driver='fake-hardware',
-            provision_state=states.DEPLOYING,
-            target_provision_state=states.ACTIVE,
-            driver_internal_info={'agent_secret_token': 'a secret'})
-
-        self._start_service()
-
-        mock_spawn.reset_mock()
-
-        mock_spawn.side_effect = self._fake_spawn
-        self.service.heartbeat(
-            self.context, node.uuid, 'http://callback', '6.0.1',
-            agent_token=None)
-        mock_heartbeat.assert_called_with(mock.ANY, mock.ANY,
-                                          'http://callback', '6.0.1')
 
     @mock.patch('ironic.drivers.modules.fake.FakeDeploy.heartbeat',
                 autospec=True)
@@ -7309,7 +7288,6 @@ class DoNodeAdoptionTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
     def test_heartbeat_with_no_required_agent_token(self, mock_spawn,
                                                     mock_heartbeat):
         """Tests that we kill the heartbeat attempt very early on."""
-        self.config(require_agent_token=True)
         node = obj_utils.create_test_node(
             self.context, driver='fake-hardware',
             provision_state=states.DEPLOYING,
@@ -7334,7 +7312,6 @@ class DoNodeAdoptionTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
     def test_heartbeat_with_required_agent_token(self, mock_spawn,
                                                  mock_heartbeat):
         """Test heartbeat works when token matches."""
-        self.config(require_agent_token=True)
         node = obj_utils.create_test_node(
             self.context, driver='fake-hardware',
             provision_state=states.DEPLOYING,
@@ -7359,7 +7336,6 @@ class DoNodeAdoptionTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
     def test_heartbeat_with_agent_token(self, mock_spawn,
                                         mock_heartbeat):
         """Test heartbeat works when token matches."""
-        self.config(require_agent_token=False)
         node = obj_utils.create_test_node(
             self.context, driver='fake-hardware',
             provision_state=states.DEPLOYING,
@@ -7384,7 +7360,6 @@ class DoNodeAdoptionTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
     def test_heartbeat_invalid_agent_token(self, mock_spawn,
                                            mock_heartbeat):
         """Heartbeat fails when it does not match."""
-        self.config(require_agent_token=False)
         node = obj_utils.create_test_node(
             self.context, driver='fake-hardware',
             provision_state=states.DEPLOYING,
@@ -7411,7 +7386,6 @@ class DoNodeAdoptionTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
     def test_heartbeat_invalid_agent_token_older_version(
             self, mock_spawn, mock_heartbeat):
         """Heartbeat is rejected if token is received that is invalid."""
-        self.config(require_agent_token=False)
         node = obj_utils.create_test_node(
             self.context, driver='fake-hardware',
             provision_state=states.DEPLOYING,
@@ -7439,7 +7413,6 @@ class DoNodeAdoptionTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
     def test_heartbeat_invalid_newer_version(
             self, mock_spawn, mock_heartbeat):
         """Heartbeat rejected if client should be sending a token."""
-        self.config(require_agent_token=False)
         node = obj_utils.create_test_node(
             self.context, driver='fake-hardware',
             provision_state=states.DEPLOYING,

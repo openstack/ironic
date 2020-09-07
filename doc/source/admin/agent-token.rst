@@ -29,7 +29,8 @@ These tokens are provided in one of two ways to the running agent.
 2. A one-time generated token that are provided upon the first "lookup"
    of the node.
 
-In both cases, the tokens are a randomly generated length of 128 characters.
+In both cases, the tokens are a randomly generated using the Python
+``secrets`` library. As of mid-2020, the default length is 43 characters.
 
 Once the token has been provided, the token cannot be retrieved or accessed.
 It remains available to the conductors, and is stored in memory of the
@@ -43,9 +44,10 @@ It remains available to the conductors, and is stored in memory of the
 With the token is available in memory in the agent, the token is embedded with
 ``heartbeat`` operations to the ironic API endpoint. This enables the API to
 authenticate the heartbeat request, and refuse "heartbeat" requests from the
-``ironic-python-agent``. With the ``Ussuri`` release, the configuration option
-``[DEFAULT]require_agent_token`` can be set ``True`` to explicitly require
-token use.
+``ironic-python-agent``. As of the Victoria release, use of Agent Token is
+required for all agents and the previously available setting to force this
+functionality to be manditory, ``[DEFAULT]require_agent_token`` no longer has
+any effect.
 
 .. warning::
    If the Bare Metal Service is updated, and the version of

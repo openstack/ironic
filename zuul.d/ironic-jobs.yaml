@@ -822,7 +822,6 @@
           IRONIC_VM_SPECS_RAM: 512
           IRONIC_DEFAULT_BOOT_OPTION: netboot
           IRONIC_AUTOMATED_CLEAN_ENABLED: False
-          IRONIC_REQUIRE_AGENT_TOKEN: False
           Q_AGENT: openvswitch
           Q_ML2_TENANT_NETWORK_TYPE: vxlan
           EBTABLES_RACE_FIX: True

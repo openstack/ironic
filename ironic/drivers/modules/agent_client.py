@@ -209,30 +209,19 @@ class AgentClient(object):
                    'code': response.status_code})
         if response.status_code >= http_client.BAD_REQUEST:
             faultstring = result.get('faultstring')
-            if 'agent_token' in faultstring and agent_token:
-                # NOTE(TheJulia) We have an agent that is out of date.
-                # which means I guess grenade updates the agent image
-                # for upgrades... :(
-                if not CONF.require_agent_token:
-                    LOG.warning('Agent command %(method)s for node %(node)s '
-                                'failed. Expected 2xx HTTP status code, got '
-                                '%(code)d. Error suggests an older ramdisk '
-                                'which does not support ``agent_token``. '
-                                'Removing the token for the next retry.',
-                                {'method': method, 'node': node.uuid,
-                                 'code': response.status_code})
-                    i_info = node.driver_internal_info
-                    i_info.pop('agent_secret_token')
-                    node.driver_internal_info = i_info
-                    node.save()
-                    msg = ('Node {} does not appear to support '
-                           'agent_token and it is not required. Next retry '
-                           'will be without the token.').format(node.uuid)
-                    raise exception.AgentConnectionFailed(reason=msg)
-            LOG.error('Agent command %(method)s for node %(node)s failed. '
-                      'Expected 2xx HTTP status code, got %(code)d.',
-                      {'method': method, 'node': node.uuid,
-                       'code': response.status_code})
+            if 'agent_token' in faultstring:
+                LOG.error('Agent command %(method)s for node %(node)s '
+                          'failed. Expected 2xx HTTP status code, got '
+                          '%(code)d. Error suggests an older ramdisk '
+                          'which does not support ``agent_token``. '
+                          'This is a fatal error.',
+                          {'method': method, 'node': node.uuid,
+                           'code': response.status_code})
+            else:
+                LOG.error('Agent command %(method)s for node %(node)s failed. '
+                          'Expected 2xx HTTP status code, got %(code)d.',
+                          {'method': method, 'node': node.uuid,
+                           'code': response.status_code})
             raise exception.AgentAPIError(node=node.uuid,
                                           status=response.status_code,
                                           error=faultstring)
