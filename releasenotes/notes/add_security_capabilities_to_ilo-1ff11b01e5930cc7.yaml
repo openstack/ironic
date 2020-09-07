@@ -1,0 +1,9 @@
+---
+feature: >
+    Adds security dashboard related capabilities and their security status
+    to ``ilo`` and ``ilo5`` driver capabilities. Following capabilities
+    are added:-
+    - ``overall_security_status``
+    - ``last_firmware_scan_result``
+    - ``security_override_switch``.
+    Refer `story 2008024 <https://storyboard.openstack.org/#!/story/2008024>`_

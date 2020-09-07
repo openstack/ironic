@@ -45,7 +45,9 @@ CAPABILITIES_KEYS = {'secure_boot', 'rom_firmware_version',
                      'logical_raid_level_5', 'logical_raid_level_6',
                      'logical_raid_level_50', 'logical_raid_level_60',
                      'cpu_vt', 'hardware_supports_raid', 'has_nvme_ssd',
-                     'nvdimm_n', 'logical_nvdimm_n', 'persistent_memory'}
+                     'nvdimm_n', 'logical_nvdimm_n', 'persistent_memory',
+                     'overall_security_status', 'security_override_switch',
+                     'last_firmware_scan_result'}
 
 
 def _get_essential_properties(node, ilo_object):

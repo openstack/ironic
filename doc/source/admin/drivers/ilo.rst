@@ -923,6 +923,27 @@ Inspection can also discover the following extra capabilities for iLO driver:
   of the raid levels among 0, 1, 2, 5, 6, 10, 50 and 60 are configured on
   the system.
 
+* ``overall_security_status``: ``Ok`` or ``Risk`` or ``Ignored`` as returned by iLO
+  security dashboard.  iLO computes the overall security status by evaluating
+  the security status for each of the security parameters. Admin needs to fix
+  the actual parameters and then re-inspect so that iLO can recompute the
+  overall security status. If the all security params, whose ``security_status`` is
+  ``Risk``, have the ``Ignore`` field set to ``True``, then iLO sets
+  the overall security status value as ``Ignored``. All the security params must have
+  the ``security_status`` as ``Ok`` for the ``overall_security_status``
+  to have the value as ``Ok``.
+
+* ``last_firmware_scan_status``: ``Ok`` or ``Risk`` as returned by iLO security dashboard.
+  This denotes security status of the last firmware scan done on the system. If it is
+  ``Risk``, the recommendation is to run clean_step ``update_firmware_sum`` without any
+  specific firmware components so that firmware is updated for all the components using
+  latest SPP (Service Provider Pack) ISO and then re-inspect to get the security status
+  again.
+
+* ``security_override_switch``: ``Ok`` or ``Risk`` as returned by iLO security dashboard.
+  This is disable/enable login to the iLO using credentials. This can be toggled only
+  by physical visit to the bare metal.
+
   .. note::
 
      * The capability ``nic_capacity`` can only be discovered if ipmitool
@@ -941,6 +962,10 @@ Inspection can also discover the following extra capabilities for iLO driver:
        (active and otherwise) NICs for Gen8 and Gen9 servers and ironic ports
        are created for all of them. Inspection logs a warning if the node under
        inspection is Gen8 or Gen9.
+     * The security dashboard capabilities are applicable only for Gen10 ProLiant HPE
+       servers and above. To fix the security dashboard parameters value from
+       ``Risk`` to ``Ok``, user need to fix the parameters separately and re-inspect
+       to see the security status of the parameters.
 
 The operator can specify these capabilities in nova flavor for node to be selected
 for scheduling::
