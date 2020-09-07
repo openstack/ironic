@@ -701,7 +701,12 @@ IRONIC_ANSIBLE_SSH_USER=${IRONIC_ANSIBLE_SSH_USER:-}
 # DevStack deployment, as we do not distribute this generated key to subnodes yet.
 IRONIC_ANSIBLE_SSH_KEY=${IRONIC_ANSIBLE_SSH_KEY:-$IRONIC_DATA_DIR/ansible_ssh_key}
 
-IRONIC_AGENT_IMAGE_DOWNLOAD_SOURCE=${IRONIC_AGENT_IMAGE_DOWNLOAD_SOURCE:-swift}
+if is_service_enabled swift; then
+    IRONIC_DEFAULT_DOWNLOAD_SOURCE=swift
+else
+    IRONIC_DEFAULT_DOWNLOAD_SOURCE=
+fi
+IRONIC_AGENT_IMAGE_DOWNLOAD_SOURCE=${IRONIC_AGENT_IMAGE_DOWNLOAD_SOURCE:-$IRONIC_DEFAULT_DOWNLOAD_SOURCE}
 
 # Functions
 # ---------
@@ -811,7 +816,12 @@ function is_ansible_with_tinyipa {
 }
 
 function is_glance_configuration_required {
-    is_deployed_by_agent || is_ansible_deploy_enabled || [[ "$IRONIC_CONFIGURE_GLANCE_WITH_SWIFT" == "True" ]] && return 0
+    # Always configure if we're asked to
+    [[ "$IRONIC_CONFIGURE_GLANCE_WITH_SWIFT" == "True" ]] && return 0
+    # Do not require swift configuration if using image_download_source!=swift
+    [[ "$IRONIC_AGENT_IMAGE_DOWNLOAD_SOURCE" == "swift" ]] || return 1
+    # Otherwise require for direct and ansible deploy
+    is_deployed_by_agent || is_ansible_deploy_enabled && return 0
     return 1
 }
 
@@ -1403,7 +1413,9 @@ function configure_ironic {
     iniset $IRONIC_CONF_FILE agent deploy_logs_storage_backend $IRONIC_DEPLOY_LOGS_STORAGE_BACKEND
     iniset $IRONIC_CONF_FILE agent deploy_logs_local_path $IRONIC_DEPLOY_LOGS_LOCAL_PATH
     # Set image_download_source for direct interface
-    iniset $IRONIC_CONF_FILE agent image_download_source $IRONIC_AGENT_IMAGE_DOWNLOAD_SOURCE
+    if [[ -n "$IRONIC_AGENT_IMAGE_DOWNLOAD_SOURCE" ]]; then
+        iniset $IRONIC_CONF_FILE agent image_download_source $IRONIC_AGENT_IMAGE_DOWNLOAD_SOURCE
+    fi
     # Configure JSON RPC backend
     iniset $IRONIC_CONF_FILE DEFAULT rpc_transport $IRONIC_RPC_TRANSPORT
     iniset $IRONIC_CONF_FILE json_rpc port $IRONIC_JSON_RPC_PORT

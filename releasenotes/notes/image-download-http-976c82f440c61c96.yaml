@@ -1,0 +1,7 @@
+---
+upgrade:
+  - |
+    The default value of the configuration option
+    ``[agent]image_download_source`` has been changed to ``http`` to simplify
+    transition from the ``iscsi`` deploy interface. Set it to ``swift``
+    explicitly to maintain the previous behavior.

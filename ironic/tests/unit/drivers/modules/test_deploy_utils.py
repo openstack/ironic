@@ -1747,6 +1747,7 @@ class TestBuildInstanceInfoForDeploy(db_base.DbTestCase):
         self.node = obj_utils.create_test_node(self.context,
                                                boot_interface='pxe',
                                                deploy_interface='direct')
+        cfg.CONF.set_override('image_download_source', 'swift', group='agent')
 
     @mock.patch.object(image_service.HttpImageService, 'validate_href',
                        autospec=True)

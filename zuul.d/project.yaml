@@ -25,8 +25,6 @@
         - ironic-tempest-ipa-partition-uefi-pxe_ipmitool
         - ironic-tempest-ipa-wholedisk-direct-tinyipa-multinode
         - ironic-tempest-bios-ipmi-direct-tinyipa
-        - ironic-tempest-ipa-wholedisk-bios-agent_ipmitool-indirect
-        - ironic-tempest-ipa-partition-bios-agent_ipmitool-indirect
         - ironic-tempest-bfv
         - ironic-tempest-ipa-partition-uefi-pxe-grub2
         - ironic-tempest-ipxe-ipv6:
