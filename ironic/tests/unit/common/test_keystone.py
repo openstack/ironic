@@ -14,7 +14,7 @@
 
 from unittest import mock
 
-from keystoneauth1 import loading as kaloading
+from keystoneauth1 import loading as ks_loading
 from oslo_config import cfg
 from oslo_config import fixture
 
@@ -38,8 +38,8 @@ class KeystoneTestCase(base.TestCase):
         # NOTE(pas-ha) this is due to auth_plugin options
         # being dynamically registered on first load,
         # but we need to set the config before
-        plugin = kaloading.get_plugin_loader('password')
-        opts = kaloading.get_auth_plugin_conf_options(plugin)
+        plugin = ks_loading.get_plugin_loader('password')
+        opts = ks_loading.get_auth_plugin_conf_options(plugin)
         self.cfg_fixture.register_opts(opts, group=self.test_group)
         self.config(auth_url='http://127.0.0.1:9898',
                     username='fake_user',

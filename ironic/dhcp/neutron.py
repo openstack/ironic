@@ -17,7 +17,7 @@
 import ipaddress
 import time
 
-from neutronclient.common import exceptions as neutron_client_exc
+from openstack.connection import exceptions as openstack_exc
 from oslo_log import log as logging
 
 from ironic.common import exception
@@ -62,11 +62,10 @@ class NeutronDHCPApi(base.BaseDHCP):
         super(NeutronDHCPApi, self).update_port_dhcp_opts(
             port_id, dhcp_options, token=token, context=context)
         try:
-            neutron_client = neutron.get_client(token=token,
-                                                context=context)
+            neutron_client = neutron.get_client(token=token, context=context)
 
             fip = None
-            port = neutron_client.show_port(port_id).get('port')
+            port = neutron_client.get_port(port_id)
             try:
                 if port:
                     # TODO(TheJulia): We need to retool this down the
@@ -90,9 +89,9 @@ class NeutronDHCPApi(base.BaseDHCP):
             else:
                 LOG.error('Requested to update port for port %s, '
                           'however port lacks an IP address.', port_id)
-            port_req_body = {'port': {'extra_dhcp_opts': update_opts}}
-            neutron.update_neutron_port(context, port_id, port_req_body)
-        except neutron_client_exc.NeutronClientException:
+            port_attrs = {'extra_dhcp_opts': update_opts}
+            neutron.update_neutron_port(context, port_id, port_attrs)
+        except openstack_exc.OpenStackCloudException:
             LOG.exception("Failed to update Neutron port %s.", port_id)
             raise exception.FailedToUpdateDHCPOptOnPort(port_id=port_id)
 
@@ -160,10 +159,10 @@ class NeutronDHCPApi(base.BaseDHCP):
             LOG.debug("Waiting %d seconds for Neutron.", port_delay)
             time.sleep(port_delay)
 
-    def _get_fixed_ip_address(self, port_uuid, client):
+    def _get_fixed_ip_address(self, port_id, client):
         """Get a Neutron port's fixed ip address.
 
-        :param port_uuid: Neutron port id.
+        :param port_id: Neutron port id.
         :param client: Neutron client instance.
         :returns: Neutron port ip address.
         :raises: NetworkError
@@ -172,10 +171,10 @@ class NeutronDHCPApi(base.BaseDHCP):
         """
         ip_address = None
         try:
-            neutron_port = client.show_port(port_uuid).get('port')
-        except neutron_client_exc.NeutronClientException:
+            neutron_port = client.get_port(port_id)
+        except openstack_exc.OpenStackCloudException:
             raise exception.NetworkError(
-                _('Could not retrieve neutron port: %s') % port_uuid)
+                _('Could not retrieve neutron port: %s') % port_id)
 
         fixed_ips = neutron_port.get('fixed_ips')
 
@@ -192,18 +191,18 @@ class NeutronDHCPApi(base.BaseDHCP):
                     return ip_address
                 else:
                     LOG.error("Neutron returned invalid IP "
-                              "address %(ip_address)s on port %(port_uuid)s.",
-                              {'ip_address': ip_address,
-                               'port_uuid': port_uuid})
-                    raise exception.InvalidIPAddress(ip_address=ip_address)
+                              "address %(ip_address)s on port %(port_id)s.",
+                              {'ip_address': ip_address, 'port_id': port_id})
+
+                    raise exception.InvalidIPv4Address(ip_address=ip_address)
             except ValueError as exc:
                 LOG.error("An Invalid IP address was supplied and failed "
                           "basic validation: %s", exc)
                 raise exception.InvalidIPAddress(ip_address=ip_address)
         else:
             LOG.error("No IP address assigned to Neutron port %s.",
-                      port_uuid)
-            raise exception.FailedToGetIPAddressOnPort(port_id=port_uuid)
+                      port_id)
+            raise exception.FailedToGetIPAddressOnPort(port_id=port_id)
 
     def _get_port_ip_address(self, task, p_obj, client):
         """Get ip address of ironic port/portgroup assigned by Neutron.
@@ -244,8 +243,7 @@ class NeutronDHCPApi(base.BaseDHCP):
         ip_addresses = []
         for obj in pobj_list:
             try:
-                vif_ip_address = self._get_port_ip_address(task, obj,
-                                                           client)
+                vif_ip_address = self._get_port_ip_address(task, obj, client)
                 ip_addresses.append(vif_ip_address)
             except (exception.FailedToGetIPAddressOnPort,
                     exception.InvalidIPv4Address,

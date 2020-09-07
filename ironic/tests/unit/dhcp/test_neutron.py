@@ -16,7 +16,7 @@
 
 from unittest import mock
 
-from neutronclient.common import exceptions as neutron_client_exc
+from openstack.connection import exceptions as openstack_exc
 from oslo_utils import uuidutils
 
 from ironic.common import dhcp_factory
@@ -59,7 +59,7 @@ class TestNeutron(db_base.DbTestCase):
                 {'opt_name': 'server-ip-address',
                  'opt_value': '1.1.1.1'}]
         port_id = 'fake-port-id'
-        expected = {'port': {'extra_dhcp_opts': opts}}
+        expected = {'extra_dhcp_opts': opts}
         port_data = {
             "id": port_id,
             "fixed_ips": [
@@ -68,7 +68,7 @@ class TestNeutron(db_base.DbTestCase):
                 }
             ],
         }
-        client_mock.return_value.show_port.return_value = {'port': port_data}
+        client_mock.return_value.get_port.return_value = port_data
 
         api = dhcp_factory.DHCPFactory()
         with task_manager.acquire(self.context, self.node.uuid) as task:
@@ -94,12 +94,13 @@ class TestNeutron(db_base.DbTestCase):
                  'ip_version': 6}]
         port_id = 'fake-port-id'
         expected = {
-            'port': {
-                'extra_dhcp_opts': [{
+            'extra_dhcp_opts': [
+                {
                     'opt_name': 'bootfile-url',
                     'opt_value': 'tftp://::1/file.name',
-                    'ip_version': 6}]
-            }
+                    'ip_version': 6
+                }
+            ]
         }
         port_data = {
             "id": port_id,
@@ -109,7 +110,7 @@ class TestNeutron(db_base.DbTestCase):
                 }
             ],
         }
-        client_mock.return_value.show_port.return_value = {'port': port_data}
+        client_mock.return_value.get_port.return_value = port_data
 
         api = dhcp_factory.DHCPFactory()
         with task_manager.acquire(self.context, self.node.uuid) as task:
@@ -132,9 +133,8 @@ class TestNeutron(db_base.DbTestCase):
                 }
             ],
         }
-        client_mock.return_value.show_port.return_value = {'port': port_data}
-        update_mock.side_effect = (
-            neutron_client_exc.NeutronClientException())
+        client_mock.return_value.get_port.return_value = port_data
+        update_mock.side_effect = openstack_exc.OpenStackCloudException()
 
         api = dhcp_factory.DHCPFactory()
         with task_manager.acquire(self.context, self.node.uuid) as task:
@@ -262,10 +262,10 @@ class TestNeutron(db_base.DbTestCase):
             "device_id": 'bece68a3-2f8b-4e66-9092-244493d6aba7',
         }
         fake_client = mock.Mock()
-        fake_client.show_port.return_value = {'port': port_data}
+        fake_client.get_port.return_value = port_data
         result = api._get_fixed_ip_address(port_id, fake_client)
         self.assertEqual(expected, result)
-        fake_client.show_port.assert_called_once_with(port_id)
+        fake_client.get_port.assert_called_once_with(port_id)
 
     def test__get_fixed_ip_address_ipv6(self):
         port_id = 'fake-port-id'
@@ -286,10 +286,10 @@ class TestNeutron(db_base.DbTestCase):
             "device_id": 'bece68a3-2f8b-4e66-9092-244493d6aba7',
         }
         fake_client = mock.Mock()
-        fake_client.show_port.return_value = {'port': port_data}
+        fake_client.get_port.return_value = port_data
         result = api._get_fixed_ip_address(port_id, fake_client)
         self.assertEqual(expected, result)
-        fake_client.show_port.assert_called_once_with(port_id)
+        fake_client.get_port.assert_called_once_with(port_id)
 
     def test__get_fixed_ip_address_invalid_ip(self):
         port_id = 'fake-port-id'
@@ -309,22 +309,23 @@ class TestNeutron(db_base.DbTestCase):
             "device_id": 'bece68a3-2f8b-4e66-9092-244493d6aba7',
         }
         fake_client = mock.Mock()
-        fake_client.show_port.return_value = {'port': port_data}
+        fake_client.get_port.return_value = port_data
         self.assertRaises(exception.InvalidIPAddress,
                           api._get_fixed_ip_address,
                           port_id, fake_client)
-        fake_client.show_port.assert_called_once_with(port_id)
+        fake_client.get_port.assert_called_once_with(port_id)
 
     def test__get_fixed_ip_address_with_exception(self):
         port_id = 'fake-port-id'
         api = dhcp_factory.DHCPFactory().provider
 
         fake_client = mock.Mock()
-        fake_client.show_port.side_effect = (
-            neutron_client_exc.NeutronClientException())
+        fake_client.get_port.side_effect = (
+            openstack_exc.OpenStackCloudException())
+
         self.assertRaises(exception.NetworkError,
                           api._get_fixed_ip_address, port_id, fake_client)
-        fake_client.show_port.assert_called_once_with(port_id)
+        fake_client.get_port.assert_called_once_with(port_id)
 
     @mock.patch('ironic.dhcp.neutron.NeutronDHCPApi._get_fixed_ip_address',
                 autospec=True)

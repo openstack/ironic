@@ -233,7 +233,6 @@ default:
     iso8601=WARNING
     keystoneauth.session=INFO
     keystonemiddleware.auth_token=INFO
-    neutronclient=WARNING
     oslo_messaging=INFO
     paramiko=WARNING
     qpid.messaging=INFO
@@ -241,6 +240,7 @@ default:
     sqlalchemy=WARNING
     stevedore=INFO
     urllib3.connectionpool=WARNING
+    openstack=WARNING
   default_management_interface = None
   default_network_interface = None
   default_portgroup_mode = active-backup

@@ -14,7 +14,7 @@
 
 import copy
 
-from keystoneauth1 import loading as kaloading
+from keystoneauth1 import loading as ks_loading
 from oslo_config import cfg
 from oslo_log import log
 
@@ -30,9 +30,9 @@ def register_auth_opts(conf, group, service_type=None):
     Registers only basic auth options shared by all auth plugins.
     The rest are registered at runtime depending on auth plugin used.
     """
-    kaloading.register_session_conf_options(conf, group)
-    kaloading.register_auth_conf_options(conf, group)
-    kaloading.register_adapter_conf_options(conf, group)
+    ks_loading.register_session_conf_options(conf, group)
+    ks_loading.register_auth_conf_options(conf, group)
+    ks_loading.register_adapter_conf_options(conf, group)
     conf.set_default('valid_interfaces', DEFAULT_VALID_INTERFACES, group=group)
     # TODO(pas-ha) use os-service-type to try find the service_type by the
     # config group name assuming it is a project name (e.g. 'glance')
@@ -56,16 +56,16 @@ def add_auth_opts(options, service_type=None):
                 opts.append(new_opt)
 
     opts = copy.deepcopy(options)
-    opts.insert(0, kaloading.get_auth_common_conf_options()[0])
+    opts.insert(0, ks_loading.get_auth_common_conf_options()[0])
     # NOTE(dims): There are a lot of auth plugins, we just generate
     # the config options for a few common ones
     plugins = ['password', 'v2password', 'v3password']
     for name in plugins:
-        plugin = kaloading.get_plugin_loader(name)
-        add_options(opts, kaloading.get_auth_plugin_conf_options(plugin))
-    add_options(opts, kaloading.get_session_conf_options())
+        plugin = ks_loading.get_plugin_loader(name)
+        add_options(opts, ks_loading.get_auth_plugin_conf_options(plugin))
+    add_options(opts, ks_loading.get_session_conf_options())
     if service_type:
-        adapter_opts = kaloading.get_adapter_conf_options(
+        adapter_opts = ks_loading.get_adapter_conf_options(
             include_deprecated=False)
         # adding defaults for valid interfaces
         cfg.set_defaults(adapter_opts, service_type=service_type,

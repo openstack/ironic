@@ -16,8 +16,8 @@
 
 import functools
 
-from keystoneauth1 import exceptions as kaexception
-from keystoneauth1 import loading as kaloading
+from keystoneauth1 import exceptions as ks_exception
+from keystoneauth1 import loading as ks_loading
 from keystoneauth1 import service_token
 from keystoneauth1 import token_endpoint
 from oslo_log import log as logging
@@ -35,15 +35,15 @@ def ks_exceptions(f):
     def wrapper(*args, **kwargs):
         try:
             return f(*args, **kwargs)
-        except kaexception.EndpointNotFound:
+        except ks_exception.EndpointNotFound:
             service_type = kwargs.get('service_type', 'baremetal')
             endpoint_type = kwargs.get('endpoint_type', 'internal')
             raise exception.CatalogNotFound(
                 service_type=service_type, endpoint_type=endpoint_type)
-        except (kaexception.Unauthorized, kaexception.AuthorizationFailure):
+        except (ks_exception.Unauthorized, ks_exception.AuthorizationFailure):
             raise exception.KeystoneUnauthorized()
-        except (kaexception.NoMatchingPlugin,
-                kaexception.MissingRequiredOptions) as e:
+        except (ks_exception.NoMatchingPlugin,
+                ks_exception.MissingRequiredOptions) as e:
             raise exception.ConfigInvalid(str(e))
         except Exception as e:
             LOG.exception('Keystone request failed: %(msg)s',
@@ -63,7 +63,7 @@ def get_session(group, **session_kwargs):
     :param group: name of the config section to load session options from
 
     """
-    return kaloading.load_session_from_conf_options(
+    return ks_loading.load_session_from_conf_options(
         CONF, group, **session_kwargs)
 
 
@@ -81,9 +81,9 @@ def get_auth(group, **auth_kwargs):
 
     """
     try:
-        auth = kaloading.load_auth_from_conf_options(CONF, group,
-                                                     **auth_kwargs)
-    except kaexception.MissingRequiredOptions:
+        auth = ks_loading.load_auth_from_conf_options(CONF, group,
+                                                      **auth_kwargs)
+    except ks_exception.MissingRequiredOptions:
         LOG.error('Failed to load auth plugin from group %s', group)
         raise
     return auth
@@ -100,8 +100,8 @@ def get_adapter(group, **adapter_kwargs):
     :param group: name of the config section to load adapter options from
 
     """
-    return kaloading.load_adapter_from_conf_options(CONF, group,
-                                                    **adapter_kwargs)
+    return ks_loading.load_adapter_from_conf_options(CONF, group,
+                                                     **adapter_kwargs)
 
 
 def get_endpoint(group, **adapter_kwargs):

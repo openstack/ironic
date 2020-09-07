@@ -96,10 +96,10 @@ def update_opt_defaults():
             'eventlet.wsgi.server=INFO',
             'iso8601=WARNING',
             'requests=WARNING',
-            'neutronclient=WARNING',
             'glanceclient=WARNING',
             'urllib3.connectionpool=WARNING',
             'keystonemiddleware.auth_token=INFO',
             'keystoneauth.session=INFO',
+            'openstack=WARNING',
         ]
     )
