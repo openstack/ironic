@@ -1,0 +1,5 @@
+---
+features:
+  - |
+    A new configuration option ``[agent]require_tls`` allows rejecting
+    ramdisk callback URLs that don't use the ``https://`` schema.

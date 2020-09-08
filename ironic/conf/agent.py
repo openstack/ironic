@@ -144,6 +144,11 @@ opts = [
                default=10,
                help=_('Wait time in seconds between attempts for validating '
                       'Neutron agent status.')),
+    cfg.BoolOpt('require_tls',
+                default=False,
+                mutable=True,
+                help=_('If set to True, callback URLs without https:// will '
+                       'be rejected by the conductor.')),
 ]
 
 
