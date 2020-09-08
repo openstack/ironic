@@ -1,0 +1,5 @@
+---
+features:
+  - |
+    Supports the Fujitsu ``irmc`` hardware type again. The Third Party CI for
+    the driver has started to work correctly in September 2020.

@@ -197,8 +197,6 @@ def _inspect_hardware(node, existing_traits=None, **kwargs):
 class IRMCInspect(base.InspectInterface):
     """Interface for out of band inspection."""
 
-    supported = False
-
     def __init__(self):
         """Validate the driver-specific inspection information.
 
