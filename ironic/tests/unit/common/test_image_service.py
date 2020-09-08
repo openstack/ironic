@@ -18,6 +18,7 @@ import os
 import shutil
 from unittest import mock
 
+from oslo_config import cfg
 from oslo_utils import uuidutils
 import requests
 import sendfile
@@ -32,14 +33,17 @@ class HttpImageServiceTestCase(base.TestCase):
     def setUp(self):
         super(HttpImageServiceTestCase, self).setUp()
         self.service = image_service.HttpImageService()
-        self.href = 'http://127.0.0.1:12345/fedora.qcow2'
+        self.href = 'https://127.0.0.1:12345/fedora.qcow2'
 
+    @mock.patch.object(os.path, 'exists', autospec=True)
     @mock.patch.object(requests, 'head', autospec=True)
-    def test_validate_href(self, head_mock):
+    def test_validate_href_http_scheme(self, head_mock, path_mock):
+        self.href = 'http://127.0.0.1:12345/fedora.qcow2'
         response = head_mock.return_value
         response.status_code = http_client.OK
         self.service.validate_href(self.href)
-        head_mock.assert_called_once_with(self.href)
+        path_mock.assert_not_called()
+        head_mock.assert_called_once_with(self.href, verify=True)
         response.status_code = http_client.NO_CONTENT
         self.assertRaises(exception.ImageRefValidationFailed,
                           self.service.validate_href,
@@ -50,21 +54,110 @@ class HttpImageServiceTestCase(base.TestCase):
                           self.href)
 
     @mock.patch.object(requests, 'head', autospec=True)
-    def test_validate_href_error_code(self, head_mock):
-        head_mock.return_value.status_code = http_client.BAD_REQUEST
+    def test_validate_href_verify_false(self, head_mock):
+        cfg.CONF.set_override('webserver_verify_ca', 'False')
+
+        response = head_mock.return_value
+        response.status_code = http_client.OK
+        self.service.validate_href(self.href)
+        head_mock.assert_called_once_with(self.href, verify=False)
+        response.status_code = http_client.NO_CONTENT
         self.assertRaises(exception.ImageRefValidationFailed,
-                          self.service.validate_href, self.href)
-        head_mock.assert_called_once_with(self.href)
+                          self.service.validate_href,
+                          self.href)
+        response.status_code = http_client.BAD_REQUEST
+        self.assertRaises(exception.ImageRefValidationFailed,
+                          self.service.validate_href,
+                          self.href)
 
     @mock.patch.object(requests, 'head', autospec=True)
-    def test_validate_href_error(self, head_mock):
+    def test_validate_href_verify_false_error(self, head_mock):
+        cfg.CONF.set_override('webserver_verify_ca', 'False')
         head_mock.side_effect = requests.ConnectionError()
         self.assertRaises(exception.ImageRefValidationFailed,
                           self.service.validate_href, self.href)
-        head_mock.assert_called_once_with(self.href)
+        head_mock.assert_called_once_with(self.href, verify=False)
+        head_mock.side_effect = requests.RequestException()
+        self.assertRaises(exception.ImageRefValidationFailed,
+                          self.service.validate_href, self.href)
+
+    @mock.patch.object(requests, 'head', autospec=True)
+    def test_validate_href_verify_true(self, head_mock):
+        cfg.CONF.set_override('webserver_verify_ca', 'True')
+
+        response = head_mock.return_value
+        response.status_code = http_client.OK
+        self.service.validate_href(self.href)
+        head_mock.assert_called_once_with(self.href, verify=True)
+        response.status_code = http_client.NO_CONTENT
+        self.assertRaises(exception.ImageRefValidationFailed,
+                          self.service.validate_href,
+                          self.href)
+        response.status_code = http_client.BAD_REQUEST
+        self.assertRaises(exception.ImageRefValidationFailed,
+                          self.service.validate_href,
+                          self.href)
+
+    @mock.patch.object(requests, 'head', autospec=True)
+    def test_validate_href_verify_true_error(self, head_mock):
+        cfg.CONF.set_override('webserver_verify_ca', 'True')
+
+        head_mock.side_effect = requests.ConnectionError()
+        self.assertRaises(exception.ImageRefValidationFailed,
+                          self.service.validate_href, self.href)
+        head_mock.assert_called_once_with(self.href, verify=True)
+        head_mock.side_effect = requests.RequestException()
+        self.assertRaises(exception.ImageRefValidationFailed,
+                          self.service.validate_href, self.href)
+
+    @mock.patch.object(requests, 'head', autospec=True)
+    def test_validate_href_verify_valid_path(self, head_mock):
+        cfg.CONF.set_override('webserver_verify_ca', '/some/path')
+
+        response = head_mock.return_value
+        response.status_code = http_client.OK
+
+        self.service.validate_href(self.href)
+        head_mock.assert_called_once_with(self.href, verify='/some/path')
+        response.status_code = http_client.NO_CONTENT
+        self.assertRaises(exception.ImageRefValidationFailed,
+                          self.service.validate_href,
+                          self.href)
+        response.status_code = http_client.BAD_REQUEST
+        self.assertRaises(exception.ImageRefValidationFailed,
+                          self.service.validate_href,
+                          self.href)
+
+    @mock.patch.object(requests, 'head', autospec=True)
+    def test_validate_href_verify_connect_error(self, head_mock):
+        cfg.CONF.set_override('webserver_verify_ca', '/some/path')
+        response = mock.Mock()
+        response.status_code = http_client.OK
+        head_mock.side_effect = requests.ConnectionError()
+
+        self.assertRaises(exception.ImageRefValidationFailed,
+                          self.service.validate_href, self.href)
+        head_mock.assert_called_once_with(self.href, verify='/some/path')
+
+    @mock.patch.object(requests, 'head', autospec=True)
+    def test_validate_href_verify_error(self, head_mock):
+        cfg.CONF.set_override('webserver_verify_ca', '/some/path')
+        head_mock.side_effect = requests.RequestException()
+        self.assertRaises(exception.ImageRefValidationFailed,
+                          self.service.validate_href, self.href)
+        head_mock.assert_called_once_with(self.href, verify='/some/path')
+
+    @mock.patch.object(requests, 'head', autospec=True)
+    def test_validate_href_verify_os_error(self, head_mock):
+        cfg.CONF.set_override('webserver_verify_ca', '/some/path')
+        head_mock.side_effect = OSError()
+        self.assertRaises(exception.ImageRefValidationFailed,
+                          self.service.validate_href, self.href)
+        head_mock.assert_called_once_with(self.href, verify='/some/path')
 
     @mock.patch.object(requests, 'head', autospec=True)
     def test_validate_href_error_with_secret_parameter(self, head_mock):
+        cfg.CONF.set_override('webserver_verify_ca', 'False')
         head_mock.return_value.status_code = 204
         e = self.assertRaises(exception.ImageRefValidationFailed,
                               self.service.validate_href,
@@ -72,7 +165,7 @@ class HttpImageServiceTestCase(base.TestCase):
                               True)
         self.assertIn('secreturl', str(e))
         self.assertNotIn(self.href, str(e))
-        head_mock.assert_called_once_with(self.href)
+        head_mock.assert_called_once_with(self.href, verify=False)
 
     @mock.patch.object(requests, 'head', autospec=True)
     def _test_show(self, head_mock, mtime, mtime_date):
@@ -82,7 +175,7 @@ class HttpImageServiceTestCase(base.TestCase):
             'Last-Modified': mtime
         }
         result = self.service.show(self.href)
-        head_mock.assert_called_once_with(self.href)
+        head_mock.assert_called_once_with(self.href, verify=True)
         self.assertEqual({'size': 100, 'updated_at': mtime_date,
                           'properties': {}}, result)
 
@@ -104,11 +197,12 @@ class HttpImageServiceTestCase(base.TestCase):
         head_mock.return_value.headers = {}
         self.assertRaises(exception.ImageRefValidationFailed,
                           self.service.show, self.href)
-        head_mock.assert_called_with(self.href)
+        head_mock.assert_called_with(self.href, verify=True)
 
     @mock.patch.object(shutil, 'copyfileobj', autospec=True)
     @mock.patch.object(requests, 'get', autospec=True)
-    def test_download_success(self, req_get_mock, shutil_mock):
+    def test_download_success_http_scheme(self, req_get_mock, shutil_mock):
+        self.href = 'http://127.0.0.1:12345/fedora.qcow2'
         response_mock = req_get_mock.return_value
         response_mock.status_code = http_client.OK
         response_mock.raw = mock.MagicMock(spec=io.BytesIO)
@@ -118,10 +212,65 @@ class HttpImageServiceTestCase(base.TestCase):
             response_mock.raw.__enter__(), file_mock,
             image_service.IMAGE_CHUNK_SIZE
         )
-        req_get_mock.assert_called_once_with(self.href, stream=True)
+        req_get_mock.assert_called_once_with(self.href, stream=True,
+                                             verify=True)
 
+    @mock.patch.object(shutil, 'copyfileobj', autospec=True)
     @mock.patch.object(requests, 'get', autospec=True)
-    def test_download_fail_connerror(self, req_get_mock):
+    def test_download_success_verify_false(
+            self, req_get_mock, shutil_mock):
+        cfg.CONF.set_override('webserver_verify_ca', 'False')
+        response_mock = req_get_mock.return_value
+        response_mock.status_code = http_client.OK
+        response_mock.raw = mock.MagicMock(spec=io.BytesIO)
+        file_mock = mock.Mock(spec=io.BytesIO)
+        self.service.download(self.href, file_mock)
+        shutil_mock.assert_called_once_with(
+            response_mock.raw.__enter__(), file_mock,
+            image_service.IMAGE_CHUNK_SIZE
+        )
+        req_get_mock.assert_called_once_with(self.href, stream=True,
+                                             verify=False)
+
+    @mock.patch.object(shutil, 'copyfileobj', autospec=True)
+    @mock.patch.object(requests, 'get', autospec=True)
+    def test_download_success_verify_true(
+            self, req_get_mock, shutil_mock):
+        cfg.CONF.set_override('webserver_verify_ca', 'True')
+        response_mock = req_get_mock.return_value
+        response_mock.status_code = http_client.OK
+        response_mock.raw = mock.MagicMock(spec=io.BytesIO)
+        file_mock = mock.Mock(spec=io.BytesIO)
+        self.service.download(self.href, file_mock)
+        shutil_mock.assert_called_once_with(
+            response_mock.raw.__enter__(), file_mock,
+            image_service.IMAGE_CHUNK_SIZE
+        )
+        req_get_mock.assert_called_once_with(self.href, stream=True,
+                                             verify=True)
+
+    @mock.patch.object(shutil, 'copyfileobj', autospec=True)
+    @mock.patch.object(requests, 'get', autospec=True)
+    def test_download_success_verify_path(
+            self, req_get_mock, shutil_mock):
+        cfg.CONF.set_override('webserver_verify_ca', '/some/path')
+        response_mock = req_get_mock.return_value
+        response_mock.status_code = http_client.OK
+        response_mock.raw = mock.MagicMock(spec=io.BytesIO)
+        file_mock = mock.Mock(spec=io.BytesIO)
+        self.service.download(self.href, file_mock)
+        shutil_mock.assert_called_once_with(
+            response_mock.raw.__enter__(), file_mock,
+            image_service.IMAGE_CHUNK_SIZE
+        )
+        req_get_mock.assert_called_once_with(self.href, stream=True,
+                                             verify='/some/path')
+
+    @mock.patch.object(shutil, 'copyfileobj', autospec=True)
+    @mock.patch.object(requests, 'get', autospec=True)
+    def test_download_fail_verify_false_connerror(
+            self, req_get_mock, shutil_mock):
+        cfg.CONF.set_override('webserver_verify_ca', False)
         req_get_mock.side_effect = requests.ConnectionError()
         file_mock = mock.Mock(spec=io.BytesIO)
         self.assertRaises(exception.ImageDownloadFailed,
@@ -129,7 +278,9 @@ class HttpImageServiceTestCase(base.TestCase):
 
     @mock.patch.object(shutil, 'copyfileobj', autospec=True)
     @mock.patch.object(requests, 'get', autospec=True)
-    def test_download_fail_ioerror(self, req_get_mock, shutil_mock):
+    def test_download_fail_verify_false_ioerror(
+            self, req_get_mock, shutil_mock):
+        cfg.CONF.set_override('webserver_verify_ca', False)
         response_mock = req_get_mock.return_value
         response_mock.status_code = http_client.OK
         response_mock.raw = mock.MagicMock(spec=io.BytesIO)
@@ -137,7 +288,54 @@ class HttpImageServiceTestCase(base.TestCase):
         shutil_mock.side_effect = IOError
         self.assertRaises(exception.ImageDownloadFailed,
                           self.service.download, self.href, file_mock)
-        req_get_mock.assert_called_once_with(self.href, stream=True)
+        req_get_mock.assert_called_once_with(self.href, stream=True,
+                                             verify=False)
+
+    @mock.patch.object(shutil, 'copyfileobj', autospec=True)
+    @mock.patch.object(requests, 'get', autospec=True)
+    def test_download_success_verify_true_connerror(
+            self, req_get_mock, shutil_mock):
+        cfg.CONF.set_override('webserver_verify_ca', '/some/path')
+        response_mock = mock.Mock()
+        response_mock.status_code = http_client.OK
+        response_mock.raw = mock.MagicMock(spec=io.BytesIO)
+        req_get_mock.side_effect = requests.ConnectionError
+
+        file_mock = mock.Mock(spec=io.BytesIO)
+        self.assertRaises(exception.ImageDownloadFailed,
+                          self.service.download, self.href, file_mock)
+        req_get_mock.assert_called_once_with(self.href, stream=True,
+                                             verify='/some/path')
+
+    @mock.patch.object(shutil, 'copyfileobj', autospec=True)
+    @mock.patch.object(requests, 'get', autospec=True)
+    def test_download_fail_verify_true_ioerror(
+            self, req_get_mock, shutil_mock):
+        cfg.CONF.set_override('webserver_verify_ca', '/some/path')
+        response_mock = req_get_mock.return_value
+        response_mock.status_code = http_client.OK
+        response_mock.raw = mock.MagicMock(spec=io.BytesIO)
+        file_mock = mock.Mock(spec=io.BytesIO)
+        shutil_mock.side_effect = IOError
+        self.assertRaises(exception.ImageDownloadFailed,
+                          self.service.download, self.href, file_mock)
+        req_get_mock.assert_called_once_with(self.href, stream=True,
+                                             verify='/some/path')
+
+    @mock.patch.object(shutil, 'copyfileobj', autospec=True)
+    @mock.patch.object(requests, 'get', autospec=True)
+    def test_download_fail_verify_true_oserror(
+            self, req_get_mock, shutil_mock):
+        cfg.CONF.set_override('webserver_verify_ca', '/some/path')
+        response_mock = req_get_mock.return_value
+        response_mock.status_code = http_client.OK
+        response_mock.raw = mock.MagicMock(spec=io.BytesIO)
+        file_mock = mock.Mock(spec=io.BytesIO)
+        shutil_mock.side_effect = OSError()
+        self.assertRaises(exception.ImageDownloadFailed,
+                          self.service.download, self.href, file_mock)
+        req_get_mock.assert_called_once_with(self.href, stream=True,
+                                             verify='/some/path')
 
 
 class FileImageServiceTestCase(base.TestCase):

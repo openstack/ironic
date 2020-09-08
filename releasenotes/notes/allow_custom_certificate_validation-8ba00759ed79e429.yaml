@@ -1,0 +1,5 @@
+---
+features:
+  - |
+    Adds a configuration option ``webserver_verify_ca`` to support
+    custom certificates to validate URLs hosted on a HTTPS webserver.
