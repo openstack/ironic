@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    Fixes the deployment failure with Ussuri (and older) ramdisks that happens
+    when another IPA command runs after ``prepare_image``.
