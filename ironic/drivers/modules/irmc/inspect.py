@@ -110,7 +110,7 @@ def _get_mac_addresses(node):
                                   d_info['irmc_snmp_security'])
 
     node_classes = snmp_client.get_next(NODE_CLASS_OID)
-    mac_addresses = [':'.join(['%02x' % ord(x) for x in mac])
+    mac_addresses = [':'.join(['%02x' % x for x in mac])
                      for mac in snmp_client.get_next(MAC_ADDRESS_OID)]
 
     return [a for c, a in zip(node_classes, mac_addresses)

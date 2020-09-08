@@ -1,0 +1,4 @@
+---
+fixes:
+  - |
+    Fixed iRMC inspection for getting MAC address.
