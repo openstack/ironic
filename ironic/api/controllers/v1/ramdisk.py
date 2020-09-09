@@ -19,11 +19,10 @@ from oslo_log import log
 from pecan import rest
 
 from ironic import api
-from ironic.api.controllers import base
 from ironic.api.controllers.v1 import node as node_ctl
-from ironic.api.controllers.v1 import types
 from ironic.api.controllers.v1 import utils as api_utils
-from ironic.api import expose
+from ironic.api import method
+from ironic.common import args
 from ironic.common import exception
 from ironic.common.i18n import _
 from ironic.common import policy
@@ -61,20 +60,10 @@ def config(token):
     }
 
 
-class LookupResult(base.APIBase):
-    """API representation of the node lookup result."""
-
-    node = None
-    """The short node representation."""
-
-    config = {str: types.jsontype}
-    """The configuration to pass to the ramdisk."""
-
-    @classmethod
-    def convert_with_links(cls, node):
-        token = node.driver_internal_info.get('agent_secret_token')
-        node = node_ctl.node_convert_with_links(node, _LOOKUP_RETURN_FIELDS)
-        return cls(node=node, config=config(token))
+def convert_with_links(node):
+    token = node.driver_internal_info.get('agent_secret_token')
+    node = node_ctl.node_convert_with_links(node, _LOOKUP_RETURN_FIELDS)
+    return {'node': node, 'config': config(token)}
 
 
 class LookupController(rest.RestController):
@@ -86,7 +75,8 @@ class LookupController(rest.RestController):
             return states.FASTTRACK_LOOKUP_ALLOWED_STATES
         return states.LOOKUP_ALLOWED_STATES
 
-    @expose.expose(LookupResult, types.listtype, types.uuid)
+    @method.expose()
+    @args.validate(addresses=args.string_list, node_uuid=args.uuid)
     def get_all(self, addresses=None, node_uuid=None):
         """Look up a node by its MAC addresses and optionally UUID.
 
@@ -161,14 +151,16 @@ class LookupController(rest.RestController):
                 api.request.context, node.uuid, topic=topic)
         else:
             found_node = node
-        return LookupResult.convert_with_links(found_node)
+        return convert_with_links(found_node)
 
 
 class HeartbeatController(rest.RestController):
     """Controller handling heartbeats from deploy ramdisk."""
 
-    @expose.expose(None, types.uuid_or_name, str,
-                   str, str, str, status_code=http_client.ACCEPTED)
+    @method.expose(status_code=http_client.ACCEPTED)
+    @args.validate(node_ident=args.uuid_or_name, callback_url=args.string,
+                   agent_version=args.string, agent_token=args.string,
+                   agent_verify_ca=args.string)
     def post(self, node_ident, callback_url, agent_version=None,
              agent_token=None, agent_verify_ca=None):
         """Process a heartbeat from the deploy ramdisk.
