@@ -970,6 +970,33 @@ class TestPXEUtils(db_base.DbTestCase):
         relpath = pxe_utils.get_path_relative_to_tftp_root(test_file_path)
         self.assertEqual(relpath, 'pxelinux.cfg/test')
 
+    @mock.patch('ironic.common.utils.rmtree_without_raise', autospec=True)
+    @mock.patch('ironic_lib.utils.unlink_without_raise', autospec=True)
+    @mock.patch('ironic.common.dhcp_factory.DHCPFactory.provider',
+                autospec=True)
+    def test_clean_up_pxe_config_uefi_no_ipaddress(self, provider_mock,
+                                                   unlink_mock,
+                                                   rmtree_mock):
+        address = "aa:aa:aa:aa:aa:aa"
+        properties = {'capabilities': 'boot_mode:uefi'}
+        object_utils.create_test_port(self.context, node_id=self.node.id,
+                                      address=address)
+
+        provider_mock.get_ip_addresses.return_value = []
+
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            task.node.properties = properties
+            pxe_utils.clean_up_pxe_config(task)
+
+            unlink_calls = [
+                mock.call('/tftpboot/pxelinux.cfg/01-%s' %
+                          address.replace(':', '-')),
+                mock.call('/tftpboot/aa:aa:aa:aa:aa:aa.conf')
+            ]
+            unlink_mock.assert_has_calls(unlink_calls)
+            rmtree_mock.assert_called_once_with(
+                os.path.join(CONF.pxe.tftp_root, self.node.uuid))
+
 
 @mock.patch.object(ipxe.iPXEBoot, '__init__', lambda self: None)
 @mock.patch.object(pxe.PXEBoot, '__init__', lambda self: None)

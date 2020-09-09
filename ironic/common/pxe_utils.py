@@ -347,8 +347,6 @@ def clean_up_pxe_config(task, ipxe_enabled=False):
     if is_uefi_boot_mode and not ipxe_enabled:
         api = dhcp_factory.DHCPFactory().provider
         ip_addresses = api.get_ip_addresses(task)
-        if not ip_addresses:
-            return
 
         for port_ip_address in ip_addresses:
             try:
