@@ -112,6 +112,7 @@
       tempest_concurrency: 2
       devstack_localrc:
         FORCE_CONFIG_DRIVE: False
+        IRONIC_AGENT_IMAGE_DOWNLOAD_SOURCE: http
         IRONIC_AUTOMATED_CLEAN_ENABLED: False
         IRONIC_DEFAULT_DEPLOY_INTERFACE: direct
         IRONIC_DEFAULT_RESCUE_INTERFACE: agent
@@ -128,8 +129,6 @@
         # a small root partition, so use /opt which is mounted from a bigger
         # ephemeral partition on such nodes
         LIBVIRT_STORAGE_POOL_PATH: /opt/libvirt/images
-        SWIFT_ENABLE_TEMPURLS: True
-        SWIFT_TEMPURL_KEY: secretkey
       devstack_services:
         n-api: False
         n-api-meta: False
@@ -141,10 +140,10 @@
         n-sch: False
         nova: False
         placement-api: False
-        s-account: True
-        s-container: True
-        s-object: True
-        s-proxy: True
+        s-account: False
+        s-container: False
+        s-object: False
+        s-proxy: False
 
 - job:
     name: ironic-standalone-redfish
@@ -171,6 +170,7 @@
       tempest_concurrency: 2
       devstack_localrc:
         FORCE_CONFIG_DRIVE: False
+        IRONIC_AGENT_IMAGE_DOWNLOAD_SOURCE: http
         IRONIC_AUTOMATED_CLEAN_ENABLED: False
         IRONIC_DEPLOY_DRIVER: redfish
         IRONIC_ENABLED_BOOT_INTERFACES: "ipxe,redfish-virtual-media"
@@ -189,8 +189,6 @@
         # a small root partition, so use /opt which is mounted from a bigger
         # ephemeral partition on such nodes
         LIBVIRT_STORAGE_POOL_PATH: /opt/libvirt/images
-        SWIFT_ENABLE_TEMPURLS: True
-        SWIFT_TEMPURL_KEY: secretkey
       devstack_services:
         n-api: False
         n-api-meta: False
@@ -202,10 +200,10 @@
         n-sch: False
         nova: False
         placement-api: False
-        s-account: True
-        s-container: True
-        s-object: True
-        s-proxy: True
+        s-account: False
+        s-container: False
+        s-object: False
+        s-proxy: False
 
 - job:
     name: ironic-tempest-partition-bios-redfish-pxe
@@ -383,30 +381,6 @@
         s-container: True
         s-object: True
         s-proxy: True
-
-- job:
-    name: ironic-tempest-ipa-wholedisk-bios-agent_ipmitool-indirect
-    description: ironic-tempest-ipa-wholedisk-bios-agent_ipmitool-indirect
-    parent: ironic-tempest-ipa-wholedisk-bios-agent_ipmitool
-    vars:
-      devstack_localrc:
-        IRONIC_AGENT_IMAGE_DOWNLOAD_SOURCE: http
-        IRONIC_AUTOMATED_CLEAN_ENABLED: False
-        IRONIC_DEFAULT_RESCUE_INTERFACE: no-rescue
-        IRONIC_ENABLED_RESCUE_INTERFACES: "fake,no-rescue"
-
-- job:
-    name: ironic-tempest-ipa-partition-bios-agent_ipmitool-indirect
-    description: ironic-tempest-ipa-partition-bios-agent_ipmitool-indirect
-    parent: ironic-tempest-ipa-wholedisk-bios-agent_ipmitool
-    vars:
-      devstack_localrc:
-        IRONIC_AGENT_IMAGE_DOWNLOAD_SOURCE: http
-        IRONIC_TEMPEST_WHOLE_DISK_IMAGE: False
-        IRONIC_AUTOMATED_CLEAN_ENABLED: False
-        IRONIC_DEFAULT_RESCUE_INTERFACE: no-rescue
-        IRONIC_ENABLED_RESCUE_INTERFACES: "fake,no-rescue"
-        IRONIC_DEFAULT_BOOT_OPTION: netboot
 
 - job:
     name: ironic-tempest-functional-python3

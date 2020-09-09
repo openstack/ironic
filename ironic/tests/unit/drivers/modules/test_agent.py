@@ -175,6 +175,7 @@ class TestAgentMethods(db_base.DbTestCase):
 
     @mock.patch.object(deploy_utils, 'check_for_missing_params', autospec=True)
     def test_validate_http_provisioning_not_http(self, utils_mock):
+        CONF.set_override('image_download_source', 'swift', group='agent')
         i_info = self.node.instance_info
         i_info['image_source'] = '0448fa34-4db1-407b-a051-6357d5f86c59'
         self.node.instance_info = i_info
@@ -182,7 +183,6 @@ class TestAgentMethods(db_base.DbTestCase):
         utils_mock.assert_not_called()
 
     def test_validate_http_provisioning_missing_args(self):
-        CONF.set_override('image_download_source', 'http', group='agent')
         CONF.set_override('http_url', None, group='deploy')
         i_info = self.node.instance_info
         i_info['image_source'] = '0448fa34-4db1-407b-a051-6357d5f86c59'

@@ -105,7 +105,7 @@ opts = [
                         ('local', _('Same as "http", but HTTP images '
                                     'are also cached locally, converted '
                                     'and served from the conductor'))],
-               default='swift',
+               default='http',
                mutable=True,
                help=_('Specifies whether direct deploy interface should try '
                       'to use the image source directly or if ironic should '
