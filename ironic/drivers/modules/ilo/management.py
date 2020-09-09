@@ -941,7 +941,7 @@ class Ilo5Management(IloManagement):
         The One-button secure erase process resets iLO and deletes all licenses
         stored there, resets BIOS settings, and deletes all Active Health
         System (AHS) and warranty data stored on the system. It also erases
-        supported non-volatile storage data and deletes any deployment settings
+        supported non-volatile storage data and deletes any deployment setting
         profiles.
 
         :param task: a TaskManager instance.
@@ -956,7 +956,12 @@ class Ilo5Management(IloManagement):
             manager_utils.node_power_action(task, states.REBOOT)
             node.maintenance = True
             node.maintenance_reason = (
-                "Running one button secure erase clean step.")
+                "One Button Secure erase clean step has begun, it will wipe "
+                "data from drives and any non-volatile/persistent storage, "
+                "reset iLO and delete all licenses stored there, reset BIOS "
+                "settings, delete  Active Health System (AHS) and warranty "
+                "data stored in the system and delete any deployment settings "
+                "profiles.")
             node.save()
             return states.CLEANWAIT
         except ilo_error.IloError as ilo_exception:
