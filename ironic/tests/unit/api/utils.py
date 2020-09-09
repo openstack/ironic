@@ -120,11 +120,8 @@ def port_post_data(**kw):
 
 def volume_connector_post_data(**kw):
     connector = db_utils.get_test_volume_connector(**kw)
-    # These values are not part of the API object
-    connector.pop('node_id')
-    connector.pop('version')
-    internal = vc_controller.VolumeConnectorPatchType.internal_attrs()
-    return remove_internal(connector, internal)
+    return remove_other_fields(connector,
+                               vc_controller.CONNECTOR_SCHEMA['properties'])
 
 
 def volume_target_post_data(**kw):

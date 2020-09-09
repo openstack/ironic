@@ -12,7 +12,6 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import datetime
 from http import client as http_client
 
 from ironic_lib import metrics_utils
@@ -20,14 +19,12 @@ from oslo_utils import uuidutils
 from pecan import rest
 
 from ironic import api
-from ironic.api.controllers import base
 from ironic.api.controllers import link
 from ironic.api.controllers.v1 import collection
 from ironic.api.controllers.v1 import notification_utils as notify
-from ironic.api.controllers.v1 import types
 from ironic.api.controllers.v1 import utils as api_utils
-from ironic.api import expose
-from ironic.api import types as atypes
+from ironic.api import method
+from ironic.common import args
 from ironic.common import exception
 from ironic.common.i18n import _
 from ironic.common import policy
@@ -35,181 +32,72 @@ from ironic import objects
 
 METRICS = metrics_utils.get_metrics_logger(__name__)
 
-_DEFAULT_RETURN_FIELDS = ('uuid', 'node_uuid', 'type', 'connector_id')
+_DEFAULT_RETURN_FIELDS = ['uuid', 'node_uuid', 'type', 'connector_id']
+
+CONNECTOR_SCHEMA = {
+    'type': 'object',
+    'properties': {
+        'connector_id': {'type': 'string'},
+        'extra': {'type': ['object', 'null']},
+        'node_uuid': {'type': 'string'},
+        'type': {'type': 'string'},
+        'uuid': {'type': ['string', 'null']},
+    },
+    'required': ['connector_id', 'node_uuid', 'type'],
+    'additionalProperties': False,
+}
+
+CONNECTOR_VALIDATOR_EXTRA = args.dict_valid(
+    node_uuid=args.uuid,
+    uuid=args.uuid,
+)
+
+CONNECTOR_VALIDATOR = args.and_valid(
+    args.schema(CONNECTOR_SCHEMA),
+    CONNECTOR_VALIDATOR_EXTRA
+)
+
+PATCH_ALLOWED_FIELDS = [
+    'connector_id',
+    'extra',
+    'node_uuid',
+    'type'
+]
 
 
-class VolumeConnector(base.APIBase):
-    """API representation of a volume connector.
+def convert_with_links(rpc_connector, fields=None, sanitize=True):
+    connector = api_utils.object_to_dict(
+        rpc_connector,
+        link_resource='volume/connectors',
+        fields=('connector_id', 'extra', 'type')
+    )
+    api_utils.populate_node_uuid(rpc_connector, connector)
 
-    This class enforces type checking and value constraints, and converts
-    between the internal object model and the API representation of a volume
-    connector.
-    """
+    if fields is not None:
+        api_utils.check_for_invalid_fields(fields, connector)
 
-    _node_uuid = None
-
-    def _get_node_uuid(self):
-        return self._node_uuid
-
-    def _set_node_identifiers(self, value):
-        """Set both UUID and ID of a node for VolumeConnector object
-
-        :param value: UUID, ID of a node, or atypes.Unset
-        """
-        if value == atypes.Unset:
-            self._node_uuid = atypes.Unset
-        elif value and self._node_uuid != value:
-            try:
-                node = objects.Node.get(api.request.context, value)
-                self._node_uuid = node.uuid
-                # NOTE(smoriya): Create the node_id attribute on-the-fly
-                #                to satisfy the api -> rpc object conversion.
-                self.node_id = node.id
-            except exception.NodeNotFound as e:
-                # Change error code because 404 (NotFound) is inappropriate
-                # response for a POST request to create a VolumeConnector
-                e.code = http_client.BAD_REQUEST  # BadRequest
-                raise
-
-    uuid = types.uuid
-    """Unique UUID for this volume connector"""
-
-    type = atypes.wsattr(str, mandatory=True)
-    """The type of volume connector"""
-
-    connector_id = atypes.wsattr(str, mandatory=True)
-    """The connector_id for this volume connector"""
-
-    extra = {str: types.jsontype}
-    """The metadata for this volume connector"""
-
-    node_uuid = atypes.wsproperty(types.uuid, _get_node_uuid,
-                                  _set_node_identifiers, mandatory=True)
-    """The UUID of the node this volume connector belongs to"""
-
-    links = None
-    """A list containing a self link and associated volume connector links"""
-
-    def __init__(self, **kwargs):
-        self.fields = []
-        fields = list(objects.VolumeConnector.fields)
-        for field in fields:
-            # Skip fields we do not expose.
-            if not hasattr(self, field):
-                continue
-            self.fields.append(field)
-            setattr(self, field, kwargs.get(field, atypes.Unset))
-
-        # NOTE(smoriya): node_id is an attribute created on-the-fly
-        # by _set_node_uuid(), it needs to be present in the fields so
-        # that as_dict() will contain node_id field when converting it
-        # before saving it in the database.
-        self.fields.append('node_id')
-        # NOTE(smoriya): node_uuid is not part of objects.VolumeConnector.-
-        #                fields because it's an API-only attribute
-        self.fields.append('node_uuid')
-        # NOTE(jtaryma): Additionally to node_uuid, node_id is handled as a
-        # secondary identifier in case RPC volume connector object dictionary
-        # was passed to the constructor.
-        self.node_uuid = kwargs.get('node_uuid') or kwargs.get('node_id',
-                                                               atypes.Unset)
-
-    @staticmethod
-    def _convert_with_links(connector, url):
-
-        connector.links = [link.make_link('self', url,
-                                          'volume/connectors',
-                                          connector.uuid),
-                           link.make_link('bookmark', url,
-                                          'volume/connectors',
-                                          connector.uuid,
-                                          bookmark=True)
-                           ]
+    if not sanitize:
         return connector
 
-    @classmethod
-    def convert_with_links(cls, rpc_connector, fields=None, sanitize=True):
-        connector = VolumeConnector(**rpc_connector.as_dict())
+    api_utils.sanitize_dict(connector, fields)
 
-        if fields is not None:
-            api_utils.check_for_invalid_fields(fields, connector.as_dict())
-
-        connector = cls._convert_with_links(connector,
-                                            api.request.public_url)
-
-        if not sanitize:
-            return connector
-
-        connector.sanitize(fields)
-
-        return connector
-
-    def sanitize(self, fields=None):
-        """Removes sensitive and unrequested data.
-
-        Will only keep the fields specified in the ``fields`` parameter.
-
-        :param fields:
-            list of fields to preserve, or ``None`` to preserve them all
-        :type fields: list of str
-        """
-
-        if fields is not None:
-            self.unset_fields_except(fields)
-
-        # never expose the node_id attribute
-        self.node_id = atypes.Unset
-
-    @classmethod
-    def sample(cls, expand=True):
-        time = datetime.datetime(2000, 1, 1, 12, 0, 0)
-        sample = cls(uuid='86cfd480-0842-4abb-8386-e46149beb82f',
-                     type='iqn',
-                     connector_id='iqn.2010-10.org.openstack:51332b70524',
-                     extra={'foo': 'bar'},
-                     created_at=time,
-                     updated_at=time)
-        sample._node_uuid = '7ae81bb3-dec3-4289-8d6c-da80bd8001ae'
-        fields = None if expand else _DEFAULT_RETURN_FIELDS
-        return cls._convert_with_links(sample, 'http://localhost:6385',
-                                       fields=fields)
+    return connector
 
 
-class VolumeConnectorPatchType(types.JsonPatchType):
-
-    _api_base = VolumeConnector
-
-
-class VolumeConnectorCollection(collection.Collection):
-    """API representation of a collection of volume connectors."""
-
-    connectors = [VolumeConnector]
-    """A list containing volume connector objects"""
-
-    def __init__(self, **kwargs):
-        self._type = 'connectors'
-
-    @staticmethod
-    def convert_with_links(rpc_connectors, limit, url=None, fields=None,
-                           detail=None, **kwargs):
-        collection = VolumeConnectorCollection()
-        collection.connectors = [
-            VolumeConnector.convert_with_links(p, fields=fields,
-                                               sanitize=False)
-            for p in rpc_connectors]
-        if detail:
-            kwargs['detail'] = detail
-        collection.next = collection.get_next(limit, url=url, fields=fields,
-                                              **kwargs)
-        for connector in collection.connectors:
-            connector.sanitize(fields)
-        return collection
-
-    @classmethod
-    def sample(cls):
-        sample = cls()
-        sample.connectors = [VolumeConnector.sample(expand=False)]
-        return sample
+def list_convert_with_links(rpc_connectors, limit, url=None, fields=None,
+                            detail=None, **kwargs):
+    if detail:
+        kwargs['detail'] = detail
+    return collection.list_convert_with_links(
+        items=[convert_with_links(p, fields=fields, sanitize=False)
+               for p in rpc_connectors],
+        item_name='connectors',
+        limit=limit,
+        url=url,
+        fields=fields,
+        sanitize_func=api_utils.sanitize_dict,
+        **kwargs
+    )
 
 
 class VolumeConnectorsController(rest.RestController):
@@ -255,17 +143,19 @@ class VolumeConnectorsController(rest.RestController):
                                                       marker_obj,
                                                       sort_key=sort_key,
                                                       sort_dir=sort_dir)
-        return VolumeConnectorCollection.convert_with_links(connectors, limit,
-                                                            url=resource_url,
-                                                            fields=fields,
-                                                            sort_key=sort_key,
-                                                            sort_dir=sort_dir,
-                                                            detail=detail)
+        return list_convert_with_links(connectors, limit,
+                                       url=resource_url,
+                                       fields=fields,
+                                       sort_key=sort_key,
+                                       sort_dir=sort_dir,
+                                       detail=detail)
 
     @METRICS.timer('VolumeConnectorsController.get_all')
-    @expose.expose(VolumeConnectorCollection, types.uuid_or_name, types.uuid,
-                   int, str, str, types.listtype,
-                   types.boolean)
+    @method.expose()
+    @args.validate(node=args.uuid_or_name, marker=args.uuid,
+                   limit=args.integer, sort_key=args.string,
+                   sort_dir=args.string, fields=args.string_list,
+                   detail=args.boolean)
     def get_all(self, node=None, marker=None, limit=None, sort_key='id',
                 sort_dir='asc', fields=None, detail=None):
         """Retrieve a list of volume connectors.
@@ -306,7 +196,8 @@ class VolumeConnectorsController(rest.RestController):
             fields=fields, detail=detail)
 
     @METRICS.timer('VolumeConnectorsController.get_one')
-    @expose.expose(VolumeConnector, types.uuid, types.listtype)
+    @method.expose()
+    @args.validate(connector_uuid=args.uuid, fields=args.string_list)
     def get_one(self, connector_uuid, fields=None):
         """Retrieve information about the given volume connector.
 
@@ -329,11 +220,12 @@ class VolumeConnectorsController(rest.RestController):
 
         rpc_connector = objects.VolumeConnector.get_by_uuid(
             api.request.context, connector_uuid)
-        return VolumeConnector.convert_with_links(rpc_connector, fields=fields)
+        return convert_with_links(rpc_connector, fields=fields)
 
     @METRICS.timer('VolumeConnectorsController.post')
-    @expose.expose(VolumeConnector, body=VolumeConnector,
-                   status_code=http_client.CREATED)
+    @method.expose(status_code=http_client.CREATED)
+    @method.body('connector')
+    @args.validate(connector=CONNECTOR_VALIDATOR)
     def post(self, connector):
         """Create a new volume connector.
 
@@ -355,30 +247,31 @@ class VolumeConnectorsController(rest.RestController):
         if self.parent_node_ident:
             raise exception.OperationNotPermitted()
 
-        connector_dict = connector.as_dict()
         # NOTE(hshiina): UUID is mandatory for notification payload
-        if not connector_dict.get('uuid'):
-            connector_dict['uuid'] = uuidutils.generate_uuid()
+        if not connector.get('uuid'):
+            connector['uuid'] = uuidutils.generate_uuid()
 
-        new_connector = objects.VolumeConnector(context, **connector_dict)
+        node = api_utils.replace_node_uuid_with_id(connector)
+
+        new_connector = objects.VolumeConnector(context, **connector)
 
         notify.emit_start_notification(context, new_connector, 'create',
-                                       node_uuid=connector.node_uuid)
+                                       node_uuid=node.uuid)
         with notify.handle_error_notification(context, new_connector,
                                               'create',
-                                              node_uuid=connector.node_uuid):
+                                              node_uuid=node.uuid):
             new_connector.create()
         notify.emit_end_notification(context, new_connector, 'create',
-                                     node_uuid=connector.node_uuid)
+                                     node_uuid=node.uuid)
         # Set the HTTP Location Header
         api.response.location = link.build_url('volume/connectors',
                                                new_connector.uuid)
-        return VolumeConnector.convert_with_links(new_connector)
+        return convert_with_links(new_connector)
 
     @METRICS.timer('VolumeConnectorsController.patch')
-    @expose.validate(types.uuid, [VolumeConnectorPatchType])
-    @expose.expose(VolumeConnector, types.uuid,
-                   body=[VolumeConnectorPatchType])
+    @method.expose()
+    @method.body('patch')
+    @args.validate(connector_uuid=args.uuid, patch=args.patch)
     def patch(self, connector_uuid, patch):
         """Update an existing volume connector.
 
@@ -411,8 +304,9 @@ class VolumeConnectorsController(rest.RestController):
         if self.parent_node_ident:
             raise exception.OperationNotPermitted()
 
-        values = api_utils.get_patch_values(patch, '/node_uuid')
-        for value in values:
+        api_utils.patch_validate_allowed_fields(patch, PATCH_ALLOWED_FIELDS)
+
+        for value in api_utils.get_patch_values(patch, '/node_uuid'):
             if not uuidutils.is_uuid_like(value):
                 message = _("Expected a UUID for node_uuid, but received "
                             "%(uuid)s.") % {'uuid': str(value)}
@@ -420,29 +314,35 @@ class VolumeConnectorsController(rest.RestController):
 
         rpc_connector = objects.VolumeConnector.get_by_uuid(context,
                                                             connector_uuid)
+
         connector_dict = rpc_connector.as_dict()
         # NOTE(smoriya):
         # 1) Remove node_id because it's an internal value and
         #    not present in the API object
         # 2) Add node_uuid
-        connector_dict['node_uuid'] = connector_dict.pop('node_id', None)
-        connector = VolumeConnector(
-            **api_utils.apply_jsonpatch(connector_dict, patch))
+        rpc_node = api_utils.replace_node_id_with_uuid(connector_dict)
 
-        # Update only the fields that have changed.
-        for field in objects.VolumeConnector.fields:
-            try:
-                patch_val = getattr(connector, field)
-            except AttributeError:
-                # Ignore fields that aren't exposed in the API
-                continue
-            if patch_val == atypes.Unset:
-                patch_val = None
-            if rpc_connector[field] != patch_val:
-                rpc_connector[field] = patch_val
+        connector_dict = api_utils.apply_jsonpatch(connector_dict, patch)
 
-        rpc_node = objects.Node.get_by_id(context,
-                                          rpc_connector.node_id)
+        try:
+            if connector_dict['node_uuid'] != rpc_node.uuid:
+                rpc_node = objects.Node.get(
+                    api.request.context, connector_dict['node_uuid'])
+        except exception.NodeNotFound as e:
+            # Change error code because 404 (NotFound) is inappropriate
+            # response for a PATCH request to change a Port
+            e.code = http_client.BAD_REQUEST  # BadRequest
+            raise
+
+        api_utils.patched_validate_with_schema(
+            connector_dict, CONNECTOR_SCHEMA, CONNECTOR_VALIDATOR)
+
+        api_utils.patch_update_changed_fields(
+            connector_dict, rpc_connector,
+            fields=objects.VolumeConnector.fields,
+            schema=CONNECTOR_SCHEMA, id_map={'node_id': rpc_node.id}
+        )
+
         notify.emit_start_notification(context, rpc_connector, 'update',
                                        node_uuid=rpc_node.uuid)
         with notify.handle_error_notification(context, rpc_connector, 'update',
@@ -451,13 +351,14 @@ class VolumeConnectorsController(rest.RestController):
             new_connector = api.request.rpcapi.update_volume_connector(
                 context, rpc_connector, topic)
 
-        api_connector = VolumeConnector.convert_with_links(new_connector)
+        api_connector = convert_with_links(new_connector)
         notify.emit_end_notification(context, new_connector, 'update',
                                      node_uuid=rpc_node.uuid)
         return api_connector
 
     @METRICS.timer('VolumeConnectorsController.delete')
-    @expose.expose(None, types.uuid, status_code=http_client.NO_CONTENT)
+    @method.expose(status_code=http_client.NO_CONTENT)
+    @args.validate(connector_uuid=args.uuid)
     def delete(self, connector_uuid):
         """Delete a volume connector.
 
