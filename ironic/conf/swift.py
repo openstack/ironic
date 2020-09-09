@@ -23,7 +23,10 @@ opts = [
     cfg.IntOpt('swift_max_retries',
                default=2,
                help=_('Maximum number of times to retry a Swift request, '
-                      'before failing.'))
+                      'before failing.')),
+    cfg.BoolOpt('swift_set_temp_url_key',
+                default=False,
+                help=_('Should the service try to set the temp-url key if missing '))
 ]
 
 

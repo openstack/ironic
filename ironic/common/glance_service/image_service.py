@@ -285,6 +285,15 @@ class GlanceImageService(object):
 
         image_id = image_info['id']
 
+        if CONF.glance.swift_store_multi_tenant:
+            container_id = "glance_%s" % image_id
+            LOG.debug('Getting temp-url for multi-tenant setup. container: %(container)s and owner: %(owner)s',
+                    {'container': container_id, 'owner': image_info['owner']})
+            object_id = image_id
+            swift_api = swift.SwiftAPI(container_project_id=image_info['owner'])
+            return swift_api.get_temp_url(container=container_id, obj=object_id,
+                                      timeout=CONF.glance.swift_temp_url_duration)
+
         url_fragments = {
             'api_version': CONF.glance.swift_api_version,
             'container': self._get_swift_container(image_id),

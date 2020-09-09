@@ -537,6 +537,9 @@ class SwiftObjectNotFoundError(SwiftOperationError):
     _msg_fmt = _("Swift object %(obj)s from container %(container)s "
                  "not found. Operation '%(operation)s' failed.")
 
+class SwiftTempUrlKeyNotFoundError(SwiftOperationError):
+    _msg_fmt = _("Swift Temp-Url-Key property not found in account."
+                 " Operation '%(operation)s' failed.")
 
 class SNMPFailure(DriverOperationError):
     _msg_fmt = _("SNMP operation '%(operation)s' failed: %(error)s")

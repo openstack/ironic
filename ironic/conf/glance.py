@@ -91,6 +91,13 @@ opts = [
                'section). Swift temporary URL format: '
                '"endpoint_url/api_version/account/container/object_id"')),
     cfg.StrOpt(
+        'swift_store_multi_tenant',
+        help=_('If glance uses a multi-tenant store, and stores the images '
+               'in each owners swift account. '
+               'This makes the options "swift_account" and "swift_temp_url_key" '
+               'obsolete'
+               )),
+    cfg.StrOpt(
         'swift_container',
         default='glance',
         help=_('The Swift container Glance is configured to store its '
