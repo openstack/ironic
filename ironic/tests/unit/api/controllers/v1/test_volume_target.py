@@ -28,13 +28,10 @@ from ironic.api.controllers import base as api_base
 from ironic.api.controllers import v1 as api_v1
 from ironic.api.controllers.v1 import notification_utils
 from ironic.api.controllers.v1 import utils as api_utils
-from ironic.api.controllers.v1 import volume_target as api_volume_target
-from ironic.api import types as atypes
 from ironic.common import exception
 from ironic.conductor import rpcapi
 from ironic import objects
 from ironic.objects import fields as obj_fields
-from ironic.tests import base
 from ironic.tests.unit.api import base as test_api_base
 from ironic.tests.unit.api import utils as apiutils
 from ironic.tests.unit.db import utils as dbutils
@@ -46,15 +43,6 @@ def post_get_test_volume_target(**kw):
     node = dbutils.get_test_node()
     target['node_uuid'] = kw.get('node_uuid', node['uuid'])
     return target
-
-
-class TestVolumeTargetObject(base.TestCase):
-
-    def test_volume_target_init(self):
-        target_dict = apiutils.volume_target_post_data(node_id=None)
-        del target_dict['extra']
-        target = api_volume_target.VolumeTarget(**target_dict)
-        self.assertEqual(atypes.Unset, target.extra)
 
 
 class TestListVolumeTargets(test_api_base.BaseApiTest):
@@ -872,7 +860,7 @@ class TestPost(test_api_base.BaseApiTest):
         self.assertEqual('application/json', response.content_type)
         self.assertEqual(http_client.BAD_REQUEST, response.status_int)
         self.assertTrue(response.json['error_message'])
-        self.assertIn(b'Expected a UUID but received 123.', response.body)
+        self.assertIn(b"123 is not of type 'string'", response.body)
 
     def test_node_uuid_to_node_id_mapping(self):
         pdict = post_get_test_volume_target(node_uuid=self.node['uuid'])

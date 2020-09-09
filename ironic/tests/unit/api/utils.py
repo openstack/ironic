@@ -126,11 +126,8 @@ def volume_connector_post_data(**kw):
 
 def volume_target_post_data(**kw):
     target = db_utils.get_test_volume_target(**kw)
-    # These values are not part of the API object
-    target.pop('node_id')
-    target.pop('version')
-    internal = vt_controller.VolumeTargetPatchType.internal_attrs()
-    return remove_internal(target, internal)
+    return remove_other_fields(target,
+                               vt_controller.TARGET_SCHEMA['properties'])
 
 
 def chassis_post_data(**kw):
