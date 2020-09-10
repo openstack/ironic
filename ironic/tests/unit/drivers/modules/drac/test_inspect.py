@@ -135,6 +135,23 @@ class DracInspectionTestCase(test_utils.BaseDracTest):
                               'PxeDev4Interface': None}
         nic_settings = {'LegacyBootProto': {'current_value': 'PXE'},
                         'FQDD': 'NIC.Embedded.1-1-1'}
+        video_controllers = [
+            {'id': 'Video.Embedded.1-1',
+             'description': 'Integrated Matrox G200eW3 Graphics Controller',
+             'function_number': 0,
+             'manufacturer': 'Matrox Electronics Systems Ltd.',
+             'pci_device_id': '0536',
+             'pci_vendor_id': '102B',
+             'pci_subdevice_id': '0737',
+             'pci_subvendor_id': '1028'},
+            {'id': 'Video.Slot.7-1',
+             'description': 'TU104GL [Tesla T4]',
+             'function_number': 0,
+             'manufacturer': 'NVIDIA Corporation',
+             'pci_device_id': '1EB8',
+             'pci_vendor_id': '10DE',
+             'pci_subdevice_id': '12A2',
+             'pci_subvendor_id': '10DE'}]
 
         self.memory = [test_utils.dict_to_namedtuple(values=m) for m in memory]
         self.cpus = [test_utils.dict_to_namedtuple(values=c) for c in cpus]
@@ -146,6 +163,8 @@ class DracInspectionTestCase(test_utils.BaseDracTest):
         self.bios_boot_settings = test_utils.dict_of_object(bios_boot_settings)
         self.uefi_boot_settings = test_utils.dict_of_object(uefi_boot_settings)
         self.nic_settings = test_utils.dict_of_object(nic_settings)
+        self.video_controllers = [test_utils.dict_to_namedtuple(values=vc)
+                                  for vc in video_controllers]
 
     def test_get_properties(self):
         expected = drac_common.COMMON_PROPERTIES
@@ -161,7 +180,7 @@ class DracInspectionTestCase(test_utils.BaseDracTest):
             'local_gb': 1116,
             'cpus': 18,
             'cpu_arch': 'x86_64',
-            'capabilities': 'boot_mode:uefi'}
+            'capabilities': 'boot_mode:uefi,pci_gpu_devices:1'}
         mock_client = mock.Mock()
         mock_get_drac_client.return_value = mock_client
         mock_client.list_memory.return_value = self.memory
@@ -169,6 +188,8 @@ class DracInspectionTestCase(test_utils.BaseDracTest):
         mock_client.list_virtual_disks.return_value = self.virtual_disks
         mock_client.list_nics.return_value = self.nics
         mock_client.list_bios_settings.return_value = self.uefi_boot_settings
+        mock_client.list_video_controllers.return_value = \
+            self.video_controllers
 
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
@@ -191,6 +212,8 @@ class DracInspectionTestCase(test_utils.BaseDracTest):
         mock_client.list_virtual_disks.side_effect = (
             drac_exceptions.BaseClientException('boom'))
         mock_client.list_bios_settings.return_value = self.bios_boot_settings
+        mock_client.list_video_controllers.return_value = \
+            self.video_controllers
 
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
@@ -207,7 +230,7 @@ class DracInspectionTestCase(test_utils.BaseDracTest):
             'local_gb': 279,
             'cpus': 18,
             'cpu_arch': 'x86_64',
-            'capabilities': 'boot_mode:uefi'}
+            'capabilities': 'boot_mode:uefi,pci_gpu_devices:1'}
         mock_client = mock.Mock()
         mock_get_drac_client.return_value = mock_client
         mock_client.list_memory.return_value = self.memory
@@ -216,6 +239,8 @@ class DracInspectionTestCase(test_utils.BaseDracTest):
         mock_client.list_physical_disks.return_value = self.physical_disks
         mock_client.list_nics.return_value = self.nics
         mock_client.list_bios_settings.return_value = self.uefi_boot_settings
+        mock_client.list_video_controllers.return_value = \
+            self.video_controllers
 
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
@@ -239,11 +264,93 @@ class DracInspectionTestCase(test_utils.BaseDracTest):
         mock_client.list_physical_disks.return_value = self.physical_disks
         mock_client.list_nics.return_value = self.nics
         mock_client.list_bios_settings.return_value = self.uefi_boot_settings
+        mock_client.list_video_controllers.return_value = \
+            self.video_controllers
 
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
             self.assertRaises(exception.HardwareInspectionFailure,
                               task.driver.inspect.inspect_hardware, task)
+
+    @mock.patch.object(drac_common, 'get_drac_client', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(objects.Port, 'create', spec_set=True, autospec=True)
+    def test_inspect_hardware_no_supported_gpu(self, mock_port_create,
+                                               mock_get_drac_client):
+        controllers = [
+            {'id': 'Video.Embedded.1-1',
+             'description': 'Integrated Matrox G200eW3 Graphics Controller',
+             'function_number': 0,
+             'manufacturer': 'Matrox Electronics Systems Ltd.',
+             'pci_device_id': '0536',
+             'pci_vendor_id': '102B',
+             'pci_subdevice_id': '0737',
+             'pci_subvendor_id': '1028'},
+            {'id': 'Video.Slot.7-1',
+             'description': 'GV100GL [Tesla V100 PCIe 16GB]]',
+             'function_number': 0,
+             'manufacturer': 'NVIDIA Corporation',
+             'pci_device_id': '1DB4',
+             'pci_vendor_id': '10DE',
+             'pci_subdevice_id': '1214',
+             'pci_subvendor_id': '10DE'}]
+
+        expected_node_properties = {
+            'memory_mb': 32768,
+            'local_gb': 279,
+            'cpus': 18,
+            'cpu_arch': 'x86_64',
+            'capabilities': 'boot_mode:uefi,pci_gpu_devices:0'}
+        mock_client = mock.Mock()
+        mock_get_drac_client.return_value = mock_client
+        mock_client.list_memory.return_value = self.memory
+        mock_client.list_cpus.return_value = self.cpus
+        mock_client.list_virtual_disks.return_value = []
+        mock_client.list_physical_disks.return_value = self.physical_disks
+        mock_client.list_nics.return_value = self.nics
+        mock_client.list_bios_settings.return_value = self.uefi_boot_settings
+        video_controllers = [test_utils.dict_to_namedtuple(values=vc)
+                             for vc in controllers]
+        mock_client.list_video_controllers.return_value = video_controllers
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            return_value = task.driver.inspect.inspect_hardware(task)
+
+        self.node.refresh()
+        self.assertEqual(expected_node_properties, self.node.properties)
+        self.assertEqual(states.MANAGEABLE, return_value)
+        self.assertEqual(2, mock_port_create.call_count)
+
+    @mock.patch.object(drac_common, 'get_drac_client', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(objects.Port, 'create', spec_set=True, autospec=True)
+    def test_inspect_hardware_no_gpu(self, mock_port_create,
+                                     mock_get_drac_client):
+        expected_node_properties = {
+            'memory_mb': 32768,
+            'local_gb': 279,
+            'cpus': 18,
+            'cpu_arch': 'x86_64',
+            'capabilities': 'boot_mode:uefi,pci_gpu_devices:0'}
+        mock_client = mock.Mock()
+        mock_get_drac_client.return_value = mock_client
+        mock_client.list_memory.return_value = self.memory
+        mock_client.list_cpus.return_value = self.cpus
+        mock_client.list_virtual_disks.return_value = []
+        mock_client.list_physical_disks.return_value = self.physical_disks
+        mock_client.list_nics.return_value = self.nics
+        mock_client.list_bios_settings.return_value = self.uefi_boot_settings
+        mock_client.list_video_controllers.return_value = []
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            return_value = task.driver.inspect.inspect_hardware(task)
+
+        self.node.refresh()
+        self.assertEqual(expected_node_properties, self.node.properties)
+        self.assertEqual(states.MANAGEABLE, return_value)
+        self.assertEqual(2, mock_port_create.call_count)
 
     @mock.patch.object(drac_common, 'get_drac_client', spec_set=True,
                        autospec=True)
@@ -255,7 +362,7 @@ class DracInspectionTestCase(test_utils.BaseDracTest):
             'local_gb': 1116,
             'cpus': 18,
             'cpu_arch': 'x86_64',
-            'capabilities': 'boot_mode:uefi'}
+            'capabilities': 'boot_mode:uefi,pci_gpu_devices:1'}
         mock_client = mock.Mock()
         mock_get_drac_client.return_value = mock_client
         mock_client.list_memory.return_value = self.memory
@@ -263,6 +370,8 @@ class DracInspectionTestCase(test_utils.BaseDracTest):
         mock_client.list_virtual_disks.return_value = self.virtual_disks
         mock_client.list_nics.return_value = self.nics
         mock_client.list_bios_settings.return_value = self.uefi_boot_settings
+        mock_client.list_video_controllers.return_value = \
+            self.video_controllers
 
         mock_port_create.side_effect = exception.MACAlreadyExists("boom")
 

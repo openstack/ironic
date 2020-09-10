@@ -49,6 +49,8 @@ class DracRedfishInspect(redfish_inspect.RedfishInspect):
 
 class DracWSManInspect(base.InspectInterface):
 
+    _GPU_SUPPORTED_LIST = {"TU104GL [Tesla T4]"}
+
     def get_properties(self):
         """Return the properties of the interface.
 
@@ -98,9 +100,12 @@ class DracWSManInspect(base.InspectInterface):
                 properties['cpu_arch'] = 'x86_64' if cpus[0].arch64 else 'x86'
 
             bios_settings = client.list_bios_settings()
+            video_controllers = client.list_video_controllers()
             current_capabilities = node.properties.get('capabilities', '')
             new_capabilities = {
-                'boot_mode': bios_settings["BootMode"].current_value.lower()}
+                'boot_mode': bios_settings["BootMode"].current_value.lower(),
+                'pci_gpu_devices': self._calculate_gpus(video_controllers)}
+
             capabilties = utils.get_updated_capabilities(current_capabilities,
                                                          new_capabilities)
             properties['capabilities'] = capabilties
@@ -189,6 +194,23 @@ class DracWSManInspect(base.InspectInterface):
             return cpu.cores * 2
         else:
             return cpu.cores
+
+    def _calculate_gpus(self, video_controllers):
+        """Find actual GPU count.
+
+        This method reports number of NVIDIA Tesla T4 GPU devices present
+        on the server.
+
+        :param video_controllers: list of video controllers.
+
+        :returns: returns total gpu count.
+        """
+        gpu_cnt = 0
+        for video_controller in video_controllers:
+            for gpu in self._GPU_SUPPORTED_LIST:
+                if video_controller.description == gpu:
+                    gpu_cnt += 1
+        return gpu_cnt
 
     def _get_pxe_dev_nics(self, client, nics, node):
         """Get a list of pxe device interfaces.

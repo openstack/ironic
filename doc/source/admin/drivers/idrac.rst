@@ -259,6 +259,7 @@ The inspection discovers the following properties:
 Extra capabilities:
 
 * ``boot_mode``: UEFI or BIOS boot mode.
+* ``pci_gpu_devices``: number of GPU devices connected to the bare metal.
 
 It also creates baremetal ports for each NIC port detected in the system.
 The ``idrac-wsman`` inspect interface discovers which NIC ports are

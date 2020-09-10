@@ -1,0 +1,8 @@
+---
+features:
+  - |
+    Adds support in ``idrac-wsman`` inspect hardware interface for reporting
+    number of GPU devices connected to a system. This information is advertised
+    through capability ``pci_gpu_devices``, which can be used to make
+    scheduling decisions for the node. Currently, NVIDIA Tesla T4 GPU devices
+    are reported.
