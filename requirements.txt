@@ -2,8 +2,8 @@
 # of appearance. Changing the order has an impact on the overall integration
 # process, which may cause wedges in the gate later.
 pbr!=2.1.0,>=2.0.0 # Apache-2.0
-SQLAlchemy!=1.1.5,!=1.1.6,!=1.1.7,!=1.1.8,>=1.0.10 # MIT
-alembic>=0.9.6 # MIT
+SQLAlchemy>=1.2.19 # MIT
+alembic>=1.4.2 # MIT
 automaton>=1.9.0 # Apache-2.0
 eventlet!=0.18.3,!=0.20.1,>=0.18.2 # MIT
 WebOb>=1.7.1 # MIT
@@ -18,7 +18,7 @@ pysendfile>=2.0.0;sys_platform!='win32' # MIT
 oslo.concurrency>=4.2.0 # Apache-2.0
 oslo.config>=5.2.0 # Apache-2.0
 oslo.context>=2.19.2 # Apache-2.0
-oslo.db>=4.40.0 # Apache-2.0
+oslo.db>=6.0.0 # Apache-2.0
 oslo.rootwrap>=5.8.0 # Apache-2.0
 oslo.log>=3.36.0 # Apache-2.0
 oslo.middleware>=3.31.0 # Apache-2.0
