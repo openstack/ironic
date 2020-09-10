@@ -12,64 +12,11 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import datetime
 import functools
 
 from webob import exc
 
-from ironic.api import types as atypes
 from ironic.common.i18n import _
-
-
-class AsDictMixin(object):
-    """Mixin class adding an as_dict() method."""
-
-    def as_dict(self):
-        """Render this object as a dict of its fields."""
-        def _attr_as_pod(attr):
-            """Return an attribute as a Plain Old Data (POD) type."""
-            if isinstance(attr, list):
-                return [_attr_as_pod(item) for item in attr]
-            # Recursively evaluate objects that support as_dict().
-            try:
-                return attr.as_dict()
-            except AttributeError:
-                return attr
-
-        return dict((k, _attr_as_pod(getattr(self, k)))
-                    for k in self.fields
-                    if hasattr(self, k)
-                    and getattr(self, k) != atypes.Unset)
-
-
-class Base(AsDictMixin):
-    """Base type for complex types"""
-    def __init__(self, **kw):
-        for key, value in kw.items():
-            if hasattr(self, key):
-                setattr(self, key, value)
-
-    def unset_fields_except(self, except_list=None):
-        """Unset fields so they don't appear in the message body.
-
-        :param except_list: A list of fields that won't be touched.
-
-        """
-        if except_list is None:
-            except_list = []
-
-        for k in self.as_dict():
-            if k not in except_list:
-                setattr(self, k, atypes.Unset)
-
-
-class APIBase(Base):
-
-    created_at = atypes.wsattr(datetime.datetime, readonly=True)
-    """The time in UTC at which the object is created"""
-
-    updated_at = atypes.wsattr(datetime.datetime, readonly=True)
-    """The time in UTC at which the object is updated"""
 
 
 @functools.total_ordering

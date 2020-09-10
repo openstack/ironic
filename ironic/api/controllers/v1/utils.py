@@ -30,7 +30,6 @@ from pecan import rest
 from ironic import api
 from ironic.api.controllers import link
 from ironic.api.controllers.v1 import versions
-from ironic.api import types as atypes
 from ironic.common import args
 from ironic.common import exception
 from ironic.common import faults
@@ -677,6 +676,16 @@ def is_valid_logical_name(name):
         return utils.is_valid_logical_name(name)
 
 
+class PassthruResponse(object):
+    """Object to hold the "response" from a passthru call"""
+    def __init__(self, obj, status_code=None):
+        #: Store the result object from the view
+        self.obj = obj
+
+        #: Store an optional status_code
+        self.status_code = status_code
+
+
 def vendor_passthru(ident, method, topic, data=None, driver_passthru=False):
     """Call a vendor passthru API extension.
 
@@ -719,7 +728,7 @@ def vendor_passthru(ident, method, topic, data=None, driver_passthru=False):
             return_value = return_value.encode('utf-8')
         return_value = io.BytesIO(return_value)
 
-    return atypes.PassthruResponse(return_value, status_code=status_code)
+    return PassthruResponse(return_value, status_code=status_code)
 
 
 def check_for_invalid_fields(fields, object_fields):
