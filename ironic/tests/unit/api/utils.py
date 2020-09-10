@@ -167,8 +167,8 @@ def portgroup_post_data(**kw):
         if arg not in kw:
             portgroup.pop(arg)
 
-    internal = portgroup_controller.PortgroupPatchType.internal_attrs()
-    return remove_internal(portgroup, internal)
+    return remove_other_fields(
+        portgroup, portgroup_controller.PORTGROUP_SCHEMA['properties'])
 
 
 def post_get_test_portgroup(**kw):

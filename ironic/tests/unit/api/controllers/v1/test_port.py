@@ -1112,7 +1112,7 @@ class TestListPorts(test_api_base.BaseApiTest):
                                  headers={api_base.Version.string: '1.24'},
                                  expect_errors=True)
         self.assertEqual(http_client.BAD_REQUEST, response.status_int)
-        self.assertIn('Expected a logical name or UUID',
+        self.assertIn('Expected UUID or name for portgroup',
                       response.json['error_message'])
 
 

@@ -26,16 +26,13 @@ from testtools.matchers import HasLength
 from ironic.api.controllers import base as api_base
 from ironic.api.controllers import v1 as api_v1
 from ironic.api.controllers.v1 import notification_utils
-from ironic.api.controllers.v1 import portgroup as api_portgroup
 from ironic.api.controllers.v1 import utils as api_utils
-from ironic.api import types as atypes
 from ironic.common import exception
 from ironic.common import states
 from ironic.common import utils as common_utils
 from ironic.conductor import rpcapi
 from ironic import objects
 from ironic.objects import fields as obj_fields
-from ironic.tests import base
 from ironic.tests.unit.api import base as test_api_base
 from ironic.tests.unit.api import utils as apiutils
 from ironic.tests.unit.objects import utils as obj_utils
@@ -49,15 +46,6 @@ def _rpcapi_update_portgroup(self, context, portgroup, topic):
     """
     portgroup.save()
     return portgroup
-
-
-class TestPortgroupObject(base.TestCase):
-
-    def test_portgroup_init(self):
-        portgroup_dict = apiutils.portgroup_post_data(node_id=None)
-        del portgroup_dict['extra']
-        portgroup = api_portgroup.Portgroup(**portgroup_dict)
-        self.assertEqual(atypes.Unset, portgroup.extra)
 
 
 class TestListPortgroups(test_api_base.BaseApiTest):
@@ -1007,6 +995,7 @@ class TestPatch(test_api_base.BaseApiTest):
         self.assertFalse(mock_upd.called)
 
     def test_update_portgroup_internal_info_not_allowed(self, mock_upd):
+        mock_upd.return_value = self.portgroup
         response = self.patch_json('/portgroups/%s' % self.portgroup.uuid,
                                    [{'path': '/internal_info',
                                      'value': False,
@@ -1052,6 +1041,7 @@ class TestPatch(test_api_base.BaseApiTest):
             [{'path': '/properties/abc', 'op': 'add', 'value': 123}], mock_upd)
 
     def test_remove_mode_not_allowed(self, mock_upd):
+        mock_upd.return_value = self.portgroup
         response = self.patch_json('/portgroups/%s' % self.portgroup.uuid,
                                    [{'path': '/mode',
                                      'op': 'remove'}],
