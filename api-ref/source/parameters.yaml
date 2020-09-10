@@ -129,6 +129,13 @@ volume_target_id:
   required: true
   type: string
 
+agent_token:
+  description: |
+    The token of the ironic-python-agent ramdisk, sent to the Bare Metal
+    service for authentication purposes.
+  in: query
+  required: true
+  type: string
 agent_version:
   description: |
     The version of the ironic-python-agent ramdisk, sent back to the Bare Metal

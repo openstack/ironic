@@ -97,6 +97,9 @@ Error response codes: 400 404
 .. versionadded:: 1.36 ``agent_version`` parameter for passing the version of
   the Ironic Python Agent to Ironic during heartbeat
 
+.. versionadded:: 1.62 ``agent_token`` parameter for passing the token of
+  the Ironic Python Agent to Ironic during heartbeat
+
 Request
 -------
 
@@ -105,3 +108,4 @@ Request
     - node_ident: node_ident
     - callback_url: callback_url
     - agent_version: agent_version
+    - agent_token: agent_token
